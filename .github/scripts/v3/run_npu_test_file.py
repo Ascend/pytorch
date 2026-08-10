@@ -101,11 +101,20 @@ def run_single_file(
     in results, and the JUnit XML is patched so that StepcurrentPlugin's
     --scs skips it on retry.  Normal test failures are NOT retried.
 
+    Execution follows the same pattern as upstream run_test.py:
+      cwd = test_dir (pytorch/test/)
+      cmd = python -bb <relative_test_file> --use-pytest ...
+
+    `python script.py` puts the script's parent directory into
+    sys.path[0] (not cwd), so `from _fa_test_common import ...` works.
+    The installed torch wheel is not shadowed because pytorch/test/
+    does not contain a torch/ source tree.
+
     Args:
         device_group: ASCEND_RT_VISIBLE_DEVICES value, e.g. "0" or "0,1,2,3,4,5,6,7"
         progress: optional progress prefix e.g. "[5/123]" for log output
     """
-    file_path = test_dir.parent / test_file
+    file_path = test_dir / test_file
     if not file_path.exists():
         return {
             "file": test_file,
@@ -146,9 +155,9 @@ def run_single_file(
         junit_file = junit_dir / f"{safe}_attempt{attempt}.xml"
 
         cmd = [
-            sys.executable,
-            "-m", "pytest",
-            str(file_path),
+            sys.executable, "-bb",
+            test_file + ".py",        # relative path, same as run_test.py
+            "--use-pytest",           # trigger run_tests() pytest path in common_utils
             "-p", "no:xdist",
             "-p", "npu_poisoning_plugin",
             "-p", "timeout",
