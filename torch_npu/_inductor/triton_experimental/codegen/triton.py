@@ -2956,10 +2956,12 @@ class NPUTritonKernel(TritonKernel):
                 if tree.tensor_dim is not None:
                     if not tree.is_reduction:
                         _scalar_odo = getattr(tree, '_npu_scalar_odometer', None) or set()
+                        count = 0
                         for node in tree.nodes.values():
                             if (node.name not in getattr(tree, 'tree_node_mapping', {})
                                     and node.name not in _scalar_odo):
-                                ndim += 1
+                                count += 1
+                        ndim += count if count else 1
                     else:
                         # Promoted reduction trees occupy one slot PER surviving
                         # free sub-node (real-block multi-tile), mirroring the
@@ -6916,45 +6918,6 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                         _set(_get().replace(
                             f", {old_reduction_dim})", f", {real_reduction_dim})"
                         ).replace(old_slice, new_slice))
-                    # Store-index broadcast fixup. Upstream store appends
-                    # .broadcast_to(value.shape) with the pre-linearize shape (reduction
-                    # slot=1, no brackets); after linearization the value is collapsed,
-                    # so the stale target has the wrong rank. Rebuild old/new arg strings
-                    # from old_sizes/real_sizes (reduction slot -> "1"), name/dtype-free.
-                    old_val_sizes = list(old_sizes)
-                    if 0 <= old_reduction_dim < len(old_val_sizes):
-                        old_val_sizes[old_reduction_dim] = "1"
-                    real_val_sizes = list(real_sizes)
-                    if 0 <= real_reduction_dim < len(real_val_sizes):
-                        real_val_sizes[real_reduction_dim] = "1"
-                    old_bcast = f".broadcast_to({', '.join(old_val_sizes)})"
-                    if old_val_sizes != real_val_sizes and old_bcast in _get():
-                        new_bcast = f".broadcast_to({', '.join(real_val_sizes)})"
-                        _set(_get().replace(old_bcast, new_bcast))
-                    # The scalar store index is emitted as tl.full([1,...,1], v, dt)
-                    # with one 1 per orig_ndim dim; after collapse it must carry
-                    # real_ndim dims. Rewrite the rank prefix via orig_ndim/real_ndim,
-                    # leaving value and dtype untouched.
-                    old_scalar_rank = f"[{', '.join(['1'] * orig_ndim)}]"
-                    real_scalar_rank = f"[{', '.join(['1'] * real_ndim)}]"
-                    if (
-                        orig_ndim != real_ndim
-                        and f"tl.full({old_scalar_rank}, " in _get()
-                    ):
-                        _set(_get().replace(
-                            f"tl.full({old_scalar_rank}, ",
-                            f"tl.full({real_scalar_rank}, ",
-                        ))
-                    if (
-                        orig_ndim != real_ndim
-                        and real_ndim > 0
-                        and "tl.broadcast_to(" in _get()
-                        and f", {old_scalar_rank})" in _get()
-                    ):
-                        _set(_get().replace(
-                            f", {old_scalar_rank})",
-                            f", {real_scalar_rank})",
-                        ))
                 # Independent dim fixup: upstream tl.sum(_, ndim-nreduce) hardcodes the
                 # last slot. After the hook permutes R off it, the resize slice is right
                 # but the dim arg inside tl.sum/max/min/triton_helpers still points at X.
