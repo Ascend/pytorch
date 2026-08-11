@@ -4,15 +4,6 @@ import torch
 from torch._decomp import remove_decompositions
 from torch._inductor import decomposition as inductor_decomp
 from torch_npu._inductor.mfusion.decomp import matmul_backward
-from torch._higher_order_ops.effects import (
-    _EffectType,
-    _register_effectful_op,
-)
-
-_register_effectful_op(
-    torch.ops.aten.native_dropout.default,
-    _EffectType.ORDERED,
-)
 
 aten = torch.ops.aten
 prims = torch.ops.prims
