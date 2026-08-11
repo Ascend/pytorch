@@ -2,28 +2,14 @@ from __future__ import annotations
 
 import os
 import sys
-import threading
 import warnings
-from collections.abc import Sequence
-from itertools import chain
-from typing import Any, cast
 
 import torch
 import torch.distributed as pytorch_dist
-from torch._utils import (
-    _get_all_device_indices,
-    _get_device_index,
-    ExceptionWrapper,
-)
 from torch.distributed import Reducer
-from torch.nn.modules.module import Module
-from torch.nn.parallel.parallel_apply import get_a_var
-from torch.nn.parallel.replicate import replicate
-from torch.nn.parallel.scatter_gather import gather, scatter_kwargs
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter
 
 import torch_npu
-from torch_npu.npu.amp.autocast_mode import autocast
 from torch_npu.utils._error_code import ErrCode, pta_error
 
 
@@ -432,176 +418,11 @@ def _mpdl_iter_init(self, *args, **kwargs):
     torch_npu._C._npu_reset_thread_affinity()
 
 
-def _parallel_apply(
-    modules: Sequence[Module],
-    inputs: Sequence[Any],
-    kwargs_tup: Sequence[dict[str, Any]] | None = None,
-    devices: Sequence[int | torch.device | None] | None = None,
-) -> list[Any]:
-    if len(modules) != len(inputs):
-        raise AssertionError(
-            f"The number of modules {len(modules)} is not equal to the number of inputs {len(inputs)}"
-            + pta_error(ErrCode.PARAM)
-        )
-    if kwargs_tup is not None:
-        if len(modules) != len(kwargs_tup):
-            raise AssertionError(
-                f"The number of modules {len(modules)} is not equal to the number of kwargs_tup {len(kwargs_tup)}"
-                + pta_error(ErrCode.PARAM)
-            )
-    else:
-        kwargs_tup = (cast(dict[str, Any], {}),) * len(modules)
-    if devices is not None:
-        if len(modules) != len(devices):
-            raise AssertionError(
-                f"The number of modules {len(modules)} is not equal to the number of devices {len(devices)}"
-                + pta_error(ErrCode.PARAM)
-            )
-    else:
-        devices = [None] * len(modules)
-    devices = [_get_device_index(x, True) for x in devices]
-    streams = [torch.npu.current_stream(x) for x in devices]
-    lock = threading.Lock()
-    results = {}
-    grad_enabled, autocast_enabled = (
-        torch.is_grad_enabled(),
-        torch.is_autocast_enabled(),
-    )
-
-    def _worker(
-        i: int,
-        module: Module,
-        input_t: Any,
-        kwargs: dict[str, Any],
-        device: int | torch.device | None = None,
-        stream: torch.npu.Stream | None = None,
-    ) -> None:
-        torch.set_grad_enabled(grad_enabled)
-        if device is None:
-            t = get_a_var(input_t)
-            if t is None:
-                with lock:
-                    results[i] = ExceptionWrapper(
-                        where=f"in replica {i}, no device was provided and no tensor input was found; "
-                        "device cannot be resolved"
-                    )
-                return
-            device = t.get_device()
-        torch.npu.set_device(device)
-        if stream is None:
-            stream = torch.npu.current_stream(device)
-        try:
-            with (
-                torch.npu.device(device),
-                torch.npu.stream(stream),
-                autocast(enabled=autocast_enabled),
-            ):
-                # this also avoids accidental slicing of `input` if it is a Tensor
-                if not isinstance(input_t, (list, tuple)):
-                    input_t = (input_t,)
-                output = module(*input_t, **kwargs)
-            with lock:
-                results[i] = output
-        except Exception:
-            with lock:
-                results[i] = ExceptionWrapper(
-                    where=f"in replica {i} on device {device}"
-                )
-
-    if len(modules) > 1:
-        threads = []
-        for i, (module, input_t, kwargs, device, stream) in enumerate(
-            zip(modules, inputs, kwargs_tup, devices, streams)
-        ):
-            threads.append(
-                threading.Thread(
-                    target=_worker, args=(i, module, input_t, kwargs, device, stream)
-                )
-            )
-
-        for thread in threads:
-            thread.start()
-        for thread in threads:
-            thread.join()
-    else:
-        _worker(0, modules[0], inputs[0], kwargs_tup[0], devices[0], streams[0])
-
-    outputs = []
-    for i in range(len(inputs)):
-        output = results.get(i)
-        if isinstance(output, ExceptionWrapper):
-            output.reraise()
-        outputs.append(output)
-    return outputs
-
-
-def npu_parallel_apply(self, replicas, inputs, kwargs) -> list[Any]:
-    return _parallel_apply(replicas, inputs, kwargs, self.device_ids[: len(replicas)])
-
-
-def npu_data_parallel(
-    module: Module,
-    inputs: Any,
-    device_ids: Sequence[int | torch.device] | None = None,
-    output_device: int | torch.device | None = None,
-    dim: int = 0,
-    module_kwargs: Any | None = None,
-) -> torch.Tensor:
-    if not isinstance(inputs, tuple):
-        inputs = (inputs,) if inputs is not None else ()
-
-    device_type = torch._utils._get_available_device_type()
-
-    if device_type is None:
-        raise RuntimeError(
-            "device type could not be determined" + pta_error(ErrCode.PARAM)
-        )
-
-    if device_ids is None:
-        device_ids = _get_all_device_indices()
-
-    if device_ids is None:
-        raise RuntimeError("no available devices were found" + pta_error(ErrCode.PARAM))
-
-    if output_device is None:
-        output_device = device_ids[0]
-
-    device_ids = [_get_device_index(x, True) for x in device_ids]
-    output_device = _get_device_index(output_device, True)
-    src_device_obj = torch.device(device_type, device_ids[0])
-
-    for t in chain(module.parameters(), module.buffers()):
-        if t.device != src_device_obj:
-            raise RuntimeError(
-                "module must have its parameters and buffers "
-                f"on device {src_device_obj} (device_ids[0]) but found one of "
-                f"them on device: {t.device}" + pta_error(ErrCode.VALUE)
-            )
-
-    inputs, module_kwargs = scatter_kwargs(inputs, module_kwargs, device_ids, dim)
-
-    if not inputs and not module_kwargs:
-        inputs = ((),)
-        module_kwargs = ({},)
-
-    if module_kwargs is None:
-        raise AssertionError("The module_kwargs is None" + pta_error(ErrCode.VALUE))
-
-    if len(device_ids) == 1:
-        return module(*inputs[0], **module_kwargs[0])
-    used_device_ids = device_ids[: len(inputs)]
-    replicas = replicate(module, used_device_ids)
-    outputs = _parallel_apply(replicas, inputs, module_kwargs, used_device_ids)
-    return gather(outputs, output_device, dim)
-
-
 def _apply_module_patch():
     torch.nn.Module.npu = npu
     torch.nn.Module.to = to
     torch.nn.Module.cast_weight = cast_weight
     torch.nn.modules.rnn.LSTM.forward = _lstm_forward
-    torch.nn.parallel.DataParallel.parallel_apply = npu_parallel_apply
-    torch.nn.parallel.data_parallel = npu_data_parallel
     torch.utils.data.dataloader._MultiProcessingDataLoaderIter.__init__ = (
         _mpdl_iter_init
     )
