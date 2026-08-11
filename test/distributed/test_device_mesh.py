@@ -1,4 +1,20 @@
+# Copyright (c) 2026 Huawei Technologies Co., Ltd
 # Copyright (c) Meta Platforms, Inc. and affiliates
+# All rights reserved.
+#
+# Licensed under the BSD 3-Clause License (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://opensource.org/licenses/BSD-3-Clause
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 # Owner(s): ["oncall: distributed"]
 import os
 
@@ -21,6 +37,7 @@ from torch.distributed.tensor._collective_utils import (
     unpad_tensor,
 )
 from torch.distributed.tensor.placement_types import _Partial, Shard
+from torch.testing._internal.common_utils import TestCase
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 from torch.testing._internal.distributed.fake_pg import FakeStore
 
@@ -758,6 +775,46 @@ class TestDeviceMeshGetItemE(DTensorTestBase):
         self.assertEqual(spmd_mesh.mesh, expected_mesh_tensor)
         self.assertEqual(dp_cp_mesh.get_group(), mesh_3d["dp_cp"].get_group())
         self.assertEqual(dp_cp_mesh.get_group(), mesh_3d.get_group(mesh_dim="dp_cp"))
+
+
+class TestMeshResources(TestCase):
+    def test_root_to_flatten_mapping_clear(self):
+        mapping = _mesh_resources.root_to_flatten_mapping
+        original_mapping = dict(mapping)
+
+        # Restore the shared DeviceMesh cache after this test finishes.
+        self.addCleanup(mapping.update, original_mapping)
+        self.addCleanup(mapping.clear)
+
+        # Validate clear on an empty mapping.
+        mapping.clear()
+        self.assertIsInstance(mapping, dict)
+        self.assertEqual(mapping, {})
+
+        root_mesh = object()
+        flattened_mesh = object()
+        mapping[root_mesh] = {"dp_tp": flattened_mesh}
+
+        # Confirm that a representative cache entry exists before clearing.
+        self.assertEqual(len(mapping), 1)
+        self.assertIs(mapping[root_mesh]["dp_tp"], flattened_mesh)
+
+        # Clear all cached flattened meshes in place.
+        result = mapping.clear()
+        self.assertIsNone(result)
+        self.assertEqual(mapping, {})
+        self.assertIs(mapping, _mesh_resources.root_to_flatten_mapping)
+
+        # Repeated clear on an empty mapping should remain a no-op.
+        self.assertIsNone(mapping.clear())
+        self.assertEqual(mapping, {})
+
+        # Reject unsupported positional and keyword arguments.
+        with self.assertRaises(TypeError):
+            mapping.clear("unexpected")
+
+        with self.assertRaises(TypeError):
+            mapping.clear(unexpected=True)
 
 
 class TestMeshEnv(DTensorTestBase):
