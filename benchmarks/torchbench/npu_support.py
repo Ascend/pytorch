@@ -666,8 +666,8 @@ def _patch_model_25():
                 if op not in anir_config.decomps_to_exclude_npu:
                     anir_config.decomps_to_exclude_npu.append(op)
             remove_decompositions(inductor_decomp.decompositions, ops_to_add)
-    except Exception as e:
-        log.warning("import config failed for BartForCausalLM patch: %s", e)  # noqa: G200
+    except Exception:
+        log.warning("import config failed for BartForCausalLM patch", exc_info=True)
 
 
 @register_patch("DistilBertForMaskedLM")
@@ -727,6 +727,68 @@ def _patch_fastNLP_Bert():
         )
 
     BertModel.from_pretrained = from_pretrained_no_weights
+
+
+@register_patch("drq")
+def _patch_drq():
+    """Load obs.pkl from TORCHBENCH_DATA_PATH / DATA_PATH."""
+    import pickle as pkl
+
+    import numpy as np
+    from torchbenchmark import DATA_PATH
+    from torchbenchmark.models.drq import MockEnv
+    from torchbenchmark.models.drq.drqutils import FrameStack
+    import torchbenchmark.models.drq as drq_mod
+
+    def make_env(cfg):
+        obs_path = os.path.join(str(DATA_PATH), "obs.pkl")
+        mockobs = pkl.load(open(obs_path, "rb"))
+        mockobs = np.random.randint(low=11, high=228, size=mockobs.shape, dtype=np.uint8)
+        env = MockEnv(mockobs)
+        env = FrameStack(env, k=cfg.frame_stack)
+        env.seed(cfg.seed)
+        return env
+
+    drq_mod.make_env = make_env
+
+
+
+@register_patch("yolov3")
+def _patch_yolov3():
+    """Use DATA_PATH for coco128, and select_device for NPU."""
+    from torchbenchmark import DATA_PATH
+
+    data_dir = os.path.join(str(DATA_PATH), "coco128")
+    # yolov3 asserts default data/.data/coco128 at import time; allow import then remap.
+    _real_exists = os.path.exists
+
+    def _exists_proxy(path):
+        path_s = str(path).replace("\\", "/")
+        if path_s.endswith("data/.data/coco128"):
+            return _real_exists(data_dir) or _real_exists(path)
+        return _real_exists(path)
+
+    os.path.exists = _exists_proxy
+    try:
+        import torchbenchmark.models.yolov3 as yolov3_mod
+        import torchbenchmark.models.yolov3.yolo_utils.torch_utils as torch_utils
+    finally:
+        os.path.exists = _real_exists
+
+    yolov3_mod.DATA_DIR = data_dir
+
+    def new_select_device(device="", apex=False, batch_size=None):
+        device = "" if device is None else str(device)
+        if device.lower() == "cpu" or not torch.npu.is_available():
+            return torch.device("cpu")
+        if device in ("", "npu"):
+            idx = torch.npu.current_device()
+        else:
+            idx = int(device.split(",")[0].replace("npu:", ""))
+            torch.npu.set_device(idx)
+        return torch.device(f"npu:{idx}")
+
+    torch_utils.select_device = new_select_device
 
 
 def patch_model(model_name):
