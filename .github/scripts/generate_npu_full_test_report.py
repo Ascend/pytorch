@@ -654,8 +654,6 @@ def main():
 
     overview_rows = [
         ["Overall result", overall_status],
-        ["PyTorch", f"`{args.pytorch_version}`"],
-        ["torch_npu", f"`{whl_name}`"],
         ["Docker image", f"`{args.docker_image}`"],
         ["Runner", f"`{args.runner}`"],
         ["Shards", f"{received_reports} / {expected_reports} reported"],
