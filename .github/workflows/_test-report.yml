@@ -33,6 +33,16 @@ on:
         type: string
         default: 'quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly'
         description: Docker image used for test execution
+      pytorch_short:
+        required: false
+        type: string
+        default: 'unknown'
+        description: Short SHA of upstream PyTorch
+      torch_npu_short:
+        required: false
+        type: string
+        default: 'unknown'
+        description: Short SHA of torch_npu
 jobs:
   report:
     runs-on: ubuntu-latest
@@ -125,8 +135,8 @@ jobs:
             --reports-root all-test-reports \
             --output-markdown ${REPORT_MD} \
             --output-json ${REPORT_JSON} \
-            --pytorch-version "nightly" \
-            --torch-npu-whl "source-build" \
+            --pytorch-version "${{ inputs.pytorch_short }}" \
+            --torch-npu-whl "${{ inputs.torch_npu_short }}" \
             --patch-count "0" \
             --shard-matrix-json "${COMBINED_MATRIX}" \
             --docker-image "${{ inputs.docker_image }}" \

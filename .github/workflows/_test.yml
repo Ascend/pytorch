@@ -7,6 +7,11 @@ on:
         required: true
         type: string
         description: Short SHA of upstream PyTorch (from _build.yml outputs)
+      torch_npu_short:
+        required: false
+        type: string
+        default: ''
+        description: Short SHA of torch_npu (from _build.yml outputs)
       case_paths_config:
         required: false
         type: string
@@ -162,3 +167,5 @@ jobs:
       graph_matrix: ${{ needs.collect.outputs.graph_matrix }}
       others_matrix: ${{ needs.collect.outputs.others_matrix }}
       docker_image: ${{ inputs.docker_image }}
+      pytorch_short: ${{ inputs.resolved_short }}
+      torch_npu_short: ${{ inputs.torch_npu_short }}

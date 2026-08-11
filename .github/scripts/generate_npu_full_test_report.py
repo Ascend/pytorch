@@ -654,7 +654,7 @@ def main():
 
     overview_rows = [
         ["Overall result", overall_status],
-        ["PyTorch", f"`v{args.pytorch_version}`"],
+        ["PyTorch", f"`{args.pytorch_version}`"],
         ["torch_npu", f"`{whl_name}`"],
         ["Patches applied", str(args.patch_count)],
         ["Docker image", f"`{args.docker_image}`"],

@@ -32,6 +32,12 @@ on:
       resolved_short:
         description: Short SHA (first 10 chars) of upstream PyTorch
         value: ${{ jobs.fetch.outputs.resolved_short }}
+      torch_npu_sha:
+        description: Full SHA of torch_npu
+        value: ${{ jobs.pytorch_and_torch-npu_build.outputs.torch_npu_sha }}
+      torch_npu_short:
+        description: Short SHA (first 10 chars) of torch_npu
+        value: ${{ jobs.pytorch_and_torch-npu_build.outputs.torch_npu_short }}
 
 jobs:
   # ======================================================================
@@ -109,6 +115,9 @@ jobs:
     defaults:
       run:
         shell: bash
+    outputs:
+      torch_npu_sha: ${{ steps.resolve_torch_npu_sha.outputs.sha }}
+      torch_npu_short: ${{ steps.resolve_torch_npu_sha.outputs.short }}
     container:
       image: quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly
       options: --network host
@@ -223,6 +232,15 @@ jobs:
         working-directory: torch_npu
         run: |
           git submodule update --init --recursive --jobs=$(nproc)
+
+      - name: Resolve torch_npu SHA
+        id: resolve_torch_npu_sha
+        working-directory: torch_npu
+        run: |
+          SHA=$(git rev-parse HEAD)
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "short=${SHA:0:10}" >> "$GITHUB_OUTPUT"
+          echo "torch_npu commit: ${SHA}"
 
       # Step 4: Build and install torch_npu
       - name: Build and install torch_npu
