@@ -1399,7 +1399,7 @@ def bwd_dkdv_block_mn(
 {% if BWD_SCORE_MOD_IS_IDENTITY %}
     pT = tl.math.exp(qkT - lse[:, None]).to(MATMUL_PRECISION)
 {% else %}
-    pT = tl.math.exp(post_mod_scores - lse[:, None]).to(MATMUL_PRECISION)
+    pT = tl.math.exp(post_mod_scores - lse[:, None])
 {% endif %}
     DO_block_ptr = tl.make_block_ptr(
         base=DO,
@@ -1423,7 +1423,7 @@ def bwd_dkdv_block_mn(
         Di = tl.load(DELTA + offs_m1)
     else:
         Di = tl.load(DELTA + offs_m1, mask=offs_m1 < Q_LEN, other=0.0)
-    dpT = tl.dot(do, tl.trans(v), input_precision="ieee").to(MATMUL_PRECISION)
+    dpT = tl.dot(do, tl.trans(v), input_precision="ieee")
     dsT = (pT * (dpT - Di[:, None])).to(MATMUL_PRECISION)
 {% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
     {{ modification(
@@ -1560,7 +1560,7 @@ def bwd_dkdv_full_block_mn(
             float("-inf"),
         )
 
-    pT = tl.math.exp(post_mod_scores - lse[:, None]).to(MATMUL_PRECISION)
+    pT = tl.math.exp(post_mod_scores - lse[:, None])
 {% endif %}
     DO_block_ptr = tl.make_block_ptr(
         base=DO,
@@ -1584,7 +1584,7 @@ def bwd_dkdv_full_block_mn(
         Di = tl.load(DELTA + offs_m1)
     else:
         Di = tl.load(DELTA + offs_m1, mask=offs_m1 < Q_LEN, other=0.0)
-    dpT = tl.dot(do, tl.trans(v), input_precision="ieee").to(MATMUL_PRECISION)
+    dpT = tl.dot(do, tl.trans(v), input_precision="ieee")
     dsT = (pT * (dpT - Di[:, None])).to(MATMUL_PRECISION)
 {% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
     {{ modification(
