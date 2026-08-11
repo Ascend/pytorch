@@ -245,7 +245,7 @@ def run_single_file(
     poisoned_marker = report_dir / f"{safe}_poisoned_case.txt"
     poisoned_case_nodeid = None  # set after first poisoning, used for retry
 
-    max_attempts = 3  # supports up to 2 poisonings per file
+    max_attempts = 4  # supports up to 3 poisonings per file
     all_passed = 0
     all_failed = 0
     all_errors = 0
