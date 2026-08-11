@@ -28,32 +28,35 @@ def _is_format_matched(input_list):
 
 
 @_exec_once
-def _check_compatibility_once(hidden_states,
-                             attention_mask,
-                             query_kernel,
-                             key_kernel,
-                             value_kernel,
-                             query_bias,
-                             key_bias,
-                             value_bias,
-                             gamma=None,
-                             beta=None):
+def _check_compatibility_once(
+    hidden_states,
+    attention_mask,
+    query_kernel,
+    key_kernel,
+    value_kernel,
+    query_bias,
+    key_bias,
+    value_bias,
+    gamma=None,
+    beta=None,
+):
     if not _is_format_matched(
-            [hidden_states, attention_mask, query_kernel, key_kernel, value_kernel, query_bias, key_bias, value_bias]):
+            [hidden_states, attention_mask, query_kernel, key_kernel, value_kernel,
+             query_bias, key_bias, value_bias]):
         raise RuntimeError(
-            'fused attention check compatibility failed, format not matches' + ops_error(ErrCode.VALUE))
+            'fused attention check compatibility failed, format not matches'
+            + ops_error(ErrCode.VALUE))
     if gamma is not None and beta is not None:
         if torch_npu.get_npu_format(gamma) != 2 or torch_npu.get_npu_format(
                 beta) != 2:
             raise RuntimeError(
-                'fused attention check compatibility failed, gamma or beta format not matches' +
-                ops_error(ErrCode.VALUE)
-            )
-    if len(hidden_states.size()) != 2 or hidden_states.shape[
-        0] % 32 != 0 or hidden_states.shape[1] not in (1024, 768):
+                'fused attention check compatibility failed, gamma or beta format not matches'
+                + ops_error(ErrCode.VALUE))
+    if (len(hidden_states.size()) != 2 or hidden_states.shape[0] % 32 != 0
+            or hidden_states.shape[1] not in (1024, 768)):
         raise RuntimeError(
-            'fused attention check compatibility failed, shape of hidden_states not matches' + ops_error(ErrCode.VALUE)
-        )
+            'fused attention check compatibility failed, shape of hidden_states not matches'
+            + ops_error(ErrCode.VALUE))
     if len(attention_mask.size()) != 4 or attention_mask.shape[1] != 1 or (
             attention_mask.shape[2] != attention_mask.shape[3]):
         raise RuntimeError(
@@ -89,11 +92,12 @@ class _FusedAttentionWithLayerNorm(torch.autograd.Function):
                 scale=1,
                 keep_prob=0):
         warnings.warn("torch_npu.contrib.npu_fused_attention_with_layernorm is deprecated and "
-                      "will be removed in future version. Use torch_npu.npu_fusion_attention and "
+                      "will be removed in a future version. Use torch_npu.npu_fusion_attention and "
                       "torch.nn.LayerNorm instead.", FutureWarning)
-        _check_compatibility_once(hidden_states, attention_mask, query_kernel,
-                                 key_kernel, value_kernel, query_bias,
-                                 key_bias, value_bias, gamma, beta)
+        _check_compatibility_once(
+            hidden_states, attention_mask, query_kernel,
+            key_kernel, value_kernel, query_bias,
+            key_bias, value_bias, gamma, beta)
 
         ctx.bsnc = [
             attention_mask.shape[0],
@@ -149,9 +153,10 @@ class _FusedAttention(torch.autograd.Function):
                 value_bias,
                 scale=1,
                 keep_prob=0):
-        _check_compatibility_once(hidden_states, attention_mask, query_kernel,
-                                 key_kernel, value_kernel, query_bias,
-                                 key_bias, value_bias, None, None)
+        _check_compatibility_once(
+            hidden_states, attention_mask, query_kernel,
+            key_kernel, value_kernel, query_bias,
+            key_bias, value_bias, None, None)
 
         ctx.bsnc = [
             attention_mask.shape[0],

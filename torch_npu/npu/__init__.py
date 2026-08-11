@@ -654,7 +654,7 @@ def set_deterministic_level(level):
             warnings.warn(
                 "The current configuration value of 'torch_npu.npu.set_deterministic_level' "
                 "conflicts with 'torch.use_deterministic_algorithms'. "
-                "'torch.use_deterministic_algorithms' has been configured to 'False'"
+                "'torch.use_deterministic_algorithms' has been configured to 'False'."
             )
             torch.use_deterministic_algorithms(False)
             deterministic_changed = True
@@ -662,7 +662,7 @@ def set_deterministic_level(level):
             warnings.warn(
                 "The current configuration value of 'torch_npu.npu.set_deterministic_level' "
                 "conflicts with 'torch.use_deterministic_algorithms'. "
-                "'torch.use_deterministic_algorithms' has been configured to 'True'"
+                "'torch.use_deterministic_algorithms' has been configured to 'True'."
             )
             torch.use_deterministic_algorithms(True)
             deterministic_changed = True

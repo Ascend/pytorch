@@ -19,7 +19,7 @@ def _configure_interactive_mode():
         os.environ["TASK_QUEUE_ENABLE"] = "0"
         warnings.warn(
             "On the interactive interface, the value of TASK_QUEUE_ENABLE is set to 0 by default. "
-            "Do not set it to 1 to prevent some unknown errors"
+            "Do not set it to 1 to avoid unexpected errors."
         )
 
 

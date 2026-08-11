@@ -74,7 +74,7 @@ def _load_triton_backend():
     has_triton = torch.utils._triton.has_triton()
     if not has_triton:
         import warnings
-        warnings.warn("triton-ascend is not installed, install it first.")
+        warnings.warn("triton-ascend is not installed. Please install it first.")
         return
     import logging
     log = logging.getLogger(__name__)
@@ -286,7 +286,7 @@ def _load_triton_experimental_backend():
     has_triton = torch.utils._triton.has_triton()
     if not has_triton:
         import warnings
-        warnings.warn("triton-ascend is not installed, install it first.")
+        warnings.warn("triton-ascend is not installed. Please install it first.")
         return
     # Decomposition / dispatcher overrides live in the shared
     # decomposition.py alongside the other backends' registrars; call it directly

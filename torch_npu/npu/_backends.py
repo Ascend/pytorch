@@ -12,7 +12,7 @@ def flash_sdp_enabled() -> bool:
     .. warning:: This flag is beta and subject to change.
     Returns whether flash scaled dot product attention is enabled or not.
     """
-    warnings.warn("Currently, the device operator does not support flash sdp and only sets Global variable!")
+    warnings.warn("Currently, the device operator does not support flash sdp and only sets the global variable!")
     return torch._C._get_flash_sdp_enabled()
 
 
@@ -21,7 +21,7 @@ def enable_flash_sdp(enabled: bool):
     .. warning:: This flag is beta and subject to change.
     Enables or disables flash scaled dot product attention.
     """
-    warnings.warn("Currently, the device operator does not support flash sdp and only sets Global variable!")
+    warnings.warn("Currently, the device operator does not support flash sdp and only sets the global variable!")
     torch._C._set_sdp_use_flash(enabled)
 
 
@@ -69,8 +69,8 @@ def sdp_kernel(enable_flash: bool = True, enable_math: bool = True, enable_mem_e
     attention.
     Upon exiting the context manager, the previous state of the flags will be restored.
     """
-    warnings.warn("Currently, the device operator does not support flash、math、mem_efficient sdp "
-                  "and only sets Global variable!")
+    warnings.warn("Currently, the device operator does not support flash, math, mem_efficient sdp "
+                  "and only sets the global variable!")
     previous_flash: bool = flash_sdp_enabled()
     previous_mem_efficient: bool = mem_efficient_sdp_enabled()
     previous_math: bool = math_sdp_enabled()

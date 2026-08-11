@@ -1,5 +1,4 @@
 import os
-import re
 
 from functools import wraps
 
@@ -32,7 +31,7 @@ def _cann_package_check():
 
         # check whether environment variables are correctly configured
         if "ASCEND_OPP_PATH" not in os.environ:
-            raise Exception(f"ASCEND_OPP_PATH environment variable is not set. "
+            raise Exception("ASCEND_OPP_PATH environment variable is not set. "
                             "Please check whether the opp package has been installed. If exist, please run "
                             "'source set_env.sh' in the CANN installation path." +
                             pta_error(ErrCode.NOT_FOUND))
@@ -64,10 +63,10 @@ def _cann_package_check():
         # check whether the CANN package version matches the pytorch version
         if cann_version in cann_pytorch_version_map and \
                 torch_npu.__version__ not in cann_pytorch_version_map[cann_version]:
-            print(f"Warning : CANN package version {cann_version} and PyTorch version {torch_npu.__version__} "
-                  "is not matched, please check the README of the ascend pytorch repo.")
+            print(f"Warning: CANN package version {cann_version} and PyTorch version {torch_npu.__version__} "
+                  "do not match. Please check the README of the Ascend PyTorch repo.")
     else:
-        print(f"Warning : ASCEND_HOME_PATH environment variable is not set.")
+        print("Warning: ASCEND_HOME_PATH environment variable is not set.")
 
 
 def _create_wrap_func(check_func):

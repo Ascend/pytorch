@@ -39,10 +39,10 @@ class mstx:
     @_no_exception_func()
     def mark(message: str, stream=None, domain: str = 'default'):
         if not message or not isinstance(message, str):
-            warnings.warn("Invalid message for mstx.mark func. Please input valid message string.")
+            warnings.warn("Invalid message for mstx.mark function. Please provide a valid message string.")
             return
         if not isinstance(domain, str):
-            warnings.warn("Invalid domain for mstx.mark func. Please input valid domain string.")
+            warnings.warn("Invalid domain for mstx.mark function. Please provide a valid domain string.")
             return
         if stream:
             if isinstance(stream, torch_npu.npu.streams.Stream):
@@ -52,7 +52,7 @@ class mstx:
                                          stream.device_type,
                                          domain)
             else:
-                warnings.warn("Invalid stream for mstx.mark func. Please input valid stream.")
+                warnings.warn("Invalid stream for mstx.mark function. Please provide a valid stream.")
                 return
         else:
             torch_npu._C._mstx._mark_on_host(message, domain)
@@ -91,7 +91,7 @@ class mstx:
     @_no_exception_func()
     def range_start(message: str, stream=None, domain: str = 'default') -> int:
         if not message or not isinstance(message, str):
-            warnings.warn("Invalid message for mstx.range_start func. Please input valid message string.")
+            warnings.warn("Invalid message for mstx.range_start function. Please provide a valid message string.")
             return 0
         if not domain or not isinstance(domain, str):
             warnings.warn("Invalid domain for mstx.range_start func. Please input valid domain string.")
@@ -113,7 +113,7 @@ class mstx:
     @_no_exception_func()
     def range_end(range_id: int, domain: str = 'default'):
         if not isinstance(range_id, int):
-            warnings.warn("Invalid message for mstx.range_end func. Please input return value from mstx.range_start.")
+            warnings.warn("Invalid message for mstx.range_end function. Please provide the return value from mstx.range_start.")
             return
         if not domain or not isinstance(domain, str):
             warnings.warn("Invalid domain for mstx.range_end func. Please input valid domain string.")

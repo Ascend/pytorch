@@ -35,7 +35,6 @@ from ...prof_common_func._log import ProfilerLogger
 from ...prof_common_func._path_manager import ProfilerPathManager
 from .._base_parser import BaseParser
 
-
 __all__ = []
 
 
@@ -121,8 +120,9 @@ class CANNExportParser(BaseParser):
         for path in paths:
             if not FileManager.check_file_owner(path):
                 self.logger.warning(
-                    f"Path '{self._cann_path}' owner is neither root nor the current user. "
-                    f"Please execute 'chown -R $(id -un) '{self._cann_path}' '."
+                    "The owner of path '%s' is neither root nor the current user. "
+                    "Please run: chown -R $(id -un) '%s'.",
+                    self._cann_path, self._cann_path
                 )
         return False
 

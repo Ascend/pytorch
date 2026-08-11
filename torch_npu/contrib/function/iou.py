@@ -56,7 +56,7 @@ def npu_iou(boxes1,
         Tensor: IoU, sized [N,M].
     """
     warnings.warn("torch_npu.contrib.npu_iou is deprecated. "
-                  "Please use torch_npu.npu_iou or torch_npu.npu_ptiou for replacement.", FutureWarning)
+                  "Please use torch_npu.npu_iou or torch_npu.npu_ptiou as a replacement.", FutureWarning)
 
     if mode not in ["iou", "ptiou"]:
         raise ValueError("Expected mode in [iou, ptiou]" + ops_error(ErrCode.VALUE))
@@ -120,7 +120,7 @@ def npu_giou(boxes1,
         Tensor: IoU, sized [n, 1].
     """
     warnings.warn("torch_npu.contrib.npu_giou is deprecated. "
-                  "Please use torch_npu.npu_giou for replacement.", FutureWarning)
+                  "Please use torch_npu.npu_giou as a replacement.", FutureWarning)
 
     if boxes1.shape != boxes2.shape:
         raise ValueError("Expected boxes1.shape == boxes2.shape" + ops_error(ErrCode.VALUE))
@@ -137,30 +137,30 @@ def npu_giou(boxes1,
     return out
 
 
-def npu_diou(boxes1, 
-             boxes2, 
-             trans=True, 
-             is_cross=False, 
+def npu_diou(boxes1,
+             boxes2,
+             trans=True,
+             is_cross=False,
              mode=0
              ):
     """ Applies an NPU based DIOU operation.
 
-    Taking into account the distance between the targets, 
+    Taking into account the distance between the targets,
     the overlap rate of the distance and the range, different targets or boundaries will tend to be stable.
 
     Compute Function:
     iou = overlap_area / union_area
     diou = iou - p * p(b,bgt) / c * c
-    
-    Among them, b and bgt represent the center points of the predicted frame and the real frame, respectively, 
-    and ρ represents the Euclidean distance between the two center points. c represents the diagonal distance 
+
+    Among them, b and bgt represent the center points of the predicted frame and the real frame, respectively,
+    and ρ represents the Euclidean distance between the two center points. c represents the diagonal distance
     of the smallest closure region that can contain both the predicted box and the ground-truth box.
 
     .. note::
 
-        Util now, diou backward only support trans==True, is_cross==False, mode==0('iou') current version if you 
+        Util now, diou backward only support trans==True, is_cross==False, mode==0('iou') current version if you
         need to back propagation, please ensure your parameter is correct!
-        
+
     Examples::
     >>> box1 = torch.randn(4, 32)
     >>> box1.requires_grad = True
@@ -181,17 +181,17 @@ def npu_diou(boxes1,
         Tensor: IoU, sized [1, n].
     """
     warnings.warn("torch_npu.contrib.function.npu_diou is deprecated. "
-                  "Please use torch_npu.npu_diou for replacement.", FutureWarning)
+                  "Please use torch_npu.npu_diou as a replacement.", FutureWarning)
 
     out = torch_npu.npu_diou(boxes1, boxes2, trans, is_cross, mode)
 
     return out
 
 
-def npu_ciou(boxes1, 
+def npu_ciou(boxes1,
              boxes2,
-             trans=True, 
-             is_cross=False, 
+             trans=True,
+             is_cross=False,
              mode=0
              ):
     """ Applies an NPU based CIOU operation.
@@ -202,16 +202,16 @@ def npu_ciou(boxes1,
     iou = overlap_area / union_area
     ciou = 1 - iou + p * p(b,bgt) / c * c + αv
 
-    Among them, b and bgt represent the center points of the predicted frame and the real frame, respectively, 
-    and ρ represents the Euclidean distance between the two center points. c represents the diagonal distance 
-    of the smallest closure region that can contain both the predicted box and the ground-truth box. α is the 
+    Among them, b and bgt represent the center points of the predicted frame and the real frame, respectively,
+    and ρ represents the Euclidean distance between the two center points. c represents the diagonal distance
+    of the smallest closure region that can contain both the predicted box and the ground-truth box. α is the
     weight function, v is used to measure the similarity of the aspect ratio.
-    
+
     .. note::
 
-        Util now, ciou backward only support trans==True, is_cross==False, mode==0('iou') current version if you 
+        Util now, ciou backward only support trans==True, is_cross==False, mode==0('iou') current version if you
         need to back propagation, please ensure your parameter is correct!
-        
+
     Examples::
     >>> box1 = torch.randn(4, 32)
     >>> box1.requires_grad = True
@@ -234,7 +234,7 @@ def npu_ciou(boxes1,
 
     """
     warnings.warn("torch_npu.contrib.function.npu_ciou is deprecated. "
-                  "Please use torch_npu.npu_ciou for replacement.", FutureWarning)
+                  "Please use torch_npu.npu_ciou as a replacement.", FutureWarning)
 
     out = torch_npu.npu_ciou(boxes1, boxes2, trans, is_cross, mode, True)
 

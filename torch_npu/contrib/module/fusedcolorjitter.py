@@ -124,7 +124,7 @@ class FusedColorJitter(torch.nn.Module):
     def __init__(self, brightness=0, contrast=0, saturation=0, hue=0):
         super().__init__()
         warnings.warn("torch_npu.contrib.module.FusedColorJitter is deprecated. "
-                      "Please use torchvision.transforms.ColorJitter for replacement.", FutureWarning)
+                      "Please use torchvision.transforms.ColorJitter as a replacement.", FutureWarning)
         self.brightness = self._check_input(brightness, 'brightness')
         self.contrast = self._check_input(contrast, 'contrast')
         self.saturation = self._check_input(saturation, 'saturation')

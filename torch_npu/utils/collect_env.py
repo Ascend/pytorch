@@ -51,7 +51,7 @@ def get_torch_npu_install_path():
 
 @deprecated(
     "`torch_npu.utils.collect_env.check_path_owner_consistent(path)` is deprecated and no longer performs path owner verification. "
-    "Please use `check_directory_path_readable(path)` to check the path existence.",
+    "Please use `check_directory_path_readable(path)` to check whether the path exists.",
     category=FutureWarning,
 )
 def check_path_owner_consistent(path: str):
@@ -65,7 +65,7 @@ def check_directory_path_readable(path):
         msg = f"The path does not exist: {path}"
         raise RuntimeError(msg)
     if os.path.islink(path):
-        msg = f"Invalid path is a soft chain: {path}"
+        msg = f"Invalid path is a symbolic link: {path}"
         raise RuntimeError(msg)
     if not os.access(path, os.R_OK):
         msg = f"The path permission check failed: {path}"

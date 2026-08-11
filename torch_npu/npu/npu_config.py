@@ -8,16 +8,14 @@ __all__ = ["set_option", "set_aoe",
            "set_device_limit", "get_device_limit", "set_stream_limit",
            "reset_stream_limit", "get_stream_limit"]
 
-from logging import exception
-from enum import IntEnum, unique
+from enum import IntEnum
 import inspect
 import os
 import warnings
 import torch_npu
 import torch_npu._C
 from torch_npu.utils._path_manager import PathManager
-from torch_npu.utils._error_code import ErrCode, pta_error, prof_error
-from .utils import _get_device_index
+from torch_npu.utils._error_code import ErrCode, pta_error
 
 _option_map = {"ACL_PRECISION_MODE": ["allow_fp32_to_fp16", "must_keep_origin_dtype"],
                "ACL_OP_SELECT_IMPL_MODE": ["high_performance", "high_precision"],
@@ -37,7 +35,7 @@ class _CubeMathType(IntEnum):
     ALLOW_FP32_DOWN_PRECISION = 1
     USE_FP16 = 2
     USE_HF32 = 3
-    FORCE_GRP_ACC_FOR_FP32 = 4 # deprecate, but use as a transition for now
+    FORCE_GRP_ACC_FOR_FP32 = 4  # deprecate, but use as a transition for now
     USE_FP32_ADD = 4
 
 
@@ -73,8 +71,8 @@ def set_option(option):
                              pta_error(ErrCode.PARAM))
 
         if option_name in _deprecated_option_set:
-            warnings.warn(f"{option_name} will be deprecated in future version. The accuracy or performance "
-                          f"may not be the optimal when configuring this option. We do not recommend setting it.")
+            warnings.warn(f"{option_name} will be deprecated in a future version. The accuracy or performance "
+                          f"may not be optimal when configuring this option. We do not recommend setting it.")
 
     torch_npu._C._npu_setOption(option)
 
@@ -120,7 +118,7 @@ def set_aoe(dump_path):
 This global flag control mm and bmm use ND format to compute, if the flag is True,
 we use ND format for mm and bmm in Linear module
 
-useage:
+usage:
 ```
 option = {}
 option["MM_BMM_ND_ENABLE"] = "enable"
@@ -170,8 +168,9 @@ class _allowHF32Matmul:
             option = {"ALLOW_MATMUL_HF32": "enable" if value else "disable"}
             torch_npu._C._npu_setOption(option)
         elif name == "cube_math_type":
-            if(not isinstance(value, _CubeMathType)):
-                raise TypeError(f"value should be one of Enum CubeMathType when setting cube_math_type, but got {type(value)}")
+            if not isinstance(value, _CubeMathType):
+                raise TypeError(
+                    f"value should be one of Enum CubeMathType when setting cube_math_type, but got {type(value)}")
             torch_npu._C._npu_setOption({"CUBE_MATH_TYPE": str(value.value)})
 
     @classmethod
@@ -216,7 +215,8 @@ class _call_once_class:
 
     def __call__(self, *args, **kwargs):
         if self.called:
-            raise RuntimeError(f"Function '{self.func.__name__}' has already been called, You can only set this interface once.")
+            raise RuntimeError(
+                f"Function '{self.func.__name__}' has already been called, You can only set this interface once.")
 
         self.called = True
         self.result = self.func(*args, **kwargs)
@@ -252,15 +252,18 @@ def get_device_limit(device):
     if device < 0 or device >= device_count():
         raise AssertionError("Invalid device id" + pta_error(ErrCode.VALUE))
     torch_npu.npu._lazy_init()
-    return {"cube_core_num": torch_npu._C._npu_get_device_res_limit(device, 0), \
-           "vector_core_num": torch_npu._C._npu_get_device_res_limit(device, 1)}
+    return {
+        "cube_core_num": torch_npu._C._npu_get_device_res_limit(device, 0),
+        "vector_core_num": torch_npu._C._npu_get_device_res_limit(device, 1),
+    }
 
 
 def set_stream_limit(stream, cube_num=-1, vector_num=-1):
     if stream is None:
         raise AssertionError("stream cannot be None" + pta_error(ErrCode.PARAM))
     if not isinstance(stream, torch_npu.npu.Stream):
-        raise AssertionError(f"stream should be torch_npu.npu.Stream, could not be {type(stream)}" + pta_error(ErrCode.TYPE))
+        raise AssertionError(
+            f"stream should be torch_npu.npu.Stream, could not be {type(stream)}" + pta_error(ErrCode.TYPE))
     torch_npu.npu._lazy_init()
     if cube_num != -1:
         torch_npu._C._npu_set_stream_res_limit(stream_id=stream.stream_id,
@@ -280,7 +283,8 @@ def reset_stream_limit(stream):
     if stream is None:
         raise AssertionError("stream cannot be None" + pta_error(ErrCode.PARAM))
     if not isinstance(stream, torch_npu.npu.Stream):
-        raise AssertionError(f"stream should be torch_npu.npu.Stream, could not be {type(stream)}" + pta_error(ErrCode.TYPE))
+        raise AssertionError(
+            f"stream should be torch_npu.npu.Stream, could not be {type(stream)}" + pta_error(ErrCode.TYPE))
     torch_npu.npu._lazy_init()
     torch_npu._C._npu_reset_stream_res_limit(stream_id=stream.stream_id,
                                              device_index=stream.device_index,
@@ -294,11 +298,15 @@ def get_stream_limit(stream):
         raise AssertionError(
             f"stream should be torch_npu.npu.Stream, could not be {type(stream)}" + pta_error(ErrCode.TYPE))
     torch_npu.npu._lazy_init()
-    return {"cube_core_num": torch_npu._C._npu_get_stream_res_limit(stream_id=stream.stream_id,
-                                                                    device_index=stream.device_index,
-                                                                    device_type=stream.device_type,
-                                                                    type=0), \
-           "vector_core_num": torch_npu._C._npu_get_stream_res_limit(stream_id=stream.stream_id,
-                                                                     device_index=stream.device_index,
-                                                                     device_type=stream.device_type,
-                                                                     type=1)}
+    return {
+        "cube_core_num": torch_npu._C._npu_get_stream_res_limit(
+            stream_id=stream.stream_id,
+            device_index=stream.device_index,
+            device_type=stream.device_type,
+            type=0),
+        "vector_core_num": torch_npu._C._npu_get_stream_res_limit(
+            stream_id=stream.stream_id,
+            device_index=stream.device_index,
+            device_type=stream.device_type,
+            type=1),
+    }

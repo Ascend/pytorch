@@ -81,9 +81,9 @@ class FwkFileParser:
                 dequeue_data_list.append(op_mark)
                 start_op_list.clear()
         if enqueue_match_failed_num:
-            self.logger.warning(f"{enqueue_match_failed_num} enqueue data match failed.")
+            self.logger.warning("%s enqueue data failed to match.", enqueue_match_failed_num)
         if dequeue_match_failed_num:
-            self.logger.warning(f"{dequeue_match_failed_num} dequeue data match failed.")
+            self.logger.warning("%s dequeue data failed to match.", dequeue_match_failed_num)
         return enqueue_data_list, dequeue_data_list
 
     def get_torch_op_tree_node(self, torch_op_data: list, enqueue_data: list = None) -> list:
@@ -109,7 +109,7 @@ class FwkFileParser:
             return []
         tid_dict = {}
         fwk_x_event_list = [None] * (
-                len(torch_op_data) + len(enqueue_data_list) * 2 + len(dequeue_data_list) * 2)
+            len(torch_op_data) + len(enqueue_data_list) * 2 + len(dequeue_data_list) * 2)
         index = 0
         fwd_dict = defaultdict(dict)
         correlation_id_name_dict = {}
@@ -225,10 +225,13 @@ class FwkFileParser:
         python_trace_apis = []
 
         for dequeue_data in dequeue_data_list:
-            task_dequeues.append(
-                [dequeue_data.ts, dequeue_data.ts + dequeue_data.dur, contact_2num(pid, dequeue_data.tid),
-                 connection_id_manager.get_id_from_connection_ids([dequeue_data.corr_id + DbConstant.START_CONNECTION_ID_FWK_API]), str2id_manager.get_id_from_str(dequeue_data.name),
-                 None, None, None, None, None, ApiType.TASK_QUEUE])
+            task_dequeues.append([
+                dequeue_data.ts, dequeue_data.ts + dequeue_data.dur, contact_2num(pid, dequeue_data.tid),
+                connection_id_manager.get_id_from_connection_ids(
+                    [dequeue_data.corr_id + DbConstant.START_CONNECTION_ID_FWK_API]),
+                str2id_manager.get_id_from_str(dequeue_data.name),
+                None, None, None, None, None, ApiType.TASK_QUEUE,
+            ])
             correlation_id_name_dict[dequeue_data.corr_id] = dequeue_data.origin_name
 
         for enqueue_data in enqueue_data_list:
@@ -236,19 +239,30 @@ class FwkFileParser:
             if enqueue_data.corr_id in correlation_id_name_dict:
                 # append correlation name with '@' prefix for consistent with Dequeue
                 name += f"@{correlation_id_name_dict[enqueue_data.corr_id]}"
-            task_enqueues.append(
-                [enqueue_data.ts, enqueue_data.ts + enqueue_data.dur, contact_2num(pid, enqueue_data.tid),
-                 connection_id_manager.get_id_from_connection_ids([enqueue_data.corr_id + DbConstant.START_CONNECTION_ID_FWK_API]), str2id_manager.get_id_from_str(name),
-                 None, None, None, None, None, ApiType.TASK_QUEUE])
+            task_enqueues.append([
+                enqueue_data.ts, enqueue_data.ts + enqueue_data.dur, contact_2num(pid, enqueue_data.tid),
+                connection_id_manager.get_id_from_connection_ids(
+                    [enqueue_data.corr_id + DbConstant.START_CONNECTION_ID_FWK_API]),
+                str2id_manager.get_id_from_str(name),
+                None, None, None, None, None, ApiType.TASK_QUEUE,
+            ])
             connection_ids.append(enqueue_data.corr_id)
 
         for torch_op in torch_op_data:
-            api = [torch_op.ts, torch_op.end_ns, contact_2num(pid, torch_op.tid), [], str2id_manager.get_id_from_str(torch_op.name),
-                   torch_op.args.get(Constant.SEQUENCE_NUMBER, -1), torch_op.args.get(Constant.FORWARD_THREAD_ID),
-                   None if not torch_op.args.get(Constant.INPUT_DTYPES) else str2id_manager.get_id_from_str(torch_op.args.get(Constant.INPUT_DTYPES)),
-                   None if not torch_op.args.get(Constant.INPUT_SHAPES) else str2id_manager.get_id_from_str(torch_op.args.get(Constant.INPUT_SHAPES)),
-                   None if not torch_op.args.get(Constant.CALL_STACK) else call_chain_id_manager.get_callchain_id_from_callstack(torch_op.args.get(Constant.CALL_STACK)),
-                   ApiType.TORCH_OP]
+            api = [
+                torch_op.ts, torch_op.end_ns, contact_2num(pid, torch_op.tid), [],
+                str2id_manager.get_id_from_str(torch_op.name),
+                torch_op.args.get(Constant.SEQUENCE_NUMBER, -1),
+                torch_op.args.get(Constant.FORWARD_THREAD_ID),
+                (None if not torch_op.args.get(Constant.INPUT_DTYPES)
+                 else str2id_manager.get_id_from_str(torch_op.args.get(Constant.INPUT_DTYPES))),
+                (None if not torch_op.args.get(Constant.INPUT_SHAPES)
+                 else str2id_manager.get_id_from_str(torch_op.args.get(Constant.INPUT_SHAPES))),
+                (None if not torch_op.args.get(Constant.CALL_STACK)
+                 else call_chain_id_manager.get_callchain_id_from_callstack(
+                    torch_op.args.get(Constant.CALL_STACK))),
+                ApiType.TORCH_OP,
+            ]
             if torch_op.name.startswith("mstx_"):
                 mstx_mark_apis.append(api)
             else:
@@ -264,7 +278,8 @@ class FwkFileParser:
         if trace_hash_data and func_call_data:
             python_trace_parser = PythonTraceParser(trace_hash_data, func_call_data)
             python_trace_apis = python_trace_parser.get_python_trace_api_data()
-        return {Constant.TORCH_OP_DATA: torch_op_apis, Constant.ENQUEUE_DATA: task_enqueues, Constant.DEQUEUE_DATA: task_dequeues,
+        return {Constant.TORCH_OP_DATA: torch_op_apis, Constant.ENQUEUE_DATA: task_enqueues,
+                Constant.DEQUEUE_DATA: task_dequeues,
                 Constant.PYTHON_TRACE_DATA: python_trace_apis, Constant.MSTX_OP_DATA: mstx_mark_apis}
 
     def get_first_fwk_op(self, torch_op_data: list):
