@@ -1,0 +1,236 @@
+diff --git a/test/functorch/test_aot_joint_with_descriptors.py b/test/functorch/test_aot_joint_with_descriptors.py
+index 13f2318..0dfba56 100644
+--- a/test/functorch/test_aot_joint_with_descriptors.py
++++ b/test/functorch/test_aot_joint_with_descriptors.py
+@@ -39,13 +39,17 @@ from torch._functorch.aot_autograd import (
+ from torch._guards import tracing, TracingContext
+ from torch.nn.attention.flex_attention import create_block_mask, flex_attention
+ from torch.testing._internal.common_utils import (
+-    requires_cuda,
+     run_tests,
+     skipIfCrossRef,
+     TestCase,
+ )
+ 
+ 
++device_type = (
++    acc.type if (acc := torch.accelerator.current_accelerator()) else "cpu"
++)
++
++
+ def graph_capture(model, inputs, with_export):
+     gm = model
+     tracing_context = None
+@@ -76,8 +80,8 @@ class TestAOTJointWithDescriptors(TestCase):
+             def forward(self, x):
+                 return self.linear(x)
+ 
+-        model = SimpleLinear()
+-        inputs = (torch.randn(4, 3),)
++        model = SimpleLinear().to(device_type)
++        inputs = (torch.randn(4, 3, device=device_type),)
+ 
+         with ExitStack() as stack:
+             # Export joint with descriptors
+@@ -152,9 +156,9 @@ class inner_f(torch.nn.Module):
+                 x = self.bn(x)
+                 return torch.relu(x)
+ 
+-        model = ConvBN()
++        model = ConvBN().to(device_type)
+         model.train()  # Important for batch norm
+-        inputs = (torch.randn(2, 1, 4, 4),)
++        inputs = (torch.randn(2, 1, 4, 4, device=device_type),)
+ 
+         with ExitStack() as stack:
+             # Export joint with descriptors
+@@ -317,9 +321,9 @@ class inner_f(torch.nn.Module):
+             def forward(self, x, *, scale):
+                 return self.linear(x) * scale
+ 
+-        model = ModuleWithKwargs()
+-        inputs = (torch.randn(4, 3),)
+-        kwargs = {"scale": torch.tensor(2.0)}
++        model = ModuleWithKwargs().to(device_type)
++        inputs = (torch.randn(4, 3, device=device_type),)
++        kwargs = {"scale": torch.tensor(2.0, device=device_type)}
+ 
+         gm = dynamo_graph_capture_for_export(model)(*inputs, **kwargs)
+ 
+@@ -408,8 +412,8 @@ class inner_f(torch.nn.Module):
+                 out2 = self.linear2(x)
+                 return out1, out2
+ 
+-        model = MultiOutputModule()
+-        inputs = (torch.randn(4, 3),)
++        model = MultiOutputModule().to(device_type)
++        inputs = (torch.randn(4, 3, device=device_type),)
+ 
+         with ExitStack() as stack:
+             # Export joint with descriptors
+@@ -505,8 +509,8 @@ class inner_f(torch.nn.Module):
+             def forward(self, x):
+                 return self.linear(x)
+ 
+-        model = SimpleModule()
+-        inputs = (torch.randn(4, 3),)
++        model = SimpleModule().to(device_type)
++        inputs = (torch.randn(4, 3, device=device_type),)
+ 
+         with ExitStack() as stack:
+             # Export joint with descriptors
+@@ -554,8 +558,8 @@ class inner_f(torch.nn.Module):
+             def forward(self, x):
+                 return self.linear(x)
+ 
+-        model = SimpleLinear()
+-        inputs = (torch.randn(4, 3),)
++        model = SimpleLinear().to(device_type)
++        inputs = (torch.randn(4, 3, device=device_type),)
+ 
+         with ExitStack() as stack:
+             joint_with_descriptors = aot_export_joint_with_descriptors(
+@@ -630,9 +634,9 @@ class inner_f(torch.nn.Module):
+                 x = self.bn(x)
+                 return torch.relu(x)
+ 
+-        model = ConvBN()
++        model = ConvBN().to(device_type)
+         model.train()  # Important for batch norm
+-        inputs = (torch.randn(2, 1, 4, 4),)
++        inputs = (torch.randn(2, 1, 4, 4, device=device_type),)
+ 
+         with ExitStack() as stack:
+             joint_with_descriptors = aot_export_joint_with_descriptors(
+@@ -693,8 +697,8 @@ class inner_f(torch.nn.Module):
+                 out2 = self.linear2(x)
+                 return out1, out2
+ 
+-        model = MultiOutputModule()
+-        inputs = (torch.randn(4, 3),)
++        model = MultiOutputModule().to(device_type)
++        inputs = (torch.randn(4, 3, device=device_type),)
+ 
+         with ExitStack() as stack:
+             joint_with_descriptors = aot_export_joint_with_descriptors(
+@@ -738,8 +742,8 @@ class inner_f(torch.nn.Module):
+             def forward(self, x):
+                 return self.linear(x)
+ 
+-        model = SimpleModule()
+-        inputs = (torch.randn(4, 3),)
++        model = SimpleModule().to(device_type)
++        inputs = (torch.randn(4, 3, device=device_type),)
+ 
+         with ExitStack() as stack:
+             joint_with_descriptors = aot_export_joint_with_descriptors(
+@@ -783,8 +787,8 @@ class inner_f(torch.nn.Module):
+             def forward(self, x):
+                 return self.linear(x)
+ 
+-        model = SimpleModule()
+-        inputs = (torch.randn(4, 3),)
++        model = SimpleModule().to(device_type)
++        inputs = (torch.randn(4, 3, device=device_type),)
+ 
+         with ExitStack() as stack:
+             joint_with_descriptors = aot_export_joint_with_descriptors(
+@@ -809,8 +813,8 @@ class inner_f(torch.nn.Module):
+                     y = self.linear(x)
+                 return y - 1
+ 
+-        inputs = (torch.randn(4, 3),)
+-        model = SimpleLinear()
++        inputs = (torch.randn(4, 3, device=device_type),)
++        model = SimpleLinear().to(device_type)
+ 
+         for with_export in [True, False]:
+             graph_module = graph_capture(model, inputs, with_export)
+@@ -828,7 +832,6 @@ class inner_f(torch.nn.Module):
+ ('call_function', 't_3', {'pp_stage': 0})""",
+             )
+ 
+-    @requires_cuda
+     def test_preserve_annotate_flex_attention(self):
+         def score_mod(score, b, h, m, n):
+             return score
+@@ -844,7 +847,7 @@ class inner_f(torch.nn.Module):
+         b = 24
+         batch_size = 2
+         seqlen = a * b
+-        device = "cuda"
++        device = device_type
+ 
+         # Create seq_idx tensor - maps each position to a document/sequence ID
+         # Example: Split sequence into 2 documents for each batch
+@@ -951,8 +954,8 @@ class inner_f(torch.nn.Module):
+                 y = example_function(y)
+                 return y - 1
+ 
+-        inputs = (torch.randn(4, 3),)
+-        model = SimpleLinear()
++        inputs = (torch.randn(4, 3, device=device_type),)
++        model = SimpleLinear().to(device_type)
+ 
+         for with_export in [True, False]:
+             graph_module = graph_capture(model, inputs, with_export)
+@@ -995,8 +998,8 @@ class inner_f(torch.nn.Module):
+             def forward(self, x, y):
+                 return foo(x, y)
+ 
+-        model = CustomOpModule()
+-        inputs = (torch.randn(4, 3), torch.randn(4, 3))
++        model = CustomOpModule().to(device_type)
++        inputs = (torch.randn(4, 3, device=device_type), torch.randn(4, 3, device=device_type))
+ 
+         gm = graph_capture(model, inputs, with_export=True)
+ 
+@@ -1028,7 +1031,7 @@ class inner_f(torch.nn.Module):
+             def __init__(self):
+                 super().__init__()
+                 self.input_shape = (5, 3)
+-                self.permuted_indices = torch.tensor([2, 0, 3, 1])
++                self.permuted_indices = torch.tensor([2, 0, 3, 1], device=device_type)
+ 
+             def forward(self, x):
+                 with fx_traceback.annotate({"pp_stage": 0}):
+@@ -1037,7 +1040,7 @@ class inner_f(torch.nn.Module):
+                     )
+                 return routed_output.cos()
+ 
+-        inputs = (torch.randn(4, 3, requires_grad=True),)
++        inputs = (torch.randn(4, 3, device=device_type, requires_grad=True),)
+         model = Module()
+ 
+         graph_module = graph_capture(model, inputs, True)
+@@ -1078,8 +1081,8 @@ class inner_f(torch.nn.Module):
+             def forward(self, x):
+                 return self.linear(x)
+ 
+-        model = SimpleLinear()
+-        inputs = (torch.randn(4, 3),)
++        model = SimpleLinear().to(device_type)
++        inputs = (torch.randn(4, 3, device=device_type),)
+         gm = dynamo_graph_capture_for_export(model)(*inputs)
+         fake_mode = gm.meta.get("fake_mode", None)
+ 
+@@ -1105,8 +1108,8 @@ class inner_f(torch.nn.Module):
+                 with fx_traceback.annotate({"test": 1}):
+                     return self.linear(x) - self.linear2(x)
+ 
+-        model = SimpleLinear()
+-        inputs = (torch.randn(4, 3, requires_grad=True),)
++        model = SimpleLinear().to(device_type)
++        inputs = (torch.randn(4, 3, device=device_type, requires_grad=True),)
+         graph_module = graph_capture(model, inputs, True)
+         add_nodes = graph_module.graph.find_nodes(
+             op="call_function", target=torch.ops.aten.add.Tensor
+@@ -1161,7 +1164,7 @@ class inner_f(torch.nn.Module):
+                     z = self.bar(x)
+                 return z - 1
+ 
+-        inputs = (torch.randn(4, 3, requires_grad=True),)
++        inputs = (torch.randn(4, 3, device=device_type, requires_grad=True),)
+         model = MyMod()
+ 
+         # invoke_subgraph doesn't seem to work with with_export=False, no subgraph created
