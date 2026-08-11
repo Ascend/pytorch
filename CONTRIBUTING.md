@@ -168,12 +168,13 @@ pytorch
 **编译构建**：
 
 ```bash
-# 安装依赖并编译
+# 安装依赖并编译（未指定 --torch 时，使用环境中已安装的 PyTorch 版本）
 bash ci/build.sh --python=3.10
 
-# 针对指定的 PyTorch 版本构建（支持 2.10.0 / 2.11.0 / 2.12.0）
-# 要求环境中已安装对应版本的 PyTorch
-bash ci/build.sh --python=3.10 --torch=2.10.0
+# 针对指定的 PyTorch 版本构建（支持 2.13 及以上，可用版本以 version.txt 为准）
+# --torch 的值即要构建的包版本，可带 post 号（如 2.13.0.post1 表示 2.13 主线的 post 构建）
+# 要求环境中已安装对应 major.minor 的 PyTorch
+bash ci/build.sh --python=3.10 --torch=2.14.0
 
 # 或使用 CMake 手动编译
 mkdir build && cd build

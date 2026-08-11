@@ -16,12 +16,10 @@ from distutils import file_util
 # Disable autoloading before running 'import torch' to avoid circular dependencies
 os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = "0"
 
-from torchnpugen.utils import PathManager
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PathManager.check_directory_path_readable(os.path.join(BASE_DIR, "version.txt"))
-with open(os.path.join(BASE_DIR, "version.txt")) as version_f:
-    VERSION = version_f.read().strip()
+from tools.setup_helpers.version import get_version
+VERSION = get_version()
 
 
 def which(thefile):

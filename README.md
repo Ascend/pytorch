@@ -9,6 +9,7 @@
 </p>
 
 <p align="center">
+  <a href="#supported-pytorch-versions">Supported Versions</a> ·
   <a href="#installation">Installation</a> ·
   <a href="#quick-start">Quick Start</a> ·
   <a href="./COMPATIBILITY.md">Compatibility</a> ·
@@ -59,6 +60,12 @@ TorchNPU fully inherits and reuses extensive mature capabilities from upstream P
 
 - 📢 [2026-06-30] Advance notice on standardized naming conventions for Ascend for PyTorch community components. [🔗 Learn more](https://www.hiascend.com/productbulletins/detail/791)
 - 📢 [2026-04-30] TorchNPU 26.0.0 released, adding support for PyTorch 2.10.0, Python 3.13, P2P communication group dispatch, DTensor strategy extensions, and more. [🔗 Learn more](https://www.hiascend.com/productbulletins/detail/779)
+
+## Supported PyTorch Versions
+
+This branch adapts to multiple PyTorch versions from a single source tree. The PyTorch versions it currently supports are declared in [version.txt](./version.txt), which is the single source of truth and is updated as new versions are adapted.
+
+For the compatibility matrix of released packages (TorchNPU / PyTorch / CANN / Python), please refer to [Compatibility](./COMPATIBILITY.md).
 
 ## Installation
 

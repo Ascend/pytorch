@@ -28,13 +28,11 @@ from wheel.bdist_wheel import bdist_wheel
 # Disable autoloading before running 'import torch' to avoid circular dependencies
 os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = "0"
 
-from torchnpugen.utils import PathManager
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 THIRD_PARTY_PATH = os.path.join(BASE_DIR, "third_party")
-PathManager.check_directory_path_readable(os.path.join(BASE_DIR, "version.txt"))
-with open(os.path.join(BASE_DIR, "version.txt")) as version_f:
-    VERSION = version_f.read().strip()
+from tools.setup_helpers.version import get_version
+VERSION = get_version()
 UNKNOWN = "Unknown"
 BUILD_PERMISSION = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP
 
@@ -131,14 +129,10 @@ generate_torch_npu_version()
 
 
 def _get_torch_requires():
-    torch_version = os.environ.get("TORCH_VERSION", "")
-    if not torch_version:
-        try:
-            import torch
-            torch_version = torch.__version__.split("+")[0]
-        except ImportError:
-            pass
-    return ["torch==" + torch_version] if torch_version else []
+    # The torch dependency uses the base PyTorch version; strip any
+    # post-release (.postN) or local (+tag) suffix from the package version.
+    torch_version = get_version().split("+")[0].split(".post")[0]
+    return ["torch==" + torch_version]
 
 
 def which(thefile):

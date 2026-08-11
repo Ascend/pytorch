@@ -22,6 +22,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO_ROOT))
 
 from tools.setup_helpers.gen_version_header import parse_version
+from tools.setup_helpers.version import get_version
 
 
 LINTER_CODE = "STABLE_SHIM_VERSION"
@@ -177,24 +178,17 @@ class LintMessage(NamedTuple):
 
 def get_current_version() -> tuple[int, int]:
     """
-    Get the current PyTorch version from version.txt.
-    This uses the same logic as tools/setup_helpers/gen_version_header.py
-    which is used to generate torch/headeronly/version.h from version.h.in.
+    Get the (major, minor) version the linter validates against.
 
-    Returns (major, minor) tuple or None if not found.
+    The active version comes from the TORCH_VERSION environment variable
+    (falling back to the installed PyTorch version), then parsed the same way
+    as tools/setup_helpers/gen_version_header.py which is used to generate
+    torch/headeronly/version.h from version.h.in.
+
+    Returns (major, minor) tuple.
     """
-    repo_root = Path(__file__).resolve().parents[3]
-    version_file = repo_root / "version.txt"
-
-    if not version_file.exists():
-        raise RuntimeError(
-            "Could not find version.txt. This linter requires version.txt to run"
-        )
-
-    with open(version_file) as f:
-        version = f.read().strip()
-        major, minor, patch = parse_version(version)
-
+    version = get_version()
+    major, minor, patch = parse_version(version)
     return (major, minor)
 
 
