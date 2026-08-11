@@ -1,5 +1,9 @@
 import contextlib
 import ctypes
+import os
+import subprocess
+import sys
+import tempfile
 
 import torch
 
@@ -114,6 +118,45 @@ class TestExternalStream(TestCase):
             ext_stream = torch_npu.npu.ExternalStream(stream_v)
             with self.assertRaisesRegex(RuntimeError, "Cannot query"):
                 ext_stream.query()
+
+    def test_external_stream_npu_stream_per_stream_queue_restriction(self):
+        env = os.environ.copy()
+        env["TASK_QUEUE_ENABLE"] = "1"
+        env["PER_STREAM_QUEUE"] = "1"
+        env.pop("ASCEND_LAUNCH_BLOCKING", None)
+        with tempfile.TemporaryDirectory() as tmp:
+            script = os.path.join(tmp, "ext_stream_psq.py")
+            with open(script, "w") as f:
+                f.write(
+                    "import ctypes\n"
+                    "import torch_npu\n"
+                    "rt = torch_npu.npu.npurt()\n"
+                    "stream = ctypes.c_void_p(0)\n"
+                    "ret = rt.npuStreamCreate(ctypes.addressof(stream))\n"
+                    "assert int(ret) == 0 and stream.value != 0\n"
+                    "ext = torch_npu.npu.ExternalStream(stream.value)\n"
+                    "try:\n"
+                    "    _ = ext.npu_stream\n"
+                    "    raise SystemExit('expected RuntimeError not raised')\n"
+                    "except RuntimeError as e:\n"
+                    "    assert 'not supported in NPUStream::stream()' in str(e), str(e)\n"
+                    "finally:\n"
+                    "    if stream.value:\n"
+                    "        rt.npuStreamDestroy(stream.value)\n"
+                )
+            r = subprocess.run([sys.executable, script], env=env,
+                               capture_output=True, text=True, timeout=180)
+        self.assertEqual(r.returncode, 0,
+                         f"subprocess failed:\nstdout:\n{r.stdout}\nstderr:\n{r.stderr}")
+
+    def test_external_stream_drains_default_repo(self):
+        with self._get_external_stream() as stream_v:
+            ext_stream = torch_npu.npu.ExternalStream(stream_v)
+            x = torch.randn(100, device='npu')
+            y = x + 1
+            self.assertEqual(ext_stream.npu_stream, stream_v)
+            torch_npu.npu.synchronize()
+            self.assertEqual(y.sum().item(), x.sum().item() + x.numel())
 
 
 if __name__ == "__main__":
