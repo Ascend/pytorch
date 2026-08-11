@@ -632,6 +632,15 @@ def _patch_model_24():
         patch_remove_ops_from_generate_list(["aten.reshape", "aten.permute"])
     except ImportError:
         log.warning("import config failed for T5ForConditionalGeneration patch")
+    from torch._higher_order_ops.effects import (
+        _EffectType,
+        _register_effectful_op,
+    )
+
+    _register_effectful_op(
+        torch.ops.aten.native_dropout.default,
+        _EffectType.ORDERED,
+    )
 
 
 @register_patch("BartForCausalLM")
