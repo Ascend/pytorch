@@ -179,31 +179,6 @@ jobs:
           set -e
           echo "status=${TEST_STATUS}" >> "$GITHUB_OUTPUT"
 
-      - name: Retry failed cases
-        id: retry_failed
-        if: always() && steps.run_tests.outcome != 'skipped'
-        run: |
-          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
-          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
-
-          PREFIX="${{ steps.prefix.outputs.prefix }}"
-          CASES_FILE="test-reports/shard_${PREFIX}-${{ matrix.shard }}_cases.json"
-          if [ ! -f "$CASES_FILE" ]; then
-            echo "Cases file not found: $CASES_FILE, skipping retry"
-            exit 0
-          fi
-
-          python ci-scripts/.github/scripts/retry_failed_cases.py \
-            --cases-json "$CASES_FILE" \
-            --test-dir pytorch/test \
-            --report-dir test-reports \
-            --shard ${{ matrix.shard }} \
-            --shard-type ${{ inputs.category }} \
-            --timeout 1200 \
-            --max-workers ${{ inputs.max_workers }} \
-            --verbose \
-            2>&1 | tee /tmp/test_${{ inputs.category }}_retry_${{ matrix.shard }}.log
-
       - name: Parse test results
         id: parse_results
         if: always()

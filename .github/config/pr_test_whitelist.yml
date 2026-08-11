@@ -1,7 +1,7 @@
 # PR test whitelist — category-driven configuration (subset of nightly).
 # Each category maps to a set of test files, execution mode, and worker count.
 #
-# This is the PR gate config — a strict subset of nightly_test_whitelist.yml.
+# This is the PR gate config — a strict subset of nightly_test_categories.yml.
 # Files omitted from PR gate:
 #   - test/distributed/rpc/test_share_memory.py (distributed)
 #   - test/fx/test_*.py (24 files, graph)

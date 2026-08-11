@@ -22,6 +22,22 @@ on:
         type: boolean
         default: false
         description: Whether to report test status to upstream dashboard
+      hw_classification:
+        required: false
+        type: string
+        default: 'ACCELERATOR'
+        description: >-
+          Space-separated hardware classification filters passed to pytest
+          --collect-only (e.g., "ACCELERATOR" or "GENERIC ACCELERATOR").
+          Valid values: GENERIC ACCELERATOR CPU CUDA MPS XPU.
+      full_scan:
+        required: false
+        type: boolean
+        default: false
+        description: >-
+          When true, scan ALL test_*.py files and use case-paths-config as a
+          categorization mapping (paths + files) instead of a whitelist.
+          Unmatched files go to 'others'.
 
 defaults:
   run:
@@ -38,6 +54,8 @@ jobs:
       resolved_short: ${{ inputs.resolved_short }}
       case_paths_config: ${{ inputs.case_paths_config }}
       docker_image: ${{ inputs.docker_image }}
+      hw_classification: ${{ inputs.hw_classification }}
+      full_scan: ${{ inputs.full_scan }}
 
   # ============================================================================
   # 2. Core tests (nn, optim, autograd, profiler)

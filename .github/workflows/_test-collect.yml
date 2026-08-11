@@ -17,6 +17,22 @@ on:
         type: string
         default: 'quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly'
         description: Docker image for running tests
+      hw_classification:
+        required: false
+        type: string
+        default: 'ACCELERATOR'
+        description: >-
+          Space-separated hardware classification filters passed to pytest
+          --collect-only (e.g., "ACCELERATOR" or "GENERIC ACCELERATOR").
+          Valid values: GENERIC ACCELERATOR CPU CUDA MPS XPU.
+      full_scan:
+        required: false
+        type: boolean
+        default: false
+        description: >-
+          When true, scan ALL test_*.py files and use case-paths-config as a
+          categorization mapping (paths + files) instead of a whitelist.
+          Unmatched files go to 'others'.
     outputs:
       core_matrix:
         description: Core shard matrix JSON
@@ -190,10 +206,16 @@ jobs:
             CONFIG_ARG="--case-paths-config ${GITHUB_WORKSPACE}/ci-scripts/${CASE_PATHS_CONFIG}"
           fi
 
+          FULL_SCAN_ARG=""
+          if [ "${{ inputs.full_scan }}" = "true" ]; then
+            FULL_SCAN_ARG="--full-scan"
+          fi
+
           python3 ${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/collect_all_cases.py \
             --test-dir ${GITHUB_WORKSPACE}/pytorch/test \
-            --hw-classification ACCELERATOR \
+            --hw-classification ${{ inputs.hw_classification }} \
             ${CONFIG_ARG} \
+            ${FULL_SCAN_ARG} \
             --regular-threshold 10000 \
             --distributed-threshold 1000 \
             --output-dir ${GITHUB_WORKSPACE}/cases-shards \

@@ -101,9 +101,15 @@ def load_categories_config(config_path: Optional[str]) -> Dict[str, Dict]:
                 )
             result[cat_name] = {
                 "files": list(dict.fromkeys(files)),  # deduplicate
+                "paths": cat_cfg.get("paths", []),
                 "workers": int(cat_cfg.get("workers", 32)),
                 "execution": cat_cfg.get("execution", "concurrent"),
             }
+            if not isinstance(result[cat_name]["paths"], list):
+                raise ValueError(
+                    f"Category '{cat_name}' paths must be a list, got "
+                    f"{type(result[cat_name]['paths']).__name__}"
+                )
         return result
 
     # Legacy format: flat whitelist
@@ -131,6 +137,64 @@ def load_categories_config(config_path: Optional[str]) -> Dict[str, Dict]:
     raise ValueError(
         f"Unknown config format in {p}: expected 'categories' or 'whitelist' key"
     )
+
+
+def classify_files_full_scan(
+    all_files: List[str],
+    categories: Dict[str, Dict],
+) -> Dict[str, List[str]]:
+    """Classify scanned files into categories using 3-pass first-match-wins.
+
+    Ported from v3/shard_test_files.py. Used when --full-scan is active:
+    the config's files/paths act as classification rules, not a whitelist.
+
+    Pass 1 — files:  exact file match across all categories (first match wins)
+    Pass 2 — paths:  directory prefix match for remaining files
+    Pass 3 — others: catch-all for any unmatched test_*.py
+
+    Args:
+        all_files: List of test file paths (e.g. ["test/nn/test_foo.py", ...])
+        categories: Dict from load_categories_config, each with files/paths.
+
+    Returns:
+        Dict mapping category name -> sorted list of file paths.
+    """
+    classified: Dict[str, List[str]] = {name: [] for name in categories}
+    working_set = set(all_files)
+
+    # Pass 1: exact file match (first category wins)
+    for cat_name, cat_cfg in categories.items():
+        for f in cat_cfg.get("files", []):
+            if f in working_set:
+                classified[cat_name].append(f)
+                working_set.discard(f)
+
+    # Pass 2: directory prefix match
+    for cat_name, cat_cfg in categories.items():
+        for dir_path in cat_cfg.get("paths", []):
+            prefix = dir_path.rstrip("/") + "/"
+            remaining = list(working_set)
+            for f in remaining:
+                if f.startswith(prefix):
+                    classified[cat_name].append(f)
+                    working_set.discard(f)
+
+    # Pass 3: catch-all into 'others' category
+    if "others" in classified and working_set:
+        classified["others"].extend(sorted(working_set))
+        working_set.clear()
+    elif working_set:
+        print(f"  WARNING: {len(working_set)} files unclassified "
+              f"(no 'others' category in config)", file=sys.stderr)
+        for f in sorted(working_set)[:10]:
+            print(f"    {f}", file=sys.stderr)
+        if len(working_set) > 10:
+            print(f"    ... and {len(working_set) - 10} more", file=sys.stderr)
+
+    for cat_name in classified:
+        classified[cat_name].sort()
+
+    return classified
 
 
 # ==============================================================================
@@ -682,6 +746,20 @@ def main():
         all_files, _ = discover_test_files.discover_test_files(test_dir, "regular", None)
         categories = {"regular": {"files": all_files, "workers": 32, "execution": "concurrent"}}
 
+    # Full-scan mode: scan ALL test_*.py and use config as categorization mapping
+    if args.full_scan:
+        import discover_test_files
+        all_scanned = discover_test_files.discover_raw_test_files(test_dir)
+
+        classified = classify_files_full_scan(all_scanned, categories)
+
+        # Backfill each category's files with classified results
+        for cat_name in categories:
+            categories[cat_name]["files"] = classified.get(cat_name, [])
+
+        print(f"[full-scan] Scanned {len(all_scanned)} test_*.py files, "
+              f"classified into {len(categories)} categories via config + auto-routing")
+
     print("Categories loaded:")
     for cat_name, cat_cfg in categories.items():
         print(f"  {cat_name}: {len(cat_cfg['files'])} files, workers={cat_cfg['workers']}, "
@@ -803,6 +881,15 @@ def parse_args():
              "When set, --hw-classification is passed to pytest --collect-only "
              "so only tests with matching hw_classification class attributes "
              "are collected.",
+    )
+    parser.add_argument(
+        "--full-scan",
+        action="store_true",
+        default=False,
+        help="Scan ALL test_*.py files. The case-paths-config is then used as a "
+             "categorization mapping (files + paths) instead of a whitelist. "
+             "Unmatched files go to 'others'; unlisted test/distributed/ files "
+             "auto-route to 'distributed' via paths matching.",
     )
     parser.add_argument(
         "--distributed-shards", type=int, default=None,

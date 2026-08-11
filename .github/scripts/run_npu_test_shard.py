@@ -171,9 +171,6 @@ def save_case_log(
     returncode: int,
     command: str,
     npu_device_id: Optional[int] = None,
-    retry_count: int = 0,
-    retry_history: Optional[List[Dict]] = None,
-    suffix: str = "",
 ) -> Path:
     """
     Save complete execution log for all test cases.
@@ -182,10 +179,6 @@ def save_case_log(
     - Case metadata (nodeid, status, duration, returncode)
     - Full stdout and stderr output
     - Execution command
-    - Retry history (if any retries were attempted)
-
-    Args:
-        suffix: Optional suffix appended to filename (e.g. "_retry").
 
     Returns:
         Path to the saved log file
@@ -199,7 +192,7 @@ def save_case_log(
     prefix = {"distributed": "dist", "core": "core", "tensor": "tensor",
               "graph": "graph", "others": "others",
               "regular": "reg", "custom": "custom"}.get(shard_type, "reg")
-    log_filename = f"{prefix}-{shard}_{case_idx}_{safe_name}{suffix}.log"
+    log_filename = f"{prefix}-{shard}_{case_idx}_{safe_name}.log"
     log_path = cases_logs_dir / log_filename
 
     # Write log content
@@ -217,9 +210,6 @@ def save_case_log(
     ]
     if npu_device_id is not None:
         content_lines.append(f"NPU Device: {npu_device_id}")
-    if retry_count > 0:
-        content_lines.append(f"Retry Count: {retry_count}")
-        content_lines.append(f"Final Result: {'PASSED after retry' if status == 'passed' else 'FAILED after all retries'}")
     content_lines.extend([
         "=" * 80,
         "",
@@ -232,32 +222,6 @@ def save_case_log(
         stderr or "(empty)",
         "",
     ])
-
-    if retry_history:
-        content_lines.extend([
-            "=" * 80,
-            f"RETRY HISTORY ({len(retry_history)} failed attempt(s) before final result)",
-            "=" * 80,
-        ])
-        for attempt in retry_history:
-            content_lines.extend([
-                f"--- Attempt {attempt['attempt']} (FAILED) ---",
-                f"  Status: {attempt['status']}",
-                f"  Duration: {attempt['duration']:.2f}s",
-                f"  Return Code: {attempt['returncode']}",
-                f"  Error Message:",
-                "  " + (attempt.get("message", "") or "(empty)").replace("\n", "\n  "),
-                "",
-                f"  Attempt {attempt['attempt']} STDOUT:",
-                "  " + "-" * 76,
-                "  " + (attempt.get("stdout", "") or "(empty)").replace("\n", "\n  "),
-                "",
-                f"  Attempt {attempt['attempt']} STDERR:",
-                "  " + "-" * 76,
-                "  " + (attempt.get("stderr", "") or "(empty)").replace("\n", "\n  "),
-                "",
-            ])
-        content_lines.append("=" * 80)
 
     log_path.write_text("\n".join(content_lines), encoding="utf-8")
     return log_path
