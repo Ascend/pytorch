@@ -418,10 +418,10 @@ aclrtStream NPUStream::stream() const
 {
     auto cur_ptr = NPUStream_internals(*this);
     AT_ASSERT(cur_ptr, PTA_ERROR(ErrCode::PTR));
-    if (isExternalStreamId(this->id())) {
-        return cur_ptr->stream;
-    }
     if (c10_npu::option::OptionsManager::GetPerStreamQueue()) {
+        TORCH_CHECK(!isExternalStreamId(this->id()),
+            "External NPU stream is not supported in NPUStream::stream() with per-stream task queue.",
+            PTA_ERROR(ErrCode::NOT_SUPPORT));
         if (!this->isSyncLaunchStream() && cur_ptr->repo->CheckInit()) {
             NPUStatus ret = cur_ptr->repo->MakeSureQueueEmpty();
             if (ret != NPU_STATUS_SUCCESS) {
