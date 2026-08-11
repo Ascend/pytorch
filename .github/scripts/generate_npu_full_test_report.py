@@ -656,7 +656,6 @@ def main():
         ["Overall result", overall_status],
         ["PyTorch", f"`{args.pytorch_version}`"],
         ["torch_npu", f"`{whl_name}`"],
-        ["Patches applied", str(args.patch_count)],
         ["Docker image", f"`{args.docker_image}`"],
         ["Runner", f"`{args.runner}`"],
         ["Shards", f"{received_reports} / {expected_reports} reported"],
@@ -781,6 +780,9 @@ def main():
 
             file_rows = []
             for fs in sorted_files:
+                # Skip files with 0 planned cases (no tests collected)
+                if fs["case_count"] == 0:
+                    continue
                 # Calculate fail rate based on executed cases
                 failed_total = fs["failed"] + fs["errors"] + fs["timeout"]
                 fail_rate = f"{(failed_total / fs['total'] * 100):.1f}%" if fs["total"] > 0 else "0%"
