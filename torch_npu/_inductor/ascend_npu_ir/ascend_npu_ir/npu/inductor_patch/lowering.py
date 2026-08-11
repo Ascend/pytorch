@@ -6193,11 +6193,47 @@ def fill_(x, fill_value):
     return mutate_to(x, full_like(x, fill_value))
 
 
+def _has_slice_op(tensor_box):
+    """
+    Check whether TensorBox is derived from aten.slice.
+    Only check the first origin node.
+    """
+    if not isinstance(tensor_box, TensorBox):
+        return False
+    visited = set()
+
+    def visit(node):
+        if node is None:
+            return False
+        obj_id = id(node)
+        if obj_id in visited:
+            return False
+        visited.add(obj_id)
+        origins = getattr(node, "origins", None)
+        if origins:
+            first_origin = next(iter(origins))
+            if isinstance(first_origin, torch.fx.Node):
+                return first_origin.target == aten.slice.Tensor
+        origin_node = getattr(node, "origin_node", None)
+        if origin_node is not None:
+            return origin_node.target == aten.slice.Tensor
+
+    return visit(tensor_box.data)
+
+
 @register_lowering(aten.copy_, type_promotion_kind=None)
 def copy_(dst, src, non_blocking=False):
     if dst is src:
         # dst.copy_(dst) can happen from the reinplacing pass
         return dst
+    has_slice_dst = _has_slice_op(dst)
+    if has_slice_dst:
+        return fallback_handler(aten.copy_.default)(
+            dst,
+            src,
+            non_blocking=non_blocking,
+        )
+
     src = to_device(src, dst.get_device())
     src = to_dtype(src, dst.get_dtype())
     src = expand(src, dst.get_size())

@@ -106,7 +106,6 @@ SKIP = {
     "detectron2_maskrcnn",
     "fambench_xlmr",
     "tacotron2",
-    "hf_Bert_large",  # Error: RelaxedUnspecConstraint(L['input_ids'].size()[0]) - inferred constant (4)
     # takes too long, extreme slowdown (< .001)
     "maml",
 }
@@ -182,16 +181,35 @@ NPU_REUQIRE_EVEN_LOWER_LEARNING_RATE = {
     "resnet18",
     "shufflenet_v2_x1_0",
     "timm_vovnet",
+    "drq",
+    "functorch_maml_omniglot",
 }
 
 
-NPU_DVM_NO_ACLGRAPH = {}
+# torchbench does not support training for these models (eval/inference only).
+INFERENCE_ONLY_MODELS = {
+    "cm3leon_generate",
+    "hf_distil_whisper",
+    "pyhpc_equation_of_state",
+    "pyhpc_isoneutral_mixing",
+    "pyhpc_turbulent_kinetic_energy",
+    "sam",
+    "yolov3",
+}
 
 
-NPU_AKG_NO_ACLGRAPH = {}
+# aclgraph capture fails on these models
+_NPU_NO_ACLGRAPH_MODELS = {
+    "cm3leon_generate",
+    "hf_BigBird",
+    "yolov3",
+}
 
+NPU_DVM_NO_ACLGRAPH = set(_NPU_NO_ACLGRAPH_MODELS)
 
-NPU_MLIR_NO_ACLGRAPH = {}
+NPU_AKG_NO_ACLGRAPH = set(_NPU_NO_ACLGRAPH_MODELS)
+
+NPU_MLIR_NO_ACLGRAPH = set(_NPU_NO_ACLGRAPH_MODELS)
 
 
 NPU_BATCH_SIZE = {
@@ -202,9 +220,7 @@ NPU_BATCH_SIZE = {
 }
 
 
-NPU_MFUSION_NO_ACLGRAPH = {
-
-}
+NPU_MFUSION_NO_ACLGRAPH = set(_NPU_NO_ACLGRAPH_MODELS)
 
 
 class TorchBenchmarkRunner(BenchmarkRunner):
@@ -241,6 +257,13 @@ class TorchBenchmarkRunner(BenchmarkRunner):
         part=None,
     ):
         is_training = self.args.training
+        if is_training and model_name in INFERENCE_ONLY_MODELS:
+            log.warning(
+                "%s only supports inference; ignoring --training and running eval",
+                model_name,
+            )
+            is_training = False
+            self.args.training = False
 
         candidates = [
             f"torchbenchmark.models.{model_name}",

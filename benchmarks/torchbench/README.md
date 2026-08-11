@@ -77,6 +77,11 @@
         - pytorch_stargan_inputs.tar.gz
         - LearningToPaint_inputs.tar.gz
         - speech_transformer_inputs.tar.gz
+        - coco128.tar.gz
+    # 其它数据文件
+        - obs.pkl
+        - sam_vit_h_4b8939.pth
+        - truck.jpg
     ```
 
 2. 下载数据集可以使用下方URL
@@ -87,6 +92,10 @@
     https://ossci-datasets.s3.amazonaws.com/torchbench/data/pytorch_stargan_inputs.tar.gz
     https://ossci-datasets.s3.amazonaws.com/torchbench/data/LearningToPaint_inputs.tar.gz
     https://ossci-datasets.s3.amazonaws.com/torchbench/data/speech_transformer_inputs.tar.gz
+    https://ossci-datasets.s3.amazonaws.com/torchbench/data/coco128.tar.gz
+    https://ossci-datasets.s3.amazonaws.com/torchbench/models/drq/obs.pkl
+    https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth
+    https://github.com/facebookresearch/segment-anything/raw/main/notebooks/images/truck.jpg
     ```
 
 3. 下载后的数据集放到任意目录下，然后使用环境变量`TORCHBENCH_DATA_PATH`指定数据集目录，运行测试脚本
@@ -100,6 +109,10 @@
     tar -xvzf pytorch_stargan_inputs.tar.gz
     tar -xvzf LearningToPaint_inputs.tar.gz
     tar -xvzf speech_transformer_inputs.tar.gz
+    tar -xvzf coco128.tar.gz
+
+    # 其它数据文件直接放到数据集目录
+    cp obs.pkl sam_vit_h_4b8939.pth truck.jpg ./dataset/
 
     # 使用环境变量，指定数据集目录
     export TORCHBENCH_DATA_PATH="./dataset"
