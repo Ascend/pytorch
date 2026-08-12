@@ -387,6 +387,8 @@ def collect_cases_for_file(
         command.append("--hw-classification")
         command.extend(hw_classification)
 
+    print(f"  [{display_name}] Collecting: {' '.join(command)}", flush=True)
+
     try:
         result = subprocess.run(
             command,
