@@ -26,13 +26,24 @@ categories:
       - test/autograd
       - test/profiler
     files:
+      - test/test_cpp_api_parity.py
       - test/test_modules.py
+      - test/test_native_mha.py
+      - test/test_nn.py
       - test/test_nnapi.py
+      - test/test_transformers.py
+      - test/test_varlen_attention.py
       - test/test_functional_optim.py
+      - test/test_optim.py
+      - test/test_autograd.py
       - test/test_autograd_fallback.py
+      - test/test_expanded_weights.py
       - test/test_functional_autograd_benchmark.py
+      - test/test_functionalization_of_rng_ops.py
       - test/test_ops_fwd_gradients.py
       - test/test_ops_gradients.py
+      - test/test_flop_count.py
+      - test/test_itt.py
       - test/test_throughput_benchmark.py
 
   tensor:
