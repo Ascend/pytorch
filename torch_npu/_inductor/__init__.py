@@ -106,7 +106,7 @@ def _load_triton_backend():
     from .codecache import patch_get_cpp_wrapper_header
     from .export import patch_aot_load
     from .codegen._sizevars import patch_simplify
-    from .codegen.ir import patch_indexing, patch_loop_body
+    from .codegen.ir import patch_fixed_indexer, patch_indexing, patch_loop_body
     from .codegen.triton import (
         patch_gen_common_triton_ext_imports,
         patch_triton_scheduling,
@@ -228,6 +228,7 @@ def _load_triton_backend():
     patch_num_splits()
     patch_loop_body()
     patch_indexing()
+    patch_fixed_indexer()
     patch_triton_scheduling()
 
     patch_create_device_properties()
