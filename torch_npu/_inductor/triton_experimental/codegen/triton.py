@@ -6567,12 +6567,17 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                     r_tensor_dim += 1
             elif tree.tensor_dim is not None:
                 tree.tensor_dim = r_tensor_dim
-                # Bump r_tensor_dim only when the hook permuted the trees (a reduction
-                # tree may sit at an inner slot with X-tree slots after it, needing
-                # room). Un-permuted kernels (R last) don't need it; no-bump keeps them
-                # byte-identical.
-                if getattr(kernel, "_npu_tile_permuted", False):
-                    r_tensor_dim += 1
+                # Bump for EVERY reduction tree so multi-reduction-dim kernels
+                # (e.g. triton.tile_reductions=True var_mean over >=2 dims) get
+                # DISTINCT r-slots (r0_->N, r1_->N+1, ...). The data side already
+                # lays these out as 3D [x, R0_BLOCK, R1_BLOCK]; the index bases
+                # (sizes[tensor_dim]=":") and dense_size_str() key off tensor_dim,
+                # so without distinct slots r0_/r1_ collide at one slot and the
+                # load/broadcast shapes mismatch (Cannot broadcast ... [2,2,1],
+                # [2,1,2]). For single-reduction kernels this is a no-op (the only
+                # r-tree's tensor_dim is unchanged), keeping them byte-identical;
+                # the permuted case already bumped, also unchanged.
+                r_tensor_dim += 1
 
         kernel._linearize_applied = True
 

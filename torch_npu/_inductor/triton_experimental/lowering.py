@@ -84,6 +84,7 @@ def overwrite_lowering(aten_fn, decomp_fn, *args, **kwargs):
                 other_fn = getattr(fn, overload)
                 overwrite_lowering(other_fn, decomp_fn, *args, **kwargs)
 
+
 overwrite_lowering(
     [
         prims.convert_element_type,
@@ -256,6 +257,41 @@ def npu_slice_scatter(x, src, dim=0, start=None, end=None, step=1):
 
     return _upstream_slice_scatter(x, src, dim=dim, start=start, end=end, step=step)
 overwrite_lowering(aten.slice_scatter, npu_slice_scatter, type_promotion_kind=None)
+
+
+# ---- index_put / index_put_: cast-then-extern-fallback ----
+# Upstream index_put_impl_ (torch/_inductor/lowering.py `index_put_impl_`) casts
+# values to self.dtype and then emits a real ir.Scatter triton kernel. On NPU we
+# KEEP the dtype alignment but route execution to the extern ir.IndexPutFallback
+# (calls aten.index_put_) INSTEAD of the Scatter kernel -- index_put runs on the
+# proven aten path rather than a generated scatter kernel. Without the cast, fp16
+# self / fp32 values (check_model_gpu lowp downcasts inputs but not a graph-created
+# torch.ones()) reaches aten._index_put_impl_ unchanged and CANN rejects it
+# (aclnnIndexPutImpl EZ1001). KEEP_UPSTREAM_LOWERING (lowering_override_list.py)
+# lists these overloads so _register_npu_inductor_fallbacks does NOT clobber this
+# custom lowering back into a bare make_fallback.
+from torch._inductor.lowering import (
+    clone as _index_put_clone,
+    index_put_fallback as _index_put_fallback,
+)
+
+
+def npu_index_put(x, indices, values, accumulate=False):
+    # Out-of-place: clone self so the in-place IndexPutFallback mutates the copy,
+    # not the caller's tensor (mirrors upstream index_put, which does clone(x)).
+    x = _index_put_clone(x)
+    values = to_dtype(values, x.get_dtype())
+    return _index_put_fallback(x, indices, values, accumulate)
+
+
+def npu_index_put_(self, indices, values, accumulate=False):
+    # In-place: pass self directly; IndexPutFallback marks self mutated.
+    values = to_dtype(values, self.get_dtype())
+    return _index_put_fallback(self, indices, values, accumulate)
+
+
+overwrite_lowering(aten.index_put, npu_index_put, type_promotion_kind=None)
+overwrite_lowering(aten.index_put_, npu_index_put_, type_promotion_kind=None)
 
 
 # bishengir degrades a tail-axis-broadcast fused pointwise to SCALAR when the

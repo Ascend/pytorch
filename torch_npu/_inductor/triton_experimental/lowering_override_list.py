@@ -23,6 +23,7 @@ GENERATE_LIST = [
     aten.sub,
     aten.div,
     aten.exp,
+    aten.exp2,
     aten.pow,
     aten.rsqrt,
     aten.neg,
@@ -39,10 +40,12 @@ GENERATE_LIST = [
     npu._npu_dtype_cast_backward,
     aten.sin,
     aten.cos,
+    aten.tan,
     aten.reciprocal,
     aten.relu,
     aten.where,
     aten.log,
+    aten.log2,
     aten.sqrt,
     aten.clamp_min,
     aten.clamp_max,
@@ -96,8 +99,8 @@ GENERATE_LIST = [
     aten.convolution_backward,
     aten.bmm,
     aten.addmm,
+    aten.glu
 ]
-
 # A5 (910_95) ONLY: the CANN indirect-mem extension ops behind these exist only
 # on A5 (fail to lower on A2/A3/910B). Mirrors torch_npu's INDIRECT_MEM_OVERRIDE_LIST.
 if _device_props.is_a5():
@@ -119,6 +122,14 @@ KEEP_UPSTREAM_LOWERING = [
         "_assert_tensor_metadata",
         "_assert_async",
         "_functional_assert_async",
+        # index_put / index_put_: a custom lowering (npu_index_put / npu_index_put_
+        # in lowering.py) casts values to self.dtype then routes to the extern
+        # ir.IndexPutFallback (aten.index_put_) instead of the upstream ir.Scatter
+        # kernel. Keep them here so _register_npu_inductor_fallbacks does NOT clobber
+        # that custom lowering back into a bare make_fallback -- without the cast, fp16
+        # self / fp32 values hits aclnnIndexPutImpl EZ1001 (self/values dtype mismatch).
+        "index_put",
+        "index_put_",
     )
     if hasattr(aten, _name)
 ]

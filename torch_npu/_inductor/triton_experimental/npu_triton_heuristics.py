@@ -2094,7 +2094,16 @@ def reduction(
     if triton_meta is None:
         raise ValueError("[triton_experimental] triton_meta must not be None")
     xnumel = size_hints.get("x", 1)
-    rnumel = size_hints["r0_"]
+    # Collapse all reduction prefixes to a linear numel. For ND tile reductions
+    # (triton.tile_reductions=True, e.g. var_mean over >=2 dims) size_hints carries
+    # r0_/r1_; npu_triton_config_reduction -> triton_config_reduction ->
+    # _get_nd_reduction_numels splits this linear r back into R0_BLOCK/R1_BLOCK.
+    # Mirrors upstream _reduction_configs which does
+    # `rnumel = get_total_reduction_numel(size_hints)` ("convert reductions to 1D").
+    # For the single-reduction-dim case (len==2) this reduces to size_hints["r0_"].
+    rnumel = functools.reduce(
+        operator.mul, (v for k, v in size_hints.items() if k != "x")
+    )
     _, divisor_hints, axis_hints = _extract_axis_hint_payloads(triton_meta)
     x_axis_count = _count_x_axis_hints(triton_meta)
     axis_hints = axis_hints[:x_axis_count]
@@ -2109,7 +2118,7 @@ def reduction(
             register_intensive=register_intensive,
         )
 
-    if len(size_hints) == 2:
+    if len(size_hints) in (2, 3):
         contiguous_r = rnumel if 256 <= rnumel <= 16384 else min(rnumel, 16384)
         contiguous_config = reduction_cfg(1, contiguous_r)
         outer_config = reduction_cfg(64, 8)
