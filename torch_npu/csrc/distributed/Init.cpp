@@ -458,6 +458,10 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs)
         .def("_add_ephemeral_timeout",
             &::c10d_npu::ProcessGroupHCCL::addEphemeralTimeout,
              py::arg("timeout"),
+             py::call_guard<py::gil_scoped_release>())
+        .def("_group_start", &::c10d_npu::ProcessGroupHCCL::groupStart,
+             py::call_guard<py::gil_scoped_release>())
+        .def("_group_end", &::c10d_npu::ProcessGroupHCCL::groupEnd,
              py::call_guard<py::gil_scoped_release>());
 
     intrusive_ptr_class_<::c10d_npu::ProcessGroupHCCL::Options>(
