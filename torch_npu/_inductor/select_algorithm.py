@@ -1,10 +1,12 @@
 import builtins
+import contextlib
+import dataclasses
 import functools
+import inspect
 import itertools
 import logging
 import math
 import os
-import sys
 import time
 from concurrent.futures import as_completed, ThreadPoolExecutor, Future
 from io import StringIO
@@ -15,6 +17,7 @@ import sympy
 
 import torch
 import torch._inductor.async_compile  # noqa: F401 required to warm up AsyncCompile pools
+from torch._dynamo.device_interface import get_interface_for_device
 from torch._dynamo.utils import counters, dynamo_timed, identity
 from torch._inductor import config, ir
 from torch._inductor.ir import ChoiceCaller
@@ -46,16 +49,309 @@ from torch._inductor.select_algorithm import (
     TritonTemplateCaller,
     AutotuneArgs,
 )
-from torch._inductor.codegen.common import IndentedBuffer
+from torch._inductor.codegen.common import IndentedBuffer, RemovedArg
 from torch._inductor.exc import CppCompileError
 from torch.utils._ordered_set import OrderedSet
 
 from ..profiler import tensorboard_trace_handler
+from .codegen.triton import NPUTritonKernel
+from . import config as npu_config
+
 
 log = logging.getLogger("torch._inductor")
 
+_NPU_COMPILE_ONLY_META_FIELDS = frozenset(npu_config.FLEX_ATTENTION_NPU_COMPILE_HINT_KEYS)
+
+
+def _gen_npu_template_triton_imports() -> str:
+    return NPUTritonKernel.gen_common_triton_imports()
+
+
+def _add_npu_template_meta_to_inductor_meta(
+    inductor_meta: dict[str, Any],
+    meta: dict[str, Any],
+) -> None:
+    for key in ("ENABLE_COMPILE_HINT", "BLOCK_M", "BLOCK_N"):
+        if key in meta:
+            inductor_meta[key] = meta[key]
+
+
+def _add_npu_template_compile_options_to_triton_meta(
+    triton_meta: dict[str, Any],
+    meta: dict[str, Any],
+) -> None:
+    compile_options = {
+        key: meta[key]
+        for key in npu_config.FLEX_ATTENTION_NPU_COMPILE_HINT_KEYS
+        if key in meta
+    }
+    if compile_options:
+        triton_meta.setdefault("npu_compile_options", {}).update(compile_options)
+
+
+def _extract_choice_debug_config(choice: ChoiceCaller) -> Optional[Any]:
+    for attr in (
+        "_sparse_mask_report_config",
+        "_flex_attention_report_config",
+        "log_info",
+        "config",
+    ):
+        if hasattr(choice, attr):
+            value = getattr(choice, attr)
+            if value is not None:
+                return value
+    return None
+
+
+def _format_choice_debug_label(choice: ChoiceCaller) -> str:
+    choice_name = getattr(choice, "name", type(choice).__name__)
+    config_info = _extract_choice_debug_config(choice)
+    if config_info is not None:
+        return f"{choice_name} config={config_info}"
+    return str(choice)
+
+
+def _tiling_sort_key(choice: ChoiceCaller):
+    config_info = _extract_choice_debug_config(choice)
+    if isinstance(config_info, dict):
+        block_m = config_info.get("MASK_BLOCK_M", config_info.get("BLOCK_M"))
+        block_n = config_info.get("MASK_BLOCK_N", config_info.get("BLOCK_N"))
+        block_m2 = config_info.get("BLOCK_M2")
+        block_n2 = config_info.get("BLOCK_N2")
+        if block_m is not None or block_n is not None:
+            block_m = int(block_m) if block_m is not None else 1
+            block_n = int(block_n) if block_n is not None else 1
+            if block_m2 is None or block_n2 is None:
+                return (block_m * block_n, block_m, block_n)
+            block_m2 = int(block_m2)
+            block_n2 = int(block_n2)
+            return (
+                block_m * block_n + block_m2 * block_n2,
+                block_m * block_n,
+                block_m2 * block_n2,
+                block_m,
+                block_n,
+                block_m2,
+                block_n2,
+            )
+    return None
+
+
+def _select_first_usable_choice_in_order(
+    choices,
+    timings,
+    successful_precompile_choice_hashes,
+):
+    for choice in choices:
+        if choice in timings:
+            return choice
+    for choice in choices:
+        if choice.hash_key() in successful_precompile_choice_hashes:
+            return choice
+    tiling_choices = [
+        (tiling_key, choice)
+        for choice in choices
+        if (tiling_key := _tiling_sort_key(choice)) is not None
+    ]
+    if tiling_choices:
+        return max(tiling_choices, key=lambda item: item[0])[1]
+    return None
+
+
 class NPUCompileError(CppCompileError):
     pass
+
+
+class _NPUTritonBenchmarkRequestMixin:
+    kernel_has_output_arg = True
+
+    def do_bench(
+        self,
+        fn: Callable[[], None],
+        *input_tensors: torch.Tensor,
+        out: Optional[torch.Tensor] = None,
+    ) -> float:
+        from torch._inductor.runtime.benchmarking import benchmarker
+
+        device_idx_set = OrderedSet(
+            tensor.device.index
+            for tensor in (*input_tensors, out)
+            if isinstance(tensor, torch.Tensor)
+            and tensor.device.type == "npu"
+            and tensor.device.index is not None
+        )
+        assert len(device_idx_set) <= 1, f"Can not mix devices {device_idx_set}"
+        device_interface = get_interface_for_device("npu")
+        device_idx = (
+            next(iter(device_idx_set))
+            if device_idx_set
+            else device_interface.current_device()
+        )
+        with device_interface.device(device_idx):
+            result = benchmarker.benchmark_gpu(fn, device_type="npu")
+            device_interface.synchronize()
+        return result
+
+    def make_run_fn(
+        self,
+        *input_tensors: torch.Tensor,
+        out: Optional[torch.Tensor] = None,
+        output_tensor: Optional[torch.Tensor] = None,
+    ) -> Callable[[], None]:
+        if out is None:
+            out = output_tensor
+        elif output_tensor is not None and output_tensor is not out:
+            raise ValueError("out and output_tensor must refer to the same tensor")
+        if out is None:
+            raise ValueError("benchmark output tensor is required")
+
+        mod = PyCodeCache.load_by_key_path(
+            self.module_cache_key,
+            self.module_path,
+            set_sys_modules=False,
+        )
+        self._benchmark_module = mod
+        run_method = getattr(mod, self.kernel_name).run
+        run_method.__self__.with_bandwidth_info = False
+
+        warmup_arg = {}
+        if "warmup" in inspect.signature(run_method).parameters:
+            warmup_arg["warmup"] = False
+
+        if out.device.type == "cpu":
+            stream = 0
+        else:
+            device_interface = get_interface_for_device(out.device.type)
+            stream = device_interface.get_raw_stream(self.output_tensor_meta.device.index)
+
+        launch_args = [*input_tensors]
+        if self.kernel_has_output_arg:
+            launch_args.append(out)
+        launch_args.extend(self.extra_args)
+        if isinstance(
+            getattr(mod, self.kernel_name),
+            torch._inductor.runtime.triton_heuristics.DebugAutotuner,
+        ):
+            return functools.partial(
+                run_method,
+                *launch_args,
+                **warmup_arg,
+                stream=stream,
+            )
+        return functools.partial(
+            run_method,
+            *launch_args,
+            **warmup_arg,
+            stream=stream,
+            benchmark_run=True,
+        )
+
+
+class NPUTritonBenchmarkRequest(
+    _NPUTritonBenchmarkRequestMixin,
+    TritonGPUBenchmarkRequest,
+):
+    pass
+
+
+class NPUFlexAttentionDkdvTemplateBuffer(ir.TritonTemplateBuffer):
+    def __init__(
+        self,
+        layout,
+        inputs,
+        make_kernel_render,
+        runtime_renderer_factory,
+        dispatch_spec,
+        mutated_inputs=None,
+        allowed_prologue_inps=None,
+    ):
+        super().__init__(
+            layout=layout,
+            inputs=inputs,
+            make_kernel_render=make_kernel_render,
+            mutated_inputs=mutated_inputs,
+            allowed_prologue_inps=allowed_prologue_inps,
+        )
+        self.runtime_renderer_factory = runtime_renderer_factory
+        self.dispatch_spec = dispatch_spec
+
+
+class NPUFlexAttentionDkdvTemplateCaller(TritonTemplateCaller):
+    def __init__(
+        self,
+        *args,
+        runtime_renderer_factory,
+        dispatch_spec,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.runtime_renderer_factory = runtime_renderer_factory
+        self.dispatch_spec = dispatch_spec
+
+    def output_node(self):
+        buffer = NPUFlexAttentionDkdvTemplateBuffer(
+            layout=self.layout,
+            inputs=self.input_nodes,
+            make_kernel_render=self.make_kernel_render,
+            runtime_renderer_factory=self.runtime_renderer_factory,
+            dispatch_spec=self.dispatch_spec,
+            mutated_inputs=self.mutated_inputs,
+            allowed_prologue_inps=self.allowed_prologue_inps,
+        )
+        return ir.TensorBox.create(buffer)
+
+
+@dataclasses.dataclass(frozen=True)
+class NPUTritonRuntimeRenderer:
+    kernel: Any
+    render: Callable
+    runtime_arg_names: dict[str, str]
+    runtime_arg_dtypes: dict[str, torch.dtype]
+    runtime_arg_buffers: dict[str, ir.Buffer]
+
+    @contextlib.contextmanager
+    def patch_runtime_args(self):
+        graph_get_dtype = V.graph.get_dtype
+        graph_get_buffer = V.graph.get_buffer
+        scheduler = getattr(V.graph, "scheduler", None)
+        scheduler_get_buffer_layout = (
+            getattr(scheduler, "get_buffer_layout", None)
+            if scheduler is not None
+            else None
+        )
+
+        def get_dtype(name):
+            if name in self.runtime_arg_dtypes:
+                return self.runtime_arg_dtypes[name]
+            return graph_get_dtype(name)
+
+        def get_buffer(name):
+            if name in self.runtime_arg_buffers:
+                return self.runtime_arg_buffers[name]
+            return graph_get_buffer(name)
+
+        def get_buffer_layout(name):
+            if name in self.runtime_arg_buffers:
+                return self.runtime_arg_buffers[name].get_layout()
+            return scheduler_get_buffer_layout(name)
+
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(patch.object(V.graph, "get_dtype", get_dtype))
+            stack.enter_context(patch.object(V.graph, "get_buffer", get_buffer))
+            if scheduler_get_buffer_layout is not None:
+                stack.enter_context(
+                    patch.object(
+                        scheduler,
+                        "get_buffer_layout",
+                        get_buffer_layout,
+                    )
+                )
+            yield
+
+    def python_argdefs(self):
+        with self.patch_runtime_args():
+            return self.kernel.args.python_argdefs()
+
 
 class NPUTritonTemplate(TritonTemplate):
     """NPU-specific Triton template for kernel generation.
@@ -66,7 +362,15 @@ class NPUTritonTemplate(TritonTemplate):
 
     index_counter = itertools.count()
 
-    def __init__(self, name: str, grid: Any, source: str, debug: bool = False) -> None:
+    def __init__(
+        self,
+        name: str,
+        grid: Any,
+        source: str,
+        debug: bool = False,
+        manual_output_buffer: Optional[str] = None,
+        codegen_kernel_name: Optional[str] = None,
+    ) -> None:
         """Initialize NPU Triton template.
 
         Args:
@@ -76,6 +380,97 @@ class NPUTritonTemplate(TritonTemplate):
             debug: Enable debug mode for verbose output
         """
         super().__init__(name, grid, source, debug)
+        self.manual_output_buffer = manual_output_buffer
+        self.codegen_kernel_name = codegen_kernel_name or f"triton_{name}"
+
+    def make_runtime_renderer_factory(
+        self,
+        *,
+        input_nodes,
+        runtime_args,
+        layout,
+        num_stages,
+        num_warps,
+        call_sizes=None,
+        subgraphs=None,
+        reset_to_zero_arg_names=None,
+        **kwargs,
+    ):
+        runtime_args = tuple(runtime_args)
+        call_sizes = list(call_sizes or layout.size)
+        meta = dict(kwargs)
+        meta["ALLOW_TF32"] = "False"
+        defines = StringIO()
+        for name, value in meta.items():
+            if name not in _NPU_COMPILE_ONLY_META_FIELDS:
+                if self.name.startswith("flex_attention") and name == "generate_with_caching":
+                    continue
+                defines.write(f"{name} : tl.constexpr = {value}\n")
+        kernel_options = {
+            "defines": defines.getvalue(),
+            "num_stages": num_stages,
+            "num_warps": num_warps,
+            "grid_fn": self.grid,
+            "meta": meta,
+            "call_sizes": call_sizes,
+            "prefix_args": 0,
+            "suffix_args": 0,
+            "epilogue_fn": identity,
+            "subgraphs": subgraphs,
+            "manual_output_buffer": self.manual_output_buffer,
+            "reset_to_zero_arg_names": reset_to_zero_arg_names,
+        }
+
+        def create_renderer(out_node):
+            runtime_nodes = [
+                ir.Buffer(
+                    name=f"__npu_runtime_{runtime_arg.name.lower()}",
+                    layout=ir.FixedLayout(
+                        out_node.get_device(),
+                        runtime_arg.dtype,
+                        [1] * runtime_arg.rank,
+                    ),
+                )
+                for runtime_arg in runtime_args
+            ]
+            all_input_nodes = [*input_nodes, *runtime_nodes]
+            runtime_arg_names = {
+                node.get_name(): runtime_arg.wrapper_name
+                for node, runtime_arg in zip(runtime_nodes, runtime_args)
+            }
+            runtime_arg_dtypes = {
+                node.get_name(): runtime_arg.dtype
+                for node, runtime_arg in zip(runtime_nodes, runtime_args)
+            }
+            kernel = NPUTritonTemplateKernel(
+                kernel_name=str(Placeholder.KERNEL_NAME),
+                input_nodes=all_input_nodes,
+                output_node=out_node,
+                workspace_arg=None,
+                use_jit=False,
+                **kernel_options,
+            )
+            kernel._npu_codegen_kernel_name = self.codegen_kernel_name
+
+            def render():
+                with patch.object(
+                    V.graph,
+                    "get_dtype",
+                    self._fake_get_dtype([out_node, *runtime_nodes]),
+                ):
+                    return kernel.render(self.template, meta)
+
+            return NPUTritonRuntimeRenderer(
+                kernel=kernel,
+                render=render,
+                runtime_arg_names=runtime_arg_names,
+                runtime_arg_dtypes=runtime_arg_dtypes,
+                runtime_arg_buffers={
+                    node.get_name(): node for node in runtime_nodes
+                },
+            )
+
+        return create_renderer
 
     def generate(
         self,
@@ -83,30 +478,62 @@ class NPUTritonTemplate(TritonTemplate):
         layout: ir.Layout,
         num_stages: int,
         num_warps: int,
+        num_consumer_groups: int = 0,
+        num_buffers_warp_spec: int = 0,
         prefix_args: int = 0,
         suffix_args: int = 0,
         epilogue_fn: Callable = identity,
+        epilogue_fn_hash: Optional[str] = None,
         subgraphs: Optional[list[ir.ComputedBuffer]] = None,
         mutated_inputs: Optional[list[ir.IRNode]] = None,
         call_sizes: Optional[list[sympy.Expr]] = None,
         workspace_arg: Optional[Any] = None,
+        generate_with_caching: bool = False,
+        hint_override: Optional[int] = None,
+        tma_store: bool = False,
+        tma_load_for_template_epilogue: bool = False,
+        transpose_discontiguous_tensor_descriptors_override: Optional[bool] = None,
+        triton_meta: Optional[dict[str, Any]] = None,
+        reset_to_zero_arg_names: Optional[list[str]] = None,
+        large_input_buffers: Optional[list[ir.IRNode]] = None,
+        runtime_renderer_factory: Optional[Callable] = None,
+        dispatch_spec: Optional[Any] = None,
         **kwargs: Any,
     ) -> Optional[ir.ChoiceCaller]:
         defines = StringIO()
         kwargs["ALLOW_TF32"] = "False"
         for name, val in kwargs.items():
+            if name in _NPU_COMPILE_ONLY_META_FIELDS:
+                continue
+            if self.name.startswith("flex_attention") and name == "generate_with_caching":
+                continue
             defines.write(f"{name} : tl.constexpr = {val}\n")
-        defines = defines.getvalue()
 
         fake_out = ir.Buffer(name="buf_out", layout=layout)
         kernel_name = f"triton_{self.name}"
 
         numel = sympy_product(layout.size)
-        buffers = itertools.chain(input_nodes, (fake_out,))
+        large_input_buffer_names = {
+            buffer.get_name() for buffer in large_input_buffers or []
+        }
+        checked_input_nodes = [
+            input_node
+            for input_node in input_nodes
+            if input_node.get_name() not in large_input_buffer_names
+        ]
+        if self.manual_output_buffer is None:
+            buffers = itertools.chain(checked_input_nodes, (fake_out,))
+        else:
+            buffers = checked_input_nodes
+            numel = sympy_product(call_sizes or layout.size)
         if not TritonScheduling.can_use_32bit_indexing(numel, buffers):
             raise NotImplementedError(
                 "64-bit indexing is not yet implemented for triton templates"
             )
+
+        if not self.name.startswith("flex_attention"):
+            defines.write("INDEX_DTYPE : tl.constexpr = tl.int32\n")
+        defines = defines.getvalue()
 
         if call_sizes is None:
             call_sizes = layout.size
@@ -116,6 +543,8 @@ class NPUTritonTemplate(TritonTemplate):
             "defines": defines,
             "num_stages": num_stages,
             "num_warps": num_warps,
+            "num_consumer_groups": num_consumer_groups,
+            "num_buffers_warp_spec": num_buffers_warp_spec,
             "grid_fn": self.grid,
             "meta": kwargs,
             "call_sizes": call_sizes,
@@ -123,6 +552,15 @@ class NPUTritonTemplate(TritonTemplate):
             "suffix_args": suffix_args,
             "epilogue_fn": epilogue_fn,
             "subgraphs": subgraphs,
+            "tma_store": tma_store,
+            "tma_load_for_template_epilogue": tma_load_for_template_epilogue,
+            "transpose_discontiguous_tensor_descriptors_override": (
+                transpose_discontiguous_tensor_descriptors_override
+            ),
+            "hint_override": hint_override,
+            "triton_meta": triton_meta,
+            "manual_output_buffer": self.manual_output_buffer,
+            "reset_to_zero_arg_names": reset_to_zero_arg_names,
         }
 
         with (
@@ -138,6 +576,14 @@ class NPUTritonTemplate(TritonTemplate):
         ):
             try:
                 template = kernel.render(self.template, kwargs)
+                if "<STORE_OUTPUT>" not in kernel.subgraph_bodies:
+                    with kernel.create_subgraph_body("<STORE_OUTPUT>"):
+                        pass
+
+                    def empty_hook():
+                        return ""
+
+                    kernel.render_hooks["<STORE_OUTPUT>"] = empty_hook
                 with kernel.set_subgraph_body("<STORE_OUTPUT>"):
                     code = template.finalize_all()
             except ZeroDivisionError:
@@ -184,6 +630,11 @@ class NPUTritonTemplate(TritonTemplate):
             map(sympy.expand, tuple(kernel.args.sizevars.keys())),
             fallback=config.unbacked_symint_fallback,
         )
+        kernel_has_output_arg = any(
+            outer not in kernel.args.inplace_buffers
+            and not isinstance(inner, RemovedArg)
+            for outer, inner in kernel.args.output_buffers.items()
+        )
 
         kernel_hash_name = f"triton_{self.name}_{next(self.index_counter)}"
 
@@ -195,6 +646,7 @@ class NPUTritonTemplate(TritonTemplate):
                 use_jit=False,
                 **kernel_options,
             )
+            kernel._npu_codegen_kernel_name = self.codegen_kernel_name
             render = functools.partial(
                 kernel.render,
                 self.template,
@@ -215,7 +667,7 @@ class NPUTritonTemplate(TritonTemplate):
         if layout.device.type == "cpu":
             bmreq_cls = TritonCPUBenchmarkRequest
         else:
-            bmreq_cls = TritonGPUBenchmarkRequest
+            bmreq_cls = NPUTritonBenchmarkRequest
         bmreq = bmreq_cls(
             module_path=mod.__file__,
             module_cache_key=mod.key,
@@ -229,8 +681,19 @@ class NPUTritonTemplate(TritonTemplate):
             input_tensor_meta=TensorMeta.from_irnodes(full_input_nodes),  # type: ignore[arg-type]
             output_tensor_meta=TensorMeta.from_irnodes(layout),
         )
+        bmreq.kernel_has_output_arg = kernel_has_output_arg
 
-        return TritonTemplateCaller(
+        caller_type = TritonTemplateCaller
+        caller_kwargs = {}
+        if runtime_renderer_factory is not None:
+            assert dispatch_spec is not None
+            caller_type = NPUFlexAttentionDkdvTemplateCaller
+            caller_kwargs = {
+                "runtime_renderer_factory": runtime_renderer_factory,
+                "dispatch_spec": dispatch_spec,
+            }
+
+        return caller_type(
             kernel_hash_name,
             full_input_nodes,
             layout,
@@ -256,7 +719,10 @@ class NPUTritonTemplate(TritonTemplate):
             mutated_inputs=mutated_inputs,
             workspace_arg=workspace_arg,
             allowed_prologue_inps=kernel.prologue_supported_inputs.copy(),
+            hint_override=hint_override,
+            **caller_kwargs,
         )
+
 
 class NPUTritonTemplateKernel(TritonTemplateKernel):
     """NPU-specific Triton template kernel for code generation.
@@ -279,6 +745,9 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
         num_consumer_groups: int = 0,
         num_buffers_warp_spec: int = 0,
         use_jit: bool = False,
+        tma_store: bool = False,
+        tma_load_for_template_epilogue: bool = False,
+        transpose_discontiguous_tensor_descriptors_override: Optional[bool] = None,
         prefix_args: int = 0,
         suffix_args: int = 0,
         epilogue_fn: Callable = identity,
@@ -286,6 +755,11 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
         workspace_arg: Optional[Any] = None,
         prologue_loads_all_inputs: bool = False,
         hint_override: Optional[int] = None,
+        triton_meta: Optional[dict[str, Any]] = None,
+        always_freeze_layout: bool = False,
+        index_dtype_override: Optional[str] = None,
+        manual_output_buffer: Optional[str] = None,
+        reset_to_zero_arg_names: Optional[list[str]] = None,
     ) -> None:
         """Initialize NPU Triton template kernel.
 
@@ -319,6 +793,11 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
             num_consumer_groups=num_consumer_groups,
             num_buffers_warp_spec=num_buffers_warp_spec,
             use_jit=use_jit,
+            tma_store=tma_store,
+            tma_load_for_template_epilogue=tma_load_for_template_epilogue,
+            transpose_discontiguous_tensor_descriptors_override=(
+                transpose_discontiguous_tensor_descriptors_override
+            ),
             prefix_args=prefix_args,
             suffix_args=suffix_args,
             epilogue_fn=epilogue_fn,
@@ -326,7 +805,25 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
             workspace_arg=workspace_arg,
             prologue_loads_all_inputs=prologue_loads_all_inputs,
             hint_override=hint_override,
+            triton_meta=triton_meta,
+            always_freeze_layout=always_freeze_layout,
+            index_dtype_override=index_dtype_override,
         )
+        self.manual_output_buffer = manual_output_buffer
+        self.reset_to_zero_arg_names = reset_to_zero_arg_names
+
+    def create_cse_var(self, name=None, bounds=None, dtype=None, shape=None, **kwargs):
+        # torch>=2.8 added an assertion in TritonCSEVariable.__init__ requiring
+        # shape to be non-None. Some upstream codegen paths (e.g.
+        # online_softmax_reduce) call newvar(dtype=...) without shape.
+        # Provide a scalar default so the assertion is satisfied; the actual
+        # shape is back-filled later by CSE.generate (see common.py).
+        if shape is None:
+            shape = ()
+        return super().create_cse_var(name, bounds, dtype, shape, **kwargs)
+
+    def _register_output_buffer(self, arg_name: str) -> None:
+        self.args.output_buffers.setdefault(self.output_node.get_name(), arg_name)
 
     def def_kernel(self, *argnames: str) -> str:
         """Hook called from template code to generate function def and needed args.
@@ -392,7 +889,7 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
             # python_argdefs() cannot be run until after the rest of the template lazily adds more args
             arg_defs, *_ = self.args.python_argdefs()
             code = IndentedBuffer()
-            code.splice(self.gen_common_triton_imports())
+            code.splice(_gen_npu_template_triton_imports())
             code.splice(self.jit_lines())
             code.writeline(
                 f"def {self.kernel_name}({', '.join(x.full_name() for x in arg_defs)}):"
@@ -404,7 +901,90 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
 
         assert "<DEF_KERNEL>" not in self.render_hooks
         self.render_hooks["<DEF_KERNEL>"] = hook
+        if self.manual_output_buffer is not None:
+            self._register_output_buffer(self.manual_output_buffer)
+        if len(argnames) == 0 and len(self.input_nodes) == 0:
+            self._register_output_buffer("out_ptr0")
         return "<DEF_KERNEL>"
+
+
+    def _get_store_output_subgraph_name(self, i: int) -> str:
+        """Override to use a fixed name without index suffix.
+
+        The NPU codegen (scheduling.py codegen_template and generate method)
+        expects the store_output subgraph body to be named ``<STORE_OUTPUT>``
+        (without the ``_{i}`` suffix used by the upstream SIMDKernel).
+        """
+        return "<STORE_OUTPUT>"
+
+
+    def jit_lines(self) -> str:
+        from torch._inductor.codegen.triton import TritonKernel
+        from torch._inductor.codegen.triton_utils import (
+            config_of,
+            equal_1_arg_indices,
+            signature_to_meta,
+        )
+        from torch._inductor.runtime.hints import DeviceProperties
+        from torch._inductor.runtime.triton_heuristics import FixedGrid
+
+        if self.use_jit:
+            return "@triton.jit"
+
+        argdefs, _, signature, _ = self.args.python_argdefs()
+        triton_meta = {
+            "signature": signature_to_meta(
+                signature,
+                size_dtype=self.index_dtype,
+                argdefs=argdefs,
+            ),
+            "device": DeviceProperties.create(self.output_node.get_device()),
+            "constants": {},
+        }
+        triton_meta["configs"] = [config_of(signature)]
+        if self.reset_to_zero_arg_names:
+            triton_meta["reset_to_zero"] = self.reset_to_zero_arg_names
+        for arg_num in equal_1_arg_indices(signature):
+            triton_meta["constants"][signature[arg_num].name] = 1
+
+        matrix_instr_nonkdim = self.meta.get("matrix_instr_nonkdim", None)
+        waves_per_eu = self.meta.get("waves_per_eu", None)
+        kpack = self.meta.get("kpack", None)
+        if matrix_instr_nonkdim:
+            triton_meta["matrix_instr_nonkdim"] = matrix_instr_nonkdim
+        if waves_per_eu:
+            triton_meta["waves_per_eu"] = waves_per_eu
+        if kpack:
+            triton_meta["kpack"] = kpack
+
+        _add_npu_template_compile_options_to_triton_meta(triton_meta, self.meta)
+        self.triton_meta = triton_meta
+
+        inductor_meta = {
+            "kernel_name": str(Placeholder.DESCRIPTIVE_NAME),
+            **TritonKernel.inductor_meta_common(),
+            **FixedGrid.setup_grid_as_args(),
+        }
+
+        if config.profile_bandwidth or config.benchmark_kernel:
+            num_gb = self.estimate_kernel_num_bytes() / 1e9
+            inductor_meta["kernel_num_gb"] = num_gb
+
+        _add_npu_template_meta_to_inductor_meta(inductor_meta, self.meta)
+
+        if npu_config.aggresive_autotune:
+            inductor_meta["profile_bandwidth_with_do_bench_using_profiling"] = True
+
+        return f"""
+            @triton_heuristics.template(
+                num_stages={self.num_stages},
+                num_warps={self.num_warps},
+                triton_meta={triton_meta!r},
+                inductor_meta={inductor_meta!r},
+            )
+            @triton.jit
+        """
+
 
 def patch_algorithm_selector() -> None:
     """Patch AlgorithmSelectorCache with NPU-specific implementations.
@@ -414,14 +994,7 @@ def patch_algorithm_selector() -> None:
     specific to NPU hardware.
     """
 
-    from torch._inductor.select_algorithm import AlgorithmSelectorCache
-
-    original_call = AlgorithmSelectorCache.__call__
-    original_make_benchmark_fn = AlgorithmSelectorCache.__dict__[
-        "make_benchmark_fn"
-    ].__func__
-
-    def npu_call(
+    def __call__(
         self,
         name: str,
         choices: List[ChoiceCaller],
@@ -440,6 +1013,11 @@ def patch_algorithm_selector() -> None:
             return_multi_template = False
 
         choices = [choice for choice in choices if choice is not None]
+        successful_precompile_choice_hashes: set[str] = set()
+        select_first_compilable_only = bool(choices) and all(
+            getattr(choice, "_nobench_select_first_compilable", False)
+            for choice in choices
+        )
 
         if mm_file_name := get_mm_log_filename():
             M, K = input_nodes[-2].get_size()[:2]
@@ -486,35 +1064,43 @@ def patch_algorithm_selector() -> None:
             if num_workers <= 0:
                 return no_op
 
-            if (
-                sys.version_info.major == 3
-                and sys.version_info.minor == 11
-                and sys.version_info.micro <= 8
-            ):
-                return no_op
+            # NOTE: The upstream Python 3.11.0-3.11.8 guard is relaxed here
+            # because NPU codegen already wraps each precompile task in
+            # restore_stdout_stderr(), which prevents the stdout/stderr race
+            # that the version check was protecting against.
+            # Cap workers to npu_config.precompile_thread_num for
+            # consistency with the triton_heuristics compile_thread_pool.
+            try:
+                from .. import config as npu_config
+                num_workers = min(num_workers, npu_config.precompile_thread_num)
+            except Exception:
+                pass
 
-            # check local and global cache before precompiling
-            timings = self.lookup(
-                choices,
-                name,
-                inputs_key,
-                benchmark=None,
-            )
+            if not select_first_compilable_only:
+                # check local and global cache before precompiling
+                timings = self.lookup(
+                    choices,
+                    name,
+                    inputs_key,
+                    benchmark=None,
+                )
 
-            if timings:
-                # compilation in precompile stage is much cheaper than that in
-                # autotuning stage
-                if len(timings) == len(choices):
-                    log.debug("Timings found in cache, returning no_op")
+                if timings:
+                    # compilation in precompile stage is much cheaper than that in
+                    # autotuning stage
+                    if len(timings) == len(choices):
+                        log.debug("Timings found in cache, returning no_op")
+                        return no_op
+
+                if config.search_autotune_cache and not (
+                    config.max_autotune or config.max_autotune_gemm
+                ):
                     return no_op
 
-            if config.search_autotune_cache and not (
-                config.max_autotune or config.max_autotune_gemm
-            ):
-                return no_op
-
             precompile_key = create_precompile_key(name, inputs_key, choices)
-            if precompile_func := self.precompile_cache.get(precompile_key):
+            if not select_first_compilable_only and (
+                precompile_func := self.precompile_cache.get(precompile_key)
+            ):
                 return precompile_func
 
             log.info(
@@ -581,16 +1167,20 @@ def patch_algorithm_selector() -> None:
                             "Exception %s for benchmark choice %s", e, futures[future]
                         )
                     else:
+                        successful_precompile_choice_hashes.add(
+                            futures[future].hash_key()
+                        )
                         counters["inductor"]["select_algorithm_num_precompiles"] += 1
                         log.info(
                             "Precompiling benchmark choice %s took %.02fs",
-                            futures[future],
+                            _format_choice_debug_label(futures[future]),
                             elapsed_times[future],
                         )
 
                 executor.shutdown(wait=True)
 
-            self.precompile_cache[precompile_key] = wait_on_futures
+            if not select_first_compilable_only:
+                self.precompile_cache[precompile_key] = wait_on_futures
 
             return wait_on_futures
 
@@ -651,6 +1241,39 @@ def patch_algorithm_selector() -> None:
 
             return timings
 
+        if select_first_compilable_only:
+            counters["inductor"]["select_algorithm_precompile"] += 1
+            selected_choice = None
+            for choice in choices:
+                try:
+                    with restore_stdout_stderr():
+                        choice.precompile()
+                    successful_precompile_choice_hashes.add(choice.hash_key())
+                    counters["inductor"]["select_algorithm_num_precompiles"] += 1
+                    selected_choice = choice
+                    break
+                except Exception as e:
+                    log.warning(
+                        "Compile Fail for no-benchmark choice %s "
+                        "during ordered precompile",
+                        _format_choice_debug_label(choice),
+                    )
+                    log.debug(  # noqa: G200
+                        "Exception %s for no-benchmark choice %s "
+                        "during ordered precompile",
+                        e,
+                        _format_choice_debug_label(choice),
+                    )
+            if selected_choice is None:
+                raise NoValidChoicesError(
+                    f"No compilable choices found for {name} in no-benchmark mode."
+                )
+            log.info(
+                "[select_algorithm] No-benchmark selected first compilable choice %s",
+                _format_choice_debug_label(selected_choice),
+            )
+            return selected_choice.output_node(), selected_choice
+
         precompile_fn = precompile(choices)
 
         if return_multi_template and (config.max_autotune or config.max_autotune_gemm):
@@ -681,29 +1304,43 @@ def patch_algorithm_selector() -> None:
                 if isinstance(c, TritonTemplateCaller):
                     allowed_prologue_inps |= c.allowed_prologue_inps
 
-            return (
-                torch._inductor.ir.TensorBox.create(
-                    torch._inductor.ir.MultiTemplateBuffer(
-                        layout,
-                        input_nodes,
-                        get_timings,
-                        choices,
-                        allowed_prologue_inps,
-                    )
-                ),
-                None,
-            )
+            return torch._inductor.ir.TensorBox.create(
+                torch._inductor.ir.MultiTemplateBuffer(
+                    layout,
+                    input_nodes,
+                    get_timings,
+                    choices,
+                    allowed_prologue_inps,
+                )
+            ), None
 
         timings = do_autotuning(precompile_fn)
         if timings == {} or choices[0] not in timings:
+            fallback_choice = _select_first_usable_choice_in_order(
+                choices,
+                timings,
+                successful_precompile_choice_hashes,
+            )
+            if fallback_choice is not None:
+                log.info(
+                    "[select_algorithm] Fallback selected choice %s",
+                    _format_choice_debug_label(fallback_choice),
+                )
+                return fallback_choice.output_node(), fallback_choice
+            log.warning(
+                "[select_algorithm] No timings and no usable fallback; "
+                "returning first choice %s",
+                _format_choice_debug_label(choices[0]),
+            )
             return choices[0].output_node(), choices[0]
 
         selected_key = builtins.min(timings, key=timings.__getitem__)
-        selected_node = selected_key.output_node()
-        log.debug("selected choice: %s", str(selected_node))
-        return selected_node, selected_key
+        selected_choice = selected_key.output_node()
+        log.debug("selected choice: %s", str(selected_choice))
+        return selected_choice, selected_key
 
-    def npu_make_benchmark_fn(
+    @classmethod
+    def make_benchmark_fn(
         cls,
         choices: List[ChoiceCaller],
         input_nodes: list[ir.IRNode],
@@ -768,7 +1405,13 @@ def patch_algorithm_selector() -> None:
                 example_inputs = example_inputs[1:] + [example_inputs[0]]
             out = cls.benchmark_example_value(layout)
             out_extern = torch.as_strided(
-                out, out.size(), out.stride(), V.graph.sizevars.optimization_hint(layout.offset)
+                out,
+                out.size(),
+                out.stride(),
+                V.graph.sizevars.optimization_hint(
+                    layout.offset,
+                    fallback=config.unbacked_symint_fallback,
+                ),
             )
             expected = None
             if VERIFY:
@@ -784,7 +1427,7 @@ def patch_algorithm_selector() -> None:
             )
 
         if DEBUG:
-            log.debug("%s tuning requests:", len(choices))
+            log.debug("%d tuning requests:", len(choices))
 
         def benchmark_choice_in_current_process(
             choice: ChoiceCaller, autotune_args: AutotuneArgs
@@ -873,7 +1516,7 @@ def patch_algorithm_selector() -> None:
                         torch.npu.synchronize()
                     # One aclnn op may be separated into multiple ops, recorded in kernel_details.csv,
                     # which makes us hard to analyze the kernel_detail.csv. Therefore, an abs operation is added here,
-                    # aimming to help us recognize different ops.
+                    # aiming to help us recognize different ops.
                     buffer.abs_()
                     torch.npu.synchronize()
             del buffer
@@ -944,7 +1587,7 @@ def patch_algorithm_selector() -> None:
                         from triton.runtime.autotuner import OutOfResources
 
                         if isinstance(e, OutOfResources):
-                            log.warning(e)  # noqa: G200
+                            log.warning("%s", e)  # noqa: G200
                             timing = float("inf")
                         else:
                             raise e
@@ -987,78 +1630,7 @@ def patch_algorithm_selector() -> None:
 
         return benchmark
 
-    @functools.wraps(original_call, assigned=(), updated=())
-    def __call__(
-        self,
-        name,
-        choices,
-        input_nodes,
-        layout,
-        input_gen_fns=None,
-        precompilation_timeout_seconds=60 * 60,
-        return_multi_template=False,
-        best_config_future=None,
-        is_collective=False,
-        min_speedup_threshold=1.0,
-        benchmark_with_cudagraphs=False,
-    ):
-        args = (
-            self,
-            name,
-            choices,
-            input_nodes,
-            layout,
-            input_gen_fns,
-            precompilation_timeout_seconds,
-            return_multi_template,
-            best_config_future,
-            is_collective,
-            min_speedup_threshold,
-            benchmark_with_cudagraphs,
-        )
-        if layout.device.type != "npu":
-            return original_call(*args)
-        return npu_call(
-            self,
-            name,
-            choices,
-            input_nodes,
-            layout,
-            input_gen_fns,
-            precompilation_timeout_seconds,
-            return_multi_template,
-        )
-
-    @classmethod
-    @functools.wraps(
-        original_make_benchmark_fn, assigned=(), updated=()
-    )
-    def make_benchmark_fn(
-        cls,
-        choices,
-        input_nodes,
-        layout,
-        input_gen_fns,
-        hint_override=None,
-        is_collective=False,
-    ):
-        if layout.device.type != "npu":
-            return original_make_benchmark_fn(
-                cls,
-                choices,
-                input_nodes,
-                layout,
-                input_gen_fns,
-                hint_override,
-                is_collective,
-            )
-        return npu_make_benchmark_fn(
-            cls,
-            choices,
-            input_nodes,
-            layout,
-            input_gen_fns,
-        )
+    from torch._inductor.select_algorithm import AlgorithmSelectorCache
 
     AlgorithmSelectorCache.__call__ = __call__
     AlgorithmSelectorCache.make_benchmark_fn = make_benchmark_fn
