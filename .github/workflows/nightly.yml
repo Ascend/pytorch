@@ -42,5 +42,5 @@ jobs:
       torch_npu_short: ${{ needs.build.outputs.torch_npu_short }}
       case_paths_config: .github/config/nightly_test_categories.yml
       report_to_upstream: false
-      hw_classification: 'GENERIC ACCELERATOR'
+      hw_classification: 'ACCELERATOR'
       full_scan: true
