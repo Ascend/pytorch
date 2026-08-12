@@ -151,6 +151,7 @@ import traceback
 import threading
 import os
 import re
+import importlib
 import torch
 from torch.storage import _LegacyStorage, _warn_typed_storage_removal
 from torch._utils import classproperty
@@ -172,8 +173,6 @@ from .autocast_utils import *  # noqa: F403
 from .backends import *  # noqa: F403
 from ._backends import *  # noqa: F403
 from .deterministic import enable_deterministic_with_backward, disable_deterministic_with_backward  # noqa: F403
-from . import npugraph_ex
-
 from .graphs import (
     NPUGraph,
     graph,
@@ -192,6 +191,18 @@ from ._npugraph_handlers import (
     NpuGraphOpHandler,
     register_npu_graph_handler,
 )
+
+
+def __getattr__(name):
+    if name == "npugraph_ex":
+        module = importlib.import_module("torch_npu.npu.npugraph_ex")
+        globals()[name] = module
+        return module
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__():
+    return sorted(set(globals()) | {"npugraph_ex"})
 
 
 config = npu_config._npuConfig()

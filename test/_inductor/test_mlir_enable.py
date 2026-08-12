@@ -25,6 +25,9 @@ class TestAdd(TestUtils):
     @parametrize('shape', TestUtils._pointwise_demo_shapes)
     @parametrize('dtype', ['float32', 'int64'])
     def test_config_environ_cases(self, shape, dtype):
+        # torch._inductor.config is an internal module. Initialize the NPU
+        # config entries explicitly before testing direct config assignment.
+        torch._inductor.config.get_config_copy()
         torch._inductor.config.npu_backend = "mlir"
         x = self._generate_tensor(shape, dtype)
         y = self._generate_tensor(shape, dtype)

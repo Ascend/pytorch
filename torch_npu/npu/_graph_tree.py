@@ -102,6 +102,7 @@ from torch.utils._ordered_set import OrderedSet
 from torch.utils.weak import TensorWeakRef
 
 import torch_npu
+from torch_npu.npu._graph_tree_state import MarkStepBox, mark_step_begin
 from torch_npu.npu import graphs as _npu_graphs
 from torch_npu._C import (
     _npu_NPUAllocator_AllocatorState as AllocatorState,
@@ -288,22 +289,10 @@ local.npu_tree_manager_containers = {}
 local.npu_tree_manager_locks = defaultdict(threading.Lock)
 
 
-# only incremented by user call of mark_step_begin
-class MarkStepBox:
-    mark_step_counter = 0
-
-
 # We need to register this as an object that will be copied over as TLS when new
 # threads are created in autograd
 torch._C._stash_obj_in_tls("npu_tree_manager_containers", local.npu_tree_manager_containers)
 torch._C._stash_obj_in_tls("npu_tree_manager_locks", local.npu_tree_manager_locks)
-
-
-def mark_step_begin() -> None:
-    "Indicates that a new iteration of inference or training is about to begin."
-
-    # iterate down to distinguish from GenerationTracking counter
-    MarkStepBox.mark_step_counter -= 1
 
 
 def reset_npugraph_trees() -> None:

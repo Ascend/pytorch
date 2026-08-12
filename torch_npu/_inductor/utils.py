@@ -5,7 +5,6 @@ import logging
 import os
 
 import torch
-import torch_npu
 
 import torch._inductor.config as inductor_config
 log = logging.getLogger("torch._inductor")
@@ -28,10 +27,11 @@ def resolve_npu_device_index(device_idx=None) -> int:
 
 
 def patch_has_triton():
+    from torch._inductor import compile_fx
     from torch_npu.utils._dynamo import has_triton
 
     torch._inductor.scheduler.has_triton = has_triton
-    torch._inductor.compile_fx.has_triton = has_triton
+    compile_fx.has_triton = has_triton
 
 
 def patch_device_supports_tma():
