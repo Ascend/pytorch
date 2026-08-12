@@ -1,224 +1,3234 @@
 # torch.optim
 
-> [!NOTE]  
-> 若API“是否支持”为“是”，“限制与说明”为“-”，说明此API和原生API支持度保持一致。
+> [!NOTE]
+>
+> - API的**支持情况**中，&#10004;表示API支持在对应硬件环境上运行，&#10007;表示暂不支持。<br>
+> - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
+> - 部分API虽在[PyTorch社区文档](https://pytorch.org/docs/2.11/)中存在，但未收录于本支持清单。此类API尚未验证，请谨慎使用。我们将持续进行验证工作，并在验证完成后更新文档。
+> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
 
-|API名称|是否支持|限制与说明|
-|--|--|--|
-|torch.optim.Optimizer|是|-|
-|Optimizer.add_param_group|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|Optimizer.load_state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|Optimizer.state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|Optimizer.step|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|Optimizer.zero_grad|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Adadelta|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32<br>优化器在启动foreach的情况下（foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False|
-|torch.optim.Adadelta.add_param_group|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Adadelta.load_state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Adadelta.register_load_state_dict_post_hook|是|-|
-|torch.optim.Adadelta.register_load_state_dict_pre_hook|是|-|
-|torch.optim.Adadelta.register_state_dict_post_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Adadelta.register_state_dict_pre_hook|是|-|
-|torch.optim.Adadelta.register_step_post_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Adadelta.register_step_pre_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Adadelta.state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Adadelta.step|否|-|
-|torch.optim.Adadelta.zero_grad|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Adagrad|是|支持bf16，fp16，fp32<br>优化器在启动foreach的情况下（foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False|
-|torch.optim.Adagrad.add_param_group|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Adagrad.load_state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Adagrad.register_load_state_dict_post_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Adagrad.register_load_state_dict_pre_hook|是|-|
-|torch.optim.Adagrad.register_state_dict_post_hook|是|-|
-|torch.optim.Adagrad.register_state_dict_pre_hook|是|-|
-|torch.optim.Adagrad.register_step_post_hook|是|-|
-|torch.optim.Adagrad.register_step_pre_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Adagrad.state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Adagrad.step|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Adagrad.zero_grad|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Adam|是|支持bf16，fp16，fp32<br>优化器在启动foreach的情况下（foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False<br>在某些情况下可能回退至CPU执行|
-|torch.optim.Adam.add_param_group|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Adam.load_state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Adam.register_load_state_dict_post_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Adam.register_load_state_dict_pre_hook|是|-|
-|torch.optim.Adam.register_state_dict_post_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Adam.register_state_dict_pre_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Adam.register_step_post_hook|是|-|
-|torch.optim.Adam.register_step_pre_hook|是|-|
-|torch.optim.Adam.state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Adam.step|否|-|
-|torch.optim.Adam.zero_grad|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.AdamW|是|支持bf16，fp16，fp32，complex64<br>优化器在启动foreach的情况下（foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False<br>优化器在启动fused的情况下（fused=True），暂不支持grad_scale和found_inf参数。对标_single_tensor_adamw实现，fp32与cpu/cuda一致，fp16和bf16采用升精度实现，与cpu/cuda不一致|
-|torch.optim.AdamW.add_param_group|是|-|
-|torch.optim.AdamW.load_state_dict|是|-|
-|torch.optim.AdamW.register_load_state_dict_post_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.AdamW.register_load_state_dict_pre_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.AdamW.register_state_dict_post_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.AdamW.register_state_dict_pre_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.AdamW.register_step_post_hook|是|-|
-|torch.optim.AdamW.register_step_pre_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.AdamW.state_dict|是|-|
-|torch.optim.AdamW.step|是|支持fp16，fp32|
-|torch.optim.AdamW.zero_grad|是|支持fp16，fp32|
-|torch.optim.SparseAdam.add_param_group|是|-|
-|torch.optim.SparseAdam.load_state_dict|是|-|
-|torch.optim.SparseAdam.register_load_state_dict_post_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.SparseAdam.register_load_state_dict_pre_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.SparseAdam.register_state_dict_post_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.SparseAdam.register_state_dict_pre_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.SparseAdam.register_step_post_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.SparseAdam.register_step_pre_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.SparseAdam.step|-<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.SparseAdam.zero_grad|-<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Adamax|是|支持bf16，fp16，fp32<br>优化器在启动foreach的情况下（foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False|
-|torch.optim.Adamax.add_param_group|是|支持fp16，fp32|
-|torch.optim.Adamax.load_state_dict|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
-|torch.optim.Adamax.register_load_state_dict_post_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Adamax.register_load_state_dict_pre_hook|是|-|
-|torch.optim.Adamax.register_state_dict_post_hook|是|-|
-|torch.optim.Adamax.register_state_dict_pre_hook|是|-|
-|torch.optim.Adamax.register_step_post_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Adamax.register_step_pre_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Adamax.state_dict|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
-|torch.optim.Adamax.step|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
-|torch.optim.Adamax.zero_grad|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
-|torch.optim.ASGD|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
-|torch.optim.ASGD.add_param_group|是|支持fp16，fp32|
-|torch.optim.ASGD.load_state_dict|是|支持fp16，fp32|
-|torch.optim.ASGD.register_load_state_dict_post_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.ASGD.register_load_state_dict_pre_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.ASGD.register_state_dict_post_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.ASGD.register_state_dict_pre_hook|是|-|
-|torch.optim.ASGD.register_step_post_hook|是|-|
-|torch.optim.ASGD.register_step_pre_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.ASGD.state_dict|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
-|torch.optim.ASGD.step|是|支持fp16，fp32|
-|torch.optim.ASGD.zero_grad|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
-|torch.optim.LBFGS|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.LBFGS.add_param_group|是|-|
-|torch.optim.LBFGS.load_state_dict|是|-|
-|torch.optim.LBFGS.register_load_state_dict_post_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.LBFGS.register_load_state_dict_pre_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.LBFGS.register_state_dict_post_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.LBFGS.register_state_dict_pre_hook|是|-|
-|torch.optim.LBFGS.register_step_post_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.LBFGS.register_step_pre_hook|是|-|
-|torch.optim.LBFGS.state_dict|是|-|
-|torch.optim.LBFGS.step|否|-|
-|torch.optim.LBFGS.zero_grad|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.NAdam|是|支持bf16，fp16，fp32<br>优化器在启动foreach的情况下（foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False|
-|torch.optim.NAdam.add_param_group|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
-|torch.optim.NAdam.load_state_dict|是|支持fp16，fp32|
-|torch.optim.NAdam.register_load_state_dict_post_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.NAdam.register_load_state_dict_pre_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.NAdam.register_state_dict_post_hook|是|-|
-|torch.optim.NAdam.register_state_dict_pre_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.NAdam.register_step_post_hook|是|-|
-|torch.optim.NAdam.register_step_pre_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.NAdam.state_dict|是|支持fp16，fp32|
-|torch.optim.NAdam.step|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
-|torch.optim.NAdam.zero_grad|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
-|torch.optim.RAdam|是|支持bf16，fp16，fp32<br>优化器在启动foreach的情况下（foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False|
-|torch.optim.RAdam.add_param_group|是|支持fp16，fp32|
-|torch.optim.RAdam.load_state_dict|是|支持fp16，fp32|
-|torch.optim.RAdam.register_load_state_dict_post_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.RAdam.register_load_state_dict_pre_hook|是|-|
-|torch.optim.RAdam.register_state_dict_post_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.RAdam.register_state_dict_pre_hook|是|-|
-|torch.optim.RAdam.register_step_post_hook|是|-|
-|torch.optim.RAdam.register_step_pre_hook|是|-|
-|torch.optim.RAdam.state_dict|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
-|torch.optim.RAdam.step|是|支持fp16，fp32|
-|torch.optim.RAdam.zero_grad|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
-|torch.optim.RMSprop|是|支持bf16，fp16，fp32<br>优化器在启动foreach的情况下（foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False|
-|torch.optim.RMSprop.add_param_group|是|-|
-|torch.optim.RMSprop.load_state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.RMSprop.register_load_state_dict_post_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.RMSprop.register_load_state_dict_pre_hook|是|-|
-|torch.optim.RMSprop.register_state_dict_post_hook|是|-|
-|torch.optim.RMSprop.register_state_dict_pre_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.RMSprop.register_step_post_hook|是|-|
-|torch.optim.RMSprop.register_step_pre_hook|是|-|
-|torch.optim.RMSprop.state_dict|是|-|
-|torch.optim.RMSprop.step|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.RMSprop.zero_grad|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Rprop|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Rprop.add_param_group|是|支持fp16，fp32|
-|torch.optim.Rprop.load_state_dict|是|支持fp16，fp32|
-|torch.optim.Rprop.register_load_state_dict_post_hook|是|-|
-|torch.optim.Rprop.register_load_state_dict_pre_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Rprop.register_state_dict_post_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Rprop.register_state_dict_pre_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Rprop.register_step_post_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.Rprop.register_step_pre_hook|是|-|
-|torch.optim.Rprop.state_dict|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
-|torch.optim.Rprop.step|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
-|torch.optim.Rprop.zero_grad|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
-|torch.optim.SGD|是|支持bf16，fp16，fp32<br>优化器在启动foreach的情况下（foreach=None或foreach=True），当被优化的参数分组过多时由于foreach算子的特性会导致性能下降。这种情况建议设置为foreach=False|
-|torch.optim.SGD.add_param_group|是|支持fp16，fp32|
-|torch.optim.SGD.load_state_dict|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
-|torch.optim.SGD.register_load_state_dict_post_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.SGD.register_load_state_dict_pre_hook|是|-|
-|torch.optim.SGD.register_state_dict_post_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.SGD.register_state_dict_pre_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.SGD.register_step_post_hook|是|-|
-|torch.optim.SGD.register_step_pre_hook|是|-|
-|torch.optim.SGD.state_dict|是|支持fp16，fp32|
-|torch.optim.SGD.step|是|支持fp16，fp32|
-|torch.optim.SGD.zero_grad|是|支持fp16，fp32|
-|torch.optim.lr_scheduler.LambdaLR|是|-|
-|torch.optim.lr_scheduler.LambdaLR.get_last_lr|是|-|
-|torch.optim.lr_scheduler.LambdaLR.load_state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.lr_scheduler.LambdaLR.state_dict|是|-|
-|torch.optim.lr_scheduler.MultiplicativeLR|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.lr_scheduler.MultiplicativeLR.get_last_lr|是|支持fp32|
-|torch.optim.lr_scheduler.MultiplicativeLR.load_state_dict|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.optim.lr_scheduler.MultiplicativeLR.state_dict|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.optim.lr_scheduler.StepLR|是|-|
-|torch.optim.lr_scheduler.StepLR.get_last_lr|是|支持fp16，fp32|
-|torch.optim.lr_scheduler.StepLR.load_state_dict|是|支持fp16，fp32|
-|torch.optim.lr_scheduler.StepLR.state_dict|是|支持fp16，fp32|
-|torch.optim.lr_scheduler.MultiStepLR|是|-|
-|torch.optim.lr_scheduler.MultiStepLR.get_last_lr|是|支持fp16，fp32|
-|torch.optim.lr_scheduler.MultiStepLR.load_state_dict|是|支持fp16，fp32|
-|torch.optim.lr_scheduler.MultiStepLR.state_dict|是|支持fp16，fp32|
-|torch.optim.lr_scheduler.ConstantLR|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.lr_scheduler.ConstantLR.get_last_lr|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.optim.lr_scheduler.ConstantLR.load_state_dict|是|支持fp32|
-|torch.optim.lr_scheduler.ConstantLR.state_dict|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.optim.lr_scheduler.LinearLR|是|-|
-|torch.optim.lr_scheduler.LinearLR.get_last_lr|是|-|
-|torch.optim.lr_scheduler.LinearLR.load_state_dict|是|-|
-|torch.optim.lr_scheduler.LinearLR.state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.lr_scheduler.ExponentialLR|是|-|
-|torch.optim.lr_scheduler.ExponentialLR.get_last_lr|是|-|
-|torch.optim.lr_scheduler.ExponentialLR.load_state_dict|是|-|
-|torch.optim.lr_scheduler.ExponentialLR.state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.lr_scheduler.PolynomialLR|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.lr_scheduler.PolynomialLR.get_last_lr|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.lr_scheduler.PolynomialLR.load_state_dict|是|-|
-|torch.optim.lr_scheduler.PolynomialLR.state_dict|是|-|
-|torch.optim.lr_scheduler.CosineAnnealingLR|是|-|
-|torch.optim.lr_scheduler.CosineAnnealingLR.get_last_lr|是|-|
-|torch.optim.lr_scheduler.CosineAnnealingLR.load_state_dict|是|-|
-|torch.optim.lr_scheduler.CosineAnnealingLR.state_dict|是|-|
-|torch.optim.lr_scheduler.ChainedScheduler|是|-|
-|torch.optim.lr_scheduler.ChainedScheduler.get_last_lr|是|-|
-|torch.optim.lr_scheduler.ChainedScheduler.load_state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.lr_scheduler.ChainedScheduler.state_dict|是|-|
-|torch.optim.lr_scheduler.SequentialLR|是|-|
-|torch.optim.lr_scheduler.SequentialLR.get_last_lr|是|-|
-|torch.optim.lr_scheduler.SequentialLR.load_state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.lr_scheduler.SequentialLR.state_dict|是|-|
-|torch.optim.lr_scheduler.ReduceLROnPlateau|是|-|
-|torch.optim.lr_scheduler.CyclicLR|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.lr_scheduler.CyclicLR.get_last_lr|是|-|
-|torch.optim.lr_scheduler.CyclicLR.get_lr|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.lr_scheduler.OneCycleLR|是|-|
-|torch.optim.lr_scheduler.OneCycleLR.get_last_lr|是|-|
-|torch.optim.lr_scheduler.OneCycleLR.load_state_dict|是|-|
-|torch.optim.lr_scheduler.OneCycleLR.state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.lr_scheduler.CosineAnnealingWarmRestarts|是|-|
-|torch.optim.lr_scheduler.CosineAnnealingWarmRestarts.get_last_lr|是|-|
-|torch.optim.lr_scheduler.CosineAnnealingWarmRestarts.load_state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.optim.lr_scheduler.CosineAnnealingWarmRestarts.state_dict|是|-|
-|torch.optim.lr_scheduler.CosineAnnealingWarmRestarts.step|是|-|
+## 目录
+
+- [base API](#base-api)
+
+## base API
+
+### _`class`_ torch.optim.Optimizer
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+### _`class`_ torch.optim.Adadelta
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：
+
+- `params`仅支持bf16，fp16，fp32
+- 优化器在启动`foreach`的情况下（`foreach=None`或`foreach=True`），当被优化的参数分组过多时由于`foreach`算子的特性会导致性能下降。这种情况建议设置为`foreach=False`，例如：
+
+  ```python
+  # 参数分组较多时，建议关闭foreach避免性能下降
+  optimizer = torch.optim.Adadelta(model.parameters(), lr=1e-3, foreach=False)
+  ```
+
+> <font size="3">add_param_group()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_load_state_dict_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_load_state_dict_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_state_dict_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_state_dict_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_step_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_step_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">step()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">zero_grad()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.optim.Adagrad
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `params`仅支持bf16，fp16，fp32
+- 优化器在启动`foreach`的情况下（`foreach=None`或`foreach=True`），当被优化的参数分组过多时由于`foreach`算子的特性会导致性能下降。这种情况建议设置为`foreach=False`，例如：
+
+  ```python
+  # 参数分组较多时，建议关闭foreach避免性能下降
+  optimizer = torch.optim.Adagrad(model.parameters(), lr=1e-3, foreach=False)
+  ```
+
+> <font size="3">add_param_group()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_load_state_dict_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_load_state_dict_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_state_dict_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_state_dict_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_step_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_step_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">step()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">zero_grad()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.optim.Adam
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `params`仅支持bf16，fp16，fp32
+- 优化器在启动`foreach`的情况下（`foreach=None`或`foreach=True`），当被优化的参数分组过多时由于`foreach`算子的特性会导致性能下降。这种情况建议设置为`foreach=False`
+- 在某些情况下可能回退至CPU执行，例如：
+
+  ```python
+  # 参数分组较多时，建议关闭foreach避免性能下降
+  optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, foreach=False)
+  ```
+
+> <font size="3">add_param_group()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_load_state_dict_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_load_state_dict_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_state_dict_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_state_dict_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_step_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_step_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">step()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">zero_grad()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.optim.AdamW
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `params`仅支持bf16，fp16，fp32，complex64
+- 优化器在启动`foreach`的情况下（`foreach=None`或`foreach=True`），当被优化的参数分组过多时由于`foreach`算子的特性会导致性能下降。这种情况建议设置为`foreach=False`
+- 优化器在启动fused的情况下（fused=True），暂不支持grad_scale和found_inf参数。对标_single_tensor_adamw实现，fp32与cpu/cuda一致，fp16和bf16采用升精度实现，与cpu/cuda不一致，例如：
+
+  ```python
+  # 参数分组较多时，建议关闭foreach避免性能下降
+  optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, foreach=False)
+  ```
+
+> <font size="3">add_param_group()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_load_state_dict_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_load_state_dict_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_state_dict_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_state_dict_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_step_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_step_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">step()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">zero_grad()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+</div>
+
+### _`class`_ torch.optim.Adamax
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `params`仅支持bf16，fp16，fp32
+- 优化器在启动`foreach`的情况下（`foreach=None`或`foreach=True`），当被优化的参数分组过多时由于`foreach`算子的特性会导致性能下降。这种情况建议设置为`foreach=False`，例如：
+
+  ```python
+  # 参数分组较多时，建议关闭foreach避免性能下降
+  optimizer = torch.optim.Adamax(model.parameters(), lr=1e-3, foreach=False)
+  ```
+
+> <font size="3">add_param_group()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">register_load_state_dict_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_load_state_dict_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_state_dict_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_state_dict_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_step_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_step_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">step()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">zero_grad()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+</div>
+
+### _`class`_ torch.optim.ASGD
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+> <font size="3">add_param_group()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">register_load_state_dict_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_load_state_dict_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_state_dict_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_state_dict_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_step_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_step_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">step()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">zero_grad()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+</div>
+
+### _`class`_ torch.optim.LBFGS
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+> <font size="3">add_param_group()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_load_state_dict_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_load_state_dict_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_state_dict_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_state_dict_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_step_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_step_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">step()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">zero_grad()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.optim.NAdam
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `params`仅支持bf16，fp16，fp32
+- 优化器在启动`foreach`的情况下（`foreach=None`或`foreach=True`），当被优化的参数分组过多时由于`foreach`算子的特性会导致性能下降。这种情况建议设置为`foreach=False`，例如：
+
+  ```python
+  # 参数分组较多时，建议关闭foreach避免性能下降
+  optimizer = torch.optim.NAdam(model.parameters(), lr=1e-3, foreach=False)
+  ```
+
+> <font size="3">add_param_group()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">register_load_state_dict_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_load_state_dict_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_state_dict_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_state_dict_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_step_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_step_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">step()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">zero_grad()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+</div>
+
+### _`class`_ torch.optim.RAdam
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `params`仅支持bf16，fp16，fp32
+- 优化器在启动`foreach`的情况下（`foreach=None`或`foreach=True`），当被优化的参数分组过多时由于`foreach`算子的特性会导致性能下降。这种情况建议设置为`foreach=False`，例如：
+
+  ```python
+  # 参数分组较多时，建议关闭foreach避免性能下降
+  optimizer = torch.optim.RAdam(model.parameters(), lr=1e-3, foreach=False)
+  ```
+
+> <font size="3">add_param_group()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">register_load_state_dict_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_load_state_dict_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_state_dict_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_state_dict_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_step_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_step_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">step()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">zero_grad()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+</div>
+
+### _`class`_ torch.optim.RMSprop
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `params`仅支持bf16，fp16，fp32
+- 优化器在启动`foreach`的情况下（`foreach=None`或`foreach=True`），当被优化的参数分组过多时由于`foreach`算子的特性会导致性能下降。这种情况建议设置为`foreach=False`，例如：
+
+  ```python
+  # 参数分组较多时，建议关闭foreach避免性能下降
+  optimizer = torch.optim.RMSprop(model.parameters(), lr=1e-3, foreach=False)
+  ```
+
+> <font size="3">add_param_group()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_load_state_dict_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_load_state_dict_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_state_dict_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_state_dict_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_step_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_step_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">step()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">zero_grad()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.optim.Rprop
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+> <font size="3">add_param_group()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">register_load_state_dict_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_load_state_dict_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_state_dict_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_state_dict_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_step_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_step_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">step()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">zero_grad()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+</div>
+
+### _`class`_ torch.optim.SGD
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `params`仅支持bf16，fp16，fp32
+- 优化器在启动`foreach`的情况下（`foreach=None`或`foreach=True`），当被优化的参数分组过多时由于`foreach`算子的特性会导致性能下降。这种情况建议设置为`foreach=False`，例如：
+
+  ```python
+  # 参数分组较多时，建议关闭foreach避免性能下降
+  optimizer = torch.optim.SGD(model.parameters(), lr=1e-3, foreach=False)
+  ```
+
+> <font size="3">add_param_group()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">register_load_state_dict_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_load_state_dict_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_state_dict_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_state_dict_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_step_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">register_step_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">step()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">zero_grad()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`params`仅支持fp16，fp32
+
+</div>
+
+</div>
+
+### _`class`_ torch.optim.lr_scheduler.LambdaLR
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+> <font size="3">get_last_lr()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.optim.lr_scheduler.MultiplicativeLR
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+> <font size="3">get_last_lr()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`lr`仅支持fp32
+
+</div>
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`lr`仅支持fp32
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`lr`仅支持fp32
+
+</div>
+
+</div>
+
+### _`class`_ torch.optim.lr_scheduler.StepLR
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+> <font size="3">get_last_lr()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`lr`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`lr`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`lr`仅支持fp16，fp32
+
+</div>
+
+</div>
+
+### _`class`_ torch.optim.lr_scheduler.MultiStepLR
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+> <font size="3">get_last_lr()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`lr`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`lr`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`lr`仅支持fp16，fp32
+
+</div>
+
+</div>
+
+### _`class`_ torch.optim.lr_scheduler.ConstantLR
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+> <font size="3">get_last_lr()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`lr`仅支持fp32
+
+</div>
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`lr`仅支持fp32
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`lr`仅支持fp32
+
+</div>
+
+</div>
+
+### _`class`_ torch.optim.lr_scheduler.LinearLR
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+> <font size="3">get_last_lr()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.optim.lr_scheduler.ExponentialLR
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+> <font size="3">get_last_lr()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.optim.lr_scheduler.PolynomialLR
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+> <font size="3">get_last_lr()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.optim.lr_scheduler.CosineAnnealingLR
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+> <font size="3">get_last_lr()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.optim.lr_scheduler.ChainedScheduler
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+> <font size="3">get_last_lr()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.optim.lr_scheduler.SequentialLR
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+> <font size="3">get_last_lr()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.optim.lr_scheduler.ReduceLROnPlateau
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+### _`class`_ torch.optim.lr_scheduler.CyclicLR
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+> <font size="3">get_last_lr()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">get_lr()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.optim.lr_scheduler.OneCycleLR
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+> <font size="3">get_last_lr()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+> <font size="3">get_last_lr()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">step()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+</div>
+
+### Optimizer.add_param_group
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### Optimizer.load_state_dict
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### Optimizer.state_dict
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### Optimizer.step
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### Optimizer.zero_grad
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.optim.SparseAdam.add_param_group
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+### torch.optim.SparseAdam.load_state_dict
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+### torch.optim.SparseAdam.register_load_state_dict_post_hook
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.optim.SparseAdam.register_load_state_dict_pre_hook
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.optim.SparseAdam.register_state_dict_post_hook
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.optim.SparseAdam.register_state_dict_pre_hook
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.optim.SparseAdam.register_step_post_hook
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.optim.SparseAdam.register_step_pre_hook
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.optim.SparseAdam.step
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.optim.SparseAdam.zero_grad
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>

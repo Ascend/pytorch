@@ -2,344 +2,5330 @@
 
 > [!NOTE]
 >
-> 若API“是否支持”为“是”，“限制与说明”为“-”，说明此API和原生API支持度保持一致。
+> - API的**支持情况**中，&#10004;表示API支持在对应硬件环境上运行，&#10007;表示暂不支持。<br>
+> - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
+> - 部分API虽在[PyTorch社区文档](https://pytorch.org/docs/2.9/)中存在，但未收录于本支持清单。此类API尚未验证，请谨慎使用。我们将持续进行验证工作，并在验证完成后更新文档。
+> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
 
-|API名称|是否支持|限制与说明|
-|--|--|--|
-|torch.nn.parameter.Parameter|是|支持fp32|
-|torch.nn.parameter.Buffer|是|支持fp32|
-|torch.nn.parameter.UninitializedParameter|是|-|
-|torch.nn.parameter.UninitializedParameter.cls_to_become|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.parameter.UninitializedBuffer|是|-|
-|torch.nn.Module|是|支持fp32|
-|torch.nn.Module.add_module|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.Module.apply|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.Module.bfloat16|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.Module.buffers|是|-|
-|torch.nn.Module.children|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.Module.compile|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.Module.cpu|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.Module.cuda|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.Module.double|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.Module.eval|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32，int64|
-|torch.nn.Module.extra_repr|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.Module.float|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
-|torch.nn.Module.forward|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.Module.get_buffer|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.Module.get_extra_state|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.Module.get_parameter|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.Module.get_submodule|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.Module.half|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
-|torch.nn.Module.ipu|否|-|
-|torch.nn.Module.load_state_dict|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.Module.modules|是|支持fp32|
-|torch.nn.Module.named_buffers|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.Module.named_children|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.Module.named_modules|是|支持fp32|
-|torch.nn.Module.named_parameters|是|-|
-|torch.nn.Module.parameters|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.Module.register_backward_hook|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.Module.register_buffer|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.Module.register_forward_hook|是|支持fp32|
-|torch.nn.Module.register_forward_pre_hook|是|支持fp32|
-|torch.nn.Module.register_full_backward_hook|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.Module.register_full_backward_pre_hook|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.Module.register_load_state_dict_post_hook|是|支持fp32|
-|torch.nn.Module.register_module|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.Module.register_parameter|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.Module.register_state_dict_pre_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.Module.requires_grad_|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.Module.set_extra_state|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.Module.set_submodule|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.Module.share_memory|否|-|
-|torch.nn.Module.state_dict|是|支持fp32|
-|torch.nn.Module.to|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.Module.to_empty|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.Module.train|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.Module.type|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，int64|
-|torch.nn.Module.xpu|是<br>暂不支持<term>Ascend 950DT</term>|NPU形式名称为torch.nn.Module.npu|
-|torch.nn.Module.npu|否|-|
-|torch.nn.Module.zero_grad|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.Sequential|是|支持fp32|
-|torch.nn.Sequential.append|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.ModuleList|是|支持fp32|
-|torch.nn.ModuleList.append|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.ModuleList.extend|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.ModuleList.insert|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.ModuleDict|是|支持fp32|
-|torch.nn.ModuleDict.clear|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.ModuleDict.items|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.ModuleDict.keys|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.ModuleDict.pop|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.ModuleDict.update|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.ModuleDict.values|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.ParameterList|是|支持fp32|
-|torch.nn.ParameterList.append|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.ParameterList.extend|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.ParameterDict|是|支持fp32|
-|torch.nn.ParameterDict.clear|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.ParameterDict.copy|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.ParameterDict.fromkeys|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.ParameterDict.get|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.ParameterDict.items|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.ParameterDict.keys|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.ParameterDict.pop|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.ParameterDict.popitem|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.ParameterDict.setdefault|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.ParameterDict.update|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.ParameterDict.values|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.modules.module.register_module_forward_pre_hook|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.modules.module.register_module_forward_hook|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.modules.module.register_module_backward_hook|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.modules.module.register_module_full_backward_pre_hook|否|-|
-|torch.nn.modules.module.register_module_full_backward_hook|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.modules.module.register_module_buffer_registration_hook|否|-|
-|torch.nn.modules.module.register_module_module_registration_hook|否|-|
-|torch.nn.modules.module.register_module_parameter_registration_hook|否|-|
-|torch.nn.Conv1d|是|支持fp16，fp32|
-|torch.nn.Conv2d|是|支持bf16，fp16，fp32<br><term>Atlas A2 训练系列产品</term>，默认场景下，如果频繁触发编译，建议手动设置torch.npu.config.allow_internal_format为False，控制入参不开启内部格式，避免在线编译|
-|torch.nn.Conv3d|是|支持bf16，fp16，fp32|
-|torch.nn.ConvTranspose1d|是|支持fp32|
-|torch.nn.ConvTranspose2d|是|支持fp16，fp32<br><term>Atlas 训练系列产品</term>/<term>Atlas A2 训练系列产品</term>，需手动设置torch.npu.config.allow_internal_format为False，才可支持3维输入|
-|torch.nn.ConvTranspose3d|是|支持bf16，fp16，fp32|
-|torch.nn.LazyConv1d|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
-|torch.nn.LazyConv1d.cls_to_become|是|-|
-|torch.nn.LazyConv2d|是|支持fp16，fp32|
-|torch.nn.LazyConv2d.cls_to_become|是|-|
-|torch.nn.LazyConv3d.cls_to_become|是|-|
-|torch.nn.LazyConvTranspose1d|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16|
-|torch.nn.LazyConvTranspose1d.cls_to_become|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.LazyConvTranspose2d|是|支持fp16，fp32|
-|torch.nn.LazyConvTranspose2d.cls_to_become|是|-|
-|torch.nn.LazyConvTranspose3d.cls_to_become|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.Unfold|是|支持bf16，fp16，fp32|
-|torch.nn.Fold|是|支持fp16|
-|torch.nn.MaxPool1d|否|-|
-|torch.nn.MaxPool2d|是|支持bf16，fp16，fp32<br>通过设置torch_npu.npu.use_compatible_impl(True)，保证与社区同名接口在内存一致性上对齐|
-|torch.nn.MaxPool3d|否|-|
-|torch.nn.MaxUnpool1d|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
-|torch.nn.MaxUnpool2d|是|支持fp16，fp32|
-|torch.nn.MaxUnpool3d|否|-|
-|torch.nn.AvgPool1d|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|
-|torch.nn.AvgPool2d|是|支持bf16，fp16，fp32|
-|torch.nn.AvgPool3d|否|-|
-|torch.nn.LPPool1d|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|torch.nn.LPPool2d|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，int16，int32，int64，bool|
-|torch.nn.AdaptiveMaxPool1d|否|-|
-|torch.nn.AdaptiveMaxPool2d|否|-|
-|torch.nn.AdaptiveMaxPool3d|是|支持fp32，fp64|
-|torch.nn.AdaptiveAvgPool1d|是|支持fp16，fp32|
-|torch.nn.AdaptiveAvgPool2d|是|支持fp16，fp32|
-|torch.nn.AdaptiveAvgPool3d|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|
-|torch.nn.ReflectionPad1d|是|支持fp16，fp32|
-|torch.nn.ReflectionPad2d|是|支持fp16，fp32|
-|torch.nn.ReflectionPad3d|否|-|
-|torch.nn.ReplicationPad1d|是|支持fp16，fp32，complex64，complex128|
-|torch.nn.ReplicationPad2d|是|支持fp16，fp32，complex64，complex128|
-|torch.nn.ReplicationPad3d|否|-|
-|torch.nn.ZeroPad1d|是|支持bf16，fp16，fp32，fp64，complex64，complex128<br>支持2-3维|
-|torch.nn.ZeroPad2d|是|可能回退至CPU执行|
-|torch.nn.ZeroPad3d|是|支持bf16，fp16，fp32，fp64，complex64，complex128<br>支持5-6维|
-|torch.nn.ConstantPad1d|是|支持int8，bool<br>在输入x为六维以上时可能会出现性能下降问题|
-|torch.nn.ConstantPad2d|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>在输入x为六维以上时可能会出现性能下降问题|
-|torch.nn.ConstantPad3d|是|支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128<br>在输入x为六维以上时可能会出现性能下降问题|
-|torch.nn.ELU|是|支持bf16，fp16，fp32，fp64|
-|torch.nn.Hardshrink|是|支持fp16，fp32<br>可能回退至CPU执行|
-|torch.nn.Hardsigmoid|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，int32<br>可能回退至CPU执行|
-|torch.nn.Hardtanh|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64|
-|torch.nn.Hardswish|是|支持fp16，fp32|
-|torch.nn.LeakyReLU|是|支持bf16，fp16，fp32，fp64|
-|torch.nn.LogSigmoid|是|支持fp16，fp32|
-|torch.nn.MultiheadAttention|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|
-|torch.nn.MultiheadAttention.forward|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|
-|torch.nn.PReLU|是|支持fp32|
-|torch.nn.ReLU|是|支持bf16，fp16，fp32，uint8，int8，int32，int64|
-|torch.nn.ReLU6|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64|
-|torch.nn.RReLU|否|-|
-|torch.nn.SELU|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|torch.nn.CELU|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
-|torch.nn.GELU|是|支持bf16，fp16，fp32<br>approximate参数仅支持设置为tanh|
-|torch.nn.Sigmoid|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|torch.nn.SiLU|是|支持bf16，fp16，fp32|
-|torch.nn.Mish|是|支持fp16，fp32|
-|torch.nn.Softplus|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|
-|torch.nn.Softshrink|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|
-|torch.nn.Softsign|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64|
-|torch.nn.Tanh|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool|
-|torch.nn.Tanhshrink|是|支持fp16，fp32，uint8，int8，int16，int32，int64<br>可能回退至CPU执行|
-|torch.nn.Threshold|是|支持fp16，fp32，uint8，int8，int16，int32，int64|
-|torch.nn.GLU|是|支持fp16，fp32|
-|torch.nn.Softmin|是|支持bf16，fp16，fp32|
-|torch.nn.Softmax|是|支持bf16，fp16，fp32，fp64|
-|torch.nn.Softmax2d|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32|
-|torch.nn.LogSoftmax|是|支持bf16，fp16，fp32|
-|torch.nn.AdaptiveLogSoftmaxWithLoss|否|-|
-|torch.nn.AdaptiveLogSoftmaxWithLoss.log_prob|否|-|
-|torch.nn.AdaptiveLogSoftmaxWithLoss.predict|否|-|
-|torch.nn.BatchNorm1d|是|支持fp16，fp32|
-|torch.nn.BatchNorm2d|是|支持fp16，fp32|
-|torch.nn.BatchNorm3d|是|支持fp16，fp32|
-|torch.nn.LazyBatchNorm1d.cls_to_become|是|-|
-|torch.nn.LazyBatchNorm2d.cls_to_become|是|-|
-|torch.nn.LazyBatchNorm3d.cls_to_become|是|-|
-|torch.nn.GroupNorm|是|支持fp32<br>eps参数需大于0<br>不支持jit_compile=True的场景<br>该API仅支持2维及以上的输入input。该API反向传播时，不支持输入维度不为4维，或输入num_groups非32整除，或C轴维度非(10 * num_groups)整除的场景|
-|torch.nn.SyncBatchNorm|是|支持fp16，fp32|
-|torch.nn.SyncBatchNorm.convert_sync_batchnorm|是|-|
-|torch.nn.LazyInstanceNorm1d.cls_to_become|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.LazyInstanceNorm2d.cls_to_become|是|-|
-|torch.nn.LazyInstanceNorm3d.cls_to_become|是|-|
-|torch.nn.LayerNorm|是|支持bf16，fp16，fp32<br>通过torch_npu.npu.use_compatible_impl(True)，设置该接口从aclnnLayerNorm算子切换为aclnnFastLayerNorm算子，保证与社区同名接口在内存一致性上对齐。|
-|torch.nn.RNNBase|否|-|
-|torch.nn.RNNBase.flatten_parameters|否|-|
-|torch.nn.RNN|否|-|
-|torch.nn.LSTM|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32<br>不支持proj_size参数<br>不支持dropout参数<br>入参input不支持2维|
-|torch.nn.GRU|否|-|
-|torch.nn.RNNCell|否|-|
-|torch.nn.LSTMCell|是<br>暂不支持<term>Ascend 950DT</term>|接口暂不支持jit_compile=False，需要在该模式下使用时请将"DynamicGRUV2"添加至"NPU_FUZZY_COMPILE_BLACKLIST"选项内，具体操作可参考[添加二进制黑名单示例](../example_of_adding_a_binary_blocklist.md)|
-|torch.nn.GRUCell|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
-|torch.nn.Transformer|是|支持fp16，fp32|
-|torch.nn.Transformer.forward|否|-|
-|torch.nn.TransformerEncoder|否|-|
-|torch.nn.TransformerEncoder.forward|是|支持fp32|
-|torch.nn.TransformerDecoder|否|-|
-|torch.nn.TransformerDecoder.forward|否|-|
-|torch.nn.TransformerEncoderLayer.forward|否|-|
-|torch.nn.TransformerDecoderLayer.forward|否|-|
-|torch.nn.Identity|是|支持fp32|
-|torch.nn.Linear|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
-|torch.nn.Bilinear|是|支持bf16，fp16，fp32|
-|torch.nn.LazyLinear|是|支持fp16，fp32|
-|torch.nn.LazyLinear.cls_to_become|否|-|
-|torch.nn.Dropout|是|支持bf16，fp16，fp32|
-|torch.nn.Dropout2d|是|支持fp16，fp32，int64，bool|
-|torch.nn.AlphaDropout|是|支持fp16，fp32|
-|torch.nn.FeatureAlphaDropout|是|支持fp16，fp32|
-|torch.nn.Embedding|是<br>暂不支持<term>Ascend 950DT</term>|支持int32，int64<br>属性max_norm不支持nan，仅支持非负值|
-|torch.nn.Embedding.from_pretrained|是<br>暂不支持<term>Ascend 950DT</term>|支持fp64|
-|torch.nn.EmbeddingBag|是|支持int32，int64<br>仅支持max_norm大于等于0|
-|torch.nn.EmbeddingBag.forward|是<br>暂不支持<term>Ascend 950DT</term>|支持int64|
-|torch.nn.EmbeddingBag.from_pretrained|是<br>暂不支持<term>Ascend 950DT</term>|支持int64|
-|torch.nn.L1Loss|是|支持fp16，fp32，int64|
-|torch.nn.MSELoss|是|支持fp16，fp32|
-|torch.nn.CrossEntropyLoss|是|支持fp16，fp32|
-|torch.nn.CTCLoss|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32，fp64<br>不支持log_probs 2D输入|
-|torch.nn.NLLLoss|是|支持fp16，fp32<br>target中的每个元素值应大于等于0且小于input的类别数|
-|torch.nn.PoissonNLLLoss|是|支持bf16，fp16，fp32，int64|
-|torch.nn.GaussianNLLLoss|是|支持bf16，fp16，fp32，int16，int32，int64|
-|torch.nn.KLDivLoss|是|支持bf16，fp16，fp32<br>当前log_target参数仅支持False|
-|torch.nn.BCELoss|是|支持fp16，fp32|
-|torch.nn.BCEWithLogitsLoss|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32<br>入参target不支持反向计算|
-|torch.nn.MarginRankingLoss|是|支持bf16，fp16，fp32，int8，int32，int64|
-|torch.nn.HingeEmbeddingLoss|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64|
-|torch.nn.MultiLabelMarginLoss|否|-|
-|torch.nn.HuberLoss|是|input支持fp32，fp64<br>target支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool<br>可能回退至CPU执行|
-|torch.nn.SmoothL1Loss|是|支持bf16，fp16，fp32|
-|torch.nn.MultiLabelSoftMarginLoss|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32|
-|torch.nn.CosineEmbeddingLoss|否|-|
-|torch.nn.MultiMarginLoss|是|input支持fp32，fp64<br>target支持int64<br>可能回退至CPU执行|
-|torch.nn.TripletMarginLoss|是|支持fp16，fp32，uint8，int8，int16，int32，int64<br>可能回退至CPU执行|
-|torch.nn.TripletMarginWithDistanceLoss|是|支持bf16，fp16，fp32|
-|torch.nn.PixelShuffle|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|torch.nn.PixelUnshuffle|是|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|torch.nn.Upsample|是|支持bf16，fp16，fp32，fp64|
-|torch.nn.UpsamplingNearest2d|是|支持fp16，fp32，uint8<br>可能回退至CPU执行|
-|torch.nn.ChannelShuffle|是|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|torch.nn.DataParallel|否|-|
-|torch.nn.parallel.DistributedDataParallel|是|-|
-|torch.nn.parallel.DistributedDataParallel.join|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.parallel.DistributedDataParallel.join_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.parallel.DistributedDataParallel.no_sync|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.parallel.DistributedDataParallel.register_comm_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.clip_grad_norm_|是|支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|torch.nn.utils.clip_grad_norm|否|-|
-|torch.nn.utils.clip_grad_value_|是|支持bf16，fp16，fp32|
-|torch.nn.utils.vector_to_parameters|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，fp64，complex64|
-|torch.nn.utils.weight_norm|是|-|
-|torch.nn.utils.spectral_norm|是|-|
-|torch.nn.utils.remove_spectral_norm|是|-|
-|torch.nn.utils.skip_init|是|-|
-|torch.nn.utils.prune.BasePruningMethod|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.prune.BasePruningMethod.apply|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.prune.BasePruningMethod.apply_mask|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.BasePruningMethod.compute_mask|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.prune.BasePruningMethod.prune|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.BasePruningMethod.remove|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.PruningContainer|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.prune.PruningContainer.add_pruning_method|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.prune.PruningContainer.apply|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.prune.PruningContainer.apply_mask|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.prune.PruningContainer.compute_mask|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.PruningContainer.prune|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.PruningContainer.remove|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.Identity|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.Identity.apply|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.Identity.apply_mask|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.Identity.prune|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.Identity.remove|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.RandomUnstructured|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.RandomUnstructured.apply|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.RandomUnstructured.apply_mask|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.RandomUnstructured.prune|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.RandomUnstructured.remove|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.prune.L1Unstructured|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.L1Unstructured.apply|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.L1Unstructured.apply_mask|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.L1Unstructured.prune|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.L1Unstructured.remove|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.RandomStructured|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.RandomStructured.apply|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.RandomStructured.apply_mask|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.RandomStructured.compute_mask|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.RandomStructured.prune|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.prune.RandomStructured.remove|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.prune.LnStructured|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.LnStructured.apply|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.LnStructured.apply_mask|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.LnStructured.compute_mask|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.LnStructured.prune|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.LnStructured.remove|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.prune.CustomFromMask|是<br>暂不支持<term>Ascend 950DT</term>|支持int64|
-|torch.nn.utils.prune.CustomFromMask.apply|是<br>暂不支持<term>Ascend 950DT</term>|支持int64|
-|torch.nn.utils.prune.CustomFromMask.apply_mask|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.prune.CustomFromMask.prune|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.prune.CustomFromMask.remove|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.prune.random_unstructured|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.prune.l1_unstructured|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.prune.random_structured|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.prune.ln_structured|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.prune.global_unstructured|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.prune.identity|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.prune.custom_from_mask|是<br>暂不支持<term>Ascend 950DT</term>|支持int64|
-|torch.nn.utils.prune.remove|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.prune.is_pruned|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.parametrizations.orthogonal|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.parametrizations.spectral_norm|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.parametrize.register_parametrization|是|-|
-|torch.nn.utils.parametrize.remove_parametrizations|是|-|
-|torch.nn.utils.parametrize.cached|是|-|
-|torch.nn.utils.parametrize.is_parametrized|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.parametrize.ParametrizationList|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.parametrize.ParametrizationList.right_inverse|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.stateless.functional_call|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.rnn.PackedSequence|是|支持fp32，int64|
-|torch.nn.utils.rnn.PackedSequence.batch_sizes|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.rnn.PackedSequence.count|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.rnn.PackedSequence.data|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.rnn.PackedSequence.index|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.utils.rnn.PackedSequence.is_cuda|否|-|
-|torch.nn.utils.rnn.PackedSequence.is_pinned|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.rnn.PackedSequence.sorted_indices|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.rnn.PackedSequence.to|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32，int64|
-|torch.nn.utils.rnn.PackedSequence.unsorted_indices|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.nn.utils.rnn.pack_padded_sequence|否|-|
-|torch.nn.utils.rnn.pad_packed_sequence|否|-|
-|torch.nn.utils.rnn.pad_sequence|是|支持fp16，fp32|
-|torch.nn.utils.rnn.pack_sequence|否|-|
-|torch.nn.utils.rnn.unpack_sequence|否|-|
-|torch.nn.utils.rnn.unpad_sequence|否|-|
-|torch.nn.modules.flatten.Flatten|是<br>暂不支持<term>Ascend 950DT</term>|支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128|
-|torch.nn.modules.flatten.Unflatten|是<br>暂不支持<term>Ascend 950DT</term>|支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool|
-|torch.nn.modules.lazy.LazyModuleMixin|是|支持fp32|
-|torch.nn.modules.lazy.LazyModuleMixin.has_uninitialized_params|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.modules.lazy.LazyModuleMixin.initialize_parameters|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32|
-|torch.nn.modules.flatten.Unflatten.NamedShape|是<br>暂不支持<term>Ascend 950DT</term>|-|
+## 目录
+
+- [base API](#base-api)
+- [Containers](#containers)
+- [Convolution Layers](#convolution-layers)
+- [Pooling layers](#pooling-layers)
+- [Padding Layers](#padding-layers)
+- [Non-linear Activations (weighted sum, nonlinearity)](#non-linear-activations-weighted-sum-nonlinearity)
+- [Non-linear Activations (other)](#non-linear-activations-other)
+- [Normalization Layers](#normalization-layers)
+- [Recurrent Layers](#recurrent-layers)
+- [Transformer Layers](#transformer-layers)
+- [Linear Layers](#linear-layers)
+- [Dropout Layers](#dropout-layers)
+- [Sparse Layers](#sparse-layers)
+- [Loss Functions](#loss-functions)
+- [Vision Layers](#vision-layers)
+- [Shuffle Layers](#shuffle-layers)
+- [DataParallel Layers (multi-GPU, distributed)](#dataparallel-layers-multi-gpu-distributed)
+- [Utilities](#utilities)
+- [Lazy Modules Initialization](#lazy-modules-initialization)
+
+## base API
+
+### _`class`_ torch.nn.parameter.Parameter
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp32
+
+</div>
+
+### _`class`_ torch.nn.parameter.Buffer
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp32
+
+</div>
+
+### _`class`_ torch.nn.parameter.UninitializedParameter
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+> <font size="3">cls_to_become()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.nn.parameter.UninitializedBuffer
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+### torch.nn.LazyConv3d.cls_to_become
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+### torch.nn.LazyConvTranspose3d.cls_to_become
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.nn.LazyBatchNorm1d.cls_to_become
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+### torch.nn.LazyBatchNorm2d.cls_to_become
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+### torch.nn.LazyBatchNorm3d.cls_to_become
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+### torch.nn.LazyInstanceNorm1d.cls_to_become
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.nn.LazyInstanceNorm2d.cls_to_become
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+### torch.nn.LazyInstanceNorm3d.cls_to_become
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+### torch.nn.TransformerEncoderLayer.forward
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.nn.TransformerDecoderLayer.forward
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.nn.modules.flatten.Flatten
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+
+</div>
+
+### torch.nn.modules.flatten.Unflatten
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`input`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+
+</div>
+
+### torch.nn.modules.flatten.Unflatten.NamedShape
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+## Containers
+
+### _`class`_ torch.nn.Module
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp32
+
+> <font size="3">add_module()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">apply()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">bfloat16()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">buffers()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">children()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">compile()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">cpu()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">cuda()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">double()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">eval()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32，int64
+
+</div>
+
+> <font size="3">extra_repr()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">float()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">forward()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">get_buffer()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">get_extra_state()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">get_parameter()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">get_submodule()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">half()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp16，fp32
+
+</div>
+
+> <font size="3">ipu()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">modules()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">named_buffers()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">named_children()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">named_modules()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">named_parameters()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">parameters()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_backward_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">register_buffer()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">register_forward_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">register_forward_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">register_full_backward_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">register_full_backward_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">register_load_state_dict_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">register_module()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">register_parameter()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_state_dict_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">requires_grad_()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">set_extra_state()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">set_submodule()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">share_memory()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">to()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">to_empty()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">train()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">type()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp16，fp32，int64
+
+</div>
+
+> <font size="3">xpu()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：NPU形式名称为torch.nn.Module.npu
+
+</div>
+
+> <font size="3">npu()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">zero_grad()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+</div>
+
+### _`class`_ torch.nn.Sequential
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp32
+
+> <font size="3">append()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+</div>
+
+### _`class`_ torch.nn.ModuleList
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp32
+
+> <font size="3">append()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">extend()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">insert()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+</div>
+
+### _`class`_ torch.nn.ModuleDict
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp32
+
+> <font size="3">clear()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">items()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">keys()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">pop()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">update()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">values()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+</div>
+
+### _`class`_ torch.nn.ParameterList
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp32
+
+> <font size="3">append()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">extend()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+</div>
+
+### _`class`_ torch.nn.ParameterDict
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp32
+
+> <font size="3">clear()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">copy()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">fromkeys()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">get()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">items()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">keys()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">pop()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">popitem()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">setdefault()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">update()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">values()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+</div>
+
+### torch.nn.modules.module.register_module_forward_pre_hook
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`input`仅支持fp32
+
+</div>
+
+### torch.nn.modules.module.register_module_forward_hook
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`input`仅支持fp32
+
+</div>
+
+### torch.nn.modules.module.register_module_backward_hook
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`input`仅支持fp32
+
+</div>
+
+### torch.nn.modules.module.register_module_full_backward_pre_hook
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.nn.modules.module.register_module_full_backward_hook
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`input`仅支持fp32
+
+</div>
+
+### torch.nn.modules.module.register_module_buffer_registration_hook
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.nn.modules.module.register_module_module_registration_hook
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.nn.modules.module.register_module_parameter_registration_hook
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+## Convolution Layers
+
+### _`class`_ torch.nn.Conv1d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.Conv2d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `input`仅支持bf16，fp16，fp32
+- <term>Atlas A2 训练系列产品</term>，默认场景下，如果频繁触发编译，建议手动设置torch.npu.config.allow_internal_format为False，控制入参不开启内部格式，避免在线编译，例如：
+
+  ```python
+  import torch_npu
+  torch_npu.npu.config.allow_internal_format = False
+  ```
+
+</div>
+
+### _`class`_ torch.nn.Conv3d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.ConvTranspose1d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp32
+
+</div>
+
+### _`class`_ torch.nn.ConvTranspose2d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `input`仅支持fp16，fp32
+- <term>Atlas 训练系列产品</term>/<term>Atlas A2 训练系列产品</term>，需手动设置torch.npu.config.allow_internal_format为False，才可支持3维输入，例如：
+
+  ```python
+  import torch_npu
+  torch_npu.npu.config.allow_internal_format = False
+  ```
+
+</div>
+
+### _`class`_ torch.nn.ConvTranspose3d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.LazyConv1d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+> <font size="3">cls_to_become()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.nn.LazyConv2d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+> <font size="3">cls_to_become()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.nn.LazyConvTranspose1d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`input`仅支持fp16
+
+> <font size="3">cls_to_become()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.nn.LazyConvTranspose2d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+> <font size="3">cls_to_become()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.nn.Unfold
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.Fold
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16
+
+</div>
+
+## Pooling layers
+
+### _`class`_ torch.nn.MaxPool1d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### _`class`_ torch.nn.MaxPool2d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `input`仅支持bf16，fp16，fp32
+- 通过设置torch_npu.npu.use_compatible_impl(True)，保证与社区同名接口在内存一致性上对齐，例如：
+
+  ```python
+  import torch_npu
+  torch_npu.npu.use_compatible_impl(True)
+  ```
+
+</div>
+
+### _`class`_ torch.nn.MaxPool3d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### _`class`_ torch.nn.MaxUnpool1d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.MaxUnpool2d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.MaxUnpool3d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### _`class`_ torch.nn.AvgPool1d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.AvgPool2d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.AvgPool3d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### _`class`_ torch.nn.LPPool1d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`input`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+
+</div>
+
+### _`class`_ torch.nn.LPPool2d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`input`仅支持fp16，fp32，int16，int32，int64，bool
+
+</div>
+
+### _`class`_ torch.nn.AdaptiveMaxPool1d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### _`class`_ torch.nn.AdaptiveMaxPool2d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### _`class`_ torch.nn.AdaptiveMaxPool3d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp32，fp64
+
+</div>
+
+### _`class`_ torch.nn.AdaptiveAvgPool1d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.AdaptiveAvgPool2d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.AdaptiveAvgPool3d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32
+
+</div>
+
+## Padding Layers
+
+### _`class`_ torch.nn.ReflectionPad1d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.ReflectionPad2d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.ReflectionPad3d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### _`class`_ torch.nn.ReplicationPad1d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32，complex64，complex128
+
+</div>
+
+### _`class`_ torch.nn.ReplicationPad2d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32，complex64，complex128
+
+</div>
+
+### _`class`_ torch.nn.ReplicationPad3d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### _`class`_ torch.nn.ZeroPad1d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `input`仅支持bf16，fp16，fp32，fp64，complex64，complex128
+- `input`仅支持2-3维
+
+</div>
+
+### _`class`_ torch.nn.ZeroPad2d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：可能回退至CPU执行
+
+</div>
+
+### _`class`_ torch.nn.ZeroPad3d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `input`仅支持bf16，fp16，fp32，fp64，complex64，complex128
+- `input`仅支持5-6维
+
+</div>
+
+### _`class`_ torch.nn.ConstantPad1d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `input`仅支持int8，bool
+- 在输入`x`为六维以上时可能会出现性能下降
+
+</div>
+
+### _`class`_ torch.nn.ConstantPad2d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+- 在输入`x`为六维以上时可能会出现性能下降
+
+</div>
+
+### _`class`_ torch.nn.ConstantPad3d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `input`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+- 在输入`x`为六维以上时可能会出现性能下降
+
+</div>
+
+## Non-linear Activations (weighted sum, nonlinearity)
+
+### _`class`_ torch.nn.ELU
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32，fp64
+
+</div>
+
+### _`class`_ torch.nn.Hardshrink
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `input`仅支持fp16，fp32
+- 可能回退至CPU执行
+
+</div>
+
+### _`class`_ torch.nn.Hardsigmoid
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：
+
+- `input`仅支持fp16，fp32，int32
+- 可能回退至CPU执行
+
+</div>
+
+### _`class`_ torch.nn.Hardtanh
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
+
+</div>
+
+### _`class`_ torch.nn.Hardswish
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.LeakyReLU
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32，fp64
+
+</div>
+
+### _`class`_ torch.nn.LogSigmoid
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.MultiheadAttention
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32
+
+> <font size="3">forward()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持bf16，fp16，fp32
+
+</div>
+
+</div>
+
+### _`class`_ torch.nn.PReLU
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp32
+
+</div>
+
+### _`class`_ torch.nn.ReLU
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32，uint8，int8，int32，int64
+
+</div>
+
+### _`class`_ torch.nn.ReLU6
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
+
+</div>
+
+### _`class`_ torch.nn.RReLU
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### _`class`_ torch.nn.SELU
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+
+</div>
+
+### _`class`_ torch.nn.CELU
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.GELU
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `input`仅支持bf16，fp16，fp32
+- `approximate`参数仅支持设置为`tanh`
+
+</div>
+
+### _`class`_ torch.nn.Sigmoid
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+
+</div>
+
+### _`class`_ torch.nn.SiLU
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.Mish
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.Softplus
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.Softshrink
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.Softsign
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64
+
+</div>
+
+### _`class`_ torch.nn.Tanh
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+
+</div>
+
+### _`class`_ torch.nn.Tanhshrink
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `input`仅支持fp16，fp32，uint8，int8，int16，int32，int64
+- 可能回退至CPU执行
+
+</div>
+
+### _`class`_ torch.nn.Threshold
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32，uint8，int8，int16，int32，int64
+
+</div>
+
+### _`class`_ torch.nn.GLU
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+</div>
+
+## Non-linear Activations (other)
+
+### _`class`_ torch.nn.Softmin
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.Softmax
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32，fp64
+
+</div>
+
+### _`class`_ torch.nn.Softmax2d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.LogSoftmax
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.AdaptiveLogSoftmaxWithLoss
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+> <font size="3">log_prob()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">predict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>
+
+## Normalization Layers
+
+### _`class`_ torch.nn.BatchNorm1d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.BatchNorm2d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.BatchNorm3d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.GroupNorm
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `input`仅支持fp32
+- `eps`参数需大于0
+- 不支持`jit_compile=True`的场景
+- 该API仅支持2维及以上的输入`input`。该API反向传播时，要求输入维度为4维、`num_groups`能被32整除、C轴维度能被(10 * `num_groups`)整除
+
+</div>
+
+### _`class`_ torch.nn.SyncBatchNorm
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+> <font size="3">convert_sync_batchnorm()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.nn.LayerNorm
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `input`仅支持bf16，fp16，fp32
+- 通过torch_npu.npu.use_compatible_impl(True)，设置该接口从`aclnnLayerNorm`算子切换为`aclnnFastLayerNorm`算子，保证与社区同名接口在内存一致性上对齐。，例如：
+
+  ```python
+  import torch_npu
+  torch_npu.npu.use_compatible_impl(True)
+  ```
+
+</div>
+
+## Recurrent Layers
+
+### _`class`_ torch.nn.RNNBase
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+> <font size="3">flatten_parameters()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.nn.RNN
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### _`class`_ torch.nn.LSTM
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：
+
+- `input`仅支持fp32
+- 不支持`proj_size`参数
+- 不支持`dropout`参数
+- 入参`input`不支持2维
+
+</div>
+
+### _`class`_ torch.nn.GRU
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### _`class`_ torch.nn.RNNCell
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### _`class`_ torch.nn.LSTMCell
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：接口暂不支持`jit_compile=False`，如需在该模式下使用，请将"DynamicGRUV2"添加至"NPU_FUZZY_COMPILE_BLACKLIST"选项内，具体操作可参考[添加二进制黑名单示例](../example_of_adding_a_binary_blocklist.md)
+
+</div>
+
+### _`class`_ torch.nn.GRUCell
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+</div>
+
+## Transformer Layers
+
+### _`class`_ torch.nn.Transformer
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+> <font size="3">forward()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.nn.TransformerEncoder
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+> <font size="3">forward()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+</div>
+
+### _`class`_ torch.nn.TransformerDecoder
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+> <font size="3">forward()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>
+
+## Linear Layers
+
+### _`class`_ torch.nn.Identity
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp32
+
+</div>
+
+### _`class`_ torch.nn.Linear
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.Bilinear
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.LazyLinear
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+> <font size="3">cls_to_become()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>
+
+## Dropout Layers
+
+### _`class`_ torch.nn.Dropout
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.Dropout2d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32，int64，bool
+
+</div>
+
+### _`class`_ torch.nn.AlphaDropout
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.FeatureAlphaDropout
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+</div>
+
+## Sparse Layers
+
+### _`class`_ torch.nn.Embedding
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：
+
+- `input`仅支持int32，int64
+- 属性`max_norm`仅支持非负值，不支持nan
+
+> <font size="3">from_pretrained()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp64
+
+</div>
+
+</div>
+
+### _`class`_ torch.nn.EmbeddingBag
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `input`仅支持int32，int64
+- 仅支持`max_norm`大于等于0
+
+> <font size="3">forward()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持int64
+
+</div>
+
+> <font size="3">from_pretrained()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持int64
+
+</div>
+
+</div>
+
+## Loss Functions
+
+### _`class`_ torch.nn.L1Loss
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32，int64
+
+</div>
+
+### _`class`_ torch.nn.MSELoss
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.CrossEntropyLoss
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.CTCLoss
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：
+
+- `input`仅支持fp32，fp64
+- 不支持`log_probs` 2D输入
+
+</div>
+
+### _`class`_ torch.nn.NLLLoss
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `input`仅支持fp16，fp32
+- `target`中的每个元素值应大于等于0且小于`input`的类别数
+
+</div>
+
+### _`class`_ torch.nn.PoissonNLLLoss
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32，int64
+
+</div>
+
+### _`class`_ torch.nn.GaussianNLLLoss
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32，int16，int32，int64
+
+</div>
+
+### _`class`_ torch.nn.KLDivLoss
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `input`仅支持bf16，fp16，fp32
+- 当前`log_target`参数仅支持False
+
+</div>
+
+### _`class`_ torch.nn.BCELoss
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.BCEWithLogitsLoss
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：
+
+- `input`仅支持bf16，fp16，fp32
+- 入参`target`不支持反向计算
+
+</div>
+
+### _`class`_ torch.nn.MarginRankingLoss
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32，int8，int32，int64
+
+</div>
+
+### _`class`_ torch.nn.HingeEmbeddingLoss
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64
+
+</div>
+
+### _`class`_ torch.nn.MultiLabelMarginLoss
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### _`class`_ torch.nn.HuberLoss
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `input`仅支持fp32，fp64
+- `target`支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+- 可能回退至CPU执行
+
+</div>
+
+### _`class`_ torch.nn.SmoothL1Loss
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.MultiLabelSoftMarginLoss
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+</div>
+
+### _`class`_ torch.nn.CosineEmbeddingLoss
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### _`class`_ torch.nn.MultiMarginLoss
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `input`仅支持fp32，fp64
+- `target`支持int64
+- 可能回退至CPU执行
+
+</div>
+
+### _`class`_ torch.nn.TripletMarginLoss
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `input`仅支持fp16，fp32，uint8，int8，int16，int32，int64
+- 可能回退至CPU执行
+
+</div>
+
+### _`class`_ torch.nn.TripletMarginWithDistanceLoss
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32
+
+</div>
+
+## Vision Layers
+
+### _`class`_ torch.nn.PixelShuffle
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+
+</div>
+
+### _`class`_ torch.nn.PixelUnshuffle
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+
+</div>
+
+### _`class`_ torch.nn.Upsample
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32，fp64
+
+</div>
+
+### _`class`_ torch.nn.UpsamplingNearest2d
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `input`仅支持fp16，fp32，uint8
+- 可能回退至CPU执行
+
+</div>
+
+## Shuffle Layers
+
+### _`class`_ torch.nn.ChannelShuffle
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+
+</div>
+
+## DataParallel Layers (multi-GPU, distributed)
+
+### _`class`_ torch.nn.DataParallel
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### _`class`_ torch.nn.parallel.DistributedDataParallel
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+> <font size="3">join()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">join_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">no_sync()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">register_comm_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>
+
+## Utilities
+
+### torch.nn.utils.clip_grad_norm_
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+
+</div>
+
+### torch.nn.utils.clip_grad_norm
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.nn.utils.clip_grad_value_
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32
+
+</div>
+
+### torch.nn.utils.vector_to_parameters
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`input`仅支持bf16，fp16，fp32，fp64，complex64
+
+</div>
+
+### torch.nn.utils.weight_norm
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+### torch.nn.utils.spectral_norm
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+### torch.nn.utils.remove_spectral_norm
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+### torch.nn.utils.skip_init
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+### _`class`_ torch.nn.utils.prune.BasePruningMethod
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+> <font size="3">apply()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">apply_mask()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">compute_mask()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">prune()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">remove()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+</div>
+
+### _`class`_ torch.nn.utils.prune.PruningContainer
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+> <font size="3">add_pruning_method()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">apply()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">apply_mask()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">compute_mask()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">prune()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">remove()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+</div>
+
+### _`class`_ torch.nn.utils.prune.Identity
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`input`仅支持fp32
+
+> <font size="3">apply()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">apply_mask()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">prune()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">remove()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+</div>
+
+### _`class`_ torch.nn.utils.prune.RandomUnstructured
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`input`仅支持fp32
+
+> <font size="3">apply()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">apply_mask()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">prune()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">remove()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.nn.utils.prune.L1Unstructured
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`input`仅支持fp32
+
+> <font size="3">apply()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">apply_mask()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">prune()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">remove()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+</div>
+
+### _`class`_ torch.nn.utils.prune.RandomStructured
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`input`仅支持fp32
+
+> <font size="3">apply()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">apply_mask()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">compute_mask()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">prune()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">remove()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.nn.utils.prune.LnStructured
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`input`仅支持fp32
+
+> <font size="3">apply()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">apply_mask()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">compute_mask()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">prune()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">remove()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+</div>
+
+### _`class`_ torch.nn.utils.prune.CustomFromMask
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`input`仅支持int64
+
+> <font size="3">apply()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持int64
+
+</div>
+
+> <font size="3">apply_mask()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">prune()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">remove()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>
+
+### torch.nn.utils.prune.random_unstructured
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.nn.utils.prune.l1_unstructured
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.nn.utils.prune.random_structured
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.nn.utils.prune.ln_structured
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.nn.utils.prune.global_unstructured
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.nn.utils.prune.identity
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.nn.utils.prune.custom_from_mask
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`input`仅支持int64
+
+</div>
+
+### torch.nn.utils.prune.remove
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.nn.utils.prune.is_pruned
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.nn.utils.parametrizations.orthogonal
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.nn.utils.parametrizations.spectral_norm
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.nn.utils.parametrize.register_parametrization
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+### torch.nn.utils.parametrize.remove_parametrizations
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+### torch.nn.utils.parametrize.cached
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+### torch.nn.utils.parametrize.is_parametrized
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### _`class`_ torch.nn.utils.parametrize.ParametrizationList
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+> <font size="3">right_inverse()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+</div>
+
+### torch.nn.utils.stateless.functional_call
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### _`class`_ torch.nn.utils.rnn.PackedSequence
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp32，int64
+
+> <font size="3">batch_sizes()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">count()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">data()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">index()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">is_cuda()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">is_pinned()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">sorted_indices()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">to()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32，int64
+
+</div>
+
+> <font size="3">unsorted_indices()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>
+
+### torch.nn.utils.rnn.pack_padded_sequence
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.nn.utils.rnn.pad_packed_sequence
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.nn.utils.rnn.pad_sequence
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp16，fp32
+
+</div>
+
+### torch.nn.utils.rnn.pack_sequence
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.nn.utils.rnn.unpack_sequence
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.nn.utils.rnn.unpad_sequence
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+## Lazy Modules Initialization
+
+### _`class`_ torch.nn.modules.lazy.LazyModuleMixin
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：`input`仅支持fp32
+
+> <font size="3">has_uninitialized_params()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+> <font size="3">initialize_parameters()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：`self`仅支持fp32
+
+</div>
+
+</div>

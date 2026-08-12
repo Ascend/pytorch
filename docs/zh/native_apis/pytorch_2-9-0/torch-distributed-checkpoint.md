@@ -1,80 +1,1039 @@
 # torch.distributed.checkpoint
 
-> [!NOTE]  
-> 若API“是否支持”为“是”，“限制与说明”为“-”，说明此API和原生API支持度保持一致。
+> [!NOTE]
+>
+> - API的**支持情况**中，&#10004;表示API支持在对应硬件环境上运行，&#10007;表示暂不支持。<br>
+> - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
+> - 部分API虽在[PyTorch社区文档](https://pytorch.org/docs/2.9/)中存在，但未收录于本支持清单。此类API尚未验证，请谨慎使用。我们将持续进行验证工作，并在验证完成后更新文档。
+> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
 
-|API名称|是否支持|限制与说明|
-|--|--|--|
-|torch.distributed.checkpoint.state_dict_saver.save|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.state_dict_saver.save_state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.state_dict_loader.load_state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.stateful.Stateful|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.stateful.Stateful.load_state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.stateful.Stateful.state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.StorageReader|是|-|
-|torch.distributed.checkpoint.StorageReader.prepare_global_plan|是|-|
-|torch.distributed.checkpoint.StorageReader.prepare_local_plan|是|-|
-|torch.distributed.checkpoint.StorageReader.read_data|是|-|
-|torch.distributed.checkpoint.StorageReader.read_metadata|是|-|
-|torch.distributed.checkpoint.StorageReader.reset|是|-|
-|torch.distributed.checkpoint.StorageReader.set_up_storage_reader|是|-|
-|torch.distributed.checkpoint.StorageReader.validate_checkpoint_id|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.StorageWriter|是|-|
-|torch.distributed.checkpoint.StorageWriter.finish|是|-|
-|torch.distributed.checkpoint.StorageWriter.prepare_global_plan|是|-|
-|torch.distributed.checkpoint.StorageWriter.prepare_local_plan|是|-|
-|torch.distributed.checkpoint.StorageWriter.reset|是|-|
-|torch.distributed.checkpoint.StorageWriter.set_up_storage_writer|是|-|
-|torch.distributed.checkpoint.StorageWriter.storage_meta|是|-|
-|torch.distributed.checkpoint.StorageWriter.validate_checkpoint_id|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.StorageWriter.write_data|是|-|
-|torch.distributed.checkpoint.LoadPlanner|是|-|
-|torch.distributed.checkpoint.LoadPlanner.commit_tensor|是|-|
-|torch.distributed.checkpoint.LoadPlanner.create_global_plan|是|-|
-|torch.distributed.checkpoint.LoadPlanner.create_local_plan|是|-|
-|torch.distributed.checkpoint.LoadPlanner.finish_plan|是|-|
-|torch.distributed.checkpoint.LoadPlanner.load_bytes|是|-|
-|torch.distributed.checkpoint.LoadPlanner.resolve_tensor|是|-|
-|torch.distributed.checkpoint.LoadPlanner.set_up_planner|是|-|
-|torch.distributed.checkpoint.LoadPlan|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.ReadItem|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.SavePlanner|是|-|
-|torch.distributed.checkpoint.SavePlanner.create_global_plan|是|-|
-|torch.distributed.checkpoint.SavePlanner.create_local_plan|是|-|
-|torch.distributed.checkpoint.SavePlanner.finish_plan|是|-|
-|torch.distributed.checkpoint.SavePlanner.resolve_data|是|-|
-|torch.distributed.checkpoint.SavePlanner.set_up_planner|是|-|
-|torch.distributed.checkpoint.SavePlan|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.planner.WriteItem|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.planner.WriteItem.tensor_storage_size|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.FileSystemReader|是|-|
-|torch.distributed.checkpoint.FileSystemWriter|是|-|
-|torch.distributed.checkpoint.staging.AsyncStager|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.staging.AsyncStager.should_synchronize_after_execute|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.staging.AsyncStager.stage|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.staging.AsyncStager.synchronize_staging|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.staging.BlockingAsyncStager|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.staging.BlockingAsyncStager.stage|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.staging.BlockingAsyncStager.synchronize_staging|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.DefaultSavePlanner|是|-|
-|torch.distributed.checkpoint.DefaultSavePlanner.lookup_object|是|-|
-|torch.distributed.checkpoint.DefaultSavePlanner.transform_object|是|-|
-|torch.distributed.checkpoint.DefaultLoadPlanner|是|-|
-|torch.distributed.checkpoint.DefaultLoadPlanner.lookup_tensor|是|-|
-|torch.distributed.checkpoint.DefaultLoadPlanner.transform_tensor|是|-|
-|torch.distributed.checkpoint.state_dict.get_state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.state_dict.get_model_state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.state_dict.get_optimizer_state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.state_dict.set_state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.state_dict.set_model_state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.state_dict.set_optimizer_state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.state_dict.StateDictOptions|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.read_metadata|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.prepare_local_plan|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.prepare_global_plan|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.read_data|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.reset|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.set_up_storage_reader|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.validate_checkpoint_id|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.checkpoint.format_utils.DynamicMetaLoadPlanner|是<br>暂不支持<term>Ascend 950DT</term>|-|
+## 目录
+
+- [base API](#base-api)
+- [Additional resources](#additional-resources)
+
+## base API
+
+### torch.distributed.checkpoint.state_dict_saver.save
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.distributed.checkpoint.state_dict_saver.save_state_dict
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.distributed.checkpoint.state_dict_loader.load_state_dict
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### _`class`_ torch.distributed.checkpoint.stateful.Stateful
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.distributed.checkpoint.FileSystemReader
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+### _`class`_ torch.distributed.checkpoint.FileSystemWriter
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+### _`class`_ torch.distributed.checkpoint.staging.AsyncStager
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+> <font size="3">should_synchronize_after_execute()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">stage()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">synchronize_staging()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.distributed.checkpoint.staging.BlockingAsyncStager
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+> <font size="3">stage()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">synchronize_staging()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.distributed.checkpoint.DefaultSavePlanner
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+> <font size="3">lookup_object()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">transform_object()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.distributed.checkpoint.DefaultLoadPlanner
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+> <font size="3">lookup_tensor()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">transform_tensor()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+</div>
+
+### torch.distributed.checkpoint.state_dict.get_state_dict
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.distributed.checkpoint.state_dict.get_model_state_dict
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.distributed.checkpoint.state_dict.get_optimizer_state_dict
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.distributed.checkpoint.state_dict.set_state_dict
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.distributed.checkpoint.state_dict.set_model_state_dict
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.distributed.checkpoint.state_dict.set_optimizer_state_dict
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### _`class`_ torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+> <font size="3">read_metadata()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">prepare_local_plan()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">prepare_global_plan()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">read_data()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">reset()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">set_up_storage_reader()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">validate_checkpoint_id()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.distributed.checkpoint.format_utils.DynamicMetaLoadPlanner
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+## Additional resources
+
+### _`class`_ torch.distributed.checkpoint.StorageReader
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+> <font size="3">prepare_global_plan()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">prepare_local_plan()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">read_data()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">read_metadata()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">reset()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">set_up_storage_reader()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">validate_checkpoint_id()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.distributed.checkpoint.StorageWriter
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+> <font size="3">finish()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">prepare_global_plan()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">prepare_local_plan()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">reset()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">set_up_storage_writer()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">storage_meta()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">validate_checkpoint_id()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">write_data()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.distributed.checkpoint.LoadPlanner
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+> <font size="3">commit_tensor()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">create_global_plan()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">create_local_plan()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">finish_plan()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">load_bytes()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">resolve_tensor()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">set_up_planner()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.distributed.checkpoint.LoadPlan
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### _`class`_ torch.distributed.checkpoint.ReadItem
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### _`class`_ torch.distributed.checkpoint.SavePlanner
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+> <font size="3">create_global_plan()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">create_local_plan()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">finish_plan()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">resolve_data()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">set_up_planner()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.distributed.checkpoint.SavePlan
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### _`class`_ torch.distributed.checkpoint.planner.WriteItem
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+> <font size="3">tensor_storage_size()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.distributed.checkpoint.state_dict.StateDictOptions
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>

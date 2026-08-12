@@ -1,22 +1,229 @@
 # torch.distributed.optim
 
-> [!NOTE]  
-> 若API“是否支持”为“是”，“限制与说明”为“-”，说明此API和原生API支持度保持一致。
+> [!NOTE]
+>
+> - API的**支持情况**中，&#10004;表示API支持在对应硬件环境上运行，&#10007;表示暂不支持。<br>
+> - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
+> - 部分API虽在[PyTorch社区文档](https://pytorch.org/docs/2.11/)中存在，但未收录于本支持清单。此类API尚未验证，请谨慎使用。我们将持续进行验证工作，并在验证完成后更新文档。
+> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
 
-|API名称|是否支持|限制与说明|
-|--|--|--|
-|torch.distributed.optim.DistributedOptimizer|否|-|
-|torch.distributed.optim.DistributedOptimizer.step|否|-|
-|torch.distributed.optim.PostLocalSGDOptimizer|是|-|
-|torch.distributed.optim.PostLocalSGDOptimizer.load_state_dict|是|-|
-|torch.distributed.optim.PostLocalSGDOptimizer.state_dict|是|-|
-|torch.distributed.optim.PostLocalSGDOptimizer.step|是|-|
-|torch.distributed.optim.ZeroRedundancyOptimizer|是|支持的输入类型为torch.nn.Optimizer对象<br>不支持NPU融合优化器对象|
-|torch.distributed.optim.ZeroRedundancyOptimizer.add_param_group|是|-|
-|torch.distributed.optim.ZeroRedundancyOptimizer.consolidate_state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.optim.ZeroRedundancyOptimizer.join_device|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.optim.ZeroRedundancyOptimizer.join_hook|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.optim.ZeroRedundancyOptimizer.join_process_group|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.optim.ZeroRedundancyOptimizer.load_state_dict|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.distributed.optim.ZeroRedundancyOptimizer.state_dict|是|-|
-|torch.distributed.optim.ZeroRedundancyOptimizer.step|是<br>暂不支持<term>Ascend 950DT</term>|-|
+## 目录
+
+- [base API](#base-api)
+
+## base API
+
+### _`class`_ torch.distributed.optim.DistributedOptimizer
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+> <font size="3">step()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.distributed.optim.PostLocalSGDOptimizer
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">step()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+</div>
+
+### _`class`_ torch.distributed.optim.ZeroRedundancyOptimizer
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：
+
+- `input`仅支持的输入类型为torch.nn.Optimizer对象
+- 不支持NPU融合优化器对象
+
+> <font size="3">add_param_group()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">consolidate_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">join_device()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">join_hook()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">join_process_group()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
+> <font size="3">step()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+</div>

@@ -2,24 +2,183 @@
 
 > [!NOTE]
 >
-> 若API“是否支持”为“是”，“限制与说明”为“-”，说明此API和原生API支持度保持一致。
-> 
-> 使用以下接口，需要配置以下信息：
->
-> `source {CANN包安装路径}/nnal/atb/set_env.sh`
-> 
-> `source {CANN包安装路径}/nnal/asdsip/set_env.sh`
+> - API的**支持情况**中，&#10004;表示API支持在对应硬件环境上运行，&#10007;表示暂不支持。<br>
+> - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
+> - 部分API虽在[PyTorch社区文档](https://pytorch.org/docs/2.9/)中存在，但未收录于本支持清单。此类API尚未验证，请谨慎使用。我们将持续进行验证工作，并在验证完成后更新文档。
+> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
 
-|API名称|是否支持|限制与说明|
-|--|--|--|
-|torch.fft.rfftn|是<br>暂不支持<term>Ascend 950DT</term>|支持fp32<br>数值范围：每个元素必须在[-100, 100]内<br>支持1-8维。2维维度为(batch, n)，1维维度为(n)<br>1. batch维度：[1, 8, 16, 24, 32, 64]<br>2. n维度限制（满足任一即可）：<br>- $2^n$，n为23以内<br>- 2, 3, 5, 7任意相乘，例如：2\*2\*2\*3\*3\*5\*7\*7，但结果需在1000000以内<br>- 200以内质数任意相乘，结果需在100000以内|
-|torch.fft.hfft|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.fft.ihfft|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.fft.hfft2|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.fft.ihfft2|否|-|
-|torch.fft.hfftn|是<br>暂不支持<term>Ascend 950DT</term>|-|
-|torch.fft.ihfftn|否|-|
-|torch.fft.fftfreq|否|-|
-|torch.fft.rfftfreq|否|-|
-|torch.fft.fftshift|否|-|
-|torch.fft.ifftshift|仅支持<term>Ascend 950DT</term>|<term>Ascend 950DT</term>：不支持fp64，complex64，complex128|
+## 目录
+
+- [Fast Fourier Transforms](#fast-fourier-transforms)
+- [Helper Functions](#helper-functions)
+
+## Fast Fourier Transforms
+
+### torch.fft.rfftn
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+**限制与说明**：
+
+- `input`仅支持fp32
+- 数值范围：每个元素必须在[-100, 100]内
+- 支持1-8维。2维维度为(batch, n)，1维维度为(n)
+    1. batch维度：[1, 8, 16, 24, 32, 64]
+    2. n维度限制（满足任一即可）：
+        - $2^n$，n为23以内
+        - 2, 3, 5, 7任意相乘，例如：2\*2\*2\*3\*3\*5\*7\*7，但结果需在1000000以内
+        - 200以内质数任意相乘，结果需在100000以内
+
+</div>
+
+### torch.fft.hfft
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.fft.ihfft
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.fft.hfft2
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.fft.ihfft2
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.fft.hfftn
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.fft.ihfftn
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+## Helper Functions
+
+### torch.fft.fftfreq
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.fft.rfftfreq
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.fft.fftshift
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10007; |
+| <term>Atlas A3 训练系列产品</term> | &#10007; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
+### torch.fft.ifftshift
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+**限制与说明**：<term>Ascend 950DT</term>：不支持fp64，complex64，complex128
+
+</div>

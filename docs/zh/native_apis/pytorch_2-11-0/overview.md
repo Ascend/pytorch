@@ -7,11 +7,11 @@
 - **暂不支持**：当“是否支持”标记为“否”，“限制与说明”标记为“-”，表示当前在昇腾NPU上暂不支持该API。
 - **未验证**：部分API虽在[PyTorch社区文档](https://pytorch.org/docs/2.11/)中存在，但未收录于本支持清单。这类API尚未验证，请谨慎使用。我们将持续进行验证工作，并在验证完成后更新文档。
 
-> [!NOTE] 
+> [!NOTE]
 >
 > **产品支持范围说明：**
 原生API支持度仅在<term>Ascend 950DT</term>、<term>Atlas A3 训练系列产品</term>和<term>Atlas A2 训练系列产品</term>上经过验证，默认仅在以上三种产品上支持。
-> 
+>
 > - 若API“是否支持”为“是”，则代表在<term>Ascend 950DT</term>、<term>Atlas A3 训练系列产品</term>和<term>Atlas A2 训练系列产品</term>上均支持。<br>
-> 
+>
 > - 若API“是否支持”为“是、暂不支持<term>Ascend 950DT</term>”，则代表在<term>Atlas A3 训练系列产品</term>、<term>Atlas A2 训练系列产品</term>上支持，<term>Ascend 950DT</term>不支持。
