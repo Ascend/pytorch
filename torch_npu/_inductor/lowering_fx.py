@@ -471,11 +471,16 @@ def create_compile_kwargs(final_kernel, fx_call_args, fx_args):
             fx_call_args[idx] = final_kernel.args.inplace_buffers[call_arg].other_names[-1]
     fx_arg_shapes = [fx_arg.shape if isinstance(fx_arg, torch.Tensor) else ['ushape'] for fx_arg in fx_args]
 
+    # add_numel 前移: 让 numel 表达式参与后续匹配, SymInt 标量输入有机会匹配到 kernel numel arg
+    final_kernel.add_numel_to_call_args(final_kernel.kernel_name, kernel_call_args, arg_types)
+    # add_numel 后 kernel_call_args 可能含 SymbolicCallArg (unhashable), 统一用 str 比较
+    kernel_call_args_str = [str(arg) for arg in kernel_call_args]
+
     fx_call_args_no_dy = [arg for arg in fx_call_args if not (arg.startswith(("_", "u")))]
 
-    if set(kernel_call_args) != set(fx_call_args_no_dy):
+    if set(kernel_call_args_str) != set(fx_call_args_no_dy):
         # Handle NonOwningLayout alias
-        kernel_call_args_set = set(kernel_call_args)
+        kernel_call_args_set = set(kernel_call_args_str)
         for idx, call_arg in enumerate(fx_call_args):
             if call_arg in kernel_call_args_set:
                 continue
@@ -488,9 +493,22 @@ def create_compile_kwargs(final_kernel, fx_call_args, fx_args):
                     break
 
     fx_call_args_no_dy = [arg for arg in fx_call_args if not (arg.startswith(("_", "u")))]
-    if set(kernel_call_args) != set(fx_call_args_no_dy):
-        return None
-    final_kernel.add_numel_to_call_args(final_kernel.kernel_name, kernel_call_args, arg_types)
+    kernel_call_args_str_set = set(kernel_call_args_str)
+    if kernel_call_args_str_set != set(fx_call_args_no_dy):
+        # 区分: 不匹配的是 "标量输入" (可恢复) 还是 "buffer" (应放弃)
+        fx_only = set(fx_call_args_no_dy) - kernel_call_args_str_set
+        scalar_only_mismatch = True
+        for buf_name in fx_only:
+            buf = V.graph.try_get_buffer(buf_name)
+            if buf is not None:
+                scalar_only_mismatch = False
+                break
+        if not scalar_only_mismatch:
+            log.warning(f"[ACC-DEBUG] kernel={final_kernel.kernel_name} skipped: "
+                        f"buffer mismatch (fx_only={fx_only})")
+            return None
+        # scalar_only_mismatch: SymInt 标量输入没有对应 kernel arg, 用 -1 哨兵保留位置,
+        # 运行期从输出 tensor shape 反推其值 (见 npu_compare.check_accuracy_triton)
 
     kernel_call_args = [
         map_operators_to_strings(str(item.inner_expr)) if isinstance(item, torch._inductor.codegen.wrapper.SymbolicCallArg)
@@ -498,15 +516,75 @@ def create_compile_kwargs(final_kernel, fx_call_args, fx_args):
         for item in kernel_call_args
     ]
     index_map = {str(element): idx for idx, element in enumerate(kernel_call_args)}
-    call_args_mapping = [index_map[str(element)] for element in fx_call_args if str(element) in index_map]
+    # Prefer the runtime kernel argument for every exact match, including
+    # symbolic scalar arguments such as a numel expression.
+    call_args_mapping = []
+    for i, element in enumerate(fx_call_args):
+        element_str = str(element)
+        if element_str in index_map:
+            call_args_mapping.append(index_map[element_str])
+        elif i < len(fx_args) and not isinstance(fx_args[i], torch.Tensor):
+            # Only scalars absent from the kernel signature need a shape recipe.
+            call_args_mapping.append(-1)
+        else:
+            return None
+
+    # 精确配方: 对每个 -1 标量输入, 编译期求解它等于哪个 kernel arg tensor 的第几维。
+    # 序列化为具体 int (kernel_arg_idx, dim), 运行期 args[kidx].shape[dim] 精确反推,
+    # 不依赖 "FX 标量位置 == 输出维度序号" 的假设 (比 shape[pos] 猜测更普适)。
+    def _to_sympy_expr(val):
+        if val is None:
+            return None
+        if isinstance(val, (int, sympy.Integer)):
+            return sympy.sympify(val)
+        if hasattr(val, "_sympy_"):
+            try:
+                return val._sympy_()
+            except Exception:
+                return None
+        try:
+            return sympy.sympify(val)
+        except Exception:
+            return None
+
+    scalar_resolved_from = {}
+    for i, idx in enumerate(call_args_mapping):
+        if idx != -1:
+            continue
+        scalar_expr = _to_sympy_expr(fx_args[i])
+        if scalar_expr is None:
+            return None
+        found = None
+        for j, fa in enumerate(fx_args):
+            if not isinstance(fa, torch.Tensor):
+                continue
+            kidx = call_args_mapping[j]
+            if kidx < 0:
+                continue
+            for d, dim_val in enumerate(fa.shape):
+                dim_expr = _to_sympy_expr(dim_val)
+                if dim_expr is None:
+                    continue
+                if scalar_expr == dim_expr or sympy.simplify(scalar_expr - dim_expr) == 0:
+                    found = (kidx, d)
+                    break
+            if found is not None:
+                break
+        if found is None:
+            # 无法从任何 tensor 的 shape 反推该 SymInt 标量 → 跳过该 kernel 精度检查 (安全, 不猜)
+            log.warning(f"[ACC-DEBUG] kernel={final_kernel.kernel_name} skipped: "
+                        f"cannot resolve scalar at pos={i} from any tensor shape")
+            return None
+        scalar_resolved_from[i] = found
     mismatch_indices_shapes = {}
 
     def is_dynamic_shape_dim(d):
-        if str(type(d)).find("torch.fx.expermental.symbolic_shapes") != -1:
+        type_str = str(type(d))
+        if type_str.find("torch.fx.experimental.symbolic_shapes") != -1:
             return True
-        if str(type(d)).find("torch.SymInt") != -1:
+        if type_str.find("torch.SymInt") != -1:
             return True
-        if str(type(d)).find("sympy") != -1:
+        if type_str.find("sympy") != -1:
             return True
         s = str(d).strip()
         if s.startswith("u") or s.startswith("i") or s in ("-1", "?"):
@@ -517,13 +595,25 @@ def create_compile_kwargs(final_kernel, fx_call_args, fx_args):
             return True
 
     for i in range(len(fx_call_args)):
-        if any(is_dynamic_shape_dim(dim) for dim in fx_arg_shapes[i]):
+        if not isinstance(fx_args[i], torch.Tensor):
             continue
-        mismatch_indices_shapes[i] = fx_arg_shapes[i]
+        reshape_shape = []
+        dynamic_dim_count = 0
+        for dim in fx_arg_shapes[i]:
+            if is_dynamic_shape_dim(dim):
+                dynamic_dim_count += 1
+                reshape_shape.append(-1)
+            else:
+                reshape_shape.append(int(dim))
+        # torch.reshape can infer one dynamic dimension from the runtime numel.
+        if dynamic_dim_count > 1:
+            continue
+        mismatch_indices_shapes[i] = torch.Size(reshape_shape)
 
     return {
         "call_args_mapping": call_args_mapping,
         "mismatch_indices_shapes": mismatch_indices_shapes,
+        "scalar_resolved_from": scalar_resolved_from,
     }
 
 
@@ -578,6 +668,7 @@ num_inputs = {compile_kwargs['num_inputs']}
 num_outputs = {compile_kwargs['num_outputs']}
 non_contiguous_indices = {compile_kwargs['non_contiguous_indices']}
 mismatch_indices_shapes = {compile_kwargs['mismatch_indices_shapes']}
+scalar_resolved_from = {compile_kwargs.get('scalar_resolved_from', {})}
 
 async_compile = AsyncCompile()
 {kernel_name} = async_compile.triton('{kernel_name}', '''
@@ -600,7 +691,12 @@ def run():
     args = [arg.npu() if isinstance(arg, torch.Tensor) else arg for arg in args]
 
     fx_args = []
-    for idx in call_args_mapping:
+    for pos, idx in enumerate(call_args_mapping):
+        if idx == -1:
+            # SymInt 标量输入: 用编译期记录的精确配方 (kernel_arg_idx, dim) 反推
+            kidx, d = scalar_resolved_from[pos]
+            fx_args.append(int(args[kidx].shape[d]))
+            continue
         arg = args[idx]
         if isinstance(arg, int):
             fx_args.append(arg)

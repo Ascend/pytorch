@@ -138,9 +138,21 @@ def check_accuracy_triton(*args, launcher, grid, stream, inductor_meta, **kwargs
 
     _call_counter[kernel_name] += 1
     invocation = _call_counter[kernel_name]
+    scalar_resolved_from = getattr(fx_module, "scalar_resolved_from", {})
 
+    # 诊断: 记录配方路径的解析值, 供 compare_outputs 失败时打印 (区分误报)
+    _recipe_used = bool(scalar_resolved_from)
+    _recipe_resolved = {}
     fx_args = []
-    for idx in fx_module.call_args_mapping:
+    for pos, idx in enumerate(fx_module.call_args_mapping):
+        if idx == -1:
+            # SymInt 标量输入: 用编译期记录的精确配方 (kernel_arg_idx, dim) 反推其值。
+            # 配方在 create_compile_kwargs 求解, 序列化为具体 int, 不依赖 pos==dim 假设。
+            kidx, d = scalar_resolved_from[pos]
+            _resolved = int(args[kidx].shape[d])
+            _recipe_resolved[pos] = (scalar_resolved_from[pos], _resolved)
+            fx_args.append(_resolved)
+            continue
         arg = args[idx]
         if isinstance(arg, int):
             fx_args.append(arg)
@@ -185,6 +197,23 @@ def check_accuracy_triton(*args, launcher, grid, stream, inductor_meta, **kwargs
         torch.save(fail_args, fail_path)
         log.warning(f"[ACC_DEBUG] kernel={kernel_name} invocation=#{invocation} "
                     f"FAIL: saved input snapshot to data_fail_{invocation}.pth")
+    # 诊断: 若精度比对失败且本 kernel 用了 -1/配方路径, 打印配方与解析值, 便于区分误报。
+    # 判据: 配方解析值正确却报警 → 多半是真 bug; 解析值异常/shape 对不上 → 工具 artifact (误报)。
+    if not passed and _recipe_used:
+        kernel_int_values = [arg for arg in args if isinstance(arg, int)]
+        for pos, ((kidx, d), val) in _recipe_resolved.items():
+            if val in kernel_int_values:
+                log.warning(
+                    f"[ACC_DEBUG] kernel={kernel_name} FAIL: scalar pos={pos} resolved={val} "
+                    f"(from args[{kidx}].shape[{d}]), matches kernel int arg. "
+                    f"Likely a real kernel bug. dump_path={dump_path}"
+                )
+            else:
+                log.warning(
+                    f"[ACC_DEBUG] kernel={kernel_name} FAIL: scalar pos={pos} resolved={val} "
+                    f"(from args[{kidx}].shape[{d}]), NOT found in kernel int args {kernel_int_values}. "
+                    f"Likely a tool artifact (scalar resolution mismatch). dump_path={dump_path}"
+                )
 
     for arg in fx_args:
         del arg
