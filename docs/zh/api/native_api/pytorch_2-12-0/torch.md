@@ -2427,6 +2427,22 @@
 | <term>Atlas A3 训练系列产品</term> | &#10004; |
 | <term>Ascend 950DT</term> | &#10007; |
 
+> <font size="3">clone()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.grad_mode.set_grad_enabled.clone](https://pytorch.org/docs/2.12/generated/torch.autograd.grad_mode.set_grad_enabled.html#torch.autograd.grad_mode.set_grad_enabled.clone)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10007; |
+
+</div>
+
 </div>
 
 ### torch.is_grad_enabled
