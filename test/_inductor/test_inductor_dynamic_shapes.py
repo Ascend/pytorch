@@ -782,7 +782,7 @@ class TestPointwiseSymbolicGrouping(TestCase):
             dtype=torch.float16,
         )
         torch._dynamo.mark_dynamic(values, 0)
-        expected = fn(values)
+        expected = fn(values.float()).to(values.dtype)
         fixed_properties = _FixedMemoryDeviceProperties(
             total_memory=108 * 1024**3,
             _base_properties=torch.npu.get_device_properties(torch.device("npu", 0)),
