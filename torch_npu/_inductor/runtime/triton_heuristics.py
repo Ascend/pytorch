@@ -101,7 +101,7 @@ benchmarker = TritonBenchmarker()
 
 class CompileThreadPool:
     def __init__(self):
-        self.pool = ThreadPoolExecutor(max_workers=npu_config.max_precompiled_thread_num)
+        self.pool = ThreadPoolExecutor(max_workers=npu_config.precompile_thread_num)
         self.warmup()
 
     def warmup(self):
@@ -111,7 +111,7 @@ class CompileThreadPool:
             event.wait()
 
         tasks = []
-        for _ in range(npu_config.max_precompiled_thread_num):
+        for _ in range(npu_config.precompile_thread_num):
             tasks.append(self.submit(worker))
         event.set()
         for future in tasks:
@@ -716,7 +716,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         if self.compile_results:
             return self._precompile_worker_serial()
         self._prepare_precompile()
-        if npu_config.max_precompiled_thread_num > 1:
+        if npu_config.precompile_thread_num > 1:
             self._precompile_worker_parallel()
         else:
             self._precompile_worker_serial()

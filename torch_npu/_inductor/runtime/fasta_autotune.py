@@ -878,7 +878,7 @@ class NPUFastAutotuner(NPUCachingAutotuner):
 
         self.bucket_dict = {}
         self.max_ub_usage_each_core = {}
-        self.precompiled_thread_num = npu_config.max_precompiled_thread_num
+        self.precompile_thread_num = npu_config.precompile_thread_num
         self.ub_max_valid_usage = 1.
         self.ub_all_ok = False
 
@@ -1023,7 +1023,7 @@ class NPUFastAutotuner(NPUCachingAutotuner):
             need_compile_configs = [need_compile_configs]
 
         config_len = len(need_compile_configs)
-        thread_num = min(config_len, npu_config.max_precompiled_thread_num)
+        thread_num = min(config_len, npu_config.precompile_thread_num)
         compile_results = [None] * config_len
         exc_results = [None] * config_len
         exc_stack_results = [None] * config_len
@@ -1208,10 +1208,10 @@ class NPUFastAutotuner(NPUCachingAutotuner):
         fast_a_log_message(content='Expert method find ub max usage use {} times compile totally'.format(
             turn_num + 1), tag='binary filter')
 
-        if self.precompiled_thread_num <= 10:
+        if self.precompile_thread_num <= 10:
             bucket_config_list_setting = 10
         else:
-            bucket_config_list_setting = self._max_divisor_except_self(self.precompiled_thread_num,
+            bucket_config_list_setting = self._max_divisor_except_self(self.precompile_thread_num,
                                                                        max_set=FASTA_SETTING.bucket_max_config_num)
         target_core_num = self.num_vector_core * self.init_best_core_ratio
         self.record_core_best_value = {}
@@ -1267,7 +1267,7 @@ class NPUFastAutotuner(NPUCachingAutotuner):
 
             t = bucket.dynamic_generate_config(ref_ub_usage)
             if t:
-                if len(need_compile_configs) + len(t) <= self.precompiled_thread_num or len(need_compile_configs) == 0:
+                if len(need_compile_configs) + len(t) <= self.precompile_thread_num or len(need_compile_configs) == 0:
                     need_compile_configs.extend(t)
                 else:
                     break

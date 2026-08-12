@@ -23,6 +23,7 @@ from torch._inductor.scheduler import BaseSchedulerNode
 from torch._inductor.virtualized import V
 
 from ...config import catlass as catlass_config
+from ... import config as npu_config
 from . import catlass_utils
 from .catlass_python_evg import CatlassEVGCodegen
 from .catlass_kernel import CATLASSTemplateBuffer, CATLASSTemplateKernel
@@ -62,7 +63,7 @@ PT_EXPORT {{kernel_call_signature}} {
 
     using GemmAdapter = Gemm::Device::DeviceGemm<GemmKernel>;
 
-    auto aicCoreNum = platform_ascendc::PlatformAscendCManager::GetInstance()->GetCoreNumAic();
+    auto aicCoreNum = static_cast<uint32_t>({{ai_core_num}});
 
     typename GemmKernel::Arguments arguments{
         {{op.gen_params_device()}}
@@ -599,6 +600,7 @@ class CATLASSGemmTemplate(CATLASSTemplate, ABC):
             evg_ptr=evg_ptr,
             kernel=kernel,
             op=op,
+            ai_core_num=npu_config.num_cube_core,
         )
         options.update(dict(zip(extra_names, extra_inputs)))
         res = self._template_from_string(CATLASS_TEMPLATE_1X).render(
