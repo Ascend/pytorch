@@ -51,6 +51,7 @@ categories:
     execution: concurrent
     paths:
       - test/torch_np
+      - test/complex_tensor
     files:
       - test/test_as_strided.py
       - test/test_binary_ufuncs.py
@@ -84,7 +85,6 @@ categories:
       - test/test_masked.py
       - test/test_maskedtensor.py
       - test/test_namedtensor.py
-      - test/complex_tensor/test_complex_tensor.py
       - test/test_complex.py
 
   distributed:
