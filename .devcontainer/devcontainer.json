@@ -6,8 +6,8 @@
         "target": "dev",
         "args": {
             "PY_VERSION": "3.10",
-            "TORCH_VERSION": "2.13.0.dev20260610",
-            "CANN_VERSION": "9.1.0_beta.1",
+            "TORCH_VERSION": "2.13.0",
+            "CANN_VERSION": "9.1.0",
             "CANN_PRODUCT": "910b"
         }
     },

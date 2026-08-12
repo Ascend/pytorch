@@ -9,7 +9,7 @@ CONTAINER_NAME="torch-npu-builder"
 
 PY_VERSION="3.10"
 INSTALL_CANN=0
-CANN_VERSION="9.1.0_beta.1"
+CANN_VERSION="9.1.0"
 CANN_PRODUCT="910b"
 INSTALL_NNAL=0
 NO_CACHE=0
@@ -29,9 +29,9 @@ Options:
 
 CANN Options:
   --cann                    Build dev image with CANN (default: builder image without CANN)
-  --cann-version VER        CANN version (default: 9.1.0_beta.1)
+  --cann-version VER        CANN version (default: 9.1.0)
   --cann-product PROD       CANN product: 950, A3, 910b, 910, 310p, 310b (default: 910b)
-  --cann-release-train VER  CANN release train, e.g. CANN%209.1.T1 (required when --cann-version != default)
+  --cann-release-train VER  CANN release train, e.g. CANN%209.1.0 (required when --cann-version != default)
   --nnal                    Install CANN NNAL (requires --cann)
 
 Examples:
@@ -96,8 +96,8 @@ if [ "${INSTALL_NNAL}" -eq 1 ] && [ "${INSTALL_CANN}" -ne 1 ]; then
     exit 1
 fi
 
-DEFAULT_CANN_VERSION="9.1.0_beta.1"
-DEFAULT_CANN_RELEASE_TRAIN="CANN%209.1.T1"
+DEFAULT_CANN_VERSION="9.1.0"
+DEFAULT_CANN_RELEASE_TRAIN="CANN%209.1.0"
 if [ "${INSTALL_CANN}" -eq 1 ] && [ "${CANN_VERSION}" != "${DEFAULT_CANN_VERSION}" ] && [ -z "${CANN_RELEASE_TRAIN}" ]; then
     echo "ERROR: --cann-version '${CANN_VERSION}' requires --cann-release-train"
     echo "       The OBS directory name is version-specific and cannot be derived from the version string."

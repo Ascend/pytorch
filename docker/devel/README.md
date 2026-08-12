@@ -35,7 +35,7 @@ export DOCKER_BUILDKIT=1
 | `PY_VERSION` | `3.10` | Python版本，仅安装对应版本依赖 | all |
 | `TORCH_VERSION` | `2.13.0` | PyTorch版本，格式 `x.x.x`（如 `2.13.0`）或dev版本（如 `2.13.0.dev20260610`）；dev版本从nightly源安装 | all |
 | `DEVTOOLSET_VERSION` | `13` | GCC toolset版本 | builder |
-| `CANN_VERSION` | `9.1.0_beta.1` | CANN版本号 | dev |
+| `CANN_VERSION` | `9.1.0` | CANN版本号 | dev |
 | `CANN_PRODUCT` | `910b` | CANN算子包产品类型 | dev |
 | `INSTALL_NNAL` | `0` | 是否安装NNAL神经网络加速库 | dev |
 | `CANN_RELEASE_TRAIN` | - | CANN发布版本号，仅当`CANN_VERSION`与默认值不同时需手动指定 | dev |
@@ -58,14 +58,14 @@ docker build -t manylinux-builder:v1 \
     --target dev \
     --build-arg TORCH_VERSION=2.13.0 \
     --build-arg PY_VERSION=3.10 \
-    --build-arg CANN_VERSION=9.1.0_beta.1 \
+    --build-arg CANN_VERSION=9.1.0 \
     --build-arg CANN_PRODUCT=910b \
     .
 ```
 
 > dev阶段基于builder，继承全部编译工具和Python依赖，再叠加CANN。
 > 指定CANN版本时需同时给出 `CANN_RELEASE_TRAIN`，详见 [构建参数参考](#构建参数参考)。
-> **关于CANN版本与release train**：OBS上的CANN `.run` 包按release train分目录存放（如 `CANN%209.1.T1`、`CANN%209.0.0`），目录名无法由版本号自动推导。因此当 `CANN_VERSION` 与默认值 `9.1.0_beta.1` 不同时，必须同时通过 `CANN_RELEASE_TRAIN` 指定对应的发布版本号，否则构建会报错退出。请到 [昇腾官网下载页](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910beta1/softwareinst/instg/instg_0008.html?OS=openEuler&InstallType=local) 查找目标版本对应的目录名。
+> **关于CANN版本与release train**：OBS上的CANN `.run` 包按release train分目录存放（如 `CANN%209.1.T1`、`CANN%209.1.0`），目录名无法由版本号自动推导。因此当 `CANN_VERSION` 与默认值 `9.1.0` 不同时，必须同时通过 `CANN_RELEASE_TRAIN` 指定对应的发布版本号，否则构建会报错退出。请到 [昇腾官网下载页](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910beta1/softwareinst/instg/instg_0008.html?OS=openEuler&InstallType=local) 查找目标版本对应的目录名。
 
 #### CANN产品映射
 
@@ -92,7 +92,7 @@ docker build -t manylinux-builder:v1 \
 | `--cann` | 构建dev镜像（含CANN运行环境），默认构建builder镜像 |
 | `--cann-version VER` | CANN版本（默认：9.1.0_beta.1） |
 | `--cann-product PROD` | CANN产品类型：950、A3、910b、910、310p、310b（默认：910b） |
-| `--cann-release-train VER` | CANN发布版本号，如 `CANN%209.1.T1`。当 `--cann-version` 与默认值不同时**必填** |
+| `--cann-release-train VER` | CANN发布版本号，如 `CANN%209.1.0`。当 `--cann-version` 与默认值不同时**必填** |
 | `--nnal` | 安装CANN NNAL神经网络加速库（需配合 `--cann`） |
 | `-h, --help` | 显示帮助信息 |
 
