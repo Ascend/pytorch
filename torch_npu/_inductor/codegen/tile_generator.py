@@ -58,8 +58,10 @@ class TileGenerator:
             if axis in self.tiling_axis:
                 self.sub_block_name[axis] = f"{name.upper()}BLOCK_SUB"
 
-        self.program_threshold = config.num_vector_core // 8 if self.tiny_kernel and self.npu_kernel_type == NPUKernelType.SIMD else config.num_vector_core // 2
-        self.program_threshold = 0 if self.max_total_numel < 128 else self.program_threshold
+        self.program_threshold = config.num_vector_core // 8 if self.tiny_kernel and self.npu_kernel_type != NPUKernelType.SIMT_ONLY else config.num_vector_core // 2
+        self.program_threshold = min(self.max_total_numel // 128 - 1, self.program_threshold)
+        self.program_threshold = max(0, self.program_threshold)
+
         self.npu_kernel_type = npu_kernel_type
         self.real_tiling_axis = []
         for tiling_axis in self.tiling_axis:
@@ -272,6 +274,17 @@ class TileGenerator:
         reached_stop_numel = False
         slow_decend_split = False
         axis = self.split_axis[axis_index]
+
+        initial_total_programs = calc_total_programs()
+        can_add_initial_shape = (
+            self.blocks[axis] != 1
+            and not (self.persistent_reduction and self.axis_name[axis][0] == "r")
+            and initial_total_programs <= config.num_vector_core
+            and (initial_total_programs > self.program_threshold or self.dual_reduction)
+        )
+        if can_add_initial_shape:
+            self.add_to_configs(self.blocks)
+
         while True:
             if axis_index + 1 < self.split_axis_num and not slow_decend_split:
                 tmp_block = copy.deepcopy(self.blocks)

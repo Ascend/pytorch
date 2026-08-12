@@ -2279,7 +2279,11 @@ class NPUSymbolicGroupedAutotuner(NPUCachingAutotuner):
             if axis_name not in axis_arg_indices:
                 raise RuntimeError(f"axis_arg_indices is missing axis {axis_name}")
             axis_numel = int(args[axis_arg_indices[axis_name]])
-            resolved_blocks[block_name] = (axis_numel + grid_target - 1) // grid_target
+            resolved_blocks[block_name] = resolve_grouped_runtime_block(
+                axis_numel=axis_numel,
+                expected_grid=grid_target,
+                block_sub=int(rule["block_sub"]),
+            )
         missing_runtime_block_names = [
             name for name in runtime_block_names if name not in resolved_blocks
         ]
@@ -3146,21 +3150,6 @@ def build_grouped_launch_policy(
             "runtime_block_rules": (),
             "grid_target": 1,
         }
-    tail_group = is_open_bucket_group(
-        group_features, primary_feature_index, group_id
-    )
-    if not tail_group:
-        return {
-            "group_id": group_id,
-            "static_blocks": tuple(
-                (block_name, runtime_blocks[block_name])
-                for block_name in runtime_block_arg_names
-                if block_name in runtime_blocks
-            ),
-            "runtime_block_rules": (),
-            "grid_target": 1,
-        }
-
     static_blocks = []
     prior_programs = 1
     for block_name in runtime_block_arg_names:
@@ -3175,7 +3164,47 @@ def build_grouped_launch_policy(
             raise RuntimeError(
                 f"benchmark axis env is missing split axis {axis_name}"
             )
-        prior_programs *= (int(axis_env[axis_name]) + static_block - 1) // static_block
+        prior_programs *= (
+            int(axis_env[axis_name]) + static_block - 1
+        ) // static_block
+
+    if primary_block_name not in runtime_blocks:
+        raise RuntimeError(
+            f"grouped launch policy is missing primary block {primary_block_name}"
+        )
+    if primary_group_axis not in axis_env:
+        raise RuntimeError(
+            f"benchmark axis env is missing primary split axis {primary_group_axis}"
+        )
+    primary_static_block = int(runtime_blocks[primary_block_name])
+    if primary_static_block <= 0:
+        raise RuntimeError(
+            f"primary block {primary_block_name} must be positive, got {primary_static_block}"
+        )
+    cfg_dict = config_to_dict(cfg)
+    if isinstance(cfg_dict, dict) and "kwargs" in cfg_dict:
+        cfg_kwargs = cfg_dict["kwargs"]
+    else:
+        cfg_kwargs = cfg_dict
+    primary_subblock_name = f"{primary_block_name}_SUB"
+    if primary_subblock_name not in cfg_kwargs:
+        raise RuntimeError(
+            f"grouped launch policy is missing primary subblock {primary_subblock_name}"
+        )
+    primary_block_sub = int(cfg_kwargs[primary_subblock_name])
+    if primary_block_sub <= 0:
+        raise RuntimeError(
+            f"primary subblock {primary_subblock_name} must be positive, got {primary_block_sub}"
+        )
+    if is_open_bucket_group(group_features, primary_feature_index, group_id):
+        primary_program_target = max(1, npu_num_vector_core // prior_programs)
+    else:
+        primary_axis_numel = int(axis_env[primary_group_axis])
+        primary_program_target = max(
+            1,
+            (primary_axis_numel + primary_static_block - 1)
+            // primary_static_block,
+        )
 
     return {
         "group_id": group_id,
@@ -3183,11 +3212,40 @@ def build_grouped_launch_policy(
         "runtime_block_rules": (
             (
                 primary_block_name,
-                (("op", "ceildiv"), ("axis_name", primary_group_axis)),
+                (
+                    ("op", "ceildiv"),
+                    ("axis_name", primary_group_axis),
+                    ("block_sub", primary_block_sub),
+                ),
             ),
         ),
-        "grid_target": max(1, npu_num_vector_core // prior_programs),
+        "grid_target": primary_program_target,
     }
+
+
+def resolve_grouped_runtime_block(
+    axis_numel: int,
+    expected_grid: int,
+    block_sub: int,
+) -> int:
+    axis_numel = int(axis_numel)
+    expected_grid = int(expected_grid)
+    block_sub = int(block_sub)
+    if expected_grid <= 0:
+        raise ValueError(f"expected_grid must be positive, got {expected_grid}")
+    if block_sub <= 0:
+        raise ValueError(f"block_sub must be positive, got {block_sub}")
+    if axis_numel <= 0:
+        return 1
+
+    total_subblock_num = (axis_numel + block_sub - 1) // block_sub
+    program_subblock_num = (
+        total_subblock_num + expected_grid - 1
+    ) // expected_grid
+    effective_grid = (
+        total_subblock_num + program_subblock_num - 1
+    ) // program_subblock_num
+    return (axis_numel + effective_grid - 1) // effective_grid
 
 
 def _triton_config_npu_index_legacy(
