@@ -104,7 +104,34 @@ categories:
       - test/functorch
       - test/higher_order_ops
       - test/cpython
+      - test/jit
+      - test/lazy
+      - test/onnx
     files:
+      - test/cpp/jit/tests_setup.py
+      - test/test_cpp_extensions_jit.py
+      - test/test_jit_autocast.py
+      - test/test_jit_disabled.py
+      - test/test_jiterator.py
+      - test/test_jit_fuser_legacy.py
+      - test/test_jit_fuser.py
+      - test/test_jit_fuser_te.py
+      - test/test_jit_legacy.py
+      - test/test_jit_llga_fuser.py
+      - test/test_jit_profiling.py
+      - test/test_jit.py
+      - test/test_jit_simple.py
+      - test/test_jit_string.py
+      - test/test_ops_jit.py
+      - test/test_file_check.py
+      - test/test_tensorexpr.py
+      - test/test_tensorexpr_pybind.py
+      - test/test_dynamic_shapes.py
+      - test/test_fake_tensor.py
+      - test/distributed/test_dynamo_distributed.py
+      - test/distributed/test_inductor_collectives.py
+      - test/test_triton_utils.py
+      - test/test_decomp.py
       - test/test_fx.py
       - test/test_fx_experimental.py
       - test/test_fx_graph_print.py
