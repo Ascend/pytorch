@@ -49,6 +49,8 @@ categories:
   tensor:
     workers: 32
     execution: concurrent
+    paths:
+      - test/torch_np
     files:
       - test/test_as_strided.py
       - test/test_binary_ufuncs.py
@@ -75,42 +77,6 @@ categories:
       - test/test_type_info.py
       - test/test_type_promotion.py
       - test/test_autocast.py
-      - test/torch_np/numpy_tests/core/test_dlpack.py
-      - test/torch_np/numpy_tests/core/test_dtype.py
-      - test/torch_np/numpy_tests/core/test_einsum.py
-      - test/torch_np/numpy_tests/core/test_getlimits.py
-      - test/torch_np/numpy_tests/core/test_indexing.py
-      - test/torch_np/numpy_tests/core/test_multiarray.py
-      - test/torch_np/numpy_tests/core/test_numeric.py
-      - test/torch_np/numpy_tests/core/test_numerictypes.py
-      - test/torch_np/numpy_tests/core/test_scalar_ctors.py
-      - test/torch_np/numpy_tests/core/test_scalar_methods.py
-      - test/torch_np/numpy_tests/core/test_scalarinherit.py
-      - test/torch_np/numpy_tests/core/test_scalarmath.py
-      - test/torch_np/numpy_tests/core/test_shape_base.py
-      - test/torch_np/numpy_tests/fft/test_helper.py
-      - test/torch_np/numpy_tests/fft/test_pocketfft.py
-      - test/torch_np/numpy_tests/lib/test_arraypad.py
-      - test/torch_np/numpy_tests/lib/test_arraysetops.py
-      - test/torch_np/numpy_tests/lib/test_function_base.py
-      - test/torch_np/numpy_tests/lib/test_histograms.py
-      - test/torch_np/numpy_tests/lib/test_index_tricks.py
-      - test/torch_np/numpy_tests/lib/test_shape_base_.py
-      - test/torch_np/numpy_tests/lib/test_twodim_base.py
-      - test/torch_np/numpy_tests/lib/test_type_check.py
-      - test/torch_np/numpy_tests/linalg/test_linalg.py
-      - test/torch_np/test_basic.py
-      - test/torch_np/test_binary_ufuncs.py
-      - test/torch_np/test_dtype.py
-      - test/torch_np/test_function_base.py
-      - test/torch_np/test_indexing.py
-      - test/torch_np/test_ndarray_methods.py
-      - test/torch_np/test_nep50_examples.py
-      - test/torch_np/test_random.py
-      - test/torch_np/test_reductions.py
-      - test/torch_np/test_scalars_0D_arrays.py
-      - test/torch_np/test_ufuncs_basic.py
-      - test/torch_np/test_unary_ufuncs.py
       - test/test_sparse.py
       - test/test_sparse_csr.py
       - test/test_sparse_semi_structured.py
