@@ -22,6 +22,7 @@ def patch_is_gpu():
 
 
 def patch_has_triton():
+    from torch._inductor import compile_fx
     from torch.utils._triton import has_triton_package
 
     @functools.lru_cache(None)
@@ -60,7 +61,7 @@ def patch_has_triton():
 
     torch.utils._triton.has_triton = has_triton
     torch._inductor.scheduler.has_triton = has_triton
-    torch._inductor.compile_fx.has_triton = has_triton
+    compile_fx.has_triton = has_triton
 
 
 def patch_has_triton_tma():

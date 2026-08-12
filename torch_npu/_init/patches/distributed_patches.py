@@ -1,5 +1,10 @@
+import importlib.abc
+import importlib.util
+import sys
+
 import torch
 import torch.distributed.launcher.api
+import torch.distributed.nn
 
 import torch_npu
 from torch_npu._init.patches.patch_manager import PatchManager
@@ -131,19 +136,65 @@ def _apply_wrapped_functions(torch, torch_npu):
     )
 
 
-def _apply_sharded_grad_scaler_patch(torch):
-    """
-    Replace PyTorch FSDP ShardedGradScaler with torch_npu implementation.
-
-    Example:
-        torch.distributed.fsdp.sharded_grad_scaler.ShardedGradScaler
-            -> torch_npu.npu.amp.sharded_grad_scaler._ShardedGradScaler
-    """
+def _apply_fsdp_patches():
     from torch.distributed.fsdp import sharded_grad_scaler
-
+    from torch_npu.distributed.fsdp._add_fsdp_patch import _apply_fsdp_patch
     from torch_npu.npu.amp.sharded_grad_scaler import _ShardedGradScaler
 
+    _apply_fsdp_patch()
     sharded_grad_scaler.ShardedGradScaler = _ShardedGradScaler
+
+
+class _FSDPPostImportLoader:
+    def __init__(self, loader, finder):
+        self._loader = loader
+        self._finder = finder
+
+    def create_module(self, spec):
+        create_module = getattr(self._loader, "create_module", None)
+        return create_module(spec) if create_module is not None else None
+
+    def exec_module(self, module):
+        self._loader.exec_module(module)
+        setattr(torch.distributed, "fsdp", module)
+        _apply_fsdp_patches()
+        if self._finder in sys.meta_path:
+            sys.meta_path.remove(self._finder)
+
+
+def _find_spec_without_finder(finder, fullname):
+    try:
+        index = sys.meta_path.index(finder)
+    except ValueError:
+        return importlib.util.find_spec(fullname)
+
+    sys.meta_path.pop(index)
+    try:
+        return importlib.util.find_spec(fullname)
+    finally:
+        sys.meta_path.insert(min(index, len(sys.meta_path)), finder)
+
+
+class _FSDPPostImportFinder(importlib.abc.MetaPathFinder):
+    _TARGET = "torch.distributed.fsdp"
+
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname != self._TARGET:
+            return None
+        spec = _find_spec_without_finder(self, fullname)
+        if spec is not None and spec.loader is not None:
+            spec.loader = _FSDPPostImportLoader(spec.loader, self)
+        return spec
+
+
+def _install_fsdp_patch_trigger():
+    if "torch.distributed.fsdp" in sys.modules:
+        _apply_fsdp_patches()
+        return
+    if not any(
+        isinstance(finder, _FSDPPostImportFinder) for finder in sys.meta_path
+    ):
+        sys.meta_path.insert(0, _FSDPPostImportFinder())
 
 
 @PatchManager.register_patch("distributed")
@@ -158,5 +209,5 @@ def apply_distributed_methods_patch():
     """
     _apply_internal_replacements(torch, torch_npu)
     _apply_public_api_aliases(torch, torch_npu)
-    _apply_sharded_grad_scaler_patch(torch)
+    _install_fsdp_patch_trigger()
     _apply_wrapped_functions(torch, torch_npu)

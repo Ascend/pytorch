@@ -1,4 +1,5 @@
 import torch
+import torch._dynamo.testing
 from torch.testing._internal.common_utils import (
     run_tests,
     instantiate_parametrized_tests,

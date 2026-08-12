@@ -1,17 +1,22 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates
 
 import itertools
+from functools import partial
 from typing import Callable, Optional
 
 import torch
+from torch.distributed.tensor import DTensor
 from torch.distributed.tensor._dtensor_spec import DTensorSpec
 from torch.distributed.tensor._op_schema import (
+    _is_inplace_op,
     OpSchema,
     OpStrategy,
     PlacementStrategy,
     PlacementList,
+    RuntimeSchemaInfo,
     TupleStrategy
 )
+from torch.distributed.tensor._ops import utils as dtensor_utils
 from torch.distributed.tensor._ops.utils import (
     generate_redistribute_costs,
     is_tensor_shardable
@@ -22,6 +27,64 @@ try:
     from torch.utils._cxx_pytree import register_pytree_node, tree_leaves
 except ImportError:
     from torch.utils._pytree import register_pytree_node, tree_leaves
+
+
+# Adapted from PyTorch v2.7.1's DTensor experimental register_sharding.
+def register_sharding(op):
+    """Register an NPU sharding function without importing DTensor experimental APIs."""
+    def custom_strategy(custom_sharding_fn, op_schema):
+        def strategy_to_spec(strategy):
+            if isinstance(strategy, OpStrategy):
+                return strategy.strategies[0].output_spec
+            if isinstance(strategy, TupleStrategy):
+                return tuple(strategy_to_spec(child) for child in strategy.childs)
+            return strategy
+
+        args_schema = tuple(strategy_to_spec(arg) for arg in op_schema.args_schema)
+        kwargs_schema = {
+            key: strategy_to_spec(value)
+            for key, value in op_schema.kwargs_schema.items()
+        }
+        single_mesh_dim_strategies = [
+            output_specs + input_specs
+            for output_specs, input_specs in custom_sharding_fn(
+                *args_schema, **kwargs_schema
+            )
+        ]
+        return dtensor_utils.expand_to_full_mesh_op_strategy(
+            op_schema.get_mesh_from_args(),
+            op_schema,
+            single_mesh_dim_strategies,
+            input_index=len(op_schema.op._schema.returns),
+            inplace_op=_is_inplace_op(op_schema.op),
+        )
+
+    def wrapper(custom_sharding_fn):
+        overloads = op if isinstance(op, list) else [op]
+        for overload in overloads:
+            static_argnum = 100
+            static_kwargkey = []
+            for index, arg in enumerate(overload._schema.arguments):
+                if isinstance(arg.type, torch.IntType) or (
+                    isinstance(arg.type, torch.OptionalType)
+                    and isinstance(arg.type.getElementType(), torch.IntType)
+                ):
+                    static_argnum = min(index, static_argnum)
+                    if arg.kwarg_only:
+                        static_kwargkey.append(arg.name)
+            schema_info = RuntimeSchemaInfo(
+                static_argnum,
+                static_kwargkey or None,
+                needs_pytree=True,
+            )
+            DTensor._op_dispatcher.sharding_propagator.register_op_strategy(
+                overload,
+                partial(custom_strategy, custom_sharding_fn),
+                schema_info,
+            )
+        return custom_sharding_fn
+
+    return wrapper
 
 
 def _patched_kwargs_strategy(self) -> tuple[OpStrategy, ...]:

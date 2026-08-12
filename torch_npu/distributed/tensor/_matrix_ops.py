@@ -3,7 +3,6 @@ from typing import cast
 
 import torch
 import torch_npu
-from torch.distributed._tensor.experimental import register_sharding
 from torch.distributed.tensor import DTensor, Partial, Replicate, Shard
 from torch.distributed.tensor._dtensor_spec import DTensorSpec, TensorMeta
 from torch.distributed.tensor._op_schema import (
@@ -33,6 +32,7 @@ from ._common import (
     get_redistributed_local_args,
     get_redistributed_local_kwargs,
 )
+from ._dtensor_patch import register_sharding
 
 
 aten = torch.ops.aten

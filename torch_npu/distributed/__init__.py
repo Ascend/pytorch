@@ -1,3 +1,5 @@
+import importlib
+
 __all__ = [
     "is_hccl_available", "reinit_process_group", "reduce_scatter_tensor_uneven", "all_gather_into_tensor_uneven"
 ]
@@ -26,5 +28,21 @@ from torch_npu._C._distributed_c10d import (
 )
 
 
-from torch_npu.distributed import fsdp, tensor, nn
+from torch_npu.distributed import tensor, nn
+
 from .distributed_c10d import is_hccl_available, reinit_process_group, _reduce_scatter_tensor_uneven as reduce_scatter_tensor_uneven, _all_gather_into_tensor_uneven as all_gather_into_tensor_uneven
+
+
+_LAZY_SUBMODULES = {"fsdp"}
+
+
+def __getattr__(name):
+    if name not in _LAZY_SUBMODULES:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    module = importlib.import_module(f"{__name__}.{name}")
+    globals()[name] = module
+    return module
+
+
+def __dir__():
+    return sorted(set(globals()) | _LAZY_SUBMODULES)

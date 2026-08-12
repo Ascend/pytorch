@@ -1,6 +1,7 @@
 import torch
-from torch.distributed._tensor import Partial, Replicate, Shard
-from torch.distributed._tensor.experimental import register_sharding
+from torch.distributed.tensor import Partial, Replicate, Shard
+
+from ._dtensor_patch import register_sharding
 
 npu = torch.ops.npu
 

@@ -26,7 +26,8 @@ from torch.distributed.tensor._ops._math_ops import (
 )
 from torch.distributed.tensor._utils import normalize_to_torch_size
 from torch.distributed.tensor import Partial, Replicate, Shard
-from torch.distributed.tensor.experimental import register_sharding
+
+from ._dtensor_patch import register_sharding
 
 logger = logging.getLogger("torch.distributed.tensor")
 npu = torch.ops.npu

@@ -1,6 +1,6 @@
-from typing import Optional
 import operator
 from functools import reduce
+from typing import Optional
 
 import torch
 from torch._prims_common import TensorLike
@@ -25,6 +25,7 @@ def _max_unpoolnd_patch(
     return aten._unsafe_index_put(
         output.reshape(-1), [indices_flat], self.reshape(-1), accumulate=False
     ).view(output.shape)
+
 
 torch._decomp.decompositions._max_unpoolnd = _max_unpoolnd_patch
 
@@ -54,8 +55,8 @@ def patch_register_philox_rand():
     def get_register_philox_rand_patch():
         name = "philox_rand"
         schema = "(SymInt[] size, Tensor seed, Tensor offset, int[]? stride, Device? device=None, ScalarType? dtype=None) -> (Tensor, Tensor)"  # noqa: B950
-        
-        
+
+
         def _philox_rand_meta(
             shape: torch.Size,
             seed: torch.Tensor,
@@ -71,7 +72,7 @@ def patch_register_philox_rand():
             offset = philox_rand_offset_meta(shape)
             return (random_values, offset)
 
-        
+
         def _philox_rand(
             shape: torch.Size,
             seed: torch.Tensor,
@@ -85,13 +86,13 @@ def patch_register_philox_rand():
             else:
                 devices = [device]
 
-            with torch.random.fork_rng(devices, device_type="npu"):                
+            with torch.random.fork_rng(devices, device_type="npu"):
                 CUDARngStateHelper.set_torch_state_tensor(seed, offset)
                 random_values = torch.rand(shape, device=device, dtype=dtype)
 
             return random_values, philox_rand_offset(shape)
 
-        
+
         register_rng_prim(
             name=name,
             schema=schema,

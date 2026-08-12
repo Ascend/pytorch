@@ -3,9 +3,8 @@ from typing import cast, Any, Dict, Tuple
 
 import torch
 from torch.distributed.device_mesh import DeviceMesh
-from torch.distributed._tensor.experimental import register_sharding
-from torch.distributed._tensor.placement_types import DTensorSpec
 from torch.distributed.tensor import DTensor, Replicate, Shard
+from torch.distributed.tensor._dtensor_spec import DTensorSpec
 from torch.distributed.tensor._op_schema import (
     OpInfo,
     OpSchema,
@@ -15,6 +14,7 @@ from torch.distributed.tensor._redistribute import redistribute_local_tensor
 
 import torch_npu
 
+from ._dtensor_patch import register_sharding
 from ._common import (
     get_redistributed_local_args,
     get_redistributed_local_kwargs,
