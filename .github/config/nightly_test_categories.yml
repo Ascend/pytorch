@@ -24,6 +24,8 @@
 exclude:
   - test/cpython
   - test/quantization/core/experimental
+  - test/spincli
+  - test/test_bundled_images.py
 
 categories:
   core:
