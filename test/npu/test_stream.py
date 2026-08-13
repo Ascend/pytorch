@@ -27,6 +27,11 @@ class TestNpuStream(TestCase):
     def test_get_current_stream_interface(self):
         from torch_npu._C import _npu_getCurrentRawStream, _npu_getCurrentRawStreamNoWait
         from torch._dynamo.device_interface import get_interface_for_device
+        from torch_npu.utils._dynamo import _dynamo_register_interface_for_device
+
+        # device_interface is an internal Dynamo module. Initialize its NPU
+        # registration explicitly instead of relying on import torch_npu.
+        _dynamo_register_interface_for_device()
 
         device_number = torch.npu.device_count()
         for i in range(device_number):

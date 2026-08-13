@@ -33,14 +33,15 @@ EXPECTED_LOADED_MODULES = [
     "torch_npu.op_plugin.meta._meta_registrations",
     "torch_npu.asd.checksum",
     "torch_npu.utils._dynamo",
-    "torch_npu.utils._inductor",
     "torch_npu.utils.custom_ops",
     "torch_npu.utils.patch_getenv",
     "torch_npu.utils.syncbatchnorm",
+    "torch_npu.utils._inductor",
 ]
 
 EXPECTED_NOT_LOADED_MODULES = [
     "torch_npu._C._afd",
+    "torch_npu._inductor",
 ]
 
 EXPECTED_TOP_LEVEL_ATTRS = [
@@ -255,20 +256,6 @@ class TestTorchNpuBootstrap(TestCase):
             import torch.distributed as dist
             import torch.distributed.rpc as rpc
             import torch.distributed.tensor  # noqa: F401
-            from torch._dynamo.device_interface import get_interface_for_device
-            from torch._dynamo.backends.registry import _BACKENDS
-            from torch._inductor.codegen.common import device_op_overrides_dict
-
-            iface = get_interface_for_device("npu")
-            assert iface is not None
-
-            assert "npu" in _BACKENDS, "npu dynamo backend is not registered"
-            assert "npugraph_ex" in _BACKENDS, (
-                "npugraph_ex dynamo backend is not registered"
-            )
-
-            assert "npu" in device_op_overrides_dict
-            assert device_op_overrides_dict.get("npu") is not None
 
             assert "hccl" in dist.Backend.backend_list
             assert "lccl" in dist.Backend.backend_list
@@ -548,6 +535,80 @@ class TestTorchNpuBootstrap(TestCase):
                 assert torch_npu.npu.is_initialized() is False
                 """
             )
+
+    def test_13_dtensor_strategies_are_registered_without_compiler_imports(self):
+        self._run_python(
+            """
+            import sys
+            import torch
+            import torch_npu
+
+            assert "torch_npu.distributed.tensor" in sys.modules
+            assert "torch._dynamo" not in sys.modules
+            assert "torch._inductor" not in sys.modules
+
+            from torch.distributed.tensor import DTensor
+
+            strategy_funcs = DTensor._op_dispatcher.sharding_propagator.op_strategy_funcs
+            assert torch.ops.npu.npu_rms_norm.default in strategy_funcs
+            assert torch.ops.npu.npu_fusion_attention.default in strategy_funcs
+
+            import os
+            import tempfile
+            import torch.distributed as dist
+            from torch.distributed.device_mesh import DeviceMesh
+            from torch.distributed.tensor import Replicate
+            from torch.distributed.tensor._dtensor_spec import DTensorSpec, TensorMeta
+            from torch.distributed.tensor._op_schema import OpSchema, OpSpec, OpStrategy
+
+            fd, path = tempfile.mkstemp()
+            os.close(fd)
+            os.unlink(path)
+            dist.init_process_group(
+                "gloo", init_method=f"file://{path}", rank=0, world_size=1
+            )
+            try:
+                mesh = DeviceMesh("cpu", [0])
+                tensor_meta = TensorMeta(
+                    torch.Size([2, 4, 8]), (32, 8, 1), torch.float32
+                )
+                spec = DTensorSpec(mesh, (Replicate(),), tensor_meta=tensor_meta)
+                strategy = OpStrategy([OpSpec(output_specs=spec)])
+                op = torch.ops.npu.npu_rotary_mul.default
+                propagator = DTensor._op_dispatcher.sharding_propagator
+                op_schema = OpSchema(
+                    op,
+                    (strategy, strategy, strategy, "half"),
+                    {},
+                    propagator.op_to_schema_info[op],
+                )
+                result = propagator.op_strategy_funcs[op](op_schema)
+                assert len(result.strategies) == 3
+            finally:
+                dist.destroy_process_group()
+                if os.path.exists(path):
+                    os.remove(path)
+
+            from torch_npu.distributed.tensor import experimental
+            assert callable(experimental.context_parallel)
+            """
+        )
+
+    def test_14_direct_npu_fsdp_import(self):
+        self._run_python(
+            """
+            import torch_npu.distributed.fsdp as npu_fsdp
+            from torch.distributed.fsdp import sharded_grad_scaler
+            from torch.distributed.fsdp._fully_shard._fsdp_param_group import (
+                FSDPParamGroup,
+            )
+            from torch_npu.npu.amp.sharded_grad_scaler import _ShardedGradScaler
+
+            assert callable(npu_fsdp.fully_shard)
+            assert sharded_grad_scaler.ShardedGradScaler is _ShardedGradScaler
+            """
+        )
+
 
 if __name__ == "__main__":
     run_tests()

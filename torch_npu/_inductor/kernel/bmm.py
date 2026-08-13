@@ -17,6 +17,7 @@ from torch._inductor.kernel.mm_common import (
     _is_static_problem,
     mm_args,
 )
+from torch._inductor.kernel import bmm as inductor_bmm
 
 from .mm import is_contiguous_striding
 from ..utils import use_catlass_template
@@ -24,8 +25,8 @@ from ..utils import use_catlass_template
 log = logging.getLogger("torch._inductor")
 aten = torch.ops.aten
 
-aten_bmm = torch._inductor.kernel.bmm.aten_bmm
-aten_baddbmm = torch._inductor.kernel.bmm.aten_baddbmm
+aten_bmm = inductor_bmm.aten_bmm
+aten_baddbmm = inductor_bmm.aten_baddbmm
 
 def is_batch_stride_largest_or_zero(mat1, mat2, layout) -> bool:
     """

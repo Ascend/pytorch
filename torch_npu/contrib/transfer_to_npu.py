@@ -4,11 +4,12 @@ import json
 import collections
 import importlib.metadata
 import logging as logger
+import functools  # noqa: F401
 from functools import wraps
 from typing import Callable, cast, Optional
 import torch
 from torch.utils._device import _device_constructors
-import torch.utils._triton  # ensure module is loaded for patching has_triton below
+from torch.utils._triton import has_triton  # noqa: F401
 from torch.nn.parameter import UninitializedTensorMixin
 from torch._utils import _get_device_module
 from torch.utils import cpp_extension
@@ -438,6 +439,18 @@ def _compose_wrappers(*wrappers):
 
 
 def _init():
+    # transfer_to_npu patches these modules during its own import. Import them
+    # explicitly instead of relying on torch_npu import side effects.
+    import torch._dynamo.trace_rules  # noqa: F401
+    import torch._dynamo.utils  # noqa: F401
+    import torch._inductor.runtime.autotune_cache  # noqa: F401
+    import torch._inductor.compile_fx  # noqa: F401
+    import torch._inductor.utils  # noqa: F401
+    import torch._inductor.fx_passes.post_grad  # noqa: F401
+    import torch._inductor.fx_passes.joint_graph  # noqa: F401
+    import torch._inductor.autotune_process  # noqa: F401
+    from torch.distributed.checkpoint import filesystem
+
     _warning_fn('''
     *************************************************************************************************************
     The torch.Tensor.cuda and torch.nn.Module.cuda are replaced with torch.Tensor.npu and torch.nn.Module.npu now..
@@ -543,7 +556,7 @@ def _init():
     torch._inductor.autotune_process.get_gpu_type = _get_npu_type
 
     torch._utils._get_available_device_type = _patch_get_available_device_type
-    torch.distributed.checkpoint.filesystem._OverlappingCpuLoader.__init__ = \
+    filesystem._OverlappingCpuLoader.__init__ = \
         _patch_OverlappingCpuLoader_init_
 
     _replace_to_method_in_allowed_methods()

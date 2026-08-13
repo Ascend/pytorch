@@ -788,5 +788,10 @@ setup(
         'torch.backends': [
             'torch_npu = torch_npu:_autoload',
         ],
+        'torch_dynamo_backends': [
+            'npu = torch_npu.dynamo:_npu_backend_entrypoint',
+            'npugraph_ex = torch_npu.dynamo:_npugraph_ex_backend_entrypoint',
+            'npugraphs = torch_npu.dynamo:_npugraphs_backend_entrypoint',
+        ],
     }
 )

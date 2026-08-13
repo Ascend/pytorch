@@ -20,7 +20,7 @@ from torch._dynamo.backends.cudagraphs import (
     get_stack_traces,
 )
 from torch._dynamo.backends.debugging import boxed_nop
-from torch._dynamo.backends.registry import register_backend
+from torch._dynamo.backends.registry import _COMPILER_FNS, register_backend
 from torch._inductor import config
 from torch._inductor.compile_fx import (
     get_input_idxs_to_check,
@@ -53,7 +53,7 @@ log = torch._logging.getArtifactLogger("torch_npu.npugraph", "cudagraphs")
 
 
 def npugraph_mark_step_begin():
-    from torch_npu.npu._graph_tree import mark_step_begin
+    from torch_npu.npu._graph_tree_state import mark_step_begin
     mark_step_begin()
 
 
@@ -374,9 +374,9 @@ class NpugraphsBackend:
 
     @staticmethod
     def reset():
-        from torch_npu.npu._graph_tree import reset_npugraph_trees
+        from torch_npu.dynamo import _npugraphs_backend_entrypoint
 
-        reset_npugraph_trees()
+        _npugraphs_backend_entrypoint.reset()
 
     @staticmethod
     def __call__(model, inputs):
@@ -386,7 +386,10 @@ class NpugraphsBackend:
 def _apply_npugraph_tree_methods():
     # aot_npugraphs only applies graphs to the graph.  It is also helpful
     # for debugging and can serve as a perf baseline.
-    register_backend(name="npugraphs", compiler_fn=NpugraphsBackend())
+    if "npugraphs" not in _COMPILER_FNS:
+        from torch_npu.dynamo import _npugraphs_backend_entrypoint
+
+        register_backend(name="npugraphs", compiler_fn=_npugraphs_backend_entrypoint)
     torch._inductor.compile_fx.cudagraphify = npugraphify
     torch._inductor.cudagraph_utils.check_multiple_devices_or_any_cpu_nodes = check_multiple_devices_or_any_cpu_nodes
     torch.compiler.npugraph_mark_step_begin = npugraph_mark_step_begin

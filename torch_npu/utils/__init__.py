@@ -2,6 +2,7 @@ __all__ = ["npu_combine_tensors", "get_part_combined_tensor", "is_combined_tenso
            "set_thread_affinity", "reset_thread_affinity", "save_async", "get_cann_version"]
 
 from torch_npu.npu.utils import get_cann_version
+from ._inductor import _max_unpoolnd_patch
 from .combine_tensors import npu_combine_tensors, get_part_combined_tensor, is_combined_tensor_valid
 from .serialization import save_async
 from .flops_count import _FlopsCounter as FlopsCounter

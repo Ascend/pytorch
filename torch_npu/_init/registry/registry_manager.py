@@ -106,24 +106,6 @@ def _register_distributed():
     # init and register distributed backend
     register_distributed_backend_for_npu()
 
-def _register_dynamo():
-    """
-    Register Dynamo integration:
-    - Dynamo backend
-    - Dynamo device interface
-    - NPU trace rules for Dynamo
-    """
-    from torch_npu._init.registry.dynamo import (
-        register_dynamo_backends,
-        register_dynamo_trace_rules,
-    )
-
-    register_dynamo_backends()
-
-    # Do not repeat this call for register_dynamo_trace_rules appends rules into
-    # Dynamo's global rules maps.
-    register_dynamo_trace_rules()
-
 def _register_rpc():
     """
     Register and init RPC NPU backend.
@@ -145,8 +127,8 @@ def _register_components():
 
     Order matters:
     1. NPU backend is the base capability.
-    2. Distributed and Dynamo depend on NPU backend / _C children.
-    3. RPC, dtensor and inductor are Python-side framework integrations.
+    2. Distributed depends on NPU backend / _C children.
+    3. RPC is a Python-side framework integration.
     4. DefaultDeviceType is set after NPU backend is registered.
     """
     if not hasattr(torch_npu, "_C"):
@@ -156,6 +138,5 @@ def _register_components():
 
     _register_npu_backend()
     _register_distributed()
-    _register_dynamo()
     _register_rpc()
     _register_default_gradient_device_type()
