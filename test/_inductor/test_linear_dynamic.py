@@ -3,9 +3,83 @@ import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import TestUtils
 import torch_npu
+import sympy
+from sympy import Symbol
+from torch.utils._sympy.functions import FloorDiv, ModularIndexing
+from torch_npu._inductor.codegen.ir import analyze_floordiv_expression, analyze_modular_expression
+from torch._inductor.virtualized import V
+from torch.utils._sympy.value_ranges import ValueRanges, int_oo
+from types import SimpleNamespace
+from unittest.mock import patch
+from unittest.mock import MagicMock
 
 
-class TestUnifiedAxis(TestUtils):
+class MockRangeNode:
+    def __init__(self, length):
+        self.length = length
+
+
+def make_range_tree_nodes(mapping):
+    """mapping: {symbol: length}"""
+    return {sym: MockRangeNode(length) for sym, length in mapping.items()}
+
+
+class TestLinearDynamic(TestUtils):
+
+    def test_analyze_floordiv_expression(self):
+        x0 = Symbol("x0", integer=True, nonnegative=True)
+        x1 = Symbol("x1", integer=True, nonnegative=True)
+        s0 = Symbol("s0", integer=True, positive=True)
+        s1 = Symbol("s1", integer=True, positive=True)
+        s2 = Symbol("s2", integer=True, positive=True)
+
+        nodes = make_range_tree_nodes({x0: s0, x1: s1})
+        expr = FloorDiv(s1 * x0 + x1, s0*s1)
+        res = analyze_floordiv_expression(expr, nodes)
+        print("\n[Case3] symbolic max contains divisor symbols → remainder 0 path")
+        print(res)
+        assert "can_split" in res and res["can_split"] == True
+
+
+    def test_analyze_modular_expression(self):
+        x0 = Symbol("x0", integer=True, nonnegative=True)
+        x1 = Symbol("x1", integer=True, nonnegative=True)
+        s0 = Symbol("s0", integer=True, positive=True)
+        s1 = Symbol("s1", integer=True, positive=True)
+        s2 = Symbol("s2", integer=True, positive=True)
+
+        nodes = make_range_tree_nodes({x0: s0, x1: s1})
+        expr = ModularIndexing(s1 * x0 + x1, 1, s0*s1)
+        res = analyze_modular_expression(expr, nodes)
+        print("\n[Case3] symbolic max contains divisor symbols → remainder 0 path")
+        print(res)
+        assert "can_split" in res and res["can_split"] == True
+
+
+    def test_analyze_modular_expression_mod_is_symbol(self):
+        x0 = Symbol("x0", integer=True, nonnegative=True)
+        x1 = Symbol("x1", integer=True, nonnegative=True)
+        s0 = Symbol("s0", integer=True, positive=True)
+        s1 = Symbol("s1", integer=True, positive=True)
+        s2 = Symbol("s2", integer=True, positive=True)
+        s3 = Symbol("s3", integer=True, positive=True)
+        mock_kernel = MagicMock()
+
+        mock_kernel.symbol_range_map = {
+            "s0": MagicMock(lower=1),
+            "s1": MagicMock(lower=1),
+            "s2": MagicMock(lower=1),
+            "s3": MagicMock(lower=1),
+        }
+
+        with V.set_kernel_handler(mock_kernel):
+            nodes = make_range_tree_nodes({x0: s3*s2, x1: s2})
+            expr = ModularIndexing((x0 + x1*s3), s2, s3)     # 这里 divisor=s0，第一项 coeff*length = s1*s0
+            res = analyze_modular_expression(expr, nodes)
+            print("\n[Case3] symbolic max contains divisor symbols → remainder 0 path")
+            print(res)
+            assert "can_split" in res and res["can_split"] == True
+
 
     def op_calc_dynamic(self, x, y, batch_size, seq_len, hidden1, hidden2, dim1, dim2):
         view_1 = x.view(batch_size, seq_len, hidden1, dim1).permute(0, 1, 3, 2).reshape(batch_size, seq_len, hidden1*dim1)
@@ -75,7 +149,7 @@ class TestUnifiedAxis(TestUtils):
                 self.assertEqual(std_result, inductor_result, atol=1e-2, rtol=1e-2)
 
 
-instantiate_parametrized_tests(TestUnifiedAxis)
+instantiate_parametrized_tests(TestLinearDynamic)
 
 
 if __name__ == "__main__":

@@ -556,7 +556,6 @@ def calculate_max_remainder(coeff, length, divisor_or_mod):
             # 证明divisor_symbols真包含max_length_value，即divisor_or_mod是coeff*length的整数倍，所以(coeff*length) % divisor_or_mod的结果是(coeff*length)
             return coeff*length
         else:
-            breakpoint()
             if (
                 isinstance(max_length_value, sympy.Symbol)
                 and isinstance(divisor_or_mod, sympy.Symbol)
@@ -746,10 +745,29 @@ def analyze_floordiv_expression(expr, range_tree_nodes: dict) -> dict:
             f"expr can not split, max_remainder_sum {max_remainder_sum} >= divisor {divisor}"
         )
     elif (
+        max_remainder_sum == 0
+        and isinstance(divisor, sympy.Symbol)
+        and str(divisor) in V.kernel.symbol_range_map.keys()
+    ):
+        lower_value = V.kernel.symbol_range_map.get(str(divisor)).lower
+        if lower_value >= max_remainder_sum:
+            result["can_split"] = True
+            result["reason"] = (
+                f"expr can split, max_remainder_sum {max_remainder_sum} < divisor {divisor}, divisor lower_value={lower_value}"
+            )
+            split_terms = []
+            for term in add_terms:
+                split_terms.append(f"({term} // {divisor})")
+            result["split_form"] = " + ".join(split_terms)
+        else:
+            # 不能拆分
+            result["reason"] = (
+                f"expr can not split, max_remainder_sum {max_remainder_sum} >= divisor {divisor}"
+            )
+    elif (
         hasattr(max_remainder_sum, "free_symbols")
         and hasattr(divisor, "free_symbols")
     ):
-        # breakpoint()
         max_remainder_sum_str = str(max_remainder_sum)
         divisor_str = str(divisor)
         if max_remainder_sum_str in divisor_str:
@@ -855,10 +873,34 @@ def analyze_modular_expression(expr, range_tree_nodes: dict) -> dict:
         add_terms = expr_to_mod.args
         # 优先判断expr_to_mod//lower是否可拆分
         term_details = []
-        # breakpoint()
         sub_expr = FloorDiv(expr_to_mod, lower)
         result = analyze_floordiv_expression(sub_expr, range_tree_nodes)
-        return result
+        if ("can_split" in result
+            and "split_form" in result
+            and result["can_split"]
+        ):
+            sub_exprs = []
+            for term in add_terms:
+                sub_exprs.append(FloorDiv(term, lower))
+            dividen_expression = sympy.Add(*sub_exprs)
+            lower = sympy.Integer(1)
+            expression = ModularIndexing(dividen_expression, lower, upper)
+            result = {
+                "expression": str(expression),
+                "type": "ModularIndexing",
+                "can_split": False,
+                "reason": "",
+                "details": {},
+                "split_form": "",
+            }
+            result["details"]["expr_to_mod"] = dividen_expression
+            result["details"]["lower"] = lower
+            result["details"]["upper"] = upper
+            free_symbols = dividen_expression.free_symbols
+            num_symbols = len(free_symbols)
+            result["details"]["num_symbols"] = num_symbols
+            result["details"]["symbols"] = list(free_symbols)
+            expr_to_mod = dividen_expression
     # For ModularIndexing, the split condition is:
     # (expr1 % mod) + (expr2 % mod) < mod
     # where mod = upper - lower + 1
@@ -894,7 +936,12 @@ def analyze_modular_expression(expr, range_tree_nodes: dict) -> dict:
         # Extract coefficient and symbol
         coeff = 1
         symbol = None
-
+        if isinstance(term, FloorDiv):
+            numerator, denominator = term.args
+            term = sympy.Mul(
+                numerator,
+                sympy.Pow(denominator, -1),
+            )
         if isinstance(term, sympy.Symbol):
             symbol = term
         elif isinstance(term, sympy.Mul):
@@ -966,10 +1013,29 @@ def analyze_modular_expression(expr, range_tree_nodes: dict) -> dict:
             f"expr can not split, max_remainder_sum {max_remainder_sum} >= mod {mod}"
         )
     elif (
+        max_remainder_sum == 0
+        and isinstance(mod, sympy.Symbol)
+        and str(mod) in V.kernel.symbol_range_map.keys()
+    ):
+        lower_value = V.kernel.symbol_range_map.get(str(mod)).lower
+        if lower_value >= max_remainder_sum:
+            result["can_split"] = True
+            result["reason"] = (
+                f"expr can split, max_remainder_sum {max_remainder_sum} < mod {mod}, mod lower_value={lower_value}"
+            )
+            split_terms = []
+            for term in add_terms:
+                split_terms.append(f"ModularIndexing({term}, {lower}, {upper})")
+            result["split_form"] = " + ".join(split_terms)
+        else:
+            # 不能拆分
+            result["reason"] = (
+                f"expr can not split, max_remainder_sum {max_remainder_sum} >= mod {mod}"
+            )
+    elif (
         hasattr(max_remainder_sum, "free_symbols")
         and hasattr(mod, "free_symbols")
     ):
-        # breakpoint()
         max_remainder_sum_str = str(max_remainder_sum)
         mod_str = str(mod)
         if max_remainder_sum_str in mod_str:
@@ -1205,12 +1271,29 @@ def split_expression(expr):
             # Split: ModularIndexing(a+b, lower, upper) ->
             # ModularIndexing(a, lower, upper) + ModularIndexing(b, lower, upper)
             split_terms = []
-            for term in expr_to_mod.args:
-                new_mod = ModularIndexing(term, lower, upper)
-                # ModularIndexing(16*z0, 1, 128) -> 16*ModularIndexing(z0, 1, 8)
-                new_mod = eliminate_modular(new_mod)
-                new_mod = extract_modular_indexing_coefficient(new_mod)
-                split_terms.append(new_mod)
+            if (
+                isinstance(lower, sympy.Symbol)
+                or (
+                    hasattr(lower, "free_symbols")
+                    and len(lower["free_symbols"]) > 0
+                )
+            ):
+                temp_splits = []
+                for term in expr_to_mod.args:
+                    temp_new_mod = FloorDiv(term, lower)
+                    temp_splits.append(temp_new_mod)
+                for term in temp_splits:
+                    new_mod = ModularIndexing(term, 1, upper)
+                    new_mod = eliminate_modular(new_mod)
+                    new_mod = extract_modular_indexing_coefficient(new_mod)
+                    split_terms.append(new_mod)
+            else:
+                for term in expr_to_mod.args:
+                    new_mod = ModularIndexing(term, lower, upper)
+                    # ModularIndexing(16*z0, 1, 128) -> 16*ModularIndexing(z0, 1, 8)
+                    new_mod = eliminate_modular(new_mod)
+                    new_mod = extract_modular_indexing_coefficient(new_mod)
+                    split_terms.append(new_mod)
             return sympy.Add(*split_terms)
         else:
             new_mod = ModularIndexing(expr_to_mod, lower, upper)
