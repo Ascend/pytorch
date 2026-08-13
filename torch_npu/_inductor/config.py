@@ -184,18 +184,6 @@ enable_flex_attention_dq_before_scale_materialize = os.environ.get(
     "FLEX_ATTENTION_DQ_BEFORE_SCALE_MATERIALIZE", "1"
 ).lower() in ("1", "true", "yes")
 
-device = torch.npu.current_device()
-prop = torch.npu.get_device_properties(device)
-
-num_cube_core = prop.cube_core_num
-num_vector_core = prop.vector_core_num
-
-Ascend910B1 = 220
-Ascend310B1 = 240
-Ascend910_9391 = 250
-Ascend950 = 260
-is_ascend950 = get_soc_version() >= Ascend950
-
 
 def _read_env_bool(name: str, default: str = "False") -> bool:
     value = os.environ.get(name, default)
