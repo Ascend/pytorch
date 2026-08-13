@@ -11,7 +11,6 @@ __all__ = [
 
 from torch_npu.npu.utils import get_cann_version
 
-
 from .affinity import (
     _reset_thread_affinity as reset_thread_affinity,
     _set_thread_affinity as set_thread_affinity,

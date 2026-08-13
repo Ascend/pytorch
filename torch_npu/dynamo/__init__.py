@@ -3,9 +3,6 @@ import sys
 import time
 import warnings
 
-from torch._dynamo import register_backend as _register_backend
-from torch._dynamo.backends.registry import _BACKENDS
-
 from torch_npu._init.common.warning_utils import _should_print_warning
 from torch_npu.utils._error_code import ErrCode, pta_error
 
@@ -108,6 +105,15 @@ class _LazyTorchair(_LazyBackend):
         return getattr(torchair, name)
 
 
+def _install_lazy_torchair():
+    torchair_path = os.path.join(os.path.dirname(__file__), "torchair")
+    if not os.path.exists(torchair_path):
+        return False
+    if "torchair" not in sys.modules:
+        sys.modules["torchair"] = _LazyTorchair("torchair")
+    return True
+
+
 class _LazyNpuGraphEx(_LazyBackend):
     def __init__(self, pkg_name):
         self._npugraph_ex = None
@@ -141,7 +147,7 @@ def _lazy_exec(*args, **kwargs):
 
 
 def _get_default_backend(name):
-    if not os.path.exists(os.path.join(os.path.dirname(__file__), 'torchair')):
+    if not _install_lazy_torchair():
         if _should_print_warning():
             warnings.warn(
                 "Register eager implementation for the 'npu' backend of dynamo, "
@@ -150,7 +156,6 @@ def _get_default_backend(name):
 
     global _global_backend_name
     _global_backend_name = name
-    sys.modules['torchair'] = _LazyTorchair('torchair')
     return _lazy_exec
 
 
@@ -167,6 +172,27 @@ def _get_npugraph_ex_backend():
 
 
 def _register_npu_backend(backend, name="npu"):
+    from torch._dynamo import register_backend as _register_backend
+    from torch._dynamo.backends.registry import _BACKENDS, _COMPILER_FNS
+
+    registered_backend = _COMPILER_FNS.get(name)
+    if (
+        registered_backend is not None
+        and getattr(registered_backend, "__module__", None) == __name__
+    ):
+        return
+
+    # When a setuptools entry point is currently loading torch_npu, Dynamo has
+    # already put the EntryPoint object in _BACKENDS but has not registered the
+    # loaded callable yet.  Leave that registration to lookup_backend(); doing
+    # it here as well makes lookup_backend register the same name twice.
+    pending_backend = _BACKENDS.get(name)
+    if (
+        name not in _COMPILER_FNS
+        and getattr(pending_backend, "module", None) == __name__
+    ):
+        return
+
     if name in _BACKENDS.keys():
         del _BACKENDS[name]
     _register_backend(backend, name)
@@ -178,3 +204,43 @@ def _register_backends():
 
     _register_npu_backend(global_backend)
     _register_npu_backend(npugraph_ex_backend, NPUGRAPH_EX_BACKEND)
+
+
+def _npu_backend_entrypoint(gm, example_inputs, **kwargs):
+    """Set up the NPU Dynamo backend when an entry point is selected."""
+    from torch_npu.utils._dynamo import _lazy_dynamo_setup
+
+    _lazy_dynamo_setup()
+    return _get_default_backend("npu")(gm, example_inputs, **kwargs)
+
+
+def _npugraph_ex_backend_entrypoint(gm, example_inputs, **kwargs):
+    """Set up the NPUGraph-EX backend when an entry point is selected."""
+    from torch_npu.utils._dynamo import _lazy_dynamo_setup
+
+    _lazy_dynamo_setup()
+    return _exec(gm, example_inputs, **kwargs)
+
+
+class _NpugraphsBackendEntryPoint:
+    """Keep the lazy entry point and its reset protocol in one callable."""
+
+    compiler_name = "npugraphs"
+
+    def __call__(self, gm, example_inputs, **kwargs):
+        from torch_npu.utils._dynamo import _lazy_dynamo_setup, _lazy_inductor_setup
+
+        _lazy_dynamo_setup()
+        _lazy_inductor_setup()
+        from torch_npu.utils._graph_tree import NpugraphsBackend
+
+        return NpugraphsBackend()(gm, example_inputs, **kwargs)
+
+    @staticmethod
+    def reset():
+        graph_tree = sys.modules.get("torch_npu.npu._graph_tree")
+        if graph_tree is not None:
+            graph_tree.reset_npugraph_trees()
+
+
+_npugraphs_backend_entrypoint = _NpugraphsBackendEntryPoint()

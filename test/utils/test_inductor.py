@@ -1,5 +1,5 @@
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.utils._inductor import NPUDeviceOpOverrides
+from torch_npu.utils._device_op_overrides import NPUDeviceOpOverrides
 
 
 class TestInductor():
@@ -25,7 +25,7 @@ class TestInductor():
     def test_import_get_raw_stream_as(self):
         overrides = NPUDeviceOpOverrides()
         result = overrides.import_get_raw_stream_as("test_name")
-        expected = "from torch._C import _npu_getCurrentRawStream as test_name"
+        expected = "from torch_npu._C import _npu_getCurrentRawStream as test_name"
         self.assertEqual(result, expected)
 
 

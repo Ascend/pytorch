@@ -1,0 +1,15 @@
+from torch._inductor.codegen.common import DeviceOpOverrides
+
+
+class NPUDeviceOpOverrides(DeviceOpOverrides):
+    def import_get_raw_stream_as(self, name):
+        return f"from torch_npu._C import _npu_getCurrentRawStream as {name}"
+
+    def set_device(self, device_idx):
+        return f"torch_npu.npu.set_device({device_idx})"
+
+    def synchronize(self):
+        return "torch_npu.npu.synchronize()"
+
+    def device_guard(self, device_idx):
+        return f"torch_npu.npu._DeviceGuard({device_idx})"

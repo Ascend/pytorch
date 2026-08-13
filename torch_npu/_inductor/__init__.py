@@ -82,7 +82,7 @@ def _load_triton_backend():
     from torch._inductor.runtime import autotune_cache
     from torch_npu.npu import device_count
     from torch_npu.utils._dynamo_device import current_device, NpuInterface, set_device
-    from torch_npu.utils._inductor import NPUDeviceOpOverrides
+    from torch_npu.utils._device_op_overrides import NPUDeviceOpOverrides
 
     from . import codegen, config as npu_config
     from .codecache import patch_aot_code_compiler_compile

@@ -33,14 +33,15 @@ EXPECTED_LOADED_MODULES = [
     "torch_npu.op_plugin.meta._meta_registrations",
     "torch_npu.asd.checksum",
     "torch_npu.utils._dynamo",
-    "torch_npu.utils._inductor",
     "torch_npu.utils.custom_ops",
     "torch_npu.utils.patch_getenv",
     "torch_npu.utils.syncbatchnorm",
+    "torch_npu.utils._inductor",
 ]
 
 EXPECTED_NOT_LOADED_MODULES = [
     "torch_npu._C._afd",
+    "torch_npu._inductor",
 ]
 
 EXPECTED_TOP_LEVEL_ATTRS = [
@@ -255,20 +256,6 @@ class TestTorchNpuBootstrap(TestCase):
             import torch.distributed as dist
             import torch.distributed.rpc as rpc
             import torch.distributed.tensor  # noqa: F401
-            from torch._dynamo.device_interface import get_interface_for_device
-            from torch._dynamo.backends.registry import _BACKENDS
-            from torch._inductor.codegen.common import device_op_overrides_dict
-
-            iface = get_interface_for_device("npu")
-            assert iface is not None
-
-            assert "npu" in _BACKENDS, "npu dynamo backend is not registered"
-            assert "npugraph_ex" in _BACKENDS, (
-                "npugraph_ex dynamo backend is not registered"
-            )
-
-            assert "npu" in device_op_overrides_dict
-            assert device_op_overrides_dict.get("npu") is not None
 
             assert "hccl" in dist.Backend.backend_list
             assert "lccl" in dist.Backend.backend_list

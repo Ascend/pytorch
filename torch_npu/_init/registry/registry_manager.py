@@ -49,25 +49,6 @@ def _register_distributed():
     register_distributed_backend_for_npu()
 
 
-def _register_dynamo():
-    """
-    Register Dynamo integration:
-    - Dynamo backend
-    - Dynamo device interface
-    - NPU trace rules for Dynamo
-    """
-    from torch_npu._init.registry.dynamo import (
-        register_dynamo_backends,
-        register_dynamo_trace_rules,
-    )
-
-    register_dynamo_backends()
-
-    # Do not repeat this call for register_dynamo_trace_rules appends rules into
-    # Dynamo's global rules maps.
-    register_dynamo_trace_rules()
-
-
 def _register_rpc():
     """
     Register and init RPC NPU backend.
@@ -78,15 +59,11 @@ def _register_rpc():
 
 
 def _register_inductor():
-    """
-    Register lightweight NPU device op overrides for Inductor.
-    Do not import toch_npu._inductor here: toch_npu._inductor performs full NPU
-    Inductor backend loading and heavy global patches lazily when torch.compile
-    and Inductor path is actually used.
-    """
-    from torch_npu.utils._inductor import _inductor_register_device_op_overrides
-
-    _inductor_register_device_op_overrides()
+    """Install lightweight Inductor-side NPU integrations at import time."""
+    # Match v2.9's registration timing for the framework-level RNG patches,
+    # without importing the full NPU Inductor backend or restoring the
+    # v2.9-only _max_unpoolnd decomposition patch.
+    from torch_npu.utils import _inductor  # noqa: F401
 
 
 def _register_default_gradient_device_type():
@@ -102,8 +79,8 @@ def _register_components():
 
     Order matters:
     1. NPU backend is the base capability.
-    2. Distributed and Dynamo depend on NPU backend / _C children.
-    3. RPC, dtensor and inductor are Python-side framework integrations.
+    2. Distributed depends on the NPU backend / _C children.
+    3. RPC is initialized after the NPU backend and distributed integration.
     4. DefaultDeviceType is set after NPU backend is registered.
     """
     if not hasattr(torch_npu, "_C"):
@@ -113,7 +90,6 @@ def _register_components():
 
     _register_npu_backend()
     _register_distributed()
-    _register_dynamo()
     _register_rpc()
     _register_inductor()
     _register_default_gradient_device_type()
