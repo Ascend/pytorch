@@ -551,6 +551,58 @@ def calculate_max_remainder(coeff, length, divisor_or_mod):
     Returns:
         result
     """
+    max_length_value = coeff * length
+    if (
+        (
+            (
+                isinstance(divisor_or_mod, sympy.Mul)
+                and all(
+                    isinstance(arg, sympy.Symbol)
+                    for arg in divisor_or_mod.args
+                )
+            )
+            or isinstance(divisor_or_mod, sympy.Symbol)
+        ) and (
+            (
+                isinstance(max_length_value, sympy.Mul)
+                and all(
+                    isinstance(arg, sympy.Symbol)
+                    for arg in max_length_value.args
+                )
+            )
+            or isinstance(max_length_value, sympy.Symbol)
+        )
+    ):
+        # 判断(coeff*length) % divisor_or_mod的结果，如果coeff*length<divisor_or_mod, 则最大值为coeff*length，否则最大值为divisor_or_mod
+        max_length_value_symbols = set(max_length_value.free_symbols) if hasattr(max_length_value, 'free_symbols') else set()
+        divisor_symbols = set(divisor_or_mod.free_symbols) if hasattr(divisor_or_mod, 'free_symbols') else set()
+        in_max_not_in_div_symbols = max_length_value_symbols - divisor_symbols
+        in_div_not_in_max_symbols = divisor_symbols - max_length_value_symbols
+        if (
+            len(in_max_not_in_div_symbols) >= 0
+            and len(in_div_not_in_max_symbols) == 0
+        ):
+            # coeff*length是divisor_or_mod的整数倍
+            return 0
+        elif (
+            len(in_max_not_in_div_symbols) == 0
+            and len(in_div_not_in_max_symbols) > 0
+        ):
+            # divisor_or_mod是coeff*length的整数倍
+            return coeff * length
+        else:
+            if (
+                isinstance(max_length_value, sympy.Symbol)
+                and isinstance(divisor_or_mod, sympy.Symbol)
+                and str(max_length_value) in V.kernel.symbol_range_map
+                and str(divisor_or_mod) in V.kernel.symbol_range_map
+            ):
+                if V.kernel.symbol_range_map[str(max_length_value)].lower <= V.kernel.symbol_range_map[str(divisor_or_mod)].lower:
+                    return coeff * length
+                else:
+                    return divisor_or_mod
+            else:
+                return float("inf")
     # Try to convert coefficient and divisor/modulus to integers
     coeff_int = int(coeff) if isinstance(coeff, sympy.Integer) else None
     divisor_int = (
@@ -559,7 +611,14 @@ def calculate_max_remainder(coeff, length, divisor_or_mod):
 
     # If not integers, use conservative estimate
     if coeff_int is None or divisor_int is None:
-        return min(divisor_or_mod - 1, coeff * (length - 1))
+        coeff_length_value = coeff * (length - 1)
+        divisor_or_mod_value = divisor_or_mod - 1
+        if (
+            isinstance(coeff_length_value, (int, sympy.Integer))
+            and isinstance(divisor_or_mod_value, (int, sympy.Integer))
+        ):
+            return min(divisor_or_mod_value, coeff_length_value)
+        return float("inf")
 
     # If coefficient is 0, remainder is always 0
     if coeff_int == 0:
@@ -673,9 +732,12 @@ def analyze_floordiv_expression(expr, range_tree_nodes: dict) -> dict:
         elif isinstance(term, sympy.Mul):
             constant_factors = []
             for factor in term.args:
-                if isinstance(factor, sympy.Symbol):
+                if (
+                    isinstance(factor, sympy.Symbol)
+                    and factor in range_tree_nodes.keys()
+                ):
                     symbol = factor
-                elif factor.is_number:
+                else:
                     constant_factors.append(factor)
 
             if constant_factors:
@@ -704,13 +766,73 @@ def analyze_floordiv_expression(expr, range_tree_nodes: dict) -> dict:
 
         max_remainder = calculate_max_remainder(coeff, length, divisor)
         term_info["max_remainder"] = max_remainder
-
-        max_remainder_sum += max_remainder
+        if max_remainder == float("inf"):
+            max_remainder_sum = float("inf")
+        else:
+            max_remainder_sum += max_remainder
 
     result["details"]["term_details"] = term_details
     result["details"]["max_remainder_sum"] = max_remainder_sum
 
-    if max_remainder_sum < divisor:
+    if max_remainder_sum == float("inf"):
+        # 不能拆分
+        result["reason"] = (
+            f"expr can not split, max_remainder_sum {max_remainder_sum} >= divisor {divisor}"
+        )
+    elif (
+        max_remainder_sum == 0
+        and isinstance(divisor, sympy.Symbol)
+        and str(divisor) in V.kernel.symbol_range_map.keys()
+    ):
+        lower_value = V.kernel.symbol_range_map.get(str(divisor)).lower
+        if lower_value >= max_remainder_sum:
+            result["can_split"] = True
+            result["reason"] = (
+                f"expr can split, max_remainder_sum {max_remainder_sum} < divisor {divisor}, divisor lower_value={lower_value}"
+            )
+            split_terms = []
+            for term in add_terms:
+                split_terms.append(f"({term} // {divisor})")
+            result["split_form"] = " + ".join(split_terms)
+        else:
+            # 不能拆分
+            result["reason"] = (
+                f"expr can not split, max_remainder_sum {max_remainder_sum} >= divisor {divisor}"
+            )
+    elif (
+        hasattr(max_remainder_sum, "free_symbols")
+        and hasattr(divisor, "free_symbols")
+    ):
+        max_remainder_sum_str = str(max_remainder_sum)
+        divisor_str = str(divisor)
+        if max_remainder_sum_str in divisor_str:
+            # 证明max_remainder_sum < divisor,能拆分
+            result["can_split"] = True
+            result["reason"] = (
+                f"expr can split, max_remainder_sum {max_remainder_sum} < divisor {divisor}"
+            )
+            split_terms = []
+            for term in add_terms:
+                split_terms.append(f"({term} // {divisor})")
+
+            result["split_form"] = " + ".join(split_terms)
+        else:
+            # 不能拆分
+            result["reason"] = (
+                f"expr can not split, max_remainder_sum {max_remainder_sum} and divisor {divisor} have symbols, cannot compare"
+            )
+    elif (
+        hasattr(max_remainder_sum, "free_symbols")
+        or hasattr(divisor, "free_symbols")
+    ):
+        result["reason"] = (
+            f"expr can not split, max_remainder_sum {max_remainder_sum} or divisor {divisor} have symbols"
+        )
+    elif (
+        isinstance(max_remainder_sum, (int, sympy.Integer))
+        and isinstance(divisor, (int, sympy.Integer))
+        and max_remainder_sum < divisor
+    ):
         result["can_split"] = True
         result["reason"] = (
             f"expr can split, max_remainder_sum {max_remainder_sum} < divisor {divisor}"
@@ -778,11 +900,58 @@ def analyze_modular_expression(expr, range_tree_nodes: dict) -> dict:
         result["reason"] = f"expr {expr_to_mod} not sympy.Add expression, no need split"
         return result
 
+    if (
+        isinstance(lower, sympy.Symbol)
+        or (
+            hasattr(lower, "free_symbols")
+            and len(lower.free_symbols) > 0
+        )
+    ):
+        add_terms = expr_to_mod.args
+        # 优先判断expr_to_mod//lower是否可拆分
+        term_details = []
+        sub_expr = FloorDiv(expr_to_mod, lower)
+        result = analyze_floordiv_expression(sub_expr, range_tree_nodes)
+        if (
+            "can_split" in result
+            and "split_form" in result
+            and result["can_split"]
+        ):
+            sub_exprs = []
+            for term in add_terms:
+                sub_exprs.append(FloorDiv(term, lower))
+            dividen_expression = sympy.Add(*sub_exprs)
+            lower = sympy.Integer(1)
+            expression = ModularIndexing(dividen_expression, lower, upper)
+            result = {
+                "expression": str(expression),
+                "type": "ModularIndexing",
+                "can_split": False,
+                "reason": "",
+                "details": {},
+                "split_form": "",
+            }
+            result["details"]["expr_to_mod"] = dividen_expression
+            result["details"]["lower"] = lower
+            result["details"]["upper"] = upper
+            free_symbols = dividen_expression.free_symbols
+            num_symbols = len(free_symbols)
+            result["details"]["num_symbols"] = num_symbols
+            result["details"]["symbols"] = list(free_symbols)
+            expr_to_mod = dividen_expression
     # For ModularIndexing, the split condition is:
     # (expr1 % mod) + (expr2 % mod) < mod
     # where mod = upper - lower + 1
 
-    mod = upper - lower + 1
+    if (
+        hasattr(upper, "free_symbols")
+        and len(upper.free_symbols) > 0
+        and isinstance(lower, (int, sympy.Integer))
+        and lower == 1
+    ):
+        mod = upper
+    else:
+        mod = upper - lower + 1
 
     # Calculate the maximum sum of remainders
     add_terms = expr_to_mod.args
@@ -805,15 +974,23 @@ def analyze_modular_expression(expr, range_tree_nodes: dict) -> dict:
         # Extract coefficient and symbol
         coeff = 1
         symbol = None
-
+        if isinstance(term, FloorDiv):
+            numerator, denominator = term.args
+            term = sympy.Mul(
+                numerator,
+                sympy.Pow(denominator, -1),
+            )
         if isinstance(term, sympy.Symbol):
             symbol = term
         elif isinstance(term, sympy.Mul):
             constant_factors = []
             for factor in term.args:
-                if isinstance(factor, sympy.Symbol):
+                if (
+                    isinstance(factor, sympy.Symbol)
+                    and factor in range_tree_nodes.keys()
+                ):
                     symbol = factor
-                elif factor.is_number:
+                else:
                     constant_factors.append(factor)
 
             if constant_factors:
@@ -843,7 +1020,11 @@ def analyze_modular_expression(expr, range_tree_nodes: dict) -> dict:
         max_term_value = coeff * (length - 1)
         term_info["max_value"] = max_term_value
 
-        if coeff is not None and mod is not None:
+        if (
+            coeff is not None
+            and mod is not None
+            and isinstance(mod, (int, sympy.Integer))
+        ):
             gcd_val = gcd(coeff, mod)
             term_info["gcd_val"] = gcd_val
 
@@ -853,15 +1034,75 @@ def analyze_modular_expression(expr, range_tree_nodes: dict) -> dict:
 
         max_remainder = calculate_max_remainder(coeff, length, mod)
         term_info["max_remainder"] = max_remainder
-
-        max_remainder_sum += max_remainder
+        if max_remainder == float("inf"):
+            max_remainder_sum = float("inf")
+        else:
+            max_remainder_sum += max_remainder
 
     result["details"]["term_details"] = term_details
     result["details"]["max_remainder_sum"] = max_remainder_sum
     result["details"]["mod"] = mod
 
     # Determine if it can be split
-    if max_remainder_sum < mod:
+    if max_remainder_sum == float("inf"):
+        # 不能拆分
+        result["reason"] = (
+            f"expr can not split, max_remainder_sum {max_remainder_sum} >= mod {mod}"
+        )
+    elif (
+        max_remainder_sum == 0
+        and isinstance(mod, sympy.Symbol)
+        and str(mod) in V.kernel.symbol_range_map.keys()
+    ):
+        lower_value = V.kernel.symbol_range_map.get(str(mod)).lower
+        if lower_value >= max_remainder_sum:
+            result["can_split"] = True
+            result["reason"] = (
+                f"expr can split, max_remainder_sum {max_remainder_sum} < mod {mod}, mod lower_value={lower_value}"
+            )
+            split_terms = []
+            for term in add_terms:
+                split_terms.append(f"ModularIndexing({term}, {lower}, {upper})")
+            result["split_form"] = " + ".join(split_terms)
+        else:
+            # 不能拆分
+            result["reason"] = (
+                f"expr can not split, max_remainder_sum {max_remainder_sum} >= mod {mod}"
+            )
+    elif (
+        hasattr(max_remainder_sum, "free_symbols")
+        and hasattr(mod, "free_symbols")
+    ):
+        max_remainder_sum_str = str(max_remainder_sum)
+        mod_str = str(mod)
+        if max_remainder_sum_str in mod_str:
+            # 证明max_remainder_sum < mod,能拆分
+            result["can_split"] = True
+            result["reason"] = (
+                f"expr can split, max_remainder_sum {max_remainder_sum} < mod {mod}"
+            )
+            split_terms = []
+            for term in add_terms:
+                split_terms.append(f"ModularIndexing({term}, {lower}, {upper})")
+
+            result["split_form"] = " + ".join(split_terms)
+        else:
+            # 不能拆分
+            result["reason"] = (
+                f"expr can not split, max_remainder_sum {max_remainder_sum} and mod {mod} have symbols, cannot compare"
+            )
+    elif (
+        hasattr(max_remainder_sum, "free_symbols")
+        or hasattr(mod, "free_symbols")
+    ):
+        result["reason"] = (
+            f"expr can not split, max_remainder_sum {max_remainder_sum} or mod {mod} have symbols"
+        )
+    elif (
+        isinstance(max_remainder_sum, (int, sympy.Integer))
+        and isinstance(mod, (int, sympy.Integer))
+        and max_remainder_sum < mod
+    ):
         result["can_split"] = True
         result["reason"] = (
             f"expr can split, max_remainder_sum {max_remainder_sum} < mod {mod}"
@@ -1067,19 +1308,35 @@ def split_expression(expr):
             # Split: ModularIndexing(a+b, lower, upper) ->
             # ModularIndexing(a, lower, upper) + ModularIndexing(b, lower, upper)
             split_terms = []
-            for term in expr_to_mod.args:
-                new_mod = ModularIndexing(term, lower, upper)
-                # ModularIndexing(16*z0, 1, 128) -> 16*ModularIndexing(z0, 1, 8)
-                new_mod = eliminate_modular(new_mod)
-                new_mod = extract_modular_indexing_coefficient(new_mod)
-                split_terms.append(new_mod)
+            if (
+                isinstance(lower, sympy.Symbol)
+                or (
+                    hasattr(lower, "free_symbols")
+                    and len(lower["free_symbols"]) > 0
+                )
+            ):
+                temp_splits = []
+                for term in expr_to_mod.args:
+                    temp_new_mod = FloorDiv(term, lower)
+                    temp_splits.append(temp_new_mod)
+                for term in temp_splits:
+                    new_mod = ModularIndexing(term, 1, upper)
+                    new_mod = eliminate_modular(new_mod)
+                    new_mod = extract_modular_indexing_coefficient(new_mod)
+                    split_terms.append(new_mod)
+            else:
+                for term in expr_to_mod.args:
+                    new_mod = ModularIndexing(term, lower, upper)
+                    # ModularIndexing(16*z0, 1, 128) -> 16*ModularIndexing(z0, 1, 8)
+                    new_mod = eliminate_modular(new_mod)
+                    new_mod = extract_modular_indexing_coefficient(new_mod)
+                    split_terms.append(new_mod)
             return sympy.Add(*split_terms)
         else:
             new_mod = ModularIndexing(expr_to_mod, lower, upper)
             new_mod = eliminate_modular(new_mod)
             new_mod = extract_modular_indexing_coefficient(new_mod)
             return new_mod
-
     # 5. Other types of expressions, return directly
     else:
         return expr
@@ -1363,6 +1620,8 @@ def simplify_index_max_and_mod(index_expr):
                 return arg_0
             else:
                 return arg_1
+        else:
+            return index_expr
     else:
         return index_expr
 

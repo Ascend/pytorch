@@ -233,7 +233,14 @@ class SplitTiling:
     # no_loop_axis 原则4：对于存在动态shape的轴，不做该优化
     def select_no_loop_axis(self):
         low_dims = [self.kernel.sorted_axis[dim] for dim in self.kernel.low_dims]
-        sorted_low_dims = sorted(low_dims, key=lambda x: self.get_length_val(x))
+
+        def sort_key(dim):
+            length_expr = self.get_length_val(dim)
+            if isinstance(length_expr, (int, sympy.Integer)):
+                return 0, length_expr
+            return 1, sympy.default_sort_key(length_expr)
+
+        sorted_low_dims = sorted(low_dims, key=sort_key)
         total_numels = 1
         axis_dtype = torch.float32
         if self.kernel.split_axis:
