@@ -28,7 +28,7 @@ jobs:
     secrets: inherit
     with:
       upstream_repo: pytorch/pytorch
-      upstream_ref: main
+      upstream_ref: d16654d3b58c46f479af2de992c960fb4ce1b845
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: master
       report_to_upstream: false
