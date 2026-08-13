@@ -116,7 +116,7 @@ class TestMode(TestCase):
         process.terminate()
         process.wait()
         self.assertIn(
-            "Tensor list input to scatter/gather must match number of collective participants",
+            "Corresponding input/output tensors to reduce_scatter must all reside on the same device",
             message
         )
 
