@@ -1,3 +1,18 @@
+# Copyright (c) 2026 Huawei Technologies Co., Ltd
+# All rights reserved.
+#
+# Licensed under the BSD 3-Clause License  (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://opensource.org/licenses/BSD-3-Clause
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 Add validation cases for torch.distributed.elastic.metrics APIs:
 
@@ -6,6 +21,7 @@ Add validation cases for torch.distributed.elastic.metrics APIs:
 torch.distributed.elastic.metrics.api.ConsoleMetricHandler
 torch.distributed.elastic.metrics.api.NullMetricHandler
 torch.distributed.elastic.metrics.configure
+torch.distributed.elastic.metrics.put_metric
 (extendable)
 """
 
@@ -14,7 +30,7 @@ import unittest.mock as mock
 import torch.distributed.elastic.metrics.api as metrics_api
 from torch.testing._internal.common_utils import TestCase, run_tests
 
-from torch.distributed.elastic.metrics import configure
+from torch.distributed.elastic.metrics import configure, put_metric
 from torch.distributed.elastic.metrics.api import (
     ConsoleMetricHandler,
     MetricData,
@@ -36,6 +52,41 @@ class ElasticMetricsApiTest(TestCase):
         metrics_api._default_metrics_handler = self._original_default_metrics_handler
         metrics_api._metrics_map.clear()
         metrics_api._metrics_map.update(self._original_metrics_map)
+
+    def test_put_metric(self):
+        default_handler = mock.Mock(spec=MetricHandler)
+        custom_handler = mock.Mock(spec=MetricHandler)
+        configure(default_handler)
+        configure(custom_handler, group="custom_group")
+
+        put_metric("default_metric", 3)
+        put_metric("", -1, "custom_group")
+        put_metric("zero_metric", 0, "custom_group")
+
+        self.assertEqual(default_handler.emit.call_count, 1)
+        self.assertEqual(custom_handler.emit.call_count, 2)
+
+        default_record = default_handler.emit.call_args.args[0]
+        self.assertIsInstance(default_record, MetricData)
+        self.assertEqual(default_record.group_name, "torchelastic")
+        self.assertEqual(default_record.name, "default_metric")
+        self.assertEqual(default_record.value, 3)
+        self.assertGreater(default_record.timestamp, 0)
+
+        custom_records = [
+            call.args[0] for call in custom_handler.emit.call_args_list
+        ]
+        self.assertEqual(
+            [
+                (record.group_name, record.name, record.value)
+                for record in custom_records
+            ],
+            [
+                ("custom_group", "", -1),
+                ("custom_group", "zero_metric", 0),
+            ],
+        )
+        self.assertTrue(all(record.timestamp > 0 for record in custom_records))
 
     def test_console_metric_handler_emit(self):
         handler = ConsoleMetricHandler()
