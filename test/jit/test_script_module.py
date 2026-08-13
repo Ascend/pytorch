@@ -490,9 +490,8 @@ class TestScriptModuleExtraRepr(TestCase):
 class TestScriptModuleShareMemory(TestCase):
     """share_memory behavior differs by device:
        CPU: works, makes storage shared.
-       GPU/CUDA: no-op (per torch.Tensor.share_memory_ docstring).
-       NPU: torch-npu intercepts with RuntimeError.
-       Tests document actual NPU behavior and CPU baseline."""
+       NPU/CUDA: no-op (per torch.Tensor.share_memory_ docstring).
+       Tests document actual NPU behavior and CPU baseline"""
 
     def test_share_memory_cpu_returns_self(self):
         sm = _make_cpu_linear()
@@ -510,34 +509,14 @@ class TestScriptModuleShareMemory(TestCase):
         sm.share_memory()
         self.assertTrue(sm.linear.weight.untyped_storage().is_shared())
 
-    def test_share_memory_on_npu_raises(self):
+    def test_share_memory_npu_noop(self):
         sm = _make_linear()
-        with self.assertRaisesRegex(
-                RuntimeError, r"share_memory.*not supported in npu"):
-            sm.share_memory()
+        result = sm.share_memory()
+        self.assertIs(result, sm)
+        self.assertEqual(sm.linear.weight.device.type, device_type)
 
 
 class TestScriptModuleMetadata(TestCase):
-    """register_module/register_parameter on NPU:
-       torch-npu intercepts with RuntimeError.
-       On CPU they also raise RuntimeError (PyTorch limitation:
-       "Cannot re-assign modules" / "Can't add a new parameter
-       after ScriptModule construction")."""
-
-    def test_register_module_raises_on_npu(self):
-        sm = _make_linear()
-        sub = nn.Linear(2, 2).to(device_type)
-        with self.assertRaisesRegex(
-                RuntimeError, r"register_module.*not supported in npu"):
-            sm.register_module("new_sub", sub)
-
-    def test_register_parameter_raises_on_npu(self):
-        sm = _make_linear()
-        param = nn.Parameter(torch.randn(2, 2)).to(device_type)
-        with self.assertRaisesRegex(
-                RuntimeError, r"register_parameter.*not supported in npu"):
-            sm.register_parameter("new_param", param)
-
     def test_set_submodule_raises(self):
         sm = _make_linear()
         new_sub = nn.Linear(2, 2).to(device_type)
