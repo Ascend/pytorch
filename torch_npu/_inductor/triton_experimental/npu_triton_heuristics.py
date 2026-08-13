@@ -23,6 +23,7 @@
 import copy
 import functools
 import logging
+import math
 import operator
 import os
 from . import config as ncfg
@@ -58,8 +59,9 @@ from torch._inductor.runtime.triton_compat import (
     Config,
     GPUTarget,
 )
-# 2.13.0: 上游 triton_compat 已移除 cc_warp_size；warp_size 改用 DeviceProperties.warp_size
-# 字段（NPU 上为 None → 回退 32），与上游 triton_heuristics GPUTarget 构造一致
+# 2.13.0: upstream triton_compat removed cc_warp_size; warp_size now uses the
+# DeviceProperties.warp_size field (None on NPU -> falls back to 32), matching the
+# upstream triton_heuristics GPUTarget construction.
 from torch._inductor.runtime.runtime_utils import ceildiv, get_max_y_grid, next_power_of_2, triton_hash_to_path_key
 
 import triton
@@ -943,9 +945,10 @@ class NPUCachingAutotuner(CachingAutotuner):
         )
 
         # 2.7.1: GPUTarget takes 3 args; force NPU vector kernel generation
-        # 2.13.0: warp_size 用 device_props.warp_size or 32（上游 triton_heuristics 同款惯用法）。
-        # 不用 cc_warp_size（2.13.0 release triton_compat 已移除）也不用 warp_size_or_default
-        # （2.13.0.dev 旧版 DeviceProperties 无此属性）；warp_size 字段两版都有，NPU 上为 None → 回退 32。
+        # 2.13.0: warp_size = device_props.warp_size or 32 (same idiom as upstream
+        # triton_heuristics). Avoid cc_warp_size (removed in 2.13.0 release triton_compat)
+        # and warp_size_or_default (absent on 2.13.0.dev DeviceProperties); the warp_size
+        # field exists in both versions and is None on NPU -> falls back to 32.
         target = GPUTarget(
             compile_meta["device_type"],
             compile_meta["cc"],
@@ -1402,6 +1405,16 @@ _DTYPE_DOWNCAST_MAP = {
     "*fp64": (torch.float64, torch.float32),
 }
 
+# Stripped pointer element-type string ("fp32" from "*fp32") -> bytes/element.
+# Shared dtype-width table for _min_ptr_elem_bytes and _pw1d_formula_configs;
+# .get(t, 4) defaults to 4 (fp32) on miss.
+_NPU_PTR_ELEM_BYTES = {
+    "fp8": 1, "i8": 1, "u8": 1,
+    "fp16": 2, "bf16": 2, "i16": 2,
+    "fp32": 4, "f32": 4, "i32": 4,
+    "fp64": 4, "f64": 4, "i64": 8,
+}
+
 # When an fp64/i64 arg (RMSNorm eps scalar) feeds more than one kernel, inductor's recompute-
 # the-tail fusion drags the SAME source into each, so without memoization every launch re-runs
 # the boundary .to() on the AI_CPU scalar engine (~55us per 0-d cast) — N kernels, N casts of
@@ -1691,6 +1704,60 @@ def _filter_by_ub_estimate(configs, size_hints, axis_hints, inductor_meta):
     return [sized[0][0]]
 
 
+def _pw1d_formula_configs(size_hints, triton_meta, inductor_meta, min_elem_per_thread):
+    """1D-pointwise default-path candidate configs (formula-driven, ~3 configs).
+
+    predict the winner XBLOCK, bracket it, 32B-align, keep the UB/numel cap.
+    Hardware inputs (core count, UB, dtype width) come from the shared probes."""
+    numel = functools.reduce(operator.mul, size_hints.values())
+    num_load = (inductor_meta or {}).get("num_load", 1) or 1
+    # element dtype width = ceil(mean) across ALL '*'-pointers in the triton signature
+    # (see _ceil_mean_ptr_elem_bytes): exact for the dt*(num_load+1) byte-budget term
+    # (mean*(num_load+1) == Σwidths) and a slight over-estimate (no UB overshoot) on
+    # mixed-dtype kernels; byte-identical to the old first-pointer pick when homogeneous.
+    dt = _ceil_mean_ptr_elem_bytes((triton_meta or {}).get("signature", {}))
+
+    # §1 winner prediction: pred = 0.74 * min(max(band, wave), ub_cap, numel).
+    # 0.74 calibrates the winner below the bound; 0.40 / 0.95 are the fitted exponents.
+    band = 17500.0 / ((num_load + 1) ** 0.40 * dt)   # MTE amortization band (~17.5 KiB/transfer)
+    wave = (numel / _NPU_TOTAL_CORES) ** 0.95        # wave target, sublinear in numel
+    ub_cap = _NPU_UB_CAPACITY_BYTES / (dt * (num_load + 1) * 2)
+    pred = 0.74 * min(max(band, wave), ub_cap, numel)
+
+    # §2 candidates: bracket pred with {0.5,1,1.5,2}x, 32B-align, drop > UB/numel,
+    # always append the cap (UB-bound winners sit at the cap; monotone -> no regression).
+    align = max(1, 32 // dt)
+    hi = min(_NPU_UB_CAPACITY_BYTES // (dt * (num_load + 1) * 2), int(numel))
+    xblocks = []
+    for f in (0.5, 1.0, 1.5, 2.0):
+        v = max(1, ((int(pred * f) + align - 1) // align) * align)   # align_up, floored at 1
+        if 1 <= v <= hi and v not in xblocks:
+            xblocks.append(v)
+    cap = (hi // align) * align
+    if cap >= 1 and cap not in xblocks:
+        xblocks.append(cap)
+    xblocks.sort()
+    if not xblocks:                                   # tiny kernel: align granularity > numel
+        xblocks = [int(numel)]
+
+    configs = [
+        npu_triton_config(size_hints, x, min_elem_per_thread=min_elem_per_thread)
+        for x in xblocks
+    ]
+    # Huge kernel: grid > 65535 coreDim -> all_blocks_parallel folds it; let autotune
+    # pick the fold chunking (auto_blockify_size {2,4,8}) on the largest tile. The
+    # cap>0 check guards ceildiv against the empty-tensor fallback (xblocks=[0]).
+    if ncfg.all_blocks_parallel and xblocks[-1] > 0 and ceildiv(int(numel), xblocks[-1]) > 65535:
+        for ab in (2, 4, 8):
+            configs.append(
+                npu_triton_config(
+                    size_hints, xblocks[-1], min_elem_per_thread=min_elem_per_thread,
+                    auto_blockify_size=ab,
+                )
+            )
+    return configs
+
+
 def _count_x_axis_hints(triton_meta):
     xblock_hints = triton_meta.get("block_hints", {}).get("XBLOCK_HINT", [])
     count = 0
@@ -1754,7 +1821,25 @@ def pointwise(
                 heuristic_type=HeuristicType.POINTWISE,
                 filename=filename,
             )
+        # Default path (formerly the autotune_enhance-enabled logic): the new
+        # _pw1d_formula_configs algo by default; the legacy exhaustive sweep (the original
+        # autotune_enhance body) when ncfg.autotune_fallback OR max_autotune /
+        # max_autotune_pointwise is ON -- max_autotune expects a wider search and must not
+        # be narrowed to the ~3-config formula.
         elif autotune_enhance:
+            if (not ncfg.autotune_fallback
+                    and not (config.max_autotune or config.max_autotune_pointwise)):
+                configs = _pw1d_formula_configs(
+                    size_hints, triton_meta, inductor_meta, min_elem_per_thread
+                )
+                return cached_autotune(
+                    size_hints,
+                    configs,
+                    triton_meta=triton_meta,
+                    inductor_meta=inductor_meta,
+                    heuristic_type=HeuristicType.POINTWISE,
+                    filename=filename,
+                )
             import numpy as np
             _, _, axis_hints = _extract_axis_hint_payloads(triton_meta)
             start = bs
@@ -2077,6 +2162,123 @@ def npu_triton_config_reduction(
     return base_cfg
 
 
+def _min_ptr_elem_bytes(signature):
+    """Smallest element-byte width across ``*``-pointer args in ``signature``
+    (``triton_meta["signature"]`` -- ``{arg: "*fp32"}``), defaulting to 4 (fp32).
+
+    The strictest alignment is governed by the narrowest pointer operand, so the
+    min (not the first) width is the conservative choice. Shared by the reduction
+    elide-where path and the formula-driven reduction candidate generator."""
+    best = None
+    for v in (signature or {}).values():
+        if isinstance(v, str) and v.startswith("*"):
+            b = _NPU_PTR_ELEM_BYTES.get(v[1:])
+            if b is not None:
+                best = b if best is None else min(best, b)
+    return best or 4
+
+
+def _ceil_mean_ptr_elem_bytes(signature):
+    """ceil(mean) element-byte width across '*'-pointer args in ``signature``
+    (``triton_meta["signature"]`` -- ``{arg: "*fp32"}``), defaulting to 4 (fp32).
+
+    The UB byte-budget term (``ub_cap = UB/(d*buffers*overhead)`` in the formula
+    generators) models total tile bytes as ``elems*d*buffers``, whose exact value is
+    Σwidths == mean*buffers when the pointer count matches ``buffers``. ceil(mean) keeps
+    ``d`` int (the formula needs an int) AND stays a slight over-estimate
+    (ceil(mean)*buffers >= Σwidths), so ub_cap never overshoots real UB on mixed-dtype
+    kernels (e.g. fp16 inputs + fp32 accumulator). For lane alignment use
+    _min_ptr_elem_bytes instead -- the narrowest dtype governs 32B lane alignment."""
+    ws = [
+        _NPU_PTR_ELEM_BYTES.get(v[1:], 4)
+        for v in (signature or {}).values()
+        if isinstance(v, str) and v.startswith("*")
+    ]
+    return (sum(ws) + len(ws) - 1) // len(ws) if ws else 4
+
+
+# Formula-driven reduction autotune candidate generator. Mirrors _pw1d_formula_configs;
+# num_warps is derived by the launcher (next_pow2((X*R0)//128)), num_stages=1. UB infeasibility
+# is pruned by the autotuner's compile-fail (the static UB estimate here is a loose upper bound).
+
+
+def _red_formula_configs(size_hints, triton_meta, inductor_meta):
+    """Reduction default-path candidate configs (formula-driven).
+
+    Reads xnumel/rnumel, num_load/num_reduction and the narrowest pointer element
+    width, then picks (XBLOCK, R0_BLOCK) pairs across three rnumel regimes."""
+    def _p2floor(n):
+        """Largest power of 2 in [1, n] (None if n < 1)."""
+        return None if (n is None or n < 1) else 1 << int(math.floor(math.log2(n)))
+
+    def _p2round(n):
+        """Nearest power of 2 (>=1)."""
+        return 1 if (n is None or n < 1) else 1 << int(round(math.log2(max(1, n))))
+
+    xnumel = size_hints.get("x", 1)
+    rnumel = size_hints["r0_"]
+    num_load = (inductor_meta or {}).get("num_load", 1) or 1
+    num_reduction = (inductor_meta or {}).get("num_reduction", 0) or 0
+    # P (tile-product target) asks "any <=16-bit operand?" -> narrowest width (min); ub_cap
+    # is a byte budget -> average width (ceil mean, see _ceil_mean_ptr_elem_bytes): min would
+    # under-count bytes and over-state UB capacity on mixed-dtype kernels (fp16 + fp32 accum).
+    d = _min_ptr_elem_bytes((triton_meta or {}).get("signature", {}))           # narrowest (for P)
+    d_ub = _ceil_mean_ptr_elem_bytes((triton_meta or {}).get("signature", {}))  # mean (for ub_cap)
+    # XBLOCK ceiling = p2floor(min(xnumel, 4096)); 4096 = Triton check_max_block["X"].
+    # P = tile-product target, dtype-conditioned (16-bit -> 2048, else 4096).
+    x_cap = _p2floor(min(xnumel, 4096))
+    P = 2048 if d <= 2 else 4096
+    buffers = num_load + num_reduction + 1
+    ub_cap = _NPU_UB_CAPACITY_BYTES / (d_ub * buffers * _NPU_UB_OVERHEAD_FACTOR)  # loose max tile elems
+    rmax = _p2floor(min(rnumel, max(ub_cap, 1)))   # UB-bounded R0 ceiling; max(.,1) guards huge buffers
+    r_cap = next_power_of_2(rnumel)                    # over-tile ceiling (rnumel=49 -> 64)
+
+    cands = set()
+
+    def add(X, R):
+        if X > xnumel or R > r_cap:                    # XBLOCK <= xnumel; allow only tiny R0 over-tile
+            return
+        cands.add((X, R))
+
+    # rnumel regimes sit in empty dead zones of the corpus: HOLE (>=50k), SMALL (<=64), MID.
+    if rnumel >= 50000:                                # HOLE: UB-saturated, rnumel-independent -> 4x4 grid
+        for X in (1, 2, 4, 8):
+            for R in (512, 1024, 2048, 4096):
+                add(X, R)
+    elif rnumel <= 64:                                 # SMALL/FILL: R0=rnumel or ceil over-tile; search X
+        rset = {rnumel, next_power_of_2(rnumel)}
+        pX = _p2round(P / rnumel)                  # X hitting the tile-product at R0=rnumel
+        for X in {1, pX // 4, pX // 2, pX, pX * 2, pX * 4}:
+            if X <= x_cap:
+                for R in rset:
+                    add(X, R)
+    else:                                              # MID (64<rnumel<50000): predict (pX,pR), grid + safety cols
+        ratio = xnumel / rnumel
+        # OLS split of log2(X/R0) vs log2(xnumel/rnumel) (R^2=0.62; degrades gracefully).
+        split = 2.0 ** (-2.06 + 0.59 * math.log2(ratio))
+        pX = min(_p2round(math.sqrt(P * split)), x_cap)
+        pR = min(_p2round(math.sqrt(P / split)), rmax)
+        # core grid around the anchor (X ladder always includes 1 and x_cap).
+        xs = [x for x in sorted({1, max(1, pX // 2), pX, min(pX * 2, x_cap), x_cap})
+              if 1 <= x <= x_cap]
+        rs = [r for r in sorted({max(1, pR // 2), pR, min(pR * 2, rmax)}) if 1 <= r <= rmax]
+        for X in xs:
+            for R in rs:
+                add(X, R)
+        for R in (pR // 4, pR // 8, 16, 32):           # small-R0 column (P* over-predicts R0)
+            if 1 <= R < pR and R <= rmax:
+                add(pX, R)
+        if rnumel <= ub_cap:                           # FILL column: exact rnumel covers wR==rnumel winners
+            for X in (1, 2, 4, 8, 16, 32, 64, 128):    # powers of 2 <= 128 (min(x_cap,128) caps here)
+                if X <= min(x_cap, 128):
+                    add(X, rnumel)
+        add(x_cap, 2)                                  # hugex anchors (tiny-R0 / large-X winners)
+        add(x_cap, min(rnumel, 8))
+
+    pairs = sorted(cands) or [(1, max(1, min(rnumel, 16384)))]  # fallback: 1 legal tile
+    return [npu_triton_config_reduction(size_hints, x, r) for x, r in pairs]
+
+
 def reduction(
     size_hints,
     reduction_hint=False,
@@ -2119,6 +2321,38 @@ def reduction(
         )
 
     if len(size_hints) in (2, 3):
+        # TEMP DIAGNOSTIC: pin a single (XBLOCK, R0_BLOCK) to measure the real
+        # kernel at a chosen trip count. Remove after validation.
+        _pin = ncfg.pin_xr
+        if _pin:
+            _px, _pr = (int(v) for v in _pin.split(","))
+            return cached_autotune(
+                size_hints,
+                [reduction_cfg(_px, _pr)],
+                triton_meta=triton_meta,
+                inductor_meta=inductor_meta,
+                heuristic_type=HeuristicType.REDUCTION,
+                filename=filename,
+            )
+
+        # Default path (formerly the autotune_enhance-enabled logic): the new
+        # _red_formula_configs algo by default; falls through to the restored original
+        # reduction candidate cascade below when ncfg.autotune_fallback OR max_autotune /
+        # max_autotune_pointwise is ON (max_autotune takes the 2340 wide grid, matching the
+        # upstream "wide search" semantics).
+        if (autotune_enhance
+                and not ncfg.autotune_fallback
+                and not (config.max_autotune or config.max_autotune_pointwise)):
+            configs = _red_formula_configs(size_hints, triton_meta, inductor_meta)
+            return cached_autotune(
+                size_hints,
+                configs,
+                triton_meta=triton_meta,
+                inductor_meta=inductor_meta,
+                heuristic_type=HeuristicType.REDUCTION,
+                filename=filename,
+            )
+
         contiguous_r = rnumel if 256 <= rnumel <= 16384 else min(rnumel, 16384)
         contiguous_config = reduction_cfg(1, contiguous_r)
         outer_config = reduction_cfg(64, 8)
@@ -2180,24 +2414,7 @@ def reduction(
             # Strictest element-count alignment across all pointer operands:
             # the smallest dtype needs the most lanes to reach a 32-byte run,
             # so align to (32 // min_elem_bytes) lanes. Default 4B (fp32).
-            def _min_ptr_elem_bytes(sig):
-                width = {
-                    "fp8": 1, "i8": 1, "u8": 1,
-                    "fp16": 2, "bf16": 2, "i16": 2,
-                    "fp32": 4, "f32": 4, "i32": 4,
-                    "fp64": 4, "f64": 4, "i64": 8,
-                }
-                best = None
-                for v in (sig or {}).values():
-                    if isinstance(v, str) and v.startswith("*"):
-                        t = v[1:]
-                        b = width.get(t)
-                        if b is not None:
-                            best = b if best is None else min(best, b)
-                return best or 4
-            _eb = _min_ptr_elem_bytes(
-                (triton_meta or {}).get("signature", {})
-            )
+            _eb = _min_ptr_elem_bytes((triton_meta or {}).get("signature", {}))
             _lane_align = max(1, 32 // _eb)
             _aligned = (
                 (rnumel + _lane_align - 1) // _lane_align
@@ -2330,20 +2547,6 @@ def reduction(
             for x in x_list
             for r in r_list
         ]
-
-        # TEMP DIAGNOSTIC: pin a single (XBLOCK, R0_BLOCK) to measure the real
-        # kernel at a chosen trip count. Remove after validation.
-        _pin = ncfg.pin_xr
-        if _pin:
-            _px, _pr = (int(v) for v in _pin.split(","))
-            return cached_autotune(
-                size_hints,
-                [reduction_cfg(_px, _pr)],
-                triton_meta=triton_meta,
-                inductor_meta=inductor_meta,
-                heuristic_type=HeuristicType.REDUCTION,
-                filename=filename,
-            )
 
         if autotune_enhance:
             # The generic enhanced sweep is conservative, leaving a gap that hurts

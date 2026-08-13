@@ -144,6 +144,9 @@ codegen_linearize: bool = True
 all_blocks_parallel: bool = True
 # Enhanced autotune config sweep.
 autotune_enhance: bool = True
+# ON: default 1D pointwise and reduction path uses the legacy block-list cascade instead of the
+# formula-driven _pw1d_formula_configs (A/B fallback; off by default).
+autotune_fallback: bool = False
 
 
 # =====================================================================
