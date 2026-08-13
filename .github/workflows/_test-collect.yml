@@ -181,6 +181,7 @@ jobs:
           rm ${{ steps.sha.outputs.wheels_tarball }}
           pip install /tmp/wheels/torch-*.whl
           pip install --no-deps /tmp/wheels/torch_npu*.whl
+          pip install --no-deps /tmp/wheels/torchvision-*.whl || echo "WARNING: torchvision wheel not found in tarball"
 
       - name: Checkout test scripts
         uses: actions/checkout@v6

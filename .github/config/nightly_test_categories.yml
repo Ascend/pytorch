@@ -8,13 +8,22 @@
 #          e.g. [test/nn, test/optim] -> all test_*.py under those dirs.
 # files:  exact file paths under pytorch/test/ to include.
 #          Takes priority over paths (first match wins).
+# exclude: top-level list of directories or file paths to skip entirely.
+#          Directory entries use prefix match (e.g. test/cpython excludes
+#          all files under test/cpython/). File entries use exact match.
 #
 # Classification is 3-pass, first-match-wins:
 #   1. files:  exact match across all categories
 #   2. paths:  directory prefix match for remaining files
 #   3. others: any unmatched test_*.py (catch-all)
 #
+# Excluded files are removed before classification begins.
+#
 # In whitelist mode (PR / receive-trigger.yml), only listed files are collected.
+
+exclude:
+  - test/cpython
+  - test/quantization/core/experimental
 
 categories:
   core:

@@ -42,12 +42,15 @@ except ImportError:
 # ==============================================================================
 
 
-def load_categories_config(config_path: Optional[str]) -> Dict[str, Dict]:
+def load_categories_config(config_path: Optional[str]) -> Tuple[Dict[str, Dict], List[str]]:
     """Load category-driven configuration from YAML.
 
     Supports two formats:
 
     **New format** (category-driven):
+        exclude:
+          - test/cpython
+          - test/quantization/core/experimental
         categories:
           core:
             workers: 32
@@ -67,7 +70,9 @@ def load_categories_config(config_path: Optional[str]) -> Dict[str, Dict]:
     to preserve existing behaviour.
 
     Returns:
-        Dict mapping category name to {files, workers, execution}.
+        Tuple of (categories_dict, exclude_list).
+        categories_dict maps category name to {files, paths, workers, execution}.
+        exclude_list is a list of directory/file paths to skip entirely.
     """
     if not config_path:
         raise ValueError("No config path provided; cannot load categories.")
@@ -88,6 +93,13 @@ def load_categories_config(config_path: Optional[str]) -> Dict[str, Dict]:
 
     # New format: categories key present
     if "categories" in data:
+        exclude_list = []
+        raw_exclude = data.get("exclude", [])
+        if isinstance(raw_exclude, list):
+            exclude_list = [str(e).rstrip("/") for e in raw_exclude if isinstance(e, str) and e.strip()]
+        elif raw_exclude:
+            print(f"  WARNING: 'exclude' must be a list, got {type(raw_exclude).__name__}; ignoring", file=sys.stderr)
+
         result = {}
         for cat_name, cat_cfg in data["categories"].items():
             if not isinstance(cat_cfg, dict):
@@ -110,7 +122,7 @@ def load_categories_config(config_path: Optional[str]) -> Dict[str, Dict]:
                     f"Category '{cat_name}' paths must be a list, got "
                     f"{type(result[cat_name]['paths']).__name__}"
                 )
-        return result
+        return result, exclude_list
 
     # Legacy format: flat whitelist
     if "whitelist" in data:
@@ -132,7 +144,7 @@ def load_categories_config(config_path: Optional[str]) -> Dict[str, Dict]:
                 "workers": 32,
                 "execution": "concurrent",
             }
-        return result
+        return result, []
 
     raise ValueError(
         f"Unknown config format in {p}: expected 'categories' or 'whitelist' key"
@@ -142,11 +154,17 @@ def load_categories_config(config_path: Optional[str]) -> Dict[str, Dict]:
 def classify_files_full_scan(
     all_files: List[str],
     categories: Dict[str, Dict],
+    exclude: Optional[List[str]] = None,
 ) -> Dict[str, List[str]]:
     """Classify scanned files into categories using 3-pass first-match-wins.
 
     Ported from v3/shard_test_files.py. Used when --full-scan is active:
     the config's files/paths act as classification rules, not a whitelist.
+
+    Excluded files (from top-level ``exclude`` config key) are removed
+    before classification begins.  Each exclude entry is matched as:
+      - Directory prefix: ``test/cpython`` matches ``test/cpython/...``
+      - Exact file:       ``test/foo/test_bar.py`` matches only that file
 
     Pass 1 — files:  exact file match across all categories (first match wins)
     Pass 2 — paths:  directory prefix match for remaining files
@@ -155,12 +173,24 @@ def classify_files_full_scan(
     Args:
         all_files: List of test file paths (e.g. ["test/nn/test_foo.py", ...])
         categories: Dict from load_categories_config, each with files/paths.
+        exclude: Optional list of directory/file paths to skip entirely.
 
     Returns:
         Dict mapping category name -> sorted list of file paths.
     """
     classified: Dict[str, List[str]] = {name: [] for name in categories}
     working_set = set(all_files)
+
+    # Pre-pass: remove excluded files
+    if exclude:
+        excluded_count = 0
+        for pattern in exclude:
+            prefix = pattern.rstrip("/") + "/"
+            to_remove = {f for f in working_set if f.startswith(prefix) or f == pattern}
+            working_set -= to_remove
+            excluded_count += len(to_remove)
+        if excluded_count:
+            print(f"  [exclude] Removed {excluded_count} files matching {len(exclude)} exclude patterns")
 
     # Pass 1: exact file match (first category wins)
     for cat_name, cat_cfg in categories.items():
@@ -741,19 +771,20 @@ def main():
 
     # Load categories from config (supports new "categories:" and legacy "whitelist:" formats)
     if case_paths_config:
-        categories = load_categories_config(case_paths_config)
+        categories, exclude_list = load_categories_config(case_paths_config)
     else:
         # No config: fall back to scanning all test_*.py files via discover_test_files
         import discover_test_files
         all_files, _ = discover_test_files.discover_test_files(test_dir, "regular", None)
         categories = {"regular": {"files": all_files, "workers": 32, "execution": "concurrent"}}
+        exclude_list = []
 
     # Full-scan mode: scan ALL test_*.py and use config as categorization mapping
     if args.full_scan:
         import discover_test_files
         all_scanned = discover_test_files.discover_raw_test_files(test_dir)
 
-        classified = classify_files_full_scan(all_scanned, categories)
+        classified = classify_files_full_scan(all_scanned, categories, exclude=exclude_list)
 
         # Backfill each category's files with classified results
         for cat_name in categories:
@@ -761,6 +792,8 @@ def main():
 
         print(f"[full-scan] Scanned {len(all_scanned)} test_*.py files, "
               f"classified into {len(categories)} categories via config + auto-routing")
+        if exclude_list:
+            print(f"  [exclude] {len(exclude_list)} exclude patterns: {exclude_list}")
 
     print("Categories loaded:")
     for cat_name, cat_cfg in categories.items():

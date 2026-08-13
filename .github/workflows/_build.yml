@@ -211,6 +211,41 @@ jobs:
           echo "path=${wheel}" >> "$GITHUB_OUTPUT"
           echo "name=$(basename ${wheel})" >> "$GITHUB_OUTPUT"
 
+      # Step 2b: Build and install torchvision from pinned source
+      - name: Checkout this repo for vision pin
+        uses: actions/checkout@v6
+        with:
+          path: ci-scripts
+          ref: ${{ github.ref }}
+          sparse-checkout: |
+            .github/ci_commit_pins/vision.txt
+
+      - name: Build and install torchvision
+        id: build_torchvision
+        run: |
+          VISION_COMMIT=$(cat ci-scripts/.github/ci_commit_pins/vision.txt)
+          echo "Building torchvision from commit: ${VISION_COMMIT}"
+
+          apt-get update && apt-get install -y --no-install-recommends libpng-dev libjpeg-dev libwebp-dev
+
+          set +o pipefail
+          pip wheel --no-build-isolation --no-deps \
+            "git+https://github.com/pytorch/vision.git@${VISION_COMMIT}" \
+            -w /tmp/wheels/ 2>&1 | tee /tmp/build-torchvision.log
+          BUILD_STATUS=${PIPESTATUS[0]}
+          set -o pipefail
+
+          if [ ${BUILD_STATUS} -ne 0 ]; then
+            echo "torchvision build failed!"
+            exit ${BUILD_STATUS}
+          fi
+
+          pip install --no-deps /tmp/wheels/torchvision-*.whl
+
+          cd /tmp
+          python -c "import torchvision; print(f'torchvision version: {torchvision.__version__}')"
+          cd "${GITHUB_WORKSPACE}"
+
       # Step 3: Checkout downstream torch_npu
       - name: Checkout downstream repo (torch_npu)
         uses: actions/checkout@v6
@@ -330,6 +365,7 @@ jobs:
           path: |
             /tmp/build-pytorch.log
             /tmp/build-torchnpu.log
+            /tmp/build-torchvision.log
             torch_npu/torch_npu/csrc/inductor/aoti_torch/generated/c_shim_npu.h
           if-no-files-found: warn
 
@@ -369,6 +405,6 @@ jobs:
         uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
         with:
           status: completed
-          conclusion: ${{ (steps.build_pytorch.outcome == 'success' && steps.build_torchnpu.outcome == 'success') && 'success' || 'failure' }}
+          conclusion: ${{ (steps.build_pytorch.outcome == 'success' && steps.build_torchnpu.outcome == 'success' && steps.build_torchvision.outcome == 'success') && 'success' || 'failure' }}
           job-name: pytorch_and_torch-npu_build
 
