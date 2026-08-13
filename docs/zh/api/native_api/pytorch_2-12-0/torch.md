@@ -2101,6 +2101,18 @@
 
 </div>
 
+> <font size="3">clone_state()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.Generator.clone_state](https://pytorch.org/docs/2.12/generated/torch.Generator.html#torch.Generator.clone_state)
+
+**是否支持**：是
+
+**限制与说明**：-
+
+</div>
+
 </div>
 
 ## Random sampling
