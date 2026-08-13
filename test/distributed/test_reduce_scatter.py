@@ -67,6 +67,51 @@ class HcclReduceScatterTestBase(TestCase):
             return [input.cpu() for input in inputs]
         return [input.cpu() * world_size for input in inputs]
 
+    def _numel(self, shape):
+        n = 1
+        for d in shape:
+            n *= d
+        return n
+
+    # Expected output for _test_reduce_scatter_lifted. Input convention: the k-th
+    # flattened element of rank r's i-th tensor is r*10000 + offset_i + k. After SUM,
+    # global position p (< have) reduces to ws*p + 5000*ws*(ws-1); p >= have is 0.
+    # rank r takes global [r*out_numel, (r+1)*out_numel).
+    def _construct_lifted_expected(self, input_shapes, out_shape, world_size):
+        offsets = [0]
+        for s in input_shapes:
+            offsets.append(offsets[-1] + self._numel(s))
+        have = offsets[-1]
+        out_numel = self._numel(out_shape)
+        base = 5000 * world_size * (world_size - 1)
+        expected = []
+        for r in range(world_size):
+            vals = []
+            for k in range(out_numel):
+                p = r * out_numel + k
+                vals.append(world_size * p + base if p < have else 0.0)
+            expected.append(torch.tensor(vals, dtype=torch.float32).reshape(out_shape))
+        return expected
+
+    def _test_multiprocess_lifted(self, fn, init_pg, input_shapes, out_shape, world_size):
+        ctx = mp.get_context('spawn')
+        c2p = ctx.Queue(world_size)
+        p2c = ctx.Queue(world_size)
+        expected = self._construct_lifted_expected(input_shapes, out_shape, world_size)
+        ps = []
+        for i in range(world_size):
+            p = ctx.Process(target=fn, args=(i, input_shapes, out_shape, world_size, init_pg, c2p, p2c))
+            p.start()
+            ps.append(p)
+        for _ in range(world_size):
+            rank, output = c2p.get()
+            self.assertEqual(output, expected[rank],
+                             ("rank {} Expect receive tensor {} but got {}.").format(rank, expected[rank], output))
+        for _ in range(world_size):
+            p2c.put(0)
+        for p in ps:
+            p.join()
+
 
 class HcclReduceScatterTest(HcclReduceScatterTestBase):
 
@@ -76,6 +121,28 @@ class HcclReduceScatterTest(HcclReduceScatterTestBase):
         pg = init_pg(rank, world_size)
         input_list_npu = [input.npu() for input in input_list]
         output = torch.empty_like(input_list_npu[rank])
+        pg.reduce_scatter(output, input_list_npu, reduce_op)
+        c2p.put((rank, output.cpu()))
+        pg.barrier()
+        p2c.get()
+
+    @classmethod
+    # pylint:disable=huawei-too-many-arguments
+    # input_shapes/out_shape are built per-rank with deterministic values so
+    # the expected result can be computed locally.
+    def _test_reduce_scatter_lifted(cls, rank, input_shapes, out_shape, world_size, init_pg, c2p, p2c,
+                                    reduce_op=dist.ReduceOp.SUM):
+        pg = init_pg(rank, world_size)
+        input_list_npu = []
+        offset = 0
+        for s in input_shapes:
+            n = 1
+            for d in s:
+                n *= d
+            vals = torch.arange(offset, offset + n, dtype=torch.float32) + rank * 10000.0
+            input_list_npu.append(vals.reshape(s).npu())
+            offset += n
+        output = torch.zeros(out_shape, dtype=torch.float32).npu()
         pg.reduce_scatter(output, input_list_npu, reduce_op)
         c2p.put((rank, output.cpu()))
         pg.barrier()
@@ -160,6 +227,44 @@ class HcclReduceScatterTest(HcclReduceScatterTestBase):
                 cpu_excepted_result = self._construct_excepted_result(input_list, world_size, dist.reduce_scatter)
                 self._test_multiprocess(HcclReduceScatterTest._test_reduce_scatter,
                                         HcclReduceScatterTest._init_dist_hccl, cpu_excepted_result, input_list, world_size)
+
+    @SupportedDevices(['Ascend910B', 'Ascend910_93', 'Ascend950'])
+    @skipIfUnsupportMultiNPU(2)
+    def test_reduce_scatter_single_tensor(self):
+        # Single-tensor input list (length 1 != world_size). A single long tensor
+        # of length world_size*out_numel is split evenly across ranks.
+        ranks = [2]
+        for world_size in ranks:
+            out_shape = [4]
+            input_shapes = [[world_size * 4]]  # one tensor, len == world_size*out_numel
+            self._test_multiprocess_lifted(HcclReduceScatterTest._test_reduce_scatter_lifted,
+                                           HcclReduceScatterTest._init_dist_hccl, input_shapes, out_shape, world_size)
+
+    @SupportedDevices(['Ascend910B', 'Ascend910_93', 'Ascend950'])
+    @skipIfUnsupportMultiNPU(2)
+    def test_reduce_scatter_input_list_not_equal_world_size(self):
+        # input_list length differs from world_size: N < ws (zero pad) and N > ws (tail ignore).
+        ranks = [2]
+        for world_size in ranks:
+            out_shape = [4]
+            # N=1 < ws: have=4 < need=8, trailing rank gets zero pad
+            self._test_multiprocess_lifted(HcclReduceScatterTest._test_reduce_scatter_lifted,
+                                           HcclReduceScatterTest._init_dist_hccl, [[4]], out_shape, world_size)
+            # N=3 > ws: have=12 > need=8, the 3rd tensor is ignored
+            self._test_multiprocess_lifted(HcclReduceScatterTest._test_reduce_scatter_lifted,
+                                           HcclReduceScatterTest._init_dist_hccl, [[4]] * 3, out_shape, world_size)
+
+    @SupportedDevices(['Ascend910B', 'Ascend910_93', 'Ascend950'])
+    @skipIfUnsupportMultiNPU(2)
+    def test_reduce_scatter_input_numel_not_equal_output(self):
+        # N == world_size but per-tensor numel != output numel: have > need (tail ignore).
+        ranks = [2]
+        for world_size in ranks:
+            out_shape = [4]
+            # each tensor has 6 elements, output 4: have=12 > need=8, tail 2 elements per tensor ignored
+            input_shapes = [[6]] * world_size
+            self._test_multiprocess_lifted(HcclReduceScatterTest._test_reduce_scatter_lifted,
+                                           HcclReduceScatterTest._init_dist_hccl, input_shapes, out_shape, world_size)
 
     @skipIfUnsupportMultiNPU(2)
     def test_reduce_scatter_avg(self):
