@@ -1,0 +1,91 @@
+diff --git a/test/test_cuda.py b/test/test_cuda.py
+index 72a4e5e..9f7cdc5 100644
+--- a/test/test_cuda.py
++++ b/test/test_cuda.py
+@@ -26,6 +26,11 @@ import torch
+ import torch.cuda
+ import torch.nn as nn
+ from torch import inf, nan
++import torch_npu
++from torch_npu.contrib import transfer_to_npu
++
++if torch.cuda.get_device_capability() is None:
++    torch.cuda.get_device_capability = lambda device=None: (0, 0)  # noqa: E731
+ from torch.cuda._memory_viz import (
+     _profile_to_snapshot,
+     profile_plot,
+@@ -2135,15 +2140,17 @@ torch.cuda.synchronize()
+ 
+         self.assertEqual(b.sum().item(), 11000.0)
+ 
++    @skipCUDAMemoryLeakCheckIf(True)
++    @skipCUDANonDefaultStreamIf(True)
+     @unittest.skipIf(
+-        not TEST_CUDA_GRAPH, "CUDA >= 11.0 or ROCM >= 5.3 required for graphs"
++        not torch.npu.is_available(), "NPU not available, skipping tests"
+     )
+     def test_graphsafe_set_get_rng_state(self):
+         # Define a function to create generator states, with optional graph registration
+         def create_states(generator):
+-            """Initializes generator states and registers them with a CUDA graph if provided."""
+-            # Ensure the CUDA generator is initialized
+-            torch.rand(1, device="cuda")
++            """Initializes generator states and registers them with a NPU graph if provided."""
++            # Ensure the NPU generator is initialized
++            torch.rand(1, device="npu")
+             generator.manual_seed(0)
+ 
+             # Save the current state of the generator
+@@ -2165,12 +2172,12 @@ torch.cuda.synchronize()
+ 
+             # Generate random numbers with the new generator state
+             generator.graphsafe_set_state(new_state)
+-            random_values.append(torch.rand(5, device="cuda", generator=generator))
++            random_values.append(torch.rand(5, device="npu", generator=generator))
+ 
+             # Generate random numbers twice with the old generator state
+             generator.graphsafe_set_state(old_state)
+             random_values.extend(
+-                [torch.rand(5, device="cuda", generator=generator) for _ in range(2)]
++                [torch.rand(5, device="npu", generator=generator) for _ in range(2)]
+             )
+ 
+             return random_values
+@@ -2182,19 +2189,20 @@ torch.cuda.synchronize()
+             new_state_offset = new_state.get_offset()
+             return old_state_offset, new_state_offset
+ 
+-        # Set up and test a new CUDA generator
+-        generator = torch.Generator(device="cuda")
++        # Set up and test a new NPU generator
++        generator = torch.Generator(device="npu")
+         generator_state = create_states(generator)
+ 
+-        # Set up and test the default CUDA generator with a CUDA Graph
+-        g = torch.cuda.CUDAGraph()
+-        s = torch.cuda.Stream()
+-        default_generator = torch.cuda.default_generators[0]
++        # Set up and test the default NPU generator with a NPU Graph
++        g = torch.npu.NPUGraph()
++        s = torch.npu.Stream()
++        torch.rand(1, device="npu")
++        default_generator = torch.npu.default_generators[0]
+         default_generator_state = create_states(default_generator)
+         register_states_to_graph(default_generator_state, g)
+ 
+-        # Perform random number generation within a CUDA graph
+-        with torch.cuda.stream(s):
++        # Perform random number generation within a NPU graph
++        with torch.npu.stream(s):
+             g.capture_begin()
+             graphed_random_values = perform_random_generation_steps(
+                 default_generator_state
+@@ -2202,7 +2210,7 @@ torch.cuda.synchronize()
+             g.capture_end()
+ 
+         # Synchronize the streams and replay the graph
+-        torch.cuda.current_stream().wait_stream(s)
++        torch.npu.current_stream().wait_stream(s)
+         for _ in range(3):
+             random_values = perform_random_generation_steps(generator_state)
+             g.replay()
