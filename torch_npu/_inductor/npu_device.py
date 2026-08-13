@@ -2,7 +2,7 @@ import torch
 from torch._inductor.codegen.common import register_device_op_overrides
 from torch_npu.npu import device_count
 from torch_npu.utils._dynamo_device import NpuInterface, current_device, set_device
-from torch_npu.utils._inductor import NPUDeviceOpOverrides
+from torch_npu.utils._device_op_overrides import NPUDeviceOpOverrides
 from . import config as npu_config
 
 

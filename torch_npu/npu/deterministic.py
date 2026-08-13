@@ -2,9 +2,15 @@ import torch
 
 from torch import Tensor
 from torch.autograd.function import Function
-from torch._dynamo.decorators import forbid_in_graph
 
 __all__ = ["enable_deterministic_with_backward", "disable_deterministic_with_backward"]
+
+
+def _forbid_in_graph(fn):
+    if isinstance(fn, (list, tuple)):
+        return [_forbid_in_graph(x) for x in fn]
+    fn._dynamo_forbidden = True
+    return fn
 
 
 class _DeterministicAlgorithmsBeginOp(Function):
@@ -36,11 +42,11 @@ class _DeterministicAlgorithmsEndOp(Function):
         return grad_outputs
 
 
-@forbid_in_graph
+@_forbid_in_graph
 def enable_deterministic_with_backward(tensor: Tensor):
     return _DeterministicAlgorithmsBeginOp.apply(tensor)
 
 
-@forbid_in_graph
+@_forbid_in_graph
 def disable_deterministic_with_backward(tensor: Tensor):
     return _DeterministicAlgorithmsEndOp.apply(tensor)

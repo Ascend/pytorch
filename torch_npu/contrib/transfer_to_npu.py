@@ -2,6 +2,7 @@ import os
 import warnings
 import json
 import collections
+import importlib
 import importlib.metadata
 import logging as logger
 import functools
@@ -526,6 +527,19 @@ def _init():
 
     _patch_jit_script()
 
+    # transfer_to_npu patches these modules during its own import. Import them
+    # explicitly instead of relying on torch_npu import side effects.
+    # Use importlib to avoid shadowing the module-level ``torch`` binding.
+    importlib.import_module("torch._dynamo.trace_rules")
+    importlib.import_module("torch._dynamo.utils")
+    importlib.import_module("torch._inductor.runtime.autotune_cache")
+    importlib.import_module("torch._inductor.compile_fx")
+    importlib.import_module("torch._inductor.utils")
+    importlib.import_module("torch._inductor.fx_passes.post_grad")
+    importlib.import_module("torch._inductor.fx_passes.joint_graph")
+    importlib.import_module("torch._inductor.autotune_process")
+    filesystem = importlib.import_module("torch.distributed.checkpoint.filesystem")
+
     torch._dynamo.trace_rules._disallowed_callable_ids.function_ids = None
 
     _do_wrapper_libraries_func(_load_json_file(config_path))
@@ -541,7 +555,7 @@ def _init():
     setattr(torch._inductor.autotune_process, "get_gpu_type", _get_npu_type)
 
     setattr(torch._utils, '_get_available_device_type', _patch_get_available_device_type)
-    setattr(torch.distributed.checkpoint.filesystem._OverlappingCpuLoader, '__init__',
+    setattr(filesystem._OverlappingCpuLoader, '__init__',
             _patch_OverlappingCpuLoader_init_)
 
     _replace_to_method_in_allowed_methods()

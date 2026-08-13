@@ -1,5 +1,5 @@
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.utils._inductor import NPUDeviceOpOverrides
+from torch_npu.utils._device_op_overrides import NPUDeviceOpOverrides
 
 
 class TestInductor():

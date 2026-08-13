@@ -1,10 +1,12 @@
+import importlib
+import importlib.abc
+import functools
 import inspect
+import logging
 import os
 import sys
-import logging
+import threading
 from typing import Any, Optional, TYPE_CHECKING
-import importlib
-import functools
 
 import torch
 import torch_npu
@@ -15,8 +17,9 @@ use_jit_script = False
 log = logging.getLogger(__name__)
 
 def _create_npu_autocast_mode_variable(func, args, kwargs):
-    from torch._dynamo.variables.ctx_manager import AutocastModeVariable
     from torch._dynamo.variables.base import VariableTracker
+    from torch._dynamo.variables.ctx_manager import AutocastModeVariable
+
     bound_args = inspect.signature(func).bind(*args, **kwargs)
     bound_args.apply_defaults()
     target_values = []
@@ -34,12 +37,13 @@ def _create_npu_autocast_mode_variable(func, args, kwargs):
         else:
             target_values.append(arg)
 
-    var = AutocastModeVariable(target_values, initial_values=None, **kwargs)
-    return var
+    return AutocastModeVariable(target_values, initial_values=None, **kwargs)
+
 
 def patch_SkipFunctionVariable():
     from torch._dynamo.variables.functions import SkipFunctionVariable
     from torch._dynamo.variables.torch import TorchInGraphFunctionVariable
+
     def SkipFunctionVariable__new__(cls, value, reason=None, **kwargs):
         if value in [
             torch.npu.stream,
@@ -52,11 +56,12 @@ def patch_SkipFunctionVariable():
     SkipFunctionVariable.__new__raw = SkipFunctionVariable.__new__
     SkipFunctionVariable.__new__ = SkipFunctionVariable__new__
 
+
 def patch_TensorVariable_call_method():
-    from torch._dynamo.variables.tensor import TensorVariable
     from torch._dynamo.utils import tensortype_to_dtype
     from torch._dynamo.variables.constant import ConstantVariable
     from torch._dynamo.variables.lists import TupleVariable
+    from torch._dynamo.variables.tensor import TensorVariable
 
     def TensorVariable_call_method(self, tx, name, args, kwargs):
         if (
@@ -66,16 +71,21 @@ def patch_TensorVariable_call_method():
             and isinstance(self.device, torch.device)
             and self.device.type == "npu"
         ):
-            tensortype = next(k for k, v in tensortype_to_dtype.items() if self.dtype in v)
-            constant_result = ConstantVariable.create(f"torch.npu.{tensortype.__name__}")
+            tensortype = next(
+                k for k, v in tensortype_to_dtype.items() if self.dtype in v
+            )
+            constant_result = ConstantVariable.create(
+                f"torch.npu.{tensortype.__name__}"
+            )
 
             if len(args) == 1:
                 return constant_result.getitem_const(args[0])
-            elif args:
-                return TupleVariable([constant_result.getitem_const(a) for a in args])
+            if args:
+                return TupleVariable(
+                    [constant_result.getitem_const(a) for a in args]
+                )
             return constant_result
-        else:
-            return TensorVariable.call_method_raw(self, tx, name, args, kwargs)
+        return TensorVariable.call_method_raw(self, tx, name, args, kwargs)
 
     TensorVariable.call_method_raw = TensorVariable.call_method
     TensorVariable.call_method = TensorVariable_call_method
@@ -97,6 +107,7 @@ class _InductorNpuRegistry:
             else:
                 sys.modules["torch_npu._inductor"]._load_backend()
             cls._loaded_backend = current
+
     @classmethod
     def disable_register(cls):
         cls._disabled_register = True
@@ -126,17 +137,21 @@ def register_inductor_npu():
     _InductorNpuRegistry.register_inductor_npu()
 
 
-def _resolve_npu_backend_from_wrapper(wrapper) -> str:
-    """Resolve npu backend with priority: wrapper options > global config > env."""
-    wrapper_backend = wrapper.config.get("npu_backend")
-    if wrapper_backend not in (None, "", "default"):
-        return wrapper_backend
+def _resolve_npu_backend(selected_backend=None) -> str:
+    """Resolve NPU backend with priority: compile options > config > env."""
+    if selected_backend not in (None, "", "default"):
+        return selected_backend
 
-    global_backend = getattr(torch._inductor.config, "npu_backend", None)
+    inductor_config = sys.modules.get("torch._inductor.config")
+    global_backend = getattr(inductor_config, "npu_backend", None)
     if global_backend not in (None, "", "default"):
         return global_backend
 
     return os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default")
+
+
+def _resolve_npu_backend_from_wrapper(wrapper) -> str:
+    return _resolve_npu_backend(wrapper.config.get("npu_backend"))
 
 
 class _NpuBackendScope:
@@ -148,33 +163,40 @@ class _NpuBackendScope:
 
     def __enter__(self):
         self._old_env = os.environ.get("TORCHINDUCTOR_NPU_BACKEND")
-        os.environ["TORCHINDUCTOR_NPU_BACKEND"] = self.backend
-        register_inductor_npu()
-        if self.backend == "ascendc":
-            from torch_npu._inductor.deterministic_cache import (
-                patch_npu_deterministic_level_cache_keys,
-            )
+        try:
+            os.environ["TORCHINDUCTOR_NPU_BACKEND"] = self.backend
+            register_inductor_npu()
+            if self.backend == "ascendc":
+                from torch_npu._inductor.deterministic_cache import (
+                    patch_npu_deterministic_level_cache_keys,
+                )
 
-            patch_npu_deterministic_level_cache_keys()
+                patch_npu_deterministic_level_cache_keys()
+        except BaseException:
+            self._restore_backend_env()
+            raise
         return self
 
     def __exit__(self, exc_type, exc, tb):
+        self._restore_backend_env()
+        return False
+
+    def _restore_backend_env(self):
         if self._old_env is None:
             os.environ.pop("TORCHINDUCTOR_NPU_BACKEND", None)
         else:
             os.environ["TORCHINDUCTOR_NPU_BACKEND"] = self._old_env
-        return False
 
 
 def patch_inductor_wrapper():
-    from typing import Any
+    from typing import Any, Optional
 
     from torch import _TorchCompileInductorWrapper
     from torch.utils._config_module import _ConfigEntry, Config, ConfigModule
 
-    src_call = _TorchCompileInductorWrapper.__call__
     src_init = _TorchCompileInductorWrapper.__init__
     src_get_config_copy = ConfigModule.get_config_copy
+    src_call = _TorchCompileInductorWrapper.__call__
 
     def new_call(self, model_, inputs_):
         backend = _resolve_npu_backend_from_wrapper(self)
@@ -189,12 +211,12 @@ def patch_inductor_wrapper():
 
     def new_get_config_copy(self) -> dict[str, Any]:
         ori_dict = src_get_config_copy(self)
-        if self is not torch._inductor.config:
+        inductor_config = sys.modules.get("torch._inductor.config")
+        if inductor_config is None or self is not inductor_config:
             return ori_dict
         if "npu_backend" not in ori_dict:
             ori_dict["npu_backend"] = "default"
             cfg = Config(default="default", value_type=str)
-            # PyTorch >=2.12 added a required `name` arg to _ConfigEntry.
             if "name" in inspect.signature(_ConfigEntry.__init__).parameters:
                 self._config["npu_backend"] = _ConfigEntry(cfg, "npu_backend")
             else:
@@ -202,11 +224,20 @@ def patch_inductor_wrapper():
         return ori_dict
 
     def new_init(self, mode, options, dynamic, name=None):
-        add_dynamo_methods_init()
-        if name is not None:
-            src_init(self, mode, options, dynamic, name)
-        else:
-            src_init(self, mode, options, dynamic)
+        self._npu_defer_shape_handling = True
+        self._npu_shape_handling_requested = False
+        try:
+            if name is not None:
+                src_init(self, mode, options, dynamic, name)
+            else:
+                src_init(self, mode, options, dynamic)
+            shape_handling_requested = self._npu_shape_handling_requested
+        finally:
+            del self._npu_defer_shape_handling
+            del self._npu_shape_handling_requested
+        _setup_inductor_for_compile(self.config)
+        if shape_handling_requested:
+            torch_npu._inductor.patch_shape_handling()
         backend = _resolve_npu_backend_from_wrapper(self)
         if backend == "mlir":
             with _NpuBackendScope(backend):
@@ -220,15 +251,14 @@ def patch_inductor_wrapper():
     _TorchCompileInductorWrapper.__call__ = new_call
     _TorchCompileInductorWrapper.__init__ = new_init
     ConfigModule.get_config_copy = new_get_config_copy
-    torch._inductor.config.get_config_copy()
 
 
 def patch_dynamo_optimize():
     from torch_npu.dynamo import _get_global_npu_backend
+
     src_optimize = torch._dynamo.optimize
 
     def npu_optimize(*args, **kwargs):
-        add_dynamo_methods_init()
         backend = None
         if "backend" in kwargs:
             backend = kwargs["backend"]
@@ -417,40 +447,134 @@ def patch_user_defined_class_variable():
     UserDefinedClassVariable.__new__raw = UserDefinedClassVariable.__new__
     UserDefinedClassVariable.__new__ = UserDefinedClassVariable__new__
 
+
 def run_once(f):
-    """Runs a function (successfully) only once.
-    The running can be reset by setting the `has_run` attribute to False
-    """
+    """Run a function successfully only once, waiting for concurrent callers."""
+    condition = threading.Condition()
+
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
-        if not wrapper.has_run:
+        thread_id = threading.get_ident()
+        with condition:
+            while wrapper._is_running:
+                if wrapper._running_thread == thread_id:
+                    return None
+                condition.wait()
+            if wrapper.has_run:
+                return None
+            wrapper._is_running = True
+            wrapper._running_thread = thread_id
+
+        try:
             result = f(*args, **kwargs)
+        except BaseException:
+            with condition:
+                wrapper._is_running = False
+                wrapper._running_thread = None
+                condition.notify_all()
+            raise
+
+        with condition:
             wrapper.has_run = True
-            return result
-        return None
+            wrapper._is_running = False
+            wrapper._running_thread = None
+            condition.notify_all()
+        return result
+
     wrapper.has_run = False
+    wrapper._is_running = False
+    wrapper._running_thread = None
+
+    def reset_after_fork():
+        # The parent thread running f may not exist in the child process.
+        nonlocal condition
+        condition = threading.Condition()
+        wrapper._is_running = False
+        wrapper._running_thread = None
+
+    try:
+        os.register_at_fork(after_in_child=reset_after_fork)
+    except AttributeError:
+        pass
     return wrapper
 
 
-@run_once
-def _dynamo_register_interface_for_device():
-    from torch._dynamo.device_interface import register_interface_for_device
-    from torch_npu.utils._dynamo_device import NpuInterface
+_COMPLETED_DYNAMO_SETUP_STEPS = set()
 
-    register_interface_for_device("npu", NpuInterface)
-    for i in range(32):
 
-        register_interface_for_device(f"npu:{i}", NpuInterface)
+def _run_dynamo_setup_step(name, setup):
+    """Keep successful setup steps idempotent when a later step fails."""
+    if name in _COMPLETED_DYNAMO_SETUP_STEPS:
+        return
+    setup()
+    _COMPLETED_DYNAMO_SETUP_STEPS.add(name)
+
+
+def _find_spec_without_finder(finder, fullname):
+    """Delegate to the remaining meta-path finders without bypassing them."""
+    try:
+        index = sys.meta_path.index(finder)
+    except ValueError:
+        return importlib.util.find_spec(fullname)
+
+    sys.meta_path.pop(index)
+    try:
+        return importlib.util.find_spec(fullname)
+    finally:
+        sys.meta_path.insert(min(index, len(sys.meta_path)), finder)
+
+
+class _DynamoPostImportLoader(importlib.abc.Loader):
+    def __init__(self, loader, finder):
+        self._loader = loader
+        self._finder = finder
+
+    def create_module(self, spec):
+        create_module = getattr(self._loader, "create_module", None)
+        return create_module(spec) if create_module is not None else None
+
+    def exec_module(self, module):
+        self._loader.exec_module(module)
+        _lazy_dynamo_setup()
+        if self._finder in sys.meta_path:
+            sys.meta_path.remove(self._finder)
+
+
+class _DynamoPostImportFinder(importlib.abc.MetaPathFinder):
+    _target = "torch._dynamo"
+
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname != self._target:
+            return None
+        spec = _find_spec_without_finder(self, fullname)
+        if spec is not None and spec.loader is not None:
+            spec.loader = _DynamoPostImportLoader(spec.loader, self)
+        return spec
+
+
+def _install_dynamo_post_import_trigger():
+    """Set up NPU integration whenever Dynamo is first imported."""
+    if "torch._dynamo" in sys.modules:
+        _lazy_dynamo_setup()
+        return
+    if not any(isinstance(finder, _DynamoPostImportFinder) for finder in sys.meta_path):
+        sys.meta_path.insert(0, _DynamoPostImportFinder())
+
 
 @run_once
 def add_dynamo_methods_init():
-    _dynamo_register_interface_for_device()
-    patch_SkipFunctionVariable()
-    patch_TensorVariable_call_method()
-    patch_stream_event_variable_python_type()
-    patch_npu_stream_context()
-    patch_npu_current_stream()
-    patch_user_defined_class_variable()
+    steps = (
+        ("device_interface", _dynamo_register_interface_for_device),
+        ("skip_function_variable", patch_SkipFunctionVariable),
+        ("tensor_variable", patch_TensorVariable_call_method),
+        ("user_defined_class_variable", patch_user_defined_class_variable),
+        ("stream_event_variable", patch_stream_event_variable_python_type),
+        ("npu_stream_context", patch_npu_stream_context),
+        ("npu_current_stream", patch_npu_current_stream),
+        ("builtin_variable", patch_builtin_variable),
+    )
+    for name, setup in steps:
+        _run_dynamo_setup_step(name, setup)
 
 
 @functools.lru_cache(None)
@@ -492,11 +616,91 @@ def has_triton() -> bool:
 
 
 def patch_has_triton():
-    torch.utils._triton.has_triton = has_triton
+    from torch.utils import _triton
+
+    _triton.has_triton = has_triton
+
+
+@run_once
+def _inject_inductor_npu_backend_config():
+    """Inject NPU entries into torch._inductor.config on first use."""
+    torch._inductor.config.get_config_copy()
+
+
+@run_once
+def _lazy_dynamo_setup():
+    """Initialize the Dynamo integration on the first graph-capture operation."""
+    add_dynamo_methods_init()
+
+    from torch_npu.dynamo import _register_backends
+    _run_dynamo_setup_step("backends", _register_backends)
+
+    from torch_npu.dynamo.trace_rule import _patch_npu_trace_rules
+    _run_dynamo_setup_step("trace_rules", _patch_npu_trace_rules)
+
+    _run_dynamo_setup_step("dynamo_optimize", patch_dynamo_optimize)
+
+
+@run_once
+def _lazy_inductor_setup():
+    """Initialize NPU Inductor support only for an Inductor-based backend."""
+    register_inductor_npu()
+
+    from torch_npu.utils._graph_tree import _apply_npugraph_tree_methods
+    _apply_npugraph_tree_methods()
+
+    _inject_inductor_npu_backend_config()
+
+
+def _setup_inductor_for_compile(options=None):
+    """Initialize the NPU Inductor backend selected for this compile call."""
+    _lazy_dynamo_setup()
+
+    option_backend = options.get("npu_backend") if isinstance(options, dict) else None
+    selected_backend = _resolve_npu_backend(option_backend)
+
+    old_backend = os.environ.get("TORCHINDUCTOR_NPU_BACKEND")
+    if selected_backend not in (None, "", "default"):
+        os.environ["TORCHINDUCTOR_NPU_BACKEND"] = selected_backend
+    try:
+        _lazy_inductor_setup()
+    finally:
+        if old_backend is None:
+            os.environ.pop("TORCHINDUCTOR_NPU_BACKEND", None)
+        else:
+            os.environ["TORCHINDUCTOR_NPU_BACKEND"] = old_backend
+    return selected_backend
+
+
+@run_once
+def install_npugraph_mark_step_trigger():
+    """Expose the public NPUGraph step API without importing compiler internals."""
+    def npugraph_mark_step_begin():
+        from torch_npu.npu._graph_tree_state import mark_step_begin
+        return mark_step_begin()
+
+    torch.compiler.npugraph_mark_step_begin = npugraph_mark_step_begin
+
+
+@run_once
+def _dynamo_register_interface_for_device():
+    from torch._dynamo.device_interface import register_interface_for_device
+    from torch_npu.utils._dynamo_device import NpuInterface
+
+    register_interface_for_device("npu", NpuInterface)
+    for i in range(32):
+        register_interface_for_device(f"npu:{i}", NpuInterface)
 
 
 def add_dynamo_methods():
-    patch_dynamo_optimize()
-    patch_builtin_variable()
-    patch_inductor_wrapper()
     patch_has_triton()
+
+    from torch_npu.dynamo import _install_lazy_torchair
+
+    _install_lazy_torchair()
+    _install_dynamo_post_import_trigger()
+    if "npugraph_ex" not in sys.modules:
+        from torch_npu.dynamo import _LazyNpuGraphEx
+        sys.modules["npugraph_ex"] = _LazyNpuGraphEx("npugraph_ex")
+    patch_inductor_wrapper()
+    install_npugraph_mark_step_trigger()
