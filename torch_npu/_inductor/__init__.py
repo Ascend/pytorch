@@ -111,7 +111,6 @@ def _load_triton_backend():
         _register_npu_inductor_flex_attention,
         _register_npu_inductor_grouped_mm,
         _register_npu_inductor_mm,
-        _validate_device,
         patch_flex_attention,
     )
     from .lowering import make_reduction
@@ -125,7 +124,6 @@ def _load_triton_backend():
 
     from .graph import patch_count_bytes
     from .autotune_process import patch_tuning_process
-    flex_attention._validate_device = _validate_device
     patch_flex_attention()
 
     def _patch_flex_attention_singleton_sort():
