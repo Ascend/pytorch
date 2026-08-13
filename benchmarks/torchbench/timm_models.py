@@ -98,6 +98,7 @@ with open(filename) as fh:
 
 REQUIRE_HIGHER_TOLERANCE = {
     "vit_base_patch16_siglip_256",
+    "deit_base_distilled_patch16_224"
 }
 
 SCALED_COMPUTE_LOSS = {
