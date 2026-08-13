@@ -136,6 +136,7 @@ def _load_triton_backend():
         _register_npu_inductor_flex_attention,
         _register_npu_inductor_grouped_mm,
         _register_npu_inductor_mm,
+        _register_npu_inductor_multi_slice_concat,
         _validate_device,
         patch_flex_attention,
     )
@@ -216,6 +217,8 @@ def _load_triton_backend():
         _register_npu_inductor_addmm()
         _register_npu_inductor_bmm()
         _register_npu_inductor_grouped_mm()
+        if npu_config.enable_multi_slice_concat:
+            _register_npu_inductor_multi_slice_concat()
 
     _register_npu_inductor_flex_attention()
 

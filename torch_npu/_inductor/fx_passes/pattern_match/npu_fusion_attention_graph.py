@@ -95,15 +95,15 @@ class NpuGraphAttentionFunction(Function):
     def forward(ctx, query, key, value, head_num, input_layout, pse=None, padding_mask=None, atten_mask=None, scale=1.0,
                 keep_prob=1.0, pre_tockens=2147483647, next_tockens=2147483647, inner_precise=0, prefix=None,
                 actual_seq_qlen=None, actual_seq_kvlen=None, sparse_mode=0, gen_mask_parallel=True, sync=False):
-        # 前向传播逻辑
-        # 这里假设有一个实现前向传播的函数 `npu_fusion_attention_forward`
+        # forward pass logic
+        # assumes a function `npu_fusion_attention_forward` implementing the forward pass
         result0, result1, result2, result3, result4, result5, result6 = torch.ops.npu_graph.npu_fa(
             query, key, value, head_num, input_layout, pse=pse, padding_mask=padding_mask, atten_mask=atten_mask,
             scale=scale, keep_prob=keep_prob, pre_tockens=pre_tockens, next_tockens=next_tockens,
             inner_precise=inner_precise, prefix=prefix, actual_seq_qlen=actual_seq_qlen,
             actual_seq_kvlen=actual_seq_kvlen, sparse_mode=sparse_mode, gen_mask_parallel=gen_mask_parallel, sync=sync
         )
-        # 保存中间结果，以便在反向传播中使用
+        # save intermediates for use in the backward pass
         ctx.save_for_backward(query, key, value, pse, padding_mask, atten_mask, result1, result2, result3, result0,
                               result4, result5, result6)
         ctx.head_num = head_num
@@ -124,10 +124,10 @@ class NpuGraphAttentionFunction(Function):
 
     @staticmethod
     def backward(ctx, grad_result0, grad_result1, grad_result2, grad_result3, grad_result4, grad_result5, grad_result6):
-        # 获取保存的中间结果
+        # retrieve the saved intermediates
         query, key, value, pse, padding_mask, atten_mask, result1, result2, result3, result0, result4, result5, result6 = ctx.saved_tensors
-        # 反向传播逻辑
-        # 这里假设有一个实现反向传播的函数 `npu_fusion_attention_backward`
+        # backward pass logic
+        # assumes a function `npu_fusion_attention_backward` implementing the backward pass
         grad_query, grad_key, grad_value, grad_pse, grad_sink = torch.ops.npu_graph.npu_fa_backward(
             query, key, value, grad_result0, ctx.head_num, ctx.input_layout, pse=pse, padding_mask=padding_mask,
             atten_mask=atten_mask, softmax_max=result1, softmax_sum=result2, softmax_in=result3, attention_in=result0,
