@@ -901,7 +901,10 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
       .def(
           "reset",
           torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::reset))
-      .def("pool", torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::pool))
+      .def(
+          "pool",
+          torch::wrap_pybind_function_no_gil(
+              py::overload_cast<>(&c10_npu::NPUGraph::pool)))
       .def(
           "debug_dump",
           torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::debug_dump),
@@ -957,7 +960,7 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
       .def_static(
           "get_currently_capturing_graph",
           torch::wrap_pybind_function_no_gil(
-              &c10_npu::NPUGraph::get_currently_capturing_graph),
+              &c10_npu::NPUGraph::get_currently_capturing_npu_graph),
           py::return_value_policy::reference)
       .def(
           "begin_capture_to_if_node",

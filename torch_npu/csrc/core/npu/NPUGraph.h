@@ -98,6 +98,9 @@ struct TORCH_NPU_API NPUGraph {
   NPUGraph& operator=(NPUGraph&&) = delete;
 
   static NPUGraph* get_currently_capturing_graph();
+  // Returns the currently capturing NPUGraph. Throws if it is owned by
+  // torch.accelerator.Graph to prevent a potential use-after-free.
+  static NPUGraph* get_currently_capturing_npu_graph();
 
   void register_generator_state(
       c10::intrusive_ptr<at_npu::NPUGeneratorState> state);
@@ -109,6 +112,7 @@ struct TORCH_NPU_API NPUGraph {
   void capture_end();
   void replay();
   void reset();
+  MempoolId_t pool() const;
   MempoolId_t pool();
   void enable_debug_mode();
   void debug_dump(const std::string& debug_path);

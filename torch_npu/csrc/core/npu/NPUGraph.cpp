@@ -19,14 +19,123 @@
 
 #include <ATen/Functions.h>
 #include <ATen/core/CachingHostAllocator.h>
+#include <ATen/core/GraphImplInterface.h>
 
 namespace c10_npu {
 
 static bool _npu_graphs_debug = false;
 static std::mutex _currently_capturing_graphs_mutex;
 static ska::flat_hash_map<CaptureId_t, NPUGraph*> _currently_capturing_graphs;
+static ska::flat_hash_set<NPUGraph*> _currently_capturing_accelerator_graphs;
 
 namespace {
+void register_accelerator_graph_capture(NPUGraph* graph) {
+  std::lock_guard<std::mutex> lock(_currently_capturing_graphs_mutex);
+  const auto inserted =
+      _currently_capturing_accelerator_graphs.emplace(graph).second;
+  TORCH_CHECK(
+      inserted,
+      "This torch.accelerator.Graph instance is already capturing on NPU.",
+      PTA_ERROR(ErrCode::PARAM));
+}
+
+void unregister_accelerator_graph_capture(NPUGraph* graph) {
+  std::lock_guard<std::mutex> lock(_currently_capturing_graphs_mutex);
+  _currently_capturing_accelerator_graphs.erase(graph);
+}
+
+NPUGraph* get_currently_capturing_graph_locked() {
+  auto capture_id = c10_npu::currentStreamCaptureIdMayInitCtx();
+  TORCH_CHECK(
+      capture_id.has_value(),
+      "The current NPU stream is not currently capturing.",
+      PTA_ERROR(ErrCode::PARAM));
+  TORCH_CHECK(
+      _currently_capturing_graphs.count(capture_id.value()),
+      "get_currently_capturing_graph() can be used only between capture_begin() and capture_end(). "
+      "Did you use a stream without making it depend upon the original stream used for capture?",
+      PTA_ERROR(ErrCode::PARAM));
+  return _currently_capturing_graphs.at(capture_id.value());
+}
+
+aclmdlRICaptureMode get_acl_capture_mode(at::GraphCaptureMode capture_mode) {
+  switch (capture_mode) {
+    case at::GraphCaptureMode::Default:
+    case at::GraphCaptureMode::Global:
+      return aclmdlRICaptureMode::ACL_MODEL_RI_CAPTURE_MODE_GLOBAL;
+    case at::GraphCaptureMode::ThreadLocal:
+      return aclmdlRICaptureMode::ACL_MODEL_RI_CAPTURE_MODE_THREAD_LOCAL;
+    case at::GraphCaptureMode::Relaxed:
+      return aclmdlRICaptureMode::ACL_MODEL_RI_CAPTURE_MODE_RELAXED;
+    default:
+      TORCH_CHECK(
+          false,
+          "Invalid GraphCaptureMode value: ",
+          static_cast<int>(capture_mode));
+  }
+  return aclmdlRICaptureMode::ACL_MODEL_RI_CAPTURE_MODE_GLOBAL;
+}
+
+} // namespace
+
+class NPUAcceleratorGraphImpl final : public at::GraphImplInterface {
+ public:
+  explicit NPUAcceleratorGraphImpl(const at::GraphImplArgs& /*args*/) {}
+
+  ~NPUAcceleratorGraphImpl() override {
+    unregister_accelerator_graph_capture(&graph_);
+  }
+
+  void capture_begin(
+      MempoolId_t pool = {0, 0},
+      at::GraphCaptureMode capture_mode =
+          at::GraphCaptureMode::Default) override {
+    register_accelerator_graph_capture(&graph_);
+    try {
+      graph_.capture_begin(pool, get_acl_capture_mode(capture_mode), true);
+    } catch (...) {
+      unregister_accelerator_graph_capture(&graph_);
+      throw;
+    }
+  }
+
+  void capture_end() override {
+    try {
+      graph_.capture_end();
+    } catch (...) {
+      unregister_accelerator_graph_capture(&graph_);
+      throw;
+    }
+    unregister_accelerator_graph_capture(&graph_);
+  }
+
+  void instantiate() override {}
+
+  void replay() override {
+    graph_.replay();
+  }
+
+  void reset() override {
+    unregister_accelerator_graph_capture(&graph_);
+    graph_.reset();
+  }
+
+  MempoolId_t pool() const override {
+    return graph_.pool();
+  }
+
+  void enable_debug_mode() override {
+    graph_.enable_debug_mode();
+  }
+
+  void debug_dump(const std::string& path) override {
+    graph_.debug_dump(path);
+  }
+
+ private:
+  NPUGraph graph_;
+};
+
 void apply_cache_op_info(aclrtStream stream, bool enabled) {
   if (!IsGteCANNVersion("8.5.0", "CANN")) {
     return;
@@ -58,7 +167,6 @@ void begin_allocate_to_pool(
                           .stream(false));
       });
 }
-} // namespace
 
 MempoolId_t graph_pool_handle() {
   // Sets just the second value, to distinguish it from MempoolId_ts created
@@ -434,26 +542,31 @@ void NPUGraph::reset() {
 
 // Returns an id another graph's capture_begin can use to share the same memory
 // pool as this graph.
-MempoolId_t NPUGraph::pool() {
+MempoolId_t NPUGraph::pool() const {
   TORCH_CHECK(
       has_graph_exec_,
       "Called NPUGraph::pool() without a preceding successful capture.");
   return mempool_id_;
 }
 
+MempoolId_t NPUGraph::pool() {
+  return static_cast<const NPUGraph&>(*this).pool();
+}
+
 NPUGraph* NPUGraph::get_currently_capturing_graph() {
   std::unique_lock<std::mutex> lock(_currently_capturing_graphs_mutex);
-  auto capture_id = c10_npu::currentStreamCaptureIdMayInitCtx();
+  return get_currently_capturing_graph_locked();
+}
+
+NPUGraph* NPUGraph::get_currently_capturing_npu_graph() {
+  std::unique_lock<std::mutex> lock(_currently_capturing_graphs_mutex);
+  auto* graph = get_currently_capturing_graph_locked();
   TORCH_CHECK(
-      capture_id.has_value(),
-      "The current NPU stream is not currently capturing.",
-      PTA_ERROR(ErrCode::PARAM));
-  TORCH_CHECK(
-      _currently_capturing_graphs.count(capture_id.value()),
-      "get_currently_capturing_graph() can be used only between capture_begin() and capture_end(). "
-      "Did you use a stream without making it depend upon the original stream used for capture?",
-      PTA_ERROR(ErrCode::PARAM));
-  return _currently_capturing_graphs.at(capture_id.value());
+      !_currently_capturing_accelerator_graphs.count(graph),
+      "torch.npu.NPUGraph.get_currently_capturing_graph() is not supported "
+      "during torch.accelerator.Graph capture.",
+      PTA_ERROR(ErrCode::NOT_SUPPORT));
+  return graph;
 }
 
 std::function<bool(aclrtStream)> NPUGraph::create_allocate_filter() const {
@@ -698,3 +811,7 @@ NPUGraph::~NPUGraph() {
 }
 
 } // namespace c10_npu
+
+namespace at {
+REGISTER_GRAPH_IMPL(NPU, c10_npu::NPUAcceleratorGraphImpl)
+} // namespace at
