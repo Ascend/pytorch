@@ -4291,6 +4291,101 @@ class TestBlockStateAbsorption(TestCase):
         self.assertEqual(rc, "False", "Triton was imported when importing torch!")
 
 
+class TestFXMemoryProfilerNpu(TestCase):
+    """End to end check that augment_with_fx_traces really annotates NPU snapshots.
+
+    Three things all have to hold for a frame to be annotated, and each fails silently:
+    the frame must come from an FX generated file, its metadata must be in
+    torch.fx.traceback._FX_METADATA_REGISTRY, and that registry is only populated
+    when enrich_profiler_metadata is enabled at compile time. The registry is in
+    memory, so the compile has to happen in this same process.
+    """
+
+    class MLPModule(torch.nn.Module):
+        def __init__(self, device):
+            super().__init__()
+            torch.manual_seed(5)
+            self.net1 = torch.nn.Linear(10, 16, bias=True, device=device)
+            self.relu = torch.nn.ReLU()
+            self.net2 = torch.nn.Linear(16, 10, bias=True, device=device)
+
+        def forward(self, x):
+            a = self.net1(x)
+            b = self.relu(a)
+            c = self.net2(b)
+            return c
+
+    @staticmethod
+    def _iter_frames(snapshot):
+        for trace_list in snapshot.get("device_traces", []):
+            for entry in trace_list:
+                if isinstance(entry, dict):
+                    yield from (
+                        f for f in entry.get("frames", []) if isinstance(f, dict)
+                    )
+        for segment in snapshot.get("segments", []):
+            for block in segment.get("blocks", []):
+                yield from (f for f in block.get("frames", []) if isinstance(f, dict))
+
+    def test_snapshot_fx_augmentation_end_to_end(self):
+        if not hasattr(torch._utils, "_augment_memory_snapshot_stack_traces"):
+            self.skipTest("torch._utils._augment_memory_snapshot_stack_traces missing")
+
+        # aot_eager rather than inductor: this exercises FX metadata, which does not
+        # need a codegen backend, so the test does not depend on NPU inductor support.
+        with torch.fx.experimental._config.patch("enrich_profiler_metadata", True):
+            mod = self.MLPModule("npu")
+            torch_npu.npu.empty_cache()
+            torch_npu.npu.memory._record_memory_history()
+            try:
+                compiled = torch.compile(mod, backend="aot_eager", fullgraph=True)
+                compiled(torch.randn(10, 10, device="npu"))
+                snapshot = torch_npu.npu.memory._snapshot(augment_with_fx_traces=True)
+            finally:
+                # No clear_history parameter here, unlike the upstream CUDA helper.
+                torch_npu.npu.memory._record_memory_history(enabled=None)
+
+        self.assertIn("segments", snapshot)
+        self.assertIn("device_traces", snapshot)
+
+        frames = list(self._iter_frames(snapshot))
+        self.assertGreater(len(frames), 0, "snapshot recorded no stack frames at all")
+
+        fx_frames = [f for f in frames if "fx_node_op" in f]
+        seen_files = sorted({os.path.basename(f.get("filename", "")) for f in frames})
+        self.assertGreater(
+            len(fx_frames),
+            0,
+            "no frame carried FX metadata; frame files seen were "
+            f"{seen_files[:15]} and none matched fx_generated_*.py",
+        )
+
+        for frame in fx_frames:
+            self.assertIn("fx_node_op", frame)
+            self.assertIn("fx_node_name", frame)
+            self.assertIn("fx_node_target", frame)
+            self.assertIn("fx_original_trace", frame)
+            self.assertTrue(
+                os.path.basename(frame["filename"]).startswith("fx_generated_"),
+                f"annotated a non FX frame: {frame['filename']}",
+            )
+
+        # The MLP lowers to these three nodes under aot_eager, and each original
+        # trace should point back at the line of forward() that produced it.
+        expected = {
+            "addmm": "a = self.net1(x)",
+            "relu": "b = self.relu(a)",
+            "addmm_1": "c = self.net2(b)",
+        }
+        node_names = {f["fx_node_name"] for f in fx_frames}
+        self.assertTrue(
+            node_names <= set(expected),
+            f"unexpected fx node names: {sorted(node_names)}",
+        )
+        for frame in fx_frames:
+            self.assertIn(expected[frame["fx_node_name"]], frame["fx_original_trace"])
+
+
 instantiate_parametrized_tests(TestNpu)
 
 if __name__ == '__main__':

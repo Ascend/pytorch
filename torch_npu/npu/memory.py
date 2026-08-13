@@ -899,7 +899,7 @@ def _record_memory_history_impl(
     torch_npu._C._npu_record_memory_history(enabled, context, stacks, max_entries)
 
 
-def _snapshot(device=None):
+def _snapshot(device=None, augment_with_fx_traces=False):
     """Save a snapshot of NPU memory state at the time it was called.
 
     The state is represented as a dictionary with the following structure.
@@ -972,13 +972,26 @@ def _snapshot(device=None):
             device_free: int # only present for OOM, the amount of
                             # memory npu still reports to be free
 
+    Args:
+        device: Device to capture snapshot for. If None, captures for current device.
+        augment_with_fx_traces: If True, augment stack trace frames with FX debug information
+                                that maps generated FX code back to original model source code.
+                                This adds fx_node_op, fx_node_name, fx_node_target and
+                                fx_original_trace fields to Frame objects, and only to frames
+                                that come from FX generated files. Requires the FX graphs to
+                                have been compiled in this same process. Default: False.
+
     Returns:
         The Snapshot dictionary object
     """
-    return torch_npu._C._npu_memorySnapshot(None)
+    s = torch_npu._C._npu_memorySnapshot(None)
+    if augment_with_fx_traces:
+        from torch._utils import _augment_memory_snapshot_stack_traces
+        s = _augment_memory_snapshot_stack_traces(s)
+    return s
 
 
-def _dump_snapshot(filename="dump_snapshot.pickle"):
+def _dump_snapshot(filename="dump_snapshot.pickle", augment_with_fx_traces=False):
     """
     Save a pickled version of the `torch.memory._snapshot()` dictionary to a file.
 
@@ -986,8 +999,11 @@ def _dump_snapshot(filename="dump_snapshot.pickle"):
 
     Args:
         filename (str, optional): Name of the file to create. Defaults to "dump_snapshot.pickle".
+        augment_with_fx_traces (bool, optional): If True, augment the snapshot with FX debug
+            information before dumping. This maps generated FX code stack traces back to
+            original model source code. Defaults to False.
     """
-    s = _snapshot()
+    s = _snapshot(augment_with_fx_traces=augment_with_fx_traces)
     with open(filename, "wb") as f:
         pickle.dump(s, f)
 
