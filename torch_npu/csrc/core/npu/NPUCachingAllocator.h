@@ -15,8 +15,7 @@
 #include <atomic>
 
 inline std::shared_ptr<npu_logging::Logger>& GetLoggerMem() {
-  static std::shared_ptr<npu_logging::Logger> loggerMem =
-      npu_logging::logging().getLogger("torch_npu.memory");
+  static std::shared_ptr<npu_logging::Logger> loggerMem = npu_logging::logging().getLogger("torch_npu.memory");
   return loggerMem;
 }
 // macros for log memory
@@ -61,8 +60,7 @@ class FreeMemoryCallback {
 };
 
 C10_DECLARE_REGISTRY(FreeNPUMemoryCallbacksRegistry, FreeMemoryCallback);
-#define REGISTER_FREE_MEMORY_CALLBACK(name, ...) \
-  C10_REGISTER_CLASS(FreeNPUMemoryCallbacksRegistry, name, __VA_ARGS__);
+#define REGISTER_FREE_MEMORY_CALLBACK(name, ...) C10_REGISTER_CLASS(FreeNPUMemoryCallbacksRegistry, name, __VA_ARGS__);
 
 // (Ascend): Turn this into an honest to goodness class. I briefly attempted to
 // do this, but it was a bit irritating to figure out how to also correctly
@@ -180,22 +178,16 @@ enum struct RecordContext {
   ALL = 3, // additionally record stacks for when something is freed
 };
 
-using OutOfMemoryObserver = std::function<void(
-    int64_t device,
-    int64_t allocated,
-    int64_t device_total,
-    int64_t device_free)>;
+using OutOfMemoryObserver =
+    std::function<void(int64_t device, int64_t allocated, int64_t device_total, int64_t device_free)>;
 // Observer called when an allocation is preemptively rejected due to
 // throw_on_npumalloc_oom policy. Parameters:
 //   - device: device index
 //   - alloc_size: size of the rejected allocation request
 //   - total_allocated: total memory allocated before the request
 //   - device_total: total device memory
-using OomRejectionObserver = std::function<void(
-    int64_t device,
-    size_t alloc_size,
-    size_t total_allocated,
-    size_t device_total)>;
+using OomRejectionObserver =
+    std::function<void(int64_t device, size_t alloc_size, size_t total_allocated, size_t device_total)>;
 using AllocatorTraceTracker = std::function<void(const TraceEntry&)>;
 
 struct ShareableHandle {
@@ -205,8 +197,7 @@ struct ShareableHandle {
 
 class NPUAllocator : public c10::DeviceAllocator {
  public:
-  virtual c10::DataPtr allocate_with_aligned(size_t size, size_t aligned)
-      const = 0;
+  virtual c10::DataPtr allocate_with_aligned(size_t size, size_t aligned) const = 0;
   virtual void* raw_alloc(size_t nbytes) = 0;
   virtual void* raw_alloc_with_stream(size_t nbytes, aclrtStream stream) = 0;
   virtual void raw_delete(void* ptr) = 0;
@@ -216,14 +207,9 @@ class NPUAllocator : public c10::DeviceAllocator {
   virtual void emptyCacheImpl(bool check_error, bool free_physical) = 0;
   virtual void emptyCache(bool check_error) = 0;
   virtual void emptyVirtAddrCache(bool check_error) = 0;
-  virtual void cacheInfo(
-      int dev_id,
-      size_t* cachedAndFree,
-      size_t* largestBlock) = 0;
+  virtual void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock) = 0;
   virtual void* getBaseAllocation(void* ptr, size_t* size) = 0;
-  virtual void recordStream(
-      const c10::DataPtr& ptr,
-      c10_npu::NPUStream stream) = 0;
+  virtual void recordStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream) = 0;
   void recordStream(const c10::DataPtr& ptr, c10::Stream stream) override {
     TORCH_CHECK(
         stream.device_type() == c10::DeviceType::PrivateUse1,
@@ -233,13 +219,8 @@ class NPUAllocator : public c10::DeviceAllocator {
     NPUStream npu_stream = NPUStream(stream);
     recordStream(ptr, npu_stream);
   }
-  virtual void eraseStream(
-      const c10::DataPtr& ptr,
-      c10_npu::NPUStream stream) = 0;
-  virtual void eraseStreamWithBlockPtr(
-      void* block_ptr,
-      c10_npu::NPUStream stream,
-      void* work_ptr) = 0;
+  virtual void eraseStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream) = 0;
+  virtual void eraseStreamWithBlockPtr(void* block_ptr, c10_npu::NPUStream stream, void* work_ptr) = 0;
   virtual void* getBlockPtr(const c10::DataPtr& ptr) = 0;
   virtual void recordHcclWorkForBlock(void* block_ptr, void* work_ptr) = 0;
   std::pair<size_t, size_t> getMemoryInfo(c10::DeviceIndex device) override {
@@ -255,9 +236,7 @@ class NPUAllocator : public c10::DeviceAllocator {
       c10::DeviceIndex device,
       MempoolId_t mempool_id,
       std::function<bool(aclrtStream)> filter) = 0;
-  virtual void endAllocateToPool(
-      c10::DeviceIndex device,
-      MempoolId_t mempool_id) = 0;
+  virtual void endAllocateToPool(c10::DeviceIndex device, MempoolId_t mempool_id) = 0;
   virtual void releasePool(c10::DeviceIndex device, MempoolId_t mempool_id) = 0;
   virtual int getPoolUseCount(c10::DeviceIndex device, MempoolId_t mempool_id) {
     TORCH_CHECK(
@@ -267,10 +246,7 @@ class NPUAllocator : public c10::DeviceAllocator {
         "If you need it, please file an issue describing your use case.",
         PTA_ERROR(ErrCode::NOT_SUPPORT));
   }
-  virtual void setUseOnOOM(
-      c10::DeviceIndex device,
-      MempoolId_t mempool_id,
-      bool use_on_oom) {
+  virtual void setUseOnOOM(c10::DeviceIndex device, MempoolId_t mempool_id, bool use_on_oom) {
     TORCH_CHECK(
         false,
         name(),
@@ -332,15 +308,9 @@ class NPUAllocator : public c10::DeviceAllocator {
   virtual void markAllBlockUnsafe(int device) = 0;
   virtual void updateBlockToSafe(const c10::DataPtr& ptr) = 0;
   virtual void cleanEvent() = 0;
-  virtual void buildServerMemMapForHccl(
-      int device,
-      std::shared_ptr<c10d_npu::HCCLComm> hcclComm) {}
-  virtual std::shared_ptr<AllocatorState> getCheckpointState(
-      c10::DeviceIndex device,
-      MempoolId_t id) = 0;
-  virtual CheckpointDelta setCheckpointPoolState(
-      c10::DeviceIndex device,
-      std::shared_ptr<AllocatorState> pps) = 0;
+  virtual void buildServerMemMapForHccl(int device, std::shared_ptr<c10d_npu::HCCLComm> hcclComm) {}
+  virtual std::shared_ptr<AllocatorState> getCheckpointState(c10::DeviceIndex device, MempoolId_t id) = 0;
+  virtual CheckpointDelta setCheckpointPoolState(c10::DeviceIndex device, std::shared_ptr<AllocatorState> pps) = 0;
   // Attached AllocatorTraceTracker callbacks will be called while the
   // per-device allocator lock is held. Any additional locks taken from within
   // the callback must be proven to always have the lock order that never
@@ -374,9 +344,7 @@ inline NPUAllocator* get() {
   return allocator.load();
 }
 
-inline c10::DataPtr allocate_with_aligned(
-    size_t size,
-    size_t base_addr_aligned_kb) {
+inline c10::DataPtr allocate_with_aligned(size_t size, size_t base_addr_aligned_kb) {
   return get()->allocate_with_aligned(size, base_addr_aligned_kb);
 }
 
@@ -440,10 +408,7 @@ inline void eraseStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream) {
   return get()->eraseStream(ptr, stream);
 }
 
-inline void eraseStreamWithBlockPtr(
-    void* block_ptr,
-    c10_npu::NPUStream stream,
-    void* work_ptr) {
+inline void eraseStreamWithBlockPtr(void* block_ptr, c10_npu::NPUStream stream, void* work_ptr) {
   return get()->eraseStreamWithBlockPtr(block_ptr, stream, work_ptr);
 }
 
@@ -471,15 +436,11 @@ inline SnapshotInfo snapshot(MempoolId_t mempool_id = {0, 0}) {
   return get()->snapshot(mempool_id);
 }
 
-inline std::shared_ptr<AllocatorState> getCheckpointState(
-    c10::DeviceIndex device,
-    MempoolId_t id) {
+inline std::shared_ptr<AllocatorState> getCheckpointState(c10::DeviceIndex device, MempoolId_t id) {
   return get()->getCheckpointState(device, id);
 }
 
-inline CheckpointDelta setCheckpointPoolState(
-    c10::DeviceIndex device,
-    std::shared_ptr<AllocatorState> pps) {
+inline CheckpointDelta setCheckpointPoolState(c10::DeviceIndex device, std::shared_ptr<AllocatorState> pps) {
   return get()->setCheckpointPoolState(device, std::move(pps));
 }
 
@@ -532,8 +493,7 @@ inline void recordHistory(
     CreateContextFn context_recorder,
     size_t alloc_trace_max_entries,
     RecordContext when) {
-  return get()->recordHistory(
-      enabled, context_recorder, alloc_trace_max_entries, when);
+  return get()->recordHistory(enabled, context_recorder, alloc_trace_max_entries, when);
 }
 
 inline bool isHistoryEnabled() {
@@ -544,8 +504,7 @@ inline bool checkPoolLiveAllocations(
     c10::DeviceIndex device,
     MempoolId_t mempool_id,
     const std::unordered_set<void*>& expected_live_allocations) {
-  return get()->checkPoolLiveAllocations(
-      device, mempool_id, expected_live_allocations);
+  return get()->checkPoolLiveAllocations(device, mempool_id, expected_live_allocations);
 }
 
 inline void attachOutOfMemoryObserver(OutOfMemoryObserver observer) {
@@ -580,9 +539,7 @@ inline void cleanEvent() {
   return get()->cleanEvent();
 }
 
-inline void buildServerMemMapForHccl(
-    int device,
-    std::shared_ptr<c10d_npu::HCCLComm> hcclComm) {
+inline void buildServerMemMapForHccl(int device, std::shared_ptr<c10d_npu::HCCLComm> hcclComm) {
   return get()->buildServerMemMapForHccl(device, hcclComm);
 }
 
@@ -597,10 +554,7 @@ inline int getPoolUseCount(c10::DeviceIndex device, MempoolId_t mempool_id) {
   return get()->getPoolUseCount(device, mempool_id);
 }
 
-inline void setUseOnOOM(
-    c10::DeviceIndex device,
-    MempoolId_t mempool_id,
-    bool use_on_oom) {
+inline void setUseOnOOM(c10::DeviceIndex device, MempoolId_t mempool_id, bool use_on_oom) {
   get()->setUseOnOOM(device, mempool_id, use_on_oom);
 }
 

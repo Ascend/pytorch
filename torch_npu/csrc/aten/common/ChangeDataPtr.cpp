@@ -6,15 +6,8 @@
 namespace at_npu {
 namespace native {
 
-int64_t NPUNativeFunctions::npu_change_data_ptr(
-    const at::Tensor& dst,
-    const at::Tensor& src,
-    int64_t index) {
-  TORCH_CHECK(
-      index >= 0,
-      "Expect offset(index) equal or greater than zero, got: ",
-      index,
-      PTA_ERROR(ErrCode::VALUE));
+int64_t NPUNativeFunctions::npu_change_data_ptr(const at::Tensor& dst, const at::Tensor& src, int64_t index) {
+  TORCH_CHECK(index >= 0, "Expect offset(index) equal or greater than zero, got: ", index, PTA_ERROR(ErrCode::VALUE));
 
   const auto& src_scalar_type = src.scalar_type();
   const auto& dst_scalar_type = dst.scalar_type();
@@ -28,23 +21,19 @@ int64_t NPUNativeFunctions::npu_change_data_ptr(
       dst_scalar_type,
       PTA_ERROR(ErrCode::TYPE));
   TORCH_CHECK(
-      (src_scalar_type == at::ScalarType::Half) ||
-          (src_scalar_type == at::ScalarType::Float) ||
+      (src_scalar_type == at::ScalarType::Half) || (src_scalar_type == at::ScalarType::Float) ||
           (src_scalar_type == at::ScalarType::BFloat16),
       "Only supports src and dst tensors with dtype float32, float16 or bfloat16, got: ",
       src_scalar_type,
       PTA_ERROR(ErrCode::TYPE));
 
-  auto dst_sizes =
-      torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_.storage_sizes_;
-  auto src_sizes =
-      torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_.storage_sizes_;
+  auto dst_sizes = torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_.storage_sizes_;
+  auto src_sizes = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_.storage_sizes_;
   int64_t dst_storage_size = c10::multiply_integers(dst_sizes);
   int64_t src_storage_size = c10::multiply_integers(src_sizes);
 
   TORCH_CHECK(
-      index + dst_storage_size * dst.element_size() <=
-          src_storage_size * src.element_size(),
+      index + dst_storage_size * dst.element_size() <= src_storage_size * src.element_size(),
       "Offsets overflow, got: ",
       "offset(index) ",
       index,
@@ -56,23 +45,18 @@ int64_t NPUNativeFunctions::npu_change_data_ptr(
 
   at::DataPtr aim_data_ptr;
   if (src_scalar_type == at::ScalarType::Float) {
-    float* data_ptr =
-        static_cast<float*>(src.storage().data_ptr().get()) + index;
+    float* data_ptr = static_cast<float*>(src.storage().data_ptr().get()) + index;
     aim_data_ptr = at::DataPtr(data_ptr, dst.storage().device());
   } else if (src_scalar_type == at::ScalarType::BFloat16) {
-    at::BFloat16* data_ptr =
-        static_cast<at::BFloat16*>(src.storage().data_ptr().get()) + index;
+    at::BFloat16* data_ptr = static_cast<at::BFloat16*>(src.storage().data_ptr().get()) + index;
     aim_data_ptr = at::DataPtr(data_ptr, dst.storage().device());
   } else {
-    at::Half* data_ptr =
-        static_cast<at::Half*>(src.storage().data_ptr().get()) + index;
+    at::Half* data_ptr = static_cast<at::Half*>(src.storage().data_ptr().get()) + index;
     aim_data_ptr = at::DataPtr(data_ptr, dst.storage().device());
   }
   // Flush pending DVM ops before changing data_ptr — their Store nodes
   // reference the current data_ptr which is about to become invalid.
-  if (lazy_fusion::IsEnabled() &&
-      torch_npu::NPUBridge::GetNpuStorageImpl(dst)->lazy_fusion_data_ !=
-          nullptr) {
+  if (lazy_fusion::IsEnabled() && torch_npu::NPUBridge::GetNpuStorageImpl(dst)->lazy_fusion_data_ != nullptr) {
     lazy_fusion::LazyFusionFlush();
   }
   dst.storage().set_data_ptr(std::move(aim_data_ptr));

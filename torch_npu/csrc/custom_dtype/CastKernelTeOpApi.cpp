@@ -19,10 +19,7 @@ at::Tensor cast_to_fp8(const at::Tensor& input, int otype) {
   return output;
 }
 
-void cast_to_fp8_noalloc(
-    const at::Tensor& input,
-    at::Tensor output,
-    int otype) {
+void cast_to_fp8_noalloc(const at::Tensor& input, at::Tensor output, int otype) {
   aclDataType out_acltype = c10_npu::GetAclDataType(otype);
   TensorWrapper out_wrapper = {output, out_acltype};
   EXEC_NPU_CMD(aclnnCast, input, out_acltype, out_wrapper);

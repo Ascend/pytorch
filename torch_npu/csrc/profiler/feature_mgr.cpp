@@ -37,9 +37,7 @@ void FeatureMgr::FormatFeatureList(size_t size, void* featuresData) {
   FeatureRecord* features = static_cast<FeatureRecord*>(featuresData);
   size_t i = 0;
   while ((features != nullptr) && (i < size)) {
-    if (!IsTargetComponent(
-            features->info.affectedComponent,
-            features->info.affectedComponentVersion)) {
+    if (!IsTargetComponent(features->info.affectedComponent, features->info.affectedComponentVersion)) {
       ASCEND_LOGD(
           "feature: %s, component is: %s, componentVersion is: %s",
           features->featureName,
@@ -69,14 +67,10 @@ void FeatureMgr::FormatFeatureList(size_t size, void* featuresData) {
         features->info.affectedComponent,
         features->info.affectedComponentVersion,
         features->info.infoLog);
-    if (tempInfo.compatibility[0] == '\0' ||
-        tempInfo.featureVersion[0] == '\0' ||
-        tempInfo.affectedComponent[0] == '\0' ||
-        tempInfo.affectedComponentVersion[0] == '\0' ||
+    if (tempInfo.compatibility[0] == '\0' || tempInfo.featureVersion[0] == '\0' ||
+        tempInfo.affectedComponent[0] == '\0' || tempInfo.affectedComponentVersion[0] == '\0' ||
         tempInfo.infoLog[0] == '\0') {
-      ASCEND_LOGE(
-          "Create feature info failed, feature name is: %s.",
-          features->featureName);
+      ASCEND_LOGE("Create feature info failed, feature name is: %s.", features->featureName);
       features++;
       i++;
       continue;
@@ -87,14 +81,11 @@ void FeatureMgr::FormatFeatureList(size_t size, void* featuresData) {
   }
 }
 
-bool FeatureMgr::IsTargetComponent(
-    const char* component,
-    const char* componentVersion) {
+bool FeatureMgr::IsTargetComponent(const char* component, const char* componentVersion) {
   if (strcmp(component, "all") != 0 && strcmp(component, "PTA") != 0) {
     return false;
   }
-  if (strcmp(componentVersion, "all") != 0 &&
-      strcmp(componentVersion, VERSION) != 0) {
+  if (strcmp(componentVersion, "all") != 0 && strcmp(componentVersion, VERSION) != 0) {
     return false;
   }
   return true;

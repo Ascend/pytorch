@@ -45,19 +45,15 @@
 
 void warn_(const ::c10::Warning& warning);
 
-#define TORCH_NPU_WARN(...)                                  \
-  warn_(::c10::Warning(                                      \
-      ::c10::UserWarning(),                                  \
-      {__func__, __FILE__, static_cast<uint32_t>(__LINE__)}, \
-      ::c10::str(__VA_ARGS__),                               \
-      false));
+#define TORCH_NPU_WARN(...) \
+  warn_(::c10::Warning(     \
+      ::c10::UserWarning(), {__func__, __FILE__, static_cast<uint32_t>(__LINE__)}, ::c10::str(__VA_ARGS__), false));
 
-#define TORCH_NPU_WARN_ONCE(...)                                              \
-  C10_UNUSED static const auto C10_ANONYMOUS_VARIABLE(TORCH_NPU_WARN_ONCE_) = \
-      [&] {                                                                   \
-        TORCH_NPU_WARN(__VA_ARGS__);                                          \
-        return true;                                                          \
-      }()
+#define TORCH_NPU_WARN_ONCE(...)                                                    \
+  C10_UNUSED static const auto C10_ANONYMOUS_VARIABLE(TORCH_NPU_WARN_ONCE_) = [&] { \
+    TORCH_NPU_WARN(__VA_ARGS__);                                                    \
+    return true;                                                                    \
+  }()
 
 enum class SubModule { PTA = 0, OPS = 1, DIST = 2, GRAPH = 3, PROF = 4 };
 
@@ -113,159 +109,139 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args) {
   return args;
 }
 
-#define CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err_code)                \
-  int error_code = (int)(err_code);                                          \
-  auto error_code_peek =                                                     \
-      c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);               \
-  if ((error_code_peek) != ACL_ERROR_NONE) {                                 \
-    error_code = error_code_peek;                                            \
-  }                                                                          \
-  std::string device_error_msg = c10_npu::getDeviceErrorMessage(error_code); \
-  if (!device_error_msg.empty()) {                                           \
-    TORCH_CHECK(                                                             \
-        false,                                                               \
-        __func__,                                                            \
-        ":",                                                                 \
-        __FILE__,                                                            \
-        ":",                                                                 \
-        __LINE__,                                                            \
-        " NPU function error: ",                                             \
-        device_error_msg,                                                    \
-        ", error code is ",                                                  \
-        error_code,                                                          \
-        PTA_ERROR(ErrCode::ACL));                                            \
+#define CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err_code)                     \
+  int error_code = (int)(err_code);                                               \
+  auto error_code_peek = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL); \
+  if ((error_code_peek) != ACL_ERROR_NONE) {                                      \
+    error_code = error_code_peek;                                                 \
+  }                                                                               \
+  std::string device_error_msg = c10_npu::getDeviceErrorMessage(error_code);      \
+  if (!device_error_msg.empty()) {                                                \
+    TORCH_CHECK(                                                                  \
+        false,                                                                    \
+        __func__,                                                                 \
+        ":",                                                                      \
+        __FILE__,                                                                 \
+        ":",                                                                      \
+        __LINE__,                                                                 \
+        " NPU function error: ",                                                  \
+        device_error_msg,                                                         \
+        ", error code is ",                                                       \
+        error_code,                                                               \
+        PTA_ERROR(ErrCode::ACL));                                                 \
   }
 
-#define NPU_CHECK_ERROR_CHECK_UCE(err_code, check_uce, ...)                 \
-  do {                                                                      \
-    int error_code = err_code;                                              \
-    static c10_npu::acl::AclErrorCode err_map;                              \
-    if ((error_code) != ACL_ERROR_NONE) {                                   \
-      std::string device_error_msg = "";                                    \
-      if (check_uce) {                                                      \
-        auto error_code_peek =                                              \
-            c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);        \
-        if ((error_code_peek) != ACL_ERROR_NONE) {                          \
-          error_code = error_code_peek;                                     \
-        }                                                                   \
-        device_error_msg = c10_npu::getDeviceErrorMessage(error_code);      \
-      }                                                                     \
-      if (((error_code) == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) &&             \
-          (device_error_msg.empty())) {                                     \
-        static auto feature_not_support_warn_once = []() {                  \
-          printf(                                                           \
-              "[WARN]%s,%s:%u:%s\n",                                        \
-              __FUNCTION__,                                                 \
-              __FILE__,                                                     \
-              __LINE__,                                                     \
-              "Feature is not supported and the possible cause is"          \
-              " that driver and firmware packages do not match.");          \
-          return true;                                                      \
-        }();                                                                \
-      } else if (c10_npu::option::OptionsManager::IsCompactErrorOutput()) { \
-        std::ostringstream oss;                                             \
-        oss << " NPU function error: "                                      \
-            << (device_error_msg.empty()                                    \
-                    ? getErrorFunction(#err_code, ##__VA_ARGS__)            \
-                    : device_error_msg)                                     \
-            << ", error code is " << error_code << " "                      \
-            << PTA_ERROR(ErrCode::ACL)                                      \
-            << (err_map.error_code_map.find(error_code) !=                  \
-                        err_map.error_code_map.end()                        \
-                    ? err_map.error_code_map[error_code]                    \
-                    : ".")                                                  \
-            << "\n";                                                        \
-        std::string err_msg = oss.str();                                    \
-        ASCEND_LOGE("%s", err_msg.c_str());                                 \
-        std::string errmsg(c10_npu::c10_npu_get_error_message());           \
-        TORCH_CHECK(                                                        \
-            false,                                                          \
-            (device_error_msg.empty() ? "" : device_error_msg),             \
-            errmsg.empty() ? err_msg : errmsg);                             \
-      } else if (error_code == ACL_ERROR_RT_DEVICE_TASK_ABORT) {            \
-        TORCH_CHECK(                                                        \
-            false,                                                          \
-            __func__,                                                       \
-            ":",                                                            \
-            __FILE__,                                                       \
-            ":",                                                            \
-            __LINE__,                                                       \
-            " NPU function error: ",                                        \
-            (device_error_msg.empty() ? " FORCE STOP" : device_error_msg),  \
-            ", error code is ",                                             \
-            error_code,                                                     \
-            PTA_ERROR(ErrCode::ACL));                                       \
-      } else {                                                              \
-        auto retmsg = std::string(__func__) + ":" + __FILE__ + ":" +        \
-            std::to_string(__LINE__) + " NPU function error: " +            \
-            (device_error_msg.empty()                                       \
-                 ? getErrorFunction(#err_code, ##__VA_ARGS__)               \
-                 : device_error_msg) +                                      \
-            ", error code is " + std::to_string(error_code) +               \
-            PTA_ERROR(ErrCode::ACL) +                                       \
-            (err_map.error_code_map.find(error_code) !=                     \
-                     err_map.error_code_map.end()                           \
-                 ? "\n[Error]: " + err_map.error_code_map[error_code]       \
-                 : ".") +                                                   \
-            "\n" + c10_npu::c10_npu_get_error_message();                    \
-        if (c10_npu::isCannOOM(retmsg)) {                                   \
-          if (c10_npu::option::OptionsManager::IsOomSnapshotEnable()) {     \
-            c10_npu::option::oom_observer();                                \
-          }                                                                 \
-          ASCEND_LOGE("%s", retmsg.c_str());                                \
-          TORCH_CHECK_WITH(OutOfMemoryError, false, retmsg.c_str());        \
-        }                                                                   \
-        TORCH_CHECK(false, retmsg);                                         \
-      }                                                                     \
-    }                                                                       \
+#define NPU_CHECK_ERROR_CHECK_UCE(err_code, check_uce, ...)                                                        \
+  do {                                                                                                             \
+    int error_code = err_code;                                                                                     \
+    static c10_npu::acl::AclErrorCode err_map;                                                                     \
+    if ((error_code) != ACL_ERROR_NONE) {                                                                          \
+      std::string device_error_msg = "";                                                                           \
+      if (check_uce) {                                                                                             \
+        auto error_code_peek = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);                            \
+        if ((error_code_peek) != ACL_ERROR_NONE) {                                                                 \
+          error_code = error_code_peek;                                                                            \
+        }                                                                                                          \
+        device_error_msg = c10_npu::getDeviceErrorMessage(error_code);                                             \
+      }                                                                                                            \
+      if (((error_code) == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) && (device_error_msg.empty())) {                      \
+        static auto feature_not_support_warn_once = []() {                                                         \
+          printf(                                                                                                  \
+              "[WARN]%s,%s:%u:%s\n",                                                                               \
+              __FUNCTION__,                                                                                        \
+              __FILE__,                                                                                            \
+              __LINE__,                                                                                            \
+              "Feature is not supported and the possible cause is"                                                 \
+              " that driver and firmware packages do not match.");                                                 \
+          return true;                                                                                             \
+        }();                                                                                                       \
+      } else if (c10_npu::option::OptionsManager::IsCompactErrorOutput()) {                                        \
+        std::ostringstream oss;                                                                                    \
+        oss << " NPU function error: "                                                                             \
+            << (device_error_msg.empty() ? getErrorFunction(#err_code, ##__VA_ARGS__) : device_error_msg)          \
+            << ", error code is " << error_code << " " << PTA_ERROR(ErrCode::ACL)                                  \
+            << (err_map.error_code_map.find(error_code) != err_map.error_code_map.end()                            \
+                    ? err_map.error_code_map[error_code]                                                           \
+                    : ".")                                                                                         \
+            << "\n";                                                                                               \
+        std::string err_msg = oss.str();                                                                           \
+        ASCEND_LOGE("%s", err_msg.c_str());                                                                        \
+        std::string errmsg(c10_npu::c10_npu_get_error_message());                                                  \
+        TORCH_CHECK(false, (device_error_msg.empty() ? "" : device_error_msg), errmsg.empty() ? err_msg : errmsg); \
+      } else if (error_code == ACL_ERROR_RT_DEVICE_TASK_ABORT) {                                                   \
+        TORCH_CHECK(                                                                                               \
+            false,                                                                                                 \
+            __func__,                                                                                              \
+            ":",                                                                                                   \
+            __FILE__,                                                                                              \
+            ":",                                                                                                   \
+            __LINE__,                                                                                              \
+            " NPU function error: ",                                                                               \
+            (device_error_msg.empty() ? " FORCE STOP" : device_error_msg),                                         \
+            ", error code is ",                                                                                    \
+            error_code,                                                                                            \
+            PTA_ERROR(ErrCode::ACL));                                                                              \
+      } else {                                                                                                     \
+        auto retmsg = std::string(__func__) + ":" + __FILE__ + ":" + std::to_string(__LINE__) +                    \
+            " NPU function error: " +                                                                              \
+            (device_error_msg.empty() ? getErrorFunction(#err_code, ##__VA_ARGS__) : device_error_msg) +           \
+            ", error code is " + std::to_string(error_code) + PTA_ERROR(ErrCode::ACL) +                            \
+            (err_map.error_code_map.find(error_code) != err_map.error_code_map.end()                               \
+                 ? "\n[Error]: " + err_map.error_code_map[error_code]                                              \
+                 : ".") +                                                                                          \
+            "\n" + c10_npu::c10_npu_get_error_message();                                                           \
+        if (c10_npu::isCannOOM(retmsg)) {                                                                          \
+          if (c10_npu::option::OptionsManager::IsOomSnapshotEnable()) {                                            \
+            c10_npu::option::oom_observer();                                                                       \
+          }                                                                                                        \
+          ASCEND_LOGE("%s", retmsg.c_str());                                                                       \
+          TORCH_CHECK_WITH(OutOfMemoryError, false, retmsg.c_str());                                               \
+        }                                                                                                          \
+        TORCH_CHECK(false, retmsg);                                                                                \
+      }                                                                                                            \
+    }                                                                                                              \
   } while (0)
 
-#define NPU_CHECK_ERROR_WITHOUT_UCE(err_code, ...) \
-  NPU_CHECK_ERROR_CHECK_UCE(err_code, false, ##__VA_ARGS__)
-#define NPU_CHECK_ERROR(err_code, ...) \
-  NPU_CHECK_ERROR_CHECK_UCE(err_code, true, ##__VA_ARGS__)
+#define NPU_CHECK_ERROR_WITHOUT_UCE(err_code, ...) NPU_CHECK_ERROR_CHECK_UCE(err_code, false, ##__VA_ARGS__)
+#define NPU_CHECK_ERROR(err_code, ...) NPU_CHECK_ERROR_CHECK_UCE(err_code, true, ##__VA_ARGS__)
 
-#define OPS_CHECK_ERROR(err_code, ...)                                       \
-  do {                                                                       \
-    auto Error = err_code;                                                   \
-    static c10_npu::acl::AclErrorCode err_map;                               \
-    if ((Error) != ACL_ERROR_NONE) {                                         \
-      CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(Error);                    \
-      if (c10_npu::option::OptionsManager::IsCompactErrorOutput()) {         \
-        std::ostringstream oss;                                              \
-        oss << " OPS function error: "                                       \
-            << getErrorFunction(#err_code, ##__VA_ARGS__)                    \
-            << ", error code is " << Error << " " << OPS_ERROR(ErrCode::ACL) \
-            << (err_map.error_code_map.find(Error) !=                        \
-                        err_map.error_code_map.end()                         \
-                    ? err_map.error_code_map[Error]                          \
-                    : ".") +                                                 \
-                "\n";                                                        \
-        std::string err_msg = oss.str();                                     \
-        ASCEND_LOGE("%s", err_msg.c_str());                                  \
-        std::string errmsg(c10_npu::c10_npu_get_error_message());            \
-        TORCH_CHECK(false, errmsg.empty() ? err_msg : errmsg);               \
-      } else {                                                               \
-        TORCH_CHECK(                                                         \
-            false,                                                           \
-            __func__,                                                        \
-            ":",                                                             \
-            __FILE__,                                                        \
-            ":",                                                             \
-            __LINE__,                                                        \
-            " OPS function error: ",                                         \
-            getErrorFunction(#err_code, ##__VA_ARGS__),                      \
-            ", error code is ",                                              \
-            Error,                                                           \
-            OPS_ERROR(ErrCode::ACL),                                         \
-            (err_map.error_code_map.find(Error) !=                           \
-                     err_map.error_code_map.end()                            \
-                 ? "\n[Error]: " + err_map.error_code_map[Error]             \
-                 : "."),                                                     \
-            "\n",                                                            \
-            c10_npu::c10_npu_get_error_message());                           \
-      }                                                                      \
-    }                                                                        \
+#define OPS_CHECK_ERROR(err_code, ...)                                                                              \
+  do {                                                                                                              \
+    auto Error = err_code;                                                                                          \
+    static c10_npu::acl::AclErrorCode err_map;                                                                      \
+    if ((Error) != ACL_ERROR_NONE) {                                                                                \
+      CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(Error);                                                           \
+      if (c10_npu::option::OptionsManager::IsCompactErrorOutput()) {                                                \
+        std::ostringstream oss;                                                                                     \
+        oss << " OPS function error: " << getErrorFunction(#err_code, ##__VA_ARGS__) << ", error code is " << Error \
+            << " " << OPS_ERROR(ErrCode::ACL)                                                                       \
+            << (err_map.error_code_map.find(Error) != err_map.error_code_map.end() ? err_map.error_code_map[Error]  \
+                                                                                   : ".") +                         \
+                "\n";                                                                                               \
+        std::string err_msg = oss.str();                                                                            \
+        ASCEND_LOGE("%s", err_msg.c_str());                                                                         \
+        std::string errmsg(c10_npu::c10_npu_get_error_message());                                                   \
+        TORCH_CHECK(false, errmsg.empty() ? err_msg : errmsg);                                                      \
+      } else {                                                                                                      \
+        TORCH_CHECK(                                                                                                \
+            false,                                                                                                  \
+            __func__,                                                                                               \
+            ":",                                                                                                    \
+            __FILE__,                                                                                               \
+            ":",                                                                                                    \
+            __LINE__,                                                                                               \
+            " OPS function error: ",                                                                                \
+            getErrorFunction(#err_code, ##__VA_ARGS__),                                                             \
+            ", error code is ",                                                                                     \
+            Error,                                                                                                  \
+            OPS_ERROR(ErrCode::ACL),                                                                                \
+            (err_map.error_code_map.find(Error) != err_map.error_code_map.end()                                     \
+                 ? "\n[Error]: " + err_map.error_code_map[Error]                                                    \
+                 : "."),                                                                                            \
+            "\n",                                                                                                   \
+            c10_npu::c10_npu_get_error_message());                                                                  \
+      }                                                                                                             \
+    }                                                                                                               \
   } while (0)
 
 namespace c10_npu {
@@ -282,10 +258,8 @@ struct AclrtErrorInfoOpaque {
   unsigned char data[1];
 };
 
-using AclrtErrorInfoStorage = typename std::conditional<
-    detail::is_complete<aclrtErrorInfo>::value,
-    aclrtErrorInfo,
-    AclrtErrorInfoOpaque>::type;
+using AclrtErrorInfoStorage =
+    typename std::conditional<detail::is_complete<aclrtErrorInfo>::value, aclrtErrorInfo, AclrtErrorInfoOpaque>::type;
 
 struct MemUceInfo {
   int device;

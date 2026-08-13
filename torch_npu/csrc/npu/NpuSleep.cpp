@@ -23,8 +23,7 @@
 namespace c10_npu {
 
 void npu_sleep(int64_t cycles) {
-  TORCH_CHECK(
-      cycles > 0, "torch.npu._sleep(): expected positive cycles, got ", cycles);
+  TORCH_CHECK(cycles > 0, "torch.npu._sleep(): expected positive cycles, got ", cycles);
 
   int64_t cycles_val = cycles;
   at::IntArrayRef cycles_arr(cycles_val);

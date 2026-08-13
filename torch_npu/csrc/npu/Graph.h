@@ -10,11 +10,7 @@
 #include "third_party/acl/inc/acl/super_kernel.h"
 
 struct PendingTensorData {
-  PendingTensorData(
-      uintptr_t dataPtr,
-      Py_ssize_t nbytes,
-      PyObject* shape,
-      PyObject* dtype)
+  PendingTensorData(uintptr_t dataPtr, Py_ssize_t nbytes, PyObject* shape, PyObject* dtype)
       : dataPtr(dataPtr), nbytes(nbytes), shape(shape), dtype(dtype) {
     Py_XINCREF(shape);
     Py_XINCREF(dtype);
@@ -27,8 +23,7 @@ struct PendingTensorData {
 };
 
 struct PyFuncStruct {
-  PyFuncStruct(PyObject* pyFunc, PyObject* pyFuncArgs)
-      : pyFunc(pyFunc), pyFuncArgs(pyFuncArgs) {
+  PyFuncStruct(PyObject* pyFunc, PyObject* pyFuncArgs) : pyFunc(pyFunc), pyFuncArgs(pyFuncArgs) {
     Py_XINCREF(pyFunc);
     Py_XINCREF(pyFuncArgs);
   }
@@ -43,8 +38,7 @@ struct PyFuncStruct {
 };
 
 struct PendingCallPayload {
-  PendingCallPayload(PyObject* pyFunc, PyObject* pyFuncArgs)
-      : pyFuncData(pyFunc, pyFuncArgs) {}
+  PendingCallPayload(PyObject* pyFunc, PyObject* pyFuncArgs) : pyFuncData(pyFunc, pyFuncArgs) {}
 
   ~PendingCallPayload() {
     Py_CLEAR(pyFuncData.pyFuncArgs);
@@ -59,8 +53,7 @@ struct PendingCallPayload {
 };
 
 struct ThreadArgs {
-  ThreadArgs(aclrtContext context, bool exitFlag)
-      : context(context), exitFlag(exitFlag) {}
+  ThreadArgs(aclrtContext context, bool exitFlag) : context(context), exitFlag(exitFlag) {}
 
   aclrtContext context;
   bool exitFlag;

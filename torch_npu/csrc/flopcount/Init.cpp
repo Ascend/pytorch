@@ -27,10 +27,7 @@ PyObject* flops_count_init(PyObject* _unused, PyObject* noargs) {
   auto module = py::handle(m).cast<py::module>();
 
   shared_ptr_class_<FlopCountContext>(module, "_FlopCountContext")
-      .def_static(
-          "GetInstance",
-          &FlopCountContext::GetInstance,
-          py::return_value_policy::reference)
+      .def_static("GetInstance", &FlopCountContext::GetInstance, py::return_value_policy::reference)
       .def("enable", &FlopCountContext::enable)
       .def("disable", &FlopCountContext::disable)
       .def("pause", &FlopCountContext::pause)

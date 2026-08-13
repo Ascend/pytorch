@@ -16,17 +16,12 @@ bool IsExistAmlP2PDetectOnline();
 /**
  * This API is used to call AmlAicoreDetectOnline.
  */
-AmlStatus AmlAicoreDetectOnlineFace(
-    int32_t deviceId,
-    const AmlAicoreDetectAttr* attr);
+AmlStatus AmlAicoreDetectOnlineFace(int32_t deviceId, const AmlAicoreDetectAttr* attr);
 
 /**
  * This API is used to call AmlP2PDetectOnline.
  */
-AmlStatus AmlP2PDetectOnlineFace(
-    int32_t deviceId,
-    void* comm,
-    const AmlP2PDetectAttr* attr);
+AmlStatus AmlP2PDetectOnlineFace(int32_t deviceId, void* comm, const AmlP2PDetectAttr* attr);
 
 } // namespace amlapi
 } // namespace c10_npu

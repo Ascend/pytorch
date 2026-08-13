@@ -36,18 +36,12 @@ NpdStatus destroy_stepinfo(aclprofStepInfoPtr stepInfo);
   This Api is used to start dispatch op, this operation should be called after
   init.
  */
-NpdStatus start_deliver_op(
-    aclprofStepInfoPtr stepInfo,
-    aclprofStepTag stepTag,
-    aclrtStream stream);
+NpdStatus start_deliver_op(aclprofStepInfoPtr stepInfo, aclprofStepTag stepTag, aclrtStream stream);
 /**
   This Api is used to stop dispatch op, this operation should be called after
   start dispatch op.
  */
-NpdStatus stop_deliver_op(
-    aclprofStepInfoPtr stepInfo,
-    aclprofStepTag stepTag,
-    aclrtStream stream);
+NpdStatus stop_deliver_op(aclprofStepInfoPtr stepInfo, aclprofStepTag stepTag, aclrtStream stream);
 
 /**
   This API is used to get error msg

@@ -35,16 +35,12 @@ PyObject* afd_init(PyObject* _unused, PyObject* noargs) {
       .def("init", &ScheduleContextHolder::Init)
       .def("get_context_tensor", &ScheduleContextHolder::GetContextTensor)
       .def("stop_schedule", &ScheduleContextHolder::StopSchedule)
-      .def(
-          "get_schedule_context_info",
-          &ScheduleContextHolder::GetScheduleContextInfo);
+      .def("get_schedule_context_info", &ScheduleContextHolder::GetScheduleContextInfo);
   Py_RETURN_TRUE;
 }
 
 // methods on torch._C
-PyMethodDef methods[] = {
-    {"_afd_init", afd_init, METH_NOARGS, nullptr},
-    {nullptr, nullptr, 0, nullptr}};
+PyMethodDef methods[] = {{"_afd_init", afd_init, METH_NOARGS, nullptr}, {nullptr, nullptr, 0, nullptr}};
 
 PyMethodDef* python_functions() {
   return methods;

@@ -10,8 +10,7 @@ namespace at_npu {
 namespace lccl {
 
 #undef TORCH_NPU_LOAD_FUNC
-#define TORCH_NPU_LOAD_FUNC(funcName) \
-  TORCH_NPU_REGISTER_FUNCTION(liblcal, funcName)
+#define TORCH_NPU_LOAD_FUNC(funcName) TORCH_NPU_REGISTER_FUNCTION(liblcal, funcName)
 
 #undef TORCH_NPU_GET_FUNC
 #define TORCH_NPU_GET_FUNC(funcName) TORCH_NPU_GET_FUNCTION(liblcal, funcName)
@@ -31,11 +30,7 @@ int LcclCommInitRankLocal(int rankSize, int rank, LcclComm* comms) {
   if (func == nullptr) {
     func = (lcalCommInitRankLocal)TORCH_NPU_GET_FUNC(LcalCommInitRankLocal);
     if (func == nullptr) {
-      TORCH_CHECK(
-          func,
-          "Failed to find function ",
-          "lcalCommInitRankLocal",
-          PTA_ERROR(ErrCode::NOT_FOUND));
+      TORCH_CHECK(func, "Failed to find function ", "lcalCommInitRankLocal", PTA_ERROR(ErrCode::NOT_FOUND));
       return -1;
     }
   }
@@ -48,11 +43,7 @@ int LcclCommInit(int rank, int rankSize, LcclComm* comms) {
   if (func == nullptr) {
     func = (lcalCommInit)TORCH_NPU_GET_FUNC(LcalCommInit);
     if (func == nullptr) {
-      TORCH_CHECK(
-          func,
-          "Failed to find function ",
-          "lcalCommInit",
-          PTA_ERROR(ErrCode::NOT_FOUND));
+      TORCH_CHECK(func, "Failed to find function ", "lcalCommInit", PTA_ERROR(ErrCode::NOT_FOUND));
       return -1;
     }
   }
@@ -67,17 +58,12 @@ int LcclAllReduce(
     LcclReduceOp op,
     LcclComm comm,
     aclrtStream stream) {
-  typedef int (*lcclAllReduce)(
-      void*, void*, int64_t, LcclDataType, LcclReduceOp, LcclComm, aclrtStream);
+  typedef int (*lcclAllReduce)(void*, void*, int64_t, LcclDataType, LcclReduceOp, LcclComm, aclrtStream);
   static lcclAllReduce func = nullptr;
   if (func == nullptr) {
     func = (lcclAllReduce)TORCH_NPU_GET_FUNC(LcclAllReduce);
     if (func == nullptr) {
-      TORCH_CHECK(
-          func,
-          "Failed to find function ",
-          "lcclAllReduce",
-          PTA_ERROR(ErrCode::NOT_FOUND));
+      TORCH_CHECK(func, "Failed to find function ", "lcclAllReduce", PTA_ERROR(ErrCode::NOT_FOUND));
       return -1;
     }
   }
@@ -91,17 +77,12 @@ int LcclAllGather(
     LcclDataType dataType,
     LcclComm comm,
     aclrtStream stream) {
-  typedef int (*lcclAllGather)(
-      void*, void*, int64_t, LcclDataType, LcclComm, aclrtStream);
+  typedef int (*lcclAllGather)(void*, void*, int64_t, LcclDataType, LcclComm, aclrtStream);
   static lcclAllGather func = nullptr;
   if (func == nullptr) {
     func = (lcclAllGather)TORCH_NPU_GET_FUNC(LcclAllGather);
     if (func == nullptr) {
-      TORCH_CHECK(
-          func,
-          "Failed to find function ",
-          "lcclAllGather",
-          PTA_ERROR(ErrCode::NOT_FOUND));
+      TORCH_CHECK(func, "Failed to find function ", "lcclAllGather", PTA_ERROR(ErrCode::NOT_FOUND));
       return -1;
     }
   }
@@ -116,41 +97,25 @@ int LcclReduceScatter(
     LcclReduceOp op,
     LcclComm comm,
     aclrtStream stream) {
-  typedef int (*lcclReduceScatter)(
-      void*, void*, int64_t, LcclDataType, LcclReduceOp, LcclComm, aclrtStream);
+  typedef int (*lcclReduceScatter)(void*, void*, int64_t, LcclDataType, LcclReduceOp, LcclComm, aclrtStream);
   static lcclReduceScatter func = nullptr;
   if (func == nullptr) {
     func = (lcclReduceScatter)TORCH_NPU_GET_FUNC(LcclReduceScatter);
     if (func == nullptr) {
-      TORCH_CHECK(
-          func,
-          "Failed to find function ",
-          "lcclReduceScatter",
-          PTA_ERROR(ErrCode::NOT_FOUND));
+      TORCH_CHECK(func, "Failed to find function ", "lcclReduceScatter", PTA_ERROR(ErrCode::NOT_FOUND));
       return -1;
     }
   }
   return func(sendBuf, recvBuf, recvCount, dataType, op, comm, stream);
 }
 
-int LcclBroadcast(
-    void* buf,
-    int64_t count,
-    LcclDataType dataType,
-    int root,
-    LcclComm comm,
-    aclrtStream stream) {
-  typedef int (*lcclBroadcast)(
-      void*, int64_t, LcclDataType, int, LcclComm, aclrtStream);
+int LcclBroadcast(void* buf, int64_t count, LcclDataType dataType, int root, LcclComm comm, aclrtStream stream) {
+  typedef int (*lcclBroadcast)(void*, int64_t, LcclDataType, int, LcclComm, aclrtStream);
   static lcclBroadcast func = nullptr;
   if (func == nullptr) {
     func = (lcclBroadcast)TORCH_NPU_GET_FUNC(LcclBroadcast);
     if (func == nullptr) {
-      TORCH_CHECK(
-          func,
-          "Failed to find function ",
-          "lcclBroadcast",
-          PTA_ERROR(ErrCode::NOT_FOUND));
+      TORCH_CHECK(func, "Failed to find function ", "lcclBroadcast", PTA_ERROR(ErrCode::NOT_FOUND));
       return -1;
     }
   }
@@ -163,11 +128,7 @@ int LcclCommDestroy(LcclComm comm) {
   if (func == nullptr) {
     func = (lcclCommDestroy)TORCH_NPU_GET_FUNC(LcclCommDestroy);
     if (func == nullptr) {
-      TORCH_CHECK(
-          func,
-          "Failed to find function ",
-          "lcclCommDestroy",
-          PTA_ERROR(ErrCode::NOT_FOUND));
+      TORCH_CHECK(func, "Failed to find function ", "lcclCommDestroy", PTA_ERROR(ErrCode::NOT_FOUND));
       return -1;
     }
   }

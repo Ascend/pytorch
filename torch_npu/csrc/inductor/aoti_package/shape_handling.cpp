@@ -19,24 +19,14 @@ class PyBSShapeOpStrategy : public torch::aot_inductor::BSShapeOpStrategy {
  public:
   using torch::aot_inductor::BSShapeOpStrategy::BSShapeOpStrategy;
 
-  void Transform(
-      std::vector<at::Tensor>& inputs,
-      std::vector<std::vector<at::Tensor>>& outputs) override {
+  void Transform(std::vector<at::Tensor>& inputs, std::vector<std::vector<at::Tensor>>& outputs) override {
     // for pure virtual function
-    PYBIND11_OVERRIDE_PURE(
-        void,
-        torch::aot_inductor::BSShapeOpStrategy,
-        Transform,
-        inputs,
-        outputs);
+    PYBIND11_OVERRIDE_PURE(void, torch::aot_inductor::BSShapeOpStrategy, Transform, inputs, outputs);
   }
 
-  void Recover(
-      std::vector<std::vector<at::Tensor>>& inputs,
-      std::vector<at::Tensor>& outputs) override {
+  void Recover(std::vector<std::vector<at::Tensor>>& inputs, std::vector<at::Tensor>& outputs) override {
     // for pure virtual function
-    PYBIND11_OVERRIDE_PURE(
-        void, torch::aot_inductor::BSShapeOpStrategy, Recover, inputs, outputs);
+    PYBIND11_OVERRIDE_PURE(void, torch::aot_inductor::BSShapeOpStrategy, Recover, inputs, outputs);
   }
 };
 
@@ -44,16 +34,9 @@ class PySeqShapeOpStrategy : public torch::aot_inductor::SeqShapeOpStrategy {
  public:
   using torch::aot_inductor::SeqShapeOpStrategy::SeqShapeOpStrategy;
 
-  void Transform(
-      std::vector<at::Tensor>& inputs,
-      std::vector<at::Tensor>& outputs) override {
+  void Transform(std::vector<at::Tensor>& inputs, std::vector<at::Tensor>& outputs) override {
     // for pure virtual function
-    PYBIND11_OVERRIDE_PURE(
-        void,
-        torch::aot_inductor::SeqShapeOpStrategy,
-        Transform,
-        inputs,
-        outputs);
+    PYBIND11_OVERRIDE_PURE(void, torch::aot_inductor::SeqShapeOpStrategy, Transform, inputs, outputs);
   }
 };
 
@@ -70,8 +53,7 @@ void THNPShapeHandling_init(PyObject* module) {
       .value("CUSTOM", torch::aot_inductor::ShapePolicy::CUSTOM)
       .export_values();
 
-  shared_ptr_class_<torch::aot_inductor::ShapeOpStrategyBase>(
-      torch_N_m, "_ShapeOpStrategyBase")
+  shared_ptr_class_<torch::aot_inductor::ShapeOpStrategyBase>(torch_N_m, "_ShapeOpStrategyBase")
       .def(py::init<>())
       .def(
           "find_closest_gear",
@@ -95,23 +77,17 @@ void THNPShapeHandling_init(PyObject* module) {
           py::arg("index"),
           py::arg("original_size"),
           py::arg("dimension"))
-      .def_readwrite(
-          "indices", &torch::aot_inductor::ShapeOpStrategyBase::m_indices)
-      .def_readwrite(
-          "value", &torch::aot_inductor::ShapeOpStrategyBase::m_value)
-      .def_readwrite(
-          "min_gear", &torch::aot_inductor::ShapeOpStrategyBase::m_min_gear)
-      .def_readwrite(
-          "max_gear", &torch::aot_inductor::ShapeOpStrategyBase::m_max_gear)
-      .def_readwrite(
-          "gears", &torch::aot_inductor::ShapeOpStrategyBase::m_gears);
+      .def_readwrite("indices", &torch::aot_inductor::ShapeOpStrategyBase::m_indices)
+      .def_readwrite("value", &torch::aot_inductor::ShapeOpStrategyBase::m_value)
+      .def_readwrite("min_gear", &torch::aot_inductor::ShapeOpStrategyBase::m_min_gear)
+      .def_readwrite("max_gear", &torch::aot_inductor::ShapeOpStrategyBase::m_max_gear)
+      .def_readwrite("gears", &torch::aot_inductor::ShapeOpStrategyBase::m_gears);
 
   py::class_<
       torch::aot_inductor::BSShapeOpStrategy,
       PyBSShapeOpStrategy,
       torch::aot_inductor::ShapeOpStrategyBase,
-      std::shared_ptr<torch::aot_inductor::BSShapeOpStrategy>>(
-      torch_N_m, "_BSShapeOpStrategy")
+      std::shared_ptr<torch::aot_inductor::BSShapeOpStrategy>>(torch_N_m, "_BSShapeOpStrategy")
       .def(py::init<>())
       .def(
           "initialize_core",
@@ -132,15 +108,13 @@ void THNPShapeHandling_init(PyObject* module) {
           "Recover original shape from transformed batch size tensors",
           py::arg("inputs"),
           py::arg("outputs"))
-      .def_readwrite(
-          "dimension", &torch::aot_inductor::BSShapeOpStrategy::m_dimension);
+      .def_readwrite("dimension", &torch::aot_inductor::BSShapeOpStrategy::m_dimension);
 
   py::class_<
       torch::aot_inductor::SeqShapeOpStrategy,
       PySeqShapeOpStrategy,
       torch::aot_inductor::ShapeOpStrategyBase,
-      std::shared_ptr<torch::aot_inductor::SeqShapeOpStrategy>>(
-      torch_N_m, "_SeqShapeOpStrategy")
+      std::shared_ptr<torch::aot_inductor::SeqShapeOpStrategy>>(torch_N_m, "_SeqShapeOpStrategy")
       .def(py::init<>())
       .def(
           "initialize_core",
@@ -155,25 +129,21 @@ void THNPShapeHandling_init(PyObject* module) {
           "Execute sequence shape transform (PAD)",
           py::arg("inputs"),
           py::arg("outputs"))
-      .def_readwrite(
-          "dimensions", &torch::aot_inductor::SeqShapeOpStrategy::m_dimensions);
+      .def_readwrite("dimensions", &torch::aot_inductor::SeqShapeOpStrategy::m_dimensions);
 
   py::class_<
       torch::aot_inductor::DefaultBSShapeOp,
       torch::aot_inductor::BSShapeOpStrategy,
-      std::shared_ptr<torch::aot_inductor::DefaultBSShapeOp>>(
-      torch_N_m, "_DefaultBSShapeOp")
+      std::shared_ptr<torch::aot_inductor::DefaultBSShapeOp>>(torch_N_m, "_DefaultBSShapeOp")
       .def(py::init<>(), "Default batch size shape transform (PAD/SPLIT)");
 
   py::class_<
       torch::aot_inductor::DefaultSeqShapeOp,
       torch::aot_inductor::SeqShapeOpStrategy,
-      std::shared_ptr<torch::aot_inductor::DefaultSeqShapeOp>>(
-      torch_N_m, "_DefaultSeqShapeOp")
+      std::shared_ptr<torch::aot_inductor::DefaultSeqShapeOp>>(torch_N_m, "_DefaultSeqShapeOp")
       .def(py::init<>(), "Default sequence shape transform (PAD)");
 
-  shared_ptr_class_<torch::aot_inductor::NPUShapeHandling>(
-      torch_N_m, "_NPUShapeHandling")
+  shared_ptr_class_<torch::aot_inductor::NPUShapeHandling>(torch_N_m, "_NPUShapeHandling")
       .def(py::init<>())
       .def(
           "register_batch_size_strategy",
@@ -186,8 +156,7 @@ void THNPShapeHandling_init(PyObject* module) {
       .def(
           "register_sequence_strategy",
           [](torch::aot_inductor::NPUShapeHandling& self,
-             std::shared_ptr<torch::aot_inductor::SeqShapeOpStrategy>
-                 strategy) {
+             std::shared_ptr<torch::aot_inductor::SeqShapeOpStrategy> strategy) {
             self.RegisterSequenceStrategy(std::move(strategy));
           },
           "Register custom sequence shape op strategy (replace default)",
@@ -195,11 +164,8 @@ void THNPShapeHandling_init(PyObject* module) {
       .def(
           "initialize",
           static_cast<void (torch::aot_inductor::NPUShapeHandling::*)(
-              torch::aot_inductor::ShapeType,
-              std::vector<int64_t>&,
-              std::vector<int>&,
-              std::vector<int>&,
-              double)>(&torch::aot_inductor::NPUShapeHandling::Initialize),
+              torch::aot_inductor::ShapeType, std::vector<int64_t>&, std::vector<int>&, std::vector<int>&, double)>(
+              &torch::aot_inductor::NPUShapeHandling::Initialize),
           py::arg("type"),
           py::arg("gears"),
           py::arg("dimensions"),
@@ -224,8 +190,7 @@ void THNPShapeHandling_init(PyObject* module) {
           py::arg("value") = 0.0)
       .def(
           "transform",
-          [](torch::aot_inductor::NPUShapeHandling& self,
-             std::vector<at::Tensor>& inputs) {
+          [](torch::aot_inductor::NPUShapeHandling& self, std::vector<at::Tensor>& inputs) {
             std::vector<std::vector<at::Tensor>> outputs;
             self.Transform(inputs, outputs);
             return outputs;
@@ -233,16 +198,13 @@ void THNPShapeHandling_init(PyObject* module) {
           py::arg("inputs"))
       .def(
           "recover",
-          [](torch::aot_inductor::NPUShapeHandling& self,
-             std::vector<std::vector<at::Tensor>>& inputs) {
+          [](torch::aot_inductor::NPUShapeHandling& self, std::vector<std::vector<at::Tensor>>& inputs) {
             std::vector<at::Tensor> outputs;
             self.Recover(inputs, outputs);
             return outputs;
           },
           py::arg("inputs"))
-      .def("__repr__", [](const torch::aot_inductor::NPUShapeHandling& self) {
-        return "NPUShapeHandling()";
-      });
+      .def("__repr__", [](const torch::aot_inductor::NPUShapeHandling& self) { return "NPUShapeHandling()"; });
 }
 
 #endif

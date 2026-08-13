@@ -16,8 +16,7 @@ NpuP2pCtrl::NpuP2pCtrl() {
   device_enabled_count_.resize(num_devices_, 0);
 
   p2p_access_enabled_cache_.clear();
-  p2p_access_enabled_cache_.resize(
-      num_devices_ * num_devices_, P2pStatus::UNKNOWN);
+  p2p_access_enabled_cache_.resize(num_devices_ * num_devices_, P2pStatus::UNKNOWN);
 
   for (const auto i : c10::irange(num_devices_)) {
     // device self-connections are not counted
@@ -39,27 +38,14 @@ void NpuP2pCtrl::enable_peer_access(int32_t source_dev, int32_t dest_dev) {
 }
 
 // Check whether the two devices are enabled by p2p and tensor can be copied
-bool NpuP2pCtrl::get_p2p_access(
-    int32_t source_dev,
-    int32_t dest_dev,
-    bool& flag) {
+bool NpuP2pCtrl::get_p2p_access(int32_t source_dev, int32_t dest_dev, bool& flag) {
   TORCH_INTERNAL_ASSERT(num_devices_ >= 0, "p2p access cache not initialized");
-  TORCH_CHECK(
-      source_dev >= 0 && source_dev < num_devices_,
-      source_dev,
-      " is not a device",
-      PTA_ERROR(ErrCode::VALUE));
-  TORCH_CHECK(
-      dest_dev >= 0 && dest_dev < num_devices_,
-      dest_dev,
-      " is not a device",
-      PTA_ERROR(ErrCode::VALUE));
+  TORCH_CHECK(source_dev >= 0 && source_dev < num_devices_, source_dev, " is not a device", PTA_ERROR(ErrCode::VALUE));
+  TORCH_CHECK(dest_dev >= 0 && dest_dev < num_devices_, dest_dev, " is not a device", PTA_ERROR(ErrCode::VALUE));
 
   // get access source_dev -> dest_dev
-  auto& cache_s2d =
-      p2p_access_enabled_cache_[source_dev * num_devices_ + dest_dev];
-  auto& cache_d2s =
-      p2p_access_enabled_cache_[dest_dev * num_devices_ + source_dev];
+  auto& cache_s2d = p2p_access_enabled_cache_[source_dev * num_devices_ + dest_dev];
+  auto& cache_d2s = p2p_access_enabled_cache_[dest_dev * num_devices_ + source_dev];
 
   if (cache_s2d != P2pStatus::UNKNOWN) {
     return static_cast<bool>(cache_s2d);
@@ -85,8 +71,7 @@ bool NpuP2pCtrl::get_p2p_access(
         if (i == limited_device) {
           continue;
         }
-        if (p2p_access_enabled_cache_[limited_device * num_devices_ + i] ==
-            P2pStatus::COPY_ALLOWED) {
+        if (p2p_access_enabled_cache_[limited_device * num_devices_ + i] == P2pStatus::COPY_ALLOWED) {
           warning_str += std::to_string(i);
           warning_str += ", ";
         }
@@ -103,10 +88,7 @@ bool NpuP2pCtrl::get_p2p_access(
     }
   }
 
-  ASCEND_LOGW(
-      "The NPU device is %d, and try to copy and enable p2p with %d. ",
-      source_dev,
-      dest_dev);
+  ASCEND_LOGW("The NPU device is %d, and try to copy and enable p2p with %d. ", source_dev, dest_dev);
 
   // The aclrtEnablePeerAccess capability is not equal to cuda,
   // And both sides need to be enabled to activate the p2p capability

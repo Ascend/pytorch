@@ -63,9 +63,7 @@ class NPUTensorIterator {
       const at::Tensor& a,
       const at::Tensor& b,
       bool check_mem_overlap = false);
-  static std::tuple<at::ScalarType, c10::IntArrayRef> binary_op(
-      const at::Tensor& a,
-      const c10::Scalar b);
+  static std::tuple<at::ScalarType, c10::IntArrayRef> binary_op(const at::Tensor& a, const c10::Scalar b);
   static std::tuple<at::ScalarType, c10::IntArrayRef> comparison_op(
       at::Tensor& out,
       const at::Tensor& a,
@@ -76,9 +74,7 @@ class NPUTensorIterator {
       const at::Tensor& a,
       bool check_mem_overlap = false);
   static void nullary_op(at::Tensor& out);
-  static std::tuple<at::ScalarType, c10::IntArrayRef> reduce_op(
-      at::Tensor& out,
-      const at::Tensor& a);
+  static std::tuple<at::ScalarType, c10::IntArrayRef> reduce_op(at::Tensor& out, const at::Tensor& a);
   static std::tuple<at::ScalarType, c10::IntArrayRef> reduce_op(
       at::Tensor& out1,
       at::Tensor& out2,

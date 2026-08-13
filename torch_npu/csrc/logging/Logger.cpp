@@ -45,8 +45,7 @@ void Logger::log(
   // Get the mapping character for log level
   // levelChars index mapping: DEBUG(10)->0, INFO(20)->1, WARNING(30)->2,
   // ERROR(40)->3, CRITICAL(50)->4 index calculation: (int)level / 10 - 1
-  static const std::array<char, LOGGING_LEVEL_COUNT> levelChars = {
-      'V', 'I', 'W', 'E', 'F'};
+  static const std::array<char, LOGGING_LEVEL_COUNT> levelChars = {'V', 'I', 'W', 'E', 'F'};
   char levelChar = levelChars[static_cast<int>(level) / 10 - 1];
   struct timespec ts = {0};
   clock_gettime(CLOCK_REALTIME, &ts);
@@ -54,8 +53,7 @@ void Logger::log(
   localtime_r(&ts.tv_sec, &tm);
   // Convert nanosecond to microsecond (keep 6 digits)
   long microsecond = ts.tv_nsec / 1000;
-  std::string rank_str =
-      (rank != -1) ? "[rank:" + std::to_string(rank) + "] " : "";
+  std::string rank_str = (rank != -1) ? "[rank:" + std::to_string(rank) + "] " : "";
 
   char prefix[PREFIX_MAX_LEN] = {0};
   int prefix_len = 0;
@@ -116,25 +114,24 @@ void Logger::log(
 }
 
 // Define the basic logging function macro
-#define DEFINE_LOG_FUNCTION(func_name, level_enum, buffer_size)   \
-  void Logger::func_name(                                         \
-      const char* file, uint32_t line, const char* format, ...) { \
-    if (allow_level_ > level_enum) {                              \
-      return;                                                     \
-    }                                                             \
-    va_list args;                                                 \
-    va_start(args, format);                                       \
-    log(level_enum, buffer_size, file, line, format, args);       \
-    va_end(args);                                                 \
-  }                                                               \
-  void Logger::func_name(const char* format, ...) {               \
-    if (allow_level_ > level_enum) {                              \
-      return;                                                     \
-    }                                                             \
-    va_list args;                                                 \
-    va_start(args, format);                                       \
-    log(level_enum, buffer_size, nullptr, 0, format, args);       \
-    va_end(args);                                                 \
+#define DEFINE_LOG_FUNCTION(func_name, level_enum, buffer_size)                      \
+  void Logger::func_name(const char* file, uint32_t line, const char* format, ...) { \
+    if (allow_level_ > level_enum) {                                                 \
+      return;                                                                        \
+    }                                                                                \
+    va_list args;                                                                    \
+    va_start(args, format);                                                          \
+    log(level_enum, buffer_size, file, line, format, args);                          \
+    va_end(args);                                                                    \
+  }                                                                                  \
+  void Logger::func_name(const char* format, ...) {                                  \
+    if (allow_level_ > level_enum) {                                                 \
+      return;                                                                        \
+    }                                                                                \
+    va_list args;                                                                    \
+    va_start(args, format);                                                          \
+    log(level_enum, buffer_size, nullptr, 0, format, args);                          \
+    va_end(args);                                                                    \
   }
 
 // Define short format logging functions (using BASE_PRINT_LIMIT buffer size)

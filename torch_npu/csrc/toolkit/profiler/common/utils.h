@@ -119,15 +119,13 @@ class Utils {
     uint32_t hi = 0;
     uint32_t lo = 0;
     __asm__ __volatile__("rdtsc" : "=a"(lo), "=d"(hi));
-    cycles = (static_cast<uint64_t>(lo)) |
-        ((static_cast<uint64_t>(hi)) << uint32Bits);
+    cycles = (static_cast<uint64_t>(lo)) | ((static_cast<uint64_t>(hi)) << uint32Bits);
 #elif defined(__arm__)
     const uint32_t uint32Bits = 32U;
     uint32_t hi = 0;
     uint32_t lo = 0;
     asm volatile("mrrc p15, 1, %0, %1, c14" : "=r"(lo), "=r"(hi));
-    cycles = (static_cast<uint64_t>(lo)) |
-        ((static_cast<uint64_t>(hi)) << uint32Bits);
+    cycles = (static_cast<uint64_t>(lo)) | ((static_cast<uint64_t>(hi)) << uint32Bits);
 #else
     cycles = 0;
 #endif
@@ -163,8 +161,7 @@ class Utils {
   }
 
   static uint64_t GetTid() {
-    static thread_local uint64_t tid =
-        static_cast<uint64_t>(syscall(SYS_gettid));
+    static thread_local uint64_t tid = static_cast<uint64_t>(syscall(SYS_gettid));
     return tid;
   }
 

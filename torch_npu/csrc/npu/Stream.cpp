@@ -13,10 +13,7 @@
 
 PyObject* THNPStreamClass = nullptr;
 
-static PyObject* THNPStream_pynew(
-    PyTypeObject* type,
-    PyObject* args,
-    PyObject* kwargs) {
+static PyObject* THNPStream_pynew(PyTypeObject* type, PyObject* args, PyObject* kwargs) {
   HANDLE_TH_ERRORS
 
   int current_device;
@@ -31,13 +28,7 @@ static PyObject* THNPStream_pynew(
 
   // NOLINTNEXTLINE(modernize-avoid-c-arrays,cppcoreguidelines-avoid-c-arrays)
   constexpr const char* kwlist[] = {
-      "priority",
-      "is_sync_launch",
-      "stream_id",
-      "device_index",
-      "device_type",
-      "stream_ptr",
-      nullptr};
+      "priority", "is_sync_launch", "stream_id", "device_index", "device_type", "stream_ptr", nullptr};
   if (!PyArg_ParseTupleAndKeywords(
           args,
           kwargs,
@@ -58,24 +49,16 @@ static PyObject* THNPStream_pynew(
   }
 
   if (stream_ptr) {
+    TORCH_CHECK(priority == 0, "Priority was explicitly set for an external stream", PTA_ERROR(ErrCode::PARAM));
     TORCH_CHECK(
-        priority == 0,
-        "Priority was explicitly set for an external stream",
-        PTA_ERROR(ErrCode::PARAM));
-    TORCH_CHECK(
-        is_sync_launch == 0,
-        "is_sync_launch was explicitly set for an external stream",
-        PTA_ERROR(ErrCode::PARAM));
+        is_sync_launch == 0, "is_sync_launch was explicitly set for an external stream", PTA_ERROR(ErrCode::PARAM));
   }
 
   c10_npu::NPUStream stream = (stream_id || device_index || device_type)
-      ? c10_npu::NPUStream::unpack3(
-            stream_id, device_index, static_cast<c10::DeviceType>(device_type))
+      ? c10_npu::NPUStream::unpack3(stream_id, device_index, static_cast<c10::DeviceType>(device_type))
       : (stream_ptr
-             ? c10_npu::getStreamFromExternal(
-                   reinterpret_cast<aclrtStream>(stream_ptr), current_device)
-             : (is_sync_launch ? c10_npu::getNPUStreamFromSyncLaunchPool()
-                               : c10_npu::getStreamFromPool(priority)));
+             ? c10_npu::getStreamFromExternal(reinterpret_cast<aclrtStream>(stream_ptr), current_device)
+             : (is_sync_launch ? c10_npu::getNPUStreamFromSyncLaunchPool() : c10_npu::getStreamFromPool(priority)));
 
   stream.validate();
 
@@ -108,19 +91,13 @@ static PyObject* THNPStream_get_npu_stream(THNPStream* self, void* unused) {
 
 static PyObject* THNPStream_get_priority(THNPStream* self, void* unused) {
   HANDLE_TH_ERRORS
-  TORCH_CHECK(
-      false,
-      "NPU dose not support Stream.get_priority() currently.",
-      PTA_ERROR(ErrCode::NOT_SUPPORT));
+  TORCH_CHECK(false, "NPU dose not support Stream.get_priority() currently.", PTA_ERROR(ErrCode::NOT_SUPPORT));
   END_HANDLE_TH_ERRORS
 }
 
 static PyObject* THNPStream_priority_range() {
   HANDLE_TH_ERRORS
-  TORCH_CHECK(
-      false,
-      "NPU does not support Stream.priority_range() currently.",
-      PTA_ERROR(ErrCode::NOT_SUPPORT));
+  TORCH_CHECK(false, "NPU does not support Stream.priority_range() currently.", PTA_ERROR(ErrCode::NOT_SUPPORT));
   END_HANDLE_TH_ERRORS
 }
 
@@ -139,9 +116,7 @@ static PyObject* THNPStream_synchronize(THNPStream* self, PyObject* noargs) {
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject* THNPStream_set_data_preprocess_stream(
-    THNPStream* self,
-    PyObject* arg) {
+static PyObject* THNPStream_set_data_preprocess_stream(THNPStream* self, PyObject* arg) {
   HANDLE_TH_ERRORS {
     pybind11::gil_scoped_release no_gil;
     bool is_data_preprocess_stream = THPUtils_unpackBool(arg);
@@ -158,48 +133,26 @@ static PyObject* THNPStream_eq(THNPStream* self, THNPStream* other) {
 }
 
 static struct PyMemberDef THNPStream_members[] = {
-    {(char*)"stream_id",
-     T_ULONGLONG,
-     offsetof(THNPStream, stream_id),
-     READONLY,
-     nullptr},
-    {(char*)"device_type",
-     T_ULONGLONG,
-     offsetof(THNPStream, device_type),
-     READONLY,
-     nullptr},
-    {(char*)"device_index",
-     T_ULONGLONG,
-     offsetof(THNPStream, device_index),
-     READONLY,
-     nullptr},
+    {(char*)"stream_id", T_ULONGLONG, offsetof(THNPStream, stream_id), READONLY, nullptr},
+    {(char*)"device_type", T_ULONGLONG, offsetof(THNPStream, device_type), READONLY, nullptr},
+    {(char*)"device_index", T_ULONGLONG, offsetof(THNPStream, device_index), READONLY, nullptr},
     {nullptr}};
 
 static struct PyGetSetDef THNPStream_properties[] = {
     {"device", (getter)THNPStream_get_device, nullptr, nullptr, nullptr},
-    {"npu_stream",
-     (getter)THNPStream_get_npu_stream,
-     nullptr,
-     nullptr,
-     nullptr},
+    {"npu_stream", (getter)THNPStream_get_npu_stream, nullptr, nullptr, nullptr},
     {"priority", (getter)THNPStream_get_priority, nullptr, nullptr, nullptr},
     {nullptr}};
 
 static PyMethodDef THNPStream_methods[] = {
     {(char*)"query", (PyCFunction)THNPStream_query, METH_NOARGS, nullptr},
-    {(char*)"synchronize",
-     (PyCFunction)THNPStream_synchronize,
-     METH_NOARGS,
-     nullptr},
+    {(char*)"synchronize", (PyCFunction)THNPStream_synchronize, METH_NOARGS, nullptr},
     {(char*)"priority_range",
      (PyCFunction)(void (*)(void))THNPStream_priority_range,
      METH_STATIC | METH_NOARGS,
      nullptr},
     {(char*)"__eq__", (PyCFunction)THNPStream_eq, METH_O, nullptr},
-    {(char*)"set_data_preprocess_stream",
-     (PyCFunction)THNPStream_set_data_preprocess_stream,
-     METH_O,
-     nullptr},
+    {(char*)"set_data_preprocess_stream", (PyCFunction)THNPStream_set_data_preprocess_stream, METH_O, nullptr},
     {nullptr}};
 
 PyTypeObject THNPStreamType = {
@@ -251,24 +204,20 @@ void THNPStream_init(PyObject* module) {
     throw python_error();
   }
   Py_INCREF(&THNPStreamType);
-  if (PyModule_AddObject(module, "_NPUStreamBase", (PyObject*)&THNPStreamType) <
-      0) {
+  if (PyModule_AddObject(module, "_NPUStreamBase", (PyObject*)&THNPStreamType) < 0) {
     throw python_error();
   }
 }
 
-std::vector<c10::optional<c10_npu::NPUStream>>
-THNPUtils_PySequence_to_NPUStreamList(PyObject* obj) {
+std::vector<c10::optional<c10_npu::NPUStream>> THNPUtils_PySequence_to_NPUStreamList(PyObject* obj) {
   if (!PySequence_Check(obj)) {
     throw std::runtime_error(
-        "Expected a sequence in THNPUtils_PySequence_to_NPUStreamList" +
-        PTA_ERROR(ErrCode::PARAM));
+        "Expected a sequence in THNPUtils_PySequence_to_NPUStreamList" + PTA_ERROR(ErrCode::PARAM));
   }
   THPObjectPtr seq = THPObjectPtr(PySequence_Fast(obj, nullptr));
   if (seq.get() == nullptr) {
     throw std::runtime_error(
-        "expected PySequence, but got " + std::string(THPUtils_typename(obj)) +
-        PTA_ERROR(ErrCode::PARAM));
+        "expected PySequence, but got " + std::string(THPUtils_typename(obj)) + PTA_ERROR(ErrCode::PARAM));
   }
 
   std::vector<c10::optional<c10_npu::NPUStream>> streams;
@@ -280,26 +229,21 @@ THNPUtils_PySequence_to_NPUStreamList(PyObject* obj) {
       streams.emplace_back(c10_npu::NPUStream::unpack3(
           (reinterpret_cast<THNPStream*>(stream))->stream_id,
           (reinterpret_cast<THNPStream*>(stream))->device_index,
-          static_cast<c10::DeviceType>(
-              (reinterpret_cast<THNPStream*>(stream))->device_type)));
+          static_cast<c10::DeviceType>((reinterpret_cast<THNPStream*>(stream))->device_type)));
     } else if (stream == Py_None) {
       streams.emplace_back();
     } else {
       std::runtime_error(
-          "Unknown data type found in stream list. Need torch_npu.npu.Stream or None" +
-          PTA_ERROR(ErrCode::TYPE));
+          "Unknown data type found in stream list. Need torch_npu.npu.Stream or None" + PTA_ERROR(ErrCode::TYPE));
     }
   }
   return streams;
 }
 
 c10_npu::NPUStream THNPUtils_PyObject_to_NPUStream(PyObject* stream) {
-  TORCH_CHECK(
-      PyObject_IsInstance(stream, THNPStreamClass),
-      "Need torch_npu.npu.Stream argument type.");
+  TORCH_CHECK(PyObject_IsInstance(stream, THNPStreamClass), "Need torch_npu.npu.Stream argument type.");
   return c10_npu::NPUStream::unpack3(
       (reinterpret_cast<THNPStream*>(stream))->stream_id,
       (reinterpret_cast<THNPStream*>(stream))->device_index,
-      static_cast<c10::DeviceType>(
-          (reinterpret_cast<THNPStream*>(stream))->device_type));
+      static_cast<c10::DeviceType>((reinterpret_cast<THNPStream*>(stream))->device_type));
 }

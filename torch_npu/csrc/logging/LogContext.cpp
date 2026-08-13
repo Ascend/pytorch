@@ -25,9 +25,7 @@ void LogContext::parseFilterFromEnv() {
   while (std::getline(ss, item, ',')) {
     if (item.empty())
       continue;
-    item = item.substr(
-        item.find_first_not_of(" \t"),
-        item.find_last_not_of(" \t") - item.find_first_not_of(" \t") + 1);
+    item = item.substr(item.find_first_not_of(" \t"), item.find_last_not_of(" \t") - item.find_first_not_of(" \t") + 1);
     if (item.empty())
       continue;
     if (item[0] == '+') {
@@ -63,10 +61,7 @@ bool LogContext::shouldLog(const std::string& log_content) const {
 }
 
 // Locked from the Outside
-void LogContext::GetQNameAndLevelByName(
-    const std::string& name,
-    std::string& qname,
-    LoggingLevel& level) {
+void LogContext::GetQNameAndLevelByName(const std::string& name, std::string& qname, LoggingLevel& level) {
   std::string nameKey = name;
   level = allLevel_;
   qname = "";
@@ -85,8 +80,7 @@ void LogContext::GetQNameAndLevelByName(
   } while (true);
 }
 
-void LogContext::setLogs(
-    const std::unordered_map<std::string, int>& qnameLevels) {
+void LogContext::setLogs(const std::unordered_map<std::string, int>& qnameLevels) {
   std::lock_guard<std::mutex> lock(mutex_);
   qnameLevels_ = qnameLevels;
   auto iter = qnameLevels_.find("torch");
@@ -111,8 +105,7 @@ void LogContext::setLogs(
   }
 }
 
-std::shared_ptr<Logger> LogContext::getLogger(
-    const std::string& name) noexcept {
+std::shared_ptr<Logger> LogContext::getLogger(const std::string& name) noexcept {
   std::lock_guard<std::mutex> lock(mutex_);
   auto iter = loggers_.find(name);
   if (iter != loggers_.end()) {

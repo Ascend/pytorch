@@ -16,30 +16,23 @@ const at::Tensor& NPUNativeFunctions::resize_(
   // because of resize _impl_npu_ only support at base format, so
   // no need to reflush NpuStorageDesc here.
   auto ks = self.key_set();
-  bool is_fake_or_meta =
-      ks.has_all(c10::DispatchKeySet(c10::BackendComponent::MetaBit)) ||
-      ks.has_all(c10::DispatchKeySet(c10::DispatchKey::Python)) ||
-      self.is_meta();
+  bool is_fake_or_meta = ks.has_all(c10::DispatchKeySet(c10::BackendComponent::MetaBit)) ||
+      ks.has_all(c10::DispatchKeySet(c10::DispatchKey::Python)) || self.is_meta();
   if (!is_fake_or_meta) {
     at::Tensor temp_self = self;
     if (!FormatHelper::IsBaseFormatType(self)) {
-      NPUNativeFunctions::npu_format_cast_(
-          temp_self, FormatHelper::GetBaseFormat(self));
+      NPUNativeFunctions::npu_format_cast_(temp_self, FormatHelper::GetBaseFormat(self));
     }
   }
   auto* self_ = self.unsafeGetTensorImpl();
-  auto old_storage_nbytes =
-      self_->unsafe_storage() ? self_->unsafe_storage().nbytes() : 0;
+  auto old_storage_nbytes = self_->unsafe_storage() ? self_->unsafe_storage().nbytes() : 0;
   resize_impl_npu_(self_, size, c10::nullopt);
   // Keep deterministic resize behavior aligned with upstream:
   // fill newly added storage section with NaN/MAX_INT when requested.
   if (C10_UNLIKELY(
-          at::globalContext().deterministicAlgorithms() &&
-          at::globalContext().deterministicFillUninitializedMemory() &&
-          at_npu::native::env::globalNpuContext()
-              .npuFillUninitializedMemory())) {
-    at::native::fill_resize_deterministic_(
-        self, static_cast<int64_t>(old_storage_nbytes));
+          at::globalContext().deterministicAlgorithms() && at::globalContext().deterministicFillUninitializedMemory() &&
+          at_npu::native::env::globalNpuContext().npuFillUninitializedMemory())) {
+    at::native::fill_resize_deterministic_(self, static_cast<int64_t>(old_storage_nbytes));
   }
   return self;
 }
@@ -56,8 +49,7 @@ const at::Tensor& NPUNativeFunctions::resize_as_(
   if (format.has_value()) {
     auto memory_format = format.value();
     TORCH_CHECK(
-        memory_format == c10::MemoryFormat::Preserve ||
-            memory_format == c10::MemoryFormat::Contiguous,
+        memory_format == c10::MemoryFormat::Preserve || memory_format == c10::MemoryFormat::Contiguous,
         "NPU only support format is contiguous_format or preserve_format.",
         OPS_ERROR(ErrCode::NOT_SUPPORT));
   }

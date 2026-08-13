@@ -34,12 +34,8 @@ void check_npu_tensor_is_safe(const at::Tensor& self) {
   if (!torch_npu::utils::is_npu(self)) {
     return;
   }
-  bool is_safe =
-      NPUCachingAllocator::checkBlockIsSafe(self.storage().data_ptr());
-  TORCH_CHECK(
-      is_safe,
-      "There is unsafe data in the input tensor.",
-      PTA_ERROR(ErrCode::VALUE));
+  bool is_safe = NPUCachingAllocator::checkBlockIsSafe(self.storage().data_ptr());
+  TORCH_CHECK(is_safe, "There is unsafe data in the input tensor.", PTA_ERROR(ErrCode::VALUE));
   return;
 }
 
@@ -47,12 +43,8 @@ void check_npu_tensor_is_safe(const c10::optional<at::Tensor>& self) {
   if (!self.has_value() or !torch_npu::utils::is_npu(self.value())) {
     return;
   }
-  bool is_safe =
-      NPUCachingAllocator::checkBlockIsSafe(self.value().storage().data_ptr());
-  TORCH_CHECK(
-      is_safe,
-      "There is unsafe data in the input tensor.",
-      PTA_ERROR(ErrCode::VALUE));
+  bool is_safe = NPUCachingAllocator::checkBlockIsSafe(self.value().storage().data_ptr());
+  TORCH_CHECK(is_safe, "There is unsafe data in the input tensor.", PTA_ERROR(ErrCode::VALUE));
   return;
 }
 
@@ -71,8 +63,7 @@ void check_npu_tensor_is_safe(const at::ITensorListRef& self) {
   return;
 }
 
-void check_npu_tensor_is_safe(
-    const c10::List<c10::optional<at::Tensor>>& self) {
+void check_npu_tensor_is_safe(const c10::List<c10::optional<at::Tensor>>& self) {
   for (const auto& s : self) {
     check_npu_tensor_is_safe(s);
   }
@@ -93,17 +84,13 @@ void update_npu_tensor_is_safe(const at::TensorList& self) {
   return;
 }
 
-void check_and_update_npu_tensor_for_copy(
-    const at::Tensor& dst,
-    const at::Tensor& src) {
+void check_and_update_npu_tensor_for_copy(const at::Tensor& dst, const at::Tensor& src) {
   check_npu_tensor_is_safe(src);
   update_npu_tensor_is_safe(dst);
   return;
 }
 
-void check_and_update_npu_tensor_for_copy(
-    const at::TensorList& dsts,
-    const at::TensorList& srcs) {
+void check_and_update_npu_tensor_for_copy(const at::TensorList& dsts, const at::TensorList& srcs) {
   check_npu_tensor_is_safe(srcs);
   update_npu_tensor_is_safe(dsts);
   return;
@@ -121,15 +108,9 @@ void bind_npu_recovery_functions(PyObject* module) {
   m.def("_update_npu_data_ptr", [](const c10::Storage obj) -> void {
     return c10_npu::NPUCachingAllocator::updateBlockToSafe(obj.data_ptr());
   });
-  m.def("_set_npu_data_unsafe_flag", [](bool flag) -> void {
-    return set_npu_data_unsafe_flag(flag);
-  });
-  m.def("_get_npu_data_unsafe_flag", []() -> bool {
-    return get_npu_data_unsafe_flag();
-  });
-  m.def("_recovery_all_npu_stream", [](int device) -> void {
-    return c10_npu::recovery_all_npu_streams(device);
-  });
+  m.def("_set_npu_data_unsafe_flag", [](bool flag) -> void { return set_npu_data_unsafe_flag(flag); });
+  m.def("_get_npu_data_unsafe_flag", []() -> bool { return get_npu_data_unsafe_flag(); });
+  m.def("_recovery_all_npu_stream", [](int device) -> void { return c10_npu::recovery_all_npu_streams(device); });
 }
 #endif
 

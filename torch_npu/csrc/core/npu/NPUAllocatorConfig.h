@@ -13,12 +13,9 @@ namespace NPUCachingAllocator {
 
 // Constants used by NPUAllocatorConfig
 constexpr size_t kAlignRoundLarge = 16384; // round up large allocs to 16 KB
-constexpr size_t kSmallBuffer =
-    2097152; // "small" allocations are packed in 2 MiB blocks
-constexpr size_t kLargeBuffer =
-    20971520; // "large" allocations may be packed in 20 MiB blocks
-constexpr size_t kMinLargeAlloc =
-    10485760; // allocations between 1 and 10 MiB may use kLargeBuffer
+constexpr size_t kSmallBuffer = 2097152; // "small" allocations are packed in 2 MiB blocks
+constexpr size_t kLargeBuffer = 20971520; // "large" allocations may be packed in 20 MiB blocks
+constexpr size_t kMinLargeAlloc = 10485760; // allocations between 1 and 10 MiB may use kLargeBuffer
 constexpr size_t kMB = 1024 * 1024; // 1 MB
 constexpr size_t k20MB = 20; // 20 MB for segment_size
 constexpr size_t k512MB = 512; // 512 MB for segment_size
@@ -45,20 +42,17 @@ class NPUAllocatorConfig {
 
   static double garbage_collection_threshold() {
     instance();
-    return c10::CachingAllocator::AcceleratorAllocatorConfig::
-        garbage_collection_threshold();
+    return c10::CachingAllocator::AcceleratorAllocatorConfig::garbage_collection_threshold();
   }
 
   static bool expandable_segments() {
     instance();
-    return c10::CachingAllocator::AcceleratorAllocatorConfig::
-        use_expandable_segments();
+    return c10::CachingAllocator::AcceleratorAllocatorConfig::use_expandable_segments();
   }
 
   static size_t large_segment_size() {
     instance();
-    return c10::CachingAllocator::AcceleratorAllocatorConfig::
-        large_segment_size();
+    return c10::CachingAllocator::AcceleratorAllocatorConfig::large_segment_size();
   }
 
   static bool pin_memory_expandable_segments() {
@@ -90,14 +84,12 @@ class NPUAllocatorConfig {
 
   static size_t roundup_power2_divisions(size_t size) {
     instance();
-    return c10::CachingAllocator::AcceleratorAllocatorConfig::
-        roundup_power2_divisions(size);
+    return c10::CachingAllocator::AcceleratorAllocatorConfig::roundup_power2_divisions(size);
   }
 
   static bool pinned_use_background_threads() {
     instance();
-    return c10::CachingAllocator::AcceleratorAllocatorConfig::
-        pinned_use_background_threads();
+    return c10::CachingAllocator::AcceleratorAllocatorConfig::pinned_use_background_threads();
   }
 
   static size_t pinned_reserve_segment_size_mb() {
@@ -118,22 +110,19 @@ class NPUAllocatorConfig {
 
   static size_t max_non_split_rounding_size() {
     instance();
-    return c10::CachingAllocator::AcceleratorAllocatorConfig::
-        max_non_split_rounding_size();
+    return c10::CachingAllocator::AcceleratorAllocatorConfig::max_non_split_rounding_size();
   }
 
   // Pinned memory allocator thresholds for rounding and caching control.
   // Delegate to AcceleratorAllocatorConfig which handles env var parsing.
   static size_t pinned_max_round_threshold() {
     instance();
-    return c10::CachingAllocator::AcceleratorAllocatorConfig::
-        pinned_max_round_threshold();
+    return c10::CachingAllocator::AcceleratorAllocatorConfig::pinned_max_round_threshold();
   }
 
   static size_t pinned_max_cached_size() {
     instance();
-    return c10::CachingAllocator::AcceleratorAllocatorConfig::
-        pinned_max_cached_size();
+    return c10::CachingAllocator::AcceleratorAllocatorConfig::pinned_max_cached_size();
   }
 
   static NPUAllocatorConfig& instance();
@@ -154,9 +143,7 @@ class NPUAllocatorConfig {
     return keys;
   }
 
-  void parseArgs(
-      const std::string& env,
-      std::set<std::string> supported_settings = {});
+  void parseArgs(const std::string& env, std::set<std::string> supported_settings = {});
 
  private:
   bool m_pin_memory_expandable_segments = false;
@@ -172,33 +159,15 @@ class NPUAllocatorConfig {
 
   NPUAllocatorConfig() = default;
 
-  size_t parsePinMemoryExpandableSegments(
-      const c10::CachingAllocator::ConfigTokenizer& config,
-      size_t i);
-  size_t parsePinnedMemRegister(
-      const c10::CachingAllocator::ConfigTokenizer& config,
-      size_t i);
-  size_t parseAddrAlignSize(
-      const c10::CachingAllocator::ConfigTokenizer& config,
-      size_t i);
-  size_t parsePageSize(
-      const c10::CachingAllocator::ConfigTokenizer& config,
-      size_t i);
-  size_t parseSegmentSizeMb(
-      const c10::CachingAllocator::ConfigTokenizer& config,
-      size_t i);
-  size_t parseMultiStreamLazyReclaim(
-      const c10::CachingAllocator::ConfigTokenizer& config,
-      size_t i);
-  size_t parsePerProcessMemoryFraction(
-      const c10::CachingAllocator::ConfigTokenizer& config,
-      size_t i);
-  size_t parseReleaseLockOnNpuMalloc(
-      const c10::CachingAllocator::ConfigTokenizer& config,
-      size_t i);
-  size_t parseThrowOnNpuMallocOom(
-      const c10::CachingAllocator::ConfigTokenizer& config,
-      size_t i);
+  size_t parsePinMemoryExpandableSegments(const c10::CachingAllocator::ConfigTokenizer& config, size_t i);
+  size_t parsePinnedMemRegister(const c10::CachingAllocator::ConfigTokenizer& config, size_t i);
+  size_t parseAddrAlignSize(const c10::CachingAllocator::ConfigTokenizer& config, size_t i);
+  size_t parsePageSize(const c10::CachingAllocator::ConfigTokenizer& config, size_t i);
+  size_t parseSegmentSizeMb(const c10::CachingAllocator::ConfigTokenizer& config, size_t i);
+  size_t parseMultiStreamLazyReclaim(const c10::CachingAllocator::ConfigTokenizer& config, size_t i);
+  size_t parsePerProcessMemoryFraction(const c10::CachingAllocator::ConfigTokenizer& config, size_t i);
+  size_t parseReleaseLockOnNpuMalloc(const c10::CachingAllocator::ConfigTokenizer& config, size_t i);
+  size_t parseThrowOnNpuMallocOom(const c10::CachingAllocator::ConfigTokenizer& config, size_t i);
 };
 
 } // namespace NPUCachingAllocator

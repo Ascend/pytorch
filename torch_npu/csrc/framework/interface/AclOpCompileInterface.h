@@ -29,8 +29,7 @@ aclError AclopSetCompileFlag(aclOpCompileFlag flag);
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
-ACL_FUNC_VISIBILITY aclError
-AclSetCompileopt(aclCompileOpt opt, const char* value);
+ACL_FUNC_VISIBILITY aclError AclSetCompileopt(aclCompileOpt opt, const char* value);
 
 /**
  * @ingroup AscendCL
@@ -40,8 +39,7 @@ AclSetCompileopt(aclCompileOpt opt, const char* value);
  *
  * @retval size of compile option value
  */
-ACL_FUNC_VISIBILITY c10::optional<size_t> AclGetCompileoptSize(
-    aclCompileOpt opt);
+ACL_FUNC_VISIBILITY c10::optional<size_t> AclGetCompileoptSize(aclCompileOpt opt);
 
 /**
  * @ingroup AscendCL
@@ -54,8 +52,7 @@ ACL_FUNC_VISIBILITY c10::optional<size_t> AclGetCompileoptSize(
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
-ACL_FUNC_VISIBILITY aclError
-AclGetCompileopt(aclCompileOpt opt, char* value, size_t length);
+ACL_FUNC_VISIBILITY aclError AclGetCompileopt(aclCompileOpt opt, char* value, size_t length);
 
 /**
  * @ingroup AscendCL
@@ -148,8 +145,7 @@ aclError AclopCompileAndExecuteV2(
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
-ACL_FUNC_VISIBILITY aclError
-AclrtCtxSetSysParamOpt(aclSysParamOpt opt, int64_t value);
+ACL_FUNC_VISIBILITY aclError AclrtCtxSetSysParamOpt(aclSysParamOpt opt, int64_t value);
 
 /**
  * @ingroup AscendCL
@@ -161,8 +157,7 @@ AclrtCtxSetSysParamOpt(aclSysParamOpt opt, int64_t value);
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
-ACL_FUNC_VISIBILITY aclError
-AclrtSetSysParamOpt(aclSysParamOpt opt, int64_t value);
+ACL_FUNC_VISIBILITY aclError AclrtSetSysParamOpt(aclSysParamOpt opt, int64_t value);
 
 /**
  * @ingroup AscendCL
@@ -174,8 +169,7 @@ AclrtSetSysParamOpt(aclSysParamOpt opt, int64_t value);
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
-ACL_FUNC_VISIBILITY aclError
-AclrtGetSysParamOpt(aclSysParamOpt opt, int64_t* value);
+ACL_FUNC_VISIBILITY aclError AclrtGetSysParamOpt(aclSysParamOpt opt, int64_t* value);
 
 ACL_FUNC_VISIBILITY aclError AclDestroyAclOpExecutor(aclOpExecutor* executor);
 } // namespace native

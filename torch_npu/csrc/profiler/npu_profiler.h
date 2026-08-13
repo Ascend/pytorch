@@ -34,12 +34,7 @@ enum class MemoryComponentType {
   WORKSPACE_ALLOCATOR,
 };
 
-enum class MemoryDataType {
-  MEMORY_MALLOC = 0,
-  MEMORY_FREE,
-  MEMORY_BLOCK_FREE,
-  MEMORY_INVALID
-};
+enum class MemoryDataType { MEMORY_MALLOC = 0, MEMORY_FREE, MEMORY_BLOCK_FREE, MEMORY_INVALID };
 
 enum class MemoryAllocatorType {
   ALLOCATOR_INNER = 0,
@@ -50,11 +45,9 @@ enum class MemoryAllocatorType {
 struct MemoryUsage {
   int8_t device_type{0};
   int8_t device_index{0};
-  uint8_t component_type{
-      static_cast<uint8_t>(MemoryComponentType::CACHING_ALLOCATOR)};
+  uint8_t component_type{static_cast<uint8_t>(MemoryComponentType::CACHING_ALLOCATOR)};
   uint8_t data_type{static_cast<uint8_t>(MemoryDataType::MEMORY_INVALID)};
-  uint8_t allocator_type{
-      static_cast<uint8_t>(MemoryAllocatorType::ALLOCATOR_INVALID)};
+  uint8_t allocator_type{static_cast<uint8_t>(MemoryAllocatorType::ALLOCATOR_INVALID)};
   int64_t ptr{0};
   int64_t alloc_size{0};
   int64_t total_allocated{0};
@@ -131,13 +124,9 @@ struct NpuProfilerConfig {
 
 std::atomic<bool>& profDataReportEnable();
 
-void initNpuProfiler(
-    const std::string& path,
-    const std::set<NpuActivityType>& activities);
+void initNpuProfiler(const std::string& path, const std::set<NpuActivityType>& activities);
 
-void warmupNpuProfiler(
-    const NpuProfilerConfig& config,
-    const std::set<NpuActivityType>& activities);
+void warmupNpuProfiler(const NpuProfilerConfig& config, const std::set<NpuActivityType>& activities);
 
 void enableProfilerInChildThread(const NpuProfilerConfig& config);
 
@@ -152,17 +141,11 @@ void stopNpuProfiler();
 
 void finalizeNpuProfiler();
 
-void reportMarkDataToNpuProfiler(
-    uint32_t category,
-    const std::string& msg,
-    uint64_t correlation_id);
+void reportMarkDataToNpuProfiler(uint32_t category, const std::string& msg, uint64_t correlation_id);
 
 void reportMemoryDataToNpuProfiler(const MemoryUsage& data);
 
-inline void mstxMark(
-    const char* message,
-    const aclrtStream stream,
-    const char* domain) {
+inline void mstxMark(const char* message, const aclrtStream stream, const char* domain) {
   if (at_npu::native::IsSupportMstxFunc()) {
     MstxMgr::GetInstance()->mark(message, stream, domain);
   } else {
@@ -170,10 +153,7 @@ inline void mstxMark(
   }
 }
 
-inline int mstxRangePush(
-    const char* message,
-    const aclrtStream stream,
-    const char* domain) {
+inline int mstxRangePush(const char* message, const aclrtStream stream, const char* domain) {
   return MstxMgr::GetInstance()->rangePush(message, stream, domain);
 }
 
@@ -181,10 +161,7 @@ inline int mstxRangePop(const char* domain) {
   return MstxMgr::GetInstance()->rangePop(domain);
 }
 
-inline int mstxRangeStart(
-    const char* message,
-    const aclrtStream stream,
-    const char* domain) {
+inline int mstxRangeStart(const char* message, const aclrtStream stream, const char* domain) {
   return MstxMgr::GetInstance()->rangeStart(message, stream, domain);
 }
 
@@ -199,10 +176,7 @@ inline bool mstxEnable() {
 struct MstxRange {
   int rangeId{0};
   mstxDomainHandle_t domainHandle{nullptr};
-  MstxRange(
-      const std::string& message,
-      aclrtStream stream,
-      const std::string& domainName = "default") {
+  MstxRange(const std::string& message, aclrtStream stream, const std::string& domainName = "default") {
     if (!mstxEnable()) {
       return;
     }
@@ -210,8 +184,7 @@ struct MstxRange {
     if (at_npu::native::IsSupportMstxDomainFunc()) {
       if (MstxMgr::GetInstance()->isMstxTxDomainEnable(domainName)) {
         domainHandle = MstxMgr::GetInstance()->createProfDomain(domainName);
-        at_npu::native::MstxDomainRangeStartA(
-            domainHandle, message.c_str(), stream, rangeId);
+        at_npu::native::MstxDomainRangeStartA(domainHandle, message.c_str(), stream, rangeId);
       }
     } else {
       at_npu::native::MstxRangeStartA(message.c_str(), stream, rangeId);

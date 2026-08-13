@@ -43,8 +43,7 @@ class TensorMaker {
   at::Tensor make_tensor();
 
  private:
-  explicit TensorMaker(void* data, at::IntArrayRef sizes) noexcept
-      : data_{data}, sizes_{sizes} {}
+  explicit TensorMaker(void* data, at::IntArrayRef sizes) noexcept : data_{data}, sizes_{sizes} {}
 
   std::size_t computeStorageSize() const noexcept;
 
@@ -108,10 +107,7 @@ TORCH_NPU_API at::Tensor from_blob(
     at::IntArrayRef strides,
     const at::TensorOptions& options = {});
 
-TORCH_NPU_API at::Tensor from_blob(
-    void* data,
-    at::IntArrayRef sizes,
-    const at::TensorOptions& options = {});
+TORCH_NPU_API at::Tensor from_blob(void* data, at::IntArrayRef sizes, const at::TensorOptions& options = {});
 } // namespace native
 
 } // namespace at_npu

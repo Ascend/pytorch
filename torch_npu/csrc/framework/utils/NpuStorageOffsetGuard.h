@@ -25,8 +25,7 @@ class NpuStorageOffsetGuard {
 
  private:
   void SetTensorStorageOffset() {
-    origin_allow_tensor_metadata_change_ =
-        guard_.unsafeGetTensorImpl()->allow_tensor_metadata_change();
+    origin_allow_tensor_metadata_change_ = guard_.unsafeGetTensorImpl()->allow_tensor_metadata_change();
     origin_storage_offset_ = guard_.storage_offset();
 
     guard_.unsafeGetTensorImpl()->set_allow_tensor_metadata_change(true);
@@ -34,8 +33,7 @@ class NpuStorageOffsetGuard {
   }
   void RecoverTensorStorageOffset() {
     guard_.unsafeGetTensorImpl()->set_storage_offset(origin_storage_offset_);
-    guard_.unsafeGetTensorImpl()->set_allow_tensor_metadata_change(
-        origin_allow_tensor_metadata_change_);
+    guard_.unsafeGetTensorImpl()->set_allow_tensor_metadata_change(origin_allow_tensor_metadata_change_);
   }
   int64_t origin_storage_offset_ = 0;
   bool origin_allow_tensor_metadata_change_ = true;

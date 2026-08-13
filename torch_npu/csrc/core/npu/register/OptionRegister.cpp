@@ -35,9 +35,7 @@ OptionRegister* OptionRegister::GetInstance() {
   return &instance;
 }
 
-void OptionRegister::Register(
-    const std::string& name,
-    ::std::unique_ptr<OptionInterface>& ptr) {
+void OptionRegister::Register(const std::string& name, ::std::unique_ptr<OptionInterface>& ptr) {
   std::lock_guard<std::mutex> lock(mu_);
   registry.emplace(name, std::move(ptr));
 }
@@ -68,8 +66,7 @@ OptionInterfaceBuilder::OptionInterfaceBuilder(
   // init the value if env variable.
   if (type == "env") {
     std::string env_name = name;
-    std::transform(
-        env_name.begin(), env_name.end(), env_name.begin(), ::toupper);
+    std::transform(env_name.begin(), env_name.end(), env_name.begin(), ::toupper);
     char* env_val = std::getenv(env_name.c_str());
     if (env_val != nullptr) {
       std::string val(env_val);
@@ -85,15 +82,13 @@ void SetOption(const std::string& key, const std::string& val) {
       TORCH_NPU_WARN_ONCE(
           "Current device only support jit_compile=False, ",
           "the requested value True is invalid and has been reverted to False.");
-      return register_options::OptionRegister::GetInstance()->Set(
-          key, "disable");
+      return register_options::OptionRegister::GetInstance()->Set(key, "disable");
     }
     if (key == "ALLOW_INTERNAL_FORMAT" && val == "enable") {
       TORCH_NPU_WARN_ONCE(
           "Current device only support allow_internal_format=False, ",
           "the requested value True is invalid and has been reverted to False.");
-      return register_options::OptionRegister::GetInstance()->Set(
-          key, "disable");
+      return register_options::OptionRegister::GetInstance()->Set(key, "disable");
     }
   }
   register_options::OptionRegister::GetInstance()->Set(key, val);

@@ -76,74 +76,47 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject* unused) {
                 p.sys_interconnection);
           },
           [](py::tuple t) {
-            if (t.size() <
-                static_cast<size_t>(ExperConfigType::CONFIG_TYPE_MAX_COUNT)) {
+            if (t.size() < static_cast<size_t>(ExperConfigType::CONFIG_TYPE_MAX_COUNT)) {
               throw std::runtime_error(
-                  "Expected at least " +
-                  std::to_string(static_cast<size_t>(
-                      ExperConfigType::CONFIG_TYPE_MAX_COUNT)) +
+                  "Expected at least " + std::to_string(static_cast<size_t>(ExperConfigType::CONFIG_TYPE_MAX_COUNT)) +
                   " values in state" + PROF_ERROR(ErrCode::PARAM));
             }
             return ExperimentalConfig(
-                t[static_cast<size_t>(ExperConfigType::TRACE_LEVEL)]
-                    .cast<std::string>(),
-                t[static_cast<size_t>(ExperConfigType::METRICS)]
-                    .cast<std::string>(),
+                t[static_cast<size_t>(ExperConfigType::TRACE_LEVEL)].cast<std::string>(),
+                t[static_cast<size_t>(ExperConfigType::METRICS)].cast<std::string>(),
                 t[static_cast<size_t>(ExperConfigType::L2_CACHE)].cast<bool>(),
-                t[static_cast<size_t>(ExperConfigType::RECORD_OP_ARGS)]
-                    .cast<bool>(),
+                t[static_cast<size_t>(ExperConfigType::RECORD_OP_ARGS)].cast<bool>(),
                 t[static_cast<size_t>(ExperConfigType::MSPROF_TX)].cast<bool>(),
                 t[static_cast<size_t>(ExperConfigType::OP_ATTR)].cast<bool>(),
-                t[static_cast<size_t>(ExperConfigType::HOST_SYS)]
-                    .cast<std::vector<std::string>>(),
-                t[static_cast<size_t>(ExperConfigType::MSTX_DOMAIN_INCLUDE)]
-                    .cast<std::vector<std::string>>(),
-                t[static_cast<size_t>(ExperConfigType::MSTX_DOMAIN_EXCLUDE)]
-                    .cast<std::vector<std::string>>(),
+                t[static_cast<size_t>(ExperConfigType::HOST_SYS)].cast<std::vector<std::string>>(),
+                t[static_cast<size_t>(ExperConfigType::MSTX_DOMAIN_INCLUDE)].cast<std::vector<std::string>>(),
+                t[static_cast<size_t>(ExperConfigType::MSTX_DOMAIN_EXCLUDE)].cast<std::vector<std::string>>(),
                 t[static_cast<size_t>(ExperConfigType::SYS_IO)].cast<bool>(),
-                t[static_cast<size_t>(ExperConfigType::SYS_INTERCONNECTION)]
-                    .cast<bool>());
+                t[static_cast<size_t>(ExperConfigType::SYS_INTERCONNECTION)].cast<bool>());
           }));
 
   py::class_<NpuProfilerConfig>(m, "NpuProfilerConfig")
-      .def(py::init<
-           std::string,
-           bool,
-           bool,
-           bool,
-           bool,
-           bool,
-           ExperimentalConfig>());
+      .def(py::init<std::string, bool, bool, bool, bool, bool, ExperimentalConfig>());
   m.def("_supported_npu_activities", []() {
-    std::set<NpuActivityType> activities{
-        NpuActivityType::CPU, NpuActivityType::NPU};
+    std::set<NpuActivityType> activities{NpuActivityType::CPU, NpuActivityType::NPU};
     return activities;
   });
   m.def("_init_profiler", initNpuProfiler);
-  m.def(
-      "_warmup_profiler",
-      &warmupNpuProfiler,
-      py::arg("config"),
-      py::arg("activities"));
+  m.def("_warmup_profiler", &warmupNpuProfiler, py::arg("config"), py::arg("activities"));
   m.def(
       "_start_profiler",
       &startNpuProfiler,
       py::arg("config"),
       py::arg("activities"),
       py::arg("scopes") = std::unordered_set<at::RecordScope>());
-  m.def(
-      "_enable_profiler_in_child_thread",
-      &enableProfilerInChildThread,
-      py::arg("config"));
+  m.def("_enable_profiler_in_child_thread", &enableProfilerInChildThread, py::arg("config"));
   m.def("_stop_profiler", stopNpuProfiler);
   m.def("_disable_profiler_in_child_thread", disableProfilerInChildThread);
   m.def("_finalize_profiler", finalizeNpuProfiler);
   m.def("_get_freq", at_npu::native::getFreq);
   m.def("_get_syscnt_enable", at_npu::native::isSyscntEnable);
   m.def("_get_syscnt", torch_npu::toolkit::profiler::Utils::getClockSyscnt);
-  m.def(
-      "_get_monotonic",
-      torch_npu::toolkit::profiler::Utils::GetClockMonotonicRawNs);
+  m.def("_get_monotonic", torch_npu::toolkit::profiler::Utils::GetClockMonotonicRawNs);
   m.def("_get_host_uid", torch_npu::toolkit::profiler::Utils::GetHostUid);
 
   torch_npu::profiler::python_tracer::init();
@@ -181,20 +154,12 @@ PyObject* THNPModule_mark(PyObject* _unused, PyObject* args) {
   int64_t stream_id = 0;
   int64_t device_index = 0;
   int64_t device_type = 0;
-  if (!PyArg_ParseTuple(
-          args,
-          "sLLLs",
-          &message,
-          &stream_id,
-          &device_index,
-          &device_type,
-          &domain)) {
+  if (!PyArg_ParseTuple(args, "sLLLs", &message, &stream_id, &device_index, &device_type, &domain)) {
     return nullptr;
   }
   {
     pybind11::gil_scoped_release no_gil;
-    auto stream = c10_npu::NPUStream::unpack3(
-        stream_id, device_index, static_cast<c10::DeviceType>(device_type));
+    auto stream = c10_npu::NPUStream::unpack3(stream_id, device_index, static_cast<c10::DeviceType>(device_type));
     mstxMark(message, stream.stream(false), domain);
   }
   Py_RETURN_NONE;
@@ -224,21 +189,13 @@ PyObject* THNPModule_rangePush(PyObject* _unused, PyObject* args) {
   int64_t stream_id = 0;
   int64_t device_index = 0;
   int64_t device_type = 0;
-  if (!PyArg_ParseTuple(
-          args,
-          "sLLLs",
-          &message,
-          &stream_id,
-          &device_index,
-          &device_type,
-          &domain)) {
+  if (!PyArg_ParseTuple(args, "sLLLs", &message, &stream_id, &device_index, &device_type, &domain)) {
     return nullptr;
   }
   int id;
   {
     pybind11::gil_scoped_release no_gil;
-    auto stream = c10_npu::NPUStream::unpack3(
-        stream_id, device_index, static_cast<c10::DeviceType>(device_type));
+    auto stream = c10_npu::NPUStream::unpack3(stream_id, device_index, static_cast<c10::DeviceType>(device_type));
     id = mstxRangePush(message, stream.stream(false), domain);
   }
   return PyLong_FromLong(static_cast<long>(id));
@@ -268,21 +225,13 @@ PyObject* THNPModule_rangeStart(PyObject* _unused, PyObject* args) {
   int64_t stream_id = 0;
   int64_t device_index = 0;
   int64_t device_type = 0;
-  if (!PyArg_ParseTuple(
-          args,
-          "sLLLs",
-          &message,
-          &stream_id,
-          &device_index,
-          &device_type,
-          &domain)) {
+  if (!PyArg_ParseTuple(args, "sLLLs", &message, &stream_id, &device_index, &device_type, &domain)) {
     return nullptr;
   }
   int id;
   {
     pybind11::gil_scoped_release no_gil;
-    auto stream = c10_npu::NPUStream::unpack3(
-        stream_id, device_index, static_cast<c10::DeviceType>(device_type));
+    auto stream = c10_npu::NPUStream::unpack3(stream_id, device_index, static_cast<c10::DeviceType>(device_type));
     id = mstxRangeStart(message, stream.stream(false), domain);
   }
   return PyLong_FromLong(static_cast<long>(id));
@@ -321,28 +270,18 @@ PyObject* THNPModule_rangeEnd(PyObject* self, PyObject* args) {
 }
 
 static std::vector<PyMethodDef> mstxMethods = {
-    {"_mark_on_host",
-     (PyCFunction)THNPModule_markOnHost,
-     METH_VARARGS,
-     nullptr},
+    {"_mark_on_host", (PyCFunction)THNPModule_markOnHost, METH_VARARGS, nullptr},
     {"_mark", (PyCFunction)THNPModule_mark, METH_VARARGS, nullptr},
-    {"_range_push_on_host",
-     (PyCFunction)THNPModule_rangePushOnHost,
-     METH_VARARGS,
-     nullptr},
+    {"_range_push_on_host", (PyCFunction)THNPModule_rangePushOnHost, METH_VARARGS, nullptr},
     {"_range_push", (PyCFunction)THNPModule_rangePush, METH_VARARGS, nullptr},
     {"_range_pop", (PyCFunction)THNPModule_rangePop, METH_VARARGS, nullptr},
-    {"_range_start_on_host",
-     (PyCFunction)THNPModule_rangeStartOnHost,
-     METH_VARARGS,
-     nullptr},
+    {"_range_start_on_host", (PyCFunction)THNPModule_rangeStartOnHost, METH_VARARGS, nullptr},
     {"_range_start", (PyCFunction)THNPModule_rangeStart, METH_VARARGS, nullptr},
     {"_range_end", (PyCFunction)THNPModule_rangeEnd, METH_VARARGS, nullptr},
     {nullptr, nullptr, 0, nullptr}};
 
 void initMstx(PyObject* module) {
-  static struct PyModuleDef mstx_module = {
-      PyModuleDef_HEAD_INIT, "_mstx", nullptr, -1, mstxMethods.data()};
+  static struct PyModuleDef mstx_module = {PyModuleDef_HEAD_INIT, "_mstx", nullptr, -1, mstxMethods.data()};
   PyObject* mstxModule = PyModule_Create(&mstx_module);
   if (mstxModule == nullptr) {
     return;

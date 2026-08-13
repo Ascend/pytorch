@@ -13,17 +13,14 @@ bool is_npu_device(const at::Device& device) {
 }
 
 void init_npu(const c10::DeviceIndex device_index) {
-  c10_npu::NpuSysCtrl::SysStatus status =
-      c10_npu::NpuSysCtrl::GetInstance().Initialize((int)device_index);
+  c10_npu::NpuSysCtrl::SysStatus status = c10_npu::NpuSysCtrl::GetInstance().Initialize((int)device_index);
   if (status != c10_npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
     C10_NPU_SHOW_ERR_MSG();
     return;
   }
-  if (c10_npu::is_lazy_set_device() &&
-      !c10_npu::NpuSysCtrl::GetInstance().GetLazyInitFlag()) {
+  if (c10_npu::is_lazy_set_device() && !c10_npu::NpuSysCtrl::GetInstance().GetLazyInitFlag()) {
     c10_npu::LazySetDevice(device_index);
-    c10_npu::NpuSysCtrl::SysStatus lazystatus =
-        c10_npu::NpuSysCtrl::GetInstance().LazyInitialize((int)device_index);
+    c10_npu::NpuSysCtrl::SysStatus lazystatus = c10_npu::NpuSysCtrl::GetInstance().LazyInitialize((int)device_index);
     if (lazystatus != c10_npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
       C10_NPU_SHOW_ERR_MSG();
       return;
@@ -55,11 +52,7 @@ void finalize_npu() {
     try {
       c10_npu::npuSynchronizeDevice();
     } catch (std::exception& e) {
-      TORCH_CHECK(
-          false,
-          "NPU SynchronizeDevice failed err=:%s",
-          e.what(),
-          PTA_ERROR(ErrCode::ACL));
+      TORCH_CHECK(false, "NPU SynchronizeDevice failed err=:%s", e.what(), PTA_ERROR(ErrCode::ACL));
     }
 
     c10_npu::NpuSysCtrl::GetInstance().HostFinalize();
@@ -67,15 +60,10 @@ void finalize_npu() {
     try {
       c10_npu::NPUCachingAllocator::emptyCache();
     } catch (std::exception& e) {
-      TORCH_CHECK(
-          false,
-          "NPU CachingAllocator::emptyCache failed err=:%s",
-          e.what(),
-          PTA_ERROR(ErrCode::ACL));
+      TORCH_CHECK(false, "NPU CachingAllocator::emptyCache failed err=:%s", e.what(), PTA_ERROR(ErrCode::ACL));
     }
 
-    c10_npu::NpuSysCtrl::SysStatus status =
-        c10_npu::NpuSysCtrl::GetInstance().Finalize();
+    c10_npu::NpuSysCtrl::SysStatus status = c10_npu::NpuSysCtrl::GetInstance().Finalize();
     if (status != c10_npu::NpuSysCtrl::SysStatus::FINALIZE_SUCC) {
       TORCH_CHECK(false, "NPU sys finalize failed.\n", PTA_ERROR(ErrCode::ACL));
     }
@@ -90,8 +78,7 @@ namespace torch {
 namespace npu {
 
 void synchronize(int64_t device_index) {
-  c10_npu::NPUGuard device_guard(
-      at::Device(at::DeviceType::PrivateUse1, device_index));
+  c10_npu::NPUGuard device_guard(at::Device(at::DeviceType::PrivateUse1, device_index));
   c10_npu::npuSynchronizeDevice();
 }
 

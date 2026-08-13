@@ -32,21 +32,18 @@ void* mallocHostMemory(size_t size, bool& is_support_consistency) {
     cfg.numAttrs = 1;
     cfg.attrs = attributes;
 
-    aclError mallocError = c10_npu::acl::AclrtMallocHostWithCfg(
-        static_cast<void**>(&ptr), size, &cfg);
+    aclError mallocError = c10_npu::acl::AclrtMallocHostWithCfg(static_cast<void**>(&ptr), size, &cfg);
     // if feature not support, then fall back to the old logic
     if (ACL_ERROR_RT_FEATURE_NOT_SUPPORT == mallocError) {
       is_support_consistency = false;
-      ASCEND_LOGD(
-          "The current version of driver does not support the VA address normalization feature.");
+      ASCEND_LOGD("The current version of driver does not support the VA address normalization feature.");
       NPU_CHECK_ERROR(aclrtMallocHost(static_cast<void**>(&ptr), size));
     } else {
       is_support_consistency = true;
       NPU_CHECK_ERROR(mallocError);
     }
   } else {
-    ASCEND_LOGD(
-        "The current version of driver and runtime does not support the VA address normalization feature.");
+    ASCEND_LOGD("The current version of driver and runtime does not support the VA address normalization feature.");
     NPU_CHECK_ERROR(aclrtMallocHost(static_cast<void**>(&ptr), size));
   }
   return ptr;
@@ -60,13 +57,10 @@ void* registerSvmMem(void* ptr, size_t size, bool is_support_consistency) {
   if (c10_npu::acl::AclrtMallocHostWithCfgExist() && is_support_consistency) {
     alignedPtr = ptr;
   } else {
-    uintptr_t aligned_ptr =
-        (reinterpret_cast<uintptr_t>(ptr) + kAlignSize - 1) / kAlignSize *
-        kAlignSize;
+    uintptr_t aligned_ptr = (reinterpret_cast<uintptr_t>(ptr) + kAlignSize - 1) / kAlignSize * kAlignSize;
     alignedPtr = reinterpret_cast<void*>(aligned_ptr);
   }
-  if (c10_npu::acl::AclrtHostRegister(alignedPtr, size, regType, &svmPtr) !=
-      ACL_ERROR_NONE) {
+  if (c10_npu::acl::AclrtHostRegister(alignedPtr, size, regType, &svmPtr) != ACL_ERROR_NONE) {
     NPU_CHECK_ERROR(aclrtFreeHost(ptr));
     TORCH_CHECK(false, "AclrtHostRegister failed.", PTA_ERROR(ErrCode::ACL));
   }
@@ -125,11 +119,7 @@ class NpuSwappedMemoryAllocator : public c10::Allocator {
 
     void* dev_ptr = mallocHostSwapMemory(size);
     void (*delete_func)(void*) = &svm_deleter;
-    return {
-        dev_ptr,
-        dev_ptr,
-        delete_func,
-        c10::Device(c10::DeviceType::PrivateUse1, device)};
+    return {dev_ptr, dev_ptr, delete_func, c10::Device(c10::DeviceType::PrivateUse1, device)};
   }
 
   c10::DeleterFnPtr raw_deleter() const override {
@@ -138,8 +128,7 @@ class NpuSwappedMemoryAllocator : public c10::Allocator {
 
   // Note [COW/lazy_clone is not supported yet]
   void copy_data(void* dest, const void* src, std::size_t count) const final {
-    NPU_CHECK_ERROR(
-        aclrtMemcpy(dest, count, src, count, ACL_MEMCPY_DEVICE_TO_DEVICE));
+    NPU_CHECK_ERROR(aclrtMemcpy(dest, count, src, count, ACL_MEMCPY_DEVICE_TO_DEVICE));
   }
 }; // class NpuSwappedMemoryAllocator
 

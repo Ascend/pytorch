@@ -41,8 +41,7 @@ static std::map<std::string, SocVersion> socVersionMap = {
     {"Ascend910_9363", SocVersion::Ascend910_9363}};
 
 void SetSocVersion(const char* const socVersion) {
-  if (socVersion == nullptr ||
-      g_curSocVersion != SocVersion::UnsupportedSocVersion) {
+  if (socVersion == nullptr || g_curSocVersion != SocVersion::UnsupportedSocVersion) {
     return;
   }
 
@@ -57,8 +56,7 @@ void SetSocVersion(const char* const socVersion) {
     curSocVersion = SocVersion::Ascend950;
   } else {
     std::string unsupported_soc(socVersion);
-    std::replace(
-        std::begin(unsupported_soc), std::end(unsupported_soc), '_', ' ');
+    std::replace(std::begin(unsupported_soc), std::end(unsupported_soc), '_', ' ');
     AT_ERROR("Unsupported soc version: ", unsupported_soc);
   }
 
@@ -80,12 +78,10 @@ bool IsSupportInfNan() {
     return true;
   }
   static bool default_support_inf_nan =
-      ((GetSocVersion() >= SocVersion::Ascend910B1) &&
-       (GetSocVersion() < SocVersion::Ascend310B1)) ||
+      ((GetSocVersion() >= SocVersion::Ascend910B1) && (GetSocVersion() < SocVersion::Ascend310B1)) ||
       (GetSocVersion() >= SocVersion::Ascend910_9391);
   if (!c10_npu::option::OptionsManager::CheckInfNanModeEnable()) {
-    if (default_support_inf_nan &&
-        !c10_npu::option::OptionsManager::CheckInfNanModeForceDisable()) {
+    if (default_support_inf_nan && !c10_npu::option::OptionsManager::CheckInfNanModeForceDisable()) {
       AT_ERROR(
           "INF_NAN_MODE_ENABLE shouldn't be set to 0 on the current device. If you want to disable ",
           "inf-nan mode, please export INF_NAN_MODE_FORCE_DISABLE=1");
@@ -98,8 +94,7 @@ bool IsSupportInfNan() {
   if (c10_npu::acl::IsExistGetCannAttribute()) {
     const static bool supportInfNan = []() -> bool {
       int enable = 0;
-      NPU_CHECK_ERROR(
-          c10_npu::acl::AclGetCannAttribute(ACL_CANN_ATTR_INF_NAN, &enable));
+      NPU_CHECK_ERROR(c10_npu::acl::AclGetCannAttribute(ACL_CANN_ATTR_INF_NAN, &enable));
       return enable != 0;
     }();
     return supportInfNan;

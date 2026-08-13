@@ -25,8 +25,7 @@ class Logger;
 }
 
 inline std::shared_ptr<npu_logging::Logger>& GetNPUGraphLogger() {
-  static std::shared_ptr<npu_logging::Logger> logger =
-      npu_logging::logging().getLogger("torch_npu.npugraph");
+  static std::shared_ptr<npu_logging::Logger> logger = npu_logging::logging().getLogger("torch_npu.npugraph");
   return logger;
 }
 
@@ -65,29 +64,16 @@ struct TORCH_NPU_API NPUTaskGroupHandle {
 typedef TORCH_NPU_API void (*NPUCallbackFunc)(void* fnData);
 
 TORCH_NPU_API void graph_task_group_begin(c10_npu::NPUStream stream);
-TORCH_NPU_API NPUTaskGroupHandle
-graph_task_group_end(c10_npu::NPUStream stream);
-TORCH_NPU_API void graph_task_update_begin(
-    c10_npu::NPUStream stream,
-    NPUTaskGroupHandle handle);
+TORCH_NPU_API NPUTaskGroupHandle graph_task_group_end(c10_npu::NPUStream stream);
+TORCH_NPU_API void graph_task_update_begin(c10_npu::NPUStream stream, NPUTaskGroupHandle handle);
 TORCH_NPU_API void graph_task_update_end(c10_npu::NPUStream stream);
 TORCH_NPU_API void super_kernel_scope_begin(const char* scope_name);
 TORCH_NPU_API void super_kernel_scope_end(const char* scope_name);
 
-TORCH_NPU_API void launch_callback(
-    c10_npu::NPUStream stream,
-    NPUCallbackFunc func,
-    void* fnData);
-TORCH_NPU_API void launch_host_func(
-    c10_npu::NPUStream stream,
-    NPUCallbackFunc func,
-    void* fnData);
-TORCH_NPU_API void subscribe_report(
-    uint64_t threadId,
-    c10_npu::NPUStream stream);
-TORCH_NPU_API void unsubscribe_report(
-    uint64_t threadId,
-    c10_npu::NPUStream stream);
+TORCH_NPU_API void launch_callback(c10_npu::NPUStream stream, NPUCallbackFunc func, void* fnData);
+TORCH_NPU_API void launch_host_func(c10_npu::NPUStream stream, NPUCallbackFunc func, void* fnData);
+TORCH_NPU_API void subscribe_report(uint64_t threadId, c10_npu::NPUStream stream);
+TORCH_NPU_API void unsubscribe_report(uint64_t threadId, c10_npu::NPUStream stream);
 
 struct TORCH_NPU_API NPUGraph {
   NPUGraph();
@@ -102,12 +88,10 @@ struct TORCH_NPU_API NPUGraph {
   // torch.accelerator.Graph to prevent a potential use-after-free.
   static NPUGraph* get_currently_capturing_npu_graph();
 
-  void register_generator_state(
-      c10::intrusive_ptr<at_npu::NPUGeneratorState> state);
+  void register_generator_state(c10::intrusive_ptr<at_npu::NPUGeneratorState> state);
   void capture_begin(
       MempoolId_t pool = {0, 0},
-      aclmdlRICaptureMode capture_mode =
-          aclmdlRICaptureMode::ACL_MODEL_RI_CAPTURE_MODE_GLOBAL,
+      aclmdlRICaptureMode capture_mode = aclmdlRICaptureMode::ACL_MODEL_RI_CAPTURE_MODE_GLOBAL,
       bool report_shape = true);
   void capture_end();
   void replay();
@@ -119,14 +103,11 @@ struct TORCH_NPU_API NPUGraph {
   void super_kernel_optimize(const aclskOptions* options);
   void begin_capture_to_if_node(const at::Tensor& scalar_npu_pred_tensor);
   void end_capture_to_conditional_node();
-  void set_conditional_handle(
-      aclmdlRICondHandle handle,
-      const at::Tensor& scalar_npu_pred_tensor);
+  void set_conditional_handle(aclmdlRICondHandle handle, const at::Tensor& scalar_npu_pred_tensor);
 
  private:
   std::function<bool(aclrtStream)> create_allocate_filter() const;
-  std::function<bool(aclrtStream)> create_child_allocate_filter(
-      aclmdlRI child_model_ri) const;
+  std::function<bool(aclrtStream)> create_child_allocate_filter(aclmdlRI child_model_ri) const;
 
  protected:
   aclmdlRI model_ri_ = nullptr;
@@ -166,8 +147,7 @@ struct TORCH_NPU_API NPUGraph {
   // support multi-device captures if needed.
   int capture_dev_;
 
-  ska::flat_hash_map<c10::intrusive_ptr<at_npu::NPUGeneratorState>, uint64_t>
-      captured_generator_states_;
+  ska::flat_hash_map<c10::intrusive_ptr<at_npu::NPUGeneratorState>, uint64_t> captured_generator_states_;
 };
 
 } // namespace c10_npu

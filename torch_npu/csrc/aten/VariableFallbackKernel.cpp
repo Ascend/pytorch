@@ -38,11 +38,7 @@ using torch::autograd::variable_list;
 namespace {
 
 template <typename F>
-void _foreach_tensor(
-    F fn,
-    torch::jit::Stack* stack,
-    size_t stack_start,
-    size_t size) {
+void _foreach_tensor(F fn, torch::jit::Stack* stack, size_t stack_start, size_t size) {
   // Enumerate over tensors in a stack, including ones in TensorLists
   int idx_tensor = 0;
   for (const auto idx_arg : c10::irange(size)) {
@@ -75,13 +71,8 @@ static void warnAutogradNotImplemented(const std::string& op_name) {
 }
 
 struct WarnNotImplemented : public Node {
-  WarnNotImplemented(
-      std::string op_name,
-      int64_t num_outputs,
-      edge_list&& next_edges)
-      : Node(std::move(next_edges)),
-        op_name(std::move(op_name)),
-        num_outputs(num_outputs) {}
+  WarnNotImplemented(std::string op_name, int64_t num_outputs, edge_list&& next_edges)
+      : Node(std::move(next_edges)), op_name(std::move(op_name)), num_outputs(num_outputs) {}
 
   WarnNotImplemented(std::string op_name, int64_t num_outputs)
       : op_name(std::move(op_name)), num_outputs(num_outputs) {}
@@ -108,14 +99,11 @@ static void npuBasicAutogradNotImplementedFallbackImpl(
   const auto num_returns = schema.returns().size();
   const auto stack_start = stack->size() - num_arguments;
 
-  if (torch::autograd::getAutogradFallbackMode() ==
-      torch::autograd::AutogradFallbackMode::Nothing) {
+  if (torch::autograd::getAutogradFallbackMode() == torch::autograd::AutogradFallbackMode::Nothing) {
     op.redispatchBoxed(dispatch_keys & c10::after_autograd_keyset, stack);
     return;
   }
-  TORCH_INTERNAL_ASSERT(
-      torch::autograd::getAutogradFallbackMode() ==
-      torch::autograd::AutogradFallbackMode::Warn);
+  TORCH_INTERNAL_ASSERT(torch::autograd::getAutogradFallbackMode() == torch::autograd::AutogradFallbackMode::Warn);
 
   bool any_input_requires_grad = false;
   _foreach_tensor(
@@ -129,8 +117,7 @@ static void npuBasicAutogradNotImplementedFallbackImpl(
       num_arguments);
   // Optimization: TLS access can be slow. So we only check if it necessary
   // by putting it after the requires_grad checks.
-  any_input_requires_grad =
-      any_input_requires_grad && at::GradMode::is_enabled();
+  any_input_requires_grad = any_input_requires_grad && at::GradMode::is_enabled();
 
   torch_npu::compat::GradFnPtr<WarnNotImplemented> grad_fn;
   if (any_input_requires_grad) {
@@ -138,16 +125,12 @@ static void npuBasicAutogradNotImplementedFallbackImpl(
     // (see generated/VariableTypeEverything.cpp for examples)
     std::vector<const at::Tensor*> all_tensors_on_stack;
     _foreach_tensor(
-        [&](size_t _, size_t idx_arg, const at::Tensor& t) {
-          all_tensors_on_stack.push_back(&t);
-        },
+        [&](size_t _, size_t idx_arg, const at::Tensor& t) { all_tensors_on_stack.push_back(&t); },
         stack,
         stack_start,
         num_arguments);
-    grad_fn = torch_npu::compat::make_grad_fn<WarnNotImplemented>(
-        op_name, all_tensors_on_stack.size());
-    grad_fn->set_next_edges(
-        torch::autograd::collect_next_edges(all_tensors_on_stack));
+    grad_fn = torch_npu::compat::make_grad_fn<WarnNotImplemented>(op_name, all_tensors_on_stack.size());
+    grad_fn->set_next_edges(torch::autograd::collect_next_edges(all_tensors_on_stack));
   }
 
   op.redispatchBoxed(dispatch_keys & c10::after_autograd_keyset, stack);
@@ -163,8 +146,7 @@ static void npuBasicAutogradNotImplementedFallbackImpl(
           if (!torch::autograd::isDifferentiableType(t.scalar_type())) {
             return;
           }
-          const bool is_mutable_output =
-              schema.is_aliasing({c10::SchemaArgType::output, idx_ret}) &&
+          const bool is_mutable_output = schema.is_aliasing({c10::SchemaArgType::output, idx_ret}) &&
               schema.is_mutable({c10::SchemaArgType::output, idx_ret});
 
           // If the post-autograd implementation returns Tensors that require
@@ -181,9 +163,7 @@ static void npuBasicAutogradNotImplementedFallbackImpl(
           // >>> y = op(k)
           // >>> torch.autograd.grad(z.sum(), w)
           if (t.requires_grad()) {
-            t.register_hook([op_name](const at::Tensor& grad) {
-              warnAutogradNotImplemented(op_name);
-            });
+            t.register_hook([op_name](const at::Tensor& grad) { warnAutogradNotImplemented(op_name); });
             // If history is rebased, then we will attempt to warn
             // on the view's base. This will catch most cases (because
             // users typically call .backward() and backprop through
@@ -193,9 +173,7 @@ static void npuBasicAutogradNotImplementedFallbackImpl(
               auto& base = const_cast<at::TensorBase&>(t._base());
               if (base.requires_grad()) {
                 // Can only register_hook on tensors that require grad.
-                base.register_hook([op_name](const at::TensorBase& grad) {
-                  warnAutogradNotImplemented(op_name);
-                });
+                base.register_hook([op_name](const at::TensorBase& grad) { warnAutogradNotImplemented(op_name); });
               }
             }
             return;
@@ -231,8 +209,7 @@ static void npuBasicAutogradNotImplementedFallbackImpl(
 
 // (Ascend) TORCH_LIBRARY_IMPL
 TORCH_LIBRARY_IMPL(_, AutogradPrivateUse1, m) {
-  m.fallback(torch::CppFunction::makeFromBoxedFunction<
-             &npuBasicAutogradNotImplementedFallbackImpl>());
+  m.fallback(torch::CppFunction::makeFromBoxedFunction<&npuBasicAutogradNotImplementedFallbackImpl>());
 }
 
 bool has_op_name_warned(const std::string& op_name) {
@@ -260,9 +237,7 @@ TORCH_LIBRARY_IMPL(_, PrivateUse1, m) {
   m.fallback(torch::CppFunction::makeFromBoxedFunction<&npu_cpu_fallback>());
 }
 
-void npu_Sparse_fallback(
-    const c10::OperatorHandle& op,
-    torch::jit::Stack* stack){TORCH_CHECK(
+void npu_Sparse_fallback(const c10::OperatorHandle& op, torch::jit::Stack* stack){TORCH_CHECK(
     false,
     "CAUTION: The operator '",
     op.schema().operator_name(),

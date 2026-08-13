@@ -16,9 +16,7 @@ std::string IntToHexStr(T number) {
   return strStream.str();
 }
 
-std::string Join(
-    const std::vector<std::string>& elems,
-    const std::string& sep) {
+std::string Join(const std::vector<std::string>& elems, const std::string& sep) {
   std::stringstream result;
   for (size_t i = 0; i < elems.size(); ++i) {
     if (i == 0) {
@@ -64,14 +62,12 @@ uint64_t Utils::GetHostUid() {
     if ((ifa->ifa_flags & IFF_LOOPBACK) != 0) {
       continue;
     }
-    struct sockaddr_ll* lladdr =
-        reinterpret_cast<struct sockaddr_ll*>(ifa->ifa_addr);
+    struct sockaddr_ll* lladdr = reinterpret_cast<struct sockaddr_ll*>(ifa->ifa_addr);
     uint32_t len = static_cast<uint32_t>(lladdr->sll_halen);
     if (len > 0) {
       std::string addr;
       for (uint32_t i = 0; i < len; ++i) {
-        std::string hexAddr =
-            IntToHexStr(static_cast<uint16_t>(lladdr->sll_addr[i]));
+        std::string hexAddr = IntToHexStr(static_cast<uint16_t>(lladdr->sll_addr[i]));
         addr += (hexAddr.length() > 1) ? hexAddr : ("0" + hexAddr);
       }
       if ((lladdr->sll_addr[0] & SECOND_LEAST_BIT) == 0) {
@@ -87,8 +83,7 @@ uint64_t Utils::GetHostUid() {
   if (universalMacAddrs.empty() && localMacAddrs.empty()) {
     return 0;
   }
-  auto& macAddrs =
-      universalMacAddrs.empty() ? localMacAddrs : universalMacAddrs;
+  auto& macAddrs = universalMacAddrs.empty() ? localMacAddrs : universalMacAddrs;
   std::sort(macAddrs.begin(), macAddrs.end());
   return CalcHashId(Join(macAddrs, "-"));
 }

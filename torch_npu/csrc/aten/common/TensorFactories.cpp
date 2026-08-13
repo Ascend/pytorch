@@ -67,8 +67,7 @@ void npu_quantized_clone_write_int_repr_payload(
   static const auto kNoopDeleter = [](void*) {};
   constexpr int kMaxAttempts = 5;
   constexpr int kMaxIntReprSlabHops = 8;
-  const bool verify_sum =
-      expected_sum >= 0 && dst.numel() > 0 && dst.numel() <= 4096;
+  const bool verify_sum = expected_sum >= 0 && dst.numel() > 0 && dst.numel() <= 4096;
 
   for (int attempt = 0; attempt < kMaxAttempts; ++attempt) {
     at::Tensor dst_repr = dst.int_repr();
@@ -84,8 +83,7 @@ void npu_quantized_clone_write_int_repr_payload(
     at::Tensor written = dst_repr;
     for (int hop = 0; hop < kMaxIntReprSlabHops; ++hop) {
       at::Tensor cur = dst.int_repr();
-      if (!cur.defined() || written.nbytes() == 0 ||
-          !cur.sizes().equals(written.sizes())) {
+      if (!cur.defined() || written.nbytes() == 0 || !cur.sizes().equals(written.sizes())) {
         break;
       }
       cur.copy_(written, /*non_blocking=*/false);
@@ -94,23 +92,16 @@ void npu_quantized_clone_write_int_repr_payload(
       written = cur;
     }
 
-    if (dst.data_ptr() != nullptr && written.defined() &&
-        dst.data_ptr() != written.data_ptr() &&
+    if (dst.data_ptr() != nullptr && written.defined() && dst.data_ptr() != written.data_ptr() &&
         dst.nbytes() == written.nbytes()) {
       at::Tensor q_payload = at_npu::native::from_blob(
-          dst.data_ptr(),
-          dst.sizes(),
-          dst.strides(),
-          kNoopDeleter,
-          npu_bytes.options(),
-          dst.device());
+          dst.data_ptr(), dst.sizes(), dst.strides(), kNoopDeleter, npu_bytes.options(), dst.device());
       q_payload.copy_(written, /*non_blocking=*/false);
       c10_npu::getCurrentNPUStream(device_index).synchronize();
       c10_npu::npuSynchronizeDevice();
     }
 
-    const int64_t got =
-        verify_sum ? npu_byte_tensor_sum_on_cpu(dst.int_repr()) : expected_sum;
+    const int64_t got = verify_sum ? npu_byte_tensor_sum_on_cpu(dst.int_repr()) : expected_sum;
     if (!verify_sum || got == expected_sum) {
       break;
     }
@@ -119,15 +110,11 @@ void npu_quantized_clone_write_int_repr_payload(
 }
 
 inline bool should_fill_empty_deterministic() {
-  return at::globalContext().deterministicAlgorithms() &&
-      at::globalContext().deterministicFillUninitializedMemory() &&
+  return at::globalContext().deterministicAlgorithms() && at::globalContext().deterministicFillUninitializedMemory() &&
       at_npu::native::env::globalNpuContext().npuFillUninitializedMemory();
 }
 
-void window_function_checks(
-    const char* function_name,
-    const c10::TensorOptions& options,
-    int64_t window_length) {
+void window_function_checks(const char* function_name, const c10::TensorOptions& options, int64_t window_length) {
   TORCH_CHECK(
       options.layout() != at::kSparse,
       function_name,
@@ -149,10 +136,7 @@ void window_function_checks(
       OPS_ERROR(ErrCode::VALUE));
 }
 
-size_t computeStorageNbytes(
-    c10::IntArrayRef sizes,
-    c10::IntArrayRef strides,
-    size_t itemsize_bytes) {
+size_t computeStorageNbytes(c10::IntArrayRef sizes, c10::IntArrayRef strides, size_t itemsize_bytes) {
   // size of the underlying storage is 1 bigger than the offset
   // of the last element according to stride
   size_t size = 1;
@@ -180,17 +164,14 @@ at::Tensor NPUNativeFunctions::empty(
 #endif
   RECORD_FUNCTION("empty_tensor", std::vector<c10::IValue>({}));
   auto device_ = c10::device_or_default(device_opt);
-  AT_ASSERT(
-      device_.type() == c10::DeviceType::PrivateUse1,
-      OPS_ERROR(ErrCode::PARAM));
+  AT_ASSERT(device_.type() == c10::DeviceType::PrivateUse1, OPS_ERROR(ErrCode::PARAM));
   torch_npu::utils::maybe_initialize_npu(device_);
   TORCH_CHECK(
       !c10::pinned_memory_or_default(pin_memory_opt),
       "Only dense CPU tensors can be pinned",
       OPS_ERROR(ErrCode::NOT_SUPPORT));
   TORCH_CHECK(
-      !(at::isComplexType(dtype_or_default(dtype_opt)) &&
-        !at_npu::native::env::CheckJitDisable()),
+      !(at::isComplexType(dtype_or_default(dtype_opt)) && !at_npu::native::env::CheckJitDisable()),
       "Current settings do not support Complex dtype. Please try again with jit_compile=False.",
       OPS_ERROR(ErrCode::NOT_SUPPORT));
   check_size_nonnegative(size);
@@ -199,23 +180,16 @@ at::Tensor NPUNativeFunctions::empty(
   int64_t nelements = c10::multiply_integers(size);
   auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
   int64_t size_bytes = nelements * dtype.itemsize();
-  c10::intrusive_ptr<c10::StorageImpl> storage_impl =
-      torch_npu::make_npu_storage_impl(
-          c10::StorageImpl::use_byte_size_t(),
-          c10::SymInt(size_bytes),
-          allocator->allocate(size_bytes),
-          allocator,
-          true);
+  c10::intrusive_ptr<c10::StorageImpl> storage_impl = torch_npu::make_npu_storage_impl(
+      c10::StorageImpl::use_byte_size_t(), c10::SymInt(size_bytes), allocator->allocate(size_bytes), allocator, true);
 
-  auto tensor =
-      at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
+  auto tensor = at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
 
   // Default at::TensorImpl has size [0]
   if (size.size() != 1 || size[0] != 0) {
     tensor.unsafeGetTensorImpl()->set_sizes_contiguous(size);
   }
-  auto memory_format =
-      memory_format_opt.value_or(c10::MemoryFormat::Contiguous);
+  auto memory_format = memory_format_opt.value_or(c10::MemoryFormat::Contiguous);
   TORCH_CHECK(
       memory_format == c10::MemoryFormat::Contiguous,
       "Only c10::MemoryFormat::Contiguous is supported for creating a npu tensor",
@@ -239,8 +213,8 @@ at::Tensor empty_like_npu(
       "the redundant setter.",
       OPS_ERROR(ErrCode::PARAM));
 
-  c10::TensorOptions options = self.options().merge_in(options_).merge_in(
-      c10::TensorOptions().memory_format(optional_memory_format));
+  c10::TensorOptions options =
+      self.options().merge_in(options_).merge_in(c10::TensorOptions().memory_format(optional_memory_format));
 
   TORCH_CHECK(
       !(options.layout() != at::kStrided && optional_memory_format.has_value()),
@@ -248,13 +222,11 @@ at::Tensor empty_like_npu(
       OPS_ERROR(ErrCode::NOT_SUPPORT));
   if (options.layout() == at::kSparse && self.is_sparse()) {
     auto result = at::empty({0}, options); // to be resized
-    result.sparse_resize_and_clear_(
-        self.sizes(), self.sparse_dim(), self.dense_dim());
+    result.sparse_resize_and_clear_(self.sizes(), self.sparse_dim(), self.dense_dim());
     return result;
   }
 
-  auto memory_format =
-      options.memory_format_opt().value_or(c10::MemoryFormat::Preserve);
+  auto memory_format = options.memory_format_opt().value_or(c10::MemoryFormat::Preserve);
 
   if (self.is_quantized()) {
     // To support all features of c10::MemoryFormat::Preserve we need to add
@@ -309,54 +281,37 @@ at::Tensor empty_like_npu(
           // See Note [Explicit nullopt c10::MemoryFormat argument]
           c10::nullopt);
     } else {
-      TORCH_CHECK(
-          false,
-          "Unsupported qscheme: ",
-          toString(qscheme),
-          OPS_ERROR(ErrCode::NOT_SUPPORT));
+      TORCH_CHECK(false, "Unsupported qscheme: ", toString(qscheme), OPS_ERROR(ErrCode::NOT_SUPPORT));
     }
   }
 
   at::Tensor result;
 
-  if (memory_format == c10::MemoryFormat::Preserve &&
-      !(torch_npu::utils::is_npu(options))) {
+  if (memory_format == c10::MemoryFormat::Preserve && !(torch_npu::utils::is_npu(options))) {
     if (self.is_non_overlapping_and_dense()) {
-      result = at::empty_strided(
-          self.sizes(), self.strides(), options.memory_format(c10::nullopt));
+      result = at::empty_strided(self.sizes(), self.strides(), options.memory_format(c10::nullopt));
     } else {
       // See Note [Explicit nullopt c10::MemoryFormat argument]
-      result = at::empty(
-          self.sizes(),
-          options.memory_format(self.suggest_memory_format()),
-          c10::nullopt);
+      result = at::empty(self.sizes(), options.memory_format(self.suggest_memory_format()), c10::nullopt);
     }
   } else {
     // See Note [Explicit nullopt c10::MemoryFormat argument]
     if (!(torch_npu::utils::is_npu(options))) {
-      result = at::empty(
-          self.sizes(), options.memory_format(memory_format), c10::nullopt);
+      result = at::empty(self.sizes(), options.memory_format(memory_format), c10::nullopt);
     } else {
-      auto npu_format =
-          torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.npu_format_;
+      auto npu_format = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.npu_format_;
       // self为faketensor时候获取到的format是随机值，赋值为 ND 格式
-      if ((typeid(*self.storage().unsafeGetStorageImpl()) !=
-           typeid(torch_npu::NPUStorageImpl))) {
+      if ((typeid(*self.storage().unsafeGetStorageImpl()) != typeid(torch_npu::NPUStorageImpl))) {
         npu_format = ACL_FORMAT_ND;
       }
-      if (FormatHelper::IsBaseFormatType(npu_format) &&
-          self.unsafeGetTensorImpl()->support_as_strided() &&
+      if (FormatHelper::IsBaseFormatType(npu_format) && self.unsafeGetTensorImpl()->support_as_strided() &&
           self.layout() == c10::kStrided &&
-          (!optional_memory_format.has_value() ||
-           optional_memory_format.value() == c10::MemoryFormat::Preserve)) {
+          (!optional_memory_format.has_value() || optional_memory_format.value() == c10::MemoryFormat::Preserve)) {
         // keep strides
-        std::vector<int64_t> strides =
-            at::infer_dense_strides(self.sizes(), self.strides());
-        result = at::empty_strided(
-            self.sizes(), strides, options.memory_format(std::nullopt));
+        std::vector<int64_t> strides = at::infer_dense_strides(self.sizes(), self.strides());
+        result = at::empty_strided(self.sizes(), strides, options.memory_format(std::nullopt));
       } else {
-        result = OpPreparation::ApplyTensorWithFormat(
-            self.sizes(), options, npu_format);
+        result = OpPreparation::ApplyTensorWithFormat(self.sizes(), options, npu_format);
       }
     }
   }
@@ -370,11 +325,8 @@ at::Tensor NPUNativeFunctions::empty_like(
     c10::optional<c10::Device> device_opt,
     c10::optional<bool> pin_memory_opt,
     c10::optional<c10::MemoryFormat> optional_memory_format) {
-  c10::TensorOptions options = c10::TensorOptions()
-                                   .dtype(dtype_opt)
-                                   .device(device_opt)
-                                   .layout(layout_opt)
-                                   .pinned_memory(pin_memory_opt);
+  c10::TensorOptions options =
+      c10::TensorOptions().dtype(dtype_opt).device(device_opt).layout(layout_opt).pinned_memory(pin_memory_opt);
 
   return at_npu::native::empty_like_npu(self, options, optional_memory_format);
 }
@@ -395,50 +347,39 @@ at::Tensor NPUNativeFunctions::empty_with_format(
   torch_npu::utils::torch_check_npu(device_);
   torch_npu::utils::maybe_initialize_npu(device_);
   TORCH_CHECK(
-      !c10::pinned_memory_or_default(pin_memory_opt),
-      "Only dense CPU tensors can be pinned",
-      OPS_ERROR(ErrCode::TYPE));
+      !c10::pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned", OPS_ERROR(ErrCode::TYPE));
   TORCH_CHECK(
-      !(at::isComplexType(dtype_or_default(dtype_opt)) &&
-        !at_npu::native::env::CheckJitDisable()),
+      !(at::isComplexType(dtype_or_default(dtype_opt)) && !at_npu::native::env::CheckJitDisable()),
       "Current settings do not support Complex dtype. Please try again with jit_compile=False.",
       OPS_ERROR(ErrCode::NOT_SUPPORT));
   check_size_nonnegative(size);
   c10_npu::NPUGuard guard_(device_);
   c10::Allocator* allocator = c10_npu::NPUCachingAllocator::get();
   // when the shape and format are not match, fix format here.
-  aclFormat format =
-      InferFormat::GuessStorageFormat(size, static_cast<aclFormat>(dst_format));
+  aclFormat format = InferFormat::GuessStorageFormat(size, static_cast<aclFormat>(dst_format));
   auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
   int64_t nelements = StorageDescHelper::GetMemorySize(size, format, dtype);
   int64_t size_bytes = nelements * dtype.itemsize();
   c10::intrusive_ptr<c10::StorageImpl> storage_impl;
   if (!base_addr_aligned_kb.has_value()) {
     storage_impl = torch_npu::make_npu_storage_impl(
-        c10::StorageImpl::use_byte_size_t(),
-        c10::SymInt(size_bytes),
-        allocator->allocate(size_bytes),
-        allocator,
-        true);
+        c10::StorageImpl::use_byte_size_t(), c10::SymInt(size_bytes), allocator->allocate(size_bytes), allocator, true);
   } else {
     storage_impl = c10::make_intrusive<torch_npu::NPUStorageImpl>(
         c10::StorageImpl::use_byte_size_t(),
         static_cast<size_t>(size_bytes),
-        c10_npu::NPUCachingAllocator::allocate_with_aligned(
-            size_bytes, base_addr_aligned_kb.value()),
+        c10_npu::NPUCachingAllocator::allocate_with_aligned(size_bytes, base_addr_aligned_kb.value()),
         allocator,
         true);
   }
 
-  auto tensor =
-      at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
+  auto tensor = at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
 
   // Default NPUTensorImpl has size [0]
   if (size.size() != 1 || size[0] != 0) {
     tensor.unsafeGetTensorImpl()->set_sizes_contiguous(size);
   }
-  tensor.unsafeGetTensorImpl()->empty_tensor_restride(
-      c10::MemoryFormat::Contiguous);
+  tensor.unsafeGetTensorImpl()->empty_tensor_restride(c10::MemoryFormat::Contiguous);
   StorageDescHelper::SetDesc(tensor, size, tensor.strides(), format);
   if (C10_UNLIKELY(should_fill_empty_deterministic())) {
     at::native::fill_empty_deterministic_(tensor);
@@ -461,21 +402,14 @@ at::Tensor NPUNativeFunctions::unsafe_empty_with_format(
   // BatchMatMul, MaxPoolWithArgmaxV1. For these ops, specify the parameter
   // keep_format to ensure that the specified internal format is preserved.
   if ((!keep_format) && at_npu::native::env::CheckForbidInternalFormat()) {
-    dst_format = static_cast<int64_t>(
-        FormatHelper::GetBaseFormat(static_cast<aclFormat>(dst_format)));
+    dst_format = static_cast<int64_t>(FormatHelper::GetBaseFormat(static_cast<aclFormat>(dst_format)));
     TORCH_WARN_ONCE(
         "Cannot create tensor with internal format while allow_internal_format=False, "
         "tensor will be created with base format.");
   }
 
   return NPUNativeFunctions::empty_with_format(
-      size,
-      dtype_opt,
-      layout_opt,
-      device_opt,
-      pin_memory_opt,
-      dst_format,
-      c10::nullopt);
+      size, dtype_opt, layout_opt, device_opt, pin_memory_opt, dst_format, c10::nullopt);
 }
 
 at::Tensor NPUNativeFunctions::empty_strided(
@@ -487,13 +421,7 @@ at::Tensor NPUNativeFunctions::empty_strided(
     c10::optional<bool> pin_memory_opt) {
   check_size_nonnegative(size);
   c10::optional<c10::MemoryFormat> optional_memory_format = c10::nullopt;
-  auto t = NPUNativeFunctions::empty(
-      {0},
-      dtype_opt,
-      layout_opt,
-      device_opt,
-      pin_memory_opt,
-      optional_memory_format);
+  auto t = NPUNativeFunctions::empty({0}, dtype_opt, layout_opt, device_opt, pin_memory_opt, optional_memory_format);
   c10_npu::NPUGuard guard(c10::device_or_default(device_opt));
   StorageDescHelper::SetDesc(t, size, stride);
   at_npu::native::resize_impl_npu_(t.unsafeGetTensorImpl(), size, stride);
@@ -511,18 +439,14 @@ at::Tensor NPUNativeFunctions::new_empty_strided_symint(
     c10::optional<at::Layout> layout,
     c10::optional<at::Device> device,
     c10::optional<bool> pin_memory) {
-  return at::native::new_empty_strided_symint(
-      self, size, stride, dtype, layout, device, pin_memory);
+  return at::native::new_empty_strided_symint(self, size, stride, dtype, layout, device, pin_memory);
 }
 
 // Exported, dispatcher-free strided NPU allocation (see TensorFactories.h).
 // Defined in the same TU as NPUNativeFunctions::empty_strided so it links to
 // that (hidden) symbol internally, while TORCH_NPU_API re-exports THIS wrapper
 // for torch_npu._C to call without going through the operator dispatcher.
-at::Tensor empty_strided_npu(
-    c10::IntArrayRef size,
-    c10::IntArrayRef stride,
-    at::ScalarType dtype) {
+at::Tensor empty_strided_npu(c10::IntArrayRef size, c10::IntArrayRef stride, at::ScalarType dtype) {
   // Low-overhead strided NPU allocation for inductor wrappers.
   //
   // NPUNativeFunctions::empty_strided goes empty({0}) -> SetDesc ->
@@ -547,24 +471,17 @@ at::Tensor empty_strided_npu(
     storage_nelem += (size[d] - 1) * stride[d];
   }
 
-  auto device =
-      at::Device(c10::DeviceType::PrivateUse1, c10_npu::current_device());
+  auto device = at::Device(c10::DeviceType::PrivateUse1, c10_npu::current_device());
   torch_npu::utils::maybe_initialize_npu(device);
   c10_npu::NPUGuard guard_(device);
 
   auto dtype_meta = c10::scalarTypeToTypeMeta(dtype);
   int64_t size_bytes = storage_nelem * dtype_meta.itemsize();
   c10::Allocator* allocator = c10_npu::NPUCachingAllocator::get();
-  c10::intrusive_ptr<c10::StorageImpl> storage_impl =
-      torch_npu::make_npu_storage_impl(
-          c10::StorageImpl::use_byte_size_t(),
-          c10::SymInt(size_bytes),
-          allocator->allocate(size_bytes),
-          allocator,
-          true);
+  c10::intrusive_ptr<c10::StorageImpl> storage_impl = torch_npu::make_npu_storage_impl(
+      c10::StorageImpl::use_byte_size_t(), c10::SymInt(size_bytes), allocator->allocate(size_bytes), allocator, true);
 
-  auto tensor = at::detail::make_tensor<torch_npu::NPUTensorImpl>(
-      storage_impl, dtype_meta);
+  auto tensor = at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype_meta);
   tensor.unsafeGetTensorImpl()->set_sizes_and_strides(size, stride);
   StorageDescHelper::SetDesc(tensor, size, stride);
 
@@ -601,13 +518,11 @@ at::Tensor NPUNativeFunctions::empty_with_swapped_memory(
   torch_npu::profiler::NPURecordFunction profiler_guard;
 #endif
   RECORD_FUNCTION("empty_with_swapped_memory", std::vector<c10::IValue>({}));
-  auto device_ = device_opt.value_or(
-      at::Device(c10::DeviceType::PrivateUse1, c10_npu::current_device()));
+  auto device_ = device_opt.value_or(at::Device(c10::DeviceType::PrivateUse1, c10_npu::current_device()));
   torch_npu::utils::torch_check_npu(device_);
   torch_npu::utils::maybe_initialize_npu(device_);
   TORCH_CHECK(
-      !(at::isComplexType(dtype_or_default(dtype_opt)) &&
-        !at_npu::native::env::CheckJitDisable()),
+      !(at::isComplexType(dtype_or_default(dtype_opt)) && !at_npu::native::env::CheckJitDisable()),
       "Current settings do not support Complex dtype. Please try again with jit_compile=False.",
       PTA_ERROR(ErrCode::NOT_SUPPORT));
   check_size_nonnegative(size);
@@ -616,23 +531,16 @@ at::Tensor NPUNativeFunctions::empty_with_swapped_memory(
   int64_t nelements = c10::multiply_integers(size);
   auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
   int64_t size_bytes = nelements * dtype.itemsize();
-  c10::intrusive_ptr<c10::StorageImpl> storage_impl =
-      torch_npu::make_npu_storage_impl(
-          c10::StorageImpl::use_byte_size_t(),
-          c10::SymInt(size_bytes),
-          allocator->allocate(size_bytes),
-          allocator,
-          true);
+  c10::intrusive_ptr<c10::StorageImpl> storage_impl = torch_npu::make_npu_storage_impl(
+      c10::StorageImpl::use_byte_size_t(), c10::SymInt(size_bytes), allocator->allocate(size_bytes), allocator, true);
 
-  auto tensor =
-      at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
+  auto tensor = at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
 
   // Default at::TensorImpl has size [0]
   if (size.size() != 1 || size[0] != 0) {
     tensor.unsafeGetTensorImpl()->set_sizes_contiguous(size);
   }
-  tensor.unsafeGetTensorImpl()->empty_tensor_restride(
-      c10::MemoryFormat::Contiguous);
+  tensor.unsafeGetTensorImpl()->empty_tensor_restride(c10::MemoryFormat::Contiguous);
   StorageDescHelper::SetDesc(tensor, size, tensor.strides());
   if (C10_UNLIKELY(should_fill_empty_deterministic())) {
     at::native::fill_empty_deterministic_(tensor);
@@ -649,11 +557,8 @@ at::Tensor NPUNativeFunctions::blackman_window(
     c10::optional<c10::Layout> layout_opt,
     c10::optional<c10::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
-  c10::TensorOptions options = c10::TensorOptions()
-                                   .dtype(dtype_opt)
-                                   .device(device_opt)
-                                   .layout(layout_opt)
-                                   .pinned_memory(pin_memory_opt);
+  c10::TensorOptions options =
+      c10::TensorOptions().dtype(dtype_opt).device(device_opt).layout(layout_opt).pinned_memory(pin_memory_opt);
 
   window_function_checks("blackman_window", options, window_length);
   if (window_length == 0) {
@@ -665,10 +570,8 @@ at::Tensor NPUNativeFunctions::blackman_window(
   if (periodic) {
     window_length += 1;
   }
-  auto window = at::arange(window_length, options)
-                    .mul_(M_PI / static_cast<double>(window_length - 1));
-  window =
-      window.mul(4).cos_().mul_(0.08) - window.mul(2).cos_().mul_(0.5) + 0.42;
+  auto window = at::arange(window_length, options).mul_(M_PI / static_cast<double>(window_length - 1));
+  window = window.mul(4).cos_().mul_(0.08) - window.mul(2).cos_().mul_(0.5) + 0.42;
   return periodic ? window.narrow(0, 0, window_length - 1) : window;
 }
 
@@ -678,8 +581,7 @@ at::Tensor NPUNativeFunctions::blackman_window(
     c10::optional<c10::Layout> layout_opt,
     c10::optional<c10::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
-  return blackman_window(
-      window_length, true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
+  return blackman_window(window_length, true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~ bartlett_window ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -690,11 +592,8 @@ at::Tensor NPUNativeFunctions::bartlett_window(
     c10::optional<c10::Layout> layout_opt,
     c10::optional<c10::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
-  c10::TensorOptions options = c10::TensorOptions()
-                                   .dtype(dtype_opt)
-                                   .device(device_opt)
-                                   .layout(layout_opt)
-                                   .pinned_memory(pin_memory_opt);
+  c10::TensorOptions options =
+      c10::TensorOptions().dtype(dtype_opt).device(device_opt).layout(layout_opt).pinned_memory(pin_memory_opt);
 
   window_function_checks("bartlett_window", options, window_length);
   if (window_length == 0) {
@@ -706,13 +605,9 @@ at::Tensor NPUNativeFunctions::bartlett_window(
   if (periodic) {
     window_length += 1;
   }
-  auto window = at::arange(window_length, options)
-                    .mul_(2. / static_cast<double>(window_length - 1));
-  const int64_t first_half_size =
-      (static_cast<uint64_t>(window_length - 1) >> 1) + 1;
-  window.narrow(0, first_half_size, window_length - first_half_size)
-      .mul_(-1)
-      .add_(2);
+  auto window = at::arange(window_length, options).mul_(2. / static_cast<double>(window_length - 1));
+  const int64_t first_half_size = (static_cast<uint64_t>(window_length - 1) >> 1) + 1;
+  window.narrow(0, first_half_size, window_length - first_half_size).mul_(-1).add_(2);
   return periodic ? window.narrow(0, 0, window_length - 1) : window;
 }
 
@@ -722,8 +617,7 @@ at::Tensor NPUNativeFunctions::bartlett_window(
     c10::optional<c10::Layout> layout_opt,
     c10::optional<c10::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
-  return bartlett_window(
-      window_length, true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
+  return bartlett_window(window_length, true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ hann_window ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -734,11 +628,8 @@ at::Tensor NPUNativeFunctions::hann_window(
     c10::optional<c10::Layout> layout_opt,
     c10::optional<c10::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
-  c10::TensorOptions options = c10::TensorOptions()
-                                   .dtype(dtype_opt)
-                                   .device(device_opt)
-                                   .layout(layout_opt)
-                                   .pinned_memory(pin_memory_opt);
+  c10::TensorOptions options =
+      c10::TensorOptions().dtype(dtype_opt).device(device_opt).layout(layout_opt).pinned_memory(pin_memory_opt);
 
   window_function_checks("hann_window", options, window_length);
   return at::hamming_window(window_length, periodic, 0.5, 0.5, options);
@@ -750,8 +641,7 @@ at::Tensor NPUNativeFunctions::hann_window(
     c10::optional<c10::Layout> layout_opt,
     c10::optional<c10::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
-  return hann_window(
-      window_length, true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
+  return hann_window(window_length, true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ hamming_window ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -764,11 +654,8 @@ at::Tensor NPUNativeFunctions::hamming_window(
     c10::optional<c10::Layout> layout_opt,
     c10::optional<c10::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
-  c10::TensorOptions options = c10::TensorOptions()
-                                   .dtype(dtype_opt)
-                                   .device(device_opt)
-                                   .layout(layout_opt)
-                                   .pinned_memory(pin_memory_opt);
+  c10::TensorOptions options =
+      c10::TensorOptions().dtype(dtype_opt).device(device_opt).layout(layout_opt).pinned_memory(pin_memory_opt);
 
   window_function_checks("hamming_window", options, window_length);
   if (window_length == 0) {
@@ -781,10 +668,7 @@ at::Tensor NPUNativeFunctions::hamming_window(
     window_length += 1;
   }
   auto window = at::arange(window_length, options);
-  window.mul_(M_PI * 2. / static_cast<double>(window_length - 1))
-      .cos_()
-      .mul_(-beta)
-      .add_(alpha);
+  window.mul_(M_PI * 2. / static_cast<double>(window_length - 1)).cos_().mul_(-beta).add_(alpha);
   return periodic ? window.narrow(0, 0, window_length - 1) : window;
 }
 
@@ -796,15 +680,7 @@ at::Tensor NPUNativeFunctions::hamming_window(
     c10::optional<c10::Layout> layout_opt,
     c10::optional<c10::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
-  return hamming_window(
-      window_length,
-      periodic,
-      alpha,
-      0.46,
-      dtype_opt,
-      layout_opt,
-      device_opt,
-      pin_memory_opt);
+  return hamming_window(window_length, periodic, alpha, 0.46, dtype_opt, layout_opt, device_opt, pin_memory_opt);
 }
 
 at::Tensor NPUNativeFunctions::hamming_window(
@@ -814,14 +690,7 @@ at::Tensor NPUNativeFunctions::hamming_window(
     c10::optional<c10::Layout> layout_opt,
     c10::optional<c10::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
-  return hamming_window(
-      window_length,
-      periodic,
-      0.54,
-      dtype_opt,
-      layout_opt,
-      device_opt,
-      pin_memory_opt);
+  return hamming_window(window_length, periodic, 0.54, dtype_opt, layout_opt, device_opt, pin_memory_opt);
 }
 
 at::Tensor NPUNativeFunctions::hamming_window(
@@ -830,49 +699,39 @@ at::Tensor NPUNativeFunctions::hamming_window(
     c10::optional<c10::Layout> layout_opt,
     c10::optional<c10::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
-  return hamming_window(
-      window_length, true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
+  return hamming_window(window_length, true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ tensor ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 template <typename T>
-at::Tensor tensor_npu(
-    c10::ArrayRef<T> values,
-    const c10::TensorOptions& options) {
+at::Tensor tensor_npu(c10::ArrayRef<T> values, const c10::TensorOptions& options) {
   auto result = at::empty(values.size(), options);
   AT_ASSERT(result.is_contiguous(), OPS_ERROR(ErrCode::VALUE));
   AT_DISPATCH_ALL_TYPES_AND_COMPLEX(result.scalar_type(), "tensor_npu", [&] {
-    std::copy(
-        values.begin(), values.end(), result.template data_ptr<scalar_t>());
+    std::copy(values.begin(), values.end(), result.template data_ptr<scalar_t>());
   });
   return result;
 }
 
 template <typename T>
-at::Tensor tensor_backend_npu(
-    c10::ArrayRef<T> values,
-    const c10::TensorOptions& options) {
-  auto npu_tensor =
-      tensor_npu(values, options.device(c10::DeviceType::PrivateUse1));
+at::Tensor tensor_backend_npu(c10::ArrayRef<T> values, const c10::TensorOptions& options) {
+  auto npu_tensor = tensor_npu(values, options.device(c10::DeviceType::PrivateUse1));
   return npu_tensor.to(options.device());
 }
 
-#define TENSOR(T, _1)                                               \
-  at::Tensor tensor_npu(                                            \
-      c10::ArrayRef<T> values, const c10::TensorOptions& options) { \
-    if (options.device().type() != c10::DeviceType::PrivateUse1) {  \
-      return tensor_backend_npu(values, options);                   \
-    } else {                                                        \
-      return tensor_npu(values, options);                           \
-    }                                                               \
+#define TENSOR(T, _1)                                                                 \
+  at::Tensor tensor_npu(c10::ArrayRef<T> values, const c10::TensorOptions& options) { \
+    if (options.device().type() != c10::DeviceType::PrivateUse1) {                    \
+      return tensor_backend_npu(values, options);                                     \
+    } else {                                                                          \
+      return tensor_npu(values, options);                                             \
+    }                                                                                 \
   }
 AT_FORALL_SCALAR_TYPES_AND3(Bool, Half, BFloat16, TENSOR)
 #undef TENSOR
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ clone ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-at::Tensor NPUNativeFunctions::clone(
-    const at::Tensor& src,
-    c10::optional<c10::MemoryFormat> format) {
+at::Tensor NPUNativeFunctions::clone(const at::Tensor& src, c10::optional<c10::MemoryFormat> format) {
   c10_npu::NPUGuard guard(src.device());
 
   // Quantized (QUInt8/QInt8): TransContiguous / generic copy_d2d paths have
@@ -881,8 +740,7 @@ at::Tensor NPUNativeFunctions::clone(
   // matching CopyKernel.
   if (src.is_quantized()) {
     TORCH_CHECK(
-        !format.has_value() || *format == c10::MemoryFormat::Contiguous ||
-            *format == c10::MemoryFormat::Preserve,
+        !format.has_value() || *format == c10::MemoryFormat::Contiguous || *format == c10::MemoryFormat::Preserve,
         "NPU quantized clone only supports Contiguous or Preserve memory_format.",
         OPS_ERROR(ErrCode::NOT_SUPPORT));
     // empty_like + int_repr stride_copy only when int_repr metadata matches.
@@ -898,11 +756,9 @@ at::Tensor NPUNativeFunctions::clone(
     }
     const at::Tensor src_repr = src.int_repr();
     const bool npu_src_q_meta_mismatch =
-        src.device().type() == c10::DeviceType::PrivateUse1 &&
-        !StorageDescHelper::MetaDataAreMatch(&src);
+        src.device().type() == c10::DeviceType::PrivateUse1 && !StorageDescHelper::MetaDataAreMatch(&src);
     const bool npu_src_repr_meta_mismatch =
-        src.device().type() == c10::DeviceType::PrivateUse1 &&
-        !StorageDescHelper::MetaDataAreMatch(&src_repr);
+        src.device().type() == c10::DeviceType::PrivateUse1 && !StorageDescHelper::MetaDataAreMatch(&src_repr);
     // MetaData(q)==0 on a view (e.g. ravel -> [625]) or int_repr meta mismatch
     // (transpose): device stride_copy / empty_like+H2D can leave dst.int_repr()
     // on a non-canonical slab (checksum 1 vs 348). Stage correct int_repr bytes
@@ -912,27 +768,20 @@ at::Tensor NPUNativeFunctions::clone(
     if (npu_src_q_meta_mismatch || npu_src_repr_meta_mismatch) {
       at::Tensor cpu_repr;
       if (src.numel() == 0) {
-        cpu_repr =
-            at::empty_like(src_repr, src_repr.options().device(at::kCPU));
+        cpu_repr = at::empty_like(src_repr, src_repr.options().device(at::kCPU));
       } else if (npu_src_repr_meta_mismatch) {
         // e.g. transpose: int_repr NPUStorageDesc disagrees with sizes/strides;
         // read via storage-owner base_sizes_/base_strides_ when they cover the
         // same numel.
-        const torch_npu::NPUStorageDesc& desc =
-            torch_npu::NPUBridge::GetNpuStorageImplDesc(src);
-        const int64_t base_numel =
-            c10::multiply_integers(c10::IntArrayRef(desc.base_sizes_));
+        const torch_npu::NPUStorageDesc& desc = torch_npu::NPUBridge::GetNpuStorageImplDesc(src);
+        const int64_t base_numel = c10::multiply_integers(c10::IntArrayRef(desc.base_sizes_));
         if (desc.base_sizes_.size() > 0 && base_numel == src.numel()) {
           at::Tensor read_ir = src_repr.as_strided(
-              c10::IntArrayRef(desc.base_sizes_),
-              c10::IntArrayRef(desc.base_strides_),
-              src_repr.storage_offset());
-          cpu_repr = read_ir.contiguous().reshape({-1}).to(
-              at::kCPU, /*non_blocking=*/false);
+              c10::IntArrayRef(desc.base_sizes_), c10::IntArrayRef(desc.base_strides_), src_repr.storage_offset());
+          cpu_repr = read_ir.contiguous().reshape({-1}).to(at::kCPU, /*non_blocking=*/false);
         }
         if (!cpu_repr.defined() || cpu_repr.numel() != src.numel()) {
-          cpu_repr =
-              at::empty_like(src_repr, src_repr.options().device(at::kCPU));
+          cpu_repr = at::empty_like(src_repr, src_repr.options().device(at::kCPU));
           cpu_repr.copy_(src_repr, /*non_blocking=*/false);
         }
       } else {
@@ -948,25 +797,21 @@ at::Tensor NPUNativeFunctions::clone(
             src.numel(),
             OPS_ERROR(ErrCode::VALUE));
       }
-      at::Tensor dst =
-          (format.has_value() && *format == c10::MemoryFormat::Contiguous)
+      at::Tensor dst = (format.has_value() && *format == c10::MemoryFormat::Contiguous)
           ? at::empty_like(src, LEGACY_CONTIGUOUS_MEMORY_FORMAT)
           : at::empty_like(src);
       StorageDescHelper::SetDesc(dst, dst.sizes(), dst.strides());
       c10_npu::npuSynchronizeDevice();
-      const at::Tensor npu_bytes =
-          cpu_repr.contiguous().to(src.device(), /*non_blocking=*/false);
+      const at::Tensor npu_bytes = cpu_repr.contiguous().to(src.device(), /*non_blocking=*/false);
       int64_t expected_sum = -1;
       if (src.numel() > 0 && src.numel() <= 4096) {
         expected_sum = cpu_repr.to(at::ScalarType::Long).sum().item<int64_t>();
       }
-      npu_quantized_clone_write_int_repr_payload(
-          dst, npu_bytes, src.device().index(), expected_sum);
+      npu_quantized_clone_write_int_repr_payload(dst, npu_bytes, src.device().index(), expected_sum);
       return dst;
     }
 
-    at::Tensor dst =
-        (format.has_value() && *format == c10::MemoryFormat::Contiguous)
+    at::Tensor dst = (format.has_value() && *format == c10::MemoryFormat::Contiguous)
         ? at::empty_like(src, LEGACY_CONTIGUOUS_MEMORY_FORMAT)
         : at::empty_like(src);
     if (src.device().type() == c10::DeviceType::PrivateUse1) {
@@ -1016,13 +861,11 @@ at::Tensor NPUNativeFunctions::clone(
   OptimizationCases opt_cases{"reshape", "slice"};
   if (TransContiguous::CanOptimize(src, opt_cases)) {
     // clone with any npu formats
-    auto formatTempTensor =
-        TransContiguous::ContiguousOptimizeWithAnyFormat(src, opt_cases);
+    auto formatTempTensor = TransContiguous::ContiguousOptimizeWithAnyFormat(src, opt_cases);
     return formatTempTensor.value();
   } else {
     // clone with base formats
-    auto baseSelf =
-        OpPreparation::ApplyTensorWithSizes(src.sizes(), src.options());
+    auto baseSelf = OpPreparation::ApplyTensorWithSizes(src.sizes(), src.options());
     at::Tensor baseSrc = src;
     if (!FormatHelper::IsBaseFormatType(src)) {
       baseSrc = FormatCastHelper::ApplyBaseFormatTensorBy(src);
@@ -1039,15 +882,10 @@ at::Tensor NPUNativeFunctions::full(
     c10::optional<at::Layout> layout_opt,
     c10::optional<at::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
-  c10::TensorOptions options = c10::TensorOptions()
-                                   .dtype(dtype_opt)
-                                   .device(device_opt)
-                                   .layout(layout_opt)
-                                   .pinned_memory(pin_memory_opt);
+  c10::TensorOptions options =
+      c10::TensorOptions().dtype(dtype_opt).device(device_opt).layout(layout_opt).pinned_memory(pin_memory_opt);
   TORCH_CHECK(
-      options.layout() != at::kSparse,
-      "full(...) is not implemented for sparse layout",
-      OPS_ERROR(ErrCode::TYPE));
+      options.layout() != at::kSparse, "full(...) is not implemented for sparse layout", OPS_ERROR(ErrCode::TYPE));
 
   if (!dtype_opt.has_value()) {
     if (fill_value.isBoolean()) {
@@ -1071,11 +909,8 @@ at::Tensor NPUNativeFunctions::tril_indices(
     c10::optional<at::Layout> layout_opt,
     c10::optional<at::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
-  c10::TensorOptions options = c10::TensorOptions()
-                                   .dtype(dtype_opt)
-                                   .device(device_opt)
-                                   .layout(layout_opt)
-                                   .pinned_memory(pin_memory_opt);
+  c10::TensorOptions options =
+      c10::TensorOptions().dtype(dtype_opt).device(device_opt).layout(layout_opt).pinned_memory(pin_memory_opt);
   check_args(row, col, options);
 
   auto tril_size = get_tril_size(row, col, offset);
@@ -1125,11 +960,8 @@ at::Tensor NPUNativeFunctions::triu_indices(
     c10::optional<at::Layout> layout_opt,
     c10::optional<at::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
-  c10::TensorOptions options = c10::TensorOptions()
-                                   .dtype(dtype_opt)
-                                   .device(device_opt)
-                                   .layout(layout_opt)
-                                   .pinned_memory(pin_memory_opt);
+  c10::TensorOptions options =
+      c10::TensorOptions().dtype(dtype_opt).device(device_opt).layout(layout_opt).pinned_memory(pin_memory_opt);
   check_args(row, col, options);
 
   auto triu_size = row * col - get_tril_size(row, col, offset - 1);
@@ -1165,11 +997,7 @@ at::Tensor NPUNativeFunctions::isnan(const at::Tensor& self) {
   return at::native::isnan(self);
 }
 
-at::Tensor NPUNativeFunctions::unfold(
-    const at::Tensor& self,
-    int64_t dimension,
-    int64_t size,
-    int64_t step) {
+at::Tensor NPUNativeFunctions::unfold(const at::Tensor& self, int64_t dimension, int64_t size, int64_t step) {
   return at::native::unfold(self, dimension, size, step);
 }
 
@@ -1178,17 +1006,14 @@ at::Tensor NPUNativeFunctions::_lazy_clone(at::Tensor const& self) {
   c10::StorageImpl* self_storage = self.storage().unsafeGetStorageImpl();
 
   // 2. Call the PyTorch core COW mechanism to create a lazy clone storage
-  c10::intrusive_ptr<c10::StorageImpl> storage =
-      c10::impl::cow::lazy_clone_storage(*self_storage);
+  c10::intrusive_ptr<c10::StorageImpl> storage = c10::impl::cow::lazy_clone_storage(*self_storage);
   TORCH_CHECK(storage != nullptr);
 
   // 3. Create a new TensorImpl based on cloned storage
-  auto tensor = c10::make_intrusive<c10::TensorImpl>(
-      c10::Storage(std::move(storage)), self.key_set(), self.dtype());
+  auto tensor = c10::make_intrusive<c10::TensorImpl>(c10::Storage(std::move(storage)), self.key_set(), self.dtype());
 
   // 4. Set the metadata (dimensions, strides, offset) of the new Tensor
-  tensor->set_sizes_and_strides(
-      self.sym_sizes(), self.sym_strides(), self.sym_storage_offset());
+  tensor->set_sizes_and_strides(self.sym_sizes(), self.sym_strides(), self.sym_storage_offset());
 
   // 5. Create a Tensor and copy the NPU-specific description information
   auto result = at::Tensor(std::move(tensor));

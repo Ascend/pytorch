@@ -16,8 +16,7 @@ aclFormat InferFormat::GuessFormatWhenContiguous(const at::Tensor& tensor) {
   auto desc = tensor_storage_impl->npu_desc_;
   // fix: NCDHW -> default format
   if ((desc.origin_format_ == ACL_FORMAT_NCDHW)) {
-    if ((tensor.sizes().size() != desc.base_sizes_.size()) &&
-        (tensor.sizes().size() <= 4)) {
+    if ((tensor.sizes().size() != desc.base_sizes_.size()) && (tensor.sizes().size() <= 4)) {
       return ACL_FORMAT_NCHW;
     }
   }
@@ -25,9 +24,7 @@ aclFormat InferFormat::GuessFormatWhenContiguous(const at::Tensor& tensor) {
 }
 
 // NOTE: this method should cooperate with shape infer.
-std::tuple<aclFormat, aclFormat> InferFormat::GuessFormatUnit(
-    const c10::IntArrayRef& size,
-    aclFormat format) {
+std::tuple<aclFormat, aclFormat> InferFormat::GuessFormatUnit(const c10::IntArrayRef& size, aclFormat format) {
   aclFormat baseFormat = FormatHelper::GetBaseFormat(format);
   if ((baseFormat == ACL_FORMAT_NCDHW) && (size.size() > 4)) {
     return std::make_tuple(ACL_FORMAT_NCDHW, format);
@@ -55,9 +52,7 @@ aclFormat InferFormat::GuessBaseFormat(const c10::IntArrayRef& size) {
   return ACL_FORMAT_ND;
 }
 
-aclFormat InferFormat::GuessStorageFormat(
-    const c10::IntArrayRef& size,
-    aclFormat format) {
+aclFormat InferFormat::GuessStorageFormat(const c10::IntArrayRef& size, aclFormat format) {
   if (format == ACL_FORMAT_FRACTAL_NZ && size.size() < 2) {
     // scalar scene and rank=1 scene do not support NZ
     TORCH_WARN_ONCE(
@@ -83,9 +78,7 @@ aclFormat InferFormat::GuessStorageFormat(
     }
   } else if (format == ACL_FORMAT_NCHW && dim != 4) {
     return ACL_FORMAT_ND;
-  } else if (
-      (dim == 0) ||
-      ((dim == 1) && (size[0] == 1) && (baseFormat == ACL_FORMAT_ND))) {
+  } else if ((dim == 0) || ((dim == 1) && (size[0] == 1) && (baseFormat == ACL_FORMAT_ND))) {
     // operators treat tensor with dimensions of 0 or shape = [1] as scalar,
     // so these tensor will stay ND format except NCHW tensor whose origin shape
     // can be expand into four dimensions.
@@ -94,13 +87,10 @@ aclFormat InferFormat::GuessStorageFormat(
   return format;
 }
 
-FormatShape InferFormat::GuessStorageSizeWhenConvertFormat(
-    const at::Tensor& tensor) {
+FormatShape InferFormat::GuessStorageSizeWhenConvertFormat(const at::Tensor& tensor) {
   auto format = FormatHelper::GetFormat(tensor);
-  auto size =
-      torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_.base_sizes_;
-  auto dtype =
-      torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_.data_type_;
+  auto size = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_.base_sizes_;
+  auto dtype = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_.data_type_;
   // TransData: ND->NZ, ND size < 2, we can expand dimension to 2, the storage
   // have no effect. now, only ND->NZ and NZ->ND will call transdata， so we no
   // need to check other format.
@@ -112,9 +102,7 @@ FormatShape InferFormat::GuessStorageSizeWhenConvertFormat(
   return FormatHelper::GetStorageSizes(format, size, dtype);
 }
 
-bool InferFormat::IsDefiniteTensorWhenMetaDataChanges(
-    const at::Tensor& tensor,
-    const c10::IntArrayRef& size) {
+bool InferFormat::IsDefiniteTensorWhenMetaDataChanges(const at::Tensor& tensor, const c10::IntArrayRef& size) {
   auto baseformat = FormatHelper::GetBaseFormat(tensor);
   if (baseformat == ACL_FORMAT_NCHW && size.size() >= 5) {
     return true;

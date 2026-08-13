@@ -63,65 +63,45 @@ class CallBackManager {
   }
 
   int Call(void* head, int offset) {
-    TORCH_CHECK(
-        this->execFunc,
-        "Failed to find execution function.",
-        PTA_ERROR(ErrCode::NOT_FOUND));
+    TORCH_CHECK(this->execFunc, "Failed to find execution function.", PTA_ERROR(ErrCode::NOT_FOUND));
     auto dstPtr = (uint8_t*)head + sizePerParams * offset;
     return this->execFunc(dstPtr);
   }
 
   void Copy(void* dstHead, int offset, void* src) {
-    TORCH_CHECK(
-        this->copyFunc,
-        "Failed to find copy function.",
-        PTA_ERROR(ErrCode::NOT_FOUND));
+    TORCH_CHECK(this->copyFunc, "Failed to find copy function.", PTA_ERROR(ErrCode::NOT_FOUND));
     auto dstPtr = (uint8_t*)dstHead + sizePerParams * offset;
     return this->copyFunc(dstPtr, src);
   }
 
   void Release(void* head, int offset, ReleaseQueue& releaseQueue) {
-    TORCH_CHECK(
-        this->releaseFunc,
-        "Failed to find release function.",
-        PTA_ERROR(ErrCode::NOT_FOUND));
+    TORCH_CHECK(this->releaseFunc, "Failed to find release function.", PTA_ERROR(ErrCode::NOT_FOUND));
     auto ptr = (uint8_t*)head + sizePerParams * offset;
     return this->releaseFunc(ptr, releaseQueue);
   }
 
   void CopyRealseParam(void* dstHead, int offset, void* src) {
     TORCH_CHECK(
-        this->copyReleaseParamFunc,
-        "Failed to find copy release params function.",
-        PTA_ERROR(ErrCode::NOT_FOUND));
+        this->copyReleaseParamFunc, "Failed to find copy release params function.", PTA_ERROR(ErrCode::NOT_FOUND));
     auto dstPtr = (uint8_t*)dstHead + sizePerParams * offset;
     return this->copyReleaseParamFunc(dstPtr, src);
   }
 
   void ReleaseParam(void* head, int offset) {
-    TORCH_CHECK(
-        this->releaseParamFunc,
-        "Failed to find release params function.",
-        PTA_ERROR(ErrCode::NOT_FOUND));
+    TORCH_CHECK(this->releaseParamFunc, "Failed to find release params function.", PTA_ERROR(ErrCode::NOT_FOUND));
     auto ptr = (uint8_t*)head + sizePerParams * offset;
     return this->releaseParamFunc(ptr);
   }
 
   void* Init(int capacity) {
-    TORCH_CHECK(
-        this->newFunc,
-        "Failed to find new function.",
-        PTA_ERROR(ErrCode::NOT_FOUND));
+    TORCH_CHECK(this->newFunc, "Failed to find new function.", PTA_ERROR(ErrCode::NOT_FOUND));
     void* ptr = this->newFunc(capacity, sizePerParams); // not check as CUDA
     return ptr;
   }
 
   void DeInit(void* ptr) {
     if (ptr != nullptr) {
-      TORCH_CHECK(
-          this->deleteFunc,
-          "Failed to find delete function.",
-          PTA_ERROR(ErrCode::NOT_FOUND));
+      TORCH_CHECK(this->deleteFunc, "Failed to find delete function.", PTA_ERROR(ErrCode::NOT_FOUND));
       this->deleteFunc(ptr);
       ptr = nullptr;
     }
@@ -192,30 +172,25 @@ std::string get_func_error_msg(void* error_paras) {
   auto type = queueParam->paramType;
   std::stringstream result;
   if (type == c10_npu::queue::EXECUTE_OPAPI) {
-    auto cur_paras =
-        static_cast<at_npu::native::ExecuteParasOpApi*>(queueParam->paramVal);
+    auto cur_paras = static_cast<at_npu::native::ExecuteParasOpApi*>(queueParam->paramVal);
     auto op_name = cur_paras->opType;
     result << "the current working operator name is " << op_name;
   } else if (type == c10_npu::queue::EXECUTE_OPAPI_V2) {
-    auto cur_paras =
-        static_cast<at_npu::native::ExecuteParasOpApiV2*>(queueParam->paramVal);
+    auto cur_paras = static_cast<at_npu::native::ExecuteParasOpApiV2*>(queueParam->paramVal);
     auto op_name = cur_paras->opName;
     result << "the current working operator name is " << *op_name;
   } else if (type == c10_npu::queue::COMPILE_AND_EXECUTE) {
-    auto cur_paras =
-        static_cast<at_npu::native::ExecuteParas*>(queueParam->paramVal);
+    auto cur_paras = static_cast<at_npu::native::ExecuteParas*>(queueParam->paramVal);
     auto op_name = cur_paras->opType;
     // Warning: key logs in the fault mode library!!! Don't make arbitrary
     // modifications!!!
     result << "the current working operator name is " << op_name;
   } else if (type == c10_npu::queue::ASYNC_MEMCPY) {
-    auto cur_paras =
-        static_cast<c10_npu::queue::CopyParas*>(queueParam->paramVal);
-    result << "the current copy params are srclen=" << cur_paras->srcLen
-           << ", dstlen=" << cur_paras->dstLen << ", kind=" << cur_paras->kind;
+    auto cur_paras = static_cast<c10_npu::queue::CopyParas*>(queueParam->paramVal);
+    result << "the current copy params are srclen=" << cur_paras->srcLen << ", dstlen=" << cur_paras->dstLen
+           << ", kind=" << cur_paras->kind;
   } else {
-    auto cur_paras =
-        static_cast<c10_npu::queue::EventParas*>(queueParam->paramVal);
+    auto cur_paras = static_cast<c10_npu::queue::EventParas*>(queueParam->paramVal);
     result << "the current working event is " << cur_paras->event;
   }
   return result.str();
@@ -223,8 +198,7 @@ std::string get_func_error_msg(void* error_paras) {
 
 RepoStatus Repository::GetStatus() const {
   if (initialized == false) {
-    ASCEND_LOGE(
-        "Task queue is not initialized, shouldn't call GetStatus(). !!");
+    ASCEND_LOGE("Task queue is not initialized, shouldn't call GetStatus(). !!");
   }
 
   return repo_status.load();
@@ -232,8 +206,7 @@ RepoStatus Repository::GetStatus() const {
 
 void Repository::SetStatus(RepoStatus desired) {
   if (initialized == false) {
-    ASCEND_LOGE(
-        "Task queue is not initialized, shouldn't call SetStatus(). !!");
+    ASCEND_LOGE("Task queue is not initialized, shouldn't call SetStatus(). !!");
     return;
   }
 
@@ -242,8 +215,7 @@ void Repository::SetStatus(RepoStatus desired) {
 
 void Repository::ChangeStatus(RepoStatus expected, RepoStatus desired) {
   if (initialized == false) {
-    ASCEND_LOGE(
-        "Task queue is not initialized, shouldn't call ChangeStatus(). !!");
+    ASCEND_LOGE("Task queue is not initialized, shouldn't call ChangeStatus(). !!");
     return;
   }
 
@@ -260,8 +232,7 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error) {
   std::string error_msg;
   std::string runtime_error;
   if (initialized == false) {
-    ASCEND_LOGE(
-        "Task queue is not initialized, shouldn't call MakeSureQueueEmpty(). !!");
+    ASCEND_LOGE("Task queue is not initialized, shouldn't call MakeSureQueueEmpty(). !!");
     return NPU_STATUS_FAILED;
   }
   ASCEND_LOGI("Begin to makesure taskqueue empty.");
@@ -307,8 +278,7 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error) {
           if (errno == EINTR) {
             continue;
           }
-          ASCEND_LOGE(
-              "eventfd_read failed. s=%zd, errno=%s.", s, strerror(errno));
+          ASCEND_LOGE("eventfd_read failed. s=%zd, errno=%s.", s, strerror(errno));
 #ifndef BUILD_LIBTORCH
           // Get the GIL
           if (gilState) {
@@ -327,8 +297,7 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error) {
   if (iter != deviceErrorMap.end()) {
     std::string throwError = iter->second;
     std::string error_msg;
-    if (current_status != RepoStatus::STOP_EXIT &&
-        current_status != RepoStatus::UCE_EXIT) {
+    if (current_status != RepoStatus::STOP_EXIT && current_status != RepoStatus::UCE_EXIT) {
       error_msg = c10_npu::c10_npu_get_error_message();
     }
     runtime_error = throwError + ", " + error_msg + PTA_ERROR(ErrCode::ACL);
@@ -336,8 +305,7 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error) {
   }
 
   if (current_status == RepoStatus::CAN_EXIT) {
-    error_msg =
-        "Inner error happened with CAN_EXIT status, detail: " + repo_error;
+    error_msg = "Inner error happened with CAN_EXIT status, detail: " + repo_error;
   }
 
   auto errmsg = GetQueueErrMsg();
@@ -424,51 +392,40 @@ bool Repository::WriteQueue(void* cur_paras) {
 }
 
 void Repository::CheckDeviceError(int ret, std::string& err_msg) {
-  if (ret != ACL_ERROR_RT_DEVICE_TASK_ABORT &&
-      ret != ACL_ERROR_RT_DEVICE_MEM_ERROR) {
+  if (ret != ACL_ERROR_RT_DEVICE_TASK_ABORT && ret != ACL_ERROR_RT_DEVICE_MEM_ERROR) {
     acl_error = c10_npu::c10_npu_get_error_message();
   }
-  if (ret == ACL_ERROR_RT_DEVICE_MEM_ERROR ||
-      acl_error.find(DEVICE_MEM_ERROR) != std::string::npos ||
+  if (ret == ACL_ERROR_RT_DEVICE_MEM_ERROR || acl_error.find(DEVICE_MEM_ERROR) != std::string::npos ||
       acl_error.find(DEVICE_MEM_ERROR_V2) != std::string::npos) {
     if (checkUceErrAndRepair(false, err_msg)) {
       ASCEND_LOGE("UCE ERROR happened, set task queue status to UCE_EXIT");
       SetStatus(UCE_EXIT);
     }
   } else if (
-      ret == ACL_ERROR_RT_HBM_MULTI_BIT_ECC_ERROR ||
-      acl_error.find(DEVICE_HBM_ECC_ERROR) != std::string::npos ||
+      ret == ACL_ERROR_RT_HBM_MULTI_BIT_ECC_ERROR || acl_error.find(DEVICE_HBM_ECC_ERROR) != std::string::npos ||
       acl_error.find(DEVICE_HBM_ECC_ERROR_V2) != std::string::npos) {
     record_mem_hbm_ecc_error();
     SetStatus(HBM_ECC_EXIT);
   } else if (
-      ret == ACL_ERROR_RT_SUSPECT_DEVICE_MEM_ERROR ||
-      acl_error.find(SUSPECT_DEVICE_MEM_ERROR) != std::string::npos ||
+      ret == ACL_ERROR_RT_SUSPECT_DEVICE_MEM_ERROR || acl_error.find(SUSPECT_DEVICE_MEM_ERROR) != std::string::npos ||
       acl_error.find(SUSPECT_DEVICE_MEM_ERROR_V2) != std::string::npos) {
-    ASCEND_LOGE(
-        "SUSPECT MEM ERROR happened, set task queue status to SUSPECT_MEM_EXIT");
+    ASCEND_LOGE("SUSPECT MEM ERROR happened, set task queue status to SUSPECT_MEM_EXIT");
     SetStatus(SUSPECT_MEM_EXIT);
   } else if (
-      ret == ACL_ERROR_RT_LINK_ERROR ||
-      acl_error.find(HCCS_LINK_ERROR) != std::string::npos ||
+      ret == ACL_ERROR_RT_LINK_ERROR || acl_error.find(HCCS_LINK_ERROR) != std::string::npos ||
       acl_error.find(HCCS_LINK_ERROR_V2) != std::string::npos ||
       acl_error.find(HCCS_LINK_ERROR_V3) != std::string::npos) {
-    ASCEND_LOGE(
-        "HCCS LINK ERROR happened, set task queue status to HCCS_LINK_EXIT");
+    ASCEND_LOGE("HCCS LINK ERROR happened, set task queue status to HCCS_LINK_EXIT");
     SetStatus(HCCS_LINK_EXIT);
   } else if (
-      ret == ACL_ERROR_RT_COMM_OP_RETRY_FAIL ||
-      acl_error.find(HCCL_OP_RETRY_FAILED) != std::string::npos ||
+      ret == ACL_ERROR_RT_COMM_OP_RETRY_FAIL || acl_error.find(HCCL_OP_RETRY_FAILED) != std::string::npos ||
       acl_error.find(HCCL_OP_RETRY_FAILED_V2) != std::string::npos) {
-    ASCEND_LOGE(
-        "HCCL OP RETRY FAILED happened, set task queue status to HCCL_OP_RETRY_EXIT");
+    ASCEND_LOGE("HCCL OP RETRY FAILED happened, set task queue status to HCCL_OP_RETRY_EXIT");
     SetStatus(HCCL_OP_RETRY_EXIT);
   } else if (
-      ret == ACL_ERROR_RT_SUSPECT_REMOTE_ERROR ||
-      acl_error.find(SUSPECT_REMOTE_ERROR) != std::string::npos ||
+      ret == ACL_ERROR_RT_SUSPECT_REMOTE_ERROR || acl_error.find(SUSPECT_REMOTE_ERROR) != std::string::npos ||
       acl_error.find(SUSPECT_REMOTE_ERROR_V2) != std::string::npos) {
-    ASCEND_LOGE(
-        "SUSPECT REMOTE ERROR happened, set task queue status to SUSPECT_REMOTE_EXIT");
+    ASCEND_LOGE("SUSPECT REMOTE ERROR happened, set task queue status to SUSPECT_REMOTE_EXIT");
     SetStatus(SUSPECT_REMOTE_EXIT);
   } else if (GetStatus() != STOP_EXIT) {
     SetStatus(ERROR_EXIT);
@@ -477,8 +434,7 @@ void Repository::CheckDeviceError(int ret, std::string& err_msg) {
 
 bool Repository::ReadQueue() {
   if (IsEmptyQueue()) {
-    const auto task_queue_enable =
-        c10_npu::option::OptionsManager::GetTaskQueueEnable();
+    const auto task_queue_enable = c10_npu::option::OptionsManager::GetTaskQueueEnable();
     if (task_queue_enable == 2) {
       // read queue polls for at most 1 ms when queue is empty.
       for (int i = 0; i < READ_QUEUE_POLL_MAX_LOOP; ++i) {
@@ -496,17 +452,14 @@ bool Repository::ReadQueue() {
 
   __sync_synchronize();
 #ifndef BUILD_LIBTORCH
-  at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(
-      2, data, read_idx.idx);
+  at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(2, data, read_idx.idx);
   auto ret = manager().Call(data, read_idx.idx);
-  at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(
-      3, data, read_idx.idx);
+  at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(3, data, read_idx.idx);
 #else
   auto ret = manager().Call(data, read_idx.idx);
 #endif
   if (ret != 0) {
-    repo_error =
-        get_func_error_msg(manager().getCurrentParams(data, read_idx.idx));
+    repo_error = get_func_error_msg(manager().getCurrentParams(data, read_idx.idx));
     ASCEND_LOGE(
         "---Thread---%llu: device = %d, write_idx = %u, read_idx = %u, status = %d, ret = %d",
         std::this_thread::get_id(),
@@ -561,8 +514,7 @@ bool Repository::ReadQueue() {
 
   TORCH_NPU_QUEUE_LOGD(
       "ReadQueue: read success, %s, device = %d, write_idx = %u, read_idx = %u, status = %d",
-      get_func_error_msg(manager().getCurrentParams(data, read_idx.idx))
-          .c_str(),
+      get_func_error_msg(manager().getCurrentParams(data, read_idx.idx)).c_str(),
       device_idx,
       write_idx.idx,
       read_idx.idx,
@@ -600,18 +552,15 @@ void Repository::ThrowDeviceError(RepoStatus current_status, void* cur_paras) {
   auto queueParam = static_cast<c10_npu::queue::QueueParas*>(cur_paras);
   auto type = queueParam->paramType;
   // The RECORD_EVENT in the destructor process should not throw an exception.
-  if (type == c10_npu::queue::LAZY_DESTROY_EVENT ||
-      type == c10_npu::queue::RECORD_EVENT) {
+  if (type == c10_npu::queue::LAZY_DESTROY_EVENT || type == c10_npu::queue::RECORD_EVENT) {
     return;
   }
   ASCEND_LOGE("getUceErrorFlag in Enqueue, throw %s.", throwError.c_str());
   std::string device_error_msg;
-  if (current_status != RepoStatus::STOP_EXIT &&
-      current_status != RepoStatus::UCE_EXIT) {
+  if (current_status != RepoStatus::STOP_EXIT && current_status != RepoStatus::UCE_EXIT) {
     device_error_msg = c10_npu::c10_npu_get_error_message();
   }
-  throw std::runtime_error(
-      throwError + ", " + device_error_msg + PTA_ERROR(ErrCode::ACL));
+  throw std::runtime_error(throwError + ", " + device_error_msg + PTA_ERROR(ErrCode::ACL));
 }
 
 void Repository::Enqueue(void* cur_paras) {
@@ -632,9 +581,7 @@ void Repository::Enqueue(void* cur_paras) {
   ThrowDeviceError(current_status, cur_paras);
 
   if (current_status == RepoStatus::CAN_EXIT) {
-    ASCEND_LOGE(
-        "Inner error happened with CAN_EXIT status, detail: %s",
-        repo_error.c_str());
+    ASCEND_LOGE("Inner error happened with CAN_EXIT status, detail: %s", repo_error.c_str());
   }
 
   if (current_status == RepoStatus::ERROR_EXIT) {
@@ -668,40 +615,27 @@ void Repository::Enqueue(void* cur_paras) {
     auto queueParam = static_cast<c10_npu::queue::QueueParas*>(cur_paras);
     auto type = queueParam->paramType;
     if (type == c10_npu::queue::EXECUTE_OPAPI) {
-      auto cur_paras =
-          static_cast<at_npu::native::ExecuteParasOpApi*>(queueParam->paramVal);
+      auto cur_paras = static_cast<at_npu::native::ExecuteParasOpApi*>(queueParam->paramVal);
       auto op_name = cur_paras->opType;
-      ASCEND_LOGE(
-          "Task queue thread is exit, can't call Enqueue() for executing and op name is=%s.",
-          op_name);
+      ASCEND_LOGE("Task queue thread is exit, can't call Enqueue() for executing and op name is=%s.", op_name);
     } else if (type == c10_npu::queue::EXECUTE_OPAPI_V2) {
-      auto cur_paras = static_cast<at_npu::native::ExecuteParasOpApiV2*>(
-          queueParam->paramVal);
+      auto cur_paras = static_cast<at_npu::native::ExecuteParasOpApiV2*>(queueParam->paramVal);
       auto op_name = cur_paras->opName;
-      ASCEND_LOGE(
-          "Task queue thread is exit, can't call Enqueue() for executing and op name is=%s.",
-          op_name->c_str());
+      ASCEND_LOGE("Task queue thread is exit, can't call Enqueue() for executing and op name is=%s.", op_name->c_str());
     } else if (type == c10_npu::queue::COMPILE_AND_EXECUTE) {
-      auto cur_paras =
-          static_cast<at_npu::native::ExecuteParas*>(queueParam->paramVal);
+      auto cur_paras = static_cast<at_npu::native::ExecuteParas*>(queueParam->paramVal);
       auto op_name = cur_paras->opType;
-      ASCEND_LOGW(
-          "Task queue thread is exit, can't call Enqueue() for executing and op name is=%s.",
-          op_name);
+      ASCEND_LOGW("Task queue thread is exit, can't call Enqueue() for executing and op name is=%s.", op_name);
     } else if (type == c10_npu::queue::ASYNC_MEMCPY) {
-      auto cur_paras =
-          static_cast<c10_npu::queue::CopyParas*>(queueParam->paramVal);
+      auto cur_paras = static_cast<c10_npu::queue::CopyParas*>(queueParam->paramVal);
       ASCEND_LOGW(
           "Task queue thread is exit, can't call Enqueue() for copy, srclen=%zu, dstlen is %zu, kind=%d",
           cur_paras->srcLen,
           cur_paras->dstLen,
           cur_paras->kind);
     } else {
-      auto cur_paras =
-          static_cast<c10_npu::queue::EventParas*>(queueParam->paramVal);
-      ASCEND_LOGW(
-          "Task queue thread is exit, can't call Enqueue() for event, event is=%p",
-          cur_paras->event);
+      auto cur_paras = static_cast<c10_npu::queue::EventParas*>(queueParam->paramVal);
+      ASCEND_LOGW("Task queue thread is exit, can't call Enqueue() for event, event is=%p", cur_paras->event);
     }
     return;
   }
@@ -764,8 +698,7 @@ void Repository::Enqueue(void* cur_paras) {
           if (errno == EINTR) {
             continue;
           }
-          ASCEND_LOGE(
-              "waiting dequeue failed. s=%zd, errno=%s.", s, strerror(errno));
+          ASCEND_LOGE("waiting dequeue failed. s=%zd, errno=%s.", s, strerror(errno));
           return;
         }
         SetWriteWorking(true);
@@ -779,8 +712,7 @@ void Repository::Enqueue(void* cur_paras) {
         if (errno == EINTR) {
           continue;
         }
-        ASCEND_LOGE(
-            "notify consumer failed!! s=%zd, errno=%s", s, strerror(errno));
+        ASCEND_LOGE("notify consumer failed!! s=%zd, errno=%s", s, strerror(errno));
         return;
       }
       break;
@@ -844,8 +776,7 @@ void Repository::Dequeue() {
           if (errno == EINTR) {
             continue;
           }
-          ASCEND_LOGE(
-              "waiting enqueue failed. s=%zd, errno=%s.", s, strerror(errno));
+          ASCEND_LOGE("waiting enqueue failed. s=%zd, errno=%s.", s, strerror(errno));
           return;
         }
         SetReadWorking(true);
@@ -853,16 +784,14 @@ void Repository::Dequeue() {
       continue;
     }
     __sync_synchronize();
-    notify_empty = need_empty &&
-        IsEmptyQueue(); // need_empty && (ret == false || IsEmptyQueue());
+    notify_empty = need_empty && IsEmptyQueue(); // need_empty && (ret == false || IsEmptyQueue());
     while (notify_empty) {
       s = eventfd_write(efd_empty, u);
       if (s != 0) {
         if (errno == EINTR) {
           continue;
         }
-        ASCEND_LOGE(
-            "notify make_sure failed. s=%zd, errno=%s.", s, strerror(errno));
+        ASCEND_LOGE("notify make_sure failed. s=%zd, errno=%s.", s, strerror(errno));
         return;
       }
       break;
@@ -874,8 +803,7 @@ void Repository::Dequeue() {
         if (errno == EINTR) {
           continue;
         }
-        ASCEND_LOGE(
-            "notify producer failed. s=%zd, errno=%s.", s, strerror(errno));
+        ASCEND_LOGE("notify producer failed. s=%zd, errno=%s.", s, strerror(errno));
         return;
       }
       break;
@@ -942,15 +870,10 @@ void StartConsume(Repository* repo, c10::DeviceIndex device_id) {
   aclError ret = c10_npu::SetDevice(device_id);
   if (ret != 0) {
     C10_NPU_SHOW_ERR_MSG();
-    ASCEND_LOGE(
-        "***Thread*%d: set device (%d): ret = %d",
-        std::this_thread::get_id(),
-        device_id,
-        ret);
+    ASCEND_LOGE("***Thread*%d: set device (%d): ret = %d", std::this_thread::get_id(), device_id, ret);
   }
 
-  while (repo->GetStatus() != RepoStatus::CAN_EXIT and
-         repo->GetStatus() != RepoStatus::ERROR_EXIT) {
+  while (repo->GetStatus() != RepoStatus::CAN_EXIT and repo->GetStatus() != RepoStatus::ERROR_EXIT) {
     repo->Dequeue();
   }
   return;
@@ -980,8 +903,7 @@ std::string Repository::GetPara() {
     return "EmptyQueue";
   }
   __sync_synchronize();
-  std::string repo_para =
-      get_func_error_msg(manager().getCurrentParams(data, read_idx.idx));
+  std::string repo_para = get_func_error_msg(manager().getCurrentParams(data, read_idx.idx));
   __sync_synchronize();
   return repo_para;
 }
@@ -1001,8 +923,7 @@ bool ReleaseQueue::WriteToReleaseQueue(void* cur_paras) {
 
 void ReleaseQueue::PushToReleaseQueue(void* cur_paras) {
   if (initialized == false) {
-    ASCEND_LOGE(
-        "Release queue is not initialized, shouldn't call PushToReleaseQueue(). !!");
+    ASCEND_LOGE("Release queue is not initialized, shouldn't call PushToReleaseQueue(). !!");
     return;
   }
 
@@ -1031,8 +952,7 @@ bool ReleaseQueue::ReadFromReleaseQueue() {
 
 void ReleaseQueue::PopFromReleaseQueue() {
   if (initialized == false) {
-    ASCEND_LOGE(
-        "Release queue is not initialized, shouldn't call PopFromReleaseQueue(). !!");
+    ASCEND_LOGE("Release queue is not initialized, shouldn't call PopFromReleaseQueue(). !!");
     return;
   }
 
@@ -1088,8 +1008,7 @@ bool ReleaseQueue::IsFullQueue() const {
 
 RepoStatus ReleaseQueue::GetStatus() const {
   if (initialized == false) {
-    ASCEND_LOGE(
-        "Release queue is not initialized, shouldn't call GetStatus(). !!");
+    ASCEND_LOGE("Release queue is not initialized, shouldn't call GetStatus(). !!");
   }
 
   return repo_status.load();
@@ -1101,8 +1020,7 @@ c10::DeviceIndex ReleaseQueue::GetDeviceID() const {
 
 void ReleaseQueue::SetStatus(RepoStatus desired) {
   if (initialized == false) {
-    ASCEND_LOGE(
-        "Release queue is not initialized, shouldn't call SetStatus(). !!");
+    ASCEND_LOGE("Release queue is not initialized, shouldn't call SetStatus(). !!");
     return;
   }
 
@@ -1111,8 +1029,7 @@ void ReleaseQueue::SetStatus(RepoStatus desired) {
 
 void ReleaseQueue::ChangeStatus(RepoStatus expected, RepoStatus desired) {
   if (initialized == false) {
-    ASCEND_LOGE(
-        "Release queue is not initialized, shouldn't call ChangeStatus(). !!");
+    ASCEND_LOGE("Release queue is not initialized, shouldn't call ChangeStatus(). !!");
     return;
   }
 

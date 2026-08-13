@@ -5,8 +5,7 @@
 namespace at_npu {
 namespace hccl {
 #undef TORCH_NPU_LOAD_FUNC
-#define TORCH_NPU_LOAD_FUNC(funcName) \
-  TORCH_NPU_REGISTER_FUNCTION(libhccl, funcName)
+#define TORCH_NPU_LOAD_FUNC(funcName) TORCH_NPU_REGISTER_FUNCTION(libhccl, funcName)
 
 #undef TORCH_NPU_GET_FUNC
 #define TORCH_NPU_GET_FUNC(funcName) TORCH_NPU_GET_FUNCTION(libhccl, funcName)
@@ -20,8 +19,7 @@ TORCH_NPU_LOAD_FUNC(HcclCommActivateCommMemory)
 TORCH_NPU_LOAD_FUNC(HcclCommDeactivateCommMemory)
 
 extern HcclResult HcclGetCommNameFace(HcclComm commHandle, char* commName) {
-  typedef HcclResult (*HcclGetCommNameFace)(
-      HcclComm commHandle, char* commName);
+  typedef HcclResult (*HcclGetCommNameFace)(HcclComm commHandle, char* commName);
   static HcclGetCommNameFace func = nullptr;
   if (func == nullptr) {
     func = (HcclGetCommNameFace)TORCH_NPU_GET_FUNC(HcclGetCommName);
@@ -51,30 +49,19 @@ extern HcclResult HcclCommResumeFace(HcclComm comm) {
 extern bool isHcclFeatureSupported(HcclCommConfigCapability configParameter) {
   typedef uint32_t (*HcclGetCommConfigCapabilityFunc)();
   static HcclGetCommConfigCapabilityFunc func =
-      (HcclGetCommConfigCapabilityFunc)TORCH_NPU_GET_FUNC(
-          HcclGetCommConfigCapability);
+      (HcclGetCommConfigCapabilityFunc)TORCH_NPU_GET_FUNC(HcclGetCommConfigCapability);
   if (func == nullptr) {
     return false;
   }
   return configParameter < func();
 }
 
-HcclResult HcclCommSetMemoryRangeFace(
-    HcclComm comm,
-    void* virPtr,
-    size_t size,
-    size_t alignment,
-    uint64_t flags) {
+HcclResult HcclCommSetMemoryRangeFace(HcclComm comm, void* virPtr, size_t size, size_t alignment, uint64_t flags) {
   typedef HcclResult (*HcclCommSetMemoryRangeFace)(
-      HcclComm comm,
-      void* virPtr,
-      size_t size,
-      size_t alignment,
-      uint64_t flags);
+      HcclComm comm, void* virPtr, size_t size, size_t alignment, uint64_t flags);
   static HcclCommSetMemoryRangeFace func = nullptr;
   if (func == nullptr) {
-    func =
-        (HcclCommSetMemoryRangeFace)TORCH_NPU_GET_FUNC(HcclCommSetMemoryRange);
+    func = (HcclCommSetMemoryRangeFace)TORCH_NPU_GET_FUNC(HcclCommSetMemoryRange);
   }
   TORCH_CHECK(
       func,
@@ -85,12 +72,10 @@ HcclResult HcclCommSetMemoryRangeFace(
 }
 
 HcclResult HcclCommUnsetMemoryRangeFace(HcclComm comm, void* virPtr) {
-  typedef HcclResult (*HcclCommUnsetMemoryRangeFace)(
-      HcclComm comm, void* virPtr);
+  typedef HcclResult (*HcclCommUnsetMemoryRangeFace)(HcclComm comm, void* virPtr);
   static HcclCommUnsetMemoryRangeFace func = nullptr;
   if (func == nullptr) {
-    func = (HcclCommUnsetMemoryRangeFace)TORCH_NPU_GET_FUNC(
-        HcclCommUnsetMemoryRange);
+    func = (HcclCommUnsetMemoryRangeFace)TORCH_NPU_GET_FUNC(HcclCommUnsetMemoryRange);
   }
   TORCH_CHECK(
       func,
@@ -108,16 +93,10 @@ HcclResult HcclCommActivateCommMemoryFace(
     aclrtDrvMemHandle handle,
     uint64_t flags) {
   typedef HcclResult (*HcclCommActivateCommMemoryFace)(
-      HcclComm comm,
-      void* virPtr,
-      size_t size,
-      size_t offset,
-      aclrtDrvMemHandle handle,
-      uint64_t flags);
+      HcclComm comm, void* virPtr, size_t size, size_t offset, aclrtDrvMemHandle handle, uint64_t flags);
   static HcclCommActivateCommMemoryFace func = nullptr;
   if (func == nullptr) {
-    func = (HcclCommActivateCommMemoryFace)TORCH_NPU_GET_FUNC(
-        HcclCommActivateCommMemory);
+    func = (HcclCommActivateCommMemoryFace)TORCH_NPU_GET_FUNC(HcclCommActivateCommMemory);
   }
   TORCH_CHECK(
       func,
@@ -128,12 +107,10 @@ HcclResult HcclCommActivateCommMemoryFace(
 }
 
 HcclResult HcclCommDeactivateCommMemoryFace(HcclComm comm, void* virPtr) {
-  typedef HcclResult (*HcclCommDeactivateCommMemoryFace)(
-      HcclComm comm, void* virPtr);
+  typedef HcclResult (*HcclCommDeactivateCommMemoryFace)(HcclComm comm, void* virPtr);
   static HcclCommDeactivateCommMemoryFace func = nullptr;
   if (func == nullptr) {
-    func = (HcclCommDeactivateCommMemoryFace)TORCH_NPU_GET_FUNC(
-        HcclCommDeactivateCommMemory);
+    func = (HcclCommDeactivateCommMemoryFace)TORCH_NPU_GET_FUNC(HcclCommDeactivateCommMemory);
   }
   TORCH_CHECK(
       func,

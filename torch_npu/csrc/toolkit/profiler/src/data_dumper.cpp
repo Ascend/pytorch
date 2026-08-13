@@ -19,9 +19,7 @@ DataDumper::~DataDumper() {
   UnInit();
 }
 
-void DataDumper::Init(
-    const std::string& path,
-    size_t capacity = kDefaultRingBuffer) {
+void DataDumper::Init(const std::string& path, size_t capacity = kDefaultRingBuffer) {
   path_ = path;
   data_chunk_buf_.Init(capacity);
   init_.store(true);
@@ -72,8 +70,7 @@ void DataDumper::GatherAndDumpData() {
     if (iter == dataMap.end()) {
       dataMap.insert({key, encodeData});
     } else {
-      iter->second.insert(
-          iter->second.end(), encodeData.cbegin(), encodeData.cend());
+      iter->second.insert(iter->second.end(), encodeData.cbegin(), encodeData.cend());
     }
   }
   if (dataMap.size() > 0) {
@@ -111,8 +108,7 @@ void DataDumper::Report(std::unique_ptr<BaseReportData> data) {
   data_chunk_buf_.Push(std::move(data));
 }
 
-void DataDumper::Dump(
-    const std::map<std::string, std::vector<uint8_t>>& dataMap) {
+void DataDumper::Dump(const std::map<std::string, std::vector<uint8_t>>& dataMap) {
   for (auto& data : dataMap) {
     FILE* fd = nullptr;
     const std::string dump_file = path_ + "/" + data.first;
@@ -131,16 +127,11 @@ void DataDumper::Dump(
     } else {
       fd = iter->second;
     }
-    fwrite(
-        reinterpret_cast<const char*>(data.second.data()),
-        sizeof(char),
-        data.second.size(),
-        fd);
+    fwrite(reinterpret_cast<const char*>(data.second.data()), sizeof(char), data.second.size(), fd);
   }
 }
 
-TraceDataDumper::TraceDataDumper()
-    : path_(""), start_(false), init_(false), trace_hash_data_(nullptr) {}
+TraceDataDumper::TraceDataDumper() : path_(""), start_(false), init_(false), trace_hash_data_(nullptr) {}
 
 TraceDataDumper::~TraceDataDumper() {
   UnInit();
@@ -263,9 +254,7 @@ void TraceDataDumper::FlushParamData() {
   param_data_ = nullptr;
 }
 
-void TraceDataDumper::Dump(
-    const std::string& file_name,
-    const std::vector<uint8_t>& encode_data) {
+void TraceDataDumper::Dump(const std::string& file_name, const std::vector<uint8_t>& encode_data) {
   FILE* fd = nullptr;
   const std::string dump_file = path_ + "/" + file_name;
   auto iter = fd_map_.find(dump_file);
@@ -283,11 +272,7 @@ void TraceDataDumper::Dump(
   } else {
     fd = iter->second;
   }
-  fwrite(
-      reinterpret_cast<const char*>(encode_data.data()),
-      sizeof(char),
-      encode_data.size(),
-      fd);
+  fwrite(reinterpret_cast<const char*>(encode_data.data()), sizeof(char), encode_data.size(), fd);
 }
 } // namespace profiler
 } // namespace toolkit

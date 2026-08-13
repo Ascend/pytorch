@@ -13,9 +13,7 @@ bool isCurrentStreamExternal(c10::DeviceIndex device_index = -1);
 
 void checkNotExternalStream(const NPUStream& stream, const char* api_name);
 
-void checkCurrentStreamNotExternal(
-    c10::DeviceIndex device_index,
-    const char* api_name);
+void checkCurrentStreamNotExternal(c10::DeviceIndex device_index, const char* api_name);
 
 } // namespace detail
 } // namespace c10_npu

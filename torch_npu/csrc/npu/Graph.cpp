@@ -24,8 +24,7 @@ constexpr auto pendingCallRetryInterval = std::chrono::milliseconds(1);
 static ThreadArgs* threadArgs = nullptr;
 static uint64_t threadId = -1;
 static std::mutex pendingCallbacksMutex;
-using PendingCallbackEntry =
-    std::pair<PendingCallPayload*, std::vector<at::Tensor>>;
+using PendingCallbackEntry = std::pair<PendingCallPayload*, std::vector<at::Tensor>>;
 static std::deque<PendingCallbackEntry> pendingCallbacksQueue;
 static std::atomic<bool> pendingCallScheduled{false};
 
@@ -96,9 +95,7 @@ bool IsNpuGraphTensorPtrSpec(PyObject* obj) {
     return false;
   }
   PyObject* marker = PyTuple_GET_ITEM(obj, 0);
-  return PyUnicode_Check(marker) &&
-      PyUnicode_CompareWithASCIIString(marker, kNpuGraphTensorPtrSpecMarker) ==
-      0;
+  return PyUnicode_Check(marker) && PyUnicode_CompareWithASCIIString(marker, kNpuGraphTensorPtrSpecMarker) == 0;
 }
 
 bool CollectNpuGraphTensorPtrSpec(PyObject* obj, PendingCallPayload* payload) {
@@ -116,8 +113,7 @@ bool CollectNpuGraphTensorPtrSpec(PyObject* obj, PendingCallPayload* payload) {
     return false;
   }
   if (nbytes < 0) {
-    PyErr_SetString(
-        PyExc_ValueError, "npugraph tensor buffer size must be non-negative");
+    PyErr_SetString(PyExc_ValueError, "npugraph tensor buffer size must be non-negative");
     return false;
   }
   payload->pendingTensorData.emplace_back(dataPtr, nbytes, shapeObj, dtypeObj);
@@ -152,16 +148,13 @@ bool CollectPendingTensorData(PyObject* obj, PendingCallPayload* payload) {
   return true;
 }
 
-void CopyPendingTensorData(
-    PendingCallPayload* payload,
-    std::vector<at::Tensor>& copiedTensors) {
+void CopyPendingTensorData(PendingCallPayload* payload, std::vector<at::Tensor>& copiedTensors) {
   try {
     copiedTensors.clear();
     copiedTensors.reserve(payload->pendingTensorData.size());
     for (const auto& tensorData : payload->pendingTensorData) {
-      at::Tensor copiedTensor = at::empty(
-          {static_cast<int64_t>(tensorData.nbytes)},
-          at::TensorOptions().dtype(at::kByte).device(at::kCPU));
+      at::Tensor copiedTensor =
+          at::empty({static_cast<int64_t>(tensorData.nbytes)}, at::TensorOptions().dtype(at::kByte).device(at::kCPU));
       if (tensorData.nbytes > 0) {
         std::memcpy(
             copiedTensor.data_ptr(),
@@ -179,10 +172,8 @@ PyObject* MaterializeNpuGraphTensorBufferSpec(
     PendingCallPayload* payload,
     const std::vector<at::Tensor>& copiedTensors,
     size_t& tensorDataIndex) {
-  if (tensorDataIndex >= payload->pendingTensorData.size() ||
-      tensorDataIndex >= copiedTensors.size()) {
-    PyErr_SetString(
-        PyExc_RuntimeError, "npugraph tensor buffer index is out of range");
+  if (tensorDataIndex >= payload->pendingTensorData.size() || tensorDataIndex >= copiedTensors.size()) {
+    PyErr_SetString(PyExc_RuntimeError, "npugraph tensor buffer index is out of range");
     return nullptr;
   }
   auto& tensorData = payload->pendingTensorData[tensorDataIndex];
@@ -192,10 +183,8 @@ PyObject* MaterializeNpuGraphTensorBufferSpec(
     return nullptr;
   }
 
-  PyObject* buffer = PyMemoryView_FromMemory(
-      static_cast<char*>(copiedTensor.data_ptr()),
-      tensorData.nbytes,
-      PyBUF_WRITE);
+  PyObject* buffer =
+      PyMemoryView_FromMemory(static_cast<char*>(copiedTensor.data_ptr()), tensorData.nbytes, PyBUF_WRITE);
   if (buffer == nullptr) {
     return nullptr;
   }
@@ -205,8 +194,7 @@ PyObject* MaterializeNpuGraphTensorBufferSpec(
     Py_DECREF(buffer);
     return nullptr;
   }
-  PyObject* bufferSpec =
-      PyTuple_Pack(4, marker, buffer, tensorData.shape, tensorData.dtype);
+  PyObject* bufferSpec = PyTuple_Pack(4, marker, buffer, tensorData.shape, tensorData.dtype);
   Py_DECREF(marker);
   Py_DECREF(buffer);
   return bufferSpec;
@@ -218,8 +206,7 @@ PyObject* MaterializePendingArg(
     const std::vector<at::Tensor>& copiedTensors,
     size_t& tensorDataIndex) {
   if (IsNpuGraphTensorPtrSpec(obj)) {
-    return MaterializeNpuGraphTensorBufferSpec(
-        payload, copiedTensors, tensorDataIndex);
+    return MaterializeNpuGraphTensorBufferSpec(payload, copiedTensors, tensorDataIndex);
   }
 
   if (PyTuple_Check(obj)) {
@@ -229,8 +216,7 @@ PyObject* MaterializePendingArg(
       return nullptr;
     }
     for (Py_ssize_t i = 0; i < size; ++i) {
-      PyObject* item = MaterializePendingArg(
-          PyTuple_GET_ITEM(obj, i), payload, copiedTensors, tensorDataIndex);
+      PyObject* item = MaterializePendingArg(PyTuple_GET_ITEM(obj, i), payload, copiedTensors, tensorDataIndex);
       if (item == nullptr) {
         Py_DECREF(tuple);
         return nullptr;
@@ -247,8 +233,7 @@ PyObject* MaterializePendingArg(
       return nullptr;
     }
     for (Py_ssize_t i = 0; i < size; ++i) {
-      PyObject* item = MaterializePendingArg(
-          PyList_GET_ITEM(obj, i), payload, copiedTensors, tensorDataIndex);
+      PyObject* item = MaterializePendingArg(PyList_GET_ITEM(obj, i), payload, copiedTensors, tensorDataIndex);
       if (item == nullptr) {
         Py_DECREF(list);
         return nullptr;
@@ -262,12 +247,10 @@ PyObject* MaterializePendingArg(
   return obj;
 }
 
-PyObject* MaterializePendingArgs(
-    PendingCallPayload* payload,
-    const std::vector<at::Tensor>& copiedTensors) {
+PyObject* MaterializePendingArgs(PendingCallPayload* payload, const std::vector<at::Tensor>& copiedTensors) {
   size_t tensorDataIndex = 0;
-  PyObject* materializedArgs = MaterializePendingArg(
-      payload->pyFuncData.pyFuncArgs, payload, copiedTensors, tensorDataIndex);
+  PyObject* materializedArgs =
+      MaterializePendingArg(payload->pyFuncData.pyFuncArgs, payload, copiedTensors, tensorDataIndex);
   if (materializedArgs == nullptr) {
     PyErr_WriteUnraisable(payload->pyFuncData.pyFunc);
     PyErr_Clear();
@@ -295,8 +278,7 @@ int PendingCallHandler(void* arg) {
       copiedTensors.clear();
       continue;
     }
-    PyObject* result =
-        PyObject_CallObject(payload->pyFuncData.pyFunc, materializedArgs);
+    PyObject* result = PyObject_CallObject(payload->pyFuncData.pyFunc, materializedArgs);
     if (result != nullptr) {
       Py_XDECREF(result);
     } else {
@@ -309,8 +291,7 @@ int PendingCallHandler(void* arg) {
   bool shouldScheduleAgain = false;
   {
     std::lock_guard<std::mutex> lock(pendingCallbacksMutex);
-    if (!pendingCallbacksQueue.empty() &&
-        !pendingCallScheduled.exchange(true, std::memory_order_acq_rel)) {
+    if (!pendingCallbacksQueue.empty() && !pendingCallScheduled.exchange(true, std::memory_order_acq_rel)) {
       shouldScheduleAgain = true;
     }
   }
@@ -353,64 +334,56 @@ class AclSkOptionHelper {
   std::deque<std::string> stringPool;
   std::deque<std::vector<char*>> ptrArrayPool;
   void processInitOption(const std::string& key, int value) {
-    static const std::
-        unordered_map<std::string, std::function<void(aclskOption&, int)>>
-            optionHandlers = {
-                {"preload_code",
-                 [](aclskOption& opt, int val) {
-                   opt.optionType = aclskOptionType::PRELOAD_CODE;
-                   opt.preload.preloadMode = static_cast<uint32_t>(val);
-                 }},
-                {"split_mode",
-                 [](aclskOption& opt, int val) {
-                   opt.optionType = aclskOptionType::SPLIT_MODE;
-                   opt.splitMode.splitCnt = static_cast<uint32_t>(val);
-                 }},
-                {"stream_fusion",
-                 [](aclskOption& opt, int val) {
-                   opt.optionType = aclskOptionType::STREAM_FUSION;
-                   opt.streamFusion.streamFusion = static_cast<uint32_t>(val);
-                 }},
-                {"debug_sync_all",
-                 [](aclskOption& opt, int val) {
-                   opt.optionType = aclskOptionType::DEBUG_SYNC_ALL;
-                   opt.debugSync.debugSyncAll = static_cast<uint32_t>(val);
-                 }},
-                {"constant_codegen",
-                 [](aclskOption& opt, int val) {
-                   opt.optionType = aclskOptionType::CONSTANT_CODEGEN;
-                   opt.constantCodegen.enableConstant =
-                       static_cast<uint32_t>(val);
-                 }},
-                {"auto_op_parallel",
-                 [](aclskOption& opt, int val) {
-                   opt.optionType = aclskOptionType::AUTO_OP_PARALLEL;
-                   opt.autoOpParallel.enableAutoOpParallel =
-                       static_cast<uint32_t>(val);
-                 }},
-                {"debug_op_exec_trace",
-                 [](aclskOption& opt, int val) {
-                   opt.optionType = aclskOptionType::DEBUG_OP_EXEC_TRACE;
-                   opt.debugOpExecTrace.enableOpExecTrace =
-                       static_cast<uint32_t>(val);
-                 }},
-                {"debug_cross_core_sync_check",
-                 [](aclskOption& opt, int val) {
-                   opt.optionType =
-                       aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK;
-                   opt.debugCrossCoreSyncCheck.enableCrossCoreSyncCheck =
-                       static_cast<uint32_t>(val);
-                 }},
-                {"early_start",
-                 [](aclskOption& opt, int val) {
-                   opt.optionType = aclskOptionType::EARLY_START;
-                   opt.earlyStart.enableEarlyStart = static_cast<uint32_t>(val);
-                 }},
-                {"debug_per_op_max_core_num", [](aclskOption& opt, int val) {
-                   opt.optionType = aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM;
-                   opt.debugPerOpMaxCoreNum.enableDebugPerOpMaxCoreNum =
-                       static_cast<uint32_t>(val);
-                 }}};
+    static const std::unordered_map<std::string, std::function<void(aclskOption&, int)>> optionHandlers = {
+        {"preload_code",
+         [](aclskOption& opt, int val) {
+           opt.optionType = aclskOptionType::PRELOAD_CODE;
+           opt.preload.preloadMode = static_cast<uint32_t>(val);
+         }},
+        {"split_mode",
+         [](aclskOption& opt, int val) {
+           opt.optionType = aclskOptionType::SPLIT_MODE;
+           opt.splitMode.splitCnt = static_cast<uint32_t>(val);
+         }},
+        {"stream_fusion",
+         [](aclskOption& opt, int val) {
+           opt.optionType = aclskOptionType::STREAM_FUSION;
+           opt.streamFusion.streamFusion = static_cast<uint32_t>(val);
+         }},
+        {"debug_sync_all",
+         [](aclskOption& opt, int val) {
+           opt.optionType = aclskOptionType::DEBUG_SYNC_ALL;
+           opt.debugSync.debugSyncAll = static_cast<uint32_t>(val);
+         }},
+        {"constant_codegen",
+         [](aclskOption& opt, int val) {
+           opt.optionType = aclskOptionType::CONSTANT_CODEGEN;
+           opt.constantCodegen.enableConstant = static_cast<uint32_t>(val);
+         }},
+        {"auto_op_parallel",
+         [](aclskOption& opt, int val) {
+           opt.optionType = aclskOptionType::AUTO_OP_PARALLEL;
+           opt.autoOpParallel.enableAutoOpParallel = static_cast<uint32_t>(val);
+         }},
+        {"debug_op_exec_trace",
+         [](aclskOption& opt, int val) {
+           opt.optionType = aclskOptionType::DEBUG_OP_EXEC_TRACE;
+           opt.debugOpExecTrace.enableOpExecTrace = static_cast<uint32_t>(val);
+         }},
+        {"debug_cross_core_sync_check",
+         [](aclskOption& opt, int val) {
+           opt.optionType = aclskOptionType::DEBUG_CROSS_CORE_SYNC_CHECK;
+           opt.debugCrossCoreSyncCheck.enableCrossCoreSyncCheck = static_cast<uint32_t>(val);
+         }},
+        {"early_start",
+         [](aclskOption& opt, int val) {
+           opt.optionType = aclskOptionType::EARLY_START;
+           opt.earlyStart.enableEarlyStart = static_cast<uint32_t>(val);
+         }},
+        {"debug_per_op_max_core_num", [](aclskOption& opt, int val) {
+           opt.optionType = aclskOptionType::DEBUG_PER_OP_MAX_CORE_NUM;
+           opt.debugPerOpMaxCoreNum.enableDebugPerOpMaxCoreNum = static_cast<uint32_t>(val);
+         }}};
 
     auto it = optionHandlers.find(key);
     if (it != optionHandlers.end()) {
@@ -420,9 +393,7 @@ class AclSkOptionHelper {
     }
   }
 
-  void processStringArrayOption(
-      const std::string& key,
-      const std::vector<std::string>& values) {
+  void processStringArrayOption(const std::string& key, const std::vector<std::string>& values) {
     if (key == "dcci_disable_on_kernel") {
       processDcciDisableOnKernel(values);
     } else if (key == "dcci_before_kernel_start") {
@@ -434,10 +405,7 @@ class AclSkOptionHelper {
     }
   }
 
-  uint32_t getDictIntDefault(
-      const py::dict& d,
-      const std::string& key,
-      uint32_t default_val) {
+  uint32_t getDictIntDefault(const py::dict& d, const std::string& key, uint32_t default_val) {
     if (d.contains(key)) {
       py::object item = d.attr("__getitem__")(key);
       if (py::isinstance<py::int_>(item)) {
@@ -451,12 +419,9 @@ class AclSkOptionHelper {
     if (key == "aggressive_opt_strategies") {
       aclskOption opt = {};
       opt.optionType = aclskOptionType::AGGRESSIVE_OPT_STRATEGIES;
-      opt.aggressiveOpts.eventBreakerBypass =
-          getDictIntDefault(dict_value, "event_breaker_bypass", 0);
-      opt.aggressiveOpts.valueBreakerBypass =
-          getDictIntDefault(dict_value, "value_breaker_bypass", 0);
-      opt.aggressiveOpts.taskBreakerBypass =
-          getDictIntDefault(dict_value, "task_breaker_bypass", 0);
+      opt.aggressiveOpts.eventBreakerBypass = getDictIntDefault(dict_value, "event_breaker_bypass", 0);
+      opt.aggressiveOpts.valueBreakerBypass = getDictIntDefault(dict_value, "value_breaker_bypass", 0);
+      opt.aggressiveOpts.taskBreakerBypass = getDictIntDefault(dict_value, "task_breaker_bypass", 0);
       optionsVec.push_back(opt);
     }
   }
@@ -512,8 +477,7 @@ class AclSkOptionHelper {
   void processUbufLockIgnoreKernel(const std::vector<std::string>& values) {
     aclskOption opt = {};
     opt.optionType = aclskOptionType::UBUF_LOCK_IGNORE_KERNEL;
-    opt.ubufLockIgnoreKernel.ubufLockIgnoreKernelCnt =
-        static_cast<int>(values.size());
+    opt.ubufLockIgnoreKernel.ubufLockIgnoreKernelCnt = static_cast<int>(values.size());
     opt.ubufLockIgnoreKernel.ubufLockIgnoreKernel = convertStringArray(values);
     optionsVec.push_back(opt);
   }
@@ -543,55 +507,41 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
           "_graph_task_group_begin",
           [](py::object py_stream) {
             auto stream = (*py_stream).ptr();
-            c10_npu::graph_task_group_begin(
-                THNPUtils_PyObject_to_NPUStream(stream));
-            NPUGRAPH_LOGD(
-                "NPUGRAPH TaskGroup begin, stream=%p",
-                static_cast<void*>(stream));
+            c10_npu::graph_task_group_begin(THNPUtils_PyObject_to_NPUStream(stream));
+            NPUGRAPH_LOGD("NPUGRAPH TaskGroup begin, stream=%p", static_cast<void*>(stream));
           })
       .def(
           "_graph_task_group_end",
           [](py::object py_stream) {
             auto stream = (*py_stream).ptr();
-            auto handle = c10_npu::graph_task_group_end(
-                THNPUtils_PyObject_to_NPUStream(stream));
-            NPUGRAPH_LOGD(
-                "NPUGRAPH TaskGroup end, handle=%p",
-                static_cast<void*>(handle.task_group));
+            auto handle = c10_npu::graph_task_group_end(THNPUtils_PyObject_to_NPUStream(stream));
+            NPUGRAPH_LOGD("NPUGRAPH TaskGroup end, handle=%p", static_cast<void*>(handle.task_group));
             return handle;
           })
       .def(
           "_graph_task_update_begin",
           [](py::object py_stream, c10_npu::NPUTaskGroupHandle handle) {
             auto stream = (*py_stream).ptr();
-            c10_npu::graph_task_update_begin(
-                THNPUtils_PyObject_to_NPUStream(stream), handle);
-            NPUGRAPH_LOGD(
-                "NPUGRAPH TaskGroup update begin, handle=%p",
-                static_cast<void*>(handle.task_group));
+            c10_npu::graph_task_update_begin(THNPUtils_PyObject_to_NPUStream(stream), handle);
+            NPUGRAPH_LOGD("NPUGRAPH TaskGroup update begin, handle=%p", static_cast<void*>(handle.task_group));
           })
       .def(
           "_graph_task_update_end",
           [](py::object py_stream) {
             auto stream = (*py_stream).ptr();
-            c10_npu::graph_task_update_end(
-                THNPUtils_PyObject_to_NPUStream(stream));
+            c10_npu::graph_task_update_end(THNPUtils_PyObject_to_NPUStream(stream));
             NPUGRAPH_LOGD("NPUGRAPH TaskGroup update end");
           })
       .def(
           "_super_kernel_scope_begin",
           [](const char* scope_name) {
-            NPUGRAPH_LOGD(
-                "NPUGRAPH SuperKernel scope begin, name=%s",
-                scope_name ? scope_name : "(null)");
+            NPUGRAPH_LOGD("NPUGRAPH SuperKernel scope begin, name=%s", scope_name ? scope_name : "(null)");
             c10_npu::super_kernel_scope_begin(scope_name);
           })
       .def(
           "_super_kernel_scope_end",
           [](const char* scope_name) {
-            NPUGRAPH_LOGD(
-                "NPUGRAPH SuperKernel scope end, name=%s",
-                scope_name ? scope_name : "(null)");
+            NPUGRAPH_LOGD("NPUGRAPH SuperKernel scope end, name=%s", scope_name ? scope_name : "(null)");
             c10_npu::super_kernel_scope_end(scope_name);
           })
       .def(
@@ -600,8 +550,7 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
             auto func = (*py_func).ptr();
             auto userDataList = (*py_data).ptr();
             auto stream = THNPUtils_PyObject_to_NPUStream((*py_stream).ptr());
-            PyFuncStruct* data =
-                new (std::nothrow) PyFuncStruct(func, userDataList);
+            PyFuncStruct* data = new (std::nothrow) PyFuncStruct(func, userDataList);
             c10_npu::launch_callback(stream, LaunchCallFunc, data);
             callbacks[stream].emplace_back(data);
           })
@@ -611,13 +560,11 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
             auto func = (*py_func).ptr();
             auto userDataList = (*py_data).ptr();
             auto stream = THNPUtils_PyObject_to_NPUStream((*py_stream).ptr());
-            auto payload =
-                std::make_unique<PendingCallPayload>(func, userDataList);
+            auto payload = std::make_unique<PendingCallPayload>(func, userDataList);
             if (!CollectPendingTensorData(userDataList, payload.get())) {
               throw py::error_already_set();
             }
-            c10_npu::launch_host_func(
-                stream, LaunchCallbackViaPendingCall, payload.get());
+            c10_npu::launch_host_func(stream, LaunchCallbackViaPendingCall, payload.get());
             (void)payload.release();
           })
       .def(
@@ -630,8 +577,7 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
               threadArgs = new ThreadArgs(context, false);
               pthread_create(&threadId, nullptr, process_callback, threadArgs);
             }
-            c10_npu::subscribe_report(
-                threadId, THNPUtils_PyObject_to_NPUStream(stream));
+            c10_npu::subscribe_report(threadId, THNPUtils_PyObject_to_NPUStream(stream));
           })
       .def(
           "_unsubscribe_report",
@@ -718,8 +664,7 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
 
             // 3. 解析参数
             torch::ParsedArgs<42> parsed;
-            torch::PythonArgs py_args =
-                parser.parse(args_ptr, kwargs_ptr, parsed);
+            torch::PythonArgs py_args = parser.parse(args_ptr, kwargs_ptr, parsed);
 
             // 4. 必选参数
             at::Tensor query = py_args.tensor(0);
@@ -729,45 +674,28 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
             // 5. 可选参数
             c10::optional<at::Tensor> pse_shift = py_args.optionalTensor(3);
             c10::optional<at::Tensor> atten_mask = py_args.optionalTensor(4);
-            c10::OptionalArray<c10::SymInt> actual_seq_lengths =
-                py_args.symintlistOptional(5);
-            c10::OptionalArray<c10::SymInt> actual_seq_lengths_kv =
-                py_args.symintlistOptional(6);
-            c10::optional<at::Tensor> dequant_scale1 =
-                py_args.optionalTensor(7);
+            c10::OptionalArray<c10::SymInt> actual_seq_lengths = py_args.symintlistOptional(5);
+            c10::OptionalArray<c10::SymInt> actual_seq_lengths_kv = py_args.symintlistOptional(6);
+            c10::optional<at::Tensor> dequant_scale1 = py_args.optionalTensor(7);
             c10::optional<at::Tensor> quant_scale1 = py_args.optionalTensor(8);
-            c10::optional<at::Tensor> dequant_scale2 =
-                py_args.optionalTensor(9);
+            c10::optional<at::Tensor> dequant_scale2 = py_args.optionalTensor(9);
             c10::optional<at::Tensor> quant_scale2 = py_args.optionalTensor(10);
-            c10::optional<at::Tensor> quant_offset2 =
-                py_args.optionalTensor(11);
-            c10::optional<at::Tensor> antiquant_scale =
-                py_args.optionalTensor(12);
-            c10::optional<at::Tensor> antiquant_offset =
-                py_args.optionalTensor(13);
-            c10::optional<at::Tensor> key_antiquant_scale =
-                py_args.optionalTensor(14);
-            c10::optional<at::Tensor> key_antiquant_offset =
-                py_args.optionalTensor(15);
-            c10::optional<at::Tensor> value_antiquant_scale =
-                py_args.optionalTensor(16);
-            c10::optional<at::Tensor> value_antiquant_offset =
-                py_args.optionalTensor(17);
+            c10::optional<at::Tensor> quant_offset2 = py_args.optionalTensor(11);
+            c10::optional<at::Tensor> antiquant_scale = py_args.optionalTensor(12);
+            c10::optional<at::Tensor> antiquant_offset = py_args.optionalTensor(13);
+            c10::optional<at::Tensor> key_antiquant_scale = py_args.optionalTensor(14);
+            c10::optional<at::Tensor> key_antiquant_offset = py_args.optionalTensor(15);
+            c10::optional<at::Tensor> value_antiquant_scale = py_args.optionalTensor(16);
+            c10::optional<at::Tensor> value_antiquant_offset = py_args.optionalTensor(17);
             c10::optional<at::Tensor> block_table = py_args.optionalTensor(18);
-            c10::optional<at::Tensor> query_padding_size =
-                py_args.optionalTensor(19);
-            c10::optional<at::Tensor> kv_padding_size =
-                py_args.optionalTensor(20);
-            c10::optional<at::Tensor> key_shared_prefix =
-                py_args.optionalTensor(21);
-            c10::optional<at::Tensor> value_shared_prefix =
-                py_args.optionalTensor(22);
-            c10::OptionalArray<c10::SymInt> actual_shared_prefix_len =
-                py_args.symintlistOptional(23);
+            c10::optional<at::Tensor> query_padding_size = py_args.optionalTensor(19);
+            c10::optional<at::Tensor> kv_padding_size = py_args.optionalTensor(20);
+            c10::optional<at::Tensor> key_shared_prefix = py_args.optionalTensor(21);
+            c10::optional<at::Tensor> value_shared_prefix = py_args.optionalTensor(22);
+            c10::OptionalArray<c10::SymInt> actual_shared_prefix_len = py_args.symintlistOptional(23);
             c10::optional<at::Tensor> query_rope = py_args.optionalTensor(24);
             c10::optional<at::Tensor> key_rope = py_args.optionalTensor(25);
-            c10::optional<at::Tensor> key_rope_antiquant_scale =
-                py_args.optionalTensor(26);
+            c10::optional<at::Tensor> key_rope_antiquant_scale = py_args.optionalTensor(26);
             int64_t num_heads = py_args.toInt64(27);
             double scale = py_args.toDouble(28);
             int64_t pre_tokens = py_args.toInt64(29);
@@ -797,51 +725,50 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
 
             c10_npu::graph_task_update_begin(stream, handle);
 
-            auto fia_result =
-                op_api::npu_fused_infer_attention_score_out_symint(
-                    query,
-                    key,
-                    value,
-                    pse_shift,
-                    atten_mask,
-                    actual_seq_lengths,
-                    actual_seq_lengths_kv,
-                    dequant_scale1,
-                    quant_scale1,
-                    dequant_scale2,
-                    quant_scale2,
-                    quant_offset2,
-                    antiquant_scale,
-                    antiquant_offset,
-                    key_antiquant_scale,
-                    key_antiquant_offset,
-                    value_antiquant_scale,
-                    value_antiquant_offset,
-                    block_table,
-                    query_padding_size,
-                    kv_padding_size,
-                    key_shared_prefix,
-                    value_shared_prefix,
-                    actual_shared_prefix_len,
-                    query_rope,
-                    key_rope,
-                    key_rope_antiquant_scale,
-                    num_heads,
-                    scale,
-                    pre_tokens,
-                    next_tokens,
-                    input_layout,
-                    num_key_value_heads,
-                    sparse_mode,
-                    inner_precise,
-                    block_size,
-                    antiquant_mode,
-                    key_antiquant_mode,
-                    value_antiquant_mode,
-                    softmax_lse_flag,
-                    workspace,
-                    attention_out,
-                    softmax_lse);
+            auto fia_result = op_api::npu_fused_infer_attention_score_out_symint(
+                query,
+                key,
+                value,
+                pse_shift,
+                atten_mask,
+                actual_seq_lengths,
+                actual_seq_lengths_kv,
+                dequant_scale1,
+                quant_scale1,
+                dequant_scale2,
+                quant_scale2,
+                quant_offset2,
+                antiquant_scale,
+                antiquant_offset,
+                key_antiquant_scale,
+                key_antiquant_offset,
+                value_antiquant_scale,
+                value_antiquant_offset,
+                block_table,
+                query_padding_size,
+                kv_padding_size,
+                key_shared_prefix,
+                value_shared_prefix,
+                actual_shared_prefix_len,
+                query_rope,
+                key_rope,
+                key_rope_antiquant_scale,
+                num_heads,
+                scale,
+                pre_tokens,
+                next_tokens,
+                input_layout,
+                num_key_value_heads,
+                sparse_mode,
+                inner_precise,
+                block_size,
+                antiquant_mode,
+                key_antiquant_mode,
+                value_antiquant_mode,
+                softmax_lse_flag,
+                workspace,
+                attention_out,
+                softmax_lse);
 
             c10_npu::graph_task_update_end(stream);
             event_ptr->record(stream);
@@ -857,18 +784,13 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
              std::string capture_error_mode,
              bool report_shape) {
             aclmdlRICaptureMode capture_mode;
-            c10_npu::MempoolId_t pool = pool_opt.has_value()
-                ? pool_opt.value()
-                : c10_npu::MempoolId_t{0, 0};
+            c10_npu::MempoolId_t pool = pool_opt.has_value() ? pool_opt.value() : c10_npu::MempoolId_t{0, 0};
             if (capture_error_mode == "global") {
-              capture_mode =
-                  aclmdlRICaptureMode::ACL_MODEL_RI_CAPTURE_MODE_GLOBAL;
+              capture_mode = aclmdlRICaptureMode::ACL_MODEL_RI_CAPTURE_MODE_GLOBAL;
             } else if (capture_error_mode == "thread_local") {
-              capture_mode =
-                  aclmdlRICaptureMode::ACL_MODEL_RI_CAPTURE_MODE_THREAD_LOCAL;
+              capture_mode = aclmdlRICaptureMode::ACL_MODEL_RI_CAPTURE_MODE_THREAD_LOCAL;
             } else if (capture_error_mode == "relaxed") {
-              capture_mode =
-                  aclmdlRICaptureMode::ACL_MODEL_RI_CAPTURE_MODE_RELAXED;
+              capture_mode = aclmdlRICaptureMode::ACL_MODEL_RI_CAPTURE_MODE_RELAXED;
             } else {
               TORCH_CHECK(
                   false,
@@ -881,9 +803,7 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
           py::arg("capture_error_mode"),
           py::arg("report_shape"),
           py::call_guard<py::gil_scoped_release>())
-      .def(
-          "capture_end",
-          torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::capture_end))
+      .def("capture_end", torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::capture_end))
       .def(
           "register_generator_state",
           [](c10_npu::NPUGraph& /*self*/, py::handle /*raw_generator*/) {
@@ -895,29 +815,14 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
                 "first execute during graph capture.");
           },
           py::arg("generator"))
-      .def(
-          "replay",
-          torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::replay))
-      .def(
-          "reset",
-          torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::reset))
-      .def(
-          "pool",
-          torch::wrap_pybind_function_no_gil(
-              py::overload_cast<>(&c10_npu::NPUGraph::pool)))
-      .def(
-          "debug_dump",
-          torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::debug_dump),
-          py::arg("debug_path"))
-      .def(
-          "enable_debug_mode",
-          torch::wrap_pybind_function_no_gil(
-              &c10_npu::NPUGraph::enable_debug_mode))
+      .def("replay", torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::replay))
+      .def("reset", torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::reset))
+      .def("pool", torch::wrap_pybind_function_no_gil(py::overload_cast<>(&c10_npu::NPUGraph::pool)))
+      .def("debug_dump", torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::debug_dump), py::arg("debug_path"))
+      .def("enable_debug_mode", torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::enable_debug_mode))
       .def(
           "super_kernel_optimize",
-          [](c10_npu::NPUGraph& self,
-             py::object optimize_options,
-             py::object debug_options) {
+          [](c10_npu::NPUGraph& self, py::object optimize_options, py::object debug_options) {
             AclSkOptionHelper helper;
             if (!optimize_options.is_none()) {
               auto opts = optimize_options.cast<py::dict>();
@@ -926,11 +831,9 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
                 if (py::isinstance<py::dict>(item.second)) {
                   helper.processDictOption(key, item.second.cast<py::dict>());
                 } else if (py::isinstance<py::str>(item.second)) {
-                  helper.processStringOption(
-                      key, item.second.cast<std::string>());
+                  helper.processStringOption(key, item.second.cast<std::string>());
                 } else if (py::isinstance<py::list>(item.second)) {
-                  helper.processStringArrayOption(
-                      key, item.second.cast<std::vector<std::string>>());
+                  helper.processStringArrayOption(key, item.second.cast<std::vector<std::string>>());
                 } else if (py::isinstance<py::int_>(item.second)) {
                   helper.processInitOption(key, item.second.cast<int>());
                 }
@@ -944,8 +847,7 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
                 if (py::isinstance<py::int_>(item.second)) {
                   helper.processInitOption(key, item.second.cast<int>());
                 } else if (py::isinstance<py::str>(item.second)) {
-                  helper.processStringOption(
-                      key, item.second.cast<std::string>());
+                  helper.processStringOption(key, item.second.cast<std::string>());
                 }
               }
             }
@@ -959,16 +861,13 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
           py::arg("debug_options"))
       .def_static(
           "get_currently_capturing_graph",
-          torch::wrap_pybind_function_no_gil(
-              &c10_npu::NPUGraph::get_currently_capturing_npu_graph),
+          torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::get_currently_capturing_npu_graph),
           py::return_value_policy::reference)
       .def(
           "begin_capture_to_if_node",
-          torch::wrap_pybind_function_no_gil(
-              &c10_npu::NPUGraph::begin_capture_to_if_node),
+          torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::begin_capture_to_if_node),
           py::arg("scalar_npu_pred_tensor"))
       .def(
           "end_capture_to_conditional_node",
-          torch::wrap_pybind_function_no_gil(
-              &c10_npu::NPUGraph::end_capture_to_conditional_node));
+          torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::end_capture_to_conditional_node));
 }

@@ -72,10 +72,7 @@ DLDataType getDLDataType(const Tensor& t) {
     // (kDLComplex is bit-width only), so treat it as unsupported, matching the
     // Float8 handling below.
     case ScalarType::BComplex32:
-      TORCH_CHECK(
-          false,
-          "BComplex32 (complex<BFloat16>) is not supported by dlpack",
-          PTA_ERROR(ErrCode::TYPE));
+      TORCH_CHECK(false, "BComplex32 (complex<BFloat16>) is not supported by dlpack", PTA_ERROR(ErrCode::TYPE));
       break;
 #endif
     case ScalarType::BFloat16:
@@ -86,41 +83,26 @@ DLDataType getDLDataType(const Tensor& t) {
     case ScalarType::Float8_e4m3fn:
     case ScalarType::Float8_e4m3fnuz:
     case ScalarType::Float8_e8m0fnu:
-      TORCH_CHECK(
-          false,
-          "float8 types are not supported by dlpack",
-          PTA_ERROR(ErrCode::TYPE));
+      TORCH_CHECK(false, "float8 types are not supported by dlpack", PTA_ERROR(ErrCode::TYPE));
       break;
     case ScalarType::QInt8:
     case ScalarType::QUInt8:
     case ScalarType::QInt32:
     case ScalarType::QUInt4x2:
     case ScalarType::QUInt2x4:
-      TORCH_CHECK(
-          false,
-          "QUInt/QInt types are not supported by dlpack",
-          PTA_ERROR(ErrCode::TYPE));
+      TORCH_CHECK(false, "QUInt/QInt types are not supported by dlpack", PTA_ERROR(ErrCode::TYPE));
       break;
     case ScalarType::Bits1x8:
     case ScalarType::Bits2x4:
     case ScalarType::Bits4x2:
     case ScalarType::Bits8:
     case ScalarType::Bits16:
-      TORCH_CHECK(
-          false,
-          "Bit types are not supported by dlpack",
-          PTA_ERROR(ErrCode::TYPE));
+      TORCH_CHECK(false, "Bit types are not supported by dlpack", PTA_ERROR(ErrCode::TYPE));
       break;
     case ScalarType::Undefined:
-      TORCH_CHECK(
-          false,
-          "Undefined is not a valid ScalarType",
-          PTA_ERROR(ErrCode::TYPE));
+      TORCH_CHECK(false, "Undefined is not a valid ScalarType", PTA_ERROR(ErrCode::TYPE));
     case ScalarType::NumOptions:
-      TORCH_CHECK(
-          false,
-          "NumOptions is not a valid ScalarType",
-          PTA_ERROR(ErrCode::TYPE));
+      TORCH_CHECK(false, "NumOptions is not a valid ScalarType", PTA_ERROR(ErrCode::TYPE));
   }
   return dtype;
 }
@@ -136,10 +118,7 @@ static DLDevice getDLDevice(const Tensor& tensor, c10::DeviceIndex device_id) {
       ctx.device_type = DLDeviceType::kDLExtDev;
       break;
     default:
-      TORCH_CHECK(
-          false,
-          "Cannot pack tensors on " + tensor.device().str(),
-          PTA_ERROR(ErrCode::NOT_SUPPORT));
+      TORCH_CHECK(false, "Cannot pack tensors on " + tensor.device().str(), PTA_ERROR(ErrCode::NOT_SUPPORT));
   }
   return ctx;
 }
@@ -149,15 +128,9 @@ static Device getATenDevice(const DLDevice& ctx, void* data) {
     case DLDeviceType::kDLCPU:
       return at::Device(DeviceType::CPU);
     case DLDeviceType::kDLExtDev:
-      return at::Device(
-          DeviceType::PrivateUse1,
-          static_cast<c10::DeviceIndex>(ctx.device_id));
+      return at::Device(DeviceType::PrivateUse1, static_cast<c10::DeviceIndex>(ctx.device_id));
     default:
-      TORCH_CHECK(
-          false,
-          "Unsupported device_type: ",
-          std::to_string(ctx.device_type),
-          PTA_ERROR(ErrCode::NOT_SUPPORT));
+      TORCH_CHECK(false, "Unsupported device_type: ", std::to_string(ctx.device_type), PTA_ERROR(ErrCode::NOT_SUPPORT));
   }
 }
 
@@ -171,10 +144,7 @@ constexpr int k128Bits = 128;
 
 ScalarType toScalarType(const DLDataType& dtype) {
   ScalarType stype = ScalarType::Undefined;
-  TORCH_CHECK(
-      dtype.lanes == 1,
-      "ATen does not support lanes != 1",
-      PTA_ERROR(ErrCode::NOT_SUPPORT));
+  TORCH_CHECK(dtype.lanes == 1, "ATen does not support lanes != 1", PTA_ERROR(ErrCode::NOT_SUPPORT));
   switch (dtype.code) {
     case DLDataTypeCode::kDLUInt:
       switch (dtype.bits) {
@@ -191,11 +161,7 @@ ScalarType toScalarType(const DLDataType& dtype) {
           stype = ScalarType::UInt64;
           break;
         default:
-          TORCH_CHECK(
-              false,
-              "Unsupported kUInt bits ",
-              std::to_string(dtype.bits),
-              PTA_ERROR(ErrCode::NOT_SUPPORT));
+          TORCH_CHECK(false, "Unsupported kUInt bits ", std::to_string(dtype.bits), PTA_ERROR(ErrCode::NOT_SUPPORT));
       }
       break;
     case DLDataTypeCode::kDLInt:
@@ -213,11 +179,7 @@ ScalarType toScalarType(const DLDataType& dtype) {
           stype = ScalarType::Long;
           break;
         default:
-          TORCH_CHECK(
-              false,
-              "Unsupported kInt bits ",
-              std::to_string(dtype.bits),
-              PTA_ERROR(ErrCode::NOT_SUPPORT));
+          TORCH_CHECK(false, "Unsupported kInt bits ", std::to_string(dtype.bits), PTA_ERROR(ErrCode::NOT_SUPPORT));
       }
       break;
     case DLDataTypeCode::kDLFloat:
@@ -232,11 +194,7 @@ ScalarType toScalarType(const DLDataType& dtype) {
           stype = ScalarType::Double;
           break;
         default:
-          TORCH_CHECK(
-              false,
-              "Unsupported kFloat bits ",
-              std::to_string(dtype.bits),
-              PTA_ERROR(ErrCode::NOT_SUPPORT));
+          TORCH_CHECK(false, "Unsupported kFloat bits ", std::to_string(dtype.bits), PTA_ERROR(ErrCode::NOT_SUPPORT));
       }
       break;
     case DLDataTypeCode::kDLBfloat:
@@ -245,11 +203,7 @@ ScalarType toScalarType(const DLDataType& dtype) {
           stype = ScalarType::BFloat16;
           break;
         default:
-          TORCH_CHECK(
-              false,
-              "Unsupported kFloat bits ",
-              std::to_string(dtype.bits),
-              PTA_ERROR(ErrCode::NOT_SUPPORT));
+          TORCH_CHECK(false, "Unsupported kFloat bits ", std::to_string(dtype.bits), PTA_ERROR(ErrCode::NOT_SUPPORT));
       }
       break;
     case DLDataTypeCode::kDLComplex:
@@ -264,11 +218,7 @@ ScalarType toScalarType(const DLDataType& dtype) {
           stype = ScalarType::ComplexDouble;
           break;
         default:
-          TORCH_CHECK(
-              false,
-              "Unsupported kFloat bits ",
-              std::to_string(dtype.bits),
-              PTA_ERROR(ErrCode::NOT_SUPPORT));
+          TORCH_CHECK(false, "Unsupported kFloat bits ", std::to_string(dtype.bits), PTA_ERROR(ErrCode::NOT_SUPPORT));
       }
       break;
     case DLDataTypeCode::kDLBool:
@@ -277,19 +227,11 @@ ScalarType toScalarType(const DLDataType& dtype) {
           stype = ScalarType::Bool;
           break;
         default:
-          TORCH_CHECK(
-              false,
-              "Unsupported kDLBool bits ",
-              std::to_string(dtype.bits),
-              PTA_ERROR(ErrCode::NOT_SUPPORT));
+          TORCH_CHECK(false, "Unsupported kDLBool bits ", std::to_string(dtype.bits), PTA_ERROR(ErrCode::NOT_SUPPORT));
       }
       break;
     default:
-      TORCH_CHECK(
-          false,
-          "Unsupported code ",
-          std::to_string(dtype.code),
-          PTA_ERROR(ErrCode::NOT_SUPPORT));
+      TORCH_CHECK(false, "Unsupported code ", std::to_string(dtype.code), PTA_ERROR(ErrCode::NOT_SUPPORT));
   }
   return stype;
 }

@@ -22,15 +22,9 @@ class MstxMgr : public torch_npu::toolkit::profiler::Singleton<MstxMgr> {
 
  public:
   void mark(const char* message, const aclrtStream stream, const char* domain);
-  int rangePush(
-      const char* message,
-      const aclrtStream stream,
-      const char* domain);
+  int rangePush(const char* message, const aclrtStream stream, const char* domain);
   int rangePop(const char* domain);
-  int rangeStart(
-      const char* message,
-      const aclrtStream stream,
-      const char* domain);
+  int rangeStart(const char* message, const aclrtStream stream, const char* domain);
   void rangeEnd(int ptRangeId, const char* domain);
 
   bool isMsleaksEnable();
@@ -40,13 +34,9 @@ class MstxMgr : public torch_npu::toolkit::profiler::Singleton<MstxMgr> {
   mstxDomainHandle_t createProfDomain(const std::string& name);
   mstxDomainHandle_t createLeaksDomain(const char* name);
   void destroyDomain(mstxDomainHandle_t domain);
-  mstxMemHeapHandle_t memHeapRegister(
-      mstxDomainHandle_t domain,
-      mstxMemVirtualRangeDesc_t* desc);
+  mstxMemHeapHandle_t memHeapRegister(mstxDomainHandle_t domain, mstxMemVirtualRangeDesc_t* desc);
   void memHeapUnregister(mstxDomainHandle_t domain, void* ptr);
-  void memRegionsRegister(
-      mstxDomainHandle_t domain,
-      mstxMemVirtualRangeDesc_t* desc);
+  void memRegionsRegister(mstxDomainHandle_t domain, mstxMemVirtualRangeDesc_t* desc);
   void memRegionsUnregister(mstxDomainHandle_t domain, void* ptr);
 
  private:
@@ -62,8 +52,7 @@ class MstxMgr : public torch_npu::toolkit::profiler::Singleton<MstxMgr> {
   bool isMsptiTxEnableImpl();
 
  private:
-  static thread_local std::unordered_map<std::string, std::stack<int>>
-      domainPushDepthStacks_;
+  static thread_local std::unordered_map<std::string, std::stack<int>> domainPushDepthStacks_;
   static thread_local bool pushWithStream_;
   std::atomic<int> ptRangeId_{1};
   std::unordered_set<int> ptRangeIdsWithStream_;

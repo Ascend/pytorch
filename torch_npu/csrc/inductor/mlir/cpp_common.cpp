@@ -14,9 +14,7 @@
 struct TilingMem {
   std::unique_ptr<void, decltype(&aclrtFreeHost)> arg_tiling_host;
   std::unique_ptr<void, decltype(&aclrtFree)> arg_tiling_device;
-  TilingMem()
-      : arg_tiling_host(nullptr, aclrtFreeHost),
-        arg_tiling_device(nullptr, aclrtFree) {}
+  TilingMem() : arg_tiling_host(nullptr, aclrtFreeHost), arg_tiling_device(nullptr, aclrtFree) {}
 };
 using TilingMemInfo = TilingMem;
 
@@ -25,21 +23,14 @@ TilingMemInfo MEM_CACHE;
 struct WorkspaceMem {
   std::unique_ptr<void, decltype(&aclrtFreeHost)> arg_workspace_host;
   std::unique_ptr<void, decltype(&aclrtFree)> arg_workspace_device;
-  WorkspaceMem()
-      : arg_workspace_host(nullptr, aclrtFreeHost),
-        arg_workspace_device(nullptr, aclrtFree) {}
+  WorkspaceMem() : arg_workspace_host(nullptr, aclrtFreeHost), arg_workspace_device(nullptr, aclrtFree) {}
 };
 using WorkspaceMemInfo = WorkspaceMem;
 
 WorkspaceMemInfo MEM_WORK_CACHE;
 
-rtError_t TORCH_NPU_API common_launch(
-    char* kernelName,
-    const void* func,
-    uint32_t gridX,
-    void* args,
-    uint32_t argsSize,
-    rtStream_t stream) {
+rtError_t TORCH_NPU_API
+common_launch(char* kernelName, const void* func, uint32_t gridX, void* args, uint32_t argsSize, rtStream_t stream) {
   unsigned long int beginTime = 0;
   unsigned long int endTime = 0;
   unsigned long int opName = 0;
@@ -74,8 +65,7 @@ rtError_t TORCH_NPU_API common_launch(
     nodeBasicInfo.threadId = threadId;
     nodeBasicInfo.timeStamp = endTime;
     nodeBasicInfo.data.nodeBasicInfo.opName = opName;
-    nodeBasicInfo.data.nodeBasicInfo.taskType =
-        0; // MSPROF_GE_TASK_TYPE_AI_CORE
+    nodeBasicInfo.data.nodeBasicInfo.taskType = 0; // MSPROF_GE_TASK_TYPE_AI_CORE
     nodeBasicInfo.data.nodeBasicInfo.opType = opName;
     nodeBasicInfo.data.nodeBasicInfo.blockDim = gridX;
     MsprofReportCompactInfo(0, &nodeBasicInfo, sizeof(MsprofCompactInfo));
@@ -100,8 +90,7 @@ static void prepare_tiling(
 
   // tiling_func to update args
   typedef int64_t (*mlir_tiling_func)(void*);
-  mlir_tiling_func func_tiling_pre =
-      reinterpret_cast<mlir_tiling_func>(tiling_func);
+  mlir_tiling_func func_tiling_pre = reinterpret_cast<mlir_tiling_func>(tiling_func);
 
   // update args with tiling_key from tiling_func
 
@@ -109,12 +98,7 @@ static void prepare_tiling(
 
   // copy host arg_tiling to device arg_tiling, and also replace corresponding
   // place in args
-  aclError err = aclrtMemcpy(
-      arg_tiling_device,
-      tilingSize,
-      arg_tiling_host,
-      tilingSize,
-      ACL_MEMCPY_HOST_TO_DEVICE);
+  aclError err = aclrtMemcpy(arg_tiling_device, tilingSize, arg_tiling_host, tilingSize, ACL_MEMCPY_HOST_TO_DEVICE);
   if (err != ACL_ERROR_NONE) {
     printf("aclrtMemcpy Failed, err: %d \n", err);
     return;
@@ -143,15 +127,7 @@ rtError_t TORCH_NPU_API common_launch_dyn(
 
   if (tilingSize != 0) {
     void** args_cast = static_cast<void**>(args);
-    prepare_tiling(
-        args_cast,
-        tiling_func,
-        tilingSize,
-        arg_tiling_host,
-        arg_tiling_device,
-        gridX,
-        stream,
-        argsSize);
+    prepare_tiling(args_cast, tiling_func, tilingSize, arg_tiling_host, arg_tiling_device, gridX, stream, argsSize);
     typedef void (*mlir_func)(uint32_t, void*, void*, void*);
     mlir_func func_cast = (mlir_func)func;
     if (torch_npu::profiler::GetTraceLevel() != -1) {
@@ -190,8 +166,7 @@ rtError_t TORCH_NPU_API common_launch_dyn(
     nodeBasicInfo.threadId = threadId;
     nodeBasicInfo.timeStamp = endTime;
     nodeBasicInfo.data.nodeBasicInfo.opName = opName;
-    nodeBasicInfo.data.nodeBasicInfo.taskType =
-        0; // MSPROF_GE_TASK_TYPE_AI_CORE
+    nodeBasicInfo.data.nodeBasicInfo.taskType = 0; // MSPROF_GE_TASK_TYPE_AI_CORE
     nodeBasicInfo.data.nodeBasicInfo.opType = opName;
     nodeBasicInfo.data.nodeBasicInfo.blockDim = gridX;
     MsprofReportCompactInfo(0, &nodeBasicInfo, sizeof(MsprofCompactInfo));
@@ -200,8 +175,7 @@ rtError_t TORCH_NPU_API common_launch_dyn(
   return RT_ERROR_NONE;
 }
 
-void TORCH_NPU_API
-opcommand_call(const char* name, std::function<int()> launch_call) {
+void TORCH_NPU_API opcommand_call(const char* name, std::function<int()> launch_call) {
   at_npu::native::OpCommand cmd;
   cmd.Name(name).SetCustomHandler(launch_call).Run();
 }

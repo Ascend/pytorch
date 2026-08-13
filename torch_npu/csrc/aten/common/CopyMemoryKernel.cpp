@@ -13,19 +13,11 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor& NPUNativeFunctions::copy_memory_(
-    at::Tensor& self,
-    const at::Tensor& src,
-    bool non_blocking) {
+at::Tensor& NPUNativeFunctions::copy_memory_(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
   c10_npu::NPUGuard guard(src.device());
+  AT_ASSERT(torch_npu::utils::is_npu(src), "copy_memory_ only support npu tensor", OPS_ERROR(ErrCode::PARAM));
   AT_ASSERT(
-      torch_npu::utils::is_npu(src),
-      "copy_memory_ only support npu tensor",
-      OPS_ERROR(ErrCode::PARAM));
-  AT_ASSERT(
-      src.dtype() == self.dtype(),
-      "input tensors of copy_memory_ should have same dtype",
-      OPS_ERROR(ErrCode::PARAM));
+      src.dtype() == self.dtype(), "input tensors of copy_memory_ should have same dtype", OPS_ERROR(ErrCode::PARAM));
   AT_ASSERT(
       src.device().index() == self.device().index(),
       "input tensors of copy_memory_ should have same device index",
@@ -57,11 +49,7 @@ at::Tensor& NPUNativeFunctions::copy_memory_(
   // Designed for the gather of tensors, ignoring npu_format_ and
   // copying continuous memory between npu tensors.
   auto ret = CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(
-      self,
-      dst_size * self.itemsize(),
-      src,
-      dst_size * self.itemsize(),
-      ACL_MEMCPY_DEVICE_TO_DEVICE);
+      self, dst_size * self.itemsize(), src, dst_size * self.itemsize(), ACL_MEMCPY_DEVICE_TO_DEVICE);
   NPU_CHECK_ERROR(ret);
 
   if (!non_blocking) {

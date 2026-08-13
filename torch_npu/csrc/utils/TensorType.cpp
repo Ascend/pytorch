@@ -56,16 +56,11 @@ struct PyTensorType {
   }
 };
 
-static_assert(
-    std::is_standard_layout<PyTensorType>::value,
-    "PyTensorType must be standard layout");
+static_assert(std::is_standard_layout<PyTensorType>::value, "PyTensorType must be standard layout");
 
 static void py_bind_tensor_types(const std::vector<PyTensorType>& tensor_types);
 
-static PyObject* Tensor_new(
-    PyTypeObject* type,
-    PyObject* args,
-    PyObject* kwargs) {
+static PyObject* Tensor_new(PyTypeObject* type, PyObject* args, PyObject* kwargs) {
   HANDLE_TH_ERRORS
   auto& tensor_type = *((PyTensorType*)type);
   if (tensor_type.is_npu) {
@@ -81,11 +76,8 @@ static PyObject* Tensor_new(
       " not available. Torch not compiled with npu enabled.",
       PTA_ERROR(ErrCode::TYPE))
   torch_npu::utils::npu_lazy_init();
-  return THPVariable_Wrap(torch::utils::legacy_tensor_ctor(
-      tensor_type.get_dispatch_key(),
-      tensor_type.get_scalar_type(),
-      args,
-      kwargs));
+  return THPVariable_Wrap(
+      torch::utils::legacy_tensor_ctor(tensor_type.get_dispatch_key(), tensor_type.get_scalar_type(), args, kwargs));
   END_HANDLE_TH_ERRORS
 }
 
@@ -163,10 +155,7 @@ static PyTypeObject tensor_type_prototype = {
     sizeof(PyTensorType) /* tp_basicsize */
 };
 
-static void py_initialize_tensor_type(
-    PyTypeObject& type,
-    const char* name,
-    PyObject* tp_dict) {
+static void py_initialize_tensor_type(PyTypeObject& type, const char* name, PyObject* tp_dict) {
   // NOTE: we don't use the typical static declaration of PyTypeObject because
   // we need to initialize as many types as there are VariableType instances.
   // We copy the basic object fields from a prototype definition and initialize
@@ -208,10 +197,7 @@ static std::string get_name(Backend backend, ScalarType scalarType) {
   return ss.str();
 }
 
-static void set_type(
-    PyTensorType& type_obj,
-    Backend backend,
-    ScalarType scalarType) {
+static void set_type(PyTensorType& type_obj, Backend backend, ScalarType scalarType) {
   // This field is lazily initialized from backend and scalar_type
   type_obj.backend = static_cast<int>(backend);
   type_obj.scalar_type = static_cast<int>(scalarType);
@@ -238,10 +224,7 @@ static THPObjectPtr get_tensor_dict() {
   }
 
   auto tensor_type = (PyTypeObject*)tensor_class.get();
-  TORCH_CHECK(
-      tensor_type->tp_base,
-      "missing base type for Tensor",
-      PTA_ERROR(ErrCode::TYPE));
+  TORCH_CHECK(tensor_type->tp_base, "missing base type for Tensor", PTA_ERROR(ErrCode::TYPE));
 
   auto res = THPObjectPtr(PyDict_New());
   if (!res) {
@@ -292,8 +275,7 @@ void _initialize_python_bindings() {
   // Initialize each Python type object torch.npu.FloatTensor,
   // torch.npu.DoubleTensor, etc.
   for (auto& tensor_type : tensor_types) {
-    py_initialize_tensor_type(
-        tensor_type.py_type, tensor_type.name, tensor_dict.get());
+    py_initialize_tensor_type(tensor_type.py_type, tensor_type.name, tensor_dict.get());
   }
 
   // Add the type objects to their corresponding modules. e.g.
@@ -302,15 +284,13 @@ void _initialize_python_bindings() {
   py_bind_tensor_types(tensor_types);
 }
 
-static void py_bind_tensor_types(
-    const std::vector<PyTensorType>& tensor_types) {
+static void py_bind_tensor_types(const std::vector<PyTensorType>& tensor_types) {
   auto torch_module = THPObjectPtr(PyImport_ImportModule("torch"));
   if (!torch_module) {
     throw python_error();
   }
 
-  auto tensor_classes = THPObjectPtr(
-      PyObject_GetAttrString(torch_module.get(), "_tensor_classes"));
+  auto tensor_classes = THPObjectPtr(PyObject_GetAttrString(torch_module.get(), "_tensor_classes"));
   if (!tensor_classes) {
     throw python_error();
   }
@@ -348,10 +328,7 @@ static PyObject* THPModule_initExtension(PyObject* _unused, PyObject* noargs) {
 
 // autograd methods on torch._C
 static PyMethodDef TorchNpuExtensionMethods[] = {
-    {"_initExtension",
-     (PyCFunction)THPModule_initExtension,
-     METH_NOARGS,
-     nullptr},
+    {"_initExtension", (PyCFunction)THPModule_initExtension, METH_NOARGS, nullptr},
     {nullptr, nullptr, 0, nullptr}};
 
 PyMethodDef* npu_extension_functions() {

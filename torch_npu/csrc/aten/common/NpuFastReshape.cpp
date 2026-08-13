@@ -23,8 +23,7 @@ void npu_fast_reshape_(at::Tensor& tensor) {
     return;
   }
   // restriction 3: reshape case without any numels change
-  if ((tensor.numel() != StorageDescHelper::GetMemorySize(tensor)) ||
-      StorageDescHelper::MetaDataAreMatch(&tensor)) {
+  if ((tensor.numel() != StorageDescHelper::GetMemorySize(tensor)) || StorageDescHelper::MetaDataAreMatch(&tensor)) {
     return;
   }
 

@@ -68,8 +68,7 @@ void OpHook::HookArg(const c10::optional<at::TensorList>& opt_tensor_list) {
   }
 }
 
-void OpHook::HookArg(
-    const c10::List<c10::optional<at::Tensor>>& opt_tensor_list) {
+void OpHook::HookArg(const c10::List<c10::optional<at::Tensor>>& opt_tensor_list) {
   for (c10::optional<at::Tensor> opt_tensor : opt_tensor_list) {
     HookArg(opt_tensor);
   }
@@ -81,8 +80,7 @@ void OpHook::HookArg(const std::vector<at::Tensor>& at_tensor_vector) {
   }
 }
 
-void OpHook::HookArg(
-    const std::vector<std::vector<at::Tensor>>& at_tensor_vector_vector) {
+void OpHook::HookArg(const std::vector<std::vector<at::Tensor>>& at_tensor_vector_vector) {
   for (const auto i : c10::irange(at_tensor_vector_vector.size())) {
     for (const auto j : c10::irange(at_tensor_vector_vector[0].size())) {
       HookArg(at_tensor_vector_vector[i][j]);
@@ -96,12 +94,7 @@ void OpHook::HookArg(const at::ITensorListRef& tensors) {
   }
 }
 
-OpHook::OpHook()
-    : begin_fn_(nullptr),
-      end_fn_(nullptr),
-      pre_fn_(nullptr),
-      post_fn_(nullptr),
-      is_in_pre_hook_(true) {}
+OpHook::OpHook() : begin_fn_(nullptr), end_fn_(nullptr), pre_fn_(nullptr), post_fn_(nullptr), is_in_pre_hook_(true) {}
 
 void RegisterOpHookBeginFn(BeginFn fn) {
   at_npu::native::OpHook::GetInstance().RegisterBeginFn(fn);

@@ -6,8 +6,7 @@ namespace c10_npu {
 
 namespace opapi {
 #undef TORCH_NPU_LOAD_FUNC
-#define TORCH_NPU_LOAD_FUNC(funcName) \
-  TORCH_NPU_REGISTER_FUNCTION(libopapi, funcName)
+#define TORCH_NPU_LOAD_FUNC(funcName) TORCH_NPU_REGISTER_FUNCTION(libopapi, funcName)
 
 #undef TORCH_NPU_GET_FUNC
 #define TORCH_NPU_GET_FUNC(funcName) TORCH_NPU_GET_FUNCTION(libopapi, funcName)
@@ -30,8 +29,7 @@ aclnnStatus ReselectStaticKernel() {
   typedef aclnnStatus (*AclnnApiFunc)();
   static AclnnApiFunc aclnnReselectStaticKernelFunc = nullptr;
   if (aclnnReselectStaticKernelFunc == nullptr) {
-    aclnnReselectStaticKernelFunc =
-        (AclnnApiFunc)TORCH_NPU_GET_FUNC(aclnnReselectStaticKernel);
+    aclnnReselectStaticKernelFunc = (AclnnApiFunc)TORCH_NPU_GET_FUNC(aclnnReselectStaticKernel);
   }
   TORCH_CHECK(
       aclnnReselectStaticKernelFunc,
@@ -46,8 +44,7 @@ aclnnStatus ReselectStaticKernelWithPath(const std::string& path) {
   typedef aclnnStatus (*AclnnApiFunc)(const char*);
   static AclnnApiFunc aclnnReselectStaticKernelWithPathFunc = nullptr;
   if (aclnnReselectStaticKernelWithPathFunc == nullptr) {
-    aclnnReselectStaticKernelWithPathFunc =
-        (AclnnApiFunc)TORCH_NPU_GET_FUNC(aclnnReselectStaticKernelWithPath);
+    aclnnReselectStaticKernelWithPathFunc = (AclnnApiFunc)TORCH_NPU_GET_FUNC(aclnnReselectStaticKernelWithPath);
     TORCH_CHECK(
         aclnnReselectStaticKernelWithPathFunc,
         "Failed to find function ",

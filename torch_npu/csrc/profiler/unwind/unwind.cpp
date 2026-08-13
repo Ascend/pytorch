@@ -6,8 +6,7 @@
 #include <c10/util/Exception.h>
 #include "unwind.h"
 
-#if !defined(__linux__) || !defined(__x86_64__) || !defined(__has_include) || \
-    !__has_include("ext/stdio_filebuf.h")
+#if !defined(__linux__) || !defined(__x86_64__) || !defined(__has_include) || !__has_include("ext/stdio_filebuf.h")
 namespace torch_npu::unwind {
 std::vector<void*> unwind() {
   const int size = 200;
@@ -17,9 +16,7 @@ std::vector<void*> unwind() {
 }
 
 c10::optional<std::pair<std::string, uint64_t>> libraryFor(void* addr) {
-  TORCH_CHECK(
-      false,
-      "record_context_cpp is not support on non-linux non-x86_64 platforms");
+  TORCH_CHECK(false, "record_context_cpp is not support on non-linux non-x86_64 platforms");
 }
 
 std::vector<torch::unwind::Frame> symbolize(const std::vector<void*>& frames) {
@@ -34,8 +31,7 @@ std::vector<torch::unwind::Frame> symbolize(const std::vector<void*>& frames) {
       if (last_pos != std::string::npos) {
         frame.filename = frame.filename.substr(last_pos + 1);
       }
-      char* demangled =
-          abi::__cxa_demangle(info.dli_sname, nullptr, nullptr, nullptr);
+      char* demangled = abi::__cxa_demangle(info.dli_sname, nullptr, nullptr, nullptr);
       if (demangled) {
         frame.funcname = demangled;
         free(demangled);
@@ -47,8 +43,7 @@ std::vector<torch::unwind::Frame> symbolize(const std::vector<void*>& frames) {
       frame.filename = "??";
       frame.funcname = "??";
     }
-    if ((frame.filename == "python" &&
-         frame.filename.find("PyEval_EvalFrame") == std::string::npos) ||
+    if ((frame.filename == "python" && frame.filename.find("PyEval_EvalFrame") == std::string::npos) ||
         (frame.filename.find("libc.so") != std::string::npos)) {
       frame.funcname = "__libc_start_main";
     }
@@ -58,9 +53,7 @@ std::vector<torch::unwind::Frame> symbolize(const std::vector<void*>& frames) {
 }
 
 Stats stats() {
-  TORCH_CHECK(
-      false,
-      "record_context_cpp is not support on non-linux non-x86_64 platforms");
+  TORCH_CHECK(false, "record_context_cpp is not support on non-linux non-x86_64 platforms");
 }
 
 } // namespace torch_npu::unwind
@@ -74,27 +67,19 @@ Stats stats() {
 
 namespace torch_npu::unwind {
 std::vector<void*> unwind() {
-  TORCH_CHECK(
-      false,
-      "For the linux x86 platform, this function should call the torch function");
+  TORCH_CHECK(false, "For the linux x86 platform, this function should call the torch function");
 }
 
 c10::optional<std::pair<std::string, uint64_t>> libraryFor(void* addr) {
-  TORCH_CHECK(
-      false,
-      "For the linux x86 platform, this function should call the torch function");
+  TORCH_CHECK(false, "For the linux x86 platform, this function should call the torch function");
 }
 
 std::vector<torch::unwind::Frame> symbolize(const std::vector<void*>& frames) {
-  TORCH_CHECK(
-      false,
-      "For the linux x86 platform, this function should call the torch function");
+  TORCH_CHECK(false, "For the linux x86 platform, this function should call the torch function");
 }
 
 Stats stats() {
-  TORCH_CHECK(
-      false,
-      "For the linux x86 platform, this function should call the torch function");
+  TORCH_CHECK(false, "For the linux x86 platform, this function should call the torch function");
 }
 
 } // namespace torch_npu::unwind

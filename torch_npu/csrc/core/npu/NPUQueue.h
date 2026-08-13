@@ -12,8 +12,7 @@
 namespace c10_npu {
 
 inline std::shared_ptr<npu_logging::Logger>& GetQueueLogger() {
-  static std::shared_ptr<npu_logging::Logger> logger =
-      npu_logging::logging().getLogger("torch_npu.dispatch");
+  static std::shared_ptr<npu_logging::Logger> logger = npu_logging::logging().getLogger("torch_npu.dispatch");
   return logger;
 }
 
@@ -201,15 +200,7 @@ class NPUCallBackRegisterBuilder {
 };
 } // namespace register_queue_cb
 
-#define REGISTER_QUEUE_FUNC(                                                 \
-    execF, copyF, releaseF, newF, deleteF, copyReleaseParamF, releaseParamF) \
-  static ::c10_npu::register_queue_cb::NPUCallBackRegisterBuilder            \
-      register_queue_func_builder(                                           \
-          execF,                                                             \
-          copyF,                                                             \
-          releaseF,                                                          \
-          newF,                                                              \
-          deleteF,                                                           \
-          copyReleaseParamF,                                                 \
-          releaseParamF);
+#define REGISTER_QUEUE_FUNC(execF, copyF, releaseF, newF, deleteF, copyReleaseParamF, releaseParamF) \
+  static ::c10_npu::register_queue_cb::NPUCallBackRegisterBuilder register_queue_func_builder(       \
+      execF, copyF, releaseF, newF, deleteF, copyReleaseParamF, releaseParamF);
 } // namespace c10_npu

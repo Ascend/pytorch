@@ -13,8 +13,7 @@ namespace torch_npu {
 namespace profiler {
 constexpr uint64_t Level_none = 0;
 constexpr uint64_t Level0 = ACL_PROF_TASK_TIME_L0 | ACL_PROF_ACL_API;
-constexpr uint64_t Level1 = ACL_PROF_TASK_TIME | ACL_PROF_ACL_API |
-    ACL_PROF_HCCL_TRACE | ACL_PROF_AICORE_METRICS;
+constexpr uint64_t Level1 = ACL_PROF_TASK_TIME | ACL_PROF_ACL_API | ACL_PROF_HCCL_TRACE | ACL_PROF_AICORE_METRICS;
 constexpr uint64_t Level2 = Level1 | ACL_PROF_RUNTIME_API | ACL_PROF_AICPU;
 
 struct NpuTraceConfig {
@@ -41,16 +40,11 @@ class ProfilerMgr {
   void Start(const NpuTraceConfig& npu_config, bool cpu_trace);
   void Stop();
   void Finalize();
-  void Upload(
-      std::unique_ptr<torch_npu::toolkit::profiler::BaseReportData> data);
-  void UploadWithLock(
-      std::unique_ptr<torch_npu::toolkit::profiler::BaseReportData> data);
-  void UploadTraceEventData(
-      std::unique_ptr<torch_npu::toolkit::profiler::PythonTracerFuncData> data);
-  void UploadTraceHashData(
-      std::unique_ptr<torch_npu::toolkit::profiler::PythonTracerHashData> data);
-  void UploadParamData(
-      std::unique_ptr<torch_npu::toolkit::profiler::ParamTensorData> data);
+  void Upload(std::unique_ptr<torch_npu::toolkit::profiler::BaseReportData> data);
+  void UploadWithLock(std::unique_ptr<torch_npu::toolkit::profiler::BaseReportData> data);
+  void UploadTraceEventData(std::unique_ptr<torch_npu::toolkit::profiler::PythonTracerFuncData> data);
+  void UploadTraceHashData(std::unique_ptr<torch_npu::toolkit::profiler::PythonTracerHashData> data);
+  void UploadParamData(std::unique_ptr<torch_npu::toolkit::profiler::ParamTensorData> data);
   int8_t GetTraceLevel();
   static ProfilerMgr* GetInstance();
   std::atomic<bool>& GetNpuTrace() {
@@ -90,8 +84,7 @@ class ProfilerMgr {
   uint64_t PrepareProfilerConfig(const NpuTraceConfig& npu_config);
   void PrepareProfilerDeviceSysConfig(const NpuTraceConfig& npu_config);
   void PrepareProfilerHostSysConfig(const std::vector<std::string>& host_sys);
-  aclprofAicoreMetrics PrepareProfilerAicMetrics(
-      const NpuTraceConfig& npu_config);
+  aclprofAicoreMetrics PrepareProfilerAicMetrics(const NpuTraceConfig& npu_config);
   uint64_t CheckFeatureConfig(uint64_t datatype_config);
   void StartDataReceiver(const std::string& fwk_path);
   void StopDataReceiver();

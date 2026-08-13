@@ -13,12 +13,9 @@
 namespace torch_npu {
 namespace profiler {
 
-std::unordered_map<std::string, c10::IValue> saveExtraArgs(
-    const at::RecordFunction& fn);
+std::unordered_map<std::string, c10::IValue> saveExtraArgs(const at::RecordFunction& fn);
 
-uint64_t computeFlops(
-    const std::string& op_name,
-    const std::unordered_map<std::string, c10::IValue>& extra_args);
+uint64_t computeFlops(const std::string& op_name, const std::unordered_map<std::string, c10::IValue>& extra_args);
 
 class TORCH_NPU_API NPURecordFunction {
  public:

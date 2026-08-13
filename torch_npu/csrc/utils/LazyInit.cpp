@@ -20,8 +20,7 @@ void npu_lazy_init() {
     if (!module) {
       throw python_error();
     }
-    auto res =
-        THPObjectPtr(PyObject_CallMethod(module.get(), "_lazy_init", ""));
+    auto res = THPObjectPtr(PyObject_CallMethod(module.get(), "_lazy_init", ""));
     if (!res) {
       throw python_error();
     }

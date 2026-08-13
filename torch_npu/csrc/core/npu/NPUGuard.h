@@ -77,13 +77,11 @@ struct OptionalNPUGuard {
   explicit OptionalNPUGuard() : guard_() {}
 
   // / Set the current NPU device to the passed Device, if it is not nullopt.
-  explicit OptionalNPUGuard(c10::optional<c10::Device> device_opt)
-      : guard_(device_opt) {}
+  explicit OptionalNPUGuard(c10::optional<c10::Device> device_opt) : guard_(device_opt) {}
 
   // / Set the current NPU device to the passed device index, if it is not
   // / nullopt
-  explicit OptionalNPUGuard(c10::optional<c10::DeviceIndex> device_index_opt)
-      : guard_(device_index_opt) {}
+  explicit OptionalNPUGuard(c10::optional<c10::DeviceIndex> device_index_opt) : guard_(device_index_opt) {}
 
   // Copy is not allowed
   OptionalNPUGuard(const OptionalNPUGuard&) = delete;
@@ -216,8 +214,7 @@ struct OptionalNPUStreamGuard {
   // / Set the current device to the device associated with the passed stream,
   // / and set the current stream on that device to the passed stream,
   // / if the passed stream is not nullopt.
-  explicit OptionalNPUStreamGuard(c10::optional<c10::Stream> stream_opt)
-      : guard_(stream_opt) {}
+  explicit OptionalNPUStreamGuard(c10::optional<c10::Stream> stream_opt) : guard_(stream_opt) {}
 
   // / Copy is disallowed
   OptionalNPUStreamGuard(const OptionalNPUStreamGuard&) = delete;
@@ -273,8 +270,7 @@ struct OptionalNPUStreamGuard {
 
 // / A variant of MultiStreamGuard that is specialized for NPU.
 struct NPUMultiStreamGuard {
-  explicit NPUMultiStreamGuard(at::ArrayRef<NPUStream> streams)
-      : guard_(unwrapStreams(streams)) {}
+  explicit NPUMultiStreamGuard(at::ArrayRef<NPUStream> streams) : guard_(unwrapStreams(streams)) {}
 
   // / Copy is disallowed
   NPUMultiStreamGuard(const NPUMultiStreamGuard&) = delete;
@@ -289,8 +285,7 @@ struct NPUMultiStreamGuard {
  private:
   c10::impl::InlineMultiStreamGuard<c10_npu::impl::NPUGuardImpl> guard_;
 
-  static std::vector<c10::Stream> unwrapStreams(
-      at::ArrayRef<NPUStream> NPUStreams) {
+  static std::vector<c10::Stream> unwrapStreams(at::ArrayRef<NPUStream> NPUStreams) {
     std::vector<c10::Stream> streams;
     streams.reserve(NPUStreams.size());
     for (const NPUStream& NPUStream : NPUStreams) {

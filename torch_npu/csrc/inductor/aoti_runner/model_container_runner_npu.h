@@ -22,9 +22,7 @@ class AOTIModelContainerRunnerNpu : public AOTIModelContainerRunner {
 
   ~AOTIModelContainerRunnerNpu() override;
 
-  std::vector<at::Tensor> run_impl(
-      std::vector<AtenTensorHandle>& input_handles,
-      void* stream_handle) override;
+  std::vector<at::Tensor> run_impl(std::vector<AtenTensorHandle>& input_handles, void* stream_handle) override;
 
   std::vector<at::Tensor> run_with_npu_stream(
       const std::vector<at::Tensor>& inputs,

@@ -28,7 +28,9 @@ bool CheckTensorsSameSize(const std::vector<at::Tensor>& input_tensors);
 
 std::vector<at::Tensor> castOriginFormat(const std::vector<at::Tensor>& inputTensors);
 
-std::vector<at::Tensor> FlattenForScatterGather(std::vector<std::vector<at::Tensor>>& tensor_lists,
-    std::vector<at::Tensor>& other, size_t world_size);
+std::vector<at::Tensor> FlattenForScatterGather(
+    std::vector<std::vector<at::Tensor>>& tensor_lists,
+    std::vector<at::Tensor>& other,
+    size_t world_size);
 
-}
+} // namespace c10d_npu

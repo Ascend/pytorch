@@ -31,89 +31,101 @@ namespace c10d {
 namespace torch_npu {
 class Proxy;
 
-using CallBackFn = std::function<StoreMessage(const int &, const StoreMessage &)>;
+using CallBackFn = std::function<StoreMessage(const int&, const StoreMessage&)>;
 class ParallelStoreServer {
-public:
-    explicit ParallelStoreServer(std::string initKey, const std::string host, uint16_t port,
-        c10::optional<std::size_t> numWorkers) noexcept;
-    explicit ParallelStoreServer(const std::string localSocketPath, CallBackFn callback) noexcept;
-    virtual ~ParallelStoreServer() noexcept;
-    void WaitWorkers(const std::chrono::milliseconds &timeout) noexcept;
+ public:
+  explicit ParallelStoreServer(
+      std::string initKey,
+      const std::string host,
+      uint16_t port,
+      c10::optional<std::size_t> numWorkers) noexcept;
+  explicit ParallelStoreServer(const std::string localSocketPath, CallBackFn callback) noexcept;
+  virtual ~ParallelStoreServer() noexcept;
+  void WaitWorkers(const std::chrono::milliseconds& timeout) noexcept;
 
-private:
-    torch_npu::StoreMessage ProcessRequest(int fd, const torch_npu::StoreMessage &request) noexcept;
-    torch_npu::StoreMessage ProcessGetRequest(int fd, const torch_npu::StoreMessage &request) noexcept;
-    torch_npu::StoreMessage ProcessSetRequest(int fd, const torch_npu::StoreMessage &request) noexcept;
-    torch_npu::StoreMessage ProcessAddRequest(int fd, const torch_npu::StoreMessage &request) noexcept;
-    torch_npu::StoreMessage ProcessCheckRequest(int fd, const torch_npu::StoreMessage &request) noexcept;
-    torch_npu::StoreMessage ProcessDeleteRequest(int fd, const torch_npu::StoreMessage &request) noexcept;
-    torch_npu::StoreMessage ProcessCompareSetRequest(int fd, const torch_npu::StoreMessage &request) noexcept;
-    torch_npu::StoreMessage ProcessGetNumKeyRequest(int fd, const torch_npu::StoreMessage &request) noexcept;
-    torch_npu::StoreMessage ProcessWaitKeysRequest(int fd, const torch_npu::StoreMessage &request) noexcept;
-    void InitializeHandlers() noexcept;
-    void LocalInitializeHandlers() noexcept;
-    bool CheckAllKeysExistInLock(const std::vector<std::string> &keys) noexcept;
+ private:
+  torch_npu::StoreMessage ProcessRequest(int fd, const torch_npu::StoreMessage& request) noexcept;
+  torch_npu::StoreMessage ProcessGetRequest(int fd, const torch_npu::StoreMessage& request) noexcept;
+  torch_npu::StoreMessage ProcessSetRequest(int fd, const torch_npu::StoreMessage& request) noexcept;
+  torch_npu::StoreMessage ProcessAddRequest(int fd, const torch_npu::StoreMessage& request) noexcept;
+  torch_npu::StoreMessage ProcessCheckRequest(int fd, const torch_npu::StoreMessage& request) noexcept;
+  torch_npu::StoreMessage ProcessDeleteRequest(int fd, const torch_npu::StoreMessage& request) noexcept;
+  torch_npu::StoreMessage ProcessCompareSetRequest(int fd, const torch_npu::StoreMessage& request) noexcept;
+  torch_npu::StoreMessage ProcessGetNumKeyRequest(int fd, const torch_npu::StoreMessage& request) noexcept;
+  torch_npu::StoreMessage ProcessWaitKeysRequest(int fd, const torch_npu::StoreMessage& request) noexcept;
+  void InitializeHandlers() noexcept;
+  void LocalInitializeHandlers() noexcept;
+  bool CheckAllKeysExistInLock(const std::vector<std::string>& keys) noexcept;
 
-private:
-    CallBackFn callback_;
-    const std::string localSocketPath_;
-    using RequestHandler = std::function<torch_npu::StoreMessage(int, const torch_npu::StoreMessage &)>;
-    std::unique_ptr<torch_npu::ParallelTcpServer> server_;
-    std::unordered_map<torch_npu::MessageType, RequestHandler> requestHandlers_;
-    std::unordered_map<std::string, std::vector<uint8_t>> keyStore_;
-    SpinLock serverLock_;
-    std::mutex initWaitMutex_;
-    std::condition_variable initWaitCond_;
-    std::atomic<bool> workersReady_{ false };
-    const c10::optional<std::size_t> numWorkers_;
-    const std::string initKey_ = "init/";
-    const std::string keyPrefix_ = "/";
+ private:
+  CallBackFn callback_;
+  const std::string localSocketPath_;
+  using RequestHandler = std::function<torch_npu::StoreMessage(int, const torch_npu::StoreMessage&)>;
+  std::unique_ptr<torch_npu::ParallelTcpServer> server_;
+  std::unordered_map<torch_npu::MessageType, RequestHandler> requestHandlers_;
+  std::unordered_map<std::string, std::vector<uint8_t>> keyStore_;
+  SpinLock serverLock_;
+  std::mutex initWaitMutex_;
+  std::condition_variable initWaitCond_;
+  std::atomic<bool> workersReady_{false};
+  const c10::optional<std::size_t> numWorkers_;
+  const std::string initKey_ = "init/";
+  const std::string keyPrefix_ = "/";
 };
-} // torch_npu
+} // namespace torch_npu
 
 class ParallelTcpStore : public Store {
-public:
-    explicit ParallelTcpStore(const std::string &host, const bool &agentRun, const uint32_t &agentPid,
-        const bool &enableTiered, const TCPStoreOptions &opts = {});
+ public:
+  explicit ParallelTcpStore(
+      const std::string& host,
+      const bool& agentRun,
+      const uint32_t& agentPid,
+      const bool& enableTiered,
+      const TCPStoreOptions& opts = {});
 
-    ~ParallelTcpStore() noexcept override;
+  ~ParallelTcpStore() noexcept override;
 
-    c10::intrusive_ptr<Store> clone() override;
+  c10::intrusive_ptr<Store> clone() override;
 
-public:
-    void set(const std::string &key, const std::vector<uint8_t> &value) override;
-    std::vector<uint8_t> compareSet(const std::string &key, const std::vector<uint8_t> &currentValue,
-        const std::vector<uint8_t> &newValue) override;
-    std::vector<uint8_t> get(const std::string &key) override;
-    int64_t add(const std::string &key, int64_t value) override;
-    bool deleteKey(const std::string &key) override;
-    bool check(const std::vector<std::string> &keys) override;
-    int64_t getNumKeys() override;
-    void wait(const std::vector<std::string> &keys) override;
-    void wait(const std::vector<std::string> &keys, const std::chrono::milliseconds &timeout) override;
-    const std::chrono::milliseconds &getTimeout() const noexcept override;
-    void setTimeout(const std::chrono::milliseconds &timeout) override;
+ public:
+  void set(const std::string& key, const std::vector<uint8_t>& value) override;
+  std::vector<uint8_t> compareSet(
+      const std::string& key,
+      const std::vector<uint8_t>& currentValue,
+      const std::vector<uint8_t>& newValue) override;
+  std::vector<uint8_t> get(const std::string& key) override;
+  int64_t add(const std::string& key, int64_t value) override;
+  bool deleteKey(const std::string& key) override;
+  bool check(const std::vector<std::string>& keys) override;
+  int64_t getNumKeys() override;
+  void wait(const std::vector<std::string>& keys) override;
+  void wait(const std::vector<std::string>& keys, const std::chrono::milliseconds& timeout) override;
+  const std::chrono::milliseconds& getTimeout() const noexcept override;
+  void setTimeout(const std::chrono::milliseconds& timeout) override;
 
-private:
-    int64_t IncreaseKey(const std::string &key, int64_t value);
-    void DoWait(const torch_npu::StoreMessage &req, torch_npu::StoreMessage &res);
-    static std::shared_ptr<torch_npu::ParallelStoreServer> GetSharedServer(const std::string &initKey,
-       const std::string host, uint16_t port, c10::optional<std::size_t> numWorkers);
+ private:
+  int64_t IncreaseKey(const std::string& key, int64_t value);
+  void DoWait(const torch_npu::StoreMessage& req, torch_npu::StoreMessage& res);
+  static std::shared_ptr<torch_npu::ParallelStoreServer> GetSharedServer(
+      const std::string& initKey,
+      const std::string host,
+      uint16_t port,
+      c10::optional<std::size_t> numWorkers);
 
-private:
-    std::string host_;
-    uint16_t port_;
-    bool agentRun_;
-    uint32_t agentPid_;
-    bool enableTiered_;
+ private:
+  std::string host_;
+  uint16_t port_;
+  bool agentRun_;
+  uint32_t agentPid_;
+  bool enableTiered_;
 
-    std::unique_ptr<torch_npu::Client> client_;
-    std::unique_ptr<torch_npu::Proxy> proxy_;
-    std::shared_ptr<torch_npu::ParallelStoreServer> server_;
-    std::mutex clientMutex_;
-    std::condition_variable initWaitCond_;
-    const std::string initKey_ = "init/";
-    static std::mutex cacheServerMutex_;
-    static std::unordered_map<uint16_t, std::weak_ptr<torch_npu::ParallelStoreServer>> cachedServers_;
+  std::unique_ptr<torch_npu::Client> client_;
+  std::unique_ptr<torch_npu::Proxy> proxy_;
+  std::shared_ptr<torch_npu::ParallelStoreServer> server_;
+  std::mutex clientMutex_;
+  std::condition_variable initWaitCond_;
+  const std::string initKey_ = "init/";
+  static std::mutex cacheServerMutex_;
+  static std::unordered_map<uint16_t, std::weak_ptr<torch_npu::ParallelStoreServer>> cachedServers_;
 };
-} // c10d
+} // namespace c10d

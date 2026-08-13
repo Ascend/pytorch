@@ -48,24 +48,11 @@ class ShapeOpStrategyBase {
   ShapeOpStrategyBase() = default;
   virtual ~ShapeOpStrategyBase() = default;
 
-  int64_t FindClosestGear(
-      int64_t cur_size,
-      const std::vector<int64_t>& gears,
-      int64_t min_gear,
-      int64_t max_gear);
+  int64_t FindClosestGear(int64_t cur_size, const std::vector<int64_t>& gears, int64_t min_gear, int64_t max_gear);
 
-  uint64_t EncodeTransformStep(
-      int op,
-      int index,
-      int64_t original_size,
-      int dimension);
+  uint64_t EncodeTransformStep(int op, int index, int64_t original_size, int dimension);
 
-  void DecodeTransformStep(
-      uint64_t operation,
-      int& op,
-      int& index,
-      int64_t& original_size,
-      int& dimension);
+  void DecodeTransformStep(uint64_t operation, int& op, int& index, int64_t& original_size, int& dimension);
 
   std::vector<int> m_indices;
   double m_value;
@@ -79,19 +66,11 @@ class BSShapeOpStrategy : public ShapeOpStrategyBase {
   BSShapeOpStrategy() = default;
   virtual ~BSShapeOpStrategy() = default;
 
-  void InitializeCore(
-      std::vector<int64_t>& gears,
-      int dimension,
-      std::vector<int>& indices,
-      double value = 0.0);
+  void InitializeCore(std::vector<int64_t>& gears, int dimension, std::vector<int>& indices, double value = 0.0);
 
-  virtual void Transform(
-      std::vector<at::Tensor>& inputs,
-      std::vector<std::vector<at::Tensor>>& outputs) = 0;
+  virtual void Transform(std::vector<at::Tensor>& inputs, std::vector<std::vector<at::Tensor>>& outputs) = 0;
 
-  virtual void Recover(
-      std::vector<std::vector<at::Tensor>>& inputs,
-      std::vector<at::Tensor>& outputs) = 0;
+  virtual void Recover(std::vector<std::vector<at::Tensor>>& inputs, std::vector<at::Tensor>& outputs) = 0;
 
   int m_dimension;
 };
@@ -107,22 +86,16 @@ class SeqShapeOpStrategy : public ShapeOpStrategyBase {
       std::vector<int>& indices,
       double value = 0.0);
 
-  virtual void Transform(
-      std::vector<at::Tensor>& inputs,
-      std::vector<at::Tensor>& outputs) = 0;
+  virtual void Transform(std::vector<at::Tensor>& inputs, std::vector<at::Tensor>& outputs) = 0;
 
   std::vector<int> m_dimensions;
 };
 
 class DefaultBSShapeOp : public BSShapeOpStrategy {
  public:
-  void Transform(
-      std::vector<at::Tensor>& inputs,
-      std::vector<std::vector<at::Tensor>>& outputs) override;
+  void Transform(std::vector<at::Tensor>& inputs, std::vector<std::vector<at::Tensor>>& outputs) override;
 
-  void Recover(
-      std::vector<std::vector<at::Tensor>>& inputs,
-      std::vector<at::Tensor>& outputs) override;
+  void Recover(std::vector<std::vector<at::Tensor>>& inputs, std::vector<at::Tensor>& outputs) override;
 
  private:
   void GenerateExpectedRes(
@@ -143,9 +116,7 @@ class DefaultBSShapeOp : public BSShapeOpStrategy {
 
 class DefaultSeqShapeOp : public SeqShapeOpStrategy {
  public:
-  void Transform(
-      std::vector<at::Tensor>& inputs,
-      std::vector<at::Tensor>& outputs) override;
+  void Transform(std::vector<at::Tensor>& inputs, std::vector<at::Tensor>& outputs) override;
 
  private:
   void TransformValidate(std::vector<at::Tensor>& inputs);
@@ -163,10 +134,8 @@ class NPUShapeHandling {
   ~NPUShapeHandling() = default;
 
   // Strategy Register
-  void RegisterBatchSizeStrategy(
-      std::shared_ptr<BSShapeOpStrategy> custom_strategy);
-  void RegisterSequenceStrategy(
-      std::shared_ptr<SeqShapeOpStrategy> custom_strategy);
+  void RegisterBatchSizeStrategy(std::shared_ptr<BSShapeOpStrategy> custom_strategy);
+  void RegisterSequenceStrategy(std::shared_ptr<SeqShapeOpStrategy> custom_strategy);
 
   void Initialize(
       ShapeType type,
@@ -184,20 +153,12 @@ class NPUShapeHandling {
       std::vector<int>& indices,
       double value = 0.0);
 
-  void Transform(
-      std::vector<at::Tensor>& inputs,
-      std::vector<std::vector<at::Tensor>>& outputs);
+  void Transform(std::vector<at::Tensor>& inputs, std::vector<std::vector<at::Tensor>>& outputs);
 
-  void Recover(
-      std::vector<std::vector<at::Tensor>>& inputs,
-      std::vector<at::Tensor>& outputs);
+  void Recover(std::vector<std::vector<at::Tensor>>& inputs, std::vector<at::Tensor>& outputs);
 
  private:
-  void GenerateGears(
-      int64_t min_size,
-      int64_t max_size,
-      ShapePolicy policy,
-      std::vector<int64_t>& gears);
+  void GenerateGears(int64_t min_size, int64_t max_size, ShapePolicy policy, std::vector<int64_t>& gears);
 
   bool initialized;
   bool handle_batchsize;

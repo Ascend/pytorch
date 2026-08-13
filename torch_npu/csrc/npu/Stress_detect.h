@@ -13,10 +13,7 @@
 
 class StressDetector {
  public:
-  TORCH_NPU_API static int perform_stress_detect(
-      int deviceid,
-      int mode,
-      int64_t comm);
+  TORCH_NPU_API static int perform_stress_detect(int deviceid, int mode, int64_t comm);
   TORCH_NPU_API static void stop_worker_thread();
 
  private:

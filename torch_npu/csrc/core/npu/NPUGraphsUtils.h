@@ -21,8 +21,7 @@ using MempoolId_t = std::pair<CaptureId_t, CaptureId_t>;
 // RAII guard for "aclmdlRICaptureMode", a thread-local value
 // that controls the error-checking strictness of a capture.
 struct C10_NPU_API NPUStreamCaptureModeGuard {
-  NPUStreamCaptureModeGuard(aclmdlRICaptureMode desired)
-      : strictness_(desired) {}
+  NPUStreamCaptureModeGuard(aclmdlRICaptureMode desired) : strictness_(desired) {}
   ~NPUStreamCaptureModeGuard() {}
 
  private:
@@ -44,8 +43,7 @@ static_assert(
 enum class CaptureStatus : int {
   None = int(aclmdlRICaptureStatus::ACL_MODEL_RI_CAPTURE_STATUS_NONE),
   Active = int(aclmdlRICaptureStatus::ACL_MODEL_RI_CAPTURE_STATUS_ACTIVE),
-  Invalidated =
-      int(aclmdlRICaptureStatus::ACL_MODEL_RI_CAPTURE_STATUS_INVALIDATED)
+  Invalidated = int(aclmdlRICaptureStatus::ACL_MODEL_RI_CAPTURE_STATUS_INVALIDATED)
 };
 
 inline std::ostream& operator<<(std::ostream& os, CaptureStatus status) {
@@ -60,8 +58,7 @@ inline std::ostream& operator<<(std::ostream& os, CaptureStatus status) {
       os << "npuStreamCaptureStatusInvalidated";
       break;
     default:
-      TORCH_INTERNAL_ASSERT(
-          false, "Unknown NPU graph CaptureStatus", int(status));
+      TORCH_INTERNAL_ASSERT(false, "Unknown NPU graph CaptureStatus", int(status));
   }
   return os;
 }

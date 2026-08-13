@@ -26,10 +26,7 @@ c10::Allocator* get();
 void init();
 c10::DataPtr malloc_with_stream(size_t size, aclrtStream stream);
 void emptyCache(int device, bool check_error = true);
-void recordHistory(
-    bool enabled,
-    CreateContextFn context_recorder,
-    RecordContext when);
+void recordHistory(bool enabled, CreateContextFn context_recorder, RecordContext when);
 SnapshotInfo snapshot();
 DeviceStats getDeviceStats(int device);
 
@@ -39,9 +36,7 @@ DeviceStats getDeviceStats(int device);
 namespace at_npu {
 namespace native {
 
-TORCH_NPU_API at::Tensor allocate_workspace(
-    uint64_t workspace_size,
-    aclrtStream stream);
+TORCH_NPU_API at::Tensor allocate_workspace(uint64_t workspace_size, aclrtStream stream);
 
 } // namespace native
 } // namespace at_npu

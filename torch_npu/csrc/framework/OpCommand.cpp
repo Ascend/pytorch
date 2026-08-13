@@ -22,35 +22,19 @@
 namespace {
 const uint64_t kStringOffset = 16UL;
 const std::string kStringDType = "string";
-static std::unordered_map<at::ScalarType, std::vector<double>>
-    floating_limits_map{
-        {at::ScalarType::Double,
-         {std::numeric_limits<double>::max(),
-          std::numeric_limits<double>::min()}},
-        {at::ScalarType::Float,
-         {std::numeric_limits<float>::max(),
-          std::numeric_limits<float>::min()}},
-        {at::ScalarType::BFloat16,
-         {std::numeric_limits<float>::max(),
-          std::numeric_limits<float>::min()}},
-        {at::ScalarType::Half, {65504, -65504}},
-        {at::ScalarType::Float8_e5m2, {57345, -57345}},
-        {at::ScalarType::Float8_e4m3fn, {449, -449}}};
-static std::unordered_map<at::ScalarType, std::vector<long>>
-    integral_limits_map{
-        {at::ScalarType::Long,
-         {std::numeric_limits<long>::max(), std::numeric_limits<long>::min()}},
-        {at::ScalarType::Int,
-         {std::numeric_limits<int>::max(), std::numeric_limits<int>::min()}},
-        {at::ScalarType::Byte,
-         {std::numeric_limits<uint8_t>::max(),
-          std::numeric_limits<uint8_t>::min()}},
-        {at::ScalarType::Char,
-         {std::numeric_limits<int8_t>::max(),
-          std::numeric_limits<int8_t>::min()}},
-        {at::ScalarType::Short,
-         {std::numeric_limits<int16_t>::max(),
-          std::numeric_limits<int16_t>::min()}}};
+static std::unordered_map<at::ScalarType, std::vector<double>> floating_limits_map{
+    {at::ScalarType::Double, {std::numeric_limits<double>::max(), std::numeric_limits<double>::min()}},
+    {at::ScalarType::Float, {std::numeric_limits<float>::max(), std::numeric_limits<float>::min()}},
+    {at::ScalarType::BFloat16, {std::numeric_limits<float>::max(), std::numeric_limits<float>::min()}},
+    {at::ScalarType::Half, {65504, -65504}},
+    {at::ScalarType::Float8_e5m2, {57345, -57345}},
+    {at::ScalarType::Float8_e4m3fn, {449, -449}}};
+static std::unordered_map<at::ScalarType, std::vector<long>> integral_limits_map{
+    {at::ScalarType::Long, {std::numeric_limits<long>::max(), std::numeric_limits<long>::min()}},
+    {at::ScalarType::Int, {std::numeric_limits<int>::max(), std::numeric_limits<int>::min()}},
+    {at::ScalarType::Byte, {std::numeric_limits<uint8_t>::max(), std::numeric_limits<uint8_t>::min()}},
+    {at::ScalarType::Char, {std::numeric_limits<int8_t>::max(), std::numeric_limits<int8_t>::min()}},
+    {at::ScalarType::Short, {std::numeric_limits<int16_t>::max(), std::numeric_limits<int16_t>::min()}}};
 } // namespace
 
 std::atomic<bool> g_used_aclop{false};
@@ -74,9 +58,7 @@ OpCommand& OpCommand::SetCustomHandler(PROC_FUNC func) {
   return *this;
 }
 
-OpCommand& OpCommand::DynamicInputReg(
-    DynamicInputRegFunc func,
-    DyNumAndIndex num_and_index) {
+OpCommand& OpCommand::DynamicInputReg(DynamicInputRegFunc func, DyNumAndIndex num_and_index) {
   return *this;
 }
 
@@ -96,18 +78,13 @@ OpCommand& OpCommand::Input(
     const string& descName,
     const c10::optional<aclFormat>& sensitive_format,
     const string& realData) {
-  return AddTensorInput(
-      Contiguous(input), c10::ScalarType::Undefined, descName, realData);
+  return AddTensorInput(Contiguous(input), c10::ScalarType::Undefined, descName, realData);
 }
 
-OpCommand& OpCommand::InputWithoutContiguous(
-    const at::Tensor& input,
-    const string& descName,
-    const string& realData) {
+OpCommand& OpCommand::InputWithoutContiguous(const at::Tensor& input, const string& descName, const string& realData) {
   if (input.storage_offset() != 0) {
     TORCH_NPU_WARN_ONCE(
-        "[Check][offset] Check input storage_offset[%ld] = 0 failed, result is untrustworthy",
-        input.storage_offset());
+        "[Check][offset] Check input storage_offset[%ld] = 0 failed, result is untrustworthy", input.storage_offset());
   }
   return AddTensorInput(const_cast<at::Tensor&>(input));
 }
@@ -118,8 +95,7 @@ OpCommand& OpCommand::Input(
     CompileType compileType,
     const string& realDtype,
     const string& descName) {
-  return Input<int64_t>(
-      dimListRef, dimListRef.size(), toType, compileType, realDtype, descName);
+  return Input<int64_t>(dimListRef, dimListRef.size(), toType, compileType, realDtype, descName);
 }
 
 OpCommand& OpCommand::Input(
@@ -131,10 +107,7 @@ OpCommand& OpCommand::Input(
   return Input<double>(dimListRef, realShape, toType, compileType, realDtype);
 }
 
-OpCommand& OpCommand::Input(
-    const c10::Scalar& input,
-    const at::ScalarType type,
-    CompileType compileType) {
+OpCommand& OpCommand::Input(const c10::Scalar& input, const at::ScalarType type, CompileType compileType) {
   const auto& scalarTensor = CreateScalarTensor(input, type);
   return AddHostTensorInput(scalarTensor, compileType);
 }
@@ -146,9 +119,7 @@ OpCommand& OpCommand::Inputs(const at::TensorList& inputs) {
   return *this;
 }
 
-OpCommand& OpCommand::InputScalarToNPUTensor(
-    const c10::Scalar& input,
-    const at::ScalarType type) {
+OpCommand& OpCommand::InputScalarToNPUTensor(const c10::Scalar& input, const at::ScalarType type) {
   return AddScalarInput(input, type);
 }
 
@@ -168,8 +139,7 @@ void OpCommand::Run() {
     // true aclop
     at_npu::aclops::LazyInitAclops();
     auto val = c10_npu::option::GetOption("jitCompile");
-    NPU_CHECK_ERROR(
-        AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, val->c_str()));
+    NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, val->c_str()));
     at_npu::aclops::LazyAclopSet::SetCompileopt();
     c10_npu::assertNotCapturingAclop(aclCmd->GetName());
   }
@@ -177,24 +147,20 @@ void OpCommand::Run() {
   aclCmd->SetEnginePriority();
   const string& op_name = aclCmd->GetName();
 #ifndef BUILD_LIBTORCH
-  const c10_npu::impl::PyCallbackTrigger* trigger =
-      c10_npu::impl::NPUTrace::getTrace();
+  const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
 #endif
   auto stream = c10_npu::getCurrentNPUStream();
-  if (!stream.isSyncLaunchStream() &&
-      c10_npu::option::OptionsManager::GetTaskQueueEnable() && !sync) {
+  if (!stream.isSyncLaunchStream() && c10_npu::option::OptionsManager::GetTaskQueueEnable() && !sync) {
     RECORD_FUNCTION(op_name, std::vector<c10::IValue>({}));
 #ifndef BUILD_LIBTORCH
     at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, op_name);
 #endif
     ExecuteParas execParams;
     aclCmd->ExportParams(execParams);
-    c10_npu::queue::QueueParas params(
-        c10_npu::queue::COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &execParams);
+    c10_npu::queue::QueueParas params(c10_npu::queue::COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &execParams);
     c10_npu::enCurrentNPUStream(&params);
 #ifndef BUILD_LIBTORCH
-    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(
-        1, op_name, params.correlation_id);
+    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, op_name, params.correlation_id);
 #endif
     aclCmd->releaseSource(false);
   } else {
@@ -205,8 +171,7 @@ void OpCommand::Run() {
 #endif
     aclCmd->Run(sync, sync_index, outputTensor);
     if (c10_npu::option::OptionsManager::CheckBlockingEnable()) {
-      if (c10_npu::currentStreamCaptureStatusMayInitCtx() !=
-          c10_npu::CaptureStatus::Active) {
+      if (c10_npu::currentStreamCaptureStatusMayInitCtx() != c10_npu::CaptureStatus::Active) {
         Sync();
       }
     }
@@ -222,12 +187,10 @@ void OpCommand::Run() {
 
 void OpCommand::RunOpApi(const string& op_name, PROC_FUNC func, bool sync) {
 #ifndef BUILD_LIBTORCH
-  const c10_npu::impl::PyCallbackTrigger* trigger =
-      c10_npu::impl::NPUTrace::getTrace();
+  const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
 #endif
   auto stream = c10_npu::getCurrentNPUStream();
-  if (!stream.isSyncLaunchStream() &&
-      c10_npu::option::OptionsManager::GetTaskQueueEnable()) {
+  if (!stream.isSyncLaunchStream() && c10_npu::option::OptionsManager::GetTaskQueueEnable()) {
     RECORD_FUNCTION(op_name, std::vector<c10::IValue>({}));
 #ifndef BUILD_LIBTORCH
     at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, op_name);
@@ -240,12 +203,10 @@ void OpCommand::RunOpApi(const string& op_name, PROC_FUNC func, bool sync) {
     }
     execParams.customHandler = func;
 
-    c10_npu::queue::QueueParas params(
-        c10_npu::queue::EXECUTE_OPAPI, sizeof(ExecuteParasOpApi), &execParams);
+    c10_npu::queue::QueueParas params(c10_npu::queue::EXECUTE_OPAPI, sizeof(ExecuteParasOpApi), &execParams);
     c10_npu::enCurrentNPUStream(&params);
 #ifndef BUILD_LIBTORCH
-    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(
-        1, op_name, params.correlation_id);
+    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, op_name, params.correlation_id);
 #endif
   } else {
 #ifndef BUILD_LIBTORCH
@@ -255,10 +216,8 @@ void OpCommand::RunOpApi(const string& op_name, PROC_FUNC func, bool sync) {
 #endif
     OpCommandImpl::RunOpApi(op_name, func);
     if (c10_npu::option::OptionsManager::CheckBlockingEnable()) {
-      if (c10_npu::currentStreamCaptureStatusMayInitCtx() !=
-          c10_npu::CaptureStatus::Active) {
-        NPU_CHECK_ERROR(
-            c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream));
+      if (c10_npu::currentStreamCaptureStatusMayInitCtx() != c10_npu::CaptureStatus::Active) {
+        NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream));
       }
     }
 #ifndef BUILD_LIBTORCH
@@ -272,17 +231,12 @@ void OpCommand::RunOpApi(const string& op_name, PROC_FUNC func, bool sync) {
   }
 }
 
-void OpCommand::RunOpApiV2(
-    const string& op_name,
-    const PROC_FUNC& func,
-    bool sync) {
+void OpCommand::RunOpApiV2(const string& op_name, const PROC_FUNC& func, bool sync) {
 #ifndef BUILD_LIBTORCH
-  const c10_npu::impl::PyCallbackTrigger* trigger =
-      c10_npu::impl::NPUTrace::getTrace();
+  const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
 #endif
   auto stream = c10_npu::getCurrentNPUStream();
-  if (!stream.isSyncLaunchStream() &&
-      c10_npu::option::OptionsManager::GetTaskQueueEnable()) {
+  if (!stream.isSyncLaunchStream() && c10_npu::option::OptionsManager::GetTaskQueueEnable()) {
     RECORD_FUNCTION(op_name, std::vector<c10::IValue>({}));
 #ifndef BUILD_LIBTORCH
     at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, op_name);
@@ -291,24 +245,18 @@ void OpCommand::RunOpApiV2(
     execParams.opName = const_cast<std::string*>(&op_name);
     execParams.customHandler = const_cast<PROC_FUNC*>(&func);
 
-    c10_npu::queue::QueueParas params(
-        c10_npu::queue::EXECUTE_OPAPI_V2,
-        sizeof(ExecuteParasOpApiV2),
-        &execParams);
+    c10_npu::queue::QueueParas params(c10_npu::queue::EXECUTE_OPAPI_V2, sizeof(ExecuteParasOpApiV2), &execParams);
 
     auto start = std::chrono::steady_clock::now();
 
     c10_npu::enCurrentNPUStream(&params);
 
     auto end = std::chrono::steady_clock::now();
-    auto duration =
-        std::chrono::duration_cast<std::chrono::nanoseconds>(end - start)
-            .count();
+    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
     TORCH_NPU_DISPATCH_TIME_LOGI("enQueue duration is (ns): %d", duration);
 
 #ifndef BUILD_LIBTORCH
-    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(
-        1, op_name, params.correlation_id);
+    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, op_name, params.correlation_id);
 #endif
   } else {
 #ifndef BUILD_LIBTORCH
@@ -318,10 +266,8 @@ void OpCommand::RunOpApiV2(
 #endif
     OpCommandImpl::RunOpApi(op_name, func);
     if (c10_npu::option::OptionsManager::CheckBlockingEnable()) {
-      if (c10_npu::currentStreamCaptureStatusMayInitCtx() !=
-          c10_npu::CaptureStatus::Active) {
-        NPU_CHECK_ERROR(
-            c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream));
+      if (c10_npu::currentStreamCaptureStatusMayInitCtx() != c10_npu::CaptureStatus::Active) {
+        NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream));
       }
     }
 #ifndef BUILD_LIBTORCH
@@ -335,18 +281,12 @@ void OpCommand::RunOpApiV2(
   }
 }
 
-void OpCommand::RunOpApiV3(
-    const string& op_name,
-    const PROC_FUNC& func,
-    bool sync,
-    c10_npu::NPUStream* task_stream) {
+void OpCommand::RunOpApiV3(const string& op_name, const PROC_FUNC& func, bool sync, c10_npu::NPUStream* task_stream) {
 #ifndef BUILD_LIBTORCH
-  const c10_npu::impl::PyCallbackTrigger* trigger =
-      c10_npu::impl::NPUTrace::getTrace();
+  const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
 #endif
   auto stream = c10_npu::getCurrentNPUStream();
-  if (!stream.isSyncLaunchStream() &&
-      c10_npu::option::OptionsManager::GetTaskQueueEnable()) {
+  if (!stream.isSyncLaunchStream() && c10_npu::option::OptionsManager::GetTaskQueueEnable()) {
     RECORD_FUNCTION(op_name, std::vector<c10::IValue>({}));
 #ifndef BUILD_LIBTORCH
     at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, op_name);
@@ -355,14 +295,10 @@ void OpCommand::RunOpApiV3(
     execParams.opName = const_cast<std::string*>(&op_name);
     execParams.customHandler = const_cast<PROC_FUNC*>(&func);
 
-    c10_npu::queue::QueueParas params(
-        c10_npu::queue::EXECUTE_OPAPI_V2,
-        sizeof(ExecuteParasOpApiV2),
-        &execParams);
+    c10_npu::queue::QueueParas params(c10_npu::queue::EXECUTE_OPAPI_V2, sizeof(ExecuteParasOpApiV2), &execParams);
     c10_npu::enCurrentNPUStream(&params, -1, task_stream);
 #ifndef BUILD_LIBTORCH
-    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(
-        1, op_name, params.correlation_id);
+    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, op_name, params.correlation_id);
 #endif
   } else {
 #ifndef BUILD_LIBTORCH
@@ -372,10 +308,8 @@ void OpCommand::RunOpApiV3(
 #endif
     OpCommandImpl::RunOpApi(op_name, func);
     if (c10_npu::option::OptionsManager::CheckBlockingEnable()) {
-      if (c10_npu::currentStreamCaptureStatusMayInitCtx() !=
-          c10_npu::CaptureStatus::Active) {
-        NPU_CHECK_ERROR(
-            c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream));
+      if (c10_npu::currentStreamCaptureStatusMayInitCtx() != c10_npu::CaptureStatus::Active) {
+        NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream));
       }
     }
 #ifndef BUILD_LIBTORCH
@@ -414,13 +348,11 @@ OpCommand& OpCommand::AddTensorInput(
   }
   // as for dim=0, the dtype of tensor can not be `uint16` because of the
   // backend
-  if (torch_npu::NPUBridge::GetNpuStorageImplDesc(tensor)
-          .storage_sizes_.empty()) {
+  if (torch_npu::NPUBridge::GetNpuStorageImplDesc(tensor).storage_sizes_.empty()) {
     if (torch_npu::utils::is_npu(tensor)) {
       res = OpCmdHelper::CovertNPUTensorWithZeroDimToAclInput(tensor, descName);
     } else {
-      res = OpCmdHelper::CovertTensorWithZeroDimToAclInput(
-          tensor, forceScaleType);
+      res = OpCmdHelper::CovertTensorWithZeroDimToAclInput(tensor, forceScaleType);
     }
   } else {
     res = OpCmdHelper::CovertTensorToAclInput(tensor, descName, realData);
@@ -435,8 +367,7 @@ OpCommand& OpCommand::AddHostTensorInput(
     const string& realDtype,
     const string& descName) {
   std::tuple<aclTensorDesc*, aclDataBuffer*> res =
-      OpCmdHelper::CovertHostTensorToAclInput(
-          tensor, tensor.scalar_type(), compileType, realDtype, descName);
+      OpCmdHelper::CovertHostTensorToAclInput(tensor, tensor.scalar_type(), compileType, realDtype, descName);
   aclCmd->AddInput(std::get<0>(res), std::get<1>(res), tensor);
   return *this;
 }
@@ -449,9 +380,7 @@ OpCommand& OpCommand::AddNoneTensor() {
   return *this;
 }
 
-OpCommand& OpCommand::AddScalarInput(
-    const c10::Scalar& input,
-    at::ScalarType type) {
+OpCommand& OpCommand::AddScalarInput(const c10::Scalar& input, at::ScalarType type) {
   at::ScalarType type_bk = type;
   if (commonType.has_value()) {
     type_bk = commonType.value();
@@ -463,8 +392,7 @@ OpCommand& OpCommand::AddScalarInput(
 }
 
 OpCommand& OpCommand::AddOutput(at::Tensor& output, const string& realType) {
-  if (resultTypeDefined == false && commonType.has_value() &&
-      commonType.value() != output.scalar_type()) {
+  if (resultTypeDefined == false && commonType.has_value() && commonType.value() != output.scalar_type()) {
     output = custom_ops::_npu_dtype_cast(output, commonType.value());
   }
   auto res = OpCmdHelper::CovertToAclOutput(output, realType);
@@ -475,14 +403,11 @@ OpCommand& OpCommand::AddOutput(at::Tensor& output, const string& realType) {
 // 由于format_contiguous会生成新Tensor，为了保证其在生命周期内有效，故而放到对象中存储
 // 同下，CopyScalarToDevice也有同样问题
 at::Tensor& OpCommand::Contiguous(const at::Tensor& input) {
-  storage.emplace_back(
-      std::move(NpuUtils::format_contiguous_add_copy_optimize(input)));
+  storage.emplace_back(std::move(NpuUtils::format_contiguous_add_copy_optimize(input)));
   return storage.back();
 }
 
-at::Tensor OpCommand::CopyHostToDevice(
-    const c10::Scalar& scalar,
-    at::ScalarType type) {
+at::Tensor OpCommand::CopyHostToDevice(const c10::Scalar& scalar, at::ScalarType type) {
   auto tensor = scalar_to_tensor(scalar).to(type);
   return CopyHostToDevice(tensor);
 }
@@ -492,10 +417,7 @@ at::Tensor OpCommand::CopyHostToDevice(const at::Tensor& cpuTensor) {
   int deviceIndex = 0;
   NPU_CHECK_ERROR(c10_npu::GetDevice(&deviceIndex));
   auto tensor = cpuPinMemTensor.to(
-      c10::Device(c10::DeviceType::PrivateUse1, deviceIndex),
-      cpuPinMemTensor.scalar_type(),
-      true,
-      true);
+      c10::Device(c10::DeviceType::PrivateUse1, deviceIndex), cpuPinMemTensor.scalar_type(), true, true);
   storage.emplace_back(tensor);
   return storage.back();
 }
@@ -507,8 +429,7 @@ at::Tensor& OpCommand::CreateHostTensor(
     at::ScalarType toType) {
   at::ScalarType dtype = options.dtype().toScalarType();
   auto cpuTensor = at::empty(size, options);
-  std::memcpy(
-      cpuTensor.data_ptr(), data, elementSize(dtype) * cpuTensor.numel());
+  std::memcpy(cpuTensor.data_ptr(), data, elementSize(dtype) * cpuTensor.numel());
   if (toType != dtype) {
     cpuTensor = cpuTensor.to(toType);
   }
@@ -517,32 +438,25 @@ at::Tensor& OpCommand::CreateHostTensor(
   return storage.back();
 }
 
-bool OpCommand::ScalarIsInLimits(
-    const c10::Scalar& scalar,
-    at::ScalarType type) {
+bool OpCommand::ScalarIsInLimits(const c10::Scalar& scalar, at::ScalarType type) {
   bool scalar_flag = false;
   if (at::isFloatingType(type)) {
     auto value = scalar.to<double>();
-    scalar_flag = value <= floating_limits_map[type][0] &&
-        value >= floating_limits_map[type][1];
+    scalar_flag = value <= floating_limits_map[type][0] && value >= floating_limits_map[type][1];
   } else if (at::isIntegralType(type, false)) {
     auto value = scalar.to<long>();
-    scalar_flag = value <= integral_limits_map[type][0] &&
-        value >= integral_limits_map[type][1];
+    scalar_flag = value <= integral_limits_map[type][0] && value >= integral_limits_map[type][1];
   }
   return scalar_flag;
 }
 
-at::Tensor& OpCommand::CreateScalarTensor(
-    const c10::Scalar& scalar,
-    at::ScalarType type) {
+at::Tensor& OpCommand::CreateScalarTensor(const c10::Scalar& scalar, at::ScalarType type) {
   if (commonType.has_value()) {
     type = commonType.value();
   }
 
   if (ScalarIsInLimits(scalar, type)) {
-    storage.emplace_back(
-        at::detail::scalar_tensor_static(scalar, type, at::kCPU));
+    storage.emplace_back(at::detail::scalar_tensor_static(scalar, type, at::kCPU));
   } else {
     storage.emplace_back(scalar_to_tensor(scalar).to(type));
   }

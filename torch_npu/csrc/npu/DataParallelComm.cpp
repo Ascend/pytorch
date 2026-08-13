@@ -32,8 +32,7 @@ struct GetSecondArgType<R(Arg0, Arg1, Args...)> {
   typedef typename std::decay<Arg1>::type type;
 };
 
-constexpr auto count_max =
-    std::numeric_limits<GetSecondArgType<decltype(HcclBroadcast)>::type>::max();
+constexpr auto count_max = std::numeric_limits<GetSecondArgType<decltype(HcclBroadcast)>::type>::max();
 
 inline size_t get_max_count() {
   return count_max;
@@ -44,8 +43,7 @@ struct HcclCommList {
   int ndevices;
   explicit HcclCommList(const std::vector<int>& devices)
       : comms(new HcclComm[devices.size()]), ndevices(devices.size()) {
-    HCCL_CHECK_ERROR(c10d_npu::hcclCommInitAll(
-        devices.size(), const_cast<int32_t*>(devices.data()), comms.get()));
+    HCCL_CHECK_ERROR(c10d_npu::hcclCommInitAll(devices.size(), const_cast<int32_t*>(devices.data()), comms.get()));
   }
   HcclCommList(HcclCommList&& foo) = default;
   HcclCommList& operator=(HcclCommList&& foo) = default;
@@ -73,8 +71,7 @@ struct HcclCommList {
 using device_set = std::bitset<C10_COMPILE_TIME_MAX_NPUS>;
 
 using device_list = std::vector<int>;
-static std::unordered_map<device_list, HcclCommList, c10::hash<device_list>>
-    _communicators;
+static std::unordered_map<device_list, HcclCommList, c10::hash<device_list>> _communicators;
 
 using comm_list = std::vector<HcclComm>;
 using stream_list = std::vector<c10::optional<c10_npu::NPUStream>>;
@@ -86,9 +83,7 @@ void ReleaseHcclCommList() {
 }
 
 ArrayRef<HcclComm> get_communicators(TensorList inputs) {
-  static auto get_device = [](const at::Tensor& t) -> int {
-    return t.get_device();
-  };
+  static auto get_device = [](const at::Tensor& t) -> int { return t.get_device(); };
   device_list devices = c10::fmap(inputs, get_device);
   auto it = _communicators.find(devices);
   if (it == _communicators.end()) {
@@ -106,66 +101,48 @@ static inline void check_tensor(
     ScalarType ref_dtype) {
   auto check_one = [&](const at::Tensor& tensor) {
     if (!torch_npu::utils::is_npu(tensor) || tensor.is_sparse()) {
-      throw std::runtime_error(
-          "input and output elements have to be npu dense Tensors" +
-          PTA_ERROR(ErrCode::TYPE));
+      throw std::runtime_error("input and output elements have to be npu dense Tensors" + PTA_ERROR(ErrCode::TYPE));
     }
 
     if (ref_dtype != tensor.scalar_type()) {
-      throw std::runtime_error(
-          "all inputs and outputs must be of the same Tensor dtype" +
-          PTA_ERROR(ErrCode::TYPE));
+      throw std::runtime_error("all inputs and outputs must be of the same Tensor dtype" + PTA_ERROR(ErrCode::TYPE));
     }
 
     if (!tensor.is_contiguous()) {
-      throw std::runtime_error(
-          "all inputs and outputs have to be contiguous" +
-          PTA_ERROR(ErrCode::TYPE));
+      throw std::runtime_error("all inputs and outputs have to be contiguous" + PTA_ERROR(ErrCode::TYPE));
     }
   };
 
   check_one(input);
   // all inputs must be same size
   if (input.numel() != ref_numel) {
-    throw std::runtime_error(
-        "all inputs must have the same number of elements" +
-        PTA_ERROR(ErrCode::PARAM));
+    throw std::runtime_error("all inputs must have the same number of elements" + PTA_ERROR(ErrCode::PARAM));
   }
 
   if (output) {
     check_one(*output);
     // inputs and outputs must be on same device respectively
     if (input.get_device() != output->get_device()) {
-      throw std::runtime_error(
-          "input and output must be on the same device" +
-          PTA_ERROR(ErrCode::PARAM));
+      throw std::runtime_error("input and output must be on the same device" + PTA_ERROR(ErrCode::PARAM));
     }
 
     if (output->numel() * output_multiplier != ref_numel * input_multiplier) {
-      throw std::runtime_error(
-          "output must be of size input_size * size_multiplier" +
-          PTA_ERROR(ErrCode::PARAM));
+      throw std::runtime_error("output must be of size input_size * size_multiplier" + PTA_ERROR(ErrCode::PARAM));
     }
   }
 }
 
-void check_inputs(
-    TensorList inputs,
-    TensorList outputs,
-    int input_multiplier,
-    int output_multiplier) {
+void check_inputs(TensorList inputs, TensorList outputs, int input_multiplier, int output_multiplier) {
   // need to check len(inputs) == len(outputs)
   size_t len = inputs.size();
   if (len == 0) {
-    throw std::runtime_error(
-        "input sequence can't be empty" + PTA_ERROR(ErrCode::PARAM));
+    throw std::runtime_error("input sequence can't be empty" + PTA_ERROR(ErrCode::PARAM));
   }
 
   if (len != outputs.size()) {
     std::stringstream err;
-    err << "inputs and outputs sequences have to be of the same length, but got input of length "
-        << len << " and output of length " << outputs.size()
-        << PTA_ERROR(ErrCode::PARAM);
+    err << "inputs and outputs sequences have to be of the same length, but got input of length " << len
+        << " and output of length " << outputs.size() << PTA_ERROR(ErrCode::PARAM);
     throw std::runtime_error(err.str());
   }
 
@@ -177,14 +154,12 @@ void check_inputs(
     auto input = inputs[i];
     auto output = outputs[i];
 
-    check_tensor(
-        input, output, input_multiplier, output_multiplier, numel, dtype);
+    check_tensor(input, output, input_multiplier, output_multiplier, numel, dtype);
 
     auto input_device = input.get_device();
     // inputs must be on unique devices
     if (devices.test(input_device)) {
-      throw std::runtime_error(
-          "inputs must be on unique devices" + PTA_ERROR(ErrCode::TYPE));
+      throw std::runtime_error("inputs must be on unique devices" + PTA_ERROR(ErrCode::TYPE));
     }
     devices.set(input_device);
   }
@@ -225,16 +200,12 @@ bool is_available(TensorList tensors) {
 }
 
 // Broadcast
-void broadcast(
-    TensorList tensors,
-    const stream_list& streams = {},
-    const comm_list& user_comms = {}) {
+void broadcast(TensorList tensors, const stream_list& streams = {}, const comm_list& user_comms = {}) {
   check_inputs(tensors, tensors, 1, 1);
   auto data_type = c10d_npu::getHcclDataType(tensors[0].scalar_type());
   int64_t numel = tensors[0].numel();
 
-  const auto comms = user_comms.empty() ? get_communicators(tensors)
-                                        : ArrayRef<HcclComm>(user_comms);
+  const auto comms = user_comms.empty() ? get_communicators(tensors) : ArrayRef<HcclComm>(user_comms);
   c10_npu::OptionalNPUGuard device_guard;
   std::vector<std::thread> threads;
   for (size_t i = 0, num_tensors = tensors.size(); i < num_tensors; i++) {
@@ -242,9 +213,8 @@ void broadcast(
     threads.emplace_back([&, i, device]() {
       NPU_CHECK_ERROR(c10_npu::SetDevice(device));
       // Default to the current stream
-      const auto stream = (streams.empty() || !streams[i])
-          ? c10_npu::getCurrentNPUStream(device).stream()
-          : streams[i]->stream();
+      const auto stream =
+          (streams.empty() || !streams[i]) ? c10_npu::getCurrentNPUStream(device).stream() : streams[i]->stream();
       TORCH_CHECK(
           static_cast<uint64_t>(numel) <= static_cast<uint64_t>(count_max),
           "Broadcast tensor has ",
@@ -253,8 +223,7 @@ void broadcast(
           count_max,
           ")" + PTA_ERROR(ErrCode::VALUE));
       HcclComm comm = comms[i];
-      HCCL_CHECK_ERROR(c10d_npu::hcclBroadcast(
-          tensors[i].data_ptr(), numel, data_type, 0, comm, stream));
+      HCCL_CHECK_ERROR(c10d_npu::hcclBroadcast(tensors[i].data_ptr(), numel, data_type, 0, comm, stream));
     });
   }
   for (auto& t : threads) {
@@ -262,9 +231,7 @@ void broadcast(
   }
 }
 
-static inline std::vector<Tensor>& _broadcast_out_impl(
-    const Tensor& tensor,
-    std::vector<Tensor>& out_tensors) {
+static inline std::vector<Tensor>& _broadcast_out_impl(const Tensor& tensor, std::vector<Tensor>& out_tensors) {
   std::vector<Tensor> hccl_list;
   hccl_list.reserve(out_tensors.size() + 1);
   hccl_list.emplace_back(tensor);
@@ -281,9 +248,7 @@ static inline std::vector<Tensor>& _broadcast_out_impl(
   return out_tensors;
 }
 
-std::vector<Tensor>& broadcast_out(
-    const Tensor& tensor,
-    std::vector<Tensor>& out_tensors) {
+std::vector<Tensor>& broadcast_out(const Tensor& tensor, std::vector<Tensor>& out_tensors) {
   for (const auto i : c10::irange(out_tensors.size())) {
     TORCH_CHECK(
         torch_npu::utils::is_npu(out_tensors[i]),
@@ -310,16 +275,10 @@ std::vector<Tensor> broadcast(const Tensor& tensor, IntArrayRef devices) {
   std::vector<Tensor> diff_device_dst_tensors;
   diff_device_dst_tensors.reserve(devices.size());
   for (auto device : devices) {
-    TORCH_CHECK(
-        device >= 0,
-        "Expected non-negative device index, but got ",
-        device,
-        PTA_ERROR(ErrCode::VALUE));
+    TORCH_CHECK(device >= 0, "Expected non-negative device index, but got ", device, PTA_ERROR(ErrCode::VALUE));
     if (device != tensor.get_device()) {
-      diff_device_dst_tensors.emplace_back(at::empty(
-          tensor.sizes(),
-          tensor.options().device(
-              at::Device(DeviceType::PrivateUse1, device))));
+      diff_device_dst_tensors.emplace_back(
+          at::empty(tensor.sizes(), tensor.options().device(at::Device(DeviceType::PrivateUse1, device))));
     }
   }
   _broadcast_out_impl(tensor, diff_device_dst_tensors);
@@ -339,15 +298,9 @@ std::vector<Tensor> broadcast(const Tensor& tensor, IntArrayRef devices) {
   return dst_tensors;
 }
 
-tensor_list2d broadcast_coalesced(
-    TensorList tensors,
-    IntArrayRef devices,
-    size_t buffer_size) {
+tensor_list2d broadcast_coalesced(TensorList tensors, IntArrayRef devices, size_t buffer_size) {
   TORCH_CHECK(
-      std::all_of(
-          tensors.begin(),
-          tensors.end(),
-          [&](const at::Tensor& t) { return t.get_device() == devices[0]; }),
+      std::all_of(tensors.begin(), tensors.end(), [&](const at::Tensor& t) { return t.get_device() == devices[0]; }),
       "All tensors must be on devices[0]: ",
       devices[0],
       PTA_ERROR(ErrCode::TYPE));
@@ -377,24 +330,19 @@ tensor_list2d broadcast_coalesced(
         auto& device_outputs = outputs[i];
         auto& inds = broadcast_indices[i];
         auto& vals = broadcast_values[i];
-        for (const auto& var : torch::utils::unflatten_sparse_tensors(
-                 inds, vals, chunk.tensors)) {
+        for (const auto& var : torch::utils::unflatten_sparse_tensors(inds, vals, chunk.tensors)) {
           // See NOTE [ Version Counter in comm.*_coalesced ]
-          device_outputs.emplace_back(
-              torch::autograd::make_variable(var.tensor_data(), false));
+          device_outputs.emplace_back(torch::autograd::make_variable(var.tensor_data(), false));
         }
       }
     } else {
-      auto results = broadcast(
-          torch::utils::flatten_dense_tensors(chunk.tensors), devices);
+      auto results = broadcast(torch::utils::flatten_dense_tensors(chunk.tensors), devices);
       for (size_t i = 1, num_devices = devices.size(); i < num_devices; ++i) {
         device_guard.set_index(devices[i]);
         auto& device_outputs = outputs[i];
-        for (auto& var :
-             torch::utils::unflatten_dense_tensors(results[i], chunk.tensors)) {
+        for (auto& var : torch::utils::unflatten_dense_tensors(results[i], chunk.tensors)) {
           // See NOTE [ Version Counter in comm.*_coalesced ]
-          device_outputs.emplace_back(
-              torch::autograd::make_variable(var.tensor_data(), false));
+          device_outputs.emplace_back(torch::autograd::make_variable(var.tensor_data(), false));
         }
       }
     }
@@ -414,12 +362,8 @@ std::vector<at::Tensor>& scatter_out(
     const at::Tensor& tensor,
     std::vector<at::Tensor>& out_tensors,
     int64_t dim,
-    const c10::optional<std::vector<c10::optional<c10_npu::NPUStream>>>&
-        streams) {
-  TORCH_CHECK(
-      !out_tensors.empty(),
-      "Expected at least one output tensor to scatter to" +
-          PTA_ERROR(ErrCode::VALUE));
+    const c10::optional<std::vector<c10::optional<c10_npu::NPUStream>>>& streams) {
+  TORCH_CHECK(!out_tensors.empty(), "Expected at least one output tensor to scatter to" + PTA_ERROR(ErrCode::VALUE));
   dim = at::maybe_wrap_dim(dim, tensor);
   int64_t total_size = 0;
   // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
@@ -468,8 +412,7 @@ std::vector<at::Tensor>& scatter_out(
   c10_npu::OptionalNPUStreamGuard npu_guard;
   for (const auto i : c10::irange(chunks.size())) {
     if (i < (streams ? streams->size() : 0U) && (*streams)[i]) {
-      const auto device_index =
-          static_cast<int16_t>(out_tensors[i].get_device());
+      const auto device_index = static_cast<int16_t>(out_tensors[i].get_device());
       TORCH_CHECK(
           (*streams)[i]->device_index() == device_index,
           "Expected the device associated with the stream at index ",
@@ -496,11 +439,8 @@ std::vector<at::Tensor> scatter(
     at::IntArrayRef devices,
     const c10::optional<std::vector<int64_t>>& chunk_sizes,
     int64_t dim,
-    const c10::optional<std::vector<c10::optional<c10_npu::NPUStream>>>&
-        streams) {
-  TORCH_CHECK(
-      !devices.empty(),
-      "Expected at least one device to scatter to" + PTA_ERROR(ErrCode::VALUE));
+    const c10::optional<std::vector<c10::optional<c10_npu::NPUStream>>>& streams) {
+  TORCH_CHECK(!devices.empty(), "Expected at least one device to scatter to" + PTA_ERROR(ErrCode::VALUE));
   if (chunk_sizes.has_value()) {
     TORCH_CHECK(
         chunk_sizes->size() == devices.size(),
@@ -512,9 +452,8 @@ std::vector<at::Tensor> scatter(
   }
   dim = at::maybe_wrap_dim(dim, tensor);
   // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
-  std::vector<at::Tensor> chunks = chunk_sizes
-      ? tensor.split_with_sizes(*chunk_sizes, dim)
-      : tensor.chunk(devices.size(), dim);
+  std::vector<at::Tensor> chunks =
+      chunk_sizes ? tensor.split_with_sizes(*chunk_sizes, dim) : tensor.chunk(devices.size(), dim);
   c10_npu::OptionalNPUStreamGuard npu_guard;
 
   for (const auto i : c10::irange(chunks.size())) {
@@ -533,22 +472,15 @@ std::vector<at::Tensor> scatter(
         npu_guard.reset_stream(*(*streams)[i]);
       }
       TORCH_CHECK(
-          device_index >= 0,
-          "Expected non-negative device index, but got ",
-          device_index,
-          PTA_ERROR(ErrCode::VALUE));
-      chunks[i] =
-          chunks[i].to({DeviceType::PrivateUse1, device_index}, true, false);
+          device_index >= 0, "Expected non-negative device index, but got ", device_index, PTA_ERROR(ErrCode::VALUE));
+      chunks[i] = chunks[i].to({DeviceType::PrivateUse1, device_index}, true, false);
     }
   }
   return chunks;
 }
 
 // Gather
-static inline at::Tensor& _gather_out_impl(
-    at::TensorList tensors,
-    at::Tensor& out_tensor,
-    int64_t dim) {
+static inline at::Tensor& _gather_out_impl(at::TensorList tensors, at::Tensor& out_tensor, int64_t dim) {
   // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
   std::vector<int64_t> chunk_sizes;
   chunk_sizes.reserve(tensors.size());
@@ -562,14 +494,8 @@ static inline at::Tensor& _gather_out_impl(
   return out_tensor;
 }
 
-at::Tensor& gather_out(
-    at::TensorList tensors,
-    at::Tensor& out_tensor,
-    int64_t dim) {
-  TORCH_CHECK(
-      !tensors.empty(),
-      "Expected at least one tensor to gather from" +
-          PTA_ERROR(ErrCode::VALUE));
+at::Tensor& gather_out(at::TensorList tensors, at::Tensor& out_tensor, int64_t dim) {
+  TORCH_CHECK(!tensors.empty(), "Expected at least one tensor to gather from" + PTA_ERROR(ErrCode::VALUE));
   int64_t total_size = 0;
   auto& first = tensors.front();
   const auto first_size = first.sizes();
@@ -623,14 +549,8 @@ at::Tensor& gather_out(
   return _gather_out_impl(tensors, out_tensor, dim);
 }
 
-at::Tensor gather(
-    at::TensorList tensors,
-    int64_t dim,
-    c10::optional<int32_t> destination_index) {
-  TORCH_CHECK(
-      !tensors.empty(),
-      "Expected at least one tensor to gather from" +
-          PTA_ERROR(ErrCode::VALUE));
+at::Tensor gather(at::TensorList tensors, int64_t dim, c10::optional<int32_t> destination_index) {
+  TORCH_CHECK(!tensors.empty(), "Expected at least one tensor to gather from" + PTA_ERROR(ErrCode::VALUE));
   int64_t total_size = 0;
   auto& first = tensors.front();
   const auto first_size = first.sizes();
@@ -671,20 +591,17 @@ at::Tensor gather(
           PTA_ERROR(ErrCode::VALUE));
     }
     total_size += tensor.size(dim);
-    if (memory_format != MemoryFormat::Contiguous &&
-        tensor.suggest_memory_format() != memory_format) {
+    if (memory_format != MemoryFormat::Contiguous && tensor.suggest_memory_format() != memory_format) {
       memory_format = MemoryFormat::Contiguous;
     }
   }
   expected_size[dim] = total_size;
   at::Device device(DeviceType::CPU);
   if (!destination_index || *destination_index != -1) {
-    device = at::Device(
-        DeviceType::PrivateUse1, destination_index ? *destination_index : -1);
+    device = at::Device(DeviceType::PrivateUse1, destination_index ? *destination_index : -1);
   }
 
-  at::Tensor result =
-      at::empty(expected_size, first.options().device(device), memory_format);
+  at::Tensor result = at::empty(expected_size, first.options().device(device), memory_format);
   return _gather_out_impl(tensors, result, dim);
 }
 

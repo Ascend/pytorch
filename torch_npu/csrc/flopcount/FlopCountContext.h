@@ -21,11 +21,7 @@ class TORCH_NPU_API FlopCountContext {
  private:
   bool isEnabled_;
   bool isPaused_;
-  FlopCountContext()
-      : recordedCount(0),
-        traversedCount(0),
-        isEnabled_(false),
-        isPaused_(false) {}
+  FlopCountContext() : recordedCount(0), traversedCount(0), isEnabled_(false), isPaused_(false) {}
 };
 
 #endif // FLOP_COUNT_CONTEXT_H

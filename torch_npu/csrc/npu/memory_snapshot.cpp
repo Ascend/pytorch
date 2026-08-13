@@ -30,14 +30,8 @@ std::shared_ptr<c10::GatheredContext> gather_with_cpp() {
 #endif
 }
 
-static void checkOptionIn(
-    const std::string& option,
-    std::initializer_list<std::string> valid,
-    const char* error) {
-  TORCH_CHECK(
-      valid.end() != std::find(valid.begin(), valid.end(), option),
-      error,
-      PTA_ERROR(ErrCode::NOT_FOUND));
+static void checkOptionIn(const std::string& option, std::initializer_list<std::string> valid, const char* error) {
+  TORCH_CHECK(valid.end() != std::find(valid.begin(), valid.end(), option), error, PTA_ERROR(ErrCode::NOT_FOUND));
 }
 
 void _record_memory_history(
@@ -46,19 +40,12 @@ void _record_memory_history(
     std::string stacks,
     size_t max_entries) {
   if (enabled) {
-    checkOptionIn(
-        *enabled,
-        {"state", "all"},
-        "expected state to be 'state', 'all', or None");
+    checkOptionIn(*enabled, {"state", "all"}, "expected state to be 'state', 'all', or None");
   }
   if (context) {
-    checkOptionIn(
-        *context,
-        {"state", "alloc", "all"},
-        "expected context to be 'state', 'alloc', 'all', or None");
+    checkOptionIn(*context, {"state", "alloc", "all"}, "expected context to be 'state', 'alloc', 'all', or None");
   }
-  checkOptionIn(
-      stacks, {"python", "all"}, "expected stacks to be 'python', or 'all'");
+  checkOptionIn(stacks, {"python", "all"}, "expected stacks to be 'python', or 'all'");
 
   c10_npu::NPUCachingAllocator::CreateContextFn recorder = gather;
   if (enabled && stacks == "all") {
@@ -81,18 +68,14 @@ void _record_memory_history(
       when = c10_npu::NPUCachingAllocator::RecordContext::STATE;
     }
   }
-  c10_npu::NPUCachingAllocator::recordHistory(
-      enabled.has_value(), recorder, max_entries, when);
-  c10_npu::NPUWorkspaceAllocator::recordHistory(
-      enabled.has_value(), recorder, when);
+  c10_npu::NPUCachingAllocator::recordHistory(enabled.has_value(), recorder, max_entries, when);
+  c10_npu::NPUWorkspaceAllocator::recordHistory(enabled.has_value(), recorder, when);
 }
 
 std::string write_pickle(const c10::IValue& v) {
   std::vector<char> result;
   {
-    auto writer = [&](const char* data, size_t size) {
-      result.insert(result.end(), data, data + size);
-    };
+    auto writer = [&](const char* data, size_t size) { result.insert(result.end(), data, data + size); };
     Pickler pickler(writer, nullptr, nullptr, nullptr, nullptr, false);
     pickler.protocol();
     pickler.pushIValue(v);
@@ -102,16 +85,14 @@ std::string write_pickle(const c10::IValue& v) {
 }
 
 c10::Dict<c10::IValue, c10::IValue> new_dict() {
-  return c10::Dict<c10::IValue, c10::IValue>(
-      c10::AnyType::get(), c10::AnyType::get());
+  return c10::Dict<c10::IValue, c10::IValue>(c10::AnyType::get(), c10::AnyType::get());
 }
 
 c10::List<c10::IValue> new_list() {
   return c10::List<c10::IValue>(c10::AnyType::get());
 }
 
-std::vector<c10::IValue> ivalue_symbolize(
-    std::vector<torch::CapturedTraceback*>& to_symbolize) {
+std::vector<c10::IValue> ivalue_symbolize(std::vector<torch::CapturedTraceback*>& to_symbolize) {
   // we dedup repeated to_symbolize objects to prevent
   // creating a bunch of duplicated frame objects
   std::unordered_map<torch::CapturedTraceback*, uint64_t> cached_frames;
@@ -153,16 +134,12 @@ std::vector<c10::IValue> ivalue_symbolize(
   return result;
 }
 
-torch::CapturedTraceback* getFromContext(
-    const std::shared_ptr<c10::GatheredContext>& x) {
-  if (torch::CapturedTraceback* sc =
-          dynamic_cast<torch::CapturedTraceback*>(x.get())) {
+torch::CapturedTraceback* getFromContext(const std::shared_ptr<c10::GatheredContext>& x) {
+  if (torch::CapturedTraceback* sc = dynamic_cast<torch::CapturedTraceback*>(x.get())) {
     return sc;
   }
   TORCH_CHECK(
-      false,
-      "attempting to gather stack context from the wrong StackContext type.",
-      PTA_ERROR(ErrCode::NOT_FOUND));
+      false, "attempting to gather stack context from the wrong StackContext type.", PTA_ERROR(ErrCode::NOT_FOUND));
 }
 
 std::string _memory_snapshot_pickled() {
@@ -214,11 +191,8 @@ std::string _memory_snapshot_pickled() {
     segmentDict.insert(active_size_s, segmentInfo.active_size);
     segmentDict.insert(requested_size_s, segmentInfo.requested_size);
     segmentDict.insert(stream_s, int64_t(segmentInfo.stream));
-    segmentDict.insert(
-        segment_type_s, (segmentInfo.is_large ? large_s : small_s));
-    segmentDict.insert(
-        segment_pool_id,
-        std::tuple<int64_t, int64_t>(segmentInfo.owner_private_pool_id));
+    segmentDict.insert(segment_type_s, (segmentInfo.is_large ? large_s : small_s));
+    segmentDict.insert(segment_pool_id, std::tuple<int64_t, int64_t>(segmentInfo.owner_private_pool_id));
     segmentDict.insert(is_expandable_s, segmentInfo.is_expandable);
 
     add_frame_key(segmentDict, segmentInfo.context_when_allocated);
@@ -232,9 +206,7 @@ std::string _memory_snapshot_pickled() {
       blockDict.insert(requested_size_s, blockInfo.requested_size);
       blockDict.insert(
           state_s,
-          (blockInfo.allocated
-               ? active_allocated_s
-               : (blockInfo.active ? active_pending_free_s : inactive_s)));
+          (blockInfo.allocated ? active_allocated_s : (blockInfo.active ? active_pending_free_s : inactive_s)));
       add_frame_key(blockDict, blockInfo.context_when_allocated);
       address += blockInfo.size;
       blocks.push_back(blockDict);
@@ -298,8 +270,7 @@ std::string _memory_snapshot_pickled() {
     for (const auto& te : traceInfo) {
       auto trace_entry = new_dict();
       trace_entry.insert(action_s, action_to_str(te.action_));
-      trace_entry.insert(
-          te.action_ == TraceEntry::OOM ? device_free_s : addr_s, te.addr_);
+      trace_entry.insert(te.action_ == TraceEntry::OOM ? device_free_s : addr_s, te.addr_);
       trace_entry.insert(size_s, (int64_t)te.size_);
       trace_entry.insert(stream_s, int64_t(te.stream_));
       trace_entry.insert(pool_id_s, std::tuple<int64_t, int64_t>(te.mempool_));

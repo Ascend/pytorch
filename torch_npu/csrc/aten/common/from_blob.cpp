@@ -17,8 +17,7 @@ namespace native {
 
 at::Tensor TensorMaker::make_tensor() {
   if (device_ == c10::nullopt) {
-    device_ =
-        c10::Device(at::DeviceType::PrivateUse1, c10_npu::current_device());
+    device_ = c10::Device(at::DeviceType::PrivateUse1, c10_npu::current_device());
   }
 
   if (opts_.device().has_index()) {
@@ -30,13 +29,10 @@ at::Tensor TensorMaker::make_tensor() {
         *device_,
         OPS_ERROR(ErrCode::PARAM));
   }
-  AT_ASSERT(
-      (*device_).type() == c10::DeviceType::PrivateUse1,
-      OPS_ERROR(ErrCode::PARAM));
+  AT_ASSERT((*device_).type() == c10::DeviceType::PrivateUse1, OPS_ERROR(ErrCode::PARAM));
   torch_npu::utils::maybe_initialize_npu(*device_);
 
-  auto dtype = c10::scalarTypeToTypeMeta(
-      dtype_or_default(c10::optTypeMetaToScalarType(opts_.dtype_opt())));
+  auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(c10::optTypeMetaToScalarType(opts_.dtype_opt())));
   at_npu::native::check_size_nonnegative(sizes_);
   c10_npu::NPUGuard guard(*device_);
   c10::Allocator* allocator = c10_npu::NPUCachingAllocator::get();
@@ -45,22 +41,19 @@ at::Tensor TensorMaker::make_tensor() {
 
   c10::DataPtr data_ptr{};
   if (deleter_) {
-    data_ptr = c10::InefficientStdFunctionContext::makeDataPtr(
-        data_, std::move(deleter_), *device_);
+    data_ptr = c10::InefficientStdFunctionContext::makeDataPtr(data_, std::move(deleter_), *device_);
   } else {
     data_ptr = c10::DataPtr(data_, *device_);
   }
 
-  c10::intrusive_ptr<c10::StorageImpl> storage_impl =
-      torch_npu::make_npu_storage_impl(
-          c10::StorageImpl::use_byte_size_t(),
-          c10::SymInt(static_cast<int64_t>(size_bytes)),
-          std::move(data_ptr),
-          allocator,
-          true);
+  c10::intrusive_ptr<c10::StorageImpl> storage_impl = torch_npu::make_npu_storage_impl(
+      c10::StorageImpl::use_byte_size_t(),
+      c10::SymInt(static_cast<int64_t>(size_bytes)),
+      std::move(data_ptr),
+      allocator,
+      true);
 
-  auto tensor =
-      at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
+  auto tensor = at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
 
   at_npu::native::StorageDescHelper::SetDesc(tensor, sizes_, tensor.strides());
 
@@ -81,8 +74,7 @@ std::size_t TensorMaker::computeStorageSize() const noexcept {
   std::size_t itemsize = opts_.dtype().itemsize();
 
   if (strides_) {
-    auto storage_size =
-        at::detail::computeStorageNbytes(sizes_, *strides_, itemsize);
+    auto storage_size = at::detail::computeStorageNbytes(sizes_, *strides_, itemsize);
     if (storage_offset_) {
       storage_size += storage_offset_.value() * itemsize;
     }
@@ -106,11 +98,7 @@ at::Tensor from_blob(
     std::function<void(void*)> deleter,
     const at::TensorOptions& options,
     const c10::optional<c10::Device> target_device) {
-  return for_blob(data, sizes)
-      .deleter(std::move(deleter))
-      .options(options)
-      .target_device(target_device)
-      .make_tensor();
+  return for_blob(data, sizes).deleter(std::move(deleter)).options(options).target_device(target_device).make_tensor();
 }
 
 at::Tensor from_blob(
@@ -165,24 +153,14 @@ at::Tensor from_blob(
     at::IntArrayRef sizes,
     const c10::optional<c10::Device> target_device,
     const at::TensorOptions& options) {
-  return for_blob(data, sizes)
-      .options(options)
-      .target_device(target_device)
-      .make_tensor();
+  return for_blob(data, sizes).options(options).target_device(target_device).make_tensor();
 }
 
-at::Tensor from_blob(
-    void* data,
-    at::IntArrayRef sizes,
-    at::IntArrayRef strides,
-    const at::TensorOptions& options) {
+at::Tensor from_blob(void* data, at::IntArrayRef sizes, at::IntArrayRef strides, const at::TensorOptions& options) {
   return for_blob(data, sizes).strides(strides).options(options).make_tensor();
 }
 
-at::Tensor from_blob(
-    void* data,
-    at::IntArrayRef sizes,
-    const at::TensorOptions& options) {
+at::Tensor from_blob(void* data, at::IntArrayRef sizes, const at::TensorOptions& options) {
   return for_blob(data, sizes).options(options).make_tensor();
 }
 

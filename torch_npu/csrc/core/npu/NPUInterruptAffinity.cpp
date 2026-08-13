@@ -43,34 +43,20 @@ constexpr const char* kPciSysfsPath = "/sys/bus/pci/devices/";
 constexpr const char* kMsiIrqsDir = "/msi_irqs";
 bool kNeedRestartIrqbalance = false;
 
-bool writeSmpAffinity(
-    int physical_id,
-    int irq_num,
-    const std::string& cpu_mask) {
-  std::string filepath = std::string(kIrqAffinityPath) +
-      std::to_string(irq_num) + kSmpAffinityFile;
+bool writeSmpAffinity(int physical_id, int irq_num, const std::string& cpu_mask) {
+  std::string filepath = std::string(kIrqAffinityPath) + std::to_string(irq_num) + kSmpAffinityFile;
   std::ofstream file(filepath);
   if (!file.is_open()) {
-    ASCEND_LOGW(
-        "Physical device-%d: failed to open %s for writing.",
-        physical_id,
-        filepath.c_str());
+    ASCEND_LOGW("Physical device-%d: failed to open %s for writing.", physical_id, filepath.c_str());
     return false;
   }
   file << cpu_mask;
   file.close();
   if (file.fail()) {
-    ASCEND_LOGW(
-        "Physical device-%d: failed to write to %s.",
-        physical_id,
-        filepath.c_str());
+    ASCEND_LOGW("Physical device-%d: failed to write to %s.", physical_id, filepath.c_str());
     return false;
   }
-  ASCEND_LOGI(
-      "Physical device-%d: smp_affinity for irq %d set to %s.",
-      physical_id,
-      irq_num,
-      cpu_mask.c_str());
+  ASCEND_LOGI("Physical device-%d: smp_affinity for irq %d set to %s.", physical_id, irq_num, cpu_mask.c_str());
   return true;
 }
 
@@ -102,26 +88,19 @@ std::string getPciAddress(int physical_id) {
   c10_npu::dcmi::DcmiPcieInfo pcie_info = {};
   static const auto soc = c10_npu::GetSocVersion();
   int card_id = 0, die_id = 0;
-  if (soc >= c10_npu::SocVersion::Ascend910_9391 &&
-      soc < c10_npu::SocVersion::Ascend950) {
+  if (soc >= c10_npu::SocVersion::Ascend910_9391 && soc < c10_npu::SocVersion::Ascend950) {
     // On A3 series, 2 dies per card, physical_id = card_id * 2 + die_id.
     card_id = physical_id / 2;
     die_id = physical_id % 2;
-  } else if (
-      soc >= c10_npu::SocVersion::Ascend910B1 &&
-      soc < c10_npu::SocVersion::Ascend310B1) {
+  } else if (soc >= c10_npu::SocVersion::Ascend910B1 && soc < c10_npu::SocVersion::Ascend310B1) {
     // On A2 series, 1 die per card.
     card_id = physical_id;
   } else {
     TORCH_CHECK(false, "Unsupported SOC version %d.", static_cast<int>(soc));
   }
-  int acl_ret =
-      c10_npu::dcmi::DcmiGetDevicePcieInfoV2(card_id, die_id, &pcie_info);
+  int acl_ret = c10_npu::dcmi::DcmiGetDevicePcieInfoV2(card_id, die_id, &pcie_info);
   if (acl_ret != 0) {
-    ASCEND_LOGW(
-        "Physical device-%d: failed to get PCIe info, ret=%d",
-        physical_id,
-        acl_ret);
+    ASCEND_LOGW("Physical device-%d: failed to get PCIe info, ret=%d", physical_id, acl_ret);
     return "";
   }
   ASCEND_LOGD(
@@ -149,14 +128,10 @@ std::string getPciAddress(int physical_id) {
       pcie_info.bdf_deviceid,
       pcie_info.bdf_funcid);
   if (ret < 0 || static_cast<size_t>(ret) >= sizeof(buf)) {
-    ASCEND_LOGW(
-        "Physical device-%d: snprintf for PCIe address failed, ret=%d",
-        physical_id,
-        ret);
+    ASCEND_LOGW("Physical device-%d: snprintf for PCIe address failed, ret=%d", physical_id, ret);
     return "";
   }
-  ASCEND_LOGI(
-      "Physical device-%d: PCIe address formatted as '%s'", physical_id, buf);
+  ASCEND_LOGI("Physical device-%d: PCIe address formatted as '%s'", physical_id, buf);
   return std::string(buf);
 }
 
@@ -167,10 +142,7 @@ std::set<int> collectMsiIrqs(int physical_id, const std::string& pci_addr) {
   DIR* dir = ::opendir(dir_path.c_str());
   if (!dir) {
     ASCEND_LOGW(
-        "Physical device-%d: failed to open %s for device %s.",
-        physical_id,
-        dir_path.c_str(),
-        pci_addr.c_str());
+        "Physical device-%d: failed to open %s for device %s.", physical_id, dir_path.c_str(), pci_addr.c_str());
     return irqs;
   }
   struct dirent* entry;
@@ -193,13 +165,11 @@ const std::vector<int>& getSqSendTriggerIrqs(int physical_id) {
   // Use vector (not set) because this list is only traversed sequentially,
   // never looked up; vector's contiguous memory is more cache-friendly for
   // iteration.
-  static const std::vector<int> candidates =
-      [physical_id]() -> std::vector<int> {
+  static const std::vector<int> candidates = [physical_id]() -> std::vector<int> {
     std::vector<int> result;
     std::ifstream proc_interrupts("/proc/interrupts");
     if (!proc_interrupts.is_open()) {
-      ASCEND_LOGW(
-          "Physical device-%d: failed to open /proc/interrupts.", physical_id);
+      ASCEND_LOGW("Physical device-%d: failed to open /proc/interrupts.", physical_id);
       return result;
     }
     std::string line;
@@ -221,10 +191,7 @@ const std::vector<int>& getSqSendTriggerIrqs(int physical_id) {
       }
       result.push_back(static_cast<int>(val));
     }
-    ASCEND_LOGD(
-        "Physical device-%d: found %zu sq_send_trigger_irq in /proc/interrupts.",
-        physical_id,
-        result.size());
+    ASCEND_LOGD("Physical device-%d: found %zu sq_send_trigger_irq in /proc/interrupts.", physical_id, result.size());
     return result;
   }();
   return candidates;
@@ -233,9 +200,7 @@ const std::vector<int>& getSqSendTriggerIrqs(int physical_id) {
 // Find the sq_send_trigger_irq belonging to a specific device by taking the
 // intersection of the device's MSI IRQ set and the global sq candidates list.
 // Returns the IRQ number on success, or -1 if not found.
-int findDeviceSqIrq(
-    const std::set<int>& msi_irqs,
-    const std::vector<int>& sq_candidates) {
+int findDeviceSqIrq(const std::set<int>& msi_irqs, const std::vector<int>& sq_candidates) {
   for (int candidate : sq_candidates) {
     if (msi_irqs.count(candidate) > 0) {
       return candidate;
@@ -257,17 +222,11 @@ bool writeDeviceIrqAffinity(
   std::string cq_mask = cpuToMask(cq_cpu);
 
   if (!writeSmpAffinity(physical_id, sq_irq, sq_mask)) {
-    ASCEND_LOGW(
-        "Physical device-%d: Failed to write smp_affinity for sq_irq %d",
-        physical_id,
-        sq_irq);
+    ASCEND_LOGW("Physical device-%d: Failed to write smp_affinity for sq_irq %d", physical_id, sq_irq);
     return false;
   }
   if (!writeSmpAffinity(physical_id, cq_irq, cq_mask)) {
-    ASCEND_LOGW(
-        "Physical device-%d: Failed to write smp_affinity for cq_irq %d",
-        physical_id,
-        cq_irq);
+    ASCEND_LOGW("Physical device-%d: Failed to write smp_affinity for cq_irq %d", physical_id, cq_irq);
     return false;
   }
 
@@ -309,10 +268,7 @@ bool bindIrqAffinity(int device_id, const CoreIdList& irq_cores) {
     return false;
   }
   if (irq_cores.size() < 2) {
-    ASCEND_LOGW(
-        "Device-%d: irq_cores size %zu is insufficient, need at least 2 cores.",
-        device_id,
-        irq_cores.size());
+    ASCEND_LOGW("Device-%d: irq_cores size %zu is insufficient, need at least 2 cores.", device_id, irq_cores.size());
     return false;
   }
 
@@ -324,13 +280,9 @@ bool bindIrqAffinity(int device_id, const CoreIdList& irq_cores) {
 
   // Step 1: Get PCIe address for this NPU device
   int32_t logic_id = 0;
-  int acl_ret =
-      c10_npu::acl::AclrtGetLogicDevIdByUserDevId(device_id, &logic_id);
+  int acl_ret = c10_npu::acl::AclrtGetLogicDevIdByUserDevId(device_id, &logic_id);
   if (acl_ret != ACL_SUCCESS) {
-    ASCEND_LOGW(
-        "Failed to get logic device id for user device id %d, ret = %d",
-        device_id,
-        acl_ret);
+    ASCEND_LOGW("Failed to get logic device id for user device id %d, ret = %d", device_id, acl_ret);
     return false;
   }
   ASCEND_LOGD("Device-%d: logic id = %d", device_id, logic_id);
@@ -339,18 +291,14 @@ bool bindIrqAffinity(int device_id, const CoreIdList& irq_cores) {
   int32_t physical_id = logic_id;
   std::string pci_addr = getPciAddress(physical_id);
   if (pci_addr.empty()) {
-    ASCEND_LOGW(
-        "Physical device-%d: Cannot find PCIe address, skipping IRQ binding.",
-        physical_id);
+    ASCEND_LOGW("Physical device-%d: Cannot find PCIe address, skipping IRQ binding.", physical_id);
     return false;
   }
-  ASCEND_LOGD(
-      "Physical device-%d: PCIe address = %s", physical_id, pci_addr.c_str());
+  ASCEND_LOGD("Physical device-%d: PCIe address = %s", physical_id, pci_addr.c_str());
 
   // Step 2: Read the device's MSI IRQ list from sysfs
   std::set<int> msi_irqs = collectMsiIrqs(physical_id, pci_addr);
-  ASCEND_LOGD(
-      "Physical device-%d: MSI IRQs count = %zu", physical_id, msi_irqs.size());
+  ASCEND_LOGD("Physical device-%d: MSI IRQs count = %zu", physical_id, msi_irqs.size());
   if (msi_irqs.empty()) {
     ASCEND_LOGW(
         "Physical device-%d (PCI %s): msi_irqs folder is empty or not found, skipping IRQ binding.",
@@ -363,8 +311,7 @@ bool bindIrqAffinity(int device_id, const CoreIdList& irq_cores) {
   const std::vector<int>& sq_candidates = getSqSendTriggerIrqs(physical_id);
   if (sq_candidates.empty()) {
     ASCEND_LOGW(
-        "Physical device-%d: No sq_send_trigger_irq found in /proc/interrupts, skipping IRQ binding.",
-        physical_id);
+        "Physical device-%d: No sq_send_trigger_irq found in /proc/interrupts, skipping IRQ binding.", physical_id);
     return false;
   }
 
@@ -389,8 +336,7 @@ void stopIrqbalance() {
     return;
   }
   // Check if irqbalance.service is installed
-  ret = SystemCommand(
-      "systemctl list-unit-files --quiet irqbalance.service > /dev/null 2>&1");
+  ret = SystemCommand("systemctl list-unit-files --quiet irqbalance.service > /dev/null 2>&1");
   if (ret != 0) {
     return;
   }

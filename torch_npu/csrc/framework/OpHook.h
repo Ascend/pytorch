@@ -39,8 +39,7 @@ class TORCH_NPU_API OpHook {
   void HookArg(const c10::optional<at::TensorList>& opt_tensor_list);
   void HookArg(const c10::List<c10::optional<at::Tensor>>& opt_tensor_list);
   void HookArg(const std::vector<at::Tensor>& at_tensor_vector);
-  void HookArg(
-      const std::vector<std::vector<at::Tensor>>& at_tensor_vector_vector);
+  void HookArg(const std::vector<std::vector<at::Tensor>>& at_tensor_vector_vector);
   void HookArg(const at::ITensorListRef& tensors);
 
   template <std::size_t... Is, typename... Ts>

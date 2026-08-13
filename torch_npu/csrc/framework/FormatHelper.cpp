@@ -31,22 +31,10 @@ FormatShape InferShapeofNCHW(c10::IntArrayRef dims, size_t itemsize);
 FormatShape InferShapeofND(c10::IntArrayRef dims, size_t itemsize);
 
 // converter between base format
-FormatShape InferShapeNCHWToND(
-    c10::IntArrayRef storage_dims,
-    c10::IntArrayRef base_dims,
-    size_t itemsize);
-FormatShape InferShapeNCDHWToND(
-    c10::IntArrayRef storage_dims,
-    c10::IntArrayRef base_dims,
-    size_t itemsize);
-FormatShape InferShapeNDToNCHW(
-    c10::IntArrayRef storage_dims,
-    c10::IntArrayRef base_dims,
-    size_t itemsize);
-FormatShape InferShapeNDToNCDHW(
-    c10::IntArrayRef storage_dims,
-    c10::IntArrayRef base_dims,
-    size_t itemsize);
+FormatShape InferShapeNCHWToND(c10::IntArrayRef storage_dims, c10::IntArrayRef base_dims, size_t itemsize);
+FormatShape InferShapeNCDHWToND(c10::IntArrayRef storage_dims, c10::IntArrayRef base_dims, size_t itemsize);
+FormatShape InferShapeNDToNCHW(c10::IntArrayRef storage_dims, c10::IntArrayRef base_dims, size_t itemsize);
+FormatShape InferShapeNDToNCDHW(c10::IntArrayRef storage_dims, c10::IntArrayRef base_dims, size_t itemsize);
 
 // base format is NCDHW
 FormatShape InferShapeOfNDHWC(c10::IntArrayRef dims, size_t itemsize);
@@ -57,98 +45,36 @@ FormatShape InferShapeOfFZ3D(c10::IntArrayRef dims, size_t itemsize);
 FormatShape InferShapeofNHWC(c10::IntArrayRef dims, size_t itemsize);
 } // namespace
 
-std::unordered_map<aclFormat, FormatHelper::FormatInfo> FormatHelper::
-    InitializeInfo() {
+std::unordered_map<aclFormat, FormatHelper::FormatInfo> FormatHelper::InitializeInfo() {
   return {
-      {ACL_FORMAT_NC1HWC0,
-       (FormatInfo){ACL_FORMAT_NC1HWC0,
-                    ACL_FORMAT_NCHW,
-                    InferShape4To5,
-                    "NC1HWC0",
-                    true}},
-      {ACL_FORMAT_ND,
-       (FormatInfo){ACL_FORMAT_ND, ACL_FORMAT_ND, InferShapeofND, "ND", false}},
-      {ACL_FORMAT_NCHW,
-       (FormatInfo){
-           ACL_FORMAT_NCHW, ACL_FORMAT_NCHW, InferShapeofNCHW, "NCHW", false}},
-      {ACL_FORMAT_NHWC,
-       (FormatInfo){
-           ACL_FORMAT_NHWC, ACL_FORMAT_NHWC, InferShapeofNHWC, "NHWC", false}},
-      {ACL_FORMAT_FRACTAL_NZ,
-       (FormatInfo){ACL_FORMAT_FRACTAL_NZ,
-                    ACL_FORMAT_ND,
-                    InferShapeNDToNZ,
-                    "FRACTAL_NZ",
-                    true}},
-      {ACL_FORMAT_FRACTAL_Z,
-       (FormatInfo){ACL_FORMAT_FRACTAL_Z,
-                    ACL_FORMAT_NCHW,
-                    InferShapeNDToZ,
-                    "FRACTAL_Z",
-                    true}},
-      {ACL_FORMAT_NDHWC,
-       (FormatInfo){ACL_FORMAT_NDHWC,
-                    ACL_FORMAT_NCDHW,
-                    InferShapeOfNDHWC,
-                    "NDHWC",
-                    false}},
-      {ACL_FORMAT_NCDHW,
-       (FormatInfo){ACL_FORMAT_NCDHW,
-                    ACL_FORMAT_NCDHW,
-                    InferShapeOfNCDHW,
-                    "NCDHW",
-                    false}},
+      {ACL_FORMAT_NC1HWC0, (FormatInfo){ACL_FORMAT_NC1HWC0, ACL_FORMAT_NCHW, InferShape4To5, "NC1HWC0", true}},
+      {ACL_FORMAT_ND, (FormatInfo){ACL_FORMAT_ND, ACL_FORMAT_ND, InferShapeofND, "ND", false}},
+      {ACL_FORMAT_NCHW, (FormatInfo){ACL_FORMAT_NCHW, ACL_FORMAT_NCHW, InferShapeofNCHW, "NCHW", false}},
+      {ACL_FORMAT_NHWC, (FormatInfo){ACL_FORMAT_NHWC, ACL_FORMAT_NHWC, InferShapeofNHWC, "NHWC", false}},
+      {ACL_FORMAT_FRACTAL_NZ, (FormatInfo){ACL_FORMAT_FRACTAL_NZ, ACL_FORMAT_ND, InferShapeNDToNZ, "FRACTAL_NZ", true}},
+      {ACL_FORMAT_FRACTAL_Z, (FormatInfo){ACL_FORMAT_FRACTAL_Z, ACL_FORMAT_NCHW, InferShapeNDToZ, "FRACTAL_Z", true}},
+      {ACL_FORMAT_NDHWC, (FormatInfo){ACL_FORMAT_NDHWC, ACL_FORMAT_NCDHW, InferShapeOfNDHWC, "NDHWC", false}},
+      {ACL_FORMAT_NCDHW, (FormatInfo){ACL_FORMAT_NCDHW, ACL_FORMAT_NCDHW, InferShapeOfNCDHW, "NCDHW", false}},
       {ACL_FORMAT_NDC1HWC0,
-       (FormatInfo){ACL_FORMAT_NDC1HWC0,
-                    ACL_FORMAT_NCDHW,
-                    InferShapeOfNDC1HWC0,
-                    "NDC1HWC0",
-                    true}},
-      {ACL_FRACTAL_Z_3D,
-       (FormatInfo){ACL_FRACTAL_Z_3D,
-                    ACL_FORMAT_NCDHW,
-                    InferShapeOfFZ3D,
-                    "FRACTAL_Z_3D",
-                    true}},
+       (FormatInfo){ACL_FORMAT_NDC1HWC0, ACL_FORMAT_NCDHW, InferShapeOfNDC1HWC0, "NDC1HWC0", true}},
+      {ACL_FRACTAL_Z_3D, (FormatInfo){ACL_FRACTAL_Z_3D, ACL_FORMAT_NCDHW, InferShapeOfFZ3D, "FRACTAL_Z_3D", true}},
       {ACL_FORMAT_FRACTAL_NZ_C0_16,
-       (FormatInfo){ACL_FORMAT_FRACTAL_NZ_C0_16,
-                    ACL_FORMAT_ND,
-                    InferShapeNDToNZC016,
-                    "FRACTAL_NZ_C0_16",
-                    true}},
+       (FormatInfo){ACL_FORMAT_FRACTAL_NZ_C0_16, ACL_FORMAT_ND, InferShapeNDToNZC016, "FRACTAL_NZ_C0_16", true}},
       {ACL_FORMAT_FRACTAL_NZ_C0_32,
-       (FormatInfo){ACL_FORMAT_FRACTAL_NZ_C0_32,
-                    ACL_FORMAT_ND,
-                    InferShapeNDToNZC032,
-                    "FRACTAL_NZ_C0_32",
-                    true}},
+       (FormatInfo){ACL_FORMAT_FRACTAL_NZ_C0_32, ACL_FORMAT_ND, InferShapeNDToNZC032, "FRACTAL_NZ_C0_32", true}},
       {ACL_FORMAT_FRACTAL_NZ_C0_2,
-       (FormatInfo){ACL_FORMAT_FRACTAL_NZ_C0_2,
-                    ACL_FORMAT_ND,
-                    InferShapeNDToNZC02,
-                    "FRACTAL_NZ_C0_2",
-                    true}},
+       (FormatInfo){ACL_FORMAT_FRACTAL_NZ_C0_2, ACL_FORMAT_ND, InferShapeNDToNZC02, "FRACTAL_NZ_C0_2", true}},
       {ACL_FORMAT_FRACTAL_NZ_C0_4,
-       (FormatInfo){ACL_FORMAT_FRACTAL_NZ_C0_4,
-                    ACL_FORMAT_ND,
-                    InferShapeNDToNZC04,
-                    "FRACTAL_NZ_C0_4",
-                    true}},
+       (FormatInfo){ACL_FORMAT_FRACTAL_NZ_C0_4, ACL_FORMAT_ND, InferShapeNDToNZC04, "FRACTAL_NZ_C0_4", true}},
       {ACL_FORMAT_FRACTAL_NZ_C0_8,
-       (FormatInfo){ACL_FORMAT_FRACTAL_NZ_C0_8,
-                    ACL_FORMAT_ND,
-                    nullptr,
-                    "FRACTAL_NZ_C0_8",
-                    true}},
+       (FormatInfo){ACL_FORMAT_FRACTAL_NZ_C0_8, ACL_FORMAT_ND, nullptr, "FRACTAL_NZ_C0_8", true}},
   };
 };
 
-std::unordered_map<aclFormat, FormatHelper::FormatInfo> FormatHelper::info =
-    FormatHelper::InitializeInfo();
+std::unordered_map<aclFormat, FormatHelper::FormatInfo> FormatHelper::info = FormatHelper::InitializeInfo();
 
 bool FormatHelper::IsPadded(const at::Tensor* tensor) {
-  auto format =
-      torch_npu::NPUBridge::GetNpuStorageImplDesc(*tensor).npu_format_;
+  auto format = torch_npu::NPUBridge::GetNpuStorageImplDesc(*tensor).npu_format_;
   return IsPadded(format);
 }
 
@@ -202,8 +128,7 @@ bool FormatHelper::IsBaseFormatType(const at::Tensor& tensor) {
   return IsBaseFormatType(format);
 }
 
-FormatShape FormatHelper::GetStorageSizes(
-    const torch_npu::NPUStorageDesc& desc) {
+FormatShape FormatHelper::GetStorageSizes(const torch_npu::NPUStorageDesc& desc) {
   auto ori_size = desc.base_sizes_;
   auto format = desc.npu_format_;
   auto dtype = desc.data_type_;
@@ -212,59 +137,46 @@ FormatShape FormatHelper::GetStorageSizes(
 
 bool FormatHelper::IsOpInputBaseFormat(const at::Tensor& tensor) {
   if (!torch_npu::utils::is_npu(tensor) ||
-      (typeid(*tensor.storage().unsafeGetStorageImpl()) !=
-       typeid(torch_npu::NPUStorageImpl))) {
+      (typeid(*tensor.storage().unsafeGetStorageImpl()) != typeid(torch_npu::NPUStorageImpl))) {
     return true;
   }
-  const auto format =
-      torch_npu::NPUBridge::GetNpuStorageImplDesc(tensor).npu_format_;
-  return (format == ACL_FORMAT_ND) || (format == ACL_FORMAT_NCHW) ||
-      (format == ACL_FORMAT_NHWC) || (format == ACL_FORMAT_NCDHW);
+  const auto format = torch_npu::NPUBridge::GetNpuStorageImplDesc(tensor).npu_format_;
+  return (format == ACL_FORMAT_ND) || (format == ACL_FORMAT_NCHW) || (format == ACL_FORMAT_NHWC) ||
+      (format == ACL_FORMAT_NCDHW);
 }
 
-bool FormatHelper::IsOpInputBaseFormat(
-    const c10::optional<at::Tensor>& tensor) {
+bool FormatHelper::IsOpInputBaseFormat(const c10::optional<at::Tensor>& tensor) {
   if (!tensor.has_value()) {
     return true;
   }
   return IsOpInputBaseFormat(tensor.value());
 }
 
-bool FormatHelper::IsOpInputBaseFormat(
-    const c10::List<c10::optional<at::Tensor>>& tensors) {
+bool FormatHelper::IsOpInputBaseFormat(const c10::List<c10::optional<at::Tensor>>& tensors) {
   const auto& iter =
-      std::find_if(tensors.begin(), tensors.end(), [](const auto& tensor) {
-        return !IsOpInputBaseFormat(tensor);
-      });
+      std::find_if(tensors.begin(), tensors.end(), [](const auto& tensor) { return !IsOpInputBaseFormat(tensor); });
   return iter == tensors.end();
 }
 
-bool FormatHelper::IsOpInputBaseFormat(
-    const c10::optional<at::TensorList>& tensors) {
+bool FormatHelper::IsOpInputBaseFormat(const c10::optional<at::TensorList>& tensors) {
   if (!tensors.has_value()) {
     return true;
   }
   const auto& iter = std::find_if(
-      tensors.value().begin(), tensors.value().end(), [](const auto& tensor) {
-        return !IsOpInputBaseFormat(tensor);
-      });
+      tensors.value().begin(), tensors.value().end(), [](const auto& tensor) { return !IsOpInputBaseFormat(tensor); });
   return iter == tensors.value().end();
 }
 
 bool FormatHelper::IsOpInputBaseFormat(const at::TensorList& tensors) {
   const auto& iter =
-      std::find_if(tensors.begin(), tensors.end(), [](const auto& tensor) {
-        return !IsOpInputBaseFormat(tensor);
-      });
+      std::find_if(tensors.begin(), tensors.end(), [](const auto& tensor) { return !IsOpInputBaseFormat(tensor); });
   return iter == tensors.end();
 }
 
 bool FormatHelper::IsOpInputBaseFormat(const at::ITensorListRef& tensors) {
   auto materialized = tensors.materialize();
   const auto& iter = std::find_if(
-      materialized.begin(), materialized.end(), [](const auto& tensor) {
-        return !IsOpInputBaseFormat(tensor.get());
-      });
+      materialized.begin(), materialized.end(), [](const auto& tensor) { return !IsOpInputBaseFormat(tensor.get()); });
   return iter == materialized.end();
 }
 
@@ -273,10 +185,7 @@ namespace {
 FormatShape InferShapeLessTo4(c10::IntArrayRef dims, size_t itemsize) {
   FormatShape res;
   res.resize(4);
-  AT_ASSERT(
-      dims.size() <= 4,
-      "input dim > 4 when InferShapeLessTo4",
-      OPS_ERROR(ErrCode::PARAM));
+  AT_ASSERT(dims.size() <= 4, "input dim > 4 when InferShapeLessTo4", OPS_ERROR(ErrCode::PARAM));
   switch (dims.size()) {
     case 0:
       res[0] = 1;
@@ -309,18 +218,13 @@ FormatShape InferShapeLessTo4(c10::IntArrayRef dims, size_t itemsize) {
       res[3] = dims[3];
       break;
     default:
-      AT_ERROR(
-          "dims of NCHW shape should not be greater than 4, which is ",
-          dims.size());
+      AT_ERROR("dims of NCHW shape should not be greater than 4, which is ", dims.size());
   }
   return res;
 }
 
 FormatShape InferShapeofNHWC(c10::IntArrayRef dims, size_t itemsize) {
-  AT_ASSERT(
-      dims.size() == 4,
-      "input dim should be equal to 4 when InferShapeofNHWC",
-      OPS_ERROR(ErrCode::PARAM));
+  AT_ASSERT(dims.size() == 4, "input dim should be equal to 4 when InferShapeofNHWC", OPS_ERROR(ErrCode::PARAM));
   return FormatShape(dims.begin(), dims.end());
 }
 
@@ -371,10 +275,7 @@ FormatShape InferShapeNDToNZ(c10::IntArrayRef dims, size_t itemsize) {
     res.emplace_back(dim[i]);
   }
 
-  AT_ASSERT(
-      itemsize != 0,
-      "dtype itemsize should not be 0",
-      OPS_ERROR(ErrCode::PARAM));
+  AT_ASSERT(itemsize != 0, "dtype itemsize should not be 0", OPS_ERROR(ErrCode::PARAM));
 
   // float32 will cast to float16
   auto itemsize_ = (itemsize > 2) ? 2 : itemsize;
@@ -409,10 +310,7 @@ FormatShape InferShapeNDToNZWithC0(c10::IntArrayRef dims, size_t itemsize) {
     res.emplace_back(dim[i]);
   }
 
-  AT_ASSERT(
-      itemsize != 0,
-      "dtype itemsize should not be 0",
-      OPS_ERROR(ErrCode::PARAM));
+  AT_ASSERT(itemsize != 0, "dtype itemsize should not be 0", OPS_ERROR(ErrCode::PARAM));
 
   auto lastSize = C0Value;
   res.emplace_back((dim[i + 1] + lastSize - 1) / lastSize);
@@ -453,10 +351,7 @@ FormatShape InferShapeNDToZ(c10::IntArrayRef dims, size_t itemsize) {
   return res;
 }
 
-FormatShape InferShapeNCHWToND(
-    c10::IntArrayRef storage_dims,
-    c10::IntArrayRef base_dims,
-    size_t itemsize) {
+FormatShape InferShapeNCHWToND(c10::IntArrayRef storage_dims, c10::IntArrayRef base_dims, size_t itemsize) {
   FormatShape res;
   res.resize(4);
   auto cur_storage_dims = storage_dims;
@@ -464,9 +359,7 @@ FormatShape InferShapeNCHWToND(
     cur_storage_dims = InferShapeLessTo4(storage_dims, itemsize);
   }
   AT_ASSERT(
-      cur_storage_dims.size() == 4,
-      "input dim num not equal 4 when InferShapeNCHWToND",
-      OPS_ERROR(ErrCode::PARAM));
+      cur_storage_dims.size() == 4, "input dim num not equal 4 when InferShapeNCHWToND", OPS_ERROR(ErrCode::PARAM));
 
   if (base_dims.size() == 0) {
     FormatShape temp_dims;
@@ -478,30 +371,20 @@ FormatShape InferShapeNCHWToND(
       res.resize(1);
       res[0] = cur_storage_dims[1];
       AT_ASSERT(
-          cur_storage_dims[0] == 1,
-          "reshape type RESHAPE_TYPE_C erase dim N must be 1",
-          OPS_ERROR(ErrCode::PARAM));
+          cur_storage_dims[0] == 1, "reshape type RESHAPE_TYPE_C erase dim N must be 1", OPS_ERROR(ErrCode::PARAM));
       AT_ASSERT(
-          cur_storage_dims[2] == 1,
-          "reshape type RESHAPE_TYPE_C erase dim H must be 1",
-          OPS_ERROR(ErrCode::PARAM));
+          cur_storage_dims[2] == 1, "reshape type RESHAPE_TYPE_C erase dim H must be 1", OPS_ERROR(ErrCode::PARAM));
       AT_ASSERT(
-          cur_storage_dims[3] == 1,
-          "reshape type RESHAPE_TYPE_C erase dim W must be 1",
-          OPS_ERROR(ErrCode::PARAM));
+          cur_storage_dims[3] == 1, "reshape type RESHAPE_TYPE_C erase dim W must be 1", OPS_ERROR(ErrCode::PARAM));
       break;
     case 2:
       res.resize(2);
       res[0] = cur_storage_dims[1];
       res[1] = cur_storage_dims[2];
       AT_ASSERT(
-          cur_storage_dims[0] == 1,
-          "reshape type RESHAPE_TYPE_CH erase dim N must be 1",
-          OPS_ERROR(ErrCode::PARAM));
+          cur_storage_dims[0] == 1, "reshape type RESHAPE_TYPE_CH erase dim N must be 1", OPS_ERROR(ErrCode::PARAM));
       AT_ASSERT(
-          cur_storage_dims[3] == 1,
-          "reshape type RESHAPE_TYPE_CH erase dim W must be 1",
-          OPS_ERROR(ErrCode::PARAM));
+          cur_storage_dims[3] == 1, "reshape type RESHAPE_TYPE_CH erase dim W must be 1", OPS_ERROR(ErrCode::PARAM));
       break;
     case 3:
       res.resize(3);
@@ -509,9 +392,7 @@ FormatShape InferShapeNCHWToND(
       res[1] = cur_storage_dims[2];
       res[2] = cur_storage_dims[3];
       AT_ASSERT(
-          cur_storage_dims[0] == 1,
-          "reshape type RESHAPE_TYPE_CHW erase dim N must be 1",
-          OPS_ERROR(ErrCode::PARAM));
+          cur_storage_dims[0] == 1, "reshape type RESHAPE_TYPE_CHW erase dim N must be 1", OPS_ERROR(ErrCode::PARAM));
       break;
     case 4:
       res = cur_storage_dims;
@@ -522,48 +403,25 @@ FormatShape InferShapeNCHWToND(
   return res;
 }
 
-FormatShape InferShapeNDToNCHW(
-    c10::IntArrayRef storage_dims,
-    c10::IntArrayRef base_dims,
-    size_t itemsize) {
-  AT_ASSERT(
-      storage_dims.size() <= 4,
-      "input storage dim not less than 4",
-      OPS_ERROR(ErrCode::PARAM));
-  AT_ASSERT(
-      base_dims.size() <= 4,
-      "input storage dim not less than 4",
-      OPS_ERROR(ErrCode::PARAM));
+FormatShape InferShapeNDToNCHW(c10::IntArrayRef storage_dims, c10::IntArrayRef base_dims, size_t itemsize) {
+  AT_ASSERT(storage_dims.size() <= 4, "input storage dim not less than 4", OPS_ERROR(ErrCode::PARAM));
+  AT_ASSERT(base_dims.size() <= 4, "input storage dim not less than 4", OPS_ERROR(ErrCode::PARAM));
   return InferShapeLessTo4(base_dims, itemsize);
 }
 
-FormatShape InferShapeNDToNCDHW(
-    c10::IntArrayRef storage_dims,
-    c10::IntArrayRef base_dims,
-    size_t itemsize) {
-  AT_ASSERT(
-      storage_dims.size() == 5,
-      "ND [",
-      storage_dims,
-      "] failed to convert to NCDHW",
-      OPS_ERROR(ErrCode::PARAM));
+FormatShape InferShapeNDToNCDHW(c10::IntArrayRef storage_dims, c10::IntArrayRef base_dims, size_t itemsize) {
+  AT_ASSERT(storage_dims.size() == 5, "ND [", storage_dims, "] failed to convert to NCDHW", OPS_ERROR(ErrCode::PARAM));
   FormatShape res;
   res.resize(5);
   res = storage_dims;
   return res;
 }
 
-FormatShape InferShapeNCDHWToND(
-    c10::IntArrayRef storage_dims,
-    c10::IntArrayRef base_dims,
-    size_t itemsize) {
+FormatShape InferShapeNCDHWToND(c10::IntArrayRef storage_dims, c10::IntArrayRef base_dims, size_t itemsize) {
   FormatShape res;
   res.resize(5);
   res = storage_dims;
-  AT_ASSERT(
-      res.size() == 5,
-      "input dim num not equal 5 when InferShapeNCDHWToND",
-      OPS_ERROR(ErrCode::PARAM));
+  AT_ASSERT(res.size() == 5, "input dim num not equal 5 when InferShapeNCDHWToND", OPS_ERROR(ErrCode::PARAM));
   return res;
 }
 
@@ -657,18 +515,13 @@ FormatShape InferShapeofND(c10::IntArrayRef dims, size_t itemsize) {
 
 } // namespace
 
-at::Tensor& FormatHelper::unsafe_format_cast(
-    at::Tensor& self,
-    int64_t self_format,
-    int64_t result_format) {
-  torch_npu::NPUStorageDesc& self_desc =
-      torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_;
+at::Tensor& FormatHelper::unsafe_format_cast(at::Tensor& self, int64_t self_format, int64_t result_format) {
+  torch_npu::NPUStorageDesc& self_desc = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_;
   if (self_format == ACL_FORMAT_ND && result_format == ACL_FORMAT_NC1HWC0) {
     auto itemsize = self_desc.data_type_.itemsize();
     self_desc.storage_sizes_ = InferShape4To5(self.sizes(), itemsize);
     self_desc.npu_format_ = ACL_FORMAT_NC1HWC0;
-  } else if (
-      self_format == ACL_FORMAT_NC1HWC0 && result_format == ACL_FORMAT_ND) {
+  } else if (self_format == ACL_FORMAT_NC1HWC0 && result_format == ACL_FORMAT_ND) {
     self_desc.storage_sizes_ = self_desc.base_sizes_;
     self_desc.npu_format_ = ACL_FORMAT_ND;
   }

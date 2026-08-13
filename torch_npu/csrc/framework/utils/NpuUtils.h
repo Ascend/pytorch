@@ -47,32 +47,17 @@ class NpuUtils {
   static void check_1d(const at::Tensor& t, const char* arg, const char* fn);
   static bool setFilePermissions(int fd, mode_t mode);
 #ifndef BUILD_LIBTORCH
-  static void ProfReportMarkDataToNpuProfiler(
-      uint32_t category,
-      const std::string& data,
-      uint64_t correlation_id = 0);
-  static void ProfReportMarkDataToNpuProfiler(
-      uint32_t category,
-      void* data,
-      size_t offset);
+  static void ProfReportMarkDataToNpuProfiler(uint32_t category, const std::string& data, uint64_t correlation_id = 0);
+  static void ProfReportMarkDataToNpuProfiler(uint32_t category, void* data, size_t offset);
 #endif
 
  private:
-  using DqueueCall =
-      void (*)(c10_npu::queue::QueueParas* para, uint32_t category);
-  static void DqueueCompileExcute(
-      c10_npu::queue::QueueParas* para,
-      uint32_t category);
-  static void DqueueCompileExcuteOpApi(
-      c10_npu::queue::QueueParas* para,
-      uint32_t category);
-  static void DqueueAnyncMemcpy(
-      c10_npu::queue::QueueParas* para,
-      uint32_t category);
+  using DqueueCall = void (*)(c10_npu::queue::QueueParas* para, uint32_t category);
+  static void DqueueCompileExcute(c10_npu::queue::QueueParas* para, uint32_t category);
+  static void DqueueCompileExcuteOpApi(c10_npu::queue::QueueParas* para, uint32_t category);
+  static void DqueueAnyncMemcpy(c10_npu::queue::QueueParas* para, uint32_t category);
   static void DqueueEvent(c10_npu::queue::QueueParas* para, uint32_t category);
-  static void DqueueCompileExcuteBs(
-      c10_npu::queue::QueueParas* para,
-      uint32_t category);
+  static void DqueueCompileExcuteBs(c10_npu::queue::QueueParas* para, uint32_t category);
 };
 
 const std::string AclDataTypeToString(aclDataType descDType);

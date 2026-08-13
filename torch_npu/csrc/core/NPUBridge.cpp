@@ -14,8 +14,7 @@ NPUStorageImpl* NPUBridge::GetNpuStorageImpl(const at::Tensor& tensor) {
 }
 
 NPUStorageDesc& NPUBridge::GetNpuStorageImplDesc(const at::Tensor& tensor) {
-  return static_cast<NPUStorageImpl*>(tensor.storage().unsafeGetStorageImpl())
-      ->npu_desc_;
+  return static_cast<NPUStorageImpl*>(tensor.storage().unsafeGetStorageImpl())->npu_desc_;
 }
 
 NPUTensorImpl* NPUBridge::GetNpuTensorImpl(const at::Tensor& tensor) {

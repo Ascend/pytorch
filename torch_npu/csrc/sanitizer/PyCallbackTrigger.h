@@ -23,8 +23,7 @@ enum class SanitizerMode { STREAM = 0, KERNEL };
 struct PyCallbackTrigger {
   const SanitizerMode sanitizer_mode;
 
-  PyCallbackTrigger(const int mode)
-      : sanitizer_mode(static_cast<SanitizerMode>(mode)) {};
+  PyCallbackTrigger(const int mode) : sanitizer_mode(static_cast<SanitizerMode>(mode)) {};
   void traceNpuAclStartExecution(std::string acl_name) const {
     if (sanitizer_mode == SanitizerMode::KERNEL) {
       CONCRETE_TRACE_NPU("NPUACLStartExecuteCallbacks", acl_name);

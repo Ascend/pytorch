@@ -74,8 +74,7 @@ bool NpuUtils::check_5d_5d_match(const at::Tensor& tensor) {
     return false;
   }
 
-  if (torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_.npu_format_ !=
-      ACL_FORMAT_NC1HWC0) {
+  if (torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_.npu_format_ != ACL_FORMAT_NC1HWC0) {
     return false;
   }
 
@@ -101,12 +100,8 @@ bool NpuUtils::check_5d_5d_match(const at::Tensor& tensor) {
 
   int64_t contiguous_len = 16;
   int64_t c0_len = 16;
-  for (const auto i : c10::irange(
-           2,
-           torch_npu::NPUBridge::GetNpuStorageImpl(tensor)
-               ->npu_desc_.base_sizes_.size())) {
-    contiguous_len *= torch_npu::NPUBridge::GetNpuStorageImpl(tensor)
-                          ->npu_desc_.base_sizes_[i];
+  for (const auto i : c10::irange(2, torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_.base_sizes_.size())) {
+    contiguous_len *= torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_.base_sizes_[i];
   }
   bool is_offset_match = (tensor.storage_offset() % contiguous_len == 0);
   bool is_length_match = (tensor.size(1) % c0_len == 0);
@@ -115,15 +110,11 @@ bool NpuUtils::check_5d_5d_match(const at::Tensor& tensor) {
 }
 
 void NpuUtils::RefreshFormat(const at::Tensor& tensor) {
-  auto& tensor_desc =
-      torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_;
-  if (tensor_desc.storage_sizes_.size() == 4 &&
-      tensor_desc.npu_format_ == ACL_FORMAT_ND) {
+  auto& tensor_desc = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_;
+  if (tensor_desc.storage_sizes_.size() == 4 && tensor_desc.npu_format_ == ACL_FORMAT_ND) {
     tensor_desc.npu_format_ = ACL_FORMAT_NCHW;
     tensor_desc.origin_format_ = ACL_FORMAT_NCHW;
-  } else if (
-      tensor_desc.storage_sizes_.size() != 4 &&
-      tensor_desc.npu_format_ == ACL_FORMAT_NCHW) {
+  } else if (tensor_desc.storage_sizes_.size() != 4 && tensor_desc.npu_format_ == ACL_FORMAT_NCHW) {
     tensor_desc.npu_format_ = ACL_FORMAT_ND;
     tensor_desc.origin_format_ = ACL_FORMAT_ND;
   }
@@ -135,10 +126,8 @@ at::Tensor metadata_convert_match(const at::Tensor& src, bool numelEq) {
   // NCHW will generate a temporary tensor, which always monopolizes its own
   // storage.
   if (numelEq && (!FormatHelper::IsBaseFormatType(src))) {
-    at::Tensor tempTensor =
-        custom_ops::npu_format_cast(src, FormatHelper::GetBaseFormat(src));
-    custom_ops::npu_reshape_out(
-        tempTensor, tempTensor.sizes(), true, tempTensor);
+    at::Tensor tempTensor = custom_ops::npu_format_cast(src, FormatHelper::GetBaseFormat(src));
+    custom_ops::npu_reshape_out(tempTensor, tempTensor.sizes(), true, tempTensor);
     NpuUtils::RefreshFormat(tempTensor);
     return tempTensor;
   } else {
@@ -171,22 +160,17 @@ at::Tensor metadata_convert_match_with_copy_optimize(const at::Tensor& src) {
 
   // For unmatched Tensors with base format, we can:
   OptimizationCases optimizations_reshape{"reshapeV2"};
-  if (numelEq && src_desc.npu_format_ == ACL_FORMAT_ND &&
-      src_desc.origin_format_ == ACL_FORMAT_ND && (src.dim() != 0) &&
-      !src_desc.base_sizes_.empty()) {
+  if (numelEq && src_desc.npu_format_ == ACL_FORMAT_ND && src_desc.origin_format_ == ACL_FORMAT_ND &&
+      (src.dim() != 0) && !src_desc.base_sizes_.empty()) {
     // 1. directly rewrite their storage description to get matched tensors.
-    src_desc.base_sizes_ =
-        CalcuOpUtil::ConvertIntArrayRefToSmallVector(src.sizes());
-    src_desc.base_strides_ =
-        CalcuOpUtil::ConvertIntArrayRefToSmallVector(src.strides());
-    src_desc.storage_sizes_ =
-        CalcuOpUtil::ConvertIntArrayRefToSmallVector(src.sizes());
+    src_desc.base_sizes_ = CalcuOpUtil::ConvertIntArrayRefToSmallVector(src.sizes());
+    src_desc.base_strides_ = CalcuOpUtil::ConvertIntArrayRefToSmallVector(src.strides());
+    src_desc.storage_sizes_ = CalcuOpUtil::ConvertIntArrayRefToSmallVector(src.sizes());
     NpuUtils::RefreshFormat(src);
     return src;
   } else if (TransContiguous::CanOptimize(src, optimizations_reshape)) {
     // 2. using memory-repoint/DMA for other cases.
-    auto reshapeTensor = TransContiguous::ContiguousOptimizeWithAnyFormat(
-        src, optimizations_reshape);
+    auto reshapeTensor = TransContiguous::ContiguousOptimizeWithAnyFormat(src, optimizations_reshape);
     if (reshapeTensor.has_value()) {
       return reshapeTensor.value();
     }
@@ -220,8 +204,7 @@ at::Tensor NpuUtils::format_contiguous(const at::Tensor& src) {
 
   // case3:meta data not match, storage_offset of presentation layer
   // is different from that of storage layer
-  if (FormatHelper::IsPadded(&src) &&
-      (!StorageDescHelper::OffsetAreMatch(&src))) {
+  if (FormatHelper::IsPadded(&src) && (!StorageDescHelper::OffsetAreMatch(&src))) {
     // Fix not match case3, tensor with padding should not have storage-offset.
     RECORD_FUNCTION("format_contiguous", vector<c10::IValue>({src}));
     return metadata_with_offset_padding_convert_match(src);
@@ -230,8 +213,7 @@ at::Tensor NpuUtils::format_contiguous(const at::Tensor& src) {
   return src;
 }
 
-at::Tensor NpuUtils::format_contiguous_add_copy_optimize(
-    const at::Tensor& src) {
+at::Tensor NpuUtils::format_contiguous_add_copy_optimize(const at::Tensor& src) {
   // case1:tensor src is not contiguous
   if (!src.is_contiguous()) {
     RECORD_FUNCTION("format_contiguousV2", vector<c10::IValue>({src}));
@@ -248,8 +230,7 @@ at::Tensor NpuUtils::format_contiguous_add_copy_optimize(
 
   // case3:meta data not match, storage_offset of presentation layer
   // is different from that of storage layer
-  if (FormatHelper::IsPadded(&src) &&
-      (!StorageDescHelper::OffsetAreMatch(&src))) {
+  if (FormatHelper::IsPadded(&src) && (!StorageDescHelper::OffsetAreMatch(&src))) {
     // Fix not match case3, tensor with padding should not have storage-offset.
     RECORD_FUNCTION("format_contiguousV2", vector<c10::IValue>({src}));
     return metadata_with_offset_padding_convert_match(src);
@@ -268,8 +249,7 @@ bool NpuUtils::IsOomError(aclError ret, int index) {
       c10_npu::NPUCachingAllocator::FreeDeviceCachedMemory(deviceId);
       return true;
     }
-    auto retmsg = std::string("NPU out of memory. device id: ") +
-        std::to_string(deviceId);
+    auto retmsg = std::string("NPU out of memory. device id: ") + std::to_string(deviceId);
     ASCEND_LOGE("%s", retmsg.c_str());
     TORCH_CHECK_WITH(OutOfMemoryError, false, retmsg.c_str());
   }
@@ -278,14 +258,7 @@ bool NpuUtils::IsOomError(aclError ret, int index) {
 
 void NpuUtils::check_1d(const at::Tensor& t, const char* arg, const char* fn) {
   TORCH_CHECK(
-      t.dim() == 1,
-      fn,
-      ": Expected 1-D argument ",
-      arg,
-      ", but got ",
-      t.dim(),
-      "-D",
-      OPS_ERROR(ErrCode::PARAM));
+      t.dim() == 1, fn, ": Expected 1-D argument ", arg, ", but got ", t.dim(), "-D", OPS_ERROR(ErrCode::PARAM));
 }
 
 bool NpuUtils::setFilePermissions(int fd, mode_t mode) {
@@ -298,64 +271,40 @@ bool NpuUtils::setFilePermissions(int fd, mode_t mode) {
 
 #ifndef BUILD_LIBTORCH
 
-void NpuUtils::ProfReportMarkDataToNpuProfiler(
-    uint32_t category,
-    const std::string& data,
-    uint64_t correlation_id) {
+void NpuUtils::ProfReportMarkDataToNpuProfiler(uint32_t category, const std::string& data, uint64_t correlation_id) {
   if (data.empty()) {
     return;
   }
-  if (torch_npu::profiler::profDataReportEnable().load(
-          std::memory_order_relaxed)) {
-    torch_npu::profiler::reportMarkDataToNpuProfiler(
-        category, data, correlation_id);
+  if (torch_npu::profiler::profDataReportEnable().load(std::memory_order_relaxed)) {
+    torch_npu::profiler::reportMarkDataToNpuProfiler(category, data, correlation_id);
   }
 }
 
-void NpuUtils::DqueueCompileExcute(
-    c10_npu::queue::QueueParas* para,
-    uint32_t category) {
+void NpuUtils::DqueueCompileExcute(c10_npu::queue::QueueParas* para, uint32_t category) {
   auto param_val = static_cast<at_npu::native::ExecuteParas*>(para->paramVal);
-  torch_npu::profiler::reportMarkDataToNpuProfiler(
-      category, std::string(param_val->opType), para->correlation_id);
+  torch_npu::profiler::reportMarkDataToNpuProfiler(category, std::string(param_val->opType), para->correlation_id);
 }
 
-void NpuUtils::DqueueCompileExcuteOpApi(
-    c10_npu::queue::QueueParas* para,
-    uint32_t category) {
-  auto param_val =
-      static_cast<at_npu::native::ExecuteParasOpApi*>(para->paramVal);
-  torch_npu::profiler::reportMarkDataToNpuProfiler(
-      category, std::string(param_val->opType), para->correlation_id);
+void NpuUtils::DqueueCompileExcuteOpApi(c10_npu::queue::QueueParas* para, uint32_t category) {
+  auto param_val = static_cast<at_npu::native::ExecuteParasOpApi*>(para->paramVal);
+  torch_npu::profiler::reportMarkDataToNpuProfiler(category, std::string(param_val->opType), para->correlation_id);
 }
 
-void NpuUtils::DqueueEvent(
-    c10_npu::queue::QueueParas* para,
-    uint32_t category) {
+void NpuUtils::DqueueEvent(c10_npu::queue::QueueParas* para, uint32_t category) {
   torch_npu::profiler::reportMarkDataToNpuProfiler(
-      category,
-      c10_npu::queue::EventParas::EVENT_PARAS_MAP[para->paramType],
-      para->correlation_id);
+      category, c10_npu::queue::EventParas::EVENT_PARAS_MAP[para->paramType], para->correlation_id);
 }
-void NpuUtils::DqueueAnyncMemcpy(
-    c10_npu::queue::QueueParas* para,
-    uint32_t category) {
+void NpuUtils::DqueueAnyncMemcpy(c10_npu::queue::QueueParas* para, uint32_t category) {
   auto param_val = static_cast<c10_npu::queue::CopyParas*>(para->paramVal);
   torch_npu::profiler::reportMarkDataToNpuProfiler(
-      category,
-      c10_npu::queue::CopyParas::COPY_PARAS_MAP[param_val->kind],
-      para->correlation_id);
+      category, c10_npu::queue::CopyParas::COPY_PARAS_MAP[param_val->kind], para->correlation_id);
 }
 
-void NpuUtils::ProfReportMarkDataToNpuProfiler(
-    uint32_t category,
-    void* data,
-    size_t offset) {
+void NpuUtils::ProfReportMarkDataToNpuProfiler(uint32_t category, void* data, size_t offset) {
   if (C10_UNLIKELY(!data)) {
     return;
   }
-  if (torch_npu::profiler::profDataReportEnable().load(
-          std::memory_order_relaxed)) {
+  if (torch_npu::profiler::profDataReportEnable().load(std::memory_order_relaxed)) {
     static const std::map<int64_t, DqueueCall> DEQUEUE_CALL_FUNC_MAP{
         {c10_npu::queue::COMPILE_AND_EXECUTE, &DqueueCompileExcute},
         {c10_npu::queue::EXECUTE_OPAPI, &DqueueCompileExcuteOpApi},
@@ -367,10 +316,8 @@ void NpuUtils::ProfReportMarkDataToNpuProfiler(
         {c10_npu::queue::WRITE_VALUE, &DqueueEvent},
         {c10_npu::queue::WAIT_VALUE, &DqueueEvent},
     };
-    void* cur_addr = (uint8_t*)data +
-        (sizeof(c10_npu::queue::QueueParas) +
-         at_npu::native::MAX_PARAS_BYTE_SIZE) *
-            offset;
+    void* cur_addr =
+        (uint8_t*)data + (sizeof(c10_npu::queue::QueueParas) + at_npu::native::MAX_PARAS_BYTE_SIZE) * offset;
     auto cur_param = static_cast<c10_npu::queue::QueueParas*>(cur_addr);
     auto entry = DEQUEUE_CALL_FUNC_MAP.find(cur_param->paramType);
     if (entry != DEQUEUE_CALL_FUNC_MAP.end()) {
@@ -381,41 +328,39 @@ void NpuUtils::ProfReportMarkDataToNpuProfiler(
 #endif
 
 const std::string AclDataTypeToString(aclDataType descDType) {
-  static std::map<const aclDataType, const std::string>
-      ACL_TYPE_TO_STRING_TYPE_MAP = {
-          {ACL_DT_UNDEFINED, "ACL_DT_UNDEFINED"},
-          {ACL_FLOAT, "ACL_FLOAT"},
-          {ACL_FLOAT16, "ACL_FLOAT16"},
-          {ACL_INT8, "ACL_INT8"},
-          {ACL_INT32, "ACL_INT32"},
-          {ACL_UINT8, "ACL_UINT8"},
-          {ACL_INT16, "ACL_INT16"},
-          {ACL_UINT16, "ACL_UINT16"},
-          {ACL_UINT32, "ACL_UINT32"},
-          {ACL_INT64, "ACL_INT64"},
-          {ACL_UINT64, "ACL_UINT64"},
-          {ACL_DOUBLE, "ACL_DOUBLE"},
-          {ACL_BOOL, "ACL_BOOL"},
-          {ACL_STRING, "ACL_STRING"},
-          {ACL_COMPLEX64, "ACL_COMPLEX64"},
-          {ACL_COMPLEX128, "ACL_COMPLEX128"},
-          {ACL_BF16, "ACL_BF16"},
-          {ACL_INT4, "ACL_INT4"},
-          {ACL_UINT1, "ACL_UINT1"},
-          {ACL_COMPLEX32, "ACL_COMPLEX32"},
-          {ACL_HIFLOAT8, "ACL_HIFLOAT8"},
-          {ACL_FLOAT8_E5M2, "ACL_FLOAT8_E5M2"},
-          {ACL_FLOAT8_E4M3FN, "ACL_FLOAT8_E4M3FN"},
-          {ACL_FLOAT8_E8M0, "ACL_FLOAT8_E8M0"},
-          {ACL_FLOAT6_E3M2, "ACL_FLOAT6_E3M2"},
-          {ACL_FLOAT6_E2M3, "ACL_FLOAT6_E2M3"},
-          {ACL_FLOAT4_E2M1, "ACL_FLOAT4_E2M1"},
-          {ACL_FLOAT4_E1M2, "ACL_FLOAT4_E1M2"}};
+  static std::map<const aclDataType, const std::string> ACL_TYPE_TO_STRING_TYPE_MAP = {
+      {ACL_DT_UNDEFINED, "ACL_DT_UNDEFINED"},
+      {ACL_FLOAT, "ACL_FLOAT"},
+      {ACL_FLOAT16, "ACL_FLOAT16"},
+      {ACL_INT8, "ACL_INT8"},
+      {ACL_INT32, "ACL_INT32"},
+      {ACL_UINT8, "ACL_UINT8"},
+      {ACL_INT16, "ACL_INT16"},
+      {ACL_UINT16, "ACL_UINT16"},
+      {ACL_UINT32, "ACL_UINT32"},
+      {ACL_INT64, "ACL_INT64"},
+      {ACL_UINT64, "ACL_UINT64"},
+      {ACL_DOUBLE, "ACL_DOUBLE"},
+      {ACL_BOOL, "ACL_BOOL"},
+      {ACL_STRING, "ACL_STRING"},
+      {ACL_COMPLEX64, "ACL_COMPLEX64"},
+      {ACL_COMPLEX128, "ACL_COMPLEX128"},
+      {ACL_BF16, "ACL_BF16"},
+      {ACL_INT4, "ACL_INT4"},
+      {ACL_UINT1, "ACL_UINT1"},
+      {ACL_COMPLEX32, "ACL_COMPLEX32"},
+      {ACL_HIFLOAT8, "ACL_HIFLOAT8"},
+      {ACL_FLOAT8_E5M2, "ACL_FLOAT8_E5M2"},
+      {ACL_FLOAT8_E4M3FN, "ACL_FLOAT8_E4M3FN"},
+      {ACL_FLOAT8_E8M0, "ACL_FLOAT8_E8M0"},
+      {ACL_FLOAT6_E3M2, "ACL_FLOAT6_E3M2"},
+      {ACL_FLOAT6_E2M3, "ACL_FLOAT6_E2M3"},
+      {ACL_FLOAT4_E2M1, "ACL_FLOAT4_E2M1"},
+      {ACL_FLOAT4_E1M2, "ACL_FLOAT4_E1M2"}};
 
   const auto iter = ACL_TYPE_TO_STRING_TYPE_MAP.find(descDType);
-  return iter != ACL_TYPE_TO_STRING_TYPE_MAP.end()
-      ? iter->second
-      : "DescDType not exists, descDType:" + std::to_string(descDType);
+  return iter != ACL_TYPE_TO_STRING_TYPE_MAP.end() ? iter->second
+                                                   : "DescDType not exists, descDType:" + std::to_string(descDType);
 }
 
 const std::string AclFormatToString(aclFormat descFormat) {

@@ -13,10 +13,7 @@ namespace profiler {
 
 constexpr size_t DEFAULT_BLOCK_SIZE = 1024;
 
-template <
-    typename T,
-    size_t ChunkSize = DEFAULT_BLOCK_SIZE,
-    template <typename U, size_t N> class block_t = std::array>
+template <typename T, size_t ChunkSize = DEFAULT_BLOCK_SIZE, template <typename U, size_t N> class block_t = std::array>
 class AppendOnlyList {
  public:
   using array_t = block_t<T, ChunkSize>;
@@ -34,8 +31,7 @@ class AppendOnlyList {
   template <class... Args>
   T* emplace_back(Args&&... args) {
     try_growup();
-    if (std::is_trivially_destructible<T>::value &&
-        std::is_trivially_destructible<array_t>::value) {
+    if (std::is_trivially_destructible<T>::value && std::is_trivially_destructible<array_t>::value) {
       ::new ((void*)next_) T{std::forward<Args>(args)...};
     } else {
       *next_ = T{std::forward<Args>(args)...};
@@ -59,8 +55,7 @@ class AppendOnlyList {
     using reference = T&;
 
     Iterator() = default;
-    Iterator(std::forward_list<array_t>& buffer, const size_t size)
-        : block_{buffer.begin()}, size_{size} {}
+    Iterator(std::forward_list<array_t>& buffer, const size_t size) : block_{buffer.begin()}, size_{size} {}
 
     reference operator*() const {
       return *current_ptr();

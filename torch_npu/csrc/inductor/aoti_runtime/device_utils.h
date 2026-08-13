@@ -9,15 +9,14 @@ typedef void* NPUdeviceptr;
 
 typedef void* NPUfunction;
 
-#define AOTI_RUNTIME_DEVICE_CHECK(EXPR)                                 \
-  do {                                                                  \
-    const aclError code = EXPR;                                         \
-    if (code != ACL_SUCCESS) {                                          \
-      throw std::runtime_error(                                         \
-          std::string("NPU error core: ") + std::to_string(code) +      \
-          std::string(" ") + std::string(__FILE__) + std::string(":") + \
-          std::to_string(__LINE__));                                    \
-    }                                                                   \
+#define AOTI_RUNTIME_DEVICE_CHECK(EXPR)                                                                       \
+  do {                                                                                                        \
+    const aclError code = EXPR;                                                                               \
+    if (code != ACL_SUCCESS) {                                                                                \
+      throw std::runtime_error(                                                                               \
+          std::string("NPU error core: ") + std::to_string(code) + std::string(" ") + std::string(__FILE__) + \
+          std::string(":") + std::to_string(__LINE__));                                                       \
+    }                                                                                                         \
   } while (0)
 
 namespace torch::aot_inductor {

@@ -72,37 +72,25 @@ static LeakyStreamInternals default_streams[C10_COMPILE_TIME_MAX_NPUS];
 // on the default stream and the secondary stream respectively.
 static LeakyStreamInternals secondary_streams[C10_COMPILE_TIME_MAX_NPUS];
 // npu streams pool init flags
-static std::once_flag device_priority_flags[C10_COMPILE_TIME_MAX_NPUS]
-                                           [kMaxStreamPriorities];
+static std::once_flag device_priority_flags[C10_COMPILE_TIME_MAX_NPUS][kMaxStreamPriorities];
 // SyncLaunch streams pool init flags
 static std::once_flag device_sync_launch_flags[C10_COMPILE_TIME_MAX_NPUS];
-static std::array<
-    std::array<std::atomic<uint32_t>, C10_COMPILE_TIME_MAX_NPUS>,
-    kMaxStreamPriorities>
-    npu_counters;
+static std::array<std::array<std::atomic<uint32_t>, C10_COMPILE_TIME_MAX_NPUS>, kMaxStreamPriorities> npu_counters;
 static std::atomic<uint32_t> sync_stream_counters[C10_COMPILE_TIME_MAX_NPUS];
 // npu_streams is a stream pool, each device has a stream pool,
 // and 8 streams are created in each pool.
 static std::array<
-    std::array<
-        std::array<LeakyStreamInternals, kStreamsPerPool>,
-        C10_COMPILE_TIME_MAX_NPUS>,
+    std::array<std::array<LeakyStreamInternals, kStreamsPerPool>, C10_COMPILE_TIME_MAX_NPUS>,
     kMaxStreamPriorities>
     npu_streams;
-static thread_local std::unique_ptr<LeakyStreamInternals*[]> current_streams =
-    nullptr;
+static thread_local std::unique_ptr<LeakyStreamInternals*[]> current_streams = nullptr;
 
-static std::array<LeakyStreamInternals, kSyncLaunchStreamsPerPool>
-    sync_launch_streams[C10_COMPILE_TIME_MAX_NPUS];
-static std::array<
-    std::vector<std::unique_ptr<LeakyStreamInternals>>,
-    C10_COMPILE_TIME_MAX_NPUS>
-    external_streams;
+static std::array<LeakyStreamInternals, kSyncLaunchStreamsPerPool> sync_launch_streams[C10_COMPILE_TIME_MAX_NPUS];
+static std::array<std::vector<std::unique_ptr<LeakyStreamInternals>>, C10_COMPILE_TIME_MAX_NPUS> external_streams;
 static std::mutex external_streams_mutex;
 
 static constexpr uint64_t kExternalStreamIdMarker = 1ULL << 30;
-static constexpr uint64_t kExternalStreamIdIndexMask =
-    kExternalStreamIdMarker - 1;
+static constexpr uint64_t kExternalStreamIdIndexMask = kExternalStreamIdMarker - 1;
 
 thread_local aclrtStream tls_prev_stream = nullptr;
 
@@ -176,8 +164,7 @@ static inline StreamIdType streamIdType(c10::StreamId s) {
 
 static inline size_t streamIdIndex(c10::StreamId s) {
   if (isExternalStreamId(s)) {
-    return static_cast<size_t>(
-        static_cast<uint64_t>(s) & kExternalStreamIdIndexMask);
+    return static_cast<size_t>(static_cast<uint64_t>(s) & kExternalStreamIdIndexMask);
   }
   static int StreamsPerPoolBits = GetStreamsPerPoolBits();
   return static_cast<size_t>((uint32_t)s & ((1 << StreamsPerPoolBits) - 1));
@@ -186,20 +173,16 @@ static inline size_t streamIdIndex(c10::StreamId s) {
 c10::StreamId makeStreamId(StreamIdType st, size_t si) {
   if (st == StreamIdType::EXT) {
     TORCH_CHECK(
-        si <= kExternalStreamIdIndexMask,
-        "Too many external NPU streams are registered.",
-        PTA_ERROR(ErrCode::VALUE));
+        si <= kExternalStreamIdIndexMask, "Too many external NPU streams are registered.", PTA_ERROR(ErrCode::VALUE));
     return static_cast<c10::StreamId>(kExternalStreamIdMarker | si);
   }
   static int StreamsPerPoolBits = GetStreamsPerPoolBits();
-  return static_cast<c10::StreamId>(
-      (static_cast<size_t>(st) << StreamsPerPoolBits) | si);
+  return static_cast<c10::StreamId>((static_cast<size_t>(st) << StreamsPerPoolBits) | si);
 }
 
 template <typename T, typename A>
 static bool pointer_within(const T* ptr, const A& arr) {
-  return std::greater_equal<const T*>()(ptr, arr.data()) &&
-      std::less<const T*>()(ptr, arr.data() + arr.size());
+  return std::greater_equal<const T*>()(ptr, arr.data()) && std::less<const T*>()(ptr, arr.data() + arr.size());
 }
 
 static c10::StreamId NPUStream_getStreamId(const LeakyStreamInternals* ptr) {
@@ -211,18 +194,13 @@ static c10::StreamId NPUStream_getStreamId(const LeakyStreamInternals* ptr) {
     return makeStreamId(StreamIdType::DEFAULT, 0);
   }
   for (const auto p : c10::irange(kMaxStreamPriorities)) {
-    if (pointer_within<LeakyStreamInternals>(
-            ptr, npu_streams[p][device_index])) {
+    if (pointer_within<LeakyStreamInternals>(ptr, npu_streams[p][device_index])) {
       return makeStreamId(
-          StreamIdType(static_cast<uint8_t>(StreamIdType::NORMAL) + p),
-          ptr - npu_streams[p][device_index].data());
+          StreamIdType(static_cast<uint8_t>(StreamIdType::NORMAL) + p), ptr - npu_streams[p][device_index].data());
     }
   }
-  if (pointer_within<LeakyStreamInternals>(
-          ptr, sync_launch_streams[device_index])) {
-    return makeStreamId(
-        StreamIdType::SYNCLAUNCH,
-        ptr - sync_launch_streams[device_index].data());
+  if (pointer_within<LeakyStreamInternals>(ptr, sync_launch_streams[device_index])) {
+    return makeStreamId(StreamIdType::SYNCLAUNCH, ptr - sync_launch_streams[device_index].data());
   }
   if (ptr == &secondary_streams[device_index]) {
     return makeStreamId(StreamIdType::SECONDARY, 0);
@@ -256,28 +234,22 @@ static void initGlobalStreamState() {
   }
   // Initializes default streams
   default_streams[device_id].device_index = device_id;
-  default_streams[device_id].stream_id =
-      static_cast<int64_t>(makeStreamId(StreamIdType::DEFAULT, 0));
+  default_streams[device_id].stream_id = static_cast<int64_t>(makeStreamId(StreamIdType::DEFAULT, 0));
   for (const auto p : c10::irange(kMaxStreamPriorities)) {
     npu_counters[p][device_id] = 0;
   }
   auto& default_streamsi = default_streams[device_id];
-  NPU_CHECK_ERROR(acl::AclrtCreateStreamWithConfig(
-      &default_streamsi.stream,
-      0,
-      (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
+  NPU_CHECK_ERROR(
+      acl::AclrtCreateStreamWithConfig(&default_streamsi.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
   if (c10_npu::option::OptionsManager::GetTaskQueueEnable()) {
     default_streamsi.repo->InitRepo(device_id);
   }
   // Initializes secondary streams
   secondary_streams[device_id].device_index = device_id;
-  secondary_streams[device_id].stream_id =
-      static_cast<int64_t>(makeStreamId(StreamIdType::SECONDARY, 0));
+  secondary_streams[device_id].stream_id = static_cast<int64_t>(makeStreamId(StreamIdType::SECONDARY, 0));
   auto& secondary_streamsi = secondary_streams[device_id];
-  NPU_CHECK_ERROR(acl::AclrtCreateStreamWithConfig(
-      &secondary_streamsi.stream,
-      0,
-      (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
+  NPU_CHECK_ERROR(
+      acl::AclrtCreateStreamWithConfig(&secondary_streamsi.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
 }
 
 static void initDeviceStreamState(c10::DeviceIndex device_index, int p) {
@@ -289,13 +261,11 @@ static void initDeviceStreamState(c10::DeviceIndex device_index, int p) {
     auto& npu_streami = npu_streams[p][device_index][i];
 
     npu_streami.device_index = device_index;
-    npu_streami.stream_id = static_cast<int64_t>(makeStreamId(
-        StreamIdType(static_cast<uint8_t>(StreamIdType::NORMAL) + p), i));
+    npu_streami.stream_id =
+        static_cast<int64_t>(makeStreamId(StreamIdType(static_cast<uint8_t>(StreamIdType::NORMAL) + p), i));
 
-    NPU_CHECK_ERROR(acl::AclrtCreateStreamWithConfig(
-        &npu_streami.stream,
-        0,
-        (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
+    NPU_CHECK_ERROR(
+        acl::AclrtCreateStreamWithConfig(&npu_streami.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
   }
 }
 
@@ -374,11 +344,7 @@ LeakyStreamInternals* NPUStream_internals(NPUStream s) {
           s.unwrap(),
           PTA_ERROR(ErrCode::PARAM));
       auto* ptr = external_streams[device_index][ext_si].get();
-      TORCH_CHECK(
-          ptr != nullptr,
-          "Invalid external NPU stream ",
-          s.unwrap(),
-          PTA_ERROR(ErrCode::PARAM));
+      TORCH_CHECK(ptr != nullptr, "Invalid external NPU stream ", s.unwrap(), PTA_ERROR(ErrCode::PARAM));
       return ptr;
     }
     case StreamIdType::DEFAULT:
@@ -400,8 +366,7 @@ LeakyStreamInternals* NPUStream_internals(NPUStream s) {
       return &default_streams[device_index];
     case StreamIdType::NORMAL:
     case StreamIdType::HIGH: {
-      auto priority_idx =
-          static_cast<uint8_t>(st) - static_cast<uint8_t>(StreamIdType::NORMAL);
+      auto priority_idx = static_cast<uint8_t>(st) - static_cast<uint8_t>(StreamIdType::NORMAL);
       TORCH_CHECK(
           si < kStreamsPerPool,
           "Invalid stream index ",
@@ -540,11 +505,7 @@ NPUStream getStreamFromPool(const int priority, c10::DeviceIndex device_index) {
 
   auto pri_idx = std::clamp(-priority, 0, kMaxStreamPriorities - 1);
   // Initializes the stream pools (once)
-  std::call_once(
-      device_priority_flags[device_index][pri_idx],
-      initDeviceStreamState,
-      device_index,
-      pri_idx);
+  std::call_once(device_priority_flags[device_index][pri_idx], initDeviceStreamState, device_index, pri_idx);
   const auto idx = get_idx(npu_counters[pri_idx][device_index]);
   return NPUStream_fromInternals(&npu_streams[pri_idx][device_index][idx]);
 }
@@ -553,9 +514,7 @@ NPUStream getNPUStreamFromPool(c10::DeviceIndex device_index) {
   return getStreamFromPool(0, device_index);
 }
 
-NPUStream getStreamFromPool(
-    const bool isHighPriority,
-    c10::DeviceIndex device_index) {
+NPUStream getStreamFromPool(const bool isHighPriority, c10::DeviceIndex device_index) {
   initNPUStreamsOnce();
   int priority = isHighPriority ? -kMaxStreamPriorities + 1 : 0;
   return getStreamFromPool(priority, device_index);
@@ -569,13 +528,8 @@ NPUStream getDefaultNPUStream(c10::DeviceIndex device_index) {
   return NPUStream_fromInternals(&default_streams[device_index]);
 }
 
-NPUStream getStreamFromExternal(
-    aclrtStream stream,
-    c10::DeviceIndex device_index) {
-  TORCH_CHECK(
-      stream != nullptr,
-      "External NPU stream does not support nullptr.",
-      PTA_ERROR(ErrCode::PARAM));
+NPUStream getStreamFromExternal(aclrtStream stream, c10::DeviceIndex device_index) {
+  TORCH_CHECK(stream != nullptr, "External NPU stream does not support nullptr.", PTA_ERROR(ErrCode::PARAM));
   initNPUStreamsOnce();
   if (device_index == -1) {
     device_index = current_device();
@@ -596,8 +550,7 @@ NPUStream getStreamFromExternal(
     if (ptr == nullptr) {
       auto internals = std::make_unique<LeakyStreamInternals>();
       internals->device_index = device_index;
-      internals->stream_id =
-          static_cast<int64_t>(makeStreamId(StreamIdType::EXT, streams.size()));
+      internals->stream_id = static_cast<int64_t>(makeStreamId(StreamIdType::EXT, streams.size()));
       internals->stream = stream;
       internals->repo.reset();
       ptr = internals.get();
@@ -616,14 +569,11 @@ NPUStream getCurrentNPUStream(c10::DeviceIndex device_index) {
   return NPUStream_fromInternals(current_streams[device_index]);
 }
 
-NPUStream getNPUStreamFromManagedAclrtStream(
-    aclrtStream stream,
-    c10::DeviceIndex device_index) {
+NPUStream getNPUStreamFromManagedAclrtStream(aclrtStream stream, c10::DeviceIndex device_index) {
   initNPUStreamsOnce();
   TORCH_CHECK(stream != nullptr, "stream is nullptr", PTA_ERROR(ErrCode::PTR));
 
-  auto find_stream_in_device =
-      [stream](c10::DeviceIndex idx) -> const LeakyStreamInternals* {
+  auto find_stream_in_device = [stream](c10::DeviceIndex idx) -> const LeakyStreamInternals* {
     if (default_streams[idx].stream == stream) {
       return &default_streams[idx];
     }
@@ -660,16 +610,10 @@ NPUStream getNPUStreamFromManagedAclrtStream(
 
   if (device_index != -1) {
     TORCH_CHECK(
-        false,
-        "The aclrtStream is not managed by torch_npu on device ",
-        device_index,
-        PTA_ERROR(ErrCode::VALUE));
+        false, "The aclrtStream is not managed by torch_npu on device ", device_index, PTA_ERROR(ErrCode::VALUE));
   }
 
-  TORCH_CHECK(
-      false,
-      "The aclrtStream is not managed by torch_npu",
-      PTA_ERROR(ErrCode::VALUE));
+  TORCH_CHECK(false, "The aclrtStream is not managed by torch_npu", PTA_ERROR(ErrCode::VALUE));
 }
 
 NPUStream getCurrentSecondaryStream(c10::DeviceIndex device_index) {
@@ -698,8 +642,7 @@ NPUStatus emptyAllNPUStream(bool check_error) {
     if (default_streamsi.stream == nullptr) {
       continue;
     }
-    if (default_streamsi.stream != nullptr &&
-        default_streamsi.repo->CheckInit()) {
+    if (default_streamsi.stream != nullptr && default_streamsi.repo->CheckInit()) {
       ret = default_streamsi.repo->MakeSureQueueEmpty(check_error);
       if (ret != NPU_STATUS_SUCCESS) {
         return ret;
@@ -713,8 +656,7 @@ NPUStatus emptyAllNPUStream(bool check_error) {
       if (secondary_streamsi.stream == nullptr) {
         continue;
       }
-      if (secondary_streamsi.stream != nullptr &&
-          secondary_streamsi.repo->CheckInit()) {
+      if (secondary_streamsi.stream != nullptr && secondary_streamsi.repo->CheckInit()) {
         ret = secondary_streamsi.repo->MakeSureQueueEmpty(check_error);
         if (ret != NPU_STATUS_SUCCESS) {
           return ret;
@@ -723,8 +665,7 @@ NPUStatus emptyAllNPUStream(bool check_error) {
     }
 
     static int StreamsPerPool = GetStreamsPerPool();
-    for (auto device_index = decltype(num_npus){0}; device_index < num_npus;
-         ++device_index) {
+    for (auto device_index = decltype(num_npus){0}; device_index < num_npus; ++device_index) {
       for (auto i = decltype(StreamsPerPool){0}; i < StreamsPerPool; ++i) {
         for (const auto p : c10::irange(kMaxStreamPriorities)) {
           auto& npu_streami = npu_streams[p][device_index][i];
@@ -753,10 +694,8 @@ std::string getRepoInfo() {
     if (default_streamsi.stream == nullptr) {
       continue;
     }
-    if (default_streamsi.stream != nullptr &&
-        default_streamsi.repo->CheckInit()) {
-      repo_info << "device " << (int)i << ": "
-                << default_streamsi.repo->GetPara() << ". ";
+    if (default_streamsi.stream != nullptr && default_streamsi.repo->CheckInit()) {
+      repo_info << "device " << (int)i << ": " << default_streamsi.repo->GetPara() << ". ";
     }
   }
   return repo_info.str();
@@ -768,8 +707,7 @@ void setRepoErrMsg(const char* errmsg) {
     if (default_streamsi.stream == nullptr) {
       continue;
     }
-    if (default_streamsi.stream != nullptr &&
-        default_streamsi.repo->CheckInit()) {
+    if (default_streamsi.stream != nullptr && default_streamsi.repo->CheckInit()) {
       default_streamsi.repo->SetQueueErrMsg(errmsg);
     }
   }
@@ -800,8 +738,7 @@ bool npuSynchronizeDevice(bool check_error) {
   }
 #ifndef BUILD_LIBTORCH
   if (acl_ret == ACL_ERROR_NONE) {
-    const c10_npu::impl::PyCallbackTrigger* trigger =
-        c10_npu::impl::NPUTrace::getTrace();
+    const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
     if (C10_UNLIKELY(trigger)) {
       trigger->traceNpuDeviceSynchronization();
     }
@@ -832,17 +769,13 @@ bool npuSynchronizeUsedDevices(bool check_error) {
   return acl_ret == ACL_ERROR_NONE;
 }
 
-void enCurrentNPUStream(
-    void* cur_paras,
-    c10::DeviceIndex device_index,
-    NPUStream* task_stream) {
+void enCurrentNPUStream(void* cur_paras, c10::DeviceIndex device_index, NPUStream* task_stream) {
   initNPUStreamsOnce();
   if (device_index == -1) {
     device_index = current_device();
   }
   check_npu(device_index);
-  c10_npu::queue::QueueParas* queueParam =
-      static_cast<c10_npu::queue::QueueParas*>(cur_paras);
+  c10_npu::queue::QueueParas* queueParam = static_cast<c10_npu::queue::QueueParas*>(cur_paras);
   queueParam->correlation_id = c10_npu::queue::QueueParas::g_correlation_id++;
   queueParam->paramStream = current_streams[device_index]->stream;
   if (c10_npu::option::OptionsManager::GetPerStreamQueue()) {
@@ -877,8 +810,7 @@ void enCurrentNPUStream(
     default_streams[device_index].repo->Enqueue(cur_paras);
     if (default_streams[device_index].repo->GetStatus() == RepoStatus::INIT) {
       default_streams[device_index].repo->MakeSureQueueEmpty();
-      default_streams[device_index].repo->ChangeStatus(
-          RepoStatus::INIT, RepoStatus::RUN);
+      default_streams[device_index].repo->ChangeStatus(RepoStatus::INIT, RepoStatus::RUN);
     }
   }
 }
@@ -902,9 +834,7 @@ std::ostream& operator<<(std::ostream& stream, const NPUStream& s) {
 }
 
 NPUStream::NPUStream(c10::Stream stream) : stream_(stream) {
-  TORCH_CHECK(
-      stream_.device_type() == c10::DeviceType::PrivateUse1,
-      PTA_ERROR(ErrCode::TYPE));
+  TORCH_CHECK(stream_.device_type() == c10::DeviceType::PrivateUse1, PTA_ERROR(ErrCode::TYPE));
 }
 
 void NPUStream::setDataPreprocessStream(bool is_data_preprocess_stream) {
@@ -988,9 +918,7 @@ void checkNotExternalStream(const NPUStream& stream, const char* api_name) {
       PTA_ERROR(ErrCode::NOT_SUPPORT));
 }
 
-void checkCurrentStreamNotExternal(
-    c10::DeviceIndex device_index,
-    const char* api_name) {
+void checkCurrentStreamNotExternal(c10::DeviceIndex device_index, const char* api_name) {
   TORCH_CHECK(
       !isCurrentStreamExternal(device_index),
       "External NPU stream is not supported in ",
@@ -1008,16 +936,12 @@ void recovery_all_npu_streams(c10::DeviceIndex device_index) {
   NPUGuard device_guard{device_index};
   auto& default_streamsi = default_streams[device_index];
   default_streamsi.stream = nullptr;
-  NPU_CHECK_ERROR(acl::AclrtCreateStreamWithConfig(
-      &default_streamsi.stream,
-      0,
-      (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
+  NPU_CHECK_ERROR(
+      acl::AclrtCreateStreamWithConfig(&default_streamsi.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
   auto& secondary_streamsi = secondary_streams[device_index];
   secondary_streamsi.stream = nullptr;
-  NPU_CHECK_ERROR(acl::AclrtCreateStreamWithConfig(
-      &secondary_streamsi.stream,
-      0,
-      (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
+  NPU_CHECK_ERROR(
+      acl::AclrtCreateStreamWithConfig(&secondary_streamsi.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
   static int StreamsPerPool = GetStreamsPerPool();
   for (auto i = decltype(StreamsPerPool){0}; i < StreamsPerPool; ++i) {
     for (const auto p : c10::irange(kMaxStreamPriorities)) {
@@ -1025,10 +949,8 @@ void recovery_all_npu_streams(c10::DeviceIndex device_index) {
       if (npu_streami.stream == nullptr) {
         continue;
       }
-      NPU_CHECK_ERROR(acl::AclrtCreateStreamWithConfig(
-          &npu_streami.stream,
-          0,
-          (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
+      NPU_CHECK_ERROR(
+          acl::AclrtCreateStreamWithConfig(&npu_streami.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
     }
   }
 }
@@ -1040,11 +962,9 @@ static void initDeviceSyncLaunchStream(c10::DeviceIndex device_index) {
 
     sync_streami.device_index = device_index;
     sync_streami.is_sync_launch = true;
-    sync_streami.stream_id =
-        static_cast<int64_t>(makeStreamId(StreamIdType::SYNCLAUNCH, i));
+    sync_streami.stream_id = static_cast<int64_t>(makeStreamId(StreamIdType::SYNCLAUNCH, i));
 
-    NPU_CHECK_ERROR(acl::AclrtCreateStreamWithConfig(
-        &sync_streami.stream, 0, ACL_STREAM_FAST_SYNC));
+    NPU_CHECK_ERROR(acl::AclrtCreateStreamWithConfig(&sync_streami.stream, 0, ACL_STREAM_FAST_SYNC));
   }
 }
 
@@ -1057,21 +977,14 @@ NPUStream getNPUStreamFromSyncLaunchPool(c10::DeviceIndex device_index) {
   check_npu(device_index);
 
   // Initializes the stream pools once
-  std::call_once(
-      device_sync_launch_flags[device_index],
-      initDeviceSyncLaunchStream,
-      device_index);
+  std::call_once(device_sync_launch_flags[device_index], initDeviceSyncLaunchStream, device_index);
 
-  const auto idx =
-      get_sync_launch_stream_idx(sync_stream_counters[device_index]);
+  const auto idx = get_sync_launch_stream_idx(sync_stream_counters[device_index]);
   return NPUStream_fromInternals(&sync_launch_streams[device_index][idx]);
 }
 
 bool StreamInitFlag(c10::DeviceIndex device_index) {
-  ASCEND_LOGI(
-      "Device %d, Npu StreamInitFlag Check is %d",
-      device_index,
-      initialize_flag[device_index]);
+  ASCEND_LOGI("Device %d, Npu StreamInitFlag Check is %d", device_index, initialize_flag[device_index]);
   return initialize_flag[device_index];
 }
 

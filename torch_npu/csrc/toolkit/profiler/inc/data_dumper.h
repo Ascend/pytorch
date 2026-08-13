@@ -58,9 +58,7 @@ class TraceDataDumper : public Thread {
   void FlushTraceData();
   void FlushHashData();
   void FlushParamData();
-  void Dump(
-      const std::string& file_name,
-      const std::vector<uint8_t>& encode_data);
+  void Dump(const std::string& file_name, const std::vector<uint8_t>& encode_data);
   void Run();
 
  private:

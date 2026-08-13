@@ -12,10 +12,7 @@
 
 namespace torch_npu {
 namespace profiler {
-void markImpl(
-    const char* message,
-    const aclrtStream stream,
-    mstxDomainHandle_t domain) {
+void markImpl(const char* message, const aclrtStream stream, mstxDomainHandle_t domain) {
   if (domain == nullptr) {
     (void)at_npu::native::MstxMarkA(message, stream);
   } else {
@@ -23,16 +20,11 @@ void markImpl(
   }
 }
 
-void rangeStartImpl(
-    const char* message,
-    const aclrtStream stream,
-    int ptRangeId,
-    mstxDomainHandle_t domain) {
+void rangeStartImpl(const char* message, const aclrtStream stream, int ptRangeId, mstxDomainHandle_t domain) {
   if (domain == nullptr) {
     (void)at_npu::native::MstxRangeStartA(message, stream, ptRangeId);
   } else {
-    (void)at_npu::native::MstxDomainRangeStartA(
-        domain, message, stream, ptRangeId);
+    (void)at_npu::native::MstxDomainRangeStartA(domain, message, stream, ptRangeId);
   }
 }
 
@@ -44,16 +36,12 @@ void rangeEndImpl(int ptRangeId, mstxDomainHandle_t domain) {
   }
 }
 
-thread_local std::unordered_map<std::string, std::stack<int>>
-    MstxMgr::domainPushDepthStacks_ = {};
+thread_local std::unordered_map<std::string, std::stack<int>> MstxMgr::domainPushDepthStacks_ = {};
 thread_local bool MstxMgr::pushWithStream_ = false;
 
 MstxMgr::MstxMgr() {}
 
-void MstxMgr::mark(
-    const char* message,
-    const aclrtStream stream,
-    const char* domain) {
+void MstxMgr::mark(const char* message, const aclrtStream stream, const char* domain) {
   if (!isMstxEnable()) {
     return;
   }
@@ -66,19 +54,14 @@ void MstxMgr::mark(
     markImpl(message, nullptr, domainHandle);
     return;
   }
-  auto mark_call = [msg_ptr = std::make_shared<std::string>(message),
-                    stream,
-                    domainHandle]() -> int {
+  auto mark_call = [msg_ptr = std::make_shared<std::string>(message), stream, domainHandle]() -> int {
     markImpl(msg_ptr->c_str(), stream, domainHandle);
     return 0;
   };
   at_npu::native::OpCommand::RunOpApiV2("mstx_mark_op", mark_call);
 }
 
-int MstxMgr::rangePush(
-    const char* message,
-    const aclrtStream stream,
-    const char* domain) {
+int MstxMgr::rangePush(const char* message, const aclrtStream stream, const char* domain) {
   if (!isMstxEnable()) {
     return -1;
   }
@@ -98,10 +81,7 @@ int MstxMgr::rangePush(
     return ret;
   }
   pushWithStream_ = true;
-  auto range_push_call = [msg_ptr = std::make_shared<std::string>(message),
-                          stream,
-                          id,
-                          domainHandle]() -> int {
+  auto range_push_call = [msg_ptr = std::make_shared<std::string>(message), stream, id, domainHandle]() -> int {
     rangeStartImpl(msg_ptr->c_str(), stream, id, domainHandle);
     return 0;
   };
@@ -138,10 +118,7 @@ int MstxMgr::rangePop(const char* domain) {
   return ret;
 }
 
-int MstxMgr::rangeStart(
-    const char* message,
-    const aclrtStream stream,
-    const char* domain) {
+int MstxMgr::rangeStart(const char* message, const aclrtStream stream, const char* domain) {
   if (!isMstxEnable()) {
     return 0;
   }
@@ -159,15 +136,11 @@ int MstxMgr::rangeStart(
     std::lock_guard<std::mutex> lock(mtx_);
     ptRangeIdsWithStream_.insert(id);
   }
-  auto range_start_call = [msg_ptr = std::make_shared<std::string>(message),
-                           stream,
-                           id,
-                           domainHandle]() -> int {
+  auto range_start_call = [msg_ptr = std::make_shared<std::string>(message), stream, id, domainHandle]() -> int {
     rangeStartImpl(msg_ptr->c_str(), stream, id, domainHandle);
     return 0;
   };
-  at_npu::native::OpCommand::RunOpApiV2(
-      "mstx_range_start_op", range_start_call);
+  at_npu::native::OpCommand::RunOpApiV2("mstx_range_start_op", range_start_call);
   return id;
 }
 
@@ -234,9 +207,7 @@ void MstxMgr::destroyDomain(mstxDomainHandle_t domain) {
   at_npu::native::MstxDomainDestroy(domain);
 }
 
-mstxMemHeapHandle_t MstxMgr::memHeapRegister(
-    mstxDomainHandle_t domain,
-    mstxMemVirtualRangeDesc_t* desc) {
+mstxMemHeapHandle_t MstxMgr::memHeapRegister(mstxDomainHandle_t domain, mstxMemVirtualRangeDesc_t* desc) {
   if (!at_npu::native::IsSupportMstxFunc() || desc == nullptr) {
     return nullptr;
   }
@@ -249,13 +220,10 @@ void MstxMgr::memHeapUnregister(mstxDomainHandle_t domain, void* ptr) {
   if (!at_npu::native::IsSupportMstxFunc() || ptr == nullptr) {
     return;
   }
-  at_npu::native::MstxMemHeapUnregister(
-      domain, reinterpret_cast<mstxMemHeapHandle_t>(ptr));
+  at_npu::native::MstxMemHeapUnregister(domain, reinterpret_cast<mstxMemHeapHandle_t>(ptr));
 }
 
-void MstxMgr::memRegionsRegister(
-    mstxDomainHandle_t domain,
-    mstxMemVirtualRangeDesc_t* desc) {
+void MstxMgr::memRegionsRegister(mstxDomainHandle_t domain, mstxMemVirtualRangeDesc_t* desc) {
   if (!at_npu::native::IsSupportMstxFunc() || desc == nullptr) {
     return;
   }
@@ -294,8 +262,7 @@ bool MstxMgr::isMsleaksEnableImpl() {
   std::string path;
   while (std::getline(ss, path, ':')) {
     path = torch_npu::toolkit::profiler::Utils::RealPath(path);
-    if ((path.size() > soName.size()) &&
-        (path.substr(path.size() - soName.size()) == soName)) {
+    if ((path.size() > soName.size()) && (path.substr(path.size() - soName.size()) == soName)) {
       ret = true;
       break;
     }
@@ -304,8 +271,7 @@ bool MstxMgr::isMsleaksEnableImpl() {
 }
 
 bool MstxMgr::isProfTxEnable() {
-  return ProfilerMgr::GetInstance()->GetNpuTrace().load() &&
-      ProfilerMgr::GetInstance()->GetMsprofTx().load();
+  return ProfilerMgr::GetInstance()->GetNpuTrace().load() && ProfilerMgr::GetInstance()->GetMsprofTx().load();
 }
 
 bool MstxMgr::isMsptiTxEnableImpl() {
@@ -318,16 +284,14 @@ bool MstxMgr::isMsptiTxEnableImpl() {
     std::string path;
     while (std::getline(ss, path, ':')) {
       path = torch_npu::toolkit::profiler::Utils::RealPath(path);
-      if ((path.size() > soName.size()) &&
-          (path.substr(path.size() - soName.size()) == soName)) {
+      if ((path.size() > soName.size()) && (path.substr(path.size() - soName.size()) == soName)) {
         return true;
       }
     }
     return false;
   };
   static bool isMsptiSoInLdPreload = isSoInLdPreload("libmspti.so");
-  static bool isKernelHookSoInLdPreload =
-      isSoInLdPreload("libascend_kernel_hook.so");
+  static bool isKernelHookSoInLdPreload = isSoInLdPreload("libascend_kernel_hook.so");
   if (isMsptiSoInLdPreload && isKernelHookSoInLdPreload) {
     TORCH_NPU_WARN_ONCE(
         "Detected both libmspti.so and libascend_kernel_hook.so in LD_PRELOAD. "
@@ -339,8 +303,7 @@ bool MstxMgr::isMsptiTxEnableImpl() {
   if (isMsptiSoInLdPreload) {
     return true;
   }
-  return at_npu::native::IsSupportMsptiFunc() &&
-      at_npu::native::MsptiActivityIsEnabled(MSPTI_ACTIVITY_KIND_MARKER);
+  return at_npu::native::IsSupportMsptiFunc() && at_npu::native::MsptiActivityIsEnabled(MSPTI_ACTIVITY_KIND_MARKER);
 }
 
 bool MstxMgr::isMsptiTxEnable() {

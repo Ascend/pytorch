@@ -4,10 +4,7 @@ namespace torch_npu {
 
 static std::atomic<CapturedTraceback::Python*> python_support_ = nullptr;
 
-std::shared_ptr<CapturedTraceback> CapturedTraceback::gather(
-    bool python,
-    bool script,
-    bool cpp) {
+std::shared_ptr<CapturedTraceback> CapturedTraceback::gather(bool python, bool script, bool cpp) {
   auto r = std::make_shared<CapturedTraceback>();
   if (python) {
     auto p = python_support_.load();
@@ -50,20 +47,16 @@ struct PyFrameHash {
 };
 
 struct PyFrameEq {
-  std::size_t operator()(
-      const CapturedTraceback::PyFrame& lhs,
-      const CapturedTraceback::PyFrame& rhs) const {
+  std::size_t operator()(const CapturedTraceback::PyFrame& lhs, const CapturedTraceback::PyFrame& rhs) const {
     return lhs.code == rhs.code && lhs.lasti == rhs.lasti;
   }
 };
 
-SymbolizedTracebacks symbolize(
-    const std::vector<CapturedTraceback*>& to_symbolize) {
+SymbolizedTracebacks symbolize(const std::vector<CapturedTraceback*>& to_symbolize) {
   SymbolizedTracebacks r;
 
   std::unordered_map<void*, size_t> ip_to_frame_offset;
-  std::unordered_map<CapturedTraceback::PyFrame, size_t, PyFrameHash, PyFrameEq>
-      py_to_frame_offset;
+  std::unordered_map<CapturedTraceback::PyFrame, size_t, PyFrameHash, PyFrameEq> py_to_frame_offset;
   std::vector<void*> all_cpp_ips;
 
   // dedup and collect any C++ frames that need symbols for
@@ -108,8 +101,7 @@ SymbolizedTracebacks symbolize(
     cur_python->appendSymbolized(cur_py_frames, r);
     cur_py_frames.clear();
   }
-  std::vector<std::vector<uint64_t>> python_frame_fragments =
-      std::move(r.tracebacks);
+  std::vector<std::vector<uint64_t>> python_frame_fragments = std::move(r.tracebacks);
   r.tracebacks = {};
 
   for (const auto& sc : to_symbolize) {
@@ -120,10 +112,8 @@ SymbolizedTracebacks symbolize(
     bool jit_appended = false;
 
     auto append_python = [&](const CapturedTraceback::PyFrame& f) {
-      const auto& fragment =
-          python_frame_fragments.at(py_to_frame_offset.at(f));
-      r.tracebacks.back().insert(
-          r.tracebacks.back().end(), fragment.begin(), fragment.end());
+      const auto& fragment = python_frame_fragments.at(py_to_frame_offset.at(f));
+      r.tracebacks.back().insert(r.tracebacks.back().end(), fragment.begin(), fragment.end());
     };
 
     auto append_jit = [&]() {
@@ -133,8 +123,7 @@ SymbolizedTracebacks symbolize(
       jit_appended = true;
       for (const auto& f : sc->script_frames_) {
         torch::unwind::Frame frame;
-        frame.funcname =
-            f.filename; // sic: torchscript puts funcname in filename field
+        frame.funcname = f.filename; // sic: torchscript puts funcname in filename field
         auto flc = f.range.file_line_col();
         if (flc) {
           size_t col = 0;
@@ -155,9 +144,7 @@ SymbolizedTracebacks symbolize(
         if (py_it != py_end) {
           append_python(*py_it++);
         }
-      } else if (
-          uf.funcname.rfind("torch::jit::InterpreterStateImpl::run", 0) !=
-          std::string::npos) {
+      } else if (uf.funcname.rfind("torch::jit::InterpreterStateImpl::run", 0) != std::string::npos) {
         append_jit();
       }
       r.tracebacks.back().push_back(cpp_frame);

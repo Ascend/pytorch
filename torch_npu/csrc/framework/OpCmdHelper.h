@@ -18,13 +18,11 @@ class OpCmdHelper {
       const string& descName,
       const string& forceDataType = "");
 
-  static std::tuple<aclTensorDesc*, aclDataBuffer*>
-  CovertTensorWithZeroDimToAclInput(
+  static std::tuple<aclTensorDesc*, aclDataBuffer*> CovertTensorWithZeroDimToAclInput(
       const at::Tensor& tensor,
       at::ScalarType type);
 
-  static std::tuple<aclTensorDesc*, aclDataBuffer*>
-  CovertNPUTensorWithZeroDimToAclInput(
+  static std::tuple<aclTensorDesc*, aclDataBuffer*> CovertNPUTensorWithZeroDimToAclInput(
       const at::Tensor& tensor,
       const string& descName);
 

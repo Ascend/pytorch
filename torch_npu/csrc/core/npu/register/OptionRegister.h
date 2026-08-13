@@ -56,9 +56,7 @@ class OptionRegister {
   /**
       register
       */
-  void Register(
-      const std::string& name,
-      ::std::unique_ptr<OptionInterface>& ptr);
+  void Register(const std::string& name, ::std::unique_ptr<OptionInterface>& ptr);
   /**
       This API is used to store value to special key.
       */
@@ -71,8 +69,7 @@ class OptionRegister {
  private:
   OptionRegister() {}
   mutable std::mutex mu_;
-  mutable std::unordered_map<std::string, ::std::unique_ptr<OptionInterface>>
-      registry;
+  mutable std::unordered_map<std::string, ::std::unique_ptr<OptionInterface>> registry;
 };
 
 /**
@@ -103,30 +100,25 @@ c10::optional<std::string> GetOption(const std::string& key);
 
 #define TORCH_NPU_REGISTER_OPTION(name) REGISTER_OPTION_UNIQ(name, name, cli)
 
-#define REGISTER_OPTION(name)                                                                     \
-  _Pragma(                                                                                        \
-      "GCC warning \"'REGISTER_OPTION' is deprecated, use 'TORCH_NPU_REGISTER_OPTION' instead\"") \
+#define REGISTER_OPTION(name)                                                                         \
+  _Pragma("GCC warning \"'REGISTER_OPTION' is deprecated, use 'TORCH_NPU_REGISTER_OPTION' instead\"") \
       TORCH_NPU_REGISTER_OPTION(name)
 
 #define REGISTER_OPTION_INIT_BY_ENV(name) REGISTER_OPTION_UNIQ(name, name, env)
 
-#define REGISTER_OPTION_UNIQ(id, name, type)                       \
-  auto options_interface_##id =                                    \
-      ::std::unique_ptr<c10_npu::option::OptionInterface>(         \
-          new c10_npu::option::OptionInterface());                 \
-  static c10_npu::option::register_options::OptionInterfaceBuilder \
-      register_options_interface_##id(#name, options_interface_##id, #type);
+#define REGISTER_OPTION_UNIQ(id, name, type)                                                        \
+  auto options_interface_##id =                                                                     \
+      ::std::unique_ptr<c10_npu::option::OptionInterface>(new c10_npu::option::OptionInterface());  \
+  static c10_npu::option::register_options::OptionInterfaceBuilder register_options_interface_##id( \
+      #name, options_interface_##id, #type);
 
-#define REGISTER_OPTION_HOOK(name, ...) \
-  REGISTER_OPTION_HOOK_UNIQ(name, name, __VA_ARGS__)
+#define REGISTER_OPTION_HOOK(name, ...) REGISTER_OPTION_HOOK_UNIQ(name, name, __VA_ARGS__)
 
-#define REGISTER_OPTION_HOOK_UNIQ(id, name, ...)                   \
-  auto options_interface_##id =                                    \
-      ::std::unique_ptr<c10_npu::option::OptionInterface>(         \
-          new c10_npu::option::OptionInterface(                    \
-              c10_npu::option::OptionCallBack(__VA_ARGS__)));      \
-  static c10_npu::option::register_options::OptionInterfaceBuilder \
-      register_options_interface_##id(#name, options_interface_##id);
+#define REGISTER_OPTION_HOOK_UNIQ(id, name, ...)                                                    \
+  auto options_interface_##id = ::std::unique_ptr<c10_npu::option::OptionInterface>(                \
+      new c10_npu::option::OptionInterface(c10_npu::option::OptionCallBack(__VA_ARGS__)));          \
+  static c10_npu::option::register_options::OptionInterfaceBuilder register_options_interface_##id( \
+      #name, options_interface_##id);
 
 #define REGISTER_OPTION_BOOL_FUNCTION(func, key, defaultVal, trueVal) \
   bool func() {                                                       \
@@ -146,19 +138,18 @@ c10::optional<std::string> GetOption(const std::string& key);
     return false;                                                          \
   }
 
-#define REGISTER_OPTION_BOOL_FUNCTION_ALL_CASE(  \
-    func, key, defaultVal, falseVal, trueVal)    \
-  bool func() {                                  \
-    auto val = c10_npu::option::GetOption(#key); \
-    if (val.has_value()) {                       \
-      if (val.value() == (trueVal)) {            \
-        return true;                             \
-      }                                          \
-      if (val.value() == (falseVal)) {           \
-        return false;                            \
-      }                                          \
-    }                                            \
-    return (defaultVal) == (trueVal);            \
+#define REGISTER_OPTION_BOOL_FUNCTION_ALL_CASE(func, key, defaultVal, falseVal, trueVal) \
+  bool func() {                                                                          \
+    auto val = c10_npu::option::GetOption(#key);                                         \
+    if (val.has_value()) {                                                               \
+      if (val.value() == (trueVal)) {                                                    \
+        return true;                                                                     \
+      }                                                                                  \
+      if (val.value() == (falseVal)) {                                                   \
+        return false;                                                                    \
+      }                                                                                  \
+    }                                                                                    \
+    return (defaultVal) == (trueVal);                                                    \
   }
 
 #define REGISTER_OPTION_CACHE(type, valueName, ...)        \

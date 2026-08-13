@@ -25,14 +25,10 @@ namespace at_npu::native {
 bool ptr_exist(void* ptr);
 
 // the host memory is not allocated by malloc
-aclError process_unregistered_mem_location_type(
-    c10_npu::NPUStream stream,
-    aclrtMemcpyKind kind);
+aclError process_unregistered_mem_location_type(c10_npu::NPUStream stream, aclrtMemcpyKind kind);
 
 // the host memory is allocated by aclrtMallocHost or malloc and register
-void process_host_mem_location_type(
-    const c10::Storage& storage,
-    c10_npu::NPUStream stream);
+void process_host_mem_location_type(const c10::Storage& storage, c10_npu::NPUStream stream);
 
 // process non_blocking copy between host and device
 void process_non_blocking_copy(
@@ -45,12 +41,8 @@ inline TORCH_NPU_API c10::Allocator* getCachingHostAllocator() {
   return at::getHostAllocator(at::kPrivateUse1);
 }
 
-inline TORCH_NPU_API bool CachingHostAllocator_recordEvent(
-    void* ptr,
-    void* ctx,
-    c10_npu::NPUStream stream) {
-  return at::getHostAllocator(at::kPrivateUse1)
-      ->record_event(ptr, ctx, stream.unwrap());
+inline TORCH_NPU_API bool CachingHostAllocator_recordEvent(void* ptr, void* ctx, c10_npu::NPUStream stream) {
+  return at::getHostAllocator(at::kPrivateUse1)->record_event(ptr, ctx, stream.unwrap());
 }
 
 // Releases cached pinned memory allocations via npuHostFree
@@ -68,11 +60,9 @@ inline TORCH_NPU_API bool CachingHostAllocator_isPinned(void* ptr) {
     }
     at::OptionalDeviceGuard device_guard;
     if (at_npu::native::env::CheckCompatibleImpl()) {
-      auto primary_ctx_device_index =
-          c10_npu::getDeviceIndexWithPrimaryContext();
+      auto primary_ctx_device_index = c10_npu::getDeviceIndexWithPrimaryContext();
       if (primary_ctx_device_index.has_value()) {
-        device_guard.reset_device(
-            at::Device(at::DeviceType::PrivateUse1, *primary_ctx_device_index));
+        device_guard.reset_device(at::Device(at::DeviceType::PrivateUse1, *primary_ctx_device_index));
       }
     } else {
       if (c10_npu::GetLocalDevice() < 0) {
@@ -80,9 +70,7 @@ inline TORCH_NPU_API bool CachingHostAllocator_isPinned(void* ptr) {
       }
     }
     aclrtPtrAttributes attributes;
-    NPU_CHECK_ERROR(
-        c10_npu::acl::AclrtPointerGetAttributes(ptr, &attributes),
-        "aclrtPointerGetAttributes");
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtPointerGetAttributes(ptr, &attributes), "aclrtPointerGetAttributes");
     return ACL_MEM_LOCATION_TYPE_HOST == attributes.location.type;
   }
   return at_npu::native::ptr_exist(ptr);

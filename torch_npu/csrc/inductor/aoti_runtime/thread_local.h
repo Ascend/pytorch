@@ -130,11 +130,7 @@ template <typename T>
 struct ThreadLocalCachedOutputArray<ArrayRefTensor<T>> {
   explicit ThreadLocalCachedOutputArray(const ArrayRefTensor<T>& t) {}
 
-  template <
-      typename U,
-      std::enable_if_t<
-          std::is_same_v<std::remove_const_t<T>, std::remove_const_t<U>>,
-          bool> = true>
+  template <typename U, std::enable_if_t<std::is_same_v<std::remove_const_t<T>, std::remove_const_t<U>>, bool> = true>
   ArrayRefTensor<T> arrayref_tensor() const {
     return tensor_;
   }

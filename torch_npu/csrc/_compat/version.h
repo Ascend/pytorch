@@ -11,8 +11,7 @@
 //
 // Bump MIN_SUPPORTED when dropping old version support.
 #define TORCH_NPU_VERSION_GE(MAJOR, MINOR) \
-  (TORCH_VERSION_MAJOR > (MAJOR) ||        \
-   (TORCH_VERSION_MAJOR == (MAJOR) && TORCH_VERSION_MINOR >= (MINOR)))
+  (TORCH_VERSION_MAJOR > (MAJOR) || (TORCH_VERSION_MAJOR == (MAJOR) && TORCH_VERSION_MINOR >= (MINOR)))
 
 // Keep in sync with MIN_SUPPORTED_VERSION in torch_npu/_compat/version.py.
 #define TORCH_NPU_MIN_SUPPORTED_MAJOR 2

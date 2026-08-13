@@ -11,11 +11,7 @@ namespace autocast {
 static PyObject* set_autocast_enabled(PyObject* _unused, PyObject* arg) {
   HANDLE_TH_ERRORS
   TORCH_CHECK_TYPE(
-      PyBool_Check(arg),
-      "enabled must be a bool (got ",
-      Py_TYPE(arg)->tp_name,
-      ")",
-      PTA_ERROR(ErrCode::TYPE));
+      PyBool_Check(arg), "enabled must be a bool (got ", Py_TYPE(arg)->tp_name, ")", PTA_ERROR(ErrCode::TYPE));
   at::autocast::set_autocast_enabled(at::kPrivateUse1, arg == Py_True);
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
@@ -34,11 +30,7 @@ static PyObject* is_autocast_enabled(PyObject* _unused, PyObject* arg) {
 static PyObject* set_autocast_dtype(PyObject* _unused, PyObject* arg) {
   HANDLE_TH_ERRORS
   TORCH_CHECK_TYPE(
-      THPDtype_Check(arg),
-      "dtype must be a torch.dtype (got ",
-      Py_TYPE(arg)->tp_name,
-      ")",
-      PTA_ERROR(ErrCode::TYPE));
+      THPDtype_Check(arg), "dtype must be a torch.dtype (got ", Py_TYPE(arg)->tp_name, ")", PTA_ERROR(ErrCode::TYPE));
   at::ScalarType targetType = reinterpret_cast<THPDtype*>(arg)->scalar_type;
   at::autocast::set_autocast_dtype(at::kPrivateUse1, targetType);
   Py_RETURN_NONE;
@@ -47,8 +39,7 @@ static PyObject* set_autocast_dtype(PyObject* _unused, PyObject* arg) {
 
 static PyObject* get_autocast_dtype(PyObject* _unused, PyObject* arg) {
   HANDLE_TH_ERRORS
-  at::ScalarType current_dtype =
-      at::autocast::get_autocast_dtype(at::kPrivateUse1);
+  at::ScalarType current_dtype = at::autocast::get_autocast_dtype(at::kPrivateUse1);
   auto dtype = (PyObject*)torch::getTHPDtype(current_dtype);
   Py_INCREF(dtype);
   return dtype;

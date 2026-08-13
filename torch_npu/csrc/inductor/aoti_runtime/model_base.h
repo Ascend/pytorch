@@ -42,8 +42,7 @@ int dladdr(const void* addr, Dl_info* info) {
 
   HMODULE hModule;
   if (!GetModuleHandleExA(
-          GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
-              GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+          GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
           (LPCSTR)addr,
           &hModule) ||
       hModule == NULL)
@@ -132,14 +131,8 @@ int open(char* pathname, int flags) {
     dwFlagsAndAttributes |= FILE_FLAG_RANDOM_ACCESS;
   }
 
-  HANDLE hFile = CreateFileA(
-      pathname,
-      dwDesiredAccess,
-      dwShareMode,
-      NULL,
-      dwCreationDisposition,
-      dwFlagsAndAttributes,
-      NULL);
+  HANDLE hFile =
+      CreateFileA(pathname, dwDesiredAccess, dwShareMode, NULL, dwCreationDisposition, dwFlagsAndAttributes, NULL);
 
   if (hFile == INVALID_HANDLE_VALUE) {
     switch (GetLastError()) {
@@ -187,13 +180,7 @@ int close(int fd) {
   return _close(fd);
 }
 
-void* mmap(
-    void* addr,
-    size_t length,
-    int prot,
-    int flags,
-    int fd,
-    off_t offset) {
+void* mmap(void* addr, size_t length, int prot, int flags, int fd, off_t offset) {
   HANDLE hFile = (HANDLE)_get_osfhandle(fd);
   if (hFile == INVALID_HANDLE_VALUE) {
     errno = EBADF;
@@ -230,8 +217,7 @@ void* mmap(
   DWORD dwFileMapSize = offset + length;
   int iViewDelta = offset - dwFileMapStart;
 
-  HANDLE hMapping =
-      CreateFileMapping(hFile, NULL, flProtect, 0, dwFileMapSize, NULL);
+  HANDLE hMapping = CreateFileMapping(hFile, NULL, flProtect, 0, dwFileMapSize, NULL);
 
   if (!hMapping) {
     DWORD dwErrCode = GetLastError();
@@ -239,8 +225,7 @@ void* mmap(
     return MAP_FAILED;
   }
 
-  void* lpMapAddress = MapViewOfFileEx(
-      hMapping, dwDesiredAccess, 0, dwFileMapStart, dwMapViewSize, addr);
+  void* lpMapAddress = MapViewOfFileEx(hMapping, dwDesiredAccess, 0, dwFileMapStart, dwMapViewSize, addr);
   if (!lpMapAddress) {
     DWORD dwErrCode = GetLastError();
     errno = EINVAL;
@@ -349,12 +334,8 @@ using torch::aot_inductor::RAIIAtenTensorHandle;
 RAIIDataPtr RAII_npuMalloc(size_t num_bytes) {
 #ifdef AOT_INDUCTOR_USE_CACHING_ALLOCATOR
   void* data_ptr = nullptr;
-  AOTI_TORCH_ERROR_CODE_CHECK(
-      aoti_torch_npu_caching_allocator_raw_alloc(num_bytes, &data_ptr));
-  auto deleter = [](void* ptr) {
-    AOTI_TORCH_ERROR_CODE_CHECK(
-        aoti_torch_npu_caching_allocator_raw_delete(ptr));
-  };
+  AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_npu_caching_allocator_raw_alloc(num_bytes, &data_ptr));
+  auto deleter = [](void* ptr) { AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_npu_caching_allocator_raw_delete(ptr)); };
   return RAIIDataPtr(data_ptr, deleter);
 #else
   void* data_ptr;
@@ -363,8 +344,7 @@ RAIIDataPtr RAII_npuMalloc(size_t num_bytes) {
   size_t padding_bytes = 32;
   if (num_bytes == 0)
     num_bytes = padding_bytes;
-  AOTI_RUNTIME_DEVICE_CHECK(
-      aclrtMalloc((void**)&data_ptr, num_bytes, ACL_MEM_MALLOC_HUGE_FIRST));
+  AOTI_RUNTIME_DEVICE_CHECK(aclrtMalloc((void**)&data_ptr, num_bytes, ACL_MEM_MALLOC_HUGE_FIRST));
   auto deleter = [](void* ptr) { AOTI_RUNTIME_DEVICE_CHECK(aclrtFree(ptr)); };
   return RAIIDataPtr(data_ptr, deleter);
 #endif
@@ -391,13 +371,11 @@ inline std::atomic<int>& pinnedAsyncConstantsCopySetting() {
 }
 
 inline void setUsePinnedAsyncConstantsCopy(bool enabled) {
-  pinnedAsyncConstantsCopySetting().store(
-      enabled ? 1 : 0, std::memory_order_relaxed);
+  pinnedAsyncConstantsCopySetting().store(enabled ? 1 : 0, std::memory_order_relaxed);
 }
 
 inline bool usePinnedAsyncConstantsCopy() {
-  const int setting =
-      pinnedAsyncConstantsCopySetting().load(std::memory_order_relaxed);
+  const int setting = pinnedAsyncConstantsCopySetting().load(std::memory_order_relaxed);
   if (setting != -1) {
     return setting == 1;
   }
@@ -411,24 +389,18 @@ inline std::atomic<size_t>& pinnedAsyncConstantsCopyStageBufferBytesSetting() {
 }
 
 inline void setPinnedAsyncConstantsCopyStageBufferBytes(size_t bytes) {
-  pinnedAsyncConstantsCopyStageBufferBytesSetting().store(
-      bytes, std::memory_order_relaxed);
+  pinnedAsyncConstantsCopyStageBufferBytesSetting().store(bytes, std::memory_order_relaxed);
 }
 
 inline size_t pinnedAsyncConstantsCopyStageBufferBytes() {
-  return pinnedAsyncConstantsCopyStageBufferBytesSetting().load(
-      std::memory_order_relaxed);
+  return pinnedAsyncConstantsCopyStageBufferBytesSetting().load(std::memory_order_relaxed);
 }
 
-using ConstantMap =
-    std::unordered_map<std::string, MaybeOwningAtenTensorHandle>;
+using ConstantMap = std::unordered_map<std::string, MaybeOwningAtenTensorHandle>;
 
 // valid device strs are: cpu, npu, npu:0, npu:1, ...
 // Update the list here if more devices are supported in the future
-inline void parse_device_str(
-    const std::string& device_str,
-    int32_t& device_type,
-    int32_t& device_idx) {
+inline void parse_device_str(const std::string& device_str, int32_t& device_type, int32_t& device_idx) {
   if (device_str.empty()) {
     AOTI_RUNTIME_CHECK(false, "Invalid device: " + device_str);
   }
@@ -510,9 +482,7 @@ class AOTInductorModelBase {
     if (run_finished_) {
       auto code = aclrtDestroyEvent(*run_finished_);
       if (code != ACL_SUCCESS) {
-        std::cerr
-            << "Failed to destroy NPU event in AOTInductor model error code: "
-            << code << std::endl;
+        std::cerr << "Failed to destroy NPU event in AOTInductor model error code: " << code << std::endl;
       }
     }
 #endif // USE_NPU
@@ -530,20 +500,18 @@ class AOTInductorModelBase {
     }
 
     DeviceStreamType current_stream = nullptr;
-    AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_get_current_npu_stream(
-        device_idx_, reinterpret_cast<void**>(&current_stream)));
+    AOTI_TORCH_ERROR_CODE_CHECK(
+        aoti_torch_get_current_npu_stream(device_idx_, reinterpret_cast<void**>(&current_stream)));
     return current_stream;
   }
 #endif
 
   void run(
-      AtenTensorHandle*
-          input_handles, // array of input AtenTensorHandle; handles
-                         // are stolen; the array itself is borrowed
-      AtenTensorHandle*
-          output_handles, // array for writing output AtenTensorHandle; handles
-                          // will be stolen by the caller; the array itself is
-                          // borrowed
+      AtenTensorHandle* input_handles, // array of input AtenTensorHandle; handles
+                                       // are stolen; the array itself is borrowed
+      AtenTensorHandle* output_handles, // array for writing output AtenTensorHandle; handles
+                                        // will be stolen by the caller; the array itself is
+                                        // borrowed
       DeviceStreamType stream,
       AOTIProxyExecutorHandle proxy_executor) {
 #if defined(USE_NPU)
@@ -571,13 +539,11 @@ class AOTInductorModelBase {
   // Non-thread-aware variant of run(). Obviously unsafe to use in a threaded
   // environment :)
   void run_single_threaded(
-      AtenTensorHandle*
-          input_handles, // array of input AtenTensorHandle; handles
-                         // are stolen; the array itself is borrowed
-      AtenTensorHandle*
-          output_handles, // array for writing output AtenTensorHandle; handles
-                          // will be stolen by the caller; the array itself is
-                          // borrowed
+      AtenTensorHandle* input_handles, // array of input AtenTensorHandle; handles
+                                       // are stolen; the array itself is borrowed
+      AtenTensorHandle* output_handles, // array for writing output AtenTensorHandle; handles
+                                        // will be stolen by the caller; the array itself is
+                                        // borrowed
       DeviceStreamType stream,
       AOTIProxyExecutorHandle proxy_executor) {
     // don't bother with any of the run_finished stuff; this is unsafe to call
@@ -607,8 +573,7 @@ class AOTInductorModelBase {
     run_finished_ = false;
 #endif
     auto* model = static_cast<Model*>(this);
-    auto folded_constants =
-        model->const_run_impl(run_stream, proxy_executor, initialization);
+    auto folded_constants = model->const_run_impl(run_stream, proxy_executor, initialization);
 
 #ifdef USE_NPU
     AOTI_RUNTIME_DEVICE_CHECK(aclrtRecordEvent(*run_finished_, run_stream));
@@ -638,17 +603,11 @@ class AOTInductorModelBase {
 
     // A NPU model can still have constants on CPU,
     // so we need a separate secondary blob for them.
-    std::vector<size_t> constants_internal_offset(
-        num_constants - num_folded_constants);
-    std::vector<size_t> aux_cpu_constants_internal_offset(
-        num_constants - num_folded_constants);
+    std::vector<size_t> constants_internal_offset(num_constants - num_folded_constants);
+    std::vector<size_t> aux_cpu_constants_internal_offset(num_constants - num_folded_constants);
     size_t blob_size = 0;
     size_t aux_cpu_blob_size = 0;
-    compute_constant_blob(
-        blob_size,
-        constants_internal_offset,
-        aux_cpu_blob_size,
-        aux_cpu_constants_internal_offset);
+    compute_constant_blob(blob_size, constants_internal_offset, aux_cpu_blob_size, aux_cpu_constants_internal_offset);
 
     if (!force && !include_weights) {
       return;
@@ -673,9 +632,7 @@ class AOTInductorModelBase {
     size_t aux_cpu_blob_idx = 0;
 
     auto _copy_start = std::chrono::steady_clock::now();
-    AOTI_LOG_LOADING(
-        "load_constants: starting H2D copy of " << num_constants
-                                                << " constants");
+    AOTI_LOG_LOADING("load_constants: starting H2D copy of " << num_constants << " constants");
 
     for (size_t i = 0; i < num_constants; i++) {
       bool from_folded = this->constant_from_folded(i);
@@ -691,8 +648,7 @@ class AOTInductorModelBase {
       // CPU. If a constant was compiled for a non-CPU device but we're loading
       // on a different device, we cannot safely create the tensor.
       AOTI_RUNTIME_CHECK(
-          device_type_matches ||
-              const_device_type == aoti_torch_device_type_cpu(),
+          device_type_matches || const_device_type == aoti_torch_device_type_cpu(),
           "Mixed-device constants are only supported when the secondary "
           "device is CPU. Constant '" +
               name +
@@ -710,10 +666,8 @@ class AOTInductorModelBase {
               data_size,
               /* skip_copy = */ false);
         } else {
-          auto* aux_cpu_constants_ptr =
-              static_cast<uint8_t*>(aux_cpu_constant_blob_.get());
-          internal_ptr = aux_cpu_constants_ptr +
-              aux_cpu_constants_internal_offset[aux_cpu_blob_idx];
+          auto* aux_cpu_constants_ptr = static_cast<uint8_t*>(aux_cpu_constant_blob_.get());
+          internal_ptr = aux_cpu_constants_ptr + aux_cpu_constants_internal_offset[aux_cpu_blob_idx];
           memcpy(internal_ptr, _get_constants_start() + bytes_read, data_size);
         }
       }
@@ -756,11 +710,9 @@ class AOTInductorModelBase {
           opaque_metadata_size));
       constants_map_->emplace(std::move(name), tensor_handle);
     }
-    auto _copy_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                        std::chrono::steady_clock::now() - _copy_start)
-                        .count();
-    AOTI_LOG_LOADING(
-        "load_constants: H2D copy completed in " << _copy_ms << " ms");
+    auto _copy_ms =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - _copy_start).count();
+    AOTI_LOG_LOADING("load_constants: H2D copy completed in " << _copy_ms << " ms");
     if (constants_map_) {
       this->update_constants_array_from_map();
     }
@@ -786,22 +738,14 @@ class AOTInductorModelBase {
     return device_idx_;
   }
 
-  uint8_t* constant_ptr(
-      size_t constant_offset,
-      size_t bytes_read,
-      size_t data_size,
-      bool skip_copy) {
+  uint8_t* constant_ptr(size_t constant_offset, size_t bytes_read, size_t data_size, bool skip_copy) {
     auto* constants_ptr = static_cast<uint8_t*>(constant_blob_.get());
     uint8_t* internal_ptr = constants_ptr + constant_offset;
     // TODO: Handle shared storage case.
     if (!skip_copy) {
 #if defined(USE_NPU)
       AOTI_RUNTIME_DEVICE_CHECK(aclrtMemcpy(
-          internal_ptr,
-          data_size,
-          _get_constants_start() + bytes_read,
-          data_size,
-          ACL_MEMCPY_HOST_TO_DEVICE));
+          internal_ptr, data_size, _get_constants_start() + bytes_read, data_size, ACL_MEMCPY_HOST_TO_DEVICE));
 #else
       memcpy(internal_ptr, _get_constants_start() + bytes_read, data_size);
 #endif
@@ -828,8 +772,7 @@ class AOTInductorModelBase {
       size_t data_size = this->constant_data_size(i);
       // ok to use same AOTI_CONST_ALIGNMENT for both main and auxiliary blobs
       if (data_size % AOTI_CONST_ALIGNMENT) {
-        data_size = AOTI_CONST_ALIGNMENT +
-            (data_size / AOTI_CONST_ALIGNMENT) * AOTI_CONST_ALIGNMENT;
+        data_size = AOTI_CONST_ALIGNMENT + (data_size / AOTI_CONST_ALIGNMENT) * AOTI_CONST_ALIGNMENT;
       }
 
       if (this->constant_device_type(i) == device_type_) {
@@ -939,23 +882,19 @@ class AOTInductorModelBase {
 
   uint64_t constant_blob_size() const {
 #if defined(USE_MMAP_SELF) || defined(USE_MMAP_EXTERNAL)
-    const uint64_t weights_size =
-        reinterpret_cast<const uint64_t*>(_binary_constants_bin_start)[0];
+    const uint64_t weights_size = reinterpret_cast<const uint64_t*>(_binary_constants_bin_start)[0];
     return weights_size;
 #else
-    throw std::runtime_error{
-        "constant blob size is only available for mmap'd weights"};
+    throw std::runtime_error{"constant blob size is only available for mmap'd weights"};
 #endif
   }
 
   void update_constants_array_from_map() {
     if (!constants_map_) {
-      throw std::runtime_error{
-          "constants_map_ was not ready when constants_ is trying to be constructed from it!"};
+      throw std::runtime_error{"constants_map_ was not ready when constants_ is trying to be constructed from it!"};
     }
     if (!constants_) {
-      constants_ =
-          std::make_shared<std::vector<ConstantHandle>>(constants_info_.size());
+      constants_ = std::make_shared<std::vector<ConstantHandle>>(constants_info_.size());
     } else {
       constants_->resize(constants_info_.size());
     }
@@ -969,9 +908,7 @@ class AOTInductorModelBase {
     }
   }
 
-  void update_constants_map(
-      std::shared_ptr<ConstantMap> constants_map,
-      bool remap_constants_array = true) {
+  void update_constants_map(std::shared_ptr<ConstantMap> constants_map, bool remap_constants_array = true) {
     constants_map_ = std::move(constants_map);
     if (remap_constants_array) {
       update_constants_array_from_map();
@@ -980,8 +917,7 @@ class AOTInductorModelBase {
 
   // This function allows us to update the constants_ that is used to look up
   // the corresponding constant tensor during runtime.
-  void update_constants_array(
-      std::shared_ptr<std::vector<ConstantHandle>> constants_array) {
+  void update_constants_array(std::shared_ptr<std::vector<ConstantHandle>> constants_array) {
     constants_ = std::move(constants_array);
   }
 
@@ -992,8 +928,7 @@ class AOTInductorModelBase {
       throw std::runtime_error{"Model NPU event was not initialized"};
     }
     aclrtEventRecordedStatus recordStatus = ACL_EVENT_RECORDED_STATUS_NOT_READY;
-    AOTI_RUNTIME_DEVICE_CHECK(
-        aclrtQueryEventStatus(*run_finished_, &recordStatus));
+    AOTI_RUNTIME_DEVICE_CHECK(aclrtQueryEventStatus(*run_finished_, &recordStatus));
 
     if (recordStatus == ACL_EVENT_RECORDED_STATUS_COMPLETE) {
       return true;
@@ -1028,8 +963,7 @@ class AOTInductorModelBase {
     }
     Dl_info dl_info;
     // get pointer to constant which are appended to the binary
-    AOTI_RUNTIME_CHECK(
-        dladdr(__func__, &dl_info), "Can't find shared library name");
+    AOTI_RUNTIME_CHECK(dladdr(__func__, &dl_info), "Can't find shared library name");
     int fd = open(dl_info.dli_fname, O_RDONLY);
     AOTI_RUNTIME_CHECK(fd >= 0, "Shared library file cannot be opened");
 #ifdef _WIN32
@@ -1037,33 +971,19 @@ class AOTInductorModelBase {
 #else
     auto seek_result = lseek(fd, 0, SEEK_END);
 #endif
-    AOTI_RUNTIME_CHECK(
-        seek_result >= 0, "Failed to seek to end of shared library file");
-    auto weights_size =
-        reinterpret_cast<const uint64_t*>(_binary_constants_bin_start)[0];
-    auto magic_number =
-        reinterpret_cast<const uint64_t*>(_binary_constants_bin_start)[1];
+    AOTI_RUNTIME_CHECK(seek_result >= 0, "Failed to seek to end of shared library file");
+    auto weights_size = reinterpret_cast<const uint64_t*>(_binary_constants_bin_start)[0];
+    auto magic_number = reinterpret_cast<const uint64_t*>(_binary_constants_bin_start)[1];
     uint64_t fsize = static_cast<uint64_t>(seek_result);
-    AOTI_RUNTIME_CHECK(
-        fsize >= weights_size,
-        "Shared library file is smaller than embedded weights size");
+    AOTI_RUNTIME_CHECK(fsize >= weights_size, "Shared library file is smaller than embedded weights size");
     auto weights_offset = fsize - weights_size;
-    AOTI_RUNTIME_CHECK(
-        (weights_offset & 0x3fff) == 0,
-        "weights_offset must be aligned to 16K boundary");
-    auto ptr = mmap(
-        NULL,
-        weights_size,
-        PROT_READ | PROT_WRITE,
-        MAP_PRIVATE,
-        fd,
-        weights_offset);
+    AOTI_RUNTIME_CHECK((weights_offset & 0x3fff) == 0, "weights_offset must be aligned to 16K boundary");
+    auto ptr = mmap(NULL, weights_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, weights_offset);
     close(fd);
     AOTI_RUNTIME_CHECK(ptr != MAP_FAILED, "mmap() failed");
     self_mmap = static_cast<uint8_t*>(ptr);
     AOTI_RUNTIME_CHECK(
-        reinterpret_cast<uint64_t*>(
-            self_mmap + weights_size - sizeof(uint64_t))[0] == magic_number,
+        reinterpret_cast<uint64_t*>(self_mmap + weights_size - sizeof(uint64_t))[0] == magic_number,
         "Weights data seems corrupt");
     return self_mmap;
 #endif

@@ -22,15 +22,12 @@ namespace at_npu {
 namespace autograd {
 namespace VariableType {
 
-std::vector<at::DeprecatedTypeProperties*> allTypesForBackends(
-    at::ArrayRef<at::Backend> backends) {
+std::vector<at::DeprecatedTypeProperties*> allTypesForBackends(at::ArrayRef<at::Backend> backends) {
   std::vector<DeprecatedTypeProperties*> res;
   res.reserve(backends.size());
   for (auto p : backends) {
-    for (const auto s :
-         c10::irange(static_cast<int64_t>(ScalarType::NumOptions))) {
-      auto& type = getDeprecatedTypeProperties(
-          static_cast<Backend>(p), static_cast<ScalarType>(s));
+    for (const auto s : c10::irange(static_cast<int64_t>(ScalarType::NumOptions))) {
+      auto& type = getDeprecatedTypeProperties(static_cast<Backend>(p), static_cast<ScalarType>(s));
       res.emplace_back(&type);
     }
   }
@@ -42,10 +39,7 @@ C10_EXPORT std::vector<at::DeprecatedTypeProperties*> allCPUTypes() {
 }
 
 namespace {
-const Variable& checked_cast_variable(
-    const Tensor& t,
-    const char* name,
-    int pos) {
+const Variable& checked_cast_variable(const Tensor& t, const char* name, int pos) {
   if (!t.defined()) {
     AT_ERROR(
         "Expected a proper Tensor but got None (or an undefined Tensor in C++) ",
@@ -114,8 +108,7 @@ Tensor _fw_primal(c10::DispatchKeySet ks, const Tensor& self, int64_t level) {
 
   auto result = ([&]() {
     at::AutoDispatchBelowAutograd guard;
-    return at::redispatch::_fw_primal(
-        ks & c10::after_autograd_keyset, self_, level);
+    return at::redispatch::_fw_primal(ks & c10::after_autograd_keyset, self_, level);
   })();
 
   if (grad_fn) {
@@ -124,10 +117,7 @@ Tensor _fw_primal(c10::DispatchKeySet ks, const Tensor& self, int64_t level) {
   if (isFwGradDefined(self)) {
     // Modified from original codegen
     // We explicitly want to ignore the forward grad at the given level
-    TORCH_CHECK(
-        level == 0,
-        "Invalid level given to _fw_primal",
-        OPS_ERROR(ErrCode::VALUE));
+    TORCH_CHECK(level == 0, "Invalid level given to _fw_primal", OPS_ERROR(ErrCode::VALUE));
     // End modified from original codegen
   }
   return result;

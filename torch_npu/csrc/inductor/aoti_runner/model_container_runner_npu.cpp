@@ -9,12 +9,7 @@ AOTIModelContainerRunnerNpu::AOTIModelContainerRunnerNpu(
     const std::string& device_str,
     const std::string& cubin_dir,
     const bool run_single_threaded)
-    : AOTIModelContainerRunner(
-          model_so_path,
-          num_models,
-          device_str,
-          cubin_dir,
-          run_single_threaded) {}
+    : AOTIModelContainerRunner(model_so_path, num_models, device_str, cubin_dir, run_single_threaded) {}
 
 AOTIModelContainerRunnerNpu::~AOTIModelContainerRunnerNpu() = default;
 
@@ -26,8 +21,7 @@ std::vector<at::Tensor> AOTIModelContainerRunnerNpu::run_impl(
     c10_npu::NPUStream npu_stream = c10_npu::getCurrentNPUStream();
     effective_stream_handle = reinterpret_cast<void*>(npu_stream.stream());
   }
-  return AOTIModelContainerRunner::run_impl(
-      input_handles, effective_stream_handle);
+  return AOTIModelContainerRunner::run_impl(input_handles, effective_stream_handle);
 }
 
 std::vector<at::Tensor> AOTIModelContainerRunnerNpu::run_with_npu_stream(

@@ -16,11 +16,7 @@
 namespace c10_npu {
 using ReleaseFn = std::function<void()>;
 
-enum class ReleasePriority : uint8_t {
-  PriorityFirst = 0,
-  PriorityMiddle = 5,
-  PriorityLast = 10
-};
+enum class ReleasePriority : uint8_t { PriorityFirst = 0, PriorityMiddle = 5, PriorityLast = 10 };
 
 class NpuSysCtrl {
  public:
@@ -68,15 +64,11 @@ class NpuSysCtrl {
 
   int InitializedDeviceID();
 
-  void RegisterLazyFn(
-      const option::OptionCallBack& call_,
-      const std::string& in);
+  void RegisterLazyFn(const option::OptionCallBack& call_, const std::string& in);
 
   // Register fn to be called during stage of exit and
   // the callability of fn is guaranteed by the caller.
-  void RegisterReleaseFn(
-      ReleaseFn release_fn,
-      ReleasePriority priority = ReleasePriority::PriorityMiddle);
+  void RegisterReleaseFn(ReleaseFn release_fn, ReleasePriority priority = ReleasePriority::PriorityMiddle);
 
  private:
   NpuSysCtrl();

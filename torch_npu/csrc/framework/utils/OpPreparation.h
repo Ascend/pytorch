@@ -24,25 +24,15 @@ class OpPreparation {
       const at::Tensor& a,
       const at::Tensor& b,
       bool check_mem_overlap);
-  static UnifiedResult unary_op_check(
-      at::Tensor& out,
-      const at::Tensor& a,
-      bool check_mem_overlap);
+  static UnifiedResult unary_op_check(at::Tensor& out, const at::Tensor& a, bool check_mem_overlap);
   static void nullary_op(at::Tensor& out);
   static UnifiedResult reduce_op_check(at::Tensor& out, const at::Tensor& a);
-  static UnifiedResult reduce_op_check(
-      at::Tensor& out1,
-      at::Tensor& out2,
-      const at::Tensor& a);
+  static UnifiedResult reduce_op_check(at::Tensor& out1, at::Tensor& out2, const at::Tensor& a);
   // From CalcuOpUtil part
   static aclDataType convert_to_acl_data_type(const at::ScalarType& data_type);
-  static aclDataType convert_to_acl_data_type(
-      const at::ScalarType& data_type,
-      const std::string& realDataType);
+  static aclDataType convert_to_acl_data_type(const at::ScalarType& data_type, const std::string& realDataType);
   static at::ScalarType convert_to_scalar_type(const aclDataType data_type);
-  static at::Tensor copy_scalar_to_device(
-      const c10::Scalar& cpu_scalar,
-      at::ScalarType scalar_data_type);
+  static at::Tensor copy_scalar_to_device(const c10::Scalar& cpu_scalar, at::ScalarType scalar_data_type);
   static at::Tensor copy_scalar_to_device(
       const c10::Scalar& cpu_scalar,
       at::ScalarType scalar_data_type,
@@ -51,8 +41,7 @@ class OpPreparation {
 
   static bool is_scalar_wrapped_to_tensor(const at::Tensor& tensor);
   static int64_t get_tensor_npu_format(const at::Tensor& tensor);
-  static c10::SmallVector<int64_t, 5> get_tensor_desc_base_sizes(
-      const at::Tensor& tensor);
+  static c10::SmallVector<int64_t, 5> get_tensor_desc_base_sizes(const at::Tensor& tensor);
   // check output tensor
   static void check_tensor(
       const std::initializer_list<at::Tensor>& src_list,
@@ -86,17 +75,9 @@ class OpPreparation {
   // used to apply output tensor
   static at::Tensor apply_tensor(const at::Tensor& src);
   static at::Tensor apply_tensor(const at::Tensor& src, c10::IntArrayRef sizes);
-  static at::Tensor apply_tensor(
-      const at::Tensor& src,
-      const c10::TensorOptions& options);
-  static at::Tensor apply_tensor(
-      c10::IntArrayRef sizes,
-      const c10::TensorOptions& options,
-      const at::Tensor& src);
-  static at::Tensor apply_tensor_with_format(
-      const at::Tensor& src,
-      int64_t format,
-      bool keep_format = false);
+  static at::Tensor apply_tensor(const at::Tensor& src, const c10::TensorOptions& options);
+  static at::Tensor apply_tensor(c10::IntArrayRef sizes, const c10::TensorOptions& options, const at::Tensor& src);
+  static at::Tensor apply_tensor_with_format(const at::Tensor& src, int64_t format, bool keep_format = false);
   static at::Tensor apply_tensor_with_format(
       const at::Tensor& src,
       c10::IntArrayRef sizes,
@@ -107,16 +88,11 @@ class OpPreparation {
       const c10::TensorOptions& options,
       int64_t format,
       bool keep_format = false);
-  static at::Tensor apply_tensor_with_sizes(
-      c10::IntArrayRef sizes,
-      const c10::TensorOptions& options);
+  static at::Tensor apply_tensor_with_sizes(c10::IntArrayRef sizes, const c10::TensorOptions& options);
 
   // DEPRECATED: CheckOut will be deprecated, please use check_tensor to check
   // output tensor instead.
-  static void CheckOut(
-      const std::initializer_list<at::Tensor>& inputs,
-      at::Tensor& output,
-      at::Tensor dst);
+  static void CheckOut(const std::initializer_list<at::Tensor>& inputs, at::Tensor& output, at::Tensor dst);
   static void CheckOut(
       const std::initializer_list<at::Tensor>& inputs,
       at::Tensor& output,
@@ -136,19 +112,11 @@ class OpPreparation {
   // instead.
   static at::Tensor ApplyTensor(const at::Tensor& src);
   static at::Tensor ApplyTensor(const at::Tensor& src, c10::IntArrayRef sizes);
-  static at::Tensor ApplyTensor(
-      const at::Tensor& src,
-      const c10::TensorOptions& options);
-  static at::Tensor ApplyTensor(
-      c10::IntArrayRef sizes,
-      const c10::TensorOptions& options,
-      const at::Tensor& src);
+  static at::Tensor ApplyTensor(const at::Tensor& src, const c10::TensorOptions& options);
+  static at::Tensor ApplyTensor(c10::IntArrayRef sizes, const c10::TensorOptions& options, const at::Tensor& src);
   // DEPRECATED: ApplyTensorWithFormat will be deprecated, please use
   // apply_tensor_with_format instead.
-  static at::Tensor ApplyTensorWithFormat(
-      const at::Tensor& src,
-      int64_t format,
-      bool keep_format = false);
+  static at::Tensor ApplyTensorWithFormat(const at::Tensor& src, int64_t format, bool keep_format = false);
   static at::Tensor ApplyTensorWithFormat(
       const at::Tensor& src,
       c10::IntArrayRef sizes,
@@ -159,23 +127,16 @@ class OpPreparation {
       const c10::TensorOptions& options,
       int64_t format,
       bool keep_format = false);
-  TORCH_NPU_API static at::Tensor apply_tensor_without_format(
-      const at::Tensor& src);
-  TORCH_NPU_API static at::Tensor apply_tensor_without_format(
-      const at::Tensor& src,
-      c10::IntArrayRef sizes);
+  TORCH_NPU_API static at::Tensor apply_tensor_without_format(const at::Tensor& src);
+  TORCH_NPU_API static at::Tensor apply_tensor_without_format(const at::Tensor& src, c10::IntArrayRef sizes);
   TORCH_NPU_API static at::Tensor apply_tensor_without_format(
       c10::IntArrayRef sizes,
       const c10::TensorOptions& options);
   static at::Tensor unsafe_empty_workspace(uint64_t workspace_size);
-  static at::Tensor unsafe_empty_workspace(
-      uint64_t workspace_size,
-      aclrtStream stream);
+  static at::Tensor unsafe_empty_workspace(uint64_t workspace_size, aclrtStream stream);
   // DEPRECATED: ApplyTensorWithSizes will be deprecated, please use
   // apply_tensor_with_sizes instead.
-  static at::Tensor ApplyTensorWithSizes(
-      c10::IntArrayRef sizes,
-      const c10::TensorOptions& options);
+  static at::Tensor ApplyTensorWithSizes(c10::IntArrayRef sizes, const c10::TensorOptions& options);
   // DEPRECATED: CheckMemory will be deprecated, please use check_memory
   // instead.
   static void CheckMemory(

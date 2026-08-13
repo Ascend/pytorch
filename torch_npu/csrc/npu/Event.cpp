@@ -13,27 +13,16 @@
 
 PyObject* THNPEventClass = nullptr;
 
-static PyObject* THNPEvent_pynew(
-    PyTypeObject* type,
-    PyObject* args,
-    PyObject* kwargs) {
+static PyObject* THNPEvent_pynew(PyTypeObject* type, PyObject* args, PyObject* kwargs) {
   HANDLE_TH_ERRORS
   unsigned char enable_timing = 0;
   unsigned char blocking = 0;
   unsigned char interprocess = 0;
   unsigned char external = 0;
 
-  constexpr const char* kwlist[] = {
-      "enable_timing", "blocking", "interprocess", "graph_external", nullptr};
+  constexpr const char* kwlist[] = {"enable_timing", "blocking", "interprocess", "graph_external", nullptr};
   if (!PyArg_ParseTupleAndKeywords(
-          args,
-          kwargs,
-          "|bbbb",
-          const_cast<char**>(kwlist),
-          &enable_timing,
-          &blocking,
-          &interprocess,
-          &external)) {
+          args, kwargs, "|bbbb", const_cast<char**>(kwlist), &enable_timing, &blocking, &interprocess, &external)) {
     return nullptr;
   }
 
@@ -59,8 +48,7 @@ static PyObject* THNPEvent_pynew(
 
   unsigned int flags = 0;
   if (c10_npu::acl::IsExistCreateEventExWithFlag()) {
-    flags =
-        enable_timing ? (ACL_EVENT_TIME_LINE | ACL_EVENT_SYNC) : ACL_EVENT_SYNC;
+    flags = enable_timing ? (ACL_EVENT_TIME_LINE | ACL_EVENT_SYNC) : ACL_EVENT_SYNC;
   } else {
     flags = enable_timing ? ACL_EVENT_TIME_LINE : ACL_EVENT_DEFAULT;
   }
@@ -76,10 +64,7 @@ static PyObject* THNPEvent_pynew(
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject* THNPEvent_from_ipc_handle(
-    PyObject* _type,
-    PyObject* args,
-    PyObject* kwargs) {
+static PyObject* THNPEvent_from_ipc_handle(PyObject* _type, PyObject* args, PyObject* kwargs) {
   HANDLE_TH_ERRORS
   TORCH_CHECK(
       c10_npu::acl::IsSupportIpcEvent(false),
@@ -150,9 +135,7 @@ static PyObject* THNPEvent_get_device(THNPEvent* self, void* unused) {
 static PyObject* THNPEvent_record(THNPEvent* self, THNPStream* stream) {
   HANDLE_TH_ERRORS
   self->npu_event.record(stream->npu_stream);
-  ASCEND_LOGI(
-      "Event: record api is successfully executed, event=%p",
-      self->npu_event.event());
+  ASCEND_LOGI("Event: record api is successfully executed, event=%p", self->npu_event.event());
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
@@ -161,9 +144,7 @@ static PyObject* THNPEvent_wait(THNPEvent* self, THNPStream* stream) {
   HANDLE_TH_ERRORS {
     pybind11::gil_scoped_release no_gil;
     self->npu_event.block(stream->npu_stream);
-    ASCEND_LOGI(
-        "Event: wait api is successfully executed, event=%p",
-        self->npu_event.event());
+    ASCEND_LOGI("Event: wait api is successfully executed, event=%p", self->npu_event.event());
   }
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
@@ -191,9 +172,7 @@ static PyObject* THNPEvent_synchronize(THNPEvent* self, PyObject* noargs) {
   HANDLE_TH_ERRORS {
     pybind11::gil_scoped_release no_gil;
     self->npu_event.synchronize();
-    ASCEND_LOGI(
-        "Event: synchronize api is successfully executed, event=%p",
-        self->npu_event.event());
+    ASCEND_LOGI("Event: synchronize api is successfully executed, event=%p", self->npu_event.event());
   }
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
@@ -203,9 +182,7 @@ static PyObject* THNPEvent_reset(THNPEvent* self, THNPStream* stream) {
   HANDLE_TH_ERRORS {
     pybind11::gil_scoped_release no_gil;
     self->npu_event.reset(stream->npu_stream);
-    ASCEND_LOGI(
-        "Event: reset api is successfully executed, event=%p",
-        self->npu_event.event());
+    ASCEND_LOGI("Event: reset api is successfully executed, event=%p", self->npu_event.event());
   }
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
@@ -233,18 +210,9 @@ static PyMethodDef THNPEvent_methods[] = {
     {(char*)"record", (PyCFunction)THNPEvent_record, METH_O, nullptr},
     {(char*)"wait", (PyCFunction)THNPEvent_wait, METH_O, nullptr},
     {(char*)"query", (PyCFunction)THNPEvent_query, METH_NOARGS, nullptr},
-    {(char*)"elapsed_time",
-     (PyCFunction)THNPEvent_elapsed_time,
-     METH_O,
-     nullptr},
-    {(char*)"recorded_time",
-     (PyCFunction)THNPEvent_recorded_time,
-     METH_NOARGS,
-     nullptr},
-    {(char*)"synchronize",
-     (PyCFunction)THNPEvent_synchronize,
-     METH_NOARGS,
-     nullptr},
+    {(char*)"elapsed_time", (PyCFunction)THNPEvent_elapsed_time, METH_O, nullptr},
+    {(char*)"recorded_time", (PyCFunction)THNPEvent_recorded_time, METH_NOARGS, nullptr},
+    {(char*)"synchronize", (PyCFunction)THNPEvent_synchronize, METH_NOARGS, nullptr},
     {(char*)"reset", (PyCFunction)THNPEvent_reset, METH_O, nullptr},
     {(char*)"ipc_handle", THNPEvent_ipc_handle, METH_NOARGS, nullptr},
     {nullptr}};
@@ -299,17 +267,13 @@ void THNPEvent_init(PyObject* module) {
     throw python_error();
   }
   Py_INCREF(&THNPEventType);
-  if (PyModule_AddObject(module, "_NPUEventBase", (PyObject*)&THNPEventType) <
-      0) {
+  if (PyModule_AddObject(module, "_NPUEventBase", (PyObject*)&THNPEventType) < 0) {
     throw python_error();
   }
 }
 
 c10_npu::NPUEvent* THNPUtils_PyObject_to_NPUEvent(PyObject* py_event) {
-  TORCH_CHECK(
-      py_event != nullptr,
-      "Expected py_event is a non-null PyObject pointer.",
-      PTA_ERROR(ErrCode::PARAM));
+  TORCH_CHECK(py_event != nullptr, "Expected py_event is a non-null PyObject pointer.", PTA_ERROR(ErrCode::PARAM));
   TORCH_CHECK(
       PyObject_IsInstance(py_event, THNPEventClass),
       "Need torch_npu.npu.Event argument type.",

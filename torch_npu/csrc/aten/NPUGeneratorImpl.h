@@ -147,25 +147,16 @@ struct NPUGeneratorState : public c10::intrusive_ptr_target {
   uint64_t philox_offset_per_thread_;
   bool secondary_stream_capture_state_{};
   mutable std::mutex capture_states_mutex_;
-  ska::flat_hash_map<
-      c10_npu::CaptureId_t,
-      c10::intrusive_ptr<NPUGeneratorCaptureState>>
-      capture_states_;
+  ska::flat_hash_map<c10_npu::CaptureId_t, c10::intrusive_ptr<NPUGeneratorCaptureState>> capture_states_;
 
-  NPUGeneratorState(
-      uint64_t seed = c10::default_rng_seed_val,
-      uint64_t philox_offset_per_thread = 0)
+  NPUGeneratorState(uint64_t seed = c10::default_rng_seed_val, uint64_t philox_offset_per_thread = 0)
       : seed_(seed), philox_offset_per_thread_(philox_offset_per_thread) {}
 
   void increase(uint64_t increment);
-  NPUGeneratorCaptureState* get_capture_state(
-      c10_npu::CaptureId_t capture_id,
-      bool create_if_not_found = false);
+  NPUGeneratorCaptureState* get_capture_state(c10_npu::CaptureId_t capture_id, bool create_if_not_found = false);
   // capture_epilogue returns the wholegraph_increment
   uint64_t capture_epilogue(c10_npu::CaptureId_t capture_id);
-  void replay_prologue(
-      c10_npu::CaptureId_t capture_id,
-      uint64_t wholegraph_increment);
+  void replay_prologue(c10_npu::CaptureId_t capture_id, uint64_t wholegraph_increment);
   void remove_capture_state(c10_npu::CaptureId_t capture_id);
   c10::intrusive_ptr<NPUGeneratorState> clone();
 };
@@ -173,9 +164,7 @@ struct NPUGeneratorState : public c10::intrusive_ptr_target {
 struct TORCH_NPU_API NPUGeneratorImpl : public c10::GeneratorImpl {
   // Constructors
   NPUGeneratorImpl(c10::DeviceIndex device_index = -1);
-  NPUGeneratorImpl(
-      c10::DeviceIndex device_index,
-      c10::intrusive_ptr<NPUGeneratorState> state);
+  NPUGeneratorImpl(c10::DeviceIndex device_index, c10::intrusive_ptr<NPUGeneratorState> state);
   ~NPUGeneratorImpl() override = default;
 
   // NPUGeneratorImpl methods
@@ -191,8 +180,7 @@ struct TORCH_NPU_API NPUGeneratorImpl : public c10::GeneratorImpl {
   uint64_t philox_offset_per_thread() const;
   PhiloxNpuState philox_npu_state(uint64_t increment);
   // For aclgraph
-  void graphsafe_set_state(
-      const c10::intrusive_ptr<GeneratorImpl>& state) override;
+  void graphsafe_set_state(const c10::intrusive_ptr<GeneratorImpl>& state) override;
   c10::intrusive_ptr<c10::GeneratorImpl> graphsafe_get_state() const override;
   void set_secondary_stream_capture_state(bool secondary_stream_capture_state);
   // Temporarily accommodates call sites that use philox_engine_inputs.
@@ -206,9 +194,7 @@ struct TORCH_NPU_API NPUGeneratorImpl : public c10::GeneratorImpl {
 };
 
 namespace detail {
-TORCH_NPU_API const at::Generator& getDefaultNPUGenerator(
-    c10::DeviceIndex device_index = -1);
-TORCH_NPU_API at::Generator createNPUGenerator(
-    c10::DeviceIndex device_index = -1);
+TORCH_NPU_API const at::Generator& getDefaultNPUGenerator(c10::DeviceIndex device_index = -1);
+TORCH_NPU_API at::Generator createNPUGenerator(c10::DeviceIndex device_index = -1);
 } // namespace detail
 } // namespace at_npu

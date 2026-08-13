@@ -14,8 +14,7 @@ TORCH_NPU_API bool NpuIPCCollect();
 
 struct NpuIPCReceivedData final {
   NpuIPCReceivedData() = default;
-  explicit NpuIPCReceivedData(std::shared_ptr<void> shared_ptr)
-      : shared_ptr_(std::move(shared_ptr)) {}
+  explicit NpuIPCReceivedData(std::shared_ptr<void> shared_ptr) : shared_ptr_(std::move(shared_ptr)) {}
   std::shared_ptr<void> shared_ptr_;
 };
 
@@ -28,11 +27,7 @@ struct NpuIPCSentData final {
   bool event_sync_required_;
   at::Device device_;
 
-  NpuIPCSentData(
-      std::string handle,
-      uint64_t offset,
-      uint64_t* counter_ptr,
-      at::Device device);
+  NpuIPCSentData(std::string handle, uint64_t offset, uint64_t* counter_ptr, at::Device device);
   ~NpuIPCSentData();
 
   uint64_t counter_value();
@@ -47,9 +42,7 @@ struct NpuIPCSentData final {
   }
 };
 
-TORCH_NPU_API at::DataPtr GetNewRefCountedSentData(
-    void* data,
-    at::Device device);
+TORCH_NPU_API at::DataPtr GetNewRefCountedSentData(void* data, at::Device device);
 
 namespace {
 
@@ -71,9 +64,7 @@ struct NpuIPCSentDataLimbo final {
 
 struct NpuIPCRefCountersFile final {
   NpuIPCRefCountersFile(std::string handle, uint64_t size, at::DataPtr data_ptr)
-      : size_(size),
-        handle_(std::move(handle)),
-        refcounted_shared_mem_(std::move(data_ptr)) {}
+      : size_(size), handle_(std::move(handle)), refcounted_shared_mem_(std::move(data_ptr)) {}
 
   uint64_t* counter_ptr() {
     return static_cast<uint64_t*>(refcounted_shared_mem_.get()) + next_offset_;

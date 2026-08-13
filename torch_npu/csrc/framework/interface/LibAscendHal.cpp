@@ -7,12 +7,10 @@
 namespace at_npu {
 namespace native {
 #undef TORCH_NPU_LOAD_FUNC
-#define TORCH_NPU_LOAD_FUNC(funcName) \
-  TORCH_NPU_REGISTER_FUNCTION(libascend_hal, funcName)
+#define TORCH_NPU_LOAD_FUNC(funcName) TORCH_NPU_REGISTER_FUNCTION(libascend_hal, funcName)
 
 #undef TORCH_NPU_GET_FUNC
-#define TORCH_NPU_GET_FUNC(funcName) \
-  TORCH_NPU_GET_FUNCTION(libascend_hal, funcName)
+#define TORCH_NPU_GET_FUNC(funcName) TORCH_NPU_GET_FUNCTION(libascend_hal, funcName)
 
 TORCH_NPU_REGISTER_LIBRARY(libascend_hal)
 TORCH_NPU_LOAD_FUNC(halGetDeviceInfo)

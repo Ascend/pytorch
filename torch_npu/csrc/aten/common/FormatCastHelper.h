@@ -11,11 +11,8 @@ namespace native {
 class FormatCastHelper {
  public:
   static bool IsSameGroupType(const at::Tensor& src, const at::Tensor& dst);
-  static void format_cast_as_base_format(
-      const at::Tensor& src,
-      aclFormat format);
-  using FormatCastFunc =
-      std::function<at::Tensor(at::Tensor&, const at::Tensor&)>;
+  static void format_cast_as_base_format(const at::Tensor& src, aclFormat format);
+  using FormatCastFunc = std::function<at::Tensor(at::Tensor&, const at::Tensor&)>;
   static bool format_cast_between_group(
       at::Tensor& dst,
       const at::Tensor& src,

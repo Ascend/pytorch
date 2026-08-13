@@ -7,8 +7,7 @@ namespace c10_npu {
 namespace dcmi {
 
 #undef TORCH_NPU_LOAD_FUNC
-#define TORCH_NPU_LOAD_FUNC(funcName) \
-  TORCH_NPU_REGISTER_FUNCTION(libdcmi, funcName)
+#define TORCH_NPU_LOAD_FUNC(funcName) TORCH_NPU_REGISTER_FUNCTION(libdcmi, funcName)
 
 #undef TORCH_NPU_GET_FUNC
 #define TORCH_NPU_GET_FUNC(funcName) TORCH_NPU_GET_FUNCTION(libdcmi, funcName)
@@ -65,17 +64,12 @@ int DcmiGetCardNumList(int* card_num, int* card_list, int list_len) {
   return func(card_num, card_list, list_len);
 }
 
-int DcmiGetAffinityCpuInfoByDeviceId(
-    int card_id,
-    int device_id,
-    char* affinity_cpu,
-    int* length) {
+int DcmiGetAffinityCpuInfoByDeviceId(int card_id, int device_id, char* affinity_cpu, int* length) {
   // Use dcmiv2_get_affinity_cpu_info_by_dev_id first
   using dcmiv2GetAffinityCpuInfoByDevIdFunc = int (*)(int, char*, int*);
   static dcmiv2GetAffinityCpuInfoByDevIdFunc func_v2_1 = nullptr;
   if (func_v2_1 == nullptr) {
-    func_v2_1 = (dcmiv2GetAffinityCpuInfoByDevIdFunc)TORCH_NPU_GET_FUNC(
-        dcmiv2_get_affinity_cpu_info_by_dev_id);
+    func_v2_1 = (dcmiv2GetAffinityCpuInfoByDevIdFunc)TORCH_NPU_GET_FUNC(dcmiv2_get_affinity_cpu_info_by_dev_id);
   }
   if (func_v2_1 != nullptr) {
     return func_v2_1(card_id, affinity_cpu, length);
@@ -84,8 +78,7 @@ int DcmiGetAffinityCpuInfoByDeviceId(
   using dcmiv2GetAffinityCpuInfoByDeviceIdFunc = int (*)(int, char*, int*);
   static dcmiv2GetAffinityCpuInfoByDeviceIdFunc func_v2 = nullptr;
   if (func_v2 == nullptr) {
-    func_v2 = (dcmiv2GetAffinityCpuInfoByDeviceIdFunc)TORCH_NPU_GET_FUNC(
-        dcmiv2_get_affinity_cpu_info_by_device_id);
+    func_v2 = (dcmiv2GetAffinityCpuInfoByDeviceIdFunc)TORCH_NPU_GET_FUNC(dcmiv2_get_affinity_cpu_info_by_device_id);
   }
   if (func_v2 != nullptr) {
     return func_v2(card_id, affinity_cpu, length);
@@ -94,8 +87,7 @@ int DcmiGetAffinityCpuInfoByDeviceId(
   using dcmiGetAffinityCpuInfoByDeviceIdFunc = int (*)(int, int, char*, int*);
   static dcmiGetAffinityCpuInfoByDeviceIdFunc func = nullptr;
   if (func == nullptr) {
-    func = (dcmiGetAffinityCpuInfoByDeviceIdFunc)TORCH_NPU_GET_FUNC(
-        dcmi_get_affinity_cpu_info_by_device_id);
+    func = (dcmiGetAffinityCpuInfoByDeviceIdFunc)TORCH_NPU_GET_FUNC(dcmi_get_affinity_cpu_info_by_device_id);
   }
   if (func != nullptr) {
     return func(card_id, device_id, affinity_cpu, length);
@@ -106,11 +98,7 @@ int DcmiGetAffinityCpuInfoByDeviceId(
       PTA_ERROR(ErrCode::NOT_FOUND));
 }
 
-int DcmiGetDeviceIdInCard(
-    int card_id,
-    int* device_id_max,
-    int* mcu_id,
-    int* cpu_id) {
+int DcmiGetDeviceIdInCard(int card_id, int* device_id_max, int* mcu_id, int* cpu_id) {
   // Check if V2 interface exists to mock success
   using dcmiv2GetDeviceListFunc = int (*)(int*, int*, int);
   static dcmiv2GetDeviceListFunc func_v2 = nullptr;
@@ -127,8 +115,7 @@ int DcmiGetDeviceIdInCard(
 
   using dcmiGetDeviceIdInCardFunc = int (*)(int, int*, int*, int*);
   static dcmiGetDeviceIdInCardFunc func = nullptr;
-  func =
-      (dcmiGetDeviceIdInCardFunc)TORCH_NPU_GET_FUNC(dcmi_get_device_id_in_card);
+  func = (dcmiGetDeviceIdInCardFunc)TORCH_NPU_GET_FUNC(dcmi_get_device_id_in_card);
   if (func == nullptr) {
     TORCH_CHECK(
         false,
@@ -139,19 +126,12 @@ int DcmiGetDeviceIdInCard(
   return func(card_id, device_id_max, mcu_id, cpu_id);
 }
 
-int DcmiGetDevicePcieInfoV2(
-    int card_id,
-    int device_id,
-    DcmiPcieInfo* pcie_info) {
-  TORCH_CHECK(
-      pcie_info != nullptr,
-      "pcie_info is null, please check input param.",
-      PTA_ERROR(ErrCode::PARAM))
+int DcmiGetDevicePcieInfoV2(int card_id, int device_id, DcmiPcieInfo* pcie_info) {
+  TORCH_CHECK(pcie_info != nullptr, "pcie_info is null, please check input param.", PTA_ERROR(ErrCode::PARAM))
   using dcmiGetDevicePcieInfoV2Func = int (*)(int, int, DcmiPcieInfo*);
   static dcmiGetDevicePcieInfoV2Func func = nullptr;
   if (func == nullptr) {
-    func = (dcmiGetDevicePcieInfoV2Func)TORCH_NPU_GET_FUNC(
-        dcmi_get_device_pcie_info_v2);
+    func = (dcmiGetDevicePcieInfoV2Func)TORCH_NPU_GET_FUNC(dcmi_get_device_pcie_info_v2);
   }
   if (func == nullptr) {
     TORCH_CHECK(

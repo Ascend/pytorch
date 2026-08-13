@@ -54,9 +54,7 @@ bool ForceJitCompileList::Inlist(const std::string& opName) const {
 void ForceJitCompileList::DisplayJitlist() const {
   if (!jit_list_.empty()) {
     for (auto& iter : jit_list_) {
-      ASCEND_LOGI(
-          "check op [%s] is in jitcompile list, use Just-In-Time compile",
-          iter.c_str());
+      ASCEND_LOGI("check op [%s] is in jitcompile list, use Just-In-Time compile", iter.c_str());
     }
   }
   return;

@@ -36,14 +36,9 @@ bool LazyAclopSet::acl_op_call_ = false;
 std::vector<std::pair<aclCompileOpt, std::string>> LazyAclopSet::lazy_acl_opt_;
 std::atomic<bool> encounteredAclops(false);
 
-aclError LazyAclopSet::LazyAclSetCompileopt(
-    aclCompileOpt opt,
-    const char* value) {
-  static auto acl_op_init_mode =
-      c10_npu::option::OptionsManager::GetAclOpInitMode();
-  ASCEND_LOGI(
-      "[LazyAclops] LazyAclSetCompileopt called, acl_op_init_mode=%d",
-      acl_op_init_mode)
+aclError LazyAclopSet::LazyAclSetCompileopt(aclCompileOpt opt, const char* value) {
+  static auto acl_op_init_mode = c10_npu::option::OptionsManager::GetAclOpInitMode();
+  ASCEND_LOGI("[LazyAclops] LazyAclSetCompileopt called, acl_op_init_mode=%d", acl_op_init_mode)
   if (acl_op_init_mode == 0) {
     return at_npu::native::AclSetCompileopt(opt, value);
   } else {
@@ -55,26 +50,21 @@ aclError LazyAclopSet::LazyAclSetCompileopt(
       return at_npu::native::AclSetCompileopt(opt, value);
     }
     lazy_acl_opt_.emplace_back(std::make_pair(opt, std::string(value)));
-    ASCEND_LOGI(
-        "Cache ACL compile %d with value %s", static_cast<int>(opt), value)
+    ASCEND_LOGI("Cache ACL compile %d with value %s", static_cast<int>(opt), value)
     return ACL_ERROR_NONE;
   }
 }
 
 void LazyAclopSet::SetCompileopt() {
-  static auto acl_op_init_mode =
-      c10_npu::option::OptionsManager::GetAclOpInitMode();
-  ASCEND_LOGI(
-      "[LazyAclops] SetCompileopt called, acl_op_init_mode=%d",
-      acl_op_init_mode)
+  static auto acl_op_init_mode = c10_npu::option::OptionsManager::GetAclOpInitMode();
+  ASCEND_LOGI("[LazyAclops] SetCompileopt called, acl_op_init_mode=%d", acl_op_init_mode)
   if (acl_op_init_mode == 0) {
     return;
   } else {
     std::lock_guard<std::mutex> lock(lazy_set_mutex_);
     if (!acl_op_call_) {
       for (const auto& iter : lazy_acl_opt_) {
-        aclError ret =
-            at_npu::native::AclSetCompileopt(iter.first, iter.second.c_str());
+        aclError ret = at_npu::native::AclSetCompileopt(iter.first, iter.second.c_str());
         TORCH_CHECK(
             ret == ACL_SUCCESS,
             "Failed to set compile opt ",
@@ -114,12 +104,9 @@ void SetHF32DefaultValue() {
   }
 
   std::string allow_hf32 = conv_hf32 + mm_hf32;
-  auto ret = at_npu::native::AclSetCompileopt(
-      aclCompileOpt::ACL_ALLOW_HF32, allow_hf32.c_str());
+  auto ret = at_npu::native::AclSetCompileopt(aclCompileOpt::ACL_ALLOW_HF32, allow_hf32.c_str());
   if (ret == ACL_SUCCESS) {
-    ASCEND_LOGI(
-        "Set ACL option ACL_ALLOW_HF32 default value to %s.",
-        allow_hf32.c_str());
+    ASCEND_LOGI("Set ACL option ACL_ALLOW_HF32 default value to %s.", allow_hf32.c_str());
   } else if (ret == ACL_ERROR_INTERNAL_ERROR) {
     // Used to solve version compatibility issues, when ASCEND have not been
     // updated.
@@ -140,11 +127,9 @@ void SetHF32DefaultValue() {
 // set default compile cache mode and dir to improve op compile time
 void MakeCompileCacheDirAndSetOption() {
   char* compile_cache_mode_val = std::getenv("ACL_OP_COMPILER_CACHE_MODE");
-  std::string compile_cache_mode = (compile_cache_mode_val == nullptr)
-      ? std::string("enable")
-      : std::string(compile_cache_mode_val);
-  if (compile_cache_mode != "enable" && compile_cache_mode != "disable" &&
-      compile_cache_mode != "force") {
+  std::string compile_cache_mode =
+      (compile_cache_mode_val == nullptr) ? std::string("enable") : std::string(compile_cache_mode_val);
+  if (compile_cache_mode != "enable" && compile_cache_mode != "disable" && compile_cache_mode != "force") {
     compile_cache_mode = std::string("enable");
   }
   auto compile_mode = c10_npu::option::GetOption("ACL_OP_COMPILER_CACHE_MODE");
@@ -189,19 +174,12 @@ std::string GetJitCompileMode() {
         "True");
     return "";
   }
-  TORCH_CHECK(
-      opt_size.value() != 0,
-      "AclGetCompileoptSize opt_size.value() = 0 !",
-      PTA_ERROR(ErrCode::PARAM));
+  TORCH_CHECK(opt_size.value() != 0, "AclGetCompileoptSize opt_size.value() = 0 !", PTA_ERROR(ErrCode::PARAM));
 
   char value_name[opt_size.value()];
-  auto ret = at_npu::native::AclGetCompileopt(
-      ACL_OP_JIT_COMPILE, value_name, opt_size.value());
+  auto ret = at_npu::native::AclGetCompileopt(ACL_OP_JIT_COMPILE, value_name, opt_size.value());
   // Get func success but get value failed, throw error
-  TORCH_CHECK(
-      ret == ACL_SUCCESS,
-      "Get ACL JitCompile default value failed.",
-      PTA_ERROR(ErrCode::ACL));
+  TORCH_CHECK(ret == ACL_SUCCESS, "Get ACL JitCompile default value failed.", PTA_ERROR(ErrCode::ACL));
 
   return std::string(value_name);
 }
@@ -236,16 +214,13 @@ void SetPrecisionMode() {
   // set ACL_PRECISION_MODE by SocVersion("allow_fp32_to_fp16" or
   // "must_keep_origin_dtype").
   auto precision_mode =
-      c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1
-      ? "must_keep_origin_dtype"
-      : "allow_fp32_to_fp16";
+      c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1 ? "must_keep_origin_dtype" : "allow_fp32_to_fp16";
   static const std::string precision_mode_ = "ACL_PRECISION_MODE";
   auto precision_mode_val = c10_npu::option::GetOption(precision_mode_);
   if (precision_mode_val.has_value()) {
     precision_mode = precision_mode_val->c_str();
   }
-  NPU_CHECK_ERROR(at_npu::native::AclSetCompileopt(
-      aclCompileOpt::ACL_PRECISION_MODE, precision_mode));
+  NPU_CHECK_ERROR(at_npu::native::AclSetCompileopt(aclCompileOpt::ACL_PRECISION_MODE, precision_mode));
 }
 
 void LazyInitAclopsCore() {
@@ -267,8 +242,7 @@ void LazyInitAclopsCore() {
 }
 
 void LazyInitAclops() {
-  static auto acl_op_init_mode =
-      c10_npu::option::OptionsManager::GetAclOpInitMode();
+  static auto acl_op_init_mode = c10_npu::option::OptionsManager::GetAclOpInitMode();
   if (acl_op_init_mode == 0) {
     return;
   }
@@ -277,8 +251,7 @@ void LazyInitAclops() {
       "Acl op is disabled! Please check the environment variable ACL_OP_INIT_MODE.",
       PTA_ERROR(ErrCode::NOT_SUPPORT));
 
-  if (!encounteredAclops.exchange(true) &&
-      c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
+  if (!encounteredAclops.exchange(true) && c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
     RECORD_FUNCTION("LazyInitAclops", std::vector<c10::IValue>({}));
     LazyInitAclopsCore();
     ASCEND_LOGI("Lazy init for aclops finished.")

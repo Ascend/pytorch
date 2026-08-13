@@ -20,43 +20,37 @@ namespace at_npu {
 namespace native {
 
 inline std::shared_ptr<npu_logging::Logger>& GetDispatchLogger() {
-  static std::shared_ptr<npu_logging::Logger> logger =
-      npu_logging::logging().getLogger("torch_npu.dispatch");
+  static std::shared_ptr<npu_logging::Logger> logger = npu_logging::logging().getLogger("torch_npu.dispatch");
   return logger;
 }
 
-#define TORCH_NPU_DISPATCH_LOGD(format, ...)                         \
-  do {                                                               \
-    TORCH_NPU_LOGD(                                                  \
-        at_npu::native::GetDispatchLogger(), format, ##__VA_ARGS__); \
-    ASCEND_LOGD(format, ##__VA_ARGS__);                              \
+#define TORCH_NPU_DISPATCH_LOGD(format, ...)                                    \
+  do {                                                                          \
+    TORCH_NPU_LOGD(at_npu::native::GetDispatchLogger(), format, ##__VA_ARGS__); \
+    ASCEND_LOGD(format, ##__VA_ARGS__);                                         \
   } while (0);
 
-#define TORCH_NPU_DISPATCH_LOGI(format, ...)                         \
-  do {                                                               \
-    TORCH_NPU_LOGI(                                                  \
-        at_npu::native::GetDispatchLogger(), format, ##__VA_ARGS__); \
-    ASCEND_LOGI(format, ##__VA_ARGS__);                              \
+#define TORCH_NPU_DISPATCH_LOGI(format, ...)                                    \
+  do {                                                                          \
+    TORCH_NPU_LOGI(at_npu::native::GetDispatchLogger(), format, ##__VA_ARGS__); \
+    ASCEND_LOGI(format, ##__VA_ARGS__);                                         \
   } while (0);
 
-#define TORCH_NPU_DISPATCH_LOGIL(format, ...)                        \
-  do {                                                               \
-    TORCH_NPU_LOGIL(                                                 \
-        at_npu::native::GetDispatchLogger(), format, ##__VA_ARGS__); \
-    ASCEND_LOGI(format, ##__VA_ARGS__);                              \
+#define TORCH_NPU_DISPATCH_LOGIL(format, ...)                                    \
+  do {                                                                           \
+    TORCH_NPU_LOGIL(at_npu::native::GetDispatchLogger(), format, ##__VA_ARGS__); \
+    ASCEND_LOGI(format, ##__VA_ARGS__);                                          \
   } while (0);
 
 inline std::shared_ptr<npu_logging::Logger>& GetDispatchTimeLogger() {
-  static std::shared_ptr<npu_logging::Logger> loggerTime =
-      npu_logging::logging().getLogger("torch_npu.dispatch.time");
+  static std::shared_ptr<npu_logging::Logger> loggerTime = npu_logging::logging().getLogger("torch_npu.dispatch.time");
   return loggerTime;
 }
 
-#define TORCH_NPU_DISPATCH_TIME_LOGI(format, ...)                        \
-  do {                                                                   \
-    TORCH_NPU_LOGI(                                                      \
-        at_npu::native::GetDispatchTimeLogger(), format, ##__VA_ARGS__); \
-    ASCEND_LOGI(format, ##__VA_ARGS__);                                  \
+#define TORCH_NPU_DISPATCH_TIME_LOGI(format, ...)                                   \
+  do {                                                                              \
+    TORCH_NPU_LOGI(at_npu::native::GetDispatchTimeLogger(), format, ##__VA_ARGS__); \
+    ASCEND_LOGI(format, ##__VA_ARGS__);                                             \
   } while (0);
 
 typedef union {
@@ -75,20 +69,11 @@ class TORCH_NPU_API OpAttrMaker {
   static void Set(aclopAttr* attr, const string& name, float value);
   static void Set(aclopAttr* attr, const string& name, string value);
   static void Set(aclopAttr* attr, const string& name, c10::IntArrayRef value);
-  static void Set(
-      aclopAttr* attr,
-      const string& name,
-      at::ArrayRef<float> value);
-  static void Set(
-      aclopAttr* attr,
-      const string& name,
-      at::ArrayRef<uint8_t> value);
+  static void Set(aclopAttr* attr, const string& name, at::ArrayRef<float> value);
+  static void Set(aclopAttr* attr, const string& name, at::ArrayRef<uint8_t> value);
   static void Set(aclopAttr* attr, const string& name, c10::Scalar value);
   static void Set(aclopAttr* attr, const string& name, at::ScalarType value);
-  static void Set(
-      aclopAttr* attr,
-      const string& name,
-      at::ArrayRef<c10::IntArrayRef> value);
+  static void Set(aclopAttr* attr, const string& name, at::ArrayRef<c10::IntArrayRef> value);
 }; // class OpAttrMaker
 
 class AclTensorDescMaker {
@@ -96,9 +81,7 @@ class AclTensorDescMaker {
   AclTensorDescMaker() {}
   ~AclTensorDescMaker() = default;
 
-  AclTensorDescMaker& Create(
-      aclDataType dataType,
-      torch_npu::NPUStorageDesc storageDesc) {
+  AclTensorDescMaker& Create(aclDataType dataType, torch_npu::NPUStorageDesc storageDesc) {
     c10::SmallVector<int64_t, 5> dims;
     // if aclDataType is ACL_STRING, storageDims is empty.
     if (dataType != ACL_STRING) {
@@ -109,10 +92,7 @@ class AclTensorDescMaker {
     return *this;
   }
 
-  inline AclTensorDescMaker& Create(
-      aclDataType dataType,
-      c10::IntArrayRef dims,
-      aclFormat format) {
+  inline AclTensorDescMaker& Create(aclDataType dataType, c10::IntArrayRef dims, aclFormat format) {
     desc = aclCreateTensorDesc(dataType, dims.size(), dims.data(), format);
     return *this;
   }
@@ -133,8 +113,7 @@ class AclTensorDescMaker {
   }
 
   template <unsigned int N>
-  inline AclTensorDescMaker& SetShape(
-      const c10::SmallVector<int64_t, N>& dims) {
+  inline AclTensorDescMaker& SetShape(const c10::SmallVector<int64_t, N>& dims) {
     aclSetTensorShape(desc, dims.size(), dims.data());
     return *this;
   }
@@ -160,13 +139,10 @@ class AclTensorDescMaker {
     return *this;
   }
 
-  inline AclTensorDescMaker& SetConstAttr(
-      c10::optional<at::Tensor> cpu_tensor) {
+  inline AclTensorDescMaker& SetConstAttr(c10::optional<at::Tensor> cpu_tensor) {
     if (cpu_tensor.has_value() && cpu_tensor.value().defined()) {
       aclSetTensorConst(
-          desc,
-          cpu_tensor.value().data_ptr(),
-          cpu_tensor.value().itemsize() * cpu_tensor.value().numel());
+          desc, cpu_tensor.value().data_ptr(), cpu_tensor.value().itemsize() * cpu_tensor.value().numel());
     }
 
     return *this;
@@ -185,8 +161,8 @@ class AclTensorBufferMaker {
   // base of Ctr
   // params: tensor, offset, remained size
   AclTensorBufferMaker(const at::Tensor* tensor, int64_t offset, int64_t n) {
-    uint8_t* header = reinterpret_cast<uint8_t*>(tensor->data_ptr()) -
-        tensor->itemsize() * static_cast<uint8_t>(offset);
+    uint8_t* header =
+        reinterpret_cast<uint8_t*>(tensor->data_ptr()) - tensor->itemsize() * static_cast<uint8_t>(offset);
     size_t bufferSize = tensor->itemsize() * static_cast<size_t>(n);
     ptr = aclCreateDataBuffer(header, bufferSize);
   }
@@ -196,15 +172,13 @@ class AclTensorBufferMaker {
     if (tensor == nullptr || n == 0) {
       ptr = aclCreateDataBuffer(nullptr, 0);
     } else {
-      ptr = aclCreateDataBuffer(
-          (void*)(tensor->data_ptr()), tensor->itemsize() * n);
+      ptr = aclCreateDataBuffer((void*)(tensor->data_ptr()), tensor->itemsize() * n);
     }
   }
 
   // offset = 0
   explicit AclTensorBufferMaker(const at::Tensor& tensor, int64_t n = 1) {
-    ptr =
-        aclCreateDataBuffer((void*)(tensor.data_ptr()), tensor.itemsize() * n);
+    ptr = aclCreateDataBuffer((void*)(tensor.data_ptr()), tensor.itemsize() * n);
   }
 
   ~AclTensorBufferMaker() = default;
@@ -252,10 +226,7 @@ class OpCommandImpl {
     execParam.inBuffer.emplace_back(std::move(buffer));
   }
 
-  void AddInput(
-      const aclTensorDesc* desc,
-      const aclDataBuffer* buffer,
-      const at::Tensor& hostTensor) {
+  void AddInput(const aclTensorDesc* desc, const aclDataBuffer* buffer, const at::Tensor& hostTensor) {
     AddInput(desc, buffer);
     execParam.hostMem.emplace_back(hostTensor);
   }
@@ -292,40 +263,23 @@ class OpCommandImpl {
     size_t outputTensorDescArrLen = outputNum * sizeof(uintptr_t);
     size_t outputDataBuffArrLen = outputNum * sizeof(uintptr_t);
 
-    size_t totalMemLen = inputTensorDescArrLen + inputDataBuffArrLen +
-        outputTensorDescArrLen + outputDataBuffArrLen;
+    size_t totalMemLen = inputTensorDescArrLen + inputDataBuffArrLen + outputTensorDescArrLen + outputDataBuffArrLen;
 
     char* basePtr = static_cast<char*>(malloc(totalMemLen));
     AT_ASSERT(basePtr != nullptr, OPS_ERROR(ErrCode::PTR));
-    const aclTensorDesc** aclTensorInputDescArr =
-        reinterpret_cast<const aclTensorDesc**>(basePtr);
+    const aclTensorDesc** aclTensorInputDescArr = reinterpret_cast<const aclTensorDesc**>(basePtr);
     basePtr += inputTensorDescArrLen;
-    const aclDataBuffer** aclDataInputBuffArr =
-        reinterpret_cast<const aclDataBuffer**>(basePtr);
+    const aclDataBuffer** aclDataInputBuffArr = reinterpret_cast<const aclDataBuffer**>(basePtr);
     basePtr += inputDataBuffArrLen;
 
-    const aclTensorDesc** aclTensorOutputDescArr =
-        reinterpret_cast<const aclTensorDesc**>(basePtr);
+    const aclTensorDesc** aclTensorOutputDescArr = reinterpret_cast<const aclTensorDesc**>(basePtr);
     basePtr += outputTensorDescArrLen;
-    aclDataBuffer** aclDataOutputBuffArr =
-        reinterpret_cast<aclDataBuffer**>(basePtr);
+    aclDataBuffer** aclDataOutputBuffArr = reinterpret_cast<aclDataBuffer**>(basePtr);
 
-    std::copy(
-        execParam.inDesc.begin(),
-        execParam.inDesc.end(),
-        aclTensorInputDescArr);
-    std::copy(
-        execParam.inBuffer.begin(),
-        execParam.inBuffer.end(),
-        aclDataInputBuffArr);
-    std::copy(
-        execParam.outDesc.begin(),
-        execParam.outDesc.end(),
-        aclTensorOutputDescArr);
-    std::copy(
-        execParam.outBuffer.begin(),
-        execParam.outBuffer.end(),
-        aclDataOutputBuffArr);
+    std::copy(execParam.inDesc.begin(), execParam.inDesc.end(), aclTensorInputDescArr);
+    std::copy(execParam.inBuffer.begin(), execParam.inBuffer.end(), aclDataInputBuffArr);
+    std::copy(execParam.outDesc.begin(), execParam.outDesc.end(), aclTensorOutputDescArr);
+    std::copy(execParam.outBuffer.begin(), execParam.outBuffer.end(), aclDataOutputBuffArr);
 
     params.paras.input_num = inputNum;
     params.paras.output_num = outputNum;
@@ -337,8 +291,7 @@ class OpCommandImpl {
     params.customHandler = execParam.customHandler;
     params.pta_correlation_id = ExecuteParas::g_pta_correlation_id++;
 
-    if (!ForceJitCompileList::GetInstance().Inlist(opName) &&
-        env::CheckJitDisable()) {
+    if (!ForceJitCompileList::GetInstance().Inlist(opName) && env::CheckJitDisable()) {
       params.isJitDisable = true;
     }
   }
@@ -346,31 +299,16 @@ class OpCommandImpl {
   // Set engine priority for op on data preprocessing stream
   void SetEnginePriority();
 
-  void Run(
-      bool sync,
-      c10::SmallVector<int64_t, N>& sync_index,
-      c10::SmallVector<at::Tensor, N>& outputTensor);
+  void Run(bool sync, c10::SmallVector<int64_t, N>& sync_index, c10::SmallVector<at::Tensor, N>& outputTensor);
 
   static void RunOpApi(const string& op_name, PROC_FUNC func);
 
   void releaseSource(bool no_blocking = true) {
     if (no_blocking) {
-      std::for_each(
-          execParam.inDesc.begin(),
-          execParam.inDesc.end(),
-          aclDestroyTensorDesc);
-      std::for_each(
-          execParam.outDesc.begin(),
-          execParam.outDesc.end(),
-          aclDestroyTensorDesc);
-      std::for_each(
-          execParam.inBuffer.begin(),
-          execParam.inBuffer.end(),
-          aclDestroyDataBuffer);
-      std::for_each(
-          execParam.outBuffer.begin(),
-          execParam.outBuffer.end(),
-          aclDestroyDataBuffer);
+      std::for_each(execParam.inDesc.begin(), execParam.inDesc.end(), aclDestroyTensorDesc);
+      std::for_each(execParam.outDesc.begin(), execParam.outDesc.end(), aclDestroyTensorDesc);
+      std::for_each(execParam.inBuffer.begin(), execParam.inBuffer.end(), aclDestroyDataBuffer);
+      std::for_each(execParam.outBuffer.begin(), execParam.outBuffer.end(), aclDestroyDataBuffer);
       if (execParam.attr != nullptr) {
         aclopDestroyAttr(execParam.attr);
         execParam.attr = nullptr;
@@ -436,18 +374,11 @@ class OpCommandImpls {
   c10::SmallVector<OpCommandImpl, N> objs;
 }; // class OpCommandImpls
 
-void ApplyDeterministicSnapshotLocked(
-    const c10_npu::DeterministicSnapshot& snapshot,
-    bool isOpapi);
-TORCH_NPU_API void ApplyDeterministicLevel(
-    int64_t level,
-    bool deterministicAlgorithmsStatus,
-    bool isOpapi);
+void ApplyDeterministicSnapshotLocked(const c10_npu::DeterministicSnapshot& snapshot, bool isOpapi);
+TORCH_NPU_API void ApplyDeterministicLevel(int64_t level, bool deterministicAlgorithmsStatus, bool isOpapi);
 void SetDeterministic(bool isOpapi = true);
 void SetDeterministicOps(bool deterministicAlgorithmsStatus = false);
-void ApplyDeterministicSnapshot(
-    const c10_npu::DeterministicSnapshot& snapshot,
-    bool isOpapi = true);
+void ApplyDeterministicSnapshot(const c10_npu::DeterministicSnapshot& snapshot, bool isOpapi = true);
 extern std::recursive_mutex deterministic_launch_mutex;
 
 } // namespace native

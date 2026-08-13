@@ -21,15 +21,11 @@ void ReadBinFile(const char* file_name, uint32_t& fileSize, char*& buffer) {
   filestr.open(file_name, std::ios::binary);
   TORCH_CHECK(filestr, "open file failed!");
   pbuf = filestr.rdbuf();
-  const std::streamoff end_pos =
-      pbuf->pubseekoff(0, std::ios::end, std::ios::in);
+  const std::streamoff end_pos = pbuf->pubseekoff(0, std::ios::end, std::ios::in);
   pbuf->pubseekpos(0, std::ios::in);
 
   TORCH_CHECK(
-      end_pos > 0 &&
-          end_pos <=
-              static_cast<std::streamoff>(std::numeric_limits<uint32_t>::max()),
-      "invalid file size");
+      end_pos > 0 && end_pos <= static_cast<std::streamoff>(std::numeric_limits<uint32_t>::max()), "invalid file size");
 
   size = static_cast<size_t>(end_pos);
   buffer = new char[size];
@@ -40,10 +36,7 @@ void ReadBinFile(const char* file_name, uint32_t& fileSize, char*& buffer) {
   filestr.close();
 }
 
-const uintptr_t RegisterBinaryKernel(
-    const char* func_name,
-    const char* bin_file,
-    char* buffer) {
+const uintptr_t RegisterBinaryKernel(const char* func_name, const char* bin_file, char* buffer) {
   rtDevBinary_t binary;
   void* binHandle = nullptr;
   uint32_t bufferSize = 0;
@@ -56,12 +49,7 @@ const uintptr_t RegisterBinaryKernel(
   rtError_t rtRet = rtDevBinaryRegister(&binary, &binHandle);
   TORCH_CHECK(rtRet == RT_ERROR_NONE, "rtDevBinaryRegister failed!");
   kBiShengStartAddr += 1;
-  rtRet = rtFunctionRegister(
-      binHandle,
-      reinterpret_cast<void*>(kBiShengStartAddr),
-      func_name,
-      (void*)func_name,
-      0);
+  rtRet = rtFunctionRegister(binHandle, reinterpret_cast<void*>(kBiShengStartAddr), func_name, (void*)func_name, 0);
   TORCH_CHECK(rtRet == RT_ERROR_NONE, "rtFunctionRegister failed!");
   return reinterpret_cast<const uintptr_t>(kBiShengStartAddr);
 }
@@ -70,13 +58,11 @@ const uintptr_t RegisterBinaryKernel(
 void TORCH_NPU_API THNPMLIR_init(PyObject* module) {
   auto torch_C_m = py::handle(module).cast<py::module>();
   auto mlir_m = torch_C_m.def_submodule("mlir", "MLIR bindings");
-  mlir_m.def(
-      "load_kernel_binary", [](const char* func_name, const char* bin_file) {
-        char* buffer = nullptr;
-        const uintptr_t addr =
-            RegisterBinaryKernel(func_name, bin_file, buffer);
-        delete[] buffer;
-        return addr;
-      });
+  mlir_m.def("load_kernel_binary", [](const char* func_name, const char* bin_file) {
+    char* buffer = nullptr;
+    const uintptr_t addr = RegisterBinaryKernel(func_name, bin_file, buffer);
+    delete[] buffer;
+    return addr;
+  });
 }
 #endif

@@ -20,12 +20,7 @@
 namespace at_npu {
 namespace native {
 
-TORCH_NPU_API void memory_swap(
-    void* dst,
-    size_t dst_len,
-    void* src,
-    size_t src_len,
-    int type);
+TORCH_NPU_API void memory_swap(void* dst, size_t dst_len, void* src, size_t src_len, int type);
 
 } // namespace native
 } // namespace at_npu

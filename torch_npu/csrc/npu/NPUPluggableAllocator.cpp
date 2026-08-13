@@ -15,13 +15,9 @@ int device_count = 0;
 
 void custom_raw_deleter(void* ptr);
 
-_AllocationMetadata::_AllocationMetadata()
-    : size(0), device_idx(-1), stream{} {}
+_AllocationMetadata::_AllocationMetadata() : size(0), device_idx(-1), stream{} {}
 
-_AllocationMetadata::_AllocationMetadata(
-    size_t size,
-    int device_idx,
-    aclrtStream stream)
+_AllocationMetadata::_AllocationMetadata(size_t size, int device_idx, aclrtStream stream)
     : size(size), device_idx(device_idx), stream(stream) {}
 
 // This is a fast API to just register allocators
@@ -56,19 +52,16 @@ void NPUPluggableAllocator::set_reset_fn(std::function<void(bool)> reset_fn) {
   reset_fn_ = std::move(reset_fn);
 }
 
-void NPUPluggableAllocator::set_memory_fraction_fn(
-    std::function<void(double, int)> memory_fraction_fn) {
+void NPUPluggableAllocator::set_memory_fraction_fn(std::function<void(double, int)> memory_fraction_fn) {
   memory_fraction_fn_ = std::move(memory_fraction_fn);
 }
 
-void NPUPluggableAllocator::set_base_alloc_fn(
-    std::function<void*(void*, size_t*)> base_alloc_fn) {
+void NPUPluggableAllocator::set_base_alloc_fn(std::function<void*(void*, size_t*)> base_alloc_fn) {
   base_alloc_fn_ = std::move(base_alloc_fn);
 }
 
 void NPUPluggableAllocator::set_record_stream_fn(
-    std::function<void(void* ptr, c10_npu::NPUStream stream)>
-        record_stream_fn) {
+    std::function<void(void* ptr, c10_npu::NPUStream stream)> record_stream_fn) {
   record_stream_fn_ = std::move(record_stream_fn);
 }
 
@@ -78,20 +71,16 @@ void NPUPluggableAllocator::set_erase_stream_fn(
 }
 
 void NPUPluggableAllocator::set_get_device_stats_fn(
-    std::function<c10_npu::NPUCachingAllocator::DeviceStats(c10::DeviceIndex)>
-        get_device_stats_fn) {
+    std::function<c10_npu::NPUCachingAllocator::DeviceStats(c10::DeviceIndex)> get_device_stats_fn) {
   get_device_stats_fn_ = std::move(get_device_stats_fn);
 }
 
-void NPUPluggableAllocator::set_reset_peak_status_fn(
-    std::function<void(c10::DeviceIndex)> reset_peak_status_fn) {
+void NPUPluggableAllocator::set_reset_peak_status_fn(std::function<void(c10::DeviceIndex)> reset_peak_status_fn) {
   reset_peak_status_fn_ = std::move(reset_peak_status_fn);
 }
 
 void NPUPluggableAllocator::set_begin_allocate_to_pool(
-    std::function<
-        void(int, c10_npu::MempoolId_t, std::function<bool(aclrtStream)>)>
-        capture_begin_fn) {
+    std::function<void(int, c10_npu::MempoolId_t, std::function<bool(aclrtStream)>)> capture_begin_fn) {
   begin_allocate_to_pool_fn_ = std::move(capture_begin_fn);
 }
 
@@ -100,15 +89,11 @@ void NPUPluggableAllocator::set_end_allocate_to_pool_fn(
   end_allocate_to_pool_fn_ = std::move(capture_about_to_end_fn);
 }
 
-void NPUPluggableAllocator::set_release_pool(
-    std::function<void(int, c10_npu::MempoolId_t)> capture_destroy_fn) {
+void NPUPluggableAllocator::set_release_pool(std::function<void(int, c10_npu::MempoolId_t)> capture_destroy_fn) {
   release_pool_fn_ = std::move(capture_destroy_fn);
 }
 
-void* NPUPluggableAllocator::malloc(
-    size_t size,
-    int device,
-    aclrtStream stream) {
+void* NPUPluggableAllocator::malloc(size_t size, int device, aclrtStream stream) {
   void* r = alloc_fn_(size, device, stream);
   {
     const std::lock_guard<std::mutex> lock(allocator_mutex_);
@@ -116,8 +101,7 @@ void* NPUPluggableAllocator::malloc(
   }
 #ifndef BUILD_LIBTORCH
   if (r) {
-    const c10_npu::impl::PyCallbackTrigger* trigger =
-        c10_npu::impl::NPUTrace::getTrace();
+    const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
     if (C10_UNLIKELY(trigger)) {
       trigger->traceNpuMemoryAllocation(reinterpret_cast<uintptr_t>(r));
     }
@@ -132,21 +116,12 @@ c10::DataPtr NPUPluggableAllocator::allocate(size_t size) {
   aclrtStream stream = c10_npu::getCurrentNPUStreamNoWait(device);
   void* r = this->malloc(size, device, stream);
   c10::DataPtr data_ptr = {
-      r,
-      r,
-      raw_deleter(),
-      c10::Device(
-          c10::DeviceType::PrivateUse1, static_cast<c10::DeviceIndex>(device))};
+      r, r, raw_deleter(), c10::Device(c10::DeviceType::PrivateUse1, static_cast<c10::DeviceIndex>(device))};
   return data_ptr;
 }
 
-c10::DataPtr NPUPluggableAllocator::allocate_with_aligned(
-    size_t size,
-    size_t base_addr_aligned_kb) const {
-  TORCH_CHECK(
-      false,
-      "NPUPluggableAllocator doesn't has allocate_with_aligned",
-      PTA_ERROR(ErrCode::NOT_SUPPORT));
+c10::DataPtr NPUPluggableAllocator::allocate_with_aligned(size_t size, size_t base_addr_aligned_kb) const {
+  TORCH_CHECK(false, "NPUPluggableAllocator doesn't has allocate_with_aligned", PTA_ERROR(ErrCode::NOT_SUPPORT));
   return c10::DataPtr();
 }
 
@@ -161,9 +136,7 @@ void* NPUPluggableAllocator::raw_alloc(size_t nbytes) {
   return malloc(nbytes, device, stream);
 }
 
-void* NPUPluggableAllocator::raw_alloc_with_stream(
-    size_t nbytes,
-    aclrtStream stream) {
+void* NPUPluggableAllocator::raw_alloc_with_stream(size_t nbytes, aclrtStream stream) {
   int device = -1;
   NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
   return malloc(nbytes, device, stream);
@@ -176,9 +149,7 @@ void NPUPluggableAllocator::raw_delete(void* ptr) {
   {
     const std::lock_guard<std::mutex> lock(allocator_mutex_);
     TORCH_CHECK(
-        allocation_metadata_.count(ptr),
-        "Trying to free a pointer not allocated here",
-        PTA_ERROR(ErrCode::PTR));
+        allocation_metadata_.count(ptr), "Trying to free a pointer not allocated here", PTA_ERROR(ErrCode::PTR));
     _AllocationMetadata& metadata = allocation_metadata_[ptr];
     size = metadata.size;
     device_idx = metadata.device_idx;
@@ -186,8 +157,7 @@ void NPUPluggableAllocator::raw_delete(void* ptr) {
     allocation_metadata_.erase(ptr);
   }
 #ifndef BUILD_LIBTORCH
-  const c10_npu::impl::PyCallbackTrigger* trigger =
-      c10_npu::impl::NPUTrace::getTrace();
+  const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
   if (C10_UNLIKELY(trigger)) {
     trigger->traceNpuMemoryDeallocation(reinterpret_cast<uintptr_t>(ptr));
   }
@@ -219,9 +189,7 @@ void NPUPluggableAllocator::setMemoryFraction(double fraction, int device) {
   }
 }
 
-void NPUPluggableAllocator::emptyCacheImpl(
-    bool check_error,
-    bool free_physical) {
+void NPUPluggableAllocator::emptyCacheImpl(bool check_error, bool free_physical) {
   TORCH_NPU_WARN(
       "NPUPluggableAllocator does not yet support emptyCacheImpl. "
       "If you need it, please file an issue describing your use case.");
@@ -245,10 +213,7 @@ void NPUPluggableAllocator::emptyVirtAddrCache(bool check_error) {
       "If you need it, please file an issue describing your use case.");
 }
 
-void NPUPluggableAllocator::cacheInfo(
-    int dev_id,
-    size_t* cachedAndFree,
-    size_t* largestBlock) {
+void NPUPluggableAllocator::cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock) {
   TORCH_NPU_WARN(
       "NPUPluggableAllocator does not yet support cacheInfo. "
       "If you need it, please file an issue describing your use case.");
@@ -262,17 +227,13 @@ void* NPUPluggableAllocator::getBaseAllocation(void* ptr, size_t* size) {
   }
 }
 
-void NPUPluggableAllocator::recordStream(
-    const c10::DataPtr& ptr,
-    streamType stream) {
+void NPUPluggableAllocator::recordStream(const c10::DataPtr& ptr, streamType stream) {
 #ifndef BUILD_LIBTORCH
   if (ptr.get()) {
-    const c10_npu::impl::PyCallbackTrigger* trigger =
-        c10_npu::impl::NPUTrace::getTrace();
+    const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
     if (C10_UNLIKELY(trigger)) {
       trigger->traceNpuRecordStream(
-          reinterpret_cast<uintptr_t>(ptr.get()),
-          reinterpret_cast<uintptr_t>(stream.stream(false)));
+          reinterpret_cast<uintptr_t>(ptr.get()), reinterpret_cast<uintptr_t>(stream.stream(false)));
     }
   }
 #endif
@@ -281,29 +242,22 @@ void NPUPluggableAllocator::recordStream(
   }
 }
 
-void NPUPluggableAllocator::eraseStream(
-    const c10::DataPtr& ptr,
-    streamType stream) {
+void NPUPluggableAllocator::eraseStream(const c10::DataPtr& ptr, streamType stream) {
   if (erase_stream_fn_) {
     erase_stream_fn_(ptr.get(), stream);
   }
 #ifndef BUILD_LIBTORCH
   if (ptr.get()) {
-    const c10_npu::impl::PyCallbackTrigger* trigger =
-        c10_npu::impl::NPUTrace::getTrace();
+    const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
     if (C10_UNLIKELY(trigger)) {
       trigger->traceNpuEraseStream(
-          reinterpret_cast<uintptr_t>(ptr.get()),
-          reinterpret_cast<uintptr_t>(stream.stream(false)));
+          reinterpret_cast<uintptr_t>(ptr.get()), reinterpret_cast<uintptr_t>(stream.stream(false)));
     }
   }
 #endif
 }
 
-void NPUPluggableAllocator::eraseStreamWithBlockPtr(
-    void* block_ptr,
-    c10_npu::NPUStream stream,
-    void* work_ptr) {
+void NPUPluggableAllocator::eraseStreamWithBlockPtr(void* block_ptr, c10_npu::NPUStream stream, void* work_ptr) {
   TORCH_NPU_WARN(
       "NPUPluggableAllocator does not yet support eraseStreamWithBlockPtr. "
       "If you need it, please file an issue describing your use case.");
@@ -316,21 +270,17 @@ void* NPUPluggableAllocator::getBlockPtr(const c10::DataPtr& ptr) {
   return nullptr;
 }
 
-void NPUPluggableAllocator::recordHcclWorkForBlock(
-    void* block_ptr,
-    void* work_ptr) {
+void NPUPluggableAllocator::recordHcclWorkForBlock(void* block_ptr, void* work_ptr) {
   TORCH_NPU_WARN(
       "NPUPluggableAllocator does not yet support recordHcclWorkForBlock. "
       "If you need it, please file an issue describing your use case.");
 }
 
-c10_npu::NPUCachingAllocator::DeviceStats NPUPluggableAllocator::getDeviceStats(
-    c10::DeviceIndex device) {
+c10_npu::NPUCachingAllocator::DeviceStats NPUPluggableAllocator::getDeviceStats(c10::DeviceIndex device) {
   if (get_device_stats_fn_) {
     return get_device_stats_fn_(device);
   } else {
-    TORCH_NPU_WARN(
-        "get_device_stats_fn_ is not define, please set by set_get_device_stats_fn");
+    TORCH_NPU_WARN("get_device_stats_fn_ is not define, please set by set_get_device_stats_fn");
   }
 }
 
@@ -344,13 +294,11 @@ void NPUPluggableAllocator::resetPeakStats(c10::DeviceIndex device) {
   if (reset_peak_status_fn_) {
     reset_peak_status_fn_(device);
   } else {
-    TORCH_NPU_WARN(
-        "reset_peak_status_fn_ is not define, please set by set_reset_peak_status_fn");
+    TORCH_NPU_WARN("reset_peak_status_fn_ is not define, please set by set_reset_peak_status_fn");
   }
 }
 
-c10_npu::NPUCachingAllocator::SnapshotInfo NPUPluggableAllocator::snapshot(
-    c10_npu::MempoolId_t mempool_id) {
+c10_npu::NPUCachingAllocator::SnapshotInfo NPUPluggableAllocator::snapshot(c10_npu::MempoolId_t mempool_id) {
   TORCH_NPU_WARN(
       "NPUPluggableAllocator does not yet support snapshot. "
       "If you need it, please file an issue describing your use case.");
@@ -366,17 +314,13 @@ void NPUPluggableAllocator::beginAllocateToPool(
   }
 }
 
-void NPUPluggableAllocator::endAllocateToPool(
-    c10::DeviceIndex device,
-    c10_npu::MempoolId_t mempool_id) {
+void NPUPluggableAllocator::endAllocateToPool(c10::DeviceIndex device, c10_npu::MempoolId_t mempool_id) {
   if (end_allocate_to_pool_fn_) {
     end_allocate_to_pool_fn_(device, mempool_id);
   }
 }
 
-void NPUPluggableAllocator::releasePool(
-    c10::DeviceIndex device,
-    c10_npu::MempoolId_t mempool_id) {
+void NPUPluggableAllocator::releasePool(c10::DeviceIndex device, c10_npu::MempoolId_t mempool_id) {
   if (release_pool_fn_) {
     release_pool_fn_(device, mempool_id);
   }
@@ -393,12 +337,8 @@ std::string NPUPluggableAllocator::name() {
 }
 
 // Note [COW/lazy_clone is not supported yet]
-void NPUPluggableAllocator::copy_data(
-    void* dest,
-    const void* src,
-    std::size_t count) const {
-  NPU_CHECK_ERROR(
-      aclrtMemcpy(dest, count, src, count, ACL_MEMCPY_DEVICE_TO_DEVICE));
+void NPUPluggableAllocator::copy_data(void* dest, const void* src, std::size_t count) const {
+  NPU_CHECK_ERROR(aclrtMemcpy(dest, count, src, count, ACL_MEMCPY_DEVICE_TO_DEVICE));
 }
 
 std::shared_ptr<void> NPUPluggableAllocator::getIpcDevPtr(std::string handle) {
@@ -409,8 +349,7 @@ std::shared_ptr<void> NPUPluggableAllocator::getIpcDevPtr(std::string handle) {
   return sp;
 }
 
-c10_npu::NPUCachingAllocator::ShareableHandle NPUPluggableAllocator::
-    shareIpcHandle(void* ptr) {
+c10_npu::NPUCachingAllocator::ShareableHandle NPUPluggableAllocator::shareIpcHandle(void* ptr) {
   TORCH_NPU_WARN(
       "NPUPluggableAllocator does not yet support shareIPcHandle. "
       "If you need it, please file an issue describing your use case.");
@@ -427,22 +366,19 @@ void NPUPluggableAllocator::recordHistory(
       "If you need it, please file an issue describing your use case.");
 }
 
-void NPUPluggableAllocator::attachOutOfMemoryObserver(
-    c10_npu::NPUCachingAllocator::OutOfMemoryObserver observer) {
+void NPUPluggableAllocator::attachOutOfMemoryObserver(c10_npu::NPUCachingAllocator::OutOfMemoryObserver observer) {
   TORCH_NPU_WARN(
       "NPUPluggableAllocator does not yet support attachOutOfMemoryObserver. "
       "If you need it, please file an issue describing your use case.");
 }
 
-void NPUPluggableAllocator::attachOomRejectionObserver(
-    c10_npu::NPUCachingAllocator::OomRejectionObserver observer) {
+void NPUPluggableAllocator::attachOomRejectionObserver(c10_npu::NPUCachingAllocator::OomRejectionObserver observer) {
   TORCH_NPU_WARN(
       "NPUPluggableAllocator does not yet support attachOomRejectionObserver. "
       "If you need it, please file an issue describing your use case.");
 }
 
-void NPUPluggableAllocator::attachAllocatorTraceTracker(
-    c10_npu::NPUCachingAllocator::AllocatorTraceTracker tracker) {
+void NPUPluggableAllocator::attachAllocatorTraceTracker(c10_npu::NPUCachingAllocator::AllocatorTraceTracker tracker) {
   (void)tracker;
   TORCH_CHECK(
       false,
@@ -483,8 +419,7 @@ void NPUPluggableAllocator::cleanEvent() {
       "If you need it, please file an issue describing your use case.");
 }
 
-std::shared_ptr<c10_npu::NPUCachingAllocator::AllocatorState>
-NPUPluggableAllocator::getCheckpointState(
+std::shared_ptr<c10_npu::NPUCachingAllocator::AllocatorState> NPUPluggableAllocator::getCheckpointState(
     c10::DeviceIndex device,
     c10_npu::MempoolId_t id) {
   TORCH_NPU_WARN(
@@ -492,37 +427,30 @@ NPUPluggableAllocator::getCheckpointState(
       "If you need it, please file an issue describing your use case.");
 }
 
-c10_npu::NPUCachingAllocator::CheckpointDelta NPUPluggableAllocator::
-    setCheckpointPoolState(
-        c10::DeviceIndex device,
-        std::shared_ptr<c10_npu::NPUCachingAllocator::AllocatorState> pps) {
+c10_npu::NPUCachingAllocator::CheckpointDelta NPUPluggableAllocator::setCheckpointPoolState(
+    c10::DeviceIndex device,
+    std::shared_ptr<c10_npu::NPUCachingAllocator::AllocatorState> pps) {
   TORCH_NPU_WARN(
       "NPUPluggableAllocator does not yet support setCheckpointPoolState. "
       "If you need it, please file an issue describing your use case.");
 }
 
-std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator>
-    current_custom_allocator;
+std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator> current_custom_allocator;
 
-std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator>
-getCurrentAllocator() {
+std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator> getCurrentAllocator() {
   return current_custom_allocator;
 }
 
-std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator>
-createCustomAllocator(
+std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator> createCustomAllocator(
     std::function<void*(size_t, int, aclrtStream)> alloc_fn,
     std::function<void(void*, size_t, int, aclrtStream)> free_fn) {
-  std::shared_ptr<NPUPluggableAllocator> allocator(
-      new NPUPluggableAllocator(std::move(alloc_fn), std::move(free_fn)));
+  std::shared_ptr<NPUPluggableAllocator> allocator(new NPUPluggableAllocator(std::move(alloc_fn), std::move(free_fn)));
   NPU_CHECK_ERROR(c10_npu::GetDevice(&device_count));
   allocator->init(device_count);
   return allocator;
 }
 
-void changeCurrentAllocator(
-    const std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator>&
-        allocator) {
+void changeCurrentAllocator(const std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator>& allocator) {
   TORCH_CHECK(
       !c10_npu::NPUCachingAllocator::allocator.load()->initialized(),
       "Can't swap an already initialized allocator",

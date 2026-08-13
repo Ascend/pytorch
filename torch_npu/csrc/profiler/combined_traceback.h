@@ -15,10 +15,7 @@ struct TORCH_NPU_API CapturedTraceback : public c10::GatheredContext {
     int lasti;
   };
 
-  static std::shared_ptr<CapturedTraceback> gather(
-      bool python,
-      bool script,
-      bool cpp);
+  static std::shared_ptr<CapturedTraceback> gather(bool python, bool script, bool cpp);
   CapturedTraceback() = default;
   CapturedTraceback(const CapturedTraceback&) = delete;
   CapturedTraceback& operator=(const CapturedTraceback&) = delete;
@@ -31,14 +28,9 @@ struct TORCH_NPU_API CapturedTraceback : public c10::GatheredContext {
   struct Python {
     virtual std::vector<PyFrame> gather() = 0;
     virtual void release(std::vector<PyFrame>& frames) = 0;
-    virtual void appendSymbolized(
-        const std::vector<PyFrame>& to_symbolize,
-        SymbolizedTracebacks& st) = 0;
+    virtual void appendSymbolized(const std::vector<PyFrame>& to_symbolize, SymbolizedTracebacks& st) = 0;
     // tp_traverse/tp_clear implementations
-    virtual int traverse(
-        std::vector<PyFrame>& frames,
-        visitproc visit,
-        void* arg) = 0;
+    virtual int traverse(std::vector<PyFrame>& frames, visitproc visit, void* arg) = 0;
     virtual int clear(std::vector<PyFrame>& frames) = 0;
     virtual ~Python() = default;
     Python* next_ = nullptr;
@@ -55,15 +47,13 @@ struct TORCH_NPU_API CapturedTraceback : public c10::GatheredContext {
   std::vector<PyFrame> frames_;
   std::vector<void*> cpp_frames_;
   std::vector<torch::jit::StackEntry> script_frames_;
-  friend TORCH_NPU_API SymbolizedTracebacks
-  symbolize(const std::vector<CapturedTraceback*>& to_symbolize);
+  friend TORCH_NPU_API SymbolizedTracebacks symbolize(const std::vector<CapturedTraceback*>& to_symbolize);
 
   // non-owning reference to one of the immortal Python* objects
   // registered above.
   Python* python_ = nullptr;
 };
 
-TORCH_NPU_API SymbolizedTracebacks
-symbolize(const std::vector<CapturedTraceback*>& to_symbolize);
+TORCH_NPU_API SymbolizedTracebacks symbolize(const std::vector<CapturedTraceback*>& to_symbolize);
 
 } // namespace torch_npu

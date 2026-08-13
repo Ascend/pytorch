@@ -17,14 +17,8 @@ class FlopCounter {
       int64_t gather_index);
   static int64_t addmm_flop(const at::Tensor& mat1, const at::Tensor& mat2);
   static int64_t bmm_flop(const at::Tensor& self, const at::Tensor& mat2);
-  static int64_t baddbmm_flop(
-      const at::Tensor& batch1,
-      const at::Tensor& batch2);
-  static int64_t conv_flop(
-      const at::Tensor& input,
-      const at::Tensor& weight,
-      bool transposed,
-      at::Tensor output);
+  static int64_t baddbmm_flop(const at::Tensor& batch1, const at::Tensor& batch2);
+  static int64_t conv_flop(const at::Tensor& input, const at::Tensor& weight, bool transposed, at::Tensor output);
   static int64_t conv_backward_flop(
       const at::Tensor& grad_output,
       const at::Tensor& input,

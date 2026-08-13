@@ -162,12 +162,8 @@ RTS_API rtError_t rtDevBinaryRegister(const rtDevBinary_t* bin, void** handle);
  * @note:if this interface is changed, pls notify the compiler changing at the
  * same time.
  */
-RTS_API rtError_t rtFunctionRegister(
-    void* binHandle,
-    const void* stubFunc,
-    const char* stubName,
-    const void* devFunc,
-    uint32_t funcMode);
+RTS_API rtError_t
+rtFunctionRegister(void* binHandle, const void* stubFunc, const char* stubName, const void* devFunc, uint32_t funcMode);
 
 /**
  * @ingroup rt_kernel
@@ -315,12 +311,7 @@ RTS_API rtError_t rtFreeHost(void* hostPtr);
  * dst,src
  * @return RT_ERROR_INVALID_MEMCPY_DIRECTION for error copy direction of kind
  */
-RTS_API rtError_t rtMemcpy(
-    void* dst,
-    uint64_t destMax,
-    const void* src,
-    uint64_t count,
-    rtMemcpyKind_t kind);
+RTS_API rtError_t rtMemcpy(void* dst, uint64_t destMax, const void* src, uint64_t count, rtMemcpyKind_t kind);
 
 /**
  * @ingroup dvrt_mem
@@ -337,13 +328,8 @@ RTS_API rtError_t rtMemcpy(
  * dst,src
  * @return RT_ERROR_INVALID_MEMCPY_DIRECTION for error copy direction of kind
  */
-RTS_API rtError_t rtMemcpyAsync(
-    void* dst,
-    uint64_t destMax,
-    const void* src,
-    uint64_t count,
-    rtMemcpyKind_t kind,
-    rtStream_t stream);
+RTS_API rtError_t
+rtMemcpyAsync(void* dst, uint64_t destMax, const void* src, uint64_t count, rtMemcpyKind_t kind, rtStream_t stream);
 
 /**
  * @ingroup dvrt_stream

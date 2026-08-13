@@ -35,8 +35,7 @@ struct NpuIPCGlobalEntities {
 
   std::mutex ref_counters_mutex_;
   std::atomic<int64_t> sync_events_used_{0};
-  std::map<std::string, std::shared_ptr<NpuIPCRefCountersFile>>
-      ref_counters_files_;
+  std::map<std::string, std::shared_ptr<NpuIPCRefCountersFile>> ref_counters_files_;
   std::shared_ptr<NpuIPCRefCountersFile> next_available_ref_counters_file_;
   NpuIPCSentDataLimbo NpuIPCSentDataLimbo_;
 
@@ -55,8 +54,7 @@ struct NpuIPCGlobalEntities {
 
   void safe_clean_current_file() {
     std::lock_guard<std::mutex> lock(ref_counters_mutex_);
-    if (next_available_ref_counters_file_ &&
-        next_available_ref_counters_file_->offsets_in_use() == 0) {
+    if (next_available_ref_counters_file_ && next_available_ref_counters_file_->offsets_in_use() == 0) {
       ref_counters_files_.erase(next_available_ref_counters_file_->handle());
       next_available_ref_counters_file_.reset();
     }
@@ -102,11 +100,9 @@ void NpuIPCSentDataLimbo::add(std::unique_ptr<NpuIPCSentData> shared_block) {
   std::lock_guard<std::mutex> lock(limbo_mutex_);
   static bool warned = false;
   if (shared_blocks_.size() > NPU_IPC_WARN_AFTER_X_BLOCKS_IN_LIMBO && !warned) {
-    LOG(WARNING)
-        << "Producer process tried to deallocate over "
-        << NPU_IPC_WARN_AFTER_X_BLOCKS_IN_LIMBO
-        << " memory blocks referred by consumer processes. Deallocation might be significantly slowed down. "
-        << "We assume it will never going to be the case.";
+    LOG(WARNING) << "Producer process tried to deallocate over " << NPU_IPC_WARN_AFTER_X_BLOCKS_IN_LIMBO
+                 << " memory blocks referred by consumer processes. Deallocation might be significantly slowed down. "
+                 << "We assume it will never going to be the case.";
     warned = true;
   }
   shared_blocks_.push_back(std::move(shared_block));
@@ -145,15 +141,8 @@ void ReturnRefCounter(const std::string& handle, uint64_t offset /* unused */) {
 
 } // namespace
 
-NpuIPCSentData::NpuIPCSentData(
-    std::string handle,
-    uint64_t offset,
-    uint64_t* counter_ptr,
-    at::Device device)
-    : handle_(std::move(handle)),
-      offset_(offset),
-      counter_ptr_(counter_ptr),
-      device_(device) {
+NpuIPCSentData::NpuIPCSentData(std::string handle, uint64_t offset, uint64_t* counter_ptr, at::Device device)
+    : handle_(std::move(handle)), offset_(offset), counter_ptr_(counter_ptr), device_(device) {
   // NPU have the unofficial limit on the number of recorded blocking
   // interprocess events, to prevent using of all events, we are switching to
   // StreamSync before limit reached.
@@ -167,8 +156,7 @@ NpuIPCSentData::NpuIPCSentData(
   //  ```
   //
   if (c10_npu::acl::IsSupportIpcEvent() &&
-      npu_ipc_global_entities.sync_events_used_.load() <
-          NPU_IPC_MAXIMUM_EVENTS_TO_USE) {
+      npu_ipc_global_entities.sync_events_used_.load() < NPU_IPC_MAXIMUM_EVENTS_TO_USE) {
     // More efficient would be to create event inside of main thread (at
     // the moment of the queue.put). The reason this is more efficient is
     // because the main thread may have queued extra work on the stream, which
@@ -194,20 +182,15 @@ uint64_t NpuIPCSentData::counter_value() {
 
 at::DataPtr GetNewRefCountedSentData(void* data, at::Device device) {
   {
-    std::lock_guard<std::mutex> lock(
-        npu_ipc_global_entities.ref_counters_mutex_);
+    std::lock_guard<std::mutex> lock(npu_ipc_global_entities.ref_counters_mutex_);
     if (!npu_ipc_global_entities.next_available_ref_counters_file_) {
       std::string ref_counter_handle = at::NewProcessWideShmHandle();
 
-      int flags =
-          at::ALLOCATOR_MAPPED_SHAREDMEM | at::ALLOCATOR_MAPPED_EXCLUSIVE;
+      int flags = at::ALLOCATOR_MAPPED_SHAREDMEM | at::ALLOCATOR_MAPPED_EXCLUSIVE;
       at::DataPtr sptr = at::RefcountedMapAllocator::makeDataPtr(
-          ref_counter_handle.c_str(),
-          flags,
-          sizeof(int64_t) * NPU_IPC_REF_COUNTER_FILE_SIZE,
-          nullptr);
-      auto rc = std::make_shared<NpuIPCRefCountersFile>(
-          ref_counter_handle, NPU_IPC_REF_COUNTER_FILE_SIZE, std::move(sptr));
+          ref_counter_handle.c_str(), flags, sizeof(int64_t) * NPU_IPC_REF_COUNTER_FILE_SIZE, nullptr);
+      auto rc =
+          std::make_shared<NpuIPCRefCountersFile>(ref_counter_handle, NPU_IPC_REF_COUNTER_FILE_SIZE, std::move(sptr));
       npu_ipc_global_entities.ref_counters_files_[ref_counter_handle] = rc;
       npu_ipc_global_entities.next_available_ref_counters_file_ = rc;
     }
@@ -220,8 +203,7 @@ at::DataPtr GetNewRefCountedSentData(void* data, at::Device device) {
       device);
 
   npu_ipc_global_entities.next_available_ref_counters_file_->rotate_offset();
-  if (!npu_ipc_global_entities.next_available_ref_counters_file_
-           ->have_offsets()) {
+  if (!npu_ipc_global_entities.next_available_ref_counters_file_->have_offsets()) {
     npu_ipc_global_entities.next_available_ref_counters_file_.reset();
   }
   return at::DataPtr(data, sent_data, NpuIPCSentDataDelete, device);

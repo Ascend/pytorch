@@ -39,23 +39,18 @@ struct FeatureInfo {
         {tempCompatibility, compatibility, sizeof(compatibility)},
         {tempFeatureVersion, featureVersion, sizeof(featureVersion)},
         {tempAffectedComponent, affectedComponent, sizeof(affectedComponent)},
-        {tempAffectedComponentVersion,
-         affectedComponentVersion,
-         sizeof(affectedComponentVersion)},
+        {tempAffectedComponentVersion, affectedComponentVersion, sizeof(affectedComponentVersion)},
         {tempInfoLog, infoLog, sizeof(infoLog)},
     };
-    std::all_of(
-        copyList.begin(),
-        copyList.end(),
-        [](std::tuple<const char*, char*, size_t>& copyNode) {
-          const char* src = std::get<0>(copyNode);
-          char* dest = std::get<1>(copyNode);
-          size_t destSize = std::get<2>(copyNode);
-          if (Utils::safe_strcpy_s(dest, src, destSize) != 0) {
-            return false;
-          }
-          return true;
-        });
+    std::all_of(copyList.begin(), copyList.end(), [](std::tuple<const char*, char*, size_t>& copyNode) {
+      const char* src = std::get<0>(copyNode);
+      char* dest = std::get<1>(copyNode);
+      size_t destSize = std::get<2>(copyNode);
+      if (Utils::safe_strcpy_s(dest, src, destSize) != 0) {
+        return false;
+      }
+      return true;
+    });
   }
   virtual ~FeatureInfo() {}
 };

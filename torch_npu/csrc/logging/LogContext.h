@@ -26,10 +26,7 @@ class TORCH_NPU_API LogContext {
   void parseFilterFromEnv();
 
  private:
-  void GetQNameAndLevelByName(
-      const std::string& name,
-      std::string& qname,
-      LoggingLevel& level);
+  void GetQNameAndLevelByName(const std::string& name, std::string& qname, LoggingLevel& level);
 
   std::mutex mutex_;
   std::unordered_map<std::string, int> qnameLevels_;

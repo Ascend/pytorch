@@ -131,23 +131,13 @@ TORCH_LIBRARY_IMPL(aten, AutocastPrivateUse1, m) {
       ADD_NS(norm),
       "norm.Scalar",
       at::Tensor(const at::Tensor&, const c10::Scalar&),
-      at::Tensor(
-          const at::Tensor&, const c10::optional<c10::Scalar>&, at::ScalarType),
+      at::Tensor(const at::Tensor&, const c10::optional<c10::Scalar>&, at::ScalarType),
       fp32_append_dtype)
   KERNEL_DIFFERENT_REDISPATCH_SIGNATURE_PRIVATEUSEONE(
       ADD_NS(norm),
       "norm.ScalarOpt_dim",
-      at::Tensor(
-          const at::Tensor&,
-          const c10::optional<c10::Scalar>&,
-          at::IntArrayRef,
-          bool),
-      at::Tensor(
-          const at::Tensor&,
-          const c10::optional<c10::Scalar>&,
-          at::IntArrayRef,
-          bool,
-          at::ScalarType),
+      at::Tensor(const at::Tensor&, const c10::optional<c10::Scalar>&, at::IntArrayRef, bool),
+      at::Tensor(const at::Tensor&, const c10::optional<c10::Scalar>&, at::IntArrayRef, bool, at::ScalarType),
       fp32_append_dtype)
   // promote
   KERNEL_PRIVATEUSEONE(addcdiv, promote)
@@ -161,9 +151,7 @@ TORCH_LIBRARY_IMPL(aten, AutocastPrivateUse1, m) {
   KERNEL_PRIVATEUSEONE(tensordot, promote)
   KERNEL_PRIVATEUSEONE(scatter_add, promote)
 
-  m.impl(
-      TORCH_SELECTIVE_NAME("aten::binary_cross_entropy"),
-      TORCH_FN((&binary_cross_entropy_banned)));
+  m.impl(TORCH_SELECTIVE_NAME("aten::binary_cross_entropy"), TORCH_FN((&binary_cross_entropy_banned)));
 }
 
 } // namespace

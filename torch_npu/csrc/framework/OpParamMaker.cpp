@@ -44,24 +44,15 @@ void OpAttrMaker::Set(aclopAttr* attr, const string& name, string value) {
   aclopSetAttrString(attr, name.c_str(), value.c_str());
 }
 
-void OpAttrMaker::Set(
-    aclopAttr* attr,
-    const string& name,
-    c10::IntArrayRef value) {
+void OpAttrMaker::Set(aclopAttr* attr, const string& name, c10::IntArrayRef value) {
   aclopSetAttrListInt(attr, name.c_str(), value.size(), value.data());
 }
 
-void OpAttrMaker::Set(
-    aclopAttr* attr,
-    const string& name,
-    at::ArrayRef<float> value) {
+void OpAttrMaker::Set(aclopAttr* attr, const string& name, at::ArrayRef<float> value) {
   aclopSetAttrListFloat(attr, name.c_str(), value.size(), value.data());
 }
 
-void OpAttrMaker::Set(
-    aclopAttr* attr,
-    const string& name,
-    at::ArrayRef<uint8_t> value) {
+void OpAttrMaker::Set(aclopAttr* attr, const string& name, at::ArrayRef<uint8_t> value) {
   aclopSetAttrListBool(attr, name.c_str(), value.size(), value.data());
 }
 
@@ -70,18 +61,12 @@ void OpAttrMaker::Set(aclopAttr* attr, const string& name, c10::Scalar value) {
   aclopSetAttrFloat(attr, name.c_str(), val);
 }
 
-void OpAttrMaker::Set(
-    aclopAttr* attr,
-    const string& name,
-    at::ScalarType value) {
+void OpAttrMaker::Set(aclopAttr* attr, const string& name, at::ScalarType value) {
   aclDataType val = CalcuOpUtil::ConvertToAclDataType(value);
   aclopSetAttrDataType(attr, name.c_str(), val);
 }
 
-void OpAttrMaker::Set(
-    aclopAttr* attr,
-    const string& name,
-    at::ArrayRef<c10::IntArrayRef> value) {
+void OpAttrMaker::Set(aclopAttr* attr, const string& name, at::ArrayRef<c10::IntArrayRef> value) {
   // Pointer to values of each listInt.
   c10::SmallVector<int64_t*, N> attrValue;
   // Pointer to number of each listInt.
@@ -98,12 +83,7 @@ void OpAttrMaker::Set(
     eachListIntNum.emplace_back(valueSize);
   }
 
-  aclopSetAttrListListInt(
-      attr,
-      name.c_str(),
-      attrValue.size(),
-      eachListIntNum.data(),
-      attrValue.data());
+  aclopSetAttrListListInt(attr, name.c_str(), attrValue.size(), eachListIntNum.data(), attrValue.data());
 }
 
 void OpCommandImpl::SetEnginePriority() {
@@ -131,52 +111,37 @@ void ApplyLegacyDeterministicSnapshotLocked(
       level <= 2,
       "level=3 requires newer CANN runtime and operator packages that support batch consistency.",
       PTA_ERROR(ErrCode::VALUE));
-  ASCEND_LOGI(
-      "Apply deterministic level in the legacy backend, level: %d", level);
+  ASCEND_LOGI("Apply deterministic level in the legacy backend, level: %d", level);
   bool deterministic = level >= 1;
   bool strong_consistency = level == 2;
 
   if (!isOpapi && g_used_aclop && cur_level != level) {
-    NPU_CHECK_ERROR(AclSetCompileopt(
-        aclCompileOpt::ACL_OP_DETERMINISTIC, deterministic ? "1" : "0"));
+    NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_DETERMINISTIC, deterministic ? "1" : "0"));
   }
 
   if (!IsAclStrongConsistencyExist()) {
-    NPU_CHECK_ERROR(
-        AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
+    NPU_CHECK_ERROR(AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
   } else {
-    NPU_CHECK_ERROR(AclrtCtxSetSysParamOpt(
-        aclSysParamOpt::ACL_OPT_DETERMINISTIC, deterministic ? 1 : 0));
-    NPU_CHECK_ERROR(AclrtCtxSetSysParamOpt(
-        aclSysParamOpt::ACL_OPT_STRONG_CONSISTENCY,
-        strong_consistency ? 1 : 0));
-    NPU_CHECK_ERROR(AclrtSetSysParamOpt(
-        aclSysParamOpt::ACL_OPT_DETERMINISTIC, deterministic ? 1 : 0));
+    NPU_CHECK_ERROR(AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, deterministic ? 1 : 0));
+    NPU_CHECK_ERROR(AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_STRONG_CONSISTENCY, strong_consistency ? 1 : 0));
+    NPU_CHECK_ERROR(AclrtSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, deterministic ? 1 : 0));
     HcclConfigValue configValue = {deterministic ? 1 : 0};
-    HCCL_CHECK_ERROR(
-        hccl::HcclSetConfig(HcclConfig::HCCL_DETERMINISTIC, configValue));
+    HCCL_CHECK_ERROR(hccl::HcclSetConfig(HcclConfig::HCCL_DETERMINISTIC, configValue));
   }
 }
 
-void ApplyDeterministicSnapshotLocked(
-    const c10_npu::DeterministicSnapshot& snapshot,
-    bool isOpapi) {
+void ApplyDeterministicSnapshotLocked(const c10_npu::DeterministicSnapshot& snapshot, bool isOpapi) {
   int64_t cur_level = 0;
-  NPU_CHECK_ERROR(
-      AclrtGetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, &cur_level));
+  NPU_CHECK_ERROR(AclrtGetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, &cur_level));
   if (snapshot.backend == c10_npu::DeterministicBackend::V2) {
-    ASCEND_LOGI(
-        "Apply deterministic level in the V2 backend, level: %d",
-        snapshot.effective_level);
+    ASCEND_LOGI("Apply deterministic level in the V2 backend, level: %d", snapshot.effective_level);
     if (snapshot.effective_level == cur_level) {
       return;
     }
-    NPU_CHECK_ERROR(AclrtSetSysParamOpt(
-        aclSysParamOpt::ACL_OPT_DETERMINISTIC,
-        static_cast<int64_t>(snapshot.effective_level)));
-    NPU_CHECK_ERROR(AclrtCtxSetSysParamOpt(
-        aclSysParamOpt::ACL_OPT_DETERMINISTIC,
-        static_cast<int64_t>(snapshot.effective_level)));
+    NPU_CHECK_ERROR(
+        AclrtSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, static_cast<int64_t>(snapshot.effective_level)));
+    NPU_CHECK_ERROR(
+        AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, static_cast<int64_t>(snapshot.effective_level)));
     return;
   }
 
@@ -195,73 +160,53 @@ aclError RunWithDeterministicSnapshot(
   return launch();
 }
 
-void ApplyDeterministicSnapshot(
-    const c10_npu::DeterministicSnapshot& snapshot,
-    bool isOpapi) {
+void ApplyDeterministicSnapshot(const c10_npu::DeterministicSnapshot& snapshot, bool isOpapi) {
   std::lock_guard<std::recursive_mutex> lock(deterministic_launch_mutex);
   ApplyDeterministicSnapshotLocked(snapshot, isOpapi);
 }
 
-void ApplyLegacyDeterministicLevelLocked(
-    const int64_t level,
-    bool isOpapi,
-    int64_t cur_level) {
+void ApplyLegacyDeterministicLevelLocked(const int64_t level, bool isOpapi, int64_t cur_level) {
   TORCH_CHECK(
       level <= 2,
       "level=3 requires newer CANN runtime and operator packages that support batch consistency.",
       PTA_ERROR(ErrCode::VALUE));
-  ASCEND_LOGI(
-      "Apply deterministic level in the legacy backend, level: %d", level);
+  ASCEND_LOGI("Apply deterministic level in the legacy backend, level: %d", level);
   bool deterministic = level >= 1;
   bool strong_consistency = level == 2;
 
   if (!isOpapi && g_used_aclop && cur_level != level) {
-    NPU_CHECK_ERROR(AclSetCompileopt(
-        aclCompileOpt::ACL_OP_DETERMINISTIC, deterministic ? "1" : "0"));
+    NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_DETERMINISTIC, deterministic ? "1" : "0"));
   }
 
   if (!IsAclStrongConsistencyExist()) {
-    NPU_CHECK_ERROR(
-        AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
+    NPU_CHECK_ERROR(AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
   } else {
-    NPU_CHECK_ERROR(AclrtCtxSetSysParamOpt(
-        aclSysParamOpt::ACL_OPT_DETERMINISTIC, deterministic ? 1 : 0));
-    NPU_CHECK_ERROR(AclrtCtxSetSysParamOpt(
-        aclSysParamOpt::ACL_OPT_STRONG_CONSISTENCY,
-        strong_consistency ? 1 : 0));
-    NPU_CHECK_ERROR(AclrtSetSysParamOpt(
-        aclSysParamOpt::ACL_OPT_DETERMINISTIC, deterministic ? 1 : 0));
+    NPU_CHECK_ERROR(AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, deterministic ? 1 : 0));
+    NPU_CHECK_ERROR(AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_STRONG_CONSISTENCY, strong_consistency ? 1 : 0));
+    NPU_CHECK_ERROR(AclrtSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, deterministic ? 1 : 0));
     HcclConfigValue configValue = {deterministic ? 1 : 0};
-    HCCL_CHECK_ERROR(
-        hccl::HcclSetConfig(HcclConfig::HCCL_DETERMINISTIC, configValue));
+    HCCL_CHECK_ERROR(hccl::HcclSetConfig(HcclConfig::HCCL_DETERMINISTIC, configValue));
   }
 }
 
 void ApplyDeterministicLevelLocked(const int64_t level, bool isOpapi) {
   int64_t cur_level = 0;
-  NPU_CHECK_ERROR(
-      AclrtGetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, &cur_level));
+  NPU_CHECK_ERROR(AclrtGetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, &cur_level));
   auto backend = c10_npu::GetDeterministicBackend();
   if (backend == c10_npu::DeterministicBackend::V2) {
-    ASCEND_LOGI(
-        "Apply deterministic level in the V2 backend, level: %d", level);
+    ASCEND_LOGI("Apply deterministic level in the V2 backend, level: %d", level);
     if (level == cur_level) {
       return;
     }
-    NPU_CHECK_ERROR(AclrtSetSysParamOpt(
-        aclSysParamOpt::ACL_OPT_DETERMINISTIC, static_cast<int64_t>(level)));
-    NPU_CHECK_ERROR(AclrtCtxSetSysParamOpt(
-        aclSysParamOpt::ACL_OPT_DETERMINISTIC, static_cast<int64_t>(level)));
+    NPU_CHECK_ERROR(AclrtSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, static_cast<int64_t>(level)));
+    NPU_CHECK_ERROR(AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, static_cast<int64_t>(level)));
     return;
   }
 
   ApplyLegacyDeterministicLevelLocked(level, isOpapi, cur_level);
 }
 
-void ApplyDeterministicLevel(
-    int64_t level,
-    bool deterministicAlgorithmsStatus,
-    bool isOpapi) {
+void ApplyDeterministicLevel(int64_t level, bool deterministicAlgorithmsStatus, bool isOpapi) {
   if (deterministicAlgorithmsStatus) {
     level = (level == 0) ? 1 : level;
   } else {
@@ -278,9 +223,8 @@ void SetDeterministic(bool isOpapi) {
 void SetDeterministicOps(bool deterministicAlgorithmsStatus) {
   auto snapshot = c10_npu::CaptureDeterministicSnapshot();
   snapshot.deterministic_algorithms_enabled = deterministicAlgorithmsStatus;
-  snapshot.effective_level = deterministicAlgorithmsStatus
-      ? (snapshot.requested_level == 0 ? 1 : snapshot.requested_level)
-      : 0;
+  snapshot.effective_level =
+      deterministicAlgorithmsStatus ? (snapshot.requested_level == 0 ? 1 : snapshot.requested_level) : 0;
   ApplyDeterministicSnapshot(snapshot, true);
 }
 
@@ -294,19 +238,13 @@ void OpCommandImpl::Run(
   if (PyGILState_Check() != 0) {
     // we need to release GIL for NPU to compile op.
     Py_BEGIN_ALLOW_THREADS;
-    ACL_REQUIRE_OK_OP(
-        InnerRun(opName, execParam, sync, sync_index, outputTensor),
-        opName.c_str());
+    ACL_REQUIRE_OK_OP(InnerRun(opName, execParam, sync, sync_index, outputTensor), opName.c_str());
     Py_END_ALLOW_THREADS;
   } else {
-    ACL_REQUIRE_OK_OP(
-        InnerRun(opName, execParam, sync, sync_index, outputTensor),
-        opName.c_str());
+    ACL_REQUIRE_OK_OP(InnerRun(opName, execParam, sync, sync_index, outputTensor), opName.c_str());
   }
 #else
-  ACL_REQUIRE_OK_OP(
-      InnerRun(opName, execParam, sync, sync_index, outputTensor),
-      opName.c_str());
+  ACL_REQUIRE_OK_OP(InnerRun(opName, execParam, sync, sync_index, outputTensor), opName.c_str());
 #endif
 }
 
@@ -345,10 +283,8 @@ aclError OpCommandImpl::InnerRun(
   auto snapshot = c10_npu::CaptureDeterministicSnapshot();
   return RunWithDeterministicSnapshot(snapshot, false, [&]() -> aclError {
     bool reset_flag = false;
-    if (ForceJitCompileList::GetInstance().Inlist(name) &&
-        env::CheckJitDisable()) {
-      NPU_CHECK_ERROR(
-          AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "enable"));
+    if (ForceJitCompileList::GetInstance().Inlist(name) && env::CheckJitDisable()) {
+      NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "enable"));
       reset_flag = true;
     }
     int index = 0;
@@ -360,8 +296,7 @@ aclError OpCommandImpl::InnerRun(
         continue;
       }
 
-      if (at_npu::native::aoe::aoe_manager().IsAoeEnabled() &&
-          at_npu::native::aoe::aoe_manager().IsInWhitelist(name)) {
+      if (at_npu::native::aoe::aoe_manager().IsAoeEnabled() && at_npu::native::aoe::aoe_manager().IsInWhitelist(name)) {
         ret = at_npu::native::AclGenGraphAndDumpForOp(
             name.c_str(),
             inputSize,
@@ -377,10 +312,7 @@ aclError OpCommandImpl::InnerRun(
         if (ret != ACL_ERROR_NONE) {
           CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(ret);
           C10_NPU_SHOW_ERR_MSG();
-          TORCH_CHECK(
-              false,
-              "In aoe mode, AclGenGraphAndDumpForOp failed!",
-              PTA_ERROR(ErrCode::ACL));
+          TORCH_CHECK(false, "In aoe mode, AclGenGraphAndDumpForOp failed!", PTA_ERROR(ErrCode::ACL));
         }
       }
       if (!sync) {
@@ -417,19 +349,16 @@ aclError OpCommandImpl::InnerRun(
         for (size_t i = 0; i < sync_index.size(); i++) {
           c10::SmallVector<int64_t, N> real_shape;
           for (int64_t j = 0; j < outputTensor[sync_index[i]].dim(); j++) {
-            NPU_CHECK_ERROR(aclGetTensorDescDimV2(
-                params.outDesc[sync_index[i]], j, &dimSize));
+            NPU_CHECK_ERROR(aclGetTensorDescDimV2(params.outDesc[sync_index[i]], j, &dimSize));
             real_shape.emplace_back(dimSize);
           }
           outputTensor[sync_index[i]].resize_(real_shape);
         }
       }
       ++index;
-    } while (NpuUtils::IsOomError(ret, index) &&
-             (index < NPU_MAX_OP_EXEC_TRY_NUM));
+    } while (NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
     if (reset_flag) {
-      NPU_CHECK_ERROR(
-          AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "disable"));
+      NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "disable"));
     }
     return ret;
   });
@@ -450,8 +379,7 @@ aclError OpCommandImpl::InnerRunOpApi(const string& op_name, PROC_FUNC func) {
       ret = func();
       OPS_CHECK_ERROR(ret, op_name.c_str());
       index++;
-    } while (NpuUtils::IsOomError(ret, index) &&
-             (index < NPU_MAX_OP_EXEC_TRY_NUM));
+    } while (NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
     return ret;
   });
 }
@@ -484,9 +412,7 @@ void printErrorLog(ExecuteParas* cur_paras) {
   }
 }
 
-bool ContainsAny(
-    const std::string& str,
-    std::initializer_list<std::string> patterns) {
+bool ContainsAny(const std::string& str, std::initializer_list<std::string> patterns) {
   for (const auto& pattern : patterns) {
     if (str.find(pattern) != std::string::npos) {
       return true;
@@ -532,24 +458,17 @@ int ExecFunc(c10_npu::queue::QueueParas* in, aclrtStream stream) {
       // print.
       std::string errorMsg = std::string(e.what()).substr(0, 512);
       ASCEND_LOGE("Custom hand error:%s", errorMsg.c_str());
-      TORCH_NPU_DISPATCH_LOGIL(
-          "ExecFunc: Op %s Run, Custom hand error:%s.",
-          cur_paras->opType,
-          e.what());
+      TORCH_NPU_DISPATCH_LOGIL("ExecFunc: Op %s Run, Custom hand error:%s.", cur_paras->opType, e.what());
     }
     if (ret != ACL_ERROR_NONE) {
       ASCEND_LOGE("Custom hand fail! name=%s, ret=%d", cur_paras->opType, ret);
     }
-    TORCH_NPU_DISPATCH_LOGD(
-        "ExecFunc: Op %s Run with customHandler, ret = %d.",
-        cur_paras->opType,
-        ret);
+    TORCH_NPU_DISPATCH_LOGD("ExecFunc: Op %s Run with customHandler, ret = %d.", cur_paras->opType, ret);
     return ret;
   }
   bool reset_flag = false;
   if (!cur_paras->isJitDisable) {
-    NPU_CHECK_ERROR_WITHOUT_UCE(
-        AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "enable"));
+    NPU_CHECK_ERROR_WITHOUT_UCE(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "enable"));
     reset_flag = true;
   }
   if (at_npu::native::aoe::aoe_manager().IsAoeEnabled() &&
@@ -572,10 +491,7 @@ int ExecFunc(c10_npu::queue::QueueParas* in, aclrtStream stream) {
         ret = ret_temp;
       }
       ASCEND_LOGE("In aoe mode, AclGenGraphAndDumpForOp failed!");
-      TORCH_NPU_DISPATCH_LOGD(
-          "ExecFunc: Op %s Run with AclGenGraphAndDumpForOp, ret = %d.",
-          cur_paras->opType,
-          ret);
+      TORCH_NPU_DISPATCH_LOGD("ExecFunc: Op %s Run with AclGenGraphAndDumpForOp, ret = %d.", cur_paras->opType, ret);
       return ret;
     }
   }
@@ -593,8 +509,7 @@ int ExecFunc(c10_npu::queue::QueueParas* in, aclrtStream stream) {
       nullptr,
       stream);
   if (reset_flag) {
-    NPU_CHECK_ERROR_WITHOUT_UCE(
-        AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "disable"));
+    NPU_CHECK_ERROR_WITHOUT_UCE(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "disable"));
   }
 
   if (ret != ACL_ERROR_NONE) {
@@ -605,10 +520,7 @@ int ExecFunc(c10_npu::queue::QueueParas* in, aclrtStream stream) {
     printErrorLog(cur_paras);
   }
 
-  TORCH_NPU_DISPATCH_LOGD(
-      "ExecFunc: Op %s Run with aclopCompileAndExecute, ret = %d.",
-      cur_paras->opType,
-      ret);
+  TORCH_NPU_DISPATCH_LOGD("ExecFunc: Op %s Run with aclopCompileAndExecute, ret = %d.", cur_paras->opType, ret);
   return ret;
 }
 
@@ -622,8 +534,7 @@ int ExecFuncOpApi(c10_npu::queue::QueueParas* in, aclrtStream stream) {
 
   if (cur_paras->customHandler == nullptr) {
     ASCEND_LOGW("Custom hand is nullptr! name=%s", cur_paras->opType);
-    TORCH_NPU_DISPATCH_LOGI(
-        "ExecFuncOpApi: Op %s Run, custom hand is nullptr.", cur_paras->opType);
+    TORCH_NPU_DISPATCH_LOGI("ExecFuncOpApi: Op %s Run, custom hand is nullptr.", cur_paras->opType);
     return ACL_ERROR_NONE;
   }
 
@@ -656,16 +567,12 @@ int ExecFuncOpApi(c10_npu::queue::QueueParas* in, aclrtStream stream) {
     // print.
     std::string errorMsg = std::string(e.what()).substr(0, 512);
     ASCEND_LOGE("Custom hand error:%s", errorMsg.c_str());
-    TORCH_NPU_DISPATCH_LOGIL(
-        "ExecFuncOpApi: Op %s Run, Custom hand error:%s.",
-        cur_paras->opType,
-        e.what());
+    TORCH_NPU_DISPATCH_LOGIL("ExecFuncOpApi: Op %s Run, Custom hand error:%s.", cur_paras->opType, e.what());
   }
   if (ret != ACL_ERROR_NONE) {
     ASCEND_LOGE("Custom hand fail! name=%s, ret=%d", cur_paras->opType, ret);
   }
-  TORCH_NPU_DISPATCH_LOGD(
-      "ExecFuncOpApi: Op %s Run, ret = %d.", cur_paras->opType, ret);
+  TORCH_NPU_DISPATCH_LOGD("ExecFuncOpApi: Op %s Run, ret = %d.", cur_paras->opType, ret);
   return ret;
 }
 
@@ -678,21 +585,11 @@ int MemcopyAsyncFunc(c10_npu::queue::QueueParas* in, aclrtStream stream) {
       cur_paras->kind == aclrtMemcpyKind::ACL_MEMCPY_DEVICE_TO_HOST) {
     flag = true;
     ret = c10_npu::acl::AclrtMemcpyAsyncWithCondition(
-        cur_paras->dst,
-        cur_paras->dstLen,
-        cur_paras->src,
-        cur_paras->srcLen,
-        cur_paras->kind,
-        stream);
+        cur_paras->dst, cur_paras->dstLen, cur_paras->src, cur_paras->srcLen, cur_paras->kind, stream);
   } else {
     flag = false;
-    ret = aclrtMemcpyAsync(
-        cur_paras->dst,
-        cur_paras->dstLen,
-        cur_paras->src,
-        cur_paras->srcLen,
-        cur_paras->kind,
-        stream);
+    ret =
+        aclrtMemcpyAsync(cur_paras->dst, cur_paras->dstLen, cur_paras->src, cur_paras->srcLen, cur_paras->kind, stream);
   }
   if (ret != ACL_ERROR_NONE) {
     auto ret_temp = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
@@ -721,10 +618,7 @@ int MemcopyAsyncFunc(c10_npu::queue::QueueParas* in, aclrtStream stream) {
 
 int RecordEventFunc(c10_npu::queue::QueueParas* in, aclrtStream stream) {
   auto cur_paras = static_cast<c10_npu::queue::EventParas*>(in->paramVal);
-  TORCH_NPU_DISPATCH_LOGD(
-      "RecordEventFunc Run, stream = %p, event = %p.",
-      stream,
-      cur_paras->event);
+  TORCH_NPU_DISPATCH_LOGD("RecordEventFunc Run, stream = %p, event = %p.", stream, cur_paras->event);
 
   aclError ret = aclrtRecordEvent(cur_paras->event, stream);
   if (ret != ACL_ERROR_NONE) {
@@ -732,89 +626,55 @@ int RecordEventFunc(c10_npu::queue::QueueParas* in, aclrtStream stream) {
     if (ret_temp != ACL_ERROR_NONE) {
       ret = ret_temp;
     }
-    ASCEND_LOGE(
-        "aclrtRecordEvent error! ret = %d, eventAllocatorType = %d",
-        ret,
-        cur_paras->eventAllocatorType);
+    ASCEND_LOGE("aclrtRecordEvent error! ret = %d, eventAllocatorType = %d", ret, cur_paras->eventAllocatorType);
   }
-  c10_npu::NPUEventManager::GetInstance().DecreaseUnrecordedCount(
-      cur_paras->event);
+  c10_npu::NPUEventManager::GetInstance().DecreaseUnrecordedCount(cur_paras->event);
   ASCEND_LOGI(
-      "Event: aclrtRecordEvent dequeue is successfully executed, stream=%p, event=%p",
-      stream,
-      cur_paras->event);
+      "Event: aclrtRecordEvent dequeue is successfully executed, stream=%p, event=%p", stream, cur_paras->event);
 
-  TORCH_NPU_DISPATCH_LOGD(
-      "RecordEventFunc Run, stream = %p, event = %p, ret = %d.",
-      stream,
-      cur_paras->event,
-      ret);
+  TORCH_NPU_DISPATCH_LOGD("RecordEventFunc Run, stream = %p, event = %p, ret = %d.", stream, cur_paras->event, ret);
   return ret;
 }
 
 int WaitEventFunc(c10_npu::queue::QueueParas* in, aclrtStream stream) {
   auto cur_paras = static_cast<c10_npu::queue::EventParas*>(in->paramVal);
-  TORCH_NPU_DISPATCH_LOGD(
-      "WaitEventFunc Run, stream = %p, event = %p.", stream, cur_paras->event);
+  TORCH_NPU_DISPATCH_LOGD("WaitEventFunc Run, stream = %p, event = %p.", stream, cur_paras->event);
   aclError ret = aclrtStreamWaitEvent(stream, cur_paras->event);
   if (ret != ACL_ERROR_NONE) {
     auto ret_temp = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
     if (ret_temp != ACL_ERROR_NONE) {
       ret = ret_temp;
     }
-    ASCEND_LOGE(
-        "aclrtStreamWaitEvent error! ret = %d, eventAllocatorType = %d",
-        ret,
-        cur_paras->eventAllocatorType);
+    ASCEND_LOGE("aclrtStreamWaitEvent error! ret = %d, eventAllocatorType = %d", ret, cur_paras->eventAllocatorType);
   }
-  c10_npu::NPUEventManager::GetInstance().DecreaseUnwaitedCount(
-      cur_paras->event);
+  c10_npu::NPUEventManager::GetInstance().DecreaseUnwaitedCount(cur_paras->event);
   ASCEND_LOGI(
-      "Event: aclrtStreamWaitEvent dequeue is successfully executed, stream=%p, event=%p",
-      stream,
-      cur_paras->event);
-  TORCH_NPU_DISPATCH_LOGD(
-      "WaitEventFunc Run, stream = %p, event = %p, ret = %d.",
-      stream,
-      cur_paras->event,
-      ret);
+      "Event: aclrtStreamWaitEvent dequeue is successfully executed, stream=%p, event=%p", stream, cur_paras->event);
+  TORCH_NPU_DISPATCH_LOGD("WaitEventFunc Run, stream = %p, event = %p, ret = %d.", stream, cur_paras->event, ret);
   return ret;
 }
 
 int LazyDestroyEventFunc(c10_npu::queue::QueueParas* in, aclrtStream stream) {
   auto cur_paras = static_cast<c10_npu::queue::EventParas*>(in->paramVal);
-  TORCH_NPU_DISPATCH_LOGD(
-      "LazyDestroyEventFunc Run, stream = %p, event = %p.",
-      stream,
-      cur_paras->event);
-  aclError ret =
-      c10_npu::NPUEventManager::GetInstance().LazyDestroy(cur_paras->event);
+  TORCH_NPU_DISPATCH_LOGD("LazyDestroyEventFunc Run, stream = %p, event = %p.", stream, cur_paras->event);
+  aclError ret = c10_npu::NPUEventManager::GetInstance().LazyDestroy(cur_paras->event);
   if (ret != ACL_ERROR_NONE) {
     auto ret_temp = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
     if (ret_temp != ACL_ERROR_NONE) {
       ret = ret_temp;
     }
-    ASCEND_LOGE(
-        "LazyDestroy error! ret = %d, eventAllocatorType = %d",
-        ret,
-        cur_paras->eventAllocatorType);
+    ASCEND_LOGE("LazyDestroy error! ret = %d, eventAllocatorType = %d", ret, cur_paras->eventAllocatorType);
   }
-  ASCEND_LOGD(
-      "Event: LazyDestroyEventFunc dequeue is successfully executed, event=%p",
-      cur_paras->event);
+  ASCEND_LOGD("Event: LazyDestroyEventFunc dequeue is successfully executed, event=%p", cur_paras->event);
   TORCH_NPU_DISPATCH_LOGD(
-      "LazyDestroyEventFunc Run, stream = %p, event = %p, ret = %d.",
-      stream,
-      cur_paras->event,
-      ret);
+      "LazyDestroyEventFunc Run, stream = %p, event = %p, ret = %d.", stream, cur_paras->event, ret);
   return ret;
 }
 
 void CopyFunc(void* dst, void* src) {
   auto dstPtr = static_cast<c10_npu::queue::QueueParas*>(dst);
   auto srcPtr = static_cast<c10_npu::queue::QueueParas*>(src);
-  dstPtr->paramVal =
-      static_cast<uint8_t*>(dst) + sizeof(c10_npu::queue::QueueParas);
+  dstPtr->paramVal = static_cast<uint8_t*>(dst) + sizeof(c10_npu::queue::QueueParas);
   if (dstPtr->paramType == c10_npu::queue::EXECUTE_OPAPI) {
     // string or smallvector of struct is used, deconstructor need be called
     // before memset
@@ -825,8 +685,7 @@ void CopyFunc(void* dst, void* src) {
     (static_cast<ExecuteParas*>(dstPtr->paramVal))->~ExecuteParas();
   }
 
-  const bool is_opapi_v2 =
-      (srcPtr->paramType == c10_npu::queue::EXECUTE_OPAPI_V2);
+  const bool is_opapi_v2 = (srcPtr->paramType == c10_npu::queue::EXECUTE_OPAPI_V2);
   dstPtr->paramStream = srcPtr->paramStream;
   if (is_opapi_v2) {
     dstPtr->paramType = c10_npu::queue::EXECUTE_OPAPI;
@@ -838,16 +697,13 @@ void CopyFunc(void* dst, void* src) {
   if (dstPtr->paramType == c10_npu::queue::EXECUTE_OPAPI) {
     new (dstPtr->paramVal) ExecuteParasOpApi();
     if (is_opapi_v2) {
-      (static_cast<ExecuteParasOpApi*>(dstPtr->paramVal))
-          ->Copy(*(static_cast<ExecuteParasOpApiV2*>(srcPtr->paramVal)));
+      (static_cast<ExecuteParasOpApi*>(dstPtr->paramVal))->Copy(*(static_cast<ExecuteParasOpApiV2*>(srcPtr->paramVal)));
     } else {
-      (static_cast<ExecuteParasOpApi*>(dstPtr->paramVal))
-          ->Copy(*(static_cast<ExecuteParasOpApi*>(srcPtr->paramVal)));
+      (static_cast<ExecuteParasOpApi*>(dstPtr->paramVal))->Copy(*(static_cast<ExecuteParasOpApi*>(srcPtr->paramVal)));
     }
   } else if (srcPtr->paramType == c10_npu::queue::COMPILE_AND_EXECUTE) {
     new (dstPtr->paramVal) ExecuteParas();
-    (static_cast<ExecuteParas*>(dstPtr->paramVal))
-        ->Copy(*(static_cast<ExecuteParas*>(srcPtr->paramVal)));
+    (static_cast<ExecuteParas*>(dstPtr->paramVal))->Copy(*(static_cast<ExecuteParas*>(srcPtr->paramVal)));
   } else if ((srcPtr->paramType == c10_npu::queue::ASYNC_MEMCPY)) {
     new (dstPtr->paramVal) c10_npu::queue::CopyParas();
     (static_cast<c10_npu::queue::CopyParas*>(dstPtr->paramVal))
@@ -864,13 +720,9 @@ void ReleaseFunc(void* ptr, c10_npu::ReleaseQueue& releaseQueue) {
 }
 
 void* NewFunc(int caption, int& size) {
-  size = static_cast<int>(
-      sizeof(c10_npu::queue::QueueParas) + MAX_PARAS_BYTE_SIZE);
+  size = static_cast<int>(sizeof(c10_npu::queue::QueueParas) + MAX_PARAS_BYTE_SIZE);
   void* ptr = malloc(size * caption);
-  TORCH_CHECK(
-      ptr != nullptr,
-      "OpCommand new buffer must be not NULL",
-      PTA_ERROR(ErrCode::PTR));
+  TORCH_CHECK(ptr != nullptr, "OpCommand new buffer must be not NULL", PTA_ERROR(ErrCode::PTR));
   memset(ptr, 0, size * caption);
   return ptr;
 }
@@ -882,8 +734,7 @@ void DeleteFunc(void* ptr) {
 
 int ValueWriteFunc(c10_npu::queue::QueueParas* in, aclrtStream stream) {
   auto cur_paras = static_cast<c10_npu::queue::EventParas*>(in->paramVal);
-  TORCH_NPU_DISPATCH_LOGD(
-      "ValueWriteFunc Run, stream = %p, event = %p.", stream, cur_paras->event);
+  TORCH_NPU_DISPATCH_LOGD("ValueWriteFunc Run, stream = %p, event = %p.", stream, cur_paras->event);
 
   aclError ret = c10_npu::acl::AclrtValueWrite(cur_paras->event, 1, stream);
   if (ret != ACL_ERROR_NONE) {
@@ -891,67 +742,43 @@ int ValueWriteFunc(c10_npu::queue::QueueParas* in, aclrtStream stream) {
     if (ret_temp != ACL_ERROR_NONE) {
       ret = ret_temp;
     }
-    ASCEND_LOGE(
-        "ValueWriteFunc error! ret = %d, eventAllocatorType = %d",
-        ret,
-        cur_paras->eventAllocatorType);
+    ASCEND_LOGE("ValueWriteFunc error! ret = %d, eventAllocatorType = %d", ret, cur_paras->eventAllocatorType);
   }
-  c10_npu::NPUEventManager::GetInstance().DecreaseUnrecordedCount(
-      cur_paras->event);
+  c10_npu::NPUEventManager::GetInstance().DecreaseUnrecordedCount(cur_paras->event);
   ASCEND_LOGI(
-      "External Event: ValueWriteFunc dequeue is successfully executed, stream=%p, event=%p",
-      stream,
-      cur_paras->event);
+      "External Event: ValueWriteFunc dequeue is successfully executed, stream=%p, event=%p", stream, cur_paras->event);
 
-  TORCH_NPU_DISPATCH_LOGD(
-      "ValueWriteFunc Run, stream = %p, event = %p, ret = %d.",
-      stream,
-      cur_paras->event,
-      ret);
+  TORCH_NPU_DISPATCH_LOGD("ValueWriteFunc Run, stream = %p, event = %p, ret = %d.", stream, cur_paras->event, ret);
   return ret;
 }
 
 int ValueWaitResetFunc(c10_npu::queue::QueueParas* in, aclrtStream stream) {
   auto cur_paras = static_cast<c10_npu::queue::EventParas*>(in->paramVal);
-  TORCH_NPU_DISPATCH_LOGD(
-      "ValueWaitResetFunc Run, stream = %p, event = %p.",
-      stream,
-      cur_paras->event);
+  TORCH_NPU_DISPATCH_LOGD("ValueWaitResetFunc Run, stream = %p, event = %p.", stream, cur_paras->event);
   aclError ret = c10_npu::acl::AclrtValueWait(cur_paras->event, stream);
   if (ret != ACL_ERROR_NONE) {
     auto ret_temp = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
     if (ret_temp != ACL_ERROR_NONE) {
       ret = ret_temp;
     }
-    ASCEND_LOGE(
-        "aclrtValueWait error! ret = %d, eventAllocatorType = %d",
-        ret,
-        cur_paras->eventAllocatorType);
+    ASCEND_LOGE("aclrtValueWait error! ret = %d, eventAllocatorType = %d", ret, cur_paras->eventAllocatorType);
   }
 
-  TORCH_NPU_DISPATCH_LOGD(
-      "ValueResetFunc Run, stream = %p, event = %p.", stream, cur_paras->event);
+  TORCH_NPU_DISPATCH_LOGD("ValueResetFunc Run, stream = %p, event = %p.", stream, cur_paras->event);
   ret = c10_npu::acl::AclrtValueWrite(cur_paras->event, 0, stream);
   if (ret != ACL_ERROR_NONE) {
     auto ret_temp = c10_npu::acl::AclrtPeekAtLastError(ACL_RT_THREAD_LEVEL);
     if (ret_temp != ACL_ERROR_NONE) {
       ret = ret_temp;
     }
-    ASCEND_LOGE(
-        "aclrtValueWrite error! ret = %d, eventAllocatorType = %d",
-        ret,
-        cur_paras->eventAllocatorType);
+    ASCEND_LOGE("aclrtValueWrite error! ret = %d, eventAllocatorType = %d", ret, cur_paras->eventAllocatorType);
   }
 
   ASCEND_LOGI(
       "External Event: aclrtValueWait and aclrtValueWrite dequeue is successfully executed, stream=%p, event=%p",
       stream,
       cur_paras->event);
-  TORCH_NPU_DISPATCH_LOGD(
-      "ValueWaitResetFunc Run, stream = %p, event = %p, ret = %d.",
-      stream,
-      cur_paras->event,
-      ret);
+  TORCH_NPU_DISPATCH_LOGD("ValueWaitResetFunc Run, stream = %p, event = %p, ret = %d.", stream, cur_paras->event, ret);
   return ret;
 }
 
@@ -980,15 +807,12 @@ void CopyReleaseParamFunc(void* dst, void* src) {
   auto dstPtr = static_cast<c10_npu::queue::QueueParas*>(dst);
   auto srcPtr = static_cast<c10_npu::queue::QueueParas*>(src);
   dstPtr->paramType = srcPtr->paramType;
-  dstPtr->paramVal =
-      static_cast<uint8_t*>(dst) + sizeof(c10_npu::queue::QueueParas);
+  dstPtr->paramVal = static_cast<uint8_t*>(dst) + sizeof(c10_npu::queue::QueueParas);
   if (srcPtr->paramType == c10_npu::queue::EXECUTE_OPAPI) {
-    (static_cast<ExecuteParasOpApi*>(dstPtr->paramVal))
-        ->Copy(*(static_cast<ExecuteParasOpApi*>(srcPtr->paramVal)));
+    (static_cast<ExecuteParasOpApi*>(dstPtr->paramVal))->Copy(*(static_cast<ExecuteParasOpApi*>(srcPtr->paramVal)));
     (static_cast<ExecuteParasOpApi*>(srcPtr->paramVal))->Release();
   } else if (srcPtr->paramType == c10_npu::queue::COMPILE_AND_EXECUTE) {
-    (static_cast<ExecuteParas*>(dstPtr->paramVal))
-        ->CopyEx(*(static_cast<ExecuteParas*>(srcPtr->paramVal)));
+    (static_cast<ExecuteParas*>(dstPtr->paramVal))->CopyEx(*(static_cast<ExecuteParas*>(srcPtr->paramVal)));
     (static_cast<ExecuteParas*>(srcPtr->paramVal))->hostMemory.clear();
   }
 }
@@ -1005,14 +829,7 @@ void ReleaseParamFunc(void* ptr) {
   }
 }
 
-REGISTER_QUEUE_FUNC(
-    AsncExecFunc,
-    CopyFunc,
-    ReleaseFunc,
-    NewFunc,
-    DeleteFunc,
-    CopyReleaseParamFunc,
-    ReleaseParamFunc)
+REGISTER_QUEUE_FUNC(AsncExecFunc, CopyFunc, ReleaseFunc, NewFunc, DeleteFunc, CopyReleaseParamFunc, ReleaseParamFunc)
 
 OpCommandImpls* OpCommandImpls::GetInstance() {
   thread_local OpCommandImpls impl;
@@ -1037,11 +854,7 @@ void OpCommandImpls::Push(OpCommandImpl*& ptr) {
 }
 
 void OpCommandImpls::Pop() {
-  TORCH_CHECK(
-      offset >= 0,
-      "OpCommand current offset should not be less than ",
-      offset,
-      PTA_ERROR(ErrCode::VALUE));
+  TORCH_CHECK(offset >= 0, "OpCommand current offset should not be less than ", offset, PTA_ERROR(ErrCode::VALUE));
   offset -= 1;
 }
 } // namespace native

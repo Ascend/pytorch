@@ -12,9 +12,7 @@ struct ResultTypeState {
   at::ScalarType zeroResult = at::ScalarType::Undefined;
 };
 
-ResultTypeState update_result_type_state(
-    const at::Tensor& tensor,
-    const ResultTypeState& in_state);
+ResultTypeState update_result_type_state(const at::Tensor& tensor, const ResultTypeState& in_state);
 at::ScalarType result_type(const ResultTypeState& state);
 at::ScalarType result_type(at::ScalarType a, at::ScalarType b);
 

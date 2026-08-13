@@ -15,8 +15,7 @@ constexpr int MAX_FORMAT_SHAPE_SIZE = 8;
 using FormatShape = c10::SmallVector<int64_t, MAX_FORMAT_SHAPE_SIZE>;
 
 using DyNumAndIndex = std::vector<std::pair<uint32_t, uint32_t>>;
-using DynamicInputRegFunc =
-    std::function<ge::OperatorPtr(DyNumAndIndex, std::string)>;
+using DynamicInputRegFunc = std::function<ge::OperatorPtr(DyNumAndIndex, std::string)>;
 
 } // namespace native
 } // namespace at_npu

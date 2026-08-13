@@ -9,20 +9,9 @@ using DcmiPcieInfo = struct dcmi_pcie_info_all;
 
 int DcmiInit(void);
 int DcmiGetCardNumList(int* card_num, int* card_list, int list_len);
-int DcmiGetAffinityCpuInfoByDeviceId(
-    int card_id,
-    int device_id,
-    char* affinity_cpu,
-    int* length);
-int DcmiGetDeviceIdInCard(
-    int card_id,
-    int* device_id_max,
-    int* mcu_id,
-    int* cpu_id);
-int DcmiGetDevicePcieInfoV2(
-    int card_id,
-    int device_id,
-    DcmiPcieInfo* pcie_info);
+int DcmiGetAffinityCpuInfoByDeviceId(int card_id, int device_id, char* affinity_cpu, int* length);
+int DcmiGetDeviceIdInCard(int card_id, int* device_id_max, int* mcu_id, int* cpu_id);
+int DcmiGetDevicePcieInfoV2(int card_id, int device_id, DcmiPcieInfo* pcie_info);
 
 } // namespace dcmi
 

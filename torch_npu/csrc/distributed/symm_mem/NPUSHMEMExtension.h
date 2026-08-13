@@ -6,10 +6,7 @@
 
 namespace c10d::npushmem_extension {
 
-void initialize_npushmem_with_store(
-    c10::intrusive_ptr<c10d::Store> store,
-    int rank,
-    int world_size);
+void initialize_npushmem_with_store(c10::intrusive_ptr<c10d::Store> store, int rank, int world_size);
 
 TORCH_API void nvshmem_put(at::Tensor& tensor, int64_t peer);
 

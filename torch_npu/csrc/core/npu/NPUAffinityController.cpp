@@ -55,8 +55,7 @@ std::string getThreadName() {
 
   // Use 16 bytes to store thread name.
   char thread_name[16] = {0};
-  int ret =
-      pthread_getname_np(pthread_self(), thread_name, sizeof(thread_name));
+  int ret = pthread_getname_np(pthread_self(), thread_name, sizeof(thread_name));
   if (ret != 0) {
     ASCEND_LOGE("Failed to get thread name, ret: %d", ret);
     return "";
@@ -98,8 +97,7 @@ std::string formatCoreRange(const CoreIdList& cores) {
 CoreIdList getNPUDefaultCores(c10::DeviceIndex device_id) {
   static int core_nums = sysconf(_SC_NPROCESSORS_ONLN);
   int device_nums = device_count_ensure_non_zero();
-  int block_size =
-      (core_nums > 0 && device_nums > 0) ? core_nums / device_nums : 0;
+  int block_size = (core_nums > 0 && device_nums > 0) ? core_nums / device_nums : 0;
   CoreIdList cores;
   for (int i = 0; i < block_size; ++i) {
     cores.insert(static_cast<CoreId>(device_id * block_size + i));
@@ -108,14 +106,10 @@ CoreIdList getNPUDefaultCores(c10::DeviceIndex device_id) {
 }
 
 // Parse npu_affine setting from CPU_AFFINITY_CONF
-void parseNpuAffineMode(
-    const std::string& inputStr,
-    int device_nums,
-    std::vector<CoreIdList>& devices_aff_cores) {
+void parseNpuAffineMode(const std::string& inputStr, int device_nums, std::vector<CoreIdList>& devices_aff_cores) {
   static const std::regex pattern("npu_affine:(\\d)");
   std::smatch match;
-  if (std::regex_search(inputStr, match, pattern) &&
-      std::stoi(match[1].str()) != 0) {
+  if (std::regex_search(inputStr, match, pattern) && std::stoi(match[1].str()) != 0) {
     ASCEND_LOGD(
         "Get npu_affine mode: %s, device_nums: %d, set affinity cores for each device.",
         match[1].str().c_str(),
@@ -127,10 +121,7 @@ void parseNpuAffineMode(
         continue;
       }
       devices_aff_cores[i] = cores;
-      ASCEND_LOGD(
-          "Device-%d affinity cores [%s].",
-          i,
-          formatCoreRange(devices_aff_cores[i]).c_str());
+      ASCEND_LOGD("Device-%d affinity cores [%s].", i, formatCoreRange(devices_aff_cores[i]).c_str());
     }
   }
 }
@@ -158,20 +149,14 @@ void parseForceMode(const std::string& inputStr) {
   } else {
     std::regex pattern_for_force_check("force:([^,]+)");
     std::smatch match_for_force_check;
-    if (std::regex_search(
-            inputStr, match_for_force_check, pattern_for_force_check)) {
-      ASCEND_LOGE(
-          "force value must be 0 or 1, got: %s",
-          match_for_force_check[1].str().c_str());
+    if (std::regex_search(inputStr, match_for_force_check, pattern_for_force_check)) {
+      ASCEND_LOGE("force value must be 0 or 1, got: %s", match_for_force_check[1].str().c_str());
     }
   }
 }
 
 // Parse bind_irq setting from CPU_AFFINITY_CONF
-void parseBindIrqMode(
-    const std::string& inputStr,
-    int device_nums,
-    std::vector<CoreIdList>& devices_aff_cores) {
+void parseBindIrqMode(const std::string& inputStr, int device_nums, std::vector<CoreIdList>& devices_aff_cores) {
   std::regex pattern_for_bind_irq("bind_irq:(\\d)");
   std::smatch match_for_bind_irq;
   if (std::regex_search(inputStr, match_for_bind_irq, pattern_for_bind_irq)) {
@@ -194,10 +179,7 @@ void parseBindIrqMode(
       kDevicesIrqCores[i] = subset;
       devices_aff_cores[i].erase(devices_aff_cores[i].begin(), it);
     } else {
-      ASCEND_LOGW(
-          "Device-%d has %d cpu cores, irq will not be bound for this device.",
-          i,
-          cores);
+      ASCEND_LOGW("Device-%d has %d cpu cores, irq will not be bound for this device.", i, cores);
     }
   }
 }
@@ -233,10 +215,7 @@ bool parseModeOnly(const std::string& inputStr, uint32_t& mode) {
 }
 
 // Parse device-specific core range from CPU_AFFINITY_CONF (e.g., npu0:0-1)
-void parseDeviceCoreRange(
-    const std::string& inputStr,
-    int device_nums,
-    std::vector<CoreIdList>& devices_aff_cores) {
+void parseDeviceCoreRange(const std::string& inputStr, int device_nums, std::vector<CoreIdList>& devices_aff_cores) {
   std::istringstream stream(inputStr);
   std::string option;
   std::set<int> user_def_devices;
@@ -254,10 +233,7 @@ void parseDeviceCoreRange(
     }
     int device_id = std::stoi(key.substr(3)); // Skip first 3 chars ("npu").
     if (device_id >= device_nums || device_id < 0) {
-      ASCEND_LOGW(
-          "device_id in CPU_AFFINITY_CONF is %d, should be in range [0, %d)",
-          device_id,
-          device_nums);
+      ASCEND_LOGW("device_id in CPU_AFFINITY_CONF is %d, should be in range [0, %d)", device_id, device_nums);
       continue;
     }
     if (user_def_devices.count(device_id) == 0) {
@@ -280,18 +256,13 @@ void parseDeviceCoreRange(
           devices_aff_cores[device_id].insert(core);
         }
       } else {
-        ASCEND_LOGW(
-            "core range is %s-%s, should be all digits",
-            startStr.c_str(),
-            endStr.c_str());
+        ASCEND_LOGW("core range is %s-%s, should be all digits", startStr.c_str(), endStr.c_str());
       }
     }
   }
 }
 
-void parseCPUAffinityConf(
-    uint32_t& mode,
-    std::vector<CoreIdList>& devices_aff_cores) {
+void parseCPUAffinityConf(uint32_t& mode, std::vector<CoreIdList>& devices_aff_cores) {
   int device_nums = device_count_ensure_non_zero();
   devices_aff_cores.clear();
   devices_aff_cores.resize(device_nums);
@@ -325,15 +296,12 @@ void parseCPUAffinityConf(
   parseBindIrqMode(inputStr, device_nums, devices_aff_cores);
 }
 
-void printCoreRanges(
-    const uint32_t mode,
-    const std::vector<CoreIdList>& devices_aff_cores) {
+void printCoreRanges(const uint32_t mode, const std::vector<CoreIdList>& devices_aff_cores) {
   std::ostringstream oss;
   oss << "Mode: " << mode << ". Core range for each device ID: ";
 
   for (size_t i = 0; i < devices_aff_cores.size(); ++i) {
-    oss << "Device " << i << ": [" << formatCoreRange(devices_aff_cores[i])
-        << "]";
+    oss << "Device " << i << ": [" << formatCoreRange(devices_aff_cores[i]) << "]";
     std::string end_str = (i == devices_aff_cores.size() - 1) ? "." : "; ";
     oss << end_str;
   }
@@ -351,13 +319,11 @@ std::string formatCPUSetMask(const cpu_set_t& mask) {
   return formatCoreRange(cores);
 }
 
-bool checkThreadAffinityConflict(
-    const std::vector<CoreIdList>& devices_aff_cores) {
+bool checkThreadAffinityConflict(const std::vector<CoreIdList>& devices_aff_cores) {
   cpu_set_t mask;
   pthread_getaffinity_np(pthread_self(), sizeof(mask), &mask);
   std::string affinity_mask_str = formatCPUSetMask(mask);
-  ASCEND_LOGI(
-      "Current thread CPU affinity mask: %s", affinity_mask_str.c_str());
+  ASCEND_LOGI("Current thread CPU affinity mask: %s", affinity_mask_str.c_str());
 
   for (auto& cores : devices_aff_cores) {
     for (auto& core : cores) {
@@ -367,8 +333,7 @@ bool checkThreadAffinityConflict(
             core,
             formatCoreRange(cores).c_str(),
             affinity_mask_str.c_str());
-        ASCEND_LOGW(
-            "Thread affinity is already set. Use force:1 to skip this check and force bind.");
+        ASCEND_LOGW("Thread affinity is already set. Use force:1 to skip this check and force bind.");
         return false;
       }
     }
@@ -382,10 +347,7 @@ bool getThreadAffinityInfo() {
 
   for (int i = 0; i < kDevicesAffCores.size(); ++i) {
     if (kDevicesAffCores[i].size() > 0) {
-      ASCEND_LOGD(
-          "Device %d get cores %s.",
-          i,
-          formatCoreRange(kDevicesAffCores[i]).c_str());
+      ASCEND_LOGD("Device %d get cores %s.", i, formatCoreRange(kDevicesAffCores[i]).c_str());
     }
   }
 
@@ -402,23 +364,17 @@ bool getThreadAffinityInfo() {
   return checkThreadAffinityConflict(kDevicesAffCores);
 }
 
-std::string getAffinityMapAsString(
-    c10::DeviceIndex device_id,
-    const ThreadCoreMap& threadCoreMap) {
+std::string getAffinityMapAsString(c10::DeviceIndex device_id, const ThreadCoreMap& threadCoreMap) {
   std::ostringstream oss;
   for (auto thread_type : kThreadTypeList) {
-    oss << kThreadTypeToNameMap.at(thread_type) << ": ["
-        << formatCoreRange(threadCoreMap.at(thread_type)) << "]";
-    std::string end_str =
-        (thread_type == ThreadType::OTHER_THREAD) ? "." : "; ";
+    oss << kThreadTypeToNameMap.at(thread_type) << ": [" << formatCoreRange(threadCoreMap.at(thread_type)) << "]";
+    std::string end_str = (thread_type == ThreadType::OTHER_THREAD) ? "." : "; ";
     oss << end_str;
   }
   return oss.str();
 }
 
-ThreadCoreMap getCpuAffinityMap(
-    c10::DeviceIndex device_id,
-    const std::vector<CoreIdList>& devices_aff_cores) {
+ThreadCoreMap getCpuAffinityMap(c10::DeviceIndex device_id, const std::vector<CoreIdList>& devices_aff_cores) {
   ThreadCoreMap threadCoreMap;
   CoreIdList cores = devices_aff_cores[device_id];
   if (cores.size() < kThreadTypeList.size()) {
@@ -442,10 +398,7 @@ ThreadCoreMap getCpuAffinityMap(
     }
   }
 
-  ASCEND_LOGD(
-      "Device %d thread affinity map: %s",
-      device_id,
-      getAffinityMapAsString(device_id, threadCoreMap).c_str());
+  ASCEND_LOGD("Device %d thread affinity map: %s", device_id, getAffinityMapAsString(device_id, threadCoreMap).c_str());
   return threadCoreMap;
 }
 
@@ -456,8 +409,7 @@ CoreIdList getCoreList(c10::DeviceIndex device_id, ThreadType type) {
   } else {
     std::lock_guard<std::mutex> lock(kCoreMapMutex);
     if (kDeviceThreadCoreMaps.find(device_id) == kDeviceThreadCoreMaps.end()) {
-      kDeviceThreadCoreMaps.emplace(
-          device_id, getCpuAffinityMap(device_id, kDevicesAffCores));
+      kDeviceThreadCoreMaps.emplace(device_id, getCpuAffinityMap(device_id, kDevicesAffCores));
     }
     core_list = kDeviceThreadCoreMaps.at(device_id).at(type);
   }
@@ -488,11 +440,9 @@ void SetThreadType(ThreadType type) {
     return;
   }
   if (prctl(PR_SET_NAME, kThreadTypeToNameMap.at(type).c_str()) != 0) {
-    ASCEND_LOGW(
-        "Set thread name to %s failed!", kThreadTypeToNameMap.at(type).c_str());
+    ASCEND_LOGW("Set thread name to %s failed!", kThreadTypeToNameMap.at(type).c_str());
   }
-  ASCEND_LOGD(
-      "Set thread name to %s success.", kThreadTypeToNameMap.at(type).c_str());
+  ASCEND_LOGD("Set thread name to %s success.", kThreadTypeToNameMap.at(type).c_str());
 }
 
 void SetThreadAffinity(c10::DeviceIndex device_id) {
@@ -539,10 +489,7 @@ void SetThreadAffinity(const CoreIdList core_ids) {
   static int core_nums = sysconf(_SC_NPROCESSORS_ONLN);
   for (auto it = processed_core_ids.begin(); it != processed_core_ids.end();) {
     if (static_cast<int>(*it) >= core_nums) {
-      ASCEND_LOGW(
-          "core id %d >= core_nums %d, it will be ignored when setting thread affinity.",
-          *it,
-          core_nums);
+      ASCEND_LOGW("core id %d >= core_nums %d, it will be ignored when setting thread affinity.", *it, core_nums);
       it = processed_core_ids.erase(it);
     } else {
       ++it;
@@ -550,13 +497,9 @@ void SetThreadAffinity(const CoreIdList core_ids) {
   }
   kLocalThread = ThreadType::USER_THREAD;
   if (setThreadAffinityImpl(pthread_self(), processed_core_ids)) {
-    ASCEND_LOGD(
-        "Set thread affinity to user-defined range %s success.",
-        formatCoreRange(processed_core_ids).c_str());
+    ASCEND_LOGD("Set thread affinity to user-defined range %s success.", formatCoreRange(processed_core_ids).c_str());
   } else {
-    ASCEND_LOGE(
-        "Set thread affinity to user-defined range %s failed.",
-        formatCoreRange(processed_core_ids).c_str());
+    ASCEND_LOGE("Set thread affinity to user-defined range %s failed.", formatCoreRange(processed_core_ids).c_str());
   }
 }
 
@@ -614,8 +557,7 @@ void StartMainThreadBind(c10::DeviceIndex device_id) {
         ASCEND_LOGI("IRQ affinity for device %d bound successfully.", device);
       }
     } else {
-      ASCEND_LOGI(
-          "IRQ cpu cores for device %d is empty, skip binding.", device);
+      ASCEND_LOGI("IRQ cpu cores for device %d is empty, skip binding.", device);
     }
   });
 

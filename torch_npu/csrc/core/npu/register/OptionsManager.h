@@ -37,47 +37,38 @@ enum SilenceCheckMode {
 };
 
 static std::unordered_map<int32_t, std::string> getHcclZeroCopyMode() {
-  std::unordered_map<int32_t, std::string> hcclZeroCopyMode = {
-      {0, "close"}, {1, "open"}};
+  std::unordered_map<int32_t, std::string> hcclZeroCopyMode = {{0, "close"}, {1, "open"}};
   return hcclZeroCopyMode;
 }
 
 static std::unordered_map<int32_t, std::string> getInfNanMode() {
-  std::unordered_map<int32_t, std::string> infNanMode = {
-      {0, "max"}, {1, "inf_nan"}};
+  std::unordered_map<int32_t, std::string> infNanMode = {{0, "max"}, {1, "inf_nan"}};
   return infNanMode;
 }
 
 static std::unordered_map<int32_t, std::string> getDisableInfNanMode() {
-  std::unordered_map<int32_t, std::string> disableInfNanMode = {
-      {0, "enable"}, {1, "disable"}};
+  std::unordered_map<int32_t, std::string> disableInfNanMode = {{0, "enable"}, {1, "disable"}};
   return disableInfNanMode;
 }
 
 static std::unordered_map<int32_t, std::string> getCombinedEnableMode() {
-  std::unordered_map<int32_t, std::string> combinedEnableMode = {
-      {0, "close"}, {1, "open"}};
+  std::unordered_map<int32_t, std::string> combinedEnableMode = {{0, "close"}, {1, "open"}};
   return combinedEnableMode;
 }
 
 static std::unordered_map<int32_t, std::string> getLaunchBlockingMode() {
-  std::unordered_map<int32_t, std::string> launchBlockingMode = {
-      {0, "disable"}, {1, "enable"}};
+  std::unordered_map<int32_t, std::string> launchBlockingMode = {{0, "disable"}, {1, "enable"}};
   return launchBlockingMode;
 }
 
 static std::unordered_map<int32_t, std::string> getAsyncErrorHandlingMode() {
   std::unordered_map<int32_t, std::string> asyncErrorHandlingMode = {
-      {0, "NoHandling"},
-      {1, "TearDown"},
-      {2, "CleanUpOnly"},
-      {3, "SkipCleanUp"}};
+      {0, "NoHandling"}, {1, "TearDown"}, {2, "CleanUpOnly"}, {3, "SkipCleanUp"}};
   return asyncErrorHandlingMode;
 }
 
 static std::unordered_map<int32_t, std::string> getDesyncDebugMode() {
-  std::unordered_map<int32_t, std::string> desyncDebugMode = {
-      {0, "close"}, {1, "open"}};
+  std::unordered_map<int32_t, std::string> desyncDebugMode = {{0, "close"}, {1, "open"}};
   return desyncDebugMode;
 }
 
@@ -88,14 +79,12 @@ static std::unordered_map<int32_t, std::string> getLogLevelMode() {
 }
 
 static std::unordered_map<int32_t, std::string> getMemoryCacheMode() {
-  std::unordered_map<int32_t, std::string> memoryCacheMode = {
-      {0, "open"}, {1, "close"}};
+  std::unordered_map<int32_t, std::string> memoryCacheMode = {{0, "open"}, {1, "close"}};
   return memoryCacheMode;
 }
 
 static std::unordered_map<int32_t, std::string> getTaskQueueEnableMode() {
-  std::unordered_map<int32_t, std::string> taskQueueEnableMode = {
-      {0, "close"}, {1, "level 1"}, {2, "level 2"}};
+  std::unordered_map<int32_t, std::string> taskQueueEnableMode = {{0, "close"}, {1, "level 1"}, {2, "level 2"}};
   return taskQueueEnableMode;
 }
 
@@ -155,21 +144,14 @@ class OptionsManager {
 
  private:
   static int GetBoolTypeOption(const char* env_str, int defaultVal = 0);
-  static std::unordered_map<std::string, std::string> ParsePerfConfig(
-      const std::string& config);
-  static std::vector<std::string> Split(
-      const std::string& input,
-      char delimiter);
+  static std::unordered_map<std::string, std::string> ParsePerfConfig(const std::string& config);
+  static std::vector<std::string> Split(const std::string& input, char delimiter);
   static std::pair<double, double> GetSilenceThresh(
       const std::string& env_str,
       std::pair<double, double> defaultThresh);
 };
 
-void oom_observer(
-    int64_t device = 0,
-    int64_t allocated = 0,
-    int64_t device_total = 0,
-    int64_t device_free = 0);
+void oom_observer(int64_t device = 0, int64_t allocated = 0, int64_t device_total = 0, int64_t device_free = 0);
 char* get_and_log_env(const char* env_str);
 
 } // namespace option

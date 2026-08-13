@@ -27,10 +27,7 @@ PyObject* logging_init(PyObject* _unused, PyObject* noargs) {
   auto module = py::handle(m).cast<py::module>();
 
   shared_ptr_class_<npu_logging::LogContext>(module, "_LogContext")
-      .def_static(
-          "GetInstance",
-          &npu_logging::LogContext::GetInstance,
-          py::return_value_policy::reference)
+      .def_static("GetInstance", &npu_logging::LogContext::GetInstance, py::return_value_policy::reference)
       .def("setLogs", &npu_logging::LogContext::setLogs);
   Py_RETURN_TRUE;
 }

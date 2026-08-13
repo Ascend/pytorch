@@ -40,8 +40,7 @@ AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_caching_allocator_raw_alloc(
     void** ret_ptr // returns raw NPU memory pointer
 );
 
-AOTI_TORCH_EXPORT AOTITorchError
-aoti_torch_npu_caching_allocator_raw_delete(void* ptr);
+AOTI_TORCH_EXPORT AOTITorchError aoti_torch_npu_caching_allocator_raw_delete(void* ptr);
 
 #ifdef __cplusplus
 } // extern "C"

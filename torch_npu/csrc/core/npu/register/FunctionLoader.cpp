@@ -77,16 +77,12 @@ FunctionRegister* FunctionRegister::GetInstance() {
   static FunctionRegister instance;
   return &instance;
 }
-void FunctionRegister::Register(
-    const std::string& name,
-    ::std::unique_ptr<FunctionLoader>& ptr) {
+void FunctionRegister::Register(const std::string& name, ::std::unique_ptr<FunctionLoader>& ptr) {
   std::lock_guard<std::mutex> lock(mu_);
   registry.emplace(name, std::move(ptr));
 }
 
-void FunctionRegister::Register(
-    const std::string& name,
-    const std::string& funcName) {
+void FunctionRegister::Register(const std::string& name, const std::string& funcName) {
   auto itr = registry.find(name);
   if (itr == registry.end()) {
     AT_ERROR(name, " library should register first.");
@@ -95,9 +91,7 @@ void FunctionRegister::Register(
   itr->second->Set(funcName);
 }
 
-void* FunctionRegister::Get(
-    const std::string& soName,
-    const std::string& funcName) {
+void* FunctionRegister::Get(const std::string& soName, const std::string& funcName) {
   auto itr = registry.find(soName);
   if (itr != registry.end()) {
     return itr->second->Get(funcName);
@@ -110,9 +104,7 @@ FunctionRegisterBuilder::FunctionRegisterBuilder(
     ::std::unique_ptr<FunctionLoader>& ptr) noexcept {
   FunctionRegister::GetInstance()->Register(name, ptr);
 }
-FunctionRegisterBuilder::FunctionRegisterBuilder(
-    const std::string& soName,
-    const std::string& funcName) noexcept {
+FunctionRegisterBuilder::FunctionRegisterBuilder(const std::string& soName, const std::string& funcName) noexcept {
   FunctionRegister::GetInstance()->Register(soName, funcName);
 }
 } // namespace register_function

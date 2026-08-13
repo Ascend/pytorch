@@ -10,12 +10,10 @@
 namespace at_npu {
 namespace native {
 #undef TORCH_NPU_LOAD_FUNC
-#define TORCH_NPU_LOAD_FUNC(funcName) \
-  TORCH_NPU_REGISTER_FUNCTION(libacl_op_compiler, funcName)
+#define TORCH_NPU_LOAD_FUNC(funcName) TORCH_NPU_REGISTER_FUNCTION(libacl_op_compiler, funcName)
 
 #undef TORCH_NPU_GET_FUNC
-#define TORCH_NPU_GET_FUNC(funcName) \
-  TORCH_NPU_GET_FUNCTION(libacl_op_compiler, funcName)
+#define TORCH_NPU_GET_FUNC(funcName) TORCH_NPU_GET_FUNCTION(libacl_op_compiler, funcName)
 
 TORCH_NPU_REGISTER_LIBRARY(libacl_op_compiler)
 TORCH_NPU_LOAD_FUNC(aclSetCompileopt)
@@ -34,17 +32,12 @@ aclError AclSetCompileopt(aclCompileOpt opt, const char* value) {
   if (ge_init_disable || c10_npu::IsAclnnOnly()) {
     return ACL_ERROR_NONE;
   }
-  typedef aclError (*aclSetCompileoptFunc)(
-      aclCompileOpt opt, const char* value);
+  typedef aclError (*aclSetCompileoptFunc)(aclCompileOpt opt, const char* value);
   static aclSetCompileoptFunc func = nullptr;
   if (func == nullptr) {
     func = (aclSetCompileoptFunc)TORCH_NPU_GET_FUNC(aclSetCompileopt);
   }
-  TORCH_CHECK(
-      func,
-      "Failed to find function ",
-      "aclSetCompileopt",
-      OPS_ERROR(ErrCode::NOT_FOUND));
+  TORCH_CHECK(func, "Failed to find function ", "aclSetCompileopt", OPS_ERROR(ErrCode::NOT_FOUND));
   auto ret = func(opt, value);
   return ret;
 }
@@ -63,8 +56,7 @@ c10::optional<size_t> AclGetCompileoptSize(aclCompileOpt opt) {
 }
 
 aclError AclGetCompileopt(aclCompileOpt opt, char* value, size_t length) {
-  typedef aclError (*aclGetCompileoptFunc)(
-      aclCompileOpt opt, char* value, size_t length);
+  typedef aclError (*aclGetCompileoptFunc)(aclCompileOpt opt, char* value, size_t length);
   static aclGetCompileoptFunc func = nullptr;
   if (func == nullptr) {
     func = (aclGetCompileoptFunc)TORCH_NPU_GET_FUNC(aclGetCompileopt);
@@ -102,14 +94,9 @@ aclError AclGenGraphAndDumpForOp(
       aclGraphDumpOption*);
   static AclGenGraphAndDumpForOpFunc func = nullptr;
   if (func == nullptr) {
-    func = (AclGenGraphAndDumpForOpFunc)TORCH_NPU_GET_FUNC(
-        aclGenGraphAndDumpForOp);
+    func = (AclGenGraphAndDumpForOpFunc)TORCH_NPU_GET_FUNC(aclGenGraphAndDumpForOp);
   }
-  TORCH_CHECK(
-      func,
-      "Failed to find function ",
-      "aclGenGraphAndDumpForOp",
-      OPS_ERROR(ErrCode::NOT_FOUND));
+  TORCH_CHECK(func, "Failed to find function ", "aclGenGraphAndDumpForOp", OPS_ERROR(ErrCode::NOT_FOUND));
   auto ret = func(
       opType,
       numInputs,
@@ -131,11 +118,7 @@ aclGraphDumpOption* AclCreateGraphDumpOpt() {
   if (func == nullptr) {
     func = (AclCreateGraphDumpOptFunc)TORCH_NPU_GET_FUNC(aclCreateGraphDumpOpt);
   }
-  TORCH_CHECK(
-      func,
-      "Failed to find function ",
-      "aclCreateGraphDumpOpt",
-      OPS_ERROR(ErrCode::NOT_FOUND));
+  TORCH_CHECK(func, "Failed to find function ", "aclCreateGraphDumpOpt", OPS_ERROR(ErrCode::NOT_FOUND));
   return func();
 }
 
@@ -143,14 +126,9 @@ aclError AclDestroyGraphDumpOpt(aclGraphDumpOption* aclGraphDumpOpt) {
   typedef aclError (*AclDestroyGraphDumpOptFunc)(aclGraphDumpOption*);
   static AclDestroyGraphDumpOptFunc func = nullptr;
   if (func == nullptr) {
-    func =
-        (AclDestroyGraphDumpOptFunc)TORCH_NPU_GET_FUNC(aclDestroyGraphDumpOpt);
+    func = (AclDestroyGraphDumpOptFunc)TORCH_NPU_GET_FUNC(aclDestroyGraphDumpOpt);
   }
-  TORCH_CHECK(
-      func,
-      "Failed to find function ",
-      "aclDestroyGraphDumpOpt",
-      OPS_ERROR(ErrCode::NOT_FOUND));
+  TORCH_CHECK(func, "Failed to find function ", "aclDestroyGraphDumpOpt", OPS_ERROR(ErrCode::NOT_FOUND));
   return func(aclGraphDumpOpt);
 }
 
@@ -182,14 +160,9 @@ aclError AclopCompileAndExecuteV2(
       aclrtStream);
   static AclopCompileAndExecuteV2Func func = nullptr;
   if (func == nullptr) {
-    func = (AclopCompileAndExecuteV2Func)TORCH_NPU_GET_FUNC(
-        aclopCompileAndExecuteV2);
+    func = (AclopCompileAndExecuteV2Func)TORCH_NPU_GET_FUNC(aclopCompileAndExecuteV2);
   }
-  TORCH_CHECK(
-      func,
-      "Failed to find function ",
-      "aclopCompileAndExecuteV2",
-      OPS_ERROR(ErrCode::NOT_FOUND));
+  TORCH_CHECK(func, "Failed to find function ", "aclopCompileAndExecuteV2", OPS_ERROR(ErrCode::NOT_FOUND));
   auto ret = func(
       opType,
       numInputs,
@@ -207,12 +180,10 @@ aclError AclopCompileAndExecuteV2(
 }
 
 aclError AclrtCtxSetSysParamOpt(aclSysParamOpt opt, int64_t value) {
-  typedef aclError (*AclrtCtxSetSysParamOptFunc)(
-      aclSysParamOpt opt, int64_t value);
+  typedef aclError (*AclrtCtxSetSysParamOptFunc)(aclSysParamOpt opt, int64_t value);
   static AclrtCtxSetSysParamOptFunc func = nullptr;
   if (func == nullptr) {
-    func =
-        (AclrtCtxSetSysParamOptFunc)TORCH_NPU_GET_FUNC(aclrtCtxSetSysParamOpt);
+    func = (AclrtCtxSetSysParamOptFunc)TORCH_NPU_GET_FUNC(aclrtCtxSetSysParamOpt);
   }
   if (func == nullptr) {
     TORCH_WARN("Failed to find this aclrtCtxSetSysParamOpt function!");
@@ -223,8 +194,7 @@ aclError AclrtCtxSetSysParamOpt(aclSysParamOpt opt, int64_t value) {
 }
 
 aclError AclrtSetSysParamOpt(aclSysParamOpt opt, int64_t value) {
-  typedef aclError (*AclrtSetSysParamOptFunc)(
-      aclSysParamOpt opt, int64_t value);
+  typedef aclError (*AclrtSetSysParamOptFunc)(aclSysParamOpt opt, int64_t value);
   static AclrtSetSysParamOptFunc func = nullptr;
   if (func == nullptr) {
     func = (AclrtSetSysParamOptFunc)TORCH_NPU_GET_FUNC(aclrtSetSysParamOpt);
@@ -238,8 +208,7 @@ aclError AclrtSetSysParamOpt(aclSysParamOpt opt, int64_t value) {
 }
 
 aclError AclrtGetSysParamOpt(aclSysParamOpt opt, int64_t* value) {
-  typedef aclError (*AclrtGetSysParamOptFunc)(
-      aclSysParamOpt opt, int64_t* value);
+  typedef aclError (*AclrtGetSysParamOptFunc)(aclSysParamOpt opt, int64_t* value);
   static AclrtGetSysParamOptFunc func = nullptr;
   if (func == nullptr) {
     func = (AclrtGetSysParamOptFunc)TORCH_NPU_GET_FUNC(aclrtGetSysParamOpt);
@@ -253,8 +222,7 @@ aclError AclrtGetSysParamOpt(aclSysParamOpt opt, int64_t* value) {
 }
 
 #undef LOAD_OPBASE_FUNCTION
-#define LOAD_OPBASE_FUNCTION(funcName) \
-  TORCH_NPU_REGISTER_FUNCTION(libnnopbase, funcName)
+#define LOAD_OPBASE_FUNCTION(funcName) TORCH_NPU_REGISTER_FUNCTION(libnnopbase, funcName)
 
 #undef GET_OPBASE_FUNC
 #define GET_OPBASE_FUNC(funcName) TORCH_NPU_GET_FUNCTION(libnnopbase, funcName)
@@ -266,14 +234,9 @@ aclError AclDestroyAclOpExecutor(aclOpExecutor* executor) {
   typedef aclError (*aclDestroyAclOpExecutorFunc)(aclOpExecutor* executor);
   static aclDestroyAclOpExecutorFunc func = nullptr;
   if (func == nullptr) {
-    func =
-        (aclDestroyAclOpExecutorFunc)GET_OPBASE_FUNC(aclDestroyAclOpExecutor);
+    func = (aclDestroyAclOpExecutorFunc)GET_OPBASE_FUNC(aclDestroyAclOpExecutor);
   }
-  TORCH_CHECK(
-      func,
-      "Failed to find function  ",
-      "aclDestroyAclOpExecutor",
-      OPS_ERROR(ErrCode::NOT_FOUND));
+  TORCH_CHECK(func, "Failed to find function  ", "aclDestroyAclOpExecutor", OPS_ERROR(ErrCode::NOT_FOUND));
   auto ret = func(executor);
   return ret;
 }

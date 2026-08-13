@@ -10,8 +10,7 @@ bool NPUTrace::have_state{false};
 
 void NPUTrace::setTrace(const PyCallbackTrigger* trace) {
   static c10::once_flag flag;
-  c10::call_once(
-      flag, [&]() { npu_trace_state.store(trace, std::memory_order_release); });
+  c10::call_once(flag, [&]() { npu_trace_state.store(trace, std::memory_order_release); });
   have_state = true;
 }
 

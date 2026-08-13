@@ -61,21 +61,13 @@ class TorchKernelPy : public KernelPy {
 
   py::object Load(py::object shape, DataTypePy type) override;
   py::object GlobalAccess(py::object shape, DataTypePy type) override;
-  py::object ViewLoad(py::object shape, py::object stride, DataTypePy type)
-      override;
-  py::object GatherLoad(
-      py::object shape,
-      py::object index,
-      DataTypePy type,
-      int axis) override;
+  py::object ViewLoad(py::object shape, py::object stride, DataTypePy type) override;
+  py::object GatherLoad(py::object shape, py::object index, DataTypePy type, int axis) override;
   py::object Store(py::object obj, DataTypePy type) override;
-  py::object ViewStore(py::object obj, py::object stride, DataTypePy type)
-      override;
+  py::object ViewStore(py::object obj, py::object stride, DataTypePy type) override;
   IntArrayRef* GetShapeRef(py::object shape) override;
 
-  void SetKernelInfo(
-      const std::string& op_name,
-      const std::string& op_fullname) {
+  void SetKernelInfo(const std::string& op_name, const std::string& op_fullname) {
     op_name_ = op_name;
     op_fullname_ = op_fullname;
     kernel_.SetNameHint(op_name_.c_str(), op_fullname_.c_str());
@@ -118,9 +110,7 @@ class TorchKernelPy : public KernelPy {
     at::TensorOptions options;
   };
 
-  ParsedCallInputs ParseTensorCallInputs(
-      py::args inputs,
-      std::vector<at::Tensor>& tensor_refs) const;
+  ParsedCallInputs ParseTensorCallInputs(py::args inputs, std::vector<at::Tensor>& tensor_refs) const;
 
   std::vector<RelocEntry> relocs_;
 
@@ -140,17 +130,8 @@ class TorchKernelPy : public KernelPy {
 class GraphSplitBase : public WsAllocator {
  public:
   virtual ~GraphSplitBase() = default;
-  int LaunchV1(
-      Kernel& kernel,
-      void** addr,
-      aclrtStream stream,
-      std::vector<RelocEntry>& relocs,
-      void* workspace_ptr);
-  int LaunchV2(
-      Kernel& kernel,
-      void** addr,
-      aclrtStream stream,
-      std::vector<RelocEntry>& relocs);
+  int LaunchV1(Kernel& kernel, void** addr, aclrtStream stream, std::vector<RelocEntry>& relocs, void* workspace_ptr);
+  int LaunchV2(Kernel& kernel, void** addr, aclrtStream stream, std::vector<RelocEntry>& relocs);
 
   void* Alloc(size_t size) override;
 
@@ -160,18 +141,12 @@ class GraphSplitBase : public WsAllocator {
 };
 class DynKernelPy : public TorchKernelPy {
  public:
-  DynKernelPy(int kernel_type, uint32_t flags)
-      : TorchKernelPy(kernel_type, flags) {}
+  DynKernelPy(int kernel_type, uint32_t flags) : TorchKernelPy(kernel_type, flags) {}
   ~DynKernelPy();
   py::object Load(py::object shape, DataTypePy type) override;
   py::object GlobalAccess(py::object shape, DataTypePy type) override;
-  py::object ViewLoad(py::object shape, py::object stride, DataTypePy type)
-      override;
-  py::object GatherLoad(
-      py::object shape,
-      py::object index,
-      DataTypePy type,
-      int axis) override;
+  py::object ViewLoad(py::object shape, py::object stride, DataTypePy type) override;
+  py::object GatherLoad(py::object shape, py::object index, DataTypePy type, int axis) override;
   struct LoadShapeRef {
     ShapeRef shape;
     ShapeRef stride;
@@ -198,9 +173,7 @@ class DynKernelPy : public TorchKernelPy {
   };
 
  protected:
-  ParsedCallInputs ParseDynCallInputs(
-      py::args inputs,
-      std::vector<at::Tensor>& tensor_refs) const;
+  ParsedCallInputs ParseDynCallInputs(py::args inputs, std::vector<at::Tensor>& tensor_refs) const;
   DynKernelPy* AcquireExecutor() {
     std::lock_guard<std::mutex> lock(dyn_executor_mutex_);
     if (!dyn_executors_.empty()) {
@@ -241,8 +214,7 @@ class GraphSplitKernelPy : public TorchKernelPy, public GraphSplitBase {
 
 class DynGraphSplitKernelPy : public DynKernelPy, public GraphSplitBase {
  public:
-  DynGraphSplitKernelPy()
-      : DynKernelPy(KernelPy::K_SPLIT, KernelPy::F_UWS | KernelPy::F_DYN) {}
+  DynGraphSplitKernelPy() : DynKernelPy(KernelPy::K_SPLIT, KernelPy::F_UWS | KernelPy::F_DYN) {}
   void Setup() override;
   void Run(py::args inputs) override;
   py::object Call(py::args inputs) override;

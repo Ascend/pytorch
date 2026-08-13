@@ -11,10 +11,7 @@ aclError AclProfilingRegisterDeviceCallback();
 
 aclError AclProfilingWarmup(const aclprofConfig* profilerConfig);
 
-aclError AclprofSetConfig(
-    aclprofConfigType configType,
-    const char* config,
-    size_t configLength);
+aclError AclprofSetConfig(aclprofConfigType configType, const char* config, size_t configLength);
 
 aclError AclprofGetSupportedFeatures(size_t* featuresSize, void** featuresData);
 

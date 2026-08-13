@@ -27,8 +27,7 @@ bool ShouldLogAclApi(const char* api_name) {
     return false;
   }
   if (!g_filter_disabled) {
-    if (std::strstr(api_name, "Query") != nullptr ||
-        std::strstr(api_name, "Event") != nullptr) {
+    if (std::strstr(api_name, "Query") != nullptr || std::strstr(api_name, "Event") != nullptr) {
       return false;
     }
   }

@@ -14,8 +14,7 @@
 namespace c10_npu {
 namespace impl {
 
-struct C10_NPU_API NPUGuardImpl final
-    : public c10::impl::DeviceGuardImplInterface {
+struct C10_NPU_API NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
   static constexpr c10::DeviceType static_type = c10::DeviceType::PrivateUse1;
 
   NPUGuardImpl() {}
@@ -40,25 +39,17 @@ struct C10_NPU_API NPUGuardImpl final
   c10::Stream getStream(c10::Device d) const noexcept override;
   c10::Stream getDefaultStream(c10::Device d) const override;
   c10::Stream getNewStream(c10::Device d, int priority = 0) const override;
-  c10::Stream getStreamFromGlobalPool(
-      c10::Device d,
-      bool isHighPriority = false) const override;
+  c10::Stream getStreamFromGlobalPool(c10::Device d, bool isHighPriority = false) const override;
   // NB: These do NOT set the current device
   c10::Stream exchangeStream(c10::Stream s) const noexcept override;
   void* getStreamNativeHandle(const c10::Stream stream) const override;
   c10::DeviceIndex deviceCount() const noexcept override;
 
   // Event-related functions
-  void createEvent(
-      aclrtEvent* acl_event,
-      [[maybe_unused]] const c10::EventFlag flag) const;
-  void destroyEvent(void* event, const c10::DeviceIndex device_index)
-      const noexcept override;
-  void record(
-      void** event,
-      const c10::Stream& stream,
-      const c10::DeviceIndex device_index,
-      const c10::EventFlag flag) const;
+  void createEvent(aclrtEvent* acl_event, [[maybe_unused]] const c10::EventFlag flag) const;
+  void destroyEvent(void* event, const c10::DeviceIndex device_index) const noexcept override;
+  void record(void** event, const c10::Stream& stream, const c10::DeviceIndex device_index, const c10::EventFlag flag)
+      const;
   void block(void* event, const c10::Stream& stream) const override;
   // May be called from any device
   bool queryEvent(void* event) const override;
@@ -67,11 +58,8 @@ struct C10_NPU_API NPUGuardImpl final
   void synchronizeStream(const c10::Stream& stream) const override;
   void synchronizeEvent(void* event) const override;
   void synchronizeDevice(const c10::DeviceIndex device_index) const override;
-  void recordDataPtrOnStream(
-      const c10::DataPtr& data_ptr,
-      const c10::Stream& stream) const override;
-  double elapsedTime(void* event1, void* event2, c10::DeviceIndex device_index)
-      const override;
+  void recordDataPtrOnStream(const c10::DataPtr& data_ptr, const c10::Stream& stream) const override;
+  double elapsedTime(void* event1, void* event2, c10::DeviceIndex device_index) const override;
 };
 
 } // namespace impl

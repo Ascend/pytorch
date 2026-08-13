@@ -2,8 +2,7 @@
 #include "torch_npu/csrc/logging/LogContext.h"
 
 inline std::shared_ptr<npu_logging::Logger>& GetRecoveryLogger() {
-  static std::shared_ptr<npu_logging::Logger> loggerRecovery =
-      npu_logging::logging().getLogger("torch_npu.recovery");
+  static std::shared_ptr<npu_logging::Logger> loggerRecovery = npu_logging::logging().getLogger("torch_npu.recovery");
   return loggerRecovery;
 }
 

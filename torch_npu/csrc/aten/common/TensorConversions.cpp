@@ -8,9 +8,7 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor NPUNativeFunctions::_to_sparse(
-    const at::Tensor& self,
-    int64_t sparse_dim) {
+at::Tensor NPUNativeFunctions::_to_sparse(const at::Tensor& self, int64_t sparse_dim) {
   return at::native::dense_to_sparse(self, sparse_dim);
 }
 

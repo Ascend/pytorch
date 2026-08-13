@@ -20,15 +20,11 @@ std::unordered_map<std::string, aclFormat> FORMAT_INFO = {
     {"FRACTAL_Z_3D", ACL_FRACTAL_Z_3D},
 };
 
-void npu_info_serialization(
-    const at::Tensor& t,
-    std::unordered_map<std::string, bool>& map) {
+void npu_info_serialization(const at::Tensor& t, std::unordered_map<std::string, bool>& map) {
   at_npu::native::StorageDescHelper::GetDescForSerialization(t, map);
 }
 
-void npu_info_deserialization(
-    const at::Tensor& t,
-    std::unordered_map<std::string, bool>& map) {
+void npu_info_deserialization(const at::Tensor& t, std::unordered_map<std::string, bool>& map) {
   // Set the true storage description
   at_npu::native::StorageDescHelper::SetDescForSerialization(t, map);
 
@@ -54,8 +50,7 @@ void npu_info_deserialization(
         revert_flag = true;
         t.set_requires_grad(false);
       }
-      at_npu::native::NPUNativeFunctions::npu_format_cast_(
-          const_cast<at::Tensor&>(t), format);
+      at_npu::native::NPUNativeFunctions::npu_format_cast_(const_cast<at::Tensor&>(t), format);
       if (revert_flag) {
         t.set_requires_grad(true);
       }

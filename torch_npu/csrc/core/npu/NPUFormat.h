@@ -22,12 +22,9 @@ namespace native {
 
 TORCH_NPU_API int64_t get_npu_format(const at::Tensor& self);
 
-TORCH_NPU_API std::vector<int64_t> get_npu_storage_sizes(
-    const at::Tensor& self);
+TORCH_NPU_API std::vector<int64_t> get_npu_storage_sizes(const at::Tensor& self);
 
-TORCH_NPU_API at::Tensor npu_format_cast(
-    const at::Tensor& self,
-    int64_t acl_format);
+TORCH_NPU_API at::Tensor npu_format_cast(const at::Tensor& self, int64_t acl_format);
 
 TORCH_NPU_API at::Tensor empty_with_format(
     c10::IntArrayRef sizes,

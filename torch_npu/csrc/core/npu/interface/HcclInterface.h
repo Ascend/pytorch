@@ -29,12 +29,7 @@ extern HcclResult HcclCommResumeFace(HcclComm comm);
  */
 extern bool isHcclFeatureSupported(HcclCommConfigCapability configParameter);
 
-HcclResult HcclCommSetMemoryRangeFace(
-    HcclComm comm,
-    void* virPtr,
-    size_t size,
-    size_t alignment,
-    uint64_t flags);
+HcclResult HcclCommSetMemoryRangeFace(HcclComm comm, void* virPtr, size_t size, size_t alignment, uint64_t flags);
 HcclResult HcclCommUnsetMemoryRangeFace(HcclComm comm, void* virPtr);
 HcclResult HcclCommActivateCommMemoryFace(
     HcclComm comm,

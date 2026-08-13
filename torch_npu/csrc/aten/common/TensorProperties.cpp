@@ -7,9 +7,7 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor NPUNativeFunctions::contiguous(
-    const at::Tensor& self,
-    c10::MemoryFormat memory_format) {
+at::Tensor NPUNativeFunctions::contiguous(const at::Tensor& self, c10::MemoryFormat memory_format) {
   if (self.is_contiguous(memory_format)) {
     return self;
   }
@@ -21,17 +19,11 @@ at::Tensor NPUNativeFunctions::contiguous(
   return self.clone(memory_format);
 }
 
-bool NPUNativeFunctions::is_set_to(
-    const at::Tensor& self,
-    const at::Tensor& src) {
-  if (self.storage().unsafeGetStorageImpl() ==
-          src.storage().unsafeGetStorageImpl() &&
-      self.storage_offset() == src.storage_offset() &&
-      self.dim() == src.dim() &&
-      NPUNativeFunctions::get_storage_size(self) ==
-          NPUNativeFunctions::get_storage_size(src) &&
-      NPUNativeFunctions::get_npu_format(self) ==
-          NPUNativeFunctions::get_npu_format(src)) {
+bool NPUNativeFunctions::is_set_to(const at::Tensor& self, const at::Tensor& src) {
+  if (self.storage().unsafeGetStorageImpl() == src.storage().unsafeGetStorageImpl() &&
+      self.storage_offset() == src.storage_offset() && self.dim() == src.dim() &&
+      NPUNativeFunctions::get_storage_size(self) == NPUNativeFunctions::get_storage_size(src) &&
+      NPUNativeFunctions::get_npu_format(self) == NPUNativeFunctions::get_npu_format(src)) {
     for (const auto d : c10::irange(self.dim())) {
       if (self.size(d) != src.size(d) || self.stride(d) != src.stride(d)) {
         return false;

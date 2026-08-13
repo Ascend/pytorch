@@ -66,9 +66,7 @@ struct ScheduleContext {
   // reserve area
   int8_t reserve6[384]; // padding to 1024 bytes
 };
-static_assert(
-    sizeof(ScheduleContext) == 1024,
-    "ScheduleContext size must be 1024 bytes");
+static_assert(sizeof(ScheduleContext) == 1024, "ScheduleContext size must be 1024 bytes");
 #pragma pack(pop)
 
 class ScheduleContextHolder {

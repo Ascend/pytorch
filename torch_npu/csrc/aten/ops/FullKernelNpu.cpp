@@ -6,10 +6,7 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor& NPUNativeFunctions::full_out(
-    at::IntArrayRef size,
-    const at::Scalar& fill_value,
-    at::Tensor& out) {
+at::Tensor& NPUNativeFunctions::full_out(at::IntArrayRef size, const at::Scalar& fill_value, at::Tensor& out) {
   OpPreparation::CheckOut({}, out, out, size);
   out.fill_(fill_value);
   return out;

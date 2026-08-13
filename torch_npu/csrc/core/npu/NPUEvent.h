@@ -89,8 +89,7 @@ using NPUEventPtr = std::unique_ptr<NPUEvent, std::function<void(NPUEvent*)>>;
 
 class EventPool {
  public:
-  EventPool(unsigned int flags)
-      : flags_(flags), pools_(c10_npu::device_count()) {}
+  EventPool(unsigned int flags) : flags_(flags), pools_(c10_npu::device_count()) {}
   NPUEventPtr get(const c10::DeviceIndex device);
   void empty_cache();
 

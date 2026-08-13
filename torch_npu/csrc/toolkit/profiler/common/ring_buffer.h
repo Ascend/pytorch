@@ -45,11 +45,9 @@ class RingBuffer {
       mask_ = 0;
       is_quit_ = true;
       is_inited_ = false;
-      auto final_cycles_exceed_cnt =
-          cycles_exceed_cnt_.load(std::memory_order_relaxed);
+      auto final_cycles_exceed_cnt = cycles_exceed_cnt_.load(std::memory_order_relaxed);
       if (final_cycles_exceed_cnt > 0) {
-        ASCEND_LOGE(
-            "RingBuffer cycles exceed %zu times", final_cycles_exceed_cnt);
+        ASCEND_LOGE("RingBuffer cycles exceed %zu times", final_cycles_exceed_cnt);
         cycles_exceed_cnt_ = 0;
       }
       auto final_full_cnt = full_cnt_.load(std::memory_order_relaxed);
@@ -82,8 +80,7 @@ class RingBuffer {
         full_cnt_.fetch_add(1, std::memory_order_relaxed);
         return false;
       }
-    } while (!idle_write_index_.compare_exchange_weak(
-        curr_write_index, next_write_index));
+    } while (!idle_write_index_.compare_exchange_weak(curr_write_index, next_write_index));
     size_t index = curr_write_index & mask_;
     data_queue_[index] = std::move(data);
     write_index_++;

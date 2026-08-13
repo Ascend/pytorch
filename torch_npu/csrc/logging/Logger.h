@@ -7,13 +7,7 @@
 
 namespace npu_logging {
 
-enum class LoggingLevel {
-  DEBUG = 10,
-  INFO = 20,
-  WARNING = 30,
-  ERROR = 40,
-  CRITICAL = 50
-};
+enum class LoggingLevel { DEBUG = 10, INFO = 20, WARNING = 30, ERROR = 40, CRITICAL = 50 };
 
 // logging level count
 static const int LOGGING_LEVEL_COUNT = 5;

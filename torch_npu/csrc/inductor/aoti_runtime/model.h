@@ -29,13 +29,11 @@ class AOTInductorModel : public AOTInductorModelBase<AOTInductorModel> {
       AOTIProxyExecutorHandle proxy_executor);
 
   void run_impl(
-      AtenTensorHandle*
-          input_handles, // array of input AtenTensorHandle; handles
-                         // are stolen; the array itself is borrowed
-      AtenTensorHandle*
-          output_handles, // array for writing output AtenTensorHandle; handles
-                          // will be stolen by the caller; the array itself is
-                          // borrowed
+      AtenTensorHandle* input_handles, // array of input AtenTensorHandle; handles
+                                       // are stolen; the array itself is borrowed
+      AtenTensorHandle* output_handles, // array for writing output AtenTensorHandle; handles
+                                        // will be stolen by the caller; the array itself is
+                                        // borrowed
       DeviceStreamType stream,
       AOTIProxyExecutorHandle proxy_executor);
 
@@ -57,10 +55,7 @@ class AOTInductorModel : public AOTInductorModelBase<AOTInductorModel> {
       const std::string& device_str,
       std::optional<std::string> cubin_dir) {
     return std::make_unique<AOTInductorModel>(
-        std::move(constants_map),
-        std::move(constants_array),
-        device_str,
-        std::move(cubin_dir));
+        std::move(constants_map), std::move(constants_array), device_str, std::move(cubin_dir));
   }
 
  private:

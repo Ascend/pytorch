@@ -11,23 +11,17 @@ namespace native {
 
 bool StorageDescHelper::MetaDataAreMatch(const at::Tensor* tensor) {
   auto& desc = torch_npu::NPUBridge::GetNpuStorageImplDesc(*tensor);
-  return IsSameSize(desc.base_sizes_, tensor->sizes()) &&
-      IsSameSize(desc.base_strides_, tensor->strides());
+  return IsSameSize(desc.base_sizes_, tensor->sizes()) && IsSameSize(desc.base_strides_, tensor->strides());
 }
 
 // copy related
-bool StorageDescHelper::IsSameDesc(
-    const torch_npu::NPUStorageDesc& a,
-    const torch_npu::NPUStorageDesc& b) {
-  if ((a.origin_format_ != b.origin_format_) ||
-      (a.npu_format_ != b.npu_format_)) {
-    if ((!FormatHelper::IsBaseFormatType(a.npu_format_)) ||
-        (!FormatHelper::IsBaseFormatType(b.npu_format_))) {
+bool StorageDescHelper::IsSameDesc(const torch_npu::NPUStorageDesc& a, const torch_npu::NPUStorageDesc& b) {
+  if ((a.origin_format_ != b.origin_format_) || (a.npu_format_ != b.npu_format_)) {
+    if ((!FormatHelper::IsBaseFormatType(a.npu_format_)) || (!FormatHelper::IsBaseFormatType(b.npu_format_))) {
       return false;
     }
   }
-  return (a.base_sizes_ == b.base_sizes_) &&
-      (a.base_strides_ == b.base_strides_) &&
+  return (a.base_sizes_ == b.base_sizes_) && (a.base_strides_ == b.base_strides_) &&
       (a.storage_sizes_ == b.storage_sizes_);
 }
 
@@ -37,9 +31,7 @@ bool StorageDescHelper::IsSameDesc(const at::Tensor& a, const at::Tensor& b) {
   return IsSameDesc(descA, descB);
 }
 
-bool StorageDescHelper::IsSameSize(
-    const c10::SmallVector<int64_t, 5>& a,
-    const c10::IntArrayRef& b) {
+bool StorageDescHelper::IsSameSize(const c10::SmallVector<int64_t, 5>& a, const c10::IntArrayRef& b) {
   if (a.size() == b.size()) {
     return std::equal(a.begin(), a.end(), b.begin());
   }
@@ -52,8 +44,7 @@ void StorageDescHelper::UpdateDesc(
     const c10::IntArrayRef& new_shape_sizes) {
   int64_t new_data_numel = c10::multiply_integers(new_data_sizes);
   int64_t new_shape_numel = c10::multiply_integers(new_shape_sizes);
-  const c10::IntArrayRef& new_size =
-      new_data_numel > new_shape_numel ? new_data_sizes : new_shape_sizes;
+  const c10::IntArrayRef& new_size = new_data_numel > new_shape_numel ? new_data_sizes : new_shape_sizes;
 
   npuDesc.base_sizes_ = new_size;
 
@@ -70,8 +61,7 @@ void StorageDescHelper::UpdateDesc(
   npuDesc.base_strides_ = new_stride;
   // 更新物理内存信息
   unsigned int NCDHW_OR_NDHWC_DIM = 5;
-  if ((npuDesc.npu_format_ == ACL_FORMAT_NCDHW ||
-       npuDesc.npu_format_ == ACL_FORMAT_NDHWC) &&
+  if ((npuDesc.npu_format_ == ACL_FORMAT_NCDHW || npuDesc.npu_format_ == ACL_FORMAT_NDHWC) &&
       new_size.size() < NCDHW_OR_NDHWC_DIM) {
     npuDesc.storage_sizes_ = new_size;
   } else {
@@ -80,13 +70,11 @@ void StorageDescHelper::UpdateDesc(
   if (new_data_numel > new_shape_numel) {
     // Refresh format to base format only when flattening storage data
     npuDesc.storage_sizes_ = new_size;
-    npuDesc.npu_format_ =
-        InferFormat::GuessStorageFormat(npuDesc.storage_sizes_, ACL_FORMAT_ND);
+    npuDesc.npu_format_ = InferFormat::GuessStorageFormat(npuDesc.storage_sizes_, ACL_FORMAT_ND);
   }
 }
 
-FormatShape StorageDescHelper::ComputeStrideFromShape(
-    const FormatShape& shape) {
+FormatShape StorageDescHelper::ComputeStrideFromShape(const FormatShape& shape) {
   FormatShape compute_stride = shape;
   compute_stride[shape.size() - 1] = 1;
   for (auto i = shape.size() - 1; i > 0; i--) {
@@ -96,16 +84,11 @@ FormatShape StorageDescHelper::ComputeStrideFromShape(
 }
 
 void StorageDescHelper::SetDesc(at::Tensor& dst) {
-  torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_ =
-      SetDesc(dst.dtype());
+  torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_ = SetDesc(dst.dtype());
 }
 
-void StorageDescHelper::SetDesc(
-    at::Tensor& dst,
-    const c10::IntArrayRef& size,
-    const c10::IntArrayRef& strides) {
-  torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_ =
-      SetDesc(dst.dtype(), size, strides);
+void StorageDescHelper::SetDesc(at::Tensor& dst, const c10::IntArrayRef& size, const c10::IntArrayRef& strides) {
+  torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_ = SetDesc(dst.dtype(), size, strides);
 }
 
 void StorageDescHelper::SetDesc(
@@ -113,8 +96,7 @@ void StorageDescHelper::SetDesc(
     const c10::IntArrayRef& size,
     const c10::IntArrayRef& strides,
     aclFormat format) {
-  torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_ =
-      SetDesc(dst.dtype(), size, strides, format);
+  torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_ = SetDesc(dst.dtype(), size, strides, format);
 }
 
 void StorageDescHelper::SetDesc(
@@ -128,8 +110,8 @@ void StorageDescHelper::SetDesc(
 }
 
 bool StorageDescHelper::CheckDescInit(const c10::Storage& storage) {
-  return torch_npu::NPUBridge::GetNpuStorageImpl(storage.unsafeGetStorageImpl())
-             ->npu_desc_.origin_format_ != ACL_FORMAT_UNDEFINED;
+  return torch_npu::NPUBridge::GetNpuStorageImpl(storage.unsafeGetStorageImpl())->npu_desc_.origin_format_ !=
+      ACL_FORMAT_UNDEFINED;
 }
 
 void StorageDescHelper::GetDescForSerialization(
@@ -146,9 +128,7 @@ void StorageDescHelper::GetDescForSerialization(
   // information in the key For example, NPUStorageDesc.base_sizes_ is a vector
   // including five int64_t values, using string obj "base_size/10/10/10/10/10/"
   // to represent
-  auto small_vector_to_str = [](std::string& str,
-                                std::string key_name,
-                                c10::SmallVector<int64_t, 5> vec) -> void {
+  auto small_vector_to_str = [](std::string& str, std::string key_name, c10::SmallVector<int64_t, 5> vec) -> void {
     str = key_name;
     for (const auto i : c10::irange(vec.size())) {
       str += '/';
@@ -166,14 +146,12 @@ void StorageDescHelper::GetDescForSerialization(
   small_vector_to_str(
       storage_sizes_,
       "storage_sizes_",
-      FormatHelper::GetStorageSizes(
-          ACL_FORMAT_ND, desc.base_sizes_, desc.data_type_));
+      FormatHelper::GetStorageSizes(ACL_FORMAT_ND, desc.base_sizes_, desc.data_type_));
   desc_map[base_sizes_] = true;
   desc_map[base_strides_] = true;
   desc_map[storage_sizes_] = true;
 
-  auto acl_format_to_str =
-      [](std::string& str, std::string key_name, aclFormat format) -> void {
+  auto acl_format_to_str = [](std::string& str, std::string key_name, aclFormat format) -> void {
     str = key_name;
     str += '/';
     str += FormatHelper::GetFormatName(format);
@@ -195,11 +173,9 @@ void StorageDescHelper::SetDescForSerialization(
   // The NPUStorageDesc object to restore
   struct torch_npu::NPUStorageDesc load_desc;
 
-  auto str_to_small_vector =
-      [](std::string str) -> c10::SmallVector<int64_t, 5> {
+  auto str_to_small_vector = [](std::string str) -> c10::SmallVector<int64_t, 5> {
     int start = 0;
-    while ((start < static_cast<int64_t>(str.size())) &&
-           (str[start++] != '/')) {
+    while ((start < static_cast<int64_t>(str.size())) && (str[start++] != '/')) {
     }
     int end = start;
     c10::SmallVector<int64_t, 5> vec;
@@ -240,15 +216,10 @@ void StorageDescHelper::CopyDesc(at::Tensor& dst, const at::Tensor& src) {
 }
 
 void StorageDescHelper::CopyDesc(at::Tensor& dst, const c10::Storage& src) {
-  CopyDesc(
-      dst,
-      torch_npu::NPUBridge::GetNpuStorageImpl(src.unsafeGetStorageImpl())
-          ->npu_desc_);
+  CopyDesc(dst, torch_npu::NPUBridge::GetNpuStorageImpl(src.unsafeGetStorageImpl())->npu_desc_);
 }
 
-void StorageDescHelper::CopyDesc(
-    const at::Tensor& dst,
-    const torch_npu::NPUStorageDesc& src_desc) {
+void StorageDescHelper::CopyDesc(const at::Tensor& dst, const torch_npu::NPUStorageDesc& src_desc) {
   auto& dstDesc = torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_;
   dstDesc = src_desc;
 }
@@ -260,8 +231,7 @@ void StorageDescHelper::ReflushDescBySelf(const at::Tensor& src) {
   desc.base_strides_ = src.strides();
 }
 
-torch_npu::NPUStorageDesc StorageDescHelper::SetDesc(
-    const caffe2::TypeMeta& dtype) {
+torch_npu::NPUStorageDesc StorageDescHelper::SetDesc(const caffe2::TypeMeta& dtype) {
   return SetDesc(dtype, {0}, {});
 }
 
@@ -288,8 +258,7 @@ torch_npu::NPUStorageDesc StorageDescHelper::SetDesc(
   aclFormat baseFormat;
   aclFormat npuFormat;
   std::tie(baseFormat, npuFormat) = InferFormat::GuessFormatUnit(size, format);
-  npu_desc.storage_sizes_ =
-      FormatHelper::GetStorageSizes(npuFormat, size, dtype);
+  npu_desc.storage_sizes_ = FormatHelper::GetStorageSizes(npuFormat, size, dtype);
   npu_desc.origin_format_ = baseFormat;
   npu_desc.npu_format_ = npuFormat;
   return npu_desc;
@@ -307,8 +276,7 @@ torch_npu::NPUStorageDesc StorageDescHelper::SetDesc(
   npu_desc.base_strides_ = strides;
   aclFormat baseFormat;
   aclFormat npuFormat;
-  std::tie(baseFormat, npuFormat) =
-      InferFormat::GuessFormatUnit(base_size, format);
+  std::tie(baseFormat, npuFormat) = InferFormat::GuessFormatUnit(base_size, format);
   npu_desc.storage_sizes_ = storage_size;
   npu_desc.origin_format_ = baseFormat;
   npu_desc.npu_format_ = npuFormat;
@@ -325,12 +293,8 @@ int64_t StorageDescHelper::GetMemorySize(const at::Tensor& dst) {
   return GetMemorySize(desc);
 }
 
-int64_t StorageDescHelper::GetMemorySize(
-    const c10::IntArrayRef& size,
-    aclFormat format,
-    caffe2::TypeMeta dtype) {
-  const auto& physical_size =
-      FormatHelper::GetStorageSizes(format, size, dtype);
+int64_t StorageDescHelper::GetMemorySize(const c10::IntArrayRef& size, aclFormat format, caffe2::TypeMeta dtype) {
+  const auto& physical_size = FormatHelper::GetStorageSizes(format, size, dtype);
   return c10::multiply_integers(physical_size);
 }
 

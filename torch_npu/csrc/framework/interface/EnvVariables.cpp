@@ -32,9 +32,7 @@ const std::map<std::string, CompatibleKey>& GetCompatibleKeyMap() {
   return compatible_key_map;
 }
 
-bool ParseCompatibleKey(
-    const std::string& config_key,
-    CompatibleKey& compatible_key) {
+bool ParseCompatibleKey(const std::string& config_key, CompatibleKey& compatible_key) {
   const auto& compatible_key_map = GetCompatibleKeyMap();
   auto iter = compatible_key_map.find(config_key);
   if (iter == compatible_key_map.end()) {
@@ -45,14 +43,8 @@ bool ParseCompatibleKey(
 }
 
 std::string TrimCompatibleConfigToken(const std::string& token) {
-  auto begin =
-      std::find_if_not(token.begin(), token.end(), [](unsigned char ch) {
-        return std::isspace(ch);
-      });
-  auto end =
-      std::find_if_not(token.rbegin(), token.rend(), [](unsigned char ch) {
-        return std::isspace(ch);
-      }).base();
+  auto begin = std::find_if_not(token.begin(), token.end(), [](unsigned char ch) { return std::isspace(ch); });
+  auto end = std::find_if_not(token.rbegin(), token.rend(), [](unsigned char ch) { return std::isspace(ch); }).base();
   if (begin >= end) {
     return "";
   }
@@ -83,8 +75,7 @@ std::set<CompatibleKey> ParseCompatibleImplBlackListEnv() {
   size_t start = 0;
   while (start <= config.size()) {
     size_t end = config.find(',', start);
-    std::string token = config.substr(
-        start, end == std::string::npos ? std::string::npos : end - start);
+    std::string token = config.substr(start, end == std::string::npos ? std::string::npos : end - start);
     std::string config_key = TrimCompatibleConfigToken(token);
     if (!config_key.empty()) {
       CompatibleKey compatible_key;
@@ -118,8 +109,7 @@ std::set<CompatibleKey> ParseCompatibleImplBlackListEnv() {
   return result;
 }
 
-std::string CompatibleKeySetToString(
-    const std::set<CompatibleKey>& compatible_keys) {
+std::string CompatibleKeySetToString(const std::set<CompatibleKey>& compatible_keys) {
   std::string result;
   const auto& compatible_key_map = GetCompatibleKeyMap();
   for (const auto& compatible_key : compatible_keys) {
@@ -138,11 +128,9 @@ std::string CompatibleKeySetToString(
 
 CompatibleConfig InitCompatibleConfig() {
   CompatibleConfig compatible_config;
-  compatible_config.compatible_impl_black_list =
-      ParseCompatibleImplBlackListEnv();
+  compatible_config.compatible_impl_black_list = ParseCompatibleImplBlackListEnv();
 
-  auto compatible_impl_black_list =
-      CompatibleKeySetToString(compatible_config.compatible_impl_black_list);
+  auto compatible_impl_black_list = CompatibleKeySetToString(compatible_config.compatible_impl_black_list);
   ASCEND_LOGI(
       "Compatible config initialized during first compatible config query, "
       "TORCH_NPU_LEGACY_IMPL_LIST environment variable compatible_impl_black_list=[%s].",
@@ -154,11 +142,7 @@ CompatibleConfig InitCompatibleConfig() {
 void ValidPathCheck(const std::string& file_path) {
   char abs_path[PATH_MAX] = {'\0'};
   if (realpath(file_path.c_str(), abs_path) == nullptr) {
-    TORCH_CHECK(
-        0,
-        "configPath path Fails, path ",
-        (char*)file_path.c_str(),
-        PTA_ERROR(ErrCode::PTR));
+    TORCH_CHECK(0, "configPath path Fails, path ", (char*)file_path.c_str(), PTA_ERROR(ErrCode::PTR));
   }
 }
 
@@ -183,9 +167,7 @@ REGISTER_OPTION_HOOK(mdldumpswitch, [](const std::string& val) {
     aclmdlFinalizeDump();
   }
 })
-REGISTER_OPTION_HOOK(mdldumpconfigpath, [](const std::string& val) {
-  aclmdlSetDump(val.c_str());
-})
+REGISTER_OPTION_HOOK(mdldumpconfigpath, [](const std::string& val) { aclmdlSetDump(val.c_str()); })
 
 bool CheckJitDisableInner() {
   auto val = c10_npu::option::GetOption("jitCompile");
@@ -207,16 +189,14 @@ REGISTER_OPTION_CACHE(bool, isJitDisable, CheckJitDisableInner)
 REGISTER_OPTION_HOOK(jitCompile, [](const std::string& val) {
   auto acl_op_init_mode = c10_npu::option::OptionsManager::GetAclOpInitMode();
   if (acl_op_init_mode == 0) {
-    NPU_CHECK_ERROR(
-        AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, val.c_str()));
+    NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, val.c_str()));
   } else if (GET_OPTION_WITH_CACHE(isJitDisable) != ("disable" == val)) {
     TORCH_CHECK(
         acl_op_init_mode != 2,
         "Jit compile set is disabled! If you want to set, ",
         "please change the environment variable ACL_OP_INIT_MODE to 0 or 1.",
         PTA_ERROR(ErrCode::NOT_SUPPORT));
-    NPU_CHECK_ERROR(
-        AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, val.c_str()));
+    NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, val.c_str()));
   }
   SET_OPTION_WITH_CACHE(isJitDisable, ("disable" == val) ? true : false);
 })
@@ -230,40 +210,35 @@ bool CheckJitDisable() {
 }
 
 REGISTER_OPTION_HOOK(ACL_OP_DEBUG_LEVEL, [](const std::string& val) {
-  NPU_CHECK_ERROR(at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(
-      aclCompileOpt::ACL_OP_DEBUG_LEVEL, val.c_str()));
+  NPU_CHECK_ERROR(at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(aclCompileOpt::ACL_OP_DEBUG_LEVEL, val.c_str()));
 })
 REGISTER_OPTION_HOOK(ACL_DEBUG_DIR, [](const std::string& val) {
-  NPU_CHECK_ERROR(at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(
-      aclCompileOpt::ACL_DEBUG_DIR, val.c_str()));
+  NPU_CHECK_ERROR(at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(aclCompileOpt::ACL_DEBUG_DIR, val.c_str()));
 })
 
 REGISTER_OPTION_HOOK(ACL_OP_COMPILER_CACHE_MODE, [](const std::string& val) {
-  NPU_CHECK_ERROR(at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(
-      aclCompileOpt::ACL_OP_COMPILER_CACHE_MODE, val.c_str()));
+  NPU_CHECK_ERROR(
+      at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(aclCompileOpt::ACL_OP_COMPILER_CACHE_MODE, val.c_str()));
 })
 
 REGISTER_OPTION_HOOK(ACL_OP_COMPILER_CACHE_DIR, [](const std::string& val) {
-  NPU_CHECK_ERROR(at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(
-      aclCompileOpt::ACL_OP_COMPILER_CACHE_DIR, val.c_str()));
+  NPU_CHECK_ERROR(
+      at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(aclCompileOpt::ACL_OP_COMPILER_CACHE_DIR, val.c_str()));
 })
 
 REGISTER_OPTION_HOOK(ACL_AICORE_NUM, [](const std::string& val) {
-  NPU_CHECK_ERROR(at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(
-      aclCompileOpt::ACL_AICORE_NUM, val.c_str()));
+  NPU_CHECK_ERROR(at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(aclCompileOpt::ACL_AICORE_NUM, val.c_str()));
 })
 
 REGISTER_OPTION_HOOK(ACL_PRECISION_MODE, [](const std::string& val) {
-  NPU_CHECK_ERROR(at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(
-      aclCompileOpt::ACL_PRECISION_MODE, val.c_str()));
+  NPU_CHECK_ERROR(at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(aclCompileOpt::ACL_PRECISION_MODE, val.c_str()));
 })
 
 bool IsAllowFP32ToFP16() {
   // For Ascend910B1 and subsequent device, the default precision mode is
   // must_keep_origin_dtype, and the default value for others is
   // allow_fp32_to_fp16.
-  bool is_allow_fp32_to_fp16 =
-      c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend910B1;
+  bool is_allow_fp32_to_fp16 = c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend910B1;
 
   static const std::string precision_mode = "ACL_PRECISION_MODE";
   auto precision_mode_val = c10_npu::option::GetOption(precision_mode);
@@ -273,8 +248,7 @@ bool IsAllowFP32ToFP16() {
     } else if (precision_mode_val.value() == "allow_fp32_to_fp16") {
       is_allow_fp32_to_fp16 = true;
     } else {
-      ASCEND_LOGW(
-          "Unsupported precision mode value, using default value according to soc version.");
+      ASCEND_LOGW("Unsupported precision mode value, using default value according to soc version.");
     }
   }
 
@@ -282,28 +256,22 @@ bool IsAllowFP32ToFP16() {
 }
 
 REGISTER_OPTION_HOOK(ACL_OP_SELECT_IMPL_MODE, [](const std::string& val) {
-  NPU_CHECK_ERROR(at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(
-      aclCompileOpt::ACL_OP_SELECT_IMPL_MODE, val.c_str()));
+  NPU_CHECK_ERROR(
+      at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(aclCompileOpt::ACL_OP_SELECT_IMPL_MODE, val.c_str()));
 })
 
 REGISTER_OPTION_HOOK(ACL_OPTYPELIST_FOR_IMPLMODE, [](const std::string& val) {
-  NPU_CHECK_ERROR(at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(
-      aclCompileOpt::ACL_OPTYPELIST_FOR_IMPLMODE, val.c_str()));
+  NPU_CHECK_ERROR(
+      at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(aclCompileOpt::ACL_OPTYPELIST_FOR_IMPLMODE, val.c_str()));
 })
 
 REGISTER_OPTION_HOOK(NPU_FUZZY_COMPILE_BLACKLIST, [](const std::string& val) {
   ForceJitCompileList::GetInstance().RegisterJitlist(val);
 })
 
-REGISTER_OPTION_HOOK(FORCE_ACLNN_OP_LIST, [](const std::string& val) {
-  ForceAclnn::GetInstance().RegisterOp(val);
-})
+REGISTER_OPTION_HOOK(FORCE_ACLNN_OP_LIST, [](const std::string& val) { ForceAclnn::GetInstance().RegisterOp(val); })
 
-REGISTER_OPTION_BOOL_FUNCTION(
-    CheckOpHookEnableInner,
-    OP_HOOK_ENABLE,
-    "disable",
-    "enable")
+REGISTER_OPTION_BOOL_FUNCTION(CheckOpHookEnableInner, OP_HOOK_ENABLE, "disable", "enable")
 REGISTER_OPTION_CACHE(bool, isOpHookEnable, CheckOpHookEnableInner)
 REGISTER_OPTION_HOOK(OP_HOOK_ENABLE, [](const std::string& val) {
   SET_OPTION_WITH_CACHE(isOpHookEnable, "enable" == val);
@@ -314,32 +282,16 @@ bool CheckOpHookEnable() {
 }
 
 TORCH_NPU_REGISTER_OPTION(MM_BMM_ND_ENABLE)
-REGISTER_OPTION_BOOL_FUNCTION_UNIQ(
-    CheckMmBmmNDDisable,
-    MM_BMM_ND_ENABLE,
-    "enable",
-    "disable")
+REGISTER_OPTION_BOOL_FUNCTION_UNIQ(CheckMmBmmNDDisable, MM_BMM_ND_ENABLE, "enable", "disable")
 
 TORCH_NPU_REGISTER_OPTION(ALLOW_INTERNAL_FORMAT)
-REGISTER_OPTION_BOOL_FUNCTION(
-    CheckForbidInternalFormat,
-    ALLOW_INTERNAL_FORMAT,
-    "enable",
-    "disable")
+REGISTER_OPTION_BOOL_FUNCTION(CheckForbidInternalFormat, ALLOW_INTERNAL_FORMAT, "enable", "disable")
 
 TORCH_NPU_REGISTER_OPTION(STRONG_CONSISTENCY)
-REGISTER_OPTION_BOOL_FUNCTION(
-    CheckStrongConsistency,
-    STRONG_CONSISTENCY,
-    "disable",
-    "enable")
+REGISTER_OPTION_BOOL_FUNCTION(CheckStrongConsistency, STRONG_CONSISTENCY, "disable", "enable")
 
 REGISTER_OPTION_INIT_BY_ENV(TORCH_NPU_USE_COMPATIBLE_IMPL)
-REGISTER_OPTION_BOOL_FUNCTION(
-    CheckCompatibleImpl,
-    TORCH_NPU_USE_COMPATIBLE_IMPL,
-    "0",
-    "1")
+REGISTER_OPTION_BOOL_FUNCTION(CheckCompatibleImpl, TORCH_NPU_USE_COMPATIBLE_IMPL, "0", "1")
 
 static const CompatibleConfig& GetCompatibleConfig() {
   static const CompatibleConfig compatible_config = InitCompatibleConfig();
@@ -369,16 +321,11 @@ REGISTER_OPTION_HOOK(ALLOW_CONV_HF32, [](const std::string& val) {
 
   std::string conv_hf32 = (val == "enable") ? "1" : "0";
   std::string allow_hf32 = conv_hf32 + mm_hf32;
-  NPU_CHECK_ERROR(at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(
-      aclCompileOpt::ACL_ALLOW_HF32, allow_hf32.c_str()));
+  NPU_CHECK_ERROR(
+      at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(aclCompileOpt::ACL_ALLOW_HF32, allow_hf32.c_str()));
   ASCEND_LOGD("Set ACL option ACL_ALLOW_HF32 value to %s.", allow_hf32.c_str());
 })
-REGISTER_OPTION_BOOL_FUNCTION_ALL_CASE(
-    IsAllowConvHF32,
-    ALLOW_CONV_HF32,
-    "enable",
-    "disable",
-    "enable")
+REGISTER_OPTION_BOOL_FUNCTION_ALL_CASE(IsAllowConvHF32, ALLOW_CONV_HF32, "enable", "disable", "enable")
 
 REGISTER_OPTION_HOOK(ALLOW_MATMUL_HF32, [](const std::string& val) {
   static const std::string conv_hf32_option_name = "ALLOW_CONV_HF32";
@@ -391,21 +338,15 @@ REGISTER_OPTION_HOOK(ALLOW_MATMUL_HF32, [](const std::string& val) {
 
   std::string mm_hf32 = (val == "enable") ? "1" : "0";
   std::string allow_hf32 = conv_hf32 + mm_hf32;
-  NPU_CHECK_ERROR(at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(
-      aclCompileOpt::ACL_ALLOW_HF32, allow_hf32.c_str()));
+  NPU_CHECK_ERROR(
+      at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(aclCompileOpt::ACL_ALLOW_HF32, allow_hf32.c_str()));
   ASCEND_LOGD("Set ACL option ACL_ALLOW_HF32 value to %s.", allow_hf32.c_str());
 })
-REGISTER_OPTION_BOOL_FUNCTION(
-    IsAllowMatmulHF32,
-    ALLOW_MATMUL_HF32,
-    "disable",
-    "enable")
+REGISTER_OPTION_BOOL_FUNCTION(IsAllowMatmulHF32, ALLOW_MATMUL_HF32, "disable", "enable")
 
 REGISTER_OPTION_HOOK(ACL_OP_DEBUG_OPTION, [](const std::string& val) {
-  NPU_CHECK_ERROR(at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(
-      aclCompileOpt::ACL_OP_DEBUG_OPTION, val.c_str()));
-  NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(
-      aclSysParamOpt::ACL_OPT_ENABLE_DEBUG_KERNEL, 1));
+  NPU_CHECK_ERROR(at_npu::aclops::LazyAclopSet::LazyAclSetCompileopt(aclCompileOpt::ACL_OP_DEBUG_OPTION, val.c_str()));
+  NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_ENABLE_DEBUG_KERNEL, 1));
   ASCEND_LOGD("Set ACL option ACL_OP_DEBUG_OPTION.");
 })
 

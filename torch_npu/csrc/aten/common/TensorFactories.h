@@ -13,37 +13,17 @@ namespace native {
 // libtorch_npu.so) and re-exports it via TORCH_NPU_API so torch_npu._C can call
 // it directly, mirroring upstream's at::detail::empty_strided_<device> fast
 // path.
-TORCH_NPU_API at::Tensor empty_strided_npu(
-    c10::IntArrayRef size,
-    c10::IntArrayRef stride,
-    at::ScalarType dtype);
+TORCH_NPU_API at::Tensor empty_strided_npu(c10::IntArrayRef size, c10::IntArrayRef stride, at::ScalarType dtype);
 
 inline void check_size_nonnegative(c10::IntArrayRef& size) {
   for (auto& x : size) {
-    TORCH_CHECK(
-        x >= 0,
-        "Trying to create tensor with negative dimension ",
-        x,
-        ": ",
-        size,
-        OPS_ERROR(ErrCode::VALUE));
+    TORCH_CHECK(x >= 0, "Trying to create tensor with negative dimension ", x, ": ", size, OPS_ERROR(ErrCode::VALUE));
   }
 }
 
-inline void check_args(
-    int64_t row,
-    int64_t col,
-    const c10::TensorOptions& options) {
-  TORCH_CHECK(
-      row >= 0,
-      "row must be non-negative, got",
-      row,
-      OPS_ERROR(ErrCode::VALUE));
-  TORCH_CHECK(
-      col >= 0,
-      "col must be non-negative, got",
-      col,
-      OPS_ERROR(ErrCode::VALUE));
+inline void check_args(int64_t row, int64_t col, const c10::TensorOptions& options) {
+  TORCH_CHECK(row >= 0, "row must be non-negative, got", row, OPS_ERROR(ErrCode::VALUE));
+  TORCH_CHECK(col >= 0, "col must be non-negative, got", col, OPS_ERROR(ErrCode::VALUE));
   if (options.has_layout()) {
     TORCH_CHECK(
         options.layout() == at::kStrided,
@@ -55,8 +35,7 @@ inline void check_args(
 
 inline int64_t get_tril_size(int64_t row, int64_t col, int64_t offset) {
   // number of elements in the first row of the tril
-  auto m_first_row = offset > 0 ? std::min<int64_t>(col, 1 + offset)
-                                : // upper bounded by col
+  auto m_first_row = offset > 0 ? std::min<int64_t>(col, 1 + offset) : // upper bounded by col
       row + offset > 0; // either 0 or 1
   // number of elements in the last row of the tril, bounded by [0, col]
   auto m_last_row = std::max<int64_t>(0, std::min<int64_t>(col, row + offset));

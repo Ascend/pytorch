@@ -41,13 +41,7 @@ int LcclReduceScatter(
     LcclComm comm,
     aclrtStream stream);
 
-int LcclBroadcast(
-    void* buf,
-    int64_t count,
-    LcclDataType dataType,
-    int root,
-    LcclComm comm,
-    aclrtStream stream);
+int LcclBroadcast(void* buf, int64_t count, LcclDataType dataType, int root, LcclComm comm, aclrtStream stream);
 
 int LcclCommDestroy(LcclComm comm);
 

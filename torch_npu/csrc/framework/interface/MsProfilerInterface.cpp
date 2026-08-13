@@ -7,12 +7,10 @@ namespace at_npu {
 namespace native {
 
 #undef TORCH_NPU_LOAD_FUNC
-#define TORCH_NPU_LOAD_FUNC(funcName) \
-  TORCH_NPU_REGISTER_FUNCTION(libmsprofiler, funcName)
+#define TORCH_NPU_LOAD_FUNC(funcName) TORCH_NPU_REGISTER_FUNCTION(libmsprofiler, funcName)
 
 #undef TORCH_NPU_GET_FUNC
-#define TORCH_NPU_GET_FUNC(funcName) \
-  TORCH_NPU_GET_FUNCTION(libmsprofiler, funcName)
+#define TORCH_NPU_GET_FUNC(funcName) TORCH_NPU_GET_FUNCTION(libmsprofiler, funcName)
 
 TORCH_NPU_REGISTER_LIBRARY(libmsprofiler, RTLD_LAZY | RTLD_GLOBAL)
 TORCH_NPU_LOAD_FUNC(aclprofWarmup)
@@ -26,8 +24,7 @@ aclError AclProfilingRegisterDeviceCallback() {
   typedef aclError (*AclProfRegisterDeviceCallbackFunc)();
   static AclProfRegisterDeviceCallbackFunc func = nullptr;
   if (func == nullptr) {
-    func = (AclProfRegisterDeviceCallbackFunc)TORCH_NPU_GET_FUNC(
-        aclprofRegisterDeviceCallback);
+    func = (AclProfRegisterDeviceCallbackFunc)TORCH_NPU_GET_FUNC(aclprofRegisterDeviceCallback);
     if (func == nullptr) {
       return ACL_ERROR_PROF_MODULES_UNSUPPORTED;
     }
@@ -44,20 +41,12 @@ aclError AclProfilingWarmup(const aclprofConfig* profilerConfig) {
       return ACL_ERROR_PROF_MODULES_UNSUPPORTED;
     }
   }
-  TORCH_CHECK(
-      func,
-      "Failed to find function ",
-      "aclprofWarmup",
-      PROF_ERROR(ErrCode::NOT_FOUND));
+  TORCH_CHECK(func, "Failed to find function ", "aclprofWarmup", PROF_ERROR(ErrCode::NOT_FOUND));
   return func(profilerConfig);
 }
 
-aclError AclprofSetConfig(
-    aclprofConfigType configType,
-    const char* config,
-    size_t configLength) {
-  typedef aclError (*AclprofSetConfigFunc)(
-      aclprofConfigType, const char*, size_t);
+aclError AclprofSetConfig(aclprofConfigType configType, const char* config, size_t configLength) {
+  typedef aclError (*AclprofSetConfigFunc)(aclprofConfigType, const char*, size_t);
   static AclprofSetConfigFunc func = nullptr;
   if (func == nullptr) {
     func = (AclprofSetConfigFunc)TORCH_NPU_GET_FUNC(aclprofSetConfig);
@@ -65,25 +54,17 @@ aclError AclprofSetConfig(
       return ACL_ERROR_PROF_MODULES_UNSUPPORTED;
     }
   }
-  TORCH_CHECK(
-      func,
-      "Failed to find function ",
-      "aclprofSetConfig",
-      PROF_ERROR(ErrCode::NOT_FOUND));
+  TORCH_CHECK(func, "Failed to find function ", "aclprofSetConfig", PROF_ERROR(ErrCode::NOT_FOUND));
   return func(configType, config, configLength);
 }
 
-aclError AclprofGetSupportedFeatures(
-    size_t* featuresSize,
-    void** featuresData) {
+aclError AclprofGetSupportedFeatures(size_t* featuresSize, void** featuresData) {
   typedef aclError (*AclprofGetSupportedFeaturesFunc)(size_t*, void**);
   static AclprofGetSupportedFeaturesFunc func = nullptr;
   if (func == nullptr) {
-    func = (AclprofGetSupportedFeaturesFunc)TORCH_NPU_GET_FUNC(
-        aclprofGetSupportedFeaturesV2);
+    func = (AclprofGetSupportedFeaturesFunc)TORCH_NPU_GET_FUNC(aclprofGetSupportedFeaturesV2);
     if (func == nullptr) {
-      func = (AclprofGetSupportedFeaturesFunc)TORCH_NPU_GET_FUNC(
-          aclprofGetSupportedFeatures);
+      func = (AclprofGetSupportedFeaturesFunc)TORCH_NPU_GET_FUNC(aclprofGetSupportedFeatures);
     }
   }
 
@@ -93,10 +74,7 @@ aclError AclprofGetSupportedFeatures(
   return ACL_ERROR_PROF_MODULES_UNSUPPORTED;
 }
 
-aclError AclProfilingMarkEx(
-    const char* msg,
-    size_t msgLen,
-    aclrtStream stream) {
+aclError AclProfilingMarkEx(const char* msg, size_t msgLen, aclrtStream stream) {
   typedef aclError (*aclprofMarkExFunc)(const char*, size_t, aclrtStream);
   static aclprofMarkExFunc func = nullptr;
   if (func == nullptr) {
@@ -105,11 +83,7 @@ aclError AclProfilingMarkEx(
       return ACL_ERROR_PROF_MODULES_UNSUPPORTED;
     }
   }
-  TORCH_CHECK(
-      func,
-      "Failed to find function ",
-      "aclprofMarkEx",
-      PROF_ERROR(ErrCode::NOT_FOUND));
+  TORCH_CHECK(func, "Failed to find function ", "aclprofMarkEx", PROF_ERROR(ErrCode::NOT_FOUND));
   return func(msg, msgLen, stream);
 }
 

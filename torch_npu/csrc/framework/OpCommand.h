@@ -39,9 +39,7 @@ class TORCH_NPU_API OpCommand {
 
   OpCommand& SetCustomHandler(PROC_FUNC func);
 
-  OpCommand& DynamicInputReg(
-      DynamicInputRegFunc func,
-      DyNumAndIndex num_and_index);
+  OpCommand& DynamicInputReg(DynamicInputRegFunc func, DyNumAndIndex num_and_index);
 
   OpCommand& Expect(UnifiedResult unified_result);
 
@@ -56,10 +54,7 @@ class TORCH_NPU_API OpCommand {
       const string& realData = "");
 
   // Tensor Input which no need contiguous
-  OpCommand& InputWithoutContiguous(
-      const at::Tensor& input,
-      const string& descName = "",
-      const string& realData = "");
+  OpCommand& InputWithoutContiguous(const at::Tensor& input, const string& descName = "", const string& realData = "");
 
   // ArrayRef Input, usually hostmemory input, we will do h2d in launch kernel
   template <typename T>
@@ -105,9 +100,7 @@ class TORCH_NPU_API OpCommand {
   // A list of Tensor
   OpCommand& Inputs(const at::TensorList& inputs);
 
-  OpCommand& InputScalarToNPUTensor(
-      const c10::Scalar& input,
-      const at::ScalarType type);
+  OpCommand& InputScalarToNPUTensor(const c10::Scalar& input, const at::ScalarType type);
 
   // Output Tensor
   OpCommand& Output(
@@ -139,14 +132,8 @@ class TORCH_NPU_API OpCommand {
 
   OpCommand& Sync();
 
-  static void RunOpApi(
-      const string& op_name,
-      PROC_FUNC func,
-      bool sync = false);
-  static void RunOpApiV2(
-      const string& op_name,
-      const PROC_FUNC& func,
-      bool sync = false);
+  static void RunOpApi(const string& op_name, PROC_FUNC func, bool sync = false);
+  static void RunOpApiV2(const string& op_name, const PROC_FUNC& func, bool sync = false);
   static void RunOpApiV3(
       const string& op_name,
       const PROC_FUNC& func,
@@ -190,12 +177,9 @@ class TORCH_NPU_API OpCommand {
 
   bool ScalarIsInLimits(const c10::Scalar& scalar, at::ScalarType type);
 
-  at::Tensor& CreateScalarTensor(
-      const c10::Scalar& scalar,
-      at::ScalarType type);
+  at::Tensor& CreateScalarTensor(const c10::Scalar& scalar, at::ScalarType type);
 
-  c10::SmallVector<at::Tensor, N>
-      storage; // tensor's life cycle should maintain when Run() is called
+  c10::SmallVector<at::Tensor, N> storage; // tensor's life cycle should maintain when Run() is called
   OpCommandImpls* aclCmds = nullptr; // owned
   OpCommandImpl* aclCmd = nullptr;
 

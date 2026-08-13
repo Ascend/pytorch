@@ -27,10 +27,7 @@ static inline void npuCheck(aclError result, const char* file, int line) {
 #define TORCH_NPU_CHECK(result) npuCheck(result, __FILE__, __LINE__);
 
 struct NPUMethods : public ProfilerStubs {
-  void record(
-      c10::DeviceIndex* device,
-      ProfilerVoidEventStub* event,
-      int64_t* cpu_ns) const override {
+  void record(c10::DeviceIndex* device, ProfilerVoidEventStub* event, int64_t* cpu_ns) const override {
     static int local_device = -1;
     static bool init_flag = false;
     if (!init_flag) {
@@ -41,11 +38,8 @@ struct NPUMethods : public ProfilerStubs {
       *device = local_device;
     }
     aclrtEvent npu_event = nullptr;
-    TORCH_NPU_CHECK(c10_npu::acl::AclrtCreateEventWithFlag(
-        &npu_event, ACL_EVENT_TIME_LINE));
-    *event = std::shared_ptr<void>(npu_event, [](aclrtEvent ptr) {
-      TORCH_NPU_CHECK(aclrtDestroyEvent(ptr));
-    });
+    TORCH_NPU_CHECK(c10_npu::acl::AclrtCreateEventWithFlag(&npu_event, ACL_EVENT_TIME_LINE));
+    *event = std::shared_ptr<void>(npu_event, [](aclrtEvent ptr) { TORCH_NPU_CHECK(aclrtDestroyEvent(ptr)); });
     static auto stream = c10_npu::getCurrentNPUStream();
     if (cpu_ns) {
       *cpu_ns = c10::getTime();
@@ -54,17 +48,13 @@ struct NPUMethods : public ProfilerStubs {
     ASCEND_LOGI("Event: aclrtRecordEvent is successfully executed.");
   }
 
-  float elapsed(
-      const ProfilerVoidEventStub* event1_,
-      const ProfilerVoidEventStub* event2_) const override {
+  float elapsed(const ProfilerVoidEventStub* event1_, const ProfilerVoidEventStub* event2_) const override {
     auto event1 = event1_->get();
     auto event2 = event2_->get();
     TORCH_NPU_CHECK(aclrtSynchronizeEvent(event1));
-    ASCEND_LOGI(
-        "Event: aclrtSynchronizeEvent is successfully executed for event1.");
+    ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed for event1.");
     TORCH_NPU_CHECK(aclrtSynchronizeEvent(event2));
-    ASCEND_LOGI(
-        "Event: aclrtSynchronizeEvent is successfully executed for event2.");
+    ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed for event2.");
     float ms;
     TORCH_NPU_CHECK(aclrtEventElapsedTime(&ms, event1, event2));
     return ms * 1000.0;

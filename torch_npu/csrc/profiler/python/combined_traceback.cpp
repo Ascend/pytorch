@@ -41,8 +41,7 @@ struct PythonTraceback : public CapturedTraceback::Python {
     PyFrameObject* f = PyEval_GetFrame();
     Py_XINCREF(f);
     while (f) {
-      frames.emplace_back(
-          CapturedTraceback::PyFrame{PyFrame_GetCode(f), PyFrame_GetLasti(f)});
+      frames.emplace_back(CapturedTraceback::PyFrame{PyFrame_GetCode(f), PyFrame_GetLasti(f)});
       auto f_back = PyFrame_GetBack(f);
       Py_XDECREF(f);
       f = f_back;
@@ -54,10 +53,7 @@ struct PythonTraceback : public CapturedTraceback::Python {
     to_free_frames.insert(to_free_frames.end(), frames.begin(), frames.end());
   }
   using void_visitproc = int (*)(void* self, void* arg);
-  int traverse(
-      std::vector<CapturedTraceback::PyFrame>& frames,
-      void_visitproc visit,
-      void* arg) override {
+  int traverse(std::vector<CapturedTraceback::PyFrame>& frames, void_visitproc visit, void* arg) override {
     for (auto& f : frames) {
       Py_VISIT(f.code);
     }
@@ -69,9 +65,8 @@ struct PythonTraceback : public CapturedTraceback::Python {
     }
     return 0;
   }
-  void appendSymbolized(
-      const std::vector<CapturedTraceback::PyFrame>& to_symbolize,
-      SymbolizedTracebacks& result) override {
+  void appendSymbolized(const std::vector<CapturedTraceback::PyFrame>& to_symbolize, SymbolizedTracebacks& result)
+      override {
     py::gil_scoped_acquire acquire;
     py::str line_s = "line";
     py::str name_s = "name";
@@ -82,9 +77,7 @@ struct PythonTraceback : public CapturedTraceback::Python {
     if (py::hasattr(torch, "_inductor")) {
       py::object inductor = torch.attr("_inductor");
       if (py::hasattr(inductor, "codecache")) {
-        stack_frames_for_code = inductor.attr("codecache")
-                                    .attr("PyCodeCache")
-                                    .attr("stack_frames_for_code");
+        stack_frames_for_code = inductor.attr("codecache").attr("PyCodeCache").attr("stack_frames_for_code");
       }
     }
     for (const auto& f : to_symbolize) {
@@ -94,10 +87,8 @@ struct PythonTraceback : public CapturedTraceback::Python {
       auto lineno = PyCode_Addr2Line(f_code, f.lasti);
       result.tracebacks.emplace_back();
       result.tracebacks.back().push_back(result.all_frames.size());
-      result.all_frames.emplace_back(torch::unwind::Frame{
-          py::cast<std::string>(filename),
-          py::cast<std::string>(funcname),
-          (uint64_t)lineno});
+      result.all_frames.emplace_back(
+          torch::unwind::Frame{py::cast<std::string>(filename), py::cast<std::string>(funcname), (uint64_t)lineno});
       // find all the additional frames associated with inductor generated
       // code
       if (stack_frames_for_code.ptr()) {
@@ -106,9 +97,7 @@ struct PythonTraceback : public CapturedTraceback::Python {
           for (py::handle h : extra) {
             result.tracebacks.back().push_back(result.all_frames.size());
             result.all_frames.emplace_back(torch::unwind::Frame{
-                py::cast<std::string>(h[filename_s]),
-                py::cast<std::string>(h[name_s]),
-                py::cast<uint64_t>(h[line_s])});
+                py::cast<std::string>(h[filename_s]), py::cast<std::string>(h[name_s]), py::cast<uint64_t>(h[line_s])});
           }
         }
       }
@@ -118,8 +107,7 @@ struct PythonTraceback : public CapturedTraceback::Python {
 
 } // namespace
 
-std::vector<py::object> py_symbolize(
-    std::vector<CapturedTraceback*>& to_symbolize) {
+std::vector<py::object> py_symbolize(std::vector<CapturedTraceback*>& to_symbolize) {
   // we dedup repeated to_symbolize objects to prevent
   // creating a bunch of duplicated frame objects
   std::unordered_map<CapturedTraceback*, uint64_t> cached_frames;

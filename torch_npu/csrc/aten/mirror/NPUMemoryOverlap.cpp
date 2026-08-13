@@ -44,9 +44,7 @@ MemOverlapStatus get_overlap_status(const at::Tensor& a, const at::Tensor& b) {
   return get_overlap_status(a.unsafeGetTensorImpl(), b.unsafeGetTensorImpl());
 }
 
-MemOverlapStatus get_overlap_status(
-    const at::TensorImpl* a,
-    const at::TensorImpl* b) {
+MemOverlapStatus get_overlap_status(const at::TensorImpl* a, const at::TensorImpl* b) {
   if (a == b) {
     return MemOverlapStatus::FULL;
   }
@@ -58,11 +56,9 @@ MemOverlapStatus get_overlap_status(
   }
   if (a->storage().data() == b->storage().data()) {
     const auto a_begin = static_cast<const char*>(a->data());
-    const auto a_end =
-        a_begin + a->numel() * static_cast<int64_t>(a->itemsize());
+    const auto a_end = a_begin + a->numel() * static_cast<int64_t>(a->itemsize());
     const auto b_begin = static_cast<const char*>(b->data());
-    const auto b_end =
-        b_begin + b->numel() * static_cast<int64_t>(b->itemsize());
+    const auto b_end = b_begin + b->numel() * static_cast<int64_t>(b->itemsize());
     if (a_begin == b_begin && a_end == b_end) {
       return MemOverlapStatus::FULL;
     }
@@ -84,8 +80,7 @@ void assert_no_overlap(const at::Tensor& a, const at::Tensor& b) {
 void assert_no_overlap(at::TensorImpl* a, at::TensorImpl* b) {
   const auto overlap_status = get_overlap_status(a, b);
   TORCH_CHECK(
-      overlap_status != MemOverlapStatus::PARTIAL &&
-          overlap_status != MemOverlapStatus::FULL,
+      overlap_status != MemOverlapStatus::PARTIAL && overlap_status != MemOverlapStatus::FULL,
       "unsupported operation: some elements of the input tensor and "
       "the written-to tensor refer to a single memory location. "
       "Please clone() the tensor before performing the operation.",

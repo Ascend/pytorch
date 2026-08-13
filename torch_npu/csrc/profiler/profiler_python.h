@@ -12,10 +12,7 @@ enum class TraceTag { kPy_Call = 0, kPy_Return, kC_Call, kC_Return };
 struct TraceEvent {
   TraceEvent() = default;
   TraceEvent(uint64_t tid, uint64_t timestamp, size_t key, TraceTag tag)
-      : tid_(tid),
-        ts_(timestamp),
-        key_(static_cast<uint64_t>(key)),
-        tag_(static_cast<uint8_t>(tag)) {}
+      : tid_(tid), ts_(timestamp), key_(static_cast<uint64_t>(key)), tag_(static_cast<uint8_t>(tag)) {}
 
   TraceEvent(const TraceEvent&) = default;
   TraceEvent& operator=(const TraceEvent&) = default;

@@ -11,13 +11,7 @@ int64_t ShapeOpStrategyBase::FindClosestGear(
     const std::vector<int64_t>& gears,
     int64_t min_gear,
     int64_t max_gear) {
-  TORCH_CHECK(
-      max_gear >= cur_size,
-      "Input size (",
-      cur_size,
-      ") exceeds the max gear (",
-      max_gear,
-      ").");
+  TORCH_CHECK(max_gear >= cur_size, "Input size (", cur_size, ") exceeds the max gear (", max_gear, ").");
   if (min_gear >= cur_size) {
     return min_gear;
   }
@@ -38,11 +32,7 @@ int64_t ShapeOpStrategyBase::FindClosestGear(
   return gears[left];
 }
 
-uint64_t ShapeOpStrategyBase::EncodeTransformStep(
-    int op,
-    int index,
-    int64_t original_size,
-    int dimension) {
+uint64_t ShapeOpStrategyBase::EncodeTransformStep(int op, int index, int64_t original_size, int dimension) {
   /*
    ◦ Using a 64-bit integer to represent a specific transformation operation
    ◦ op: padding or split
@@ -52,34 +42,21 @@ uint64_t ShapeOpStrategyBase::EncodeTransformStep(
    is: dimension(highest 8 bits) | original_size(next 36 bits) | index(next 16
    bits) | op(lowest 4 bits)
    */
+  TORCH_CHECK(op >= 0 && op <= TORCH_NPU_OP_MASK, "op should be in range [0, ", TORCH_NPU_OP_MASK, "]");
   TORCH_CHECK(
-      op >= 0 && op <= TORCH_NPU_OP_MASK,
-      "op should be in range [0, ",
-      TORCH_NPU_OP_MASK,
-      "]");
-  TORCH_CHECK(
-      index >= 0 && index <= TORCH_NPU_INDEX_MASK,
-      "tensor index should be in range [0, ",
-      TORCH_NPU_INDEX_MASK,
-      "]");
+      index >= 0 && index <= TORCH_NPU_INDEX_MASK, "tensor index should be in range [0, ", TORCH_NPU_INDEX_MASK, "]");
   TORCH_CHECK(
       original_size >= 0 && original_size <= TORCH_NPU_SIZE_MASK,
       "tensor size should be in range [0, ",
       TORCH_NPU_SIZE_MASK,
       "]");
   TORCH_CHECK(
-      dimension >= 0 && dimension <= TORCH_NPU_DIM_MASK,
-      "dimension should be in range [0, ",
-      TORCH_NPU_DIM_MASK,
-      "]");
+      dimension >= 0 && dimension <= TORCH_NPU_DIM_MASK, "dimension should be in range [0, ", TORCH_NPU_DIM_MASK, "]");
   uint64_t operation = 0;
   operation |= static_cast<uint64_t>(op) & TORCH_NPU_OP_MASK;
-  operation |= (static_cast<uint64_t>(index) & TORCH_NPU_INDEX_MASK)
-      << INDEX_SHIFT_AMOUNT;
-  operation |= (static_cast<uint64_t>(original_size) & TORCH_NPU_SIZE_MASK)
-      << SIZE_SHIFT_AMOUNT;
-  operation |= (static_cast<uint64_t>(dimension) & TORCH_NPU_DIM_MASK)
-      << DIM_SHIFT_AMOUNT;
+  operation |= (static_cast<uint64_t>(index) & TORCH_NPU_INDEX_MASK) << INDEX_SHIFT_AMOUNT;
+  operation |= (static_cast<uint64_t>(original_size) & TORCH_NPU_SIZE_MASK) << SIZE_SHIFT_AMOUNT;
+  operation |= (static_cast<uint64_t>(dimension) & TORCH_NPU_DIM_MASK) << DIM_SHIFT_AMOUNT;
   return operation;
 }
 
@@ -90,12 +67,9 @@ void ShapeOpStrategyBase::DecodeTransformStep(
     int64_t& original_size,
     int& dimension) {
   op = static_cast<int>(operation & TORCH_NPU_OP_MASK);
-  index = static_cast<int>(
-      (operation >> INDEX_SHIFT_AMOUNT) & TORCH_NPU_INDEX_MASK);
-  original_size = static_cast<int64_t>(
-      (operation >> SIZE_SHIFT_AMOUNT) & TORCH_NPU_SIZE_MASK);
-  dimension =
-      static_cast<int>((operation >> DIM_SHIFT_AMOUNT) & TORCH_NPU_DIM_MASK);
+  index = static_cast<int>((operation >> INDEX_SHIFT_AMOUNT) & TORCH_NPU_INDEX_MASK);
+  original_size = static_cast<int64_t>((operation >> SIZE_SHIFT_AMOUNT) & TORCH_NPU_SIZE_MASK);
+  dimension = static_cast<int>((operation >> DIM_SHIFT_AMOUNT) & TORCH_NPU_DIM_MASK);
 }
 
 void BSShapeOpStrategy::InitializeCore(
@@ -113,40 +87,17 @@ void BSShapeOpStrategy::InitializeCore(
       ").");
 
   std::sort(gears.begin(), gears.end());
-  TORCH_CHECK(
-      gears.front() >= MIN_BS_GEAR,
-      "Minimum batch size (",
-      gears.front(),
-      ") must be >= ",
-      MIN_BS_GEAR,
-      ".");
-  TORCH_CHECK(
-      gears.back() <= MAX_BS_GEAR,
-      "Maximum batch size (",
-      gears.back(),
-      ") must be <= ",
-      MAX_BS_GEAR,
-      ".");
-  TORCH_CHECK(
-      std::adjacent_find(gears.begin(), gears.end()) == gears.end(),
-      "Batch size gears must be unique.")
+  TORCH_CHECK(gears.front() >= MIN_BS_GEAR, "Minimum batch size (", gears.front(), ") must be >= ", MIN_BS_GEAR, ".");
+  TORCH_CHECK(gears.back() <= MAX_BS_GEAR, "Maximum batch size (", gears.back(), ") must be <= ", MAX_BS_GEAR, ".");
+  TORCH_CHECK(std::adjacent_find(gears.begin(), gears.end()) == gears.end(), "Batch size gears must be unique.")
 
-  TORCH_CHECK(
-      dimension >= 0, "Dimension must be non-negative (got ", dimension, ").");
+  TORCH_CHECK(dimension >= 0, "Dimension must be non-negative (got ", dimension, ").");
 
-  TORCH_CHECK(
-      indices.size() > 0,
-      "At least one tensor index must be provided for transformation.");
+  TORCH_CHECK(indices.size() > 0, "At least one tensor index must be provided for transformation.");
 
   std::sort(indices.begin(), indices.end());
-  TORCH_CHECK(
-      indices.front() >= 0,
-      "Tensor index must be non-negative (found negative index: ",
-      indices.front(),
-      ").");
-  TORCH_CHECK(
-      std::adjacent_find(indices.begin(), indices.end()) == indices.end(),
-      "Tensor indices must be unique.")
+  TORCH_CHECK(indices.front() >= 0, "Tensor index must be non-negative (found negative index: ", indices.front(), ").");
+  TORCH_CHECK(std::adjacent_find(indices.begin(), indices.end()) == indices.end(), "Tensor indices must be unique.")
 
   m_dimension = dimension;
   m_indices = indices;
@@ -172,51 +123,28 @@ void SeqShapeOpStrategy::InitializeCore(
 
   std::sort(gears.begin(), gears.end());
   TORCH_CHECK(
-      gears.front() >= MIN_SEQ_GEAR,
-      "Minimum sequence length (",
-      gears.front(),
-      ") must be >= ",
-      MIN_SEQ_GEAR,
-      ".");
+      gears.front() >= MIN_SEQ_GEAR, "Minimum sequence length (", gears.front(), ") must be >= ", MIN_SEQ_GEAR, ".");
   TORCH_CHECK(
-      gears.back() <= MAX_SEQ_GEAR,
-      "Maximum sequence length (",
-      gears.back(),
-      ") must be <= ",
-      MAX_SEQ_GEAR,
-      ".");
-  TORCH_CHECK(
-      std::adjacent_find(gears.begin(), gears.end()) == gears.end(),
-      "Sequence length gears must be unique.")
+      gears.back() <= MAX_SEQ_GEAR, "Maximum sequence length (", gears.back(), ") must be <= ", MAX_SEQ_GEAR, ".");
+  TORCH_CHECK(std::adjacent_find(gears.begin(), gears.end()) == gears.end(), "Sequence length gears must be unique.")
 
   TORCH_CHECK(
-      indices.size() > 0 && dimensions.size() > 0,
-      "At least one tensor index must be provided for transformation.");
+      indices.size() > 0 && dimensions.size() > 0, "At least one tensor index must be provided for transformation.");
   TORCH_CHECK(
-      indices.size() == dimensions.size(),
-      "The length of indices must be consistent with the length of dimensions.");
+      indices.size() == dimensions.size(), "The length of indices must be consistent with the length of dimensions.");
   for (auto dimension : dimensions) {
-    TORCH_CHECK(
-        dimension >= 0,
-        "Dimension must be non-negative (got ",
-        dimension,
-        ").");
+    TORCH_CHECK(dimension >= 0, "Dimension must be non-negative (got ", dimension, ").");
   }
 
   std::vector<size_t> tmp_indices(indices.size());
   std::iota(tmp_indices.begin(), tmp_indices.end(), 0);
-  std::sort(
-      tmp_indices.begin(), tmp_indices.end(), [&indices](size_t i, size_t j) {
-        return indices[i] < indices[j];
-      });
+  std::sort(tmp_indices.begin(), tmp_indices.end(), [&indices](size_t i, size_t j) { return indices[i] < indices[j]; });
   TORCH_CHECK(
       indices[tmp_indices.front()] >= 0,
       "Tensor index must be non-negative (found negative index: ",
       indices[tmp_indices.front()],
       ").");
-  TORCH_CHECK(
-      std::adjacent_find(indices.begin(), indices.end()) == indices.end(),
-      "Tensor indices must be unique.")
+  TORCH_CHECK(std::adjacent_find(indices.begin(), indices.end()) == indices.end(), "Tensor indices must be unique.")
 
   for (auto i : tmp_indices) {
     m_indices.push_back(indices[i]);
@@ -268,9 +196,7 @@ void DefaultBSShapeOp::TransformValidate(std::vector<at::Tensor>& inputs) {
   }
 }
 
-void DefaultBSShapeOp::Transform(
-    std::vector<at::Tensor>& inputs,
-    std::vector<std::vector<at::Tensor>>& outputs) {
+void DefaultBSShapeOp::Transform(std::vector<at::Tensor>& inputs, std::vector<std::vector<at::Tensor>>& outputs) {
   TransformValidate(inputs);
   std::vector<std::vector<at::Tensor>> mid_results;
   bool first_operation = true;
@@ -280,8 +206,7 @@ void DefaultBSShapeOp::Transform(
     CleanRecords();
     first_operation = false;
     for (int i = 0; i < m_indices.size(); i++) {
-      mid_results.push_back(
-          torch::split(inputs[m_indices[i]], m_max_gear, m_dimension));
+      mid_results.push_back(torch::split(inputs[m_indices[i]], m_max_gear, m_dimension));
     }
     uint64_t ops = EncodeTransformStep(1, 0, ori_dim_size, m_dimension);
     m_records.push_back(ops);
@@ -297,10 +222,8 @@ void DefaultBSShapeOp::Transform(
   }
 
   int last_tensor_index = mid_results[0].size() - 1;
-  int64_t last_tensor_size =
-      mid_results[0][last_tensor_index].size(m_dimension);
-  int64_t target_gear =
-      FindClosestGear(last_tensor_size, m_gears, m_min_gear, m_max_gear);
+  int64_t last_tensor_size = mid_results[0][last_tensor_index].size(m_dimension);
+  int64_t target_gear = FindClosestGear(last_tensor_size, m_gears, m_min_gear, m_max_gear);
   if (target_gear != last_tensor_size) {
     // pad here
     if (first_operation) {
@@ -310,23 +233,19 @@ void DefaultBSShapeOp::Transform(
     for (int i = 0; i < mid_results.size(); i++) {
       int total_dims = mid_results[i][last_tensor_index].dim();
       std::vector<int64_t> padding(total_dims * PADDING_VALUES_PER_DIM, 0);
-      padding[padding.size() - 1 - m_dimension * PADDING_VALUES_PER_DIM] =
-          target_gear - last_tensor_size;
-      mid_results[i][last_tensor_index] = F::pad(
-          mid_results[i][last_tensor_index],
-          F::PadFuncOptions(padding).mode(torch::kConstant).value(m_value));
+      padding[padding.size() - 1 - m_dimension * PADDING_VALUES_PER_DIM] = target_gear - last_tensor_size;
+      mid_results[i][last_tensor_index] =
+          F::pad(mid_results[i][last_tensor_index], F::PadFuncOptions(padding).mode(torch::kConstant).value(m_value));
     }
 
-    uint64_t ops = EncodeTransformStep(
-        0, last_tensor_index, last_tensor_size, m_dimension);
+    uint64_t ops = EncodeTransformStep(0, last_tensor_index, last_tensor_size, m_dimension);
     m_records.push_back(ops);
   }
 
   GenerateExpectedRes(inputs, mid_results, outputs);
 }
 
-static std::vector<std::vector<at::Tensor>> Transpose2dVector(
-    const std::vector<std::vector<at::Tensor>>& src) {
+static std::vector<std::vector<at::Tensor>> Transpose2dVector(const std::vector<std::vector<at::Tensor>>& src) {
   size_t rows = src.size();
   size_t cols = src[0].size();
   std::vector<std::vector<at::Tensor>> dst(cols, std::vector<at::Tensor>(rows));
@@ -339,8 +258,7 @@ static std::vector<std::vector<at::Tensor>> Transpose2dVector(
   return dst;
 }
 
-void DefaultBSShapeOp::RecoverValidate(
-    std::vector<std::vector<at::Tensor>>& inputs) {
+void DefaultBSShapeOp::RecoverValidate(std::vector<std::vector<at::Tensor>>& inputs) {
   if (m_records.empty()) {
     TORCH_CHECK(inputs.size() == 1, "No transformation record found");
   }
@@ -353,9 +271,7 @@ res2_m...resn_m}}
 • output: {res1, res2...resn}
 
 */
-void DefaultBSShapeOp::Recover(
-    std::vector<std::vector<at::Tensor>>& inputs,
-    std::vector<at::Tensor>& outputs) {
+void DefaultBSShapeOp::Recover(std::vector<std::vector<at::Tensor>>& inputs, std::vector<at::Tensor>& outputs) {
   if (inputs.empty() || inputs.front().empty()) {
     return;
   }
@@ -419,9 +335,7 @@ void DefaultSeqShapeOp::TransformValidate(std::vector<at::Tensor>& inputs) {
   }
 }
 
-void DefaultSeqShapeOp::Transform(
-    std::vector<at::Tensor>& inputs,
-    std::vector<at::Tensor>& outputs) {
+void DefaultSeqShapeOp::Transform(std::vector<at::Tensor>& inputs, std::vector<at::Tensor>& outputs) {
   TransformValidate(inputs);
   size_t pos = 0;
   for (size_t i = 0; i < inputs.size(); i++) {
@@ -431,8 +345,7 @@ void DefaultSeqShapeOp::Transform(
     }
 
     int64_t sequence_length = inputs[i].size(m_dimensions[pos]);
-    int64_t target_gear =
-        FindClosestGear(sequence_length, m_gears, m_min_gear, m_max_gear);
+    int64_t target_gear = FindClosestGear(sequence_length, m_gears, m_min_gear, m_max_gear);
     if (target_gear == sequence_length) {
       outputs.push_back(inputs[i]);
       pos++;
@@ -442,18 +355,14 @@ void DefaultSeqShapeOp::Transform(
     // pad here
     int total_dims = inputs[i].dim();
     std::vector<int64_t> padding(total_dims * PADDING_VALUES_PER_DIM, 0);
-    padding[padding.size() - 1 - m_dimensions[pos] * PADDING_VALUES_PER_DIM] =
-        target_gear - sequence_length;
-    outputs.push_back(F::pad(
-        inputs[i],
-        F::PadFuncOptions(padding).mode(torch::kConstant).value(m_value)));
+    padding[padding.size() - 1 - m_dimensions[pos] * PADDING_VALUES_PER_DIM] = target_gear - sequence_length;
+    outputs.push_back(F::pad(inputs[i], F::PadFuncOptions(padding).mode(torch::kConstant).value(m_value)));
 
     pos++;
   }
 }
 
-void NPUShapeHandling::RegisterBatchSizeStrategy(
-    std::shared_ptr<BSShapeOpStrategy> custom_strategy) {
+void NPUShapeHandling::RegisterBatchSizeStrategy(std::shared_ptr<BSShapeOpStrategy> custom_strategy) {
   TORCH_CHECK(custom_strategy != nullptr, "Custom strategy cannot be null.");
   if (initialized && handle_batchsize && m_bs_strategy) {
     *custom_strategy = *m_bs_strategy;
@@ -461,8 +370,7 @@ void NPUShapeHandling::RegisterBatchSizeStrategy(
   m_bs_strategy = std::move(custom_strategy);
 }
 
-void NPUShapeHandling::RegisterSequenceStrategy(
-    std::shared_ptr<SeqShapeOpStrategy> custom_strategy) {
+void NPUShapeHandling::RegisterSequenceStrategy(std::shared_ptr<SeqShapeOpStrategy> custom_strategy) {
   TORCH_CHECK(custom_strategy != nullptr, "Custom strategy cannot be null.");
   if (initialized && handle_sequence && m_seq_strategy) {
     *custom_strategy = *m_seq_strategy;
@@ -510,9 +418,7 @@ void NPUShapeHandling::Initialize(
   initialized = true;
 }
 
-void NPUShapeHandling::Transform(
-    std::vector<at::Tensor>& inputs,
-    std::vector<std::vector<at::Tensor>>& outputs) {
+void NPUShapeHandling::Transform(std::vector<at::Tensor>& inputs, std::vector<std::vector<at::Tensor>>& outputs) {
   TORCH_CHECK(initialized, "Shape handling is not initialized.");
   std::vector<at::Tensor> seq_output;
   if (handle_sequence && handle_batchsize) {
@@ -526,9 +432,7 @@ void NPUShapeHandling::Transform(
   }
 }
 
-void NPUShapeHandling::Recover(
-    std::vector<std::vector<at::Tensor>>& inputs,
-    std::vector<at::Tensor>& outputs) {
+void NPUShapeHandling::Recover(std::vector<std::vector<at::Tensor>>& inputs, std::vector<at::Tensor>& outputs) {
   TORCH_CHECK(initialized, "Shape handling is not initialized.");
   if (handle_batchsize) {
     m_bs_strategy->Recover(inputs, outputs);
@@ -544,11 +448,8 @@ void NPUShapeHandling::GenerateGears(
     int64_t max_size,
     ShapePolicy policy,
     std::vector<int64_t>& gears) {
-  TORCH_CHECK(
-      min_size <= max_size,
-      "The min_size cannot be greater than the max_size.");
-  TORCH_CHECK(
-      min_size >= COMMON_MIN_SIZE, "The min_size should be a positive number.");
+  TORCH_CHECK(min_size <= max_size, "The min_size cannot be greater than the max_size.");
+  TORCH_CHECK(min_size >= COMMON_MIN_SIZE, "The min_size should be a positive number.");
   TORCH_CHECK(
       policy == ShapePolicy::TIMES,
       "Currently, only the TIMES policy supports passing min_size and max_size parameters.");
@@ -558,8 +459,7 @@ void NPUShapeHandling::GenerateGears(
     return;
   }
 
-  int exp =
-      static_cast<int>(std::ceil(std::log2(static_cast<double>(min_size))));
+  int exp = static_cast<int>(std::ceil(std::log2(static_cast<double>(min_size))));
   int64_t gear = static_cast<int64_t>(1) << exp;
 
   if (gear == min_size) {

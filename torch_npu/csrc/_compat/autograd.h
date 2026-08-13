@@ -38,8 +38,7 @@ using GradFnPtr = std::shared_ptr<T>;
 
 template <typename Op, typename... Args>
 inline GradFnPtr<Op> make_grad_fn(Args&&... args) {
-  return std::shared_ptr<Op>(
-      new Op(std::forward<Args>(args)...), torch::autograd::deleteNode);
+  return std::shared_ptr<Op>(new Op(std::forward<Args>(args)...), torch::autograd::deleteNode);
 }
 
 #endif
