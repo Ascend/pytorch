@@ -167,7 +167,7 @@ void NPUGraph::capture_begin(
     aclmdlRICaptureMode capture_mode,
     bool report_shape) {
   NPUGRAPH_LOGD("NPUGRAPH Capture begin");
-  static const auto _task_queue_enable =
+  const auto _task_queue_enable =
       c10_npu::option::OptionsManager::GetTaskQueueEnable();
   TORCH_CHECK(
       _task_queue_enable != 2,

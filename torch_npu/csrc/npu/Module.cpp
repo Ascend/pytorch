@@ -2115,7 +2115,7 @@ PyObject* THNPModule_aclnn_reselect_static_kernel(
       ret,
       PTA_ERROR(ErrCode::INTERNAL));
 
-  static const auto task_queue_enable =
+  const auto task_queue_enable =
       c10_npu::option::OptionsManager::GetTaskQueueEnable();
   if (task_queue_enable == 2) {
     auto acl_call = []() -> int {
@@ -2171,7 +2171,7 @@ PyObject* THNPModule_aclnn_reselect_static_kernel_with_path(
       ret,
       PTA_ERROR(ErrCode::INTERNAL));
 
-  static const auto task_queue_enable =
+  const auto task_queue_enable =
       c10_npu::option::OptionsManager::GetTaskQueueEnable();
   if (task_queue_enable == 2) {
     auto acl_call = [resolved_path]() -> int {
