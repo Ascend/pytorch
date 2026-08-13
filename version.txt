@@ -7,5 +7,6 @@
 # read this file to determine the package version. Each entry's base
 # major.minor.patch maps to the matching PyTorch line, and a PEP 440
 # post-release suffix (e.g. .post1) denotes a follow-up build on that line.
+2.15.0
 2.14.0
 2.13.0
