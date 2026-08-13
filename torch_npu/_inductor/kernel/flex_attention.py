@@ -300,11 +300,15 @@ def _precompute_compact_sparse_mask_metadata(block_mask: Any) -> dict[str, Any]:
     if q_counts_cpu.numel() == 0:
         raise ValueError("kv_num_blocks is empty")
     total_normal_blocks = int(q_counts_cpu.sum().item())
-    if total_normal_blocks <= 0:
-        raise ValueError("compact sparse mask requires at least one normal block")
     max_normal_blocks = int(q_counts_cpu.max().item())
-    if max_normal_blocks <= 0:
-        raise ValueError("compact sparse mask max normal blocks must be positive")
+    # NOTE: total_normal_blocks == 0 (no sparse/partial block at all, e.g. every
+    # q-block is either fully masked or fully attended) is a VALID state, not an
+    # error. In that case max_normal_blocks is also 0, so local_blk_ids below is
+    # an empty arange, flat_to_row / flat_to_blk come out empty, and q_offsets is
+    # all-zeros -- a well-formed "empty packed sparse mask". Returning this lets
+    # the mask-out template still be selected (it never dereferences SPARSE_MASK
+    # when kv_num_blocks == 0 per q-block; the sparse-block loop bound is 0), so
+    # we no longer raise here. Negative values are impossible (counts are >= 0).
 
     segment_totals = torch.sum(q_counts_by_segment, dim=1, dtype=torch.int32)
     segment_bases = torch.empty_like(segment_totals)
@@ -344,20 +348,33 @@ def _wrap_mask_mod_with_compact_sparse_mask_metadata(mask_mod, metadata: dict[st
     @wraps(mask_mod)
     def wrapped_mask_mod(b, h, q_idx, kv_idx):
         result = mask_mod(b, h, q_idx, kv_idx)
+        # The three metadata tensors are referenced here purely so FlexAttention
+        # tracing captures them as mask_mod_other_buffers (they carry no mask
+        # semantics; `sentinel` is always False because counts/offsets are >= 0).
+        # When there is no sparse/partial block, flat_to_row / flat_to_blk are
+        # EMPTY (total_normal_blocks == 0), so indexing them with [idx] would be
+        # out of bounds. Reference empty buffers via .sum() (== 0, still captured)
+        # while keeping the exact original [idx] gather for the non-empty case so
+        # existing sparse masks are unchanged.
+        def _ref(buf, idx):
+            if buf.numel() == 0:
+                return buf.sum().to(torch.float32)
+            return buf[idx].to(torch.float32)
+
         if isinstance(q_idx, torch.Tensor):
             zero_index = torch.zeros_like(q_idx, dtype=torch.int64)
             zero_value = torch.zeros_like(q_idx, dtype=torch.float32)
             sentinel = (
-                q_offsets[zero_index].to(torch.float32)
-                + flat_to_row[zero_index].to(torch.float32)
-                + flat_to_blk[zero_index].to(torch.float32)
+                _ref(q_offsets, zero_index)
+                + _ref(flat_to_row, zero_index)
+                + _ref(flat_to_blk, zero_index)
             ) < zero_value
         else:
             zero_value = torch.tensor(0.0, dtype=torch.float32, device=q_offsets.device)
             sentinel = (
-                q_offsets[0].to(torch.float32)
-                + flat_to_row[0].to(torch.float32)
-                + flat_to_blk[0].to(torch.float32)
+                _ref(q_offsets, 0)
+                + _ref(flat_to_row, 0)
+                + _ref(flat_to_blk, 0)
             ) < zero_value
         if isinstance(result, torch.Tensor):
             return torch.logical_or(result, sentinel)
@@ -461,26 +478,6 @@ def _is_score_mod_identity_graph(fw_graph) -> bool:
     if not placeholders:
         return False
     return _get_graph_output_node(graph) is placeholders[0]
-
-
-def _is_grad_score_mod_identity_graph(joint_graph) -> bool:
-    graph = joint_graph.graph_module.graph
-    placeholders = [node for node in graph.nodes if node.op == "placeholder"]
-    if len(placeholders) < 6:
-        return False
-    grad_score_ph = placeholders[5]
-    output_arg = _get_graph_output_node(graph)
-    if output_arg is grad_score_ph:
-        return True
-
-    for node in reversed(graph.nodes):
-        if node.op != "output":
-            continue
-        raw_output = node.args[0]
-        if isinstance(raw_output, (tuple, list)) and raw_output:
-            return raw_output[0] is grad_score_ph
-        return False
-    return False
 
 
 def _is_npu_device(device: Any) -> bool:
@@ -1177,6 +1174,12 @@ def _register_npu_inductor_flex_attention():
         sparse_mask_layout = None
         sparse_mask_buffer = None
         sparse_mask_strides = None
+        # True only when there is at least one partial/sparse block to pack. When
+        # total_normal_blocks == 0 the packed SPARSE_MASK is empty and is never
+        # dereferenced by the main mask-out kernel (its sparse-block loop bound is
+        # 0), so we must skip the compact-generation kernel entirely -- launching
+        # it with 0 entries crashes on device.
+        has_sparse_blocks = False
         if flexattention_mask_out:
             assert compact_q_offsets is not None
             assert compact_flat_to_row is not None
@@ -1184,6 +1187,7 @@ def _register_npu_inductor_flex_attention():
             total_normal_blocks_val = V.graph.sizevars.evaluate_static_shape(
                 kernel_options[_COMPACT_SPARSE_MASK_TOTAL_BLOCKS_OPTION]
             )
+            has_sparse_blocks = total_normal_blocks_val > 0
             sparse_mask_size = [
                 total_normal_blocks_val,
                 SPARSE_Q_BLOCK_SIZE,
@@ -1642,13 +1646,22 @@ def _register_npu_inductor_flex_attention():
             5: _create_sparse_mask_indices_fake_generator(),
         }
         log.info("Sparse mask kernel autotune starting with %d choices", len(sparse_mask_choices))
-        autotune_select_algorithm(
-            "sparse_mask_kernel",
-            sparse_mask_choices,
-            sparse_mask_inputs_for_autotuning,
-            sparse_mask_layout,
-            input_gen_fns=sparse_mask_input_gen_fns,
-        )
+        if has_sparse_blocks:
+            autotune_select_algorithm(
+                "sparse_mask_kernel",
+                sparse_mask_choices,
+                sparse_mask_inputs_for_autotuning,
+                sparse_mask_layout,
+                input_gen_fns=sparse_mask_input_gen_fns,
+            )
+        else:
+            # No sparse/partial block: the packed SPARSE_MASK is empty and never
+            # read by the main mask-out kernel. Skip the compact-generation kernel
+            # (launching it with 0 entries crashes on device).
+            log.info(
+                "Skipping sparse mask compact-generation kernel: "
+                "no sparse blocks (total_normal_blocks == 0)"
+            )
         log.info(
             "Sparse mask kernel autotune completed with %d choices",
             len(sparse_mask_choices),
@@ -1788,10 +1801,8 @@ def _register_npu_inductor_flex_attention():
         # It is hard to raise nice errors for some joint graphs during subgraph lowering
         # This lets us do some checks before attempting to lower
         validate_joint_graph(joint_graph.graph_module.graph)
-        grad_score_mod_is_identity = _is_grad_score_mod_identity_graph(joint_graph)
         log.debug(
-            "flex_attention_backward joint_graph identity_check=%s graph:\n%s",
-            grad_score_mod_is_identity,
+            "flex_attention_backward joint_graph:\n%s",
             joint_graph.graph_module.graph,
         )
 
@@ -1954,10 +1965,16 @@ def _register_npu_inductor_flex_attention():
         bwd_sparse_mask_block_pos_layout = None
         bwd_sparse_mask_block_pos_buffer = None
         bwd_sparse_mask_block_pos_strides = None
+        # See the forward note: True only when there is at least one sparse block
+        # to pack. When 0, skip the compact-generation kernels (empty launch
+        # crashes on device); the packed mask is never read by the mask-out
+        # backward kernels.
+        bwd_has_sparse_blocks = False
         if flexattention_mask_out:
             total_normal_blocks_val = V.graph.sizevars.evaluate_static_shape(
                 kernel_options[_COMPACT_SPARSE_MASK_TOTAL_BLOCKS_OPTION]
             )
+            bwd_has_sparse_blocks = total_normal_blocks_val > 0
             bwd_sparse_mask_size = [
                 total_normal_blocks_val,
                 SPARSE_Q_BLOCK_SIZE,
@@ -2249,7 +2266,7 @@ def _register_npu_inductor_flex_attention():
                 bwd_sparse_mask_inputs_for_autotuning,
                 bwd_sparse_mask_layout,
                 input_gen_fns=bwd_sparse_mask_input_gen_fns,
-            )
+            ) if bwd_has_sparse_blocks else bwd_sparse_mask_buffer
             log.info(
                 "Backward compact sparse mask kernel autotune completed "
                 "with %d choices: %s",
@@ -2277,13 +2294,15 @@ def _register_npu_inductor_flex_attention():
                     2: create_compact_q_offsets_fake,
                     3: create_minus_one_int_tensor_fake,
                 },
-            )
-            log.info(
-                "Sparse mask block-position kernel autotune completed "
-                "with %d choices: %s",
-                len(bwd_sparse_mask_block_pos_choices),
-                bwd_sparse_mask_block_pos_result,
-            )
+            ) if bwd_has_sparse_blocks else bwd_sparse_mask_block_pos_buffer
+            if not bwd_has_sparse_blocks:
+                # No sparse block: compact-generation and block-position kernels
+                # are skipped (empty launch crashes on device). The empty packed
+                # buffers are never read by the mask-out backward kernels.
+                log.info(
+                    "Skipping backward sparse mask compact/block-pos kernels: "
+                    "no sparse blocks (total_normal_blocks == 0)"
+                )
             mask_out_input_nodes = [
                 bwd_sparse_mask_result,
                 compact_q_offsets,
@@ -2329,9 +2348,6 @@ def _register_npu_inductor_flex_attention():
                 "TORCHINDUCTOR_FLEXATTENTION_MASKOUT",
                 flexattention_mask_out,
             )
-            cur_kernel_options.setdefault("BWD_SCORE_MOD_IS_IDENTITY", score_mod_is_identity)
-            cur_kernel_options.setdefault("BWD_GRAD_SCORE_MOD_IS_IDENTITY", grad_score_mod_is_identity)
-            cur_kernel_options.setdefault("BWD_IDENTITY_SCORE_AND_GRAD", bwd_identity_score_and_grad)
             cur_kernel_options.setdefault(
                 "NUM_SPARSE_Q_BLOCKS",
                 V.graph.sizevars.evaluate_static_shape(kv_num_blocks.get_size()[2]),
@@ -2410,21 +2426,12 @@ def _register_npu_inductor_flex_attention():
             )
 
         has_captured_grad_side_effect = bool(joint_outputs.mutated_grads)
-        if has_captured_grad_side_effect:
-            score_mod_is_identity = False
-            grad_score_mod_is_identity = False
-        bwd_identity_score_and_grad = (
-            score_mod_is_identity and grad_score_mod_is_identity
-        )
         captured_grad_owner = "dkdv" if has_captured_grad_side_effect else None
         assert captured_grad_owner in (None, "dq", "dkdv")
         log.debug(
-            "bwd split captured_grad_owner=%s mutated_grads=%d score_identity=%s grad_identity=%s identity_score_and_grad=%s",
+            "bwd split captured_grad_owner=%s mutated_grads=%d",
             captured_grad_owner,
             len(joint_outputs.mutated_grads),
-            score_mod_is_identity,
-            grad_score_mod_is_identity,
-            bwd_identity_score_and_grad,
         )
 
         def make_bwd_subgraphs_and_mutations(kind: str, base_mutated_inputs: list[Any]):

@@ -44,47 +44,6 @@ def get_bounded_indices(indices, max_len=None):
 """
 
 
-load_checked_block = r"""
-@triton.jit
-def load_checked_block(block_ptr, IS_DIVISIBLE: tl.constexpr, SAFE_HEAD_DIM: tl.constexpr):
-  if IS_DIVISIBLE and SAFE_HEAD_DIM:
-    return tl.load(block_ptr)
-  elif IS_DIVISIBLE and not SAFE_HEAD_DIM:
-    return tl.load(block_ptr, boundary_check=(1,), padding_option="zero")
-  elif not IS_DIVISIBLE and SAFE_HEAD_DIM:
-      return tl.load(block_ptr, boundary_check=(0,), padding_option="zero")
-  else:
-      return tl.load(block_ptr, boundary_check=(0, 1), padding_option="zero")
-"""
-
-load_checked_2d = r"""
-@triton.jit
-def load_checked_2d(
-    ptr,
-    offs_m,
-    offs_n,
-    stride_m,
-    stride_n,
-    IS_DIVISIBLE_M: tl.constexpr,
-    IS_DIVISIBLE_N: tl.constexpr,
-    M_LEN: tl.constexpr,
-    N_DIM: tl.constexpr,
-):
-    # Calculate final pointer if strides are provided
-    if stride_m is not None and stride_n is not None:
-        ptr = ptr + offs_m[:, None] * stride_m + offs_n[None, :] * stride_n
-
-    # Handle all masking cases
-    if not IS_DIVISIBLE_M and not IS_DIVISIBLE_N:
-        return tl.load(ptr, mask=(offs_m[:, None] < M_LEN) & (offs_n[None, :] < N_DIM), other=0.0)
-    elif IS_DIVISIBLE_M and not IS_DIVISIBLE_N:
-        return tl.load(ptr, mask=(offs_n[None, :] < N_DIM), other=0.0)
-    elif not IS_DIVISIBLE_M and IS_DIVISIBLE_N:
-        return tl.load(ptr, mask=(offs_m[:, None] < M_LEN), other=0.0)
-    else:  # Both divisible
-        return tl.load(ptr)
-"""
-
 compute_sparse_mask_kernel_compact = r"""
 {{def_kernel("SPARSE_MASK", "Q_OFFSETS", "FLAT_TO_ROW", "FLAT_TO_BLK", "KV_NUM_BLKS", "KV_IDX")}}
     stride_kv_idx_z = {{stride("KV_IDX", 0)}}
@@ -284,7 +243,7 @@ compute_forward_block_mn_sparse_mask = r"""
 @triton.jit
 def forward_block_mn_sparse_mask(
     {{gen_argdefs()}},
-    q, K_block_ptr, V_block_ptr, Q_LEN, KV_LEN,
+    q, k, v, Q_LEN, KV_LEN,
     # accumulated values
     acc, l_i, m_i,
     # Offsets
@@ -297,10 +256,8 @@ def forward_block_mn_sparse_mask(
 ):
     # Redefines all kernel parameters (BLOCK_M, etc.) so we don't need to plumb them all through
     {{gen_defines() | indent_except_first(1)}}
-    # -- load k --
-    k = tl.load(K_block_ptr)
     # -- compute qk ---
-    qk = tl.dot(q, k)
+    qk = tl.dot(q, tl.trans(k))
     if not PRESCALE_QK:
         qk *= SM_SCALE
     # ~~~~~~~~~~~~~~~~~~~ Apply score modification  ~~~~~~~~~~~~~~~~~~~
@@ -326,6 +283,9 @@ def forward_block_mn_sparse_mask(
         q_sparse_start = q_sparse_idx * SPARSE_Q_BLOCK_SIZE
         sparse_h = off_h % SPARSE_HQ
         sparse_mask_h = off_h % SPARSE_MASK_HQ
+        # Broadcast a B=1 block-mask across B>1 QKV (mirror the other sparse paths).
+        SPARSE_Z: tl.constexpr = {{size("KV_NUM_BLKS", 0)}}
+        sparse_idx_z = off_z % SPARSE_Z
 
         stride_kv_idx_z = {{stride("KV_IDX", 0)}}
         stride_kv_idx_h = {{stride("KV_IDX", 1)}}
@@ -333,7 +293,7 @@ def forward_block_mn_sparse_mask(
         stride_kv_idx_blk = {{stride("KV_IDX", 3)}}
         kv_block = tl.load(
             arg_KV_IDX
-            + off_z * stride_kv_idx_z
+            + sparse_idx_z * stride_kv_idx_z
             + sparse_h * stride_kv_idx_h
             + q_sparse_idx * stride_kv_idx_m
             + blk_idx_in_list * stride_kv_idx_blk
@@ -342,7 +302,7 @@ def forward_block_mn_sparse_mask(
         offs_m_local = offs_m - q_sparse_start
         offs_n_local = offs_n - kv_block * SPARSE_KV_BLOCK_SIZE
         q_offsets_idx = (
-            off_z * SPARSE_MASK_HQ * (NUM_SPARSE_Q_BLOCKS + 1)
+            sparse_idx_z * SPARSE_MASK_HQ * (NUM_SPARSE_Q_BLOCKS + 1)
             + sparse_mask_h * (NUM_SPARSE_Q_BLOCKS + 1)
             + q_sparse_idx
         )
@@ -388,7 +348,6 @@ def forward_block_mn_sparse_mask(
     l_i = l_i * alpha + tl.sum(p, 1)
     # # -- scale and update acc --
     acc = acc * alpha[:, None]
-    v = load_checked_block(V_block_ptr, IS_DIVISIBLE, SAFE_HEAD_DIM)
     acc = tl.dot(p.to(MATMUL_PRECISION), v, acc)
     # NPU compile hint for performance optimization
     if ENABLE_COMPILE_HINT:
@@ -422,6 +381,8 @@ def forward_inner_sparse_mask_direct_index(
     {{gen_defines() | indent_except_first(1)}}
 
     SPARSE_KV_MULTIPLE: tl.constexpr = (SPARSE_KV_BLOCK_SIZE // BLOCK_N)
+    offs_k = tl.arange(0, QK_HEAD_DIM)
+    offs_v = tl.arange(0, V_HEAD_DIM)
 
     if PRESCALE_QK:
         q = (q * SM_SCALE).to(MATMUL_PRECISION)
@@ -430,28 +391,22 @@ def forward_inner_sparse_mask_direct_index(
         blk_idx_in_list = start_n // SPARSE_KV_MULTIPLE
         kv_block = tl.load(kv_indices + blk_idx_in_list)
         kv_start = kv_block * SPARSE_KV_BLOCK_SIZE + (start_n % SPARSE_KV_MULTIPLE) * BLOCK_N
-        K_block_ptr = tl.make_block_ptr(
-            base=K,
-            shape=(QK_HEAD_DIM, KV_LEN),
-            strides=(stride_kk, stride_kn),
-            offsets=(0, kv_start),
-            block_shape=(QK_HEAD_DIM_ROUNDED, BLOCK_N),
-            order=(0, 1),
-        )
-        V_block_ptr = tl.make_block_ptr(
-            base=V,
-            shape=(KV_LEN, V_HEAD_DIM),
-            strides=(stride_vn, stride_vk),
-            offsets=(kv_start, 0),
-            block_shape=(BLOCK_N, V_HEAD_DIM_ROUNDED),
-            order=(1, 0),
-        )
         offs_n = kv_start + tl.arange(0, BLOCK_N)
+        k = tl.load(
+            K + offs_n[:, None] * stride_kn + offs_k[None, :] * stride_kk,
+            mask=offs_n[:, None] < KV_LEN,
+            other=0.0,
+        )
+        v = tl.load(
+            V + offs_n[:, None] * stride_vn + offs_v[None, :] * stride_vk,
+            mask=offs_n[:, None] < KV_LEN,
+            other=0.0,
+        )
 
         if IS_DIVISIBLE:
             acc, l_i, m_i = forward_block_mn_sparse_mask(
                 {{gen_argdefs()}},
-                q, K_block_ptr, V_block_ptr, Q_LEN, KV_LEN,
+                q, k, v, Q_LEN, KV_LEN,
                 acc, l_i, m_i,
                 off_z, off_h, offs_m, offs_n[None, :],
                 MATMUL_PRECISION,
@@ -462,7 +417,7 @@ def forward_inner_sparse_mask_direct_index(
         else:
             acc, l_i, m_i = forward_block_mn_sparse_mask(
                 {{gen_argdefs()}},
-                q, K_block_ptr, V_block_ptr, Q_LEN, KV_LEN,
+                q, k, v, Q_LEN, KV_LEN,
                 acc, l_i, m_i,
                 off_z, off_h, offs_m, offs_n[None, :],
                 MATMUL_PRECISION,
@@ -522,7 +477,7 @@ compute_flex_attention_sparse_mask_in_loop_no_load_balance = r"""
 
         m_i = tl.full([BLOCK_M], float("-inf"), dtype=tl.float32)
         l_i = tl.zeros([BLOCK_M], dtype=tl.float32)
-        acc = tl.zeros([BLOCK_M, V_HEAD_DIM_ROUNDED], dtype=tl.float32)
+        acc = tl.zeros([BLOCK_M, V_HEAD_DIM], dtype=tl.float32)
 
         offs_m = q_start * BLOCK_M + tl.arange(0, BLOCK_M)
         q_sparse_idx = q_start // SPARSE_Q_MULTIPLE
@@ -531,15 +486,13 @@ compute_flex_attention_sparse_mask_in_loop_no_load_balance = r"""
         sparse_kv_num_blks_offset = sparse_hz_offset * stride_kv_num_blks_h + q_sparse_idx
         sparse_kv_idx_offset = sparse_hz_offset * stride_kv_idx_h + q_sparse_idx * stride_kv_idx_m
 
-        Q_block_ptr = tl.make_block_ptr(
-            base=Q_tile,
-            shape=(Q_LEN, QK_HEAD_DIM),
-            strides=(stride_qm, stride_qk),
-            offsets=(q_start * BLOCK_M, 0),
-            block_shape=(BLOCK_M, QK_HEAD_DIM_ROUNDED),
-            order=(1, 0),
+        offs_k = tl.arange(0, QK_HEAD_DIM)
+        offs_v = tl.arange(0, V_HEAD_DIM)
+        q = tl.load(
+            Q_tile + offs_m[:, None] * stride_qm + offs_k[None, :] * stride_qk,
+            mask=offs_m[:, None] < Q_LEN,
+            other=0.0,
         )
-        q = load_checked_block(Q_block_ptr, IS_DIVISIBLE, SAFE_HEAD_DIM)
 
         kv_indices = KV_IDX + sparse_kv_idx_offset
         kv_num_blocks = tl.load(KV_NUM_BLKS + sparse_kv_num_blks_offset)
@@ -583,28 +536,22 @@ compute_flex_attention_sparse_mask_in_loop_no_load_balance = r"""
                 kv_block_start = tl.load(kv_indices + start_n) * SPARSE_KV_BLOCK_SIZE
                 for sub_idx in range(0, FULL128_SUBTILES):
                     kv_start = kv_block_start + sub_idx * BLOCK_N
-                    K_block_ptr = tl.make_block_ptr(
-                        base=K_tile,
-                        shape=(KV_LEN, QK_HEAD_DIM),
-                        strides=(stride_kn, stride_kk),
-                        offsets=(kv_start, 0),
-                        block_shape=(BLOCK_N, QK_HEAD_DIM_ROUNDED),
-                        order=(1, 0),
-                    )
-                    V_block_ptr = tl.make_block_ptr(
-                        base=V_tile,
-                        shape=(KV_LEN, V_HEAD_DIM),
-                        strides=(stride_vn, stride_vk),
-                        offsets=(kv_start, 0),
-                        block_shape=(BLOCK_N, V_HEAD_DIM_ROUNDED),
-                        order=(1, 0),
-                    )
                     offs_n = kv_start + tl.arange(0, BLOCK_N)
+                    k = tl.load(
+                        K_tile + offs_n[:, None] * stride_kn + offs_k[None, :] * stride_kk,
+                        mask=offs_n[:, None] < KV_LEN,
+                        other=0.0,
+                    )
+                    v = tl.load(
+                        V_tile + offs_n[:, None] * stride_vn + offs_v[None, :] * stride_vk,
+                        mask=offs_n[:, None] < KV_LEN,
+                        other=0.0,
+                    )
 
                     if IS_DIVISIBLE:
                         acc, l_i, m_i = forward_block_mn_full(
                             {{gen_argdefs()}},
-                            q, K_block_ptr, V_block_ptr, Q_LEN, KV_LEN,
+                            q, k, v, Q_LEN, KV_LEN,
                             acc, l_i, m_i,
                             off_zq, off_hq, offs_m[:, None], offs_n[None, :],
                             MATMUL_PRECISION,
@@ -612,7 +559,7 @@ compute_flex_attention_sparse_mask_in_loop_no_load_balance = r"""
                     else:
                         acc, l_i, m_i = forward_block_mn_full(
                             {{gen_argdefs()}},
-                            q, K_block_ptr, V_block_ptr, Q_LEN, KV_LEN,
+                            q, k, v, Q_LEN, KV_LEN,
                             acc, l_i, m_i,
                             off_zq, off_hq, offs_m[:, None], offs_n[None, :],
                             MATMUL_PRECISION,
@@ -624,7 +571,7 @@ compute_flex_attention_sparse_mask_in_loop_no_load_balance = r"""
         idx_zq = off_zq
         idx_hq = off_hq
         idx_m = offs_m[:, None]
-        idx_d = tl.arange(0, V_HEAD_DIM_ROUNDED)[None, :]
+        idx_d = tl.arange(0, V_HEAD_DIM)[None, :]
         mask = (idx_m < Q_LEN) & (idx_d < V_HEAD_DIM)
 
         {{store_output(("idx_zq", "idx_hq", "idx_m", "idx_d"), "acc", "mask", indent_width=8)}}
@@ -643,14 +590,13 @@ compute_forward_block_mn_full = r"""
 @triton.jit
 def forward_block_mn_full(
     {{gen_argdefs()}},
-    q, K_block_ptr, V_block_ptr, Q_LEN, KV_LEN,
+    q, k, v, Q_LEN, KV_LEN,
     acc, l_i, m_i,
     off_z, off_h, offs_m, offs_n,
     MATMUL_PRECISION,
     CHECK_BLOCK_BOUNDARY=False,
 ):
     {{gen_defines() | indent_except_first(1)}}
-    k = load_checked_block(K_block_ptr, IS_DIVISIBLE, SAFE_HEAD_DIM)
     qk = tl.dot(q, tl.trans(k))
     if not PRESCALE_QK:
         qk *= SM_SCALE
@@ -703,7 +649,6 @@ def forward_block_mn_full(
     p = tl.math.exp(post_mod_scores - m_ij_masked[:, None])
     l_i = l_i * alpha + tl.sum(p, 1)
     acc = acc * alpha[:, None]
-    v = load_checked_block(V_block_ptr, IS_DIVISIBLE, SAFE_HEAD_DIM)
     acc = tl.dot(p.to(MATMUL_PRECISION), v, acc)
     if ENABLE_COMPILE_HINT:
         tl.extra.cann.extension.compile_hint(acc, "hivm.tile_mix_cube_num", 2)
@@ -760,7 +705,6 @@ _FWD_MASK_OUT_SOURCE = (
     + compute_forward_inner_sparse_mask_direct_index
     + compute_forward_block_mn_sparse_mask
     + compute_forward_block_mn_full
-    + load_checked_block
     + get_bounded_indices_func
 )
 _FWD_MASK_IN_SOURCE = _with_kernel_signature(
@@ -840,8 +784,8 @@ flex_attention_backward_qmajor_dq_source = r"""
     SPARSE_Z = {{size("KV_NUM_BLKS", 0)}}
     SPARSE_HQ = {{size("KV_NUM_BLKS", 1)}}
 
-    offs_k = tl.arange(0, QK_HEAD_DIM_ROUNDED)
-    offs_v = tl.arange(0, V_HEAD_DIM_ROUNDED)
+    offs_k = tl.arange(0, QK_HEAD_DIM)
+    offs_v = tl.arange(0, V_HEAD_DIM)
 
     stride_kv_num_blks_z = {{stride("KV_NUM_BLKS", 0)}}
     stride_kv_num_blks_h = {{stride("KV_NUM_BLKS", 1)}}
@@ -880,12 +824,22 @@ flex_attention_backward_qmajor_dq_source = r"""
         lse_base = LSE + off_chz
         delta_base = DELTA + off_chz
 
-        q = load_checked_2d(Q + stride_qz * off_zq + stride_qh * off_hq, offs_m, offs_k, stride_qm, stride_qd, IS_DIVISIBLE, SAFE_HEAD_DIM, Q_LEN, QK_HEAD_DIM)
-        do = load_checked_2d(DO + stride_doz * off_zq + stride_doh * off_hq, offs_m, offs_v, stride_dom, stride_dod, IS_DIVISIBLE, SAFE_HEAD_DIM, Q_LEN, V_HEAD_DIM)
+        q = tl.load(
+            Q + stride_qz * off_zq + stride_qh * off_hq
+            + offs_m[:, None] * stride_qm + offs_k[None, :] * stride_qd,
+            mask=offs_m[:, None] < Q_LEN,
+            other=0.0,
+        )
+        do = tl.load(
+            DO + stride_doz * off_zq + stride_doh * off_hq
+            + offs_m[:, None] * stride_dom + offs_v[None, :] * stride_dod,
+            mask=offs_m[:, None] < Q_LEN,
+            other=0.0,
+        )
         lse = tl.load(lse_base + offs_m, mask=offs_m < Q_LEN, other=float("-inf"))
         lse = tl.where(lse == -float("inf"), 0.0, lse)
         Di = tl.load(delta_base + offs_m, mask=offs_m < Q_LEN, other=0.0)
-        dq = tl.zeros([BLOCK_M2, QK_HEAD_DIM_ROUNDED], dtype=tl.float32)
+        dq = tl.zeros([BLOCK_M2, QK_HEAD_DIM], dtype=tl.float32)
 
         kv_num_offset = (
             sparse_idx_z * stride_kv_num_blks_z
@@ -910,8 +864,16 @@ flex_attention_backward_qmajor_dq_source = r"""
         for blk_pos in range(0, kv_num_blocks):
             kv_sparse_idx = tl.load(arg_KV_IDX + kv_idx_offset + blk_pos * stride_kv_idx_blk)
             offs_n = kv_sparse_idx * SPARSE_KV_BLOCK_SIZE + tl.arange(0, BLOCK_N2)
-            k = load_checked_2d(k_base, offs_n, offs_k, stride_kn, stride_kd, IS_DIVISIBLE, SAFE_HEAD_DIM, KV_LEN, QK_HEAD_DIM)
-            v = load_checked_2d(v_base, offs_n, offs_v, stride_vn, stride_vd, IS_DIVISIBLE, SAFE_HEAD_DIM, KV_LEN, V_HEAD_DIM)
+            k = tl.load(
+                k_base + offs_n[:, None] * stride_kn + offs_k[None, :] * stride_kd,
+                mask=offs_n[:, None] < KV_LEN,
+                other=0.0,
+            )
+            v = tl.load(
+                v_base + offs_n[:, None] * stride_vn + offs_v[None, :] * stride_vd,
+                mask=offs_n[:, None] < KV_LEN,
+                other=0.0,
+            )
             qk = tl.dot(q, tl.trans(k), input_precision="ieee")
             if not PRESCALE_QK:
                 qk *= SM_SCALE
@@ -923,11 +885,8 @@ flex_attention_backward_qmajor_dq_source = r"""
             offs_m_local = offs_m[:, None] - q_block * SPARSE_Q_BLOCK_SIZE
             offs_n_local = offs_n[None, :] - kv_sparse_idx * SPARSE_KV_BLOCK_SIZE
             mask_offsets = offs_m_local * SPARSE_MASK_STRIDE_M + offs_n_local
-            mask_bounds = (offs_m[:, None] < Q_LEN) & (offs_n[None, :] < KV_LEN)
             mask_mod_output = tl.load(
-                arg_SPARSE_MASK + flat_blk * SPARSE_MASK_STRIDE_BLK + mask_offsets,
-                mask=mask_bounds,
-                other=0,
+                arg_SPARSE_MASK + flat_blk * SPARSE_MASK_STRIDE_BLK + mask_offsets
             )
 {% else %}
             {{ modification(
@@ -941,11 +900,8 @@ flex_attention_backward_qmajor_dq_source = r"""
             ) | indent_except_first(3) }}
             mask_mod_output = mask_mod_output & (offs_m[:, None] < Q_LEN) & (offs_n[None, :] < KV_LEN)
 {% endif %}
-{% if BWD_SCORE_MOD_IS_IDENTITY %}
-{% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
-            pre_mod_scores = qk
-{% endif %}
-            qk = tl.where(mask_mod_output & (offs_n[None, :] < KV_LEN), qk, float("-inf"))
+{% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
+            qk = tl.where(mask_mod_output, qk, float("-inf"))
             p = tl.math.exp(qk - lse[:, None])
 {% else %}
             pre_mod_scores = qk
@@ -964,8 +920,8 @@ flex_attention_backward_qmajor_dq_source = r"""
 {% endif %}
             dp = tl.dot(do, tl.trans(v), input_precision="ieee")
             ds = p * (dp - Di[:, None])
-{% if BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
-            ds = tl.where(mask_mod_output, ds, 0.0)
+{% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
+            dq += tl.dot(ds.to(MATMUL_PRECISION), k, input_precision="ieee")
 {% else %}
             {{ modification(
                 subgraph_number=1,
@@ -977,9 +933,9 @@ flex_attention_backward_qmajor_dq_source = r"""
                 n="n",
                 grad_score_mod="ds",
             ) | indent_except_first(3) }}
-            ds = tl.where(mask_mod_output, grad_scores, 0.0)
+            grad_scores = tl.where(mask_mod_output, grad_scores, 0.0)
+            dq += tl.dot(grad_scores.to(MATMUL_PRECISION), k, input_precision="ieee")
 {% endif %}
-            dq += tl.dot(ds.to(MATMUL_PRECISION), k, input_precision="ieee")
 
         if HAS_FULL_BLOCKS:
             full_kv_num_offset = (
@@ -996,8 +952,16 @@ flex_attention_backward_qmajor_dq_source = r"""
             for blk_pos in range(0, full_kv_num_blocks):
                 kv_sparse_idx = tl.load(arg_FULL_KV_IDX + full_kv_idx_offset + blk_pos * stride_full_kv_idx_blk)
                 offs_n = kv_sparse_idx * SPARSE_KV_BLOCK_SIZE + tl.arange(0, BLOCK_N2)
-                k = load_checked_2d(k_base, offs_n, offs_k, stride_kn, stride_kd, IS_DIVISIBLE, SAFE_HEAD_DIM, KV_LEN, QK_HEAD_DIM)
-                v = load_checked_2d(v_base, offs_n, offs_v, stride_vn, stride_vd, IS_DIVISIBLE, SAFE_HEAD_DIM, KV_LEN, V_HEAD_DIM)
+                k = tl.load(
+                    k_base + offs_n[:, None] * stride_kn + offs_k[None, :] * stride_kd,
+                    mask=offs_n[:, None] < KV_LEN,
+                    other=0.0,
+                )
+                v = tl.load(
+                    v_base + offs_n[:, None] * stride_vn + offs_v[None, :] * stride_vd,
+                    mask=offs_n[:, None] < KV_LEN,
+                    other=0.0,
+                )
                 qk = tl.dot(q, tl.trans(k), input_precision="ieee")
                 if not PRESCALE_QK:
                     qk *= SM_SCALE
@@ -1016,16 +980,9 @@ flex_attention_backward_qmajor_dq_source = r"""
                 ) | indent_except_first(4) }}
                 mask_mod_output = mask_mod_output & (offs_m[:, None] < Q_LEN) & (offs_n[None, :] < KV_LEN)
 {% endif %}
-{% if BWD_SCORE_MOD_IS_IDENTITY %}
-{% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
-                pre_mod_scores = qk
-{% endif %}
 {% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
                 # full block don't need
                 # qk = tl.where(offs_n[None, :] < KV_LEN, qk, float("-inf"))
-{% else %}
-                qk = tl.where(mask_mod_output, qk, float("-inf"))
-{% endif %}
                 p = tl.math.exp(qk - lse[:, None])
 {% else %}
                 pre_mod_scores = qk
@@ -1039,19 +996,12 @@ flex_attention_backward_qmajor_dq_source = r"""
                     n="n",
                     out="qk",
                 ) | indent_except_first(4) }}
-{% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
-                post_mod_scores = tl.where(offs_n[None, :] < KV_LEN, post_mod_scores, float("-inf"))
-{% else %}
                 post_mod_scores = tl.where(mask_mod_output, post_mod_scores, float("-inf"))
-{% endif %}
                 p = tl.math.exp(post_mod_scores - lse[:, None])
 {% endif %}
                 dp = tl.dot(do, tl.trans(v), input_precision="ieee")
                 ds = p * (dp - Di[:, None])
-{% if BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
-{% if not TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
-                ds = tl.where(mask_mod_output, ds, 0.0)
-{% endif %}
+{% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
                 dq += tl.dot(ds.to(MATMUL_PRECISION), k, input_precision="ieee")
 {% else %}
                 {{ modification(
@@ -1064,11 +1014,7 @@ flex_attention_backward_qmajor_dq_source = r"""
                     n="n",
                     grad_score_mod="ds",
                 ) | indent_except_first(4) }}
-{% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
-                grad_scores = tl.where(offs_n[None, :] < KV_LEN, grad_scores, 0.0)
-{% else %}
                 grad_scores = tl.where(mask_mod_output, grad_scores, 0.0)
-{% endif %}
                 dq += tl.dot(grad_scores.to(MATMUL_PRECISION), k, input_precision="ieee")
 {% endif %}
 
@@ -1084,30 +1030,6 @@ flex_attention_backward_qmajor_dq_source = r"""
 @triton.jit
 def get_bounded_indices(indices, max_len=None):
     return indices % max_len if max_len is not None else indices
-
-@triton.jit
-def load_checked_2d(
-    ptr,
-    offs_m,
-    offs_n,
-    stride_m,
-    stride_n,
-    IS_DIVISIBLE_M: tl.constexpr,
-    IS_DIVISIBLE_N: tl.constexpr,
-    M_LEN: tl.constexpr,
-    N_DIM: tl.constexpr,
-):
-    if stride_m is not None and stride_n is not None:
-        ptr = ptr + offs_m[:, None] * stride_m + offs_n[None, :] * stride_n
-
-    if not IS_DIVISIBLE_M and not IS_DIVISIBLE_N:
-        return tl.load(ptr, mask=(offs_m[:, None] < M_LEN) & (offs_n[None, :] < N_DIM), other=0.0)
-    elif IS_DIVISIBLE_M and not IS_DIVISIBLE_N:
-        return tl.load(ptr, mask=(offs_n[None, :] < N_DIM), other=0.0)
-    elif not IS_DIVISIBLE_M and IS_DIVISIBLE_N:
-        return tl.load(ptr, mask=(offs_m[:, None] < M_LEN), other=0.0)
-    else:
-        return tl.load(ptr)
 """
 
 
@@ -1173,8 +1095,8 @@ flex_attention_backward_dkdv_only_source = r"""
     SPARSE_Z = {{size("KV_NUM_BLKS", 0)}}
     SPARSE_HQ = {{size("KV_NUM_BLKS", 1)}}
 
-    offs_k = tl.arange(0, QK_HEAD_DIM_ROUNDED)
-    offs_v = tl.arange(0, V_HEAD_DIM_ROUNDED)
+    offs_k = tl.arange(0, QK_HEAD_DIM)
+    offs_v = tl.arange(0, V_HEAD_DIM)
 
     SPARSE_Q_MULTIPLE = (SPARSE_Q_BLOCK_SIZE // BLOCK_M1)
     SPARSE_KV_MULTIPLE = (SPARSE_KV_BLOCK_SIZE // BLOCK_N1)
@@ -1202,10 +1124,18 @@ flex_attention_backward_dkdv_only_source = r"""
         V1 = V + v_adj
         DV1 = DV + dv_adj
 
-        k = load_checked_2d(K1, offs_n1, offs_k, stride_kn, stride_kd, IS_DIVISIBLE, SAFE_HEAD_DIM, KV_LEN, QK_HEAD_DIM)
+        k = tl.load(
+            K1 + offs_n1[:, None] * stride_kn + offs_k[None, :] * stride_kd,
+            mask=(offs_n1[:, None] < KV_LEN) & (offs_k[None, :] < QK_HEAD_DIM),
+            other=0.0,
+        )
         if PRESCALE_QK:
             k = (k * SM_SCALE).to(MATMUL_PRECISION)
-        v = load_checked_2d(V1, offs_n1, offs_v, stride_vn, stride_vd, IS_DIVISIBLE, SAFE_HEAD_DIM, KV_LEN, V_HEAD_DIM)
+        v = tl.load(
+            V1 + offs_n1[:, None] * stride_vn + offs_v[None, :] * stride_vd,
+            mask=(offs_n1[:, None] < KV_LEN) & (offs_v[None, :] < V_HEAD_DIM),
+            other=0.0,
+        )
 
         for off_g in range(0, GQA_SHARED_HEADS):
             off_hq1 = off_hkv * GQA_SHARED_HEADS + off_g
@@ -1294,15 +1224,11 @@ def bwd_dkdv_block_mn(
     IS_FULL_BLOCKS, CHECK_BLOCK_BOUNDARY=False,
 ):
     {{gen_defines() | indent_except_first(1) }}
-    Q_block_ptr = tl.make_block_ptr(
-        base=Q,
-        shape=(Q_LEN, QK_HEAD_DIM),
-        strides=(stride_qm, stride_qd),
-        offsets=(start_m1, 0),
-        block_shape=(BLOCK_M1, QK_HEAD_DIM_ROUNDED),
-        order=(1, 0),
+    qT = tl.load(
+        Q + offs_m1[:, None] * stride_qm + offs_k[None, :] * stride_qd,
+        mask=(offs_m1[:, None] < Q_LEN) & (offs_k[None, :] < QK_HEAD_DIM),
+        other=0.0,
     )
-    qT = load_checked_block(Q_block_ptr, IS_DIVISIBLE, SAFE_HEAD_DIM)
     if IS_DIVISIBLE:
         lse = tl.load(LSE + offs_m1)
     else:
@@ -1314,15 +1240,7 @@ def bwd_dkdv_block_mn(
     m = get_bounded_indices(offs_m1[:, None], Q_LEN if CHECK_BLOCK_BOUNDARY else None)
     n = get_bounded_indices(offs_n1[None, :], KV_LEN if (not IS_DIVISIBLE or CHECK_BLOCK_BOUNDARY) else None)
 
-{% if BWD_SCORE_MOD_IS_IDENTITY %}
-{% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
-    pre_mod_scores = qkT
-{% endif %}
-{% if not BWD_IDENTITY_SCORE_AND_GRAD %}
-    if CHECK_BLOCK_BOUNDARY:
-        qkT = tl.where(offs_n1[None, :] < KV_LEN, qkT, float("-inf"))
-{% endif %}
-{% else %}
+{% if not TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
     pre_mod_scores = qkT
     {{ modification(
         subgraph_number=0,
@@ -1378,7 +1296,7 @@ def bwd_dkdv_block_mn(
         ) | indent_except_first(2) }}
         mask_mod_output = mask_mod_output & (offs_m1[:, None] < Q_LEN) & (offs_n1[None, :] < KV_LEN)
 {% endif %}
-{% if BWD_SCORE_MOD_IS_IDENTITY %}
+{% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
         qkT = tl.where(mask_mod_output, qkT, float("-inf"))
 {% else %}
         post_mod_scores = tl.where(
@@ -1388,20 +1306,16 @@ def bwd_dkdv_block_mn(
         )
 {% endif %}
 
-{% if BWD_SCORE_MOD_IS_IDENTITY %}
-    pT = tl.math.exp(qkT - lse[:, None]).to(MATMUL_PRECISION)
+{% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
+    pT = tl.math.exp(qkT - lse[:, None])
 {% else %}
     pT = tl.math.exp(post_mod_scores - lse[:, None])
 {% endif %}
-    DO_block_ptr = tl.make_block_ptr(
-        base=DO,
-        shape=(Q_LEN, V_HEAD_DIM),
-        strides=(stride_dom, stride_dod),
-        offsets=(start_m1, 0),
-        block_shape=(BLOCK_M1, V_HEAD_DIM_ROUNDED),
-        order=(1, 0),
+    do = tl.load(
+        DO + offs_m1[:, None] * stride_dom + offs_v[None, :] * stride_dod,
+        mask=(offs_m1[:, None] < Q_LEN) & (offs_v[None, :] < V_HEAD_DIM),
+        other=0.0,
     )
-    do = load_checked_block(DO_block_ptr, IS_DIVISIBLE, SAFE_HEAD_DIM)
     dv = tl.dot(tl.trans(pT.to(MATMUL_PRECISION)), do, input_precision="ieee")
     index_n = offs_n1[:, None]
     index_v = offs_v[None, :]
@@ -1417,7 +1331,7 @@ def bwd_dkdv_block_mn(
         Di = tl.load(DELTA + offs_m1, mask=offs_m1 < Q_LEN, other=0.0)
     dpT = tl.dot(do, tl.trans(v), input_precision="ieee")
     dsT = (pT * (dpT - Di[:, None])).to(MATMUL_PRECISION)
-{% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
+{% if not TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
     {{ modification(
         subgraph_number=1,
         output_name="grad_scores",
@@ -1449,10 +1363,8 @@ def bwd_dkdv_block_mn(
     ) | indent_except_first(1) }}
 {% endif %}
 
-{% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
+{% if not TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
     dsT = grad_scores
-{% endif %}
-{% if not BWD_IDENTITY_SCORE_AND_GRAD %}
     if not IS_FULL_BLOCKS:
         dsT = tl.where(mask_mod_output, dsT, 0.0)
     dsT = tl.where(offs_m1[:, None] < Q_LEN, dsT, 0.0)
@@ -1488,15 +1400,11 @@ def bwd_dkdv_full_block_mn(
     CHECK_BLOCK_BOUNDARY=False,
 ):
     {{gen_defines() | indent_except_first(1) }}
-    Q_block_ptr = tl.make_block_ptr(
-        base=Q,
-        shape=(Q_LEN, QK_HEAD_DIM),
-        strides=(stride_qm, stride_qd),
-        offsets=(start_m1, 0),
-        block_shape=(BLOCK_M1, QK_HEAD_DIM_ROUNDED),
-        order=(1, 0),
+    qT = tl.load(
+        Q + offs_m1[:, None] * stride_qm + offs_k[None, :] * stride_qd,
+        mask=(offs_m1[:, None] < Q_LEN) & (offs_k[None, :] < QK_HEAD_DIM),
+        other=0.0,
     )
-    qT = load_checked_block(Q_block_ptr, IS_DIVISIBLE, SAFE_HEAD_DIM)
     if IS_DIVISIBLE:
         lse = tl.load(LSE + offs_m1)
     else:
@@ -1508,8 +1416,8 @@ def bwd_dkdv_full_block_mn(
     m = get_bounded_indices(offs_m1[:, None], Q_LEN if CHECK_BLOCK_BOUNDARY else None)
     n = get_bounded_indices(offs_n1[None, :], KV_LEN if (not IS_DIVISIBLE or CHECK_BLOCK_BOUNDARY) else None)
 
-    if not TORCHINDUCTOR_FLEXATTENTION_MASKOUT:
-        {{ modification(
+{% if not TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
+    {{ modification(
             subgraph_number=2,
             output_name="mask_mod_output",
             score="qkT",
@@ -1517,17 +1425,13 @@ def bwd_dkdv_full_block_mn(
             h="off_hq",
             m="m",
             n="n",
-        ) | indent_except_first(2) }}
-        mask_mod_output = mask_mod_output & (offs_m1[:, None] < Q_LEN) & (offs_n1[None, :] < KV_LEN)
-
-{% if BWD_SCORE_MOD_IS_IDENTITY %}
-{% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
-    pre_mod_scores = qkT
+        ) | indent_except_first(1) }}
+    mask_mod_output = mask_mod_output & (offs_m1[:, None] < Q_LEN) & (offs_n1[None, :] < KV_LEN)
 {% endif %}
+
+{% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
     if CHECK_BLOCK_BOUNDARY:
         qkT = tl.where(offs_n1[None, :] < KV_LEN, qkT, float("-inf"))
-    if not TORCHINDUCTOR_FLEXATTENTION_MASKOUT:
-        qkT = tl.where(mask_mod_output, qkT, float("-inf"))
     pT = tl.math.exp(qkT - lse[:, None]).to(MATMUL_PRECISION)
 {% else %}
     pre_mod_scores = qkT
@@ -1554,15 +1458,11 @@ def bwd_dkdv_full_block_mn(
 
     pT = tl.math.exp(post_mod_scores - lse[:, None])
 {% endif %}
-    DO_block_ptr = tl.make_block_ptr(
-        base=DO,
-        shape=(Q_LEN, V_HEAD_DIM),
-        strides=(stride_dom, stride_dod),
-        offsets=(start_m1, 0),
-        block_shape=(BLOCK_M1, V_HEAD_DIM_ROUNDED),
-        order=(1, 0),
+    do = tl.load(
+        DO + offs_m1[:, None] * stride_dom + offs_v[None, :] * stride_dod,
+        mask=(offs_m1[:, None] < Q_LEN) & (offs_v[None, :] < V_HEAD_DIM),
+        other=0.0,
     )
-    do = load_checked_block(DO_block_ptr, IS_DIVISIBLE, SAFE_HEAD_DIM)
     index_n = offs_n1[:, None]
     dv = tl.dot(tl.trans(pT.to(MATMUL_PRECISION)), do, input_precision="ieee")
     index_v = offs_v[None, :]
@@ -1578,7 +1478,7 @@ def bwd_dkdv_full_block_mn(
         Di = tl.load(DELTA + offs_m1, mask=offs_m1 < Q_LEN, other=0.0)
     dpT = tl.dot(do, tl.trans(v), input_precision="ieee")
     dsT = (pT * (dpT - Di[:, None])).to(MATMUL_PRECISION)
-{% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
+{% if not TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
     {{ modification(
         subgraph_number=1,
         output_name="grad_scores",
@@ -1610,12 +1510,9 @@ def bwd_dkdv_full_block_mn(
     ) | indent_except_first(1) }}
 {% endif %}
 
-{% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
+{% if not TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
     dsT = grad_scores
-{% endif %}
-{% if not BWD_IDENTITY_SCORE_AND_GRAD %}
-    if not TORCHINDUCTOR_FLEXATTENTION_MASKOUT:
-        dsT = tl.where(mask_mod_output, dsT, 0.0)
+    dsT = tl.where(mask_mod_output, dsT, 0.0)
     dsT = tl.where(offs_m1[:, None] < Q_LEN, dsT, 0.0)
 {% endif %}
     index_k = offs_k[None, :]
@@ -1640,43 +1537,6 @@ def bwd_dkdv_full_block_mn(
 @triton.jit
 def get_bounded_indices(indices, max_len=None):
     return indices % max_len if max_len is not None else indices
-
-@triton.jit
-def load_checked_block(block_ptr, IS_DIVISIBLE: tl.constexpr, SAFE_HEAD_DIM: tl.constexpr):
-  if IS_DIVISIBLE and SAFE_HEAD_DIM:
-    return tl.load(block_ptr)
-  elif IS_DIVISIBLE and not SAFE_HEAD_DIM:
-    return tl.load(block_ptr, boundary_check=(1,), padding_option="zero")
-  elif not IS_DIVISIBLE and SAFE_HEAD_DIM:
-      return tl.load(block_ptr, boundary_check=(0,), padding_option="zero")
-  else:
-      return tl.load(block_ptr, boundary_check=(0, 1), padding_option="zero")
-
-@triton.jit
-def load_checked_2d(
-    ptr,
-    offs_m,
-    offs_n,
-    stride_m,
-    stride_n,
-    IS_DIVISIBLE_M: tl.constexpr,
-    IS_DIVISIBLE_N: tl.constexpr,
-    M_LEN: tl.constexpr,
-    N_DIM: tl.constexpr,
-):
-    # Calculate final pointer if strides are provided
-    if stride_m is not None and stride_n is not None:
-        ptr = ptr + offs_m[:, None] * stride_m + offs_n[None, :] * stride_n
-
-    # Handle all masking cases
-    if not IS_DIVISIBLE_M and not IS_DIVISIBLE_N:
-        return tl.load(ptr, mask=(offs_m[:, None] < M_LEN) & (offs_n[None, :] < N_DIM), other=0.0)
-    elif IS_DIVISIBLE_M and not IS_DIVISIBLE_N:
-        return tl.load(ptr, mask=(offs_n[None, :] < N_DIM), other=0.0)
-    elif not IS_DIVISIBLE_M and IS_DIVISIBLE_N:
-        return tl.load(ptr, mask=(offs_m[:, None] < M_LEN), other=0.0)
-    else:  # Both divisible
-        return tl.load(ptr)
 """
 
 _FLEX_ATTENTION_BACKWARD_DKDV_HELPERS_MARKER = (
@@ -1722,8 +1582,8 @@ flex_attention_backward_dkdv_tasklist_source = (
     MATMUL_PRECISION = Q.dtype.element_ty
     SPARSE_Q_MULTIPLE = SPARSE_Q_BLOCK_SIZE // BLOCK_M1
     SPARSE_KV_MULTIPLE = SPARSE_KV_BLOCK_SIZE // BLOCK_N1
-    offs_k = tl.arange(0, QK_HEAD_DIM_ROUNDED)
-    offs_v = tl.arange(0, V_HEAD_DIM_ROUNDED)
+    offs_k = tl.arange(0, QK_HEAD_DIM)
+    offs_v = tl.arange(0, V_HEAD_DIM)
 
     meta_id = tl.program_id(0).to(tl.int32)
     work_start = tl.load(TASK_OFFSETS + meta_id)
@@ -1757,15 +1617,17 @@ flex_attention_backward_dkdv_tasklist_source = (
         DV_SPLIT = DV_PARTIAL + sub_id * PARTIAL_DV_STRIDE + dv_adj
 {% endif %}
 
-        k = load_checked_2d(
-            K1, offs_n1, offs_k, stride_kn, stride_kd,
-            IS_DIVISIBLE, SAFE_HEAD_DIM, KV_LEN, QK_HEAD_DIM,
+        k = tl.load(
+            K1 + offs_n1[:, None] * stride_kn + offs_k[None, :] * stride_kd,
+            mask=(offs_n1[:, None] < KV_LEN) & (offs_k[None, :] < QK_HEAD_DIM),
+            other=0.0,
         )
         if PRESCALE_QK:
             k = (k * SM_SCALE).to(MATMUL_PRECISION)
-        v = load_checked_2d(
-            V1, offs_n1, offs_v, stride_vn, stride_vd,
-            IS_DIVISIBLE, SAFE_HEAD_DIM, KV_LEN, V_HEAD_DIM,
+        v = tl.load(
+            V1 + offs_n1[:, None] * stride_vn + offs_v[None, :] * stride_vd,
+            mask=(offs_n1[:, None] < KV_LEN) & (offs_v[None, :] < V_HEAD_DIM),
+            other=0.0,
         )
 
         for off_g in range(0, GQA_SHARED_HEADS):
@@ -1986,12 +1848,12 @@ flex_attention_backward_dkdv_reduce_source = r"""
 
     start_n = kv_block * BLOCK_N1
     offs_n = start_n + tl.arange(0, BLOCK_N1)
-    offs_k = tl.arange(0, QK_HEAD_DIM_ROUNDED)
-    offs_v = tl.arange(0, V_HEAD_DIM_ROUNDED)
+    offs_k = tl.arange(0, QK_HEAD_DIM)
+    offs_v = tl.arange(0, V_HEAD_DIM)
     dk_base = off_z * stride_dkz + off_hkv * stride_dkh
     dv_base = off_z * stride_dvz + off_hkv * stride_dvh
 
-    dk_sum = tl.zeros([BLOCK_N1, QK_HEAD_DIM_ROUNDED], tl.float32)
+    dk_sum = tl.zeros([BLOCK_N1, QK_HEAD_DIM], tl.float32)
     for sub_id in range(split_count):
         dk_sum += tl.load(
             DK_PARTIAL
@@ -2013,7 +1875,7 @@ flex_attention_backward_dkdv_reduce_source = r"""
         & (offs_k[None, :] < QK_HEAD_DIM),
     )
 
-    dv_sum = tl.zeros([BLOCK_N1, V_HEAD_DIM_ROUNDED], tl.float32)
+    dv_sum = tl.zeros([BLOCK_N1, V_HEAD_DIM], tl.float32)
     for sub_id in range(split_count):
         dv_sum += tl.load(
             DV_PARTIAL
