@@ -238,11 +238,11 @@ jobs:
             ${CONFIG_ARG} \
             ${FULL_SCAN_ARG} \
             ${SKIP_LIST_ARG} \
-            --regular-threshold 10000 \
+            --regular-threshold 20000 \
             --distributed-threshold 1000 \
             --output-dir ${GITHUB_WORKSPACE}/cases-shards \
             --error-log-dir ${GITHUB_WORKSPACE}/collection_errors \
-            --parallel 16 \
+            --parallel 32 \
             2>&1 | tee /tmp/collect_cases.log
 
           echo "=== Generated shard files ==="
