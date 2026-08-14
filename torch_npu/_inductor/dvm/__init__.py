@@ -15,7 +15,7 @@ from torch_npu._C.dvm import (
 from torch_npu._inductor.npu_compare import check_accuracy_dvm
 from torch_npu.npu._backends import get_soc_version
 
-from .config import bf16_vector_keep_promoted, debug_mode
+from . import config as dvm_config
 
 
 bool_ = DataType.bool
@@ -116,13 +116,13 @@ def kernel(
         @wraps(builder)
         def fn(*args, **kwargs):
             outputs = kobj(*args)
-            if debug_mode:
+            if dvm_config.debug_mode:
                 _post_run(args)
             return outputs
 
         def run(*args, **kwargs):
             kobj.run(*args)
-            if debug_mode:
+            if dvm_config.debug_mode:
                 _post_run(args)
 
         fn.run = run
@@ -180,7 +180,7 @@ def _install_bf16_promote():
 
             new_args = tuple(maybe_cast_arg(a) for a in args)
             out = op_fn(self, *new_args)
-            if bf16_vector_keep_promoted and need_cast_back :
+            if dvm_config.bf16_vector_keep_promoted and need_cast_back:
                 out = self.cast(out, bfloat16)
             return out
 
