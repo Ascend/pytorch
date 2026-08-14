@@ -317,11 +317,9 @@ def _precompute_compact_sparse_mask_metadata(block_mask: Any) -> dict[str, Any]:
     if q_counts_cpu.numel() == 0:
         raise ValueError("kv_num_blocks is empty")
     total_normal_blocks = int(q_counts_cpu.sum().item())
-    if total_normal_blocks <= 0:
-        raise ValueError("compact sparse mask requires at least one normal block")
     max_normal_blocks = int(q_counts_cpu.max().item())
-    if max_normal_blocks <= 0:
-        raise ValueError("compact sparse mask max normal blocks must be positive")
+    # No partial/sparse blocks is a valid mask-out state. The compact metadata
+    # is then represented by empty flat maps and all-zero q offsets.
 
     segment_totals = torch.sum(q_counts_by_segment, dim=1, dtype=torch.int32)
     segment_bases = torch.empty_like(segment_totals)
@@ -361,20 +359,27 @@ def _wrap_mask_mod_with_compact_sparse_mask_metadata(mask_mod, metadata: dict[st
     @wraps(mask_mod)
     def wrapped_mask_mod(b, h, q_idx, kv_idx):
         result = mask_mod(b, h, q_idx, kv_idx)
+
+        # Capture empty compact-metadata buffers without indexing element zero.
+        def _ref(buf, idx):
+            if buf.numel() == 0:
+                return buf.sum().to(torch.float32)
+            return buf[idx].to(torch.float32)
+
         if isinstance(q_idx, torch.Tensor):
             zero_index = torch.zeros_like(q_idx, dtype=torch.int64)
             zero_value = torch.zeros_like(q_idx, dtype=torch.float32)
             sentinel = (
-                q_offsets[zero_index].to(torch.float32)
-                + flat_to_row[zero_index].to(torch.float32)
-                + flat_to_blk[zero_index].to(torch.float32)
+                _ref(q_offsets, zero_index)
+                + _ref(flat_to_row, zero_index)
+                + _ref(flat_to_blk, zero_index)
             ) < zero_value
         else:
             zero_value = torch.tensor(0.0, dtype=torch.float32, device=q_offsets.device)
             sentinel = (
-                q_offsets[0].to(torch.float32)
-                + flat_to_row[0].to(torch.float32)
-                + flat_to_blk[0].to(torch.float32)
+                _ref(q_offsets, 0)
+                + _ref(flat_to_row, 0)
+                + _ref(flat_to_blk, 0)
             ) < zero_value
         if isinstance(result, torch.Tensor):
             return torch.logical_or(result, sentinel)
@@ -1202,6 +1207,7 @@ def _register_npu_inductor_flex_attention():
         sparse_mask_layout = None
         sparse_mask_buffer = None
         sparse_mask_strides = None
+        has_sparse_blocks = False
         if flexattention_mask_out:
             assert compact_q_offsets is not None
             assert compact_flat_to_row is not None
@@ -1209,6 +1215,7 @@ def _register_npu_inductor_flex_attention():
             total_normal_blocks_val = V.graph.sizevars.guard_int(
                 kernel_options[_COMPACT_SPARSE_MASK_TOTAL_BLOCKS_OPTION]
             )
+            has_sparse_blocks = total_normal_blocks_val > 0
             sparse_mask_size = [
                 total_normal_blocks_val,
                 SPARSE_Q_BLOCK_SIZE,
@@ -1664,13 +1671,19 @@ def _register_npu_inductor_flex_attention():
             5: _create_sparse_mask_indices_fake_generator(),
         }
         log.info("Sparse mask kernel autotune starting with %d choices", len(sparse_mask_choices))
-        autotune_select_algorithm(
-            "sparse_mask_kernel",
-            sparse_mask_choices,
-            sparse_mask_inputs_for_autotuning,
-            sparse_mask_layout,
-            input_gen_fns=sparse_mask_input_gen_fns,
-        )
+        if has_sparse_blocks:
+            autotune_select_algorithm(
+                "sparse_mask_kernel",
+                sparse_mask_choices,
+                sparse_mask_inputs_for_autotuning,
+                sparse_mask_layout,
+                input_gen_fns=sparse_mask_input_gen_fns,
+            )
+        else:
+            log.info(
+                "Skipping sparse mask compact-generation kernel: "
+                "no sparse blocks (total_normal_blocks == 0)"
+            )
         log.info(
             "Sparse mask kernel autotune completed with %d choices",
             len(sparse_mask_choices),
@@ -1982,10 +1995,12 @@ def _register_npu_inductor_flex_attention():
         bwd_sparse_mask_block_pos_layout = None
         bwd_sparse_mask_block_pos_buffer = None
         bwd_sparse_mask_block_pos_strides = None
+        bwd_has_sparse_blocks = False
         if flexattention_mask_out:
             total_normal_blocks_val = V.graph.sizevars.guard_int(
                 kernel_options[_COMPACT_SPARSE_MASK_TOTAL_BLOCKS_OPTION]
             )
+            bwd_has_sparse_blocks = total_normal_blocks_val > 0
             bwd_sparse_mask_size = [
                 total_normal_blocks_val,
                 SPARSE_Q_BLOCK_SIZE,
@@ -2274,7 +2289,7 @@ def _register_npu_inductor_flex_attention():
                 bwd_sparse_mask_inputs_for_autotuning,
                 bwd_sparse_mask_layout,
                 input_gen_fns=bwd_sparse_mask_input_gen_fns,
-            )
+            ) if bwd_has_sparse_blocks else bwd_sparse_mask_buffer
             log.info(
                 "Backward compact sparse mask kernel autotune completed "
                 "with %d choices: %s",
@@ -2302,13 +2317,19 @@ def _register_npu_inductor_flex_attention():
                     2: create_compact_q_offsets_fake,
                     3: create_minus_one_int_tensor_fake,
                 },
-            )
-            log.info(
-                "Sparse mask block-position kernel autotune completed "
-                "with %d choices: %s",
-                len(bwd_sparse_mask_block_pos_choices),
-                bwd_sparse_mask_block_pos_result,
-            )
+            ) if bwd_has_sparse_blocks else bwd_sparse_mask_block_pos_buffer
+            if bwd_has_sparse_blocks:
+                log.info(
+                    "Sparse mask block-position kernel autotune completed "
+                    "with %d choices: %s",
+                    len(bwd_sparse_mask_block_pos_choices),
+                    bwd_sparse_mask_block_pos_result,
+                )
+            else:
+                log.info(
+                    "Skipping backward sparse mask compact/block-pos kernels: "
+                    "no sparse blocks (total_normal_blocks == 0)"
+                )
             mask_out_input_nodes = [
                 bwd_sparse_mask_result,
                 compact_q_offsets,
