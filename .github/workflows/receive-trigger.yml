@@ -97,5 +97,6 @@ jobs:
       resolved_short: ${{ needs.build.outputs.resolved_short }}
       torch_npu_short: ${{ needs.build.outputs.torch_npu_short }}
       case_paths_config: .github/config/pr_test_whitelist.yml
+      skip_list: .github/config/pr_skip_list.jsonl
       report_to_upstream: true
       hw_classification: 'ACCELERATOR'

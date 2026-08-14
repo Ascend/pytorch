@@ -33,6 +33,14 @@ on:
           When true, scan ALL test_*.py files and use case-paths-config as a
           categorization mapping (paths + files) instead of a whitelist.
           Unmatched files go to 'others'.
+      skip_list:
+        required: false
+        type: string
+        default: ''
+        description: >-
+          Path (relative to repo root) to a JSONL skip list file. When set,
+          matching nodeids are removed after collection and before sharding.
+          When empty, no skip filtering is applied.
     outputs:
       core_matrix:
         description: Core shard matrix JSON
@@ -212,11 +220,24 @@ jobs:
             FULL_SCAN_ARG="--full-scan"
           fi
 
+          SKIP_LIST_ARG=""
+          SKIP_LIST_INPUT='${{ inputs.skip_list }}'
+          if [ -n "${SKIP_LIST_INPUT}" ]; then
+            SKIP_LIST_PATH="${GITHUB_WORKSPACE}/ci-scripts/${SKIP_LIST_INPUT}"
+            if [ -f "${SKIP_LIST_PATH}" ]; then
+              SKIP_LIST_ARG="--skip-list ${SKIP_LIST_PATH}"
+              echo "Skip list: ${SKIP_LIST_INPUT}"
+            else
+              echo "WARNING: skip list file not found: ${SKIP_LIST_PATH}"
+            fi
+          fi
+
           python3 ${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/collect_all_cases.py \
             --test-dir ${GITHUB_WORKSPACE}/pytorch/test \
             --hw-classification ${{ inputs.hw_classification }} \
             ${CONFIG_ARG} \
             ${FULL_SCAN_ARG} \
+            ${SKIP_LIST_ARG} \
             --regular-threshold 10000 \
             --distributed-threshold 1000 \
             --output-dir ${GITHUB_WORKSPACE}/cases-shards \

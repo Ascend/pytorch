@@ -43,6 +43,13 @@ on:
           When true, scan ALL test_*.py files and use case-paths-config as a
           categorization mapping (paths + files) instead of a whitelist.
           Unmatched files go to 'others'.
+      skip_list:
+        required: false
+        type: string
+        default: ''
+        description: >-
+          Path (relative to repo root) to a JSONL skip list file. When set,
+          matching nodeids are removed after collection and before sharding.
 
 defaults:
   run:
@@ -61,6 +68,7 @@ jobs:
       docker_image: ${{ inputs.docker_image }}
       hw_classification: ${{ inputs.hw_classification }}
       full_scan: ${{ inputs.full_scan }}
+      skip_list: ${{ inputs.skip_list }}
 
   # ============================================================================
   # 2. Core tests (nn, optim, autograd, profiler)
