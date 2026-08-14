@@ -74,6 +74,41 @@ def _register_npu_inductor_fallbacks():
             make_fallback(op)
             FALLBACK_LIST.append(op)
 
+    # Bernoulli's NPU op-api still consumes host-side seed/offset values via
+    # NPUGeneratorImpl::philox_engine_inputs().  CANN does not currently expose
+    # a Bernoulli overload accepting the tensor seed/offset carried by
+    # PhiloxNpuState, so recording the fallback in an NPUGraph must fail.
+    #
+    # Mark the whole compiled graph as non-capturable from the lowering rather
+    # than putting only Bernoulli in a non-capturable partition.  Partitioning
+    # just this RNG op executes it extra times during graph warmup/record and
+    # advances the global generator, producing a different dropout mask from
+    # eager.  Whole-graph fallback preserves the exact eager RNG sequence while
+    # keeping Inductor/Triton compilation enabled.
+    unsafe_rng_fallbacks = (
+        aten.bernoulli.default,
+        aten.bernoulli.out,
+        aten.bernoulli.p,
+        aten.bernoulli_.Tensor,
+        aten.bernoulli_.float,
+    )
+    for op in unsafe_rng_fallbacks:
+        original_lowering = lowerings.get(op)
+        if original_lowering is None:
+            continue
+
+        def lowering_without_npugraph(
+            *args, _original=original_lowering, _op=op, **kwargs
+        ):
+            if V.graph.disable_cudagraphs_reason is None:
+                V.graph.disable_cudagraphs_reason = (
+                    f"NPU fallback RNG op {_op} has no graph-safe seed/offset ABI"
+                )
+            return _original(*args, **kwargs)
+
+        lowerings[op] = lowering_without_npugraph
+
+
 def overwrite_lowering(aten_fn, decomp_fn, *args, **kwargs):
     aten_fn = [aten_fn] if not isinstance(aten_fn, (list, tuple)) else list(aten_fn)
 

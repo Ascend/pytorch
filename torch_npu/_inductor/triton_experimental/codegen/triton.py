@@ -23,6 +23,7 @@ from torch._inductor.codegen.triton import (
     IndexingOptions,
     texpr,
     log,
+    is_sympy_integer_like,
     is_welford_reduction,
     TritonSymbols,
 )
@@ -2453,7 +2454,14 @@ class NPUTritonKernel(TritonKernel):
                 else:
                     terms.append(sym * o.divisor)
             chain_flat = sympy.Add(*terms)
-            inner_sym = free_by_name.get(inner.name, sympy.Symbol(inner.name))
+            # If the flat alias is not already present in the address, reuse the
+            # symbol owned by the range-tree entry.  Constructing a plain
+            # ``sympy.Symbol(inner.name)`` here drops the integer/nonnegative
+            # assumptions carried by iteration symbols.  The result prints with
+            # the same name but does not compare equal to the registered key in
+            # ``range_tree_nodes``, so Triton later reports an unregistered range
+            # symbol while inferring the load's block shape.
+            inner_sym = free_by_name.get(inner.name, inner.symbol())
 
             # Order-independent additive fold: index - chain_flat + inner_sym.
             # Only commit if it actually removes the chain symbols (i.e. the full
@@ -3080,14 +3088,18 @@ class NPUTritonKernel(TritonKernel):
         if override_mask:
             return result
 
-        # Scalar (integer-index) load broadcast: upstream sets expand_str =
-        # dense_size_str() = "[XBLOCK]", but the linearize tile is shaped by per-axis
-        # real_block_xN constexprs, not XBLOCK. A (XBLOCK,) broadcast right-aligns against
-        # a multi-axis tile → (rb_x3, rb_x2, XBLOCK) numel, exceeding Triton's 1M cap.
-        # Use [1] — it broadcasts cleanly with any multi-axis tile.
+        # Scalar (integer-index) load broadcast: keep both the emitted shape and CSE
+        # shape rank-one.  PyTorch 2.13 represents a constant index in a rank-N
+        # kernel with an all-singleton expand shape (for example [1, 1]).  In a
+        # linearized reduction the R tile itself is rank-one, so carrying that
+        # synthetic outer singleton into CSE turns scalar + [R0_BLOCK] into
+        # [1, R0_BLOCK], which cannot later be broadcast back to [R0_BLOCK].
+        # Explicit copy_shape requests are left untouched.
         expand_str = result.expand_str
-        if isinstance(index, sympy.Integer) and expand_str == self.dense_size_str():
+        expand_shape = result.expand_shape
+        if is_sympy_integer_like(index) and copy_shape is None:
             expand_str = "[1]"
+            expand_shape = (1,)
 
         new_mask_vars = OrderedSet()
         # Pre-compute the inner reduction node per reduction tree. In nested-loop mode
@@ -3160,7 +3172,7 @@ class NPUTritonKernel(TritonKernel):
         new_expand_str = expand_str
         if (
             self._load_mask is not None
-            and not isinstance(index, sympy.Integer)
+            and not is_sympy_integer_like(index)
             and not isinstance(result, BlockPtrOptions)
         ):
             # Axis-masks (xNmask / rN_mask) the index itself contributes, derived
@@ -3192,6 +3204,7 @@ class NPUTritonKernel(TritonKernel):
         if (
             new_mask_vars == result.mask_vars
             and new_expand_str == result.expand_str
+            and expand_shape == result.expand_shape
             and new_index_str == result.index_str
         ):
             return result
@@ -3201,7 +3214,7 @@ class NPUTritonKernel(TritonKernel):
             new_expand_str,
             result._has_rindex,
             result.index,
-            expand_shape=result.expand_shape,
+            expand_shape=expand_shape,
         )
 
     def iteration_ranges_get_pid(self, entry: IterationRangesRoot) -> str:
@@ -4707,11 +4720,12 @@ def _npu_rsplit_outer_applicable(kernel) -> bool:
       2. Exactly one reduction in the schedule, not a welford (multi-output sum
          is fine; welford has tuple semantics that the simple workspace+combine
          path doesn't model).
-      3. The free (non-reduction) x-axis size hint product is < total cores —
+      3. A unique reduction output/store binding can be identified safely.
+      4. The free (non-reduction) x-axis size hint product is < total cores —
          i.e. the upstream x-axis core split CAN'T fill all 40 cores.
-      4. The reduction numel hint is large enough that paying for the second
+      5. The reduction numel hint is large enough that paying for the second
          kernel launch is worthwhile.
-      5. NPU_RSPLIT_OUTER env gate is on (default).
+      6. NPU_RSPLIT_OUTER env gate is on (default).
     """
     if not npu_rsplit_outer:
         return False

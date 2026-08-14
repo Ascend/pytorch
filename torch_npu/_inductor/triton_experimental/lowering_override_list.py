@@ -8,6 +8,7 @@ generated). Every other op that is not a decomposition is turned into a fallback
 upstream lowering must be preserved verbatim rather than clobbered into a fallback.
 """
 import torch
+from torch._inductor.fx_passes.control_dependencies import control_deps
 
 from . import device_props as _device_props
 
@@ -106,16 +107,13 @@ GENERATE_LIST = [
 if _device_props.is_a5():
     GENERATE_LIST += []
 
-# Runtime-assertion ops (torch._check / aten._assert_*): upstream registers
-# intentional lowerings for these -- _assert_scalar / _assert_tensor_metadata are
-# no-ops (the checks are emitted at codegen time via deferred runtime asserts),
-# while _assert_async / _functional_assert_async emit an in-kernel device_assert.
-# They must NOT be converted to fallbacks: a fallback re-invokes the real aten op
-# during lowering, which throws when the guard has been constant-folded to a
-# python bool, e.g. torch._check(s0 == s0) -> aten._assert_scalar(True, msg):
-#   RuntimeError: aten::_assert_scalar() ... Cannot cast True to number
-# Keep whatever upstream registered for these ops instead of clobbering it.
-KEEP_UPSTREAM_LOWERING = [
+# Higher-order and runtime-assertion ops whose intentional upstream lowerings must
+# not be replaced with generic fallbacks.  control_deps carries a Subgraph argument
+# that only its dedicated lowering understands; FallbackKernel treats it as a tensor
+# and attempts to read a nonexistent dtype.  For aten._assert_* ops, a fallback
+# re-invokes the real aten op during lowering and can throw after guards are folded
+# to Python bools (for example, aten._assert_scalar(True, msg)).
+KEEP_UPSTREAM_LOWERING = [control_deps] + [
     getattr(aten, _name)
     for _name in (
         "_assert_scalar",

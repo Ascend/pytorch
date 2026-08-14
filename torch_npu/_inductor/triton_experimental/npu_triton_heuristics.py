@@ -205,6 +205,21 @@ def _fmt_config(cfg):
         return str(cfg)
 
 
+def _can_clamp_1d_grid(inductor_meta, def_args, arg_names):
+    """Whether a Grid1D pointwise launch can derive its grid from xnumel.
+
+    A zero free-x-node kernel is the scalar form: its generated body has no
+    per-program x index, so launching every NPU core would make all programs
+    access the same scalar.  Clamp it just like the one-free-node form.
+    Missing metadata remains conservative for custom/legacy kernels.
+    """
+    npu_num_x_nodes = inductor_meta.get("npu_num_x_nodes")
+    return (
+        npu_num_x_nodes in (0, 1)
+        and inductor_meta.get("grid_type", "Grid1D") == "Grid1D"
+        and "xnumel" in def_args
+        and "R0_BLOCK" not in set(arg_names)
+    )
 
 
 class NPUTritonCompileResult(TritonCompileResult):
@@ -406,20 +421,19 @@ class NPUTritonCompileResult(TritonCompileResult):
             def_args = [*def_args, *self.inductor_meta["extra_launcher_args"]]
 
         xblock_val = cfg.kwargs.get("XBLOCK", 1)
-        # Only clamp grid_0 for truly single-node 1D pointwise kernels (npu_num_x_nodes =
-        # x-axis node count, incl constexpr). The grid_0 expr below is from xnumel only,
-        # correct only for Grid1D: Grid2D/3D self-distribute over program_id(0) but their
-        # dominant axis is ynumel (x often a collapsed 512→1 dim), so grid_0 from xnumel
-        # under-launches (sigmoid over [batch,1,1,1] → grid_0==1).
+        # Clamp grid_0 for scalar or single-free-node 1D pointwise kernels. The
+        # grid expression below is derived only from xnumel, so it is not valid
+        # for Grid2D/3D or reductions. Keep the separate unsplit scalar
+        # reduction case from master: partial rsplit kernels must use the
+        # regular dispatch path.
         npu_num_x_nodes = self.inductor_meta.get("npu_num_x_nodes", 0)
         grid_type = self.inductor_meta.get("grid_type", "Grid1D")
         npu_rsplit_partial = self.inductor_meta.get(
             "npu_rsplit_partial", "ws_ptr" in fn.arg_names
         )
-        is_simple_1d = (npu_num_x_nodes == 1
-                        and grid_type == "Grid1D"
-                        and "xnumel" in def_args
-                        and "R0_BLOCK" not in set(fn.arg_names))
+        is_simple_1d = _can_clamp_1d_grid(
+            self.inductor_meta, def_args, fn.arg_names
+        )
         is_unsplit_scalar_reduction = (
             npu_num_x_nodes == 0
             and grid_type == "Grid1D"
@@ -1459,9 +1473,11 @@ def _memoized_downcast(src, dst_dtype):
 def _wrap_launcher_with_downcast(launcher, downcast_args, mutated_arg_names):
     """Wrap a launcher to cast i64/fp64 tensor args to i32/fp32 at the boundary.
 
-    For output args (out_ptr/in_out_ptr or mutated): allocate an empty buffer of
-    the downcast dtype, run the kernel, then copy back to the original dtype buffer.
-    For input args: cast data to the downcast dtype before the kernel call.
+    For pure output args (out_ptr): allocate an empty buffer of the downcast
+    dtype.  In/out or mutated args must preserve their input contents, so cast
+    them into a fresh temporary before launch.  Both kinds are copied back to
+    the original dtype buffer after the kernel.  Input-only args use the
+    memoized cast path.
     """
     def_args = getattr(launcher, "_npu_def_args", None)
     if not def_args:
@@ -1474,8 +1490,22 @@ def _wrap_launcher_with_downcast(launcher, downcast_args, mutated_arg_names):
             orig_type = downcast_args[name]
             if orig_type in _DTYPE_DOWNCAST_MAP:
                 src_dtype, dst_dtype = _DTYPE_DOWNCAST_MAP[orig_type]
-                is_output = name.startswith("out_ptr") or name.startswith("in_out_ptr") or name in mutated_arg_names
-                cast_indices.append((i, name, src_dtype, dst_dtype, is_output))
+                is_mutated = name in mutated_arg_names
+                is_in_out = name.startswith("in_out_ptr")
+                is_output = (
+                    name.startswith("out_ptr") or is_in_out or is_mutated
+                )
+                preserve_input = is_in_out or is_mutated
+                cast_indices.append(
+                    (
+                        i,
+                        name,
+                        src_dtype,
+                        dst_dtype,
+                        is_output,
+                        preserve_input,
+                    )
+                )
 
     if not cast_indices:
         return launcher
@@ -1487,14 +1517,25 @@ def _wrap_launcher_with_downcast(launcher, downcast_args, mutated_arg_names):
         new_args = list(args)
         writebacks: List[Tuple[Any, Any, torch.dtype]] = []
         cast_any = False
-        for idx, name, src_dtype, dst_dtype, is_output in cast_indices:
+        for (
+            idx,
+            name,
+            src_dtype,
+            dst_dtype,
+            is_output,
+            preserve_input,
+        ) in cast_indices:
             if idx >= len(new_args):
                 continue
             a = new_args[idx]
             if not isinstance(a, torch.Tensor) or a.dtype != src_dtype:
                 continue
             if is_output:
-                tmp = torch.empty_like(a, dtype=dst_dtype)
+                tmp = (
+                    a.to(dst_dtype)
+                    if preserve_input
+                    else torch.empty_like(a, dtype=dst_dtype)
+                )
                 writebacks.append((a, tmp, src_dtype))
             else:
                 tmp = _memoized_downcast(a, dst_dtype)
