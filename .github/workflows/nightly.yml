@@ -16,7 +16,6 @@ on:
       - '.github/scripts/run_npu_test_shard.py'
       - '.github/scripts/parse_test_results.py'
       - '.github/scripts/generate_npu_full_test_report.py'
-      - '.github/ci_commit_pins/vision.txt'
   workflow_dispatch:
 
 permissions:

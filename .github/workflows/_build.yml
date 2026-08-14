@@ -212,18 +212,13 @@ jobs:
           echo "name=$(basename ${wheel})" >> "$GITHUB_OUTPUT"
 
       # Step 2b: Build and install torchvision from pinned source
-      - name: Checkout this repo for vision pin
-        uses: actions/checkout@v6
-        with:
-          path: ci-scripts
-          ref: ${{ github.ref }}
-          sparse-checkout: |
-            .github/ci_commit_pins/vision.txt
-
+      # vision.txt is read from the already-extracted upstream PyTorch source
+      # (pytorch/.github/ci_commit_pins/vision.txt), which is always in sync
+      # with the upstream commit being built.
       - name: Build and install torchvision
         id: build_torchvision
         run: |
-          VISION_COMMIT=$(cat ci-scripts/.github/ci_commit_pins/vision.txt)
+          VISION_COMMIT=$(cat pytorch/.github/ci_commit_pins/vision.txt)
           echo "Building torchvision from commit: ${VISION_COMMIT}"
 
           apt-get update && apt-get install -y --no-install-recommends libpng-dev libjpeg-dev libwebp-dev
