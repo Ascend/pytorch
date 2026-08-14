@@ -26,11 +26,7 @@ from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.utils import (
     get_num_call_functions,
 )
 
-from .config import (
-    disable_post_reduce_fusion,
-    dump_fx_test,
-    enable_matmul_fusion,
-)
+from . import config as dvm_config
 from .decomp import patch_decomp
 from .fx_test import generate_dvm_fx_case
 from .graph_build import DvmCodegenInterpreter
@@ -196,7 +192,7 @@ class NpuDvmScheduling(NpuMetaScheduling):
                 )
             else:
                 wrapper.add_import_once("from torch_npu._inductor import dvm")
-                if dump_fx_test:
+                if dvm_config.dump_fx_test:
                     generate_dvm_fx_case(mlir_kernel._gm, fusion_type="mlir")
                 code = mlir_kernel.dvm_codegen.code
                 code.splice(
@@ -243,7 +239,7 @@ class NpuDvmScheduling(NpuMetaScheduling):
             return can_fuse_dvm_epilogue(node1, node2)
         if isinstance(template2, DvmTemplateBuffer):
             return False
-        if not disable_post_reduce_fusion:
+        if not dvm_config.disable_post_reduce_fusion:
             return super().can_fuse_vertical(node1, node2)
 
         _, (numel1, rnumel1) = node1.group
@@ -276,7 +272,7 @@ class NpuDvmScheduling(NpuMetaScheduling):
             template2, DvmTemplateBuffer
         ):
             return False
-        if not disable_post_reduce_fusion:
+        if not dvm_config.disable_post_reduce_fusion:
             return super().can_fuse_horizontal(node1, node2)
         return False
 
@@ -447,7 +443,7 @@ class DvmMlirFusionPatch:
         patch_decomp()
         _patch_lowering_type_checks()
         _patch_lowering()
-        if enable_matmul_fusion:
+        if dvm_config.enable_matmul_fusion:
             patch_dvm_matmul_template_fusion()
         register_backend_for_device(
             "npu", NpuDvmScheduling, NpuMlirWrapperCodeGen
