@@ -448,6 +448,11 @@ def get_allow_dynamic():
     return False
 
 
+def is_dynamic_axis(axis):
+    length = V.graph.sizevars.simplify(axis.length)
+    return not isinstance(length, (int, sympy.Integer))
+
+
 @staticmethod
 def select_index_dtype(node_schedule, numel, reduction_numel):
     return "tl.int32"
@@ -496,9 +501,8 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
 
     # axis mask
     def _codegen_mask(self):
-        allow_dynamic = get_allow_dynamic()
         codegen_mask = self.is_tiling_axis and (
-            not self.is_no_loop_axis or allow_dynamic
+            not self.is_no_loop_axis or is_dynamic_axis(self)
         )
         if V.kernel.is_unified_simt_kernel():
             codegen_mask = self.is_tiling_axis
@@ -4251,7 +4255,6 @@ class NPUIndexTritonKernel(TritonKernel):
             )
 
         for node in self.sorted_axis:
-            allow_dynamic = get_allow_dynamic()
             is_persistent_reduction_axis = (
                 self.persistent_reduction and node.is_reduction
             )
@@ -4265,7 +4268,7 @@ class NPUIndexTritonKernel(TritonKernel):
                 if (
                     not node.is_tiling_axis
                     or is_persistent_reduction_axis
-                    or (node.is_no_loop_axis and not allow_dynamic)
+                    or (node.is_no_loop_axis and not is_dynamic_axis(node))
                 ):
                     continue
 
