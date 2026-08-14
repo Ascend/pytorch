@@ -19,7 +19,7 @@ from torch.fx.passes.utils.fuser_utils import (
     erase_nodes,
 )
 
-from .config import dump_fx_test
+from . import config as dvm_config
 from .graph_build import DvmCodegenInterpreter, is_fx_dynamic
 from .util import patch_gm_placeholder_strides_from_codegen_args
 from .fx_test import generate_dvm_fx_case
@@ -160,7 +160,7 @@ class _FusedMeta:
         """
         Return (codegen_interpreter, python_source_string).
         """
-        if dump_fx_test:
+        if dvm_config.dump_fx_test:
             generate_dvm_fx_case(self.gm, fusion_type="graph")
         cg = DvmCodegenInterpreter(self.gm, ktype="split")
         cg.run()
