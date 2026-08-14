@@ -2,22 +2,26 @@
 
 > [!NOTE]
 >
-> - API的**支持情况**中，&#10004;表示API支持在对应硬件环境上运行，&#10007;表示暂不支持。<br>
+> - API的**支持情况**中，✔表示API支持在对应硬件环境上运行，✘表示暂不支持。<br>
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
 > - 部分API虽在[PyTorch社区文档](https://pytorch.org/docs/2.11/)中存在，但未收录于本支持清单。此类API尚未验证，请谨慎使用。我们将持续进行验证工作，并在验证完成后更新文档。
 > - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
+> - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://docs.pytorch.org/docs/2.11/distributed.elastic.html)。
 
 ## 目录
 
-- [base API](#base-api)
-- [Registry](#registry)
-- [Handler](#handler)
-- [Dataclasses](#dataclasses)
-- [Implementations](#implementations)
+- [Elastic Agent](#elastic-agent)
+- [Control Plane](#control-plane)
+- [Multiprocessing](#multiprocessing)
+- [Error Propagation](#error-propagation)
+- [Rendezvous](#rendezvous)
+- [Expiration Timers](#expiration-timers)
+- [Metrics](#metrics)
+- [Events](#events)
 
-## base API
+## Elastic Agent
 
-### _`class`_ torch.distributed.elastic.agent.server.ElasticAgent
+### <code><i>class</i></code> torch.distributed.elastic.agent.server.ElasticAgent
 
 <div style="margin-left: 2em">
 
@@ -25,9 +29,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 > <font size="3">get_worker_group()</font>
 
@@ -37,9 +41,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -51,15 +55,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
 </div>
 
-### _`class`_ torch.distributed.elastic.agent.server.WorkerSpec
+### <code><i>class</i></code> torch.distributed.elastic.agent.server.WorkerSpec
 
 <div style="margin-left: 2em">
 
@@ -67,9 +71,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 > <font size="3">get_entrypoint_name()</font>
 
@@ -79,15 +83,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
 </div>
 
-### _`class`_ torch.distributed.elastic.agent.server.WorkerState
+### <code><i>class</i></code> torch.distributed.elastic.agent.server.WorkerState
 
 <div style="margin-left: 2em">
 
@@ -95,9 +99,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 > <font size="3">is_running()</font>
 
@@ -107,15 +111,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
 </div>
 
-### torch.distributed.elastic.control_plane.worker_main
+### <code><i>class</i></code> torch.distributed.elastic.agent.server.Worker
 
 <div style="margin-left: 2em">
 
@@ -123,13 +127,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### _`class`_ torch.distributed.elastic.agent.server.Worker
+### <code><i>class</i></code> torch.distributed.elastic.agent.server.WorkerGroup
 
 <div style="margin-left: 2em">
 
@@ -137,13 +141,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### _`class`_ torch.distributed.elastic.agent.server.WorkerGroup
+### <code><i>class</i></code> torch.distributed.elastic.agent.server.local_elastic_agent.LocalElasticAgent
 
 <div style="margin-left: 2em">
 
@@ -151,13 +155,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### _`class`_ torch.distributed.elastic.agent.server.local_elastic_agent.LocalElasticAgent
+### <code><i>class</i></code> torch.distributed.elastic.agent.server.SimpleElasticAgent
 
 <div style="margin-left: 2em">
 
@@ -165,23 +169,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-### _`class`_ torch.distributed.elastic.agent.server.SimpleElasticAgent
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 > <font size="3">_assign_worker_ranks()</font>
 
@@ -191,9 +181,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -205,9 +195,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -219,9 +209,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -233,9 +223,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -247,9 +237,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -261,9 +251,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -275,9 +265,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -289,9 +279,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -303,15 +293,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
 </div>
 
-### _`class`_ torch.distributed.elastic.agent.server.api.RunResult
+### <code><i>class</i></code> torch.distributed.elastic.agent.server.api.RunResult
 
 <div style="margin-left: 2em">
 
@@ -319,9 +309,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -333,13 +323,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### _`class`_ torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer
+### <code><i>class</i></code> torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer
 
 <div style="margin-left: 2em">
 
@@ -347,9 +337,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 > <font size="3">start()</font>
 
@@ -359,9 +349,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -373,13 +363,31 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
 </div>
+
+## Control Plane
+
+### torch.distributed.elastic.control_plane.worker_main
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+## Multiprocessing
 
 ### torch.distributed.elastic.multiprocessing.start_processes
 
@@ -389,13 +397,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### _`class`_ torch.distributed.elastic.multiprocessing.api.PContext
+### <code><i>class</i></code> torch.distributed.elastic.multiprocessing.api.PContext
 
 <div style="margin-left: 2em">
 
@@ -403,13 +411,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### _`class`_ torch.distributed.elastic.multiprocessing.api.MultiprocessContext
+### <code><i>class</i></code> torch.distributed.elastic.multiprocessing.api.MultiprocessContext
 
 <div style="margin-left: 2em">
 
@@ -417,13 +425,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### _`class`_ torch.distributed.elastic.multiprocessing.api.SubprocessContext
+### <code><i>class</i></code> torch.distributed.elastic.multiprocessing.api.SubprocessContext
 
 <div style="margin-left: 2em">
 
@@ -431,13 +439,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### _`class`_ torch.distributed.elastic.multiprocessing.api.RunProcsResult
+### <code><i>class</i></code> torch.distributed.elastic.multiprocessing.api.RunProcsResult
 
 <div style="margin-left: 2em">
 
@@ -445,13 +453,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### _`class`_ torch.distributed.elastic.multiprocessing.api.DefaultLogsSpecs
+### <code><i>class</i></code> torch.distributed.elastic.multiprocessing.api.DefaultLogsSpecs
 
 <div style="margin-left: 2em">
 
@@ -459,9 +467,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 > <font size="3">reify()</font>
 
@@ -471,15 +479,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
 </div>
 
-### _`class`_ torch.distributed.elastic.multiprocessing.api.LogsDest
+### <code><i>class</i></code> torch.distributed.elastic.multiprocessing.api.LogsDest
 
 <div style="margin-left: 2em">
 
@@ -487,13 +495,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### _`class`_ torch.distributed.elastic.multiprocessing.api.LogsSpecs
+### <code><i>class</i></code> torch.distributed.elastic.multiprocessing.api.LogsSpecs
 
 <div style="margin-left: 2em">
 
@@ -501,9 +509,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 > <font size="3">reify()</font>
 
@@ -513,13 +521,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
 </div>
+
+## Error Propagation
 
 ### torch.distributed.elastic.multiprocessing.errors.record
 
@@ -529,13 +539,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### _`class`_ torch.distributed.elastic.multiprocessing.errors.ChildFailedError
+### <code><i>class</i></code> torch.distributed.elastic.multiprocessing.errors.ChildFailedError
 
 <div style="margin-left: 2em">
 
@@ -543,13 +553,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### _`class`_ torch.distributed.elastic.multiprocessing.errors.ErrorHandler
+### <code><i>class</i></code> torch.distributed.elastic.multiprocessing.errors.ErrorHandler
 
 <div style="margin-left: 2em">
 
@@ -557,13 +567,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### _`class`_ torch.distributed.elastic.multiprocessing.errors.ProcessFailure
+### <code><i>class</i></code> torch.distributed.elastic.multiprocessing.errors.ProcessFailure
 
 <div style="margin-left: 2em">
 
@@ -571,13 +581,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.RendezvousParameters
+## Rendezvous
+
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.RendezvousParameters
 
 <div style="margin-left: 2em">
 
@@ -585,9 +597,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 > <font size="3">get()</font>
 
@@ -597,9 +609,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -611,9 +623,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -625,15 +637,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.RendezvousHandlerRegistry
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.RendezvousHandlerRegistry
 
 <div style="margin-left: 2em">
 
@@ -641,13 +653,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.api.RendezvousError
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.api.RendezvousError
 
 <div style="margin-left: 2em">
 
@@ -655,13 +667,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.api.RendezvousGracefulExitError
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.api.RendezvousGracefulExitError
 
 <div style="margin-left: 2em">
 
@@ -669,9 +681,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -683,9 +695,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -697,9 +709,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -711,13 +723,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.etcd_rendezvous.EtcdRendezvousHandler
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.etcd_rendezvous.EtcdRendezvousHandler
 
 <div style="margin-left: 2em">
 
@@ -725,13 +737,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.etcd_store.EtcdStore
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.etcd_store.EtcdStore
 
 <div style="margin-left: 2em">
 
@@ -739,9 +751,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 > <font size="3">add()</font>
 
@@ -751,9 +763,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -765,9 +777,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -779,9 +791,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -793,9 +805,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -807,15 +819,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.etcd_server.EtcdServer
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.etcd_server.EtcdServer
 
 <div style="margin-left: 2em">
 
@@ -823,13 +835,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10007; |
-| <term>Atlas A3 训练系列产品</term> | &#10007; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### torch.distributed.elastic.timer.configure
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.RendezvousHandler
 
 <div style="margin-left: 2em">
 
@@ -837,389 +849,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-### torch.distributed.elastic.timer.debug_info_logging.log_debug_info_for_expired_timers
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-### torch.distributed.elastic.timer.expires
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-### _`class`_ torch.distributed.elastic.timer.LocalTimerServer
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-### _`class`_ torch.distributed.elastic.timer.LocalTimerClient
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-### _`class`_ torch.distributed.elastic.timer.FileTimerServer
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-### _`class`_ torch.distributed.elastic.timer.FileTimerClient
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-### _`class`_ torch.distributed.elastic.timer.TimerRequest
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-### _`class`_ torch.distributed.elastic.timer.TimerServer
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-> <font size="3">clear_timers()</font>
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-> <font size="3">get_expired_timers()</font>
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-> <font size="3">register_timers()</font>
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-</div>
-
-### _`class`_ torch.distributed.elastic.timer.TimerClient
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-> <font size="3">acquire()</font>
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-> <font size="3">release()</font>
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-</div>
-
-### _`class`_ torch.distributed.elastic.metrics.api.MetricHandler
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-### _`class`_ torch.distributed.elastic.metrics.api.ConsoleMetricHandler
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-### _`class`_ torch.distributed.elastic.metrics.api.NullMetricHandler
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-### torch.distributed.elastic.metrics.configure
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-### torch.distributed.elastic.metrics.prof
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-### torch.distributed.elastic.metrics.put_metric
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-### torch.distributed.elastic.events.record
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-### torch.distributed.elastic.events.get_logging_handler
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-### _`class`_ torch.distributed.elastic.events.api.Event
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-### _`class`_ torch.distributed.elastic.events.api.EventSource
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-### _`class`_ torch.distributed.elastic.events.api.EventMetadataValue
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-### torch.distributed.elastic.events.construct_and_record_rdzv_event
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-## Registry
-
-### _`class`_ torch.distributed.elastic.rendezvous.RendezvousHandler
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 > <font size="3">get_backend()</font>
 
@@ -1229,9 +861,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1243,9 +875,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1257,9 +889,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1271,9 +903,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1285,9 +917,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1299,9 +931,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1313,9 +945,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1327,17 +959,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
 </div>
 
-## Handler
-
-### _`class`_ torch.distributed.elastic.rendezvous.RendezvousInfo
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.RendezvousInfo
 
 <div style="margin-left: 2em">
 
@@ -1345,13 +975,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.api.RendezvousClosedError
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.api.RendezvousClosedError
 
 <div style="margin-left: 2em">
 
@@ -1359,13 +989,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.api.RendezvousTimeoutError
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.api.RendezvousTimeoutError
 
 <div style="margin-left: 2em">
 
@@ -1373,13 +1003,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.api.RendezvousConnectionError
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.api.RendezvousConnectionError
 
 <div style="margin-left: 2em">
 
@@ -1387,13 +1017,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.api.RendezvousStateError
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.api.RendezvousStateError
 
 <div style="margin-left: 2em">
 
@@ -1401,15 +1031,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-## Dataclasses
-
-### _`class`_ torch.distributed.elastic.rendezvous.api.RendezvousStoreInfo
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.api.RendezvousStoreInfo
 
 <div style="margin-left: 2em">
 
@@ -1417,9 +1045,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 > <font size="3">build()</font>
 
@@ -1429,17 +1057,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
 </div>
 
-## Implementations
-
-### _`class`_ torch.distributed.elastic.rendezvous.dynamic_rendezvous.DynamicRendezvousHandler
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.dynamic_rendezvous.DynamicRendezvousHandler
 
 <div style="margin-left: 2em">
 
@@ -1447,9 +1073,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 > <font size="3">from_backend()</font>
 
@@ -1459,15 +1085,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousBackend
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousBackend
 
 <div style="margin-left: 2em">
 
@@ -1475,9 +1101,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 > <font size="3">get_state()</font>
 
@@ -1487,9 +1113,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1501,9 +1127,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1515,15 +1141,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousTimeout
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.dynamic_rendezvous.RendezvousTimeout
 
 <div style="margin-left: 2em">
 
@@ -1531,9 +1157,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 > <font size="3">close()</font>
 
@@ -1543,9 +1169,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1557,9 +1183,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1571,9 +1197,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1585,15 +1211,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.c10d_rendezvous_backend.C10dRendezvousBackend
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.c10d_rendezvous_backend.C10dRendezvousBackend
 
 <div style="margin-left: 2em">
 
@@ -1601,9 +1227,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 > <font size="3">get_state()</font>
 
@@ -1613,9 +1239,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1627,9 +1253,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1641,15 +1267,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
 </div>
 
-### _`class`_ torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend
+### <code><i>class</i></code> torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend
 
 <div style="margin-left: 2em">
 
@@ -1657,9 +1283,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 > <font size="3">get_state()</font>
 
@@ -1669,9 +1295,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1683,9 +1309,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1697,10 +1323,394 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
+
+</div>
+
+## Expiration Timers
+
+### torch.distributed.elastic.timer.configure
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+### torch.distributed.elastic.timer.debug_info_logging.log_debug_info_for_expired_timers
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+### torch.distributed.elastic.timer.expires
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+### <code><i>class</i></code> torch.distributed.elastic.timer.LocalTimerServer
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+### <code><i>class</i></code> torch.distributed.elastic.timer.LocalTimerClient
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+### <code><i>class</i></code> torch.distributed.elastic.timer.FileTimerServer
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+### <code><i>class</i></code> torch.distributed.elastic.timer.FileTimerClient
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+### <code><i>class</i></code> torch.distributed.elastic.timer.TimerRequest
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+### <code><i>class</i></code> torch.distributed.elastic.timer.TimerServer
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+> <font size="3">clear_timers()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+> <font size="3">get_expired_timers()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+> <font size="3">register_timers()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+</div>
+
+### <code><i>class</i></code> torch.distributed.elastic.timer.TimerClient
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+> <font size="3">acquire()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+> <font size="3">release()</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+</div>
+
+## Metrics
+
+### <code><i>class</i></code> torch.distributed.elastic.metrics.api.MetricHandler
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+### <code><i>class</i></code> torch.distributed.elastic.metrics.api.ConsoleMetricHandler
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+### <code><i>class</i></code> torch.distributed.elastic.metrics.api.NullMetricHandler
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+### torch.distributed.elastic.metrics.configure
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+### torch.distributed.elastic.metrics.prof
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+### torch.distributed.elastic.metrics.put_metric
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+## Events
+
+### torch.distributed.elastic.events.record
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+### torch.distributed.elastic.events.get_logging_handler
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+### <code><i>class</i></code> torch.distributed.elastic.events.api.Event
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+### <code><i>class</i></code> torch.distributed.elastic.events.api.EventSource
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+### <code><i>class</i></code> torch.distributed.elastic.events.api.EventMetadataValue
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+### torch.distributed.elastic.events.construct_and_record_rdzv_event
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>

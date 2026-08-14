@@ -2,19 +2,19 @@
 
 > [!NOTE]
 >
-> - API的**支持情况**中，&#10004;表示API支持在对应硬件环境上运行，&#10007;表示暂不支持。<br>
+> - API的**支持情况**中，✔表示API支持在对应硬件环境上运行，✘表示暂不支持。<br>
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
 > - 部分API虽在[PyTorch社区文档](https://pytorch.org/docs/2.7/)中存在，但未收录于本支持清单。此类API尚未验证，请谨慎使用。我们将持续进行验证工作，并在验证完成后更新文档。
 > - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
+> - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://pytorch.org/docs/2.7/tensors.html)。
 
 ## 目录
 
-- [base API](#base-api)
 - [Tensor class reference](#tensor-class-reference)
 
-## base API
+## Tensor class reference
 
-### Tensor.T
+### <code><i>class</i></code> torch.Tensor
 
 <div style="margin-left: 2em">
 
@@ -22,15 +22,27 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+> <font size="3">T</font>
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.H
+> <font size="3">H</font>
 
 <div style="margin-left: 2em">
 
@@ -38,13 +50,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.mT
+> <font size="3">mT</font>
 
 <div style="margin-left: 2em">
 
@@ -52,13 +64,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
-### Tensor.mH
+> <font size="3">mH</font>
 
 <div style="margin-left: 2em">
 
@@ -66,13 +78,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.new_tensor
+> <font size="3">new_tensor()</font>
 
 <div style="margin-left: 2em">
 
@@ -80,13 +92,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
-### Tensor.new_full
+> <font size="3">new_full()</font>
 
 <div style="margin-left: 2em">
 
@@ -94,15 +106,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持int64
 
 </div>
 
-### Tensor.new_empty
+> <font size="3">new_empty()</font>
 
 <div style="margin-left: 2em">
 
@@ -110,15 +122,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.new_ones
+> <font size="3">new_ones()</font>
 
 <div style="margin-left: 2em">
 
@@ -126,15 +138,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.new_zeros
+> <font size="3">new_zeros()</font>
 
 <div style="margin-left: 2em">
 
@@ -142,15 +154,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.is_cuda
+> <font size="3">is_cuda()</font>
 
 <div style="margin-left: 2em">
 
@@ -158,13 +170,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.is_quantized
+> <font size="3">is_quantized()</font>
 
 <div style="margin-left: 2em">
 
@@ -172,13 +184,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.is_meta
+> <font size="3">is_meta()</font>
 
 <div style="margin-left: 2em">
 
@@ -186,13 +198,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.device
+> <font size="3">device()</font>
 
 <div style="margin-left: 2em">
 
@@ -200,13 +212,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
-### Tensor.grad
+> <font size="3">grad()</font>
 
 <div style="margin-left: 2em">
 
@@ -214,15 +226,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.ndim
+> <font size="3">ndim()</font>
 
 <div style="margin-left: 2em">
 
@@ -230,15 +242,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.real
+> <font size="3">real()</font>
 
 <div style="margin-left: 2em">
 
@@ -246,13 +258,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.imag
+> <font size="3">imag()</font>
 
 <div style="margin-left: 2em">
 
@@ -260,13 +272,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.nbytes
+> <font size="3">nbytes()</font>
 
 <div style="margin-left: 2em">
 
@@ -274,13 +286,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.itemsize
+> <font size="3">itemsize()</font>
 
 <div style="margin-left: 2em">
 
@@ -288,13 +300,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.abs
+> <font size="3">abs()</font>
 
 <div style="margin-left: 2em">
 
@@ -302,15 +314,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.abs_
+> <font size="3">abs_()</font>
 
 <div style="margin-left: 2em">
 
@@ -318,15 +330,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
 
-### Tensor.absolute
+> <font size="3">absolute()</font>
 
 <div style="margin-left: 2em">
 
@@ -334,15 +346,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.absolute_
+> <font size="3">absolute_()</font>
 
 <div style="margin-left: 2em">
 
@@ -350,15 +362,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
 
-### Tensor.acos
+> <font size="3">acos()</font>
 
 <div style="margin-left: 2em">
 
@@ -366,9 +378,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -377,7 +389,7 @@
 
 </div>
 
-### Tensor.acos_
+> <font size="3">acos_()</font>
 
 <div style="margin-left: 2em">
 
@@ -385,15 +397,18 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
-**限制与说明**：`self`仅支持fp16，fp32
+**限制与说明**：
+
+- `self`仅支持fp16，fp32，fp64
+- <term>Atlas A3 训练系列产品</term>额外支持bf16
 
 </div>
 
-### Tensor.arccos
+> <font size="3">arccos()</font>
 
 <div style="margin-left: 2em">
 
@@ -401,15 +416,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.arccos_
+> <font size="3">arccos_()</font>
 
 <div style="margin-left: 2em">
 
@@ -417,15 +432,18 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
-**限制与说明**：`self`仅支持fp16，fp32
+**限制与说明**：
+
+- `self`仅支持fp16，fp32，fp64
+- <term>Atlas A3 训练系列产品</term>额外支持bf16
 
 </div>
 
-### Tensor.add
+> <font size="3">add()</font>
 
 <div style="margin-left: 2em">
 
@@ -433,15 +451,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.add_
+> <font size="3">add_()</font>
 
 <div style="margin-left: 2em">
 
@@ -449,15 +467,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.addbmm
+> <font size="3">addbmm()</font>
 
 <div style="margin-left: 2em">
 
@@ -465,15 +483,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.addbmm_
+> <font size="3">addbmm_()</font>
 
 <div style="margin-left: 2em">
 
@@ -481,15 +499,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.addcdiv
+> <font size="3">addcdiv()</font>
 
 <div style="margin-left: 2em">
 
@@ -497,9 +515,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -508,7 +526,7 @@
 
 </div>
 
-### Tensor.addcdiv_
+> <font size="3">addcdiv_()</font>
 
 <div style="margin-left: 2em">
 
@@ -516,9 +534,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -528,7 +546,7 @@
 
 </div>
 
-### Tensor.addcmul
+> <font size="3">addcmul()</font>
 
 <div style="margin-left: 2em">
 
@@ -536,9 +554,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -547,7 +565,7 @@
 
 </div>
 
-### Tensor.addcmul_
+> <font size="3">addcmul_()</font>
 
 <div style="margin-left: 2em">
 
@@ -555,9 +573,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -567,7 +585,7 @@
 
 </div>
 
-### Tensor.addmm
+> <font size="3">addmm()</font>
 
 <div style="margin-left: 2em">
 
@@ -575,15 +593,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32
 
 </div>
 
-### Tensor.addmm_
+> <font size="3">addmm_()</font>
 
 <div style="margin-left: 2em">
 
@@ -591,15 +609,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.sspaddmm
+> <font size="3">sspaddmm()</font>
 
 <div style="margin-left: 2em">
 
@@ -607,13 +625,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10007; |
-| <term>Atlas A3 训练系列产品</term> | &#10007; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.addmv
+> <font size="3">addmv()</font>
 
 <div style="margin-left: 2em">
 
@@ -621,15 +639,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
 
-### Tensor.addmv_
+> <font size="3">addmv_()</font>
 
 <div style="margin-left: 2em">
 
@@ -637,15 +655,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
 
-### Tensor.addr
+> <font size="3">addr()</font>
 
 <div style="margin-left: 2em">
 
@@ -653,15 +671,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.addr_
+> <font size="3">addr_()</font>
 
 <div style="margin-left: 2em">
 
@@ -669,15 +687,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.adjoint
+> <font size="3">adjoint()</font>
 
 <div style="margin-left: 2em">
 
@@ -685,13 +703,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
-### Tensor.allclose
+> <font size="3">allclose()</font>
 
 <div style="margin-left: 2em">
 
@@ -699,15 +717,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.amax
+> <font size="3">amax()</font>
 
 <div style="margin-left: 2em">
 
@@ -715,15 +733,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.amin
+> <font size="3">amin()</font>
 
 <div style="margin-left: 2em">
 
@@ -731,15 +749,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.aminmax
+> <font size="3">aminmax()</font>
 
 <div style="margin-left: 2em">
 
@@ -747,15 +765,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.angle
+> <font size="3">angle()</font>
 
 <div style="margin-left: 2em">
 
@@ -763,15 +781,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64
 
 </div>
 
-### Tensor.apply_
+> <font size="3">apply_()</font>
 
 <div style="margin-left: 2em">
 
@@ -779,15 +797,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：仅CPU支持
 
 </div>
 
-### Tensor.argmax
+> <font size="3">argmax()</font>
 
 <div style="margin-left: 2em">
 
@@ -795,15 +813,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
 
 </div>
 
-### Tensor.argmin
+> <font size="3">argmin()</font>
 
 <div style="margin-left: 2em">
 
@@ -811,15 +829,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
 
 </div>
 
-### Tensor.argsort
+> <font size="3">argsort()</font>
 
 <div style="margin-left: 2em">
 
@@ -827,18 +845,18 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
 - `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64
-- 针对<term>Ascend 950DT</term>，由于底层实现限制，"stable"仅支持True，若设置为False，执行时会被自动修改为True
+- 针对<term>Ascend 950DT</term>，由于底层实现限制，`"stable"`仅支持True，若设置为False，执行时会被自动修改为True
 
 </div>
 
-### Tensor.argwhere
+> <font size="3">argwhere()</font>
 
 <div style="margin-left: 2em">
 
@@ -846,15 +864,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.asin
+> <font size="3">asin()</font>
 
 <div style="margin-left: 2em">
 
@@ -862,15 +880,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.asin_
+> <font size="3">asin_()</font>
 
 <div style="margin-left: 2em">
 
@@ -878,15 +896,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.arcsin
+> <font size="3">arcsin()</font>
 
 <div style="margin-left: 2em">
 
@@ -894,15 +912,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.arcsin_
+> <font size="3">arcsin_()</font>
 
 <div style="margin-left: 2em">
 
@@ -910,15 +928,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.as_strided
+> <font size="3">as_strided()</font>
 
 <div style="margin-left: 2em">
 
@@ -926,15 +944,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.atan
+> <font size="3">atan()</font>
 
 <div style="margin-left: 2em">
 
@@ -942,15 +960,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.atan_
+> <font size="3">atan_()</font>
 
 <div style="margin-left: 2em">
 
@@ -958,15 +976,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.arctan
+> <font size="3">arctan()</font>
 
 <div style="margin-left: 2em">
 
@@ -974,15 +992,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.arctan_
+> <font size="3">arctan_()</font>
 
 <div style="margin-left: 2em">
 
@@ -990,15 +1008,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.atan2
+> <font size="3">atan2()</font>
 
 <div style="margin-left: 2em">
 
@@ -1006,15 +1024,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.atan2_
+> <font size="3">atan2_()</font>
 
 <div style="margin-left: 2em">
 
@@ -1022,9 +1040,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -1033,7 +1051,7 @@
 
 </div>
 
-### Tensor.arctan2
+> <font size="3">arctan2()</font>
 
 <div style="margin-left: 2em">
 
@@ -1041,15 +1059,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.arctan2_
+> <font size="3">arctan2_()</font>
 
 <div style="margin-left: 2em">
 
@@ -1057,15 +1075,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.all
+> <font size="3">all()</font>
 
 <div style="margin-left: 2em">
 
@@ -1073,15 +1091,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.any
+> <font size="3">any()</font>
 
 <div style="margin-left: 2em">
 
@@ -1089,15 +1107,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.backward
+> <font size="3">backward()</font>
 
 <div style="margin-left: 2em">
 
@@ -1105,15 +1123,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.baddbmm
+> <font size="3">baddbmm()</font>
 
 <div style="margin-left: 2em">
 
@@ -1121,15 +1139,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.baddbmm_
+> <font size="3">baddbmm_()</font>
 
 <div style="margin-left: 2em">
 
@@ -1137,15 +1155,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.bernoulli
+> <font size="3">bernoulli()</font>
 
 <div style="margin-left: 2em">
 
@@ -1153,9 +1171,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -1164,7 +1182,7 @@
 
 </div>
 
-### Tensor.bernoulli_
+> <font size="3">bernoulli_()</font>
 
 <div style="margin-left: 2em">
 
@@ -1172,15 +1190,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：可能回退至CPU执行
 
 </div>
 
-### Tensor.bfloat16
+> <font size="3">bfloat16()</font>
 
 <div style="margin-left: 2em">
 
@@ -1188,15 +1206,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.bincount
+> <font size="3">bincount()</font>
 
 <div style="margin-left: 2em">
 
@@ -1204,9 +1222,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -1215,7 +1233,7 @@
 
 </div>
 
-### Tensor.bitwise_not
+> <font size="3">bitwise_not()</font>
 
 <div style="margin-left: 2em">
 
@@ -1223,15 +1241,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.bitwise_not_
+> <font size="3">bitwise_not_()</font>
 
 <div style="margin-left: 2em">
 
@@ -1239,15 +1257,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.bitwise_and
+> <font size="3">bitwise_and()</font>
 
 <div style="margin-left: 2em">
 
@@ -1255,15 +1273,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.bitwise_and_
+> <font size="3">bitwise_and_()</font>
 
 <div style="margin-left: 2em">
 
@@ -1271,15 +1289,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.bitwise_or
+> <font size="3">bitwise_or()</font>
 
 <div style="margin-left: 2em">
 
@@ -1287,15 +1305,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.bitwise_or_
+> <font size="3">bitwise_or_()</font>
 
 <div style="margin-left: 2em">
 
@@ -1303,15 +1321,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.bitwise_xor
+> <font size="3">bitwise_xor()</font>
 
 <div style="margin-left: 2em">
 
@@ -1319,15 +1337,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.bitwise_xor_
+> <font size="3">bitwise_xor_()</font>
 
 <div style="margin-left: 2em">
 
@@ -1335,15 +1353,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.bmm
+> <font size="3">bmm()</font>
 
 <div style="margin-left: 2em">
 
@@ -1351,15 +1369,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32
 
 </div>
 
-### Tensor.bool
+> <font size="3">bool()</font>
 
 <div style="margin-left: 2em">
 
@@ -1367,15 +1385,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.byte
+> <font size="3">byte()</font>
 
 <div style="margin-left: 2em">
 
@@ -1383,15 +1401,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.broadcast_to
+> <font size="3">broadcast_to()</font>
 
 <div style="margin-left: 2em">
 
@@ -1399,15 +1417,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.ceil
+> <font size="3">ceil()</font>
 
 <div style="margin-left: 2em">
 
@@ -1415,15 +1433,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.ceil_
+> <font size="3">ceil_()</font>
 
 <div style="margin-left: 2em">
 
@@ -1431,15 +1449,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.char
+> <font size="3">char()</font>
 
 <div style="margin-left: 2em">
 
@@ -1447,15 +1465,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.chunk
+> <font size="3">chunk()</font>
 
 <div style="margin-left: 2em">
 
@@ -1463,15 +1481,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.clamp
+> <font size="3">clamp()</font>
 
 <div style="margin-left: 2em">
 
@@ -1479,15 +1497,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
 
 </div>
 
-### Tensor.clamp_
+> <font size="3">clamp_()</font>
 
 <div style="margin-left: 2em">
 
@@ -1495,15 +1513,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：可能回退至CPU执行
 
 </div>
 
-### Tensor.clip
+> <font size="3">clip()</font>
 
 <div style="margin-left: 2em">
 
@@ -1511,15 +1529,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
 
 </div>
 
-### Tensor.clip_
+> <font size="3">clip_()</font>
 
 <div style="margin-left: 2em">
 
@@ -1527,15 +1545,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
 
-### Tensor.clone
+> <font size="3">clone()</font>
 
 <div style="margin-left: 2em">
 
@@ -1543,15 +1561,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.contiguous
+> <font size="3">contiguous()</font>
 
 <div style="margin-left: 2em">
 
@@ -1559,15 +1577,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.copy_
+> <font size="3">copy_()</font>
 
 <div style="margin-left: 2em">
 
@@ -1575,9 +1593,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -1586,7 +1604,7 @@
 
 </div>
 
-### Tensor.conj
+> <font size="3">conj()</font>
 
 <div style="margin-left: 2em">
 
@@ -1594,15 +1612,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.resolve_conj
+> <font size="3">resolve_conj()</font>
 
 <div style="margin-left: 2em">
 
@@ -1610,15 +1628,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.resolve_neg
+> <font size="3">resolve_neg()</font>
 
 <div style="margin-left: 2em">
 
@@ -1626,15 +1644,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.copysign
+> <font size="3">copysign()</font>
 
 <div style="margin-left: 2em">
 
@@ -1642,9 +1660,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -1653,7 +1671,7 @@
 
 </div>
 
-### Tensor.cos
+> <font size="3">cos()</font>
 
 <div style="margin-left: 2em">
 
@@ -1661,15 +1679,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.cos_
+> <font size="3">cos_()</font>
 
 <div style="margin-left: 2em">
 
@@ -1677,15 +1695,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，complex64，complex128
 
 </div>
 
-### Tensor.cosh
+> <font size="3">cosh()</font>
 
 <div style="margin-left: 2em">
 
@@ -1693,15 +1711,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.cosh_
+> <font size="3">cosh_()</font>
 
 <div style="margin-left: 2em">
 
@@ -1709,15 +1727,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，complex64，complex128
 
 </div>
 
-### Tensor.count_nonzero
+> <font size="3">count_nonzero()</font>
 
 <div style="margin-left: 2em">
 
@@ -1725,15 +1743,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.cov
+> <font size="3">cov()</font>
 
 <div style="margin-left: 2em">
 
@@ -1741,15 +1759,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，int16，int32，int64
 
 </div>
 
-### Tensor.acosh
+> <font size="3">acosh()</font>
 
 <div style="margin-left: 2em">
 
@@ -1757,9 +1775,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -1768,7 +1786,7 @@
 
 </div>
 
-### Tensor.acosh_
+> <font size="3">acosh_()</font>
 
 <div style="margin-left: 2em">
 
@@ -1776,15 +1794,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，complex64，complex128
 
 </div>
 
-### Tensor.arccosh
+> <font size="3">arccosh()</font>
 
 <div style="margin-left: 2em">
 
@@ -1792,15 +1810,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.arccosh_
+> <font size="3">arccosh_()</font>
 
 <div style="margin-left: 2em">
 
@@ -1808,15 +1826,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，complex64，complex128
 
 </div>
 
-### Tensor.cpu
+> <font size="3">cpu()</font>
 
 <div style="margin-left: 2em">
 
@@ -1824,13 +1842,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
-### Tensor.cross
+> <font size="3">cross()</font>
 
 <div style="margin-left: 2em">
 
@@ -1838,9 +1856,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -1849,7 +1867,7 @@
 
 </div>
 
-### Tensor.cuda
+> <font size="3">cuda()</font>
 
 <div style="margin-left: 2em">
 
@@ -1857,15 +1875,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
-**限制与说明**：NPU对应接口为Tensor.npu，其`memory_format`参数仅支持传入torch.contiguous_format
+**限制与说明**：NPU对应接口为`Tensor.npu`，其`memory_format`参数仅支持传入torch.contiguous_format
 
 </div>
 
-### Tensor.cummax
+> <font size="3">cummax()</font>
 
 <div style="margin-left: 2em">
 
@@ -1873,9 +1891,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -1884,7 +1902,7 @@
 
 </div>
 
-### Tensor.cummin
+> <font size="3">cummin()</font>
 
 <div style="margin-left: 2em">
 
@@ -1892,15 +1910,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.cumsum
+> <font size="3">cumsum()</font>
 
 <div style="margin-left: 2em">
 
@@ -1908,18 +1926,18 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
 - `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
-- `self`仅支持Named Tensor
+- 支持Named Tensor
 
 </div>
 
-### Tensor.cumsum_
+> <font size="3">cumsum_()</font>
 
 <div style="margin-left: 2em">
 
@@ -1927,15 +1945,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，int64，bool
 
 </div>
 
-### Tensor.chalf
+> <font size="3">chalf()</font>
 
 <div style="margin-left: 2em">
 
@@ -1943,13 +1961,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10007; |
-| <term>Atlas A3 训练系列产品</term> | &#10007; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.cfloat
+> <font size="3">cfloat()</font>
 
 <div style="margin-left: 2em">
 
@@ -1957,13 +1975,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.cdouble
+> <font size="3">cdouble()</font>
 
 <div style="margin-left: 2em">
 
@@ -1971,13 +1989,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.data_ptr
+> <font size="3">data_ptr()</font>
 
 <div style="margin-left: 2em">
 
@@ -1985,15 +2003,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.deg2rad
+> <font size="3">deg2rad()</font>
 
 <div style="margin-left: 2em">
 
@@ -2001,15 +2019,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.dequantize
+> <font size="3">dequantize()</font>
 
 <div style="margin-left: 2em">
 
@@ -2017,15 +2035,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.dense_dim
+> <font size="3">dense_dim()</font>
 
 <div style="margin-left: 2em">
 
@@ -2033,13 +2051,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.detach
+> <font size="3">detach()</font>
 
 <div style="margin-left: 2em">
 
@@ -2047,15 +2065,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.detach_
+> <font size="3">detach_()</font>
 
 <div style="margin-left: 2em">
 
@@ -2063,15 +2081,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.diag
+> <font size="3">diag()</font>
 
 <div style="margin-left: 2em">
 
@@ -2079,15 +2097,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64
 
 </div>
 
-### Tensor.diag_embed
+> <font size="3">diag_embed()</font>
 
 <div style="margin-left: 2em">
 
@@ -2095,15 +2113,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.diagflat
+> <font size="3">diagflat()</font>
 
 <div style="margin-left: 2em">
 
@@ -2111,15 +2129,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64
 
 </div>
 
-### Tensor.diagonal
+> <font size="3">diagonal()</font>
 
 <div style="margin-left: 2em">
 
@@ -2127,15 +2145,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.diagonal_scatter
+> <font size="3">diagonal_scatter()</font>
 
 <div style="margin-left: 2em">
 
@@ -2143,15 +2161,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.fill_diagonal_
+> <font size="3">fill_diagonal_()</font>
 
 <div style="margin-left: 2em">
 
@@ -2159,15 +2177,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.diff
+> <font size="3">diff()</font>
 
 <div style="margin-left: 2em">
 
@@ -2175,15 +2193,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.dim
+> <font size="3">dim()</font>
 
 <div style="margin-left: 2em">
 
@@ -2191,15 +2209,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.dim_order
+> <font size="3">dim_order()</font>
 
 <div style="margin-left: 2em">
 
@@ -2207,13 +2225,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.dist
+> <font size="3">dist()</font>
 
 <div style="margin-left: 2em">
 
@@ -2221,15 +2239,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：<term>Ascend 950DT</term>：不支持fp64，complex64，complex128
 
 </div>
 
-### Tensor.div
+> <font size="3">div()</font>
 
 <div style="margin-left: 2em">
 
@@ -2237,15 +2255,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.div_
+> <font size="3">div_()</font>
 
 <div style="margin-left: 2em">
 
@@ -2253,15 +2271,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64
 
 </div>
 
-### Tensor.divide
+> <font size="3">divide()</font>
 
 <div style="margin-left: 2em">
 
@@ -2269,15 +2287,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.divide_
+> <font size="3">divide_()</font>
 
 <div style="margin-left: 2em">
 
@@ -2285,15 +2303,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.dot
+> <font size="3">dot()</font>
 
 <div style="margin-left: 2em">
 
@@ -2301,15 +2319,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.double
+> <font size="3">double()</font>
 
 <div style="margin-left: 2em">
 
@@ -2317,9 +2335,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -2329,7 +2347,7 @@
 
 </div>
 
-### Tensor.dsplit
+> <font size="3">dsplit()</font>
 
 <div style="margin-left: 2em">
 
@@ -2337,15 +2355,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.element_size
+> <font size="3">element_size()</font>
 
 <div style="margin-left: 2em">
 
@@ -2353,15 +2371,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.eq
+> <font size="3">eq()</font>
 
 <div style="margin-left: 2em">
 
@@ -2369,15 +2387,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.eq_
+> <font size="3">eq_()</font>
 
 <div style="margin-left: 2em">
 
@@ -2385,15 +2403,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.equal
+> <font size="3">equal()</font>
 
 <div style="margin-left: 2em">
 
@@ -2401,15 +2419,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.erf
+> <font size="3">erf()</font>
 
 <div style="margin-left: 2em">
 
@@ -2417,15 +2435,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，int64，bool
 
 </div>
 
-### Tensor.erf_
+> <font size="3">erf_()</font>
 
 <div style="margin-left: 2em">
 
@@ -2433,15 +2451,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.erfc
+> <font size="3">erfc()</font>
 
 <div style="margin-left: 2em">
 
@@ -2449,15 +2467,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，int64，bool
 
 </div>
 
-### Tensor.erfc_
+> <font size="3">erfc_()</font>
 
 <div style="margin-left: 2em">
 
@@ -2465,15 +2483,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.erfinv
+> <font size="3">erfinv()</font>
 
 <div style="margin-left: 2em">
 
@@ -2481,15 +2499,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.erfinv_
+> <font size="3">erfinv_()</font>
 
 <div style="margin-left: 2em">
 
@@ -2497,15 +2515,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32
 
 </div>
 
-### Tensor.exp
+> <font size="3">exp()</font>
 
 <div style="margin-left: 2em">
 
@@ -2513,15 +2531,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，int64，bool
 
 </div>
 
-### Tensor.exp_
+> <font size="3">exp_()</font>
 
 <div style="margin-left: 2em">
 
@@ -2529,15 +2547,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，complex64，complex128
 
 </div>
 
-### Tensor.expm1
+> <font size="3">expm1()</font>
 
 <div style="margin-left: 2em">
 
@@ -2545,15 +2563,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，int64，bool
 
 </div>
 
-### Tensor.expm1_
+> <font size="3">expm1_()</font>
 
 <div style="margin-left: 2em">
 
@@ -2561,15 +2579,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.expand
+> <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
 
@@ -2577,15 +2595,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.expand_as
+> <font size="3">expand_as()</font>
 
 <div style="margin-left: 2em">
 
@@ -2593,15 +2611,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.exponential_
+> <font size="3">exponential_()</font>
 
 <div style="margin-left: 2em">
 
@@ -2609,15 +2627,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64
 
 </div>
 
-### Tensor.fix
+> <font size="3">fix()</font>
 
 <div style="margin-left: 2em">
 
@@ -2625,15 +2643,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.fix_
+> <font size="3">fix_()</font>
 
 <div style="margin-left: 2em">
 
@@ -2641,15 +2659,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.fill_
+> <font size="3">fill_()</font>
 
 <div style="margin-left: 2em">
 
@@ -2657,15 +2675,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.flatten
+> <font size="3">flatten()</font>
 
 <div style="margin-left: 2em">
 
@@ -2673,15 +2691,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.flip
+> <font size="3">flip()</font>
 
 <div style="margin-left: 2em">
 
@@ -2689,15 +2707,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.fliplr
+> <font size="3">fliplr()</font>
 
 <div style="margin-left: 2em">
 
@@ -2705,15 +2723,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.flipud
+> <font size="3">flipud()</font>
 
 <div style="margin-left: 2em">
 
@@ -2721,15 +2739,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.float
+> <font size="3">float()</font>
 
 <div style="margin-left: 2em">
 
@@ -2737,15 +2755,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.float_power
+> <font size="3">float_power()</font>
 
 <div style="margin-left: 2em">
 
@@ -2753,15 +2771,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex128
 
 </div>
 
-### Tensor.float_power_
+> <font size="3">float_power_()</font>
 
 <div style="margin-left: 2em">
 
@@ -2769,15 +2787,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持double
 
 </div>
 
-### Tensor.floor
+> <font size="3">floor()</font>
 
 <div style="margin-left: 2em">
 
@@ -2785,15 +2803,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
 
 </div>
 
-### Tensor.floor_
+> <font size="3">floor_()</font>
 
 <div style="margin-left: 2em">
 
@@ -2801,15 +2819,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
 
 </div>
 
-### Tensor.floor_divide
+> <font size="3">floor_divide()</font>
 
 <div style="margin-left: 2em">
 
@@ -2817,15 +2835,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
 
-### Tensor.floor_divide_
+> <font size="3">floor_divide_()</font>
 
 <div style="margin-left: 2em">
 
@@ -2833,15 +2851,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
 
-### Tensor.fmod
+> <font size="3">fmod()</font>
 
 <div style="margin-left: 2em">
 
@@ -2849,15 +2867,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int32，int64
 
 </div>
 
-### Tensor.fmod_
+> <font size="3">fmod_()</font>
 
 <div style="margin-left: 2em">
 
@@ -2865,15 +2883,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int32，int64
 
 </div>
 
-### Tensor.frac
+> <font size="3">frac()</font>
 
 <div style="margin-left: 2em">
 
@@ -2881,15 +2899,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.frac_
+> <font size="3">frac_()</font>
 
 <div style="margin-left: 2em">
 
@@ -2897,15 +2915,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.gather
+> <font size="3">gather()</font>
 
 <div style="margin-left: 2em">
 
@@ -2913,9 +2931,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -2925,7 +2943,7 @@
 
 </div>
 
-### Tensor.ge
+> <font size="3">ge()</font>
 
 <div style="margin-left: 2em">
 
@@ -2933,15 +2951,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.ge_
+> <font size="3">ge_()</font>
 
 <div style="margin-left: 2em">
 
@@ -2949,15 +2967,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.greater_equal
+> <font size="3">greater_equal()</font>
 
 <div style="margin-left: 2em">
 
@@ -2965,15 +2983,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.greater_equal_
+> <font size="3">greater_equal_()</font>
 
 <div style="margin-left: 2em">
 
@@ -2981,15 +2999,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.geometric_
+> <font size="3">geometric_()</font>
 
 <div style="margin-left: 2em">
 
@@ -2997,13 +3015,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.ger
+> <font size="3">ger()</font>
 
 <div style="margin-left: 2em">
 
@@ -3011,13 +3029,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.get_device
+> <font size="3">get_device()</font>
 
 <div style="margin-left: 2em">
 
@@ -3025,13 +3043,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
-### Tensor.gt
+> <font size="3">gt()</font>
 
 <div style="margin-left: 2em">
 
@@ -3039,15 +3057,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.gt_
+> <font size="3">gt_()</font>
 
 <div style="margin-left: 2em">
 
@@ -3055,15 +3073,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.greater
+> <font size="3">greater()</font>
 
 <div style="margin-left: 2em">
 
@@ -3071,15 +3089,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.greater_
+> <font size="3">greater_()</font>
 
 <div style="margin-left: 2em">
 
@@ -3087,15 +3105,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.half
+> <font size="3">half()</font>
 
 <div style="margin-left: 2em">
 
@@ -3103,15 +3121,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.hardshrink
+> <font size="3">hardshrink()</font>
 
 <div style="margin-left: 2em">
 
@@ -3119,15 +3137,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.heaviside
+> <font size="3">heaviside()</font>
 
 <div style="margin-left: 2em">
 
@@ -3135,15 +3153,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：可能回退至CPU执行
 
 </div>
 
-### Tensor.histc
+> <font size="3">histc()</font>
 
 <div style="margin-left: 2em">
 
@@ -3151,15 +3169,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
 
-### Tensor.hsplit
+> <font size="3">hsplit()</font>
 
 <div style="margin-left: 2em">
 
@@ -3167,15 +3185,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.index_add_
+> <font size="3">index_add_()</font>
 
 <div style="margin-left: 2em">
 
@@ -3183,15 +3201,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，int64，bool
 
 </div>
 
-### Tensor.index_add
+> <font size="3">index_add()</font>
 
 <div style="margin-left: 2em">
 
@@ -3199,15 +3217,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.index_copy_
+> <font size="3">index_copy_()</font>
 
 <div style="margin-left: 2em">
 
@@ -3215,15 +3233,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，int16，int32，bool
 
 </div>
 
-### Tensor.index_copy
+> <font size="3">index_copy()</font>
 
 <div style="margin-left: 2em">
 
@@ -3231,15 +3249,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.index_fill_
+> <font size="3">index_fill_()</font>
 
 <div style="margin-left: 2em">
 
@@ -3247,15 +3265,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，int32，int64，bool
 
 </div>
 
-### Tensor.index_fill
+> <font size="3">index_fill()</font>
 
 <div style="margin-left: 2em">
 
@@ -3263,15 +3281,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，int32，int64，bool
 
 </div>
 
-### Tensor.index_put_
+> <font size="3">index_put_()</font>
 
 <div style="margin-left: 2em">
 
@@ -3279,9 +3297,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -3290,7 +3308,7 @@
 
 </div>
 
-### Tensor.index_put
+> <font size="3">index_put()</font>
 
 <div style="margin-left: 2em">
 
@@ -3298,9 +3316,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -3309,7 +3327,7 @@
 
 </div>
 
-### Tensor.index_reduce_
+> <font size="3">index_reduce_()</font>
 
 <div style="margin-left: 2em">
 
@@ -3317,15 +3335,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：可能回退至CPU执行
 
 </div>
 
-### Tensor.index_reduce
+> <font size="3">index_reduce()</font>
 
 <div style="margin-left: 2em">
 
@@ -3333,15 +3351,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：可能回退至CPU执行
 
 </div>
 
-### Tensor.index_select
+> <font size="3">index_select()</font>
 
 <div style="margin-left: 2em">
 
@@ -3349,15 +3367,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.indices
+> <font size="3">indices()</font>
 
 <div style="margin-left: 2em">
 
@@ -3365,13 +3383,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.inner
+> <font size="3">inner()</font>
 
 <div style="margin-left: 2em">
 
@@ -3379,15 +3397,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.int
+> <font size="3">int()</font>
 
 <div style="margin-left: 2em">
 
@@ -3395,15 +3413,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.int_repr
+> <font size="3">int_repr()</font>
 
 <div style="margin-left: 2em">
 
@@ -3411,13 +3429,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10007; |
-| <term>Atlas A3 训练系列产品</term> | &#10007; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.isclose
+> <font size="3">isclose()</font>
 
 <div style="margin-left: 2em">
 
@@ -3425,15 +3443,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int32，int64，bool
 
 </div>
 
-### Tensor.isfinite
+> <font size="3">isfinite()</font>
 
 <div style="margin-left: 2em">
 
@@ -3441,15 +3459,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.isinf
+> <font size="3">isinf()</font>
 
 <div style="margin-left: 2em">
 
@@ -3457,15 +3475,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.isposinf
+> <font size="3">isposinf()</font>
 
 <div style="margin-left: 2em">
 
@@ -3473,15 +3491,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.isneginf
+> <font size="3">isneginf()</font>
 
 <div style="margin-left: 2em">
 
@@ -3489,15 +3507,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.isnan
+> <font size="3">isnan()</font>
 
 <div style="margin-left: 2em">
 
@@ -3505,15 +3523,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.is_contiguous
+> <font size="3">is_contiguous()</font>
 
 <div style="margin-left: 2em">
 
@@ -3521,15 +3539,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.is_complex
+> <font size="3">is_complex()</font>
 
 <div style="margin-left: 2em">
 
@@ -3537,15 +3555,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.is_conj
+> <font size="3">is_conj()</font>
 
 <div style="margin-left: 2em">
 
@@ -3553,15 +3571,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.is_floating_point
+> <font size="3">is_floating_point()</font>
 
 <div style="margin-left: 2em">
 
@@ -3569,15 +3587,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.is_inference
+> <font size="3">is_inference()</font>
 
 <div style="margin-left: 2em">
 
@@ -3585,15 +3603,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.is_leaf
+> <font size="3">is_leaf()</font>
 
 <div style="margin-left: 2em">
 
@@ -3601,13 +3619,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.is_pinned
+> <font size="3">is_pinned()</font>
 
 <div style="margin-left: 2em">
 
@@ -3615,15 +3633,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.is_set_to
+> <font size="3">is_set_to()</font>
 
 <div style="margin-left: 2em">
 
@@ -3631,15 +3649,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.is_shared
+> <font size="3">is_shared()</font>
 
 <div style="margin-left: 2em">
 
@@ -3647,13 +3665,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10007; |
-| <term>Atlas A3 训练系列产品</term> | &#10007; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.is_signed
+> <font size="3">is_signed()</font>
 
 <div style="margin-left: 2em">
 
@@ -3661,15 +3679,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.is_sparse
+> <font size="3">is_sparse()</font>
 
 <div style="margin-left: 2em">
 
@@ -3677,15 +3695,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.isreal
+> <font size="3">isreal()</font>
 
 <div style="margin-left: 2em">
 
@@ -3693,15 +3711,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.item
+> <font size="3">item()</font>
 
 <div style="margin-left: 2em">
 
@@ -3709,15 +3727,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.kthvalue
+> <font size="3">kthvalue()</font>
 
 <div style="margin-left: 2em">
 
@@ -3725,15 +3743,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，int32
 
 </div>
 
-### Tensor.ldexp
+> <font size="3">ldexp()</font>
 
 <div style="margin-left: 2em">
 
@@ -3741,15 +3759,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.ldexp_
+> <font size="3">ldexp_()</font>
 
 <div style="margin-left: 2em">
 
@@ -3757,15 +3775,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，complex64，complex128
 
 </div>
 
-### Tensor.le
+> <font size="3">le()</font>
 
 <div style="margin-left: 2em">
 
@@ -3773,15 +3791,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.le_
+> <font size="3">le_()</font>
 
 <div style="margin-left: 2em">
 
@@ -3789,15 +3807,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.less_equal
+> <font size="3">less_equal()</font>
 
 <div style="margin-left: 2em">
 
@@ -3805,15 +3823,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.less_equal_
+> <font size="3">less_equal_()</font>
 
 <div style="margin-left: 2em">
 
@@ -3821,15 +3839,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.lerp
+> <font size="3">lerp()</font>
 
 <div style="margin-left: 2em">
 
@@ -3837,15 +3855,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.lerp_
+> <font size="3">lerp_()</font>
 
 <div style="margin-left: 2em">
 
@@ -3853,15 +3871,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.log
+> <font size="3">log()</font>
 
 <div style="margin-left: 2em">
 
@@ -3869,15 +3887,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.log_
+> <font size="3">log_()</font>
 
 <div style="margin-left: 2em">
 
@@ -3885,15 +3903,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，complex64，complex128
 
 </div>
 
-### Tensor.log10
+> <font size="3">log10()</font>
 
 <div style="margin-left: 2em">
 
@@ -3901,15 +3919,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.log10_
+> <font size="3">log10_()</font>
 
 <div style="margin-left: 2em">
 
@@ -3917,15 +3935,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，complex64，complex128
 
 </div>
 
-### Tensor.log1p
+> <font size="3">log1p()</font>
 
 <div style="margin-left: 2em">
 
@@ -3933,15 +3951,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.log1p_
+> <font size="3">log1p_()</font>
 
 <div style="margin-left: 2em">
 
@@ -3949,15 +3967,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.log2
+> <font size="3">log2()</font>
 
 <div style="margin-left: 2em">
 
@@ -3965,15 +3983,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.log2_
+> <font size="3">log2_()</font>
 
 <div style="margin-left: 2em">
 
@@ -3981,15 +3999,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，complex64，complex128
 
 </div>
 
-### Tensor.logaddexp
+> <font size="3">logaddexp()</font>
 
 <div style="margin-left: 2em">
 
@@ -3997,15 +4015,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，int16，int32，int64，bool
 
 </div>
 
-### Tensor.logaddexp2
+> <font size="3">logaddexp2()</font>
 
 <div style="margin-left: 2em">
 
@@ -4013,15 +4031,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.logsumexp
+> <font size="3">logsumexp()</font>
 
 <div style="margin-left: 2em">
 
@@ -4029,15 +4047,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.logical_and
+> <font size="3">logical_and()</font>
 
 <div style="margin-left: 2em">
 
@@ -4045,15 +4063,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.logical_and_
+> <font size="3">logical_and_()</font>
 
 <div style="margin-left: 2em">
 
@@ -4061,15 +4079,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.logical_not
+> <font size="3">logical_not()</font>
 
 <div style="margin-left: 2em">
 
@@ -4077,15 +4095,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.logical_not_
+> <font size="3">logical_not_()</font>
 
 <div style="margin-left: 2em">
 
@@ -4093,15 +4111,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.logical_or
+> <font size="3">logical_or()</font>
 
 <div style="margin-left: 2em">
 
@@ -4109,15 +4127,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.logical_or_
+> <font size="3">logical_or_()</font>
 
 <div style="margin-left: 2em">
 
@@ -4125,15 +4143,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.logical_xor
+> <font size="3">logical_xor()</font>
 
 <div style="margin-left: 2em">
 
@@ -4141,9 +4159,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -4152,7 +4170,7 @@
 
 </div>
 
-### Tensor.logical_xor_
+> <font size="3">logical_xor_()</font>
 
 <div style="margin-left: 2em">
 
@@ -4160,15 +4178,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.logit
+> <font size="3">logit()</font>
 
 <div style="margin-left: 2em">
 
@@ -4176,9 +4194,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -4187,7 +4205,7 @@
 
 </div>
 
-### Tensor.logit_
+> <font size="3">logit_()</font>
 
 <div style="margin-left: 2em">
 
@@ -4195,9 +4213,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -4206,7 +4224,7 @@
 
 </div>
 
-### Tensor.long
+> <font size="3">long()</font>
 
 <div style="margin-left: 2em">
 
@@ -4214,15 +4232,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.lt
+> <font size="3">lt()</font>
 
 <div style="margin-left: 2em">
 
@@ -4230,15 +4248,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.lt_
+> <font size="3">lt_()</font>
 
 <div style="margin-left: 2em">
 
@@ -4246,15 +4264,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.less
+> <font size="3">less()</font>
 
 <div style="margin-left: 2em">
 
@@ -4262,15 +4280,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.less_
+> <font size="3">less_()</font>
 
 <div style="margin-left: 2em">
 
@@ -4278,15 +4296,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.as_subclass
+> <font size="3">as_subclass()</font>
 
 <div style="margin-left: 2em">
 
@@ -4294,13 +4312,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
-### Tensor.map_
+> <font size="3">map_()</font>
 
 <div style="margin-left: 2em">
 
@@ -4308,15 +4326,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：仅CPU支持
 
 </div>
 
-### Tensor.masked_scatter_
+> <font size="3">masked_scatter_()</font>
 
 <div style="margin-left: 2em">
 
@@ -4324,15 +4342,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp32，int64，bool
 
 </div>
 
-### Tensor.masked_scatter
+> <font size="3">masked_scatter()</font>
 
 <div style="margin-left: 2em">
 
@@ -4340,15 +4358,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.masked_fill_
+> <font size="3">masked_fill_()</font>
 
 <div style="margin-left: 2em">
 
@@ -4356,15 +4374,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，int8，int32，int64，bool
 
 </div>
 
-### Tensor.masked_fill
+> <font size="3">masked_fill()</font>
 
 <div style="margin-left: 2em">
 
@@ -4372,15 +4390,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，int8，int32，int64，bool
 
 </div>
 
-### Tensor.masked_select
+> <font size="3">masked_select()</font>
 
 <div style="margin-left: 2em">
 
@@ -4388,15 +4406,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.matmul
+> <font size="3">matmul()</font>
 
 <div style="margin-left: 2em">
 
@@ -4404,18 +4422,18 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
 - `self`仅支持bf16，fp16，fp32
-- `self`仅支持Named Tensor
+- 支持Named Tensor
 
 </div>
 
-### Tensor.matrix_power
+> <font size="3">matrix_power()</font>
 
 <div style="margin-left: 2em">
 
@@ -4423,15 +4441,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.max
+> <font size="3">max()</font>
 
 <div style="margin-left: 2em">
 
@@ -4439,15 +4457,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，int64，bool
 
 </div>
 
-### Tensor.maximum
+> <font size="3">maximum()</font>
 
 <div style="margin-left: 2em">
 
@@ -4455,15 +4473,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.mean
+> <font size="3">mean()</font>
 
 <div style="margin-left: 2em">
 
@@ -4471,15 +4489,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，complex64，complex128
 
 </div>
 
-### Tensor.nanmean
+> <font size="3">nanmean()</font>
 
 <div style="margin-left: 2em">
 
@@ -4487,15 +4505,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.median
+> <font size="3">median()</font>
 
 <div style="margin-left: 2em">
 
@@ -4503,9 +4521,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -4514,7 +4532,7 @@
 
 </div>
 
-### Tensor.min
+> <font size="3">min()</font>
 
 <div style="margin-left: 2em">
 
@@ -4522,15 +4540,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，int64，bool
 
 </div>
 
-### Tensor.minimum
+> <font size="3">minimum()</font>
 
 <div style="margin-left: 2em">
 
@@ -4538,15 +4556,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.mm
+> <font size="3">mm()</font>
 
 <div style="margin-left: 2em">
 
@@ -4554,15 +4572,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32
 
 </div>
 
-### Tensor.smm
+> <font size="3">smm()</font>
 
 <div style="margin-left: 2em">
 
@@ -4570,13 +4588,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10007; |
-| <term>Atlas A3 训练系列产品</term> | &#10007; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.mode
+> <font size="3">mode()</font>
 
 <div style="margin-left: 2em">
 
@@ -4584,13 +4602,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10007; |
-| <term>Atlas A3 训练系列产品</term> | &#10007; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.movedim
+> <font size="3">movedim()</font>
 
 <div style="margin-left: 2em">
 
@@ -4598,15 +4616,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.moveaxis
+> <font size="3">moveaxis()</font>
 
 <div style="margin-left: 2em">
 
@@ -4614,15 +4632,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.msort
+> <font size="3">msort()</font>
 
 <div style="margin-left: 2em">
 
@@ -4630,15 +4648,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
 
-### Tensor.mul
+> <font size="3">mul()</font>
 
 <div style="margin-left: 2em">
 
@@ -4646,15 +4664,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.mul_
+> <font size="3">mul_()</font>
 
 <div style="margin-left: 2em">
 
@@ -4662,15 +4680,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.multiply
+> <font size="3">multiply()</font>
 
 <div style="margin-left: 2em">
 
@@ -4678,15 +4696,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.multiply_
+> <font size="3">multiply_()</font>
 
 <div style="margin-left: 2em">
 
@@ -4694,15 +4712,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.multinomial
+> <font size="3">multinomial()</font>
 
 <div style="margin-left: 2em">
 
@@ -4710,15 +4728,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.nansum
+> <font size="3">nansum()</font>
 
 <div style="margin-left: 2em">
 
@@ -4726,9 +4744,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -4737,7 +4755,7 @@
 
 </div>
 
-### Tensor.narrow
+> <font size="3">narrow()</font>
 
 <div style="margin-left: 2em">
 
@@ -4745,15 +4763,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.narrow_copy
+> <font size="3">narrow_copy()</font>
 
 <div style="margin-left: 2em">
 
@@ -4761,15 +4779,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.ndimension
+> <font size="3">ndimension()</font>
 
 <div style="margin-left: 2em">
 
@@ -4777,15 +4795,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.nan_to_num
+> <font size="3">nan_to_num()</font>
 
 <div style="margin-left: 2em">
 
@@ -4793,15 +4811,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：<term>Ascend 950DT</term>：不支持fp64，complex64，complex128
 
 </div>
 
-### Tensor.nan_to_num_
+> <font size="3">nan_to_num_()</font>
 
 <div style="margin-left: 2em">
 
@@ -4809,13 +4827,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
-### Tensor.ne
+> <font size="3">ne()</font>
 
 <div style="margin-left: 2em">
 
@@ -4823,15 +4841,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.ne_
+> <font size="3">ne_()</font>
 
 <div style="margin-left: 2em">
 
@@ -4839,15 +4857,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.nextafter_
+> <font size="3">nextafter_()</font>
 
 <div style="margin-left: 2em">
 
@@ -4855,15 +4873,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：回退至CPU执行
 
 </div>
 
-### Tensor.not_equal
+> <font size="3">not_equal()</font>
 
 <div style="margin-left: 2em">
 
@@ -4871,9 +4889,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -4882,7 +4900,7 @@
 
 </div>
 
-### Tensor.not_equal_
+> <font size="3">not_equal_()</font>
 
 <div style="margin-left: 2em">
 
@@ -4890,15 +4908,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.neg
+> <font size="3">neg()</font>
 
 <div style="margin-left: 2em">
 
@@ -4906,15 +4924,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，int8，int32，int64
 
 </div>
 
-### Tensor.neg_
+> <font size="3">neg_()</font>
 
 <div style="margin-left: 2em">
 
@@ -4922,9 +4940,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -4933,7 +4951,7 @@
 
 </div>
 
-### Tensor.negative
+> <font size="3">negative()</font>
 
 <div style="margin-left: 2em">
 
@@ -4941,15 +4959,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，int8，int32，int64，complex64，complex128
 
 </div>
 
-### Tensor.negative_
+> <font size="3">negative_()</font>
 
 <div style="margin-left: 2em">
 
@@ -4957,15 +4975,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，int8，int32，int64，complex64，complex128
 
 </div>
 
-### Tensor.nelement
+> <font size="3">nelement()</font>
 
 <div style="margin-left: 2em">
 
@@ -4973,15 +4991,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.nonzero
+> <font size="3">nonzero()</font>
 
 <div style="margin-left: 2em">
 
@@ -4989,9 +5007,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：
 
@@ -5000,7 +5018,7 @@
 
 </div>
 
-### Tensor.norm
+> <font size="3">norm()</font>
 
 <div style="margin-left: 2em">
 
@@ -5008,9 +5026,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -5019,7 +5037,7 @@
 
 </div>
 
-### Tensor.normal_
+> <font size="3">normal_()</font>
 
 <div style="margin-left: 2em">
 
@@ -5027,9 +5045,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：
 
@@ -5038,7 +5056,7 @@
 
 </div>
 
-### Tensor.numel
+> <font size="3">numel()</font>
 
 <div style="margin-left: 2em">
 
@@ -5046,15 +5064,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.numpy
+> <font size="3">numpy()</font>
 
 <div style="margin-left: 2em">
 
@@ -5062,15 +5080,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.outer
+> <font size="3">outer()</font>
 
 <div style="margin-left: 2em">
 
@@ -5078,15 +5096,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.permute
+> <font size="3">permute()</font>
 
 <div style="margin-left: 2em">
 
@@ -5094,15 +5112,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.positive
+> <font size="3">positive()</font>
 
 <div style="margin-left: 2em">
 
@@ -5110,15 +5128,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，complex64，complex128
 
 </div>
 
-### Tensor.pow
+> <font size="3">pow()</font>
 
 <div style="margin-left: 2em">
 
@@ -5126,15 +5144,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
 
 </div>
 
-### Tensor.pow_
+> <font size="3">pow_()</font>
 
 <div style="margin-left: 2em">
 
@@ -5142,15 +5160,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，int64
 
 </div>
 
-### Tensor.prod
+> <font size="3">prod()</font>
 
 <div style="margin-left: 2em">
 
@@ -5158,15 +5176,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.put_
+> <font size="3">put_()</font>
 
 <div style="margin-left: 2em">
 
@@ -5174,15 +5192,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，complex64，complex128
 
 </div>
 
-### Tensor.qscheme
+> <font size="3">qscheme()</font>
 
 <div style="margin-left: 2em">
 
@@ -5190,13 +5208,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10007; |
-| <term>Atlas A3 训练系列产品</term> | &#10007; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.quantile
+> <font size="3">quantile()</font>
 
 <div style="margin-left: 2em">
 
@@ -5204,13 +5222,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
-### Tensor.rad2deg
+> <font size="3">rad2deg()</font>
 
 <div style="margin-left: 2em">
 
@@ -5218,15 +5236,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.random_
+> <font size="3">random_()</font>
 
 <div style="margin-left: 2em">
 
@@ -5234,15 +5252,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.ravel
+> <font size="3">ravel()</font>
 
 <div style="margin-left: 2em">
 
@@ -5250,15 +5268,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.reciprocal
+> <font size="3">reciprocal()</font>
 
 <div style="margin-left: 2em">
 
@@ -5266,15 +5284,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.reciprocal_
+> <font size="3">reciprocal_()</font>
 
 <div style="margin-left: 2em">
 
@@ -5282,15 +5300,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，complex64，complex128
 
 </div>
 
-### Tensor.record_stream
+> <font size="3">record_stream()</font>
 
 <div style="margin-left: 2em">
 
@@ -5298,15 +5316,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.register_hook
+> <font size="3">register_hook()</font>
 
 <div style="margin-left: 2em">
 
@@ -5314,15 +5332,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.register_post_accumulate_grad_hook
+> <font size="3">register_post_accumulate_grad_hook()</font>
 
 <div style="margin-left: 2em">
 
@@ -5330,13 +5348,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.remainder
+> <font size="3">remainder()</font>
 
 <div style="margin-left: 2em">
 
@@ -5344,15 +5362,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，int32，int64
 
 </div>
 
-### Tensor.remainder_
+> <font size="3">remainder_()</font>
 
 <div style="margin-left: 2em">
 
@@ -5360,15 +5378,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，int32，int64
 
 </div>
 
-### Tensor.repeat
+> <font size="3">repeat()</font>
 
 <div style="margin-left: 2em">
 
@@ -5376,15 +5394,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.repeat_interleave
+> <font size="3">repeat_interleave()</font>
 
 <div style="margin-left: 2em">
 
@@ -5392,9 +5410,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -5403,7 +5421,7 @@
 
 </div>
 
-### Tensor.requires_grad
+> <font size="3">requires_grad()</font>
 
 <div style="margin-left: 2em">
 
@@ -5411,13 +5429,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
-### Tensor.requires_grad_
+> <font size="3">requires_grad_()</font>
 
 <div style="margin-left: 2em">
 
@@ -5425,15 +5443,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.reshape
+> <font size="3">reshape()</font>
 
 <div style="margin-left: 2em">
 
@@ -5441,15 +5459,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.reshape_as
+> <font size="3">reshape_as()</font>
 
 <div style="margin-left: 2em">
 
@@ -5457,15 +5475,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.resize_
+> <font size="3">resize_()</font>
 
 <div style="margin-left: 2em">
 
@@ -5473,9 +5491,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -5484,7 +5502,7 @@
 
 </div>
 
-### Tensor.resize_as_
+> <font size="3">resize_as_()</font>
 
 <div style="margin-left: 2em">
 
@@ -5492,9 +5510,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -5503,7 +5521,7 @@
 
 </div>
 
-### Tensor.retain_grad
+> <font size="3">retain_grad()</font>
 
 <div style="margin-left: 2em">
 
@@ -5511,15 +5529,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.retains_grad
+> <font size="3">retains_grad()</font>
 
 <div style="margin-left: 2em">
 
@@ -5527,15 +5545,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.roll
+> <font size="3">roll()</font>
 
 <div style="margin-left: 2em">
 
@@ -5543,15 +5561,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，uint8，int8，int32，int64，bool
 
 </div>
 
-### Tensor.rot90
+> <font size="3">rot90()</font>
 
 <div style="margin-left: 2em">
 
@@ -5559,15 +5577,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.round
+> <font size="3">round()</font>
 
 <div style="margin-left: 2em">
 
@@ -5575,15 +5593,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.round_
+> <font size="3">round_()</font>
 
 <div style="margin-left: 2em">
 
@@ -5591,15 +5609,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.rsqrt
+> <font size="3">rsqrt()</font>
 
 <div style="margin-left: 2em">
 
@@ -5607,15 +5625,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.rsqrt_
+> <font size="3">rsqrt_()</font>
 
 <div style="margin-left: 2em">
 
@@ -5623,15 +5641,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，complex64，complex128
 
 </div>
 
-### Tensor.scatter
+> <font size="3">scatter()</font>
 
 <div style="margin-left: 2em">
 
@@ -5639,9 +5657,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -5650,7 +5668,7 @@
 
 </div>
 
-### Tensor.scatter_
+> <font size="3">scatter_()</font>
 
 <div style="margin-left: 2em">
 
@@ -5658,9 +5676,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -5670,7 +5688,7 @@
 
 </div>
 
-### Tensor.scatter_add_
+> <font size="3">scatter_add_()</font>
 
 <div style="margin-left: 2em">
 
@@ -5678,9 +5696,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -5689,7 +5707,7 @@
 
 </div>
 
-### Tensor.scatter_add
+> <font size="3">scatter_add()</font>
 
 <div style="margin-left: 2em">
 
@@ -5697,9 +5715,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -5708,7 +5726,7 @@
 
 </div>
 
-### Tensor.scatter_reduce
+> <font size="3">scatter_reduce()</font>
 
 <div style="margin-left: 2em">
 
@@ -5716,9 +5734,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -5727,7 +5745,7 @@
 
 </div>
 
-### Tensor.select
+> <font size="3">select()</font>
 
 <div style="margin-left: 2em">
 
@@ -5735,15 +5753,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.select_scatter
+> <font size="3">select_scatter()</font>
 
 <div style="margin-left: 2em">
 
@@ -5751,9 +5769,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -5762,7 +5780,7 @@
 
 </div>
 
-### Tensor.set_
+> <font size="3">set_()</font>
 
 <div style="margin-left: 2em">
 
@@ -5770,15 +5788,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.share_memory_
+> <font size="3">share_memory_()</font>
 
 <div style="margin-left: 2em">
 
@@ -5786,13 +5804,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10007; |
-| <term>Atlas A3 训练系列产品</term> | &#10007; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.short
+> <font size="3">short()</font>
 
 <div style="margin-left: 2em">
 
@@ -5800,15 +5818,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.sigmoid
+> <font size="3">sigmoid()</font>
 
 <div style="margin-left: 2em">
 
@@ -5816,15 +5834,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.sigmoid_
+> <font size="3">sigmoid_()</font>
 
 <div style="margin-left: 2em">
 
@@ -5832,15 +5850,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，complex64，complex128
 
 </div>
 
-### Tensor.sign
+> <font size="3">sign()</font>
 
 <div style="margin-left: 2em">
 
@@ -5848,15 +5866,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，int32，int64，bool
 
 </div>
 
-### Tensor.sign_
+> <font size="3">sign_()</font>
 
 <div style="margin-left: 2em">
 
@@ -5864,15 +5882,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，int32，int64，bool
 
 </div>
 
-### Tensor.sgn
+> <font size="3">sgn()</font>
 
 <div style="margin-left: 2em">
 
@@ -5880,15 +5898,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.sgn_
+> <font size="3">sgn_()</font>
 
 <div style="margin-left: 2em">
 
@@ -5896,15 +5914,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，fp64，int32，int64，bool
 
 </div>
 
-### Tensor.sin
+> <font size="3">sin()</font>
 
 <div style="margin-left: 2em">
 
@@ -5912,15 +5930,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.sin_
+> <font size="3">sin_()</font>
 
 <div style="margin-left: 2em">
 
@@ -5928,15 +5946,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，complex64，complex128
 
 </div>
 
-### Tensor.sinh
+> <font size="3">sinh()</font>
 
 <div style="margin-left: 2em">
 
@@ -5944,15 +5962,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，fp64
 
 </div>
 
-### Tensor.sinh_
+> <font size="3">sinh_()</font>
 
 <div style="margin-left: 2em">
 
@@ -5960,15 +5978,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，fp64
 
 </div>
 
-### Tensor.asinh
+> <font size="3">asinh()</font>
 
 <div style="margin-left: 2em">
 
@@ -5976,15 +5994,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.asinh_
+> <font size="3">asinh_()</font>
 
 <div style="margin-left: 2em">
 
@@ -5992,15 +6010,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，complex64，complex128
 
 </div>
 
-### Tensor.arcsinh
+> <font size="3">arcsinh()</font>
 
 <div style="margin-left: 2em">
 
@@ -6008,15 +6026,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.arcsinh_
+> <font size="3">arcsinh_()</font>
 
 <div style="margin-left: 2em">
 
@@ -6024,15 +6042,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，complex64，complex128
 
 </div>
 
-### Tensor.shape
+> <font size="3">shape()</font>
 
 <div style="margin-left: 2em">
 
@@ -6040,13 +6058,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.size
+> <font size="3">size()</font>
 
 <div style="margin-left: 2em">
 
@@ -6054,15 +6072,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.slogdet
+> <font size="3">slogdet()</font>
 
 <div style="margin-left: 2em">
 
@@ -6070,15 +6088,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp32，complex64，complex128
 
 </div>
 
-### Tensor.slice_scatter
+> <font size="3">slice_scatter()</font>
 
 <div style="margin-left: 2em">
 
@@ -6086,15 +6104,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.softmax
+> <font size="3">softmax()</font>
 
 <div style="margin-left: 2em">
 
@@ -6102,15 +6120,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，fp64
 
 </div>
 
-### Tensor.sort
+> <font size="3">sort()</font>
 
 <div style="margin-left: 2em">
 
@@ -6118,18 +6136,18 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
 - `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64
-- 针对<term>Ascend 950DT</term>，由于底层实现限制，"stable"仅支持True，若设置为False，执行时会被自动修改为True
+- 针对<term>Ascend 950DT</term>，由于底层实现限制，`"stable"`仅支持True，若设置为False，执行时会被自动修改为True
 
 </div>
 
-### Tensor.split
+> <font size="3">split()</font>
 
 <div style="margin-left: 2em">
 
@@ -6137,15 +6155,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.sparse_mask
+> <font size="3">sparse_mask()</font>
 
 <div style="margin-left: 2em">
 
@@ -6153,13 +6171,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10007; |
-| <term>Atlas A3 训练系列产品</term> | &#10007; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.sparse_dim
+> <font size="3">sparse_dim()</font>
 
 <div style="margin-left: 2em">
 
@@ -6167,13 +6185,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.sqrt
+> <font size="3">sqrt()</font>
 
 <div style="margin-left: 2em">
 
@@ -6181,15 +6199,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.sqrt_
+> <font size="3">sqrt_()</font>
 
 <div style="margin-left: 2em">
 
@@ -6197,15 +6215,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，complex64，complex128
 
 </div>
 
-### Tensor.square
+> <font size="3">square()</font>
 
 <div style="margin-left: 2em">
 
@@ -6213,15 +6231,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.square_
+> <font size="3">square_()</font>
 
 <div style="margin-left: 2em">
 
@@ -6229,15 +6247,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，complex64，complex128
 
 </div>
 
-### Tensor.squeeze
+> <font size="3">squeeze()</font>
 
 <div style="margin-left: 2em">
 
@@ -6245,15 +6263,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.squeeze_
+> <font size="3">squeeze_()</font>
 
 <div style="margin-left: 2em">
 
@@ -6261,15 +6279,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.std
+> <font size="3">std()</font>
 
 <div style="margin-left: 2em">
 
@@ -6277,9 +6295,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -6289,7 +6307,7 @@
 
 </div>
 
-### Tensor.storage
+> <font size="3">storage()</font>
 
 <div style="margin-left: 2em">
 
@@ -6297,15 +6315,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.untyped_storage
+> <font size="3">untyped_storage()</font>
 
 <div style="margin-left: 2em">
 
@@ -6313,15 +6331,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.storage_offset
+> <font size="3">storage_offset()</font>
 
 <div style="margin-left: 2em">
 
@@ -6329,15 +6347,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.storage_type
+> <font size="3">storage_type()</font>
 
 <div style="margin-left: 2em">
 
@@ -6345,15 +6363,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.stride
+> <font size="3">stride()</font>
 
 <div style="margin-left: 2em">
 
@@ -6361,15 +6379,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.sub
+> <font size="3">sub()</font>
 
 <div style="margin-left: 2em">
 
@@ -6377,15 +6395,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
 
 </div>
 
-### Tensor.sub_
+> <font size="3">sub_()</font>
 
 <div style="margin-left: 2em">
 
@@ -6393,15 +6411,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，complex64，complex128
 
 </div>
 
-### Tensor.subtract_
+> <font size="3">subtract_()</font>
 
 <div style="margin-left: 2em">
 
@@ -6409,15 +6427,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
 
-### Tensor.sum
+> <font size="3">sum()</font>
 
 <div style="margin-left: 2em">
 
@@ -6425,15 +6443,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.sum_to_size
+> <font size="3">sum_to_size()</font>
 
 <div style="margin-left: 2em">
 
@@ -6441,15 +6459,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.swapaxes
+> <font size="3">swapaxes()</font>
 
 <div style="margin-left: 2em">
 
@@ -6457,15 +6475,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.swapdims
+> <font size="3">swapdims()</font>
 
 <div style="margin-left: 2em">
 
@@ -6473,15 +6491,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.t
+> <font size="3">t()</font>
 
 <div style="margin-left: 2em">
 
@@ -6489,15 +6507,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，complex64，complex128
 
 </div>
 
-### Tensor.t_
+> <font size="3">t_()</font>
 
 <div style="margin-left: 2em">
 
@@ -6505,15 +6523,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64
 
 </div>
 
-### Tensor.tensor_split
+> <font size="3">tensor_split()</font>
 
 <div style="margin-left: 2em">
 
@@ -6521,15 +6539,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：仅CPU支持
 
 </div>
 
-### Tensor.tile
+> <font size="3">tile()</font>
 
 <div style="margin-left: 2em">
 
@@ -6537,21 +6555,21 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
 - `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
-- 若入参`dims`的长度小于`Tensor`.shape的长度，则会在`dims`前自动补全1，使其长度与`Tensor`.shape对齐。补全后的`dims`，需要满足如下限制：
-  - 当需要对第一根轴进行重复时，最多允许同时对4个维度进行重复操作（即`dims`中大于1的元素个数 ≤ 4），例如：不支持`Tensor`.tile([2, 3, 4, 5, 6]) ，支持`Tensor`.tile([2, 3, 1, 5, 6])
-  - 当不需要对第一根轴进行重复时，最多允许同时对3个维度进行重复操作（即`dims`中大于1的元素个数 ≤ 3），例如：不支持`Tensor`.tile([1, 3, 4, 5, 6]) ，支持`Tensor`.tile([1, 3, 1, 5, 6])
+- 若入参`dims`的长度小于`Tensor.shape`的长度，则会在`dims`前自动补全1，使其长度与`Tensor.shape`对齐。补全后的`dims`，需要满足如下限制：
+  - 当需要对第一根轴进行重复时，最多允许同时对4个维度进行重复操作（即`dims`中大于1的元素个数 ≤ 4），例如：不支持`Tensor.tile([2, 3, 4, 5, 6])` ，支持`Tensor.tile([2, 3, 1, 5, 6])`
+  - 当不需要对第一根轴进行重复时，最多允许同时对3个维度进行重复操作（即`dims`中大于1的元素个数 ≤ 3），例如：不支持`Tensor.tile([1, 3, 4, 5, 6])` ，支持`Tensor.tile([1, 3, 1, 5, 6])`
   - 若执行反向计算，`Tensor`的维度数加上`dims`中大于1的元素个数之和不得超过8
 
 </div>
 
-### Tensor.to
+> <font size="3">to()</font>
 
 <div style="margin-left: 2em">
 
@@ -6559,9 +6577,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -6571,7 +6589,7 @@
 
 </div>
 
-### to
+> <font size="3">to_mkldnn()</font>
 
 <div style="margin-left: 2em">
 
@@ -6579,13 +6597,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.to_mkldnn
+> <font size="3">take()</font>
 
 <div style="margin-left: 2em">
 
@@ -6593,29 +6611,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10007; |
-| <term>Atlas A3 训练系列产品</term> | &#10007; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-### Tensor.take
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，int16，int32，bool
 
 </div>
 
-### Tensor.take_along_dim
+> <font size="3">take_along_dim()</font>
 
 <div style="margin-left: 2em">
 
@@ -6623,15 +6627,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，int16，int32，int64，bool
 
 </div>
 
-### Tensor.tan
+> <font size="3">tan()</font>
 
 <div style="margin-left: 2em">
 
@@ -6639,15 +6643,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128取值范围[-65504,65504]
 
 </div>
 
-### Tensor.tan_
+> <font size="3">tan_()</font>
 
 <div style="margin-left: 2em">
 
@@ -6655,15 +6659,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，complex64，complex128
 
 </div>
 
-### Tensor.tanh
+> <font size="3">tanh()</font>
 
 <div style="margin-left: 2em">
 
@@ -6671,9 +6675,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -6682,7 +6686,7 @@
 
 </div>
 
-### Tensor.tanh_
+> <font size="3">tanh_()</font>
 
 <div style="margin-left: 2em">
 
@@ -6690,15 +6694,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.atanh
+> <font size="3">atanh()</font>
 
 <div style="margin-left: 2em">
 
@@ -6706,15 +6710,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.atanh_
+> <font size="3">atanh_()</font>
 
 <div style="margin-left: 2em">
 
@@ -6722,15 +6726,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，complex64，complex128
 
 </div>
 
-### Tensor.arctanh
+> <font size="3">arctanh()</font>
 
 <div style="margin-left: 2em">
 
@@ -6738,15 +6742,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.arctanh_
+> <font size="3">arctanh_()</font>
 
 <div style="margin-left: 2em">
 
@@ -6754,15 +6758,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，complex64，complex128
 
 </div>
 
-### Tensor.tolist
+> <font size="3">tolist()</font>
 
 <div style="margin-left: 2em">
 
@@ -6770,15 +6774,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.topk
+> <font size="3">topk()</font>
 
 <div style="margin-left: 2em">
 
@@ -6786,9 +6790,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -6798,7 +6802,7 @@
 
 </div>
 
-### Tensor.to_dense
+> <font size="3">to_dense()</font>
 
 <div style="margin-left: 2em">
 
@@ -6806,13 +6810,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10007; |
-| <term>Atlas A3 训练系列产品</term> | &#10007; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.to_sparse
+> <font size="3">to_sparse()</font>
 
 <div style="margin-left: 2em">
 
@@ -6820,13 +6824,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10007; |
-| <term>Atlas A3 训练系列产品</term> | &#10007; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### to_sparse
+> <font size="3">to_sparse_csr()</font>
 
 <div style="margin-left: 2em">
 
@@ -6834,13 +6838,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10007; |
-| <term>Atlas A3 训练系列产品</term> | &#10007; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.to_sparse_csr
+> <font size="3">to_sparse_csc()</font>
 
 <div style="margin-left: 2em">
 
@@ -6848,13 +6852,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10007; |
-| <term>Atlas A3 训练系列产品</term> | &#10007; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.to_sparse_csc
+> <font size="3">to_sparse_bsr()</font>
 
 <div style="margin-left: 2em">
 
@@ -6862,13 +6866,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10007; |
-| <term>Atlas A3 训练系列产品</term> | &#10007; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.to_sparse_bsr
+> <font size="3">to_sparse_bsc()</font>
 
 <div style="margin-left: 2em">
 
@@ -6876,13 +6880,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10007; |
-| <term>Atlas A3 训练系列产品</term> | &#10007; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
-### Tensor.to_sparse_bsc
+> <font size="3">transpose()</font>
 
 <div style="margin-left: 2em">
 
@@ -6890,29 +6894,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10007; |
-| <term>Atlas A3 训练系列产品</term> | &#10007; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-### Tensor.transpose
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.transpose_
+> <font size="3">transpose_()</font>
 
 <div style="margin-left: 2em">
 
@@ -6920,15 +6910,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.tril
+> <font size="3">tril()</font>
 
 <div style="margin-left: 2em">
 
@@ -6936,15 +6926,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.tril_
+> <font size="3">tril_()</font>
 
 <div style="margin-left: 2em">
 
@@ -6952,15 +6942,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.triu
+> <font size="3">triu()</font>
 
 <div style="margin-left: 2em">
 
@@ -6968,15 +6958,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.triu_
+> <font size="3">triu_()</font>
 
 <div style="margin-left: 2em">
 
@@ -6984,15 +6974,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.true_divide
+> <font size="3">true_divide()</font>
 
 <div style="margin-left: 2em">
 
@@ -7000,15 +6990,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.true_divide_
+> <font size="3">true_divide_()</font>
 
 <div style="margin-left: 2em">
 
@@ -7016,15 +7006,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.trunc
+> <font size="3">trunc()</font>
 
 <div style="margin-left: 2em">
 
@@ -7032,15 +7022,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.trunc_
+> <font size="3">trunc_()</font>
 
 <div style="margin-left: 2em">
 
@@ -7048,15 +7038,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.type
+> <font size="3">type()</font>
 
 <div style="margin-left: 2em">
 
@@ -7064,15 +7054,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.type_as
+> <font size="3">type_as()</font>
 
 <div style="margin-left: 2em">
 
@@ -7080,15 +7070,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.unbind
+> <font size="3">unbind()</font>
 
 <div style="margin-left: 2em">
 
@@ -7096,15 +7086,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.unflatten
+> <font size="3">unflatten()</font>
 
 <div style="margin-left: 2em">
 
@@ -7112,15 +7102,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.unfold
+> <font size="3">unfold()</font>
 
 <div style="margin-left: 2em">
 
@@ -7128,15 +7118,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.uniform_
+> <font size="3">uniform_()</font>
 
 <div style="margin-left: 2em">
 
@@ -7144,9 +7134,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -7155,7 +7145,7 @@
 
 </div>
 
-### Tensor.unique
+> <font size="3">unique()</font>
 
 <div style="margin-left: 2em">
 
@@ -7163,9 +7153,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：
 
@@ -7174,7 +7164,7 @@
 
 </div>
 
-### Tensor.unique_consecutive
+> <font size="3">unique_consecutive()</font>
 
 <div style="margin-left: 2em">
 
@@ -7182,15 +7172,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.unsqueeze
+> <font size="3">unsqueeze()</font>
 
 <div style="margin-left: 2em">
 
@@ -7198,15 +7188,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.unsqueeze_
+> <font size="3">unsqueeze_()</font>
 
 <div style="margin-left: 2em">
 
@@ -7214,15 +7204,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp32
 
 </div>
 
-### Tensor.values
+> <font size="3">values()</font>
 
 <div style="margin-left: 2em">
 
@@ -7230,15 +7220,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：依赖稀疏`tensor`
 
 </div>
 
-### Tensor.var
+> <font size="3">var()</font>
 
 <div style="margin-left: 2em">
 
@@ -7246,9 +7236,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：
 
@@ -7257,7 +7247,7 @@
 
 </div>
 
-### Tensor.view
+> <font size="3">view()</font>
 
 <div style="margin-left: 2em">
 
@@ -7265,15 +7255,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### view
+> <font size="3">view_as()</font>
 
 <div style="margin-left: 2em">
 
@@ -7281,29 +7271,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
-
-</div>
-
-### Tensor.view_as
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.vsplit
+> <font size="3">vsplit()</font>
 
 <div style="margin-left: 2em">
 
@@ -7311,15 +7287,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：`self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
-### Tensor.where
+> <font size="3">where()</font>
 
 <div style="margin-left: 2em">
 
@@ -7327,15 +7303,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
-### Tensor.xlogy
+> <font size="3">xlogy()</font>
 
 <div style="margin-left: 2em">
 
@@ -7343,15 +7319,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.xlogy_
+> <font size="3">xlogy_()</font>
 
 <div style="margin-left: 2em">
 
@@ -7359,15 +7335,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持fp16，fp32
 
 </div>
 
-### Tensor.zero_
+> <font size="3">zero_()</font>
 
 <div style="margin-left: 2em">
 
@@ -7375,26 +7351,12 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
-
-## Tensor class reference
-
-### _`class`_ torch.Tensor
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
 
 </div>

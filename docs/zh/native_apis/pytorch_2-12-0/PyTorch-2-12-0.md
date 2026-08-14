@@ -50,6 +50,8 @@
 
 - **[torch.fx](torch-fx.md)**  
 
+- **[torch.fx.experimental](torch-fx-experimental.md)**  
+
 - **[torch.hub](torch-hub.md)**  
 
 - **[torch.linalg](torch-linalg.md)**  
