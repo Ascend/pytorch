@@ -50,6 +50,8 @@
 
 - **[torch.fx](torch-fx.md)**  
 
+- **[torch.fx.experimental](torch-fx-experimental.md)**
+
 - **[torch.hub](torch-hub.md)**
 
 - **[torch.linalg](torch-linalg.md)**  
@@ -113,3 +115,11 @@
 - **[Named Tensors](Named-Tensors.md)**  
 
 - **[torch.\_\_config\_\_](torch-__config__.md)**  
+
+- **[torch.distributed.fsdp.fully_shard](torch-distributed-fsdp-fully_shard.md)**  
+
+- **[torch.distributed.tensor](torch-distributed-tensor.md)**   
+
+- **[torch.nested](torch-nested.md)**  
+
+- **[torch.utils.deterministic](torch-utils-deterministic.md)**  

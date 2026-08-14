@@ -2,16 +2,44 @@
 
 > [!NOTE]
 >
-> - API的**支持情况**中，&#10004;表示API支持在对应硬件环境上运行，&#10007;表示暂不支持。<br>
+> - API的**支持情况**中，✔表示API支持在对应硬件环境上运行，✘表示暂不支持。<br>
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
 > - 部分API虽在[PyTorch社区文档](https://pytorch.org/docs/2.11/)中存在，但未收录于本支持清单。此类API尚未验证，请谨慎使用。我们将持续进行验证工作，并在验证完成后更新文档。
 > - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
+> - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://docs.pytorch.org/docs/2.11/quantization-support.html)。
 
 ## 目录
 
-- [base API](#base-api)
+- [torch.ao.quantization](#torchaoquantization)
+- [torch.ao.quantization.qconfig_mapping](#torchaoquantizationqconfig_mapping)
+- [torch.ao.quantization.backend_config](#torchaoquantizationbackend_config)
+- [torch.ao.quantization.fx.custom_config](#torchaoquantizationfxcustom_config)
+- [torch.ao.quantization.observer](#torchaoquantizationobserver)
+- [torch.ao.quantization.fake_quantize](#torchaoquantizationfake_quantize)
+- [torch.ao.quantization.qconfig](#torchaoquantizationqconfig)
+- [torch.ao.nn.intrinsic](#torchaonnintrinsic)
+- [torch.ao.nn.intrinsic.qat](#torchaonnintrinsicqat)
+- [torch.ao.nn.qat](#torchaonnqat)
+- [torch.ao.nn.quantizable](#torchaonnquantizable)
+- [torch.ao.nn.quantized.dynamic](#torchaonnquantizeddynamic)
 
-## base API
+### torch.ao.ns.fx.utils.compute_sqnr
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.ns.fx.utils.compute_sqnr](https://pytorch.org/docs/2.11/quantization.html#torch.ao.ns.fx.utils.compute_sqnr)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+## torch.ao.quantization
 
 ### torch.ao.quantization.prepare_qat
 
@@ -23,9 +51,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -39,9 +67,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -55,9 +83,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -71,9 +99,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -87,11 +115,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
+
+## torch.ao.quantization.qconfig_mapping
 
 ### <code><i>class</i></code> torch.ao.quantization.qconfig_mapping.QConfigMapping
 
@@ -103,9 +133,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 > <font size="3">from_dict()</font>
 
@@ -117,9 +147,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -133,9 +163,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -149,9 +179,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -165,9 +195,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -181,9 +211,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -197,9 +227,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -213,9 +243,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -231,9 +261,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -247,11 +277,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
+
+## torch.ao.quantization.backend_config
 
 ### <code><i>class</i></code> torch.ao.quantization.backend_config.BackendConfig
 
@@ -263,9 +295,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 > <font size="3">configs()</font>
 
@@ -277,9 +309,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -293,9 +325,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -309,9 +341,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -325,9 +357,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -341,9 +373,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -357,9 +389,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -375,9 +407,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 > <font size="3">add_dtype_config()</font>
 
@@ -389,9 +421,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -405,9 +437,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -421,9 +453,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -437,9 +469,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -453,9 +485,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -469,9 +501,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -485,9 +517,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -501,9 +533,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -517,9 +549,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -533,9 +565,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -549,9 +581,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -567,9 +599,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 > <font size="3">from_dict()</font>
 
@@ -581,9 +613,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -597,9 +629,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -615,9 +647,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -631,9 +663,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 > <font size="3">INPUT_OUTPUT_NOT_OBSERVED()</font>
 
@@ -645,9 +677,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -661,9 +693,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -677,13 +709,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
 </div>
+
+## torch.ao.quantization.fx.custom_config
 
 ### <code><i>class</i></code> torch.ao.quantization.fx.custom_config.FuseCustomConfig
 
@@ -695,9 +729,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 > <font size="3">from_dict()</font>
 
@@ -709,9 +743,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -725,9 +759,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -741,9 +775,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -759,9 +793,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 > <font size="3">from_dict()</font>
 
@@ -773,9 +807,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -789,9 +823,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -805,9 +839,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -821,9 +855,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -837,9 +871,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -853,9 +887,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -869,9 +903,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -885,9 +919,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -901,9 +935,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -917,9 +951,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -935,9 +969,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 > <font size="3">from_dict()</font>
 
@@ -949,9 +983,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -965,9 +999,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -981,9 +1015,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -997,9 +1031,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -1015,11 +1049,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
+
+## torch.ao.quantization.observer
 
 ### <code><i>class</i></code> torch.ao.quantization.observer.ObserverBase
 
@@ -1031,9 +1067,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 > <font size="3">with_args()</font>
 
@@ -1045,9 +1081,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -1061,9 +1097,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -1079,9 +1115,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 > <font size="3">calculate_qparams()</font>
 
@@ -1093,9 +1129,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -1109,9 +1145,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -1125,9 +1161,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -1143,9 +1179,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -1159,9 +1195,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 > <font size="3">reset_min_max_vals()</font>
 
@@ -1173,9 +1209,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1191,9 +1227,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1207,9 +1243,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -1223,9 +1259,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -1239,9 +1275,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：可能回退至CPU执行
 
@@ -1257,9 +1293,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -1273,9 +1309,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1289,9 +1325,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -1305,9 +1341,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1321,9 +1357,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -1337,9 +1373,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -1353,9 +1389,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -1369,9 +1405,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -1385,9 +1421,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -1401,9 +1437,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -1417,11 +1453,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
+
+## torch.ao.quantization.fake_quantize
 
 ### <code><i>class</i></code> torch.ao.quantization.fake_quantize.FakeQuantize
 
@@ -1433,9 +1471,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：可能回退至CPU执行
 
@@ -1451,9 +1489,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1467,9 +1505,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：可能回退至CPU执行
 
@@ -1485,9 +1523,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -1501,9 +1539,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1517,9 +1555,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1533,11 +1571,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
+
+## torch.ao.quantization.qconfig
 
 ### <code><i>class</i></code> torch.ao.quantization.qconfig.QConfig
 
@@ -1549,9 +1589,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1565,9 +1605,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1581,9 +1621,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1597,9 +1637,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1613,9 +1653,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -1629,9 +1669,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1645,9 +1685,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1661,9 +1701,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1677,9 +1717,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -1693,9 +1733,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1709,9 +1749,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1725,9 +1765,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -1741,11 +1781,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
+
+## torch.ao.nn.intrinsic
 
 ### <code><i>class</i></code> torch.ao.nn.intrinsic.LinearReLU
 
@@ -1757,11 +1799,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10007; |
-| <term>Atlas A3 训练系列产品</term> | &#10007; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
+
+## torch.ao.nn.intrinsic.qat
 
 ### <code><i>class</i></code> torch.ao.nn.intrinsic.qat.LinearReLU
 
@@ -1773,9 +1817,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10007; |
-| <term>Atlas A3 训练系列产品</term> | &#10007; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1789,9 +1833,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10007; |
-| <term>Atlas A3 训练系列产品</term> | &#10007; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1805,9 +1849,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10007; |
-| <term>Atlas A3 训练系列产品</term> | &#10007; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1821,9 +1865,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10007; |
-| <term>Atlas A3 训练系列产品</term> | &#10007; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1837,9 +1881,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -1853,13 +1897,15 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10004; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**：可能回退至CPU执行
 
 </div>
+
+## torch.ao.nn.qat
 
 ### <code><i>class</i></code> torch.ao.nn.qat.Linear
 
@@ -1871,11 +1917,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10007; |
-| <term>Atlas A3 训练系列产品</term> | &#10007; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
+
+## torch.ao.nn.quantizable
 
 ### <code><i>class</i></code> torch.ao.nn.quantizable.LSTM
 
@@ -1887,11 +1935,13 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10007; |
-| <term>Atlas A3 训练系列产品</term> | &#10007; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
+
+## torch.ao.nn.quantized.dynamic
 
 ### <code><i>class</i></code> torch.ao.nn.quantized.dynamic.Linear
 
@@ -1903,9 +1953,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10007; |
-| <term>Atlas A3 训练系列产品</term> | &#10007; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1919,9 +1969,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**： `input`仅支持fp32
 
@@ -1937,9 +1987,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**： `input`仅支持fp32
 
@@ -1955,9 +2005,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**： `input`仅支持fp32
 
@@ -1973,9 +2023,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**： `input`仅支持fp32
 
@@ -1991,26 +2041,10 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10004; |
-| <term>Atlas A3 训练系列产品</term> | &#10004; |
-| <term>Ascend 950DT</term> | &#10007; |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**： `input`仅支持fp32
-
-</div>
-
-### torch.ao.ns.fx.utils.compute_sqnr
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.ao.ns.fx.utils.compute_sqnr](https://pytorch.org/docs/2.11/quantization.html#torch.ao.ns.fx.utils.compute_sqnr)
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | &#10007; |
-| <term>Atlas A3 训练系列产品</term> | &#10007; |
-| <term>Ascend 950DT</term> | &#10007; |
 
 </div>
