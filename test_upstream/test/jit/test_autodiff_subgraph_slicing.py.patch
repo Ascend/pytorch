@@ -1,11 +1,66 @@
 diff --git a/test/jit/test_autodiff_subgraph_slicing.py b/test/jit/test_autodiff_subgraph_slicing.py
-index ea36710..b5fcca2 100644
+index ea36710..7b52227 100644
 --- a/test/jit/test_autodiff_subgraph_slicing.py
 +++ b/test/jit/test_autodiff_subgraph_slicing.py
-@@ -1,3 +1,6 @@
-+import torch_npu
-+from torch_npu.contrib import transfer_to_npu
-+
- # Owner(s): ["oncall: jit"]
+@@ -24,6 +24,7 @@ from torch.testing._internal.jit_utils import (
+     disable_autodiff_subgraph_inlining,
+     JitTestCase,
+ )
++import torch_npu  # noqa: F401
  
- import os
+ 
+ if __name__ == "__main__":
+@@ -44,7 +45,7 @@ class TestAutodiffSubgraphSlicing(JitTestCase):
+         with disable_autodiff_subgraph_inlining():
+             with enable_profiling_mode_for_profiling_tests():
+                 ge = torch.jit.script(fn)
+-                inputs = [torch.randn(size, requires_grad=True) for size in input_sizes]
++                inputs = [torch.randn(size).npu().requires_grad_() for size in input_sizes]
+                 ge(*inputs, profile_and_replay=True)
+                 return ge.graph_for(*inputs)
+ 
+@@ -68,7 +69,7 @@ class TestAutodiffSubgraphSlicing(JitTestCase):
+             x1, x2 = torch.chunk(x, 2)
+             return (x1, x2)
+ 
+-        input = torch.rand(6, 10).requires_grad_()
++        input = torch.rand(6, 10).npu().requires_grad_()
+         with disable_autodiff_subgraph_inlining():
+             with enable_profiling_mode_for_profiling_tests():
+                 func(input, profile_and_replay=True)
+@@ -322,7 +323,7 @@ class TestAutodiffSubgraphSlicing(JitTestCase):
+         # o --> x
+         def fn(x, y, z):
+             a = x * y
+-            b = torch.zeros([abs(int(y))])
++            b = torch.zeros([abs(int(y))], device=y.device)
+             return a, b
+ 
+         graph = self._perform_ad_subgraph_slicing(fn, 1, 1, 1)
+@@ -382,7 +383,7 @@ class TestAutodiffSubgraphSlicing(JitTestCase):
+         #  \_________/
+         def fn(w, x, y):
+             a = w * x
+-            b = torch.zeros(abs(int(a)))
++            b = torch.zeros(abs(int(a)), device=a.device)
+             c = a * b
+             return c
+ 
+@@ -395,7 +396,7 @@ class TestAutodiffSubgraphSlicing(JitTestCase):
+         #  \_________/
+         def fn(w, x, y, z):
+             a = w * x
+-            b = torch.zeros(abs(int(y)))
++            b = torch.zeros(abs(int(y)), device=y.device)
+             c = a * z
+             return b, c
+ 
+@@ -410,7 +411,7 @@ class TestAutodiffSubgraphSlicing(JitTestCase):
+         #  \_________/
+         def fn(v, w, x, y):
+             a = v * w
+-            b = torch.ones(int(y))
++            b = torch.ones(int(y), device=y.device)
+             c = b * a
+             return a, c
+ 
