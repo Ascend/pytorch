@@ -1,0 +1,62 @@
+diff --git a/test/dynamo/test_repros.py b/test/dynamo/test_repros.py
+index b63da19..b7f4e36 100644
+--- a/test/dynamo/test_repros.py
++++ b/test/dynamo/test_repros.py
+@@ -7620,6 +7620,10 @@ def forward(self, s77 : torch.SymInt, s27 : torch.SymInt, L_x_ : torch.Tensor):
+ 
+     @expectedFailureDynamic
+     def test_dynamo_default_lru_cache_behavior(self):
++        device_type = (
++            acc.type if (acc := torch.accelerator.current_accelerator()) else "cpu"
++        )
++
+         @torch.compile(backend="eager")
+         def fn(x):
+             return x + 10
+@@ -7631,7 +7635,7 @@ def forward(self, s77 : torch.SymInt, s27 : torch.SymInt, L_x_ : torch.Tensor):
+             raise AssertionError("Expected no cache entries after reset")
+ 
+         # Step 1: Compile a static shapes graph
+-        x = torch.randn(10, 10)
++        x = torch.randn(10, 10, device=device_type)
+         fn(x)
+         a = torch._C._dynamo.eval_frame._debug_get_cache_entry_list(
+             fn._torchdynamo_orig_callable.__code__
+@@ -7640,7 +7644,7 @@ def forward(self, s77 : torch.SymInt, s27 : torch.SymInt, L_x_ : torch.Tensor):
+         static_shapes_cache_entry = a[0]
+ 
+         # Step 2: Compile a dynamic shapes graph
+-        y = torch.randn(20, 20)
++        y = torch.randn(20, 20, device=device_type)
+         fn(y)
+         b = torch._C._dynamo.eval_frame._debug_get_cache_entry_list(
+             fn._torchdynamo_orig_callable.__code__
+@@ -7661,6 +7665,10 @@ def forward(self, s77 : torch.SymInt, s27 : torch.SymInt, L_x_ : torch.Tensor):
+ 
+     @expectedFailureDynamic
+     def test_dynamo_disable_lru_cache_behavior(self):
++        device_type = (
++            acc.type if (acc := torch.accelerator.current_accelerator()) else "cpu"
++        )
++
+         @torch.compile(backend="eager")
+         def fn(x):
+             return x + 10
+@@ -7673,7 +7681,7 @@ def forward(self, s77 : torch.SymInt, s27 : torch.SymInt, L_x_ : torch.Tensor):
+                 raise AssertionError("Expected no cache entries after reset")
+ 
+             # Step 1: Compile a static shapes graph
+-            x = torch.randn(10, 10)
++            x = torch.randn(10, 10, device=device_type)
+             fn(x)
+             a = torch._C._dynamo.eval_frame._debug_get_cache_entry_list(
+                 fn._torchdynamo_orig_callable.__code__
+@@ -7682,7 +7690,7 @@ def forward(self, s77 : torch.SymInt, s27 : torch.SymInt, L_x_ : torch.Tensor):
+             static_shapes_cache_entry = a[0]
+ 
+             # Step 2: Compile a dynamic shapes graph
+-            y = torch.randn(20, 20)
++            y = torch.randn(20, 20, device=device_type)
+             fn(y)
+             b = torch._C._dynamo.eval_frame._debug_get_cache_entry_list(
+                 fn._torchdynamo_orig_callable.__code__
