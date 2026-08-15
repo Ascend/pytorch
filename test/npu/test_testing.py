@@ -1,7 +1,7 @@
-import itertools
 import torch
 import numpy as np
 
+from torch.testing._comparison import ErrorMeta, TensorLikePair
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_dtype_tensor
 from torch_npu.testing.decorator import Dtypes, Formats, instantiate_tests
@@ -10,6 +10,55 @@ from torch_npu.testing.decorator import Dtypes, Formats, instantiate_tests
 # For testing TestCase methods and torch_npu.testing functions
 @instantiate_tests
 class TestTesting(TestCase):
+
+    def test_tensor_like_pair(self):
+        actual = torch.tensor([[1.0, 2.0], [3.0, 4.0]], device="npu")
+        expected = actual.clone()
+
+        TensorLikePair(actual, expected).compare()
+        TensorLikePair(actual, expected.cpu(), check_device=False).compare()
+
+        different_dtype = expected.cpu().to(torch.float64)
+        with self.assertRaises(ErrorMeta):
+            TensorLikePair(actual, different_dtype, check_device=False).compare()
+        TensorLikePair(
+            actual, different_dtype, check_device=False, check_dtype=False
+        ).compare()
+
+        sparse_expected = expected.cpu().to_sparse()
+        with self.assertRaises(ErrorMeta):
+            TensorLikePair(actual, sparse_expected, check_device=False).compare()
+        TensorLikePair(
+            actual, sparse_expected, check_device=False, check_layout=False
+        ).compare()
+
+        different_stride = expected.t().contiguous().t()
+        with self.assertRaises(ErrorMeta):
+            TensorLikePair(actual, different_stride, check_stride=True).compare()
+        TensorLikePair(actual, different_stride).compare()
+
+        TensorLikePair(
+            torch.tensor([1.0], device="npu"),
+            torch.tensor([1.01], device="npu"),
+            rtol=0.02,
+            atol=0.0,
+        ).compare()
+        TensorLikePair(
+            torch.tensor([0.0], device="npu"),
+            torch.tensor([0.001], device="npu"),
+            rtol=0.0,
+            atol=0.01,
+        ).compare()
+
+        nan = torch.tensor([float("nan")], device="npu")
+        with self.assertRaises(ErrorMeta):
+            TensorLikePair(nan, nan).compare()
+        TensorLikePair(nan, nan, equal_nan=True).compare()
+
+        with self.assertRaises(ErrorMeta):
+            TensorLikePair(actual, expected + 1.0).compare()
+        with self.assertRaises(ErrorMeta):
+            TensorLikePair(actual, expected.flatten()).compare()
 
     # Ensure that assertTensorSlowEqual handles npu arrays properly
     @Dtypes(torch.int32, torch.bool, torch.half, torch.float)
