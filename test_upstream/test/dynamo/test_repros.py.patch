@@ -1,0 +1,62 @@
+diff --git a/test/dynamo/test_repros.py b/test/dynamo/test_repros.py
+index 65881c2..39fd06e 100644
+--- a/test/dynamo/test_repros.py
++++ b/test/dynamo/test_repros.py
+@@ -7587,6 +7587,10 @@ def forward(self, s77 : torch.SymInt, s27 : torch.SymInt, L_x_ : torch.Tensor):
+ 
+     @expectedFailureDynamic
+     def test_dynamo_default_lru_cache_behavior(self):
++        device_type = (
++            acc.type if (acc := torch.accelerator.current_accelerator()) else "cpu"
++        )
++
+         @torch.compile(backend="eager")
+         def fn(x):
+             return x + 10
+@@ -7597,7 +7601,7 @@ def forward(self, s77 : torch.SymInt, s27 : torch.SymInt, L_x_ : torch.Tensor):
+         )
+ 
+         # Step 1: Compile a static shapes graph
+-        x = torch.randn(10, 10)
++        x = torch.randn(10, 10, device=device_type)
+         fn(x)
+         a = torch._C._dynamo.eval_frame._debug_get_cache_entry_list(
+             fn._torchdynamo_orig_callable.__code__
+@@ -7606,7 +7610,7 @@ def forward(self, s77 : torch.SymInt, s27 : torch.SymInt, L_x_ : torch.Tensor):
+         static_shapes_cache_entry = a[0]
+ 
+         # Step 2: Compile a dynamic shapes graph
+-        y = torch.randn(20, 20)
++        y = torch.randn(20, 20, device=device_type)
+         fn(y)
+         b = torch._C._dynamo.eval_frame._debug_get_cache_entry_list(
+             fn._torchdynamo_orig_callable.__code__
+@@ -7627,6 +7631,10 @@ def forward(self, s77 : torch.SymInt, s27 : torch.SymInt, L_x_ : torch.Tensor):
+ 
+     @expectedFailureDynamic
+     def test_dynamo_disable_lru_cache_behavior(self):
++        device_type = (
++            acc.type if (acc := torch.accelerator.current_accelerator()) else "cpu"
++        )
++
+         @torch.compile(backend="eager")
+         def fn(x):
+             return x + 10
+@@ -7638,7 +7646,7 @@ def forward(self, s77 : torch.SymInt, s27 : torch.SymInt, L_x_ : torch.Tensor):
+             )
+ 
+             # Step 1: Compile a static shapes graph
+-            x = torch.randn(10, 10)
++            x = torch.randn(10, 10, device=device_type)
+             fn(x)
+             a = torch._C._dynamo.eval_frame._debug_get_cache_entry_list(
+                 fn._torchdynamo_orig_callable.__code__
+@@ -7647,7 +7655,7 @@ def forward(self, s77 : torch.SymInt, s27 : torch.SymInt, L_x_ : torch.Tensor):
+             static_shapes_cache_entry = a[0]
+ 
+             # Step 2: Compile a dynamic shapes graph
+-            y = torch.randn(20, 20)
++            y = torch.randn(20, 20, device=device_type)
+             fn(y)
+             b = torch._C._dynamo.eval_frame._debug_get_cache_entry_list(
+                 fn._torchdynamo_orig_callable.__code__
