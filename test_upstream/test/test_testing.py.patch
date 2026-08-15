@@ -1,10 +1,12 @@
 diff --git a/test/test_testing.py b/test/test_testing.py
-index 3dfa44c9bf..c2e087318d 100644
+index 3dfa44c9bf..3ecd8ba35d 100644
 --- a/test/test_testing.py
 +++ b/test/test_testing.py
-@@ -23,9 +23,10 @@ from torch.testing._internal.common_utils import (
-     parametrize, reparametrize, subtest, instantiate_parametrized_tests, dtype_name,
-     TEST_WITH_ROCM, decorateIf, skipIfRocm
+@@ -20,2 +20,3 @@ import torch
+ from torch.testing import make_tensor
++from torch.testing._comparison import ErrorMeta, TensorLikePair
+ from torch.testing._internal.common_utils import (
+@@ -25,5 +26,6 @@ from torch.testing._internal.common_utils import (
  )
 +import torch_npu
  from torch.testing._internal.common_device_type import \
@@ -12,11 +14,7 @@ index 3dfa44c9bf..c2e087318d 100644
 -     get_device_type_test_bases, instantiate_device_type_tests, onlyCPU, onlyCUDA, onlyNativeDeviceTypes,
 +     get_device_type_test_bases, instantiate_device_type_tests, onlyCPU, onlyPRIVATEUSE1, onlyNativeDeviceTypes,
       deviceCountAtLeast, ops, expectedFailureMeta, OpDTypes)
- from torch.testing._internal.common_methods_invocations import op_db
- from torch.testing._internal import opinfo
-@@ -286,44 +287,45 @@ class TestTesting(TestCase):
-     # These tests are slow because it spawn another process to run test suite.
-     # See: https://github.com/pytorch/pytorch/issues/49019
+@@ -288,6 +290,6 @@ class TestTesting(TestCase):
      @unittest.skipIf(TEST_WITH_ROCM, "ROCm doesn't support device side asserts")
 -    @onlyCUDA
 +    @onlyPRIVATEUSE1
@@ -25,10 +23,7 @@ index 3dfa44c9bf..c2e087318d 100644
 -        # test to ensure common_utils.py override has early termination for CUDA.
 +        # test to ensure common_utils.py override has early termination for NPU.
          stderr = TestCase.runWithPytorchAPIUsageStderr("""\
- #!/usr/bin/env python3
- 
- import torch
- from torch.testing._internal.common_utils import (TestCase, run_tests, slowTest)
+@@ -298,14 +300,15 @@ from torch.testing._internal.common_utils import (TestCase, run_tests, slowTest)
  
 -class TestThatContainsCUDAAssertFailure(TestCase):
 +class TestThatContainsNPUAssertFailure(TestCase):
@@ -52,18 +47,14 @@ index 3dfa44c9bf..c2e087318d 100644
 +        x1 = torch.tensor([0., 1.], device='npu')
 +        x2 = torch.tensor([0., 1.], device='npu')
          self.assertEqual(x1, x2)
- 
- if __name__ == '__main__':
-     run_tests()
+@@ -315,4 +318,4 @@ if __name__ == '__main__':
  """)
 -        # should capture CUDA error
 -        self.assertIn('CUDA error: device-side assert triggered', stderr)
 +        # should capture NPU early termination
 +        self.assertIn('TEST SUITE EARLY TERMINATION due to torch.npu.synchronize() failure', stderr)
          # should run only 1 test because it throws unrecoverable error.
-         self.assertIn('errors=1', stderr)
- 
- 
+@@ -322,6 +325,6 @@ if __name__ == '__main__':
      @unittest.skipIf(TEST_WITH_ROCM, "ROCm doesn't support device side asserts")
 -    @onlyCUDA
 +    @onlyPRIVATEUSE1
@@ -72,11 +63,7 @@ index 3dfa44c9bf..c2e087318d 100644
 -        # test to ensure common_device_type.py override has early termination for CUDA.
 +        # test to ensure common_device_type.py override has early termination for NPU.
          stderr = TestCase.runWithPytorchAPIUsageStderr("""\
- #!/usr/bin/env python3
- 
-@@ -331,40 +333,40 @@ import torch
- from torch.testing._internal.common_utils import (TestCase, run_tests, slowTest)
- from torch.testing._internal.common_device_type import instantiate_device_type_tests
+@@ -333,8 +336,8 @@ from torch.testing._internal.common_device_type import instantiate_device_type_t
  
 -class TestThatContainsCUDAAssertFailure(TestCase):
 +class TestThatContainsNPUAssertFailure(TestCase):
@@ -88,14 +75,12 @@ index 3dfa44c9bf..c2e087318d 100644
 -        # cause unrecoverable CUDA exception, recoverable on CPU
 +        # cause unrecoverable NPU exception, recoverable on CPU
          y = x[torch.tensor([25])].cpu()
- 
+@@ -342,3 +345,3 @@ class TestThatContainsCUDAAssertFailure(TestCase):
      @slowTest
 -    def test_trivial_passing_test_case_on_cpu_cuda(self, device):
 +    def test_trivial_passing_test_case_on_cpu_npu(self, device):
          x1 = torch.tensor([0., 1.], device=device)
-         x2 = torch.tensor([0., 1.], device='cpu')
-         self.assertEqual(x1, x2)
- 
+@@ -348,5 +351,5 @@ class TestThatContainsCUDAAssertFailure(TestCase):
  instantiate_device_type_tests(
 -    TestThatContainsCUDAAssertFailure,
 +    TestThatContainsNPUAssertFailure,
@@ -103,18 +88,14 @@ index 3dfa44c9bf..c2e087318d 100644
 -    only_for='cuda'
 +    only_for=['privateuse1']
  )
- 
- if __name__ == '__main__':
-     run_tests()
+@@ -356,4 +359,4 @@ if __name__ == '__main__':
  """)
 -        # should capture CUDA error
 -        self.assertIn('CUDA error: device-side assert triggered', stderr)
 +        # should capture NPU error
 +        self.assertIn('NPU error: device-side assert triggered', stderr)
          # should run only 1 test because it throws unrecoverable error.
-         self.assertIn('errors=1', stderr)
- 
- 
+@@ -363,6 +366,6 @@ if __name__ == '__main__':
      @unittest.skipIf(TEST_WITH_ROCM, "ROCm doesn't support device side asserts")
 -    @onlyCUDA
 +    @onlyPRIVATEUSE1
@@ -123,11 +104,7 @@ index 3dfa44c9bf..c2e087318d 100644
 -        # test to ensure common_distributed.py override should not early terminate CUDA.
 +        # test to ensure common_distributed.py override should not early terminate NPU.
          stderr = TestCase.runWithPytorchAPIUsageStderr("""\
- #!/usr/bin/env python3
- 
-@@ -373,30 +375,30 @@ from torch.testing._internal.common_utils import (run_tests, slowTest)
- from torch.testing._internal.common_device_type import instantiate_device_type_tests
- from torch.testing._internal.common_distributed import MultiProcessTestCase
+@@ -375,8 +378,8 @@ from torch.testing._internal.common_distributed import MultiProcessTestCase
  
 -class TestThatContainsCUDAAssertFailure(MultiProcessTestCase):
 +class TestThatContainsNPUAssertFailure(MultiProcessTestCase):
@@ -139,14 +116,12 @@ index 3dfa44c9bf..c2e087318d 100644
 -        # cause unrecoverable CUDA exception, recoverable on CPU
 +        # cause unrecoverable NPU exception, recoverable on CPU
          y = x[torch.tensor([25])].cpu()
- 
+@@ -384,3 +387,3 @@ class TestThatContainsCUDAAssertFailure(MultiProcessTestCase):
      @slowTest
 -    def test_trivial_passing_test_case_on_cpu_cuda(self, device):
 +    def test_trivial_passing_test_case_on_cpu_npu(self, device):
          x1 = torch.tensor([0., 1.], device=device)
-         x2 = torch.tensor([0., 1.], device='cpu')
-         self.assertEqual(x1, x2)
- 
+@@ -390,5 +393,5 @@ class TestThatContainsCUDAAssertFailure(MultiProcessTestCase):
  instantiate_device_type_tests(
 -    TestThatContainsCUDAAssertFailure,
 +    TestThatContainsNPUAssertFailure,
@@ -154,27 +129,17 @@ index 3dfa44c9bf..c2e087318d 100644
 -    only_for='cuda'
 +    only_for=['privateuse1']
  )
- 
- if __name__ == '__main__':
-     run_tests()
+@@ -398,3 +401,3 @@ if __name__ == '__main__':
  """)
 -        # we are currently disabling CUDA early termination for distributed tests.
 +        # we are currently disabling NPU early termination for distributed tests.
          self.assertIn('errors=2', stderr)
- 
-     @expectedFailureMeta  # This is only supported for CPU and CUDA
-@@ -425,7 +427,7 @@ if __name__ == '__main__':
-             for op in op_db
-             if len(
+@@ -427,3 +430,3 @@ if __name__ == '__main__':
                  op.supported_dtypes("cpu").symmetric_difference(
 -                    op.supported_dtypes("cuda")
 +                    op.supported_dtypes("privateuse1")
                  )
-             )
-             > 0
-@@ -433,11 +435,11 @@ if __name__ == '__main__':
-         dtypes=OpDTypes.none,
-     )
+@@ -435,7 +438,7 @@ if __name__ == '__main__':
      def test_supported_dtypes(self, device, op):
 -        self.assertNotEqual(op.supported_dtypes("cpu"), op.supported_dtypes("cuda"))
 -        self.assertEqual(op.supported_dtypes("cuda"), op.supported_dtypes("cuda:0"))
@@ -186,20 +151,64 @@ index 3dfa44c9bf..c2e087318d 100644
 +            op.supported_dtypes(torch.device("privateuse1")),
 +            op.supported_dtypes(torch.device("privateuse1", index=1)),
          )
+@@ -703,2 +706,51 @@ class TestAssertClose(TestCase):
  
- instantiate_device_type_tests(TestTesting, globals())
-@@ -856,7 +858,7 @@ class TestAssertCloseMultiDevice(TestCase):
-                 fn(check_device=False)
- 
++    def test_tensor_like_pair_npu(self):
++        actual = torch.tensor([[1.0, 2.0], [3.0, 4.0]], device="npu")
++        expected = actual.clone()
++
++        TensorLikePair(actual, expected).compare()
++        TensorLikePair(actual, expected.cpu(), check_device=False).compare()
++
++        different_dtype = expected.cpu().to(torch.float64)
++        with self.assertRaises(ErrorMeta):
++            TensorLikePair(actual, different_dtype, check_device=False).compare()
++        TensorLikePair(
++            actual, different_dtype, check_device=False, check_dtype=False
++        ).compare()
++
++        sparse_expected = expected.cpu().to_sparse()
++        with self.assertRaises(ErrorMeta):
++            TensorLikePair(actual, sparse_expected, check_device=False).compare()
++        TensorLikePair(
++            actual, sparse_expected, check_device=False, check_layout=False
++        ).compare()
++
++        different_stride = expected.t().contiguous().t()
++        with self.assertRaises(ErrorMeta):
++            TensorLikePair(actual, different_stride, check_stride=True).compare()
++        TensorLikePair(actual, different_stride).compare()
++
++        TensorLikePair(
++            torch.tensor([1.0], device="npu"),
++            torch.tensor([1.01], device="npu"),
++            rtol=0.02,
++            atol=0.0,
++        ).compare()
++        TensorLikePair(
++            torch.tensor([0.0], device="npu"),
++            torch.tensor([0.001], device="npu"),
++            rtol=0.0,
++            atol=0.01,
++        ).compare()
++
++        nan = torch.tensor([float("nan")], device="npu")
++        with self.assertRaises(ErrorMeta):
++            TensorLikePair(nan, nan).compare()
++        TensorLikePair(nan, nan, equal_nan=True).compare()
++
++        with self.assertRaises(ErrorMeta):
++            TensorLikePair(actual, expected + 1.0).compare()
++        with self.assertRaises(ErrorMeta):
++            TensorLikePair(actual, expected.flatten()).compare()
++
+     def test_matching_rtol(self):
+@@ -858,3 +910,3 @@ class TestAssertCloseMultiDevice(TestCase):
  
 -instantiate_device_type_tests(TestAssertCloseMultiDevice, globals(), only_for="cuda")
 +instantiate_device_type_tests(TestAssertCloseMultiDevice, globals(), only_for=["privateuse1"])
  
- 
- class TestAssertCloseErrorMessage(TestCase):
-@@ -1923,9 +1925,19 @@ class TestTestParametrizationDeviceType(TestCase):
-                 pass
- 
+@@ -1925,5 +1977,15 @@ class TestTestParametrizationDeviceType(TestCase):
          locals_dict = dict(locals())
 -        instantiate_device_type_tests(TestParametrized, locals_dict, only_for=device)
 -
@@ -218,5 +227,3 @@ index 3dfa44c9bf..c2e087318d 100644
 +            available = sorted(name for name in locals_dict if name.startswith('TestParametrized'))
 +            raise KeyError(f'No instantiated class found, tried={candidates}, available={available}')
          expected_test_names = sorted(name.format(device_cls.__name__, device) for name in (
-             '{}.test_default_names_x_1_{}',
-             '{}.test_default_names_x_0_5_{}',
