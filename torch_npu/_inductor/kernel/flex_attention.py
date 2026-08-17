@@ -2,9 +2,8 @@
 
 import copy
 from collections.abc import Sequence
-from functools import partial, wraps
-from types import FunctionType
-from typing import Any, Dict, Optional, Sequence, Union
+from functools import wraps
+from typing import Any, Dict, Optional, Union
 
 import sympy
 
@@ -36,33 +35,21 @@ from torch_npu._inductor.kernel.flexattention_template import (
 )
 
 from torch._inductor.ir import (
-    Buffer,
     ComputedBuffer,
     ExternKernel,
-    ExternKernelAlloc,
     FixedLayout,
     FlexibleLayout,
     get_fill_order,
-    InputBuffer,
-    IRNode,
-    MutationLayoutSHOULDREMOVE,
-    Scatter,
     StorageBox,
-    Subgraph,
     TensorBox,
 )
 from torch._inductor.lowering import (
-    _full,
-    check_and_broadcast_indices,
     empty_strided,
-    expand,
-    fallback_handler,
-    index_output_size_and_inner_fn,
     lowerings,
     register_lowering,
     to_dtype,
 )
-from torch._inductor.select_algorithm import autotune_select_algorithm, realize_inputs
+from torch._inductor.select_algorithm import autotune_select_algorithm
 from torch._inductor.kernel.flex_decoding import create_flex_decoding_kernel
 from torch.nn.attention import flex_attention as flex_attention_module
 from torch._inductor.kernel.flex_attention import (
@@ -198,93 +185,6 @@ _COMPACT_SPARSE_MASK_ATTR = "_npu_compact_sparse_mask_metadata"
 _EXPLICIT_SCORE_MOD_OPTION = "_NPU_EXPLICIT_SCORE_MOD"
 _STREAMING_BLOCK_MASK_TARGET_BYTES = 256 * 1024 * 1024
 _STREAMING_BLOCK_MASK_BYTES_PER_ELEMENT = 8
-
-
-def _make_closure_cell(value):
-    def capture():
-        return value
-
-    return capture.__closure__[0]
-
-
-def _maybe_cast_mask_mod_constant_to_fp32(value):
-    if not isinstance(value, torch.Tensor):
-        return value
-    if value.dtype == torch.bool:
-        return value
-    if getattr(value.dtype, "is_floating_point", False):
-        return value
-    if getattr(value.dtype, "is_complex", False):
-        return value
-    return value.to(dtype=torch.float32)
-
-
-def _maybe_cast_mask_mod_tensor_constants_to_fp32(mask_mod):
-    if isinstance(mask_mod, partial):
-        converted_func = _maybe_cast_mask_mod_tensor_constants_to_fp32(mask_mod.func)
-        converted_args = tuple(
-            _maybe_cast_mask_mod_constant_to_fp32(arg) for arg in mask_mod.args
-        )
-        converted_keywords = None
-        keyword_changed = False
-        if mask_mod.keywords:
-            converted_keywords = {
-                name: _maybe_cast_mask_mod_constant_to_fp32(value)
-                for name, value in mask_mod.keywords.items()
-            }
-            keyword_changed = any(
-                converted_keywords[name] is not value
-                for name, value in mask_mod.keywords.items()
-            )
-        changed = (
-            converted_func is not mask_mod.func
-            or any(new is not old for new, old in zip(converted_args, mask_mod.args))
-            or keyword_changed
-        )
-        if not changed:
-            return mask_mod
-        converted = partial(
-            converted_func,
-            *converted_args,
-            **(converted_keywords or {}),
-        )
-        converted.__dict__.update(getattr(mask_mod, "__dict__", {}))
-        return converted
-
-    if not isinstance(mask_mod, FunctionType) or mask_mod.__closure__ is None:
-        return mask_mod
-
-    converted_cells = []
-    changed = False
-    for cell in mask_mod.__closure__:
-        try:
-            value = cell.cell_contents
-        except ValueError:
-            converted_cells.append(cell)
-            continue
-        converted_value = _maybe_cast_mask_mod_constant_to_fp32(value)
-        if converted_value is value:
-            converted_cells.append(cell)
-            continue
-        converted_cells.append(_make_closure_cell(converted_value))
-        changed = True
-
-    if not changed:
-        return mask_mod
-
-    converted = FunctionType(
-        mask_mod.__code__,
-        mask_mod.__globals__,
-        mask_mod.__name__,
-        mask_mod.__defaults__,
-        tuple(converted_cells),
-    )
-    converted.__kwdefaults__ = getattr(mask_mod, "__kwdefaults__", None)
-    converted.__annotations__ = dict(getattr(mask_mod, "__annotations__", {}))
-    converted.__dict__.update(getattr(mask_mod, "__dict__", {}))
-    converted.__module__ = getattr(mask_mod, "__module__", None)
-    converted.__qualname__ = getattr(mask_mod, "__qualname__", mask_mod.__name__)
-    return converted
 
 
 def _precompute_compact_sparse_mask_metadata(block_mask: Any) -> dict[str, Any]:
@@ -647,18 +547,6 @@ def patch_flex_attention() -> None:
     if not getattr(current_create_block_mask, "_npu_metadata_patch_applied", False):
         @wraps(current_create_block_mask)
         def create_block_mask_with_metadata(*args, **kwargs):
-            if args:
-                converted_mask_mod = _maybe_cast_mask_mod_tensor_constants_to_fp32(args[0])
-                if converted_mask_mod is not args[0]:
-                    args = (converted_mask_mod, *args[1:])
-            elif "mask_mod" in kwargs:
-                converted_mask_mod = _maybe_cast_mask_mod_tensor_constants_to_fp32(
-                    kwargs["mask_mod"]
-                )
-                if converted_mask_mod is not kwargs["mask_mod"]:
-                    kwargs = dict(kwargs)
-                    kwargs["mask_mod"] = converted_mask_mod
-
             if _should_use_streaming_block_mask(args, kwargs):
                 try:
                     block_mask = _create_block_mask_streaming(*args, **kwargs)
