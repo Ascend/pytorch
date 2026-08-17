@@ -27,6 +27,8 @@
 #include "torch_npu/csrc/custom_dtype/Init.h"
 #include "torch_npu/csrc/aten/NPUOpApiNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/framework/FormatHelper.h"
+#include "torch_npu/csrc/aten/common/FormatCastHelper.h"
 #include "third_party/op-plugin/op_plugin/utils/op_api_common.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
@@ -237,6 +239,19 @@ at::Tensor& NPUNativeOpApiFunctions::copy_(at::Tensor& self, const at::Tensor& s
 
     auto maybe_outnames = at::namedinference::compute_broadcast_outnames(self, src);
 
+    // aclnnInplaceCopy corrupts internal-format storage: on A2/A3 fall back to
+    // the native copy_, on Ascend950 only d2h is supported (cast to base first).
+    const bool self_is_base = FormatHelper::IsOpInputBaseFormat(self);
+    const bool src_is_base = FormatHelper::IsOpInputBaseFormat(src);
+    if (!self_is_base || !src_is_base) {
+        if (!c10_npu::IsAclnnOnly()) {
+            return NPUNativeFunctions::copy_(self, src, non_blocking);
+        }
+        TORCH_CHECK(!torch_npu::utils::is_npu(self),
+            "The copy_ operator with internal format tensors is not supported on Ascend950, "
+            "only device-to-host copies are supported", OPS_ERROR(ErrCode::NOT_SUPPORT));
+    }
+
     if (torch_npu::utils::is_npu(self)) {
         if (torch_npu::utils::is_npu(src)) {
             copy_d2d_baseformat_opapi(self, src, non_blocking);
@@ -253,7 +268,10 @@ at::Tensor& NPUNativeOpApiFunctions::copy_(at::Tensor& self, const at::Tensor& s
         }
     } else {
         if (torch_npu::utils::is_npu(src)) {
-            copy_d2h_baseformat_opapi(self, src, non_blocking);
+            // Ascend950: aclnnInplaceCopy rejects internal format. Cast NZ->ND first.
+            at::Tensor src_base = FormatHelper::IsBaseFormatType(src)
+                ? src : FormatCastHelper::ApplyBaseFormatTensorBy(src);
+            copy_d2h_baseformat_opapi(self, src_base, non_blocking);
             if (src.is_complex() && src.is_conj()) {
                 self.conj_physical_();
             }

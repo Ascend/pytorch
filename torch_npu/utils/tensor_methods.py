@@ -81,6 +81,28 @@ def _npu_type(self, dtype=None, non_blocking=False, **kwargs):
         return self.type_raw(dtype, non_blocking, **kwargs)
 
 
+def _add_repr_patch():
+    # Private-format tensors (e.g. FRACTAL_NZ) hit internal-format guard in
+    # _tensor_str cat/stack. Force .cpu() to trigger d2h + format cast first.
+    _orig_repr = torch.Tensor.__repr__
+
+    def _npu_private_format_repr(self, *, tensor_contents=None):
+        if self.device.type == "npu":
+            try:
+                is_private_format = (
+                    torch_npu.get_npu_format(self) != int(torch_npu.Format.ND)
+                )
+            except Exception:
+                is_private_format = False
+            if is_private_format:
+                with torch.no_grad():
+                    return _orig_repr(self.cpu(), tensor_contents=tensor_contents)
+        return _orig_repr(self, tensor_contents=tensor_contents)
+
+    torch.Tensor.__repr__ = _npu_private_format_repr
+
+
 def _add_tensor_methods():
     torch.Tensor.type_raw = torch.Tensor.type
     torch.Tensor.type = _npu_type
+    _add_repr_patch()
