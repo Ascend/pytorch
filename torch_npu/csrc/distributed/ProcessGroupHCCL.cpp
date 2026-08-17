@@ -3191,6 +3191,34 @@ std::vector<at::Tensor> flatten_for_scatter_gather(
   return flattened;
 }
 
+// Flatten input tensor lists for reduce_scatter, allowing input list size
+// and per-tensor numel to differ from output (aligning with NCCL).
+std::vector<at::Tensor> flatten_for_reduce_scatter(
+    std::vector<std::vector<at::Tensor>>& tensor_lists,
+    std::vector<at::Tensor>& outputTensors) {
+  if (tensor_lists.size() != outputTensors.size()) {
+    TORCH_CHECK(false, "Tensor list operands to reduce_scatter must have the same length", DIST_ERROR(ErrCode::VALUE));
+  }
+  const auto num_devices = tensor_lists.size();
+  std::vector<at::Tensor> flattened;
+  flattened.resize(num_devices);
+  for (const auto i : c10::irange(num_devices)) {
+    TORCH_CHECK(
+        !tensor_lists[i].empty(),
+        "Tensor list operands to reduce_scatter must be non-empty",
+        DIST_ERROR(ErrCode::PARAM));
+    if (tensor_lists[i].front().get_device() != outputTensors[i].get_device()) {
+      TORCH_CHECK(
+          false,
+          "Corresponding input/output tensors to reduce_scatter must all reside"
+          " on the same device",
+          DIST_ERROR(ErrCode::PARAM));
+    }
+    flattened[i] = c10d::newLikeFlat(tensor_lists, i);
+  }
+  return flattened;
+}
+
 void nslb_record_end() {
   std::string end_file_path;
   std::ofstream endfile;
@@ -5804,7 +5832,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
   }
   bool same_size = check_same_size(inputTensors.back());
   if (same_size) {
-    auto inputFlattened = flatten_for_scatter_gather(inputTensors, outputTensors, size_);
+    auto inputFlattened = flatten_for_reduce_scatter(inputTensors, outputTensors);
     check_npu_tensors_different_devices(inputFlattened);
     std::string functionName = __FUNCTION__;
     return collective(
