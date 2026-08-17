@@ -114,6 +114,11 @@ class TestSerialization(TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, "data.pt")
+            if x.is_npu:
+                # legacy save of NPU storage reads an invalid NPUStorageDesc; expect a clear error.
+                with self.assertRaisesRegex(RuntimeError, "NPUStorageImpl"):
+                    torch.serialization.save(x, path, _use_new_zipfile_serialization=False)
+                return
             torch.serialization.save(x, path, _use_new_zipfile_serialization=False)
             y = torch.load(
                 path,
