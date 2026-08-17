@@ -2976,7 +2976,7 @@
 **限制与说明**：
 
 - `input`仅支持bf16，fp16，fp32
-- 通过torch_npu.npu.use_compatible_impl(True)，设置该接口从`aclnnLayerNorm`算子切换为`aclnnFastLayerNorm`算子，保证与社区同名接口在内存一致性上对齐。，例如：
+- 通过torch_npu.npu.use_compatible_impl(True)，设置该接口从`aclnnLayerNorm`算子切换为`aclnnFastLayerNorm`算子，保证与社区同名接口在内存一致性上对齐，例如：
 
   ```python
   import torch_npu
