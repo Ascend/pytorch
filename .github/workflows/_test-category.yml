@@ -33,10 +33,15 @@ on:
         type: boolean
         default: false
         description: Whether to report test status to upstream dashboard
+      runner_label:
+        required: false
+        type: string
+        default: 'linux-aarch64-a3-8'
+        description: Runner label for runs-on and upstream job-name reporting.
 
 jobs:
   test:
-    runs-on: linux-aarch64-a3-8
+    runs-on: ${{ inputs.runner_label }}
     permissions:
       id-token: write
       contents: read
@@ -74,7 +79,7 @@ jobs:
         uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
         with:
           status: in_progress
-          job-name: test-${{ steps.prefix.outputs.prefix }}-${{ matrix.shard }}
+          job-name: ${{ inputs.runner_label }} / test (${{ inputs.category }}, ${{ matrix.shard }}, ${{ inputs.num_shards }}, py3.10)
 
       - name: Authenticate to Huawei Cloud
         uses: huaweicloud/auth-action@v1.1.0
@@ -283,7 +288,7 @@ jobs:
         with:
           status: completed
           conclusion: ${{ steps.parse_results.outputs.parse_ok == 'true' && steps.parse_results.outputs.total_failed == '0' && 'success' || 'failure' }}
-          job-name: test-${{ steps.prefix.outputs.prefix }}-${{ matrix.shard }}
+          job-name: ${{ inputs.runner_label }} / test (${{ inputs.category }}, ${{ matrix.shard }}, ${{ inputs.num_shards }}, py3.10)
           test-results: >-
             {
               "passed": ${{ steps.parse_results.outputs.passed }},

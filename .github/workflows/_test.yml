@@ -50,6 +50,11 @@ on:
         description: >-
           Path (relative to repo root) to a JSONL skip list file. When set,
           matching nodeids are removed after collection and before sharding.
+      runner_label:
+        required: false
+        type: string
+        default: 'linux-aarch64-a3-8'
+        description: Runner label for runs-on and upstream job-name reporting.
 
 defaults:
   run:
@@ -69,103 +74,37 @@ jobs:
       hw_classification: ${{ inputs.hw_classification }}
       full_scan: ${{ inputs.full_scan }}
       skip_list: ${{ inputs.skip_list }}
+      runner_label: ${{ inputs.runner_label }}
 
   # ============================================================================
-  # 2. Core tests (nn, optim, autograd, profiler)
+  # 2. Run test shards per category (matrix-driven)
   # ============================================================================
-  test_core:
+  test:
     needs: collect
-    if: ${{ needs.collect.outputs.has_core == 'true' }}
+    if: ${{ needs.collect.result == 'success' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.collect.outputs.test_matrix) }}
     uses: ./.github/workflows/_test-category.yml
     secrets: inherit
     with:
       resolved_short: ${{ inputs.resolved_short }}
-      category: core
-      num_shards: ${{ needs.collect.outputs.core_num_shards }}
-      matrix_json: ${{ needs.collect.outputs.core_matrix }}
-      max_workers: ${{ needs.collect.outputs.core_workers }}
+      category: ${{ matrix.category }}
+      num_shards: ${{ matrix.num_shards }}
+      matrix_json: ${{ matrix.matrix_json }}
+      max_workers: ${{ matrix.max_workers }}
       docker_image: ${{ inputs.docker_image }}
       report_to_upstream: ${{ inputs.report_to_upstream }}
+      runner_label: ${{ inputs.runner_label }}
 
   # ============================================================================
-  # 3. Tensor tests (tensor ops, ufuncs)
-  # ============================================================================
-  test_tensor:
-    needs: collect
-    if: ${{ needs.collect.outputs.has_tensor == 'true' }}
-    uses: ./.github/workflows/_test-category.yml
-    secrets: inherit
-    with:
-      resolved_short: ${{ inputs.resolved_short }}
-      category: tensor
-      num_shards: ${{ needs.collect.outputs.tensor_num_shards }}
-      matrix_json: ${{ needs.collect.outputs.tensor_matrix }}
-      max_workers: ${{ needs.collect.outputs.tensor_workers }}
-      docker_image: ${{ inputs.docker_image }}
-      report_to_upstream: ${{ inputs.report_to_upstream }}
-
-  # ============================================================================
-  # 4. Distributed tests (c10d, nccl, tensor parallel)
-  # ============================================================================
-  test_distributed:
-    needs: collect
-    if: ${{ needs.collect.outputs.has_distributed == 'true' }}
-    uses: ./.github/workflows/_test-category.yml
-    secrets: inherit
-    with:
-      resolved_short: ${{ inputs.resolved_short }}
-      category: distributed
-      num_shards: ${{ needs.collect.outputs.distributed_num_shards }}
-      matrix_json: ${{ needs.collect.outputs.distributed_matrix }}
-      max_workers: ${{ needs.collect.outputs.distributed_workers }}
-      docker_image: ${{ inputs.docker_image }}
-      report_to_upstream: ${{ inputs.report_to_upstream }}
-
-  # ============================================================================
-  # 5. Graph tests (fx, dynamo, inductor, export, functorch)
-  # ============================================================================
-  test_graph:
-    needs: collect
-    if: ${{ needs.collect.outputs.has_graph == 'true' }}
-    uses: ./.github/workflows/_test-category.yml
-    secrets: inherit
-    with:
-      resolved_short: ${{ inputs.resolved_short }}
-      category: graph
-      num_shards: ${{ needs.collect.outputs.graph_num_shards }}
-      matrix_json: ${{ needs.collect.outputs.graph_matrix }}
-      max_workers: ${{ needs.collect.outputs.graph_workers }}
-      docker_image: ${{ inputs.docker_image }}
-      report_to_upstream: ${{ inputs.report_to_upstream }}
-
-  # ============================================================================
-  # 6. Others tests (linalg, sparsity, etc.)
-  # ============================================================================
-  test_others:
-    needs: collect
-    if: ${{ needs.collect.outputs.has_others == 'true' }}
-    uses: ./.github/workflows/_test-category.yml
-    secrets: inherit
-    with:
-      resolved_short: ${{ inputs.resolved_short }}
-      category: others
-      num_shards: ${{ needs.collect.outputs.others_num_shards }}
-      matrix_json: ${{ needs.collect.outputs.others_matrix }}
-      max_workers: ${{ needs.collect.outputs.others_workers }}
-      docker_image: ${{ inputs.docker_image }}
-      report_to_upstream: ${{ inputs.report_to_upstream }}
-
-  # ============================================================================
-  # 7. Generate consolidated test report
+  # 3. Generate consolidated test report
   # ============================================================================
   report:
     needs:
       - collect
-      - test_core
-      - test_tensor
-      - test_distributed
-      - test_graph
-      - test_others
+      - test
     if: always() && needs.collect.result == 'success'
     uses: ./.github/workflows/_test-report.yml
     with:

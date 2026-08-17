@@ -41,6 +41,11 @@ on:
           Path (relative to repo root) to a JSONL skip list file. When set,
           matching nodeids are removed after collection and before sharding.
           When empty, no skip filtering is applied.
+      runner_label:
+        required: false
+        type: string
+        default: 'linux-aarch64-a3-8'
+        description: Runner label for runs-on and upstream job-name reporting.
     outputs:
       core_matrix:
         description: Core shard matrix JSON
@@ -105,10 +110,13 @@ on:
       total_cases:
         description: Total number of test cases
         value: ${{ jobs.collect.outputs.total_cases }}
+      test_matrix:
+        description: JSON array for test matrix (category, num_shards, matrix_json, max_workers)
+        value: ${{ jobs.collect.outputs.test_matrix }}
 
 jobs:
   collect:
-    runs-on: linux-aarch64-a3-8
+    runs-on: ${{ inputs.runner_label }}
     permissions:
       id-token: write
       contents: read
@@ -142,6 +150,7 @@ jobs:
       has_graph: ${{ steps.collect_cases.outputs.has_graph }}
       has_others: ${{ steps.collect_cases.outputs.has_others }}
       total_cases: ${{ steps.collect_cases.outputs.total_cases }}
+      test_matrix: ${{ steps.build_matrix.outputs.test_matrix }}
 
     steps:
       - name: Authenticate to Huawei Cloud
@@ -282,6 +291,21 @@ jobs:
               print(f'{cat}_matrix={matrix}')
               print(f'{cat}_num_shards={n}')
               print(f'{cat}_workers={w}')
+
+          # Build test_matrix for _test.yml matrix include
+          test_matrix = []
+          for cat in ['core', 'tensor', 'distributed', 'graph', 'others']:
+              c = cats.get(cat, {})
+              n = c.get('num_shards', 0)
+              if n > 0:
+                  w = c.get('workers', 32)
+                  test_matrix.append({
+                      'category': cat,
+                      'num_shards': str(n),
+                      'matrix_json': json.dumps(list(range(1, n + 1))),
+                      'max_workers': str(w),
+                  })
+          print(f'test_matrix={json.dumps(test_matrix)}')
           " >> "$GITHUB_OUTPUT"
 
       - name: Upload cases shard JSONs

@@ -25,6 +25,11 @@ on:
         type: boolean
         default: true
         description: Whether to report CI status to upstream dashboard
+      runner_label:
+        required: false
+        type: string
+        default: 'linux-aarch64-a3-8'
+        description: Runner label for runs-on and upstream job-name reporting.
     outputs:
       resolved_sha:
         description: Full resolved SHA of upstream PyTorch
@@ -108,7 +113,7 @@ jobs:
   # ======================================================================
   pytorch_and_torch-npu_build:
     needs: fetch
-    runs-on: linux-aarch64-a3-8
+    runs-on: ${{ inputs.runner_label }}
     permissions:
       id-token: write
       contents: read
@@ -137,7 +142,7 @@ jobs:
         uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
         with:
           status: in_progress
-          job-name: pytorch_and_torch-npu_build
+          job-name: ${{ inputs.runner_label }} / build (pytorch, torch-npu, py3.10)
 
       # Step 1: Download and extract pre-fetched PyTorch source
       - name: Authenticate to Huawei Cloud
@@ -401,5 +406,5 @@ jobs:
         with:
           status: completed
           conclusion: ${{ (steps.build_pytorch.outcome == 'success' && steps.build_torchnpu.outcome == 'success' && steps.build_torchvision.outcome == 'success') && 'success' || 'failure' }}
-          job-name: pytorch_and_torch-npu_build
+          job-name: ${{ inputs.runner_label }} / build (pytorch, torch-npu, py3.10)
 
