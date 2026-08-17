@@ -7,6 +7,7 @@ from typing import Any, Optional, Union
 
 import torch.autograd.profiler as prof
 import torch_npu.npu
+from torch.profiler.profiler import _ITraceObserver
 from torch_npu.npu import current_stream, mstx
 from torch_npu._C._profiler import (
     _disable_profiler_in_child_thread,
@@ -211,6 +212,7 @@ class profile(_KinetoProfile):
         with_flops: bool = False,
         with_modules: bool = False,
         experimental_config: Optional[_ExperimentalConfig] = None,
+        execution_trace_observer: _ITraceObserver | None = None,
         custom_trace_id_callback: Optional[Callable[[], str]] = None,
         # deprecated:
         use_cuda: Optional[bool] = None,
@@ -249,6 +251,7 @@ class profile(_KinetoProfile):
             metadata=self.metadata,
             custom_trace_id_callback=custom_trace_id_callback,
         )
+        self.execution_trace_observer = execution_trace_observer
         self.on_trace_ready = on_trace_ready
         self.step_num = 0
         self.current_action = self.schedule(self.step_num)
@@ -303,6 +306,8 @@ class profile(_KinetoProfile):
             self.step_rec_fn = prof.record_function(step_name)
             self.step_rec_fn.__enter__()
             self._start_step_mstx_range(step_name)
+        if self.execution_trace_observer:
+            self.execution_trace_observer.start()
 
     @no_exception_func()
     def stop(self):
@@ -311,6 +316,8 @@ class profile(_KinetoProfile):
             self._end_step_mstx_range()
         self.action_controller.transit_action(self.current_action, None)
         self.stopped = True
+        if self.execution_trace_observer:
+            self.execution_trace_observer.stop()
 
     @no_exception_func()
     def step(self):
