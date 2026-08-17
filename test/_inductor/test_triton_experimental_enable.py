@@ -69,6 +69,11 @@ class TestTritonExperimentalEnable(TestUtils):
     @parametrize('dtype', ['float32', 'int64'])
     def test_config_entry(self, shape, dtype):
         # Entry point 2: global torch._inductor.config.npu_backend.
+        # torch._inductor.config is an internal module. Initialize the NPU
+        # config entries explicitly before testing direct config assignment
+        # (mirrors test_mlir_enable.py; the deferred-key injection shipped
+        # with the ee15004fe8 lazy-init rework).
+        torch._inductor.config.get_config_copy()
         torch._inductor.config.npu_backend = "triton_experimental"
         x = self._generate_tensor(shape, dtype)
         y = self._generate_tensor(shape, dtype)
