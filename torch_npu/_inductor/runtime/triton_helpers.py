@@ -3,6 +3,7 @@ import triton
 import triton.language as tl
 
 from torch._inductor.runtime.triton_helpers import *
+from torch._inductor.runtime.triton_helpers import promote_to_tensor
 
 try:
     extension = tl.extra.cann.extension
@@ -19,6 +20,50 @@ def frexp(x):
     exponent = tl.where(x == 0, 0, y)
     mantissa = tl.where(x == 0, 0, libdevice.ldexp(x, -y))
     return mantissa, exponent
+
+
+@triton.jit
+def _restore_reduced_dim(reduced, dim: tl.constexpr, ndim: tl.constexpr):
+    """Put back the axis a reduce removed, so the result broadcasts again."""
+    if ndim == 1:
+        return promote_to_tensor(reduced)
+    return tl.expand_dims(reduced, dim)
+
+
+@triton.jit
+def max_with_index(value, index, dim: tl.constexpr):
+    """Override upstream max_with_index to avoid a two-source tl.reduce.
+
+    Upstream reduces (value, index) together with tl.reduce. Fed the loop-carried
+    accumulators of a looped reduction, NPU's backend returns the lane coordinate
+    instead of the carried index, so an argmax over a dynamic reduction axis comes
+    out as the position within one tile. Two single-operand reduces give the same
+    answer: the extremum, then the lowest index among the elements reaching it.
+    The largest index of the slice is the filler for elements that are not at the
+    extremum, which avoids a dtype-dependent sentinel and never wins the min.
+
+    Both reduces are builtins. A tl.reduce carrying a combine region compiles
+    down a slower path on this backend, and propagate_nan gives the same NaN
+    ordering that upstream's maximum would.
+    """
+    peak = tl.max(value, dim, propagate_nan=True)
+    peak_bcast = _restore_reduced_dim(peak, dim, len(value.shape))
+    filler = _restore_reduced_dim(tl.max(index, dim), dim, len(value.shape))
+    # A NaN outranks every number and is not equal to itself, so match it apart.
+    at_peak = (value == peak_bcast) | ((value != value) & (peak_bcast != peak_bcast))
+    return peak, tl.min(tl.where(at_peak, index, filler), dim)
+
+
+@triton.jit
+def min_with_index(value, index, dim: tl.constexpr):
+    """Mirror of max_with_index; see there for why the two-source reduce is out."""
+    valley = tl.min(value, dim, propagate_nan=True)
+    valley_bcast = _restore_reduced_dim(valley, dim, len(value.shape))
+    filler = _restore_reduced_dim(tl.max(index, dim), dim, len(value.shape))
+    at_valley = (value == valley_bcast) | (
+        (value != value) & (valley_bcast != valley_bcast)
+    )
+    return valley, tl.min(tl.where(at_valley, index, filler), dim)
 
 
 @triton.jit
