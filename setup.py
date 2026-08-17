@@ -129,9 +129,12 @@ generate_torch_npu_version()
 
 
 def _get_torch_requires():
-    # The torch dependency uses the base PyTorch version; strip any
-    # post-release (.postN) or local (+tag) suffix from the package version.
-    torch_version = get_version().split("+")[0].split(".post")[0]
+    # The torch dependency pins the base PyTorch release, with no
+    # constraint on the build variant. Strip the local tag (+cpu), the
+    # post-release suffix (.postN) and the nightly suffix (.devN) from the
+    # package version so a build made against a dated nightly still depends on
+    # the release line rather than that particular nightly.
+    torch_version = get_version().split("+")[0].split(".post")[0].split(".dev")[0]
     return ["torch==" + torch_version]
 
 
