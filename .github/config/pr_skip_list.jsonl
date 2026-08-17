@@ -1,4 +1,4 @@
-{"_meta": {"description": "PR-trigger skip list: failed cases from receive-trigger run 31773030818", "source_run": "https://github.com/Ascend/pytorch/actions/runs/31773030818", "total_entries": 4030, "created": "2026-08-14"}}
+{"_meta": {"description": "PR-trigger skip list: failed cases from receive-trigger run 31773030818", "source_run": "https://github.com/Ascend/pytorch/actions/runs/31977204768", "total_entries": 4054, "created": "2026-08-14", "updated": "2026-08-17"}}
 {"nodeid": "test/nn/test_convolution.py::TestConvolutionNNDeviceTypePRIVATEUSE1::test_Conv2d_backward_depthwise_npu_complex128"}
 {"nodeid": "test/nn/test_convolution.py::TestConvolutionNNDeviceTypePRIVATEUSE1::test_Conv2d_backward_depthwise_npu_float64"}
 {"nodeid": "test/nn/test_convolution.py::TestConvolutionNNDeviceTypePRIVATEUSE1::test_Conv2d_depthwise_naive_groups_npu_float64"}
@@ -2158,6 +2158,30 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_logical_xor_npu_complex64_int8"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_logical_xor_npu_complex64_uint8"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_long_tensor_pow_floats_npu"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_maximum_minimum_complex_npu_complex128_bfloat16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_maximum_minimum_complex_npu_complex128_bool"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_maximum_minimum_complex_npu_complex128_complex128"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_maximum_minimum_complex_npu_complex128_complex64"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_maximum_minimum_complex_npu_complex128_float16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_maximum_minimum_complex_npu_complex128_float32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_maximum_minimum_complex_npu_complex128_float64"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_maximum_minimum_complex_npu_complex128_int16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_maximum_minimum_complex_npu_complex128_int32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_maximum_minimum_complex_npu_complex128_int64"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_maximum_minimum_complex_npu_complex128_int8"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_maximum_minimum_complex_npu_complex128_uint8"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_maximum_minimum_complex_npu_complex64_bfloat16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_maximum_minimum_complex_npu_complex64_bool"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_maximum_minimum_complex_npu_complex64_complex128"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_maximum_minimum_complex_npu_complex64_complex64"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_maximum_minimum_complex_npu_complex64_float16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_maximum_minimum_complex_npu_complex64_float32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_maximum_minimum_complex_npu_complex64_float64"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_maximum_minimum_complex_npu_complex64_int16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_maximum_minimum_complex_npu_complex64_int32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_maximum_minimum_complex_npu_complex64_int64"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_maximum_minimum_complex_npu_complex64_int8"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_maximum_minimum_complex_npu_complex64_uint8"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_min_max_and_clamp_subgradient_npu_bfloat16_float64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_min_max_and_clamp_subgradient_npu_float16_float64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_min_max_and_clamp_subgradient_npu_float32_float64"}
