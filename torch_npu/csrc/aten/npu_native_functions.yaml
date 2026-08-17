@@ -16,6 +16,7 @@ supported:
   - contiguous
   - func: copy_
     op_api: True
+    internal_format_opapi: True
   - copy_memory_
   - empty.memory_format
   - empty_like
