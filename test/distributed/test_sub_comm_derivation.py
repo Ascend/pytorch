@@ -69,6 +69,7 @@ class SubCommDerivationTest(TestCase):
         os.environ['MASTER_PORT'] = str(port)
         os.environ['HCCL_WHITELIST_DISABLE'] = '1'
         os.environ['HCCL_NPU_SOCKET_PORT_RANGE'] = socket_port_range
+        os.environ['ROOTINFO_SUBCOMM_ENABLE'] = '1'
         torch_npu._C._logging._LogContext.GetInstance().setLogs({"torch.distributed": 20})
         torch_npu.npu.set_device(rank)
         dist.init_process_group(backend='hccl', world_size=world_size, rank=rank)
