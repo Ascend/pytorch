@@ -59,6 +59,14 @@ static bool ShouldFallbackNzToNd(const at::Tensor& self, int64_t acl_format) {
   return false;
 }
 
+// CANN only accepts FRACTAL_NZ(29) or ND(2) as dstFormat; NZ_C0 variants
+// (50-54) are output-only (returned as actualFormat). Normalize here for the
+// load path.
+static bool IsNzC0Variant(int64_t fmt) {
+  return fmt == ACL_FORMAT_FRACTAL_NZ_C0_16 || fmt == ACL_FORMAT_FRACTAL_NZ_C0_32 ||
+      fmt == ACL_FORMAT_FRACTAL_NZ_C0_2 || fmt == ACL_FORMAT_FRACTAL_NZ_C0_4 || fmt == ACL_FORMAT_FRACTAL_NZ_C0_8;
+}
+
 std::tuple<bool, int64_t, c10::SmallVector<int64_t, SIZE>> MaybeUseAclnnNpuFormatCast(
     const at::Tensor& src,
     int64_t acl_format,
@@ -81,9 +89,15 @@ std::tuple<bool, int64_t, c10::SmallVector<int64_t, SIZE>> MaybeUseAclnnNpuForma
       (customize_dtype.has_value()) ? c10_npu::GetAclDataType(customize_dtype.value()) : srcAcltype;
   TensorWrapper srcWrapper = make_wrapper(src, input_dtype);
   if (c10_npu::IsAclnnOnly()) {
+    // >=4-byte types (fp32/int32) need FLOAT16 additionalDtype for C0=16.
+    if (!customize_dtype.has_value() && src.element_size() >= 4) {
+      customizeAcltype = aclDataType::ACL_FLOAT16;
+    }
     if (aclnnNpuFormatCastExist) {
+      // Normalize NZ_C0 -> FRACTAL_NZ(29); C0 variants are output-only.
+      int64_t cann_dst_format = IsNzC0Variant(acl_format) ? ACL_FORMAT_FRACTAL_NZ : acl_format;
       auto acl_src = ConvertType(srcWrapper);
-      auto api_ret = GetFormat(acl_src, acl_format, customizeAcltype, &dstStorageShape, &dstShapeSize, &dstFormat);
+      auto api_ret = GetFormat(acl_src, cann_dst_format, customizeAcltype, &dstStorageShape, &dstShapeSize, &dstFormat);
       Release(acl_src);
       NPU_CHECK_ERROR(api_ret, "aclnnNpuFormatCastCalculateSizeAndFormat");
       for (uint64_t i = 0; i < dstShapeSize; i++) {

@@ -13,7 +13,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#include <ATen/core/CachingHostAllocator.h>
 
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/NPUPeerToPeerAccess.h"
@@ -27,6 +26,8 @@
 #include "torch_npu/csrc/custom_dtype/Init.h"
 #include "torch_npu/csrc/aten/NPUOpApiNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/framework/FormatHelper.h"
+#include "torch_npu/csrc/aten/common/FormatCastHelper.h"
 #include "third_party/op-plugin/op_plugin/utils/op_api_common.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
@@ -39,27 +40,21 @@ namespace {
 
 bool is_aclnn_cast_unsupported_dtype(const at::Tensor& tensor) {
   // On A2-and-later products, aclnnCast rejects these dtype families.
-  aclDataType dtype =
-      c10_npu::GetAclDataType(static_cast<int64_t>(tensor.scalar_type()));
-  return dtype == aclDataType::ACL_COMPLEX32 ||
-      dtype == aclDataType::ACL_HIFLOAT8 ||
-      dtype == aclDataType::ACL_FLOAT8_E5M2 ||
-      dtype == aclDataType::ACL_FLOAT8_E4M3FN ||
-      dtype == aclDataType::ACL_FLOAT4_E2M1 ||
-      dtype == aclDataType::ACL_FLOAT4_E1M2 || dtype == aclDataType::ACL_INT4;
+  aclDataType dtype = c10_npu::GetAclDataType(static_cast<int64_t>(tensor.scalar_type()));
+  return dtype == aclDataType::ACL_COMPLEX32 || dtype == aclDataType::ACL_HIFLOAT8 ||
+      dtype == aclDataType::ACL_FLOAT8_E5M2 || dtype == aclDataType::ACL_FLOAT8_E4M3FN ||
+      dtype == aclDataType::ACL_FLOAT4_E2M1 || dtype == aclDataType::ACL_FLOAT4_E1M2 || dtype == aclDataType::ACL_INT4;
 }
 
 bool should_fallback_to_cpu_cast(const at::Tensor& dst, const at::Tensor& src) {
   const auto soc = c10_npu::GetSocVersion();
   const bool is_a2_or_later =
-      ((soc >= c10_npu::SocVersion::Ascend910B1 &&
-        soc < c10_npu::SocVersion::Ascend310B1) ||
+      ((soc >= c10_npu::SocVersion::Ascend910B1 && soc < c10_npu::SocVersion::Ascend310B1) ||
        (soc >= c10_npu::SocVersion::Ascend910_9391));
   if (!is_a2_or_later) {
     return false;
   }
-  return is_aclnn_cast_unsupported_dtype(src) ||
-      is_aclnn_cast_unsupported_dtype(dst);
+  return is_aclnn_cast_unsupported_dtype(src) || is_aclnn_cast_unsupported_dtype(dst);
 }
 
 } // namespace
@@ -76,25 +71,18 @@ void copy_between_host_and_device_opapi(
   c10_npu::NPUStream stream = c10_npu::getCurrentNPUStream();
 
   if (non_blocking) {
-    auto ret = CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(
-        dst, nbytes, src, nbytes, kind);
+    auto ret = CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(dst, nbytes, src, nbytes, kind);
     NPU_CHECK_ERROR(ret);
     ASCEND_LOGD("non_blocking copy without StreamSynchronize.");
-    auto& storage =
-        torch_npu::utils::is_npu(dst) ? src.storage() : dst.storage();
-    void* currentPtr =
-        torch_npu::utils::is_npu(dst) ? src.data_ptr() : dst.data_ptr();
+    auto& storage = torch_npu::utils::is_npu(dst) ? src.storage() : dst.storage();
+    void* currentPtr = torch_npu::utils::is_npu(dst) ? src.data_ptr() : dst.data_ptr();
     process_non_blocking_copy(storage, currentPtr, stream, kind);
   } else {
     aclError error = aclrtSynchronizeStream(stream);
     auto ret = CalcuOpUtil::AclrtMemcpyWithModeSwitch(
-        std::make_pair(
-            dst.storage().unsafeGetStorageImpl(),
-            dst.storage_offset() * dst.itemsize()),
+        std::make_pair(dst.storage().unsafeGetStorageImpl(), dst.storage_offset() * dst.itemsize()),
         nbytes,
-        std::make_pair(
-            src.storage().unsafeGetStorageImpl(),
-            src.storage_offset() * src.itemsize()),
+        std::make_pair(src.storage().unsafeGetStorageImpl(), src.storage_offset() * src.itemsize()),
         nbytes,
         kind);
     NPU_CHECK_ERROR(ret, "aclrtMemcpy");
@@ -111,11 +99,9 @@ void copy_between_host_and_device_opapi(
       }
     } else {
 #ifndef BUILD_LIBTORCH
-      const c10_npu::impl::PyCallbackTrigger* trigger =
-          c10_npu::impl::NPUTrace::getTrace();
+      const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
       if (C10_UNLIKELY(trigger)) {
-        trigger->traceNpuStreamSynchronization(
-            reinterpret_cast<uintptr_t>(stream.stream(false)));
+        trigger->traceNpuStreamSynchronization(reinterpret_cast<uintptr_t>(stream.stream(false)));
       }
 #endif
     }
@@ -123,10 +109,7 @@ void copy_between_host_and_device_opapi(
 }
 
 // the format of dst and src is baseformat now, copy d2d
-void copy_d2d_baseformat_opapi(
-    at::Tensor& dst,
-    const at::Tensor& src,
-    bool non_blocking) {
+void copy_d2d_baseformat_opapi(at::Tensor& dst, const at::Tensor& src, bool non_blocking) {
   if (dst.device().index() != src.device().index()) {
     return copy_d2d(dst, src, non_blocking);
   }
@@ -142,10 +125,7 @@ void copy_d2d_baseformat_opapi(
 // the format of dst and src is base format now
 // the dtype of dst and src is same
 // and src and dst are contiguous
-void copy_h2d_baseformat_dtype_contigous_opapi(
-    at::Tensor& dst,
-    const at::Tensor& src,
-    bool non_blocking) {
+void copy_h2d_baseformat_dtype_contigous_opapi(at::Tensor& dst, const at::Tensor& src, bool non_blocking) {
   c10_npu::OptionalNPUGuard device_guard;
   device_guard.set_device(dst.device());
   aclrtMemcpyKind kind = aclrtMemcpyKind::ACL_MEMCPY_HOST_TO_DEVICE;
@@ -155,10 +135,7 @@ void copy_h2d_baseformat_dtype_contigous_opapi(
 // the format of dst and src is baseformat now
 // the dtype of dst and src is same
 // and src and dst are contiguous
-void copy_d2h_baseformat_dtype_contigous_opapi(
-    at::Tensor& dst,
-    const at::Tensor& src,
-    bool non_blocking) {
+void copy_d2h_baseformat_dtype_contigous_opapi(at::Tensor& dst, const at::Tensor& src, bool non_blocking) {
   c10_npu::OptionalNPUGuard device_guard;
   device_guard.set_device(src.device());
   aclrtMemcpyKind kind = aclrtMemcpyKind::ACL_MEMCPY_DEVICE_TO_HOST;
@@ -166,10 +143,8 @@ void copy_d2h_baseformat_dtype_contigous_opapi(
 }
 
 void cast_dtype_out_baseformat_opapi(at::Tensor& dst, const at::Tensor& src) {
-  TORCH_INTERNAL_ASSERT(
-      dst.sizes().equals(src.sizes()), OPS_ERROR(ErrCode::VALUE));
-  TORCH_INTERNAL_ASSERT(
-      dst.device() == src.device(), OPS_ERROR(ErrCode::VALUE));
+  TORCH_INTERNAL_ASSERT(dst.sizes().equals(src.sizes()), OPS_ERROR(ErrCode::VALUE));
+  TORCH_INTERNAL_ASSERT(dst.device() == src.device(), OPS_ERROR(ErrCode::VALUE));
   auto dst_scalar_type = dst.scalar_type();
   EXEC_NPU_CMD(aclnnCast, src, dst_scalar_type, dst);
 }
@@ -193,28 +168,19 @@ void copy_h2d_baseformat_opapi(
   at::Tensor src_contig;
   if (!same_type && non_blocking && !should_fallback_to_cpu_cast(dst, src)) {
     // keep the H2D leg same-dtype, then cast on device.
-    dst_contig =
-        at::empty_like(dst, src.dtype(), LEGACY_CONTIGUOUS_MEMORY_FORMAT);
+    dst_contig = at::empty_like(dst, src.dtype(), LEGACY_CONTIGUOUS_MEMORY_FORMAT);
     src_contig = src.expand_as(dst).contiguous();
   } else {
-    dst_contig = dst_is_contiguous
-        ? dst
-        : at::empty_like(dst, LEGACY_CONTIGUOUS_MEMORY_FORMAT);
-    src_contig = !same_type ? src.to(dst.dtype()).expand_as(dst).contiguous()
-                            : src.expand_as(dst).contiguous();
+    dst_contig = dst_is_contiguous ? dst : at::empty_like(dst, LEGACY_CONTIGUOUS_MEMORY_FORMAT);
+    src_contig = !same_type ? src.to(dst.dtype()).expand_as(dst).contiguous() : src.expand_as(dst).contiguous();
   }
   // perform a same-dtype copy on contiguous tensors
-  TORCH_INTERNAL_ASSERT(
-      dst_contig.sizes().equals(src_contig.sizes()), OPS_ERROR(ErrCode::VALUE));
-  TORCH_INTERNAL_ASSERT(
-      dst_contig.scalar_type() == src_contig.scalar_type(),
-      OPS_ERROR(ErrCode::VALUE));
-  copy_h2d_baseformat_dtype_contigous_opapi(
-      dst_contig, src_contig, non_blocking);
+  TORCH_INTERNAL_ASSERT(dst_contig.sizes().equals(src_contig.sizes()), OPS_ERROR(ErrCode::VALUE));
+  TORCH_INTERNAL_ASSERT(dst_contig.scalar_type() == src_contig.scalar_type(), OPS_ERROR(ErrCode::VALUE));
+  copy_h2d_baseformat_dtype_contigous_opapi(dst_contig, src_contig, non_blocking);
   // if necessary, copy back into dst
   if (!dst_contig.is_same(dst)) {
-    TORCH_INTERNAL_ASSERT(
-        dst_contig.device() == dst.device(), OPS_ERROR(ErrCode::VALUE));
+    TORCH_INTERNAL_ASSERT(dst_contig.device() == dst.device(), OPS_ERROR(ErrCode::VALUE));
     if (dst_contig.scalar_type() == dst.scalar_type()) {
       copy_d2d_baseformat_opapi(dst, dst_contig, non_blocking);
     } else {
@@ -224,10 +190,7 @@ void copy_h2d_baseformat_opapi(
 }
 
 // the format of dst and src is baseformat now
-void copy_d2h_baseformat_opapi(
-    at::Tensor& dst,
-    const at::Tensor& src,
-    bool non_blocking) {
+void copy_d2h_baseformat_opapi(at::Tensor& dst, const at::Tensor& src, bool non_blocking) {
   c10_npu::NPUGuard guard(src.device());
   bool same_type = (src.dtype() == dst.dtype());
   bool same_size = (src.sizes() == dst.sizes());
@@ -240,47 +203,46 @@ void copy_d2h_baseformat_opapi(
   at::Tensor src_contig;
   if (!same_type && non_blocking && !should_fallback_to_cpu_cast(dst, src)) {
     // cast on device before the D2H leg.
-    dst_contig = dst_is_contiguous
-        ? dst
-        : at::empty_like(dst, LEGACY_CONTIGUOUS_MEMORY_FORMAT);
-    at::Tensor src_cast_input =
-        NpuUtils::check_match(&src) ? src : NpuUtils::format_contiguous(src);
-    src_contig = custom_ops::_npu_dtype_cast(src_cast_input, dst.scalar_type())
-                     .expand_as(dst)
-                     .contiguous();
+    dst_contig = dst_is_contiguous ? dst : at::empty_like(dst, LEGACY_CONTIGUOUS_MEMORY_FORMAT);
+    at::Tensor src_cast_input = NpuUtils::check_match(&src) ? src : NpuUtils::format_contiguous(src);
+    src_contig = custom_ops::_npu_dtype_cast(src_cast_input, dst.scalar_type()).expand_as(dst).contiguous();
   } else {
-    dst_contig = (dst_is_contiguous && same_type)
-        ? dst
-        : at::empty_like(dst, src.dtype(), LEGACY_CONTIGUOUS_MEMORY_FORMAT);
+    dst_contig =
+        (dst_is_contiguous && same_type) ? dst : at::empty_like(dst, src.dtype(), LEGACY_CONTIGUOUS_MEMORY_FORMAT);
     src_contig = src.expand_as(dst).contiguous();
   }
   // perform a same-dtype copy on contiguous tensors
-  TORCH_INTERNAL_ASSERT(
-      dst_contig.sizes().equals(src_contig.sizes()), OPS_ERROR(ErrCode::VALUE));
-  TORCH_INTERNAL_ASSERT(
-      dst_contig.scalar_type() == src_contig.scalar_type(),
-      OPS_ERROR(ErrCode::VALUE));
-  copy_d2h_baseformat_dtype_contigous_opapi(
-      dst_contig, src_contig, non_blocking);
+  TORCH_INTERNAL_ASSERT(dst_contig.sizes().equals(src_contig.sizes()), OPS_ERROR(ErrCode::VALUE));
+  TORCH_INTERNAL_ASSERT(dst_contig.scalar_type() == src_contig.scalar_type(), OPS_ERROR(ErrCode::VALUE));
+  copy_d2h_baseformat_dtype_contigous_opapi(dst_contig, src_contig, non_blocking);
   // if necessary, copy back into dst
   if (!dst_contig.is_same(dst)) {
-    TORCH_INTERNAL_ASSERT(
-        dst_contig.device() == dst.device(), OPS_ERROR(ErrCode::VALUE));
+    TORCH_INTERNAL_ASSERT(dst_contig.device() == dst.device(), OPS_ERROR(ErrCode::VALUE));
     dst.copy_(dst_contig, non_blocking); // h2h, use cpu copy
   }
 }
 
-at::Tensor& NPUNativeOpApiFunctions::copy_(
-    at::Tensor& self,
-    const at::Tensor& src,
-    bool non_blocking) {
-  DO_COMPATIBILITY(
-      aclnnInplaceCopy, NPUNativeFunctions::copy_(self, src, non_blocking));
+at::Tensor& NPUNativeOpApiFunctions::copy_(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
+  DO_COMPATIBILITY(aclnnInplaceCopy, NPUNativeFunctions::copy_(self, src, non_blocking));
   if (self.numel() == 0) {
     return self;
   }
   if (src._is_zerotensor()) {
     return self.zero_();
+  }
+  // aclnnInplaceCopy corrupts internal-format storage: on A2/A3 fall back to
+  // the native copy_, on Ascend950 only d2h is supported (cast to base first).
+  const bool self_is_base = FormatHelper::IsOpInputBaseFormat(self);
+  const bool src_is_base = FormatHelper::IsOpInputBaseFormat(src);
+  if (!self_is_base || !src_is_base) {
+    if (!c10_npu::IsAclnnOnly()) {
+      return NPUNativeFunctions::copy_(self, src, non_blocking);
+    }
+    TORCH_CHECK(
+        !torch_npu::utils::is_npu(self),
+        "The copy_ operator with internal format tensors is not supported on Ascend950, "
+        "only device-to-host copies are supported",
+        OPS_ERROR(ErrCode::NOT_SUPPORT));
   }
 
   if (torch_npu::utils::is_npu(self)) {
@@ -299,7 +261,9 @@ at::Tensor& NPUNativeOpApiFunctions::copy_(
     }
   } else {
     if (torch_npu::utils::is_npu(src)) {
-      copy_d2h_baseformat_opapi(self, src, non_blocking);
+      // Ascend950: aclnnInplaceCopy rejects internal format. Cast NZ->ND first.
+      at::Tensor src_base = FormatHelper::IsBaseFormatType(src) ? src : FormatCastHelper::ApplyBaseFormatTensorBy(src);
+      copy_d2h_baseformat_opapi(self, src_base, non_blocking);
       if (src.is_complex() && src.is_conj()) {
         self.conj_physical_();
       }
