@@ -21,8 +21,7 @@
 namespace c10_npu {
 
 std::shared_ptr<npu_logging::Logger>& GetEnvLogger() {
-  static std::shared_ptr<npu_logging::Logger> loggerEnv =
-      npu_logging::logging().getLogger("torch_npu.env");
+  static std::shared_ptr<npu_logging::Logger> loggerEnv = npu_logging::logging().getLogger("torch_npu.env");
   return loggerEnv;
 }
 
@@ -40,15 +39,10 @@ char* get_and_log_env(const char* env_str) {
 
 bool OptionsManager::IsHcclZeroCopyEnable() {
   const static bool isHcclZeroCopyEnable = []() -> bool {
-    int32_t enable =
-        OptionsManager::GetBoolTypeOption("TORCH_HCCL_ZERO_COPY", 0);
-    std::unordered_map<int32_t, std::string> hcclZeroCopyMode =
-        getHcclZeroCopyMode();
+    int32_t enable = OptionsManager::GetBoolTypeOption("TORCH_HCCL_ZERO_COPY", 0);
+    std::unordered_map<int32_t, std::string> hcclZeroCopyMode = getHcclZeroCopyMode();
     if (hcclZeroCopyMode.find(enable) == hcclZeroCopyMode.end()) {
-      TORCH_CHECK(
-          false,
-          "TORCH_HCCL_ZERO_COPY should be 0 or 1.",
-          PTA_ERROR(ErrCode::VALUE));
+      TORCH_CHECK(false, "TORCH_HCCL_ZERO_COPY should be 0 or 1.", PTA_ERROR(ErrCode::VALUE));
     }
     return enable != 0;
   }();
@@ -61,6 +55,14 @@ bool OptionsManager::IsResumeModeEnable() {
     return enable != 0;
   }();
   return isResumeModeEnable;
+}
+
+bool OptionsManager::IsSubCommRootInfoEnable() {
+  const static bool isSubCommRootInfoEnable = []() -> bool {
+    int32_t enable = OptionsManager::GetBoolTypeOption("ROOTINFO_SUBCOMM_ENABLE", 0);
+    return enable != 0;
+  }();
+  return isSubCommRootInfoEnable;
 }
 
 ReuseMode OptionsManager::GetMultiStreamMemoryReuse() {
@@ -82,10 +84,7 @@ ReuseMode OptionsManager::GetMultiStreamMemoryReuse() {
         mode = ERASE_RECORD_STREAM_WITH_OPTIMIZE;
         break;
       default:
-        TORCH_CHECK(
-            false,
-            "MULTI_STREAM_MEMORY_REUSE should be 0, 1, 2 or 3",
-            PTA_ERROR(ErrCode::VALUE));
+        TORCH_CHECK(false, "MULTI_STREAM_MEMORY_REUSE should be 0, 1, 2 or 3", PTA_ERROR(ErrCode::VALUE));
     }
     return mode;
   }();
@@ -94,14 +93,10 @@ ReuseMode OptionsManager::GetMultiStreamMemoryReuse() {
 
 bool OptionsManager::CheckInfNanModeEnable() {
   const static bool checkInfNanModeEnable = []() -> bool {
-    int32_t enable =
-        OptionsManager::GetBoolTypeOption("INF_NAN_MODE_ENABLE", 1);
+    int32_t enable = OptionsManager::GetBoolTypeOption("INF_NAN_MODE_ENABLE", 1);
     std::unordered_map<int32_t, std::string> infNanMode = getInfNanMode();
     if (infNanMode.find(enable) == infNanMode.end()) {
-      TORCH_CHECK(
-          false,
-          "INF_NAN_MODE_ENABLE should be 0 or 1.",
-          PTA_ERROR(ErrCode::VALUE));
+      TORCH_CHECK(false, "INF_NAN_MODE_ENABLE should be 0 or 1.", PTA_ERROR(ErrCode::VALUE));
     }
     return enable != 0;
   }();
@@ -110,15 +105,10 @@ bool OptionsManager::CheckInfNanModeEnable() {
 
 bool OptionsManager::CheckInfNanModeForceDisable() {
   const static bool checkInfNanModeForceDisable = []() -> bool {
-    int32_t disable =
-        OptionsManager::GetBoolTypeOption("INF_NAN_MODE_FORCE_DISABLE", 0);
-    std::unordered_map<int32_t, std::string> disableInfNanMode =
-        getDisableInfNanMode();
+    int32_t disable = OptionsManager::GetBoolTypeOption("INF_NAN_MODE_FORCE_DISABLE", 0);
+    std::unordered_map<int32_t, std::string> disableInfNanMode = getDisableInfNanMode();
     if (disableInfNanMode.find(disable) == disableInfNanMode.end()) {
-      TORCH_CHECK(
-          false,
-          "INF_NAN_MODE_FORCE_DISABLE should be 0 or 1.",
-          PTA_ERROR(ErrCode::VALUE));
+      TORCH_CHECK(false, "INF_NAN_MODE_FORCE_DISABLE should be 0 or 1.", PTA_ERROR(ErrCode::VALUE));
     }
     return disable != 0;
   }();
@@ -127,15 +117,10 @@ bool OptionsManager::CheckInfNanModeForceDisable() {
 
 bool OptionsManager::CheckBlockingEnable() {
   const static bool checkBlockingEnable = []() -> bool {
-    int32_t blocking_enable =
-        OptionsManager::GetBoolTypeOption("ASCEND_LAUNCH_BLOCKING", 0);
-    std::unordered_map<int32_t, std::string> launchBlockingMode =
-        getLaunchBlockingMode();
+    int32_t blocking_enable = OptionsManager::GetBoolTypeOption("ASCEND_LAUNCH_BLOCKING", 0);
+    std::unordered_map<int32_t, std::string> launchBlockingMode = getLaunchBlockingMode();
     if (launchBlockingMode.find(blocking_enable) == launchBlockingMode.end()) {
-      TORCH_CHECK(
-          false,
-          "ASCEND_LAUNCH_BLOCKING should be 0 or 1.",
-          PTA_ERROR(ErrCode::VALUE));
+      TORCH_CHECK(false, "ASCEND_LAUNCH_BLOCKING should be 0 or 1.", PTA_ERROR(ErrCode::VALUE));
     }
     return blocking_enable != 0;
   }();
@@ -144,16 +129,10 @@ bool OptionsManager::CheckBlockingEnable() {
 
 bool OptionsManager::CheckCombinedOptimizerEnable() {
   const static bool checkCombinedOptimizerEnable = []() -> bool {
-    int32_t combined_optimize =
-        OptionsManager::GetBoolTypeOption("COMBINED_ENABLE");
-    std::unordered_map<int32_t, std::string> combinedEnableMode =
-        getCombinedEnableMode();
-    if (combinedEnableMode.find(combined_optimize) ==
-        combinedEnableMode.end()) {
-      TORCH_CHECK(
-          false,
-          "COMBINED_ENABLE should be 0 or 1.",
-          PTA_ERROR(ErrCode::VALUE));
+    int32_t combined_optimize = OptionsManager::GetBoolTypeOption("COMBINED_ENABLE");
+    std::unordered_map<int32_t, std::string> combinedEnableMode = getCombinedEnableMode();
+    if (combinedEnableMode.find(combined_optimize) == combinedEnableMode.end()) {
+      TORCH_CHECK(false, "COMBINED_ENABLE should be 0 or 1.", PTA_ERROR(ErrCode::VALUE));
     }
     return combined_optimize != 0;
   }();
@@ -175,8 +154,7 @@ bool OptionsManager::CheckAclDumpDateEnable() {
 
 int OptionsManager::GetBoolTypeOption(const char* env_str, int defaultVal) {
   char* env_val = get_and_log_env(env_str);
-  int64_t envFlag =
-      (env_val != nullptr) ? strtol(env_val, nullptr, 10) : defaultVal;
+  int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : defaultVal;
   return (envFlag != 0) ? 1 : 0;
 }
 
@@ -193,8 +171,7 @@ int32_t OptionsManager::GetHCCLExecTimeout() {
     envFlag = strtol(env_val, nullptr, 10);
     if (envFlag < 0) {
       envFlag = -1;
-      TORCH_NPU_WARN_ONCE(
-          "Get env HCCL_EXEC_TIMEOUT less than 0, so reset it to the default value.");
+      TORCH_NPU_WARN_ONCE("Get env HCCL_EXEC_TIMEOUT less than 0, so reset it to the default value.");
     }
   } else {
     envFlag = -1;
@@ -209,8 +186,7 @@ int32_t OptionsManager::GetHCCLEventTimeout() {
     envFlag = strtol(env_val, nullptr, 10);
     if (envFlag < 0) {
       envFlag = -1;
-      TORCH_NPU_WARN_ONCE(
-          "Get env HCCL_EVENT_TIMEOUT less than 0, so reset it to the default value.");
+      TORCH_NPU_WARN_ONCE("Get env HCCL_EVENT_TIMEOUT less than 0, so reset it to the default value.");
     }
   } else {
     envFlag = -1;
@@ -229,10 +205,7 @@ int32_t OptionsManager::GetACLDeviceSyncTimeout() {
   int64_t timeout = -1;
   if (env_val != nullptr) {
     int64_t envFlag = strtol(env_val, nullptr, 10);
-    TORCH_CHECK(
-        envFlag > 0,
-        "ACL_DEVICE_SYNC_TIMEOUT must be positive.",
-        PTA_ERROR(ErrCode::VALUE));
+    TORCH_CHECK(envFlag > 0, "ACL_DEVICE_SYNC_TIMEOUT must be positive.", PTA_ERROR(ErrCode::VALUE));
     // convert s to ms
     timeout = envFlag * 1000;
   }
@@ -251,13 +224,9 @@ uint32_t OptionsManager::CheckUseHcclAsyncErrorHandleEnable() {
       }
     }
     int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 1;
-    std::unordered_map<int32_t, std::string> asyncErrorHandlingMode =
-        getAsyncErrorHandlingMode();
+    std::unordered_map<int32_t, std::string> asyncErrorHandlingMode = getAsyncErrorHandlingMode();
     if (asyncErrorHandlingMode.find(envFlag) == asyncErrorHandlingMode.end()) {
-      TORCH_CHECK(
-          false,
-          "TORCH_HCCL_ASYNC_ERROR_HANDLING should be 0, 1, 2, or 3.",
-          PTA_ERROR(ErrCode::VALUE));
+      TORCH_CHECK(false, "TORCH_HCCL_ASYNC_ERROR_HANDLING should be 0, 1, 2, or 3.", PTA_ERROR(ErrCode::VALUE));
     }
     return static_cast<uint32_t>(envFlag);
   }();
@@ -276,13 +245,9 @@ uint32_t OptionsManager::CheckUseDesyncDebugEnable() {
       }
     }
     int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 0;
-    std::unordered_map<int32_t, std::string> desyncDebugMode =
-        getDesyncDebugMode();
+    std::unordered_map<int32_t, std::string> desyncDebugMode = getDesyncDebugMode();
     if (desyncDebugMode.find(envFlag) == desyncDebugMode.end()) {
-      TORCH_CHECK(
-          false,
-          "TORCH_HCCL_DESYNC_DEBUG should be 0 or 1.",
-          PTA_ERROR(ErrCode::VALUE));
+      TORCH_CHECK(false, "TORCH_HCCL_DESYNC_DEBUG should be 0 or 1.", PTA_ERROR(ErrCode::VALUE));
     }
     return static_cast<uint32_t>(envFlag);
   }();
@@ -294,18 +259,11 @@ bool OptionsManager::isACLGlobalLogOn(aclLogLevel level) {
     // Directly use std::getenv to get environment variables to avoid circular
     // dependency caused by calling get_and_log_env
     char* env_val = std::getenv("ASCEND_GLOBAL_LOG_LEVEL");
-    TORCH_NPU_LOGI(
-        c10_npu::GetEnvLogger(),
-        "get env ASCEND_GLOBAL_LOG_LEVEL = %s",
-        env_val);
-    int64_t envFlag =
-        (env_val != nullptr) ? strtol(env_val, nullptr, 10) : ACL_ERROR;
+    TORCH_NPU_LOGI(c10_npu::GetEnvLogger(), "get env ASCEND_GLOBAL_LOG_LEVEL = %s", env_val);
+    int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : ACL_ERROR;
     std::unordered_map<int32_t, std::string> logLevelMode = getLogLevelMode();
     if (logLevelMode.find(envFlag) == logLevelMode.end()) {
-      TORCH_CHECK(
-          false,
-          "ASCEND_GLOBAL_LOG_LEVEL should be 0, 1, 2, 3 or 4.",
-          PTA_ERROR(ErrCode::VALUE));
+      TORCH_CHECK(false, "ASCEND_GLOBAL_LOG_LEVEL should be 0, 1, 2, 3 or 4.", PTA_ERROR(ErrCode::VALUE));
     }
     return static_cast<int>(envFlag);
   }();
@@ -314,8 +272,7 @@ bool OptionsManager::isACLGlobalLogOn(aclLogLevel level) {
 
 int64_t OptionsManager::GetRankId() {
   char* rankId_val = get_and_log_env("RANK");
-  int64_t rankId =
-      (rankId_val != nullptr) ? strtol(rankId_val, nullptr, 10) : -1;
+  int64_t rankId = (rankId_val != nullptr) ? strtol(rankId_val, nullptr, 10) : -1;
   return rankId;
 }
 
@@ -325,8 +282,7 @@ char* OptionsManager::GetNslbPath() {
 
 bool OptionsManager::CheckStatusSaveEnable() {
   const static bool CheckStatusSaveEnable = []() -> bool {
-    int32_t status_save_enable =
-        OptionsManager::GetBoolTypeOption("TORCH_HCCL_STATUS_SAVE_ENABLE");
+    int32_t status_save_enable = OptionsManager::GetBoolTypeOption("TORCH_HCCL_STATUS_SAVE_ENABLE");
     return status_save_enable != 0;
   }();
   return CheckStatusSaveEnable;
@@ -334,8 +290,7 @@ bool OptionsManager::CheckStatusSaveEnable() {
 
 std::string OptionsManager::GetStatusSavePath() noexcept {
   char* status_save_val = get_and_log_env("TORCH_HCCL_STATUS_SAVE_PATH");
-  std::string status_save_path =
-      (status_save_val != nullptr) ? std::string(status_save_val) : "/tmp";
+  std::string status_save_path = (status_save_val != nullptr) ? std::string(status_save_val) : "/tmp";
   return status_save_path;
 }
 
@@ -359,8 +314,7 @@ uint32_t OptionsManager::GetStatusSaveInterval() {
 uint32_t OptionsManager::GetNslbCntVal() {
   const static uint32_t nslb_val = []() -> uint32_t {
     char* nslb_num = get_and_log_env("NSLB_MAX_RECORD_NUM");
-    int64_t nslb_val =
-        (nslb_num != nullptr) ? strtol(nslb_num, nullptr, 10) : 1000;
+    int64_t nslb_val = (nslb_num != nullptr) ? strtol(nslb_num, nullptr, 10) : 1000;
     return static_cast<uint32_t>(nslb_val);
   }();
   return nslb_val;
@@ -368,8 +322,7 @@ uint32_t OptionsManager::GetNslbCntVal() {
 
 bool OptionsManager::CheckGeInitDisable() {
   const static bool Check_Ge_Init_Disable = []() -> bool {
-    int32_t ge_init_disable =
-        OptionsManager::GetBoolTypeOption("GE_INIT_DISABLE");
+    int32_t ge_init_disable = OptionsManager::GetBoolTypeOption("GE_INIT_DISABLE");
     return ge_init_disable != 0;
   }();
   if (Check_Ge_Init_Disable) {
@@ -380,8 +333,7 @@ bool OptionsManager::CheckGeInitDisable() {
   return Check_Ge_Init_Disable;
 }
 
-std::unordered_map<std::string, std::string> OptionsManager::ParsePerfConfig(
-    const std::string& config) {
+std::unordered_map<std::string, std::string> OptionsManager::ParsePerfConfig(const std::string& config) {
   std::unordered_map<std::string, std::string> config_map;
   size_t start = 0;
   size_t end = config.find(',');
@@ -413,8 +365,7 @@ std::unordered_map<std::string, std::string> OptionsManager::ParsePerfConfig(
 bool OptionsManager::CheckPerfDumpEnable() {
   char* perf_dump_config = get_and_log_env("PERF_DUMP_CONFIG");
   if (perf_dump_config != nullptr) {
-    std::unordered_map<std::string, std::string> config_dict =
-        ParsePerfConfig(perf_dump_config);
+    std::unordered_map<std::string, std::string> config_dict = ParsePerfConfig(perf_dump_config);
     auto it = config_dict.find("enable");
     if (it != config_dict.end()) {
       return it->second == "true";
@@ -444,9 +395,7 @@ std::string OptionsManager::GetRankTableFilePath() {
 uint32_t OptionsManager::GetSilenceCheckFlag() {
   const static uint32_t silence_check_flag = []() -> uint32_t {
     char* silence_check_flag_str = get_and_log_env("NPU_ASD_ENABLE");
-    int64_t silence_check_flag = (silence_check_flag_str != nullptr)
-        ? strtol(silence_check_flag_str, nullptr, 10)
-        : 0;
+    int64_t silence_check_flag = (silence_check_flag_str != nullptr) ? strtol(silence_check_flag_str, nullptr, 10) : 0;
     SilenceCheckMode mode = CHECK_CLOSE;
     switch (silence_check_flag) {
       case 0:
@@ -462,19 +411,14 @@ uint32_t OptionsManager::GetSilenceCheckFlag() {
         mode = PRINT_ALL_LOG;
         break;
       default:
-        TORCH_CHECK(
-            false,
-            "NPU_ASD_ENABLE should be 0, 1, 2 or 3",
-            PTA_ERROR(ErrCode::VALUE));
+        TORCH_CHECK(false, "NPU_ASD_ENABLE should be 0, 1, 2 or 3", PTA_ERROR(ErrCode::VALUE));
     }
     return static_cast<uint32_t>(silence_check_flag);
   }();
   return silence_check_flag;
 }
 
-std::vector<std::string> OptionsManager::Split(
-    const std::string& input,
-    char delimiter) {
+std::vector<std::string> OptionsManager::Split(const std::string& input, char delimiter) {
   std::vector<std::string> result;
   size_t start = 0;
   size_t end = input.find(delimiter);
@@ -496,8 +440,7 @@ std::pair<double, double> OptionsManager::GetSilenceThresh(
     const std::string& env_str,
     std::pair<double, double> defaultThresh) {
   char* upper_thresh_ptr = get_and_log_env(env_str.c_str());
-  std::string upper_thresh_str =
-      (upper_thresh_ptr != nullptr) ? std::string(upper_thresh_ptr) : "";
+  std::string upper_thresh_str = (upper_thresh_ptr != nullptr) ? std::string(upper_thresh_ptr) : "";
   std::vector<std::string> split_result = Split(upper_thresh_str, ',');
   if (split_result.size() != 2) {
     return defaultThresh;
@@ -512,28 +455,21 @@ std::pair<double, double> OptionsManager::GetSilenceThresh(
     }
     return std::make_pair(value1, value2);
   } catch (std::exception& e) {
-    TORCH_NPU_WARN(
-        "Invalid value for environment variable: ",
-        env_str,
-        ". Use default values");
+    TORCH_NPU_WARN("Invalid value for environment variable: ", env_str, ". Use default values");
   }
   return defaultThresh;
 }
 
 std::pair<double, double> OptionsManager::GetSilenceUpperThresh() {
-  const static std::pair<double, double> upper_thresh =
-      []() -> std::pair<double, double> {
-    return GetSilenceThresh(
-        "NPU_ASD_UPPER_THRESH", std::make_pair(1000000.0, 10000.0));
+  const static std::pair<double, double> upper_thresh = []() -> std::pair<double, double> {
+    return GetSilenceThresh("NPU_ASD_UPPER_THRESH", std::make_pair(1000000.0, 10000.0));
   }();
   return upper_thresh;
 }
 
 std::pair<double, double> OptionsManager::GetSilenceSigmaThresh() {
-  const static std::pair<double, double> sigma_thresh =
-      []() -> std::pair<double, double> {
-    return GetSilenceThresh(
-        "NPU_ASD_SIGMA_THRESH", std::make_pair(100000.0, 5000.0));
+  const static std::pair<double, double> sigma_thresh = []() -> std::pair<double, double> {
+    return GetSilenceThresh("NPU_ASD_SIGMA_THRESH", std::make_pair(100000.0, 5000.0));
   }();
   return sigma_thresh;
 }
@@ -542,12 +478,8 @@ uint32_t OptionsManager::GetHcclBufferSize() {
   const static uint32_t hccl_buf_size = []() -> uint32_t {
     char* buf_val = get_and_log_env("HCCL_BUFFSIZE");
     // Default 200M
-    int64_t buf_size =
-        (buf_val != nullptr) ? strtol(buf_val, nullptr, 10) : 200;
-    TORCH_CHECK(
-        buf_size > 0,
-        "HCCL_BUFFSIZE should be positive.",
-        PTA_ERROR(ErrCode::VALUE));
+    int64_t buf_size = (buf_val != nullptr) ? strtol(buf_val, nullptr, 10) : 200;
+    TORCH_CHECK(buf_size > 0, "HCCL_BUFFSIZE should be positive.", PTA_ERROR(ErrCode::VALUE));
     return static_cast<uint32_t>(buf_size);
   }();
   return hccl_buf_size;
@@ -557,12 +489,8 @@ uint32_t OptionsManager::GetP2PBufferSize() {
   const static uint32_t buf_size = []() -> uint32_t {
     char* buf_val = get_and_log_env("P2P_HCCL_BUFFSIZE");
     // Default 0M
-    int64_t buf_size_ =
-        (buf_val != nullptr) ? strtol(buf_val, nullptr, 10) : 20;
-    TORCH_CHECK(
-        buf_size_ >= 0,
-        "P2P_HCCL_BUFFSIZE cannot be negative.",
-        PTA_ERROR(ErrCode::VALUE));
+    int64_t buf_size_ = (buf_val != nullptr) ? strtol(buf_val, nullptr, 10) : 20;
+    TORCH_CHECK(buf_size_ >= 0, "P2P_HCCL_BUFFSIZE cannot be negative.", PTA_ERROR(ErrCode::VALUE));
     return static_cast<uint32_t>(buf_size_);
   }();
   return buf_size;
@@ -573,8 +501,7 @@ uint32_t OptionsManager::GetAclOpInitMode() {
     const auto soc_version = c10_npu::GetSocVersion();
     // default mode 1: 310P, 910B, 910C, 950
     const bool is_default_mode_1_soc =
-        ((soc_version >= c10_npu::SocVersion::Ascend310P1) &&
-         (soc_version < c10_npu::SocVersion::Ascend310B1)) ||
+        ((soc_version >= c10_npu::SocVersion::Ascend310P1) && (soc_version < c10_npu::SocVersion::Ascend310B1)) ||
         (soc_version >= c10_npu::SocVersion::Ascend910_9391);
     const bool is_cann_version_gte_base = IsGteCANNVersion("8.3.RC1", "CANN");
     const bool is_aclnn_only = c10_npu::IsAclnnOnly();
@@ -602,12 +529,9 @@ uint32_t OptionsManager::GetAclOpInitMode() {
       return default_mode;
     }
     auto acl_op_init_mode_map = getAclOpInitMode();
-    if (acl_op_init_mode_map.find(static_cast<int32_t>(env_mode)) ==
-        acl_op_init_mode_map.end()) {
+    if (acl_op_init_mode_map.find(static_cast<int32_t>(env_mode)) == acl_op_init_mode_map.end()) {
       TORCH_NPU_WARN_ONCE(
-          "Get env ACL_OP_INIT_MODE not in [0, 1, 2], so reset it to the default value ",
-          default_mode,
-          ".");
+          "Get env ACL_OP_INIT_MODE not in [0, 1, 2], so reset it to the default value ", default_mode, ".");
       return default_mode;
     }
 
@@ -620,8 +544,7 @@ uint32_t OptionsManager::GetStreamsPerDevice() {
   const static uint32_t streams_per_device = []() -> uint32_t {
     char* buf_val = get_and_log_env("STREAMS_PER_DEVICE");
     // Default 32
-    int64_t streams_per_device =
-        (buf_val != nullptr) ? strtol(buf_val, nullptr, 10) : 32;
+    int64_t streams_per_device = (buf_val != nullptr) ? strtol(buf_val, nullptr, 10) : 32;
     if (streams_per_device != 8 && streams_per_device != 32) {
       streams_per_device = 32;
       TORCH_NPU_WARN_ONCE(
@@ -642,16 +565,10 @@ uint32_t OptionsManager::GetTaskQueueEnable() {
   }
   const static uint32_t task_queue_enable = []() -> uint32_t {
     char* env_val = get_and_log_env("TASK_QUEUE_ENABLE");
-    int64_t task_queue_enable =
-        (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 1;
-    std::unordered_map<int32_t, std::string> taskQueueEnableMode =
-        getTaskQueueEnableMode();
-    if (taskQueueEnableMode.find(task_queue_enable) ==
-        taskQueueEnableMode.end()) {
-      TORCH_CHECK(
-          false,
-          "TASK_QUEUE_ENABLE should be 0, 1 or 2",
-          PTA_ERROR(ErrCode::VALUE));
+    int64_t task_queue_enable = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 1;
+    std::unordered_map<int32_t, std::string> taskQueueEnableMode = getTaskQueueEnableMode();
+    if (taskQueueEnableMode.find(task_queue_enable) == taskQueueEnableMode.end()) {
+      TORCH_CHECK(false, "TASK_QUEUE_ENABLE should be 0, 1 or 2", PTA_ERROR(ErrCode::VALUE));
     }
     return static_cast<uint32_t>(task_queue_enable);
   }();
@@ -665,8 +582,7 @@ uint32_t OptionsManager::GetPerStreamQueue() {
 
   const static uint32_t per_stream_queue = []() -> uint32_t {
     char* env_val = get_and_log_env("PER_STREAM_QUEUE");
-    int64_t per_stream_queue =
-        (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 0;
+    int64_t per_stream_queue = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 0;
     return static_cast<uint32_t>(per_stream_queue);
   }();
   return per_stream_queue;
@@ -674,15 +590,10 @@ uint32_t OptionsManager::GetPerStreamQueue() {
 
 bool OptionsManager::CheckForceUncached() {
   const static bool force_uncached = []() -> bool {
-    bool force_uncached =
-        OptionsManager::GetBoolTypeOption("PYTORCH_NO_NPU_MEMORY_CACHING");
-    std::unordered_map<int32_t, std::string> memoryCacheMode =
-        getMemoryCacheMode();
+    bool force_uncached = OptionsManager::GetBoolTypeOption("PYTORCH_NO_NPU_MEMORY_CACHING");
+    std::unordered_map<int32_t, std::string> memoryCacheMode = getMemoryCacheMode();
     if (memoryCacheMode.find(force_uncached) == memoryCacheMode.end()) {
-      TORCH_CHECK(
-          false,
-          "PYTORCH_NO_NPU_MEMORY_CACHING should be 0 or 1.",
-          PTA_ERROR(ErrCode::VALUE));
+      TORCH_CHECK(false, "PYTORCH_NO_NPU_MEMORY_CACHING should be 0 or 1.", PTA_ERROR(ErrCode::VALUE));
     }
     return force_uncached;
   }();
@@ -697,10 +608,7 @@ std::string OptionsManager::GetOomSnapshotDumpPath() {
   }
   char dump_abs_path[PATH_MAX] = {'\0'};
   if (realpath(dump_path.c_str(), dump_abs_path) == nullptr) {
-    TORCH_CHECK(
-        false,
-        "`OOM_SNAPSHOT_PATH` is invalid.",
-        PTA_ERROR(ErrCode::NOT_FOUND));
+    TORCH_CHECK(false, "`OOM_SNAPSHOT_PATH` is invalid.", PTA_ERROR(ErrCode::NOT_FOUND));
   }
   return dump_abs_path;
 }
@@ -708,8 +616,7 @@ std::string OptionsManager::GetOomSnapshotDumpPath() {
 bool OptionsManager::ShouldPrintWarning() {
   static bool should_print = []() {
     char* disabled_warning = get_and_log_env("TORCH_NPU_DISABLED_WARNING");
-    if (disabled_warning != nullptr &&
-        strtol(disabled_warning, nullptr, 10) == 1) {
+    if (disabled_warning != nullptr && strtol(disabled_warning, nullptr, 10) == 1) {
       return false;
     }
     const auto rank_id = c10_npu::option::OptionsManager::GetRankId();
@@ -718,19 +625,14 @@ bool OptionsManager::ShouldPrintWarning() {
   return should_print;
 }
 
-void oom_observer(
-    int64_t device,
-    int64_t allocated,
-    int64_t device_total,
-    int64_t device_free) {
+void oom_observer(int64_t device, int64_t allocated, int64_t device_total, int64_t device_free) {
 #ifndef BUILD_LIBTORCH
   auto dumppath = c10_npu::option::OptionsManager::GetOomSnapshotDumpPath();
   std::stringstream filename;
   auto now = std::chrono::system_clock::now();
   std::time_t currentTime = std::chrono::system_clock::to_time_t(now);
   std::tm* timeInfo = std::localtime(&currentTime);
-  filename << "oom_snapshot_" << getpid() << "_"
-           << std::put_time(timeInfo, "%Y%m%d%H%M%S") << ".pickle";
+  filename << "oom_snapshot_" << getpid() << "_" << std::put_time(timeInfo, "%Y%m%d%H%M%S") << ".pickle";
   auto savefilepath = c10::str(dumppath, "/", filename.str());
 
   pybind11::gil_scoped_acquire g;
@@ -758,14 +660,12 @@ bool OptionsManager::IsOomSnapshotEnable() {
       case 0:
         break;
       case 2:
-        c10_npu::NPUCachingAllocator::attachOutOfMemoryObserver(
-            std::move(oom_observer));
+        c10_npu::NPUCachingAllocator::attachOutOfMemoryObserver(std::move(oom_observer));
         torch_npu::_record_memory_history("state", "all", "python", UINT64_MAX);
         isFirstCall = false;
         break;
       default:
-        c10_npu::NPUCachingAllocator::attachOutOfMemoryObserver(
-            std::move(oom_observer));
+        c10_npu::NPUCachingAllocator::attachOutOfMemoryObserver(std::move(oom_observer));
         torch_npu::_record_memory_history("all", "all", "python", UINT64_MAX);
         isFirstCall = false;
         break;
@@ -777,8 +677,7 @@ bool OptionsManager::IsOomSnapshotEnable() {
 
 bool OptionsManager::IsCompactErrorOutput() {
   static bool should_print = []() -> bool {
-    int32_t disabled_error =
-        OptionsManager::GetBoolTypeOption("TORCH_NPU_COMPACT_ERROR_OUTPUT");
+    int32_t disabled_error = OptionsManager::GetBoolTypeOption("TORCH_NPU_COMPACT_ERROR_OUTPUT");
     return disabled_error != 0;
   }();
   return should_print;
@@ -817,17 +716,11 @@ uint64_t OptionsManager::GetShmemSymmetricSize() {
           scale = 40; // 40 for TB
           break;
         default:
-          TORCH_CHECK(
-              false,
-              "NPU_SHMEM_SYMMETRIC_SIZE is invalid.",
-              PTA_ERROR(ErrCode::VALUE));
+          TORCH_CHECK(false, "NPU_SHMEM_SYMMETRIC_SIZE is invalid.", PTA_ERROR(ErrCode::VALUE));
           break;
       }
     } else if (n != 1) {
-      TORCH_CHECK(
-          false,
-          "NPU_SHMEM_SYMMETRIC_SIZE is invalid.",
-          PTA_ERROR(ErrCode::VALUE));
+      TORCH_CHECK(false, "NPU_SHMEM_SYMMETRIC_SIZE is invalid.", PTA_ERROR(ErrCode::VALUE));
     }
 
     return ceil(p * (1ULL << scale));
