@@ -61,6 +61,15 @@ bool OptionsManager::IsResumeModeEnable()
     return isResumeModeEnable;
 }
 
+bool OptionsManager::IsSubCommRootInfoEnable()
+{
+    const static bool isSubCommRootInfoEnable = []() -> bool {
+        int32_t enable = OptionsManager::GetBoolTypeOption("ROOTINFO_SUBCOMM_ENABLE", 0);
+        return enable != 0;
+    }();
+    return isSubCommRootInfoEnable;
+}
+
 ReuseMode OptionsManager::GetMultiStreamMemoryReuse()
 {
     const static ReuseMode reuseMode = []() -> ReuseMode {
