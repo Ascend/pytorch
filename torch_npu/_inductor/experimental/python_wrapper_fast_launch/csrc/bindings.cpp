@@ -13,6 +13,7 @@
 #include <vector>
 
 #include <ATen/ATen.h>
+#include <acl/acl_rt.h>
 #include <torch/csrc/Exceptions.h>
 #include <torch/csrc/utils/pybind.h>
 
@@ -22,53 +23,6 @@
 namespace py = pybind11;
 
 namespace {
-
-struct FastLaunchRtTaskCfgInfo {
-  uint8_t qos = 0;
-  uint8_t partId = 0;
-  uint8_t schemMode = 0;
-  bool d2dCrossFlag = false;
-  uint32_t blockDimOffset = 0;
-  uint8_t dumpflag = 0;
-  uint8_t neverTimeout = 0;
-  uint8_t rev[2] = {0, 0};
-  uint32_t localMemorySize = 0;
-};
-
-static_assert(offsetof(FastLaunchRtTaskCfgInfo, localMemorySize) == 12);
-static_assert(sizeof(FastLaunchRtTaskCfgInfo) == 16);
-
-struct FastLaunchRtHostInputInfo {
-  uint32_t addrOffset = 0;
-  uint32_t dataOffset = 0;
-};
-
-struct FastLaunchRtArgsExInfo {
-  void* args = nullptr;
-  FastLaunchRtHostInputInfo* hostInputInfoPtr = nullptr;
-  uint32_t argsSize = 0;
-  uint32_t tilingAddrOffset = 0;
-  uint32_t tilingDataOffset = 0;
-  uint16_t hostInputInfoNum = 0;
-  uint8_t hasTiling = 0;
-  uint8_t isNoNeedH2DCopy = 0;
-  uint8_t reserved[4] = {0, 0, 0, 0};
-};
-
-static_assert(offsetof(FastLaunchRtArgsExInfo, argsSize) == 16);
-static_assert(offsetof(FastLaunchRtArgsExInfo, reserved) == 32);
-static_assert(sizeof(FastLaunchRtArgsExInfo) == 40);
-
-extern "C" rtError_t rtKernelLaunchWithFlagV2(
-    const void*,
-    uint32_t,
-    FastLaunchRtArgsExInfo*,
-    rtSmDesc_t*,
-    rtStream_t,
-    uint32_t,
-    const FastLaunchRtTaskCfgInfo*) __attribute__((weak));
-
-using FastLaunchRtKernelLaunchWithFlagV2 = decltype(&rtKernelLaunchWithFlagV2);
 
 enum class FastLaunchArgKind {
   Tensor,
@@ -387,30 +341,26 @@ void SubmitLaunch(const FastLaunchPlan& plan, PackedLaunch packed) {
                      packed = std::move(packed)]() mutable {
     void* args = packed.args.data();
     uint32_t argsSize = static_cast<uint32_t>(packed.args.size());
-    rtError_t result;
+    aclrtLaunchKernelAttr launchAttr = {};
+    aclrtLaunchKernelCfg launchConfig = {};
+    aclrtLaunchKernelCfg* launchConfigPtr = nullptr;
     if (enableSimt) {
-      FastLaunchRtKernelLaunchWithFlagV2 launchWithFlag =
-          rtKernelLaunchWithFlagV2;
-      TORCH_CHECK(
-          launchWithFlag != nullptr,
-          "rtKernelLaunchWithFlagV2 symbol not found");
-      FastLaunchRtArgsExInfo argsInfo = {};
-      argsInfo.args = args;
-      argsInfo.argsSize = argsSize;
-      FastLaunchRtTaskCfgInfo taskConfig = {};
-      taskConfig.localMemorySize = static_cast<uint32_t>(sharedMemDynamicSize);
-      result = launchWithFlag(
-          kernelStub,
-          packed.blockNum,
-          &argsInfo,
-          nullptr,
-          packed.stream,
-          0,
-          &taskConfig);
-    } else {
-      result = rtKernelLaunch(
-          kernelStub, packed.blockNum, args, argsSize, nullptr, packed.stream);
+      launchAttr.id = ACL_RT_LAUNCH_KERNEL_ATTR_DYN_UBUF_SIZE;
+      launchAttr.value.dynUBufSize =
+          static_cast<uint32_t>(sharedMemDynamicSize);
+      launchConfig.attrs = &launchAttr;
+      launchConfig.numAttrs = 1;
+      launchConfigPtr = &launchConfig;
     }
+    aclError result = aclrtLaunchKernelWithHostArgs(
+        reinterpret_cast<aclrtFuncHandle>(kernelStub),
+        packed.blockNum,
+        reinterpret_cast<aclrtStream>(packed.stream),
+        launchConfigPtr,
+        args,
+        argsSize,
+        nullptr,
+        0);
     return static_cast<int>(result);
   };
 

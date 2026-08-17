@@ -65,8 +65,10 @@ class TestNPUFastLaunchStatic(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn("struct FastLaunchPlan", source)
-        self.assertIn("rtKernelLaunch(", source)
-        self.assertIn("rtKernelLaunchWithFlagV2", source)
+        self.assertIn("aclrtLaunchKernelWithHostArgs", source)
+        self.assertIn("ACL_RT_LAUNCH_KERNEL_ATTR_DYN_UBUF_SIZE", source)
+        self.assertNotIn("rtKernelLaunch(", source)
+        self.assertNotIn("rtKernelLaunchWithFlagV2", source)
         self.assertIn("SetCustomHandler", source)
         self.assertIn("grid product exceeds uint16 max", source)
         self.assertIn("args and arg_kinds size mismatch", source)
