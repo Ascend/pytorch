@@ -12,15 +12,13 @@ on:
         type: string
         description: Full client_payload as a JSON string
 
-env:
-  DOCKER_IMAGE: quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly
-
 jobs:
   extract:
     runs-on: ubuntu-latest
     outputs:
       upstream_repo: ${{ steps.extract.outputs.upstream_repo }}
       should_build: ${{ steps.extract.outputs.should_build }}
+      docker_image: ${{ steps.extract.outputs.docker_image }}
     steps:
       - name: Extract build parameters from payload
         id: extract
@@ -73,6 +71,7 @@ jobs:
 
           echo "upstream_repo=${UPSTREAM_REPO}" >> "$GITHUB_OUTPUT"
           echo "should_build=true" >> "$GITHUB_OUTPUT"
+          echo "docker_image=quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly" >> "$GITHUB_OUTPUT"
 
           echo "=== Extracted Build Parameters ==="
           echo "event_type:    ${EVENT_TYPE}"
@@ -89,7 +88,7 @@ jobs:
       upstream_ref: main
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: master
-      docker_image: ${{ env.DOCKER_IMAGE }}
+      docker_image: ${{ needs.extract.outputs.docker_image }}
       report_to_upstream: true
 
   test:
@@ -102,6 +101,6 @@ jobs:
       torch_npu_short: ${{ needs.build.outputs.torch_npu_short }}
       case_paths_config: .github/config/pr_test_whitelist.yml
       skip_list: .github/config/pr_skip_list.jsonl
-      docker_image: ${{ env.DOCKER_IMAGE }}
+      docker_image: ${{ needs.extract.outputs.docker_image }}
       report_to_upstream: true
       hw_classification: 'ACCELERATOR'
