@@ -32,7 +32,7 @@ jobs:
       upstream_ref: main
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: master
-      docker_image: quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly-202608180947
+      docker_image: quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly
       report_to_upstream: false
 
   test:
@@ -43,7 +43,7 @@ jobs:
       resolved_short: ${{ needs.build.outputs.resolved_short }}
       torch_npu_short: ${{ needs.build.outputs.torch_npu_short }}
       case_paths_config: .github/config/nightly_test_categories.yml
-      docker_image: quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly-202608180947
+      docker_image: quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly
       report_to_upstream: false
       hw_classification: 'GENERIC ACCELERATOR'
       full_scan: true
