@@ -106,22 +106,6 @@ def _obtain_and_limit_cube_vector_core_num():
                     cube_core_num, vector_core_num,
                 )
 
-    # set_device_limit (limit cube and vector core num)
-    if cube_core_num < prop.cube_core_num or vector_core_num < prop.vector_core_num:
-        try:
-            torch.npu.set_device(device)
-            torch.npu.set_device_limit(device, cube_core_num, vector_core_num)
-            log.info(
-                "[_obtain_and_limit_cube_vector_core_num] set_device_limit() success, "
-                "cube_core_num=%s, vector_core_num=%s",
-                cube_core_num, vector_core_num,
-            )
-        except RuntimeError as e:
-            log.error(
-                "[_obtain_and_limit_cube_vector_core_num] set_device_limit() failed: %s", e
-            )
-            sys.exit(1)
-
     log.info(
         "[_obtain_and_limit_cube_vector_core_num] finished, "
         "cube_core_num=%s, vector_core_num=%s",
