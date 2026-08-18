@@ -13,6 +13,7 @@ on:
       - '.github/workflows/_test-report.yml'
       - '.github/config/nightly_test_categories.yml'
       - '.github/scripts/collect_all_cases.py'
+      - '.github/scripts/discover_test_files.py'
       - '.github/scripts/run_npu_test_shard.py'
       - '.github/scripts/parse_test_results.py'
       - '.github/scripts/generate_npu_full_test_report.py'
