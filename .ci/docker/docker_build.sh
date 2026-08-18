@@ -82,6 +82,19 @@ case "$BASE_TAG" in
     PYTORCH_VERSION=2.13.0
     VERSION_DIR=2.13
     ;;
+  # --- master (nightly) builder ---
+  torch-npu-builder-x86_64-torch-master)
+    IMAGE_TYPE=builder
+    ARCH=x86_64
+    PYTORCH_VERSION=2.14.0.dev20260708
+    VERSION_DIR=master
+    ;;
+  torch-npu-builder-aarch64-torch-master)
+    IMAGE_TYPE=builder
+    ARCH=aarch64
+    PYTORCH_VERSION=2.14.0.dev20260708
+    VERSION_DIR=master
+    ;;
   # --- master (nightly) test ---
   torch-npu-test-x86_64-cann-a1-py3.10-torch-master)
     IMAGE_TYPE=test
