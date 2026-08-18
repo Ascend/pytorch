@@ -631,6 +631,15 @@ def _patch_model_24():
         anir_config.force_fallback_kernel_names["mlir_fused_add_lt_neg_where_13"] = True
     except ImportError:
         log.warning("import config failed for T5ForConditionalGeneration patch")
+    from torch._higher_order_ops.effects import (
+        _EffectType,
+        _register_effectful_op,
+    )
+
+    _register_effectful_op(
+        torch.ops.aten.native_dropout.default,
+        _EffectType.ORDERED,
+    )
 
 
 @register_patch("BartForCausalLM")
