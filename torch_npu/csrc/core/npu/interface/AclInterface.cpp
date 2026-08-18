@@ -322,7 +322,7 @@ aclError AclrtCreateEventWithFlag(aclrtEvent *event, uint32_t flag)
         NPU_CHECK_ERROR(AclrtMemSet(*event, eventMemSize, 0, eventMemSize));
         return AclmdlRICaptureThreadExchangeMode(&capture_mode);
     }
-    if (func_ex == nullptr) {
+    if ((flag == ACL_EVENT_EXTERNAL) || (func_ex == nullptr)) {
         return func(event, flag);
     }
     return func_ex(event, flag);
