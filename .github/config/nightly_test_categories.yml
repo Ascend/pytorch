@@ -8,6 +8,7 @@
 #          e.g. [test/nn, test/optim] -> all test_*.py under those dirs.
 # files:  exact file paths under pytorch/test/ to include.
 #          Takes priority over paths (first match wins).
+# runner: runner label for runs-on and upstream job-name reporting.
 # exclude: top-level list of directories or file paths to skip entirely.
 #          Directory entries use prefix match (e.g. test/cpython excludes
 #          all files under test/cpython/). File entries use exact match.
@@ -31,6 +32,7 @@ categories:
   core:
     workers: 32
     execution: concurrent
+    runner: linux-aarch64-a3-8
     paths:
       - test/nn
       - test/optim
@@ -60,6 +62,7 @@ categories:
   tensor:
     workers: 32
     execution: concurrent
+    runner: linux-aarch64-a3-8
     paths:
       - test/torch_np
       - test/complex_tensor
@@ -101,12 +104,14 @@ categories:
   distributed:
     workers: 1
     execution: serial
+    runner: linux-aarch64-a3-8
     paths:
       - test/distributed
 
   graph:
     workers: 32
     execution: concurrent
+    runner: linux-aarch64-a3-8
     paths:
       - test/fx
       - test/dynamo
@@ -162,3 +167,4 @@ categories:
   others:
     workers: 32
     execution: concurrent
+    runner: linux-aarch64-a3-8

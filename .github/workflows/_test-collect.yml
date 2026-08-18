@@ -299,11 +299,13 @@ jobs:
               n = c.get('num_shards', 0)
               if n > 0:
                   w = c.get('workers', 32)
+                  r = c.get('runner', 'linux-aarch64-a3-8')
                   test_matrix.append({
                       'category': cat,
                       'num_shards': str(n),
                       'matrix_json': json.dumps(list(range(1, n + 1))),
                       'max_workers': str(w),
+                      'runner_label': r,
                   })
           print(f'test_matrix={json.dumps(test_matrix)}')
           " >> "$GITHUB_OUTPUT"

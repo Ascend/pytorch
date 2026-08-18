@@ -96,7 +96,7 @@ jobs:
       max_workers: ${{ matrix.max_workers }}
       docker_image: ${{ inputs.docker_image }}
       report_to_upstream: ${{ inputs.report_to_upstream }}
-      runner_label: ${{ inputs.runner_label }}
+      runner_label: ${{ matrix.runner_label }}
 
   # ============================================================================
   # 3. Generate consolidated test report

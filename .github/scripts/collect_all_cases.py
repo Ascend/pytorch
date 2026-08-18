@@ -116,6 +116,7 @@ def load_categories_config(config_path: Optional[str]) -> Tuple[Dict[str, Dict],
                 "paths": cat_cfg.get("paths", []),
                 "workers": int(cat_cfg.get("workers", 32)),
                 "execution": cat_cfg.get("execution", "concurrent"),
+                "runner": cat_cfg.get("runner", "linux-aarch64-a3-8"),
             }
             if not isinstance(result[cat_name]["paths"], list):
                 raise ValueError(
@@ -855,6 +856,7 @@ def main():
         cat_summary["total_files"] = len(files)
         cat_summary["workers"] = cat_config.get("workers", 32)
         cat_summary["execution"] = cat_config.get("execution", "concurrent")
+        cat_summary["runner"] = cat_config.get("runner", "linux-aarch64-a3-8")
         save_cases_by_file(cases, files, cat_name, output_dir)
         summary_categories[cat_name] = cat_summary
 
