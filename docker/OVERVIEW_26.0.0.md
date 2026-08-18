@@ -1,6 +1,6 @@
 # TorchNPU
 
-> English | [中文](./OVERVIEW.zh.md)
+> English | [中文](./OVERVIEW_26.0.0.zh.md)
 
 ## Quick Reference
 
@@ -33,56 +33,38 @@ Tags follow the format:
 
 | Field            | value                                                   | Description                                       |
 |------------------|---------------------------------------------------------|---------------------------------------------------|
-| TorchNPU Version | 2.12.0                                                  | For details, see the version notes in the readme. |
-| CANN_version     | 9.1.0                                                   | For details, see the version notes in the readme. |
+| TorchNPU Version | 2.10.0                                                  | For details, see the version notes in the readme. |
+| CANN_version     | 9.0.0                                                   | For details, see the version notes in the readme. |
 | Chip             | Specific example values can be found in the CANN mirror | chip model identifier                             |
 | OS               | ubuntu22.04 / openeuler24.03                            | OS distribution used for the base image           |
-| Python Version   | py3.12                                                  | Major Python version pre-installed in the image   |
+| Python Version   | py3.11                                                  | Major Python version pre-installed in the image   |
 
-### Tag(26.1.0)
+### Tag(26.0.0)
 
-- `2.12.0-cann9.1.0-310p-ubuntu22.04-py3.12`
-- `2.12.0-cann9.1.0-310p-openeuler24.03-py3.12`
-- `2.12.0-cann9.1.0-910b-ubuntu22.04-py3.12`
-- `2.12.0-cann9.1.0-910b-openeuler24.03-py3.12`
-- `2.12.0-cann9.1.0-a3-ubuntu22.04-py3.12`
-- `2.12.0-cann9.1.0-a3-openeuler24.03-py3.12`
-- `2.12.0-cann9.1.0-950-ubuntu22.04-py3.12`
-- `2.12.0-cann9.1.0-950-openeuler24.03-py3.12`
-- `2.11.0-cann9.1.0-310p-ubuntu22.04-py3.12`
-- `2.11.0-cann9.1.0-310p-openeuler24.03-py3.12`
-- `2.11.0-cann9.1.0-910b-ubuntu22.04-py3.12`
-- `2.11.0-cann9.1.0-910b-openeuler24.03-py3.12`
-- `2.11.0-cann9.1.0-a3-ubuntu22.04-py3.12`
-- `2.11.0-cann9.1.0-a3-openeuler24.03-py3.12`
-- `2.11.0-cann9.1.0-950-ubuntu22.04-py3.12`
-- `2.11.0-cann9.1.0-950-openeuler24.03-py3.12`
-- `2.10.0.post4-cann9.1.0-310p-ubuntu22.04-py3.12`
-- `2.10.0.post4-cann9.1.0-310p-openeuler24.03-py3.12`
-- `2.10.0.post4-cann9.1.0-910b-ubuntu22.04-py3.12`
-- `2.10.0.post4-cann9.1.0-910b-openeuler24.03-py3.12`
-- `2.10.0.post4-cann9.1.0-a3-ubuntu22.04-py3.12`
-- `2.10.0.post4-cann9.1.0-a3-openeuler24.03-py3.12`
-- `2.10.0.post4-cann9.1.0-950-ubuntu22.04-py3.12`
-- `2.10.0.post4-cann9.1.0-950-openeuler24.03-py3.12`
-- `2.9.0.post6-cann9.1.0-310p-ubuntu22.04-py3.12`
-- `2.9.0.post6-cann9.1.0-310p-openeuler24.03-py3.12`
-- `2.9.0.post6-cann9.1.0-910b-ubuntu22.04-py3.12`
-- `2.9.0.post6-cann9.1.0-910b-openeuler24.03-py3.12`
-- `2.9.0.post6-cann9.1.0-a3-ubuntu22.04-py3.12`
-- `2.9.0.post6-cann9.1.0-a3-openeuler24.03-py3.12`
-- `2.9.0.post6-cann9.1.0-950-ubuntu22.04-py3.12`
-- `2.9.0.post6-cann9.1.0-950-openeuler24.03-py3.12`
-- `2.7.1.post8-cann9.1.0-310p-ubuntu22.04-py3.12`
-- `2.7.1.post8-cann9.1.0-310p-openeuler24.03-py3.12`
-- `2.7.1.post8-cann9.1.0-910b-ubuntu22.04-py3.12`
-- `2.7.1.post8-cann9.1.0-910b-openeuler24.03-py3.12`
-- `2.7.1.post8-cann9.1.0-a3-ubuntu22.04-py3.12`
-- `2.7.1.post8-cann9.1.0-a3-openeuler24.03-py3.12`
-- `2.7.1.post8-cann9.1.0-950-ubuntu22.04-py3.12`
-- `2.7.1.post8-cann9.1.0-950-openeuler24.03-py3.12`
-
-[Tag information for version 26.0.0](OVERVIEW_26.0.0.md)
+- `2.10.0-cann9.0.0-310p-ubuntu22.04-py3.11`
+- `2.10.0-cann9.0.0-310p-openeuler24.03-py3.11`
+- `2.10.0-cann9.0.0-910b-ubuntu22.04-py3.11`
+- `2.10.0-cann9.0.0-910b-openeuler24.03-py3.11`
+- `2.10.0-cann9.0.0-a3-ubuntu22.04-py3.11`
+- `2.10.0-cann9.0.0-a3-openeuler24.03-py3.11`
+- `2.9.0.post2-cann9.0.0-310p-ubuntu22.04-py3.11`
+- `2.9.0.post2-cann9.0.0-310p-openeuler24.03-py3.11`
+- `2.9.0.post2-cann9.0.0-910b-ubuntu22.04-py3.11`
+- `2.9.0.post2-cann9.0.0-910b-openeuler24.03-py3.11`
+- `2.9.0.post2-cann9.0.0-a3-ubuntu22.04-py3.11`
+- `2.9.0.post2-cann9.0.0-a3-openeuler24.03-py3.11`
+- `2.8.0.post4-cann9.0.0-310p-ubuntu22.04-py3.11`
+- `2.8.0.post4-cann9.0.0-310p-openeuler24.03-py3.11`
+- `2.8.0.post4-cann9.0.0-910b-ubuntu22.04-py3.11`
+- `2.8.0.post4-cann9.0.0-910b-openeuler24.03-py3.11`
+- `2.8.0.post4-cann9.0.0-a3-ubuntu22.04-py3.11`
+- `2.8.0.post4-cann9.0.0-a3-openeuler24.03-py3.11`
+- `2.7.1.post4-cann9.0.0-310p-ubuntu22.04-py3.11`
+- `2.7.1.post4-cann9.0.0-310p-openeuler24.03-py3.11`
+- `2.7.1.post4-cann9.0.0-910b-ubuntu22.04-py3.11`
+- `2.7.1.post4-cann9.0.0-910b-openeuler24.03-py3.11`
+- `2.7.1.post4-cann9.0.0-a3-ubuntu22.04-py3.11`
+- `2.7.1.post4-cann9.0.0-a3-openeuler24.03-py3.11`
 
 ### Dockerfile build parameters
   
@@ -90,16 +72,16 @@ See dockerfile:[dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/docke
 
 | parameters                | Description                                               | Required | Reference Source          | Value                                                   |
 |---------------------------|-----------------------------------------------------------|----------|---------------------------|---------------------------------------------------------|
-| TORCH_VERSION             | Full TorchNPU version number                              | Yes      | TorchNPU repo releases    | 2.12.0                                                  |
+| TORCH_VERSION             | Full TorchNPU version number                              | Yes      | TorchNPU repo releases    | 2.10.0                                                  |
 | CHIP_ARCH                 | chip architecture identifier                              | Yes      | CANN image tag rules      | Specific example values can be found in the CANN mirror |
 | OS                        | Base image operating system                               | Yes      | CANN image tag rules      | ubuntu / openeuler                                      |
 | OS_VERSION                | Operating system version                                  | Yes      | CANN image tag rules      | 22.04 / 24.03                                           |
 | PY_VERSION                | Python version pre-installed in base image                | Yes      | CANN image tag rules      | 3.11                                                    |
-| CANN_VERSION              | CANN toolkit version                                      | Yes      | CANN base image repo      | 9.1.0                                                   |
+| CANN_VERSION              | CANN toolkit version                                      | Yes      | CANN base image repo      | 9.0.0                                                   |
 | ARCH                      | Host hardware architecture                                | Yes      | Environment hardware      | arm / x86                                               |
 | PY_TAG                    | Python package ABI tag (cp + version number)              | Yes      | Strictly match PY_VERSION | cp311                                                   |
-| TORCH_NPU_RELEASE_VERSION | Official TorchNPU release tag (including PyTorch version) | Yes      | TorchNPU repo releases    | v26.1.0-pytorch2.12.0                                   |
-| TORCH_NPU_PATCH_TAG       | TorchNPU version number in the release package name       | Yes      | TorchNPU repo releases    | 2.12.0                                                  |
+| TORCH_NPU_RELEASE_VERSION | Official TorchNPU release tag (including PyTorch version) | Yes      | TorchNPU repo releases    | v26.0.0-pytorch2.10.0                                   |
+| TORCH_NPU_PATCH_TAG       | TorchNPU version number in the release package name       | Yes      | TorchNPU repo releases    | 2.10.0                                                  |
 | MANYLINUX_VER             | PyPI package compatible system version                    | No       | torch official wheel spec | manylinux_2_28                                          |
 | PIP_MIRROR_URL            | pip installation source URL (Tsinghua mirror by default)  | No       | PyPI mirror sources       | https://pypi.tuna.tsinghua.edu.cn/simple                |
 
@@ -109,16 +91,16 @@ See dockerfile:[dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/docke
 
 2. TORCH_NPU_RELEASE_VERSION and TORCH_NPU_PATCH_TAG parameter values are from [TorchNPU Official Release Versions](https://gitcode.com/Ascend/pytorch/releases). Example with a wheel download URL:
 
-https://gitcode.com/Ascend/pytorch/releases/download/v26.1.0-pytorch2.12.0/torch_npu-2.12.0-cp310-cp310-manylinux_2_28_aarch64.whl
+https://gitcode.com/Ascend/pytorch/releases/download/v26.0.0-pytorch2.10.0/torch_npu-2.10.0-cp310-cp310-manylinux_2_28_aarch64.whl
 
-- TORCH_NPU_RELEASE_VERSION is the part between `download/` and `/torch_npu-`, e.g. `v26.1.0-pytorch2.12.0`.
-- TORCH_NPU_PATCH_TAG is the part between `torch_npu-` and `-cp310`, e.g. `2.12.0`.
+- TORCH_NPU_RELEASE_VERSION is the part between `download/` and `/torch_npu-`, e.g. `v26.0.0-pytorch2.10.0`.
+- TORCH_NPU_PATCH_TAG is the part between `torch_npu-` and `-cp310`, e.g. `2.10.0`.
 
 ## Quick Start
 
 ### Build TorchNPU Image
 
-Taking the construction of the 2.12.0-a3-ubuntu22.04-py3.12 image as an example:
+Taking the construction of the 2.10.0-a3-ubuntu22.04-py3.11 image as an example:
 
 ```bash
 docker build \
@@ -126,11 +108,11 @@ docker build \
   --build-arg OS=ubuntu \
   --build-arg OS_VERSION=22.04 \
   --build-arg PY_VERSION=3.11 \
-  --build-arg CANN_VERSION=9.1.0 \
+  --build-arg CANN_VERSION=9.0.0 \
   --build-arg ARCH=arm \
   --build-arg PY_TAG=cp311 \
-  --build-arg TORCH_NPU_RELEASE_TAG=v26.1.0-pytorch2.12.0 \
-  --build-arg TORCH_NPU_PATCH_TAG=2.12.0 \
+  --build-arg TORCH_NPU_RELEASE_TAG=v26.0.0-pytorch2.10.0 \
+  --build-arg TORCH_NPU_PATCH_TAG=2.10.0 \
   -t image_name:tag \
   -f Dockerfile .
 ```
@@ -169,7 +151,7 @@ docker run \
 
 ```bash
 # Use TorchNPU image as base image and add user software
-FROM quay.io/ascend/torch-npu:2.12.0-cann9.0.0-910b-ubuntu22.04-py3.12 
+FROM quay.io/ascend/torch-npu:2.10.0-cann9.0.0-910b-ubuntu22.04-py3.11 
 
 RUN apt update -y && \
     apt install gcc ...
