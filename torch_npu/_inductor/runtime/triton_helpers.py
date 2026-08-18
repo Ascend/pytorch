@@ -3,7 +3,11 @@ import triton
 import triton.language as tl
 
 from torch._inductor.runtime.triton_helpers import *
-from torch._inductor.runtime.triton_helpers import promote_to_tensor
+from torch._inductor.runtime.triton_helpers import (
+    maximum,
+    minimum,
+    promote_to_tensor,
+)
 
 try:
     extension = tl.extra.cann.extension
@@ -31,39 +35,49 @@ def _restore_reduced_dim(reduced, dim: tl.constexpr, ndim: tl.constexpr):
 
 
 @triton.jit
+def _extremum(value, dim: tl.constexpr, want_max: tl.constexpr):
+    """Min/max that stays equal to some lane of value.
+
+    tl.min/tl.max are the fast path on this backend, but for integer dtypes
+    the result does not match any input lane. The follow-up index reduce then
+    sees no hit and returns the argmin identity 2**63-1. Integers go through
+    inductor's minimum/maximum, which are plain compares.
+    """
+    if value.dtype.is_floating():
+        if want_max:
+            return tl.max(value, dim)
+        return tl.min(value, dim)
+    if want_max:
+        return tl.reduce(value, dim, maximum)
+    return tl.reduce(value, dim, minimum)
+
+
+@triton.jit
 def max_with_index(value, index, dim: tl.constexpr):
     """Override upstream max_with_index to avoid a two-source tl.reduce.
 
     Upstream reduces (value, index) together with tl.reduce. Fed the loop-carried
     accumulators of a looped reduction, NPU's backend returns the lane coordinate
     instead of the carried index, so an argmax over a dynamic reduction axis comes
-    out as the position within one tile. Two single-operand reduces give the same
-    answer: the extremum, then the lowest index among the elements reaching it.
-    The largest index of the slice is the filler for elements that are not at the
-    extremum, which avoids a dtype-dependent sentinel and never wins the min.
+    out as the position within one tile.
 
-    Both reduces are builtins. A tl.reduce carrying a combine region compiles
-    down a slower path on this backend, and propagate_nan gives the same NaN
-    ordering that upstream's maximum would.
+    Split into two reduces: the extremum, then the lowest carried index among
+    lanes that hit it. Index is always integer, so that second reduce can stay
+    on builtin tl.min/tl.max.
     """
-    peak = tl.max(value, dim, propagate_nan=True)
+    peak = _extremum(value, dim, True)
     peak_bcast = _restore_reduced_dim(peak, dim, len(value.shape))
     filler = _restore_reduced_dim(tl.max(index, dim), dim, len(value.shape))
-    # A NaN outranks every number and is not equal to itself, so match it apart.
-    at_peak = (value == peak_bcast) | ((value != value) & (peak_bcast != peak_bcast))
-    return peak, tl.min(tl.where(at_peak, index, filler), dim)
+    return peak, tl.min(tl.where(value == peak_bcast, index, filler), dim)
 
 
 @triton.jit
 def min_with_index(value, index, dim: tl.constexpr):
     """Mirror of max_with_index; see there for why the two-source reduce is out."""
-    valley = tl.min(value, dim, propagate_nan=True)
+    valley = _extremum(value, dim, False)
     valley_bcast = _restore_reduced_dim(valley, dim, len(value.shape))
     filler = _restore_reduced_dim(tl.max(index, dim), dim, len(value.shape))
-    at_valley = (value == valley_bcast) | (
-        (value != value) & (valley_bcast != valley_bcast)
-    )
-    return valley, tl.min(tl.where(at_valley, index, filler), dim)
+    return valley, tl.min(tl.where(value == valley_bcast, index, filler), dim)
 
 
 @triton.jit
