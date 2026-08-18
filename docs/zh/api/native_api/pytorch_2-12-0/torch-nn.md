@@ -4604,6 +4604,22 @@
 
 </div>
 
+### torch.nn.parameter.is_lazy
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.parameter.is_lazy](https://pytorch.org/docs/2.11/generated/torch.nn.parameter.is_lazy.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | &#10004; |
+| <term>Atlas A3 训练系列产品</term> | &#10004; |
+| <term>Ascend 950DT</term> | &#10004; |
+
+</div>
+
 ### <code><i>class</i></code> torch.nn.utils.prune.BasePruningMethod
 
 <div style="margin-left: 2em">
