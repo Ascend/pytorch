@@ -8,7 +8,7 @@ import torch.multiprocessing as mp
 
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import create_common_tensor
+from torch_npu.testing.common_utils import create_common_tensor, SupportedDevices
 from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
 
 
@@ -64,7 +64,7 @@ class HcomAllReduceTest(TestCase):
             self.assertEqual(p.exitcode, 0, "subprocess exit with abnormal code.")
 
     # pylint:disable=huawei-too-many-arguments
-    def _test_multiprocess(self, f, init_pg, expected, input1, world_size, reduce_op=dist.ReduceOp.SUM):
+    def _test_multiprocess(self, f, init_pg, expected, input1, world_size, reduce_op=dist.ReduceOp.SUM, use_equal=False):
         ctx = mp.get_context('spawn')
         c2p = ctx.Queue(world_size)
         done_event = ctx.Event()
@@ -80,9 +80,17 @@ class HcomAllReduceTest(TestCase):
         for _ in range(world_size):
             rank, dst, output = c2p.get()
             if rank == dst:
-                self.assertEqual(output, expected,
-                                 "rank {} world_size {} dtype {} shape {} Expect receive tensor {} but got {}.".format(
-                                     rank, world_size, expected.dtype, expected.shape, expected, output))
+                # torch has no add/mul stub for UInt64, so assertEqual (which
+                # computes output - expected internally) raises. Use torch.equal
+                # for uint64, which compares without subtraction.
+                if use_equal:
+                    self.assertTrue(torch.equal(output, expected),
+                                    "rank {} world_size {} dtype {} shape {} Expect receive tensor {} but got {}.".format(
+                                        rank, world_size, expected.dtype, expected.shape, expected, output))
+                else:
+                    self.assertEqual(output, expected,
+                                     "rank {} world_size {} dtype {} shape {} Expect receive tensor {} but got {}.".format(
+                                         rank, world_size, expected.dtype, expected.shape, expected, output))
         done_event.set()
         for p in ps:
             p.join()
@@ -121,6 +129,37 @@ class HcomAllReduceTest(TestCase):
         # CI currently supports only 2 devices
         ranks = [2]
         shape_format = [np.int64, 2, [1]]
+        for world_size in ranks:
+            exp_input, input1 = create_common_tensor(shape_format, -10, 10)
+            expected = self._construct_excepted_result(exp_input, world_size)
+            self._test_multiprocess(HcomAllReduceTest._test_all_reduce,
+                                    HcomAllReduceTest._init_dist_hccl, expected, input1, world_size)
+
+    # Ascend950 (Atlas A5) extends HCCL data type support with uint64/fp64.
+    @SupportedDevices(["Ascend950"])
+    @skipIfUnsupportMultiNPU(2)
+    def test_dist_all_reduce_uint64(self):
+        # CI currently supports only 2 devices
+        ranks = [2]
+        shape_format = [np.uint64, 2, [2, 3, 16]]
+        for world_size in ranks:
+            # uint64 is unsigned, use a non-negative range to avoid wrap-around on cast.
+            exp_input, input1 = create_common_tensor(shape_format, 0, 10)
+            # torch has no add/mul stub for UInt64, so compute the expected
+            # result with numpy (which supports uint64 arithmetic) and cast
+            # back to a tensor for comparison.
+            expected_np = self._construct_excepted_result(exp_input.numpy(), world_size)
+            expected = torch.from_numpy(expected_np)
+            self._test_multiprocess(HcomAllReduceTest._test_all_reduce,
+                                    HcomAllReduceTest._init_dist_hccl, expected, input1, world_size,
+                                    use_equal=True)
+
+    @SupportedDevices(["Ascend950"])
+    @skipIfUnsupportMultiNPU(2)
+    def test_dist_all_reduce_fp64(self):
+        # CI currently supports only 2 devices
+        ranks = [2]
+        shape_format = [np.float64, 2, [2, 3, 16]]
         for world_size in ranks:
             exp_input, input1 = create_common_tensor(shape_format, -10, 10)
             expected = self._construct_excepted_result(exp_input, world_size)
