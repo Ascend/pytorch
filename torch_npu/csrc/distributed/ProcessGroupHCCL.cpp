@@ -171,6 +171,7 @@ HcclReduceOp getHcclReduceOp(const c10d::ReduceOp reduceOp, at::Tensor& input)
 }
 
 // AllGather & Broadcast support all data type, no need do more check.
+// On Ascend950 (Atlas A5), HCCL additionally supports uint64/fp64.
 void checkSupportedDataType(HcclDataType type, std::string functionName)
 {
     static std::set<HcclDataType> supportedDataTypes = {
@@ -181,8 +182,15 @@ void checkSupportedDataType(HcclDataType type, std::string functionName)
         HCCL_DATA_TYPE_FP32,
         HCCL_DATA_TYPE_BFP16,
         HCCL_DATA_TYPE_INT64};
+    // Ascend950 (Atlas A5) extends HCCL data type support with uint64/fp64.
+    static std::set<HcclDataType> a5ExtraDataTypes = {
+        HCCL_DATA_TYPE_UINT64,
+        HCCL_DATA_TYPE_FP64};
+    bool is_atlas_a5 = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend950;
+    bool supported = (supportedDataTypes.count(type) != 0) ||
+        (is_atlas_a5 && a5ExtraDataTypes.count(type) != 0);
     TORCH_CHECK(
-        supportedDataTypes.count(type) != 0,
+        supported,
         "HCCL "+functionName+": Unsupported data type ",
         getHcclDataTypeSerialString(type), DIST_ERROR(ErrCode::NOT_SUPPORT));
 }
