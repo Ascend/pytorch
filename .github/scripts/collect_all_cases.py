@@ -400,7 +400,6 @@ def collect_cases_for_file(
     # Build environment with test file directory in PYTHONPATH
     env = os.environ.copy()
     env["PYTORCH_TESTING_DEVICE_ONLY_FOR"] = "privateuse1"
-    env["PYTORCH_TESTING_DEVICE_FOR_CUSTOM"] = "privateuse1"
     existing_pythonpath = env.get("PYTHONPATH", "")
     env["PYTHONPATH"] = str(test_file_dir) + (":" + existing_pythonpath if existing_pythonpath else "")
 
