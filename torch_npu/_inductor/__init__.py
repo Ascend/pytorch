@@ -202,6 +202,9 @@ def _load_backend():
     backend = _get_backend()
     loader = _BACKEND_LOADERS.get(backend, _load_triton_backend)
     loader()
+    from .fx_passes.overlap_scheduling import patch_overlap_scheduling
+
+    patch_overlap_scheduling()
     from .decomposition import _register_shared_decompositions
     _register_shared_decompositions()
     # Invalidate cached decompositions after loading the selected backend.
