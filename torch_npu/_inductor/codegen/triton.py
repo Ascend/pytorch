@@ -79,6 +79,7 @@ from ..runtime import triton_heuristics as npu_triton_heuristics
 from ..runtime.symbolic_grouping import (
     UnsupportedGroupedPlan,
     build_group_representatives,
+    estimate_grouped_benchmark_footprint,
 )
 from .kernel_analysis import (
     collect_stride_sorted_vars_from_indexings,
@@ -1880,6 +1881,62 @@ class NPUIndexTritonKernel(TritonKernel):
         except UnsupportedGroupedPlan as exc:
             self._disable_grouped_autotune(inductor_meta, str(exc))
 
+    def _disable_grouped_autotune_if_benchmark_too_large(
+        self,
+        inductor_meta,
+        device,
+    ):
+        if not inductor_meta.get("group_enabled", False):
+            return
+
+        try:
+            representatives = build_group_representatives(
+                inductor_meta.get("group_features", ()),
+                inductor_meta.get("axis_names", ()),
+                inductor_meta.get("axis_static_values", ()),
+            )
+            footprint = estimate_grouped_benchmark_footprint(
+                representatives,
+                inductor_meta.get("ordered_arg_specs", ()),
+                inductor_meta.get("mutated_arg_names", ()),
+            )
+            total_memory = int(
+                torch.npu.get_device_properties(device).total_memory
+            )
+            if total_memory <= 0:
+                raise UnsupportedGroupedPlan(
+                    f"invalid NPU total memory: {total_memory}"
+                )
+        except (AttributeError, KeyError, RuntimeError, TypeError, ValueError) as exc:
+            self._disable_grouped_autotune(
+                inductor_meta,
+                f"grouped benchmark footprint is not bounded: {exc}",
+            )
+            return
+
+        ratio = npu_config.symbolic_group_max_benchmark_memory_ratio
+        budget_bytes = int(total_memory * ratio)
+        if footprint.total_bytes <= budget_bytes:
+            return
+
+        dominant = footprint.dominant_arg
+        dominant_text = "none"
+        if dominant is not None:
+            dominant_text = (
+                f"group_id={dominant.group_id} arg={dominant.name} "
+                f"kind={dominant.kind} size={dominant.size} "
+                f"stride={dominant.stride} dtype={dominant.dtype} "
+                f"bytes={dominant.num_bytes}"
+            )
+        self._disable_grouped_autotune(
+            inductor_meta,
+            "grouped benchmark footprint exceeds budget: "
+            f"estimated_bytes={footprint.total_bytes} "
+            f"budget_bytes={budget_bytes} ratio={ratio} "
+            f"largest_group_id={footprint.largest_group_id} "
+            f"dominant=({dominant_text})",
+        )
+
     def _has_dynamic_shape_axis(self):
         for axis in self.sorted_axis:
             length = V.graph.sizevars.simplify(axis.length)
@@ -2148,6 +2205,10 @@ class NPUIndexTritonKernel(TritonKernel):
                     self.build_grouped_benchmark_arg_specs(argdefs, signature)
                 )
                 inductor_meta.setdefault("extra_launcher_arg_specs", ())
+                self._disable_grouped_autotune_if_benchmark_too_large(
+                    inductor_meta,
+                    V.graph.get_current_device_or_throw(),
+                )
             except RuntimeError as exc:
                 self._disable_grouped_autotune(inductor_meta, str(exc))
 

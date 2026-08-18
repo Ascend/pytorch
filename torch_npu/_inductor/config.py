@@ -420,6 +420,12 @@ enable_fast_launch = _parse_bool_env(
 )
 enable_costmodel_backend = _parse_bool_env("INDUCTOR_ASCEND_ENABLE_COSTMODEL", False)
 costmodel_ratio = _parse_float_env("INDUCTOR_ASCEND_COSTMODEL_RATIO", 0.25, 0.0, 1.0)
+symbolic_group_max_benchmark_memory_ratio = _parse_float_env(
+    "INDUCTOR_ASCEND_SYMBOLIC_GROUP_MAX_BENCHMARK_MEMORY_RATIO",
+    0.25,
+    0.0,
+    1.0,
+)
 
 lowering_axis_count = None
 
