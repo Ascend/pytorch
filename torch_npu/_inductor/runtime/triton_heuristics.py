@@ -2436,45 +2436,48 @@ class NPUSymbolicGroupedAutotuner(NPUCachingAutotuner):
 
     def _autotune_all_groups(self, *args, **kwargs):
         self._grouped_runtime_args_snapshot = args
-        entries = self._build_grouped_benchmark_entries()
-        entry_group_ids = {entry["group_id"] for entry in entries}
-        missing_entry_groups = tuple(
-            group_id
-            for group_id in self.reachable_selection_keys
-            if group_id not in entry_group_ids
-        )
-        if missing_entry_groups:
-            raise RuntimeError(
-                "reachable grouped autotune groups have no benchmark entries after "
-                "precompile/make_launcher filtering: "
-                f"{missing_entry_groups}"
+        try:
+            entries = self._build_grouped_benchmark_entries()
+            entry_group_ids = {entry["group_id"] for entry in entries}
+            missing_entry_groups = tuple(
+                group_id
+                for group_id in self.reachable_selection_keys
+                if group_id not in entry_group_ids
             )
-        timings = self._benchmark_grouped_entries(entries, **kwargs)
-        if len(timings) != len(entries):
-            raise RuntimeError(
-                "grouped benchmark timing count does not match benchmark entries"
+            if missing_entry_groups:
+                raise RuntimeError(
+                    "reachable grouped autotune groups have no benchmark entries after "
+                    "precompile/make_launcher filtering: "
+                    f"{missing_entry_groups}"
+                )
+            timings = self._benchmark_grouped_entries(entries, **kwargs)
+            if len(timings) != len(entries):
+                raise RuntimeError(
+                    "grouped benchmark timing count does not match benchmark entries"
+                )
+            best_by_group = {}
+            for entry, timing in zip(entries, timings):
+                group_id = entry["group_id"]
+                if group_id not in best_by_group or timing < best_by_group[group_id][0]:
+                    best_by_group[group_id] = (timing, entry)
+            missing_best_groups = tuple(
+                group_id
+                for group_id in self.reachable_selection_keys
+                if group_id not in best_by_group
             )
-        best_by_group = {}
-        for entry, timing in zip(entries, timings):
-            group_id = entry["group_id"]
-            if group_id not in best_by_group or timing < best_by_group[group_id][0]:
-                best_by_group[group_id] = (timing, entry)
-        missing_best_groups = tuple(
-            group_id
-            for group_id in self.reachable_selection_keys
-            if group_id not in best_by_group
-        )
-        if missing_best_groups:
-            raise RuntimeError(
-                "reachable grouped autotune groups failed to select a best candidate: "
-                f"{missing_best_groups}"
-            )
-        for group_id, (_, best_entry) in best_by_group.items():
-            self._set_group_best_candidate(
-                group_id,
-                best_entry["candidate"],
-                best_entry["launcher"],
-            )
+            if missing_best_groups:
+                raise RuntimeError(
+                    "reachable grouped autotune groups failed to select a best candidate: "
+                    f"{missing_best_groups}"
+                )
+            for group_id, (_, best_entry) in best_by_group.items():
+                self._set_group_best_candidate(
+                    group_id,
+                    best_entry["candidate"],
+                    best_entry["launcher"],
+                )
+        finally:
+            self._grouped_runtime_args_snapshot = ()
 
     def _all_reachable_groups_tuned(self):
         return all(
