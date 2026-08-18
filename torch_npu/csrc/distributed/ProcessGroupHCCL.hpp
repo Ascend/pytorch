@@ -1148,7 +1148,7 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
 
   static std::unordered_map<std::string, StatusStruct> StatusOutput_;
 
-  std::mutex StatusMapmutex_;
+  static std::mutex StatusMapmutex_;
 
   void updateStatusOutput();
 
