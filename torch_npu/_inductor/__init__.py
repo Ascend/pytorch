@@ -71,6 +71,7 @@ def _load_dvm_backend():
 def _load_triton_backend():
     _apply_common_patches()
     import torch
+    torch._inductor.runtime.benchmarking.GPU_BENCHMARK_DEVICE_TYPES = ("cuda", "xpu", "mtia", "npu")
     has_triton = torch.utils._triton.has_triton()
     if not has_triton:
         import warnings
@@ -89,7 +90,7 @@ def _load_triton_backend():
     from .codecache import patch_get_cpp_wrapper_header
     from .export import patch_aot_load
     from .codegen._sizevars import patch_simplify
-    from .codegen.ir import patch_indexing, patch_loop_body
+    from .codegen.ir import patch_fixed_indexer, patch_indexing, patch_loop_body
     from .cpp_builder import (
         patch_get_cpp_torch_device_options,
         patch_get_optimization_cflags,
@@ -202,6 +203,8 @@ def _load_triton_backend():
     patch_num_splits()
     patch_loop_body()
     patch_indexing()
+    patch_fixed_indexer()
+
     patch_create_device_properties()
     patch_load_cached_autotuning()
     patch_triton_heuristics_cached_autotune()
