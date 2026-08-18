@@ -439,7 +439,6 @@ class NPUTritonTemplate(TritonTemplate):
                 use_jit=False,
                 **kernel_options,
             )
-            kernel._npu_codegen_kernel_name = self.codegen_kernel_name
 
             def render():
                 with patch.object(
@@ -617,7 +616,7 @@ class NPUTritonTemplate(TritonTemplate):
                 use_jit=False,
                 **kernel_options,
             )
-            kernel._npu_codegen_kernel_name = self.codegen_kernel_name
+
             render = functools.partial(
                 kernel.render,
                 self.template,
