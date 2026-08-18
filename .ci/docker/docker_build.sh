@@ -10,11 +10,11 @@
 
 set -euo pipefail
 
-TAG="${1:?Usage: $0 <IMAGE_TAG>}"
+BASE_TAG="${1:?Usage: $0 <IMAGE_TAG>}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_CONTEXT="${SCRIPT_DIR}"
 
-case "$TAG" in
+case "$BASE_TAG" in
   torch-npu-test-aarch64-cann-a2-py3.10-torch-nightly)
     CANN_CHIP=A2
     PYTHON_VERSION=3.10
@@ -24,7 +24,7 @@ case "$TAG" in
     PYTHON_VERSION=3.10
     ;;
   *)
-    echo "ERROR: Unknown image tag: $TAG"
+    echo "ERROR: Unknown image tag: $BASE_TAG"
     echo ""
     echo "Supported tags:"
     echo "  torch-npu-test-aarch64-cann-a2-py3.10-torch-nightly"
@@ -32,6 +32,9 @@ case "$TAG" in
     exit 1
     ;;
 esac
+
+TIMESTAMP="$(date +%Y%m%d%H%M)"
+TAG="${BASE_TAG}-${TIMESTAMP}"
 
 DOCKERFILE="${SCRIPT_DIR}/test/Dockerfile.aarch64"
 
