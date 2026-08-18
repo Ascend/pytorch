@@ -42,7 +42,7 @@ def parse_args():
     parser.add_argument("--patch-count", default="N/A", help="Applied patch count")
     parser.add_argument("--shard-matrix-json", required=True, help="JSON array of requested shard ids")
     parser.add_argument("--docker-image", default="N/A", help="Docker image used for test execution")
-    parser.add_argument("--runner", default="N/A", help="Runner machine type")
+    parser.add_argument("--runner", default="N/A", help="Runner machine type (fallback if cases-summary lacks runner info)")
     parser.add_argument("--special-reports-root", help="Root directory containing special test report files")
     parser.add_argument("--expected-special-tests-json", default="[]", help="JSON array of expected special test names")
     parser.add_argument("--cases-summary", help="Path to cases_collection_summary.json for file discovery stats")
@@ -510,6 +510,33 @@ def main():
                     if key in file_discovery_stats:
                         file_discovery_stats[key] = cat_cfg.get("total_files", 0)
 
+    # Build runner display string from per-category runner config
+    runner_display = args.runner
+    if cases_summary_data:
+        cats = cases_summary_data.get("categories", {})
+        cat_runners = {}
+        for cat_name in ("core", "tensor", "distributed", "graph", "others"):
+            cat_cfg = cats.get(cat_name, {})
+            if cat_cfg.get("runner"):
+                cat_runners[cat_name] = cat_cfg["runner"]
+        if cat_runners:
+            # Group categories by runner label
+            runner_groups = {}
+            for cat, r in cat_runners.items():
+                runner_groups.setdefault(r, []).append(cat)
+            parts = []
+            for r, cats_list in runner_groups.items():
+                serial_cats = [c for c in cats_list if cats.get(c, {}).get("execution") == "serial"]
+                concurrent_cats = [c for c in cats_list if cats.get(c, {}).get("execution") != "serial"]
+                desc_parts = []
+                if serial_cats:
+                    desc_parts.append(f"{'+'.join(serial_cats)}: serial")
+                if concurrent_cats:
+                    desc_parts.append(f"{'+'.join(concurrent_cats)}: {cats.get(concurrent_cats[0], {}).get('workers', 32)} workers")
+                desc = ", ".join(desc_parts)
+                parts.append(f"{r} ({desc})")
+            runner_display = ", ".join(parts)
+
     stats_files, info_files, cases_files = discover_shard_files(reports_root)
     special_test_files = discover_special_test_files(special_reports_root)
     shard_ids = requested_shards or sorted(set(stats_files) | set(info_files) | set(cases_files))
@@ -655,7 +682,7 @@ def main():
     overview_rows = [
         ["Overall result", overall_status],
         ["Docker image", f"`{args.docker_image}`"],
-        ["Runner", f"`{args.runner}`"],
+        ["Runner", f"`{runner_display}`"],
         ["Shards", f"{received_reports} / {expected_reports} reported"],
         ["Selection", selection_content],
         [
@@ -839,7 +866,7 @@ def main():
         "pytorch_version": args.pytorch_version,
         "torch_npu_whl": whl_name,
         "docker_image": args.docker_image,
-        "runner": args.runner,
+        "runner": runner_display,
         "status_counts": dict(status_counts),
         "totals": totals,
         "file_discovery_stats": file_discovery_stats,
