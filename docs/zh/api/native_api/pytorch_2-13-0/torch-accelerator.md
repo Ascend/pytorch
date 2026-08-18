@@ -11,6 +11,7 @@
 ## 目录
 
 - [API reference](#api-reference)
+- [Memory Management](#memory-management)
 
 ## API reference
 
@@ -26,7 +27,7 @@
 | ---- | :----: |
 | <term>Atlas A2 训练系列产品</term> | ✔ |
 | <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -74,7 +75,7 @@
 | ---- | :----: |
 | <term>Atlas A2 训练系列产品</term> | ✔ |
 | <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -90,7 +91,7 @@
 | ---- | :----: |
 | <term>Atlas A2 训练系列产品</term> | ✔ |
 | <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -122,7 +123,7 @@
 | ---- | :----: |
 | <term>Atlas A2 训练系列产品</term> | ✔ |
 | <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -136,9 +137,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -154,7 +155,7 @@
 | ---- | :----: |
 | <term>Atlas A2 训练系列产品</term> | ✔ |
 | <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
@@ -195,6 +196,168 @@
 <div style="margin-left: 2em">
 
 **原生文档**：[torch.accelerator.device_index](https://pytorch.org/docs/2.13/generated/torch.accelerator.device_index.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
+
+</div>
+
+## Memory Management
+
+### torch.accelerator.memory.empty_cache
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.accelerator.memory.empty_cache](https://pytorch.org/docs/2.13/generated/torch.accelerator.memory.empty_cache.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
+
+</div>
+
+### torch.accelerator.memory.empty_host_cache
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.accelerator.memory.empty_host_cache](https://pytorch.org/docs/2.13/generated/torch.accelerator.memory.empty_host_cache.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
+
+</div>
+
+### torch.accelerator.memory.get_memory_info
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.accelerator.memory.get_memory_info](https://pytorch.org/docs/2.13/generated/torch.accelerator.memory.get_memory_info.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
+
+</div>
+
+### torch.accelerator.memory.max_memory_allocated
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.accelerator.memory.max_memory_allocated](https://pytorch.org/docs/2.13/generated/torch.accelerator.memory.max_memory_allocated.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
+
+</div>
+
+### torch.accelerator.memory.max_memory_reserved
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.accelerator.memory.max_memory_reserved](https://pytorch.org/docs/2.13/generated/torch.accelerator.memory.max_memory_reserved.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
+
+</div>
+
+### torch.accelerator.memory.memory_allocated
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.accelerator.memory.memory_allocated](https://pytorch.org/docs/2.13/generated/torch.accelerator.memory.memory_allocated.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
+
+</div>
+
+### torch.accelerator.memory.memory_reserved
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.accelerator.memory.memory_reserved](https://pytorch.org/docs/2.13/generated/torch.accelerator.memory.memory_reserved.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
+
+</div>
+
+### torch.accelerator.memory.memory_stats
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.accelerator.memory.memory_stats](https://pytorch.org/docs/2.13/generated/torch.accelerator.memory.memory_stats.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
+
+</div>
+
+### torch.accelerator.memory.reset_accumulated_memory_stats
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.accelerator.memory.reset_accumulated_memory_stats](https://pytorch.org/docs/2.13/generated/torch.accelerator.memory.reset_accumulated_memory_stats.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
+
+</div>
+
+### torch.accelerator.memory.reset_peak_memory_stats
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.accelerator.memory.reset_peak_memory_stats](https://pytorch.org/docs/2.13/generated/torch.accelerator.memory.reset_peak_memory_stats.html)
 
 **支持情况**：
 
