@@ -23,6 +23,9 @@ permissions:
   id-token: write
   contents: read
 
+env:
+  DOCKER_IMAGE: quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly
+
 jobs:
   build:
     uses: ./.github/workflows/_build.yml
@@ -42,6 +45,7 @@ jobs:
       resolved_short: ${{ needs.build.outputs.resolved_short }}
       torch_npu_short: ${{ needs.build.outputs.torch_npu_short }}
       case_paths_config: .github/config/nightly_test_categories.yml
+      docker_image: ${{ env.DOCKER_IMAGE }}
       report_to_upstream: false
       hw_classification: 'GENERIC ACCELERATOR'
       full_scan: true

@@ -136,8 +136,7 @@ jobs:
             --output-markdown ${REPORT_MD} \
             --output-json ${REPORT_JSON} \
             --pytorch-version "${{ inputs.pytorch_short }}" \
-            --torch-npu-whl "${{ inputs.torch_npu_short }}" \
-            --patch-count "0" \
+            --torch-npu-short "${{ inputs.torch_npu_short }}" \
             --shard-matrix-json "${COMBINED_MATRIX}" \
             --docker-image "${{ inputs.docker_image }}" \
             --cases-summary cases-shards/cases_collection_summary.json \

@@ -12,6 +12,9 @@ on:
         type: string
         description: Full client_payload as a JSON string
 
+env:
+  DOCKER_IMAGE: quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly
+
 jobs:
   extract:
     runs-on: ubuntu-latest
@@ -98,5 +101,6 @@ jobs:
       torch_npu_short: ${{ needs.build.outputs.torch_npu_short }}
       case_paths_config: .github/config/pr_test_whitelist.yml
       skip_list: .github/config/pr_skip_list.jsonl
+      docker_image: ${{ env.DOCKER_IMAGE }}
       report_to_upstream: true
       hw_classification: 'ACCELERATOR'

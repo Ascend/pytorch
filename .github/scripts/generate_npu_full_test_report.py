@@ -38,8 +38,7 @@ def parse_args():
     parser.add_argument("--output-markdown", required=True, help="Path to write markdown report")
     parser.add_argument("--output-json", required=True, help="Path to write JSON summary")
     parser.add_argument("--pytorch-version", required=True, help="PyTorch version string")
-    parser.add_argument("--torch-npu-whl", required=True, help="torch_npu wheel URL")
-    parser.add_argument("--patch-count", default="N/A", help="Applied patch count")
+    parser.add_argument("--torch-npu-short", required=True, help="torch_npu short SHA")
     parser.add_argument("--shard-matrix-json", required=True, help="JSON array of requested shard ids")
     parser.add_argument("--docker-image", default="N/A", help="Docker image used for test execution")
     parser.add_argument("--runner", default="N/A", help="Runner machine type (fallback if cases-summary lacks runner info)")
@@ -619,7 +618,7 @@ def main():
         )
 
     overall_status = get_overall_status(status_counts)
-    whl_name = Path(args.torch_npu_whl).name
+    torch_npu_short = args.torch_npu_short
     received_reports = len(stats_files)
     expected_reports = len(shard_ids)
     selection_mode_display = ", ".join(sorted(selection_modes)) if selection_modes else "-"
@@ -862,9 +861,8 @@ def main():
         "overall_status": overall_status,
         "requested_shards": shard_ids,
         "reports_collected": received_reports,
-        "patch_count": args.patch_count,
         "pytorch_version": args.pytorch_version,
-        "torch_npu_whl": whl_name,
+        "torch_npu_short": torch_npu_short,
         "docker_image": args.docker_image,
         "runner": runner_display,
         "status_counts": dict(status_counts),
