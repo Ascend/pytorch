@@ -7,15 +7,14 @@
 | 版本目录 | PyTorch 版本 | 镜像基座 (x86_64) | 镜像基座 (aarch64) |
 |---------|------------|-------------------|---------------------|
 | `2.13/` | 2.13.0 | `pytorch/manylinux2_28-builder:cpu-v2.13.0-rc15` | `cpu-aarch64-v2.13.0-rc15` |
-| `master/` | 2.14.0.dev20260708 (nightly) | `pytorch/manylinux2_28-builder:cpu` | `cpu-aarch64` |
+| `master/` | 2.14.0.dev20260708 (nightly) | `ubuntu:22.04` | `ubuntu:22.04` |
 
 ## 镜像类型
 
 | 类型 | 基座 | 用途 |
 |------|------|------|
-| **builder (x86_64)** | manylinux2_28-builder | 编译构建 torch-npu wheel 包，包含完整编译工具链 |
-| **builder (aarch64)** | manylinux2_28_aarch64-builder | 编译构建 torch-npu wheel 包，包含完整编译工具链 |
-| **test** | `ubuntu:22.04` | CI 单元测试运行环境，包含 PyTorch CPU、CANN runtime、triton-ascend 和测试框架 |
+| **builder (2.13 only)** | manylinux2_28-builder | 编译构建 torch-npu wheel 包，包含完整编译工具链 |
+| **test** | `ubuntu:22.04` | CI 单元测试运行环境，包含 CANN runtime、triton-ascend 和测试框架（master 版本不含 PyTorch，由 CI 运行时单独构建安装） |
 
 ## 目录结构
 
@@ -38,9 +37,6 @@
 │       └── Dockerfile.aarch64
 └── master/                        # master (nightly) 版本特定
     ├── requirements-test.txt      # Test 镜像依赖 (torch nightly)
-    ├── builder/
-    │   ├── Dockerfile.x86_64
-    │   └── Dockerfile.aarch64
     └── test/
         ├── Dockerfile.x86_64
         └── Dockerfile.aarch64
@@ -49,11 +45,9 @@
 ## 快速构建
 
 ```bash
-# Builder 镜像 (不含 CANN)
+# Builder 镜像 (仅 2.13，不含 CANN)
 ./docker_build.sh torch-npu-builder-x86_64-torch2.13.0
 ./docker_build.sh torch-npu-builder-aarch64-torch2.13.0
-./docker_build.sh torch-npu-builder-x86_64-torch-master
-./docker_build.sh torch-npu-builder-aarch64-torch-master
 
 # Test 镜像 (含 CANN)
 ./docker_build.sh torch-npu-test-x86_64-cann-a1-py3.10-torch2.13.0
@@ -66,13 +60,11 @@
 
 参考上游 PyTorch `pytorch-linux-jammy-cuda12.4-cudnn9-py3-gcc11` 模式，tag 即为最终镜像名：
 
-**Builder**（不含 CANN）：
+**Builder**（仅 2.13，不含 CANN）：
 
 ```text
 torch-npu-builder-<ARCH>-torch<PYTORCH_VERSION>
 ```
-
-其中 `<PYTORCH_VERSION>` 可以是 `2.13.0` 或 `master`（nightly）。
 
 **Test**（含 CANN runtime）：
 
@@ -82,7 +74,7 @@ torch-npu-test-<ARCH>-cann<CHIP>-py<PYTHON_VERSION>-torch<PYTORCH_VERSION>
 
 | 字段 | 可选值 |
 |------|--------|
-| IMAGE_TYPE | builder, test |
+| IMAGE_TYPE | builder (仅 2.13), test |
 | ARCH | x86_64, aarch64 |
 | CHIP | A1 (Ascend 910), A2 (Ascend 910b), A3 (仅 test) |
 | PYTHON_VERSION | 3.10 (仅 test) |
@@ -98,7 +90,7 @@ Builder 镜像支持以下 Python 版本（由基座镜像提供）：
 - Python 3.13 (cpython-3.13.14)
 - Python 3.14 (cpython-3.14.6)
 
-Test 镜像仅使用系统 Python 3.10。
+Test 镜像使用 Miniforge3 创建 conda 环境 `py_${PYTHON_VERSION}`（默认 Python 3.10）。
 
 ## CANN 芯片映射
 
