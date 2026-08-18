@@ -10,6 +10,9 @@
 #include <functional>
 #include <cstdlib>
 #include <linux/limits.h>
+#include <filesystem>
+#include <cerrno>
+#include <cstring>
 
 #ifndef BUILD_LIBTORCH
 #include <pybind11/pybind11.h>
@@ -98,8 +101,6 @@ bool nslb_is_end = false;
 std::string device_error_msg;
 bool force_stop_error_flag = false;
 const char* nslb_path = c10_npu::option::OptionsManager::GetNslbPath();
-bool status_save_enable = c10_npu::option::OptionsManager::CheckStatusSaveEnable();
-std::string status_save_path = c10_npu::option::OptionsManager::GetStatusSavePath();
 
 inline c10_npu::NPUStream getNPUStreamByCurrentType(c10::DeviceIndex device = -1)
 {
@@ -415,12 +416,69 @@ void check_split_sizes(const std::vector<int64_t>& split_sizes, const at::Tensor
 
 void checkAndMakePath(const char* path, std::string errormessage)
 {
-    try {
-        if (access(path, W_OK) != 0 && mkdir(path, S_IRWXU | S_IRGRP | S_IXGRP) != 0) {
-            throw std::exception();
+    namespace fs = std::filesystem;
+    const fs::path dir(path);
+    std::error_code ec;
+
+    bool is_dir = fs::is_directory(dir, ec); // Check if the path is a directory.
+    if (!is_dir) { // Not a directory, return false.
+        if (!ec) { // ec.value() == 0 means the path may not exist or may be a regular file.
+            ASCEND_LOGI("checkAndMakePath path is not a directory or path is not exist, path=%s", path);
+        }else { // ec.value() != 0 indicates other issues, such as inaccessible path or path too long.
+            ASCEND_LOGW("checkAndMakePath is_directory failed: %s (errno=%d), path=%s",
+                    ec.message().c_str(), ec.value(), path);
+            std::cout << "[checkAndMakePath] is_directory failed: " << ec.message()
+                      << " (errno=" << ec.value() << "), path=" << path << std::endl;
         }
-    } catch (std::exception& e) {
-        throw std::runtime_error(errormessage + DIST_ERROR(ErrCode::NOT_FOUND));
+    }
+
+    int access_ret = access(path, W_OK);
+    if (access_ret != 0) { // No write permission.
+        ASCEND_LOGI("checkAndMakePath access W_OK failed: path=%s, ret=%d, errno=%d, errmsg=%s",
+                    path, access_ret, errno, std::strerror(errno));
+    }
+
+    if (is_dir && access_ret == 0) { // It is a directory and has write permission. Return directly; no need to create directory or verify permissions later.
+        return;
+    }
+
+    ec.clear();
+    const bool created = fs::create_directories(dir, ec);
+    if (created) {
+        // Directory created successfully, log it.
+        ASCEND_LOGI("checkAndMakePath create_directories: path=%s, created=%d, ec.value=%d, ec.message=%s",
+                path, created, ec.value(), ec.message().c_str());
+        std::cout << "[checkAndMakePath] create_directories: path=" << path
+                  << ", created=" << created
+                  << ", ec.value=" << ec.value()
+                  << ", ec.message=" << ec.message() << std::endl;
+        // Grant permissions.
+        std::error_code permEc;
+        fs::permissions(dir, fs::perms::owner_all | fs::perms::group_read | fs::perms::group_exec, permEc); // Grant 750 permissions.
+        if (!permEc) { // Permission grant succeeded, log it.
+            ASCEND_LOGI("checkAndMakePath permissions: path=%s, permEc.value=%d, permEc.message=%s",
+                    path, permEc.value(), permEc.message().c_str());
+        }else{ // Permission grant failed, log it.
+             ASCEND_LOGW("checkAndMakePath permissions failed: %s (errno=%d), path=%s",
+                        permEc.message().c_str(), permEc.value(), path);
+            std::cout << "[checkAndMakePath] permissions failed: " << permEc.message()
+                      << " (errno=" << permEc.value() << "), path=" << path << std::endl;
+        }
+    }else { // return False
+        if (!ec) { // ec.value() == 0 means the directory already exists; no need to create it.
+            // Verify write permission.
+            if (access(path, W_OK) != 0) {
+                ASCEND_LOGW("checkAndMakePath final access W_OK failed: %s (errno=%d), path=%s",
+                            std::strerror(errno), errno, path);
+                std::cout << "[checkAndMakePath] final access W_OK failed: " << std::strerror(errno)
+                          << " (errno=" << errno << "), path=" << path << std::endl;
+            }
+        }else {    // ec.value() != 0 means creation failed, possibly due to permission issues or the path not being a directory. Log the error.
+            ASCEND_LOGW("checkAndMakePath create_directories failed: %s (errno=%d), path=%s",
+                    ec.message().c_str(), ec.value(), path);
+            std::cout << "[checkAndMakePath] create_directories failed: " << ec.message()
+                      << " (errno=" << ec.value() << "), path=" << path << std::endl;
+        }
     }
 }
 
@@ -453,6 +511,7 @@ const int64_t ProcessGroupHCCL::kWatchdogThreadSleepMillis = 1000;
 std::string ProcessGroupHCCL::perfdumppath = "";
 ProcessGroupHCCL* ProcessGroupHCCL::global_ = nullptr;
 std::unordered_map<std::string, ProcessGroupHCCL::StatusStruct> ProcessGroupHCCL::StatusOutput_;
+std::mutex ProcessGroupHCCL::StatusMapmutex_;
 int ProcessGroupHCCL::deviceId_ = -1;
 int ProcessGroupHCCL::numRanks_ = -1;
 std::string ProcessGroupHCCL::exceptionMessage_ = "";
@@ -693,7 +752,7 @@ ProcessGroupHCCL::WorkHCCL::WorkHCCL(
     // Creates the npu event wrappers
     // Note: The actual events are lazily created when first recorded to with
     // DEFAULT_FLAGS = npuEventDisableTiming.
-    if (desyncDebug || (status_save_enable) || ProcessGroupHCCL::monitorThreadEnabled_.load()) {
+    if (desyncDebug || c10_npu::option::OptionsManager::CheckStatusSaveEnable() || ProcessGroupHCCL::monitorThreadEnabled_.load()) {
         hcclStartEvents_ = std::make_shared<std::vector<c10_npu::NPUEvent>>();
         hcclStartEvents_->reserve(devices.size());
         for (size_t i = 0; i < devices.size(); i++) {
@@ -1943,11 +2002,11 @@ void ProcessGroupHCCL::Watchdog::run()
             "] HCCL watchdog thread terminated with exception: ",
             e.what());
         LOG(ERROR) << exitMsg;
-        if (status_save_enable) {
+        if (c10_npu::option::OptionsManager::CheckStatusSaveEnable()) {
             if (ProcessGroupHCCL::exceptionMessage_.empty()) {
                 ProcessGroupHCCL::exceptionMessage_ = e.what();
             }
-            pg_->recordHcclStatus(status_save_path, true, true);
+            pg_->recordHcclStatus(c10_npu::option::OptionsManager::GetStatusSavePath(), true, true);
         }
         watchDogException_ = std::make_exception_ptr(std::runtime_error(exitMsg));
         std::rethrow_exception(watchDogException_);
@@ -1957,8 +2016,8 @@ void ProcessGroupHCCL::Watchdog::run()
             rank_,
             "] HCCL watchdog thread terminated with exception: unknown");
         LOG(ERROR) << exitMsg;
-        if (status_save_enable) {
-            pg_->recordHcclStatus(status_save_path, true);
+        if (c10_npu::option::OptionsManager::CheckStatusSaveEnable()) {
+            pg_->recordHcclStatus(c10_npu::option::OptionsManager::GetStatusSavePath(), true);
         }
         watchDogException_ = std::make_exception_ptr(std::runtime_error(exitMsg));
         std::rethrow_exception(watchDogException_);
@@ -2132,8 +2191,10 @@ void ProcessGroupHCCL::Watchdog::runLoop()
     int kThousandMillis = 1000;
     
     while (!pg_->terminateProcessGroup_.load()) {
+        bool status_save_enable = c10_npu::option::OptionsManager::CheckStatusSaveEnable();
         if (status_save_enable) {
-            checkAndMakePath(status_save_path.c_str(), "Open shared directory failed. Please check whether input path is valid.");
+            auto status_save_path = c10_npu::option::OptionsManager::GetStatusSavePath();
+            checkAndMakePath(status_save_path.c_str(), "Failed to prepare HCCL status save directory. Please verify the path is accessible and writable.");
             timenow = std::chrono::steady_clock::now();
             recordflag = (std::chrono::duration_cast<std::chrono::milliseconds>(timenow - lastrecordtime).count() > (c10_npu::option::OptionsManager::GetStatusSaveInterval() * kThousandMillis));
         }
@@ -2282,7 +2343,7 @@ void ProcessGroupHCCL::Watchdog::runLoop()
                     }
                 }
 
-                if (status_save_enable && !work.exception()) {
+                if (c10_npu::option::OptionsManager::CheckStatusSaveEnable() && !work.exception()) {
                     pg_->is_refreshed = pg_->refreshStatusInfo(work, "end"); // Update Statusinfo，but not write into the map
                 }
                 pg_->pgStatus_->lastCompletedSeq = static_cast<int64_t>(work.seq_);
@@ -2292,7 +2353,7 @@ void ProcessGroupHCCL::Watchdog::runLoop()
                 HCCLTraceBuffer::get()->retire_id(work.trace_id_, true);
                 it = pg_->workMetaList_.erase(it);
             } else {
-                if (status_save_enable && work.isStarted(pg_->asyncErrorHandling_)) {
+                if (c10_npu::option::OptionsManager::CheckStatusSaveEnable() && work.isStarted(pg_->asyncErrorHandling_)) {
                     pg_->is_refreshed = pg_->refreshStatusInfo(work, "start"); // Update Statusinfo，but not write into the map
                 }
                 // Increment the iterator if the current WorkHCCL object is not
@@ -2306,22 +2367,22 @@ void ProcessGroupHCCL::Watchdog::runLoop()
         }
         }
 
-        if (status_save_enable && pg_->is_refreshed) {
+        if (c10_npu::option::OptionsManager::CheckStatusSaveEnable() && pg_->is_refreshed) {
             pg_->updateStatusOutput();
         }
 
-        if (recordflag && pg_->recordHcclStatus(status_save_path)) {
+        if (recordflag && pg_->recordHcclStatus(c10_npu::option::OptionsManager::GetStatusSavePath())) {
             lastrecordtime = std::chrono::steady_clock::now();
         }
     }
 
-    if (status_save_enable) {
-        pg_->recordHcclStatus(status_save_path);
+    if (c10_npu::option::OptionsManager::CheckStatusSaveEnable()) {
+        pg_->recordHcclStatus(c10_npu::option::OptionsManager::GetStatusSavePath());
     }
 
     if (pg_->terminateProcessGroup_.load()) {
-        if (status_save_enable) {
-            pg_->recordHcclStatus(status_save_path, true);
+        if (c10_npu::option::OptionsManager::CheckStatusSaveEnable()) {
+            pg_->recordHcclStatus(c10_npu::option::OptionsManager::GetStatusSavePath(), true);
         }
         std::unique_lock<std::mutex> lock(pg_->workMetaListMutex_);
         pg_->workMetaList_.clear();
@@ -2449,7 +2510,7 @@ void ProcessGroupHCCL::recordDataVol(std::string opName, const std::string dataV
         }
         outfile.open(out_file_path, std::ios::app);
     } catch (std::exception& e) {
-        throw std::runtime_error("Open shared directory failed. Please check whether input path is valid." + DIST_ERROR(ErrCode::NOT_FOUND));
+        throw std::runtime_error("Failed to prepare HCCL status save directory. Please verify the path is accessible and writable." + DIST_ERROR(ErrCode::NOT_FOUND));
     }
     std::transform(opName.begin(), opName.end(), opName.begin(), ::tolower);
     if (need_algo) {
@@ -2490,11 +2551,25 @@ void ProcessGroupHCCL::updateStatusOutput()
 
 bool ProcessGroupHCCL::recordHcclStatus(const std::string path, bool end, bool error)
 {
-    TORCH_NPU_HCCL_LOGI("Record HCCL status, path %s, end %d, error %d.", path.c_str(), end, error);
-    std::unique_lock<std::mutex> lock(StatusMapmutex_);
-    if (!options_->global_ranks_in_group.empty() && !error) {
-        return true;
-    } else if (!StatusOutput_.empty()) {
+    try {
+        if (!options_->global_ranks_in_group.empty() && !error) { // If it is a communication subgroup and no error, do not log.
+            return true;
+        }
+        // Log errors for communication subgroups as well; always log for global communication groups regardless of error status.
+        std::unordered_map<std::string, StatusStruct> statusSnapshot;
+
+        std::unique_lock<std::mutex> lock(StatusMapmutex_);
+
+        if (StatusOutput_.empty()) {
+            ASCEND_LOGI("recordHcclStatus return false: StatusOutput_ is empty");
+            return false;
+        }
+
+        // HcclWatchdog reads data from statusSnapshot.
+        // Prevent other communication threads from writing to the map simultaneously,
+        // as map reallocation could change memory addresses and cause dirty reads.
+        statusSnapshot = StatusOutput_;
+
         static auto pid = getpid();
         static std::chrono::time_point<std::chrono::system_clock> firstrecordtime = std::chrono::system_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(firstrecordtime.time_since_epoch()).count();
@@ -2503,30 +2578,30 @@ bool ProcessGroupHCCL::recordHcclStatus(const std::string path, bool end, bool e
             static std::chrono::time_point<std::chrono::system_clock> endrecordtime = std::chrono::system_clock::now();
             end_duration = std::chrono::duration_cast<std::chrono::milliseconds>(endrecordtime.time_since_epoch()).count();
         }
-        std::ofstream outfile;
-        std::stringstream fileName;
         static auto master_addr = getenv("MASTER_ADDR");
         if (master_addr == nullptr) {
             master_addr = "127.0.0.1";
-            TORCH_NPU_HCCL_LOGW("Unable to fetch master IP addr, environment variable is null, it will use 127.0.0.1");
+            ASCEND_LOGW("Unable to fetch master IP addr, environment variable is null, it will use 127.0.0.1");
         }
         int global_rank = rank_;
         if (!options_->global_ranks_in_group.empty()) {
             global_rank = static_cast<int>(options_->global_ranks_in_group[rank_]);
         }
+
+        std::stringstream fileName;
         fileName << "torch_hccl_status-" << std::to_string(global_rank) << "_" << master_addr << "_" << std::to_string(deviceId_) << "_";
         fileName << std::to_string(numRanks_) << "_" << std::to_string(pid) << "_" << std::to_string(duration) << ".log";
-        bool isMaster = false;
-        if (global_rank == 0) {
-            isMaster = true;
-        }
+
+        bool isMaster = (global_rank == 0);
         std::string out_file_path = c10::str(path, "/", fileName.str());
-        checkAndMakePath(path.c_str(), "Open shared directory failed. Please check whether input path is valid.");
-        createFile(out_file_path.c_str());
+        std::string tmp_file_path = c10::str(out_file_path, ".tmp");
+
+        checkAndMakePath(path.c_str(), "Failed to prepare HCCL status save directory. Please verify the path is accessible and writable.");
+
         using json = nlohmann::json;
         json result;
         std::list<json> last_comm_ops;
-        for (auto info = StatusOutput_.begin(); info != StatusOutput_.end(); info++) {
+        for (auto info = statusSnapshot.begin(); info != statusSnapshot.end(); info++) {
             json comm_op;
             comm_op["seq"] = info->second.seq;
             comm_op["op_type"] = info->second.opType;
@@ -2542,12 +2617,41 @@ bool ProcessGroupHCCL::recordHcclStatus(const std::string path, bool end, bool e
         result["exception_message"] = exceptionMessage_;
         result["global_pg_end_time"] = end_duration;
         std::string result_str = result.dump();
-        outfile.open(out_file_path.c_str(), std::ios::trunc);
-        outfile << result_str << std::endl;
-        outfile.close();
+
+        // Write to tmp first, then rename to outfile, ensuring the previously written JSON data remains intact.
+        createFile(tmp_file_path.c_str());
+        {
+            std::ofstream outfile(tmp_file_path.c_str(), std::ios::trunc);
+            outfile << result_str << std::endl;
+            outfile.close();
+            if (!outfile.good()) { // Write failed this time; print a log message.
+                ASCEND_LOGW("Write status file %s failed.", tmp_file_path.c_str());
+                ASCEND_LOGW("Status content: %s", result_str.c_str());
+                std::cout << "[recordHcclStatus] Write status file failed: " << tmp_file_path
+                          << ", status content: " << result_str << std::endl;
+                std::remove(tmp_file_path.c_str());
+                return false;
+            }
+        }
+        if (std::rename(tmp_file_path.c_str(), out_file_path.c_str()) != 0) {
+            const int renameErr = errno;
+            ASCEND_LOGW("Rename status file %s -> %s failed: %s (errno=%d).", tmp_file_path.c_str(), out_file_path.c_str(), std::strerror(renameErr), renameErr);
+            std::cout << "[recordHcclStatus] Rename status file " << tmp_file_path << " -> " << out_file_path
+                      << " failed: " << std::strerror(renameErr)
+                      << " (errno=" << renameErr << ")" << std::endl;
+            std::remove(tmp_file_path.c_str());
+            return false;
+        }
         return true;
+    }catch (const std::exception& e) {
+        ASCEND_LOGW("recordHcclStatus failed: %s", e.what());
+        std::cout << "[recordHcclStatus] failed: " << e.what() << std::endl;
+        return false;
+    }catch (...) {
+        ASCEND_LOGW("recordHcclStatus failed: unknown exception.");
+        std::cout << "[recordHcclStatus] failed: unknown exception." << std::endl;
+        return false;
     }
-    return false;
 }
 
 void ProcessGroupHCCL::recordComm(std::string filename, std::string opName, const int currRank, std::vector<std::shared_ptr<HCCLComm>>& hcclComms)
@@ -4025,7 +4129,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
         }
     }
 
-    if (desyncDebug_ || status_save_enable) {
+    if (desyncDebug_ || c10_npu::option::OptionsManager::CheckStatusSaveEnable()) {
         for (const auto i : c10::irange(devices.size())) {
             c10_npu::NPUStream& hcclStream = hcclStreams[i];
             (*(work->hcclStartEvents_))[i].record(hcclStream);
