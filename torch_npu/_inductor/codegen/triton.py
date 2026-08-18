@@ -1211,6 +1211,99 @@ class NPUIndexTritonKernel(TritonKernel):
             if node not in (EnableReduction, DisableReduction):
                 yield node
 
+    def _full_static_welford_mutation_hazards(self) -> OrderedSet[str]:
+        """Find mutated buffers whose values are used across the reduction."""
+        reduction_buffers = OrderedSet()
+        post_reduction_buffers = OrderedSet()
+        welford_source_buffers = OrderedSet()
+        welford_post_buffers = OrderedSet()
+        alias_groups: list[OrderedSet[str]] = []
+        mutated_buffers = OrderedSet()
+        inside_reduction = True
+        seen_welford = False
+
+        for node in self.node_schedule:
+            if node is DisableReduction:
+                inside_reduction = False
+                continue
+            if node is EnableReduction:
+                inside_reduction = True
+                continue
+
+            used_buffers = node.used_buffer_names()
+            if inside_reduction:
+                reduction_buffers.update(used_buffers)
+            else:
+                post_reduction_buffers.update(used_buffers)
+
+            reduction = getattr(node.node, "data", None)
+            if getattr(reduction, "reduction_type", None) == "welford_reduce":
+                welford_source_buffers.update(used_buffers)
+                seen_welford = True
+            elif seen_welford:
+                welford_post_buffers.update(used_buffers)
+
+            for output in node.get_outputs():
+                mutations = OrderedSet(output.get_mutations())
+                group = OrderedSet(
+                    [output.get_name(), *output.get_aliases(), *mutations]
+                )
+                if len(group) > 1:
+                    alias_groups.append(group)
+                if mutations:
+                    mutated_buffers.update(group)
+
+        for output_name, input_name in self.inplace_update_buffers.items():
+            group = OrderedSet([output_name, input_name])
+            alias_groups.append(group)
+            mutated_buffers.update(group)
+        mutated_buffers.update(self.mutations)
+
+        # Scheduler names may refer to either a logical output or the physical
+        # input it aliases. Expand both sets to the same transitive alias closure.
+        def expand_aliases(buffer_names: Iterable[str]) -> OrderedSet[str]:
+            expanded = OrderedSet(buffer_names)
+            changed = True
+            while changed:
+                changed = False
+                for group in alias_groups:
+                    if expanded & group and group - expanded:
+                        expanded.update(group)
+                        changed = True
+            return expanded
+
+        reduction_buffers = expand_aliases(reduction_buffers)
+        post_reduction_buffers = expand_aliases(post_reduction_buffers)
+        welford_source_buffers = expand_aliases(welford_source_buffers)
+        welford_post_buffers = expand_aliases(welford_post_buffers)
+        cross_reduction_buffers = (
+            reduction_buffers & post_reduction_buffers
+        ) | (welford_source_buffers & welford_post_buffers)
+        mutated_buffers = expand_aliases(mutated_buffers)
+        hazards = cross_reduction_buffers & mutated_buffers
+        log.debug(
+            "full-static Welford mutation analysis: reduction=%s, post=%s, "
+            "welford_source=%s, welford_post=%s, cross=%s, mutated=%s, "
+            "hazards=%s",
+            sorted(reduction_buffers),
+            sorted(post_reduction_buffers),
+            sorted(welford_source_buffers),
+            sorted(welford_post_buffers),
+            sorted(cross_reduction_buffers),
+            sorted(mutated_buffers),
+            sorted(hazards),
+        )
+        return hazards
+
+    def finalize_indexing(self, indices: Sequence[sympy.Expr]) -> None:
+        super().finalize_indexing(indices)
+        if self.full_static_welford_reduction:
+            # The first scheduler pass has now finalized buffer reuse and
+            # in-place updates, while load codegen has not started yet.
+            self.full_static_welford_reduction = not (
+                self._full_static_welford_mutation_hazards()
+            )
+
     def _iter_store_indices(self):
         """
         Yield Store key/index pairs from scheduled nodes.
@@ -1360,14 +1453,12 @@ class NPUIndexTritonKernel(TritonKernel):
         axis = max(candidates, key=lambda candidate: candidate.sorted_order)
         axis.is_vectorized_split = True
         self.vectorized_welford_axis = axis
-        # A persistent SIMD tile covers every static reduction element.  With
-        # no mutation, its loads can safely remain live for post-reduction use.
-        self.full_static_welford_reduction = (
-            not self.mutations
-            and all(
-                int(self.range_tree_nodes[reduction_axis].length) > 0
-                for reduction_axis in self.reduction_axis_list()
-            )
+        # A persistent SIMD tile covers every static reduction element. Loads
+        # may remain live unless a buffer used on both sides of the reduction
+        # is mutated by this kernel.
+        self.full_static_welford_reduction = all(
+            int(self.range_tree_nodes[reduction_axis].length) > 0
+            for reduction_axis in self.reduction_axis_list()
         )
 
     def _static_welford_reduction_numel(self):

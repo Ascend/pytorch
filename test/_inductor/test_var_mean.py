@@ -1,6 +1,7 @@
 from unittest import skip
 import torch
 import torch.nn.functional as F
+from torch._inductor import config
 from torch._inductor.utils import run_and_get_code
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import TestUtils
@@ -128,6 +129,109 @@ class TestVarMean(TestUtils):
             self.assertLess(
                 code.index("axis=1, keep_dims=True"), min(rsqrt_positions)
             )
+        finally:
+            npu_config.enable_welford = previous
+            torch._dynamo.reset()
+
+    def test_welford_full_static_mutation_hazard(self):
+        previous = npu_config.enable_welford
+        npu_config.enable_welford = True
+        torch._dynamo.reset()
+        try:
+            def randn_fp16(shape, scale=0.1):
+                return (
+                    torch.randn(shape, device="npu", dtype=torch.float16) * scale
+                )
+
+            ids = torch.randint(
+                0, 10000, (200, 1), device="npu", dtype=torch.int64
+            )
+            features = randn_fp16((200, 16))
+            left_weight = randn_fp16((16, 32))
+            left_bias = randn_fp16((32,))
+            right_weight = randn_fp16((16, 32))
+            right_bias = randn_fp16((32,))
+            norm_weight = torch.ones((32,), device="npu", dtype=torch.float16)
+            norm_weight = norm_weight + randn_fp16((32,))
+            norm_bias = randn_fp16((32,))
+            side_weight = randn_fp16((32, 16))
+            side_bias = randn_fp16((16,))
+
+            def layer_norm_with_reused_input(
+                ids,
+                features,
+                left_weight,
+                left_bias,
+                right_weight,
+                right_bias,
+                norm_weight,
+                norm_bias,
+                side_weight,
+                side_bias,
+            ):
+                left = torch.addmm(left_bias, features, left_weight)
+                right = torch.addmm(right_bias, features, right_weight)
+                condition = torch.logical_or(ids == 9998, ids == 3).repeat(1, 32)
+                pre_norm = torch.where(condition, left, right)
+                variance, mean = torch.var_mean(
+                    pre_norm, dim=-1, correction=0, keepdim=True
+                )
+                normalized = (
+                    (pre_norm - mean) * torch.rsqrt(variance + 1e-6) * norm_weight
+                    + norm_bias
+                )
+                projected = torch.addmm(side_bias, pre_norm, side_weight)
+                side_sum = pre_norm + normalized.sum(dim=-1, keepdim=True)
+                return pre_norm, normalized, projected, side_sum
+
+            args = (
+                ids,
+                features,
+                left_weight,
+                left_bias,
+                right_weight,
+                right_bias,
+                norm_weight,
+                norm_bias,
+                side_weight,
+                side_bias,
+            )
+            expected = layer_norm_with_reused_input(*args)
+            compiled = torch.compile(
+                layer_norm_with_reused_input,
+                backend="inductor",
+                dynamic=False,
+                options={"unroll_reductions_threshold": 1},
+            )
+            with config.patch("triton.codegen_upcast_to_fp32", False):
+                actual, codes = run_and_get_code(compiled, *args)
+
+            for output in (*expected, *actual):
+                self.assertTrue(torch.isfinite(output).all().item())
+
+            for expected_output, actual_output in zip(expected, actual):
+                self.assertEqual(
+                    expected_output, actual_output, atol=1e-1, rtol=1e-1
+                )
+
+            actual_variance, actual_mean = torch.var_mean(
+                actual[0], dim=-1, correction=0, keepdim=True
+            )
+            normalized_from_actual_input = (
+                (actual[0] - actual_mean)
+                * torch.rsqrt(actual_variance + 1e-6)
+                * norm_weight
+                + norm_bias
+            )
+            self.assertEqual(
+                normalized_from_actual_input, actual[1], atol=1e-2, rtol=1e-2
+            )
+
+            code = "\n".join(codes)
+            if npu_config.is_ascend950:
+                self.assertIn("npu_kernel_type': 'simd'", code)
+            self.assertIn("mutated_arg_names': ['in_out_ptr", code)
+            self.assertNotIn("'vectorized_welford_axis':", code)
         finally:
             npu_config.enable_welford = previous
             torch._dynamo.reset()
