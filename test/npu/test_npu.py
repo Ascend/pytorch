@@ -441,6 +441,29 @@ class TestNpu(TestCase):
             npu_state = torch_npu.npu.get_rng_state(device)
             torch_npu.npu.set_rng_state(npu_state, device)
 
+    def test_accelerator_get_default_generator(self):
+        default_generator = torch._C._accelerator_getDefaultGenerator(0)
+        state = torch_npu.npu.get_rng_state(0)
+        try:
+            default_generator.manual_seed(12345)
+            self.assertEqual(torch_npu.npu.default_generators[0].initial_seed(), 12345)
+        finally:
+            torch_npu.npu.set_rng_state(state, 0)
+
+    def test_accelerator_get_default_generator_per_device(self):
+        device_count = torch_npu.npu.device_count()
+        if device_count < 2:
+            self.skipTest("requires at least 2 NPUs")
+        states = torch_npu.npu.get_rng_state_all()
+        try:
+            for i in range(device_count):
+                torch._C._accelerator_getDefaultGenerator(i).manual_seed(1000 + i)
+            for i in range(device_count):
+                generator = torch._C._accelerator_getDefaultGenerator(i)
+                self.assertEqual(generator.initial_seed(), 1000 + i)
+        finally:
+            torch_npu.npu.set_rng_state_all(states)
+
     def test_get_device_index(self):
         from torch_npu.npu import _get_device_index
 
