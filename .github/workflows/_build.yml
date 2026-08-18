@@ -30,6 +30,11 @@ on:
         type: string
         default: 'linux-aarch64-a3-8'
         description: Runner label for runs-on and upstream job-name reporting.
+      docker_image:
+        required: false
+        type: string
+        default: 'quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly'
+        description: Docker image for build container.
     outputs:
       resolved_sha:
         description: Full resolved SHA of upstream PyTorch
@@ -124,7 +129,7 @@ jobs:
       torch_npu_sha: ${{ steps.resolve_torch_npu_sha.outputs.sha }}
       torch_npu_short: ${{ steps.resolve_torch_npu_sha.outputs.short }}
     container:
-      image: quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly
+      image: ${{ inputs.docker_image }}
       options: --network host
     env:
       MAX_JOBS: 64

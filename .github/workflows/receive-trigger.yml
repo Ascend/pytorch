@@ -89,6 +89,7 @@ jobs:
       upstream_ref: main
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: master
+      docker_image: ${{ env.DOCKER_IMAGE }}
       report_to_upstream: true
 
   test:
