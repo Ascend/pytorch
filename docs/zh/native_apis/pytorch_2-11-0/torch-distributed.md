@@ -539,12 +539,7 @@
 **限制与说明**：
 
 - `input`仅支持fp32
-- 通过设置`torch_npu.npu.use_compatible_impl(True)`，`torch.distributed.all_to_all`切换为与原生实现保持一致，例如：
-
-  ```python
-  import torch_npu
-  torch_npu.npu.use_compatible_impl(True)
-  ```
+- 通过设置`torch_npu.npu.use_compatible_impl(True)`，`torch.distributed.all_to_all`切换为与原生实现保持一致
 
 </div>
 
@@ -655,12 +650,7 @@
 **限制与说明**：
 
 - `tensor`仅支持bf16，fp16，fp32，int8，int32，bool
-- 通过设置`torch_npu.npu.use_compatible_impl(True)`，`torch.distributed.gather`切换为与原生实现保持一致，例如：
-
-  ```python
-  import torch_npu
-  torch_npu.npu.use_compatible_impl(True)
-  ```
+- 通过设置`torch_npu.npu.use_compatible_impl(True)`，`torch.distributed.gather`切换为与原生实现保持一致
 
 </div>
 
@@ -695,12 +685,7 @@
 **限制与说明**：
 
 - `tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
-- 通过设置`torch_npu.npu.use_compatible_impl(True)`，`torch.distributed.scatter`切换为与原生实现保持一致，例如：
-
-  ```python
-  import torch_npu
-  torch_npu.npu.use_compatible_impl(True)
-  ```
+- 通过设置`torch_npu.npu.use_compatible_impl(True)`，`torch.distributed.scatter`切换为与原生实现保持一致
 
 </div>
 

@@ -842,14 +842,7 @@
 
 - `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 - `index`的维度数需与`input`的维度数一致
-- 针对<term>Ascend 950DT</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异，例如：
-
-  ```python
-  # index存在重复索引的示例：索引0被多次使用，Ascend 950DT上结果可能与A2/A3存在精度差异
-  x = torch.tensor([[1, 2], [3, 4]], device='npu')
-  index = torch.tensor([[0], [0]], device='npu')  # 索引0重复出现
-  out = torch.gather(x, 0, index)
-  ```
+- 针对<term>Ascend 950DT</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异
 
 </div>
 
@@ -948,14 +941,7 @@
 **限制与说明**：
 
 - `input`仅支持bf16，fp16，fp32，uint8，int16，int32，int64，bool，complex64，complex128
-- 针对<term>Ascend 950DT</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异，例如：
-
-  ```python
-  # index存在重复索引的示例：索引0被多次使用，Ascend 950DT上结果可能与A2/A3存在精度差异
-  x = torch.tensor([[1, 2], [3, 4]], device='npu')
-  index = torch.tensor([0, 0], device='npu')  # 索引0重复出现
-  out = torch.index_select(x, 0, index)
-  ```
+- 针对<term>Ascend 950DT</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异
 
 </div>
 
@@ -1119,15 +1105,7 @@
 
 - `input`仅支持fp16，fp32，fp64，int8，int16，int32，int64，bool
 - 可能回退至CPU执行
-- 针对<term>Ascend 950DT</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异，例如：
-
-  ```python
-  # index存在重复索引的示例：索引0被多次使用，同一位置被多次写入，Ascend 950DT上结果可能与A2/A3存在精度差异
-  x = torch.tensor([[1, 2], [3, 4]], device='npu')
-  src = torch.tensor([[10, 20], [30, 40]], device='npu')
-  index = torch.tensor([[0], [0]], device='npu')  # 索引0重复出现
-  out = torch.scatter(x, 0, index, src)
-  ```
+- 针对<term>Ascend 950DT</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异
 
 </div>
 
@@ -1194,15 +1172,7 @@
 **限制与说明**：
 
 - `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
-- 针对<term>Ascend 950DT</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异，例如：
-
-  ```python
-  # index存在重复索引的示例：索引0被多次使用，同一位置被多次写入，Ascend 950DT上结果可能与A2/A3存在精度差异
-  x = torch.tensor([[1, 2], [3, 4]], device='npu')
-  src = torch.tensor([[10, 20], [30, 40]], device='npu')
-  index = torch.tensor([[0], [0]], device='npu')  # 索引0重复出现
-  out = torch.scatter_add(x, 0, index, src)
-  ```
+- 针对<term>Ascend 950DT</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异
 
 </div>
 

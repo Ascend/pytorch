@@ -513,12 +513,7 @@
 | <term>Atlas A3 训练系列产品</term> | ✔ |
 | <term>Ascend 950DT</term> | ✘ |
 
-**限制与说明**：采集NPU上的profiling数据时，“`use_device`”需设置为“npu”，例如：
-
-```python
-with torch.autograd.profiler.profile(use_device="npu") as prof:
-    ...
-```
+**限制与说明**：采集NPU上的profiling数据时，“`use_device`”需设置为“npu”
 
 </div>
 

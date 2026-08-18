@@ -1450,12 +1450,7 @@
 **限制与说明**：
 
 - `input`仅支持bf16，fp16，fp32
-- <term>Atlas A2 训练系列产品</term>，默认场景下，如果频繁触发编译，建议手动设置torch.npu.config.allow_internal_format为False，控制入参不开启内部格式，避免在线编译，例如：
-
-  ```python
-  import torch_npu
-  torch_npu.npu.config.allow_internal_format = False
-  ```
+- <term>Atlas A2 训练系列产品</term>，默认场景下，如果频繁触发编译，建议手动设置torch.npu.config.allow_internal_format为False，控制入参不开启内部格式，避免在线编译
 
 </div>
 
@@ -1506,12 +1501,7 @@
 **限制与说明**：
 
 - `input`仅支持fp16，fp32
-- <term>Atlas 训练系列产品</term>/<term>Atlas A2 训练系列产品</term>，需手动设置torch.npu.config.allow_internal_format为False，才可支持3维输入，例如：
-
-  ```python
-  import torch_npu
-  torch_npu.npu.config.allow_internal_format = False
-  ```
+- <term>Atlas 训练系列产品</term>/<term>Atlas A2 训练系列产品</term>，需手动设置torch.npu.config.allow_internal_format为False，才可支持3维输入
 
 </div>
 
@@ -1754,12 +1744,7 @@
 **限制与说明**：
 
 - `input`仅支持bf16，fp16，fp32
-- 通过设置torch_npu.npu.use_compatible_impl(True)，保证与社区同名接口在内存一致性上对齐，例如：
-
-  ```python
-  import torch_npu
-  torch_npu.npu.use_compatible_impl(True)
-  ```
+- 通过设置torch_npu.npu.use_compatible_impl(True)，保证与社区同名接口在内存一致性上对齐
 
 </div>
 
@@ -2970,12 +2955,7 @@
 **限制与说明**：
 
 - `input`仅支持bf16，fp16，fp32
-- 通过torch_npu.npu.use_compatible_impl(True)，设置该接口从`aclnnLayerNorm`算子切换为`aclnnFastLayerNorm`算子，保证与社区同名接口在内存一致性上对齐，例如：
-
-  ```python
-  import torch_npu
-  torch_npu.npu.use_compatible_impl(True)
-  ```
+- 通过torch_npu.npu.use_compatible_impl(True)，设置该接口从`aclnnLayerNorm`算子切换为`aclnnFastLayerNorm`算子，保证与社区同名接口在内存一致性上对齐
 
 </div>
 

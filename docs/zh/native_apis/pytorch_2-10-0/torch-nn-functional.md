@@ -243,12 +243,7 @@
 **限制与说明**：
 
 - `input`仅支持bf16，fp16，fp32
-- 通过设置torch_npu.npu.use_compatible_impl(True)，保证与社区同名接口在内存一致性上对齐，例如：
-
-  ```python
-  import torch_npu
-  torch_npu.npu.use_compatible_impl(True)
-  ```
+- 通过设置torch_npu.npu.use_compatible_impl(True)，保证与社区同名接口在内存一致性上对齐
 
 </div>
 
@@ -507,12 +502,7 @@
   - 通过设置torch_npu.npu.use_compatible_impl(True)，支持按SDPA后端选择上下文指定MATH后端
 - 与原接口除了规格限制之外的差异点：
   - NPU的随机算法部分用DSA硬件实现，算法在DSA引擎固化与GPU算法实现存在差异，导致dropout功能和GPU结果不一致
-  - 当前接口支持输入`query`的head num和`key`/`value`的head num不等长，而原生PyTorch接口不支持，例如：
-
-  ```python
-  import torch_npu
-  torch_npu.npu.use_compatible_impl(True)
-  ```
+  - 当前接口支持输入`query`的head num和`key`/`value`的head num不等长，而原生PyTorch接口不支持
 
 </div>
 
@@ -1662,11 +1652,7 @@
 **限制与说明**：
 
 - `input`仅支持fp16，fp32，fp64
-- 只支持`mode` = nearest，例如：
-
-  ```python
-  out = torch.nn.functional.upsample(x, size=(256, 256), mode='nearest')
-  ```
+- 只支持`mode` = nearest
 
 </div>
 
@@ -1685,11 +1671,7 @@
 **限制与说明**：
 
 - `input`仅支持fp16，fp32，fp64
-- 只支持3-5维，例如：
-
-  ```python
-  out = torch.nn.functional.upsample(x, size=(256, 256), mode='nearest')
-  ```
+- 只支持3-5维
 
 </div>
 
