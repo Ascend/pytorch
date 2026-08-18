@@ -88,22 +88,26 @@ jobs:
           echo "=== Building: ${BASE_TAG} ==="
           bash .ci/docker/docker_build.sh "${BASE_TAG}"
 
-          # docker_build.sh appends a timestamp suffix; find the built tag
-          TAG="$(docker images --format '{{.Repository}}:{{.Tag}}' \
-            --filter "reference=${BASE_TAG}-*" \
-            | grep -E "${BASE_TAG}-[0-9]{12}$" \
+          # docker_build.sh appends a timestamp suffix (YYYYMMDDHHMM) to the
+          # tag. Docker treats the full string as the repository name with tag
+          # "latest", so we match on repository name.
+          BUILT_REPO="$(docker images --format '{{.Repository}}' \
+            | grep -E "^${BASE_TAG}-[0-9]{12}$" \
             | sort -r | head -1)"
 
-          if [ -z "${TAG}" ]; then
+          if [ -z "${BUILT_REPO}" ]; then
             echo "ERROR: Could not find built image for ${BASE_TAG}"
             docker images | grep "${BASE_TAG}"
             exit 1
           fi
 
+          TAG="${BUILT_REPO}:latest"
+
           echo "=== Built: ${TAG} ==="
           docker image inspect "${TAG}" --format '  Size: {{ .Size }}'
 
-          REMOTE_IMAGE="${REGISTRY}/${QUAY_ORG}/${IMAGE_NAME}:${TAG#*:}"
+          # Remote tag = the timestamped repository name (without :latest)
+          REMOTE_IMAGE="${REGISTRY}/${QUAY_ORG}/${IMAGE_NAME}:${BUILT_REPO}"
 
           if [ "${{ needs.matrix-prep.outputs.do_push }}" = "true" ]; then
             docker tag "${TAG}" "${REMOTE_IMAGE}"
@@ -112,7 +116,7 @@ jobs:
           fi
 
           mkdir -p /tmp/result
-          echo "${REMOTE_IMAGE}" > "/tmp/result/${TAG#*:}.txt"
+          echo "${REMOTE_IMAGE}" > "/tmp/result/${BUILT_REPO}.txt"
 
       - name: Upload result
         if: always()
