@@ -19,26 +19,6 @@ namespace native {
 TORCH_NPU_REGISTER_LIBRARY(libmspti)
 TORCH_NPU_LOAD_FUNC(msptiActivityIsEnabled)
 
-static bool IsSupportMsptiFuncImpl()
-{
-    static auto checkSupport = []() -> bool {
-        char* path = std::getenv("ASCEND_HOME_PATH");
-        if (path != nullptr) {
-            std::string soPath = std::string(path) + "/lib64/libmspti.so";
-            soPath = torch_npu::toolkit::profiler::Utils::RealPath(soPath);
-            return !soPath.empty();
-        }
-        return false;
-    };
-    return checkSupport();
-}
-
-bool IsSupportMsptiFunc()
-{
-    static bool isSupport = IsSupportMsptiFuncImpl();
-    return isSupport;
-}
-
 bool MsptiActivityIsEnabled(msptiActivityKind kind)
 {
     using MsptiActivityIsEnabledFunc = bool (*)(msptiActivityKind);

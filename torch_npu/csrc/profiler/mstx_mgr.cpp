@@ -8,10 +8,14 @@
 #include "torch_npu/csrc/profiler/profiler_mgr.h"
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
 
+#include <nlohmann/json.hpp>
+#include <algorithm>
 #include <sstream>
 
 namespace torch_npu {
 namespace profiler {
+using namespace torch_npu::toolkit::profiler;
+
 void markImpl(const char* message, const aclrtStream stream, mstxDomainHandle_t domain)
 {
     if (domain == nullptr) {
@@ -282,7 +286,7 @@ bool MstxMgr::isMsleaksEnableImpl()
     std::stringstream ss(envVal);
     std::string path;
     while (std::getline(ss, path, ':')) {
-        path = torch_npu::toolkit::profiler::Utils::RealPath(path);
+        path = Utils::RealPath(path);
         if ((path.size() > soName.size()) && (path.substr(path.size() - soName.size()) == soName)) {
             ret = true;
             break;
@@ -291,30 +295,29 @@ bool MstxMgr::isMsleaksEnableImpl()
     return ret;
 }
 
-bool MstxMgr::isProfTxEnable()
+bool MstxMgr::isTorchNpuProfTxEnable()
 {
-    return ProfilerMgr::GetInstance()->GetNpuTrace().load() && ProfilerMgr::GetInstance()->GetMsprofTx().load();
+    static bool lastRet = false;
+    bool ret = ProfilerMgr::GetInstance()->GetNpuTrace().load() && ProfilerMgr::GetInstance()->GetMsprofTx().load();
+    if (ret && !lastRet) {
+        // If torch npu profiler mstx is enabled, update the domain_include_ and domain_exclude_ vectors accordingly.
+        ProfilerMgr::GetInstance()->GetMstxDomainIncludeAndExclude(domain_include_, domain_exclude_);
+    }
+    lastRet = ret;
+    return ret;
 }
 
-bool MstxMgr::isMsptiTxEnableImpl()
+bool MstxMgr::isMsptiTxEnable()
 {
-    auto isSoInLdPreload = [](const std::string& soName) -> bool {
+    static const std::string ldPreloadEnv = []() -> std::string {
         const char* envVal = std::getenv("LD_PRELOAD");
         if (envVal == nullptr) {
-            return false;
+            return "";
         }
-        std::stringstream ss(envVal);
-        std::string path;
-        while (std::getline(ss, path, ':')) {
-            path = torch_npu::toolkit::profiler::Utils::RealPath(path);
-            if ((path.size() > soName.size()) && (path.substr(path.size() - soName.size()) == soName)) {
-                return true;
-            }
-        }
-        return false;
-    };
-    static bool isMsptiSoInLdPreload = isSoInLdPreload("libmspti.so");
-    static bool isKernelHookSoInLdPreload = isSoInLdPreload("libascend_kernel_hook.so");
+        return std::string(envVal);
+    }();
+    static const bool isMsptiSoInLdPreload = ldPreloadEnv.find("libmspti.so") != std::string::npos;
+    static const bool isKernelHookSoInLdPreload = ldPreloadEnv.find("libascend_kernel_hook.so") != std::string::npos;
     if (isMsptiSoInLdPreload && isKernelHookSoInLdPreload) {
         TORCH_NPU_WARN_ONCE(
             "Detected both libmspti.so and libascend_kernel_hook.so in LD_PRELOAD. "
@@ -326,25 +329,60 @@ bool MstxMgr::isMsptiTxEnableImpl()
     if (isMsptiSoInLdPreload) {
         return true;
     }
-    return at_npu::native::IsSupportMsptiFunc() && at_npu::native::MsptiActivityIsEnabled(MSPTI_ACTIVITY_KIND_MARKER);
+    return at_npu::native::MsptiActivityIsEnabled(MSPTI_ACTIVITY_KIND_MARKER);
 }
 
-bool MstxMgr::isMsptiTxEnable()
+bool MstxMgr::isMsprofTxEnable()
 {
-    return isMsptiTxEnableImpl();
+    using json = nlohmann::json;
+    static bool isEnable = []() -> bool {
+        auto mgr = MstxMgr::GetInstance();
+        const char* profilerSamplecfg = std::getenv("PROFILER_SAMPLECONFIG");
+        if (profilerSamplecfg == nullptr) {
+            return false;
+        }
+        std::string sampleConfigStr(profilerSamplecfg);
+        try {
+            json sampleConfigJson = json::parse(sampleConfigStr);
+            if (sampleConfigJson.contains("mstxDomainInclude") && sampleConfigJson["mstxDomainInclude"].is_string()) {
+                mgr->domain_include_ = Utils::SplitString(
+                    sampleConfigJson["mstxDomainInclude"].get<std::string>(), ",");
+            }
+            if (sampleConfigJson.contains("mstxDomainExclude") && sampleConfigJson["mstxDomainExclude"].is_string()) {
+                mgr->domain_exclude_ = Utils::SplitString(
+                    sampleConfigJson["mstxDomainExclude"].get<std::string>(), ",");
+            }
+            return sampleConfigJson.contains("msproftx") &&
+                   sampleConfigJson["msproftx"].is_string() &&
+                   sampleConfigJson["msproftx"].get<std::string>() == "on";
+        } catch (const std::exception& e) {
+            TORCH_NPU_WARN("Failed to parse PROFILER_SAMPLECONFIG: %s", e.what());
+        }
+        return false;
+    }();
+    return isEnable;
 }
 
 bool MstxMgr::isMstxEnable()
 {
-    return isProfTxEnable() || isMsptiTxEnable();
+    return isTorchNpuProfTxEnable() || isMsprofTxEnable() || isMsptiTxEnable();
 }
 
 bool MstxMgr::isMstxTxDomainEnable(const std::string &domainName)
 {
-    if (isProfTxEnable()) {
-        return ProfilerMgr::GetInstance()->IsMstxDomainEnabled(domainName);
+    // if domain_include_ and domain_exclude_ are both empty, return true to enable all domains.
+    if (domain_include_.empty() && domain_exclude_.empty()) {
+        return true;
     }
-    return true;
+    // if domain_include_ is not empty, only enable domains in domain_include_.
+    if (!domain_include_.empty()) {
+        return std::find(domain_include_.begin(), domain_include_.end(), domainName) != domain_include_.end();
+    }
+    // if domain_exclude_ is not empty, disable domains in domain_exclude_.
+    if (!domain_exclude_.empty()) {
+        return std::find(domain_exclude_.begin(), domain_exclude_.end(), domainName) == domain_exclude_.end();
+    }
+    return false;
 }
 }
 }
