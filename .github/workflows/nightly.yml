@@ -24,16 +24,7 @@ permissions:
   contents: read
 
 jobs:
-  config:
-    runs-on: ubuntu-latest
-    outputs:
-      docker_image: ${{ steps.config.outputs.docker_image }}
-    steps:
-      - id: config
-        run: echo "docker_image=quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly" >> "$GITHUB_OUTPUT"
-
   build:
-    needs: config
     uses: ./.github/workflows/_build.yml
     secrets: inherit
     with:
@@ -41,18 +32,18 @@ jobs:
       upstream_ref: main
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: master
-      docker_image: ${{ needs.config.outputs.docker_image }}
+      docker_image: quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly
       report_to_upstream: false
 
   test:
-    needs: [config, build]
+    needs: build
     uses: ./.github/workflows/_test.yml
     secrets: inherit
     with:
       resolved_short: ${{ needs.build.outputs.resolved_short }}
       torch_npu_short: ${{ needs.build.outputs.torch_npu_short }}
       case_paths_config: .github/config/nightly_test_categories.yml
-      docker_image: ${{ needs.config.outputs.docker_image }}
+      docker_image: quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly
       report_to_upstream: false
       hw_classification: 'GENERIC ACCELERATOR'
       full_scan: true
