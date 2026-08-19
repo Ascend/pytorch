@@ -436,20 +436,17 @@ class TorchCompileTriggerTests(unittest.TestCase):
                     """
                 )
 
-    # Verify shape handling is installed after selecting the requested NPU backend.
+    # Verify shape handling is installed only after the selected backend scope.
     def test_shape_handling_initializes_after_backend_selection(self):
         self.run_in_subprocess(
             """
+            import os
             import types
             from unittest import mock
 
             import torch
             import torch_npu
             from torch_npu.utils import _dynamo
-
-            def fake_setup(actual_options):
-                events.append(("setup", dict(actual_options)))
-                return actual_options["npu_backend"]
 
             options = {
                 "npu_backend": "mlir",
@@ -458,7 +455,9 @@ class TorchCompileTriggerTests(unittest.TestCase):
             events = []
 
             def scope_register():
-                events.append(("scope_register", None))
+                events.append(
+                    ("scope_register", os.environ.get("TORCHINDUCTOR_NPU_BACKEND"))
+                )
 
             fake_inductor = types.SimpleNamespace(
                 patch_shape_handling=lambda: events.append(
@@ -466,7 +465,9 @@ class TorchCompileTriggerTests(unittest.TestCase):
                 )
             )
             with mock.patch.object(
-                _dynamo, "_setup_inductor_for_compile", fake_setup
+                _dynamo, "_lazy_dynamo_setup"
+            ), mock.patch.object(
+                _dynamo, "_lazy_inductor_setup"
             ), mock.patch.object(
                 _dynamo, "register_inductor_npu", scope_register
             ), mock.patch.object(
@@ -474,17 +475,9 @@ class TorchCompileTriggerTests(unittest.TestCase):
             ):
                 wrapper = torch._TorchCompileInductorWrapper(None, options, None)
 
-            normalized_options = {
-                "npu_backend": "mlir",
-                "enable_shape_handling": True,
-            }
             assert wrapper.config["npu_backend"] == "mlir"
             assert wrapper.config["enable_shape_handling"] is True
-            assert events == [
-                ("setup", normalized_options),
-                ("shape_handling", None),
-                ("scope_register", None),
-            ], events
+            assert events == [("scope_register", "mlir")], events
             """
         )
 
@@ -602,41 +595,50 @@ class TorchCompileTriggerTests(unittest.TestCase):
             """
         )
 
-    # Verify a real NPU Inductor compile initializes the full stack.
-    # The triton kernel compilation itself may fail due to environment-level
-    # compiler/CANN version constraints (e.g. C++20 requirement on PyTorch
-    # 2.13+, or missing aclmdlRICondHandle in older CANN).  The purpose of
-    # this test is to verify the *lazy initialization chain* runs, not to
-    # verify triton compilation succeeds, so we tolerate compilation errors
-    # as long as the has_run flags are set.
+    # Verify a real torch.compile Inductor entry initializes the full stack.
+    # Patch only the final compile_fx lowering step so this test exercises the
+    # NPU Dynamo/Inductor wrapper and lazy setup without compiling a Triton
+    # kernel in the environment.
     @unittest.skipUnless(importlib.util.find_spec("triton"), "requires triton-ascend")
     def test_npu_inductor_initialization_chain(self):
         self.run_in_subprocess(
             """
+            import sys
+            from unittest import mock
+
             import torch
             import torch_npu
+            from torch_npu.utils import _dynamo
 
             def fn(x):
                 return torch.sin(x) + 1
 
             x = torch.randn(8, device="npu")
-            try:
-                actual = torch.compile(fn, backend="inductor", fullgraph=True)(x)
-                torch.testing.assert_close(actual, fn(x))
-            except Exception:
-                # Triton kernel compilation may fail due to environment-level
-                # compiler/CANN constraints.  The lazy init chain runs before
-                # kernel compilation, so we verify it below regardless.
-                pass
+            compiled = torch.compile(fn, backend="inductor", fullgraph=True)
+
+            assert _dynamo._lazy_dynamo_setup.has_run
+            assert not _dynamo._lazy_inductor_setup.has_run
+            assert "torch_npu._inductor" not in sys.modules
+
+            import torch._inductor.compile_fx as compile_fx
+
+            compile_calls = []
+
+            def fake_compile_fx(model, inputs, **kwargs):
+                compile_calls.append((model, inputs, kwargs))
+                return lambda *args, **kwargs: args[0]
+
+            with mock.patch.object(compile_fx, "compile_fx", fake_compile_fx):
+                compiled(x)
+
+            assert len(compile_calls) == 1
 
             from torch._dynamo.device_interface import get_interface_for_device
-            from torch_npu.utils import _dynamo
 
             assert _dynamo._lazy_dynamo_setup.has_run
             assert _dynamo._lazy_inductor_setup.has_run
             assert get_interface_for_device("npu").device_count() > 0
-            """,
-            timeout=180,
+            """
         )
 
     # Verify a real NPUGraphs compile initializes the full stack.
@@ -660,6 +662,27 @@ class TorchCompileTriggerTests(unittest.TestCase):
             assert _dynamo._lazy_dynamo_setup.has_run
             assert _dynamo._lazy_inductor_setup.has_run
             assert get_interface_for_device("npu").device_count() > 0
+            """
+        )
+
+    # Verify creating an Inductor wrapper does not load the backend prematurely.
+    def test_inductor_backend_load_is_deferred_until_first_call(self):
+        self.run_in_subprocess(
+            """
+            import sys
+            import torch
+            import torch_npu
+            from torch_npu.utils import _dynamo
+
+            torch.compile(
+                lambda x: x + 1,
+                backend="inductor",
+                options={"enable_shape_handling": True},
+            )
+
+            assert _dynamo._lazy_dynamo_setup.has_run
+            assert not _dynamo._lazy_inductor_setup.has_run
+            assert "torch_npu._inductor" not in sys.modules
             """
         )
 
