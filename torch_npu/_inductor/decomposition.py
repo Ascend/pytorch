@@ -200,42 +200,136 @@ def _register_mlir_dvm_decompositions():
 
         return grad_t, grad_cos, grad_sin
 
+    # Constants from cann/ops-nn gelu / gelu_grad
+    _GELU_BETA = 1.595769121605730711759  # sqrt(8/pi)
+    _GELU_KAPPA = 0.044715
+    _GELU_AN = -0.0713548162726002527220  # -BETA * KAPPA
+    _GELU_A3 = 0.2140644488178007  # BETA * 3 * KAPPA
+    _M_SQRT1_2 = 0.70710678118654752440
+    _INV_SQRT_2PI = 0.3989422804
+
+    # AscendC Erf PADE (adv_api/detail/math/erf/erf_common_impl.h)
+    _ERF_CLIP = 3.92
+    _ERF_P5 = 0.053443748819
+    _ERF_P4 = 0.75517016694e1
+    _ERF_P3 = 0.10162808918e3
+    _ERF_P2 = 0.13938061484e4
+    _ERF_P1 = 0.50637915060e4
+    _ERF_P0 = 0.29639384698e5
+    _ERF_Q4 = 0.31212858877e2
+    _ERF_Q3 = 0.39856963806e3
+    _ERF_Q2 = 0.30231248150e4
+    _ERF_Q1 = 0.13243365831e5
+    _ERF_Q0 = 0.26267224157e5
+
+    def _npu_use_compatible_gelu_v2() -> bool:
+        try:
+            from torch_npu.npu import are_compatible_impl_enabled
+
+            return are_compatible_impl_enabled()
+        except Exception:
+            return False
+
+    def _gelu_use_tanh_approx(approximate: str) -> bool:
+        if approximate == "tanh":
+            return True
+        if approximate == "none":
+            return not _npu_use_compatible_gelu_v2()
+        raise RuntimeError(
+            f"approximate argument must be either none or tanh, but got {approximate!r}."
+        )
+
+    def _erf_clip_fp32(x: Tensor) -> Tensor:
+        """AscendC ErfClip: Mins(x, 3.92) then Maxs(..., -3.92)."""
+        x = torch.clamp_max(x, _ERF_CLIP)
+        x = torch.clamp_min(x, -_ERF_CLIP)
+        return x
+
+    def _erf_compute_p_fp32(x: Tensor, x2: Tensor) -> Tensor:
+        """AscendC ErfComputeP: P(x) Horner (Muls/Adds/Mul)."""
+        t = x2 * _ERF_P5
+        t = t + _ERF_P4
+        t = x2 * t
+        t = t + _ERF_P3
+        t = x2 * t
+        t = t + _ERF_P2
+        t = x2 * t
+        t = t + _ERF_P1
+        t = x2 * t
+        t = t + _ERF_P0
+        return x * t
+
+    def _erf_compute_q_fp32(x2: Tensor) -> Tensor:
+        """AscendC ErfComputeQ: Q(x) Horner (Adds/Mul)."""
+        t = x2 + _ERF_Q4
+        t = x2 * t
+        t = t + _ERF_Q3
+        t = x2 * t
+        t = t + _ERF_Q2
+        t = x2 * t
+        t = t + _ERF_Q1
+        t = x2 * t
+        t = t + _ERF_Q0
+        return t
+
+    def _erf_pade_fp32(x: Tensor) -> Tensor:
+        """AscendC ErfCompute: clip then P(x)/Q(x)."""
+        x = _erf_clip_fp32(x)
+        x2 = x * x
+        p = _erf_compute_p_fp32(x, x2)
+        q = _erf_compute_q_fp32(x2)
+        return p / q
+
+    def erf(a: Tensor) -> Tensor:
+        """Match AscendC ErfImpl; fp16: cast up CAST_NONE, compute in fp32, cast down."""
+        orig_dtype = a.dtype
+        if orig_dtype != torch.float32:
+            a = a.to(torch.float32)
+        out = _erf_pade_fp32(a)
+        if orig_dtype != torch.float32:
+            out = out.to(orig_dtype)
+        return out
+
     def gelu(a, approximate: str = "none"):
-        """
-        Reference implementation of torch.nn.functional.gelu
-        """
-        M_SQRT2 = 1.41421356237309504880
-        M_2_SQRTPI = 1.12837916709551257390
-        kBeta = M_SQRT2 * M_2_SQRTPI * 0.5
-        kKappa = 0.044715
-        a_cube = a * a * a
-        inner = kBeta * (a + kKappa * a_cube)
-        return 0.5 * a * (1 + torch.tanh(inner))
+        """Match eager gelu; see cann/ops-nn gelu decomp."""
+        orig_dtype = a.dtype
+        if orig_dtype != torch.float32:
+            a = a.to(torch.float32)
+        if _gelu_use_tanh_approx(approximate):
+            a_cube = a * a * a
+            out = a / (1.0 + torch.exp(-_GELU_BETA * (a + _GELU_KAPPA * a_cube)))
+        else:
+            # GeluV2ErfPost: (1 + erf) * (0.5 * x)
+            out = (1.0 + _erf_pade_fp32(a * _M_SQRT1_2)) * (0.5 * a)
+        if orig_dtype != torch.float32:
+            out = out.to(orig_dtype)
+        return out
 
     def gelu_backward(grad: Tensor, self: Tensor, approximate: str = "none"):
-        M_SQRT2 = 1.41421356237309504880
-        M_SQRT1_2 = 0.70710678118654752440
-        M_2_SQRTPI = 1.12837916709551257390
-        kBeta = M_SQRT2 * M_2_SQRTPI * 0.5
-        kKappa = 0.044715
-        x_sq = self * self
-        x_cube = x_sq * self
-        inner = kBeta * (self + kKappa * x_cube)
-        tanh_inner = torch.tanh(inner)
-
-        left = 0.5 * self
-        right = 1.0 + tanh_inner
-
-        left_derivative = 0.5 * right
-
-        tanh_derivative = (tanh_inner * tanh_inner) * -1.0 + 1.0
-        inner_derivative = kBeta * (1.0 + 3.0 * kKappa * x_sq)
-        right_derivative = left * tanh_derivative * inner_derivative
-
-        return grad * (left_derivative + right_derivative)
+        """Match eager gelu_backward; see cann/ops-nn gelu_grad decomp."""
+        orig_dtype = grad.dtype
+        if orig_dtype != torch.float32:
+            grad = grad.to(torch.float32)
+            self = self.to(torch.float32)
+        if _gelu_use_tanh_approx(approximate):
+            x_sq = self * self
+            px = torch.exp((-_GELU_BETA + _GELU_AN * x_sq) * self)
+            res0 = (_GELU_BETA + _GELU_A3 * x_sq) * self
+            div = 1.0 / (1.0 + px)
+            resp = px * div * res0 * div
+            resp = torch.where(torch.isnan(resp), torch.zeros_like(resp), resp)
+            out = grad * (resp + div)
+        else:
+            cdf = 0.5 * (1.0 + _erf_pade_fp32(self * _M_SQRT1_2))
+            pdf = _INV_SQRT_2PI * torch.exp(self * self * -0.5)
+            out = grad * (cdf + self * pdf)
+        if orig_dtype != torch.float32:
+            out = out.to(orig_dtype)
+        return out
 
     register_decomposition(torch.ops.aten.convolution_backward)(npu_convolution_backward)
     register_decomposition(torch.ops.aten._softmax_backward_data.default)(npu__softmax_backward_data)
+    register_decomposition(torch.ops.aten.erf.default)(erf)
     register_decomposition(torch.ops.aten.gelu.default)(gelu)
     register_decomposition(torch.ops.aten.gelu_backward.default)(gelu_backward)
     # register_decomposition(torch.ops.npu.npu_rms_norm.default)(npu_rms_norm)
