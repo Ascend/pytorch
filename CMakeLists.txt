@@ -228,6 +228,7 @@ include_directories(${PROJECT_SOURCE_DIR}/third_party/nlohmann/include)
 # Set installed PyTorch dir
 if(DEFINED PYTORCH_INSTALL_DIR)
   include_directories(${PYTORCH_INSTALL_DIR}/include)
+  include_directories(${PYTORCH_INSTALL_DIR}/include/kineto)
   include_directories(${PYTORCH_INSTALL_DIR}/include/torch/csrc/api/include)
   include_directories(${PYTORCH_INSTALL_DIR}/include/torch/csrc/distributed)
 else()

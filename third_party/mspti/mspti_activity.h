@@ -215,6 +215,25 @@ typedef struct PACKED_ALIGNMENT {
     uint64_t correlationId;
 } msptiActivityCommunication;
 
+typedef struct PACKED_ALIGNMENT {
+    /**
+    * The activity record kind, must be MSPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION.
+    */
+    msptiActivityKind kind;
+    /**
+    * The kind of external API this record correlated to.
+    */
+    msptiExternalCorrelationKind externalKind;
+    /**
+    * The correlation ID of the associated non-MSPTI API record.
+    */
+    uint64_t externalId;
+    /**
+    * The correlation ID of the associated MSPTI driver or runtime API record.
+    */
+    uint64_t correlationId;
+} msptiActivityExternalCorrelation;
+
 END_PACKED_ALIGNMENT
 
 /**
