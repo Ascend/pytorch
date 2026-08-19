@@ -105,22 +105,6 @@ def _obtain_and_limit_cube_vector_core_num():
                     cube_core_num, vector_core_num,
                 )
 
-    # set_device_limit (limit cube and vector core num)
-    if cube_core_num < prop.cube_core_num or vector_core_num < prop.vector_core_num:
-        try:
-            torch.npu.set_device(device)
-            torch.npu.set_device_limit(device, cube_core_num, vector_core_num)
-            log.info(
-                "[_obtain_and_limit_cube_vector_core_num] set_device_limit() success, "
-                "cube_core_num=%s, vector_core_num=%s",
-                cube_core_num, vector_core_num,
-            )
-        except RuntimeError as e:
-            log.exception(
-                "[_obtain_and_limit_cube_vector_core_num] set_device_limit() failed"
-            )
-            sys.exit(1)
-
     log.info(
         "[_obtain_and_limit_cube_vector_core_num] finished, "
         "cube_core_num=%s, vector_core_num=%s",
@@ -326,16 +310,6 @@ acc_comp_tol = {
     torch.bfloat16: {"rtol": rtol_bf16, "atol": atol_default},
     "default": {"rtol": rtol_default, "atol": atol_default},
 }
-
-ub_size = 192 * 1024
-if is_ascend950:
-    ub_size = 256 * 1024
-
-if (
-    Ascend910B1 <= get_soc_version() < Ascend310B1
-    or get_soc_version() >= Ascend910_9391
-):
-    num_vector_core = num_cube_core * 2
 
 inductor_indirect_memory_mode = None
 if is_ascend950:
