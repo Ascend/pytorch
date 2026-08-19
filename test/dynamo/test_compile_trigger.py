@@ -272,7 +272,8 @@ class TorchCompileTriggerTests(unittest.TestCase):
             _dynamo.register_inductor_npu = fail_first_inductor_setup
             try:
                 try:
-                    torch.compile(lambda x: x + 1, backend="inductor")
+                    compiled = torch.compile(lambda x: x + 1, backend="inductor")
+                    compiled(torch.tensor(1))
                 except RuntimeError as error:
                     assert "simulated Inductor setup failure" in str(error)
                 else:
@@ -280,11 +281,16 @@ class TorchCompileTriggerTests(unittest.TestCase):
 
                 assert not _dynamo._lazy_inductor_setup.has_run
                 assert os.environ.get("TORCHINDUCTOR_NPU_BACKEND") == original_env
-                torch.compile(lambda x: x + 1, backend="inductor")
+                torch._dynamo.reset()
+                compiled = torch.compile(lambda x: x + 2, backend="inductor")
+                compiled(torch.tensor(1))
             finally:
                 _dynamo.register_inductor_npu = original_register
 
-            assert inductor_attempts == ["inductor", "inductor"]
+            # The failed wrapper scope accounts for the first attempt. On the
+            # retry, the scope registers once and lazy setup repeats that
+            # idempotent registration before marking setup complete.
+            assert inductor_attempts == ["inductor", "inductor", "inductor"]
             assert _dynamo._lazy_inductor_setup.has_run
             assert _dynamo.is_inductor_npu_initialized()
             assert os.environ.get("TORCHINDUCTOR_NPU_BACKEND") == original_env
@@ -759,6 +765,27 @@ class TorchCompileTriggerTests(unittest.TestCase):
             assert _dynamo._lazy_dynamo_setup.has_run
             assert _dynamo._lazy_inductor_setup.has_run
             assert get_interface_for_device("npu").device_count() > 0
+            """
+        )
+
+    # Verify creating an Inductor wrapper does not load the backend prematurely.
+    def test_inductor_backend_load_is_deferred_until_first_call(self):
+        self.run_in_subprocess(
+            """
+            import sys
+            import torch
+            import torch_npu
+            from torch_npu.utils import _dynamo
+
+            torch.compile(
+                lambda x: x + 1,
+                backend="inductor",
+                options={"enable_shape_handling": True},
+            )
+
+            assert _dynamo._lazy_dynamo_setup.has_run
+            assert not _dynamo._lazy_inductor_setup.has_run
+            assert "torch_npu._inductor" not in sys.modules
             """
         )
 

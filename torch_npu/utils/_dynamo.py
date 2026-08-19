@@ -167,6 +167,7 @@ class _NpuBackendScope:
         try:
             os.environ["TORCHINDUCTOR_NPU_BACKEND"] = self.backend
             register_inductor_npu()
+            _lazy_inductor_setup()
         except BaseException:
             self._restore_backend_env()
             raise
@@ -206,10 +207,8 @@ def patch_inductor_wrapper():
                 f"got {backend_type} should be str"
             )
         src_apply_options(self, options)
-        if options is not None and options.get("enable_shape_handling", False):
-            if not is_inductor_npu_initialized():
-                register_inductor_npu()
-            torch_npu._inductor.patch_shape_handling()
+        # Shape handling is installed in new_call, after the selected backend
+        # scope has loaded the matching NPU Inductor backend.
 
     def new_get_config_copy(self) -> dict[str, Any]:
         ori_dict = src_get_config_copy(self)
@@ -244,7 +243,7 @@ def patch_inductor_wrapper():
 
     def new_init(self, mode, options, dynamic):
         src_init(self, mode, options, dynamic)
-        _setup_inductor_for_compile(options)
+        _lazy_dynamo_setup()
         backend = _resolve_npu_backend_from_wrapper(self)
         if backend=="mlir":
             with _NpuBackendScope(backend):
@@ -258,6 +257,8 @@ def patch_inductor_wrapper():
     def new_call(self, model_, inputs_):
         backend = _resolve_npu_backend_from_wrapper(self)
         with _NpuBackendScope(backend):
+            if self.config.get("enable_shape_handling", False):
+                torch_npu._inductor.patch_shape_handling()
             return src_call(self, model_, inputs_)
             
         
@@ -592,26 +593,6 @@ def _lazy_inductor_setup():
     _apply_npugraph_tree_methods()
 
     _inject_inductor_npu_backend_config()
-
-
-def _setup_inductor_for_compile(options=None):
-    """Initialize the NPU Inductor backend selected for this compile call."""
-    _lazy_dynamo_setup()
-
-    option_backend = options.get("npu_backend") if isinstance(options, dict) else None
-    selected_backend = _resolve_npu_backend(option_backend)
-
-    old_backend = os.environ.get("TORCHINDUCTOR_NPU_BACKEND")
-    if selected_backend not in (None, "", "default"):
-        os.environ["TORCHINDUCTOR_NPU_BACKEND"] = selected_backend
-    try:
-        _lazy_inductor_setup()
-    finally:
-        if old_backend is None:
-            os.environ.pop("TORCHINDUCTOR_NPU_BACKEND", None)
-        else:
-            os.environ["TORCHINDUCTOR_NPU_BACKEND"] = old_backend
-    return selected_backend
 
 
 @run_once
