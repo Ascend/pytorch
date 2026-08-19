@@ -335,13 +335,10 @@ from torch_npu._inductor.kernel.flex_attention_metadata import (
 )
 from torch_npu._inductor.kernel.flex_attention_config_generator import (
     build_sparse_mask_candidate_configs,
-    get_bwd_dkdv_compile_options,
-    get_bwd_dq_compile_options,
     generate_bwd_split_mask_out_candidate_configs,
     generate_fwd_candidate_configs,
     is_bwd_config_compatible,
     prefer_max_tiling_without_benchmark,
-    sparse_mask_attention_cvpipeline_config_variants,
     validate_benchmark_config,
 )
 from torch_npu._inductor import config as npu_config
@@ -1160,10 +1157,9 @@ def _register_npu_inductor_flex_attention():
         fwd_batch_size_hint, fwd_q_heads_hint, fwd_num_queries_hint, _ = fwd_call_size_hints
         fwd_num_cube_core = _get_num_cube_core()
 
-        log.debug("flex_attention lowering: query=%s key=%s value=%s SPARSE_Q=%s SPARSE_KV=%s kernel_options=%s use_config_generator=%s",
+        log.debug("flex_attention lowering: query=%s key=%s value=%s SPARSE_Q=%s SPARSE_KV=%s kernel_options=%s",
                   query.get_size(), key.get_size(), value.get_size(),
-                  SPARSE_Q_BLOCK_SIZE, SPARSE_KV_BLOCK_SIZE, kernel_options,
-                  npu_config.flex_attention.use_config_generator)
+                  SPARSE_Q_BLOCK_SIZE, SPARSE_KV_BLOCK_SIZE, kernel_options)
 
         # Validate benchmark configuration before autotuning
         log.debug("Benchmark Configuration Validation")
@@ -1197,10 +1193,6 @@ def _register_npu_inductor_flex_attention():
                 full_kv_indices,
             ]
 
-        log.debug(
-            "Config Generation Mode: use_config_generator=%s",
-            npu_config.flex_attention.use_config_generator,
-        )
         dict_configs = generate_fwd_candidate_configs(
             query_shape=query.get_size(),
             key_shape=key.get_size(),
@@ -1341,31 +1333,26 @@ def _register_npu_inductor_flex_attention():
                     if flexattention_mask_out
                     else flex_attention_fwd_mask_in
                 )
-                for forward_variant_options in sparse_mask_attention_cvpipeline_config_variants(
-                    forward_kernel_options,
-                    block_n=forward_kernel_options["BLOCK_N"],
-                ):
-                    log.info(
-                        "Appending sparse-mask forward choice BLOCK_M=%d BLOCK_N=%d multibuffer=%s",
-                        forward_kernel_options["BLOCK_M"],
-                        forward_kernel_options["BLOCK_N"],
-                        forward_variant_options.get("multibuffer"),
-                    )
-                    error = forward_attention_template.maybe_append_choice(
-                        choices=choices,
-                        input_nodes=forward_input_nodes,
-                        layout=layout,
-                        subgraphs=(
-                            [subgraph_buffer]
-                            if flexattention_mask_out
-                            else [subgraph_buffer, mask_graph_buffer]
-                        ),
-                        mutated_inputs=[logsumexp],
-                        call_sizes=query.get_size(),
-                        **forward_variant_options,
-                    )
-                    if error is not None:
-                        forward_errors.append(error)
+                log.info(
+                    "Appending sparse-mask forward choice BLOCK_M=%d BLOCK_N=%d",
+                    forward_kernel_options["BLOCK_M"],
+                    forward_kernel_options["BLOCK_N"],
+                )
+                error = forward_attention_template.maybe_append_choice(
+                    choices=choices,
+                    input_nodes=forward_input_nodes,
+                    layout=layout,
+                    subgraphs=(
+                        [subgraph_buffer]
+                        if flexattention_mask_out
+                        else [subgraph_buffer, mask_graph_buffer]
+                    ),
+                    mutated_inputs=[logsumexp],
+                    call_sizes=query.get_size(),
+                    **forward_kernel_options,
+                )
+                if error is not None:
+                    forward_errors.append(error)
 
                 if len(choices) == choice_count:
                     error = forward_errors[0] if forward_errors else "sparse-mask forward choice was not appended"
@@ -1450,12 +1437,10 @@ def _register_npu_inductor_flex_attention():
         )
         log.info(
             "Generated %d sparse mask kernel tiling configs from "
-            "SPARSE_Q_BLOCK_SIZE=%d, SPARSE_KV_BLOCK_SIZE=%d "
-            "(multi_tiling_enabled=%s): %s",
+            "SPARSE_Q_BLOCK_SIZE=%d, SPARSE_KV_BLOCK_SIZE=%d: %s",
             len(sparse_mask_tiling_configs),
             SPARSE_Q_BLOCK_SIZE,
             SPARSE_KV_BLOCK_SIZE,
-            npu_config.flex_attention.use_config_generator,
             sparse_mask_tiling_configs,
         )
 
@@ -2017,9 +2002,8 @@ def _register_npu_inductor_flex_attention():
         bwd_num_cube_core = _get_num_cube_core()
 
         log.debug(
-            "flex_attention_backward lowering: query=%s key=%s SPARSE_Q=%s SPARSE_KV=%s use_config_generator=%s",
+            "flex_attention_backward lowering: query=%s key=%s SPARSE_Q=%s SPARSE_KV=%s",
             query.get_size(), key.get_size(), SPARSE_Q_BLOCK_SIZE, SPARSE_KV_BLOCK_SIZE,
-            npu_config.flex_attention.use_config_generator
         )
 
         dq_choices: list[Any] = []
@@ -2291,9 +2275,6 @@ def _register_npu_inductor_flex_attention():
             for k, v in cfg.items():
                 cur_kernel_options.setdefault(k, v)
 
-            for key in npu_config.FLEX_ATTENTION_NPU_COMPILE_HINT_KEYS:
-                cur_kernel_options.pop(key, None)
-
             # Blocksparse options
             cur_kernel_options.setdefault("SPARSE_Q_BLOCK_SIZE", SPARSE_Q_BLOCK_SIZE)
             cur_kernel_options.setdefault("SPARSE_KV_BLOCK_SIZE", SPARSE_KV_BLOCK_SIZE)
@@ -2326,7 +2307,6 @@ def _register_npu_inductor_flex_attention():
                     "num_warps": 4,
                 }
             )
-            opts.update(get_bwd_dq_compile_options())
             opts.update(
                 _build_qmajor_dq_launch_meta(
                     batch_size_hint=bwd_batch_size_hint,
@@ -2347,7 +2327,6 @@ def _register_npu_inductor_flex_attention():
                     "num_warps": 4,
                 }
             )
-            opts.update(get_bwd_dkdv_compile_options())
             opts.update(
                 _build_persistent_bwd_launch_meta(
                     batch_size_hint=bwd_batch_size_hint,

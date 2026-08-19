@@ -296,150 +296,12 @@ inductor_ascend_linear_mode = "linear"
 autotune_continue_on_failure = os.environ.get('TORCHINDUCTOR_NPU_BACKEND') == "default"
 
 
-FLEX_ATTENTION_NPU_COMPILE_HINT_KEYS = (
-    "limit_auto_multi_buffer_buffer",
-    "multibuffer",
-    "unit_flag",
-    "enable_ubuf_saving",
-    "hfusion_enable_multiple_consumer_fusion",
-    "enable_select_analysis",
-    "limit_auto_multi_buffer_only_for_local_buffer",
-    "limit_auto_multi_buffer_of_local_buffer",
-    "set_workspace_multibuffer",
-    "tile_mix_vector_loop",
-    "tile_mix_cube_loop",
-    "enable_dynamic_cv_pipeline",
-    "intra_cache_num",
-    "inter_cache_num",
-    "enable_cross_if_fusion",
-    "enable_buffer_insert_optimization",
-    "enable_ub_refine_opt"
-)
-
-
 class flex_attention:
-    """
-    Configuration for the minimal flex_attention path ported from the source branch.
+    """Runtime strategy switches for the NPU FlexAttention lowering."""
 
-    The default path is fixed to the current verified sparse-mask case.
-    """
-    enable_npu_optimization = False
-    use_config_generator = True
     metadata_auto_infer = True
     flexattention_mask_out = True
-    # Keep rollout disabled until generated outputcode and NPU numerics have
-    # been reviewed. Unsupported graphs always retain the legacy dK/dV path.
     bwd_dkdv_tasklist = True
-
-    multibuffer = True
-    unit_flag = True
-    enable_ubuf_saving = True
-    limit_auto_multi_buffer_buffer = "no-limit"
-    hfusion_enable_multiple_consumer_fusion = True
-    enable_select_analysis = False
-    limit_auto_multi_buffer_only_for_local_buffer = False
-    limit_auto_multi_buffer_of_local_buffer = "no-limit"
-    set_workspace_multibuffer = 4
-    tile_mix_vector_loop = 4
-    tile_mix_cube_loop = 4
-    enable_dynamic_cv_pipeline = False
-    intra_cache_num = 3
-    inter_cache_num = 2
-    enable_cross_if_fusion = True
-
-    bwd_dq_limit_auto_multi_buffer_of_local_buffer = "no-l0c"
-    bwd_dkdv_limit_auto_multi_buffer_of_local_buffer = "no-l0c"
-
-    enable_buffer_insert_optimization = False
-    enable_ub_refine_opt = False
-
-    @classmethod
-    def _filter_compile_options_for_soc(cls, options: dict) -> dict:
-        options = options.copy()
-        if is_ascend950:
-            options.pop("enable_dynamic_cv_pipeline", None)
-        return options
-
-    @classmethod
-    def _compile_options(cls, keys, overrides: Optional[dict] = None) -> dict:
-        options = {key: getattr(cls, key) for key in keys}
-        if overrides:
-            options.update(overrides)
-        return cls._filter_compile_options_for_soc(options)
-
-    @classmethod
-    def get_npu_compile_hint_params(cls) -> dict:
-        """Get NPU compile hint parameters as a dictionary.
-
-        Returns:
-            Dictionary containing all NPU compile hint parameter values
-        """
-        return cls._compile_options(FLEX_ATTENTION_NPU_COMPILE_HINT_KEYS)
-
-    @classmethod
-    def get_sparse_mask_cvpipeline_compile_options(
-        cls,
-        *,
-        enabled: bool,
-        tile_mix_loop: int,
-        enable_compile_hint: bool,
-    ) -> dict:
-        return cls._compile_options(
-            (
-                "enable_ubuf_saving",
-                "unit_flag",
-                "set_workspace_multibuffer",
-                "limit_auto_multi_buffer_buffer",
-                "hfusion_enable_multiple_consumer_fusion",
-            ),
-            overrides={
-                "multibuffer": enabled,
-                "limit_auto_multi_buffer_only_for_local_buffer": not enabled,
-                "tile_mix_vector_loop": tile_mix_loop,
-                "tile_mix_cube_loop": tile_mix_loop,
-                "ENABLE_COMPILE_HINT": enable_compile_hint if enabled else False,
-                "intra_cache_num": 3,
-                "inter_cache_num": 2,
-                "enable_cross_if_fusion": True,
-                "enable_buffer_insert_optimization": True,
-                "enable_ub_refine_opt": True,
-            },
-        )
-
-    @classmethod
-    def get_bwd_dq_compile_options(cls) -> dict:
-        return cls._compile_options(
-            (
-                "limit_auto_multi_buffer_buffer",
-                "hfusion_enable_multiple_consumer_fusion",
-                "enable_select_analysis",
-            ),
-            overrides={
-                "limit_auto_multi_buffer_of_local_buffer": (
-                    cls.bwd_dq_limit_auto_multi_buffer_of_local_buffer
-                ),
-                "intra_cache_num": 3,
-                "inter_cache_num": 2,
-            },
-        )
-
-    @classmethod
-    def get_bwd_dkdv_compile_options(cls) -> dict:
-        return cls._compile_options(
-            (
-                "limit_auto_multi_buffer_buffer",
-                "hfusion_enable_multiple_consumer_fusion",
-                "unit_flag",
-                "enable_dynamic_cv_pipeline",
-            ),
-            overrides={
-                "limit_auto_multi_buffer_of_local_buffer": (
-                    cls.bwd_dkdv_limit_auto_multi_buffer_of_local_buffer
-                ),
-                "intra_cache_num": 2,
-                "inter_cache_num": 1,
-            },
-        )
 
 
 flex_attention.bwd_dkdv_tasklist = _read_env_bool(
@@ -450,13 +312,3 @@ flex_attention.flexattention_mask_out = _read_env_bool(
     "TORCHINDUCTOR_FLEXATTENTION_MASKOUT",
     "1" if flex_attention.flexattention_mask_out else "0",
 )
-
-
-def apply_flex_attention_npu_params(config: dict, *, enable: bool) -> dict:
-    config = config.copy()
-    if enable:
-        config.update(flex_attention.get_npu_compile_hint_params())
-        config["ENABLE_COMPILE_HINT"] = True
-    else:
-        config["ENABLE_COMPILE_HINT"] = False
-    return config

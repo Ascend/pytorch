@@ -4,6 +4,47 @@ from torch._inductor.kernel.flex_attention import SymbolicGridFn
 from torch._inductor.select_algorithm import TritonTemplate
 
 from torch_npu._inductor.select_algorithm import NPUTritonTemplate
+from torch_npu._inductor.select_algorithm import NPUTemplateCompileOption
+
+
+_FWD_COMPILE_OPTIONS = NPUTemplateCompileOption(
+    {
+        "enable_ubuf_saving": True,
+        "unit_flag": True,
+        "set_workspace_multibuffer": 4,
+        "limit_auto_multi_buffer_buffer": "no-limit",
+        "hfusion_enable_multiple_consumer_fusion": True,
+        "multibuffer": False,
+        "limit_auto_multi_buffer_only_for_local_buffer": True,
+        "tile_mix_vector_loop": 0,
+        "tile_mix_cube_loop": 0,
+        "intra_cache_num": 3,
+        "inter_cache_num": 2,
+        "enable_cross_if_fusion": True,
+        "enable_buffer_insert_optimization": True,
+        "enable_ub_refine_opt": True,
+    }
+)
+_BWD_DQ_COMPILE_OPTIONS = NPUTemplateCompileOption(
+    {
+        "limit_auto_multi_buffer_buffer": "no-limit",
+        "hfusion_enable_multiple_consumer_fusion": True,
+        "enable_select_analysis": False,
+        "limit_auto_multi_buffer_of_local_buffer": "no-l0c",
+        "intra_cache_num": 3,
+        "inter_cache_num": 2,
+    }
+)
+_BWD_DKDV_COMPILE_OPTIONS = NPUTemplateCompileOption(
+    {
+        "limit_auto_multi_buffer_buffer": "no-limit",
+        "hfusion_enable_multiple_consumer_fusion": True,
+        "unit_flag": True,
+        "limit_auto_multi_buffer_of_local_buffer": "no-l0c",
+        "intra_cache_num": 2,
+        "inter_cache_num": 1,
+    }
+)
 
 
 def _with_kernel_signature(
@@ -717,12 +758,14 @@ flex_attention_fwd_mask_out = NPUTritonTemplate(
     name="flex_attention_fwd_mask_out",
     grid=flex_attention_in_loop_grid,
     source=_FWD_MASK_OUT_SOURCE,
+    compile_options=_FWD_COMPILE_OPTIONS,
 )
 
 flex_attention_fwd_mask_in = NPUTritonTemplate(
     name="flex_attention_fwd_mask_in",
     grid=flex_attention_in_loop_grid,
     source=_FWD_MASK_IN_SOURCE,
+    compile_options=_FWD_COMPILE_OPTIONS,
 )
 
 flex_attention_fwd_mask_compact = NPUTritonTemplate(
@@ -1936,40 +1979,47 @@ flex_attention_bwd_dq_mask_out = NPUTritonTemplate(
     name="flex_attention_bwd_dq_mask_out",
     grid=flex_attention_backward_dq_grid,
     source=flex_attention_backward_qmajor_dq_source,
+    compile_options=_BWD_DQ_COMPILE_OPTIONS,
 )
 
 flex_attention_bwd_dq_mask_in = NPUTritonTemplate(
     name="flex_attention_bwd_dq_mask_in",
     grid=flex_attention_backward_dq_grid,
     source=_BWD_DQ_MASK_IN_SOURCE,
+    compile_options=_BWD_DQ_COMPILE_OPTIONS,
 )
 
 flex_attention_bwd_dkdv_mask_out = NPUTritonTemplate(
     name="flex_attention_bwd_dkdv_mask_out",
     grid=flex_attention_backward_dkdv_grid,
     source=flex_attention_backward_dkdv_only_source,
+    compile_options=_BWD_DKDV_COMPILE_OPTIONS,
 )
 
 flex_attention_bwd_dkdv_mask_in = NPUTritonTemplate(
     name="flex_attention_bwd_dkdv_mask_in",
     grid=flex_attention_backward_dkdv_grid,
     source=_BWD_DKDV_MASK_IN_SOURCE,
+    compile_options=_BWD_DKDV_COMPILE_OPTIONS,
 )
 
 flex_attention_bwd_dkdv_tasklist = NPUTritonTemplate(
     name="flex_attention_bwd_dkdv_tasklist",
     grid=flex_attention_backward_dkdv_grid,
     source=flex_attention_backward_dkdv_tasklist_source,
+    compile_options=_BWD_DKDV_COMPILE_OPTIONS,
 )
 
 flex_attention_bwd_dkdv_tasklist_no_split = NPUTritonTemplate(
     name="flex_attention_bwd_dkdv_tasklist_no_split",
     grid=flex_attention_backward_dkdv_grid,
     source=flex_attention_backward_dkdv_tasklist_source,
+    compile_options=_BWD_DKDV_COMPILE_OPTIONS,
 )
 
 flex_attention_bwd_dkdv_reduce = NPUTritonTemplate(
     name="flex_attention_bwd_dkdv_reduce",
     grid=flex_attention_backward_dkdv_grid,
     source=flex_attention_backward_dkdv_reduce_source,
+    compile_options=_BWD_DKDV_COMPILE_OPTIONS,
 )
