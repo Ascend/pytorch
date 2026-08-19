@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <thread>
 #include <unordered_map>
+#include <algorithm>
 
 #include <ATen/ATen.h>
 #include <ATen/CachedTensorUtils.h>
@@ -925,9 +926,30 @@ PyObject* THNPModule_restart_device_wrap(PyObject* self, PyObject* arg) {
     auto error_info = c10_npu::get_device_error_info();
     TORCH_NPU_RECOVERY_LOGI("get_device_error_info device is %d, errorType is %d.", error_info.device, error_info.info.errorType);
     if (error_info.is_valid && error_info.info.tryRepair) {
-      TORCH_NPU_RECOVERY_LOGI("NPU repair error start, device is %d.", error_info.device);
-      NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtRepairError(error_info.device, &error_info.info));
-      TORCH_NPU_RECOVERY_LOGI("NPU repair error end, device is %d.", error_info.device);
+      // UCE memory errors must use the address list filtered by checkUceInMemPool,
+      // otherwise detail.uceInfo may contain addresses already released by emptyCache.
+      if (error_info.info.errorType == ACL_RT_ERROR_MEMORY) {
+        auto memUceInfo_ = c10_npu::get_mem_uce_info();
+        if (memUceInfo_.retSize > 0) {
+          size_t copy_size = std::min(
+              memUceInfo_.retSize,
+              static_cast<size_t>(ACL_RT_MEM_UCE_INFO_MAX_NUM));
+          error_info.info.detail.uceInfo.arraySize = copy_size;
+          for (size_t i = 0; i < copy_size; ++i) {
+              error_info.info.detail.uceInfo.memUceInfoArray[i] = memUceInfo_.info[i];
+          }
+          TORCH_NPU_RECOVERY_LOGI(
+              "NPU repair error with filtered uce, device is %d, retSize is %d, copy_size is %d.",
+              error_info.device, memUceInfo_.retSize, copy_size);
+          TORCH_NPU_RECOVERY_LOGI("NPU repair error start, device is %d.", error_info.device);
+          NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtRepairError(error_info.device, &error_info.info));
+          TORCH_NPU_RECOVERY_LOGI("NPU repair error end, device is %d.", error_info.device);
+        }
+      } else {
+        TORCH_NPU_RECOVERY_LOGI("NPU repair error start, device is %d.", error_info.device);
+        NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtRepairError(error_info.device, &error_info.info));
+        TORCH_NPU_RECOVERY_LOGI("NPU repair error end, device is %d.", error_info.device);
+      }
     }
     c10_npu::clear_device_error_info();
   }
