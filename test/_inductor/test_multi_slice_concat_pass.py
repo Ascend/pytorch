@@ -3,6 +3,7 @@ import types
 import unittest
 
 import torch
+from torch._inductor.utils import run_and_get_code
 from torch.export import Dim, export
 from torch.fx.experimental.proxy_tensor import make_fx
 from torch.testing._internal.common_utils import (
@@ -66,6 +67,22 @@ def _count(graph, target):
 def _op_nodes(graph):
     return [n for n in graph.nodes
             if n.op == "call_function" and n.target == MULTI_SLICE_CONCAT_TARGET]
+
+
+def _kernel_source(code, marker):
+    """Source of the one compiled kernel whose body contains marker, or None.
+
+    Every kernel in the output code is its own ``async_compile.triton()`` string, so
+    splitting on that keeps kernels apart; requiring a def line drops the call section.
+    Kernels are matched on a rendered argument name, not on the kernel name, which
+    define_kernel builds from node origins rather than from the template.
+    """
+    for chunk in code.split("async_compile.triton("):
+        if marker in chunk and any(
+            line.startswith("def ") for line in chunk.splitlines()
+        ):
+            return chunk
+    return None
 
 
 @contextlib.contextmanager
@@ -983,6 +1000,43 @@ class TestMultiSliceConcatPass(TestUtils):
             self._assert_bitwise_equal(fn(wide, flag), compiled(wide, flag),
                                        "aliased masks artifact")
             self.assertGreater(stats["nodes"], 0, "aliased mask segments were not rewritten")
+
+    @unittest.skipUnless(_ENABLED, _NEEDS_FLAG)
+    @parametrize('rows', [2, 200])
+    @parametrize('dtype', ['float16'])
+    def test_compile_epilogue_is_not_fused_away(self, rows, dtype):
+        """A pointwise consumer of the concat must not be fused into the template.
+
+        The template stores every segment with its own tl.store and renders no
+        store_output hook, so an epilogue fused into it has nowhere to be codegened and
+        is skipped: the kernel returns the bare concat and the consumer disappears. In
+        the model this was a clamp between the concat and an mm, which left the mm reading
+        unclamped values. The lowering marks the output no-fuse, so the clamp stays a
+        kernel of its own while the rewrite still happens.
+        """
+        widths = (16,) * len(_W16_OFFSETS)
+        wide = self._wide(rows, dtype)
+        # exactly representable in fp16, so it survives into the kernel source as written
+        bound = 0.375
+
+        def fn(x):
+            return torch.clamp(_col_concat_ref(x, _W16_OFFSETS, widths), -bound, bound)
+
+        with torch.no_grad(), _pass_spy() as stats:
+            compiled = torch.compile(fn, backend="inductor", dynamic=False)
+            actual, codes = run_and_get_code(compiled, wide)
+            self.assertGreater(stats["nodes"], 0, "pass did not fire, still aten.cat")
+            self._assert_bitwise_equal(fn(wide), actual, "clamp after the concat")
+
+            # arg_SRC0 is the first source pointer the template renders
+            source = _kernel_source(codes[0], "arg_SRC0")
+            self.assertIsNotNone(
+                source, "no template kernel in the output code, lowering fell back")
+            # whichever form the clamp takes, none of it belongs in the template
+            for trace in (str(bound), "maximum", "minimum", "clamp("):
+                self.assertNotIn(trace, source,
+                                 f"clamp was fused into the template ({trace})")
+
 
     # ------------------------------------------------------------------
     # input dedup in lowering, pinned here since the case above needs the whole chain

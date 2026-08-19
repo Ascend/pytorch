@@ -10,8 +10,11 @@ front and reused across segments.
 
 Output goes through ``manual_output_buffer``: the full output can be thousands of
 columns wide, too much to stage on chip for a single ``store_output``, so the template
-stores per segment instead. That gives up epilogue fusion, but these concats feed
-extern kernels like ``mm`` / ``npu_fused_matmul``, which would not fuse anyway.
+stores per segment instead. That gives up epilogue fusion: with no ``store_output`` there
+is no hook to render an epilogue into, and one fused in anyway would be skipped by codegen
+rather than emitted, silently dropping the consumer's computation. The lowering therefore
+marks the output in ``V.graph.no_fuse_buffer_names``, which the scheduler honours before
+it asks the backend, so the concat is fused into nothing at all.
 
 The segment plan is baked into the template source and the instance cached by plan, so
 autotune kwargs stay down to ``BLOCK_ROWS`` and the kernel name does not grow with the
@@ -33,6 +36,7 @@ from torch._inductor.select_algorithm import (
     autotune_select_algorithm,
     SymbolicGridFn,
 )
+from torch._inductor.virtualized import V
 
 from ..select_algorithm import NPUTritonTemplate
 
@@ -262,6 +266,14 @@ def _register_npu_inductor_multi_slice_concat():
             )
             return per_slice_copies(srcs, masks, src_idx, mask_idx)
 
-        return autotune_select_algorithm(
+        out = autotune_select_algorithm(
             "multi_slice_concat", choices, input_nodes, layout
         )
+        # Nothing may be fused into this kernel: it stores its own output, so it renders
+        # no store_output hook, and an epilogue the scheduler fused in would be skipped by
+        # codegen rather than emitted -- the kernel would return the bare concat with the
+        # consumer's computation gone. ``Scheduler.can_fuse`` tests this set before it
+        # consults the backend, so one name here refuses epilogue and horizontal fusion
+        # alike.
+        V.graph.no_fuse_buffer_names.add(out.get_name())
+        return out
