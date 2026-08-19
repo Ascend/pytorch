@@ -299,7 +299,6 @@ autotune_continue_on_failure = os.environ.get('TORCHINDUCTOR_NPU_BACKEND') == "d
 class flex_attention:
     """Runtime strategy switches for the NPU FlexAttention lowering."""
 
-    metadata_auto_infer = True
     flexattention_mask_out = True
     bwd_dkdv_tasklist = True
 
