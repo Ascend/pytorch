@@ -84,6 +84,12 @@ except ImportError:
         create_num_blocks_fake_generator,
     )
 
+# PyTorch flex_attention exposes/saves LSE in log2 space, matching the
+# upstream kernels that use exp2/log2. NPU templates below compute LSE with
+# natural exp/log, so the lowering boundary converts between the two bases.
+_LN2 = 0.6931471805599453
+_LOG2E = 1.4426950408889634
+
 
 def _tag_flex_attention_report_choices(new_choices, mode, cfg):
     """Attach tiling metadata used by NPU fallback choice ordering."""
@@ -1493,7 +1499,7 @@ def _register_npu_inductor_flex_attention():
                 layout,
                 input_gen_fns=input_gen_fns,
             )
-            return (result, logsumexp)
+            return (result, lowerings[aten.mul](logsumexp, _LOG2E))
 
         sparse_mask_choices = []
         sparse_mask_base_kernel_options = {
@@ -1697,7 +1703,7 @@ def _register_npu_inductor_flex_attention():
             input_gen_fns=input_gen_fns,
         )
 
-        return (result, logsumexp)
+        return (result, lowerings[aten.mul](logsumexp, _LOG2E))
 
 
     @register_lowering(torch.ops.higher_order.flex_attention_backward, type_promotion_kind=None)
@@ -1875,14 +1881,17 @@ def _register_npu_inductor_flex_attention():
             stride=[sympy.sympify(s) for s in key_strides],
         )
 
-        # Create delta which will is needed for the bwd's kernel
-        grad_lse = grad_logsumexp
+        # Saved LSE arrives in PyTorch's log2 convention. Convert it back to
+        # natural-log space for the NPU backward templates, and apply the
+        # matching chain-rule scale to the external grad_logsumexp.
+        logsumexp = lowerings[aten.mul](logsumexp, _LN2)
+        grad_lse = lowerings[aten.mul](grad_logsumexp, _LOG2E)
         mul_delta = lowerings[aten.mul](out, grad_out)
         delta = lowerings[aten.sum](mul_delta, axis=-1)
         delta = lowerings[aten.sub](delta, grad_lse)
         delta = ExternKernel.require_contiguous(delta)
 
-        grad_lse, delta = maybe_realize([grad_lse, delta])
+        logsumexp, grad_lse, delta = maybe_realize([logsumexp, grad_lse, delta])
 
         # # see NOTE:[TritonTemplates with multiple outputs]
         query_size = [Bq, Hq, seq_len_q, qk_head_dim]
