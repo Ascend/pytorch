@@ -20,6 +20,7 @@ struct NpuTraceConfig {
   std::string trace_level;
   std::string metrics;
   bool npu_memory;
+  bool record_shapes;
   bool l2_cache;
   bool record_op_args;
   bool msprof_tx;

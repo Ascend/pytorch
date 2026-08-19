@@ -9,6 +9,10 @@
 
 namespace torch_npu {
 namespace profiler {
+#ifndef ACL_PROF_AICORE_SHAPE
+constexpr uint64_t ACL_PROF_AICORE_SHAPE = 0x800000000ULL;
+#endif
+
 std::map<std::string, int8_t> trace_level_to_int_ = {
     {"Level0", 0},
     {"Level1", 1},
@@ -151,6 +155,14 @@ uint64_t ProfilerMgr::PrepareProfilerConfig(const NpuTraceConfig& npu_config) {
   if (npu_config.op_attr) {
     datatype_config |= ACL_PROF_OP_ATTR;
   }
+  if (npu_config.trace_level == "Level0" && npu_config.record_shapes) {
+    if (FeatureMgr::GetInstance()->IsSupportFeature(FeatureType::FEATURE_AICORE_SHAPE)) {
+      datatype_config |= ACL_PROF_AICORE_SHAPE;
+    } else {
+      ASCEND_LOGW("AI Core shape collection is not supported, keep framework record_shapes only.");
+    }
+  }
+  // check validation and compatibility
   datatype_config = CheckFeatureConfig(datatype_config);
   return datatype_config;
 }
