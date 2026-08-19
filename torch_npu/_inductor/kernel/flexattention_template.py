@@ -1432,7 +1432,7 @@ def bwd_dkdv_full_block_mn(
 {% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
     if CHECK_BLOCK_BOUNDARY:
         qkT = tl.where(offs_n1[None, :] < KV_LEN, qkT, float("-inf"))
-    pT = tl.math.exp(qkT - lse[:, None]).to(MATMUL_PRECISION)
+    pT = tl.math.exp(qkT - lse[:, None])
 {% else %}
     pre_mod_scores = qkT
     {{ modification(
