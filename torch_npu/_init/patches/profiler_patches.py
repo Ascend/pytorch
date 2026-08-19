@@ -13,3 +13,8 @@ def apply_perf_dump_patch():
     from torch_npu.utils._step import add_perf_dump_patch
 
     add_perf_dump_patch()
+
+@PatchManager.register_patch("profiler")
+def apply_metadata_sanitizer_patch():
+    from torch_npu.profiler._add_metadata_sanitizer_patch import _apply_metadata_sanitizer_patch
+    _apply_metadata_sanitizer_patch()
