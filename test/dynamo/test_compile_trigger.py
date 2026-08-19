@@ -705,6 +705,23 @@ class TorchCompileTriggerTests(unittest.TestCase):
             """
         )
 
+    # Verify creating an Inductor wrapper does not load the backend prematurely.
+    def test_inductor_backend_load_is_deferred_until_first_call(self):
+        self.run_in_subprocess(
+            """
+            import sys
+            import torch
+            import torch_npu
+            from torch_npu.utils import _dynamo
+
+            torch.compile(lambda x: x + 1, backend="inductor")
+
+            assert _dynamo._lazy_dynamo_setup.has_run
+            assert not _dynamo._lazy_inductor_setup.has_run
+            assert "torch_npu._inductor" not in sys.modules
+            """
+        )
+
     # Verify lazy setup completes before compile backend lookup.
     def test_compile_triggers_setup_before_backend_lookup(self):
         self.run_in_subprocess(
