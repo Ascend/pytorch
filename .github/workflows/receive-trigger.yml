@@ -107,9 +107,7 @@ jobs:
           echo "  base.sha:         ${PAYLOAD_BASE_SHA}"
           echo "  head.sha:         ${PAYLOAD_HEAD_SHA}"
 
-          # ---- Query GitHub API for the real merge commit SHA ----
-          # For a merged PR, the API returns merge_commit_sha as the actual commit
-          # on the base branch (main), regardless of squash / merge / rebase strategy.
+          # ---- Query GitHub PR API ----
           echo ""
           echo "Querying GitHub API: GET /repos/${UPSTREAM_REPO}/pulls/${PR_NUMBER}"
 
@@ -121,9 +119,38 @@ jobs:
           API_MERGED=$(echo "$API_RESPONSE" | jq -r '.merged // false')
           API_MERGE_SHA=$(echo "$API_RESPONSE" | jq -r '.merge_commit_sha // "null"')
 
-          echo "API response:"
+          echo "PR API response:"
           echo "  merged:           ${API_MERGED}"
           echo "  merge_commit_sha: ${API_MERGE_SHA}"
+
+          # ---- Search commits on main by PR number ----
+          # pytorch/pytorch uses a land bot that pushes directly to main,
+          # bypassing GitHub's native merge. So merged=false and
+          # merge_commit_sha is a placeholder. The land bot commit message
+          # always contains "Pull Request resolved: ...pull/{PR_NUMBER}".
+          # We use the Commit Search API to find the real commit on main.
+          echo ""
+          echo "Querying GitHub Commit Search API for PR #${PR_NUMBER}..."
+
+          SEARCH_RESPONSE=$(curl -sf \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/search/commits?q=repo:${UPSTREAM_REPO}+${PR_NUMBER}&sort=author-date&order=desc&per_page=5")
+
+          TOTAL_COUNT=$(echo "$SEARCH_RESPONSE" | jq -r '.total_count // 0')
+          echo "Search result: total_count=${TOTAL_COUNT}"
+
+          if [ "${TOTAL_COUNT}" != "0" ]; then
+            echo ""
+            echo "Top commits found (sorted by author-date desc):"
+            echo "$SEARCH_RESPONSE" | jq -r '.items[] | "  SHA: \(.sha[0:12])  author-date: \(.commit.author.date // "?")  message: \(.commit.message | split("\n")[0])"'
+            TOP_SHA=$(echo "$SEARCH_RESPONSE" | jq -r '.items[0].sha // "null"')
+            echo ""
+            echo "Best candidate SHA: ${TOP_SHA}"
+          else
+            echo "WARN: No commits found for PR #${PR_NUMBER}"
+          fi
+
           echo ""
           echo "=== This SHA would be used as upstream_ref (currently NOT applied, still using main) ==="
 
