@@ -12,15 +12,16 @@ const static char* VERSION = "master\0";
 
 static std::unordered_map<std::string, FeatureType> NAME_TABLE = {
     {"ATTR", FeatureType::FEATURE_ATTR},
-    {"MemoryAccess", FeatureType::FEATURE_MEMORY_ACCESS}
-};
+    {"MemoryAccess", FeatureType::FEATURE_MEMORY_ACCESS},
+    {"AICORE_SHAPE", FeatureType::FEATURE_AICORE_SHAPE}};
 
 // featureName, featureVersion
 static std::unordered_map<FeatureType, std::string> FMK_FEATURES = {
     {FeatureType::FEATURE_ATTR, "1"},
-    {FeatureType::FEATURE_MEMORY_ACCESS, "1"}
-};
-}
+    {FeatureType::FEATURE_MEMORY_ACCESS, "1"},
+    {FeatureType::FEATURE_AICORE_SHAPE, "1"}};
+} // namespace
+
 
 void FeatureMgr::Init()
 {
