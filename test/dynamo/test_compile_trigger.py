@@ -528,21 +528,17 @@ class TorchCompileTriggerTests(unittest.TestCase):
             """
         )
 
-    # Verify shape handling is installed after selecting the requested NPU backend.
+    # Verify shape handling is installed only after the selected backend scope.
     def test_shape_handling_initializes_after_backend_selection(self):
         self.run_in_subprocess(
             """
+            import os
             import types
             from unittest import mock
 
             import torch
             import torch_npu
             from torch_npu.utils import _dynamo
-
-            def fake_setup(actual_options):
-                actual_options = dict(actual_options)
-                events.append(("setup", actual_options))
-                return actual_options["npu_backend"]
 
             options = {
                 "npu_backend": "mlir",
@@ -551,7 +547,9 @@ class TorchCompileTriggerTests(unittest.TestCase):
             events = []
 
             def scope_register():
-                events.append(("scope_register", None))
+                events.append(
+                    ("scope_register", os.environ.get("TORCHINDUCTOR_NPU_BACKEND"))
+                )
 
             fake_inductor = types.SimpleNamespace(
                 patch_shape_handling=lambda: events.append(
@@ -559,7 +557,9 @@ class TorchCompileTriggerTests(unittest.TestCase):
                 )
             )
             with mock.patch.object(
-                _dynamo, "_setup_inductor_for_compile", fake_setup
+                _dynamo, "_lazy_dynamo_setup"
+            ), mock.patch.object(
+                _dynamo, "_lazy_inductor_setup"
             ), mock.patch.object(
                 _dynamo, "register_inductor_npu", scope_register
             ), mock.patch.object(
@@ -569,11 +569,7 @@ class TorchCompileTriggerTests(unittest.TestCase):
 
             assert wrapper.config["npu_backend"] == "mlir"
             assert wrapper.config["enable_shape_handling"] is True
-            assert events == [
-                ("setup", options),
-                ("shape_handling", None),
-                ("scope_register", None),
-            ], events
+            assert events == [("scope_register", "mlir")], events
             """
         )
 
@@ -720,6 +716,23 @@ class TorchCompileTriggerTests(unittest.TestCase):
             assert _dynamo._lazy_dynamo_setup.has_run
             assert _dynamo._lazy_inductor_setup.has_run
             assert get_interface_for_device("npu").device_count() > 0
+            """
+        )
+
+    # Verify creating an Inductor wrapper does not load the backend prematurely.
+    def test_inductor_backend_load_is_deferred_until_first_call(self):
+        self.run_in_subprocess(
+            """
+            import sys
+            import torch
+            import torch_npu
+            from torch_npu.utils import _dynamo
+
+            torch.compile(lambda x: x + 1, backend="inductor")
+
+            assert _dynamo._lazy_dynamo_setup.has_run
+            assert not _dynamo._lazy_inductor_setup.has_run
+            assert "torch_npu._inductor" not in sys.modules
             """
         )
 
