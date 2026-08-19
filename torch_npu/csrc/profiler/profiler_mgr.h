@@ -17,18 +17,19 @@ constexpr uint64_t Level1 = ACL_PROF_TASK_TIME | ACL_PROF_ACL_API | ACL_PROF_HCC
 constexpr uint64_t Level2 = Level1 | ACL_PROF_RUNTIME_API | ACL_PROF_AICPU;
 
 struct NpuTraceConfig {
-    std::string trace_level;
-    std::string metrics;
-    bool npu_memory;
-    bool l2_cache;
-    bool record_op_args;
-    bool msprof_tx;
-    bool op_attr;
-    std::vector<std::string> host_sys;
-    std::vector<std::string> mstx_domain_include;
-    std::vector<std::string> mstx_domain_exclude;
-    bool sys_io;
-    bool sys_interconnection;
+  std::string trace_level;
+  std::string metrics;
+  bool npu_memory;
+  bool record_shapes;
+  bool l2_cache;
+  bool record_op_args;
+  bool msprof_tx;
+  bool op_attr;
+  std::vector<std::string> host_sys;
+  std::vector<std::string> mstx_domain_include;
+  std::vector<std::string> mstx_domain_exclude;
+  bool sys_io;
+  bool sys_interconnection;
 };
 
 C10_NPU_API int8_t GetTraceLevel();
