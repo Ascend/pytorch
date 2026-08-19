@@ -305,17 +305,25 @@ static void registerCallback(const std::unordered_set<at::RecordScope> &scopes)
     registeration_state_ptr->setCallbackHandle(handle);
 }
 
-void warmupNpuProfiler(const NpuProfilerConfig &config,
-    const std::set<NpuActivityType> &activities)
-{
-    pybind11::gil_scoped_release no_gil;
-    bool cpu_trace = activities.count(NpuActivityType::CPU);
-    ExperimentalConfig experimental_config = config.experimental_config;
-    NpuTraceConfig npu_config = {experimental_config.trace_level, experimental_config.metrics,
-        config.profile_memory, experimental_config.l2_cache, experimental_config.record_op_args,
-        experimental_config.msprof_tx, experimental_config.op_attr, experimental_config.host_sys, experimental_config.mstx_domain_include,
-        experimental_config.mstx_domain_exclude, experimental_config.sys_io, experimental_config.sys_interconnection};
-    ProfilerMgr::GetInstance()->Warmup(npu_config, cpu_trace);
+void warmupNpuProfiler(const NpuProfilerConfig& config, const std::set<NpuActivityType>& activities) {
+  pybind11::gil_scoped_release no_gil;
+  bool cpu_trace = activities.count(NpuActivityType::CPU);
+  ExperimentalConfig experimental_config = config.experimental_config;
+  NpuTraceConfig npu_config = {
+      experimental_config.trace_level,
+      experimental_config.metrics,
+      config.profile_memory,
+      config.record_shapes,
+      experimental_config.l2_cache,
+      experimental_config.record_op_args,
+      experimental_config.msprof_tx,
+      experimental_config.op_attr,
+      experimental_config.host_sys,
+      experimental_config.mstx_domain_include,
+      experimental_config.mstx_domain_exclude,
+      experimental_config.sys_io,
+      experimental_config.sys_interconnection};
+  ProfilerMgr::GetInstance()->Warmup(npu_config, cpu_trace);
 }
 
 void enableProfilerInChildThread(const NpuProfilerConfig &config)
@@ -333,30 +341,40 @@ void enableProfilerInChildThread(const NpuProfilerConfig &config)
     }
 }
 
-void startNpuProfiler(const NpuProfilerConfig &config,
-    const std::set<NpuActivityType> &activities,
-    const std::unordered_set<at::RecordScope> &scopes)
-{
-    pybind11::gil_scoped_release no_gil;
-    auto state = std::make_shared<NpuProfilerThreadLocalState>(config, activities);
-    if (c10::ThreadLocalDebugInfo::get(c10::DebugInfoKind::PROFILER_STATE) != nullptr) {
-        ASCEND_LOGE("Profiler is already enabled.");
-        return;
-    }
-    c10::ThreadLocalDebugInfo::_push(c10::DebugInfoKind::PROFILER_STATE, state);
-    bool cpu_trace = activities.count(NpuActivityType::CPU);
-    ExperimentalConfig experimental_config = config.experimental_config;
-    NpuTraceConfig npu_config = {experimental_config.trace_level, experimental_config.metrics,
-        config.profile_memory, experimental_config.l2_cache, experimental_config.record_op_args,
-        experimental_config.msprof_tx, experimental_config.op_attr, experimental_config.host_sys, experimental_config.mstx_domain_include,
-        experimental_config.mstx_domain_exclude, experimental_config.sys_io, experimental_config.sys_interconnection};
-    ProfilerMgr::GetInstance()->Start(npu_config, cpu_trace);
-    if (state->tracePython()) {
-        python_tracer::call(python_tracer::Command::kStartAll);
-    }
-    if (cpu_trace) {
-        registerCallback(scopes);
-    }
+void startNpuProfiler(
+    const NpuProfilerConfig& config,
+    const std::set<NpuActivityType>& activities,
+    const std::unordered_set<at::RecordScope>& scopes) {
+  pybind11::gil_scoped_release no_gil;
+  auto state = std::make_shared<NpuProfilerThreadLocalState>(config, activities);
+  if (c10::ThreadLocalDebugInfo::get(c10::DebugInfoKind::PROFILER_STATE) != nullptr) {
+    ASCEND_LOGE("Profiler is already enabled.");
+    return;
+  }
+  c10::ThreadLocalDebugInfo::_push(c10::DebugInfoKind::PROFILER_STATE, state);
+  bool cpu_trace = activities.count(NpuActivityType::CPU);
+  ExperimentalConfig experimental_config = config.experimental_config;
+  NpuTraceConfig npu_config = {
+      experimental_config.trace_level,
+      experimental_config.metrics,
+      config.profile_memory,
+      config.record_shapes,
+      experimental_config.l2_cache,
+      experimental_config.record_op_args,
+      experimental_config.msprof_tx,
+      experimental_config.op_attr,
+      experimental_config.host_sys,
+      experimental_config.mstx_domain_include,
+      experimental_config.mstx_domain_exclude,
+      experimental_config.sys_io,
+      experimental_config.sys_interconnection};
+  ProfilerMgr::GetInstance()->Start(npu_config, cpu_trace);
+  if (state->tracePython()) {
+    python_tracer::call(python_tracer::Command::kStartAll);
+  }
+  if (cpu_trace) {
+    registerCallback(scopes);
+  }
 }
 
 void disableProfilerInChildThread()
