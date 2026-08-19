@@ -453,6 +453,75 @@ def _all_gather_into_tensor_uneven(
         return None
 
 
+def _all_to_all_vc(
+    output,
+    input,
+    send_count_matrix,
+    group=None,
+    async_op=False,
+):
+    """
+    Variable-count all-to-all driven by a global [rankSize][rankSize] sendCountMatrix
+    (row-major, sendCountMatrix[i][j] = number of elements rank i sends to rank j).
+
+    Wraps HCCL ``HcclAlltoAllVC``: every rank passes the SAME full matrix; sendBuf/recvBuf
+    data is laid out contiguously per target/source rank (no displs).
+
+    Args:
+        output (Tensor): receive buffer (1-D or N-D, NPU). Laid out contiguously per
+            source rank; total numel must equal the sum of this rank's receiving
+            column. Must not share the same memory address as ``input`` (in-place
+            not supported by HCCL).
+        input (Tensor): send buffer (1-D or N-D, NPU). Laid out contiguously per
+            target rank; total numel must equal the sum of this rank's sending row.
+        send_count_matrix (list[list[int]]): 2-D [rankSize][rankSize] matrix;
+            send_count_matrix[i][j] = number of elements rank i sends to rank j.
+            Every rank passes the SAME full matrix.
+        group (ProcessGroup, optional): the process group to work on.
+        async_op (bool, optional): whether this op should be async.
+
+    Returns:
+        Async work handle if async_op=True, else None.
+    """
+    if _rank_not_in_group(group):
+        _warn_not_in_group("all_to_all_vc")
+        return None
+
+    if output.device.type != "npu" or input.device.type != "npu":
+        warnings.warn("Support for Tensors is limited to those of type npu")
+        return None
+
+    if group is None or group is GroupMember.WORLD:
+        group = _get_default_group()
+
+    world_size = get_world_size(group)
+    if len(send_count_matrix) != world_size:
+        raise ValueError(
+            f"send_count_matrix must have {world_size} rows (group size), "
+            f"got {len(send_count_matrix)}"
+        )
+    for row in send_count_matrix:
+        if len(row) != world_size:
+            raise ValueError(
+                f"send_count_matrix must be a square [{world_size}][{world_size}] matrix; "
+                f"got a row of length {len(row)}"
+            )
+
+    flat_matrix = []
+    for row in send_count_matrix:
+        flat_matrix.extend(int(v) for v in row)
+
+    group = group._get_backend(torch.device("npu"))
+
+    work = group.alltoallvc(output, input, flat_matrix)
+
+    if async_op:
+        return work
+    else:
+        work.wait()
+        return None
+
+
 def _trigger__get_addr_and_port_decorator(func):
     @wraps(func)
     def wrapper(*args, **kwargs):

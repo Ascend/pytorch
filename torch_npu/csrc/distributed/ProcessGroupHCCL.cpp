@@ -7228,6 +7228,172 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
     }
 }
 
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_alltoallvc_inner(
+    at::Tensor& outputTensor,
+    at::Tensor& inputTensor,
+    std::vector<int64_t>& sendCountMatrix,
+    const c10d::AllToAllOptions& opts)
+{
+    check_npu_single_tensor(outputTensor);
+    check_npu_single_tensor(inputTensor);
+    int ranks = getSize();
+    TORCH_CHECK(ranks > 0, "Invalid rank count within current process group: ", ranks, DIST_ERROR(ErrCode::PARAM));
+    TORCH_CHECK(
+        static_cast<int64_t>(sendCountMatrix.size()) == static_cast<int64_t>(ranks) * ranks,
+        "sendCountMatrix size (", sendCountMatrix.size(),
+        ") must equal rankSize*rankSize (", ranks * ranks, ")",
+        DIST_ERROR(ErrCode::PARAM));
+    TORCH_CHECK(
+        inputTensor.dim() >= 1 && outputTensor.dim() >= 1,
+        "Scalar tensors (0-dim tensors) are not supported in alltoallvc. "
+        "inputTensor.dim()=", inputTensor.dim(), ", outputTensor.dim()=", outputTensor.dim(),
+        ". Please reshape tensors to at least 1-D before calling alltoallvc.",
+        DIST_ERROR(ErrCode::NOT_SUPPORT));
+    TORCH_CHECK(
+        inputTensor.dtype() == outputTensor.dtype(),
+        "input dtype (", inputTensor.dtype(), ") must match output dtype (", outputTensor.dtype(), ")",
+        DIST_ERROR(ErrCode::PARAM));
+    for (int64_t idx = 0; idx < static_cast<int64_t>(sendCountMatrix.size()); idx++) {
+        TORCH_CHECK(sendCountMatrix[idx] >= 0,
+            "sendCountMatrix[", idx / ranks, "][", idx % ranks, "]=",
+            sendCountMatrix[idx], " is negative; counts must be non-negative",
+            DIST_ERROR(ErrCode::PARAM));
+    }
+    int myRank = getRank();
+    int64_t sendRowSum = 0;
+    int64_t recvColSum = 0;
+    for (int j = 0; j < ranks; j++) {
+        sendRowSum += sendCountMatrix[static_cast<int64_t>(myRank) * ranks + j];
+        recvColSum += sendCountMatrix[static_cast<int64_t>(j) * ranks + myRank];
+    }
+    TORCH_CHECK(
+        inputTensor.numel() == sendRowSum,
+        "input numel (", inputTensor.numel(), ") must equal send row sum (", sendRowSum,
+        "); the counts in sendCountMatrix row ", myRank,
+        " must sum to the input tensor's element count",
+        DIST_ERROR(ErrCode::PARAM));
+    TORCH_CHECK(
+        outputTensor.numel() == recvColSum,
+        "output numel (", outputTensor.numel(), ") must equal recv col sum (", recvColSum,
+        "); the counts in sendCountMatrix column ", myRank,
+        " must sum to the output tensor's element count",
+        DIST_ERROR(ErrCode::PARAM));
+    TORCH_CHECK(
+        inputTensor.data_ptr() != outputTensor.data_ptr(),
+        "all_to_all_vc does not support in-place operation: input and output must not "
+        "share the same memory address (HCCL HcclAlltoAllVC requires sendBuf != recvBuf)",
+        DIST_ERROR(ErrCode::PARAM));
+
+    std::vector<at::Tensor> inputTensors = {inputTensor};
+    std::vector<at::Tensor> outputTensors = {outputTensor};
+
+    if (C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable())) {
+        at_npu::native::OpHook::GetInstance().PreHook("alltoallvc", outputTensors, inputTensors);
+    }
+
+    auto inputTensors_ = cast_to_origin_format(inputTensors);
+    auto outputTensors_ = cast_to_origin_format(outputTensors);
+
+    std::vector<uint64_t> sendCountMatrixUint64;
+    sendCountMatrixUint64.reserve(sendCountMatrix.size());
+    for (const auto& v : sendCountMatrix) {
+        sendCountMatrixUint64.push_back(static_cast<uint64_t>(v));
+    }
+
+    check_npu_tensors_different_devices(inputTensors);
+    check_npu_tensors_different_devices(outputTensors);
+    return collective(
+        inputTensors_,
+        outputTensors_,
+        [&](at::Tensor& input,
+            at::Tensor& output,
+            HcclComm comm,
+            c10_npu::NPUStream& stream, std::shared_ptr<bool> is_dispatched) {
+                RECORD_FUNCTION("HcclAlltoAllVC", std::vector<c10::IValue>({input}));
+                auto inputDataPtr = input.data_ptr();
+                auto outputDataPtr = output.data_ptr();
+                auto inputhcclDataType = getHcclDataType(input.scalar_type());
+                auto outputhcclDataType = getHcclDataType(output.scalar_type());
+                auto hccl_call = [inputDataPtr,
+                                  sendCountMatrixUint64,
+                                  inputhcclDataType,
+                                  outputDataPtr,
+                                  outputhcclDataType,
+                                  comm,
+                                  stream,
+                                  is_dispatched]() -> int {
+#ifndef BUILD_LIBTORCH
+                    torch_npu::profiler::MstxRange range(
+                        getMstxHcclMsg("HcclAlltoAllVC",
+                                       static_cast<uint64_t>(sendCountMatrixUint64.size()),
+                                       inputhcclDataType, comm, stream.id(), -1, -1),
+                        stream.stream(false), torch_npu::profiler::DOMAIN_COMMUNICATION);
+#endif
+                    if (c10_npu::is_core_control_enabled()) {
+                        c10_npu::UseStreamResInCurrentThread(stream.stream(false));
+                    }
+                    auto hccl_result = hcclAlltoAllVC(
+                        inputDataPtr,
+                        sendCountMatrixUint64.data(),
+                        inputhcclDataType,
+                        outputDataPtr,
+                        outputhcclDataType,
+                        comm,
+                        stream.stream(false));
+                    *is_dispatched = true;
+                    return hccl_result;
+                };
+                at_npu::native::OpCommand::RunOpApiV3("HcclAlltoAllVC", hccl_call, false, &stream);
+                return HCCL_SUCCESS;
+            },
+        [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
+        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
+            for (size_t i = 0; i < outputTensors_.size(); ++i) {
+                c10_npu::NPUStreamGuard guard(hcclStreams[i]);
+                if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
+                    work->stashed_for_allocator_safety_->stash(outputTensors_[i]);
+                } else {
+                    c10_npu::NPUCachingAllocator::recordStream(outputTensors_[i].storage().data_ptr(), hcclStreams[i]);
+                    if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
+                        work->recorded_outputs_.push_back(
+                            std::make_pair(outputTensors_[i].storage().getWeakStorageImpl(), hcclStreams[i]));
+                    }
+                }
+                if (!at_npu::native::FormatHelper::IsBaseFormatType(outputTensors[i])) {
+                    outputTensors[i].copy_(outputTensors_[i], true);
+                }
+            }
+        },
+        c10d::OpType::ALLTOALL,
+        opts.asyncOp);
+}
+
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_alltoallvc(
+    at::Tensor& outputTensor,
+    at::Tensor& inputTensor,
+    std::vector<int64_t>& sendCountMatrix,
+    const c10d::AllToAllOptions& opts)
+{
+    static auto op = c10::Dispatcher::singleton()
+                         .findSchemaOrThrow("npu_custom_dist::wrap_alltoallvc_inner", "")
+                         .typed<c10::intrusive_ptr<::c10d::Work>(
+                             at::Tensor&,
+                             at::Tensor&,
+                             std::vector<int64_t>,
+                             c10::intrusive_ptr<c10d_npu::ProcessGroupHCCL>,
+                             int64_t)>();
+    auto work = op.call(
+        outputTensor,
+        inputTensor,
+        sendCountMatrix,
+        c10::intrusive_ptr<c10d_npu::ProcessGroupHCCL>::unsafe_reclaim_from_nonowning(this),
+        opts.timeout.count());
+    if (c10d::allow_inflight_collective_as_graph_input()) {
+        c10d::register_work(outputTensor, work);
+    }
+    return work;
+}
+
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
     std::vector<at::Tensor>& output_tensors,
     std::vector<at::Tensor>& input_tensors,
