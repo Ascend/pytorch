@@ -1,6 +1,5 @@
 """ Triton Implementation of the flex_attention Kernel"""
 
-import copy
 from collections.abc import Sequence
 from functools import wraps
 from typing import Any, Dict, Optional, Union
@@ -70,8 +69,8 @@ _LN2 = 0.6931471805599453
 _LOG2E = 1.4426950408889634
 
 
-def _tag_flex_attention_report_choices(new_choices, mode, cfg):
-    """Attach tiling metadata used by NPU fallback choice ordering."""
+def _tag_flex_attention_report_choices(new_choices, cfg):
+    """Attach tiling metadata used by NPU choice diagnostics."""
     if "BLOCK_M" in cfg and "BLOCK_N" in cfg:
         report_config = {
             "BLOCK_M": cfg["BLOCK_M"],
@@ -89,7 +88,6 @@ def _tag_flex_attention_report_choices(new_choices, mode, cfg):
             "num_stages": cfg["num_stages"],
         }
     for choice in new_choices:
-        setattr(choice, "_flex_attention_report_mode", mode)
         setattr(choice, "_flex_attention_report_config", report_config.copy())
 
 
@@ -334,10 +332,10 @@ from torch_npu._inductor.kernel.flex_attention_metadata import (
     infer_eager_block_mask_kernel_options,
 )
 from torch_npu._inductor.kernel.flex_attention_config_generator import (
+    FlexMode,
     build_sparse_mask_candidate_configs,
-    generate_bwd_split_mask_out_candidate_configs,
+    generate_bwd_candidate_configs,
     generate_fwd_candidate_configs,
-    is_bwd_config_compatible,
     prefer_max_tiling_without_benchmark,
     validate_benchmark_config,
 )
@@ -1194,54 +1192,10 @@ def _register_npu_inductor_flex_attention():
             ]
 
         dict_configs = generate_fwd_candidate_configs(
-            query_shape=query.get_size(),
-            key_shape=key.get_size(),
-            dtype=query.get_dtype(),
             sparse_q_block_size=SPARSE_Q_BLOCK_SIZE,
             sparse_kv_block_size=SPARSE_KV_BLOCK_SIZE,
-            num_cube_core=fwd_num_cube_core,
-            head_dim=V.graph.sizevars.evaluate_static_shape(query.get_size()[-1]),
-            mask_out=flexattention_mask_out,
         )
 
-        # Triton-Ascend can miscompile a non-trivial integer predicate feeding
-        # score_mod's tl.where when BLOCK_N is 128. BLOCK_N <= 64 produces the
-        # correct result for the same generated program. Keep the workaround
-        # scoped to mask-in score_mod graphs that actually contain aten.where
-        # so pure arithmetic score modifications retain larger tiling
-        # candidates. Mask-out has separate BLOCK_N/SPARSE_KV constraints.
-        if score_mod_uses_where and not flexattention_mask_out:
-            dict_configs = [
-                cfg for cfg in dict_configs if cfg["BLOCK_N"] <= 64
-            ]
-
-        if flexattention_mask_out:
-            sparse_mask_split_configs = []
-            seen_sparse_mask_split_configs = set()
-            for cfg in dict_configs:
-                if cfg["BLOCK_M"] != SPARSE_Q_BLOCK_SIZE:
-                    continue
-                split_cfg = copy.deepcopy(cfg)
-                split_cfg["BLOCK_N"] = SPARSE_KV_BLOCK_SIZE
-                split_cfg["num_stages"] = 1
-                split_key = (
-                    split_cfg["BLOCK_M"],
-                    split_cfg["BLOCK_N"],
-                    split_cfg["num_warps"],
-                    split_cfg["num_stages"],
-                )
-                if split_key in seen_sparse_mask_split_configs:
-                    continue
-                seen_sparse_mask_split_configs.add(split_key)
-                sparse_mask_split_configs.append(split_cfg)
-
-            if not sparse_mask_split_configs and dict_configs:
-                split_cfg = copy.deepcopy(dict_configs[0])
-                split_cfg["BLOCK_M"] = SPARSE_Q_BLOCK_SIZE
-                split_cfg["BLOCK_N"] = SPARSE_KV_BLOCK_SIZE
-                split_cfg["num_stages"] = 1
-                sparse_mask_split_configs.append(split_cfg)
-            dict_configs = sparse_mask_split_configs
         if not dict_configs:
             raise RuntimeError(
                 "No compatible flex attention forward tiling configs for "
@@ -1261,32 +1215,16 @@ def _register_npu_inductor_flex_attention():
             BLOCK_M = cfg["BLOCK_M"]
             BLOCK_N = cfg["BLOCK_N"]
 
-            log.debug("Processing config: BLOCK_M=%d BLOCK_N=%d SPARSE_KV%%BLOCK_N=%d SPARSE_Q%%BLOCK_M=%d",
-                      BLOCK_M, BLOCK_N, SPARSE_KV_BLOCK_SIZE % BLOCK_N, SPARSE_Q_BLOCK_SIZE % BLOCK_M)
-
-            if SPARSE_KV_BLOCK_SIZE % BLOCK_N != 0 or SPARSE_Q_BLOCK_SIZE % BLOCK_M != 0:
-                if len(dict_configs) == 1:
-                    raise ValueError(
-                        f"Q and KV block size must be divisible by BLOCK_M and BLOCK_N. We "
-                        f"got Q_BLOCK_SIZE={SPARSE_Q_BLOCK_SIZE} and KV_BLOCK_SIZE={SPARSE_KV_BLOCK_SIZE}."
-                    )
-                log.debug("Skipping config - block size not divisible")
-                continue
+            log.debug(
+                "Processing config: BLOCK_M=%d BLOCK_N=%d",
+                BLOCK_M,
+                BLOCK_N,
+            )
 
             cur_kernel_options = original_kernel_options.copy()
-            # Performance tuning
-            # Triton parameters
-            # Remove prefix for forward kernels options and delete backward kernel options.
-            for k in list(cur_kernel_options.keys()):
-                if k.startswith("fwd_"):
-                    v = cur_kernel_options.pop(k)
-                    cur_kernel_options[k[4:]] = v
-                if k.startswith("bwd_"):
-                    cur_kernel_options.pop(k)
 
-            # Apply all config parameters (BLOCK_M, BLOCK_N, num_warps, num_stages, NPU params)
-            for k, v in cfg.items():
-                cur_kernel_options.setdefault(k, v)
+            # Generated tiling config is authoritative for this choice.
+            cur_kernel_options.update(cfg)
 
             # An explicit unsafe BLOCK_N kernel option must not bypass the
             # correctness filter above.
@@ -1365,7 +1303,6 @@ def _register_npu_inductor_flex_attention():
 
                 _tag_flex_attention_report_choices(
                     choices[choice_count:],
-                    "forward",
                     cfg,
                 )
                 if prefer_max_tiling_without_benchmark():
@@ -2246,34 +2183,30 @@ def _register_npu_inductor_flex_attention():
                 bwd_sparse_mask_block_pos_buffer,
             ]
 
-        bwd_dict_configs = generate_bwd_split_mask_out_candidate_configs(
-            query_shape=query.get_size(),
-            key_shape=key.get_size(),
+        bwd_dq_dict_configs = generate_bwd_candidate_configs(
             sparse_q_block_size=SPARSE_Q_BLOCK_SIZE,
             sparse_kv_block_size=SPARSE_KV_BLOCK_SIZE,
-            dtype=query.get_dtype(),
-            num_cube_core=bwd_num_cube_core,
+            mode=FlexMode.BWDDQ,
+        )
+        bwd_dkdv_dict_configs = generate_bwd_candidate_configs(
+            sparse_q_block_size=SPARSE_Q_BLOCK_SIZE,
+            sparse_kv_block_size=SPARSE_KV_BLOCK_SIZE,
+            mode=FlexMode.BWDDKDV,
         )
 
         log.debug(
-            "bwd split dict_configs count: split=%d",
-            len(bwd_dict_configs),
+            "bwd dict_configs count: dq=%d dkdv=%d",
+            len(bwd_dq_dict_configs),
+            len(bwd_dkdv_dict_configs),
         )
 
         original_kernel_options = kernel_options.copy()
 
         def make_bwd_base_kernel_options(cfg: dict) -> dict:
             cur_kernel_options = original_kernel_options.copy()
-            for k in list(cur_kernel_options.keys()):
-                if k.startswith("bwd_"):
-                    v = cur_kernel_options.pop(k)
-                    cur_kernel_options[k[4:]] = v
-                if k.startswith("fwd_"):
-                    cur_kernel_options.pop(k)
 
-            # Apply all config parameters (BLOCK_M1, BLOCK_N1, etc., NPU params)
-            for k, v in cfg.items():
-                cur_kernel_options.setdefault(k, v)
+            # Generated tiling config is authoritative for this choice.
+            cur_kernel_options.update(cfg)
 
             # Blocksparse options
             cur_kernel_options.setdefault("SPARSE_Q_BLOCK_SIZE", SPARSE_Q_BLOCK_SIZE)
@@ -2298,8 +2231,6 @@ def _register_npu_inductor_flex_attention():
             opts = make_bwd_base_kernel_options(cfg)
             opts.update(
                 {
-                    "BLOCK_M2": cfg["BLOCK_M2"],
-                    "BLOCK_N2": cfg["BLOCK_N2"],
                     "TORCHINDUCTOR_FLEXATTENTION_MASKOUT": (
                         flexattention_mask_out
                     ),
@@ -2321,8 +2252,6 @@ def _register_npu_inductor_flex_attention():
             opts = make_bwd_base_kernel_options(cfg)
             opts.update(
                 {
-                    "BLOCK_M1": cfg["BLOCK_M1"],
-                    "BLOCK_N1": cfg["BLOCK_N1"],
                     "num_stages": 2,
                     "num_warps": 4,
                 }
@@ -2583,60 +2512,44 @@ def _register_npu_inductor_flex_attention():
                 "dispatch_spec": dispatch_spec,
             }
 
-        for cfg in bwd_dict_configs:
-            if not is_bwd_config_compatible(
-                cfg, SPARSE_Q_BLOCK_SIZE, SPARSE_KV_BLOCK_SIZE
-            ):
-                continue
+        for cfg in bwd_dq_dict_configs:
+            dq_kernel_options = make_bwd_dq_kernel_options(cfg)
+            dq_subgraphs, dq_mutated_inputs, dq_run_captured = (
+                make_bwd_subgraphs_and_mutations("dq", [grad_query])
+            )
+            dq_kernel_options["RUN_CAPTURED_GRADS"] = dq_run_captured
+            log_bwd_choice("dq", cfg, dq_kernel_options)
 
-            if (
-                cfg["BLOCK_M2"] == SPARSE_Q_BLOCK_SIZE
-                and cfg["BLOCK_N2"] == SPARSE_KV_BLOCK_SIZE
-            ):
-                dq_kernel_options = make_bwd_dq_kernel_options(cfg)
-                dq_subgraphs, dq_mutated_inputs, dq_run_captured = (
-                    make_bwd_subgraphs_and_mutations("dq", [grad_query])
-                )
-                dq_kernel_options["RUN_CAPTURED_GRADS"] = dq_run_captured
-                log_bwd_choice("dq", cfg, dq_kernel_options)
-
-                prev_dq_choice_count = len(dq_choices)
-                dq_template = (
-                    flex_attention_bwd_dq_mask_out
-                    if flexattention_mask_out
-                    else flex_attention_bwd_dq_mask_in
-                )
-                dq_template.maybe_append_choice(
-                    choices=dq_choices,
-                    input_nodes=dq_input_nodes,
-                    layout=grad_query.get_layout(),
-                    subgraphs=dq_subgraphs,
-                    mutated_inputs=dq_mutated_inputs,
-                    reset_to_zero_arg_names=None,
-                    large_input_buffers=mask_out_input_nodes,
-                    call_sizes=query.get_size() + key.get_size()[1:3],
-                    **dq_kernel_options,
-                )
-                if len(dq_choices) > prev_dq_choice_count:
-                    _tag_flex_attention_report_choices(
-                        dq_choices[prev_dq_choice_count:],
-                        "backward_dq",
-                        cfg,
-                    )
-                    if prefer_max_tiling_without_benchmark():
-                        _tag_choice_attr(
-                            dq_choices[prev_dq_choice_count:],
-                            "_nobench_select_first_compilable",
-                            True,
-                        )
-            else:
-                log.debug(
-                    "skip bwd-dq choice requiring full sparse block: cfg=%s SPARSE_Q=%s SPARSE_KV=%s",
+            prev_dq_choice_count = len(dq_choices)
+            dq_template = (
+                flex_attention_bwd_dq_mask_out
+                if flexattention_mask_out
+                else flex_attention_bwd_dq_mask_in
+            )
+            dq_template.maybe_append_choice(
+                choices=dq_choices,
+                input_nodes=dq_input_nodes,
+                layout=grad_query.get_layout(),
+                subgraphs=dq_subgraphs,
+                mutated_inputs=dq_mutated_inputs,
+                reset_to_zero_arg_names=None,
+                large_input_buffers=mask_out_input_nodes,
+                call_sizes=query.get_size() + key.get_size()[1:3],
+                **dq_kernel_options,
+            )
+            if len(dq_choices) > prev_dq_choice_count:
+                _tag_flex_attention_report_choices(
+                    dq_choices[prev_dq_choice_count:],
                     cfg,
-                    SPARSE_Q_BLOCK_SIZE,
-                    SPARSE_KV_BLOCK_SIZE,
                 )
+                if prefer_max_tiling_without_benchmark():
+                    _tag_choice_attr(
+                        dq_choices[prev_dq_choice_count:],
+                        "_nobench_select_first_compilable",
+                        True,
+                    )
 
+        for cfg in bwd_dkdv_dict_configs:
             dkdv_kernel_options = make_bwd_dkdv_kernel_options(cfg)
             dkdv_subgraphs, dkdv_mutated_inputs, dkdv_run_captured = (
                 make_bwd_subgraphs_and_mutations(
@@ -2672,7 +2585,6 @@ def _register_npu_inductor_flex_attention():
             if len(dkdv_choices) > prev_dkdv_choice_count:
                 _tag_flex_attention_report_choices(
                     dkdv_choices[prev_dkdv_choice_count:],
-                    "backward_dkdv",
                     cfg,
                 )
                 if prefer_max_tiling_without_benchmark():
