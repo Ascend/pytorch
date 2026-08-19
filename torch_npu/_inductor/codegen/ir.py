@@ -1502,6 +1502,74 @@ def patch_loop_body():
     LoopBody.substitube_indirect_index = substitube_indirect_index
 
 
+def patch_fixed_indexer():
+    """Patch ``FixedLayout.make_indexer`` to NOT skip size-1 dimensions.
+
+    Root cause background
+    ---------------------
+    The upstream ``FixedLayout.make_indexer`` contains an optimisation that skips the
+    ``idx * stride`` term for every dimension whose **size** equals 1::
+
+        for idx, st, sz in zip(index, stride, size):
+            if sz != 1:                # <-- size-1 dims are dropped
+                result = result + idx * st
+
+    This is valid when *idx* is a real element index that is always 0 for a
+    size-1 dimension.  However, inside a **triton template** (e.g. the mm /
+    bmm epilogue) the "index" handed to ``store_output`` is a *block tensor*
+    such as ``idx_n = rn[None, :]`` where
+    ``rn = pid_n * BLOCK_N + tl.arange(0, BLOCK_N)``.  ``idx_n`` ranges over
+    ``[0, BLOCK_N)`` — it is **not** bounded by the dimension size; the
+    out-of-bounds elements are simply masked away by ``mask = idx_n < N``.
+
+    When the output has a size-1 dimension (e.g. mm with **N=1**, output shape
+    ``[M, 1]``) the optimisation drops ``idx_n`` entirely, so
+    ``FixedLayout.make_indexer()`` returns ``idx_m`` instead of the full
+    contiguous expression ``idx_m + idx_n``.
+
+    Inside ``TritonTemplateKernel.store_output`` this makes
+    ``output_index (= idx_m) != contiguous_index (= idx_m + idx_n)``, so the
+    store falls back to the non-contiguous path and emits::
+
+        tl.store(out_ptr0 + tl.broadcast_to(idx_m, [BLOCK_M, BLOCK_N]), acc, mask)
+
+    ``idx_m`` has shape ``[BLOCK_M, 1]``; ``broadcast_to`` expands it to
+    ``[BLOCK_M, BLOCK_N]``.  triton-ascend's MLIR backend cannot lower this
+    broadcast inside ``tt.store`` and raises::
+
+        MLIRCompilationError: 'tt.store' op failed to verify that
+        value type matches ptr type
+
+    The fix
+    -------
+    Always include every ``idx * stride`` term (remove the ``if sz != 1``
+    guard).  For non-template callers the index of a size-1 dimension is a
+    concrete 0, so ``0 * stride == 0`` and sympy simplifies it away — the
+    generated code is unchanged.  For template callers the full expression
+    ``idx_m + idx_n`` is preserved, which equals ``contiguous_index`` and
+    makes ``store_output`` use the correctly-shaped ``xindex`` variable::
+
+        tl.store(out_ptr0 + tl.broadcast_to(xindex, [BLOCK_M, BLOCK_N]), acc, mask)
+    """
+    from torch._inductor import ir as torch_ir
+
+    def fixed_layout_make_indexer(self):
+        """A closure containing math to read a given element."""
+
+        def indexer(index):
+            assert len(index) == len(self.stride)
+            assert len(index) == len(self.size)
+            result = self.offset
+            for idx, stride, sz in zip(index, self.stride, self.size):
+                # NPU patch: keep the term even when sz == 1 (see docstring).
+                result = result + idx * stride
+            return result
+
+        return indexer
+
+    torch_ir.FixedLayout.make_indexer = fixed_layout_make_indexer
+
+
 def patch_indexing():
     # todo: move patch function to loop_body.py and _sizevars.py
     CaptureIndexing.index_select = loop_body_block_index_select

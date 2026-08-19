@@ -91,7 +91,7 @@ def _load_triton_backend():
     from . import codegen, config as npu_config
     from .async_compile import patch_async_compile
     from .codegen._sizevars import patch_simplify
-    from .codegen.ir import patch_indexing, patch_loop_body
+    from .codegen.ir import patch_fixed_indexer, patch_indexing, patch_loop_body
 
     from .config import (
         aggresive_autotune,
@@ -214,6 +214,7 @@ def _load_triton_backend():
     patch_num_splits()
     patch_loop_body()
     patch_indexing()
+    patch_fixed_indexer()
 
     patch_create_device_properties()
     patch_load_cached_autotuning()
