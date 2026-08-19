@@ -4,11 +4,12 @@
 # Usage:
 #   ./docker_build.sh <TAG>
 #
-# Builder (2.13 only): torch-npu-builder-<ARCH>-torch<PYTORCH_VERSION>
-# Test:                torch-npu-test-<ARCH>-cann<CHIP>-py<PYTHON_VERSION>-torch<PYTORCH_VERSION>
+# Builder: torch-npu-builder-<ARCH>-torch<PYTORCH_VERSION>
+# Test:    torch-npu-test-<ARCH>-cann<CHIP>-py<PYTHON_VERSION>-torch<PYTORCH_VERSION>
 #
 # Examples:
 #   ./docker_build.sh torch-npu-builder-x86_64-torch2.13.0
+#   ./docker_build.sh torch-npu-builder-aarch64-torch-master
 #   ./docker_build.sh torch-npu-test-aarch64-cann-a2-py3.10-torch2.13.0
 #   ./docker_build.sh torch-npu-test-x86_64-cann-a1-py3.10-torch-master
 #   ./docker_build.sh torch-npu-test-aarch64-cann-a3-py3.10-torch-master
@@ -142,7 +143,7 @@ case "$BASE_TAG" in
     echo "ERROR: Unknown image tag: ${BASE_TAG}"
     echo ""
     echo "Supported tags:"
-    echo "  Builder: torch-npu-builder-<x86_64|aarch64>-torch2.13.0"
+    echo "  Builder: torch-npu-builder-<x86_64|aarch64>-torch<2.13.0|master>"
     echo "  Test:    torch-npu-test-<x86_64|aarch64>-cann-<a1|a2|a3>-py3.10-torch<2.13.0|master>"
     exit 1
     ;;
