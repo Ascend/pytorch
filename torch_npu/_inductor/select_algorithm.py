@@ -55,7 +55,7 @@ from torch._inductor.codegen.common import IndentedBuffer, RemovedArg
 from torch._inductor.exc import CppCompileError
 from torch.utils._ordered_set import OrderedSet
 
-from ..profiler import tensorboard_trace_handler
+from .profiler import simple_trace_handler
 from .codegen.triton import gen_common_triton_imports
 from . import config as npu_config
 
@@ -1007,22 +1007,18 @@ def patch_algorithm_selector() -> None:
             ):
                 return no_op
 
-            num_workers = min(get_num_workers(), len(choices))
+            from . import config as npu_config
+            import torch._inductor.config as inductor_config
+
+            # Since mm is tuned case by case, the use of multiple processes for compilation among kernels is
+            # not enabled here. To maintain the desired compilation performance,
+            # npu_config.precompile_thread_num * inductor_config.compile_threads is used as default num_workers here.
+            num_workers = min(len(choices),
+                              npu_config.precompile_thread_num * inductor_config.compile_threads,
+                              os.cpu_count())
 
             if num_workers <= 0:
                 return no_op
-
-            # NOTE: The upstream Python 3.11.0-3.11.8 guard is relaxed here
-            # because NPU codegen already wraps each precompile task in
-            # restore_stdout_stderr(), which prevents the stdout/stderr race
-            # that the version check was protecting against.
-            # Cap workers to npu_config.precompile_thread_num for
-            # consistency with the triton_heuristics compile_thread_pool.
-            try:
-                from .. import config as npu_config
-                num_workers = min(num_workers, npu_config.precompile_thread_num)
-            except Exception:
-                pass
 
             if not select_first_compilable_only:
                 # check local and global cache before precompiling
@@ -1428,8 +1424,8 @@ def patch_algorithm_selector() -> None:
                     shutil.rmtree(base_path)
 
             experimental_config = torch_npu.profiler._ExperimentalConfig(
-                aic_metrics=torch_npu.profiler.AiCMetrics.PipeUtilization,
-                profiler_level=torch_npu.profiler.ProfilerLevel.Level1,
+                aic_metrics=torch_npu.profiler.AiCMetrics.AiCoreNone,
+                profiler_level=torch_npu.profiler.ProfilerLevel.Level0,
                 l2_cache=False,
                 data_simplification=False,
             )
@@ -1447,7 +1443,7 @@ def patch_algorithm_selector() -> None:
             torch.npu.synchronize()  # shake out of any npu error
             with torch_npu.profiler.profile(
                 activities=[torch_npu.profiler.ProfilerActivity.NPU],
-                on_trace_ready=tensorboard_trace_handler(torch_path),
+                on_trace_ready=simple_trace_handler(torch_path),
                 record_shapes=False,
                 profile_memory=False,
                 with_stack=False,
