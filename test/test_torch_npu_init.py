@@ -167,6 +167,27 @@ class TestTorchNpuBootstrap(TestCase):
             """
         )
 
+    def test_export_cia_skips_invalid_op_namespace(self):
+        self._run_python(
+            """
+            import importlib
+            import torch
+            import torch_npu
+
+            namespace_name = "torch_npu_test_invalid_namespace"
+            torch.ops._dir.append(namespace_name)
+            setattr(torch.ops, namespace_name, lambda *args, **kwargs: None)
+            try:
+                importlib.import_module("torch._inductor.compile_fx")
+                from torch._export.utils import _collect_all_valid_cia_ops
+
+                _collect_all_valid_cia_ops()
+            finally:
+                torch.ops._dir.remove(namespace_name)
+                delattr(torch.ops, namespace_name)
+            """
+        )
+
     def test_03_public_exports_snapshot(self):
         self._run_python(
             f"""
