@@ -162,6 +162,7 @@ class _NpuBackendScope:
         try:
             os.environ["TORCHINDUCTOR_NPU_BACKEND"] = self.backend
             register_inductor_npu()
+            _lazy_inductor_setup()
             if self.backend == "ascendc":
                 from torch_npu._inductor.deterministic_cache import (
                     patch_npu_deterministic_level_cache_keys,
@@ -215,7 +216,7 @@ def patch_inductor_wrapper():
             src_init(self, mode, options, dynamic, name)
         else:
             src_init(self, mode, options, dynamic)
-        _setup_inductor_for_compile(self.config)
+        _lazy_dynamo_setup()
         backend = _resolve_npu_backend_from_wrapper(self)
         if backend == "mlir":
             with _NpuBackendScope(backend):
@@ -667,26 +668,6 @@ def _lazy_inductor_setup():
     _apply_npugraph_tree_methods()
 
     _inject_inductor_npu_backend_config()
-
-
-def _setup_inductor_for_compile(options=None):
-    """Initialize the NPU Inductor backend selected for this compile call."""
-    _lazy_dynamo_setup()
-
-    option_backend = options.get("npu_backend") if isinstance(options, dict) else None
-    selected_backend = _resolve_npu_backend(option_backend)
-
-    old_backend = os.environ.get("TORCHINDUCTOR_NPU_BACKEND")
-    if selected_backend not in (None, "", "default"):
-        os.environ["TORCHINDUCTOR_NPU_BACKEND"] = selected_backend
-    try:
-        _lazy_inductor_setup()
-    finally:
-        if old_backend is None:
-            os.environ.pop("TORCHINDUCTOR_NPU_BACKEND", None)
-        else:
-            os.environ["TORCHINDUCTOR_NPU_BACKEND"] = old_backend
-    return selected_backend
 
 
 @run_once
