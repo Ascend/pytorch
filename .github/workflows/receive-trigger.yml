@@ -76,6 +76,57 @@ jobs:
           echo "upstream_repo: ${UPSTREAM_REPO}"
           echo "upstream_ref:  main  (latest upstream main branch)"
 
+      - name: Print upstream merge commit SHA (for observation)
+        id: resolve_merge_sha
+        if: ${{ steps.extract.outputs.should_build == 'true' }}
+        env:
+          PAYLOAD_JSON: ${{ inputs.payload }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          PR_NUMBER=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.number // empty')
+          UPSTREAM_REPO=$(echo "$PAYLOAD_JSON" | jq -r '.payload.repository.full_name // empty')
+
+          if [ -z "${PR_NUMBER}" ] || [ -z "${UPSTREAM_REPO}" ]; then
+            echo "WARN: Missing PR number or upstream repo in payload, skipping SHA resolution"
+            exit 0
+          fi
+
+          echo "=== Resolving merge commit SHA for PR #${PR_NUMBER} in ${UPSTREAM_REPO} ==="
+
+          # ---- Show what's in the payload ----
+          PAYLOAD_MERGED=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.merged // "unknown"')
+          PAYLOAD_MERGE_SHA=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.merge_commit_sha // "null"')
+          PAYLOAD_BASE_SHA=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.base.sha // "null"')
+          PAYLOAD_HEAD_SHA=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.head.sha // "null"')
+
+          echo "Payload values:"
+          echo "  merged:           ${PAYLOAD_MERGED}"
+          echo "  merge_commit_sha: ${PAYLOAD_MERGE_SHA}"
+          echo "  base.sha:         ${PAYLOAD_BASE_SHA}"
+          echo "  head.sha:         ${PAYLOAD_HEAD_SHA}"
+
+          # ---- Query GitHub API for the real merge commit SHA ----
+          # For a merged PR, the API returns merge_commit_sha as the actual commit
+          # on the base branch (main), regardless of squash / merge / rebase strategy.
+          echo ""
+          echo "Querying GitHub API: GET /repos/${UPSTREAM_REPO}/pulls/${PR_NUMBER}"
+
+          API_RESPONSE=$(curl -sf \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${UPSTREAM_REPO}/pulls/${PR_NUMBER}")
+
+          API_MERGED=$(echo "$API_RESPONSE" | jq -r '.merged // false')
+          API_MERGE_SHA=$(echo "$API_RESPONSE" | jq -r '.merge_commit_sha // "null"')
+
+          echo "API response:"
+          echo "  merged:           ${API_MERGED}"
+          echo "  merge_commit_sha: ${API_MERGE_SHA}"
+          echo ""
+          echo "=== This SHA would be used as upstream_ref (currently NOT applied, still using main) ==="
+
   build:
     needs: [extract]
     if: ${{ needs.extract.outputs.should_build == 'true' }}
