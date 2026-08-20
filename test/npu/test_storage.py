@@ -313,6 +313,28 @@ class TestStorage(TestCase):
                 with self.assertRaisesRegex(RuntimeError, "Storage device not recognized: mps"):
                     _test_mps(cpu_storage, npu_storage)
 
+    def test_untyped_storage_cpu(self):
+        cpu_tensor = torch.tensor([0, 1, 2, 255], dtype=torch.uint8)
+        npu_tensor = cpu_tensor.npu()
+        npu_storage = npu_tensor.untyped_storage()
+
+        cpu_storage = npu_storage.cpu()
+
+        self.assertIsInstance(cpu_storage, torch.UntypedStorage)
+        self.assertEqual(cpu_storage.device.type, "cpu")
+        self.assertEqual(cpu_storage.nbytes(), npu_storage.nbytes())
+        self.assertEqual(cpu_storage.tolist(), cpu_tensor.untyped_storage().tolist())
+        self.assertIsNot(cpu_storage, npu_storage)
+
+        empty_npu_storage = torch.empty(0, dtype=torch.uint8).npu().untyped_storage()
+        empty_cpu_storage = empty_npu_storage.cpu()
+        self.assertIsInstance(empty_cpu_storage, torch.UntypedStorage)
+        self.assertEqual(empty_cpu_storage.device.type, "cpu")
+        self.assertEqual(empty_cpu_storage.nbytes(), 0)
+
+        cpu_source = cpu_tensor.untyped_storage()
+        self.assertIs(cpu_source.cpu(), cpu_source)
+
     def test_type_conversions(self):
         x = torch.randn(5, 5)
         supported_dtypes = ["float", "half", "long", "short", "int", "bool", "char", "byte"]
