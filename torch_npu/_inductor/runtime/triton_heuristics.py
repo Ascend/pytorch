@@ -1416,8 +1416,16 @@ class NPUCachingAutotuner(CachingAutotuner):
             "triton_meta": self.triton_meta,
             "def_args": input_launcher.def_args,
             "call_args": input_launcher.call_args,
-            "runtime_blocks": dict(
-                zip(self.runtime_block_arg_names, self.best_runtime_blocks)
+            "runtime_blocks": (
+                dict(zip(self.runtime_block_arg_names, self.best_runtime_blocks))
+                if self.best_runtime_blocks
+                else (
+                    dict(
+                        self.compiled_candidate_entries[0]["candidate"]["runtime_blocks"]
+                    )
+                    if self.compiled_candidate_entries
+                    else {}
+                )
             ),
             "mix_mode": input_launcher.bin.metadata.mix_mode,
             "parallel_mode": input_launcher.bin.metadata.parallel_mode,
