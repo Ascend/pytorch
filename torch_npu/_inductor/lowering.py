@@ -1035,12 +1035,49 @@ def _register_npu_inductor_fallbacks():
         bias=None,
         eps=1e-5
     ):
+        def should_use_layer_norm_v4():
+            """Keep the A5 W=512 large-row case on the fused CANN kernel.
+
+            The Welford lowering currently materializes statistics and emits
+            separate pointwise post-processing kernels for this shape.  Until
+            the reduction epilogue is fused into the Welford kernel, the
+            dedicated LayerNormV4 implementation is both faster and avoids
+            the SIMD-reduction/SIMT-post-processing split.
+            """
+            if (
+                not is_ascend950
+                or not npu_config.enable_welford
+                or not npu_config.enable_layernorm_v4
+            ):
+                return False
+            if x.dtype not in (torch.float16, torch.bfloat16):
+                return False
+            if not isinstance(normalized_shape, (list, tuple)):
+                shape = (normalized_shape,)
+            else:
+                shape = tuple(normalized_shape)
+            if len(shape) != 1 or shape[0] != 512:
+                return False
+
+            input_shape = x.get_size()
+            if len(input_shape) < 2:
+                return False
+            row_numel = sympy_product(input_shape[:-1])
+            # Unbacked dynamic rows such as ``u0 + 200`` cannot be proven to
+            # exceed the threshold at compile time even when the profiled
+            # runtime value is 17000. Keep Welford only when the compiler can
+            # prove this is a genuinely small-row case.
+            return not V.graph.sizevars.statically_known_lt(row_numel, 512)
+
         # Keep the existing low-precision fallback unless Welford is explicitly
         # enabled for FP16/BF16 on Ascend 950.
         if (
             is_ascend950
             and x.dtype in (torch.float16, torch.bfloat16)
-            and not npu_config.enable_welford
+            and (
+                not npu_config.enable_welford
+                or should_use_layer_norm_v4()
+            )
         ):
             return fallback_handler(aten.native_layer_norm.default)(x, normalized_shape, weight, bias, eps)
         # Validate input
