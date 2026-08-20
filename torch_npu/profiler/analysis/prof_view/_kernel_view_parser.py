@@ -32,6 +32,13 @@ class KernelViewParser(BaseParser):
                 output_headers.append(header)
         return output_headers
 
+    @classmethod
+    def _get_kernel_headers(cls, all_headers: list, is_all_kernel_headers: bool) -> list:
+        if is_all_kernel_headers:
+            return all_headers
+        shape_headers = [header for header in CsvHeaders.OP_SUMMARY_SHAPE_HEADERS if header in all_headers]
+        return CsvHeaders.OP_SUMMARY_SHOW_HEADERS + shape_headers
+
     def run(self, deps_data: dict):
         ProfilerLogger.init(self._profiler_path, "KernelViewParser")
         self.logger = ProfilerLogger.get_instance()
@@ -53,8 +60,8 @@ class KernelViewParser(BaseParser):
         for file_path in op_summary_file_set:
             all_data = FileManager.read_csv_file(file_path, OpSummaryBean)
             if all_data:
-                OpSummaryBean.headers = all_data[
-                    0].all_headers if ProfilerConfig().is_all_kernel_headers() else CsvHeaders.OP_SUMMARY_SHOW_HEADERS
+                OpSummaryBean.headers = self._get_kernel_headers(
+                    all_data[0].all_headers, ProfilerConfig().is_all_kernel_headers())
                 output_headers = self._project_map_for_headers(OpSummaryBean.headers)
             if not self.step_range:
                 summary_data.extend([data.row for data in all_data])
