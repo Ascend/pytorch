@@ -10,7 +10,12 @@ if os.environ.get("TORCH_WARM_POOL", "1") == "1":
 os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = ORG_AUTOLOAD
 
 import os
-from torch_npu.utils._dynamo import _dynamo_register_interface_for_device, patch_SkipFunctionVariable, patch_TensorVariable_call_method
+from torch_npu.utils._dynamo import (
+    _dynamo_register_interface_for_device,
+    patch_SkipFunctionVariable,
+    patch_TensorVariable_call_method,
+    _inject_inductor_npu_backend_config,
+)
 # all backends need register npu/cpu/mps device_op_overrides
 from .graph import patch_codegen_with_cpp_wrapper
 from .utils import (
@@ -369,6 +374,7 @@ def _load_backend():
     _InductorNpuRegistry._loaded_backend = backend
 
 _load_backend()
+_inject_inductor_npu_backend_config()
 
 # Optional MFusion integration: patch Inductor fallback / post-grad when explicitly enabled.
 if os.getenv("TORCHINDUCTOR_ENABLE_MFUSION", "0") == "1":
