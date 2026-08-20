@@ -63,6 +63,31 @@ class TorchCompileTriggerTests(unittest.TestCase):
             """
         )
 
+    # Explicitly importing the NPU Inductor module initializes its config.
+    def test_explicit_inductor_import_initializes_npu_config(self):
+        self.run_in_subprocess(
+            """
+            import sys
+
+            import torch
+            import torch_npu
+
+            assert "torch._inductor" not in sys.modules
+            assert "torch_npu._inductor" not in sys.modules
+
+            import torch_npu._inductor
+            from torch._inductor import config
+
+            assert config.npu_backend == "default"
+            if hasattr(config, "enable_shape_handling"):
+                assert config.enable_shape_handling is False
+
+            config.npu_backend = "mlir"
+            assert config.npu_backend == "mlir"
+            config.npu_backend = "default"
+            """
+        )
+
     # Verify public compiler APIs work before the first compile.
     def test_public_compiler_entries_are_available_before_compile(self):
         self.run_in_subprocess(
