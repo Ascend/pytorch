@@ -190,6 +190,14 @@ class _NpuBackendScope:
             os.environ["TORCHINDUCTOR_NPU_BACKEND"] = self._old_env
 
 
+def _patch_shape_handling():
+    """Install the Shape Handling Dynamo hook without loading NPU Inductor."""
+    from torch_npu.utils._shape_handling import _patch_shape_handling
+
+    _patch_shape_handling()
+
+
+
 def patch_dynamo_optimize():
     from torch_npu.dynamo import _get_global_npu_backend
 
@@ -505,8 +513,8 @@ def patch_inductor_wrapper():
         if shape_handling_requested:
             if getattr(self, "_npu_defer_shape_handling", False):
                 self._npu_shape_handling_requested = True
-            # Shape handling is installed in new_call, after the selected
-            # backend scope has loaded the matching NPU Inductor backend.
+            else:
+                _patch_shape_handling()
 
     def new_get_config_copy(self) -> dict[str, Any]:
         ori_dict = src_get_config_copy(self)
@@ -544,10 +552,13 @@ def patch_inductor_wrapper():
         self._npu_shape_handling_requested = False
         try:
             src_init(self, mode, options, dynamic)
+            shape_handling_requested = self._npu_shape_handling_requested
         finally:
             del self._npu_defer_shape_handling
             del self._npu_shape_handling_requested
         _lazy_dynamo_setup()
+        if shape_handling_requested:
+            _patch_shape_handling()
         backend = _resolve_npu_backend_from_wrapper(self)
         if backend=="mlir":
             with _NpuBackendScope(backend):
@@ -561,8 +572,6 @@ def patch_inductor_wrapper():
     def new_call(self, model_, inputs_):
         backend = _resolve_npu_backend_from_wrapper(self)
         with _NpuBackendScope(backend):
-            if self.config.get("enable_shape_handling", False):
-                torch_npu._inductor.patch_shape_handling()
             if backend == "ascendc":
                 from torch_npu.dynamo._deterministic_guard import (
                     install_npu_deterministic_level_guard,

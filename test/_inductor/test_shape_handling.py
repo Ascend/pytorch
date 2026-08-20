@@ -33,6 +33,7 @@ device = "npu"
 def model_fn(A, B):
     return A + B
 
+
 shape_options = {
     "enable_shape_handling": True,
     "shape_handling_configs": [
