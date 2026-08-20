@@ -1562,7 +1562,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         ):
             return do_bench_using_profiling_npu(kernel_call, rep=1)
 
-        return benchmarker.benchmark_gpu(kernel_call, rep=1)
+        return benchmarker.benchmark_gpu(kernel_call, rep=1, is_vetted_benchmarking=True)
 
     def _profile_batch_benchmark(self, kernel_funcs):
         def delete_file(base_path):
