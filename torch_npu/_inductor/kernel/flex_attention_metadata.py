@@ -168,7 +168,11 @@ def _apply_sparse_mask_compact_options(
     for key, value in compact_options.items():
         updated.setdefault(key, value)
 
-    if compact_options and log.isEnabledFor(logging.INFO):
+    if (
+        not torch.compiler.is_dynamo_compiling()
+        and compact_options
+        and log.isEnabledFor(logging.INFO)
+    ):
         log.info(
             "[flex_attention][%s] sparse_mask_compact_options=%s final_hq=%s final_max_blocks=%s",
             context,
