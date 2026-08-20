@@ -442,6 +442,8 @@ class TestNpu(TestCase):
             torch_npu.npu.set_rng_state(npu_state, device)
 
     def test_accelerator_get_default_generator(self):
+        if not hasattr(torch._C, '_accelerator_getDefaultGenerator'):
+            self.skipTest("_accelerator_getDefaultGenerator not available in this PyTorch version")
         default_generator = torch._C._accelerator_getDefaultGenerator(0)
         state = torch_npu.npu.get_rng_state(0)
         try:
@@ -451,6 +453,8 @@ class TestNpu(TestCase):
             torch_npu.npu.set_rng_state(state, 0)
 
     def test_accelerator_get_default_generator_per_device(self):
+        if not hasattr(torch._C, '_accelerator_getDefaultGenerator'):
+            self.skipTest("_accelerator_getDefaultGenerator not available in this PyTorch version")
         device_count = torch_npu.npu.device_count()
         if device_count < 2:
             self.skipTest("requires at least 2 NPUs")
