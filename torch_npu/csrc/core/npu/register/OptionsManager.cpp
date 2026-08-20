@@ -57,6 +57,14 @@ bool OptionsManager::IsResumeModeEnable() {
   return isResumeModeEnable;
 }
 
+bool OptionsManager::IsCpuFallbackEnable() {
+  const static bool isCpuFallbackEnable = []() -> bool {
+    int32_t disable = OptionsManager::GetBoolTypeOption("TORCH_NPU_FALLBACK_CPU_DISABLE", 0);
+    return disable == 0;
+  }();
+  return isCpuFallbackEnable;
+}
+
 bool OptionsManager::IsSubCommRootInfoEnable() {
   const static bool isSubCommRootInfoEnable = []() -> bool {
     int32_t enable = OptionsManager::GetBoolTypeOption("ROOTINFO_SUBCOMM_ENABLE", 0);

@@ -98,6 +98,7 @@ class OptionsManager {
  public:
   static bool IsHcclZeroCopyEnable();
   static bool IsResumeModeEnable();
+  static bool IsCpuFallbackEnable();
   static bool IsSubCommRootInfoEnable();
   static ReuseMode GetMultiStreamMemoryReuse();
   static bool CheckInfNanModeEnable();
