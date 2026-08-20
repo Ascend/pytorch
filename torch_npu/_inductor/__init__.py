@@ -1,5 +1,10 @@
 import os
-from torch_npu.utils._dynamo import _dynamo_register_interface_for_device, patch_SkipFunctionVariable, patch_TensorVariable_call_method
+from torch_npu.utils._dynamo import (
+    _dynamo_register_interface_for_device,
+    patch_SkipFunctionVariable,
+    patch_TensorVariable_call_method,
+    _inject_inductor_npu_backend_config,
+)
 # All backends need npu/cpu/mps device_op_overrides.
 from .codegen.common import register_device_op_overrides_npu, patch_cache_base_get_system
 from .graph import patch_codegen_with_cpp_wrapper
@@ -214,3 +219,4 @@ def _load_backend():
     _InductorNpuRegistry._loaded_backend = backend
 
 _load_backend()
+_inject_inductor_npu_backend_config()
