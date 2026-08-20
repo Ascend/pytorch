@@ -1346,7 +1346,7 @@ def bwd_dkdv_block_mn(
 {% endif %}
 
 {% if BWD_SCORE_MOD_IS_IDENTITY %}
-    pT = tl.math.exp(qkT - lse[:, None]).to(MATMUL_PRECISION)
+    pT = tl.math.exp(qkT - lse[:, None])
 {% else %}
     pT = tl.math.exp(post_mod_scores - lse[:, None])
 {% endif %}
@@ -1477,7 +1477,7 @@ def bwd_dkdv_full_block_mn(
         qkT = tl.where(offs_n1[None, :] < KV_LEN, qkT, float("-inf"))
     if not TORCHINDUCTOR_FLEXATTENTION_MASKOUT:
         qkT = tl.where(mask_mod_output, qkT, float("-inf"))
-    pT = tl.math.exp(qkT - lse[:, None]).to(MATMUL_PRECISION)
+    pT = tl.math.exp(qkT - lse[:, None])
 {% else %}
     pre_mod_scores = qkT
     {{ modification(

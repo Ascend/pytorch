@@ -765,8 +765,8 @@ def _get_flex_attention_additional_lowerings():
     """
     Get additional lowerings for flex_attention subgraph.
 
-    These lowerings are used to allow index and bitwise operations to be lowered
-    as pointwise ops instead of fallback in the mask_mod subgraph.
+    These lowerings allow supported fallback operations to be lowered as pointwise
+    ops in the score_mod and mask_mod subgraphs.
     """
     from torch._inductor.lowering import make_pointwise, index_impl
     from torch._inductor.subgraph_lowering import PointwiseSubgraphLowering
@@ -794,9 +794,34 @@ def _get_flex_attention_additional_lowerings():
     def bitwise_not_default(a):
         return bitwise_not_fn(a)
 
+    remainder_fn = make_pointwise(ops.remainder)
+
+    def integer_remainder(a, b):
+        # Avoid ops.remainder here. Vector integer remainder currently lowers to
+        # arith.remsi on NPU and can produce incorrect FlexAttention score_mod
+        # results. Build Python remainder from truncating division instead:
+        #   r = a - trunc(a / b) * b
+        # and adjust r when its sign differs from the divisor.
+        quotient = ops.truncdiv(a, b)
+        remainder = ops.sub(a, ops.mul(quotient, b))
+        zero = ops.constant(0, torch.int32)
+        needs_adjustment = ops.and_(
+            ops.ne(remainder, zero),
+            ops.ne(ops.lt(remainder, zero), ops.lt(b, zero)),
+        )
+        return ops.where(needs_adjustment, ops.add(remainder, b), remainder)
+
+    integer_remainder_fn = make_pointwise(integer_remainder)
+
+    def remainder_scalar(a, b):
+        if not a.get_dtype().is_floating_point and isinstance(b, int):
+            return integer_remainder_fn(a, b)
+        return remainder_fn(a, b)
+
     additional_lowerings[aten.bitwise_and.Tensor] = bitwise_and_tensor
     additional_lowerings[aten.bitwise_or.Tensor] = bitwise_or_tensor
     additional_lowerings[aten.bitwise_not.default] = bitwise_not_default
+    additional_lowerings[aten.remainder.Scalar] = remainder_scalar
 
     return additional_lowerings
 
@@ -806,7 +831,7 @@ def _build_subgraph_buffer_with_additional_lowerings(args, subgraph):
     Build subgraph buffer with additional lowerings for flex_attention.
 
     This function creates a PointwiseSubgraphLowering with additional_lowerings
-    to handle index and bitwise operations as pointwise ops.
+    to handle supported fallback operations as pointwise ops.
     """
     from torch._inductor.subgraph_lowering import PointwiseSubgraphLowering
 
