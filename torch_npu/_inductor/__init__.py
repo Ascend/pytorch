@@ -7,6 +7,7 @@ from torch._inductor.async_compile import AsyncCompile
 
 AsyncCompile.warm_pool()
 os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = ORG_AUTOLOAD
+from torch_npu.utils._dynamo import _inject_inductor_npu_backend_config
 # All backends need npu/cpu/mps device_op_overrides.
 from .codegen.common import register_device_op_overrides_npu
 from .shape_handling import NPUShapeHandling, patch_shape_handling
@@ -360,6 +361,7 @@ def _load_backend():
 
 
 _load_backend()
+_inject_inductor_npu_backend_config()
 
 # Optional MFusion integration: patch Inductor fallback / post-grad when explicitly enabled.
 if os.getenv("TORCHINDUCTOR_ENABLE_MFUSION", "0") == "1":
