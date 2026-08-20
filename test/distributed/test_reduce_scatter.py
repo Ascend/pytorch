@@ -24,7 +24,7 @@ class HcclReduceScatterTestBase(TestCase):
         return dist
 
     # pylint:disable=huawei-too-many-arguments
-    def _test_multiprocess(self, fn, init_pg, expected, input1, world_size, reduce_op=dist.ReduceOp.SUM):
+    def _test_multiprocess(self, fn, init_pg, expected, input1, world_size, reduce_op=dist.ReduceOp.SUM, use_equal=False):
         ctx = mp.get_context('spawn')
         c2p = ctx.Queue(world_size)
         p2c = ctx.Queue(world_size)
@@ -38,8 +38,15 @@ class HcclReduceScatterTestBase(TestCase):
             ps.append(p)
         for _ in range(world_size):
             rank, output = c2p.get()
-            self.assertEqual(output, expected[rank],
-                             ("rank {} Expect receive tensor {} but got {}.").format(rank, expected[rank], output))
+            # torch has no add/mul stub for UInt64, so assertEqual (which
+            # computes output - expected internally) raises. Use torch.equal
+            # for uint64, which compares without subtraction.
+            if use_equal:
+                self.assertTrue(torch.equal(output, expected[rank]),
+                                ("rank {} Expect receive tensor {} but got {}.").format(rank, expected[rank], output))
+            else:
+                self.assertEqual(output, expected[rank],
+                                 ("rank {} Expect receive tensor {} but got {}.").format(rank, expected[rank], output))
 
         for _ in range(world_size):
             p2c.put(0)
@@ -266,6 +273,44 @@ class HcclReduceScatterTest(HcclReduceScatterTestBase):
             input_shapes = [[6]] * world_size
             self._test_multiprocess_lifted(HcclReduceScatterTest._test_reduce_scatter_lifted,
                                            HcclReduceScatterTest._init_dist_hccl, input_shapes, out_shape, world_size)
+
+    # Ascend950 (Atlas A5) extends HCCL data type support with uint64/fp64.
+    @SupportedDevices(["Ascend950"])
+    @skipIfUnsupportMultiNPU(2)
+    def test_reduce_scatter_uint64(self):
+        ranks = [2]
+        shape_format = [[np.uint64, 2, [4, 9]]]
+        for world_size in ranks:
+            for shape in shape_format:
+                input_list = []
+                for _ in range(world_size):
+                    # uint64 is unsigned, use a non-negative range to avoid wrap-around on cast.
+                    _, input1 = create_common_tensor(shape, 0, 10)
+                    input_list.append(input1.cpu())
+                # _construct_excepted_result uses input.cpu()*world_size (mul,
+                # which works for uint64), so pass tensors directly. Only the
+                # final comparison needs torch.equal (assertEqual does a-b which
+                # uint64 lacks), via use_equal=True.
+                expected = self._construct_excepted_result(input_list, world_size, dist.reduce_scatter)
+                self._test_multiprocess(HcclReduceScatterTest._test_reduce_scatter,
+                                        HcclReduceScatterTest._init_dist_hccl, expected, input_list, world_size,
+                                        use_equal=True)
+
+    @SupportedDevices(["Ascend950"])
+    @skipIfUnsupportMultiNPU(2)
+    def test_reduce_scatter_fp64(self):
+        ranks = [2]
+        shape_format = [[np.float64, 2, [4, 9]]]
+        for world_size in ranks:
+            for shape in shape_format:
+                input_list = []
+                for _ in range(world_size):
+                    _, input1 = create_common_tensor(shape, -10, 10)
+                    input_list.append(input1.cpu())
+                expected = self._construct_excepted_result(input_list, world_size, dist.reduce_scatter)
+                self._test_multiprocess(HcclReduceScatterTest._test_reduce_scatter,
+                                        HcclReduceScatterTest._init_dist_hccl, expected, input_list, world_size)
+
 
     @skipIfUnsupportMultiNPU(2)
     def test_reduce_scatter_avg(self):
