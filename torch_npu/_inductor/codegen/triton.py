@@ -3795,7 +3795,16 @@ class NPUIndexTritonKernel(TritonKernel):
         # loads/stores, indirect indexing validity masks, etc.), otherwise we
         # can generate incorrect tl.load/tl.store.
         masked_axis_name = []
-        subblock_axis = V.kernel.current_subblock_axis
+        # Size symbols are not loop axes: "y0 < s0" only constrains y0, and
+        # ops.masked skips them when it ands the axis masks in. Left in, they
+        # fail the subset test below for every load whose index does not spell
+        # the size symbol out, e.g. the first slice of a cat over a dynamic
+        # dimension, whose guarding mask would then be dropped.
+        subblock_axis = {  # noqa: set_linter
+            axis
+            for axis in V.kernel.current_subblock_axis
+            if not str(axis).startswith(("s", "ps", "i"))
+        }
         save_variable_mask = True
         if index_vars and subblock_axis:
             save_variable_mask = subblock_axis.issubset(

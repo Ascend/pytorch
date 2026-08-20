@@ -18,6 +18,7 @@ from typing import Any, Dict, Literal, Optional, Union, List
 from contextlib import contextmanager
 from concurrent.futures import ThreadPoolExecutor
 import torch
+from torch._logging import warning_once
 import triton
 from torch._dynamo.testing import rand_strided
 from torch._inductor import config
@@ -120,6 +121,23 @@ class CompileThreadPool:
         return self.pool.submit(fn, *args, **kwargs)
 
 compile_thread_pool = CompileThreadPool()
+
+
+def npu_profiler_session_active():
+    """Whether a torch_npu profiler session is already tracing in this process.
+
+    The NPU profiler backend is a process-wide singleton. A session opened
+    inside another one finalizes the shared trace when it exits, so the outer
+    session loses its data and reports "Profiler is not initialized". Autotune
+    must therefore never open a profiler while the caller is profiling.
+    """
+    try:
+        from torch_npu.profiler._profiler_path_creator import ProfPathCreator
+        return bool(ProfPathCreator().is_prof_inited)
+    except Exception as exc:  # the probe must never break a kernel launch
+        log.debug("could not probe the torch_npu profiler state: %s", exc)  # noqa: G200
+        return False
+
 
 @contextmanager
 def create_profiler(torch_path, wait=0, warmup=1, active=1, repeat=1, skip_first=1):
@@ -1479,7 +1497,10 @@ class NPUCachingAutotuner(CachingAutotuner):
                 stream=stream,
             )
 
-        if self.inductor_meta.get("profile_bandwidth_with_do_bench_using_profiling", False):
+        if (
+            self.inductor_meta.get("profile_bandwidth_with_do_bench_using_profiling", False)
+            and not npu_profiler_session_active()
+        ):
             return do_bench_using_profiling_npu(kernel_call, rep=1)
 
         return benchmarker.benchmark_gpu(kernel_call, rep=1, device_type='npu')
@@ -1540,6 +1561,15 @@ class NPUCachingAutotuner(CachingAutotuner):
 
     def _benchmark_kernel_funcs_batch(self, kernel_funcs, benchmark_label):
         if not kernel_funcs or not npu_config.aggresive_autotune:
+            return None
+
+        if npu_profiler_session_active():
+            warning_once(
+                log,
+                "autotune ran while the caller was profiling, so the batch benchmark "
+                "was skipped in favour of the timer; warm the model up before "
+                "starting the profiler to keep autotune out of the profiled region",
+            )
             return None
 
         try:
