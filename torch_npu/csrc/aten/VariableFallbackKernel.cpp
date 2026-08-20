@@ -9,6 +9,7 @@
 #include <ATen/core/ivalue.h>
 
 #include "torch_npu/csrc/core/npu/NPUException.h"
+#include "torch_npu/csrc/framework/utils/CpuFallbackUtils.h"
 
 /*
  * This file implements a variable fallback kernel for custom operators.
@@ -246,7 +247,13 @@ bool has_op_name_warned(const std::string& op_name)
 
 void npu_cpu_fallback(const c10::OperatorHandle& op, torch::jit::Stack* stack)
 {
-    if (!has_op_name_warned(c10::toString(op.schema().operator_name()))) {
+    const auto op_name = c10::toString(op.schema().operator_name());
+    at_npu::native::CheckCpuFallbackAllowed(
+        op_name,
+        at_npu::native::CpuFallbackKind::Dispatcher,
+        "no kernel is registered for the NPU PrivateUse1 backend");
+
+    if (!has_op_name_warned(op_name)) {
         TORCH_NPU_WARN("CAUTION: The operator '",
                        op.schema().operator_name(),
                        "' is not currently supported ",
