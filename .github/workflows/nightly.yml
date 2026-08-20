@@ -28,8 +28,8 @@ jobs:
     uses: ./.github/workflows/_build.yml
     secrets: inherit
     with:
-      upstream_repo: pytorch/pytorch
-      upstream_ref: main
+      upstream_repo: kerer-ai/pytorch-nv
+      upstream_ref: main_test
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: master
       docker_image: quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly
