@@ -634,6 +634,54 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 
 </div>
 
+### <code><i>class</i></code> torch.autograd.profiler.KinetoStepTracker
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.profiler.KinetoStepTracker](https://pytorch.org/docs/2.11/generated/torch.autograd.profiler.KinetoStepTracker.html#torch.autograd.profiler.KinetoStepTracker)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
+
+> <font size="3">increment_step()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.profiler.KinetoStepTracker.increment_step](https://pytorch.org/docs/2.11/generated/torch.autograd.profiler.KinetoStepTracker.html#torch.autograd.profiler.KinetoStepTracker.increment_step)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
+
+</div>
+
+> <font size="3">current_step()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.profiler.KinetoStepTracker.current_step](https://pytorch.org/docs/2.11/generated/torch.autograd.profiler.KinetoStepTracker.html#torch.autograd.profiler.KinetoStepTracker.current_step)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
+
+</div>
+
+</div>
+
 ## Debugging and anomaly detection
 
 ### torch.autograd.detect_anomaly
