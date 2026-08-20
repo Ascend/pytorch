@@ -8,7 +8,10 @@ if os.environ.get("TORCH_WARM_POOL", "1") == "1":
     AsyncCompile.warm_pool()
 os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = ORG_AUTOLOAD
 
-from torch_npu.utils._dynamo import _dynamo_register_interface_for_device
+from torch_npu.utils._dynamo import (
+    _dynamo_register_interface_for_device,
+    _inject_inductor_npu_backend_config,
+)
 # all backends need register npu/cpu/mps device_op_overrides
 from .graph import patch_codegen_with_cpp_wrapper
 from .utils import patch_has_triton, patch_device_supports_tma, patch_is_gpu
@@ -350,3 +353,4 @@ def _load_backend():
     _InductorNpuRegistry._loaded_backend = backend
 
 _load_backend()
+_inject_inductor_npu_backend_config()
