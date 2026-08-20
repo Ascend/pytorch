@@ -33,6 +33,8 @@ from testutils import TestUtils
 import torch_npu._inductor.triton_experimental.npu_triton_heuristics as _heur
 from torch_npu._inductor.triton_experimental.npu_triton_heuristics import (
     _pw1d_formula_configs, _red_formula_configs,
+    npu_triton_config,
+    _npu_config_key, _npu_unique_configs, _npu_hash_configs,
     _NPU_PTR_ELEM_BYTES, _NPU_UB_CAPACITY_BYTES, _NPU_UB_OVERHEAD_FACTOR)
 from torch_npu._inductor.triton_experimental import config as ncfg
 
@@ -43,11 +45,21 @@ HOLE_R = (512, 1024, 2048, 4096)
 
 # L0 helpers: call the pure generators directly with synthesized dicts.
 def _norm(c):
-    """Config object OR serialized {kwargs, num_warps, num_stages} dict -> tuple."""
-    kw = c.kwargs if hasattr(c, "kwargs") else c["kwargs"]
+    """Config object OR serialized {kwargs, num_warps, num_stages} dict -> tuple.
+
+    Mirrors the backend identity key (_npu_config_key): kwargs + num_warps +
+    num_stages + the backend extra_options slot, so auto_blockify variants of
+    one tile shape count as distinct configs."""
+    is_obj = hasattr(c, "kwargs")
+    kw = c.kwargs if is_obj else c["kwargs"]
     nw = c.num_warps if hasattr(c, "num_warps") else c["num_warps"]
     ns = c.num_stages if hasattr(c, "num_stages") else c["num_stages"]
-    return (tuple(sorted(kw.items())), nw, ns)
+    extra = (getattr(c, "extra_options", None) if is_obj else c.get("extra_options")) or {}
+    return (
+        tuple(sorted(kw.items()))
+        + (("num_warps", nw), ("num_stages", ns))
+        + tuple(sorted(extra.items()))
+    )
 
 
 def _norm_list(cfgs):
@@ -147,15 +159,20 @@ class TestAutotuneFormula(TestCase):
 
     def test_huge_kernel_auto_blockify_on(self):
         # all_blocks_parallel=True (default): huge numel appends auto_blockify_size
-        # {2,4,8} on the cap XBLOCK.
+        # {2,4,8} on the cap XBLOCK. The value rides the backend Config.extra_options
+        # slot (NOT cfg.kwargs, whose keys must all be kernel-signature constexprs).
         self.assertTrue(ncfg.all_blocks_parallel)
         cfgs = pw1d(2_000_000_000, "fp32", 1)
-        blockify = sorted(c.kwargs["auto_blockify_size"]
-                          for c in cfgs if "auto_blockify_size" in c.kwargs)
+        blockify = sorted(c.extra_options["auto_blockify_size"]
+                          for c in cfgs
+                          if getattr(c, "extra_options", None))
         self.assertEqual(blockify, [2, 4, 8])
         cap_xb = max(c.kwargs["XBLOCK"] for c in cfgs)
         self.assertTrue(all(c.kwargs["XBLOCK"] == cap_xb
-                            for c in cfgs if "auto_blockify_size" in c.kwargs))
+                            for c in cfgs if getattr(c, "extra_options", None)))
+        # The slot separation is the contract: no backend option may leak into
+        # kwargs (constants channel).
+        self.assertFalse(any("auto_blockify_size" in c.kwargs for c in cfgs))
 
     def test_numel_one(self):
         # numel < align: bracket floors at 1, cap skipped -> single [1].
@@ -339,6 +356,106 @@ class TestAutotuneFormula(TestCase):
 
 
 instantiate_parametrized_tests(TestAutotuneFormula)
+
+
+# L0: auto_blockify slot + gate contract. auto_blockify_size is a triton-ascend
+# compile option (NPUOptions field), NOT a kernel constexpr: it must ride the
+# upstream third-party backend slot Config.extra_options (AutotuneCache.save
+# serializes it at autotune_cache.py:325, read_best restores it at :674/:694/:701)
+# and reach triton.compile via the options dict. If it ever lands in
+# Config.kwargs, the constants merge in _precompile_config feeds it to
+# ast_to_ttir and every compile of the config dies with
+# "ValueError: 'auto_blockify_size' is not in list". The gate semantics are the
+# pre-slot-era ones, unchanged: all_blocks_parallel=True AND
+# ceildiv(numel, cap_XBLOCK) > 65535 -> append {2,4,8} on the cap tile.
+class TestAutoBlockify(TestCase):
+
+    HUGE = 2_000_000_000  # fp32/num_load=1: cap 12288, grid 162760 >> 65535
+
+    def _ab_cfgs(self, numel, dtype="fp32", num_load=1):
+        cfgs = pw1d(numel, dtype, num_load)
+        with_ab = [c for c in cfgs if getattr(c, "extra_options", None)]
+        without_ab = [c for c in cfgs if getattr(c, "extra_options", None) is None]
+        return cfgs, with_ab, without_ab
+
+    def test_slot_placement_when_on(self):
+        # ON case: {2,4,8} ride extra_options, exactly one key per config,
+        # kwargs stay pure constexprs, and only the cap tile carries the slot.
+        cfgs, with_ab, without_ab = self._ab_cfgs(self.HUGE)
+        self.assertEqual(
+            sorted(c.extra_options["auto_blockify_size"] for c in with_ab), [2, 4, 8])
+        for c in with_ab:
+            self.assertEqual(set(c.extra_options), {"auto_blockify_size"})
+        self.assertFalse(any("auto_blockify_size" in c.kwargs for c in cfgs))
+        self.assertEqual(len(with_ab) + len(without_ab), len(cfgs))
+        cap = max(c.kwargs["XBLOCK"] for c in cfgs)
+        self.assertTrue(all(c.kwargs["XBLOCK"] == cap for c in with_ab))
+
+    def test_gate_off_below_grid_threshold(self):
+        # ceildiv(numel, cap) == 65535 exactly: OFF (the gate is strictly >).
+        align = _pw1d_align("fp32")
+        hi = _pw1d_hi(self.HUGE, "fp32", 1)
+        cap = (hi // align) * align
+        _, with_ab, _ = self._ab_cfgs(65535 * cap)
+        self.assertEqual(with_ab, [])
+
+    def test_gate_on_just_above_grid_threshold(self):
+        # One block over the 65535 coreDim limit: ON -- the boundary the
+        # mobilevit_s bs=128 crash kernel sits exactly on (grid 65536).
+        align = _pw1d_align("fp32")
+        hi = _pw1d_hi(self.HUGE, "fp32", 1)
+        cap = (hi // align) * align
+        _, with_ab, _ = self._ab_cfgs(65536 * cap)
+        self.assertEqual(
+            sorted(c.extra_options["auto_blockify_size"] for c in with_ab), [2, 4, 8])
+
+    def test_gate_small_kernel_off(self):
+        # grid far below 65535: never generates backend-option candidates.
+        _, with_ab, _ = self._ab_cfgs(1_000_000, "fp32", 2)
+        self.assertEqual(with_ab, [])
+
+    def test_gate_all_blocks_parallel_off(self):
+        # The feature switch (config all_blocks_parallel, default True) kills
+        # candidate generation even for a huge grid.
+        saved = ncfg.all_blocks_parallel
+        try:
+            ncfg.all_blocks_parallel = False
+            _, with_ab, _ = self._ab_cfgs(self.HUGE)
+            self.assertEqual(with_ab, [])
+        finally:
+            ncfg.all_blocks_parallel = saved
+
+    def test_identity_distinguishes_backend_options(self):
+        # Upstream's dedup/hash key (kwargs+num_warps+num_stages, see
+        # runtime_utils.triton_config_to_hashable / triton_heuristics.hash_configs)
+        # cannot see extra_options: the {2,4,8} candidates share one tile shape
+        # and would collapse into one. _npu_config_key/_npu_unique_configs/
+        # _npu_hash_configs (used by cached_autotune) must keep them distinct.
+        size_hints = {"x": self.HUGE}
+        plain = npu_triton_config(size_hints, 4096)
+        ab = [npu_triton_config(size_hints, 4096, auto_blockify_size=v)
+              for v in (2, 4, 8)]
+        keys = [_npu_config_key(c) for c in [plain] + ab]
+        self.assertEqual(len(keys), len(set(keys)))
+        self.assertEqual(len(_npu_unique_configs([plain] + ab)), 4)
+        self.assertEqual(len(_npu_unique_configs([plain, plain])), 1)
+        self.assertNotEqual(_npu_hash_configs([plain]), _npu_hash_configs([ab[0]]))
+
+    def test_norm_roundtrip_carries_extra_options(self):
+        # The serialized config dict (the shape AutotuneCache.save writes /
+        # read_best restores) and the live Config must normalize to the same
+        # identity -- losing extra_options must change the identity.
+        size_hints = {"x": self.HUGE}
+        cfg = npu_triton_config(size_hints, 4096, auto_blockify_size=4)
+        d = {
+            "kwargs": dict(cfg.kwargs),
+            "num_warps": cfg.num_warps,
+            "num_stages": cfg.num_stages,
+            "extra_options": dict(cfg.extra_options),
+        }
+        self.assertEqual(_norm(cfg), _norm(d))
+        d.pop("extra_options")
+        self.assertNotEqual(_norm(cfg), _norm(d))
 
 
 # L0: broad-grid minimal contract for the REDUCTION generator only (varied dtype /

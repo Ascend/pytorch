@@ -22,6 +22,7 @@
 
 import copy
 import functools
+import hashlib
 import logging
 import math
 import operator
@@ -48,9 +49,7 @@ from torch._inductor.runtime.triton_heuristics import (
     CachingAutotuner,
     TritonCompileResult,
     autotune_hints_to_configs,
-    unique_configs,
     triton_config_reduction,
-    hash_configs,
     get_first_attr,
 )
 from torch._inductor.runtime.autotune_cache import AutotuneCache
@@ -854,8 +853,9 @@ class NPUCachingAutotuner(CachingAutotuner):
         config fails to compile (typically UB overflow on giant fused kernels).
 
         We rebuild Configs from one of the failed configs as a template — that
-        preserves auxiliary kwargs like ``auto_blockify_size``
-        — but override the *_BLOCK kwargs with powers of two in [1, 256].
+        preserves backend compile options riding the Config.extra_options slot
+        (``auto_blockify_size``) — but override the *_BLOCK kwargs with powers
+        of two in [1, 256].
         Reduction R*_BLOCK kwargs are left untouched (UB overflow is dominated
         by the pointwise tile; reduction tiles are sized differently).
         """
@@ -898,11 +898,15 @@ class NPUCachingAutotuner(CachingAutotuner):
             if key in seen:
                 continue
             seen.add(key)
-            candidates.append(Config(
+            fallback_cfg = Config(
                 cfg_kwargs,
                 num_warps=getattr(template, "num_warps", 8),
                 num_stages=getattr(template, "num_stages", 1),
-            ))
+            )
+            template_extra = getattr(template, "extra_options", None)
+            if template_extra:
+                fallback_cfg.extra_options = template_extra
+            candidates.append(fallback_cfg)
 
         results = []
         last_exc = None
@@ -986,6 +990,11 @@ class NPUCachingAutotuner(CachingAutotuner):
             "target": target,
             "options": options,
         }
+        # Backend compile options (auto_blockify_size & co.) ride the upstream
+        # third-party Config.extra_options slot; forward them through the
+        # options channel. NPUOptions.parse_options maps the keys it knows onto
+        # its fields and silently drops the rest.
+        options.update(getattr(cfg, "extra_options", None) or {})
 
         try:
             binary = triton.compile(*compile_args, **compile_kwargs)
@@ -1295,6 +1304,41 @@ class NPUCachingAutotuner(CachingAutotuner):
         return times[len(times) // 2]
 
 
+def _npu_config_key(cfg: Config) -> tuple:
+    """Identity key for config dedup and autotune-cache hashing: upstream's
+    triton_config_to_hashable/hash_configs key ONLY (kwargs, num_warps,
+    num_stages), which would collapse candidates that differ solely in the
+    backend extra_options slot (auto_blockify_size {2,4,8} all share the same
+    tile kwargs). Extend the key so each backend-option candidate stays a
+    distinct autotune candidate; save and read_best both go through this file,
+    so the hash stays self-consistent end to end."""
+    items = sorted(cfg.kwargs.items())
+    items.append(("num_warps", cfg.num_warps))
+    items.append(("num_stages", cfg.num_stages))
+    extra = getattr(cfg, "extra_options", None)
+    if extra:
+        items.extend(sorted(extra.items()))
+    return tuple(items)
+
+
+def _npu_unique_configs(configs):
+    seen = set()
+    out = []
+    for cfg in configs:
+        key = _npu_config_key(cfg)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(cfg)
+    return out
+
+
+def _npu_hash_configs(configs):
+    hasher = hashlib.sha256()
+    for cfg in configs:
+        hasher.update(f"{_npu_config_key(cfg)}\n".encode())
+    return hasher.hexdigest()
+
 
 def cached_autotune(
     size_hints: Optional[List[int]],
@@ -1309,7 +1353,7 @@ def cached_autotune(
     Override of cached_autotune to redirect to NPU autotuner subclass.
     In 2.7.1, uses AutotuneCache instead of manual file caching.
     """
-    configs = unique_configs(configs)
+    configs = _npu_unique_configs(configs)
     if len(configs) != 1 and not filename:
         raise ValueError("[triton_experimental] cached_autotune requires a filename when multiple configs are given")
     inductor_meta = {} if inductor_meta is None else inductor_meta
@@ -1323,7 +1367,7 @@ def cached_autotune(
         and (len(configs) > 1 or inductor_meta.get("coordinate_descent_tuning"))
         and not os.environ.get("TRITON_INTERPRET", "0") == "1"
     ):
-        configs_hash = hash_configs(configs)
+        configs_hash = _npu_hash_configs(configs)
         autotune_cache = AutotuneCache.create(inductor_meta, filename, configs_hash)
         if autotune_cache and (best_config := autotune_cache.read_best(inductor_meta, configs)):
             configs = [best_config]
@@ -1381,9 +1425,17 @@ def npu_triton_config(
         cfg["YBLOCK"] = min(y, size_hints["y"])
     if z:
         cfg["ZBLOCK"] = min(z, size_hints["z"])
+    config = Config(cfg, num_warps=8, num_stages=num_stages)
     if auto_blockify_size is not None:
-        cfg["auto_blockify_size"] = auto_blockify_size
-    return Config(cfg, num_warps=8, num_stages=num_stages)
+        # Backend compile option, NOT a kernel constexpr: it must never enter
+        # cfg.kwargs (whose keys all flow into ASTSource constants and must be
+        # kernel signature params). Ride the upstream third-party backend slot
+        # Config.extra_options instead -- AutotuneCache.save serializes it and
+        # read_best restores it -- and reach triton.compile via the options
+        # dict (NPUOptions.auto_blockify_size), same channel triton-ascend's
+        # own autotune examples use at JIT-launch level.
+        config.extra_options = {"auto_blockify_size": auto_blockify_size}
+    return config
 
 
 autotune_enhance = ncfg.autotune_enhance
