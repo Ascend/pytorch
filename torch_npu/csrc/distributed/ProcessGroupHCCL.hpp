@@ -654,6 +654,18 @@ public:
         std::vector<int64_t>& outputSplitSizes,
         const c10d::AllgatherOptions& opts);
 
+    c10::intrusive_ptr<c10d::Work> _alltoallvc_inner(
+        at::Tensor& outputTensor,
+        at::Tensor& inputTensor,
+        std::vector<int64_t>& sendCountMatrix,
+        const c10d::AllToAllOptions& opts);
+
+    c10::intrusive_ptr<c10d::Work> _alltoallvc(
+        at::Tensor& outputTensor,
+        at::Tensor& inputTensor,
+        std::vector<int64_t>& sendCountMatrix,
+        const c10d::AllToAllOptions& opts);
+
     c10::intrusive_ptr<c10d::Work> allgather(
         std::vector<std::vector<at::Tensor>>& outputTensors,
         std::vector<at::Tensor>& inputTensors,

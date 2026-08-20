@@ -16,6 +16,7 @@ namespace c10d_npu {
 
 TORCH_NPU_REGISTER_LIBRARY(libhccl)
 TORCH_NPU_LOAD_FUNC(HcclAlltoAllV)
+TORCH_NPU_LOAD_FUNC(HcclAlltoAllVC)
 TORCH_NPU_LOAD_FUNC(HcclAllGatherV)
 TORCH_NPU_LOAD_FUNC(HcclReduceScatterV)
 TORCH_NPU_LOAD_FUNC(HcclReduce)
@@ -195,6 +196,24 @@ extern HcclResult hcclAlltoAllV(const void *sendBuf, const void *sendCounts, con
     TORCH_CHECK(func, "Failed to find function ", "HcclAlltoAllV", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(sendBuf, sendCounts, sdispls, sendType,
         recvBuf, recvCounts, rdispls, recvType, comm, stream);
+    return ret;
+}
+
+extern HcclResult hcclAlltoAllVC(const void *sendBuf, const void *sendCountMatrix,
+    HcclDataType sendType, const void *recvBuf, HcclDataType recvType,
+    HcclComm comm, aclrtStream stream)
+{
+    using HcclAlltoAllVCFunc = HcclResult(*)(
+        const void *, const void *, HcclDataType,
+        const void *, HcclDataType,
+        HcclComm, aclrtStream);
+    static HcclAlltoAllVCFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcclAlltoAllVCFunc)TORCH_NPU_GET_FUNC(HcclAlltoAllVC);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclAlltoAllVC", DIST_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(sendBuf, sendCountMatrix, sendType,
+        recvBuf, recvType, comm, stream);
     return ret;
 }
 
