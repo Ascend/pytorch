@@ -2351,6 +2351,9 @@
   "torch_npu.distributed.all_gather_into_tensor_uneven": {
     "signature": "(output, input, output_split_sizes=None, group=None, async_op=False)"
   },
+  "torch_npu.distributed.all_to_all_vc": {
+    "signature": "(output, input, send_count_matrix, group=None, async_op=False)"
+  },
   "torch_npu.multiprocessing.reductions.rebuild_npu_event": {
     "signature": "(device, handle)"
   },
