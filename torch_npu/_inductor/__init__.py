@@ -4,7 +4,8 @@ ORG_AUTOLOAD = os.getenv("TORCH_DEVICE_BACKEND_AUTOLOAD", "1")
 os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = "0"
 from torch._inductor.async_compile import AsyncCompile
 
-AsyncCompile.warm_pool()
+if os.environ.get("TORCH_WARM_POOL", "1") == "1":
+    AsyncCompile.warm_pool()
 os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = ORG_AUTOLOAD
 
 from torch_npu.utils._dynamo import _dynamo_register_interface_for_device
