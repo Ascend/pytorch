@@ -25,7 +25,7 @@
 ## 升级TorchNPU
 
 1. 需要先手动卸载旧版本，具体可参见上述卸载操作。
-2. 安装新版本，具体可参见[源码编译](references/building_from_source.md)进行操作。
+2. 安装新版本，具体可参见[快速安装](quick_install.md)进行操作。
 
 > [!NOTE]
 >

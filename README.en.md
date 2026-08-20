@@ -5,16 +5,16 @@
 </p>
 
 <p align="center">
-  English · <a href="./README.zh.md">中文</a>
+  English | <a href="./README.en.md">简体中文</a>
 </p>
 
 <p align="center">
   <a href="#supported-pytorch-versions">Supported Versions</a> ·
   <a href="#installation">Installation</a> ·
   <a href="#quick-start">Quick Start</a> ·
-  <a href="./COMPATIBILITY.md">Compatibility</a> ·
-  <a href="./SUPPORT.md">Support</a> ·
-  <a href="./CONTRIBUTING.md">Contributing</a> ·
+  <a href="./COMPATIBILITY.en.md">Compatibility</a> ·
+  <a href="./SUPPORT.en.md">Support</a> ·
+  <a href="./CONTRIBUTING.en.md">Contributing</a> ·
   <a href="https://www.hiascend.com/developer/software/ai-frameworks/pytorch/document">Docs</a> ·
   <a href="https://www.hiascend.com/cn/developer/software/ai-frameworks/pytorch">Community</a>
 </p>
@@ -65,7 +65,7 @@ TorchNPU fully inherits and reuses extensive mature capabilities from upstream P
 
 This branch adapts to multiple PyTorch versions from a single source tree. The PyTorch versions it currently supports are declared in [version.txt](./version.txt), which is the single source of truth and is updated as new versions are adapted.
 
-For the compatibility matrix of released packages (TorchNPU / PyTorch / CANN / Python), please refer to [Compatibility](./COMPATIBILITY.md).
+For the compatibility matrix of released packages (TorchNPU / PyTorch / CANN / Python), please refer to [Compatibility](./COMPATIBILITY.en.md).
 
 ## Installation
 
@@ -144,7 +144,7 @@ Each SIG holds regular meetings, mailing lists, and contribution guides. Click t
 
 ## Security Note
 
-For system security hardening, recommended user configurations, and file permission controls for TorchNPU, please refer to the [Security Note](SECURITYNOTE.md).
+For system security hardening, recommended user configurations, and file permission controls for TorchNPU, please refer to the [Security Note](SECURITYNOTE.en.md).
 
 ## Disclaimer
 
