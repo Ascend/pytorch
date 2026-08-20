@@ -1,5 +1,9 @@
 # Ascend Extension for PyTorch插件
 
+<p>
+  简体中文 | <a href="./README.md">English</a>
+</p>
+
 ## 简介
 
 本项目开发了名为**torch_npu**的**Ascend Extension for PyTorch**插件，使昇腾NPU可以适配PyTorch框架，为使用PyTorch框架的开发者提供昇腾AI处理器的超强算力。
