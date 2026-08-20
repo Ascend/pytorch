@@ -142,11 +142,21 @@ jobs:
 
           if [ "${TOTAL_COUNT}" != "0" ]; then
             echo ""
-            echo "Top commits found (sorted by author-date desc):"
+            echo "All commits found (sorted by author-date desc):"
             echo "$SEARCH_RESPONSE" | jq -r '.items[] | "  SHA: \(.sha[0:12])  author-date: \(.commit.author.date // "?")  message: \(.commit.message | split("\n")[0])"'
-            TOP_SHA=$(echo "$SEARCH_RESPONSE" | jq -r '.items[0].sha // "null"')
-            echo ""
-            echo "Best candidate SHA: ${TOP_SHA}"
+
+            # Filter out "Revert" commits — a Revert of a PR also matches the
+            # PR number in its message, but is NOT the commit we want to build.
+            MERGE_SHA=$(echo "$SEARCH_RESPONSE" | jq -r \
+              '[.items[] | select((.commit.message | split("\n")[0]) | test("^Revert"; "i") | not)] | .[0].sha // "null"')
+
+            if [ "${MERGE_SHA}" != "null" ]; then
+              echo ""
+              echo "Merge commit SHA (excluding reverts): ${MERGE_SHA}"
+            else
+              echo ""
+              echo "WARN: All matching commits are reverts, no merge commit found"
+            fi
           else
             echo "WARN: No commits found for PR #${PR_NUMBER}"
           fi
