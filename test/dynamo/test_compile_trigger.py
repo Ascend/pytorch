@@ -125,6 +125,91 @@ class TorchCompileTriggerTests(unittest.TestCase):
             """
         )
 
+    # Lazy top-level compiler proxies must expose child modules through both
+    # the proxy and the independently packaged implementation.
+    def test_lazy_compiler_proxies_bind_submodules(self):
+        self.run_in_subprocess(
+            """
+            import sys
+            import types
+
+            import torch
+            import torch_npu.dynamo as npu_dynamo
+
+            for package_name, proxy_type, real_attr in (
+                ("npugraph_ex", npu_dynamo._LazyNpuGraphEx, "_npugraph_ex"),
+                ("torchair", npu_dynamo._LazyTorchair, "_torchair"),
+            ):
+                real_name = "torch_npu.dynamo." + package_name
+                package = types.ModuleType(real_name)
+                package.__path__ = []
+                child = types.ModuleType(package_name + ".npu_fx_compiler")
+                child._optimize_fx = object()
+                proxy = proxy_type(package_name)
+                setattr(proxy, real_attr, package)
+                sys.modules[real_name] = package
+                sys.modules[package_name] = proxy
+                sys.modules[package_name + ".npu_fx_compiler"] = child
+
+                namespace = {}
+                exec("import " + package_name, namespace)
+                assert namespace[package_name] is proxy
+                exec(
+                    "from " + package_name + ".npu_fx_compiler import _optimize_fx",
+                    namespace,
+                )
+                assert namespace["_optimize_fx"] is child._optimize_fx
+
+                # Force the fallback path that repairs the real package
+                # attribute in addition to the proxy attribute.
+                proxy.__dict__.pop("npu_fx_compiler", None)
+                assert hasattr(proxy, "npu_fx_compiler")
+                assert hasattr(package, "npu_fx_compiler")
+                assert package.npu_fx_compiler is proxy.npu_fx_compiler
+                assert package.npu_fx_compiler._optimize_fx is namespace["_optimize_fx"]
+            """
+        )
+
+    # Verify wheel metadata exposes loadable NPU backends without compiler imports.
+    def test_dynamo_backend_entrypoint_metadata_and_cold_load(self):
+        self.run_in_subprocess(
+            """
+            import importlib.metadata
+            import sys
+
+            expected = {
+                "npu": "torch_npu.dynamo:_npu_backend_entrypoint",
+                "npugraph_ex": (
+                    "torch_npu.dynamo:_npugraph_ex_backend_entrypoint"
+                ),
+                "npugraphs": "torch_npu.dynamo:_npugraphs_backend_entrypoint",
+            }
+            entry_points = {
+                entry_point.name: entry_point
+                for entry_point in importlib.metadata.entry_points(
+                    group="torch_dynamo_backends"
+                )
+                if entry_point.name in expected
+            }
+
+            assert {
+                name: entry_point.value
+                for name, entry_point in entry_points.items()
+            } == expected
+            assert "torch_npu" not in sys.modules
+            assert "torch._dynamo" not in sys.modules
+            assert "torch._inductor" not in sys.modules
+
+            loaded = {
+                name: entry_points[name].load()
+                for name in expected
+            }
+            assert all(callable(backend) for backend in loaded.values())
+            assert "torch._dynamo" not in sys.modules
+            assert "torch._inductor" not in sys.modules
+            """
+        )
+
     # Verify entry-point loading cannot register the NPU backend twice.
     def test_backend_entrypoint_can_import_torch_npu_without_duplicate_registration(self):
         self.run_in_subprocess(
