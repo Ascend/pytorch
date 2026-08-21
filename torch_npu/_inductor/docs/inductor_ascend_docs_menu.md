@@ -15,7 +15,7 @@
         - [TORCHINDUCTOR_NPU_CATLASS_DIR](./feature/catlass/TORCHINDUCTOR_NPU_CATLASS_DIR.md)
         - [TORCHINDUCTOR_PROFILE_WITH_DO_BENCH_USING_PROFILING](./feature/catlass/TORCHINDUCTOR_PROFILE_WITH_DO_BENCH_USING_PROFILING.md)
     -   [动态shape](./feature/dynamicshape/dynamicshape.md)
-        - [快速入门](./feature/dynamicshape/overview.md)
+        - [快速入门](./feature/dynamicshape/shapehandling.md)
     -   [FXGraph图优化](./feature/graph_optimization/graph_optimization.md)
         - [快速入门](./feature/graph_optimization/overview.md)
         - [SHUT_DOWN_FX_PASS_LIST](./feature/graph_optimization/SHUT_DOWN_FX_PASS_LIST.md)
