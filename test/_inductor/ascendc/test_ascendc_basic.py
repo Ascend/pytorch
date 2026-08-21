@@ -13,23 +13,6 @@ from torch.testing._internal.common_utils import (
 @unittest.skipIf(not torch.npu.is_available(), "requires an NPU device")
 class TestAscendcBasic(TestCase):
 
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls._ascendc_ok = False
-        try:
-            x = torch.randn(4, 4, device="npu")
-            torch.compile(lambda t: t + 1, backend="inductor",
-                          options={"npu_backend": "ascendc"})(x)
-            cls._ascendc_ok = True
-        except Exception:
-            pass
-
-    def setUp(self):
-        super().setUp()
-        if not self._ascendc_ok:
-            self.skipTest("ascendc backend not available")
-
     @parametrize("dtype", [torch.float32, torch.float16])
     def test_mul_sub(self, dtype):
         """Pointwise pattern: compiled output matches eager."""
