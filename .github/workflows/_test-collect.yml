@@ -38,17 +38,11 @@ on:
         type: string
         default: ''
         description: >-
-          Path (relative to repo root) to a JSONL skip list file. When set,
-          matching nodeids are removed after collection and before sharding.
-          When empty, no skip filtering is applied.
-      extra_skip_lists:
-        required: false
-        type: string
-        default: ''
-        description: >-
-          Newline-separated paths (relative to repo root) to additional skip
-          list files. Applied in addition to skip_list. Used by nightly workflow
-          for disabled/running-skip filtering.
+          Path(s) (relative to repo root) to skip list files. Newline-separated
+          for multiple files. When set, matching nodeids are removed after
+          collection and before sharding. When empty, no skip filtering is
+          applied. Supports JSONL, JSON {skip_nodeids:[...]}, JSON array,
+          and JSON {nodeid: {reason:...}} formats.
       runner_label:
         required: false
         type: string
@@ -241,24 +235,13 @@ jobs:
           SKIP_LIST_ARG=""
           SKIP_LIST_INPUT='${{ inputs.skip_list }}'
           if [ -n "${SKIP_LIST_INPUT}" ]; then
-            SKIP_LIST_PATH="${GITHUB_WORKSPACE}/ci-scripts/${SKIP_LIST_INPUT}"
-            if [ -f "${SKIP_LIST_PATH}" ]; then
-              SKIP_LIST_ARG="--skip-list ${SKIP_LIST_PATH}"
-              echo "Skip list: ${SKIP_LIST_INPUT}"
-            else
-              echo "WARNING: skip list file not found: ${SKIP_LIST_PATH}"
-            fi
-          fi
-
-          EXTRA_SKIP_LISTS_INPUT='${{ inputs.extra_skip_lists }}'
-          if [ -n "${EXTRA_SKIP_LISTS_INPUT}" ]; then
-            for skip_path in ${EXTRA_SKIP_LISTS_INPUT}; do
+            for skip_path in ${SKIP_LIST_INPUT}; do
               FULL_PATH="${GITHUB_WORKSPACE}/ci-scripts/${skip_path}"
               if [ -f "${FULL_PATH}" ]; then
                 SKIP_LIST_ARG="${SKIP_LIST_ARG} --skip-list ${FULL_PATH}"
-                echo "Extra skip list: ${skip_path}"
+                echo "Skip list: ${skip_path}"
               else
-                echo "WARNING: extra skip list file not found: ${FULL_PATH}"
+                echo "WARNING: skip list file not found: ${FULL_PATH}"
               fi
             done
           fi
