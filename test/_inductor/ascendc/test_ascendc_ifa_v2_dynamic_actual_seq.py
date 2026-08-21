@@ -62,20 +62,6 @@ def _temporary_env(name, value):
             os.environ[name] = old_value
 
 
-def _is_ascendc_backend_available():
-    try:
-        x = torch.randn(4, 4, device="npu")
-        torch.compile(
-            lambda t: t + 1,
-            backend="inductor",
-            options={"npu_backend": "ascendc"},
-        )(x)
-        torch.npu.synchronize()
-    except Exception:
-        return False
-    return True
-
-
 def _run_dynamic_actual_seq_case():
     import torch_npu._inductor.ascendc.config as ascendc_config
 
@@ -166,15 +152,8 @@ def _assert_dynamic_actual_seq_key_reuse(test_case, logs):
 @unittest.skipIf(not torch.npu.is_available(), "requires an NPU device")
 class TestAscendcIFAv2DynamicActualSeq(TestCase):
 
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls._ascendc_ok = _is_ascendc_backend_available()
-
     def setUp(self):
         super().setUp()
-        if not self._ascendc_ok:
-            self.skipTest("ascendc backend not available")
         torch._dynamo.reset()
 
     def tearDown(self):
