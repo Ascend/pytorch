@@ -9,11 +9,13 @@ from torch._inductor import config as inductor_config
 from .. import config as npu_config
 
 log = npu_config.log
+NO_SPARSE_BLOCK_SIZE = 1 << 30
 
 
 class FlexMode(Enum):
     """Operation mode for Flex Attention."""
     FWD = "fwd"
+    BWD = "bwd"
     BWDDQ = "bwd_dq"
     BWDDKDV = "bwd_dkdv"
 
@@ -26,20 +28,45 @@ class FlexAttentionConfig:
     num_warps: int
     num_stages: int
 
-    def to_dict(self) -> dict:
-        """Convert to dictionary format."""
-        return {
-            "BLOCK_M": self.block_m,
-            "BLOCK_N": self.block_n,
+    def to_dict(self, mode: FlexMode) -> dict:
+        """Convert canonical blocks to the names consumed by a template."""
+        common = {
             "num_warps": self.num_warps,
             "num_stages": self.num_stages,
         }
+        if mode == FlexMode.FWD:
+            return {
+                "BLOCK_M": self.block_m,
+                "BLOCK_N": self.block_n,
+                **common,
+            }
+        if mode == FlexMode.BWD:
+            return {
+                "BLOCK_M1": self.block_m,
+                "BLOCK_N1": self.block_n,
+                "BLOCK_M2": self.block_n,
+                "BLOCK_N2": self.block_m,
+                **common,
+            }
+        if mode == FlexMode.BWDDQ:
+            return {
+                "BLOCK_M2": self.block_m,
+                "BLOCK_N2": self.block_n,
+                **common,
+            }
+        if mode == FlexMode.BWDDKDV:
+            return {
+                "BLOCK_M1": self.block_m,
+                "BLOCK_N1": self.block_n,
+                **common,
+            }
+        raise ValueError(f"unsupported flex attention mode: {mode}")
 
 
 class FlexAttentionConfigGenerator:
     """Generate block tiling candidates without shape or dtype dependencies."""
 
-    BLOCK_SIZE_CANDIDATES = [256, 128, 64, 32, 16]
+    BLOCK_SIZE_CANDIDATES = [128, 64, 32, 16]
 
     def __init__(
         self,
@@ -47,28 +74,28 @@ class FlexAttentionConfigGenerator:
         sparse_kv_block_size: Optional[int] = None,
         mode: FlexMode = FlexMode.FWD,
     ):
-        self.sparse_q_block_size = (
-            int(sparse_q_block_size) if sparse_q_block_size is not None else None
+        self.sparse_q_block_size = self._normalize_sparse_block_size(
+            sparse_q_block_size
         )
-        self.sparse_kv_block_size = (
-            int(sparse_kv_block_size) if sparse_kv_block_size is not None else None
+        self.sparse_kv_block_size = self._normalize_sparse_block_size(
+            sparse_kv_block_size
         )
         self.mode = mode
 
-        if self.mode == FlexMode.BWDDQ:
-            self.valid_block_m = self._get_valid_block_sizes(
-                self.sparse_kv_block_size
-            )
-            self.valid_block_n = self._get_valid_block_sizes(
-                self.sparse_q_block_size
-            )
-        else:
-            self.valid_block_m = self._get_valid_block_sizes(
-                self.sparse_q_block_size
-            )
-            self.valid_block_n = self._get_valid_block_sizes(
-                self.sparse_kv_block_size
-            )
+        self.valid_block_m = self._get_valid_block_sizes(
+            self.sparse_q_block_size
+        )
+        self.valid_block_n = self._get_valid_block_sizes(
+            self.sparse_kv_block_size
+        )
+        if self.mode == FlexMode.BWD:
+            common_blocks = [
+                block
+                for block in self.valid_block_m
+                if block in self.valid_block_n
+            ]
+            self.valid_block_m = common_blocks
+            self.valid_block_n = common_blocks
 
     def _get_valid_block_sizes(
         self, sparse_block_size: Optional[int]
@@ -85,6 +112,17 @@ class FlexAttentionConfigGenerator:
             if size <= sparse_block_size and sparse_block_size % size == 0
         ]
 
+    @staticmethod
+    def _normalize_sparse_block_size(
+        sparse_block_size: Optional[int],
+    ) -> Optional[int]:
+        if sparse_block_size is None:
+            return None
+        sparse_block_size = int(sparse_block_size)
+        if sparse_block_size == NO_SPARSE_BLOCK_SIZE:
+            return None
+        return sparse_block_size
+
     def generate_configs(self) -> list[dict]:
         configs = self._generate_block_combinations()
         configs.sort(
@@ -95,7 +133,7 @@ class FlexAttentionConfigGenerator:
             ),
             reverse=True,
         )
-        return [cfg.to_dict() for cfg in configs]
+        return [cfg.to_dict(self.mode) for cfg in configs]
 
     def _generate_block_combinations(self) -> list[FlexAttentionConfig]:
         configs = []
@@ -108,44 +146,26 @@ class FlexAttentionConfigGenerator:
                         block_m=block_m,
                         block_n=block_n,
                         num_warps=4,
-                        num_stages=1,
+                        num_stages=(
+                            2 if self.mode == FlexMode.BWDDKDV else 1
+                        ),
                     )
                 )
         return configs
 
     def _is_valid_block_pair(self, block_m: int, block_n: int) -> bool:
-        if self.mode == FlexMode.BWDDQ:
-            block_m2 = block_n
-            block_n2 = block_m
+        if self.mode == FlexMode.BWD:
+            return block_n % block_m == 0
+        if (
+            self.mode == FlexMode.BWDDQ
+            and self.sparse_q_block_size is not None
+            and self.sparse_kv_block_size is not None
+        ):
             return (
-                self.sparse_q_block_size is not None
-                and self.sparse_kv_block_size is not None
-                and block_m2 == self.sparse_q_block_size
-                and block_n2 == self.sparse_kv_block_size
+                block_m == self.sparse_q_block_size
+                and block_n == self.sparse_kv_block_size
             )
-        return (
-            self._is_sparse_block_compatible(
-                self.sparse_q_block_size, block_m
-            )
-            and self._is_sparse_block_compatible(
-                self.sparse_kv_block_size, block_n
-            )
-        )
-
-    @staticmethod
-    def _is_sparse_block_compatible(
-        sparse_block_size: Optional[int], block_size: int
-    ) -> bool:
-        return (
-            block_size > 0
-            and (
-                sparse_block_size is None
-                or (
-                    block_size <= sparse_block_size
-                    and sparse_block_size % block_size == 0
-                )
-            )
-        )
+        return True
 
 
 def prefer_max_tiling_without_benchmark() -> bool:
@@ -160,7 +180,7 @@ def generate_fwd_candidate_configs(
     sparse_q_block_size: int,
     sparse_kv_block_size: int,
 ) -> list[dict]:
-    """Generate valid configs shared by forward mask-in and mask-out."""
+    """Generate valid forward configs."""
     return FlexAttentionConfigGenerator(
         sparse_q_block_size=sparse_q_block_size,
         sparse_kv_block_size=sparse_kv_block_size,
@@ -209,25 +229,14 @@ def generate_bwd_candidate_configs(
     sparse_kv_block_size: int,
     mode: FlexMode,
 ) -> list[dict]:
-    """Generate valid DQ or DKDV configs shared by mask-in and mask-out."""
-    if mode not in (FlexMode.BWDDQ, FlexMode.BWDDKDV):
+    """Generate final block configs for a fused or split backward template."""
+    if mode not in (FlexMode.BWD, FlexMode.BWDDQ, FlexMode.BWDDKDV):
         raise ValueError(f"unsupported backward flex attention mode: {mode}")
-    configs = FlexAttentionConfigGenerator(
+    return FlexAttentionConfigGenerator(
         sparse_q_block_size=sparse_q_block_size,
         sparse_kv_block_size=sparse_kv_block_size,
         mode=mode,
     ).generate_configs()
-    return [
-        {
-            "BLOCK_M1": cfg["BLOCK_M"],
-            "BLOCK_N1": cfg["BLOCK_N"],
-            "BLOCK_M2": cfg["BLOCK_N"],
-            "BLOCK_N2": cfg["BLOCK_M"],
-            "num_warps": cfg["num_warps"],
-            "num_stages": cfg["num_stages"],
-        }
-        for cfg in configs
-    ]
 
 
 def validate_benchmark_config() -> None:

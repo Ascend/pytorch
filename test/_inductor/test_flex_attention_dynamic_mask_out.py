@@ -105,20 +105,6 @@ class TestFlexAttentionDynamicMaskOutSource(unittest.TestCase):
         self.assertIn("bwd_has_dynamic_shape", lowering)
         self.assertIn("or bwd_has_dynamic_shape", lowering)
 
-    def test_mask_out_routed_by_config_and_score_mod(self):
-        lowering = _read(LOWERING_PATH)
-        backward_lowering = lowering.split(
-            "@register_lowering(torch.ops.higher_order.flex_attention_backward", 1
-        )[1]
-
-        # Mask-out is enabled by the flexattention_mask_out config flag unless a
-        # score_mod is present (identity -> mask-out, explicit score_mod -> mask-in).
-        self.assertIn(
-            "bool(npu_config.flex_attention.flexattention_mask_out)",
-            lowering,
-        )
-        self.assertIn("and not has_score_mod", lowering)
-        self.assertIn("and not has_score_mod", backward_lowering)
 
     def test_backward_dq_task_count_comes_from_runtime_q_shape(self):
         template = _read(TEMPLATE_PATH)
