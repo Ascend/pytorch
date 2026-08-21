@@ -287,7 +287,7 @@ int64_t CalcuOpUtil::GetTensorNpuFormat(const at::Tensor &tensor)
     if (NpuUtils::check_match(&tensor) || NpuUtils::check_5d_5d_match(tensor)) {
         const torch_npu::NPUStorageDesc &tensor_desc = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_;
         return tensor_desc.npu_format_;
-    } else if (tensor.data_ptr() == nullptr) {
+    } else if (tensor.const_data_ptr() == nullptr) {
         // transforming faketensor into realtensor and assigning format ND
         return ACL_FORMAT_ND;
     } else {
