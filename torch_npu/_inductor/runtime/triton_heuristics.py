@@ -22,6 +22,7 @@ from torch._logging import warning_once
 import triton
 from torch._dynamo.testing import rand_strided
 from torch._inductor import config
+from torch._inductor.codecache import split_aot_inductor_output_path, write
 from torch._inductor.runtime.autotune_cache import AutotuneCache
 from torch._inductor.runtime.benchmarking import TritonBenchmarker
 from torch._inductor.runtime.runtime_utils import (
@@ -2131,6 +2132,80 @@ class NPUSymbolicGroupedAutotuner(NPUCachingAutotuner):
     def _build_candidate_plan(self, configs):
         return self.candidate_plan
 
+    @staticmethod
+    def _grouped_variant_load_meta(launcher) -> dict[str, Any]:
+        if not hasattr(launcher, "bin") or not hasattr(launcher.bin, "asm"):
+            raise RuntimeError("grouped cpp wrapper variant has no compiled binary")
+        metadata = launcher.bin.metadata
+        binary_path = launcher.bin.asm.get("cubin_path")
+        if not binary_path:
+            binary = launcher.bin.asm.get("npubin")
+            if binary is None:
+                raise RuntimeError("grouped cpp wrapper variant is missing npubin")
+            _, binary_path = write(
+                binary,
+                "cubin",
+                hash_type="cubin",
+                specified_dir=split_aot_inductor_output_path(
+                    config.aot_inductor.output_path
+                )[0],
+            )
+        return {
+            "mangled_name": (
+                metadata.name
+                if hasattr(metadata, "name")
+                else metadata["name"]
+            ),
+            "shared_mem": (
+                launcher.bin.shared
+                if hasattr(launcher.bin, "shared")
+                else metadata.shared
+            ),
+            "mix_mode": metadata.mix_mode,
+            "parallel_mode": metadata.parallel_mode,
+            "force_simt_only": metadata.force_simt_only,
+            "shared_mem_dynamic_size": getattr(
+                metadata, "shared_mem_dynamic_size", 0
+            ),
+            "has_auto_blockify_blacklist_op": getattr(
+                metadata, "has_auto_blockify_blacklist_op", False
+            ),
+            "cubin_path": binary_path,
+        }
+
+    def _record_grouped_cpp_wrapper_plan(self) -> None:
+        best_by_group = {}
+        selected_variant_ids = OrderedSet()
+        for group_id in self.reachable_selection_keys:
+            candidate = self.best_candidate_map.get(group_id)
+            launcher = self.best_launcher_map.get(group_id)
+            if candidate is None or launcher is None:
+                raise RuntimeError(
+                    f"grouped cpp wrapper is missing winner for group {group_id}"
+                )
+            variant_id = candidate["variant_id"]
+            best_by_group[str(group_id)] = {
+                "variant_id": variant_id,
+                "policy_id": candidate["policy_id"],
+            }
+            selected_variant_ids.add(variant_id)
+
+        for variant_id in selected_variant_ids:
+            launcher = self.variant_launcher_map.get(variant_id)
+            if launcher is None:
+                raise RuntimeError(
+                    f"grouped cpp wrapper is missing launcher for variant {variant_id}"
+                )
+            self.candidate_plan["variants"][variant_id]["load_meta"] = (
+                self._grouped_variant_load_meta(launcher)
+            )
+
+        self.candidate_plan["best_by_group"] = best_by_group
+
+    def save_npu_kernel(self, input_stream, input_launcher):
+        self._record_grouped_cpp_wrapper_plan()
+        super().save_npu_kernel(input_stream, input_launcher)
+
     def _set_group_best_candidate(self, group_id, candidate, launcher):
         self.best_candidate_map[group_id] = candidate
         self.best_launcher_map[group_id] = launcher
@@ -2551,6 +2626,10 @@ class NPUSymbolicGroupedAutotuner(NPUCachingAutotuner):
             selected_config,
             runtime_blocks,
         )
+        if launcher.store_cubin and (
+            not benchmark_run or not self.cuda_kernel_saved
+        ):
+            self.save_gpu_kernel(stream, launcher)
         return launcher(
             *self._build_runtime_launch_args(args, runtime_blocks),
             stream=stream,

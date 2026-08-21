@@ -28,6 +28,7 @@ from torch._inductor.ir import GraphPartitionSignature
 from torch._inductor.runtime.runtime_utils import dynamo_timed
 from torch._inductor.utils import IndentedBuffer
 from torch._inductor.virtualized import V
+from torch.utils._ordered_set import OrderedSet
 
 from .. import config as npu_config
 from ..runtime.triton_heuristics import GridExprNpu
@@ -100,13 +101,282 @@ class DeferredNpuTritonCallWrapper(DeferredTritonCallWrapper):
             self.arg_types = original_arg_types
 
     def generate(self, wrapper: CppWrapperGpu):
+        additional_files = V.graph.wrapper_code.additional_files
+        existing_files = OrderedSet(additional_files)
         with self._patch_runtime_block_params() as params:
             # todo: support lazy compile for cpp_wrapper_npu
             with config.patch("triton.autotune_at_compile_time", not V.graph.aot_mode):
                 super().generate(wrapper)
-            cubin_path = params[get_cpp_wrapper_cubin_path_name()]
-            if cubin_path not in V.graph.wrapper_code.additional_files:
-                V.graph.wrapper_code.additional_files.append(cubin_path)
+            inductor_meta = params["inductor_meta"]
+            if inductor_meta.get("group_enabled", False):
+                grouped_plan = inductor_meta["grouped_candidate_plan"]
+                cubin_paths = tuple(
+                    self._grouped_load_meta(grouped_plan, variant_id)[
+                        "cubin_path"
+                    ]
+                    for variant_id in self._grouped_active_variants(grouped_plan)
+                )
+                default_cubin_path = params[get_cpp_wrapper_cubin_path_name()]
+                if (
+                    default_cubin_path not in existing_files
+                    and default_cubin_path not in cubin_paths
+                    and default_cubin_path in additional_files
+                ):
+                    additional_files.remove(default_cubin_path)
+            else:
+                cubin_paths = (params[get_cpp_wrapper_cubin_path_name()],)
+            for cubin_path in cubin_paths:
+                if cubin_path not in additional_files:
+                    additional_files.append(cubin_path)
+
+    @staticmethod
+    def _grouped_runtime_block_names(
+        grouped_plan: dict[str, Any],
+    ) -> tuple[str, ...]:
+        return tuple(grouped_plan.get("runtime_block_append_order", ()))
+
+    @staticmethod
+    def _grouped_active_variants(
+        grouped_plan: dict[str, Any],
+    ) -> tuple[str, ...]:
+        best_by_group = grouped_plan.get("best_by_group", {})
+        if not best_by_group:
+            raise RuntimeError(
+                "grouped cpp wrapper expects best_by_group to be populated"
+            )
+        selected_variant_ids = OrderedSet(
+            selected["variant_id"] for selected in best_by_group.values()
+        )
+        active_variants = tuple(
+            variant_id
+            for variant_id in grouped_plan.get("variant_order", ())
+            if variant_id in selected_variant_ids
+        )
+        if not active_variants:
+            raise RuntimeError(
+                "grouped cpp wrapper has no active compiled variants"
+            )
+        return active_variants
+
+    @staticmethod
+    def _grouped_load_meta(
+        grouped_plan: dict[str, Any], variant_id: str
+    ) -> dict[str, Any]:
+        load_meta = dict(
+            grouped_plan["variants"][variant_id].get("load_meta", {})
+        )
+        if not load_meta:
+            raise RuntimeError(
+                f"grouped cpp wrapper expects load_meta for variant {variant_id}"
+            )
+        return load_meta
+
+    def _generate_grouped_feature_inputs(
+        self,
+        prefix: IndentedBuffer,
+        grouped_plan: dict[str, Any],
+        def_args: list[str],
+    ) -> None:
+        feature_arg_indices = tuple(
+            grouped_plan.get("feature_arg_indices", ())
+        )
+        feature_sources = tuple(grouped_plan.get("feature_sources", ()))
+        if len(feature_arg_indices) != len(feature_sources):
+            raise RuntimeError(
+                "grouped cpp wrapper feature inputs and sources do not match"
+            )
+        for feature_idx, (arg_indices, feature_source) in enumerate(
+            zip(feature_arg_indices, feature_sources)
+        ):
+            arg_names = [def_args[arg_index] for arg_index in arg_indices]
+            source = feature_source.get("source")
+            if source in ("outer_product", "reduction_product"):
+                feature_expr = " * ".join(arg_names)
+            elif len(arg_names) == 1:
+                feature_expr = arg_names[0]
+            else:
+                raise RuntimeError(
+                    f"grouped cpp wrapper feature {source} expects one axis"
+                )
+            prefix.writeline(
+                f"int64_t grouped_feature_{feature_idx} = {feature_expr};"
+            )
+
+    def _generate_grouped_group_id(
+        self, prefix: IndentedBuffer, grouped_plan: dict[str, Any]
+    ) -> None:
+        group_features = tuple(grouped_plan.get("group_features", ()))
+        prefix.writeline("int64_t grouped_group_id = 0;")
+        prefix.writeline("int64_t grouped_group_stride = 1;")
+        for feature_idx, feature_spec in enumerate(group_features):
+            buckets = tuple(feature_spec.get("buckets", ()))
+            prefix.writeline(f"int64_t grouped_bucket_{feature_idx} = 0;")
+            for bucket_idx, upper_bound in enumerate(buckets):
+                keyword = "if" if bucket_idx == 0 else "else if"
+                prefix.writeline(
+                    f"{keyword} (grouped_feature_{feature_idx} <= "
+                    f"{int(upper_bound)}) grouped_bucket_{feature_idx} = "
+                    f"{bucket_idx};"
+                )
+            if buckets:
+                prefix.writeline(
+                    f"else grouped_bucket_{feature_idx} = {len(buckets)};"
+                )
+            prefix.writeline(
+                f"grouped_group_id += grouped_bucket_{feature_idx} * "
+                "grouped_group_stride;"
+            )
+            prefix.writeline(
+                f"grouped_group_stride *= {len(buckets) + 1};"
+            )
+        group_id_count = int(grouped_plan.get("group_id_count", 0))
+        if group_id_count:
+            prefix.writeline(
+                f"if (grouped_group_id >= {group_id_count}) "
+                'throw std::runtime_error("grouped cpp wrapper resolved group '
+                'id out of range");'
+            )
+
+    def _generate_grouped_selection(
+        self,
+        prefix: IndentedBuffer,
+        grouped_plan: dict[str, Any],
+        def_args: list[str],
+        active_variants: tuple[str, ...],
+    ) -> None:
+        runtime_block_names = self._grouped_runtime_block_names(grouped_plan)
+        axis_arg_indices = dict(grouped_plan.get("axis_arg_indices", {}))
+        best_by_group = grouped_plan["best_by_group"]
+        prefix.writeline("int64_t grouped_variant_index = -1;")
+        for block_name in runtime_block_names:
+            prefix.writeline(f"int64_t {block_name} = 0;")
+        if runtime_block_names:
+            prefix.splice(
+                """
+                auto resolve_grouped_runtime_block = [](
+                    int64_t axis_numel,
+                    int64_t expected_grid,
+                    int64_t block_sub
+                ) -> int64_t {
+                    if (axis_numel <= 0) return 1;
+                    auto ceildiv = [](int64_t value, int64_t divisor) {
+                        return (value + divisor - 1) / divisor;
+                    };
+                    int64_t total_subblocks = ceildiv(axis_numel, block_sub);
+                    int64_t program_subblocks = ceildiv(
+                        total_subblocks, expected_grid
+                    );
+                    int64_t effective_grid = ceildiv(
+                        total_subblocks, program_subblocks
+                    );
+                    return ceildiv(axis_numel, effective_grid);
+                };
+                """
+            )
+        prefix.writeline("switch (grouped_group_id) {")
+        with prefix.indent():
+            for group_id in grouped_plan.get("reachable_group_ids", ()):
+                selected = best_by_group.get(str(group_id))
+                if selected is None:
+                    raise RuntimeError(
+                        "grouped cpp wrapper is missing winner for reachable "
+                        f"group {group_id}"
+                    )
+                variant_id = selected["variant_id"]
+                policy = grouped_plan["policies"][selected["policy_id"]]
+                prefix.writeline(f"case {group_id}: {{")
+                with prefix.indent():
+                    prefix.writeline(
+                        f"grouped_variant_index = "
+                        f"{active_variants.index(variant_id)};"
+                    )
+                    assigned_blocks = OrderedSet()
+                    for block_name, block_value in policy.get(
+                        "static_blocks", ()
+                    ):
+                        prefix.writeline(
+                            f"{block_name} = {int(block_value)};"
+                        )
+                        assigned_blocks.add(block_name)
+                    for block_name, rule_items in policy.get(
+                        "runtime_block_rules", ()
+                    ):
+                        rule = dict(rule_items)
+                        if rule.get("op") != "ceildiv":
+                            raise RuntimeError(
+                                "grouped cpp wrapper only supports ceildiv "
+                                "runtime block rules"
+                            )
+                        axis_name = rule["axis_name"]
+                        if axis_name not in axis_arg_indices:
+                            raise RuntimeError(
+                                "grouped cpp wrapper is missing axis argument "
+                                f"for {axis_name}"
+                            )
+                        axis_arg = def_args[axis_arg_indices[axis_name]]
+                        prefix.writeline(
+                            f"{block_name} = resolve_grouped_runtime_block("
+                            f"{axis_arg}, {int(policy['grid_target'])}, "
+                            f"{int(rule['block_sub'])});"
+                        )
+                        assigned_blocks.add(block_name)
+                    missing_blocks = [
+                        name
+                        for name in runtime_block_names
+                        if name not in assigned_blocks
+                    ]
+                    if missing_blocks:
+                        raise RuntimeError(
+                            "grouped cpp wrapper policy is missing runtime "
+                            f"blocks {missing_blocks}"
+                        )
+                    prefix.writeline("break;")
+                prefix.writeline("}")
+            prefix.writeline("default:")
+            with prefix.indent():
+                prefix.writeline(
+                    'throw std::runtime_error("grouped cpp wrapper resolved '
+                    'an unavailable group");'
+                )
+        prefix.writeline("}")
+
+    def _generate_grouped_variant_launch(
+        self,
+        prefix: IndentedBuffer,
+        wrapper: CppWrapperGpu,
+        params: dict[str, Any],
+        grouped_plan: dict[str, Any],
+        active_variants: tuple[str, ...],
+    ) -> None:
+        prefix.writeline("switch (grouped_variant_index) {")
+        with prefix.indent():
+            for variant_index, variant_id in enumerate(active_variants):
+                load_meta = self._grouped_load_meta(grouped_plan, variant_id)
+                prefix.writeline(f"case {variant_index}: {{")
+                with prefix.indent():
+                    kernel_var_name = f"grouped_kernel_{variant_id}"
+                    variant_params = {
+                        **params,
+                        **load_meta,
+                    }
+                    self._generate_single_kernel_load(
+                        prefix, kernel_var_name, variant_params
+                    )
+                    self._generate_single_kernel_launch(
+                        prefix,
+                        wrapper,
+                        kernel_var_name,
+                        variant_params,
+                    )
+                    prefix.writeline("break;")
+                prefix.writeline("}")
+            prefix.writeline("default:")
+            with prefix.indent():
+                prefix.writeline(
+                    'throw std::runtime_error("grouped cpp wrapper could not '
+                    'launch selected variant");'
+                )
+        prefix.writeline("}")
 
     def generate_grid(
         self,
@@ -114,9 +384,25 @@ class DeferredNpuTritonCallWrapper(DeferredTritonCallWrapper):
         inductor_meta: dict[str, Any],
         params: dict[str, Any],
     ):
+        if inductor_meta.get("group_enabled", False):
+            grouped_plan = inductor_meta["grouped_candidate_plan"]
+            active_variants = self._grouped_active_variants(grouped_plan)
+            self._generate_grouped_feature_inputs(
+                prefix, grouped_plan, params["def_args"]
+            )
+            self._generate_grouped_group_id(prefix, grouped_plan)
+            self._generate_grouped_selection(
+                prefix,
+                grouped_plan,
+                params["def_args"],
+                active_variants,
+            )
         numels = [arg for arg in params["def_args"] if "_numel" in arg]
-        for block_name, block_value in dict(params.get("runtime_blocks", {})).items():
-            prefix.writeline(f"int64_t {block_name} = {block_value};")
+        if not inductor_meta.get("group_enabled", False):
+            for block_name, block_value in dict(
+                params.get("runtime_blocks", {})
+            ).items():
+                prefix.writeline(f"int64_t {block_name} = {block_value};")
         grid = GridExprNpu.from_meta_and_set_numel(
             inductor_meta, params["config"], numels, "cpp"
         )
@@ -132,6 +418,17 @@ class DeferredNpuTritonCallWrapper(DeferredTritonCallWrapper):
         prefix.writeline("if (grid_0 == 0 || grid_1 == 0 || grid_2 == 0) return;")
 
     def generate_load_kernel(self, prefix, kernel_var_name, params):
+        inductor_meta = params["inductor_meta"]
+        if inductor_meta.get("group_enabled", False):
+            grouped_plan = inductor_meta["grouped_candidate_plan"]
+            for variant_id in self._grouped_active_variants(grouped_plan):
+                prefix.writeline(
+                    f"static void* grouped_kernel_{variant_id} = nullptr;"
+                )
+            return
+        self._generate_single_kernel_load(prefix, kernel_var_name, params)
+
+    def _generate_single_kernel_load(self, prefix, kernel_var_name, params):
         prefix.writeline(f"if ({kernel_var_name} == nullptr) {{")
         with prefix.indent():
             embed_kernel_args = [f"__{params['inductor_meta']['kernel_name']}_start"]
@@ -160,6 +457,24 @@ class DeferredNpuTritonCallWrapper(DeferredTritonCallWrapper):
         prefix.writeline("}")
 
     def generate_launch_kernel(self, prefix, wrapper, kernel_var_name, params):
+        inductor_meta = params["inductor_meta"]
+        if inductor_meta.get("group_enabled", False):
+            grouped_plan = inductor_meta["grouped_candidate_plan"]
+            self._generate_grouped_variant_launch(
+                prefix,
+                wrapper,
+                params,
+                grouped_plan,
+                self._grouped_active_variants(grouped_plan),
+            )
+            return
+        self._generate_single_kernel_launch(
+            prefix, wrapper, kernel_var_name, params
+        )
+
+    def _generate_single_kernel_launch(
+        self, prefix, wrapper, kernel_var_name, params
+    ):
         triton_meta = params["triton_meta"]
         arg_type_lookup = dict(zip(params["def_args"], self.arg_types))
         for block_name in params["inductor_meta"].get("runtime_block_arg_names", ()):
