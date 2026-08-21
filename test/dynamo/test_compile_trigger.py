@@ -497,21 +497,16 @@ class TorchCompileTriggerTests(unittest.TestCase):
             """
         )
 
-    # Verify shape handling is installed after selecting the requested NPU backend.
-    def test_shape_handling_initializes_after_backend_selection(self):
+    # Verify shape handling is installed before selecting the requested backend.
+    def test_shape_handling_initializes_before_backend_selection(self):
         self.run_in_subprocess(
             """
-            import types
+            import os
             from unittest import mock
 
             import torch
             import torch_npu
             from torch_npu.utils import _dynamo
-
-            def fake_setup(actual_options):
-                actual_options = dict(actual_options)
-                events.append(("setup", actual_options))
-                return actual_options["npu_backend"]
 
             options = {
                 "npu_backend": "mlir",
@@ -520,29 +515,48 @@ class TorchCompileTriggerTests(unittest.TestCase):
             events = []
 
             def scope_register():
-                events.append(("scope_register", None))
+                events.append(("scope_register", os.environ["TORCHINDUCTOR_NPU_BACKEND"]))
 
-            fake_inductor = types.SimpleNamespace(
-                patch_shape_handling=lambda: events.append(
-                    ("shape_handling", None)
-                )
-            )
             with mock.patch.object(
-                _dynamo, "_setup_inductor_for_compile", fake_setup
+                _dynamo, "_lazy_dynamo_setup", lambda: None
+            ), mock.patch.object(
+                _dynamo, "_patch_shape_handling",
+                lambda: events.append(("shape_handling", None)),
+            ), mock.patch.object(
+                _dynamo, "_lazy_inductor_setup", lambda: None
             ), mock.patch.object(
                 _dynamo, "register_inductor_npu", scope_register
-            ), mock.patch.object(
-                torch_npu, "_inductor", fake_inductor, create=True
             ):
                 wrapper = torch._TorchCompileInductorWrapper(None, options, None)
 
             assert wrapper.config["npu_backend"] == "mlir"
             assert wrapper.config["enable_shape_handling"] is True
             assert events == [
-                ("setup", options),
                 ("shape_handling", None),
-                ("scope_register", None),
+                ("scope_register", "mlir"),
             ], events
+            """
+        )
+
+    # Shape Handling must not defeat deferred NPU Inductor loading.
+    def test_shape_handling_backend_load_is_deferred_until_first_call(self):
+        self.run_in_subprocess(
+            """
+            import sys
+
+            import torch
+            import torch_npu
+            from torch_npu.utils import _dynamo
+
+            torch.compile(
+                lambda x: x + 1,
+                backend="inductor",
+                options={"enable_shape_handling": True},
+            )
+
+            assert _dynamo._lazy_dynamo_setup.has_run
+            assert not _dynamo._lazy_inductor_setup.has_run
+            assert "torch_npu._inductor" not in sys.modules
             """
         )
 
