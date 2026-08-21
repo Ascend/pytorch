@@ -1093,18 +1093,23 @@ def _register_npu_inductor_flex_attention():
         }
 
         if _use_flex_decoding(query, kernel_options):
-            return create_flex_decoding_kernel(
-                query,
-                key,
-                value,
-                block_mask,
-                scale,
-                kernel_options,
-                subgraph_buffer,
-                mask_graph_buffer,
-                score_mod_other_buffers,
-                mask_mod_other_buffers,
-            )
+            try:
+                return create_flex_decoding_kernel(
+                    query,
+                    key,
+                    value,
+                    block_mask,
+                    scale,
+                    kernel_options,
+                    subgraph_buffer,
+                    mask_graph_buffer,
+                    score_mod_other_buffers,
+                    mask_mod_other_buffers,
+                )
+            except Exception as exc:
+                log.warning(
+                    "Flex decoding failed, falling back to flex attention: %s", exc
+                )
 
         (
             query,
