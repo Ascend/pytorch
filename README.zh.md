@@ -1,5 +1,9 @@
 # TorchNPU插件
 
+<p>
+    简体中文 | <a href="./README.md">English</a>
+</p>
+
 ## 简介
 
 作为Ascend for PyTorch社区的核心组件，TorchNPU是昇腾专为PyTorch打造的深度学习适配插件，使PyTorch框架能够直接调用昇腾NPU，为开发者提供昇腾AI处理器的超强算力。
