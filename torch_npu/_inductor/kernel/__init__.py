@@ -1,4 +1,5 @@
 from .mm import _register_npu_inductor_mm, _register_npu_inductor_addmm
 from .bmm import _register_npu_inductor_bmm
 from .mm_grouped import _register_npu_inductor_grouped_mm
+from .multi_slice_concat import _register_npu_inductor_multi_slice_concat
 from .flex_attention import _register_npu_inductor_flex_attention, _validate_device, patch_flex_attention

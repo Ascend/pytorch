@@ -1,5 +1,9 @@
+import contextlib
 import functools
+import math
 import operator
+from dataclasses import dataclass
+from typing import List, Optional
 
 import torch
 import torch.fx
@@ -22,8 +26,10 @@ from ..utils.check_op_util import (
     get_node_dtype,
     is_cast_node,
     is_one_like,
+    is_single_user,
     is_zero_like,
     match,
+    normalize_dim,
     normalize_dtype,
     try_match,
 )
@@ -61,10 +67,78 @@ torch.library.define(
 )
 
 
+torch.library.define(
+    "npu_ext::multi_slice_concat",
+    "(Tensor[] srcs, Tensor[] masks, int[] src_idx, int[] offsets, int[] widths, "
+    "int[] mask_idx) -> Tensor",
+)
+
+
+def _multi_slice_concat_ref(srcs, masks, src_idx, offsets, widths, mask_idx):
+    n = len(offsets)
+    if not (len(src_idx) == len(widths) == len(mask_idx) == n):
+        raise RuntimeError(
+            "multi_slice_concat: segment arrays disagree in length "
+            f"src_idx={len(src_idx)} offsets={n} widths={len(widths)} "
+            f"mask_idx={len(mask_idx)}"
+        )
+    if n == 0:
+        raise RuntimeError("multi_slice_concat: needs at least one segment")
+    if not srcs:
+        raise RuntimeError("multi_slice_concat: source tensor list is empty")
+
+    parts = []
+    for i in range(n):
+        si, off, width, mi = src_idx[i], offsets[i], widths[i], mask_idx[i]
+        if not 0 <= si < len(srcs):
+            raise RuntimeError(f"multi_slice_concat: segment {i} src_idx={si} out of range")
+        src = srcs[si]
+        if src.dim() != 2:
+            raise RuntimeError(f"multi_slice_concat: segment {i} source is not 2D")
+        if width <= 0 or off < 0:
+            raise RuntimeError(
+                f"multi_slice_concat: segment {i} has invalid offset={off} width={width}"
+            )
+        limit = src.shape[-1]
+        if isinstance(limit, int) and off + width > limit:
+            raise RuntimeError(
+                f"multi_slice_concat: segment {i} spans [{off}, {off + width}) "
+                f"beyond last dim {limit}"
+            )
+        part = torch.ops.aten.slice.Tensor(src, -1, off, off + width)
+        if mi >= 0:
+            if mi >= len(masks):
+                raise RuntimeError(f"multi_slice_concat: segment {i} mask_idx={mi} out of range")
+            mask = masks[mi]
+            # A row mask must be [rows, 1] to broadcast across columns. A 1D mask would
+            # broadcast along columns instead, inverting the meaning, so reject it.
+            if mask.dim() != 2 or (
+                isinstance(mask.shape[1], int) and mask.shape[1] != 1
+            ):
+                raise RuntimeError(
+                    f"multi_slice_concat: segment {i} mask shape {tuple(mask.shape)} "
+                    "is not [rows, 1]"
+                )
+            part = torch.ops.aten.where.self(
+                mask, torch.ops.aten.zeros_like.default(part), part
+            )
+        parts.append(part)
+    return torch.ops.aten.cat.default(parts, -1)
+
+
+# CompositeExplicitAutograd also covers the Meta key, and the reference is built purely
+# from aten ops, so fake propagation follows without a separate fake kernel.
+torch.library.impl(
+    "npu_ext::multi_slice_concat", "CompositeExplicitAutograd"
+)(_multi_slice_concat_ref)
+
+MULTI_SLICE_CONCAT_TARGET = torch.ops.npu_ext.multi_slice_concat.default
+
+
 @register_custom_pass(PassType.PRE)
 def cat_slice_cat_fold_pass(graph: torch.fx.Graph) -> None:
-    """折叠 cat -> slice -> cat 的冗余模式：当后一个 cat 的输入是前一个 cat 的连续切片
-    且切片范围完整覆盖原 cat 时，直接复用前一个 cat 的结果。"""
+    """Fold the redundant cat -> slice -> cat pattern: when the later cat takes contiguous
+    slices of the earlier cat that fully cover it, reuse the earlier cat's result."""
     changed = False
     for node in reversed(list(graph.nodes)):
         if node.op != "call_function" or node.target not in (torch.cat, torch.concat):
@@ -155,15 +229,15 @@ def cat_slice_cat_fold_pass(graph: torch.fx.Graph) -> None:
 
 @register_custom_pass(PassType.PRE)
 def pad_slice_fold(graph: torch.fx.Graph) -> None:
-    """折叠 pad -> slice 模式：当切片范围位于 pad 前的有效数据区域内时，
-    直接基于原输入做 slice，省去 pad 节点。"""
+    """Fold the pad -> slice pattern: when the slice range lies inside the valid data
+    region ahead of the pad, slice the original input directly and drop the pad node."""
     # padding -> slice
     changed = False
     for node in reversed(list(graph.nodes)):
-        # 检查是否为 linear 节点
+        # check whether this is a linear node
         if node.op != "call_function" or node.target != torch._C._nn.pad:
             continue
-        # 获取 pad 节点的输入和参数
+        # get the pad node's inputs and arguments
         input_tensor = node.args[0]
         pad = node.args[1]
         input_shape = get_node_shape(input_tensor, allow_symbolic=True)
@@ -172,15 +246,15 @@ def pad_slice_fold(graph: torch.fx.Graph) -> None:
         pad_dim, _ = get_pad_dim_and_size(pad, input_shape)
         if pad_dim is None:
             continue
-        # 查找 pad 节点的消费者（后续节点）
-        # 检查所有下游 slice 节点
+        # find the consumers of the pad node
+        # check every downstream slice node
         all_slices_valid = True
         slice_nodes = []
         for user in list(node.users):
             if user.op != "call_function" or user.target != operator.getitem:
                 all_slices_valid = False
                 break
-            # 取出索引 tuple
+            # take out the index tuple
             idx = user.args[1]
             if not isinstance(idx, (tuple, list)) or len(idx) <= pad_dim:
                 all_slices_valid = False
@@ -204,19 +278,19 @@ def pad_slice_fold(graph: torch.fx.Graph) -> None:
                 break
             slice_nodes.append((user, (input_tensor, idx)))
 
-        # 如果所有 slice 节点都满足条件，替换 pad + slice 为直接 slice
+        # if every slice node qualifies, replace pad + slice with a direct slice
         if all_slices_valid and slice_nodes:
             for user, new_args in slice_nodes:
                 user.args = new_args
-            graph.erase_node(node)  # 删除 pad 节点
+            graph.erase_node(node)  # erase the pad node
             changed = True
     eliminate_dead_code(graph, changed, pad_slice_fold.__name__, False)
 
 
 @register_custom_pass(PassType.POST)
 def fold_four_op_pass(graph: torch.fx.Graph) -> None:
-    """消除四则运算中的恒等操作：如 x+0、x-0、0-x、x*1、x/1 等，
-    直接用非零/非一侧的输入替换整个二元运算节点。"""
+    """Remove identity arithmetic such as x+0, x-0, 0-x, x*1 and x/1 by replacing
+    the whole binary op node with the non-zero / non-one operand."""
     changed = False
     add_ops = (torch.add, torch.ops.aten.add.Tensor, torch.ops.aten.add.Scalar)
     sub_ops = (torch.sub, torch.ops.aten.sub.Tensor, torch.ops.aten.sub.Scalar)
@@ -263,8 +337,8 @@ def fold_four_op_pass(graph: torch.fx.Graph) -> None:
 
 @register_custom_pass(PassType.POST)
 def fold_cast(graph: torch.fx.Graph) -> None:
-    """消除恒等 cast：当 cast 的目标 dtype 与输入 dtype 相同时，
-    直接用输入替换 cast 节点。"""
+    """Remove identity casts: when the cast target dtype equals the input dtype,
+    replace the cast node with its input."""
     changed = False
 
     for node in list(graph.nodes):
@@ -291,8 +365,8 @@ def fold_cast(graph: torch.fx.Graph) -> None:
 
 @register_custom_pass(PassType.POST)
 def fold_cat(graph: torch.fx.Graph) -> None:
-    """合并嵌套 cat：当某个 cat 的输入也是同维度的 cat 且只被使用一次时，
-    将内层 cat 的输入展平到外层，减少一次拼接开销。"""
+    """Merge nested cats: when a cat input is itself a single-use cat on the same dim,
+    flatten the inner cat's inputs into the outer one to save a concatenation."""
     changed = False
     flag = True
     while flag:
@@ -348,8 +422,8 @@ def fold_cat(graph: torch.fx.Graph) -> None:
 
 @register_custom_pass(PassType.POST)
 def fold_clone(graph: torch.fx.Graph) -> None:
-    """消除非输出且 memory_format 不变的 clone：当 clone 不影响存储语义且其结果
-    并非图输出时，直接用输入替换。"""
+    """Remove clones that keep memory_format and are not graph outputs: when the clone
+    does not affect storage semantics, replace it with its input."""
     changed = False
     output_node: torch.fx.Node = list(graph.nodes)[-1]
     if output_node.op != "output":
@@ -386,8 +460,8 @@ def fold_clone(graph: torch.fx.Graph) -> None:
 
 @register_custom_pass(PassType.POST)
 def fold_detach(graph: torch.fx.Graph) -> None:
-    """消除推理图中的 detach 节点：detach 在前向不影响数值结果，
-    可直接用其输入替换。"""
+    """Remove detach nodes in inference graphs: detach does not change forward values,
+    so it can be replaced by its input."""
     changed = False
     candidates = [
         node
@@ -405,8 +479,8 @@ def fold_detach(graph: torch.fx.Graph) -> None:
 
 @register_custom_pass(PassType.POST)
 def fold_expand(graph: torch.fx.Graph) -> None:
-    """消除恒等 expand：当目标 shape 与输入 shape 一致（-1 视为相同）时，
-    直接用输入替换 expand 节点。"""
+    """Remove identity expands: when the target shape matches the input shape (-1 counts
+    as equal), replace the expand node with its input."""
     changed = False
     candidates = [
         node
@@ -415,7 +489,7 @@ def fold_expand(graph: torch.fx.Graph) -> None:
     ]
 
     def _same_shape(org_shape, target_shape) -> bool:
-        """判断两个 shape 是否等价（目标 shape 中的 -1 视为与原 shape 同维度）。"""
+        """Tell whether two shapes are equivalent (-1 in the target matches the original dim)."""
         if len(org_shape) != len(target_shape):
             return False
         for os, ts in zip(org_shape, target_shape):
@@ -447,8 +521,8 @@ def fold_expand(graph: torch.fx.Graph) -> None:
 
 @register_custom_pass(PassType.POST)
 def fold_reduce(graph: torch.fx.Graph) -> None:
-    """消除作用在 size 为 1 的维度上的 reduce（如 sum）：这种 reduce 不改变数值，
-    可直接用对应的视图操作替换。"""
+    """Remove reduces (such as sum) over size-1 dims: they do not change the values,
+    so they can be replaced by the equivalent view op."""
     changed = False
     reduce_tup = (torch.ops.aten.sum.dim_IntList,)
     candidates = [
@@ -478,8 +552,8 @@ def fold_reduce(graph: torch.fx.Graph) -> None:
 
 @register_custom_pass(PassType.POST)
 def fold_sink_view(graph: torch.fx.Graph) -> None:
-    """将 view 操作下沉到其后续的激活/逐元素算子之后：先在原 shape 上执行计算，
-    再做 view，从而便于后续融合且不影响数值结果。"""
+    """Sink a view past the following activation / pointwise op: compute on the original
+    shape first and view afterwards, which helps fusion without changing values."""
     changed = False
     for node in reversed(graph.nodes):
         if not check_view(node):
@@ -584,8 +658,8 @@ def fold_sink_view(graph: torch.fx.Graph) -> None:
 
 @register_custom_pass(PassType.POST)
 def fold_slice(graph: torch.fx.Graph) -> None:
-    """折叠无效的 slice / slice_scatter：当切片范围等同于完整范围时，
-    用输入直接替换以消除冗余切片。"""
+    """Fold no-op slice / slice_scatter: when the slice range covers the full range,
+    replace it with the input to drop the redundant slice."""
     changed = False
     for node in graph.nodes:
         if node.op != "call_function":
@@ -604,8 +678,8 @@ def fold_slice(graph: torch.fx.Graph) -> None:
 
 @register_custom_pass(PassType.POST)
 def fold_squeeze(graph: torch.fx.Graph) -> None:
-    """合并相邻的 squeeze/unsqueeze：处理 squeeze→squeeze 串联以及
-    squeeze→unsqueeze 互逆这两类冗余形变。"""
+    """Merge adjacent squeeze/unsqueeze: handles chained squeeze->squeeze and the
+    mutually inverse squeeze->unsqueeze, both redundant reshapes."""
     changed = False
     for node in reversed(graph.nodes):
         if not check_squeeze_op(node):
@@ -613,7 +687,7 @@ def fold_squeeze(graph: torch.fx.Graph) -> None:
         prev = node.args[0]
         if len(prev.users) > 1:
             continue
-        # case1: squeeze → squeeze
+        # case1: squeeze -> squeeze
         if check_squeeze_op(prev):
             if len(node.args) == 1:
                 node.replace_input_with(prev, prev.args[0])
@@ -623,7 +697,7 @@ def fold_squeeze(graph: torch.fx.Graph) -> None:
                 propagate_fake_tensor(prev, node, lambda x: x)
                 graph.erase_node(node)
                 changed = True
-        # case2: squeeze → unsqueeze
+        # case2: squeeze -> unsqueeze
         elif check_unsqueeze_op(prev):
             if len(node.args) == 1:
                 node.replace_input_with(prev, prev.args[0])
@@ -637,8 +711,8 @@ def fold_squeeze(graph: torch.fx.Graph) -> None:
 
 @register_custom_pass(PassType.POST)
 def fold_to_copy(graph: torch.fx.Graph) -> None:
-    """消除无副作用的 _to_copy：当 dtype/device/memory_format 等都未发生改变，
-    且其结果非图输出时，直接用输入替换。"""
+    """Remove side-effect-free _to_copy: when dtype/device/memory_format are unchanged
+    and the result is not a graph output, replace it with its input."""
     changed = False
     output_node: torch.fx.Node = list(graph.nodes)[-1]
     if output_node.op != "output":
@@ -660,8 +734,8 @@ def fold_to_copy(graph: torch.fx.Graph) -> None:
     ]
 
     def _useless_to_copy(copy: torch.fx.Node) -> bool:
-        """判断一个 _to_copy 节点是否为无效拷贝：所有可观察属性
-        （dtype、device、layout、memory_format 等）与输入完全一致。"""
+        """Tell whether a _to_copy node is a no-op copy: every observable attribute
+        (dtype, device, layout, memory_format and so on) matches the input."""
         inp = copy.args[0]
         copy_dtype = copy.kwargs.get("dtype", None)
         copy_meta = get_node_meta(copy)
@@ -701,8 +775,8 @@ def fold_to_copy(graph: torch.fx.Graph) -> None:
 
 @register_custom_pass(PassType.POST)
 def view_fold_pass(graph) -> None:
-    """折叠连续的 view 类操作：将多个 view/reshape/squeeze/unsqueeze 链合并为一次形变，
-    同时消除目标 shape 与输入 shape 相同的恒等 view。"""
+    """Fold chained view-like ops: collapse a view/reshape/squeeze/unsqueeze chain into a
+    single reshape, and drop identity views whose target shape equals the input shape."""
     changed = False
     view_tup = (
         torch.ops.aten.view.default,
@@ -751,8 +825,8 @@ def view_fold_pass(graph) -> None:
 
 @register_custom_pass(PassType.POST)
 def fold_where(graph: torch.fx.Graph) -> None:
-    """折叠 where 中两个分支恒等的情况：当 true / false 分支取值相同（或同为全 0/全 1）时，
-    用其中一支直接替换 where 节点。"""
+    """Fold a where whose branches are identical: when the true / false branches hold the
+    same value (or are both all-0 / all-1), replace the where with either branch."""
     changed = False
 
     for where in reversed(graph.nodes):
@@ -777,8 +851,8 @@ def fold_where(graph: torch.fx.Graph) -> None:
 
 @register_custom_pass(PassType.POST)
 def fold_redundant_ops(graph: torch.fx.Graph):
-    """消除冗余的 view→squeeze 组合：当 view 后的 squeeze 输出 shape/dtype 与
-    view 输入完全一致时，整段链路可直接被 view 的输入替换。"""
+    """Remove a redundant view->squeeze pair: when the squeeze output shape/dtype after
+    the view matches the view input exactly, replace the whole chain with that input."""
     changed = False
     while True:
         any_removed = False
@@ -842,17 +916,17 @@ def fold_redundant_ops(graph: torch.fx.Graph):
 
 @register_custom_pass(PassType.PRE)
 def dtype_optimal_pass(graph: torch.fx.Graph) -> None:
-    """将不必要的 int64 优化为 int32：若 torch.arange 或 to(int64) 的取值
-    可被 int32 安全表示，则降级 dtype 以减少访存与计算开销。"""
+    """Narrow unnecessary int64 to int32: if the values of torch.arange or to(int64)
+    fit safely in int32, downgrade the dtype to cut memory traffic and compute cost."""
     cast_dtype_limit = [torch.float32, torch.int32, torch.bool, torch.int16, torch.int8]
     changed = False
-    for node in list(graph.nodes):  # 使用list避免修改时迭代问题
+    for node in list(graph.nodes):  # use list to avoid mutating while iterating
         if (
             node.op == "call_function"
             and node.target == torch.arange
             and node.kwargs.get("dtype", None) == torch.int64
         ):
-            # 步骤1: 动态提取 start/end/step (处理不同 args 长度)
+            # step 1: extract start/end/step dynamically (handles different args lengths)
             args_len = len(node.args)
             start = 0
             end = None
@@ -866,11 +940,11 @@ def dtype_optimal_pass(graph: torch.fx.Graph) -> None:
                 start = node.args[0]
                 end = node.args[1]
                 step = node.args[2]  # arange(start, end, step)
-            # 合并 kwargs 覆盖 (e.g., 用户指定 kwargs['start'])
+            # merge kwargs overrides (e.g. a user-specified kwargs['start'])
             start = node.kwargs.get("start", start)
             end = node.kwargs.get("end", end)
             step = node.kwargs.get("step", step)
-            # 如果 end 为 None，假设无限或跳过 (罕见，但安全)
+            # if end is None, treat it as unbounded and skip (rare, but safe)
             if end is None:
                 continue
             # Normalize start/end/step (symbolic allowed); elements always lie in
@@ -902,27 +976,27 @@ def dtype_optimal_pass(graph: torch.fx.Graph) -> None:
                 and target_dtype == torch.int64
             ):
                 if len(node.args) > 1:
-                    node.args = (node.args[0], torch.int32)  # 更新 positional dtype
+                    node.args = (node.args[0], torch.int32)  # update the positional dtype
                 else:
                     node.kwargs = {
                         **node.kwargs,
                         "dtype": torch.int32,
-                    }  # 更新 kwargs dtype
+                    }  # update the kwargs dtype
                 changed = True
     eliminate_dead_code(graph, changed, dtype_optimal_pass.__name__, False)
 
 
 @register_custom_pass(PassType.PRE)
 def fusion_attention_v3_pass(graph: torch.fx.Graph) -> None:
-    """将 npu_fusion_attention 升级为 v3 版本：以等价的 v3 算子替换原节点，
-    保留全部参数与元数据，从而启用更高性能的实现。"""
+    """Upgrade npu_fusion_attention to v3: replace the node with the equivalent v3 op,
+    keeping all arguments and metadata, to enable the faster implementation."""
     changed = False
-    for node in list(graph.nodes):  # 使用list避免迭代时修改图结构
+    for node in list(graph.nodes):  # use list to avoid mutating the graph while iterating
         if (
             node.op == "call_function"
             and node.target == torch.ops.npu.npu_fusion_attention.default
         ):
-            # 创建新节点调用v3版本
+            # create a new node calling the v3 version
             with graph.inserting_before(node):
                 new_node = graph.call_function(
                     torch.ops.npu.npu_fusion_attention_v3.default,
@@ -938,8 +1012,8 @@ def fusion_attention_v3_pass(graph: torch.fx.Graph) -> None:
 
 @register_custom_pass(PassType.POST)
 def cat_to_view_pass(graph: torch.fx.Graph) -> None:
-    """将拼接来自同一父张量切片的 cat 转换为 view 或 roll：当多个 slice 完整覆盖
-    某一维度时，cat 等价于恒等视图或循环位移，从而避免实际数据搬运。"""
+    """Turn a cat of slices from one parent tensor into a view or roll: when the slices
+    fully cover a dim the cat is an identity view or a cyclic shift, so no data moves."""
     target_cat = torch.ops.aten.cat.default
     target_slice = torch.ops.aten.slice.Tensor
     changed = False
@@ -1033,7 +1107,7 @@ def cat_to_view_pass(graph: torch.fx.Graph) -> None:
                 changed = True
                 log.info(
                     "cat_to_view_pass: collapsed cat(%d slices, dim=%d) of %s "
-                    "→ identity view (dynamic full cover)",
+                    "-> identity view (dynamic full cover)",
                     len(cat_inputs),
                     cat_dim,
                     parent.name,
@@ -1071,7 +1145,7 @@ def cat_to_view_pass(graph: torch.fx.Graph) -> None:
             changed = True
             log.info(
                 "cat_to_view_pass: collapsed cat(%d slices, dim=%d) of %s "
-                "→ identity view (full cover [0, %d))",
+                "-> identity view (full cover [0, %d))",
                 len(cat_inputs),
                 cat_dim,
                 parent.name,
@@ -1120,7 +1194,7 @@ def cat_to_view_pass(graph: torch.fx.Graph) -> None:
         changed = True
         log.info(
             "cat_to_view_pass: collapsed cat(%d slices, dim=%d) of %s "
-            "→ roll(shift=%d) (cyclic rotation of full cover [0, %d))",
+            "-> roll(shift=%d) (cyclic rotation of full cover [0, %d))",
             len(cat_inputs),
             cat_dim,
             parent.name,
@@ -1170,8 +1244,8 @@ _REPEAT_BROADCAST_FRIENDLY_OPS = frozenset(
 
 @register_custom_pass(PassType.POST)
 def repeat_to_expand_pass(graph: torch.fx.Graph) -> None:
-    """将仅用于广播的 repeat 改写为 expand：在所有使用者都支持广播的前提下，
-    用零拷贝的 expand 替代物理拷贝的 repeat。"""
+    """Rewrite a broadcast-only repeat as expand: when every user supports broadcasting,
+    replace the physically copying repeat with a zero-copy expand."""
     target_repeat = torch.ops.aten.repeat.default
     changed = False
 
@@ -1249,7 +1323,7 @@ def repeat_to_expand_pass(graph: torch.fx.Graph) -> None:
         rpt.replace_all_uses_with(exp)
         changed = True
         log.info(
-            "repeat_to_expand_pass: rewrote repeat(%s, %s) → "
+            "repeat_to_expand_pass: rewrote repeat(%s, %s) -> "
             "expand(%s, %s) (broadcast-only, %d consumer%s)",
             inp.name,
             list(repeats),
@@ -1325,8 +1399,8 @@ def _prims_iota_endpoints(node):
 
 
 def _collect_iota_downcast_closure(iota_node):
-    """收集从 iota 出发、只经过 dtype 透明算子直至遇到收尾算子的所有中间节点；
-    若遇到不支持的算子则返回 None 表示无法降级。"""
+    """Collect every intermediate node from iota through dtype-transparent ops up to a
+    terminating op; return None if an unsupported op appears and narrowing is unsafe."""
     middle_ids = OrderedSet()
     queue = [iota_node]
     while queue:
@@ -1348,7 +1422,7 @@ def _collect_iota_downcast_closure(iota_node):
 
 
 def _hashable_const_key(value):
-    """将常量参数（含嵌套 list/tuple/dict）转为可哈希的 key，便于做常量折叠的 CSE 比较。"""
+    """Turn constant args (including nested list/tuple/dict) into a hashable key for CSE."""
     if isinstance(value, list):
         return ("__list__",) + tuple(_hashable_const_key(v) for v in value)
     if isinstance(value, tuple):
@@ -1362,10 +1436,10 @@ def _hashable_const_key(value):
 
 
 def _collect_mutation_buffer_ids(graph):
-    """收集图中所有被 mutation / triton kernel 操作引用的 Node id 集合。
-    匹配 triton_kernel_wrapper_mutation、triton_kernel_wrapper_functional
-    以及 ATen in-place 算子（通过 __name__ 和 _schema.name 双重检测）。
-    主动遍历节点的 args/kwargs（含嵌套 dict/list），不依赖 node.users。"""
+    """Collect the ids of every node referenced by a mutation or triton kernel op.
+    Matches triton_kernel_wrapper_mutation, triton_kernel_wrapper_functional and
+    ATen in-place ops (detected through both __name__ and _schema.name).
+    Walks args/kwargs (including nested dict/list) rather than relying on node.users."""
 
     def _is_mutation_node(n):
         if n.op != "call_function":
@@ -1402,9 +1476,9 @@ def _collect_mutation_buffer_ids(graph):
 
 
 def _cse_constant_call(graph, target, mutation_buf_ids=None):
-    """对指定 target 的常量参数调用做公共子表达式消除：
-    相同 args/kwargs 的重复调用只保留首次，其余复用结果。
-    被 mutation 操作引用的节点不参与 CSE，避免多个 mutation 写入同一 buffer。"""
+    """Common subexpression elimination over constant-argument calls of a given target:
+    repeated calls with the same args/kwargs keep the first and reuse its result.
+    Nodes referenced by mutations are excluded, so several mutations never share a buffer."""
     if mutation_buf_ids is None:
         mutation_buf_ids = _collect_mutation_buffer_ids(graph)
     seen = {}
@@ -1431,8 +1505,8 @@ def _cse_constant_call(graph, target, mutation_buf_ids=None):
 
 @register_custom_pass(PassType.POST)
 def fold_iota_arithmetic_pass(graph: torch.fx.Graph) -> None:
-    """对 iota/arange/full 做常量 CSE，并尝试将取值范围在 int32 内的 int64 iota
-    降级为 int32；同时将 cmp(sub(a,b),0) 简化为 cmp(a,b)。"""
+    """Run constant CSE over iota/arange/full and try to narrow an int64 iota whose range
+    fits in int32; also simplify cmp(sub(a,b),0) into cmp(a,b)."""
     changed = False
 
     iota_target = torch.ops.prims.iota.default
@@ -1488,7 +1562,7 @@ def fold_iota_arithmetic_pass(graph: torch.fx.Graph) -> None:
 
         changed = True
         log.info(
-            "fold_iota_arithmetic_pass: downcast iota int64 → int32"
+            "fold_iota_arithmetic_pass: downcast iota int64 -> int32"
             " (%d transparent user%s in closure)",
             len(middle_ids),
             "" if len(middle_ids) == 1 else "s",
@@ -1525,10 +1599,10 @@ def fold_iota_arithmetic_pass(graph: torch.fx.Graph) -> None:
             continue
 
         a, b = sub.args[0], sub.args[1]
-        # cmp(a - b, 0) == cmp(a, b) 这一恒等式与 b 是张量还是标量无关，
-        # 但 aten 比较算子的重载必须匹配：b 为张量时用 .Tensor，
-        # b 为标量(int/float)时保留 .Scalar，否则会触发
-        # "Expected a value of type 'Tensor' ... but instead found type 'float'"。
+        # the identity cmp(a - b, 0) == cmp(a, b) holds whether b is a tensor or a scalar,
+        # but the aten comparison overload must match: use .Tensor when b is a tensor and
+        # keep .Scalar when b is a scalar (int/float), otherwise this raises
+        # "Expected a value of type 'Tensor' ... but instead found type 'float'".
         b_is_tensor = isinstance(b, torch.fx.Node) and isinstance(
             b.meta.get("val"), torch.Tensor
         )
@@ -1545,7 +1619,7 @@ def fold_iota_arithmetic_pass(graph: torch.fx.Graph) -> None:
         cmp.replace_all_uses_with(new_cmp)
         changed = True
         log.info(
-            "fold_iota_arithmetic_pass: folded %s(sub(a, b), 0) → %s(a, b)",
+            "fold_iota_arithmetic_pass: folded %s(sub(a, b), 0) -> %s(a, b)",
             cmp.target,
             new_target,
         )
@@ -1554,8 +1628,8 @@ def fold_iota_arithmetic_pass(graph: torch.fx.Graph) -> None:
 
 
 def _extract_const_full_scalar(node):
-    """从 aten.full 节点中提取其常量填充标量；
-    若节点不是 full 或填充值非标量则返回 None。"""
+    """Extract the constant fill scalar from an aten.full node;
+    return None if the node is not a full or the fill value is not a scalar."""
     if not (
         isinstance(node, torch.fx.Node)
         and node.op == "call_function"
@@ -1570,8 +1644,8 @@ def _extract_const_full_scalar(node):
 
 @register_custom_pass(PassType.POST)
 def broadcast_const_mask_compress(graph: torch.fx.Graph) -> None:
-    """压缩 cast(where(bool_mask, full(c1), full(c2))) 模式：当两路常量构成 0/1 选择时，
-    用 mask 自身（或 logical_not(mask)）替代该 where+cast，消除显式广播。"""
+    """Collapse cast(where(bool_mask, full(c1), full(c2))): when the two constants form a
+    0/1 choice, replace the where+cast with the mask itself (or logical_not(mask))."""
     changed = False
 
     for node in list(graph.nodes):
@@ -1642,13 +1716,13 @@ def broadcast_const_mask_compress(graph: torch.fx.Graph) -> None:
             action = "drop cast, substitute mask"
         else:
             node.replace_input_with(w, new_cond)
-            action = "rewire cast input from where → mask"
+            action = "rewire cast input from where -> mask"
 
         changed = True
 
         log.info(
             "broadcast_const_mask_compress: collapsed "
-            "cast[%s](where(bool_mask, full(%s), full(%s))) → %s "
+            "cast[%s](where(bool_mask, full(%s), full(%s))) -> %s "
             "(%s; dropping explicit broadcast to %s)",
             target_dtype,
             t_val,
@@ -1662,7 +1736,7 @@ def broadcast_const_mask_compress(graph: torch.fx.Graph) -> None:
 
 
 def _is_zero_tensor_source(node):
-    """判断节点是否为「全 0 张量来源」：标量 0，或 zeros / zeros_like / full(0) 调用。"""
+    """Tell whether a node is an all-zero source: scalar 0, or zeros / zeros_like / full(0)."""
     if isinstance(node, (int, float)) and node == 0:
         return True
     if not isinstance(node, torch.fx.Node):
@@ -1681,8 +1755,8 @@ def _is_zero_tensor_source(node):
 
 
 def _strip_logical_not(node):
-    """剥离最外层的逻辑/按位取反算子，返回 (内部节点, 是否被取反)；
-    若不是取反则原样返回并标记为 False。"""
+    """Strip the outermost logical / bitwise not and return (inner node, was_negated);
+    if there is no not, return the node unchanged with False."""
     if not isinstance(node, torch.fx.Node) or node.op != "call_function":
         return node, False
     if node.target is torch.ops.aten.logical_not.default:
@@ -1696,7 +1770,7 @@ def _strip_logical_not(node):
 
 
 def _are_logically_negated_masks(m1, m2):
-    """判断两个 mask 是否恰好互为逻辑取反：底层节点相同，且仅有一边被 not 包裹。"""
+    """Tell whether two masks are exact complements: same base node, not on one side only."""
     if m1 is m2:
         return False
     s1, neg1 = _strip_logical_not(m1)
@@ -1705,7 +1779,7 @@ def _are_logically_negated_masks(m1, m2):
 
 
 def _match_masked_zero_where(node):
-    """匹配形如 where(mask, val, 0) 的模式：返回 (mask, val)，否则返回 None。"""
+    """Match where(mask, val, 0) and return (mask, val), otherwise None."""
     if not (
         isinstance(node, torch.fx.Node)
         and node.op == "call_function"
@@ -1725,8 +1799,8 @@ def _match_masked_zero_where(node):
 
 @register_custom_pass(PassType.POST)
 def masked_add_compose_pass(graph: torch.fx.Graph) -> None:
-    """将 where(m, a, 0) + where(~m, b, 0) 合成单个 where(m, a, b)：
-    两个互补的掩码加法等价于一次三目选择，可节省一次加法与一次 where。"""
+    """Fuse where(m, a, 0) + where(~m, b, 0) into a single where(m, a, b):
+    adding two complementary masked values equals one select, saving an add and a where."""
     changed = False
 
     for add in list(graph.nodes):
@@ -1785,7 +1859,7 @@ def masked_add_compose_pass(graph: torch.fx.Graph) -> None:
         changed = True
         log.info(
             "masked_add_compose_pass: folded "
-            "where(m, a, 0) + where(~m, b, 0) → where(m, a, b) "
+            "where(m, a, 0) + where(~m, b, 0) -> where(m, a, b) "
             "(mask=%s)",
             mask_pos.name,
         )
@@ -1810,8 +1884,8 @@ _BCM_VIEW_CHAIN_OPS = frozenset(
 
 
 def _walk_back_view_chain_to_cast(node):
-    """从 node 出发反向走单一使用者的 view 类链，直到遇到 cast 节点：
-    返回 (中间 view 链, cast 节点)，匹配失败则返回 (None, None)。"""
+    """Walk backwards from node along a single-user view chain until a cast node:
+    return (view chain, cast node), or (None, None) when the match fails."""
     chain = []
     cur = node
     visited = OrderedSet()
@@ -1834,8 +1908,8 @@ def _walk_back_view_chain_to_cast(node):
 
 
 def _replay_view_chain(graph, fake_mode, base_node, chain):
-    """以 base_node 为起点，按相同顺序重放给定的 view 链，
-    在图中创建对等的新节点链并刷新其 fake meta。"""
+    """Replay the given view chain in the same order starting from base_node,
+    creating an equivalent node chain in the graph and refreshing its fake meta."""
     cur = base_node
     for view in reversed(chain):
         new_args = (cur,) + tuple(view.args[1:])
@@ -1869,8 +1943,8 @@ def _replay_view_chain(graph, fake_mode, base_node, chain):
 
 @register_custom_pass(PassType.POST)
 def bool_cast_mul_to_where_pass(graph: torch.fx.Graph) -> None:
-    """将 cast[dtype](bool_mask) * x 改写为 where(bool_mask, x, 0)：
-    避免显式的 bool→numeric 类型转换与广播乘法，让后端有更多融合机会。"""
+    """Rewrite cast[dtype](bool_mask) * x into where(bool_mask, x, 0):
+    this drops an explicit bool->numeric cast and a broadcast multiply, leaving the backend more room to fuse."""
     changed = False
 
     for mul in list(graph.nodes):
@@ -1965,10 +2039,10 @@ def bool_cast_mul_to_where_pass(graph: torch.fx.Graph) -> None:
 
         mul.replace_all_uses_with(new_where)
         changed = True
-        chain_desc = " → ".join(v.target.__name__ for v in chain) if chain else "direct"
+        chain_desc = " -> ".join(v.target.__name__ for v in chain) if chain else "direct"
         log.info(
             "bool_cast_mul_to_where_pass: folded "
-            "cast[%s](bool_mask) * x → where(bool_mask, x, 0) "
+            "cast[%s](bool_mask) * x -> where(bool_mask, x, 0) "
             "(mask=%s, view-chain=[%s], shape=%s)",
             cast_target_dtype,
             cast_src.name,
@@ -1980,7 +2054,7 @@ def bool_cast_mul_to_where_pass(graph: torch.fx.Graph) -> None:
 
 
 def _peel_single_user_relu_sign(node):
-    """匹配并剥离单使用者的 relu(sign(x)) 串联结构，返回内部的 x；不匹配时返回 None。"""
+    """Match and strip a single-user relu(sign(x)) chain, returning the inner x, else None."""
     if not (
         isinstance(node, torch.fx.Node)
         and node.op == "call_function"
@@ -2003,8 +2077,8 @@ def _peel_single_user_relu_sign(node):
 
 @register_custom_pass(PassType.POST)
 def sign_diff_hamming_fuse_pass(graph: torch.fx.Graph) -> None:
-    """将 sum(abs(relu(sign(x)) - relu(sign(y)))) 融合为符号位的汉明距离：
-    用 sum(ne(gt(x,0), gt(y,0))) 等价替换，简化算子链并降低中间张量成本。"""
+    """Fuse sum(abs(relu(sign(x)) - relu(sign(y)))) into a Hamming distance over sign bits:
+    the equivalent sum(ne(gt(x,0), gt(y,0))) shortens the op chain and drops intermediates."""
     changed = False
     for sum_node in list(graph.nodes):
         if (
@@ -2039,8 +2113,8 @@ def sign_diff_hamming_fuse_pass(graph: torch.fx.Graph) -> None:
         y_src = _peel_single_user_relu_sign(b)
         if x_src is None or y_src is None:
             continue
-        # gt.Scalar 要求 self 为张量；relu(sign(·)) 的输入恒为张量节点，
-        # 但仍显式守卫，避免极端情况下把标量喂给 gt.Scalar(self, 0)。
+        # gt.Scalar requires self to be a tensor; the input of relu(sign(x)) always is one,
+        # but guard explicitly so a scalar can never reach gt.Scalar(self, 0).
         if not (
             isinstance(x_src, torch.fx.Node) and isinstance(y_src, torch.fx.Node)
         ):
@@ -2083,8 +2157,8 @@ def sign_diff_hamming_fuse_pass(graph: torch.fx.Graph) -> None:
         changed = True
         log.info(
             "sign_diff_hamming_fuse_pass: folded "
-            "sum(abs(sub(relu(sign(%s)), relu(sign(%s))))) → "
-            "sum(ne(gt(·,0), gt(·,0)), dtype=%s) "
+            "sum(abs(sub(relu(sign(%s)), relu(sign(%s))))) -> "
+            "sum(ne(gt(.,0), gt(.,0)), dtype=%s) "
             "(dim=%s, keepdim=%s)",
             x_src.name if isinstance(x_src, torch.fx.Node) else x_src,
             y_src.name if isinstance(y_src, torch.fx.Node) else y_src,
@@ -2097,8 +2171,8 @@ def sign_diff_hamming_fuse_pass(graph: torch.fx.Graph) -> None:
 
 
 def _has_default_embedding_args(node):
-    """判断 aten.embedding 调用是否使用全部默认参数
-    （padding_idx=-1、未启用 scale_grad_by_freq 与 sparse）。"""
+    """Tell whether an aten.embedding call uses all default arguments
+    (padding_idx=-1, scale_grad_by_freq and sparse both off)."""
     if len(node.args) > 2 and node.args[2] != -1:
         return False
     if len(node.args) > 3 and node.args[3]:
@@ -2129,7 +2203,7 @@ def _symbolic_shape_key(shape):
 
 
 def _weight_node_key(w):
-    """生成 embedding 权重节点的标识 key：参数/常量按 (op, target) 共享，其余按 id 区分。"""
+    """Build an identity key for an embedding weight: params/constants share (op, target), others go by id."""
     if w.op in ("get_attr", "placeholder"):
         return (w.op, w.target)
     return id(w)
@@ -2148,15 +2222,15 @@ _REDUCE_OPS_DIM_INT = {
 
 
 def _reduce_call_args(target, input_node, reduce_dim):
-    """根据 reduce 算子签名，构造其规约维度参数：dim_int 版本传单个 int，dim_list 版本传列表。"""
+    """Build the reduce dim argument from the op signature: dim_int takes an int, dim_list a list."""
     if target in _REDUCE_OPS_DIM_INT:
         return (input_node, reduce_dim)
     return (input_node, [reduce_dim])
 
 
 def _detect_reduce_pattern(nodes, cat_dim):
-    """检查每个 embedding 节点的唯一使用者是否都是同一种沿 cat_dim 规约且 keepdim=False 的 reduce；
-    若一致则返回 (reduce_target, reduce_nodes)，否则返回 None。"""
+    """Check that every embedding node's sole user is the same reduce along cat_dim with keepdim=False;
+    return (reduce_target, reduce_nodes) when they agree, otherwise None."""
     reduce_target = None
     reduce_nodes = []
     for node in nodes:
@@ -2200,8 +2274,8 @@ def _detect_reduce_pattern(nodes, cat_dim):
 
 
 def _detect_indices_parent(nodes):
-    """检测一组 embedding 节点的 indices 是否来自同一父张量的同维度连续 slice，
-    并且这些 slice 完整无重叠地覆盖该维度；满足时返回 (parent, slice_dim)。"""
+    """Detect whether the indices of a group of embedding nodes are contiguous slices of one
+    parent along the same dim, covering it fully without overlap; if so return (parent, slice_dim)."""
     if not nodes:
         return None, None
 
@@ -2260,8 +2334,8 @@ def _detect_indices_parent(nodes):
 
 
 def _fuse_embedding_subgroup(graph, nodes, node_order, D):
-    """对一组共享权重的 embedding 调用进行批量融合：校验索引来源与下游 reduce 模式后，
-    转发到 Pattern C 的 reshape-first 实现去合并为单个 embedding+reduce。"""
+    """Batch-fuse embedding calls sharing a weight: after checking the index source and the
+    downstream reduce pattern, forward to the Pattern C reshape-first implementation."""
     if len(nodes) < 2:
         return False
 
@@ -2311,8 +2385,8 @@ def _try_collapse_select_chain_into_cat_reshape(
     source_axis,
     fake_mode,
 ):
-    """尝试将「N 个 select + 同一 cat」的下游链折叠成一次 reshape：
-    当所有 select 在 cat 的末维按序连续出现时，可用 flatten 的 reshape 直接接入 cat。"""
+    """Try to collapse a downstream chain of N selects feeding one cat into a reshape:
+    when the selects appear in order along the cat's last dim, a flattening reshape feeds the cat directly."""
     src_shape = get_node_shape(source_node)
     if src_shape is None:
         return False
@@ -2393,8 +2467,8 @@ def _apply_pattern_c_reshape_first(
     V,
     D,
 ):
-    """实现 Pattern C 的批量 embedding 融合：先对父 indices reshape 出额外的 N 维，
-    再做一次 embedding + reduce，最后用 select（或 cat 折叠）接回原下游使用者。"""
+    """Pattern C batch embedding fusion: reshape the parent indices to add an extra N dim,
+    run one embedding + reduce, then reconnect the original users with select (or a collapsed cat)."""
     N = len(nodes)
 
     parent_shape = get_node_shape(parent_node, allow_symbolic=True)
@@ -2516,7 +2590,7 @@ def _apply_pattern_c_reshape_first(
     if collapsed:
         log.info(
             "batch_embedding_fusion_pass: Pattern C "
-            "(reshape-first + cat-collapse) — replaced %d "
+            "(reshape-first + cat-collapse) - replaced %d "
             "(slice+emb+reduce) + %d downstream selects with "
             "1 reshape + 1 emb + 1 reduce + 1 reshape "
             "(N=%d, L=%d, V=%d, D=%d)",
@@ -2530,7 +2604,7 @@ def _apply_pattern_c_reshape_first(
     else:
         log.info(
             "batch_embedding_fusion_pass: Pattern C (reshape-first) "
-            "— replaced %d (slice+emb+reduce) with "
+            "- replaced %d (slice+emb+reduce) with "
             "1 reshape + 1 emb + 1 reduce + %d select "
             "(N=%d, L=%d, V=%d, D=%d)",
             N,
@@ -2545,8 +2619,8 @@ def _apply_pattern_c_reshape_first(
 
 @register_custom_pass(PassType.POST)
 def batch_embedding_fusion_pass(graph: torch.fx.Graph) -> None:
-    """批量融合 embedding 调用：按权重和索引 shape 分组，对同组的多次 embedding+reduce
-    合并为单次 reshape→embedding→reduce，从而显著降低调度与访存开销。"""
+    """Batch-fuse embedding calls: group by weight and index shape, then merge each group's
+    repeated embedding+reduce into one reshape->embedding->reduce, cutting dispatch and memory cost."""
     changed = False
 
     emb_nodes = [
@@ -2592,14 +2666,14 @@ def batch_embedding_fusion_pass(graph: torch.fx.Graph) -> None:
     eliminate_dead_code(graph, changed, batch_embedding_fusion_pass.__name__)
 
 
-# post_grad 图已被 AOT 规范化成 aten 形态：linear 早已分解为 permute+addmm，
-# 因此这里只认 addmm / mm / mm+add，权重天然是 (K, N)，不需要任何转置。
+# the post_grad graph is already AOT-normalized to aten form: linear is decomposed into
+# permute+addmm, so only addmm / mm / mm+add match here; w is already (K, N), no transpose.
 _FMM_ADDMM_TARGETS = (torch.ops.aten.addmm.default,)
 _FMM_MATMUL_TARGETS = (torch.ops.aten.mm.default,)
 _FMM_ADD_TARGETS = (torch.ops.aten.add.Tensor,)
 _FMM_RELU_TARGETS = (torch.ops.aten.relu.default,)
 
-# fp32 需调用时已开启 HF32，pass 无法保证该前提，故只放开 fp16/bf16。
+# fp32 would need HF32 on at call time, which the pass cannot guarantee, so only fp16/bf16.
 _FMM_RELU_SUPPORTED_DTYPES = (torch.float16, torch.bfloat16)
 _FMM_RELU_OP_TYPE = "relu"
 _FMM_REQUIRED_RANK = 2
@@ -2615,10 +2689,10 @@ def _is_relu_node(node):
 
 @functools.lru_cache(maxsize=1)
 def _resolve_npu_fused_matmul():
-    """解析 npu_fused_matmul 的 OpOverload，不可用时返回 None 让 pass 退化为不融合。
+    """Resolve the npu_fused_matmul OpOverload; return None so the pass degrades to no fusion.
 
-    post_grad 图里必须放 OpOverload（torch.ops.npu.*）而不是 torch_npu 下的 Python
-    包装，否则 inductor 无法按 fallback 走 extern 调用。
+    The post_grad graph must hold an OpOverload (torch.ops.npu.*) rather than the Python
+    wrapper under torch_npu, otherwise inductor cannot route it as an extern fallback call.
     """
     if not is_ascend950:
         return None
@@ -2633,7 +2707,7 @@ def _resolve_npu_fused_matmul():
 
 
 def _fmm_node_meta(node):
-    """读取节点的张量元信息。post_grad 图用 val，pre_grad(dynamo) 用 example_value。"""
+    """Read a node's tensor meta. post_grad uses val, pre_grad (dynamo) uses example_value."""
     if not isinstance(node, torch.fx.Node):
         return None
     for key in ("val", "example_value", "tensor_meta"):
@@ -2644,7 +2718,7 @@ def _fmm_node_meta(node):
 
 
 def _is_provably_contiguous(meta):
-    """无法判定时返回 False；npu_fused_matmul 的 bias 不支持非连续输入。"""
+    """Return False when undecidable; the npu_fused_matmul bias rejects non-contiguous input."""
     if meta is None or not hasattr(meta, "is_contiguous"):
         return False
     try:
@@ -2654,7 +2728,7 @@ def _is_provably_contiguous(meta):
 
 
 def _fused_matmul_form(node):
-    """识别节点属于哪种可融合形态：addmm / mm / add(mm)，否则 None。"""
+    """Identify which fusable form the node is: addmm / mm / add(mm), else None."""
     if not (isinstance(node, torch.fx.Node) and node.op == "call_function"):
         return None
     if node.target in _FMM_ADDMM_TARGETS:
@@ -2675,14 +2749,14 @@ def _is_matmul_node(node):
 
 
 def _fmm_reject(node, reason):
-    """记录未命中原因。用 INDUCTOR_ASCEND_LOG_LEVEL=DEBUG 查看。"""
+    """Record why a match failed. Use INDUCTOR_ASCEND_LOG_LEVEL=DEBUG to see it."""
     log.debug("fused_matmul_relu_pass: skip %s, %s", node, reason)
     return None
 
 
 def _fmm_is_mutation_node(node):
-    """是否为原地写节点。名字判据与 _collect_mutation_buffer_ids 保持一致，另外按
-    schema 的写别名兜住不以下划线结尾的可变算子。"""
+    """Whether the node writes in place. The name test matches _collect_mutation_buffer_ids,
+    plus the schema write alias catches mutating ops that do not end in an underscore."""
     if not (isinstance(node, torch.fx.Node) and node.op == "call_function"):
         return False
     target = node.target
@@ -2700,20 +2774,20 @@ def _fmm_is_mutation_node(node):
             for arg in schema.arguments
         )
     except Exception:
-        # schema 读不到时无法判定，按最坏情况当作有 mutation。
+        # undecidable when the schema is unreadable, so assume the worst and treat it as a mutation.
         return True
 
 
 def _has_mutation_between(start, end):
-    """start 与 end 之间（不含两端）是否存在原地写。
+    """Whether an in-place write happens strictly between start and end.
 
-    融合节点插在 end 处，但读的是 start 的输入；若窗口内有人原地改写了这些输入，
-    融合后读到的就是改写后的值。end 不在 start 之后时顺序异常，按最坏情况返回 True。
+    The fused node is inserted at end but reads start's inputs; if anything overwrites them
+    in that window the fusion reads the new values. If end does not follow start, return True.
     """
     node = start.next
     while node is not end:
-        # 节点链是环形的，正向走到哨兵 root 即说明 end 不在 start 之后；node 为 None
-        # 只在链表被破坏时出现。两者都判定不了窗口，按最坏情况处理。
+        # the node list is circular, so reaching the sentinel root means end is not after start;
+        # node is None only if the list is corrupted. Neither case can judge the window, so assume the worst.
         if node is None or node.op == "root":
             return True
         if _fmm_is_mutation_node(node):
@@ -2723,15 +2797,15 @@ def _has_mutation_between(start, end):
 
 
 def _match_fused_matmul_relu_operands(node, form):
-    """匹配可融合的节点，返回 (x1, x2, bias)，bias 为 None 表示无 bias。
+    """Match a fusable node and return (x1, x2, bias); bias is None when there is none.
 
-    addmm(b, x, w) 与 mm(x, w) + b 都是 b + x @ w，mm(x, w) 则是无 bias 的情形；
-    w 已是 (K, N)，与算子的 x1 @ x2 + bias 直接对应，无需转置权重。
+    addmm(b, x, w) and mm(x, w) + b are both b + x @ w, while mm(x, w) has no bias;
+    w is already (K, N), matching the op's x1 @ x2 + bias directly, so no transpose is needed.
     """
     if form == "addmm":
         if len(node.args) != 3:
             return _fmm_reject(node, "addmm operands passed as kwargs")
-        # 仅融合默认 beta/alpha，否则与 relu(x1@x2+bias) 语义不等价。
+        # only fuse default beta/alpha, otherwise this is not equivalent to relu(x1@x2+bias).
         if node.kwargs.get("beta", 1) != 1 or node.kwargs.get("alpha", 1) != 1:
             return _fmm_reject(node, "addmm beta/alpha != 1")
         bias, x1, x2 = node.args
@@ -2739,11 +2813,11 @@ def _match_fused_matmul_relu_operands(node, form):
         if len(node.args) != 2:
             return _fmm_reject(node, "mm operands passed as kwargs")
         x1, x2 = node.args
-        # 算子的 bias 可选，无 bias 时保持默认 None。
+        # the op's bias is optional, so leave it at the default None when absent.
         bias = None
     else:
-        # add 可交换，matmul 可能在任一侧；两侧都不是 matmul 的 add 与本 pass 无关，
-        # 静默跳过（relu(a + b) 很常见，不该刷诊断日志）。
+        # add is commutative so the matmul may be on either side; an add with no matmul on either
+        # side is unrelated to this pass, so skip it silently (relu(a + b) is common).
         if len(node.args) != 2:
             return None
         lhs, rhs = node.args
@@ -2761,7 +2835,7 @@ def _match_fused_matmul_relu_operands(node, form):
             )
         if len(mm_node.args) != 2:
             return _fmm_reject(mm_node, "matmul operands passed as kwargs")
-        # 融合节点插在 add 处，若窗口内有原地写会读到改写后的 x1/x2。
+        # the fused node is inserted at the add, so an in-place write in the window would feed it rewritten x1/x2.
         if _has_mutation_between(mm_node, node):
             return _fmm_reject(node, "in-place write between mm and add")
         x1, x2 = mm_node.args
@@ -2803,11 +2877,11 @@ def _match_fused_matmul_relu_operands(node, form):
 
 
 def _fmm_peel_view(relu_node):
-    """剥掉 relu 与 matmul 之间的一层 view，返回 (view_node, mm_node)。
+    """Strip one view between relu and matmul and return (view_node, mm_node).
 
-    3 维 linear 被 AOT 拆成 view→addmm→view→relu→view，relu 作用在 view 上而不是
-    addmm 上。relu 是逐元素的，relu(view(t)) == view(relu(t))，因此可以把 relu 吸进
-    融合算子、再让原来的 view 承接输出。无 view 时返回 (None, relu 的输入)。
+    AOT splits a 3-D linear into view->addmm->view->relu->view, so relu sits on the view
+    rather than the addmm. relu is pointwise and relu(view(t)) == view(relu(t)), so it can
+    be absorbed into the fused op, letting the original view carry the output. Returns (None, relu's input) with no view.
     """
     inner = relu_node.args[0]
     if not check_view(inner):
@@ -2819,26 +2893,26 @@ def _fmm_peel_view(relu_node):
 
 @register_custom_pass(PassType.POST, ignore_inference_check=True)
 def fused_matmul_relu_pass(graph: torch.fx.Graph) -> None:
-    """将 relu(addmm) 融合为 npu_fused_matmul，对应 aclnnFusedMatmul 的
-    fusedOpType="relu"（y = relu(x1@x2 + bias)）。
+    """Fuse relu(addmm) into npu_fused_matmul, which maps to aclnnFusedMatmul with
+    fusedOpType="relu" (y = relu(x1@x2 + bias)).
 
-    Pattern1: relu(addmm(bias, x, w))       → npu_fused_matmul(x, w, bias, "relu")
-    Pattern2: view(relu(view(addmm(...))))  → view(npu_fused_matmul(...))
-              3 维 linear 被 AOT 拆成这个形状，relu 落在 view 上；relu 逐元素，
-              可以把它吸进算子再让原 view 承接输出。
-    Pattern3: relu(mm(x, w) + bias)         → npu_fused_matmul(x, w, bias, "relu")
-              inductor 未把 mm+add 合成 addmm 时的形态。
-    Pattern4: relu(mm(x, w))                → npu_fused_matmul(x, w, "relu")
-              无 bias 的 linear/matmul，算子的 bias 可选，保持默认 None。
+    Pattern1: relu(addmm(bias, x, w))       -> npu_fused_matmul(x, w, bias, "relu")
+    Pattern2: view(relu(view(addmm(...))))  -> view(npu_fused_matmul(...))
+              AOT splits a 3-D linear into this shape with relu on the view; relu is
+              pointwise, so absorb it into the op and let the original view carry the output.
+    Pattern3: relu(mm(x, w) + bias)         -> npu_fused_matmul(x, w, bias, "relu")
+              the shape seen when inductor did not fold mm+add into addmm.
+    Pattern4: relu(mm(x, w))                -> npu_fused_matmul(x, w, "relu")
+              linear/matmul without bias; the op's bias is optional, so leave it None.
 
-    放在 POST：post_grad 图里 linear 已被分解，addmm 的 w 天然是 (K, N)，与算子的
-    x2 直接对应，不需要插入任何转置或形变节点。
+    Runs at POST: in the post_grad graph linear is already decomposed and addmm's w is
+    already (K, N), matching the op's x2 directly, so no transpose or reshape is inserted.
 
-    默认关闭，置 TORCHINDUCTOR_ENABLE_FUSED_MATMUL_RELU=1 打开；关闭时本 pass 不注册。
+    Off by default; set TORCHINDUCTOR_ENABLE_FUSED_MATMUL_RELU=1 to enable. When off it is not registered.
 
-    门控（从严）：仅 A5（Ascend 950）提供该算子；x1 与 w 均须 2 维（x2 的 rank 需
-    与 x1 一致且不支持 broadcast）、dtype 全一致且为 fp16/bf16、有 bias 时须 1 维且
-    连续、被替换节点须是单使用者。不满足时保持原图，未命中原因走 debug 日志。
+    Gating (strict): only A5 (Ascend 950) has the op; x1 and w must both be 2-D (x2's rank
+    must equal x1's and broadcasting is unsupported); dtypes must all match and be fp16/bf16;
+    a bias must be 1-D and contiguous; replaced nodes must be single-user. Otherwise the graph is left as is.
     """
     fused_op = _resolve_npu_fused_matmul()
     if fused_op is None:
@@ -2863,8 +2937,8 @@ def fused_matmul_relu_pass(graph: torch.fx.Graph) -> None:
             continue
         x1, x2, bias = matched
 
-        # bias 与 fused_op_type 在 schema 的 * 之后，必须以关键字传入；bias 可选，
-        # 无 bias 时不传；relu 模式下 x3 必须为 None，同样保持默认不传。
+        # bias and fused_op_type come after * in the schema and must be passed by keyword; bias
+        # is optional so it is omitted when absent; in relu mode x3 must be None, also omitted.
         kwargs = {"fused_op_type": _FMM_RELU_OP_TYPE}
         if bias is not None:
             kwargs["bias"] = bias
@@ -2875,13 +2949,13 @@ def fused_matmul_relu_pass(graph: torch.fx.Graph) -> None:
                 kwargs=kwargs,
                 name=f"{mm_node.name}_fused_relu",
             )
-            # 融合结果与被替换的 matmul 输出同形同类型，复用其 meta 以保留符号维度。
+            # the fused result matches the replaced matmul output in shape and dtype, so reuse its meta to keep symbolic dims.
             fused_node.meta.update(mm_node.meta)
 
         if view_node is None:
             relu_node.replace_all_uses_with(fused_node)
         else:
-            # 让原来的 view 从融合结果取数，它的输出即等价于原 relu 的输出。
+            # point the original view at the fused result; its output then equals the original relu's.
             view_node.replace_input_with(mm_node, fused_node)
             relu_node.replace_all_uses_with(view_node)
         graph.erase_node(relu_node)
@@ -2897,8 +2971,830 @@ def fused_matmul_relu_pass(graph: torch.fx.Graph) -> None:
     eliminate_dead_code(graph, changed, fused_matmul_relu_pass.__name__)
 
 
+_MSC_SLICE_TARGET = torch.ops.aten.slice.Tensor
+_MSC_WHERE_TARGET = torch.ops.aten.where.self
+_MSC_FULL_TARGET = torch.ops.aten.full.default
+# A where condition is usually reshaped or expanded to the segment width first. Those
+# are pure broadcasts, and peeling them off reveals whether it is a row mask.
+_MSC_BROADCAST_TARGETS = (
+    torch.ops.aten.reshape.default,
+    torch.ops.aten.view.default,
+    torch.ops.aten.expand.default,
+    torch.ops.aten.clone.default,
+)
+
+
+def _msc_static_last_dim(node):
+    shape = get_node_shape(node, allow_symbolic=True)
+    if shape is None or len(shape) != 2:
+        return None
+    last = shape[-1]
+    return last if isinstance(last, int) else None
+
+
+def _msc_bound(value, limit, default):
+    """Normalize a slice start/end into a plain int within [0, limit], else None."""
+    if value is None:
+        return default
+    if not isinstance(value, int) or isinstance(value, bool):
+        return None
+    if value < 0:
+        value += limit
+    return max(0, min(value, limit))
+
+
+def _msc_base_limit(base, cat_dtype, rows):
+    """Validate the base tensor and return its static last-dim length, else None.
+
+    Graph inputs only: here those tables are model arguments, already materialized and
+    contiguous. An intermediate buffer would be forced to materialize early by
+    realize_input during lowering, possibly blocking fusion at its producer.
+    """
+    if not isinstance(base, torch.fx.Node) or base.op != "placeholder":
+        return None
+    shape = get_node_shape(base, allow_symbolic=True)
+    if shape is None or len(shape) != 2:
+        return None
+    # Rows may be symbolic, so dynamic batch works; it just has to match the cat output.
+    if not statically_known_eq(shape[0], rows):
+        return None
+    if get_node_dtype(base) != cat_dtype:
+        return None
+    return _msc_static_last_dim(base)
+
+
+def _msc_plain(node, cat_dtype, rows):
+    """A plain slice or a whole graph input, as (base, offset, width, limit) or None.
+
+    Slices must be along the last dim with step 1, constant bounds and a static last dim.
+    """
+    if isinstance(node, torch.fx.Node) and node.op == "placeholder":
+        limit = _msc_base_limit(node, cat_dtype, rows)
+        return None if limit is None else (node, 0, limit, limit)
+
+    if not isinstance(node, torch.fx.Node) or node.op != "call_function":
+        return None
+    if node.target is not _MSC_SLICE_TARGET or len(node.args) < 2:
+        return None
+    if len(node.args) > 4 and node.args[4] not in (None, 1):
+        return None
+
+    base = node.args[0]
+    limit = _msc_base_limit(base, cat_dtype, rows)
+    if limit is None:
+        return None
+
+    if normalize_dim(node.args[1], 2) != 1:
+        return None
+
+    start = _msc_bound(node.args[2] if len(node.args) > 2 else None, limit, 0)
+    end = _msc_bound(node.args[3] if len(node.args) > 3 else None, limit, limit)
+    if start is None or end is None:
+        return None
+
+    width = end - start
+    # Cross-check the width against the slice's own meta in case normalization diverged.
+    if width <= 0 or width != _msc_static_last_dim(node):
+        return None
+    return base, start, width, limit
+
+
+def _msc_row_mask(node, rows):
+    """Reduce a where condition to a [rows, 1] row mask, else None.
+
+    Peels the pure broadcasts and takes the deepest qualifying node, since a shallower
+    one would be materialized separately by realize_input and waste a dispatch. The
+    shape must be exactly [rows, 1]: a 1D mask broadcasts along columns instead of rows,
+    which means something else entirely. All four ops are the identity for [rows, 1],
+    so going deeper does not change the values.
+    """
+
+    def qualifies(candidate):
+        if not isinstance(candidate, torch.fx.Node):
+            return False
+        shape = get_node_shape(candidate, allow_symbolic=True)
+        if shape is None or len(shape) != 2:
+            return False
+        if not statically_known_eq(shape[0], rows):
+            return False
+        if not statically_known_eq(shape[1], 1):
+            return False
+        return get_node_dtype(candidate) is torch.bool
+
+    deepest = None
+    for _ in range(5):
+        if qualifies(node):
+            deepest = node
+        if (
+            isinstance(node, torch.fx.Node)
+            and node.op == "call_function"
+            and node.target in _MSC_BROADCAST_TARGETS
+            and node.args
+        ):
+            node = node.args[0]
+        else:
+            break
+    return deepest
+
+
+def _msc_is_zero_fill(node, dtype):
+    """The true branch must be an all-zero constant of the segment dtype."""
+    if not isinstance(node, torch.fx.Node) or node.op != "call_function":
+        return False
+    if node.target is not _MSC_FULL_TARGET or len(node.args) < 2:
+        return False
+    fill = node.args[1]
+    if isinstance(fill, bool) or not isinstance(fill, (int, float)):
+        return False
+    return fill == 0 and get_node_dtype(node) == dtype
+
+
+def _msc_segment(node, cat_dtype, rows):
+    """Match the two segment forms, returning (base, offset, width, mask, cost).
+
+    Either a plain slice / whole graph input, or ``where(row mask, 0, that)``.
+
+    cost is the dispatches this segment costs today: 0 for a contiguous graph input,
+    which aclnnCat reads directly, and 1 for a column slice or a masked segment. The
+    saving from merging is sum(cost) - 1, which decides whether the rewrite pays off.
+    """
+    if (
+        isinstance(node, torch.fx.Node)
+        and node.op == "call_function"
+        and node.target is _MSC_WHERE_TARGET
+        and len(node.args) == 3
+    ):
+        cond, on_true, on_false = node.args
+        if not _msc_is_zero_fill(on_true, cat_dtype):
+            return None
+        mask = _msc_row_mask(cond, rows)
+        if mask is None:
+            return None
+        plain = _msc_plain(on_false, cat_dtype, rows)
+        if plain is None:
+            return None
+        base, off, width, _ = plain
+        # A differing where output width means another broadcast, not a per-row zeroing.
+        if width != _msc_static_last_dim(node):
+            return None
+        return base, off, width, mask, 1
+
+    plain = _msc_plain(node, cat_dtype, rows)
+    if plain is None:
+        return None
+    base, off, width, limit = plain
+    contiguous = off == 0 and width == limit
+    return base, off, width, None, 0 if contiguous else 1
+
+
+def _msc_runs(inputs, cat_dtype, rows, max_segments, max_sources, max_masks):
+    """Split the cat inputs into runs that are adjacent and worth merging.
+
+    Only adjacent inputs can merge: they occupy a contiguous column range in the output,
+    so replacing them with one node preserves the concat order. An unrecognized input
+    breaks the run.
+
+    Segments may come from different base tensors, each costing one more kernel pointer
+    argument. Source and mask counts are capped so a pathological graph cannot blow up
+    the argument list.
+    """
+    runs = []
+    cur = []       # segments accumulated so far
+    start = 0      # index where cur begins in the cat argument list
+    srcs = []      # base tensors used by cur, deduplicated in first-seen order
+    masks = []     # row masks used by cur, likewise
+
+    def worth(segs):
+        # Merging costs one dispatch against sum(cost) today. Below that, leave it to
+        # aten.cat: contiguous inputs need no extra kernel and folding them would add one.
+        return len(segs) >= 2 and sum(seg[4] for seg in segs) >= 2
+
+    for idx, inp in enumerate(inputs):
+        seg = _msc_segment(inp, cat_dtype, rows)
+        if seg is not None and seg[3] is not None and max_masks <= 0:
+            seg = None
+        if seg is None:
+            if worth(cur):
+                runs.append((start, cur))
+            cur, srcs, masks = [], [], []
+            continue
+
+        base, mask = seg[0], seg[3]
+        if cur and (
+            len(cur) >= max_segments
+            or (base not in srcs and len(srcs) >= max_sources)
+            or (mask is not None and mask not in masks and len(masks) >= max_masks)
+        ):
+            # At the cap, close the run and start the next one from this segment.
+            if worth(cur):
+                runs.append((start, cur))
+            cur, srcs, masks = [], [], []
+
+        if not cur:
+            start = idx
+        cur.append(seg)
+        if base not in srcs:
+            srcs.append(base)
+        if mask is not None and mask not in masks:
+            masks.append(mask)
+
+    if worth(cur):
+        runs.append((start, cur))
+    return runs
+
+
+def _msc_build_node(graph, cat, run):
+    """Emit one multi_slice_concat node for a run, or None if self-validation fails."""
+    srcs = []
+    masks = []
+    for base, _, _, mask, _ in run:
+        if base not in srcs:
+            srcs.append(base)
+        if mask is not None and mask not in masks:
+            masks.append(mask)
+
+    src_idx = [srcs.index(base) for base, _, _, _, _ in run]
+    offsets = [off for _, off, _, _, _ in run]
+    widths = [width for _, _, width, _, _ in run]
+    mask_idx = [-1 if mask is None else masks.index(mask) for _, _, _, mask, _ in run]
+
+    fake_srcs = [node.meta.get("val") for node in srcs]
+    fake_masks = [node.meta.get("val") for node in masks]
+    if any(val is None for val in fake_srcs) or any(val is None for val in fake_masks):
+        return None
+    # zeros_like in the reference allocates, so it has to run under the sources' own
+    # fake mode; otherwise the following where raises "Mixing fake modes".
+    fake_mode = getattr(fake_srcs[0], "fake_mode", None)
+    try:
+        # Running the reference on fake tensors yields the output meta and validates
+        # that the plan is self-consistent.
+        with contextlib.ExitStack() as stack:
+            if fake_mode is not None:
+                stack.enter_context(fake_mode)
+            fake_out = _multi_slice_concat_ref(
+                fake_srcs, fake_masks, src_idx, offsets, widths, mask_idx
+            )
+    except Exception:  # a gap in matching; skip rather than emit a wrong graph
+        log.debug(
+            "[inductor_fx] multi_slice_concat segment plan validation failed",
+            exc_info=True,
+        )
+        return None
+
+    with graph.inserting_before(cat):
+        node = graph.call_function(
+            MULTI_SLICE_CONCAT_TARGET,
+            args=(srcs, masks, src_idx, offsets, widths, mask_idx),
+        )
+    node.meta["val"] = fake_out
+    return node
+
+
+@register_custom_pass(PassType.POST, ignore_inference_check=True)
+def multi_slice_concat_pass(
+    graph: torch.fx.Graph,
+    *,
+    max_segments: int = 64,
+    max_sources: int = 32,
+    max_masks: int = 4,
+) -> None:
+    """Fold a run of fixed-width column slices into one npu_ext::multi_slice_concat.
+
+    aclnnCat needs contiguous inputs, so each non-contiguous slice costs a Slice copy
+    and each masked one a where. The rewrite moves the same data in one dispatch, with
+    fixed-width copies rather than indirect addressing.
+
+    Matching is strict: anything that does not fit is left to aten.cat.
+
+    max_segments caps the run length, since every segment is unrolled in the kernel
+    body. max_sources caps the distinct source tensors, each costing a kernel pointer
+    argument. max_masks caps the row masks held live across segments; real graphs use
+    a couple per cat. The caps only bound pathological graphs.
+    """
+    changed = False
+    for cat in list(graph.nodes):
+        is_cat, dim = check_cat_op(cat)
+        if not is_cat or not cat.args:
+            continue
+        inputs = cat.args[0]
+        if not isinstance(inputs, (list, tuple)) or len(inputs) < 2:
+            continue
+        cat_shape = get_node_shape(cat, allow_symbolic=True)
+        cat_dtype = get_node_dtype(cat)
+        if cat_shape is None or cat_dtype is None or len(cat_shape) != 2:
+            continue
+        # Column concat along the last dim only; row concat is not this op's semantics.
+        if normalize_dim(dim, 2) != 1:
+            continue
+
+        runs = _msc_runs(
+            list(inputs),
+            cat_dtype,
+            cat_shape[0],
+            max_segments,
+            max_sources,
+            max_masks,
+        )
+        if not runs:
+            continue
+
+        new_inputs = list(inputs)
+        # Replace back to front so earlier run indices stay valid.
+        replaced = 0
+        for start, run in reversed(runs):
+            node = _msc_build_node(graph, cat, run)
+            if node is None:
+                continue
+            new_inputs[start:start + len(run)] = [node]
+            replaced += 1
+        if replaced == 0:
+            continue
+
+        if len(new_inputs) == 1:
+            cat.replace_all_uses_with(new_inputs[0])
+            graph.erase_node(cat)
+        else:
+            cat.args = (new_inputs,) + tuple(cat.args[1:])
+        changed = True
+        log.info(
+            "[inductor_fx] multi_slice_concat_pass folded %d run(s) covering %d "
+            "segments out of %d cat inputs",
+            replaced,
+            sum(len(run) for _, run in runs),
+            len(inputs),
+        )
+
+    eliminate_dead_code(graph, changed, multi_slice_concat_pass.__name__)
+
+
+_SSA_SUM_TARGET = torch.ops.aten.sum.dim_IntList
+_SSA_STACK_TARGET = torch.ops.aten.stack.default
+_SSA_ADD_TARGET = torch.ops.aten.add.Tensor
+_SSA_CONVERT_TARGET = torch.ops.prims.convert_element_type.default
+_SSA_UNSQUEEZE_TARGET = torch.ops.aten.unsqueeze.default
+_SSA_LOW_PRECISION_FLOATS = (torch.float16, torch.bfloat16)
+
+
+def _ssa_get_sum_dims(node: torch.fx.Node):
+    dims = node.args[1] if len(node.args) > 1 else node.kwargs.get("dim")
+    if isinstance(dims, int):
+        return [dims]
+    if isinstance(dims, (list, tuple)) and all(isinstance(d, int) for d in dims):
+        return list(dims)
+    return None
+
+
+def _ssa_get_keepdim(node: torch.fx.Node) -> bool:
+    if len(node.args) > 2:
+        return bool(node.args[2])
+    return bool(node.kwargs.get("keepdim", False))
+
+
+def _ssa_match_unsqueeze_cat(cat: torch.fx.Node, cat_dim):
+    """Original stack form: cat([unsqueeze(x_i, d), ...], d)."""
+    inputs = cat.args[0]
+    cat_shape = get_node_shape(cat, allow_symbolic=True)
+    if cat_shape is None:
+        return None
+    stack_dim = normalize_dim(cat_dim, len(cat_shape))
+    if stack_dim is None:
+        return None
+
+    operands = []
+    operand_shape = None
+    for inp in inputs:
+        if not check_unsqueeze_op(inp) or not is_single_user(inp):
+            return None
+        unsqueeze_dim = normalize_dim(
+            inp.args[1] if len(inp.args) > 1 else 0, len(cat_shape)
+        )
+        if unsqueeze_dim != stack_dim:
+            return None
+        operand = inp.args[0]
+        if not isinstance(operand, torch.fx.Node):
+            return None
+        shape = get_node_shape(operand, allow_symbolic=True)
+        if shape is None:
+            return None
+        if operand_shape is None:
+            operand_shape = shape
+        elif not shapes_statically_equal(operand_shape, shape):
+            return None
+        operands.append(operand)
+    return operands, stack_dim
+
+
+def _ssa_match_view_cat(view: torch.fx.Node, cat: torch.fx.Node, cat_dim):
+    """Simplified form: reshape(cat([x_i, ...], 0), [N, *x_shape]).
+
+    Concatenating N equally shaped tensors along axis 0 and reshaping to [N, *x_shape]
+    puts the i-th input on row i, which is exactly stack(xs, 0).
+    """
+    if cat_dim != 0:
+        return None
+    inputs = cat.args[0]
+    view_shape = get_node_shape(view, allow_symbolic=True)
+    if view_shape is None or len(view_shape) < 1:
+        return None
+    if not statically_known_eq(view_shape[0], len(inputs)):
+        return None
+
+    operands = []
+    for inp in inputs:
+        if not isinstance(inp, torch.fx.Node):
+            return None
+        shape = get_node_shape(inp, allow_symbolic=True)
+        if not shapes_statically_equal(view_shape[1:], shape):
+            return None
+        operands.append(inp)
+    return operands, 0
+
+
+def _ssa_match_plain_stack(stack: torch.fx.Node):
+    """Undecomposed form: aten.stack.default(xs, d)."""
+    inputs = stack.args[0]
+    stack_shape = get_node_shape(stack, allow_symbolic=True)
+    if stack_shape is None:
+        return None
+    stack_dim = normalize_dim(
+        stack.args[1] if len(stack.args) > 1 else stack.kwargs.get("dim", 0),
+        len(stack_shape),
+    )
+    if stack_dim is None:
+        return None
+    if any(not isinstance(inp, torch.fx.Node) for inp in inputs):
+        return None
+    return list(inputs), stack_dim
+
+
+def _ssa_match_stack_operands(sum_node: torch.fx.Node, max_inputs: int):
+    """Match sum(stack(xs, d), d), returning (operands, d) or None."""
+    src = sum_node.args[0] if sum_node.args else None
+    if not isinstance(src, torch.fx.Node) or not is_single_user(src):
+        return None
+
+    if src.op == "call_function" and src.target == _SSA_STACK_TARGET:
+        if not src.args or not isinstance(src.args[0], (list, tuple)):
+            return None
+        if not 2 <= len(src.args[0]) <= max_inputs:
+            return None
+        matched = _ssa_match_plain_stack(src)
+        return _ssa_check_reduced_dim(sum_node, src, matched)
+
+    cat = src
+    view = None
+    if check_view(src):
+        cat = src.args[0] if src.args else None
+        view = src
+        if not isinstance(cat, torch.fx.Node) or not is_single_user(cat):
+            return None
+
+    is_cat, cat_dim = check_cat_op(cat)
+    if not is_cat or not cat.args or not isinstance(cat.args[0], (list, tuple)):
+        return None
+    if not 2 <= len(cat.args[0]) <= max_inputs:
+        return None
+
+    matched = (
+        _ssa_match_view_cat(view, cat, cat_dim)
+        if view is not None
+        else _ssa_match_unsqueeze_cat(cat, cat_dim)
+    )
+    return _ssa_check_reduced_dim(sum_node, src, matched)
+
+
+def _ssa_check_reduced_dim(sum_node: torch.fx.Node, src: torch.fx.Node, matched):
+    """The reduced axis must be the stack axis, otherwise the add chain differs."""
+    if matched is None:
+        return None
+    operands, stack_dim = matched
+    sum_dims = _ssa_get_sum_dims(sum_node)
+    src_shape = get_node_shape(src, allow_symbolic=True)
+    if sum_dims is None or len(sum_dims) != 1 or src_shape is None:
+        return None
+    if normalize_dim(sum_dims[0], len(src_shape)) != stack_dim:
+        return None
+    return operands, stack_dim
+
+
+def _ssa_insert_cast(graph: torch.fx.Graph, node: torch.fx.Node, dtype):
+    cast = graph.call_function(_SSA_CONVERT_TARGET, (node, dtype))
+    propagate_fake_tensor(cast, node, lambda fake: _SSA_CONVERT_TARGET(fake, dtype))
+    return cast
+
+
+def _ssa_build_add_chain(graph, sum_node, operands, stack_dim):
+    in_dtype = get_node_dtype(operands[0])
+    if in_dtype is None or not in_dtype.is_floating_point:
+        return None
+    out_dtype = sum_node.kwargs.get("dtype") or get_node_dtype(sum_node) or in_dtype
+    acc_dtype = torch.float32 if in_dtype in _SSA_LOW_PRECISION_FLOATS else in_dtype
+
+    with graph.inserting_before(sum_node):
+        terms = operands
+        if acc_dtype != in_dtype:
+            terms = [_ssa_insert_cast(graph, operand, acc_dtype) for operand in operands]
+
+        acc = terms[0]
+        for term in terms[1:]:
+            add = graph.call_function(_SSA_ADD_TARGET, (acc, term))
+            propagate_fake_tensor(
+                add, [acc, term], lambda fakes: _SSA_ADD_TARGET(fakes[0], fakes[1])
+            )
+            acc = add
+
+        if acc_dtype != out_dtype:
+            acc = _ssa_insert_cast(graph, acc, out_dtype)
+        if _ssa_get_keepdim(sum_node):
+            unsqueeze = graph.call_function(_SSA_UNSQUEEZE_TARGET, (acc, stack_dim))
+            propagate_fake_tensor(
+                unsqueeze, acc, lambda fake: _SSA_UNSQUEEZE_TARGET(fake, stack_dim)
+            )
+            acc = unsqueeze
+    return acc
+
+
+@register_custom_pass(PassType.POST, ignore_inference_check=True)
+def stack_sum_to_add_chain_pass(
+    graph: torch.fx.Graph, *, max_add_chain_inputs: int = 64
+) -> None:
+    """Rewrite sum(stack(xs, d), d) into an add chain over xs.
+
+    max_add_chain_inputs bounds the chain width: more operands mean more concurrent
+    loads in one kernel, so the cap keeps register pressure in check.
+    """
+    changed = False
+    for node in list(graph.nodes):
+        if node.op != "call_function" or node.target != _SSA_SUM_TARGET:
+            continue
+        matched = _ssa_match_stack_operands(node, max_add_chain_inputs)
+        if matched is None:
+            continue
+        operands, stack_dim = matched
+        replacement = _ssa_build_add_chain(graph, node, operands, stack_dim)
+        if replacement is None:
+            continue
+        node.replace_all_uses_with(replacement)
+        graph.erase_node(node)
+        changed = True
+        log.debug(
+            "[inductor_fx] stack_sum_to_add_chain_pass folded %d-way stack into add chain",
+            len(operands),
+        )
+
+    eliminate_dead_code(graph, changed, stack_sum_to_add_chain_pass.__name__)
+
+
+_GMM_ADDMM_TARGET = torch.ops.aten.addmm.default
+_GMM_MM_TARGET = torch.ops.aten.mm.default
+
+# split_item=0 gives one output tensor per group, matching the separate matmuls.
+# group_type=-1 means the groups share nothing and no dimension is split.
+_GMM_SPLIT_ITEM_PER_GROUP = 0
+_GMM_GROUP_TYPE_INDEPENDENT = -1
+
+
+@dataclass
+class _GmmMember:
+    """One projection among the cat inputs."""
+
+    node: torch.fx.Node
+    x: torch.fx.Node
+    w: torch.fx.Node
+    bias: Optional[torch.fx.Node]
+
+
+@functools.lru_cache(maxsize=1)
+def _resolve_npu_grouped_matmul():
+    """Resolve the OpOverload, or None so the pass degrades to not fusing.
+
+    Must stay lazy: this module loads unconditionally with the pass package, so
+    reading torch.ops.npu.<name> at module level would take every pass down with an
+    AttributeError whenever the op is absent.
+    """
+    op = getattr(torch.ops.npu, "npu_grouped_matmul", None)
+    op = getattr(op, "default", None)
+    if op is None:
+        log.warning(
+            "grouped_matmul_fusion_pass disabled: "
+            "torch.ops.npu.npu_grouped_matmul unavailable"
+        )
+    return op
+
+
+def _gmm_match_projection(node: torch.fx.Node):
+    """Return (x, w, bias); bias is None for a plain mm."""
+    if node.op != "call_function":
+        return None
+    # addmm with beta/alpha is not plain x @ w + b, which the grouped op cannot express.
+    if node.kwargs:
+        return None
+    if node.target is _GMM_ADDMM_TARGET:
+        if len(node.args) != 3:
+            return None
+        bias, x, w = node.args
+    elif node.target is _GMM_MM_TARGET:
+        if len(node.args) != 2:
+            return None
+        bias = None
+        x, w = node.args
+    else:
+        return None
+    if not isinstance(x, torch.fx.Node) or not isinstance(w, torch.fx.Node):
+        return None
+    if bias is not None and not isinstance(bias, torch.fx.Node):
+        return None
+    return x, w, bias
+
+
+def _gmm_bucket_key(
+    node: torch.fx.Node, x: torch.fx.Node, w: torch.fx.Node, bias, max_rows: int
+):
+    """Attributes a batch must share. K may differ, which is what group_type=-1 is for.
+
+    Symbolic dims go into the key as strings, which only pre-sorts candidates: two
+    distinct symbols can print the same, so membership is confirmed separately.
+    """
+    out_shape = get_node_shape(node, allow_symbolic=True)
+    x_shape = get_node_shape(x, allow_symbolic=True)
+    w_shape = get_node_shape(w, allow_symbolic=True)
+    if out_shape is None or x_shape is None or w_shape is None:
+        return None
+    if len(out_shape) != 2 or len(x_shape) != 2 or len(w_shape) != 2:
+        return None
+    # K comes from the x and w meta independently; disagreement means untrustworthy meta.
+    if not statically_known_eq(x_shape[1], w_shape[0]):
+        return None
+    if not statically_known_eq(out_shape[0], x_shape[0]):
+        return None
+    if not statically_known_eq(out_shape[1], w_shape[1]):
+        return None
+    if bias is not None:
+        bias_shape = get_node_shape(bias, allow_symbolic=True)
+        if bias_shape is None or len(bias_shape) != 1:
+            return None
+        if not statically_known_eq(bias_shape[0], out_shape[1]):
+            return None
+
+    rows = out_shape[0]
+    if not isinstance(rows, torch.SymInt) and not statically_known_leq(rows, max_rows):
+        return None
+
+    dtype = get_node_dtype(node)
+    if dtype is None or get_node_dtype(x) != dtype or get_node_dtype(w) != dtype:
+        return None
+    if bias is not None and get_node_dtype(bias) != dtype:
+        return None
+    return str(rows), str(out_shape[1]), dtype, bias is not None
+
+
+def _gmm_collect_buckets(
+    cat: torch.fx.Node, inputs, max_rows: int
+) -> List[List[_GmmMember]]:
+    """Bucket the foldable cat inputs by (rows, output width, dtype, has bias).
+
+    Members need not be adjacent in the cat: each one is replaced by its own getitem
+    in place, so the concat order survives even with other inputs interleaved.
+    """
+    buckets = {}
+    reference = {}
+    seen = set()
+    for inp in inputs:
+        if not isinstance(inp, torch.fx.Node):
+            continue
+        # With other consumers the grouped call would have to move ahead of the
+        # earliest one rather than the cat, and the saving is no longer clear.
+        if not is_single_user(inp) or cat not in inp.users:
+            continue
+        # A matmul listed twice in the cat still has one user, but it can only be
+        # replaced once; treating it as two members breaks on the second erase.
+        if inp in seen:
+            continue
+        seen.add(inp)
+        matched = _gmm_match_projection(inp)
+        if matched is None:
+            continue
+        x, w, bias = matched
+        key = _gmm_bucket_key(inp, x, w, bias, max_rows)
+        if key is None:
+            continue
+        member = _GmmMember(node=inp, x=x, w=w, bias=bias)
+        if key not in buckets:
+            buckets[key] = []
+            reference[key] = get_node_shape(inp, allow_symbolic=True)
+        elif not shapes_statically_equal(
+            get_node_shape(inp, allow_symbolic=True), reference[key]
+        ):
+            # Equal key strings do not prove equal symbols, so confirm here.
+            continue
+        buckets[key].append(member)
+    return list(buckets.values())
+
+
+def _gmm_plan_batch_size(total: int, max_groups_per_call: int) -> int:
+    """Minimize the batch count first, then split evenly, leaving no short tail.
+
+    Cutting at the cap leaves one: 80 at 32 gives 32/32/16, and that last batch pays
+    a full fixed cost for little work. Even 27/27/26 measured 14% faster in wall clock.
+    """
+    upper = max(1, max_groups_per_call)
+    batches = math.ceil(total / upper)
+    return math.ceil(total / batches)
+
+
+def _gmm_build_calls(
+    graph: torch.fx.Graph, cat: torch.fx.Node, members, grouped_op, max_groups_per_call: int
+):
+    """Issue npu_grouped_matmul per batch, returning each member's getitem node."""
+    size = _gmm_plan_batch_size(len(members), max_groups_per_call)
+    has_bias = members[0].bias is not None
+    replacements = []
+    with graph.inserting_before(cat):
+        for start in range(0, len(members), size):
+            batch = members[start:start + size]
+            kwargs = {
+                "split_item": _GMM_SPLIT_ITEM_PER_GROUP,
+                "group_type": _GMM_GROUP_TYPE_INDEPENDENT,
+            }
+            if has_bias:
+                kwargs["bias"] = [m.bias for m in batch]
+            grouped = graph.call_function(
+                grouped_op,
+                ([m.x for m in batch], [m.w for m in batch]),
+                kwargs,
+            )
+            # Each group's output matches the matmul it replaces, so reuse the original
+            # fake tensors instead of running the op again.
+            grouped.meta["val"] = [m.node.meta["val"] for m in batch]
+            for offset, member in enumerate(batch):
+                item = graph.call_function(operator.getitem, (grouped, offset))
+                item.meta["val"] = member.node.meta["val"]
+                replacements.append(item)
+    return replacements
+
+
+@register_custom_pass(PassType.POST, ignore_inference_check=True)
+def grouped_matmul_fusion_pass(
+    graph: torch.fx.Graph,
+    *,
+    min_groups: int = 8,
+    max_groups_per_call: int = 32,
+    max_rows: int = 4096,
+) -> None:
+    """Batch the independent small GEMMs feeding one cat into npu_grouped_matmul.
+
+    min_groups keeps wide GEMMs out: a cat over few branches tends to be the wide kind
+    (QKV projections and friends), where the grouped kernel measured 12% slower than
+    separate matmuls. max_groups_per_call splits large groups, since past 32 groups the
+    op takes a much more expensive host path, measured 2.18 us per group jumping to
+    6.90 us. max_rows is a secondary guard against GEMMs that already fill the cube; it
+    only applies when the row count is static, which the batch dim usually is not, so
+    min_groups carries the decision in practice.
+    """
+    grouped_op = _resolve_npu_grouped_matmul()
+    if grouped_op is None:
+        return
+
+    changed = False
+    for cat in list(graph.nodes):
+        is_cat, dim = check_cat_op(cat)
+        if not is_cat or not cat.args:
+            continue
+        inputs = cat.args[0]
+        if not isinstance(inputs, (list, tuple)):
+            continue
+        if len(inputs) < min_groups:
+            continue
+        cat_shape = get_node_shape(cat, allow_symbolic=True)
+        if cat_shape is None or len(cat_shape) != 2:
+            continue
+        # Feature-dim concat only: grouped outputs stay [M, N], which axis 0 would not match.
+        if normalize_dim(dim, 2) != 1:
+            continue
+
+        for members in _gmm_collect_buckets(cat, inputs, max_rows):
+            if len(members) < min_groups:
+                continue
+            replacements = _gmm_build_calls(
+                graph, cat, members, grouped_op, max_groups_per_call
+            )
+            for member, replacement in zip(members, replacements):
+                member.node.replace_all_uses_with(replacement)
+                graph.erase_node(member.node)
+            changed = True
+            log.debug(
+                "[inductor_fx] grouped_matmul_fusion_pass folded %d matmuls into "
+                "%d npu_grouped_matmul call(s) before %s",
+                len(members),
+                math.ceil(len(members) / _gmm_plan_batch_size(len(members), max_groups_per_call)),
+                cat,
+            )
+
+    eliminate_dead_code(graph, changed, grouped_matmul_fusion_pass.__name__)
+
+
 def eliminate_dead_code(graph, changed, fn_name, POST=True):
-    """所有 pass 共用的收尾工具：如本次产生过改动，则按需执行 lint 与死代码消除并记录日志。"""
+    """Shared epilogue for all passes: if anything changed, run lint and DCE as needed and log it."""
     if changed:
         if POST:
             graph.lint()

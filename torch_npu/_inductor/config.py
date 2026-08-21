@@ -411,6 +411,22 @@ enable_fused_matmul_relu = _parse_bool_env(
     "TORCHINDUCTOR_ENABLE_FUSED_MATMUL_RELU", False
 )
 
+# multi_slice_concat_pass: rewrite a run of constant-offset column slices feeding
+# one cat into npu_ext::multi_slice_concat, so a single kernel replaces the N Slice
+# copies aclnnCat needs. Gated off until validated on hardware; the rewrite is pure
+# data movement and cannot affect numerics.
+enable_multi_slice_concat = _parse_bool_env(
+    "TORCHINDUCTOR_ENABLE_MULTI_SLICE_CONCAT", False
+)
+
+# grouped_matmul_fusion_pass: merge the independent small GEMMs feeding one cat into
+# npu_grouped_matmul. Gated off until validated on the target model; the rewrite keeps
+# every GEMM's operands intact but the kernel accumulates differently, so results are
+# close but not bit-exact.
+enable_grouped_matmul_fusion = _parse_bool_env(
+    "TORCHINDUCTOR_ENABLE_GROUPED_MATMUL_FUSION", False
+)
+
 FLEX_ATTENTION_NPU_COMPILE_HINT_KEYS = (
     "limit_auto_multi_buffer_buffer",
     "multibuffer",

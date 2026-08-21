@@ -25,7 +25,7 @@ class CVParallelismStrategy(ParallelStrategyBase):
 
         snodes = getattr(node_obj, 'snodes', None)
         if snodes and len(snodes) > 0:
-            # fused pointwise → vector
+            # fused pointwise -> vector
             return ComputeType.VECTOR
 
         node_class = node_obj.__class__.__name__.lower()
@@ -172,10 +172,10 @@ class CVParallelismStrategy(ParallelStrategyBase):
         if len(groups) < 3:
             return {}
         groups_keys = list(groups.keys())
-        # 计算每个汇聚节点分组结果中计算单元相同的子组
+        # find the subgroups with the same compute unit within each merge node's groups
         cube0, vec0 = self.extract_special_groups(groups[groups_keys[0]], nodes)
         cube1, vec1 = self.extract_special_groups(groups[groups_keys[1]], nodes)
-        # 获取最大的分组结果
+        # take the largest group
         if len(cube0) >= len(cube1):
             final_cube = cube0
         else:
@@ -186,14 +186,14 @@ class CVParallelismStrategy(ParallelStrategyBase):
         else:
             final_vec = vec1
         invalidate_all = False
-        # 判断cv分组结果是否存在依赖关系
+        # check whether the cv groups have a dependency
         if final_cube and final_vec:
             if (
                 self.check_dependency(nodes, final_vec[-1], final_cube[0])
                 or self.check_dependency(nodes, final_cube[-1], final_vec[0])
             ):
                 invalidate_all = True
-        # 计算每个分组中node节点数量，如果小于最小值则不分组
+        # count nodes per group, do not split if below the minimum
         vector_group_len = self.calculate_group_len(final_vec)
         cube_group_len = self.calculate_group_len(final_cube)
 

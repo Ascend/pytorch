@@ -37,13 +37,13 @@ def check_cat_op(node: fx.Node):
     is_cat = check_op(node, torch.ops.aten.cat.default)
     if not is_cat:
         return False, 0
-    # 优先从 kwargs 取
+    # prefer kwargs
     if 'dim' in node.kwargs:
         dim_val = node.kwargs['dim']
     elif len(node.args) >= 2:
         dim_val = node.args[1]
     else:
-        dim_val = 0  # torch 默认值
+        dim_val = 0  # torch default
     return True, dim_val
 
 
@@ -53,6 +53,15 @@ def check_op(node: fx.Node, target) -> bool:
 
 def _is_valid_node(node: fx.Node) -> bool:
     return isinstance(node, fx.Node) and node.op == "call_function"
+
+
+def is_single_user(node: Any) -> bool:
+    """Whether the node has exactly one consumer.
+
+    Folding rewrites need this: with other consumers the original node survives, so
+    the rewrite saves no dispatch.
+    """
+    return isinstance(node, fx.Node) and len(node.users) == 1
 
 
 def is_zero_like(node: Any) -> bool:
@@ -197,7 +206,7 @@ def try_match(lhs, rhs, identity_fn, single_side=""):
             return True, lhs
         return False, None
 
-    else:  # 默认 "" 或其他值 → 双边都允许（向后兼容）
+    else:  # default "" or any other value -> both sides allowed (backward compatible)
         if match_left:
             return True, rhs
         if match_right:
@@ -215,6 +224,19 @@ def normalize_dtype(dt):
             log.debug("normalize_dtype catch exception %s", e)  # noqa: G200
             return None
     return None
+
+
+def normalize_dim(dim, rank):
+    """Normalize a possibly negative dim into [0, rank), or None if out of range.
+
+    Returns None rather than raising so callers just skip the rewrite.
+    """
+    if not isinstance(dim, int) or isinstance(dim, bool):
+        return None
+    normalized = dim + rank if dim < 0 else dim
+    if normalized < 0 or normalized >= rank:
+        return None
+    return normalized
 
 
 def is_cast_node(node):
