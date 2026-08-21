@@ -8,7 +8,9 @@ from torch_npu.testing.common_utils import create_common_tensor, SupportedDevice
 torch.npu.config.allow_internal_format = True
 
 # ACL format constants
+ACL_FORMAT_NCHW = 0
 ACL_FORMAT_ND = 2
+ACL_FORMAT_NC1HWC0 = 3
 ACL_FORMAT_FRACTAL_NZ = 29
 
 
@@ -248,6 +250,61 @@ class TestNpuFormatCastAclnn(TestCase):
         self.assertEqual(torch_npu.get_npu_format(out), ACL_FORMAT_FRACTAL_NZ)
         self.assertEqual(out.shape, (N, 1))
         self.assertEqual(out.storage()[1], t_view.storage()[1])
+
+    # ------------------------------------------------------------------ #
+    # Group 8: View guard — sizes mismatch with storage desc falls back
+    #          to aclop (910B/910_93)
+    # ------------------------------------------------------------------ #
+
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
+    def test_view_reshape_internal_to_base_fallback(self):
+        """NC1HWC0 -> reshape view -> NCHW: falls back to aclop (no OOM)."""
+        t = torch_npu.npu_format_cast(torch.rand(4, 8, 28, 28).float().npu(), ACL_FORMAT_NC1HWC0)
+        v = t.reshape(4, -1)
+        out = torch_npu.npu_format_cast(v, ACL_FORMAT_NCHW)
+        self.assertEqual(torch_npu.get_npu_format(out), ACL_FORMAT_NCHW)
+        self.assertTrue(torch.allclose(out.cpu(), v.cpu(), rtol=1e-3, atol=1e-5))
+
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
+    def test_view_reshape_nd_to_nz_fallback(self):
+        """ND -> reshape view -> NZ (fp16): falls back to aclop (no OOM)."""
+        t = torch.rand(32, 64).half().npu()
+        v = t.reshape(-1)
+        out = torch_npu.npu_format_cast(v, ACL_FORMAT_FRACTAL_NZ)
+        self.assertEqual(torch_npu.get_npu_format(out), ACL_FORMAT_FRACTAL_NZ)
+        back = torch_npu.npu_format_cast(out, ACL_FORMAT_ND)
+        self.assertTrue(torch.allclose(back.cpu(), v.cpu(), rtol=1e-2, atol=1e-3))
+
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
+    def test_view_transpose_nd_to_nz_fallback(self):
+        """ND -> transpose view (non-contiguous) -> NZ: falls back to aclop."""
+        t = torch.rand(32, 64).half().npu()
+        v = t.t()
+        out = torch_npu.npu_format_cast(v, ACL_FORMAT_FRACTAL_NZ)
+        self.assertEqual(torch_npu.get_npu_format(out), ACL_FORMAT_FRACTAL_NZ)
+        back = torch_npu.npu_format_cast(out, ACL_FORMAT_ND)
+        self.assertTrue(torch.allclose(back.cpu(), v.cpu(), rtol=1e-2, atol=1e-3))
+
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
+    def test_view_strided_same_shape_nd_to_nz(self):
+        """Same-shape strided view (as_strided) -> NZ: handled on aclnn."""
+        t = torch.rand(32, 64).half().npu()
+        v = torch.as_strided(t, (32, 64), (1, 32))
+        self.assertEqual(v.shape, t.shape)
+        out = torch_npu.npu_format_cast(v, ACL_FORMAT_FRACTAL_NZ)
+        self.assertEqual(torch_npu.get_npu_format(out), ACL_FORMAT_FRACTAL_NZ)
+        back = torch_npu.npu_format_cast(out, ACL_FORMAT_ND)
+        self.assertTrue(torch.allclose(back.cpu(), v.cpu(), rtol=1e-2, atol=1e-3))
+
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
+    def test_view_strided_same_shape_internal_to_base(self):
+        """Same-shape strided view on internal format -> NCHW: aclop fallback."""
+        t = torch_npu.npu_format_cast(torch.rand(4, 8, 28, 28).float().npu(), ACL_FORMAT_NC1HWC0)
+        v = torch.as_strided(t, (4, 8, 28, 28), (1, 4 * 28 * 28, 4 * 28, 4))
+        self.assertEqual(v.shape, t.shape)
+        out = torch_npu.npu_format_cast(v, ACL_FORMAT_NCHW)
+        self.assertEqual(torch_npu.get_npu_format(out), ACL_FORMAT_NCHW)
+        self.assertTrue(torch.allclose(out.cpu(), v.cpu(), rtol=1e-3, atol=1e-5))
 
 
 class TestNpuFormatCastDtypeParam(TestCase):
