@@ -70,6 +70,21 @@ static bool IsNzC0Variant(int64_t fmt)
            fmt == ACL_FORMAT_FRACTAL_NZ_C0_8;
 }
 
+// Views (sizes mismatch with storage desc) fall back to aclop.
+static bool IsViewTensor(const at::Tensor& src)
+{
+    const auto& desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
+    if (src.sizes().size() != static_cast<int64_t>(desc.base_sizes_.size())) {
+        return true;
+    }
+    for (size_t i = 0; i < src.sizes().size(); ++i) {
+        if (src.sizes()[i] != desc.base_sizes_[i]) {
+            return true;
+        }
+    }
+    return false;
+}
+
 std::tuple<bool, int64_t, c10::SmallVector<int64_t, SIZE>> MaybeUseAclnnNpuFormatCast(const at::Tensor& src,
     int64_t acl_format, c10::optional<int64_t> customize_dtype, c10::optional<int64_t> input_dtype)
 {
@@ -138,16 +153,7 @@ std::tuple<bool, int64_t, c10::SmallVector<int64_t, SIZE>> MaybeUseAclnnNpuForma
     if (!FormatHelper::IsBaseFormatType(src) && !src.is_contiguous()) {
         return std::make_tuple(false, dstFormat, outputShape);
     }
-    // Guard: when casting a 2D contiguous tensor from ND to FRACTAL_NZ, if the
-    // tensor's current shape differs from its storage shape (base_sizes_), it means
-    // it is a view (e.g. transpose). Downstream ops may encounter precision
-    // issues, so the aclnn path is not supported for this case.
-    // Fall back to the aclop path to stay safe.
-    // Example: storage [1, N] viewed as [N, 1] (Nx1 column vector).
-    auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
-    if (src_desc.npu_format_ == ACL_FORMAT_ND && acl_format == ACL_FORMAT_FRACTAL_NZ &&
-        src.is_contiguous() && src.sizes().size() == 2 && src_desc.base_sizes_.size() == 2 && src.sizes()[1] == 1 &&
-        (src_desc.base_sizes_[0] != src.sizes()[0] || src_desc.base_sizes_[1] != src.sizes()[1])) {
+    if (IsViewTensor(src)) {
         return std::make_tuple(false, dstFormat, outputShape);
     }
     if (IsAclnnFormatCastSupported() && aclnnNpuFormatCastExist) {
