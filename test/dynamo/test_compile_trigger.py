@@ -293,10 +293,24 @@ class TorchCompileTriggerTests(unittest.TestCase):
                     raise RuntimeError("simulated Inductor setup failure")
                 return original_register()
 
+            # Merely creating an Inductor wrapper must not load the backend
+            # (issue #4094): the deferred load happens inside the backend scope
+            # entered on the first backend execution.
+            torch.compile(lambda x: x + 1, backend="inductor")
+            assert not _dynamo._lazy_inductor_setup.has_run
+            assert "torch_npu._inductor" not in sys.modules
+
+            # Drive the deferred load through the real ``_NpuBackendScope`` used
+            # by ``_TorchCompileInductorWrapper.__call__`` (``new_call`` runs
+            # ``with _NpuBackendScope(backend): src_call(...)``). The retry
+            # semantics live entirely in ``__enter__``, so this exercises the
+            # real code path without depending on a full Inductor codegen (the
+            # host toolchain cannot always complete one).
             _dynamo.register_inductor_npu = fail_first_inductor_setup
             try:
                 try:
-                    torch.compile(lambda x: x + 1, backend="inductor")
+                    with _dynamo._NpuBackendScope("default"):
+                        pass
                 except RuntimeError as error:
                     assert "simulated Inductor setup failure" in str(error)
                 else:
@@ -304,11 +318,16 @@ class TorchCompileTriggerTests(unittest.TestCase):
 
                 assert not _dynamo._lazy_inductor_setup.has_run
                 assert os.environ.get("TORCHINDUCTOR_NPU_BACKEND") == original_env
-                torch.compile(lambda x: x + 1, backend="inductor")
+
+                with _dynamo._NpuBackendScope("default"):
+                    pass
             finally:
                 _dynamo.register_inductor_npu = original_register
 
-            assert inductor_attempts == ["inductor", "inductor"]
+            # The failed backend scope accounts for the first attempt. On the
+            # retry, the scope registers once and lazy inductor setup repeats
+            # that idempotent registration before marking setup complete.
+            assert inductor_attempts == ["inductor", "inductor", "inductor"]
             assert _dynamo._lazy_inductor_setup.has_run
             assert _dynamo.is_inductor_npu_initialized()
             assert os.environ.get("TORCHINDUCTOR_NPU_BACKEND") == original_env
@@ -630,6 +649,91 @@ class TorchCompileTriggerTests(unittest.TestCase):
                     """
                 )
 
+    # Verify scope entry failures restore the process environment.
+    def test_npu_backend_scope_restores_env_after_entry_failure(self):
+        self.run_in_subprocess(
+            """
+            import os
+
+            import torch_npu
+            from torch_npu.utils import _dynamo
+
+            env_name = "TORCHINDUCTOR_NPU_BACKEND"
+            original_env = os.environ.get(env_name)
+            try:
+                with _dynamo._NpuBackendScope(1):
+                    raise AssertionError("scope entry must fail")
+            except TypeError as error:
+                assert "str" in str(error)
+            else:
+                raise AssertionError("a non-string backend must fail")
+
+            assert os.environ.get(env_name) == original_env
+            """
+        )
+
+    # Verify shape handling is installed before selecting the requested backend.
+    def test_shape_handling_initializes_before_backend_selection(self):
+        self.run_in_subprocess(
+            """
+            import os
+            from unittest import mock
+
+            import torch
+            import torch_npu
+            from torch_npu.utils import _dynamo
+
+            options = {
+                "npu_backend": "mlir",
+                "enable_shape_handling": True,
+            }
+            events = []
+
+            def scope_register():
+                events.append(("scope_register", os.environ["TORCHINDUCTOR_NPU_BACKEND"]))
+
+            with mock.patch.object(
+                _dynamo, "_lazy_dynamo_setup", lambda: None
+            ), mock.patch.object(
+                _dynamo, "_patch_shape_handling",
+                lambda: events.append(("shape_handling", None)),
+            ), mock.patch.object(
+                _dynamo, "_lazy_inductor_setup", lambda: None
+            ), mock.patch.object(
+                _dynamo, "register_inductor_npu", scope_register
+            ):
+                wrapper = torch._TorchCompileInductorWrapper(None, options, None)
+
+            assert wrapper.config["npu_backend"] == "mlir"
+            assert wrapper.config["enable_shape_handling"] is True
+            assert events == [
+                ("shape_handling", None),
+                ("scope_register", "mlir"),
+            ], events
+            """
+        )
+
+    # Shape Handling must not defeat deferred NPU Inductor loading.
+    def test_shape_handling_backend_load_is_deferred_until_first_call(self):
+        self.run_in_subprocess(
+            """
+            import sys
+
+            import torch
+            import torch_npu
+            from torch_npu.utils import _dynamo
+
+            torch.compile(
+                lambda x: x + 1,
+                backend="inductor",
+                options={"enable_shape_handling": True},
+            )
+
+            assert _dynamo._lazy_dynamo_setup.has_run
+            assert not _dynamo._lazy_inductor_setup.has_run
+            assert "torch_npu._inductor" not in sys.modules
+            """
+        )
     # Verify non-Inductor compile backends do not initialize Inductor.
     def test_non_inductor_compile_backend_matrix(self):
         cases = {
@@ -759,6 +863,68 @@ class TorchCompileTriggerTests(unittest.TestCase):
             assert _dynamo._lazy_dynamo_setup.has_run
             assert _dynamo._lazy_inductor_setup.has_run
             assert get_interface_for_device("npu").device_count() > 0
+            """
+        )
+
+    # Issue #4094: creating an Inductor wrapper must not import torch_npu._inductor.
+    def test_inductor_backend_load_is_deferred_until_first_call(self):
+        self.run_in_subprocess(
+            """
+            import sys
+            import torch
+            import torch_npu
+            from torch_npu.utils import _dynamo
+
+            torch.compile(
+                lambda x: x + 1,
+                backend="inductor",
+                options={"enable_shape_handling": True},
+            )
+
+            assert _dynamo._lazy_dynamo_setup.has_run
+            assert not _dynamo._lazy_inductor_setup.has_run
+            assert "torch_npu._inductor" not in sys.modules
+            """
+        )
+
+    # Issue #4204: Shape Handling must install the Dynamo hook at wrapper
+    # creation (before the Dynamo context is built) while still deferring the
+    # heavyweight NPU Inductor/Triton load to the first backend execution.
+    def test_shape_handling_hook_installed_before_backend_load(self):
+        self.run_in_subprocess(
+            """
+            import sys
+            import torch
+            import torch_npu
+            from torch_npu.utils import _dynamo
+
+            events = []
+            original_patch = _dynamo._patch_shape_handling
+            original_lazy = _dynamo._lazy_inductor_setup
+
+            def track_patch():
+                events.append("shape_handling")
+                return original_patch()
+
+            def track_lazy():
+                events.append("inductor_load")
+                return original_lazy()
+
+            _dynamo._patch_shape_handling = track_patch
+            _dynamo._lazy_inductor_setup = track_lazy
+            try:
+                torch.compile(
+                    lambda x: x + 1,
+                    backend="inductor",
+                    options={"enable_shape_handling": True},
+                )
+                # The lightweight hook is installed at wrapper creation; the
+                # full backend is not loaded yet.
+                assert events == ["shape_handling"], events
+                assert "torch_npu._inductor" not in sys.modules
+            finally:
+                _dynamo._patch_shape_handling = original_patch
+                _dynamo._lazy_inductor_setup = original_lazy
             """
         )
 

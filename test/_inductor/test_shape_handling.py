@@ -35,6 +35,7 @@ device = "npu"
 def model_fn(A, B):  
     return A + B
 
+
 shape_options = {
     "enable_shape_handling": True,
     "shape_handling_configs": [
@@ -95,7 +96,7 @@ class TestShapeHandling(TestCase):
 
     def test_normalize_configs_edge_cases(self):
         """_normalize_configs handles empty input, dedup, float→int, TIMES expansion."""
-        from torch_npu._inductor.adaptive_gears import AdaptiveGearRuntime
+        from torch_npu.utils._adaptive_gears import AdaptiveGearRuntime
         from unittest.mock import MagicMock
 
         runtime = MagicMock(spec=AdaptiveGearRuntime)
@@ -631,7 +632,7 @@ class TestShapeHandlingBranchCoverage(TestCase):
             return_value=[[torch.randn(32, 8)]],
         ):
             with mock.patch(
-                "torch_npu._inductor.adaptive_gears.collect_transform_metadata",
+                "torch_npu.utils._adaptive_gears.collect_transform_metadata",
                 side_effect=RuntimeError("boom"),
             ):
                 outputs, metadata = shape_handling._transform_with_metadata(torch.randn(16, 8))
@@ -1157,11 +1158,11 @@ class TestAdaptiveShapeHandling(TestCase):
         )
         manager = shape_handling.adaptive_manager
         # Memory usage ratio = 1.0 - 20/100 = 0.80 >= threshold → high pressure
-        with mock.patch("torch_npu._inductor.adaptive_gears.torch.npu.mem_get_info", return_value=(20, 100)):
+        with mock.patch("torch_npu.utils._adaptive_gears.torch.npu.mem_get_info", return_value=(20, 100)):
             budget = manager.build_resource_budget()
             self.assertTrue(budget["device_memory_usage_high"])
         # Memory usage ratio = 1.0 - 70/100 = 0.30 < threshold → no pressure
-        with mock.patch("torch_npu._inductor.adaptive_gears.torch.npu.mem_get_info", return_value=(70, 100)):
+        with mock.patch("torch_npu.utils._adaptive_gears.torch.npu.mem_get_info", return_value=(70, 100)):
             budget = manager.build_resource_budget()
             self.assertFalse(budget["device_memory_usage_high"])
 
@@ -1175,7 +1176,7 @@ class TestAdaptiveShapeHandling(TestCase):
             },
         )
         manager = shape_handling.adaptive_manager
-        with mock.patch("torch_npu._inductor.adaptive_gears.torch.npu.mem_get_info", return_value=(40, 100)):
+        with mock.patch("torch_npu.utils._adaptive_gears.torch.npu.mem_get_info", return_value=(40, 100)):
             budget = manager.build_resource_budget()
 
         self.assertAlmostEqual(budget["device_memory_usage_ratio"], 0.60)
@@ -1201,7 +1202,7 @@ class TestAdaptiveShapeHandling(TestCase):
         manager.record_event([[40]], [[64]], [[0.375]], [[0.0]], 100.0)
         manager.record_event([[40]], [[64]], [[0.375]], [[0.0]], 101.0)
 
-        with mock.patch("torch_npu._inductor.adaptive_gears.torch.npu.mem_get_info", return_value=(40, 100)):
+        with mock.patch("torch_npu.utils._adaptive_gears.torch.npu.mem_get_info", return_value=(40, 100)):
             manager.worker.run_once(150.0)
         latest_snapshot = manager.get_snapshot()
         self.assertEqual(latest_snapshot.active_gears["BATCHSIZE"], [64])
