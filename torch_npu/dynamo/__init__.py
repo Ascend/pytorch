@@ -74,6 +74,25 @@ class _LazyBackend:
             pid=os.getpid())
 
 
+def _bind_lazy_submodules(proxy, package, pkg_name):
+    """Bind loaded child modules to both a lazy proxy and its real package."""
+    package_name = getattr(package, "__name__", "")
+    prefixes = [f"{pkg_name}."]
+    if package_name and package_name != pkg_name:
+        prefixes.append(f"{package_name}.")
+
+    for module_name, module in list(sys.modules.items()):
+        if module is None:
+            continue
+        for prefix in prefixes:
+            if module_name.startswith(prefix):
+                child_name = module_name[len(prefix):]
+                if "." not in child_name:
+                    setattr(proxy, child_name, module)
+                    setattr(package, child_name, module)
+                break
+
+
 class _LazyTorchair(_LazyBackend):
     def __init__(self, pkg_name):
         self._torchair = None
@@ -85,7 +104,11 @@ class _LazyTorchair(_LazyBackend):
             return self._exception()
 
         if self._torchair is not None:
-            return getattr(self._torchair, name)
+            try:
+                return getattr(self._torchair, name)
+            except AttributeError:
+                _bind_lazy_submodules(self, self._torchair, self._pkg_name)
+                return getattr(self._torchair, name)
 
         if name not in self._allowed_list:
             raise AttributeError(f"Try to get {self._pkg_name}'s attr `{name}` before {self._pkg_name} is initialized."
@@ -101,6 +124,7 @@ class _LazyTorchair(_LazyBackend):
             raise
 
         self._torchair = torchair
+        _bind_lazy_submodules(self, torchair, self._pkg_name)
         return getattr(torchair, name)
 
 
@@ -126,7 +150,11 @@ class _LazyNpuGraphEx(_LazyBackend):
             return self._exception()
 
         if self._npugraph_ex is not None:
-            return getattr(self._npugraph_ex, name)
+            try:
+                return getattr(self._npugraph_ex, name)
+            except AttributeError:
+                _bind_lazy_submodules(self, self._npugraph_ex, self._pkg_name)
+                return getattr(self._npugraph_ex, name)
 
         if name not in self._allowed_list:
             raise AttributeError(f"Try to get {self._pkg_name}'s attr `{name}` before {self._pkg_name} is initialized."
@@ -139,6 +167,7 @@ class _LazyNpuGraphEx(_LazyBackend):
             raise
 
         self._npugraph_ex = npugraph_ex
+        _bind_lazy_submodules(self, npugraph_ex, self._pkg_name)
         return getattr(npugraph_ex, name)
 
 
