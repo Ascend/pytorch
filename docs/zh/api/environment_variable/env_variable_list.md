@@ -51,7 +51,8 @@
 
 |环境变量名称|简介|
 |--|--|
-|[TORCH_NPU_DISABLED_WARNING](alarm_message_printing/TORCH_NPU_DISABLED_WARNING.md)|通过此环境变量可配置是否打印TorchNPU的告警信息。|
+|[TORCH_NPU_WARNING_DISABLE](alarm_message_printing/TORCH_NPU_WARNING_DISABLE.md)|通过此环境变量可配置是否打印TorchNPU的告警信息。|
+|[TORCH_NPU_DISABLED_WARNING](alarm_message_printing/TORCH_NPU_DISABLED_WARNING.md)|该环境变量已废弃，建议使用TORCH_NPU_WARNING_DISABLE替代。用于配置是否打印TorchNPU的告警信息。|
 |[TORCH_NPU_COMPACT_ERROR_OUTPUT](alarm_message_printing/TORCH_NPU_COMPACT_ERROR_OUTPUT.md)|通过此环境变量可精简打印错误信息，开启后会将CANN内部调用栈、TorchNPU错误码等自定义报错信息转移到plog中，仅保留有效的错误说明，提高异常信息的可读性。|
 |[TORCH_NPU_LOGS](alarm_message_printing/TORCH_NPU_LOGS.md)|此环境变量用于配置TorchNPU新增模块的日志打印功能，为开发者在debugging场景下提供精准的调试定位能力。|
 |[TORCH_NPU_LOGS_FILTER](alarm_message_printing/TORCH_NPU_LOGS_FILTER.md)|此环境变量用于过滤TorchNPU日志输出内容，通过黑白名单机制筛选需要显示的日志信息，帮助开发者在大量日志中快速定位关键信息。|

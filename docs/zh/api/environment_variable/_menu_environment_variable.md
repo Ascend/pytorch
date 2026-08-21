@@ -35,6 +35,7 @@
   - [\(beta\) TORCH\_HCCL\_ZERO\_COPY](collective_communication/（beta）TORCH_HCCL_ZERO_COPY.md)
 
 - [告警信息打印](alarm_message_printing/_menu_alarm_message_printing.md)
+  - [TORCH\_NPU\_WARNING\_DISABLE](alarm_message_printing/TORCH_NPU_WARNING_DISABLE.md)
   - [TORCH\_NPU\_DISABLED\_WARNING](alarm_message_printing/TORCH_NPU_DISABLED_WARNING.md)
   - [TORCH\_NPU\_COMPACT\_ERROR\_OUTPUT](alarm_message_printing/TORCH_NPU_COMPACT_ERROR_OUTPUT.md)
   - [TORCH\_NPU\_LOGS](alarm_message_printing/TORCH_NPU_LOGS.md)

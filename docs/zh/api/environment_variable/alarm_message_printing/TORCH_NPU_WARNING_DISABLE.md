@@ -1,8 +1,5 @@
-# TORCH\_NPU\_DISABLED\_WARNING
+# TORCH\_NPU\_WARNING\_DISABLE
 
-> [!CAUTION]
->
-> 该环境变量已废弃，建议使用[TORCH\_NPU\_WARNING\_DISABLE](TORCH_NPU_WARNING_DISABLE.md)替代。
 ## 功能描述
 
 通过此环境变量可配置是否打印TorchNPU的告警信息。
@@ -14,20 +11,21 @@
 
 > [!CAUTION]  
 >
-> 关闭告警信息打印，仅针对TorchNPU的告警信息，不会影响原生PyTorch、第三方库或用户脚本中的告警。
+> - 关闭告警信息打印，仅针对TorchNPU的告警信息，不会影响原生PyTorch、第三方库或用户脚本中的告警。
+> - 本环境变量与已废弃的[TORCH\_NPU\_DISABLED\_WARNING](TORCH_NPU_DISABLED_WARNING.md)功能完全相同。两者同时配置时，本环境变量优先生效。
 
 ## 配置示例
 
 关闭告警信息打印：
 
 ```bash
-export TORCH_NPU_DISABLED_WARNING=1
+export TORCH_NPU_WARNING_DISABLE=1
 ```
 
 重新开启告警信息打印：
 
 ```bash
-unset TORCH_NPU_DISABLED_WARNING
+unset TORCH_NPU_WARNING_DISABLE
 ```
 
 ## 使用约束
