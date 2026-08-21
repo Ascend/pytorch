@@ -131,6 +131,10 @@ jobs:
 
           echo "Combined matrix: ${COMBINED_MATRIX}"
 
+          # Copy skipped cases record from collection artifact
+          cp cases-shards/skipped_cases.json skipped_cases.json 2>/dev/null || \
+            echo "No skipped_cases.json found in cases-shards"
+
           python3 .github/scripts/generate_npu_full_test_report.py \
             --reports-root all-test-reports \
             --output-markdown ${REPORT_MD} \
@@ -157,6 +161,7 @@ jobs:
             distributed_cases_results_by_file.jsonl
             graph_cases_results_by_file.jsonl
             others_cases_results_by_file.jsonl
+            skipped_cases.json
           if-no-files-found: warn
           retention-days: 60
 

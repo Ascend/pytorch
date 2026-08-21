@@ -233,27 +233,50 @@ def classify_files_full_scan(
 # ==============================================================================
 
 
-def load_skip_list(skip_list_path: Optional[str]) -> set:
-    """Load skip list and return a set of nodeids to skip.
+def load_skip_list(skip_list_paths) -> Dict[str, Dict]:
+    """Load skip list(s) and return a dict of nodeid -> metadata.
 
-    Supports three formats:
+    Accepts a single path string, None, or a list of path strings.
+    Multiple files are merged (first occurrence wins, no overwrite).
+
+    Supports four formats per file:
       - JSONL (.jsonl): line 1 is {"_meta": {...}}, subsequent lines are
-        {"nodeid": "...", "reason": "..."}.  Only the ``nodeid`` value is
-        consumed; ``reason`` is for human review and discarded at load time.
-      - JSON object: {"version": 1, "skip_nodeids": ["nodeid1", ...]}
+        {"nodeid": "...", "reason": "..."}.  Both nodeid and reason are kept.
+      - JSON object with "skip_nodeids" key: {"skip_nodeids": ["nodeid1", ...]}
+        Only nodeids are consumed; metadata has no reason.
       - JSON array: ["nodeid1", ...]
+        Only nodeids are consumed; metadata has no reason.
+      - JSON object with nodeid keys (disabled/running-skip format):
+        {"nodeid1": {"category": "...", "reason": "...", "issue": ""}, ...}
+        The full value dict is kept as metadata.
 
-    Returns empty set if path is None, file not found, or empty.
-    Never raises — all errors fall back to empty set with a warning so
+    Each metadata dict includes a "source" key set to the filename.
+
+    Returns empty dict if path is None, file not found, or empty.
+    Never raises — all errors fall back to empty dict with a warning so
     that collection proceeds normally (backward compatible).
     """
-    if not skip_list_path:
-        return set()
+    if not skip_list_paths:
+        return {}
 
+    if isinstance(skip_list_paths, str):
+        skip_list_paths = [skip_list_paths]
+
+    skip_dict: Dict[str, Dict] = {}
+    for path in skip_list_paths:
+        single = _load_skip_list_single(path)
+        for nodeid, meta in single.items():
+            if nodeid not in skip_dict:
+                skip_dict[nodeid] = meta
+    return skip_dict
+
+
+def _load_skip_list_single(skip_list_path: str) -> Dict[str, Dict]:
+    """Load a single skip list file and return {nodeid: metadata_dict}."""
     p = Path(skip_list_path)
     if not p.exists():
         print(f"  WARNING: skip list file not found: {p}, skipping filter")
-        return set()
+        return {}
 
     if p.suffix == ".jsonl":
         return _load_skip_list_jsonl(p)
@@ -262,29 +285,50 @@ def load_skip_list(skip_list_path: Optional[str]) -> set:
         data = json.loads(p.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError) as e:
         print(f"  WARNING: Failed to load skip list {p}: {e}")
-        return set()
+        return {}
 
     if isinstance(data, dict):
-        nodeids = data.get("skip_nodeids", [])
+        if "skip_nodeids" in data:
+            nodeids = data["skip_nodeids"]
+            if not isinstance(nodeids, list):
+                print(f"  WARNING: 'skip_nodeids' is not a list in {p}")
+                return {}
+            result = {}
+            for n in nodeids:
+                if isinstance(n, str) and n:
+                    result[n] = {"source": p.name}
+            print(f"  Loaded skip list: {len(result)} nodeids from {p}")
+            return result
+        else:
+            result = {}
+            for key, val in data.items():
+                if not isinstance(key, str) or not key:
+                    continue
+                meta = dict(val) if isinstance(val, dict) else {}
+                meta["source"] = p.name
+                result[key] = meta
+            print(f"  Loaded skip list: {len(result)} nodeids from {p}")
+            return result
     elif isinstance(data, list):
-        nodeids = data
+        result = {}
+        for n in data:
+            if isinstance(n, str) and n:
+                result[n] = {"source": p.name}
+        print(f"  Loaded skip list: {len(result)} nodeids from {p}")
+        return result
     else:
         print(f"  WARNING: skip list JSON is neither object nor array: {p}")
-        return set()
-
-    skip_set = set(n for n in nodeids if isinstance(n, str) and n)
-    print(f"  Loaded skip list: {len(skip_set)} nodeids from {p}")
-    return skip_set
+        return {}
 
 
-def _load_skip_list_jsonl(p: Path) -> set:
+def _load_skip_list_jsonl(p: Path) -> Dict[str, Dict]:
     """Load a JSONL skip list (one JSON object per line).
 
     Line 1 is expected to be a ``{"_meta": {...}}`` metadata record and is
     skipped.  Every subsequent line must be a JSON object with at least a
-    ``nodeid`` key; the ``reason`` key (if present) is ignored.
+    ``nodeid`` key; the ``reason`` key (if present) is preserved.
     """
-    skip_set: set = set()
+    skip_dict: Dict[str, Dict] = {}
     meta_seen = False
     try:
         with open(p, "r", encoding="utf-8") as f:
@@ -298,31 +342,53 @@ def _load_skip_list_jsonl(p: Path) -> set:
                     continue
                 nodeid = obj.get("nodeid") if isinstance(obj, dict) else None
                 if isinstance(nodeid, str) and nodeid:
-                    skip_set.add(nodeid)
+                    meta = {"source": p.name}
+                    if isinstance(obj, dict) and "reason" in obj:
+                        meta["reason"] = obj["reason"]
+                    skip_dict[nodeid] = meta
     except (json.JSONDecodeError, OSError) as e:
         print(f"  WARNING: Failed to load JSONL skip list {p}: {e}")
-        return set()
+        return {}
 
-    print(f"  Loaded skip list: {len(skip_set)} nodeids from {p}"
+    print(f"  Loaded skip list: {len(skip_dict)} nodeids from {p}"
           f"{' (meta line found)' if meta_seen else ''}")
-    return skip_set
+    return skip_dict
 
 
-def filter_skipped_cases(cases: List[Dict], skip_nodeids: set) -> List[Dict]:
-    """Remove cases whose nodeid matches the skip set.
+def filter_skipped_cases(
+    cases: List[Dict], skip_dict: Dict[str, Dict]
+) -> Tuple[List[Dict], List[Dict]]:
+    """Remove cases whose nodeid matches the skip dict.
 
-    Prints before/after counts. If skip_nodeids is empty, returns cases
+    Returns a tuple of (filtered_cases, skipped_cases).
+    skipped_cases entries include: nodeid, file, skip_reason,
+    skip_category, skip_source.
+
+    Prints before/after counts. If skip_dict is empty, returns (cases, [])
     unchanged (zero overhead, backward compatible).
     """
-    if not skip_nodeids:
-        return cases
+    if not skip_dict:
+        return cases, []
 
-    original_count = len(cases)
-    filtered = [c for c in cases if c.get("nodeid", "") not in skip_nodeids]
-    skipped_count = original_count - len(filtered)
-    print(f"  Skip list filter: {original_count} -> {len(filtered)} cases "
-          f"(removed {skipped_count})")
-    return filtered
+    filtered = []
+    skipped = []
+    for c in cases:
+        nodeid = c.get("nodeid", "")
+        if nodeid in skip_dict:
+            meta = skip_dict[nodeid]
+            skipped.append({
+                "nodeid": nodeid,
+                "file": c.get("file", ""),
+                "skip_reason": meta.get("reason", ""),
+                "skip_category": meta.get("category", ""),
+                "skip_source": meta.get("source", ""),
+            })
+        else:
+            filtered.append(c)
+
+    print(f"  Skip list filter: {len(cases)} -> {len(filtered)} cases "
+          f"(removed {len(skipped)})")
+    return filtered, skipped
 
 
 def _normalize_test_file_path(test_file: str) -> str:
@@ -768,7 +834,7 @@ def main():
     case_paths_config = args.case_paths_config if args.case_paths_config else None
 
     # Load skip list once (reused for all categories)
-    skip_set = load_skip_list(args.skip_list)
+    skip_dict = load_skip_list(args.skip_list)
 
     # Load categories from config (supports new "categories:" and legacy "whitelist:" formats)
     if case_paths_config:
@@ -808,6 +874,7 @@ def main():
     summary_categories = {}
     total_cases = 0
     total_files = 0
+    all_skipped = []
 
     for cat_name, cat_config in categories.items():
         print("\n" + "=" * 80)
@@ -839,7 +906,8 @@ def main():
         )
         print(f"Total {cat_name} cases: {len(cases)}")
 
-        cases = filter_skipped_cases(cases, skip_set)
+        cases, skipped = filter_skipped_cases(cases, skip_dict)
+        all_skipped.extend(skipped)
 
         cases.sort(key=lambda c: (c.get("file", ""), c.get("nodeid", "")))
 
@@ -864,12 +932,31 @@ def main():
         total_files += len(files)
 
     # ========================================
+    # Save skipped cases record
+    # ========================================
+    skip_sources = []
+    if args.skip_list:
+        if isinstance(args.skip_list, str):
+            args.skip_list = [args.skip_list]
+        skip_sources = [Path(p).name for p in args.skip_list]
+
+    skipped_data = {
+        "total_skipped": len(all_skipped),
+        "sources": skip_sources,
+        "skipped_cases": all_skipped,
+    }
+    skipped_file = output_dir / "skipped_cases.json"
+    skipped_file.write_text(json.dumps(skipped_data, indent=2), encoding="utf-8")
+    print(f"Skipped cases saved to {skipped_file} ({len(all_skipped)} cases)")
+
+    # ========================================
     # Save overall summary
     # ========================================
     overall_summary = {
         "categories": summary_categories,
         "total_cases": total_cases,
         "total_files": total_files,
+        "total_skipped": len(all_skipped),
     }
     if hw_classification:
         overall_summary["hw_classification"] = hw_classification
@@ -954,9 +1041,12 @@ def parse_args():
     parser.add_argument(
         "--skip-list",
         default=None,
-        help="Path to skip list JSON file. When set, matching nodeids are "
-             "removed after collection and before sharding. When omitted or "
-             "file not found, no filtering is applied (backward compatible).",
+        action="append",
+        help="Path to skip list file. Can be specified multiple times for "
+             "multiple files. Supports JSONL, JSON {skip_nodeids:[...]}, "
+             "JSON array, and JSON {nodeid: {reason:...}} formats. "
+             "Matching nodeids are removed after collection and recorded in "
+             "skipped_cases.json.",
     )
     return parser.parse_args()
 

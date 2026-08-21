@@ -41,6 +41,14 @@ on:
           Path (relative to repo root) to a JSONL skip list file. When set,
           matching nodeids are removed after collection and before sharding.
           When empty, no skip filtering is applied.
+      extra_skip_lists:
+        required: false
+        type: string
+        default: ''
+        description: >-
+          Newline-separated paths (relative to repo root) to additional skip
+          list files. Applied in addition to skip_list. Used by nightly workflow
+          for disabled/running-skip filtering.
       runner_label:
         required: false
         type: string
@@ -240,6 +248,19 @@ jobs:
             else
               echo "WARNING: skip list file not found: ${SKIP_LIST_PATH}"
             fi
+          fi
+
+          EXTRA_SKIP_LISTS_INPUT='${{ inputs.extra_skip_lists }}'
+          if [ -n "${EXTRA_SKIP_LISTS_INPUT}" ]; then
+            for skip_path in ${EXTRA_SKIP_LISTS_INPUT}; do
+              FULL_PATH="${GITHUB_WORKSPACE}/ci-scripts/${skip_path}"
+              if [ -f "${FULL_PATH}" ]; then
+                SKIP_LIST_ARG="${SKIP_LIST_ARG} --skip-list ${FULL_PATH}"
+                echo "Extra skip list: ${skip_path}"
+              else
+                echo "WARNING: extra skip list file not found: ${FULL_PATH}"
+              fi
+            done
           fi
 
           python3 ${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/collect_all_cases.py \

@@ -12,6 +12,8 @@ on:
       - '.github/workflows/_test-category.yml'
       - '.github/workflows/_test-report.yml'
       - '.github/config/nightly_test_categories.yml'
+      - '.github/config/disabled_testcases.json'
+      - '.github/config/running_skiped_testcases.json'
       - '.github/scripts/collect_all_cases.py'
       - '.github/scripts/discover_test_files.py'
       - '.github/scripts/run_npu_test_shard.py'
@@ -28,8 +30,8 @@ jobs:
     uses: ./.github/workflows/_build.yml
     secrets: inherit
     with:
-      upstream_repo: kerer-ai/pytorch-nv
-      upstream_ref: main_test
+      upstream_repo: pytorch/pytorch
+      upstream_ref: main
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: master
       docker_image: quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly
@@ -47,3 +49,6 @@ jobs:
       report_to_upstream: false
       hw_classification: 'GENERIC ACCELERATOR'
       full_scan: true
+      extra_skip_lists: |-
+        .github/config/disabled_testcases.json
+        .github/config/running_skiped_testcases.json

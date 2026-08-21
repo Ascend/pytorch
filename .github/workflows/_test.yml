@@ -50,6 +50,12 @@ on:
         description: >-
           Path (relative to repo root) to a JSONL skip list file. When set,
           matching nodeids are removed after collection and before sharding.
+      extra_skip_lists:
+        required: false
+        type: string
+        default: ''
+        description: >-
+          Newline-separated paths to additional skip list files (nightly only).
       runner_label:
         required: false
         type: string
@@ -74,6 +80,7 @@ jobs:
       hw_classification: ${{ inputs.hw_classification }}
       full_scan: ${{ inputs.full_scan }}
       skip_list: ${{ inputs.skip_list }}
+      extra_skip_lists: ${{ inputs.extra_skip_lists }}
       runner_label: ${{ inputs.runner_label }}
 
   # ============================================================================
