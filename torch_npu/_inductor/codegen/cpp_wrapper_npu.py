@@ -507,6 +507,17 @@ class CppWrapperNpu(CppWrapperGpu):
         # comment at CppWrapperCpu `codegen_subgraph` function.
         return CppWrapperNpu()
 
+    def generate_py_arg(self, py_args_var, idx, raw_arg, arg_type):
+        if (
+            isinstance(arg_type, torch.OptionalType)
+            and isinstance(arg_type.getElementType(), torch.ListType)
+            and raw_arg is not None
+        ):
+            return super().generate_py_arg(
+                py_args_var, idx, raw_arg, arg_type.getElementType()
+            )
+        return super().generate_py_arg(py_args_var, idx, raw_arg, arg_type)
+
     def write_header(self):
         if V.graph.is_const_graph:
             # We do not write header for constant graph, it will be written by main module.
