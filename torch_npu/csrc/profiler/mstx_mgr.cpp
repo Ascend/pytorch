@@ -329,7 +329,7 @@ bool MstxMgr::isMsptiTxEnable()
     if (isMsptiSoInLdPreload) {
         return true;
     }
-    return at_npu::native::MsptiActivityIsEnabled(MSPTI_ACTIVITY_KIND_MARKER);
+    return at_npu::native::IsSupportMsptiFunc() && at_npu::native::MsptiActivityIsEnabled(MSPTI_ACTIVITY_KIND_MARKER);
 }
 
 bool MstxMgr::isMsprofTxEnable()
