@@ -5,7 +5,6 @@ import logging
 import os
 import sys
 import tempfile
-import unittest
 
 from model_registry import ModelWithKwargs, MultiMLP, MultiMLPWithDw
 from schedule_registry import (
@@ -39,6 +38,14 @@ from torch.testing._internal.common_utils import (
     run_tests,
 )
 
+# Single-node multi-process HCCL tests create multiple HCCL communicators
+# (process group + point-to-point groups from batch_isend_irecv) that all bind
+# HCCL's default socket port (16666) for the root-info handshake and collide
+# with "Communication_Error_Bind_IP_Port (EI0020)". Widening the port range
+# lets each communicator pick a unique port. Must be set before init_process_group
+# runs in the worker processes (they inherit this env via spawn).
+os.environ["HCCL_NPU_SOCKET_PORT_RANGE"] = "10000,60000"
+
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +55,7 @@ device_type = "npu"
 
 torch.manual_seed(0)
 
-@unittest.skip("Skip: test not adapted")
+# @unittest.skip("Skip: test not adapted")
 class ScheduleTest(MultiProcContinuousTest):
     world_size = int(os.getenv("WORLD_SIZE", 2))
 
@@ -310,8 +317,17 @@ class ScheduleTest(MultiProcContinuousTest):
             output_args = None
         else:
             input_args = (x.chunk(chunks)[0],)
-            with torch.no_grad():
-                output_args = stage_module(*input_args)
+            # In STATIC mode the stage trusts `requires_grad` on these example
+            # tensors for grad buffer setup: the output example drives whether a
+            # stage allocates its grad-recv buffer (_create_grad_recv_info), and
+            # the input example drives whether a stage derives a grad-send meta
+            if self.rank > 0:
+                input_args = tuple(a.detach().requires_grad_(True) for a in input_args)
+            output_args = stage_module(*input_args)
+            if isinstance(output_args, torch.Tensor):
+                output_args = output_args.detach().requires_grad_(output_args.requires_grad)
+            else:
+                output_args = tuple(o.detach().requires_grad_(o.requires_grad) for o in output_args)
 
         # Create a pipeline stage to wrap that submodule
         stage = PipelineStage(

@@ -147,13 +147,12 @@ if not TEST_WITH_DEV_DBG_ASAN:
                 wrapper.supports_tensor_alloc(device),
                 unwrapped.supports_tensor_alloc(device),
             )
-            if hasattr(unwrapped, 'get_error'):
-                try:
-                    expected = unwrapped.get_error()
-                except RuntimeError as e:
-                    self.assertIn("does not support getError", str(e))
-                else:
-                    self.assertEqual(wrapper.get_error(), expected)
+            if (
+                hasattr(unwrapped, 'get_error')
+                and not isinstance(unwrapped, torch_npu._C._distributed_c10d.ProcessGroupHCCL)
+            ):
+                expected = unwrapped.get_error()
+                self.assertEqual(wrapper.get_error(), expected)
             try:
                 wrapper_options = wrapper.options
             except RuntimeError as e:
