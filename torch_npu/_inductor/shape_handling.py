@@ -1,10 +1,10 @@
-from torch_npu.utils import _shape_handling as _impl
-from torch_npu.utils._shape_handling import (
-    NPUShapeHandling,
-    unified_copy,
-)
+from torch_npu.utils import _dynamo as _impl
+from torch_npu.utils._dynamo import NPUShapeHandling
 
 __all__ = ["NPUShapeHandling"]
+
+unified_copy = _impl.unified_copy
+
 
 def patch_dynamo_context():
     if not getattr(_impl._patch_shape_handling, "_is_patched", False):
