@@ -108,6 +108,20 @@
 
     取值为正整数，单位为MB。默认不开启，即所有释放的pinned memory块都进入free list缓存复用。设置后，块大小若大于此阈值，则在释放时立即归还给OS，不再进入free list缓存（也不再执行向上取整），从而降低大块pinned memory使用频率较低场景下的峰值内存占用。
 
+- max\_non\_split\_rounding\_mb:<value\>，显存复用控制项，结合max\_split\_size\_mb控制显存块大小和复用。
+
+    取值为正整数，单位为MB，默认20M。显存块free后物理上不一定释放，假定保留给下次分配使用，该块保留的显存大小为A、max\_non\_split\_rounding\_mb为B、max\_split\_size\_mb为C，需要新分配一个内存D。
+
+    当D大于C，计算A-D：
+    - 如果A-D小于等于B，则不需要重新分配，复用A；
+    - 如果A-D大于B，则需要重新分配新的显存。
+
+    当D小于等于C，当前变量不生效。
+
+- release\_lock\_on\_npumalloc:<value\>，显存分配锁控制项，决策是否在分配显存时释放部分锁，控制的项保持与原生社区一致。
+
+    取值为bool类型，True或False，默认为False。设置后，显存分配会释放部分锁，可缓解host计算开销压力，但是可能造成更多资源占用，自定义开发显存管理可能存在不兼容问题，需谨慎使用。
+
 > [!NOTE]  
 >
 > 用户使用TorchNPU 6.0.RC3及以上版本配套的驱动（Ascend HDK 24.1.RC3及以上），开启虚拟内存特性时，可以使用单进程多卡特性；用户使用TorchNPU 6.0.RC3以下版本配套的驱动（Ascend HDK 24.1.RC3以下版本），开启虚拟内存特性时，不能使用单进程多卡特性。
@@ -204,6 +218,18 @@ export PYTORCH_NPU_ALLOC_CONF=throw_on_npumalloc_oom:True
 
 ```bash
 export PYTORCH_NPU_ALLOC_CONF=pinned_max_round_threshold_mb:128,pinned_max_cached_size_mb:256
+```
+
+示例十五：
+
+```bash
+export PYTORCH_NPU_ALLOC_CONF=max_split_size_mb:50,max_non_split_rounding_mb:30
+```
+
+示例十六：
+
+```bash
+export PYTORCH_NPU_ALLOC_CONF=release_lock_on_npumalloc:True
 ```
 
 ## 使用约束
