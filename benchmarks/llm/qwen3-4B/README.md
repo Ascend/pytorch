@@ -11,7 +11,7 @@
 - [3. 数据预处理](#3-数据预处理)
 - [4. 模型训练](#4-模型训练)
   - [4.1 eager mode（默认）](#41-eager-mode默认)
-  - [4.2 启用 torchcompile（可选）](#42-启用-torch compile可选)
+  - [4.2 启用 `torch.compile`（可选）](#42-启用-torchcompile可选)
   - [4.3 采集profile文件（可选）](#43-采集profile文件可选)
 
 ---
