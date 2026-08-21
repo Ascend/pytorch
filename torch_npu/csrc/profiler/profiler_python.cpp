@@ -139,8 +139,14 @@ struct ThreadLocalResult {
 
     ~ThreadLocalResult()
     {
+        // Currently, there is a bug in Profiler when using Python 3.12 that causes
+        // a segfault when decrementing the refcount of a TraceContext during
+        // on-demand. We are purposefully allowing for a small leak in this
+        // situation to avoid the segfault. This should be fixed in the future.
         if (ctx_) {
+#if PY_MAJOR_VERSION < 3 || (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION < 12)
             Py_DECREF((PyObject*)ctx_);
+#endif
         }
         active_tracer_ = nullptr;
     }
@@ -593,15 +599,27 @@ size_t PythonTracer::genPyCallHashId(PyFrameObject* frame)
         // check optim.Optimizer call
         if (record_params_ && ((PyObject*)f_code.get() == optimizer_call_code_)) {
             auto f_locals = PyFrame_GetLocals_NPU(frame);
-            auto optimizer_class = PyDict_GetItemString(f_locals, "self");
-            parseOptimizerParams(optimizer_param_cache_, (PyObject*)optimizer_class, hash_id);
+            PyObject* optimizer_class = nullptr;
+#if PY_MAJOR_VERSION < 3 || (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION < 13)
+            optimizer_class = PyDict_GetItemString(f_locals, "self");
+#else
+            auto optimizer_class_holder = THPObjectPtr(PyMapping_GetItemString(f_locals, "self"));
+            optimizer_class = optimizer_class_holder.get();
+#endif
+            parseOptimizerParams(optimizer_param_cache_, optimizer_class, hash_id);
         }
     }
 
     // check nn.Module call
     if ((PyObject*)f_code.get() == module_call_code_) {
         auto f_locals = PyFrame_GetLocals_NPU(frame);
-        auto module_class = PyDict_GetItemString(f_locals, "self");
+        PyObject* module_class = nullptr;
+#if PY_MAJOR_VERSION < 3 || (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION < 13)
+        module_class = PyDict_GetItemString(f_locals, "self");
+#else
+        auto module_class_holder = THPObjectPtr(PyMapping_GetItemString(f_locals, "self"));
+        module_class = module_class_holder.get();
+#endif
         hash_id = c10::get_hash(module_class);
         if (module_info_cache_.find(hash_id) == module_info_cache_.end()) {
             module_info_cache_.insert({hash_id, ModuleInfo(module_class)});
