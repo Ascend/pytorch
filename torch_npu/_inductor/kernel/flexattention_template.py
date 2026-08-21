@@ -521,8 +521,9 @@ compute_flex_attention_sparse_mask_in_loop_no_load_balance = r"""
     NUM_Q_TILES = tl.cdiv(Q_LEN, BLOCK_M)
 
     for tile_id in range(tl.program_id(0), NUM_Q_TILES * ZQ * HQ, tl.num_programs(0)):
-        q_start = tile_id % NUM_Q_TILES
-        off_zh = tile_id // NUM_Q_TILES
+        tile_id_index = tile_id.to(INDEX_DTYPE)
+        q_start = tile_id_index % NUM_Q_TILES
+        off_zh = tile_id_index // NUM_Q_TILES
         off_zq = off_zh // HQ
         off_hq = off_zh % HQ
         off_zkv = off_zq % ZKV
@@ -852,8 +853,11 @@ flex_attention_backward_qmajor_dq_source = r"""
     KV_LEN = {{size("K", 2)}}
     MATMUL_PRECISION = Q.dtype.element_ty
 
-    tl.static_assert(BLOCK_M2 == SPARSE_Q_BLOCK_SIZE)
-    tl.static_assert(BLOCK_N2 == SPARSE_KV_BLOCK_SIZE)
+    tl.static_assert(SPARSE_Q_BLOCK_SIZE % BLOCK_M2 == 0)
+    tl.static_assert(SPARSE_KV_BLOCK_SIZE % BLOCK_N2 == 0)
+    tl.static_assert(BLOCK_M2 % BLOCK_N2 == 0)
+    SPARSE_Q_MULTIPLE: tl.constexpr = SPARSE_Q_BLOCK_SIZE // BLOCK_M2
+    SPARSE_KV_MULTIPLE: tl.constexpr = SPARSE_KV_BLOCK_SIZE // BLOCK_N2
 
     pid = tl.program_id(0).to(tl.int32)
     num_core = tl.num_programs(0).to(tl.int32)
@@ -882,15 +886,17 @@ flex_attention_backward_qmajor_dq_source = r"""
     stride_full_kv_idx_blk = {{stride("FULL_KV_IDX", 3)}}
 
     for task_id in range(pid, DQ_NUM_TASKS, num_core):
-        q_block = task_id % DQ_NUM_Q_BLOCKS
-        off_zq = (task_id // DQ_NUM_Q_BLOCKS) // HQ
-        off_hq = (task_id // DQ_NUM_Q_BLOCKS) % HQ
+        task_id_index = task_id.to(INDEX_DTYPE)
+        q_block = task_id_index % DQ_NUM_Q_BLOCKS
+        off_zq = (task_id_index // DQ_NUM_Q_BLOCKS) // HQ
+        off_hq = (task_id_index // DQ_NUM_Q_BLOCKS) % HQ
         off_hkv = off_hq // GQA_SHARED_HEADS
         off_zkv = off_zq % ZKV
         sparse_idx_z = off_zq % SPARSE_Z
         sparse_h = off_hq % SPARSE_HQ
 
         q_start = q_block * BLOCK_M2
+        sparse_q_block = q_block // SPARSE_Q_MULTIPLE
         offs_m = q_start + tl.arange(0, BLOCK_M2)
 
         q_base = Q + stride_qz * off_zq + stride_qh * off_hq
@@ -898,7 +904,7 @@ flex_attention_backward_qmajor_dq_source = r"""
         v_base = V + stride_vz * off_zkv + stride_vh * off_hkv
         do_base = DO + stride_doz * off_zq + stride_doh * off_hq
         dq_base = DQ + stride_dqz * off_zq + stride_dqh * off_hq
-        off_chz = ((off_zq * HQ + off_hq) * Q_LEN).to(tl.int64)
+        off_chz = ((off_zq * HQ + off_hq) * Q_LEN).to(INDEX_DTYPE)
         lse_base = LSE + off_chz
         delta_base = DELTA + off_chz
 
@@ -922,12 +928,12 @@ flex_attention_backward_qmajor_dq_source = r"""
         kv_num_offset = (
             sparse_idx_z * stride_kv_num_blks_z
             + sparse_h * stride_kv_num_blks_h
-            + q_block * stride_kv_num_blks_m
+            + sparse_q_block * stride_kv_num_blks_m
         )
         kv_idx_offset = (
             sparse_idx_z * stride_kv_idx_z
             + sparse_h * stride_kv_idx_h
-            + q_block * stride_kv_idx_m
+            + sparse_q_block * stride_kv_idx_m
         )
 {% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
         stride_q_offsets_z = {{stride("Q_OFFSETS", 0)}}
@@ -936,15 +942,21 @@ flex_attention_backward_qmajor_dq_source = r"""
         q_offsets_idx = (
             sparse_idx_z * stride_q_offsets_z
             + sparse_h * stride_q_offsets_h
-            + q_block * stride_q_offsets_q
+            + sparse_q_block * stride_q_offsets_q
         )
         q_offset_base = tl.load(arg_Q_OFFSETS + q_offsets_idx)
 {% endif %}
 
         kv_num_blocks = tl.load(arg_KV_NUM_BLKS + kv_num_offset)
-        for blk_pos in range(0, kv_num_blocks):
+        for kv_work_pos in range(0, kv_num_blocks * SPARSE_KV_MULTIPLE):
+            blk_pos = kv_work_pos // SPARSE_KV_MULTIPLE
+            kv_sub_block = kv_work_pos % SPARSE_KV_MULTIPLE
             kv_sparse_idx = tl.load(arg_KV_IDX + kv_idx_offset + blk_pos * stride_kv_idx_blk)
-            offs_n = kv_sparse_idx * SPARSE_KV_BLOCK_SIZE + tl.arange(0, BLOCK_N2)
+            offs_n = (
+                kv_sparse_idx * SPARSE_KV_BLOCK_SIZE
+                + kv_sub_block * BLOCK_N2
+                + tl.arange(0, BLOCK_N2)
+            )
             k = tl.load(
                 k_base + offs_n[:, None] * stride_kn + offs_k[None, :] * stride_kd,
                 mask=offs_n[:, None] < KV_LEN,
@@ -963,7 +975,7 @@ flex_attention_backward_qmajor_dq_source = r"""
             n = get_bounded_indices(offs_n[None, :], KV_LEN if (not IS_DIVISIBLE or not SAFE_HEAD_DIM) else None)
 {% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
             flat_blk = q_offset_base + blk_pos
-            offs_m_local = offs_m[:, None] - q_block * SPARSE_Q_BLOCK_SIZE
+            offs_m_local = offs_m[:, None] - sparse_q_block * SPARSE_Q_BLOCK_SIZE
             offs_n_local = offs_n[None, :] - kv_sparse_idx * SPARSE_KV_BLOCK_SIZE
             mask_offsets = offs_m_local * SPARSE_MASK_STRIDE_M + offs_n_local
             mask_mod_output = tl.load(
@@ -1022,17 +1034,23 @@ flex_attention_backward_qmajor_dq_source = r"""
             full_kv_num_offset = (
                 sparse_idx_z * stride_full_kv_num_blks_z
                 + sparse_h * stride_full_kv_num_blks_h
-                + q_block * stride_full_kv_num_blks_m
+                + sparse_q_block * stride_full_kv_num_blks_m
             )
             full_kv_idx_offset = (
                 sparse_idx_z * stride_full_kv_idx_z
                 + sparse_h * stride_full_kv_idx_h
-                + q_block * stride_full_kv_idx_m
+                + sparse_q_block * stride_full_kv_idx_m
             )
             full_kv_num_blocks = tl.load(arg_FULL_KV_NUM_BLKS + full_kv_num_offset)
-            for blk_pos in range(0, full_kv_num_blocks):
+            for kv_work_pos in range(0, full_kv_num_blocks * SPARSE_KV_MULTIPLE):
+                blk_pos = kv_work_pos // SPARSE_KV_MULTIPLE
+                kv_sub_block = kv_work_pos % SPARSE_KV_MULTIPLE
                 kv_sparse_idx = tl.load(arg_FULL_KV_IDX + full_kv_idx_offset + blk_pos * stride_full_kv_idx_blk)
-                offs_n = kv_sparse_idx * SPARSE_KV_BLOCK_SIZE + tl.arange(0, BLOCK_N2)
+                offs_n = (
+                    kv_sparse_idx * SPARSE_KV_BLOCK_SIZE
+                    + kv_sub_block * BLOCK_N2
+                    + tl.arange(0, BLOCK_N2)
+                )
                 k = tl.load(
                     k_base + offs_n[:, None] * stride_kn + offs_k[None, :] * stride_kd,
                     mask=offs_n[:, None] < KV_LEN,
@@ -1168,7 +1186,7 @@ flex_attention_backward_dkdv_only_source = r"""
     MATMUL_PRECISION = Q.dtype.element_ty
 
     NUM_KV_BLOCKS = tl.cdiv(KV_LEN, BLOCK_N1)
-    NUM_TASKS = NUM_KV_BLOCKS * ZKV * HKV
+    NUM_TASKS = NUM_KV_BLOCKS * ZQ * HKV
 
     pid = tl.program_id(0).to(tl.int32)
     num_core = tl.num_programs(0).to(tl.int32)
@@ -1187,9 +1205,10 @@ flex_attention_backward_dkdv_only_source = r"""
     stride_q_idx_n = {{stride("Q_IDX", 2)}}
 
     for task_id in range(pid, NUM_TASKS, num_core):
-        kv_start_block = task_id % NUM_KV_BLOCKS
-        off_zq = (task_id // NUM_KV_BLOCKS) // HKV
-        off_hkv = (task_id // NUM_KV_BLOCKS) % HKV
+        task_id_index = task_id.to(INDEX_DTYPE)
+        kv_start_block = task_id_index % NUM_KV_BLOCKS
+        off_zq = (task_id_index // NUM_KV_BLOCKS) // HKV
+        off_hkv = (task_id_index // NUM_KV_BLOCKS) % HKV
         off_zkv = off_zq % ZKV
         sparse_idx_z = off_zq % SPARSE_Z
 
@@ -1197,9 +1216,9 @@ flex_attention_backward_dkdv_only_source = r"""
         offs_n1 = start_n1 + tl.arange(0, BLOCK_N1)
         pid_mask = kv_start_block // SPARSE_KV_MULTIPLE
 
-        k_adj = (stride_kh * off_hkv + stride_kz * off_zkv).to(tl.int64)
-        v_adj = (stride_vh * off_hkv + stride_vz * off_zkv).to(tl.int64)
-        dv_adj = (stride_dvh * off_hkv + stride_dvz * off_zq).to(tl.int64)
+        k_adj = (stride_kh * off_hkv + stride_kz * off_zkv).to(INDEX_DTYPE)
+        v_adj = (stride_vh * off_hkv + stride_vz * off_zkv).to(INDEX_DTYPE)
+        dv_adj = (stride_dvh * off_hkv + stride_dvz * off_zq).to(INDEX_DTYPE)
 
         K1 = K + k_adj
         V1 = V + v_adj
@@ -1221,9 +1240,9 @@ flex_attention_backward_dkdv_only_source = r"""
         for off_g in range(0, GQA_SHARED_HEADS):
             off_hq1 = off_hkv * GQA_SHARED_HEADS + off_g
 
-            q_adj1 = (stride_qh * off_hq1 + stride_qz * off_zq).to(tl.int64)
-            do_adj1 = (stride_doh * off_hq1 + stride_doz * off_zq).to(tl.int64)
-            off_chz1 = ((off_zq * HQ + off_hq1) * Q_LEN).to(tl.int64)
+            q_adj1 = (stride_qh * off_hq1 + stride_qz * off_zq).to(INDEX_DTYPE)
+            do_adj1 = (stride_doh * off_hq1 + stride_doz * off_zq).to(INDEX_DTYPE)
+            off_chz1 = ((off_zq * HQ + off_hq1) * Q_LEN).to(INDEX_DTYPE)
 
             Q1 = Q + q_adj1
             DO1 = DO + do_adj1
@@ -1666,7 +1685,7 @@ flex_attention_backward_dkdv_tasklist_source = (
     work_start = tl.load(TASK_OFFSETS + meta_id)
     work_end = tl.load(TASK_OFFSETS + meta_id + 1)
     for work_idx in range(work_start, work_end):
-        off_hkv = tl.load(WORK_ITEMS + work_idx * 5 + 0).to(tl.int64)
+        off_hkv = tl.load(WORK_ITEMS + work_idx * 5 + 0).to(INDEX_DTYPE)
         kv_start_block = tl.load(WORK_ITEMS + work_idx * 5 + 1)
 {% if not TASKLIST_NO_SPLIT %}
         sub_id = tl.load(WORK_ITEMS + work_idx * 5 + 2)
@@ -1681,17 +1700,17 @@ flex_attention_backward_dkdv_tasklist_source = (
         start_n1 = kv_start_block * BLOCK_N1
         offs_n1 = start_n1 + tl.arange(0, BLOCK_N1)
 
-        k_adj = (stride_kh * off_hkv + stride_kz * off_zkv).to(tl.int64)
-        v_adj = (stride_vh * off_hkv + stride_vz * off_zkv).to(tl.int64)
-        dv_adj = (stride_dvh * off_hkv + stride_dvz * off_zq).to(tl.int64)
+        k_adj = (stride_kh * off_hkv + stride_kz * off_zkv).to(INDEX_DTYPE)
+        v_adj = (stride_vh * off_hkv + stride_vz * off_zkv).to(INDEX_DTYPE)
+        dv_adj = (stride_dvh * off_hkv + stride_dvz * off_zq).to(INDEX_DTYPE)
         K1 = K + k_adj
         V1 = V + v_adj
-{% if TASKLIST_NO_SPLIT %}
+        DK_OUT = DK
         DV_OUT = DV + dv_adj
-{% else %}
-        DV_DIRECT = DV + dv_adj
-        DK_SPLIT = DK_PARTIAL + sub_id * PARTIAL_DK_STRIDE
-        DV_SPLIT = DV_PARTIAL + sub_id * PARTIAL_DV_STRIDE + dv_adj
+{% if not TASKLIST_NO_SPLIT %}
+        if is_split != 0:
+            DK_OUT = DK_PARTIAL + sub_id * PARTIAL_DK_STRIDE
+            DV_OUT = DV_PARTIAL + sub_id * PARTIAL_DV_STRIDE + dv_adj
 {% endif %}
 
         k = tl.load(
@@ -1710,9 +1729,9 @@ flex_attention_backward_dkdv_tasklist_source = (
         for off_g in range(0, GQA_SHARED_HEADS):
             off_hq1 = off_hkv * GQA_SHARED_HEADS + off_g
             sparse_idx_hq1 = off_hq1 % SPARSE_HQ
-            q_adj1 = (stride_qh * off_hq1 + stride_qz * off_zq).to(tl.int64)
-            do_adj1 = (stride_doh * off_hq1 + stride_doz * off_zq).to(tl.int64)
-            off_chz1 = ((off_zq * HQ + off_hq1) * Q_LEN).to(tl.int64)
+            q_adj1 = (stride_qh * off_hq1 + stride_qz * off_zq).to(INDEX_DTYPE)
+            do_adj1 = (stride_doh * off_hq1 + stride_doz * off_zq).to(INDEX_DTYPE)
+            off_chz1 = ((off_zq * HQ + off_hq1) * Q_LEN).to(INDEX_DTYPE)
             Q1 = Q + q_adj1
             DO1 = DO + do_adj1
             LSE1 = LSE + off_chz1
@@ -1753,10 +1772,9 @@ flex_attention_backward_dkdv_tasklist_source = (
                     + (start_m % SPARSE_Q_MULTIPLE) * BLOCK_M1
                 )
                 offs_m1 = q_start + tl.arange(0, BLOCK_M1)
-{% if TASKLIST_NO_SPLIT %}
                 bwd_dkdv_block_mn(
                     {{gen_argdefs()}},
-                    Q1, DO1, DK, DELTA1, LSE1, DV_OUT,
+                    Q1, DO1, DK_OUT, DELTA1, LSE1, DV_OUT,
                     k, v, Q_LEN, KV_LEN,
                     off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
                     q_start, q_block, pid_mask, offs_k, offs_v,
@@ -1765,32 +1783,6 @@ flex_attention_backward_dkdv_tasklist_source = (
                     stride_kn, stride_kd, MATMUL_PRECISION,
                     False, CHECK_BLOCK_BOUNDARY=not IS_DIVISIBLE,
                 )
-{% else %}
-                if is_split == 0:
-                    bwd_dkdv_block_mn(
-                        {{gen_argdefs()}},
-                        Q1, DO1, DK, DELTA1, LSE1, DV_DIRECT,
-                        k, v, Q_LEN, KV_LEN,
-                        off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
-                        q_start, q_block, pid_mask, offs_k, offs_v,
-                        stride_qm, stride_qd, stride_dom, stride_dod,
-                        stride_dvm, stride_dvd, stride_kz, stride_kh,
-                        stride_kn, stride_kd, MATMUL_PRECISION,
-                        False, CHECK_BLOCK_BOUNDARY=not IS_DIVISIBLE,
-                    )
-                else:
-                    bwd_dkdv_block_mn(
-                        {{gen_argdefs()}},
-                        Q1, DO1, DK_SPLIT, DELTA1, LSE1, DV_SPLIT,
-                        k, v, Q_LEN, KV_LEN,
-                        off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
-                        q_start, q_block, pid_mask, offs_k, offs_v,
-                        stride_qm, stride_qd, stride_dom, stride_dod,
-                        stride_dvm, stride_dvd, stride_kz, stride_kh,
-                        stride_kn, stride_kd, MATMUL_PRECISION,
-                        False, CHECK_BLOCK_BOUNDARY=not IS_DIVISIBLE,
-                    )
-{% endif %}
 
             if HAS_FULL_BLOCKS:
                 full_q_num_offset = (
@@ -1829,10 +1821,9 @@ flex_attention_backward_dkdv_tasklist_source = (
                     )
                     offs_m1 = q_start + tl.arange(0, BLOCK_M1)
 {% if not PRESCALE_QK %}
-{% if TASKLIST_NO_SPLIT %}
                     bwd_dkdv_full_block_mn(
                         {{gen_argdefs()}},
-                        Q1, DO1, DK, DELTA1, LSE1, DV_OUT,
+                        Q1, DO1, DK_OUT, DELTA1, LSE1, DV_OUT,
                         k, v, Q_LEN, KV_LEN,
                         off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
                         q_start, offs_k, offs_v,
@@ -1842,36 +1833,9 @@ flex_attention_backward_dkdv_tasklist_source = (
                         CHECK_BLOCK_BOUNDARY=False,
                     )
 {% else %}
-                    if is_split == 0:
-                        bwd_dkdv_full_block_mn(
-                            {{gen_argdefs()}},
-                            Q1, DO1, DK, DELTA1, LSE1, DV_DIRECT,
-                            k, v, Q_LEN, KV_LEN,
-                            off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
-                            q_start, offs_k, offs_v,
-                            stride_qm, stride_qd, stride_dom, stride_dod,
-                            stride_dvm, stride_dvd, stride_kz, stride_kh,
-                            stride_kn, stride_kd, MATMUL_PRECISION,
-                            CHECK_BLOCK_BOUNDARY=False,
-                        )
-                    else:
-                        bwd_dkdv_full_block_mn(
-                            {{gen_argdefs()}},
-                            Q1, DO1, DK_SPLIT, DELTA1, LSE1, DV_SPLIT,
-                            k, v, Q_LEN, KV_LEN,
-                            off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
-                            q_start, offs_k, offs_v,
-                            stride_qm, stride_qd, stride_dom, stride_dod,
-                            stride_dvm, stride_dvd, stride_kz, stride_kh,
-                            stride_kn, stride_kd, MATMUL_PRECISION,
-                            CHECK_BLOCK_BOUNDARY=False,
-                        )
-{% endif %}
-{% else %}
-{% if TASKLIST_NO_SPLIT %}
                     bwd_dkdv_block_mn(
                         {{gen_argdefs()}},
-                        Q1, DO1, DK, DELTA1, LSE1, DV_OUT,
+                        Q1, DO1, DK_OUT, DELTA1, LSE1, DV_OUT,
                         k, v, Q_LEN, KV_LEN,
                         off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
                         q_start, q_block, pid_mask, offs_k, offs_v,
@@ -1880,32 +1844,6 @@ flex_attention_backward_dkdv_tasklist_source = (
                         stride_kn, stride_kd, MATMUL_PRECISION,
                         True, CHECK_BLOCK_BOUNDARY=not IS_DIVISIBLE,
                     )
-{% else %}
-                    if is_split == 0:
-                        bwd_dkdv_block_mn(
-                            {{gen_argdefs()}},
-                            Q1, DO1, DK, DELTA1, LSE1, DV_DIRECT,
-                            k, v, Q_LEN, KV_LEN,
-                            off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
-                            q_start, q_block, pid_mask, offs_k, offs_v,
-                            stride_qm, stride_qd, stride_dom, stride_dod,
-                            stride_dvm, stride_dvd, stride_kz, stride_kh,
-                            stride_kn, stride_kd, MATMUL_PRECISION,
-                            True, CHECK_BLOCK_BOUNDARY=not IS_DIVISIBLE,
-                        )
-                    else:
-                        bwd_dkdv_block_mn(
-                            {{gen_argdefs()}},
-                            Q1, DO1, DK_SPLIT, DELTA1, LSE1, DV_SPLIT,
-                            k, v, Q_LEN, KV_LEN,
-                            off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
-                            q_start, q_block, pid_mask, offs_k, offs_v,
-                            stride_qm, stride_qd, stride_dom, stride_dod,
-                            stride_dvm, stride_dvd, stride_kz, stride_kh,
-                            stride_kn, stride_kd, MATMUL_PRECISION,
-                            True, CHECK_BLOCK_BOUNDARY=not IS_DIVISIBLE,
-                        )
-{% endif %}
 {% endif %}
 """
     + _FLEX_ATTENTION_BACKWARD_DKDV_HELPERS_SOURCE
@@ -1918,7 +1856,7 @@ flex_attention_backward_dkdv_reduce_source = r"""
     KV_LEN = {{size("DK", 2)}}
 
     split_base_id = tl.program_id(0).to(tl.int32)
-    off_hkv = tl.load(SPLIT_BASES + split_base_id * 3 + 0).to(tl.int64)
+    off_hkv = tl.load(SPLIT_BASES + split_base_id * 3 + 0).to(INDEX_DTYPE)
     kv_block = tl.load(SPLIT_BASES + split_base_id * 3 + 1)
     split_count = tl.load(SPLIT_BASES + split_base_id * 3 + 2)
     off_z = tl.zeros_like(off_hkv)

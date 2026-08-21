@@ -406,6 +406,24 @@ class NPUTritonTemplate(TritonTemplate):
         self.codegen_kernel_name = codegen_kernel_name or f"triton_{name}"
         self.compile_options = compile_options or NPUTemplateCompileOption()
 
+    def _write_index_dtype_define(
+        self,
+        defines: StringIO,
+        numel: sympy.Expr,
+        buffers: Any,
+    ) -> None:
+        can_use_32bit_indexing = TritonScheduling.can_use_32bit_indexing(
+            numel, buffers
+        )
+        is_flex_attention = self.name.startswith("flex_attention")
+        if not can_use_32bit_indexing and not is_flex_attention:
+            raise NotImplementedError(
+                "64-bit indexing is not yet implemented for triton templates"
+            )
+        if is_flex_attention:
+            index_dtype = "tl.int32" if can_use_32bit_indexing else "tl.int64"
+            defines.write(f"INDEX_DTYPE : tl.constexpr = {index_dtype}\n")
+
     def make_runtime_renderer_factory(
         self,
         *,
@@ -429,6 +447,14 @@ class NPUTritonTemplate(TritonTemplate):
         for name, value in meta.items():
             if name not in compile_option_keys:
                 defines.write(f"{name} : tl.constexpr = {value}\n")
+        fake_out = ir.Buffer(name="buf_out", layout=layout)
+        numel = sympy_product(layout.size)
+        if self.manual_output_buffer is None:
+            buffers = itertools.chain(input_nodes, (fake_out,))
+        else:
+            buffers = input_nodes
+            numel = sympy_product(call_sizes)
+        self._write_index_dtype_define(defines, numel, buffers)
         kernel_options = {
             "defines": defines.getvalue(),
             "num_stages": num_stages,
@@ -524,7 +550,6 @@ class NPUTritonTemplate(TritonTemplate):
             if name in compile_option_keys:
                 continue
             defines.write(f"{name} : tl.constexpr = {val}\n")
-        defines = defines.getvalue()
 
         fake_out = ir.Buffer(name="buf_out", layout=layout)
         kernel_name = f"triton_{self.name}"
@@ -543,10 +568,8 @@ class NPUTritonTemplate(TritonTemplate):
         else:
             buffers = checked_input_nodes
             numel = sympy_product(call_sizes or layout.size)
-        if not TritonScheduling.can_use_32bit_indexing(numel, buffers):
-            raise NotImplementedError(
-                "64-bit indexing is not yet implemented for triton templates"
-            )
+        self._write_index_dtype_define(defines, numel, buffers)
+        defines = defines.getvalue()
 
         if call_sizes is None:
             call_sizes = layout.size
