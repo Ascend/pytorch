@@ -194,7 +194,11 @@ def _apply_sparse_mask_compact_options(
     for key, value in compact_options.items():
         updated.setdefault(key, value)
 
-    if compact_options and log.isEnabledFor(logging.INFO):
+    if (
+        not torch.compiler.is_dynamo_compiling()
+        and compact_options
+        and log.isEnabledFor(logging.INFO)
+    ):
         log.info(
             "[flex_attention][%s] sparse_mask_compact_options=%s final_hq=%s final_max_blocks=%s",
             context,
@@ -218,7 +222,11 @@ def _apply_precomputed_block_sparse_safety_options(
             "BLOCKS_ARE_CONTIGUOUS",
             bool(safety_options["NPU_BLOCKS_ARE_CONTIGUOUS"]),
         )
-    if safety_options and log.isEnabledFor(logging.INFO):
+    if (
+        not torch.compiler.is_dynamo_compiling()
+        and safety_options
+        and log.isEnabledFor(logging.INFO)
+    ):
         log.info(
             "[flex_attention][%s] cached_block_sparse_safety_diagnostics=%s "
             "forwarded_ROWS_GUARANTEED_SAFE=%s forwarded_BLOCKS_ARE_CONTIGUOUS=%s",
@@ -285,7 +293,10 @@ def _layer2_fast_prefilter(block_mask: Any) -> tuple[bool, str]:
     try:
         import time as _time
         _t_start = _time.time()
-        if log.isEnabledFor(logging.INFO):
+        if (
+            not torch.compiler.is_dynamo_compiling()
+            and log.isEnabledFor(logging.INFO)
+        ):
             log.info(
                 "[meta][L2] start block_mask_type=%s",
                 type(block_mask).__name__,
@@ -295,7 +306,10 @@ def _layer2_fast_prefilter(block_mask: Any) -> tuple[bool, str]:
         dense_device = getattr(dense, "device", "<unknown>")
         dense_dtype = getattr(dense, "dtype", "<unknown>")
         dense_shape = tuple(dense.shape) if hasattr(dense, "shape") else "<unknown>"
-        if log.isEnabledFor(logging.INFO):
+        if (
+            not torch.compiler.is_dynamo_compiling()
+            and log.isEnabledFor(logging.INFO)
+        ):
             log.info(
                 "[meta][L2] dense_ready shape=%s dense_device=%s dtype=%s elapsed=%.2fms",
                 dense_shape,
@@ -316,7 +330,10 @@ def _layer2_fast_prefilter(block_mask: Any) -> tuple[bool, str]:
             valid_rows = row_has_valid.sum().item()
             total_rows = len(row_has_valid)
             detail = f"L2 SAFE ({valid_rows}/{total_rows} rows valid, {_elapsed:.2f}ms)"
-            if log.isEnabledFor(logging.INFO):
+            if (
+                not torch.compiler.is_dynamo_compiling()
+                and log.isEnabledFor(logging.INFO)
+            ):
                 log.info(
                     "[meta][L2] done safe=True valid_rows=%s total_rows=%s "
                     "dense_device=%s elapsed=%.2fms",
@@ -329,7 +346,10 @@ def _layer2_fast_prefilter(block_mask: Any) -> tuple[bool, str]:
         else:
             unsafe_rows = (~row_has_valid).nonzero(as_tuple=True)[0].tolist()
             detail = f"L2 UNSAFE ({len(unsafe_rows)} empty rows: {unsafe_rows[:10]}, {_elapsed:.2f}ms)"
-            if log.isEnabledFor(logging.INFO):
+            if (
+                not torch.compiler.is_dynamo_compiling()
+                and log.isEnabledFor(logging.INFO)
+            ):
                 log.info(
                     "[meta][L2] done safe=False unsafe_rows=%s total_rows=%s "
                     "dense_device=%s elapsed=%.2fms",
@@ -341,7 +361,10 @@ def _layer2_fast_prefilter(block_mask: Any) -> tuple[bool, str]:
             return False, detail
 
     except Exception as exc:
-        if log.isEnabledFor(logging.INFO):
+        if (
+            not torch.compiler.is_dynamo_compiling()
+            and log.isEnabledFor(logging.INFO)
+        ):
             log.info(  # noqa: G200
                 "[meta][L2] done safe=False error=%s: %s",
                 type(exc).__name__,
@@ -489,7 +512,10 @@ def _verify_rows_have_valid_kv_tensorized(
     q_chunks_done = 0
     result_device_warned = False
 
-    if log.isEnabledFor(logging.INFO):
+    if (
+        not torch.compiler.is_dynamo_compiling()
+        and log.isEnabledFor(logging.INFO)
+    ):
         log.info(
             "[meta][L3] scan_start batch=%d heads=%d q_len=%d kv_len=%d "
             "device=%s q_chunk_size=%d kv_chunk_size=%d total_q_chunks=%d "
@@ -551,7 +577,8 @@ def _verify_rows_have_valid_kv_tensorized(
 
                 q_chunks_done += 1
                 if (
-                    log.isEnabledFor(logging.INFO)
+                    not torch.compiler.is_dynamo_compiling()
+                    and log.isEnabledFor(logging.INFO)
                     and (
                         q_chunks_done == 1
                         or q_chunks_done % progress_log_every == 0
@@ -583,7 +610,10 @@ def _verify_rows_have_valid_kv_tensorized(
                             f"b={b_idx_value},h={h_idx_value},q={q_start + int(bad_row)}"
                         )
                         if len(unsafe_locations) >= max_unsafe:
-                            if log.isEnabledFor(logging.INFO):
+                            if (
+                                not torch.compiler.is_dynamo_compiling()
+                                and log.isEnabledFor(logging.INFO)
+                            ):
                                 log.info(
                                     "[meta][L3] stop max_unsafe=%d reached "
                                     "q_chunk=%d/%d elapsed=%.2fms device=%s",
@@ -595,7 +625,10 @@ def _verify_rows_have_valid_kv_tensorized(
                                 )
                             return False, unsafe_locations
 
-    if log.isEnabledFor(logging.INFO):
+    if (
+        not torch.compiler.is_dynamo_compiling()
+        and log.isEnabledFor(logging.INFO)
+    ):
         log.info(
             "[meta][L3] done safe=%s checked_q_chunks=%d/%d unsafe_count=%d "
             "elapsed=%.2fms device=%s",
@@ -660,7 +693,10 @@ def _verify_element_level_safety(block_mask: Any) -> tuple[bool, str]:
             return False, f"L3 ERROR: invalid seq_lengths={seq_lengths} ({elapsed:.2f}ms)"
 
         batch_size, num_heads = _infer_block_mask_batch_heads(block_mask, counts)
-        if log.isEnabledFor(logging.INFO):
+        if (
+            not torch.compiler.is_dynamo_compiling()
+            and log.isEnabledFor(logging.INFO)
+        ):
             log.info(
                 "[meta][L3] start block_mask_type=%s batch=%d heads=%d "
                 "q_len=%d kv_len=%d device=%s counts_shape=%s counts_dtype=%s",
@@ -1031,7 +1067,10 @@ def apply_kernel_options_from_block_sparse_mask(
 
     updated = apply_kernel_options_from_metadata(updated, metadata)
 
-    if log.isEnabledFor(logging.INFO):
+    if (
+        not torch.compiler.is_dynamo_compiling()
+        and log.isEnabledFor(logging.INFO)
+    ):
         log.info(
             "[flex_attention][%s] rows_guaranteed_safe=%s blocks_are_contiguous=%s "
             "is_per_head_heterogeneous=%s empty_row_risk_level=%s "
