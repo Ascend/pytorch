@@ -68,19 +68,98 @@ def get_bounded_indices(indices, max_len=None):
 """
 
 
+compute_compact_sparse_mask_offsets_kernel = r"""
+{{def_kernel("Q_OFFSETS", "TOTAL_BLOCKS", "KV_NUM_BLKS")}}
+    sparse_z = {{size("KV_NUM_BLKS", 0)}}
+    sparse_h = {{size("KV_NUM_BLKS", 1)}}
+    sparse_q = {{size("KV_NUM_BLKS", 2)}}
+    row_count = sparse_z * sparse_h * sparse_q
+
+    stride_num_z, stride_num_h, stride_num_q = {{stride("KV_NUM_BLKS")}}
+    stride_off_z, stride_off_h, stride_off_q = {{stride("Q_OFFSETS")}}
+
+    pid = tl.program_id(0)
+    num_programs = tl.num_programs(0)
+    for row in range(pid, row_count, num_programs):
+        q_idx = row % sparse_q
+        tmp = row // sparse_q
+        h_idx = tmp % sparse_h
+        z_idx = tmp // sparse_h
+
+        num_offset = (
+            z_idx * stride_num_z
+            + h_idx * stride_num_h
+            + q_idx * stride_num_q
+        )
+        num_blocks = tl.load(KV_NUM_BLKS + num_offset).to(tl.int32)
+        base = tl.atomic_add(TOTAL_BLOCKS, num_blocks)
+
+        offset = (
+            z_idx * stride_off_z
+            + h_idx * stride_off_h
+            + q_idx * stride_off_q
+        )
+        tl.store(Q_OFFSETS + offset, base)
+
+"""
+
+
+compute_compact_sparse_mask_mapping_kernel = r"""
+{{def_kernel("FLAT_TO_ROW", "FLAT_TO_BLK", "Q_OFFSETS", "KV_NUM_BLKS")}}
+    sparse_z = {{size("KV_NUM_BLKS", 0)}}
+    sparse_h = {{size("KV_NUM_BLKS", 1)}}
+    sparse_q = {{size("KV_NUM_BLKS", 2)}}
+    row_count = sparse_z * sparse_h * sparse_q
+
+    stride_num_z, stride_num_h, stride_num_q = {{stride("KV_NUM_BLKS")}}
+    stride_off_z, stride_off_h, stride_off_q = {{stride("Q_OFFSETS")}}
+
+    pid = tl.program_id(0)
+    num_programs = tl.num_programs(0)
+    for row in range(pid, row_count, num_programs):
+        q_idx = row % sparse_q
+        tmp = row // sparse_q
+        h_idx = tmp % sparse_h
+        z_idx = tmp // sparse_h
+
+        num_offset = (
+            z_idx * stride_num_z
+            + h_idx * stride_num_h
+            + q_idx * stride_num_q
+        )
+        num_blocks = tl.load(KV_NUM_BLKS + num_offset).to(tl.int32)
+        offset = (
+            z_idx * stride_off_z
+            + h_idx * stride_off_h
+            + q_idx * stride_off_q
+        )
+        base = tl.load(Q_OFFSETS + offset).to(tl.int32)
+
+        for blk_pos in range(0, num_blocks):
+            flat = base + blk_pos
+            tl.store(FLAT_TO_ROW + flat, row)
+            tl.store(FLAT_TO_BLK + flat, blk_pos)
+"""
+
+
 compute_sparse_mask_kernel_compact = r"""
-{{def_kernel("SPARSE_MASK", "Q_OFFSETS", "FLAT_TO_ROW", "FLAT_TO_BLK", "KV_NUM_BLKS", "KV_IDX")}}
+{{def_kernel("SPARSE_MASK", "FLAT_TO_ROW", "FLAT_TO_BLK", "Q", "K", "KV_IDX")}}
     stride_kv_idx_z = {{stride("KV_IDX", 0)}}
     stride_kv_idx_h = {{stride("KV_IDX", 1)}}
     stride_kv_idx_m = {{stride("KV_IDX", 2)}}
     stride_kv_idx_blk = {{stride("KV_IDX", 3)}}
 
-    TOTAL_ENTRIES : tl.constexpr = TOTAL_FLAT_ENTRIES * NUM_Q_SUB_BLOCKS * NUM_KV_SUB_BLOCKS
+    sparse_h_count = {{size("KV_IDX", 1)}}
+    sparse_q_count = {{size("KV_IDX", 2)}}
+    q_len = {{size("Q", 2)}}
+    kv_len = {{size("K", 2)}}
+    actual_blocks = {{size("FLAT_TO_ROW", 0)}}
+    actual_entries = actual_blocks * NUM_Q_SUB_BLOCKS * NUM_KV_SUB_BLOCKS
 
     pid = tl.program_id(0)
     num_programs = tl.num_programs(0)
 
-    for entry_idx in range(pid, TOTAL_ENTRIES, num_programs):
+    for entry_idx in range(pid, actual_entries, num_programs):
         kv_sub = entry_idx % NUM_KV_SUB_BLOCKS
         tmp = entry_idx // NUM_KV_SUB_BLOCKS
         q_sub = tmp % NUM_Q_SUB_BLOCKS
@@ -88,13 +167,10 @@ compute_sparse_mask_kernel_compact = r"""
 
         flat_row = tl.load(FLAT_TO_ROW + flat_blk)
         blk_pos = tl.load(FLAT_TO_BLK + flat_blk)
-        sq_idx = flat_row % NUM_SPARSE_Q_BLOCKS
-        tmp_row = flat_row // NUM_SPARSE_Q_BLOCKS
-        sparse_h = tmp_row % SPARSE_HQ
-        sparse_z = tmp_row // SPARSE_HQ
-
-        q_offset_idx = sparse_z * SPARSE_HQ * (NUM_SPARSE_Q_BLOCKS + 1) + sparse_h * (NUM_SPARSE_Q_BLOCKS + 1) + sq_idx
-        expected_flat_blk = tl.load(Q_OFFSETS + q_offset_idx) + blk_pos
+        sq_idx = flat_row % sparse_q_count
+        tmp_row = flat_row // sparse_q_count
+        sparse_h = tmp_row % sparse_h_count
+        sparse_z = tmp_row // sparse_h_count
 
         idx_offset = (
             sparse_z * stride_kv_idx_z
@@ -127,28 +203,33 @@ compute_sparse_mask_kernel_compact = r"""
             n="n",
         ) | indent_except_first(2) }}
 
-        store_mask = (offs_m[:, None] < Q_LEN) & (offs_n[None, :] < KV_LEN)
+        store_mask = (offs_m[:, None] < q_len) & (offs_n[None, :] < kv_len)
         mask_mod_output = mask_mod_output & store_mask
-        mask_base = SPARSE_MASK + expected_flat_blk * SPARSE_MASK_STRIDE_BLK
+        mask_base = SPARSE_MASK + flat_blk * SPARSE_MASK_STRIDE_BLK
         mask_offsets = offs_m_local[:, None] * SPARSE_MASK_STRIDE_M + offs_n_local[None, :]
         tl.store(mask_base + mask_offsets, mask_mod_output.to(tl.int8))
 """
 
 
 compute_bwd_sparse_mask_kernel_compact = r"""
-{{def_kernel("Q_OFFSETS", "FLAT_TO_ROW", "FLAT_TO_BLK", "KV_NUM_BLKS", "KV_IDX")}}
+{{def_kernel("FLAT_TO_ROW", "FLAT_TO_BLK", "Q", "K", "KV_IDX")}}
     SPARSE_MASK = arg_SPARSE_MASK
     stride_kv_idx_z = {{stride("KV_IDX", 0)}}
     stride_kv_idx_h = {{stride("KV_IDX", 1)}}
     stride_kv_idx_m = {{stride("KV_IDX", 2)}}
     stride_kv_idx_blk = {{stride("KV_IDX", 3)}}
 
-    TOTAL_ENTRIES : tl.constexpr = TOTAL_FLAT_ENTRIES * NUM_Q_SUB_BLOCKS * NUM_KV_SUB_BLOCKS
+    sparse_h_count = {{size("KV_IDX", 1)}}
+    sparse_q_count = {{size("KV_IDX", 2)}}
+    q_len = {{size("Q", 2)}}
+    kv_len = {{size("K", 2)}}
+    actual_blocks = {{size("FLAT_TO_ROW", 0)}}
+    actual_entries = actual_blocks * NUM_Q_SUB_BLOCKS * NUM_KV_SUB_BLOCKS
 
     pid = tl.program_id(0)
     num_programs = tl.num_programs(0)
 
-    for entry_idx in range(pid, TOTAL_ENTRIES, num_programs):
+    for entry_idx in range(pid, actual_entries, num_programs):
         kv_sub = entry_idx % NUM_KV_SUB_BLOCKS
         tmp = entry_idx // NUM_KV_SUB_BLOCKS
         q_sub = tmp % NUM_Q_SUB_BLOCKS
@@ -156,13 +237,10 @@ compute_bwd_sparse_mask_kernel_compact = r"""
 
         flat_row = tl.load(FLAT_TO_ROW + flat_blk)
         blk_pos = tl.load(FLAT_TO_BLK + flat_blk)
-        sq_idx = flat_row % NUM_SPARSE_Q_BLOCKS
-        tmp_row = flat_row // NUM_SPARSE_Q_BLOCKS
-        sparse_h = tmp_row % SPARSE_HQ
-        sparse_z = tmp_row // SPARSE_HQ
-
-        q_offset_idx = sparse_z * SPARSE_HQ * (NUM_SPARSE_Q_BLOCKS + 1) + sparse_h * (NUM_SPARSE_Q_BLOCKS + 1) + sq_idx
-        expected_flat_blk = tl.load(Q_OFFSETS + q_offset_idx) + blk_pos
+        sq_idx = flat_row % sparse_q_count
+        tmp_row = flat_row // sparse_q_count
+        sparse_h = tmp_row % sparse_h_count
+        sparse_z = tmp_row // sparse_h_count
 
         idx_offset = (
             sparse_z * stride_kv_idx_z
@@ -195,71 +273,53 @@ compute_bwd_sparse_mask_kernel_compact = r"""
             n="n",
         ) | indent_except_first(2) }}
 
-        store_mask = (offs_m[:, None] < Q_LEN) & (offs_n[None, :] < KV_LEN)
+        store_mask = (offs_m[:, None] < q_len) & (offs_n[None, :] < kv_len)
         mask_mod_output = mask_mod_output & store_mask
-        mask_base = SPARSE_MASK + expected_flat_blk * SPARSE_MASK_STRIDE_BLK
+        mask_base = SPARSE_MASK + flat_blk * SPARSE_MASK_STRIDE_BLK
         mask_offsets = offs_m_local[:, None] * SPARSE_MASK_STRIDE_M + offs_n_local[None, :]
         tl.store(mask_base + mask_offsets, mask_mod_output & store_mask)
 """
 
 compute_sparse_mask_block_pos_kernel = r"""
-{{def_kernel("KV_NUM_BLKS", "KV_IDX", "Q_OFFSETS", "SPARSE_MASK_BLOCK_POS")}}
+{{def_kernel("FLAT_TO_ROW", "FLAT_TO_BLK", "KV_IDX", "SPARSE_MASK_BLOCK_POS")}}
     SPARSE_MASK_BLOCK_POS = arg_SPARSE_MASK_BLOCK_POS
-    stride_kv_num_blks_z = {{stride("KV_NUM_BLKS", 0)}}
-    stride_kv_num_blks_h = {{stride("KV_NUM_BLKS", 1)}}
-    stride_kv_num_blks_m = {{stride("KV_NUM_BLKS", 2)}}
     stride_kv_idx_z = {{stride("KV_IDX", 0)}}
     stride_kv_idx_h = {{stride("KV_IDX", 1)}}
     stride_kv_idx_m = {{stride("KV_IDX", 2)}}
     stride_kv_idx_blk = {{stride("KV_IDX", 3)}}
-    stride_block_pos_z = SPARSE_MASK_BLOCK_POS_STRIDE_Z
-    stride_block_pos_h = SPARSE_MASK_BLOCK_POS_STRIDE_H
-    stride_block_pos_q = SPARSE_MASK_BLOCK_POS_STRIDE_Q
-
-    TOTAL_ENTRIES : tl.constexpr = SPARSE_Z * SPARSE_HQ * NUM_SPARSE_Q_BLOCKS * MAX_NORMAL_BLOCKS
+    stride_block_pos_z = {{stride("SPARSE_MASK_BLOCK_POS", 0)}}
+    stride_block_pos_h = {{stride("SPARSE_MASK_BLOCK_POS", 1)}}
+    stride_block_pos_q = {{stride("SPARSE_MASK_BLOCK_POS", 2)}}
+    stride_block_pos_kv = {{stride("SPARSE_MASK_BLOCK_POS", 3)}}
+    sparse_h_count = {{size("KV_IDX", 1)}}
+    sparse_q_count = {{size("KV_IDX", 2)}}
+    actual_blocks = {{size("FLAT_TO_ROW", 0)}}
 
     pid = tl.program_id(0)
     num_programs = tl.num_programs(0)
 
-    for entry_idx in range(pid, TOTAL_ENTRIES, num_programs):
-        blk_pos = entry_idx % MAX_NORMAL_BLOCKS
-        tmp = entry_idx // MAX_NORMAL_BLOCKS
-        sq_idx = tmp % NUM_SPARSE_Q_BLOCKS
-        tmp = tmp // NUM_SPARSE_Q_BLOCKS
-        sparse_h = tmp % SPARSE_HQ
-        sparse_z = tmp // SPARSE_HQ
+    for flat_blk in range(pid, actual_blocks, num_programs):
+        flat_row = tl.load(FLAT_TO_ROW + flat_blk)
+        blk_pos = tl.load(FLAT_TO_BLK + flat_blk)
+        sq_idx = flat_row % sparse_q_count
+        tmp = flat_row // sparse_q_count
+        sparse_h = tmp % sparse_h_count
+        sparse_z = tmp // sparse_h_count
 
-        nb_offset = (
-            sparse_z * stride_kv_num_blks_z
-            + sparse_h * stride_kv_num_blks_h
-            + sq_idx * stride_kv_num_blks_m
+        idx_offset = (
+            sparse_z * stride_kv_idx_z
+            + sparse_h * stride_kv_idx_h
+            + sq_idx * stride_kv_idx_m
+            + blk_pos * stride_kv_idx_blk
         )
-        num_blks = tl.load(KV_NUM_BLKS + nb_offset)
-
-        if blk_pos < num_blks:
-            idx_offset = (
-                sparse_z * stride_kv_idx_z
-                + sparse_h * stride_kv_idx_h
-                + sq_idx * stride_kv_idx_m
-                + blk_pos * stride_kv_idx_blk
-            )
-            kv_block = tl.load(KV_IDX + idx_offset)
-            block_pos_offset = (
-                sparse_z * stride_block_pos_z
-                + sparse_h * stride_block_pos_h
-                + sq_idx * stride_block_pos_q
-                + kv_block
-            )
-            q_offset_idx = (
-                sparse_z * SPARSE_HQ * (NUM_SPARSE_Q_BLOCKS + 1)
-                + sparse_h * (NUM_SPARSE_Q_BLOCKS + 1)
-                + sq_idx
-            )
-            partial_block_idx = tl.load(Q_OFFSETS + q_offset_idx) + blk_pos
-            tl.store(
-                SPARSE_MASK_BLOCK_POS + block_pos_offset,
-                partial_block_idx,
-            )
+        kv_block = tl.load(KV_IDX + idx_offset)
+        block_pos_offset = (
+            sparse_z * stride_block_pos_z
+            + sparse_h * stride_block_pos_h
+            + sq_idx * stride_block_pos_q
+            + kv_block * stride_block_pos_kv
+        )
+        tl.store(SPARSE_MASK_BLOCK_POS + block_pos_offset, flat_blk)
 """
 
 
@@ -302,14 +362,13 @@ def forward_block_mn_sparse_mask(
     if not IS_FULL_BLOCKS:
 {% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
         SPARSE_Q_MULTIPLE: tl.constexpr = (SPARSE_Q_BLOCK_SIZE // BLOCK_M)
-        SPARSE_HQ: tl.constexpr = {{size("KV_NUM_BLKS", 1)}}
+        sparse_h_count = {{size("KV_NUM_BLKS", 1)}}
         q_sparse_idx = q_start // SPARSE_Q_MULTIPLE
         q_sparse_start = q_sparse_idx * SPARSE_Q_BLOCK_SIZE
-        sparse_h = off_h % SPARSE_HQ
-        sparse_mask_h = off_h % SPARSE_MASK_HQ
+        sparse_h = off_h % sparse_h_count
         # Broadcast a B=1 block-mask across B>1 QKV (mirror the other sparse paths).
-        SPARSE_Z: tl.constexpr = {{size("KV_NUM_BLKS", 0)}}
-        sparse_idx_z = off_z % SPARSE_Z
+        sparse_z_count = {{size("KV_NUM_BLKS", 0)}}
+        sparse_idx_z = off_z % sparse_z_count
 
         stride_kv_idx_z = {{stride("KV_IDX", 0)}}
         stride_kv_idx_h = {{stride("KV_IDX", 1)}}
@@ -325,10 +384,13 @@ def forward_block_mn_sparse_mask(
 
         offs_m_local = offs_m - q_sparse_start
         offs_n_local = offs_n - kv_block * SPARSE_KV_BLOCK_SIZE
+        stride_q_offsets_z = {{stride("Q_OFFSETS", 0)}}
+        stride_q_offsets_h = {{stride("Q_OFFSETS", 1)}}
+        stride_q_offsets_q = {{stride("Q_OFFSETS", 2)}}
         q_offsets_idx = (
-            sparse_idx_z * SPARSE_MASK_HQ * (NUM_SPARSE_Q_BLOCKS + 1)
-            + sparse_mask_h * (NUM_SPARSE_Q_BLOCKS + 1)
-            + q_sparse_idx
+            sparse_idx_z * stride_q_offsets_z
+            + sparse_h * stride_q_offsets_h
+            + q_sparse_idx * stride_q_offsets_q
         )
         flat_blk = tl.load(arg_Q_OFFSETS + q_offsets_idx) + blk_idx_in_list
         mask_base = arg_SPARSE_MASK + flat_blk * SPARSE_MASK_STRIDE_BLK
@@ -469,7 +531,7 @@ compute_flex_attention_sparse_mask_in_loop_no_load_balance = r"""
     MATMUL_PRECISION = Q.dtype.element_ty
 
     SPARSE_Q_MULTIPLE: tl.constexpr = (SPARSE_Q_BLOCK_SIZE // BLOCK_M)
-    NUM_Q_TILES: tl.constexpr = NUM_SPARSE_Q_BLOCKS * SPARSE_Q_MULTIPLE
+    NUM_Q_TILES = tl.cdiv(Q_LEN, BLOCK_M)
 
     for tile_id in range(tl.program_id(0), NUM_Q_TILES * ZQ * HQ, tl.num_programs(0)):
         q_start = tile_id % NUM_Q_TILES
@@ -677,35 +739,50 @@ def forward_block_mn_full(
 
 
 @SymbolicGridFn
-def flex_attention_in_loop_grid(batch_size, q_heads, num_queries, d_model, meta, *, cdiv):
+def flex_attention_in_loop_grid(
+    batch_size, q_heads, num_queries, d_model, meta, *, cdiv, min
+):
     num_m_blocks = cdiv(num_queries, meta["BLOCK_M"])
     total_tiles = num_m_blocks * batch_size * q_heads
     return (min(total_tiles, meta["NUM_CUBE_CORE"]), 1, 1)
 
 
+# These metadata kernels are pure vector/scalar kernels (loads, stores,
+# atomic_adds) with no ``tl.dot``, so their grids are capped at the vector-core
+# count injected by the lowering as ``NUM_VECTOR_CORE``, rather than the
+# cube-core count used by the main FlexAttention kernels.
 @SymbolicGridFn
-def sparse_mask_grid(*args, **kwargs):
-    """Compute grid for sparse mask materialization kernel."""
-    meta = kwargs.get("meta")
-    if meta is None:
-        meta = args[-1]
-    if "TOTAL_FLAT_ENTRIES" in meta:
-        total_entries = (
-            meta["TOTAL_FLAT_ENTRIES"]
-            * meta["NUM_Q_SUB_BLOCKS"]
-            * meta["NUM_KV_SUB_BLOCKS"]
-        )
-    else:
-        total_entries = (
-            meta["SPARSE_Z"]
-            * meta["SPARSE_HQ"]
-            * meta["NUM_SPARSE_Q_BLOCKS"]
-            * meta["NUM_Q_SUB_BLOCKS"]
-            * meta["MAX_NORMAL_BLOCKS"]
-            * meta["NUM_KV_SUB_BLOCKS"]
-        )
-    num_vector_cores = 48
-    return (min(total_entries, num_vector_cores), 1, 1)
+def compact_offsets_grid(row_count, meta, *, min, max):
+    return (max(1, min(row_count, meta["NUM_VECTOR_CORE"])), 1, 1)
+
+
+@SymbolicGridFn
+def compact_mapping_grid(row_count, meta, *, min, max):
+    return (max(1, min(row_count, meta["NUM_VECTOR_CORE"])), 1, 1)
+
+
+@SymbolicGridFn
+def compact_sparse_mask_grid(actual_blocks, meta, *, min, max):
+    total_entries = (
+        actual_blocks
+        * meta["NUM_Q_SUB_BLOCKS"]
+        * meta["NUM_KV_SUB_BLOCKS"]
+    )
+    return (
+        max(1, min(total_entries, meta["NUM_VECTOR_CORE"])),
+        1,
+        1,
+    )
+
+
+@SymbolicGridFn
+def sparse_mask_block_pos_grid(actual_blocks, meta, *, min, max):
+    return (
+        max(1, min(actual_blocks, meta["NUM_VECTOR_CORE"])),
+        1,
+        1,
+    )
+
 
 del TritonTemplate.all_templates["flex_attention"]
 del TritonTemplate.all_templates["flex_attention_backward"]
@@ -745,22 +822,34 @@ flex_attention_fwd_mask_in = NPUTritonTemplate(
     compile_options=_FWD_COMPILE_OPTIONS,
 )
 
+flex_attention_compact_offsets = NPUTritonTemplate(
+    name="flex_attention_compact_offsets",
+    grid=compact_offsets_grid,
+    source=compute_compact_sparse_mask_offsets_kernel,
+)
+
+flex_attention_compact_mapping = NPUTritonTemplate(
+    name="flex_attention_compact_mapping",
+    grid=compact_mapping_grid,
+    source=compute_compact_sparse_mask_mapping_kernel,
+)
+
 flex_attention_fwd_mask_compact = NPUTritonTemplate(
     name="flex_attention_fwd_mask_compact",
-    grid=sparse_mask_grid,
+    grid=compact_sparse_mask_grid,
     source=compute_sparse_mask_kernel_compact,
 )
 
 flex_attention_bwd_mask_compact = NPUTritonTemplate(
     name="flex_attention_bwd_mask_compact",
-    grid=sparse_mask_grid,
+    grid=compact_sparse_mask_grid,
     source=compute_bwd_sparse_mask_kernel_compact,
     manual_output_buffer="arg_SPARSE_MASK",
 )
 
 flex_attention_bwd_mask_pos = NPUTritonTemplate(
     name="flex_attention_bwd_mask_pos",
-    grid=sparse_mask_grid,
+    grid=sparse_mask_block_pos_grid,
     source=compute_sparse_mask_block_pos_kernel,
 )
 
@@ -803,6 +892,8 @@ flex_attention_backward_qmajor_dq_source = r"""
 
     SPARSE_Z = {{size("KV_NUM_BLKS", 0)}}
     SPARSE_HQ = {{size("KV_NUM_BLKS", 1)}}
+    DQ_NUM_Q_BLOCKS = tl.cdiv(Q_LEN, BLOCK_M2)
+    DQ_NUM_TASKS = DQ_NUM_Q_BLOCKS * ZQ * HQ
 
     offs_k = tl.arange(0, QK_HEAD_DIM)
     offs_v = tl.arange(0, V_HEAD_DIM)
@@ -830,7 +921,6 @@ flex_attention_backward_qmajor_dq_source = r"""
         off_zkv = off_zq % ZKV
         sparse_idx_z = off_zq % SPARSE_Z
         sparse_h = off_hq % SPARSE_HQ
-        sparse_mask_h = off_hq % SPARSE_MASK_HQ
 
         q_start = q_block * BLOCK_M2
         offs_m = q_start + tl.arange(0, BLOCK_M2)
@@ -872,10 +962,13 @@ flex_attention_backward_qmajor_dq_source = r"""
             + q_block * stride_kv_idx_m
         )
 {% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
+        stride_q_offsets_z = {{stride("Q_OFFSETS", 0)}}
+        stride_q_offsets_h = {{stride("Q_OFFSETS", 1)}}
+        stride_q_offsets_q = {{stride("Q_OFFSETS", 2)}}
         q_offsets_idx = (
-            sparse_idx_z * SPARSE_MASK_HQ * (NUM_SPARSE_Q_BLOCKS + 1)
-            + sparse_mask_h * (NUM_SPARSE_Q_BLOCKS + 1)
-            + q_block
+            sparse_idx_z * stride_q_offsets_z
+            + sparse_h * stride_q_offsets_h
+            + q_block * stride_q_offsets_q
         )
         q_offset_base = tl.load(arg_Q_OFFSETS + q_offsets_idx)
 {% endif %}
@@ -1279,16 +1372,16 @@ def bwd_dkdv_block_mn(
 
     if not IS_FULL_BLOCKS:
 {% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
-        SPARSE_Z: tl.constexpr = {{size("KV_NUM_BLKS", 0)}}
-        SPARSE_HQ: tl.constexpr = {{size("KV_NUM_BLKS", 1)}}
-        sparse_idx_z = off_z % SPARSE_Z
-        sparse_mask_h = off_hq % SPARSE_MASK_HQ
+        sparse_z_count = {{size("KV_NUM_BLKS", 0)}}
+        sparse_h_count = {{size("KV_NUM_BLKS", 1)}}
+        sparse_idx_z = off_z % sparse_z_count
+        sparse_h = off_hq % sparse_h_count
         q_sparse_start = q_sparse_idx * SPARSE_Q_BLOCK_SIZE
         block_pos_offset = (
             sparse_idx_z * {{stride("SPARSE_MASK_BLOCK_POS", 0)}}
-            + sparse_mask_h * {{stride("SPARSE_MASK_BLOCK_POS", 1)}}
+            + sparse_h * {{stride("SPARSE_MASK_BLOCK_POS", 1)}}
             + q_sparse_idx * {{stride("SPARSE_MASK_BLOCK_POS", 2)}}
-            + kv_sparse_idx
+            + kv_sparse_idx * {{stride("SPARSE_MASK_BLOCK_POS", 3)}}
         )
         partial_block_idx = tl.load(
             arg_SPARSE_MASK_BLOCK_POS + block_pos_offset

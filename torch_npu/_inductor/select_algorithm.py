@@ -23,6 +23,7 @@ from filelock import FileLock
 
 import torch
 import torch._inductor.async_compile  # noqa: F401 required to warm up AsyncCompile pools
+from torch._dynamo.device_interface import get_interface_for_device
 from torch._dynamo.utils import counters, dynamo_timed, identity, preserve_rng_state
 from torch._inductor import config, ir
 from torch._inductor.ir import ChoiceCaller
@@ -55,7 +56,7 @@ from torch._inductor.select_algorithm import (
     TritonTemplateCaller,
     AutotuneArgs,
 )
-from torch._inductor.codegen.common import IndentedBuffer, RemovedArg
+from torch._inductor.codegen.common import IndentedBuffer, RemovedArg, WorkspaceZeroMode
 from torch._inductor.exc import CppCompileError
 from torch.utils._ordered_set import OrderedSet
 
@@ -193,6 +194,85 @@ def get_last_selected_choice() -> Optional[ChoiceCaller]:
 
 class NPUCompileError(CppCompileError):
     pass
+
+
+class NPUTritonBenchmarkRequest(TritonGPUBenchmarkRequest):
+    """NPU Triton benchmark request with support for in-place kernels."""
+
+    kernel_has_output_arg = True
+
+    def make_run_fn(
+        self, *input_tensors: torch.Tensor, output_tensor: torch.Tensor
+    ) -> Callable[[], None]:
+        mod = PyCodeCache.load_by_key_path(self.module_cache_key, self.module_path)
+        log.debug(
+            "benchmark module key: %s, path: %s",
+            self.module_cache_key,
+            self.module_path,
+        )
+
+        run_method = getattr(mod, self.kernel_name).run
+        extra_args = list(self.extra_args)
+        run_method.__self__.with_bandwidth_info = False
+
+        warmup_arg = {}
+        if "warmup" in inspect.signature(run_method).parameters:
+            warmup_arg["warmup"] = False
+
+        if output_tensor.device.type == "cpu":
+            stream = 0
+        else:
+            device_interface = get_interface_for_device(output_tensor.device.type)
+            stream = device_interface.get_raw_stream(
+                self.output_tensor_meta.device.index
+            )
+
+        launch_args = [*input_tensors]
+        if self.kernel_has_output_arg:
+            launch_args.append(output_tensor)
+
+        if self.workspace_arg is not None:
+            workspace_arg = self.workspace_arg
+
+            def run_with_workspace():
+                workspace_tensor = torch.empty_strided(
+                    (workspace_arg.count,),
+                    (1,),
+                    dtype=torch.uint8,
+                    device=output_tensor.device,
+                )
+                if workspace_arg.zero_mode != WorkspaceZeroMode.UNINITIALIZED:
+                    workspace_tensor.zero_()
+
+                run_method(
+                    *launch_args,
+                    workspace_tensor,
+                    *extra_args,
+                    **warmup_arg,
+                    stream=stream,
+                    benchmark_run=True,
+                )
+
+            return run_with_workspace
+
+        launch_args.extend(extra_args)
+        if isinstance(
+            getattr(mod, self.kernel_name),
+            torch._inductor.runtime.triton_heuristics.DebugAutotuner,
+        ):
+            return functools.partial(
+                run_method,
+                *launch_args,
+                **warmup_arg,
+                stream=stream,
+            )
+        return functools.partial(
+            run_method,
+            *launch_args,
+            **warmup_arg,
+            stream=stream,
+            benchmark_run=True,
+        )
 
 
 class NPUFlexAttentionDkdvTemplateBuffer(ir.TritonTemplateBuffer):
@@ -591,6 +671,8 @@ class NPUTritonTemplate(TritonTemplate):
         bmreq_cls: type[TritonBenchmarkRequest]
         if layout.device.type == "cpu":
             bmreq_cls = TritonCPUBenchmarkRequest
+        elif layout.device.type == "npu":
+            bmreq_cls = NPUTritonBenchmarkRequest
         else:
             bmreq_cls = TritonGPUBenchmarkRequest
         bmreq = bmreq_cls(
