@@ -16,7 +16,7 @@ Inductor后端支持四种算子编译器，可根据场景选择：
 > [!NOTICE]
 >
 > Inductor后端需安装最新版本的Triton-Ascend依赖包，具体可参见[Triton-Ascend说明文档](https://gitcode.com/Ascend/triton-ascend/blob/master/docs/sources/getting-started/installation.md)。<br>
-> Inductor后端使用MLIR模式/DVM模式时需额外安装Torch-MLIR依赖包，可以在[Torch-MLIR归档地址](https://repo.oepkgs.net/ascend/pytorch/vllm/torch/)下载。<br>
+> Inductor后端使用MLIR模式时需额外安装Torch-MLIR依赖包，可以在[Torch-MLIR归档地址](https://repo.oepkgs.net/ascend/pytorch/vllm/torch/)下载。<br>
 > 在import torch前，也可通过TORCHINDUCTOR_NPU_BACKEND环境变量选择编译器模式，具体可参见[TORCHINDUCTOR_NPU_BACKEND](../../../api/environment_variable/inductor/TORCHINDUCTOR_NPU_BACKEND.md)。
 
 ## 编译器
