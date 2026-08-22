@@ -889,23 +889,46 @@ class TestPointwiseSymbolicGrouping(TestCase):
         self.assertEqual(combined[0].name, "pointwise_broadcast_axis")
         self.assertEqual(combined[0].buckets, (16, 64, 256, 1024, 4096))
 
-    def test_existing_pointwise_group_feature_is_unchanged(self):
+    def test_default_pointwise_group_feature(self):
         primary_axis = make_axis("x0", sympy.Symbol("s0", positive=True))
         kernel = SimpleNamespace(
             persistent_reduction=False,
             inside_reduction=False,
             sorted_axis=[primary_axis],
+            split_axis=[primary_axis],
+            tiling_axis=[],
+            get_axis_dtype=lambda axis: torch.float32,
         )
         split_tiling = object.__new__(SplitTiling)
         split_tiling.kernel = kernel
 
-        features = split_tiling._build_group_features(None, primary_axis)
+        features = split_tiling._build_group_features(
+            None,
+            primary_axis,
+            dynamic_split_axes=(primary_axis,),
+        )
+
+        vector_core = int(num_vector_core)
+        lower = max(1024, split_tiling_module.next_power_of_2(2 * vector_core))
+        upper = max(
+            split_tiling_module.next_power_of_2(8 * vector_core),
+            4096 * vector_core,
+        )
+        expected_buckets = [lower, upper]
+        if upper // lower > 8:
+            expected_buckets.append(
+                min(
+                    split_tiling_module.next_power_of_2(lower * 8),
+                    split_tiling_module.next_power_of_2((upper + 1) // 2),
+                )
+            )
+        expected_buckets = tuple(sorted(set(expected_buckets)))
 
         self.assertEqual(len(features), 1)
         self.assertEqual(features[0].name, "pointwise")
         self.assertEqual(features[0].source, "outer_product")
         self.assertEqual(features[0].axis_names, ("x0",))
-        self.assertEqual(features[0].buckets, (num_vector_core * 4096,))
+        self.assertEqual(features[0].buckets, expected_buckets)
 
     def test_plain_pointwise_does_not_use_tiling_fallback(self):
         split_axis = make_axis("x0", sympy.Integer(128))

@@ -2366,6 +2366,8 @@ class NPUSymbolicGroupedAutotuner(NPUCachingAutotuner):
                 axis_numel=axis_numel,
                 expected_grid=grid_target,
                 block_sub=int(rule["block_sub"]),
+                representative_numel=rule.get("representative_numel"),
+                max_grid=rule.get("max_grid"),
             )
         missing_runtime_block_names = [
             name for name in runtime_block_names if name not in resolved_blocks
@@ -3296,17 +3298,31 @@ def build_grouped_launch_policy(
             // primary_static_block,
         )
 
+    primary_feature = group_features[primary_feature_index]
+    if isinstance(primary_feature, dict):
+        primary_feature_name = primary_feature.get("name")
+    else:
+        primary_feature_name = getattr(primary_feature, "name", None)
+    runtime_rule = [
+        ("op", "ceildiv"),
+        ("axis_name", primary_group_axis),
+        ("block_sub", primary_block_sub),
+    ]
+    if primary_feature_name in ("pointwise", "elementwise_numel"):
+        runtime_rule.extend(
+            (
+                ("representative_numel", int(axis_env[primary_group_axis])),
+                ("max_grid", max(1, npu_num_vector_core // prior_programs)),
+            )
+        )
+
     return {
         "group_id": group_id,
         "static_blocks": tuple(static_blocks),
         "runtime_block_rules": (
             (
                 primary_block_name,
-                (
-                    ("op", "ceildiv"),
-                    ("axis_name", primary_group_axis),
-                    ("block_sub", primary_block_sub),
-                ),
+                tuple(runtime_rule),
             ),
         ),
         "grid_target": primary_program_target,
@@ -3317,6 +3333,8 @@ def resolve_grouped_runtime_block(
     axis_numel: int,
     expected_grid: int,
     block_sub: int,
+    representative_numel: int | None = None,
+    max_grid: int | None = None,
 ) -> int:
     axis_numel = int(axis_numel)
     expected_grid = int(expected_grid)
@@ -3329,6 +3347,19 @@ def resolve_grouped_runtime_block(
         return 1
 
     total_subblock_num = (axis_numel + block_sub - 1) // block_sub
+    if (
+        representative_numel is not None
+        and max_grid is not None
+        and axis_numel < int(representative_numel)
+    ):
+        # Smaller shapes may use more programs than the representative while
+        # keeping BLOCK aligned to the compile-time BLOCK_SUB.
+        max_grid = max(1, int(max_grid))
+        program_subblock_num = (
+            total_subblock_num + max_grid - 1
+        ) // max_grid
+        return program_subblock_num * block_sub
+
     program_subblock_num = (
         total_subblock_num + expected_grid - 1
     ) // expected_grid
