@@ -4,7 +4,7 @@
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/logging/LogContext.h"
 
-#include "third_party/acl/inc/acl/acl_base.h"
+#include <acl/acl_base.h>
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 #include "torch_npu/csrc/framework/NPUDefine.h"
 #include "torch_npu/csrc/framework/utils/ForceJitCompileList.h"
