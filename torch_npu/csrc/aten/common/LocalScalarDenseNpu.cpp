@@ -2,8 +2,8 @@
 #include <ATen/NativeFunctions.h>
 #include <ATen/Dispatch_v2.h>
 
-#include "third_party/acl/inc/acl/acl_base.h"
-#include "third_party/acl/inc/acl/acl_rt.h"
+#include <acl/acl_base.h>
+#include <acl/acl_rt.h>
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"

@@ -6,7 +6,7 @@
 #include <ATen/record_function.h>
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/NPUDefine.h"
-#include "third_party/acl/inc/acl/acl_rt.h"
+#include <acl/acl_rt.h>
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
 #endif
