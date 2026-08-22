@@ -12,7 +12,7 @@
 #define HCCL_H_
 
 #include "third_party/hccl/inc/hccl/hccl_types.h"
-#include "third_party/acl/inc/acl/acl.h"
+#include <acl/acl.h>
 
 #ifdef __cplusplus
 extern "C" {

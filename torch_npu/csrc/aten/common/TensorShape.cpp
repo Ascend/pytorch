@@ -23,7 +23,7 @@
 #include "torch_npu/csrc/aten/common/ResizeNpu.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
-#include "third_party/acl/inc/acl/acl_base.h"
+#include <acl/acl_base.h>
 #include "op_plugin/OpInterface.h"
 
 namespace {
