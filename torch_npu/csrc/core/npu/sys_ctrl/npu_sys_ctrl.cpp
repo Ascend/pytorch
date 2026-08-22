@@ -19,8 +19,8 @@
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/distributed/symm_mem/NPUSHMEMInterface.h"
-#include "third_party/acl/inc/acl/acl_op_compiler.h"
-#include "third_party/acl/inc/acl/acl_rt.h"
+#include <acl/acl_op_compiler.h>
+#include <acl/acl_rt.h>
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 #include "torch_npu/csrc/framework/LazyInitAclops.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"

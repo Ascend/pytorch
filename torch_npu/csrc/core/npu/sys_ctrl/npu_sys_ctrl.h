@@ -1,6 +1,6 @@
 #pragma once
 
-#include <third_party/acl/inc/acl/acl.h>
+#include <acl/acl.h>
 #include <map>
 #include <string>
 #include <vector>

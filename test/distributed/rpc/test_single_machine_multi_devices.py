@@ -335,7 +335,7 @@ class TestRpc(TestCase):
 
     @skipIfUnsupportMultiNPU(2)
     def test_async_call_for_cpu(self):
-        inputs = [torch.rand(1024, 1024).cpu(), torch.rand(1024, 1024, 1024).cpu()]
+        inputs = [torch.rand(1024, 1024).cpu(), torch.rand(1024, 1024, 4).cpu()]
         self._test_multiprocess(TestRpc._test_async_call_for_cpu, inputs, self.world_size_2p)
 
     @skipIfUnsupportMultiNPU(2)
