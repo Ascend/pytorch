@@ -4,7 +4,7 @@
 #include <c10/core/AllocatorConfig.h>
 #include <c10/util/Deprecated.h>
 
-#include "third_party/acl/inc/acl/acl_base.h"
+#include <acl/acl_base.h>
 #include "torch_npu/csrc/core/npu/GetCANNInfo.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUAllocatorConfig.h"

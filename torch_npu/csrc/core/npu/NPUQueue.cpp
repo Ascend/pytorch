@@ -19,7 +19,7 @@
 #include <sstream>
 #include <sys/time.h>
 #include <sys/eventfd.h>
-#include <third_party/acl/inc/acl/acl_rt.h>
+#include <acl/acl_rt.h>
 
 namespace c10_npu {
 struct timeval delay = { 0, 1 };
