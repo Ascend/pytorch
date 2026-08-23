@@ -526,12 +526,20 @@ def patch_flex_attention() -> None:
         kernel_options: Optional[Dict[str, Any]] = None,
     ):
         """Inject eager block-mask metadata before delegating to the original flex_attention entry."""
-        updated_kernel_options = apply_kernel_options_from_eager_block_mask(
-            kernel_options,
-            block_mask,
-            context="py-api",
-            allow_tensor_analysis=not torch.compiler.is_dynamo_compiling(),
-        )
+        is_compiling = torch.compiler.is_dynamo_compiling()
+        if is_compiling:
+            # Eager BlockMask analysis reads tensor values and may synchronize them
+            # to the host. Keep create_block_mask + flex_attention capturable as one
+            # graph and let the lowering use conservative defaults instead.
+            updated_kernel_options = (
+                {} if kernel_options is None else dict(kernel_options)
+            )
+        else:
+            updated_kernel_options = apply_kernel_options_from_eager_block_mask(
+                kernel_options,
+                block_mask,
+                context="py-api",
+            )
         updated_kernel_options = dict(updated_kernel_options)
         updated_kernel_options[_EXPLICIT_SCORE_MOD_OPTION] = score_mod is not None
         return current_flex_attention(
@@ -567,6 +575,10 @@ def patch_flex_attention() -> None:
                     block_mask = current_create_block_mask(*args, **kwargs)
             else:
                 block_mask = current_create_block_mask(*args, **kwargs)
+            if torch.compiler.is_dynamo_compiling():
+                # Do not inspect tensor contents, attach Python-side metadata, or
+                # capture compact-metadata buffers in mask_mod while tracing.
+                return block_mask
             try:
                 kernel_options = infer_eager_block_mask_kernel_options(block_mask)
                 merged_kernel_options = dict(kernel_options) if kernel_options else {}
@@ -1443,10 +1455,7 @@ def _register_npu_inductor_flex_attention():
 
         flexattention_mask_out = use_mask_out
         has_full_blocks = full_kv_num_blocks is not None
-        has_full_blocks = bool(
-            kernel_options.get("HAS_FULL_BLOCKS", has_full_blocks)
-        )
-        kernel_options["HAS_FULL_BLOCKS"] = has_full_blocks
+        kernel_options.setdefault("HAS_FULL_BLOCKS", has_full_blocks)
         if not has_full_blocks:
             full_kv_num_blocks, full_kv_indices = (
                 empty(0, device=query.get_device()) for _ in range(2)
@@ -2113,9 +2122,7 @@ def _register_npu_inductor_flex_attention():
         gqa_shared_heads = Hq // Hkv
         kernel_options.setdefault("GQA_SHARED_HEADS", gqa_shared_heads)
 
-        # HAS_FULL_BLOCKS is supplied by the eager create_block_mask patch and cached on
-        # the BlockMask, so lowering only consumes it.
-        has_full_blocks = bool(kernel_options.get("HAS_FULL_BLOCKS", False))
+        has_full_blocks = full_kv_num_blocks is not None
         kernel_options.setdefault("HAS_FULL_BLOCKS", has_full_blocks)
 
         set_head_dim_values(kernel_options, qk_head_dim, v_head_dim, V.graph.sizevars)

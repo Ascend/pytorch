@@ -152,7 +152,7 @@ class TestFlexAttentionDynamicMaskOutNPU(unittest.TestCase):
         ):
             self.assertIn(key, cached)
 
-    def test_forward_recompiles_for_shape_specific_block_mask_metadata(self):
+    def test_forward_compile_for_shape_specific_block_mask_metadata(self):
         from torch._dynamo.testing import CompileCounterWithBackend
         from torch.nn.attention.flex_attention import create_block_mask, flex_attention
 
@@ -181,9 +181,7 @@ class TestFlexAttentionDynamicMaskOutNPU(unittest.TestCase):
             # NPU bfloat16 output can differ by two ULPs after accumulation.
             torch.testing.assert_close(actual, expected, atol=2e-2, rtol=2e-2)
 
-        # Match upstream Dynamo behavior: q_indices capacity changes from 3 to 2,
-        # so the explicit BlockMask input fails its tensor metadata guard.
-        self.assertEqual(counter.frame_count, 2)
+        self.assertEqual(counter.frame_count, 1)
 
     @unittest.skip(
         "NoValidChoicesError: No compilable choices found for "
