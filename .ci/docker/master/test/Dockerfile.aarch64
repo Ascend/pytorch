@@ -14,7 +14,6 @@ ENV PATH=/opt/conda/envs/py_${PYTHON_VERSION}/bin:/opt/conda/bin:$PATH
 
 COPY common/ /opt/buildtools/
 COPY master/requirements-test.txt /opt/buildtools/
-COPY master/conda-spec-linux-aarch64.txt /opt/buildtools/conda-spec.txt
 
 # System dependencies (aligned with upstream install_base.sh for jammy)
 RUN apt-get update \
@@ -57,11 +56,15 @@ RUN apt-get update \
         zip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Miniforge3 and create conda env from pinned explicit spec (reproducible)
+# Install Miniforge3 and create conda env (aligned with upstream install_conda.sh)
 RUN curl -fsSL https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-$(uname -m).sh -o /tmp/miniforge.sh \
     && bash /tmp/miniforge.sh -b -p /opt/conda \
     && rm /tmp/miniforge.sh \
-    && conda create -n py_${PYTHON_VERSION} --file /opt/buildtools/conda-spec.txt -y \
+    && conda create -n py_${PYTHON_VERSION} -y \
+        python=${PYTHON_VERSION} \
+        pip \
+        cmake=3.31.6 \
+        libsqlite=3.53.1 \
     && conda clean -ya
 
 # Install CANN and OBS

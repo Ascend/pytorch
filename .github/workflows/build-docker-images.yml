@@ -71,14 +71,13 @@ jobs:
       - name: Build and push image
         run: |
           TIMESTAMP=$(date -u +%Y%m%d%H%M)
-          COMMIT_ID=$(git rev-parse --short=8 HEAD)
           cd .ci/docker
           chmod +x ./docker_build.sh
-          TIMESTAMP=${TIMESTAMP} COMMIT_ID=${COMMIT_ID} ./docker_build.sh ${{ matrix.tag }}
+          TIMESTAMP=${TIMESTAMP} ./docker_build.sh ${{ matrix.tag }}
 
           mkdir -p /tmp/result
           if [[ "${PUSH_IMAGE}" == "true" ]]; then
-            IMAGE_TAG="${{ matrix.tag }}-${TIMESTAMP}-${COMMIT_ID}"
+            IMAGE_TAG="${{ matrix.tag }}-${TIMESTAMP}"
             REMOTE_IMAGE="${{ env.REGISTRY }}/${{ env.SWR_ORG }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG}"
             docker tag "${IMAGE_TAG}" "${REMOTE_IMAGE}"
             docker push "${REMOTE_IMAGE}"

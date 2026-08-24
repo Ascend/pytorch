@@ -150,8 +150,7 @@ case "$BASE_TAG" in
 esac
 
 TIMESTAMP="${TIMESTAMP:-$(TZ=Asia/Shanghai date +%Y%m%d%H%M)}"
-COMMIT_ID="${COMMIT_ID:-$(git -C "${SCRIPT_DIR}" rev-parse --short=8 HEAD 2>/dev/null || echo unknown)}"
-TAG="${BASE_TAG}-${TIMESTAMP}-${COMMIT_ID}"
+TAG="${BASE_TAG}-${TIMESTAMP}"
 
 DOCKERFILE="${SCRIPT_DIR}/${VERSION_DIR}/${IMAGE_TYPE}/Dockerfile.${ARCH}"
 
