@@ -356,10 +356,6 @@ def forward_block_mn_sparse_mask(
     # # -- scale and update acc --
     acc = acc * alpha[:, None]
     acc = tl.dot(p.to(MATMUL_PRECISION), v, acc, input_precision="ieee")
-    # NPU compile hint for performance optimization
-    if ENABLE_COMPILE_HINT:
-        tl.extra.cann.extension.compile_hint(acc, "hivm.tile_mix_cube_num", 2)
-
     # -- update m_i
     m_i = m_ij
 
@@ -657,8 +653,6 @@ def forward_block_mn_full(
     l_i = l_i * alpha + tl.sum(p, 1)
     acc = acc * alpha[:, None]
     acc = tl.dot(p.to(MATMUL_PRECISION), v, acc, input_precision="ieee")
-    if ENABLE_COMPILE_HINT:
-        tl.extra.cann.extension.compile_hint(acc, "hivm.tile_mix_cube_num", 2)
     m_i = m_ij
     return acc, l_i, m_i
 
@@ -1392,8 +1386,6 @@ def bwd_dkdv_block_mn(
         dk.shape,
     )
     tl.atomic_add(dk_ptrs, dk, mask=dk_mask)
-    if ENABLE_COMPILE_HINT:
-        tl.extra.cann.extension.compile_hint(dk, "hivm.tile_mix_cube_num", 2)
 
 @triton.jit
 def bwd_dkdv_full_block_mn(
@@ -1536,8 +1528,6 @@ def bwd_dkdv_full_block_mn(
         dk.shape,
     )
     tl.atomic_add(dk_ptrs, dk, mask=dk_mask)
-    if ENABLE_COMPILE_HINT:
-        tl.extra.cann.extension.compile_hint(dk, "hivm.tile_mix_cube_num", 2)
 
 
 @triton.jit
