@@ -356,8 +356,6 @@ def _load_backend():
     backend = _get_backend()
     loader = _BACKEND_LOADERS.get(backend, _load_triton_backend)
     loader()
-    from .decomposition import _register_shared_decompositions
-    _register_shared_decompositions()
     # Invalidate cached decompositions after loading the selected backend.
     from torch._inductor.decomposition import fast_random_decomps
     fast_random_decomps.cache_clear()
