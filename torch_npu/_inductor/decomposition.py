@@ -18,13 +18,6 @@ aten = torch.ops.aten
 npu = torch.ops.npu
 
 
-@run_once
-def _register_shared_decompositions():
-    @register_decomposition([aten.expm1])
-    def expm1(x):
-        tensor = torch.exp(x) - torch.ones_like(x)
-        return tensor
-
 def _register_triton_decompositions():
     from .config import is_ascend950, enable_fast_gelu
     from .lowering import _add_overload
@@ -34,6 +27,7 @@ def _register_triton_decompositions():
         aten._log_softmax_backward_data,
         aten.erfc,
         aten.gelu,
+        aten.expm1,
         aten.native_layer_norm,
         aten.slice_backward,
     ]
@@ -48,6 +42,11 @@ def _register_triton_decompositions():
         for op in overload_op_set:
             if (op in decompositions):
                 del decompositions[op]
+
+        @register_decomposition([aten.expm1])
+        def expm1(x):
+            tensor = torch.exp(x) - torch.ones_like(x)
+            return tensor
 
         @register_decomposition([aten.erfc])
         def erfc(x):
@@ -341,6 +340,10 @@ def _register_mlir_dvm_decompositions():
         return out
 
 
+    def expm1(x):
+        tensor = torch.exp(x) - torch.ones_like(x)
+        return tensor
+    register_decomposition(torch.ops.aten.expm1)(expm1)
     register_decomposition(torch.ops.aten.convolution_backward)(npu_convolution_backward)
     register_decomposition(torch.ops.aten._softmax_backward_data.default)(npu__softmax_backward_data)
     register_decomposition(torch.ops.aten.erf.default)(erf)
