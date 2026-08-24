@@ -18,6 +18,7 @@ jobs:
     outputs:
       upstream_repo: ${{ steps.extract.outputs.upstream_repo }}
       should_build: ${{ steps.extract.outputs.should_build }}
+      merge_sha: ${{ steps.resolve_merge_sha.outputs.merge_sha }}
     steps:
       - name: Extract build parameters from payload
         id: extract
@@ -71,9 +72,9 @@ jobs:
           echo "=== Extracted Build Parameters ==="
           echo "event_type:    ${EVENT_TYPE}"
           echo "upstream_repo: ${UPSTREAM_REPO}"
-          echo "upstream_ref:  main  (latest upstream main branch)"
+          echo "upstream_ref:  resolved from main merge commit"
 
-      - name: Resolve merge commit SHA on main (for observation)
+      - name: Resolve merge commit SHA on main
         id: resolve_merge_sha
         if: ${{ steps.extract.outputs.should_build == 'true' }}
         env:
@@ -125,13 +126,11 @@ jobs:
           if [ "${MERGE_SHA}" != "null" ]; then
             echo ""
             echo "Merge commit SHA (excluding reverts): ${MERGE_SHA}"
+            echo "merge_sha=${MERGE_SHA}" >> "$GITHUB_OUTPUT"
           else
             echo ""
-            echo "WARN: No commit on main references (#${PR_NUMBER}) in subject"
+            echo "WARN: No commit on main references (#${PR_NUMBER}) in subject, falling back to main"
           fi
-
-          echo ""
-          echo "=== This SHA would be used as upstream_ref (currently NOT applied, still using main) ==="
 
   build:
     needs: [extract]
@@ -140,7 +139,7 @@ jobs:
     secrets: inherit
     with:
       upstream_repo: pytorch/pytorch
-      upstream_ref: main
+      upstream_ref: ${{ needs.extract.outputs.merge_sha || 'main' }}
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: master
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-202608200833
