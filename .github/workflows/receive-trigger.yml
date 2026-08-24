@@ -76,7 +76,7 @@ jobs:
           echo "upstream_repo: ${UPSTREAM_REPO}"
           echo "upstream_ref:  main  (latest upstream main branch)"
 
-      - name: Print upstream merge commit SHA (for observation)
+      - name: Resolve merge commit SHA on main (for observation)
         id: resolve_merge_sha
         if: ${{ steps.extract.outputs.should_build == 'true' }}
         env:
@@ -95,70 +95,38 @@ jobs:
 
           echo "=== Resolving merge commit SHA for PR #${PR_NUMBER} in ${UPSTREAM_REPO} ==="
 
-          # ---- Show what's in the payload ----
-          PAYLOAD_MERGED=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.merged // "unknown"')
-          PAYLOAD_MERGE_SHA=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.merge_commit_sha // "null"')
-          PAYLOAD_BASE_SHA=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.base.sha // "null"')
-          PAYLOAD_HEAD_SHA=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.head.sha // "null"')
-
-          echo "Payload values:"
-          echo "  merged:           ${PAYLOAD_MERGED}"
-          echo "  merge_commit_sha: ${PAYLOAD_MERGE_SHA}"
-          echo "  base.sha:         ${PAYLOAD_BASE_SHA}"
-          echo "  head.sha:         ${PAYLOAD_HEAD_SHA}"
-
-          # ---- Query GitHub PR API ----
-          echo ""
-          echo "Querying GitHub API: GET /repos/${UPSTREAM_REPO}/pulls/${PR_NUMBER}"
-
-          API_RESPONSE=$(curl -sf \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${UPSTREAM_REPO}/pulls/${PR_NUMBER}")
-
-          API_MERGED=$(echo "$API_RESPONSE" | jq -r '.merged // false')
-          API_MERGE_SHA=$(echo "$API_RESPONSE" | jq -r '.merge_commit_sha // "null"')
-
-          echo "PR API response:"
-          echo "  merged:           ${API_MERGED}"
-          echo "  merge_commit_sha: ${API_MERGE_SHA}"
-
-          # ---- Search commits on main by PR number ----
+          # ---- List recent commits on main and find PR merge commit ----
           # pytorch/pytorch uses a land bot that pushes directly to main,
           # bypassing GitHub's native merge. So merged=false and
           # merge_commit_sha is a placeholder. The land bot commit message
           # always contains "Pull Request resolved: ...pull/{PR_NUMBER}".
-          # We use the Commit Search API to find the real commit on main.
+          # We list recent commits on main via the Commits API (reads git
+          # data directly, no search index delay) and match by PR number.
           echo ""
-          echo "Querying GitHub Commit Search API for PR #${PR_NUMBER}..."
+          echo "Querying GitHub Commits API: GET /repos/${UPSTREAM_REPO}/commits?sha=main&per_page=100"
 
-          SEARCH_RESPONSE=$(curl -sf \
+          COMMITS_RESPONSE=$(curl -sf \
             -H "Authorization: Bearer ${GH_TOKEN}" \
             -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/search/commits?q=repo:${UPSTREAM_REPO}+${PR_NUMBER}&sort=author-date&order=desc&per_page=5")
+            "https://api.github.com/repos/${UPSTREAM_REPO}/commits?sha=main&per_page=100")
 
-          TOTAL_COUNT=$(echo "$SEARCH_RESPONSE" | jq -r '.total_count // 0')
-          echo "Search result: total_count=${TOTAL_COUNT}"
+          COMMIT_COUNT=$(echo "$COMMITS_RESPONSE" | jq -r 'length')
+          echo "Commits on main (recent ${COMMIT_COUNT}):"
+          echo "$COMMITS_RESPONSE" | jq -r '.[] | "  SHA: \(.sha[0:12])  date: \(.commit.author.date // "?")  message: \(.commit.message | split("\n")[0])"'
 
-          if [ "${TOTAL_COUNT}" != "0" ]; then
+          # Match commit message containing "pull/{PR_NUMBER}", exclude Reverts
+          MERGE_SHA=$(echo "$COMMITS_RESPONSE" | jq -r \
+            --arg pr "pull/${PR_NUMBER}" \
+            '[.[] | select((.commit.message // "") | test($pr; "i"))
+             | select((.commit.message | split("\n")[0]) | test("^Revert"; "i") | not)]
+             | .[0].sha // "null"')
+
+          if [ "${MERGE_SHA}" != "null" ]; then
             echo ""
-            echo "All commits found (sorted by author-date desc):"
-            echo "$SEARCH_RESPONSE" | jq -r '.items[] | "  SHA: \(.sha[0:12])  author-date: \(.commit.author.date // "?")  message: \(.commit.message | split("\n")[0])"'
-
-            # Filter out "Revert" commits — a Revert of a PR also matches the
-            # PR number in its message, but is NOT the commit we want to build.
-            MERGE_SHA=$(echo "$SEARCH_RESPONSE" | jq -r \
-              '[.items[] | select((.commit.message | split("\n")[0]) | test("^Revert"; "i") | not)] | .[0].sha // "null"')
-
-            if [ "${MERGE_SHA}" != "null" ]; then
-              echo ""
-              echo "Merge commit SHA (excluding reverts): ${MERGE_SHA}"
-            else
-              echo ""
-              echo "WARN: All matching commits are reverts, no merge commit found"
-            fi
+            echo "Merge commit SHA (excluding reverts): ${MERGE_SHA}"
           else
-            echo "WARN: No commits found for PR #${PR_NUMBER}"
+            echo ""
+            echo "WARN: No commit on main references pull/${PR_NUMBER}"
           fi
 
           echo ""
