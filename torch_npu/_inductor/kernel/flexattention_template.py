@@ -855,7 +855,6 @@ flex_attention_backward_qmajor_dq_source = r"""
 
     tl.static_assert(SPARSE_Q_BLOCK_SIZE % BLOCK_M2 == 0)
     tl.static_assert(SPARSE_KV_BLOCK_SIZE % BLOCK_N2 == 0)
-    tl.static_assert(BLOCK_M2 % BLOCK_N2 == 0)
     SPARSE_Q_MULTIPLE: tl.constexpr = SPARSE_Q_BLOCK_SIZE // BLOCK_M2
     SPARSE_KV_MULTIPLE: tl.constexpr = SPARSE_KV_BLOCK_SIZE // BLOCK_N2
 
@@ -1268,6 +1267,7 @@ flex_attention_backward_dkdv_only_source = r"""
                 bwd_dkdv_block_mn(
                     {{gen_argdefs()}},
                     Q1, DO1, DK, DELTA1, LSE1, DV1,
+                    DK, DV1, False,
                     k, v, Q_LEN, KV_LEN,
                     off_zq, off_hq1, off_hkv, offs_n1, offs_m1, q_start, q_block, pid_mask, offs_k, offs_v,
                     stride_qm, stride_qd, stride_dom, stride_dod,
@@ -1292,6 +1292,7 @@ flex_attention_backward_dkdv_only_source = r"""
                     bwd_dkdv_full_block_mn(
                         {{gen_argdefs()}},
                         Q1, DO1, DK, DELTA1, LSE1, DV1,
+                        DK, DV1, False,
                         k, v, Q_LEN, KV_LEN,
                         off_zq, off_hq1, off_hkv, offs_n1, offs_m1, q_start, offs_k, offs_v,
                         stride_qm, stride_qd, stride_dom, stride_dod,
@@ -1303,6 +1304,7 @@ flex_attention_backward_dkdv_only_source = r"""
                     bwd_dkdv_block_mn(
                         {{gen_argdefs()}},
                         Q1, DO1, DK, DELTA1, LSE1, DV1,
+                        DK, DV1, False,
                         k, v, Q_LEN, KV_LEN,
                         off_zq, off_hq1, off_hkv, offs_n1, offs_m1, q_start, q_block, pid_mask, offs_k, offs_v,
                         stride_qm, stride_qd, stride_dom, stride_dod,
@@ -1316,6 +1318,7 @@ flex_attention_backward_dkdv_only_source = r"""
 def bwd_dkdv_block_mn(
     {{gen_argdefs()}},
     Q, DO, DK, DELTA, LSE, DV,
+    DK_SPLIT, DV_SPLIT, IS_SPLIT,
     k, v, Q_LEN, KV_LEN,
     off_z, off_hq, off_hkv, offs_n1, offs_m1, start_m1, q_sparse_idx, kv_sparse_idx, offs_k, offs_v,
     stride_qm, stride_qd, stride_dom, stride_dod,
@@ -1419,12 +1422,14 @@ def bwd_dkdv_block_mn(
     dv = tl.dot(tl.trans(pT.to(MATMUL_PRECISION)), do, input_precision="ieee")
     index_n = offs_n1[:, None]
     index_v = offs_v[None, :]
-    dv_ptrs = DV + index_n * stride_dvm + index_v * stride_dvd
-    tl.atomic_add(
-        dv_ptrs,
-        dv,
-        mask=(index_n < KV_LEN) & (index_v < V_HEAD_DIM),
-    )
+    dv_offsets = index_n * stride_dvm + index_v * stride_dvd
+    dv_ptrs = DV + dv_offsets
+    dv_split_ptrs = DV_SPLIT + dv_offsets
+    dv_mask = (index_n < KV_LEN) & (index_v < V_HEAD_DIM)
+    if IS_SPLIT:
+        tl.atomic_add(dv_split_ptrs, dv, mask=dv_mask)
+    else:
+        tl.atomic_add(dv_ptrs, dv, mask=dv_mask)
     if IS_DIVISIBLE:
         Di = tl.load(DELTA + offs_m1)
     else:
@@ -1480,16 +1485,22 @@ def bwd_dkdv_block_mn(
         dk_mask = index_n < KV_LEN
     else:
         dk_mask = (index_n < KV_LEN) & (index_k < QK_HEAD_DIM)
-    dk_ptrs = DK + tl.broadcast_to(
+    dk_offsets = tl.broadcast_to(
         index_n * stride_kn + index_k * stride_kd + stride_kh * off_hkv + stride_kz * off_z,
         dk.shape,
     )
-    tl.atomic_add(dk_ptrs, dk, mask=dk_mask)
+    dk_ptrs = DK + dk_offsets
+    dk_split_ptrs = DK_SPLIT + dk_offsets
+    if IS_SPLIT:
+        tl.atomic_add(dk_split_ptrs, dk, mask=dk_mask)
+    else:
+        tl.atomic_add(dk_ptrs, dk, mask=dk_mask)
 
 @triton.jit
 def bwd_dkdv_full_block_mn(
     {{gen_argdefs()}},
     Q, DO, DK, DELTA, LSE, DV,
+    DK_SPLIT, DV_SPLIT, IS_SPLIT,
     k, v, Q_LEN, KV_LEN,
     off_z, off_hq, off_hkv, offs_n1, offs_m1, start_m1, offs_k, offs_v,
     stride_qm, stride_qd, stride_dom, stride_dod,
@@ -1564,12 +1575,14 @@ def bwd_dkdv_full_block_mn(
     index_n = offs_n1[:, None]
     dv = tl.dot(tl.trans(pT.to(MATMUL_PRECISION)), do, input_precision="ieee")
     index_v = offs_v[None, :]
-    dv_ptrs = DV + index_n * stride_dvm + index_v * stride_dvd
-    tl.atomic_add(
-        dv_ptrs,
-        dv,
-        mask=(index_n < KV_LEN) & (index_v < V_HEAD_DIM),
-    )
+    dv_offsets = index_n * stride_dvm + index_v * stride_dvd
+    dv_ptrs = DV + dv_offsets
+    dv_split_ptrs = DV_SPLIT + dv_offsets
+    dv_mask = (index_n < KV_LEN) & (index_v < V_HEAD_DIM)
+    if IS_SPLIT:
+        tl.atomic_add(dv_split_ptrs, dv, mask=dv_mask)
+    else:
+        tl.atomic_add(dv_ptrs, dv, mask=dv_mask)
     if IS_DIVISIBLE:
         Di = tl.load(DELTA + offs_m1)
     else:
@@ -1623,11 +1636,16 @@ def bwd_dkdv_full_block_mn(
         dk_mask = index_n < KV_LEN
     else:
         dk_mask = (index_n < KV_LEN) & (index_k < QK_HEAD_DIM)
-    dk_ptrs = DK + tl.broadcast_to(
+    dk_offsets = tl.broadcast_to(
         index_n * stride_kn + index_k * stride_kd + stride_kh * off_hkv + stride_kz * off_z,
         dk.shape,
     )
-    tl.atomic_add(dk_ptrs, dk, mask=dk_mask)
+    dk_ptrs = DK + dk_offsets
+    dk_split_ptrs = DK_SPLIT + dk_offsets
+    if IS_SPLIT:
+        tl.atomic_add(dk_split_ptrs, dk, mask=dk_mask)
+    else:
+        tl.atomic_add(dk_ptrs, dk, mask=dk_mask)
 
 
 @triton.jit
@@ -1705,12 +1723,12 @@ flex_attention_backward_dkdv_tasklist_source = (
         dv_adj = (stride_dvh * off_hkv + stride_dvz * off_zq).to(INDEX_DTYPE)
         K1 = K + k_adj
         V1 = V + v_adj
-        DK_OUT = DK
-        DV_OUT = DV + dv_adj
+        DV_DIRECT = DV + dv_adj
 {% if not TASKLIST_NO_SPLIT %}
-        if is_split != 0:
-            DK_OUT = DK_PARTIAL + sub_id * PARTIAL_DK_STRIDE
-            DV_OUT = DV_PARTIAL + sub_id * PARTIAL_DV_STRIDE + dv_adj
+        # Keep direct and partial bases separate.  Triton-Ascend cannot merge
+        # pointers rooted at different kernel arguments into one SSA value.
+        DK_SPLIT = DK_PARTIAL + sub_id * PARTIAL_DK_STRIDE
+        DV_SPLIT = DV_PARTIAL + sub_id * PARTIAL_DV_STRIDE + dv_adj
 {% endif %}
 
         k = tl.load(
@@ -1774,7 +1792,12 @@ flex_attention_backward_dkdv_tasklist_source = (
                 offs_m1 = q_start + tl.arange(0, BLOCK_M1)
                 bwd_dkdv_block_mn(
                     {{gen_argdefs()}},
-                    Q1, DO1, DK_OUT, DELTA1, LSE1, DV_OUT,
+                    Q1, DO1, DK, DELTA1, LSE1, DV_DIRECT,
+{% if TASKLIST_NO_SPLIT %}
+                    DK, DV_DIRECT, False,
+{% else %}
+                    DK_SPLIT, DV_SPLIT, is_split != 0,
+{% endif %}
                     k, v, Q_LEN, KV_LEN,
                     off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
                     q_start, q_block, pid_mask, offs_k, offs_v,
@@ -1823,7 +1846,12 @@ flex_attention_backward_dkdv_tasklist_source = (
 {% if not PRESCALE_QK %}
                     bwd_dkdv_full_block_mn(
                         {{gen_argdefs()}},
-                        Q1, DO1, DK_OUT, DELTA1, LSE1, DV_OUT,
+                        Q1, DO1, DK, DELTA1, LSE1, DV_DIRECT,
+{% if TASKLIST_NO_SPLIT %}
+                        DK, DV_DIRECT, False,
+{% else %}
+                        DK_SPLIT, DV_SPLIT, is_split != 0,
+{% endif %}
                         k, v, Q_LEN, KV_LEN,
                         off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
                         q_start, offs_k, offs_v,
@@ -1835,7 +1863,12 @@ flex_attention_backward_dkdv_tasklist_source = (
 {% else %}
                     bwd_dkdv_block_mn(
                         {{gen_argdefs()}},
-                        Q1, DO1, DK_OUT, DELTA1, LSE1, DV_OUT,
+                        Q1, DO1, DK, DELTA1, LSE1, DV_DIRECT,
+{% if TASKLIST_NO_SPLIT %}
+                        DK, DV_DIRECT, False,
+{% else %}
+                        DK_SPLIT, DV_SPLIT, is_split != 0,
+{% endif %}
                         k, v, Q_LEN, KV_LEN,
                         off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
                         q_start, q_block, pid_mask, offs_k, offs_v,

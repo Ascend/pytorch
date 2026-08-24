@@ -162,8 +162,8 @@ class FlexAttentionConfigGenerator:
             and self.sparse_kv_block_size is not None
         ):
             return (
-                block_m == self.sparse_q_block_size
-                and block_n == self.sparse_kv_block_size
+                self.sparse_q_block_size % block_m == 0
+                and self.sparse_kv_block_size % block_n == 0
             )
         return True
 
