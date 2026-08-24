@@ -1,14 +1,11 @@
 """
 Flex Attention Configuration Generator.
 
-This module provides FlexAttentionConfigGenerator class that dynamically
-generates candidate configurations for Flex Attention kernel autotuning.
-Similar to TileGenerator, it generates BLOCK_M/BLOCK_N combinations based
-on input shapes and hardware constraints.
+The NPU templates use a small fixed tiling set. Shape-dependent tiling
+selection is intentionally left to autotuning, matching the community template
+interface while keeping NPU-specific compatibility filtering local.
 """
 
-from dataclasses import dataclass
-from enum import Enum
 from typing import Optional, Union
 
 import torch
@@ -18,347 +15,40 @@ from .. import config as npu_config
 
 log = npu_config.log
 
+_COMMON_TILING_CANDIDATES = (
+    (128, 128),
+    (128, 64),
+    (64, 128),
+    (64, 64),
+)
 
-class FlexMode(Enum):
-    """Operation mode for Flex Attention."""
-    FWD = "fwd"
-    BWD = "bwd"
 
-
-@dataclass
-class FlexAttentionConfig:
-    """Configuration for Flex Attention kernel."""
-    block_m: int
-    block_n: int
-    num_warps: int
-    num_stages: int
-    npu_params: Optional[dict] = None
-
-    def to_dict(self) -> dict:
-        """Convert to dictionary format."""
-        result = {
-            "BLOCK_M": self.block_m,
-            "BLOCK_N": self.block_n,
-            "num_warps": self.num_warps,
-            "num_stages": self.num_stages,
+def _fixed_tiling_configs(
+    sparse_q_block_size: int,
+    sparse_kv_block_size: int,
+    *,
+    num_stages: int,
+) -> list[dict]:
+    """Return the small common tiling set supported by the NPU templates."""
+    sparse_q_block_size = int(sparse_q_block_size)
+    sparse_kv_block_size = int(sparse_kv_block_size)
+    return [
+        {
+            "BLOCK_M": block_m,
+            "BLOCK_N": block_n,
+            "num_warps": 4,
+            "num_stages": num_stages,
+            "ENABLE_COMPILE_HINT": False,
         }
-        if self.npu_params:
-            result.update(self.npu_params)
-        return result
-
-
-class FlexAttentionConfigGenerator:
-    """
-    Generate candidate configurations for Flex Attention kernel.
-
-    This class dynamically generates BLOCK_M/BLOCK_N combinations based on
-    input shapes and hardware constraints, similar to how TileGenerator
-    works for general NPU kernels.
-
-    Key features:
-    1. Constraint-aware: Only generates configs that satisfy SPARSE constraints
-    2. Performance-oriented: Considers wave efficiency and UB constraints
-    3. Extensible: Supports num_warps/num_stages/NPU parameter variations
-
-    Example:
-        >>> generator = FlexAttentionConfigGenerator(
-        ...     query_shape=(1, 8, 1024, 128),
-        ...     key_shape=(1, 8, 1024, 128),
-        ...     sparse_q_block_size=128,
-        ...     sparse_kv_block_size=128,
-        ...     dtype=torch.float16,
-        ...     num_cube_core=24,
-        ...     mode=FlexMode.FWD,
-        ... )
-        >>> configs = generator.generate_configs()
-        >>> print(len(configs))  # 10-20 configs
-    """
-
-    BLOCK_SIZE_CANDIDATES = [256, 128, 64, 32, 16]
-
-    MAX_CONFIGS = 30
-
-    def __init__(
-        self,
-        query_shape: tuple,
-        key_shape: tuple,
-        sparse_q_block_size: int,
-        sparse_kv_block_size: int,
-        dtype: torch.dtype,
-        num_cube_core: int,
-        mode: FlexMode = FlexMode.FWD,
-    ):
-        """
-        Initialize the configuration generator.
-
-        Args:
-            query_shape: Shape of query tensor (batch, heads, seq_len_q, head_dim)
-            key_shape: Shape of key tensor (batch, heads, seq_len_kv, head_dim)
-            sparse_q_block_size: SPARSE_Q_BLOCK_SIZE constraint
-            sparse_kv_block_size: SPARSE_KV_BLOCK_SIZE constraint
-            dtype: Data type of tensors
-            num_cube_core: Number of AICore (cube cores) available
-            mode: Forward or backward mode
-        """
-        self.batch_size = query_shape[0]
-        self.num_heads = query_shape[1]
-        self.seq_len_q = query_shape[2]
-        self.head_dim = query_shape[3]
-        self.seq_len_kv = key_shape[2]
-
-        self.sparse_q_block_size = sparse_q_block_size
-        self.sparse_kv_block_size = sparse_kv_block_size
-
-        self.dtype = dtype
-        self.dtype_bytes = self._get_dtype_bytes(dtype)
-
-        self.num_cube_core = num_cube_core
-
-        self.mode = mode
-
-        self.valid_block_m = self._get_valid_block_sizes(sparse_q_block_size)
-        self.valid_block_n = self._get_valid_block_sizes(sparse_kv_block_size)
-
-        self.configs: list[FlexAttentionConfig] = []
-
-    def _get_dtype_bytes(self, dtype: torch.dtype) -> int:
-        """Get bytes per element for dtype."""
-        dtype_bytes_map = {
-            torch.float16: 2,
-            torch.bfloat16: 2,
-            torch.float32: 4,
-            torch.int8: 1,
-            torch.int16: 2,
-            torch.int32: 4,
-        }
-        return dtype_bytes_map.get(dtype, 4)
-
-    def _get_valid_block_sizes(self, sparse_block_size: int) -> list[int]:
-        """
-        Get valid block sizes that divide SPARSE_BLOCK_SIZE.
-
-        For SPARSE_BLOCK_SIZE=128, returns: [128, 64, 32, 16]
-        For SPARSE_BLOCK_SIZE=64, returns: [64, 32, 16]
-        """
-        valid_sizes = []
-        for size in self.BLOCK_SIZE_CANDIDATES:
-            if sparse_block_size % size == 0:
-                valid_sizes.append(size)
-        return valid_sizes
-
-    def generate_configs(self) -> list[dict]:
-        """
-        Generate all candidate configurations.
-
-        Returns:
-            List of config dictionaries with BLOCK_M, BLOCK_N, num_warps, num_stages
-        """
-        self.configs = []
-
-        self._generate_block_combinations()
-        self._filter_by_ub_constraint()
-        self._add_npu_params()
-        self._limit_config_count()
-
-        return [cfg.to_dict() for cfg in self.configs]
-
-    def _generate_block_combinations(self):
-        """Generate BLOCK_M x BLOCK_N combinations based on mode."""
-        if self.mode == FlexMode.FWD:
-            self._generate_fwd_combinations()
-        else:
-            self._generate_bwd_combinations()
-
-    def _generate_fwd_combinations(self):
-        """
-        Generate forward pass configurations.
-
-        Strategy:
-        1. Start with safe default config (16, 16) for persistent mode compatibility
-        2. Add configs with different BLOCK_M/BLOCK_N ratios for autotuning
-        3. Consider wave efficiency (programs per AICore)
-        """
-        # Use (16, 16) as the default config to ensure compilation stability
-        # This is especially important for persistent kernel mode which may have
-        # stricter constraints on tile sizes
-        default_m, default_n = 16, 16
-
-        if default_m in self.valid_block_m and default_n in self.valid_block_n:
-            self.configs.append(FlexAttentionConfig(
-                block_m=default_m,
-                block_n=default_n,
-                num_warps=4,
-                num_stages=3,
-            ))
-
-        seen = {(default_m, default_n)}
-
-        for block_m in self.valid_block_m:
-            for block_n in self.valid_block_n:
-                if (block_m, block_n) in seen:
-                    continue
-
-                programs_m = (self.seq_len_q + block_m - 1) // block_m
-                total_programs = programs_m * self.batch_size * self.num_heads
-                wave_efficiency = total_programs / self.num_cube_core
-
-                if wave_efficiency >= 0.5 or total_programs <= self.num_cube_core:
-                    self.configs.append(FlexAttentionConfig(
-                        block_m=block_m,
-                        block_n=block_n,
-                        num_warps=4,
-                        num_stages=3,
-                    ))
-                    seen.add((block_m, block_n))
-
-    def _generate_bwd_combinations(self):
-        """
-        Generate backward pass configurations.
-
-        Backward uses BLOCK_M1, BLOCK_N1, BLOCK_M2, BLOCK_N2.
-        Constraint: BLOCK_N1 % BLOCK_M1 == 0
-        """
-        # Match the backward outputcode target tile first. dkdv and dq lowering
-        # may still override their unused BLOCK_* dimensions independently.
-        default_m, default_n = 64, 64
-        if default_m in self.valid_block_m and default_n in self.valid_block_n:
-            self.configs.append(FlexAttentionConfig(
-                block_m=default_m,
-                block_n=default_n,
-                num_warps=4,
-                num_stages=1,
-            ))
-
-        seen = {(default_m, default_n)}
-
-        for block_m1 in self.valid_block_m:
-            for block_n1 in self.valid_block_n:
-                if block_n1 % block_m1 != 0:
-                    continue
-
-                if (block_m1, block_n1) in seen:
-                    continue
-
-                self.configs.append(FlexAttentionConfig(
-                    block_m=block_m1,
-                    block_n=block_n1,
-                    num_warps=4,
-                    num_stages=1,
-                ))
-                seen.add((block_m1, block_n1))
-
-    def _filter_by_ub_constraint(self):
-        """
-        Filter configs that exceed UB size limit.
-
-        UB usage estimation:
-        - Q block: BLOCK_M * head_dim * dtype_bytes
-        - K block: BLOCK_N * head_dim * dtype_bytes
-        - V block: BLOCK_N * head_dim * dtype_bytes
-        - Acc buffer: BLOCK_M * BLOCK_N * 4 (float32)
-        """
-        filtered = []
-
-        for cfg in self.configs:
-            q_ub = cfg.block_m * self.head_dim * self.dtype_bytes
-            k_ub = cfg.block_n * self.head_dim * self.dtype_bytes
-            v_ub = cfg.block_n * self.head_dim * self.dtype_bytes
-            acc_ub = cfg.block_m * cfg.block_n * 4
-
-            total_ub = q_ub + k_ub + v_ub + acc_ub
-
-            if total_ub <= npu_config.ub_size * 0.8:
-                filtered.append(cfg)
-
-        self.configs = filtered if filtered else self.configs[:1]
-
-    def _add_npu_params(self):
-        """
-        Add NPU optimization parameters if enabled.
-
-        Similar to TileGenerator.tune_multibuffer()
-        """
-        log.info("[flex_attention] NPU optimization enabled: %s", npu_config.flex_attention.enable_npu_optimization)
-
-        if not npu_config.flex_attention.enable_npu_optimization:
-            # Even when NPU optimization is disabled, we need to set ENABLE_COMPILE_HINT
-            # to avoid NameError in kernel code
-            for cfg in self.configs:
-                cfg.npu_params = npu_config.apply_flex_attention_npu_params(
-                    cfg.npu_params or {},
-                    enable=False,
-                )
-            return
-
-        npu_params = npu_config.apply_flex_attention_npu_params(
-            {},
-            enable=True,
+        for block_m, block_n in _COMMON_TILING_CANDIDATES
+        if (
+            block_m <= sparse_q_block_size
+            and block_n <= sparse_kv_block_size
+            and sparse_q_block_size % block_m == 0
+            and sparse_kv_block_size % block_n == 0
         )
+    ]
 
-        log.debug("NPU parameters: %s", npu_params)
-
-        # Keep the original configs as a conservative fallback, then append the
-        # NPU-tuned variants so autotuning can still fall back if the enhanced
-        # path overflows UB or hits backend bugs.
-        new_configs = []
-        for cfg in self.configs:
-            cfg.npu_params = npu_config.apply_flex_attention_npu_params(
-                cfg.npu_params or {},
-                enable=False,
-            )
-            new_configs.append(cfg)
-            cfg_with_npu = FlexAttentionConfig(
-                block_m=cfg.block_m,
-                block_n=cfg.block_n,
-                num_warps=cfg.num_warps,
-                num_stages=cfg.num_stages,
-                npu_params=npu_params.copy(),
-            )
-            new_configs.append(cfg_with_npu)
-        self.configs = new_configs  # Replace instead of append
-
-    def _limit_config_count(self):
-        """
-        Limit config count to avoid excessive autotuning time.
-
-        Strategy: Select configs with diverse BLOCK_M/BLOCK_N ratios
-        """
-        if len(self.configs) <= self.MAX_CONFIGS:
-            return
-
-        ratio_groups: dict[float, list[FlexAttentionConfig]] = {}
-        for cfg in self.configs:
-            ratio = cfg.block_m / cfg.block_n
-            if ratio not in ratio_groups:
-                ratio_groups[ratio] = []
-            ratio_groups[ratio].append(cfg)
-
-        selected = []
-        per_group = max(1, self.MAX_CONFIGS // len(ratio_groups))
-        for group in ratio_groups.values():
-            selected.extend(group[:per_group])
-
-        self.configs = selected[:self.MAX_CONFIGS]
-
-    def calculate_wave_efficiency(self, block_m: int, block_n: int) -> tuple[int, float]:
-        """
-        Calculate wave efficiency for given block sizes.
-
-        Args:
-            block_m: BLOCK_M size
-            block_n: BLOCK_N size
-
-        Returns:
-            Tuple of (waves, efficiency)
-        """
-        programs_m = (self.seq_len_q + block_m - 1) // block_m
-        total_programs = programs_m * self.batch_size * self.num_heads
-
-        waves = (total_programs + self.num_cube_core - 1) // self.num_cube_core
-
-        efficiency = total_programs / (waves * self.num_cube_core) if waves > 0 else 0.0
-
-        return waves, efficiency
 
 def generate_fwd_configs(
     query_shape: tuple,
@@ -382,16 +72,12 @@ def generate_fwd_configs(
     Returns:
         List of config dictionaries
     """
-    generator = FlexAttentionConfigGenerator(
-        query_shape=query_shape,
-        key_shape=key_shape,
-        sparse_q_block_size=sparse_q_block_size,
-        sparse_kv_block_size=sparse_kv_block_size,
-        dtype=dtype,
-        num_cube_core=num_cube_core,
-        mode=FlexMode.FWD,
+    del query_shape, key_shape, dtype, num_cube_core
+    return _fixed_tiling_configs(
+        sparse_q_block_size,
+        sparse_kv_block_size,
+        num_stages=1,
     )
-    return generator.generate_configs()
 
 
 def generate_bwd_configs(
@@ -416,22 +102,21 @@ def generate_bwd_configs(
     Returns:
         List of config dictionaries
     """
-    generator = FlexAttentionConfigGenerator(
-        query_shape=query_shape,
-        key_shape=key_shape,
-        sparse_q_block_size=sparse_q_block_size,
-        sparse_kv_block_size=sparse_kv_block_size,
-        dtype=dtype,
-        num_cube_core=num_cube_core,
-        mode=FlexMode.BWD,
-    )
-    return generator.generate_configs()
+    del query_shape, key_shape, dtype, num_cube_core
+    return [
+        config
+        for config in _fixed_tiling_configs(
+            sparse_q_block_size,
+            sparse_kv_block_size,
+            num_stages=1,
+        )
+        if config["BLOCK_N"] >= config["BLOCK_M"]
+    ]
 
 
 def prefer_max_tiling_without_benchmark() -> bool:
     return (
-        npu_config.flex_attention.use_config_generator
-        and not getattr(inductor_config, "max_autotune", False)
+        not getattr(inductor_config, "max_autotune", False)
         and not getattr(inductor_config, "max_autotune_gemm", False)
         and not getattr(npu_config, "aggresive_autotune", False)
     )
@@ -454,7 +139,6 @@ _FWD_MASK_IN_TILING_ORDER = (
     (128, 64),
     (64, 128),
     (64, 64),
-    (32, 32),
 )
 
 
@@ -516,56 +200,6 @@ def _sort_sparse_mask_candidate_configs_for_nobench(
     )
 
 
-def _get_default_fwd_config(dtype: torch.dtype, head_dim: int) -> dict:
-    head_dim = int(head_dim)
-    config = {
-        "num_warps": 4,
-        "num_stages": 3,
-    }
-
-    if head_dim <= 256:
-        config["BLOCK_M"] = 64
-        config["BLOCK_N"] = 64
-    elif dtype == torch.float32:
-        config["BLOCK_M"] = 32
-        config["BLOCK_N"] = 16
-    else:
-        config["BLOCK_M"] = 32
-        config["BLOCK_N"] = 32
-
-    return config
-
-
-def _tune_npu_params(configs: list[dict]) -> list[dict]:
-    enable = npu_config.flex_attention.enable_npu_optimization
-    if enable:
-        npu_params = npu_config.flex_attention.get_npu_compile_hint_params()
-        npu_config.log.info(
-            "[flex_attention] NPU compile hint enabled with parameters: %s",
-            npu_params,
-        )
-        log.debug("npu_params: %s", npu_params)
-
-    return [
-        npu_config.apply_flex_attention_npu_params(config, enable=enable)
-        for config in configs
-    ]
-
-
-def _build_single_fwd_config(
-    dtype: torch.dtype,
-    head_dim: int,
-    sparse_q_block_size: int,
-    sparse_kv_block_size: int,
-) -> list[dict]:
-    config = _get_default_fwd_config(dtype, head_dim)
-    if sparse_q_block_size % config["BLOCK_M"] != 0:
-        config["BLOCK_M"] = int(sparse_q_block_size)
-    if sparse_kv_block_size % config["BLOCK_N"] != 0:
-        config["BLOCK_N"] = int(sparse_kv_block_size)
-    return _tune_npu_params([config])
-
-
 def get_bwd_dq_compile_options() -> dict:
     return npu_config.flex_attention.get_bwd_dq_compile_options()
 
@@ -590,33 +224,17 @@ def generate_fwd_candidate_configs(
     This wrapper owns the generator/fallback policy so the lowering file only
     needs to pass ordinary Python values extracted from IR nodes.
     """
-    if npu_config.flex_attention.use_config_generator:
-        configs = generate_fwd_configs(
-            query_shape=query_shape,
-            key_shape=key_shape,
-            sparse_q_block_size=sparse_q_block_size,
-            sparse_kv_block_size=sparse_kv_block_size,
-            dtype=dtype,
-            num_cube_core=num_cube_core,
-        )
-        if prefer_max_tiling_without_benchmark():
-            configs = _sort_fwd_candidate_configs_for_nobench(configs)
-        if not mask_out:
-            configs = _build_fwd_mask_in_candidate_configs(
-                configs,
-                sparse_q_block_size=sparse_q_block_size,
-                sparse_kv_block_size=sparse_kv_block_size,
-            )
-        return configs
-
-    if head_dim is None:
-        head_dim = int(query_shape[-1])
-    configs = _build_single_fwd_config(
-        dtype=dtype,
-        head_dim=head_dim,
+    del head_dim
+    configs = generate_fwd_configs(
+        query_shape=query_shape,
+        key_shape=key_shape,
         sparse_q_block_size=sparse_q_block_size,
         sparse_kv_block_size=sparse_kv_block_size,
+        dtype=dtype,
+        num_cube_core=num_cube_core,
     )
+    if prefer_max_tiling_without_benchmark():
+        configs = _sort_fwd_candidate_configs_for_nobench(configs)
     if not mask_out:
         configs = _build_fwd_mask_in_candidate_configs(
             configs,
@@ -631,28 +249,11 @@ def _flex_attention_sparse_mask_block_candidates(sparse_block_size: int) -> list
     if sparse_block_size <= 0:
         raise ValueError(f"sparse block size must be positive, got {sparse_block_size}")
 
-    min_mask_block = min(16, sparse_block_size)
-    candidates = []
-    mask_block = sparse_block_size
-    while mask_block >= min_mask_block:
-        candidates.append(mask_block)
-        mask_block //= 2
-
-    for fallback_mask_block in (64, 32, 16):
-        if fallback_mask_block <= sparse_block_size:
-            candidates.append(fallback_mask_block)
-
-    unique_candidates = []
-    seen = set()
-    for mask_block in sorted(candidates, reverse=True):
-        if mask_block in seen:
-            continue
-        if sparse_block_size % mask_block != 0:
-            continue
-        seen.add(mask_block)
-        unique_candidates.append(mask_block)
-
-    return unique_candidates
+    return [
+        block
+        for block in (128, 64)
+        if block <= sparse_block_size and sparse_block_size % block == 0
+    ]
 
 
 def _flex_attention_sparse_mask_tiling_configs(
@@ -724,20 +325,13 @@ def build_sparse_mask_candidate_configs(
     sparse_kv_block_size: int,
 ) -> list[dict[str, int]]:
     """Generate sparse mask materialize kernel tiling candidates."""
-    if npu_config.flex_attention.use_config_generator:
-        configs = _flex_attention_sparse_mask_tiling_configs(
-            sparse_q_block_size,
-            sparse_kv_block_size,
-        )
-        if prefer_max_tiling_without_benchmark():
-            configs = _sort_sparse_mask_candidate_configs_for_nobench(configs)
-        return configs
-    return [
-        _get_default_sparse_mask_tiling_config(
-            sparse_q_block_size,
-            sparse_kv_block_size,
-        )
-    ]
+    configs = _flex_attention_sparse_mask_tiling_configs(
+        sparse_q_block_size,
+        sparse_kv_block_size,
+    )
+    if prefer_max_tiling_without_benchmark():
+        configs = _sort_sparse_mask_candidate_configs_for_nobench(configs)
+    return configs
 
 
 def split_attention_block_n_candidates(
@@ -846,50 +440,15 @@ def _start_bwd_mask_out_from_128x128_configs(
     sparse_q_block_size: int,
     sparse_kv_block_size: int,
 ) -> list[dict]:
-    sparse_q_block_size = int(sparse_q_block_size)
-    sparse_kv_block_size = int(sparse_kv_block_size)
-    max_block = min(128, sparse_q_block_size, sparse_kv_block_size)
-
-    preferred_blocks = []
-    block = max_block
-    min_block = min(16, max_block)
-    while block >= min_block:
-        if sparse_q_block_size % block == 0 and sparse_kv_block_size % block == 0:
-            preferred_blocks.append(block)
-        block //= 2
-    if not preferred_blocks:
-        preferred_blocks.append(max_block)
-
-    template = configs[0].copy() if configs else {"num_warps": 4, "num_stages": 1}
-    ordered_configs = []
-    seen_configs = set()
-    tiling_keys = ("BLOCK_M1", "BLOCK_N1", "BLOCK_M2", "BLOCK_N2")
-
-    for block in preferred_blocks:
-        cfg = template.copy()
-        cfg.update(
-            {
-                "BLOCK_M1": block,
-                "BLOCK_N1": block,
-                "BLOCK_M2": block,
-                "BLOCK_N2": block,
-                "num_warps": cfg.get("num_warps", 4),
-                "num_stages": cfg.get("num_stages", 1),
-            }
+    return [
+        cfg
+        for cfg in configs
+        if is_bwd_config_compatible(
+            cfg,
+            sparse_q_block_size,
+            sparse_kv_block_size,
         )
-        config_key = tuple(cfg.get(key) for key in tiling_keys)
-        if config_key in seen_configs:
-            continue
-        seen_configs.add(config_key)
-        ordered_configs.append(cfg)
-
-    for cfg in configs:
-        config_key = tuple(cfg.get(key) for key in tiling_keys)
-        if config_key in seen_configs:
-            continue
-        seen_configs.add(config_key)
-        ordered_configs.append(cfg)
-    return ordered_configs
+    ]
 
 
 def generate_bwd_fused_mask_out_candidate_configs(

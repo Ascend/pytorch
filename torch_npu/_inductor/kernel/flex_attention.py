@@ -2,8 +2,7 @@
 
 import copy
 from collections.abc import Sequence
-from functools import partial, wraps
-from types import FunctionType
+from functools import wraps
 from typing import Any, Dict, Optional, Union
 
 import sympy
@@ -215,93 +214,6 @@ _STREAMING_BLOCK_MASK_TARGET_BYTES = 256 * 1024 * 1024
 _STREAMING_BLOCK_MASK_BYTES_PER_ELEMENT = 8
 
 
-def _make_closure_cell(value):
-    def capture():
-        return value
-
-    return capture.__closure__[0]
-
-
-def _maybe_cast_mask_mod_constant_to_fp32(value):
-    if not isinstance(value, torch.Tensor):
-        return value
-    if value.dtype == torch.bool:
-        return value
-    if getattr(value.dtype, "is_floating_point", False):
-        return value
-    if getattr(value.dtype, "is_complex", False):
-        return value
-    return value.to(dtype=torch.float32)
-
-
-def _maybe_cast_mask_mod_tensor_constants_to_fp32(mask_mod):
-    if isinstance(mask_mod, partial):
-        converted_func = _maybe_cast_mask_mod_tensor_constants_to_fp32(mask_mod.func)
-        converted_args = tuple(
-            _maybe_cast_mask_mod_constant_to_fp32(arg) for arg in mask_mod.args
-        )
-        converted_keywords = None
-        keyword_changed = False
-        if mask_mod.keywords:
-            converted_keywords = {
-                name: _maybe_cast_mask_mod_constant_to_fp32(value)
-                for name, value in mask_mod.keywords.items()
-            }
-            keyword_changed = any(
-                converted_keywords[name] is not value
-                for name, value in mask_mod.keywords.items()
-            )
-        changed = (
-            converted_func is not mask_mod.func
-            or any(new is not old for new, old in zip(converted_args, mask_mod.args))
-            or keyword_changed
-        )
-        if not changed:
-            return mask_mod
-        converted = partial(
-            converted_func,
-            *converted_args,
-            **(converted_keywords or {}),
-        )
-        converted.__dict__.update(getattr(mask_mod, "__dict__", {}))
-        return converted
-
-    if not isinstance(mask_mod, FunctionType) or mask_mod.__closure__ is None:
-        return mask_mod
-
-    converted_cells = []
-    changed = False
-    for cell in mask_mod.__closure__:
-        try:
-            value = cell.cell_contents
-        except ValueError:
-            converted_cells.append(cell)
-            continue
-        converted_value = _maybe_cast_mask_mod_constant_to_fp32(value)
-        if converted_value is value:
-            converted_cells.append(cell)
-            continue
-        converted_cells.append(_make_closure_cell(converted_value))
-        changed = True
-
-    if not changed:
-        return mask_mod
-
-    converted = FunctionType(
-        mask_mod.__code__,
-        mask_mod.__globals__,
-        mask_mod.__name__,
-        mask_mod.__defaults__,
-        tuple(converted_cells),
-    )
-    converted.__kwdefaults__ = getattr(mask_mod, "__kwdefaults__", None)
-    converted.__annotations__ = dict(getattr(mask_mod, "__annotations__", {}))
-    converted.__dict__.update(getattr(mask_mod, "__dict__", {}))
-    converted.__module__ = getattr(mask_mod, "__module__", None)
-    converted.__qualname__ = getattr(mask_mod, "__qualname__", mask_mod.__name__)
-    return converted
-
-
 def _precompute_compact_sparse_mask_metadata(block_mask: Any) -> dict[str, Any]:
     kv_num_blks = getattr(block_mask, "kv_num_blocks", None)
     if kv_num_blks is None:
@@ -497,6 +409,15 @@ def _is_score_mod_identity_graph(fw_graph) -> bool:
     return _get_graph_output_node(graph) is placeholders[0]
 
 
+def _score_mod_uses_where(fw_graph) -> bool:
+    """Return whether score_mod contains an aten.where overload."""
+    return any(
+        node.op == "call_function"
+        and getattr(node.target, "overloadpacket", None) is aten.where
+        for node in fw_graph.graph_module.graph.nodes
+    )
+
+
 def _is_npu_device(device: Any) -> bool:
     try:
         return torch.device(device).type == "npu"
@@ -664,18 +585,6 @@ def patch_flex_attention() -> None:
     if not getattr(current_create_block_mask, "_npu_metadata_patch_applied", False):
         @wraps(current_create_block_mask)
         def create_block_mask_with_metadata(*args, **kwargs):
-            if args:
-                converted_mask_mod = _maybe_cast_mask_mod_tensor_constants_to_fp32(args[0])
-                if converted_mask_mod is not args[0]:
-                    args = (converted_mask_mod, *args[1:])
-            elif "mask_mod" in kwargs:
-                converted_mask_mod = _maybe_cast_mask_mod_tensor_constants_to_fp32(
-                    kwargs["mask_mod"]
-                )
-                if converted_mask_mod is not kwargs["mask_mod"]:
-                    kwargs = dict(kwargs)
-                    kwargs["mask_mod"] = converted_mask_mod
-
             if _should_use_streaming_block_mask(args, kwargs):
                 try:
                     block_mask = _create_block_mask_streaming(*args, **kwargs)
@@ -1181,6 +1090,7 @@ def _register_npu_inductor_flex_attention():
 
         score_mod_is_identity = _is_score_mod_identity_graph(subgraph)
         has_score_mod = has_explicit_score_mod or not score_mod_is_identity
+        score_mod_uses_where = _score_mod_uses_where(subgraph)
         compact_metadata_buffers = (
             _try_extract_compact_sparse_mask_metadata_buffers(
                 mask_mod_other_buffers,
@@ -1286,10 +1196,9 @@ def _register_npu_inductor_flex_attention():
         fwd_num_cube_core = _get_num_cube_core()
 
         log.debug(
-            "flex_attention lowering: query=%s key=%s value=%s SPARSE_Q=%s SPARSE_KV=%s kernel_options=%s use_config_generator=%s",
+            "flex_attention lowering: query=%s key=%s value=%s SPARSE_Q=%s SPARSE_KV=%s kernel_options=%s",
             query.get_size(), key.get_size(), value.get_size(),
-            SPARSE_Q_BLOCK_SIZE, SPARSE_KV_BLOCK_SIZE, kernel_options,
-            npu_config.flex_attention.use_config_generator)
+            SPARSE_Q_BLOCK_SIZE, SPARSE_KV_BLOCK_SIZE, kernel_options)
 
         # Validate benchmark configuration before autotuning
         log.debug("Benchmark Configuration Validation")
@@ -1323,10 +1232,6 @@ def _register_npu_inductor_flex_attention():
                 full_kv_indices,
             ]
 
-        log.debug(
-            "Config Generation Mode: use_config_generator=%s",
-            npu_config.flex_attention.use_config_generator,
-        )
         dict_configs = generate_fwd_candidate_configs(
             query_shape=query.get_size(),
             key_shape=key.get_size(),
@@ -1337,6 +1242,17 @@ def _register_npu_inductor_flex_attention():
             head_dim=V.graph.sizevars.guard_int(query.get_size()[-1]),
             mask_out=flexattention_mask_out,
         )
+
+        # Triton-Ascend can miscompile a non-trivial integer predicate feeding
+        # score_mod's tl.where when BLOCK_N is 128. BLOCK_N <= 64 produces the
+        # correct result for the same generated program. Keep the workaround
+        # scoped to mask-in score_mod graphs that actually contain aten.where
+        # so pure arithmetic score modifications retain larger tiling
+        # candidates. Mask-out has separate BLOCK_N/SPARSE_KV constraints.
+        if score_mod_uses_where and not flexattention_mask_out:
+            dict_configs = [
+                cfg for cfg in dict_configs if cfg["BLOCK_N"] <= 64
+            ]
 
         if flexattention_mask_out:
             sparse_mask_split_configs = []
@@ -1410,6 +1326,11 @@ def _register_npu_inductor_flex_attention():
             # Apply all config parameters (BLOCK_M, BLOCK_N, num_warps, num_stages, NPU params)
             for k, v in cfg.items():
                 cur_kernel_options.setdefault(k, v)
+
+            # An explicit unsafe BLOCK_N kernel option must not bypass the
+            # correctness filter above.
+            if score_mod_uses_where and not flexattention_mask_out:
+                cur_kernel_options["BLOCK_N"] = cfg["BLOCK_N"]
 
             # Blocksparse options
             cur_kernel_options.setdefault("SPARSE_Q_BLOCK_SIZE", SPARSE_Q_BLOCK_SIZE)
@@ -1562,12 +1483,10 @@ def _register_npu_inductor_flex_attention():
         )
         log.info(
             "Generated %d sparse mask kernel tiling configs from "
-            "SPARSE_Q_BLOCK_SIZE=%d, SPARSE_KV_BLOCK_SIZE=%d "
-            "(multi_tiling_enabled=%s): %s",
+            "SPARSE_Q_BLOCK_SIZE=%d, SPARSE_KV_BLOCK_SIZE=%d: %s",
             len(sparse_mask_tiling_configs),
             SPARSE_Q_BLOCK_SIZE,
             SPARSE_KV_BLOCK_SIZE,
-            npu_config.flex_attention.use_config_generator,
             sparse_mask_tiling_configs,
         )
 
@@ -2129,9 +2048,8 @@ def _register_npu_inductor_flex_attention():
         bwd_num_cube_core = _get_num_cube_core()
 
         log.debug(
-            "flex_attention_backward lowering: query=%s key=%s SPARSE_Q=%s SPARSE_KV=%s use_config_generator=%s",
+            "flex_attention_backward lowering: query=%s key=%s SPARSE_Q=%s SPARSE_KV=%s",
             query.get_size(), key.get_size(), SPARSE_Q_BLOCK_SIZE, SPARSE_KV_BLOCK_SIZE,
-            npu_config.flex_attention.use_config_generator
         )
 
         dq_choices: list[Any] = []
