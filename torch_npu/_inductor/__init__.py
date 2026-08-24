@@ -220,8 +220,6 @@ def _load_backend():
     from .fx_passes.overlap_scheduling import patch_overlap_scheduling
 
     patch_overlap_scheduling()
-    from .decomposition import _register_shared_decompositions
-    _register_shared_decompositions()
     # Invalidate cached decompositions after loading the selected backend.
     from torch._inductor.decomposition import fast_random_decomps
     fast_random_decomps.cache_clear()
