@@ -75,9 +75,10 @@ jobs:
           chmod +x ./docker_build.sh
           TIMESTAMP=${TIMESTAMP} ./docker_build.sh ${{ matrix.tag }}
 
+          COMMIT_ID=$(git rev-parse --short=8 HEAD)
+          IMAGE_TAG="${{ matrix.tag }}-${TIMESTAMP}-${COMMIT_ID}"
           mkdir -p /tmp/result
           if [[ "${PUSH_IMAGE}" == "true" ]]; then
-            IMAGE_TAG="${{ matrix.tag }}-${TIMESTAMP}"
             REMOTE_IMAGE="${{ env.REGISTRY }}/${{ env.SWR_ORG }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG}"
             docker tag "${IMAGE_TAG}" "${REMOTE_IMAGE}"
             docker push "${REMOTE_IMAGE}"
