@@ -131,3 +131,25 @@ KEEP_UPSTREAM_LOWERING = [control_deps] + [
     )
     if hasattr(aten, _name)
 ]
+
+# _inductor_test.realize (test_operators.realize) is a fusion-barrier op: upstream
+# registers an IR-level lowering (_realize: x.realize(); return clone(x)) where
+# x.realize() forces the lazy Pointwise/Reduction node into a ComputedBuffer,
+# physically preventing the scheduler from fusing across it. make_fallback would
+# instead register an ir.FallbackKernel -- the eager op falls back off-device and
+# the FallbackKernel itself becomes an extra scheduler node, so a graph that cuda
+# segments into 3 nodes (e.g. +1 | realize | *2 | realize) yields 6 here, breaking
+# the len(nodes)==3 assertion in test_inner_fn_str_and_stride_npu. Keep upstream's
+# IR-level lowering (same mechanism the ascend_npu_ir backend already uses) so the
+# realize barrier segments the graph correctly.
+# The attribute access above must not crash backend activation: _inductor_test::
+# realize is registered by torch._inductor.test_operators, which torch._dynamo.
+# trace_rules imports unconditionally (torch >= 2.3.0), so the op is always
+# registered once a compile -- and therefore this backend -- activates; upstream
+# relies on the same chain (torch/_inductor/lowering.py registers _realize at
+# module import).  Resolve defensively so activation never depends on that
+# incidental import order: if the op is not registered it cannot appear in any
+# graph, so there is nothing to keep.
+_realize = getattr(torch.ops._inductor_test, "realize", None)
+if _realize is not None:
+    KEEP_UPSTREAM_LOWERING.append(_realize)

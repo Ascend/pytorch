@@ -3597,8 +3597,14 @@ class NPUTritonKernel(TritonKernel):
             code.writeline("else:")
             code.writeline("    group_base = group_id * group_size + group_tail")
         else:
-            # No free x-tree nodes (all mapped); each thread handles one iteration.
-            code.writeline("group_size = 1")
+            # No free x-tree nodes (all mapped): total_blocks collapses to 1, so
+            # only program 0 owns a tile. Guard the rest (group_size=0) so that
+            # when the launcher sizes the grid to total_thread cores the idle
+            # cores skip the body — otherwise an in-place scalar op (store at a
+            # fixed address with no in-bounds mask) is run by every core and they
+            # race on the same location (read-modify-write hazard).
+            total_blocks_var = emit_total_blocks()
+            code.writeline(f"group_size = 1 if group_id < {total_blocks_var} else 0")
             code.writeline("group_base = group_id")
 
     def codegen_kernel(self, name=None):

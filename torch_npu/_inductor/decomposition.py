@@ -676,6 +676,12 @@ def _register_triton_experimental_decompositions():
         aten.native_dropout,
         aten.max_pool2d_with_indices,
         aten.max_pool2d_with_indices_backward,
+        # adaptive_max_pool2d decomposes (evenly-divisible case) into
+        # max_pool2d_with_indices, whose NPU op-plugin returns an int8 bit-mask
+        # (aclnnMaxPool2dWithMask) instead of the aten-contract int64 argmax --
+        # leaking an internal fwd/bwd repr through a public op. Keep adaptive
+        # un-decomposed so it falls back to its own aclnnAdaptiveMaxPool2d (int64).
+        aten.adaptive_max_pool2d,
         aten.embedding,
         aten.embedding_dense_backward,
     ]
