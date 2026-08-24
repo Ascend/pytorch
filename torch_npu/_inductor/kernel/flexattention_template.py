@@ -26,25 +26,6 @@ def _with_kernel_signature(
     return prefix + new_signature + body[len(old_signature) :]
 
 
-# Inner Triton functions shared by flex_attention & split-k decoding kernels.
-compute_next_offset_func = r"""
-@triton.jit
-def get_offset_for_next_block(
-    loop_iter, col_indices, total_blocks,
-    SPARSE_BLOCK, SPARSE_BLOCK_MULTIPLE, BLOCK,
-    BLOCKS_ARE_CONTIGUOUS: tl.constexpr
-):
-    if BLOCKS_ARE_CONTIGUOUS:
-        return BLOCK
-    cur_block_idx = loop_iter // SPARSE_BLOCK_MULTIPLE
-    cur_block = tl.load(col_indices + cur_block_idx, eviction_policy="evict_last")
-    next_block = tl.load(col_indices + cur_block_idx + 1, eviction_policy="evict_last", mask=cur_block_idx + 1 < total_blocks)
-    needs_jump = (loop_iter + 1) % SPARSE_BLOCK_MULTIPLE == 0
-    jump_to_block = (next_block - cur_block ) * SPARSE_BLOCK - (SPARSE_BLOCK_MULTIPLE - 1) * BLOCK
-    offset = jump_to_block * needs_jump + (1 - needs_jump) * BLOCK
-    return offset
-"""
-
 get_bounded_indices_func = r"""
 @triton.jit
 def get_bounded_indices(indices, max_len=None):

@@ -354,7 +354,6 @@ def _create_sparse_mask_indices_fake_generator():
 
 from torch_npu._inductor.kernel.flex_attention_metadata import (
     apply_kernel_options_from_eager_block_mask,
-    apply_kernel_options_from_block_sparse_mask,
     infer_eager_block_mask_kernel_options,
 )
 from torch_npu._inductor.kernel.flex_attention_config_generator import (
@@ -995,6 +994,8 @@ def _register_npu_inductor_flex_attention():
             else v
             for k, v in kernel_options.items()
         }
+        kernel_options.setdefault("ROWS_GUARANTEED_SAFE", False)
+        kernel_options.setdefault("BLOCKS_ARE_CONTIGUOUS", False)
 
         if _use_flex_decoding(query, kernel_options):
             try:
@@ -1278,12 +1279,6 @@ def _register_npu_inductor_flex_attention():
             cur_kernel_options.setdefault(
                 "TORCHINDUCTOR_FLEXATTENTION_MASKOUT",
                 flexattention_mask_out,
-            )
-            cur_kernel_options = apply_kernel_options_from_block_sparse_mask(
-                cur_kernel_options,
-                kv_num_blocks,
-                kv_indices,
-                context="fwd",
             )
             cur_kernel_options.setdefault("NUM_CUBE_CORE", fwd_num_cube_core)
             fwd_grid_x = (fwd_num_queries_hint + BLOCK_M - 1) // BLOCK_M
@@ -1685,6 +1680,8 @@ def _register_npu_inductor_flex_attention():
             else v
             for k, v in kernel_options.items()
         }
+        kernel_options.setdefault("ROWS_GUARANTEED_SAFE", False)
+        kernel_options.setdefault("BLOCKS_ARE_CONTIGUOUS", False)
         # kernel_options.setdefault("FLOAT32_PRECISION", get_float32_precision())
         if seq_len_q % 128 != 0 or seq_len_kv % 128 != 0:
             kernel_options.setdefault("IS_DIVISIBLE", False)
@@ -2271,12 +2268,6 @@ def _register_npu_inductor_flex_attention():
             cur_kernel_options.setdefault(
                 "NUM_SPARSE_Q_BLOCKS",
                 V.graph.sizevars.guard_int(kv_num_blocks.get_size()[2]),
-            )
-            cur_kernel_options = apply_kernel_options_from_block_sparse_mask(
-                cur_kernel_options,
-                kv_num_blocks,
-                kv_indices,
-                context="bwd",
             )
             return cur_kernel_options
 
