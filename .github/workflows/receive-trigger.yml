@@ -25,6 +25,7 @@ jobs:
         env:
           PAYLOAD_JSON: ${{ inputs.payload }}
           EVENT_TYPE: ${{ inputs.event_type }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
@@ -34,6 +35,9 @@ jobs:
           # (normal PR) or "gh/..." (ghstack PR), and `merged` is always
           # false. The "Merged" label is the authoritative signal that
           # the PR has been landed to main by MergeBot.
+          #
+          # Check payload snapshot first (fast path), then fall back
+          # to a live API query if the label is missing from the payload.
           if [ "${EVENT_TYPE}" = "pull_request" ]; then
             ACTION=$(echo "$PAYLOAD_JSON" | jq -r '.payload.action // empty')
             if [ "${ACTION}" != "closed" ]; then
@@ -41,9 +45,37 @@ jobs:
               echo "should_build=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
+
+            PR_NUMBER=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.number // empty')
+            UPSTREAM_REPO=$(echo "$PAYLOAD_JSON" | jq -r '.payload.repository.full_name // empty')
+
+            if [ -z "${PR_NUMBER}" ] || [ -z "${UPSTREAM_REPO}" ]; then
+              echo "ERROR: Could not extract PR number or upstream repo from payload"
+              exit 1
+            fi
+
+            echo "Checking 'Merged' label for PR #${PR_NUMBER} in ${UPSTREAM_REPO}"
+
+            # Fast path: check payload snapshot first
             HAS_MERGED=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.labels // [] | map(.name) | index("Merged") // ""')
+            if [ -n "${HAS_MERGED}" ]; then
+              echo "Found 'Merged' label in webhook payload"
+            else
+              # MergeBot may add the label after closing the PR;
+              # fall back to live API query
+              LABELS_RESPONSE=$(curl -sf \
+                -H "Authorization: Bearer ${GH_TOKEN}" \
+                -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/repos/${UPSTREAM_REPO}/issues/${PR_NUMBER}/labels")
+
+              HAS_MERGED=$(echo "$LABELS_RESPONSE" | jq -r '[.[].name] | index("Merged") // ""')
+              if [ -n "${HAS_MERGED}" ]; then
+                echo "Found 'Merged' label via GitHub API"
+              fi
+            fi
+
             if [ -z "${HAS_MERGED}" ]; then
-              echo "SKIP: PR does not have 'Merged' label"
+              echo "SKIP: PR #${PR_NUMBER} does not have 'Merged' label"
               echo "should_build=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
@@ -59,13 +91,6 @@ jobs:
           # ---- Extract build parameters ----
           # (Filter above guarantees: pull_request, closed, has "Merged" label)
           # Build always pulls latest main from the upstream repo — no SHA extraction needed.
-          UPSTREAM_REPO=$(echo "$PAYLOAD_JSON" | jq -r '.payload.repository.full_name // empty')
-
-          if [ -z "${UPSTREAM_REPO}" ]; then
-            echo "ERROR: Could not extract upstream_repo from payload"
-            exit 1
-          fi
-
           echo "upstream_repo=${UPSTREAM_REPO}" >> "$GITHUB_OUTPUT"
           echo "should_build=true" >> "$GITHUB_OUTPUT"
 
