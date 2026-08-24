@@ -27,22 +27,19 @@ jobs:
         run: |
           set -euo pipefail
 
-          # ---- Filter: only merged PRs targeting main ----
+          # ---- Filter: only merged PRs (closed + Merged label) ----
+          # pytorch/pytorch uses a land bot that pushes directly to main,
+          # bypassing GitHub's native merge. So base.ref may be "main"
+          # (normal PR) or "gh/..." (ghstack PR), and `merged` is always
+          # false. The "Merged" label is the authoritative signal that
+          # the PR has been landed to main by MergeBot.
           if [ "${EVENT_TYPE}" = "pull_request" ]; then
             ACTION=$(echo "$PAYLOAD_JSON" | jq -r '.payload.action // empty')
-            BASE_REF=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.base.ref // empty')
             if [ "${ACTION}" != "closed" ]; then
               echo "SKIP: PR action is '${ACTION}', not 'closed'"
               echo "should_build=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
-            if [ "${BASE_REF}" != "main" ]; then
-              echo "SKIP: PR targets '${BASE_REF}', not 'main'"
-              echo "should_build=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-            # repository_dispatch payload may not populate `merged` correctly.
-            # pytorch/pytorch CI adds a "Merged" label to merged PRs — use that.
             HAS_MERGED=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.labels // [] | map(.name) | index("Merged") // ""')
             if [ -z "${HAS_MERGED}" ]; then
               echo "SKIP: PR does not have 'Merged' label"
@@ -59,7 +56,7 @@ jobs:
           fi
 
           # ---- Extract build parameters ----
-          # (Filter above guarantees: pull_request, closed, target=main, has "Merged" label)
+          # (Filter above guarantees: pull_request, closed, has "Merged" label)
           # Build always pulls latest main from the upstream repo — no SHA extraction needed.
           UPSTREAM_REPO=$(echo "$PAYLOAD_JSON" | jq -r '.payload.repository.full_name // empty')
 
@@ -99,9 +96,11 @@ jobs:
           # pytorch/pytorch uses a land bot that pushes directly to main,
           # bypassing GitHub's native merge. So merged=false and
           # merge_commit_sha is a placeholder. The land bot commit message
-          # always contains "Pull Request resolved: ...pull/{PR_NUMBER}".
+          # always contains "(#PR_NUMBER)" in the subject line.
           # We list recent commits on main via the Commits API (reads git
-          # data directly, no search index delay) and match by PR number.
+          # data directly, no search index delay) and match the PR number
+          # in the subject line (first line) to avoid cross-reference
+          # false positives from other PR numbers in the body.
           echo ""
           echo "Querying GitHub Commits API: GET /repos/${UPSTREAM_REPO}/commits?sha=main&per_page=100"
 
@@ -114,11 +113,13 @@ jobs:
           echo "Commits on main (recent ${COMMIT_COUNT}):"
           echo "$COMMITS_RESPONSE" | jq -r '.[] | "  SHA: \(.sha[0:12])  date: \(.commit.author.date // "?")  message: \(.commit.message | split("\n")[0])"'
 
-          # Match commit message containing "pull/{PR_NUMBER}", exclude Reverts
+          # Match "(#PR_NUMBER)" in commit subject line, exclude Reverts
           MERGE_SHA=$(echo "$COMMITS_RESPONSE" | jq -r \
-            --arg pr "pull/${PR_NUMBER}" \
-            '[.[] | select((.commit.message // "") | test($pr; "i"))
-             | select((.commit.message | split("\n")[0]) | test("^Revert"; "i") | not)]
+            --arg pr "(#${PR_NUMBER})" \
+            '[.[] | (.commit.message // "") as $msg
+             | ($msg | split("\n")[0]) as $subject
+             | select($subject | test($pr; "i"))
+             | select($subject | test("^Revert"; "i") | not)]
              | .[0].sha // "null"')
 
           if [ "${MERGE_SHA}" != "null" ]; then
@@ -126,7 +127,7 @@ jobs:
             echo "Merge commit SHA (excluding reverts): ${MERGE_SHA}"
           else
             echo ""
-            echo "WARN: No commit on main references pull/${PR_NUMBER}"
+            echo "WARN: No commit on main references (#${PR_NUMBER}) in subject"
           fi
 
           echo ""
