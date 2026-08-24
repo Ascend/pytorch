@@ -28,13 +28,17 @@ from torch_npu._inductor.kernel.flexattention_template import (
     flex_attention_bwd_dq_mask_out,
     flex_attention_bwd_mask_compact,
     flex_attention_bwd_mask_pos,
+    flex_attention_compact_offsets,
+    flex_attention_compact_mapping,
     flex_attention_fwd_mask_compact,
     flex_attention_fwd_mask_in,
     flex_attention_fwd_mask_out,
 )
 
 from torch._inductor.ir import (
+    AssertScalar,
     ComputedBuffer,
+    DynamicScalar,
     ExternKernel,
     FixedLayout,
     get_fill_order,
@@ -42,6 +46,7 @@ from torch._inductor.ir import (
     TensorBox,
 )
 from torch._inductor.lowering import (
+    empty,
     empty_strided,
     lowerings,
     register_lowering,
@@ -129,174 +134,9 @@ def _is_named_ir_node(value: Any) -> bool:
     return hasattr(value, "get_name") and hasattr(value, "get_size")
 
 
-def _static_numel(node: Any) -> int:
-    numel = 1
-    for dim in node.get_size():
-        numel *= V.graph.sizevars.guard_int(dim)
-    return int(numel)
-
-
-def _extract_compact_sparse_mask_metadata_buffers(
-    mask_mod_other_buffers,
-    *,
-    kv_num_blocks,
-    kernel_options,
-    context: str,
-):
-    total_blocks = V.graph.sizevars.guard_int(
-        kernel_options[_COMPACT_SPARSE_MASK_TOTAL_BLOCKS_OPTION]
-    )
-    sparse_z = V.graph.sizevars.guard_int(
-        kv_num_blocks.get_size()[0]
-    )
-    sparse_hq = V.graph.sizevars.guard_int(
-        kernel_options.get("SPARSE_MASK_HQ", kv_num_blocks.get_size()[1])
-    )
-    num_q_blocks = V.graph.sizevars.guard_int(
-        kv_num_blocks.get_size()[2]
-    )
-    q_offsets_numel = sparse_z * sparse_hq * (num_q_blocks + 1)
-
-    ir_buffers = [
-        value for value in mask_mod_other_buffers if _is_named_ir_node(value)
-    ]
-    for index in range(len(ir_buffers) - 2):
-        candidates = ir_buffers[index : index + 3]
-        if [_static_numel(node) for node in candidates] == [
-            q_offsets_numel,
-            total_blocks,
-            total_blocks,
-        ]:
-            return tuple(candidates)
-
-    raise RuntimeError(
-        "unable to identify compact sparse mask metadata buffers in "
-        f"{context}: expected numels "
-        f"({q_offsets_numel}, {total_blocks}, {total_blocks}), got "
-        f"{[_static_numel(node) for node in ir_buffers]}"
-    )
-
-
-def _try_extract_compact_sparse_mask_metadata_buffers(
-    mask_mod_other_buffers,
-    *,
-    kv_num_blocks,
-    kernel_options,
-    context: str,
-):
-    if _COMPACT_SPARSE_MASK_TOTAL_BLOCKS_OPTION not in kernel_options:
-        log.info(
-            "flex_attention %s selects mask-in: missing %s",
-            context,
-            _COMPACT_SPARSE_MASK_TOTAL_BLOCKS_OPTION,
-        )
-        return None
-    try:
-        return _extract_compact_sparse_mask_metadata_buffers(
-            mask_mod_other_buffers,
-            kv_num_blocks=kv_num_blocks,
-            kernel_options=kernel_options,
-            context=context,
-        )
-    except (KeyError, RuntimeError, TypeError, ValueError) as exc:
-        log.info(  # noqa: G200
-            "flex_attention %s selects mask-in: packed metadata unavailable: %s",
-            context,
-            str(exc),
-        )
-        return None
-
-
-_COMPACT_SPARSE_MASK_TOTAL_BLOCKS_OPTION = "COMPACT_SPARSE_MASK_TOTAL_BLOCKS"
-_COMPACT_SPARSE_MASK_ATTR = "_npu_compact_sparse_mask_metadata"
 _EXPLICIT_SCORE_MOD_OPTION = "_NPU_EXPLICIT_SCORE_MOD"
 _STREAMING_BLOCK_MASK_TARGET_BYTES = 256 * 1024 * 1024
 _STREAMING_BLOCK_MASK_BYTES_PER_ELEMENT = 8
-
-
-def _precompute_compact_sparse_mask_metadata(block_mask: Any) -> dict[str, Any]:
-    kv_num_blks = getattr(block_mask, "kv_num_blocks", None)
-    if kv_num_blks is None:
-        raise ValueError("block_mask is missing kv_num_blocks")
-    if not isinstance(kv_num_blks, torch.Tensor):
-        raise TypeError(f"expected tensor kv_num_blocks, got {type(kv_num_blks).__name__}")
-
-    q_counts_by_segment = kv_num_blks.reshape(-1, kv_num_blks.shape[-1]).to(torch.int32)
-    q_counts = q_counts_by_segment.reshape(-1)
-    q_counts_cpu = q_counts.detach().to("cpu", dtype=torch.int64)
-    if q_counts_cpu.numel() == 0:
-        raise ValueError("kv_num_blocks is empty")
-    total_normal_blocks = int(q_counts_cpu.sum().item())
-    max_normal_blocks = int(q_counts_cpu.max().item())
-    # No partial/sparse blocks is a valid mask-out state. The compact metadata
-    # is then represented by empty flat maps and all-zero q offsets.
-
-    segment_totals = torch.sum(q_counts_by_segment, dim=1, dtype=torch.int32)
-    segment_bases = torch.empty_like(segment_totals)
-    segment_bases[0] = 0
-    if segment_totals.numel() > 1:
-        segment_bases[1:] = torch.cumsum(segment_totals[:-1], dim=0)
-    q_offsets_by_segment = torch.empty(
-        (q_counts_by_segment.shape[0], q_counts_by_segment.shape[1] + 1),
-        dtype=torch.int32,
-        device=kv_num_blks.device,
-    )
-    q_offsets_by_segment[:, 0] = segment_bases
-    q_offsets_by_segment[:, 1:] = (
-        segment_bases[:, None] + torch.cumsum(q_counts_by_segment, dim=1)
-    )
-    q_offsets = q_offsets_by_segment.reshape(-1).contiguous()
-
-    row_ids = torch.arange(q_counts.numel(), dtype=torch.int32, device=kv_num_blks.device)
-    local_blk_ids = torch.arange(max_normal_blocks, dtype=torch.int32, device=kv_num_blks.device)
-    valid_flat_mask = local_blk_ids.unsqueeze(0) < q_counts.unsqueeze(1)
-    flat_to_row = row_ids.unsqueeze(1).expand(-1, max_normal_blocks)[valid_flat_mask].contiguous()
-    flat_to_blk = local_blk_ids.unsqueeze(0).expand(q_counts.numel(), -1)[valid_flat_mask].contiguous()
-    return {
-        "q_offsets": q_offsets,
-        "flat_to_row": flat_to_row,
-        "flat_to_blk": flat_to_blk,
-        "total_normal_blocks": total_normal_blocks,
-        "sparse_mask_hq": int(kv_num_blks.shape[1]),
-    }
-
-
-def _wrap_mask_mod_with_compact_sparse_mask_metadata(mask_mod, metadata: dict[str, Any]):
-    q_offsets = metadata["q_offsets"]
-    flat_to_row = metadata["flat_to_row"]
-    flat_to_blk = metadata["flat_to_blk"]
-
-    @wraps(mask_mod)
-    def wrapped_mask_mod(b, h, q_idx, kv_idx):
-        result = mask_mod(b, h, q_idx, kv_idx)
-
-        # Capture empty compact-metadata buffers without indexing element zero.
-        def _ref(buf, idx):
-            if buf.numel() == 0:
-                return buf.sum().to(torch.float32)
-            return buf[idx].to(torch.float32)
-
-        if isinstance(q_idx, torch.Tensor):
-            zero_index = torch.zeros_like(q_idx, dtype=torch.int64)
-            zero_value = torch.zeros_like(q_idx, dtype=torch.float32)
-            sentinel = (
-                _ref(q_offsets, zero_index)
-                + _ref(flat_to_row, zero_index)
-                + _ref(flat_to_blk, zero_index)
-            ) < zero_value
-        else:
-            zero_value = torch.tensor(0.0, dtype=torch.float32, device=q_offsets.device)
-            sentinel = (
-                _ref(q_offsets, 0)
-                + _ref(flat_to_row, 0)
-                + _ref(flat_to_blk, 0)
-            ) < zero_value
-        if isinstance(result, torch.Tensor):
-            return torch.logical_or(result, sentinel)
-        return bool(result) or bool(sentinel.item())
-
-    setattr(wrapped_mask_mod, _COMPACT_SPARSE_MASK_ATTR, metadata)  # noqa: B010
-    return wrapped_mask_mod
 
 
 def create_zero_int_tensor_fake(x) -> torch.Tensor:
@@ -321,6 +161,14 @@ def create_compact_q_offsets_fake(x) -> torch.Tensor:
         fallback=config.unbacked_symint_fallback,
     )
     return torch.zeros(size, dtype=x.get_dtype(), device=x.get_device())
+
+
+def create_sparse_mask_num_blocks_fake(x) -> torch.Tensor:
+    size = V.graph.sizevars.optimization_hints(
+        x.get_size(),
+        fallback=config.unbacked_symint_fallback,
+    )
+    return torch.ones(size, dtype=x.get_dtype(), device=x.get_device())
 
 
 def _create_sparse_mask_num_blocks_fake_generator(max_normal_blocks: int):
@@ -369,6 +217,149 @@ from torch_npu._inductor.kernel.flex_attention_config_generator import (
 )
 aten = torch.ops.aten
 Expr = sympy.Expr
+
+
+def _build_runtime_compact_sparse_mask_offsets(
+    *,
+    kv_num_blocks,
+    kv_indices,
+    device,
+    context: str,
+):
+    q_offsets = empty_strided(
+        kv_num_blocks.get_size(),
+        None,
+        dtype=torch.int32,
+        device=device,
+    )
+    row_count = sympy.prod(kv_num_blocks.get_size())
+    upper_capacity = row_count * kv_indices.get_size()[3]
+    V.graph.sizevars.check(
+        sympy.Le(
+            upper_capacity,
+            sympy.Integer(torch.iinfo(torch.int32).max),
+        )
+    )
+    total_blocks = empty_strided(
+        [1],
+        stride=[1],
+        dtype=torch.int32,
+        device=device,
+    )
+    total_blocks = _force_fixed_layout(
+        lowerings[aten.fill_](total_blocks, 0),
+        [1],
+    )
+    total_layout = FixedLayout(device, torch.int32, [1], stride=[1])
+
+    choices = []
+    flex_attention_compact_offsets.maybe_append_choice(
+        choices=choices,
+        input_nodes=[
+            q_offsets,
+            total_blocks,
+            kv_num_blocks,
+        ],
+        layout=total_layout,
+        mutated_inputs=[
+            q_offsets,
+            total_blocks,
+        ],
+        call_sizes=[row_count],
+        num_stages=1,
+        num_warps=4,
+        NUM_VECTOR_CORE=_get_num_vector_core(),
+    )
+    if not choices:
+        raise RuntimeError(
+            f"{context} could not create compact sparse mask metadata kernel"
+        )
+
+    autotune_select_algorithm(
+        f"{context}_compact_sparse_mask_metadata",
+        choices,
+        [
+            q_offsets,
+            total_blocks,
+            kv_num_blocks,
+        ],
+        total_layout,
+        input_gen_fns={
+            0: create_compact_q_offsets_fake,
+            1: create_zero_int_tensor_fake,
+            2: create_sparse_mask_num_blocks_fake,
+        },
+    )
+    return q_offsets, total_blocks, row_count
+
+
+def _bind_runtime_total_blocks_as_unbacked_size(
+    runtime_total_blocks: TensorBox,
+    *,
+    max_blocks: int,
+) -> sympy.Symbol:
+    shape_env = V.graph.sizevars.shape_env
+    symint = shape_env.create_unbacked_symint()
+    symbol = symint.node.expr
+    shape_env._constrain_range_for_size(symbol, min=0, max=max_blocks)
+
+    dynamic_scalar = DynamicScalar(symbol, (), runtime_total_blocks)
+    dynamic_scalar.name = V.graph.register_buffer(dynamic_scalar)
+    V.graph.register_operation(dynamic_scalar)
+
+    pending = shape_env.pending_fresh_unbacked_symbols
+    shape_env.pending_fresh_unbacked_symbols = [
+        value for value in pending if value != symbol
+    ]
+
+    range_assert = AssertScalar(
+        sympy.And(symbol >= 0, symbol <= max_blocks),
+        f"compact sparse-mask block count must be in [0, {max_blocks}]",
+    )
+    range_assert.name = V.graph.register_buffer(range_assert)
+    V.graph.register_operation(range_assert)
+    return symbol
+
+
+def _build_runtime_compact_sparse_mask_mapping(
+    *,
+    flat_to_row,
+    flat_to_blk,
+    q_offsets,
+    kv_num_blocks,
+    row_count,
+    device,
+    context: str,
+):
+    mapping_layout = FixedLayout(device, torch.int32, [1], stride=[1])
+    choices = []
+    flex_attention_compact_mapping.maybe_append_choice(
+        choices=choices,
+        input_nodes=[flat_to_row, flat_to_blk, q_offsets, kv_num_blocks],
+        layout=mapping_layout,
+        mutated_inputs=[flat_to_row, flat_to_blk],
+        call_sizes=[row_count],
+        num_stages=1,
+        num_warps=4,
+        NUM_VECTOR_CORE=_get_num_vector_core(),
+    )
+    if not choices:
+        raise RuntimeError(
+            f"{context} could not create compact sparse mask mapping kernel"
+        )
+
+    autotune_select_algorithm(
+        f"{context}_compact_sparse_mask_mapping",
+        choices,
+        [flat_to_row, flat_to_blk, q_offsets, kv_num_blocks],
+        mapping_layout,
+        input_gen_fns={
+            0: create_zero_int_tensor_fake,
+            1: create_zero_int_tensor_fake,
+            2: create_compact_q_offsets_fake,
+            3: create_sparse_mask_num_blocks_fake,
+        },
+    )
 
 
 def _maybe_copy_to_dtype(x: TensorBox, dtype: torch.dtype) -> TensorBox:
@@ -558,12 +549,6 @@ def patch_flex_attention() -> None:
         )
         updated_kernel_options = dict(updated_kernel_options)
         updated_kernel_options[_EXPLICIT_SCORE_MOD_OPTION] = score_mod is not None
-        cached_options = getattr(block_mask, "_npu_flex_attention_kernel_options", None)
-        if isinstance(cached_options, dict):
-            if _COMPACT_SPARSE_MASK_TOTAL_BLOCKS_OPTION in cached_options:
-                updated_kernel_options[_COMPACT_SPARSE_MASK_TOTAL_BLOCKS_OPTION] = (
-                    cached_options[_COMPACT_SPARSE_MASK_TOTAL_BLOCKS_OPTION]
-                )
         return current_flex_attention(
             query,
             key,
@@ -600,39 +585,6 @@ def patch_flex_attention() -> None:
             try:
                 kernel_options = infer_eager_block_mask_kernel_options(block_mask)
                 merged_kernel_options = dict(kernel_options) if kernel_options else {}
-                setattr(  # noqa: B010
-                    block_mask,
-                    "_npu_flex_attention_kernel_options",
-                    merged_kernel_options,
-                )
-                try:
-                    compact_metadata = _precompute_compact_sparse_mask_metadata(block_mask)
-                except Exception as compact_exc:
-                    log.info(  # noqa: G200
-                        "NPU compact sparse mask metadata unavailable; "
-                        "mask-in template will be selected: %s",
-                        str(compact_exc),
-                    )
-                    return block_mask
-
-                setattr(
-                    block_mask,
-                    _COMPACT_SPARSE_MASK_ATTR,
-                    compact_metadata,
-                )  # noqa: B010
-                block_mask.mask_mod = (
-                    _wrap_mask_mod_with_compact_sparse_mask_metadata(
-                        block_mask.mask_mod,
-                        compact_metadata,
-                    )
-                )
-                merged_kernel_options[
-                    _COMPACT_SPARSE_MASK_TOTAL_BLOCKS_OPTION
-                ] = compact_metadata["total_normal_blocks"]
-                merged_kernel_options["SPARSE_MASK_HQ"] = compact_metadata[
-                    "sparse_mask_hq"
-                ]
-                merged_kernel_options["SPARSE_MASK_HEAD_SHARED"] = False
                 setattr(  # noqa: B010
                     block_mask,
                     "_npu_flex_attention_kernel_options",
@@ -767,13 +719,27 @@ def _build_subgraph_buffer_with_additional_lowerings(args, subgraph):
 
 def _use_flex_decoding(query, kernel_options):
     force_flex = kernel_options.get("FORCE_USE_FLEX_ATTENTION", False)
-    short_query_length = V.graph.sizevars.evaluate_expr(
-        sympy.Lt(query.get_size()[-2], 128)
+    short_query_length = V.graph.sizevars.statically_known_lt(
+        query.get_size()[-2], 128
     )
-    non_zero_length = V.graph.sizevars.evaluate_expr(sympy.Gt(query.get_size()[-2], 0))
+    non_zero_length = V.graph.sizevars.statically_known_gt(
+        query.get_size()[-2], 0
+    )
     static_batch = isinstance(query.get_size()[0], (int, sympy.Integer))
     static_num_heads = isinstance(query.get_size()[1], (int, sympy.Integer))
-    return not force_flex and short_query_length and static_batch and static_num_heads
+    return (
+        not force_flex
+        and short_query_length
+        and non_zero_length
+        and static_batch
+        and static_num_heads
+    )
+
+
+def _sequence_lengths_are_statically_divisible(seq_len_q, seq_len_kv) -> bool:
+    return V.graph.sizevars.statically_known_multiple_of(
+        seq_len_q, 128
+    ) and V.graph.sizevars.statically_known_multiple_of(seq_len_kv, 128)
 
 
 def _validate_device(query, key, value):
@@ -782,6 +748,10 @@ def _validate_device(query, key, value):
 
 def _get_num_cube_core() -> int:
     return max(int(getattr(npu_config, "num_cube_core", 1)), 1)
+
+
+def _get_num_vector_core() -> int:
+    return max(int(getattr(npu_config, "num_vector_core", 1)), 1)
 
 
 def _collect_subgraph_read_names(subgraph_buffer):
@@ -902,8 +872,6 @@ def _build_qmajor_dq_launch_meta(
     )
 
     return {
-        "DQ_NUM_Q_BLOCKS": num_q_blocks,
-        "DQ_NUM_TASKS": num_tasks,
         "DQ_LAUNCH_PROGRAMS": launch_programs,
     }
 
@@ -1054,10 +1022,10 @@ def _register_npu_inductor_flex_attention():
         ), f"Bq and Bkv must broadcastable. Got Bq={Bq} and Bkv={Bkv}"
         B = Bq
 
-        if seq_len_q % 128 != 0 or seq_len_kv % 128 != 0:
-            kernel_options.setdefault("IS_DIVISIBLE", False)
-        else:
-            kernel_options.setdefault("IS_DIVISIBLE", True)
+        kernel_options.setdefault(
+            "IS_DIVISIBLE",
+            _sequence_lengths_are_statically_divisible(seq_len_q, seq_len_kv),
+        )
 
         # Reuse query strides for output layout despite different last dimension.
         # This works because only the last dim differs and we check it is contiguous.
@@ -1092,74 +1060,77 @@ def _register_npu_inductor_flex_attention():
         score_mod_is_identity = _is_score_mod_identity_graph(subgraph)
         has_score_mod = has_explicit_score_mod or not score_mod_is_identity
         score_mod_uses_where = _score_mod_uses_where(subgraph)
-        compact_metadata_buffers = (
-            _try_extract_compact_sparse_mask_metadata_buffers(
-                mask_mod_other_buffers,
-                kv_num_blocks=kv_num_blocks,
-                kernel_options=kernel_options,
-                context="forward",
-            )
-        )
-        packed_metadata_available = compact_metadata_buffers is not None
         flexattention_mask_out = (
             bool(npu_config.flex_attention.flexattention_mask_out)
             and not has_score_mod
-            and packed_metadata_available
         )
         kernel_options["TORCHINDUCTOR_FLEXATTENTION_MASKOUT"] = (
             flexattention_mask_out
         )
 
-        compact_q_offsets = None
-        compact_flat_to_row = None
-        compact_flat_to_blk = None
-        if flexattention_mask_out:
-            (
-                compact_q_offsets,
-                compact_flat_to_row,
-                compact_flat_to_blk,
-            ) = compact_metadata_buffers
-
-        # HAS_FULL_BLOCKS is supplied by the eager create_block_mask patch and cached on
-        # the BlockMask, so lowering only consumes it.
-        has_full_blocks = bool(kernel_options.get("HAS_FULL_BLOCKS", False))
+        has_full_blocks = full_kv_num_blocks is not None
         kernel_options.setdefault("HAS_FULL_BLOCKS", has_full_blocks)
+        if not has_full_blocks:
+            full_kv_num_blocks, full_kv_indices = (
+                empty(0, device=query.get_device()) for _ in range(2)
+            )
 
         set_head_dim_values(kernel_options, qk_head_dim, v_head_dim, V.graph.sizevars)
-
 
         # Mark SPARSE_KV_BLOCK_SIZE & SPARSE_Q_BLOCK_SIZE as static shapes and add guards.
         SPARSE_KV_BLOCK_SIZE = V.graph.sizevars.guard_int(SPARSE_KV_BLOCK_SIZE)
         SPARSE_Q_BLOCK_SIZE = V.graph.sizevars.guard_int(SPARSE_Q_BLOCK_SIZE)
 
-        metadata_sparse_hq = kv_num_blocks.get_size()[1]
-        num_sparse_q_blocks = kv_num_blocks.get_size()[2]
-        metadata_max_normal_blocks = kv_indices.get_size()[3]
-        metadata_sparse_hq_val = V.graph.sizevars.guard_int(metadata_sparse_hq)
-        num_sparse_q_blocks_val = V.graph.sizevars.guard_int(num_sparse_q_blocks)
-        metadata_max_normal_blocks_val = V.graph.sizevars.guard_int(metadata_max_normal_blocks)
-        sparse_mask_hq_val = V.graph.sizevars.guard_int(
-            kernel_options.get("SPARSE_MASK_HQ", metadata_sparse_hq_val)
-        )
-        sparse_mask_max_normal_blocks_val = V.graph.sizevars.guard_int(
-            kernel_options.get("SPARSE_MASK_MAX_NORMAL_BLOCKS", metadata_max_normal_blocks_val)
-        )
-        kernel_options.setdefault("SPARSE_MASK_HQ", sparse_mask_hq_val)
-        kernel_options.setdefault("SPARSE_MASK_MAX_NORMAL_BLOCKS", sparse_mask_max_normal_blocks_val)
+        compact_q_offsets = None
+        compact_flat_to_row = None
+        compact_flat_to_blk = None
+        runtime_total_blocks = None
+        actual_blocks = None
         sparse_mask_layout = None
         sparse_mask_buffer = None
         sparse_mask_strides = None
-        has_sparse_blocks = False
+
         if flexattention_mask_out:
-            assert compact_q_offsets is not None
-            assert compact_flat_to_row is not None
-            assert compact_flat_to_blk is not None
-            total_normal_blocks_val = V.graph.sizevars.guard_int(
-                kernel_options[_COMPACT_SPARSE_MASK_TOTAL_BLOCKS_OPTION]
+            (
+                compact_q_offsets,
+                runtime_total_blocks,
+                row_count,
+            ) = _build_runtime_compact_sparse_mask_offsets(
+                kv_num_blocks=kv_num_blocks,
+                kv_indices=kv_indices,
+                device=query.get_device(),
+                context="forward",
             )
-            has_sparse_blocks = total_normal_blocks_val > 0
+            max_runtime_blocks = torch.iinfo(torch.int32).max // (
+                SPARSE_Q_BLOCK_SIZE * SPARSE_KV_BLOCK_SIZE
+            )
+            actual_blocks = _bind_runtime_total_blocks_as_unbacked_size(
+                runtime_total_blocks,
+                max_blocks=max_runtime_blocks,
+            )
+            compact_flat_to_row = empty_strided(
+                [actual_blocks],
+                [1],
+                dtype=torch.int32,
+                device=query.get_device(),
+            )
+            compact_flat_to_blk = empty_strided(
+                [actual_blocks],
+                [1],
+                dtype=torch.int32,
+                device=query.get_device(),
+            )
+            _build_runtime_compact_sparse_mask_mapping(
+                flat_to_row=compact_flat_to_row,
+                flat_to_blk=compact_flat_to_blk,
+                q_offsets=compact_q_offsets,
+                kv_num_blocks=kv_num_blocks,
+                row_count=row_count,
+                device=query.get_device(),
+                context="forward",
+            )
             sparse_mask_size = [
-                total_normal_blocks_val,
+                actual_blocks,
                 SPARSE_Q_BLOCK_SIZE,
                 SPARSE_KV_BLOCK_SIZE,
             ]
@@ -1186,8 +1157,6 @@ def _register_npu_inductor_flex_attention():
             kernel_options.setdefault(
                 "SPARSE_MASK_STRIDE_M", sparse_mask_strides[1]
             )
-
-        kernel_options.setdefault("NUM_SPARSE_Q_BLOCKS", num_sparse_q_blocks_val)
 
         fwd_call_size_hints = V.graph.sizevars.optimization_hints(
             query.get_size(),
@@ -1386,30 +1355,11 @@ def _register_npu_inductor_flex_attention():
 
         sparse_mask_choices = []
         sparse_mask_base_kernel_options = {
-            "SPARSE_Z": V.graph.sizevars.guard_int(kv_num_blocks.get_size()[0]),
-            "SPARSE_HQ": kernel_options.get(
-                "SPARSE_MASK_HQ",
-                V.graph.sizevars.guard_int(kv_num_blocks.get_size()[1]),
-            ),
-            "NUM_SPARSE_Q_BLOCKS": V.graph.sizevars.guard_int(kv_num_blocks.get_size()[2]),
-            "MAX_NORMAL_BLOCKS": kernel_options.get(
-                "SPARSE_MASK_MAX_NORMAL_BLOCKS",
-                V.graph.sizevars.guard_int(kv_indices.get_size()[3]),
-            ),
             "SPARSE_Q_BLOCK_SIZE": SPARSE_Q_BLOCK_SIZE,
             "SPARSE_KV_BLOCK_SIZE": SPARSE_KV_BLOCK_SIZE,
-            "Q_LEN": V.graph.sizevars.guard_int(seq_len_q),
-            "KV_LEN": V.graph.sizevars.guard_int(seq_len_kv),
+            "SPARSE_MASK_STRIDE_BLK": sparse_mask_strides[0],
+            "SPARSE_MASK_STRIDE_M": sparse_mask_strides[1],
         }
-        sparse_mask_base_kernel_options.update(
-            {
-                "TOTAL_FLAT_ENTRIES": kernel_options[
-                    _COMPACT_SPARSE_MASK_TOTAL_BLOCKS_OPTION
-                ],
-                "SPARSE_MASK_STRIDE_BLK": sparse_mask_strides[0],
-                "SPARSE_MASK_STRIDE_M": sparse_mask_strides[1],
-            }
-        )
 
         sparse_mask_tiling_configs = build_sparse_mask_candidate_configs(
             SPARSE_Q_BLOCK_SIZE,
@@ -1431,10 +1381,10 @@ def _register_npu_inductor_flex_attention():
             sparse_mask_template = flex_attention_fwd_mask_compact
             sparse_mask_input_nodes = [
                 sparse_mask_buffer,
-                compact_q_offsets,
                 compact_flat_to_row,
                 compact_flat_to_blk,
-                kv_num_blocks,
+                query,
+                key,
                 kv_indices,
             ]
             try:
@@ -1444,7 +1394,8 @@ def _register_npu_inductor_flex_attention():
                     layout=sparse_mask_layout,
                     subgraphs=[mask_graph_buffer],
                     mutated_inputs=[sparse_mask_buffer],
-                    call_sizes=sparse_mask_buffer.get_size(),
+                    call_sizes=[actual_blocks],
+                    NUM_VECTOR_CORE=_get_num_vector_core(),
                     **sparse_mask_kernel_options,
                 )
                 if len(sparse_mask_choices) > num_choices_before:
@@ -1487,12 +1438,7 @@ def _register_npu_inductor_flex_attention():
         inputs_for_autotuning = forward_input_nodes + list(score_mod_other_buffers)
         input_gen_fns = {
             4: create_compact_q_offsets_fake,
-            5: _create_sparse_mask_num_blocks_fake_generator(
-                kernel_options.get(
-                    "SPARSE_MASK_MAX_NORMAL_BLOCKS",
-                    V.graph.sizevars.guard_int(kv_indices.get_size()[3]),
-                )
-            ),
+            5: create_sparse_mask_num_blocks_fake,
             6: _create_sparse_mask_indices_fake_generator(),
             8: create_num_blocks_fake_generator(full_kv_indices),
             9: create_indices_fake,
@@ -1527,50 +1473,30 @@ def _register_npu_inductor_flex_attention():
             mask_graph_buffer,
             mask_mod_other_buffers,
         )
-        compact_explicit_buffers = [
-            compact_q_offsets,
-            compact_flat_to_row,
-            compact_flat_to_blk,
-        ]
-        sparse_mask_autotune_other_buffers = [
-            buffer
-            for buffer in sparse_mask_autotune_other_buffers
-            if all(buffer is not explicit for explicit in compact_explicit_buffers)
-        ]
         sparse_mask_inputs_for_autotuning = (
             [
                 sparse_mask_buffer,
-                compact_q_offsets,
                 compact_flat_to_row,
                 compact_flat_to_blk,
-                kv_num_blocks,
+                query,
+                key,
                 kv_indices,
             ]
             + sparse_mask_autotune_other_buffers
         )
         sparse_mask_input_gen_fns = {
-            1: create_compact_q_offsets_fake,
+            1: create_zero_int_tensor_fake,
             2: create_zero_int_tensor_fake,
-            3: create_zero_int_tensor_fake,
-            4: _create_sparse_mask_num_blocks_fake_generator(
-                sparse_mask_base_kernel_options["MAX_NORMAL_BLOCKS"]
-            ),
             5: _create_sparse_mask_indices_fake_generator(),
         }
         log.info("Sparse mask kernel autotune starting with %d choices", len(sparse_mask_choices))
-        if has_sparse_blocks:
-            autotune_select_algorithm(
-                "sparse_mask_kernel",
-                sparse_mask_choices,
-                sparse_mask_inputs_for_autotuning,
-                sparse_mask_layout,
-                input_gen_fns=sparse_mask_input_gen_fns,
-            )
-        else:
-            log.info(
-                "Skipping sparse mask compact-generation kernel: "
-                "no sparse blocks (total_normal_blocks == 0)"
-            )
+        autotune_select_algorithm(
+            "sparse_mask_kernel",
+            sparse_mask_choices,
+            sparse_mask_inputs_for_autotuning,
+            sparse_mask_layout,
+            input_gen_fns=sparse_mask_input_gen_fns,
+        )
         log.info(
             "Sparse mask kernel autotune completed with %d choices",
             len(sparse_mask_choices),
@@ -1683,10 +1609,10 @@ def _register_npu_inductor_flex_attention():
         kernel_options.setdefault("ROWS_GUARANTEED_SAFE", False)
         kernel_options.setdefault("BLOCKS_ARE_CONTIGUOUS", False)
         # kernel_options.setdefault("FLOAT32_PRECISION", get_float32_precision())
-        if seq_len_q % 128 != 0 or seq_len_kv % 128 != 0:
-            kernel_options.setdefault("IS_DIVISIBLE", False)
-        else:
-            kernel_options.setdefault("IS_DIVISIBLE", True)
+        kernel_options.setdefault(
+            "IS_DIVISIBLE",
+            _sequence_lengths_are_statically_divisible(seq_len_q, seq_len_kv),
+        )
 
         fwd_placeholder_inps = [
             create_placeholder(name, dtype, device)
@@ -1828,60 +1754,47 @@ def _register_npu_inductor_flex_attention():
         SPARSE_Q_BLOCK_SIZE = V.graph.sizevars.guard_int(SPARSE_Q_BLOCK_SIZE)
         SPARSE_KV_BLOCK_SIZE = V.graph.sizevars.guard_int(SPARSE_KV_BLOCK_SIZE)
 
-        compact_metadata_buffers = (
-            _try_extract_compact_sparse_mask_metadata_buffers(
-                mask_mod_other_buffers,
-                kv_num_blocks=kv_num_blocks,
-                kernel_options=kernel_options,
-                context="backward",
-            )
-        )
-        packed_metadata_available = compact_metadata_buffers is not None
         flexattention_mask_out = (
             configured_mask_out
             and not has_score_mod
-            and packed_metadata_available
         )
         kernel_options["TORCHINDUCTOR_FLEXATTENTION_MASKOUT"] = (
             flexattention_mask_out
         )
         log.info(
             "flex_attention_backward mask route: configured_mask_out=%s "
-            "has_score_mod=%s packed_metadata_available=%s "
+            "has_score_mod=%s "
             "flexattention_mask_out=%s",
             configured_mask_out,
             has_score_mod,
-            packed_metadata_available,
             flexattention_mask_out,
         )
 
         compact_q_offsets = None
         compact_flat_to_row = None
         compact_flat_to_blk = None
-        if flexattention_mask_out:
-            (
-                compact_q_offsets,
-                compact_flat_to_row,
-                compact_flat_to_blk,
-            ) = compact_metadata_buffers
+        runtime_total_blocks = None
+        actual_blocks = None
 
         sparse_z = kv_num_blocks.get_size()[0]
         metadata_sparse_hq = kv_num_blocks.get_size()[1]
-        num_sparse_q_blocks = kv_num_blocks.get_size()[2]
-        metadata_max_normal_blocks = kv_indices.get_size()[3]
-        metadata_sparse_hq_val = V.graph.sizevars.guard_int(metadata_sparse_hq)
-        num_sparse_q_blocks_val = V.graph.sizevars.guard_int(num_sparse_q_blocks)
-        metadata_max_normal_blocks_val = V.graph.sizevars.guard_int(metadata_max_normal_blocks)
-        sparse_z_val = V.graph.sizevars.guard_int(sparse_z)
-        sparse_mask_hq_val = V.graph.sizevars.guard_int(
-            kernel_options.get("SPARSE_MASK_HQ", metadata_sparse_hq_val)
+        bwd_dynamic_dims = (
+            *query.get_size()[:3],
+            *key.get_size()[:3],
+            *kv_num_blocks.get_size(),
+            kv_indices.get_size()[3],
         )
-        sparse_mask_max_normal_blocks_val = V.graph.sizevars.guard_int(
-            kernel_options.get("SPARSE_MASK_MAX_NORMAL_BLOCKS", metadata_max_normal_blocks_val)
+        bwd_has_dynamic_shape = any(
+            bool(getattr(dim, "free_symbols", ())) for dim in bwd_dynamic_dims
         )
-        kernel_options.setdefault("SPARSE_MASK_HQ", sparse_mask_hq_val)
-        kernel_options.setdefault("SPARSE_MASK_MAX_NORMAL_BLOCKS", sparse_mask_max_normal_blocks_val)
-        kv_len_val = V.graph.sizevars.guard_int(seq_len_kv)
+        sparse_z_val = V.graph.sizevars.optimization_hint(
+            sparse_z,
+            fallback=config.unbacked_symint_fallback,
+        )
+        sparse_mask_hq_val = V.graph.sizevars.optimization_hint(
+            metadata_sparse_hq,
+            fallback=config.unbacked_symint_fallback,
+        )
 
         bwd_sparse_mask_layout = None
         bwd_sparse_mask_buffer = None
@@ -1889,14 +1802,47 @@ def _register_npu_inductor_flex_attention():
         bwd_sparse_mask_block_pos_layout = None
         bwd_sparse_mask_block_pos_buffer = None
         bwd_sparse_mask_block_pos_strides = None
-        bwd_has_sparse_blocks = False
         if flexattention_mask_out:
-            total_normal_blocks_val = V.graph.sizevars.guard_int(
-                kernel_options[_COMPACT_SPARSE_MASK_TOTAL_BLOCKS_OPTION]
+            (
+                compact_q_offsets,
+                runtime_total_blocks,
+                row_count,
+            ) = _build_runtime_compact_sparse_mask_offsets(
+                kv_num_blocks=kv_num_blocks,
+                kv_indices=kv_indices,
+                device=query.get_device(),
+                context="backward",
             )
-            bwd_has_sparse_blocks = total_normal_blocks_val > 0
+            max_runtime_blocks = torch.iinfo(torch.int32).max // (
+                SPARSE_Q_BLOCK_SIZE * SPARSE_KV_BLOCK_SIZE
+            )
+            actual_blocks = _bind_runtime_total_blocks_as_unbacked_size(
+                runtime_total_blocks,
+                max_blocks=max_runtime_blocks,
+            )
+            compact_flat_to_row = empty_strided(
+                [actual_blocks],
+                [1],
+                dtype=torch.int32,
+                device=query.get_device(),
+            )
+            compact_flat_to_blk = empty_strided(
+                [actual_blocks],
+                [1],
+                dtype=torch.int32,
+                device=query.get_device(),
+            )
+            _build_runtime_compact_sparse_mask_mapping(
+                flat_to_row=compact_flat_to_row,
+                flat_to_blk=compact_flat_to_blk,
+                q_offsets=compact_q_offsets,
+                kv_num_blocks=kv_num_blocks,
+                row_count=row_count,
+                device=query.get_device(),
+                context="backward",
+            )
             bwd_sparse_mask_size = [
-                total_normal_blocks_val,
+                actual_blocks,
                 SPARSE_Q_BLOCK_SIZE,
                 SPARSE_KV_BLOCK_SIZE,
             ]
@@ -1924,21 +1870,19 @@ def _register_npu_inductor_flex_attention():
                 "SPARSE_MASK_STRIDE_M", bwd_sparse_mask_strides[1]
             )
 
-            num_sparse_kv_blocks_val = (
-                kv_len_val + SPARSE_KV_BLOCK_SIZE - 1
+            num_sparse_kv_blocks = (
+                seq_len_kv + SPARSE_KV_BLOCK_SIZE - 1
             ) // SPARSE_KV_BLOCK_SIZE
             bwd_sparse_mask_block_pos_size = [
-                sparse_z_val,
-                sparse_mask_hq_val,
-                num_sparse_q_blocks_val,
-                num_sparse_kv_blocks_val,
+                *kv_num_blocks.get_size(),
+                num_sparse_kv_blocks,
             ]
             bwd_sparse_mask_block_pos_strides = [
-                sparse_mask_hq_val
-                * num_sparse_q_blocks_val
-                * num_sparse_kv_blocks_val,
-                num_sparse_q_blocks_val * num_sparse_kv_blocks_val,
-                num_sparse_kv_blocks_val,
+                metadata_sparse_hq
+                * kv_num_blocks.get_size()[2]
+                * num_sparse_kv_blocks,
+                kv_num_blocks.get_size()[2] * num_sparse_kv_blocks,
+                num_sparse_kv_blocks,
                 1,
             ]
             bwd_sparse_mask_block_pos_layout = FixedLayout(
@@ -1997,31 +1941,8 @@ def _register_npu_inductor_flex_attention():
         if flexattention_mask_out:
             assert bwd_sparse_mask_strides is not None
             bwd_sparse_mask_base_kernel_options = {
-                "SPARSE_Z": V.graph.sizevars.guard_int(
-                    kv_num_blocks.get_size()[0]
-                ),
-                "SPARSE_HQ": kernel_options.get(
-                    "SPARSE_MASK_HQ",
-                    V.graph.sizevars.guard_int(
-                        kv_num_blocks.get_size()[1]
-                    ),
-                ),
-                "NUM_SPARSE_Q_BLOCKS": V.graph.sizevars.guard_int(
-                    kv_num_blocks.get_size()[2]
-                ),
-                "MAX_NORMAL_BLOCKS": kernel_options.get(
-                    "SPARSE_MASK_MAX_NORMAL_BLOCKS",
-                    V.graph.sizevars.guard_int(
-                        kv_indices.get_size()[3]
-                    ),
-                ),
                 "SPARSE_Q_BLOCK_SIZE": SPARSE_Q_BLOCK_SIZE,
                 "SPARSE_KV_BLOCK_SIZE": SPARSE_KV_BLOCK_SIZE,
-                "Q_LEN": V.graph.sizevars.guard_int(seq_len_q),
-                "KV_LEN": V.graph.sizevars.guard_int(seq_len_kv),
-                "TOTAL_FLAT_ENTRIES": kernel_options[
-                    _COMPACT_SPARSE_MASK_TOTAL_BLOCKS_OPTION
-                ],
                 "SPARSE_MASK_STRIDE_BLK": bwd_sparse_mask_strides[0],
                 "SPARSE_MASK_STRIDE_M": bwd_sparse_mask_strides[1],
             }
@@ -2033,26 +1954,22 @@ def _register_npu_inductor_flex_attention():
             bwd_sparse_mask_kernel_options = bwd_sparse_mask_base_kernel_options.copy()
             bwd_sparse_mask_kernel_options.update(bwd_sparse_mask_tiling_config)
             bwd_sparse_mask_choice_count = len(bwd_sparse_mask_choices)
-            assert compact_q_offsets is not None
             assert compact_flat_to_row is not None
             assert compact_flat_to_blk is not None
             assert bwd_sparse_mask_layout is not None
             flex_attention_bwd_mask_compact.maybe_append_choice(
                 choices=bwd_sparse_mask_choices,
                 input_nodes=[
-                    compact_q_offsets,
                     compact_flat_to_row,
                     compact_flat_to_blk,
-                    kv_num_blocks,
+                    query,
+                    key,
                     kv_indices,
                 ],
                 layout=bwd_sparse_mask_layout,
                 subgraphs=[mask_graph_buffer],
-                call_sizes=[
-                    bwd_sparse_mask_base_kernel_options["TOTAL_FLAT_ENTRIES"],
-                    SPARSE_Q_BLOCK_SIZE,
-                    SPARSE_KV_BLOCK_SIZE,
-                ],
+                call_sizes=[actual_blocks],
+                NUM_VECTOR_CORE=_get_num_vector_core(),
                 **bwd_sparse_mask_kernel_options,
             )
             if len(bwd_sparse_mask_choices) > bwd_sparse_mask_choice_count:
@@ -2077,51 +1994,22 @@ def _register_npu_inductor_flex_attention():
             assert bwd_sparse_mask_block_pos_strides is not None
             assert bwd_sparse_mask_block_pos_layout is not None
             assert bwd_sparse_mask_block_pos_buffer is not None
-            assert compact_q_offsets is not None
             bwd_sparse_mask_block_pos_kernel_options = {
-                "SPARSE_Z": bwd_sparse_mask_base_kernel_options["SPARSE_Z"],
-                "SPARSE_HQ": bwd_sparse_mask_base_kernel_options["SPARSE_HQ"],
-                "NUM_SPARSE_Q_BLOCKS": bwd_sparse_mask_base_kernel_options[
-                    "NUM_SPARSE_Q_BLOCKS"
-                ],
-                "MAX_NORMAL_BLOCKS": bwd_sparse_mask_base_kernel_options[
-                    "MAX_NORMAL_BLOCKS"
-                ],
-                "NUM_SPARSE_KV_BLOCKS": num_sparse_kv_blocks_val,
-                "SPARSE_MASK_BLOCK_POS_STRIDE_Z": (
-                    bwd_sparse_mask_block_pos_strides[0]
-                ),
-                "SPARSE_MASK_BLOCK_POS_STRIDE_H": (
-                    bwd_sparse_mask_block_pos_strides[1]
-                ),
-                "SPARSE_MASK_BLOCK_POS_STRIDE_Q": (
-                    bwd_sparse_mask_block_pos_strides[2]
-                ),
-                "NUM_Q_SUB_BLOCKS": 1,
-                "NUM_KV_SUB_BLOCKS": 1,
                 "num_stages": 1,
                 "num_warps": 4,
             }
             flex_attention_bwd_mask_pos.maybe_append_choice(
                 choices=bwd_sparse_mask_block_pos_choices,
                 input_nodes=[
-                    kv_num_blocks,
+                    compact_flat_to_row,
+                    compact_flat_to_blk,
                     kv_indices,
-                    compact_q_offsets,
                     bwd_sparse_mask_block_pos_buffer,
                 ],
                 layout=bwd_sparse_mask_block_pos_layout,
                 mutated_inputs=[bwd_sparse_mask_block_pos_buffer],
-                call_sizes=[
-                    bwd_sparse_mask_block_pos_kernel_options["SPARSE_Z"],
-                    bwd_sparse_mask_block_pos_kernel_options["SPARSE_HQ"],
-                    bwd_sparse_mask_block_pos_kernel_options[
-                        "NUM_SPARSE_Q_BLOCKS"
-                    ],
-                    bwd_sparse_mask_block_pos_kernel_options[
-                        "MAX_NORMAL_BLOCKS"
-                    ],
-                ],
+                call_sizes=[actual_blocks],
+                NUM_VECTOR_CORE=_get_num_vector_core(),
                 **bwd_sparse_mask_block_pos_kernel_options,
             )
         if (
@@ -2140,90 +2028,62 @@ def _register_npu_inductor_flex_attention():
             assert bwd_sparse_mask_layout is not None
             assert bwd_sparse_mask_block_pos_layout is not None
             assert bwd_sparse_mask_block_pos_buffer is not None
-            compact_explicit_buffers = [
-                compact_q_offsets,
-                compact_flat_to_row,
-                compact_flat_to_blk,
-            ]
             bwd_sparse_mask_autotune_other_buffers = (
                 _filter_used_subgraph_buffers(
                     mask_graph_buffer,
                     mask_mod_other_buffers,
                 )
             )
-            bwd_sparse_mask_autotune_other_buffers = [
-                buffer
-                for buffer in bwd_sparse_mask_autotune_other_buffers
-                if all(
-                    buffer is not explicit
-                    for explicit in compact_explicit_buffers
-                )
-            ]
             bwd_sparse_mask_inputs_for_autotuning = [
-                compact_q_offsets,
                 compact_flat_to_row,
                 compact_flat_to_blk,
-                kv_num_blocks,
+                query,
+                key,
                 kv_indices,
                 *bwd_sparse_mask_autotune_other_buffers,
             ]
             bwd_sparse_mask_input_gen_fns = {
-                0: create_compact_q_offsets_fake,
+                0: create_zero_int_tensor_fake,
                 1: create_zero_int_tensor_fake,
-                2: create_zero_int_tensor_fake,
-                3: _create_sparse_mask_num_blocks_fake_generator(
-                    bwd_sparse_mask_base_kernel_options["MAX_NORMAL_BLOCKS"]
-                ),
                 4: _create_sparse_mask_indices_fake_generator(),
             }
-            if bwd_has_sparse_blocks:
-                bwd_sparse_mask_result, _ = autotune_select_algorithm(
-                    "bwd_sparse_mask_kernel_compact",
-                    bwd_sparse_mask_choices,
-                    bwd_sparse_mask_inputs_for_autotuning,
-                    bwd_sparse_mask_layout,
-                    input_gen_fns=bwd_sparse_mask_input_gen_fns,
-                )
-                log.info(
-                    "Backward compact sparse mask kernel autotune completed "
-                    "with %d choices: %s",
-                    len(bwd_sparse_mask_choices),
-                    bwd_sparse_mask_result,
-                )
+            bwd_sparse_mask_result, _ = autotune_select_algorithm(
+                "bwd_sparse_mask_kernel_compact",
+                bwd_sparse_mask_choices,
+                bwd_sparse_mask_inputs_for_autotuning,
+                bwd_sparse_mask_layout,
+                input_gen_fns=bwd_sparse_mask_input_gen_fns,
+            )
+            log.info(
+                "Backward compact sparse mask kernel autotune completed "
+                "with %d choices: %s",
+                len(bwd_sparse_mask_choices),
+                bwd_sparse_mask_result,
+            )
 
-                bwd_sparse_mask_block_pos_result, _ = autotune_select_algorithm(
-                    "sparse_mask_block_pos",
-                    bwd_sparse_mask_block_pos_choices,
-                    [
-                        kv_num_blocks,
-                        kv_indices,
-                        compact_q_offsets,
-                        bwd_sparse_mask_block_pos_buffer,
-                    ],
-                    bwd_sparse_mask_block_pos_layout,
-                    input_gen_fns={
-                        0: _create_sparse_mask_num_blocks_fake_generator(
-                            bwd_sparse_mask_base_kernel_options[
-                                "MAX_NORMAL_BLOCKS"
-                            ]
-                        ),
-                        1: _create_sparse_mask_indices_fake_generator(),
-                        2: create_compact_q_offsets_fake,
-                        3: create_minus_one_int_tensor_fake,
-                    },
-                )
-                log.info(
-                    "Sparse mask block-position kernel autotune completed "
-                    "with %d choices: %s",
-                    len(bwd_sparse_mask_block_pos_choices),
-                    bwd_sparse_mask_block_pos_result,
-                )
-            else:
-                bwd_sparse_mask_result = bwd_sparse_mask_buffer
-                log.info(
-                    "Skipping backward sparse mask compact/block-pos kernels: "
-                    "no sparse blocks (total_normal_blocks == 0)"
-                )
+            bwd_sparse_mask_block_pos_result, _ = autotune_select_algorithm(
+                "sparse_mask_block_pos",
+                bwd_sparse_mask_block_pos_choices,
+                [
+                    compact_flat_to_row,
+                    compact_flat_to_blk,
+                    kv_indices,
+                    bwd_sparse_mask_block_pos_buffer,
+                ],
+                bwd_sparse_mask_block_pos_layout,
+                input_gen_fns={
+                    0: create_zero_int_tensor_fake,
+                    1: create_zero_int_tensor_fake,
+                    2: _create_sparse_mask_indices_fake_generator(),
+                    3: create_minus_one_int_tensor_fake,
+                },
+            )
+            log.info(
+                "Sparse mask block-position kernel autotune completed "
+                "with %d choices: %s",
+                len(bwd_sparse_mask_block_pos_choices),
+                bwd_sparse_mask_block_pos_result,
+            )
             mask_out_input_nodes = [
                 bwd_sparse_mask_result,
                 compact_q_offsets,
@@ -2402,6 +2262,7 @@ def _register_npu_inductor_flex_attention():
             if (
                 not flexattention_mask_out
                 or not npu_config.flex_attention.bwd_dkdv_tasklist
+                or bwd_has_dynamic_shape
             ):
                 return {}
 
