@@ -47,9 +47,9 @@ class MstxMgr : public torch_npu::toolkit::profiler::Singleton<MstxMgr> {
   MstxMgr& operator=(MstxMgr&& obj) = delete;
 
   bool isMsleaksEnableImpl();
-  bool isProfTxEnable();
+  bool isTorchNpuProfTxEnable();
   bool isMsptiTxEnable();
-  bool isMsptiTxEnableImpl();
+  bool isMsprofTxEnable();
 
  private:
   static thread_local std::unordered_map<std::string, std::stack<int>> domainPushDepthStacks_;
@@ -59,6 +59,8 @@ class MstxMgr : public torch_npu::toolkit::profiler::Singleton<MstxMgr> {
   std::mutex mtx_;
   std::mutex mstxDomainsMtx;
   std::unordered_map<std::string, mstxDomainHandle_t> mstxDomains_;
+  std::vector<std::string> domain_include_;
+  std::vector<std::string> domain_exclude_;
 };
 } // namespace profiler
 } // namespace torch_npu

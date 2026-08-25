@@ -278,9 +278,9 @@ void ProfilerMgr::Start(const NpuTraceConfig& npu_config, bool cpu_trace) {
     }
   }
   enable_warmup_.store(false);
-  msprof_tx_.store(npu_config.msprof_tx);
   mstx_domain_include_ = npu_config.mstx_domain_include;
   mstx_domain_exclude_ = npu_config.mstx_domain_exclude;
+  msprof_tx_.store(npu_config.msprof_tx);
   if (npu_config.record_op_args) {
     record_op_args_.store(true);
     const std::string op_dump_path =
@@ -392,22 +392,6 @@ int8_t ProfilerMgr::GetTraceLevel() {
 
 int8_t GetTraceLevel() {
   return ProfilerMgr::GetInstance()->GetTraceLevel();
-}
-
-bool ProfilerMgr::IsMstxDomainEnabled(const std::string& domainName) {
-  if (mstx_domain_include_.empty() && mstx_domain_exclude_.empty()) {
-    return true;
-  }
-  if (!mstx_domain_include_.empty()) {
-    return std::find(mstx_domain_include_.begin(), mstx_domain_include_.end(), domainName) !=
-        mstx_domain_include_.end();
-  }
-  if (!mstx_domain_exclude_.empty()) {
-    return std::find(mstx_domain_exclude_.begin(), mstx_domain_exclude_.end(), domainName) ==
-        mstx_domain_exclude_.end();
-  }
-  // both not empty, enable all domains
-  return true;
 }
 } // namespace profiler
 } // namespace torch_npu

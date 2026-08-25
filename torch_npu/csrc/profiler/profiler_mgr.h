@@ -64,7 +64,10 @@ class ProfilerMgr {
     return profile_memory_;
   }
 
-  bool IsMstxDomainEnabled(const std::string& domainName);
+  void GetMstxDomainIncludeAndExclude(std::vector<std::string>& include, std::vector<std::string>& exclude) {
+    include = mstx_domain_include_;
+    exclude = mstx_domain_exclude_;
+  }
 
  private:
   ProfilerMgr();

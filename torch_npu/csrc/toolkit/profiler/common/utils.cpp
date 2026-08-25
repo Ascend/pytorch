@@ -104,6 +104,23 @@ int Utils::safe_strcpy_s(char* dest, const char* src, size_t destSize) {
   return 0;
 }
 
+std::vector<std::string> Utils::SplitString(const std::string& str, const std::string& sep) {
+  std::vector<std::string> result;
+  size_t start = 0;
+  size_t end = str.find(sep);
+  while (end != std::string::npos) {
+    std::string sub = str.substr(start, end - start);
+    if (!sub.empty()) {
+      result.push_back(sub);
+    }
+    start = end + sep.length();
+    end = str.find(sep, start);
+  }
+  if (!str.substr(start).empty()) {
+    result.push_back(str.substr(start));
+  }
+  return result;
+}
 } // namespace profiler
 } // namespace toolkit
 } // namespace torch_npu
