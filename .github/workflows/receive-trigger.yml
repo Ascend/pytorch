@@ -72,6 +72,42 @@ jobs:
             echo "$PAYLOAD_JSON" | jq -r '(.payload.head_commit.removed // [])[]' | sed 's/^/  D /'
             echo "============================================================"
             echo ""
+
+            # ---- Verify the tag target is the PR head (what upstream trunk CI runs) ----
+            # Upstream trunk.yml checks out the commit the tag points at, which is
+            # the PR head, NOT a merge with main. Query the GitHub API to verify:
+            #   1. The tag object resolves to the same commit as the push "after" SHA
+            #   2. That commit equals the PR's head SHA
+            if [ "${CREATED}" = "true" ]; then
+              AFTER_SHA=$(echo "$PAYLOAD_JSON" | jq -r '.payload.after // empty')
+              REPO_FULL=$(echo "$PAYLOAD_JSON" | jq -r '.payload.repository.full_name // empty')
+              echo "--- [tag-target-verify] querying GitHub API ---"
+              if [ -n "${AFTER_SHA}" ] && [ -n "${REPO_FULL}" ]; then
+                TAG_URL="https://api.github.com/repos/${REPO_FULL}/git/ref/tags/ciflow%2Ftrunk%2F${PR_NUM}"
+                TAG_QUERY=$(curl -sf "${TAG_URL}" || echo '{"error": "tag ref not found or deleted"}')
+                TAG_SHA=$(echo "${TAG_QUERY}" | jq -r '.object.sha // empty')
+                TAG_TYPE=$(echo "${TAG_QUERY}" | jq -r '.object.type // empty')
+
+                PR_QUERY=$(curl -sf "https://api.github.com/repos/${REPO_FULL}/pulls/${PR_NUM}" || echo '{"error": "PR not found"}')
+                PR_HEAD_SHA=$(echo "${PR_QUERY}" | jq -r '.head.sha // empty')
+                PR_STATE=$(echo "${PR_QUERY}" | jq -r '.state // empty')
+                PR_MERGED=$(echo "${PR_QUERY}" | jq -r '.merged // empty')
+                PR_TITLE=$(echo "${PR_QUERY}" | jq -r '.title // empty' | head -c 80)
+
+                echo "tag object:        ciflow/trunk/${PR_NUM} -> ${TAG_SHA} (${TAG_TYPE})"
+                echo "push after SHA:    ${AFTER_SHA}"
+                echo "PR #${PR_NUM} head:     ${PR_HEAD_SHA} (state=${PR_STATE}, merged=${PR_MERGED})"
+                echo "PR title:          ${PR_TITLE}"
+                if [ -n "${TAG_SHA}" ] && [ "${TAG_SHA}" = "${AFTER_SHA}" ] && [ "${AFTER_SHA}" = "${PR_HEAD_SHA}" ]; then
+                  echo "verdict:           MATCH - tag -> after SHA -> PR head (upstream trunk CI runs the PR head commit)"
+                elif [ -z "${TAG_SHA}" ] && [ "${AFTER_SHA}" = "${PR_HEAD_SHA}" ]; then
+                  echo "verdict:           MATCH (tag already deleted, likely PR merged/closed) - after SHA == PR head"
+                else
+                  echo "verdict:           DIFFER - tag=${TAG_SHA} after=${AFTER_SHA} pr_head=${PR_HEAD_SHA}"
+                fi
+              fi
+              echo ""
+            fi
           fi
 
       - name: Extract build parameters from payload
