@@ -23,6 +23,7 @@
     - [INDUCTOR_ASCEND_AGGRESSIVE_AUTOTUNE](./tiling/INDUCTOR_ASCEND_AGGRESSIVE_AUTOTUNE.md)
     - [TORCHINDUCTOR_COMPILE_THREADS](./tiling/TORCHINDUCTOR_COMPILE_THREADS.md)
     - [TORCHNPU_PRECOMPILE_THREADS](./tiling/TORCHNPU_PRECOMPILE_THREADS.md)
+- [分核/限核](./limit_core/limit_core.md)
 - [CostModel](./costmodel/costmodel.md)
     - [快速入门](./costmodel/overview.md)
     - [INDUCTOR_ASCEND_ENABLE_COSTMODEL](./costmodel/INDUCTOR_ASCEND_ENABLE_COSTMODEL.md)
