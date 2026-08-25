@@ -1349,6 +1349,34 @@
 
 </div>
 
+### <code><i>class</i></code> torch.cuda.memory.MemPool
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.cuda.memory.MemPool](https://pytorch.org/docs/2.13/generated/torch.cuda.memory.MemPool.html)
+
+**NPU 形式名称**：torch.npu.memory.MemPool
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
+
+**限制与说明**：
+
+- `torch.npu.memory.MemPool`、`torch.npu.MemPool`和`torch_npu.npu.MemPool`功能一致。
+- 函数原型为`MemPool(allocator=None, use_on_oom=False, no_split=False)`。`allocator`用于指定内存池使用的NPU内存分配器；`use_on_oom=True`表示内存池外的内存申请发生OOM时，可以将该内存池作为最后的内存分配来源；`no_split=True`表示不拆分该内存池中的内存段。
+- `id`属性返回类型为`Tuple[int, int]`的内存池唯一标识。对于用户通过本接口创建的内存池，第一个`int`固定为0，用于与NPUGraph内部创建的内存池进行区分；第二个`int`是用户内存池的递增唯一编号，每创建一个新的用户内存池，该编号递增。
+- `use_count()`返回内存池当前的引用计数，返回值类型为`int`。`MemPool`对象本身持有一个引用；进入`torch.npu.use_mem_pool`上下文后引用计数加1，退出上下文后引用计数减1。
+- `snapshot()`返回根据当前内存池ID过滤后的NPU内存分配器状态快照，返回值类型为`list`。与原生PyTorch接口不同，当前NPU接口不支持`include_traces`参数。
+- `torch.npu.use_mem_pool`仅将当前线程中的内存申请路由到指定内存池，在上下文中创建的新线程不会自动使用该内存池。回收内存池前，需要退出`torch.npu.use_mem_pool`上下文，并释放使用该内存池的Tensor。
+- Ascend 950DT支持使用默认NPU缓存分配器创建内存池，不支持通过`allocator`参数指定`NPUPluggableAllocator`。
+
+</div>
+
 ### torch.cuda.reset_accumulated_host_memory_stats
 
 <div style="margin-left: 2em">
