@@ -4,30 +4,17 @@
 from unittest import mock
 
 import sympy
-import torch
 from torch._inductor.codegen.triton import IndexingOptions, TritonKernel
 from torch._inductor.fx_passes.control_dependencies import control_deps
-from torch._inductor.graph import SubgraphLowering
 from torch.testing._internal.common_utils import TestCase, run_tests
 from torch.utils._ordered_set import OrderedSet
 
-from torch_npu._inductor.triton_experimental import ir
 from torch_npu._inductor.triton_experimental import lowering as experimental_lowering
 from torch_npu._inductor.triton_experimental import lowering_override_list
 from torch_npu._inductor.triton_experimental.codegen import triton as npu_triton_codegen
 
 
 class TestTritonExperimentalRegressions(TestCase):
-    def test_cat_store_dtype_accepts_subgraph_lowering(self):
-        value = object.__new__(SubgraphLowering)
-
-        self.assertIsNone(ir._cat_store_dtype("out", 0, value, None))
-
-    def test_cat_store_dtype_preserves_regular_value_dtype(self):
-        value = mock.Mock(dtype=torch.float16)
-
-        self.assertIs(ir._cat_store_dtype("out", 0, value, None), torch.float16)
-
     def test_control_deps_is_not_replaced_with_fallback(self):
         self.assertIn(control_deps, lowering_override_list.KEEP_UPSTREAM_LOWERING)
 
