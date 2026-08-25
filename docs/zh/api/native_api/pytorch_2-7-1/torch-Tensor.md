@@ -6446,12 +6446,15 @@
 | ---- | :----: |
 | <term>Atlas A2 训练系列产品</term> | ✔ |
 | <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 **限制与说明**：
 
-- `self`仅支持fp32，int64
-- 可能回退至CPU执行
+- 仅在<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>上，且同时满足以下条件时，启用NPU加速：
+  - `including_self`为True。
+  - `reduce`为"sum"或"add"。
+  - 输入数据类型为fp32。
+- 除上述场景外的<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>其他配置，以及全部<term>Ascend 950DT</term>场景，均回退至CPU执行（Fallback）。
 
 </div>
 
