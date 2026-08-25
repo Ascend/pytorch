@@ -104,7 +104,7 @@ class TestFlexAttentionDynamicMaskOutSource(unittest.TestCase):
 
         self.assertIn("bwd_has_dynamic_shape", lowering)
         self.assertIn("or bwd_has_dynamic_shape", lowering)
-
+        self.assertNotIn("NUM_SPARSE_Q_BLOCKS", lowering)
 
     def test_backward_dq_task_count_comes_from_runtime_q_shape(self):
         template = _read(TEMPLATE_PATH)
@@ -131,26 +131,6 @@ class TestFlexAttentionDynamicMaskOutNPU(unittest.TestCase):
             scores = scores.masked_fill(q_idx < kv_idx, float("-inf"))
         probabilities = torch.softmax(scores, dim=-1)
         return torch.matmul(probabilities, v.float()).to(q.dtype)
-
-    def test_create_block_mask_caches_sparse_mask_options(self):
-        from torch.nn.attention.flex_attention import create_block_mask
-
-        block_mask = create_block_mask(
-            self._causal_mask,
-            B=2,
-            H=2,
-            Q_LEN=257,
-            KV_LEN=193,
-            device="npu",
-        )
-        cached = getattr(block_mask, "_npu_flex_attention_kernel_options", {})
-        for key in (
-            "SPARSE_MASK_MAX_NORMAL_BLOCKS",
-            "SPARSE_MASK_HQ",
-            "SPARSE_MASK_HEAD_SHARED",
-            "HAS_FULL_BLOCKS",
-        ):
-            self.assertIn(key, cached)
 
     def test_forward_compile_for_shape_specific_block_mask_metadata(self):
         from torch._dynamo.testing import CompileCounterWithBackend
@@ -180,6 +160,59 @@ class TestFlexAttentionDynamicMaskOutNPU(unittest.TestCase):
             actual = compiled(q, k, v, block_mask)
             # NPU bfloat16 output can differ by two ULPs after accumulation.
             torch.testing.assert_close(actual, expected, atol=2e-2, rtol=2e-2)
+
+        self.assertEqual(counter.frame_count, 1)
+
+    def test_forward_when_mask_mod_captures_dynamic_shape(self):
+        from torch._dynamo.testing import CompileCounterWithBackend
+        from torch.nn.attention.flex_attention import create_block_mask, flex_attention
+
+        q_len = 128
+        kv_len = 128
+        q = torch.randn(
+            1, 1, q_len, 64, device="npu", dtype=torch.bfloat16
+        )
+        k = torch.randn(
+            1, 1, kv_len, 64, device="npu", dtype=torch.bfloat16
+        )
+        v = torch.randn_like(k)
+
+        def window_mask(_b, _h, q_idx, kv_idx):
+            return (q_idx - kv_idx).abs() <= window_source.shape[0]
+
+        def fn(q, k, v, block_mask, window_source):
+            return flex_attention(q, k, v, block_mask=block_mask)
+
+        counter = CompileCounterWithBackend("inductor")
+        compiled = torch.compile(
+            fn, backend=counter, dynamic=True, fullgraph=True
+        )
+        for window_size in (32, 48):
+            window_source = torch.randn(window_size, device="npu")
+            torch._dynamo.mark_dynamic(window_source, 0)
+            block_mask = create_block_mask(
+                window_mask,
+                B=1,
+                H=1,
+                Q_LEN=q_len,
+                KV_LEN=kv_len,
+                device="npu",
+            )
+            actual = compiled(q, k, v, block_mask, window_source)
+
+            scores = torch.matmul(q.float(), k.float().transpose(-2, -1))
+            scores = scores / math.sqrt(q.size(-1))
+            q_idx = torch.arange(q_len, device="npu")[:, None]
+            kv_idx = torch.arange(kv_len, device="npu")[None, :]
+            outside_window = (q_idx - kv_idx).abs() > window_source.shape[0]
+            scores = scores.masked_fill(outside_window, float("-inf"))
+            expected = torch.matmul(torch.softmax(scores, dim=-1), v.float())
+            torch.testing.assert_close(
+                actual,
+                expected.to(q.dtype),
+                atol=2e-2,
+                rtol=2e-2,
+            )
 
         self.assertEqual(counter.frame_count, 1)
 

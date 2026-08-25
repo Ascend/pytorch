@@ -112,7 +112,10 @@ def _load_triton_backend():
         pre_grad_custom_pass_fuc,
     )
     from .fx_passes.joint_graph import patch_constant_fold_uniform_value
-    from .ir import patch_num_splits
+    from .ir import (
+        patch_num_splits,
+        patch_triton_template_buffer_subgraph_symbols,
+    )
     from .kernel import (
         _register_npu_inductor_addmm,
         _register_npu_inductor_bmm,
@@ -138,6 +141,7 @@ def _load_triton_backend():
     from .codegen.cpp_utils import patch_device_to_aten
     from .codegen.triton import patch_gen_common_triton_ext_imports, patch_triton_scheduling
     from .runtime import patch_triton_heuristics_cached_autotune
+    patch_triton_template_buffer_subgraph_symbols()
     flex_attention._validate_device = _validate_device
     patch_flex_attention()
 
