@@ -45,6 +45,7 @@ from torch._inductor.runtime.hints import (
 )
 from .device_props import get_npu_vector_core_count, get_npu_ub_size_bytes
 from . import device_props
+from .compat import IS_TRITON_36_PLUS
 from torch._inductor.runtime.triton_heuristics import (
     CachingAutotuner,
     TritonCompileResult,
@@ -57,6 +58,7 @@ from torch._inductor.runtime.triton_compat import (
     ASTSource,
     Config,
     GPUTarget,
+    knobs,
 )
 # 2.13.0: upstream triton_compat removed cc_warp_size; warp_size now uses the
 # DeviceProperties.warp_size field (None on NPU -> falls back to 32), matching the
@@ -230,7 +232,6 @@ class NPUTritonCompileResult(TritonCompileResult):
     """
 
     def make_launcher(self):
-        from torch._inductor.utils import triton_version_uses_attrs_dict
         from torch._inductor.runtime.triton_heuristics import (
             config_to_dict,
         )
@@ -254,21 +255,33 @@ class NPUTritonCompileResult(TritonCompileResult):
 
         NPU_CU_COUNT = get_npu_vector_core_count()
 
-        if triton_version_uses_attrs_dict():
+        if IS_TRITON_36_PLUS:
             call_args = list(fn.arg_names)
             def_args = list(fn.arg_names)
-            if (
-                "num_warps" in compile_meta["constants"]
-                or "num_stages" in compile_meta["constants"]
-            ):
+            # Config constants (the constexprs in fn.constexprs -- XBLOCK/YBLOCK/
+            # ZBLOCK/R0_BLOCK -- plus the implicit num_warps/num_stages) are baked
+            # into the compiled kernel from the chosen Config, NOT passed by the
+            # launcher caller: the generated wrapper calls kernel.run(ptrs, xnumel,
+            # stream=...) with no block sizes. Exclude them from def_args and splice
+            # their literal value into call_args. Mirrors upstream triton_heuristics
+            # _get_arg_lists implicit_constants; without it the launcher signature
+            # requires e.g. XBLOCK that the caller never passes ("launcher() missing
+            # 1 required positional argument: 'XBLOCK'").
+            implicit_constants = {"num_warps", "num_stages"} | set(known_constants)
+            implicit_constants &= set(compile_meta["constants"].keys())
+            if implicit_constants:
+                # Both def_args (launcher Python signature) and call_args (passed to
+                # the ascend C runner and to bin.launch_metadata) must drop the config
+                # constants: the caller never passes them (def_args), and the ascend C
+                # launch wrapper takes only runtime args, not constexprs -- including
+                # them raises "function takes exactly N arguments (N+1 given)". Mirrors
+                # the non-attrs_dict branch's `i not in fn.constexprs` filter.
                 def_args = [
-                    arg for arg in def_args if arg not in ("num_warps", "num_stages")
+                    arg for arg in def_args if arg not in implicit_constants
                 ]
-                repl = {
-                    k: str(compile_meta["constants"].get(k))
-                    for k in ("num_warps", "num_stages")
-                }
-                call_args = [repl.get(arg, arg) for arg in call_args]
+                call_args = [
+                    arg for arg in call_args if arg not in implicit_constants
+                ]
         else:
             call_args = [
                 arg
@@ -290,11 +303,22 @@ class NPUTritonCompileResult(TritonCompileResult):
         if pm is not None and not isinstance(pm, dict) and hasattr(pm, "_asdict"):
             binary.packed_metadata = pm._asdict()
 
+        # triton-ascend >= 3.6 (vendored core >= 3.5.0) moved launch hooks off the
+        # CompiledKernel class attribute onto knobs.runtime.* (HookChain). IS_TRITON_36_PLUS's
+        # probe includes the knobs import, so knobs is not None in that branch.
+        if IS_TRITON_36_PLUS:
+            launch_enter = knobs.runtime.launch_enter_hook
+            launch_exit = knobs.runtime.launch_exit_hook
+        else:
+            # legacy (triton-ascend 3.2.x): hooks are CompiledKernel class attributes
+            launch_enter = binary.__class__.launch_enter_hook
+            launch_exit = binary.__class__.launch_exit_hook
+
         scope = {
             "grid_meta": cfg.kwargs,
             "bin": binary,
-            "launch_enter_hook": binary.__class__.launch_enter_hook,
-            "launch_exit_hook": binary.__class__.launch_exit_hook,
+            "launch_enter_hook": launch_enter,
+            "launch_exit_hook": launch_exit,
             "metadata": (
                 binary.packed_metadata
                 if hasattr(binary, "packed_metadata")
@@ -398,7 +422,7 @@ class NPUTritonCompileResult(TritonCompileResult):
         else:
             launch_metadata = (
                 f"bin.launch_metadata((grid_0, 1, 1), stream, {', '.join(call_args)})"
-                if binary.__class__.launch_enter_hook else "None"
+                if launch_enter else "None"
             )
             runner_args = [
                 "grid_0",
@@ -563,7 +587,7 @@ class NPUTritonCompileResult(TritonCompileResult):
         if launcher.store_cubin:
             launcher.fn = fn
             launcher.bin = binary
-            if triton_version_uses_attrs_dict():
+            if IS_TRITON_36_PLUS:
                 cfg_dict = config_to_dict(cfg)
                 def_args = [x for x in def_args if x not in cfg_dict]
                 call_args = [

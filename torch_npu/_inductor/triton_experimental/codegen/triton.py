@@ -72,6 +72,7 @@ import contextlib
 
 from torch._inductor import config
 from .. import device_props
+from ..compat import IS_TRITON_36_PLUS
 import torch
 
 
@@ -3614,7 +3615,6 @@ class NPUTritonKernel(TritonKernel):
         2. Add total_size arg for NPU 40CU group dispatch
         3. Wrap kernel body in group-based loop
         """
-        from torch._inductor.utils import triton_version_uses_attrs_dict
         from torch._inductor.codegen.triton_utils import (
             config_of, signature_to_meta, equal_1_arg_indices, non_constexpr_signature
         )
@@ -3829,9 +3829,9 @@ class NPUTritonKernel(TritonKernel):
 
         # Add BLOCK constexpr args
         def add_constexpr_arg(arg_name):
-            if triton_version_uses_attrs_dict():
+            if IS_TRITON_36_PLUS:
                 signature.append(ConstexprArg(arg_name))
-            argdefs.append(ArgName(arg_name, is_constexpr=True))
+            argdefs.append(ArgName(arg_name, is_constexpr=True))  # pre-3.6: constexprs stay out of signature
 
         for tree in self.range_trees:
             if tree.tensor_dim is None:
@@ -5093,19 +5093,27 @@ class NPUTritonScheduling(TritonScheduling):
         size_hints = {"x": int(x_total_hint), "r0_": total_cores}
         from torch._inductor.codegen.triton_utils import _type_of
         dt_star = _type_of(out_dtype)  # e.g. "*fp32"
-        # Build the AttrsDescriptor config directly (config_of() resolves alignment via
-        # scheduler.name_to_buf, but our "in_ptr0"/"out_ptr0" aren't real graph buffers).
+        # Build the combine-kernel attrs config directly (config_of() resolves alignment
+        # via scheduler.name_to_buf, but our "in_ptr0"/"out_ptr0" aren't real graph buffers).
         # Mark pointers (0,1) and static xnumel (2) 16-divisible: workspace+output are
         # fresh aligned allocations and xnumel is a multiple of 16. r0_numel (3) is the
         # constexpr core count.
-        from triton.compiler.compiler import AttrsDescriptor
         div16 = [0, 1]
         if int(x_total_hint) % 16 == 0:
             div16.append(2)
-        combine_attrs = AttrsDescriptor.from_dict({
-            "arg_properties": {"tt.divisibility": tuple(div16), "tt.equal_to": ()},
-            "cls": "AttrsDescriptor",
-        })
+        if IS_TRITON_36_PLUS:
+            # triton-ascend >= 3.6 (vendored core >= 3.5.0): AttrsDescriptor is removed;
+            # configs entries are plain dicts keyed by (arg_idx,) with
+            # [["tt.divisibility", 16]] payloads, consumed by triton's
+            # ASTFunction.deserialize. Mirrors torch AttrsDescriptorWrapper's dict branch.
+            combine_attrs = {(i,): [["tt.divisibility", 16]] for i in div16}
+        else:
+            # triton-ascend 3.2.x: V2 AttrsDescriptor object.
+            from triton.compiler.compiler import AttrsDescriptor
+            combine_attrs = AttrsDescriptor.from_dict({
+                "arg_properties": {"tt.divisibility": tuple(div16), "tt.equal_to": ()},
+                "cls": "AttrsDescriptor",
+            })
         triton_meta = {
             "signature": {
                 "in_ptr0": dt_star,
