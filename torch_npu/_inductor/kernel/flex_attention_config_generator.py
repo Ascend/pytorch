@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Union
+from typing import Optional
 
 from torch._inductor import config as inductor_config
 
@@ -176,14 +176,6 @@ def prefer_max_tiling_without_benchmark() -> bool:
     )
 
 
-def get_bwd_dq_compile_options() -> dict:
-    return npu_config.flex_attention.get_bwd_dq_compile_options()
-
-
-def get_bwd_dkdv_compile_options() -> dict:
-    return npu_config.flex_attention.get_bwd_dkdv_compile_options()
-
-
 def generate_fwd_candidate_configs(
     sparse_q_block_size: int,
     sparse_kv_block_size: int,
@@ -230,51 +222,6 @@ def build_sparse_mask_candidate_configs(
         for block_m in mask_block_m_candidates
         for block_n in mask_block_n_candidates
     ]
-
-
-def _sparse_mask_attention_tile_mix_loop(block_n: int) -> int:
-    block_n = int(block_n)
-    if block_n >= 512:
-        return 4
-    if block_n >= 256:
-        return 2
-    if block_n >= 128:
-        return 1
-    return 0
-
-
-def _sparse_mask_attention_cvpipeline_options(
-    block_n: int,
-    *,
-    enabled: bool,
-    enable_compile_hint: bool = False,
-) -> dict[str, Union[int, bool, str]]:
-    tile_mix_loop = _sparse_mask_attention_tile_mix_loop(block_n) if enabled else 0
-    return npu_config.flex_attention.get_sparse_mask_cvpipeline_compile_options(
-        enabled=enabled,
-        tile_mix_loop=tile_mix_loop,
-        enable_compile_hint=enable_compile_hint,
-    )
-
-
-def sparse_mask_attention_cvpipeline_config_variants(
-    base_options: dict,
-    *,
-    block_n: int,
-    enable_compile_hint: bool = False,
-) -> list[dict]:
-    variants = []
-    for enabled in (True, False):
-        variant = base_options.copy()
-        variant.update(
-            _sparse_mask_attention_cvpipeline_options(
-                block_n,
-                enabled=enabled,
-                enable_compile_hint=enable_compile_hint,
-            )
-        )
-        variants.append(variant)
-    return variants
 
 
 def generate_bwd_candidate_configs(

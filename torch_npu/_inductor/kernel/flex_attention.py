@@ -9,9 +9,16 @@ import sympy
 
 import torch
 from torch._inductor.virtualized import V, ops
+from torch.utils._ordered_set import OrderedSet
 from torch.utils._pytree import tree_map
+from torch.utils._sympy.functions import FloorDiv, Mod
 
 from torch._inductor import config
+try:
+    from torch._inductor.utils import can_use_tma
+except ImportError:
+    def can_use_tma(*_matrices, **_kwargs):
+        return False
 from torch_npu._inductor import config as npu_config
 from torch_npu._inductor.config import log
 from torch_npu._inductor.flex_attention_tasklist import (
@@ -20,6 +27,7 @@ from torch_npu._inductor.flex_attention_tasklist import (
     is_dkdv_tasklist_codegen_compatible,
 )
 from torch_npu._inductor.kernel.flexattention_template import (
+    flex_attention_backward_template,
     flex_attention_bwd_dkdv_mask_out,
     flex_attention_bwd_dkdv_reduce,
     flex_attention_bwd_dkdv_tasklist,
@@ -29,6 +37,7 @@ from torch_npu._inductor.kernel.flexattention_template import (
     flex_attention_bwd_mask_pos,
     flex_attention_compact_offsets,
     flex_attention_compact_mapping,
+    flex_attention_template,
     flex_attention_fwd_mask_compact,
     flex_attention_fwd_mask_out,
 )
@@ -58,16 +67,16 @@ try:
         create_indices_fake,
         create_num_blocks_fake_generator,
         create_placeholder,
+        freeze_irnodes,
+        get_fwd_subgraph_outputs,
         infer_dense_strides,
         maybe_realize,
         set_head_dim_values,
+        zeros_and_scatter_lowering,
     )
     from torch._inductor.kernel.flex.flex_attention import (
-        flex_attention_backward_template as upstream_flex_attention_backward_template,
-        flex_attention_template as upstream_flex_attention_template,
         get_bwd_subgraph_outputs,
         get_float32_precision,
-        get_fwd_subgraph_outputs,
         process_joint_outputs,
         validate_joint_graph,
     )
@@ -77,8 +86,6 @@ except ImportError:
         create_indices_fake,
         create_num_blocks_fake_generator,
         create_placeholder,
-        flex_attention_backward_template as upstream_flex_attention_backward_template,
-        flex_attention_template as upstream_flex_attention_template,
         get_bwd_subgraph_outputs,
         get_float32_precision,
         get_fwd_subgraph_outputs,
@@ -87,7 +94,26 @@ except ImportError:
         process_joint_outputs,
         set_head_dim_values,
         validate_joint_graph,
+        zeros_and_scatter_lowering,
     )
+    try:
+        from torch._inductor.kernel.flex_attention import freeze_irnodes
+    except ImportError:
+        from torch._inductor.ir import IRNode
+        from torch.utils._pytree import tree_map_only
+
+        def freeze_irnodes(tree):
+            if tree is None:
+                return None
+
+            def freeze(node):
+                try:
+                    node.freeze_layout()
+                except NotImplementedError:
+                    pass
+                return node
+
+            return tree_map_only(IRNode, freeze, tree)
 
 # PyTorch flex_attention exposes/saves LSE in log2 space, matching the
 # upstream kernels that use exp2/log2. NPU templates below compute LSE with
@@ -216,12 +242,9 @@ from torch_npu._inductor.kernel.flex_attention_config_generator import (
     FlexMode,
     NO_SPARSE_BLOCK_SIZE,
     build_sparse_mask_candidate_configs,
-    get_bwd_dkdv_compile_options,
-    get_bwd_dq_compile_options,
     generate_bwd_candidate_configs,
     generate_fwd_candidate_configs,
     prefer_max_tiling_without_benchmark,
-    sparse_mask_attention_cvpipeline_config_variants,
     validate_benchmark_config,
 )
 aten = torch.ops.aten
@@ -412,12 +435,8 @@ def _is_score_mod_identity_graph(fw_graph) -> bool:
 def _has_sparse_block_mask(
     sparse_q_block_size: Any, sparse_kv_block_size: Any
 ) -> bool:
-    sparse_q_block_size = V.graph.sizevars.evaluate_static_shape(
-        sparse_q_block_size
-    )
-    sparse_kv_block_size = V.graph.sizevars.evaluate_static_shape(
-        sparse_kv_block_size
-    )
+    sparse_q_block_size = V.graph.sizevars.guard_int(sparse_q_block_size)
+    sparse_kv_block_size = V.graph.sizevars.guard_int(sparse_kv_block_size)
     return not (
         sparse_q_block_size == NO_SPARSE_BLOCK_SIZE
         and sparse_kv_block_size == NO_SPARSE_BLOCK_SIZE
@@ -555,6 +574,8 @@ def patch_flex_attention() -> None:
         enable_gqa: bool = False,
         return_lse: bool = False,
         kernel_options: Optional[Dict[str, Any]] = None,
+        *,
+        return_aux: Any = None,
     ):
         """Inject eager block-mask metadata before delegating to the original flex_attention entry."""
         updated_kernel_options = apply_kernel_options_from_eager_block_mask(
@@ -575,6 +596,7 @@ def patch_flex_attention() -> None:
             enable_gqa=enable_gqa,
             return_lse=return_lse,
             kernel_options=updated_kernel_options,
+            return_aux=return_aux,
         )
 
     if not getattr(current_flex_attention, "_npu_metadata_patch_applied", False):
@@ -697,13 +719,20 @@ def _build_subgraph_buffer_with_additional_lowerings(args, subgraph):
     from torch._inductor.subgraph_lowering import PointwiseSubgraphLowering
 
     additional_lowerings = _get_flex_attention_additional_lowerings()
+    zeros_and_scatter = torch.ops.flex_lib.zeros_and_scatter.default
+    additional_lowerings[zeros_and_scatter] = zeros_and_scatter_lowering
     pw_subgraph = PointwiseSubgraphLowering(
         subgraph.graph_module,
         root_graph_lowering=V.graph,
+        allowed_mutations=OrderedSet([zeros_and_scatter]),
         additional_lowerings=additional_lowerings,
     )
     with V.set_graph_handler(pw_subgraph):
         pw_subgraph.run(*args)
+
+    # Older PointwiseSubgraphLowering versions defer approved mutation buffers.
+    for buffer in pw_subgraph.buffers:
+        V.graph.register_buffer(buffer)
 
     def convert_output_node_to_buffer(output_buffer):
         from torch._inductor.ir import ComputedBuffer, FlexibleLayout, StorageBox
@@ -734,9 +763,13 @@ def _build_subgraph_buffer_with_additional_lowerings(args, subgraph):
 
 
 def _sequence_lengths_are_statically_divisible(seq_len_q, seq_len_kv) -> bool:
-    return V.graph.sizevars.statically_known_multiple_of(
-        seq_len_q, 128
-    ) and V.graph.sizevars.statically_known_multiple_of(seq_len_kv, 128)
+    seq_q_divisible = V.graph.sizevars.statically_known_true(
+        sympy.Eq(Mod(seq_len_q, 128), 0)
+    )
+    seq_kv_divisible = V.graph.sizevars.statically_known_true(
+        sympy.Eq(Mod(seq_len_kv, 128), 0)
+    )
+    return seq_q_divisible and seq_kv_divisible
 
 
 def _validate_device(query, key, value):
@@ -935,6 +968,8 @@ def _lower_flex_attention_mask_in(
     )
     score_mod_other_buffers = maybe_realize(score_mod_other_buffers)
     mask_mod_other_buffers = maybe_realize(mask_mod_other_buffers)
+    freeze_irnodes(score_mod_other_buffers)
+    freeze_irnodes(mask_mod_other_buffers)
 
     Bq, Hq, seq_len_q, qk_head_dim = query.get_size()
     Bkv, Hkv, seq_len_kv, v_head_dim = value.get_size()
@@ -974,7 +1009,7 @@ def _lower_flex_attention_mask_in(
         device=query.get_device(),
     )
     kernel_options.setdefault("SM_SCALE", scale)
-    kernel_options.setdefault("GQA_SHARED_HEADS", Hq // Hkv)
+    kernel_options.setdefault("GQA_SHARED_HEADS", FloorDiv(Hq, Hkv))
 
     has_full_blocks = full_kv_num_blocks is not None
     kernel_options.setdefault("HAS_FULL_BLOCKS", has_full_blocks)
@@ -986,12 +1021,8 @@ def _lower_flex_attention_mask_in(
     set_head_dim_values(
         kernel_options, qk_head_dim, v_head_dim, V.graph.sizevars
     )
-    sparse_q_block_size = V.graph.sizevars.evaluate_static_shape(
-        sparse_q_block_size
-    )
-    sparse_kv_block_size = V.graph.sizevars.evaluate_static_shape(
-        sparse_kv_block_size
-    )
+    sparse_q_block_size = V.graph.sizevars.guard_int(sparse_q_block_size)
+    sparse_kv_block_size = V.graph.sizevars.guard_int(sparse_kv_block_size)
     configs = generate_fwd_candidate_configs(
         sparse_q_block_size=sparse_q_block_size,
         sparse_kv_block_size=sparse_kv_block_size,
@@ -1016,9 +1047,32 @@ def _lower_flex_attention_mask_in(
     ]
     choices: list[Any] = []
     original_kernel_options = kernel_options.copy()
+    num_consumer_groups, num_buffers_warp_spec = 0, 0
     for cfg in configs:
         cur_kernel_options = original_kernel_options.copy()
+        for k in list(cur_kernel_options.keys()):
+            if k.startswith("fwd_"):
+                option_value = cur_kernel_options.pop(k)
+                cur_kernel_options[k[4:]] = option_value
+            if k.startswith("bwd_"):
+                cur_kernel_options.pop(k)
+
+        # NPU tiling owns block sizes and launch dimensions.
         cur_kernel_options.update(cfg)
+        if cur_kernel_options.get("num_consumer_groups", False):
+            cur_kernel_options.setdefault(
+                "num_consumer_groups", num_consumer_groups
+            )
+            cur_kernel_options.setdefault(
+                "num_buffers_warp_spec", num_buffers_warp_spec
+            )
+
+        cur_kernel_options.setdefault("USE_TMA", bool(torch.xpu.is_available()))
+        if cur_kernel_options["USE_TMA"] and not can_use_tma(
+            query, key, value
+        ):
+            cur_kernel_options["USE_TMA"] = False
+
         cur_kernel_options.setdefault(
             "SPARSE_Q_BLOCK_SIZE", sparse_q_block_size
         )
@@ -1026,7 +1080,7 @@ def _lower_flex_attention_mask_in(
             "SPARSE_KV_BLOCK_SIZE", sparse_kv_block_size
         )
         choice_count = len(choices)
-        error = upstream_flex_attention_template.maybe_append_choice(
+        error = flex_attention_template.maybe_append_choice(
             choices=choices,
             input_nodes=input_nodes,
             layout=layout,
@@ -1062,7 +1116,11 @@ def _lower_flex_attention_mask_in(
     out, _ = autotune_select_algorithm(
         "flex_attention",
         choices,
-        [x for x in inputs_for_autotuning if _is_named_ir_node(x)],
+        [
+            x
+            for x in inputs_for_autotuning
+            if isinstance(x, torch._inductor.ir.IRNode)
+        ],
         layout,
         input_gen_fns=input_gen_fns,
     )
@@ -1103,6 +1161,38 @@ def _lower_flex_attention_backward_mask_in(
     sparse_kv_block_size,
 ):
     """Lower mask-in backward with PyTorch's fused Triton template."""
+    (
+        query,
+        key,
+        value,
+        logsumexp,
+        grad_out,
+        kv_num_blocks,
+        kv_indices,
+        full_kv_num_blocks,
+        full_kv_indices,
+        q_num_blocks,
+        q_indices,
+        full_q_num_blocks,
+        full_q_indices,
+    ) = maybe_realize(
+        [
+            query,
+            key,
+            value,
+            logsumexp,
+            grad_out,
+            kv_num_blocks,
+            kv_indices,
+            full_kv_num_blocks,
+            full_kv_indices,
+            q_num_blocks,
+            q_indices,
+            full_q_num_blocks,
+            full_q_indices,
+        ]
+    )
+
     Bq, Hq, seq_len_q, qk_head_dim = query.get_size()
     Bkv, Hkv, seq_len_kv, v_head_dim = value.get_size()
 
@@ -1151,8 +1241,16 @@ def _lower_flex_attention_backward_mask_in(
 
     kernel_options = kernel_options.copy()
     kernel_options.setdefault("FLOAT32_PRECISION", get_float32_precision())
+    kernel_options.setdefault("PRESCALE_QK", False)
+    kernel_options.setdefault("ROWS_GUARANTEED_SAFE", False)
+    kernel_options.setdefault("BLOCKS_ARE_CONTIGUOUS", False)
+    kernel_options.setdefault("WRITE_DQ", True)
+    kernel_options.setdefault(
+        "IS_DIVISIBLE",
+        _sequence_lengths_are_statically_divisible(seq_len_q, seq_len_kv),
+    )
     kernel_options.setdefault("SM_SCALE", scale)
-    kernel_options.setdefault("GQA_SHARED_HEADS", Hq // Hkv)
+    kernel_options.setdefault("GQA_SHARED_HEADS", FloorDiv(Hq, Hkv))
     has_full_blocks = full_kv_num_blocks is not None
     kernel_options.setdefault("HAS_FULL_BLOCKS", has_full_blocks)
     if not has_full_blocks:
@@ -1166,12 +1264,8 @@ def _lower_flex_attention_backward_mask_in(
     set_head_dim_values(
         kernel_options, qk_head_dim, v_head_dim, V.graph.sizevars
     )
-    sparse_q_block_size = V.graph.sizevars.evaluate_static_shape(
-        sparse_q_block_size
-    )
-    sparse_kv_block_size = V.graph.sizevars.evaluate_static_shape(
-        sparse_kv_block_size
-    )
+    sparse_q_block_size = V.graph.sizevars.guard_int(sparse_q_block_size)
+    sparse_kv_block_size = V.graph.sizevars.guard_int(sparse_kv_block_size)
     configs = generate_bwd_candidate_configs(
         sparse_q_block_size=sparse_q_block_size,
         sparse_kv_block_size=sparse_kv_block_size,
@@ -1203,9 +1297,33 @@ def _lower_flex_attention_backward_mask_in(
         full_q_indices,
     ]
     choices: list[Any] = []
+    original_kernel_options = kernel_options.copy()
+    num_consumer_groups, num_buffers_warp_spec = 0, 0
     for cfg in configs:
-        cur_kernel_options = kernel_options.copy()
+        cur_kernel_options = original_kernel_options.copy()
+        for k in list(cur_kernel_options.keys()):
+            if k.startswith("bwd_"):
+                option_value = cur_kernel_options.pop(k)
+                cur_kernel_options[k[4:]] = option_value
+            if k.startswith("fwd_"):
+                cur_kernel_options.pop(k)
+
+        # NPU tiling owns block sizes and launch dimensions.
         cur_kernel_options.update(cfg)
+        if cur_kernel_options.get("num_consumer_groups", False):
+            cur_kernel_options.setdefault(
+                "num_consumer_groups", num_consumer_groups
+            )
+            cur_kernel_options.setdefault(
+                "num_buffers_warp_spec", num_buffers_warp_spec
+            )
+
+        cur_kernel_options.setdefault("USE_TMA", bool(torch.xpu.is_available()))
+        if cur_kernel_options["USE_TMA"] and not can_use_tma(
+            query, key, value
+        ):
+            cur_kernel_options["USE_TMA"] = False
+
         cur_kernel_options.setdefault(
             "SPARSE_Q_BLOCK_SIZE", sparse_q_block_size
         )
@@ -1213,7 +1331,7 @@ def _lower_flex_attention_backward_mask_in(
             "SPARSE_KV_BLOCK_SIZE", sparse_kv_block_size
         )
         choice_count = len(choices)
-        upstream_flex_attention_backward_template.maybe_append_choice(
+        flex_attention_backward_template.maybe_append_choice(
             choices=choices,
             input_nodes=input_nodes,
             layout=layout_broadcasted_k,
@@ -1265,7 +1383,11 @@ def _lower_flex_attention_backward_mask_in(
     broadcasted_grad_key, _ = autotune_select_algorithm(
         "flex_attention_backward",
         choices,
-        [x for x in inputs_for_autotuning if _is_named_ir_node(x)],
+        [
+            x
+            for x in inputs_for_autotuning
+            if isinstance(x, torch._inductor.ir.IRNode)
+        ],
         layout_broadcasted_k,
         input_gen_fns=input_gen_fns,
     )
@@ -1356,6 +1478,7 @@ def _register_npu_inductor_flex_attention():
         subgraph_buffer = _build_subgraph_buffer_with_additional_lowerings(
             placeholder_inps + list(score_mod_other_buffers), subgraph
         )
+        freeze_irnodes(subgraph_buffer)
 
         mask_graph_placeholder_inps = [
             create_placeholder(name, dtype, query.get_device())
@@ -1369,15 +1492,15 @@ def _register_npu_inductor_flex_attention():
         mask_graph_buffer = _build_subgraph_buffer_with_additional_lowerings(
             mask_graph_placeholder_inps + list(mask_mod_other_buffers), mask_graph
         )
+        freeze_irnodes(mask_graph_buffer)
 
         kernel_options = dict(kernel_options)
-        # torch 2.10 upstream flex_attention adds kernel options that the NPU
-        # templates do not consume (they are GPU backend dispatch knobs).
+        # Upstream flex_attention adds GPU backend dispatch options that NPU
+        # templates do not consume.
         # Strip them before they leak into triton constexprs and cause
         # NameError("AUTO is not defined") during compilation.
-        # NB: WRITE_DQ is kept (consumed by NPU templates); OUTPUT_MAX is
-        # stripped (torch-2.10-only knob absent in 2.7 codegen).
-        for _unsupported in ("BACKEND", "OUTPUT_MAX", "generate_with_caching"):
+        # WRITE_DQ and OUTPUT_MAX are consumed by FlexAttention templates.
+        for _unsupported in ("BACKEND", "generate_with_caching"):
             kernel_options.pop(_unsupported, None)
         has_explicit_score_mod = bool(
             kernel_options.pop(_EXPLICIT_SCORE_MOD_OPTION, False)
@@ -1391,12 +1514,13 @@ def _register_npu_inductor_flex_attention():
         }
         kernel_options.setdefault("FLOAT32_PRECISION", get_float32_precision())
         score_mod_is_identity = _is_score_mod_identity_graph(subgraph)
+        has_score_mod = has_explicit_score_mod and not score_mod_is_identity
         configured_mask_out = bool(
             npu_config.flex_attention.flexattention_mask_out
         )
         use_mask_out = (
             configured_mask_out
-            and (has_explicit_score_mod and score_mod_is_identity)
+            and not has_score_mod
             and _has_sparse_block_mask(
                 SPARSE_Q_BLOCK_SIZE, SPARSE_KV_BLOCK_SIZE
             )
@@ -1519,7 +1643,7 @@ def _register_npu_inductor_flex_attention():
         kernel_options.setdefault("SM_SCALE", scale)
 
         # Determine GQA broadcast factor.
-        gqa_shared_heads = Hq // Hkv
+        gqa_shared_heads = FloorDiv(Hq, Hkv)
         kernel_options.setdefault("GQA_SHARED_HEADS", gqa_shared_heads)
 
         flexattention_mask_out = use_mask_out
@@ -1713,31 +1837,23 @@ def _register_npu_inductor_flex_attention():
             try:
                 forward_kernel_options = cur_kernel_options.copy()
                 choice_count = len(choices)
-                forward_errors = []
-                for forward_variant_options in sparse_mask_attention_cvpipeline_config_variants(
-                    forward_kernel_options,
-                    block_n=forward_kernel_options["BLOCK_N"],
-                ):
-                    log.info(
-                        "Appending sparse-mask forward choice BLOCK_M=%d BLOCK_N=%d multibuffer=%s",
-                        forward_kernel_options["BLOCK_M"],
-                        forward_kernel_options["BLOCK_N"],
-                        forward_variant_options.get("multibuffer"),
-                    )
-                    error = flex_attention_fwd_mask_out.maybe_append_choice(
-                        choices=choices,
-                        input_nodes=forward_input_nodes,
-                        layout=layout,
-                        subgraphs=[subgraph_buffer],
-                        mutated_inputs=[logsumexp, max_scores],
-                        call_sizes=query.get_size(),
-                        **forward_variant_options,
-                    )
-                    if error is not None:
-                        forward_errors.append(error)
+                log.info(
+                    "Appending sparse-mask forward choice BLOCK_M=%d BLOCK_N=%d",
+                    forward_kernel_options["BLOCK_M"],
+                    forward_kernel_options["BLOCK_N"],
+                )
+                error = flex_attention_fwd_mask_out.maybe_append_choice(
+                    choices=choices,
+                    input_nodes=forward_input_nodes,
+                    layout=layout,
+                    subgraphs=[subgraph_buffer],
+                    mutated_inputs=[logsumexp, max_scores],
+                    call_sizes=query.get_size(),
+                    **forward_kernel_options,
+                )
 
                 if len(choices) == choice_count:
-                    error = forward_errors[0] if forward_errors else "sparse-mask forward choice was not appended"
+                    error = error or "sparse-mask forward choice was not appended"
                     log.warning("Config %s compilation returned error: %s", cfg, error)
                     if len(dict_configs) == 1:
                         if isinstance(error, BaseException):
@@ -1997,13 +2113,22 @@ def _register_npu_inductor_flex_attention():
         assert V.graph.sizevars.evaluate_expr(sympy.Eq(Bq, Bkv) | sympy.Eq(Bkv, 1)), (
             f"Bq and Bkv must broadcastable. Got Bq={Bq} and Bkv={Bkv}"
         )
+        if (
+            query.get_dtype() != key.get_dtype()
+            or query.get_dtype() != value.get_dtype()
+        ):
+            raise ValueError(
+                "Backward pass with mixed query, key, and value dtype is not "
+                f"supported, got query.dtype={query.get_dtype()}, "
+                f"key.dtype={key.get_dtype()}, "
+                f"and value.dtype={value.get_dtype()}"
+            )
 
         kernel_options = dict(kernel_options)
-        # torch 2.10 upstream adds GPU dispatch knobs the NPU templates don't
-        # consume; strip them before they leak into triton constexprs.
-        # NB: WRITE_DQ is kept (consumed by NPU templates); OUTPUT_MAX is
-        # stripped (torch-2.10-only knob absent in 2.7 codegen).
-        for _unsupported in ("BACKEND", "OUTPUT_MAX", "generate_with_caching"):
+        # Strip upstream GPU dispatch knobs before they leak into Triton
+        # constexprs.
+        # WRITE_DQ and OUTPUT_MAX are valid FlexAttention template options.
+        for _unsupported in ("BACKEND", "generate_with_caching"):
             kernel_options.pop(_unsupported, None)
         has_explicit_score_mod = bool(
             kernel_options.pop(_EXPLICIT_SCORE_MOD_OPTION, False)
@@ -2039,6 +2164,7 @@ def _register_npu_inductor_flex_attention():
         fw_subgraph_buffer = _build_subgraph_buffer_with_additional_lowerings(
             fwd_placeholder_inps + list(score_mod_other_buffers), fw_graph
         )
+        freeze_irnodes(fw_subgraph_buffer)
 
         score_mod_is_identity = _is_score_mod_identity_graph(fw_graph)
         joint_placeholder_inps = fwd_placeholder_inps + [
@@ -2059,6 +2185,7 @@ def _register_npu_inductor_flex_attention():
             joint_placeholder_inps + list(score_mod_other_buffers),
             joint_graph,
         )
+        freeze_irnodes(all_joint_outputs)
 
         joint_outputs = process_joint_outputs(
             all_joint_outputs, len(joint_placeholder_inps)
@@ -2076,10 +2203,12 @@ def _register_npu_inductor_flex_attention():
         mask_graph_buffer = _build_subgraph_buffer_with_additional_lowerings(
             mask_graph_placeholder_inps + list(mask_mod_other_buffers), mask_graph
         )
+        freeze_irnodes(mask_graph_buffer)
+        has_score_mod = has_explicit_score_mod and not score_mod_is_identity
 
         flexattention_mask_out = (
             configured_mask_out
-            and (has_explicit_score_mod and score_mod_is_identity)
+            and not has_score_mod
             and _has_sparse_block_mask(
                 SPARSE_Q_BLOCK_SIZE, SPARSE_KV_BLOCK_SIZE
             )
@@ -2215,7 +2344,7 @@ def _register_npu_inductor_flex_attention():
 
         kernel_options.setdefault("SM_SCALE", scale)
         # Determine GQA factor
-        gqa_shared_heads = Hq // Hkv
+        gqa_shared_heads = FloorDiv(Hq, Hkv)
         kernel_options.setdefault("GQA_SHARED_HEADS", gqa_shared_heads)
 
         # HAS_FULL_BLOCKS is supplied by the eager create_block_mask patch and cached on
@@ -2573,9 +2702,6 @@ def _register_npu_inductor_flex_attention():
             # Generated tiling config is authoritative for this choice.
             cur_kernel_options.update(cfg)
 
-            for key in npu_config.FLEX_ATTENTION_NPU_COMPILE_HINT_KEYS:
-                cur_kernel_options.pop(key, None)
-
             # Blocksparse options
             cur_kernel_options.setdefault("SPARSE_Q_BLOCK_SIZE", SPARSE_Q_BLOCK_SIZE)
             cur_kernel_options.setdefault("SPARSE_KV_BLOCK_SIZE", SPARSE_KV_BLOCK_SIZE)
@@ -2600,7 +2726,6 @@ def _register_npu_inductor_flex_attention():
                     "num_warps": 4,
                 }
             )
-            opts.update(get_bwd_dq_compile_options())
             opts.update(
                 _build_qmajor_dq_launch_meta(
                     batch_size_hint=bwd_batch_size_hint,
@@ -2619,7 +2744,6 @@ def _register_npu_inductor_flex_attention():
                     "num_warps": 4,
                 }
             )
-            opts.update(get_bwd_dkdv_compile_options())
             opts.update(
                 _build_persistent_bwd_launch_meta(
                     batch_size_hint=bwd_batch_size_hint,

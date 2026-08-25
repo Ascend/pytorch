@@ -1,17 +1,82 @@
 """Triton template definitions for NPU FlexAttention."""
 
 try:
-    from torch._inductor.kernel.flex.flex_attention import SymbolicGridFn
+    from torch._inductor.kernel.flex.flex_attention import (
+        SymbolicGridFn,
+        flex_attention_backward_template as _upstream_flex_attention_backward_template,
+        flex_attention_template as _upstream_flex_attention_template,
+    )
 except ImportError:
     try:
-        from torch._inductor.kernel.flex_attention import SymbolicGridFn
+        from torch._inductor.kernel.flex_attention import (
+            SymbolicGridFn,
+            flex_attention_backward_template as _upstream_flex_attention_backward_template,
+            flex_attention_template as _upstream_flex_attention_template,
+        )
     except ImportError:
         def SymbolicGridFn(fn):
             return fn
 
 from torch._inductor.select_algorithm import TritonTemplate
 
-from torch_npu._inductor.select_algorithm import NPUTritonTemplate
+from torch_npu._inductor.select_algorithm import (
+    NPUTemplateCompileOption,
+    NPUTritonTemplate,
+)
+
+
+_FWD_COMPILE_OPTIONS = NPUTemplateCompileOption(
+    {
+        "enable_ubuf_saving": True,
+        "unit_flag": True,
+        "set_workspace_multibuffer": 4,
+        "limit_auto_multi_buffer_buffer": "no-limit",
+        "hfusion_enable_multiple_consumer_fusion": True,
+        "multibuffer": False,
+        "limit_auto_multi_buffer_only_for_local_buffer": True,
+        "tile_mix_vector_loop": 0,
+        "tile_mix_cube_loop": 0,
+        "intra_cache_num": 3,
+        "inter_cache_num": 2,
+        "enable_cross_if_fusion": True,
+        "enable_buffer_insert_optimization": True,
+        "enable_ub_refine_opt": True,
+    }
+)
+_BWD_DQ_COMPILE_OPTIONS = NPUTemplateCompileOption(
+    {
+        "limit_auto_multi_buffer_buffer": "no-limit",
+        "hfusion_enable_multiple_consumer_fusion": True,
+        "enable_select_analysis": False,
+        "limit_auto_multi_buffer_of_local_buffer": "no-l0c",
+        "intra_cache_num": 3,
+        "inter_cache_num": 2,
+    }
+)
+_BWD_DKDV_COMPILE_OPTIONS = NPUTemplateCompileOption(
+    {
+        "limit_auto_multi_buffer_buffer": "no-limit",
+        "hfusion_enable_multiple_consumer_fusion": True,
+        "unit_flag": True,
+        "limit_auto_multi_buffer_of_local_buffer": "no-l0c",
+        "intra_cache_num": 2,
+        "inter_cache_num": 1,
+    }
+)
+
+
+def _wrap_upstream_template(
+    upstream_template: TritonTemplate,
+) -> NPUTritonTemplate:
+    """Preserve an initialized upstream template while using NPU codegen."""
+    wrapped = NPUTritonTemplate.__new__(NPUTritonTemplate)
+    wrapped.__dict__.update(upstream_template.__dict__)
+    wrapped.manual_output_buffer = None
+    wrapped.codegen_kernel_name = f"triton_{wrapped.name}"
+    wrapped.compile_options = NPUTemplateCompileOption()
+    TritonTemplate.all_templates[wrapped.name] = wrapped
+    return wrapped
+
 
 get_bounded_indices_func = r"""
 @triton.jit
@@ -549,6 +614,7 @@ compute_flex_attention_sparse_mask_in_loop_no_load_balance = r"""
             IS_FULL_BLOCKS=False,
         )
 
+{% if HAS_FULL_BLOCKS %}
         FULL_SPARSE_Z = {{size("FULL_KV_NUM_BLKS", 0)}}
         FULL_SPARSE_HQ = {{size("FULL_KV_NUM_BLKS", 1)}}
         full_sparse_idx_z = off_zq % FULL_SPARSE_Z
@@ -599,6 +665,7 @@ compute_flex_attention_sparse_mask_in_loop_no_load_balance = r"""
                             MATMUL_PRECISION,
                             CHECK_BLOCK_BOUNDARY=True,
                         )
+{% endif %}
 
         l_i = tl.where(l_i == 0.0, 1, l_i)
         acc = acc / l_i[:, None]
@@ -610,16 +677,20 @@ compute_flex_attention_sparse_mask_in_loop_no_load_balance = r"""
 
         {{store_output(("idx_zq", "idx_hq", "idx_m", "idx_d"), "acc", "mask", indent_width=8)}}
 
+        off_hz = off_zq * HQ + off_hq
         if OUTPUT_LOGSUMEXP:
-            off_hz = off_zq * HQ + off_hq
             l_ptrs = LSE + off_hz * Q_LEN + offs_m
-            m_ptrs = MAX_SCORES + off_hz * Q_LEN + offs_m
             lse = m_i + tl.math.log(l_i)
             if IS_DIVISIBLE:
                 tl.store(l_ptrs, lse)
-                tl.store(m_ptrs, m_i)
             else:
                 tl.store(l_ptrs, lse, mask=offs_m < Q_LEN)
+
+        if OUTPUT_MAX:
+            m_ptrs = MAX_SCORES + off_hz * Q_LEN + offs_m
+            if IS_DIVISIBLE:
+                tl.store(m_ptrs, m_i)
+            else:
                 tl.store(m_ptrs, m_i, mask=offs_m < Q_LEN)
 """
 
@@ -739,8 +810,12 @@ def sparse_mask_block_pos_grid(actual_blocks, meta, *, min, max):
     )
 
 
-del TritonTemplate.all_templates["flex_attention"]
-del TritonTemplate.all_templates["flex_attention_backward"]
+flex_attention_template = _wrap_upstream_template(
+    _upstream_flex_attention_template
+)
+flex_attention_backward_template = _wrap_upstream_template(
+    _upstream_flex_attention_backward_template
+)
 
 _FWD_MASK_OUT_SOURCE = (
     compute_flex_attention_sparse_mask_in_loop_no_load_balance
@@ -754,6 +829,7 @@ flex_attention_fwd_mask_out = NPUTritonTemplate(
     name="flex_attention_fwd_mask_out",
     grid=flex_attention_in_loop_grid,
     source=_FWD_MASK_OUT_SOURCE,
+    compile_options=_FWD_COMPILE_OPTIONS,
 )
 
 flex_attention_compact_offsets = NPUTritonTemplate(
@@ -1944,28 +2020,33 @@ flex_attention_bwd_dq_mask_out = NPUTritonTemplate(
     name="flex_attention_bwd_dq_mask_out",
     grid=flex_attention_backward_dq_grid,
     source=flex_attention_backward_qmajor_dq_source,
+    compile_options=_BWD_DQ_COMPILE_OPTIONS,
 )
 
 flex_attention_bwd_dkdv_mask_out = NPUTritonTemplate(
     name="flex_attention_bwd_dkdv_mask_out",
     grid=flex_attention_backward_dkdv_grid,
     source=flex_attention_backward_dkdv_only_source,
+    compile_options=_BWD_DKDV_COMPILE_OPTIONS,
 )
 
 flex_attention_bwd_dkdv_tasklist = NPUTritonTemplate(
     name="flex_attention_bwd_dkdv_tasklist",
     grid=flex_attention_backward_dkdv_grid,
     source=flex_attention_backward_dkdv_tasklist_source,
+    compile_options=_BWD_DKDV_COMPILE_OPTIONS,
 )
 
 flex_attention_bwd_dkdv_tasklist_no_split = NPUTritonTemplate(
     name="flex_attention_bwd_dkdv_tasklist_no_split",
     grid=flex_attention_backward_dkdv_grid,
     source=flex_attention_backward_dkdv_tasklist_source,
+    compile_options=_BWD_DKDV_COMPILE_OPTIONS,
 )
 
 flex_attention_bwd_dkdv_reduce = NPUTritonTemplate(
     name="flex_attention_bwd_dkdv_reduce",
     grid=flex_attention_backward_dkdv_grid,
     source=flex_attention_backward_dkdv_reduce_source,
+    compile_options=_BWD_DKDV_COMPILE_OPTIONS,
 )

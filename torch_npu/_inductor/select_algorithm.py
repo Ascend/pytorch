@@ -60,7 +60,16 @@ from . import config as npu_config
 
 log = logging.getLogger("torch._inductor")
 
-_NPU_COMPILE_ONLY_META_FIELDS = frozenset(npu_config.FLEX_ATTENTION_NPU_COMPILE_HINT_KEYS)
+
+@dataclasses.dataclass(frozen=True)
+class NPUTemplateCompileOption:
+    """Compile-only options owned by one NPU Triton template."""
+
+    options: dict[str, Any] = dataclasses.field(default_factory=dict)
+
+    def apply(self, meta: dict[str, Any]) -> None:
+        for key, value in self.options.items():
+            meta.setdefault(key, value)
 
 
 def _gen_npu_template_triton_imports() -> str:
@@ -79,10 +88,11 @@ def _add_npu_template_meta_to_inductor_meta(
 def _add_npu_template_compile_options_to_triton_meta(
     triton_meta: dict[str, Any],
     meta: dict[str, Any],
+    compile_option_keys: frozenset[str],
 ) -> None:
     compile_options = {
         key: meta[key]
-        for key in npu_config.FLEX_ATTENTION_NPU_COMPILE_HINT_KEYS
+        for key in compile_option_keys
         if key in meta
     }
     if compile_options:
@@ -370,6 +380,7 @@ class NPUTritonTemplate(TritonTemplate):
         debug: bool = False,
         manual_output_buffer: Optional[str] = None,
         codegen_kernel_name: Optional[str] = None,
+        compile_options: Optional[NPUTemplateCompileOption] = None,
     ) -> None:
         """Initialize NPU Triton template.
 
@@ -382,6 +393,7 @@ class NPUTritonTemplate(TritonTemplate):
         super().__init__(name, grid, source, debug)
         self.manual_output_buffer = manual_output_buffer
         self.codegen_kernel_name = codegen_kernel_name or f"triton_{name}"
+        self.compile_options = compile_options or NPUTemplateCompileOption()
 
     def make_runtime_renderer_factory(
         self,
@@ -399,13 +411,16 @@ class NPUTritonTemplate(TritonTemplate):
         runtime_args = tuple(runtime_args)
         call_sizes = list(call_sizes or layout.size)
         meta = dict(kwargs)
+        self.compile_options.apply(meta)
         meta["ALLOW_TF32"] = "False"
         defines = StringIO()
+        compile_option_keys = frozenset(self.compile_options.options)
         for name, value in meta.items():
-            if name not in _NPU_COMPILE_ONLY_META_FIELDS:
-                if self.name.startswith("flex_attention") and name == "generate_with_caching":
-                    continue
-                defines.write(f"{name} : tl.constexpr = {value}\n")
+            if name in compile_option_keys:
+                continue
+            if self.name.startswith("flex_attention") and name == "generate_with_caching":
+                continue
+            defines.write(f"{name} : tl.constexpr = {value}\n")
         kernel_options = {
             "defines": defines.getvalue(),
             "num_stages": num_stages,
@@ -417,8 +432,12 @@ class NPUTritonTemplate(TritonTemplate):
             "suffix_args": 0,
             "epilogue_fn": identity,
             "subgraphs": subgraphs,
+            "always_freeze_layout": getattr(
+                self, "always_freeze_layout", False
+            ),
             "manual_output_buffer": self.manual_output_buffer,
             "reset_to_zero_arg_names": reset_to_zero_arg_names,
+            "compile_option_keys": compile_option_keys,
         }
 
         def create_renderer(out_node):
@@ -499,10 +518,13 @@ class NPUTritonTemplate(TritonTemplate):
         dispatch_spec: Optional[Any] = None,
         **kwargs: Any,
     ) -> Optional[ir.ChoiceCaller]:
+        kwargs = dict(kwargs)
+        self.compile_options.apply(kwargs)
+        compile_option_keys = frozenset(self.compile_options.options)
         defines = StringIO()
         kwargs["ALLOW_TF32"] = "False"
         for name, val in kwargs.items():
-            if name in _NPU_COMPILE_ONLY_META_FIELDS:
+            if name in compile_option_keys:
                 continue
             if self.name.startswith("flex_attention") and name == "generate_with_caching":
                 continue
@@ -530,8 +552,7 @@ class NPUTritonTemplate(TritonTemplate):
                 "64-bit indexing is not yet implemented for triton templates"
             )
 
-        if not self.name.startswith("flex_attention"):
-            defines.write("INDEX_DTYPE : tl.constexpr = tl.int32\n")
+        defines.write("INDEX_DTYPE : tl.constexpr = tl.int32\n")
         defines = defines.getvalue()
 
         if call_sizes is None:
@@ -551,6 +572,9 @@ class NPUTritonTemplate(TritonTemplate):
             "suffix_args": suffix_args,
             "epilogue_fn": epilogue_fn,
             "subgraphs": subgraphs,
+            "always_freeze_layout": getattr(
+                self, "always_freeze_layout", False
+            ),
             "tma_store": tma_store,
             "tma_load_for_template_epilogue": tma_load_for_template_epilogue,
             "transpose_discontiguous_tensor_descriptors_override": (
@@ -560,6 +584,7 @@ class NPUTritonTemplate(TritonTemplate):
             "triton_meta": triton_meta,
             "manual_output_buffer": self.manual_output_buffer,
             "reset_to_zero_arg_names": reset_to_zero_arg_names,
+            "compile_option_keys": compile_option_keys,
         }
 
         with (
@@ -759,6 +784,7 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
         index_dtype_override: Optional[str] = None,
         manual_output_buffer: Optional[str] = None,
         reset_to_zero_arg_names: Optional[list[str]] = None,
+        compile_option_keys: frozenset[str] = frozenset(),
     ) -> None:
         """Initialize NPU Triton template kernel.
 
@@ -810,6 +836,7 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
         )
         self.manual_output_buffer = manual_output_buffer
         self.reset_to_zero_arg_names = reset_to_zero_arg_names
+        self.compile_option_keys = compile_option_keys
 
     def create_cse_var(self, name=None, bounds=None, dtype=None, shape=None, **kwargs):
         # torch>=2.8 added an assertion in TritonCSEVariable.__init__ requiring
@@ -956,7 +983,11 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
         if kpack:
             triton_meta["kpack"] = kpack
 
-        _add_npu_template_compile_options_to_triton_meta(triton_meta, self.meta)
+        _add_npu_template_compile_options_to_triton_meta(
+            triton_meta,
+            self.meta,
+            self.compile_option_keys,
+        )
         self.triton_meta = triton_meta
 
         inductor_meta = {
