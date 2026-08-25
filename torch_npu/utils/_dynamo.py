@@ -61,40 +61,6 @@ def patch_SkipFunctionVariable():
     SkipFunctionVariable.__new__ = SkipFunctionVariable__new__
 
 
-def patch_TensorVariable_call_method():
-    from torch._dynamo.utils import tensortype_to_dtype
-    from torch._dynamo.variables.constant import ConstantVariable
-    from torch._dynamo.variables.lists import TupleVariable
-    from torch._dynamo.variables.tensor import TensorVariable
-
-    def TensorVariable_call_method(self, tx, name, args, kwargs):
-        if (
-            name == "type"
-            and self.dtype is not None
-            and len(args) == 0
-            and isinstance(self.device, torch.device)
-            and self.device.type == "npu"
-        ):
-            tensortype = next(
-                k for k, v in tensortype_to_dtype.items() if self.dtype in v
-            )
-            constant_result = ConstantVariable.create(
-                f"torch.npu.{tensortype.__name__}"
-            )
-
-            if len(args) == 1:
-                return constant_result.getitem_const(args[0])
-            if args:
-                return TupleVariable(
-                    [constant_result.getitem_const(a) for a in args]
-                )
-            return constant_result
-        return TensorVariable.call_method_raw(self, tx, name, args, kwargs)
-
-    TensorVariable.call_method_raw = TensorVariable.call_method
-    TensorVariable.call_method = TensorVariable_call_method
-
-
 class _InductorNpuRegistry:
     _disabled_register = False
     _loaded_backend = None
@@ -658,7 +624,6 @@ def add_dynamo_methods_init():
     steps = (
         ("device_interface", _dynamo_register_interface_for_device),
         ("skip_function_variable", patch_SkipFunctionVariable),
-        ("tensor_variable", patch_TensorVariable_call_method),
         ("user_defined_class_variable", patch_user_defined_class_variable),
         ("stream_event_variable", patch_stream_event_variable_python_type),
         ("npu_stream_context", patch_npu_stream_context),
