@@ -539,6 +539,7 @@ int OpPreparation::GetAclDataTypeItemSize(aclDataType acl_type)
         case ACL_FLOAT8_E8M0:
         case ACL_FLOAT4_E2M1:
         case ACL_FLOAT4_E1M2:
+        case ACL_INT4:
             return 1;
         case ACL_FLOAT16:
         case ACL_INT16:
