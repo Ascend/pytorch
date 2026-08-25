@@ -12,6 +12,7 @@
 #include <stdint.h>
 
 #include <string>
+#include <vector>
 #include "torch_npu/csrc/framework/interface/LibAscendHal.h"
 
 namespace torch_npu {
@@ -187,6 +188,8 @@ public:
     static uint64_t GetHostUid();
 
     static int safe_strcpy_s(char* dest, const char* src, size_t destSize);
+
+    static std::vector<std::string> SplitString(const std::string& str, const std::string& sep);
 };
 } // profiler
 } // toolkit
