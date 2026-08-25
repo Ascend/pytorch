@@ -13,19 +13,6 @@ from torch._inductor.select_algorithm import TritonTemplate
 
 from torch_npu._inductor.select_algorithm import NPUTritonTemplate
 
-
-def _with_kernel_signature(
-    source: str,
-    old_signature: str,
-    new_signature: str,
-) -> str:
-    body = source.lstrip("\n")
-    prefix = source[: len(source) - len(body)]
-    if not body.startswith(old_signature):
-        raise RuntimeError("FlexAttention template source has an unexpected signature")
-    return prefix + new_signature + body[len(old_signature) :]
-
-
 get_bounded_indices_func = r"""
 @triton.jit
 def get_bounded_indices(indices, max_len=None):
@@ -479,7 +466,7 @@ def forward_inner_sparse_mask_direct_index(
 
 
 compute_flex_attention_sparse_mask_in_loop_no_load_balance = r"""
-{{def_kernel("Q", "K", "V", "SPARSE_MASK", "Q_OFFSETS", "KV_NUM_BLKS", "KV_IDX", "LSE", "FULL_KV_NUM_BLKS", "FULL_KV_IDX")}}
+{{def_kernel("Q", "K", "V", "SPARSE_MASK", "Q_OFFSETS", "KV_NUM_BLKS", "KV_IDX", "LSE", "MAX_SCORES", "FULL_KV_NUM_BLKS", "FULL_KV_IDX")}} # noqa: B950
     tl.static_assert(SPARSE_Q_BLOCK_SIZE >= BLOCK_M and SPARSE_Q_BLOCK_SIZE % BLOCK_M == 0)
     tl.static_assert(SPARSE_KV_BLOCK_SIZE >= BLOCK_N and SPARSE_KV_BLOCK_SIZE % BLOCK_N == 0)
 
@@ -626,11 +613,14 @@ compute_flex_attention_sparse_mask_in_loop_no_load_balance = r"""
         if OUTPUT_LOGSUMEXP:
             off_hz = off_zq * HQ + off_hq
             l_ptrs = LSE + off_hz * Q_LEN + offs_m
+            m_ptrs = MAX_SCORES + off_hz * Q_LEN + offs_m
             lse = m_i + tl.math.log(l_i)
             if IS_DIVISIBLE:
                 tl.store(l_ptrs, lse)
+                tl.store(m_ptrs, m_i)
             else:
                 tl.store(l_ptrs, lse, mask=offs_m < Q_LEN)
+                tl.store(m_ptrs, m_i, mask=offs_m < Q_LEN)
 """
 
 compute_forward_block_mn_full = r"""
@@ -752,14 +742,6 @@ def sparse_mask_block_pos_grid(actual_blocks, meta, *, min, max):
 del TritonTemplate.all_templates["flex_attention"]
 del TritonTemplate.all_templates["flex_attention_backward"]
 
-_FWD_MASK_OUT_SIGNATURE = (
-    '{{def_kernel("Q", "K", "V", "SPARSE_MASK", "Q_OFFSETS", '
-    '"KV_NUM_BLKS", "KV_IDX", "LSE", "FULL_KV_NUM_BLKS", "FULL_KV_IDX")}}'
-)
-_FWD_MASK_IN_SIGNATURE = (
-    '{{def_kernel("Q", "K", "V", "KV_NUM_BLKS", "KV_IDX", "LSE", '
-    '"FULL_KV_NUM_BLKS", "FULL_KV_IDX")}}'
-)
 _FWD_MASK_OUT_SOURCE = (
     compute_flex_attention_sparse_mask_in_loop_no_load_balance
     + compute_forward_inner_sparse_mask_direct_index
@@ -767,22 +749,11 @@ _FWD_MASK_OUT_SOURCE = (
     + compute_forward_block_mn_full
     + get_bounded_indices_func
 )
-_FWD_MASK_IN_SOURCE = _with_kernel_signature(
-    _FWD_MASK_OUT_SOURCE,
-    _FWD_MASK_OUT_SIGNATURE,
-    _FWD_MASK_IN_SIGNATURE,
-)
 
 flex_attention_fwd_mask_out = NPUTritonTemplate(
     name="flex_attention_fwd_mask_out",
     grid=flex_attention_in_loop_grid,
     source=_FWD_MASK_OUT_SOURCE,
-)
-
-flex_attention_fwd_mask_in = NPUTritonTemplate(
-    name="flex_attention_fwd_mask_in",
-    grid=flex_attention_in_loop_grid,
-    source=_FWD_MASK_IN_SOURCE,
 )
 
 flex_attention_compact_offsets = NPUTritonTemplate(
@@ -1969,62 +1940,16 @@ flex_attention_backward_dkdv_reduce_source = r"""
     )
 """
 
-_BWD_DQ_MASK_OUT_SIGNATURE = (
-    '{{def_kernel("Q", "K", "V", "LSE", "DELTA", "DO", "DQ", '
-    '"SPARSE_MASK", "Q_OFFSETS", "SPARSE_MASK_BLOCK_POS", "KV_NUM_BLKS", '
-    '"KV_IDX", "Q_NUM_BLKS", "Q_IDX", "FULL_KV_NUM_BLKS", "FULL_KV_IDX", '
-    '"FULL_Q_NUM_BLKS", "FULL_Q_IDX")}}'
-)
-_BWD_DQ_MASK_IN_SIGNATURE = (
-    '{{def_kernel("Q", "K", "V", "LSE", "DELTA", "DO", "DQ", '
-    '"KV_NUM_BLKS", "KV_IDX", "Q_NUM_BLKS", "Q_IDX", "FULL_KV_NUM_BLKS", '
-    '"FULL_KV_IDX", "FULL_Q_NUM_BLKS", "FULL_Q_IDX")}}'
-)
-_BWD_DQ_MASK_IN_SOURCE = _with_kernel_signature(
-    flex_attention_backward_qmajor_dq_source,
-    _BWD_DQ_MASK_OUT_SIGNATURE,
-    _BWD_DQ_MASK_IN_SIGNATURE,
-)
-
-_BWD_DKDV_MASK_OUT_SIGNATURE = (
-    '{{def_kernel("Q", "K", "V", "LSE", "DELTA", "DO", "DV", "DK", '
-    '"SPARSE_MASK", "Q_OFFSETS", "SPARSE_MASK_BLOCK_POS", "KV_NUM_BLKS", '
-    '"KV_IDX", "Q_NUM_BLKS", "Q_IDX", "FULL_KV_NUM_BLKS", "FULL_KV_IDX", '
-    '"FULL_Q_NUM_BLKS", "FULL_Q_IDX")}}'
-)
-_BWD_DKDV_MASK_IN_SIGNATURE = (
-    '{{def_kernel("Q", "K", "V", "LSE", "DELTA", "DO", "DV", "DK", '
-    '"KV_NUM_BLKS", "KV_IDX", "Q_NUM_BLKS", "Q_IDX", "FULL_KV_NUM_BLKS", '
-    '"FULL_KV_IDX", "FULL_Q_NUM_BLKS", "FULL_Q_IDX")}}'
-)
-_BWD_DKDV_MASK_IN_SOURCE = _with_kernel_signature(
-    flex_attention_backward_dkdv_only_source,
-    _BWD_DKDV_MASK_OUT_SIGNATURE,
-    _BWD_DKDV_MASK_IN_SIGNATURE,
-)
-
 flex_attention_bwd_dq_mask_out = NPUTritonTemplate(
     name="flex_attention_bwd_dq_mask_out",
     grid=flex_attention_backward_dq_grid,
     source=flex_attention_backward_qmajor_dq_source,
 )
 
-flex_attention_bwd_dq_mask_in = NPUTritonTemplate(
-    name="flex_attention_bwd_dq_mask_in",
-    grid=flex_attention_backward_dq_grid,
-    source=_BWD_DQ_MASK_IN_SOURCE,
-)
-
 flex_attention_bwd_dkdv_mask_out = NPUTritonTemplate(
     name="flex_attention_bwd_dkdv_mask_out",
     grid=flex_attention_backward_dkdv_grid,
     source=flex_attention_backward_dkdv_only_source,
-)
-
-flex_attention_bwd_dkdv_mask_in = NPUTritonTemplate(
-    name="flex_attention_bwd_dkdv_mask_in",
-    grid=flex_attention_backward_dkdv_grid,
-    source=_BWD_DKDV_MASK_IN_SOURCE,
 )
 
 flex_attention_bwd_dkdv_tasklist = NPUTritonTemplate(
