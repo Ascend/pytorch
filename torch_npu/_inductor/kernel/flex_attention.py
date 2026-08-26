@@ -78,6 +78,7 @@ from torch._inductor.kernel.flex_attention import (
     process_joint_outputs,
     set_head_dim_values,
     validate_joint_graph,
+    zeros_and_scatter_lowering,
 )
 
 # PyTorch flex_attention exposes/saves LSE in log2 space, matching the
@@ -668,6 +669,7 @@ def _get_flex_attention_additional_lowerings():
     additional_lowerings[aten.bitwise_or.Tensor] = bitwise_or_tensor
     additional_lowerings[aten.bitwise_not.default] = bitwise_not_default
     additional_lowerings[aten.remainder.Scalar] = remainder_scalar
+    additional_lowerings[torch.ops.flex_lib.zeros_and_scatter.default] = zeros_and_scatter_lowering
 
     return additional_lowerings
 
@@ -680,15 +682,21 @@ def _build_subgraph_buffer_with_additional_lowerings(args, subgraph):
     to handle supported fallback operations as pointwise ops.
     """
     from torch._inductor.subgraph_lowering import PointwiseSubgraphLowering
-
+    from torch.utils._ordered_set import OrderedSet
     additional_lowerings = _get_flex_attention_additional_lowerings()
     pw_subgraph = PointwiseSubgraphLowering(
         subgraph.graph_module,
         root_graph_lowering=V.graph,
+        allowed_mutations=OrderedSet([torch.ops.flex_lib.zeros_and_scatter.default]),
         additional_lowerings=additional_lowerings,
     )
     with V.set_graph_handler(pw_subgraph):
         pw_subgraph.run(*args)
+    # Since we are allowing mutations/buffer creation, we need to register any fresh buffers
+    # creating during the pointwise subgraph lowering
+    if len(pw_subgraph.buffers) > 0:
+        for buffer in pw_subgraph.buffers:
+            V.graph.register_buffer(buffer)
 
     def convert_output_node_to_buffer(output_buffer):
         from torch._inductor.ir import ComputedBuffer, FlexibleLayout, StorageBox
@@ -1460,6 +1468,9 @@ def _register_npu_inductor_flex_attention():
         has_explicit_score_mod = bool(
             kernel_options.pop(_EXPLICIT_SCORE_MOD_OPTION, False)
         )
+        # Strip GPU-specific backend selector (e.g. "TRITON"/"FLASH"/"CUDNN") that
+        # has no meaning on NPU and would leak into Triton constexpr parameters.
+        kernel_options.pop("BACKEND", None)
         # Mark symbols in custom kernel options as static shapes and add guards.
         kernel_options = {
             k: V.graph.sizevars.evaluate_static_shape(v)
@@ -2079,6 +2090,9 @@ def _register_npu_inductor_flex_attention():
         has_explicit_score_mod = bool(
             kernel_options.pop(_EXPLICIT_SCORE_MOD_OPTION, False)
         )
+        # Strip GPU-specific backend selector (e.g. "TRITON"/"FLASH"/"CUDNN") that
+        # has no meaning on NPU and would leak into Triton constexpr parameters.
+        kernel_options.pop("BACKEND", None)
         configured_mask_out = bool(
             npu_config.flex_attention.flexattention_mask_out
         )
