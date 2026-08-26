@@ -1752,6 +1752,27 @@ PyObject* THNPModule_npu_get_sync_debug_mode(PyObject* self, PyObject* noargs) {
   END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_npu_set_task_queue_enable(PyObject* self, PyObject* arg) {
+  HANDLE_TH_ERRORS
+  TORCH_CHECK_TYPE(
+      THPUtils_checkLong(arg),
+      "mode has invalid type, expected int, but got ",
+      Py_TYPE(arg)->tp_name,
+      PTA_ERROR(ErrCode::TYPE));
+  int64_t mode = THPUtils_unpackLong(arg);
+  TORCH_CHECK(mode >= 0 && mode <= 2, "mode must be 0, 1, or 2, but got ", mode, PTA_ERROR(ErrCode::VALUE));
+  c10_npu::option::OptionsManager::SetTaskQueueEnable(static_cast<int32_t>(mode));
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_npu_get_task_queue_enable(PyObject* self, PyObject* noargs) {
+  HANDLE_TH_ERRORS
+  uint32_t mode = c10_npu::option::OptionsManager::GetTaskQueueEnable();
+  return THPUtils_packInt64(static_cast<int64_t>(mode));
+  END_HANDLE_TH_ERRORS
+}
+
 PyObject* THNPModule_tensor_construct_from_storage(PyObject* self, PyObject* args) {
   HANDLE_TH_ERRORS
   static torch::PythonArgParser parser(
@@ -2283,6 +2304,8 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_getOption", (PyCFunction)THNPModule_getOption_wrap, METH_O, nullptr},
     {"_npu_set_sync_debug_mode", (PyCFunction)THNPModule_npu_set_sync_debug_mode, METH_O, nullptr},
     {"_npu_get_sync_debug_mode", (PyCFunction)THNPModule_npu_get_sync_debug_mode, METH_NOARGS, nullptr},
+    {"_npu_set_task_queue_enable", (PyCFunction)THNPModule_npu_set_task_queue_enable, METH_O, nullptr},
+    {"_npu_get_task_queue_enable", (PyCFunction)THNPModule_npu_get_task_queue_enable, METH_NOARGS, nullptr},
     {"_tensor_construct_from_storage", (PyCFunction)THNPModule_tensor_construct_from_storage, METH_VARARGS, nullptr},
     {"_npu_set_call_state", (PyCFunction)THNPModule_npu_set_call_state, METH_O, nullptr},
     {"_npu_set_module_train_state", (PyCFunction)THNPModule_npu_set_module_train_state, METH_O, nullptr},

@@ -2915,5 +2915,17 @@
   },
   "torch_npu.npu.npurt": {
     "signature": "()"
+  },
+  "torch_npu.npu.set_task_queue_enable": {
+    "signature": "(mode)"
+  },
+  "torch_npu.npu.get_task_queue_enable": {
+    "signature": "()"
+  },
+  "torch_npu.npu.utils.set_task_queue_enable": {
+    "signature": "(mode)"
+  },
+  "torch_npu.npu.utils.get_task_queue_enable": {
+    "signature": "()"
   }
 }

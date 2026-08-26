@@ -1,6 +1,6 @@
 import torch
 from torch._dynamo.variables import TorchInGraphFunctionVariable
-from torch._dynamo.trace_rules import manual_torch_name_rule_map, SkipFunctionVariable
+from torch._dynamo.trace_rules import SkipFunctionVariable
 import torch._dynamo.variables.torch as torch_module
 from torch._dynamo.utils import common_constant_types
 import torch_npu
@@ -68,6 +68,8 @@ torch_c_binding_in_graph_functions_npu = dict.fromkeys(
         "torch_npu._C._npu_resetPeakHostMemoryStats",
         "torch_npu._C._npu_resetPeakMemoryStats",
         "torch_npu._C._npu_set_sync_debug_mode",
+        "torch_npu._C._npu_set_task_queue_enable",
+        "torch_npu._C._npu_get_task_queue_enable",
         "torch_npu._C._npu_setDevice",
         "torch_npu._C._npu_getMemoryFraction",
         "torch_npu._C._npu_setMemoryFraction",
