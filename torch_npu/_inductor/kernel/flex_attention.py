@@ -221,6 +221,45 @@ _COMPACT_SPARSE_MASK_ATTR = "_npu_compact_sparse_mask_metadata"
 _EXPLICIT_SCORE_MOD_OPTION = "_NPU_EXPLICIT_SCORE_MOD"
 _STREAMING_BLOCK_MASK_TARGET_BYTES = 256 * 1024 * 1024
 _STREAMING_BLOCK_MASK_BYTES_PER_ELEMENT = 8
+_TASKLIST_REDUCE_UB_BUDGET_NUMERATOR = 4
+_TASKLIST_REDUCE_UB_BUDGET_DENOMINATOR = 5
+_TASKLIST_REDUCE_FP32_TILE_COUNT = 3
+_TASKLIST_REDUCE_FP32_BYTES = 4
+
+
+def _filter_dkdv_tasklist_reduce_configs(
+    configs: list[dict[str, Any]],
+    qk_head_dim: int,
+    v_head_dim: int,
+) -> list[dict[str, Any]]:
+    """Keep dK/dV tiles whose tasklist reduction fits in UB."""
+    max_head_dim = max(int(qk_head_dim), int(v_head_dim))
+    ub_budget = (
+        int(npu_config.ub_size) * _TASKLIST_REDUCE_UB_BUDGET_NUMERATOR
+        // _TASKLIST_REDUCE_UB_BUDGET_DENOMINATOR
+    )
+
+    safe_configs = []
+    for cfg in configs:
+        reduce_ub_bytes = (
+            _TASKLIST_REDUCE_FP32_TILE_COUNT
+            * int(cfg["BLOCK_N1"])
+            * max_head_dim
+            * _TASKLIST_REDUCE_FP32_BYTES
+        )
+        if reduce_ub_bytes <= ub_budget:
+            safe_configs.append(cfg)
+
+    log.info(
+        "tasklist-reduce UB filter: kept=%d/%d qk_head_dim=%d "
+        "v_head_dim=%d budget_bytes=%d",
+        len(safe_configs),
+        len(configs),
+        int(qk_head_dim),
+        int(v_head_dim),
+        ub_budget,
+    )
+    return safe_configs
 
 
 def _make_closure_cell(value):
@@ -442,6 +481,7 @@ from torch_npu._inductor.kernel.flex_attention_config_generator import (
     build_sparse_mask_candidate_configs,
     get_bwd_dkdv_compile_options,
     get_bwd_dq_compile_options,
+    generate_bwd_dq_candidate_configs,
     generate_bwd_split_mask_out_candidate_configs,
     generate_fwd_candidate_configs,
     is_bwd_config_compatible,
@@ -768,16 +808,10 @@ def _get_flex_attention_additional_lowerings():
     These lowerings allow supported fallback operations to be lowered as pointwise
     ops in the score_mod and mask_mod subgraphs.
     """
-    from torch._inductor.lowering import make_pointwise, index_impl
+    from torch._inductor.lowering import make_pointwise
     from torch._inductor.subgraph_lowering import PointwiseSubgraphLowering
 
     additional_lowerings = {}
-
-    def index_pointwise(x, indices):
-        return index_impl(x, indices, check=True)
-
-    additional_lowerings[aten.index] = index_pointwise
-    additional_lowerings[aten.index.Tensor] = index_pointwise
 
     bitwise_and_fn = make_pointwise(ops.bitwise_and)
 
@@ -2383,10 +2417,36 @@ def _register_npu_inductor_flex_attention():
             dtype=query.get_dtype(),
             num_cube_core=bwd_num_cube_core,
         )
+        bwd_dq_dict_configs = generate_bwd_dq_candidate_configs(
+            bwd_dict_configs,
+            sparse_q_block_size=SPARSE_Q_BLOCK_SIZE,
+            sparse_kv_block_size=SPARSE_KV_BLOCK_SIZE,
+        )
+        bwd_dkdv_dict_configs = bwd_dict_configs
+
+        tasklist_reduce_ub_safe = True
+        if (
+            flexattention_mask_out
+            and npu_config.flex_attention.bwd_dkdv_tasklist
+        ):
+            tasklist_safe_dkdv_configs = _filter_dkdv_tasklist_reduce_configs(
+                bwd_dkdv_dict_configs,
+                qk_head_dim=kernel_options["QK_HEAD_DIM"],
+                v_head_dim=kernel_options["V_HEAD_DIM"],
+            )
+            if tasklist_safe_dkdv_configs:
+                bwd_dkdv_dict_configs = tasklist_safe_dkdv_configs
+            else:
+                tasklist_reduce_ub_safe = False
+                log.warning(
+                    "No dK/dV config satisfies the tasklist-reduce UB "
+                    "constraint; disabling tasklist codegen for this graph."
+                )
 
         log.debug(
-            "bwd split dict_configs count: split=%d",
-            len(bwd_dict_configs),
+            "bwd split dict_configs count: dq=%d dkdv=%d",
+            len(bwd_dq_dict_configs),
+            len(bwd_dkdv_dict_configs),
         )
 
         original_kernel_options = kernel_options.copy()
@@ -2570,6 +2630,7 @@ def _register_npu_inductor_flex_attention():
             if (
                 not flexattention_mask_out
                 or not npu_config.flex_attention.bwd_dkdv_tasklist
+                or not tasklist_reduce_ub_safe
             ):
                 return {}
 
@@ -2729,60 +2790,54 @@ def _register_npu_inductor_flex_attention():
                 "dispatch_spec": dispatch_spec,
             }
 
-        for cfg in bwd_dict_configs:
+        for cfg in bwd_dq_dict_configs:
             if not is_bwd_config_compatible(
                 cfg, SPARSE_Q_BLOCK_SIZE, SPARSE_KV_BLOCK_SIZE
             ):
                 continue
 
-            if (
-                cfg["BLOCK_M2"] == SPARSE_Q_BLOCK_SIZE
-                and cfg["BLOCK_N2"] == SPARSE_KV_BLOCK_SIZE
-            ):
-                dq_kernel_options = make_bwd_dq_kernel_options(cfg)
-                dq_subgraphs, dq_mutated_inputs, dq_run_captured = (
-                    make_bwd_subgraphs_and_mutations("dq", [grad_query])
-                )
-                dq_kernel_options["RUN_CAPTURED_GRADS"] = dq_run_captured
-                log_bwd_choice("dq", cfg, dq_kernel_options)
+            dq_kernel_options = make_bwd_dq_kernel_options(cfg)
+            dq_subgraphs, dq_mutated_inputs, dq_run_captured = (
+                make_bwd_subgraphs_and_mutations("dq", [grad_query])
+            )
+            dq_kernel_options["RUN_CAPTURED_GRADS"] = dq_run_captured
+            log_bwd_choice("dq", cfg, dq_kernel_options)
 
-                prev_dq_choice_count = len(dq_choices)
-                dq_template = (
-                    flex_attention_bwd_dq_mask_out
-                    if flexattention_mask_out
-                    else flex_attention_bwd_dq_mask_in
-                )
-                dq_template.maybe_append_choice(
-                    choices=dq_choices,
-                    input_nodes=dq_input_nodes,
-                    layout=grad_query.get_layout(),
-                    subgraphs=dq_subgraphs,
-                    mutated_inputs=dq_mutated_inputs,
-                    reset_to_zero_arg_names=None,
-                    large_input_buffers=mask_out_input_nodes,
-                    call_sizes=query.get_size() + key.get_size()[1:3],
-                    **dq_kernel_options,
-                )
-                if len(dq_choices) > prev_dq_choice_count:
-                    _tag_flex_attention_report_choices(
-                        dq_choices[prev_dq_choice_count:],
-                        "backward_dq",
-                        cfg,
-                    )
-                    if prefer_max_tiling_without_benchmark():
-                        _tag_choice_attr(
-                            dq_choices[prev_dq_choice_count:],
-                            "_nobench_select_first_compilable",
-                            True,
-                        )
-            else:
-                log.debug(
-                    "skip bwd-dq choice requiring full sparse block: cfg=%s SPARSE_Q=%s SPARSE_KV=%s",
+            prev_dq_choice_count = len(dq_choices)
+            dq_template = (
+                flex_attention_bwd_dq_mask_out
+                if flexattention_mask_out
+                else flex_attention_bwd_dq_mask_in
+            )
+            dq_template.maybe_append_choice(
+                choices=dq_choices,
+                input_nodes=dq_input_nodes,
+                layout=grad_query.get_layout(),
+                subgraphs=dq_subgraphs,
+                mutated_inputs=dq_mutated_inputs,
+                reset_to_zero_arg_names=None,
+                large_input_buffers=mask_out_input_nodes,
+                call_sizes=query.get_size() + key.get_size()[1:3],
+                **dq_kernel_options,
+            )
+            if len(dq_choices) > prev_dq_choice_count:
+                _tag_flex_attention_report_choices(
+                    dq_choices[prev_dq_choice_count:],
+                    "backward_dq",
                     cfg,
-                    SPARSE_Q_BLOCK_SIZE,
-                    SPARSE_KV_BLOCK_SIZE,
                 )
+                if prefer_max_tiling_without_benchmark():
+                    _tag_choice_attr(
+                        dq_choices[prev_dq_choice_count:],
+                        "_nobench_select_first_compilable",
+                        True,
+                    )
 
+        for cfg in bwd_dkdv_dict_configs:
+            if not is_bwd_config_compatible(
+                cfg, SPARSE_Q_BLOCK_SIZE, SPARSE_KV_BLOCK_SIZE
+            ):
+                continue
             dkdv_kernel_options = make_bwd_dkdv_kernel_options(cfg)
             dkdv_subgraphs, dkdv_mutated_inputs, dkdv_run_captured = (
                 make_bwd_subgraphs_and_mutations(

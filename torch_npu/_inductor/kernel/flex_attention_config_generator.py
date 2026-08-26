@@ -824,6 +824,44 @@ def is_bwd_config_compatible(
     )
 
 
+def generate_bwd_dq_candidate_configs(
+    base_configs: list[dict],
+    sparse_q_block_size: int,
+    sparse_kv_block_size: int,
+) -> list[dict]:
+    """Build independent dQ tiles while preserving target NPU options."""
+    if not base_configs:
+        return []
+
+    block_candidates = (128, 64, 32, 16)
+    block_pairs = [
+        (block_m2, block_n2)
+        for block_m2 in block_candidates
+        for block_n2 in block_candidates
+        if sparse_q_block_size % block_m2 == 0
+        and sparse_kv_block_size % block_n2 == 0
+    ]
+    block_pairs.sort(
+        key=lambda pair: (pair[0] * pair[1], pair[0], pair[1]),
+        reverse=True,
+    )
+
+    template = base_configs[0]
+    configs = []
+    for block_m2, block_n2 in block_pairs:
+        cfg = template.copy()
+        cfg.update(
+            {
+                "BLOCK_M2": block_m2,
+                "BLOCK_N2": block_n2,
+                "num_warps": 4,
+                "num_stages": 1,
+            }
+        )
+        configs.append(cfg)
+    return configs
+
+
 def _convert_bwd_config_to_fused_mask_out_config(cfg: dict) -> dict:
     converted_cfg = {
         "BLOCK_M1": cfg["BLOCK_M"],

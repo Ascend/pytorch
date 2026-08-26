@@ -372,6 +372,24 @@ class NPUTritonTemplate(TritonTemplate):
         self.manual_output_buffer = manual_output_buffer
         self.codegen_kernel_name = codegen_kernel_name or f"triton_{name}"
 
+    def _write_index_dtype_define(
+        self,
+        defines: StringIO,
+        numel: sympy.Expr,
+        buffers: Any,
+    ) -> None:
+        can_use_32bit_indexing = TritonScheduling.can_use_32bit_indexing(
+            numel, buffers
+        )
+        is_flex_attention = self.name.startswith("flex_attention")
+        if not can_use_32bit_indexing and not is_flex_attention:
+            raise NotImplementedError(
+                "64-bit indexing is not yet implemented for triton templates"
+            )
+        if is_flex_attention:
+            index_dtype = "tl.int32" if can_use_32bit_indexing else "tl.int64"
+            defines.write(f"INDEX_DTYPE : tl.constexpr = {index_dtype}\n")
+
     def make_runtime_renderer_factory(
         self,
         *,
@@ -395,6 +413,14 @@ class NPUTritonTemplate(TritonTemplate):
                 if self.name.startswith("flex_attention") and name == "generate_with_caching":
                     continue
                 defines.write(f"{name} : tl.constexpr = {value}\n")
+        fake_out = ir.Buffer(name="buf_out", layout=layout)
+        numel = sympy_product(layout.size)
+        if self.manual_output_buffer is None:
+            buffers = itertools.chain(input_nodes, (fake_out,))
+        else:
+            buffers = input_nodes
+            numel = sympy_product(call_sizes)
+        self._write_index_dtype_define(defines, numel, buffers)
         kernel_options = {
             "defines": defines.getvalue(),
             "num_stages": num_stages,
@@ -505,10 +531,7 @@ class NPUTritonTemplate(TritonTemplate):
         else:
             buffers = checked_input_nodes
             numel = sympy_product(call_sizes or layout.size)
-        if not TritonScheduling.can_use_32bit_indexing(numel, buffers):
-            raise NotImplementedError(
-                "64-bit indexing is not yet implemented for triton templates"
-            )
+        self._write_index_dtype_define(defines, numel, buffers)
 
         if not self.name.startswith("flex_attention"):
             defines.write("INDEX_DTYPE : tl.constexpr = tl.int32\n")
