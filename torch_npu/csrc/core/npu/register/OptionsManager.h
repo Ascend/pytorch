@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <map>
 #include <memory>
 #include <string>
@@ -96,6 +97,10 @@ static std::unordered_map<int32_t, std::string> getTaskQueueEnableMode()
     return taskQueueEnableMode;
 }
 
+// Sentinel value: user has not called set_task_queue_enable, fallback to env var
+constexpr int32_t TASK_QUEUE_ENABLE_ENV = -1;
+extern std::atomic<int32_t> g_task_queue_enable_mode;
+
 static std::unordered_map<int32_t, std::string> getAclOpInitMode()
 {
     std::unordered_map<int32_t, std::string> aclOpInitMode = {{0, "aclops init"}, {1, "aclops lazy init"}, {2, "aclops disabled"}};
@@ -140,6 +145,7 @@ public:
     static uint32_t GetHcclBufferSize();
     static uint32_t GetP2PBufferSize();
     static uint32_t GetTaskQueueEnable();
+    static void SetTaskQueueEnable(int32_t mode);
     static uint32_t GetPerStreamQueue();
     static uint32_t GetAclOpInitMode();
     static uint32_t GetStreamsPerDevice();
