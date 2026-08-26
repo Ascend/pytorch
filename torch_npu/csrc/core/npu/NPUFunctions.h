@@ -89,7 +89,11 @@ void LazySetDevice(c10::DeviceIndex device);
 
 int GetLocalDevice();
 
+enum class DevResLimitType { CUBE = 0, VECTOR = 1 };
+
 aclError SetDeviceResLimit(int32_t device, int32_t type, uint32_t value);
+
+void SetDeviceResLimitFromEnv(c10::DeviceIndex device);
 
 C10_NPU_API uint32_t GetDeviceResLimit(int32_t deviceId, int32_t type);
 
