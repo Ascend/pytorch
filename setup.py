@@ -129,13 +129,19 @@ generate_torch_npu_version()
 
 
 def _get_torch_requires():
-    # The torch dependency pins the base PyTorch release, with no
-    # constraint on the build variant. Strip the local tag (+cpu), the
-    # post-release suffix (.postN) and the nightly suffix (.devN) from the
-    # package version so a build made against a dated nightly still depends on
-    # the release line rather than that particular nightly.
-    torch_version = get_version().split("+")[0].split(".post")[0].split(".dev")[0]
-    return ["torch==" + torch_version]
+    # Pin the base PyTorch release line with no constraint on the build
+    # variant. Parse the version and keep only the release segment so any
+    # pre/post-release or local tag is dropped uniformly, rather than
+    # hand-rolling string splits that miss dot-less markers like "rc1".
+    try:
+        from packaging.version import Version
+        base_version = Version(get_version()).base_version
+    except Exception:
+        base_version = get_version().split("+")[0].split(".post")[0].split(".dev")[0]
+    # The trailing ".*" turns the exact match into a PEP 440 prefix match,
+    # letting pip honor an already-installed nightly/rc instead of failing
+    # to find the not-yet-published base release on the index.
+    return ["torch==" + base_version + ".*"]
 
 
 def which(thefile):
