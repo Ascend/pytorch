@@ -34,7 +34,7 @@ class NPUKernelType(Enum):
 
     def compile_mode(self):
         if self == NPUKernelType.SIMT_TEMPLATE:
-            return "unstructured_in_simt"
+            return "simd_simt_template"
         return str(self)
 
 

@@ -763,7 +763,9 @@ class NPUCachingAutotuner(CachingAutotuner):
             and not self.inductor_meta.get("is_hip", False)
         )
 
-        compile_meta['compile_mode'] = cfg_kwargs.get('compile_mode')
+        compile_meta['compile_mode'] = (
+            cfg_kwargs.get('compile_mode') or NPUKernelType.SIMT_TEMPLATE.compile_mode()
+        )
 
         # device type will be "hip" rather than "cuda" here
         compile_meta["device_type"] = self.device_props.type
@@ -1245,7 +1247,9 @@ class NPUCachingAutotuner(CachingAutotuner):
             and not self.inductor_meta.get("is_hip", False)
         )
 
-        compile_meta['compile_mode'] = cfg_kwargs.get('compile_mode')
+        compile_meta['compile_mode'] = (
+            cfg_kwargs.get('compile_mode') or NPUKernelType.SIMT_TEMPLATE.compile_mode()
+        )
 
         # device type will be "hip" rather than "cuda" here
         compile_meta["device_type"] = self.device_props.type
