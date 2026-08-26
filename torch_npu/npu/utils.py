@@ -18,7 +18,8 @@ __all__ = ["obfuscation_initialize", "obfuscation_finalize", "obfuscation_calcul
            "stream", "set_stream", "current_stream", "default_stream", "set_sync_debug_mode", "get_sync_debug_mode",
            "init_dump", "set_dump", "finalize_dump", "is_support_inf_nan", "is_bf16_supported",
            "get_npu_overflow_flag", "npu_check_overflow", "clear_npu_overflow_flag", "current_blas_handle",
-           "check_uce_in_memory", "stress_detect", "get_cann_version", "ipc_collect", "set_op_timeout_ms"]
+           "check_uce_in_memory", "stress_detect", "get_cann_version", "ipc_collect", "set_op_timeout_ms",
+           "set_task_queue_enable", "get_task_queue_enable"]
 
 
 def obfuscation_initialize(hidden_size, tp_rank, cmd, *, data_type=None, model_obf_seed_id=0, data_obf_seed_id=0, thread_num=4, obf_coefficient=1.0):
@@ -319,6 +320,46 @@ def get_sync_debug_mode():
     return torch_npu._C._npu_get_sync_debug_mode()
 
 
+def set_task_queue_enable(mode):
+    r"""Dynamically set the task queue optimization level.
+
+    Args:
+        mode (int): Task queue mode.
+
+        - ``0``: Disable task queue (synchronous execution path).
+        - ``1``: Level 1 optimization (default, suitable for training and debugging).
+        - ``2``: Level 2 optimization (highest throughput, pure-inference only).
+
+    .. warning::
+        This function drains all pending NPU operations via ``emptyAllNPUStream``
+        before applying the new mode. This may block for a significant duration.
+        Do **not** call this function in hot paths or during concurrent NPU
+        submissions — the caller is responsible for ensuring no concurrent
+        NPU activity during the switch.
+
+    .. note::
+        When ``ASCEND_LAUNCH_BLOCKING=1``, the effective mode is always ``0``
+        regardless of the dynamically-set value.
+    """
+    if isinstance(mode, str):
+        mode = int(mode)
+    if mode not in (0, 1, 2):
+        raise RuntimeError(
+            "mode must be 0, 1, or 2, but got {}.".format(mode) +
+            pta_error(ErrCode.VALUE)
+        )
+    torch_npu._C._npu_set_task_queue_enable(mode)
+
+
+def get_task_queue_enable():
+    r"""Returns the current effective value of task queue mode.
+
+    Returns:
+        int: Current task queue mode (0, 1, or 2).
+    """
+    return torch_npu._C._npu_get_task_queue_enable()
+
+
 def _dummy_type(name):
     def init_err(self):
         class_name = self.__class__.__name__
@@ -493,7 +534,7 @@ def _erase_stream(tensor, stream):
 def _set_op_timeout_ms_impl(timeout):
         torch_npu.npu._lazy_init()
         torch_npu._C._npu_set_op_timeout_ms(timeout)
-    
+
 _npu_lib = torch.library.Library("npu", "FRAGMENT")
 if not hasattr(torch.ops.npu, "set_op_timeout_ms"):
     _npu_lib.define("set_op_timeout_ms(int timeout) -> None")
