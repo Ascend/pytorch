@@ -252,7 +252,7 @@ jobs:
             ${CONFIG_ARG} \
             ${FULL_SCAN_ARG} \
             ${SKIP_LIST_ARG} \
-            --regular-threshold 20000 \
+            --regular-threshold 100000 \
             --distributed-threshold 1000 \
             --output-dir ${GITHUB_WORKSPACE}/cases-shards \
             --error-log-dir ${GITHUB_WORKSPACE}/collection_errors \
