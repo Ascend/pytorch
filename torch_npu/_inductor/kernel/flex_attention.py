@@ -1090,6 +1090,7 @@ def _lower_flex_attention_mask_in(
     configs = generate_fwd_candidate_configs(
         sparse_q_block_size=sparse_q_block_size,
         sparse_kv_block_size=sparse_kv_block_size,
+        kernel_options=kernel_options,
     )
     if not configs:
         raise RuntimeError(
@@ -1267,6 +1268,7 @@ def _lower_flex_attention_backward_mask_in(
         sparse_q_block_size=sparse_q_block_size,
         sparse_kv_block_size=sparse_kv_block_size,
         mode=FlexMode.BWD,
+        kernel_options=kernel_options,
     )
     if not configs:
         raise RuntimeError(
@@ -1725,6 +1727,7 @@ def _register_npu_inductor_flex_attention():
         dict_configs = generate_fwd_candidate_configs(
             sparse_q_block_size=SPARSE_Q_BLOCK_SIZE,
             sparse_kv_block_size=SPARSE_KV_BLOCK_SIZE,
+            kernel_options=kernel_options,
         )
 
         if not dict_configs:
@@ -2618,11 +2621,13 @@ def _register_npu_inductor_flex_attention():
             sparse_q_block_size=SPARSE_Q_BLOCK_SIZE,
             sparse_kv_block_size=SPARSE_KV_BLOCK_SIZE,
             mode=FlexMode.BWDDQ,
+            kernel_options=kernel_options,
         )
         bwd_dkdv_dict_configs = generate_bwd_candidate_configs(
             sparse_q_block_size=SPARSE_Q_BLOCK_SIZE,
             sparse_kv_block_size=SPARSE_KV_BLOCK_SIZE,
             mode=FlexMode.BWDDKDV,
+            kernel_options=kernel_options,
         )
 
         tasklist_reduce_ub_safe = True
