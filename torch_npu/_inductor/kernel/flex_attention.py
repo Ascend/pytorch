@@ -58,7 +58,6 @@ from torch._inductor.lowering import (
     empty,
     empty_strided,
     expand,
-    fallback_handler,
     index_output_size_and_inner_fn,
     lowerings,
     register_lowering,
@@ -621,16 +620,10 @@ def _get_flex_attention_additional_lowerings():
     These lowerings allow supported fallback operations to be lowered as pointwise
     ops in the score_mod and mask_mod subgraphs.
     """
-    from torch._inductor.lowering import make_pointwise, index_impl
+    from torch._inductor.lowering import make_pointwise
     from torch._inductor.subgraph_lowering import PointwiseSubgraphLowering
 
     additional_lowerings = {}
-
-    def index_pointwise(x, indices):
-        return index_impl(x, indices, check=True)
-
-    additional_lowerings[aten.index] = index_pointwise
-    additional_lowerings[aten.index.Tensor] = index_pointwise
 
     bitwise_and_fn = make_pointwise(ops.bitwise_and)
 
