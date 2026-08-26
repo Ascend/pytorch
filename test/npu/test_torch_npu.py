@@ -7,11 +7,13 @@ import threading
 import sys
 import os
 from subprocess import check_output
+import subprocess
 
 import torch
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
+from torch_npu.testing.common_utils import SupportedDevices, SkipIfNotGteCANNVersion
 from torch_npu.utils.collect_env import get_cann_version
 
 
@@ -120,26 +122,40 @@ class TorchNPUDeviceTestCase(TestCase):
         after_free_memory, after_total_memory = torch_npu.npu.mem_get_info(0)
         self.assertEqual(before_total_memory, after_total_memory)
 
-    @unittest.skip("CANN doesn't support now.")
+    @SupportedDevices(['Ascend910B', 'Ascend910_93', 'Ascend950'])
+    @SkipIfNotGteCANNVersion("9.2.0")
     def test_set_device_res_limit(self):
+        origin_called = getattr(torch_npu.npu.set_device_limit, "called", None)
         ans_dict = {'cube_core_num': 12, 'vector_core_num': 24}
-        torch.npu.set_device_limit(torch.npu.current_device(), 12, 24)
-        self.assertEqual(ans_dict, torch.npu.get_device_limit(torch.npu.current_device()))
+        try:
+            torch_npu.npu.set_device_limit.called = False
+            torch.npu.set_device_limit(torch.npu.current_device(), 12, 24)
+            self.assertEqual(ans_dict, torch.npu.get_device_limit(torch.npu.current_device()))
+        finally:
+            if origin_called is not None:
+                torch_npu.npu.set_device_limit.called = origin_called
 
-    @unittest.skip("CANN doesn't support now.")
+    @SupportedDevices(['Ascend910B', 'Ascend910_93', 'Ascend950'])
+    @SkipIfNotGteCANNVersion("9.2.0")
     def test_set_stream_res_limit(self):
+        origin_called = getattr(torch_npu.npu.set_device_limit, "called", None)
         ans_dict_1 = {'cube_core_num': 13, 'vector_core_num': 25}
         ans_dict_2 = {'cube_core_num': 14, 'vector_core_num': 26}
         ans_dict_3 = {'cube_core_num': 12, 'vector_core_num': 24}
-        torch.npu.set_device_limit(torch.npu.current_device(), 12, 24)
-        stream1 = torch.npu.current_stream()
-        stream2 = torch.npu.Stream()
-        torch.npu.set_stream_limit(stream1, 13, 25)
-        torch.npu.set_stream_limit(stream2, 14, 26)
-        self.assertEqual(ans_dict_1, torch.npu.get_stream_limit(stream1))
-        self.assertEqual(ans_dict_2, torch.npu.get_stream_limit(stream2))
-        torch.npu.reset_stream_limit(stream1)
-        self.assertEqual(ans_dict_3, torch.npu.get_stream_limit(stream1))
+        try:
+            torch_npu.npu.set_device_limit.called = False
+            torch.npu.set_device_limit(torch.npu.current_device(), 12, 24)
+            stream1 = torch.npu.current_stream()
+            stream2 = torch.npu.Stream()
+            torch.npu.set_stream_limit(stream1, 13, 25)
+            torch.npu.set_stream_limit(stream2, 14, 26)
+            self.assertEqual(ans_dict_1, torch.npu.get_stream_limit(stream1))
+            self.assertEqual(ans_dict_2, torch.npu.get_stream_limit(stream2))
+            torch.npu.reset_stream_limit(stream1)
+            self.assertEqual(ans_dict_3, torch.npu.get_stream_limit(stream1))
+        finally:
+            if origin_called is not None:
+                torch_npu.npu.set_device_limit.called = origin_called
 
     def test_set_device_limit_device_type_check(self):
         invalid_devices = ["0", 0.0, None, True, False]
@@ -164,6 +180,104 @@ class TorchNPUDeviceTestCase(TestCase):
             with self.subTest(device=device):
                 with self.assertRaisesRegex(TypeError, "device must be an int"):
                     torch_npu.npu.get_device_limit(device)
+
+    def test_set_device_res_limit_from_env(self):
+        code = """
+import torch
+import torch_npu
+torch.npu.set_device(0)
+ans = torch.npu.get_device_limit(torch.npu.current_device())
+assert ans == {"cube_core_num": 8, "vector_core_num": 16}, f"Unexpected: {ans}"
+"""
+        env = os.environ.copy()
+        env["NPU_DEVICE_LIMIT"] = "8,16"
+        proc = subprocess.run(
+            [sys.executable, "-c", code],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        self.assertEqual(proc.returncode, 0,
+                         f"Subprocess failed with stderr: {proc.stderr}")
+
+    def test_set_device_res_limit_from_env_invalid(self):
+        invalid_values = [
+            "invalid",
+            "-2,16",
+            "8,-2",
+            "-2,-2",
+            "-1,-1",
+            "8,16abc",
+            "8,abc16",
+            "8,16x",
+            "8, 16trailing",
+        ]
+        for val in invalid_values:
+            with self.subTest(env_val=val):
+                env = os.environ.copy()
+                env["NPU_DEVICE_LIMIT"] = val
+                proc = subprocess.run(
+                    [sys.executable, "-c", "import torch; import torch_npu; torch.npu.set_device(0)"],
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                    timeout=60,
+                )
+                self.assertEqual(proc.returncode, 0,
+                                 f"Subprocess should not crash, val={val}, stderr: {proc.stderr}")
+
+    def test_set_device_res_limit_from_env_via_lazy_set_device(self):
+        # Trigger LazySetDevice via stream op instead of explicit set_device
+        code = """
+import torch
+import torch_npu
+# Use stream to trigger LazySetDevice (not explicit set_device)
+s = torch_npu.npu.Stream()
+with torch_npu.npu.stream(s):
+    pass
+ans = torch_npu.npu.get_device_limit(torch_npu.npu.current_device())
+assert ans == {"cube_core_num": 8, "vector_core_num": 16}, f"Unexpected: {ans}"
+"""
+        env = os.environ.copy()
+        env["NPU_DEVICE_LIMIT"] = "8,16"
+        proc = subprocess.run(
+            [sys.executable, "-c", code],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        self.assertEqual(proc.returncode, 0,
+                         f"Subprocess failed with stderr: {proc.stderr}")
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_set_device_res_limit_from_env_multi_device(self):
+        code = """
+import torch
+import torch_npu
+torch.npu.set_device(0)
+ans0 = torch_npu.npu.get_device_limit(0)
+
+# Initialize device 1 via stream (LazySetDevice)
+stream = torch_npu.npu.Stream(device=torch.device("npu:1"))
+with torch_npu.npu.stream(stream):
+    ans1 = torch_npu.npu.get_device_limit(1)
+
+assert ans0 == {"cube_core_num": 8, "vector_core_num": 16}, f"Device 0: {ans0}"
+assert ans1 == {"cube_core_num": 8, "vector_core_num": 16}, f"Device 1: {ans1}"
+"""
+        env = os.environ.copy()
+        env["NPU_DEVICE_LIMIT"] = "8,16"
+        proc = subprocess.run(
+            [sys.executable, "-c", code],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        self.assertEqual(proc.returncode, 0,
+                         f"Subprocess failed with stderr: {proc.stderr}")
 
 
 class TorchNPUMemoryApiTestCase(TestCase):
