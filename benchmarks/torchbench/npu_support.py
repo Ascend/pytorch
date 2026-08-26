@@ -1,3 +1,4 @@
+import gc
 import logging
 import os
 import sys
@@ -54,6 +55,21 @@ def check_transformers_version(required_version):
 
 def use_aclnn():
     os.environ["USE_ACLOP"] = "0"
+
+
+def _is_triton_experimental_backend():
+    """Return True when the active NPU inductor backend is triton_experimental.
+
+    configure_compile_options() sets TORCHINDUCTOR_NPU_BACKEND before
+    patch_model() runs, so this reflects the backend selected for the run.
+
+    The triton_experimental backend does not consume the ascend_npu_ir config
+    (GENERATE_LIST / force_fallback_kernel_names / decomps_to_exclude_npu), and
+    it relies on the stock inductor decomposition table. The compiler-tuning
+    patches below are therefore either meaningless or actively harmful for it,
+    so callers skip them when this returns True.
+    """
+    return os.environ.get("TORCHINDUCTOR_NPU_BACKEND") == "triton_experimental"
 
 
 def _hf_t5_mt5_conditionalgeneration_forward_new(
@@ -316,52 +332,121 @@ def _patch_model_7():
 @register_patch("nvidia_deeprecommender")
 def _patch_model_10():
     try:
-        import torch
-
-        import torch_npu._inductor  # noqa: F401
-        # from torch_npu.contrib import transfer_to_npu  # noqa: F401
-    except ImportError:
-        log.warning("NPU_FlAG is False!")
-        return
-
-    try:
-        from torchbenchmark.models.nvidia_deeprecommender.nvtrain import (
-            DeepRecommenderTrainBenchmark,
+        from torchbenchmark.models.nvidia_deeprecommender import (
+            nvinfer,
+            nvtrain,
         )
-        from torchbenchmark.models.nvidia_deeprecommender.reco_encoder.model import model
     except ImportError:
         log.warning(
-            "Import nvidia_deeprecommender failed or could not get DeepRecommenderTrainBenchmark"
-            "from module torchbenchmark.models.nvidia_deeprecommender.nvtrain.DeepRecommenderTrainBenchmark"
+            "Import nvidia_deeprecommender failed; the NPU compatibility patch "
+            "was not applied"
         )
         return
 
-    def new_init(
-        self, device="cpu", jit=False, batch_size=256, process_command_line=False
+    train_cls = nvtrain.DeepRecommenderTrainBenchmark
+    inference_cls = nvinfer.DeepRecommenderInferenceBenchmark
+    if getattr(train_cls, "_npu_patch_applied", False):
+        return
+
+    original_train_init = train_cls.__init__
+    original_inference_init = inference_cls.__init__
+
+    def reset_optimizer(self):
+        if self.args.optimizer == "adam":
+            self.optimizer = nvtrain.optim.Adam(
+                self.rencoder.parameters(),
+                lr=self.args.lr,
+                weight_decay=self.args.weight_decay,
+            )
+        elif self.args.optimizer == "adagrad":
+            self.optimizer = nvtrain.optim.Adagrad(
+                self.rencoder.parameters(),
+                lr=self.args.lr,
+                weight_decay=self.args.weight_decay,
+            )
+        elif self.args.optimizer == "momentum":
+            self.optimizer = nvtrain.optim.SGD(
+                self.rencoder.parameters(),
+                lr=self.args.lr,
+                momentum=0.9,
+                weight_decay=self.args.weight_decay,
+            )
+            self.scheduler = nvtrain.MultiStepLR(
+                self.optimizer,
+                milestones=[24, 36, 48, 66, 72],
+                gamma=0.5,
+            )
+        elif self.args.optimizer == "rmsprop":
+            self.optimizer = nvtrain.optim.RMSprop(
+                self.rencoder.parameters(),
+                lr=self.args.lr,
+                momentum=0.9,
+                weight_decay=self.args.weight_decay,
+            )
+        else:
+            raise ValueError(f"Unknown optimizer kind: {self.args.optimizer}")
+
+    def train_init(
+        self, device="cpu", jit=False, batch_size=256, processCommandLine=False
     ):
-        self.TrainInit("cuda", jit, batch_size, process_command_line)
+        target_device = torch.device(device)
+        if target_device.type != "npu":
+            return original_train_init(
+                self, device, jit, batch_size, processCommandLine
+            )
+
+        # The upstream benchmark constructor only accepts CPU and CUDA. Build
+        # its state on CPU first, then move the model and inputs to the actual
+        # NPU device without relying on transfer_to_npu or CUDA API rewriting.
+        original_train_init(self, "cpu", jit, batch_size, processCommandLine)
+        self.device = target_device
+
+        # Keep the existing DVM-friendly shape workaround while making it
+        # backend-independent. The outer TorchBench runner also uses this model
+        # with triton_experimental.
+        if hasattr(self, "scheduler"):
+            del self.scheduler
+        del self.optimizer
+        del self.rencoder
+        del self.toyinputs
+        gc.collect()
 
         self.toyvocab = 197952
         self.toyinputs = torch.randn(self.toybatch, self.toyvocab)
         if self.toytest:
-            self.rencoder = model.AutoEncoder(
-                layer_sizes=[self.toyvocab] + [int(l) for l in self.args.hidden_layers.split(',')],
+            self.rencoder = nvtrain.model.AutoEncoder(
+                layer_sizes=[self.toyvocab]
+                + [int(layer) for layer in self.args.hidden_layers.split(",")],
                 nl_type=self.args.non_linearity_type,
                 is_constrained=self.args.constrained,
                 dp_drop_prob=self.args.drop_prob,
                 last_layer_activations=not self.args.skip_last_layer_nl,
             )
 
-        if hasattr(self, "args"):
-            self.args.use_cuda = True
+        self.args.use_cuda = False
+        self.rencoder = self.rencoder.to(target_device)
+        self.toyinputs = self.toyinputs.to(target_device)
+        reset_optimizer(self)
 
-        if hasattr(self, "rencoder"):
-            self.rencoder = self.rencoder.npu()
+    def inference_init(
+        self, device="cpu", jit=False, batch_size=256, usecommandlineargs=False
+    ):
+        target_device = torch.device(device)
+        if target_device.type != "npu":
+            return original_inference_init(
+                self, device, jit, batch_size, usecommandlineargs
+            )
 
-        if hasattr(self, "toyinputs"):
-            self.toyinputs = self.toyinputs.to("npu")
+        original_inference_init(self, "cpu", jit, batch_size, usecommandlineargs)
+        self.device = target_device
+        self.args.use_cuda = False
+        self.rencoder = self.rencoder.to(target_device)
+        self.toyinputs = self.toyinputs.to(target_device)
 
-    DeepRecommenderTrainBenchmark.__init__ = new_init
+    train_cls.__init__ = train_init
+    inference_cls.__init__ = inference_init
+    train_cls._npu_patch_applied = True
+    inference_cls._npu_patch_applied = True
 
 
 @register_patch("resnet50", "resnet152", "resnext50_32x4d", "densenet121")
@@ -466,6 +551,12 @@ def _patch_model_19():
 
 
 def patch_remove_ops_from_generate_list(op_names=None):
+    if _is_triton_experimental_backend():
+        print(
+            "[patch] triton_experimental backend: skip GENERATE_LIST tuning "
+            "(ascend_npu_ir only)."
+        )
+        return
     try:
         import torch
 
@@ -496,6 +587,12 @@ def patch_remove_ops_from_generate_list(op_names=None):
 
 
 def patch_remove_decomposition(op_names=None):
+    if _is_triton_experimental_backend():
+        print(
+            "[patch] triton_experimental backend: keep stock inductor "
+            "decompositions (skip removal)."
+        )
+        return
     try:
         from torch._decomp import remove_decompositions
         from torch._inductor import decomposition as inductor_decomp
@@ -516,6 +613,78 @@ def patch_remove_decomposition(op_names=None):
 
     except Exception as e:
         print(f"[patch] Failed to remove decompositions from inductor: {e}")
+
+
+def patch_force_fallback_kernels(kernel_names=None):
+    """Force ascend_npu_ir to fall back on the given fused kernels.
+
+    Only meaningful for the mlir/dvm (ascend_npu_ir) backend; the
+    triton_experimental backend does not consume this config, so skip it there.
+    """
+    if _is_triton_experimental_backend():
+        print(
+            "[patch] triton_experimental backend: skip force_fallback_kernel_names "
+            "(ascend_npu_ir only)."
+        )
+        return
+    if not kernel_names:
+        print("[patch] No kernel names provided, nothing to do.")
+        return
+    try:
+        from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import (
+            config as anir_config,
+        )
+
+        for name in kernel_names:
+            anir_config.force_fallback_kernel_names[name] = True
+        print(f"[patch] Forced fallback for {len(kernel_names)} kernel(s).")
+    except ImportError:
+        log.warning("import ascend_npu_ir config failed for force_fallback patch")
+
+
+def patch_exclude_decomps_npu(op_names=None):
+    """Exclude ops from ascend_npu_ir decomposition and the inductor table.
+
+    The decomps_to_exclude_npu list is ascend_npu_ir-specific, and the
+    accompanying remove_decompositions() call mutates the global inductor
+    decomposition table that triton_experimental relies on, so skip both there.
+    """
+    if _is_triton_experimental_backend():
+        print(
+            "[patch] triton_experimental backend: keep stock decompositions "
+            "(skip decomps_to_exclude_npu)."
+        )
+        return
+    if not op_names:
+        print("[patch] No op names provided, nothing to do.")
+        return
+    try:
+        from torch._decomp import remove_decompositions
+        from torch._inductor import decomposition as inductor_decomp
+
+        from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import (
+            config as anir_config,
+        )
+
+        ops = []
+        for name in op_names:
+            op = torch.ops
+            for p in name.split("."):
+                op = getattr(op, p)
+            ops.append(op)
+
+        if hasattr(anir_config, "decomps_to_exclude_npu") and isinstance(
+            anir_config.decomps_to_exclude_npu, list
+        ):
+            for op in ops:
+                if op not in anir_config.decomps_to_exclude_npu:
+                    anir_config.decomps_to_exclude_npu.append(op)
+            remove_decompositions(inductor_decomp.decompositions, ops)
+            print(f"[patch] Excluded {len(ops)} decomposition(s) for NPU.")
+    except Exception:
+        log.warning(
+            "import config failed for decomps_to_exclude_npu patch", exc_info=True
+        )
 
 
 @register_patch("speech_transformer")
@@ -570,14 +739,7 @@ def _patch_model_21():
     # The current operator suffers from severe performance degradation.
     # This patch will be removed after the issue is fixed in the future.
     patch_remove_decomposition(["aten._softmax"])
-    try:
-        from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import (
-            config as anir_config,
-        )
-
-        anir_config.force_fallback_kernel_names["mlir_fused_add_lt_neg_where_16"] = True
-    except ImportError:
-        log.warning("import config failed for hf_T5_base patch")
+    patch_force_fallback_kernels(["mlir_fused_add_lt_neg_where_16"])
 
 
 @register_patch("hf_T5_large")
@@ -585,14 +747,7 @@ def _patch_model_22():
     # The current operator suffers from severe performance degradation.
     # This patch will be removed after the issue is fixed in the future.
     patch_remove_decomposition(["aten._softmax"])
-    try:
-        from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import (
-            config as anir_config,
-        )
-
-        anir_config.force_fallback_kernel_names["mlir_fused_add_lt_neg_where_16"] = True
-    except ImportError:
-        log.warning("import config failed for hf_T5_large patch")
+    patch_force_fallback_kernels(["mlir_fused_add_lt_neg_where_16"])
 
 
 @register_patch("pytorch_unet")
@@ -611,26 +766,12 @@ def _patch_squeezenet1_1():
     fallbackdiv
     """
     patch_remove_ops_from_generate_list(["aten.div"])
-    try:
-        from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import (
-            config as anir_config,
-        )
-
-        anir_config.force_fallback_kernel_names["mlir_fused_relu_threshold_backward_2"] = True
-    except ImportError:
-        log.warning("import config failed for squeezenet1_1 patch")
+    patch_force_fallback_kernels(["mlir_fused_relu_threshold_backward_2"])
 
 
 @register_patch("T5ForConditionalGeneration")
 def _patch_model_24():
-    try:
-        from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import (
-            config as anir_config,
-        )
-
-        anir_config.force_fallback_kernel_names["mlir_fused_add_lt_neg_where_13"] = True
-    except ImportError:
-        log.warning("import config failed for T5ForConditionalGeneration patch")
+    patch_force_fallback_kernels(["mlir_fused_add_lt_neg_where_13"])
     from torch._higher_order_ops.effects import (
         _EffectType,
         _register_effectful_op,
@@ -644,30 +785,12 @@ def _patch_model_24():
 
 @register_patch("BartForCausalLM")
 def _patch_model_25():
-    try:
-        import torch
-        from torch._decomp import remove_decompositions
-        from torch._inductor import decomposition as inductor_decomp
-
-        from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import (
-            config as anir_config,
-        )
-
-        aten = torch.ops.aten
-        ops_to_add = [
-            aten.native_layer_norm,
-            aten.native_layer_norm_backward,
+    patch_exclude_decomps_npu(
+        [
+            "aten.native_layer_norm",
+            "aten.native_layer_norm_backward",
         ]
-
-        if hasattr(anir_config, "decomps_to_exclude_npu") and isinstance(
-            anir_config.decomps_to_exclude_npu, list
-        ):
-            for op in ops_to_add:
-                if op not in anir_config.decomps_to_exclude_npu:
-                    anir_config.decomps_to_exclude_npu.append(op)
-            remove_decompositions(inductor_decomp.decompositions, ops_to_add)
-    except Exception:
-        log.warning("import config failed for BartForCausalLM patch", exc_info=True)
+    )
 
 
 @register_patch("DistilBertForMaskedLM")

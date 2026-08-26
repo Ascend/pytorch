@@ -844,6 +844,16 @@ class BenchmarkRunner:
 
     def run_n_iterations(self, mod, inputs, run_mode=None):
         n = self.args.iterations
+
+        if is_npu_available and self.args.enable_profiler is not None:
+            # Run the first iteration before starting the outer profiler.
+            # Inductor compilation and Triton autotuning can create their own
+            # profiler sessions; nesting those inside the benchmark profiler
+            # can corrupt the CANN trace (for example, by leaving it without a
+            # TASK table).
+            self.model_iter_fn(mod, inputs, collect_outputs=False)
+            synchronize()
+
         if run_mode is None:
             for _ in range(n - 1):
                 self.model_iter_fn(mod, inputs, collect_outputs=False)
@@ -866,7 +876,7 @@ class BenchmarkRunner:
                 enable=self.args.enable_profiler is not None,
                 level=prof_level,
                 warmup=10,
-                active=n,
+                active=max(1, n - 10),
                 save_path=prof_output_dir,
             )
         else:
@@ -1581,7 +1591,14 @@ def parse_args(args=None):
     )
     parser.add_argument(
         "--npu-backend",
-        choices=["mlir", "dvm", "akg", "triton", "default"],
+        choices=[
+            "mlir",
+            "dvm",
+            "akg",
+            "triton",
+            "triton_experimental",
+            "default",
+        ],
         default="default",
         help="Specify NPU backend (only effective when --backend is inductor)",
     )
@@ -2077,8 +2094,14 @@ def configure_compile_options(args, runner):
         if backend == "inductor" and hasattr(args, "npu_backend"):
             if npu_backend == "default":
                 npu_backend = get_npu_backend(args)
-            if npu_backend in ["mlir", "dvm"]:
-                os.environ["TORCHINDUCTOR_NPU_BACKEND"] = npu_backend
+            backend_env = {
+                "mlir": "mlir",
+                "dvm": "dvm",
+                "triton": "default",
+                "triton_experimental": "triton_experimental",
+            }
+            if npu_backend in backend_env:
+                os.environ["TORCHINDUCTOR_NPU_BACKEND"] = backend_env[npu_backend]
             if npu_backend == "akg":
                 os.environ["TORCHINDUCTOR_NPU_BACKEND"] = "mlir"
                 os.environ["TORCHINDUCTOR_USE_AKG"] = "1"

@@ -171,10 +171,13 @@
 
 4. NPU图模式后端指定
 
-    当前NPU图模式后端通过`--npu-backend`参数指定，支持`mlir`、`dvm`、`akg`、`triton`四种模式，不显示指定会默认选择四种模式中端到端时间加速比最大的图模式后端，使用示例如下
+    当前NPU图模式后端通过`--npu-backend`参数指定，支持`mlir`、`dvm`、`akg`、`triton`和`triton_experimental`五种模式；不显式指定时，会默认选择端到端时间加速比最大的图模式后端。其中`triton`对应默认 Triton 后端，`triton_experimental`对应独立的实验性 Triton 后端。使用示例如下
 
     ```shell
     python3 torchbench.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --only BERT_pytorch --iterations 50
+
+    # 使用triton_experimental后端
+    python3 torchbench.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend triton_experimental --only nvidia_deeprecommender --iterations 50 --disable-aclgraph --dynamic-shapes
     ```
 
     当前可通过 `--mfusion` 参数开启 MFusion 图算融合优化功能, 配合不同的NPU图模式后端, 进一步提升模型的性能，使用示例如下
@@ -302,7 +305,7 @@
 
 1. NPU图模式后端指定
 
-    当前NPU图模式后端通过`--npu-backend`参数指定，支持`mlir`、`dvm`、`akg`、`triton`四种模式，使用示例如下
+    当前NPU图模式后端通过`--npu-backend`参数指定，支持`mlir`、`dvm`、`akg`、`triton`和`triton_experimental`五种模式。其中`triton`对应默认 Triton 后端，`triton_experimental`对应独立的实验性 Triton 后端。使用示例如下
 
     ```shell
     python3 huggingface.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --only AlbertForMaskedLM --iterations 50
