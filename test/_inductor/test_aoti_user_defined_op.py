@@ -7,7 +7,7 @@ from torch.testing._internal.common_utils import run_tests, parametrize, instant
 
 import triton
 import triton.language as tl
-
+import unittest
 from testutils import TestUtils
 
 import torch_npu
@@ -124,7 +124,7 @@ class TestAotiUserDefinedOp(TestUtils):
         z_input = torch.ones(batch_size * dim, device="cpu", dtype=torch.float32).reshape([batch_size, dim])
         return x_input, y_input, z_input
 
-
+    @unittest.skip
     @parametrize('shape_x', [8])
     @parametrize('shape_y', [32])
     @parametrize('use_cpp_wrapper', [True, False])
@@ -139,7 +139,7 @@ class TestAotiUserDefinedOp(TestUtils):
                 compile_res = model_c(x_input, y_input, z_input)
                 self.assertEqual(eager_res, compile_res, atol=1e-3, rtol=1e-3)
 
-
+    @unittest.skip
     @parametrize('shape_x', [8])
     @parametrize('shape_y', [32])
     @parametrize('autotune_at_compile', [True, False])

@@ -95,7 +95,7 @@ class TestNPUFastLaunchStatic(unittest.TestCase):
         self.assertIn("plan.argLayouts[index]", source)
         self.assertIn("plan.gridOffsets[index]", source)
         self.assertIn("packed.args.resize(plan.packedArgsSize, 0)", source)
-        self.assertIn("if (!plan.forceSimtOnly)", source)
+        self.assertIn("if (!plan.isPureSimt)", source)
         self.assertIn("if (plan.targetSupportFfts)", source)
         self.assertIn("rtGetC2cCtrlAddr(&fftsAddress, &fftsLength)", source)
         self.assertIn(

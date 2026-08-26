@@ -66,7 +66,7 @@ def attach_python_wrapper_launcher_metadata(
 
     metadata = getattr(binary, "metadata", None)
     parallel_mode = _metadata_value(metadata, "parallel_mode", "")
-    force_simt_only = _metadata_value(metadata, "force_simt_only", False)
+    is_pure_simt = _metadata_value(metadata, "is_pure_simt", False)
     shared_mem_dynamic_size = _metadata_value(
         metadata,
         "shared_mem_dynamic_size",
@@ -77,8 +77,8 @@ def attach_python_wrapper_launcher_metadata(
 
     launcher._npu_fast_launch_enable_simt = "simt" in str(
         parallel_mode
-    ).lower() or bool(force_simt_only)
-    launcher._npu_fast_launch_force_simt_only = bool(force_simt_only)
+    ).lower() or bool(is_pure_simt)
+    launcher._npu_fast_launch_force_simt_only = bool(is_pure_simt)
     launcher._npu_fast_launch_shared_mem_dynamic_size = int(
         shared_mem_dynamic_size or 0
     )

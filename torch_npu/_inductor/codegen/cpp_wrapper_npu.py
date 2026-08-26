@@ -471,14 +471,14 @@ class DeferredNpuTritonCallWrapper(DeferredTritonCallWrapper):
         ]
         arg_types = [arg_type_lookup[name] for name in call_args]
         arg_signatures = [triton_meta["signature"][name] for name in call_args]
-        force_simt_only = npu_config.is_ascend950 and params["force_simt_only"]
+        is_pure_simt = npu_config.is_ascend950 and params["is_pure_simt"]
         enable_simt = npu_config.is_ascend950 and (
-            "simt" in params["parallel_mode"] or params["force_simt_only"]
+            "simt" in params["parallel_mode"] or params["is_pure_simt"]
         )
         enable_auto_blockify = not params.get("has_auto_blockify_blacklist_op", False) and triton_support_auto_blockify()
         prefix.splice(f"""
         auto launch_call = [=]() {{
-        {wrapper.generate_args_decl(prefix, call_args, arg_types, arg_signatures, True, force_simt_only)}
+        {wrapper.generate_args_decl(prefix, call_args, arg_types, arg_signatures, True, is_pure_simt)}
         {wrapper.generate_launch_preparation(kernel_var_name, params, enable_simt, enable_auto_blockify)}
         }};
         """)
@@ -886,7 +886,7 @@ static inline void load_{kernel_name}() {{
         arg_types,
         arg_signatures,
         is_triton_kernel=True,
-        force_simt_only=False,
+        is_pure_simt=False,
     ):
         """
         Generates any declarations of args to pass into a kernel call, and then returns the arg names.
@@ -990,20 +990,20 @@ static inline void load_{kernel_name}() {{
         args_str = f"""
             aclError ret;
             {ffts_str if target_support_ffts else ""}
-            {"void* workspace_addr = NULL;" if not force_simt_only else ""}
-            {"void* sync_block_lock = NULL;" if not force_simt_only else ""}
+            {"void* workspace_addr = NULL;" if not is_pure_simt else ""}
+            {"void* sync_block_lock = NULL;" if not is_pure_simt else ""}
             struct __attribute__((packed)) {{
                 {"void* ffts_addr __attribute__((aligned(8)));" if target_support_ffts else ""}
-                {"void* sync_block_lock __attribute__((aligned(8)));" if not force_simt_only else ""}
-                {"void* workspace_addr __attribute__((aligned(8)));" if not force_simt_only else ""}
+                {"void* sync_block_lock __attribute__((aligned(8)));" if not is_pure_simt else ""}
+                {"void* workspace_addr __attribute__((aligned(8)));" if not is_pure_simt else ""}
                 {struct_def_body}
                 int32_t grid_0 __attribute__((aligned(4)));
                 int32_t grid_1 __attribute__((aligned(4)));
                 int32_t grid_2 __attribute__((aligned(4)));
             }} kernel_args = {{
                 {"static_cast<void*>(ffts_addr)," if target_support_ffts else ""}
-                {"static_cast<void*>(sync_block_lock)," if not force_simt_only else ""}
-                {"static_cast<void*>(workspace_addr)," if not force_simt_only else ""}
+                {"static_cast<void*>(sync_block_lock)," if not is_pure_simt else ""}
+                {"static_cast<void*>(workspace_addr)," if not is_pure_simt else ""}
                 {struct_arg_body}
                 static_cast<int32_t>(grid_0),
                 static_cast<int32_t>(grid_1),
