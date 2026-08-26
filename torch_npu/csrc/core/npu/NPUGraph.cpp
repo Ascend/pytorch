@@ -152,7 +152,7 @@ void NPUGraph::register_generator_state(const at::Generator& generator)
 void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode, bool report_shape)
 {
     NPUGRAPH_LOGD("NPUGRAPH Capture device=%d, pool=(%lu,%lu), mode=%d", c10_npu::current_device(), pool.first, pool.second, static_cast<int>(capture_mode));
-    static const auto _task_queue_enable = c10_npu::option::OptionsManager::GetTaskQueueEnable();
+    const auto _task_queue_enable = c10_npu::option::OptionsManager::GetTaskQueueEnable();
     TORCH_CHECK(_task_queue_enable != 2,
         "Do not support TASK_QUEUE_ENABLE = 2 during NPU graph capture, please "
         "export TASK_QUEUE_ENABLE=1/0.",

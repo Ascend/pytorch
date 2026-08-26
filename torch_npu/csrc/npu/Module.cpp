@@ -2098,7 +2098,7 @@ PyObject* THNPModule_aclnn_reselect_static_kernel(
       ret,
       PTA_ERROR(ErrCode::INTERNAL));
 
-  static const auto task_queue_enable =
+  const auto task_queue_enable =
       c10_npu::option::OptionsManager::GetTaskQueueEnable();
   if (task_queue_enable == 2) {
     auto acl_call = []() -> int {
@@ -2148,7 +2148,7 @@ PyObject* THNPModule_aclnn_reselect_static_kernel_with_path(
       ret,
       PTA_ERROR(ErrCode::INTERNAL));
 
-  static const auto task_queue_enable =
+  const auto task_queue_enable =
       c10_npu::option::OptionsManager::GetTaskQueueEnable();
   if (task_queue_enable == 2) {
     auto acl_call = [resolved_path]() -> int {
@@ -2166,6 +2166,36 @@ PyObject* THNPModule_aclnn_reselect_static_kernel_with_path(
   }
 
   Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_npu_set_task_queue_enable(PyObject* _unused, PyObject* arg) {
+  HANDLE_TH_ERRORS
+  TORCH_CHECK(
+      THPUtils_checkLong(arg),
+      "mode type must be int, but got ", THPUtils_typename(arg),
+      PTA_ERROR(ErrCode::PARAM));
+
+  int64_t mode = THPUtils_unpackLong(arg);
+  TORCH_CHECK(
+      mode >= 0 && mode <= 2,
+      "mode must be 0, 1, or 2, but got ", mode,
+      PTA_ERROR(ErrCode::VALUE));
+
+  NPUStatus ret = c10_npu::emptyAllNPUStream();
+  TORCH_CHECK(
+      ret == NPU_STATUS_SUCCESS,
+      "Failed to drain NPU streams before switching mode",
+      PTA_ERROR(ErrCode::INTERNAL));
+
+  c10_npu::option::OptionsManager::SetTaskQueueEnable(static_cast<int32_t>(mode));
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_npu_get_task_queue_enable(PyObject* _unused, PyObject* _args) {
+  HANDLE_TH_ERRORS
+  return THPUtils_packInt32(static_cast<int32_t>(c10_npu::option::OptionsManager::GetTaskQueueEnable()));
   END_HANDLE_TH_ERRORS
 }
 
@@ -2819,6 +2849,14 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_aclnn_reselect_static_kernel_with_path",
      (PyCFunction)THNPModule_aclnn_reselect_static_kernel_with_path,
      METH_O,
+     nullptr},
+    {"_npu_set_task_queue_enable",
+     (PyCFunction)THNPModule_npu_set_task_queue_enable,
+     METH_O,
+     nullptr},
+    {"_npu_get_task_queue_enable",
+     (PyCFunction)THNPModule_npu_get_task_queue_enable,
+     METH_NOARGS,
      nullptr},
     {"_npu_set_thread_affinity",
      (PyCFunction)THNPModule_npu_set_thread_affinity,
