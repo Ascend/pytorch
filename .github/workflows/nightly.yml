@@ -31,7 +31,7 @@ jobs:
     secrets: inherit
     with:
       upstream_repo: kerer-ai/pytorch-nv
-      upstream_ref: main_test
+      upstream_ref: main_pr_693
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: master
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-202608241234-9c1d81e6
