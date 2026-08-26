@@ -12,7 +12,7 @@ The decorator serves two purposes:
 
 Usage
 -----
-    from test.utils.version_mark import runIfVersion
+    from version_mark import runIfVersion
 
     @runIfVersion(min="2.10")
     def test_new_api(self): ...           # runs on >= 2.10

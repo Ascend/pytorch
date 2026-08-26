@@ -19,7 +19,7 @@ from access_control import (
 from split_by_time import load_and_validate_time_data, split_by_time, get_test_key
 
 sys.path.insert(0, str(TEST_DIR))
-from utils.version_mark import set_ci_version_range
+from version_mark import set_ci_version_range
 
 
 def fetch_acl_headers():
@@ -335,6 +335,12 @@ if __name__ == "__main__":
             os.environ["CI_VERSION_MIN"] = ".".join(map(str, ci_min))
         if ci_max is not None:
             os.environ["CI_VERSION_MAX"] = ".".join(map(str, ci_max))
+    else:
+        # No --between_version: drop files with @runIfVersion decorators,
+        # keep only universal test cases (those without version decorators).
+        print("No --between_version specified: filtering out version-decorated test cases")
+        test_mgr.filter_by_version(None, None)
+        cur_test_files = test_mgr.get_test_files()
 
     test_mgr.print_modify_files()
     test_mgr.print_ut_files()

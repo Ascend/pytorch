@@ -1,12 +1,16 @@
 """AST-based version filter for test files.
 
-Scans test files for @runIfVersion decorators and filters out files
-whose decorated cases all fall outside the CI's target version range.
+Scans test files for @runIfVersion decorators and filters files based on
+whether --between_version is specified.
 
-Filtering rule per file:
-- No @runIfVersion decorators found  -> keep (runs on all versions)
+When --between_version IS specified (versioned job):
+- No @runIfVersion decorators found  -> drop (only version-decorated cases run)
 - Any @runIfVersion intersects with CI range -> keep
 - All @runIfVersion decorators outside CI range -> drop
+
+When --between_version is NOT specified (non-versioned job):
+- No @runIfVersion decorators found  -> keep (universal cases run)
+- Any @runIfVersion decorators found -> drop (versioned cases skip)
 """
 import ast
 from pathlib import Path
@@ -70,6 +74,27 @@ def _ranges_intersect(
     return True
 
 
+def _file_has_version_decorators(file_path: str) -> bool:
+    """Return True if the file has any @runIfVersion decorators."""
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            source = f.read()
+        tree = ast.parse(source, filename=file_path)
+    except (SyntaxError, OSError, UnicodeDecodeError):
+        return False
+
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            continue
+        for dec in node.decorator_list:
+            call = dec if isinstance(dec, ast.Call) else None
+            if call is None and isinstance(dec, ast.Attribute) and isinstance(dec.value, ast.Call):
+                call = dec.value
+            if call is not None and _decorator_name(call) == "runIfVersion":
+                return True
+    return False
+
+
 def _file_should_run(
     file_path: str,
     ci_min: Optional[VersionTuple],
@@ -107,8 +132,8 @@ def _file_should_run(
             if _ranges_intersect(min_ver, max_ver, ci_min, ci_max):
                 return True
 
-    # No decorators -> keep; decorators but none intersected -> drop
-    return not found_any
+    # No decorators -> drop; decorators but none intersected -> drop
+    return False
 
 
 def filter_test_files(
@@ -118,10 +143,21 @@ def filter_test_files(
 ) -> dict:
     """Filter a {ut_type: [file_paths]} dict by the CI version range.
 
-    Returns a new dict with only the files that should run.
+    When ci_min/ci_max are None (no --between_version):
+      - Keep files WITHOUT @runIfVersion decorators
+      - Drop files WITH @runIfVersion decorators
+
+    When ci_min/ci_max are set (--between_version specified):
+      - Keep files with @runIfVersion that intersects the CI range
+      - Drop files without @runIfVersion or with non-intersecting ranges
     """
     if ci_min is None and ci_max is None:
-        return test_files
+        # No version filter: keep only files without version decorators
+        filtered = {}
+        for ut_type, files in test_files.items():
+            kept = [f for f in files if not _file_has_version_decorators(str(Path(f)))]
+            filtered[ut_type] = kept
+        return filtered
 
     filtered = {}
     for ut_type, files in test_files.items():
