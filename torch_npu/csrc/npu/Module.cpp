@@ -177,7 +177,7 @@ void RegisterNPUDeviceProperties(PyObject* module) {
 
   m.def("_npu_isHistoryEnabled", []() { return c10_npu::NPUCachingAllocator::isHistoryEnabled(); });
 
-  torch::inductor::initAOTIRunnerBindingsNpu(module);
+  torch::inductor::initAOTIRunnerBindingsNpu();
 }
 
 std::string GetDeviceName() {

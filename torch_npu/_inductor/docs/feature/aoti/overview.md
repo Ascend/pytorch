@@ -183,6 +183,7 @@ set_property(TARGET aoti_example PROPERTY CXX_STANDARD 17)
 ## 使用约束
 
 暂不支持叠加Catlass，仅做功能兼容支持。
+不推荐使用社区已标记为deprecated的torch._export.aot_compile()/torch._export.aot_load()接口， 如需使用，请避免在同一进程内部多次调用
 
 ## 设备支持说明
 

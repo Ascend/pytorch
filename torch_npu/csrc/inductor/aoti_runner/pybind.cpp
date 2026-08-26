@@ -11,9 +11,10 @@
 
 namespace torch::inductor {
 
-void initAOTIRunnerBindingsNpu(PyObject* module) {
+void initAOTIRunnerBindingsNpu() {
+  py::module module = py::module::import("torch._C");
   auto rootModule = py::handle(module).cast<py::module>();
-  auto m = rootModule.def_submodule("_aoti");
+  auto m = py::cast<py::module>(rootModule.attr("_aoti"));
 
 #ifdef USE_NPU
   py::class_<AOTIModelContainerRunnerNpu>(m, "AOTIModelContainerRunnerNpu")

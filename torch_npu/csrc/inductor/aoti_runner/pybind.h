@@ -12,7 +12,7 @@
 
 namespace torch::inductor {
 
-void initAOTIRunnerBindingsNpu(PyObject* module);
+void initAOTIRunnerBindingsNpu();
 
 } // namespace torch::inductor
 #endif
