@@ -46,6 +46,7 @@ Inductor-Ascend在继承社区Pytorch Inductor能力的基础上，针对昇腾A
 | CppWrapper | 用于生成 C++ 调用代码替代默认的 Python 包装器，以减少 torch.compile 后模型在推理时的 Python 开销。详细介绍可点击[link](https://docs.pytorch.org/tutorials/unstable/inductor_cpp_wrapper_tutorial.html)
 | AOTInductor | 旨在处理导出的PyTorch模型，对其进行优化，并生成动态链接库及其他相关产物。这些编译产物广泛应用于服务端推理部署场景，支持非Python环境下的推理执行。详细介绍可点击[link](https://docs.pytorch.org/docs/2.11/user_guide/torch_compiler/torch.compiler_aot_inductor.html)
 | 分核/限核 | 用于将NPU卡的计算核（Cube Core、Vector Core）进行划分，例如：通过export NPU_DEVICE_LIMIT='14,28'，将会划分14个Cube Core和28个Vector Core作为当前可用的计算核。在这种情况下，一个计算图中所涉及的算子(AclNN算子、triton手写算子、triton自动融合算子、catlass算子)，最多可以使用这些受限的计算核。
+| MegaCache | 用于统一保存和恢复模型编译过程中产生的多级缓存，从而减少模型冷启动时重复执行图捕获、动态图分析、代码生成、Kernel编译和Autotune带来的耗时，提供面向`torch.compile`编译场景的端到端缓存复用能力。详细介绍可单击[link](https://docs.pytorch.org/tutorials/recipes/torch_compile_caching_tutorial.html)获取PyTorch官网详情
 
 ## 使用说明
 
