@@ -186,18 +186,17 @@ def _get_npu_bmm_configs(
             group_m_values = [8]
         for group_m in group_m_values:
             for num_stages in [2, 3]:
-                for num_warps in [4, 8]:
-                    configs.append({
-                        "BLOCK_M": block_m,
-                        "BLOCK_N": block_n,
-                        "BLOCK_K": block_k,
-                        "GROUP_M": group_m,
-                        "num_stages": num_stages,
-                        "num_warps": num_warps,
-                        "ALLOW_TF32": "False",
-                        "ACC_TYPE": "tl.float32",
-                        "EVEN_K": even_k,
-                    })
+                configs.append({
+                    "BLOCK_M": block_m,
+                    "BLOCK_N": block_n,
+                    "BLOCK_K": block_k,
+                    "GROUP_M": group_m,
+                    "num_stages": num_stages,
+                    "num_warps": 4,
+                    "ALLOW_TF32": "False",
+                    "ACC_TYPE": "tl.float32",
+                    "EVEN_K": even_k,
+                })
 
     return configs
 
