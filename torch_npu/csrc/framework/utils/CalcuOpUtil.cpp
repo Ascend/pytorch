@@ -26,9 +26,7 @@ constexpr float EPSILON = 1e-6;
 static const string CUBE_MATH_TYPE = "CUBE_MATH_TYPE";
 
 // check all at::ScalarType is not negative
-#define ENUM_PAIR_FUNC(_1, n) \
-  static_assert(              \
-      static_cast<int64_t>(at::ScalarType::n) >= 0, #n " is negative");
+#define ENUM_PAIR_FUNC(_1, n) static_assert(static_cast<int64_t>(at::ScalarType::n) >= 0, #n " is negative");
 AT_FORALL_SCALAR_TYPES_WITH_COMPLEX_AND_QINTS(ENUM_PAIR_FUNC)
 #undef ENUM_PAIR_FUNC
 
@@ -39,8 +37,7 @@ AT_FORALL_SCALAR_TYPES_WITH_COMPLEX_AND_QINTS(ENUM_PAIR_FUNC)
 // passes on 2.13 rc14 (where BComplex32 does not exist) and on 2.14 (where
 // it does). Ascend has no native BComplex32 dtype, so map to ACL_DT_UNDEFINED.
 #if TORCH_NPU_VERSION_GE(2, 14)
-#define AT_SCALAR_TYPE_V214_ADDS(_) \
-  _(at::ScalarType::BComplex32, ACL_DT_UNDEFINED)
+#define AT_SCALAR_TYPE_V214_ADDS(_) _(at::ScalarType::BComplex32, ACL_DT_UNDEFINED)
 #else
 #define AT_SCALAR_TYPE_V214_ADDS(_) /* nothing on <2.14 */
 #endif
@@ -96,61 +93,57 @@ AT_FORALL_SCALAR_TYPES_WITH_COMPLEX_AND_QINTS(ENUM_PAIR_FUNC)
   _(at::ScalarType::Undefined, ACL_DT_UNDEFINED)       \
   _(at::ScalarType::NumOptions, ACL_DT_UNDEFINED)
 
-constexpr aclDataType kATenScalarTypeToAclDataTypeTable
-    [static_cast<int64_t>(at::ScalarType::NumOptions) + 1] = {
+constexpr aclDataType kATenScalarTypeToAclDataTypeTable[static_cast<int64_t>(at::ScalarType::NumOptions) + 1] = {
 #define DEFINE_ENUM(_1, n) n,
-        AT_ALL_SCALAR_TYPE_AND_ACL_DATATYPE_PAIR(DEFINE_ENUM)
+    AT_ALL_SCALAR_TYPE_AND_ACL_DATATYPE_PAIR(DEFINE_ENUM)
 #undef DEFINE_ENUM
 };
 
 // check at::ScalarType has been changed or not
-#define ENUM_PAIR_FUNC(at_dtype, acl_dtype)                                \
-  static_assert(                                                           \
-      kATenScalarTypeToAclDataTypeTable[static_cast<int64_t>(at_dtype)] == \
-          (acl_dtype),                                                     \
-      #at_dtype " and " #acl_dtype                                         \
-                " is not match any more, please check "                    \
+#define ENUM_PAIR_FUNC(at_dtype, acl_dtype)                                             \
+  static_assert(                                                                        \
+      kATenScalarTypeToAclDataTypeTable[static_cast<int64_t>(at_dtype)] == (acl_dtype), \
+      #at_dtype " and " #acl_dtype                                                      \
+                " is not match any more, please check "                                 \
                 "AT_ALL_SCALAR_TYPE_AND_ACL_DATATYPE_PAIR and modify it");
 AT_ALL_SCALAR_TYPE_AND_ACL_DATATYPE_PAIR(ENUM_PAIR_FUNC)
 #undef DEFINE_ENUM
 
-static std::map<const std::string, const aclDataType>
-    STRING_SCALAR_TYPE_TO_ACL_TYPE_MAP = {
-        {"uint16", ACL_UINT16},
-        {"uint8", ACL_UINT8},
-        {"uint64", ACL_UINT64},
-        {"string", ACL_STRING}};
+static std::map<const std::string, const aclDataType> STRING_SCALAR_TYPE_TO_ACL_TYPE_MAP = {
+    {"uint16", ACL_UINT16},
+    {"uint8", ACL_UINT8},
+    {"uint64", ACL_UINT64},
+    {"string", ACL_STRING}};
 
-static std::unordered_map<const aclDataType, const at::ScalarType>
-    ACL_TYPE_TO_SCALAR_TYPE_MAP = {
-        {ACL_DT_UNDEFINED, at::ScalarType::Undefined},
-        {ACL_FLOAT, at::ScalarType::Float},
-        {ACL_FLOAT16, at::ScalarType::Half},
-        {ACL_INT8, at::ScalarType::Char},
-        {ACL_INT32, at::ScalarType::Int},
-        {ACL_UINT8, at::ScalarType::Byte},
-        {ACL_INT16, at::ScalarType::Short},
-        {ACL_UINT16, at::ScalarType::UInt16},
-        {ACL_UINT32, at::ScalarType::UInt32},
-        {ACL_INT64, at::ScalarType::Long},
-        {ACL_UINT64, at::ScalarType::UInt64},
-        {ACL_DOUBLE, at::ScalarType::Double},
-        {ACL_BOOL, at::ScalarType::Bool},
-        {ACL_STRING, at::ScalarType::Undefined},
-        {ACL_COMPLEX64, at::ScalarType::ComplexFloat},
-        {ACL_COMPLEX128, at::ScalarType::ComplexDouble},
-        {ACL_BF16, at::ScalarType::BFloat16},
-        {ACL_INT4, at::ScalarType::Undefined},
-        {ACL_UINT1, at::ScalarType::Undefined},
-        {ACL_COMPLEX32, at::ScalarType::ComplexHalf},
-        {ACL_HIFLOAT8, at::ScalarType::Byte},
-        {ACL_FLOAT8_E5M2, at::ScalarType::Float8_e5m2},
-        {ACL_FLOAT8_E4M3FN, at::ScalarType::Float8_e4m3fn},
-        {ACL_FLOAT8_E8M0, at::ScalarType::Float8_e8m0fnu},
-        {ACL_FLOAT6_E3M2, at::ScalarType::Byte},
-        {ACL_FLOAT6_E2M3, at::ScalarType::Byte},
-        {ACL_FLOAT4_E2M1, at::ScalarType::Float4_e2m1fn_x2},
-        {ACL_FLOAT4_E1M2, at::ScalarType::Byte}};
+static std::unordered_map<const aclDataType, const at::ScalarType> ACL_TYPE_TO_SCALAR_TYPE_MAP = {
+    {ACL_DT_UNDEFINED, at::ScalarType::Undefined},
+    {ACL_FLOAT, at::ScalarType::Float},
+    {ACL_FLOAT16, at::ScalarType::Half},
+    {ACL_INT8, at::ScalarType::Char},
+    {ACL_INT32, at::ScalarType::Int},
+    {ACL_UINT8, at::ScalarType::Byte},
+    {ACL_INT16, at::ScalarType::Short},
+    {ACL_UINT16, at::ScalarType::UInt16},
+    {ACL_UINT32, at::ScalarType::UInt32},
+    {ACL_INT64, at::ScalarType::Long},
+    {ACL_UINT64, at::ScalarType::UInt64},
+    {ACL_DOUBLE, at::ScalarType::Double},
+    {ACL_BOOL, at::ScalarType::Bool},
+    {ACL_STRING, at::ScalarType::Undefined},
+    {ACL_COMPLEX64, at::ScalarType::ComplexFloat},
+    {ACL_COMPLEX128, at::ScalarType::ComplexDouble},
+    {ACL_BF16, at::ScalarType::BFloat16},
+    {ACL_INT4, at::ScalarType::Undefined},
+    {ACL_UINT1, at::ScalarType::Undefined},
+    {ACL_COMPLEX32, at::ScalarType::ComplexHalf},
+    {ACL_HIFLOAT8, at::ScalarType::Byte},
+    {ACL_FLOAT8_E5M2, at::ScalarType::Float8_e5m2},
+    {ACL_FLOAT8_E4M3FN, at::ScalarType::Float8_e4m3fn},
+    {ACL_FLOAT8_E8M0, at::ScalarType::Float8_e8m0fnu},
+    {ACL_FLOAT6_E3M2, at::ScalarType::Byte},
+    {ACL_FLOAT6_E2M3, at::ScalarType::Byte},
+    {ACL_FLOAT4_E2M1, at::ScalarType::Float4_e2m1fn_x2},
+    {ACL_FLOAT4_E1M2, at::ScalarType::Byte}};
 
 aclError AclrtMemcpyAsyncParamCheck(
     void* dst,
@@ -163,12 +156,7 @@ aclError AclrtMemcpyAsyncParamCheck(
   return ret;
 }
 
-aclError AclrtMemcpyParamCheck(
-    void* dst,
-    size_t destMax,
-    const void* src,
-    size_t count,
-    aclrtMemcpyKind kind) {
+aclError AclrtMemcpyParamCheck(void* dst, size_t destMax, const void* src, size_t count, aclrtMemcpyKind kind) {
   auto ret = aclrtMemcpy(dst, destMax, src, count, kind);
   return ret;
 }
@@ -179,8 +167,7 @@ namespace native {
 aclDataType CalcuOpUtil::ConvertToAclDataType(const at::ScalarType& data_type) {
   int64_t dtype_index = static_cast<int64_t>(data_type);
   TORCH_CHECK(
-      dtype_index >= 0 &&
-          dtype_index < static_cast<int64_t>(at::ScalarType::NumOptions) + 1,
+      dtype_index >= 0 && dtype_index < static_cast<int64_t>(at::ScalarType::NumOptions) + 1,
       "data_type enum value (",
       dtype_index,
       ") is out of range: [0, ",
@@ -195,13 +182,10 @@ aclDataType CalcuOpUtil::ConvertToAclDataType(const at::ScalarType& data_type) {
   return acl_dtype;
 }
 
-aclDataType CalcuOpUtil::ConvertToAclDataType(
-    const at::ScalarType& data_type,
-    const std::string& realDataType) {
+aclDataType CalcuOpUtil::ConvertToAclDataType(const at::ScalarType& data_type, const std::string& realDataType) {
   int64_t dtype_index = static_cast<int64_t>(data_type);
   TORCH_CHECK(
-      dtype_index >= 0 &&
-          dtype_index < static_cast<int64_t>(at::ScalarType::NumOptions) + 1,
+      dtype_index >= 0 && dtype_index < static_cast<int64_t>(at::ScalarType::NumOptions) + 1,
       "data_type enum value (",
       dtype_index,
       ") is out of range: [0, ",
@@ -250,11 +234,8 @@ c10::Scalar CalcuOpUtil::ConvertTensorToScalar(const at::Tensor& tensor) {
   return expScalar;
 }
 
-at::Tensor CalcuOpUtil::CopyScalarToDevice(
-    const c10::Scalar& cpu_scalar,
-    at::ScalarType scalar_data_type) {
-  return CalcuOpUtil::CopyTensorHostToDevice(
-      scalar_to_tensor(cpu_scalar).to(scalar_data_type));
+at::Tensor CalcuOpUtil::CopyScalarToDevice(const c10::Scalar& cpu_scalar, at::ScalarType scalar_data_type) {
+  return CalcuOpUtil::CopyTensorHostToDevice(scalar_to_tensor(cpu_scalar).to(scalar_data_type));
 }
 
 at::Tensor CalcuOpUtil::CopyTensorHostToDevice(const at::Tensor& cpu_tensor) {
@@ -262,10 +243,7 @@ at::Tensor CalcuOpUtil::CopyTensorHostToDevice(const at::Tensor& cpu_tensor) {
   int deviceIndex = 0;
   NPU_CHECK_ERROR(c10_npu::GetDevice(&deviceIndex));
   return cpuPinMemTensor.to(
-      c10::Device(c10::DeviceType::PrivateUse1, deviceIndex),
-      cpuPinMemTensor.scalar_type(),
-      true,
-      true);
+      c10::Device(c10::DeviceType::PrivateUse1, deviceIndex), cpuPinMemTensor.scalar_type(), true, true);
 }
 
 NPUStatus CalcuOpUtil::AclrtMemcpyAsync(
@@ -274,12 +252,9 @@ NPUStatus CalcuOpUtil::AclrtMemcpyAsync(
     const std::pair<at::Tensor, int64_t>& src,
     size_t src_size,
     aclrtMemcpyKind kind) {
-  void* dst_ptr = reinterpret_cast<uint8_t*>(dst.first.data_ptr()) +
-      dst.second * dst.first.itemsize();
-  void* src_ptr = reinterpret_cast<uint8_t*>(src.first.data_ptr()) +
-      src.second * src.first.itemsize();
-  NPU_CHECK_ERROR(c10_npu::queue::LaunchAsyncCopyTask(
-      dst_ptr, dst_size, const_cast<void*>(src_ptr), src_size, kind));
+  void* dst_ptr = reinterpret_cast<uint8_t*>(dst.first.data_ptr()) + dst.second * dst.first.itemsize();
+  void* src_ptr = reinterpret_cast<uint8_t*>(src.first.data_ptr()) + src.second * src.first.itemsize();
+  NPU_CHECK_ERROR(c10_npu::queue::LaunchAsyncCopyTask(dst_ptr, dst_size, const_cast<void*>(src_ptr), src_size, kind));
 
   return NPU_STATUS_SUCCESS;
 }
@@ -290,12 +265,9 @@ aclError CalcuOpUtil::AclrtMemcpyWithModeSwitch(
     const StorageAndOffsetMemSizePair& src,
     size_t count,
     aclrtMemcpyKind kind) {
-  void* dst_ptr = static_cast<void*>(
-      static_cast<uint8_t*>(const_cast<void*>(dst.first->data())) + dst.second);
-  void* src_ptr = static_cast<void*>(
-      static_cast<uint8_t*>(const_cast<void*>(src.first->data())) + src.second);
-  return AclrtMemcpyParamCheck(
-      dst_ptr, dstMax, const_cast<void*>(src_ptr), count, kind);
+  void* dst_ptr = static_cast<void*>(static_cast<uint8_t*>(const_cast<void*>(dst.first->data())) + dst.second);
+  void* src_ptr = static_cast<void*>(static_cast<uint8_t*>(const_cast<void*>(src.first->data())) + src.second);
+  return AclrtMemcpyParamCheck(dst_ptr, dstMax, const_cast<void*>(src_ptr), count, kind);
 }
 
 aclError CalcuOpUtil::AclrtMemcpyWithModeSwitch(
@@ -304,8 +276,7 @@ aclError CalcuOpUtil::AclrtMemcpyWithModeSwitch(
     const void* src,
     size_t count,
     aclrtMemcpyKind kind) {
-  void* dst_ptr = static_cast<void*>(
-      static_cast<uint8_t*>(const_cast<void*>(dst.first->data())) + dst.second);
+  void* dst_ptr = static_cast<void*>(static_cast<uint8_t*>(const_cast<void*>(dst.first->data())) + dst.second);
   return AclrtMemcpyParamCheck(dst_ptr, dstMax, src, count, kind);
 }
 
@@ -315,10 +286,8 @@ aclError CalcuOpUtil::AclrtMemcpyWithModeSwitch(
     const StorageAndOffsetMemSizePair& src,
     size_t count,
     aclrtMemcpyKind kind) {
-  void* src_ptr = static_cast<void*>(
-      static_cast<uint8_t*>(const_cast<void*>(src.first->data())) + src.second);
-  return AclrtMemcpyParamCheck(
-      dst, dstMax, const_cast<void*>(src_ptr), count, kind);
+  void* src_ptr = static_cast<void*>(static_cast<uint8_t*>(const_cast<void*>(src.first->data())) + src.second);
+  return AclrtMemcpyParamCheck(dst, dstMax, const_cast<void*>(src_ptr), count, kind);
 }
 
 aclError CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(
@@ -327,8 +296,7 @@ aclError CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(
     const at::Tensor& src,
     size_t count,
     aclrtMemcpyKind kind) {
-  aclError ret = c10_npu::queue::LaunchAsyncCopyTask(
-      dst.data_ptr(), dstMax, src.data_ptr(), count, kind);
+  aclError ret = c10_npu::queue::LaunchAsyncCopyTask(dst.data_ptr(), dstMax, src.data_ptr(), count, kind);
   return ret;
 }
 
@@ -338,8 +306,7 @@ aclError CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(
     void* src,
     size_t count,
     aclrtMemcpyKind kind) {
-  aclError ret = c10_npu::queue::LaunchAsyncCopyTask(
-      const_cast<void*>(dst.data()), dstMax, src, count, kind);
+  aclError ret = c10_npu::queue::LaunchAsyncCopyTask(const_cast<void*>(dst.data()), dstMax, src, count, kind);
   return ret;
 }
 
@@ -351,10 +318,9 @@ int64_t CalcuOpUtil::GetTensorNpuFormat(const at::Tensor& tensor) {
       "device is correct.",
       OPS_ERROR(ErrCode::TYPE));
   if (NpuUtils::check_match(&tensor) || NpuUtils::check_5d_5d_match(tensor)) {
-    const torch_npu::NPUStorageDesc& tensor_desc =
-        torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_;
+    const torch_npu::NPUStorageDesc& tensor_desc = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_;
     return tensor_desc.npu_format_;
-  } else if (tensor.data_ptr() == nullptr) {
+  } else if (tensor.const_data_ptr() == nullptr) {
     // transforming faketensor into realtensor and assigning format ND
     return ACL_FORMAT_ND;
   } else {
@@ -362,9 +328,7 @@ int64_t CalcuOpUtil::GetTensorNpuFormat(const at::Tensor& tensor) {
   }
 }
 
-void CalcuOpUtil::CheckMemoryOverLaps(
-    c10::ArrayRef<at::Tensor> inputs,
-    c10::ArrayRef<at::Tensor> outputs) {
+void CalcuOpUtil::CheckMemoryOverLaps(c10::ArrayRef<at::Tensor> inputs, c10::ArrayRef<at::Tensor> outputs) {
   for (const auto i : c10::irange(outputs.size())) {
     if (!outputs[i].defined()) {
       continue;
@@ -379,8 +343,7 @@ void CalcuOpUtil::CheckMemoryOverLaps(
 }
 
 bool CalcuOpUtil::IsScalarWrappedToTensor(const at::Tensor& tensor) {
-  return tensor.unsafeGetTensorImpl()->is_wrapped_number() &&
-      (!torch_npu::utils::is_npu(tensor));
+  return tensor.unsafeGetTensorImpl()->is_wrapped_number() && (!torch_npu::utils::is_npu(tensor));
 }
 
 float CalcuOpUtil::GetScalarFloatValue(const c10::Scalar& scalar) {
@@ -394,8 +357,7 @@ float CalcuOpUtil::GetScalarFloatValue(const c10::Scalar& scalar) {
   return value;
 }
 
-c10::SmallVector<int64_t, SHAPE_SIZE> CalcuOpUtil::
-    ConvertIntArrayRefToSmallVector(c10::IntArrayRef intArray) {
+c10::SmallVector<int64_t, SHAPE_SIZE> CalcuOpUtil::ConvertIntArrayRefToSmallVector(c10::IntArrayRef intArray) {
   c10::SmallVector<int64_t, SHAPE_SIZE> intVec;
   for (const auto i : c10::irange(intArray.size())) {
     intVec.emplace_back(intArray[i]);
@@ -419,19 +381,13 @@ static std::unordered_map<uint8_t, aclCubeMathType> ACL_CUBE_MATH_TYPE_MAP = {
     {0b10, USE_HF32},
     {0b11, ALLOW_FP32_DOWN_PRECISION}};
 
-static std::unordered_map<uint8_t, aclCubeMathType>
-    ACL_CUBE_MATH_TYPE_MAP_PASSTHROUGH = {
-        {0b00, KEEP_DTYPE},
-        {0b01, ALLOW_FP32_DOWN_PRECISION},
-        {0b10, USE_FP16},
-        {0b11, USE_HF32},
-        {0b100, USE_FP32_ADD}};
+static std::unordered_map<uint8_t, aclCubeMathType> ACL_CUBE_MATH_TYPE_MAP_PASSTHROUGH =
+    {{0b00, KEEP_DTYPE}, {0b01, ALLOW_FP32_DOWN_PRECISION}, {0b10, USE_FP16}, {0b11, USE_HF32}, {0b100, USE_FP32_ADD}};
 
 int8_t CalcuOpUtil::GetCubeMathType() {
   auto option_key = c10_npu::option::GetOption(CUBE_MATH_TYPE);
   if (option_key.has_value() && !option_key.value().empty()) {
-    uint8_t cube_math_type =
-        static_cast<uint8_t>(std::stoi(option_key.value().c_str()));
+    uint8_t cube_math_type = static_cast<uint8_t>(std::stoi(option_key.value().c_str()));
     auto iter = ACL_CUBE_MATH_TYPE_MAP_PASSTHROUGH.find(cube_math_type);
     if (iter != ACL_CUBE_MATH_TYPE_MAP_PASSTHROUGH.end()) {
       return iter->second;
@@ -442,8 +398,7 @@ int8_t CalcuOpUtil::GetCubeMathType() {
 
 int8_t CalcuOpUtil::GetCubeMathType(bool allowHf32) {
   bool allowFp32ToFp16 = native::env::IsAllowFP32ToFP16();
-  uint8_t CubeMathTypeCode = (static_cast<uint8_t>(allowHf32) << 1) +
-      static_cast<uint8_t>(allowFp32ToFp16);
+  uint8_t CubeMathTypeCode = (static_cast<uint8_t>(allowHf32) << 1) + static_cast<uint8_t>(allowFp32ToFp16);
   auto iter = ACL_CUBE_MATH_TYPE_MAP.find(CubeMathTypeCode);
   if (iter == ACL_CUBE_MATH_TYPE_MAP.end()) {
     return ALLOW_FP32_DOWN_PRECISION;
@@ -456,8 +411,7 @@ at::ScalarType CalcuOpUtil::ConvertToScalarType(const aclDataType data_type) {
   if (iter == ACL_TYPE_TO_SCALAR_TYPE_MAP.end()) {
     TORCH_CHECK(
         false,
-        std::string("aclDataType:") + std::to_string(data_type) +
-            " has not been supported",
+        std::string("aclDataType:") + std::to_string(data_type) + " has not been supported",
         OPS_ERROR(ErrCode::NOT_SUPPORT))
   }
 
