@@ -100,6 +100,8 @@ _MM_TEMPLATE = """{{def_kernel("A", "B")}}
 
     rm = pid_m * BLOCK_M + tl.arange(0, BLOCK_M)
     rn = pid_n * BLOCK_N + tl.arange(0, BLOCK_N)
+    # Pre-compute row mask once; reused in both K-loop and epilogue.
+    m_mask = rm < M
 
     offs_k = tl.arange(0, BLOCK_K)
     acc = tl.zeros((BLOCK_M, BLOCK_N), dtype=ACC_TYPE)
@@ -117,12 +119,13 @@ _MM_TEMPLATE = """{{def_kernel("A", "B")}}
         {% endif %}
         acc += tl.dot(a, b, allow_tf32=ALLOW_TF32, out_dtype=ACC_TYPE)
 
-    # rematerialize rm and rn to save registers
-    rm = pid_m * BLOCK_M + tl.arange(0, BLOCK_M)
-    rn = pid_n * BLOCK_N + tl.arange(0, BLOCK_N)
+    # rm, rn, and m_mask are reused from above (no rematerialization).
     idx_m = rm[:, None]
     idx_n = rn[None, :]
     mask = (idx_m < M) & (idx_n < N)
+
+    {{npu_register_1d("idx_m", "rm", "m_mask")}}
+    {{npu_register_1d("idx_n", "rn", None)}}
 
     # inductor generates a suffix
     {{store_output(("idx_m", "idx_n"), "acc", "mask", val_shape=("BLOCK_M", "BLOCK_N"))}}
@@ -198,6 +201,10 @@ _PERSISTENT_MM_TEMPLATE = """
 
             rm = pid_m * BLOCK_M + tl.arange(0, BLOCK_M)
             rn = pid_n * BLOCK_N + tl.arange(0, BLOCK_N)
+            # Pre-compute row mask once; reused in both K-loop and epilogue.
+            # This avoids redundant comparisons and enables 1D load masking
+            # for broadcast inputs (e.g. bias[N], mask[M]) in the epilogue.
+            m_mask = rm < M
 
             # ---- K-loop: accumulate matmul ----
             acc = tl.zeros((BLOCK_M, BLOCK_N), dtype=ACC_TYPE)
@@ -214,11 +221,13 @@ _PERSISTENT_MM_TEMPLATE = """
                 acc += tl.dot(a, b, allow_tf32=ALLOW_TF32, out_dtype=ACC_TYPE)
 
             # ---- Store output (inductor generates epilogue suffix) ----
-            rm = pid_m * BLOCK_M + tl.arange(0, BLOCK_M)
-            rn = pid_n * BLOCK_N + tl.arange(0, BLOCK_N)
+            # rm, rn, and m_mask are reused from above (no rematerialization).
             idx_m = rm[:, None]
             idx_n = rn[None, :]
             mask = (idx_m < M) & (idx_n < N)
+
+            {{npu_register_1d("idx_m", "rm", "m_mask")}}
+            {{npu_register_1d("idx_n", "rn", None)}}
             {{store_output(("idx_m", "idx_n"), "acc", "mask", val_shape=("BLOCK_M", "BLOCK_N"), indent_width=12)}}
 """
 

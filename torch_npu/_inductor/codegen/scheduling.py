@@ -244,6 +244,98 @@ class NPUTritonScheduling(TritonScheduling):
 
         self.scheduler.free_buffers()
 
+    @staticmethod
+    def _npu_optimize_epilogue_loads(src_code, kernel):
+        """Post-process generated kernel code to optimize epilogue loads.
+
+        The template epilogue codegen produces 2-D broadcast loads for
+        1-D buffers (e.g. bias[N], mask[M]), loading BLOCK_M*BLOCK_N
+        duplicate elements.  This method replaces them with efficient
+        1-D loads and inserts explicit broadcasts (``[None, :]`` or
+        ``[:, None]``) at **all** use sites so the arithmetic still sees
+        2-D tensors.
+
+        Only called for the *final* kernel (not the fusion benchmark),
+        so the fusion decision is unaffected.
+        """
+        import re
+
+        # Retrieve the 1-D index mapping registered by the template.
+        if not hasattr(kernel, "npu_1d_index_map"):
+            return src_code
+        idx_map = kernel.npu_1d_index_map
+        if not idx_map:
+            return src_code
+
+        lines = src_code.split("\n")
+        # Track which CSE variables are 1-D and their broadcast suffix.
+        # broadcast_suffix: "[None, :]" for N-dim 1D, "[:, None]" for M-dim 1D.
+        var_broadcast: dict[str, str] = {}
+
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+
+            # ----------------------------------------------------------------
+            # Phase 1: Replace 2-D broadcast loads with 1-D loads.
+            # ----------------------------------------------------------------
+            m_load = re.match(
+                r"^(\w+)\s*=\s*tl\.load\((\w+)\s*\+\s*\(idx_(\w)\)\s*,\s*(\w+)\s*,\s*(.+)$",
+                stripped,
+            )
+            if m_load:
+                cse_var, ptr_name, dim_letter, old_mask_expr, rest = m_load.groups()
+                template_key = f"idx_{dim_letter}"
+                if template_key not in idx_map:
+                    continue
+                oned_name, oned_mask = idx_map[template_key]
+                # Determine the broadcast suffix for later use sites.
+                if dim_letter == "m":
+                    bc_suffix = "[:, None]"
+                elif dim_letter == "n":
+                    bc_suffix = "[None, :]"
+                else:
+                    continue
+                var_broadcast[cse_var] = bc_suffix
+
+                # Reconstruct the load with 1-D index and appropriate mask.
+                if oned_mask is not None:
+                    new_load = f"{cse_var} = tl.load({ptr_name} + ({oned_name}), {oned_mask}, {rest}"
+                else:
+                    # Remove the mask argument entirely.
+                    new_load = f"{cse_var} = tl.load({ptr_name} + ({oned_name}), {rest}"
+                # Preserve indentation.
+                indent = line[: len(line) - len(line.lstrip())]
+                lines[i] = indent + new_load
+                continue
+
+            # ----------------------------------------------------------------
+            # Phase 2: Insert broadcast suffixes at ALL use sites.
+            # ----------------------------------------------------------------
+            # For non-load lines, replace every bare reference to a 1-D
+            # variable with its broadcasted version.  This handles all
+            # usage patterns: tl.where (any argument), arithmetic (+, *,
+            # etc.), comparisons, and function arguments.
+            #
+            # Key: the negative lookahead ``(?!\s*[.\[])`` prevents
+            # double-broadcasting (e.g. ``tmp7[None, :]`` is left alone)
+            # and avoids matching method calls (e.g. ``tmp7.to(...)``).
+            if var_broadcast:
+                # Skip load definition lines (already processed in Phase 1).
+                if re.match(r"^\w+\s*=\s*tl\.load\(", stripped):
+                    continue
+
+                new_stripped = stripped
+                for var, bc_suffix in var_broadcast.items():
+                    # Match: var as a whole word, NOT followed by [ or .
+                    pattern = r'\b' + re.escape(var) + r'\b(?!\s*[.\[])'
+                    new_stripped = re.sub(pattern, var + bc_suffix, new_stripped)
+
+                if new_stripped != stripped:
+                    indent = line[: len(line) - len(line.lstrip())]
+                    lines[i] = indent + new_stripped
+
+        return "\n".join(lines)
+
     def codegen_template(self, template_node, epilogue_nodes, only_gen_src_code=False):
         if isinstance(template_node.node, NPUFlexAttentionDkdvTemplateBuffer):
             if only_gen_src_code:
@@ -261,21 +353,64 @@ class NPUTritonScheduling(TritonScheduling):
                 for node in [template_node, *epilogue_nodes]:
                     node.mark_run()
             partial_code = render()
-            # Handle both legacy "<STORE_OUTPUT>" (without index) and torch
-            # 2.10's "<STORE_OUTPUT_N>" (with index) subgraph body naming.
-            if "<STORE_OUTPUT>" in kernel.subgraph_bodies:
-                with kernel.set_subgraph_body("<STORE_OUTPUT>"):
-                    for node in epilogue_nodes:
-                        node.codegen(kernel.split_and_set_ranges(node.get_ranges()))
-            # torch 2.10+ creates indexed store_output subgraphs.
+            # Process epilogue nodes into store_output subgraph bodies.
+            #
+            # Two naming conventions exist:
+            #   - Legacy:  "<STORE_OUTPUT>" (no index suffix)
+            #   - torch 2.10+: "<STORE_OUTPUT_N>" (indexed)
+            #
+            # NPU's _get_store_output_subgraph_name() maps indexed names back
+            # to "<STORE_OUTPUT>", so we must avoid processing the same subgraph
+            # body twice (which would duplicate epilogue code and stores).
+            #
+            # Strategy: collect the set of subgraph names to process, dedup,
+            # then process each exactly once.
+            _processed_subgraphs = set()
             if hasattr(kernel, "get_store_output_count"):
                 num_store_subgraphs = kernel.get_store_output_count()
                 for i in range(num_store_subgraphs):
                     subgraph_name = kernel._get_store_output_subgraph_name(i)
-                    if subgraph_name in kernel.subgraph_bodies:
+                    if (
+                        subgraph_name in kernel.subgraph_bodies
+                        and subgraph_name not in _processed_subgraphs
+                    ):
+                        _processed_subgraphs.add(subgraph_name)
                         with kernel.set_subgraph_body(subgraph_name):
+                            # Fix: mm body's store_cache entries (e.g. `acc`)
+                            # carry BLOCK_ tile shapes like ("BLOCK_M", "BLOCK_N")
+                            # from the template's store_output(val_shape=...).
+                            # The epilogue's range tree (set up by
+                            # split_and_set_ranges) uses different symbols
+                            # (e.g. "xindex"), so reusing `acc` directly causes
+                            # broadcast assertion failures in shape_propagation
+                            # (e.g. GR model's silu(mm_out)*w3 epilogue).
+                            #
+                            # Setting shape=None makes broadcast_shapes_for_args
+                            # return None (shape_propagation.py line 56-57),
+                            # which disables shape checking for that operand.
+                            # This allows the epilogue to reuse `acc` (avoiding
+                            # a redundant global-memory load) while preventing
+                            # the shape-symbol mismatch.
+                            for _sc_var in kernel.cse.store_cache.values():
+                                _cached_shape = getattr(_sc_var, "shape", None)
+                                if _cached_shape and "BLOCK_" in str(_cached_shape):
+                                    _sc_var.shape = None
                             for node in epilogue_nodes:
                                 node.codegen(kernel.split_and_set_ranges(node.get_ranges()))
+            # Legacy fallback: only process "<STORE_OUTPUT>" if it wasn't
+            # already handled by the indexed path above.
+            if (
+                "<STORE_OUTPUT>" in kernel.subgraph_bodies
+                and "<STORE_OUTPUT>" not in _processed_subgraphs
+            ):
+                _processed_subgraphs.add("<STORE_OUTPUT>")
+                with kernel.set_subgraph_body("<STORE_OUTPUT>"):
+                    for _sc_var in kernel.cse.store_cache.values():
+                        _cached_shape = getattr(_sc_var, "shape", None)
+                        if _cached_shape and "BLOCK_" in str(_cached_shape):
+                            _sc_var.shape = None
+                    for node in epilogue_nodes:
+                        node.codegen(kernel.split_and_set_ranges(node.get_ranges()))
 
         if not isinstance(partial_code, str):
             partial_code.finalize_hook("<DEF_KERNEL>")
@@ -297,7 +432,13 @@ class NPUTritonScheduling(TritonScheduling):
             else:
                 src_code = partial_code.code
             node_schedule = [template_node, *epilogue_nodes]
-            node_schedule = [template_node, *epilogue_nodes]
+
+            # Apply epilogue optimizations to BOTH the benchmark kernel and
+            # the final kernel, so that autotune measures exactly the same
+            # This replaces 2-D broadcast loads of 1-D buffers with efficient
+            # 1-D loads and inserts explicit broadcasts at use sites.
+            if epilogue_nodes:
+                src_code = self._npu_optimize_epilogue_loads(src_code, kernel)
 
             if config.benchmark_kernel:
                 num_gb = kernel.estimate_kernel_num_bytes() / 1e9
@@ -313,6 +454,7 @@ class NPUTritonScheduling(TritonScheduling):
 
             if only_gen_src_code:
                 return src_code
+
             traced_graph_hash = None
             kernel_name, src_code = self.define_kernel(src_code, node_schedule, kernel, traced_graph_hash)
 

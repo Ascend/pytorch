@@ -146,6 +146,9 @@ def _get_npu_bmm_configs(
         (128, 64, 32),
         (128, 128, 32),
         (64, 64, 64),
+        (64, 64, 128),
+        (64, 64, 256),
+        (64, 256, 256),
         (128, 64, 64),
         (64, 128, 64),
         (128, 128, 64),    # large tile for big BMM shapes
@@ -166,6 +169,7 @@ def _get_npu_bmm_configs(
         (32, 64, 32),
         (64, 32, 32),
         (32, 32, 32),
+        (32, 32, 128)
     ]
 
     for block_m, block_n, block_k in tile_shapes:

@@ -781,6 +781,63 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
         )
         self.manual_output_buffer = manual_output_buffer
         self.reset_to_zero_arg_names = reset_to_zero_arg_names
+        # Mapping from template index symbol names to 1-D alternatives.
+        # Key:   template index name (e.g. "idx_m")
+        # Value: (1d_variable, 1d_mask_or_None)  e.g. ("rm", "m_mask")
+        # Populated by {{npu_register_1d(...)}} in the jinja template.
+        self.npu_1d_index_map: Dict[str, Tuple[str, Optional[str]]] = {}
+        # Expose npu_register_1d to the jinja template renderer.
+        self._register_extra_template_env_fns(self.npu_register_1d)
+        # When non-None, ``index_to_str`` replaces the first element with the
+        # second so that the generated code uses the 1-D variable name while
+        # the sympy expression (and its range-tree type info) stays intact.
+        self._npu_1d_replacement: Optional[Tuple[str, str]] = None
+
+    def npu_register_1d(
+        self,
+        template_name: str,
+        oned_name: str,
+        oned_mask: Optional[str] = None,
+    ) -> str:
+        """Jinja hook: register a 1-D alternative for a template index.
+
+        Called from the kernel template before ``{{store_output(...)}}``::
+
+            idx_m = rm[:, None]
+            idx_n = rn[None, :]
+            {{npu_register_1d("idx_m", "rm", "m_mask")}}
+            {{npu_register_1d("idx_n", "rn", None)}}
+            {{store_output(("idx_m", "idx_n"), "acc", "mask", ...)}}
+
+        When an epilogue input's index reduces to a single template symbol
+        (e.g. ``idx_m`` for a ``[M]`` buffer), the NPU ``load()`` override
+        substitutes the 1-D variable (``rm``) and optional 1-D mask
+        (``m_mask``), producing a true 1-D load instead of a 2-D broadcast
+        load (``tl.load(ptr + rm, m_mask)`` vs ``tl.load(ptr + rm[:, None], mask2d)``).
+        """
+        self.npu_1d_index_map[template_name] = (oned_name, oned_mask)
+        return ""
+
+    def load(self, name: str, index: sympy.Expr):
+        """NPU override: no-op; 1-D epilogue load optimization is handled
+        by post-processing in ``codegen_template``.
+
+        The upstream ``TritonTemplateKernel.load`` is called unchanged.
+        The ``npu_1d_index_map`` is populated by ``npu_register_1d`` so
+        that ``_npu_optimize_epilogue_loads`` can apply the 1-D
+        transformation to the final kernel source code (after the fusion
+        benchmark has already decided to accept the fusion).
+        """
+        return super().load(name, index)
+
+    def index_to_str(self, index: sympy.Expr) -> str:
+        """NPU override: emit 1-D variable name when ``_npu_1d_replacement`` is set."""
+        result = super().index_to_str(index)
+        if self._npu_1d_replacement:
+            old_name, new_name = self._npu_1d_replacement
+            # Use word-boundary-safe replacement to avoid partial matches.
+            result = result.replace(old_name, new_name)
+        return result
 
     def create_cse_var(self, name=None, bounds=None, dtype=None, shape=None, **kwargs):
         # torch>=2.8 added an assertion in TritonCSEVariable.__init__ requiring
@@ -886,6 +943,43 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
         (without the ``_{i}`` suffix used by the upstream SIMDKernel).
         """
         return "<STORE_OUTPUT>"
+
+    def indexing(
+        self,
+        index: sympy.Expr,
+        *,
+        dense_indexing: bool = False,
+        copy_shape=None,
+        override_mask=None,
+        block_ptr: bool = False,
+        tma_compatibility_checker=None,
+    ):
+        """NPU override: avoid ``tl.broadcast_to`` for epilogue loads.
+
+        The upstream ``TritonTemplateKernel.indexing()`` always passes
+        ``copy_shape=self.template_out_shape`` to the parent ``indexing()``.
+        When the epilogue contains broadcast inputs (e.g. ``bias[N]`` loaded
+        with only ``idx_n``, or ``mask[M]`` loaded with only ``idx_m``),
+        this forces a ``tl.broadcast_to(idx, [BLOCK_M, BLOCK_N])`` wrapper
+        around the 1-D index, generating suboptimal code on Ascend NPU.
+
+        We bypass ``TritonTemplateKernel.indexing()`` and call the upstream
+        ``TritonKernel.indexing()`` directly with ``copy_shape=None`` so that
+        1-D indices remain 1-D.  Triton's implicit broadcasting handles the
+        dimension mismatch with the 2-D mask, which is both correct and
+        faster than an explicit ``tl.broadcast_to``.
+        """
+        from torch._inductor.codegen.triton import TritonKernel
+
+        return TritonKernel.indexing(
+            self,
+            index,
+            dense_indexing=False,
+            copy_shape=None,
+            override_mask=self.template_mask,
+            block_ptr=block_ptr,
+            tma_compatibility_checker=tma_compatibility_checker,
+        )
 
 
     def jit_lines(self) -> str:
