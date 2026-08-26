@@ -1,4 +1,5 @@
 #include "torch_npu/csrc/core/npu/NPUEvent.h"
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
@@ -127,6 +128,9 @@ void NPUEvent::block(const NPUStream& stream)
         }
         NPUGuard guard(stream.device_index());
         c10_npu::queue::LaunchWaitEventTask(event_, stream);
+        if (c10_npu::NPUCachingAllocator::hasCapturesUnderway(stream.device_index())) {
+            c10_npu::emptyAllNPUStream();
+        }
     }
 }
 
