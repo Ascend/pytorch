@@ -430,7 +430,7 @@ void Repository::CheckDeviceError(int ret, std::string& err_msg)
 bool Repository::ReadQueue()
 {
     if (IsEmptyQueue()) {
-        static const auto task_queue_enable = c10_npu::option::OptionsManager::GetTaskQueueEnable();
+        const auto task_queue_enable = c10_npu::option::OptionsManager::GetTaskQueueEnable();
         if (task_queue_enable == 2) {
             // read queue polls for at most 1 ms when queue is empty.
             for (int i = 0; i < READ_QUEUE_POLL_MAX_LOOP; ++i) {

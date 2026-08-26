@@ -22,6 +22,8 @@ __all__ = [
     "default_stream",
     "set_sync_debug_mode",
     "get_sync_debug_mode",
+    "set_task_queue_enable",
+    "get_task_queue_enable",
     "init_dump",
     "utilization",
     "finalize_dump",
@@ -162,7 +164,8 @@ from torch_npu.utils._error_code import ErrCode, pta_error, prof_error
 from .utils import (obfuscation_initialize, obfuscation_calculate, obfuscation_finalize,
                     synchronize, set_device, current_device, _get_device_index,
                     device, device_of, StreamContext, stream, set_stream, current_stream, default_stream, set_sync_debug_mode,
-                    get_sync_debug_mode, init_dump, current_blas_handle, is_bf16_supported,
+                    get_sync_debug_mode, set_task_queue_enable, get_task_queue_enable,
+                    init_dump, current_blas_handle, is_bf16_supported,
                     finalize_dump, set_dump, get_npu_overflow_flag, clear_npu_overflow_flag,
                     check_uce_in_memory, stress_detect, _get_uce_addr, ipc_collect, set_op_timeout_ms)
 from ._recovery import restart_device, stop_device
