@@ -172,45 +172,53 @@ jobs:
             fi
           elif [ "${EVENT_TYPE}" = "push" ]; then
             # ---- Filter: ciflow/trunk tag creation (upstream PR trunk gate) ----
+            # TEMPORARILY DISABLED: gate resources are insufficient right now.
+            # Re-enable the block below (and restore the push branch in the
+            # "Extract build parameters" section) once resources allow.
+            # Observation logging above still records every push event.
+            echo "SKIP: push events are not processed (ciflow/trunk build temporarily disabled)"
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+            exit 0
             # When a merge is requested on an upstream PR, pytorch-bot creates
             # tag refs/tags/ciflow/trunk/<PR#> pointing at the PR head commit,
             # which is the same commit upstream trunk CI checks out and runs.
             # Mirror that: build the tag target (PR head), NOT main.
             # Only creation events count; deletions (tag cleanup / PR updates)
             # are ignored, and only pushes by pytorch-bot are trusted.
-            REF=$(echo "$PAYLOAD_JSON" | jq -r '.payload.ref // empty')
-            CREATED=$(echo "$PAYLOAD_JSON" | jq -r '.payload.created // false')
-            PUSHER=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pusher.name // empty')
-            SENDER=$(echo "$PAYLOAD_JSON" | jq -r '.payload.sender.login // empty')
-
-            if echo "$REF" | grep -qE '^refs/tags/ciflow/trunk/' \
-               && [ "${CREATED}" = "true" ] \
-               && { [ "${PUSHER}" = "pytorch-bot[bot]" ] || [ "${SENDER}" = "pytorch-bot[bot]" ]; }; then
-              PR_NUMBER=$(echo "$REF" | sed -E 's#^refs/tags/ciflow/trunk/##')
-              UPSTREAM_REPO=$(echo "$PAYLOAD_JSON" | jq -r '.payload.repository.full_name // empty')
-              UPSTREAM_REF=$(echo "$PAYLOAD_JSON" | jq -r '.payload.after // empty')
-
-              if [ -z "${UPSTREAM_REPO}" ] || [ -z "${UPSTREAM_REF}" ]; then
-                echo "ERROR: ciflow/trunk tag push without repo/after SHA: repo='${UPSTREAM_REPO}' after='${UPSTREAM_REF}'"
-                exit 1
-              fi
-
-              echo "CIFLOW trunk tag creation detected for PR #${PR_NUMBER}"
-              echo "Will build upstream ref: ${UPSTREAM_REF} (tag target = PR head)"
-            else
-              echo "SKIP: push event (ref=${REF}, created=${CREATED}, pusher=${PUSHER}) is not a pytorch-bot ciflow/trunk tag creation"
-              echo "should_build=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
+            # REF=$(echo "$PAYLOAD_JSON" | jq -r '.payload.ref // empty')
+            # CREATED=$(echo "$PAYLOAD_JSON" | jq -r '.payload.created // false')
+            # PUSHER=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pusher.name // empty')
+            # SENDER=$(echo "$PAYLOAD_JSON" | jq -r '.payload.sender.login // empty')
+            #
+            # if echo "$REF" | grep -qE '^refs/tags/ciflow/trunk/' \
+            #    && [ "${CREATED}" = "true" ] \
+            #    && { [ "${PUSHER}" = "pytorch-bot[bot]" ] || [ "${SENDER}" = "pytorch-bot[bot]" ]; }; then
+            #   PR_NUMBER=$(echo "$REF" | sed -E 's#^refs/tags/ciflow/trunk/##')
+            #   UPSTREAM_REPO=$(echo "$PAYLOAD_JSON" | jq -r '.payload.repository.full_name // empty')
+            #   UPSTREAM_REF=$(echo "$PAYLOAD_JSON" | jq -r '.payload.after // empty')
+            #
+            #   if [ -z "${UPSTREAM_REPO}" ] || [ -z "${UPSTREAM_REF}" ]; then
+            #     echo "ERROR: ciflow/trunk tag push without repo/after SHA: repo='${UPSTREAM_REPO}' after='${UPSTREAM_REF}'"
+            #     exit 1
+            #   fi
+            #
+            #   echo "CIFLOW trunk tag creation detected for PR #${PR_NUMBER}"
+            #   echo "Will build upstream ref: ${UPSTREAM_REF} (tag target = PR head)"
+            # else
+            #   echo "SKIP: push event (ref=${REF}, created=${CREATED}, pusher=${PUSHER}) is not a pytorch-bot ciflow/trunk tag creation"
+            #   echo "should_build=false" >> "$GITHUB_OUTPUT"
+            #   exit 0
+            # fi
           else
             echo "ERROR: Unknown event_type: ${EVENT_TYPE}"
             exit 1
           fi
 
           # ---- Extract build parameters ----
-          # Two paths reach here:
+          # Only one path reaches here right now:
           #   pull_request: closed + "Merged" label -> build from main merge
           #                 commit (merge_sha output, resolved below)
+          # Disabled (resource constraints), re-enable with the push branch above:
           #   push:         ciflow/trunk tag creation -> build from the tag
           #                 target = PR head commit (upstream_ref output)
           echo "upstream_repo=${UPSTREAM_REPO}" >> "$GITHUB_OUTPUT"
