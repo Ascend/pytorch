@@ -162,8 +162,8 @@ class FlexAttentionConfigGenerator:
             and self.sparse_kv_block_size is not None
         ):
             return (
-                block_m == self.sparse_q_block_size
-                and block_n == self.sparse_kv_block_size
+                self.sparse_q_block_size % block_m == 0
+                and self.sparse_kv_block_size % block_n == 0
             )
         return True
 
@@ -210,6 +210,12 @@ def build_sparse_mask_candidate_configs(
         for block in (128, 64)
         if block <= sparse_kv_block_size and sparse_kv_block_size % block == 0
     ]
+    if not mask_block_m_candidates or not mask_block_n_candidates:
+        raise ValueError(
+            "Q and KV block size must be divisible by BLOCK_M and BLOCK_N. We "
+            f"got Q_BLOCK_SIZE={sparse_q_block_size} and "
+            f"KV_BLOCK_SIZE={sparse_kv_block_size}."
+        )
     return [
         {
             "MASK_BLOCK_M": block_m,
