@@ -45,6 +45,7 @@ Inductor-Ascend在继承Pytorch社区Inductor能力的基础上，针对昇腾As
 | 动态Shape | 是指算子输入Tensor的shape不固定，一般常见于变化的BatchSize和SeqLen。详细介绍可点击[link1](https://ianbarber.blog/2025/04/04/dynamic-shapes-in-pytorch/) [link2](http://docs.pytorch.org/docs/main/user_guide/torch_compiler/torch.compiler_dynamic_shapes.html)
 | CppWrapper | 用于生成 C++ 调用代码替代默认的 Python 包装器，以减少 torch.compile 后模型在推理时的 Python 开销。详细介绍可点击[link](https://docs.pytorch.org/tutorials/unstable/inductor_cpp_wrapper_tutorial.html)
 | AOTInductor | 旨在处理导出的PyTorch模型，对其进行优化，并生成动态链接库及其他相关产物。这些编译产物广泛应用于服务端推理部署场景，支持非Python环境下的推理执行。详细介绍可点击[link](https://docs.pytorch.org/docs/2.11/user_guide/torch_compiler/torch.compiler_aot_inductor.html)
+| MegaCache | 用于统一保存和恢复模型编译过程中产生的多级缓存，从而减少模型冷启动时重复执行图捕获、动态图分析、代码生成、Kernel编译和Autotune带来的耗时，提供面向`torch.compile`编译场景的端到端缓存复用能力。详细介绍可单击[link](https://docs.pytorch.org/tutorials/recipes/torch_compile_caching_tutorial.html)获取PyTorch官网详情
 
 ## 使用说明
 
