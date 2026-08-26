@@ -1,7 +1,11 @@
 #include <atomic>
+#include <cstdio>
+#include <cstdlib>
 #include <mutex>
 #include <sstream>
+#include <string>
 #include <unistd.h>
+#include <bitset>
 #include <unordered_map>
 #include <vector>
 #include <ATen/Context.h>
@@ -262,6 +266,7 @@ aclError SetDevice(c10::DeviceIndex device)
         if (used_devices.find(local_device) == used_devices.end()) {
             NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetCurrentContext(&used_devices[local_device]));
         }
+        SetDeviceResLimitFromEnv(local_device);
     }
     return err;
 }
@@ -477,6 +482,7 @@ void LazySetDevice(c10::DeviceIndex device)
             if (used_devices.find(local_device) == used_devices.end()) {
                 NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetCurrentContext(&used_devices[local_device]));
             }
+            SetDeviceResLimitFromEnv(local_device);
         }
         NPU_CHECK_ERROR_WITHOUT_UCE(err);
     }
@@ -516,6 +522,81 @@ aclError SetDeviceResLimit(int32_t device, int32_t type, uint32_t value)
     aclError err = c10_npu::acl::AclrtSetDeviceResLimit(device, restype, value);
     NPU_CHECK_ERROR(err);
     return err;
+}
+
+static bool parseIntPair(const std::string& input, int& first_val, int& second_val)
+{
+    size_t delim_pos = input.find(',');
+    if (delim_pos == std::string::npos) {
+        return false;
+    }
+
+    std::string first = input.substr(0, delim_pos);
+    std::string second = input.substr(delim_pos + 1);
+
+    auto trim = [](std::string& str) {
+        str.erase(0, str.find_first_not_of(" \t"));
+        str.erase(str.find_last_not_of(" \t") + 1);
+    };
+    trim(first);
+    trim(second);
+
+    if (first.empty() || second.empty()) {
+        return false;
+    }
+
+    std::size_t pos;
+    try {
+        first_val = std::stoi(first, &pos);
+        if (pos != first.size()) {
+            return false;
+        }
+        second_val = std::stoi(second, &pos);
+        if (pos != second.size()) {
+            return false;
+        }
+    } catch (const std::exception&) {
+        return false;
+    }
+
+    return true;
+}
+
+void SetDeviceResLimitFromEnv(c10::DeviceIndex device)
+{
+    static std::bitset<64> devices_applied;
+    if (devices_applied.test(device)) {
+        return;
+    }
+    devices_applied.set(device);
+
+    static int cube_num = -1;
+    static int vector_num = -1;
+    static bool env_parsed = false;
+    if (!env_parsed) {
+        env_parsed = true;
+        const char* limit_str = std::getenv("NPU_DEVICE_LIMIT");
+        if (limit_str == nullptr) {
+            return;
+        }
+        if (!parseIntPair(limit_str, cube_num, vector_num) ||
+            cube_num < 0 || vector_num < 0) {
+            ASCEND_LOGW("Invalid NPU_DEVICE_LIMIT value: '%s', "
+                        "expected 'cube_num,vector_num' with non-negative integers "
+                        "(e.g. '8,16'), skipping.",
+                        limit_str);
+            return;
+        }
+    }
+
+    if (cube_num >= 0) {
+        SetDeviceResLimit(device, static_cast<int32_t>(DevResLimitType::CUBE),
+                          static_cast<uint32_t>(cube_num));
+    }
+    if (vector_num >= 0) {
+        SetDeviceResLimit(device, static_cast<int32_t>(DevResLimitType::VECTOR),
+                          static_cast<uint32_t>(vector_num));
+    }
 }
 
 uint32_t GetDeviceResLimit(int32_t device, int32_t type)
