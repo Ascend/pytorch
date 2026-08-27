@@ -62,6 +62,22 @@
 
 </div>
 
+### torch.compiler.set_stance
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.compiler.set_stance](https://pytorch.org/docs/2.12/generated/torch.compiler.set_stance.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
+
+</div>
+
 ### torch.compiler.assume_constant_result
 
 <div style="margin-left: 2em">
