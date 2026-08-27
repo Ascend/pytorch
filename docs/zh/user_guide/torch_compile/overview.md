@@ -4,12 +4,15 @@
 
 torch.compile包含如下核心组件：
 
-**表 1**  核心组件
+**表1**核心组件
 
 | 组件              | 作用       |
 |-------------------|-----------|
 | Dynamo前端        |Dynamo能够JIT（即时）将用户的eager（动态图）代码编译为FX Graph（PyTorch的中间表示）。 |
+| AOT Autograd      |提前捕获反向传播图，使前向和反向传播都可以由后端进行优化。|
 | 编译后端          |对FX Graph进行优化并生成最终可执行的代码。|
+
+初次使用请参见[快速入门](quick_start.md)。如需进一步了解图断裂、重编译和追踪行为，请参见[torch.compile编程模型](core_concepts/torch.compile_programming_model/_menu_torch.compile_programming_model.md)；有关反向传播差异，请参见[`torch.compile`的Autograd语义差异](core_concepts/autograd_semantics.md)。
 
 ## 接口说明
 
@@ -28,11 +31,11 @@ torch.compile(model, *, fullgraph=False, dynamic=None, backend="inductor",
 | fullgraph | bool | False | 是否强制整图编译 |
 | dynamic | bool | None | 是否启用动态shape编译 |
 | backend | str/Callable | `"inductor"` | 编译后端：`inductor`、`npugraphs`、`npugraph_ex`、`aot_eager`、`TorchAir-GE后端(Callable)` |
-| mode | str | None | 编译模式：`None` 或 `"reduce-overhead"` （仅`inductor`后端支持）|
+| mode | str | None | 编译模式：`None`或`"reduce-overhead"` （仅`inductor`后端支持）|
 | options | dict | None | 编译选项|
 | disable | bool | False | 关闭torch.compile |
 
-更多参数详情可参见 [torch.compile](https://docs.pytorch.org/docs/stable/generated/torch.compile.html)。
+更多参数详情可参见[torch.compile](https://docs.pytorch.org/docs/stable/generated/torch.compile.html)。
 
 **编译后端说明**
 
