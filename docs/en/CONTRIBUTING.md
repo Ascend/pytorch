@@ -388,8 +388,8 @@ The submission process for documentation is the same as that for code. Refer to 
 
 1. Fork the repository and create a branch locally.
 2. Add or modify the corresponding Markdown files in the `docs/en/` directory.
-3. When writing documentation, note the following:
-   - Use clear and accurate Chinese expressions.
+3. When writing documentation, please note the following:
+   - Use clear and accurate English expressions.
    - Ensure that code examples are runnable.
    - Follow the format and style of the existing documentation.
 4. Submit a Pull Request and describe the documentation changes in the PR description.

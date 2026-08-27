@@ -2,7 +2,7 @@
 
 ## Introduction
 
-The memory snapshot feature supports generating device memory snapshots when a memory overflow (OOM) occurs during training or when the user calls the `torch.npu.memory._dump_snapshot` interface, and enables visual analysis through an interactive viewer ([memory_viz](https://pytorch.org/memory_viz)). The snapshot can record the state of allocated NPU memory at any point in time, and can optionally record the history of memory allocation operations. This feature is developed based on the community [memory snapshot feature](https://pytorch.org/docs/2.1/torch_cuda_memory.html#understanding-cuda-memory-usage) and supports the usage patterns of the community memory snapshot. An illustration of the memory snapshot is shown below:
+The memory snapshot feature supports generating device memory snapshots when a Out Of Memory(OOM) occurs during training or when the user calls the `torch.npu.memory._dump_snapshot` interface, and enables visual analysis through an interactive viewer ([memory_viz](https://pytorch.org/memory_viz)). The snapshot can record the state of allocated NPU memory at any point in time, and can optionally record the history of memory allocation operations. This feature is developed based on the community [memory snapshot feature](https://pytorch.org/docs/2.1/torch_cuda_memory.html#understanding-cuda-memory-usage) and supports the usage patterns of the community memory snapshot. An illustration of the memory snapshot is shown below:
 
 **Figure 1**  Schematic diagram of memory usage status  
 ![figure1](../figures/memory_usage.png)
@@ -14,7 +14,7 @@ You can also view the history of memory allocator states. By selecting each memo
 **Figure 2**  Schematic diagram of memory allocator state history  
 ![figure2](../figures/memory_allocator_status_history.png)
 
-In addition, when the memory snapshot is saved, the memory currently occupied in real time by each component at the time of the memory overflow (OOM) (`curMemSize`) and the maximum memory occupied during execution (`memPeakSize`) are both saved to a CSV file in the `OOM_SNAPSHOT_PATH` path. You can download the CSV file and view it using tools such as Excel.
+In addition, when the memory snapshot is saved, the memory currently occupied in real time by each component at the time of the Out Of Memory(OOM) (`curMemSize`) and the maximum memory occupied during execution (`memPeakSize`) are both saved to a CSV file in the `OOM_SNAPSHOT_PATH` path. You can download the CSV file and view it using tools such as Excel.
 
 The environment variables `OOM_SNAPSHOT_ENABLE` and `OOM_SNAPSHOT_PATH` are used to control the recording of memory snapshots. When used together with `TASK_QUEUE_ENABLE=2`, you can also view the workspace memory usage of the multi-level taskqueue pipeline.
 
@@ -39,7 +39,7 @@ For usage methods and examples of memory snapshots, refer to the [community docu
 
 ## Usage Example
 
-- To generate a memory snapshot when a memory overflow (OOM) occurs, configure the following environment variables:
+- To generate a memory snapshot when a Out Of Memory(OOM) occurs, configure the following environment variables:
 
 ```shell
 export OOM_SNAPSHOT_ENABLE=1
@@ -59,4 +59,4 @@ torch_npu.npu.memory._dump_snapshot("my_snapshot.pickle")
 ## Constraints
 
 - TorchNPU 6.0.0 and later versions support this feature.
-- The feature of saving memory snapshot CSV files upon memory overflow (OOM) is supported only on Ascend HDK 25.5.0 and later versions, as well as CANN commercial 8.5.0 and later versions.
+- The feature of saving memory snapshot CSV files upon Out Of Memory(OOM) is supported only on Ascend HDK 25.5.0 and later versions, as well as CANN commercial 8.5.0 and later versions.

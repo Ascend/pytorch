@@ -9,7 +9,6 @@
     -   [Multi-Stream Memory Reuse](./multistream_memory_reuse.md)
     -   [Memory Sharing (IPC)](./memory_sharing_ipc.md)
 
-
 -   [Communication Performance Optimization](./communication_performance_optimization.md)
     -   [torch_npu_run](torch_npu_run.md)
     -   [Ranktable link setup](./ranktable_link_setup.md)

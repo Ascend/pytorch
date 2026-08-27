@@ -26,7 +26,7 @@ Optional parameters:
 
 - `base_addr_aligned_kb:<value>`, the alignment granularity of the memory base address.
 
-    The value range is 0 to 16, and the value must be an integer, in KB. The default value is 16. This parameter takes effect only when `expandable_segments` is set to True. If this parameter is configured as 16, when large block memory (greater than or equal to 2 MB) is requested, the base address of the requested memory is kept aligned to 16 KB as much as possible. If configured as 0, the base address of the requested memory is aligned to 512 B.
+    The value range is 0 to 16, and the value must be an integer, in KB. The default value is 16. This parameter takes effect only when `expandable_segments` is set to True. If this parameter is configured as 16, when large block memory (greater than or equal to 2 MB) is requested, the base address of the requested memory is kept aligned to 16 KB as much as possible. If configured as 0, the base address of the requested memory is aligned to 512 Byte.
 
 - `page_size:<value>`, sets the size for requesting large page memory.
 
@@ -43,7 +43,7 @@ Optional parameters:
 
 - `roundup_power2_divisions:<value>` or `roundup_power2_divisions:[<size1>:<value1>,<size2>:<value2>,...]`, rounds up the requested allocation size to the nearest power-of-2 segment, thereby reusing memory blocks more efficiently.
 
-    When not configured, the allocation size is aligned up in units of 512 bytes, which works well for smaller allocation sizes. For larger allocation requests with similar sizes, this strategy may be inefficient. Because each request is allocated to a memory block of a different size, these memory blocks are difficult to reuse, which in turn produces a large number of insufficiently reused memory blocks and wastes memory capacity.
+    When not configured, the allocation size is aligned up in units of 512 Bytes, which works well for smaller allocation sizes. For larger allocation requests with similar sizes, this strategy may be inefficient. Because each request is allocated to a memory block of a different size, these memory blocks are difficult to reuse, which in turn produces a large number of insufficiently reused memory blocks and wastes memory capacity.
 
     Two configuration modes are supported:
 

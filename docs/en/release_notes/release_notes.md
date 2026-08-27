@@ -40,11 +40,11 @@ TorchNPU code branch names follow the naming convention **\{PyTorch version\}-\{
 
 |TorchNPU Code Branch Name|PyTorch Version|TorchNPU Version|TorchNPU Installation Package Version|CANN Version|Python Version|
 |--|--|--|--|--|--|
-|v2.7.1-26.1.0|2.7.1|26.1.0|2.7.1.post8|9.1.0|Python3.9.*x*、Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*|
-|v2.9.0-26.1.0|2.9.0|26.1.0|2.9.0.post6|9.1.0|Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*|
-|v2.10.0-26.1.0|2.10.0|26.1.0|2.10.0.post4|9.1.0|Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*|
-|v2.11.0-26.1.0|2.11.0|26.1.0|2.11.0|9.1.0|Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*|
-|v2.12.0-26.1.0|2.12.0|26.1.0|2.12.0|9.1.0|Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*|
+|v2.7.1-26.1.0|2.7.1|26.1.0|2.7.1.post8|9.1.0|Python3.9.*x*, Python3.10.*x*, Python3.11.*x*, Python3.12.*x*, Python3.13.*x*|
+|v2.9.0-26.1.0|2.9.0|26.1.0|2.9.0.post6|9.1.0|Python3.10.*x*, Python3.11.*x*, Python3.12.*x*, Python3.13.*x*|
+|v2.10.0-26.1.0|2.10.0|26.1.0|2.10.0.post4|9.1.0|Python3.10.*x*, Python3.11.*x*, Python3.12.*x*, Python3.13.*x*|
+|v2.11.0-26.1.0|2.11.0|26.1.0|2.11.0|9.1.0|Python3.10.*x*, Python3.11.*x*, Python3.12.*x*, Python3.13.*x*|
+|v2.12.0-26.1.0|2.12.0|26.1.0|2.12.0|9.1.0|Python3.10.*x*, Python3.11.*x*, Python3.12.*x*, Python3.13.*x*|
 
 ## Version Compatibility
 
@@ -391,7 +391,7 @@ This section covers API changes, including additions, modifications, deprecation
 </table>
 
 > [!NOTE]  
-> TorchNPU has added support for some APIs and features. For details, see [Custom API](https://gitcode.com/Ascend/op-plugin/blob/26.1.0/docs/en/custom_APIs/overview.md) or [Native API](../native_apis/pytorch_2-12-0/overview.md).
+> TorchNPU has added support for some APIs and features. For details, see [Custom API](https://gitcode.com/Ascend/op-plugin/blob/26.1.0/docs/en/custom_APIs/overview.md) or Native API.
 
 ### Non-Compatible Changes for Ascend 950DT
 
@@ -405,7 +405,7 @@ This section covers API changes, including additions, modifications, deprecation
   <tbody>
     <tr>
       <td rowspan="2">TorchNPU</td>
-      <td>Due to the architecture change of <term>Ascend 950DT</term>, some operators and communication interfaces have been adjusted. Therefore, when calling the related APIs, pay attention to the differences in interface constraints between <term>Ascend 950DT</term> and <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>. For details, see <a href="../native_apis/pytorch_2-12-0/overview.md">Native API</a>.</td>
+      <td>Due to the architecture change of <term>Ascend 950DT</term>, some operators and communication interfaces have been adjusted. Therefore, when calling the related APIs, pay attention to the differences in interface constraints between <term>Ascend 950DT</term> and <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>. For details, see Native API.</td>
     </tr>
     <tr>
       <td><term>Ascend 950DT</term> currently supports only the Triton and DVM modes in the Inductor backend compiler, and does not support the MLIR mode. For details, see <a href="../torch_compile/pytorch_inductor_desc.md">Inductor</a>.</td>
@@ -474,7 +474,7 @@ None
 |[Torch.compile](../torch_compile/pytorch_compilation_mode.md)|Significantly accelerates model training and inference tasks through "dynamic graph capture + static graph optimization + efficient code generation".| &#8226; Content is independent and optimized.<br>&#8226; Added content related to <term>Ascend 950DT</term> support.|
 |[Companion Software Libraries](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.1.0/zh/supported_suites_and_third_party_libraries/supported_suites_and_third_party_libraries.md)|Companion software libraries that provide extended capabilities for TorchNPU.|&#8226; Only the "Ascend in-house plugins" part of the original *Supported Suites and Third-Party Libraries* is retained.<br>&#8226; Added the HyperParallel and AKG components.|
 |[Fault Handling](../troubleshooting/troubleshooting_process.md)|Starting from the abnormal fault phenomena that developers may encounter during inference and training, provides self-service problem location and problem handling methods to help developers quickly locate and resolve faults.|Added content related to "precision anomaly after using the NZ format".|
-|[Native API](../native_apis/pytorch_2-12-0/overview.md)|Provides the support status of native APIs for PyTorch 2.12.0/2.11.0/2.10.0/2.9.0/2.7.1 on Ascend devices.|&#8226; Added the native API support lists for PyTorch 2.11.0 and PyTorch 2.12.0.<br>&#8226; Added content related to <term>Ascend 950DT</term> support. |
+|Native API|Provides the support status of native APIs for PyTorch 2.12.0/2.11.0/2.10.0/2.9.0/2.7.1 on Ascend devices.|&#8226; Added the native API support lists for PyTorch 2.11.0 and PyTorch 2.12.0.<br>&#8226; Added content related to <term>Ascend 950DT</term> support. |
 |[Custom API](https://gitcode.com/Ascend/op-plugin/blob/26.1.0/docs/zh/custom_APIs/overview.md)|Provides the function prototypes, feature descriptions, parameter descriptions, and call examples of TorchNPU custom APIs.|&#8226; Added adaptation for PyTorch 2.11.0 and PyTorch 2.12.0.<br>&#8226; Added content related to <term>Ascend 950DT</term> support.<br>&#8226; For specific API changes, see [API Changes](#api-changes).|
 |[Environment Variables](../environment_variable_reference/env_variable_list.md)|Environment variables that can be used during TorchNPU training and online inference.|&#8226; Added "TORCHINDUCTOR_USE_AKG".<br>&#8226; Added "（beta）TORCHINDUCTOR_ENABLE_MFUSION".<br>&#8226; Added "TORCH_NPU_LAZY_FUSION".<br>&#8226; Added "TORCH_HCCL_BLOCKING_WAIT".<br>&#8226; Added content related to <term>Ascend 950DT</term> support.|
 |[Framework Features](../framework_feature_guide_pytorch/overview.md)|Based on TorchNPU, provides the powerful computing power of Ascend AI processors and builds a series of unique features in areas such as memory optimization, error location, and high-performance computing.|&#8226; Updated content related to "torch_npu.npu.NPUGraph".<br>&#8226; Added content related to <term>Ascend 950DT</term> support.|

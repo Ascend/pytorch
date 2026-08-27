@@ -14,7 +14,7 @@ The Inductor backend supports three operator compilers, which can be selected ba
 
 > [!NOTICE]
 >
-> The Inductor backend requires the latest version of the Triton-Ascend dependency package. For details, see the [Triton-Ascend Documentation](https://gitcode.com/Ascend/triton-ascend/blob/master/docs/sources/getting-started/installation.md).<br>
+> The Inductor backend requires the latest version of the Triton-Ascend dependency package. For details, see the Triton-Ascend Documentation.<br>
 > When using MLIR mode or DVM mode, the Inductor backend requires an additional Torch-MLIR dependency package, which can be downloaded from the [Torch-MLIR Archive](https://repo.oepkgs.net/ascend/pytorch/vllm/torch/).<br>
 > Before importing torch, you can also select the compiler mode via the `TORCHINDUCTOR_NPU_BACKEND` environment variable. For details, see [TORCHINDUCTOR_NPU_BACKEND](../environment_variable_reference/TORCHINDUCTOR_NPU_BACKEND.md).
 

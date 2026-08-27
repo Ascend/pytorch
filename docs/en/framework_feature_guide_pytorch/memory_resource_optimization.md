@@ -10,4 +10,4 @@
 
 - **[Memory Sharing (IPC)](./memory_sharing_ipc.md)**  
 
-- **[Stream-Level TaskQueue Parallel Delivery](./stream_taskqueue_parallel_delivery.md)**  **
+- **[Stream-Level TaskQueue Parallel Delivery](./stream_taskqueue_parallel_delivery.md)**
