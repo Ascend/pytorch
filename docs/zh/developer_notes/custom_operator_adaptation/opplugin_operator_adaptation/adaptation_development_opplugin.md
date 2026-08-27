@@ -14,9 +14,9 @@
 │   │   └── opapi                              # aclnn算子适配目录
 │   │       ├── AbsKernelNpuOpApi.cpp
 │   │       └── ...
-|   ├── python
-|   │   └── meta
-|   │       └── _meta_registrations.py         # 算子meta实现注册文件
+│   ├── python
+│   │   └── meta
+│   │       └── _meta_registrations.py         # 算子meta实现注册文件
 │   ├── OpInterface.h                          # 编译自动生成OpPlugin对外接口的头文件，用于框架侧调用算子
 │   ├── OpInterface.cpp                        # 编译自动生成OpPlugin对外接口路由实现，内部实现不同类型算子分支选择代码
 │   ├── AclOpsInterface.h                      # 编译自动生成aclop算子插件适配所对应头文件 
@@ -28,8 +28,8 @@
 ├── test
 │   ├── allowlist_for_publicAPI.json           # 对外公开接口白名单
 │   ├── core_tests
-│   |   └── torch_npu_OpApi_schema_all.json    # 算子接口schema配置文件
-|   └── test_custom_ops                        # 算子开发者测试目录
+│   │   └── torch_npu_OpApi_schema_all.json    # 算子接口schema配置文件
+│   └── test_custom_ops                        # 算子开发者测试目录
 │       └── ...
 ```
 
@@ -455,7 +455,7 @@ aclop算子是早期的算子实现方式，不推荐使用。适配文件路径
           if (!npu_utils::check_match(&result)) { 
               // 若result非连续，创建连续tensor(contig_tensor)，接收ACLOP算子(abs)的输出。再将contig_tensor拷贝到原始输出result。
               at::Tensor contiguous_result = npu_utils::format_contiguous(result); 
-              abs_out_nocheck(contigTensor, self); 
+              abs_out_nocheck(contiguous_result, self); 
               npu_utils::format_fresh_view(result, contiguous_result); 
           } else { 
               // 若result连续，直接调用ACLOP算子。
