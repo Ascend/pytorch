@@ -38,6 +38,14 @@ on:
         type: string
         default: 'linux-aarch64-a3-8'
         description: Runner label for runs-on and upstream job-name reporting.
+      device_env:
+        required: false
+        type: string
+        default: 'privateuse1'
+        description: >-
+          Comma-separated device types exported as both
+          PYTORCH_TESTING_DEVICE_ONLY_FOR and PYTORCH_TESTING_DEVICE_FOR_CUSTOM
+          during execution. Must match the collection phase value.
 
 jobs:
   test:
@@ -172,6 +180,7 @@ jobs:
           echo "=== ${{ inputs.category }} Shard ${{ matrix.shard }}/${{ inputs.num_shards }} ==="
           echo "Total cases: ${TOTAL_CASES}"
           echo "Max workers: ${{ inputs.max_workers }}"
+          echo "Device env: ${{ inputs.device_env }}"
 
           set +e
           python ci-scripts/.github/scripts/run_npu_test_shard.py \
@@ -180,6 +189,7 @@ jobs:
             --report-dir test-reports \
             --max-workers ${{ inputs.max_workers }} \
             --timeout 1200 \
+            --device-env "${{ inputs.device_env }}" \
             --verbose \
             2>&1 | tee /tmp/test_${{ inputs.category }}_${{ matrix.shard }}.log
 

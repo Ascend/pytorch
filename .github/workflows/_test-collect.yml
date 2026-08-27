@@ -48,6 +48,14 @@ on:
         type: string
         default: 'linux-aarch64-a3-8'
         description: Runner label for runs-on and upstream job-name reporting.
+      device_env:
+        required: false
+        type: string
+        default: 'privateuse1'
+        description: >-
+          Comma-separated device types exported as both
+          PYTORCH_TESTING_DEVICE_ONLY_FOR and PYTORCH_TESTING_DEVICE_FOR_CUSTOM
+          during collection. Must match the execution phase value.
     outputs:
       core_matrix:
         description: Core shard matrix JSON
@@ -254,6 +262,7 @@ jobs:
             ${SKIP_LIST_ARG} \
             --regular-threshold 100000 \
             --distributed-threshold 1000 \
+            --device-env "${{ inputs.device_env }}" \
             --output-dir ${GITHUB_WORKSPACE}/cases-shards \
             --error-log-dir ${GITHUB_WORKSPACE}/collection_errors \
             --parallel 32 \

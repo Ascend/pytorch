@@ -429,6 +429,7 @@ def collect_cases_for_file(
     test_file: str,
     test_dir: Path,
     hw_classification: Optional[List[str]] = None,
+    device_env: str = "privateuse1",
 ) -> Tuple[str, str, List[str], bool, str]:
     """
     Collect test cases from a single file.
@@ -465,7 +466,10 @@ def collect_cases_for_file(
 
     # Build environment with test file directory in PYTHONPATH
     env = os.environ.copy()
-    env["PYTORCH_TESTING_DEVICE_ONLY_FOR"] = "privateuse1"
+    # Both variables must stay in sync with the execution environment
+    # (run_npu_test_shard.py) so collected nodeids exist at run time.
+    env["PYTORCH_TESTING_DEVICE_ONLY_FOR"] = device_env
+    env["PYTORCH_TESTING_DEVICE_FOR_CUSTOM"] = device_env
     existing_pythonpath = env.get("PYTHONPATH", "")
     env["PYTHONPATH"] = str(test_file_dir) + (":" + existing_pythonpath if existing_pythonpath else "")
 
@@ -573,6 +577,7 @@ def collect_all_cases(
     error_log_dir: Path,
     parallel: int = 16,
     hw_classification: Optional[List[str]] = None,
+    device_env: str = "privateuse1",
 ) -> List[Dict]:
     """
     Collect all cases from all files.
@@ -603,7 +608,7 @@ def collect_all_cases(
 
     with ThreadPoolExecutor(max_workers=parallel) as executor:
         futures = {
-            executor.submit(collect_cases_for_file, f, test_dir, hw_classification): f
+            executor.submit(collect_cases_for_file, f, test_dir, hw_classification, device_env): f
             for f in test_files
         }
 
@@ -902,7 +907,7 @@ def main():
 
         cases = collect_all_cases(
             files, test_dir, error_log_dir / cat_name,
-            args.parallel, hw_classification,
+            args.parallel, hw_classification, args.device_env,
         )
         print(f"Total {cat_name} cases: {len(cases)}")
 
@@ -1038,6 +1043,14 @@ def parse_args():
     parser.add_argument("--output-dir", required=True, help="Output directory for shard JSONs")
     parser.add_argument("--error-log-dir", help="Output directory for collection error logs (default: output-dir/collection_errors)")
     parser.add_argument("--parallel", type=int, default=16, help="Parallel collection workers")
+    parser.add_argument(
+        "--device-env",
+        default="privateuse1",
+        help="Comma-separated device types exported as both "
+             "PYTORCH_TESTING_DEVICE_ONLY_FOR and PYTORCH_TESTING_DEVICE_FOR_CUSTOM "
+             "during collection (default: privateuse1). Must match the value used "
+             "at execution time so collected nodeids exist when tests run.",
+    )
     parser.add_argument(
         "--skip-list",
         default=None,

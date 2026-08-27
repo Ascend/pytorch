@@ -49,6 +49,7 @@ jobs:
       report_to_upstream: false
       hw_classification: 'GENERIC ACCELERATOR'
       full_scan: true
+      device_env: 'privateuse1,cpu'
       skip_list: |-
         .github/config/disabled_testcases.json
         .github/config/running_skiped_testcases.json

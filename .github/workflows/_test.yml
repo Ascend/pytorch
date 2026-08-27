@@ -56,6 +56,16 @@ on:
         type: string
         default: 'linux-aarch64-a3-2'
         description: Runner label for runs-on and upstream job-name reporting.
+      device_env:
+        required: false
+        type: string
+        default: 'privateuse1'
+        description: >-
+          Comma-separated device types exported as both
+          PYTORCH_TESTING_DEVICE_ONLY_FOR and PYTORCH_TESTING_DEVICE_FOR_CUSTOM
+          during collection AND execution. The same value must be used in both
+          phases so collected nodeids exist when tests run. Example values:
+          "privateuse1" or "privateuse1,cpu".
 
 defaults:
   run:
@@ -76,6 +86,7 @@ jobs:
       full_scan: ${{ inputs.full_scan }}
       skip_list: ${{ inputs.skip_list }}
       runner_label: ${{ inputs.runner_label }}
+      device_env: ${{ inputs.device_env }}
 
   # ============================================================================
   # 2. Run test shards per category (matrix-driven)
@@ -98,6 +109,7 @@ jobs:
       docker_image: ${{ inputs.docker_image }}
       report_to_upstream: ${{ inputs.report_to_upstream }}
       runner_label: ${{ matrix.runner_label }}
+      device_env: ${{ inputs.device_env }}
 
   # ============================================================================
   # 3. Generate consolidated test report

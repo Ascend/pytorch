@@ -684,6 +684,7 @@ def build_execution_env(
     disabled_testcases_file: str,
     shard: int,
     shard_type: str,
+    device_env: str = "privateuse1",
 ) -> Dict[str, str]:
     """Build environment variables for test execution."""
     repo_root = test_dir.parent
@@ -705,6 +706,10 @@ def build_execution_env(
         "TORCH_DEVICE_BACKEND_AUTOLOAD": "1",
         "NO_TD": "1",
         "PYTHONUNBUFFERED": "1",
+        # Both variables must stay in sync with the collection environment
+        # (collect_all_cases.py) so collected nodeids exist at run time.
+        "PYTORCH_TESTING_DEVICE_ONLY_FOR": device_env,
+        "PYTORCH_TESTING_DEVICE_FOR_CUSTOM": device_env,
         # Note: Do NOT set CI=true here, as some test files have conditional
         # test generation logic like:
         #   if not (IS_CI and torch.cuda.is_available()):
@@ -1572,6 +1577,14 @@ def parse_args():
     )
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     parser.add_argument("--quick-test", type=int, default=None, help="Quick test mode: execute only N cases for fast verification (default: None, run all cases)")
+    parser.add_argument(
+        "--device-env",
+        default="privateuse1",
+        help="Comma-separated device types exported as both "
+             "PYTORCH_TESTING_DEVICE_ONLY_FOR and PYTORCH_TESTING_DEVICE_FOR_CUSTOM "
+             "during execution (default: privateuse1). Must match the value used "
+             "at collection time so collected nodeids exist when tests run.",
+    )
     parser.add_argument("--worker", type=str, default=None, help=argparse.SUPPRESS)
     args = parser.parse_args()
 
@@ -1682,7 +1695,8 @@ def main():
 
         # Build execution env
         env_updates = build_execution_env(
-            test_dir, script_dir, args.disabled_testcases, shard, shard_type
+            test_dir, script_dir, args.disabled_testcases, shard, shard_type,
+            args.device_env,
         )
 
         # Execute tests (custom mode: auto-detect distributed files for execution mode)
@@ -1812,7 +1826,8 @@ def main():
 
         # Build execution env
         env_updates = build_execution_env(
-            test_dir, script_dir, args.disabled_testcases, shard, shard_type
+            test_dir, script_dir, args.disabled_testcases, shard, shard_type,
+            args.device_env,
         )
 
         # Convert cases to CaseExecutionTask format
