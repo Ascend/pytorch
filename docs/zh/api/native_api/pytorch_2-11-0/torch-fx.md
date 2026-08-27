@@ -1366,6 +1366,22 @@
 
 </div>
 
+> <font size="3">boxed_run()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.Interpreter.boxed_run](https://pytorch.org/docs/2.11/fx.html#torch.fx.Interpreter.boxed_run)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
 > <font size="3">run_node()</font>
 
 <div style="margin-left: 2em">
