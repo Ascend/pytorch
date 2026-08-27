@@ -466,10 +466,14 @@ def collect_cases_for_file(
 
     # Build environment with test file directory in PYTHONPATH
     env = os.environ.copy()
-    # Both variables must stay in sync with the execution environment
-    # (run_npu_test_shard.py) so collected nodeids exist at run time.
+    # Only PYTORCH_TESTING_DEVICE_ONLY_FOR is set here. Do NOT set
+    # PYTORCH_TESTING_DEVICE_FOR_CUSTOM at collection: it pulls cpu-only
+    # classes into instantiation and mutates PrivateUse1TestBase.device_type
+    # ("privateuse1" -> "npu") via setUpClass, renaming subsequently
+    # instantiated classes (e.g. TestBinaryUfuncsDevicePRIVATEUSE1 ->
+    # TestBinaryUfuncsDeviceNPU) so collected nodeids diverge from the
+    # execution environment and skip-list entries.
     env["PYTORCH_TESTING_DEVICE_ONLY_FOR"] = device_env
-    env["PYTORCH_TESTING_DEVICE_FOR_CUSTOM"] = device_env
     existing_pythonpath = env.get("PYTHONPATH", "")
     env["PYTHONPATH"] = str(test_file_dir) + (":" + existing_pythonpath if existing_pythonpath else "")
 
@@ -1046,10 +1050,10 @@ def parse_args():
     parser.add_argument(
         "--device-env",
         default="privateuse1",
-        help="Comma-separated device types exported as both "
-             "PYTORCH_TESTING_DEVICE_ONLY_FOR and PYTORCH_TESTING_DEVICE_FOR_CUSTOM "
-             "during collection (default: privateuse1). Must match the value used "
-             "at execution time so collected nodeids exist when tests run.",
+        help="Comma-separated device types exported as "
+             "PYTORCH_TESTING_DEVICE_ONLY_FOR during collection "
+             "(default: privateuse1). Must match the value used at execution "
+             "time so collected nodeids exist when tests run.",
     )
     parser.add_argument(
         "--skip-list",
