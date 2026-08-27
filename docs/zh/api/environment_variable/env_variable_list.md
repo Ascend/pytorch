@@ -8,6 +8,7 @@
 |--|--|
 |[INF_NAN_MODE_ENABLE](op_execution/INF_NAN_MODE_ENABLE.md)|通过此环境变量可控制AI处理器对输入数据为Inf/NaN的处理方式，即控制AI处理器使用饱和模式还是INF_NAN模式。|
 |[INF_NAN_MODE_FORCE_DISABLE](op_execution/INF_NAN_MODE_FORCE_DISABLE.md)|<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>，通过此环境变量可强制关闭INF_NAN模式。|
+|[FORCE_OVERFLOW_CHECK](op_execution/FORCE_OVERFLOW_CHECK.md)|通过此环境变量可在非饱和模式（INF_NAN模式）下开启溢出检测开关，用于Inf/NaN问题的异步定位。|
 |[COMBINED_ENABLE](op_execution/COMBINED_ENABLE.md)|通过此环境变量可设置combined标志。|
 |[ASCEND_LAUNCH_BLOCKING](op_execution/ASCEND_LAUNCH_BLOCKING.md)|通过此环境变量可控制算子执行时是否启用同步模式。|
 |[TASK_QUEUE_ENABLE](op_execution/TASK_QUEUE_ENABLE.md)|通过此环境变量可配置task_queue算子下发队列是否开启和优化等级。|
