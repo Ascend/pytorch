@@ -43,9 +43,9 @@ on:
         type: string
         default: 'privateuse1'
         description: >-
-          Comma-separated device types exported as both
-          PYTORCH_TESTING_DEVICE_ONLY_FOR and PYTORCH_TESTING_DEVICE_FOR_CUSTOM
-          during execution. Must match the collection phase value.
+          Comma-separated device types exported as
+          PYTORCH_TESTING_DEVICE_ONLY_FOR during execution. Must match the
+          collection phase value.
 
 jobs:
   test:

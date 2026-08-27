@@ -706,10 +706,11 @@ def build_execution_env(
         "TORCH_DEVICE_BACKEND_AUTOLOAD": "1",
         "NO_TD": "1",
         "PYTHONUNBUFFERED": "1",
-        # Both variables must stay in sync with the collection environment
-        # (collect_all_cases.py) so collected nodeids exist at run time.
+        # Only PYTORCH_TESTING_DEVICE_ONLY_FOR is set here. Do NOT set
+        # PYTORCH_TESTING_DEVICE_FOR_CUSTOM: it must match the collection
+        # environment, which does not set it either (setting it renames
+        # instantiated classes and breaks nodeid parity).
         "PYTORCH_TESTING_DEVICE_ONLY_FOR": device_env,
-        "PYTORCH_TESTING_DEVICE_FOR_CUSTOM": device_env,
         # Note: Do NOT set CI=true here, as some test files have conditional
         # test generation logic like:
         #   if not (IS_CI and torch.cuda.is_available()):
@@ -1580,10 +1581,10 @@ def parse_args():
     parser.add_argument(
         "--device-env",
         default="privateuse1",
-        help="Comma-separated device types exported as both "
-             "PYTORCH_TESTING_DEVICE_ONLY_FOR and PYTORCH_TESTING_DEVICE_FOR_CUSTOM "
-             "during execution (default: privateuse1). Must match the value used "
-             "at collection time so collected nodeids exist when tests run.",
+        help="Comma-separated device types exported as "
+             "PYTORCH_TESTING_DEVICE_ONLY_FOR during execution "
+             "(default: privateuse1). Must match the value used at collection "
+             "time so collected nodeids exist when tests run.",
     )
     parser.add_argument("--worker", type=str, default=None, help=argparse.SUPPRESS)
     args = parser.parse_args()

@@ -61,11 +61,11 @@ on:
         type: string
         default: 'privateuse1'
         description: >-
-          Comma-separated device types exported as both
-          PYTORCH_TESTING_DEVICE_ONLY_FOR and PYTORCH_TESTING_DEVICE_FOR_CUSTOM
-          during collection AND execution. The same value must be used in both
-          phases so collected nodeids exist when tests run. Example values:
-          "privateuse1" or "privateuse1,cpu".
+          Comma-separated device types exported as
+          PYTORCH_TESTING_DEVICE_ONLY_FOR during collection AND execution.
+          The same value must be used in both phases so collected nodeids
+          exist when tests run. Example values: "privateuse1" or
+          "privateuse1,cpu".
 
 defaults:
   run:
