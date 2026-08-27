@@ -634,6 +634,22 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 
 </div>
 
+### torch.autograd.profiler.parse_nvprof_trace
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.profiler.parse_nvprof_trace](https://pytorch.org/docs/2.13/generated/torch.autograd.profiler.parse_nvprof_trace.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
+
+</div>
+
 ### <code><i>class</i></code> torch.autograd.profiler.KinetoStepTracker
 
 <div style="margin-left: 2em">
