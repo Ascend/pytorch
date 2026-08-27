@@ -4533,8 +4533,10 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
     // to wait() on the returned handle, so ProcessGroupHCCL can't know
     // when it's safe to release the input back to the allocator,
     // and the present call has no way to know it's not an isend.
-    // Therefore, we warn and fall back to the typical recordStream logic.
-
+    // Therefore, we warn and fall back to the typical recordStream logic:
+    if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
+        TORCH_NPU_WARN_ONCE("MULTI_STREAM_MEMORY_REUSE=2 has no effect for point-to-point collectives.");
+    }
     c10_npu::CaptureStatus capture_status = c10_npu::currentStreamCaptureStatusMayInitCtx();
     const auto devices = getDeviceList(tensors);
     int p2pRank = 0;
