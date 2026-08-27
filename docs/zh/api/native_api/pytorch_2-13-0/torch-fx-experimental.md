@@ -482,6 +482,22 @@
 
 </div>
 
+### torch.fx.experimental.symbolic_shapes.lru_cache
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.experimental.symbolic_shapes.lru_cache](https://pytorch.org/docs/2.13/generated/torch.fx.experimental.symbolic_shapes.lru_cache.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
 ### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.ShapeEnvSettings
 
 <div style="margin-left: 2em">
@@ -789,6 +805,54 @@
 ### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts
 
 <div style="margin-left: 2em">
+
+> <font size="3">boxed_run()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.boxed_run](https://pytorch.org/docs/2.13/generated/torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.html#torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.boxed_run)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+> <font size="3">call_function()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.call_function](https://pytorch.org/docs/2.13/generated/torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.html#torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.call_function)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+> <font size="3">call_method()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.call_method](https://pytorch.org/docs/2.13/generated/torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.html#torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.call_method)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
 
 > <font size="3">call_module()</font>
 
