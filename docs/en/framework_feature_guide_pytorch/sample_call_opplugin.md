@@ -34,7 +34,7 @@ After completing the development of the adaptation plugin for the PyTorch framew
         Copy the following information to the `custom` node in `op_plugin_functions.yaml`.
 
         ```yaml
-        - func: npu_add_custom(Tensor x, Tensor y, *, Scalar alpha=1) -> Tensor 
+        - func: npu_add_custom(Tensor x, Tensor y, *, Scalar alpha=1) -> Tensor
           op_api: v2.7
         - func: npu_add_custom_backward(Tensor grad) -> (Tensor, Tensor)
           op_api: v2.7
@@ -44,7 +44,7 @@ After completing the development of the adaptation plugin for the PyTorch framew
 
         ```yaml
         custom: 
-          - func: npu_add_custom(Tensor x, Tensor y, *, Scalar alpha=1) -> Tensor 
+          - func: npu_add_custom(Tensor x, Tensor y, *, Scalar alpha=1) -> Tensor
             op_api: v2.7
           - func: npu_add_custom_backward(Tensor grad) -> (Tensor, Tensor)
             op_api: v2.7
@@ -81,7 +81,7 @@ After completing the development of the adaptation plugin for the PyTorch framew
 
         ```yaml
         custom: 
-          - func: npu_add_custom(Tensor x, Tensor y, *, Scalar alpha=1) -> Tensor 
+          - func: npu_add_custom(Tensor x, Tensor y, *, Scalar alpha=1) -> Tensor
             op_api: v2.7
             gen_opapi:
               out:
@@ -102,8 +102,8 @@ After completing the development of the adaptation plugin for the PyTorch framew
       2. After completing the operator adaptation, the complete `AddCustomKernelNpuOpApi.cpp` file is as follows.
 
           ```cpp
-          #include "op_plugin/OpApiInterface.h" 
-          #include "op_plugin/utils/op_api_common.h" 
+          #include "op_plugin/OpApiInterface.h"
+          #include "op_plugin/utils/op_api_common.h"
           
           namespace op_api { 
           using npu_preparation = at_npu::native::OpPreparation;
@@ -117,7 +117,7 @@ After completing the development of the adaptation plugin for the PyTorch framew
               // Call the EXEC_NPU_CMD interface to compute the output result
               // The format of the first input parameter is aclnn+Optype, and the subsequent parameters are the inputs and outputs respectively
               EXEC_NPU_CMD(aclnnAdd, x, y, alpha, result); 
-              return result; 
+              return result;
           }
           
           // Backward interface

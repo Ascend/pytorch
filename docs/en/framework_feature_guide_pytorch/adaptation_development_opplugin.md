@@ -14,9 +14,9 @@
 │   │   └── opapi                              # aclnn operator adapter directory
 │   │       ├── AbsKernelNpuOpApi.cpp
 │   │       └── ...
-|   ├── python
-|   │   └── meta
-|   │       └── _meta_registrations.py         # Operator meta implementation registration file
+│   ├── python
+│   │   └── meta
+│   │       └── _meta_registrations.py         # Operator meta implementation registration file
 │   ├── OpInterface.h                          # Auto-generated header file for op_plugin external interfaces (for framework-side operator invocation)
 │   ├── OpInterface.cpp                        # Auto-generated routing implementation for op_plugin external interfaces (internal branch selection logic for different operator types)
 │   ├── AclOpsInterface.h                      # Auto-generated header file for aclop operator plugin adapter 
@@ -28,8 +28,8 @@
 ├── test
 │   ├── allowlist_for_publicAPI.json           # Public interface allowlist
 │   ├── core_tests
-│   |   └── torch_npu_OpApi_schema_all.json    # Operator interface schema configuration file
-|   └── test_custom_ops                        # Operator developer test directory
+│   │   └── torch_npu_OpApi_schema_all.json    # Operator interface schema configuration file
+│   └── test_custom_ops                        # Operator developer test directory
 │       └── ...
 ```
 
@@ -72,7 +72,7 @@ Parameters
 
 - `all_version`: Indicates all versions supported by the current PyTorch. The version list will be adjusted as torch_npu evolves, and the actual code shall prevail. You can use `[]` to specify the version range supported by an operator. For example, `[v2.1, newest]` indicates that the operator supports versions from v2.1 to the latest.
 - `official` and `custom`: Respectively indicate that operators under these fields are PyTorch native operators and custom operators. The `symint` field indicates that the operator supports symint-type input parameters. For such operators, refer to [Symint Operator Adaptation](#symint-operator-adaptation).
-- `func`: Defines the operator schema (operator description specification). Its content fully follows the schema definition rules of PyTorch native Aten IR operators and completely describes the operator calling interface and semantic constraints through the structured form of "operator name + input parameter list + return parameter". For specific rules, refer to [PyTorch schema rules](reference.md#section001).
+- `func`: Defines the operator schema (operator description specification). Its content fully follows the schema definition rules of PyTorch native Aten IR operators and completely describes the operator calling interface and semantic constraints through the structured form of "operator name + input parameter list + return parameter". For specific rules, refer to [PyTorch schema rules](reference.md#pytorch-schema-rules).
 - `acl_op`: Indicates that acl_op calls are supported in this version. If the supported versions are the same as the versions indicated by `all_version`, you can use `all_version` instead. This is an optional field.
 - `op_api`: Indicates that op_api calls are supported in this version. If the supported versions are the same as the versions indicated by `all_version`, you can use `all_version` instead. This is an optional field.
 - `gen_opapi`: For operators that support op_api calls, if the adaptation code is simple and the underlying operator can be called directly without additional adaptation, you can consider using structured adaptation to automatically generate the adaptation code. For details, see [(Optional) Structured Adaptation](#optional-structured-adaptation).
@@ -224,7 +224,7 @@ The adaptation file path for aclnn operators is `op_plugin/ops/opapi/AbsKernelNp
     ```
 
     > [!NOTE]  
-    > For more common API interfaces used in operator adaptation, see [LINK](reference.md#section002). For more common macro definitions, see [LINK](reference.md#section003).
+    > For more common API interfaces used in operator adaptation, see [LINK](reference.md#common-api-interfaces-for-operator-adaptation). For more common macro definitions, see [LINK](reference.md#common-macro-definitions-for-operator-adaptation).
 
 3. If the interface contains multiple variants, such as a variant with an `out` parameter or an in-place operation variant, you need to add the corresponding adaptation code. Refer to the following for adaptation:
 
@@ -455,7 +455,7 @@ aclop operators are an earlier operator implementation method and are not recomm
           if (!npu_utils::check_match(&result)) { 
               // If result is non-contiguous, create a contiguous tensor (contig_tensor) to receive the output of the ACLOP operator (abs). Then copy contig_tensor to the original output result
               at::Tensor contiguous_result = npu_utils::format_contiguous(result); 
-              abs_out_nocheck(contigTensor, self); 
+              abs_out_nocheck(ccontiguous_result, self); 
               npu_utils::format_fresh_view(result, contiguous_result); 
           } else { 
               // If result is contiguous, directly call the ACLOP operator
