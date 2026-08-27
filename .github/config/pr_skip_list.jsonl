@@ -1,4 +1,4 @@
-{"_meta": {"description": "PR-trigger skip list: failed cases from receive-trigger run 31773030818", "source_run": "https://github.com/Ascend/pytorch/actions/runs/31977204768", "total_entries": 4068, "created": "2026-08-14", "updated": "2026-08-24", "additional_source_run": "https://github.com/Ascend/pytorch/actions/runs/32550829750", "additional_source_pr": "https://github.com/Ascend/pytorch/pull/191453"}}
+{"_meta": {"description": "PR-trigger skip list: failed cases from receive-trigger run 31773030818", "source_run": "https://github.com/Ascend/pytorch/actions/runs/31977204768", "total_entries": 4068, "created": "2026-08-14", "updated": "2026-08-27", "additional_source_run": "https://github.com/Ascend/pytorch/actions/runs/32550829750", "additional_source_pr": "https://github.com/Ascend/pytorch/pull/191453", "additional_source_run_2": "https://github.com/Ascend/pytorch/actions/runs/33074236462", "update_note": "2026-08-27: added test_type_promotion unary_op_out_casting int64 failure; removed stale test_init trunc_normal_narrow_interval_bfloat16 entry (renamed upstream, current-name twin already present)"}}
 {"nodeid": "test/nn/test_convolution.py::TestConvolutionNNDeviceTypePRIVATEUSE1::test_Conv2d_backward_depthwise_npu_complex128"}
 {"nodeid": "test/nn/test_convolution.py::TestConvolutionNNDeviceTypePRIVATEUSE1::test_Conv2d_backward_depthwise_npu_float64"}
 {"nodeid": "test/nn/test_convolution.py::TestConvolutionNNDeviceTypePRIVATEUSE1::test_Conv2d_depthwise_naive_groups_npu_float64"}
@@ -117,7 +117,7 @@
 {"nodeid": "test/nn/test_dropout.py::TestDropoutNNDeviceTypePRIVATEUSE1::test_Dropout2d_npu"}
 {"nodeid": "test/nn/test_dropout.py::TestDropoutNNDeviceTypePRIVATEUSE1::test_Dropout3d_npu"}
 {"nodeid": "test/nn/test_dropout.py::TestDropoutNNDeviceTypePRIVATEUSE1::test_Dropout_npu"}
-{"nodeid": "test/nn/test_init.py::TestNNInitDeviceTypePRIVATEUSE1::test_trunc_normal_narrow_interval_bfloat16_npu_bfloat16"}
+{"nodeid": "test/nn/test_init.py::TestNNInitDevicePRIVATEUSE1::test_trunc_normal_narrow_interval_npu_bfloat16"}
 {"nodeid": "test/optim/test_swa_utils.py::TestSWAUtils::test_averaged_model_cross_device"}
 {"nodeid": "test/optim/test_swa_utils.py::TestSWAUtils::test_averaged_model_default_avg_fn_picklable"}
 {"nodeid": "test/optim/test_swa_utils.py::TestSWAUtils::test_averaged_model_exponential"}
@@ -2972,6 +2972,7 @@
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_cpu_gpu_parity_nn_ConvTranspose3d_npu_complex128"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_cpu_gpu_parity_nn_ConvTranspose3d_npu_complex32"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_cpu_gpu_parity_nn_ConvTranspose3d_npu_complex64"}
+{"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_cpu_gpu_parity_nn_ConvTranspose3d_npu_float32"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_cpu_gpu_parity_nn_ConvTranspose3d_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_cpu_gpu_parity_nn_CrossEntropyLoss_npu_float16"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_cpu_gpu_parity_nn_CrossEntropyLoss_npu_float64"}
@@ -3107,6 +3108,7 @@
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_forward_nn_ConvTranspose3d_npu_complex128"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_forward_nn_ConvTranspose3d_npu_complex32"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_forward_nn_ConvTranspose3d_npu_complex64"}
+{"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_forward_nn_ConvTranspose3d_npu_float32"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_forward_nn_ConvTranspose3d_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_forward_nn_CrossEntropyLoss_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_forward_nn_Embedding_npu_float64"}
@@ -3143,6 +3145,7 @@
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_forward_nn_LazyConv3d_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_forward_nn_LazyConvTranspose1d_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_forward_nn_LazyConvTranspose2d_npu_float64"}
+{"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_forward_nn_LazyConvTranspose3d_npu_float32"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_forward_nn_LazyConvTranspose3d_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_forward_nn_LinearCrossEntropyLoss_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_forward_nn_Linear_npu_float64"}
@@ -3438,6 +3441,8 @@
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_if_train_and_eval_modes_differ_nn_ConvTranspose2d_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_if_train_and_eval_modes_differ_nn_ConvTranspose3d_npu_complex128"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_if_train_and_eval_modes_differ_nn_ConvTranspose3d_npu_complex32"}
+{"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_if_train_and_eval_modes_differ_nn_ConvTranspose3d_npu_complex64"}
+{"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_if_train_and_eval_modes_differ_nn_ConvTranspose3d_npu_float32"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_if_train_and_eval_modes_differ_nn_ConvTranspose3d_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_if_train_and_eval_modes_differ_nn_CrossEntropyLoss_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_if_train_and_eval_modes_differ_nn_GELU_npu_float64"}
@@ -3458,6 +3463,7 @@
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_if_train_and_eval_modes_differ_nn_LazyConv3d_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_if_train_and_eval_modes_differ_nn_LazyConvTranspose1d_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_if_train_and_eval_modes_differ_nn_LazyConvTranspose2d_npu_float64"}
+{"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_if_train_and_eval_modes_differ_nn_LazyConvTranspose3d_npu_float32"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_if_train_and_eval_modes_differ_nn_LazyConvTranspose3d_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_if_train_and_eval_modes_differ_nn_LinearCrossEntropyLoss_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_if_train_and_eval_modes_differ_nn_Linear_npu_float64"}
@@ -3629,6 +3635,8 @@
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_multiple_device_transfer_nn_ConvTranspose2d_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_multiple_device_transfer_nn_ConvTranspose3d_npu_complex128"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_multiple_device_transfer_nn_ConvTranspose3d_npu_complex32"}
+{"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_multiple_device_transfer_nn_ConvTranspose3d_npu_complex64"}
+{"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_multiple_device_transfer_nn_ConvTranspose3d_npu_float32"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_multiple_device_transfer_nn_ConvTranspose3d_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_multiple_device_transfer_nn_CrossEntropyLoss_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_multiple_device_transfer_nn_Embedding_npu_float64"}
@@ -3663,6 +3671,7 @@
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_multiple_device_transfer_nn_LazyConv3d_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_multiple_device_transfer_nn_LazyConvTranspose1d_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_multiple_device_transfer_nn_LazyConvTranspose2d_npu_float64"}
+{"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_multiple_device_transfer_nn_LazyConvTranspose3d_npu_float32"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_multiple_device_transfer_nn_LazyConvTranspose3d_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_multiple_device_transfer_nn_LinearCrossEntropyLoss_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_multiple_device_transfer_nn_Linear_npu_float64"}
@@ -3738,6 +3747,7 @@
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_non_contiguous_tensors_nn_ConvTranspose3d_npu_complex128"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_non_contiguous_tensors_nn_ConvTranspose3d_npu_complex32"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_non_contiguous_tensors_nn_ConvTranspose3d_npu_complex64"}
+{"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_non_contiguous_tensors_nn_ConvTranspose3d_npu_float32"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_non_contiguous_tensors_nn_ConvTranspose3d_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_non_contiguous_tensors_nn_CosineEmbeddingLoss_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_non_contiguous_tensors_nn_CrossEntropyLoss_npu_float64"}
@@ -3781,6 +3791,7 @@
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_non_contiguous_tensors_nn_LazyConv3d_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_non_contiguous_tensors_nn_LazyConvTranspose1d_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_non_contiguous_tensors_nn_LazyConvTranspose2d_npu_float64"}
+{"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_non_contiguous_tensors_nn_LazyConvTranspose3d_npu_float32"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_non_contiguous_tensors_nn_LazyConvTranspose3d_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_non_contiguous_tensors_nn_LeakyReLU_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_non_contiguous_tensors_nn_LinearCrossEntropyLoss_npu_float64"}
@@ -3873,6 +3884,7 @@
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_save_load_nn_ConvTranspose3d_npu_complex128"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_save_load_nn_ConvTranspose3d_npu_complex32"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_save_load_nn_ConvTranspose3d_npu_complex64"}
+{"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_save_load_nn_ConvTranspose3d_npu_float32"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_save_load_nn_ConvTranspose3d_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_save_load_nn_CrossEntropyLoss_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_save_load_nn_GELU_npu_float64"}
@@ -3907,6 +3919,7 @@
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_save_load_nn_LazyConv3d_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_save_load_nn_LazyConvTranspose1d_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_save_load_nn_LazyConvTranspose2d_npu_float64"}
+{"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_save_load_nn_LazyConvTranspose3d_npu_float32"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_save_load_nn_LazyConvTranspose3d_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_save_load_nn_LinearCrossEntropyLoss_npu_float64"}
 {"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_save_load_nn_Linear_npu_float64"}
@@ -4053,17 +4066,4 @@
 {"nodeid": "test/test_type_promotion.py::TestTypePromotionDevicePRIVATEUSE1::test_ternary_out_promotion_npu"}
 {"nodeid": "test/test_type_promotion.py::TestTypePromotionDevicePRIVATEUSE1::test_unary_op_out_casting_npu_complex128_complex128"}
 {"nodeid": "test/test_type_promotion.py::TestTypePromotionDevicePRIVATEUSE1::test_unary_op_out_casting_npu_complex64_complex64"}
-{"nodeid": "test/nn/test_init.py::TestNNInitDevicePRIVATEUSE1::test_trunc_normal_narrow_interval_npu_bfloat16"}
-{"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_cpu_gpu_parity_nn_ConvTranspose3d_npu_float32"}
-{"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_forward_nn_ConvTranspose3d_npu_float32"}
-{"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_forward_nn_LazyConvTranspose3d_npu_float32"}
-{"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_if_train_and_eval_modes_differ_nn_ConvTranspose3d_npu_complex64"}
-{"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_if_train_and_eval_modes_differ_nn_ConvTranspose3d_npu_float32"}
-{"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_if_train_and_eval_modes_differ_nn_LazyConvTranspose3d_npu_float32"}
-{"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_multiple_device_transfer_nn_ConvTranspose3d_npu_complex64"}
-{"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_multiple_device_transfer_nn_ConvTranspose3d_npu_float32"}
-{"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_multiple_device_transfer_nn_LazyConvTranspose3d_npu_float32"}
-{"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_non_contiguous_tensors_nn_ConvTranspose3d_npu_float32"}
-{"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_non_contiguous_tensors_nn_LazyConvTranspose3d_npu_float32"}
-{"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_save_load_nn_ConvTranspose3d_npu_float32"}
-{"nodeid": "test/test_modules.py::TestModulePRIVATEUSE1::test_save_load_nn_LazyConvTranspose3d_npu_float32"}
+{"nodeid": "test/test_type_promotion.py::TestTypePromotionDevicePRIVATEUSE1::test_unary_op_out_casting_npu_int64_int64"}
