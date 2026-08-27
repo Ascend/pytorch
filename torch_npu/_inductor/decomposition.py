@@ -460,6 +460,115 @@ def _override_softmax_backward_decomp_no_fma():
     _ind_decomps[aten._softmax_backward_data.default] = _softmax_backward_data_no_fma
 
 
+def _override_safe_softmax_decomp():
+    """Rewrite the mask-composite softmax (``aten._safe_softmax``, produced by
+    the SDPA-with-mask decomposition) down to plain ``aten._softmax``.
+
+    ``_safe_softmax``'s only semantic delta is the all-``-inf``-row guard
+    (``where(all(row == -inf), zeros, softmax)``); in this backend's input
+    domain that guard is dead code — attention masks never fully mask a row
+    (causal keeps the diagonal; transformers rewrites fully-masked rows via
+    ``_unmask_unattended`` before the mask reaches SDPA, see pytorch#110213).
+    Dropping it removes the eager IsNegInf→All→SWhere chain (~5 ms/iter on
+    TrOCR) and hands the op to the width router
+    (``_override_plain_softmax_width_decomp``: Triton persistent fusion for
+    narrow rows, aclnnSoftmax for wide rows).
+
+    The optional ``dtype`` follows upstream ``torch.softmax(self, dim, dtype)``
+    semantics: cast before compute."""
+    from .triton_experimental import config as te_cfg
+
+    if not te_cfg.safe_softmax_aclnn_fallback:
+        return
+
+    from torch._inductor.lowering import lowerings
+
+    def _safe_softmax_to_softmax(x, dim, dtype=None):
+        if dtype is not None:
+            x = x.to(dtype)
+        return aten._softmax(x, dim, False)
+
+    decompositions[aten._safe_softmax.default] = _safe_softmax_to_softmax
+    decompositions.pop(aten._safe_softmax, None)
+    lowerings.pop(aten._safe_softmax, None)
+    lowerings.pop(aten._safe_softmax.default, None)
+
+
+def _override_plain_softmax_width_decomp():
+    """Route plain ``aten._softmax`` by reduction width at decomposition time.
+
+    Upstream lowers softmax purely through its decomposition (amax/exp/sum
+    fused by the scheduler into a persistent-reduction kernel). Rows wider
+    than the persistent-reduction budget lose that eligibility while TE keeps
+    ``split_reductions`` off, degrading to a serial per-row scan — 2.5-2.8x
+    slower than aclnnSoftmax at vocab widths (30k/50k, msprof on 910B2).
+    ``_softmax.default`` is a leaf op (direct NPU kernel = aclnnSoftmax, no
+    C++ composite key), so for wide rows emit it as a RAW node — temporarily
+    lifting this wrapper out of the decomposition tables the tracer consults —
+    and the node survives tracing; the fallback lowering installed below then
+    routes it to aclnnSoftmax at runtime. Narrow rows keep the upstream
+    decomposition verbatim (fusion with neighbours is profitable,
+    BertForMaskedLM). Dynamic/symbolic widths fall back to the upstream
+    decomposition (conservative)."""
+    from .triton_experimental import config as te_cfg
+
+    orig = decompositions.get(aten._softmax.default)
+    if orig is None:
+        return
+
+    def _softmax_width_routed(x, dim, half_to_float=False):
+        bound = te_cfg.softmax_aclnn_max_fuse_numel
+        if bound > 0:
+            try:
+                sizes = x.size()
+                width = sizes[dim if dim >= 0 else len(sizes) + dim]
+            except Exception:
+                width = None
+            if isinstance(width, int) and width > bound:
+                # Emit a raw _softmax.default node: without a table entry the
+                # tracer keeps the leaf op intact (decompose() likewise
+                # returns NotImplemented for it). Lift the wrapper out of
+                # every table the tracer consults — the proxy mode's own
+                # decomposition_table (the snapshot AOT built the mode with),
+                # plus the live dict and select_decomp_table() — and restore
+                # them once the node is traced.
+                from torch._inductor.decomposition import select_decomp_table
+                from torch.fx.experimental.proxy_tensor import get_proxy_mode
+                tables = {id(decompositions): decompositions,
+                          id(t := select_decomp_table()): t}
+                try:
+                    mode = get_proxy_mode()
+                except Exception:
+                    mode = None
+                if mode is not None:
+                    mt = getattr(mode, "decomposition_table", None)
+                    if mt is not None:
+                        tables[id(mt)] = mt
+                saved = {}
+                try:
+                    for tbl in tables.values():
+                        saved[id(tbl)] = tbl.pop(aten._softmax.default, None)
+                    return aten._softmax(x, dim, half_to_float)
+                finally:
+                    for tbl in tables.values():
+                        s = saved.get(id(tbl))
+                        if s is not None:
+                            tbl[aten._softmax.default] = s
+        return orig(x, dim, half_to_float)
+
+    decompositions[aten._softmax.default] = _softmax_width_routed
+
+    # Wide-row raw nodes reach lowering with no entry of their own; unknown-op
+    # handling calls make_fallback, which asserts against an op having BOTH a
+    # fallback and a decomposition (we keep the decomposition for narrow
+    # rows). Install the fallback lowering directly — narrow rows are always
+    # decomposed at trace time and never consume it.
+    from torch._inductor.lowering import lowerings, fallback_handler
+    lowerings[aten._softmax.default] = fallback_handler(
+        aten._softmax.default, add_to_fallback_set=True
+    )
+
+
 def _override_gelu_decomp():
     # Align default Inductor gelu with cann/ops-nn gelu decomp
     from torch._inductor.decomposition import decompositions as _ind_decomps
@@ -710,6 +819,8 @@ def _register_triton_experimental_decompositions():
 
     _override_matmul_should_fold_for_npu()
     _override_softmax_backward_decomp_no_fma()
+    _override_safe_softmax_decomp()
+    _override_plain_softmax_width_decomp()
     _override_gelu_decomp()
     _override_rms_norm_decomp()
     _override_native_dropout_decomp()

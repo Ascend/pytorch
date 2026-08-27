@@ -48,6 +48,33 @@ npu = torch.ops.npu
 FALLBACK_LIST = []
 
 
+def _register_softmax_aclnn_fallback():
+    """See config.log_softmax_aclnn_fallback.
+
+    Routed to aclnn (aten fallback):
+      * ``aten.log_softmax`` family — the loss-path log_softmax Triton kernel is
+        slower than aclnnLogSoftmax and its fusion drags a gather decomposition
+        along (TrOCR: Gather_AsStrided +2.9 ms/iter).
+
+    ``aten._safe_softmax`` (mask-composite) and the plain-softmax width
+    routing are handled at loader time in ``torch_npu/_inductor/
+    decomposition.py`` — see ``_override_safe_softmax_decomp`` and
+    ``_override_plain_softmax_width_decomp``."""
+    def _fallback(op_packet):
+        for ov in (
+            (op_packet, op_packet.default)
+            if hasattr(op_packet, "default")
+            else (op_packet,)
+        ):
+            decompositions.pop(ov, None)
+            lowerings.pop(ov, None)
+            make_fallback(ov)
+
+    if ncfg.log_softmax_aclnn_fallback:
+        _fallback(aten.log_softmax)
+        _fallback(aten._log_softmax)
+
+
 def _register_npu_inductor_fallbacks():
     gen_set = set()
     for fn in GENERATE_LIST:
@@ -357,6 +384,19 @@ def _is_tail_axis_broadcast(x, sizes):
 
 from torch._inductor.lowering import expand as _orig_expand
 
+# Stash the pristine upstream handler on the (never-reloaded) upstream module:
+# re-executing THIS module would otherwise bind ``_orig_expand`` to the already
+# patched ``npu_expand`` (set below via ``lowering.expand = npu_expand``) and
+# recurse into itself forever (RecursionError seen in accuracy flows).
+_lowering_mod = torch._inductor.lowering
+if getattr(_lowering_mod, "_npu_upstream_expand_saved", None) is None:
+    _lowering_mod._npu_upstream_expand_saved = _orig_expand
+_orig_expand = _lowering_mod._npu_upstream_expand_saved
+
+import threading as _threading
+
+_expand_reentry = _threading.local()
+
 
 def npu_expand(x, sizes):
     """NPU expand: realize a SHORT tail-axis broadcast into its own contiguous
@@ -367,9 +407,15 @@ def npu_expand(x, sizes):
         return result
     if not _is_tail_axis_broadcast(x, sizes):
         return result
+    if getattr(_expand_reentry, "active", False):
+        # Re-entered while a tail-bcast realization is still materializing its
+        # inputs (lazy values can drag lowering back through broadcast chains).
+        # Keep the plain upstream result so the cycle terminates.
+        return result
     # realize() on the ExpandView realizes its underlying storage, not the [s,c]
     # result; wrap it in a Pointwise copy and realize THAT to materialize the
     # broadcast as its own buffer.
+    _expand_reentry.active = True
     try:
         copied = Pointwise.create(
             device=result.get_device(),
@@ -381,6 +427,8 @@ def npu_expand(x, sizes):
     except Exception as e:
         log.debug("[NPU] realize tail-bcast expand skipped: %r", e)  # noqa: G200
         return result
+    finally:
+        _expand_reentry.active = False
     if name:
         V.graph.no_fuse_buffer_names.add(name)
         log.debug("[NPU] realize tail-axis broadcast expand: buf=%s in_size=%s target=%s",

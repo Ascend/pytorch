@@ -172,6 +172,28 @@ refactor_clamp_stride: bool = False
 # no-realize path.
 realize_permute_gather: bool = True
 
+# Route the MASK-COMPOSITE softmax (aten._safe_softmax, produced from
+# transformers-style causal-mask + softmax patterns) through aclnn instead of
+# Triton fusion: the fused Triton kernel materializes [B,H,S,S] masks and
+# measured ~2x slower than the eager aclnn sequence (TrOCR: 10.3 ms/iter of
+# mask-materialization device time). Eager dispatch of _safe_softmax runs the
+# composite down to plain softmax → aclnnSoftmax (bit-identical, verified).
+# Plain softmax KEEPS its Triton fusion (profitable for e.g. BertForMaskedLM).
+safe_softmax_aclnn_fallback: bool = True
+
+# Route the log_softmax family through aclnnLogSoftmax: the loss-path Triton
+# log_softmax kernel is slower than aclnnLogSoftmax and its fusion drags a
+# gather decomposition along (TrOCR: Gather_AsStrided +2.9 ms/iter).
+log_softmax_aclnn_fallback: bool = True
+
+# Plain-softmax size routing: rows (reduction width) up to this bound keep the
+# Triton fusion; wider rows fall back to aclnnSoftmax (see decomposition.py
+# _override_plain_softmax_width_decomp: >1024 loses persistent-reduction
+# eligibility and TE keeps split_reductions off, wide rows degrade to a serial
+# per-row scan, 2.5-2.8x slower at vocab widths). 0 disables routing (always
+# Triton).
+softmax_aclnn_max_fuse_numel: int = 256
+
 # Reduction-tree real-block promotion (nested scalar r-loops -> real-block tile).
 rtree_real_block: bool = True
 

@@ -85,8 +85,12 @@ def _activate():
 
     device.register_device_op_overrides_for_npu()
 
-    from .lowering import _register_npu_inductor_fallbacks
+    from .lowering import (
+        _register_npu_inductor_fallbacks,
+        _register_softmax_aclnn_fallback,
+    )
     _register_npu_inductor_fallbacks()
+    _register_softmax_aclnn_fallback()
 
     device.register_interface_for_npu()
 
