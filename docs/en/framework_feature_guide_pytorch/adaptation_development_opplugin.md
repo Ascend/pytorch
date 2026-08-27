@@ -16,9 +16,9 @@
 │   │   └── opapi                              # aclnn operator adapter directory
 │   │       ├── AbsKernelNpuOpApi.cpp
 │   │       └── ...
-|   ├── python
-|   │   └── meta
-|   │       └── _meta_registrations.py         # Operator meta implementation registration file
+│   ├── python
+│   │   └── meta
+│   │       └── _meta_registrations.py         # Operator meta implementation registration file
 │   ├── OpInterface.h                         # Auto-generated header file for op_plugin external interfaces (for framework-side operator invocation)
 │   ├── OpInterface.cpp                        # Auto-generated routing implementation for op_plugin external interfaces (internal branch selection logic for different operator types)
 │   ├── AclOpsInterface.h                      # Auto-generated header file for aclop operator plugin adapter 
@@ -30,8 +30,8 @@
 ├── test
 │   ├── allowlist_for_publicAPI.json           # Public interface allowlist
 │   ├── core_tests
-│   |   └── torch_npu_OpApi_schema_all.json    # Operator interface schema configuration file
-|   └── test_custom_ops                        # Operator developer test directory
+│   │   └── torch_npu_OpApi_schema_all.json    # Operator interface schema configuration file
+│   └── test_custom_ops                        # Operator developer test directory
 │       └── ...
 ```
 

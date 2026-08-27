@@ -33,7 +33,7 @@
         将如下信息拷贝至op\_plugin\_functions.yaml中的custom节点下。
 
         ```yaml
-        - func: npu_add_custom(Tensor x, Tensor y, *, Scalar alpha=1) -> Tensor 
+        - func: npu_add_custom(Tensor x, Tensor y, *, Scalar alpha=1) -> Tensor
           op_api: v2.7
         - func: npu_add_custom_backward(Tensor grad) -> (Tensor, Tensor)
           op_api: v2.7
@@ -43,7 +43,7 @@
 
         ```yaml
         custom: 
-          - func: npu_add_custom(Tensor x, Tensor y, *, Scalar alpha=1) -> Tensor 
+          - func: npu_add_custom(Tensor x, Tensor y, *, Scalar alpha=1) -> Tensor
             op_api: v2.7
           - func: npu_add_custom_backward(Tensor grad) -> (Tensor, Tensor)
             op_api: v2.7
@@ -80,7 +80,7 @@
 
         ```yaml
         custom: 
-          - func: npu_add_custom(Tensor x, Tensor y, *, Scalar alpha=1) -> Tensor 
+          - func: npu_add_custom(Tensor x, Tensor y, *, Scalar alpha=1) -> Tensor
             op_api: v2.7
             gen_opapi:
               out:
@@ -101,8 +101,8 @@
       2. 完成算子适配，完整的AddCustomKernelNpuOpApi.cpp文件如下。
 
           ```cpp
-          #include "op_plugin/OpApiInterface.h" 
-          #include "op_plugin/utils/op_api_common.h" 
+          #include "op_plugin/OpApiInterface.h"
+          #include "op_plugin/utils/op_api_common.h"
           
           namespace op_api { 
           using npu_preparation = at_npu::native::OpPreparation;
@@ -116,7 +116,7 @@
               // 调用EXEC_NPU_CMD接口，完成输出结果的计算
               // 第一个入参格式为aclnn+Optype，之后的参数分别为输入输出
               EXEC_NPU_CMD(aclnnAdd, x, y, alpha, result); 
-              return result; 
+              return result;
           }
           
           // 反向接口
