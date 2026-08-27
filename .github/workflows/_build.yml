@@ -28,7 +28,7 @@ on:
       runner_label:
         required: false
         type: string
-        default: 'linux-aarch64-a3-8'
+        default: 'linux-aarch64-a3-4'
         description: Runner label for runs-on and upstream job-name reporting.
       docker_image:
         required: false
