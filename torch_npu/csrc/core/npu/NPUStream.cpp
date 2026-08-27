@@ -20,7 +20,7 @@
 #include "torch_npu/csrc/core/npu/NPUStreamUtils.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
-#include "third_party/acl/inc/acl/acl_rt.h"
+#include <acl/acl_rt.h>
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
 #endif

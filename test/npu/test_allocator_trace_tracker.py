@@ -23,7 +23,11 @@ def create_build_path(build_directory):
 
 
 def build_stub(base_dir):
-    build_stub_cmd = ["sh", os.path.join(base_dir, "third_party/acl/libs/build_stub.sh")]
+    build_stub_cmd = [
+        "sh",
+        os.path.join(base_dir, "third_party/acl/libs/build_stub.sh"),
+        os.path.join(PYTORCH_NPU_INSTALL_PATH, "include"),
+    ]
     if subprocess.call(build_stub_cmd) != 0:
         raise RuntimeError(f"Failed to build stub: {build_stub_cmd}")
 
@@ -43,7 +47,6 @@ class TestAllocatorTraceTracker(TestCase):
         torch_npu_lib_path = os.path.join(PYTORCH_NPU_INSTALL_PATH, "lib")
         extra_include_paths = [
             os.path.join(PYTORCH_NPU_INSTALL_PATH, "include"),
-            os.path.join(PYTORCH_NPU_INSTALL_PATH, "include", "third_party", "acl", "inc"),
         ]
         extra_ldflags = [
             f"-L{cann_lib_path}",

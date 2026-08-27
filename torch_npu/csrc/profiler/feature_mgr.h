@@ -7,7 +7,7 @@
 #include <vector>
 #include <tuple>
 
-#include "third_party/acl/inc/acl/acl_prof.h"
+#include <acl/acl_prof.h>
 
 #include "torch_npu/csrc/toolkit/profiler/common/singleton.h"
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"

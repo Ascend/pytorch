@@ -1,7 +1,7 @@
 #ifndef __PLUGIN_NATIVE_NPU_INTERFACE_ACLOPCOMPILE__
 #define __PLUGIN_NATIVE_NPU_INTERFACE_ACLOPCOMPILE__
 #include <c10/util/Optional.h>
-#include "third_party/acl/inc/acl/acl_op_compiler.h"
+#include <acl/acl_op_compiler.h>
 
 typedef struct aclOpExecutor aclOpExecutor;
 
