@@ -469,9 +469,7 @@ def get_src_py_and_dst():
         "torch_npu/csrc/*/*/*.h",
         "torch_npu/csrc/*/*/*/*.h",
         "torch_npu/csrc/*/*/*/*/*.h",
-        "third_party/acl/inc/*/*.h",
         "third_party/hccl/inc/*/*.h",
-        "third_party/acl/inc/*/*/*.h",
         "torch_npu/csrc/distributed/HCCLUtils.hpp",
         "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
     ]
@@ -486,6 +484,40 @@ def get_src_py_and_dst():
             os.path.relpath(src, os.path.join(BASE_DIR, "torch_npu")))
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         ret.append((src, dst))
+
+    # Recursively copy the ACL include tree to the public include root, so that
+    # source can use uniform <acl/...>, <aml/...>, <profiling/...>, <graph/...>
+    # includes instead of the repository physical path third_party/acl/inc/...
+    acl_include_root = os.path.join(BASE_DIR, "third_party", "acl", "inc")
+    acl_header_files = glob.glob(
+        os.path.join(acl_include_root, "**", "*.h"),
+        recursive=True,
+    )
+    for src in acl_header_files:
+        relative_header = os.path.relpath(src, acl_include_root)
+        dst = os.path.join(
+            BASE_DIR,
+            "build/packages/torch_npu/include",
+            relative_header,
+        )
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        ret.append((src, dst))
+
+        # Preserve legacy include paths with forwarding headers, not duplicate ACL headers.
+        compat_src = os.path.join(
+            BASE_DIR, "build", "acl_compat_headers", relative_header
+        )
+        os.makedirs(os.path.dirname(compat_src), exist_ok=True)
+        include_path = relative_header.replace(os.sep, "/")
+        with open(compat_src, "w", encoding="utf-8", newline="\n") as compat_file:
+            compat_file.write(f"#pragma once\n#include <{include_path}>\n")
+        compat_dst = os.path.join(
+            BASE_DIR,
+            "build/packages/torch_npu/include/third_party/acl/inc",
+            relative_header,
+        )
+        os.makedirs(os.path.dirname(compat_dst), exist_ok=True)
+        ret.append((compat_src, compat_dst))
 
     torch_header_files = [
         "*/*.h",

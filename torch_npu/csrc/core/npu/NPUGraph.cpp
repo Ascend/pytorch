@@ -6,7 +6,7 @@
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "torch_npu/csrc/core/npu/GetCANNInfo.h"
-#include "third_party/acl/inc/acl/error_codes/rt_error_codes.h"
+#include <acl/error_codes/rt_error_codes.h>
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 
 #include <cstddef>

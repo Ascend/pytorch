@@ -7,7 +7,7 @@
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
-#include "third_party/acl/inc/acl/acl_base.h"
+#include <acl/acl_base.h>
 
 namespace c10_npu {
 const int g_toAclOffset = 256;

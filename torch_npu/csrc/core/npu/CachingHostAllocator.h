@@ -6,8 +6,8 @@
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
-#include <third_party/acl/inc/acl/acl.h>
-#include <third_party/acl/inc/acl/acl_rt.h>
+#include <acl/acl.h>
+#include <acl/acl_rt.h>
 
 #include <c10/core/DeviceGuard.h>
 #include <ATen/DeviceGuard.h>

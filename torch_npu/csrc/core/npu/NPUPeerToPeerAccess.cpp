@@ -1,7 +1,7 @@
 #include <vector>
 #include <c10/util/Exception.h>
 #include <c10/util/irange.h>
-#include <third_party/acl/inc/acl/acl_rt.h>
+#include <acl/acl_rt.h>
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/NPUPeerToPeerAccess.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"

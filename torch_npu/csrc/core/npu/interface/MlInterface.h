@@ -1,5 +1,5 @@
 #pragma once
-#include "third_party/acl/inc/aml/aml_fwk_detect.h"
+#include <aml/aml_fwk_detect.h>
 
 namespace c10_npu {
 namespace amlapi {

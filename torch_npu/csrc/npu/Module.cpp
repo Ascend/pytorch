@@ -25,7 +25,7 @@
 #include <torch/csrc/utils/tensor_numpy.h>
 
 #include <op_plugin/utils/custom_functions/opapi/FFTCommonOpApi.h>
-#include <third_party/acl/inc/acl/acl.h>
+#include <acl/acl.h>
 #include <third_party/fmt/include/fmt/format.h>
 #include <torch_npu/csrc/aten/NPUGeneratorImpl.h>
 #include <torch_npu/csrc/aten/NPUNativeFunctions.h>
