@@ -6443,6 +6443,22 @@
 
 </div>
 
+### torch.sym_ite
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.sym_ite](https://pytorch.org/docs/2.7/generated/torch.sym_ite.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
 ### torch.sym_max
 
 <div style="margin-left: 2em">
