@@ -51,7 +51,7 @@ struct FastLaunchPlan {
   size_t packedArgsSize = 0;
   bool enableSimt = false;
   uint64_t sharedMemDynamicSize = 0;
-  bool forceSimtOnly = false;
+  bool isPureSimt = false;
   bool targetSupportFfts = false;
   void* fftsAddress = nullptr;
 };
@@ -184,8 +184,8 @@ void BuildPackedLayout(FastLaunchPlan& plan) {
   }
   // This is an ABI property, not a launch-API property.  Ascend's generated
   // runner keeps the sync-lock and workspace slots for every kernel except a
-  // force_simt_only binary, including SIMT-capable mixed-mode kernels.
-  if (!plan.forceSimtOnly) {
+  // is_pure_simt binary, including SIMT-capable mixed-mode kernels.
+  if (!plan.isPureSimt) {
     packedAlignment = std::max(packedAlignment, alignof(void*));
     for (int index = 0; index < 2; ++index) {
       offset = AlignOffset(offset, alignof(void*));
@@ -374,13 +374,13 @@ std::shared_ptr<FastLaunchPlan> MakeFastLaunchPlan(
     const std::vector<std::string>& argKinds,
     bool enableSimt,
     uint64_t sharedMemDynamicSize,
-    bool forceSimtOnly,
+    bool isPureSimt,
     bool targetSupportFfts) {
   TORCH_CHECK(
       sharedMemDynamicSize <= std::numeric_limits<uint32_t>::max(),
       "shared_mem_dynamic_size exceeds uint32 max");
   TORCH_CHECK(
-      !forceSimtOnly || enableSimt, "force_simt_only requires enable_simt");
+      !isPureSimt || enableSimt, "is_pure_simt requires enable_simt");
   auto plan = std::make_shared<FastLaunchPlan>();
   plan->kernelName = kernelName;
   plan->kernelStubOwner = kernelStub;
@@ -388,7 +388,7 @@ std::shared_ptr<FastLaunchPlan> MakeFastLaunchPlan(
   plan->argKinds = ParseArgKinds(argKinds);
   plan->enableSimt = enableSimt;
   plan->sharedMemDynamicSize = sharedMemDynamicSize;
-  plan->forceSimtOnly = forceSimtOnly;
+  plan->isPureSimt = isPureSimt;
   plan->targetSupportFfts = targetSupportFfts;
   if (targetSupportFfts) {
     uint64_t fftsAddress = 0;
@@ -432,7 +432,7 @@ void RegisterNPUFastLaunchBindings(PyObject* module) {
       py::arg("arg_kinds"),
       py::arg("enable_simt") = false,
       py::arg("shared_mem_dynamic_size") = 0,
-      py::arg("force_simt_only") = false,
+      py::arg("is_pure_simt") = false,
       py::arg("target_support_ffts") = false);
   m.def(
       "_npu_inductor_fast_launch_with_plan",

@@ -28,7 +28,7 @@ def _variant_load_meta(variant_id):
         "mix_mode": "aiv",
         "shared_mem": 64,
         "parallel_mode": "vector",
-        "force_simt_only": False,
+        "is_pure_simt": False,
         "shared_mem_dynamic_size": 0,
         "has_auto_blockify_blacklist_op": False,
     }
@@ -127,7 +127,7 @@ def _render_grouped_wrapper(grouped_plan=None, *, return_files=False):
         "cubin_path": "/tmp/unused.cubin",
         "mix_mode": "aiv",
         "parallel_mode": "vector",
-        "force_simt_only": False,
+        "is_pure_simt": False,
     }
     graph = SimpleNamespace(
         cpp_wrapper=True,

@@ -75,7 +75,7 @@ class FakeLauncher:
         self._npu_fast_launch_get_grid = lambda *args: (2, 1, 1)
         self._npu_fast_launch_enable_simt = False
         self._npu_fast_launch_shared_mem_dynamic_size = 0
-        self._npu_fast_launch_force_simt_only = False
+        self._npu_fast_launch_is_pure_simt = False
         self._npu_fast_launch_target_support_ffts = False
         self._npu_fast_launch_workspace_size = -1
         self._npu_fast_launch_lock_num = -1

@@ -1410,10 +1410,10 @@ class NPUCachingAutotuner(CachingAutotuner):
             ),
             "mix_mode": input_launcher.bin.metadata.mix_mode,
             "parallel_mode": input_launcher.bin.metadata.parallel_mode,
-            "force_simt_only": input_launcher.bin.metadata.force_simt_only,
+            "is_pure_simt": input_launcher.bin.metadata.is_pure_simt,
             "has_auto_blockify_blacklist_op": getattr(input_launcher.bin.metadata, "has_auto_blockify_blacklist_op", False)
         }
-        enable_simt = ("simt" in params["parallel_mode"]) or params["force_simt_only"]
+        enable_simt = ("simt" in params["parallel_mode"]) or params["is_pure_simt"]
         if npu_config.is_ascend950 and enable_simt:
             params["shared_mem_dynamic_size"] = input_launcher.bin.metadata.shared_mem_dynamic_size
 
@@ -2167,7 +2167,7 @@ class NPUSymbolicGroupedAutotuner(NPUCachingAutotuner):
             ),
             "mix_mode": metadata.mix_mode,
             "parallel_mode": metadata.parallel_mode,
-            "force_simt_only": metadata.force_simt_only,
+            "is_pure_simt": metadata.is_pure_simt,
             "shared_mem_dynamic_size": getattr(
                 metadata, "shared_mem_dynamic_size", 0
             ),

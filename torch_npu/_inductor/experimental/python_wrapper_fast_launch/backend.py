@@ -307,7 +307,7 @@ def build_planned_fast_launch(
     shared_mem_dynamic_size = int(
         getattr(launcher, "_npu_fast_launch_shared_mem_dynamic_size", 0) or 0
     )
-    force_simt_only = bool(getattr(launcher, "_npu_fast_launch_force_simt_only", False))
+    is_pure_simt = bool(getattr(launcher, "_npu_fast_launch_is_pure_simt", False))
     try:
         plan = make_plan(
             kernel_name,
@@ -315,7 +315,7 @@ def build_planned_fast_launch(
             arg_kinds,
             enable_simt,
             shared_mem_dynamic_size,
-            force_simt_only,
+            is_pure_simt,
             bool(target_support_ffts),
         )
         # The C++ plan owns the stub object; this additional reference owns the
