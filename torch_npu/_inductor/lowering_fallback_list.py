@@ -147,7 +147,6 @@ NPU_EXTRA_FALLBACK_LIST = [
     aten.add_.Scalar,
     aten.add_.Tensor,
     aten.add_.t,
-    aten.alias.default,
     aten.any.all_out,
     aten.any.bool,
     aten.any.dim,
