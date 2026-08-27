@@ -30,6 +30,8 @@ namespace option {
 
 using namespace std;
 
+std::atomic<int32_t> g_task_queue_enable_mode{TASK_QUEUE_ENABLE_ENV};
+
 char* get_and_log_env(const char* env_str)
 {
     char* env_val = std::getenv(env_str);
@@ -610,6 +612,14 @@ uint32_t OptionsManager::GetTaskQueueEnable()
     if (CheckBlockingEnable()) {
         return 0;
     }
+
+    // Priority 2: dynamically set value (set_task_queue_enable)
+    int32_t dynamic_mode = g_task_queue_enable_mode.load(std::memory_order_relaxed);
+    if (dynamic_mode != TASK_QUEUE_ENABLE_ENV) {
+        return static_cast<uint32_t>(dynamic_mode);
+    }
+
+    // Priority 3: environment variable fallback
     const static uint32_t task_queue_enable = []() -> uint32_t {
         char* env_val = get_and_log_env("TASK_QUEUE_ENABLE");
         int64_t task_queue_enable = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 1;
@@ -620,6 +630,15 @@ uint32_t OptionsManager::GetTaskQueueEnable()
         return static_cast<uint32_t>(task_queue_enable);
     }();
     return task_queue_enable;
+}
+
+void OptionsManager::SetTaskQueueEnable(int32_t mode)
+{
+    auto valid_modes = getTaskQueueEnableMode();
+    TORCH_CHECK(valid_modes.find(static_cast<int32_t>(mode)) != valid_modes.end(),
+        "TASK_QUEUE_ENABLE should be 0, 1 or 2, but got ", mode,
+        PTA_ERROR(ErrCode::VALUE));
+    g_task_queue_enable_mode.store(mode, std::memory_order_relaxed);
 }
 
 uint32_t OptionsManager::GetPerStreamQueue()
