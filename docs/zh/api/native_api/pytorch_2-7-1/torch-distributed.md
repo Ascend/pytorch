@@ -69,6 +69,24 @@
 
 </div>
 
+### <code><i>class</i></code> torch.distributed.ProcessGroupNCCL
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.ProcessGroupNCCL](https://pytorch.org/docs/2.7/distributed.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
+
+**限制与说明**：该接口仅在调用 `torch_npu.contrib.transfer_to_npu` 后支持。调用后，NCCL 进程组接口会映射到 `ProcessGroupHCCL`，实际通信由 HCCL 执行；未调用 `torch_npu.contrib.transfer_to_npu` 时，该接口不支持。
+
+</div>
+
 ### torch.distributed.is_gloo_available
 
 <div style="margin-left: 2em">
