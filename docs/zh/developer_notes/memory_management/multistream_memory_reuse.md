@@ -26,10 +26,10 @@
 
 - 0：关闭内存复用。
 - 1：开启内存复用，基于eraseStream的方式，把之前的recordStream标记进行擦除，保证内存复用，持有tensor的弱引用，不延长tensor的生命周期。
-- 2：开启内存复用，基于不执行recordStream标记的方法，保证内存复用能力，持有tensor的强引用，可能延长tensor的生命周期，当前不推荐使用。
+- 2：开启内存复用，基于不执行recordStream标记的方法，保证内存复用能力，持有tensor的强引用，可能延长tensor的生命周期。
 - 3：开启内存复用，基于设置值为“1”做了进一步复用优化，可以在tensor提前释放的场景下，擦除recordStream标记。
 
-默认值是1。
+默认值是2。
 
 此环境变量使用详情请参考《环境变量》中的“[MULTI\_STREAM\_MEMORY\_REUSE](https://www.hiascend.com/document/detail/zh/Pytorch/720/comref/Envvariables/Envir_016.html)”章节。
 

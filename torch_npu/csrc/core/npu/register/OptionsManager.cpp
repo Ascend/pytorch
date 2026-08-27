@@ -78,7 +78,7 @@ bool OptionsManager::IsSubCommRootInfoEnable() {
 ReuseMode OptionsManager::GetMultiStreamMemoryReuse() {
   const static ReuseMode reuseMode = []() -> ReuseMode {
     char* env_val = get_and_log_env("MULTI_STREAM_MEMORY_REUSE");
-    int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 1;
+    int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 2;
     ReuseMode mode = ERASE_RECORD_STREAM;
     switch (envFlag) {
       case 0:
