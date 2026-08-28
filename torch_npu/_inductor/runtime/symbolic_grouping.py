@@ -237,17 +237,6 @@ def build_group_representatives(
             return lower * 2
         return upper
 
-    def choose_symbolic_axis_value(static_factor: int, bucket_idx: int, feature_spec):
-        lower, upper = bucket_bounds(feature_spec, bucket_idx)
-        dyn_min = lower // static_factor + 1
-        if upper is None:
-            target = max(lower + 1, lower * 2)
-            return max(1, (target + static_factor - 1) // static_factor)
-        dyn_max = upper // static_factor
-        if dyn_min > dyn_max:
-            return None
-        return max(1, dyn_max)
-
     def representative_for_feature(feature_spec, bucket_idx: int):
         feature_axis_names = tuple(_feature_field(feature_spec, "axis_names"))
         source = _feature_field(feature_spec, "source")
@@ -291,11 +280,9 @@ def build_group_representatives(
                 return None
             return feature_value, tuple(static_axis_values)
 
-        symbolic_axis_value = choose_symbolic_axis_value(
-            static_factor, bucket_idx, feature_spec
-        )
-        if symbolic_axis_value is None:
-            return None
+        lower, upper = bucket_bounds(feature_spec, bucket_idx)
+        target = upper if upper is not None else max(lower + 1, lower * 2)
+        symbolic_axis_value = max(1, (target + static_factor - 1) // static_factor)
         axis_values = [
             (axis_name, symbolic_axis_value)
             if axis_name == symbolic_axis_names[0]

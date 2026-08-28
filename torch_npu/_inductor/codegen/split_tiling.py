@@ -5,6 +5,7 @@ from torch._inductor.codegen.simd import EnableReduction, DisableReduction
 from torch._inductor.codegen.triton import TritonKernel
 from torch._inductor.dependencies import MemoryDep
 from torch._inductor.loop_body import MemoryUsageType
+from torch._inductor.runtime.runtime_utils import next_power_of_2
 from torch._inductor.utils import ModularIndexing, sympy_subs
 from torch._inductor.virtualized import V
 
@@ -17,6 +18,20 @@ from torch_npu._compat.inductor import get_sizevars_backed_var_to_val
 
 _ELEMENTWISE_UNSUPPORTED_OPS = ("masked", "scan", "sort", "rand", "randn", "load_seed")
 _NEUTRAL_CONSTANT_OPS = frozenset(("constant", "store", "output"))
+_LARGE_GROUP_SYMBOLIC_AXIS = 128
+
+
+def _add_wide_group_midpoints(boundaries):
+    boundaries = sorted({int(boundary) for boundary in boundaries})
+    expanded = []
+    for index, boundary in enumerate(boundaries):
+        if index and boundary // boundaries[index - 1] > 8:
+            lower = boundaries[index - 1]
+            upper_midpoint = next_power_of_2((boundary + 1) // 2)
+            lower_limit = next_power_of_2(lower * 8)
+            expanded.append(min(lower_limit, upper_midpoint))
+        expanded.append(boundary)
+    return tuple(expanded)
 
 
 # split and tiling axis selector
@@ -439,7 +454,101 @@ class SplitTiling:
     _REDUCTION_BUCKETS = (8192,)
     _OUTER_BUCKETS = (256,)
 
-    def _build_group_features(self, workload, primary_axis, pointwise_layout=None):
+    def _axis_static_length(self, axis):
+        try:
+            return int(self.get_length_val(axis))
+        except (TypeError, ValueError):
+            try:
+                return int(V.graph.sizevars.size_hint(axis.length))
+            except (AttributeError, KeyError, TypeError, ValueError):
+                return 1
+
+    def _default_dynamic_axis_feature(
+        self,
+        dynamic_split_axes,
+        static_split_axes,
+        feature_name="pointwise",
+        fallback_dynamic_axis=None,
+    ):
+        # The default policy is defined for one dynamic axis. Keep unsupported
+        # multi-symbol split cases out of this feature construction.
+        if len(dynamic_split_axes) > 1:
+            return None
+
+        dynamic_axis = (
+            dynamic_split_axes[0]
+            if dynamic_split_axes
+            else fallback_dynamic_axis
+        )
+        if dynamic_axis is None or isinstance(dynamic_axis.length, sympy.Integer):
+            return None
+        axis_order = {
+            axis.name: index for index, axis in enumerate(self.kernel.sorted_axis)
+        }
+        dynamic_order = axis_order[dynamic_axis.name]
+        prefix_axes = [
+            axis
+            for axis in static_split_axes
+            if axis_order[axis.name] < dynamic_order
+        ]
+        suffix_axes = [
+            axis
+            for axis in static_split_axes
+            if axis_order[axis.name] > dynamic_order
+        ]
+
+        # Static split axes retain their split role. Axes before the dynamic
+        # axis are part of the grouped outer-product feature. All split axes
+        # are excluded from the tiling product used to classify the dynamic
+        # workload, so the resulting bounds already describe that product.
+        split_axis_names = {axis.name for axis in self.kernel.split_axis}
+        tiling_product = 1
+        for axis in self.kernel.tiling_axis:
+            if axis.name not in split_axis_names and axis.name != dynamic_axis.name:
+                tiling_product *= max(1, self._axis_static_length(axis))
+
+        vector_core = int(num_vector_core)
+        dtype_axis = (
+            self.kernel.split_axis[0]
+            if self.kernel.split_axis
+            else dynamic_axis
+        )
+        axis_dtype = self.kernel.get_axis_dtype(dtype_axis)
+        dtype_bytes = max(1, get_byte_per_numel(axis_dtype))
+        base = max(1, (4096 * vector_core + tiling_product - 1) // tiling_product)
+        lower = max(
+            (4 * 1024) // dtype_bytes // max(1, tiling_product),
+            next_power_of_2(2 * vector_core),
+        )
+        prefix_product = 1
+        for axis in prefix_axes:
+            prefix_product *= max(1, self._axis_static_length(axis))
+        upper = max(
+            prefix_product * _LARGE_GROUP_SYMBOLIC_AXIS,
+            next_power_of_2(8 * vector_core),
+            base,
+        )
+        boundaries = [lower, upper]
+        if suffix_axes:
+            boundaries.insert(0, next_power_of_2(max(1, vector_core // 2)))
+        boundaries = _add_wide_group_midpoints(boundaries)
+
+        feature_axis_names = tuple(axis.name for axis in (*prefix_axes, dynamic_axis))
+        return GroupFeatureSpec(
+            feature_name,
+            "outer_product",
+            feature_axis_names,
+            boundaries,
+        )
+
+    def _build_group_features(
+        self,
+        workload,
+        primary_axis,
+        pointwise_layout=None,
+        dynamic_split_axes=(),
+        static_split_axes=(),
+    ):
         if self.kernel.persistent_reduction or self.kernel.inside_reduction:
             outer_names = self.non_reduction_axis_names()
             reduction_names = self.reduction_axis_names()
@@ -465,6 +574,14 @@ class SplitTiling:
                 )
             return tuple(features)
         if workload == "elementwise":
+            default_feature = self._default_dynamic_axis_feature(
+                dynamic_split_axes,
+                static_split_axes,
+                feature_name="elementwise_numel",
+                fallback_dynamic_axis=primary_axis,
+            )
+            if default_feature is not None:
+                return (default_feature,)
             return (
                 GroupFeatureSpec(
                     "elementwise_numel",
@@ -491,14 +608,10 @@ class SplitTiling:
                     (64, 128, 256, 512),
                 ),
             )
-        return (
-            GroupFeatureSpec(
-                "pointwise",
-                "outer_product",
-                self.all_axis_names(),
-                (num_vector_core * 4096,),
-            ),
+        default_feature = self._default_dynamic_axis_feature(
+            dynamic_split_axes, static_split_axes
         )
+        return (default_feature,) if default_feature is not None else ()
 
     @staticmethod
     def _alpha_rename_access_vars(dep):
@@ -659,7 +772,11 @@ class SplitTiling:
             if primary_axis is None:
                 return None
             secondary_axes = [axis for axis in dynamic_split_axes if axis is not primary_axis]
-            self._downgrade_secondary_runtime_split_axes(secondary_axes)
+            self._downgrade_split_axes(secondary_axes)
+            if template == "pointwise" and len(dynamic_split_axes) == 1:
+                static_split_axes = self._downgrade_suffix_static_split_axes(
+                    primary_axis, static_split_axes
+                )
             static_names = tuple(axis.name for axis in static_split_axes)
             secondary_names = tuple(axis.name for axis in secondary_axes)
             runtime_block_arg_names = tuple(
@@ -679,7 +796,11 @@ class SplitTiling:
                 f"{axis.name.upper()}BLOCK" for axis in self.kernel.split_axis
             )
         feature_specs = self._build_group_features(
-            workload, primary_axis, pointwise_layout
+            workload,
+            primary_axis,
+            pointwise_layout,
+            dynamic_split_axes,
+            static_split_axes,
         )
         if not feature_specs:
             return None
@@ -694,12 +815,12 @@ class SplitTiling:
             runtime_block_arg_names=runtime_block_arg_names,
         )
 
-    def _downgrade_secondary_runtime_split_axes(self, secondary_axes):
-        if not secondary_axes:
+    def _downgrade_split_axes(self, axes):
+        if not axes:
             return
         retained = []
         for axis in self.kernel.split_axis:
-            if axis in secondary_axes:
+            if axis in axes:
                 axis.is_split_axis = False
                 continue
             retained.append(axis)
@@ -707,6 +828,36 @@ class SplitTiling:
         self.kernel.split_axis.sort(reverse=True, key=self.key)
         for i, axis in enumerate(self.kernel.split_axis):
             axis.split_order = i
+
+    def _downgrade_suffix_static_split_axes(self, dynamic_axis, static_split_axes):
+        axis_order = {
+            axis.name: index for index, axis in enumerate(self.kernel.sorted_axis)
+        }
+        dynamic_order = axis_order[dynamic_axis.name]
+        split_axes_through_dynamic = [
+            axis
+            for axis in self.kernel.split_axis
+            if axis_order[axis.name] <= dynamic_order
+        ]
+        try:
+            split_size_hint = V.graph.sizevars.size_hint(
+                self.total_split_numels(split_axes_through_dynamic)
+            )
+        except TypeError:
+            return static_split_axes
+        if split_size_hint < num_vector_core:
+            return static_split_axes
+
+        suffix_axes = [
+            axis
+            for axis in static_split_axes
+            if axis_order[axis.name] > dynamic_order
+        ]
+        self._downgrade_split_axes(suffix_axes)
+        suffix_names = {axis.name for axis in suffix_axes}
+        return [
+            axis for axis in static_split_axes if axis.name not in suffix_names
+        ]
 
     # the below logic doesn't work when there're two reduction axis, but only one need outer reduction
     def should_outer_reduce_me(self, x):
