@@ -247,6 +247,20 @@ def npu_embedding(weight, indices, padding_idx=-1, scale_grad_by_freq=False, spa
 overwrite_lowering(aten.embedding, npu_embedding, type_promotion_kind=None)
 
 
+_upstream_round = lowerings.get(aten.round.default)
+
+
+def npu_round(x):
+    if x.get_dtype() == torch.float64:
+        return fallback_handler(aten.round.default)(x)
+    if _upstream_round is not None:
+        return _upstream_round(x)
+    return fallback_handler(aten.round.default)(x)
+
+
+overwrite_lowering(aten.round.default, npu_round, type_promotion_kind=None)
+
+
 def npu_cat(inputs, dim=0):
     return fallback_handler(aten.cat.default)(inputs, dim)
 

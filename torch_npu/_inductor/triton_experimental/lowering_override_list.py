@@ -54,6 +54,7 @@ GENERATE_LIST = [
     aten.tanh,
     aten.copy,
     aten.copy_,
+    aten.remainder,
 
     # Non-pointwise ops
     aten.squeeze,
@@ -73,6 +74,7 @@ GENERATE_LIST = [
     aten.amax,
     aten.cat,
     aten.slice_scatter,
+    aten.round,
     aten.scalar_tensor,
     aten.unbind,
     aten.lift_fresh_copy,
@@ -100,7 +102,7 @@ GENERATE_LIST = [
     aten.convolution_backward,
     aten.bmm,
     aten.addmm,
-    aten.glu
+    aten.glu,
 ]
 # A5 (910_95) ONLY: the CANN indirect-mem extension ops behind these exist only
 # on A5 (fail to lower on A2/A3/910B). Mirrors torch_npu's INDIRECT_MEM_OVERRIDE_LIST.
@@ -128,6 +130,7 @@ KEEP_UPSTREAM_LOWERING = [control_deps] + [
         # self / fp32 values hits aclnnIndexPutImpl EZ1001 (self/values dtype mismatch).
         "index_put",
         "index_put_",
+        "_local_scalar_dense",
     )
     if hasattr(aten, _name)
 ]
