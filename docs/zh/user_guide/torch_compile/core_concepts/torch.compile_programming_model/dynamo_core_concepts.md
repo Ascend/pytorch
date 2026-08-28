@@ -34,7 +34,7 @@ Dynamo会追踪代码，并尝试将PyTorch代码捕获到由PyTorch算子组成
 - 许多Python内置函数
 - C函数
 
-下面是调用不受支持的操作`torch.save`而发生图断裂的示例：
+下面是调用不受支持的操作`print`而发生图断裂的示例：
 
 ```python
 @torch.compile
@@ -53,7 +53,7 @@ print(f(x))
 ```python
 def compiled_f_semantics(x):
    y = torch.compile(g, fullgraph=True)(x)
-   torch.save(y, "foo.pt")
+   print("graph break happened here")
    z = torch.compile(h, fullgraph=True)(x)
    return z
 
