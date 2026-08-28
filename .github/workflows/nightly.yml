@@ -54,6 +54,7 @@ jobs:
       hw_classification: 'GENERIC ACCELERATOR'
       full_scan: true
       device_env: 'privateuse1,cpu'
+      runner_label: 'linux-aarch64-a3-800i-2-cn12-001'
       skip_list: |-
         .github/config/disabled_testcases.json
         .github/config/running_skiped_testcases.json
