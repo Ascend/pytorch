@@ -8,8 +8,8 @@
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/ipc/NPUIPCTypes.h"
 
-#include "third_party/acl/inc/acl/acl_base.h"
-#include "third_party/acl/inc/acl/acl_rt.h"
+#include <acl/acl_base.h>
+#include <acl/acl_rt.h>
 
 namespace torch_npu {
 namespace ipc {

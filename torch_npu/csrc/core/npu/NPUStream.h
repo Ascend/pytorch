@@ -10,8 +10,8 @@
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUQueue.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
-#include "third_party/acl/inc/acl/acl.h"
-#include "third_party/acl/inc/acl/acl_op.h"
+#include <acl/acl.h>
+#include <acl/acl_op.h>
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace c10_npu {

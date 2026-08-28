@@ -8,7 +8,7 @@
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
-#include "third_party/acl/inc/acl/acl.h"
+#include <acl/acl.h>
 
 namespace at_npu {
 namespace native {

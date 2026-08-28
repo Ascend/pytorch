@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 #include <stdio.h>
-#include "third_party/acl/inc/acl/acl_base.h"
+#include <acl/acl_base.h>
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 
 #if defined(__GNUC__) && __GNUC__ >= 12

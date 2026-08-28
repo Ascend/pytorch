@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include "third_party/shmem/include/shmem_host_def.h"
-#include "third_party/acl/inc/acl/acl_base.h"
+#include <acl/acl_base.h>
 
 namespace c10d {
 namespace symmetric_memory {

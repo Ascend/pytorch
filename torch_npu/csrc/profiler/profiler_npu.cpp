@@ -7,7 +7,7 @@
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
-#include "third_party/acl/inc/acl/acl_rt.h"
+#include <acl/acl_rt.h>
 
 namespace torch_npu {
 namespace profiler {

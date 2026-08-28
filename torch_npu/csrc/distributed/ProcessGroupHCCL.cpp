@@ -33,8 +33,8 @@
 #include <arpa/inet.h>
 
 #include "op_plugin/OpInterface.h"
-#include "third_party/acl/inc/acl/acl.h"
-#include "third_party/acl/inc/acl/acl_base.h"
+#include <acl/acl.h>
+#include <acl/acl_base.h>
 #include "torch_npu/csrc/aten/CustomFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/npu/GetCANNInfo.h"

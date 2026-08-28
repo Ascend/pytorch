@@ -9,7 +9,7 @@
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
-#include "third_party/acl/inc/acl/acl.h"
+#include <acl/acl.h>
 
 constexpr size_t kVersionIndex1 = 1;
 constexpr size_t kVersionIndex2 = 2;

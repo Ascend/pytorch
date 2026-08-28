@@ -4,8 +4,8 @@
 #include <c10/util/flat_hash_map.h>
 #include <c10/util/irange.h>
 
-#include "third_party/acl/inc/acl/acl_base.h"
-#include "third_party/acl/inc/acl/acl_rt.h"
+#include <acl/acl_base.h>
+#include <acl/acl_rt.h>
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
@@ -22,8 +22,7 @@ namespace at_npu {
 namespace native {
 
 at::Tensor allocate_workspace(uint64_t workspace_size, aclrtStream stream) {
-  return at_npu::native::OpPreparation::unsafe_empty_workspace(
-      workspace_size, stream);
+  return at_npu::native::OpPreparation::unsafe_empty_workspace(workspace_size, stream);
 }
 
 } // namespace native
@@ -63,8 +62,7 @@ class DeviceWorkspaceAllocator {
     context_recorder_.store(nullptr);
   }
 
-  std::shared_ptr<c10::GatheredContext> maybeGatherContext(
-      RecordContext level) {
+  std::shared_ptr<c10::GatheredContext> maybeGatherContext(RecordContext level) {
     // Memory snapshots have deadlock issues in some scenarios, no longer
     // capture python stacks.
     return nullptr;
@@ -85,37 +83,28 @@ class DeviceWorkspaceAllocator {
     WorkspaceBlock* block = blocks[stream];
     if (block->size < alloc_size) {
       if (block->data_ptr != nullptr) {
-        ASCEND_LOGI(
-            "NPUWorkspaceAllocator free by aclrtFree: size=%zu", block->size);
+        ASCEND_LOGI("NPUWorkspaceAllocator free by aclrtFree: size=%zu", block->size);
         NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeDeviceWithTimeout());
         NPU_CHECK_ERROR(aclrtFree(block->data_ptr));
         update_stat(stats.reserved_bytes, -block->size);
 #ifndef BUILD_LIBTORCH
         if (torch_npu::profiler::MstxMgr::GetInstance()->isMsleaksEnable()) {
-          mstxDomainHandle_t workspaceDomain =
-              torch_npu::profiler::MstxMgr::GetInstance()->createLeaksDomain(
-                  torch_npu::profiler::DOMAIN_WORKSPACE.c_str());
-          mstxMemVirtualRangeDesc_t desc{
-              device, block->data_ptr, stats.reserved_bytes.current};
-          torch_npu::profiler::MstxMgr::GetInstance()->memHeapRegister(
-              workspaceDomain, &desc);
+          mstxDomainHandle_t workspaceDomain = torch_npu::profiler::MstxMgr::GetInstance()->createLeaksDomain(
+              torch_npu::profiler::DOMAIN_WORKSPACE.c_str());
+          mstxMemVirtualRangeDesc_t desc{device, block->data_ptr, stats.reserved_bytes.current};
+          torch_npu::profiler::MstxMgr::GetInstance()->memHeapRegister(workspaceDomain, &desc);
         }
         record_mem_size_decrement(block->size);
-        const c10_npu::impl::PyCallbackTrigger* trigger =
-            c10_npu::impl::NPUTrace::getTrace();
+        const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
         if (C10_UNLIKELY(trigger)) {
-          trigger->traceNpuMemoryDeallocation(
-              reinterpret_cast<uintptr_t>(block->data_ptr));
+          trigger->traceNpuMemoryDeallocation(reinterpret_cast<uintptr_t>(block->data_ptr));
         }
         torch_npu::profiler::reportMemoryDataToNpuProfiler(
             {static_cast<int8_t>(c10::DeviceType::PrivateUse1),
              device,
-             static_cast<uint8_t>(
-                 torch_npu::profiler::MemoryComponentType::WORKSPACE_ALLOCATOR),
-             static_cast<uint8_t>(
-                 torch_npu::profiler::MemoryDataType::MEMORY_FREE),
-             static_cast<uint8_t>(
-                 torch_npu::profiler::MemoryAllocatorType::ALLOCATOR_INNER),
+             static_cast<uint8_t>(torch_npu::profiler::MemoryComponentType::WORKSPACE_ALLOCATOR),
+             static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_FREE),
+             static_cast<uint8_t>(torch_npu::profiler::MemoryAllocatorType::ALLOCATOR_INNER),
              reinterpret_cast<int64_t>(block->data_ptr),
              -block->size,
              stats.allocated_bytes.current,
@@ -126,8 +115,7 @@ class DeviceWorkspaceAllocator {
         block->data_ptr = nullptr;
       }
 
-      block->size =
-          kRoundLarge * ((alloc_size + kRoundLarge - 1) / kRoundLarge);
+      block->size = kRoundLarge * ((alloc_size + kRoundLarge - 1) / kRoundLarge);
 
       TORCH_CHECK(
           alloc_size <= block->size,
@@ -139,39 +127,29 @@ class DeviceWorkspaceAllocator {
           PTA_ERROR(ErrCode::MEMORY));
 
       aclError err = c10_npu::acl::AclrtMallocAlign32(
-          &block->data_ptr,
-          block->size,
-          aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_ONLY);
+          &block->data_ptr, block->size, aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_ONLY);
       if (err != ACL_ERROR_NONE) {
         return nullptr;
       }
       block->context_when_allocated = std::move(context);
       block->requested_size = static_cast<int64_t>(size);
 
-      ASCEND_LOGD(
-          "NPUWorkspaceAllocator malloc by AclrtMallocAlign32: size=%zu",
-          block->size);
+      ASCEND_LOGD("NPUWorkspaceAllocator malloc by AclrtMallocAlign32: size=%zu", block->size);
       update_stat(stats.reserved_bytes, block->size);
 #ifndef BUILD_LIBTORCH
       if (torch_npu::profiler::MstxMgr::GetInstance()->isMsleaksEnable()) {
-        mstxDomainHandle_t workspaceDomain =
-            torch_npu::profiler::MstxMgr::GetInstance()->createLeaksDomain(
-                torch_npu::profiler::DOMAIN_WORKSPACE.c_str());
-        mstxMemVirtualRangeDesc_t desc{
-            device, block->data_ptr, stats.reserved_bytes.current};
-        torch_npu::profiler::MstxMgr::GetInstance()->memHeapRegister(
-            workspaceDomain, &desc);
+        mstxDomainHandle_t workspaceDomain = torch_npu::profiler::MstxMgr::GetInstance()->createLeaksDomain(
+            torch_npu::profiler::DOMAIN_WORKSPACE.c_str());
+        mstxMemVirtualRangeDesc_t desc{device, block->data_ptr, stats.reserved_bytes.current};
+        torch_npu::profiler::MstxMgr::GetInstance()->memHeapRegister(workspaceDomain, &desc);
       }
       record_mem_size_increment(block->size);
       torch_npu::profiler::reportMemoryDataToNpuProfiler(
           {static_cast<int8_t>(c10::DeviceType::PrivateUse1),
            device,
-           static_cast<uint8_t>(
-               torch_npu::profiler::MemoryComponentType::WORKSPACE_ALLOCATOR),
-           static_cast<uint8_t>(
-               torch_npu::profiler::MemoryDataType::MEMORY_MALLOC),
-           static_cast<uint8_t>(
-               torch_npu::profiler::MemoryAllocatorType::ALLOCATOR_INNER),
+           static_cast<uint8_t>(torch_npu::profiler::MemoryComponentType::WORKSPACE_ALLOCATOR),
+           static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_MALLOC),
+           static_cast<uint8_t>(torch_npu::profiler::MemoryAllocatorType::ALLOCATOR_INNER),
            reinterpret_cast<int64_t>(block->data_ptr),
            block->size,
            stats.allocated_bytes.current,
@@ -180,11 +158,9 @@ class DeviceWorkspaceAllocator {
            stream});
       this->last_block = block;
       this->last_stream = stream;
-      const c10_npu::impl::PyCallbackTrigger* trigger =
-          c10_npu::impl::NPUTrace::getTrace();
+      const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
       if (C10_UNLIKELY(trigger)) {
-        trigger->traceNpuMemoryAllocation(
-            reinterpret_cast<uintptr_t>(block->data_ptr));
+        trigger->traceNpuMemoryAllocation(reinterpret_cast<uintptr_t>(block->data_ptr));
       }
 #endif
     }
@@ -194,22 +170,16 @@ class DeviceWorkspaceAllocator {
 #ifndef BUILD_LIBTORCH
     if (torch_npu::profiler::MstxMgr::GetInstance()->isMsleaksEnable()) {
       mstxDomainHandle_t workspaceDomain =
-          torch_npu::profiler::MstxMgr::GetInstance()->createLeaksDomain(
-              torch_npu::profiler::DOMAIN_WORKSPACE.c_str());
-      mstxMemVirtualRangeDesc_t desc{
-          device, block->data_ptr, stats.allocated_bytes.current};
-      torch_npu::profiler::MstxMgr::GetInstance()->memRegionsRegister(
-          workspaceDomain, &desc);
+          torch_npu::profiler::MstxMgr::GetInstance()->createLeaksDomain(torch_npu::profiler::DOMAIN_WORKSPACE.c_str());
+      mstxMemVirtualRangeDesc_t desc{device, block->data_ptr, stats.allocated_bytes.current};
+      torch_npu::profiler::MstxMgr::GetInstance()->memRegionsRegister(workspaceDomain, &desc);
     }
     torch_npu::profiler::reportMemoryDataToNpuProfiler(
         {static_cast<int8_t>(c10::DeviceType::PrivateUse1),
          device,
-         static_cast<uint8_t>(
-             torch_npu::profiler::MemoryComponentType::WORKSPACE_ALLOCATOR),
-         static_cast<uint8_t>(
-             torch_npu::profiler::MemoryDataType::MEMORY_MALLOC),
-         static_cast<uint8_t>(
-             torch_npu::profiler::MemoryAllocatorType::ALLOCATOR_INNER),
+         static_cast<uint8_t>(torch_npu::profiler::MemoryComponentType::WORKSPACE_ALLOCATOR),
+         static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_MALLOC),
+         static_cast<uint8_t>(torch_npu::profiler::MemoryAllocatorType::ALLOCATOR_INNER),
          reinterpret_cast<int64_t>(block->data_ptr),
          block->size,
          stats.allocated_bytes.current,
@@ -228,21 +198,16 @@ class DeviceWorkspaceAllocator {
 #ifndef BUILD_LIBTORCH
     if (this->last_block && this->last_block->data_ptr && this->last_stream) {
       if (torch_npu::profiler::MstxMgr::GetInstance()->isMsleaksEnable()) {
-        mstxDomainHandle_t workspaceDomain =
-            torch_npu::profiler::MstxMgr::GetInstance()->createLeaksDomain(
-                torch_npu::profiler::DOMAIN_WORKSPACE.c_str());
-        torch_npu::profiler::MstxMgr::GetInstance()->memRegionsUnregister(
-            workspaceDomain, this->last_block->data_ptr);
+        mstxDomainHandle_t workspaceDomain = torch_npu::profiler::MstxMgr::GetInstance()->createLeaksDomain(
+            torch_npu::profiler::DOMAIN_WORKSPACE.c_str());
+        torch_npu::profiler::MstxMgr::GetInstance()->memRegionsUnregister(workspaceDomain, this->last_block->data_ptr);
       }
       torch_npu::profiler::reportMemoryDataToNpuProfiler(
           {static_cast<int8_t>(c10::DeviceType::PrivateUse1),
            device,
-           static_cast<uint8_t>(
-               torch_npu::profiler::MemoryComponentType::WORKSPACE_ALLOCATOR),
-           static_cast<uint8_t>(
-               torch_npu::profiler::MemoryDataType::MEMORY_FREE),
-           static_cast<uint8_t>(
-               torch_npu::profiler::MemoryAllocatorType::ALLOCATOR_INNER),
+           static_cast<uint8_t>(torch_npu::profiler::MemoryComponentType::WORKSPACE_ALLOCATOR),
+           static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_FREE),
+           static_cast<uint8_t>(torch_npu::profiler::MemoryAllocatorType::ALLOCATOR_INNER),
            reinterpret_cast<int64_t>(this->last_block->data_ptr),
            -allocated_size,
            stats.allocated_bytes.current,
@@ -255,46 +220,32 @@ class DeviceWorkspaceAllocator {
 
   // return to the system allocator
   void empty_cache(bool check_error) {
-    ASCEND_LOGD(
-        "NPUWorkspaceAllocator begin empty cache with check_error = %d",
-        check_error);
+    ASCEND_LOGD("NPUWorkspaceAllocator begin empty cache with check_error = %d", check_error);
 
     std::lock_guard<std::recursive_mutex> lock(mutex);
     for (const auto& block_pair : blocks) {
       if (block_pair.second->data_ptr != nullptr) {
-        ASCEND_LOGI(
-            "NPUWorkspaceAllocator free by aclrtFree: size=%zu",
-            block_pair.second->size);
+        ASCEND_LOGI("NPUWorkspaceAllocator free by aclrtFree: size=%zu", block_pair.second->size);
         NPU_CHECK_ERROR(aclrtFree(block_pair.second->data_ptr));
         update_stat(stats.reserved_bytes, -block_pair.second->size);
 #ifndef BUILD_LIBTORCH
         if (torch_npu::profiler::MstxMgr::GetInstance()->isMsleaksEnable()) {
-          mstxDomainHandle_t workspaceDomain =
-              torch_npu::profiler::MstxMgr::GetInstance()->createLeaksDomain(
-                  torch_npu::profiler::DOMAIN_WORKSPACE.c_str());
-          mstxMemVirtualRangeDesc_t desc{
-              device,
-              block_pair.second->data_ptr,
-              stats.reserved_bytes.current};
-          torch_npu::profiler::MstxMgr::GetInstance()->memHeapRegister(
-              workspaceDomain, &desc);
+          mstxDomainHandle_t workspaceDomain = torch_npu::profiler::MstxMgr::GetInstance()->createLeaksDomain(
+              torch_npu::profiler::DOMAIN_WORKSPACE.c_str());
+          mstxMemVirtualRangeDesc_t desc{device, block_pair.second->data_ptr, stats.reserved_bytes.current};
+          torch_npu::profiler::MstxMgr::GetInstance()->memHeapRegister(workspaceDomain, &desc);
         }
         record_mem_size_decrement(block_pair.second->size);
-        const c10_npu::impl::PyCallbackTrigger* trigger =
-            c10_npu::impl::NPUTrace::getTrace();
+        const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
         if (C10_UNLIKELY(trigger)) {
-          trigger->traceNpuMemoryDeallocation(
-              reinterpret_cast<uintptr_t>(block_pair.second->data_ptr));
+          trigger->traceNpuMemoryDeallocation(reinterpret_cast<uintptr_t>(block_pair.second->data_ptr));
         }
         torch_npu::profiler::reportMemoryDataToNpuProfiler(
             {static_cast<int8_t>(c10::DeviceType::PrivateUse1),
              device,
-             static_cast<uint8_t>(
-                 torch_npu::profiler::MemoryComponentType::WORKSPACE_ALLOCATOR),
-             static_cast<uint8_t>(
-                 torch_npu::profiler::MemoryDataType::MEMORY_FREE),
-             static_cast<uint8_t>(
-                 torch_npu::profiler::MemoryAllocatorType::ALLOCATOR_INNER),
+             static_cast<uint8_t>(torch_npu::profiler::MemoryComponentType::WORKSPACE_ALLOCATOR),
+             static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_FREE),
+             static_cast<uint8_t>(torch_npu::profiler::MemoryAllocatorType::ALLOCATOR_INNER),
              reinterpret_cast<int64_t>(block_pair.second->data_ptr),
              -block_pair.second->size,
              stats.allocated_bytes.current,
@@ -307,19 +258,12 @@ class DeviceWorkspaceAllocator {
     }
 
     blocks.clear();
-    ASCEND_LOGD(
-        "NPUWorkspaceAllocator end empty cache with check_error = %d",
-        check_error);
+    ASCEND_LOGD("NPUWorkspaceAllocator end empty cache with check_error = %d", check_error);
   }
 
-  void record_history(
-      bool enabled,
-      CreateContextFn context_recorder,
-      RecordContext when) {
+  void record_history(bool enabled, CreateContextFn context_recorder, RecordContext when) {
     std::lock_guard<std::recursive_mutex> lock(mutex);
-    TORCH_CHECK(
-        when == RecordContext::NEVER || context_recorder,
-        PTA_ERROR(ErrCode::INTERNAL));
+    TORCH_CHECK(when == RecordContext::NEVER || context_recorder, PTA_ERROR(ErrCode::INTERNAL));
     record_flag = enabled;
     context_recorder_.store(record_flag ? context_recorder : nullptr);
     record_context_ = enabled ? when : RecordContext::NEVER;
@@ -340,9 +284,7 @@ class DeviceWorkspaceAllocator {
           block_pair.second->size,
           block_pair.first,
           MempoolId_t{0, 0},
-          record_context_ >= RecordContext::ALLOC
-              ? block_pair.second->context_when_allocated
-              : nullptr);
+          record_context_ >= RecordContext::ALLOC ? block_pair.second->context_when_allocated : nullptr);
       alloc_trace.emplace_back(te);
 
       te = TraceEntry(
@@ -352,9 +294,7 @@ class DeviceWorkspaceAllocator {
           block_pair.second->size,
           block_pair.first,
           MempoolId_t{0, 0},
-          record_context_ >= RecordContext::ALLOC
-              ? block_pair.second->context_when_allocated
-              : nullptr);
+          record_context_ >= RecordContext::ALLOC ? block_pair.second->context_when_allocated : nullptr);
       alloc_trace.emplace_back(te);
 
       te = TraceEntry(
@@ -364,9 +304,7 @@ class DeviceWorkspaceAllocator {
           block_pair.second->size,
           block_pair.first,
           MempoolId_t{0, 0},
-          record_context_ >= RecordContext::ALLOC
-              ? block_pair.second->context_when_allocated
-              : nullptr);
+          record_context_ >= RecordContext::ALLOC ? block_pair.second->context_when_allocated : nullptr);
       alloc_trace.emplace_back(te);
     }
 #endif
@@ -381,13 +319,11 @@ class DeviceWorkspaceAllocator {
       result.emplace_back();
       SegmentInfo& segment_info = result.back();
       segment_info.device = device;
-      segment_info.address =
-          reinterpret_cast<int64_t>(block_pair.second->data_ptr);
+      segment_info.address = reinterpret_cast<int64_t>(block_pair.second->data_ptr);
       segment_info.stream = block_pair.first;
       segment_info.is_large = true;
       segment_info.is_expandable = false;
-      segment_info.context_when_allocated =
-          block_pair.second->context_when_allocated;
+      segment_info.context_when_allocated = block_pair.second->context_when_allocated;
 
       const WorkspaceBlock* block = block_pair.second;
       segment_info.blocks.emplace_back();
@@ -484,26 +420,18 @@ class NpuWorkspaceAllocator : public c10::Allocator {
   }
 
   void malloc(void** new_ptr, int device, size_t size, aclrtStream stream) {
-    auto src_ptr =
-        static_cast<void*>(device_allocator[device]->getStreamPtr(stream));
-    *new_ptr =
-        static_cast<void*>(device_allocator[device]->malloc(size, stream));
+    auto src_ptr = static_cast<void*>(device_allocator[device]->getStreamPtr(stream));
+    *new_ptr = static_cast<void*>(device_allocator[device]->malloc(size, stream));
 
     if ((*new_ptr) == nullptr) {
       size_t device_free;
       size_t device_total;
-      NPU_CHECK_ERROR(
-          aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
+      NPU_CHECK_ERROR(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
 
-      auto retmsg =
-          std::string(
-              "NPU out of memory. NPUWorkspaceAllocator tried to allocate ") +
-          format_size(size) + "(NPU " + std::to_string(device) + "; " +
-          format_size(device_total) + " total capacity; " +
-          format_size(device_free) +
-          " free). If you want to reduce memory usage, " +
-          "take a try to set the environment variable TASK_QUEUE_ENABLE=1.\n" +
-          PTA_ERROR(ErrCode::MEMORY);
+      auto retmsg = std::string("NPU out of memory. NPUWorkspaceAllocator tried to allocate ") + format_size(size) +
+          "(NPU " + std::to_string(device) + "; " + format_size(device_total) + " total capacity; " +
+          format_size(device_free) + " free). If you want to reduce memory usage, " +
+          "take a try to set the environment variable TASK_QUEUE_ENABLE=1.\n" + PTA_ERROR(ErrCode::MEMORY);
       ASCEND_LOGE("%s", retmsg.c_str());
       TORCH_CHECK_WITH(OutOfMemoryError, false, retmsg.c_str());
     }
@@ -518,10 +446,7 @@ class NpuWorkspaceAllocator : public c10::Allocator {
     allocated_ptrs.clear();
   }
 
-  void record_history(
-      bool enabled,
-      CreateContextFn context_recorder,
-      RecordContext when) {
+  void record_history(bool enabled, CreateContextFn context_recorder, RecordContext when) {
     for (auto& allocator : device_allocator) {
       allocator->record_history(enabled, context_recorder, when);
     }
@@ -543,11 +468,7 @@ class NpuWorkspaceAllocator : public c10::Allocator {
     NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
     void* dev_ptr = nullptr;
     void (*delete_func)(void*) = &local_raw_delete;
-    return {
-        dev_ptr,
-        dev_ptr,
-        delete_func,
-        c10::Device(c10::DeviceType::PrivateUse1, device)};
+    return {dev_ptr, dev_ptr, delete_func, c10::Device(c10::DeviceType::PrivateUse1, device)};
   }
 
   c10::DataPtr allocate_with_stream(size_t size, aclrtStream stream) {
@@ -560,21 +481,15 @@ class NpuWorkspaceAllocator : public c10::Allocator {
       delete_func = &uncached_delete;
       if (size != 0) {
         size_t alloc_size = size + 32;
-        NPU_CHECK_ERROR(c10_npu::acl::AclrtMallocAlign32(
-            &dev_ptr,
-            alloc_size,
-            aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_ONLY));
+        NPU_CHECK_ERROR(
+            c10_npu::acl::AclrtMallocAlign32(&dev_ptr, alloc_size, aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_ONLY));
       }
     } else {
       if (size != 0) {
         this->malloc(&dev_ptr, device, size, stream);
       }
     }
-    return {
-        dev_ptr,
-        dev_ptr,
-        delete_func,
-        c10::Device(c10::DeviceType::PrivateUse1, device)};
+    return {dev_ptr, dev_ptr, delete_func, c10::Device(c10::DeviceType::PrivateUse1, device)};
   }
 
   c10::DeleterFnPtr raw_deleter() const override {
@@ -586,8 +501,7 @@ class NpuWorkspaceAllocator : public c10::Allocator {
 
   // Note [COW/lazy_clone is not supported yet]
   void copy_data(void* dest, const void* src, std::size_t count) const final {
-    NPU_CHECK_ERROR(
-        aclrtMemcpy(dest, count, src, count, ACL_MEMCPY_DEVICE_TO_DEVICE));
+    NPU_CHECK_ERROR(aclrtMemcpy(dest, count, src, count, ACL_MEMCPY_DEVICE_TO_DEVICE));
   }
 
   void assertValidDevice(int device) {
@@ -663,10 +577,7 @@ void emptyCache(int device, bool check_error) {
   workspace_allocator.empty_cache(device, check_error);
 }
 
-void recordHistory(
-    bool enabled,
-    CreateContextFn context_recorder,
-    RecordContext when) {
+void recordHistory(bool enabled, CreateContextFn context_recorder, RecordContext when) {
   workspace_allocator.record_history(enabled, context_recorder, when);
 }
 SnapshotInfo snapshot() {

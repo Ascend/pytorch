@@ -1,7 +1,7 @@
 #include "torch_npu/csrc/framework/interface/MsProfilerInterface.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
-#include "third_party/acl/inc/acl/acl_prof.h"
+#include <acl/acl_prof.h>
 
 namespace at_npu {
 namespace native {

@@ -2,12 +2,12 @@
 
 #include <c10/core/Device.h>
 
-#include "third_party/acl/inc/acl/acl_rt.h"
-#include "third_party/acl/inc/acl/acl_base.h"
-#include "third_party/acl/inc/acl/acl_mdl.h"
-#include "third_party/acl/inc/acl/acl_prof.h"
+#include <acl/acl_rt.h>
+#include <acl/acl_base.h>
+#include <acl/acl_mdl.h>
+#include <acl/acl_prof.h>
 #include "torch_npu/csrc/core/npu/interface/HcclInterface.h"
-#include "third_party/acl/inc/acl/acl.h"
+#include <acl/acl.h>
 
 using aclrtHostFunc = void (*)(void* args);
 struct aclrtMemUsageInfo;

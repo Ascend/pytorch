@@ -22,8 +22,8 @@
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/distributed/symm_mem/NPUSHMEMInterface.h"
-#include "third_party/acl/inc/acl/acl_op_compiler.h"
-#include "third_party/acl/inc/acl/acl_rt.h"
+#include <acl/acl_op_compiler.h>
+#include <acl/acl_rt.h>
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 #include "torch_npu/csrc/framework/LazyInitAclops.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
@@ -42,10 +42,8 @@ const uint32_t kMaxOpExecuteTimeOut = 547U;
 const size_t kMaxPathLen = 4096U;
 
 void SetDefaultAllowInternalFromatDisable() {
-  auto allow_internal_format =
-      c10_npu::option::GetOption("ALLOW_INTERNAL_FORMAT");
-  if (allow_internal_format.has_value() &&
-      allow_internal_format.value() != "") {
+  auto allow_internal_format = c10_npu::option::GetOption("ALLOW_INTERNAL_FORMAT");
+  if (allow_internal_format.has_value() && allow_internal_format.value() != "") {
     return;
   }
 
@@ -54,8 +52,7 @@ void SetDefaultAllowInternalFromatDisable() {
 }
 
 void SetDeterministicFromLevel() {
-  at_npu::native::ApplyDeterministicSnapshot(
-      c10_npu::CaptureDeterministicSnapshot(), true);
+  at_npu::native::ApplyDeterministicSnapshot(c10_npu::CaptureDeterministicSnapshot(), true);
 }
 
 #ifndef BUILD_LIBTORCH
@@ -88,8 +85,7 @@ std::string GetAclConfigJsonPath() {
   const char* acl_init_path = c10_npu::option::OptionsManager::GetAclInitPath();
   if (acl_init_path != nullptr) {
     std::string json_path = std::string(acl_init_path);
-    std::string json_path_str =
-        torch_npu::toolkit::profiler::Utils::RealPath(json_path);
+    std::string json_path_str = torch_npu::toolkit::profiler::Utils::RealPath(json_path);
     if (json_path_str.empty()) {
       TORCH_CHECK(
           false,
@@ -125,8 +121,7 @@ std::string GetAclConfigJsonPath() {
     }
 
     if (c10_npu::is_lazy_set_device()) {
-      if (!config.contains("defaultDevice") ||
-          !config["defaultDevice"].is_object()) {
+      if (!config.contains("defaultDevice") || !config["defaultDevice"].is_object()) {
         TORCH_CHECK(
             false,
             "User acl json ",
@@ -136,8 +131,7 @@ std::string GetAclConfigJsonPath() {
             PTA_ERROR(ErrCode::VALUE));
       }
       const auto& default_dev = config["defaultDevice"];
-      if (!default_dev.contains("default_device") ||
-          !default_dev["default_device"].is_string() ||
+      if (!default_dev.contains("default_device") || !default_dev["default_device"].is_string() ||
           default_dev["default_device"].get<std::string>() != "0") {
         TORCH_CHECK(
             false,
@@ -172,8 +166,7 @@ std::string GetAclConfigJsonPath() {
   } else {
     json_path = npu_path.append("torch_npu/acl.json");
   }
-  std::string json_path_str =
-      torch_npu::toolkit::profiler::Utils::RealPath(json_path);
+  std::string json_path_str = torch_npu::toolkit::profiler::Utils::RealPath(json_path);
   if (json_path_str == "") {
     ASCEND_LOGW("this path:%s is not exist!", json_path.c_str());
   }
@@ -263,11 +256,9 @@ NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id) {
 
   if (!c10_npu::is_lazy_set_device()) {
     if (c10_npu::IsSupportInfNan()) {
-      c10_npu::acl::AclrtSetDeviceSatMode(
-          aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_INFNAN);
+      c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_INFNAN);
     } else {
-      c10_npu::acl::AclrtSetDeviceSatMode(
-          aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_SATURATION);
+      c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_SATURATION);
     }
   }
 
@@ -287,8 +278,7 @@ NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id) {
 
   if (!c10_npu::is_lazy_set_device()) {
     SetDeterministicFromLevel();
-    NPU_CHECK_ERROR(
-        c10_npu::acl::AclrtSetOpExecuteTimeOut(kMaxOpExecuteTimeOut));
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtSetOpExecuteTimeOut(kMaxOpExecuteTimeOut));
   }
 
   // lazy call for the setoption
@@ -329,11 +319,9 @@ NpuSysCtrl::SysStatus NpuSysCtrl::LazyInitialize(int device_id) {
   auto ret = aclrtGetDevice(&device_id_);
 
   if (c10_npu::IsSupportInfNan()) {
-    c10_npu::acl::AclrtSetDeviceSatMode(
-        aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_INFNAN);
+    c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_INFNAN);
   } else {
-    c10_npu::acl::AclrtSetDeviceSatMode(
-        aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_SATURATION);
+    c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_SATURATION);
   }
 
   SetDeterministicFromLevel();
@@ -358,8 +346,7 @@ NpuSysCtrl::SysStatus NpuSysCtrl::BackwardsInit() {
 
 NpuSysCtrl::SysStatus NpuSysCtrl::OverflowSwitchEnable() {
   if (!c10_npu::IsSupportInfNan()) {
-    c10_npu::acl::AclrtSetStreamOverflowSwitch(
-        c10_npu::getCurrentNPUStream(), 1);
+    c10_npu::acl::AclrtSetStreamOverflowSwitch(c10_npu::getCurrentNPUStream(), 1);
     ASCEND_LOGI("Npu overflow check switch set successfully.");
   }
   return INIT_SUCC;
@@ -430,22 +417,15 @@ int NpuSysCtrl::InitializedDeviceID() {
   if (GetInitFlag()) {
     return device_id_;
   }
-  TORCH_CHECK(
-      false,
-      "no npu device has been initialized!",
-      PTA_ERROR(ErrCode::INTERNAL));
+  TORCH_CHECK(false, "no npu device has been initialized!", PTA_ERROR(ErrCode::INTERNAL));
   return -1;
 }
 
-void NpuSysCtrl::RegisterLazyFn(
-    const option::OptionCallBack& call_,
-    const std::string& in) {
+void NpuSysCtrl::RegisterLazyFn(const option::OptionCallBack& call_, const std::string& in) {
   lazy_fn_.emplace_back(std::make_pair(call_, in));
 }
 
-void NpuSysCtrl::RegisterReleaseFn(
-    ReleaseFn release_fn,
-    ReleasePriority priority) {
+void NpuSysCtrl::RegisterReleaseFn(ReleaseFn release_fn, ReleasePriority priority) {
   const auto& iter = this->release_fn_.find(priority);
   if (iter != release_fn_.end()) {
     release_fn_[priority].emplace_back(release_fn);
@@ -456,12 +436,10 @@ void NpuSysCtrl::RegisterReleaseFn(
 
 aclError SetCurrentDevice() {
   if (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
-    c10_npu::SetDevice(
-        c10_npu::NpuSysCtrl::GetInstance().InitializedDeviceID());
+    c10_npu::SetDevice(c10_npu::NpuSysCtrl::GetInstance().InitializedDeviceID());
     return ACL_SUCCESS;
   }
-  TORCH_CHECK(
-      false, "npu device has not been inited.", PTA_ERROR(ErrCode::INTERNAL));
+  TORCH_CHECK(false, "npu device has not been inited.", PTA_ERROR(ErrCode::INTERNAL));
 }
 
 } // namespace c10_npu

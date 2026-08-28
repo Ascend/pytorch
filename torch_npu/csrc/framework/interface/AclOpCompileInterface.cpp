@@ -5,7 +5,7 @@
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
-#include "third_party/acl/inc/acl/acl_base.h"
+#include <acl/acl_base.h>
 
 namespace at_npu {
 namespace native {

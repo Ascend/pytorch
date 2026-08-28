@@ -6,7 +6,7 @@
 // C ABI defined in torch_npu/csrc/inductor/aoti_torch/c/shim.h. The same rule
 // applies to other files under torch_npu/csrc/inductor/aoti_runtime/.
 
-#include <third_party/acl/inc/acl/acl_base.h>
+#include <acl/acl_base.h>
 #include <torch/csrc/inductor/aoti_runtime/utils.h>
 #include <torch_npu/csrc/inductor/aoti_torch/c/shim_npu.h>
 namespace torch::aot_inductor {

@@ -7,8 +7,8 @@
 
 #include <ATen/record_function.h>
 
-#include "third_party/acl/inc/acl/acl_base.h"
-#include "third_party/acl/inc/acl/acl_rt.h"
+#include <acl/acl_base.h>
+#include <acl/acl_rt.h>
 
 #include "torch_npu/csrc/toolkit/profiler/inc/data_reporter.h"
 #include "torch_npu/csrc/profiler/profiler_mgr.h"

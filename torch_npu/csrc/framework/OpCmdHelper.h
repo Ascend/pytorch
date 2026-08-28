@@ -4,8 +4,8 @@
 #include <ATen/ATen.h>
 
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
-#include "third_party/acl/inc/acl/acl.h"
-#include "third_party/acl/inc/acl/acl_base.h"
+#include <acl/acl.h>
+#include <acl/acl_base.h>
 
 namespace at_npu {
 namespace native {
