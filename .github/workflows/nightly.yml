@@ -6,10 +6,10 @@ on:
       - ci-test
     paths:
       - '.github/workflows/nightly.yml'
-      - '.github/workflows/_build.yml'
-      - '.github/workflows/_test.yml'
-      - '.github/workflows/_test-collect.yml'
-      - '.github/workflows/_test-category.yml'
+      - '.github/workflows/_nightly_build.yml'
+      - '.github/workflows/_nightly_test.yml'
+      - '.github/workflows/_nightly_test-collect.yml'
+      - '.github/workflows/_nightly_test-category.yml'
       - '.github/workflows/_test-report.yml'
       - '.github/config/nightly_test_categories.yml'
       - '.github/config/disabled_testcases.json'
@@ -27,7 +27,7 @@ permissions:
 
 jobs:
   build:
-    uses: ./.github/workflows/_build.yml
+    uses: ./.github/workflows/_nightly_build.yml
     secrets: inherit
     with:
       upstream_repo: pytorch/pytorch
@@ -41,10 +41,12 @@ jobs:
 
   test:
     needs: build
-    uses: ./.github/workflows/_test.yml
+    uses: ./.github/workflows/_nightly_test.yml
     secrets: inherit
     with:
       resolved_short: ${{ needs.build.outputs.resolved_short }}
+      resolved_sha: ${{ needs.build.outputs.resolved_sha }}
+      upstream_repo: pytorch/pytorch
       torch_npu_short: ${{ needs.build.outputs.torch_npu_short }}
       case_paths_config: .github/config/nightly_test_categories.yml
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-202608241234-9c1d81e6

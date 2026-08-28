@@ -1,0 +1,312 @@
+name: Test Category
+
+on:
+  workflow_call:
+    inputs:
+      resolved_short:
+        required: true
+        type: string
+        description: Short SHA of upstream PyTorch (from _build.yml outputs)
+      resolved_sha:
+        required: true
+        type: string
+        description: Full SHA of upstream PyTorch — used as the checkout ref so the tested source matches the built wheels exactly.
+      upstream_repo:
+        required: false
+        type: string
+        default: 'pytorch/pytorch'
+        description: The upstream repository full name (owner/repo)
+      category:
+        required: true
+        type: string
+        description: 'Category name: core, tensor, distributed, graph, or others'
+      num_shards:
+        required: true
+        type: string
+        description: Number of shards for this category
+      matrix_json:
+        required: true
+        type: string
+        description: Shard matrix JSON array
+      max_workers:
+        required: true
+        type: string
+        description: 'Max concurrent workers (1 for distributed, 32 for others)'
+      docker_image:
+        required: false
+        type: string
+        default: 'quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly'
+        description: Docker image for running tests
+      report_to_upstream:
+        required: false
+        type: boolean
+        default: false
+        description: Whether to report test status to upstream dashboard
+      runner_label:
+        required: false
+        type: string
+        default: 'linux-aarch64-a3-8'
+        description: Runner label for runs-on and upstream job-name reporting.
+      device_env:
+        required: false
+        type: string
+        default: 'privateuse1'
+        description: >-
+          Comma-separated device types exported as
+          PYTORCH_TESTING_DEVICE_ONLY_FOR during execution. Must match the
+          collection phase value.
+
+jobs:
+  test:
+    runs-on: ${{ inputs.runner_label }}
+    permissions:
+      id-token: write
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    container:
+      image: ${{ inputs.docker_image }}
+      options: --network host
+    env:
+      PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
+    strategy:
+      matrix:
+        shard: ${{ fromJson(inputs.matrix_json) }}
+      fail-fast: false
+    steps:
+      - name: Compute prefix for this category
+        id: prefix
+        run: |
+          case "${{ inputs.category }}" in
+            distributed) PREFIX="dist" ;;
+            core)        PREFIX="core" ;;
+            tensor)      PREFIX="tensor" ;;
+            graph)       PREFIX="graph" ;;
+            others)      PREFIX="others" ;;
+            regular)     PREFIX="reg" ;;
+            custom)      PREFIX="custom" ;;
+            *)           PREFIX="reg" ;;
+          esac
+          echo "prefix=${PREFIX}" >> "$GITHUB_OUTPUT"
+
+      - name: Report test in_progress
+        if: ${{ inputs.report_to_upstream }}
+        continue-on-error: true
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
+        with:
+          status: in_progress
+          job-name: ${{ inputs.runner_label }} / test (${{ inputs.category }}, ${{ matrix.shard }}, ${{ inputs.num_shards }}, py3.10)
+
+      - name: Authenticate to Huawei Cloud
+        uses: huaweicloud/auth-action@v1.1.0
+        with:
+          access_key_id: ${{ secrets.ACCESSKEY }}
+          secret_access_key: ${{ secrets.SECRETACCESSKEY }}
+          region: ap-southeast-1
+
+      - name: Compute SHAs
+        id: sha
+        run: |
+          UPSTREAM_SHORT="${{ inputs.resolved_short }}"
+          echo "wheels_tarball=wheels-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout PyTorch source
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.upstream_repo }}
+          ref: ${{ inputs.resolved_sha }}
+          fetch-depth: 1
+          submodules: false
+          path: pytorch
+
+      - name: Download wheels from OBS
+        uses: huaweicloud/obs-helper@v1.0.1
+        with:
+          region: ap-southeast-1
+          bucket_name: pytorch-ci-cache
+          local_file_path: ./${{ steps.sha.outputs.wheels_tarball }}
+          obs_file_path: 7day-cache/${{ steps.sha.outputs.wheels_tarball }}
+          operation_type: download
+
+      - name: Extract and install wheels
+        run: |
+          mkdir -p /tmp/wheels
+          tar -xzf ${{ steps.sha.outputs.wheels_tarball }} -C /tmp/wheels
+          rm ${{ steps.sha.outputs.wheels_tarball }}
+          pip install /tmp/wheels/torch-*.whl
+          pip install --no-deps /tmp/wheels/torch_npu*.whl
+          pip install --no-deps /tmp/wheels/torchvision-*.whl || echo "WARNING: torchvision wheel not found in tarball"
+
+      - name: Download cases shard JSONs
+        uses: actions/download-artifact@v4
+        with:
+          name: cases-shards
+          path: cases-shards
+
+      - name: Checkout test scripts
+        uses: actions/checkout@v6
+        with:
+          path: ci-scripts
+          ref: ci-test
+
+      - name: Verify NPU environment
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+          export LD_LIBRARY_PATH=/opt/conda/envs/py_3.10/lib:$LD_LIBRARY_PATH
+
+          echo "=== NPU Device Information ==="
+          npu-smi info
+          echo "=== End of NPU Device Information ==="
+
+          python -c "
+          import torch
+          print(f'torch: {torch.__version__}')
+          import torch_npu
+          print(f'torch_npu: {torch_npu.__version__}')
+          print(f'NPU available: {torch.npu.is_available()}')
+          print(f'NPU count: {torch.npu.device_count()}')
+          "
+
+      - name: Run ${{ inputs.category }} shard ${{ matrix.shard }}/${{ inputs.num_shards }}
+        id: run_tests
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+          export LD_LIBRARY_PATH=/opt/conda/envs/py_3.10/lib:$LD_LIBRARY_PATH
+
+          CASES_JSON="cases-shards/${{ inputs.category }}_cases_shard_${{ matrix.shard }}.json"
+          TOTAL_CASES=$(python3 -c "import json; d=json.load(open('${CASES_JSON}')); print(d['total_cases'])")
+
+          echo "=== ${{ inputs.category }} Shard ${{ matrix.shard }}/${{ inputs.num_shards }} ==="
+          echo "Total cases: ${TOTAL_CASES}"
+          echo "Max workers: ${{ inputs.max_workers }}"
+          echo "Device env: ${{ inputs.device_env }}"
+
+          set +e
+          python ci-scripts/.github/scripts/run_npu_test_shard.py \
+            --cases-json "${CASES_JSON}" \
+            --test-dir pytorch/test \
+            --report-dir test-reports \
+            --max-workers ${{ inputs.max_workers }} \
+            --timeout 1200 \
+            --device-env "${{ inputs.device_env }}" \
+            --verbose \
+            2>&1 | tee /tmp/test_${{ inputs.category }}_${{ matrix.shard }}.log
+
+          TEST_STATUS=${PIPESTATUS[0]}
+          set -e
+          echo "status=${TEST_STATUS}" >> "$GITHUB_OUTPUT"
+
+      - name: Parse test results
+        id: parse_results
+        if: always()
+        run: |
+          PREFIX="${{ steps.prefix.outputs.prefix }}"
+          CASES_FILE="test-reports/shard_${PREFIX}-${{ matrix.shard }}_cases.json"
+          python3 -c "
+          import json, os, sys
+          stats = {'passed': 0, 'failed': 0, 'errors': 0, 'timeout': 0, 'skipped': 0, 'total': 0}
+          parse_ok = False
+          try:
+              with open('${CASES_FILE}') as f:
+                  d = json.load(f)
+              stats['passed'] = d.get('passed', 0)
+              stats['failed'] = d.get('failed', 0)
+              stats['errors'] = d.get('errors', 0)
+              stats['timeout'] = d.get('timeout', 0)
+              stats['skipped'] = d.get('skipped', 0)
+              stats['total'] = d.get('total_cases', 0)
+              parse_ok = True
+          except Exception as e:
+              print(f'Warning: Could not parse results: {e}', file=sys.stderr)
+          total_failed = stats['failed'] + stats['errors'] + stats['timeout']
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              for k, v in stats.items():
+                  f.write(f'{k}={v}\n')
+              f.write(f'total_failed={total_failed}\n')
+              f.write(f'parse_ok={str(parse_ok).lower()}\n')
+          print(f'${{ inputs.category }} shard ${{ matrix.shard }}: {stats[\"passed\"]} passed, {stats[\"failed\"]} failed, {stats[\"errors\"]} errors, {stats[\"timeout\"]} timeout, {stats[\"skipped\"]} skipped, {stats[\"total\"]} total')
+          "
+
+      - name: Package test reports
+        if: always()
+        run: |
+          if [ -d "test-reports/junit_xmls" ]; then
+            echo "=== Compressing junit XMLs ==="
+            XML_COUNT=$(find test-reports/junit_xmls -type f -name "*.xml" | wc -l)
+            echo "Found ${XML_COUNT} XML files"
+            tar -czf test-reports/junit_xmls.tar.gz -C test-reports junit_xmls
+            rm -rf test-reports/junit_xmls
+            echo "JUnit XMLs compressed: $(ls -lh test-reports/junit_xmls.tar.gz)"
+          fi
+
+          if [ -d "test-reports/cases_logs" ]; then
+            echo "=== Compressing cases logs ==="
+            LOGS_COUNT=$(find test-reports/cases_logs -type f | wc -l)
+            echo "Found ${LOGS_COUNT} case log files"
+            tar -czf test-reports/cases_logs.tar.gz -C test-reports cases_logs
+            rm -rf test-reports/cases_logs
+            echo "Cases logs compressed: $(ls -lh test-reports/cases_logs.tar.gz)"
+          fi
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-${{ steps.prefix.outputs.prefix }}-${{ matrix.shard }}
+          path: test-reports/
+          retention-days: 7
+
+      - name: Compress /root/ascend CANN logs
+        if: always()
+        run: |
+          PREFIX="${{ steps.prefix.outputs.prefix }}"
+          if [ -d "/root/ascend" ]; then
+            echo "=== Compressing /root/ascend CANN logs ==="
+            FILE_COUNT=$(find /root/ascend -type f | wc -l)
+            echo "Found ${FILE_COUNT} files under /root/ascend"
+            tar -czf ascend-cann-logs-${PREFIX}-${{ matrix.shard }}.tar.gz -C /root ascend
+            echo "CANN logs compressed: $(ls -lh ascend-cann-logs-${PREFIX}-${{ matrix.shard }}.tar.gz)"
+          else
+            echo "/root/ascend directory does not exist, skipping"
+          fi
+
+      - name: Upload CANN logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ascend-cann-logs-${{ steps.prefix.outputs.prefix }}-${{ matrix.shard }}
+          path: ascend-cann-logs-${{ steps.prefix.outputs.prefix }}-${{ matrix.shard }}.tar.gz
+          retention-days: 7
+
+      - name: Collect error logs
+        if: failure()
+        run: |
+          mkdir -p error-logs
+          cp /tmp/test_${{ inputs.category }}_${{ matrix.shard }}.log error-logs/ 2>/dev/null || true
+
+      - name: Upload error logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: error-logs-${{ steps.prefix.outputs.prefix }}-${{ matrix.shard }}
+          path: error-logs/
+          retention-days: 7
+
+      - name: Report test completed
+        if: always() && inputs.report_to_upstream
+        continue-on-error: true
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
+        with:
+          status: completed
+          conclusion: ${{ steps.parse_results.outputs.parse_ok == 'true' && steps.parse_results.outputs.total_failed == '0' && 'success' || 'failure' }}
+          job-name: ${{ inputs.runner_label }} / test (${{ inputs.category }}, ${{ matrix.shard }}, ${{ inputs.num_shards }}, py3.10)
+          test-results: >-
+            {
+              "passed": ${{ steps.parse_results.outputs.passed }},
+              "failed": ${{ steps.parse_results.outputs.total_failed }},
+              "skipped": ${{ steps.parse_results.outputs.skipped }},
+              "total": ${{ steps.parse_results.outputs.total }}
+            }

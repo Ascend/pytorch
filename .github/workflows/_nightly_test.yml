@@ -1,0 +1,144 @@
+name: Test Parallel
+
+on:
+  workflow_call:
+    inputs:
+      resolved_short:
+        required: true
+        type: string
+        description: Short SHA of upstream PyTorch (from _build.yml outputs)
+      resolved_sha:
+        required: true
+        type: string
+        description: Full SHA of upstream PyTorch — passed down as the checkout ref so the tested source matches the built wheels exactly.
+      upstream_repo:
+        required: false
+        type: string
+        default: 'pytorch/pytorch'
+        description: The upstream repository full name (owner/repo)
+      torch_npu_short:
+        required: false
+        type: string
+        default: ''
+        description: Short SHA of torch_npu (from _build.yml outputs)
+      case_paths_config:
+        required: false
+        type: string
+        default: ''
+        description: 'Path (relative to repo root) to whitelist YAML. Empty = scan all test_*.py files.'
+      docker_image:
+        required: false
+        type: string
+        default: 'quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly'
+        description: Docker image for running tests
+      report_to_upstream:
+        required: false
+        type: boolean
+        default: false
+        description: Whether to report test status to upstream dashboard
+      hw_classification:
+        required: false
+        type: string
+        default: 'ACCELERATOR'
+        description: >-
+          Space-separated hardware classification filters passed to pytest
+          --collect-only (e.g., "ACCELERATOR" or "GENERIC ACCELERATOR").
+          Valid values: GENERIC ACCELERATOR CPU CUDA MPS XPU.
+      full_scan:
+        required: false
+        type: boolean
+        default: false
+        description: >-
+          When true, scan ALL test_*.py files and use case-paths-config as a
+          categorization mapping (paths + files) instead of a whitelist.
+          Unmatched files go to 'others'.
+      skip_list:
+        required: false
+        type: string
+        default: ''
+        description: >-
+          Path(s) (relative to repo root) to skip list files. Newline-separated
+          for multiple files. When set, matching nodeids are removed after
+          collection and before sharding.
+      runner_label:
+        required: false
+        type: string
+        default: 'linux-aarch64-a3-2'
+        description: Runner label for runs-on and upstream job-name reporting.
+      device_env:
+        required: false
+        type: string
+        default: 'privateuse1'
+        description: >-
+          Comma-separated device types exported as
+          PYTORCH_TESTING_DEVICE_ONLY_FOR during collection AND execution.
+          The same value must be used in both phases so collected nodeids
+          exist when tests run. Example values: "privateuse1" or
+          "privateuse1,cpu".
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  # ============================================================================
+  # 1. Collect and shard test cases (category-driven)
+  # ============================================================================
+  collect:
+    uses: ./.github/workflows/_nightly_test-collect.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ inputs.resolved_short }}
+      resolved_sha: ${{ inputs.resolved_sha }}
+      upstream_repo: ${{ inputs.upstream_repo }}
+      case_paths_config: ${{ inputs.case_paths_config }}
+      docker_image: ${{ inputs.docker_image }}
+      hw_classification: ${{ inputs.hw_classification }}
+      full_scan: ${{ inputs.full_scan }}
+      skip_list: ${{ inputs.skip_list }}
+      runner_label: ${{ inputs.runner_label }}
+      device_env: ${{ inputs.device_env }}
+
+  # ============================================================================
+  # 2. Run test shards per category (matrix-driven)
+  # ============================================================================
+  test:
+    needs: collect
+    if: ${{ needs.collect.result == 'success' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.collect.outputs.test_matrix) }}
+    uses: ./.github/workflows/_nightly_test-category.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ inputs.resolved_short }}
+      resolved_sha: ${{ inputs.resolved_sha }}
+      upstream_repo: ${{ inputs.upstream_repo }}
+      category: ${{ matrix.category }}
+      num_shards: ${{ matrix.num_shards }}
+      matrix_json: ${{ matrix.matrix_json }}
+      max_workers: ${{ matrix.max_workers }}
+      docker_image: ${{ inputs.docker_image }}
+      report_to_upstream: ${{ inputs.report_to_upstream }}
+      runner_label: ${{ matrix.runner_label }}
+      device_env: ${{ inputs.device_env }}
+
+  # ============================================================================
+  # 3. Generate consolidated test report
+  # ============================================================================
+  report:
+    needs:
+      - collect
+      - test
+    if: always() && needs.collect.result == 'success'
+    uses: ./.github/workflows/_test-report.yml
+    with:
+      core_matrix: ${{ needs.collect.outputs.core_matrix }}
+      tensor_matrix: ${{ needs.collect.outputs.tensor_matrix }}
+      distributed_matrix: ${{ needs.collect.outputs.distributed_matrix }}
+      graph_matrix: ${{ needs.collect.outputs.graph_matrix }}
+      others_matrix: ${{ needs.collect.outputs.others_matrix }}
+      docker_image: ${{ inputs.docker_image }}
+      pytorch_short: ${{ inputs.resolved_short }}
+      torch_npu_short: ${{ inputs.torch_npu_short }}

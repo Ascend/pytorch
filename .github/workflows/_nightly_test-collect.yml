@@ -1,0 +1,343 @@
+name: Test Collect
+
+on:
+  workflow_call:
+    inputs:
+      resolved_short:
+        required: true
+        type: string
+        description: Short SHA of upstream PyTorch (from _build.yml outputs)
+      resolved_sha:
+        required: true
+        type: string
+        description: Full SHA of upstream PyTorch — used as the checkout ref so the tested source matches the built wheels exactly.
+      upstream_repo:
+        required: false
+        type: string
+        default: 'pytorch/pytorch'
+        description: The upstream repository full name (owner/repo)
+      case_paths_config:
+        required: false
+        type: string
+        default: ''
+        description: 'Path (relative to repo root) to whitelist YAML. Empty = scan all test_*.py files.'
+      docker_image:
+        required: false
+        type: string
+        default: 'quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly'
+        description: Docker image for running tests
+      hw_classification:
+        required: false
+        type: string
+        default: 'ACCELERATOR'
+        description: >-
+          Space-separated hardware classification filters passed to pytest
+          --collect-only (e.g., "ACCELERATOR" or "GENERIC ACCELERATOR").
+          Valid values: GENERIC ACCELERATOR CPU CUDA MPS XPU.
+      full_scan:
+        required: false
+        type: boolean
+        default: false
+        description: >-
+          When true, scan ALL test_*.py files and use case-paths-config as a
+          categorization mapping (paths + files) instead of a whitelist.
+          Unmatched files go to 'others'.
+      skip_list:
+        required: false
+        type: string
+        default: ''
+        description: >-
+          Path(s) (relative to repo root) to skip list files. Newline-separated
+          for multiple files. When set, matching nodeids are removed after
+          collection and before sharding. When empty, no skip filtering is
+          applied. Supports JSONL, JSON {skip_nodeids:[...]}, JSON array,
+          and JSON {nodeid: {reason:...}} formats.
+      runner_label:
+        required: false
+        type: string
+        default: 'linux-aarch64-a3-8'
+        description: Runner label for runs-on and upstream job-name reporting.
+      device_env:
+        required: false
+        type: string
+        default: 'privateuse1'
+        description: >-
+          Comma-separated device types exported as
+          PYTORCH_TESTING_DEVICE_ONLY_FOR during collection. Must match the
+          execution phase value.
+    outputs:
+      core_matrix:
+        description: Core shard matrix JSON
+        value: ${{ jobs.collect.outputs.core_matrix }}
+      tensor_matrix:
+        description: Tensor shard matrix JSON
+        value: ${{ jobs.collect.outputs.tensor_matrix }}
+      distributed_matrix:
+        description: Distributed shard matrix JSON
+        value: ${{ jobs.collect.outputs.distributed_matrix }}
+      graph_matrix:
+        description: Graph shard matrix JSON
+        value: ${{ jobs.collect.outputs.graph_matrix }}
+      others_matrix:
+        description: Others shard matrix JSON
+        value: ${{ jobs.collect.outputs.others_matrix }}
+      core_num_shards:
+        description: Number of core shards
+        value: ${{ jobs.collect.outputs.core_num_shards }}
+      tensor_num_shards:
+        description: Number of tensor shards
+        value: ${{ jobs.collect.outputs.tensor_num_shards }}
+      distributed_num_shards:
+        description: Number of distributed shards
+        value: ${{ jobs.collect.outputs.distributed_num_shards }}
+      graph_num_shards:
+        description: Number of graph shards
+        value: ${{ jobs.collect.outputs.graph_num_shards }}
+      others_num_shards:
+        description: Number of others shards
+        value: ${{ jobs.collect.outputs.others_num_shards }}
+      core_workers:
+        description: Worker count for core category
+        value: ${{ jobs.collect.outputs.core_workers }}
+      tensor_workers:
+        description: Worker count for tensor category
+        value: ${{ jobs.collect.outputs.tensor_workers }}
+      distributed_workers:
+        description: Worker count for distributed category
+        value: ${{ jobs.collect.outputs.distributed_workers }}
+      graph_workers:
+        description: Worker count for graph category
+        value: ${{ jobs.collect.outputs.graph_workers }}
+      others_workers:
+        description: Worker count for others category
+        value: ${{ jobs.collect.outputs.others_workers }}
+      has_core:
+        description: Whether core cases exist
+        value: ${{ jobs.collect.outputs.has_core }}
+      has_tensor:
+        description: Whether tensor cases exist
+        value: ${{ jobs.collect.outputs.has_tensor }}
+      has_distributed:
+        description: Whether distributed cases exist
+        value: ${{ jobs.collect.outputs.has_distributed }}
+      has_graph:
+        description: Whether graph cases exist
+        value: ${{ jobs.collect.outputs.has_graph }}
+      has_others:
+        description: Whether others cases exist
+        value: ${{ jobs.collect.outputs.has_others }}
+      total_cases:
+        description: Total number of test cases
+        value: ${{ jobs.collect.outputs.total_cases }}
+      test_matrix:
+        description: JSON array for test matrix (category, num_shards, matrix_json, max_workers)
+        value: ${{ jobs.collect.outputs.test_matrix }}
+
+jobs:
+  collect:
+    runs-on: ${{ inputs.runner_label }}
+    permissions:
+      id-token: write
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    container:
+      image: ${{ inputs.docker_image }}
+      options: --network host
+    env:
+      PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
+    outputs:
+      core_matrix: ${{ steps.build_matrix.outputs.core_matrix }}
+      tensor_matrix: ${{ steps.build_matrix.outputs.tensor_matrix }}
+      distributed_matrix: ${{ steps.build_matrix.outputs.distributed_matrix }}
+      graph_matrix: ${{ steps.build_matrix.outputs.graph_matrix }}
+      others_matrix: ${{ steps.build_matrix.outputs.others_matrix }}
+      core_num_shards: ${{ steps.build_matrix.outputs.core_num_shards }}
+      tensor_num_shards: ${{ steps.build_matrix.outputs.tensor_num_shards }}
+      distributed_num_shards: ${{ steps.build_matrix.outputs.distributed_num_shards }}
+      graph_num_shards: ${{ steps.build_matrix.outputs.graph_num_shards }}
+      others_num_shards: ${{ steps.build_matrix.outputs.others_num_shards }}
+      core_workers: ${{ steps.build_matrix.outputs.core_workers }}
+      tensor_workers: ${{ steps.build_matrix.outputs.tensor_workers }}
+      distributed_workers: ${{ steps.build_matrix.outputs.distributed_workers }}
+      graph_workers: ${{ steps.build_matrix.outputs.graph_workers }}
+      others_workers: ${{ steps.build_matrix.outputs.others_workers }}
+      has_core: ${{ steps.collect_cases.outputs.has_core }}
+      has_tensor: ${{ steps.collect_cases.outputs.has_tensor }}
+      has_distributed: ${{ steps.collect_cases.outputs.has_distributed }}
+      has_graph: ${{ steps.collect_cases.outputs.has_graph }}
+      has_others: ${{ steps.collect_cases.outputs.has_others }}
+      total_cases: ${{ steps.collect_cases.outputs.total_cases }}
+      test_matrix: ${{ steps.build_matrix.outputs.test_matrix }}
+
+    steps:
+      - name: Authenticate to Huawei Cloud
+        uses: huaweicloud/auth-action@v1.1.0
+        with:
+          access_key_id: ${{ secrets.ACCESSKEY }}
+          secret_access_key: ${{ secrets.SECRETACCESSKEY }}
+          region: ap-southeast-1
+
+      - name: Compute SHAs
+        id: sha
+        run: |
+          UPSTREAM_SHORT="${{ inputs.resolved_short }}"
+          echo "wheels_tarball=wheels-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout PyTorch source
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.upstream_repo }}
+          ref: ${{ inputs.resolved_sha }}
+          fetch-depth: 1
+          submodules: false
+          path: pytorch
+
+      - name: Download wheels from OBS
+        uses: huaweicloud/obs-helper@v1.0.1
+        with:
+          region: ap-southeast-1
+          bucket_name: pytorch-ci-cache
+          local_file_path: ./${{ steps.sha.outputs.wheels_tarball }}
+          obs_file_path: 7day-cache/${{ steps.sha.outputs.wheels_tarball }}
+          operation_type: download
+
+      - name: Extract and install wheels
+        run: |
+          mkdir -p /tmp/wheels
+          tar -xzf ${{ steps.sha.outputs.wheels_tarball }} -C /tmp/wheels
+          rm ${{ steps.sha.outputs.wheels_tarball }}
+          pip install /tmp/wheels/torch-*.whl
+          pip install --no-deps /tmp/wheels/torch_npu*.whl
+          pip install --no-deps /tmp/wheels/torchvision-*.whl || echo "WARNING: torchvision wheel not found in tarball"
+
+      - name: Checkout test scripts
+        uses: actions/checkout@v6
+        with:
+          path: ci-scripts
+          ref: ci-test
+
+      - name: Collect and shard test cases
+        id: collect_cases
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+          export LD_LIBRARY_PATH=/opt/conda/envs/py_3.10/lib:$LD_LIBRARY_PATH
+
+          export PYTHONPATH="${GITHUB_WORKSPACE}/ci-scripts/.github/scripts:${PYTHONPATH}"
+
+          CASE_PATHS_CONFIG='${{ inputs.case_paths_config }}'
+
+          echo "=== Collecting all test cases ==="
+          echo "Case paths config: ${CASE_PATHS_CONFIG:-<scan all>}"
+
+          CONFIG_ARG=""
+          if [ -n "${CASE_PATHS_CONFIG}" ]; then
+            CONFIG_ARG="--case-paths-config ${GITHUB_WORKSPACE}/ci-scripts/${CASE_PATHS_CONFIG}"
+          fi
+
+          FULL_SCAN_ARG=""
+          if [ "${{ inputs.full_scan }}" = "true" ]; then
+            FULL_SCAN_ARG="--full-scan"
+          fi
+
+          SKIP_LIST_ARG=""
+          SKIP_LIST_INPUT='${{ inputs.skip_list }}'
+          if [ -n "${SKIP_LIST_INPUT}" ]; then
+            for skip_path in ${SKIP_LIST_INPUT}; do
+              FULL_PATH="${GITHUB_WORKSPACE}/ci-scripts/${skip_path}"
+              if [ -f "${FULL_PATH}" ]; then
+                SKIP_LIST_ARG="${SKIP_LIST_ARG} --skip-list ${FULL_PATH}"
+                echo "Skip list: ${skip_path}"
+              else
+                echo "WARNING: skip list file not found: ${FULL_PATH}"
+              fi
+            done
+          fi
+
+          python3 ${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/collect_all_cases.py \
+            --test-dir ${GITHUB_WORKSPACE}/pytorch/test \
+            --hw-classification ${{ inputs.hw_classification }} \
+            ${CONFIG_ARG} \
+            ${FULL_SCAN_ARG} \
+            ${SKIP_LIST_ARG} \
+            --regular-threshold 100000 \
+            --distributed-threshold 1000 \
+            --device-env "${{ inputs.device_env }}" \
+            --output-dir ${GITHUB_WORKSPACE}/cases-shards \
+            --error-log-dir ${GITHUB_WORKSPACE}/collection_errors \
+            --parallel 32 \
+            2>&1 | tee /tmp/collect_cases.log
+
+          echo "=== Generated shard files ==="
+          ls -la ${GITHUB_WORKSPACE}/cases-shards/
+
+          echo "=== Collection summary ==="
+          cat ${GITHUB_WORKSPACE}/cases-shards/cases_collection_summary.json
+
+          # Extract per-category outputs from summary JSON
+          python3 -c "
+          import json
+          d = json.load(open('${GITHUB_WORKSPACE}/cases-shards/cases_collection_summary.json'))
+          cats = d.get('categories', {})
+
+          total = d.get('total_cases', 0)
+          print(f'total_cases={total}')
+
+          for cat in ['core', 'tensor', 'distributed', 'graph', 'others']:
+              c = cats.get(cat, {})
+              has = 'true' if c.get('total_cases', 0) > 0 else 'false'
+              print(f'has_{cat}={has}')
+          " >> "$GITHUB_OUTPUT"
+
+      - name: Build shard matrices
+        id: build_matrix
+        run: |
+          python3 -c "
+          import json
+          d = json.load(open('${GITHUB_WORKSPACE}/cases-shards/cases_collection_summary.json'))
+          cats = d.get('categories', {})
+
+          for cat in ['core', 'tensor', 'distributed', 'graph', 'others']:
+              c = cats.get(cat, {})
+              n = c.get('num_shards', 0)
+              w = c.get('workers', 32)
+              matrix = json.dumps(list(range(1, n + 1))) if n > 0 else '[]'
+              print(f'{cat}_matrix={matrix}')
+              print(f'{cat}_num_shards={n}')
+              print(f'{cat}_workers={w}')
+
+          # Build test_matrix for _test.yml matrix include
+          test_matrix = []
+          for cat in ['core', 'tensor', 'distributed', 'graph', 'others']:
+              c = cats.get(cat, {})
+              n = c.get('num_shards', 0)
+              if n > 0:
+                  w = c.get('workers', 32)
+                  r = c.get('runner', 'linux-aarch64-a3-8')
+                  test_matrix.append({
+                      'category': cat,
+                      'num_shards': str(n),
+                      'matrix_json': json.dumps(list(range(1, n + 1))),
+                      'max_workers': str(w),
+                      'runner_label': r,
+                  })
+          print(f'test_matrix={json.dumps(test_matrix)}')
+          " >> "$GITHUB_OUTPUT"
+
+      - name: Upload cases shard JSONs
+        uses: actions/upload-artifact@v4
+        with:
+          name: cases-shards
+          path: cases-shards/
+          retention-days: 7
+
+      - name: Upload collection error logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: collection-errors
+          path: collection_errors/
+          if-no-files-found: ignore
+          retention-days: 7
