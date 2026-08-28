@@ -5,7 +5,7 @@
 #include <vector>
 #include <string>
 #include <utility>
-#include "third_party/acl/inc/acl/acl_op_compiler.h"
+#include <acl/acl_op_compiler.h>
 
 namespace at_npu {
 namespace aclops {

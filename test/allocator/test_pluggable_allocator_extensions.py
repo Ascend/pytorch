@@ -21,7 +21,12 @@ def create_build_path(build_directory):
 
 
 def build_stub(base_dir):
-    build_stub_cmd = ["sh", os.path.join(base_dir, 'third_party/acl/libs/build_stub.sh')]
+    build_stub_cmd = [
+        "sh",
+        os.path.join(base_dir, 'third_party/acl/libs/build_stub.sh'),
+        # Use the same installed header root for the ACL stub and C++ Extension.
+        os.path.join(PYTORCH_NPU_INSTALL_PATH, 'include'),
+    ]
     if subprocess.call(build_stub_cmd) != 0:
         raise RuntimeError('Failed to build stub: {}'.format(build_stub_cmd))
 
@@ -47,7 +52,6 @@ class TestPluggableAllocator(TestCase):
         extra_ldflags.append(f"-L{PYTORCH_INSTALL_PATH}")
         extra_include_paths = [os.path.join(TEST_DIR, "cpp_extensions")]
         extra_include_paths.append(os.path.join(PYTORCH_NPU_INSTALL_PATH, 'include'))
-        extra_include_paths.append(os.path.join(PYTORCH_NPU_INSTALL_PATH, 'include', 'third_party', 'acl', 'inc'))
 
         cls.module = torch.utils.cpp_extension.load(
             name="pluggable_allocator_extensions",

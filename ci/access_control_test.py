@@ -58,7 +58,7 @@ def fetch_acl_headers():
         try:
             import torch_npu
             installed_acl = Path(
-                torch_npu.__file__).resolve().parent / 'include' / 'third_party' / 'acl' / 'inc' / 'acl'
+                torch_npu.__file__).resolve().parent / 'include' / 'acl'
             if installed_acl.is_dir():
                 acl_dest.mkdir(parents=True, exist_ok=True)
                 shutil.copytree(str(installed_acl), str(acl_dest), dirs_exist_ok=True)

@@ -7,7 +7,7 @@
 
 #include <c10/core/Device.h>
 #include "torch_npu/csrc/logging/LogContext.h"
-#include <third_party/acl/inc/acl/acl_op.h>
+#include <acl/acl_op.h>
 
 namespace c10_npu {
 

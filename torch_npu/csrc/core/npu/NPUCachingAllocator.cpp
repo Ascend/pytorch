@@ -17,8 +17,8 @@
 #include <c10/util/llvmMathExtras.h>
 #include <c10/util/ScopeExit.h>
 
-#include "third_party/acl/inc/acl/acl_base.h"
-#include "third_party/acl/inc/acl/acl_rt.h"
+#include <acl/acl_base.h>
+#include <acl/acl_rt.h>
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUAllocatorConfig.h"

@@ -43,7 +43,7 @@ def include_paths(npu: bool = False) -> List[str]:
         os.path.join(lib_include, 'TH'),
         os.path.join(lib_include, 'THC')
     ]
-    include_path = os.path.join(PYTORCH_NPU_INSTALL_PATH, "include", "third_party", "acl", "inc")
+    include_path = os.path.join(PYTORCH_NPU_INSTALL_PATH, "include")
     paths.extend([include_path])
     if npu:
         ASCEND_HOME = get_ascend_home()
@@ -54,8 +54,6 @@ def include_paths(npu: bool = False) -> List[str]:
             os.path.join(ASCEND_HOME, "include/experiment"),
             os.path.join(ASCEND_HOME, "include/experiment/msprof"),
         ])
-
-        paths.append(os.path.join(PYTORCH_NPU_INSTALL_PATH, "include"))
     return paths
 
 
