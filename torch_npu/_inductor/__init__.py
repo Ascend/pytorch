@@ -105,15 +105,13 @@ def _load_triton_backend():
     from .codecache import patch_aot_code_compiler_compile
     from .config import aggresive_autotune, log as npulog, num_vector_core
     from .decomposition import _register_triton_decompositions
+    from .fx_passes import register_fav3_partition_pass
     from .lowering import make_reduction, npu_make_fallback
     from .npu_choices import should_use_persistent_reduction
     from .npu_device import NewNPUDeviceOpOverrides
     from .npu_fusion_attention_graph import register_fa_pass
     from .runtime import _load_cached_autotuning
-    from .utils import (
-        disable_foreach,
-        patch_fx_node_is_input_dependent_cudagraph_unsafe,
-    )
+    from .utils import disable_foreach
 
     def _inductor_register_backend_for_device():
         from .codegen.cpp_wrapper import CppWrapperNpu
@@ -192,9 +190,9 @@ def _load_triton_backend():
 
 
     register_fa_pass()
+    register_fav3_partition_pass()
     disable_foreach()
     patch_get_optimization_cflags()
-    patch_fx_node_is_input_dependent_cudagraph_unsafe()
     os.environ["TORCHINDUCTOR_COMPREHENSIVE_PADDING"] = "0"
     torch._inductor.config.comprehensive_padding = False
     os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = "1"
