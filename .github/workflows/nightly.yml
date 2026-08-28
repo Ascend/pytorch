@@ -36,8 +36,8 @@ jobs:
       torch_npu_ref: master
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-202608241234-9c1d81e6
       report_to_upstream: false
-      runner_label: 'linux-amd64-cpu-8'
-      max_jobs: '24'
+      runner_label: 'linux-aarch64-cpu-7'
+      max_jobs: '7'
 
   test:
     needs: build
