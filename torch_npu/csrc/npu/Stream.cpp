@@ -3,9 +3,9 @@
 #include <torch/csrc/Device.h>
 #include <torch/csrc/THP.h>
 
-#include "third_party/acl/inc/acl/acl.h"
-#include "third_party/acl/inc/acl/acl_base.h"
-#include "third_party/acl/inc/acl/acl_rt.h"
+#include <acl/acl.h>
+#include <acl/acl_base.h>
+#include <acl/acl_rt.h>
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/npu/Module.h"

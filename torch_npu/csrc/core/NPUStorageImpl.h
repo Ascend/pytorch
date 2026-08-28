@@ -8,8 +8,8 @@
 #include <c10/util/typeid.h>
 #include <c10/util/order_preserving_flat_hash_map.h>
 
-#include "third_party/acl/inc/acl/acl_rt.h"
-#include "third_party/acl/inc/acl/acl_base.h"
+#include <acl/acl_rt.h>
+#include <acl/acl_base.h>
 
 namespace torch_npu {
 

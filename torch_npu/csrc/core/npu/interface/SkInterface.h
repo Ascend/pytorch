@@ -1,8 +1,8 @@
 #pragma once
 
-#include "third_party/acl/inc/acl/super_kernel.h"
-#include "third_party/acl/inc/acl/acl_base.h"
-#include "third_party/acl/inc/acl/acl_mdl.h"
+#include <acl/super_kernel.h>
+#include <acl/acl_base.h>
+#include <acl/acl_mdl.h>
 
 namespace c10_npu {
 namespace skapi {

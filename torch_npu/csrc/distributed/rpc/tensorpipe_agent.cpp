@@ -16,7 +16,7 @@
 
 #include "third_party/Tensorpipe/tensorpipe/common/device_id.h"
 #include "third_party/Tensorpipe/tensorpipe/tensorpipe.h"
-#include "third_party/acl/inc/acl/acl_rt.h"
+#include <acl/acl_rt.h>
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/distributed/rpc/tensorpipe_utils.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
@@ -362,7 +362,7 @@ void TensorPipeAgent::checkAndSetStaticGroup(const c10::intrusive_ptr<::c10d::St
     returnedVec = store->compareSet(isStaticGroupKey, std::vector<uint8_t>(), isStaticGroupVec);
     std::string returnedVal = std::string(returnedVec.begin(), returnedVec.end());
     // In both cases, the returned value should be the value of isStaticGroupStr,
-    // otherwise there is a discrepency with initialization among one of the
+    // otherwise there is a discrepancy with initialization among one of the
     // members
 }
 

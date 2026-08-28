@@ -3,7 +3,7 @@
 
 #include <c10/util/SmallVector.h>
 
-#include "third_party/acl/inc/acl/acl_base.h"
+#include <acl/acl_base.h>
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/NPUDefinition.h"
 
