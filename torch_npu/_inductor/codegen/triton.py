@@ -497,12 +497,22 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
         else:
             pass
 
+    def _is_scalar_welford_outer_axis(self):
+        vector_axis = getattr(V.kernel, "vectorized_welford_axis", None)
+        return (
+            vector_axis is not None
+            and self.prefix != "r"
+            and self.is_split_axis
+            and not self.is_vectorized_split
+        )
+
     def get_axis_direction(self):
         # assume self.golden_var_list is to be correct axis order
         if self.is_vectorized_split:
+            rank = self.kernel.vectorized_welford_rank()
             return (
                 "["
-                + ",".join([":"] + ["None"] * len(self.kernel.tiling_axis))
+                + ",".join([":"] + ["None"] * max(rank - 1, 0))
                 + "]"
             )
 
@@ -527,6 +537,33 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
     def _codegen(self):
         self.indexing_code.clear()
         index = None
+
+        def initialize_welford_accumulators():
+            for acc_name in V.kernel.reduction_result_vars:
+                acc_name = str(acc_name)
+                if acc_name.endswith(("_acc_sum", "_acc_sum_sq", "_acc_count")):
+                    self.writeline(
+                        f"{acc_name} = tl.zeros("
+                        f"{V.kernel.welford_acc_shape}, {V.kernel.welford_acc_type})"
+                    )
+
+        if self._is_scalar_welford_outer_axis():
+            self.writeline(f"{self.name}_mask = True")
+            for var in self.var_directions:
+                self.writeline(f"{var.name} = {self.name}")
+                self.writeline(f"{var.name}_mask = True")
+            for removed in V.kernel.range_tree_nodes_removed.values():
+                if (
+                    removed.prefix == self.prefix
+                    and not removed.is_vectorized_split
+                    and removed.name != self.name
+                    and V.graph.sizevars.statically_known_equals(
+                        removed.length, self.length
+                    )
+                ):
+                    self.writeline(f"{removed.name} = {self.name}")
+                    self.writeline(f"{removed.name}_mask = True")
+            return self.name
         # for multiple reduce dims, don't need this
         if not self.is_tiling_axis:
             if self.is_vectorized_split:
@@ -534,6 +571,7 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
                 index = f"{self.name} = {self.codegen_index(direction)}"
                 self.writeline(index)
                 self._codegen_mask()
+                initialize_welford_accumulators()
             return self.name
 
         direction = self.get_axis_direction()
@@ -560,6 +598,13 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
         if index:
             self.writeline(index)
             self._codegen_mask()
+
+        # Each vectorized outer-axis tile contains independent LayerNorm
+        # rows.  Initialize Welford state after entering that tile, rather
+        # than once per scalar outer axis, to prevent rows accumulating into
+        # one another.
+        if self.is_vectorized_split:
+            initialize_welford_accumulators()
 
         return self.name
 
@@ -624,7 +669,11 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
             lines.append(
                 f"base_{self.name}= tl.arange(0, {BLOCK_NAME_SUB}){dtype_cast_str}"
             )
-        elif self.is_tiling_axis:
+        elif (
+            self.is_tiling_axis
+            and not self._is_scalar_welford_outer_axis()
+            and not self.is_vectorized_split
+        ):
             lines.append(
                 f"base_{self.name}= tl.arange(0, {BLOCK_NAME_SUB}){dtype_cast_str}"
             )
@@ -986,6 +1035,8 @@ class NPUIndexTritonKernel(TritonKernel):
         self._original_compute_buf: IndentedBuffer | None = None
         self._original_stores_buf: IndentedBuffer | None = None
         self.vectorized_welford_axis = None
+        self.welford_acc_type = "tl.float32"
+        self.welford_acc_shape = "[1]"
         self.full_static_welford_reduction = False
         self.decide_codegen_dims_in_kernel()
 
@@ -1024,7 +1075,20 @@ class NPUIndexTritonKernel(TritonKernel):
             return False
         if not config.triton.persistent_reductions:
             return False
-        if npu_config.is_ascend950 :
+        reduction_node = self.find_reduction_node()
+        reduction_numel = self.features.reduction_numel
+        if isinstance(reduction_numel, NumelList):
+            reduction_numel = reduction_numel.numels()
+        if (
+            npu_config.is_ascend950
+            and npu_config.enable_welford
+            and getattr(reduction_node, "reduction_type", None) == "welford_reduce"
+            and V.graph.sizevars.statically_known_leq(reduction_numel, 8192)
+        ):
+            # A5 Welford SIMD consumes a static reduction tile. Its compiler
+            # UB checks still reject individual oversized tile configurations.
+            return True
+        if npu_config.is_ascend950:
             threshold = {ReductionHint.INNER: 4096, ReductionHint.DEFAULT: 4096}.get(
                 self.features.get_reduction_hint(), 64
             )
@@ -1460,6 +1524,14 @@ class NPUIndexTritonKernel(TritonKernel):
             int(self.range_tree_nodes[reduction_axis].length) > 0
             for reduction_axis in self.reduction_axis_list()
         )
+
+    def vectorized_welford_rank(self):
+        """Return the DSL rank after adding the vectorized outer axis."""
+        vector_axis = self.vectorized_welford_axis
+        if vector_axis is None:
+            return len(self.golden_var_list or ())
+        golden_vars = tuple(self.golden_var_list or ())
+        return len(golden_vars) + (vector_axis.symbol() not in golden_vars)
 
     def _static_welford_reduction_numel(self):
         if not self.full_static_welford_reduction:
@@ -2668,9 +2740,36 @@ class NPUIndexTritonKernel(TritonKernel):
                 ) and need_axis_loop:
                     if self.numof_reduction_axis() <= 1:
                         self.body.splice(self.prefix)
-                    self.body.writeline(
-                        f"for loop_{range_val.name} in range(loops_{range_val.name}):"
-                    )
+                        self.prefix.clear()
+                    if range_val._is_scalar_welford_outer_axis():
+                        if self.prefix._lines:
+                            self.body.splice(self.prefix)
+                            self.prefix.clear()
+                        self.body.writeline(
+                            f"for {range_val.name} in range("
+                            f"{range_val.name}_offset, min("
+                            f"{range_val.name}_offset + {range_val.name.upper()}BLOCK, "
+                            f"{range_val.name}_numel)):"
+                        )
+                    elif range_val.is_vectorized_split:
+                        block_sub = f"{range_val.name.upper()}BLOCK_SUB"
+                        if range_val.is_split_axis:
+                            loop_start = f"{range_val.name}_offset"
+                            loop_end = (
+                                f"min({loop_start} + {range_val.name.upper()}BLOCK, "
+                                f"{range_val.name}_numel)"
+                            )
+                        else:
+                            loop_start = "0"
+                            loop_end = f"{range_val.name}_numel"
+                        self.body.writeline(
+                            f"for {range_val.name}_loop_offset in range("
+                            f"{loop_start}, {loop_end}, {block_sub}):"
+                        )
+                    else:
+                        self.body.writeline(
+                            f"for loop_{range_val.name} in range(loops_{range_val.name}):"
+                        )
                     do_indent = True
                 loop_body(index, indexing_code, is_last_axis, do_indent)
                 if use_outer_reduction_post_loop:
@@ -2717,13 +2816,41 @@ class NPUIndexTritonKernel(TritonKernel):
                 )
                 if elide_full_reduction_loop and is_first_reduction_tiling:
                     self.body.splice(self.prefix)
+                    self.prefix.clear()
                 if not range_val.is_no_loop_axis and not elide_full_reduction_loop:
                     do_indent = True
                     if is_first_reduction_tiling:
                         self.body.splice(self.prefix)
-                    self.body.writeline(
-                        f"for loop_{range_val.name} in range(loops_{range_val.name}):"
-                    )
+                        self.prefix.clear()
+                    if range_val._is_scalar_welford_outer_axis():
+                        if self.prefix._lines:
+                            self.body.splice(self.prefix)
+                            self.prefix.clear()
+                        self.body.writeline(
+                            f"for {range_val.name} in range("
+                            f"{range_val.name}_offset, min("
+                            f"{range_val.name}_offset + {range_val.name.upper()}BLOCK, "
+                            f"{range_val.name}_numel)):"
+                        )
+                    elif range_val.is_vectorized_split:
+                        block_sub = f"{range_val.name.upper()}BLOCK_SUB"
+                        if range_val.is_split_axis:
+                            loop_start = f"{range_val.name}_offset"
+                            loop_end = (
+                                f"min({loop_start} + {range_val.name.upper()}BLOCK, "
+                                f"{range_val.name}_numel)"
+                            )
+                        else:
+                            loop_start = "0"
+                            loop_end = f"{range_val.name}_numel"
+                        self.body.writeline(
+                            f"for {range_val.name}_loop_offset in range("
+                            f"{loop_start}, {loop_end}, {block_sub}):"
+                        )
+                    else:
+                        self.body.writeline(
+                            f"for loop_{range_val.name} in range(loops_{range_val.name}):"
+                        )
                 loop_body(index, indexing_code, is_last_axis, do_indent=do_indent)
                 if is_first_reduction_tiling and use_outer_reduction_post_loop:
                     self.body.splice(self.post_loop_combine)
@@ -2979,7 +3106,10 @@ class NPUIndexTritonKernel(TritonKernel):
             if reduction is not None and isinstance(reduction, ir.Reduction):
                 return reduction
 
-        for node in self.node_schedule:
+        # Called during the base kernel constructor, before the subclass has
+        # assigned ``node_schedule``.
+        node_schedule = getattr(self, "node_schedule", self.features.node_schedule)
+        for node in node_schedule:
             if node in (EnableReduction, DisableReduction):
                 continue
             reduction = node.node.data
@@ -3724,7 +3854,9 @@ class NPUIndexTritonKernel(TritonKernel):
     def reduction_resize(self, value, dim):
         if self.vectorized_welford_axis is not None:
             block_sub = f"{self.vectorized_welford_axis.name.upper()}BLOCK_SUB"
-            broadcast_dims = [block_sub] + ["1"] * len(self.tiling_axis)
+            broadcast_dims = [block_sub] + ["1"] * max(
+                self.vectorized_welford_rank() - 1, 0
+            )
             return f"{value}.reshape([{', '.join(broadcast_dims)}])"
 
         ndims = self.triton_tensor_ndim()
@@ -4048,9 +4180,12 @@ class NPUIndexTritonKernel(TritonKernel):
                 if vector_axis is not None:
                     block_sub = f"{vector_axis.name.upper()}BLOCK_SUB"
                     acc_shape = f"[{block_sub}, 1]"
+                    self.welford_acc_type = acc_type
+                    self.welford_acc_shape = acc_shape
                     accumulator_shape = (block_sub, "1")
                     resized_shape = tuple(
-                        [block_sub] + ["1"] * len(self.tiling_axis)
+                        [block_sub]
+                        + ["1"] * max(self.vectorized_welford_rank() - 1, 0)
                     )
                     reduce_dim = 1
                     keep_dims = ", keep_dims=True"

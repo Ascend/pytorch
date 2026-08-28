@@ -236,6 +236,40 @@ class TestVarMean(TestUtils):
             npu_config.enable_welford = previous
             torch._dynamo.reset()
 
+    def test_welford_simd_codegen_above_persistent_threshold(self):
+        if not npu_config.is_ascend950:
+            self.skipTest("Welford SIMD rollout is Ascend 950-specific")
+        previous = npu_config.enable_welford
+        npu_config.enable_welford = True
+        torch._dynamo.reset()
+        try:
+            input_element = self._generate_tensor((200, 5036), "float16")
+            weight = self._generate_tensor((5036,), "float16")
+            bias = self._generate_tensor((5036,), "float16")
+
+            def layer_norm(x, gamma, beta):
+                return F.layer_norm(x, (5036,), gamma, beta, 1e-6)
+
+            expected = layer_norm(input_element, weight, bias)
+            compiled = torch.compile(
+                layer_norm,
+                backend="inductor",
+                dynamic=False,
+                options={"unroll_reductions_threshold": 1},
+            )
+            actual, codes = run_and_get_code(
+                compiled, input_element, weight, bias
+            )
+
+            self.assertEqual(expected, actual, atol=1e-1, rtol=1e-1)
+            code = "\n".join(codes)
+            self.assertIn("npu_kernel_type': 'simd'", code)
+            self.assertIn("'vectorized_welford_axis':", code)
+            self.assertNotIn("for loop_r", code)
+        finally:
+            npu_config.enable_welford = previous
+            torch._dynamo.reset()
+
     @parametrize("dtype", ["float16", "bfloat16"])
     def test_welford_simd_low_precision_codegen(self, dtype):
         if not npu_config.is_ascend950:

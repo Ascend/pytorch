@@ -172,6 +172,10 @@ def _read_env_bool(name: str, default: str = "False") -> bool:
 # Keep it disabled by default while the new path is being rolled out.
 enable_welford = os.getenv("TORCHINDUCTOR_ENABLE_WELFORD", "0") == "1"
 
+# Keep the A5 LayerNormV4 workaround disabled by default. Set this to 1 to
+# enable the width-512 LayerNormV4 fallback while Welford is enabled.
+enable_layernorm_v4 = os.getenv("TORCHINDUCTOR_ENABLE_LAYERNORM_V4", "0") == "1"
+
 
 class catlass:
     # Whether to enable debug info, e.g., line number
