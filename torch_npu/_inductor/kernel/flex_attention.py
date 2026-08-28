@@ -31,6 +31,7 @@ from torch_npu._inductor.kernel.flexattention_template import (
     flex_attention_compact_mapping,
     flex_attention_fwd_mask_compact,
     flex_attention_fwd_mask_out,
+    flex_decoding_npu,
 )
 
 from torch._inductor.ir import (
@@ -63,6 +64,7 @@ from torch._inductor.lowering import (
     register_lowering,
     to_dtype,
 )
+from torch._inductor.runtime.runtime_utils import is_power_of_2, next_power_of_2
 from torch._inductor.select_algorithm import autotune_select_algorithm
 from torch.nn.attention import flex_attention as flex_attention_module
 from torch._inductor.kernel.flex_attention import (
@@ -80,6 +82,7 @@ from torch._inductor.kernel.flex_attention import (
     validate_joint_graph,
     zeros_and_scatter_lowering,
 )
+
 
 # PyTorch flex_attention exposes/saves LSE in log2 space, matching the
 # upstream kernels that use exp2/log2. NPU templates below compute LSE with
@@ -241,7 +244,10 @@ from torch_npu._inductor.kernel.flex_attention_config_generator import (
     validate_benchmark_config,
 )
 from torch_npu._inductor import config as npu_config
+
+
 aten = torch.ops.aten
+prims = torch.ops.prims
 Expr = sympy.Expr
 
 
@@ -730,6 +736,297 @@ def _sequence_lengths_are_statically_divisible(seq_len_q, seq_len_kv) -> bool:
     return V.graph.sizevars.statically_known_multiple_of(
         seq_len_q, 128
     ) and V.graph.sizevars.statically_known_multiple_of(seq_len_kv, 128)
+
+
+def _use_flex_decoding(query, kv_indices, kernel_options, enable_gqa):
+    """Match PyTorch 2.7.1's Flex Decoding dispatch conditions."""
+    force_flex = kernel_options.get("FORCE_USE_FLEX_ATTENTION", False)
+    short_query_length = V.graph.sizevars.evaluate_expr(
+        sympy.Lt(query.get_size()[-2], 128)
+    )
+    non_zero_length = V.graph.sizevars.evaluate_expr(
+        sympy.Gt(query.get_size()[-2], 0)
+    )
+    static_batch = isinstance(query.get_size()[0], (int, sympy.Integer))
+    static_num_heads = isinstance(query.get_size()[1], (int, sympy.Integer))
+    if enable_gqa:
+        valid_block_mask_num_heads = V.graph.sizevars.evaluate_expr(
+            sympy.Eq(kv_indices.get_size()[1], 1)
+        )
+    else:
+        valid_block_mask_num_heads = V.graph.sizevars.evaluate_expr(
+            sympy.Or(
+                sympy.Eq(kv_indices.get_size()[1], 1),
+                sympy.Eq(kv_indices.get_size()[1], query.get_size()[1]),
+            )
+        )
+    return (
+        not force_flex
+        and short_query_length
+        and static_batch
+        and static_num_heads
+        and non_zero_length
+        and valid_block_mask_num_heads
+    )
+
+
+def _create_npu_flex_decoding_kernel(*args):
+    """PyTorch Flex Decoding lowering specialized for the NPU template."""
+
+    (
+        query,
+        key,
+        value,
+        block_mask,
+        scale,
+        kernel_options,
+        score_mod_subgraph,
+        mask_mod_subgraph,
+        score_mod_other_buffers,
+        mask_mod_other_buffers,
+    ) = args
+    (
+        _,  # q_length
+        _,  # kv_length
+        kv_num_blocks,
+        kv_indices,
+        full_kv_num_blocks,
+        full_kv_indices,
+        _,  # q_num_blocks
+        _,  # q_indices
+        _,  # full_q_num_blocks
+        _,  # full_q_indices
+        _,  # SPARSE_Q_BLOCK_SIZE
+        SPARSE_KV_BLOCK_SIZE,
+        _,
+    ) = block_mask
+
+    Bq, Hq, seq_len_q, qk_head_dim = query.get_size()
+    Bkv, Hkv, seq_len_kv, v_head_dim = value.get_size()
+
+    assert V.graph.sizevars.evaluate_expr(sympy.Eq(Bq, Bkv) | sympy.Eq(Bkv, 1)), (
+        f"Bq and Bkv must broadcastable. Got Bq={Bq} and Bkv={Bkv}"
+    )
+
+    B = Bq
+    kernel_options = {
+        k: V.graph.sizevars.evaluate_static_shape(v)
+        if isinstance(v, sympy.Symbol)
+        else v
+        for k, v in dict(kernel_options).items()
+    }
+
+    if seq_len_q % 128 != 0 or seq_len_kv % 128 != 0:
+        kernel_options.setdefault("IS_DIVISIBLE", False)
+    else:
+        kernel_options.setdefault("IS_DIVISIBLE", True)
+
+    gqa_shared_heads = Hq // Hkv
+    if not is_power_of_2(gqa_shared_heads):
+        raise ValueError(
+            "Number of shared query heads sharing the same KV head must be power of 2. "
+        )
+    kernel_options.setdefault("GQA_SHARED_HEADS", gqa_shared_heads)
+
+    has_full_blocks = full_kv_num_blocks is not None
+    kernel_options.setdefault("HAS_FULL_BLOCKS", has_full_blocks)
+    if not has_full_blocks:
+        full_kv_num_blocks, full_kv_indices = (
+            empty(0, device=query.get_device()) for _ in range(2)
+        )
+
+    (
+        query,
+        key,
+        value,
+        kv_num_blocks,
+        kv_indices,
+        full_kv_num_blocks,
+        full_kv_indices,
+    ) = maybe_realize(
+        [
+            query,
+            key,
+            value,
+            kv_num_blocks,
+            kv_indices,
+            full_kv_num_blocks,
+            full_kv_indices,
+        ]
+    )
+    score_mod_other_buffers = maybe_realize(score_mod_other_buffers)
+    mask_mod_other_buffers = maybe_realize(mask_mod_other_buffers)
+
+    choices: list[Any] = []
+    configs: list[tuple[int, int, int]] = [(64, 2, 1)]
+    if config.max_autotune:
+        configs += [
+            (64, 2, 2),
+            (32, 2, 2),
+            (128, 2, 2),
+        ]
+
+    kernel_options.setdefault("SM_SCALE", scale)
+    bh = max(B * Hkv, 1)
+    assert isinstance(bh, (int, sympy.Integer)), (
+        "B and H must be concrete integers"
+    )
+    kernel_options.setdefault("SPLIT_KV", max(_get_num_cube_core() // bh * 2, 1))
+    MAX_SPLIT_KV = kernel_options["SPLIT_KV"]
+
+    buf_ACC_shape = [B, MAX_SPLIT_KV, Hq, seq_len_q, v_head_dim]
+    buf_ML_shape = buf_ACC_shape[:-1]
+    buf_M = empty_strided(
+        buf_ML_shape,
+        None,
+        dtype=torch.float32,
+        device=query.get_device(),
+    )
+    buf_L = empty_strided(
+        buf_ML_shape,
+        None,
+        dtype=torch.float32,
+        device=query.get_device(),
+    )
+
+    layout_acc = FixedLayout(
+        query.get_device(),
+        torch.float32,
+        buf_ACC_shape,
+        FlexibleLayout.contiguous_strides(buf_ACC_shape),
+    )
+
+    set_head_dim_values(kernel_options, qk_head_dim, v_head_dim, V.graph.sizevars)
+
+    block_m = max(
+        next_power_of_2(
+            V.graph.sizevars.size_hint(
+                seq_len_q,
+                fallback=torch._inductor.config.unbacked_symint_fallback,
+            )
+            * gqa_shared_heads
+        ),
+        16,
+    )
+    if V.graph.sizevars.evaluate_expr(sympy.Le(seq_len_q * gqa_shared_heads, 64)):
+        # BishengIR cannot lower the padded query reshape generated by the
+        # community minimum BLOCK_M=16/32 configurations. BLOCK_M=64 keeps the
+        # same masked rows and compiles to the established NPU cube tile.
+        block_m = 64
+    kernel_options.setdefault("BLOCK_M", block_m)
+
+    query = ExternKernel.realize_input(query)
+    stride_b, stride_hq, stride_seq_len_q, stride_qk_head_dim = query.get_stride()
+
+    gqa_query_shape = (B, Hkv, gqa_shared_heads, seq_len_q, qk_head_dim)
+    gqa_query_stride = (
+        stride_b,
+        stride_hq * gqa_shared_heads,
+        stride_hq,
+        stride_seq_len_q,
+        stride_qk_head_dim,
+    )
+    query = lowerings[aten.as_strided](query, gqa_query_shape, gqa_query_stride)
+
+    V.graph.sizevars.guard_leq(
+        seq_len_q * gqa_shared_heads, sympy.Integer(kernel_options["BLOCK_M"])
+    )
+    kernel_options.setdefault(
+        "SAFE_M_BOUNDARY",
+        ((seq_len_q * gqa_shared_heads) % kernel_options["BLOCK_M"]) == 0,
+    )
+    kernel_options.setdefault("SAFE_N_BOUNDARY", True)
+    SPARSE_KV_BLOCK_SIZE = V.graph.sizevars.evaluate_static_shape(
+        SPARSE_KV_BLOCK_SIZE
+    )
+
+    original_kernel_options = kernel_options.copy()
+    for BLOCK_N, num_warps, num_stages in configs:
+        if SPARSE_KV_BLOCK_SIZE % BLOCK_N != 0:
+            continue
+
+        cur_kernel_options = original_kernel_options.copy()
+        for k in list(cur_kernel_options.keys()):
+            if k.startswith("fwd_"):
+                v = cur_kernel_options.pop(k)
+                cur_kernel_options[k[4:]] = v
+            if k.startswith("bwd_"):
+                cur_kernel_options.pop(k)
+        cur_kernel_options.setdefault("BLOCK_N", BLOCK_N)
+        cur_kernel_options.setdefault("SPARSE_KV_BLOCK_SIZE", SPARSE_KV_BLOCK_SIZE)
+        cur_kernel_options.setdefault("num_warps", num_warps)
+        cur_kernel_options.setdefault("num_stages", num_stages)
+
+        flex_decoding_npu.maybe_append_choice(
+            choices=choices,
+            input_nodes=[
+                query,
+                key,
+                value,
+                buf_M,
+                buf_L,
+                kv_num_blocks,
+                kv_indices,
+                full_kv_num_blocks,
+                full_kv_indices,
+            ],
+            layout=layout_acc,
+            subgraphs=[score_mod_subgraph, mask_mod_subgraph],
+            mutated_inputs=[buf_M, buf_L],
+            call_sizes=query.get_size(),
+            **cur_kernel_options,
+        )
+
+    inputs_for_flex_decoding = (
+        [
+            query,
+            key,
+            value,
+            buf_M,
+            buf_L,
+            kv_num_blocks,
+            kv_indices,
+            full_kv_num_blocks,
+            full_kv_indices,
+        ]
+        + list(score_mod_other_buffers)
+        + list(mask_mod_other_buffers)
+    )
+    input_gen_fns = {
+        5: create_num_blocks_fake_generator(kv_indices),
+        6: create_indices_fake,
+        7: create_num_blocks_fake_generator(full_kv_indices),
+        8: create_indices_fake,
+    }
+    buf_ACC = autotune_select_algorithm(
+        "flex_decoding",
+        choices,
+        inputs_for_flex_decoding,
+        layout_acc,
+        input_gen_fns=input_gen_fns,
+    )
+
+    g_M = lowerings[aten.max](buf_M, dim=1, keepdim=True)[0]
+    masked_rows = lowerings[aten.eq](g_M, -float("inf"))
+    adj_M = lowerings[aten.sub](buf_M, g_M)
+    adj_M = lowerings[aten.where](masked_rows, 0, adj_M)
+    alpha = lowerings[aten.exp2](adj_M)
+
+    buf_L = lowerings[aten.mul](buf_L, alpha)
+    g_L = lowerings[aten.sum](buf_L, axis=1)
+    masked_rows_squeezed = lowerings[aten.squeeze](masked_rows, dim=1)
+    g_L = lowerings[aten.where](masked_rows_squeezed, 1.0, g_L)
+    logsumexp = lowerings[aten.log2](g_L)
+    logsumexp = lowerings[aten.add](logsumexp, lowerings[aten.squeeze](g_M, dim=1))
+
+    alpha_unseq = lowerings[aten.unsqueeze](alpha, 4)
+    buf_ACC = lowerings[aten.mul](buf_ACC, alpha_unseq)
+    output = lowerings[aten.sum](buf_ACC, axis=1)
+    L_unseq = lowerings[aten.unsqueeze](g_L, 3)
+    output = lowerings[aten.div](output, L_unseq)
+    output = lowerings[prims.convert_element_type](output, query.get_dtype())
+
+    return output, logsumexp
 
 
 def _validate_device(query, key, value):
@@ -1483,6 +1780,31 @@ def _register_npu_inductor_flex_attention():
         kernel_options.setdefault("FLOAT32_PRECISION", get_float32_precision())
         score_mod_is_identity = _is_score_mod_identity_graph(subgraph)
         has_score_mod = has_explicit_score_mod and not score_mod_is_identity
+        enable_gqa = V.graph.sizevars.evaluate_expr(
+            sympy.Ne(query.get_size()[1], key.get_size()[1])
+        )
+        if _use_flex_decoding(query, kv_indices, kernel_options, enable_gqa):
+            try:
+                return _create_npu_flex_decoding_kernel(
+                    query,
+                    key,
+                    value,
+                    block_mask,
+                    scale,
+                    kernel_options,
+                    subgraph_buffer,
+                    mask_graph_buffer,
+                    score_mod_other_buffers,
+                    mask_mod_other_buffers,
+                )
+            except Exception as exc:
+                # Preserve the established NPU fallback for unsupported decoding
+                # configurations while keeping the dispatch and decoding lowering
+                # identical to the PyTorch 2.7.1 implementation.
+                log.warning(
+                    "Flex decoding failed, falling back to flex attention: %s",
+                    exc,
+                )
         configured_mask_out = bool(
             npu_config.flex_attention.flexattention_mask_out
         )

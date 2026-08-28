@@ -23,6 +23,64 @@ except (ImportError, RuntimeError):
 
 
 class TestFlexAttentionDynamicMaskOutSource(unittest.TestCase):
+    def test_short_query_uses_community_flex_decoding(self):
+        lowering = _read(LOWERING_PATH)
+
+        self.assertNotIn("upstream_flex_decoding", lowering)
+        self.assertIn(
+            "def _use_flex_decoding(query, kv_indices, kernel_options, enable_gqa):",
+            lowering,
+        )
+        self.assertIn("sympy.Lt(query.get_size()[-2], 128)", lowering)
+        self.assertIn("sympy.Gt(query.get_size()[-2], 0)", lowering)
+        self.assertIn("if enable_gqa:", lowering)
+        self.assertIn("sympy.Eq(kv_indices.get_size()[1], 1)", lowering)
+        self.assertIn("return _create_npu_flex_decoding_kernel(", lowering)
+
+    def test_npu_decoding_keeps_lowering_and_patches_community_template(self):
+        lowering = _read(LOWERING_PATH)
+        template = _read(TEMPLATE_PATH)
+        adapter = lowering.split(
+            "def _create_npu_flex_decoding_kernel(*args):", 1
+        )[1].split("def _validate_device", 1)[0]
+
+        self.assertIn("autotune_select_algorithm(", adapter)
+        self.assertIn('"flex_decoding",', adapter)
+        self.assertIn("_get_num_cube_core() // bh * 2", adapter)
+        self.assertIn("configs: list[tuple[int, int, int]] = [(64, 2, 1)]", adapter)
+        self.assertIn("flex_decoding_npu.maybe_append_choice(", adapter)
+        self.assertIn("lowerings[aten.max]", adapter)
+        self.assertIn("lowerings[prims.convert_element_type]", adapter)
+        decoding_template = template.split(
+            "flex_decoding_npu_source =", 1
+        )[1].split("flex_decoding_npu =", 1)[0]
+        self.assertIn("q_rows = tl.arange(0, BLOCK_M)", decoding_template)
+        self.assertIn("q_group = q_rows // BLOCK_M_PER_HQ", decoding_template)
+        self.assertIn("q_m = q_rows % BLOCK_M_PER_HQ", decoding_template)
+        self.assertIn("q_mask = (q_m[:, None] < Q_LEN)", decoding_template)
+        self.assertNotIn("q = tl.reshape(q,", decoding_template)
+        self.assertIn("K_block_ptr = tl.make_block_ptr(", decoding_template)
+        self.assertIn("V_block_ptr = tl.make_block_ptr(", decoding_template)
+        self.assertIn("K_block_ptr = tl.advance(", decoding_template)
+        self.assertNotIn("M_block_ptr = tl.make_block_ptr(", decoding_template)
+        self.assertNotIn("L_block_ptr = tl.make_block_ptr(", decoding_template)
+        self.assertIn("tl.store(M + m_offset + m_offsets", decoding_template)
+        self.assertIn("tl.store(L + l_offset + l_offsets", decoding_template)
+        self.assertNotIn("threading", lowering)
+        self.assertNotIn("_FLEX_DECODING_PATCH_LOCK", lowering)
+
+    def test_decoding_dispatch_precedes_mask_out_dispatch(self):
+        lowering = _read(LOWERING_PATH)
+        forward = lowering.split(
+            "def _register_npu_inductor_flex_attention():", 1
+        )[1].split(
+            "@register_lowering(torch.ops.higher_order.flex_attention_backward", 1
+        )[0]
+
+        decoding_dispatch = forward.index("if _use_flex_decoding(")
+        mask_out_dispatch = forward.index("configured_mask_out = bool(")
+        self.assertLess(decoding_dispatch, mask_out_dispatch)
+
     def test_compact_metadata_is_split_into_offsets_and_mapping(self):
         template = _read(TEMPLATE_PATH)
 
