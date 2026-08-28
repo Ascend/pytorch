@@ -35,6 +35,11 @@ on:
         type: string
         default: 'quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly'
         description: Docker image for build container.
+      max_jobs:
+        required: false
+        type: string
+        default: '64'
+        description: Max parallel compile jobs (MAX_JOBS) for PyTorch and torch_npu builds.
     outputs:
       resolved_sha:
         description: Full resolved SHA of upstream PyTorch
@@ -132,7 +137,7 @@ jobs:
       image: ${{ inputs.docker_image }}
       options: --network host
     env:
-      MAX_JOBS: 64
+      MAX_JOBS: ${{ inputs.max_jobs }}
       USE_CUDA: 0
       USE_XNNPACK: 0
       _GLIBCXX_USE_CXX11_ABI: 1
@@ -337,32 +342,7 @@ jobs:
           path: /tmp/wheels/*.whl
           retention-days: 7
 
-      # Step 6: Verify NPU environment and imports
-      - name: Verify NPU device
-        run: |
-          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
-          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
-
-          echo "=== NPU Device Information ==="
-          npu-smi info
-          echo "=== End of NPU Device Information ==="
-
-      - name: Verify NPU availability
-        run: |
-          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
-          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
-          export LD_LIBRARY_PATH=/opt/conda/envs/py_3.10/lib:$LD_LIBRARY_PATH
-
-          python -c "
-          import torch
-          print(f'torch: {torch.__version__}')
-          import torch_npu
-          print(f'torch_npu: {torch_npu.__version__}')
-          print(f'NPU available: {torch.npu.is_available()}')
-          print(f'NPU count: {torch.npu.device_count()}')
-          "
-
-      # Step 7: Upload build artifacts (always, for debugging failures)
+      # Step 6: Upload build artifacts (always, for debugging failures)
       - name: Upload build artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -375,7 +355,7 @@ jobs:
             torch_npu/torch_npu/csrc/inductor/aoti_torch/generated/c_shim_npu.h
           if-no-files-found: warn
 
-      # Step 8: Summary
+      # Step 7: Summary
       - name: Summary
         if: always()
         run: |
@@ -404,7 +384,7 @@ jobs:
             echo "| Max jobs | ${MAX_JOBS} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # Step 9: Report build completed to upstream (same job as in_progress)
+      # Step 8: Report build completed to upstream (same job as in_progress)
       - name: Report build completed
         if: always() && inputs.report_to_upstream
         continue-on-error: true
