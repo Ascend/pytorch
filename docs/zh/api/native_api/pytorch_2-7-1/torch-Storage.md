@@ -349,6 +349,38 @@
 
 </div>
 
+> <font size="3">float8_e4m3fnuz()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.UntypedStorage.float8_e4m3fnuz](https://pytorch.org/docs/2.7/storage.html#torch.UntypedStorage.float8_e4m3fnuz)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+> <font size="3">float8_e5m2fnuz()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.UntypedStorage.float8_e5m2fnuz](https://pytorch.org/docs/2.7/storage.html#torch.UntypedStorage.float8_e5m2fnuz)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
 > <font size="3">from_buffer()</font>
 
 <div style="margin-left: 2em">
