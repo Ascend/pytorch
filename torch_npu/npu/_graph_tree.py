@@ -1286,6 +1286,7 @@ class NPUGraphNode:
             stream=self.stream,
             pool=self.npu_graphs_pool,
             capture_error_mode="thread_local",
+            auto_dispatch_capture=True,
         ), get_history_recording():
             static_outputs = model(inputs)
 
