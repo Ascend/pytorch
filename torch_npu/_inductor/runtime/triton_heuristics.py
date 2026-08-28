@@ -1311,8 +1311,16 @@ class NPUCachingAutotuner(CachingAutotuner):
             options,
         )
         options = self.parse_triton_ascend_options(cfg_kwargs, options)
-        # Triton-Ascend derives automatic block mapping and its safety
-        # blacklist from TTIR; it is no longer a public compile option.
+        legacy_auto_blockify = (
+            self.inductor_meta.get("enable_auto_blockify", False)
+            or self.inductor_meta.get(
+                "inductor_ascend_linear_mode", "no_linear"
+            ) == "no_linear"
+        )
+        if legacy_auto_blockify:
+            options = self.parse_triton_ascend_options(
+                {"enable_auto_blockify": True}, options
+            )
         # pure simt stack overflow check
         if compile_meta['compile_mode'] == NPUKernelType.SIMT_ONLY.compile_mode():
             options['simt_stack_limit'] = npu_config.simt_default_warp_stacksize

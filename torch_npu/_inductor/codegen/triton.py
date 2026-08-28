@@ -2626,6 +2626,23 @@ class NPUIndexTritonKernel(TritonKernel):
             f"dominant=({dominant_text})",
         )
 
+    def _has_dynamic_shape_axis(self):
+        for axis in self.sorted_axis:
+            length = V.graph.sizevars.simplify(axis.length)
+            if not isinstance(length, (int, sympy.Integer)):
+                return True
+        return False
+
+    def _record_legacy_auto_blockify_for_grouped_fallback(self, inductor_meta):
+        """Record an auto-blockify request for older Triton-Ascend versions."""
+        if not npu_config.enable_symbolic_shape_group_autotune:
+            return
+        if inductor_meta.get("group_enabled", False):
+            return
+        if not self._has_dynamic_shape_axis():
+            return
+        inductor_meta["enable_auto_blockify"] = True
+
     def _same_grouped_benchmark_expr(self, left, right) -> bool:
         return V.graph.sizevars.simplify(left - right) == 0
 
@@ -2873,6 +2890,8 @@ class NPUIndexTritonKernel(TritonKernel):
                 )
             except RuntimeError as exc:
                 self._disable_grouped_autotune(inductor_meta, str(exc))
+
+        self._record_legacy_auto_blockify_for_grouped_fallback(inductor_meta)
 
         # add in tiling args
         self.add_autotune_args(argdefs, signature, triton_meta_signature)
