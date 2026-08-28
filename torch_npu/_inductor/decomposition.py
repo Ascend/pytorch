@@ -18,6 +18,114 @@ from .lowering_common import run_once
 aten = torch.ops.aten
 npu = torch.ops.npu
 
+
+def _matmul_backward_inductor(grad, self, other, mask):
+    """Decompose matmul backward locally for the Triton Inductor backend."""
+    dim_self = self.dim()
+    dim_other = other.dim()
+
+    size_grad = grad.size()
+    size_self = self.size()
+    size_other = other.size()
+    grad_self = None
+    grad_other = None
+
+    def matmul_backward_1d_1d():
+        nonlocal grad_self, grad_other
+        grad_self = other.mul(grad) if mask[0] else grad_self
+        grad_other = self.mul(grad) if mask[1] else grad_other
+        return grad_self, grad_other
+
+    def matmul_backward_2d_1d():
+        nonlocal grad_self, grad_other
+        grad_self = grad.unsqueeze(1).mm(other.unsqueeze(0)) if mask[0] else grad_self
+        grad_other = (
+            self.transpose(-1, -2).mm(grad.unsqueeze(1)).squeeze_(1)
+            if mask[1]
+            else grad_other
+        )
+        return grad_self, grad_other
+
+    def matmul_backward_1d_2d():
+        nonlocal grad_self, grad_other
+        grad_self = (
+            grad.unsqueeze(0).mm(other.transpose(-1, -2)).squeeze_(0)
+            if mask[0]
+            else grad_self
+        )
+        grad_other = self.unsqueeze(1).mm(grad.unsqueeze(0)) if mask[1] else grad_other
+        return grad_self, grad_other
+
+    def matmul_backward_nd_lt3d():
+        nonlocal grad_self, grad_other
+        view_size = 1 if dim_other == 1 else size_grad[-1]
+        unfolded_grad = (
+            (grad.unsqueeze(-1) if dim_other == 1 else grad)
+            .contiguous()
+            .view(-1, view_size)
+        )
+        if mask[0]:
+            unfolded_other = (
+                other.unsqueeze(0) if dim_other == 1 else other.transpose(-1, -2)
+            )
+            grad_self = unfolded_grad.mm(unfolded_other).view(size_self)
+
+        if mask[1]:
+            unfolded_self = self.contiguous().view(-1, size_self[-1])
+            grad_other = (
+                unfolded_self.transpose(-1, -2).mm(unfolded_grad).view(size_other)
+            )
+        return grad_self, grad_other
+
+    def matmul_backward_lt3d_nd():
+        nonlocal grad_self, grad_other
+        view_size = 1 if dim_self == 1 else size_grad[-2]
+        unfolded_grad_t = (
+            grad.view(-1, view_size)
+            if dim_self == 1
+            else grad.transpose(-1, -2).contiguous().view(-1, view_size)
+        )
+        if mask[0]:
+            unfolded_other_t = (
+                other.transpose(-1, -2)
+                .contiguous()
+                .view(-1, size_other[-2])
+                .transpose(-1, -2)
+            )
+            grad_self = (
+                unfolded_other_t.mm(unfolded_grad_t).transpose(-1, -2).view(size_self)
+            )
+
+        if mask[1]:
+            size_other_t = list(size_other[:-2])
+            size_other_t.extend([size_other[dim_other - 1], size_other[dim_other - 2]])
+            unfolded_self = self.unsqueeze(0) if dim_self == 1 else self
+            grad_other = (
+                unfolded_grad_t.mm(unfolded_self).view(size_other_t).transpose(-1, -2)
+            )
+        return grad_self, grad_other
+
+    if dim_self == 1 and dim_other == 1:
+        grad_self, grad_other = matmul_backward_1d_1d()
+    elif dim_self == 2 and dim_other == 1:
+        grad_self, grad_other = matmul_backward_2d_1d()
+    elif dim_self == 1 and dim_other == 2:
+        grad_self, grad_other = matmul_backward_1d_2d()
+    elif dim_self >= 3 and (dim_other == 1 or dim_other == 2):
+        grad_self, grad_other = matmul_backward_nd_lt3d()
+    elif (dim_self == 1 or dim_self == 2) and dim_other >= 3:
+        grad_self, grad_other = matmul_backward_lt3d_nd()
+    else:
+        grad_self = (
+            torch.matmul(grad, other.transpose(-1, -2)) if mask[0] else grad_self
+        )
+        grad_other = (
+            torch.matmul(self.transpose(-1, -2), grad) if mask[1] else grad_other
+        )
+
+    return grad_self, grad_other
+
+
 def _register_triton_decompositions():
     from .config import is_ascend950, enable_fast_gelu
     from .lowering import _add_overload  # noqa: F401
@@ -30,6 +138,9 @@ def _register_triton_decompositions():
         aten.expm1,
         aten.native_layer_norm,
         aten.repeat_interleave.Tensor,  # perf issue
+        aten.slice_backward,
+        aten.embedding_dense_backward,
+        aten.matmul_backward.default,
     ]
 
     if is_ascend950:
@@ -63,6 +174,8 @@ def _register_triton_decompositions():
                 sigmoid_z = torch.sigmoid(z)
                 result = x * sigmoid_z
                 return result
+
+        register_decomposition([aten.matmul_backward.default])(_matmul_backward_inductor)
 
 
     _register_npu_triton_decompositions()

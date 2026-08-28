@@ -607,6 +607,7 @@ TORCH_NATIVE_FALLBACK_LIST = [
     aten._embedding_bag_forward_only.out,
     aten._embedding_bag_per_sample_weights_backward.default,
     aten._embedding_bag_per_sample_weights_backward.out,
+    aten.embedding_dense_backward.default,
     aten._fft_r2c.default,
     aten._fft_r2c.out,
     aten._flash_attention_backward.default,
