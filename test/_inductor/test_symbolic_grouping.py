@@ -215,7 +215,7 @@ class TestPointwiseSymbolicGrouping(TestCase):
 
         self.assertTrue(meta["group_enabled"])
 
-    def test_benchmark_footprint_rejection_enables_auto_blockify(self):
+    def test_benchmark_footprint_rejection_records_legacy_auto_blockify(self):
         meta = self._benchmark_guard_meta(69876)
         kernel = self._run_benchmark_guard(meta)
         with (
@@ -226,7 +226,7 @@ class TestPointwiseSymbolicGrouping(TestCase):
                 True,
             ),
         ):
-            kernel._enable_auto_blockify_for_grouped_fallback_if_needed(meta)
+            kernel._record_legacy_auto_blockify_for_grouped_fallback(meta)
 
         self.assertFalse(meta["group_enabled"])
         self.assertTrue(meta["enable_auto_blockify"])

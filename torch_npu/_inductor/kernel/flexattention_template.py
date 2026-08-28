@@ -36,6 +36,9 @@ _FWD_COMPILE_OPTIONS = NPUTemplateCompileOption(
         "limit_auto_multi_buffer_only_for_local_buffer": True,
         "tile_mix_vector_loop": 0,
         "tile_mix_cube_loop": 0,
+        "buf_slot_num_of_veccore": 3,
+        "buf_slot_num_of_crosscore": 2,
+        # Compatibility with Triton-Ascend before the option consolidation.
         "intra_cache_num": 3,
         "inter_cache_num": 2,
         "enable_cross_if_fusion": True,
@@ -47,8 +50,10 @@ _BWD_DQ_COMPILE_OPTIONS = NPUTemplateCompileOption(
     {
         "limit_auto_multi_buffer_buffer": "no-limit",
         "hfusion_enable_multiple_consumer_fusion": True,
-        "enable_select_analysis": False,
         "limit_auto_multi_buffer_of_local_buffer": "no-l0c",
+        "buf_slot_num_of_veccore": 3,
+        "buf_slot_num_of_crosscore": 2,
+        "enable_select_analysis": False,
         "intra_cache_num": 3,
         "inter_cache_num": 2,
     }
@@ -59,6 +64,8 @@ _BWD_DKDV_COMPILE_OPTIONS = NPUTemplateCompileOption(
         "hfusion_enable_multiple_consumer_fusion": True,
         "unit_flag": True,
         "limit_auto_multi_buffer_of_local_buffer": "no-l0c",
+        "buf_slot_num_of_veccore": 2,
+        "buf_slot_num_of_crosscore": 1,
         "intra_cache_num": 2,
         "inter_cache_num": 1,
     }

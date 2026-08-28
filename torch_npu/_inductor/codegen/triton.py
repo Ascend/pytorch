@@ -2035,17 +2035,8 @@ class NPUIndexTritonKernel(TritonKernel):
                 return True
         return False
 
-    def _enable_auto_blockify_for_grouped_fallback_if_needed(self, inductor_meta):
-        """
-        Enable Triton Ascend auto-blockify only for dynamic-shape kernels that
-        fall back from symbolic grouped autotune.
-
-        When symbolic grouped autotune is enabled but this kernel cannot use the
-        grouped path, dynamic runtime shapes may still make the fixed launch grid
-        exceed the hardware grid limit. In that fallback case, pass
-        enable_auto_blockify through inductor_meta so runtime compilation can ask
-        triton-ascend to add --enable-auto-blockify-loop.
-        """
+    def _record_legacy_auto_blockify_for_grouped_fallback(self, inductor_meta):
+        """Record an auto-blockify request for older Triton-Ascend versions."""
         if not npu_config.enable_symbolic_shape_group_autotune:
             return
         if inductor_meta.get("group_enabled", False):
@@ -2303,7 +2294,7 @@ class NPUIndexTritonKernel(TritonKernel):
             except RuntimeError as exc:
                 self._disable_grouped_autotune(inductor_meta, str(exc))
 
-        self._enable_auto_blockify_for_grouped_fallback_if_needed(inductor_meta)
+        self._record_legacy_auto_blockify_for_grouped_fallback(inductor_meta)
 
         # add in tiling args
         self.add_autotune_args(argdefs, signature, triton_meta_signature)

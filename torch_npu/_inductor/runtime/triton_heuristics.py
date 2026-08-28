@@ -1299,7 +1299,11 @@ class NPUCachingAutotuner(CachingAutotuner):
             bool(self.inductor_meta.get("enable_auto_blockify", False))
             or self.inductor_meta.get("requires_no_linear_block_remap") is True
         ):
-            options["enable_auto_blockify"] = True
+            # Older Triton-Ascend versions expose this option. Newer versions
+            # manage block mapping internally, so the option is filtered out.
+            options = self.parse_triton_ascend_options(
+                {"enable_auto_blockify": True}, options
+            )
         # pure simt stack overflow check
         if compile_meta['compile_mode'] == NPUKernelType.SIMT_ONLY.compile_mode():
             options['simt_stack_limit'] = npu_config.simt_default_warp_stacksize
