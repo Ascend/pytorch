@@ -674,7 +674,7 @@ class NPUTritonTemplate(TritonTemplate):
                 use_jit=False,
                 **kernel_options,
             )
-            kernel._npu_codegen_kernel_name = self.codegen_kernel_name
+            kernel._npu_codegen_kernel_name = kernel_hash_name
             render = functools.partial(
                 kernel.render,
                 self.template,
