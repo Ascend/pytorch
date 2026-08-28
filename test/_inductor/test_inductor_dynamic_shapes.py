@@ -750,21 +750,12 @@ class TestPointwiseSymbolicGrouping(TestCase):
 
         self.assertTrue(meta["group_enabled"])
 
-    def test_benchmark_footprint_rejection_enables_auto_blockify(self):
+    def test_benchmark_footprint_rejection_does_not_emit_compile_option(self):
         meta = self._benchmark_guard_meta(69876)
-        kernel = self._run_benchmark_guard(meta)
-        with (
-            patch.object(kernel, "_has_dynamic_shape_axis", return_value=True),
-            patch.object(
-                triton_codegen.npu_config,
-                "enable_symbolic_shape_group_autotune",
-                True,
-            ),
-        ):
-            kernel._enable_auto_blockify_for_grouped_fallback_if_needed(meta)
+        self._run_benchmark_guard(meta)
 
         self.assertFalse(meta["group_enabled"])
-        self.assertTrue(meta["enable_auto_blockify"])
+        self.assertNotIn("enable_auto_blockify", meta)
 
     def test_wide_backing_storage_falls_back_before_grouped_benchmark(self):
         import torch_npu._inductor.config as npu_config
@@ -817,11 +808,14 @@ class TestPointwiseSymbolicGrouping(TestCase):
             for code in codes
             if "69876" in code
             and "'group_enabled': False" in code
-            and "'enable_auto_blockify': True" in code
         ]
         self.assertTrue(
             matching_codes,
             f"Expected wide pointwise grouped fallback, got:\n{codes}",
+        )
+        self.assertTrue(
+            all("'enable_auto_blockify': True" not in code for code in matching_codes),
+            f"Deprecated enable_auto_blockify option found in:\n{matching_codes}",
         )
 
     def test_static_split_dynamic_tiling_group(self):

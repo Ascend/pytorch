@@ -447,18 +447,14 @@ FLEX_ATTENTION_NPU_COMPILE_HINT_KEYS = (
     "unit_flag",
     "enable_ubuf_saving",
     "hfusion_enable_multiple_consumer_fusion",
-    "enable_select_analysis",
     "limit_auto_multi_buffer_only_for_local_buffer",
     "limit_auto_multi_buffer_of_local_buffer",
     "set_workspace_multibuffer",
     "tile_mix_vector_loop",
     "tile_mix_cube_loop",
     "enable_dynamic_cv_pipeline",
-    "intra_cache_num",
-    "inter_cache_num",
-    "enable_cross_if_fusion",
-    "enable_buffer_insert_optimization",
-    "enable_ub_refine_opt",
+    "buf_slot_num_of_veccore",
+    "buf_slot_num_of_crosscore",
 )
 
 
@@ -476,19 +472,17 @@ class flex_attention:
     enable_ubuf_saving = True
     limit_auto_multi_buffer_buffer = "no-limit"
     hfusion_enable_multiple_consumer_fusion = True
-    enable_select_analysis = False
     limit_auto_multi_buffer_only_for_local_buffer = False
     limit_auto_multi_buffer_of_local_buffer = "no-limit"
     set_workspace_multibuffer = 4
     tile_mix_vector_loop = 4
     tile_mix_cube_loop = 4
     enable_dynamic_cv_pipeline = False
+    buf_slot_num_of_veccore = 3
+    buf_slot_num_of_crosscore = 2
 
     bwd_dq_limit_auto_multi_buffer_of_local_buffer = "no-l0c"
     bwd_dkdv_limit_auto_multi_buffer_of_local_buffer = "no-l0c"
-
-    enable_buffer_insert_optimization = False
-    enable_ub_refine_opt = False
 
     @classmethod
     def _filter_compile_options_for_soc(cls, options: dict) -> dict:
@@ -530,11 +524,8 @@ class flex_attention:
                 "tile_mix_vector_loop": tile_mix_loop,
                 "tile_mix_cube_loop": tile_mix_loop,
                 "ENABLE_COMPILE_HINT": enable_compile_hint if enabled else False,
-                "intra_cache_num": 3,
-                "inter_cache_num": 2,
-                "enable_cross_if_fusion": True,
-                "enable_buffer_insert_optimization": True,
-                "enable_ub_refine_opt": True,
+                "buf_slot_num_of_veccore": 3,
+                "buf_slot_num_of_crosscore": 2,
             },
         )
 
@@ -544,14 +535,13 @@ class flex_attention:
             (
                 "limit_auto_multi_buffer_buffer",
                 "hfusion_enable_multiple_consumer_fusion",
-                "enable_select_analysis",
             ),
             overrides={
                 "limit_auto_multi_buffer_of_local_buffer": (
                     cls.bwd_dq_limit_auto_multi_buffer_of_local_buffer
                 ),
-                "intra_cache_num": 3,
-                "inter_cache_num": 2,
+                "buf_slot_num_of_veccore": 3,
+                "buf_slot_num_of_crosscore": 2,
             },
         )
 
@@ -568,8 +558,8 @@ class flex_attention:
                 "limit_auto_multi_buffer_of_local_buffer": (
                     cls.bwd_dkdv_limit_auto_multi_buffer_of_local_buffer
                 ),
-                "intra_cache_num": 2,
-                "inter_cache_num": 1,
+                "buf_slot_num_of_veccore": 2,
+                "buf_slot_num_of_crosscore": 1,
             },
         )
 
