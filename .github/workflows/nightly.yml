@@ -34,7 +34,7 @@ jobs:
       upstream_ref: main
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: master
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-202608241234-9c1d81e6
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-202608290444-503883d4
       report_to_upstream: false
       runner_label: 'linux-aarch64-cpu-7'
       max_jobs: '7'
@@ -49,7 +49,7 @@ jobs:
       upstream_repo: pytorch/pytorch
       torch_npu_short: ${{ needs.build.outputs.torch_npu_short }}
       case_paths_config: .github/config/nightly_test_categories.yml
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-202608241234-9c1d81e6
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-202608290444-503883d4
       report_to_upstream: false
       hw_classification: 'GENERIC ACCELERATOR'
       full_scan: true

@@ -167,8 +167,6 @@ jobs:
           VISION_COMMIT=$(cat pytorch/.github/ci_commit_pins/vision.txt)
           echo "Building torchvision from commit: ${VISION_COMMIT}"
 
-          apt-get update && apt-get install -y --no-install-recommends libpng-dev libjpeg-dev libwebp-dev
-
           set +o pipefail
           pip wheel --no-build-isolation --no-deps \
             "git+https://github.com/pytorch/vision.git@${VISION_COMMIT}" \
