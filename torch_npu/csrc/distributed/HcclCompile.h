@@ -31,6 +31,8 @@ TORCH_NPU_LOAD_FUNCTION(HcclCommWorkingDevNicSet)
 TORCH_NPU_LOAD_FUNCTION(HcclCommRegister)
 TORCH_NPU_LOAD_FUNCTION(HcclCommDeregister)
 TORCH_NPU_LOAD_FUNCTION(HcclCommExchangeMem)
+TORCH_NPU_LOAD_FUNCTION(HcclCommSymWinRegister)
+TORCH_NPU_LOAD_FUNCTION(HcclCommSymWinDeregister)
 TORCH_NPU_LOAD_FUNCTION(HcclGetRootInfo)
 TORCH_NPU_LOAD_FUNCTION(HcclCommDestroy)
 TORCH_NPU_LOAD_FUNCTION(HcclSend)
@@ -42,9 +44,12 @@ TORCH_NPU_LOAD_FUNCTION(HcclReduceScatter)
 TORCH_NPU_LOAD_FUNCTION(HcclCommInitAll)
 TORCH_NPU_LOAD_FUNCTION(HcclCommInitRootInfo)
 
+
 TORCH_NPU_REGISTER_LIBRARY(libhcomm)
 TORCH_NPU_REGISTER_FUNCTION(libhcomm, HcclGroupStart)
 TORCH_NPU_REGISTER_FUNCTION(libhcomm, HcclGroupEnd)
+TORCH_NPU_REGISTER_FUNCTION(libhcomm, HcommMemAlloc)
+TORCH_NPU_REGISTER_FUNCTION(libhcomm, HcommMemFree)
 
 extern HcclResult hcclGetRootInfo(HcclRootInfo *rootInfo)
 {
@@ -493,6 +498,54 @@ HcclResult hcclCommExchangeMem(HcclComm comm, void *windowHandle, uint32_t *peer
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclCommExchangeMem", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(comm, windowHandle, peerRanks, peerRankNum);
+    return ret;
+}
+
+HcclResult hcclCommSymWinRegister(HcclComm comm, void *addr, uint64_t size, void **handle, uint32_t flag)
+{
+    using HcclCommSymWinRegisterFunc = HcclResult(*)(HcclComm, void *, uint64_t, void **, uint32_t);
+    static HcclCommSymWinRegisterFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcclCommSymWinRegisterFunc)TORCH_NPU_GET_FUNC(HcclCommSymWinRegister)
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclCommSymWinRegister", DIST_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(comm, addr, size, handle, flag);
+    return ret;
+}
+
+HcclResult hcclCommSymWinDeregister(void *handle)
+{
+    using HcclCommSymWinDeregisterFunc = HcclResult(*)(void *);
+    static HcclCommSymWinDeregisterFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcclCommSymWinDeregisterFunc)TORCH_NPU_GET_FUNC(HcclCommSymWinDeregister)
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclCommSymWinDeregister", DIST_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(handle);
+    return ret;
+}
+
+HcclResult hcclMemAlloc(void **ptr, uint64_t size)
+{
+    using HcommMemAllocFunc = HcclResult(*)(void **, uint64_t);
+    static HcommMemAllocFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcommMemAllocFunc)TORCH_NPU_GET_FUNCTION(libhcomm, HcommMemAlloc)
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcommMemAlloc", DIST_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(ptr, size);
+    return ret;
+}
+
+HcclResult hcclMemFree(void *ptr)
+{
+    using HcommMemFreeFunc = HcclResult(*)(void *);
+    static HcommMemFreeFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcommMemFreeFunc)TORCH_NPU_GET_FUNCTION(libhcomm, HcommMemFree)
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcommMemFree", DIST_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(ptr);
     return ret;
 }
 

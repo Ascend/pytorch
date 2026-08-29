@@ -50,6 +50,10 @@ inline std::shared_ptr<npu_logging::Logger>& GetLoggerHccl()
         ASCEND_LOGE(format, ##__VA_ARGS__);                                    \
     } while (0);
 
+namespace c10_npu {
+struct MemPool;
+} // namespace c10_npu
+
 namespace c10d_npu {
 // Environment variable which controls whether or not wait() is blocking or
 // non-blocking. Prefer TORCH_HCCL_BLOCKING_WAIT and keep
@@ -775,6 +779,8 @@ public:
 
     std::shared_ptr<HCCLComm> getHcclCommByDevices(const std::vector<at::Device>& devices);
 
+    std::shared_ptr<HCCLComm> tryGetHcclComm(c10::DeviceIndex device);
+
     int64_t getHcclComm(int rankid);
 
     void setHcclCommName(const std::string& hccl_comm_name);
@@ -824,6 +830,13 @@ public:
     void windowRegisterAndExchange(int64_t windowSize, std::vector<uint32_t>& peerRanks);
 
     const at::Tensor& getWindowMem();
+
+    std::shared_ptr<c10::Allocator> getMemAllocator() override;
+
+    bool supportsTensorAlloc(c10::DeviceIndex deviceIdx) override;
+
+    void registerMemPool(c10_npu::MemPool* pool, bool symm = false);
+    void deregisterMemPool(c10_npu::MemPool* pool);
 
     void setTimeout(std::chrono::milliseconds timeout);
 
