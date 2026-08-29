@@ -786,7 +786,7 @@ class MemPool(torch_npu._C._MemPool):
 
     @property
     def allocator(self) -> Optional[torch_npu._C._npu_NPUAllocator]:
-        r"""Returns the allocator this MemPool routes allocations to"""
+        r"""Returns the allocator this MemPool routes allocations to."""
         return super().allocator
 
 
@@ -821,7 +821,6 @@ def use_mem_pool(pool: MemPool, device=None):
             if :attr:`device` is ``None`` (default).
 
     """
-    ctx = MemPoolContext(pool)
     device_index = (
         torch_npu.npu.current_device() if device is None else _get_device_index(device)
     )
@@ -832,7 +831,6 @@ def use_mem_pool(pool: MemPool, device=None):
         torch_npu._C._npu_endAllocateCurrentStreamToPool(device_index, pool.id)
         # after endAllocate, need call releasePool to achieve the right count(use_count--)
         torch_npu._C._npu_releasePool(device_index, pool.id)
-        del ctx
 
 
 def _record_memory_history(enabled="all", *args, **kwargs):
