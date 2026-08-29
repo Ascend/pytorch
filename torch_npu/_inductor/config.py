@@ -389,13 +389,13 @@ def _parse_float_env(name: str, default: float = 0.25, min_value: float = 0.0, m
 
 # Frontend -> inductor controls (env-driven)
 # - TORCHINDUCTOR_NPU_FAST_LAUNCH: enable planned fast launch for NPU Python Wrapper
-# - INDUCTOR_ASCEND_ENABLE_COSTMODEL: whether to forward costmodel backend signal to triton-ascend
+# - INDUCTOR_ASCEND_ENABLE_COSTMODEL: whether to enable costmodel config prefilter
 # - INDUCTOR_ASCEND_COSTMODEL_RATIO: select the shortest-latency top ratio of configs
 enable_fast_launch = _parse_bool_env(
     "TORCHINDUCTOR_NPU_FAST_LAUNCH",
     False,
 )
-enable_costmodel_backend = _parse_bool_env("INDUCTOR_ASCEND_ENABLE_COSTMODEL", False)
+enable_costmodel_prefilter = _parse_bool_env("INDUCTOR_ASCEND_ENABLE_COSTMODEL", False)
 costmodel_ratio = _parse_float_env("INDUCTOR_ASCEND_COSTMODEL_RATIO", 0.25, 0.0, 1.0)
 symbolic_group_max_benchmark_memory_ratio = _parse_float_env(
     "INDUCTOR_ASCEND_SYMBOLIC_GROUP_MAX_BENCHMARK_MEMORY_RATIO",

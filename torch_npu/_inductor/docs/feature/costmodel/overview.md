@@ -33,7 +33,7 @@ Arg Bindings用于向CostModel传入TTIR中标量参数的实际值，例如`arg
 
 1. 根据当前kernel的候选config逐个生成TTIR。
 2. 从运行时输入和grid信息中解析CostModel需要的Arg Bindings。
-3. 调用Triton-Ascend提供的`costmodel_bench`接口，获得`config -> 预测耗时`的结果。
+3. 逐个调用Triton-Ascend提供的`costmodel_bench`单item接口，获得`(config, 预测耗时)`结果并在Inductor侧汇总。
 4. 过滤掉预测耗时为无穷大的config，并按预测耗时从小到大排序。
 5. 根据`INDUCTOR_ASCEND_COSTMODEL_RATIO`保留排序靠前的config，替换原始config集合进入precompile。
 6. 将未被选中的config记录为兜底config。如果CostModel选中的config没有产生有效编译结果，则使用兜底config再次执行precompile。
