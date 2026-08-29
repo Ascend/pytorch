@@ -308,7 +308,10 @@ public:
     virtual void attachAllocatorTraceTracker(AllocatorTraceTracker tracker) = 0;
     // start from torch 2.7, not support input 'allocator' in this version
     // will gradually fill in missing abilities
-    virtual void createOrIncrefPool(c10::DeviceIndex, MempoolId_t)
+    virtual void createOrIncrefPool(
+        c10::DeviceIndex device,
+        MempoolId_t mempool_id,
+        std::shared_ptr<NPUAllocator> allocator = nullptr)
     {
         TORCH_CHECK(
             false,
@@ -566,9 +569,10 @@ inline void buildServerMemMapForHccl(int device, std::shared_ptr<c10d_npu::HCCLC
 
 inline void createOrIncrefPool(
         c10::DeviceIndex device,
-        MempoolId_t mempool_id)
+        MempoolId_t mempool_id,
+        std::shared_ptr<NPUAllocator> allocator = nullptr)
 {
-    get()->createOrIncrefPool(device, mempool_id);
+    get()->createOrIncrefPool(device, mempool_id, std::move(allocator));
 }
 
 bool checkConfigExpandableSegments();
@@ -592,7 +596,7 @@ namespace c10_npu {
 // system allocator such as ncclMemAlloc.
 struct C10_NPU_API MemPool {
     MemPool(
-        NPUCachingAllocator::NPUAllocator* allocator = nullptr,
+        std::shared_ptr<NPUCachingAllocator::NPUAllocator> allocator = nullptr,
         bool is_user_created = true);
 
     MemPool(const MemPool&) = delete;
@@ -609,7 +613,7 @@ struct C10_NPU_API MemPool {
 private:
     static std::atomic<CaptureId_t> uid_;
     static std::atomic<CaptureId_t> uuid_;
-    NPUCachingAllocator::NPUAllocator* allocator_;
+    std::shared_ptr<NPUCachingAllocator::NPUAllocator> allocator_;
     bool is_user_created_;
     MempoolId_t id_;
     c10::DeviceIndex device_;
