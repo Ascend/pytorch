@@ -706,7 +706,7 @@ class NPUTritonTemplate(TritonTemplate):
                 ),
                 "num_stages": num_stages,
                 "num_warps": num_warps,
-                "allow_tf32": str(kwargs.get("ALLOW_TF32", None)),
+                "allow_hf32": str(kwargs.get("ALLOW_HF32", None)),
                 "acc_type": str(kwargs.get("ACC_TYPE", None)),
             },
             mutated_inputs=mutated_inputs,

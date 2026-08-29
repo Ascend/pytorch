@@ -32,6 +32,7 @@ from torch._inductor.kernel import bmm as inductor_bmm
 from .mm import is_contiguous_striding
 from ..select_algorithm import NPUTritonTemplate
 from ..utils import use_catlass_template, use_triton_template
+from torch_npu.npu import matmul
 
 
 log = logging.getLogger("torch._inductor")
@@ -107,7 +108,7 @@ _BMM_TEMPLATE = """{{def_kernel("A", "B")}}
         a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak + a_batch_off), mask=k_mask[None, :], other=0.0)
         b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn + b_batch_off), mask=k_mask[:, None], other=0.0)
         {% endif %}
-        acc = tl.dot(a, b, acc=acc, allow_tf32=ALLOW_TF32, out_dtype=ACC_TYPE)
+        acc = tl.dot(a, b, acc=acc{% if ALLOW_HF32 %}, input_precision="tf32"{% endif %}, out_dtype=ACC_TYPE)
 
     # rematerialize rm, rn and idx_q to save registers
     rm = pid_m * BLOCK_M + tl.arange(0, BLOCK_M)
@@ -193,7 +194,7 @@ def _get_npu_bmm_configs(
                     "GROUP_M": group_m,
                     "num_stages": num_stages,
                     "num_warps": 4,
-                    "ALLOW_TF32": "False",
+                    "ALLOW_HF32": matmul.allow_hf32,
                     "ACC_TYPE": "tl.float32",
                     "EVEN_K": even_k,
                 })

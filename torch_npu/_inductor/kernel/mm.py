@@ -47,10 +47,12 @@ from torch._inductor.lowering import expand
 from ..codegen.catlass.gemm_template import CATLASS1xGemmTemplate
 from ..select_algorithm import NPUTritonTemplate
 from ..utils import use_catlass_template, use_triton_template
+from torch_npu.npu import matmul
 
 
 log = logging.getLogger("torch._inductor")
 aten = torch.ops.aten
+
 
 lazy_register_extern_choice = torch._inductor.kernel.mm.lazy_register_extern_choice
 aten_mm = torch._inductor.kernel.mm.aten_mm
@@ -119,7 +121,7 @@ _MM_TEMPLATE = """{{def_kernel("A", "B")}}
         a = tl.load(A + (rm[:, None] * stride_am + offs_a_k[None, :] * stride_ak), mask=k_mask[None, :], other=0.0)
         b = tl.load(B + (offs_a_k[:, None] * stride_bk + rn[None, :] * stride_bn), mask=k_mask[:, None], other=0.0)
         {% endif %}
-        acc += tl.dot(a, b, allow_tf32=ALLOW_TF32, out_dtype=ACC_TYPE)
+        acc += tl.dot(a, b{% if ALLOW_HF32 %}, input_precision="tf32"{% endif %}, out_dtype=ACC_TYPE)
 
     # rm, rn, and m_mask are reused from above (no rematerialization).
     idx_m = rm[:, None]
@@ -220,7 +222,7 @@ _PERSISTENT_MM_TEMPLATE = """
                 a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak), mask=k_mask[None, :], other=0.0)
                 b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn), mask=k_mask[:, None], other=0.0)
                 {% endif %}
-                acc += tl.dot(a, b, allow_tf32=ALLOW_TF32, out_dtype=ACC_TYPE)
+                acc += tl.dot(a, b{% if ALLOW_HF32 %}, input_precision="tf32"{% endif %}, out_dtype=ACC_TYPE)
 
             # ---- Store output (inductor generates epilogue suffix) ----
             # rm, rn, and m_mask are reused from above (no rematerialization).
@@ -615,7 +617,7 @@ def _get_npu_mm_configs(
                 "GROUP_M": group_m,
                 "num_stages": num_stages,
                 "num_warps": 4,
-                "ALLOW_TF32": "False",
+                "ALLOW_HF32": matmul.allow_hf32,
                 "ACC_TYPE": "tl.float32",
                 "EVEN_K": even_k,
             })
@@ -786,7 +788,7 @@ def _get_npu_persistent_mm_configs(
                     "NUM_TILES_PER_PROGRAM": num_tiles_per_program,
                     "num_stages": num_stages,
                     "num_warps": 4,
-                    "ALLOW_TF32": "False",
+                    "ALLOW_HF32": matmul.allow_hf32,
                     "ACC_TYPE": "tl.float32",
                     "EVEN_K": even_k,
                 })
