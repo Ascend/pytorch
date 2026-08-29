@@ -447,6 +447,7 @@ inline void HcclCommConfigInit(HcclCommConfig *config)
     config->hcclRetryParams[0] = '\0';
     config->hcclBufferName[0] = '\0';
     config->hcclQos = HCCL_COMM_QOS_CONFIG_NOT_SET;
+    config->hcclSymWinMaxMemSizePerRank = HCCL_DEFAULT_SYMMETRIC_MEMORY_STRIDE;
 }
 
 /**
