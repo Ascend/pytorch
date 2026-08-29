@@ -128,6 +128,7 @@ const uint32_t HCCL_COMM_TRAFFIC_CLASS_CONFIG_NOT_SET = 0xffffffff;
 const uint32_t HCCL_COMM_SERVICE_LEVEL_CONFIG_NOT_SET = 0xffffffff;
 const int32_t HCCL_COMM_EXECTIMEOUT_CONFIG_NOT_SET = 0xffffffff;
 const uint32_t HCCL_COMM_QOS_CONFIG_NOT_SET = 0xffffffff;
+const uint64_t HCCL_DEFAULT_SYMMETRIC_MEMORY_STRIDE = 16ULL;
 
 typedef struct HcclCommConfigDef {
     char reserved[HCCL_COMM_CONFIG_INFO_BYTES];
@@ -147,6 +148,7 @@ typedef struct HcclCommConfigDef {
     char hcclRetryParams[HCCL_COMM_RETRY_PARAMS_MAX_LENGTH];
     char hcclBufferName[BUFFER_NAME_MAX_LENGTH];
     uint32_t hcclQos;
+    uint64_t hcclSymWinMaxMemSizePerRank; // 对称内存预留VA大小, 单位GB
 } HcclCommConfig;
 
 typedef enum {

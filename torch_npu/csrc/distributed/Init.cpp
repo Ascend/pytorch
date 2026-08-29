@@ -25,6 +25,7 @@
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
+#include "torch_npu/csrc/core/npu/MemPool.h"
 #include "torch_npu/csrc/distributed/Init.h"
 
 namespace {
@@ -405,6 +406,13 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs) {
               py::arg("window_size"),
               py::arg("peer_ranks"))
           .def("_get_window_mem", &::c10d_npu::ProcessGroupHCCL::getWindowMem)
+          .def_property_readonly("mem_allocator", &::c10d::Backend::getMemAllocator)
+          .def(
+              "register_mem_pool",
+              &::c10d_npu::ProcessGroupHCCL::registerMemPool,
+              py::arg("pool"),
+              py::arg("symm") = false)
+          .def("deregister_mem_pool", &::c10d_npu::ProcessGroupHCCL::deregisterMemPool, py::arg("pool"))
           .def_property_readonly("options", &::c10d_npu::ProcessGroupHCCL::getOptions)
           .def(
               "batch_isend_irecv",

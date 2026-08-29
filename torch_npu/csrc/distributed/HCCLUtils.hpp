@@ -2,6 +2,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <unordered_map>
 
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
@@ -136,12 +137,18 @@ class C10_NPU_API HCCLComm {
 
   void destroyHcclComm();
 
+  void releaseHcclCommRes();
+
   HcclResult checkForHcclError();
+
+  HcclResult registerSegment(void* ptr, size_t size, bool errorOnRereg = false, bool symmetric = true);
+  HcclResult deregisterSegment(void* ptr);
 
  protected:
   HcclComm hcclComm_;
   mutable std::mutex mutex_;
   HcclResult hcclAsyncErr_;
+  std::unordered_map<void*, std::pair<void*, bool>> registeredSegmentHandles_;
 };
 
 class TORCH_API DebugInfoWriter {

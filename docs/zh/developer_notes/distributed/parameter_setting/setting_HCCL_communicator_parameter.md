@@ -10,6 +10,7 @@
 - group\_name
 - qos\_service\_level、qos\_traffic\_class
 - hccl\_op\_expansion\_mode
+- hccl\_sym\_win\_max\_mem\_size\_per\_rank
 
 ## 使用场景
 
@@ -37,6 +38,8 @@
     - 3：代表通信算法的编排展开位置在device侧的AI Vector Core计算单元。
 
     环境变量**HCCL\_OP\_EXPANSION\_MODE**的详情请参见《CANN HCCL集合通信库》中的“[HCCL\_OP\_EXPANSION\_MODE](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/commlib/hcclug/docs/zh/user_guide/hccl_env/HCCL_OP_EXPANSION_MODE.md)”章节。
+
+- hccl\_sym\_win\_max\_mem\_size\_per\_rank：设置HCCL通信域中每个rank预留的对称内存虚拟地址空间大小，单位为GB。默认值为16，取值范围为[1, 当前环境允许分配的物理内存最大值]。通信域预留的虚拟地址空间总大小为`rank_size * hccl_sym_win_max_mem_size_per_rank`。该参数用于HCCL对称内存管理，并不表示通信域初始化时会立即占用等量的物理内存。不同产品支持的参数范围及约束请参见《CANN HCCL集合通信库》中的“[HcclCommConfig](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/commlib/hcclug/docs/zh/api_ref/comm_mgr_c/data_type_definition/HcclCommConfig.md)”章节的hcclSymWinMaxMemSizePerRank参数。
 
 ## 使用样例
 
@@ -69,6 +72,14 @@ torch.distributed.init_process_group(backend="hccl", pg_options=options)
 ```Python
 options = torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()
 options.hccl_config ={"hccl_op_expansion_mode":3}
+torch.distributed.init_process_group(backend="hccl", pg_options=options)
+```
+
+配置hccl\_sym\_win\_max\_mem\_size\_per\_rank示例：
+
+```Python
+options = torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()
+options.hccl_config = {"hccl_sym_win_max_mem_size_per_rank": 16}
 torch.distributed.init_process_group(backend="hccl", pg_options=options)
 ```
 
