@@ -141,7 +141,7 @@ class MulitprocessCompileFuture(CodeCacheFuture):
             try:
                 future.result()
             except Exception as e:
-                logger.warning(f"Error detected when multiprocess compile, error message: {e}")
+                logger.warning(f"Error detected during multiprocess compilation. Error message: {e}")
                 errors.append(e)
 
         if len(errors) < len(self.futures):

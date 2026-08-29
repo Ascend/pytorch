@@ -739,7 +739,7 @@ class {module_name}(torch.nn.Module):
 
     if len(blobified_modules) > 0:
         warnings.warn(
-            "Was not able to save the following children modules as reprs -"
+            "Was not able to save the following children modules as reprs - "
             f"saved as pickled files instead: {blobified_modules}"
         )
 

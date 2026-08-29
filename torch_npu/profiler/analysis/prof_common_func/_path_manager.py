@@ -2,7 +2,7 @@ import os
 import re
 import warnings
 
-from torch_npu.utils._error_code import ErrCode, prof_error
+from torch_npu.utils._error_code import ErrCode
 from ._constant import Constant
 
 __all__ = []
@@ -173,7 +173,7 @@ class ProfilerPathManager:
             raise RuntimeError("Input path is empty, please check. " + "ErrorType: {}".format(ErrCode.UNAVAIL.msg))
         path = os.path.expanduser(path)
         if os.path.islink(path):
-            msg = f"Invalid input path is a soft chain: {path}"
+            msg = f"Invalid input path is a symbolic link: {path}"
             warnings.warn(msg)
         return os.path.realpath(path)
 

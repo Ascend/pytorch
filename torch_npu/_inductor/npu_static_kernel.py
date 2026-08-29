@@ -94,7 +94,7 @@ class StaticKernelCompiler:
         log.info(f"Starting static kernel compilation process...")
         debug_dirs = [d for d in self.result_root.iterdir() if d.is_dir() and d.name.endswith("_debug")]
         if not debug_dirs:
-            log.error(f"Can not find json of ops, skipping op_compiler.")
+            log.error(f"Cannot find json of ops, skipping op_compiler.")
             return
 
         debug_dir = max(debug_dirs, key=lambda d: d.stat().st_mtime)

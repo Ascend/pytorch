@@ -276,9 +276,9 @@ def _wrapper_profiler(fn):
             if 'experimental_config' in kwargs.keys() and \
                     type(kwargs.get('experimental_config')) != torch_npu.profiler._ExperimentalConfig:
                 logger.warning(
-                    'The parameter experimental_config of torch.profiler.profile has been deleted by the tool '
-                    'because it can only be used in cuda, please manually modify the code '
-                    'and use the experimental_config parameter adapted to npu.')
+                    'The parameter experimental_config of torch.profiler.profile has been removed by the tool '
+                    'because it can only be used with CUDA. Please manually modify the code '
+                    'to use an experimental_config parameter that supports NPU.')
                 del kwargs['experimental_config']
         return fn(*args, **kwargs)
 
@@ -295,7 +295,7 @@ def _jit_script(obj, *args, **kwargs):
         if not _warned_jit_fallback:
             _warned_jit_fallback = True    
             warnings.warn(
-                "using torch.jit.script successfully",
+                "torch.jit.script is in use.",
                 RuntimeWarning,
             )
         return _real_jit_script(obj, *args, **kwargs)
@@ -310,7 +310,8 @@ def _jit_script_method(fn):
 
 def _patch_jit_script():
     msg = ('torch.jit.script and torch.jit.script_method will be disabled by transfer_to_npu, '
-           'which currently does not support them, if you need to enable them, please do not use transfer_to_npu.')
+           'which currently does not support them. If you need to enable them, '
+           'please do not use transfer_to_npu.')
     warnings.warn(msg, RuntimeWarning)
     torch.jit.script = _jit_script
     torch.jit.script_method = _jit_script_method
