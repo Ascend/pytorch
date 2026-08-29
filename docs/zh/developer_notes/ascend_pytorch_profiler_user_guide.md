@@ -17,6 +17,10 @@ Ascend PyTorch调优工具（Ascend PyTorch Profiler）是针对PyTorch框架开
 
 Ascend PyTorch Profiler可全面采集PyTorch训练/在线推理场景下的性能数据，主要包括PyTorch层算子信息、CANN层算子信息、底层NPU算子信息、以及算子内存占用信息等，可以全方位分析PyTorch训练/在线推理时的性能状态。
 
+> [!NOTE]
+>
+> Ascend PyTorch Profiler是专为昇腾NPU环境开发的Profiler工具，其API命名和功能与原生接口有所差异，请查阅本文档了解具体用法。同时，昇腾NPU环境也兼容原生torch.profiler，如需使用原生接口，请参见[使用原生torch.profiler接口采集昇腾NPU环境性能数据](#使用原生torchprofiler接口采集昇腾NPU环境性能数据)。
+
 ## 使用前准备
 
 **环境准备**
@@ -1425,7 +1429,7 @@ PCIe带宽数据。
 |activities|可选|CPU、NPU事件采集列表，Enum类型。取值为：<br>&#8226; torch_npu.profiler.ProfilerActivity.CPU：框架侧数据采集的开关。<br>&#8226; torch_npu.profiler.ProfilerActivity.NPU：CANN软件栈及NPU数据采集的开关。<br/>默认情况下两个开关同时开启。|
 |schedule|可选|设置不同step的行为，Callable类型，由schedule类控制。默认不执行任何操作。<br/>torch_npu.profiler._KinetoProfile不支持该参数。|
 |on_trace_ready|可选|采集结束时自动执行操作，Callable类型。当前支持执行tensorboard_trace_handler函数操作。当采集的数据量过大时，在当前环境下不适合直接解析性能数据，或者采集过程中中断了训练/在线推理进程，只采集了部分性能数据，可以采用[离线解析](#离线解析)。<br/>默认不执行任何操作。<br/>torch_npu.profiler._KinetoProfile不支持该参数。<br/>对于使用共享存储的多卡大集群场景，直接使用on_trace_ready执行tensorboard_trace_handler函数的方式进行性能数据落盘，可能因多卡数据直接落盘到共享存储导致性能膨胀的问题。解决方式请参见[PyTorch多卡大集群场景如何避免性能数据直接落盘到共享存储时导致的性能膨胀问题](#PyTorch多卡大集群场景如何避免性能数据直接落盘到共享存储时导致的性能膨胀问题)。|
-|record_shapes|可选|记录算子的InputShapes和InputTypes，Bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。<br/>开启torch_npu.profiler.ProfilerActivity.CPU时生效。|
+|record_shapes|可选|记录框架层算子的InputShapes、InputTypes数据以及在torch_npu.profiler.ProfilerLevel.Level0时开启记录CANN层算子的Shape数据，Bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。|
 |profile_memory|可选|记录算子的显存占用情况，Bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。<br/>开启torch_npu.profiler.ProfilerActivity.CPU时，采集框架显存占用情况；torch_npu.profiler.ProfilerActivity.NPU时，采集CANN的显存占用。<br/>已知在安装有glibc<2.34的环境上采集memory数据，可能触发glibc的一个已知[Bug 19329](https://sourceware.org/bugzilla/show_bug.cgi?id=19329)，通过升级环境的glibc版本可解决此问题。|
 |with_stack|可选|记录算子调用栈，Bool类型。包括框架层及CPU算子层的调用信息。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。<br/>开启torch_npu.profiler.ProfilerActivity.CPU时生效。<br/>开启该配置后会引入额外的性能膨胀。|
 |with_modules|可选|记录modules层级的Python调用栈，即框架层的调用信息，Bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。<br/>开启torch_npu.profiler.ProfilerActivity.CPU时生效。<br/>开启该配置后会引入额外的性能膨胀。|
@@ -1506,7 +1510,7 @@ profiler\_config.json文件内容如下，以默认配置为例：
 |activities|可选|CPU、NPU事件采集列表。取值为：<br/>&#8226; CPU：框架侧数据采集的开关。<br/>&#8226; NPU：CANN软件栈及NPU数据采集的开关。<br/>默认情况下两个开关同时开启。|
 |prof_dir|可选|采集到的性能数据的存放路径。默认路径为：./。路径格式仅支持由字母、数字和下划线组成的字符串，不支持软链接。|
 |analyse|可选|性能数据自动解析开关，取值为：<br/>&#8226; true：开启自动解析。<br/>&#8226; false：关闭自动解析，即手动解析，采集完后的性能数据可以使用[离线解析](#离线解析)。<br/>默认关闭。|
-|record_shapes|可选|记录算子的InputShapes和InputTypes。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。<br/>activities配置为CPU时生效。|
+|record_shapes|可选|记录框架层算子的InputShapes、InputTypes数据以及在profiler_level为Level0开启记录CANN层算子的Shape数据。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。|
 |profile_memory|可选|记录算子的显存占用情况。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。<br/>activities开启CPU时，采集框架内存占用情况；activities开启NPU时，采集CANN的显存占用。<br/>已知在安装有glibc<2.34的环境上采集memory数据，可能触发glibc的一个已知[Bug 19329](https://sourceware.org/bugzilla/show_bug.cgi?id=19329)，通过升级环境的glibc版本可解决此问题。|
 |with_stack|可选|记录算子调用栈。包括框架层及CPU算子层的调用信息。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。<br/>activities配置为CPU时生效。|
 |with_flops|可选|记录算子浮点操作（该参数暂不支持解析性能数据）。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。<br/>activities配置为CPU时生效。|
@@ -1648,6 +1652,97 @@ profiler_config_path/
 
 - monitor\_dp\_ubuntu\_xxxxxx.log.1：日志老化备份文件，monitor\_dp\_ubuntu\_xxxxxx.log文件的存储上限为200KB，达到上限后将时间最早的日志记录转移到monitor\_dp\_ubuntu\_xxxxxx.log.1中，monitor\_dp\_ubuntu\_xxxxxx.log.1文件存储上限同样为200KB，达到上限后则将最早的日志记录老化删除。
 - shm目录：为了适配Python3.7，dynamic\_profile会在py37环境下生成shm目录，目录下生成一个二进制文件（DynamicProfileNpuShm+时间）映射共享内存，程序正常结束后会自动清理，当使用pkill终止程序时，由于是异常终止，程序无法释放资源，需要用户手动清理此文件，否则短时间内（&lt;1h）下次使用同一配置路径启动dynamic\_profile，则会导致dynamic\_profile异常。对于Python3.8及以上版本，二进制文件（DynamicProfileNpuShm+时间）存放在/dev/shm目录下，当使用pkill终止程序时，同样需要手动清理此文件。
+
+### 使用原生torch.profiler接口采集昇腾NPU环境性能数据
+
+昇腾NPU环境兼容使用原生torch.profiler接口采集性能数据，方法如下：
+
+1. 在训练脚本中添加原生torch.profiler接口。
+
+   原生torch.profiler接口具体介绍请参见《[torch.profiler](https://docs.pytorch.org/docs/stable/profiler.html)》。
+
+2. 将原生torch.profiler接口中的CUDA字段对应改为NPU。
+
+> [!NOTE]
+>
+> 要求torch和torch_npu为2.12.0及以上版本。
+
+以下为可执行的样例代码，高亮位置为添加的原生torch.profiler接口。
+
+```diff
+from pathlib import Path
+
++import torch
++from torch import nn
+
+
+class TinyModel(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.network = nn.Sequential(
+            nn.Linear(1024, 2048),
+            nn.ReLU(),
+            nn.Linear(2048, 1024),
+            nn.ReLU(),
+            nn.Linear(1024, 10),
+        )
+
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        return self.network(inputs)
+
+def main() -> None:
+    steps = 8
+    batch_size = 32
+    output_dir = Path("profiler_output")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    device = torch.device("npu:0")
+    model = TinyModel().to(device)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
+    loss_function = nn.CrossEntropyLoss()
+    inputs = torch.randn(batch_size, 1024, device=device)
+    labels = torch.randint(0, 10, (batch_size,), device=device)
+
++    with torch.profiler.profile(
++        activities = [
++            torch.profiler.ProfilerActivity.CPU,
++            torch.profiler.ProfilerActivity.NPU,
++        ],
++        schedule=torch.profiler.schedule(wait=1, warmup=1, active=3, repeat=1),
++        on_trace_ready=torch.profiler.tensorboard_trace_handler(str(output_dir)),
++        record_shapes=True,
++        profile_memory=True,
++        with_stack=True,
++        with_modules=True,
++    ) as profiler:
+        for step in range(steps):
+            optimizer.zero_grad(set_to_none=True)
+            predictions = model(inputs)
+            loss = loss_function(predictions, labels)
+            loss.backward()
+            optimizer.step()
+            torch.npu.synchronize()
++            profiler.step()
+
++    events = profiler.events()
++    for index, event in enumerate(events[:20]):
++        print(
++            f"[{index}] name={event.name}, "
++            f"device_type={event.device_type}, "
++            f"self_cpu_time_total={event.self_cpu_time_total:.3f} us, "
++            f"self_device_time_total={event.self_device_time_total:.3f} us, "
++            f"input_shapes={event.input_shapes}"
++        )
+
++    summary = profiler.key_averages(group_by_input_shape=True).table(
++        sort_by="self_device_time_total", row_limit=30
++    )
++    (output_dir / "operator_summary.txt").write_text(summary, encoding="utf-8")
++    print(summary)
+
+
+if __name__ == "__main__":
+    main()
+```
 
 ## FAQ<a id="FAQ"></a>
 
