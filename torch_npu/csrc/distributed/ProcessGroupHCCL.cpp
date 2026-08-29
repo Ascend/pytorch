@@ -21,6 +21,7 @@
 #endif
 
 #include <c10/util/Optional.h>
+#include <c10/util/hash.h>
 #include <c10/util/irange.h>
 #include <c10d/ParamCommsUtils.hpp>
 #include <c10d/TraceUtils.h>
@@ -42,6 +43,7 @@
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/npu/NPUPluggableAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/NPUGraph.h"
 #include "torch_npu/csrc/core/npu/NPUGraphsUtils.h"
@@ -71,6 +73,12 @@ using namespace py::literals;
 
 namespace c10d_npu {
 namespace {
+using MemPoolSet = std::unordered_set<
+    std::tuple<c10_npu::MempoolId_t, bool>,
+    c10::hash<std::tuple<c10_npu::MempoolId_t, bool>>>;
+std::unordered_map<std::shared_ptr<HCCLComm>, MemPoolSet> hcclCommMemPoolMap;
+std::mutex hcclCommMemPoolMapMutex;
+
 static constexpr uint32_t kOpWaitTimeoutOffset = 30U; // second
 static uint32_t kOpWaitTimeout = 1868U; // second
 static std::once_flag kOpWaitTimeoutInitFlag;
@@ -1164,6 +1172,11 @@ void ProcessGroupHCCL::WorkHCCL::abort()
 {
     // Abort all communicators of this work
     for (const auto& hcclComm : hcclComms_) {
+        {
+            std::lock_guard<std::mutex> lock(hcclCommMemPoolMapMutex);
+            hcclCommMemPoolMap.erase(hcclComm);
+        }
+        hcclComm->releaseHcclCommRes();
         hcclComm->destroyHcclComm();
     }
 }
@@ -1371,6 +1384,11 @@ void abortCommsFromMap(
         auto& hcclComms = it.second;
 
         for (const auto& hcclComm : hcclComms) {
+            {
+                std::lock_guard<std::mutex> lock(hcclCommMemPoolMapMutex);
+                hcclCommMemPoolMap.erase(hcclComm);
+            }
+            hcclComm->releaseHcclCommRes();
             hcclComm->destroyHcclComm();
         }
         // Note that we don't remove the aborted communicators from the
@@ -1512,6 +1530,11 @@ void ProcessGroupHCCL::shutdown()
         for (auto& it : devHCCLCommMap_) {
             auto& hcclComms = it.second;
             for (const auto& hcclComm : hcclComms) {
+                {
+                    std::lock_guard<std::mutex> lock(hcclCommMemPoolMapMutex);
+                    hcclCommMemPoolMap.erase(hcclComm);
+                }
+                hcclComm->releaseHcclCommRes();
                 hcclComm->destroyHcclComm();
             }
         }
@@ -1596,6 +1619,11 @@ ProcessGroupHCCL::~ProcessGroupHCCL()
             auto& hcclComms = it.second;
 
             for (const auto& hcclComm : hcclComms) {
+                {
+                    std::lock_guard<std::mutex> lock(hcclCommMemPoolMapMutex);
+                    hcclCommMemPoolMap.erase(hcclComm);
+                }
+                hcclComm->releaseHcclCommRes();
                 hcclComm->destroyHcclComm();
             }
         }
@@ -3202,6 +3230,134 @@ int64_t ProcessGroupHCCL::getP2PStreamId(
     return hcclStreams_[key][0].id();
 }
 
+static void cacheAllocatorRegisterHook(const c10_npu::NPUCachingAllocator::TraceEntry& te)
+{
+    if (te.action_ != c10_npu::NPUCachingAllocator::TraceEntry::Action::SEGMENT_ALLOC) {
+        return;
+    }
+    std::lock_guard<std::mutex> lock(hcclCommMemPoolMapMutex);
+    for (auto& it : hcclCommMemPoolMap) {
+        auto& comm = it.first;
+        auto& memPools = it.second;
+        auto found = std::find_if(memPools.begin(), memPools.end(),
+            [&](const auto& p) { return std::get<0>(p) == te.mempool_; });
+        if (found != memPools.end()) {
+            // NOLINTNEXTLINE(performance-no-int-to-ptr)
+            comm->registerSegment(reinterpret_cast<void*>(te.addr_), te.size_,
+                                  /*errorOnRereg*/false, /*symmetric*/std::get<1>(*found));
+        }
+    }
+}
+
+static void cacheAllocatorDeregisterHook(const c10_npu::NPUCachingAllocator::TraceEntry& te)
+{
+    if (te.action_ != c10_npu::NPUCachingAllocator::TraceEntry::Action::SEGMENT_FREE) {
+        return;
+    }
+    std::lock_guard<std::mutex> lock(hcclCommMemPoolMapMutex);
+    for (auto& it : hcclCommMemPoolMap) {
+        auto& comm = it.first;
+        auto& memPools = it.second;
+        auto found = std::find_if(memPools.begin(), memPools.end(),
+            [&](const auto& p) { return std::get<0>(p) == te.mempool_; });
+        if (found != memPools.end()) {
+            // NOLINTNEXTLINE(performance-no-int-to-ptr)
+            comm->deregisterSegment(reinterpret_cast<void*>(te.addr_));
+        }
+    }
+}
+
+static void attachAllocatorHooks()
+{
+    static auto flag [[maybe_unused]] = []() {
+        c10_npu::NPUCachingAllocator::attachAllocatorTraceTracker(&cacheAllocatorRegisterHook);
+        c10_npu::NPUCachingAllocator::attachAllocatorTraceTracker(&cacheAllocatorDeregisterHook);
+        return true;
+    }();
+}
+
+static void* _hcclMemAlloc(size_t size, int device, aclrtStream stream)
+{
+    c10_npu::NPUGuard guard(static_cast<c10::DeviceIndex>(device));
+    void* ptr = nullptr;
+    HCCL_CHECK_ERROR(hcclMemAlloc(&ptr, size), "hcclMemAlloc");
+    return ptr;
+}
+
+static void _hcclMemFree(void* ptr, size_t size, int device, aclrtStream stream)
+{
+    c10_npu::NPUGuard guard(static_cast<c10::DeviceIndex>(device));
+    HCCL_CHECK_ERROR(hcclMemFree(ptr), "hcclMemFree");
+}
+
+std::shared_ptr<c10::Allocator> ProcessGroupHCCL::getMemAllocator()
+{
+    TORCH_CHECK(
+        supportsTensorAlloc(c10_npu::current_device()),
+        "HCCL mem allocator requires CANN 9.2.0 or later.",
+        DIST_ERROR(ErrCode::NOT_SUPPORT));
+    static std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator> hcclMemAllocator =
+        torch::npu::NPUPluggableAllocator::createCustomAllocator(_hcclMemAlloc, _hcclMemFree);
+    return hcclMemAllocator;
+}
+
+bool ProcessGroupHCCL::supportsTensorAlloc(c10::DeviceIndex)
+{
+    static const bool isCannVersionSupported =
+        IsGteCANNVersion("9.2.0-beta", "CANN");
+    return isCannVersionSupported;
+}
+
+void ProcessGroupHCCL::registerMemPool(c10_npu::MemPool* pool, bool symm)
+{
+    auto comm = tryGetHcclComm(pool->device());
+    TORCH_CHECK(comm != nullptr,
+        "HCCL communicator has not been initialized before mem pool creation. "
+        "You can pass `device_id` to init_process_group to eagerly initialize it.",
+        DIST_ERROR(ErrCode::UNAVAIL));
+    {
+        std::lock_guard<std::mutex> lock(hcclCommMemPoolMapMutex);
+        hcclCommMemPoolMap[comm].insert(std::make_tuple(pool->id(), symm));
+    }
+    attachAllocatorHooks();
+    auto snapshot = c10_npu::NPUCachingAllocator::snapshot();
+    for (const auto& segmentInfo : snapshot.segments) {
+        if (segmentInfo.owner_private_pool_id == pool->id()) {
+            // NOLINTNEXTLINE(performance-no-int-to-ptr)
+            comm->registerSegment(reinterpret_cast<void*>(segmentInfo.address),
+                                  segmentInfo.total_size, /*errorOnRereg*/false, /*symmetric*/symm);
+        }
+    }
+}
+
+void ProcessGroupHCCL::deregisterMemPool(c10_npu::MemPool* pool)
+{
+    auto comm = tryGetHcclComm(pool->device());
+    TORCH_CHECK(comm != nullptr,
+        "HCCL communicator has not been initialized before mem pool deregistration.",
+        DIST_ERROR(ErrCode::UNAVAIL));
+    {
+        std::lock_guard<std::mutex> lock(hcclCommMemPoolMapMutex);
+        auto iter = hcclCommMemPoolMap.find(comm);
+        if (iter != hcclCommMemPoolMap.end()) {
+            auto& memPools = iter->second;
+            auto found = std::find_if(memPools.begin(), memPools.end(),
+                [&](const auto& p) { return std::get<0>(p) == pool->id(); });
+            TORCH_CHECK(found != memPools.end(),
+                "Trying to unregister a pool that was not previously registered",
+                DIST_ERROR(ErrCode::UNAVAIL));
+            memPools.erase(found);
+        }
+    }
+    auto snapshot = c10_npu::NPUCachingAllocator::snapshot();
+    for (const auto& segmentInfo : snapshot.segments) {
+        if (segmentInfo.owner_private_pool_id == pool->id()) {
+            // NOLINTNEXTLINE(performance-no-int-to-ptr)
+            comm->deregisterSegment(reinterpret_cast<void*>(segmentInfo.address));
+        }
+    }
+}
+
 void ProcessGroupHCCL::windowRegisterAndExchange(int64_t windowSize, std::vector<uint32_t>& peerRanks)
 {
     TORCH_CHECK(windowSize > 0, "Window memory must be greater than 0.", DIST_ERROR(ErrCode::PARAM));
@@ -3601,6 +3757,17 @@ std::shared_ptr<HCCLComm> ProcessGroupHCCL::getHcclCommByDevices(const std::vect
     TORCH_CHECK(hcclComms.size() == 1, "expect hcclComms.size() = 1, but hcclComms.size() = ",
         hcclComms.size(), DIST_ERROR(ErrCode::VALUE));
     return hcclComms[0];
+}
+
+std::shared_ptr<HCCLComm> ProcessGroupHCCL::tryGetHcclComm(c10::DeviceIndex device)
+{
+    const auto key = std::to_string(device);
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto it = devHCCLCommMap_.find(key);
+    if (it == devHCCLCommMap_.end() || it->second.size() != 1) {
+        return nullptr;
+    }
+    return it->second[0];
 }
 
 int64_t ProcessGroupHCCL::getHcclComm(int rankid)
@@ -4025,6 +4192,16 @@ HcclCommConfig ProcessGroupHCCL::createHcclCommConfigWithOptions()
             config.hcclJobID = std::get<uint64_t>(options_->hccl_config["hccl_job_id"]);
         } else {
             TORCH_CHECK(false, "Value type of hccl_job_id should be int.", DIST_ERROR(ErrCode::TYPE));
+        }
+    }
+
+    if (options_->hccl_config.find("hccl_sym_win_max_mem_size_per_rank") != options_->hccl_config.end()) {
+        if (std::holds_alternative<uint64_t>(options_->hccl_config["hccl_sym_win_max_mem_size_per_rank"])) {
+            config.hcclSymWinMaxMemSizePerRank = std::get<uint64_t>(options_->hccl_config["hccl_sym_win_max_mem_size_per_rank"]);
+        } else if (std::holds_alternative<uint32_t>(options_->hccl_config["hccl_sym_win_max_mem_size_per_rank"])) {
+            config.hcclSymWinMaxMemSizePerRank = static_cast<uint64_t>(std::get<uint32_t>(options_->hccl_config["hccl_sym_win_max_mem_size_per_rank"]));
+        } else {
+            TORCH_CHECK(false, "Value type of hccl_sym_win_max_mem_size_per_rank should be int.", DIST_ERROR(ErrCode::TYPE));
         }
     }
 
