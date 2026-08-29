@@ -9,8 +9,10 @@ torch.npu.config.allow_internal_format = True
 
 # ACL format constants
 ACL_FORMAT_NCHW = 0
+ACL_FORMAT_NHWC = 1
 ACL_FORMAT_ND = 2
 ACL_FORMAT_NC1HWC0 = 3
+ACL_FORMAT_FRACTAL_Z = 4
 ACL_FORMAT_FRACTAL_NZ = 29
 
 
@@ -757,6 +759,90 @@ class TestZFormatCastOriginal(TestCase):
         supported_output = self.supported_op_exec(npu_input)
         custom_output = self.custom_op_exec(npu_input, self.ACL_FORMAT_NC1HWC0)
         self.assertRtolEqual(supported_output, custom_output)
+
+
+class TestNpuFormatCastForbidInternalFormat(TestCase):
+    """
+    allow_internal_format=False (default on Ascend910B): casting to an
+    internal format downgrades the target to its base format instead of
+    creating an internal-format tensor, matching the pre-aclnn aclop chain
+    (TensorFactories downgrade). Base-format targets are unaffected, and an
+    already-existing internal-format tensor keeps its format.
+    """
+
+    # (target, expected base format, shape, dtype); base formats follow
+    # FormatHelper::GetBaseFormat: FRACTAL_NZ -> ND, NC1HWC0/FRACTAL_Z -> NCHW.
+    DOWNGRADE_CASES = [
+        (ACL_FORMAT_FRACTAL_NZ, ACL_FORMAT_ND, (15, 17), torch.float16),
+        (ACL_FORMAT_FRACTAL_NZ, ACL_FORMAT_ND, (64, 128), torch.float32),
+        (ACL_FORMAT_NC1HWC0, ACL_FORMAT_NCHW, (2, 3, 7, 7), torch.float16),
+        (ACL_FORMAT_FRACTAL_Z, ACL_FORMAT_NCHW, (2, 3, 7, 7), torch.float16),
+    ]
+
+    def setUp(self):
+        super().setUp()
+        # allow_internal_format is write-only on _npuConfig (no getter);
+        # read the backing option instead, the same way npu_config.py does.
+        opt = torch_npu._C._npu_getOption("ALLOW_INTERNAL_FORMAT")
+        self._saved_flag = opt is not None and opt.decode() == "enable"
+
+    def tearDown(self):
+        torch.npu.config.allow_internal_format = self._saved_flag
+        super().tearDown()
+
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
+    def test_disable_downgrades_internal_target_to_base(self):
+        torch.npu.config.allow_internal_format = False
+        for target, base, shape, dtype in self.DOWNGRADE_CASES:
+            with self.subTest(target=target, dtype=dtype):
+                t = torch.rand(*shape).to(dtype).npu()
+                out = torch_npu.npu_format_cast(t, target)
+                self.assertEqual(torch_npu.get_npu_format(out), base)
+                self.assertEqual(out.shape, t.shape)
+                # base format is unpadded: storage holds exactly numel elements
+                self.assertEqual(out.untyped_storage().size(),
+                                 t.numel() * t.element_size())
+                self.assertTrue(torch.equal(out.cpu(), t.cpu()))
+
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
+    def test_disable_base_target_unaffected(self):
+        torch.npu.config.allow_internal_format = False
+        for target, shape in [(ACL_FORMAT_ND, (15, 17)),
+                              (ACL_FORMAT_NCHW, (2, 3, 7, 7)),
+                              (ACL_FORMAT_NHWC, (2, 3, 7, 7))]:
+            with self.subTest(target=target):
+                t = torch.rand(*shape).half().npu()
+                out = torch_npu.npu_format_cast(t, target)
+                self.assertEqual(torch_npu.get_npu_format(out), target)
+                if target != ACL_FORMAT_NHWC:
+                    self.assertTrue(torch.equal(out.cpu(), t.cpu()))
+
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
+    def test_enable_keeps_internal_target(self):
+        torch.npu.config.allow_internal_format = True
+        for target, _, shape, dtype in self.DOWNGRADE_CASES:
+            with self.subTest(target=target, dtype=dtype):
+                t = torch.rand(*shape).to(dtype).npu()
+                out = torch_npu.npu_format_cast(t, target)
+                self.assertEqual(torch_npu.get_npu_format(out), target)
+
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
+    def test_copy_into_existing_internal_format_kept(self):
+        """copy_ into an existing internal-format tensor keeps its format even
+        with allow_internal_format=False: the downgrade only applies when
+        creating a new tensor, matching the aclop chain (cast_into_existing).
+        """
+        torch.npu.config.allow_internal_format = True
+        dst = torch_npu.npu_format_cast(torch.zeros(16, 32).half().npu(),
+                                        ACL_FORMAT_FRACTAL_NZ)
+        self.assertEqual(torch_npu.get_npu_format(dst), ACL_FORMAT_FRACTAL_NZ)
+        src = torch.rand(16, 32).half().npu()
+
+        torch.npu.config.allow_internal_format = False
+        dst.copy_(src)
+
+        self.assertEqual(torch_npu.get_npu_format(dst), ACL_FORMAT_FRACTAL_NZ)
+        self.assertTrue(torch.equal(dst.cpu(), src.cpu()))
 
 
 if __name__ == "__main__":
