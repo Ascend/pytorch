@@ -1,4 +1,5 @@
 #include "torch_npu/csrc/framework/FormatHelper.h"
+#include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/NpuStorageOffsetGuard.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
@@ -157,6 +158,16 @@ std::tuple<bool, int64_t, c10::SmallVector<int64_t, SIZE>> MaybeUseAclnnNpuForma
         return std::make_tuple(false, dstFormat, outputShape);
     }
     if (IsAclnnFormatCastSupported() && aclnnNpuFormatCastExist) {
+        // With allow_internal_format=False, downgrade a non-base-format target
+        // to base format. Skipped when the target equals the src tensor's own
+        // format (cast into an existing tensor), whose format must be kept.
+        bool cast_into_existing = (static_cast<int64_t>(FormatHelper::GetFormat(src)) == acl_format);
+        if (!cast_into_existing && env::CheckForbidInternalFormat() &&
+            !FormatHelper::IsBaseFormatType(static_cast<aclFormat>(acl_format))) {
+            TORCH_WARN_ONCE("Cannot create tensor with internal format while allow_internal_format=False, "
+                            "tensor will be created with base format.");
+            acl_format = static_cast<int64_t>(FormatHelper::GetBaseFormat(static_cast<aclFormat>(acl_format)));
+        }
         auto acl_src = ConvertType(srcWrapper);
         auto api_ret = GetFormat(acl_src, acl_format, customizeAcltype, &dstStorageShape,
             &dstShapeSize, &dstFormat);
