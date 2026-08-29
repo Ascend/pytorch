@@ -2504,7 +2504,7 @@ class NPUGraphTreeManager:
         warnings.warn(
             "Unable to hit fast path of NPUGraphs because of pending, uninvoked backwards. "
             "Consider running with torch.no_grad() or using torch.compiler.npugraph_mark_step_begin() "
-            "before each model invocation"
+            "before each model invocation."
         )
 
     @staticmethod

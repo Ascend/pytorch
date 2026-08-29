@@ -6,11 +6,11 @@ from torch_npu._init.patches.patch_manager import PatchManager
 
 _WARN_MSG = {
     "DropoutWithByteMask": (
-        "torch.nn.DropoutWithByteMask is deprecated and will be removed in future version. "
+        "torch.nn.DropoutWithByteMask is deprecated and will be removed in a future version. "
         "Use torch_npu.contrib.module.DropoutWithByteMask instead."
     ),
     "dropout_with_byte_mask": (
-        "torch.nn.functional.dropout_with_byte_mask is deprecated and will be removed in future version. "
+        "torch.nn.functional.dropout_with_byte_mask is deprecated and will be removed in a future version. "
         "Use torch_npu.contrib.function.dropout_with_byte_mask instead."
     ),
 }

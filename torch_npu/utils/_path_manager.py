@@ -62,7 +62,7 @@ class PathManager:
             msg = f"The path does not exist: {path}"
             raise RuntimeError(msg)
         if os.path.islink(path):
-            msg = f"Invalid path is a soft chain: {path}"
+            msg = f"Invalid path is a symbolic link: {path}"
             warnings.warn(msg)
         if not os.access(path, os.W_OK):
             msg = f"The path permission check failed: {path}"
@@ -82,7 +82,7 @@ class PathManager:
             msg = f"The path does not exist: {path}"
             raise RuntimeError(msg)
         if os.path.islink(path):
-            msg = f"Invalid path is a soft chain: {path}"
+            msg = f"Invalid path is a symbolic link: {path}"
             warnings.warn(msg)
         if not os.access(path, os.R_OK):
             msg = f"The path permission check failed: {path}"
@@ -146,7 +146,7 @@ class PathManager:
             warnings.warn("Length of input path exceeds the limit.")
 
         if os.path.islink(path):
-            msg = f"Invalid input path is a soft chain: {path}"
+            msg = f"Invalid input path is a symbolic link: {path}"
             warnings.warn(msg)
 
         pattern = r'(\.|/|_|-|\s|[~0-9a-zA-Z]|[\u4e00-\u9fa5])+'
