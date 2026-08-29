@@ -2602,7 +2602,34 @@ class NPUTritonKernel(TritonKernel):
             return index
         return sympy_subs(index, replacements)
 
+    # Bound for the split fixpoint: a 131072-flat axis needs <=4 rounds
+    # (1024 -> 256 -> 16 -> 2); 6 leaves headroom without risking livelock.
+    _SPLIT_FIXPOINT_MAX_ROUNDS = 6
+
     def _maybe_split_fused_axes(self, index: sympy.Expr) -> sympy.Expr:
+        """Iterate ``_split_fused_axes_round`` to a fixpoint.
+
+        One round splits each detected fused axis once, but a split can expose
+        NEW fused symbols inside residual ModularIndexing/FloorDiv bases —
+        e.g. a 131072-flat axis splits at c=1024 into batch-outer plus a
+        1024-fused inner whose digits are still embedded as
+        ``ModularIndexing(inner, 1, 256)``. Stopping after one round leaves
+        those residues un-folded: the base keeps a fused node, ranges cannot
+        collapse the mod, and a wrong address formula reaches the printed
+        kernel (kernel-17 pass-3 miscompile: ``Mod(4*x0 + x1, 4, 16)`` with
+        x1 a 512-fused node survived to output). Iterate until the index stops
+        changing (bounded) so it converges to a pure affine expression of
+        leaf axes.
+        """
+        prev = None
+        for _ in range(self._SPLIT_FIXPOINT_MAX_ROUNDS):
+            new_index = self._split_fused_axes_round(index)
+            if new_index in (index, prev):
+                break
+            prev, index = index, new_index
+        return index
+
+    def _split_fused_axes_round(self, index: sympy.Expr) -> sympy.Expr:
         """Split a fused iteration axis into outer/inner sub-axes when an index
         accesses it via FloorDiv(x, c) or ModularIndexing(x, 1, c).
 
