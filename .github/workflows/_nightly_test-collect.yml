@@ -172,13 +172,6 @@ jobs:
       test_matrix: ${{ steps.build_matrix.outputs.test_matrix }}
 
     steps:
-      - name: Authenticate to Huawei Cloud
-        uses: huaweicloud/auth-action@v1.1.0
-        with:
-          access_key_id: ${{ secrets.ACCESSKEY }}
-          secret_access_key: ${{ secrets.SECRETACCESSKEY }}
-          region: ap-southeast-1
-
       - name: Compute SHAs
         id: sha
         run: |
@@ -194,14 +187,30 @@ jobs:
           submodules: false
           path: pytorch
 
+      # obsutil is preinstalled in the test image; auth is done inline
+      # via `obsutil config` (AK/SK are masked by the runner in logs).
+      # Objects above the 50MB threshold use segment download
+      # automatically; a failed attempt leaves a checkpoint record in
+      # ~/.obsutil_checkpoint/down, so the retry resumes the transfer
+      # instead of restarting from byte 0. -vlength verifies the local
+      # file size against the object. Do NOT delete the .obs.temp partial
+      # file between attempts — it is the resume state.
       - name: Download wheels from OBS
-        uses: huaweicloud/obs-helper@v1.0.1
-        with:
-          region: ap-southeast-1
-          bucket_name: pytorch-ci-cache
-          local_file_path: ./${{ steps.sha.outputs.wheels_tarball }}
-          obs_file_path: 7day-cache/${{ steps.sha.outputs.wheels_tarball }}
-          operation_type: download
+        run: |
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
+
+          TARBALL="${{ steps.sha.outputs.wheels_tarball }}"
+          for attempt in 1 2; do
+            echo "=== Download attempt ${attempt} ==="
+            if obsutil cp "obs://pytorch-ci-cache/7day-cache/${TARBALL}" "./${TARBALL}" -vlength; then
+              echo "Download succeeded on attempt ${attempt}"
+              exit 0
+            fi
+            echo "Download attempt ${attempt} failed"
+            sleep 10
+          done
+          echo "Download failed after 2 attempts"
+          exit 1
 
       - name: Extract and install wheels
         run: |
