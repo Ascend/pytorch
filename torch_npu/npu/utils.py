@@ -1,17 +1,13 @@
 import os
 from typing import Any, Optional
 import warnings
-import contextlib
-from enum import Enum
-
 import torch
 from torch._utils import _get_device_index as _torch_get_device_index
 
 import torch_npu
 import torch_npu._C
 from torch_npu.utils._error_code import ErrCode, pta_error
-from torch_npu.npu._backends import get_soc_version
-
+from torch_npu.npu._backends import get_soc_version  # noqa: F401
 
 __all__ = ["obfuscation_initialize", "obfuscation_finalize", "obfuscation_calculate",
            "synchronize", "set_device", "current_device", "device", "device_of", "StreamContext",
@@ -23,9 +19,13 @@ __all__ = ["obfuscation_initialize", "obfuscation_finalize", "obfuscation_calcul
            "check_uce_in_memory", "stress_detect", "get_cann_version", "ipc_collect", "set_op_timeout_ms"]
 
 
-def obfuscation_initialize(hidden_size, tp_rank, cmd, *, data_type=None, model_obf_seed_id=0, data_obf_seed_id=0, thread_num=4, obf_coefficient=1.0):
-    return torch_npu.obfuscation_initialize(hidden_size, tp_rank, cmd, data_type=data_type, model_obf_seed_id=model_obf_seed_id, 
-                                            data_obf_seed_id=data_obf_seed_id, thread_num=thread_num, obf_coefficient=obf_coefficient)
+def obfuscation_initialize(
+        hidden_size, tp_rank, cmd, *,
+        data_type=None, model_obf_seed_id=0, data_obf_seed_id=0, thread_num=4, obf_coefficient=1.0):
+    return torch_npu.obfuscation_initialize(
+        hidden_size, tp_rank, cmd,
+        data_type=data_type, model_obf_seed_id=model_obf_seed_id,
+        data_obf_seed_id=data_obf_seed_id, thread_num=thread_num, obf_coefficient=obf_coefficient)
 
 
 def obfuscation_finalize(fd_to_close):
@@ -39,7 +39,8 @@ def obfuscation_calculate(fd, x, param, *, obf_coefficient=1.0):
 def get_cann_version(module="CANN"):
     r"""
     Args:
-        module: can be selected from [\"CANN\", \"RUNTIME\", \"COMPILER\", \"HCCL\", \"TOOLKIT\", \"OPP\", \"OPP_KERNEL\", \"DRIVER\"]
+        module: can be selected from [
+            \"CANN\", \"RUNTIME\", \"COMPILER\", \"HCCL\", \"TOOLKIT\", \"OPP\", \"OPP_KERNEL\", \"DRIVER\"]
 
     Returns: current version.
 
@@ -442,7 +443,7 @@ def npu_check_overflow(grad):
 
 def clear_npu_overflow_flag():
     if is_support_inf_nan() and not is_force_overflow_check():
-        warnings.warn("When soc_version >= Ascend910B1, clear_npu_overflow_flag is useless, please remove it.")
+        warnings.warn("When soc_version >= Ascend910B1, clear_npu_overflow_flag is useless. Please remove it.")
         return
     float_status = torch.zeros(8).npu()
     torch_npu.npu_clear_float_status(float_status)
@@ -453,21 +454,23 @@ hccl_detect_group = None
 
 def stress_detect(detect_type='aic'):
     if detect_type not in ['aic', 'hccs']:
-        warnings.warn("Detecct_type should be `aic` or `hccs`. For details, aic as `Online aicore detect`, hccs as `Online p2p detect`.")
+        warnings.warn(
+            "Detect_type should be `aic` or `hccs`. "
+            "For details, `aic` is for `Online aicore detect`, and `hccs` is for `Online p2p detect`.")
         return 1
     torch_npu.npu._lazy_init()
     mode = 0 if detect_type == 'aic' else 1
     comm = 0
     if mode == 1:
         if not torch.distributed.is_initialized():
-            warnings.warn("The torch.distributed should to be initialized for p2p detection.")
+            warnings.warn("torch.distributed should be initialized for p2p detection.")
             return 1
         global hccl_detect_group
         rank = int(os.getenv('RANK', -1))
         local_world_size = int(os.getenv('LOCAL_WORLD_SIZE', -1))
         world_size = int(os.getenv('WORLD_SIZE', -1))
         if rank == -1 or local_world_size == -1 or world_size == -1:
-            warnings.warn("Environment variable 'RANK', 'LOCAL_WORLD_SIZE' or 'WORLD_SIZE' is not set.")
+            warnings.warn("Environment variables 'RANK', 'LOCAL_WORLD_SIZE' or 'WORLD_SIZE' are not set.")
             return 1
         num_workers = world_size // local_world_size
         worker_index = rank // local_world_size
@@ -484,7 +487,7 @@ def stress_detect(detect_type='aic'):
         try:
             comm = hccl_detect_group._get_backend(torch.device('npu')).get_hccl_comm(local_rank)
         except Exception as err:
-            warnings.warn("Create local hccl group for p2p detection failed.")
+            warnings.warn("Failed to create local hccl group for p2p detection.")
             return 1
     return torch_npu._C._npu_stress_detect(mode, comm)
 
@@ -531,16 +534,18 @@ def _erase_stream(tensor, stream):
         raise TypeError(f"tensor should be torch.Tensor, could not be {type(tensor)}" + pta_error(ErrCode.TYPE))
     if not isinstance(stream, torch_npu.npu.Stream):
         raise TypeError(f"stream should be torch_npu.npu.Stream, could not be {type(stream)}" + pta_error(ErrCode.TYPE))
-    torch_npu._C._npu_eraseStream(tensor=tensor,
-                                stream_id=stream.stream_id,
-                                device_index=stream.device_index,
-                                device_type=stream.device_type)
+    torch_npu._C._npu_eraseStream(
+        tensor=tensor,
+        stream_id=stream.stream_id,
+        device_index=stream.device_index,
+        device_type=stream.device_type)
 
 
 def _set_op_timeout_ms_impl(timeout):
-        torch_npu.npu._lazy_init()
-        torch_npu._C._npu_set_op_timeout_ms(timeout)
-    
+    torch_npu.npu._lazy_init()
+    torch_npu._C._npu_set_op_timeout_ms(timeout)
+
+
 _npu_lib = torch.library.Library("npu", "FRAGMENT")
 if not hasattr(torch.ops.npu, "set_op_timeout_ms"):
     _npu_lib.define("set_op_timeout_ms(int timeout) -> None")
@@ -550,9 +555,11 @@ if not hasattr(torch.ops.npu, "set_op_timeout_ms"):
 
     torch.fx.node.has_side_effect(torch.ops.npu.set_op_timeout_ms.default)
 
+
     @torch.library.register_fake("npu::set_op_timeout_ms")
     def _set_op_timeout_ms_meta(timeout):
         pass
+
 
 def set_op_timeout_ms(timeout):
     torch.ops.npu.set_op_timeout_ms(timeout)

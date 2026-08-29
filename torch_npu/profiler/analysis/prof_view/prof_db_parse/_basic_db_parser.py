@@ -35,7 +35,7 @@ class BasicDbParser(BaseParser):
             self.save_env_vars_info_to_db()
             self.save_profiler_metadata_to_db()
         except Exception as error:
-            self.logger.error("Failed to generate basic db file. Error: %s", str(error), exc_info=True)
+            self.logger.exception("Failed to generate basic db file.")
             return Constant.FAIL, ""
         self.logger.info("BasicDbParser finish.")
         return Constant.SUCCESS, ""
@@ -43,14 +43,14 @@ class BasicDbParser(BaseParser):
     def get_cann_db_path(self):
         if not self._cann_path:
             return ""
-        db_patten = '^msprof_\d+\.db$'
+        db_patten = r'^msprof_\d+\.db$'
         for cann_file in os.listdir(self._cann_path):
             file_path = os.path.join(self._cann_path, cann_file)
             if re.match(db_patten, cann_file):
                 try:
                     FileManager.check_db_file_vaild(file_path)
                 except RuntimeError:
-                    self.logger.warning("Invalid cann db file. file name is: %s", cann_file)
+                    self.logger.warning("Invalid CANN db file. File name: %s", cann_file)
                     continue
                 return file_path
         # when cann package support default export db, use mindstudio_profiler_output path to get db file
@@ -109,13 +109,13 @@ class BasicDbParser(BaseParser):
     def save_profiler_metadata_to_db(self):
         profiler_metadata_path = os.path.join(self._profiler_path, Constant.PROFILER_META_DATA)
         if not os.path.exists(profiler_metadata_path):
-            self.logger.warning("Can not find profiler_metadata.json, path is: %s", profiler_metadata_path)
+            self.logger.warning("Cannot find profiler_metadata.json. Path: %s", profiler_metadata_path)
             return
         profiler_metadata = FileManager.file_read_all(profiler_metadata_path)
         try:
             profiler_metadata = json.loads(profiler_metadata)
         except json.JSONDecodeError as e:
-            self.logger.warning("profiler_metadata.json parse failed, error is: %s", str(e))
+            self.logger.warning("Failed to parse profiler_metadata.json.")
             return
         data = [[str(key), json.dumps(value)] for key, value in profiler_metadata.items()]
         TorchDb().create_table_with_headers(DbConstant.TABLE_META_DATA,

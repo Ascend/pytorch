@@ -338,7 +338,7 @@ class NpuMlirCompiler(MetaCompiler):
                 self.compile_mlir(device_info, cargs, logger_level=logger_level)
             except Exception as e:
                 if suppress_error:
-                    logger.warning(f"compile args {cargs} fail, err msg: {e}")
+                    logger.warning(f"Failed to compile args {cargs}. Error: {e}")
                 else:
                     raise e
 
@@ -610,5 +610,5 @@ class AkgCompiler(MetaCompiler):
         except Exception as e:
             self.register_fx_fallback(self.kernel_meta)
             logger.warning(
-                f"AKG compile failed for {self.kernel_name}, fallback to FX. reason: {e}"
+                f"AKG compilation failed for {self.kernel_name}; falling back to FX. Reason: {e}"
             )

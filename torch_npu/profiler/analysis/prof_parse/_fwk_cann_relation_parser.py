@@ -22,7 +22,7 @@ class FwkCANNRelationParser:
             return acl_to_npu_dict
         kernel_dict = {}
         index = 0
-        acl_start_time_list = sorted(list(acl_to_npu_dict.keys()))
+        acl_start_time_list = sorted(acl_to_npu_dict.keys())
         for acl_start_time in acl_start_time_list:
             while index < len(dequeue_data_list):
                 if dequeue_data_list[index].ts > acl_start_time:
@@ -61,24 +61,24 @@ class FwkCANNRelationParser:
 
     def get_step_range(self, root_node: TorchOpNode, kernel_dict: dict):
         if not kernel_dict:
-            self.logger.error("Get step range failed, the kernel dict is empty.")
+            self.logger.error("Failed to get the step range; the kernel dict is empty.")
             return []
         # Get ProfilerStep#x node
         step_node_list = [node for node in root_node.child_node_list if node.is_profiler_step()]
         if not step_node_list:
-            self.logger.warning("Get step range failed, the step node list is empty.")
+            self.logger.warning("Failed to get the step range; the step node list is empty.")
             return []
         
         # Gather flow events start time in each step node
         if not FwkFileParser(self._profiler_path).has_task_queue_data():
-            acl_start_time_list = sorted(list(kernel_dict.keys()))
+            acl_start_time_list = sorted(kernel_dict.keys())
             self._update_step_node_info(step_node_list, acl_start_time_list)
         # Get step range on device by flow events
         step_range = []
         for step_node in step_node_list:
             step_id = step_node.event.name.split("#")[-1]
             if not step_node.corr_id_total:
-                self.logger.error("There is no flow events in %s range.", step_node.event.name)
+                self.logger.error("There are no flow events in the %s range.", step_node.event.name)
                 continue
             corr_id_list = sorted(step_node.corr_id_total)
             min_index, max_index = 0, len(corr_id_list) - 1
