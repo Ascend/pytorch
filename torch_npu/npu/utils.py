@@ -16,8 +16,9 @@ from torch_npu.npu._backends import get_soc_version
 __all__ = ["obfuscation_initialize", "obfuscation_finalize", "obfuscation_calculate",
            "synchronize", "set_device", "current_device", "device", "device_of", "StreamContext",
            "stream", "set_stream", "current_stream", "default_stream", "set_sync_debug_mode", "get_sync_debug_mode",
-           "init_dump", "set_dump", "finalize_dump", "is_support_inf_nan", "is_bf16_supported",
-           "get_npu_overflow_flag", "npu_check_overflow", "clear_npu_overflow_flag", "current_blas_handle",
+           "init_dump", "set_dump", "finalize_dump", "is_support_inf_nan", "is_force_overflow_check",
+           "is_bf16_supported", "get_npu_overflow_flag", "npu_check_overflow", "clear_npu_overflow_flag",
+           "current_blas_handle",
            "check_uce_in_memory", "stress_detect", "get_cann_version", "ipc_collect", "set_op_timeout_ms",
            "set_task_queue_enable", "get_task_queue_enable"]
 
@@ -397,13 +398,18 @@ def is_support_inf_nan():
     return torch_npu._C._npu_is_support_inf_nan()
 
 
+def is_force_overflow_check():
+    return (os.environ.get("FORCE_OVERFLOW_CHECK", "0") == "1" and
+            _is_gte_cann_version("9.1.0"))
+
+
 def is_bf16_supported(including_emulation: bool = False):
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_is_bf16_supported()
 
 
 def get_npu_overflow_flag():
-    if is_support_inf_nan():
+    if is_support_inf_nan() and not is_force_overflow_check():
         raise RuntimeError("Unsupported api when soc_version >= Ascend910B1, please use npu_check_overflow" +
                            pta_error(ErrCode.NOT_SUPPORT))
     float_status = torch.zeros(8).npu()
@@ -415,7 +421,7 @@ def get_npu_overflow_flag():
 
 
 def npu_check_overflow(grad):
-    if is_support_inf_nan():
+    if is_support_inf_nan() and not is_force_overflow_check():
         if isinstance(grad, float):
             cpu_sum = grad
         elif isinstance(grad, torch.Tensor):
@@ -435,7 +441,7 @@ def npu_check_overflow(grad):
 
 
 def clear_npu_overflow_flag():
-    if is_support_inf_nan():
+    if is_support_inf_nan() and not is_force_overflow_check():
         warnings.warn("When soc_version >= Ascend910B1, clear_npu_overflow_flag is useless, please remove it.")
         return
     float_status = torch.zeros(8).npu()

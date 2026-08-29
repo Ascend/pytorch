@@ -212,7 +212,21 @@ aclError AclrtCreateStreamWithConfig(aclrtStream *stream, uint32_t priority, uin
             trigger->traceNpuStreamCreation(reinterpret_cast<uintptr_t>(*stream));
         }
 #endif
-        if (!c10_npu::IsSupportInfNan()) {
+        static bool forceOverflowCheck = []() -> bool {
+            const char* env = std::getenv("FORCE_OVERFLOW_CHECK");
+            if (env == nullptr || std::strcmp(env, "1") != 0) {
+                return false;
+            }
+            if (!IsGteCANNVersion("9.1.0")) {
+                ASCEND_LOGW("FORCE_OVERFLOW_CHECK=1 requires CANN >= 9.1.0, current CANN "
+                            "version is %s. The env var will be ignored and overflow "
+                            "switch will NOT be enabled in inf-nan mode.",
+                            GetCANNVersion().c_str());
+                return false;
+            }
+            return true;
+        }();
+        if (!c10_npu::IsSupportInfNan() || forceOverflowCheck) {
             TORCH_CHECK(AclrtSetStreamOverflowSwitch(*stream, 1) == ACL_SUCCESS, "SET StreamOverflowSwitch Failed.", PROF_ERROR(ErrCode::ACL));
         }
         const char* mode = std::getenv("TORCHINDUCTOR_NPU_BACKEND");
