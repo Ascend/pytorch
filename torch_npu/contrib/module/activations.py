@@ -1,6 +1,5 @@
 import warnings
 
-import torch
 import torch.nn as nn
 import torch_npu
 
@@ -25,9 +24,9 @@ class Mish(nn.Module):
             >>> output = m(input_tensor)
         """
         super(Mish, self).__init__()
-        
+
         warnings.warn("torch_npu.contrib.module.Mish is deprecated. "
-                      "Please use torch.nn.Mish for replacement.", FutureWarning)
+                      "Please use torch.nn.Mish as a replacement.", FutureWarning)
 
     def forward(self, x):
         x = torch_npu.npu_mish(x)
@@ -48,9 +47,9 @@ class SiLU(nn.Module):
             >>> output = m(input_tensor)
         """
         super(SiLU, self).__init__()
-        
+
         warnings.warn("torch_npu.contrib.module.SiLU is deprecated. "
-                      "Please use torch.nn.SiLU for replacement.", FutureWarning)
+                      "Please use torch.nn.SiLU as a replacement.", FutureWarning)
 
     def forward(self, x):
         x = torch_npu.npu_silu(x)

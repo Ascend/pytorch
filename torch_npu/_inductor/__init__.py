@@ -82,7 +82,7 @@ def _load_triton_backend():
     has_triton = torch.utils._triton.has_triton()
     if not has_triton:
         import warnings
-        warnings.warn("triton-ascend is not installed, install it first.")
+        warnings.warn("triton-ascend is not installed. Please install it first.")
         return
     from torch._dynamo.device_interface import (
         get_interface_for_device,
