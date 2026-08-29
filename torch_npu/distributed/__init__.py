@@ -33,3 +33,10 @@ from .distributed_c10d import (
     _reduce_scatter_tensor_uneven as reduce_scatter_tensor_uneven,
     _all_gather_into_tensor_uneven as all_gather_into_tensor_uneven,
 )
+
+
+# Register the NPU DTensor RNG tracker and the run_dtensor_rng_op dispatch
+# key (no-op on torch versions without the upstream registration APIs).
+from torch_npu.distributed.tensor._random import register_npu_dtensor_rng
+
+register_npu_dtensor_rng()
