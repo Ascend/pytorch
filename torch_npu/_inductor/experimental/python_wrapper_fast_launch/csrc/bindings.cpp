@@ -46,6 +46,7 @@ struct FastLaunchPlan {
   void* kernelStub = nullptr;
   std::vector<FastLaunchArgKind> argKinds;
   std::vector<FastLaunchArgLayout> argLayouts;
+  size_t runtimeArgCount = 0;
   size_t fftsOffset = 0;
   size_t gridOffsets[3] = {0, 0, 0};
   size_t packedArgsSize = 0;
@@ -54,6 +55,9 @@ struct FastLaunchPlan {
   bool isPureSimt = false;
   bool targetSupportFfts = false;
   void* fftsAddress = nullptr;
+  std::vector<uint8_t> packedArgsTemplate;
+  uint32_t staticBlockNum = 0;
+  bool hasStaticGrid = false;
 };
 
 size_t AlignOffset(size_t offset, size_t alignment) {
@@ -277,23 +281,7 @@ struct PackedLaunch {
   rtStream_t stream = nullptr;
 };
 
-PackedLaunch PackLaunch(
-    const FastLaunchPlan& plan,
-    uint64_t streamValue,
-    uint32_t grid0,
-    uint32_t grid1,
-    uint32_t grid2,
-    const py::sequence& args) {
-  size_t argCount = static_cast<size_t>(py::len(args));
-  TORCH_CHECK(
-      argCount == plan.argKinds.size(),
-      "fast launch args and arg_kinds size mismatch: ",
-      argCount,
-      " vs ",
-      plan.argKinds.size());
-  rtStream_t stream = reinterpret_cast<rtStream_t>(streamValue);
-  TORCH_CHECK(stream != nullptr, "fast launch stream pointer is null");
-
+uint32_t ValidateGrid(uint32_t grid0, uint32_t grid1, uint32_t grid2) {
   const uint32_t grid[3] = {grid0, grid1, grid2};
   uint64_t blockNum = 1;
   for (size_t index = 0; index < 3; ++index) {
@@ -307,29 +295,79 @@ PackedLaunch PackLaunch(
         blockNum <= std::numeric_limits<uint16_t>::max(),
         "fast launch grid product exceeds uint16 max");
   }
+  return static_cast<uint32_t>(blockNum);
+}
 
-  PackedLaunch packed;
-  packed.blockNum = static_cast<uint32_t>(blockNum);
-  packed.stream = stream;
-  TORCH_INTERNAL_ASSERT(plan.argLayouts.size() == argCount);
-  packed.args.resize(plan.packedArgsSize, 0);
-  if (plan.targetSupportFfts) {
-    WritePointerAt(packed.args, plan.fftsOffset, plan.fftsAddress);
-  }
-  for (size_t index = 0; index < argCount; ++index) {
-    WriteArgAt(packed.args, args[index], plan.argLayouts[index]);
-  }
-  int32_t signedGrid[3] = {
+void WriteGrid(
+    const FastLaunchPlan& plan,
+    std::vector<uint8_t>& args,
+    uint32_t grid0,
+    uint32_t grid1,
+    uint32_t grid2) {
+  const int32_t signedGrid[3] = {
       static_cast<int32_t>(grid0),
       static_cast<int32_t>(grid1),
       static_cast<int32_t>(grid2),
   };
   for (size_t index = 0; index < 3; ++index) {
     WriteBytesAt(
-        packed.args,
+        args,
         plan.gridOffsets[index],
         &signedGrid[index],
         sizeof(signedGrid[index]));
+  }
+}
+
+PackedLaunch PackLaunch(
+    const FastLaunchPlan& plan,
+    uint64_t streamValue,
+    uint32_t grid0,
+    uint32_t grid1,
+    uint32_t grid2,
+    const py::sequence& args) {
+  size_t argCount = static_cast<size_t>(py::len(args));
+  TORCH_CHECK(
+      argCount == plan.runtimeArgCount,
+      "fast launch args and arg_kinds size mismatch: ",
+      argCount,
+      " vs ",
+      plan.runtimeArgCount);
+  rtStream_t stream = reinterpret_cast<rtStream_t>(streamValue);
+  TORCH_CHECK(stream != nullptr, "fast launch stream pointer is null");
+
+  PackedLaunch packed;
+  packed.blockNum = ValidateGrid(grid0, grid1, grid2);
+  packed.stream = stream;
+  TORCH_INTERNAL_ASSERT(plan.argLayouts.size() >= argCount);
+  packed.args = plan.packedArgsTemplate;
+  for (size_t index = 0; index < argCount; ++index) {
+    WriteArgAt(packed.args, args[index], plan.argLayouts[index]);
+  }
+  WriteGrid(plan, packed.args, grid0, grid1, grid2);
+  return packed;
+}
+
+PackedLaunch PackStaticLaunch(
+    const FastLaunchPlan& plan,
+    uint64_t streamValue,
+    const py::sequence& args) {
+  TORCH_CHECK(plan.hasStaticGrid, "fast launch plan has no static grid");
+  size_t argCount = static_cast<size_t>(py::len(args));
+  TORCH_CHECK(
+      argCount == plan.runtimeArgCount,
+      "fast launch args and arg_kinds size mismatch: ",
+      argCount,
+      " vs ",
+      plan.runtimeArgCount);
+  rtStream_t stream = reinterpret_cast<rtStream_t>(streamValue);
+  TORCH_CHECK(stream != nullptr, "fast launch stream pointer is null");
+
+  PackedLaunch packed;
+  packed.blockNum = plan.staticBlockNum;
+  packed.stream = stream;
+  packed.args = plan.packedArgsTemplate;
+  for (size_t index = 0; index < argCount; ++index) {
+    WriteArgAt(packed.args, args[index], plan.argLayouts[index]);
   }
   return packed;
 }
@@ -364,8 +402,9 @@ void SubmitLaunch(const FastLaunchPlan& plan, PackedLaunch packed) {
     return static_cast<int>(result);
   };
 
-  at_npu::native::OpCommand command;
-  command.Name(plan.kernelName).SetCustomHandler(std::move(launchCall)).Run();
+  // The launch callable is fully prepared. Reuse the existing OpAPI V2 queue
+  // entry instead of rebuilding a generic zero-I/O OpCommand for every hit.
+  at_npu::native::OpCommand::RunOpApiV2(plan.kernelName, launchCall);
 }
 
 std::shared_ptr<FastLaunchPlan> MakeFastLaunchPlan(
@@ -375,7 +414,10 @@ std::shared_ptr<FastLaunchPlan> MakeFastLaunchPlan(
     bool enableSimt,
     uint64_t sharedMemDynamicSize,
     bool isPureSimt,
-    bool targetSupportFfts) {
+    bool targetSupportFfts,
+    size_t runtimeArgCount,
+    const py::sequence& fixedArgs,
+    const std::vector<uint32_t>& staticGrid) {
   TORCH_CHECK(
       sharedMemDynamicSize <= std::numeric_limits<uint32_t>::max(),
       "shared_mem_dynamic_size exceeds uint32 max");
@@ -386,6 +428,17 @@ std::shared_ptr<FastLaunchPlan> MakeFastLaunchPlan(
   plan->kernelStubOwner = kernelStub;
   plan->kernelStub = ExtractPointer(kernelStub, "kernel_stub");
   plan->argKinds = ParseArgKinds(argKinds);
+  if (runtimeArgCount == std::numeric_limits<size_t>::max()) {
+    runtimeArgCount = plan->argKinds.size();
+  }
+  TORCH_CHECK(
+      runtimeArgCount <= plan->argKinds.size(),
+      "runtime arg count exceeds fast launch ABI size");
+  TORCH_CHECK(
+      static_cast<size_t>(py::len(fixedArgs)) ==
+          plan->argKinds.size() - runtimeArgCount,
+      "fixed fast launch args do not complete the ABI");
+  plan->runtimeArgCount = runtimeArgCount;
   plan->enableSimt = enableSimt;
   plan->sharedMemDynamicSize = sharedMemDynamicSize;
   plan->isPureSimt = isPureSimt;
@@ -404,6 +457,32 @@ std::shared_ptr<FastLaunchPlan> MakeFastLaunchPlan(
     plan->fftsAddress = reinterpret_cast<void*>(fftsAddress);
   }
   BuildPackedLayout(*plan);
+  plan->packedArgsTemplate.resize(plan->packedArgsSize, 0);
+  if (plan->targetSupportFfts) {
+    WritePointerAt(
+        plan->packedArgsTemplate, plan->fftsOffset, plan->fftsAddress);
+  }
+  for (size_t index = runtimeArgCount; index < plan->argKinds.size(); ++index) {
+    TORCH_CHECK(
+        plan->argKinds[index] != FastLaunchArgKind::Tensor,
+        "fixed tensor fast launch arguments are unsupported");
+    WriteArgAt(
+        plan->packedArgsTemplate,
+        fixedArgs[index - runtimeArgCount],
+        plan->argLayouts[index]);
+  }
+  if (!staticGrid.empty()) {
+    TORCH_CHECK(staticGrid.size() == 3, "static fast launch grid must have rank 3");
+    plan->staticBlockNum =
+        ValidateGrid(staticGrid[0], staticGrid[1], staticGrid[2]);
+    WriteGrid(
+        *plan,
+        plan->packedArgsTemplate,
+        staticGrid[0],
+        staticGrid[1],
+        staticGrid[2]);
+    plan->hasStaticGrid = true;
+  }
   return plan;
 }
 
@@ -416,6 +495,14 @@ void FastLaunchWithPlan(
     const py::sequence& args) {
   TORCH_CHECK(plan != nullptr, "fast launch plan is null");
   SubmitLaunch(*plan, PackLaunch(*plan, stream, grid0, grid1, grid2, args));
+}
+
+void FastLaunchStaticWithPlan(
+    const std::shared_ptr<FastLaunchPlan>& plan,
+    uint64_t stream,
+    const py::sequence& args) {
+  TORCH_CHECK(plan != nullptr, "fast launch plan is null");
+  SubmitLaunch(*plan, PackStaticLaunch(*plan, stream, args));
 }
 
 } // namespace
@@ -433,7 +520,10 @@ void RegisterNPUFastLaunchBindings(PyObject* module) {
       py::arg("enable_simt") = false,
       py::arg("shared_mem_dynamic_size") = 0,
       py::arg("is_pure_simt") = false,
-      py::arg("target_support_ffts") = false);
+      py::arg("target_support_ffts") = false,
+      py::arg("runtime_arg_count") = std::numeric_limits<size_t>::max(),
+      py::arg("fixed_args") = py::tuple(),
+      py::arg("static_grid") = std::vector<uint32_t>());
   m.def(
       "_npu_inductor_fast_launch_with_plan",
       &FastLaunchWithPlan,
@@ -442,6 +532,12 @@ void RegisterNPUFastLaunchBindings(PyObject* module) {
       py::arg("grid_0"),
       py::arg("grid_1"),
       py::arg("grid_2"),
+      py::arg("args"));
+  m.def(
+      "_npu_inductor_fast_launch_static_with_plan",
+      &FastLaunchStaticWithPlan,
+      py::arg("plan"),
+      py::arg("stream"),
       py::arg("args"));
 }
 

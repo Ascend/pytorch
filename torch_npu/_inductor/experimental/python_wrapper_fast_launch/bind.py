@@ -76,15 +76,23 @@ class BoundFastLaunch:
         "autotuner",
         "metadata",
         "_direct",
+        "_call_slot",
         "_negative_callable",
         "_negative_launcher",
         "_static_full_entry_reason",
     )
 
-    def __init__(self, autotuner: Any, metadata: dict[str, Any]) -> None:
+    def __init__(
+        self,
+        autotuner: Any,
+        metadata: dict[str, Any],
+        *,
+        call_slot: list[Any] | None = None,
+    ) -> None:
         self.autotuner = autotuner
         self.metadata = dict(metadata)
         self._direct: PlannedFastLaunch | None = None
+        self._call_slot = call_slot
         self._static_full_entry_reason = _static_full_entry_reason(autotuner)
         self._negative_launcher: Any | None = None
         self._negative_callable: Any | None = None
@@ -124,6 +132,8 @@ class BoundFastLaunch:
         self._direct = None
         self._negative_launcher = launcher
         self._negative_callable = launcher
+        if self._call_slot is not None:
+            self._call_slot[0] = self
 
     def _try_promote(self, args: tuple[Any, ...]) -> bool:
         launcher = self._stable_launcher()
@@ -150,6 +160,8 @@ class BoundFastLaunch:
                 self._install_negative(launcher)
             return False
         self._clear_negative()
+        if self._call_slot is not None:
+            self._call_slot[0] = FinalizedFastLaunch(self, self._direct)
         return True
 
     def _fallback(
@@ -211,9 +223,8 @@ class BoundFastLaunch:
                 args,
                 stream=stream,
             )
-        canonical_args = self._canonical_args(args)
         try:
-            direct(canonical_args, stream=stream)
+            direct(args, stream=stream)
         except FastLaunchError as exc:
             if exc.backend_submitted:
                 raise
@@ -284,6 +295,57 @@ class BoundFastLaunch:
         return result
 
 
+class FinalizedFastLaunch:
+    """Steady-state entry installed directly into a generated call slot."""
+
+    __slots__ = ("bound", "direct")
+
+    def __init__(self, bound: BoundFastLaunch, direct: PlannedFastLaunch) -> None:
+        self.bound = bound
+        self.direct = direct
+
+    def __call__(
+        self,
+        *args: Any,
+        stream: Any,
+        benchmark_run: bool = False,
+        **kwargs: Any,
+    ) -> Any:
+        if (
+            benchmark_run
+            or kwargs
+            or autograd_profiler._is_profiler_enabled
+            or getattr(self.bound.autotuner, "best_launcher", None)
+            is not self.direct.launcher
+        ):
+            return self.bound(
+                *args,
+                stream=stream,
+                benchmark_run=benchmark_run,
+                **kwargs,
+            )
+        if _launcher_has_active_launch_hooks(self.direct.launcher):
+            return self.bound._hook_fallback(
+                self.direct.launcher,
+                args,
+                stream=stream,
+            )
+        try:
+            self.direct(args, stream=stream)
+        except FastLaunchError as exc:
+            if exc.backend_submitted:
+                raise
+            if exc.stable:
+                self.bound._install_negative(self.direct.launcher)
+            return self.bound._fallback(
+                args,
+                stream=stream,
+                benchmark_run=False,
+                kwargs={},
+            )
+        return None
+
+
 def bind_python_wrapper_kernel_fast(
     metadata: dict[str, Any],
     autotuner: Any,
@@ -293,11 +355,15 @@ def bind_python_wrapper_kernel_fast(
     bound = (
         autotuner.run
         if _is_grouped_autotuner(autotuner)
-        else BoundFastLaunch(autotuner, metadata)
+        else BoundFastLaunch(autotuner, metadata, call_slot=call_slot)
     )
     if call_slot is not None:
         call_slot[0] = bound
     return bound
 
 
-__all__ = ["BoundFastLaunch", "bind_python_wrapper_kernel_fast"]
+__all__ = [
+    "BoundFastLaunch",
+    "FinalizedFastLaunch",
+    "bind_python_wrapper_kernel_fast",
+]
