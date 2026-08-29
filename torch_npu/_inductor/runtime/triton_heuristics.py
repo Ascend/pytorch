@@ -1120,7 +1120,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         if not self.configs or len(self.configs) <= 1:
             return
 
-        if not bool(npu_config.enable_costmodel_backend):
+        if not bool(npu_config.enable_costmodel_prefilter):
             return
 
         costmodel_ratio = float(getattr(npu_config, "costmodel_ratio", 0.25))
@@ -1131,7 +1131,18 @@ class NPUCachingAutotuner(CachingAutotuner):
             from triton.backends.ascend.runtime.costmodel_runtime import costmodel_bench
             costmodel_items = self._build_costmodel_items(args, kwargs)
             costmodel_start_time = time.perf_counter()
-            costmodel_map = costmodel_bench(costmodel_items)
+            costmodel_map = {}
+            if npu_config.precompile_thread_num > 1 and len(costmodel_items) > 1:
+                futures = [compile_thread_pool.submit(costmodel_bench, item) for item in costmodel_items]
+                for future in as_completed(futures):
+                    cfg, latency = future.result()
+                    if cfg is not None:
+                        costmodel_map[cfg] = latency
+            else:
+                for item in costmodel_items:
+                    cfg, latency = costmodel_bench(item)
+                    if cfg is not None:
+                        costmodel_map[cfg] = latency
             costmodel_elapsed = time.perf_counter() - costmodel_start_time
             log.debug("costmodel_bench elapsed time: %.6fs", costmodel_elapsed)
             log.debug("costmodel_bench result: %s", costmodel_map)
