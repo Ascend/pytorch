@@ -102,21 +102,48 @@ jobs:
           path: ./${{ env.TARBALL }}
           retention-days: 7
 
-      - name: Authenticate to Huawei Cloud
-        uses: huaweicloud/auth-action@v1.1.0
-        with:
-          access_key_id: ${{ secrets.ACCESSKEY }}
-          secret_access_key: ${{ secrets.SECRETACCESSKEY }}
-          region: ap-southeast-1
+      # obsutil is not preinstalled on GitHub-hosted runners; install it
+      # the same way the CI container images do (mirrors .ci/docker/
+      # common/install_obs.sh from the image build repo). Installed under
+      # $HOME because the runner user cannot write to /usr/local.
+      - name: Install obsutil
+        run: |
+          set -e
+          ARCH=$(uname -m)
+          case "${ARCH}" in
+            x86_64)  OBS_ARCH="amd64" ;;
+            aarch64) OBS_ARCH="arm64" ;;
+            *)       echo "Unsupported architecture: ${ARCH}"; exit 1 ;;
+          esac
+          OBS_URL="https://obs-community.obs.cn-north-1.myhuaweicloud.com/obsutil/current/obsutil_linux_${OBS_ARCH}.tar.gz"
+          wget -q "${OBS_URL}"
+          OBSUTIL_HOME="$HOME/.local/obsutil"
+          mkdir -p "${OBSUTIL_HOME}"
+          tar -zxf "obsutil_linux_${OBS_ARCH}.tar.gz" -C "${OBSUTIL_HOME}/"
+          rm -f "obsutil_linux_${OBS_ARCH}.tar.gz"
+          ln -sf "${OBSUTIL_HOME}"/obsutil_linux_${OBS_ARCH}_*/obsutil "${OBSUTIL_HOME}/obsutil"
+          "${OBSUTIL_HOME}/obsutil" version
 
+      # Retry once on failure; uploads above 50MB use segment mode and
+      # resume from the checkpoint left by the failed attempt. -vlength
+      # verifies the object size after upload.
       - name: Upload PyTorch source to OBS
-        uses: huaweicloud/obs-helper@v1.0.1
-        with:
-          region: ap-southeast-1
-          bucket_name: pytorch-ci-cache
-          local_file_path: ./${{ env.TARBALL }}
-          obs_file_path: 7day-cache/${{ env.TARBALL }}
-          operation_type: upload
+        run: |
+          export PATH="${HOME}/.local/obsutil:${PATH}"
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
+
+          TARBALL="${{ env.TARBALL }}"
+          for attempt in 1 2; do
+            echo "=== Upload attempt ${attempt} ==="
+            if obsutil cp "./${TARBALL}" "obs://pytorch-ci-cache/7day-cache/${TARBALL}" -f -vlength; then
+              echo "Upload succeeded on attempt ${attempt}"
+              exit 0
+            fi
+            echo "Upload attempt ${attempt} failed"
+            sleep 10
+          done
+          echo "Upload failed after 2 attempts"
+          exit 1
 
   # ======================================================================
   # Job 2: Build PyTorch + torch_npu on self-hosted ARM64 runner
@@ -155,13 +182,14 @@ jobs:
           job-name: ${{ inputs.runner_label }} / build (pytorch, torch-npu, py3.10)
 
       # Step 1: Download and extract pre-fetched PyTorch source
-      - name: Authenticate to Huawei Cloud
-        uses: huaweicloud/auth-action@v1.1.0
-        with:
-          access_key_id: ${{ secrets.ACCESSKEY }}
-          secret_access_key: ${{ secrets.SECRETACCESSKEY }}
-          region: ap-southeast-1
-
+      # obsutil is preinstalled in the build image; auth is done inline
+      # via `obsutil config` (AK/SK are masked by the runner in logs).
+      # Objects above the 50MB threshold use segment download
+      # automatically; a failed attempt leaves a checkpoint record in
+      # ~/.obsutil_checkpoint/down, so the retry resumes the transfer
+      # instead of restarting from byte 0. -vlength verifies the local
+      # file size against the object. Do NOT delete the .obs.temp partial
+      # file between attempts — it is the resume state.
       - name: Compute SHAs
         id: sha
         run: |
@@ -171,13 +199,21 @@ jobs:
           echo "wheels_tarball=wheels-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
 
       - name: Download PyTorch source from OBS
-        uses: huaweicloud/obs-helper@v1.0.1
-        with:
-          region: ap-southeast-1
-          bucket_name: pytorch-ci-cache
-          local_file_path: ./${{ steps.sha.outputs.source_tarball }}
-          obs_file_path: 7day-cache/${{ steps.sha.outputs.source_tarball }}
-          operation_type: download
+        run: |
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
+
+          TARBALL="${{ steps.sha.outputs.source_tarball }}"
+          for attempt in 1 2; do
+            echo "=== Download attempt ${attempt} ==="
+            if obsutil cp "obs://pytorch-ci-cache/7day-cache/${TARBALL}" "./${TARBALL}" -vlength; then
+              echo "Download succeeded on attempt ${attempt}"
+              exit 0
+            fi
+            echo "Download attempt ${attempt} failed"
+            sleep 10
+          done
+          echo "Download failed after 2 attempts"
+          exit 1
 
       - name: Extract PyTorch source
         run: |
@@ -325,14 +361,29 @@ jobs:
           tar -czf "${TARBALL}" -C /tmp/wheels .
           echo "Wheels tarball size: $(du -h ${TARBALL} | cut -f1)"
 
+      # obsutil is preinstalled in the build image; auth is done inline
+      # via `obsutil config` (AK/SK are masked by the runner in logs).
+      # Files above the 50MB threshold use segment upload automatically;
+      # a failed attempt leaves a checkpoint record in
+      # ~/.obsutil_checkpoint/upload, so the retry resumes the transfer
+      # instead of restarting from byte 0. -vlength verifies the uploaded
+      # object size against the local file.
       - name: Upload wheels to OBS
-        uses: huaweicloud/obs-helper@v1.0.1
-        with:
-          region: ap-southeast-1
-          bucket_name: pytorch-ci-cache
-          local_file_path: ./${{ steps.sha.outputs.wheels_tarball }}
-          obs_file_path: 7day-cache/${{ steps.sha.outputs.wheels_tarball }}
-          operation_type: upload
+        run: |
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
+
+          TARBALL="${{ steps.sha.outputs.wheels_tarball }}"
+          for attempt in 1 2; do
+            echo "=== Upload attempt ${attempt} ==="
+            if obsutil cp "./${TARBALL}" "obs://pytorch-ci-cache/7day-cache/${TARBALL}" -f -vlength; then
+              echo "Upload succeeded on attempt ${attempt}"
+              exit 0
+            fi
+            echo "Upload attempt ${attempt} failed"
+            sleep 10
+          done
+          echo "Upload failed after 2 attempts"
+          exit 1
 
       - name: Upload wheel artifacts
         if: success()
