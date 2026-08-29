@@ -1,8 +1,9 @@
-from typing import Iterable, Union
+from typing import Union
 import torch
+from torch.accelerator._utils import _get_device_index
+from torch_npu._compat.accelerator import get_default_generator
 
-import torch_npu
-from . import _lazy_init, _lazy_call, device_count, current_device, is_initialized
+from . import _lazy_init, _lazy_call, device_count, is_initialized
 
 __all__ = ['get_rng_state', 'set_rng_state',
            'get_rng_state_all', 'set_rng_state_all',
@@ -21,14 +22,8 @@ def get_rng_state(device: Union[int, str, torch.device] = 'npu') -> torch.Tensor
         This function eagerly initializes NPU.
     """
     _lazy_init()
-    if isinstance(device, str):
-        device = torch.device(device)
-    elif isinstance(device, int):
-        device = torch.device('npu', device)
-    idx = device.index
-    if idx is None:
-        idx = current_device()
-    default_generator = torch_npu.npu.default_generators[idx]
+    idx = _get_device_index(device, optional=True)
+    default_generator = get_default_generator(idx)
     return default_generator.get_state()
 
 
@@ -55,16 +50,9 @@ def set_rng_state(new_state: torch.Tensor, device: Union[int, str, torch.device]
             # later when NPU is lazy initialized.
             new_state = new_state.clone(memory_format=torch.contiguous_format)
 
-    if isinstance(device, str):
-        device = torch.device(device)
-    elif isinstance(device, int):
-        device = torch.device('npu', device)
-
     def cb():
-        idx = device.index
-        if idx is None:
-            idx = current_device()
-        default_generator = torch_npu.npu.default_generators[idx]
+        idx = _get_device_index(device, optional=True)
+        default_generator = get_default_generator(idx)
         default_generator.set_state(new_state)
 
     _lazy_call(cb)
@@ -95,8 +83,8 @@ def manual_seed(seed):
     seed = int(seed)
 
     def cb():
-        idx = current_device()
-        default_generator = torch_npu.npu.default_generators[idx]
+        idx = torch.accelerator.current_device_index()
+        default_generator = get_default_generator(idx)
         default_generator.manual_seed(seed)
 
     _lazy_call(cb)
@@ -114,7 +102,7 @@ def manual_seed_all(seed):
 
     def cb():
         for i in range(device_count()):
-            default_generator = torch_npu.npu.default_generators[i]
+            default_generator = get_default_generator(i)
             default_generator.manual_seed(seed)
 
     _lazy_call(cb)
@@ -131,8 +119,8 @@ def seed():
     """
 
     def cb():
-        idx = current_device()
-        default_generator = torch_npu.npu.default_generators[idx]
+        idx = torch.accelerator.current_device_index()
+        default_generator = get_default_generator(idx)
         default_generator.seed()
 
     _lazy_call(cb)
@@ -148,7 +136,7 @@ def seed_all():
         random_seed = 0
         seeded = False
         for i in range(device_count()):
-            default_generator = torch_npu.npu.default_generators[i]
+            default_generator = get_default_generator(i)
             if not seeded:
                 default_generator.seed()
                 random_seed = default_generator.initial_seed()
@@ -166,6 +154,6 @@ def initial_seed():
         This function eagerly initializes NPU.
     """
     _lazy_init()
-    idx = current_device()
-    default_generator = torch_npu.npu.default_generators[idx]
+    idx = torch.accelerator.current_device_index()
+    default_generator = get_default_generator(idx)
     return default_generator.initial_seed()

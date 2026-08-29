@@ -157,6 +157,7 @@ import torch
 from torch.storage import _LegacyStorage, _warn_typed_storage_removal
 from torch._utils import classproperty
 from torch_npu._init.common.warning_utils import _should_print_warning
+from torch_npu._compat.accelerator import get_default_generator
 
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error, prof_error
@@ -369,7 +370,7 @@ def _get_generator(device: torch.device) -> torch._C.Generator:
     idx = device.index
     if idx is None:
         idx = current_device()
-    return torch.npu.default_generators[idx]
+    return get_default_generator(idx)
 
 
 def _set_rng_state_offset(offset: int, device: Union[int, str, torch.device] = 'npu') -> None:
