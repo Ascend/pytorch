@@ -93,16 +93,29 @@ jobs:
           job-name: ${{ inputs.runner_label }} / build (pytorch, torch-npu, py3.10)
 
       # Step 1: Checkout upstream PyTorch source from GitHub (shallow).
-      # Submodules are fetched by the checkout action itself (shallow) to
-      # leverage its caching; no separate submodule step needed.
+      # Submodules are NOT fetched here: actions/checkout updates them
+      # sequentially, which took ~45min of a 1h build (run 33183990395).
+      # The main-repo checkout alone takes ~10s via the container's code
+      # cache proxy. Submodules are fetched separately in parallel below.
       - name: Checkout upstream PyTorch
         uses: actions/checkout@v6
         with:
           repository: ${{ inputs.upstream_repo }}
           ref: ${{ inputs.upstream_ref }}
           fetch-depth: 1
-          submodules: recursive
+          submodules: false
           path: pytorch
+
+      # Fetch submodules with native git parallelism: --jobs runs the
+      # clone/fetch phase (the network bottleneck) for 8 modules at a
+      # time through the cache proxy. --depth=1 keeps the same shallow
+      # semantics the checkout action itself uses for submodules.
+      - name: Fetch PyTorch submodules in parallel
+        working-directory: pytorch
+        run: |
+          start=$(date +%s)
+          git submodule update --init --force --recursive --depth=1 --jobs=8
+          echo "Submodule fetch took $(( $(date +%s) - start ))s"
 
       - name: Resolve SHAs
         id: sha
