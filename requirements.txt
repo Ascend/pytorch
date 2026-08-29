@@ -1,5 +1,5 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
---extra-index-url https://triton-ascend.osinfra.cn/pypi/simple
+--extra-index-url https://triton-ascend.osinfra.cn/pypi
 
 pyyaml
 setuptools
@@ -7,4 +7,4 @@ auditwheel
 
 torch==2.9.0
 
-triton-ascend==3.2.1
+triton-ascend==3.2.2
