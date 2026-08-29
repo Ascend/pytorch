@@ -9,6 +9,8 @@
 
 
 namespace c10d_npu {
+HcclResult hcclCommSymWinDeregister(void *handle);
+
 bool isFileExists(const std::string& path)
 {
     std::filesystem::path filePath(path);
@@ -203,6 +205,18 @@ void HCCLComm::destroyHcclComm()
     }
 }
 
+void HCCLComm::releaseHcclCommRes()
+{
+    std::unique_lock<std::mutex> lock(mutex_);
+    // Deregister all symmetric windows before destroying the communicator.
+    for (const auto& it : registeredSegmentHandles_) {
+        HCCL_CHECK_ERROR(
+            hcclCommSymWinDeregister(it.second.first),
+            "hcclCommSymWinDeregister");
+    }
+    registeredSegmentHandles_.clear();
+}
+
 HcclResult HCCLComm::checkForHcclError()
 {
     std::unique_lock<std::mutex> lock(mutex_);
@@ -225,6 +239,49 @@ HcclResult HCCLComm::checkForHcclError()
     // Always return success, if error checks are disabled.
     return HCCL_SUCCESS;
 #endif
+}
+
+HcclResult hcclCommSymWinRegister(HcclComm comm, void *addr, uint64_t size, void **handle, uint32_t flag);
+
+HcclResult HCCLComm::registerSegment(void* ptr, size_t size, bool errorOnRereg, bool symmetric)
+{
+    std::unique_lock<std::mutex> lock(mutex_);
+    void* handle = nullptr;
+    if (registeredSegmentHandles_.count(ptr) > 0) {
+        TORCH_CHECK(!errorOnRereg,
+            "Segment with ptr ", ptr, " has already been registered on hcclComm_ ", hcclComm_,
+            DIST_ERROR(ErrCode::UNAVAIL));
+        return HCCL_SUCCESS;
+    }
+    TORCH_CHECK(symmetric,
+        "HCCLComm::registerSegment: non-symmetric segment registration (symmetric=false) is not supported currently. ",
+        "Please register the segment with symmetric=true. ",
+        DIST_ERROR(ErrCode::NOT_SUPPORT));
+    HCCL_CHECK_ERROR(
+        hcclCommSymWinRegister(hcclComm_, ptr, size, &handle, 1),
+        "hcclCommSymWinRegister");
+    registeredSegmentHandles_[ptr] = std::make_pair(handle, symmetric);
+    return HCCL_SUCCESS;
+}
+
+HcclResult HCCLComm::deregisterSegment(void* ptr)
+{
+    std::unique_lock<std::mutex> lock(mutex_);
+    auto it = registeredSegmentHandles_.find(ptr);
+    TORCH_CHECK(it != registeredSegmentHandles_.end(),
+        "Segment with ptr ", ptr, " is not registered on hcclComm_ ", hcclComm_,
+        DIST_ERROR(ErrCode::UNAVAIL));
+    void* handle = it->second.first;
+    bool symmetric = it->second.second;
+    TORCH_CHECK(symmetric,
+        "HCCLComm::deregisterSegment: non-symmetric segment deregistration is not supported currently. "
+        "Please deregister the segment registered with symmetric=true. ",
+        DIST_ERROR(ErrCode::NOT_SUPPORT));
+    HCCL_CHECK_ERROR(
+        hcclCommSymWinDeregister(handle),
+        "hcclCommSymWinDeregister");
+    registeredSegmentHandles_.erase(it);
+    return HCCL_SUCCESS;
 }
 
 void DebugInfoWriter::write(const std::string &hcclTrace)
