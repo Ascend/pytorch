@@ -386,6 +386,85 @@ def parse_junit_xml_status(xml_file: Path) -> Dict:
         return {"status": "no_xml", "message": "XML parse failed"}
 
 
+def _recover_result_from_junit_xml(
+    report_dir: Path,
+    shard: int,
+    shard_type: str,
+    timeout: int,
+    task: CaseExecutionTask,
+) -> Optional[Dict]:
+    """
+    Rebuild a case result dict from the JUnit XML the worker left on disk.
+
+    Used when a worker's stdout JSON result line is lost or corrupted in
+    transport. pytest writes the XML before the worker prints the result
+    line, so any case that actually ran has an XML on disk.
+
+    Returns None when no XML exists for the case (case never ran).
+    """
+    junit_dir = report_dir / "junit_xmls"
+    prefix = {"distributed": "dist", "core": "core", "tensor": "tensor",
+              "graph": "graph", "others": "others",
+              "regular": "reg", "custom": "custom"}.get(shard_type, "reg")
+    safe_name = sanitize_nodeid_for_filename(task.nodeid)
+    xml_file = junit_dir / f"{prefix}-{shard}_{task.case_idx}_{safe_name}.xml"
+    if not xml_file.exists():
+        # Fallback: locate by (prefix, shard, case_idx), unique per case
+        candidates = sorted(
+            junit_dir.glob(f"{prefix}-{shard}_{task.case_idx}_*.xml")
+        )
+        if not candidates:
+            return None
+        xml_file = candidates[0]
+
+    xml_result = parse_junit_xml_status(xml_file)
+    if xml_result["status"] == "no_xml":
+        return None
+
+    status = xml_result["status"]
+    message = xml_result.get("message", "")
+
+    # Extract duration (testcase time preferred, testsuite time fallback)
+    duration = 0.0
+    try:
+        tree = ET.parse(str(xml_file))
+        for testcase in tree.getroot().iter("testcase"):
+            duration = float(testcase.get("time", 0) or 0)
+            break
+        if duration == 0.0:
+            for suite in tree.getroot().iter("testsuite"):
+                duration = float(suite.get("time", 0) or 0)
+                break
+    except Exception:
+        duration = 0.0
+
+    returncode = 0 if status in ("passed", "skipped") else 1
+
+    # Reconstruct the command the worker ran (mirrors _worker_main)
+    nodeid_arg = task.nodeid
+    if nodeid_arg.startswith("test/"):
+        nodeid_arg = nodeid_arg[5:]
+    command_str = (
+        f"{sys.executable} -m pytest --color=no -ra --tb=short "
+        f"{nodeid_arg} --junitxml={xml_file}"
+    )
+    if timeout > 0:
+        command_str += f" --timeout={timeout}"
+    command_str += " -vv"
+
+    return {
+        "nodeid": task.nodeid,
+        "status": status,
+        "duration": duration,
+        "returncode": returncode,
+        "message": message,
+        "command": command_str,
+        "file": task.test_file,
+        "case_idx": task.case_idx,
+        "recovered": "junit_xml",
+    }
+
+
 # ==============================================================================
 # Case Batching Functions
 # ==============================================================================
@@ -1103,41 +1182,105 @@ def _execute_worker_batch(
                 continue
 
             # Normal exit: all cases processed
-            if not attempt_completed:
-                results_file = report_dir / f"batch_results_{batch_id}.json"
-                if results_file.exists():
-                    try:
-                        fallback_results = json.loads(
-                            results_file.read_text(encoding="utf-8")
-                        )
-                        for cr in fallback_results:
-                            full_result = {
-                                "nodeid": cr.get("nodeid", ""),
-                                "status": cr.get("status", "error"),
-                                "duration": cr.get("duration", 0.0),
-                                "returncode": int(cr.get("returncode", 1)),
-                                "message": cr.get("message", ""),
-                                "command": cr.get("command", ""),
-                                "file": cr.get("file", ""),
-                                "case_idx": int(cr.get("case_idx", 0)),
-                            }
-                            result_aggregator.add_case_result(full_result)
-                            progress_tracker.mark_completed(
-                                full_result["nodeid"],
-                                full_result["status"],
-                                full_result["duration"],
-                            )
-                            completed_nodeids.add(full_result["nodeid"])
-                    except (json.JSONDecodeError, OSError):
-                        pass
+            # A worker reports one JSON result line per case via stdout,
+            # but that channel is shared with native (C++) output from the
+            # test process, so a line can be corrupted and silently dropped
+            # by the reader. Before synthesizing errors, reconcile every
+            # missing case against on-disk evidence, in order:
+            #   1. batch_results_{batch_id}.json — written by the worker
+            #      just before exit, holds the authoritative per-case dict
+            #   2. junit_xmls/{prefix}-{shard}_{case_idx}_*.xml — written
+            #      by pytest for every case that actually ran
+            # Only cases with no evidence anywhere become synthetic errors.
+            results_file = report_dir / f"batch_results_{batch_id}.json"
+            fallback_results = []
+            if results_file.exists():
+                try:
+                    fallback_results = json.loads(
+                        results_file.read_text(encoding="utf-8")
+                    )
+                except (json.JSONDecodeError, OSError):
+                    fallback_results = []
 
             remaining = [
                 t for t in batch if t.nodeid not in completed_nodeids
             ]
+
+            # Pass 1: recover missing results from the worker's
+            # batch results file
+            if remaining and fallback_results:
+                fallback_by_nodeid = {
+                    cr.get("nodeid", ""): cr for cr in fallback_results
+                }
+                still_missing = []
+                recovered = 0
+                for task in remaining:
+                    cr = fallback_by_nodeid.get(task.nodeid)
+                    if cr is None:
+                        still_missing.append(task)
+                        continue
+                    full_result = {
+                        "nodeid": cr.get("nodeid", task.nodeid),
+                        "status": cr.get("status", "error"),
+                        "duration": cr.get("duration", 0.0),
+                        "returncode": int(cr.get("returncode", 1)),
+                        "message": cr.get("message", ""),
+                        "command": cr.get("command", ""),
+                        "file": cr.get("file", task.test_file),
+                        "case_idx": int(cr.get("case_idx", task.case_idx)),
+                        "recovered": "batch_results",
+                    }
+                    result_aggregator.add_case_result(full_result)
+                    progress_tracker.mark_completed(
+                        full_result["nodeid"],
+                        full_result["status"],
+                        full_result["duration"],
+                    )
+                    completed_nodeids.add(task.nodeid)
+                    recovered += 1
+                if recovered:
+                    print(
+                        f"  [Batch {batch_id}] Recovered {recovered} case "
+                        f"result(s) from batch results file "
+                        f"(stdout result line lost)",
+                        flush=True,
+                    )
+                remaining = still_missing
+
+            # Pass 2: recover missing results from JUnit XML files on disk
+            if remaining:
+                still_missing = []
+                recovered = 0
+                for task in remaining:
+                    full_result = _recover_result_from_junit_xml(
+                        report_dir, shard, shard_type, timeout, task
+                    )
+                    if full_result is None:
+                        still_missing.append(task)
+                        continue
+                    result_aggregator.add_case_result(full_result)
+                    progress_tracker.mark_completed(
+                        full_result["nodeid"],
+                        full_result["status"],
+                        full_result["duration"],
+                    )
+                    completed_nodeids.add(task.nodeid)
+                    recovered += 1
+                if recovered:
+                    print(
+                        f"  [Batch {batch_id}] Recovered {recovered} case "
+                        f"result(s) from JUnit XML files "
+                        f"(stdout result line lost)",
+                        flush=True,
+                    )
+                remaining = still_missing
+
+            # Pass 3: no on-disk evidence — synthetic error
             if remaining:
                 print(
                     f"  [Batch {batch_id}] {len(remaining)} cases missing "
-                    f"results (normal exit), marking as error",
+                    f"results (normal exit, no on-disk evidence), "
+                    f"marking as error",
                     flush=True,
                 )
                 for task in remaining:
@@ -1146,10 +1289,14 @@ def _execute_worker_batch(
                         "status": "error",
                         "duration": 0.0,
                         "returncode": 1,
-                        "message": "No result produced (worker exited normally)",
+                        "message": (
+                            "No result produced (worker exited normally; "
+                            "no junit xml or batch results found)"
+                        ),
                         "command": "",
                         "file": task.test_file,
                         "case_idx": task.case_idx,
+                        "synthetic": True,
                     }
                     result_aggregator.add_case_result(error_result)
                     progress_tracker.mark_completed(
