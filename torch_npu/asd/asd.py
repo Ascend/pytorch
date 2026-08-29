@@ -16,7 +16,6 @@ from ._silent_fault_data import SilentFaultData, SilentFaultDataV2
 
 __all__ = []
 
-
 loggerSilent = logging.getLogger("torch_npu.silent_check")
 
 
@@ -27,6 +26,7 @@ def _Singleton(cls):
         if cls not in _instances:
             _instances[cls] = cls(*args, **kwargs)
         return _instances[cls]
+
     return _singleton
 
 
@@ -75,13 +75,15 @@ class _SilentFaultDetector:
             step_tensor = self.high_step
 
         torch_npu._npu_silent_check(grad, val, sfda.pre_val, sfda.min_val, sfda.max_val, step_tensor, self.min_step,
-                                    sfda.upper_thresh[0], sfda.sigma_thresh[0], sfda.upper_thresh[1], sfda.sigma_thresh[1])
+                                    sfda.upper_thresh[0], sfda.sigma_thresh[0], sfda.upper_thresh[1],
+                                    sfda.sigma_thresh[1])
 
     def silent_fault_check_hook(self, weight):
         def hook(grad):
             self.idx = id(weight)
             self.silent_fault_check(grad)
             return
+
         return hook
 
 
@@ -136,7 +138,8 @@ class _SilentFaultDetectorV2:
 
         sfda = self.silent_data_dict[idx]
 
-        torch_npu._npu_silent_check_v2(val, grad, sfda.check_tensor, sfda.step_tensor, self.min_step, sfda.upper_thresh[0],
+        torch_npu._npu_silent_check_v2(val, grad, sfda.check_tensor, sfda.step_tensor, self.min_step,
+                                       sfda.upper_thresh[0],
                                        sfda.sigma_thresh[0], sfda.upper_thresh[1], sfda.sigma_thresh[1], asd_flag)
 
 
@@ -147,17 +150,20 @@ IS_IN_BACKWARD = False
 def _input_hook(idx, asd_flag):
     def hook(grad):
         global IS_IN_BACKWARD
-        loggerSilent.debug(f"input_hook: IS_IN_BACKWARD is {IS_IN_BACKWARD}, will change to False. idx is {idx}, flag is {asd_flag}")
+        loggerSilent.debug(
+            "input_hook: IS_IN_BACKWARD is %s, will change to False. idx is %s, flag is %s",
+            IS_IN_BACKWARD, idx, asd_flag)
         IS_IN_BACKWARD = False
         torch_npu._C._npu_set_call_state("forward")
         _silent_fault_detector_v2.silent_fault_check(idx, asd_flag, grad)
         return
+
     return hook
 
 
 def _output_hook(grad):
     global IS_IN_BACKWARD
-    loggerSilent.debug(f"output_hook: IS_IN_BACKWARD is {IS_IN_BACKWARD}, will change to True.")
+    loggerSilent.debug("output_hook: IS_IN_BACKWARD is %s, will change to True.", IS_IN_BACKWARD)
     IS_IN_BACKWARD = True
     torch_npu._C._npu_set_call_state("backward")
     return grad
@@ -235,15 +241,17 @@ class _SilentCheckState:
             if self.last_weight is not None and self.first_weight is not None:
                 # Otherwise, there is only one weight in the outer module
                 if self.first_weight_id != self.last_weight_id:
-                    loggerSilent.debug(f"init_all_hook: module init, first_module_id is {self.first_module_id}.")
+                    loggerSilent.debug("init_all_hook: module init, first_module_id is %s.", self.first_module_id)
                     if self.last_weight_hook_handles.get(self.first_module_id, None) is None:
                         last_weight_handle = self.last_weight.register_hook(_output_hook)
                         self.last_weight_hook_handles[self.first_module_id] = last_weight_handle
                     if self.weight_hook_handles.get(self.first_module_id, None) is None:
-                        first_weight_handle = self.first_weight.register_hook(_input_hook(self.first_module_id, self.check_enable))
+                        first_weight_handle = self.first_weight.register_hook(
+                            _input_hook(self.first_module_id, self.check_enable))
                         self.weight_hook_handles[self.first_module_id] = first_weight_handle
                 else:
-                    loggerSilent.debug(f"init_all_hook: module only have one weight, first_module_id is {self.first_module_id}.")
+                    loggerSilent.debug("init_all_hook: module only have one weight, first_module_id is %s.",
+                                       self.first_module_id)
             self.init_marks[self.first_module_id] = True
 
 
@@ -274,7 +282,7 @@ def _silent_check_decorator(func):
                         if value is not None:
                             value.remove()
                     silent_check.set_check_enable(0)
-                    warnings.warn(f"Warning: Module has unsupported dtype tensor, silent check will be closed.")
+                    warnings.warn("Module has an unsupported-dtype tensor; silent check will be closed.")
 
         tmp = func(self, *args, **kwargs)
 
@@ -292,6 +300,7 @@ def _silent_check_decorator(func):
                 self.outer = False
 
         return tmp
+
     return wrapper
 
 
@@ -330,12 +339,12 @@ class _MatmulSilentCheck:
         self.invalid_grad_sum = 0
         # Threshold
         self.with_checksum = False
-        self.cooldown = 5 # default 5 min cooldown
-        self.strikes_num = 3 # default 3 times
-        self.strikes_window = 480 # default 480 min
-        self.checksum_cooldown = 180 # default 180 min
-        self.upper_thresh1 = 1000000 # default 1000000
-        self.upper_thresh2 = 100 # default 100
+        self.cooldown = 5  # default 5 min cooldown
+        self.strikes_num = 3  # default 3 times
+        self.strikes_window = 480  # default 480 min
+        self.checksum_cooldown = 180  # default 180 min
+        self.upper_thresh1 = 1000000  # default 1000000
+        self.upper_thresh2 = 100  # default 100
         self.store = None
         self.rank = None
 
@@ -446,7 +455,8 @@ class _MatmulSilentCheck:
                 else:
                     self.invalid_grad_sum += 1
                     if self.invalid_grad_sum > max(10, len(self.registered_modules)):
-                        warnings.warn(f"There is no available grad for detection, and the silent check feature may not take effect.")
+                        warnings.warn(
+                            "There is no available grad for detection, and the silent check feature may not take effect.")
                         self.invalid_grad_sum = 0
 
     def _detect_grad(self, grad, name):
@@ -467,7 +477,7 @@ class _MatmulSilentCheck:
                 else:
                     self.statistic_value.fill_(torch.pow(torch.norm(grad, float('inf')), 2).detach().float())
 
-                #Asynchronously copy the value to host
+                # Asynchronously copy the value to host
                 self.lock.acquire()
                 self.statistic_cpu_value[self.tail_index].copy_(self.statistic_value.data, non_blocking=True)
                 self.name_list[self.tail_index] = name
@@ -495,9 +505,13 @@ class _MatmulSilentCheck:
             val = self.statistic_cpu_value[self.head_index].item()
             name = self.name_list[self.head_index]
             while val != -1 and name != "":
-                loggerSilent.debug(f"[silent data] name:{name}, val: {val}, pre_val: {self.check_stat[name]['pre_val']}, avg: {self.check_stat[name]['avg']}, bp time: {self.check_stat[name]['step']}, none_zero_step: {self.check_stat[name]['none_zero_step']}")
+                loggerSilent.debug(
+                    "[silent data] name:%s, val: %s, pre_val: %s, avg: %s, bp time: %s, none_zero_step: %s",
+                    name, val, self.check_stat[name]['pre_val'], self.check_stat[name]['avg'],
+                    self.check_stat[name]['step'], self.check_stat[name]['none_zero_step'])
                 result, self.check_stat[name]['avg'], self.check_stat[name]['none_zero_step'] = self._silent_check(
-                    val, self.check_stat[name]['pre_val'], self.check_stat[name]['avg'], self.check_stat[name]['none_zero_step'],
+                    val, self.check_stat[name]['pre_val'], self.check_stat[name]['avg'],
+                    self.check_stat[name]['none_zero_step'],
                     self.upper_thresh1, self.upper_thresh2
                 )
 
@@ -559,7 +573,7 @@ class _MatmulSilentCheck:
                 if self.with_checksum:
                     self.checksum_state = 1
                     if not self.matmul_with_bf16:
-                        warnings.warn(f"Warning: Module has no supported dtype grad, checksum will not to be linked.")
+                        warnings.warn("Module has no supported dtype grad; checksum will not be linked.")
             return
         while i >= 0:
             old_abnormal = self.history_abnormal_list[i]
@@ -574,7 +588,7 @@ class _MatmulSilentCheck:
                     if self.with_checksum:
                         self.checksum_state = 1
                         if not self.matmul_with_bf16:
-                            warnings.warn(f"Warning: Module has no supported dtype grad, checksum will not to be linked.")
+                            warnings.warn("Module has no supported dtype grad; checksum will not be linked.")
                     break
                 counting_abnormal_pos.append(i)
                 i -= 1
@@ -585,7 +599,9 @@ class _MatmulSilentCheck:
                     if len(counting_abnormal_pos) == self.strikes_num - 1:
                         break
                     i -= 1
-                if len(counting_abnormal_pos) == self.strikes_num - 1 and abs(new_abnormal['time'] - old_abnormal['time']) <= self.strikes_window * 60:
+                if (len(counting_abnormal_pos) == self.strikes_num - 1
+                        and abs(new_abnormal['time'] - old_abnormal['time'])
+                        <= self.strikes_window * 60):
                     # Three strikes
                     self._generate_warning_log(counting_abnormal_pos, new_abnormal)
                     for index in counting_abnormal_pos:
@@ -595,7 +611,7 @@ class _MatmulSilentCheck:
                     if self.with_checksum:
                         self.checksum_state = 1
                         if not self.matmul_with_bf16:
-                            warnings.warn(f"Warning: Module has no supported dtype grad, checksum will not to be linked.")
+                            warnings.warn("Module has no supported dtype grad; checksum will not be linked.")
                 break
             elif not old_abnormal['counted']:
                 # Keep tracing the last counted abnormal
@@ -616,38 +632,73 @@ class _MatmulSilentCheck:
             del self.history_abnormal_list[:first_expired_index]
 
     def _generate_event_log(self, new_abnormal):
-        info_str = f"[Event][{new_abnormal['time_str']}] [Rank {new_abnormal['rank']}]: A grad-norm spike may happen, "
-        info_str = info_str + f"param name {new_abnormal['name']}, abnormal value {new_abnormal['val']}, previous value {new_abnormal['pre_val']}, "
-        info_str = info_str + f"history avg {new_abnormal['avg']}, bp time {new_abnormal['step']}, normal count {new_abnormal['none_zero_step']}."
+        info_str = (
+            f"[Event][{new_abnormal['time_str']}] [Rank {new_abnormal['rank']}]: "
+            f"A grad-norm spike may happen, "
+            f"param name {new_abnormal['name']}, "
+            f"abnormal value {new_abnormal['val']}, "
+            f"previous value {new_abnormal['pre_val']}, ")
+        info_str = (
+            info_str
+            + f"history avg {new_abnormal['avg']}, "
+            + f"bp time {new_abnormal['step']}, "
+            + f"normal count {new_abnormal['none_zero_step']}.")
         loggerSilent.info(info_str)
         if self.store is not None and self.rank is not None and self.rank != 0:
             current_log = self.store.get(f"rank_{self.rank}_info_log").decode()
-            self.store.set(f"rank_{self.rank}_info_log", current_log + "\n" + info_str if current_log != "" else info_str)
+            self.store.set(f"rank_{self.rank}_info_log",
+                           current_log + "\n" + info_str if current_log != "" else info_str)
 
     def _generate_warning_log(self, counting_abnormal_pos, new_abnormal):
-        warning_str = f"[Warning][{new_abnormal['time_str']}] [Rank {new_abnormal['rank']}]: feature detection detects abnormal results!"
+        warning_str = (
+            f"[Warning][{new_abnormal['time_str']}] [Rank {new_abnormal['rank']}]: "
+            f"feature detection detects abnormal results!")
         index = 0
         for pos in reversed(counting_abnormal_pos):
-            warning_str = warning_str + "\n" + f"Grad-norm spike: index {index}, time {self.history_abnormal_list[pos]['time_str']}, param name {self.history_abnormal_list[pos]['name']}, abnormal value {self.history_abnormal_list[pos]['val']}, previous value {self.history_abnormal_list[pos]['pre_val']}, "
-            warning_str = warning_str + f"history avg {self.history_abnormal_list[pos]['avg']}, bp time {self.history_abnormal_list[pos]['step']}, normal count {self.history_abnormal_list[pos]['none_zero_step']}."
+            warning_str = (
+                warning_str + "\n"
+                + f"Grad-norm spike: index {index}, "
+                + f"time {self.history_abnormal_list[pos]['time_str']}, "
+                + f"param name {self.history_abnormal_list[pos]['name']}, "
+                + f"abnormal value {self.history_abnormal_list[pos]['val']}, "
+                + f"previous value {self.history_abnormal_list[pos]['pre_val']}, ")
+            warning_str = (
+                warning_str
+                + f"history avg {self.history_abnormal_list[pos]['avg']}, "
+                + f"bp time {self.history_abnormal_list[pos]['step']}, "
+                + f"normal count {self.history_abnormal_list[pos]['none_zero_step']}.")
             index += 1
-        warning_str = warning_str + "\n" + f"Grad-norm spike: index {index}, time {new_abnormal['time_str']}, param name {new_abnormal['name']}, abnormal value {new_abnormal['val']}, previous value {new_abnormal['pre_val']}, "
-        warning_str = warning_str + f"history avg {new_abnormal['avg']}, bp time {new_abnormal['step']}, normal count {new_abnormal['none_zero_step']}."
+        warning_str = (
+            warning_str + "\n"
+            + f"Grad-norm spike: index {index}, "
+            + f"time {new_abnormal['time_str']}, "
+            + f"param name {new_abnormal['name']}, "
+            + f"abnormal value {new_abnormal['val']}, "
+            + f"previous value {new_abnormal['pre_val']}, ")
+        warning_str = (
+            warning_str
+            + f"history avg {new_abnormal['avg']}, "
+            + f"bp time {new_abnormal['step']}, "
+            + f"normal count {new_abnormal['none_zero_step']}.")
         loggerSilent.warning(warning_str)
         if self.store is not None and self.rank is not None and self.rank != 0:
             current_log = self.store.get(f"rank_{self.rank}_warn_log").decode()
-            self.store.set(f"rank_{self.rank}_warn_log", current_log + "\n" + warning_str if current_log != "" else warning_str)
+            self.store.set(f"rank_{self.rank}_warn_log",
+                           current_log + "\n" + warning_str if current_log != "" else warning_str)
 
     def _generate_silent_log(self):
         warning_str = f"[Warning][Rank {self.rank}]: The result of Matmul checksum is abnormal!"
         loggerSilent.warning(warning_str)
         if self.store is not None and self.rank is not None and self.rank != 0:
             current_log = self.store.get(f"rank_{self.rank}_warn_log").decode()
-            self.store.set(f"rank_{self.rank}_warn_log", current_log + "\n" + warning_str if current_log != "" else warning_str)
+            self.store.set(f"rank_{self.rank}_warn_log",
+                           current_log + "\n" + warning_str if current_log != "" else warning_str)
 
     def _tcp_comm_checksum_state(self):
         while self.checksum_state_thread_running:
-            if hasattr(torch, "npu") and torch.npu.is_initialized() and torch.distributed.is_initialized() and self.store is not None:
+            if (hasattr(torch, "npu") and torch.npu.is_initialized()
+                    and torch.distributed.is_initialized()
+                    and self.store is not None):
                 break
             time.sleep(10)
         if not self.checksum_state_thread_running:
@@ -689,7 +740,8 @@ class _MatmulSilentCheck:
             if global_state:
                 now_time = time.time()
                 if last_checksum_time is None or abs(now_time - last_checksum_time) > self.checksum_cooldown * 60:
-                    loggerSilent.info(f'[Info] Rank {self.rank}: feature detection detects abnormal results, checksum is on.')
+                    loggerSilent.info('[Info] Rank %s: feature detection detects abnormal results, checksum is on.',
+                                      self.rank)
                     last_checksum_time = now_time
                     if self.checksum_result is None:
                         self.checksum_result = torch.tensor(False, dtype=torch.bool, device='npu')
@@ -700,7 +752,7 @@ class _MatmulSilentCheck:
                     if self.checksum_result:
                         self._generate_silent_log()
                     self.checksum_enable = False
-                    loggerSilent.info(f'[Info] Rank {self.rank}: checksum is off')
+                    loggerSilent.info('[Info] Rank %s: checksum is off', self.rank)
                 self.checksum_state = 0
             self.store.add('counter2', 1)
 
@@ -765,6 +817,7 @@ def _trigger_matmul_decorator(func):
             checksum = torch_npu.matmul_checksum(a, b, result)
             matmul_check.checksum_result.logical_or_(checksum)
         return result
+
     return wrapper
 
 
@@ -777,6 +830,7 @@ def _trigger_tensor_matmul_decorator(func):
             checksum = torch_npu.matmul_checksum(self, other, result)
             matmul_check.checksum_result.logical_or_(checksum)
         return result
+
     return wrapper
 
 
@@ -806,7 +860,9 @@ def _matmul_silent_check_decorator(func):
                 for name, module in self.named_modules():
                     if matmul_check.get_matmul_hook_enable() == 0:
                         break
-                    if len(module._modules) == 0 and name not in matmul_check.registered_modules and id(module) not in matmul_check.visited_modules_id:
+                    if (len(module._modules) == 0
+                            and name not in matmul_check.registered_modules
+                            and id(module) not in matmul_check.visited_modules_id):
                         matmul_check.visited_modules_id.append(id(module))
                         for _, param in module.named_parameters():
                             if not isinstance(param, torch.Tensor) or param.dim() < 2:
@@ -833,4 +889,5 @@ def _matmul_silent_check_decorator(func):
                 self.matmul_check_outer = False
 
         return tmp
+
     return wrapper

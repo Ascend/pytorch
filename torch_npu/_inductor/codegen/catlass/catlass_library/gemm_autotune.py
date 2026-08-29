@@ -55,7 +55,7 @@ class TileAutotune:
     def init_l1_l0_size(self, arch_type):
         if arch_type not in self._supported_archs:
             warnings.warn(
-                f"Unknown arch type to get specific tile size: {arch_type}."
+                f"Unknown arch type for tile size selection: {arch_type}. "
                 f"Will use the default tile size to generate tile configs."
             )
             arch_type = Arch.AtlasA2

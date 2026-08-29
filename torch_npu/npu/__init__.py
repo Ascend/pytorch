@@ -667,15 +667,19 @@ def set_deterministic_level(level):
     deterministic_changed = False
     try:
         if level == 0 and deterministic_enabled:
-            warnings.warn("The current configuration value of 'torch_npu.npu.set_deterministic_level' "
-                        "conflicts with 'torch.use_deterministic_algorithms'. "
-                        "'torch.use_deterministic_algorithms' has been configured to 'False'")
+            warnings.warn(
+                "The current configuration value of 'torch_npu.npu.set_deterministic_level' "
+                "conflicts with 'torch.use_deterministic_algorithms'. "
+                "'torch.use_deterministic_algorithms' has been configured to 'False'."
+            )
             torch.use_deterministic_algorithms(False)
             deterministic_changed = True
         elif level >= 1 and not deterministic_enabled:
-            warnings.warn("The current configuration value of 'torch_npu.npu.set_deterministic_level' "
-                        "conflicts with 'torch.use_deterministic_algorithms'. "
-                        "'torch.use_deterministic_algorithms' has been configured to 'True'")
+            warnings.warn(
+                "The current configuration value of 'torch_npu.npu.set_deterministic_level' "
+                "conflicts with 'torch.use_deterministic_algorithms'. "
+                "'torch.use_deterministic_algorithms' has been configured to 'True'."
+            )
             torch.use_deterministic_algorithms(True)
             deterministic_changed = True
         torch_npu._C._npu_set_deterministic_level(level)

@@ -14,7 +14,6 @@ from ..prof_common_func._file_manager import FileManager
 from ..prof_common_func._log import ProfilerLogger
 from ..prof_common_func._path_manager import ProfilerPathManager
 
-
 __all__ = []
 
 
@@ -146,13 +145,13 @@ class CANNFileParser:
             raise RuntimeError("CANN Profiling data does not exist.")
         if not FileManager.check_file_readable(self._cann_path):
             self.logger.warning(
-                f"Path '{self._cann_path}' owner is not readable. "
-                f"Please execute 'chmod -R 755 '{self._cann_path}' '."
+                "The path '%s' is not readable. Please run: chmod -R 755 '%s'.",
+                self._cann_path, self._cann_path
             )
         if not FileManager.check_file_writable(self._cann_path):
             self.logger.warning(
-                f"Path '{self._cann_path}' owner is not writable. "
-                f"Please execute 'chmod -R 755 '{self._cann_path}' '."
+                "The path '%s' is not writable. Please execute 'chmod -R 755 '%s' '.",
+                self._cann_path, self._cann_path
             )
 
     @classmethod
@@ -207,10 +206,10 @@ class CANNFileParser:
                 event_dict[unique_id] = data
 
         if not flow_dict:
-            logger.warning("There is no HostToDevice flow events in msprof timeline.")
+            logger.warning("There are no HostToDevice flow events in the msprof timeline.")
 
         if not event_dict:
-            logger.error("There is no kernel events in msprof timeline.")
+            logger.error("There are no kernel events in the msprof timeline.")
 
         acl_to_npu_dict = {}
         warning_kernel_num = 0

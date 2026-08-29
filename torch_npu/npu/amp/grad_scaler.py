@@ -98,7 +98,7 @@ class GradScaler(BaseGradScaler):
                  dynamic=True,
                  enabled=True):
         if enabled and amp_definitely_not_available():
-            warnings.warn("torch_npu.amp.GradScaler is enabled, but NPU is not available.  Disabling.")
+            warnings.warn("torch_npu.amp.GradScaler is enabled, but NPU is not available. Disabling.")
             self._enabled = False
         else:
             self._enabled = enabled
@@ -193,7 +193,7 @@ class GradScaler(BaseGradScaler):
                 return val * stash[0].get(val.device)
             elif isinstance(val, container_abcs.Iterable):
                 iterable = map(apply_scale, val)
-                if isinstance(val, list) or isinstance(val, tuple):
+                if isinstance(val, (list, tuple)):
                     return type(val)(iterable)
                 else:
                     return iterable

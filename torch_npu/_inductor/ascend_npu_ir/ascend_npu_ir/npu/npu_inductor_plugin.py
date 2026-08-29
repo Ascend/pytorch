@@ -83,7 +83,7 @@ def register_mlir_codegen_backend() -> None:
             import torch_mlir
             register_backend_for_device("npu", AkgScheduling, NpuMlirWrapperCodeGen)
         except ImportError:
-            logger.warning("akg not found, fallback to torch-mlir for compilation.")
+            logger.warning("AKG not found; falling back to torch-mlir for compilation.")
             register_backend_for_device("npu", NpuMlirScheduling, NpuMlirWrapperCodeGen)
     else:
         register_backend_for_device("npu", NpuMlirScheduling, NpuMlirWrapperCodeGen)
