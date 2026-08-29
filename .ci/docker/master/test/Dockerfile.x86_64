@@ -37,11 +37,13 @@ RUN apt-get update \
         libgl1 \
         libjemalloc2 \
         libjpeg-dev \
+        libpng-dev \
         libreadline-dev \
         libsndfile-dev \
         libsqlite3-dev \
         libssl-dev \
         libtool \
+        libwebp-dev \
         libyaml-dev \
         libz-dev \
         ccache \
