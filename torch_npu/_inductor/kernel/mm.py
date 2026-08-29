@@ -31,6 +31,8 @@ from torch._inductor.kernel.mm_common import (
 # Note: addmm_epilogue is imported above and used to build the epilogue_fn
 # that fuses `beta * bias + alpha * acc` into the template's store_output.
 from torch._inductor.select_algorithm import SymbolicGridFn
+from torch._inductor.select_algorithm import realize_inputs
+from torch._inductor.lowering import expand
 
 from ..codegen.catlass.gemm_template import CATLASS1xGemmTemplate
 from ..select_algorithm import NPUTritonTemplate
@@ -819,6 +821,49 @@ def _register_npu_inductor_mm():
             return aten_mm.bind((mat1, mat2), aten_layout).output_node()
 
 def _register_npu_inductor_addmm():
+
+    def addmm_args(
+        mat1,
+        mat2,
+        inp,
+        *others,
+        layout=None,
+        out_dtype=None,
+        use_4x2_dim=False,
+        mat2_transposed=False,
+    ):
+        """
+        Common arg processing for mm,bmm,addmm,etc
+        """
+        mat1, mat2, inp = realize_inputs(mat1, mat2, inp)
+        *b1, m, k1 = mat1.get_size()
+        if mat2_transposed:
+            *b2, n, k2 = mat2.get_size()
+        else:
+            *b2, k2, n = mat2.get_size()
+        b = [V.graph.sizevars.check_equals_and_simplify(a, b) for a, b in zip(b1, b2)]
+        if use_4x2_dim:
+            k2 = k2 * 2
+        k = V.graph.sizevars.check_equals_and_simplify(k1, k2)
+        if layout is None:
+            from torch._inductor.ir import FixedLayout
+
+            if out_dtype is None:
+                out_dtype = mat1.get_dtype()
+
+            layout = FixedLayout(
+                mat1.get_device(),
+                out_dtype,
+                [*b, m, n],
+            )
+        else:
+            if out_dtype is not None:
+                raise ValueError("out_dtype is ignored if layout is specified.")
+
+        others = [realize_inputs(expand(x, layout.size)) for x in others]
+        return [m, n, k, layout, mat1, mat2, inp, *others]
+
+
     @register_lowering(aten.addmm, type_promotion_kind=None)
     def tuned_addmm(inp, mat1, mat2, *, alpha=1, beta=1, layout=None):
 
@@ -870,8 +915,8 @@ def _register_npu_inductor_addmm():
             return fallback_handler(aten.addmm.default)(inp, mat1, mat2, alpha=alpha, beta=beta)
 
         ordered_kwargs_for_cpp_kernel = ("beta", "alpha")
-        m, n, k, layout, mat1, mat2, inp_expanded = mm_args(
-            mat1, mat2, inp, layout=layout
+        m, n, k, layout, mat1, mat2, inp_origin, inp_expanded = addmm_args(
+            mat1, mat2, inp, inp, layout=layout
         )
         static_shape, is_nonzero = _is_static_problem(layout)
         if (not is_nonzero) or (not inductor_config.max_autotune):
@@ -899,7 +944,7 @@ def _register_npu_inductor_addmm():
         choices = (
             [
                 aten_addmm.bind(
-                    (inp_expanded, mat1, mat2),
+                    (inp_origin, mat1, mat2),
                     layout,
                     alpha=alpha,
                     beta=beta,
@@ -993,7 +1038,7 @@ def _register_npu_inductor_addmm():
         if add_aten_fallback:
             choices.append(
                 aten_addmm.bind(
-                    (inp_expanded, mat1, mat2),
+                    (inp_origin, mat1, mat2),
                     layout,
                     ordered_kwargs_for_cpp_kernel,
                     alpha=alpha,
@@ -1003,7 +1048,7 @@ def _register_npu_inductor_addmm():
 
         try:
             node, _ = autotune_select_algorithm(
-                "addmm", choices, [inp_expanded, mat1, mat2], layout
+                "addmm", choices, [inp_origin, mat1, mat2], layout
             )
             return node
         except NoValidChoicesError:
