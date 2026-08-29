@@ -1,7 +1,6 @@
 import os
 import setuptools
 
-import torch
 import torch.utils.cpp_extension as TorchExtension
 
 import torch_npu
@@ -38,7 +37,6 @@ def NpuExtension(name, sources, *args, **kwargs):
     torch_npu_dir = PYTORCH_NPU_INSTALL_PATH
     include_dirs = kwargs.get('include_dirs', [])
     include_dirs.append(os.path.join(torch_npu_dir, 'include'))
-    include_dirs.append(os.path.join(torch_npu_dir, 'include', 'third_party', 'acl', 'inc'))
     include_dirs.append(os.path.join(torch_npu_dir, 'include', 'third_party', 'hccl', 'inc'))
     include_dirs += TorchExtension.include_paths()
     kwargs['include_dirs'] = include_dirs

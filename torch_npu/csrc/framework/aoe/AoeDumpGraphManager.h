@@ -2,7 +2,7 @@
 #define __NATIVE_NPU_TOOLS_AOEUTILS__
 
 #include <unordered_set>
-#include <third_party/acl/inc/acl/acl_op_compiler.h>
+#include <acl/acl_op_compiler.h>
 #include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace at_npu {

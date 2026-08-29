@@ -3,7 +3,7 @@
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/NPUSerialization.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
-#include "third_party/acl/inc/acl/acl_base.h"
+#include <acl/acl_base.h>
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 
 namespace torch_npu {
