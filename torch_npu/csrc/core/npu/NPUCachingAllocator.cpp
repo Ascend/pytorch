@@ -827,8 +827,13 @@ private:
 
 // NPU graphs helper
 struct PrivatePool {
-    explicit PrivatePool(MempoolId_t id)
-        : id(std::move(id)), large_blocks(false, this), small_blocks(true, this) {}
+    explicit PrivatePool(
+        MempoolId_t id,
+        std::shared_ptr<NPUCachingAllocator::NPUAllocator> allocator = nullptr)
+        : id(std::move(id)),
+          allocator_(std::move(allocator)),
+          large_blocks(false, this),
+          small_blocks(true, this) {}
     PrivatePool(const PrivatePool &) = delete;
     PrivatePool(PrivatePool &&) = delete;
     PrivatePool &operator = (const PrivatePool &) = delete;
@@ -844,8 +849,14 @@ struct PrivatePool {
     // distinguish private blocks by adding a "pool id" check above the stream
     // check in BlockComparator. BlockComparator is performance- critical though,
     // I'd rather not add more logic to it.
+    std::shared_ptr<NPUCachingAllocator::NPUAllocator> allocator_;
     BlockPool large_blocks;
     BlockPool small_blocks;
+
+ public:
+    NPUCachingAllocator::NPUAllocator* allocator() {
+        return allocator_.get();
+    }
 };
 
 MempoolId_t BlockPool::owner_MempoolId() const
@@ -2175,7 +2186,9 @@ public:
     // See Note [Interaction with NPU graph capture]
 
     // Called by NPUGraph::capture_begin
-    void create_or_incref_pool(MempoolId_t mempool_id)
+    void create_or_incref_pool(
+        MempoolId_t mempool_id,
+        std::shared_ptr<NPUCachingAllocator::NPUAllocator> allocator = nullptr)
     {
         auto it = graph_pools.find(mempool_id);
         if (it == graph_pools.end()) {
@@ -2183,7 +2196,7 @@ public:
             // Make a new pool for NPUGraph capture or torch.npu.use_mem_pool
             // usage. use_count is initially 1, which means the pool is
             // being used since somebody called createOrIncrefPool.
-            graph_pools.emplace(mempool_id, std::make_unique<PrivatePool>(mempool_id));
+            graph_pools.emplace(mempool_id, std::make_unique<PrivatePool>(mempool_id, std::move(allocator)));
             TORCH_NPU_MEMORY_LOGD("NPUCachingAllocator beginAllocateToPool: new pool, "
                                   "mempool_id=(%lu,%lu)", mempool_id.first, mempool_id.second);
         } else {
@@ -2192,6 +2205,7 @@ public:
             // share. Check this pool is live (at least one other capture already
             // references it). Increment it to establish the usage.
             TORCH_INTERNAL_ASSERT(it->second->use_count > 0);
+            TORCH_INTERNAL_ASSERT(!allocator);
             it->second->use_count++;
             TORCH_NPU_MEMORY_LOGD("NPUCachingAllocator beginAllocateToPool: reuse pool, "
                                   "mempool_id=(%lu,%lu), use_count=%d",
@@ -2199,12 +2213,14 @@ public:
         }
     }
 
-    void createOrIncrefPool(MempoolId_t mempool_id)
+    void createOrIncrefPool(
+        MempoolId_t mempool_id,
+        std::shared_ptr<NPUCachingAllocator::NPUAllocator> allocator = nullptr)
     {
         // Create a PrivatePool object if it does not exist yet
         // and increment its use_count
         std::lock_guard<std::recursive_mutex> lock(mutex);
-        create_or_incref_pool(mempool_id);
+        create_or_incref_pool(mempool_id, std::move(allocator));
     }
 
     PrivatePool* get_private_pool(MempoolId_t mempool_id) const
@@ -2791,9 +2807,10 @@ private:
             }
             return bool(p.block);
         } else {
-            auto active_pool = MemPoolContext::getActiveMemPool();
-            if (active_pool && active_pool->allocator() && p.pool->owner_PrivatePool) {
-                ptr = active_pool->allocator()->raw_alloc(size);
+            if (p.pool->owner_PrivatePool && p.pool->owner_PrivatePool->allocator()) {
+                // Route the allocation through the allocator owned by the pool, so
+                // that the matching raw_delete is used when the block is freed.
+                ptr = p.pool->owner_PrivatePool->allocator()->raw_alloc(size);
                 p.err = ptr ? ACL_ERROR_NONE : ACL_ERROR_RT_MEMORY_ALLOCATION;
             } else {
                 auto policy = aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST;
@@ -2986,10 +3003,16 @@ private:
             ipc_handle_map.erase(it);
         }
 
-        aclrtFree((void *)block->ptr);
+        auto* pool = block->pool;
+        if (pool->owner_PrivatePool && pool->owner_PrivatePool->allocator()) {
+            // If there is an active mempool with a given allocator,
+            // we use the given allocator's delete function.
+            pool->owner_PrivatePool->allocator()->raw_delete((void*)block->ptr);
+        } else {
+            aclrtFree((void *)block->ptr);
+        }
         total_allocated_memory -= block->size;
 
-        auto *pool = block->pool;
         if (pool->owner_PrivatePool) {
             // The npuFreed block belonged to a NPU graph's PrivatePool.
             TORCH_INTERNAL_ASSERT(pool->owner_PrivatePool->npuMalloc_count > 0);
@@ -4033,10 +4056,11 @@ public:
 
     void createOrIncrefPool(
         c10::DeviceIndex device,
-        MempoolId_t mempool_id)
+        MempoolId_t mempool_id,
+        std::shared_ptr<NPUAllocator> allocator) override
     {
         assertValidDevice(device);
-        device_allocator[device]->createOrIncrefPool(std::move(mempool_id));
+        device_allocator[device]->createOrIncrefPool(mempool_id, std::move(allocator));
     }
 };
 
@@ -4125,7 +4149,7 @@ std::atomic<CaptureId_t> MemPool::uid_{ 1 };
 std::atomic<CaptureId_t> MemPool::uuid_{ 1 };
 
 
-MemPool::MemPool(NPUCachingAllocator::NPUAllocator *allocator, bool is_user_created)
+MemPool::MemPool(std::shared_ptr<NPUCachingAllocator::NPUAllocator> allocator, bool is_user_created)
     : allocator_(allocator), is_user_created_(is_user_created)
 {
     if (is_user_created_) {
@@ -4134,7 +4158,7 @@ MemPool::MemPool(NPUCachingAllocator::NPUAllocator *allocator, bool is_user_crea
         id_ = { uuid_++, 0 };
     }
     device_ = c10_npu::current_device();
-    NPUCachingAllocator::createOrIncrefPool(device_, id_);
+    NPUCachingAllocator::createOrIncrefPool(device_, id_, std::move(allocator));
 }
 
 MemPool::~MemPool() {
@@ -4148,9 +4172,9 @@ MempoolId_t MemPool::id()
     return id_;
 }
 
-NPUCachingAllocator::NPUAllocator *MemPool::allocator()
+NPUCachingAllocator::NPUAllocator* MemPool::allocator()
 {
-    return allocator_;
+    return allocator_.get();
 }
 
 c10::DeviceIndex MemPool::device() {

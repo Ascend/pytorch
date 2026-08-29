@@ -13,7 +13,7 @@ void TORCH_NPU_API THNPMemPool_init(PyObject* module) {
     auto torch_C_m = py::handle(module).cast<py::module>();
     shared_ptr_class_<::c10_npu::MemPool>(torch_C_m, "_MemPool")
         .def(py::init(
-            [](c10_npu::NPUCachingAllocator::NPUAllocator* allocator, bool is_user_created) {
+            [](std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator> allocator, bool is_user_created) {
                 torch_npu::utils::npu_lazy_init(); // init npu before construct mempool
                 return std::make_shared<::c10_npu::MemPool>(allocator, is_user_created);
             }))
