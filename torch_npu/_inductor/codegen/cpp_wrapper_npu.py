@@ -190,10 +190,21 @@ class DeferredNpuTritonCallWrapper(DeferredTritonCallWrapper):
         enable_simt = npu_config.is_ascend950 and (
             "simt" in params["parallel_mode"] or params["force_simt_only"]
         )
-        enable_auto_blockify = not params.get("has_auto_blockify_blacklist_op", False) and triton_support_auto_blockify()
+        enable_auto_blockify = not params.get(
+            "has_auto_blockify_blacklist_op", False
+        ) and triton_support_auto_blockify()
+        args_decl = wrapper.generate_args_decl(
+            prefix,
+            call_args,
+            arg_types,
+            arg_signatures,
+            is_triton_kernel=True,
+            force_simt_only=force_simt_only,
+            kernel_params=params,
+        )
         prefix.splice(f"""
         auto launch_call = [=]() {{
-        {wrapper.generate_args_decl(prefix, call_args, arg_types, arg_signatures, True, force_simt_only)}
+        {args_decl}
         {wrapper.generate_launch_preparation(kernel_var_name, params, enable_simt, enable_auto_blockify)}
         }};
         """)
@@ -336,6 +347,7 @@ class CppWrapperNpu(CppWrapperGpu):
         #include <acl/acl_rt.h>
         #include <runtime/runtime/rt.h>
         #include <torch_npu/csrc/core/npu/NPUStream.h>
+        #include <torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h>
         #include <torch_npu/csrc/framework/OpCommand.h>
         """
         if V.graph.aot_mode:
@@ -415,6 +427,7 @@ class CppWrapperNpu(CppWrapperGpu):
         arg_signatures,
         is_triton_kernel=True,
         force_simt_only=False,
+        kernel_params: Optional[dict[str, Any]] = None,
     ):
         """
         Generates any declarations of args to pass into a kernel call, and then returns the arg names.
@@ -454,6 +467,10 @@ class CppWrapperNpu(CppWrapperGpu):
         struct_arg_body = ""
 
         target_support_ffts = triton_support_ffts()
+        kernel_params = kernel_params or {}
+        lock_num = int(kernel_params.get("lock_num", 0) or 0)
+        lock_init_val = int(kernel_params.get("lock_init_val", 0) or 0)
+        workspace_size = int(kernel_params.get("workspace_size", 0) or 0)
 
         def process_args(arg, arg_type, arg_signature=None):
             var_name = f"var_{next(self.arg_var_id)}"
@@ -515,11 +532,47 @@ class CppWrapperNpu(CppWrapperGpu):
             }
             """
 
+        workspace_str = ""
+        if not force_simt_only and workspace_size > 0:
+            workspace_str = f"""
+            uint64_t workspace_size = static_cast<uint64_t>({workspace_size})
+                * grid_0 * grid_1 * grid_2;
+            auto workspace_tensor = at_npu::native::allocate_workspace(
+                workspace_size, stream_);
+            workspace_addr = const_cast<void *>(workspace_tensor.storage().data());
+            """
+
+        sync_block_lock_str = ""
+        if not force_simt_only and lock_num > 0:
+            sync_block_lock_str = f"""
+            uint64_t sync_block_lock_size = static_cast<uint64_t>({lock_num})
+                * sizeof(int64_t);
+            auto sync_block_lock_tensor = at_npu::native::allocate_workspace(
+                sync_block_lock_size, stream_);
+            sync_block_lock = const_cast<void *>(
+                sync_block_lock_tensor.storage().data());
+            std::vector<int64_t> sync_block_lock_init(
+                {lock_num}, static_cast<int64_t>({lock_init_val}));
+            ret = aclrtMemcpy(
+                sync_block_lock,
+                sync_block_lock_size,
+                sync_block_lock_init.data(),
+                sync_block_lock_size,
+                ACL_MEMCPY_HOST_TO_DEVICE);
+            if (ret != ACL_SUCCESS) {{
+                throw std::runtime_error(
+                    std::string("initialize Triton sync block lock failed, 0x")
+                    + std::to_string(ret));
+            }}
+            """
+
         args_str = f"""
             aclError ret;
             {ffts_str if target_support_ffts else ""}
             {"void* workspace_addr = NULL;" if not force_simt_only else ""}
             {"void* sync_block_lock = NULL;" if not force_simt_only else ""}
+            {workspace_str}
+            {sync_block_lock_str}
             struct __attribute__((packed)) {{
                 {"void* ffts_addr __attribute__((aligned(8)));" if target_support_ffts else ""}
                 {"void* sync_block_lock __attribute__((aligned(8)));" if not force_simt_only else ""}

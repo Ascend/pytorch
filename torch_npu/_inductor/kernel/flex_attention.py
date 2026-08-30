@@ -65,7 +65,10 @@ from torch._inductor.lowering import (
     to_dtype,
 )
 from torch._inductor.runtime.runtime_utils import is_power_of_2, next_power_of_2
-from torch._inductor.select_algorithm import autotune_select_algorithm
+from torch._inductor.select_algorithm import (
+    autotune_select_algorithm,
+    SymbolicGridFn,
+)
 from torch.nn.attention import flex_attention as flex_attention_module
 from torch._inductor.kernel.flex_attention import (
     flex_attention_backward_template as upstream_flex_attention_backward_template,
@@ -89,6 +92,34 @@ from torch._inductor.kernel.flex_attention import (
 # natural exp/log, so the lowering boundary converts between the two bases.
 _LN2 = 0.6931471805599453
 _LOG2E = 1.4426950408889634
+
+
+@SymbolicGridFn
+def _symbolic_flex_attention_backward_grid(
+    batch_size,
+    q_heads,
+    num_queries,
+    d_model,
+    kv_heads,
+    num_key_value,
+    meta,
+    *,
+    cdiv,
+):
+    """Backport symbolic grid support required by the C++ wrapper."""
+    return (
+        cdiv(num_queries, meta["BLOCK_M2"]) * (q_heads // kv_heads)
+        + cdiv(num_key_value, meta["BLOCK_N1"]),
+        1,
+        batch_size * kv_heads,
+    )
+
+
+# PyTorch 2.7.1 defines this template with a plain grid function, which cannot
+# emit C++ expressions when its call sizes are symbolic.
+upstream_flex_attention_backward_template.grid = (
+    _symbolic_flex_attention_backward_grid
+)
 
 
 def _tag_flex_attention_report_choices(new_choices, cfg):

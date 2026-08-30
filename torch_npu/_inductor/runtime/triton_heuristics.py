@@ -1316,7 +1316,20 @@ class NPUCachingAutotuner(CachingAutotuner):
             "mix_mode": input_launcher.bin.metadata.mix_mode,
             "parallel_mode": input_launcher.bin.metadata.parallel_mode,
             "force_simt_only": input_launcher.bin.metadata.force_simt_only,
-            "has_auto_blockify_blacklist_op": getattr(input_launcher.bin.metadata, "has_auto_blockify_blacklist_op", False)
+            "has_auto_blockify_blacklist_op": getattr(
+                input_launcher.bin.metadata,
+                "has_auto_blockify_blacklist_op",
+                False,
+            ),
+            "lock_num": int(
+                getattr(input_launcher.bin.metadata, "lock_num", 0) or 0
+            ),
+            "lock_init_val": int(
+                getattr(input_launcher.bin.metadata, "lock_init_val", 0) or 0
+            ),
+            "workspace_size": int(
+                getattr(input_launcher.bin.metadata, "workspace_size", 0) or 0
+            ),
         }
         enable_simt = ("simt" in params["parallel_mode"]) or params["force_simt_only"]
         if npu_config.is_ascend950 and enable_simt:
