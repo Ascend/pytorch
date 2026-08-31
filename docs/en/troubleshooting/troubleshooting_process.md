@@ -43,5 +43,6 @@ This document uses various faults that developers may encounter during inference
     After troubleshooting, the key points of fault handling should be recorded, and preventive and improvement measures for such faults should be provided to avoid the recurrence of similar faults.
 
 > [!NOTE]  
-> You can also share fault handling cases on the [Huawei Developer Community Forum](https://www.hiascend.com/forum/) to share your experience for other developers' reference, forming a virtuous cycle, enriching community content, and achieving mutual benefits.
+> You can also share fault handling cases on the Huawei Developer Community Forum to share your experience for other developers' reference, forming a virtuous cycle, enriching community content, and achieving mutual benefits.
 > The third-party tools mentioned in the fault handling steps provided in this document (such as eseye u and Netron) are examples, not mandatory tools. Please refer to them or replace them with other similar tools based on your actual situation.
+<!-- > You can also share fault handling cases on the [Huawei Developer Community Forum](https://www.hiascend.com/forum/) to share your experience for other developers' reference, forming a virtuous cycle, enriching community content, and achieving mutual benefits. -->

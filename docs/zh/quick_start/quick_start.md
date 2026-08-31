@@ -175,7 +175,7 @@
 
     |模型分类|组件|迁移指导|
     |--|--|--|
-    |Megatron-LM分布式大模型|MindSpeed Core亲和加速模块|请参见《[分布式训练加速库迁移指南](https://gitcode.com/Ascend/MindSpeed/blob/master/docs/zh/user-guide/model-migration.md)》。|
-    |Megatron-LM大语言模型|MindSpeed LLM套件|请参见《[MindSpeed LLM文档导读](https://gitcode.com/Ascend/MindSpeed-LLM/blob/master/docs/zh/docs_guide.md)》。|
-    |Megatron-LM多模态模型|MindSpeed MM套件|请参见《[MindSpeed MM迁移调优指南](https://gitcode.com/Ascend/MindSpeed-MM/blob/master/docs/zh/pytorch/model-migration.md)》。|
-    |大语言模型或多模态模型|veRL套件|请参见《[veRL迁移指南](https://github.com/verl-project/verl/blob/main/docs/ascend_tutorial/dev_guide/model_dev/transfer_to_npu_guide.md)》。|
+    |Megatron-LM分布式大模型|MindSpeed Core亲和加速模块|请参见《[分布式训练加速库迁移指南](https://gitcode.com/Ascend/MindSpeed/blob/26.1.0_core_r0.12.1/docs/zh/user-guide/model-migration.md)》。|
+    |Megatron-LM大语言模型|MindSpeed LLM套件|请参见《[MindSpeed LLM文档导读](https://gitcode.com/Ascend/MindSpeed-LLM/blob/26.1.0/docs/zh/docs_guide.md)》。|
+    |Megatron-LM多模态模型|MindSpeed MM套件|请参见《[MindSpeed MM迁移调优指南](https://gitcode.com/Ascend/MindSpeed-MM/blob/26.1.0/docs/zh/pytorch/model-migration.md)》。|
+    |大语言模型或多模态模型|veRL套件|请参见《[veRL迁移指南](https://github.com/verl-project/verl/blob/main/docs/ascend_tutorial/zh/dev_guide/model_dev/transfer_to_npu_guide.md)》。|

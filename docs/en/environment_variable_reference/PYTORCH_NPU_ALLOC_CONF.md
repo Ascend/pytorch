@@ -18,7 +18,7 @@ Optional parameters:
 
 - `garbage_collection_threshold:<value>`, the garbage collection threshold.
 
-    Actively reclaims unused NPU memory blocks. After you set the value threshold (for example, 0.8), if NPU memory capacity usage exceeds the threshold (that is, 80% of the total memory allocated to the NPU application), the cache allocator begins reclaiming NPU memory blocks, first releasing the earliest-allocated and long-unreused memory blocks and avoiding the release of actively reused memory blocks. The value range of `<value>` is (0.0, 1.0). This feature is disabled by default. The garbage collection threshold must be used together with the memory fraction. For the memory fraction, refer to `torch_npu.npu.set_per_process_memory_fraction` in [Custom API](https://gitcode.com/Ascend/op-plugin/blob/26.1.0/docs/zh/custom_APIs/overview.md).
+    Actively reclaims unused NPU memory blocks. After you set the value threshold (for example, 0.8), if NPU memory capacity usage exceeds the threshold (that is, 80% of the total memory allocated to the NPU application), the cache allocator begins reclaiming NPU memory blocks, first releasing the earliest-allocated and long-unreused memory blocks and avoiding the release of actively reused memory blocks. The value range of `<value>` is (0.0, 1.0). This feature is disabled by default. The garbage collection threshold must be used together with the memory fraction. For the memory fraction, refer to `torch_npu.npu.set_per_process_memory_fraction` in [Custom API](https://gitcode.com/Ascend/op-plugin/blob/26.1.0/docs/en/custom_APIs/overview.md).
 
 - `expandable_segments:<value>`, enables the memory pool segment expansion feature, that is, the virtual memory feature.
 

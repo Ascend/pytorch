@@ -42,7 +42,7 @@ Take PyTorch 2.7.1 as an example for compilation optimization.
 
             > [!NOTE]
             >
-            > During compilation, you can also enable CPU acceleration libraries (oneDNN/ACL, BLAS) to improve CPU operator performance. For details, see [Enabling oneDNN/ACL Acceleration](https://www.hikunpeng.com/document/detail/zh/SRA/ecosystemEnable/PyTorch/kunpengpytorch_02_0012.html) and [Enabling BLAS Acceleration](https://www.hikunpeng.com/document/detail/zh/SRA/ecosystemEnable/PyTorch/kunpengpytorch_02_0013.html).
+            > During compilation, you can also enable CPU acceleration libraries (oneDNN/ACL, BLAS) to improve CPU operator performance. For details, see [Enabling oneDNN/ACL Acceleration](https://www.hikunpeng.com/document/detail/en/SRA/ecosystemEnable/PyTorch/kunpengpytorch_02_0012.html) and [Enabling BLAS Acceleration](https://www.hikunpeng.com/document/detail/en/SRA/ecosystemEnable/PyTorch/kunpengpytorch_02_0013.html).
 
         2. Run the compilation command.
 
@@ -75,7 +75,7 @@ Take PyTorch 2.7.1 as an example for compilation optimization.
                 >
                 > `/path/to/profile` refers to the path where the profile data file is stored when running PyTorch later.
                 >
-                > During compilation, you can also enable CPU acceleration libraries (oneDNN/ACL, BLAS) to improve CPU operator performance. For details, see [Enabling oneDNN/ACL Acceleration](https://www.hikunpeng.com/document/detail/zh/SRA/ecosystemEnable/PyTorch/kunpengpytorch_02_0012.html) and [Enabling BLAS Acceleration](https://www.hikunpeng.com/document/detail/zh/SRA/ecosystemEnable/PyTorch/kunpengpytorch_02_0013.html).
+                > During compilation, you can also enable CPU acceleration libraries (oneDNN/ACL, BLAS) to improve CPU operator performance. For details, see [Enabling oneDNN/ACL Acceleration](https://www.hikunpeng.com/document/detail/en/SRA/ecosystemEnable/PyTorch/kunpengpytorch_02_0012.html) and [Enabling BLAS Acceleration](https://www.hikunpeng.com/document/detail/en/SRA/ecosystemEnable/PyTorch/kunpengpytorch_02_0013.html).
 
             - Run the compilation command.
 

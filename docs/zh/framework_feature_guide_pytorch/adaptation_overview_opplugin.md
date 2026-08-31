@@ -29,4 +29,4 @@ OpPlugin是TorchNPU的算子插件，为使用PyTorch框架的开发者提供便
 ## 如何进行算子适配
 
 - 单算子适配的详细操作可参考后续章节。
-- 图模式算子开发请参考《TorchAir》中的“[自定义算子入图](https://www.hiascend.com/document/detail/zh/Pytorch/730/modthirdparty/torchairuseguide/torchair_00055.html)”章节。
+- 图模式算子开发请参考《TorchAir》中的“[自定义算子入图](https://gitcode.com/Ascend/torchair/blob/26.1.0/docs/zh/custom_op_graph/overview.md)”章节。

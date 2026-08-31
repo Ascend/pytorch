@@ -177,7 +177,8 @@ This section provides a simple model migration example using the simplest automa
 
     | Large Model | Component | Migration Guide |
     | -- | -- | -- |
-    | Megatron-LM distributed large model | MindSpeed Core affinity acceleration module | See the [Distributed Training Acceleration Library Migration Guide](https://gitcode.com/Ascend/MindSpeed/blob/master/docs/en/user-guide/model-migration.md). |
-    | Megatron-LM large language model | MindSpeed LLM Suite | See the [MindSpeed LLM Documentation Guide](https://gitcode.com/Ascend/MindSpeed-LLM/blob/master/docs/en/docs_guide.md). |
-    | Megatron-LM multimodal model | MindSpeed MM Suite | See the [MindSpeed MM Migration and Tuning Guide](https://gitcode.com/Ascend/MindSpeed-MM/blob/master/docs/en/pytorch/model-migration.md). |
-    | Large language model or multimodal model | veRL suite | See the [veRL Migration Guide](https://github.com/verl-project/verl/blob/main/docs/ascend_tutorial/dev_guide/model_dev/transfer_to_npu_guide.md). |
+    | Megatron-LM distributed large model | MindSpeed Core affinity acceleration module | See the [Distributed Training Acceleration Library Migration Guide](https://gitcode.com/Ascend/MindSpeed/blob/26.1.0_core_r0.12.1/docs/en/user-guide/model-migration.md). |
+    | Megatron-LM large language model | MindSpeed LLM Suite | See the [MindSpeed LLM Documentation Guide](https://gitcode.com/Ascend/MindSpeed-LLM/blob/26.1.0/docs/en/docs_guide.md). |
+    | Megatron-LM multimodal model | MindSpeed MM Suite | See the [MindSpeed MM Migration and Tuning Guide](https://gitcode.com/Ascend/MindSpeed-MM/blob/26.1.0/docs/en/pytorch/model_migration.md). |
+    | Large language model or multimodal model | veRL suite | See the veRL Migration Guide. |
+    <!-- | Large language model or multimodal model | veRL suite | See the [veRL Migration Guide](https://github.com/verl-project/verl/blob/main/docs/ascend_tutorial/dev_guide/model_dev/transfer_to_npu_guide.md). | -->

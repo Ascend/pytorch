@@ -31,7 +31,7 @@ Use the environment variable `MULTI_STREAM_MEMORY_REUSE` to control whether mult
 
 The default value is 1.
 
-For details on using this environment variable, refer to the "[MULTI_STREAM_MEMORY_REUSE](https://www.hiascend.com/document/detail/zh/Pytorch/720/comref/Envvariables/Envir_016.html)" section in *Environment Variable Reference*.
+For details on using this environment variable, refer to the "[MULTI_STREAM_MEMORY_REUSE](../environment_variable_reference/MULTI_STREAM_MEMORY_REUSE.md)" section in *Environment Variable Reference*.
 
 ## Usage Example
 

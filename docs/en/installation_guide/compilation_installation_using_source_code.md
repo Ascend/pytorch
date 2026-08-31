@@ -186,7 +186,7 @@ Run the following commands to check the versions of the installed Python, PyTorc
 
     > [!NOTE]
     >
-    > Because each TorchNPU version publishes installation packages for multiple PyTorch versions, the version numbers of the released installation packages and the TorchNPU version numbers follow different naming rules. To query the mapping between version numbers, click [Version Mapping](https://gitcode.com/Ascend/pytorch/blob/master/docs/en/release_notes.md).
+    > Because each TorchNPU version publishes installation packages for multiple PyTorch versions, the version numbers of the released installation packages and the TorchNPU version numbers follow different naming rules. To query the mapping between version numbers, click [Version Mapping](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.1.0/docs/en/release_notes/release_notes.md).
 
 ## Post-Installation Verification
 

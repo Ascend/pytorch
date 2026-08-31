@@ -63,4 +63,4 @@ Model parameters and input data are copied from the CPU Host memory to the NPU D
 
 ## More Information
 
-For more information about TorchNPU, see the online course: [TorchNPU](https://www.hiascend.com/edu/courses?activeTab=Ascend+Extension+for+PyTorch).
+For more information about TorchNPU, see the online course: [TorchNPU](https://www.hiascend.com/en/edu/courses?activeTab=Ascend+Extension+for+PyTorch).

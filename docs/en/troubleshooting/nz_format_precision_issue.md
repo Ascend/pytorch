@@ -2,7 +2,7 @@
 
 ## Symptom Description
 
-During network tuning, after the user enables [`torch.npu.config.allow_internal_format = True`](https://gitcode.com/Ascend/op-plugin/blob/26.1.0/docs/en/custom_APIs/torch_npu-npu/%EF%BC%88beta%EF%BC%89torch_npu-npu-config-allow_internal_format.md), the model's computation results exhibit a precision anomaly.
+During network tuning, after the user enables [`torch.npu.config.allow_internal_format = True`](https://gitcode.com/Ascend/op-plugin/blob/26.1.0/docs/en/custom_APIs/torch_npu-npu/(beta)torch_npu-npu-config-allow_internal_format.md), the model's computation results exhibit a precision anomaly.
 
 ## Cause Analysis
 

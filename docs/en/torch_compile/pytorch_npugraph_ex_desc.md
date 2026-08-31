@@ -21,7 +21,7 @@ The NPUGraph_EX backend is suitable for LLM inference scenarios. It further acce
 compiled_model = torch.compile(model, backend="npugraph_ex")
 ```
 
-For the compilation options (`options` parameter) supported by NPUGraph_EX and detailed usage guidance, see the [npugraph_ex backend](https://gitcode.com/Ascend/torchair/blob/26.1.0/docs/zh/npugraph_ex/npugraph_ex.md) in *TorchAir*.
+For the compilation options (`options` parameter) supported by NPUGraph_EX and detailed usage guidance, see the [npugraph_ex backend](https://gitcode.com/Ascend/torchair/blob/26.1.0/docs/en/npugraph_ex/npugraph_ex.md) in *TorchAir*.
 
 ## Call Example
 
