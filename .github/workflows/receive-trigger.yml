@@ -19,7 +19,6 @@ jobs:
       upstream_repo: ${{ steps.extract.outputs.upstream_repo }}
       upstream_ref: ${{ steps.extract.outputs.upstream_ref }}
       should_build: ${{ steps.extract.outputs.should_build }}
-      merge_sha: ${{ steps.resolve_merge_sha.outputs.merge_sha }}
     steps:
       - name: Log ciflow/trunk tag push events (observation)
         # Observation-only (hypothesis validation, to be removed):
@@ -116,173 +115,64 @@ jobs:
         env:
           PAYLOAD_JSON: ${{ inputs.payload }}
           EVENT_TYPE: ${{ inputs.event_type }}
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
-          # ---- Filter: only merged PRs (closed + Merged label) ----
-          # pytorch/pytorch uses a land bot that pushes directly to main,
-          # bypassing GitHub's native merge. So base.ref may be "main"
-          # (normal PR) or "gh/..." (ghstack PR), and `merged` is always
-          # false. The "Merged" label is the authoritative signal that
-          # the PR has been landed to main by MergeBot.
-          #
-          # Check payload snapshot first (fast path), then fall back
-          # to a live API query if the label is missing from the payload.
+          # ---- Filter: pull_request events never trigger a build ----
           if [ "${EVENT_TYPE}" = "pull_request" ]; then
-            ACTION=$(echo "$PAYLOAD_JSON" | jq -r '.payload.action // empty')
-            if [ "${ACTION}" != "closed" ]; then
-              echo "SKIP: PR action is '${ACTION}', not 'closed'"
-              echo "should_build=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
+            echo "SKIP: pull_request events do not trigger build or test"
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
-            PR_NUMBER=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.number // empty')
-            UPSTREAM_REPO=$(echo "$PAYLOAD_JSON" | jq -r '.payload.repository.full_name // empty')
-
-            if [ -z "${PR_NUMBER}" ] || [ -z "${UPSTREAM_REPO}" ]; then
-              echo "ERROR: Could not extract PR number or upstream repo from payload"
-              exit 1
-            fi
-
-            echo "Checking 'Merged' label for PR #${PR_NUMBER} in ${UPSTREAM_REPO}"
-
-            # Fast path: check payload snapshot first
-            HAS_MERGED=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.labels // [] | map(.name) | index("Merged") // ""')
-            if [ -n "${HAS_MERGED}" ]; then
-              echo "Found 'Merged' label in webhook payload"
-            else
-              # MergeBot may add the label after closing the PR;
-              # fall back to live API query
-              LABELS_RESPONSE=$(curl -sf \
-                -H "Authorization: Bearer ${GH_TOKEN}" \
-                -H "Accept: application/vnd.github+json" \
-                "https://api.github.com/repos/${UPSTREAM_REPO}/issues/${PR_NUMBER}/labels")
-
-              HAS_MERGED=$(echo "$LABELS_RESPONSE" | jq -r '[.[].name] | index("Merged") // ""')
-              if [ -n "${HAS_MERGED}" ]; then
-                echo "Found 'Merged' label via GitHub API"
-              fi
-            fi
-
-            if [ -z "${HAS_MERGED}" ]; then
-              echo "SKIP: PR #${PR_NUMBER} does not have 'Merged' label"
-              echo "should_build=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-          elif [ "${EVENT_TYPE}" = "push" ]; then
-            # ---- Filter: ciflow/trunk tag creation (upstream PR trunk gate) ----
-            # When a merge is requested on an upstream PR, pytorch-bot creates
-            # tag refs/tags/ciflow/trunk/<PR#> pointing at the PR head commit,
-            # which is the same commit upstream trunk CI checks out and runs.
-            # Mirror that: build the tag target (PR head), NOT main.
-            # Only creation events count; deletions (tag cleanup / PR updates)
-            # are ignored, and only pushes by pytorch-bot are trusted.
-            REF=$(echo "$PAYLOAD_JSON" | jq -r '.payload.ref // empty')
-            CREATED=$(echo "$PAYLOAD_JSON" | jq -r '.payload.created // false')
-            PUSHER=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pusher.name // empty')
-            SENDER=$(echo "$PAYLOAD_JSON" | jq -r '.payload.sender.login // empty')
-
-            if echo "$REF" | grep -qE '^refs/tags/ciflow/trunk/' \
-               && [ "${CREATED}" = "true" ] \
-               && { [ "${PUSHER}" = "pytorch-bot[bot]" ] || [ "${SENDER}" = "pytorch-bot[bot]" ]; }; then
-              PR_NUMBER=$(echo "$REF" | sed -E 's#^refs/tags/ciflow/trunk/##')
-              UPSTREAM_REPO=$(echo "$PAYLOAD_JSON" | jq -r '.payload.repository.full_name // empty')
-              UPSTREAM_REF=$(echo "$PAYLOAD_JSON" | jq -r '.payload.after // empty')
-
-              if [ -z "${UPSTREAM_REPO}" ] || [ -z "${UPSTREAM_REF}" ]; then
-                echo "ERROR: ciflow/trunk tag push without repo/after SHA: repo='${UPSTREAM_REPO}' after='${UPSTREAM_REF}'"
-                exit 1
-              fi
-
-              echo "CIFLOW trunk tag creation detected for PR #${PR_NUMBER}"
-              echo "Will build upstream ref: ${UPSTREAM_REF} (tag target = PR head)"
-            else
-              echo "SKIP: push event (ref=${REF}, created=${CREATED}, pusher=${PUSHER}) is not a pytorch-bot ciflow/trunk tag creation"
-              echo "should_build=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-          else
+          # ---- Filter: ciflow/trunk tag creation (upstream PR trunk gate) ----
+          # When a merge is requested on an upstream PR, pytorch-bot creates
+          # tag refs/tags/ciflow/trunk/<PR#> pointing at the PR head commit,
+          # which is the same commit upstream trunk CI checks out and runs.
+          # Mirror that: build the tag target (PR head), NOT main.
+          # Only creation events count; deletions (tag cleanup / PR updates)
+          # are ignored, and only pushes by pytorch-bot are trusted.
+          if [ "${EVENT_TYPE}" != "push" ]; then
             echo "ERROR: Unknown event_type: ${EVENT_TYPE}"
             exit 1
           fi
 
+          REF=$(echo "$PAYLOAD_JSON" | jq -r '.payload.ref // empty')
+          CREATED=$(echo "$PAYLOAD_JSON" | jq -r '.payload.created // false')
+          PUSHER=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pusher.name // empty')
+          SENDER=$(echo "$PAYLOAD_JSON" | jq -r '.payload.sender.login // empty')
+
+          if echo "$REF" | grep -qE '^refs/tags/ciflow/trunk/' \
+             && [ "${CREATED}" = "true" ] \
+             && { [ "${PUSHER}" = "pytorch-bot[bot]" ] || [ "${SENDER}" = "pytorch-bot[bot]" ]; }; then
+            PR_NUMBER=$(echo "$REF" | sed -E 's#^refs/tags/ciflow/trunk/##')
+            UPSTREAM_REPO=$(echo "$PAYLOAD_JSON" | jq -r '.payload.repository.full_name // empty')
+            UPSTREAM_REF=$(echo "$PAYLOAD_JSON" | jq -r '.payload.after // empty')
+
+            if [ -z "${UPSTREAM_REPO}" ] || [ -z "${UPSTREAM_REF}" ]; then
+              echo "ERROR: ciflow/trunk tag push without repo/after SHA: repo='${UPSTREAM_REPO}' after='${UPSTREAM_REF}'"
+              exit 1
+            fi
+
+            echo "CIFLOW trunk tag creation detected for PR #${PR_NUMBER}"
+            echo "Will build upstream ref: ${UPSTREAM_REF} (tag target = PR head)"
+          else
+            echo "SKIP: push event (ref=${REF}, created=${CREATED}, pusher=${PUSHER}) is not a pytorch-bot ciflow/trunk tag creation"
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           # ---- Extract build parameters ----
-          # Two paths reach here:
-          #   pull_request: closed + "Merged" label -> build from main merge
-          #                 commit (merge_sha output, resolved below)
-          #   push:         ciflow/trunk tag creation -> build from the tag
-          #                 target = PR head commit (upstream_ref output)
+          # Only push (ciflow/trunk tag creation) reaches here: build from
+          # the tag target = PR head commit (upstream_ref output).
           echo "upstream_repo=${UPSTREAM_REPO}" >> "$GITHUB_OUTPUT"
-          echo "upstream_ref=${UPSTREAM_REF:-}" >> "$GITHUB_OUTPUT"
+          echo "upstream_ref=${UPSTREAM_REF}" >> "$GITHUB_OUTPUT"
           echo "should_build=true" >> "$GITHUB_OUTPUT"
 
           echo "=== Extracted Build Parameters ==="
           echo "event_type:    ${EVENT_TYPE}"
           echo "upstream_repo: ${UPSTREAM_REPO}"
-          if [ -n "${UPSTREAM_REF:-}" ]; then
-            echo "upstream_ref:  ${UPSTREAM_REF} (ciflow/trunk tag target = PR head)"
-          else
-            echo "upstream_ref:  resolved from main merge commit"
-          fi
-
-      - name: Resolve merge commit SHA on main
-        id: resolve_merge_sha
-        if: ${{ steps.extract.outputs.should_build == 'true' && inputs.event_type == 'pull_request' }}
-        env:
-          PAYLOAD_JSON: ${{ inputs.payload }}
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-
-          PR_NUMBER=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.number // empty')
-          UPSTREAM_REPO=$(echo "$PAYLOAD_JSON" | jq -r '.payload.repository.full_name // empty')
-
-          if [ -z "${PR_NUMBER}" ] || [ -z "${UPSTREAM_REPO}" ]; then
-            echo "WARN: Missing PR number or upstream repo in payload, skipping SHA resolution"
-            exit 0
-          fi
-
-          echo "=== Resolving merge commit SHA for PR #${PR_NUMBER} in ${UPSTREAM_REPO} ==="
-
-          # ---- List recent commits on main and find PR merge commit ----
-          # pytorch/pytorch uses a land bot that pushes directly to main,
-          # bypassing GitHub's native merge. So merged=false and
-          # merge_commit_sha is a placeholder. The land bot commit message
-          # always contains "(#PR_NUMBER)" in the subject line.
-          # We list recent commits on main via the Commits API (reads git
-          # data directly, no search index delay) and match the PR number
-          # in the subject line (first line) to avoid cross-reference
-          # false positives from other PR numbers in the body.
-          echo ""
-          echo "Querying GitHub Commits API: GET /repos/${UPSTREAM_REPO}/commits?sha=main&per_page=100"
-
-          COMMITS_RESPONSE=$(curl -sf \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${UPSTREAM_REPO}/commits?sha=main&per_page=100")
-
-          COMMIT_COUNT=$(echo "$COMMITS_RESPONSE" | jq -r 'length')
-          echo "Commits on main (recent ${COMMIT_COUNT}):"
-          echo "$COMMITS_RESPONSE" | jq -r '.[] | "  SHA: \(.sha[0:12])  date: \(.commit.author.date // "?")  message: \(.commit.message | split("\n")[0])"'
-
-          # Match "(#PR_NUMBER)" in commit subject line, exclude Reverts
-          MERGE_SHA=$(echo "$COMMITS_RESPONSE" | jq -r \
-            --arg pr "(#${PR_NUMBER})" \
-            '[.[] | (.commit.message // "") as $msg
-             | ($msg | split("\n")[0]) as $subject
-             | select($subject | test($pr; "i"))
-             | select($subject | test("^Revert"; "i") | not)]
-             | .[0].sha // "null"')
-
-          if [ "${MERGE_SHA}" != "null" ]; then
-            echo ""
-            echo "Merge commit SHA (excluding reverts): ${MERGE_SHA}"
-            echo "merge_sha=${MERGE_SHA}" >> "$GITHUB_OUTPUT"
-          else
-            echo ""
-            echo "WARN: No commit on main references (#${PR_NUMBER}) in subject, falling back to main"
-          fi
+          echo "upstream_ref:  ${UPSTREAM_REF} (ciflow/trunk tag target = PR head)"
 
   build:
     needs: [extract]
@@ -292,8 +182,7 @@ jobs:
     with:
       upstream_repo: ${{ needs.extract.outputs.upstream_repo || 'pytorch/pytorch' }}
       # ciflow/trunk tag path: exact PR head SHA the upstream trunk gate runs.
-      # pull_request path: merge commit on main (or latest main as fallback).
-      upstream_ref: ${{ needs.extract.outputs.upstream_ref || needs.extract.outputs.merge_sha || 'main' }}
+      upstream_ref: ${{ needs.extract.outputs.upstream_ref }}
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: master
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-202608290444-503883d4
