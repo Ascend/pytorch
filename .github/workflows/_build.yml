@@ -172,10 +172,14 @@ jobs:
       BUILD_WITHOUT_SHA: 1
       PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
     steps:
-      # Step 0: Report build in_progress to upstream (same job as completed)
+      # Step 0: Report build in_progress to upstream (same job as completed).
+      # This is the FIRST report to the upstream community in the pipeline.
+      # OIDC token fetch occasionally times out; a lost in_progress report
+      # leaves the upstream dashboard stuck, so a failure here must fail
+      # the whole job (retryable via re-run). Unlike other reports, this
+      # step deliberately does NOT set continue-on-error.
       - name: Report build in_progress
         if: ${{ inputs.report_to_upstream }}
-        continue-on-error: true
         uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
         with:
           status: in_progress
