@@ -12,7 +12,7 @@ categories:
   core:
     workers: 32
     execution: concurrent
-    runner: linux-aarch64-a3-8
+    runner: linux-aarch64-a3-800i-8-cn12-001
     files:
     - test/nn/attention/test_fa3.py
     - test/nn/attention/test_fa4.py
@@ -50,7 +50,7 @@ categories:
   tensor:
     workers: 32
     execution: concurrent
-    runner: linux-aarch64-a3-8
+    runner: linux-aarch64-a3-800i-8-cn12-001
     files:
     - test/test_as_strided.py
     - test/test_binary_ufuncs.py
@@ -65,7 +65,7 @@ categories:
   distributed:
     workers: 1
     execution: serial
-    runner: linux-aarch64-a3-8
+    runner: linux-aarch64-a3-800i-8-cn12-001
     files:
     - test/distributed/test_c10d_gloo.py
     - test/distributed/test_c10d_nccl.py
@@ -127,7 +127,7 @@ categories:
   graph:
     workers: 32
     execution: concurrent
-    runner: linux-aarch64-a3-8
+    runner: linux-aarch64-a3-800i-8-cn12-001
     files:
     - test/higher_order_ops/test_debug_log.py
     - test/higher_order_ops/test_local_map.py
@@ -260,6 +260,6 @@ categories:
   others:
     workers: 32
     execution: concurrent
-    runner: linux-aarch64-a3-8
+    runner: linux-aarch64-a3-800i-8-cn12-001
     files:
     - test/test_linalg.py
