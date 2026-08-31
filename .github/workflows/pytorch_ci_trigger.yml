@@ -9,15 +9,14 @@ on:
   repository_dispatch:
     types: [push]
 
-# For push events the PR number is only available inside the ref
-# (refs/tags/ciflow/trunk/<PR#>), so parse it out for the concurrency
-# group; fall back to run_id when the ref does not match (never cancels).
+# For push events the ref (refs/tags/ciflow/trunk/<PR#>) is unique per
+# PR, so the raw ref serves as the concurrency key — repeated triggers
+# for the same PR cancel each other. Events without a ref fall back to
+# run_id (unique, never cancels).
 concurrency:
   group: >-
     ci-${{ github.event.client_payload.payload.repository.full_name }}-${{
-    github.event.client_payload.payload.ref
-    && replace(github.event.client_payload.payload.ref, 'refs/tags/ciflow/trunk/', '')
-    || github.run_id }}
+    github.event.client_payload.payload.ref || github.run_id }}
   cancel-in-progress: true
 
 permissions:
