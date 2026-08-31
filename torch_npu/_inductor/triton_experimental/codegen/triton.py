@@ -544,7 +544,56 @@ def _npu_apply_promoted_rtree_lines(
             None,
         )
         if broadcast is None:
-            return raw
+            # Stale pre-promotion rank: upstream store codegen appends
+            # ``.broadcast_to(<value.shape>)`` using the CSE shape captured BEFORE
+            # r-tree promotion, so the arg count can be smaller than real_ndim
+            # (e.g. ``(XBLOCK, 1)`` against a rank-3 promoted value) and Triton
+            # rejects the store ("Cannot broadcast, rank mismatch"). Rebuild the
+            # args: r-slots forced to 1, the remaining slots take the old non-1
+            # args in order; also pad the base ``tl.full`` shape list so the
+            # broadcast input rank matches (Triton requires equal ranks).
+            cand = next(
+                (
+                    item
+                    for item in ast.walk(store)
+                    if isinstance(item, ast.Call)
+                    and isinstance(item.func, ast.Attribute)
+                    and item.func.attr == "broadcast_to"
+                ),
+                None,
+            )
+            if cand is None or len(cand.args) >= real_ndim:
+                return raw
+            old_non1 = [
+                a
+                for a in cand.args
+                if not (isinstance(a, ast.Constant) and str(a.value) == "1")
+            ]
+            free_slots = [s for s in range(real_ndim) if s not in r_slots]
+            if len(old_non1) != len(free_slots):
+                return raw
+            broadcast = cand
+            new_args = []
+            for s in range(real_ndim):
+                if s in r_slots:
+                    new_args.append(
+                        ast.copy_location(ast.Constant(value=1), broadcast)
+                    )
+                else:
+                    new_args.append(old_non1.pop(0))
+            broadcast.args[:] = new_args
+            base = broadcast.func.value
+            if (
+                isinstance(base, ast.Call)
+                and base.args
+                and isinstance(base.args[0], ast.List)
+                and len(base.args[0].elts) < real_ndim
+            ):
+                elts = base.args[0].elts
+                while len(elts) < real_ndim:
+                    elts.insert(
+                        0, ast.copy_location(ast.Constant(value=1), base.args[0])
+                    )
         for slot in r_slots:
             if 0 <= slot < len(broadcast.args):
                 broadcast.args[slot] = ast.copy_location(
