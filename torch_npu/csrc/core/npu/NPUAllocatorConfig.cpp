@@ -404,7 +404,7 @@ void NPUAllocatorConfig::parseArgs(const std::string& env, std::set<std::string>
       acc_alloc_conf_ins.max_non_split_rounding_size(),
       acc_alloc_conf_ins.max_split_size(),
       acc_alloc_conf_ins.garbage_collection_threshold(),
-      acc_alloc_conf_ins.roundup_power2_divisions(),
+      acc_alloc_conf_ins.roundup_power2_divisions().size(),
       acc_alloc_conf_ins.use_expandable_segments(),
       acc_alloc_conf_ins.pinned_use_background_threads(),
       acc_alloc_conf_ins.large_segment_size(),
