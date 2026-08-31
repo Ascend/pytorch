@@ -132,9 +132,11 @@ jobs:
           # Mirror that: build the tag target (PR head), NOT main.
           # Only creation events count; deletions (tag cleanup / PR updates)
           # are ignored, and only pushes by pytorch-bot are trusted.
+          # Unknown event types end silently — no build, no job failure.
           if [ "${EVENT_TYPE}" != "push" ]; then
-            echo "ERROR: Unknown event_type: ${EVENT_TYPE}"
-            exit 1
+            echo "SKIP: unknown event_type '${EVENT_TYPE}', nothing to do"
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
           REF=$(echo "$PAYLOAD_JSON" | jq -r '.payload.ref // empty')
