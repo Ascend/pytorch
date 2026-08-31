@@ -114,7 +114,7 @@ jobs:
         working-directory: pytorch
         run: |
           start=$(date +%s)
-          git submodule update --init --force --recursive --depth=1 --jobs=16
+          git submodule update --init --force --recursive --depth=1 --jobs=20
           echo "Submodule fetch took $(( $(date +%s) - start ))s"
 
       - name: Resolve SHAs
