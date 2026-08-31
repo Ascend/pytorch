@@ -296,7 +296,7 @@ jobs:
       upstream_ref: ${{ needs.extract.outputs.upstream_ref || needs.extract.outputs.merge_sha || 'main' }}
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: master
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-202608241234-9c1d81e6
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-202608290444-503883d4
       report_to_upstream: true
 
   test:
@@ -309,7 +309,7 @@ jobs:
       torch_npu_short: ${{ needs.build.outputs.torch_npu_short }}
       case_paths_config: .github/config/pr_test_whitelist.yml
       skip_list: .github/config/pr_skip_list.jsonl
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-202608241234-9c1d81e6
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-202608290444-503883d4
       report_to_upstream: true
       hw_classification: 'ACCELERATOR'
       device_env: 'privateuse1'
