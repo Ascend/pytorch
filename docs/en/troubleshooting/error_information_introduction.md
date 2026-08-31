@@ -5,4 +5,5 @@ You may encounter various error messages during model training, including Python
 > [!NOTE]
 >
 > - The main principle for locating errors: focus on the first error message.
-> - For detailed information on CANN software-related errors, see [CANN Troubleshooting](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/troubleshooting/troubleshooting_0001.html).
+> - For detailed information on CANN software-related errors, see CANN Troubleshooting.
+<!-- [CANN Troubleshooting](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/troubleshooting/troubleshooting_0001.html) -->

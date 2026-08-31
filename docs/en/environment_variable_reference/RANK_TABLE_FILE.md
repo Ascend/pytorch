@@ -35,7 +35,8 @@ unset RANK_TABLE_FILE
 ## Usage Constraints
 
 - The configured file path cannot be a symbolic link and must have read permission.
-- The configured file must be in JSON format. For details, see the "[Cluster Information Configuration](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/commlib/hcclug/docs/zh/user_guide/cluster_info_config/intro.md)" chapter in CANN HCCL Library.
+- The configured file must be in JSON format. For details, see the "Cluster Information Configuration" chapter in CANN HCCL Library.
+<!-- [Cluster Information Configuration](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/commlib/hcclug/docs/zh/user_guide/cluster_info_config/intro.md)" -->
 
 ## Supported Products
 

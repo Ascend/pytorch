@@ -17,4 +17,5 @@
     
       - *2.7.1* is the PyTorch version. Specify the version based on the actual situation.
       - *26.1.0* is the TorchNPU software version.
-   3. Before OpPlugin operator adaptation, ensure that CANN already has the corresponding operator implementation. For details, see the [CANN Operator Library](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/API/aolapi/operatorlist_00001.html).
+   3. Before OpPlugin operator adaptation, ensure that CANN already has the corresponding operator implementation. For details, see the CANN Operator Library.
+   <!-- [CANN Operator Library](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/API/aolapi/operatorlist_00001.html) -->

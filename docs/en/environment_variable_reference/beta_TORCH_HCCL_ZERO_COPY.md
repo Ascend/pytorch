@@ -27,7 +27,8 @@ export TORCH_HCCL_ZERO_COPY=1
     ```
 
 - This environment variable is not supported in TorchAir scenarios.
-- For other constraints, see "Zero-Copy Function" > "[Before You Start](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/commlib/hcclug/docs/en/api_ref/comm_mgr_c/zero_copy_readme.md)" section in the *CANN HCCL Library*.
+- For other constraints, see "Zero-Copy Function" > "Before You Start" section in the *CANN HCCL Library*.
+<!-- [Before You Start](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/commlib/hcclug/docs/en/api_ref/comm_mgr_c/zero_copy_readme.md) -->
 
 ## Supported Products
 

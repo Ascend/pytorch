@@ -247,7 +247,8 @@ The current environment does not meet the requirements for running TorchNPU. Dur
 
 **Solution**
 
-Check whether the matching NPU driver firmware and CANN software (Toolkit, ops, and NNAL) are installed and whether the CANN environment variables are correctly configured. For details, see *[CANN Software Installation](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)*.
+Check whether the matching NPU driver firmware and CANN software (Toolkit, ops, and NNAL) are installed and whether the CANN environment variables are correctly configured. For details, see *CANN Software Installation*.
+<!-- [CANN Software Installation](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum) -->
 
 ### System Error: core dump When Importing torch_npu
 

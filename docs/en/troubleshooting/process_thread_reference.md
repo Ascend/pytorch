@@ -2,7 +2,8 @@
 
 This document helps users quickly identify and understand the various processes and threads that appear in the system when running torch and TorchNPU training or inference tasks. When users need to troubleshoot performance bottlenecks, diagnose abnormal processes/threads, understand system resource usage, or evaluate whether program behavior meets expectations, they can refer to this document to look up the affiliation, trigger conditions, and lifecycle of each process/thread.
 
-For processes and threads started by CANN itself during the process of building AI apps based on CANN, see the [CANN Environment Variable Reference](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/maintenref/envvar/envref_07_0001.html).
+For processes and threads started by CANN itself during the process of building AI apps based on CANN, see the CANN Environment Variable Reference.
+<!-- [CANN Environment Variable Reference](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/maintenref/envvar/envref_07_0001.html) -->
 
 ## Main Process and Thread Description
 

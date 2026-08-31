@@ -23,7 +23,8 @@ export P2P_HCCL_BUFFSIZE=20
 - Each communication domain additionally occupies memory of size "2\*P2P\_HCCL\_BUFFSIZE", which is used for sending and receiving data respectively.
 - This resource is managed at the granularity of communication domains, with each domain exclusively occupying a set of memory of size "2\*P2P\_HCCL\_BUFFSIZE".
 - In TorchNPU 7.1.0, this environment variable is configured to 20 MB by default. If an OOM error occurs after the upgrade, you can set this environment variable to 0 on the model side.
-- If an independent communication domain was not previously created for P2P, configuring this environment variable will independently create a P2P communication domain. If there is a long interval between send and recv dispatch on the model side, a timeout may occur. In this case, you need to set HCCL\_CONNECT\_TIMEOUT to a longer value. The recommended value is 600s, and the specific value must be adjusted based on the actual model script. For details about HCCL\_CONNECT\_TIMEOUT, see the "[HCCL\_CONNECT\_TIMEOUT](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/commlib/hcclug/docs/en/user_guide/hccl_env/HCCL_CONNECT_TIMEOUT.md)" section in the *CANN HCCL Library*.
+- If an independent communication domain was not previously created for P2P, configuring this environment variable will independently create a P2P communication domain. If there is a long interval between send and recv dispatch on the model side, a timeout may occur. In this case, you need to set HCCL\_CONNECT\_TIMEOUT to a longer value. The recommended value is 600s, and the specific value must be adjusted based on the actual model script. For details about HCCL\_CONNECT\_TIMEOUT, see the "HCCL\_CONNECT\_TIMEOUT" section in the *CANN HCCL Library*.
+<!-- [HCCL\_CONNECT\_TIMEOUT](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/commlib/hcclug/docs/en/user_guide/hccl_env/HCCL_CONNECT_TIMEOUT.md) -->
 
 ## Supported Products
 

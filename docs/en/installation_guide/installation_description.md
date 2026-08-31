@@ -32,7 +32,8 @@ This document provides solutions for installing drivers, firmware, CANN software
 
 - For more details about Ascend product forms, refer to the [Ascend Product Form Description](https://www.hiascend.com/document/detail/en/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html).
 - For the operating systems supported by each hardware product in physical machine deployment scenarios, refer to the [Compatibility Query Assistant](https://www.hiascend.com/hardware/compatibility).
-- For the operating systems supported by each hardware product in virtual machine and container deployment scenarios, refer to the "[OS Compatibility](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/softwareinst/instg/instg_0101.html?OS=openEuler&InstallType=netyum)" section in *CANN Software Installation*.
+- For the operating systems supported by each hardware product in virtual machine and container deployment scenarios, refer to the "OS Compatibility" section in *CANN Software Installation*.
+<!-- "[OS Compatibility](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/softwareinst/instg/instg_0101.html?OS=openEuler&InstallType=netyum)" -->
 
 ## Installation Methods
 

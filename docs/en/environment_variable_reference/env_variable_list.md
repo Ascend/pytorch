@@ -1,6 +1,7 @@
 # Environment Variable List
 
-This manual describes the environment variables that you can use during TorchNPU training and online inference. For environment variables used in building AI apps and services based on CANN, refer to [CANN Environment Variable Reference](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/maintenref/envvar/envref_07_0001.html).
+This manual describes the environment variables that you can use during TorchNPU training and online inference. For environment variables used in building AI apps and services based on CANN, refer to CANN Environment Variable Reference.
+<!-- [CANN Environment Variable Reference](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/maintenref/envvar/envref_07_0001.html) -->
 
 **Table 1**  Operator execution environment variables
 

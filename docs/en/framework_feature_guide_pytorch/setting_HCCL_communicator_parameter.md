@@ -23,20 +23,25 @@ Configure HCCL parameters at the communication domain granularity in the model s
 
 The following HCCL communication domain parameters can be configured:
 
-- `hccl_buffer_size`: Sets the `hccl_buffer_size` of the communication domain. The default value is the value of the environment variable `HCCL_BUFFSIZE`. If the environment variable `HCCL_BUFFSIZE` is not set, the default value of this parameter is 200. For details about the environment variable `HCCL_BUFFSIZE`, see the "[HCCL_BUFFSIZE](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/commlib/hcclug/docs/zh/user_guide/hccl_env/HCCL_BUFFSIZE.md)" section in *CANN HCCL Communication Library*.
+- `hccl_buffer_size`: Sets the `hccl_buffer_size` of the communication domain. The default value is the value of the environment variable `HCCL_BUFFSIZE`. If the environment variable `HCCL_BUFFSIZE` is not set, the default value of this parameter is 200. For details about the environment variable `HCCL_BUFFSIZE`, see the "HCCL_BUFFSIZE" section in *CANN HCCL Communication Library*.
 - `group_name`: Sets a custom name for the communication group of the HCCL communication domain. The value is a string with a maximum length of 32 characters.
 - `qos_service_level`, `qos_traffic_class`: Sets the service level and traffic class of the RDMA NIC.
-    - `qos_service_level`: The value range of this parameter is 0\~7. The default value is 0xffffffff. In this case, HCCL reads the value of the environment variable `HCCL_RDMA_SL`. For details about the environment variable `HCCL_RDMA_SL`, see the "[HCCL_RDMA_SL](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/commlib/hcclug/docs/zh/user_guide/hccl_env/HCCL_RDMA_SL.md)" section in *CANN HCCL Communication Library*.
-    - `qos_traffic_class`: The value range of this parameter is 0\~255. The default value is 0xffffffff. In this case, HCCL reads the value of the environment variable `HCCL_RDMA_TC`. For details about the environment variable `HCCL_RDMA_TC`, see the "[HCCL_RDMA_TC](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/commlib/hcclug/docs/zh/user_guide/hccl_env/HCCL_RDMA_TC.md)" section in *CANN HCCL Communication Library*.
+    - `qos_service_level`: The value range of this parameter is 0\~7. The default value is 0xffffffff. In this case, HCCL reads the value of the environment variable `HCCL_RDMA_SL`. For details about the environment variable `HCCL_RDMA_SL`, see the "HCCL_RDMA_SL" section in *CANN HCCL Communication Library*.
+    - `qos_traffic_class`: The value range of this parameter is 0\~255. The default value is 0xffffffff. In this case, HCCL reads the value of the environment variable `HCCL_RDMA_TC`. For details about the environment variable `HCCL_RDMA_TC`, see the "HCCL_RDMA_TC" section in *CANN HCCL Communication Library*.
+    <!-- "[HCCL_BUFFSIZE](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/commlib/hcclug/docs/zh/user_guide/hccl_env/HCCL_BUFFSIZE.md)" -->
+    <!-- "[HCCL_RDMA_SL](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/commlib/hcclug/docs/zh/user_guide/hccl_env/HCCL_RDMA_SL.md)" -->
+    <!-- "[HCCL_RDMA_TC](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/commlib/hcclug/docs/zh/user_guide/hccl_env/HCCL_RDMA_TC.md)" -->
 
-- `hccl_op_expansion_mode`: Sets the expansion position of the communication algorithm. The default value is the value of the environment variable `HCCL_OP_EXPANSION_MODE`. If the environment variable `HCCL_OP_EXPANSION_MODE` is not set, the default value of this parameter is 0. For the parameter values and descriptions supported by different AI processor models, see the hcclOpExpansionMode parameter in the "[HcclCommConfig](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/commlib/hcclug/docs/zh/api_ref/comm_mgr_c/data_type_definition/HcclCommConfig.md)" section in *CANN HCCL Communication Library*.
+- `hccl_op_expansion_mode`: Sets the expansion position of the communication algorithm. The default value is the value of the environment variable `HCCL_OP_EXPANSION_MODE`. If the environment variable `HCCL_OP_EXPANSION_MODE` is not set, the default value of this parameter is 0. For the parameter values and descriptions supported by different AI processor models, see the hcclOpExpansionMode parameter in the "HcclCommConfig" section in *CANN HCCL Communication Library*.
+<!-- "[HcclCommConfig](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/commlib/hcclug/docs/zh/api_ref/comm_mgr_c/data_type_definition/HcclCommConfig.md)" -->
 
     - 0: Represents the default expansion position of the communication algorithm.
     - 1: Represents that the expansion position of the communication algorithm is the CPU on the host side.
     - 2: Represents that the expansion position of the communication algorithm is the AI CPU compute unit on the device side.
     - 3: Represents that the expansion position of the communication algorithm is the AI Vector Core compute unit on the device side.
 
-    For details about the environment variable `HCCL_OP_EXPANSION_MODE`, see the "[HCCL_OP_EXPANSION_MODE](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/commlib/hcclug/docs/zh/user_guide/hccl_env/HCCL_OP_EXPANSION_MODE.md)" section in *CANN HCCL Communication Library*.
+    For details about the environment variable `HCCL_OP_EXPANSION_MODE`, see the "HCCL_OP_EXPANSION_MODE" section in *CANN HCCL Communication Library*.
+<!-- "[HCCL_OP_EXPANSION_MODE](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/commlib/hcclug/docs/zh/user_guide/hccl_env/HCCL_OP_EXPANSION_MODE.md)" -->
 
 ## Usage Examples
 

@@ -9,7 +9,8 @@ This document uses various faults that developers may encounter during inference
 
 - Refer to **Error Code** handling
 
-    For details about the error codes of CANN software, see the "[Error Code Reference](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/troubleshooting/troubleshooting_0225.html)" section in *CANN Troubleshooting*.
+    For details about the error codes of CANN software, see the "Error Code Reference" section in *CANN Troubleshooting*.
+    <!-- "[Error Code Reference](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/troubleshooting/troubleshooting_0225.html)" -->
 
     For details about the error codes of the TorchNPU plugin, see [Error Code Introduction](error_codes_introduction.md).
 
@@ -19,9 +20,11 @@ This document uses various faults that developers may encounter during inference
 
     For log information, a top-down log analysis method is generally adopted, gradually narrowing down to the underlying fault phenomenon based on the business process.
 
-    For a detailed introduction to log levels, see the "[Setting Log Levels](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/logreference/logreference_0008.html)" section in the *CANN Log Reference*.
+    For a detailed introduction to log levels, see the "Setting Log Levels" section in the *CANN Log Reference*.
+    <!-- "[Setting Log Levels](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/logreference/logreference_0008.html)" -->
 
-    For a detailed introduction to log paths and log files, see the "[Viewing Logs (Ascend EP)](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/logreference/logreference_0002.html)" section in the *CANN Log Reference*.
+    For a detailed introduction to log paths and log files, see the "Viewing Logs (Ascend EP)" section in the *CANN Log Reference*.
+    <!-- "[Viewing Logs (Ascend EP)](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/logreference/logreference_0002.html)" -->
 
     Regarding echo information, TorchNPU alarm information is printed normally by default. In cluster scenarios, alarm information is printed normally on the screen of the first node.
 
