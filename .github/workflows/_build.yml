@@ -60,10 +60,24 @@ jobs:
   # ======================================================================
   fetch:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # Required by cross-repo-ci-relay-callback to obtain an OIDC token
+      contents: read
     outputs:
       resolved_sha: ${{ steps.resolve.outputs.sha }}
       resolved_short: ${{ steps.resolve.outputs.short }}
     steps:
+      # Step 0: Report fetch in_progress to upstream. Same mandatory
+      # semantics as the build job's in_progress report: no
+      # continue-on-error, so an OIDC failure aborts the pipeline early
+      # (before any source download/packaging work is done).
+      - name: Report fetch in_progress
+        if: ${{ inputs.report_to_upstream }}
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
+        with:
+          status: in_progress
+          job-name: ${{ inputs.runner_label }} / fetch (pytorch)
+
       - name: Checkout upstream PyTorch
         uses: actions/checkout@v6
         with:
@@ -128,6 +142,7 @@ jobs:
       # resume from the checkpoint left by the failed attempt. -vlength
       # verifies the object size after upload.
       - name: Upload PyTorch source to OBS
+        id: upload_source
         run: |
           export PATH="${HOME}/.local/obsutil:${PATH}"
           obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
@@ -144,6 +159,19 @@ jobs:
           done
           echo "Upload failed after 2 attempts"
           exit 1
+
+      # Report fetch completed: conclusion is success only when the
+      # upload of the packaged source succeeded (the last meaningful
+      # step of this job). continue-on-error keeps a dashboard relay
+      # failure from masking the job's real outcome.
+      - name: Report fetch completed
+        if: always() && inputs.report_to_upstream
+        continue-on-error: true
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
+        with:
+          status: completed
+          conclusion: ${{ (steps.resolve.outcome == 'success' && steps.upload_source.outcome == 'success') && 'success' || 'failure' }}
+          job-name: ${{ inputs.runner_label }} / fetch (pytorch)
 
   # ======================================================================
   # Job 2: Build PyTorch + torch_npu on self-hosted ARM64 runner
@@ -173,13 +201,13 @@ jobs:
       PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
     steps:
       # Step 0: Report build in_progress to upstream (same job as completed).
-      # This is the FIRST report to the upstream community in the pipeline.
-      # OIDC token fetch occasionally times out; a lost in_progress report
-      # leaves the upstream dashboard stuck, so a failure here must fail
-      # the whole job (retryable via re-run). Unlike other reports, this
-      # step deliberately does NOT set continue-on-error.
+      # Best-effort: the fetch job already registered the pipeline with the
+      # upstream dashboard (its in_progress report is mandatory and fails
+      # the pipeline on error), so a transient OIDC timeout here does not
+      # lose the pipeline registration — retry the build via re-run.
       - name: Report build in_progress
         if: ${{ inputs.report_to_upstream }}
+        continue-on-error: true
         uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
         with:
           status: in_progress
