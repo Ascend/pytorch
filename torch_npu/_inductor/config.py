@@ -439,6 +439,7 @@ class flex_attention:
     # been reviewed. Unsupported graphs always retain the legacy dK/dV path.
     bwd_dkdv_tasklist = True
 
+
 flex_attention.bwd_dkdv_tasklist = _read_env_bool(
     "TORCHINDUCTOR_ASCEND_FLEX_ATTENTION_BWD_DKDV_TASKLIST",
     "1" if flex_attention.bwd_dkdv_tasklist else "0",

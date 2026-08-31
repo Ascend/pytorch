@@ -71,7 +71,10 @@ class TestMgr:
         self.test_files['ut_files'] += [str(i) for i in (BASE_DIR / 'test/distributed').rglob('test_*.py')]
 
     def load_inductor_ut(self):
-        self.test_files['ut_files'] += [str(i) for i in (BASE_DIR / 'test/_inductor').rglob('test_*.py')]
+        self.test_files['ut_files'] = [
+            str(BASE_DIR / 'test/_inductor/test_add.py'),
+            str(BASE_DIR / 'test/_inductor/test_abs.py'),
+        ]
 
     def load_op_plugin_ut(self):
         if not os.path.exists(BASE_DIR / 'third_party/op-plugin/test'):

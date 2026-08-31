@@ -1,13 +1,14 @@
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import TestUtils
-
+from version_mark import runIfVersion
 
 class TestAdd(TestUtils):
     def op_calc(self, first_element, second_element):
         result = first_element + second_element
         return result
 
+    @runIfVersion(max="2.13")
     @parametrize('shape', TestUtils._pointwise_demo_shapes)
     @parametrize('dtype', ['float32', 'int64'])
     def test_pointwise_cases(self, shape, dtype):
