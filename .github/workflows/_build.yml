@@ -76,7 +76,7 @@ jobs:
         uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
         with:
           status: in_progress
-          job-name: ${{ inputs.runner_label }} / fetch (pytorch)
+          job-name: ubuntu-latest / fetch (pytorch)
 
       - name: Checkout upstream PyTorch
         uses: actions/checkout@v6
@@ -171,7 +171,7 @@ jobs:
         with:
           status: completed
           conclusion: ${{ (steps.resolve.outcome == 'success' && steps.upload_source.outcome == 'success') && 'success' || 'failure' }}
-          job-name: ${{ inputs.runner_label }} / fetch (pytorch)
+          job-name: ubuntu-latest / fetch (pytorch)
 
   # ======================================================================
   # Job 2: Build PyTorch + torch_npu on self-hosted ARM64 runner
