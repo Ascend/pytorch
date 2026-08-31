@@ -3,6 +3,7 @@
 > [!CAUTION]
 >
 > 该环境变量已废弃，建议使用[TORCH\_NPU\_WARNING\_DISABLE](TORCH_NPU_WARNING_DISABLE.md)替代。
+
 ## 功能描述
 
 通过此环境变量可配置是否打印TorchNPU的告警信息。
