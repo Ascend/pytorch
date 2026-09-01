@@ -7,6 +7,7 @@ from typing import Sequence, List, Any, Union, Iterable
 import sympy
 
 import torch
+from torch._inductor import ir
 from torch._inductor.codegen.common import BackendFeature
 from torch.fx.immutable_collections import immutable_dict
 from torch._dynamo.utils import counters, preserve_rng_state
@@ -54,6 +55,104 @@ def flatten_groups(nums):
     return res
 
 
+def _canonical_group_size(size):
+    # Dynamic cat/view graphs can represent the same product in expanded and
+    # factored SymPy forms.  Codegen scheduling compares group sizes directly,
+    # so canonicalize scalar expressions before matching reduction epilogues.
+    if isinstance(size, sympy.Expr):
+        return V.graph.sizevars.simplify(size)
+    return size
+
+
+def _generate_npu_node_schedule(self, nodes, numel, rnumel):
+    node_schedule: list[Any] = []
+    done = OrderedSet[scheduler.BaseSchedulerNode]()
+    not_ready_yet_nodes: OrderedSet[str] = OrderedSet()
+    current_loop_buffer_usage: OrderedSet[str] = OrderedSet()
+    maybe_split_index: int | None = None
+    sizevars = V.graph.sizevars
+
+    def same_size(left, right):
+        if left == right:
+            return True
+        if isinstance(left, sympy.Expr) and isinstance(right, sympy.Expr):
+            return sizevars.statically_known_equals(left, right)
+        return False
+
+    def fits_in_main_body(n):
+        _, (node_numel, node_rnumel) = n.group
+        return (same_size(node_numel, numel) and same_size(node_rnumel, rnumel)) or (
+            same_size(node_numel, numel * rnumel) and same_size(node_rnumel, 1)
+        )
+
+    def fits_outside_reduction(n):
+        _, (node_numel, node_rnumel) = n.group
+        return same_size(node_numel, numel) and same_size(node_rnumel, 1) and rnumel != 1
+
+    def expect_improved_memory_usage(n):
+        return any(read.name in current_loop_buffer_usage for read in n.read_writes.reads)
+
+    def schedule_node_in_loop(n):
+        done.add(n)
+        node_schedule.append(n)
+        current_loop_buffer_usage.update(x.name for x in n.read_writes.reads)
+        if (
+            n.is_reduction()
+            and isinstance(n, scheduler.SchedulerNode)
+            and isinstance(n.node, ir.ComputedBuffer)
+            and not isinstance(n.node.data, ir.Scan)
+        ):
+            not_ready_yet_nodes.add(n.get_name())
+        else:
+            current_loop_buffer_usage.update(x.name for x in n.read_writes.writes)
+
+    @contextlib.contextmanager
+    def end_current_reduction_loop():
+        nonlocal maybe_split_index
+        if node_schedule and node_schedule[-1] is EnableReduction:
+            node_schedule.pop()
+        else:
+            node_schedule.append(DisableReduction)
+        if maybe_split_index:
+            node_schedule.insert(maybe_split_index, DisableReduction)
+            node_schedule.insert(maybe_split_index + 1, EnableReduction)
+            maybe_split_index = None
+        yield
+        node_schedule.append(EnableReduction)
+        not_ready_yet_nodes.clear()
+        current_loop_buffer_usage.clear()
+
+    def requires_closing_previous_reduction(node):
+        if rnumel == 1 or not not_ready_yet_nodes & node.ancestors:
+            return False
+        assert node_schedule and not isinstance(
+            node_schedule[-1], (EnableReduction, DisableReduction)
+        )
+        return bool(not_ready_yet_nodes)
+
+    for node in nodes:
+        if node in done:
+            continue
+        done.add(node)
+        if fits_in_main_body(node):
+            if requires_closing_previous_reduction(node):
+                with end_current_reduction_loop():
+                    pass
+            if current_loop_buffer_usage and not expect_improved_memory_usage(node):
+                maybe_split_index = maybe_split_index or len(node_schedule)
+            else:
+                maybe_split_index = None
+            schedule_node_in_loop(node)
+        elif fits_outside_reduction(node):
+            with end_current_reduction_loop():
+                node_schedule.append(node)
+        else:
+            raise NotImplementedError(
+                f"unexpected group: ({numel}, {rnumel}) != {node.group[1]}"
+            )
+    return node_schedule
+
+
 class NPUNoLinearTritonScheduling(TritonScheduling):
     def __init__(self, input_scheduler):
         super().__init__(input_scheduler)
@@ -61,6 +160,20 @@ class NPUNoLinearTritonScheduling(TritonScheduling):
         self.kernel_type = NPUTritonKernel
         if inductor_ascend_linear_mode == 'no_linear_loop':
             self.kernel_type = NPUTritonKernelWithLoop
+
+    def generate_node_schedule(self, nodes, numel, rnumel):
+        if not npu_config.enable_welford:
+            return super().generate_node_schedule(nodes, numel, rnumel)
+        from ..choices import contains_welford_group
+        if not contains_welford_group(nodes):
+            # Kernels without Welford reductions keep the baseline (upstream)
+            # scheduling so unrelated fusion decisions stay unchanged.  The
+            # caller may have canonicalized numel/rnumel; recompute the raw
+            # group extents so the default scheduler's equality checks match
+            # the (uncanonicalized) node groups exactly as in the baseline.
+            _, (numel, rnumel) = max(nodes, key=lambda x: int(x.is_reduction())).group
+            return super().generate_node_schedule(nodes, numel, rnumel)
+        return _generate_npu_node_schedule(self, nodes, numel, rnumel)
 
 class NPUTritonScheduling(TritonScheduling):
     kernel_type = NPUIndexTritonKernel
@@ -75,6 +188,20 @@ class NPUTritonScheduling(TritonScheduling):
             BackendFeature.TUPLE_REDUCTION,
         ]
     )
+
+    def generate_node_schedule(self, nodes, numel, rnumel):
+        if not npu_config.enable_welford:
+            return super().generate_node_schedule(nodes, numel, rnumel)
+        from ..choices import contains_welford_group
+        if not contains_welford_group(nodes):
+            # Kernels without Welford reductions keep the baseline (upstream)
+            # scheduling so unrelated fusion decisions stay unchanged.  The
+            # caller may have canonicalized numel/rnumel; recompute the raw
+            # group extents so the default scheduler's equality checks match
+            # the (uncanonicalized) node groups exactly as in the baseline.
+            _, (numel, rnumel) = max(nodes, key=lambda x: int(x.is_reduction())).group
+            return super().generate_node_schedule(nodes, numel, rnumel)
+        return _generate_npu_node_schedule(self, nodes, numel, rnumel)
 
     def group_fn(self, sizes):
         groups = list()
@@ -606,6 +733,9 @@ class NPUTritonScheduling(TritonScheduling):
         subkernel_map, node_schedule_map = {}, {}
         for pn, nodes in zip(subkernel_nodes, fused_node_lists):
             _, (numel, rnumel) = max(nodes, key=lambda x: int(x.is_reduction())).group
+            if npu_config.enable_welford:
+                numel = _canonical_group_size(numel)
+                rnumel = _canonical_group_size(rnumel)
             node_schedule = self.generate_node_schedule(nodes, numel, rnumel)
             tiling = self.select_tiling(node_schedule, numel, rnumel)
             node_schedule_map[pn] = node_schedule, tiling, numel, rnumel
@@ -813,6 +943,9 @@ class NPUTritonScheduling(TritonScheduling):
     def generate_kernel_code_from_nodes(self, nodes, benchmark_kernel=False, hint_override=None):
         if not nodes[0].is_template():
             _, (numel, rnumel) = max(nodes, key=lambda x: int(x.is_reduction())).group
+            if npu_config.enable_welford:
+                numel = _canonical_group_size(numel)
+                rnumel = _canonical_group_size(rnumel)
             node_schedule = self.generate_node_schedule(nodes, numel, rnumel)
             tiling = self.select_tiling(node_schedule, numel, rnumel)
             kernel = self.kernel_type(
@@ -845,6 +978,9 @@ class NPUTritonScheduling(TritonScheduling):
 
         nodes: List[scheduler.SchedulerNode] = node.get_nodes()  # type: ignore[assignment]
         _, (numel, rnumel) = max(nodes, key=lambda x: int(x.is_reduction())).group
+        if npu_config.enable_welford:
+            numel = _canonical_group_size(numel)
+            rnumel = _canonical_group_size(rnumel)
 
         node_schedule = self.generate_node_schedule(nodes, numel, rnumel)
         schedule_log.debug("Schedule:\n %s", node_schedule)

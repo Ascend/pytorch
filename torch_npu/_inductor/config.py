@@ -179,8 +179,18 @@ def _read_env_bool(name: str, default: str = "False") -> bool:
 enable_welford = os.getenv("TORCHINDUCTOR_ENABLE_WELFORD", "0") == "1"
 
 # Keep the A5 LayerNormV4 workaround disabled by default. Set this to 1 to
-# enable the width-512 LayerNormV4 fallback while Welford is enabled.
-enable_layernorm_v4 = os.getenv("TORCHINDUCTOR_ENABLE_LAYERNORM_V4", "0") == "1"
+# enable the known width-512 and transpose-chain width-640 fallbacks while
+# Welford is enabled.
+enable_layernorm_v4 = _read_env_bool("TORCHINDUCTOR_ENABLE_LAYERNORM_V4", "0")
+
+# Reuse the pre-reduction compute inside the post-reduction epilogue of
+# full-static Welford kernels.  When the whole reduction extent fits one
+# static SIMD tile there is no reduction loop, so the epilogue is emitted in
+# the same loop iteration scope as the pre-reduction code and can reference
+# the already-computed producer chain (e.g. an inlined producer LayerNorm)
+# instead of replaying it operator by operator.  Set to False to restore the
+# replay behaviour.
+enable_welford_post_reduction_reuse = True
 
 
 class catlass:

@@ -132,6 +132,30 @@ class TestVarMean(TestUtils):
             npu_config.enable_welford = previous
             torch._dynamo.reset()
 
+    def test_dynamic_single_layer_norm_welford_fused(self):
+        previous = npu_config.enable_welford
+        npu_config.enable_welford = True
+        torch._dynamo.reset()
+        try:
+            hidden = 512
+            rows = self._generate_tensor((400, hidden), "float16")
+            weight = self._generate_tensor((hidden,), "float16")
+            bias = self._generate_tensor((hidden,), "float16")
+            torch._dynamo.mark_dynamic(rows, 0, min=1, max=4094)
+
+            def layer_norm(x, weight, bias):
+                return F.layer_norm(x, (hidden,), weight, bias, 1e-6)
+
+            expected = layer_norm(rows, weight, bias)
+            compiled = torch.compile(layer_norm, backend="inductor", dynamic=True)
+            actual, codes = run_and_get_code(compiled, rows, weight, bias)
+            self.assertEqual(expected, actual, atol=1e-1, rtol=1e-1)
+            code = "\n".join(codes)
+            self.assertNotIn("triton_poi_fused_native_layer_norm", code)
+        finally:
+            npu_config.enable_welford = previous
+            torch._dynamo.reset()
+
     def test_welford_full_static_mutation_hazard(self):
         previous = npu_config.enable_welford
         npu_config.enable_welford = True

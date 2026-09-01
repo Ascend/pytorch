@@ -886,12 +886,16 @@ def _register_npu_inductor_fallbacks():
         kwargs.pop("dst_dtype")
         kwargs.pop("src_dtype")
 
-        mean, m2, _ = ir.WelfordReduction.create(
+        mean, m2, count = ir.WelfordReduction.create(
             inner_fns=(loader,),
             reduction_type="welford_reduce",
             dtype=x.get_dtype(),
             **kwargs,
         )
+        # Welford is represented by three sibling IR nodes.  Keep their
+        # identity so the NPU scheduler can fuse them before their consumers.
+        from .choices import mark_welford_output_group
+
         m2.realize()
 
         dtype = x.get_dtype()
@@ -914,6 +918,8 @@ def _register_npu_inductor_fallbacks():
 
         if return_mean:
             mean.realize()
+        mark_welford_output_group((mean, m2))
+        if return_mean:
             return var, mean
         return (var,)
 
@@ -1035,15 +1041,40 @@ def _register_npu_inductor_fallbacks():
         bias=None,
         eps=1e-5
     ):
-        def should_use_layer_norm_v4():
-            """Keep the A5 W=512 large-row case on the fused CANN kernel.
+        def is_transposed_layer_norm_consumer():
+            """Identify the LN2 topology that benefits from LayerNormV4."""
+            node = getattr(V.graph, "current_node", None)
+            if node is None or node.target != torch.ops.aten.native_layer_norm.default:
+                return False
+            value = node.args[0] if node.args else None
+            view_ops = {
+                torch.ops.aten.view.default,
+                torch.ops.aten._unsafe_view.default,
+                torch.ops.aten.reshape.default,
+                torch.ops.aten.permute.default,
+                torch.ops.aten.clone.default,
+                torch.ops.aten.contiguous.default,
+            }
+            saw_permute = False
+            saw_reshape = False
+            for _ in range(10):
+                if not hasattr(value, "target"):
+                    return False
+                if value.target == torch.ops.aten.native_layer_norm.default:
+                    return saw_permute and saw_reshape
+                if value.target not in view_ops or not value.args:
+                    return False
+                saw_permute |= value.target == torch.ops.aten.permute.default
+                saw_reshape |= value.target in {
+                    torch.ops.aten.view.default,
+                    torch.ops.aten._unsafe_view.default,
+                    torch.ops.aten.reshape.default,
+                }
+                value = value.args[0]
+            return False
 
-            The Welford lowering currently materializes statistics and emits
-            separate pointwise post-processing kernels for this shape.  Until
-            the reduction epilogue is fused into the Welford kernel, the
-            dedicated LayerNormV4 implementation is both faster and avoids
-            the SIMD-reduction/SIMT-post-processing split.
-            """
+        def should_use_layer_norm_v4():
+            """Select LayerNormV4 only for its known A5 regression cases."""
             if (
                 not is_ascend950
                 or not npu_config.enable_welford
@@ -1056,21 +1087,24 @@ def _register_npu_inductor_fallbacks():
                 shape = (normalized_shape,)
             else:
                 shape = tuple(normalized_shape)
-            if len(shape) != 1 or shape[0] != 512:
+            if len(shape) != 1 or shape[0] not in (512, 640):
                 return False
 
             input_shape = x.get_size()
             if len(input_shape) < 2:
                 return False
             row_numel = sympy_product(input_shape[:-1])
-            # Unbacked dynamic rows such as ``u0 + 200`` cannot be proven to
-            # exceed the threshold at compile time even when the profiled
-            # runtime value is 17000. Keep Welford only when the compiler can
-            # prove this is a genuinely small-row case.
+            if shape[0] == 640:
+                return (
+                    len(input_shape) == 3
+                    and input_shape[-2] == 80
+                    and is_transposed_layer_norm_consumer()
+                )
             return not V.graph.sizevars.statically_known_lt(row_numel, 512)
 
-        # Keep the existing low-precision fallback unless Welford is explicitly
-        # enabled for FP16/BF16 on Ascend 950.
+        # Keep the low-precision fallback when Welford is disabled.  The
+        # custom lowering is used only when FP16/BF16 Welford has been
+        # explicitly enabled on Ascend950.
         if (
             is_ascend950
             and x.dtype in (torch.float16, torch.bfloat16)
@@ -1079,7 +1113,10 @@ def _register_npu_inductor_fallbacks():
                 or should_use_layer_norm_v4()
             )
         ):
-            return fallback_handler(aten.native_layer_norm.default)(x, normalized_shape, weight, bias, eps)
+            return fallback_handler(aten.native_layer_norm.default)(
+                x, normalized_shape, weight, bias, eps
+            )
+
         # Validate input
         if not isinstance(normalized_shape, (list, tuple)):
             normalized_shape = (normalized_shape,)
