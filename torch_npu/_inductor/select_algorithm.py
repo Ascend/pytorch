@@ -1426,6 +1426,30 @@ def patch_algorithm_selector() -> None:
         if input_gen_fns is None:
             input_gen_fns = {}
 
+        from .codegen.catlass.catlass_kernel import CATLASSTemplateCaller
+
+        def _maybe_reorder_for_catlass_addmm(
+            choice: ChoiceCaller, inpts: list[torch.Tensor]
+        ) -> list[torch.Tensor]:
+            """Reorder (bias, x, w) -> (x, w, bias) for a catlass addmm choice.
+
+            The catlass addmm template was registered with input_nodes
+            [mat1, mat2, inp] (i.e. x, w, bias), so it expects the bias LAST.
+            The triton addmm template and aten addmm both expect bias FIRST
+            (in_ptr0=bias / aten.addmm(bias, x, w)).  ``get_inputs`` always
+            returns the original (bias, x, w) order, so we reorder here only
+            when the current choice is a catlass addmm — i.e. a catlass
+            template that is NOT a grouped matmul (group mm has a different
+            input layout and must not be reordered).
+            """
+            if (
+                isinstance(choice, CATLASSTemplateCaller)
+                and "GroupedMatmulSliceMTla" not in choice.description
+                and len(inpts) == 3
+            ):
+                return [inpts[1], inpts[2], inpts[0]]
+            return inpts
+
         def get_inputs(
             choices: Union[List[ExternKernelCaller], List[TritonTemplateCaller]],
         ) -> AutotuneArgs:
@@ -1464,17 +1488,16 @@ def patch_algorithm_selector() -> None:
                 if isinstance(choice, CATLASSTemplateCaller) and "GroupedMatmulSliceMTla" in choice.description:
                     is_group_mm = True
 
-            if not is_group_mm and len(input_nodes) == 3:
-                # reorder inputs here because addmm catlass template
-                # expects (x, w, bias) but torch is bias, x, w
-                example_inputs = example_inputs[1:] + [example_inputs[0]]
             out = cls.benchmark_example_value(layout)
             out_extern = torch.as_strided(
                 out, out.size(), out.stride(), V.graph.sizevars.size_hint(layout.offset)
             )
             expected = None
             if VERIFY:
-                choices[0].benchmark(*example_inputs_extern, out=out_extern)
+                verify_inpts = _maybe_reorder_for_catlass_addmm(
+                    choices[0], example_inputs_extern
+                )
+                choices[0].benchmark(*verify_inpts, out=out_extern)
                 expected = out_extern.clone()
 
             return AutotuneArgs.from_choice_args(
@@ -1494,6 +1517,7 @@ def patch_algorithm_selector() -> None:
             is_extern = isinstance(choice, ExternKernelCaller)
             benchmark_tensors = autotune_args.get_benchmark_tensors(is_extern)
             inpts, output = benchmark_tensors.unpack()
+            inpts = _maybe_reorder_for_catlass_addmm(choice, inpts)
             output.zero_()
             result = choice.benchmark(*inpts, out=output)
             if VERIFY and autotune_args.expected is not None:
@@ -1511,6 +1535,7 @@ def patch_algorithm_selector() -> None:
                 is_extern = isinstance(choice, ExternKernelCaller)
                 benchmark_tensors = inputs.get_benchmark_tensors(is_extern)
                 inpts, output = benchmark_tensors.unpack()
+                inpts = _maybe_reorder_for_catlass_addmm(choice, inpts)
                 output.zero_()
                 if is_extern:
                     algo = choice.to_callable()
@@ -1552,7 +1577,7 @@ def patch_algorithm_selector() -> None:
 
             num_funcs = len(funcs)
             torch_path = os.path.join(os.getcwd(), "profile_results", md5_hash)
-            TOTAL_STEP = 50
+            TOTAL_STEP = 6
             l2_cache_size = 192 * (1 << 20)
             buffer = torch.empty(l2_cache_size // 4, dtype=torch.int, device="npu")
             buffer = buffer.float()
