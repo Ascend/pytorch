@@ -2,13 +2,13 @@
 
 ## 简介
 
-Inductor-Ascend在继承Pytorch社区Inductor能力的基础上，针对昇腾Ascend硬件，进行了亲和性改进和优化。其目标是：提供昇腾亲和的torch.compile图模式后端；生成昇腾亲和的Triton DSL，支持基于triton的算子自动融合；支持动态shape。
+Inductor-Ascend在继承社区Pytorch Inductor能力的基础上，针对昇腾Ascend硬件，进行了亲和性改进和优化。其目标是：提供昇腾亲和的torch.compile图模式后端；支持基于triton的算子自动融合；支持动态shape。
 
-如图1（推荐场景-图模式-软件栈）所示，Inductor-Ascend和社区Inductor的执行流程类似，其内嵌于TorchNPU中，当用户开启图模式后端torch.compile(backend="inductor")时，Inductor-Ascend承接Dynamo抓取的FX Graph，进行编译、融合，生成昇腾亲和融合算子Triton DSL；最后由Triton-Ascend、AscendNPU-IR编译优化，生成昇腾指令机器码（二进制）。
+如图1所示，Inductor-Ascend和社区Inductor的执行流程类似，其内嵌于TorchNPU中，当用户开启图模式后端torch.compile(backend="inductor")时，Inductor-Ascend承接Dynamo抓取的FX Graph，进行图优化、融合、编译，生成昇腾亲和融合算子Triton DSL或者catlass DSL；最后由Triton-Ascend、AscendNPU-IR编译优化，生成昇腾指令机器码（二进制）。
 
-和社区类似，对于无法参与融合的算子（AtenOp），Inductor-Ascend会将其作fallback处理，即fallback到ACLNN算子、手写算子等。
+和社区类似，对于无法参与融合的算子（AtenOp），Inductor-Ascend会将其作fallback处理，即fallback到ACLNN算子、手写AscendC算子等。
 
-图1 推荐场景-图模式-软件栈
+图1 图模式-自动融合-软件栈
 <div align="left">
   <img src="overview_arch.png" width="70%">
 </div>
@@ -17,7 +17,7 @@ Inductor-Ascend在继承Pytorch社区Inductor能力的基础上，针对昇腾As
 
 图2 Inductor-Ascend逻辑架构图
 <div align="left">
-  <img src="inductor_arch_v1.png" width="80%">
+  <img src="inductor_arch.png" width="80%">
 </div>
 
 ## 使用约束
@@ -46,6 +46,7 @@ Inductor-Ascend在继承Pytorch社区Inductor能力的基础上，针对昇腾As
 | CppWrapper | 用于生成 C++ 调用代码替代默认的 Python 包装器，以减少 torch.compile 后模型在推理时的 Python 开销。详细介绍可点击[link](https://docs.pytorch.org/tutorials/unstable/inductor_cpp_wrapper_tutorial.html)
 | AOTInductor | 旨在处理导出的PyTorch模型，对其进行优化，并生成动态链接库及其他相关产物。这些编译产物广泛应用于服务端推理部署场景，支持非Python环境下的推理执行。详细介绍可点击[link](https://docs.pytorch.org/docs/2.11/user_guide/torch_compiler/torch.compiler_aot_inductor.html)
 | MegaCache | 用于统一保存和恢复模型编译过程中产生的多级缓存，从而减少模型冷启动时重复执行图捕获、动态图分析、代码生成、Kernel编译和Autotune带来的耗时，提供面向`torch.compile`编译场景的端到端缓存复用能力。详细介绍可单击[link](https://docs.pytorch.org/tutorials/recipes/torch_compile_caching_tutorial.html)获取PyTorch官网详情
+| 分核/限核 | 用于将NPU卡的计算核（Cube Core、Vector Core）进行划分，例如：通过export NPU_DEVICE_LIMIT='14,28'，将会划分14个Cube Core和28个Vector Core作为当前可用的计算核。在这种情况下，一个计算图中所涉及的算子(AclNN算子、triton手写算子、triton自动融合算子、catlass算子)，最多可以使用这些受限的计算核。
 
 ## 使用说明
 
