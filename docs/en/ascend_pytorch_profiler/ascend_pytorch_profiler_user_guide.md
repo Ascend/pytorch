@@ -165,7 +165,7 @@ None
 
     For details, see [MindStudio Insight System Tuning](https://gitcode.com/Ascend/msinsight/blob/26.1.0/docs/en/user_guide/system_tuning.md) to visualize and analyze the parsed performance data files.
 
-    You can use the [msprof-analyze](https://gitcode.com/Ascend/msprof-analyze/blob/26.1.0/docs/en/getting_started/quick_start.md) tool to assist in analyzing performance data.
+    You can use the [msprof-analyze](https://gitcode.com/Ascend/msprof-analyze/blob/26.1.0/docs/en/quick_start/msprof-analyze_quick_start.md) tool to assist in analyzing performance data.
 
 ### Profile and Parse Performance Data (dynamic_profile)
 
@@ -226,7 +226,7 @@ Only one of the following methods can be used. You cannot enable `dynamic_profil
 
     See [MindStudio Insight System Tuning](https://gitcode.com/Ascend/msinsight/blob/26.1.0/docs/en/user_guide/system_tuning.md) to visualize and analyze the parsed performance data files.
 
-    You can use the [msprof-analyze](https://gitcode.com/Ascend/msprof-analyze/blob/26.1.0/docs/en/getting_started/quick_start.md) tool to assist in analyzing performance data.
+    You can use the [msprof-analyze](https://gitcode.com/Ascend/msprof-analyze/blob/26.1.0/docs/en/quick_start/msprof-analyze_quick_start.md) tool to assist in analyzing performance data.
 
 #### Usage Example (Modifying the User Training/Online Inference Script by Adding the dynamic_profile API)
 
@@ -269,7 +269,7 @@ Only one of the following methods can be used. You cannot enable `dynamic_profil
 
     See [MindStudio Insight System Tuning](https://gitcode.com/Ascend/msinsight/blob/26.1.0/docs/en/user_guide/system_tuning.md) to visualize and analyze the parsed performance data files.
 
-    You can use the [msprof-analyze](https://gitcode.com/Ascend/msprof-analyze/blob/26.1.0/docs/en/getting_started/quick_start.md) tool to assist in analyzing performance data.
+    You can use the [msprof-analyze](https://gitcode.com/Ascend/msprof-analyze/blob/26.1.0/docs/en/quick_start/msprof-analyze_quick_start.md) tool to assist in analyzing performance data.
 
 #### Usage Example (Modifying the User Training/Online Inference Script by Adding the dp.start() Function of dynamic_profile)
 
@@ -316,7 +316,7 @@ Only one of the following methods can be used. You cannot enable `dynamic_profil
 
     For details, see [MindStudio Insight System Tuning](https://gitcode.com/Ascend/msinsight/blob/26.1.0/docs/en/user_guide/system_tuning.md) to visualize and analyze the parsed performance data files.
 
-    You can use the [msprof-analyze](https://gitcode.com/Ascend/msprof-analyze/blob/26.1.0/docs/en/getting_started/quick_start.md) tool to assist in analyzing performance data.
+    You can use the [msprof-analyze](https://gitcode.com/Ascend/msprof-analyze/blob/26.1.0/docs/en/quick_start/msprof-analyze_quick_start.md) tool to assist in analyzing performance data.
 
 ## Extended Profiling Functions
 
@@ -783,7 +783,7 @@ None
 
     See [MindStudio Insight System Tuning](https://gitcode.com/Ascend/msinsight/blob/26.1.0/docs/en/user_guide/system_tuning.md) to visualize and analyze the parsed performance data files.
 
-    You can use the [msprof-analyze](https://gitcode.com/Ascend/msprof-analyze/blob/26.1.0/docs/en/getting_started/quick_start.md) tool to assist in analyzing performance data.
+    You can use the [msprof-analyze](https://gitcode.com/Ascend/msprof-analyze/blob/26.1.0/docs/en/quick_start/msprof-analyze_quick_start.md) tool to assist in analyzing performance data.
 
 ## Output Result File Description
 
