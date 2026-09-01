@@ -88,6 +88,7 @@ jobs:
         with:
           status: in_progress
           job-name: ${{ inputs.runner_label }} / test (${{ inputs.category }}, ${{ matrix.shard }}, ${{ inputs.num_shards }}, py3.10)
+          max-time: 60
 
       - name: Compute SHAs
         id: sha
@@ -318,6 +319,7 @@ jobs:
           status: completed
           conclusion: ${{ steps.parse_results.outputs.parse_ok == 'true' && steps.parse_results.outputs.total_failed == '0' && 'success' || 'failure' }}
           job-name: ${{ inputs.runner_label }} / test (${{ inputs.category }}, ${{ matrix.shard }}, ${{ inputs.num_shards }}, py3.10)
+          max-time: 60
           test-results: >-
             {
               "passed": ${{ steps.parse_results.outputs.passed }},

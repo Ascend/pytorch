@@ -77,6 +77,7 @@ jobs:
         with:
           status: in_progress
           job-name: ubuntu-latest / fetch (pytorch)
+          max-time: 60
 
       - name: Checkout upstream PyTorch
         uses: actions/checkout@v6
@@ -175,6 +176,7 @@ jobs:
           status: completed
           conclusion: ${{ (steps.resolve.outcome == 'success' && steps.upload_source.outcome == 'success') && 'success' || 'failure' }}
           job-name: ubuntu-latest / fetch (pytorch)
+          max-time: 60
 
   # ======================================================================
   # Job 2: Build PyTorch + torch_npu on self-hosted ARM64 runner
@@ -215,6 +217,7 @@ jobs:
         with:
           status: in_progress
           job-name: ${{ inputs.runner_label }} / build (pytorch, torch-npu, py3.10)
+          max-time: 60
 
       # Step 1: Download and extract pre-fetched PyTorch source
       # obsutil is preinstalled in the build image; auth is done inline
@@ -477,4 +480,5 @@ jobs:
           status: completed
           conclusion: ${{ (steps.build_pytorch.outcome == 'success' && steps.build_torchnpu.outcome == 'success' && steps.build_torchvision.outcome == 'success') && 'success' || 'failure' }}
           job-name: ${{ inputs.runner_label }} / build (pytorch, torch-npu, py3.10)
+          max-time: 60
 
