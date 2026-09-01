@@ -31,7 +31,6 @@ from torch_npu._inductor.kernel.flexattention_template import (
     flex_attention_compact_mapping,
     flex_attention_fwd_mask_compact,
     flex_attention_fwd_mask_out,
-    flex_decoding_npu,
 )
 
 from torch._inductor.ir import (
@@ -70,6 +69,7 @@ from torch._inductor.select_algorithm import (
     SymbolicGridFn,
 )
 from torch.nn.attention import flex_attention as flex_attention_module
+from torch._inductor.kernel import flex_decoding as upstream_flex_decoding
 from torch._inductor.kernel.flex_attention import (
     flex_attention_backward_template as upstream_flex_attention_backward_template,
     flex_attention_template as upstream_flex_attention_template,
@@ -988,7 +988,7 @@ def _create_npu_flex_decoding_kernel(*args):
         cur_kernel_options.setdefault("num_warps", num_warps)
         cur_kernel_options.setdefault("num_stages", num_stages)
 
-        flex_decoding_npu.maybe_append_choice(
+        upstream_flex_decoding.flex_decoding_template.maybe_append_choice(
             choices=choices,
             input_nodes=[
                 query,
