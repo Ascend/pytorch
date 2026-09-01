@@ -76,7 +76,7 @@
 
 ## Functional higher level API
 
-### <code><i>class</i></code> torch.autograd.FunctionCtx
+### <code><i>class</i></code> torch.autograd.function.FunctionCtx
 
 <div style="margin-left: 2em">
 
@@ -84,7 +84,7 @@
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.autograd.FunctionCtx.mark_dirty](https://pytorch.org/docs/2.11/generated/torch.autograd.function.FunctionCtx.mark_dirty.html)
+**原生文档**：[torch.autograd.function.FunctionCtx.mark_dirty](https://pytorch.org/docs/2.11/generated/torch.autograd.function.FunctionCtx.mark_dirty.html)
 
 **支持情况**：
 
@@ -100,7 +100,7 @@
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.autograd.FunctionCtx.mark_non_differentiable](https://pytorch.org/docs/2.11/generated/torch.autograd.function.FunctionCtx.mark_non_differentiable.html)
+**原生文档**：[torch.autograd.function.FunctionCtx.mark_non_differentiable](https://pytorch.org/docs/2.11/generated/torch.autograd.function.FunctionCtx.mark_non_differentiable.html)
 
 **支持情况**：
 
@@ -116,7 +116,7 @@
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.autograd.FunctionCtx.save_for_backward](https://pytorch.org/docs/2.11/generated/torch.autograd.function.FunctionCtx.save_for_backward.html)
+**原生文档**：[torch.autograd.function.FunctionCtx.save_for_backward](https://pytorch.org/docs/2.11/generated/torch.autograd.function.FunctionCtx.save_for_backward.html)
 
 **支持情况**：
 
@@ -132,7 +132,7 @@
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.autograd.FunctionCtx.set_materialize_grads](https://pytorch.org/docs/2.11/generated/torch.autograd.function.FunctionCtx.set_materialize_grads.html)
+**原生文档**：[torch.autograd.function.FunctionCtx.set_materialize_grads](https://pytorch.org/docs/2.11/generated/torch.autograd.function.FunctionCtx.set_materialize_grads.html)
 
 **支持情况**：
 
@@ -146,7 +146,7 @@
 
 </div>
 
-### <code><i>class</i></code> torch.autograd.Node
+### <code><i>class</i></code> torch.autograd.graph.Node
 
 <div style="margin-left: 2em">
 
@@ -154,7 +154,7 @@
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.autograd.Node.name](https://pytorch.org/docs/2.11/generated/torch.autograd.graph.Node.name.html)
+**原生文档**：[torch.autograd.graph.Node.name](https://pytorch.org/docs/2.11/generated/torch.autograd.graph.Node.name.html)
 
 **支持情况**：
 
@@ -170,7 +170,7 @@
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.autograd.Node.metadata](https://pytorch.org/docs/2.11/generated/torch.autograd.graph.Node.metadata.html)
+**原生文档**：[torch.autograd.graph.Node.metadata](https://pytorch.org/docs/2.11/generated/torch.autograd.graph.Node.metadata.html)
 
 **支持情况**：
 
@@ -186,7 +186,7 @@
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.autograd.Node.next_functions](https://pytorch.org/docs/2.11/generated/torch.autograd.graph.Node.next_functions.html)
+**原生文档**：[torch.autograd.graph.Node.next_functions](https://pytorch.org/docs/2.11/generated/torch.autograd.graph.Node.next_functions.html)
 
 **支持情况**：
 
@@ -202,7 +202,7 @@
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.autograd.Node.register_hook](https://pytorch.org/docs/2.11/generated/torch.autograd.graph.Node.register_hook.html)
+**原生文档**：[torch.autograd.graph.Node.register_hook](https://pytorch.org/docs/2.11/generated/torch.autograd.graph.Node.register_hook.html)
 
 **支持情况**：
 
@@ -218,7 +218,7 @@
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.autograd.Node.register_prehook](https://pytorch.org/docs/2.11/generated/torch.autograd.graph.Node.register_prehook.html)
+**原生文档**：[torch.autograd.graph.Node.register_prehook](https://pytorch.org/docs/2.11/generated/torch.autograd.graph.Node.register_prehook.html)
 
 **支持情况**：
 

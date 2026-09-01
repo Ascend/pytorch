@@ -76,7 +76,7 @@
 
 ## Functional higher level API
 
-### <code><i>class</i></code> torch.autograd.FunctionCtx
+### <code><i>class</i></code> torch.autograd.function.FunctionCtx
 
 <div style="margin-left: 2em">
 
@@ -146,7 +146,7 @@
 
 </div>
 
-### <code><i>class</i></code> torch.autograd.Node
+### <code><i>class</i></code> torch.autograd.graph.Node
 
 <div style="margin-left: 2em">
 
