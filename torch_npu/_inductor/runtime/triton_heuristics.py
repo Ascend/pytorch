@@ -1450,7 +1450,20 @@ class NPUCachingAutotuner(CachingAutotuner):
             "mix_mode": input_launcher.bin.metadata.mix_mode,
             "parallel_mode": input_launcher.bin.metadata.parallel_mode,
             "is_pure_simt": input_launcher.bin.metadata.is_pure_simt,
-            "has_auto_blockify_blacklist_op": getattr(input_launcher.bin.metadata, "has_auto_blockify_blacklist_op", False)
+            "has_auto_blockify_blacklist_op": getattr(
+                input_launcher.bin.metadata,
+                "has_auto_blockify_blacklist_op",
+                False,
+            ),
+            "lock_num": int(
+                getattr(input_launcher.bin.metadata, "lock_num", 0) or 0
+            ),
+            "lock_init_val": int(
+                getattr(input_launcher.bin.metadata, "lock_init_val", 0) or 0
+            ),
+            "workspace_size": int(
+                getattr(input_launcher.bin.metadata, "workspace_size", 0) or 0
+            ),
         }
         enable_simt = ("simt" in params["parallel_mode"]) or params["is_pure_simt"]
         if npu_config.is_ascend950 and enable_simt:
@@ -2250,6 +2263,13 @@ class NPUSymbolicGroupedAutotuner(NPUCachingAutotuner):
             ),
             "has_auto_blockify_blacklist_op": getattr(
                 metadata, "has_auto_blockify_blacklist_op", False
+            ),
+            "lock_num": int(getattr(metadata, "lock_num", 0) or 0),
+            "lock_init_val": int(
+                getattr(metadata, "lock_init_val", 0) or 0
+            ),
+            "workspace_size": int(
+                getattr(metadata, "workspace_size", 0) or 0
             ),
             "cubin_path": binary_path,
         }
