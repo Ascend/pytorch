@@ -9,7 +9,6 @@ import sympy
 
 import torch
 from torch._inductor.virtualized import V, ops
-from torch.utils._ordered_set import OrderedSet
 from torch.utils._pytree import tree_map
 from torch.utils._sympy.functions import FloorDiv, Mod
 
@@ -721,6 +720,7 @@ def _get_flex_attention_additional_lowerings():
     additional_lowerings[aten.bitwise_or.Tensor] = bitwise_or_tensor
     additional_lowerings[aten.bitwise_not.default] = bitwise_not_default
     additional_lowerings[aten.remainder.Scalar] = remainder_scalar
+    additional_lowerings[torch.ops.flex_lib.zeros_and_scatter.default] = zeros_and_scatter_lowering
 
     return additional_lowerings
 
@@ -733,7 +733,7 @@ def _build_subgraph_buffer_with_additional_lowerings(args, subgraph):
     to handle supported fallback operations as pointwise ops.
     """
     from torch._inductor.subgraph_lowering import PointwiseSubgraphLowering
-
+    from torch.utils._ordered_set import OrderedSet
     additional_lowerings = _get_flex_attention_additional_lowerings()
     zeros_and_scatter = torch.ops.flex_lib.zeros_and_scatter.default
     additional_lowerings[zeros_and_scatter] = zeros_and_scatter_lowering
@@ -745,6 +745,11 @@ def _build_subgraph_buffer_with_additional_lowerings(args, subgraph):
     )
     with V.set_graph_handler(pw_subgraph):
         pw_subgraph.run(*args)
+    # Since we are allowing mutations/buffer creation, we need to register any fresh buffers
+    # creating during the pointwise subgraph lowering
+    if len(pw_subgraph.buffers) > 0:
+        for buffer in pw_subgraph.buffers:
+            V.graph.register_buffer(buffer)
 
     # Older PointwiseSubgraphLowering versions defer approved mutation buffers.
     for buffer in pw_subgraph.buffers:
@@ -1528,6 +1533,7 @@ def _lower_flex_attention_mask_in(
     configs = generate_fwd_candidate_configs(
         sparse_q_block_size=sparse_q_block_size,
         sparse_kv_block_size=sparse_kv_block_size,
+        kernel_options=kernel_options,
     )
     if not configs:
         raise RuntimeError(
@@ -1771,6 +1777,7 @@ def _lower_flex_attention_backward_mask_in(
         sparse_q_block_size=sparse_q_block_size,
         sparse_kv_block_size=sparse_kv_block_size,
         mode=FlexMode.BWD,
+        kernel_options=kernel_options,
     )
     if not configs:
         raise RuntimeError(
@@ -2006,6 +2013,9 @@ def _register_npu_inductor_flex_attention():
         has_explicit_score_mod = bool(
             kernel_options.pop(_EXPLICIT_SCORE_MOD_OPTION, False)
         )
+        # Strip GPU-specific backend selector (e.g. "TRITON"/"FLASH"/"CUDNN") that
+        # has no meaning on NPU and would leak into Triton constexpr parameters.
+        kernel_options.pop("BACKEND", None)
         # Mark symbols in custom kernel options as static shapes and add guards.
         kernel_options = {
             k: V.graph.sizevars.guard_int(v)
@@ -2300,6 +2310,7 @@ def _register_npu_inductor_flex_attention():
         dict_configs = generate_fwd_candidate_configs(
             sparse_q_block_size=SPARSE_Q_BLOCK_SIZE,
             sparse_kv_block_size=SPARSE_KV_BLOCK_SIZE,
+            kernel_options=kernel_options,
         )
 
         if not dict_configs:
@@ -2674,6 +2685,9 @@ def _register_npu_inductor_flex_attention():
         has_explicit_score_mod = bool(
             kernel_options.pop(_EXPLICIT_SCORE_MOD_OPTION, False)
         )
+        # Strip GPU-specific backend selector (e.g. "TRITON"/"FLASH"/"CUDNN") that
+        # has no meaning on NPU and would leak into Triton constexpr parameters.
+        kernel_options.pop("BACKEND", None)
         configured_mask_out = bool(
             npu_config.flex_attention.flexattention_mask_out
         )
@@ -3231,11 +3245,13 @@ def _register_npu_inductor_flex_attention():
             sparse_q_block_size=SPARSE_Q_BLOCK_SIZE,
             sparse_kv_block_size=SPARSE_KV_BLOCK_SIZE,
             mode=FlexMode.BWDDQ,
+            kernel_options=kernel_options,
         )
         bwd_dkdv_dict_configs = generate_bwd_candidate_configs(
             sparse_q_block_size=SPARSE_Q_BLOCK_SIZE,
             sparse_kv_block_size=SPARSE_KV_BLOCK_SIZE,
             mode=FlexMode.BWDDKDV,
+            kernel_options=kernel_options,
         )
 
         tasklist_reduce_ub_safe = True

@@ -101,7 +101,6 @@ def _load_triton_backend():
     )
     from .codegen.cpp_utils import patch_device_to_aten
     from .decomposition import _register_triton_decompositions
-    from .dependencies import patch_extract_read_writes
     from .fx_passes import patch_pattern_mm_plus_mm, register_fav3_partition_pass
     from .fx_passes.graph_match_pass import (
         post_grad_custom_pass_fuc,
@@ -226,7 +225,6 @@ def _load_triton_backend():
         parallel_scheduler()
 
     patch_get_optimization_cflags()
-    patch_extract_read_writes()
     patch_count_bytes()
     patch_tuning_process()
 
