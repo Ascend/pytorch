@@ -3,22 +3,20 @@ name: PyTorch CI Trigger
 run-name: >-
   PyTorch CI Trigger -
   ${{
-    github.event.client_payload.event_type == 'pull_request' &&
-    format(
-      'PR #{0} ({1})',
-      github.event.client_payload.payload.pull_request.number,
-      github.event.client_payload.payload.action
-    ) ||
     format('Push {0}', github.event.client_payload.payload.after)
   }}
 on:
   repository_dispatch:
-    types: [pull_request, push]
+    types: [push]
 
+# For push events the ref (refs/tags/ciflow/trunk/<PR#>) is unique per
+# PR, so the raw ref serves as the concurrency key — repeated triggers
+# for the same PR cancel each other. Events without a ref fall back to
+# run_id (unique, never cancels).
 concurrency:
   group: >-
     ci-${{ github.event.client_payload.payload.repository.full_name }}-${{
-    github.event.client_payload.payload.pull_request.number || github.run_id }}
+    github.event.client_payload.payload.ref || github.run_id }}
   cancel-in-progress: true
 
 permissions:
@@ -26,31 +24,6 @@ permissions:
   id-token: write  # Required by report-ci-result to obtain an OIDC token
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Print full github.event
-        run: |
-          echo '=== FULL github.event ==='
-          cat <<'ENDOFPAYLOAD' | jq 'walk(if type == "object" then with_entries(select(.key | test("^(token|secret|password|credential|authorization|access_token|api_key|private_key|secrets)$"; "i") | not)) else . end)'
-          ${{ toJSON(github.event) }}
-          ENDOFPAYLOAD
-      - name: Print full client_payload
-        run: |
-          echo '=== FULL client_payload ==='
-          cat <<'ENDOFPAYLOAD' | jq 'walk(if type == "object" then with_entries(select(.key | test("^(token|secret|password|credential|authorization|access_token|api_key|private_key|secrets)$"; "i") | not)) else . end)'
-          ${{ toJSON(github.event.client_payload) }}
-          ENDOFPAYLOAD
-      - name: Print key fields
-        run: |
-          echo "=== KEY FIELDS ==="
-          echo "event_type:       ${{ github.event.client_payload.event_type }}"
-          echo "action:           ${{ github.event.client_payload.payload.action }}"
-          echo "repo.full_name:   ${{ github.event.client_payload.payload.repository.full_name }}"
-          echo "sender:           ${{ github.event.client_payload.payload.sender.login }}"
-          echo "downstream_repo:  ${{ github.repository }}"
-          echo "github.run_id:    ${{ github.run_id }}"
-
   forward:
     uses: Ascend/pytorch/.github/workflows/receive-trigger.yml@ci-test
     secrets: inherit
