@@ -16,6 +16,7 @@
 
 import triton
 import triton.language as tl
+from triton.language import core
 from torch._inductor.runtime import triton_helpers
 
 try:
@@ -31,8 +32,13 @@ def max2(a, dim):
 
 
 @triton.jit
+def _min_prop_nan(a, b):
+    return core.minimum(a, b, propagate_nan=core.PropagateNan.ALL)
+
+
+@triton.jit
 def min2(a, dim):
-    return tl.min(a, dim, propagate_nan=True)
+    return tl.reduce(a, dim, _min_prop_nan)
 
 
 triton_helpers.max2 = max2

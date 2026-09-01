@@ -4,9 +4,15 @@
 from unittest import mock
 
 import sympy
+import torch
 from torch._inductor.codegen.triton import IndexingOptions, TritonKernel
 from torch._inductor.fx_passes.control_dependencies import control_deps
-from torch.testing._internal.common_utils import TestCase, run_tests
+from torch.testing._internal.common_utils import (
+    TestCase,
+    instantiate_parametrized_tests,
+    parametrize,
+    run_tests,
+)
 from torch.utils._ordered_set import OrderedSet
 
 from torch_npu._inductor.triton_experimental import lowering as experimental_lowering
@@ -14,6 +20,7 @@ from torch_npu._inductor.triton_experimental import lowering_override_list
 from torch_npu._inductor.triton_experimental.codegen import triton as npu_triton_codegen
 
 
+@instantiate_parametrized_tests
 class TestTritonExperimentalRegressions(TestCase):
     def test_control_deps_is_not_replaced_with_fallback(self):
         self.assertIn(control_deps, lowering_override_list.KEEP_UPSTREAM_LOWERING)
@@ -85,6 +92,33 @@ class TestTritonExperimentalRegressions(TestCase):
         self.assertIs(result, upstream_result)
         self.assertEqual(result.expand_str, "[1, 1]")
         self.assertEqual(result.expand_shape, (1, 1))
+
+    @parametrize("op_name", ["amin", "amax", "min", "max"])
+    @parametrize("dim", [-1, 1])
+    def test_min_max_reductions_propagate_nan(self, op_name, dim):
+        # Regression: split reduction's accumulate loop used bare tl.minimum/
+        # tl.maximum, which drops NaN on Ascend, so compiled min/max returned
+        # non-NaN where eager does. The fix adds tl.PropagateNan.ALL.
+        x = torch.randn(8, 64, 1024, device="npu") * 2000
+        x[3, 5, :] = float("nan")
+
+        def reduce_values(t):
+            # torch.min/max(dim=) return (values, indices); amin/amax return a
+            # tensor directly. Normalize to values-only so [0] never slices a
+            # data row.
+            out = getattr(torch, op_name)(t, dim=dim)
+            return out[0] if isinstance(out, tuple) else out
+
+        eager_out = reduce_values(x)
+
+        compiled = torch.compile(
+            reduce_values,
+            options={"npu_backend": "triton_experimental"},
+        )
+        compiled_out = compiled(x)
+
+        self.assertEqual(eager_out, compiled_out)
+        self.assertTrue(bool(compiled_out.isnan().any()))
 
 if __name__ == "__main__":
     run_tests()

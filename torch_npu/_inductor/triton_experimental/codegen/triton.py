@@ -1420,11 +1420,11 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
 
     @staticmethod
     def minimum(a, b):
-        return f"tl.minimum({a}, {b})"
+        return f"tl.minimum({a}, {b}, tl.PropagateNan.ALL)"
 
     @staticmethod
     def maximum(a, b):
-        return f"tl.maximum({a}, {b})"
+        return f"tl.maximum({a}, {b}, tl.PropagateNan.ALL)"
 
     @staticmethod
     def to_dtype(x, dtype: torch.dtype, src_dtype=None, use_compute_types=True):
