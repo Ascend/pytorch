@@ -130,7 +130,10 @@ jobs:
             *)       echo "Unsupported architecture: ${ARCH}"; exit 1 ;;
           esac
           OBS_URL="https://obs-community.obs.cn-north-1.myhuaweicloud.com/obsutil/current/obsutil_linux_${OBS_ARCH}.tar.gz"
-          wget -q "${OBS_URL}"
+          # Retry to ride out transient cross-border network failures from
+          # GitHub-hosted runners to the Huawei Cloud OBS domain. Verbose
+          # output (no -q) so failures show DNS/TLS/HTTP details.
+          wget --tries=3 --timeout=30 --waitretry=10 --progress=dot:mega "${OBS_URL}"
           OBSUTIL_HOME="$HOME/.local/obsutil"
           mkdir -p "${OBSUTIL_HOME}"
           tar -zxf "obsutil_linux_${OBS_ARCH}.tar.gz" -C "${OBSUTIL_HOME}/"
