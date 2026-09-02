@@ -140,7 +140,7 @@ def meta_sort(self, stable=None, dim=-1, descending=False, values=None, indices=
         return v, i
     else:
         from torch._meta_registrations import meta_sort
-        meta_sort(self, stable=stable, dim=dim, descending=descending, values=values, indices=indices)
+        return meta_sort(self, stable=stable, dim=dim, descending=descending, values=values, indices=indices)
     
     
 @register_meta_npu(aten.index_put.default)
