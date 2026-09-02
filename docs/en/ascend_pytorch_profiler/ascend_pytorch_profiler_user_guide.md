@@ -24,9 +24,9 @@ The profiler comprehensively profiles performance data in PyTorch training and o
 **Environment Setup**
 
 - Install the matching version of the CANN Toolkit development suite or operator package and configure environment variables. For details, see CANN Quick Installation Guide.
-<!-- [CANN Quick Installation Guide](https://www.hiascend.com/en/cann/download) -->
-- Prepare a training model developed with PyTorch 2.1.0 or later and the corresponding dataset, then migrate the model to the Ascend AI processor by following the [Model Migration](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/en/model_migration/README.md) section in the *PyTorch Model Migration and Tuning Guide*.
 
+- Prepare a training model developed with PyTorch 2.1.0 or later and the corresponding dataset, then migrate the model to the Ascend AI processor by following the [Model Migration](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/en/model_migration/README.md) section in the *PyTorch Model Migration and Tuning Guide*.
+<!-- [CANN Quick Installation Guide](https://www.hiascend.com/en/cann/download) -->
 ### Constraints
 
 Before using this tool, understand its constraints:

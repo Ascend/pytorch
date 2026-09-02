@@ -35,7 +35,6 @@
 ### Related Product Version Mapping
 
 The version mapping tables of firmware and drivers are related to all Ascend hardware and CANN versions. For the specific selection, see CANN Release Notes.
-<!-- The version mapping tables of firmware and drivers are related to all Ascend hardware and CANN versions. For the specific selection, see [CANN Release Notes](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/softwareinst/releasenote/9.1.0/release-notes.md). -->
 TorchNPU code branch names follow the naming convention **\{PyTorch version\}-\{TorchNPU version\}**, where the former is the PyTorch version matched by TorchNPU. The detailed mapping is as follows:
 
 |TorchNPU Code Branch Name|PyTorch Version|TorchNPU Version|TorchNPU Installation Package Version|CANN Version|Python Version|
@@ -45,7 +44,7 @@ TorchNPU code branch names follow the naming convention **\{PyTorch version\}-\{
 |v2.10.0-26.1.0|2.10.0|26.1.0|2.10.0.post4|9.1.0|Python3.10.*x*, Python3.11.*x*, Python3.12.*x*, Python3.13.*x*|
 |v2.11.0-26.1.0|2.11.0|26.1.0|2.11.0|9.1.0|Python3.10.*x*, Python3.11.*x*, Python3.12.*x*, Python3.13.*x*|
 |v2.12.0-26.1.0|2.12.0|26.1.0|2.12.0|9.1.0|Python3.10.*x*, Python3.11.*x*, Python3.12.*x*, Python3.13.*x*|
-
+<!-- The version mapping tables of firmware and drivers are related to all Ascend hardware and CANN versions. For the specific selection, see [CANN Release Notes](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/softwareinst/releasenote/9.1.0/release-notes.md). 37行-->
 ## Version Compatibility
 
 > [!NOTE]

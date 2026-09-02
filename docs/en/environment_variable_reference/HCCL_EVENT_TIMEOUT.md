@@ -11,10 +11,10 @@ The unit is seconds (s), the value range is \[0, 2147483647\], and the default v
 > [!NOTE]
 >
 > - For details about the `acl.init` API, see the "Function: init" section in *CANN Runtime API*.
-<!-- [Function: init](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/API/runtimeapi/aclpythondevg_01_0851.html) -->
 > - For details about the `acl.rt.set_op_wait_timeout` API, see the "Function: set\_op\_wait\_timeout" section in *CANN Runtime API*.
-<!-- [Function: set\_op\_wait\_timeout](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/API/runtimeapi/aclpythondevg_01_0102.html) -->
 > - For details about the `acl.rt.stream_wait_event` API, see the "Function: stream\_wait\_event" section in *CANN Runtime API*.
+<!-- [Function: init](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/API/runtimeapi/aclpythondevg_01_0851.html) -->
+<!-- [Function: set\_op\_wait\_timeout](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/API/runtimeapi/aclpythondevg_01_0102.html) -->
 <!-- [Function: stream\_wait\_event](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/API/runtimeapi/aclpythondevg_01_0101.html) -->
 
 ## Configuration Example
