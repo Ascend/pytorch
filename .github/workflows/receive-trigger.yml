@@ -298,7 +298,7 @@ jobs:
       upstream_ref: ${{ needs.extract.outputs.upstream_ref || needs.extract.outputs.merge_sha || 'main' }}
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: master
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-202608290444-503883d4
+      docker_image: swr.cn-southwest-2.myhuaweicloud.com/modelfoundry/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-202608290444-503883d4
       report_to_upstream: true
       runner_label: 'linux-aarch64-cpu-24'
       max_jobs: '23'
