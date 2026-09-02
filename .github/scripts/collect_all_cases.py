@@ -1008,12 +1008,12 @@ def parse_args():
     )
     parser.add_argument(
         "--hw-classification",
-        nargs="+",
+        nargs="*",
         default=None,
         help="Filter test cases by hardware classification (e.g., ACCELERATOR). "
              "When set, --hw-classification is passed to pytest --collect-only "
              "so only tests with matching hw_classification class attributes "
-             "are collected.",
+             "are collected. Omitted or empty means no hardware filtering.",
     )
     parser.add_argument(
         "--full-scan",

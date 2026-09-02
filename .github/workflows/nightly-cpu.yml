@@ -1,0 +1,60 @@
+name: Nightly CPU Full Test
+
+on:
+  push:
+    branches:
+      - ci-test
+    paths:
+      - '.github/workflows/nightly-cpu.yml'
+      - '.github/workflows/_nightly_build.yml'
+      - '.github/workflows/_nightly_test.yml'
+      - '.github/workflows/_nightly_test-collect.yml'
+      - '.github/workflows/_nightly_test-category.yml'
+      - '.github/workflows/_test-report.yml'
+      - '.github/config/nightly_test_categories.yml'
+      - '.github/config/disabled_testcases.json'
+      - '.github/config/running_skiped_testcases.json'
+      - '.github/scripts/collect_all_cases.py'
+      - '.github/scripts/discover_test_files.py'
+      - '.github/scripts/run_npu_test_shard.py'
+      - '.github/scripts/parse_test_results.py'
+      - '.github/scripts/generate_npu_full_test_report.py'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/_nightly_build.yml
+    secrets: inherit
+    with:
+      upstream_repo: pytorch/pytorch
+      upstream_ref: main
+      torch_npu_repo: Ascend/pytorch
+      torch_npu_ref: master
+      docker_image: swr.cn-southwest-2.myhuaweicloud.com/modelfoundry/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-202608290444-503883d4
+      report_to_upstream: false
+      runner_label: 'linux-aarch64-cpu-24'
+      max_jobs: '23'
+
+  test:
+    needs: build
+    uses: ./.github/workflows/_nightly_test.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ needs.build.outputs.resolved_short }}
+      resolved_sha: ${{ needs.build.outputs.resolved_sha }}
+      upstream_repo: pytorch/pytorch
+      torch_npu_short: ${{ needs.build.outputs.torch_npu_short }}
+      case_paths_config: .github/config/nightly_test_categories.yml
+      docker_image: swr.cn-southwest-2.myhuaweicloud.com/modelfoundry/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-202608290444-503883d4
+      report_to_upstream: false
+      hw_classification: ''
+      full_scan: true
+      device_env: 'cpu'
+      runner_label: 'linux-aarch64-a3-800i-2-cn12-001'
+      skip_list: |-
+        .github/config/disabled_testcases.json
+        .github/config/running_skiped_testcases.json
