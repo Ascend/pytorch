@@ -1,17 +1,28 @@
 """Triton template definitions for NPU FlexAttention."""
 
 try:
-    from torch._inductor.kernel.flex.flex_attention import SymbolicGridFn
+    from torch._inductor.kernel.flex.flex_attention import (
+        SymbolicGridFn,
+        flex_attention_backward_template as _upstream_flex_attention_backward_template,
+        flex_attention_template as _upstream_flex_attention_template,
+    )
 except ImportError:
     try:
-        from torch._inductor.kernel.flex_attention import SymbolicGridFn
+        from torch._inductor.kernel.flex_attention import (
+            SymbolicGridFn,
+            flex_attention_backward_template as _upstream_flex_attention_backward_template,
+            flex_attention_template as _upstream_flex_attention_template,
+        )
     except ImportError:
         def SymbolicGridFn(fn):
             return fn
 
 from torch._inductor.select_algorithm import TritonTemplate
 
-from torch_npu._inductor.select_algorithm import NPUTritonTemplate
+from torch_npu._inductor.select_algorithm import (
+    NPUTemplateCompileOption,
+    NPUTritonTemplate,
+)
 
 
 def _with_kernel_signature(
@@ -26,24 +37,58 @@ def _with_kernel_signature(
     return prefix + new_signature + body[len(old_signature) :]
 
 
-# Inner Triton functions shared by flex_attention & split-k decoding kernels.
-compute_next_offset_func = r"""
-@triton.jit
-def get_offset_for_next_block(
-    loop_iter, col_indices, total_blocks,
-    SPARSE_BLOCK, SPARSE_BLOCK_MULTIPLE, BLOCK,
-    BLOCKS_ARE_CONTIGUOUS: tl.constexpr
-):
-    if BLOCKS_ARE_CONTIGUOUS:
-        return BLOCK
-    cur_block_idx = loop_iter // SPARSE_BLOCK_MULTIPLE
-    cur_block = tl.load(col_indices + cur_block_idx, eviction_policy="evict_last")
-    next_block = tl.load(col_indices + cur_block_idx + 1, eviction_policy="evict_last", mask=cur_block_idx + 1 < total_blocks)
-    needs_jump = (loop_iter + 1) % SPARSE_BLOCK_MULTIPLE == 0
-    jump_to_block = (next_block - cur_block ) * SPARSE_BLOCK - (SPARSE_BLOCK_MULTIPLE - 1) * BLOCK
-    offset = jump_to_block * needs_jump + (1 - needs_jump) * BLOCK
-    return offset
-"""
+_FWD_COMPILE_OPTIONS = NPUTemplateCompileOption(
+    {
+        "enable_ubuf_saving": True,
+        "unit_flag": True,
+        "set_workspace_multibuffer": 4,
+        "limit_auto_multi_buffer_buffer": "no-limit",
+        "hfusion_enable_multiple_consumer_fusion": True,
+        "multibuffer": False,
+        "limit_auto_multi_buffer_only_for_local_buffer": True,
+        "tile_mix_vector_loop": 0,
+        "tile_mix_cube_loop": 0,
+        "intra_cache_num": 3,
+        "inter_cache_num": 2,
+        "enable_cross_if_fusion": True,
+        "enable_buffer_insert_optimization": True,
+        "enable_ub_refine_opt": True,
+    }
+)
+_BWD_DQ_COMPILE_OPTIONS = NPUTemplateCompileOption(
+    {
+        "limit_auto_multi_buffer_buffer": "no-limit",
+        "hfusion_enable_multiple_consumer_fusion": True,
+        "enable_select_analysis": False,
+        "limit_auto_multi_buffer_of_local_buffer": "no-l0c",
+        "intra_cache_num": 3,
+        "inter_cache_num": 2,
+    }
+)
+_BWD_DKDV_COMPILE_OPTIONS = NPUTemplateCompileOption(
+    {
+        "limit_auto_multi_buffer_buffer": "no-limit",
+        "hfusion_enable_multiple_consumer_fusion": True,
+        "unit_flag": True,
+        "limit_auto_multi_buffer_of_local_buffer": "no-l0c",
+        "intra_cache_num": 2,
+        "inter_cache_num": 1,
+    }
+)
+
+
+def _wrap_upstream_template(
+    upstream_template: TritonTemplate,
+) -> NPUTritonTemplate:
+    """Preserve an initialized upstream template while using NPU codegen."""
+    wrapped = NPUTritonTemplate.__new__(NPUTritonTemplate)
+    wrapped.__dict__.update(upstream_template.__dict__)
+    wrapped.manual_output_buffer = None
+    wrapped.codegen_kernel_name = f"triton_{wrapped.name}"
+    wrapped.compile_options = NPUTemplateCompileOption()
+    TritonTemplate.all_templates[wrapped.name] = wrapped
+    return wrapped
+
 
 get_bounded_indices_func = r"""
 @triton.jit
@@ -52,19 +97,98 @@ def get_bounded_indices(indices, max_len=None):
 """
 
 
+compute_compact_sparse_mask_offsets_kernel = r"""
+{{def_kernel("Q_OFFSETS", "TOTAL_BLOCKS", "KV_NUM_BLKS")}}
+    sparse_z = {{size("KV_NUM_BLKS", 0)}}
+    sparse_h = {{size("KV_NUM_BLKS", 1)}}
+    sparse_q = {{size("KV_NUM_BLKS", 2)}}
+    row_count = sparse_z * sparse_h * sparse_q
+
+    stride_num_z, stride_num_h, stride_num_q = {{stride("KV_NUM_BLKS")}}
+    stride_off_z, stride_off_h, stride_off_q = {{stride("Q_OFFSETS")}}
+
+    pid = tl.program_id(0)
+    num_programs = tl.num_programs(0)
+    for row in range(pid, row_count, num_programs):
+        q_idx = row % sparse_q
+        tmp = row // sparse_q
+        h_idx = tmp % sparse_h
+        z_idx = tmp // sparse_h
+
+        num_offset = (
+            z_idx * stride_num_z
+            + h_idx * stride_num_h
+            + q_idx * stride_num_q
+        )
+        num_blocks = tl.load(KV_NUM_BLKS + num_offset).to(tl.int32)
+        base = tl.atomic_add(TOTAL_BLOCKS, num_blocks)
+
+        offset = (
+            z_idx * stride_off_z
+            + h_idx * stride_off_h
+            + q_idx * stride_off_q
+        )
+        tl.store(Q_OFFSETS + offset, base)
+
+"""
+
+
+compute_compact_sparse_mask_mapping_kernel = r"""
+{{def_kernel("FLAT_TO_ROW", "FLAT_TO_BLK", "Q_OFFSETS", "KV_NUM_BLKS")}}
+    sparse_z = {{size("KV_NUM_BLKS", 0)}}
+    sparse_h = {{size("KV_NUM_BLKS", 1)}}
+    sparse_q = {{size("KV_NUM_BLKS", 2)}}
+    row_count = sparse_z * sparse_h * sparse_q
+
+    stride_num_z, stride_num_h, stride_num_q = {{stride("KV_NUM_BLKS")}}
+    stride_off_z, stride_off_h, stride_off_q = {{stride("Q_OFFSETS")}}
+
+    pid = tl.program_id(0)
+    num_programs = tl.num_programs(0)
+    for row in range(pid, row_count, num_programs):
+        q_idx = row % sparse_q
+        tmp = row // sparse_q
+        h_idx = tmp % sparse_h
+        z_idx = tmp // sparse_h
+
+        num_offset = (
+            z_idx * stride_num_z
+            + h_idx * stride_num_h
+            + q_idx * stride_num_q
+        )
+        num_blocks = tl.load(KV_NUM_BLKS + num_offset).to(tl.int32)
+        offset = (
+            z_idx * stride_off_z
+            + h_idx * stride_off_h
+            + q_idx * stride_off_q
+        )
+        base = tl.load(Q_OFFSETS + offset).to(tl.int32)
+
+        for blk_pos in range(0, num_blocks):
+            flat = base + blk_pos
+            tl.store(FLAT_TO_ROW + flat, row)
+            tl.store(FLAT_TO_BLK + flat, blk_pos)
+"""
+
+
 compute_sparse_mask_kernel_compact = r"""
-{{def_kernel("SPARSE_MASK", "Q_OFFSETS", "FLAT_TO_ROW", "FLAT_TO_BLK", "KV_NUM_BLKS", "KV_IDX")}}
+{{def_kernel("SPARSE_MASK", "FLAT_TO_ROW", "FLAT_TO_BLK", "Q", "K", "KV_IDX")}}
     stride_kv_idx_z = {{stride("KV_IDX", 0)}}
     stride_kv_idx_h = {{stride("KV_IDX", 1)}}
     stride_kv_idx_m = {{stride("KV_IDX", 2)}}
     stride_kv_idx_blk = {{stride("KV_IDX", 3)}}
 
-    TOTAL_ENTRIES : tl.constexpr = TOTAL_FLAT_ENTRIES * NUM_Q_SUB_BLOCKS * NUM_KV_SUB_BLOCKS
+    sparse_h_count = {{size("KV_IDX", 1)}}
+    sparse_q_count = {{size("KV_IDX", 2)}}
+    q_len = {{size("Q", 2)}}
+    kv_len = {{size("K", 2)}}
+    actual_blocks = {{size("FLAT_TO_ROW", 0)}}
+    actual_entries = actual_blocks * NUM_Q_SUB_BLOCKS * NUM_KV_SUB_BLOCKS
 
     pid = tl.program_id(0)
     num_programs = tl.num_programs(0)
 
-    for entry_idx in range(pid, TOTAL_ENTRIES, num_programs):
+    for entry_idx in range(pid, actual_entries, num_programs):
         kv_sub = entry_idx % NUM_KV_SUB_BLOCKS
         tmp = entry_idx // NUM_KV_SUB_BLOCKS
         q_sub = tmp % NUM_Q_SUB_BLOCKS
@@ -72,13 +196,10 @@ compute_sparse_mask_kernel_compact = r"""
 
         flat_row = tl.load(FLAT_TO_ROW + flat_blk)
         blk_pos = tl.load(FLAT_TO_BLK + flat_blk)
-        sq_idx = flat_row % NUM_SPARSE_Q_BLOCKS
-        tmp_row = flat_row // NUM_SPARSE_Q_BLOCKS
-        sparse_h = tmp_row % SPARSE_HQ
-        sparse_z = tmp_row // SPARSE_HQ
-
-        q_offset_idx = sparse_z * SPARSE_HQ * (NUM_SPARSE_Q_BLOCKS + 1) + sparse_h * (NUM_SPARSE_Q_BLOCKS + 1) + sq_idx
-        expected_flat_blk = tl.load(Q_OFFSETS + q_offset_idx) + blk_pos
+        sq_idx = flat_row % sparse_q_count
+        tmp_row = flat_row // sparse_q_count
+        sparse_h = tmp_row % sparse_h_count
+        sparse_z = tmp_row // sparse_h_count
 
         idx_offset = (
             sparse_z * stride_kv_idx_z
@@ -111,28 +232,33 @@ compute_sparse_mask_kernel_compact = r"""
             n="n",
         ) | indent_except_first(2) }}
 
-        store_mask = (offs_m[:, None] < Q_LEN) & (offs_n[None, :] < KV_LEN)
+        store_mask = (offs_m[:, None] < q_len) & (offs_n[None, :] < kv_len)
         mask_mod_output = mask_mod_output & store_mask
-        mask_base = SPARSE_MASK + expected_flat_blk * SPARSE_MASK_STRIDE_BLK
+        mask_base = SPARSE_MASK + flat_blk * SPARSE_MASK_STRIDE_BLK
         mask_offsets = offs_m_local[:, None] * SPARSE_MASK_STRIDE_M + offs_n_local[None, :]
         tl.store(mask_base + mask_offsets, mask_mod_output.to(tl.int8))
 """
 
 
 compute_bwd_sparse_mask_kernel_compact = r"""
-{{def_kernel("Q_OFFSETS", "FLAT_TO_ROW", "FLAT_TO_BLK", "KV_NUM_BLKS", "KV_IDX")}}
+{{def_kernel("FLAT_TO_ROW", "FLAT_TO_BLK", "Q", "K", "KV_IDX")}}
     SPARSE_MASK = arg_SPARSE_MASK
     stride_kv_idx_z = {{stride("KV_IDX", 0)}}
     stride_kv_idx_h = {{stride("KV_IDX", 1)}}
     stride_kv_idx_m = {{stride("KV_IDX", 2)}}
     stride_kv_idx_blk = {{stride("KV_IDX", 3)}}
 
-    TOTAL_ENTRIES : tl.constexpr = TOTAL_FLAT_ENTRIES * NUM_Q_SUB_BLOCKS * NUM_KV_SUB_BLOCKS
+    sparse_h_count = {{size("KV_IDX", 1)}}
+    sparse_q_count = {{size("KV_IDX", 2)}}
+    q_len = {{size("Q", 2)}}
+    kv_len = {{size("K", 2)}}
+    actual_blocks = {{size("FLAT_TO_ROW", 0)}}
+    actual_entries = actual_blocks * NUM_Q_SUB_BLOCKS * NUM_KV_SUB_BLOCKS
 
     pid = tl.program_id(0)
     num_programs = tl.num_programs(0)
 
-    for entry_idx in range(pid, TOTAL_ENTRIES, num_programs):
+    for entry_idx in range(pid, actual_entries, num_programs):
         kv_sub = entry_idx % NUM_KV_SUB_BLOCKS
         tmp = entry_idx // NUM_KV_SUB_BLOCKS
         q_sub = tmp % NUM_Q_SUB_BLOCKS
@@ -140,13 +266,10 @@ compute_bwd_sparse_mask_kernel_compact = r"""
 
         flat_row = tl.load(FLAT_TO_ROW + flat_blk)
         blk_pos = tl.load(FLAT_TO_BLK + flat_blk)
-        sq_idx = flat_row % NUM_SPARSE_Q_BLOCKS
-        tmp_row = flat_row // NUM_SPARSE_Q_BLOCKS
-        sparse_h = tmp_row % SPARSE_HQ
-        sparse_z = tmp_row // SPARSE_HQ
-
-        q_offset_idx = sparse_z * SPARSE_HQ * (NUM_SPARSE_Q_BLOCKS + 1) + sparse_h * (NUM_SPARSE_Q_BLOCKS + 1) + sq_idx
-        expected_flat_blk = tl.load(Q_OFFSETS + q_offset_idx) + blk_pos
+        sq_idx = flat_row % sparse_q_count
+        tmp_row = flat_row // sparse_q_count
+        sparse_h = tmp_row % sparse_h_count
+        sparse_z = tmp_row // sparse_h_count
 
         idx_offset = (
             sparse_z * stride_kv_idx_z
@@ -179,71 +302,53 @@ compute_bwd_sparse_mask_kernel_compact = r"""
             n="n",
         ) | indent_except_first(2) }}
 
-        store_mask = (offs_m[:, None] < Q_LEN) & (offs_n[None, :] < KV_LEN)
+        store_mask = (offs_m[:, None] < q_len) & (offs_n[None, :] < kv_len)
         mask_mod_output = mask_mod_output & store_mask
-        mask_base = SPARSE_MASK + expected_flat_blk * SPARSE_MASK_STRIDE_BLK
+        mask_base = SPARSE_MASK + flat_blk * SPARSE_MASK_STRIDE_BLK
         mask_offsets = offs_m_local[:, None] * SPARSE_MASK_STRIDE_M + offs_n_local[None, :]
         tl.store(mask_base + mask_offsets, mask_mod_output & store_mask)
 """
 
 compute_sparse_mask_block_pos_kernel = r"""
-{{def_kernel("KV_NUM_BLKS", "KV_IDX", "Q_OFFSETS", "SPARSE_MASK_BLOCK_POS")}}
+{{def_kernel("FLAT_TO_ROW", "FLAT_TO_BLK", "KV_IDX", "SPARSE_MASK_BLOCK_POS")}}
     SPARSE_MASK_BLOCK_POS = arg_SPARSE_MASK_BLOCK_POS
-    stride_kv_num_blks_z = {{stride("KV_NUM_BLKS", 0)}}
-    stride_kv_num_blks_h = {{stride("KV_NUM_BLKS", 1)}}
-    stride_kv_num_blks_m = {{stride("KV_NUM_BLKS", 2)}}
     stride_kv_idx_z = {{stride("KV_IDX", 0)}}
     stride_kv_idx_h = {{stride("KV_IDX", 1)}}
     stride_kv_idx_m = {{stride("KV_IDX", 2)}}
     stride_kv_idx_blk = {{stride("KV_IDX", 3)}}
-    stride_block_pos_z = SPARSE_MASK_BLOCK_POS_STRIDE_Z
-    stride_block_pos_h = SPARSE_MASK_BLOCK_POS_STRIDE_H
-    stride_block_pos_q = SPARSE_MASK_BLOCK_POS_STRIDE_Q
-
-    TOTAL_ENTRIES : tl.constexpr = SPARSE_Z * SPARSE_HQ * NUM_SPARSE_Q_BLOCKS * MAX_NORMAL_BLOCKS
+    stride_block_pos_z = {{stride("SPARSE_MASK_BLOCK_POS", 0)}}
+    stride_block_pos_h = {{stride("SPARSE_MASK_BLOCK_POS", 1)}}
+    stride_block_pos_q = {{stride("SPARSE_MASK_BLOCK_POS", 2)}}
+    stride_block_pos_kv = {{stride("SPARSE_MASK_BLOCK_POS", 3)}}
+    sparse_h_count = {{size("KV_IDX", 1)}}
+    sparse_q_count = {{size("KV_IDX", 2)}}
+    actual_blocks = {{size("FLAT_TO_ROW", 0)}}
 
     pid = tl.program_id(0)
     num_programs = tl.num_programs(0)
 
-    for entry_idx in range(pid, TOTAL_ENTRIES, num_programs):
-        blk_pos = entry_idx % MAX_NORMAL_BLOCKS
-        tmp = entry_idx // MAX_NORMAL_BLOCKS
-        sq_idx = tmp % NUM_SPARSE_Q_BLOCKS
-        tmp = tmp // NUM_SPARSE_Q_BLOCKS
-        sparse_h = tmp % SPARSE_HQ
-        sparse_z = tmp // SPARSE_HQ
+    for flat_blk in range(pid, actual_blocks, num_programs):
+        flat_row = tl.load(FLAT_TO_ROW + flat_blk)
+        blk_pos = tl.load(FLAT_TO_BLK + flat_blk)
+        sq_idx = flat_row % sparse_q_count
+        tmp = flat_row // sparse_q_count
+        sparse_h = tmp % sparse_h_count
+        sparse_z = tmp // sparse_h_count
 
-        nb_offset = (
-            sparse_z * stride_kv_num_blks_z
-            + sparse_h * stride_kv_num_blks_h
-            + sq_idx * stride_kv_num_blks_m
+        idx_offset = (
+            sparse_z * stride_kv_idx_z
+            + sparse_h * stride_kv_idx_h
+            + sq_idx * stride_kv_idx_m
+            + blk_pos * stride_kv_idx_blk
         )
-        num_blks = tl.load(KV_NUM_BLKS + nb_offset)
-
-        if blk_pos < num_blks:
-            idx_offset = (
-                sparse_z * stride_kv_idx_z
-                + sparse_h * stride_kv_idx_h
-                + sq_idx * stride_kv_idx_m
-                + blk_pos * stride_kv_idx_blk
-            )
-            kv_block = tl.load(KV_IDX + idx_offset)
-            block_pos_offset = (
-                sparse_z * stride_block_pos_z
-                + sparse_h * stride_block_pos_h
-                + sq_idx * stride_block_pos_q
-                + kv_block
-            )
-            q_offset_idx = (
-                sparse_z * SPARSE_HQ * (NUM_SPARSE_Q_BLOCKS + 1)
-                + sparse_h * (NUM_SPARSE_Q_BLOCKS + 1)
-                + sq_idx
-            )
-            partial_block_idx = tl.load(Q_OFFSETS + q_offset_idx) + blk_pos
-            tl.store(
-                SPARSE_MASK_BLOCK_POS + block_pos_offset,
-                partial_block_idx,
-            )
+        kv_block = tl.load(KV_IDX + idx_offset)
+        block_pos_offset = (
+            sparse_z * stride_block_pos_z
+            + sparse_h * stride_block_pos_h
+            + sq_idx * stride_block_pos_q
+            + kv_block * stride_block_pos_kv
+        )
+        tl.store(SPARSE_MASK_BLOCK_POS + block_pos_offset, flat_blk)
 """
 
 
@@ -284,13 +389,11 @@ def forward_block_mn_sparse_mask(
     ) | indent_except_first(1) }}
 
     if not IS_FULL_BLOCKS:
-{% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
         SPARSE_Q_MULTIPLE: tl.constexpr = (SPARSE_Q_BLOCK_SIZE // BLOCK_M)
         SPARSE_HQ: tl.constexpr = {{size("KV_NUM_BLKS", 1)}}
         q_sparse_idx = q_start // SPARSE_Q_MULTIPLE
         q_sparse_start = q_sparse_idx * SPARSE_Q_BLOCK_SIZE
         sparse_h = off_h % SPARSE_HQ
-        sparse_mask_h = off_h % SPARSE_MASK_HQ
         SPARSE_Z: tl.constexpr = {{size("KV_NUM_BLKS", 0)}}
         sparse_idx_z = off_z % SPARSE_Z
 
@@ -308,27 +411,21 @@ def forward_block_mn_sparse_mask(
 
         offs_m_local = offs_m - q_sparse_start
         offs_n_local = offs_n - kv_block * SPARSE_KV_BLOCK_SIZE
+        # Q_OFFSETS is laid out like KV_NUM_BLKS (there is no extra sentinel
+        # row).  Use its actual strides so broadcasted batch/head metadata is
+        # indexed correctly when the block mask has more than one head.
+        stride_q_offsets_z = {{stride("Q_OFFSETS", 0)}}
+        stride_q_offsets_h = {{stride("Q_OFFSETS", 1)}}
+        stride_q_offsets_q = {{stride("Q_OFFSETS", 2)}}
         q_offsets_idx = (
-            sparse_idx_z * SPARSE_MASK_HQ * (NUM_SPARSE_Q_BLOCKS + 1)
-            + sparse_mask_h * (NUM_SPARSE_Q_BLOCKS + 1)
-            + q_sparse_idx
+            sparse_idx_z * stride_q_offsets_z
+            + sparse_h * stride_q_offsets_h
+            + q_sparse_idx * stride_q_offsets_q
         )
         flat_blk = tl.load(arg_Q_OFFSETS + q_offsets_idx) + blk_idx_in_list
         mask_base = arg_SPARSE_MASK + flat_blk * SPARSE_MASK_STRIDE_BLK
         mask_offsets = offs_m_local * SPARSE_MASK_STRIDE_M + offs_n_local
         mask_mod_output = tl.load(mask_base + mask_offsets) != 0
-{% else %}
-        {{ modification(
-            subgraph_number=1,
-            output_name="mask_mod_output",
-            score="qk",
-            b="off_z",
-            h="off_h",
-            m="m",
-            n="n",
-        ) | indent_except_first(2) }}
-        mask_mod_output = mask_mod_output & (offs_m < Q_LEN) & (offs_n < KV_LEN)
-{% endif %}
         # apply mask for partially unmasked blocks
         post_mod_scores = tl.where(mask_mod_output, post_mod_scores, float("-inf"))
     elif CHECK_BLOCK_BOUNDARY:
@@ -356,10 +453,6 @@ def forward_block_mn_sparse_mask(
     # # -- scale and update acc --
     acc = acc * alpha[:, None]
     acc = tl.dot(p.to(MATMUL_PRECISION), v, acc, input_precision="ieee")
-    # NPU compile hint for performance optimization
-    if ENABLE_COMPILE_HINT:
-        tl.extra.cann.extension.compile_hint(acc, "hivm.tile_mix_cube_num", 2)
-
     # -- update m_i
     m_i = m_ij
 
@@ -439,7 +532,7 @@ def forward_inner_sparse_mask_direct_index(
 
 
 compute_flex_attention_sparse_mask_in_loop_no_load_balance = r"""
-{{def_kernel("Q", "K", "V", "SPARSE_MASK", "Q_OFFSETS", "KV_NUM_BLKS", "KV_IDX", "LSE", "FULL_KV_NUM_BLKS", "FULL_KV_IDX")}}
+{{def_kernel("Q", "K", "V", "SPARSE_MASK", "Q_OFFSETS", "KV_NUM_BLKS", "KV_IDX", "LSE", "MAX_SCORES", "FULL_KV_NUM_BLKS", "FULL_KV_IDX")}} # noqa: B950
     tl.static_assert(SPARSE_Q_BLOCK_SIZE >= BLOCK_M and SPARSE_Q_BLOCK_SIZE % BLOCK_M == 0)
     tl.static_assert(SPARSE_KV_BLOCK_SIZE >= BLOCK_N and SPARSE_KV_BLOCK_SIZE % BLOCK_N == 0)
 
@@ -523,6 +616,7 @@ compute_flex_attention_sparse_mask_in_loop_no_load_balance = r"""
             IS_FULL_BLOCKS=False,
         )
 
+{% if HAS_FULL_BLOCKS %}
         FULL_SPARSE_Z = {{size("FULL_KV_NUM_BLKS", 0)}}
         FULL_SPARSE_HQ = {{size("FULL_KV_NUM_BLKS", 1)}}
         full_sparse_idx_z = off_zq % FULL_SPARSE_Z
@@ -573,6 +667,7 @@ compute_flex_attention_sparse_mask_in_loop_no_load_balance = r"""
                             MATMUL_PRECISION,
                             CHECK_BLOCK_BOUNDARY=True,
                         )
+{% endif %}
 
         l_i = tl.where(l_i == 0.0, 1, l_i)
         acc = acc / l_i[:, None]
@@ -584,14 +679,21 @@ compute_flex_attention_sparse_mask_in_loop_no_load_balance = r"""
 
         {{store_output(("idx_zq", "idx_hq", "idx_m", "idx_d"), "acc", "mask", indent_width=8)}}
 
+        off_hz = off_zq * HQ + off_hq
         if OUTPUT_LOGSUMEXP:
-            off_hz = off_zq * HQ + off_hq
             l_ptrs = LSE + off_hz * Q_LEN + offs_m
             lse = m_i + tl.math.log(l_i)
             if IS_DIVISIBLE:
                 tl.store(l_ptrs, lse)
             else:
                 tl.store(l_ptrs, lse, mask=offs_m < Q_LEN)
+
+        if OUTPUT_MAX:
+            m_ptrs = MAX_SCORES + off_hz * Q_LEN + offs_m
+            if IS_DIVISIBLE:
+                tl.store(m_ptrs, m_i)
+            else:
+                tl.store(m_ptrs, m_i, mask=offs_m < Q_LEN)
 """
 
 compute_forward_block_mn_full = r"""
@@ -623,25 +725,6 @@ def forward_block_mn_full(
         out="qk"
     ) | indent_except_first(1) }}
 
-{% if not TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
-    if True:
-        {{ modification(
-            subgraph_number=1,
-            output_name="mask_mod_output",
-            score="qk",
-            b="off_z",
-            h="off_h",
-            m="m",
-            n="n",
-        ) | indent_except_first(2) }}
-        mask_mod_output = mask_mod_output & (offs_m < Q_LEN) & (offs_n < KV_LEN)
-        post_mod_scores = tl.where(
-            mask_mod_output,
-            post_mod_scores,
-            float("-inf"),
-        )
-{% endif %}
-
     m_ij = tl.maximum(
         m_i,
         tl.max(post_mod_scores, 1, propagate_nan=True),
@@ -658,8 +741,6 @@ def forward_block_mn_full(
     l_i = l_i * alpha + tl.sum(p, 1)
     acc = acc * alpha[:, None]
     acc = tl.dot(p.to(MATMUL_PRECISION), v, acc, input_precision="ieee")
-    if ENABLE_COMPILE_HINT:
-        tl.extra.cann.extension.compile_hint(acc, "hivm.tile_mix_cube_num", 2)
     m_i = m_ij
     return acc, l_i, m_i
 
@@ -674,16 +755,36 @@ def flex_attention_in_loop_grid(batch_size, q_heads, num_queries, d_model, meta,
 
 
 @SymbolicGridFn
+def compact_offsets_grid(row_count, meta, *, min, max):
+    return (max(1, min(row_count, meta["NUM_VECTOR_CORE"])), 1, 1)
+
+
+@SymbolicGridFn
+def compact_mapping_grid(row_count, meta, *, min, max):
+    return (max(1, min(row_count, meta["NUM_VECTOR_CORE"])), 1, 1)
+
+
+@SymbolicGridFn
 def sparse_mask_grid(*args, **kwargs):
     """Compute grid for sparse mask materialization kernel."""
     meta = kwargs.get("meta")
     if meta is None:
         meta = args[-1]
+    num_q_sub_blocks = meta.get("NUM_Q_SUB_BLOCKS", 1)
+    num_kv_sub_blocks = meta.get("NUM_KV_SUB_BLOCKS", 1)
     if "TOTAL_FLAT_ENTRIES" in meta:
         total_entries = (
             meta["TOTAL_FLAT_ENTRIES"]
-            * meta["NUM_Q_SUB_BLOCKS"]
-            * meta["NUM_KV_SUB_BLOCKS"]
+            * num_q_sub_blocks
+            * num_kv_sub_blocks
+        )
+    elif args:
+        # Compact mask templates pass the runtime number of flattened blocks
+        # as their sole call-size argument; it is not a constexpr in ``meta``.
+        total_entries = (
+            args[0]
+            * num_q_sub_blocks
+            * num_kv_sub_blocks
         )
     else:
         total_entries = (
@@ -695,19 +796,31 @@ def sparse_mask_grid(*args, **kwargs):
             * meta["NUM_KV_SUB_BLOCKS"]
         )
     num_vector_cores = 48
-    return (min(total_entries, num_vector_cores), 1, 1)
+    # ``actual_blocks`` is an unbacked SymInt on torch 2.10.  Calling the
+    # Python ``min`` here tries to compare that symbolic value and raises
+    # ``TypeError: cannot determine truth value of Relational`` while the
+    # graph is being scheduled.  Launch a fixed vector-core grid instead;
+    # each program already strides over the runtime entry count, so extra
+    # programs are harmless (including the zero-entry case).
+    return (num_vector_cores, 1, 1)
 
-del TritonTemplate.all_templates["flex_attention"]
-del TritonTemplate.all_templates["flex_attention_backward"]
+flex_attention_template = _wrap_upstream_template(
+    _upstream_flex_attention_template
+)
+flex_attention_backward_template = _wrap_upstream_template(
+    _upstream_flex_attention_backward_template
+)
 
 _FWD_MASK_OUT_SIGNATURE = (
     '{{def_kernel("Q", "K", "V", "SPARSE_MASK", "Q_OFFSETS", '
-    '"KV_NUM_BLKS", "KV_IDX", "LSE", "FULL_KV_NUM_BLKS", "FULL_KV_IDX")}}'
-)
-_FWD_MASK_IN_SIGNATURE = (
-    '{{def_kernel("Q", "K", "V", "KV_NUM_BLKS", "KV_IDX", "LSE", '
+    '"KV_NUM_BLKS", "KV_IDX", "LSE", "MAX_SCORES", '
     '"FULL_KV_NUM_BLKS", "FULL_KV_IDX")}}'
 )
+_FWD_MASK_IN_SIGNATURE = (
+    '{{def_kernel("Q", "K", "V", "KV_NUM_BLKS", "KV_IDX", "LSE", "MAX_SCORES", '
+    '"FULL_KV_NUM_BLKS", "FULL_KV_IDX")}}'
+)
+
 _FWD_MASK_OUT_SOURCE = (
     compute_flex_attention_sparse_mask_in_loop_no_load_balance
     + compute_forward_inner_sparse_mask_direct_index
@@ -731,6 +844,18 @@ flex_attention_fwd_mask_in = NPUTritonTemplate(
     name="flex_attention_fwd_mask_in",
     grid=flex_attention_in_loop_grid,
     source=_FWD_MASK_IN_SOURCE,
+)
+
+flex_attention_compact_offsets = NPUTritonTemplate(
+    name="flex_attention_compact_offsets",
+    grid=compact_offsets_grid,
+    source=compute_compact_sparse_mask_offsets_kernel,
+)
+
+flex_attention_compact_mapping = NPUTritonTemplate(
+    name="flex_attention_compact_mapping",
+    grid=compact_mapping_grid,
+    source=compute_compact_sparse_mask_mapping_kernel,
 )
 
 flex_attention_fwd_mask_compact = NPUTritonTemplate(
@@ -821,7 +946,6 @@ flex_attention_backward_qmajor_dq_source = r"""
         off_zkv = off_zq % ZKV
         sparse_idx_z = off_zq % SPARSE_Z
         sparse_h = off_hq % SPARSE_HQ
-        sparse_mask_h = off_hq % SPARSE_MASK_HQ
 
         q_start = q_block * BLOCK_M2
         sparse_q_block = q_block // SPARSE_Q_MULTIPLE
@@ -863,14 +987,15 @@ flex_attention_backward_qmajor_dq_source = r"""
             + sparse_h * stride_kv_idx_h
             + sparse_q_block * stride_kv_idx_m
         )
-{% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
+        # Q_OFFSETS follows KV_NUM_BLKS' [batch, metadata-head, q-block]
+        # layout; index it with the metadata head rather than the compact
+        # mask head-count specialization.
         q_offsets_idx = (
-            sparse_idx_z * SPARSE_MASK_HQ * (NUM_SPARSE_Q_BLOCKS + 1)
-            + sparse_mask_h * (NUM_SPARSE_Q_BLOCKS + 1)
-            + sparse_q_block
+            sparse_idx_z * {{stride("Q_OFFSETS", 0)}}
+            + sparse_h * {{stride("Q_OFFSETS", 1)}}
+            + sparse_q_block * {{stride("Q_OFFSETS", 2)}}
         )
         q_offset_base = tl.load(arg_Q_OFFSETS + q_offsets_idx)
-{% endif %}
 
         kv_num_blocks = tl.load(arg_KV_NUM_BLKS + kv_num_offset)
         for kv_work_pos in range(0, kv_num_blocks * SPARSE_KV_MULTIPLE):
@@ -896,9 +1021,6 @@ flex_attention_backward_qmajor_dq_source = r"""
             if not PRESCALE_QK:
                 qk *= SM_SCALE
 
-            m = get_bounded_indices(offs_m[:, None], Q_LEN if (not IS_DIVISIBLE or not SAFE_HEAD_DIM) else None)
-            n = get_bounded_indices(offs_n[None, :], KV_LEN if (not IS_DIVISIBLE or not SAFE_HEAD_DIM) else None)
-{% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
             flat_blk = q_offset_base + blk_pos
             offs_m_local = offs_m[:, None] - sparse_q_block * SPARSE_Q_BLOCK_SIZE
             offs_n_local = offs_n[None, :] - kv_sparse_idx * SPARSE_KV_BLOCK_SIZE
@@ -909,56 +1031,11 @@ flex_attention_backward_qmajor_dq_source = r"""
                 mask=mask_bounds,
                 other=0,
             )
-{% else %}
-            {{ modification(
-                subgraph_number=2,
-                output_name="mask_mod_output",
-                score="qk",
-                b="off_zq",
-                h="off_hq",
-                m="m",
-                n="n",
-            ) | indent_except_first(3) }}
-            mask_mod_output = mask_mod_output & (offs_m[:, None] < Q_LEN) & (offs_n[None, :] < KV_LEN)
-{% endif %}
-{% if BWD_SCORE_MOD_IS_IDENTITY %}
-{% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
-            pre_mod_scores = qk
-{% endif %}
             qk = tl.where(mask_mod_output & (offs_n[None, :] < KV_LEN), qk, float("-inf"))
             p = tl.math.exp(qk - lse[:, None])
-{% else %}
-            pre_mod_scores = qk
-            {{ modification(
-                subgraph_number=0,
-                output_name="post_mod_scores",
-                score="qk",
-                b="off_zq",
-                h="off_hq",
-                m="m",
-                n="n",
-                out="qk",
-            ) | indent_except_first(3) }}
-            post_mod_scores = tl.where(mask_mod_output & (offs_n[None, :] < KV_LEN), post_mod_scores, float("-inf"))
-            p = tl.math.exp(post_mod_scores - lse[:, None])
-{% endif %}
             dp = tl.dot(do, tl.trans(v), input_precision="ieee")
             ds = p * (dp - Di[:, None])
-{% if BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
             ds = tl.where(mask_mod_output, ds, 0.0)
-{% else %}
-            {{ modification(
-                subgraph_number=1,
-                output_name="grad_scores",
-                score="pre_mod_scores",
-                b="off_zq",
-                h="off_hq",
-                m="m",
-                n="n",
-                grad_score_mod="ds",
-            ) | indent_except_first(3) }}
-            ds = tl.where(mask_mod_output, grad_scores, 0.0)
-{% endif %}
             dq += tl.dot(ds.to(MATMUL_PRECISION), k, input_precision="ieee")
 
         if HAS_FULL_BLOCKS:
@@ -996,75 +1073,12 @@ flex_attention_backward_qmajor_dq_source = r"""
                 if not PRESCALE_QK:
                     qk *= SM_SCALE
 
-                m = get_bounded_indices(offs_m[:, None], Q_LEN if (not IS_DIVISIBLE or not SAFE_HEAD_DIM) else None)
-                n = get_bounded_indices(offs_n[None, :], KV_LEN if (not IS_DIVISIBLE or not SAFE_HEAD_DIM) else None)
-{% if not TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
-                {{ modification(
-                    subgraph_number=2,
-                    output_name="mask_mod_output",
-                    score="qk",
-                    b="off_zq",
-                    h="off_hq",
-                    m="m",
-                    n="n",
-                ) | indent_except_first(4) }}
-                mask_mod_output = mask_mod_output & (offs_m[:, None] < Q_LEN) & (offs_n[None, :] < KV_LEN)
-{% endif %}
-{% if BWD_SCORE_MOD_IS_IDENTITY %}
-{% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
-                pre_mod_scores = qk
-{% endif %}
-{% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
                 # full block don't need
                 # qk = tl.where(offs_n[None, :] < KV_LEN, qk, float("-inf"))
-{% else %}
-                qk = tl.where(mask_mod_output, qk, float("-inf"))
-{% endif %}
                 p = tl.math.exp(qk - lse[:, None])
-{% else %}
-                pre_mod_scores = qk
-                {{ modification(
-                    subgraph_number=0,
-                    output_name="post_mod_scores",
-                    score="qk",
-                    b="off_zq",
-                    h="off_hq",
-                    m="m",
-                    n="n",
-                    out="qk",
-                ) | indent_except_first(4) }}
-{% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
-                post_mod_scores = tl.where(offs_n[None, :] < KV_LEN, post_mod_scores, float("-inf"))
-{% else %}
-                post_mod_scores = tl.where(mask_mod_output, post_mod_scores, float("-inf"))
-{% endif %}
-                p = tl.math.exp(post_mod_scores - lse[:, None])
-{% endif %}
                 dp = tl.dot(do, tl.trans(v), input_precision="ieee")
                 ds = p * (dp - Di[:, None])
-{% if BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
-{% if not TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
-                ds = tl.where(mask_mod_output, ds, 0.0)
-{% endif %}
                 dq += tl.dot(ds.to(MATMUL_PRECISION), k, input_precision="ieee")
-{% else %}
-                {{ modification(
-                    subgraph_number=1,
-                    output_name="grad_scores",
-                    score="pre_mod_scores",
-                    b="off_zq",
-                    h="off_hq",
-                    m="m",
-                    n="n",
-                    grad_score_mod="ds",
-                ) | indent_except_first(4) }}
-{% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
-                grad_scores = tl.where(offs_n[None, :] < KV_LEN, grad_scores, 0.0)
-{% else %}
-                grad_scores = tl.where(mask_mod_output, grad_scores, 0.0)
-{% endif %}
-                dq += tl.dot(grad_scores.to(MATMUL_PRECISION), k, input_precision="ieee")
-{% endif %}
 
         dq *= SM_SCALE
         index_m = offs_m[:, None]
@@ -1290,44 +1304,20 @@ def bwd_dkdv_block_mn(
     qkT = tl.dot(qT, tl.trans(k), input_precision="ieee")
     if not PRESCALE_QK:
         qkT *= SM_SCALE
+{% if RUN_CAPTURED_GRADS %}
     m = get_bounded_indices(offs_m1[:, None], Q_LEN if CHECK_BLOCK_BOUNDARY else None)
     n = get_bounded_indices(offs_n1[None, :], KV_LEN if (not IS_DIVISIBLE or CHECK_BLOCK_BOUNDARY) else None)
-
-{% if BWD_SCORE_MOD_IS_IDENTITY %}
-{% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
     pre_mod_scores = qkT
 {% endif %}
-{% if not BWD_IDENTITY_SCORE_AND_GRAD %}
-    if CHECK_BLOCK_BOUNDARY:
-        qkT = tl.where(offs_n1[None, :] < KV_LEN, qkT, float("-inf"))
-{% endif %}
-{% else %}
-    pre_mod_scores = qkT
-    {{ modification(
-        subgraph_number=0,
-        output_name="post_mod_scores",
-        score="qkT",
-        b="off_z",
-        h="off_hq",
-        m="m",
-        n="n",
-        out="qkT"
-    ) | indent_except_first(1) }}
-
-    if CHECK_BLOCK_BOUNDARY:
-        post_mod_scores = tl.where(offs_n1[None, :] < KV_LEN, post_mod_scores, float("-inf"))
-{% endif %}
-
     if not IS_FULL_BLOCKS:
-{% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
         SPARSE_Z: tl.constexpr = {{size("KV_NUM_BLKS", 0)}}
         SPARSE_HQ: tl.constexpr = {{size("KV_NUM_BLKS", 1)}}
         sparse_idx_z = off_z % SPARSE_Z
-        sparse_mask_h = off_hq % SPARSE_MASK_HQ
+        sparse_h = off_hq % SPARSE_HQ
         q_sparse_start = q_sparse_idx * SPARSE_Q_BLOCK_SIZE
         block_pos_offset = (
             sparse_idx_z * {{stride("SPARSE_MASK_BLOCK_POS", 0)}}
-            + sparse_mask_h * {{stride("SPARSE_MASK_BLOCK_POS", 1)}}
+            + sparse_h * {{stride("SPARSE_MASK_BLOCK_POS", 1)}}
             + q_sparse_idx * {{stride("SPARSE_MASK_BLOCK_POS", 2)}}
             + kv_sparse_idx
         )
@@ -1345,33 +1335,9 @@ def bwd_dkdv_block_mn(
         mask_offsets = offs_m_local * SPARSE_MASK_STRIDE_M + offs_n_local
         mask_mod_output = tl.load(mask_base + mask_offsets)
         mask_mod_output = mask_mod_output & (partial_block_idx >= 0)
-{% else %}
-        {{ modification(
-            subgraph_number=2,
-            output_name="mask_mod_output",
-            score="qkT",
-            b="off_z",
-            h="off_hq",
-            m="m",
-            n="n",
-        ) | indent_except_first(2) }}
-        mask_mod_output = mask_mod_output & (offs_m1[:, None] < Q_LEN) & (offs_n1[None, :] < KV_LEN)
-{% endif %}
-{% if BWD_SCORE_MOD_IS_IDENTITY %}
         qkT = tl.where(mask_mod_output, qkT, float("-inf"))
-{% else %}
-        post_mod_scores = tl.where(
-            mask_mod_output,
-            post_mod_scores,
-            float("-inf"),
-        )
-{% endif %}
 
-{% if BWD_SCORE_MOD_IS_IDENTITY %}
     pT = tl.math.exp(qkT - lse[:, None])
-{% else %}
-    pT = tl.math.exp(post_mod_scores - lse[:, None])
-{% endif %}
     do = tl.load(
         DO + offs_m1[:, None] * stride_dom + offs_v[None, :] * stride_dod,
         mask=(offs_m1[:, None] < Q_LEN) & (offs_v[None, :] < V_HEAD_DIM),
@@ -1394,18 +1360,6 @@ def bwd_dkdv_block_mn(
         Di = tl.load(DELTA + offs_m1, mask=offs_m1 < Q_LEN, other=0.0)
     dpT = tl.dot(do, tl.trans(v), input_precision="ieee")
     dsT = (pT * (dpT - Di[:, None])).to(MATMUL_PRECISION)
-{% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
-    {{ modification(
-        subgraph_number=1,
-        output_name="grad_scores",
-        score="pre_mod_scores",
-        b="off_z",
-        h="off_hq",
-        m="m",
-        n="n",
-        grad_score_mod="dsT"
-    ) | indent_except_first(1) }}
-{% endif %}
 
 {% if RUN_CAPTURED_GRADS %}
     idx_b = off_z
@@ -1424,15 +1378,6 @@ def bwd_dkdv_block_mn(
         n="idx_n",
         grad_score_mod="dsT"
     ) | indent_except_first(1) }}
-{% endif %}
-
-{% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
-    dsT = grad_scores
-{% endif %}
-{% if not BWD_IDENTITY_SCORE_AND_GRAD %}
-    if not IS_FULL_BLOCKS:
-        dsT = tl.where(mask_mod_output, dsT, 0.0)
-    dsT = tl.where(offs_m1[:, None] < Q_LEN, dsT, 0.0)
 {% endif %}
 
     index_k = offs_k[None, :]
@@ -1484,55 +1429,14 @@ def bwd_dkdv_full_block_mn(
     qkT = tl.dot(qT, tl.trans(k), input_precision="ieee")
     if not PRESCALE_QK:
         qkT *= SM_SCALE
+{% if RUN_CAPTURED_GRADS %}
     m = get_bounded_indices(offs_m1[:, None], Q_LEN if CHECK_BLOCK_BOUNDARY else None)
     n = get_bounded_indices(offs_n1[None, :], KV_LEN if (not IS_DIVISIBLE or CHECK_BLOCK_BOUNDARY) else None)
-
-    if not TORCHINDUCTOR_FLEXATTENTION_MASKOUT:
-        {{ modification(
-            subgraph_number=2,
-            output_name="mask_mod_output",
-            score="qkT",
-            b="off_z",
-            h="off_hq",
-            m="m",
-            n="n",
-        ) | indent_except_first(2) }}
-        mask_mod_output = mask_mod_output & (offs_m1[:, None] < Q_LEN) & (offs_n1[None, :] < KV_LEN)
-
-{% if BWD_SCORE_MOD_IS_IDENTITY %}
-{% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
     pre_mod_scores = qkT
 {% endif %}
     if CHECK_BLOCK_BOUNDARY:
         qkT = tl.where(offs_n1[None, :] < KV_LEN, qkT, float("-inf"))
-    if not TORCHINDUCTOR_FLEXATTENTION_MASKOUT:
-        qkT = tl.where(mask_mod_output, qkT, float("-inf"))
     pT = tl.math.exp(qkT - lse[:, None])
-{% else %}
-    pre_mod_scores = qkT
-    {{ modification(
-        subgraph_number=0,
-        output_name="post_mod_scores",
-        score="qkT",
-        b="off_z",
-        h="off_hq",
-        m="m",
-        n="n",
-        out="qkT"
-    ) | indent_except_first(1) }}
-
-    if CHECK_BLOCK_BOUNDARY:
-        post_mod_scores = tl.where(offs_n1[None, :] < KV_LEN, post_mod_scores, float("-inf"))
-
-    if not TORCHINDUCTOR_FLEXATTENTION_MASKOUT:
-        post_mod_scores = tl.where(
-            mask_mod_output,
-            post_mod_scores,
-            float("-inf"),
-        )
-
-    pT = tl.math.exp(post_mod_scores - lse[:, None])
-{% endif %}
     do = tl.load(
         DO + offs_m1[:, None] * stride_dom + offs_v[None, :] * stride_dod,
         mask=(offs_m1[:, None] < Q_LEN) & (offs_v[None, :] < V_HEAD_DIM),
@@ -1555,18 +1459,6 @@ def bwd_dkdv_full_block_mn(
         Di = tl.load(DELTA + offs_m1, mask=offs_m1 < Q_LEN, other=0.0)
     dpT = tl.dot(do, tl.trans(v), input_precision="ieee")
     dsT = (pT * (dpT - Di[:, None])).to(MATMUL_PRECISION)
-{% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
-    {{ modification(
-        subgraph_number=1,
-        output_name="grad_scores",
-        score="pre_mod_scores",
-        b="off_z",
-        h="off_hq",
-        m="m",
-        n="n",
-        grad_score_mod="dsT"
-    ) | indent_except_first(1) }}
-{% endif %}
 
 {% if RUN_CAPTURED_GRADS %}
     idx_b = off_z
@@ -1585,15 +1477,6 @@ def bwd_dkdv_full_block_mn(
         n="idx_n",
         grad_score_mod="dsT"
     ) | indent_except_first(1) }}
-{% endif %}
-
-{% if not BWD_GRAD_SCORE_MOD_IS_IDENTITY %}
-    dsT = grad_scores
-{% endif %}
-{% if not BWD_IDENTITY_SCORE_AND_GRAD %}
-    if not TORCHINDUCTOR_FLEXATTENTION_MASKOUT:
-        dsT = tl.where(mask_mod_output, dsT, 0.0)
-    dsT = tl.where(offs_m1[:, None] < Q_LEN, dsT, 0.0)
 {% endif %}
     index_k = offs_k[None, :]
 
@@ -1917,62 +1800,16 @@ flex_attention_backward_dkdv_reduce_source = r"""
     )
 """
 
-_BWD_DQ_MASK_OUT_SIGNATURE = (
-    '{{def_kernel("Q", "K", "V", "LSE", "DELTA", "DO", "DQ", '
-    '"SPARSE_MASK", "Q_OFFSETS", "SPARSE_MASK_BLOCK_POS", "KV_NUM_BLKS", '
-    '"KV_IDX", "Q_NUM_BLKS", "Q_IDX", "FULL_KV_NUM_BLKS", "FULL_KV_IDX", '
-    '"FULL_Q_NUM_BLKS", "FULL_Q_IDX")}}'
-)
-_BWD_DQ_MASK_IN_SIGNATURE = (
-    '{{def_kernel("Q", "K", "V", "LSE", "DELTA", "DO", "DQ", '
-    '"KV_NUM_BLKS", "KV_IDX", "Q_NUM_BLKS", "Q_IDX", "FULL_KV_NUM_BLKS", '
-    '"FULL_KV_IDX", "FULL_Q_NUM_BLKS", "FULL_Q_IDX")}}'
-)
-_BWD_DQ_MASK_IN_SOURCE = _with_kernel_signature(
-    flex_attention_backward_qmajor_dq_source,
-    _BWD_DQ_MASK_OUT_SIGNATURE,
-    _BWD_DQ_MASK_IN_SIGNATURE,
-)
-
-_BWD_DKDV_MASK_OUT_SIGNATURE = (
-    '{{def_kernel("Q", "K", "V", "LSE", "DELTA", "DO", "DV", "DK", '
-    '"SPARSE_MASK", "Q_OFFSETS", "SPARSE_MASK_BLOCK_POS", "KV_NUM_BLKS", '
-    '"KV_IDX", "Q_NUM_BLKS", "Q_IDX", "FULL_KV_NUM_BLKS", "FULL_KV_IDX", '
-    '"FULL_Q_NUM_BLKS", "FULL_Q_IDX")}}'
-)
-_BWD_DKDV_MASK_IN_SIGNATURE = (
-    '{{def_kernel("Q", "K", "V", "LSE", "DELTA", "DO", "DV", "DK", '
-    '"KV_NUM_BLKS", "KV_IDX", "Q_NUM_BLKS", "Q_IDX", "FULL_KV_NUM_BLKS", '
-    '"FULL_KV_IDX", "FULL_Q_NUM_BLKS", "FULL_Q_IDX")}}'
-)
-_BWD_DKDV_MASK_IN_SOURCE = _with_kernel_signature(
-    flex_attention_backward_dkdv_only_source,
-    _BWD_DKDV_MASK_OUT_SIGNATURE,
-    _BWD_DKDV_MASK_IN_SIGNATURE,
-)
-
 flex_attention_bwd_dq_mask_out = NPUTritonTemplate(
     name="flex_attention_bwd_dq_mask_out",
     grid=flex_attention_backward_dq_grid,
     source=flex_attention_backward_qmajor_dq_source,
 )
 
-flex_attention_bwd_dq_mask_in = NPUTritonTemplate(
-    name="flex_attention_bwd_dq_mask_in",
-    grid=flex_attention_backward_dq_grid,
-    source=_BWD_DQ_MASK_IN_SOURCE,
-)
-
 flex_attention_bwd_dkdv_mask_out = NPUTritonTemplate(
     name="flex_attention_bwd_dkdv_mask_out",
     grid=flex_attention_backward_dkdv_grid,
     source=flex_attention_backward_dkdv_only_source,
-)
-
-flex_attention_bwd_dkdv_mask_in = NPUTritonTemplate(
-    name="flex_attention_bwd_dkdv_mask_in",
-    grid=flex_attention_backward_dkdv_grid,
-    source=_BWD_DKDV_MASK_IN_SOURCE,
 )
 
 flex_attention_bwd_dkdv_tasklist = NPUTritonTemplate(

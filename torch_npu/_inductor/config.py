@@ -475,8 +475,8 @@ FLEX_ATTENTION_NPU_COMPILE_HINT_KEYS = (
 
 
 class flex_attention:
-    enable_npu_optimization = False
-    use_config_generator = True
+    """Runtime strategy switches for the NPU FlexAttention lowering."""
+
     metadata_auto_infer = True
     flexattention_mask_out = True
     # Keep rollout disabled until generated outputcode and NPU numerics have
@@ -600,17 +600,3 @@ flex_attention.bwd_dkdv_tasklist = _read_env_bool(
     "TORCHINDUCTOR_ASCEND_FLEX_ATTENTION_BWD_DKDV_TASKLIST",
     "1" if flex_attention.bwd_dkdv_tasklist else "0",
 )
-flex_attention.flexattention_mask_out = _read_env_bool(
-    "TORCHINDUCTOR_FLEXATTENTION_MASKOUT",
-    "1" if flex_attention.flexattention_mask_out else "0",
-)
-
-
-def apply_flex_attention_npu_params(config: dict, *, enable: bool) -> dict:
-    config = config.copy()
-    if enable:
-        config.update(flex_attention.get_npu_compile_hint_params())
-        config["ENABLE_COMPILE_HINT"] = True
-    else:
-        config["ENABLE_COMPILE_HINT"] = False
-    return config
