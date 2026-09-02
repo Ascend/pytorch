@@ -549,7 +549,7 @@ compute_flex_attention_sparse_mask_in_loop_no_load_balance = r"""
     MATMUL_PRECISION = Q.dtype.element_ty
 
     SPARSE_Q_MULTIPLE: tl.constexpr = (SPARSE_Q_BLOCK_SIZE // BLOCK_M)
-    NUM_Q_TILES: tl.constexpr = NUM_SPARSE_Q_BLOCKS * SPARSE_Q_MULTIPLE
+    NUM_Q_TILES = tl.cdiv(Q_LEN, BLOCK_M)
 
     for tile_id in range(tl.program_id(0), NUM_Q_TILES * ZQ * HQ, tl.num_programs(0)):
         tile_id_index = tile_id.to(INDEX_DTYPE)
@@ -748,7 +748,9 @@ def forward_block_mn_full(
 
 
 @SymbolicGridFn
-def flex_attention_in_loop_grid(batch_size, q_heads, num_queries, d_model, meta, *, cdiv):
+def flex_attention_in_loop_grid(
+    batch_size, q_heads, num_queries, d_model, meta, *, cdiv, min
+):
     num_m_blocks = cdiv(num_queries, meta["BLOCK_M"])
     total_tiles = num_m_blocks * batch_size * q_heads
     return (min(total_tiles, meta["NUM_CUBE_CORE"]), 1, 1)
@@ -765,36 +767,8 @@ def compact_mapping_grid(row_count, meta, *, min, max):
 
 
 @SymbolicGridFn
-def sparse_mask_grid(*args, **kwargs):
-    """Compute grid for sparse mask materialization kernel."""
-    meta = kwargs.get("meta")
-    if meta is None:
-        meta = args[-1]
-    num_q_sub_blocks = meta.get("NUM_Q_SUB_BLOCKS", 1)
-    num_kv_sub_blocks = meta.get("NUM_KV_SUB_BLOCKS", 1)
-    if "TOTAL_FLAT_ENTRIES" in meta:
-        total_entries = (
-            meta["TOTAL_FLAT_ENTRIES"]
-            * num_q_sub_blocks
-            * num_kv_sub_blocks
-        )
-    elif args:
-        # Compact mask templates pass the runtime number of flattened blocks
-        # as their sole call-size argument; it is not a constexpr in ``meta``.
-        total_entries = (
-            args[0]
-            * num_q_sub_blocks
-            * num_kv_sub_blocks
-        )
-    else:
-        total_entries = (
-            meta["SPARSE_Z"]
-            * meta["SPARSE_HQ"]
-            * meta["NUM_SPARSE_Q_BLOCKS"]
-            * meta["NUM_Q_SUB_BLOCKS"]
-            * meta["MAX_NORMAL_BLOCKS"]
-            * meta["NUM_KV_SUB_BLOCKS"]
-        )
+def sparse_mask_grid(*_args, **_kwargs):
+    """Launch compact sparse-mask materialization on all vector cores."""
     num_vector_cores = 48
     # ``actual_blocks`` is an unbacked SymInt on torch 2.10.  Calling the
     # Python ``min`` here tries to compare that symbolic value and raises

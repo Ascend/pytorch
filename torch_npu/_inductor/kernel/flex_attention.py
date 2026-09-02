@@ -50,8 +50,10 @@ from torch._inductor.ir import (
     FixedLayout,
     FlexibleLayout,
     get_fill_order,
+    IRNode,
     StorageBox,
     TensorBox,
+    TritonTemplateBuffer,
 )
 from torch._inductor.lowering import (
     _full,
@@ -82,7 +84,6 @@ try:
         set_head_dim_values,
     )
     from torch._inductor.kernel.flex.flex_attention import (
-        get_bwd_subgraph_outputs,
         get_float32_precision,
         process_joint_outputs,
         validate_joint_graph,
@@ -101,7 +102,6 @@ except ImportError:
         process_joint_outputs,
         create_num_blocks_fake_generator,
         create_placeholder,
-        get_bwd_subgraph_outputs,
         get_float32_precision,
         get_fwd_subgraph_outputs,
         infer_dense_strides,
@@ -113,7 +113,6 @@ except ImportError:
     try:
         from torch._inductor.kernel.flex_attention import freeze_irnodes
     except ImportError:
-        from torch._inductor.ir import IRNode
         from torch.utils._pytree import tree_map_only
 
         def freeze_irnodes(tree):
@@ -246,6 +245,25 @@ def _filter_dkdv_tasklist_reduce_configs(
     return safe_configs
 
 
+def _ir_has_dynamic_shape(*nodes_or_dims: Any) -> bool:
+    """Return whether any IR node/dimension contains a free symbol."""
+    for value in nodes_or_dims:
+        if value is None:
+            continue
+        if isinstance(value, (tuple, list)):
+            if _ir_has_dynamic_shape(*value):
+                return True
+            continue
+        get_size = getattr(value, "get_size", None)
+        if callable(get_size):
+            if _ir_has_dynamic_shape(*get_size()):
+                return True
+            continue
+        if bool(getattr(value, "free_symbols", ())):
+            return True
+    return False
+
+
 def create_zero_int_tensor_fake(x) -> torch.Tensor:
     size = V.graph.sizevars.size_hints(
         x.get_size(), fallback=config.unbacked_symint_fallback
@@ -274,23 +292,6 @@ def create_sparse_mask_num_blocks_fake(x) -> torch.Tensor:
     return torch.ones(size, dtype=x.get_dtype(), device=x.get_device())
 
 
-def _create_sparse_mask_num_blocks_fake_generator(max_normal_blocks: int):
-    num_blocks_for_autotuning = 1 if int(max_normal_blocks) > 0 else 0
-
-    def create_sparse_mask_num_blocks_fake(x) -> torch.Tensor:
-        size = V.graph.sizevars.size_hints(
-            x.get_size(), fallback=config.unbacked_symint_fallback
-        )
-        return torch.full(
-            size,
-            num_blocks_for_autotuning,
-            dtype=x.get_dtype(),
-            device=x.get_device(),
-        )
-
-    return create_sparse_mask_num_blocks_fake
-
-
 def _create_sparse_mask_indices_fake_generator():
     def create_sparse_mask_indices_fake(x) -> torch.Tensor:
         size = V.graph.sizevars.size_hints(
@@ -301,10 +302,6 @@ def _create_sparse_mask_indices_fake_generator():
     return create_sparse_mask_indices_fake
 
 
-from torch_npu._inductor.kernel.flex_attention_metadata import (
-    apply_kernel_options_from_eager_block_mask,
-    infer_eager_block_mask_kernel_options,
-)
 from torch_npu._inductor.kernel.flex_attention_config_generator import (
     FlexMode,
     NO_SPARSE_BLOCK_SIZE,
@@ -379,11 +376,14 @@ def _build_runtime_compact_sparse_mask_offsets(
     autotune_select_algorithm(
         f"{context}_compact_sparse_mask_metadata",
         choices,
-        [
-            q_offsets,
-            total_blocks,
-            kv_num_blocks,
-        ],
+        _filter_autotune_ir_nodes(
+            [
+                q_offsets,
+                total_blocks,
+                kv_num_blocks,
+            ],
+            choices,
+        ),
         total_layout,
         input_gen_fns={
             0: create_compact_q_offsets_fake,
@@ -452,7 +452,10 @@ def _build_runtime_compact_sparse_mask_mapping(
     autotune_select_algorithm(
         f"{context}_compact_sparse_mask_mapping",
         choices,
-        [flat_to_row, flat_to_blk, q_offsets, kv_num_blocks],
+        _filter_autotune_ir_nodes(
+            [flat_to_row, flat_to_blk, q_offsets, kv_num_blocks],
+            choices,
+        ),
         mapping_layout,
         input_gen_fns={
             0: create_zero_int_tensor_fake,
@@ -651,7 +654,7 @@ def _should_use_streaming_block_mask(args, kwargs) -> bool:
 
 
 def patch_flex_attention() -> None:
-    """Patch the Python flex_attention entry so eager block-mask metadata is injected transparently."""
+    """Patch Python entries for score-mod routing and streaming BlockMask creation."""
     current_flex_attention = flex_attention_module.flex_attention
     current_create_block_mask = flex_attention_module.create_block_mask
     if (
@@ -673,22 +676,10 @@ def patch_flex_attention() -> None:
         *,
         return_aux: Any = None,
     ):
-        """Inject eager block-mask metadata before delegating to the original flex_attention entry."""
-        is_compiling = torch.compiler.is_dynamo_compiling()
-        if is_compiling:
-            # Eager BlockMask analysis reads tensor values and may synchronize them
-            # to the host. Keep create_block_mask + flex_attention capturable as one
-            # graph and let the lowering use conservative defaults instead.
-            updated_kernel_options = (
-                {} if kernel_options is None else dict(kernel_options)
-            )
-        else:
-            updated_kernel_options = apply_kernel_options_from_eager_block_mask(
-                kernel_options,
-                block_mask,
-                context="py-api",
-            )
-        updated_kernel_options = dict(updated_kernel_options)
+        """Record whether score_mod was explicitly supplied."""
+        updated_kernel_options = (
+            {} if kernel_options is None else dict(kernel_options)
+        )
         updated_kernel_options[_EXPLICIT_SCORE_MOD_OPTION] = score_mod is not None
         return current_flex_attention(
             query,
@@ -724,29 +715,6 @@ def patch_flex_attention() -> None:
                     block_mask = current_create_block_mask(*args, **kwargs)
             else:
                 block_mask = current_create_block_mask(*args, **kwargs)
-            if torch.compiler.is_dynamo_compiling():
-                # Do not inspect tensor contents, attach Python-side metadata, or
-                # capture compact-metadata buffers in mask_mod while tracing.
-                return block_mask
-            try:
-                kernel_options = infer_eager_block_mask_kernel_options(block_mask)
-                merged_kernel_options = dict(kernel_options) if kernel_options else {}
-                setattr(
-                    block_mask,
-                    "_npu_flex_attention_kernel_options",
-                    merged_kernel_options,
-                )
-                if kernel_options:
-                    log.info(
-                        "[flex_attention][create_block_mask] cached kernel options: %s",
-                        merged_kernel_options,
-                    )
-            except Exception as exc:
-                log.debug(
-                    "Failed to cache kernel options on BlockMask: %s: %s",
-                    type(exc).__name__,
-                    exc,
-                )
             return block_mask
 
         create_block_mask_with_metadata._npu_metadata_patch_applied = True
@@ -1141,12 +1109,6 @@ def _create_npu_flex_decoding_kernel(*args):
             **cur_kernel_options,
         )
 
-    filtered_score_mod_buffers = [
-        buf for buf in score_mod_other_buffers if not isinstance(buf, sympy.Symbol)
-    ]
-    filtered_mask_mod_buffers = [
-        buf for buf in mask_mod_other_buffers if not isinstance(buf, sympy.Symbol)
-    ]
     inputs_for_flex_decoding = (
         [
             query,
@@ -1159,8 +1121,8 @@ def _create_npu_flex_decoding_kernel(*args):
             full_kv_num_blocks,
             full_kv_indices,
         ]
-        + filtered_score_mod_buffers
-        + filtered_mask_mod_buffers
+        + list(score_mod_other_buffers)
+        + list(mask_mod_other_buffers)
     )
     input_gen_fns = {
         5: create_num_blocks_fake_generator(kv_indices),
@@ -1171,7 +1133,7 @@ def _create_npu_flex_decoding_kernel(*args):
     buf_ACC = autotune_select_algorithm(
         "flex_decoding",
         choices,
-        inputs_for_flex_decoding,
+        _filter_autotune_ir_nodes(inputs_for_flex_decoding, choices),
         layout_acc,
         input_gen_fns=input_gen_fns,
     )
@@ -1270,6 +1232,169 @@ def _filter_used_subgraph_buffers(subgraph_buffer, other_buffers):
         )
 
     return used_buffers
+
+
+def _filter_autotune_ir_nodes(
+    inputs: Sequence[Any],
+    choices: Sequence[Any],
+) -> list[IRNode]:
+    """Match autotune tensors to the actual template argument list.
+
+    Symbolic scalar captures remain subgraph dependencies but are not benchmark
+    tensors. Template generation can also remove unused or duplicate captured
+    buffers, so use the generated choices as the source of truth for both the
+    number and order of tensor arguments passed to AlgorithmSelector.
+    """
+    ir_nodes = []
+    scalar_exprs = []
+    invalid = []
+
+    for node in inputs:
+        if isinstance(node, IRNode):
+            ir_nodes.append(node)
+        elif isinstance(node, sympy.Expr):
+            scalar_exprs.append(node)
+        elif node is not None:
+            invalid.append(node)
+
+    if invalid:
+        raise TypeError(
+            "FlexAttention autotune inputs contain unsupported values: "
+            f"{[type(value).__name__ for value in invalid]}"
+        )
+
+    if not choices:
+        raise ValueError("FlexAttention autotune requires at least one template choice")
+
+    choice_input_nodes = getattr(choices[0], "input_nodes", None)
+    if choice_input_nodes is None:
+        raise TypeError(
+            "FlexAttention autotune choice does not expose template input nodes: "
+            f"{type(choices[0]).__name__}"
+        )
+
+    expected_names = tuple(node.get_name() for node in choice_input_nodes)
+    for choice in choices[1:]:
+        current_input_nodes = getattr(choice, "input_nodes", None)
+        if current_input_nodes is None:
+            raise TypeError(
+                "FlexAttention autotune choice does not expose template input nodes: "
+                f"{type(choice).__name__}"
+            )
+        current_names = tuple(node.get_name() for node in current_input_nodes)
+        if current_names != expected_names:
+            raise ValueError(
+                "FlexAttention autotune choices have inconsistent template inputs: "
+                f"expected {expected_names}, got {current_names}"
+            )
+
+    input_by_name = {}
+    for node in ir_nodes:
+        input_by_name.setdefault(node.get_name(), node)
+
+    missing_names = [name for name in expected_names if name not in input_by_name]
+    if missing_names:
+        raise ValueError(
+            "FlexAttention template inputs are missing from autotune inputs: "
+            f"{missing_names}"
+        )
+
+    expected_name_set = set(expected_names)
+    aligned_ir_nodes = [input_by_name[name] for name in expected_names]
+    unused_names = [name for name in input_by_name if name not in expected_name_set]
+
+    log.debug(
+        "FlexAttention autotune input split: template_ir_nodes=%d "
+        "unused_ir_nodes=%s scalar_exprs=%s",
+        len(aligned_ir_nodes),
+        unused_names,
+        scalar_exprs,
+    )
+    return aligned_ir_nodes
+
+
+def _as_subgraph_output_list(value: Any) -> list[Any]:
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        return list(value)
+    return [value]
+
+
+def _get_fwd_subgraph_outputs(subgraph_buffer, mask_graph_buffer) -> list[Any]:
+    return [
+        *_as_subgraph_output_list(subgraph_buffer),
+        *_as_subgraph_output_list(mask_graph_buffer),
+    ]
+
+
+def _get_bwd_subgraph_outputs(
+    fw_subgraph_buffer,
+    mask_graph_buffer,
+    joint_outputs,
+) -> list[Any]:
+    return [
+        *_as_subgraph_output_list(fw_subgraph_buffer),
+        *_as_subgraph_output_list(mask_graph_buffer),
+        *_as_subgraph_output_list(joint_outputs.grad_input),
+        *_as_subgraph_output_list(joint_outputs.captured_grads_compute),
+        *_as_subgraph_output_list(joint_outputs.captured_grads),
+        *_as_subgraph_output_list(joint_outputs.mutated_grads),
+    ]
+
+
+def _get_mask_out_bwd_subgraph_outputs(
+    fw_subgraph_buffer,
+    joint_outputs,
+    *,
+    owns_captured_grads: bool,
+) -> list[Any]:
+    """Return only subgraph outputs executed by one mask-out grad kernel."""
+    outputs = [
+        *_as_subgraph_output_list(fw_subgraph_buffer),
+        *_as_subgraph_output_list(joint_outputs.grad_input),
+    ]
+    if owns_captured_grads:
+        outputs.extend(
+            [
+                *_as_subgraph_output_list(joint_outputs.captured_grads_compute),
+                *_as_subgraph_output_list(joint_outputs.captured_grads),
+                *_as_subgraph_output_list(joint_outputs.mutated_grads),
+            ]
+        )
+    return outputs
+
+
+def _get_triton_template_buffer(output: Any) -> TritonTemplateBuffer:
+    """Unwrap a selected FlexAttention template output.
+
+    A normal AlgorithmSelector result is TensorBox -> StorageBox ->
+    TritonTemplateBuffer. MultiTemplateBuffer is itself a
+    TritonTemplateBuffer, so the same path also preserves dependencies for
+    max-autotune template selections.
+    """
+    current = output
+    for _ in range(3):
+        if isinstance(current, TritonTemplateBuffer):
+            return current
+        next_value = getattr(current, "data", None)
+        if next_value is current:
+            break
+        current = next_value
+
+    raise TypeError(
+        "Expected FlexAttention autotune output to wrap "
+        f"TritonTemplateBuffer, got {type(current).__name__}"
+    )
+
+
+def _attach_flex_subgraph_dependencies(
+    output: Any,
+    *,
+    subgraph_inps: Sequence[Any],
+    subgraph_outs: Sequence[Any],
+) -> None:
+    template_buffer = _get_triton_template_buffer(output)
+    template_buffer.subgraph_inps = list(subgraph_inps)
+    template_buffer.subgraph_outs = list(subgraph_outs)
 
 
 def _build_persistent_bwd_launch_meta(
@@ -1554,20 +1679,21 @@ def _lower_flex_attention_mask_in(
         autotune_select_algorithm(
             "flex_attention",
             choices,
-            [
-                x
-                for x in inputs_for_autotuning
-                if isinstance(x, torch._inductor.ir.IRNode)
-            ],
+            _filter_autotune_ir_nodes(inputs_for_autotuning, choices),
             layout,
             input_gen_fns=input_gen_fns,
         )
     )
-    out.data.data.subgraph_inps = list(score_mod_other_buffers) + list(
-        mask_mod_other_buffers
-    )
-    out.data.data.subgraph_outs = get_fwd_subgraph_outputs(
-        subgraph_buffer, mask_graph_buffer
+    _attach_flex_subgraph_dependencies(
+        out,
+        subgraph_inps=(
+            list(score_mod_other_buffers)
+            + list(mask_mod_other_buffers)
+        ),
+        subgraph_outs=_get_fwd_subgraph_outputs(
+            subgraph_buffer,
+            mask_graph_buffer,
+        ),
     )
     return (out, logsumexp, max_scores)
 
@@ -1824,20 +1950,22 @@ def _lower_flex_attention_backward_mask_in(
         autotune_select_algorithm(
             "flex_attention_backward",
             choices,
-            [
-                x
-                for x in inputs_for_autotuning
-                if isinstance(x, torch._inductor.ir.IRNode)
-            ],
+            _filter_autotune_ir_nodes(inputs_for_autotuning, choices),
             layout_broadcasted_k,
             input_gen_fns=input_gen_fns,
         )
     )
-    broadcasted_grad_key.data.data.subgraph_inps = list(
-        score_mod_other_buffers
-    ) + list(mask_mod_other_buffers)
-    broadcasted_grad_key.data.data.subgraph_outs = get_bwd_subgraph_outputs(
-        fw_subgraph_buffer, mask_graph_buffer, joint_outputs
+    _attach_flex_subgraph_dependencies(
+        broadcasted_grad_key,
+        subgraph_inps=(
+            list(score_mod_other_buffers)
+            + list(mask_mod_other_buffers)
+        ),
+        subgraph_outs=_get_bwd_subgraph_outputs(
+            fw_subgraph_buffer,
+            mask_graph_buffer,
+            joint_outputs,
+        ),
     )
 
     if V.graph.sizevars.evaluate_expr(sympy.Eq(Bq, Bkv)):
@@ -1958,58 +2086,6 @@ def _register_npu_inductor_flex_attention():
             for k, v in kernel_options.items()
         }
         kernel_options.setdefault("FLOAT32_PRECISION", get_float32_precision())
-        score_mod_is_identity = _is_score_mod_identity_graph(subgraph)
-        has_score_mod = has_explicit_score_mod and not score_mod_is_identity
-        configured_mask_out = bool(
-            npu_config.flex_attention.flexattention_mask_out
-        )
-        use_mask_out = (
-            configured_mask_out
-            and not has_score_mod
-            and _has_sparse_block_mask(
-                SPARSE_Q_BLOCK_SIZE, SPARSE_KV_BLOCK_SIZE
-            )
-        )
-        if not use_mask_out:
-            if not bool(
-                kernel_options.get(
-                    "HAS_FULL_BLOCKS", full_kv_num_blocks is not None
-                )
-            ):
-                full_kv_num_blocks = None
-                full_kv_indices = None
-                full_q_num_blocks = None
-                full_q_indices = None
-            for option in (
-                "SPARSE_MASK_HEAD_SHARED",
-                "SPARSE_MASK_HQ",
-                "SPARSE_MASK_MAX_NORMAL_BLOCKS",
-            ):
-                kernel_options.pop(option, None)
-            return _lower_flex_attention_mask_in(
-                query=query,
-                key=key,
-                value=value,
-                scale=scale,
-                kernel_options=kernel_options,
-                subgraph_buffer=subgraph_buffer,
-                mask_graph_buffer=mask_graph_buffer,
-                score_mod_other_buffers=score_mod_other_buffers,
-                mask_mod_other_buffers=mask_mod_other_buffers,
-                kv_num_blocks=kv_num_blocks,
-                kv_indices=kv_indices,
-                q_num_blocks=q_num_blocks,
-                q_indices=q_indices,
-                full_kv_num_blocks=full_kv_num_blocks,
-                full_kv_indices=full_kv_indices,
-                full_q_num_blocks=full_q_num_blocks,
-                full_q_indices=full_q_indices,
-                sparse_q_block_size=SPARSE_Q_BLOCK_SIZE,
-                sparse_kv_block_size=SPARSE_KV_BLOCK_SIZE,
-            )
-
-        kernel_options.setdefault("ROWS_GUARANTEED_SAFE", False)
-        kernel_options.setdefault("BLOCKS_ARE_CONTIGUOUS", False)
 
         enable_gqa = V.graph.sizevars.evaluate_expr(
             sympy.Ne(query.get_size()[1], key.get_size()[1])
@@ -2034,6 +2110,53 @@ def _register_npu_inductor_flex_attention():
                 log.warning(
                     "Flex decoding failed, falling back to flex attention: %s", exc
                 )
+
+        score_mod_is_identity = _is_score_mod_identity_graph(subgraph)
+        has_score_mod = has_explicit_score_mod and not score_mod_is_identity
+        configured_mask_out = bool(
+            npu_config.flex_attention.flexattention_mask_out
+        )
+        use_mask_out = (
+            configured_mask_out
+            and not has_score_mod
+            and _has_sparse_block_mask(
+                SPARSE_Q_BLOCK_SIZE, SPARSE_KV_BLOCK_SIZE
+            )
+        )
+        if not use_mask_out:
+            if not bool(
+                kernel_options.get(
+                    "HAS_FULL_BLOCKS", full_kv_num_blocks is not None
+                )
+            ):
+                full_kv_num_blocks = None
+                full_kv_indices = None
+                full_q_num_blocks = None
+                full_q_indices = None
+            return _lower_flex_attention_mask_in(
+                query=query,
+                key=key,
+                value=value,
+                scale=scale,
+                kernel_options=kernel_options,
+                subgraph_buffer=subgraph_buffer,
+                mask_graph_buffer=mask_graph_buffer,
+                score_mod_other_buffers=score_mod_other_buffers,
+                mask_mod_other_buffers=mask_mod_other_buffers,
+                kv_num_blocks=kv_num_blocks,
+                kv_indices=kv_indices,
+                q_num_blocks=q_num_blocks,
+                q_indices=q_indices,
+                full_kv_num_blocks=full_kv_num_blocks,
+                full_kv_indices=full_kv_indices,
+                full_q_num_blocks=full_q_num_blocks,
+                full_q_indices=full_q_indices,
+                sparse_q_block_size=SPARSE_Q_BLOCK_SIZE,
+                sparse_kv_block_size=SPARSE_KV_BLOCK_SIZE,
+            )
+
+        kernel_options.setdefault("ROWS_GUARANTEED_SAFE", False)
+        kernel_options.setdefault("BLOCKS_ARE_CONTIGUOUS", False)
         (
             query,
             key,
@@ -2125,14 +2248,6 @@ def _register_npu_inductor_flex_attention():
             )
 
         set_head_dim_values(kernel_options, qk_head_dim, v_head_dim, V.graph.sizevars)
-
-        # The mask-out templates reference the metadata head count even when
-        # the full-block fast path is selected.  Keep the constexpr available
-        # during Triton AST construction on torch 2.10.
-        kernel_options.setdefault(
-            "SPARSE_MASK_HQ",
-            V.graph.sizevars.guard_int(kv_num_blocks.get_size()[1]),
-        )
 
         # Mark SPARSE_KV_BLOCK_SIZE & SPARSE_Q_BLOCK_SIZE as static shapes and add guards.
         SPARSE_KV_BLOCK_SIZE = V.graph.sizevars.guard_int(SPARSE_KV_BLOCK_SIZE)
@@ -2287,14 +2402,6 @@ def _register_npu_inductor_flex_attention():
             # Blocksparse options
             cur_kernel_options.setdefault("SPARSE_Q_BLOCK_SIZE", SPARSE_Q_BLOCK_SIZE)
             cur_kernel_options.setdefault("SPARSE_KV_BLOCK_SIZE", SPARSE_KV_BLOCK_SIZE)
-            # The upstream forward template uses this to derive the number of
-            # query tiles in each sparse mask block.  Torch 2.10 does not
-            # populate it through the higher-order op, so bind the guarded
-            # metadata dimension explicitly for every generated choice.
-            cur_kernel_options.setdefault(
-                "NUM_SPARSE_Q_BLOCKS",
-                V.graph.sizevars.guard_int(kv_num_blocks.get_size()[2]),
-            )
             cur_kernel_options.setdefault("NUM_CUBE_CORE", fwd_num_cube_core)
             fwd_grid_x = (fwd_num_queries_hint + BLOCK_M - 1) // BLOCK_M
             fwd_grid_y = fwd_batch_size_hint * fwd_q_heads_hint
@@ -2492,12 +2599,20 @@ def _register_npu_inductor_flex_attention():
             5: _create_sparse_mask_indices_fake_generator(),
         }
         log.info("Sparse mask kernel autotune starting with %d choices", len(sparse_mask_choices))
-        autotune_select_algorithm(
+        sparse_mask_result = autotune_select_algorithm(
             "sparse_mask_kernel",
             sparse_mask_choices,
-            sparse_mask_inputs_for_autotuning,
+            _filter_autotune_ir_nodes(
+                sparse_mask_inputs_for_autotuning,
+                sparse_mask_choices,
+            ),
             sparse_mask_layout,
             input_gen_fns=sparse_mask_input_gen_fns,
+        )
+        _attach_flex_subgraph_dependencies(
+            sparse_mask_result,
+            subgraph_inps=mask_mod_other_buffers,
+            subgraph_outs=_as_subgraph_output_list(mask_graph_buffer),
         )
         log.info(
             "Sparse mask kernel autotune completed with %d choices",
@@ -2507,9 +2622,14 @@ def _register_npu_inductor_flex_attention():
         result = autotune_select_algorithm(
             "flex_attention",
             choices,
-            inputs_for_autotuning,
+            _filter_autotune_ir_nodes(inputs_for_autotuning, choices),
             layout,
             input_gen_fns=input_gen_fns,
+        )
+        _attach_flex_subgraph_dependencies(
+            result,
+            subgraph_inps=score_mod_other_buffers,
+            subgraph_outs=_as_subgraph_output_list(subgraph_buffer),
         )
 
         return (
@@ -2603,6 +2723,19 @@ def _register_npu_inductor_flex_attention():
             )
 
         kernel_options = dict(kernel_options)
+        bwd_has_dynamic_shape = _ir_has_dynamic_shape(
+            query,
+            key,
+            value,
+            kv_num_blocks,
+            kv_indices,
+            full_kv_num_blocks,
+            full_kv_indices,
+            q_num_blocks,
+            q_indices,
+            full_q_num_blocks,
+            full_q_indices,
+        )
         # Strip upstream GPU dispatch knobs before they leak into Triton
         # constexprs.
         # WRITE_DQ and OUTPUT_MAX are valid FlexAttention template options.
@@ -2713,12 +2846,6 @@ def _register_npu_inductor_flex_attention():
                 full_kv_indices = None
                 full_q_num_blocks = None
                 full_q_indices = None
-            for option in (
-                "SPARSE_MASK_HEAD_SHARED",
-                "SPARSE_MASK_HQ",
-                "SPARSE_MASK_MAX_NORMAL_BLOCKS",
-            ):
-                kernel_options.pop(option, None)
             return _lower_flex_attention_backward_mask_in(
                 query=query,
                 key=key,
@@ -2816,15 +2943,14 @@ def _register_npu_inductor_flex_attention():
         gqa_shared_heads = FloorDiv(Hq, Hkv)
         kernel_options.setdefault("GQA_SHARED_HEADS", gqa_shared_heads)
 
-        has_full_blocks = full_kv_num_blocks is not None
+        # Derive HAS_FULL_BLOCKS from the BlockMask tensor structure when the
+        # caller does not override it explicitly.
+        has_full_blocks = bool(
+            kernel_options.get("HAS_FULL_BLOCKS", full_kv_num_blocks is not None)
+        )
         kernel_options.setdefault("HAS_FULL_BLOCKS", has_full_blocks)
 
         set_head_dim_values(kernel_options, qk_head_dim, v_head_dim, V.graph.sizevars)
-
-        kernel_options.setdefault(
-            "SPARSE_MASK_HQ",
-            V.graph.sizevars.guard_int(kv_num_blocks.get_size()[1]),
-        )
 
         SPARSE_Q_BLOCK_SIZE = V.graph.sizevars.guard_int(SPARSE_Q_BLOCK_SIZE)
         SPARSE_KV_BLOCK_SIZE = V.graph.sizevars.guard_int(SPARSE_KV_BLOCK_SIZE)
@@ -2837,15 +2963,6 @@ def _register_npu_inductor_flex_attention():
 
         sparse_z = kv_num_blocks.get_size()[0]
         metadata_sparse_hq = kv_num_blocks.get_size()[1]
-        bwd_dynamic_dims = (
-            *query.get_size()[:3],
-            *key.get_size()[:3],
-            *kv_num_blocks.get_size(),
-            kv_indices.get_size()[3],
-        )
-        bwd_has_dynamic_shape = any(
-            bool(getattr(dim, "free_symbols", ())) for dim in bwd_dynamic_dims
-        )
         sparse_z_val = V.graph.sizevars.size_hint(
             sparse_z,
             fallback=config.unbacked_symint_fallback,
@@ -3109,9 +3226,17 @@ def _register_npu_inductor_flex_attention():
             bwd_sparse_mask_result = autotune_select_algorithm(
                 "bwd_sparse_mask_kernel_compact",
                 bwd_sparse_mask_choices,
-                bwd_sparse_mask_inputs_for_autotuning,
+                _filter_autotune_ir_nodes(
+                    bwd_sparse_mask_inputs_for_autotuning,
+                    bwd_sparse_mask_choices,
+                ),
                 bwd_sparse_mask_layout,
                 input_gen_fns=bwd_sparse_mask_input_gen_fns,
+            )
+            _attach_flex_subgraph_dependencies(
+                bwd_sparse_mask_result,
+                subgraph_inps=mask_mod_other_buffers,
+                subgraph_outs=_as_subgraph_output_list(mask_graph_buffer),
             )
             log.info(
                 "Backward compact sparse mask kernel autotune completed "
@@ -3123,12 +3248,15 @@ def _register_npu_inductor_flex_attention():
             bwd_sparse_mask_block_pos_result = autotune_select_algorithm(
                 "sparse_mask_block_pos",
                 bwd_sparse_mask_block_pos_choices,
-                [
-                    compact_flat_to_row,
-                    compact_flat_to_blk,
-                    kv_indices,
-                    bwd_sparse_mask_block_pos_buffer,
-                ],
+                _filter_autotune_ir_nodes(
+                    [
+                        compact_flat_to_row,
+                        compact_flat_to_blk,
+                        kv_indices,
+                        bwd_sparse_mask_block_pos_buffer,
+                    ],
+                    bwd_sparse_mask_block_pos_choices,
+                ),
                 bwd_sparse_mask_block_pos_layout,
                 input_gen_fns={
                     0: create_zero_int_tensor_fake,
@@ -3196,10 +3324,6 @@ def _register_npu_inductor_flex_attention():
             # compile hint with this constexpr; provide the disabled default
             # when no NPU autotune options populate it.
             cur_kernel_options.setdefault("ENABLE_COMPILE_HINT", False)
-            cur_kernel_options.setdefault(
-                "NUM_SPARSE_Q_BLOCKS",
-                V.graph.sizevars.guard_int(kv_num_blocks.get_size()[2]),
-            )
             return cur_kernel_options
 
         def make_bwd_dq_kernel_options(cfg: dict) -> dict:
@@ -3620,20 +3744,41 @@ def _register_npu_inductor_flex_attention():
             tuple(bwd_query_call_size_hints), tuple(bwd_key_call_size_hints), bwd_num_cube_core
         )
 
-        autotune_select_algorithm(
+        dq_result = autotune_select_algorithm(
+            "flex_attention_backward_qmajor_dq",
+            dq_choices,
+            _filter_autotune_ir_nodes(dq_inputs_for_autotuning, dq_choices),
+            grad_query.get_layout(),
+            input_gen_fns=dq_input_gen_fns,
+        )
+        _attach_flex_subgraph_dependencies(
+            dq_result,
+            subgraph_inps=score_mod_other_buffers,
+            subgraph_outs=_get_mask_out_bwd_subgraph_outputs(
+                fw_subgraph_buffer,
+                joint_outputs,
+                owns_captured_grads=captured_grad_owner == "dq",
+            ),
+        )
+
+        dkdv_result = autotune_select_algorithm(
             "flex_attention_backward_dkdv_only",
             dkdv_choices,
-            dkdv_inputs_for_autotuning,
+            _filter_autotune_ir_nodes(
+                dkdv_inputs_for_autotuning,
+                dkdv_choices,
+            ),
             layout_broadcasted_k_accum,
             input_gen_fns=dkdv_input_gen_fns,
         )
-
-        autotune_select_algorithm(
-            "flex_attention_backward_qmajor_dq",
-            dq_choices,
-            dq_inputs_for_autotuning,
-            grad_query.get_layout(),
-            input_gen_fns=dq_input_gen_fns,
+        _attach_flex_subgraph_dependencies(
+            dkdv_result,
+            subgraph_inps=score_mod_other_buffers,
+            subgraph_outs=_get_mask_out_bwd_subgraph_outputs(
+                fw_subgraph_buffer,
+                joint_outputs,
+                owns_captured_grads=captured_grad_owner == "dkdv",
+            ),
         )
 
         if V.graph.sizevars.evaluate_expr(sympy.Eq(Bq, Bkv)):
