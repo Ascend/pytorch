@@ -99,7 +99,7 @@ There is no required order for uninstalling the driver and firmware. The procedu
 
     > [!NOTE]
     >
-    > _<install_path>_ indicates the software package installation path. You can run the **cat /etc/ascend_install.info** command to query the installation path. Replace it based on the actual situation.
+    > _<install\_path\>_ indicates the software package installation path. You can run the **cat /etc/ascend_install.info** command to query the installation path. Replace it based on the actual situation.
 
 4. Decide whether to restart the server based on the system prompt. If a system restart is required, run the following command; otherwise, skip this step.
 
