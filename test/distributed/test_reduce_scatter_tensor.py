@@ -79,6 +79,43 @@ class HcclReduceScatterTensorTest(HcclReduceScatterTestBase):
                 self._test_multiprocess(HcclReduceScatterTensorTest._test_reduce_scatter_tensor,
                                         HcclReduceScatterTensorTest._init_dist_hccl, expected, input_list, world_size)
 
+    # Ascend950 (Atlas A5) extends HCCL data type support with uint64/fp64.
+    @SupportedDevices(["Ascend950"])
+    @skipIfUnsupportMultiNPU(2)
+    def test_reduce_scatter_tensor_uint64(self):
+        ranks = [2]
+        shape_format = [[np.uint64, 2, [4, 9]]]
+        for world_size in ranks:
+            for shape in shape_format:
+                input_list = []
+                for _ in range(world_size):
+                    # uint64 is unsigned, use a non-negative range to avoid wrap-around on cast.
+                    _, input1 = create_common_tensor(shape, 0, 10)
+                    input_list.append(input1.cpu())
+                # _construct_excepted_result uses input.cpu()*world_size (mul,
+                # which works for uint64), so pass tensors directly. Only the
+                # final comparison needs torch.equal (assertEqual does a-b which
+                # uint64 lacks), via use_equal=True.
+                expected = self._construct_excepted_result(input_list, world_size, dist.reduce_scatter_tensor)
+                self._test_multiprocess(HcclReduceScatterTensorTest._test_reduce_scatter_tensor,
+                                        HcclReduceScatterTensorTest._init_dist_hccl, expected, input_list, world_size,
+                                        use_equal=True)
+
+    @SupportedDevices(["Ascend950"])
+    @skipIfUnsupportMultiNPU(2)
+    def test_reduce_scatter_tensor_fp64(self):
+        ranks = [2]
+        shape_format = [[np.float64, 2, [4, 9]]]
+        for world_size in ranks:
+            for shape in shape_format:
+                input_list = []
+                for _ in range(world_size):
+                    _, input1 = create_common_tensor(shape, -10, 10)
+                    input_list.append(input1.cpu())
+                expected = self._construct_excepted_result(input_list, world_size, dist.reduce_scatter_tensor)
+                self._test_multiprocess(HcclReduceScatterTensorTest._test_reduce_scatter_tensor,
+                                        HcclReduceScatterTensorTest._init_dist_hccl, expected, input_list, world_size)
+
     @classmethod
     # pylint:disable=huawei-too-many-arguments
     def _test_reduce_scatter_tensor_uneven(cls, rank, input_list, world_size, init_pg, c2p, p2c, reduce_op=dist.ReduceOp.SUM):

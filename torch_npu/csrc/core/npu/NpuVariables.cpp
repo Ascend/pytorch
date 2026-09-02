@@ -37,81 +37,76 @@ static std::map<std::string, SocVersion> socVersionMap = {
     {"Ascend910_9381", SocVersion::Ascend910_9381},
     {"Ascend910_9382", SocVersion::Ascend910_9382},
     {"Ascend910_9372", SocVersion::Ascend910_9372},
-    {"Ascend910_9362", SocVersion::Ascend910_9362}
-};
+    {"Ascend910_9362", SocVersion::Ascend910_9362},
+    {"Ascend910_9363", SocVersion::Ascend910_9363}};
 
-void SetSocVersion(const char* const socVersion)
-{
-    if (socVersion == nullptr ||
-        g_curSocVersion != SocVersion::UnsupportedSocVersion) {
-        return;
-    }
+void SetSocVersion(const char* const socVersion) {
+  if (socVersion == nullptr || g_curSocVersion != SocVersion::UnsupportedSocVersion) {
+    return;
+  }
 
-    SocVersion curSocVersion = SocVersion::UnsupportedSocVersion;
-    std::string inputVersion = socVersion;
-    std::string ascend950 = "Ascend950";
+  SocVersion curSocVersion = SocVersion::UnsupportedSocVersion;
+  std::string inputVersion = socVersion;
+  std::string ascend950 = "Ascend950";
 
-    auto const& iter = socVersionMap.find(socVersion);
-    if (iter != socVersionMap.end()) {
-        curSocVersion = iter->second;
-    } else if (inputVersion.compare(0, ascend950.size(), ascend950) == 0) {
-        curSocVersion = SocVersion::Ascend950;
-    } else {
-        std::string unsupported_soc(socVersion);
-        std::replace(std::begin(unsupported_soc), std::end(unsupported_soc), '_', ' ');
-        AT_ERROR("Unsupported soc version: ", unsupported_soc);
-    }
+  auto const& iter = socVersionMap.find(socVersion);
+  if (iter != socVersionMap.end()) {
+    curSocVersion = iter->second;
+  } else if (inputVersion.compare(0, ascend950.size(), ascend950) == 0) {
+    curSocVersion = SocVersion::Ascend950;
+  } else {
+    std::string unsupported_soc(socVersion);
+    std::replace(std::begin(unsupported_soc), std::end(unsupported_soc), '_', ' ');
+    AT_ERROR("Unsupported soc version: ", unsupported_soc);
+  }
 
-    g_curSocVersion = curSocVersion;
+  g_curSocVersion = curSocVersion;
 }
 
-const SocVersion& GetSocVersion()
-{
-    if (g_curSocVersion == SocVersion::UnsupportedSocVersion) {
-        auto soc_name = c10_npu::acl::AclGetSocName();
-        SetSocVersion(soc_name);
-    }
-    return g_curSocVersion;
+const SocVersion& GetSocVersion() {
+  if (g_curSocVersion == SocVersion::UnsupportedSocVersion) {
+    auto soc_name = c10_npu::acl::AclGetSocName();
+    SetSocVersion(soc_name);
+  }
+  return g_curSocVersion;
 }
 
-bool IsSupportInfNan()
-{
-    // Ascend950 only supports INF_NAN mode, saturation mode not available,
-    // env vars INF_NAN_MODE_ENABLE and INF_NAN_MODE_FORCE_DISABLE are ignored.
-    if (GetSocVersion() >= SocVersion::Ascend950) {
-        return true;
+bool IsSupportInfNan() {
+  // Ascend950 only supports INF_NAN mode, saturation mode not available,
+  // env vars INF_NAN_MODE_ENABLE and INF_NAN_MODE_FORCE_DISABLE are ignored.
+  if (GetSocVersion() >= SocVersion::Ascend950) {
+    return true;
+  }
+  static bool default_support_inf_nan =
+      ((GetSocVersion() >= SocVersion::Ascend910B1) && (GetSocVersion() < SocVersion::Ascend310B1)) ||
+      (GetSocVersion() >= SocVersion::Ascend910_9391);
+  if (!c10_npu::option::OptionsManager::CheckInfNanModeEnable()) {
+    if (default_support_inf_nan && !c10_npu::option::OptionsManager::CheckInfNanModeForceDisable()) {
+      AT_ERROR(
+          "INF_NAN_MODE_ENABLE shouldn't be set to 0 on the current device. If you want to disable ",
+          "inf-nan mode, please export INF_NAN_MODE_FORCE_DISABLE=1");
     }
-    static bool default_support_inf_nan = ((GetSocVersion() >= SocVersion::Ascend910B1) &&
-        (GetSocVersion() < SocVersion::Ascend310B1)) ||
-        (GetSocVersion() >= SocVersion::Ascend910_9391);
-    if (!c10_npu::option::OptionsManager::CheckInfNanModeEnable()) {
-        if (default_support_inf_nan && !c10_npu::option::OptionsManager::CheckInfNanModeForceDisable()) {
-            AT_ERROR("INF_NAN_MODE_ENABLE shouldn't be set to 0 on the current device. If you want to disable ",
-                "inf-nan mode, please export INF_NAN_MODE_FORCE_DISABLE=1");
-        }
-        return false;
-    }
-    if (c10_npu::option::OptionsManager::CheckInfNanModeForceDisable()) {
-        return false;
-    }
-    if (c10_npu::acl::IsExistGetCannAttribute()) {
-        const static bool supportInfNan = []() -> bool {
-            int enable = 0;
-            NPU_CHECK_ERROR(c10_npu::acl::AclGetCannAttribute(ACL_CANN_ATTR_INF_NAN, &enable));
-            return enable != 0;
-        }();
-        return supportInfNan;
-    }
-    return default_support_inf_nan;
+    return false;
+  }
+  if (c10_npu::option::OptionsManager::CheckInfNanModeForceDisable()) {
+    return false;
+  }
+  if (c10_npu::acl::IsExistGetCannAttribute()) {
+    const static bool supportInfNan = []() -> bool {
+      int enable = 0;
+      NPU_CHECK_ERROR(c10_npu::acl::AclGetCannAttribute(ACL_CANN_ATTR_INF_NAN, &enable));
+      return enable != 0;
+    }();
+    return supportInfNan;
+  }
+  return default_support_inf_nan;
 }
 
-bool IsBF16Supported()
-{
-    return GetSocVersion() >= SocVersion::Ascend910B1;
+bool IsBF16Supported() {
+  return GetSocVersion() >= SocVersion::Ascend910B1;
 }
 
-bool IsAclnnOnly()
-{
-    return GetSocVersion() >= SocVersion::Ascend950;
+bool IsAclnnOnly() {
+  return GetSocVersion() >= SocVersion::Ascend950;
 }
-}  // namespace c10_npu
+} // namespace c10_npu

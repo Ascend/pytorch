@@ -62,7 +62,7 @@ class LinearA8W8Quant(nn.Module):
                  pertoken_scale: bool = False, device=None, dtype=None, output_dtype=None) -> None:
 
         super(LinearA8W8Quant, self).__init__()
-        warnings.warn("torch_npu.contrib.module.LinearA8W8Quant is deprecated and will be removed in future version. "
+        warnings.warn("torch_npu.contrib.module.LinearA8W8Quant is deprecated and will be removed in a future version. "
                       "Use torch_npu.contrib.module.LinearQuant instead.", FutureWarning)
         self.in_features = in_features
         self.out_features = out_features
@@ -90,8 +90,10 @@ class LinearA8W8Quant(nn.Module):
         second_last_dim = self.weight.dim() - 2
         if not ((linear_quant_input.dtype == torch.int32 and self.weight.dtype == torch.int32) or
                 (linear_quant_input.dtype == torch.int8 and self.weight.dtype == torch.int8)):
-            raise ValueError("input and weight should be both torch.int32 or both torch.int8 datatype, "
-                             f"but now input is {linear_quant_input.dtype}, weight is {self.weight.dtype}." + ops_error(ErrCode.TYPE))
+            raise ValueError(
+                "input and weight should be both torch.int32 or both torch.int8 datatype, "
+                f"but now input is {linear_quant_input.dtype}, weight is {self.weight.dtype}."
+                + ops_error(ErrCode.TYPE))
         if self.scale.dtype not in [torch.int64, torch.float32, torch.bfloat16]:
             raise ValueError("scale should be torch.int64, torch.float32 or torch.bfloat16 datatype, "
                              f"but now it is {self.scale.dtype}." + ops_error(ErrCode.TYPE))
@@ -112,5 +114,7 @@ class LinearA8W8Quant(nn.Module):
         if self.pertoken_scale is None and is_check_dtype_ok:
             scale_quant = torch_npu.npu_trans_quant_param(self.scale, self.offset)
 
-        return torch_npu.npu_quant_matmul(linear_quant_input, self.weight.transpose(second_last_dim, first_last_dim),
-                                          scale_quant, offset=self.offset, pertoken_scale=self.pertoken_scale, bias=self.bias, output_dtype=self.output_dtype)
+        return torch_npu.npu_quant_matmul(
+            linear_quant_input, self.weight.transpose(second_last_dim, first_last_dim),
+            scale_quant, offset=self.offset, pertoken_scale=self.pertoken_scale,
+            bias=self.bias, output_dtype=self.output_dtype)

@@ -14,6 +14,7 @@ from torch_npu._inductor._aclgraph_update_plan import (
     append_inductor_aclgraph_update_plan_for_codegen_node,
     emit_inductor_aclgraph_update_plan_for_wrapper,
 )
+from torch_npu._inductor.utils import resolve_npu_device_index
 
 from ... import codecache
 
@@ -114,9 +115,12 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
                 f"{self.declare}{output_name} = {kernel_name}({', '.join(args)}){ending}"
             )
             if kernel_name == "torch.ops.npu_stream.npu_set_stream.default":
-                device_idx = V.graph.scheduler.current_device.index
-                name = f"stream{device_idx}"
-                self.writeline(f"{name} = get_raw_stream({device_idx})")
+                device_idx = (
+                    None
+                    if V.graph.scheduler.current_device is None
+                    else V.graph.scheduler.current_device.index
+                )
+                self.write_get_raw_stream(device_idx)
             if (
                 self.supports_intermediate_hooks
                 and config.generate_intermediate_hooks
@@ -144,6 +148,7 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
         )
 
     def write_get_raw_stream(self, device_idx: int, graph=None) -> str:
+        device_idx = resolve_npu_device_index(device_idx)
         self.write_triton_header_once()
         name = f"stream{device_idx}"
         self.writeline(f"{name} = get_raw_stream({device_idx})")
@@ -166,6 +171,9 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
         grid_extra_kwargs="",
         device=None,
         debug_handle: Optional[int] = None,
+        raw_keys=None,
+        inductor_meta=None,
+        original_fxnode_name=None,
     ):
         """
         Generates kernel call code.
@@ -173,7 +181,8 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
         cuda: Defines whether the backend is GPU. Otherwise the backend is CPU.
 
         triton: Defines whether the GPU backend uses Triton for codegen.
-                Otherwise it uses the CUDA language for codegen.
+                Otherwise cpp_* uses a plain call; other GPU kernels use
+                ``kernel.run(..., stream=...)``.
                 Only valid when cuda == True.
         """
         if triton:
@@ -183,18 +192,26 @@ class NpuMlirWrapperCodeGen(PythonWrapperCodegen):
                 device=device,
                 triton=triton,
                 arg_types=arg_types,
+                raw_keys=raw_keys,
                 raw_args=raw_args,
-                triton_meta=triton_meta
+                triton_meta=triton_meta,
+                inductor_meta=inductor_meta,
+                original_fxnode_name=original_fxnode_name,
             )
             return
-        if gpu:
-            call_args_str = ", ".join(pexpr(item) for item in call_args)
-            stream_name = self.write_get_raw_stream(
-                V.graph.scheduler.current_device.index, V.graph
-            )
-            self.writeline(f"{kernel_name}.run({call_args_str}, stream={stream_name})")
-        else:
+
+        if (not gpu) or kernel_name.startswith("cpp_"):
             self.writeline(self.wrap_kernel_call(kernel_name, call_args))
+            return
+
+        call_args_str = ", ".join(pexpr(item) for item in call_args)
+        device_idx = (
+            None
+            if V.graph.scheduler.current_device is None
+            else V.graph.scheduler.current_device.index
+        )
+        stream_name = self.write_get_raw_stream(device_idx, V.graph)
+        self.writeline(f"{kernel_name}.run({call_args_str}, stream={stream_name})")
 
     def write_prefix(self) -> None:
         super().write_prefix()

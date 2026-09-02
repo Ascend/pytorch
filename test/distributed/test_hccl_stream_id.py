@@ -48,8 +48,8 @@ class HcclStreamIdTest(TestCase):
             stream_num = 32
         assert0 = ((collective_stream_id & stream_num) == stream_num)
         assert1 = (collective_stream_id == p2p_stream_id)
-        collective_stream = torch.npu.Stream(stream_id=collective_stream_id, device_type=20)
-        p2p_stream = torch.npu.Stream(stream_id=collective_stream_id, device_type=20)
+        collective_stream = torch.npu.Stream(stream_id=collective_stream_id, device_index=rank, device_type=20)
+        p2p_stream = torch.npu.Stream(stream_id=collective_stream_id, device_index=rank, device_type=20)
         assert2 = (collective_stream.npu_stream == p2p_stream.npu_stream)
 
         c2p.put(assert0 and assert1 and assert2)

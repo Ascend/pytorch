@@ -1,16 +1,12 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates
 # Owner(s): ["oncall: distributed"]
 import os
-import unittest
-from datetime import timedelta
 from functools import wraps
 from typing import Tuple, Dict, Any
 
 import torch
 import torch.distributed as dist
 import torch.distributed._functional_collectives as funcol
-from torch._subclasses.fake_tensor import FakeTensorMode
-from torch.distributed._mesh_layout import _MeshLayout as _Layout
 from torch.distributed.device_mesh import _mesh_resources, DeviceMesh, init_device_mesh
 from torch.distributed.distributed_c10d import (
     _get_default_group,
@@ -30,11 +26,14 @@ from torch.distributed.tensor._collective_utils import (
 )
 from torch.distributed.tensor.placement_types import _Partial, Shard
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
-from torch.testing._internal.distributed.fake_pg import FakeProcessGroup, FakeStore
+from torch.testing._internal.distributed.fake_pg import FakeStore
 from torch.utils._typing_utils import not_none
 
-import torch_npu
-from torch_npu.testing.common_distributed import with_comms, init_pg, skipIfUnsupportMultiNPU, TEST_SKIPS
+from torch_npu.testing.common_distributed import (
+    TEST_SKIPS,
+    init_pg,
+    skipIfUnsupportMultiNPU,
+)
 from torch_npu.testing.testcase import run_tests
 
 
@@ -217,18 +216,11 @@ class DeviceMeshTest(NPUDTensorTestBase):
             )
 
 
-#DeviceMeshTest with resetting world_size to 4.
+# DeviceMeshTest with resetting world_size to 4.
 class DeviceMeshTestF(NPUDTensorTestBase):
     @property
     def world_size(self):
         return 4
-
-    @skipIfUnsupportMultiNPU(4)
-    @with_comms
-    def test_assert_invalid_mesh_tensor(self):
-        mesh = torch.arange(self.world_size).to(self.rank)
-        with self.assertRaises(ValueError):
-            device_mesh = DeviceMesh(self.device_type, mesh)
 
     @skipIfUnsupportMultiNPU(4)
     @with_comms
@@ -341,7 +333,7 @@ class DeviceMeshTestNDim(NPUDTensorTestBase):
         self.assertEqual(ep_mesh, another_mesh)
 
 
-#DeviceMeshTestNDim with resetting world_size to 8.
+# DeviceMeshTestNDim with resetting world_size to 8.
 class DeviceMeshTestNDimE(NPUDTensorTestBase):
     @property
     def world_size(self):
@@ -654,7 +646,7 @@ class TestDeviceMeshGetItem(NPUDTensorTestBase):
             self.assertEqual(_mesh_resources.get_root_mesh(dp_cp_mesh), mesh_4d)
 
 
-#TestDeviceMeshGetItem with resetting world_size to 8.
+# TestDeviceMeshGetItem with resetting world_size to 8.
 class TestDeviceMeshGetItemE(NPUDTensorTestBase):
     @property
     def world_size(self):
@@ -802,7 +794,7 @@ class TestDeviceMeshGetItemE(NPUDTensorTestBase):
         flatten_mesh_layout = root_mesh._flatten_mapping["dp_cp"]._layout
         self.assertEqual(flatten_mesh_layout, flattened_dp_cp_mesh._layout)
         self.assertEqual(
-            flattened_dp_cp_mesh._layout.global_ranks(8),
+            flattened_dp_cp_mesh._layout.collapse().global_ranks(8),
             [[0, 2, 4, 6], [1, 3, 5, 7]],
         )
 
@@ -822,13 +814,13 @@ class TestDeviceMeshGetItemE(NPUDTensorTestBase):
         flatten_mesh_root_layout = root_mesh._flatten_mapping["dp_tp"]._layout
         self.assertEqual(flatten_mesh_root_layout, flattened_dp_tp_mesh._layout)
         self.assertEqual(
-            flattened_dp_tp_mesh._layout.global_ranks(8),
+            flattened_dp_tp_mesh._layout.collapse().global_ranks(8),
             [[0, 1, 4, 5], [2, 3, 6, 7]],
         )
         with self.assertRaisesRegex(
-            NotImplementedError,
-            "Currently, this only allows slicing out a contiguous flattened dim",
+            KeyError, "Mesh dim indices should be in ascending order"
         ):
+            # dp_tp is partly "above" and partly "below" cp
             mesh_3d["dp_tp", "cp"]
 
         # Test flatten with a flattened mesh_dim_name

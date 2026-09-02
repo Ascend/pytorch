@@ -1,14 +1,11 @@
-import unittest
-import os
-
 import numpy as np
+
 import torch
 import torch.distributed as dist
-import torch.multiprocessing as mp
-import torch_npu
 
-from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import create_common_tensor
+import torch_npu
+from torch_npu.testing.testcase import run_tests
+from torch_npu.testing.common_utils import create_common_tensor, SupportedDevices
 from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
 
 from test_reduce_scatter import HcclReduceScatterTestBase
@@ -28,6 +25,7 @@ class HcclReduceScatterBaseTest(HcclReduceScatterTestBase):
         pg.barrier()
         p2c.get()
 
+    @SupportedDevices(['Ascend910A', 'Ascend910B', 'Ascend910_93'])
     @skipIfUnsupportMultiNPU(2)
     def test_reduce_scatter_base(self):
         ranks = [2]
@@ -66,6 +64,43 @@ class HcclReduceScatterBaseTest(HcclReduceScatterTestBase):
                 self._test_multiprocess(HcclReduceScatterBaseTest._test_reduce_scatter_base,
                                         HcclReduceScatterBaseTest._init_dist_hccl, expected, input_list, world_size)
 
+    # Ascend950 (Atlas A5) extends HCCL data type support with uint64/fp64.
+    @SupportedDevices(["Ascend950"])
+    @skipIfUnsupportMultiNPU(2)
+    def test_reduce_scatter_base_uint64(self):
+        ranks = [2]
+        shape_format = [[np.uint64, 2, [4, 9]]]
+        for world_size in ranks:
+            for shape in shape_format:
+                input_list = []
+                for _ in range(world_size):
+                    # uint64 is unsigned, use a non-negative range to avoid wrap-around on cast.
+                    _, input1 = create_common_tensor(shape, 0, 10)
+                    input_list.append(input1.cpu())
+                # _construct_excepted_result uses input.cpu()*world_size (mul,
+                # which works for uint64), so pass tensors directly. Only the
+                # final comparison needs torch.equal (assertEqual does a-b which
+                # uint64 lacks), via use_equal=True.
+                expected = self._construct_excepted_result(input_list, world_size, dist._reduce_scatter_base)
+                self._test_multiprocess(HcclReduceScatterBaseTest._test_reduce_scatter_base,
+                                        HcclReduceScatterBaseTest._init_dist_hccl, expected, input_list, world_size,
+                                        use_equal=True)
+
+    @SupportedDevices(["Ascend950"])
+    @skipIfUnsupportMultiNPU(2)
+    def test_reduce_scatter_base_fp64(self):
+        ranks = [2]
+        shape_format = [[np.float64, 2, [4, 9]]]
+        for world_size in ranks:
+            for shape in shape_format:
+                input_list = []
+                for _ in range(world_size):
+                    _, input1 = create_common_tensor(shape, -10, 10)
+                    input_list.append(input1.cpu())
+                expected = self._construct_excepted_result(input_list, world_size, dist._reduce_scatter_base)
+                self._test_multiprocess(HcclReduceScatterBaseTest._test_reduce_scatter_base,
+                                        HcclReduceScatterBaseTest._init_dist_hccl, expected, input_list, world_size)
+
     @skipIfUnsupportMultiNPU(2)
     def test_reduce_scatter_base_avg(self):
         ranks = [2]
@@ -79,9 +114,11 @@ class HcclReduceScatterBaseTest(HcclReduceScatterTestBase):
                 for _ in range(world_size):
                     _, input1 = create_common_tensor(shape, -10, 10)
                     input_list.append(input1.cpu())
-                expected = self._construct_excepted_result(input_list, world_size, dist._reduce_scatter_base, dist.ReduceOp.AVG)
+                expected = self._construct_excepted_result(
+                    input_list, world_size, dist._reduce_scatter_base, dist.ReduceOp.AVG)
                 self._test_multiprocess(HcclReduceScatterBaseTest._test_reduce_scatter_base,
-                                        HcclReduceScatterBaseTest._init_dist_hccl, expected, input_list, world_size, dist.ReduceOp.AVG)
+                                        HcclReduceScatterBaseTest._init_dist_hccl, expected,
+                                        input_list, world_size, dist.ReduceOp.AVG)
 
     @skipIfUnsupportMultiNPU(2)
     def test_reduce_scatter_base_pre_mul(self):

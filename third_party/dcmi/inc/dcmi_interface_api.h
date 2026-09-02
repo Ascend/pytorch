@@ -17,6 +17,19 @@
 
 #define TOPO_INFO_MAX_LENTH   32 // topo info max length
 
+// PCIe information structure used by dcmi_get_device_pcie_info_v2
+struct dcmi_pcie_info_all {
+  unsigned int venderid;
+  unsigned int subvenderid;
+  unsigned int deviceid;
+  unsigned int subdeviceid;
+  int domain;
+  unsigned int bdf_busid;
+  unsigned int bdf_deviceid;
+  unsigned int bdf_funcid;
+  unsigned char reserve[32];
+};
+
 DCMIDLLEXPORT int dcmi_init(void);
 
 DCMIDLLEXPORT int dcmi_get_card_num_list(int *card_num, int *card_list, int list_len);  // card_num is the number of device.
@@ -32,3 +45,5 @@ DCMIDLLEXPORT int dcmiv2_get_affinity_cpu_info_by_device_id(int dev_id, char *af
 DCMIDLLEXPORT int dcmiv2_get_affinity_cpu_info_by_dev_id(int dev_id, char *affinity_cpu, int *length);
 
 DCMIDLLEXPORT int dcmiv2_get_device_list(int* device_list, int* device_cnt, int list_len);
+
+DCMIDLLEXPORT int dcmi_get_device_pcie_info_v2(int card_id, int device_id, struct dcmi_pcie_info_all *pcie_info);

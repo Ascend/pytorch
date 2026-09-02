@@ -1,21 +1,39 @@
-from typing import (
-    Any,
-    List,
-    Tuple,
-    Union,
-)
 import itertools
 
 import torch
-from torch.fx.node import Node
-from torch._inductor import config, metrics
-from torch._subclasses.fake_tensor import FakeTensor
-from torch._dynamo.utils import defake, dynamo_timed
+from torch._dynamo.utils import defake
+from torch._inductor import config, graph as inductor_graph, metrics
+from torch._inductor.utils import clone_preserve_strides
 from torch._inductor.virtualized import NullHandler, V
+from torch._subclasses.fake_tensor import FakeTensor
+from torch.fx.node import Node
 
+LazyString = inductor_graph.LazyString
+OrderedSet = inductor_graph.OrderedSet
+Pointwise = inductor_graph.Pointwise
+Reduction = inductor_graph.Reduction
+StorageBox = inductor_graph.StorageBox
+TensorBox = inductor_graph.TensorBox
+constrain_to_fake_tensors = inductor_graph.constrain_to_fake_tensors
+constrain_to_fx_strides = inductor_graph.constrain_to_fx_strides
+fallback_handler = inductor_graph.fallback_handler
+fallback_node_due_to_unsupported_type = (
+    inductor_graph.fallback_node_due_to_unsupported_type
+)
+gather_origins = inductor_graph.gather_origins
+ir = inductor_graph.ir
+log = inductor_graph.log
+make_channels_last_strides_for = inductor_graph.make_channels_last_strides_for
+needs_realized_inputs = inductor_graph.needs_realized_inputs
+resolve_unbacked_bindings = inductor_graph.resolve_unbacked_bindings
+GraphLowering = inductor_graph.GraphLowering
 
 def patch_codegen_with_cpp_wrapper():
-    def npu_codegen_with_cpp_wrapper(self) -> Tuple[str, List[Tuple[int, Node]]]:
+    """
+    patch codegen for cpp wrapper, add npu for codegen_with_cpp_wrapper function
+
+    """
+    def npu_codegen_with_cpp_wrapper(self) -> tuple[str, list[tuple[int, Node]]]:
         # add "npu" support
         if any(device in self.device_types for device in ["cuda", "xpu", "npu"]):
             if config.triton.autotune_at_compile_time:
@@ -27,8 +45,8 @@ def patch_codegen_with_cpp_wrapper():
                 compiled = self.compile_to_module().call
 
                 def materialize(
-                    x: Union[torch.SymInt, torch.SymFloat, torch.Tensor]
-                ) -> Union[int, float, torch.Tensor]:
+                    x: torch.SymInt | torch.SymFloat | torch.Tensor,
+                ) -> int | float | torch.Tensor:
                     if x is None:
                         return None
                     elif isinstance(x, (torch.SymInt, torch.SymFloat)):
@@ -38,7 +56,9 @@ def patch_codegen_with_cpp_wrapper():
                         return defake(x)
                     else:
                         if not isinstance(x, torch.Tensor):
-                            raise AssertionError("Unknown type when creating real inputs" + str(type(x)))
+                            raise AssertionError(
+                                "Unknown type when creating real inputs" + str(type(x))
+                            )
                         return x
 
                 tracing_context = torch._guards.TracingContext.try_get()
@@ -71,8 +91,6 @@ def patch_codegen_with_cpp_wrapper():
                     ]
 
                 if self.mutated_inputs:
-                    from .compile_fx import clone_preserve_strides
-
                     mutated_input_idxs = [
                         idx
                         for idx, name in enumerate(self.graph_inputs)
@@ -110,5 +128,25 @@ def patch_codegen_with_cpp_wrapper():
         else:
             # cpu
             return self.codegen()
+
     from torch._inductor.graph import GraphLowering
+
     GraphLowering.codegen_with_cpp_wrapper = npu_codegen_with_cpp_wrapper
+
+def patch_count_bytes():
+    def count_bytes(self):
+        total_bytes = 0
+        node_counts = []
+        node_runtimes = []
+        for node in self.scheduler.nodes:
+            try:
+                num_bytes = node.get_read_write_buffers_sizes()
+            except AssertionError:
+                num_bytes = 0
+            total_bytes += num_bytes
+            node_counts.append((node, num_bytes // 4))
+            node_runtimes.append((node, node.get_estimated_runtime()))
+
+        return total_bytes, node_counts, node_runtimes
+
+    torch._inductor.graph.GraphLowering.count_bytes = count_bytes

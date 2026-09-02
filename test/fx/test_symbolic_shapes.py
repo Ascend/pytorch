@@ -11,9 +11,12 @@ import sympy
 import torch
 import torch_npu
 from torch import nn
+from torch._guards import ShapeGuard, SLoc
 from torch._subclasses.fake_tensor import FakeTensorMode
 from torch.fx import Graph, Interpreter, symbolic_trace
 from torch.fx.experimental.symbolic_shapes import (
+    DivideByKey,
+    EqualityConstraint,
     PropagateUnbackedSymInts,
     ShapeEnv,
     Source,
@@ -304,6 +307,153 @@ class TestShapeEnvNPU(TestCase):
         env = ShapeEnv()
         a, b = sympy.symbols("a b")
         self.assertEqual(env.simplify((a + b) - b), a)
+
+    @unittest.skipUnless(torch.npu.is_available(), "requires npu")
+    def test_torch_fx_experimental_symbolic_shapes_ShapeEnv_format_guards(self):
+        """Verify format_guards returns formatted guard strings."""
+        se = ShapeEnv()
+        self.assertEqual(se.format_guards(), "")
+
+        s0 = sympy.Symbol('s0', integer=True, positive=True)
+        s1 = sympy.Symbol('s1', integer=True, positive=True)
+        sloc = SLoc("framework_loc", "user_loc")
+        se.guards.append(ShapeGuard(
+            sympy.Lt(s0, s1, evaluate=False), sloc, False))
+        se.guards.append(ShapeGuard(
+            sympy.Ge(s0, sympy.Integer(1), evaluate=False), sloc, False))
+
+        result = se.format_guards()
+        self.assertIn("s0 < s1", result)
+        self.assertIn("s0 >= 1", result)
+
+        result_verbose = se.format_guards(verbose=True)
+        self.assertIn("s0 < s1", result_verbose)
+        self.assertIn("user_loc", result_verbose)
+
+    @unittest.skipUnless(torch.npu.is_available(), "requires npu")
+    def test_torch_fx_experimental_symbolic_shapes_ShapeEnv_freeze(self):
+        """Verify freeze toggles the frozen state of ShapeEnv."""
+        se = ShapeEnv()
+        self.assertFalse(se.frozen)
+        se.freeze()
+        self.assertTrue(se.frozen)
+
+    @unittest.skipUnless(torch.npu.is_available(), "requires npu")
+    def test_torch_fx_experimental_symbolic_shapes_ShapeEnv_freeze_runtime_asserts(self):
+        """Verify freeze_runtime_asserts toggles runtime_asserts_frozen."""
+        se = ShapeEnv()
+        self.assertFalse(se.runtime_asserts_frozen)
+        se.freeze_runtime_asserts()
+        self.assertTrue(se.runtime_asserts_frozen)
+
+    @unittest.skipUnless(torch.npu.is_available(), "requires npu")
+    def test_torch_fx_experimental_symbolic_shapes_ShapeEnv_get_axioms(self):
+        """Verify get_axioms returns axioms tuple, optionally filtered by symbols."""
+        se = ShapeEnv()
+        self.assertIsInstance(se.get_axioms(), tuple)
+
+        s0 = sympy.Symbol('s0', integer=True, positive=True)
+        s1 = sympy.Symbol('s1', integer=True, positive=True)
+        sloc = SLoc("framework_loc", "user_loc")
+        se.guards.append(ShapeGuard(
+            sympy.Lt(s0, s1, evaluate=False), sloc, False))
+
+        axioms = se.get_axioms(symbols=(s0,))
+        self.assertIn(sympy.Lt(s0, s1, evaluate=False), axioms)
+
+    @unittest.skipUnless(torch.npu.is_available(), "requires npu")
+    def test_torch_fx_experimental_symbolic_shapes_ShapeEnv_get_implications(self):
+        """Verify get_implications returns implications for Eq/Lt/Ne/Le expressions."""
+        se = ShapeEnv()
+        s0 = sympy.Symbol('s0', integer=True, positive=True)
+        s1 = sympy.Symbol('s1', integer=True, positive=True)
+
+        # Eq implies equality
+        impl_eq = dict(se.get_implications(
+            sympy.Eq(s0, s1, evaluate=False)))
+        self.assertIn(sympy.Eq(s0, s1, evaluate=False), impl_eq)
+
+        # Lt implies Le and Ne
+        impl_lt = dict(se.get_implications(
+            sympy.Lt(s0, s1, evaluate=False)))
+        self.assertIn(sympy.Lt(s0, s1, evaluate=False), impl_lt)
+        self.assertIn(sympy.Le(s0, s1, evaluate=False), impl_lt)
+        self.assertIn(sympy.Ne(s0, s1, evaluate=False), impl_lt)
+
+        # Ne
+        impl_ne = dict(se.get_implications(
+            sympy.Ne(s0, s1, evaluate=False)))
+        self.assertIn(sympy.Ne(s0, s1, evaluate=False), impl_ne)
+
+        # Le implies Lt(a, b+1)
+        impl_le = dict(se.get_implications(
+            sympy.Le(s0, s1, evaluate=False)))
+        self.assertIn(sympy.Le(s0, s1, evaluate=False), impl_le)
+        self.assertIn(sympy.Lt(s0, s1 + 1, evaluate=False), impl_le)
+
+    def test_shape_env_get_pruned_guards(self):
+        """Verify get_pruned_guards returns a list of guards filtered by given symints."""
+        shape_env = ShapeEnv()
+        sym_int = shape_env.create_unbacked_symint()
+        pruned_guards = shape_env.get_pruned_guards([sym_int])
+        self.assertIsInstance(pruned_guards, list)
+
+    def test_shape_env_ignore_fresh_unbacked_symbols(self):
+        """Verify ignore_fresh_unbacked_symbols context manager suppresses fresh unbacked symbol registration."""
+        shape_env = ShapeEnv()
+        with shape_env.ignore_fresh_unbacked_symbols():
+            sym_int = shape_env.create_unbacked_symint()
+            self.assertIsNotNone(sym_int)
+
+    def test_shape_env_is_unbacked_symint(self):
+        """Verify is_unbacked_symint correctly distinguishes unbacked symbols from regular sympy symbols."""
+        shape_env = ShapeEnv()
+        unbacked_symint = shape_env.create_unbacked_symint()
+        unbacked_symbol = unbacked_symint.node.expr
+        regular_symbol = sympy.Symbol("s0", integer=True)
+        self.assertTrue(shape_env.is_unbacked_symint(unbacked_symbol))
+        self.assertFalse(shape_env.is_unbacked_symint(regular_symbol))
+
+class TestDivideByKeyAndEqualityConstraint(TestCase):
+    """Test DivideByKey and EqualityConstraint APIs on NPU."""
+
+    def setUp(self):
+        # Ensure torch_npu extension is loaded before running NPU tests.
+        self.assertIsNotNone(torch_npu)
+
+    @unittest.skipUnless(torch.npu.is_available(), "requires npu")
+    def test_divide_by_key(self):
+        # Verify DivideByKey string representation on NPU.
+        key = DivideByKey(4)
+        self.assertEqual(str(key), ".__floordiv__(4)")
+
+    @unittest.skipUnless(torch.npu.is_available(), "requires npu")
+    def test_divide_by_key_get(self):
+        # Verify DivideByKey.get returns the expected divisor.
+        key = DivideByKey(4)
+        self.assertEqual(key.get(17), 4)
+
+    @unittest.skipUnless(torch.npu.is_available(), "requires npu")
+    def test_equality_constraint_init(self):
+        # Verify EqualityConstraint initializes with empty constraints.
+        kwargs = {
+            "source_pairs": [],
+            "derived_equalities": [],
+            "phantom_symbols": [],
+            "relaxed_sources": set(),
+            "warn_only": False,
+        }
+        fields = getattr(EqualityConstraint, "__dataclass_fields__", {})
+        kwargs = {k: v for k, v in kwargs.items() if k in fields}
+
+        eq = EqualityConstraint(**kwargs)
+
+        self.assertEqual(eq.source_pairs, [])
+        self.assertEqual(eq.phantom_symbols, [])
+        if hasattr(eq, "relaxed_sources"):
+            self.assertEqual(eq.relaxed_sources, set())
+        if hasattr(eq, "warn_only"):
+            self.assertFalse(eq.warn_only)
 
 
 if __name__ == "__main__":

@@ -85,13 +85,11 @@ def _build_npu_ext(obj_name: str, src_path, src_dir) -> str:
 
     torch_npu_dir = torch_npu_root / "include"
     torch_npu_lib_dir = torch_npu_root / "lib"
-    acl_inc_dir = torch_npu_dir / "third_party" / "acl" / "inc"
 
     cc_cmd += [
         f"-I{torch_npu_dir}",
         f"-I{cpp_common_dir}",
         f"-L{torch_npu_lib_dir}",
-        f"-I{acl_inc_dir}",
         "-ltorch_npu",
         "-Wl,-rpath",
         "-std=c++17",
@@ -349,6 +347,60 @@ def npu_optimize_fx_graph(gm: torch.fx.GraphModule):
     gm.recompile()
 
 
+def fold_sum_cast_to_dtype(gm: torch.fx.GraphModule) -> torch.fx.GraphModule:
+    graph = gm.graph
+    changed = False
+    aten = torch.ops.aten
+    prims = torch.ops.prims
+
+    for cast_node in list(graph.nodes):
+        if cast_node.op != "call_function":
+            continue
+        if cast_node.target != prims.convert_element_type.default:
+            continue
+        if len(cast_node.args) < 2:
+            continue
+
+        sum_node, target_dtype = cast_node.args[:2]
+        if not isinstance(sum_node, torch.fx.Node) or not isinstance(target_dtype, torch.dtype):
+            continue
+        if sum_node.op != "call_function":
+            continue
+        if sum_node.target not in (aten.sum.default, aten.sum.dim_IntList):
+            continue
+        if len(sum_node.users) != 1:
+            continue
+        if sum_node.kwargs.get("dtype") is not None:
+            continue
+
+        if not sum_node.args or not isinstance(sum_node.args[0], torch.fx.Node):
+            continue
+        input_val = sum_node.args[0].meta.get("val", None)
+        sum_val = sum_node.meta.get("val", None)
+        cast_val = cast_node.meta.get("val", None)
+        if (
+            not isinstance(input_val, torch.Tensor)
+            or not isinstance(sum_val, torch.Tensor)
+            or not isinstance(cast_val, torch.Tensor)
+        ):
+            continue
+        if input_val.dtype != target_dtype or cast_val.dtype != target_dtype:
+            continue
+
+        sum_node.kwargs = {**sum_node.kwargs, "dtype": target_dtype}
+        sum_node.meta["val"] = cast_val
+        if "tensor_meta" in cast_node.meta:
+            sum_node.meta["tensor_meta"] = cast_node.meta["tensor_meta"]
+        cast_node.replace_all_uses_with(sum_node)
+        graph.erase_node(cast_node)
+        changed = True
+
+    if changed:
+        graph.lint()
+        gm.recompile()
+    return gm
+
+
 def fold_expand(gm: torch.fx.GraphModule) -> None:
     changed = False
     graph = gm.graph
@@ -457,7 +509,7 @@ class MLIRProcessor:
         bisheng_install_path = os.getenv('BISHENG_INSTALL_PATH', '')
         self.bisheng_torch_mlir_path = os.path.join(bisheng_install_path, "bishengir-opt")
 
-    def extract_function(self, module: ir.Module) -> func_dialect.FuncOp:
+    def extract_function(self, module: Any) -> Any:
         """从MLIR模块中提取主函数并添加标记属性"""
         with module.context:
             for func in module.body.operations:
@@ -466,14 +518,14 @@ class MLIRProcessor:
                     return func
         raise ValueError("No valid FuncOp found in module")
 
-    def rebuild_mlir_module(self, module_str: str) -> ir.Module:
+    def rebuild_mlir_module(self, module_str: str) -> Any:
         """从字符串重新构建MLIR模块"""
         with ir.Context() as ctx:
             ctx.allow_unregistered_dialects = True
             torch_mlir.dialects.torch.register_dialect(ctx)
             return ir.Module.parse(module_str)
 
-    def get_signature(self, func: func_dialect.FuncOp) -> tuple:
+    def get_signature(self, func: Any) -> tuple:
         """获取函数的签名信息：类型签名、输出数量和张量维度"""
         func_type = func.type
         signature = {}
@@ -498,7 +550,7 @@ class MLIRProcessor:
 
     def process_mlir(
         self,
-        module: Union[str, ir.Module],
+        module: Union[str, Any],
         get_sig: bool = True,
         dynamic: bool = False,
     ) -> tuple:
@@ -532,7 +584,7 @@ class MLIRProcessor:
 
     def get_named_op_str(
         self,
-        module: Union[str, ir.Module],
+        module: Union[str, Any],
         kernel_name: str,
         dynamic: bool = False,
     ) -> Dict[str, Any]:
@@ -693,7 +745,7 @@ class {module_name}(torch.nn.Module):
 
     if len(blobified_modules) > 0:
         warnings.warn(
-            "Was not able to save the following children modules as reprs -"
+            "Was not able to save the following children modules as reprs - "
             f"saved as pickled files instead: {blobified_modules}"
         )
 

@@ -243,7 +243,7 @@ def _print_npugraph_tensor_impl(input, tensor_name=None):
     with torch.npu.stream(save_stream):
         # Wait for the original stream to complete before D2H
         event1.wait()
-        cpu_tensor = input.to("cpu", non_blocking=True)
+        cpu_tensor = input.to("cpu", non_blocking=True, memory_format=torch.contiguous_format)
         cpu_arg = _make_npugraph_tensor_ptr_spec(cpu_tensor)
         # Get current stream inside context (which is save_stream)
         current_stream = torch.npu.current_stream()
@@ -283,7 +283,7 @@ def _save_npugraph_tensor_impl(input, save_path=None, overwrite=False):
     with torch.npu.stream(save_stream):
         # Wait for the original stream to complete before D2H
         event1.wait()
-        cpu_tensor = input.to("cpu", non_blocking=True)
+        cpu_tensor = input.to("cpu", non_blocking=True, memory_format=torch.contiguous_format)
         cpu_arg = _make_npugraph_tensor_ptr_spec(cpu_tensor)
         # Get current stream inside context (which is save_stream)
         current_stream = torch.npu.current_stream()
@@ -320,7 +320,7 @@ def _save_npugraph_tensor_tensor_list_impl(input, save_path=None, overwrite=Fals
     with torch.npu.stream(save_stream):
         # Wait for the original stream to complete before D2H
         event1.wait()
-        cpu_tensors = [tensor.to("cpu", non_blocking=True) for tensor in input]
+        cpu_tensors = [tensor.to("cpu", non_blocking=True, memory_format=torch.contiguous_format) for tensor in input]
         cpu_args = [_make_npugraph_tensor_ptr_spec(tensor) for tensor in cpu_tensors]
         # Get current stream inside context (which is save_stream)
         current_stream = torch.npu.current_stream()
@@ -667,8 +667,46 @@ class NPUGraph(torch_npu._C._NPUGraph):
 
         Arguments:
             debug_path (required): Path to dump the graph to.
+
+        An additional ``.aligned.json`` file is generated for visualization
+        when the graph is successfully dumped.
         """
-        return super().debug_dump(debug_path)
+        # C++ debug_dump does not rewrite the file without a successful capture,
+        # so avoid aligning a stale dump from an earlier call.
+        def file_state(path):
+            try:
+                stat = os.stat(path)
+                return (
+                    stat.st_dev,
+                    stat.st_ino,
+                    stat.st_size,
+                    stat.st_mtime_ns,
+                    stat.st_ctime_ns,
+                )
+            except Exception:  # The optional post-processing must not affect debug_dump.
+                return None
+
+        previous_file_state = file_state(debug_path)
+
+        result = super().debug_dump(debug_path)
+
+        current_file_state = file_state(debug_path)
+        if current_file_state is None or current_file_state == previous_file_state:
+            return result
+
+        try:
+            from ._npugraph_utils import align_trace_json
+
+            align_trace_json(debug_path, None)
+        except Exception:
+            log.warning(
+                "Failed to generate aligned trace for %s; an existing aligned "
+                "trace, if any, was not updated",
+                debug_path,
+                exc_info=True,
+            )
+
+        return result
 
     def super_kernel_optimize(self, optimize_options=None, debug_options=None):
         r"""Calls a function to optimize graph by super kernel.

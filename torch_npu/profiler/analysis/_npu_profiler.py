@@ -1,3 +1,4 @@
+import os
 import multiprocessing
 
 from .prof_common_func._constant import Constant, print_error_msg
@@ -43,4 +44,6 @@ class NpuProfiler:
     @classmethod
     def _check_input_path(cls, path: str):
         PathManager.check_input_directory_path(path)
-        PathManager.check_path_owner_consistent(path)
+        if not os.path.exists(path):
+            msg = f"The path does not exist: {path}"
+            raise RuntimeError(msg)

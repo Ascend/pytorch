@@ -19,12 +19,18 @@ from typing import (
 from torch._inductor.async_compile import shutdown_compile_workers
 from torch._inductor.codegen.common import register_backend_for_device
 from torch._inductor.virtualized import V
+from torch._inductor.custom_graph_pass import (
+    CustomGraphPass,
+    get_hash_for_files,
+)
 
 from ..npu.codegen.akg import AkgScheduling
 from ..npu.codegen.mlir import NpuMlirScheduling
 from ..npu.codegen.wrapper import NpuMlirWrapperCodeGen
 from ..npu.npu_lowering import _register_npu_inductor_fallbacks
+from ..npu import utils as npu_utils
 from ..npu.utils import (
+    fold_sum_cast_to_dtype,
     npu_optimize_fx_graph,
     logger,
 )
@@ -69,7 +75,7 @@ def register_mlir_codegen_backend() -> None:
             import torch_mlir  # noqa: F401
             register_backend_for_device("npu", AkgScheduling, NpuMlirWrapperCodeGen)
         except ImportError:
-            logger.warning("akg not found, fallback to torch-mlir for compilation.")
+            logger.warning("AKG not found; falling back to torch-mlir for compilation.")
             register_backend_for_device("npu", NpuMlirScheduling, NpuMlirWrapperCodeGen)
     else:
         register_backend_for_device("npu", NpuMlirScheduling, NpuMlirWrapperCodeGen)
@@ -96,6 +102,9 @@ register_interface_for_device("npu", NewNpuInterface)
 
 # npu patch
 from torch._C import DispatchKey
+from torch_npu._inductor.decomposition import _register_mlir_dvm_decompositions
+
+_register_mlir_dvm_decompositions()
 
 def disable_implicit_decomposition():
     '''
@@ -192,6 +201,56 @@ def wrap_aot_autograd(fn):
     return npu_aot_autograd
 
 AotAutograd.__call__ = wrap_aot_autograd(AotAutograd.__call__)
+
+def _iter_custom_graph_passes(custom_pass):
+    if custom_pass is None:
+        return ()
+    if isinstance(custom_pass, (list, tuple)):
+        return tuple(custom_pass)
+    return (custom_pass,)
+
+
+class DvmMlirPostGradPass(CustomGraphPass):
+    def __init__(self, previous_pass=None) -> None:
+        self.previous_pass = previous_pass
+
+    def __call__(self, graph: torch.fx.Graph) -> None:
+        for pass_ in _iter_custom_graph_passes(self.previous_pass):
+            pass_(graph)
+        fold_sum_cast_to_dtype(graph.owning_module)
+
+    def uuid(self):
+        previous_uuids = []
+        for pass_ in _iter_custom_graph_passes(self.previous_pass):
+            if not isinstance(pass_, CustomGraphPass):
+                return None
+            uuid = pass_.uuid()
+            if uuid is None:
+                return None
+            previous_uuids.append(uuid)
+        return get_hash_for_files(
+            (__file__, npu_utils.__file__),
+            extra=f"DvmMlirPostGradPass:{previous_uuids!r}",
+        )
+
+
+def patch_dvm_mlir_post_grad_pass(inductor_config=None) -> None:
+    if inductor_config is None:
+        from torch._inductor import config as inductor_config
+
+    post_grad_custom_post_pass = inductor_config.post_grad_custom_post_pass
+    if isinstance(post_grad_custom_post_pass, DvmMlirPostGradPass):
+        return
+    if any(
+        isinstance(pass_, DvmMlirPostGradPass)
+        for pass_ in _iter_custom_graph_passes(post_grad_custom_post_pass)
+    ):
+        return
+    inductor_config.post_grad_custom_post_pass = DvmMlirPostGradPass(
+        post_grad_custom_post_pass
+    )
+
+patch_dvm_mlir_post_grad_pass(config)
 
 # recompute last usage for inductor scheduler
 from torch._inductor import scheduler
@@ -313,7 +372,11 @@ def _npu_prune_redundant_deps(
         node.set_read_writes(node.read_writes.remove_reads(deps_to_prune))
 
 def npu_can_fuse_vertical(
-    self, node1: BaseSchedulerNode, node2: BaseSchedulerNode
+    self,
+    node1: BaseSchedulerNode,
+    node2: BaseSchedulerNode,
+    *,
+    index_equivalent_dep_names: OrderedSet[str] | None = None,
 ) -> bool:
     """
     Check if it is legal to fuse a consumer (node2) into a producer (node1).
@@ -321,6 +384,10 @@ def npu_can_fuse_vertical(
     We can fuse them if all the reads of node2 either match
     corresponding writes in node1, or are written by nodes that can
     be scheduled before the fusion of node1 and node2.
+
+    ``index_equivalent_dep_names`` relaxes write/read matching only for
+    named producer outputs; the remaining intermediate-dependency checks
+    still run normally.
     """
     node1_buf_names = node1.get_buffer_names()
     node1_op_names = node1.get_operation_names()
@@ -330,8 +397,16 @@ def npu_can_fuse_vertical(
     for cd in node1.read_writes.writes:
         if not isinstance(cd, MemoryDep):
             continue
+        write_name = self.mutation_renames.get(cd.name, cd.name)
         for rd in node2.unmet_dependencies:
-            if self.fusable_read_and_write(rd, cd):
+            if self.fusable_read_and_write(
+                rd,
+                cd,
+                allow_index_equivalence=(
+                    index_equivalent_dep_names is not None
+                    and write_name in index_equivalent_dep_names
+                ),
+            ):
                 computed_deps.add(rd)
 
     for dep in node2.unmet_dependencies:
@@ -351,7 +426,7 @@ def npu_can_fuse_vertical(
     for name in remaining_deps:
         if name not in self.name_to_buf:
             continue
-        op_name = self.name_to_buf[name].defining_op.get_name()
+        op_name = self.name_to_buf[name].defining_op_name()
         if node1_op_names & self.name_to_fused_node[op_name].ancestors:
             why("intermediate nodes between node1 & node2")
             return False

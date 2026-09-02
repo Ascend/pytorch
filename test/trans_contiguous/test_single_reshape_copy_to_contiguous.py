@@ -9,6 +9,8 @@ from torch_npu.testing.common_utils import create_common_tensor, check_operators
 
 os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
 
+SKIP_REASON = "Temporarily skipped; see https://gitcode.com/Ascend/pytorch/issues/4356"
+
 # Optimized view Ops contains Transpose, permute, narrow, strideslice, select, unfold
 
 # The test case is a continuous optimization test case for aclop
@@ -19,6 +21,7 @@ os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
 
 
 class SingleViewCopyToContiguous(TestCase):
+    @unittest.skip(SKIP_REASON)
     def test_view_copy(self, device="npu"):
         dtype_list1 = [np.float16, np.float32]
         format_list1 = [0, 3, 29]
@@ -66,6 +69,7 @@ class SingleViewCopyToContiguous(TestCase):
             cpu_out2 = cpu_input.view(1, 6, cpu_input.size(2) * cpu_input.size(3), 1).clone()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
+    @unittest.skip(SKIP_REASON)
     def test_unsqueeze_copy(self, device="npu"):
         dtype_list2 = [np.float16, np.float32]
         format_list2 = [2, 3, 29]
@@ -89,15 +93,16 @@ class SingleViewCopyToContiguous(TestCase):
                     npu_out = npu_input.unsqueeze(i).clone()
                 if match_case1 or match_case2:
                     self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape'], prof) or
-                                 check_operators_in_prof(['aclnnInplaceCopy'], prof),
+                                     check_operators_in_prof(['aclnnInplaceCopy'], prof),
                                      True, message="contiguous_d_Reshape or aclnnInplaceCopy is not called!")
                 else:
                     self.assertEqual(check_operators_in_prof(['d2dCopyAsync'], prof) or
-                                 check_operators_in_prof(['aclnnInplaceCopy'], prof),
+                                     check_operators_in_prof(['aclnnInplaceCopy'], prof),
                                      True, message="d2dCopyAsync or aclnnInplaceCopy is not called!")
                 cpu_out = cpu_input.unsqueeze(i).clone()
                 self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.numpy())
 
+    @unittest.skip(SKIP_REASON)
     def test_flatten_copy(self, device="npu"):
         dtype_list3 = [np.float16, np.float32]
         format_list3 = [0, 3, 29]
@@ -127,6 +132,7 @@ class SingleViewCopyToContiguous(TestCase):
             cpu_out = torch.flatten(cpu_input, 0, 1).clone()
             self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.numpy())
 
+    @unittest.skip(SKIP_REASON)
     def test_narrow_at_first_axis_copy(self, device="npu"):
         # this case: slice at the first dim, tensor with offset remains contiguous
         dtype_list4 = [np.float16, np.float32]

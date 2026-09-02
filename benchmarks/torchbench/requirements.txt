@@ -1,0 +1,24 @@
+numpy
+gym
+
+# 计算机视觉库
+opencv-python-headless
+
+# 深度学习与NLP
+torchvision==0.28.0
+transformers==4.36.0
+timm
+fastNLP==0.6.0
+onnx
+
+# 语音处理
+kaldi_io
+
+# 日志与可视化
+tensorboardX
+
+# 多模态库（需要从源码安装）
+git+https://github.com/facebookresearch/multimodal.git
+
+# GNN（TorchBench basic_gnn_* 依赖的 PyG pin）
+torch_geometric @ git+https://github.com/pyg-team/pytorch_geometric.git@cabcd4097442ba60aa1efa11e1619dd9bb8fb527

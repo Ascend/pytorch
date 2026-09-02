@@ -10,13 +10,13 @@ def apply_torch_api_patches():
     from torch_npu.utils.dlpack import _apply_dlpack_patch
     from torch_npu.utils.serialization import _add_serialization_methods
     from torch_npu.utils.storage import _add_storage_methods
-    from torch_npu.utils.tensor_methods import _add_tensor_methods
+    from torch_npu.utils._deterministic import _add_deterministic_patch
 
     _add_storage_methods()
     _apply_dlpack_patch()
     _apply_module_patch()
-    _add_tensor_methods()
     _add_serialization_methods()
     _add_collect_env_methods()
     add_optim_method()
     _add_reductions_methods()
+    _add_deterministic_patch()

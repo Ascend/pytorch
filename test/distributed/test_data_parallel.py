@@ -1,5 +1,4 @@
 import os
-import unittest
 from copy import deepcopy
 
 import torch
@@ -8,7 +7,6 @@ import torch.nn.parallel as dp
 from torch import nn
 from torch.testing._internal.common_utils import run_tests, TestCase
 
-import torch_npu
 from torch_npu.npu.amp.autocast_mode import autocast
 from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
 
@@ -65,7 +63,7 @@ class TestDataParallel(TestCase):
         # each input can be either a collection of positional arguments
         #                       or an object representing the single argument
         for inputs in [((i1,), (i2,)), (i1, i2)]:
-            outputs = torch_npu.utils._module._parallel_apply(modules, inputs, None)
+            outputs = torch.nn.parallel.parallel_apply(modules, inputs, None)
             for out, expected in zip(outputs, expected_outputs):
                 self.assertEqual(out, expected)
 

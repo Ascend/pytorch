@@ -12,7 +12,7 @@
 #define HCCL_H_
 
 #include "third_party/hccl/inc/hccl/hccl_types.h"
-#include "third_party/acl/inc/acl/acl.h"
+#include <acl/acl.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -447,6 +447,7 @@ inline void HcclCommConfigInit(HcclCommConfig *config)
     config->hcclRetryParams[0] = '\0';
     config->hcclBufferName[0] = '\0';
     config->hcclQos = HCCL_COMM_QOS_CONFIG_NOT_SET;
+    config->hcclSymWinMaxMemSizePerRank = HCCL_DEFAULT_SYMMETRIC_MEMORY_STRIDE;
 }
 
 /**

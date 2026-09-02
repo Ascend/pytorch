@@ -1,3 +1,18 @@
+// Copyright (c) 2020 Huawei Technologies Co., Ltd
+// Copyright (c) 2019, Facebook CORPORATION.
+// All rights reserved.
+//
+// Licensed under the BSD 3-Clause License  (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 #include <ATen/ATen.h>
 #include <ATen/core/CachingHostAllocator.h>
 
@@ -9,6 +24,7 @@
 #include "torch_npu/csrc/core/npu/NPUPeerToPeerAccess.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
+#include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
@@ -303,7 +319,8 @@ void copy_d2d(at::Tensor& self, const at::Tensor& src, bool non_blocking)
         // write-after-read dependencies on the destination side are handled, so
         // that no one is operating on the dst memory when we perform the copy.
         // src waits on dst barrier (src already waits on src)
-        if (c10_npu::acl::IsSupportIpcEvent()) {
+        // Ascend950 does not support IPC event synchronization for d2d in single-process multi-device scenarios.
+        if (c10_npu::acl::IsSupportIpcEvent() && c10_npu::GetSocVersion() != c10_npu::SocVersion::Ascend950) {
             auto dst_ready = getEventFromPool(dst_device.index());
             guard.set_device(dst_device);
             dst_ready->record(c10_npu::getCurrentNPUStream(dst_device_idx));
@@ -329,7 +346,8 @@ void copy_d2d(at::Tensor& self, const at::Tensor& src, bool non_blocking)
         // operate on dst's copy until the copy is complete.
 
         // Still on src_device, record stream event
-        if (c10_npu::acl::IsSupportIpcEvent()) {
+        // Ascend950 does not support IPC event synchronization for d2d in single-process multi-device scenarios.
+        if (c10_npu::acl::IsSupportIpcEvent() && c10_npu::GetSocVersion() != c10_npu::SocVersion::Ascend950) {
             auto src_ready = getEventFromPool(src_device.index());
             src_ready->record(src_stream);
             guard.set_device(dst_device);
@@ -438,11 +456,6 @@ at::Tensor& NPUNativeFunctions::copy_(at::Tensor& self, const at::Tensor& src, b
     }
     if (src._is_zerotensor()) {
         return self.zero_();
-    }
-    // save tensor dim name
-    c10::optional<at::DimnameList> names = src.opt_names();
-    if (names.has_value()) {
-        internal_set_names_inplace(self, names);
     }
 
     if (torch_npu::utils::is_npu(self)) {

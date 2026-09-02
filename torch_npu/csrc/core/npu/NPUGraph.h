@@ -7,10 +7,11 @@
 #include <stack>
 #include <vector>
 #include <functional>
+#include <limits>
 
-#include "third_party/acl/inc/acl/acl_base.h"
-#include "third_party/acl/inc/acl/acl_rt.h"
-#include "third_party/acl/inc/acl/super_kernel.h"
+#include <acl/acl_base.h>
+#include <acl/acl_rt.h>
+#include <acl/super_kernel.h>
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "torch_npu/csrc/core/npu/interface/SkInterface.h"
 #include "torch_npu/csrc/core/npu/NPUGraphsUtils.h"
@@ -23,46 +24,44 @@ namespace npu_logging {
 class Logger;
 }
 
-inline std::shared_ptr<npu_logging::Logger>& GetNPUGraphLogger()
-{
-    static std::shared_ptr<npu_logging::Logger> logger =
-        npu_logging::logging().getLogger("torch_npu.npugraph");
-    return logger;
+inline std::shared_ptr<npu_logging::Logger>& GetNPUGraphLogger() {
+  static std::shared_ptr<npu_logging::Logger> logger = npu_logging::logging().getLogger("torch_npu.npugraph");
+  return logger;
 }
 
-#define NPUGRAPH_LOGD(format, ...)                                           \
-    do {                                                                      \
-        TORCH_NPU_LOGD(GetNPUGraphLogger(), format, ##__VA_ARGS__);           \
-    } while (0);
+#define NPUGRAPH_LOGD(format, ...)                              \
+  do {                                                          \
+    TORCH_NPU_LOGD(GetNPUGraphLogger(), format, ##__VA_ARGS__); \
+  } while (0);
 
-#define NPUGRAPH_LOGI(format, ...)                                           \
-    do {                                                                      \
-        TORCH_NPU_LOGI(GetNPUGraphLogger(), format, ##__VA_ARGS__);           \
-    } while (0);
+#define NPUGRAPH_LOGI(format, ...)                              \
+  do {                                                          \
+    TORCH_NPU_LOGI(GetNPUGraphLogger(), format, ##__VA_ARGS__); \
+  } while (0);
 
-#define NPUGRAPH_LOGE(format, ...)                                           \
-    do {                                                                      \
-        TORCH_NPU_LOGE(GetNPUGraphLogger(), format, ##__VA_ARGS__);           \
-    } while (0);
+#define NPUGRAPH_LOGE(format, ...)                              \
+  do {                                                          \
+    TORCH_NPU_LOGE(GetNPUGraphLogger(), format, ##__VA_ARGS__); \
+  } while (0);
 
 namespace at {
-    struct Generator;
+struct Generator;
 }
 
 namespace at_npu {
-    struct NPUGeneratorImpl;
-    struct NPUGeneratorState;
-}
+struct NPUGeneratorImpl;
+struct NPUGeneratorState;
+} // namespace at_npu
 namespace c10_npu {
 // Standalone way to get a unique mempool id usable as a pool=... argument
-// to CUDAGraph::capture_begin
+// to NPUGraph::capture_begin
 TORCH_NPU_API MempoolId_t graph_pool_handle();
 
 struct TORCH_NPU_API NPUTaskGroupHandle {
-    aclrtTaskGrp task_group;
+  aclrtTaskGrp task_group;
 };
 
-typedef TORCH_NPU_API void (*NPUCallbackFunc)(void *fnData);
+typedef TORCH_NPU_API void (*NPUCallbackFunc)(void* fnData);
 
 TORCH_NPU_API void graph_task_group_begin(c10_npu::NPUStream stream);
 TORCH_NPU_API NPUTaskGroupHandle graph_task_group_end(c10_npu::NPUStream stream);
@@ -71,83 +70,84 @@ TORCH_NPU_API void graph_task_update_end(c10_npu::NPUStream stream);
 TORCH_NPU_API void super_kernel_scope_begin(const char* scope_name);
 TORCH_NPU_API void super_kernel_scope_end(const char* scope_name);
 
-TORCH_NPU_API void launch_callback(c10_npu::NPUStream stream, NPUCallbackFunc func, void *fnData);
-TORCH_NPU_API void launch_host_func(c10_npu::NPUStream stream, NPUCallbackFunc func, void *fnData);
+TORCH_NPU_API void launch_callback(c10_npu::NPUStream stream, NPUCallbackFunc func, void* fnData);
+TORCH_NPU_API void launch_host_func(c10_npu::NPUStream stream, NPUCallbackFunc func, void* fnData);
 TORCH_NPU_API void subscribe_report(uint64_t threadId, c10_npu::NPUStream stream);
 TORCH_NPU_API void unsubscribe_report(uint64_t threadId, c10_npu::NPUStream stream);
 
 struct TORCH_NPU_API NPUGraph {
-    NPUGraph();
-    ~NPUGraph();
-    NPUGraph(const NPUGraph&) = delete;
-    NPUGraph& operator=(const NPUGraph&) = delete;
-    NPUGraph(NPUGraph&&) = delete;
-    NPUGraph& operator=(NPUGraph&&) = delete;
+  NPUGraph();
+  ~NPUGraph();
+  NPUGraph(const NPUGraph&) = delete;
+  NPUGraph& operator=(const NPUGraph&) = delete;
+  NPUGraph(NPUGraph&&) = delete;
+  NPUGraph& operator=(NPUGraph&&) = delete;
 
-    static NPUGraph* get_currently_capturing_graph();
+  static NPUGraph* get_currently_capturing_graph();
+  // Returns the currently capturing NPUGraph. Throws if it is owned by
+  // torch.accelerator.Graph to prevent a potential use-after-free.
+  static NPUGraph* get_currently_capturing_npu_graph();
 
-    void register_generator_state(c10::intrusive_ptr<at_npu::NPUGeneratorState> state);
-    void register_generator_state(const at::Generator& generator);
-    void capture_begin(
-        MempoolId_t pool = {0, 0},
-        aclmdlRICaptureMode capture_mode = aclmdlRICaptureMode::ACL_MODEL_RI_CAPTURE_MODE_GLOBAL,
-        bool report_shape = true);
-    void capture_end();
-    void replay();
-    void reset();
-    MempoolId_t pool();
-    void enable_debug_mode();
-    void debug_dump(const std::string& debug_path);
-    void super_kernel_optimize(const aclskOptions *options);
-    void begin_capture_to_if_node(const at::Tensor& scalar_npu_pred_tensor);
-    void end_capture_to_conditional_node();
-    void set_conditional_handle(aclmdlRICondHandle handle, const at::Tensor& scalar_npu_pred_tensor);
+  void register_generator_state(c10::intrusive_ptr<at_npu::NPUGeneratorState> state);
+  void capture_begin(
+      MempoolId_t pool = {0, 0},
+      aclmdlRICaptureMode capture_mode = aclmdlRICaptureMode::ACL_MODEL_RI_CAPTURE_MODE_GLOBAL,
+      bool report_shape = true);
+  void capture_end();
+  void replay();
+  void reset();
+  MempoolId_t pool() const;
+  MempoolId_t pool();
+  void enable_debug_mode();
+  void debug_dump(const std::string& debug_path);
+  void super_kernel_optimize(const aclskOptions* options);
+  void begin_capture_to_if_node(const at::Tensor& scalar_npu_pred_tensor);
+  void end_capture_to_conditional_node();
+  void set_conditional_handle(aclmdlRICondHandle handle, const at::Tensor& scalar_npu_pred_tensor);
 
-private:
-    std::function<bool(aclrtStream)> create_allocate_filter() const;
-    std::function<bool(aclrtStream)> create_child_allocate_filter(aclmdlRI child_model_ri) const;
+ private:
+  std::function<bool(aclrtStream)> create_allocate_filter() const;
+  std::function<bool(aclrtStream)> create_child_allocate_filter(aclmdlRI child_model_ri) const;
 
-protected:
-    aclmdlRI model_ri_ = nullptr;
+ protected:
+  aclmdlRI model_ri_ = nullptr;
 
-    // Set to true in capture_end if NPU graph is captured succeeded
-    bool has_graph_exec_ = false;
+  // Set to true in capture_end if NPU graph is captured succeeded
+  bool has_graph_exec_ = false;
 
-    // the ID assigned by cuda during graph capture,
-    // used to identify when a stream is participating in capture
-    CaptureId_t capture_id_ = -1;
+  // the ID assigned by NPU runtime during graph capture,
+  // used to identify when a stream is participating in capture
+  CaptureId_t capture_id_ = std::numeric_limits<CaptureId_t>::max();
 
-    // uuid used to request a particular private mempool from CUDACachingAllocator.
-    // By default, this will be set to {id_, 0}.
-    //
-    // If capture_begin is called with "pool=other_graph.pool()", this graph's mempool_id_
-    // will be set to the other graph's mempool_id_, and therefore share a mempool with the
-    // other graph.
-    //
-    // If capture_begin is called with "pool=handle" where "handle" came from graph_pool_handle(),
-    // it will share a mempool with any other captures that used "pool=handle".
-    //
-    // Sharing a mempool across graphs saves memory, and it's safe if you
-    // know you'll replay those graphs in the same order you captured them.
-    MempoolId_t mempool_id_;
+  // uuid used to request a particular private mempool from NPUCachingAllocator.
+  // By default, this will be set to {id_, 0}.
+  //
+  // If capture_begin is called with "pool=other_graph.pool()", this graph's
+  // mempool_id_ will be set to the other graph's mempool_id_, and therefore
+  // share a mempool with the other graph.
+  //
+  // If capture_begin is called with "pool=handle" where "handle" came from
+  // graph_pool_handle(), it will share a mempool with any other captures that
+  // used "pool=handle".
+  //
+  // Sharing a mempool across graphs saves memory, and it's safe if you
+  // know you'll replay those graphs in the same order you captured them.
+  MempoolId_t mempool_id_;
 
-    // Stream on which capture began
-    NPUStream capture_stream_;
-    aclmdlRICaptureMode capture_mode_{};
+  // Stream on which capture began
+  NPUStream capture_stream_;
+  aclmdlRICaptureMode capture_mode_{};
 
-    std::stack<NPUStreamGuard> conditional_node_streams_;
-    std::stack<aclmdlRI> conditional_model_ri_stack_;
-    std::stack<
-        ska::flat_hash_map<c10::intrusive_ptr<at_npu::NPUGeneratorState>, uint64_t>>
-        conditional_rng_snapshots_;
+  std::stack<NPUStreamGuard> conditional_node_streams_;
+  std::stack<aclmdlRI> conditional_model_ri_stack_;
 
-    // Device where capture occurred. Right now, for simplicity, we require all ops
-    // in a capture to run on the same device, but this is a limitation of CUDAGraph,
-    // not CUDA itself.  We can straightforwardly modify CUDAGraph to support multi-device
-    // captures if needed.
-    int capture_dev_;
+  // Device where capture occurred. Right now, for simplicity, we require all
+  // ops in a capture to run on the same device, but this is a limitation of
+  // NPUGraph, not NPU itself. We can straightforwardly modify NPUGraph to
+  // support multi-device captures if needed.
+  int capture_dev_;
 
-    ska::flat_hash_map<c10::intrusive_ptr<at_npu::NPUGeneratorState>, uint64_t> captured_generator_states_;
+  ska::flat_hash_map<c10::intrusive_ptr<at_npu::NPUGeneratorState>, uint64_t> captured_generator_states_;
 };
 
 } // namespace c10_npu

@@ -229,7 +229,13 @@ class MetaCompiler:
             for out1, out2 in zip(actual_outputs, args[-num_outputs:]):
                 if isinstance(out1, torch.Tensor) and not out1.is_contiguous():
                     out1 = out1.contiguous()
-                out2.copy_(out1)
+                if out1.device == out2.device and out1.dtype == out2.dtype:
+                    out2.set_(out1)
+                else:
+                    # clone_for_accuracy upcasts bfloat16 outputs to float32, while the model
+                    # forward still produces bfloat16. set_ fails due to dtype mismatch,
+                    # fall back to copy_ for cross-dtype copy.
+                    out2.copy_(out1)
         return module_call
 
     def _load_traced_graph_model(self) -> torch.nn.Module:
@@ -285,6 +291,8 @@ class MetaCompiler:
             runtime_args = self.prepare_runtime_args(
                 args_list,
             )
+        if is_fallback_kernel:
+            kwargs = {k: v for k, v in kwargs.items() if k != "stream"}
         ret = launcher(*tuple(runtime_args), **kwargs)
         self._copy_back_non_contiguous_outputs(args_list, original_outputs)
         return ret

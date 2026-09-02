@@ -136,8 +136,10 @@ def _check_if_enable_npu(test: unittest.TestCase):
         # if test method name or its sanitized version exactly matches the disabled
         # test method name AND allow non-parametrized suite names to disable
         # parametrized ones (TestSuite disables TestSuiteCPU)
-        return (classname.startswith(target_classname) or classname.startswith(class_device_replace)) \
-               and (target_testname in (test._testMethodName, sanitized_testname))
+        return (
+            (classname.startswith(target_classname) or classname.startswith(class_device_replace))
+            and (target_testname in (test._testMethodName, sanitized_testname))
+        )
 
     if any(matches_test(x) for x in slow_tests_dict.keys()):
         getattr(test, test._testMethodName).__dict__['slow_test'] = True
@@ -216,7 +218,8 @@ def _patch_backend_register_for_npu():
     _original_register_backend = Backend.register_backend.__func__
 
     @classmethod
-    def _patched_register_backend(cls, backend_name, func, extended_api=False, devices=None):
+    def _patched_register_backend(cls, backend_name, func, extended_api=False, devices=None,
+                                  **kwargs):
         if devices is not None:
             if isinstance(devices, str):
                 devices = [devices]
@@ -224,7 +227,13 @@ def _patch_backend_register_for_npu():
                 devices = list(devices)
             if backend_name == 'fake' and 'npu' not in devices:
                 devices.append('npu')
-        return _original_register_backend(cls, backend_name, func, extended_api=extended_api, devices=devices)
+        # Forward any extra keyword arguments (e.g. torch 2.14's `_backend_type`) untouched.
+        # Using **kwargs keeps this patch compatible across torch versions that add or drop
+        # register_backend parameters: caller and original are the same torch version, so the
+        # forwarded kwargs always match the original's signature (2.13 passes none, 2.14 passes
+        # _backend_type).
+        return _original_register_backend(cls, backend_name, func, extended_api=extended_api,
+                                          devices=devices, **kwargs)
 
     Backend.register_backend = _patched_register_backend
 

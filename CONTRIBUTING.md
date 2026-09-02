@@ -1,10 +1,10 @@
-# PyTorch 贡献指南
+# TorchNPU 贡献指南
 
-感谢您考虑为 PyTorch 做出贡献！我们欢迎任何形式的贡献，包括错误修复、功能增强、文档改进等。无论您是经验丰富的开发者还是第一次参与开源项目，您的帮助都是非常宝贵的。
+感谢您考虑为 TorchNPU 做出贡献！我们欢迎任何形式的贡献，包括错误修复、功能增强、文档改进等。无论您是经验丰富的开发者还是第一次参与开源项目，您的帮助都是非常宝贵的。
 
 ## 项目介绍
 
-PyTorch 是基于 Ascend NPU 的深度学习框架发行版，针对华为昇腾 NPU 进行了深度优化适配。本项目提供与 PyTorch 官方的 API 兼容性，并充分发挥昇腾芯片的计算能力。
+TorchNPU 是基于 Ascend NPU 的深度学习适配插件，针对华为昇腾 NPU 进行了深度优化适配。本项目提供与上游 PyTorch 的 API 兼容性，并充分发挥昇腾芯片的计算能力。
 
 ### 项目架构
 
@@ -49,7 +49,7 @@ pytorch
 
 ## 贡献方式
 
-我们热情期待您的加入！每一个贡献都是推动 PyTorch 进步的重要力量：
+我们热情期待您的加入！每一个贡献都是推动 TorchNPU 进步的重要力量：
 
 - **反馈问题**：报告 Bug 或提交功能建议，帮助我们发现并解决问题
 - **贡献代码**：提交代码修复或新功能实现，直接参与项目开发
@@ -101,9 +101,7 @@ pytorch
 
 ### 贡献者许可协议
 
-在您第一次向 PyTorch 社区提交代码之前，需要签署 CLA。
-
-对于个人贡献者，详细信息请参考 [ICLA 在线文档](https://www.mindspore.cn/icla)。
+在您第一次向 Ascend for PyTorch 社区提交代码之前，需要签署 [CLA](https://clasign.osinfra.cn/sign-cla/690ca9ddf91c03dee6082ab1/individual)。
 
 ### 开发与测试
 
@@ -143,7 +141,7 @@ pytorch
 
 ## 代码规范
 
-请遵循这些风格，使 PyTorch 易于开发、审查和维护。
+请遵循这些风格，使 TorchNPU 易于开发、审查和维护。
 
 ### 编码指南
 
@@ -170,12 +168,13 @@ pytorch
 **编译构建**：
 
 ```bash
-# 安装依赖并编译
+# 安装依赖并编译（未指定 --torch 时，使用环境中已安装的 PyTorch 版本）
 bash ci/build.sh --python=3.10
 
-# 针对指定的 PyTorch 版本构建（支持 2.10.0 / 2.11.0 / 2.12.0）
-# 要求环境中已安装对应版本的 PyTorch
-bash ci/build.sh --python=3.10 --torch=2.10.0
+# 针对指定的 PyTorch 版本构建（支持 2.13 及以上，可用版本以 version.txt 为准）
+# --torch 的值即要构建的包版本，可带 post 号（如 2.13.0.post1 表示 2.13 主线的 post 构建）
+# 要求环境中已安装对应 major.minor 的 PyTorch
+bash ci/build.sh --python=3.10 --torch=2.14.0
 
 # 或使用 CMake 手动编译
 mkdir build && cd build
@@ -353,7 +352,7 @@ python ci/access_control_test.py --all
 
 ### AI辅助研发
 
-PyTorch NPU 项目鼓励使用 AI 辅助研发与文档开发，以提升贡献效率。我们提供了昇腾官方的 agent-skills 仓库，其中包含一系列适用于昇腾生态的 AI Agent Skill 配置，可帮助您在开发中更好地利用 AI 编码助手。
+TorchNPU 项目鼓励使用 AI 辅助研发与文档开发，以提升贡献效率。我们提供了昇腾官方的 agent-skills 仓库，其中包含一系列适用于昇腾生态的 AI Agent Skill 配置，可帮助您在开发中更好地利用 AI 编码助手。
 
 - **agent-skills 仓库**：[https://gitcode.com/Ascend/agent-skills](https://gitcode.com/Ascend/agent-skills)
 - 该仓库提供了昇腾芯片场景下常用的 Skill 模板和工具，可用于代码生成、问题诊断、性能分析等场景。

@@ -14,4 +14,4 @@ TORCH_NPU_API void _record_memory_history(
 
 TORCH_NPU_API std::string _memory_snapshot_pickled();
 
-} // namespace torch::npu
+} // namespace torch_npu

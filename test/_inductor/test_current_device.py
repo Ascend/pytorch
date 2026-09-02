@@ -1,10 +1,10 @@
 import torch
+import torch._dynamo.testing
 from torch.testing._internal.common_utils import (
     run_tests,
     instantiate_parametrized_tests,
 )
 from testutils import TestUtils
-import torch_npu
 
 
 class TestCurrentDevice(TestUtils):

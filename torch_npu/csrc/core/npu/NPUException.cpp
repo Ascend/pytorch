@@ -424,7 +424,7 @@ std::string getDeviceErrorMessage(int errorCode) {
 }
 
 bool isCannOOM(const std::string& errMsg) {
-  const char* oom_error_msg = "Failed to allocate memory";
+  const char* oom_error_msg = "Failed to allocate";
   const char* oom_error_code = "EL0004";
   // Use OR matching for keyword and error code to be compatible with different
   // CANN versions

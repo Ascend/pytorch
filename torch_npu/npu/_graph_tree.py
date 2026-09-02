@@ -99,6 +99,7 @@ from torch.utils._ordered_set import OrderedSet
 from torch.utils.weak import TensorWeakRef
 
 import torch_npu
+from torch_npu.npu._graph_tree_state import MarkStepBox  # noqa: F401
 from torch_npu._C import (
     _npu_NPUAllocator_AllocatorState as AllocatorState,
     _set_cached_tensors_enabled as _set_cached_tensors_enabled)
@@ -268,22 +269,10 @@ local.npu_tree_manager_containers = {}
 local.npu_tree_manager_locks = defaultdict(threading.Lock)
 
 
-# only incremented by user call of mark_step_begin
-class MarkStepBox:
-    mark_step_counter = 0
-
-
 # We need to register this as an object that will be copied over as TLS when new
 # threads are created in autograd
 torch._C._stash_obj_in_tls("npu_tree_manager_containers", local.npu_tree_manager_containers)
 torch._C._stash_obj_in_tls("npu_tree_manager_locks", local.npu_tree_manager_locks)
-
-
-def mark_step_begin() -> None:
-    "Indicates that a new iteration of inference or training is about to begin."
-
-    # iterate down to distinguish from GenerationTracking counter
-    MarkStepBox.mark_step_counter -= 1
 
 
 def reset_npugraph_trees() -> None:
@@ -529,7 +518,7 @@ def _use_npu_memory_pool_manager(
         try:
             yield
         finally:
-            torch_npu._C._npu_endAllocateCurrentStreamToPool(device, mem_pool)
+            torch_npu._C._npu_endAllocateToPool(device, mem_pool)
             torch_npu._C._npu_releasePool(device, mem_pool)
 
     torch.npu.current_stream().wait_stream(stream)
@@ -2491,7 +2480,7 @@ class NPUGraphTreeManager:
         warnings.warn(
             "Unable to hit fast path of NPUGraphs because of pending, uninvoked backwards. "
             "Consider running with torch.no_grad() or using torch.compiler.npugraph_mark_step_begin() "
-            "before each model invocation"
+            "before each model invocation."
         )
 
     @staticmethod

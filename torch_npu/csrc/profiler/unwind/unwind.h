@@ -22,13 +22,13 @@ TORCH_NPU_API std::vector<void*> unwind();
 TORCH_NPU_API std::vector<torch::unwind::Frame> symbolize(const std::vector<void*>& frames);
 
 // returns path to the library, and the offset of the addr inside the library
-TORCH_NPU_API c10::optional<std::pair<std::string, uint64_t> > libraryFor(void* addr);
+TORCH_NPU_API c10::optional<std::pair<std::string, uint64_t>> libraryFor(void* addr);
 
 struct Stats {
-    size_t hits = 0;
-    size_t misses = 0;
-    size_t unsupported = 0;
-    size_t resets = 0;
+  size_t hits = 0;
+  size_t misses = 0;
+  size_t unsupported = 0;
+  size_t resets = 0;
 };
 Stats stats();
 

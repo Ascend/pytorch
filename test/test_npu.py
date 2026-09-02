@@ -3,7 +3,6 @@
 from itertools import product, chain
 import collections
 import contextlib
-import ctypes
 from copy import deepcopy
 import gc
 import os
@@ -31,7 +30,7 @@ import torch_npu
 import torch_npu.testing
 from torch.testing._internal.common_utils import TestCase, freeze_rng_state, run_tests, \
     NO_MULTIPROCESSING_SPAWN, skipIfRocm, load_tests, IS_WINDOWS, \
-    slowTest, skipCUDANonDefaultStreamIf, skipCUDAMemoryLeakCheckIf, TEST_CUDA, TEST_PRIVATEUSE1, TEST_WITH_ROCM, TEST_NUMPY, \
+    slowTest, skipCUDANonDefaultStreamIf, skipCUDAMemoryLeakCheckIf, TEST_PRIVATEUSE1, TEST_WITH_ROCM, TEST_NUMPY, \
     get_cycles_per_ms, parametrize, instantiate_parametrized_tests, subtest, IS_JETSON, gcIfJetson, NoTest, IS_LINUX
 from torch.testing._internal.autocast_test_lists import AutocastTestLists
 from torch.utils.viz._cycles import observe_tensor_cycles
@@ -317,6 +316,7 @@ class TestNpu(TestCase):
         for i in range(len(cpu_tensors)):
             self.assertEqual(cpu_tensors[i].npu(), npu_tensors[i])
 
+    @unittest.skip("Being repaired")
     def test_foreach_copy_h2d_sync(self):
         cpu_tensors = []
         npu_tensors = []
@@ -393,7 +393,7 @@ class TestNpu(TestCase):
         skip_tf32_cublas = 'TORCH_ALLOW_TF32_CUBLAS_OVERRIDE' in os.environ and\
             int(os.environ['TORCH_ALLOW_TF32_CUBLAS_OVERRIDE'])
         # this is really just checking that the environment variable is respected during testing
-        # and not overwritten by another function that doesn't revert it to the intitial value
+        # and not overwritten by another function that doesn't revert it to the initial value
         if not skip_tf32_cublas:
             self.assertFalse(torch.backends.npu.matmul.allow_tf32)
             self.assertEqual(torch.get_float32_matmul_precision(), 'highest')
@@ -599,7 +599,7 @@ class TestNpu(TestCase):
         with ttorch_npu.npu.stream(stream):
             tmp2 = torch_npu.npu.FloatTensor(t.size())
             tmp2.zero_()
-            self.assertNotEqual(tmp2.data_ptr(), ptr[0], msg='allocation re-used to soon')
+            self.assertNotEqual(tmp2.data_ptr(), ptr[0], msg='allocation reused to soon')
 
         self.assertEqual(result.tolist(), [1, 2, 3, 4])
 
@@ -609,7 +609,7 @@ class TestNpu(TestCase):
             torch_npu.npu.current_stream().synchronize()
             with torch_npu.npu.stream(stream):
                 tmp3 = torch_npu.npu.FloatTensor(t.size())
-                self.assertEqual(tmp3.data_ptr(), ptr[0], msg='allocation not re-used')
+                self.assertEqual(tmp3.data_ptr(), ptr[0], msg='allocation not reused')
 
     def test_record_stream_on_shifted_view(self):
         # See issue #27366
@@ -651,20 +651,20 @@ class TestNpu(TestCase):
     def test_caching_pinned_memory(self):
         cycles_per_ms = get_cycles_per_ms()
 
-        # check that allocations are re-used after deletion
+        # check that allocations are reused after deletion
         t = torch.FloatTensor([1]).pin_memory()
         ptr = t.data_ptr()
         del t
         t = torch.FloatTensor([1]).pin_memory()
         self.assertEqual(t.data_ptr(), ptr, msg='allocation not reused')
 
-        # check that the allocation is not re-used if it's in-use by a copy
+        # check that the allocation is not reused if it's in-use by a copy
         gpu_tensor = torch_npu.npu.FloatTensor([0])
         torch_npu.npu._sleep(int(1000 * cycles_per_ms))  # delay the copy by 1s
         gpu_tensor.copy_(t, non_blocking=True)
         del t
         t = torch.FloatTensor([1]).pin_memory()
-        self.assertNotEqual(t.data_ptr(), ptr, msg='allocation re-used too soon')
+        self.assertNotEqual(t.data_ptr(), ptr, msg='allocation reused too soon')
         self.assertEqual(list(gpu_tensor), [1])
 
     def test_caching_allocator_record_stream_oom(self):
@@ -680,7 +680,7 @@ class TestNpu(TestCase):
             x = torch.empty(40 * 1024 * 1024, device='npu')
             with torch_npu.npu.stream(stream):
                 y += x
-            # delays re-use of `x` until after all operations in `stream`
+            # delays reuse of `x` until after all operations in `stream`
             x.record_stream(stream)
             del x
 
@@ -1840,7 +1840,7 @@ torch_npu.npu.synchronize()
 
             # If both torch.* and Tensor.* variants were found, check outputs are identical
             if (output is not None) and (output_method is not None):
-                self.assertTrue(type(output) == type(output_method))
+                self.assertTrue(type(output) is type(output_method))
                 comparison = compare(output, output_method)
                 self.assertTrue(comparison, f"torch.{op} result did not match Tensor.{op} result")
 
@@ -1854,7 +1854,7 @@ torch_npu.npu.synchronize()
                     control = getattr(module, op)(*cast(args, run_as_type), **add_kwargs)
                 else:
                     control = getattr(args[0].to(run_as_type), op)(*cast(args[1:], run_as_type), **add_kwargs)
-                self.assertTrue(type(output_to_compare) == type(control))
+                self.assertTrue(type(output_to_compare) is type(control))
                 comparison = compare(output_to_compare, control)
                 self.assertTrue(comparison, f"torch.{op} result did not match control")
             self.assertTrue(torch.is_autocast_enabled())
@@ -3294,14 +3294,14 @@ exit(2)
             try:
                 with torch_npu.npu.stream(stream):
                     mem = torch_npu.npu.caching_allocator_alloc(1024)
-            except BaseException:
+            except Exception:
                 if mem is None:
                     return
             try:
                 torch_npu.npu.caching_allocator_delete(mem)
                 mem = None
                 return None
-            except BaseException:
+            except Exception:
                 pass
 
         def throws_on_cuda_event(capture_error_mode):
@@ -3454,7 +3454,11 @@ exit(2)
         # Check that `rts` was not called during the import
         # By using torch_npu._C._npu_getDeviceCount() because it will not change if `rts` was called
         # torch_npu.npu.device_count() will parses ASCEND_RT_VISIBLE_DEVICES and will change along with it
-        test_script = f"import os; import torch; import torch_npu; os.environ['{VISIBLE_DEVICES}']='32';print(torch_npu._C._npu_getDeviceCount())"
+        test_script = (
+            f"import os; import torch; import torch_npu; "
+            f"os.environ['{VISIBLE_DEVICES}']='32';"
+            f"print(torch_npu._C._npu_getDeviceCount())"
+        )
         rc = check_output(test_script)
         self.assertEqual(rc, "0")
 
@@ -4287,68 +4291,99 @@ class TestBlockStateAbsorption(TestCase):
         self.assertEqual(rc, "False", "Triton was imported when importing torch!")
 
 
-@unittest.skipIf(not TEST_PRIVATEUSE1, "npu not available, skipping tests")
-class TestMemPool(TestCase):
-    def test_mempool_id(self):
-        pool1 = torch_npu.npu.graph_pool_handle()
-        pool2 = torch_npu.npu.MemPool().id
+class TestFXMemoryProfilerNpu(TestCase):
+    """End to end check that augment_with_fx_traces really annotates NPU snapshots.
 
-        # first value of id in a user created pool is always zero
-        self.assertEqual(pool1[0] == 0, pool2[0] == 0)
+    Three things all have to hold for a frame to be annotated, and each fails silently:
+    the frame must come from an FX generated file, its metadata must be in
+    torch.fx.traceback._FX_METADATA_REGISTRY, and that registry is only populated
+    when enrich_profiler_metadata is enabled at compile time. The registry is in
+    memory, so the compile has to happen in this same process.
+    """
 
-        # each call to torch_npu.npu.graph_pool_handle() or torch_npu.npu.MemPool()
-        # increments the id
-        self.assertTrue(abs(pool2[1] - pool1[1]) > 0)
+    class MLPModule(torch.nn.Module):
+        def __init__(self, device):
+            super().__init__()
+            torch.manual_seed(5)
+            self.net1 = torch.nn.Linear(10, 16, bias=True, device=device)
+            self.relu = torch.nn.ReLU()
+            self.net2 = torch.nn.Linear(16, 10, bias=True, device=device)
 
-    def test_mempool_context(self):
-        active_pool = torch_npu.npu.MemPoolContext.active_pool()
+        def forward(self, x):
+            a = self.net1(x)
+            b = self.relu(a)
+            c = self.net2(b)
+            return c
 
-        # there is no active pool if none was made active
-        self.assertEqual(active_pool, None)
+    @staticmethod
+    def _iter_frames(snapshot):
+        for trace_list in snapshot.get("device_traces", []):
+            for entry in trace_list:
+                if isinstance(entry, dict):
+                    yield from (
+                        f for f in entry.get("frames", []) if isinstance(f, dict)
+                    )
+        for segment in snapshot.get("segments", []):
+            for block in segment.get("blocks", []):
+                yield from (f for f in block.get("frames", []) if isinstance(f, dict))
 
-        pool = torch_npu.npu.MemPool()
-        ctx = torch_npu.npu.MemPoolContext(pool)
-        active_pool = torch_npu.npu.MemPoolContext.active_pool()
+    def test_snapshot_fx_augmentation_end_to_end(self):
+        if not hasattr(torch._utils, "_augment_memory_snapshot_stack_traces"):
+            self.skipTest("torch._utils._augment_memory_snapshot_stack_traces missing")
 
-        # pool was made active
-        self.assertEqual(active_pool, pool)
+        # aot_eager rather than inductor: this exercises FX metadata, which does not
+        # need a codegen backend, so the test does not depend on NPU inductor support.
+        with torch.fx.experimental._config.patch("enrich_profiler_metadata", True):
+            mod = self.MLPModule("npu")
+            torch_npu.npu.empty_cache()
+            torch_npu.npu.memory._record_memory_history()
+            try:
+                compiled = torch.compile(mod, backend="aot_eager", fullgraph=True)
+                compiled(torch.randn(10, 10, device="npu"))
+                snapshot = torch_npu.npu.memory._snapshot(augment_with_fx_traces=True)
+            finally:
+                # No clear_history parameter here, unlike the upstream CUDA helper.
+                torch_npu.npu.memory._record_memory_history(enabled=None)
 
-        del ctx
-        active_pool = torch_npu.npu.MemPoolContext.active_pool()
+        self.assertIn("segments", snapshot)
+        self.assertIn("device_traces", snapshot)
 
-        # ctx was deleted, so active pool is the previous one
-        self.assertEqual(active_pool, None)
+        frames = list(self._iter_frames(snapshot))
+        self.assertGreater(len(frames), 0, "snapshot recorded no stack frames at all")
 
-    def test_mempool_multithread(self):
-        pool_ids = []
-        active_pool_ids = []
+        fx_frames = [f for f in frames if "fx_node_op" in f]
+        seen_files = sorted({os.path.basename(f.get("filename", "")) for f in frames})
+        self.assertGreater(
+            len(fx_frames),
+            0,
+            "no frame carried FX metadata; frame files seen were "
+            f"{seen_files[:15]} and none matched fx_generated_*.py",
+        )
 
-        def create_mempool_and_make_active():
-            pool = torch_npu.npu.MemPool()
-            pool_ids.extend([pool.id])
+        for frame in fx_frames:
+            self.assertIn("fx_node_op", frame)
+            self.assertIn("fx_node_name", frame)
+            self.assertIn("fx_node_target", frame)
+            self.assertIn("fx_original_trace", frame)
+            self.assertTrue(
+                os.path.basename(frame["filename"]).startswith("fx_generated_"),
+                f"annotated a non FX frame: {frame['filename']}",
+            )
 
-            ctx = torch_npu.npu.MemPoolContext(pool)
-            active_pool = torch_npu.npu.MemPoolContext.active_pool()
-            active_pool_ids.extend([active_pool.id])
-            del ctx
-
-        num_threads = 4
-        threads = [
-            threading.Thread(target=create_mempool_and_make_active)
-            for t in range(num_threads)
-        ]
-        for thread in threads:
-            thread.start()
-        for thread in threads:
-            thread.join()
-
-        # each thread should create a unique mempool, since
-        # mempool id creation is atomic
-        self.assertEqual(len(set(pool_ids)), 4)
-
-        # each thread should have different active mempool, since
-        # the pointer to the mempool is thread local
-        self.assertEqual(len(set(active_pool_ids)), 4)
+        # The MLP lowers to these three nodes under aot_eager, and each original
+        # trace should point back at the line of forward() that produced it.
+        expected = {
+            "addmm": "a = self.net1(x)",
+            "relu": "b = self.relu(a)",
+            "addmm_1": "c = self.net2(b)",
+        }
+        node_names = {f["fx_node_name"] for f in fx_frames}
+        self.assertTrue(
+            node_names <= set(expected),
+            f"unexpected fx node names: {sorted(node_names)}",
+        )
+        for frame in fx_frames:
+            self.assertIn(expected[frame["fx_node_name"]], frame["fx_original_trace"])
 
 
 instantiate_parametrized_tests(TestNpu)

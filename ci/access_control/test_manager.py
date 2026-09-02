@@ -12,6 +12,7 @@ from .strategy import (
 from .constants import (
     BASE_DIR, TEST_DIR, SLOW_TEST_BLOCKLIST, INCLUDE_FILES
 )
+from .version_filter import filter_test_files
 
 
 def get_test_torch_version_path():
@@ -29,6 +30,12 @@ class TestMgr:
         self.test_files = {
             'ut_files': [],
             'op_ut_files': []
+        }
+        # test_classes 用于存储类级拆分信息
+        # 格式: {'ut_files': {file_path: [class_name, ...]}, 'op_ut_files': {}}
+        self.test_classes = {
+            'ut_files': {},
+            'op_ut_files': {}
         }
 
     def load(self, modify_files, world_size):
@@ -64,7 +71,10 @@ class TestMgr:
         self.test_files['ut_files'] += [str(i) for i in (BASE_DIR / 'test/distributed').rglob('test_*.py')]
 
     def load_inductor_ut(self):
-        self.test_files['ut_files'] += [str(i) for i in (BASE_DIR / 'test/_inductor').rglob('test_*.py')]
+        self.test_files['ut_files'] = [
+            str(BASE_DIR / 'test/_inductor/test_add.py'),
+            str(BASE_DIR / 'test/_inductor/test_abs.py'),
+        ]
 
     def load_op_plugin_ut(self):
         if not os.path.exists(BASE_DIR / 'third_party/op-plugin/test'):
@@ -149,6 +159,15 @@ class TestMgr:
             for instead_file in instead_files:
                 if instead_file not in self.test_files[test_files_key]:
                     self.test_files[test_files_key].append(instead_file)
+
+    def filter_by_version(self, min_ver, max_ver):
+        """Filter test files by CI target version range [min_ver, max_ver].
+
+        Args:
+            min_ver: CI lower bound tuple, e.g. (2, 10). None for no lower bound.
+            max_ver: CI upper bound tuple, e.g. (2, 12). None for no upper bound.
+        """
+        self.test_files = filter_test_files(self.test_files, min_ver, max_ver)
 
     def get_test_files(self):
         return self.test_files

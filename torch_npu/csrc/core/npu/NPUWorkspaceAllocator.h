@@ -7,19 +7,19 @@
 namespace c10_npu {
 namespace NPUWorkspaceAllocator {
 
-using c10_npu::NPUCachingAllocator::CreateContextFn;
-using c10_npu::NPUCachingAllocator::BlockInfo;
-using c10_npu::NPUCachingAllocator::SegmentInfo;
-using c10_npu::NPUCachingAllocator::TraceEntry;
-using c10_npu::NPUCachingAllocator::SnapshotInfo;
-using c10_npu::NPUCachingAllocator::RecordContext;
 using c10::CachingAllocator::Stat;
+using c10_npu::NPUCachingAllocator::BlockInfo;
+using c10_npu::NPUCachingAllocator::CreateContextFn;
+using c10_npu::NPUCachingAllocator::RecordContext;
+using c10_npu::NPUCachingAllocator::SegmentInfo;
+using c10_npu::NPUCachingAllocator::SnapshotInfo;
+using c10_npu::NPUCachingAllocator::TraceEntry;
 
 struct DeviceStats {
-    // SUM: bytes requested by client code
-    Stat allocated_bytes;
-    // SUM: bytes reserved by this memory allocator (both free and used)
-    Stat reserved_bytes;
+  // SUM: bytes requested by client code
+  Stat allocated_bytes;
+  // SUM: bytes reserved by this memory allocator (both free and used)
+  Stat reserved_bytes;
 };
 
 c10::Allocator* get();

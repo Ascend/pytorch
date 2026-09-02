@@ -1,10 +1,17 @@
 import importlib
+import logging
 import os
 import sys
-from typing import Any, Iterable, Mapping, Optional
+from collections import defaultdict
+from typing import Any, Iterable, Mapping
 
 import torch
 from torch._inductor.compile_fx import clone_preserve_strides
+
+
+log = logging.getLogger(__name__)
+
+_call_counter: dict = defaultdict(int)
 
 
 def clone_for_accuracy(arg):
@@ -19,6 +26,7 @@ def compare_outputs(
     expected_outputs: Iterable[Any],
     kernel_name: str,
     tolerances: Mapping[Any, Mapping[str, float]],
+    dump_path: str = "",
 ):
     failed_indices = []
     for idx, (actual, expected) in enumerate(zip(actual_outputs, expected_outputs)):
@@ -31,14 +39,14 @@ def compare_outputs(
         rtol, atol = tol["rtol"], tol["atol"]
         matches = torch.isclose(actual, expected, rtol=rtol, atol=atol, equal_nan=True)
         if not matches.all():
-            _report_mismatch(idx, actual, expected, matches, rtol, atol, kernel_name)
+            _report_mismatch(idx, actual, expected, matches, rtol, atol, kernel_name, dump_path=dump_path)
             failed_indices.append(idx)
         del matches
 
     return not failed_indices
 
 
-def _report_mismatch(idx, actual, expected, matches, rtol, atol, kernel_name):
+def _report_mismatch(idx, actual, expected, matches, rtol, atol, kernel_name, dump_path=""):
     try:
         abs_diff = torch.abs(actual - expected)
     except RuntimeError:
@@ -50,59 +58,76 @@ def _report_mismatch(idx, actual, expected, matches, rtol, atol, kernel_name):
     rel_diff.masked_fill_(matches, 0)
     number_of_elements = matches.numel()
     total_mismatches = number_of_elements - int(torch.sum(matches))
+    mismatch_mask = ~matches
+    mismatch_indices = torch.nonzero(mismatch_mask.flatten())[:5].reshape(-1)
+    sample_info = ""
+    if mismatch_indices.numel() > 0:
+        idx_flat = mismatch_indices[:3].tolist()
+        idx_unflat = [list(torch.unravel_index(torch.tensor(i), actual.shape)) for i in idx_flat]
+        samples = "; ".join(
+            f"pos{idx_unflat[j]}: actual={actual.flatten()[i].item():.6e}, expected={expected.flatten()[i].item():.6e}"
+            for j, i in enumerate(idx_flat)
+        )
+        sample_info = f", Sample values: [{samples}]"
     msg = (
         "CHECK ACCURACY FAILED! "
         f"Kernel: {kernel_name}, Output idx: {idx}, "
+        f"actual_shape={list(actual.shape)}, actual_dtype={actual.dtype}, "
+        f"expected_shape={list(expected.shape)}, expected_dtype={expected.dtype}, "
         f"Mismatched: {total_mismatches}/{number_of_elements} "
         f"({total_mismatches / number_of_elements:.1%}), "
         f"Greatest Rel Diff: {rel_diff.max().item()}, "
         f"Greatest Abs Diff: {abs_diff.max().item()}, "
-        f"rtol: {rtol}, atol: {atol}"
+        f"rtol: {rtol}, atol: {atol}{sample_info}"
     )
+    if dump_path:
+        msg += f", dump_path: {dump_path}"
     print(msg, flush=True)
     del abs_diff, rel_diff
 
 
 def get_triton_fx_graph_call(inductor_meta, auto_fallback=False):
-        kernel_name = inductor_meta.get("kernel_name", "triton_")
-        traced_graph_hash = inductor_meta.get("traced_graph_hash")
-        dump_dir = inductor_meta.get("traced_graph_dir", "")
-        dump_path = os.path.join(dump_dir, traced_graph_hash)
-        if dump_dir == "" or not os.path.exists(dump_path):
-            return None, None, None, None
-        sys.path.append(dump_path)
-        fx_module = importlib.import_module(traced_graph_hash)
-        sys.path.remove(dump_path)
+    kernel_name = inductor_meta.get("kernel_name", "triton_")
+    traced_graph_hash = inductor_meta.get("traced_graph_hash")
+    if not traced_graph_hash:
+        return None, None, None, None
+    dump_dir = inductor_meta.get("traced_graph_dir", "")
+    dump_path = os.path.join(dump_dir, traced_graph_hash)
+    if dump_dir == "" or not os.path.exists(dump_path):
+        return None, None, None, None
+    sys.path.append(dump_path)
+    fx_module = importlib.import_module(traced_graph_hash)
+    sys.path.remove(dump_path)
 
-        model = fx_module.model
-        num_inputs = fx_module.num_inputs
-        num_outputs = fx_module.num_outputs
-        non_contiguous_indices = fx_module.non_contiguous_indices
-        mismatch_indices_shapes = fx_module.mismatch_indices_shapes
+    model = fx_module.model
+    num_inputs = fx_module.num_inputs
+    num_outputs = fx_module.num_outputs
+    non_contiguous_indices = fx_module.non_contiguous_indices
+    mismatch_indices_shapes = fx_module.mismatch_indices_shapes
 
-        def fx_graph_call(*fx_args):
-            fx_inputs = [fx_args[idx].contiguous() if idx in non_contiguous_indices['inputs'] else \
-                             fx_args[idx] for idx in range(num_inputs)]
-            if len(mismatch_indices_shapes):
-                for ind, shape in mismatch_indices_shapes.items():
-                    if ind >= num_inputs:
-                        break
-                    fx_inputs[ind] = fx_inputs[ind].reshape(shape)
-            model_outputs = model.forward(*fx_inputs)
-            for idx, (out1, out2) in enumerate(zip(model_outputs, fx_args[num_inputs:(num_inputs + num_outputs)])):
-                out1 = out1.reshape(out2.shape)
-                if idx in non_contiguous_indices['outputs']:
-                    out2.copy_(out1)
-                else:
-                    out2.data = out1.data
+    def fx_graph_call(*fx_args):
+        fx_inputs = [fx_args[idx].contiguous() if idx in non_contiguous_indices['inputs'] else
+                     fx_args[idx] for idx in range(num_inputs)]
+        if len(mismatch_indices_shapes):
+            for ind, shape in mismatch_indices_shapes.items():
+                if ind >= num_inputs:
+                    break
+                fx_inputs[ind] = fx_inputs[ind].reshape(shape)
+        model_outputs = model.forward(*fx_inputs)
+        for idx, (out1, out2) in enumerate(zip(model_outputs, fx_args[num_inputs:(num_inputs + num_outputs)])):
+            out1 = out1.reshape(out2.shape)
+            if idx in non_contiguous_indices['outputs']:
+                out2.copy_(out1)
+            else:
+                out2.data = out1.data
 
-        def fallback_call(*args):
-            fx_args = [args[idx] for idx in fx_module.call_args_mapping]
-            return fx_graph_call(*fx_args)
+    def fallback_call(*args):
+        fx_args = [args[idx] for idx in fx_module.call_args_mapping]
+        return fx_graph_call(*fx_args)
 
-        if auto_fallback:
-            return fallback_call, kernel_name, None, None
-        return fx_graph_call, kernel_name, dump_path, fx_module
+    if auto_fallback:
+        return fallback_call, kernel_name, None, None
+    return fx_graph_call, kernel_name, dump_path, fx_module
 
 
 def check_accuracy_triton(*args, launcher, grid, stream, inductor_meta, **kwargs):
@@ -112,22 +137,85 @@ def check_accuracy_triton(*args, launcher, grid, stream, inductor_meta, **kwargs
         return None
     call_outputs_indices = fx_module.call_args_mapping[fx_module.num_inputs:]
 
+    _call_counter[kernel_name] += 1
+    invocation = _call_counter[kernel_name]
+    scalar_resolved_from = getattr(fx_module, "scalar_resolved_from", {})
+
+    # 诊断: 记录配方路径的解析值, 供 compare_outputs 失败时打印 (区分误报)
+    _recipe_used = bool(scalar_resolved_from)
+    _recipe_resolved = {}
     fx_args = []
-    for idx in fx_module.call_args_mapping:
+    for pos, idx in enumerate(fx_module.call_args_mapping):
+        if idx == -1:
+            # SymInt 标量输入: 用编译期记录的精确配方 (kernel_arg_idx, dim) 反推其值。
+            # 配方在 create_compile_kwargs 求解, 序列化为具体 int, 不依赖 pos==dim 假设。
+            kidx, d = scalar_resolved_from[pos]
+            _resolved = int(args[kidx].shape[d])
+            _recipe_resolved[pos] = (scalar_resolved_from[pos], _resolved)
+            fx_args.append(_resolved)
+            continue
         arg = args[idx]
-        if isinstance(arg, torch.Tensor):
-            fx_args.append(clone_for_accuracy(arg))
+        if isinstance(arg, int):
+            fx_args.append(arg)
+            continue
+
+        if not isinstance(arg, torch.Tensor):
+            arg = torch.tensor(arg).npu()
+        fx_arg = clone_preserve_strides(arg).float() if arg.dtype == torch.bfloat16 else clone_preserve_strides(
+            arg)
+        fx_args.append(fx_arg)
+
+    input_indices = fx_module.call_args_mapping[:fx_module.num_inputs]
+    input_shapes = {f"args[{i}]": list(args[i].shape) if isinstance(args[i], torch.Tensor) else type(args[i]).__name__
+                    for i in input_indices}
+    output_indices = call_outputs_indices
+    output_shapes = {f"args[{i}]": list(args[i].shape) if isinstance(args[i], torch.Tensor) else type(args[i]).__name__
+                     for i in output_indices}
+    log.debug("[ACC_DEBUG] kernel=%s invocation=#%s inputs=%s outputs=%s",
+              kernel_name, invocation, input_shapes, output_shapes)
+    _input_snapshot = {}
+    for idx in fx_module.call_args_mapping[:fx_module.num_inputs]:
+        if isinstance(args[idx], torch.Tensor):
+            _input_snapshot[idx] = args[idx].cpu()
 
     fx_graph_call(*fx_args)
 
     launcher(*args, **kwargs, stream=stream)
 
-    compare_outputs(
+    passed = compare_outputs(
         [args[i] for i in call_outputs_indices],
         fx_args[fx_module.num_inputs:],
         kernel_name=kernel_name,
         tolerances=npu_config.acc_comp_tol,
+        dump_path=dump_path,
     )
+
+    if not passed and dump_path:
+        fail_path = os.path.join(dump_path, f'data_fail_{invocation}.pth')
+        fail_args = list(args)
+        for idx, cpu_tensor in _input_snapshot.items():
+            fail_args[idx] = cpu_tensor
+        torch.save(fail_args, fail_path)
+        log.warning("[ACC_DEBUG] kernel=%s invocation=#%s FAIL: saved input snapshot to data_fail_%s.pth",
+                    kernel_name, invocation, invocation)
+
+    if not passed and _recipe_used:
+        kernel_int_values = [arg for arg in args if isinstance(arg, int)]
+        for pos, ((kidx, d), val) in _recipe_resolved.items():
+            if val in kernel_int_values:
+                log.warning(
+                    "[ACC_DEBUG] kernel=%s FAIL: scalar pos=%s resolved=%s "
+                    "(from args[%s].shape[%s]), matches kernel int arg. "
+                    "Likely a real kernel bug. dump_path=%s",
+                    kernel_name, pos, val, kidx, d, dump_path,
+                )
+            else:
+                log.warning(
+                    "[ACC_DEBUG] kernel=%s FAIL: scalar pos=%s resolved=%s "
+                    "(from args[%s].shape[%s]), NOT found in kernel int args %s. "
+                    "Likely a tool artifact (scalar resolution mismatch). dump_path=%s",
+                    kernel_name, pos, val, kidx, d, kernel_int_values, dump_path,
+                )
 
     for arg in fx_args:
         del arg

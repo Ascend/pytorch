@@ -9,51 +9,51 @@ set -e
 CANN_CHIP="${CANN_CHIP:-A1}"
 ARCH=$(uname -m)
 
-BASE_URL="https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/cann-package"
-CANN_BASE_URL="https://ascend-repo.obs.cn-east-2.myhuaweicloud.com/CANN/CANN%209.1.T1"
+CANN_BASE_URL="https://ascend-repo.obs.cn-east-2.myhuaweicloud.com/CANN/CANN%209.1.T6"
+CANN_VERSION="9.1.0-beta.3"
 
 case "${ARCH}_${CANN_CHIP}" in
   # x86_64
   x86_64_A1)
-    TOOLKIT_URL="${BASE_URL}/20260513/Ascend-cann-toolkit_9.1.0_linux-x86_64.run"
-    OPS_URL="${BASE_URL}/20260513/Ascend-cann-910-ops_9.1.0_linux-x86_64.run"
-    NNAL_URL="${BASE_URL}/20260513/Ascend-cann-nnal_9.1.0_linux-x86_64.run"
+    TOOLKIT_URL="${CANN_BASE_URL}/Ascend-cann-toolkit_${CANN_VERSION}_linux-x86_64.run"
+    OPS_URL="${CANN_BASE_URL}/Ascend-cann-910-ops_${CANN_VERSION}_linux-x86_64.run"
+    NNAL_URL="${CANN_BASE_URL}/Ascend-cann-nnal_${CANN_VERSION}_linux-x86_64.run"
     OPS_GLOB="Ascend-cann-910*"
     SET_ENV_PATH="/usr/local/Ascend/cann/set_env.sh"
     ;;
   x86_64_A2)
-    TOOLKIT_URL="${CANN_BASE_URL}/Ascend-cann-toolkit_9.1.0-beta.1_linux-x86_64.run"
-    OPS_URL="${CANN_BASE_URL}/Ascend-cann-910b-ops_9.1.0-beta.1_linux-x86_64.run"
-    NNAL_URL="${CANN_BASE_URL}/Ascend-cann-nnal_9.1.0-beta.1_linux-x86_64.run"
+    TOOLKIT_URL="${CANN_BASE_URL}/Ascend-cann-toolkit_${CANN_VERSION}_linux-x86_64.run"
+    OPS_URL="${CANN_BASE_URL}/Ascend-cann-910b-ops_${CANN_VERSION}_linux-x86_64.run"
+    NNAL_URL="${CANN_BASE_URL}/Ascend-cann-nnal_${CANN_VERSION}_linux-x86_64.run"
     OPS_GLOB="Ascend-cann-910b-ops*"
     SET_ENV_PATH="/usr/local/Ascend/cann/set_env.sh"
     ;;
   x86_64_A3)
-    TOOLKIT_URL="${CANN_BASE_URL}/Ascend-cann-toolkit_9.1.0-beta.1_linux-x86_64.run"
-    OPS_URL="${CANN_BASE_URL}/Ascend-cann-A3-ops_9.1.0-beta.1_linux-x86_64.run"
-    NNAL_URL="${CANN_BASE_URL}/Ascend-cann-nnal_9.1.0-beta.1_linux-x86_64.run"
+    TOOLKIT_URL="${CANN_BASE_URL}/Ascend-cann-toolkit_${CANN_VERSION}_linux-x86_64.run"
+    OPS_URL="${CANN_BASE_URL}/Ascend-cann-A3-ops_${CANN_VERSION}_linux-x86_64.run"
+    NNAL_URL="${CANN_BASE_URL}/Ascend-cann-nnal_${CANN_VERSION}_linux-x86_64.run"
     OPS_GLOB="Ascend-cann-A3-ops*"
     SET_ENV_PATH="/usr/local/Ascend/cann/set_env.sh"
     ;;
   # aarch64
   aarch64_A1)
-    TOOLKIT_URL="${BASE_URL}/20260302/Ascend-cann-toolkit_9.0.0-beta.1_linux-aarch64.run"
-    OPS_URL="${BASE_URL}/20260302/Ascend-cann-910b-ops_9.0.0-beta.1_linux-aarch64.run"
-    NNAL_URL="${BASE_URL}/20260302/Ascend-cann-nnal_9.0.0-beta.1_linux-aarch64.run"
-    OPS_GLOB="Ascend-cann-910b*"
+    TOOLKIT_URL="${CANN_BASE_URL}/Ascend-cann-toolkit_${CANN_VERSION}_linux-aarch64.run"
+    OPS_URL="${CANN_BASE_URL}/Ascend-cann-910-ops_${CANN_VERSION}_linux-aarch64.run"
+    NNAL_URL="${CANN_BASE_URL}/Ascend-cann-nnal_${CANN_VERSION}_linux-aarch64.run"
+    OPS_GLOB="Ascend-cann-910*"
     SET_ENV_PATH="/usr/local/Ascend/cann/set_env.sh"
     ;;
   aarch64_A2)
-    TOOLKIT_URL="${CANN_BASE_URL}/Ascend-cann-toolkit_9.1.0-beta.1_linux-aarch64.run"
-    OPS_URL="${CANN_BASE_URL}/Ascend-cann-910b-ops_9.1.0-beta.1_linux-aarch64.run"
-    NNAL_URL="${CANN_BASE_URL}/Ascend-cann-nnal_9.1.0-beta.1_linux-aarch64.run"
+    TOOLKIT_URL="${CANN_BASE_URL}/Ascend-cann-toolkit_${CANN_VERSION}_linux-aarch64.run"
+    OPS_URL="${CANN_BASE_URL}/Ascend-cann-910b-ops_${CANN_VERSION}_linux-aarch64.run"
+    NNAL_URL="${CANN_BASE_URL}/Ascend-cann-nnal_${CANN_VERSION}_linux-aarch64.run"
     OPS_GLOB="Ascend-cann-910b-ops*"
     SET_ENV_PATH="/usr/local/Ascend/cann/set_env.sh"
     ;;
   aarch64_A3)
-    TOOLKIT_URL="${CANN_BASE_URL}/Ascend-cann-toolkit_9.1.0-beta.1_linux-aarch64.run"
-    OPS_URL="${CANN_BASE_URL}/Ascend-cann-A3-ops_9.1.0-beta.1_linux-aarch64.run"
-    NNAL_URL="${CANN_BASE_URL}/Ascend-cann-nnal_9.1.0-beta.1_linux-aarch64.run"
+    TOOLKIT_URL="${CANN_BASE_URL}/Ascend-cann-toolkit_${CANN_VERSION}_linux-aarch64.run"
+    OPS_URL="${CANN_BASE_URL}/Ascend-cann-A3-ops_${CANN_VERSION}_linux-aarch64.run"
+    NNAL_URL="${CANN_BASE_URL}/Ascend-cann-nnal_${CANN_VERSION}_linux-aarch64.run"
     OPS_GLOB="Ascend-cann-A3-ops*"
     SET_ENV_PATH="/usr/local/Ascend/cann/set_env.sh"
     ;;

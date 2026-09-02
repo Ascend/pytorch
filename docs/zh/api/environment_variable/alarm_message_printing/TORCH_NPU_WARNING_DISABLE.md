@@ -1,0 +1,42 @@
+# TORCH\_NPU\_WARNING\_DISABLE
+
+## 功能描述
+
+通过此环境变量可配置是否打印TorchNPU的告警信息。
+
+- 未配置或配置值不为1时，开启告警信息打印，告警信息会正常打印在首节点的屏幕上。
+- 配置值为1时，关闭告警信息打印，告警信息不会打印在屏幕上。
+
+此环境变量默认未配置。
+
+> [!CAUTION]  
+>
+> - 关闭告警信息打印，仅针对TorchNPU的告警信息，不会影响原生PyTorch、第三方库或用户脚本中的告警。
+> - 本环境变量与已废弃的[TORCH\_NPU\_DISABLED\_WARNING](TORCH_NPU_DISABLED_WARNING.md)功能完全相同。两者同时配置时，本环境变量优先生效。
+
+## 配置示例
+
+关闭告警信息打印：
+
+```bash
+export TORCH_NPU_WARNING_DISABLE=1
+```
+
+重新开启告警信息打印：
+
+```bash
+unset TORCH_NPU_WARNING_DISABLE
+```
+
+## 使用约束
+
+该环境变量仅在PyTorch2.1.0及以上版本生效。
+
+## 支持的型号
+
+- <term>Atlas 训练系列产品</term>
+- <term>Atlas A2 训练系列产品</term>
+- <term>Atlas A3 训练系列产品</term>
+- <term>Atlas 800I A2 推理产品</term>
+- <term>Atlas 推理系列产品</term>
+- <term>Ascend 950DT</term>

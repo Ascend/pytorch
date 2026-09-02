@@ -12,5 +12,5 @@ void _initialize_python_bindings();
 
 TORCH_NPU_API PyMethodDef* npu_extension_functions();
 
-}
-}
+} // namespace utils
+} // namespace torch_npu

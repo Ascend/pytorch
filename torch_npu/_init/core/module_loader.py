@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import importlib
 import inspect
 import os
@@ -13,6 +14,7 @@ _REQUIRED_C_EXTENSION_CHILDREN = [
     "_flops_count",
     "_profiler",
     "_distributed_c10d",
+    "_npurt",
 ]
 
 
@@ -59,6 +61,7 @@ def _initialize_c_extension_children(required_children):
     _create_child_once(_C, "_cd", "_cd_init")
     _create_child_once(_C, "_logging", "_logging_init")
     _create_child_once(_C, "_flops_count", "_flops_count_init")
+    _create_child_once(_C, "_npurt", "_npurt_init")
 
     _register_c_extension_submodules(_C)
     missing = [name for name in required_children if not hasattr(_C, name)]

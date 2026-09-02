@@ -611,12 +611,6 @@
   "torch_npu.npu.DoubleStorage": {
     "signature": "(*args, wrap_storage=None, dtype=None, device=None, _internal=False)"
   },
-  "torch_npu.npu.MemPoolContext.active_pool": {
-    "signature": "() -> Optional[torch_npu._C._MemPool]"
-  },
-  "torch_npu.npu.memory.MemPoolContext.active_pool": {
-    "signature": "() -> Optional[torch_npu._C._MemPool]"
-  },
   "torch_npu.npu.graphs.graph_task_group_begin": {
     "signature": "(stream)"
   },
@@ -656,9 +650,6 @@
   "torch_npu.npu_giou": {
     "signature": "(self, gtboxes, trans=False, is_cross=False, mode=0)"
   },
-  "torch_npu.npu.memory.MemPoolContext": {
-    "signature": "(pool: torch_npu.npu.memory.MemPool)"
-  },
   "torch_npu.npu_iou": {
     "signature": "(bboxes, gtboxes, mode=0)"
   },
@@ -670,9 +661,6 @@
   },
   "torch_npu.npu.NPUGraph.capture_end": {
     "signature": "(self)"
-  },
-  "torch_npu.npu.MemPoolContext": {
-    "signature": "(pool: torch_npu.npu.memory.MemPool)"
   },
   "torch_npu.npu.memory.MemPool": {
     "signature": "(allocator: Optional[torch_npu._C._npu_NPUAllocator] = None)"
@@ -718,6 +706,9 @@
   },
   "torch_npu.npu.graphs.make_graphed_callables": {
     "signature": "(callables, sample_args, num_warmup_iters=3, allow_unused_input=False, pool=None)"
+  },
+  "torch_npu.npu.streams.ExternalStream": {
+    "signature": "(stream_ptr, device=None, **kwargs)"
   },
   "torch_npu.npu.streams.ExternalEvent": {
     "signature": "()"
@@ -862,6 +853,9 @@
   },
   "torch_npu.npu.Event.ipc_handle": {
     "signature": "(self)"
+  },
+  "torch_npu.npu.ExternalStream": {
+    "signature": "(stream_ptr, device=None, **kwargs)"
   },
   "torch_npu.npu.ExternalEvent": {
     "signature": "()"
@@ -1613,6 +1607,9 @@
   "torch_npu.npu.utils.is_bf16_supported": {
     "signature": "(including_emulation: bool = False)"
   },
+  "torch_npu.npu.utils.is_force_overflow_check": {
+    "signature": "()"
+  },
   "torch_npu.npu.utils.is_support_inf_nan": {
     "signature": "()"
   },
@@ -2309,6 +2306,9 @@
   "torch_npu.npu.npugraph_ex.scope.limit_core_num": {
     "signature": "(op_aicore_num: int, op_vectorcore_num: int, stream=None)"
   },
+  "torch_npu.npu.npugraph_ex.scope.deterministic": {
+    "signature": "(level: int)"
+  },
   "torch_npu.npu.npugraph_ex.compile_fx": {
     "signature": "(gm, example_inputs=None, options=None)"
   },
@@ -2454,34 +2454,34 @@
     "signature": "(Tensor self, int acl_format, int customize_dtype, int input_dtype) -> Tensor"
   },
   "torch_npu_public_env: INF_NAN_MODE_ENABLE": {
-    "mode": "std::unordered_map<int32_t, std::string> infNanMode = {{0, \"max\"}, {1, \"inf_nan\"}}"
+    "mode": "  std::unordered_map<int32_t, std::string> infNanMode = {{0, \"max\"}, {1, \"inf_nan\"}};"
   },
   "torch_npu_public_env: COMBINED_ENABLE": {
-    "mode": "std::unordered_map<int32_t, std::string> combinedEnableMode = {{0, \"close\"}, {1, \"open\"}}"
+    "mode": "  std::unordered_map<int32_t, std::string> combinedEnableMode = {{0, \"close\"}, {1, \"open\"}};"
   },
   "torch_npu_public_env: ASCEND_LAUNCH_BLOCKING": {
-    "mode": "std::unordered_map<int32_t, std::string> launchBlockingMode = {{0, \"disable\"}, {1, \"enable\"}}"
+    "mode": "  std::unordered_map<int32_t, std::string> launchBlockingMode = {{0, \"disable\"}, {1, \"enable\"}};"
   },
-  "torch_npu_public_env: HCCL_ASYNC_ERROR_HANDLING": {
-    "mode": "std::unordered_map<int32_t, std::string> asyncErrorHandlingMode = {{0, \"NoHandling\"}, {1, \"TearDown\"}, {2, \"CleanUpOnly\"}, {3, \"SkipCleanUp\"}}"
+  "torch_npu_public_env: TORCH_HCCL_ASYNC_ERROR_HANDLING": {
+    "mode": "  std::unordered_map<int32_t, std::string> asyncErrorHandlingMode = {\n      {0, \"NoHandling\"}, {1, \"TearDown\"}, {2, \"CleanUpOnly\"}, {3, \"SkipCleanUp\"}};"
   },
-  "torch_npu_public_env: HCCL_DESYNC_DEBUG": {
-    "mode": "std::unordered_map<int32_t, std::string> desyncDebugMode = {{0, \"close\"}, {1, \"open\"}}"
+  "torch_npu_public_env: TORCH_HCCL_DESYNC_DEBUG": {
+    "mode": "  std::unordered_map<int32_t, std::string> desyncDebugMode = {{0, \"close\"}, {1, \"open\"}};"
   },
   "torch_npu_public_env: ASCEND_GLOBAL_LOG_LEVEL": {
-    "mode": "std::unordered_map<int32_t, std::string> logLevelMode = {{0, \"debug\"}, {1, \"info\"}, {2, \"warning\"}, {3, \"error\"}, {4, \"null\"}}"
+    "mode": "  std::unordered_map<int32_t, std::string> logLevelMode = {\n      {0, \"debug\"}, {1, \"info\"}, {2, \"warning\"}, {3, \"error\"}, {4, \"null\"}};"
   },
   "torch_npu_public_env: PYTORCH_NO_NPU_MEMORY_CACHING": {
-    "mode": "std::unordered_map<int32_t, std::string> memoryCacheMode = {{0, \"open\"}, {1, \"close\"}}"
+    "mode": "  std::unordered_map<int32_t, std::string> memoryCacheMode = {{0, \"open\"}, {1, \"close\"}};"
   },
   "torch_npu_public_env: TASK_QUEUE_ENABLE": {
-    "mode": "std::unordered_map<int32_t, std::string> taskQueueEnableMode = {{0, \"close\"}, {1, \"level 1\"}, {2, \"level 2\"}}"
+    "mode": "  std::unordered_map<int32_t, std::string> taskQueueEnableMode = {{0, \"close\"}, {1, \"level 1\"}, {2, \"level 2\"}};"
   },
   "torch_npu_public_env: INF_NAN_MODE_FORCE_DISABLE": {
-    "mode": "std::unordered_map<int32_t, std::string> disableInfNanMode = {{0, \"enable\"}, {1, \"disable\"}}"
+    "mode": "  std::unordered_map<int32_t, std::string> disableInfNanMode = {{0, \"enable\"}, {1, \"disable\"}};"
   },
   "torch_npu_public_env: TORCH_HCCL_ZERO_COPY": {
-    "mode": "std::unordered_map<int32_t, std::string> hcclZeroCopyMode = {{0, \"close\"}, {1, \"open\"}}"
+    "mode": "  std::unordered_map<int32_t, std::string> hcclZeroCopyMode = {{0, \"close\"}, {1, \"open\"}};"
   },
   "torch_c_func: torch_npu::init_npu(const c10::DeviceIndex device_index = 0)": {
     "signature": "(const c10::DeviceIndex device_index = 0) -> void",
@@ -2749,7 +2749,7 @@
     "file": "torch_npu/csrc/framework/OpCommand.h"
   },
   "torch_c_func: at_npu::native::OpCommand::Name": {
-    "signature": "(const string &name) -> OpCommand&",
+    "signature": "(const string& name) -> OpCommand&",
     "file": "torch_npu/csrc/framework/OpCommand.h"
   },
   "torch_c_func: at_npu::native::OpCommand::SetCustomHandler": {
@@ -2769,31 +2769,31 @@
     "file": "torch_npu/csrc/framework/OpCommand.h"
   },
   "torch_c_func: at_npu::native::OpCommand::Input(const at::Tensor &input, const string &descName = \"\", const c10::optional<aclFormat> &sensitive_format = c10::nullopt, const string &realData = \"\")": {
-    "signature": "(const at::Tensor &input, const string &descName = \"\", const c10::optional<aclFormat> &sensitive_format = c10::nullopt, const string &realData = \"\") -> OpCommand&",
+    "signature": "(const at::Tensor& input, const string& descName = \"\", const c10::optional<aclFormat>& sensitive_format = c10::nullopt, const string& realData = \"\") -> OpCommand&",
     "file": "torch_npu/csrc/framework/OpCommand.h"
   },
   "torch_c_func: at_npu::native::OpCommand::InputWithoutContiguous": {
-    "signature": "(const at::Tensor &input, const string &descName = \"\", const string &realData = \"\") -> OpCommand&",
+    "signature": "(const at::Tensor& input, const string& descName = \"\", const string& realData = \"\") -> OpCommand&",
     "file": "torch_npu/csrc/framework/OpCommand.h"
   },
   "torch_c_func: at_npu::native::OpCommand::Input(const c10::ArrayRef<T> &dimListRef, at::IntArrayRef realShape, at::ScalarType toType, CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT, const string& realDtype = \"\", const string& descName = \"\")": {
-    "signature": "(const c10::ArrayRef<T> &dimListRef, at::IntArrayRef realShape, at::ScalarType toType, CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT, const string& realDtype = \"\", const string& descName = \"\") -> OpCommand&",
+    "signature": "(const c10::ArrayRef<T>& dimListRef, at::IntArrayRef realShape, at::ScalarType toType, CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT, const string& realDtype = \"\", const string& descName = \"\") -> OpCommand&",
     "file": "torch_npu/csrc/framework/OpCommand.h"
   },
   "torch_c_func: at_npu::native::OpCommand::Input(const c10::IntArrayRef &dimListRef, at::ScalarType toType = at::kLong, CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT, const string& realDtype = \"\", const string& descName = \"\")": {
-    "signature": "(const c10::IntArrayRef &dimListRef, at::ScalarType toType = at::kLong, CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT, const string& realDtype = \"\", const string& descName = \"\") -> OpCommand&",
+    "signature": "(const c10::IntArrayRef& dimListRef, at::ScalarType toType = at::kLong, CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT, const string& realDtype = \"\", const string& descName = \"\") -> OpCommand&",
     "file": "torch_npu/csrc/framework/OpCommand.h"
   },
   "torch_c_func: at_npu::native::OpCommand::Input(const c10::ArrayRef<double> &dimListRef, at::IntArrayRef realShape, at::ScalarType toType = at::kDouble, CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT, const string& realDtype = \"\")": {
-    "signature": "(const c10::ArrayRef<double> &dimListRef, at::IntArrayRef realShape, at::ScalarType toType = at::kDouble, CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT, const string& realDtype = \"\") -> OpCommand&",
+    "signature": "(const c10::ArrayRef<double>& dimListRef, at::IntArrayRef realShape, at::ScalarType toType = at::kDouble, CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT, const string& realDtype = \"\") -> OpCommand&",
     "file": "torch_npu/csrc/framework/OpCommand.h"
   },
   "torch_c_func: at_npu::native::OpCommand::Input(const c10::Scalar &input, const at::ScalarType type, CompileType compileType = CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)": {
-    "signature": "(const c10::Scalar &input, const at::ScalarType type, CompileType compileType = CompileType::MEMORY_HOST_COMPILE_INDEPENDENT) -> OpCommand&",
+    "signature": "(const c10::Scalar& input, const at::ScalarType type, CompileType compileType = CompileType::MEMORY_HOST_COMPILE_INDEPENDENT) -> OpCommand&",
     "file": "torch_npu/csrc/framework/OpCommand.h"
   },
   "torch_c_func: at_npu::native::OpCommand::Inputs": {
-    "signature": "(const at::TensorList &inputs) -> OpCommand&",
+    "signature": "(const at::TensorList& inputs) -> OpCommand&",
     "file": "torch_npu/csrc/framework/OpCommand.h"
   },
   "torch_c_func: at_npu::native::OpCommand::InputScalarToNPUTensor": {
@@ -2801,15 +2801,15 @@
     "file": "torch_npu/csrc/framework/OpCommand.h"
   },
   "torch_c_func: at_npu::native::OpCommand::Output": {
-    "signature": "(at::Tensor &output, const string &descName = \"\", const c10::optional<aclFormat> &sensitive_format = c10::nullopt, const string &realType = \"\") -> OpCommand&",
+    "signature": "(at::Tensor& output, const string& descName = \"\", const c10::optional<aclFormat>& sensitive_format = c10::nullopt, const string& realType = \"\") -> OpCommand&",
     "file": "torch_npu/csrc/framework/OpCommand.h"
   },
   "torch_c_func: at_npu::native::OpCommand::Attr(const string &name, dataType value)": {
-    "signature": "(const string &name, dataType value) -> OpCommand&",
+    "signature": "(const string& name, dataType value) -> OpCommand&",
     "file": "torch_npu/csrc/framework/OpCommand.h"
   },
   "torch_c_func: at_npu::native::OpCommand::Attr(const string &name, dataType value, bool cond)": {
-    "signature": "(const string &name, dataType value, bool cond) -> OpCommand&",
+    "signature": "(const string& name, dataType value, bool cond) -> OpCommand&",
     "file": "torch_npu/csrc/framework/OpCommand.h"
   },
   "torch_c_func: at_npu::native::OpCommand::Run": {
@@ -2817,7 +2817,7 @@
     "file": "torch_npu/csrc/framework/OpCommand.h"
   },
   "torch_c_func: at_npu::native::OpCommand::Sync(c10::SmallVector<int64_t, N> &sync_index)": {
-    "signature": "(c10::SmallVector<int64_t, N> &sync_index) -> OpCommand&",
+    "signature": "(c10::SmallVector<int64_t, N>& sync_index) -> OpCommand&",
     "file": "torch_npu/csrc/framework/OpCommand.h"
   },
   "torch_c_func: at_npu::native::OpCommand::Sync()": {
@@ -2833,7 +2833,7 @@
     "file": "torch_npu/csrc/core/npu/NPUFunctions.h"
   },
   "torch_c_func: c10_npu::GetDevice": {
-    "signature": "(int32_t *device) -> aclError",
+    "signature": "(int32_t* device) -> aclError",
     "file": "torch_npu/csrc/core/npu/NPUFunctions.h"
   },
   "torch_c_func: c10_npu::SetDevice": {
@@ -2877,7 +2877,7 @@
     "file": "torch_npu/csrc/core/npu/NPUFormat.h"
   },
   "torch_c_func: c10_npu::c10_npu_get_error_message": {
-    "signature": "() -> char *",
+    "signature": "() -> char*",
     "file": "torch_npu/csrc/core/npu/NPUException.h"
   },
   "torch_c_func: npu_dropout_gen_mask": {
@@ -2915,5 +2915,20 @@
   "torch_c_func: batch_isend_irecv": {
     "signature": "(std::vector<std::string>& op_type, std::vector<at::Tensor>& tensors, std::vector<int64_t> remote_rank_list) -> c10::intrusive_ptr<c10d::Work>",
     "file": "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
+  },
+  "torch_npu.npu.npurt": {
+    "signature": "()"
+  },
+  "torch_npu.npu.set_task_queue_enable": {
+    "signature": "(mode)"
+  },
+  "torch_npu.npu.get_task_queue_enable": {
+    "signature": "()"
+  },
+  "torch_npu.npu.utils.set_task_queue_enable": {
+    "signature": "(mode)"
+  },
+  "torch_npu.npu.utils.get_task_queue_enable": {
+    "signature": "()"
   }
 }

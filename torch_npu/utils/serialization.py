@@ -314,8 +314,8 @@ def load(
 
             warn_massage = (
                 'Warning: since the loaded file is not a zipfile, only "torch.device" and "str" type parameters '
-                "are currently supported for parameter types of map_location. If parameter types of map_location is "
-                '"Callable[[torch.Tensor, str], torch.Tensor]" or "Dict[str, str]", which is only support for '
+                "are currently supported for map_location. If the parameter type of map_location is "
+                '"Callable[[torch.Tensor, str], torch.Tensor]" or "Dict[str, str]", which is supported only for '
                 "zipfile, all tensors are currently loaded onto the CPU, which may introduce problems."
             )
             _warn_legacy_serialization(warn_massage, "load")
@@ -336,7 +336,7 @@ def load(
                 return _remap_result(cpu_result, map_location)
             else:
                 return _legacy_load(
-                    opened_file, "cpu", pickle_module, **pickle_load_args
+                    opened_file, map_location, pickle_module, **pickle_load_args
                 )
 
 
@@ -420,7 +420,7 @@ def _npu_save(
 
     class PyTorchPickler(pickle_module.Pickler):  # type: ignore[name-defined]
         def persistent_id(self, obj):
-            return persistent_id(obj)
+            return persistent_id(obj)  # noqa: F821
 
     pickler = PyTorchPickler(data_buf, protocol=pickle_protocol)
     pickler.dump(obj)
@@ -665,9 +665,9 @@ def _add_serialization_methods():
     def _npu_legacy_save(obj, f, pickle_module, pickle_protocol):
         warn_massage = (
             'Warning: torch.save with "_use_new_zipfile_serialization = False" is not recommended '
-            "for npu tensor, which may bring unexpected errors and hopefully set "
-            '"_use_new_zipfile_serialization = True"',
-            "if it is necessary to use this, please convert the npu tensor to cpu tensor for saving",
+            "for NPU tensors, which may cause unexpected errors. It is better to set "
+            '"_use_new_zipfile_serialization = True". '
+            "If it is necessary to use this, please convert the NPU tensors to CPU tensors for saving."
         )
         _warn_legacy_serialization(warn_massage, "save")
         return _orig_legacy_save(obj, f, pickle_module, pickle_protocol)

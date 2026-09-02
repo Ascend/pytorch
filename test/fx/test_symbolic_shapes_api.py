@@ -1,3 +1,18 @@
+# Copyright (c) 2026 Huawei Technologies Co., Ltd
+# All rights reserved.
+#
+# Licensed under the BSD 3-Clause License  (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://opensource.org/licenses/BSD-3-Clause
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # Owner(s): ["module: fx"]
 """
 Add validation cases for torch.fx symbolic_shapes related APIs on NPU:
@@ -9,7 +24,17 @@ Add validation cases for torch.fx symbolic_shapes related APIs on NPU:
 3. Current covered APIs / behaviors include:
    - symbolic_shapes.DimConstraints.add
    - symbolic_shapes.DimConstraints.add_equality
+   - symbolic_shapes.DimConstraints.rewrite_with_congruences
+   - symbolic_shapes.DimConstraints.solve
+   - symbolic_shapes.DimConstraints.forced_specializations
+   - symbolic_shapes.DimConstraints.prettify_results
+   - torch.fx.experimental.symbolic_shapes.ShapeEnv.size_hint
+   - torch.fx.experimental.symbolic_shapes.ShapeEnv.suppress_guards
+   - torch.fx.experimental.symbolic_shapes.ShapeEnvSettings
+   - torch.fx.experimental.symbolic_shapes.StatefulSymbolicContext
+   - torch.fx.experimental.symbolic_shapes.StatelessSymbolicContext
    - symbolic_shapes._lru_cache
+   - symbolic_shapes.lru_cache
    - symbolic_shapes.CallMethodKey
    - symbolic_shapes.CallMethodKey.get
    - symbolic_shapes.canonicalize_bool_expr
@@ -20,17 +45,25 @@ Add validation cases for torch.fx symbolic_shapes related APIs on NPU:
    - symbolic_shapes.sym_eq
 """
 
+import dataclasses
+import importlib
+import inspect
+
 import sympy
 import torch
 
-import torch_npu
 from torch._dynamo.source import ConstantSource
+from torch.export import Dim
 from torch.fx.experimental import symbolic_shapes
 from torch.testing._internal.common_utils import TestCase, run_tests
+from torch.utils._sympy.functions import FloorDiv
 from torch.utils._sympy.value_ranges import ValueRanges
 
 
+importlib.import_module("torch_npu")
+
 device_type = acc.type if (acc := torch.accelerator.current_accelerator()) else "cpu"
+torch.zeros(3, 4).to(device_type)
 
 
 class TestSymbolicShapesAPI(TestCase):
@@ -89,6 +122,87 @@ class TestSymbolicShapesAPI(TestCase):
         constraints.add_equality(source, symbolic_expr)
         self.assertEqual(constraints._symbolic_equivalences, [(source, symbolic_expr)])
 
+    def test_dim_constraints_rewrite_with_congruences_records_mod_guard(self):
+        # Verify that congruence guards rewrite floor division and record
+        # the corresponding modular relationship for the symbol.
+        symbol = sympy.Symbol("s0", positive=True, integer=True)
+        constraints = symbolic_shapes.DimConstraints(
+            {},
+            {symbol: sympy.Integer(5)},
+            set(),
+            {},
+        )
+
+        rewritten = constraints.rewrite_with_congruences(symbol, FloorDiv(symbol, 2))
+
+        self.assertEqual(rewritten, symbol / 2 - sympy.Rational(1, 2))
+        self.assertEqual(
+            {str(expr) for expr in constraints._congruences[symbol]},
+            {"Mod(s0 + 1, 2)"},
+        )
+
+    def test_dim_constraints_solve_records_dynamic_results(self):
+        # Verify that `solve` classifies a satisfiable lower-bound guard
+        # as a dynamic result rather than a static specialization.
+        symbol = sympy.Symbol("s0", positive=True, integer=True)
+        constraints = symbolic_shapes.DimConstraints(
+            {symbol: [ConstantSource("x")]},
+            {symbol: sympy.Integer(4)},
+            {symbol},
+            {},
+        )
+
+        constraints.add(symbol >= 2)
+        constraints.solve()
+
+        self.assertEqual(constraints._static_results, set())
+        self.assertEqual(constraints._dynamic_results, {"2 <= x"})
+
+    def test_dim_constraints_forced_specializations_reports_marked_dynamic_equalities(
+        self,
+    ):
+        # Verify that marked dynamic equalities are reported as forced
+        # specializations using the configured debug name.
+        symbol = sympy.Symbol("s0", positive=True, integer=True)
+        constraints = symbolic_shapes.DimConstraints(
+            {symbol: [ConstantSource("x")]},
+            {symbol: sympy.Integer(4)},
+            {symbol},
+            {"x": "dx"},
+        )
+
+        constraints.add(sympy.Eq(symbol, 4))
+        constraints.solve()
+
+        self.assertEqual(constraints.forced_specializations(), {"dx = x": 4})
+
+    def test_dim_constraints_prettify_results_reports_forced_specialization(self):
+        # Verify that `prettify_results` explains a forced specialization
+        # and includes the suggested concrete dimension value.
+        def fn(x):
+            return x
+
+        symbol = sympy.Symbol("s0", positive=True, integer=True)
+        constraints = symbolic_shapes.DimConstraints(
+            {symbol: [ConstantSource("x")]},
+            {symbol: sympy.Integer(4)},
+            {symbol},
+            {"x": "dx"},
+        )
+
+        constraints.add(sympy.Eq(symbol, 4))
+        constraints.solve()
+        message = constraints.prettify_results(
+            inspect.signature(fn),
+            {"x": Dim("dx")},
+            ValueError("dummy constraint violation"),
+            constraints.forced_specializations(),
+        )
+
+        self.assertIn("Specializations unexpectedly required (dx)!", message)
+        self.assertIn("dx = x", message)
+        self.assertIn("dx = 4", message)
+
     def test_strict_min_max_constraint_records_warn_only_and_value_range(self):
         # Verify that StrictMinMaxConstraint stores warn_only and ValueRanges
         # according to its actual constructor signature.
@@ -130,6 +244,80 @@ class TestSymbolicShapesAPI(TestCase):
         # ordinary Python values.
         self.assertTrue(symbolic_shapes.sym_eq(1, 1))
         self.assertFalse(symbolic_shapes.sym_eq(1, 2))
+
+    def test_shape_env_size_hint(self):
+        shape_env = symbolic_shapes.ShapeEnv()
+        self.assertEqual(shape_env.size_hint(sympy.Integer(8)), 8)
+
+        signature = inspect.signature(shape_env.size_hint)
+        self.assertIn("expr", signature.parameters)
+        self.assertIn("allow_none", signature.parameters)
+        self.assertEqual(signature.parameters["allow_none"].default, False)
+
+    def test_shape_env_suppress_guards(self):
+        shape_env = symbolic_shapes.ShapeEnv()
+        with shape_env.suppress_guards():
+            self.assertEqual(shape_env.size_hint(sympy.Integer(4)), 4)
+
+    def test_shape_env_settings(self):
+        field_names = {
+            field.name for field in dataclasses.fields(symbolic_shapes.ShapeEnvSettings)
+        }
+        setting_values = {
+            "allow_scalar_outputs": True,
+            "allow_dynamic_output_shape_ops": True,
+            "assume_static_by_default": False,
+            "specialize_zero_one": True,
+            "duck_shape": True,
+            "prefer_deferred_runtime_asserts_over_guards": False,
+            "allow_complex_guards_as_runtime_asserts": False,
+            "trace_asserts": False,
+        }
+
+        settings = symbolic_shapes.ShapeEnvSettings(
+            **{
+                name: value
+                for name, value in setting_values.items()
+                if name in field_names
+            }
+        )
+
+        self.assertIn("allow_scalar_outputs", field_names)
+        self.assertIn("duck_shape", field_names)
+        for name, value in setting_values.items():
+            if name in field_names:
+                self.assertEqual(getattr(settings, name), value)
+
+    def test_stateless_symbolic_context(self):
+        context = symbolic_shapes.StatelessSymbolicContext(
+            dynamic_sizes=[symbolic_shapes.DimDynamic.DUCK, symbolic_shapes.DimDynamic.DUCK],
+        )
+
+        self.assertEqual(
+            context.dynamic_sizes,
+            [symbolic_shapes.DimDynamic.DUCK, symbolic_shapes.DimDynamic.DUCK],
+        )
+        self.assertEqual(
+            context.dynamic_strides,
+            [symbolic_shapes.DimDynamic.INFER_STRIDE, symbolic_shapes.DimDynamic.INFER_STRIDE],
+        )
+        self.assertEqual(context.constraint_sizes, [None, None])
+        self.assertEqual(context.constraint_strides, [None, None])
+
+    def test_stateful_symbolic_context(self):
+        tensor_source = ConstantSource("x")
+        context = symbolic_shapes.StatefulSymbolicContext(
+            dynamic_sizes=[symbolic_shapes.DimDynamic.DUCK, symbolic_shapes.DimDynamic.DUCK],
+            tensor_source=tensor_source,
+        )
+
+        self.assertEqual(context.tensor_source, tensor_source)
+        self.assertEqual(context.shape_env_to_source_to_symbol_cache, {})
+        self.assertEqual(
+            context.dynamic_sizes,
+            [symbolic_shapes.DimDynamic.DUCK, symbolic_shapes.DimDynamic.DUCK],
+        )
+
 
 
 class TestSymbolicShapesTargetApiNPU(TestCase):
@@ -185,6 +373,27 @@ class TestSymbolicShapesTargetApiNPU(TestCase):
         # maxsize=1 should evict the older argument entry.
         self.assertEqual(limited.cache_info().maxsize, 1)
         self.assertEqual(limited_calls["count"], 3)
+
+    def test_public_lru_cache(self):
+        calls = {"count": 0}
+
+        @symbolic_shapes.lru_cache(128)
+        def cached(value):
+            calls["count"] += 1
+            return value + 1
+
+        self.assertEqual(cached(3), 4)
+        self.assertEqual(cached(3), 4)
+        self.assertEqual(calls["count"], 1)
+
+        cache_info = cached.cumulative_cache_info()
+        self.assertEqual(cache_info.hits, 1)
+        self.assertEqual(cache_info.misses, 1)
+
+        cached.cache_clear()
+        self.assertEqual(cached.cache_info().currsize, 0)
+        self.assertEqual(cached(3), 4)
+        self.assertEqual(calls["count"], 2)
 
     def test_call_method_key_get_on_npu_tensor(self):
         tensor = torch.arange(12, dtype=torch.float32).reshape(3, 4).to(device_type)

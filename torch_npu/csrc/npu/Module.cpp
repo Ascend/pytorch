@@ -1,8 +1,12 @@
 #include <chrono>
+#include <cstdlib>
 #include <future>
+#include <linux/limits.h>
 #include <sstream>
+#include <sys/stat.h>
 #include <thread>
 #include <unordered_map>
+#include <algorithm>
 
 #include <ATen/ATen.h>
 #include <ATen/CachedTensorUtils.h>
@@ -19,9 +23,11 @@
 #include <torch/csrc/utils/python_numbers.h>
 #include <torch/csrc/utils/python_strings.h>
 #include <torch/csrc/utils/tensor_numpy.h>
+#include <torch/csrc/inductor/aoti_runner/pybind.h>
+#include <torch_npu/csrc/inductor/aoti_runner/pybind.h>
 
 #include <op_plugin/utils/custom_functions/opapi/FFTCommonOpApi.h>
-#include <third_party/acl/inc/acl/acl.h>
+#include <acl/acl.h>
 #include <third_party/fmt/include/fmt/format.h>
 #include <torch_npu/csrc/aten/NPUGeneratorImpl.h>
 #include <torch_npu/csrc/aten/NPUNativeFunctions.h>
@@ -44,6 +50,7 @@
 #include <torch_npu/csrc/core/npu/NpuVariables.h>
 #include <torch_npu/csrc/core/npu/interface/AclInterface.h>
 #include <torch_npu/csrc/core/npu/interface/OpInterface.h>
+#include <torch_npu/csrc/npu/NpuSleep.h>
 #include <torch_npu/csrc/core/npu/register/OptionRegister.h>
 #include <torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h>
 #include <torch_npu/csrc/framework/StorageDescHelper.h>
@@ -137,9 +144,7 @@ void RegisterNPUDeviceProperties(PyObject* module) {
           [](const aclrtUuid& uuid) {
             return std::vector<uint8_t>(uuid.bytes, uuid.bytes + 16); // 16
           })
-      .def("__str__", [](const aclrtUuid& uuid) {
-        return uuid_to_string(uuid.bytes);
-      });
+      .def("__str__", [](const aclrtUuid& uuid) { return uuid_to_string(uuid.bytes); });
   py::class_<NPUDeviceProp>(m, "_NPUDeviceProperties")
       .def_readonly("name", &NPUDeviceProp::name)
       .def_readonly("total_memory", &NPUDeviceProp::totalGlobalMem)
@@ -150,40 +155,29 @@ void RegisterNPUDeviceProperties(PyObject* module) {
       .def_readonly("minor", &NPUDeviceProp::minor)
       .def_readonly("is_multi_gpu_board", &NPUDeviceProp::is_multi_gpu_board)
       .def_readonly("is_integrated", &NPUDeviceProp::is_integrated)
-      .def_readonly(
-          "multi_processor_count", &NPUDeviceProp::multi_processor_count)
-      .def_readonly(
-          "max_threads_per_multi_processor",
-          &NPUDeviceProp::max_threads_per_multi_processor)
+      .def_readonly("multi_processor_count", &NPUDeviceProp::multi_processor_count)
+      .def_readonly("max_threads_per_multi_processor", &NPUDeviceProp::max_threads_per_multi_processor)
       .def_readonly("warp_size", &NPUDeviceProp::warp_size)
-      .def_readonly(
-          "regs_per_multiprocessor", &NPUDeviceProp::regs_per_multiprocessor)
+      .def_readonly("regs_per_multiprocessor", &NPUDeviceProp::regs_per_multiprocessor)
       .def_readonly("gcnArchName", &NPUDeviceProp::gcnArchName)
       .def_readonly("uuid", &NPUDeviceProp::uuid)
       .def("__repr__", [](const NPUDeviceProp& prop) {
         std::ostringstream stream;
         stream << "_NPUDeviceProperties(name='" << prop.name
-               << "', total_memory="
-               << prop.totalGlobalMem / (CHANGE_UNIT_SIZE * CHANGE_UNIT_SIZE)
-               << "MB, cube_core_num=" << prop.cube_core_num
-               << ", vector_core_num=" << prop.vector_core_num
+               << "', total_memory=" << prop.totalGlobalMem / (CHANGE_UNIT_SIZE * CHANGE_UNIT_SIZE)
+               << "MB, cube_core_num=" << prop.cube_core_num << ", vector_core_num=" << prop.vector_core_num
                << ", uuid=" << uuid_to_string(prop.uuid.bytes)
-               << ", L2_cache_size="
-               << prop.L2_cache_size / (CHANGE_UNIT_SIZE * CHANGE_UNIT_SIZE)
-               << "MB)";
+               << ", L2_cache_size=" << prop.L2_cache_size / (CHANGE_UNIT_SIZE * CHANGE_UNIT_SIZE) << "MB)";
         return stream.str();
       });
   m.def(
       "_npu_record_memory_history",
-      static_cast<void (*)(
-          c10::optional<std::string>,
-          c10::optional<std::string>,
-          std::string,
-          size_t)>(torch_npu::_record_memory_history));
+      static_cast<void (*)(c10::optional<std::string>, c10::optional<std::string>, std::string, size_t)>(
+          torch_npu::_record_memory_history));
 
-  m.def("_npu_isHistoryEnabled", []() {
-    return c10_npu::NPUCachingAllocator::isHistoryEnabled();
-  });
+  m.def("_npu_isHistoryEnabled", []() { return c10_npu::NPUCachingAllocator::isHistoryEnabled(); });
+
+  torch::inductor::initAOTIRunnerBindingsNpu();
 }
 
 std::string GetDeviceName() {
@@ -212,42 +206,45 @@ void initDeviceProperty(int64_t deviceid) {
     device_properties[deviceid].name = std::string(device_name);
   }
   static const bool is_cann_900beta2 = IsGteCANNVersion("9.0.0.beta2", "CANN");
-  if (is_cann_900beta2 && c10_npu::acl::IsExistAclrtGetDeviceInfo() &&
-      (c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend950)) {
+  bool device_info_avail = is_cann_900beta2 && c10_npu::acl::IsExistAclrtGetDeviceInfo();
+  if (device_info_avail) {
     int64_t tmp_device_total = 0;
-    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtGetDeviceInfo(
-        static_cast<uint32_t>(deviceid),
-        ACL_DEV_ATTR_TOTAL_GLOBAL_MEM_SIZE,
-        &tmp_device_total));
-    device_total = static_cast<size_t>(tmp_device_total);
+    aclError acl_ret = c10_npu::acl::AclrtGetDeviceInfo(
+        static_cast<uint32_t>(deviceid), ACL_DEV_ATTR_TOTAL_GLOBAL_MEM_SIZE, &tmp_device_total);
+    if (acl_ret == ACL_ERROR_NONE) {
+      device_total = static_cast<size_t>(tmp_device_total);
+    } else {
+      TORCH_NPU_WARN_ONCE(
+          "AclrtGetDeviceInfo failed to get total global memory, "
+          "error code is ",
+          acl_ret,
+          ". The possible cause is that the driver version "
+          "is too old or does not match CANN. Fall back to aclrtGetMemInfo. "
+          "Please upgrade the driver to the matching version.");
+      NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
+    }
   } else {
-    NPU_CHECK_ERROR_WITHOUT_UCE(
-        aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
+    NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
   }
   device_properties[deviceid].totalGlobalMem = device_total;
 
-  NPU_CHECK_ERROR_WITHOUT_UCE(aclGetDeviceCapability(
-      deviceid, ACL_DEVICE_INFO_AI_CORE_NUM, &cube_core_num));
+  NPU_CHECK_ERROR_WITHOUT_UCE(aclGetDeviceCapability(deviceid, ACL_DEVICE_INFO_AI_CORE_NUM, &cube_core_num));
   device_properties[deviceid].cube_core_num = cube_core_num;
 
-  NPU_CHECK_ERROR_WITHOUT_UCE(aclGetDeviceCapability(
-      deviceid, ACL_DEVICE_INFO_VECTOR_CORE_NUM, &vector_core_num));
+  NPU_CHECK_ERROR_WITHOUT_UCE(aclGetDeviceCapability(deviceid, ACL_DEVICE_INFO_VECTOR_CORE_NUM, &vector_core_num));
   device_properties[deviceid].vector_core_num = vector_core_num;
 
-  NPU_CHECK_ERROR_WITHOUT_UCE(aclGetDeviceCapability(
-      deviceid, ACL_DEVICE_INFO_L2_SIZE, &L2_cache_size));
+  NPU_CHECK_ERROR_WITHOUT_UCE(aclGetDeviceCapability(deviceid, ACL_DEVICE_INFO_L2_SIZE, &L2_cache_size));
   device_properties[deviceid].L2_cache_size = L2_cache_size;
 
   // Set multi_processor_count to vector_core_num for compatibility with
   // DataParallel balance check Use vector_core_num as it represents the number
   // of processing units similar to CUDA's multi_processor_count
   if (vector_core_num > 0) {
-    device_properties[deviceid].multi_processor_count =
-        static_cast<int>(vector_core_num);
+    device_properties[deviceid].multi_processor_count = static_cast<int>(vector_core_num);
   } else if (cube_core_num > 0) {
     // Fallback to cube_core_num if vector_core_num is not available
-    device_properties[deviceid].multi_processor_count =
-        static_cast<int>(cube_core_num);
+    device_properties[deviceid].multi_processor_count = static_cast<int>(cube_core_num);
   }
 
   if (c10_npu::acl::IsExistDeviceGetUuid()) {
@@ -280,14 +277,9 @@ void BindGetDeviceProperties(PyObject* module) {
   auto m = py::handle(module).cast<py::module>();
   m.def(
       "_npu_getDeviceProperties",
-      [](int deviceid) -> NPUDeviceProp* {
-        return GetDeviceProperties(deviceid);
-      },
+      [](int deviceid) -> NPUDeviceProp* { return GetDeviceProperties(deviceid); },
       py::return_value_policy::reference);
-  m.def(
-      "_npu_getDeviceName",
-      []() -> std::string { return GetDeviceName(); },
-      py::return_value_policy::reference);
+  m.def("_npu_getDeviceName", []() -> std::string { return GetDeviceName(); }, py::return_value_policy::reference);
 }
 
 NPUDeviceMem memory;
@@ -302,8 +294,7 @@ NPUDeviceMem* GetDeviceMemories(int64_t deviceid) {
   c10_npu::NPUGuard guard(deviceid);
   size_t device_free;
   size_t device_total;
-  NPU_CHECK_ERROR_WITHOUT_UCE(
-      aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
+  NPU_CHECK_ERROR_WITHOUT_UCE(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
   memory.totalGlobalMem = device_total;
   memory.freeMem = device_free;
   return &memory;
@@ -329,13 +320,11 @@ void removeStorageDeleterFns(
     auto allocated_pointer = definitely_stale_pointers.find(ptr);
     TORCH_CHECK(allocated_pointer != definitely_stale_pointers.end());
     auto t = c10_npu::NPUCachingAllocator::get();
-    bool succeeded = stale_storage->mutable_data_ptr().compare_exchange_deleter(
-        t->raw_deleter(), &c10::detail::deleteNothing);
+    bool succeeded =
+        stale_storage->mutable_data_ptr().compare_exchange_deleter(t->raw_deleter(), &c10::detail::deleteNothing);
 
     TORCH_CHECK(
-        succeeded,
-        "Unexpected deleter function on storage, could not swap function",
-        PTA_ERROR(ErrCode::PARAM));
+        succeeded, "Unexpected deleter function on storage, could not swap function", PTA_ERROR(ErrCode::PARAM));
   }
 }
 
@@ -351,10 +340,7 @@ void addStorageDeleterFns(
     auto storage_pair = storages.find(data_ptr.get());
     if (storage_pair != storages.end()) {
       auto ctx = storage_pair->second->data_ptr().get_context();
-      TORCH_CHECK(
-          ctx == nullptr,
-          " Not expecting deleter function",
-          PTA_ERROR(ErrCode::PARAM));
+      TORCH_CHECK(ctx == nullptr, " Not expecting deleter function", PTA_ERROR(ErrCode::PARAM));
       storage_pair->second->set_data_ptr_noswap(std::move(data_ptr));
     } else {
       data_ptr.release_context();
@@ -365,197 +351,141 @@ void addStorageDeleterFns(
 void RegisterNpuPluggableAllocator(PyObject* module) {
   auto m = py::handle(module).cast<py::module>();
 
-  py::class_<
-      c10_npu::NPUCachingAllocator::NPUAllocator,
-      std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator>>(
+  py::class_<c10_npu::NPUCachingAllocator::NPUAllocator, std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator>>(
       m, "_npu_NPUAllocator");
   py::class_<
       c10_npu::NPUCachingAllocator::AllocatorState,
-      std::shared_ptr<c10_npu::NPUCachingAllocator::AllocatorState>>(
-      m, "_npu_NPUAllocator_AllocatorState");
+      std::shared_ptr<c10_npu::NPUCachingAllocator::AllocatorState>>(m, "_npu_NPUAllocator_AllocatorState");
 
-  m.def("_npu_getAllocator", []() {
-    return py::cast(torch::npu::NPUPluggableAllocator::getCurrentAllocator());
+  m.def("_npu_getAllocator", []() { return py::cast(torch::npu::NPUPluggableAllocator::getCurrentAllocator()); });
+
+  m.def("_npu_changeCurrentAllocator", [](std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator> allocator) {
+    torch::npu::NPUPluggableAllocator::changeCurrentAllocator(allocator);
   });
-
-  m.def(
-      "_npu_changeCurrentAllocator",
-      [](std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator>
-             allocator) {
-        torch::npu::NPUPluggableAllocator::changeCurrentAllocator(allocator);
-      });
   py::class_<
       torch::npu::NPUPluggableAllocator::NPUPluggableAllocator,
       c10_npu::NPUCachingAllocator::NPUAllocator,
-      std::shared_ptr<
-          torch::npu::NPUPluggableAllocator::NPUPluggableAllocator>>(
-      m, "_NPUPluggableAllocator")
+      std::shared_ptr<torch::npu::NPUPluggableAllocator::NPUPluggableAllocator>>(m, "_NPUPluggableAllocator")
       .def(
           "set_init_fn",
-          [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
-             uint64_t func_ptr) {
+          [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self, uint64_t func_ptr) {
             using FuncType = void(int);
-            std::function<FuncType> func =
-                reinterpret_cast<FuncType*>(func_ptr);
+            std::function<FuncType> func = reinterpret_cast<FuncType*>(func_ptr);
             self.set_init_fn(func);
           })
       .def(
           "set_reset_fn",
-          [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
-             uint64_t func_ptr) {
+          [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self, uint64_t func_ptr) {
             using FuncType = void(bool);
-            std::function<FuncType> func =
-                reinterpret_cast<FuncType*>(func_ptr);
+            std::function<FuncType> func = reinterpret_cast<FuncType*>(func_ptr);
             self.set_reset_fn(func);
           })
       .def(
           "set_memory_fraction_fn",
-          [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
-             uint64_t func_ptr) {
+          [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self, uint64_t func_ptr) {
             using FuncType = void(double, int);
-            std::function<FuncType> func =
-                reinterpret_cast<FuncType*>(func_ptr);
+            std::function<FuncType> func = reinterpret_cast<FuncType*>(func_ptr);
             self.set_memory_fraction_fn(func);
           })
       .def(
           "set_base_alloc_fn",
-          [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
-             uint64_t func_ptr) {
+          [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self, uint64_t func_ptr) {
             using FuncType = void*(void*, size_t*);
-            std::function<FuncType> func =
-                reinterpret_cast<FuncType*>(func_ptr);
+            std::function<FuncType> func = reinterpret_cast<FuncType*>(func_ptr);
             self.set_base_alloc_fn(func);
           })
       .def(
           "set_record_stream_fn",
-          [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
-             uint64_t func_ptr) {
+          [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self, uint64_t func_ptr) {
             using FuncType = void(void*, c10_npu::NPUStream);
-            std::function<FuncType> func =
-                reinterpret_cast<FuncType*>(func_ptr);
+            std::function<FuncType> func = reinterpret_cast<FuncType*>(func_ptr);
             self.set_record_stream_fn(func);
           })
       .def(
           "set_erase_stream_fn",
-          [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
-             uint64_t func_ptr) {
+          [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self, uint64_t func_ptr) {
             using FuncType = void(void*, c10_npu::NPUStream);
-            std::function<FuncType> func =
-                reinterpret_cast<FuncType*>(func_ptr);
+            std::function<FuncType> func = reinterpret_cast<FuncType*>(func_ptr);
             self.set_erase_stream_fn(func);
           })
       .def(
           "set_get_device_stats_fn",
-          [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
-             uint64_t func_ptr) {
+          [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self, uint64_t func_ptr) {
             using FuncType = c10_npu::NPUCachingAllocator::DeviceStats(c10::DeviceIndex);
-            std::function<FuncType> func =
-                reinterpret_cast<FuncType*>(func_ptr);
+            std::function<FuncType> func = reinterpret_cast<FuncType*>(func_ptr);
             self.set_get_device_stats_fn(func);
           })
       .def(
           "set_reset_peak_status_fn",
-          [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
-             uint64_t func_ptr) {
+          [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self, uint64_t func_ptr) {
             using FuncType = void(c10::DeviceIndex);
-            std::function<FuncType> func =
-                reinterpret_cast<FuncType*>(func_ptr);
+            std::function<FuncType> func = reinterpret_cast<FuncType*>(func_ptr);
             self.set_reset_peak_status_fn(func);
           })
       .def(
           "set_begin_allocate_to_pool",
-          [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
-             uint64_t func_ptr) {
-            using FuncType = void(
-                int, c10_npu::MempoolId_t, std::function<bool(aclrtStream)>);
-            std::function<FuncType> func =
-                reinterpret_cast<FuncType*>(func_ptr);
+          [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self, uint64_t func_ptr) {
+            using FuncType = void(int, c10_npu::MempoolId_t, std::function<bool(aclrtStream)>);
+            std::function<FuncType> func = reinterpret_cast<FuncType*>(func_ptr);
             self.set_begin_allocate_to_pool(func);
           })
       .def(
           "set_end_allocate_to_pool_fn",
-          [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
-             uint64_t func_ptr) {
+          [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self, uint64_t func_ptr) {
             using FuncType = void(int, c10_npu::MempoolId_t);
-            std::function<FuncType> func =
-                reinterpret_cast<FuncType*>(func_ptr);
+            std::function<FuncType> func = reinterpret_cast<FuncType*>(func_ptr);
             self.set_end_allocate_to_pool_fn(func);
           })
-      .def(
-          "set_release_pool",
-          [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
-             uint64_t func_ptr) {
-            using FuncType = void(int, c10_npu::MempoolId_t);
-            std::function<FuncType> func =
-                reinterpret_cast<FuncType*>(func_ptr);
-            self.set_release_pool(func);
-          });
+      .def("set_release_pool", [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self, uint64_t func_ptr) {
+        using FuncType = void(int, c10_npu::MempoolId_t);
+        std::function<FuncType> func = reinterpret_cast<FuncType*>(func_ptr);
+        self.set_release_pool(func);
+      });
 
   m.def("_npu_customAllocator", [](uint64_t malloc_ptr, uint64_t free_ptr) {
     using MallocFuncType = void*(size_t, int, aclrtStream);
     using FreeFuncType = void(void*, size_t, int, aclrtStream);
-    std::function<MallocFuncType> malloc_fn =
-        reinterpret_cast<MallocFuncType*>(malloc_ptr);
-    std::function<FreeFuncType> free_fn =
-        reinterpret_cast<FreeFuncType*>(free_ptr);
-    return torch::npu::NPUPluggableAllocator::createCustomAllocator(
-        malloc_fn, free_fn);
+    std::function<MallocFuncType> malloc_fn = reinterpret_cast<MallocFuncType*>(malloc_ptr);
+    std::function<FreeFuncType> free_fn = reinterpret_cast<FreeFuncType*>(free_ptr);
+    return torch::npu::NPUPluggableAllocator::createCustomAllocator(malloc_fn, free_fn);
   });
-  m.def(
-      "_npu_beginAllocateCurrentStreamToPool",
-      [](c10::DeviceIndex device, c10_npu::MempoolId_t mempool_id) {
-        auto stream = c10_npu::getCurrentNPUStream(device);
-        TORCH_CHECK(stream, "Expected stream capture to be under way");
-        c10_npu::NPUCachingAllocator::beginAllocateToPool(
-            device, mempool_id, [stream](aclrtStream target) {
-              return target == stream;
-            });
-      });
-  m.def(
-      "_npu_beginAllocateCurrentThreadToPool",
-      [](c10::DeviceIndex device, c10_npu::MempoolId_t mempool_id) {
-        auto tid = std::this_thread::get_id();
-        c10_npu::NPUCachingAllocator::beginAllocateToPool(
-            device, mempool_id, [=](aclrtStream) {
-              auto current_tid = std::this_thread::get_id();
-              return current_tid == tid;
-            });
-      });
-  m.def(
-      "_npu_beginAllocateToPool",
-      [](c10::DeviceIndex device, c10_npu::MempoolId_t mempool_id) {
-        c10_npu::NPUCachingAllocator::beginAllocateToPool(
-            device, mempool_id, [](aclrtStream) { return true; });
-      });
-  m.def(
-      "_npu_endAllocateCurrentStreamToPool",
-      [](c10::DeviceIndex device, c10_npu::MempoolId_t mempool_id) {
-        c10_npu::NPUCachingAllocator::endAllocateToPool(device, mempool_id);
-      });
-  m.def(
-      "_npu_releasePool",
-      [](c10::DeviceIndex device, c10_npu::MempoolId_t mempool_id) {
-        c10_npu::NPUCachingAllocator::releasePool(device, mempool_id);
-      });
-  m.def(
-      "_tensors_data_ptrs_at_indices_equal",
-      [](py::list& tensors, py::list& data_ptrs, py::list& indices) {
-        for (size_t i = 0, end = indices.size(); i < end; ++i) {
-          auto index = indices[i].cast<int64_t>();
-          auto t = tensors[index].cast<at::Tensor>();
-          auto data_ptr = data_ptrs[index].cast<int64_t>();
-          if (reinterpret_cast<int64_t>(t.data_ptr()) != data_ptr) {
-            return false;
-          }
-        }
-        return true;
-      });
+  m.def("_npu_beginAllocateCurrentStreamToPool", [](c10::DeviceIndex device, c10_npu::MempoolId_t mempool_id) {
+    auto stream = c10_npu::getCurrentNPUStream(device);
+    TORCH_CHECK(stream, "Expected stream capture to be under way");
+    c10_npu::NPUCachingAllocator::beginAllocateToPool(
+        device, mempool_id, [stream](aclrtStream target) { return target == stream; });
+  });
+  m.def("_npu_beginAllocateCurrentThreadToPool", [](c10::DeviceIndex device, c10_npu::MempoolId_t mempool_id) {
+    auto tid = std::this_thread::get_id();
+    c10_npu::NPUCachingAllocator::beginAllocateToPool(device, mempool_id, [=](aclrtStream) {
+      auto current_tid = std::this_thread::get_id();
+      return current_tid == tid;
+    });
+  });
+  m.def("_npu_beginAllocateToPool", [](c10::DeviceIndex device, c10_npu::MempoolId_t mempool_id) {
+    c10_npu::NPUCachingAllocator::beginAllocateToPool(device, mempool_id, [](aclrtStream) { return true; });
+  });
+  m.def("_npu_endAllocateToPool", [](c10::DeviceIndex device, c10_npu::MempoolId_t mempool_id) {
+    c10_npu::NPUCachingAllocator::endAllocateToPool(device, mempool_id);
+  });
+  m.def("_npu_releasePool", [](c10::DeviceIndex device, c10_npu::MempoolId_t mempool_id) {
+    c10_npu::NPUCachingAllocator::releasePool(device, mempool_id);
+  });
+  m.def("_tensors_data_ptrs_at_indices_equal", [](py::list& tensors, py::list& data_ptrs, py::list& indices) {
+    for (size_t i = 0, end = indices.size(); i < end; ++i) {
+      auto index = indices[i].cast<int64_t>();
+      auto t = tensors[index].cast<at::Tensor>();
+      auto data_ptr = data_ptrs[index].cast<int64_t>();
+      if (reinterpret_cast<int64_t>(t.data_ptr()) != data_ptr) {
+        return false;
+      }
+    }
+    return true;
+  });
 
-  m.def(
-      "_npu_getCheckpointState",
-      [](c10::DeviceIndex device, c10_npu::MempoolId_t id) {
-        return c10_npu::NPUCachingAllocator::getCheckpointState(device, id);
-      });
+  m.def("_npu_getCheckpointState", [](c10::DeviceIndex device, c10_npu::MempoolId_t id) {
+    return c10_npu::NPUCachingAllocator::getCheckpointState(device, id);
+  });
   m.def(
       "_npu_setCheckpointPoolState",
       [](c10::DeviceIndex device,
@@ -574,14 +504,13 @@ void RegisterNpuPluggableAllocator(PyObject* module) {
           }
         }
         if (c10_npu::option::OptionsManager::CheckForceUncached()) {
-            TORCH_CHECK(
-                false,
-                "checkpoint do not support enabling PYTORCH_NO_NPU_MEMORY_CACHING, "
-                "Use torch_npu._C._npu_setCheckpointPoolState, ensure PYTORCH_NO_NPU_MEMORY_CACHING is disabled",
-                PTA_ERROR(ErrCode::PARAM));
+          TORCH_CHECK(
+              false,
+              "checkpoint do not support enabling PYTORCH_NO_NPU_MEMORY_CACHING, "
+              "Use torch_npu._C._npu_setCheckpointPoolState, ensure PYTORCH_NO_NPU_MEMORY_CACHING is disabled",
+              PTA_ERROR(ErrCode::PARAM));
         }
-        auto delta = c10_npu::NPUCachingAllocator::setCheckpointPoolState(
-            device, std::move(pps));
+        auto delta = c10_npu::NPUCachingAllocator::setCheckpointPoolState(device, std::move(pps));
         auto& freed_pointers = delta.ptrs_freed;
 
         std::unordered_set<void*> allocd_set;
@@ -608,8 +537,7 @@ void RegisterNpuPluggableAllocator(PyObject* module) {
 
         removeStorageDeleterFns(ptrs, freed_pointer_set);
         std::vector<c10::StorageImpl*> storages_to_add_deleters_to;
-        storages_to_add_deleters_to.reserve(
-            storages_to_add_deleters_to_ptr.size());
+        storages_to_add_deleters_to.reserve(storages_to_add_deleters_to_ptr.size());
         for (size_t ptr_int : storages_to_add_deleters_to_ptr) {
           // NOLINTNEXTLINE(performance-no-int-to-ptr)
           storages_to_add_deleters_to.push_back((c10::StorageImpl*)ptr_int);
@@ -622,10 +550,9 @@ void RegisterNpuPluggableAllocator(PyObject* module) {
     c10::StorageImpl* storage_impl = (c10::StorageImpl*)storage_impl_ptr;
     auto alloc = c10_npu::NPUCachingAllocator::get();
     auto data_ptr = storage_impl->data_ptr().get();
-    bool succeeded = storage_impl->mutable_data_ptr().compare_exchange_deleter(
-        alloc->raw_deleter(), c10::detail::deleteNothing);
-    TORCH_CHECK(
-        succeeded, "Expected standard deleter", PTA_ERROR(ErrCode::PARAM));
+    bool succeeded =
+        storage_impl->mutable_data_ptr().compare_exchange_deleter(alloc->raw_deleter(), c10::detail::deleteNothing);
+    TORCH_CHECK(succeeded, "Expected standard deleter", PTA_ERROR(ErrCode::PARAM));
     c10_npu::NPUCachingAllocator::raw_delete(data_ptr);
   });
   m.def("_has_Standard_Deleter", [](size_t storage_impl_ptr) {
@@ -634,78 +561,57 @@ void RegisterNpuPluggableAllocator(PyObject* module) {
     auto alloc = c10_npu::NPUCachingAllocator::get();
     return (storage_impl->data_ptr().get_deleter() == alloc->raw_deleter());
   });
-  m.def("_add_cached_tensor", [](const at::Tensor& t) {
-    at::caching::add_cached_tensor(t);
-  });
-  m.def("_remove_cached_tensor", [](const at::Tensor& t) {
-    at::caching::remove_cached_tensor(t);
-  });
-  m.def(
-      "_construct_NPU_Tensor_From_Storage_And_Metadata",
-      [](py::dict& metadata, c10::Storage s) {
-        auto dtype_arg = metadata["dtype"].ptr();
-        auto meta = c10::scalarTypeToTypeMeta(torch::toScalarType(dtype_arg));
+  m.def("_add_cached_tensor", [](const at::Tensor& t) { at::caching::add_cached_tensor(t); });
+  m.def("_remove_cached_tensor", [](const at::Tensor& t) { at::caching::remove_cached_tensor(t); });
+  m.def("_construct_NPU_Tensor_From_Storage_And_Metadata", [](py::dict& metadata, c10::Storage s) {
+    auto dtype_arg = metadata["dtype"].ptr();
+    auto meta = c10::scalarTypeToTypeMeta(torch::toScalarType(dtype_arg));
 
-        constexpr c10::DispatchKeySet npu_dks(c10::DispatchKey::PrivateUse1);
-        at::Tensor tensor = at::detail::make_tensor_base<c10::TensorImpl>(
-            std::move(s), npu_dks, meta);
+    constexpr c10::DispatchKeySet npu_dks(c10::DispatchKey::PrivateUse1);
+    at::Tensor tensor = at::detail::make_tensor_base<c10::TensorImpl>(std::move(s), npu_dks, meta);
 
-        if (metadata.contains("npu_format")) {
-          at_npu::native::StorageDescHelper::SetDesc(
-              tensor,
-              metadata["size"].cast<std::vector<int64_t>>(),
-              metadata["stride"].cast<std::vector<int64_t>>(),
-              static_cast<aclFormat>(metadata["npu_format"].cast<int64_t>()));
-        } else {
-          at_npu::native::StorageDescHelper::SetDesc(
-              tensor,
-              metadata["size"].cast<std::vector<int64_t>>(),
-              metadata["stride"].cast<std::vector<int64_t>>());
-        }
-        tensor.unsafeGetTensorImpl()->set_sizes_and_strides(
-            metadata["size"].cast<std::vector<int64_t>>(),
-            metadata["stride"].cast<std::vector<int64_t>>());
-        tensor.unsafeGetTensorImpl()->set_storage_offset(
-            metadata["storage_offset"].cast<int64_t>());
-        return tensor;
-      });
+    if (metadata.contains("npu_format")) {
+      at_npu::native::StorageDescHelper::SetDesc(
+          tensor,
+          metadata["size"].cast<std::vector<int64_t>>(),
+          metadata["stride"].cast<std::vector<int64_t>>(),
+          static_cast<aclFormat>(metadata["npu_format"].cast<int64_t>()));
+    } else {
+      at_npu::native::StorageDescHelper::SetDesc(
+          tensor, metadata["size"].cast<std::vector<int64_t>>(), metadata["stride"].cast<std::vector<int64_t>>());
+    }
+    tensor.unsafeGetTensorImpl()->set_sizes_and_strides(
+        metadata["size"].cast<std::vector<int64_t>>(), metadata["stride"].cast<std::vector<int64_t>>());
+    tensor.unsafeGetTensorImpl()->set_storage_offset(metadata["storage_offset"].cast<int64_t>());
+    return tensor;
+  });
   m.def(
       "_npu_checkPoolLiveAllocations",
-      [](c10::DeviceIndex device,
-         c10_npu::MempoolId_t mempool_id,
-         const py::set& expected_live_allocations) {
+      [](c10::DeviceIndex device, c10_npu::MempoolId_t mempool_id, const py::set& expected_live_allocations) {
         std::unordered_set<void*> allocations;
         allocations.reserve(expected_live_allocations.size());
         for (auto& elem : expected_live_allocations) {
           // NOLINTNEXTLINE(performance-no-int-to-ptr)
           allocations.insert(reinterpret_cast<void*>(py::cast<size_t>(elem)));
         }
-        return c10_npu::NPUCachingAllocator::checkPoolLiveAllocations(
-            device, mempool_id, allocations);
+        return c10_npu::NPUCachingAllocator::checkPoolLiveAllocations(device, mempool_id, allocations);
       });
-  m.def("_set_cached_tensors_enabled", [](bool enabled) {
-    at::caching::set_cached_tensors_enabled(enabled);
+  m.def("_set_cached_tensors_enabled", [](bool enabled) { at::caching::set_cached_tensors_enabled(enabled); });
+  m.def("_construct_storage_from_data_pointer", [](int64_t data_ptr, c10::Device device, size_t size_bytes) {
+    c10::intrusive_ptr<c10::StorageImpl> storage_impl = torch_npu::make_npu_storage_impl(
+        c10::StorageImpl::use_byte_size_t(),
+        size_bytes,
+        at::DataPtr(reinterpret_cast<void*>(data_ptr), device),
+        nullptr,
+        false);
+    return c10::Storage(storage_impl);
   });
-  m.def(
-      "_construct_storage_from_data_pointer",
-      [](int64_t data_ptr, c10::Device device, size_t size_bytes) {
-        c10::intrusive_ptr<c10::StorageImpl> storage_impl =
-            torch_npu::make_npu_storage_impl(
-                c10::StorageImpl::use_byte_size_t(),
-                size_bytes,
-                at::DataPtr(reinterpret_cast<void*>(data_ptr), device),
-                nullptr,
-                false);
-        return c10::Storage(storage_impl);
-      });
   m.def("_weak_ref_tensor", [](const at::Tensor& t) {
     void* storage_data_ptr = t.storage().mutable_data();
-    int64_t storage_numel =
-        static_cast<int64_t>(t.storage().nbytes()) / t.element_size();
+    int64_t storage_numel = static_cast<int64_t>(t.storage().nbytes()) / t.element_size();
     auto options = t.options();
 
-    auto new_tensor =
-        at_npu::native::from_blob(storage_data_ptr, {storage_numel}, options);
+    auto new_tensor = at_npu::native::from_blob(storage_data_ptr, {storage_numel}, options);
     auto* impl = new_tensor.unsafeGetTensorImpl();
     impl->set_sizes_and_strides(t.sizes(), t.strides());
     impl->set_storage_offset(t.storage_offset());
@@ -714,37 +620,30 @@ void RegisterNpuPluggableAllocator(PyObject* module) {
     torch_npu::NPUBridge::GetNpuStorageImpl(new_tensor)->npu_desc_ = dst_desc;
     return new_tensor;
   });
-  m.def(
-      "_set_storage_access_error_msg", [](const at::Tensor& t, std::string s) {
-        t.unsafeGetTensorImpl()
-            ->release_storage_and_set_meta_custom_data_ptr_error_msg_(s);
-      });
-  m.def(
-      "_set_storage_data_ptr_access_error_msg",
-      [](size_t storage_impl_ptr, std::string s) {
-        // NOLINTNEXTLINE(performance-no-int-to-ptr)
-        c10::StorageImpl* storage_impl = (c10::StorageImpl*)storage_impl_ptr;
-        storage_impl->release_data_and_set_meta_custom_data_ptr_error_msg_(s);
-      });
-  m.def(
-      "_tensors_data_ptrs_at_indices_equal",
-      [](py::list& tensors, py::list& data_ptrs, py::list& indices) {
-        for (auto index : indices) {
-          auto t = tensors[index].cast<at::Tensor>();
-          auto data_ptr = data_ptrs[index].cast<int64_t>();
-          if (reinterpret_cast<int64_t>(t.data_ptr()) != data_ptr) {
-            return false;
-          }
-        }
-        return true;
-      });
+  m.def("_set_storage_access_error_msg", [](const at::Tensor& t, std::string s) {
+    t.unsafeGetTensorImpl()->release_storage_and_set_meta_custom_data_ptr_error_msg_(s);
+  });
+  m.def("_set_storage_data_ptr_access_error_msg", [](size_t storage_impl_ptr, std::string s) {
+    // NOLINTNEXTLINE(performance-no-int-to-ptr)
+    c10::StorageImpl* storage_impl = (c10::StorageImpl*)storage_impl_ptr;
+    storage_impl->release_data_and_set_meta_custom_data_ptr_error_msg_(s);
+  });
+  m.def("_tensors_data_ptrs_at_indices_equal", [](py::list& tensors, py::list& data_ptrs, py::list& indices) {
+    for (auto index : indices) {
+      auto t = tensors[index].cast<at::Tensor>();
+      auto data_ptr = data_ptrs[index].cast<int64_t>();
+      if (reinterpret_cast<int64_t>(t.data_ptr()) != data_ptr) {
+        return false;
+      }
+    }
+    return true;
+  });
 }
 
 static PyObject* THNPModule_initExtension(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS {
     pybind11::gil_scoped_release no_gil;
-    c10_npu::NpuSysCtrl::SysStatus status =
-        c10_npu::NpuSysCtrl::GetInstance().Initialize();
+    c10_npu::NpuSysCtrl::SysStatus status = c10_npu::NpuSysCtrl::GetInstance().Initialize();
     if (status != c10_npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
       throw python_error();
     }
@@ -783,6 +682,18 @@ PyObject* THNPModule_npuSynchronize(PyObject* _unused, PyObject* noargs) {
   END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_npuSleep(PyObject* _unused, PyObject* cycles) {
+  HANDLE_TH_ERRORS
+  TORCH_CHECK(THPUtils_checkLong(cycles), "torch.npu._sleep(): expected 'int'");
+  int64_t unpacked_cycles = THPUtils_unpackLong(cycles);
+  {
+    pybind11::gil_scoped_release no_gil;
+    c10_npu::npu_sleep(unpacked_cycles);
+  }
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
 void THNPModule_setDevice(int device) {
   NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::SetDevice(device));
 }
@@ -791,8 +702,7 @@ PyObject* THNPModule_setDevice_wrap(PyObject* self, PyObject* arg) {
   HANDLE_TH_ERRORS
   int device = THPUtils_unpackLong(arg);
   torch_npu::utils::npu_lazy_init();
-  NPU_CHECK_ERROR_WITHOUT_UCE(
-      c10_npu::NpuSysCtrl::GetInstance().ExchangeDevice(device));
+  NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::NpuSysCtrl::GetInstance().ExchangeDevice(device));
 
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
@@ -804,8 +714,7 @@ PyObject* THNPModule_stopDevice_wrap(PyObject* self, PyObject* arg) {
   setDefaultStreamsStatus(device, c10_npu::RepoStatus::STOP_EXIT);
   TORCH_NPU_RECOVERY_LOGI("NPU stop device start, device is %d.", device);
   int ret = c10_npu::acl::AclrtDeviceTaskAbort(device);
-  TORCH_NPU_RECOVERY_LOGI(
-      "NPU stop device end, device is %d, ret is %d.", device, ret);
+  TORCH_NPU_RECOVERY_LOGI("NPU stop device end, device is %d, ret is %d.", device, ret);
   if (ret == 0) {
     return PyLong_FromLong(0);
   } else {
@@ -817,8 +726,7 @@ PyObject* THNPModule_stopDevice_wrap(PyObject* self, PyObject* arg) {
 PyObject* THNPModule_check_uce_in_memory_wrap(PyObject* self, PyObject* arg) {
   HANDLE_TH_ERRORS
   int device = THPUtils_unpackLong(arg);
-  TORCH_NPU_RECOVERY_LOGI(
-      "NPU check_uce_in_memory start, device is %d.", device);
+  TORCH_NPU_RECOVERY_LOGI("NPU check_uce_in_memory start, device is %d.", device);
   auto memUceInfo_ = c10_npu::get_mem_uce_info();
   if (memUceInfo_.is_hbm_ecc_error) {
     // HBM ECC error always return 3.
@@ -827,16 +735,14 @@ PyObject* THNPModule_check_uce_in_memory_wrap(PyObject* self, PyObject* arg) {
   if (memUceInfo_.retSize == 0) {
     // UCE error size is 0, return 0.
     memUceInfo_.mem_type = 0;
-    TORCH_NPU_RECOVERY_LOGI(
-        "NPU check_uce_in_memory end, device is %d, mem_type is 0.", device);
+    TORCH_NPU_RECOVERY_LOGI("NPU check_uce_in_memory end, device is %d, mem_type is 0.", device);
     return PyLong_FromLong(0);
   }
   if (!c10_npu::NPUCachingAllocator::checkUceInMemPool(device)) {
     // UCE error memory is not in PTA memory pool, return 1, can not recover
     // from UCE error.
     memUceInfo_.mem_type = 1;
-    TORCH_NPU_RECOVERY_LOGI(
-        "NPU check_uce_in_memory end, device is %d, mem_type is 1.", device);
+    TORCH_NPU_RECOVERY_LOGI("NPU check_uce_in_memory end, device is %d, mem_type is 1.", device);
     return PyLong_FromLong(1);
   } else {
     c10_npu::NPUCachingAllocator::emptyCache(false);
@@ -844,15 +750,13 @@ PyObject* THNPModule_check_uce_in_memory_wrap(PyObject* self, PyObject* arg) {
       // UCE error memory is temporary memory in PTA memory pool, return 2,
       // perform step-level re-execution.
       memUceInfo_.mem_type = 2;
-      TORCH_NPU_RECOVERY_LOGI(
-          "NPU check_uce_in_memory end, device is %d, mem_type is 2.", device);
+      TORCH_NPU_RECOVERY_LOGI("NPU check_uce_in_memory end, device is %d, mem_type is 2.", device);
       return PyLong_FromLong(2);
     } else {
       // UCE error memory is persistent memory in PTA memory pool, return 3,
       // load the checkpoint (ckpt) from healthy device.
       memUceInfo_.mem_type = 3;
-      TORCH_NPU_RECOVERY_LOGI(
-          "NPU check_uce_in_memory end, device is %d, mem_type is 3.", device);
+      TORCH_NPU_RECOVERY_LOGI("NPU check_uce_in_memory end, device is %d, mem_type is 3.", device);
       return PyLong_FromLong(3);
     }
   }
@@ -880,28 +784,47 @@ PyObject* THNPModule_restart_device_wrap(PyObject* self, PyObject* arg) {
   int device = THPUtils_unpackLong(arg);
   TORCH_NPU_RECOVERY_LOGI("NPU restart device start, device is %d.", device);
   if (!c10_npu::acl::IsExistAclrtRepairError()) {
-    // If aclrtRepairError is not exist in CANN (older version), only repair UCE memory.
+    // If aclrtRepairError is not exist in CANN (older version), only repair UCE
+    // memory.
     auto memUceInfo_ = c10_npu::get_mem_uce_info();
     if (memUceInfo_.retSize > 0) {
       TORCH_NPU_RECOVERY_LOGI(
-          "exec AclrtMemUceRepair start, device is %d, retSize is %d.",
-          memUceInfo_.device,
-          memUceInfo_.retSize);
-      NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtMemUceRepair(
-          memUceInfo_.device, memUceInfo_.info, memUceInfo_.retSize));
+          "exec AclrtMemUceRepair start, device is %d, retSize is %d.", memUceInfo_.device, memUceInfo_.retSize);
+      NPU_CHECK_ERROR_WITHOUT_UCE(
+          c10_npu::acl::AclrtMemUceRepair(memUceInfo_.device, memUceInfo_.info, memUceInfo_.retSize));
       TORCH_NPU_RECOVERY_LOGI(
-          "exec AclrtMemUceRepair end, device is %d, retSize is %d.",
-          memUceInfo_.device,
-          memUceInfo_.retSize);
+          "exec AclrtMemUceRepair end, device is %d, retSize is %d.", memUceInfo_.device, memUceInfo_.retSize);
     }
     c10_npu::clear_mem_uce_info();
   } else {
     auto error_info = c10_npu::get_device_error_info();
-    TORCH_NPU_RECOVERY_LOGI("get_device_error_info device is %d, errorType is %d.", error_info.device, error_info.info.errorType);
+    TORCH_NPU_RECOVERY_LOGI(
+        "get_device_error_info device is %d, errorType is %d.", error_info.device, error_info.info.errorType);
     if (error_info.is_valid && error_info.info.tryRepair) {
-      TORCH_NPU_RECOVERY_LOGI("NPU repair error start, device is %d.", error_info.device);
-      NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtRepairError(error_info.device, &error_info.info));
-      TORCH_NPU_RECOVERY_LOGI("NPU repair error end, device is %d.", error_info.device);
+      // UCE memory errors must use the address list filtered by checkUceInMemPool,
+      // otherwise detail.uceInfo may contain addresses already released by emptyCache.
+      if (error_info.info.errorType == ACL_RT_ERROR_MEMORY) {
+        auto memUceInfo_ = c10_npu::get_mem_uce_info();
+        if (memUceInfo_.retSize > 0) {
+          size_t copy_size = std::min(memUceInfo_.retSize, static_cast<size_t>(ACL_RT_MEM_UCE_INFO_MAX_NUM));
+          error_info.info.detail.uceInfo.arraySize = copy_size;
+          for (size_t i = 0; i < copy_size; ++i) {
+            error_info.info.detail.uceInfo.memUceInfoArray[i] = memUceInfo_.info[i];
+          }
+          TORCH_NPU_RECOVERY_LOGI(
+              "NPU repair error with filtered uce, device is %d, retSize is %d, copy_size is %d.",
+              error_info.device,
+              memUceInfo_.retSize,
+              copy_size);
+          TORCH_NPU_RECOVERY_LOGI("NPU repair error start, device is %d.", error_info.device);
+          NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtRepairError(error_info.device, &error_info.info));
+          TORCH_NPU_RECOVERY_LOGI("NPU repair error end, device is %d.", error_info.device);
+        }
+      } else {
+        TORCH_NPU_RECOVERY_LOGI("NPU repair error start, device is %d.", error_info.device);
+        NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtRepairError(error_info.device, &error_info.info));
+        TORCH_NPU_RECOVERY_LOGI("NPU repair error end, device is %d.", error_info.device);
+      }
     }
     c10_npu::clear_device_error_info();
   }
@@ -922,9 +845,7 @@ PyObject* THNPModule_getDevice_wrap(PyObject* self, PyObject* noargs) {
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_getDeviceWithoutSet_wrap(
-    PyObject* self,
-    PyObject* noargs) {
+PyObject* THNPModule_getDeviceWithoutSet_wrap(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
   int device;
   NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::GetDeviceWithoutSet(&device));
@@ -957,8 +878,7 @@ PyObject* THNPModule_stressDetect_wrap(PyObject* self, PyObject* args) {
   int deviceId;
   aclError err = c10_npu::GetDevice(&deviceId);
   if (err != ACL_ERROR_NONE) {
-    ASCEND_LOGE(
-        "Stress detect failed, error happened in GetDevice, err is %d.", err);
+    ASCEND_LOGE("Stress detect failed, error happened in GetDevice, err is %d.", err);
     return PyLong_FromLong(1);
   }
 
@@ -979,96 +899,62 @@ PyObject* THNPModule_getLocalDevice_wrap(PyObject* self, PyObject* noargs) {
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_npuCanDeviceAccessPeer_wrap(
-    PyObject* self,
-    PyObject* args) {
+PyObject* THNPModule_npuCanDeviceAccessPeer_wrap(PyObject* self, PyObject* args) {
   HANDLE_TH_ERRORS
   PyObject* value_1 = nullptr;
   PyObject* value_2 = nullptr;
   if (!PyArg_ParseTuple(args, "OO", &value_1, &value_2)) {
-    throw torch::TypeError(
-        "Pybind failed to parse parameters." + PTA_ERROR(ErrCode::TYPE));
+    throw torch::TypeError("Pybind failed to parse parameters." + PTA_ERROR(ErrCode::TYPE));
   }
   int32_t device_id = THPUtils_unpackInt(value_1);
   int32_t peer_device_id = THPUtils_unpackInt(value_2);
-  auto can_access_peer =
-      c10_npu::acl::can_device_access_peer(device_id, peer_device_id);
+  auto can_access_peer = c10_npu::acl::can_device_access_peer(device_id, peer_device_id);
   return PyBool_FromLong(can_access_peer);
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_getDeviceUtilizationRate_wrap(
-    PyObject* self,
-    PyObject* device_index) {
+PyObject* THNPModule_getDeviceUtilizationRate_wrap(PyObject* self, PyObject* device_index) {
   HANDLE_TH_ERRORS
   TORCH_CHECK(
-      THPUtils_checkLong(device_index),
-      "invalid argument to getDeviceUtilizationRate",
-      PTA_ERROR(ErrCode::VALUE));
+      THPUtils_checkLong(device_index), "invalid argument to getDeviceUtilizationRate", PTA_ERROR(ErrCode::VALUE));
   int32_t device = static_cast<int32_t>(THPUtils_unpackUInt32(device_index));
   aclrtUtilizationInfo util_info;
   util_info.cubeUtilization = 0;
   util_info.vectorUtilization = 0;
   util_info.utilizationExtend = nullptr;
-  NPU_CHECK_ERROR_WITHOUT_UCE(
-      c10_npu::acl::AclrtGetDeviceUtilizationRate(device, &util_info));
+  NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::acl::AclrtGetDeviceUtilizationRate(device, &util_info));
   int32_t cube = util_info.cubeUtilization;
   int32_t vector = util_info.vectorUtilization;
   int32_t util_rate = 0;
   // 如果vector和cube谁支持,就返回谁的使用率，如果都支持计算(vector*1+cube*1)/2
-  if (cube == kDeviceUtilizationNotSupport &&
-      vector != kDeviceUtilizationNotSupport) {
+  if (cube == kDeviceUtilizationNotSupport && vector != kDeviceUtilizationNotSupport) {
     util_rate = vector;
-  } else if (
-      cube != kDeviceUtilizationNotSupport &&
-      vector == kDeviceUtilizationNotSupport) {
+  } else if (cube != kDeviceUtilizationNotSupport && vector == kDeviceUtilizationNotSupport) {
     util_rate = cube;
-  } else if (
-      cube != kDeviceUtilizationNotSupport &&
-      vector != kDeviceUtilizationNotSupport) {
+  } else if (cube != kDeviceUtilizationNotSupport && vector != kDeviceUtilizationNotSupport) {
     util_rate = (cube + vector) / 2;
   }
-  TORCH_CHECK(
-      util_rate <= 100 && util_rate >= 0,
-      "invalid result to util_rate",
-      PTA_ERROR(ErrCode::VALUE));
+  TORCH_CHECK(util_rate <= 100 && util_rate >= 0, "invalid result to util_rate", PTA_ERROR(ErrCode::VALUE));
   return PyLong_FromLong(util_rate);
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_getCurrentStream_wrap(
-    PyObject* /* unused */,
-    PyObject* device_index) {
+PyObject* THNPModule_getCurrentStream_wrap(PyObject* /* unused */, PyObject* device_index) {
   HANDLE_TH_ERRORS
-  TORCH_CHECK(
-      THPUtils_checkLong(device_index),
-      "invalid argument to getCurrentStream",
-      PTA_ERROR(ErrCode::PARAM));
+  TORCH_CHECK(THPUtils_checkLong(device_index), "invalid argument to getCurrentStream", PTA_ERROR(ErrCode::PARAM));
   int64_t device = THPUtils_unpackLong(device_index);
   auto stream = c10_npu::getCurrentNPUStream(device);
   PyObject* output_tuple = PyTuple_New(3);
-  PyTuple_SetItem(
-      output_tuple, 0, THPUtils_packInt64(static_cast<int64_t>(stream.id())));
-  PyTuple_SetItem(
-      output_tuple,
-      1,
-      THPUtils_packInt64(static_cast<int64_t>(stream.device_index())));
-  PyTuple_SetItem(
-      output_tuple,
-      2,
-      THPUtils_packInt64(static_cast<int64_t>(stream.device_type())));
+  PyTuple_SetItem(output_tuple, 0, THPUtils_packInt64(static_cast<int64_t>(stream.id())));
+  PyTuple_SetItem(output_tuple, 1, THPUtils_packInt64(static_cast<int64_t>(stream.device_index())));
+  PyTuple_SetItem(output_tuple, 2, THPUtils_packInt64(static_cast<int64_t>(stream.device_type())));
   return output_tuple;
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_getCurrentStream_raw(
-    PyObject* /* unused */,
-    PyObject* device_index) {
+PyObject* THNPModule_getCurrentStream_raw(PyObject* /* unused */, PyObject* device_index) {
   HANDLE_TH_ERRORS
-  TORCH_CHECK(
-      THPUtils_checkLong(device_index),
-      "invalid argument to getCurrentStream",
-      PTA_ERROR(ErrCode::PARAM));
+  TORCH_CHECK(THPUtils_checkLong(device_index), "invalid argument to getCurrentStream", PTA_ERROR(ErrCode::PARAM));
   int64_t device = THPUtils_unpackLong(device_index);
   return PyLong_FromVoidPtr(c10_npu::getCurrentNPUStream(device).stream());
   END_HANDLE_TH_ERRORS
@@ -1081,68 +967,40 @@ PyObject* THNPModule_getCurrentStream_raw(
 // use only one of these dispatch methods exclusively. If mixed usage is
 // unavoidable, ensure there are no data dependencies between tasks and that
 // performance is not sensitive to potential execution reordering.
-PyObject* THNPModule_getCurrentRawStreamNoWait_wrap(
-    PyObject* /* unused */,
-    PyObject* device_index) {
+PyObject* THNPModule_getCurrentRawStreamNoWait_wrap(PyObject* /* unused */, PyObject* device_index) {
   HANDLE_TH_ERRORS
-  TORCH_CHECK(
-      THPUtils_checkLong(device_index),
-      "invalid argument to getCurrentStream",
-      PTA_ERROR(ErrCode::PARAM));
+  TORCH_CHECK(THPUtils_checkLong(device_index), "invalid argument to getCurrentStream", PTA_ERROR(ErrCode::PARAM));
   int64_t device = THPUtils_unpackLong(device_index);
   return PyLong_FromVoidPtr(c10_npu::getCurrentNPUStreamNoWait(device));
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_getDefaultStream_wrap(
-    PyObject* self /* unused */,
-    PyObject* device_index) {
+PyObject* THNPModule_getDefaultStream_wrap(PyObject* self /* unused */, PyObject* device_index) {
   HANDLE_TH_ERRORS
-  TORCH_CHECK(
-      THPUtils_checkLong(device_index),
-      "invalid argument to getDefaultStream",
-      PTA_ERROR(ErrCode::PARAM));
+  TORCH_CHECK(THPUtils_checkLong(device_index), "invalid argument to getDefaultStream", PTA_ERROR(ErrCode::PARAM));
   int64_t device = THPUtils_unpackLong(device_index);
   auto stream = c10_npu::getDefaultNPUStream(device);
   PyObject* output_tuple = PyTuple_New(3);
-  PyTuple_SetItem(
-      output_tuple, 0, THPUtils_packInt64(static_cast<int64_t>(stream.id())));
-  PyTuple_SetItem(
-      output_tuple,
-      1,
-      THPUtils_packInt64(static_cast<int64_t>(stream.device_index())));
-  PyTuple_SetItem(
-      output_tuple,
-      2,
-      THPUtils_packInt64(static_cast<int64_t>(stream.device_type())));
+  PyTuple_SetItem(output_tuple, 0, THPUtils_packInt64(static_cast<int64_t>(stream.id())));
+  PyTuple_SetItem(output_tuple, 1, THPUtils_packInt64(static_cast<int64_t>(stream.device_index())));
+  PyTuple_SetItem(output_tuple, 2, THPUtils_packInt64(static_cast<int64_t>(stream.device_type())));
   return output_tuple;
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_setStream_wrap(
-    PyObject* self,
-    PyObject* args,
-    PyObject* kwargs) {
+PyObject* THNPModule_setStream_wrap(PyObject* self, PyObject* args, PyObject* kwargs) {
   HANDLE_TH_ERRORS
   int64_t stream_id = 0;
   int64_t device_index = 0;
   int64_t device_type = 0;
 
   // NOLINTNEXTLINE(modernize-avoid-c-arrays,cppcoreguidelines-avoid-c-arrays)
-  constexpr const char* kwlist[] = {
-      "stream_id", "device_index", "device_type", nullptr};
+  constexpr const char* kwlist[] = {"stream_id", "device_index", "device_type", nullptr};
   if (!PyArg_ParseTupleAndKeywords(
-          args,
-          kwargs,
-          "|LLL",
-          const_cast<char**>(kwlist),
-          &stream_id,
-          &device_index,
-          &device_type)) {
+          args, kwargs, "|LLL", const_cast<char**>(kwlist), &stream_id, &device_index, &device_type)) {
   }
 
-  auto stream = c10_npu::NPUStream::unpack3(
-      stream_id, device_index, static_cast<c10::DeviceType>(device_type));
+  auto stream = c10_npu::NPUStream::unpack3(stream_id, device_index, static_cast<c10::DeviceType>(device_type));
 
   int device;
   NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::GetDevice(&device));
@@ -1154,27 +1012,16 @@ PyObject* THNPModule_setStream_wrap(
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_npu_eraseStream_wrap(
-    PyObject* self,
-    PyObject* args,
-    PyObject* kwargs) {
+PyObject* THNPModule_npu_eraseStream_wrap(PyObject* self, PyObject* args, PyObject* kwargs) {
   HANDLE_TH_ERRORS
   PyObject* tensor_obj = nullptr;
   int64_t stream_id = 0;
   int64_t device_index = 0;
   int64_t device_type = 0;
 
-  constexpr const char* kwlist[] = {
-      "tensor", "stream_id", "device_index", "device_type", nullptr};
+  constexpr const char* kwlist[] = {"tensor", "stream_id", "device_index", "device_type", nullptr};
   if (!PyArg_ParseTupleAndKeywords(
-          args,
-          kwargs,
-          "OLLL",
-          const_cast<char**>(kwlist),
-          &tensor_obj,
-          &stream_id,
-          &device_index,
-          &device_type)) {
+          args, kwargs, "OLLL", const_cast<char**>(kwlist), &tensor_obj, &stream_id, &device_index, &device_type)) {
   }
 
   if (!THPVariable_Check(tensor_obj)) {
@@ -1183,17 +1030,13 @@ PyObject* THNPModule_npu_eraseStream_wrap(
 
   // 获取 at::Tensor
   at::Tensor tensor = THPVariable_Unpack(tensor_obj);
-  auto stream = c10_npu::NPUStream::unpack3(
-      stream_id, device_index, static_cast<c10::DeviceType>(device_type));
-  c10_npu::NPUCachingAllocator::eraseStream(
-      tensor.storage().data_ptr(), stream);
+  auto stream = c10_npu::NPUStream::unpack3(stream_id, device_index, static_cast<c10::DeviceType>(device_type));
+  c10_npu::NPUCachingAllocator::eraseStream(tensor.storage().data_ptr(), stream);
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_isCurrentStreamCapturing_wrap(
-    PyObject* self,
-    PyObject* noargs) {
+PyObject* THNPModule_isCurrentStreamCapturing_wrap(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
   // If there's no npu context, c10_npu::currentStreamCaptureStatus returns
   // CaptureStatus::None without initializing a context.
@@ -1205,9 +1048,7 @@ PyObject* THNPModule_isCurrentStreamCapturing_wrap(
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_is_jit_compile_false_wrap(
-    PyObject* self,
-    PyObject* noargs) {
+PyObject* THNPModule_is_jit_compile_false_wrap(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
   pybind11::gil_scoped_release no_gil;
   static const std::string jit_compile_option_name = "jitCompile";
@@ -1216,10 +1057,8 @@ PyObject* THNPModule_is_jit_compile_false_wrap(
     Py_RETURN_TRUE;
   } else {
     static const std::string jit_compile_init_option_name = "jitCompileInit";
-    auto init_option_value =
-        c10_npu::option::GetOption(jit_compile_init_option_name);
-    if (init_option_value.has_value() &&
-        (init_option_value.value() == "disable")) {
+    auto init_option_value = c10_npu::option::GetOption(jit_compile_init_option_name);
+    if (init_option_value.has_value() && (init_option_value.value() == "disable")) {
       Py_RETURN_TRUE;
     } else {
       Py_RETURN_FALSE;
@@ -1232,13 +1071,11 @@ PyObject* THNPModule_getMemoryFraction(PyObject* _unused, PyObject* args) {
   HANDLE_TH_ERRORS
   PyObject* device_o = nullptr;
   if (!PyArg_ParseTuple(args, "O", &device_o)) {
-    THPUtils_invalidArguments(
-        args, nullptr, "get_memory_fraction", 1, "(int device);");
+    THPUtils_invalidArguments(args, nullptr, "get_memory_fraction", 1, "(int device);");
     return nullptr;
   }
   int64_t device_index = PyLong_AsLongLong(device_o);
-  return PyFloat_FromDouble(
-      c10_npu::NPUCachingAllocator::getMemoryFraction(device_index));
+  return PyFloat_FromDouble(c10_npu::NPUCachingAllocator::getMemoryFraction(device_index));
   END_HANDLE_TH_ERRORS
 }
 
@@ -1247,12 +1084,7 @@ PyObject* THNPModule_setMemoryFraction(PyObject* _unused, PyObject* args) {
   PyObject* fraction_o = nullptr;
   PyObject* device_o = nullptr;
   if (!PyArg_ParseTuple(args, "OO", &fraction_o, &device_o)) {
-    THPUtils_invalidArguments(
-        args,
-        nullptr,
-        "set_memory_fraction",
-        1,
-        "(double fraction, int device);");
+    THPUtils_invalidArguments(args, nullptr, "set_memory_fraction", 1, "(double fraction, int device);");
     return nullptr;
   }
   double fraction = PyFloat_AsDouble(fraction_o);
@@ -1323,18 +1155,14 @@ PyObject* THNPModule_npu_hostMemoryStats(PyObject* _unused, PyObject* noargs) {
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_npu_resetAccumulatedHostMemoryStats(
-    PyObject* _unused,
-    PyObject* noargs) {
+PyObject* THNPModule_npu_resetAccumulatedHostMemoryStats(PyObject* _unused, PyObject* noargs) {
   HANDLE_TH_ERRORS
   at::getHostAllocator(at::kPrivateUse1)->reset_accumulated_stats();
   END_HANDLE_TH_ERRORS
   Py_RETURN_NONE;
 }
 
-PyObject* THNPModule_npu_resetPeakHostMemoryStats(
-    PyObject* _unused,
-    PyObject* noargs) {
+PyObject* THNPModule_npu_resetPeakHostMemoryStats(PyObject* _unused, PyObject* noargs) {
   HANDLE_TH_ERRORS
   at::getHostAllocator(at::kPrivateUse1)->reset_peak_stats();
   END_HANDLE_TH_ERRORS
@@ -1357,10 +1185,7 @@ PyObject* THNPModule_emptyVirtAddrCache(PyObject* _unused, PyObject* noargs) {
 
 PyObject* THNPModule_memoryStats(PyObject* _unused, PyObject* arg) {
   HANDLE_TH_ERRORS
-  TORCH_CHECK(
-      THPUtils_checkLong(arg),
-      "invalid argument to memory_allocated",
-      PTA_ERROR(ErrCode::PARAM));
+  TORCH_CHECK(THPUtils_checkLong(arg), "invalid argument to memory_allocated", PTA_ERROR(ErrCode::PARAM));
   const auto device = static_cast<c10::DeviceIndex>(THPUtils_unpackLong(arg));
 
   using c10::CachingAllocator::Stat;
@@ -1379,8 +1204,8 @@ PyObject* THNPModule_memoryStats(PyObject* _unused, PyObject* arg) {
   };
 
   const auto statArrayToDict = [=](const StatArray& statArray) {
-    const std::array<const char*, static_cast<size_t>(StatType::NUM_TYPES)>
-        statTypeNames = {"all", "small_pool", "large_pool"};
+    const std::array<const char*, static_cast<size_t>(StatType::NUM_TYPES)> statTypeNames = {
+        "all", "small_pool", "large_pool"};
     py::dict dict;
     for (size_t i = 0; i < statTypeNames.size(); ++i) {
       dict[statTypeNames[i]] = statToDict(statArray[i]);
@@ -1388,8 +1213,7 @@ PyObject* THNPModule_memoryStats(PyObject* _unused, PyObject* arg) {
     return dict;
   };
 
-  const DeviceStats stats =
-      c10_npu::NPUCachingAllocator::getDeviceStats(device);
+  const DeviceStats stats = c10_npu::NPUCachingAllocator::getDeviceStats(device);
 
   py::dict result;
   result["num_alloc_retries"] = stats.num_alloc_retries;
@@ -1415,14 +1239,9 @@ PyObject* THNPModule_memoryStats(PyObject* _unused, PyObject* arg) {
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_resetAccumulatedMemoryStats(
-    PyObject* _unused,
-    PyObject* arg) {
+PyObject* THNPModule_resetAccumulatedMemoryStats(PyObject* _unused, PyObject* arg) {
   HANDLE_TH_ERRORS
-  TORCH_CHECK(
-      THPUtils_checkLong(arg),
-      "invalid argument to reset_accumulated_memory_stats",
-      PTA_ERROR(ErrCode::PARAM));
+  TORCH_CHECK(THPUtils_checkLong(arg), "invalid argument to reset_accumulated_memory_stats", PTA_ERROR(ErrCode::PARAM));
   const auto device = static_cast<c10::DeviceIndex>(THPUtils_unpackLong(arg));
   c10_npu::NPUCachingAllocator::resetAccumulatedStats(device);
   END_HANDLE_TH_ERRORS
@@ -1431,10 +1250,7 @@ PyObject* THNPModule_resetAccumulatedMemoryStats(
 
 PyObject* THNPModule_resetPeakMemoryStats(PyObject* _unused, PyObject* arg) {
   HANDLE_TH_ERRORS
-  TORCH_CHECK(
-      THPUtils_checkLong(arg),
-      "invalid argument to reset_peak_memory_stats",
-      PTA_ERROR(ErrCode::PARAM));
+  TORCH_CHECK(THPUtils_checkLong(arg), "invalid argument to reset_peak_memory_stats", PTA_ERROR(ErrCode::PARAM));
   const auto device = static_cast<c10::DeviceIndex>(THPUtils_unpackLong(arg));
   c10_npu::NPUCachingAllocator::resetPeakStats(device);
   END_HANDLE_TH_ERRORS
@@ -1447,19 +1263,27 @@ using CapturedTraceback = torch::CapturedTraceback;
 using CapturedTraceback = torch_npu::CapturedTraceback;
 #endif
 
-CapturedTraceback* getFromContext(
-    const std::shared_ptr<c10::GatheredContext>& x) {
+CapturedTraceback* getFromContext(const std::shared_ptr<c10::GatheredContext>& x) {
   if (CapturedTraceback* sc = dynamic_cast<CapturedTraceback*>(x.get())) {
     return sc;
   }
   TORCH_CHECK(
-      false,
-      "attempting to gather stack context from the wrong StackContext type.",
-      OPS_ERROR(ErrCode::NOT_FOUND));
+      false, "attempting to gather stack context from the wrong StackContext type.", OPS_ERROR(ErrCode::NOT_FOUND));
 }
 
-PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs) {
+PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* arg) {
   HANDLE_TH_ERRORS
+
+  c10_npu::MempoolId_t mempool_id = {0, 0};
+  if (arg && !Py_IsNone(arg)) {
+    TORCH_CHECK(PyTuple_Check(arg), "Expected tuple or None");
+    Py_ssize_t size = PyTuple_Size(arg);
+    TORCH_CHECK(size == 2, "Expected tuple of size 2 (mempool_id_first, mempool_id_second)");
+    auto id1 = THPObjectPtr(PyTuple_GetItem(arg, 0));
+    auto id2 = THPObjectPtr(PyTuple_GetItem(arg, 1));
+    TORCH_CHECK(THPUtils_checkLong(id1) && THPUtils_checkLong(id2), "mempool_id elements must be integers");
+    mempool_id = c10_npu::MempoolId_t(THPUtils_unpackLong(id1), THPUtils_unpackLong(id2));
+  }
 
   using c10_npu::NPUCachingAllocator::BlockInfo;
   using c10_npu::NPUCachingAllocator::SegmentInfo;
@@ -1490,8 +1314,7 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs) {
   std::vector<CapturedTraceback*> to_gather_frames;
   std::vector<py::dict> to_gather_dest;
 
-  auto add_frame_key = [&](const py::dict& d,
-                           const std::shared_ptr<c10::GatheredContext>& ctx) {
+  auto add_frame_key = [&](const py::dict& d, const std::shared_ptr<c10::GatheredContext>& ctx) {
     if (ctx) {
       auto sc = getFromContext(ctx);
       to_gather_frames.emplace_back(sc);
@@ -1525,9 +1348,7 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs) {
       blockDict[size_s] = blockInfo.size;
       blockDict[requested_size_s] = blockInfo.requested_size;
       blockDict[state_s] =
-          (blockInfo.allocated
-               ? active_allocated_s
-               : (blockInfo.active ? active_pending_free_s : inactive_s));
+          (blockInfo.allocated ? active_allocated_s : (blockInfo.active ? active_pending_free_s : inactive_s));
       add_frame_key(blockDict, blockInfo.context_when_allocated);
       blocks.append(blockDict);
       address += blockInfo.size;
@@ -1537,23 +1358,25 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs) {
     return segmentDict;
   };
 
-  auto snapshot = c10_npu::NPUCachingAllocator::snapshot();
+  auto snapshot = c10_npu::NPUCachingAllocator::snapshot(mempool_id);
   py::list segments;
 
   for (const auto& segmentInfo : snapshot.segments) {
     segments.append(segmentInfoToDict(segmentInfo));
   }
 
-  auto workspace_snapshot = c10_npu::NPUWorkspaceAllocator::snapshot();
-  for (size_t i = 0; i < workspace_snapshot.segments.size(); i++) {
-    segments.append(segmentInfoToDict(workspace_snapshot.segments[i]));
-  }
+  if (mempool_id.first == 0 && mempool_id.second == 0) {
+    auto workspace_snapshot = c10_npu::NPUWorkspaceAllocator::snapshot();
+    for (size_t i = 0; i < workspace_snapshot.segments.size(); i++) {
+      segments.append(segmentInfoToDict(workspace_snapshot.segments[i]));
+    }
 
-  for (size_t i = 0; i < workspace_snapshot.device_traces.size(); i++) {
-    snapshot.device_traces[i].insert(
-        snapshot.device_traces[i].begin(),
-        workspace_snapshot.device_traces[i].begin(),
-        workspace_snapshot.device_traces[i].end());
+    for (size_t i = 0; i < workspace_snapshot.device_traces.size(); i++) {
+      snapshot.device_traces[i].insert(
+          snapshot.device_traces[i].begin(),
+          workspace_snapshot.device_traces[i].begin(),
+          workspace_snapshot.device_traces[i].end());
+    }
   }
 
   py::list traces;
@@ -1570,6 +1393,7 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs) {
   py::str workspace_snapshot_s = "workspace_snapshot";
   py::str oom_s = "oom";
   py::str device_free_s = "device_free";
+  py::str pool_id_s = "pool_id";
 
   using namespace c10_npu::NPUCachingAllocator;
 
@@ -1612,10 +1436,10 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs) {
         to_gather_dest.emplace_back(trace_entry);
       }
       trace_entry[action_s] = action_to_str(te.action_);
-      trace_entry[te.action_ == TraceEntry::OOM ? device_free_s : addr_s] =
-          te.addr_;
+      trace_entry[te.action_ == TraceEntry::OOM ? device_free_s : addr_s] = te.addr_;
       trace_entry[size_s] = te.size_;
       trace_entry[stream_s] = int64_t(te.stream_);
+      trace_entry[pool_id_s] = te.mempool_;
       trace.append(trace_entry);
     }
     traces.append(trace);
@@ -1639,10 +1463,7 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs) {
 
 PyObject* THNPModule_saveDevMemUsageInfo(PyObject* _unused, PyObject* arg) {
   HANDLE_TH_ERRORS
-  TORCH_CHECK(
-      THPUtils_checkLong(arg),
-      "invalid argument to save device mem usage info.",
-      PTA_ERROR(ErrCode::PARAM));
+  TORCH_CHECK(THPUtils_checkLong(arg), "invalid argument to save device mem usage info.", PTA_ERROR(ErrCode::PARAM));
   const int device = (int)THPUtils_unpackLong(arg);
   bool ret = c10_npu::NPUCachingAllocator::saveDevMemUsageInfo(device);
   if (ret) {
@@ -1653,19 +1474,12 @@ PyObject* THNPModule_saveDevMemUsageInfo(PyObject* _unused, PyObject* arg) {
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_attachOutOfMemoryObserver(
-    PyObject* _unused,
-    PyObject* observer) {
+PyObject* THNPModule_attachOutOfMemoryObserver(PyObject* _unused, PyObject* observer) {
   HANDLE_TH_ERRORS
   Py_XINCREF(observer);
-  auto obs = [observer](
-                 int64_t device,
-                 int64_t alloc,
-                 int64_t device_allocated,
-                 int64_t device_free) {
+  auto obs = [observer](int64_t device, int64_t alloc, int64_t device_allocated, int64_t device_free) {
     py::gil_scoped_acquire g;
-    PyObject* result = PyObject_CallFunction(
-        observer, "LLLL", device, alloc, device_allocated, device_free);
+    PyObject* result = PyObject_CallFunction(observer, "LLLL", device, alloc, device_allocated, device_free);
     if (!result) {
       throw py::error_already_set();
     }
@@ -1677,19 +1491,12 @@ PyObject* THNPModule_attachOutOfMemoryObserver(
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_npuCachingAllocator_raw_alloc(
-    PyObject* _unused,
-    PyObject* args) {
+PyObject* THNPModule_npuCachingAllocator_raw_alloc(PyObject* _unused, PyObject* args) {
   HANDLE_TH_ERRORS
   PyObject* size_o = nullptr;
   PyObject* stream_o = nullptr;
   if (!PyArg_ParseTuple(args, "OO", &size_o, &stream_o)) {
-    THPUtils_invalidArguments(
-        args,
-        nullptr,
-        "caching_allocator_alloc",
-        1,
-        "(ssize_t size, intptr_t stream);");
+    THPUtils_invalidArguments(args, nullptr, "caching_allocator_alloc", 1, "(ssize_t size, intptr_t stream);");
     return nullptr;
   }
   ssize_t size = PyLong_AsSsize_t(size_o);
@@ -1699,9 +1506,7 @@ PyObject* THNPModule_npuCachingAllocator_raw_alloc(
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_npuCachingAllocator_raw_delete(
-    PyObject* _unused,
-    PyObject* obj) {
+PyObject* THNPModule_npuCachingAllocator_raw_delete(PyObject* _unused, PyObject* obj) {
   HANDLE_TH_ERRORS
   void* mem_ptr = PyLong_AsVoidPtr(obj);
   c10_npu::NPUCachingAllocator::raw_delete(mem_ptr);
@@ -1709,9 +1514,7 @@ PyObject* THNPModule_npuCachingAllocator_raw_delete(
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_npuCachingAllocator_set_allocator_settings(
-    PyObject* _unused,
-    PyObject* arg) {
+PyObject* THNPModule_npuCachingAllocator_set_allocator_settings(PyObject* _unused, PyObject* arg) {
   HANDLE_TH_ERRORS
   std::string settings = THPUtils_unpackString(arg);
   c10_npu::NPUCachingAllocator::setAllocatorSettings(settings);
@@ -1796,8 +1599,7 @@ PyObject* THNPModule_setOption_wrap(PyObject* self, PyObject* arg) {
   HANDLE_TH_ERRORS
 
   if (!PyDict_Check(arg)) {
-    throw torch::TypeError(
-        "npu option must be a dict." + PTA_ERROR(ErrCode::TYPE));
+    throw torch::TypeError("npu option must be a dict." + PTA_ERROR(ErrCode::TYPE));
   }
 
   PyObject* key = nullptr;
@@ -1807,15 +1609,11 @@ PyObject* THNPModule_setOption_wrap(PyObject* self, PyObject* arg) {
 
   while (PyDict_Next(arg, &pos, &key, &value)) {
     if (key == nullptr || !PyUnicode_Check(key)) {
-      throw torch::TypeError(
-          "option name is nullptr or is not string." +
-          PTA_ERROR(ErrCode::TYPE));
+      throw torch::TypeError("option name is nullptr or is not string." + PTA_ERROR(ErrCode::TYPE));
     }
 
     if (value == nullptr || !PyUnicode_Check(value)) {
-      throw torch::TypeError(
-          "option value is nullptr or is not string." +
-          PTA_ERROR(ErrCode::TYPE));
+      throw torch::TypeError("option value is nullptr or is not string." + PTA_ERROR(ErrCode::TYPE));
     }
 
     const char* pKey = PyUnicode_AsUTF8(key);
@@ -1831,9 +1629,7 @@ PyObject* THNPModule_setOption_wrap(PyObject* self, PyObject* arg) {
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_set_run_yet_variable_to_false_wrap(
-    PyObject* self,
-    PyObject* noargs) {
+PyObject* THNPModule_set_run_yet_variable_to_false_wrap(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
   torch_npu::utils::npu_set_run_yet_variable_to_false();
   Py_RETURN_NONE;
@@ -1875,8 +1671,7 @@ PyObject* THNPModule_enable_overflow_npu(PyObject* self, PyObject* noargs) {
 
 PyObject* THNPModule_check_overflow_npu(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
-  auto has_overflow =
-      torch_npu::utils::OverflowUtil::GetInstance()->CheckOverflowNpu();
+  auto has_overflow = torch_npu::utils::OverflowUtil::GetInstance()->CheckOverflowNpu();
   if (has_overflow) {
     Py_RETURN_TRUE;
   } else {
@@ -1957,9 +1752,28 @@ PyObject* THNPModule_npu_get_sync_debug_mode(PyObject* self, PyObject* noargs) {
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_tensor_construct_from_storage(
-    PyObject* self,
-    PyObject* args) {
+PyObject* THNPModule_npu_set_task_queue_enable(PyObject* self, PyObject* arg) {
+  HANDLE_TH_ERRORS
+  TORCH_CHECK_TYPE(
+      THPUtils_checkLong(arg),
+      "mode has invalid type, expected int, but got ",
+      Py_TYPE(arg)->tp_name,
+      PTA_ERROR(ErrCode::TYPE));
+  int64_t mode = THPUtils_unpackLong(arg);
+  TORCH_CHECK(mode >= 0 && mode <= 2, "mode must be 0, 1, or 2, but got ", mode, PTA_ERROR(ErrCode::VALUE));
+  c10_npu::option::OptionsManager::SetTaskQueueEnable(static_cast<int32_t>(mode));
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_npu_get_task_queue_enable(PyObject* self, PyObject* noargs) {
+  HANDLE_TH_ERRORS
+  uint32_t mode = c10_npu::option::OptionsManager::GetTaskQueueEnable();
+  return THPUtils_packInt64(static_cast<int64_t>(mode));
+  END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_tensor_construct_from_storage(PyObject* self, PyObject* args) {
   HANDLE_TH_ERRORS
   static torch::PythonArgParser parser(
       {
@@ -1974,8 +1788,7 @@ PyObject* THNPModule_tensor_construct_from_storage(
   at::ScalarType storage_scalar_type;
   bool is_typed_storage = true;
   c10::Storage storage = _r.storage(0, storage_scalar_type, is_typed_storage);
-  return THPVariable_Wrap(
-      at_npu::native::set_tensor_with_storage_format(storage));
+  return THPVariable_Wrap(at_npu::native::set_tensor_with_storage_format(storage));
 
   END_HANDLE_TH_ERRORS
 }
@@ -1983,9 +1796,7 @@ PyObject* THNPModule_tensor_construct_from_storage(
 PyObject* THNPModule_npu_set_call_state(PyObject* _unused, PyObject* arg) {
   HANDLE_TH_ERRORS
   TORCH_CHECK(
-      THPUtils_checkString(arg),
-      "invalid value of call_state, call_state must string",
-      PTA_ERROR(ErrCode::PARAM));
+      THPUtils_checkString(arg), "invalid value of call_state, call_state must string", PTA_ERROR(ErrCode::PARAM));
   std::string state = THPUtils_unpackString(arg);
   c10_npu::CallStateMode mode = c10_npu::CallStateMode::L_UNKNOW;
   if (state == "forward") {
@@ -1993,10 +1804,7 @@ PyObject* THNPModule_npu_set_call_state(PyObject* _unused, PyObject* arg) {
   } else if (state == "backward") {
     mode = c10_npu::CallStateMode::L_BACKWARD;
   } else {
-    TORCH_CHECK(
-        false,
-        "invalid value of call_state, expected one of `forward`, `backward`",
-        PTA_ERROR(ErrCode::PARAM));
+    TORCH_CHECK(false, "invalid value of call_state, expected one of `forward`, `backward`", PTA_ERROR(ErrCode::PARAM));
   }
   c10_npu::model_state().set_call_state(mode);
   ASCEND_LOGI("NPU set call state success, state is %s.", state.c_str());
@@ -2004,14 +1812,10 @@ PyObject* THNPModule_npu_set_call_state(PyObject* _unused, PyObject* arg) {
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_npu_set_module_train_state(
-    PyObject* _unused,
-    PyObject* arg) {
+PyObject* THNPModule_npu_set_module_train_state(PyObject* _unused, PyObject* arg) {
   HANDLE_TH_ERRORS
   TORCH_CHECK(
-      THPUtils_checkString(arg),
-      "invalid value of train_state, train_state must string",
-      PTA_ERROR(ErrCode::PARAM));
+      THPUtils_checkString(arg), "invalid value of train_state, train_state must string", PTA_ERROR(ErrCode::PARAM));
   std::string state = THPUtils_unpackString(arg);
   c10_npu::ModelMode mode = c10_npu::ModelMode::L_UNKNOW;
   if (state == "train") {
@@ -2019,10 +1823,7 @@ PyObject* THNPModule_npu_set_module_train_state(
   } else if (state == "infer") {
     mode = c10_npu::ModelMode::L_INFER;
   } else {
-    TORCH_CHECK(
-        false,
-        "invalid value of train_state, expected one of `train`, `infer`",
-        PTA_ERROR(ErrCode::PARAM));
+    TORCH_CHECK(false, "invalid value of train_state, expected one of `train`, `infer`", PTA_ERROR(ErrCode::PARAM));
   }
   c10_npu::model_state().set_model_mode(mode);
   ASCEND_LOGI("NPU set train state success, state is %s.", state.c_str());
@@ -2030,9 +1831,7 @@ PyObject* THNPModule_npu_set_module_train_state(
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_npu_get_silent_check_version(
-    PyObject* self,
-    PyObject* noargs) {
+PyObject* THNPModule_npu_get_silent_check_version(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
   if (c10_npu::opapi::IsExistAclnnSilentCheck()) {
     // silent check v2
@@ -2043,19 +1842,12 @@ PyObject* THNPModule_npu_get_silent_check_version(
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_aclnn_reselect_static_kernel(
-    PyObject* self,
-    PyObject* noargs) {
+PyObject* THNPModule_aclnn_reselect_static_kernel(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
   NPUStatus ret = c10_npu::emptyAllNPUStream();
-  TORCH_CHECK(
-      ret == NPU_STATUS_SUCCESS,
-      "Failed to empty NPU task queue, ret:",
-      ret,
-      PTA_ERROR(ErrCode::INTERNAL));
+  TORCH_CHECK(ret == NPU_STATUS_SUCCESS, "Failed to empty NPU task queue, ret:", ret, PTA_ERROR(ErrCode::INTERNAL));
 
-  static const auto task_queue_enable =
-      c10_npu::option::OptionsManager::GetTaskQueueEnable();
+  const auto task_queue_enable = c10_npu::option::OptionsManager::GetTaskQueueEnable();
   if (task_queue_enable == 2) {
     auto acl_call = []() -> int {
       c10_npu::opapi::ReselectStaticKernel();
@@ -2063,13 +1855,42 @@ PyObject* THNPModule_aclnn_reselect_static_kernel(
     };
     at_npu::native::OpCommand::RunOpApiV2("reselect_static_kernel", acl_call);
     NPUStatus ret = c10_npu::emptyAllNPUStream();
-    TORCH_CHECK(
-        ret == NPU_STATUS_SUCCESS,
-        "Failed to empty NPU task queue, ret:",
-        ret,
-        PTA_ERROR(ErrCode::INTERNAL));
+    TORCH_CHECK(ret == NPU_STATUS_SUCCESS, "Failed to empty NPU task queue, ret:", ret, PTA_ERROR(ErrCode::INTERNAL));
   } else {
     c10_npu::opapi::ReselectStaticKernel();
+  }
+
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_aclnn_reselect_static_kernel_with_path(PyObject* self, PyObject* arg) {
+  HANDLE_TH_ERRORS
+  TORCH_CHECK(THPUtils_checkString(arg), "path must be a string", PTA_ERROR(ErrCode::PARAM));
+  std::string path = THPUtils_unpackString(arg);
+  TORCH_CHECK(path.find('\0') == std::string::npos, "path must not contain null byte", PTA_ERROR(ErrCode::PARAM));
+  char abs_path[PATH_MAX] = {'\0'};
+  TORCH_CHECK(
+      realpath(path.c_str(), abs_path) != nullptr, "failed to resolve path: ", path, PTA_ERROR(ErrCode::NOT_FOUND));
+  struct stat st;
+  TORCH_CHECK(
+      stat(abs_path, &st) == 0 && S_ISDIR(st.st_mode),
+      "path must be a directory: ",
+      abs_path,
+      PTA_ERROR(ErrCode::PARAM));
+  std::string resolved_path(abs_path);
+
+  NPUStatus ret = c10_npu::emptyAllNPUStream();
+  TORCH_CHECK(ret == NPU_STATUS_SUCCESS, "Failed to empty NPU task queue, ret:", ret, PTA_ERROR(ErrCode::INTERNAL));
+
+  const auto task_queue_enable = c10_npu::option::OptionsManager::GetTaskQueueEnable();
+  if (task_queue_enable == 2) {
+    auto acl_call = [resolved_path]() -> int { return c10_npu::opapi::ReselectStaticKernelWithPath(resolved_path); };
+    at_npu::native::OpCommand::RunOpApiV2("reselect_static_kernel_with_path", acl_call);
+    NPUStatus ret = c10_npu::emptyAllNPUStream();
+    TORCH_CHECK(ret == NPU_STATUS_SUCCESS, "Failed to empty NPU task queue, ret:", ret, PTA_ERROR(ErrCode::INTERNAL));
+  } else {
+    NPU_CHECK_ERROR(c10_npu::opapi::ReselectStaticKernelWithPath(resolved_path));
   }
 
   Py_RETURN_NONE;
@@ -2116,18 +1937,14 @@ PyObject* THNPModule_npu_set_thread_affinity(PyObject* self, PyObject* args) {
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_npu_reset_thread_affinity(
-    PyObject* self,
-    PyObject* noargs) {
+PyObject* THNPModule_npu_reset_thread_affinity(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
   c10_npu::SetThreadAffinity(c10_npu::ThreadType::MAIN_THREAD);
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_npu_set_fft_plan_cache_max_size(
-    PyObject* self,
-    PyObject* args) {
+PyObject* THNPModule_npu_set_fft_plan_cache_max_size(PyObject* self, PyObject* args) {
   HANDLE_TH_ERRORS
   static torch::PythonArgParser parser(
       {
@@ -2140,34 +1957,26 @@ PyObject* THNPModule_npu_set_fft_plan_cache_max_size(
 
   int64_t cache_size = _r.toInt64(0);
   TORCH_CHECK(
-      cache_size >= 1 && cache_size <= 99,
-      "invalid value of cache_size, expected 1 to 99",
-      PTA_ERROR(ErrCode::VALUE));
+      cache_size >= 1 && cache_size <= 99, "invalid value of cache_size, expected 1 to 99", PTA_ERROR(ErrCode::VALUE));
   op_api::setFFTPlanCapacity(cache_size);
 
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_npu_get_fft_plan_cache_max_size(
-    PyObject* self,
-    PyObject* noargs) {
+PyObject* THNPModule_npu_get_fft_plan_cache_max_size(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
   return PyLong_FromLong(op_api::getFFTPlanCapacity());
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_npu_get_fft_plan_cache_size(
-    PyObject* self,
-    PyObject* noargs) {
+PyObject* THNPModule_npu_get_fft_plan_cache_size(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
   return PyLong_FromLong(op_api::getFFTPlanSize());
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_npu_clear_fft_plan_cache(
-    PyObject* self,
-    PyObject* noargs) {
+PyObject* THNPModule_npu_clear_fft_plan_cache(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
   op_api::clearFFTPlanCache();
   Py_RETURN_NONE;
@@ -2176,19 +1985,14 @@ PyObject* THNPModule_npu_clear_fft_plan_cache(
 
 static PyObject* THNPModule_get_cann_version(PyObject* self, PyObject* args) {
   HANDLE_TH_ERRORS
-  TORCH_CHECK(
-      THPUtils_checkString(args),
-      "invalid value of module, module must be string",
-      PTA_ERROR(ErrCode::PARAM));
+  TORCH_CHECK(THPUtils_checkString(args), "invalid value of module, module must be string", PTA_ERROR(ErrCode::PARAM));
   std::string module = THPUtils_unpackString(args);
   std::string version = GetCANNVersion(module);
   return THPUtils_packString(version);
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject* THNPModule_is_gte_cann_version(
-    PyObject* self,
-    PyObject* args) {
+static PyObject* THNPModule_is_gte_cann_version(PyObject* self, PyObject* args) {
   HANDLE_TH_ERRORS
   static torch::PythonArgParser parser(
       {
@@ -2205,17 +2009,14 @@ static PyObject* THNPModule_is_gte_cann_version(
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject* THNPModule_set_device_res_limit(
-    PyObject* self,
-    PyObject* args) {
+static PyObject* THNPModule_set_device_res_limit(PyObject* self, PyObject* args) {
   HANDLE_TH_ERRORS
   PyObject* device = nullptr;
   PyObject* type = nullptr;
   PyObject* value = nullptr;
 
   if (!PyArg_ParseTuple(args, "OOO", &device, &type, &value)) {
-    throw torch::TypeError(
-        "Pybind failed to parse parameters." + PTA_ERROR(ErrCode::TYPE));
+    throw torch::TypeError("Pybind failed to parse parameters." + PTA_ERROR(ErrCode::TYPE));
   }
   int32_t device_ = THPUtils_unpackLong(device);
   int32_t type_ = THPUtils_unpackLong(type);
@@ -2225,16 +2026,13 @@ static PyObject* THNPModule_set_device_res_limit(
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject* THNPModule_get_device_res_limit(
-    PyObject* self,
-    PyObject* args) {
+static PyObject* THNPModule_get_device_res_limit(PyObject* self, PyObject* args) {
   HANDLE_TH_ERRORS
   PyObject* device = nullptr;
   PyObject* type = nullptr;
 
   if (!PyArg_ParseTuple(args, "OO", &device, &type)) {
-    throw torch::TypeError(
-        "Pybind failed to parse parameters." + PTA_ERROR(ErrCode::TYPE));
+    throw torch::TypeError("Pybind failed to parse parameters." + PTA_ERROR(ErrCode::TYPE));
   }
   int32_t device_ = THPUtils_unpackLong(device);
   int32_t type_ = THPUtils_unpackLong(type);
@@ -2243,9 +2041,7 @@ static PyObject* THNPModule_get_device_res_limit(
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject* THNPModule_reset_device_res_limit(
-    PyObject* self,
-    PyObject* args) {
+static PyObject* THNPModule_reset_device_res_limit(PyObject* self, PyObject* args) {
   HANDLE_TH_ERRORS
   int32_t device = THPUtils_unpackLong(args);
   c10_npu::ResetDeviceResLimit(device);
@@ -2281,8 +2077,7 @@ static void DLPack_Capsule_Destructor(PyObject* data) {
   // since consuming libraries should rename the capsule according to spec.
   // Note that this cannot set a python error (we checked validity above),
   // so we don't need to handle python error state here.
-  DLManagedTensor* dlMTensor =
-      (DLManagedTensor*)PyCapsule_GetPointer(data, "dltensor");
+  DLManagedTensor* dlMTensor = (DLManagedTensor*)PyCapsule_GetPointer(data, "dltensor");
   // the dlMTensor has not been consumed, call deleter ourselves.
   // DLPack spec mentions that deleter may be NULL, but deleter from
   // `at::toDLPack` is never NULL, so no need for an additional check here.
@@ -2301,8 +2096,7 @@ static PyObject* THPModule_toDLPack(PyObject* _unused, PyObject* data) {
 static PyObject* THPModule_fromDLPack(PyObject* _unused, PyObject* data) {
   using namespace torch::autograd;
   HANDLE_TH_ERRORS
-  DLManagedTensor* dlMTensor =
-      (DLManagedTensor*)PyCapsule_GetPointer(data, "dltensor");
+  DLManagedTensor* dlMTensor = (DLManagedTensor*)PyCapsule_GetPointer(data, "dltensor");
   TORCH_CHECK(
       dlMTensor,
       "from_dlpack received an invalid capsule. "
@@ -2330,10 +2124,7 @@ static PyObject* THPModule_fromDLPack(PyObject* _unused, PyObject* data) {
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject* THNPModule_set_stream_res_limit(
-    PyObject* self,
-    PyObject* args,
-    PyObject* kwargs) {
+static PyObject* THNPModule_set_stream_res_limit(PyObject* self, PyObject* args, PyObject* kwargs) {
   HANDLE_TH_ERRORS
   int64_t stream_id = 0;
   int64_t device_index = 0;
@@ -2341,23 +2132,12 @@ static PyObject* THNPModule_set_stream_res_limit(
   PyObject* type = nullptr;
   PyObject* value = nullptr;
 
-  constexpr const char* kwlist[] = {
-      "stream_id", "device_index", "device_type", "type", "value", nullptr};
+  constexpr const char* kwlist[] = {"stream_id", "device_index", "device_type", "type", "value", nullptr};
   if (!PyArg_ParseTupleAndKeywords(
-          args,
-          kwargs,
-          "LLLOO",
-          const_cast<char**>(kwlist),
-          &stream_id,
-          &device_index,
-          &device_type,
-          &type,
-          &value)) {
-    throw torch::TypeError(
-        "Pybind failed to parse parameters." + PTA_ERROR(ErrCode::TYPE));
+          args, kwargs, "LLLOO", const_cast<char**>(kwlist), &stream_id, &device_index, &device_type, &type, &value)) {
+    throw torch::TypeError("Pybind failed to parse parameters." + PTA_ERROR(ErrCode::TYPE));
   }
-  auto stream = c10_npu::NPUStream::unpack3(
-      stream_id, device_index, static_cast<c10::DeviceType>(device_type));
+  auto stream = c10_npu::NPUStream::unpack3(stream_id, device_index, static_cast<c10::DeviceType>(device_type));
   int32_t type_ = THPUtils_unpackLong(type);
   uint32_t value_ = static_cast<uint32_t>(THPUtils_unpackUInt32(value));
   c10_npu::SetStreamResLimit(stream, type_, value_);
@@ -2365,61 +2145,36 @@ static PyObject* THNPModule_set_stream_res_limit(
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject* THNPModule_reset_stream_res_limit(
-    PyObject* self,
-    PyObject* args,
-    PyObject* kwargs) {
+static PyObject* THNPModule_reset_stream_res_limit(PyObject* self, PyObject* args, PyObject* kwargs) {
   HANDLE_TH_ERRORS
   int64_t stream_id = 0;
   int64_t device_index = 0;
   int64_t device_type = 0;
 
-  constexpr const char* kwlist[] = {
-      "stream_id", "device_index", "device_type", nullptr};
+  constexpr const char* kwlist[] = {"stream_id", "device_index", "device_type", nullptr};
   if (!PyArg_ParseTupleAndKeywords(
-          args,
-          kwargs,
-          "LLL",
-          const_cast<char**>(kwlist),
-          &stream_id,
-          &device_index,
-          &device_type)) {
-    throw torch::TypeError(
-        "Pybind failed to parse parameters." + PTA_ERROR(ErrCode::TYPE));
+          args, kwargs, "LLL", const_cast<char**>(kwlist), &stream_id, &device_index, &device_type)) {
+    throw torch::TypeError("Pybind failed to parse parameters." + PTA_ERROR(ErrCode::TYPE));
   }
-  auto stream = c10_npu::NPUStream::unpack3(
-      stream_id, device_index, static_cast<c10::DeviceType>(device_type));
+  auto stream = c10_npu::NPUStream::unpack3(stream_id, device_index, static_cast<c10::DeviceType>(device_type));
   c10_npu::ResetStreamResLimit(stream);
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject* THNPModule_get_stream_res_limit(
-    PyObject* self,
-    PyObject* args,
-    PyObject* kwargs) {
+static PyObject* THNPModule_get_stream_res_limit(PyObject* self, PyObject* args, PyObject* kwargs) {
   HANDLE_TH_ERRORS
   int64_t stream_id = 0;
   int64_t device_index = 0;
   int64_t device_type = 0;
   PyObject* type = nullptr;
 
-  constexpr const char* kwlist[] = {
-      "stream_id", "device_index", "device_type", "type", nullptr};
+  constexpr const char* kwlist[] = {"stream_id", "device_index", "device_type", "type", nullptr};
   if (!PyArg_ParseTupleAndKeywords(
-          args,
-          kwargs,
-          "LLLO",
-          const_cast<char**>(kwlist),
-          &stream_id,
-          &device_index,
-          &device_type,
-          &type)) {
-    throw torch::TypeError(
-        "Pybind failed to parse parameters." + PTA_ERROR(ErrCode::TYPE));
+          args, kwargs, "LLLO", const_cast<char**>(kwlist), &stream_id, &device_index, &device_type, &type)) {
+    throw torch::TypeError("Pybind failed to parse parameters." + PTA_ERROR(ErrCode::TYPE));
   }
-  auto stream = c10_npu::NPUStream::unpack3(
-      stream_id, device_index, static_cast<c10::DeviceType>(device_type));
+  auto stream = c10_npu::NPUStream::unpack3(stream_id, device_index, static_cast<c10::DeviceType>(device_type));
   int32_t type_ = THPUtils_unpackLong(type);
   uint32_t value = c10_npu::GetStreamResLimit(stream, type_);
   return PyLong_FromUnsignedLong(value);
@@ -2454,14 +2209,25 @@ PyObject* THNPModule_get_deterministic_level(PyObject* self, PyObject* noargs) {
   END_HANDLE_TH_ERRORS
 }
 
+static PyObject* THNPModule_setNpuFillUninitializedMemory(PyObject* _unused, PyObject* arg) {
+  HANDLE_TH_ERRORS
+  TORCH_CHECK(PyBool_Check(arg), "expected a bool, but got ", THPUtils_typename(arg));
+  at_npu::native::env::globalNpuContext().setNpuFillUninitializedMemory(arg == Py_True);
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+static PyObject* THNPModule_npuFillUninitializedMemory(PyObject* _unused, PyObject* noargs) {
+  if (at_npu::native::env::globalNpuContext().npuFillUninitializedMemory())
+    Py_RETURN_TRUE;
+  else
+    Py_RETURN_FALSE;
+}
+
 PyObject* THNPModule_hasPrimaryContext_wrap(PyObject* self, PyObject* arg) {
   HANDLE_TH_ERRORS
-  TORCH_CHECK(
-      THPUtils_checkLong(arg),
-      "invalid argument to _npu_hasPrimaryContext",
-      PTA_ERROR(ErrCode::VALUE));
-  c10::DeviceIndex device_index =
-      static_cast<int32_t>(THPUtils_unpackDeviceIndex(arg));
+  TORCH_CHECK(THPUtils_checkLong(arg), "invalid argument to _npu_hasPrimaryContext", PTA_ERROR(ErrCode::VALUE));
+  c10::DeviceIndex device_index = static_cast<int32_t>(THPUtils_unpackDeviceIndex(arg));
   return PyBool_FromLong(c10_npu::hasPrimaryContext(device_index));
   END_HANDLE_TH_ERRORS
 }
@@ -2472,314 +2238,113 @@ static struct PyMethodDef THNPModule_methods[] = {
      (PyCFunction)THNPModule_set_run_yet_variable_to_false_wrap,
      METH_NOARGS,
      nullptr},
-    {"_npu_synchronize",
-     (PyCFunction)THNPModule_npuSynchronize,
-     METH_NOARGS,
-     nullptr},
+    {"_npu_synchronize", (PyCFunction)THNPModule_npuSynchronize, METH_NOARGS, nullptr},
     {"_npu_setDevice", (PyCFunction)THNPModule_setDevice_wrap, METH_O, nullptr},
-    {"_npu_set_op_timeout_ms",
-     (PyCFunction)THNPModule_setOpTimeoutMs,
-     METH_O,
-     nullptr},
-    {"_npu_getDevice",
-     (PyCFunction)THNPModule_getDevice_wrap,
-     METH_NOARGS,
-     nullptr},
-    {"_npu_getDeviceWithoutSet",
-     (PyCFunction)THNPModule_getDeviceWithoutSet_wrap,
-     METH_NOARGS,
-     nullptr},
-    {"_npu_maybeExchangeDevice",
-     (PyCFunction)THNPModule_maybeExchangeDevice_wrap,
-     METH_O,
-     nullptr},
-    {"_npu_stopDevice",
-     (PyCFunction)THNPModule_stopDevice_wrap,
-     METH_O,
-     nullptr},
-    {"_npu_restart_device",
-     (PyCFunction)THNPModule_restart_device_wrap,
-     METH_O,
-     nullptr},
-    {"_npu_check_uce_in_memory",
-     (PyCFunction)THNPModule_check_uce_in_memory_wrap,
-     METH_O,
-     nullptr},
-    {"_npu_get_uce_addr",
-     (PyCFunction)THNPModule_get_uce_addr_wrap,
-     METH_NOARGS,
-     nullptr},
-    {"_npu_stress_detect",
-     (PyCFunction)THNPModule_stressDetect_wrap,
-     METH_VARARGS,
-     nullptr},
-    {"_npu_getLocalDevice",
-     (PyCFunction)THNPModule_getLocalDevice_wrap,
-     METH_NOARGS,
-     nullptr},
-    {"_npu_getDeviceCount",
-     (PyCFunction)THNPModule_getDeviceCount_wrap,
-     METH_NOARGS,
-     nullptr},
-    {"_npu_canDeviceAccessPeer",
-     (PyCFunction)THNPModule_npuCanDeviceAccessPeer_wrap,
-     METH_VARARGS,
-     nullptr},
-    {"_npu_getDeviceUtilizationRate",
-     (PyCFunction)THNPModule_getDeviceUtilizationRate_wrap,
-     METH_O,
-     nullptr},
-    {"_npu_getCurrentStream",
-     (PyCFunction)THNPModule_getCurrentStream_wrap,
-     METH_O,
-     nullptr},
-    {"_npu_getCurrentRawStream",
-     (PyCFunction)THNPModule_getCurrentStream_raw,
-     METH_O,
-     nullptr},
-    {"_npu_getCurrentRawStreamNoWait",
-     (PyCFunction)THNPModule_getCurrentRawStreamNoWait_wrap,
-     METH_O,
-     nullptr},
-    {"_npu_getDefaultStream",
-     (PyCFunction)THNPModule_getDefaultStream_wrap,
-     METH_O,
-     nullptr},
-    {"_npu_setStream",
-     (PyCFunction)THNPModule_setStream_wrap,
-     METH_VARARGS | METH_KEYWORDS,
-     nullptr},
-    {"_npu_eraseStream",
-     (PyCFunction)THNPModule_npu_eraseStream_wrap,
-     METH_VARARGS | METH_KEYWORDS,
-     nullptr},
-    {"_npu_isCurrentStreamCapturing",
-     (PyCFunction)THNPModule_isCurrentStreamCapturing_wrap,
-     METH_NOARGS,
-     nullptr},
-    {"_npu_is_jit_compile_false",
-     (PyCFunction)THNPModule_is_jit_compile_false_wrap,
-     METH_NOARGS,
-     nullptr},
-    {"_npu_getMemoryFraction",
-     (PyCFunction)THNPModule_getMemoryFraction,
-     METH_VARARGS,
-     nullptr},
-    {"_npu_setMemoryFraction",
-     (PyCFunction)THNPModule_setMemoryFraction,
-     METH_VARARGS,
-     nullptr},
-    {"_npu_emptyCache",
-     (PyCFunction)THNPModule_emptyCache,
-     METH_NOARGS,
-     nullptr},
-    {"_npu_hostEmptyCache",
-     (PyCFunction)THNPModule_npu_hostEmptyCache,
-     METH_NOARGS,
-     nullptr},
-    {"_npu_hostMemoryStats",
-     (PyCFunction)THNPModule_npu_hostMemoryStats,
-     METH_NOARGS,
-     nullptr},
+    {"_npu_set_op_timeout_ms", (PyCFunction)THNPModule_setOpTimeoutMs, METH_O, nullptr},
+    {"_npu_getDevice", (PyCFunction)THNPModule_getDevice_wrap, METH_NOARGS, nullptr},
+    {"_npu_getDeviceWithoutSet", (PyCFunction)THNPModule_getDeviceWithoutSet_wrap, METH_NOARGS, nullptr},
+    {"_npu_maybeExchangeDevice", (PyCFunction)THNPModule_maybeExchangeDevice_wrap, METH_O, nullptr},
+    {"_npu_stopDevice", (PyCFunction)THNPModule_stopDevice_wrap, METH_O, nullptr},
+    {"_npu_restart_device", (PyCFunction)THNPModule_restart_device_wrap, METH_O, nullptr},
+    {"_npu_check_uce_in_memory", (PyCFunction)THNPModule_check_uce_in_memory_wrap, METH_O, nullptr},
+    {"_npu_get_uce_addr", (PyCFunction)THNPModule_get_uce_addr_wrap, METH_NOARGS, nullptr},
+    {"_npu_stress_detect", (PyCFunction)THNPModule_stressDetect_wrap, METH_VARARGS, nullptr},
+    {"_npu_getLocalDevice", (PyCFunction)THNPModule_getLocalDevice_wrap, METH_NOARGS, nullptr},
+    {"_npu_getDeviceCount", (PyCFunction)THNPModule_getDeviceCount_wrap, METH_NOARGS, nullptr},
+    {"_npu_canDeviceAccessPeer", (PyCFunction)THNPModule_npuCanDeviceAccessPeer_wrap, METH_VARARGS, nullptr},
+    {"_npu_getDeviceUtilizationRate", (PyCFunction)THNPModule_getDeviceUtilizationRate_wrap, METH_O, nullptr},
+    {"_npu_getCurrentStream", (PyCFunction)THNPModule_getCurrentStream_wrap, METH_O, nullptr},
+    {"_npu_getCurrentRawStream", (PyCFunction)THNPModule_getCurrentStream_raw, METH_O, nullptr},
+    {"_npu_getCurrentRawStreamNoWait", (PyCFunction)THNPModule_getCurrentRawStreamNoWait_wrap, METH_O, nullptr},
+    {"_npu_getDefaultStream", (PyCFunction)THNPModule_getDefaultStream_wrap, METH_O, nullptr},
+    {"_npu_setStream", (PyCFunction)THNPModule_setStream_wrap, METH_VARARGS | METH_KEYWORDS, nullptr},
+    {"_npu_eraseStream", (PyCFunction)THNPModule_npu_eraseStream_wrap, METH_VARARGS | METH_KEYWORDS, nullptr},
+    {"_npu_isCurrentStreamCapturing", (PyCFunction)THNPModule_isCurrentStreamCapturing_wrap, METH_NOARGS, nullptr},
+    {"_npu_is_jit_compile_false", (PyCFunction)THNPModule_is_jit_compile_false_wrap, METH_NOARGS, nullptr},
+    {"_npu_getMemoryFraction", (PyCFunction)THNPModule_getMemoryFraction, METH_VARARGS, nullptr},
+    {"_npu_setMemoryFraction", (PyCFunction)THNPModule_setMemoryFraction, METH_VARARGS, nullptr},
+    {"_npu_emptyCache", (PyCFunction)THNPModule_emptyCache, METH_NOARGS, nullptr},
+    {"_npu_hostEmptyCache", (PyCFunction)THNPModule_npu_hostEmptyCache, METH_NOARGS, nullptr},
+    {"_npu_hostMemoryStats", (PyCFunction)THNPModule_npu_hostMemoryStats, METH_NOARGS, nullptr},
     {"_npu_resetAccumulatedHostMemoryStats",
      (PyCFunction)THNPModule_npu_resetAccumulatedHostMemoryStats,
      METH_NOARGS,
      nullptr},
-    {"_npu_resetPeakHostMemoryStats",
-     (PyCFunction)THNPModule_npu_resetPeakHostMemoryStats,
-     METH_NOARGS,
-     nullptr},
-    {"_npu_ipc_collect",
-     (PyCFunction)THNPModule_npu_ipc_collect,
-     METH_NOARGS,
-     nullptr},
-    {"_npu_emptyVirtAddrCache",
-     (PyCFunction)THNPModule_emptyVirtAddrCache,
-     METH_NOARGS,
-     nullptr},
+    {"_npu_resetPeakHostMemoryStats", (PyCFunction)THNPModule_npu_resetPeakHostMemoryStats, METH_NOARGS, nullptr},
+    {"_npu_ipc_collect", (PyCFunction)THNPModule_npu_ipc_collect, METH_NOARGS, nullptr},
+    {"_npu_emptyVirtAddrCache", (PyCFunction)THNPModule_emptyVirtAddrCache, METH_NOARGS, nullptr},
     {"_npu_memoryStats", (PyCFunction)THNPModule_memoryStats, METH_O, nullptr},
-    {"_npu_resetAccumulatedMemoryStats",
-     (PyCFunction)THNPModule_resetAccumulatedMemoryStats,
-     METH_O,
-     nullptr},
-    {"_npu_resetPeakMemoryStats",
-     (PyCFunction)THNPModule_resetPeakMemoryStats,
-     METH_O,
-     nullptr},
-    {"_npu_memorySnapshot",
-     (PyCFunction)THNPModule_memorySnapshot,
-     METH_NOARGS,
-     nullptr},
-    {"_npu_saveDevMemUsageInfo",
-     (PyCFunction)THNPModule_saveDevMemUsageInfo,
-     METH_O,
-     nullptr},
-    {"_npu_attach_out_of_memory_observer",
-     THNPModule_attachOutOfMemoryObserver,
-     METH_O,
-     nullptr},
+    {"_npu_resetAccumulatedMemoryStats", (PyCFunction)THNPModule_resetAccumulatedMemoryStats, METH_O, nullptr},
+    {"_npu_resetPeakMemoryStats", (PyCFunction)THNPModule_resetPeakMemoryStats, METH_O, nullptr},
+    {"_npu_memorySnapshot", (PyCFunction)THNPModule_memorySnapshot, METH_O, nullptr},
+    {"_npu_saveDevMemUsageInfo", (PyCFunction)THNPModule_saveDevMemUsageInfo, METH_O, nullptr},
+    {"_npu_attach_out_of_memory_observer", THNPModule_attachOutOfMemoryObserver, METH_O, nullptr},
     {"_npu_npuCachingAllocator_raw_alloc",
      (PyCFunction)THNPModule_npuCachingAllocator_raw_alloc,
      METH_VARARGS,
      nullptr},
-    {"_npu_npuCachingAllocator_raw_delete",
-     (PyCFunction)THNPModule_npuCachingAllocator_raw_delete,
-     METH_O,
-     nullptr},
+    {"_npu_npuCachingAllocator_raw_delete", (PyCFunction)THNPModule_npuCachingAllocator_raw_delete, METH_O, nullptr},
     {"_npu_npuCachingAllocator_set_allocator_settings",
      (PyCFunction)THNPModule_npuCachingAllocator_set_allocator_settings,
      METH_O,
      nullptr},
-    {"_npu_getAllocatorBackend",
-     (PyCFunction)THNPModule_getAllocatorBackend,
-     METH_NOARGS,
-     nullptr},
-    {"_npu_lock_mutex",
-     (PyCFunction)THNPModule_npuLockMutex,
-     METH_NOARGS,
-     nullptr},
-    {"_npu_unlock_mutex",
-     (PyCFunction)THNPModule_npuUnlockMutex,
-     METH_NOARGS,
-     nullptr},
+    {"_npu_getAllocatorBackend", (PyCFunction)THNPModule_getAllocatorBackend, METH_NOARGS, nullptr},
+    {"_npu_lock_mutex", (PyCFunction)THNPModule_npuLockMutex, METH_NOARGS, nullptr},
+    {"_npu_unlock_mutex", (PyCFunction)THNPModule_npuUnlockMutex, METH_NOARGS, nullptr},
     {"_npu_initDump", (PyCFunction)THNPModule_initDump, METH_NOARGS, nullptr},
     {"_npu_setDump", (PyCFunction)THNPModule_setDump, METH_O, nullptr},
-    {"_npu_finalizeDump",
-     (PyCFunction)THNPModule_finalizeDump,
-     METH_NOARGS,
-     nullptr},
+    {"_npu_finalizeDump", (PyCFunction)THNPModule_finalizeDump, METH_NOARGS, nullptr},
     {"_npu_setOption", (PyCFunction)THNPModule_setOption_wrap, METH_O, nullptr},
-    {"_npu_get_soc_version",
-     (PyCFunction)THNPModule_npu_get_soc_version,
-     METH_NOARGS,
-     nullptr},
-    {"_enable_overflow_npu",
-     (PyCFunction)THNPModule_enable_overflow_npu,
-     METH_NOARGS,
-     nullptr},
-    {"_npu_is_support_inf_nan",
-     (PyCFunction)THNPModule_npu_is_support_inf_nan,
-     METH_NOARGS,
-     nullptr},
-    {"_npu_is_bf16_supported",
-     (PyCFunction)THNPModule_npu_is_bf16_supported,
-     METH_NOARGS,
-     nullptr},
-    {"_check_overflow_npu",
-     (PyCFunction)THNPModule_check_overflow_npu,
-     METH_NOARGS,
-     nullptr},
-    {"_clear_overflow_npu",
-     (PyCFunction)THNPModule_clear_overflow_npu,
-     METH_NOARGS,
-     nullptr},
+    {"_npu_get_soc_version", (PyCFunction)THNPModule_npu_get_soc_version, METH_NOARGS, nullptr},
+    {"_enable_overflow_npu", (PyCFunction)THNPModule_enable_overflow_npu, METH_NOARGS, nullptr},
+    {"_npu_is_support_inf_nan", (PyCFunction)THNPModule_npu_is_support_inf_nan, METH_NOARGS, nullptr},
+    {"_npu_is_bf16_supported", (PyCFunction)THNPModule_npu_is_bf16_supported, METH_NOARGS, nullptr},
+    {"_check_overflow_npu", (PyCFunction)THNPModule_check_overflow_npu, METH_NOARGS, nullptr},
+    {"_clear_overflow_npu", (PyCFunction)THNPModule_clear_overflow_npu, METH_NOARGS, nullptr},
     {"_npu_getOption", (PyCFunction)THNPModule_getOption_wrap, METH_O, nullptr},
-    {"_npu_set_sync_debug_mode",
-     (PyCFunction)THNPModule_npu_set_sync_debug_mode,
+    {"_npu_set_sync_debug_mode", (PyCFunction)THNPModule_npu_set_sync_debug_mode, METH_O, nullptr},
+    {"_npu_get_sync_debug_mode", (PyCFunction)THNPModule_npu_get_sync_debug_mode, METH_NOARGS, nullptr},
+    {"_npu_set_task_queue_enable", (PyCFunction)THNPModule_npu_set_task_queue_enable, METH_O, nullptr},
+    {"_npu_get_task_queue_enable", (PyCFunction)THNPModule_npu_get_task_queue_enable, METH_NOARGS, nullptr},
+    {"_tensor_construct_from_storage", (PyCFunction)THNPModule_tensor_construct_from_storage, METH_VARARGS, nullptr},
+    {"_npu_set_call_state", (PyCFunction)THNPModule_npu_set_call_state, METH_O, nullptr},
+    {"_npu_set_module_train_state", (PyCFunction)THNPModule_npu_set_module_train_state, METH_O, nullptr},
+    {"_get_silent_check_version", (PyCFunction)THNPModule_npu_get_silent_check_version, METH_NOARGS, nullptr},
+    {"_aclnn_reselect_static_kernel", (PyCFunction)THNPModule_aclnn_reselect_static_kernel, METH_NOARGS, nullptr},
+    {"_aclnn_reselect_static_kernel_with_path",
+     (PyCFunction)THNPModule_aclnn_reselect_static_kernel_with_path,
      METH_O,
      nullptr},
-    {"_npu_get_sync_debug_mode",
-     (PyCFunction)THNPModule_npu_get_sync_debug_mode,
-     METH_NOARGS,
-     nullptr},
-    {"_tensor_construct_from_storage",
-     (PyCFunction)THNPModule_tensor_construct_from_storage,
-     METH_VARARGS,
-     nullptr},
-    {"_npu_set_call_state",
-     (PyCFunction)THNPModule_npu_set_call_state,
-     METH_O,
-     nullptr},
-    {"_npu_set_module_train_state",
-     (PyCFunction)THNPModule_npu_set_module_train_state,
-     METH_O,
-     nullptr},
-    {"_get_silent_check_version",
-     (PyCFunction)THNPModule_npu_get_silent_check_version,
-     METH_NOARGS,
-     nullptr},
-    {"_aclnn_reselect_static_kernel",
-     (PyCFunction)THNPModule_aclnn_reselect_static_kernel,
-     METH_NOARGS,
-     nullptr},
-    {"_npu_set_thread_affinity",
-     (PyCFunction)THNPModule_npu_set_thread_affinity,
-     METH_VARARGS,
-     nullptr},
-    {"_npu_reset_thread_affinity",
-     (PyCFunction)THNPModule_npu_reset_thread_affinity,
-     METH_NOARGS,
-     nullptr},
+    {"_npu_set_thread_affinity", (PyCFunction)THNPModule_npu_set_thread_affinity, METH_VARARGS, nullptr},
+    {"_npu_reset_thread_affinity", (PyCFunction)THNPModule_npu_reset_thread_affinity, METH_NOARGS, nullptr},
     {"_npu_set_fft_plan_cache_max_size",
      (PyCFunction)THNPModule_npu_set_fft_plan_cache_max_size,
      METH_VARARGS,
      nullptr},
-    {"_npu_get_fft_plan_cache_max_size",
-     (PyCFunction)THNPModule_npu_get_fft_plan_cache_max_size,
-     METH_NOARGS,
-     nullptr},
-    {"_npu_get_fft_plan_cache_size",
-     (PyCFunction)THNPModule_npu_get_fft_plan_cache_size,
-     METH_NOARGS,
-     nullptr},
-    {"_npu_clear_fft_plan_cache",
-     (PyCFunction)THNPModule_npu_clear_fft_plan_cache,
-     METH_NOARGS,
-     nullptr},
-    {"_get_cann_version",
-     (PyCFunction)THNPModule_get_cann_version,
-     METH_O,
-     nullptr},
-    {"_is_gte_cann_version",
-     (PyCFunction)THNPModule_is_gte_cann_version,
-     METH_VARARGS,
-     nullptr},
-    {"_npu_get_device_res_limit",
-     (PyCFunction)THNPModule_get_device_res_limit,
-     METH_VARARGS,
-     nullptr},
-    {"_npu_set_device_res_limit",
-     (PyCFunction)THNPModule_set_device_res_limit,
-     METH_VARARGS,
-     nullptr},
-    {"_npu_reset_device_res_limit",
-     (PyCFunction)THNPModule_reset_device_res_limit,
-     METH_O,
-     nullptr},
-    {"_npu_hasPrimaryContext",
-     (PyCFunction)THNPModule_hasPrimaryContext_wrap,
-     METH_O,
-     nullptr},
-    {"_aclop_start_dump",
-     (PyCFunction)THNPModule_aclop_start_dump,
-     METH_O,
-     nullptr},
-    {"_aclop_stop_dump",
-     (PyCFunction)THNPModule_aclop_stop_dump,
-     METH_NOARGS,
-     nullptr},
-    {"_npu_set_stream_res_limit",
-     (PyCFunction)THNPModule_set_stream_res_limit,
-     METH_VARARGS | METH_KEYWORDS,
-     nullptr},
+    {"_npu_get_fft_plan_cache_max_size", (PyCFunction)THNPModule_npu_get_fft_plan_cache_max_size, METH_NOARGS, nullptr},
+    {"_npu_get_fft_plan_cache_size", (PyCFunction)THNPModule_npu_get_fft_plan_cache_size, METH_NOARGS, nullptr},
+    {"_npu_clear_fft_plan_cache", (PyCFunction)THNPModule_npu_clear_fft_plan_cache, METH_NOARGS, nullptr},
+    {"_get_cann_version", (PyCFunction)THNPModule_get_cann_version, METH_O, nullptr},
+    {"_is_gte_cann_version", (PyCFunction)THNPModule_is_gte_cann_version, METH_VARARGS, nullptr},
+    {"_npu_get_device_res_limit", (PyCFunction)THNPModule_get_device_res_limit, METH_VARARGS, nullptr},
+    {"_npu_set_device_res_limit", (PyCFunction)THNPModule_set_device_res_limit, METH_VARARGS, nullptr},
+    {"_npu_reset_device_res_limit", (PyCFunction)THNPModule_reset_device_res_limit, METH_O, nullptr},
+    {"_npu_hasPrimaryContext", (PyCFunction)THNPModule_hasPrimaryContext_wrap, METH_O, nullptr},
+    {"_aclop_start_dump", (PyCFunction)THNPModule_aclop_start_dump, METH_O, nullptr},
+    {"_aclop_stop_dump", (PyCFunction)THNPModule_aclop_stop_dump, METH_NOARGS, nullptr},
+    {"_npu_set_stream_res_limit", (PyCFunction)THNPModule_set_stream_res_limit, METH_VARARGS | METH_KEYWORDS, nullptr},
     {"_npu_reset_stream_res_limit",
      (PyCFunction)THNPModule_reset_stream_res_limit,
      METH_VARARGS | METH_KEYWORDS,
      nullptr},
-    {"_npu_get_stream_res_limit",
-     (PyCFunction)THNPModule_get_stream_res_limit,
-     METH_VARARGS | METH_KEYWORDS,
-     nullptr},
+    {"_npu_get_stream_res_limit", (PyCFunction)THNPModule_get_stream_res_limit, METH_VARARGS | METH_KEYWORDS, nullptr},
     {"_npu_to_dlpack", (PyCFunction)THPModule_toDLPack, METH_O, nullptr},
     {"_npu_from_dlpack", (PyCFunction)THPModule_fromDLPack, METH_O, nullptr},
-    {"_npu_set_deterministic_level",
-     (PyCFunction)THNPModule_set_deterministic_level,
-     METH_O,
-     nullptr},
-    {"_npu_get_deterministic_level",
-     (PyCFunction)THNPModule_get_deterministic_level,
-     METH_NOARGS,
-     nullptr},
+    {"_npu_set_deterministic_level", (PyCFunction)THNPModule_set_deterministic_level, METH_O, nullptr},
+    {"_npu_get_deterministic_level", (PyCFunction)THNPModule_get_deterministic_level, METH_NOARGS, nullptr},
+    {"_npu_set_fill_uninitialized_memory", (PyCFunction)THNPModule_setNpuFillUninitializedMemory, METH_O, nullptr},
+    {"_npu_get_fill_uninitialized_memory", (PyCFunction)THNPModule_npuFillUninitializedMemory, METH_NOARGS, nullptr},
+    {"_npu_sleep", (PyCFunction)THNPModule_npuSleep, METH_O, nullptr},
     {nullptr}};
 
 TORCH_NPU_API PyMethodDef* THNPModule_get_methods() {
@@ -2795,11 +2360,8 @@ void initCommMethods() {
   auto m = py::handle(torch_C_module).cast<py::module>();
   m.def(
        "_broadcast_coalesced",
-       [](std::vector<at::Tensor>& tensors,
-          std::vector<int64_t> devices,
-          size_t buffer_size) {
-         return torch_npu::data_parallel::broadcast_coalesced(
-             tensors, devices, buffer_size);
+       [](std::vector<at::Tensor>& tensors, std::vector<int64_t> devices, size_t buffer_size) {
+         return torch_npu::data_parallel::broadcast_coalesced(tensors, devices, buffer_size);
        },
        py::arg("tensors"),
        py::arg("devices"),
@@ -2828,16 +2390,14 @@ void initCommMethods() {
              c10::optional<std::vector<int64_t>> chunk_sizes,
              int64_t dim,
              c10::optional<py::object> py_streams) {
-            c10::optional<std::vector<c10::optional<c10_npu::NPUStream>>>
-                streams;
+            c10::optional<std::vector<c10::optional<c10_npu::NPUStream>>> streams;
             if (py_streams) {
               py::handle handle = *py_streams;
               streams = THNPUtils_PySequence_to_NPUStreamList(handle.ptr());
             }
             // Note: We're holding the GIL up to here.
             pybind11::gil_scoped_release no_gil;
-            return torch_npu::data_parallel::scatter(
-                tensor, devices, chunk_sizes, dim, streams);
+            return torch_npu::data_parallel::scatter(tensor, devices, chunk_sizes, dim, streams);
           },
           py::arg("tensor"),
           py::arg("devices"),
@@ -2850,16 +2410,14 @@ void initCommMethods() {
              std::vector<at::Tensor>& out_tensors,
              int64_t dim,
              c10::optional<py::object> py_streams) {
-            c10::optional<std::vector<c10::optional<c10_npu::NPUStream>>>
-                streams;
+            c10::optional<std::vector<c10::optional<c10_npu::NPUStream>>> streams;
             if (py_streams) {
               py::handle handle = *py_streams;
               streams = THNPUtils_PySequence_to_NPUStreamList(handle.ptr());
             }
             // Note: We're holding the GIL up to here.
             pybind11::gil_scoped_release no_gil;
-            return torch_npu::data_parallel::scatter_out(
-                tensor, out_tensors, dim, streams);
+            return torch_npu::data_parallel::scatter_out(tensor, out_tensors, dim, streams);
           },
           py::arg("tensor"),
           py::arg("out"),
@@ -2867,11 +2425,8 @@ void initCommMethods() {
           py::arg("streams"))
       .def(
           "_gather",
-          [](std::vector<at::Tensor>& tensors,
-             int64_t dim,
-             c10::optional<int32_t> destination_index) {
-            return torch_npu::data_parallel::gather(
-                tensors, dim, destination_index);
+          [](std::vector<at::Tensor>& tensors, int64_t dim, c10::optional<int32_t> destination_index) {
+            return torch_npu::data_parallel::gather(tensors, dim, destination_index);
           },
           py::arg("tensors"),
           py::arg("dim"),
@@ -2879,11 +2434,8 @@ void initCommMethods() {
           py::call_guard<py::gil_scoped_release>())
       .def(
           "_gather_out",
-          [](std::vector<at::Tensor>& tensors,
-             at::Tensor& out_tensor,
-             int64_t dim) {
-            return torch_npu::data_parallel::gather_out(
-                tensors, out_tensor, dim);
+          [](std::vector<at::Tensor>& tensors, at::Tensor& out_tensor, int64_t dim) {
+            return torch_npu::data_parallel::gather_out(tensors, out_tensor, dim);
           },
           py::arg("tensors"),
           py::arg("out"),

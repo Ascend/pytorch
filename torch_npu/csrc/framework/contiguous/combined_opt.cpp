@@ -1,4 +1,3 @@
-#include <ATen/NamedTensorUtils.h>
 #include <ATen/quantized/QTensorImpl.h>
 
 #include <map>
@@ -95,7 +94,7 @@ private:
         return false;
     }
 
-  // Unmatched tensor ==refresh(no copy)==> macthed tensor
+  // Unmatched tensor ==refresh(no copy)==> matched tensor
   bool reshape_without_copy_match(at::Tensor &tensor) {
     if (!tensor.is_contiguous()) {
       return false;
@@ -376,10 +375,10 @@ Inference order: permute, select, slice.
                            local_src_desc)) {
         return true;
       }
-      // If the second pattern is not inferred successfully, retrun false
+      // If the second pattern is not inferred successfully, return false
       return false;
     }
-    // If the first pattern is not inferred successfully, retrun false
+    // If the first pattern is not inferred successfully, return false
     return false;
   }
 
@@ -461,7 +460,7 @@ Inference order: permute, select, slice.
       // case3 ： The first tensor is contiguous or cannot be identified==>exit
       return false;
     }
-    // If the first tensor cannnot be reconstructed==>exit
+    // If the first tensor cannot be reconstructed==>exit
     return false;
   }
 }; // class combinedContiguousOpt

@@ -315,6 +315,54 @@ class TestAccelerator(TestCase):
             torch.npu.max_memory_reserved(),
         )
 
+    def test_graph_capture_replay(self):
+        if torch.accelerator.current_accelerator().type != "npu":
+            self.skipTest("NPU-only accelerator graph backend test")
+
+        x = torch.ones(4, device="npu")
+        y = torch.empty_like(x)
+        g = torch.accelerator.Graph()
+        s = torch.Stream()
+
+        with s, g:
+            y.copy_(x + 1)
+
+        y.zero_()
+        g.replay()
+        torch.accelerator.synchronize()
+        self.assertEqual(y.cpu(), torch.full((4,), 2.0))
+
+    def test_graph_capture_with_rng(self):
+        if torch.accelerator.current_accelerator().type != "npu":
+            self.skipTest("NPU-only accelerator graph backend test")
+
+        out = torch.empty(4, device="npu")
+        g = torch.accelerator.Graph()
+        s = torch.Stream()
+
+        with s, g:
+            out.copy_(torch.randn(4, device="npu"))
+
+        g.replay()
+        torch.accelerator.synchronize()
+
+    def test_graph_capture_rejects_python_npugraph_getter(self):
+        if torch.accelerator.current_accelerator().type != "npu":
+            self.skipTest("NPU-only accelerator graph backend test")
+
+        x = torch.ones(1, device="npu")
+        y = torch.empty_like(x)
+        g = torch.accelerator.Graph()
+        s = torch.Stream()
+
+        with s, g:
+            y.copy_(x)
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "torch.accelerator.Graph capture",
+            ):
+                torch.npu.NPUGraph.get_currently_capturing_graph()
+
 
 if __name__ == "__main__":
     run_tests()

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="900" height="476" viewBox="0 0 900 476" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="core" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#e8eff7"/><stop offset="100%" stop-color="#ccd9ea"/></linearGradient>
+  </defs>
+
+  <rect width="900" height="476" rx="16" fill="#f5f6f8" stroke="#e1e4e8" stroke-width="1.5"/>
+
+  <!-- Training & Inference -->
+  <rect x="26" y="26" width="418" height="46" rx="8" fill="#f0f1f3" stroke="#d5d8dc" stroke-width="1.5" opacity="0.8"/>
+  <text x="235" y="55" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="18" font-weight="600" fill="#999">Training</text>
+  <rect x="456" y="26" width="418" height="46" rx="8" fill="#f0f1f3" stroke="#d5d8dc" stroke-width="1.5" opacity="0.8"/>
+  <text x="665" y="55" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="18" font-weight="600" fill="#999">Inference</text>
+
+  <!-- PyTorch -->
+  <rect x="26" y="82" width="848" height="46" rx="8" fill="#f0f1f3" stroke="#d5d8dc" stroke-width="1.5" opacity="0.8"/>
+  <text x="450" y="111" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="18" font-weight="700" fill="#999">PyTorch</text>
+
+  <!-- TorchNPU box -->
+  <rect x="26" y="138" width="848" height="200" rx="10" fill="#f8f9fb" stroke="#5b8ec4" stroke-width="2"/>
+  <rect x="26" y="138" width="848" height="36" rx="10" fill="#5b8ec4"/>
+  <rect x="26" y="164" width="848" height="10" fill="#5b8ec4"/>
+  <text x="450" y="162" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="18" font-weight="700" fill="#fff">TorchNPU</text>
+
+  <!-- 4 sub-modules -->
+  <rect x="40" y="186" width="194" height="64" rx="8" fill="#eef4ed" stroke="#8bbf8d" stroke-width="1.5"/>
+  <text x="137" y="213" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" font-weight="700" fill="#1a1a1a">Basic Compute</text>
+  <text x="137" y="236" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="10" fill="#3d444c">NN Compute · Optimizers · Custom APIs</text>
+
+  <rect x="244" y="186" width="194" height="64" rx="8" fill="#f0edf4" stroke="#9b8cbf" stroke-width="1.5"/>
+  <text x="341" y="213" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" font-weight="700" fill="#1a1a1a">Distributed</text>
+  <text x="341" y="236" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="10" fill="#3d444c">FSDP2 · DTensor · Comm Primitives</text>
+
+  <rect x="448" y="186" width="194" height="64" rx="8" fill="#fef9ee" stroke="#e0b866" stroke-width="1.5"/>
+  <text x="545" y="213" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" font-weight="700" fill="#1a1a1a">Graph Mode</text>
+  <text x="545" y="236" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="10" fill="#3d444c">Dynamo · Inductor · NPUGraph</text>
+
+  <rect x="652" y="186" width="208" height="64" rx="8" fill="#fceef2" stroke="#e08a8a" stroke-width="1.5"/>
+  <text x="756" y="213" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" font-weight="700" fill="#1a1a1a">Debug &amp; Tuning</text>
+  <text x="756" y="236" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="10" fill="#3d444c">Profiling · WatchDog · Torch Logging</text>
+
+  <!-- Core -->
+  <rect x="40" y="262" width="820" height="64" rx="8" fill="url(#core)" stroke="#5b8ec4" stroke-width="1.5"/>
+  <text x="450" y="289" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" font-weight="700" fill="#214e78">TorchNPU Core</text>
+  <text x="450" y="312" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="10" fill="#3d444c">Operator Adaptation · Device Registration · Resource Management · Mixed Precision</text>
+
+  <!-- CANN -->
+  <rect x="26" y="348" width="848" height="46" rx="8" fill="#f0f1f3" stroke="#d5d8dc" stroke-width="1.5" opacity="0.8"/>
+  <text x="450" y="377" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" font-weight="600" fill="#999">CANN Heterogeneous Compute Architecture</text>
+
+  <!-- Hardware -->
+  <rect x="26" y="404" width="848" height="46" rx="8" fill="#f0f1f3" stroke="#d5d8dc" stroke-width="1.5" opacity="0.8"/>
+  <text x="450" y="433" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" font-weight="600" fill="#999">Ascend Hardware Series</text>
+</svg>

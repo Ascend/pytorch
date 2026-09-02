@@ -1,9 +1,14 @@
 #include <Python.h>
+#include <ATen/ATen.h>
 #include <ATen/Parallel.h>
+#include <c10/util/SmallVector.h>
+#include <torch/csrc/Dtype.h>
 #include <torch/csrc/Exceptions.h>
 #include <torch/csrc/Generator.h>
+#include <torch/csrc/autograd/python_variable.h>
 #include <torch/csrc/profiler/python/combined_traceback.h>
 
+#include "torch_npu/csrc/aten/common/TensorFactories.h"
 #include "torch_npu/csrc/npu/Event.h"
 #include "torch_npu/csrc/npu/DataParallelComm.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
@@ -11,6 +16,10 @@
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/CachingHostAllocator.h"
+#include "torch_npu/csrc/inductor/aoti_package/shape_handling.h"
+#ifndef BUILD_LIBTORCH
+#include "torch_npu/_inductor/experimental/python_wrapper_fast_launch/csrc/bindings.h"
+#endif
 #include "torch_npu/csrc/distributed/Init.h"
 #include "torch_npu/csrc/afd/Init.h"
 #include "torch_npu/csrc/profiler/init.h"
@@ -18,11 +27,14 @@
 #include "torch_npu/csrc/logging/Init.h"
 #include "torch_npu/csrc/ipc/StorageSharing.h"
 #include "torch_npu/csrc/npu/Module.h"
+#include "torch_npu/csrc/npu/npurt.h"
 #include "torch_npu/csrc/custom_dtype/Init.h"
 #include "torch_npu/csrc/npu/Stress_detect.h"
 #include "torch_npu/csrc/utils/TensorType.h"
 #include "torch_npu/csrc/utils/AutocastMode.h"
 #include "torch_npu/csrc/core/npu/NPURecovery.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#include "torch_npu/csrc/core/npu/NPUInterruptAffinity.h"
 #include "torch_npu/csrc/profiler/python/combined_traceback.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
@@ -30,132 +42,193 @@
 
 PyObject* module;
 
-
-void AddPyMethodDefs(std::vector<PyMethodDef>& vector, PyMethodDef* methods)
-{
-    if (!vector.empty()) {
-        // remove nullptr terminator
-        vector.pop_back();
+void AddPyMethodDefs(std::vector<PyMethodDef>& vector, PyMethodDef* methods) {
+  if (!vector.empty()) {
+    // remove nullptr terminator
+    vector.pop_back();
+  }
+  while (true) {
+    vector.push_back(*methods);
+    if (!methods->ml_name) {
+      break;
     }
-    while (true) {
-        vector.push_back(*methods);
-        if (!methods->ml_name) {
-            break;
-        }
-        methods++;
-    }
+    methods++;
+  }
 }
 
-PyObject* THPModule_npu_shutdown(PyObject* self, PyObject* arg)
-{
-    int check_error;
-    if (!PyBool_Check(arg)) {
-        PyErr_SetString(PyExc_TypeError, "Expected a boolean value");
-        return NULL;
-    }
-    check_error = PyObject_IsTrue(arg);
+PyObject* THPModule_npu_shutdown(PyObject* self, PyObject* arg) {
+  if (!PyBool_Check(arg)) {
+    PyErr_SetString(PyExc_TypeError, "Expected a boolean value");
+    return NULL;
+  }
+  int check_error = PyObject_IsTrue(arg);
+  (void)check_error; // Suppress unused variable warning
 
-    // cudaFree is blocking and will synchronize across all kernels executing
-    // on the current device, while aclrtFree Free device memory immediately.
-    // aclrtSynchronizeDevice should be called before aclrtFree to ensure that
-    // all of op tasks completed before device memory free.
-    ASCEND_LOGI("NPU shutdown begin.");
-    if (!c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
-        Py_RETURN_NONE;
-    }
-
-    ASCEND_LOGI("NPU shutdown ReleaseHcclCommList.");
-    torch_npu::data_parallel::ReleaseHcclCommList();
-    ASCEND_LOGI("NPU shutdown ReleaseHcclCommList success.");
-
-    c10_npu::NpuSysCtrl::GetInstance().HostFinalize();
-    try {
-        ASCEND_LOGI("NPU shutdown CachingHostAllocator emptyCache.");
-        at_npu::native::CachingHostAllocator_emptyCache();
-    } catch (...) {
-        ASCEND_LOGE("CachingHostAllocator_emptyCache failed");
-    }
-    try {
-        ASCEND_LOGI("NPU shutdown NPUCachingAllocator emptyCache.");
-        c10_npu::NPUCachingAllocator::emptyCache(false);
-    } catch (...) {
-        ASCEND_LOGE("NPUCachingAllocator::emptyCache failed");
-    }
-    try {
-        ASCEND_LOGI("NPU shutdown NPUSwappedMemoryAllocator emptyCache.");
-        c10_npu::NPUSwappedMemoryAllocator::emptyCache();
-    } catch (...) {
-        ASCEND_LOGE("NPUSwappedMemoryAllocator::emptyCache failed");
-    }
-
-    ASCEND_LOGI("NPU shutdown NpuSysCtrl Finalize.");
-    c10_npu::NpuSysCtrl::SysStatus status = c10_npu::NpuSysCtrl::GetInstance().Finalize();
-    if (status != c10_npu::NpuSysCtrl::SysStatus::FINALIZE_SUCC) {
-        ASCEND_LOGE("NPU shutdown failed.");
-    } else {
-        ASCEND_LOGI("NPU shutdown success.");
-    }
-
+  // cudaFree is blocking and will synchronize across all kernels executing
+  // on the current device, while aclrtFree Free device memory immediately.
+  // aclrtSynchronizeDevice should be called before aclrtFree to ensure that
+  // all of op tasks completed before device memory free.
+  ASCEND_LOGI("NPU shutdown begin.");
+  if (!c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
     Py_RETURN_NONE;
+  }
+
+  ASCEND_LOGI("NPU shutdown ReleaseHcclCommList.");
+  torch_npu::data_parallel::ReleaseHcclCommList();
+  ASCEND_LOGI("NPU shutdown ReleaseHcclCommList success.");
+
+  c10_npu::NpuSysCtrl::GetInstance().HostFinalize();
+  try {
+    ASCEND_LOGI("NPU shutdown CachingHostAllocator emptyCache.");
+    at_npu::native::CachingHostAllocator_emptyCache();
+  } catch (...) {
+    ASCEND_LOGE("CachingHostAllocator_emptyCache failed");
+  }
+  try {
+    ASCEND_LOGI("NPU shutdown NPUCachingAllocator emptyCache.");
+    c10_npu::NPUCachingAllocator::emptyCache(false);
+  } catch (...) {
+    ASCEND_LOGE("NPUCachingAllocator::emptyCache failed");
+  }
+  try {
+    ASCEND_LOGI("NPU shutdown NPUSwappedMemoryAllocator emptyCache.");
+    c10_npu::NPUSwappedMemoryAllocator::emptyCache();
+  } catch (...) {
+    ASCEND_LOGE("NPUSwappedMemoryAllocator::emptyCache failed");
+  }
+
+  // Restart irqbalance service on rank 0 before the process exits.
+  const auto rank_id = c10_npu::option::OptionsManager::GetRankId();
+  if (rank_id == 0 || rank_id == -1) {
+    c10_npu::restartIrqbalance();
+  }
+
+  ASCEND_LOGI("NPU shutdown NpuSysCtrl Finalize.");
+  c10_npu::NpuSysCtrl::SysStatus status =
+      c10_npu::NpuSysCtrl::GetInstance().Finalize();
+  if (status != c10_npu::NpuSysCtrl::SysStatus::FINALIZE_SUCC) {
+    ASCEND_LOGE("NPU shutdown failed.");
+  } else {
+    ASCEND_LOGI("NPU shutdown success.");
+  }
+
+  Py_RETURN_NONE;
 }
 
-PyObject* THPModule_npu_shutdown_synchronize(PyObject* /* unused */)
-{
-    ASCEND_LOGI("NPU shutdown synchronize begin.");
-    if (!c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
-        Py_RETURN_FALSE;
-    }
+PyObject* THPModule_npu_shutdown_synchronize(PyObject* /* unused */) {
+  ASCEND_LOGI("NPU shutdown synchronize begin.");
+  if (!c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
+    Py_RETURN_FALSE;
+  }
 
-    StressDetector::stop_worker_thread();
+  StressDetector::stop_worker_thread();
 
-    // Return aclrtSynchronizeDevice result. If sync device fails, release host
-    // resources forcibly, only record WARN logs when acl interface of stream
-    // or event fails.
-    bool success = true;
-    try {
-        ASCEND_LOGI("NPU shutdown synchronize device.");
-        success = c10_npu::npuSynchronizeUsedDevices(false);
-    } catch (std::exception& e) {
-        ASCEND_LOGE("npuSynchronizeDevice failed err=:%s", e.what());
-        success = false;
-    }
+  // Return aclrtSynchronizeDevice result. If sync device fails, release host
+  // resources forcibly, only record WARN logs when acl interface of stream
+  // or event fails.
+  bool success = true;
+  try {
+    ASCEND_LOGI("NPU shutdown synchronize device.");
+    success = c10_npu::npuSynchronizeUsedDevices(false);
+  } catch (std::exception& e) {
+    ASCEND_LOGE("npuSynchronizeDevice failed err=:%s", e.what());
+    success = false;
+  }
 
-    if (success) {
-        Py_RETURN_TRUE;
-    } else {
-        ASCEND_LOGE("NPU shutdown synchronize device failed.");
-        Py_RETURN_FALSE;
+  if (success) {
+    Py_RETURN_TRUE;
+  } else {
+    ASCEND_LOGE("NPU shutdown synchronize device failed.");
+    Py_RETURN_FALSE;
+  }
+}
+
+// Low-overhead NPU allocation for inductor-generated wrappers.
+//
+// at::empty_strided (and the device='npu' factory path) is dispatched through
+// the operator dispatcher, which upstream measured as "surprisingly slow"
+// (~2us/allocation, see torch/csrc/dynamo/guards.cpp). Inductor backward graphs
+// allocate dozens-to-hundreds of buffers per step, so that overhead dominates
+// the host side. This mirrors upstream's _empty_strided_<device> fast path
+// (CUDA/XPU/MTIA): parse the (sizes, strides, dtype) 3-tuple directly and call
+// the NPU-native factory, bypassing the dispatcher while still running the
+// required NPU storage-descriptor setup inside
+// NPUNativeFunctions::empty_strided.
+static void _npu_unwrap_size_tuple(
+    PyObject* obj,
+    c10::SmallVector<int64_t, 8>& out) {
+  TORCH_CHECK(PyTuple_CheckExact(obj), "expected a tuple of ints");
+  Py_ssize_t len = PyTuple_GET_SIZE(obj);
+  out.reserve(len);
+  for (Py_ssize_t i = 0; i < len; ++i) {
+    // PyTuple_GET_ITEM returns a borrowed ref, no refcount needed.
+    auto val = PyLong_AsSsize_t(PyTuple_GET_ITEM(obj, i));
+    if (PyErr_Occurred()) {
+      return;
     }
+    out.emplace_back(val);
+  }
+}
+
+PyObject* THPModule_empty_strided_npu(PyObject* /* unused */, PyObject* args) {
+  HANDLE_TH_ERRORS;
+  TORCH_CHECK(
+      PyTuple_CheckExact(args) && PyTuple_GET_SIZE(args) == 3,
+      "_empty_strided_npu expects exactly 3 args: (sizes, strides, dtype)");
+
+  c10::SmallVector<int64_t, 8> sizes;
+  c10::SmallVector<int64_t, 8> strides;
+  _npu_unwrap_size_tuple(PyTuple_GET_ITEM(args, 0), sizes);
+  _npu_unwrap_size_tuple(PyTuple_GET_ITEM(args, 1), strides);
+
+  PyObject* py_dtype = PyTuple_GET_ITEM(args, 2);
+  TORCH_CHECK(
+      THPDtype_Check(py_dtype),
+      "_empty_strided_npu: arg 3 must be a torch.dtype");
+  at::ScalarType dtype = reinterpret_cast<THPDtype*>(py_dtype)->scalar_type;
+
+  return THPVariable_Wrap(
+      at_npu::native::empty_strided_npu(sizes, strides, dtype));
+  END_HANDLE_TH_ERRORS;
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays, modernize-avoid-c-arrays)
 static PyMethodDef TorchNpuMethods[] = {
     {"_npu_shutdown", (PyCFunction)THPModule_npu_shutdown, METH_O, nullptr},
-    {"_npu_shutdown_synchronize", (PyCFunction)THPModule_npu_shutdown_synchronize, METH_NOARGS, nullptr},
-    {nullptr, nullptr, 0, nullptr}
-};
+    {"_npu_shutdown_synchronize",
+     (PyCFunction)THPModule_npu_shutdown_synchronize,
+     METH_NOARGS,
+     nullptr},
+    {"_empty_strided_npu",
+     (PyCFunction)THPModule_empty_strided_npu,
+     METH_VARARGS,
+     nullptr},
+    {nullptr, nullptr, 0, nullptr}};
 
 #ifndef BUILD_LIBTORCH
-PyObject* THPModule_sanitizer_enable(PyObject* /* unused */, PyObject* args)
-{
-    int mode;
-    if (!PyArg_ParseTuple(args, "i", &mode)) {
-        return NULL;
-    }
-    c10_npu::impl::activateNPUTrace(mode);
-    Py_RETURN_NONE;
+PyObject* THPModule_sanitizer_enable(PyObject* /* unused */, PyObject* args) {
+  int mode;
+  if (!PyArg_ParseTuple(args, "i", &mode)) {
+    return NULL;
+  }
+  c10_npu::impl::activateNPUTrace(mode);
+  Py_RETURN_NONE;
 }
 
 static PyMethodDef TorchSanitizerMethods[] = {
-    {"_activate_npu_trace", (PyCFunction)THPModule_sanitizer_enable, METH_VARARGS, nullptr},
-    {nullptr, nullptr, 0, nullptr}
-};
+    {"_activate_npu_trace",
+     (PyCFunction)THPModule_sanitizer_enable,
+     METH_VARARGS,
+     nullptr},
+    {nullptr, nullptr, 0, nullptr}};
 #endif
 
-void THNPStream_init(PyObject *module);
-void THNPEvent_init(PyObject *module);
-void THNPGraph_init(PyObject *module);
+void THNPStream_init(PyObject* module);
+void THNPEvent_init(PyObject* module);
+void THNPGraph_init(PyObject* module);
 void THNPMemPool_init(PyObject* module);
+void THNPShapeHandling_init(PyObject* module);
+void THDVM_init(PyObject* module);
 void THNPMLIR_init(PyObject* module);
 PyMethodDef* THNPModule_get_methods();
 
@@ -163,59 +236,57 @@ static std::vector<PyMethodDef> methods;
 
 extern "C"
 
-PyObject* initModule()
-{
-    at::internal::lazy_init_num_threads();
+    PyObject*
+    initModule() {
+  at::internal::lazy_init_num_threads();
 
-    AddPyMethodDefs(methods, TorchNpuMethods);
+  AddPyMethodDefs(methods, TorchNpuMethods);
 #ifndef BUILD_LIBTORCH
-    AddPyMethodDefs(methods, TorchSanitizerMethods);
+  AddPyMethodDefs(methods, TorchSanitizerMethods);
 #endif
-    AddPyMethodDefs(methods, THNPModule_get_methods());
-    AddPyMethodDefs(methods, torch_npu::profiler::profiler_functions());
-    AddPyMethodDefs(methods, torch_npu::distributed::python_functions());
-    AddPyMethodDefs(methods, torch_npu::utils::npu_extension_functions());
-    AddPyMethodDefs(methods, torch_npu::autocast::autocast_mode_functions());
-    AddPyMethodDefs(methods, torch_npu::flopcount::flops_count_functions());
-    AddPyMethodDefs(methods, torch_npu::logging::logging_functions());
-    AddPyMethodDefs(methods, torch_npu::reductions::reductions_functions());
-    AddPyMethodDefs(methods, c10_npu::custom_dtype_functions());
-    AddPyMethodDefs(methods, torch_npu::afd::python_functions());
-    static struct PyModuleDef torchnpu_module = {
-        PyModuleDef_HEAD_INIT,
-        "torch_npu._C",
-        nullptr,
-        -1,
-        methods.data()
-    };
-    module = PyModule_Create(&torchnpu_module);
+  AddPyMethodDefs(methods, THNPModule_get_methods());
+  AddPyMethodDefs(methods, torch_npu::profiler::profiler_functions());
+  AddPyMethodDefs(methods, torch_npu::distributed::python_functions());
+  AddPyMethodDefs(methods, torch_npu::utils::npu_extension_functions());
+  AddPyMethodDefs(methods, torch_npu::autocast::autocast_mode_functions());
+  AddPyMethodDefs(methods, torch_npu::flopcount::flops_count_functions());
+  AddPyMethodDefs(methods, torch_npu::logging::logging_functions());
+  AddPyMethodDefs(methods, torch_npu::reductions::reductions_functions());
+  AddPyMethodDefs(methods, torch_npu::npurt::npurt_functions());
+  AddPyMethodDefs(methods, c10_npu::custom_dtype_functions());
+  AddPyMethodDefs(methods, torch_npu::afd::python_functions());
+  static struct PyModuleDef torchnpu_module = {
+      PyModuleDef_HEAD_INIT, "torch_npu._C", nullptr, -1, methods.data()};
+  module = PyModule_Create(&torchnpu_module);
 
-    // This will only initialize base classes and attach them to library namespace
-    // They won't be ready for real usage until importing npu module, that will
-    // complete the process (but it defines Python classes before calling back into
-    // C, so these lines have to execute first)..
-    THNPStream_init(module);
-    THNPEvent_init(module);
-    THNPGraph_init(module);
-    THNPMemPool_init(module);
-    THNPMLIR_init(module);
+  // This will only initialize base classes and attach them to library namespace
+  // They won't be ready for real usage until importing npu module, that will
+  // complete the process (but it defines Python classes before calling back
+  // into C, so these lines have to execute first)..
+  THNPStream_init(module);
+  THNPEvent_init(module);
+  THNPGraph_init(module);
+  THNPMemPool_init(module);
+  THNPShapeHandling_init(module);
+  THDVM_init(module);
+  THNPMLIR_init(module);
 
-    RegisterNPUDeviceProperties(module);
-    BindGetDeviceProperties(module);
-    RegisterNPUDeviceMemories(module);
-    BindGetDeviceMemories(module);
-    RegisterNpuPluggableAllocator(module);
+  RegisterNPUDeviceProperties(module);
+  BindGetDeviceProperties(module);
+  RegisterNPUDeviceMemories(module);
+  BindGetDeviceMemories(module);
+  RegisterNpuPluggableAllocator(module);
 #ifndef BUILD_LIBTORCH
-    c10_npu::bind_npu_recovery_functions(module);
+  RegisterNPUFastLaunchBindings(module);
+  c10_npu::bind_npu_recovery_functions(module);
 #endif
-    initCommMethods();
-    torch::installCapturedTracebackPython();
-    torch_npu::installCapturedTracebackPython();
-    torch_npu::profiler::initMstx(module);
-    return module;
+  initCommMethods();
+  torch::installCapturedTracebackPython();
+  torch_npu::installCapturedTracebackPython();
+  torch_npu::profiler::initMstx(module);
+  return module;
 }
 
-PyMODINIT_FUNC PyInit__C(void)
-{
-    return initModule();
+PyMODINIT_FUNC PyInit__C(void) {
+  return initModule();
 }

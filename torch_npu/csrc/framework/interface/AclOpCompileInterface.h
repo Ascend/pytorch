@@ -1,7 +1,7 @@
 #ifndef __PLUGIN_NATIVE_NPU_INTERFACE_ACLOPCOMPILE__
 #define __PLUGIN_NATIVE_NPU_INTERFACE_ACLOPCOMPILE__
 #include <c10/util/Optional.h>
-#include "third_party/acl/inc/acl/acl_op_compiler.h"
+#include <acl/acl_op_compiler.h>
 
 typedef struct aclOpExecutor aclOpExecutor;
 
@@ -29,7 +29,7 @@ aclError AclopSetCompileFlag(aclOpCompileFlag flag);
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
-ACL_FUNC_VISIBILITY aclError AclSetCompileopt(aclCompileOpt opt, const char *value);
+ACL_FUNC_VISIBILITY aclError AclSetCompileopt(aclCompileOpt opt, const char* value);
 
 /**
  * @ingroup AscendCL
@@ -52,7 +52,7 @@ ACL_FUNC_VISIBILITY c10::optional<size_t> AclGetCompileoptSize(aclCompileOpt opt
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
-ACL_FUNC_VISIBILITY aclError AclGetCompileopt(aclCompileOpt opt, char *value, size_t length);
+ACL_FUNC_VISIBILITY aclError AclGetCompileopt(aclCompileOpt opt, char* value, size_t length);
 
 /**
  * @ingroup AscendCL
@@ -74,10 +74,17 @@ ACL_FUNC_VISIBILITY aclError AclGetCompileopt(aclCompileOpt opt, char *value, si
  * @retval ACL_ERROR_NONE The function is successfully executed.
  * @retval OtherValues Failure
  */
-aclError AclGenGraphAndDumpForOp(const char *opType,
-    int numInputs, const aclTensorDesc *const inputDesc[], const aclDataBuffer *const inputs[],
-    int numOutputs, const aclTensorDesc *const outputDesc[], aclDataBuffer *const outputs[],
-    const aclopAttr *attr, aclopEngineType engineType, const char *graphDumpPath,
+aclError AclGenGraphAndDumpForOp(
+    const char* opType,
+    int numInputs,
+    const aclTensorDesc* const inputDesc[],
+    const aclDataBuffer* const inputs[],
+    int numOutputs,
+    const aclTensorDesc* const outputDesc[],
+    aclDataBuffer* const outputs[],
+    const aclopAttr* attr,
+    aclopEngineType engineType,
+    const char* graphDumpPath,
     aclGraphDumpOption* graphdumpOpt);
 
 /**
@@ -114,11 +121,19 @@ aclError AclDestroyGraphDumpOpt(aclGraphDumpOption* aclGraphDumpOpt);
  * @retval ACL_ERROR_NONE The function is successfully executed.
  * @retval OtherValues Failure
  */
-aclError AclopCompileAndExecuteV2(const char *opType,
-    int numInputs, aclTensorDesc *inputDesc[], aclDataBuffer *inputs[],
-    int numOutputs, aclTensorDesc *outputDesc[], aclDataBuffer *outputs[],
-    aclopAttr *attr, aclopEngineType engineType, aclopCompileType compileFlag,
-    const char *opPath, aclrtStream stream);
+aclError AclopCompileAndExecuteV2(
+    const char* opType,
+    int numInputs,
+    aclTensorDesc* inputDesc[],
+    aclDataBuffer* inputs[],
+    int numOutputs,
+    aclTensorDesc* outputDesc[],
+    aclDataBuffer* outputs[],
+    aclopAttr* attr,
+    aclopEngineType engineType,
+    aclopCompileType compileFlag,
+    const char* opPath,
+    aclrtStream stream);
 
 /**
  * @ingroup AscendCL
@@ -142,9 +157,21 @@ ACL_FUNC_VISIBILITY aclError AclrtCtxSetSysParamOpt(aclSysParamOpt opt, int64_t 
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
-ACL_FUNC_VISIBILITY  aclError AclrtSetSysParamOpt(aclSysParamOpt opt, int64_t value);
+ACL_FUNC_VISIBILITY aclError AclrtSetSysParamOpt(aclSysParamOpt opt, int64_t value);
 
-ACL_FUNC_VISIBILITY  aclError AclDestroyAclOpExecutor(aclOpExecutor *executor);
+/**
+ * @ingroup AscendCL
+ * @brief get system param option value
+ *
+ * @param aclCompileOpt [IN]      system option
+ * @param value [OUT]             value of system option
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError AclrtGetSysParamOpt(aclSysParamOpt opt, int64_t* value);
+
+ACL_FUNC_VISIBILITY aclError AclDestroyAclOpExecutor(aclOpExecutor* executor);
 } // namespace native
 } // namespace at_npu
 

@@ -1,7 +1,6 @@
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import TestUtils
-import torch_npu
 
 
 class TestSum(TestUtils):
@@ -47,6 +46,42 @@ class TestSum(TestUtils):
         inductor_sum = compiled_op_calc(input_element, dim)
 
         self.assertEqual(std_sum, inductor_sum, atol=1e-1, rtol=1e-1)
+
+
+    # Sizes straddle bucket boundaries plus non-power-of-2 / large, to exercise
+    # the runtime loop bound + tail mask.
+    _sum_1d_dynamic_sizes = [8, 63, 64, 65, 255, 257, 1024, 1025, 8191, 8193, 50000, 999983]
+
+    @parametrize('dtype', ['float32'])
+    def test_sum_1d_dynamic_shape(self, dtype):
+        # One dynamic kernel must stay correct across all sizes without recompiling.
+        torch_dtype = eval('torch.' + dtype)
+        torch._dynamo.reset()
+        compiled_op_calc = torch.compile(self.op_calc, backend="inductor", dynamic=True)
+        for n in self._sum_1d_dynamic_sizes:
+            x = torch.ones((n,), dtype=torch_dtype, device=torch.device("npu"))
+            std_sum = self.op_calc(x, None)
+            inductor_sum = compiled_op_calc(x, None)
+            self.assertEqual(std_sum, inductor_sum)
+
+    @parametrize('dtype', ['float32'])
+    def test_sum_1d_dynamic_shape_group_autotune(self, dtype):
+        # Same, with symbolic group-autotune (bucketed path) enabled.
+        import torch_npu._inductor.config as npu_config
+        torch_dtype = eval('torch.' + dtype)
+        prev = npu_config.enable_symbolic_shape_group_autotune
+        npu_config.enable_symbolic_shape_group_autotune = True
+        try:
+            torch._dynamo.reset()
+            compiled_op_calc = torch.compile(self.op_calc, backend="inductor", dynamic=True)
+            for n in self._sum_1d_dynamic_sizes:
+                x = torch.ones((n,), dtype=torch_dtype, device=torch.device("npu"))
+                std_sum = self.op_calc(x, None)
+                inductor_sum = compiled_op_calc(x, None)
+                self.assertEqual(std_sum, inductor_sum)
+        finally:
+            npu_config.enable_symbolic_shape_group_autotune = prev
+            torch._dynamo.reset()
 
 
 instantiate_parametrized_tests(TestSum)

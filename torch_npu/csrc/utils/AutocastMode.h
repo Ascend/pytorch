@@ -8,4 +8,4 @@ namespace autocast {
 TORCH_NPU_API PyMethodDef* autocast_mode_functions();
 
 }
-}
+} // namespace torch_npu

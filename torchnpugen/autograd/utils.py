@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 from typing import List, Dict
 import yaml
@@ -16,14 +17,17 @@ from torchnpugen.gen_backend_stubs import parse_native_and_custom_yaml
 
 AUTOGRAD_BLACK_LIST = {'npu_format_cast.Tensor', 'npu_format_cast_', 'npu_format_cast_.acl_format'}
 
-## aclnn extension for customers:
+# aclnn extension for customers:
 env_aclnn_extension_switch = os.getenv('ACLNN_EXTENSION_SWITCH')
 if not env_aclnn_extension_switch:
-    torch_npu_root = Path(__file__).parent.parent.parent
-    PathManager.check_directory_path_readable(torch_npu_root / "version.txt")
-    with open(torch_npu_root / "version.txt") as version_f:
-        version = version_f.read().strip()
-    VERSION_PART = version.split('.')
+    # The PyTorch line being built against is passed via TORCH_VERSION; fall
+    # back to the installed PyTorch version when it is unset. Only the major
+    # and minor components are used (for the op-plugin config directory).
+    torch_version = os.getenv("TORCH_VERSION")
+    if not torch_version:
+        import torch
+        torch_version = torch.__version__.split("+")[0]
+    VERSION_PART = torch_version.split(".")
 
 
 def parse_derivatives(
@@ -46,7 +50,7 @@ def parse_derivatives(
         # original code logic
         derivatives_path = str(Path(autograd_dir).parents[1].joinpath(
             f'third_party/op-plugin/op_plugin/config/v{VERSION_PART[0]}r{VERSION_PART[1]}/derivatives.yaml'
-            ))
+        ))
 
     differentiability_infos, _ = load_derivatives(
         derivatives_path, native_functions_path, tags_path)

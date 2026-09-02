@@ -1,53 +1,188 @@
 #!/usr/bin/bash
-# Docker image build script for torch-npu CI test images (aarch64 only).
+# Build torch-npu CI Docker images.
 #
 # Usage:
-#   ./docker_build.sh <IMAGE_TAG>
+#   ./docker_build.sh <TAG>
+#
+# Builder: torch-npu-builder-<ARCH>-torch<PYTORCH_VERSION>
+# Test:    torch-npu-test-<ARCH>-cann<CHIP>-py<PYTHON_VERSION>-torch<PYTORCH_VERSION>
 #
 # Examples:
-#   ./docker_build.sh torch-npu-test-aarch64-cann-a2-py3.10-torch-nightly
-#   ./docker_build.sh torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly
+#   ./docker_build.sh torch-npu-builder-x86_64-torch2.13.0
+#   ./docker_build.sh torch-npu-test-aarch64-cann-a2-py3.10-torch2.13.0
+#   ./docker_build.sh torch-npu-builder-x86_64-torch-master
+#   ./docker_build.sh torch-npu-test-aarch64-cann-a2-py3.10-torch-master
+#
+# Reference: pytorch/pytorch .ci/docker/build.sh
 
-set -euo pipefail
+set -ex
 
-TAG="${1:?Usage: $0 <IMAGE_TAG>}"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BUILD_CONTEXT="${SCRIPT_DIR}"
+tag="${1:?Usage: $0 <TAG>}"
+shift
 
-case "$TAG" in
-  torch-npu-test-aarch64-cann-a2-py3.10-torch-nightly)
+case "$tag" in
+  # --- v2.13.0 ---
+  torch-npu-builder-x86_64-torch2.13.0)
+    IMAGE_TYPE=builder
+    ARCH=x86_64
+    PYTORCH_VERSION=2.13.0
+    VERSION_DIR=2.13
+    ;;
+  torch-npu-builder-aarch64-torch2.13.0)
+    IMAGE_TYPE=builder
+    ARCH=aarch64
+    PYTORCH_VERSION=2.13.0
+    VERSION_DIR=2.13
+    ;;
+  torch-npu-test-x86_64-cann-a1-py3.10-torch2.13.0)
+    IMAGE_TYPE=test
+    ARCH=x86_64
+    CANN_CHIP=A1
+    PYTHON_VERSION=3.10
+    PYTORCH_VERSION=2.13.0
+    VERSION_DIR=2.13
+    ;;
+  torch-npu-test-x86_64-cann-a2-py3.10-torch2.13.0)
+    IMAGE_TYPE=test
+    ARCH=x86_64
     CANN_CHIP=A2
     PYTHON_VERSION=3.10
+    PYTORCH_VERSION=2.13.0
+    VERSION_DIR=2.13
     ;;
-  torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly)
+  torch-npu-test-x86_64-cann-a3-py3.10-torch2.13.0)
+    IMAGE_TYPE=test
+    ARCH=x86_64
     CANN_CHIP=A3
     PYTHON_VERSION=3.10
+    PYTORCH_VERSION=2.13.0
+    VERSION_DIR=2.13
+    ;;
+  torch-npu-test-aarch64-cann-a1-py3.10-torch2.13.0)
+    IMAGE_TYPE=test
+    ARCH=aarch64
+    CANN_CHIP=A1
+    PYTHON_VERSION=3.10
+    PYTORCH_VERSION=2.13.0
+    VERSION_DIR=2.13
+    ;;
+  torch-npu-test-aarch64-cann-a2-py3.10-torch2.13.0)
+    IMAGE_TYPE=test
+    ARCH=aarch64
+    CANN_CHIP=A2
+    PYTHON_VERSION=3.10
+    PYTORCH_VERSION=2.13.0
+    VERSION_DIR=2.13
+    ;;
+  torch-npu-test-aarch64-cann-a3-py3.10-torch2.13.0)
+    IMAGE_TYPE=test
+    ARCH=aarch64
+    CANN_CHIP=A3
+    PYTHON_VERSION=3.10
+    PYTORCH_VERSION=2.13.0
+    VERSION_DIR=2.13
+    ;;
+  # --- master (nightly) ---
+  torch-npu-builder-x86_64-torch-master)
+    IMAGE_TYPE=builder
+    ARCH=x86_64
+    PYTORCH_VERSION=2.14.0.dev20260708
+    VERSION_DIR=master
+    ;;
+  torch-npu-builder-aarch64-torch-master)
+    IMAGE_TYPE=builder
+    ARCH=aarch64
+    PYTORCH_VERSION=2.14.0.dev20260708
+    VERSION_DIR=master
+    ;;
+  torch-npu-test-x86_64-cann-a1-py3.10-torch-master)
+    IMAGE_TYPE=test
+    ARCH=x86_64
+    CANN_CHIP=A1
+    PYTHON_VERSION=3.10
+    PYTORCH_VERSION=2.14.0.dev20260708
+    VERSION_DIR=master
+    ;;
+  torch-npu-test-x86_64-cann-a2-py3.10-torch-master)
+    IMAGE_TYPE=test
+    ARCH=x86_64
+    CANN_CHIP=A2
+    PYTHON_VERSION=3.10
+    PYTORCH_VERSION=2.14.0.dev20260708
+    VERSION_DIR=master
+    ;;
+  torch-npu-test-x86_64-cann-a3-py3.10-torch-master)
+    IMAGE_TYPE=test
+    ARCH=x86_64
+    CANN_CHIP=A3
+    PYTHON_VERSION=3.10
+    PYTORCH_VERSION=2.14.0.dev20260708
+    VERSION_DIR=master
+    ;;
+  torch-npu-test-aarch64-cann-a1-py3.10-torch-master)
+    IMAGE_TYPE=test
+    ARCH=aarch64
+    CANN_CHIP=A1
+    PYTHON_VERSION=3.10
+    PYTORCH_VERSION=2.14.0.dev20260708
+    VERSION_DIR=master
+    ;;
+  torch-npu-test-aarch64-cann-a2-py3.10-torch-master)
+    IMAGE_TYPE=test
+    ARCH=aarch64
+    CANN_CHIP=A2
+    PYTHON_VERSION=3.10
+    PYTORCH_VERSION=2.14.0.dev20260708
+    VERSION_DIR=master
+    ;;
+  torch-npu-test-aarch64-cann-a3-py3.10-torch-master)
+    IMAGE_TYPE=test
+    ARCH=aarch64
+    CANN_CHIP=A3
+    PYTHON_VERSION=3.10
+    PYTORCH_VERSION=2.14.0.dev20260708
+    VERSION_DIR=master
     ;;
   *)
-    echo "ERROR: Unknown image tag: $TAG"
-    echo ""
-    echo "Supported tags:"
-    echo "  torch-npu-test-aarch64-cann-a2-py3.10-torch-nightly"
-    echo "  torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly"
+    echo "Unknown tag: ${tag}"
+    echo "  Builder: torch-npu-builder-<x86_64|aarch64>-torch<2.13.0|master>"
+    echo "  Test:    torch-npu-test-<x86_64|aarch64>-cann<A1|A2|A3>-py3.10-torch<2.13.0|master>"
     exit 1
     ;;
 esac
 
-DOCKERFILE="${SCRIPT_DIR}/test/Dockerfile.aarch64"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+DOCKERFILE="${SCRIPT_DIR}/${VERSION_DIR}/${IMAGE_TYPE}/Dockerfile.${ARCH}"
 
-echo "=== Image Configuration ==="
-echo "  Architecture:   aarch64"
-echo "  CANN Chip:      ${CANN_CHIP}"
-echo "  Python:         ${PYTHON_VERSION}"
-echo "  PyTorch:        nightly"
-echo "  Full Tag:       ${TAG}"
+if [[ ! -f "${DOCKERFILE}" ]]; then
+  echo "Dockerfile not found: ${DOCKERFILE}"
+  exit 1
+fi
 
-echo "=== Building test image: ${TAG} ==="
+BUILD_ARGS=(
+  --build-arg PYTORCH_VERSION="${PYTORCH_VERSION}"
+)
+if [[ -n "${CANN_CHIP:-}" ]]; then
+  BUILD_ARGS+=(--build-arg CANN_CHIP="${CANN_CHIP}")
+fi
+if [[ -n "${PYTHON_VERSION:-}" ]]; then
+  BUILD_ARGS+=(--build-arg PYTHON_VERSION="${PYTHON_VERSION}")
+fi
+
+TIMESTAMP="${TIMESTAMP:-$(TZ=Asia/Shanghai date +%Y%m%d%H%M)}"
+IMAGE_TAG="${tag}-${TIMESTAMP}"
+
+echo "Building ${IMAGE_TAG} ..."
+echo "  Dockerfile: ${DOCKERFILE}"
+echo "  PyTorch:    ${PYTORCH_VERSION}"
+echo "  Version:    ${VERSION_DIR}"
+[[ -n "${PYTHON_VERSION:-}" ]] && echo "  Python:     ${PYTHON_VERSION}"
+[[ -n "${CANN_CHIP:-}" ]] && echo "  CANN chip:  ${CANN_CHIP}"
+
 docker build \
-  --build-arg CANN_CHIP="${CANN_CHIP}" \
-  --build-arg PYTHON_VERSION="${PYTHON_VERSION}" \
-  --tag "${TAG}" \
-  --file "${DOCKERFILE}" \
-  "${BUILD_CONTEXT}"
+  -f "${DOCKERFILE}" \
+  -t "${IMAGE_TAG}" \
+  "${BUILD_ARGS[@]}" \
+  "${SCRIPT_DIR}"
 
-echo "=== Image built successfully: ${TAG} ==="
+echo "Image built: ${IMAGE_TAG}"

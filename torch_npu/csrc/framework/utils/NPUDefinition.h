@@ -1,9 +1,8 @@
 #ifndef __PLUGIN_NATIVE_UTILS_NPU_CONFIG__
 #define __PLUGIN_NATIVE_UTILS_NPU_CONFIG__
 
-
 #include <c10/util/SmallVector.h>
-#include <third_party/acl/inc/graph/operator.h>
+#include <graph/operator.h>
 
 #include <functional>
 #include <vector>

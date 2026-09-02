@@ -28,13 +28,11 @@ from wheel.bdist_wheel import bdist_wheel
 # Disable autoloading before running 'import torch' to avoid circular dependencies
 os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = "0"
 
-from torchnpugen.utils import PathManager
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 THIRD_PARTY_PATH = os.path.join(BASE_DIR, "third_party")
-PathManager.check_directory_path_readable(os.path.join(BASE_DIR, "version.txt"))
-with open(os.path.join(BASE_DIR, "version.txt")) as version_f:
-    VERSION = version_f.read().strip()
+from tools.setup_helpers.version import get_version
+VERSION = get_version()
 UNKNOWN = "Unknown"
 BUILD_PERMISSION = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP
 
@@ -91,7 +89,7 @@ def check_submodules():
             end = time.time()
             print(f" --- Submodule initialization took {end - start:.2f} sec")
         except Exception:
-            print(" --- Submodule initalization failed")
+            print(" --- Submodule initialization failed")
             print("Please run:\n\tgit submodule init && git submodule update")
             sys.exit(1)
 
@@ -131,14 +129,19 @@ generate_torch_npu_version()
 
 
 def _get_torch_requires():
-    torch_version = os.environ.get("TORCH_VERSION", "")
-    if not torch_version:
-        try:
-            import torch
-            torch_version = torch.__version__.split("+")[0]
-        except ImportError:
-            pass
-    return ["torch==" + torch_version] if torch_version else []
+    # Pin the base PyTorch release line with no constraint on the build
+    # variant. Parse the version and keep only the release segment so any
+    # pre/post-release or local tag is dropped uniformly, rather than
+    # hand-rolling string splits that miss dot-less markers like "rc1".
+    try:
+        from packaging.version import Version
+        base_version = Version(get_version()).base_version
+    except Exception:
+        base_version = get_version().split("+")[0].split(".post")[0].split(".dev")[0]
+    # The trailing ".*" turns the exact match into a PEP 440 prefix match,
+    # letting pip honor an already-installed nightly/rc instead of failing
+    # to find the not-yet-published base release on the index.
+    return ["torch==" + base_version + ".*"]
 
 
 def which(thefile):
@@ -244,7 +247,7 @@ def generate_dbg_files_and_strip():
     library_files = [Path(i) for i in library_dir.rglob('*.so')]
     for library_file in library_files:
         subprocess.check_call(["eu-strip", library_file, "-f",
-                                str(dbg_dir.joinpath(library_file.name)) + ".debug"], cwd=BASE_DIR)  # Compliant
+                               str(dbg_dir.joinpath(library_file.name)) + ".debug"], cwd=BASE_DIR)  # Compliant
 
 
 def patchelf_dynamic_library():
@@ -429,6 +432,12 @@ def add_ops_files(base_dir, file_list):
     plugin_utils_path = os.path.join(base_dir, 'third_party/op-plugin/op_plugin/utils')
     if os.path.exists(plugin_utils_path):
         file_list.append('third_party/op-plugin/op_plugin/utils/*.h')
+    plugin_dvm_path = os.path.join(base_dir, 'third_party/op-plugin/op_plugin/ops/dvm')
+    if os.path.exists(plugin_dvm_path):
+        file_list.append('third_party/op-plugin/op_plugin/ops/dvm/*.h')
+    plugin_dvm_include_path = os.path.join(base_dir, 'third_party/dvm/dvm/include')
+    if os.path.exists(plugin_dvm_include_path):
+        file_list.append('third_party/dvm/dvm/include/*.h')
     return
 
 
@@ -474,9 +483,7 @@ def get_src_py_and_dst():
         "torch_npu/csrc/*/*/*.h",
         "torch_npu/csrc/*/*/*/*.h",
         "torch_npu/csrc/*/*/*/*/*.h",
-        "third_party/acl/inc/*/*.h",
         "third_party/hccl/inc/*/*.h",
-        "third_party/acl/inc/*/*/*.h",
         "torch_npu/csrc/distributed/HCCLUtils.hpp",
         "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
     ]
@@ -491,6 +498,39 @@ def get_src_py_and_dst():
             os.path.relpath(src, os.path.join(BASE_DIR, "torch_npu")))
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         ret.append((src, dst))
+
+    acl_include_root = os.path.join(BASE_DIR, "third_party", "acl", "inc")
+    acl_header_files = glob.glob(
+        os.path.join(acl_include_root, "**", "*.h"),
+        recursive=True,
+    )
+    for src in acl_header_files:
+        relative_header = os.path.relpath(src, acl_include_root)
+        dst = os.path.join(
+            BASE_DIR,
+            "build/packages/torch_npu/include",
+            relative_header,
+        )
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        ret.append((src, dst))
+
+        # Preserve legacy include paths with forwarding headers, not duplicate ACL headers.
+        compatibility_src = os.path.join(
+            BASE_DIR,
+            "build/acl_compat_headers",
+            relative_header,
+        )
+        os.makedirs(os.path.dirname(compatibility_src), exist_ok=True)
+        compatibility_include = relative_header.replace(os.sep, "/")
+        with open(compatibility_src, "w", encoding="utf-8", newline="\n") as compatibility_header:
+            compatibility_header.write(f"#pragma once\n#include <{compatibility_include}>\n")
+        compatibility_dst = os.path.join(
+            BASE_DIR,
+            "build/packages/torch_npu/include/third_party/acl/inc",
+            relative_header,
+        )
+        os.makedirs(os.path.dirname(compatibility_dst), exist_ok=True)
+        ret.append((compatibility_src, compatibility_dst))
 
     torch_header_files = [
         "*/*.h",
@@ -556,8 +596,8 @@ def get_src_py_and_dst():
         for src in codegen_files:
             # 仅过滤指定目录下的根级__init__.py
             if (exclude_root_init is not None and
-                os.path.basename(src) == '__init__.py' and
-                os.path.dirname(src) == exclude_root_init):
+                    os.path.basename(src) == '__init__.py' and
+                    os.path.dirname(src) == exclude_root_init):
                 continue  # 跳过op-plugin/codegen根目录的__init__.py
 
             # 计算目标路径（保留原目录层级）
@@ -660,7 +700,7 @@ extra_link_args = []
 DEBUG = (os.getenv('DEBUG', default='').upper() in ['ON', '1', 'YES', 'TRUE', 'Y'])
 
 extra_compile_args = [
-    '-std=c++17',
+    '-std=c++20',
     '-Wno-sign-compare',
     '-Wno-deprecated-declarations',
     '-Wno-return-type'
@@ -750,7 +790,10 @@ setup(
                 extra_compile_args=extra_compile_args + ['-fstack-protector-all'] + ['-D__FILENAME__=\"InitNpuBindings.cpp\"'],
                 library_dirs=["lib"],
                 extra_link_args=extra_link_args + ['-Wl,-rpath,$ORIGIN/lib', '-Wl,-Bsymbolic-functions'],
-                define_macros=[('_GLIBCXX_USE_CXX11_ABI', '1' if USE_CXX11_ABI else '0'), ('GLIBCXX_USE_CXX11_ABI', '1' if USE_CXX11_ABI else '0')]
+                define_macros=[
+                    ('_GLIBCXX_USE_CXX11_ABI', '1' if USE_CXX11_ABI else '0'),
+                    ('GLIBCXX_USE_CXX11_ABI', '1' if USE_CXX11_ABI else '0'),
+                ]
             ),
     ],
     install_requires=[
@@ -784,6 +827,11 @@ setup(
         ],
         'torch.backends': [
             'torch_npu = torch_npu:_autoload',
+        ],
+        'torch_dynamo_backends': [
+            'npu = torch_npu.dynamo:_npu_backend_entrypoint',
+            'npugraph_ex = torch_npu.dynamo:_npugraph_ex_backend_entrypoint',
+            'npugraphs = torch_npu.dynamo:_npugraphs_backend_entrypoint',
         ],
     }
 )

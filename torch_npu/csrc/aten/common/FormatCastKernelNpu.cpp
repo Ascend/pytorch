@@ -1,4 +1,5 @@
 #include "torch_npu/csrc/framework/FormatHelper.h"
+#include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/NpuStorageOffsetGuard.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
@@ -6,6 +7,7 @@
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/GetCANNInfo.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
@@ -15,420 +17,445 @@
 namespace at_npu {
 namespace native {
 
-static std::unordered_map<int, int> FORMAT_REAL_TO_FAKE {
-    { ACL_FORMAT_FRACTAL_NZ_C0_32, ACL_FORMAT_FRACTAL_NZ_C0_16 },
-    { ACL_FORMAT_ND, ACL_FORMAT_ND },
+static std::unordered_map<int, int> FORMAT_REAL_TO_FAKE{
+    {ACL_FORMAT_FRACTAL_NZ_C0_32, ACL_FORMAT_FRACTAL_NZ_C0_16},
+    {ACL_FORMAT_ND, ACL_FORMAT_ND},
 };
 
 using tensor_list = std::vector<at::Tensor>;
-using GetFormatFunc = int (*)(const aclTensor *, const int, const int, int64_t **, uint64_t *, int *);
+using GetFormatFunc = int (*)(const aclTensor*, const int, const int, int64_t**, uint64_t*, int*);
 
-// Check if current CANN version supports aclnn format_cast with customize_dtype.
-// Only 910B and 910C series support aclnnNpuFormatCastCalculateSizeAndFormat.
-// 950 goes through IsAclnnOnly() path separately; 910A/310 series do not support this API.
-static bool IsAclnnFormatCastSupported()
-{
-    static const auto soc = c10_npu::GetSocVersion();
-    static const bool supported = IsGteCANNVersion("9.1.0", "CANN") &&
-        ((soc >= c10_npu::SocVersion::Ascend910B1 && soc < c10_npu::SocVersion::Ascend310B1) ||
-         (soc >= c10_npu::SocVersion::Ascend910_9391 && soc < c10_npu::SocVersion::Ascend950));
-    return supported;
+static bool IsAclnnNpuFormatCastExist() {
+  const static auto GetFormatFuncAddr = GetOpApiFuncAddr("aclnnNpuFormatCastCalculateSizeAndFormat");
+  const static auto FormatCastFuncAddr = GetOpApiFuncAddr("aclnnNpuFormatCast");
+  return GetFormatFuncAddr != nullptr && FormatCastFuncAddr != nullptr;
 }
 
-static bool ShouldFallbackNzToNd(const at::Tensor& self, int64_t acl_format)
-{
-    if (acl_format != ACL_FORMAT_FRACTAL_NZ) {
-        return false;
-    }
-    auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_;
-    if (src_desc.npu_format_ != ACL_FORMAT_ND) {
-        return false;
-    }
-    // Scalar and rank-1 tensors cannot be represented as real NZ tensors.
-    // Keep historical aclop behavior and avoid invalid aclnn storage size
-    // calculation on CANN/Soc combinations with 32 padding.
-    if (src_desc.base_sizes_.size() < 2) {
-        return true;
-    }
-    if (src_desc.base_sizes_.size() != self.sizes().size()) {
-        return true;
-    }
-    for (size_t i = 0; i < src_desc.base_sizes_.size(); ++i) {
-        if (src_desc.base_sizes_[i] != self.sizes()[i]) {
-            return true;
-        }
-    }
+// Check if current CANN version supports aclnn format_cast with
+// customize_dtype. Only 910B and 910C series support
+// aclnnNpuFormatCastCalculateSizeAndFormat. 950 goes through IsAclnnOnly() path
+// separately; 910A/310 series do not support this API.
+static bool IsAclnnFormatCastSupported() {
+  static const auto soc = c10_npu::GetSocVersion();
+  static const bool supported = IsGteCANNVersion("9.1.0", "CANN") &&
+      ((soc >= c10_npu::SocVersion::Ascend910B1 && soc < c10_npu::SocVersion::Ascend310B1) ||
+       (soc >= c10_npu::SocVersion::Ascend910_9391 && soc < c10_npu::SocVersion::Ascend950));
+  return supported;
+}
+
+static bool ShouldFallbackNzToNd(const at::Tensor& self, int64_t acl_format) {
+  if (acl_format != ACL_FORMAT_FRACTAL_NZ) {
     return false;
+  }
+  auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_;
+  if (src_desc.npu_format_ != ACL_FORMAT_ND) {
+    return false;
+  }
+  // Scalar and rank-1 tensors cannot be represented as real NZ tensors.
+  // Keep historical aclop behavior and avoid invalid aclnn storage size
+  // calculation on CANN/Soc combinations with 32 padding.
+  if (src_desc.base_sizes_.size() < 2) {
+    return true;
+  }
+  return false;
 }
 
-std::tuple<bool, int64_t, c10::SmallVector<int64_t, SIZE>> MaybeUseAclnnNpuFormatCast(const at::Tensor& src,
-    int64_t acl_format, c10::optional<int64_t> customize_dtype, c10::optional<int64_t> input_dtype)
-{
-    const static auto GetFormatFuncAddr = GetOpApiFuncAddr("aclnnNpuFormatCastCalculateSizeAndFormat");
-    const static auto FormatCastFuncAddr = GetOpApiFuncAddr("aclnnNpuFormatCast");
+// CANN only accepts FRACTAL_NZ(29) or ND(2) as dstFormat; NZ_C0 variants
+// (50-54) are output-only (returned as actualFormat). Normalize here for the
+// load path.
+static bool IsNzC0Variant(int64_t fmt) {
+  return fmt == ACL_FORMAT_FRACTAL_NZ_C0_16 || fmt == ACL_FORMAT_FRACTAL_NZ_C0_32 ||
+      fmt == ACL_FORMAT_FRACTAL_NZ_C0_2 || fmt == ACL_FORMAT_FRACTAL_NZ_C0_4 || fmt == ACL_FORMAT_FRACTAL_NZ_C0_8;
+}
 
-    const static bool aclnnNpuFormatCastExist =
-        (GetFormatFuncAddr == nullptr || FormatCastFuncAddr == nullptr) ? false : true;
+// Views (sizes mismatch with storage desc) fall back to aclop.
+static bool IsViewTensor(const at::Tensor& src) {
+  const auto& desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
+  if (src.sizes().size() != static_cast<int64_t>(desc.base_sizes_.size())) {
+    return true;
+  }
+  for (size_t i = 0; i < src.sizes().size(); ++i) {
+    if (src.sizes()[i] != desc.base_sizes_[i]) {
+      return true;
+    }
+  }
+  return false;
+}
 
-    GetFormatFunc GetFormat = reinterpret_cast<GetFormatFunc>(GetFormatFuncAddr);
-    int64_t *dstStorageShape = nullptr;
-    uint64_t dstShapeSize = 0;
-    int dstFormat;
-    at::SmallVector<int64_t, SIZE> outputShape = {};
-    aclDataType srcAcltype = input_dtype.has_value() ? c10_npu::GetAclDataType(input_dtype.value()) :
-                                  at_npu::native::OpPreparation::convert_to_acl_data_type(src.scalar_type());
-    aclDataType customizeAcltype = (customize_dtype.has_value()) ?
-        c10_npu::GetAclDataType(customize_dtype.value()) : srcAcltype;
-    TensorWrapper srcWrapper = make_wrapper(src, input_dtype);
-    if (c10_npu::IsAclnnOnly()) {
-        if (aclnnNpuFormatCastExist) {
-            auto acl_src = ConvertType(srcWrapper);
-            auto api_ret = GetFormat(acl_src, acl_format, customizeAcltype, &dstStorageShape,
-                &dstShapeSize, &dstFormat);
-            Release(acl_src);
-            NPU_CHECK_ERROR(api_ret, "aclnnNpuFormatCastCalculateSizeAndFormat");
-            for (uint64_t i = 0; i < dstShapeSize; i++) {
-                outputShape.push_back(dstStorageShape[i]);
-            }
-            if (srcAcltype == aclDataType::ACL_FLOAT4_E2M1 || srcAcltype == aclDataType::ACL_FLOAT4_E1M2 ||
-                srcAcltype == aclDataType::ACL_INT4) {
-                if (FORMAT_REAL_TO_FAKE.find(dstFormat) == FORMAT_REAL_TO_FAKE.end() || outputShape.empty()) {
-                    delete[] dstStorageShape;
-                    dstStorageShape = nullptr;
-                    TORCH_CHECK(false,
-                        "aclnnNpuFormatCast not support recovery format.",
-                        PTA_ERROR(ErrCode::NOT_SUPPORT));
-                }
-                outputShape.back() = outputShape.back() >> 1;
-                dstFormat = FORMAT_REAL_TO_FAKE[dstFormat];
-            }
-            delete[] dstStorageShape;
-            dstStorageShape = nullptr;
-            return std::make_tuple(true, dstFormat, outputShape);
-        }
-        TORCH_CHECK(false,
-            "aclnnNpuFormatCast does not exist, Current soc version only support aclnn operators.",
-            PTA_ERROR(ErrCode::NOT_SUPPORT));
+std::tuple<bool, int64_t, c10::SmallVector<int64_t, SIZE>> MaybeUseAclnnNpuFormatCast(
+    const at::Tensor& src,
+    int64_t acl_format,
+    c10::optional<int64_t> customize_dtype,
+    c10::optional<int64_t> input_dtype) {
+  const static auto GetFormatFuncAddr = GetOpApiFuncAddr("aclnnNpuFormatCastCalculateSizeAndFormat");
+  const static auto FormatCastFuncAddr = GetOpApiFuncAddr("aclnnNpuFormatCast");
+
+  const static bool aclnnNpuFormatCastExist = IsAclnnNpuFormatCastExist();
+
+  GetFormatFunc GetFormat = reinterpret_cast<GetFormatFunc>(GetFormatFuncAddr);
+  int64_t* dstStorageShape = nullptr;
+  uint64_t dstShapeSize = 0;
+  int dstFormat = 0;
+  at::SmallVector<int64_t, SIZE> outputShape = {};
+  aclDataType srcAcltype = input_dtype.has_value()
+      ? c10_npu::GetAclDataType(input_dtype.value())
+      : at_npu::native::OpPreparation::convert_to_acl_data_type(src.scalar_type());
+  aclDataType customizeAcltype =
+      (customize_dtype.has_value()) ? c10_npu::GetAclDataType(customize_dtype.value()) : srcAcltype;
+  TensorWrapper srcWrapper = make_wrapper(src, input_dtype);
+  if (c10_npu::IsAclnnOnly()) {
+    // >=4-byte types (fp32/int32) need FLOAT16 additionalDtype for C0=16.
+    if (!customize_dtype.has_value() && src.element_size() >= 4) {
+      customizeAcltype = aclDataType::ACL_FLOAT16;
     }
-    // Non-aclnn-only path (910B and older chips).
-    // CANN >= 9.1.0 supports aclnn format_cast with customize_dtype on 910B.
-    // Match original aclop behavior: 4-byte types (float32/int32) default to
-    // ACL_FLOAT16 (C0=16); smaller types keep their natural C0 (int8 C0=32, fp16 C0=16).
-    // See FormatHelper.cpp InferShapeNDToNZ: (itemsize > 2) ? 2 : itemsize.
-    if (!customize_dtype.has_value()) {
-        if (src.element_size() >= 4) {
-            customizeAcltype = aclDataType::ACL_FLOAT16;
+    if (aclnnNpuFormatCastExist) {
+      // Normalize NZ_C0 -> FRACTAL_NZ(29); C0 variants are output-only.
+      int64_t cann_dst_format = IsNzC0Variant(acl_format) ? ACL_FORMAT_FRACTAL_NZ : acl_format;
+      auto acl_src = ConvertType(srcWrapper);
+      auto api_ret = GetFormat(acl_src, cann_dst_format, customizeAcltype, &dstStorageShape, &dstShapeSize, &dstFormat);
+      Release(acl_src);
+      NPU_CHECK_ERROR(api_ret, "aclnnNpuFormatCastCalculateSizeAndFormat");
+      for (uint64_t i = 0; i < dstShapeSize; i++) {
+        outputShape.push_back(dstStorageShape[i]);
+      }
+      if (srcAcltype == aclDataType::ACL_FLOAT4_E2M1 || srcAcltype == aclDataType::ACL_FLOAT4_E1M2 ||
+          srcAcltype == aclDataType::ACL_INT4) {
+        if (FORMAT_REAL_TO_FAKE.find(dstFormat) == FORMAT_REAL_TO_FAKE.end() || outputShape.empty()) {
+          delete[] dstStorageShape;
+          dstStorageShape = nullptr;
+          TORCH_CHECK(false, "aclnnNpuFormatCast not support recovery format.", PTA_ERROR(ErrCode::NOT_SUPPORT));
         }
+        outputShape.back() = outputShape.back() >> 1;
+        dstFormat = FORMAT_REAL_TO_FAKE[dstFormat];
+      }
+      delete[] dstStorageShape;
+      dstStorageShape = nullptr;
+      return std::make_tuple(true, dstFormat, outputShape);
     }
-    // else: customizeAcltype stays as user's customize_dtype value (set at top of function)
-    if (IsAclnnFormatCastSupported() && aclnnNpuFormatCastExist) {
-        auto acl_src = ConvertType(srcWrapper);
-        auto api_ret = GetFormat(acl_src, acl_format, customizeAcltype, &dstStorageShape,
-            &dstShapeSize, &dstFormat);
-        Release(acl_src);
-        // CANN aclnn does not yet support all format pairs (e.g. NC1HWC0->ND,
-        // 2D->NC1HWC0, 4D->NZ). Fall back to aclop for unsupported pairs.
-        if (api_ret != 0) {
-            return std::make_tuple(false, dstFormat, outputShape);
-        }
-        for (uint64_t i = 0; i < dstShapeSize; i++) {
-            outputShape.push_back(dstStorageShape[i]);
-        }
-        // For 4-bit types: when customize_dtype=INT32 (8 packed int4, C0=8),
-        // CANN already computes correct storage shape, skip halving.
-        // Otherwise default C0=16: halve last dim and remap format.
-        if (customizeAcltype != aclDataType::ACL_INT32 &&
-            (srcAcltype == aclDataType::ACL_FLOAT4_E2M1 || srcAcltype == aclDataType::ACL_FLOAT4_E1M2 ||
-             srcAcltype == aclDataType::ACL_INT4)) {
-            if (FORMAT_REAL_TO_FAKE.find(dstFormat) == FORMAT_REAL_TO_FAKE.end() || outputShape.empty()) {
-                delete[] dstStorageShape;
-                dstStorageShape = nullptr;
-                TORCH_CHECK(false,
-                    "aclnnNpuFormatCast not support recovery format.",
-                    PTA_ERROR(ErrCode::NOT_SUPPORT));
-            }
-            outputShape.back() = outputShape.back() >> 1;
-            dstFormat = FORMAT_REAL_TO_FAKE[dstFormat];
-        }
+    TORCH_CHECK(
+        false,
+        "aclnnNpuFormatCast does not exist, Current soc version only support aclnn operators.",
+        PTA_ERROR(ErrCode::NOT_SUPPORT));
+  }
+  // Non-aclnn-only path (910B and older chips).
+  // CANN >= 9.1.0 supports aclnn format_cast with customize_dtype on 910B.
+  // Match original aclop behavior: 4-byte types (float32/int32) default to
+  // ACL_FLOAT16 (C0=16); smaller types keep their natural C0 (int8 C0=32, fp16
+  // C0=16). See FormatHelper.cpp InferShapeNDToNZ: (itemsize > 2) ? 2 :
+  // itemsize.
+  if (!customize_dtype.has_value()) {
+    if (src.element_size() >= 4) {
+      customizeAcltype = aclDataType::ACL_FLOAT16;
+    }
+  }
+  // else: customizeAcltype stays as user's customize_dtype value (set at top of
+  // function)
+  if (!FormatHelper::IsBaseFormatType(src) && !src.is_contiguous()) {
+    return std::make_tuple(false, dstFormat, outputShape);
+  }
+  if (IsViewTensor(src)) {
+    return std::make_tuple(false, dstFormat, outputShape);
+  }
+  if (IsAclnnFormatCastSupported() && aclnnNpuFormatCastExist) {
+    // With allow_internal_format=False, downgrade a non-base-format target
+    // to base format. Skipped when the target equals the src tensor's own
+    // format (cast into an existing tensor), whose format must be kept.
+    bool cast_into_existing = (static_cast<int64_t>(FormatHelper::GetFormat(src)) == acl_format);
+    if (!cast_into_existing && env::CheckForbidInternalFormat() &&
+        !FormatHelper::IsBaseFormatType(static_cast<aclFormat>(acl_format))) {
+      TORCH_WARN_ONCE(
+          "Cannot create tensor with internal format while allow_internal_format=False, "
+          "tensor will be created with base format.");
+      acl_format = static_cast<int64_t>(FormatHelper::GetBaseFormat(static_cast<aclFormat>(acl_format)));
+    }
+    auto acl_src = ConvertType(srcWrapper);
+    auto api_ret = GetFormat(acl_src, acl_format, customizeAcltype, &dstStorageShape, &dstShapeSize, &dstFormat);
+    Release(acl_src);
+    // CANN aclnn does not yet support all format pairs (e.g. NC1HWC0->ND,
+    // 2D->NC1HWC0, 4D->NZ). Fall back to aclop for unsupported pairs.
+    if (api_ret != 0) {
+      return std::make_tuple(false, dstFormat, outputShape);
+    }
+    for (uint64_t i = 0; i < dstShapeSize; i++) {
+      outputShape.push_back(dstStorageShape[i]);
+    }
+    // For 4-bit types: when customize_dtype=INT32 (8 packed int4, C0=8),
+    // CANN already computes correct storage shape, skip halving.
+    // Otherwise default C0=16: halve last dim and remap format.
+    if (customizeAcltype != aclDataType::ACL_INT32 &&
+        (srcAcltype == aclDataType::ACL_FLOAT4_E2M1 || srcAcltype == aclDataType::ACL_FLOAT4_E1M2 ||
+         srcAcltype == aclDataType::ACL_INT4)) {
+      if (FORMAT_REAL_TO_FAKE.find(dstFormat) == FORMAT_REAL_TO_FAKE.end() || outputShape.empty()) {
         delete[] dstStorageShape;
         dstStorageShape = nullptr;
-        return std::make_tuple(true, static_cast<int64_t>(dstFormat), outputShape);
+        TORCH_CHECK(false, "aclnnNpuFormatCast not support recovery format.", PTA_ERROR(ErrCode::NOT_SUPPORT));
+      }
+      outputShape.back() = outputShape.back() >> 1;
+      dstFormat = FORMAT_REAL_TO_FAKE[dstFormat];
     }
-    // CANN < 9.1.0: customize_dtype not supported, fall back to aclop path.
-    if (C10_UNLIKELY(customize_dtype.has_value())) {
-        TORCH_CHECK(false,
-            "customize_dtype is not supported by the current soc version.",
-            PTA_ERROR(ErrCode::NOT_SUPPORT));
-    }
-    return std::make_tuple(false, dstFormat, outputShape);
+    delete[] dstStorageShape;
+    dstStorageShape = nullptr;
+    return std::make_tuple(true, static_cast<int64_t>(dstFormat), outputShape);
+  }
+  // CANN < 9.1.0: customize_dtype not supported, fall back to aclop path.
+  if (C10_UNLIKELY(customize_dtype.has_value())) {
+    TORCH_CHECK(false, "customize_dtype is not supported by the current soc version.", PTA_ERROR(ErrCode::NOT_SUPPORT));
+  }
+  return std::make_tuple(false, dstFormat, outputShape);
 }
 
-at::Tensor create_tensor_with_format_and_shape(c10::IntArrayRef baseSizes,
+at::Tensor create_tensor_with_format_and_shape(
+    c10::IntArrayRef baseSizes,
     c10::IntArrayRef storageSizes,
-    const caffe2::TypeMeta dtype, int64_t acl_format)
-{
-    c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
-    size_t nelements = 1;
-    for (const auto& num : storageSizes) {
-        nelements *= num;
-    }
-    size_t size_bytes = nelements * dtype.itemsize();
-    c10::intrusive_ptr<c10::StorageImpl> storage_impl = torch_npu::make_npu_storage_impl(
-        c10::StorageImpl::use_byte_size_t(),
-        c10::SymInt(size_bytes),
-        allocator->allocate(size_bytes),
-        allocator,
-        true);
-    auto tensor = at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
+    const caffe2::TypeMeta dtype,
+    int64_t acl_format) {
+  c10::Allocator* allocator = c10_npu::NPUCachingAllocator::get();
+  size_t nelements = 1;
+  for (const auto& num : storageSizes) {
+    nelements *= num;
+  }
+  size_t size_bytes = nelements * dtype.itemsize();
+  c10::intrusive_ptr<c10::StorageImpl> storage_impl = torch_npu::make_npu_storage_impl(
+      c10::StorageImpl::use_byte_size_t(), c10::SymInt(size_bytes), allocator->allocate(size_bytes), allocator, true);
+  auto tensor = at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
 
-    if (baseSizes.size() != 1 || baseSizes[0] != 0) {
-        tensor.unsafeGetTensorImpl()->set_sizes_contiguous(baseSizes);
-    }
-    tensor.unsafeGetTensorImpl()->empty_tensor_restride(c10::MemoryFormat::Contiguous);
-    StorageDescHelper::SetDesc(tensor, baseSizes, storageSizes, tensor.strides(), static_cast<aclFormat>(acl_format));
-    return tensor;
+  if (baseSizes.size() != 1 || baseSizes[0] != 0) {
+    tensor.unsafeGetTensorImpl()->set_sizes_contiguous(baseSizes);
+  }
+  tensor.unsafeGetTensorImpl()->empty_tensor_restride(c10::MemoryFormat::Contiguous);
+  StorageDescHelper::SetDesc(tensor, baseSizes, storageSizes, tensor.strides(), static_cast<aclFormat>(acl_format));
+  return tensor;
 }
 
-at::Tensor format_cast_impl_out_npu_aclnn(const at::Tensor& src,
-    int64_t acl_format, c10::IntArrayRef storageSizes, c10::optional<int64_t> src_dtype)
-{
-    if (!FormatHelper::IsBaseFormatType(src) && !src.is_contiguous()) {
-        TORCH_CHECK(false,
-            "npu_format_cast aclnn interface does not support non-contiguous tensor with internal format ",
-            FormatHelper::GetFormatName(src), ".",
-            OPS_ERROR(ErrCode::NOT_SUPPORT));
-    }
-    auto src_new = src.contiguous();
-    auto src_new_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src_new)->npu_desc_;
+at::Tensor format_cast_impl_out_npu_aclnn(
+    const at::Tensor& src,
+    int64_t acl_format,
+    c10::IntArrayRef storageSizes,
+    c10::optional<int64_t> src_dtype) {
+  if (!FormatHelper::IsBaseFormatType(src) && !src.is_contiguous()) {
+    TORCH_CHECK(
+        false,
+        "npu_format_cast aclnn interface does not support non-contiguous tensor with internal format ",
+        FormatHelper::GetFormatName(src),
+        ".",
+        OPS_ERROR(ErrCode::NOT_SUPPORT));
+  }
+  auto src_new = src.contiguous();
+  auto src_new_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src_new)->npu_desc_;
 
-    at::Tensor dst = create_tensor_with_format_and_shape(
-        src_new.sizes(), storageSizes, src.dtype(), acl_format);
+  at::Tensor dst = create_tensor_with_format_and_shape(src_new.sizes(), storageSizes, src.dtype(), acl_format);
 
-    TensorWrapper srcNewWrapper = make_wrapper(src_new, src_dtype);
-    TensorWrapper dstWrapper = make_wrapper(dst, src_dtype);
-    // calculate the output result of the NPU
-    EXEC_NPU_CMD(aclnnNpuFormatCast, srcNewWrapper, dstWrapper);
+  TensorWrapper srcNewWrapper = make_wrapper(src_new, src_dtype);
+  TensorWrapper dstWrapper = make_wrapper(dst, src_dtype);
+  // calculate the output result of the NPU
+  EXEC_NPU_CMD(aclnnNpuFormatCast, srcNewWrapper, dstWrapper);
 
-    // format cast only change physical layout of base tensor and view tensor's
-    // metadata remain unchanged
-    dst.set_(dst.storage(), src_new.storage_offset(), src_new.sizes(), src_new.strides());
-    return dst;
+  // format cast only change physical layout of base tensor and view tensor's
+  // metadata remain unchanged
+  dst.set_(dst.storage(), src_new.storage_offset(), src_new.sizes(), src_new.strides());
+  return dst;
 }
 
-at::Tensor format_cast_impl_out_npu(at::Tensor& dst, const at::Tensor& src)
-{
-    string srcFormat = FormatHelper::GetFormatName(src);
-    string dstFormat = FormatHelper::GetFormatName(dst);
+at::Tensor format_cast_impl_out_npu(at::Tensor& dst, const at::Tensor& src) {
+  string srcFormat = FormatHelper::GetFormatName(src);
+  string dstFormat = FormatHelper::GetFormatName(dst);
 
-    if (!FormatCastHelper::IsSameGroupType(src, dst)) {
-        bool res = FormatCastHelper::format_cast_between_group(dst, src, format_cast_impl_out_npu);
-        if (!res) {
-            AT_ERROR("unsupported cast from ", srcFormat, " to ", dstFormat);
-        }
-        return dst;
+  if (!FormatCastHelper::IsSameGroupType(src, dst)) {
+    bool res = FormatCastHelper::format_cast_between_group(dst, src, format_cast_impl_out_npu);
+    if (!res) {
+      AT_ERROR("unsupported cast from ", srcFormat, " to ", dstFormat);
     }
-
-    NpuStorageOffsetGuard guard_input(const_cast<at::Tensor &>(src));
-    NpuStorageOffsetGuard guard_output(dst);
-    OpCommand cmd;
-    cmd.Name("Identity")
-       .InputWithoutContiguous(src)
-       .Output(dst)
-       .Run();
     return dst;
+  }
+
+  NpuStorageOffsetGuard guard_input(const_cast<at::Tensor&>(src));
+  NpuStorageOffsetGuard guard_output(dst);
+  OpCommand cmd;
+  cmd.Name("Identity").InputWithoutContiguous(src).Output(dst).Run();
+  return dst;
 }
 
 // convert src from src_format to dst_format, write the result into dst(self)
-at::Tensor& NPUNativeFunctions::npu_format_cast_(at::Tensor& self, const at::Tensor& src,
-                                                 c10::optional<int64_t> customize_dtype,
-                                                 c10::optional<int64_t> input_dtype)
-{
-    torch_npu::utils::torch_check_npu(self);
-    torch_npu::utils::torch_check_npu(src);
-    auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
-    auto dst_desc = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_;
-    if (src_desc.npu_format_ == dst_desc.npu_format_) {
-        self.copy_(src);
-        return self;
-    }
-
-    auto [useAclnn, outFormat, StorageShape] = MaybeUseAclnnNpuFormatCast(self, dst_desc.npu_format_, customize_dtype,
-                                                                          input_dtype);
-    if (useAclnn == true) {
-        at::Tensor dst = format_cast_impl_out_npu_aclnn(self, outFormat, StorageShape, input_dtype);
-        self.set_(dst.storage(), dst.storage_offset(), dst.sizes(), dst.strides());
-        return self;
-    }
-
-    // calculate the output result of the NPU
-    format_cast_impl_out_npu(self, src);
-
+at::Tensor& NPUNativeFunctions::npu_format_cast_(
+    at::Tensor& self,
+    const at::Tensor& src,
+    c10::optional<int64_t> customize_dtype,
+    c10::optional<int64_t> input_dtype) {
+  torch_npu::utils::torch_check_npu(self);
+  torch_npu::utils::torch_check_npu(src);
+  auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
+  auto dst_desc = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_;
+  if (src_desc.npu_format_ == dst_desc.npu_format_) {
+    self.copy_(src);
     return self;
+  }
+
+  auto [useAclnn, outFormat, StorageShape] =
+      MaybeUseAclnnNpuFormatCast(self, dst_desc.npu_format_, customize_dtype, input_dtype);
+  if (useAclnn == true) {
+    at::Tensor dst = format_cast_impl_out_npu_aclnn(self, outFormat, StorageShape, input_dtype);
+    self.set_(dst.storage(), dst.storage_offset(), dst.sizes(), dst.strides());
+    return self;
+  }
+
+  // calculate the output result of the NPU
+  format_cast_impl_out_npu(self, src);
+
+  return self;
 }
 
 // convert self to acl_format, write the result into new result tensor
-at::Tensor npu_format_cast_impl(
-    const at::Tensor& src,
-    int64_t acl_format)
-{
-    auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
-    at::Tensor dst = OpPreparation::ApplyTensorWithFormat(
-        src_desc.base_sizes_, src.options(), acl_format);
+at::Tensor npu_format_cast_impl(const at::Tensor& src, int64_t acl_format) {
+  auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
+  at::Tensor dst = OpPreparation::ApplyTensorWithFormat(src_desc.base_sizes_, src.options(), acl_format);
 
-    // calculate the output result of the NPU
-    format_cast_impl_out_npu(dst, src);
+  // calculate the output result of the NPU
+  format_cast_impl_out_npu(dst, src);
 
-    // format cast only change physical layout of base tensor and view tensor's
-    // metadata remain unchanged
-    dst.set_(dst.storage(), src.storage_offset(), src.sizes(), src.strides());
-    return dst;
+  // format cast only change physical layout of base tensor and view tensor's
+  // metadata remain unchanged
+  dst.set_(dst.storage(), src.storage_offset(), src.sizes(), src.strides());
+  return dst;
 }
 
 // convert self to dst'format, write the result into new result tensor
 at::Tensor NPUNativeFunctions::npu_format_cast(
     const at::Tensor& self,
     const at::Tensor& dst,
-    c10::optional<int64_t> customize_dtype, c10::optional<int64_t> input_dtype)
-{
-    torch_npu::utils::torch_check_npu(dst);
-    auto dst_desc = torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_;
-    int64_t dst_format = dst_desc.npu_format_;
-    return custom_ops::npu_format_cast(self, dst_format, customize_dtype, input_dtype);
+    c10::optional<int64_t> customize_dtype,
+    c10::optional<int64_t> input_dtype) {
+  torch_npu::utils::torch_check_npu(dst);
+  auto dst_desc = torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_;
+  int64_t dst_format = dst_desc.npu_format_;
+  return custom_ops::npu_format_cast(self, dst_format, customize_dtype, input_dtype);
 }
 
 // convert self to acl_format, write the result into self
 at::Tensor& NPUNativeFunctions::npu_format_cast_(
     at::Tensor& self,
     int64_t acl_format,
-    c10::optional<int64_t> customize_dtype, c10::optional<int64_t> input_dtype)
-{
-    torch_npu::utils::torch_check_npu(self);
-    auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_;
-    if (src_desc.npu_format_ == acl_format) {
-        return self;
-    }
-    if (FormatHelper::IsBaseFormatType(self) &&
-        FormatHelper::IsBaseFormatType(static_cast<aclFormat>(acl_format))) {
-        FormatCastHelper::format_cast_as_base_format(self, static_cast<aclFormat>(acl_format));
-        return self;
-    }
-
-    auto [useAclnn, outFormat, StorageShape] = MaybeUseAclnnNpuFormatCast(self, acl_format, customize_dtype,
-                                                                          input_dtype);
-    if (useAclnn == true) {
-        at::Tensor dst = format_cast_impl_out_npu_aclnn(self, outFormat, StorageShape, input_dtype);
-        self.set_(dst.storage(), dst.storage_offset(), dst.sizes(), dst.strides());
-        return self;
-    }
-
-    at::Tensor dst = OpPreparation::ApplyTensorWithFormat(
-        src_desc.base_sizes_, self.options(), acl_format);
-
-    // calculate the output result of the NPU
-    format_cast_impl_out_npu(dst, self);
-
-    // format cast only change physical layout of base tensor and view tensor's
-    // metadata remain unchanged
-    self.set_(dst.storage(), self.storage_offset(), self.sizes(), self.strides());
-
+    c10::optional<int64_t> customize_dtype,
+    c10::optional<int64_t> input_dtype) {
+  torch_npu::utils::torch_check_npu(self);
+  auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_;
+  if (src_desc.npu_format_ == acl_format) {
     return self;
+  }
+  if (FormatHelper::IsBaseFormatType(self) && FormatHelper::IsBaseFormatType(static_cast<aclFormat>(acl_format))) {
+    FormatCastHelper::format_cast_as_base_format(self, static_cast<aclFormat>(acl_format));
+    return self;
+  }
+
+  auto [useAclnn, outFormat, StorageShape] = MaybeUseAclnnNpuFormatCast(self, acl_format, customize_dtype, input_dtype);
+  if (useAclnn == true) {
+    at::Tensor dst = format_cast_impl_out_npu_aclnn(self, outFormat, StorageShape, input_dtype);
+    self.set_(dst.storage(), dst.storage_offset(), dst.sizes(), dst.strides());
+    return self;
+  }
+
+  at::Tensor dst = OpPreparation::ApplyTensorWithFormat(src_desc.base_sizes_, self.options(), acl_format);
+
+  // calculate the output result of the NPU
+  format_cast_impl_out_npu(dst, self);
+
+  // format cast only change physical layout of base tensor and view tensor's
+  // metadata remain unchanged
+  self.set_(dst.storage(), self.storage_offset(), self.sizes(), self.strides());
+
+  return self;
 }
 
-int64_t NPUNativeFunctions::get_npu_format(const at::Tensor& self)
-{
-    torch_npu::utils::torch_check_npu(self);
-    auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_;
-    return src_desc.npu_format_;
+int64_t NPUNativeFunctions::get_npu_format(const at::Tensor& self) {
+  torch_npu::utils::torch_check_npu(self);
+  auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_;
+  return src_desc.npu_format_;
 }
 
-at::Tensor NPUNativeFunctions::_npu_format_cast(const at::Tensor& self, int64_t acl_format)
-{
-    auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_;
-    if (src_desc.npu_format_ == acl_format) {
-        ASCEND_LOGD("no need to do format cast");
-        return self;
-    }
-    if (FormatHelper::IsBaseFormatType(self) &&
-        FormatHelper::IsBaseFormatType(static_cast<aclFormat>(acl_format))) {
-        FormatCastHelper::format_cast_as_base_format(self, static_cast<aclFormat>(acl_format));
-        return self;
-    }
-    auto [useAclnn, outFormat, StorageShape] = MaybeUseAclnnNpuFormatCast(self, acl_format, c10::nullopt, c10::nullopt);
-    if (useAclnn == false) {
-        return npu_format_cast_impl(self, acl_format);
-    }
-    return format_cast_impl_out_npu_aclnn(self, outFormat, StorageShape, c10::nullopt);
+at::Tensor NPUNativeFunctions::_npu_format_cast(const at::Tensor& self, int64_t acl_format) {
+  auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_;
+  if (src_desc.npu_format_ == acl_format) {
+    ASCEND_LOGD("no need to do format cast");
+    return self;
+  }
+  if (FormatHelper::IsBaseFormatType(self) && FormatHelper::IsBaseFormatType(static_cast<aclFormat>(acl_format))) {
+    FormatCastHelper::format_cast_as_base_format(self, static_cast<aclFormat>(acl_format));
+    return self;
+  }
+  auto [useAclnn, outFormat, StorageShape] = MaybeUseAclnnNpuFormatCast(self, acl_format, c10::nullopt, c10::nullopt);
+  if (useAclnn == false) {
+    return npu_format_cast_impl(self, acl_format);
+  }
+  return format_cast_impl_out_npu_aclnn(self, outFormat, StorageShape, c10::nullopt);
 }
 
-at::Tensor NPUNativeFunctions::_npu_format_cast(const at::Tensor& self, int64_t acl_format,
-                                                int64_t customize_dtype)
-{
-    auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_;
-    if (src_desc.npu_format_ == acl_format) {
-        ASCEND_LOGD("no need to do format cast");
-        return self;
-    }
-    if (FormatHelper::IsBaseFormatType(self) &&
-        FormatHelper::IsBaseFormatType(static_cast<aclFormat>(acl_format))) {
-        FormatCastHelper::format_cast_as_base_format(self, static_cast<aclFormat>(acl_format));
-        return self;
-    }
-    auto [useAclnn, outFormat, StorageShape] = MaybeUseAclnnNpuFormatCast(self, acl_format, customize_dtype,
-                                                                          c10::nullopt);
-    if (useAclnn == false) {
-        return npu_format_cast_impl(self, acl_format);
-    }
-    return format_cast_impl_out_npu_aclnn(self, outFormat, StorageShape, c10::nullopt);
+at::Tensor NPUNativeFunctions::_npu_format_cast(const at::Tensor& self, int64_t acl_format, int64_t customize_dtype) {
+  auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_;
+  if (src_desc.npu_format_ == acl_format) {
+    ASCEND_LOGD("no need to do format cast");
+    return self;
+  }
+  if (FormatHelper::IsBaseFormatType(self) && FormatHelper::IsBaseFormatType(static_cast<aclFormat>(acl_format))) {
+    FormatCastHelper::format_cast_as_base_format(self, static_cast<aclFormat>(acl_format));
+    return self;
+  }
+  auto [useAclnn, outFormat, StorageShape] =
+      MaybeUseAclnnNpuFormatCast(self, acl_format, customize_dtype, c10::nullopt);
+  if (useAclnn == false) {
+    return npu_format_cast_impl(self, acl_format);
+  }
+  return format_cast_impl_out_npu_aclnn(self, outFormat, StorageShape, c10::nullopt);
 }
 
-// To avoid compilation errors from op-plugin relying on outdated interfaces, a new overload is added
-at::Tensor NPUNativeFunctions::_npu_format_cast(const at::Tensor& self, int64_t acl_format,
-                                                int64_t customize_dtype, int64_t input_dtype)
-{
-    auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_;
-    if (src_desc.npu_format_ == acl_format) {
-        ASCEND_LOGD("no need to do format cast");
-        return self;
-    }
-    if (FormatHelper::IsBaseFormatType(self) &&
-        FormatHelper::IsBaseFormatType(static_cast<aclFormat>(acl_format))) {
-        FormatCastHelper::format_cast_as_base_format(self, static_cast<aclFormat>(acl_format));
-        return self;
-    }
-    auto [useAclnn, outFormat, StorageShape] = MaybeUseAclnnNpuFormatCast(self, acl_format, customize_dtype,
-                                                                          input_dtype);
-    if (useAclnn == false) {
-        return npu_format_cast_impl(self, acl_format);
-    }
-    return format_cast_impl_out_npu_aclnn(self, outFormat, StorageShape, input_dtype);
+// To avoid compilation errors from op-plugin relying on outdated interfaces, a
+// new overload is added
+at::Tensor NPUNativeFunctions::_npu_format_cast(
+    const at::Tensor& self,
+    int64_t acl_format,
+    int64_t customize_dtype,
+    int64_t input_dtype) {
+  auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_;
+  if (src_desc.npu_format_ == acl_format) {
+    ASCEND_LOGD("no need to do format cast");
+    return self;
+  }
+  if (FormatHelper::IsBaseFormatType(self) && FormatHelper::IsBaseFormatType(static_cast<aclFormat>(acl_format))) {
+    FormatCastHelper::format_cast_as_base_format(self, static_cast<aclFormat>(acl_format));
+    return self;
+  }
+  auto [useAclnn, outFormat, StorageShape] = MaybeUseAclnnNpuFormatCast(self, acl_format, customize_dtype, input_dtype);
+  if (useAclnn == false) {
+    return npu_format_cast_impl(self, acl_format);
+  }
+  return format_cast_impl_out_npu_aclnn(self, outFormat, StorageShape, input_dtype);
 }
 
-at::Tensor NPUNativeFunctions::npu_format_cast(const at::Tensor& self, int64_t acl_format,
-                                               c10::optional<int64_t> customize_dtype,
-                                               c10::optional<int64_t> input_dtype)
-{
-    torch_npu::utils::torch_check_npu(self);
-    // Match aclop behavior for manually set storage tensors whose NPU desc
-    // base shape does not match current logical shape.
-    if (ShouldFallbackNzToNd(self, acl_format)) {
-        acl_format = ACL_FORMAT_ND;
+at::Tensor NPUNativeFunctions::npu_format_cast(
+    const at::Tensor& self,
+    int64_t acl_format,
+    c10::optional<int64_t> customize_dtype,
+    c10::optional<int64_t> input_dtype) {
+  torch_npu::utils::torch_check_npu(self);
+  // Match aclop behavior for 910B/910C manually set storage tensors whose
+  // NPU desc base shape does not match current logical shape.
+  if (IsAclnnFormatCastSupported() && IsAclnnNpuFormatCastExist() && ShouldFallbackNzToNd(self, acl_format)) {
+    acl_format = ACL_FORMAT_ND;
+  }
+  if (NPUNativeFunctions::get_npu_format(self) == acl_format) {
+    ASCEND_LOGD("no need to do format cast");
+    return self;
+  }
+  if (input_dtype.has_value()) {
+    if (customize_dtype.has_value()) {
+      return custom_ops::_npu_format_cast(self, acl_format, customize_dtype.value(), input_dtype.value());
     }
-    if (NPUNativeFunctions::get_npu_format(self) == acl_format) {
-        ASCEND_LOGD("no need to do format cast");
-        return self;
+    return custom_ops::_npu_format_cast(self, acl_format, input_dtype.value(), input_dtype.value());
+  } else {
+    if (customize_dtype.has_value()) {
+      return custom_ops::_npu_format_cast(
+          self, acl_format, customize_dtype.value(), static_cast<int64_t>(self.scalar_type()));
     }
-    if (input_dtype.has_value()) {
-        if (customize_dtype.has_value()) {
-            return custom_ops::_npu_format_cast(self, acl_format, customize_dtype.value(), input_dtype.value());
-        }
-        return custom_ops::_npu_format_cast(self, acl_format, input_dtype.value(), input_dtype.value());
-    } else {
-        if (customize_dtype.has_value()) {
-            return custom_ops::_npu_format_cast(self, acl_format, customize_dtype.value(),
-                                                static_cast<int64_t>(self.scalar_type()));
-        }
-        return custom_ops::_npu_format_cast(self, acl_format);
-    }
+    return custom_ops::_npu_format_cast(self, acl_format);
+  }
 }
 
 } // namespace native

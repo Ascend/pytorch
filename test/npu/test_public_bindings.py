@@ -525,23 +525,12 @@ class TestPublicBindings(TestCase):
             "torch._inductor.kernel.vendored_templates.cutedsl.dense_blockscaled_gemm_persistent",  # depends on cutlass
             "torch._inductor.kernel.vendored_templates.cutedsl.wrappers",  # depends on cutlass_api
             "torch._inductor.kernel.vendored_templates.cutedsl.wrappers.dense_blockscaled_gemm_kernel",  # depends on cutlass_api
+            "torch._native.ops.foreach_mm.nvmath_impl",  # depends on nvmath (CUDA-only)
             "torch._native.ops.scatter_add._ptx",  # depends on cutlass
             "torch._native.ops.scatter_add.tma_kernel",  # depends on cutlass
             "torch._native.ops.scatter_add.vec_scatter_kernel",  # depends on cutlass
-            # The vendored quack package __init__ eager-imports rmsnorm, which
-            # pulls in cutlass; importing the package or any of its submodules
-            # fails when cutlass is unavailable (e.g. on NPU CI).
-            "torch._vendor.quack",
-            "torch._vendor.quack.cache_utils",
-            "torch._vendor.quack.compile_utils",
-            "torch._vendor.quack.copy_utils",
-            "torch._vendor.quack.cute_dsl_utils",
-            "torch._vendor.quack.layout_utils",
-            "torch._vendor.quack.reduce",
-            "torch._vendor.quack.reduction_base",
-            "torch._vendor.quack.rmsnorm",
-            "torch._vendor.quack.rounding",
-            "torch._vendor.quack.utils",
+            "torch._native.ops.topk.cutedsl_kernels",  # depends on cutedsl (CUDA-only)
+            # torch._vendor.quack is handled by a prefix skip below.
             "torch.ao.pruning._experimental.data_sparsifier.lightning.callbacks.data_sparsity",
             "torch.backends._coreml.preprocess",
             "torch.contrib._tensorboard_vis",
@@ -636,14 +625,14 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.runtime",
             "torch_npu._inductor.utils",
             "torch_npu._inductor.codegen._sizevars",
-            "torch_npu._inductor.codegen.cpp_wrapper",
+            "torch_npu._inductor.codegen.cpp_wrapper_npu",
             "torch_npu._inductor.codegen.ir",
             "torch_npu._inductor.codegen.ir_fx",
             "torch_npu._inductor.codegen.kernel_analysis",
             "torch_npu._inductor.codegen.npu_kernel_features",
             "torch_npu._inductor.codegen.scheduling",
             "torch_npu._inductor.codegen.split_tiling",
-            "torch_npu._inductor.codegen.tile_generator",
+            "torch_npu._inductor.runtime.tile_generator",
             "torch_npu._inductor.codegen.triton",
             "torch_npu._inductor.codegen.triton_utils",
             "torch_npu._inductor.codegen.cpp_utils",
@@ -683,6 +672,31 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch.ir",
             "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch.lowering",
             "torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch.scheduler",
+            "torch_npu._inductor.dvm",
+            "torch_npu._inductor.dvm.config",
+            "torch_npu._inductor.dvm.template",
+            "torch_npu._inductor.dvm.decomp",
+            "torch_npu._inductor.dvm.fx_pass",
+            "torch_npu._inductor.dvm.fx_test",
+            "torch_npu._inductor.dvm.graph_build",
+            "torch_npu._inductor.dvm.graph_fusion",
+            "torch_npu._inductor.dvm.mlir_fusion",
+            "torch_npu._inductor.dvm.op_emitter",
+            "torch_npu._inductor.triton_experimental",
+            "torch_npu._inductor.triton_experimental.config",
+            "torch_npu._inductor.triton_experimental.device",
+            "torch_npu._inductor.triton_experimental.device_props",
+            "torch_npu._inductor.triton_experimental.fx_passes",
+            "torch_npu._inductor.triton_experimental.ir",
+            "torch_npu._inductor.triton_experimental.lowering",
+            "torch_npu._inductor.triton_experimental.lowering_override_list",
+            "torch_npu._inductor.triton_experimental.npu_triton_helpers",
+            "torch_npu._inductor.triton_experimental.npu_triton_heuristics",
+            "torch_npu._inductor.triton_experimental.overrides",
+            "torch_npu._inductor.triton_experimental.codegen",
+            "torch_npu._inductor.triton_experimental.codegen.npu_header",
+            "torch_npu._inductor.triton_experimental.codegen.triton",
+            "torch_npu._inductor.triton_experimental.codegen.wrapper",
         }
 
         # No new entries should be added to this list.
@@ -725,6 +739,66 @@ class TestPublicBindings(TestCase):
             "torch.ao.quantization.experimental.linear",
             "torch.ao.quantization.experimental.observer",
             "torch.ao.quantization.experimental.qconfig",
+            "torch_npu._inductor.runtime.fasta_autotune",
+            "torch_npu._inductor.profiler",
+            "torch_npu._inductor.kernel.flex_attention",
+            "torch_npu._inductor.fx_passes.parallel_scheduler_pass",
+            "torch_npu._inductor.fx_passes.parallelism_strategy_base",
+            "torch_npu._inductor.fx_passes.parallelism_strategy_cv",
+            "torch_npu._inductor.fx_passes.parallelism_strategy_default",
+            "torch_npu._inductor.fx_passes.parallelism_strategy_framework",
+            "torch_npu._inductor.fx_passes.utils.schedule_node_utils",
+            "torch_npu._inductor.fx_passes.pattern_match",
+            "torch_npu._inductor.fx_passes.pattern_match.npu_fusion_attention_graph",
+            "torch_npu._inductor.fx_passes",
+            "torch_npu._inductor.fx_passes.graph_match_pass",
+            "torch_npu._inductor.fx_passes.joint_graph",
+            "torch_npu._inductor.fx_passes.post_grad",
+            "torch_npu._inductor.fx_passes.ascend_custom_passes",
+            "torch_npu._inductor.lowering_fallback_list",
+            "torch_npu._inductor.lowering_override_list",
+            "torch_npu._inductor.shape_handling",
+            "torch_npu._inductor.scheduler",
+            "torch_npu._inductor.select_algorithm",
+            "torch_npu._inductor.codegen.npu_combined_scheduling",
+            "torch_npu._inductor.codegen.catlass",
+            "torch_npu._inductor.codegen.catlass.catlass_kernel",
+            "torch_npu._inductor.codegen.catlass.catlass_library",
+            "torch_npu._inductor.codegen.catlass.catlass_library.evg",
+            "torch_npu._inductor.codegen.catlass.catlass_library.evg.evg_definition",
+            "torch_npu._inductor.codegen.catlass.catlass_library.evg.node",
+            "torch_npu._inductor.codegen.catlass.catlass_library.evg.node_impl",
+            "torch_npu._inductor.codegen.catlass.catlass_library.evg_extension",
+            "torch_npu._inductor.codegen.catlass.catlass_library.gemm_autotune",
+            "torch_npu._inductor.codegen.catlass.catlass_library.gemm_operation",
+            "torch_npu._inductor.codegen.catlass.catlass_library.generator",
+            "torch_npu._inductor.codegen.catlass.catlass_library.library",
+            "torch_npu._inductor.codegen.catlass.catlass_library.manifest",
+            "torch_npu._inductor.codegen.catlass.catlass_python_evg",
+            "torch_npu._inductor.codegen.catlass.catlass_scheduling",
+            "torch_npu._inductor.codegen.catlass.catlass_template",
+            "torch_npu._inductor.codegen.catlass.catlass_utils",
+            "torch_npu._inductor.codegen.catlass.gemm_template",
+            "torch_npu._inductor.codegen.npu",
+            "torch_npu._inductor.codegen.npu.device_op_overrides",
+            "torch_npu._inductor.kernel",
+            "torch_npu._inductor.kernel.bmm",
+            "torch_npu._inductor.kernel.mm",
+            "torch_npu._inductor.kernel.mm_grouped",
+            "torch_npu._inductor.runtime",
+            "torch_npu._inductor.runtime.autotune_cache",
+            "torch_npu._inductor.runtime.hints",
+            "torch_npu._inductor.runtime.triton_helpers",
+            "torch_npu._inductor.runtime.triton_heuristics",
+            "torch_npu._inductor.tools",
+            "torch_npu._inductor.tools.aten_op_tool",
+            "torch_npu._inductor.tools.fallback_list_tool",
+            "torch_npu._inductor.codegen.triton_combo_kernel",
+            "torch_npu._inductor.codegen.common",
+            "torch_npu._inductor.async_compile",
+            "torch_npu._inductor.autotune_process",
+            "torch_npu._inductor.choices",
+            "torch_npu._inductor.dependencies",
         }
 
         errors = []
@@ -741,6 +815,14 @@ class TestPublicBindings(TestCase):
 
             # Skip torchair submodules that may fail to import in CI environments
             if mod.startswith("torch_npu.dynamo.torchair"):
+                continue
+
+            # Skip the whole vendored quack package, this package requires cuda
+            if mod.startswith("torch._vendor.quack"):
+                continue
+
+            # Skip the CUPTI python bindings, which require a CUDA/CUPTI runtime
+            if mod.startswith("torch.profiler._cupti"):
                 continue
 
             errors.append(f"{mod} failed to import with error {excep_type}")

@@ -6,7 +6,7 @@
 namespace torch_npu {
 namespace afd {
 
-TORCH_NPU_API PyMethodDef *python_functions();
+TORCH_NPU_API PyMethodDef* python_functions();
 
 } // namespace afd
 } // namespace torch_npu

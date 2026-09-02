@@ -22,35 +22,34 @@
 namespace at_npu {
 namespace native {
 
-int64_t get_npu_format(const at::Tensor& self)
-{
-    return NPUNativeFunctions::get_npu_format(self);
+int64_t get_npu_format(const at::Tensor& self) {
+  return NPUNativeFunctions::get_npu_format(self);
 }
 
-std::vector<int64_t> get_npu_storage_sizes(const at::Tensor& self)
-{
-    torch_npu::utils::torch_check_npu(self);
-    auto storage_sizes = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.storage_sizes_;
-    std::vector<int64_t> vec_storage_sizes(storage_sizes.begin(), storage_sizes.end());
-    return vec_storage_sizes;
+std::vector<int64_t> get_npu_storage_sizes(const at::Tensor& self) {
+  torch_npu::utils::torch_check_npu(self);
+  auto storage_sizes = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.storage_sizes_;
+  std::vector<int64_t> vec_storage_sizes(storage_sizes.begin(), storage_sizes.end());
+  return vec_storage_sizes;
 }
 
-at::Tensor npu_format_cast(const at::Tensor& self, int64_t acl_format)
-{
-    return NPUNativeFunctions::npu_format_cast(self, acl_format);
+at::Tensor npu_format_cast(const at::Tensor& self, int64_t acl_format) {
+  return NPUNativeFunctions::npu_format_cast(self, acl_format);
 }
 
-at::Tensor empty_with_format(c10::IntArrayRef sizes, const c10::TensorOptions& options,
-                             int64_t format, bool keep_format)
-{
-    return OpPreparation::ApplyTensorWithFormat(sizes, options, format, keep_format);
+at::Tensor empty_with_format(
+    c10::IntArrayRef sizes,
+    const c10::TensorOptions& options,
+    int64_t format,
+    bool keep_format) {
+  return OpPreparation::ApplyTensorWithFormat(sizes, options, format, keep_format);
 }
 
-at::Tensor empty_with_swapped_memory(c10::IntArrayRef size,
-                                     c10::optional<at::ScalarType> dtype_opt,
-                                     c10::optional<c10::Device> device_opt)
-{
-    return NPUNativeFunctions::empty_with_swapped_memory(size, dtype_opt, device_opt);
+at::Tensor empty_with_swapped_memory(
+    c10::IntArrayRef size,
+    c10::optional<at::ScalarType> dtype_opt,
+    c10::optional<c10::Device> device_opt) {
+  return NPUNativeFunctions::empty_with_swapped_memory(size, dtype_opt, device_opt);
 }
 
 } // namespace native

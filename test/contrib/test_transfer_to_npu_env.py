@@ -103,9 +103,12 @@ class TestTransferToNpu(TestCase):
         self.assertEqual(device.type, 'meta')
 
     def test_set_default_device(self):
-        torch.set_default_device("cuda")
-        a = torch.tensor(1)
-        self.assertEqual(a.device.type, 'npu')
+        try:
+            torch.set_default_device("cuda")
+            a = torch.tensor(1)
+            self.assertEqual(a.device.type, 'npu')
+        finally:
+            torch.set_default_device(None)
 
     def test_device_context(self):
         device = torch.device('cuda')

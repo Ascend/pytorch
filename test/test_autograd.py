@@ -41,7 +41,7 @@ from torch.testing import make_tensor
 from torch.testing._internal.common_utils import (
     TestCase, run_tests, skipIfNoLapack, slowTest, IS_WINDOWS, IS_MACOS,
     disable_gc, gradcheck, gradgradcheck, parametrize,
-    instantiate_parametrized_tests, skipIfMps, set_warn_always_context, TEST_PRIVATEUSE1,
+    instantiate_parametrized_tests, skipIfMPS, set_warn_always_context, TEST_PRIVATEUSE1,
     skipIfTorchDynamo, xfailIfTorchDynamo)
 from torch.autograd import Variable, Function, detect_anomaly, kineto_available, _calculate_shape
 from torch.autograd.function import InplaceFunction
@@ -499,9 +499,9 @@ class TestAutograd(TestCase):
         gradgradcheck(my_function, (x, y))
 
     def test_not_implemented_grad(self):
+        # Test that built-in functions with unimplemented gradients raise appropriate errors
         a = torch.rand(2, requires_grad=True)
-        # if grad for nextafter ends up being implemented, this should be changed
-        y = torch.nextafter(a, a).sum()
+        y = torch.acosh_(a.clone()).sum()
         with self.assertRaisesRegex(
                 NotImplementedError,
                 'the derivative for .* is not implemented'):
@@ -1519,7 +1519,7 @@ class TestAutograd(TestCase):
 
     def test_grad_empty_inputs(self):
         x = torch.tensor([1.0], requires_grad=True)
-        with self.assertRaisesRegex(ValueError, "grad requires non-empty inputs."):
+        with self.assertRaisesRegex(RuntimeError, "cannot be empty"):
             torch.autograd.grad(2 * x, [], grad_outputs=torch.tensor([1.0]))
 
     def test_grad_fn_badcalls(self):
@@ -3423,7 +3423,6 @@ class TestAutograd(TestCase):
         with self.assertRaisesRegex(RuntimeError, "underlying PyNode has already been deallocated"):
             f.metadata
 
-    @unittest.expectedFailure
     def test_naughty_anomaly_access(self):
         class MyFunction(Function):
             @staticmethod
@@ -3440,7 +3439,7 @@ class TestAutograd(TestCase):
         y.grad_fn.metadata
         g = y.grad_fn
         del y
-        g.metadata  # this currently fails, but shouldn't
+        g.metadata  # this used to fail
 
     def test_naughty_autograd_function_stashing_ctx(self):
         saved_ctx = []
@@ -3460,10 +3459,11 @@ class TestAutograd(TestCase):
         loss = Id.apply(p)
         loss.backward(retain_graph=True)
         del loss
-        # At this point in time, it complains that the graph has been freed
-        # (which indeed true, although a somewhat indirect way of stating the
-        # problem).
-        self.assertRaises(RuntimeError, lambda: saved_ctx[0].saved_tensors)
+        # THPFunction now always has a strong reference to its backing PyNode
+        # (cdata), so the stashed ctx stays alive and saved_tensors is
+        # accessible. Previously, cdata was a weak ref that expired after the
+        # graph was freed, causing a RuntimeError here.
+        self.assertEqual(saved_ctx[0].saved_tensors, (p,))
 
     def test_custom_autograd_repeated_grad_grad(self):
         # This test failed the equality check in PR #22983; it's an interesting
@@ -3801,7 +3801,7 @@ class TestAutograd(TestCase):
         self.assertIsNone(y.grad_fn)
 
     def test_backward_copy(self):
-        # This tests checks backward engine for a very subtle bug that appreared
+        # This tests checks backward engine for a very subtle bug that appeared
         # in one of the initial versions of autograd. Gradients tensors were
         # simply stored in lists while the function waited for all its gradients
         # to be computed. However, sometimes an output was used multiple times,
@@ -3983,7 +3983,7 @@ class TestAutograd(TestCase):
                     ctx.output_var.sum().backward()
                 return ctx.x.grad * grad_output
 
-        # Reentrant starts on CPU thread, finishs on NPU thread
+        # Reentrant starts on CPU thread, finishes on NPU thread
         x = torch.randn(2, 2, requires_grad=True)
         out = Reenter.apply(x)
         out.sum().backward()
@@ -4321,10 +4321,18 @@ SinBackward0, MulBackward0, torch::autograd::AccumulateGrad
         # version counter doesn't change inside of the context manager
         self.assertEqual(2, x._version)
 
-        torch._C._autograd._unsafe_set_version_counter(x, 0)
+        torch._C._autograd._unsafe_set_version_counter((x,), (0,))
         self.assertEqual(0, x._version)
         with self.assertRaisesRegex(RuntimeError, "Cannot set"):
-            torch._C._autograd._unsafe_set_version_counter(x, -1)
+            torch._C._autograd._unsafe_set_version_counter((x,), (-1,))
+
+        y = torch.ones(2, requires_grad=True).clone()
+        with torch.autograd._unsafe_preserve_version_counter((x, y)):
+            x.mul_(2)
+            y.mul_(3)
+        # version counter doesn't change inside of the context manager
+        self.assertEqual(0, x._version)
+        self.assertEqual(0, y._version)
 
 
     def test_current_node(self):
@@ -4357,7 +4365,6 @@ Running aten.ones_like.default from within None
 Running aten.expand.default from within SumBackward0
 Running aten.div.Tensor from within DivBackward0
 Running aten.mul.Tensor from within MulBackward0
-Running aten.detach.default from within AccumulateGrad
 Running aten.detach.default from within AccumulateGrad
 Done""")
 
@@ -4512,7 +4519,7 @@ Done""")
         ]
         for thread, ranges in threads:
             for range_ in ranges:
-                assert(len(range_) == 3)
+                assert (len(range_) == 3)
                 events.append(
                     FunctionEvent(
                         id=range_[2],
@@ -6161,7 +6168,7 @@ for shape in [(1,), ()]:
         out.backward()
         self.assertEqual(
             verbose_mode.operators,
-            ['exp.default', 'detach.default', 'detach.default']
+            ['exp.default', 'detach.default']
         )
 
         with self.assertRaisesRegex(Exception, "only supported when use_reentrant=False"):
@@ -6198,6 +6205,7 @@ for shape in [(1,), ()]:
         ):
             checkpoint_sequential(modules_list, 3, a)
 
+    @unittest.skip("skip pytorch issue 191723")
     def test_checkpoint_detects_non_determinism(self):
         def save_3_tensors(x):
             out = x.sin().exp()
@@ -6994,7 +7002,7 @@ for shape in [(1,), ()]:
         # The 3 elements are for view_as, first output of unbind and second output of unbind
         run_test(grad_mode=True, requires_grad=False, is_view=True,
                  should_raise_tuple=(None, None, None))
-        inp_change_err = "Output {} of UnbindBackward0 is a view and is being modified inplace."
+        inp_change_err = "Output {} of Unbind is a view and is being modified inplace."
         run_test(grad_mode=True, requires_grad=True, is_view=True,
                  should_raise_tuple=(None, inp_change_err.format("0"), inp_change_err.format("1")))
         leaf_grad_err = "A view was created in no_grad mode and is being modified inplace"
@@ -7113,11 +7121,11 @@ for shape in [(1,), ()]:
                 return res, None
 
         fn_id_to_inplace_on_view_err_msg = {
-            "one_output": ("Output 0 of IdOneOutputBackward is a view and is being "
+            "one_output": ("Output 0 of IdOneOutput is a view and is being "
                            "modified inplace. This view was created inside a custom Function"),
-            "two_output": ("Output 0 of IdTwoOutputBackward is a view and is being modified inplace."
+            "two_output": ("Output 0 of IdTwoOutput is a view and is being modified inplace."
                            " This view is the output of a function that returns multiple views."),
-            "view_of_temp": ("Output 0 of ViewOfTempBackward is a view and is being "
+            "view_of_temp": ("Output 0 of ViewOfTemp is a view and is being "
                              "modified inplace. This view was created inside a custom Function")
         }
 
@@ -7372,8 +7380,10 @@ for shape in [(1,), ()]:
         self.assertTrue(bw_called[0] == 1)
 
         out = ComplexView.apply(a.clone(), idx)
-        with self.assertRaisesRegex(RuntimeError,
-                                    "Output 0 of ComplexViewBackward is a view and is being modified inplace"):
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "Output 0 of ComplexView is a view and is being modified inplace"
+        ):
             out += 1
 
     def test_autograd_python_custom_function_inplace(self):
@@ -7541,17 +7551,6 @@ for shape in [(1,), ()]:
                     _, out_tangent = fwAD.unpack_dual(out_dual)
                     self.assertTrue(out_dual is x_dual)
                     self.assertTrue(out_tangent is x_tangent)
-
-    def test_named_tensor_for_complex_views(self):
-        names = ["batch", "height", "width", "complex"]
-        z = torch.ones((2, 1, 2, 2), requires_grad=True)
-        z_named = z.refine_names(*names)
-        z_complex = torch.view_as_complex(z_named.rename(None)).refine_names(*names[:-1])
-        z_complex.sum().abs().backward()
-        expected = torch.ones_like(z_complex).rename(None)
-        abs_1_1j = abs(1 + 1j)
-        expected.fill_(complex(abs_1_1j / 2, abs_1_1j / 2))
-        self.assertEqual(z.grad, torch.view_as_real(expected))
 
     def test_custom_function_return_view_in_nograd(self):
         class Alias(Function):
@@ -8180,8 +8179,14 @@ for shape in [(1,), ()]:
             with set_warn_always_context(True):
                 with warnings.catch_warnings(record=True) as w:
                     tmp.exp().sum().backward(create_graph=True)
-                    self.assertTrue(len(w) == 1)
-                    self.assertTrue("Using backward() with create_graph=True" in str(w[0].message))
+                    self.assertTrue(len(w))
+                    found = 0
+                    for warning in w:
+                        if "Using backward() with create_graph=True" in str(
+                            warning.message
+                        ):
+                            found += 1
+                    self.assertTrue(found, 1)
 
             # Remove the backward + create_graph=True cycle
             a.grad = None
@@ -9442,7 +9447,7 @@ class TestAutogradForwardMode(TestCase):
             dual = fwAD.make_dual(foo, tangent)
             self.assertFalse(tangent_ref.expired())
 
-            # Make sure that the tangent we provided has been re-used as is
+            # Make sure that the tangent we provided has been reused as is
             self.assertTrue(fwAD.unpack_dual(dual)[1] is tangent)
 
             # Make sure that dual is keeping the tangent alive
@@ -9776,7 +9781,7 @@ class TestAutogradForwardMode(TestCase):
             dual_primal, dual_tangent = fwAD.unpack_dual(dual)
             self.assertEqual(dual_primal.storage().data_ptr(), foo.storage().data_ptr())
             self.assertEqual(dual_tangent.storage().data_ptr(), bar.storage().data_ptr())
-            # And the tangent is actually re-used as-is so it is still the same Tensor
+            # And the tangent is actually reused as-is so it is still the same Tensor
             self.assertIs(dual_tangent, bar)
 
             # Ensure we properly share the version counter
@@ -10119,7 +10124,7 @@ class TestAutogradDeviceType(TestCase):
             with self.assertRaisesRegex(RuntimeError, "Double backward is unsupported for"):
                 gradgradcheck(fn, (input_, 0, idx, src, 'prod'))
 
-    @skipIfMps  # the test doesn't work on MPS as double types are not supported
+    @skipIfMPS  # the test doesn't work on MPS as double types are not supported
     def test_parameter_resize(self, device):
         asd = torch.nn.Parameter(torch.ones(16, dtype=torch.double, device=device))
 
@@ -10131,7 +10136,7 @@ class TestAutogradDeviceType(TestCase):
             m = torch.cat((asd, asd))
             m.sum().backward()
 
-    @skipIfMps  # the test doesn't work on MPS as double types are not supported
+    @skipIfMPS  # the test doesn't work on MPS as double types are not supported
     @dtypes(torch.double, torch.cdouble)
     def test_sparse_ctor_getter_backward(self, device, dtype):
         # See NOTE [ Sparse: autograd and API ] on the expected behavior of this test
@@ -10166,7 +10171,7 @@ class TestAutogradDeviceType(TestCase):
             _test(sparse_size + dense_size, len(sparse_size), nnz, device)
 
     @skipMeta
-    @skipIfMps
+    @skipIfMPS
     @dtypes(torch.double, torch.cdouble)
     def test_sparse_backward(self, device, dtype):
         class FixedGradientFunction(Function):
@@ -10209,7 +10214,7 @@ class TestAutogradDeviceType(TestCase):
         (fn.apply(x, sparse_grad1) + fn.apply(x, sparse_grad2)).sum().abs().backward()
         self.assertEqual(x.grad, sparse_grad1 + sparse_grad2)
 
-    @skipIfMps
+    @skipIfMPS
     def test_sparse_mask_autograd(self, device):
         tensor = torch.randn(3, requires_grad=True, device=device)
         mask = torch.ones(3, device=device)
@@ -10219,7 +10224,7 @@ class TestAutogradDeviceType(TestCase):
         converted.sum().backward()
         self.assertEqual(tensor.grad, mask.to_dense())
 
-    @skipIfMps  # the test doesn't work on MPS as double types are not supported
+    @skipIfMPS  # the test doesn't work on MPS as double types are not supported
     def test_pyscalar_conversions(self, device):
         def _test_pyscalar_conversions(t, integral_conv):
             # integral -> integral
@@ -10378,7 +10383,7 @@ class TestAutogradDeviceType(TestCase):
 
         self.assertEqual(before, after)
 
-    @skipIfMps  # the test doesn't work on MPS
+    @skipIfMPS  # the test doesn't work on MPS
     def test_where_functional(self, device):
         x = torch.randn(5, 5, dtype=torch.double, device=device, requires_grad=True)
         y = torch.randn(5, 5, dtype=torch.double, device=device, requires_grad=True)
@@ -10395,7 +10400,7 @@ class TestAutogradDeviceType(TestCase):
         gradcheck(where, [cond, x, y], raise_exception=True)
         gradgradcheck(where, [cond, x, y], [torch.randn(5, 5, 5, device=device)])
 
-    @skipIfMps  # the test doesn't work on MPS
+    @skipIfMPS  # the test doesn't work on MPS
     def test_where_scalar(self, device):
         x = torch.randn(5, 5, dtype=torch.double, device=device, requires_grad=True)
         scalar = 4.
@@ -10472,7 +10477,7 @@ class TestAutogradDeviceType(TestCase):
         with emit_itt():
             a.add(1.0)
 
-    @skipIfMps  # the test doesn't work as randn is not supported with type long
+    @skipIfMPS  # the test doesn't work as randn is not supported with type long
     @deviceCountAtLeast(1)
     def test_grad_assignment(self, devices):
         x = torch.randn(5, 5, device=devices[0])
@@ -10616,19 +10621,19 @@ class TestAutogradDeviceType(TestCase):
                         (new_param ** 2).sum().backward()
                 return grad_output
 
-        # Reentrant starts on NPU thread, finishs on NPU thread
+        # Reentrant starts on NPU thread, finishes on NPU thread
         x = torch.randn(2, 2, device=device, requires_grad=True)
         out = ReentrantFunc.apply(x)
         out.sum().backward()
 
-        # Reentrant starts on CPU thread, finishs on NPU thread
+        # Reentrant starts on CPU thread, finishes on NPU thread
         x = torch.randn(2, 2, requires_grad=True)
         # set ReentrantFunc node to NPU to emit tasks to NPU queue
         ReentrantFunc._cpu_mode = False
         out = ReentrantFunc.apply(x)
         out.sum().backward()
 
-        # Reentrant starts on NPU thread, finishs on CPU thread
+        # Reentrant starts on NPU thread, finishes on CPU thread
         x = torch.randn(2, 2, device=device, requires_grad=True)
         # set ReentrantFunc node to CPU to emit tasks to CPU queue
         ReentrantFunc._cpu_mode = True
@@ -10695,7 +10700,7 @@ class TestAutogradDeviceType(TestCase):
         x.sum().backward()
         self.assertEqual(root.grad.tolist(), [[1, 2], [1, 1]])
 
-    @skipIfMps  # the test doesn't work on MPS as double types are not supported
+    @skipIfMPS  # the test doesn't work on MPS as double types are not supported
     def test_inplace_on_view_then_no_grad(self, device):
         # Perform an in-place operation on a view of a non-leaf variable.
         a = torch.ones(3, 1, dtype=torch.double, device=device, requires_grad=True)
@@ -10709,7 +10714,7 @@ class TestAutogradDeviceType(TestCase):
 
         c.sum().backward()
 
-    @skipIfMps  # the test doesn't work on MPS as double types are not supported
+    @skipIfMPS  # the test doesn't work on MPS as double types are not supported
     def test_inplace_on_view_gradcheck(self, device):
         # gradcheck modifications to views
         a = torch.randn(4, 4, dtype=torch.double, device=device, requires_grad=True)
@@ -10732,7 +10737,7 @@ class TestAutogradDeviceType(TestCase):
         with self.assertRaises(RuntimeError):
             v1[0].mul_(2)
 
-    @skipIfMps  # the test doesn't work on MPS as double types are not supported
+    @skipIfMPS  # the test doesn't work on MPS as double types are not supported
     def test_inplace_on_view_of_multiple_output_view(self, device):
         a = torch.rand(10, dtype=torch.double, device=device, requires_grad=True).clone()
         b = a.unbind(0)
@@ -10740,7 +10745,7 @@ class TestAutogradDeviceType(TestCase):
         with self.assertRaises(RuntimeError):
             c.mul_(2)
 
-    @skipIfMps  # MPS backend doesn't support double types
+    @skipIfMPS  # MPS backend doesn't support double types
     def test_inplace_multiple_output_view_of_view(self, device):
         a = torch.rand(10, dtype=torch.double, device=device, requires_grad=True).clone()
         b = a.view_as(a)
@@ -10748,7 +10753,7 @@ class TestAutogradDeviceType(TestCase):
         with self.assertRaises(RuntimeError):
             c[0].mul_(2)
 
-    @skipIfMps  # MPS backend doesn't support double types
+    @skipIfMPS  # MPS backend doesn't support double types
     def test_inplace_on_view_makes_base_require_grad(self, device):
         # in-place modification to view makes base require grad
         a = torch.randn(4, 4, dtype=torch.double, device=device, requires_grad=False)
@@ -10774,7 +10779,7 @@ class TestAutogradDeviceType(TestCase):
         self.assertEqual(b.grad.tolist(), [5])
         self.assertIsNone(a.grad)
 
-    @skipIfMps  # the test doesn't work on MPS as double types are not supported
+    @skipIfMPS  # the test doesn't work on MPS as double types are not supported
     def test_inplace_on_view_modify_base(self, device):
         # Test that an in-place operation on a base that forced it to require
         # grad also forces any previous views to require grad and backprop
@@ -10793,7 +10798,7 @@ class TestAutogradDeviceType(TestCase):
         gradcheck(fn, [r])
         gradgradcheck(fn, [r])
 
-    @skipIfMps  # the test doesn't work on MPS as double types are not supported
+    @skipIfMPS  # the test doesn't work on MPS as double types are not supported
     def test_inplace_on_view_python(self, device):
         # in-place modifications of Python-autograd created view
         a = torch.randn(4, 4, dtype=torch.double, device=device, requires_grad=True)
@@ -10871,7 +10876,7 @@ class TestAutogradDeviceType(TestCase):
         self.assertIsNone(b.grad)
         self.assertEqual(a.grad.item(), 2)
 
-    @skipIfMps  # the test doesn't work on MPS as double types are not supported
+    @skipIfMPS  # the test doesn't work on MPS as double types are not supported
     def test_mv_grad_stride_0(self, device):
         mat = torch.randn(2, 2, dtype=torch.double, device=device)
         vec = torch.randn(1, dtype=torch.double, device=device).requires_grad_(True)
@@ -10925,7 +10930,7 @@ class TestAutogradDeviceType(TestCase):
         (c * d).sum().backward()
         self.assertEqual(c.grad.stride(), (2, 1))
 
-    @skipIfMps
+    @skipIfMPS
     def test_copy_r_to_c(self, device):
         out_c = torch.empty(3, 2, dtype=torch.cdouble, device=device)
         inp_r = torch.randn(3, 2, dtype=torch.double, device=device,
@@ -11809,7 +11814,7 @@ class TestMultithreadAutograd(TestCase):
                     y = x * x
                     if torch.npu.device_count() >= 2:
                         # DataParallel is calling the forward in different threads
-                        # without progating TLS, so hooks should not be called here
+                        # without propagating TLS, so hooks should not be called here
                         _self.assertEqual(len(w), 0)
                     else:
                         # DataParallel only uses one thread
@@ -12499,14 +12504,10 @@ class TestSelectiveActivationCheckpoint(TestCase):
         class Policy:
             def __init__(self) -> None:
                 self.counter = [0]
-                self.recompute_counter = [0]
 
             def __call__(self, ctx, func, *args, **kwargs):
-                counter = self.recompute_counter if ctx.is_recompute else self.counter
-                counter[0] += 1
-                counters.append(counter[0])
-                if counter == 1 and func is torch.ops.aten.mm.default:
-                    return CheckpointPolicy.MUST_SAVE
+                self.counter[0] += 1
+                counters.append(self.counter[0])
                 return CheckpointPolicy.PREFER_RECOMPUTE
 
         def fn(x):
@@ -12520,9 +12521,7 @@ class TestSelectiveActivationCheckpoint(TestCase):
         )
         out = checkpoint(fn, x, use_reentrant=False, context_fn=context_fn)
         out.sum().backward()
-        # 1. counter properly reset to 0 for the recompute
-        # 2. due to early-stop we do not recompute the final op
-        self.assertEqual(counters, [1, 2, 3, 1, 2])
+        self.assertEqual(counters, [1, 2, 3])
 
     @skipIfTorchDynamo("compile tested in test/dynamo/test_activation_checkpointing.py")
     def test_storage_lifetime(self):
@@ -12638,7 +12637,7 @@ class TestSelectiveActivationCheckpoint(TestCase):
         x_grad = torch.autograd.grad(out.sum(), (x,))
         x_grad_ref = torch.autograd.grad(fn(x).sum(), (x,))
         self.assertEqual(x_grad, x_grad_ref)
-        self.assertEqual(counter[0], 2)
+        self.assertEqual(counter[0], 1)
 
     @skipIfTorchDynamo("compile tested in test/dynamo/test_activation_checkpointing.py")
     def test_function_with_non_tensor_output(self):

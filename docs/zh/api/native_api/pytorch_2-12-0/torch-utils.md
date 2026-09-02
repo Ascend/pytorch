@@ -1,0 +1,63 @@
+# torch.utils
+
+> [!NOTE]
+>
+> - API的**支持情况**中，✔表示API支持在对应硬件环境上运行，✘表示暂不支持。<br>
+> - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
+> - 部分API虽在[PyTorch社区文档](https://pytorch.org/docs/2.12/)中存在，但未收录于本支持清单。此类API尚未验证，请谨慎使用。我们将持续进行验证工作，并在验证完成后更新文档。
+> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
+> - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://pytorch.org/docs/2.12/utils.html)。
+
+<div style="display:none;">
+
+## &#8203;torch.utils
+
+</div>
+
+### torch.utils.rename_privateuse1_backend
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.utils.rename_privateuse1_backend](https://pytorch.org/docs/2.12/generated/torch.utils.rename_privateuse1_backend.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+### torch.utils.generate_methods_for_privateuse1_backend
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.utils.generate_methods_for_privateuse1_backend](https://pytorch.org/docs/2.12/generated/torch.utils.generate_methods_for_privateuse1_backend.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+### torch.utils.get_cpp_backtrace
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.utils.get_cpp_backtrace](https://pytorch.org/docs/2.12/generated/torch.utils.get_cpp_backtrace.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>

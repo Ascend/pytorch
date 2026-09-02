@@ -8,334 +8,352 @@
 #include "torch_npu/csrc/profiler/profiler_mgr.h"
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
 
+#include <nlohmann/json.hpp>
+#include <algorithm>
 #include <sstream>
 
 namespace torch_npu {
 namespace profiler {
-void markImpl(const char* message, const aclrtStream stream, mstxDomainHandle_t domain)
-{
-    if (domain == nullptr) {
-        (void)at_npu::native::MstxMarkA(message, stream);
-    } else {
-        (void)at_npu::native::MstxDomainMarkA(domain, message, stream);
-    }
+using namespace torch_npu::toolkit::profiler;
+
+void markImpl(const char* message, const aclrtStream stream, mstxDomainHandle_t domain) {
+  if (domain == nullptr) {
+    (void)at_npu::native::MstxMarkA(message, stream);
+  } else {
+    (void)at_npu::native::MstxDomainMarkA(domain, message, stream);
+  }
 }
 
-void rangeStartImpl(const char* message, const aclrtStream stream, int ptRangeId, mstxDomainHandle_t domain)
-{
-    if (domain == nullptr) {
-        (void)at_npu::native::MstxRangeStartA(message, stream, ptRangeId);
-    } else {
-        (void)at_npu::native::MstxDomainRangeStartA(domain, message, stream, ptRangeId);
-    }
+void rangeStartImpl(const char* message, const aclrtStream stream, int ptRangeId, mstxDomainHandle_t domain) {
+  if (domain == nullptr) {
+    (void)at_npu::native::MstxRangeStartA(message, stream, ptRangeId);
+  } else {
+    (void)at_npu::native::MstxDomainRangeStartA(domain, message, stream, ptRangeId);
+  }
 }
 
-void rangeEndImpl(int ptRangeId, mstxDomainHandle_t domain)
-{
-    if (domain == nullptr) {
-        at_npu::native::MstxRangeEnd(ptRangeId);
-    } else {
-        at_npu::native::MstxDomainRangeEnd(domain, ptRangeId);
-    }
+void rangeEndImpl(int ptRangeId, mstxDomainHandle_t domain) {
+  if (domain == nullptr) {
+    at_npu::native::MstxRangeEnd(ptRangeId);
+  } else {
+    at_npu::native::MstxDomainRangeEnd(domain, ptRangeId);
+  }
 }
 
 thread_local std::unordered_map<std::string, std::stack<int>> MstxMgr::domainPushDepthStacks_ = {};
 thread_local bool MstxMgr::pushWithStream_ = false;
 
-MstxMgr::MstxMgr()
-{
+MstxMgr::MstxMgr() {}
+
+void MstxMgr::mark(const char* message, const aclrtStream stream, const char* domain) {
+  if (!isMstxEnable()) {
+    return;
+  }
+  std::string domainStr(domain);
+  if (!isMstxTxDomainEnable(domainStr)) {
+    return;
+  }
+  mstxDomainHandle_t domainHandle = createProfDomain(domainStr);
+  if (stream == nullptr) {
+    markImpl(message, nullptr, domainHandle);
+    return;
+  }
+  auto mark_call = [msg_ptr = std::make_shared<std::string>(message), stream, domainHandle]() -> int {
+    markImpl(msg_ptr->c_str(), stream, domainHandle);
+    return 0;
+  };
+  at_npu::native::OpCommand::RunOpApiV2("mstx_mark_op", mark_call);
 }
 
-void MstxMgr::mark(const char* message, const aclrtStream stream, const char* domain)
-{
-    if (!isMstxEnable()) {
-        return;
-    }
-    std::string domainStr(domain);
-    if (!isMstxTxDomainEnable(domainStr)) {
-        return;
-    }
-    mstxDomainHandle_t domainHandle = createProfDomain(domainStr);
-    if (stream == nullptr) {
-        markImpl(message, nullptr, domainHandle);
-        return;
-    }
-    auto mark_call = [msg_ptr = std::make_shared<std::string>(message), stream, domainHandle]() -> int {
-        markImpl(msg_ptr->c_str(), stream, domainHandle);
-        return 0;
-    };
-    at_npu::native::OpCommand::RunOpApiV2("mstx_mark_op", mark_call);
-}
-
-int MstxMgr::rangePush(const char* message, const aclrtStream stream, const char* domain)
-{
-    if (!isMstxEnable()) {
-        return -1;
-    }
-    std::string domainStr(domain);
-    if (!isMstxTxDomainEnable(domainStr)) {
-        return -1;
-    }
-    // depth before push to return
-    int ret = domainPushDepthStacks_[domainStr].size();
-    int id = ptRangeId_++;
-    domainPushDepthStacks_[domainStr].push(id);
-    mstxDomainHandle_t domainHandle = createProfDomain(domainStr);
-    // currently use rangeStartImpl to implement rangePushImpl.
-    if (stream == nullptr) {
-        pushWithStream_ = false;
-        rangeStartImpl(message, nullptr, id, domainHandle);
-        return ret;
-    }
-    pushWithStream_ = true;
-    auto range_push_call = [msg_ptr = std::make_shared<std::string>(message), stream, id, domainHandle]() -> int {
-        rangeStartImpl(msg_ptr->c_str(), stream, id, domainHandle);
-        return 0;
-    };
-    at_npu::native::OpCommand::RunOpApiV2("mstx_range_push_op", range_push_call);
+int MstxMgr::rangePush(const char* message, const aclrtStream stream, const char* domain) {
+  if (!isMstxEnable()) {
+    return -1;
+  }
+  std::string domainStr(domain);
+  if (!isMstxTxDomainEnable(domainStr)) {
+    return -1;
+  }
+  // depth before push to return
+  int ret = domainPushDepthStacks_[domainStr].size();
+  int id = ptRangeId_++;
+  domainPushDepthStacks_[domainStr].push(id);
+  mstxDomainHandle_t domainHandle = createProfDomain(domainStr);
+  // currently use rangeStartImpl to implement rangePushImpl.
+  if (stream == nullptr) {
+    pushWithStream_ = false;
+    rangeStartImpl(message, nullptr, id, domainHandle);
     return ret;
+  }
+  pushWithStream_ = true;
+  auto range_push_call = [msg_ptr = std::make_shared<std::string>(message), stream, id, domainHandle]() -> int {
+    rangeStartImpl(msg_ptr->c_str(), stream, id, domainHandle);
+    return 0;
+  };
+  at_npu::native::OpCommand::RunOpApiV2("mstx_range_push_op", range_push_call);
+  return ret;
 }
 
-int MstxMgr::rangePop(const char* domain)
-{
-    if (!isMstxEnable()) {
-        return -1;
-    }
-    std::string domainStr(domain);
-    if (domainPushDepthStacks_[domainStr].empty()) {
-        return -1;
-    }
-    if (!isMstxTxDomainEnable(domainStr)) {
-        return -1;
-    }
-    int id = domainPushDepthStacks_[domainStr].top();
-    domainPushDepthStacks_[domainStr].pop();
-    // depth after pop to return
-    int ret = domainPushDepthStacks_[domainStr].size();
-    mstxDomainHandle_t domainHandle = createProfDomain(domainStr);
-    // currently use rangeEndImpl to implement rangePopImpl.
-    if (!pushWithStream_) {
-        rangeEndImpl(id, domainHandle);
-        return ret;
-    }
-    auto range_pop_call = [domainHandle, id]() -> int {
-        rangeEndImpl(id, domainHandle);
-        return 0;
-    };
-    at_npu::native::OpCommand::RunOpApiV2("mstx_range_pop_op", range_pop_call);
+int MstxMgr::rangePop(const char* domain) {
+  if (!isMstxEnable()) {
+    return -1;
+  }
+  std::string domainStr(domain);
+  if (domainPushDepthStacks_[domainStr].empty()) {
+    return -1;
+  }
+  if (!isMstxTxDomainEnable(domainStr)) {
+    return -1;
+  }
+  int id = domainPushDepthStacks_[domainStr].top();
+  domainPushDepthStacks_[domainStr].pop();
+  // depth after pop to return
+  int ret = domainPushDepthStacks_[domainStr].size();
+  mstxDomainHandle_t domainHandle = createProfDomain(domainStr);
+  // currently use rangeEndImpl to implement rangePopImpl.
+  if (!pushWithStream_) {
+    rangeEndImpl(id, domainHandle);
     return ret;
+  }
+  auto range_pop_call = [domainHandle, id]() -> int {
+    rangeEndImpl(id, domainHandle);
+    return 0;
+  };
+  at_npu::native::OpCommand::RunOpApiV2("mstx_range_pop_op", range_pop_call);
+  return ret;
 }
 
-int MstxMgr::rangeStart(const char* message, const aclrtStream stream, const char* domain)
-{
-    if (!isMstxEnable()) {
-        return 0;
-    }
-    std::string domainStr(domain);
-    if (!isMstxTxDomainEnable(domainStr)) {
-        return 0;
-    }
-    mstxDomainHandle_t domainHandle = createProfDomain(domainStr);
-    int id = ptRangeId_++;
-    if (stream == nullptr) {
-        rangeStartImpl(message, nullptr, id, domainHandle);
-        return id;
-    }
-    {
-        std::lock_guard<std::mutex> lock(mtx_);
-        ptRangeIdsWithStream_.insert(id);
-    }
-    auto range_start_call = [msg_ptr = std::make_shared<std::string>(message), stream, id, domainHandle]() -> int {
-        rangeStartImpl(msg_ptr->c_str(), stream, id, domainHandle);
-        return 0;
-    };
-    at_npu::native::OpCommand::RunOpApiV2("mstx_range_start_op", range_start_call);
+int MstxMgr::rangeStart(const char* message, const aclrtStream stream, const char* domain) {
+  if (!isMstxEnable()) {
+    return 0;
+  }
+  std::string domainStr(domain);
+  if (!isMstxTxDomainEnable(domainStr)) {
+    return 0;
+  }
+  mstxDomainHandle_t domainHandle = createProfDomain(domainStr);
+  int id = ptRangeId_++;
+  if (stream == nullptr) {
+    rangeStartImpl(message, nullptr, id, domainHandle);
     return id;
+  }
+  {
+    std::lock_guard<std::mutex> lock(mtx_);
+    ptRangeIdsWithStream_.insert(id);
+  }
+  auto range_start_call = [msg_ptr = std::make_shared<std::string>(message), stream, id, domainHandle]() -> int {
+    rangeStartImpl(msg_ptr->c_str(), stream, id, domainHandle);
+    return 0;
+  };
+  at_npu::native::OpCommand::RunOpApiV2("mstx_range_start_op", range_start_call);
+  return id;
 }
 
-void MstxMgr::rangeEnd(int ptRangeId, const char* domain)
-{
-    if (!isMstxEnable() || ptRangeId == 0) {
-        return;
+void MstxMgr::rangeEnd(int ptRangeId, const char* domain) {
+  if (!isMstxEnable() || ptRangeId == 0) {
+    return;
+  }
+  std::string domainStr(domain);
+  if (!isMstxTxDomainEnable(domainStr)) {
+    return;
+  }
+  mstxDomainHandle_t domainHandle = createProfDomain(domainStr);
+  bool rangeIdWithStream = false;
+  {
+    std::lock_guard<std::mutex> lock(mtx_);
+    auto iter = ptRangeIdsWithStream_.find(ptRangeId);
+    if (iter != ptRangeIdsWithStream_.end()) {
+      rangeIdWithStream = true;
+      ptRangeIdsWithStream_.erase(iter);
     }
-    std::string domainStr(domain);
-    if (!isMstxTxDomainEnable(domainStr)) {
-        return;
-    }
-    mstxDomainHandle_t domainHandle = createProfDomain(domainStr);
-    bool rangeIdWithStream = false;
-    {
-        std::lock_guard<std::mutex> lock(mtx_);
-        auto iter = ptRangeIdsWithStream_.find(ptRangeId);
-        if (iter != ptRangeIdsWithStream_.end()) {
-            rangeIdWithStream = true;
-            ptRangeIdsWithStream_.erase(iter);
-        }
-    }
-    if (!rangeIdWithStream) {
-        rangeEndImpl(ptRangeId, domainHandle);
-        return;
-    }
-    auto range_end_call = [ptRangeId, domainHandle]() -> int {
-        rangeEndImpl(ptRangeId, domainHandle);
-        return 0;
-    };
-    at_npu::native::OpCommand::RunOpApiV2("mstx_range_end_op", range_end_call);
+  }
+  if (!rangeIdWithStream) {
+    rangeEndImpl(ptRangeId, domainHandle);
+    return;
+  }
+  auto range_end_call = [ptRangeId, domainHandle]() -> int {
+    rangeEndImpl(ptRangeId, domainHandle);
+    return 0;
+  };
+  at_npu::native::OpCommand::RunOpApiV2("mstx_range_end_op", range_end_call);
 }
 
-int MstxMgr::getRangeId()
-{
-    return ptRangeId_++;
+int MstxMgr::getRangeId() {
+  return ptRangeId_++;
 }
 
-mstxDomainHandle_t MstxMgr::createProfDomain(const std::string &name)
-{
-    if (!at_npu::native::IsSupportMstxDomainFunc()) {
-        return nullptr;
-    }
-    if (name == DOMAIN_DEFAULT) { // don't need to create default domain
-        return nullptr;
-    }
-    std::lock_guard<std::mutex> lock(mstxDomainsMtx);
-    auto iter = mstxDomains_.find(name);
-    if (iter != mstxDomains_.end()) {
-        return iter->second;
-    }
-    mstxDomainHandle_t handle = at_npu::native::MstxDomainCreateA(name.c_str());
-    if (handle != nullptr) {
-        mstxDomains_.emplace(name, handle);
-    }
-    return handle;
+mstxDomainHandle_t MstxMgr::createProfDomain(const std::string& name) {
+  if (!at_npu::native::IsSupportMstxDomainFunc()) {
+    return nullptr;
+  }
+  if (name == DOMAIN_DEFAULT) { // don't need to create default domain
+    return nullptr;
+  }
+  std::lock_guard<std::mutex> lock(mstxDomainsMtx);
+  auto iter = mstxDomains_.find(name);
+  if (iter != mstxDomains_.end()) {
+    return iter->second;
+  }
+  mstxDomainHandle_t handle = at_npu::native::MstxDomainCreateA(name.c_str());
+  if (handle != nullptr) {
+    mstxDomains_.emplace(name, handle);
+  }
+  return handle;
 }
 
-mstxDomainHandle_t MstxMgr::createLeaksDomain(const char* name)
-{
-    if (!at_npu::native::IsSupportMstxFunc()) {
-        return nullptr;
+mstxDomainHandle_t MstxMgr::createLeaksDomain(const char* name) {
+  if (!at_npu::native::IsSupportMstxFunc()) {
+    return nullptr;
+  }
+  return at_npu::native::MstxDomainCreateA(name);
+}
+
+void MstxMgr::destroyDomain(mstxDomainHandle_t domain) {
+  at_npu::native::MstxDomainDestroy(domain);
+}
+
+mstxMemHeapHandle_t MstxMgr::memHeapRegister(mstxDomainHandle_t domain, mstxMemVirtualRangeDesc_t* desc) {
+  if (!at_npu::native::IsSupportMstxFunc() || desc == nullptr) {
+    return nullptr;
+  }
+  mstxMemHeapDesc_t heapDesc;
+  heapDesc.typeSpecificDesc = reinterpret_cast<void const*>(desc);
+  return at_npu::native::MstxMemHeapRegister(domain, &heapDesc);
+}
+
+void MstxMgr::memHeapUnregister(mstxDomainHandle_t domain, void* ptr) {
+  if (!at_npu::native::IsSupportMstxFunc() || ptr == nullptr) {
+    return;
+  }
+  at_npu::native::MstxMemHeapUnregister(domain, reinterpret_cast<mstxMemHeapHandle_t>(ptr));
+}
+
+void MstxMgr::memRegionsRegister(mstxDomainHandle_t domain, mstxMemVirtualRangeDesc_t* desc) {
+  if (!at_npu::native::IsSupportMstxFunc() || desc == nullptr) {
+    return;
+  }
+  mstxMemRegionsRegisterBatch_t batch;
+  batch.regionCount = 1;
+  batch.regionDescArray = reinterpret_cast<const void*>(desc);
+  at_npu::native::MstxMemRegionsRegister(domain, &batch);
+}
+
+void MstxMgr::memRegionsUnregister(mstxDomainHandle_t domain, void* ptr) {
+  if (!at_npu::native::IsSupportMstxFunc() || ptr == nullptr) {
+    return;
+  }
+  mstxMemRegionsUnregisterBatch_t unregisterBatch;
+  unregisterBatch.refCount = 1;
+  mstxMemRegionRef_t regionRef[1] = {};
+  regionRef[0].refType = MSTX_MEM_REGION_REF_TYPE_POINTER;
+  regionRef[0].pointer = ptr;
+  unregisterBatch.refArray = regionRef;
+  at_npu::native::MstxMemRegionsUnregister(domain, &unregisterBatch);
+}
+
+bool MstxMgr::isMsleaksEnable() {
+  static bool isEnable = isMsleaksEnableImpl();
+  return isEnable;
+}
+
+bool MstxMgr::isMsleaksEnableImpl() {
+  bool ret = false;
+  const char* envVal = std::getenv("LD_PRELOAD");
+  if (envVal == nullptr) {
+    return ret;
+  }
+  static const std::string soName = "libascend_kernel_hook.so";
+  std::stringstream ss(envVal);
+  std::string path;
+  while (std::getline(ss, path, ':')) {
+    path = Utils::RealPath(path);
+    if ((path.size() > soName.size()) && (path.substr(path.size() - soName.size()) == soName)) {
+      ret = true;
+      break;
     }
-    return at_npu::native::MstxDomainCreateA(name);
+  }
+  return ret;
 }
 
-void MstxMgr::destroyDomain(mstxDomainHandle_t domain)
-{
-    at_npu::native::MstxDomainDestroy(domain);
+bool MstxMgr::isTorchNpuProfTxEnable() {
+  static bool lastRet = false;
+  bool ret = ProfilerMgr::GetInstance()->GetNpuTrace().load() && ProfilerMgr::GetInstance()->GetMsprofTx().load();
+  if (ret && !lastRet) {
+    // If torch npu profiler mstx is enabled, update the domain_include_ and domain_exclude_ vectors accordingly.
+    ProfilerMgr::GetInstance()->GetMstxDomainIncludeAndExclude(domain_include_, domain_exclude_);
+  }
+  lastRet = ret;
+  return ret;
 }
 
-mstxMemHeapHandle_t MstxMgr::memHeapRegister(mstxDomainHandle_t domain, mstxMemVirtualRangeDesc_t* desc)
-{
-    if (!at_npu::native::IsSupportMstxFunc() || desc == nullptr) {
-        return nullptr;
-    }
-    mstxMemHeapDesc_t heapDesc;
-    heapDesc.typeSpecificDesc = reinterpret_cast<void const *>(desc);
-    return at_npu::native::MstxMemHeapRegister(domain, &heapDesc);
-}
-
-void MstxMgr::memHeapUnregister(mstxDomainHandle_t domain, void* ptr)
-{
-    if (!at_npu::native::IsSupportMstxFunc() || ptr == nullptr) {
-        return;
-    }
-    at_npu::native::MstxMemHeapUnregister(domain, reinterpret_cast<mstxMemHeapHandle_t>(ptr));
-}
-
-void MstxMgr::memRegionsRegister(mstxDomainHandle_t domain, mstxMemVirtualRangeDesc_t* desc)
-{
-    if (!at_npu::native::IsSupportMstxFunc() || desc == nullptr) {
-        return;
-    }
-    mstxMemRegionsRegisterBatch_t batch;
-    batch.regionCount = 1;
-    batch.regionDescArray = reinterpret_cast<const void *>(desc);
-    at_npu::native::MstxMemRegionsRegister(domain, &batch);
-}
-
-void MstxMgr::memRegionsUnregister(mstxDomainHandle_t domain, void* ptr)
-{
-    if (!at_npu::native::IsSupportMstxFunc() || ptr == nullptr) {
-        return;
-    }
-    mstxMemRegionsUnregisterBatch_t unregisterBatch;
-    unregisterBatch.refCount = 1;
-    mstxMemRegionRef_t regionRef[1] = {};
-    regionRef[0].refType = MSTX_MEM_REGION_REF_TYPE_POINTER;
-    regionRef[0].pointer = ptr;
-    unregisterBatch.refArray = regionRef;
-    at_npu::native::MstxMemRegionsUnregister(domain, &unregisterBatch);
-}
-
-
-bool MstxMgr::isMsleaksEnable()
-{
-    static bool isEnable = isMsleaksEnableImpl();
-    return isEnable;
-}
-
-bool MstxMgr::isMsleaksEnableImpl()
-{
-    bool ret = false;
+bool MstxMgr::isMsptiTxEnable() {
+  static const std::string ldPreloadEnv = []() -> std::string {
     const char* envVal = std::getenv("LD_PRELOAD");
     if (envVal == nullptr) {
-        return ret;
+      return "";
     }
-    static const std::string soName = "libascend_kernel_hook.so";
-    std::stringstream ss(envVal);
-    std::string path;
-    while (std::getline(ss, path, ':')) {
-        path = torch_npu::toolkit::profiler::Utils::RealPath(path);
-        if ((path.size() > soName.size()) && (path.substr(path.size() - soName.size()) == soName)) {
-            ret = true;
-            break;
-        }
-    }
-    return ret;
-}
-
-bool MstxMgr::isProfTxEnable()
-{
-    return ProfilerMgr::GetInstance()->GetNpuTrace().load() && ProfilerMgr::GetInstance()->GetMsprofTx().load();
-}
-
-bool MstxMgr::isMsptiTxEnableImpl()
-{
-    static bool isMsptiSoInLdPreload = []() -> bool {
-        const char* envVal = std::getenv("LD_PRELOAD");
-        if (envVal == nullptr) {
-            return false;
-        }
-        static const std::string soName = "libmspti.so";
-        std::stringstream ss(envVal);
-        std::string path;
-        while (std::getline(ss, path, ':')) {
-            path = torch_npu::toolkit::profiler::Utils::RealPath(path);
-            if ((path.size() > soName.size()) && (path.substr(path.size() - soName.size()) == soName)) {
-                return true;
-            }
-        }
-        return false;
-    }();
-    if (isMsptiSoInLdPreload) {
-        return true;
-    }
-    return at_npu::native::IsSupportMsptiFunc() && at_npu::native::MsptiActivityIsEnabled(MSPTI_ACTIVITY_KIND_MARKER);
-}
-
-bool MstxMgr::isMsptiTxEnable()
-{
-    return isMsptiTxEnableImpl();
-}
-
-bool MstxMgr::isMstxEnable()
-{
-    return isProfTxEnable() || isMsptiTxEnable();
-}
-
-bool MstxMgr::isMstxTxDomainEnable(const std::string &domainName)
-{
-    if (isProfTxEnable()) {
-        return ProfilerMgr::GetInstance()->IsMstxDomainEnabled(domainName);
-    }
+    return std::string(envVal);
+  }();
+  static bool isMsptiSoInLdPreload = ldPreloadEnv.find("libmspti.so") != std::string::npos;
+  static bool isKernelHookSoInLdPreload = ldPreloadEnv.find("libascend_kernel_hook.so") != std::string::npos;
+  if (isMsptiSoInLdPreload && isKernelHookSoInLdPreload) {
+    TORCH_NPU_WARN_ONCE(
+        "Detected both libmspti.so and libascend_kernel_hook.so in LD_PRELOAD. "
+        "Mspti Marker activity will be disabled when libascend_kernel_hook.so is preloaded.");
+  }
+  if (isKernelHookSoInLdPreload) {
+    return false;
+  }
+  if (isMsptiSoInLdPreload) {
     return true;
+  }
+  return at_npu::native::IsSupportMsptiFunc() && at_npu::native::MsptiActivityIsEnabled(MSPTI_ACTIVITY_KIND_MARKER);
 }
+
+bool MstxMgr::isMsprofTxEnable() {
+  using json = nlohmann::json;
+  static bool isEnable = []() -> bool {
+    auto mgr = MstxMgr::GetInstance();
+    const char* profilerSamplecfg = std::getenv("PROFILER_SAMPLECONFIG");
+    if (profilerSamplecfg == nullptr) {
+      return false;
+    }
+    std::string sampleConfigStr(profilerSamplecfg);
+    try {
+      json sampleConfigJson = json::parse(sampleConfigStr);
+      if (sampleConfigJson.contains("mstxDomainInclude") && sampleConfigJson["mstxDomainInclude"].is_string()) {
+        mgr->domain_include_ = Utils::SplitString(sampleConfigJson["mstxDomainInclude"].get<std::string>(), ",");
+      }
+      if (sampleConfigJson.contains("mstxDomainExclude") && sampleConfigJson["mstxDomainExclude"].is_string()) {
+        mgr->domain_exclude_ = Utils::SplitString(sampleConfigJson["mstxDomainExclude"].get<std::string>(), ",");
+      }
+      return sampleConfigJson.contains("msproftx") && sampleConfigJson["msproftx"].is_string() &&
+          sampleConfigJson["msproftx"].get<std::string>() == "on";
+    } catch (const std::exception& e) {
+      TORCH_NPU_WARN("Failed to parse PROFILER_SAMPLECONFIG: %s", e.what());
+    }
+    return false;
+  }();
+  return isEnable;
 }
+
+bool MstxMgr::isMstxEnable() {
+  return isTorchNpuProfTxEnable() || isMsprofTxEnable() || isMsptiTxEnable();
 }
+
+bool MstxMgr::isMstxTxDomainEnable(const std::string& domainName) {
+  // if domain_include_ and domain_exclude_ are both empty, return true to enable all domains.
+  if (domain_include_.empty() && domain_exclude_.empty()) {
+    return true;
+  }
+  // if domain_include_ is not empty, only enable domains in domain_include_.
+  if (!domain_include_.empty()) {
+    return std::find(domain_include_.begin(), domain_include_.end(), domainName) != domain_include_.end();
+  }
+  // if domain_exclude_ is not empty, disable domains in domain_exclude_.
+  if (!domain_exclude_.empty()) {
+    return std::find(domain_exclude_.begin(), domain_exclude_.end(), domainName) == domain_exclude_.end();
+  }
+  return false;
+}
+} // namespace profiler
+} // namespace torch_npu

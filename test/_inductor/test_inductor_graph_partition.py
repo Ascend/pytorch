@@ -1,5 +1,6 @@
 import os
 
+
 # Some ops (e.g. aten.matmul_backward) only get their NPU meta registration when
 # compatible impl mode is enabled. This env var is read at torch_npu import time,
 # so it must be set before importing torch_npu.
@@ -7,32 +8,44 @@ os.environ["TORCH_NPU_USE_COMPATIBLE_IMPL"] = "1"
 
 import contextlib
 import gc
-import math
+import math  # noqa: F401
 import re
 import sys
 import unittest
 import warnings
 import weakref
 from io import StringIO
+from types import SimpleNamespace
+from unittest.mock import Mock
 
 import torch
-import torch.nn as nn
 import torch._dynamo.config as dynamo_config
+import torch.nn as nn  # noqa: F401
 from torch._inductor import config
 from torch._inductor.compile_fx import compile_fx_inner
-from torch._inductor.utils import run_and_get_code
+from torch._inductor.dependencies import ReadWrites, StarDep, WeakDep
+from torch._inductor.ir import GraphPartitionSignature, NoneLayout
+from torch._inductor.scheduler import Scheduler
 from torch._inductor.test_case import TestCase as InductorTestCase
+from torch._inductor.utils import run_and_get_code
+from torch._inductor.virtualized import V
 from torch.fx.experimental.proxy_tensor import make_fx
 from torch.testing import FileCheck
-from torch.testing._internal.common_utils import (
+from torch.testing._internal.common_utils import (  # noqa: F401
     instantiate_parametrized_tests,
     parametrize,
 )
 from torch.testing._internal.logging_utils import logs_to_string
+from torch.utils._ordered_set import OrderedSet
 from torch.utils._python_dispatch import TorchDispatchMode
 
+
+PARENT_GET_GRAPH_PARTITION_SIGNATURE = Scheduler.get_graph_partition_signature
+
 import torch_npu  # noqa: F401
+import torch_npu._inductor  # noqa: F401
 from torch_npu.npu._graph_tree import get_container
+
 
 TEST_NPU = torch.npu.is_available()
 aten = torch.ops.aten
@@ -101,6 +114,111 @@ class TestCase(InductorTestCase):
     def tearDown(self):
         super().tearDown()
         torch._dynamo.reset()
+
+
+class TestGraphPartitionSchedulerContract(TestCase):
+    """Locks NPU Inductor to the v2.13 graph-partition implementation."""
+
+    def test_uses_parent_signature_with_extra_input_weakdep_and_mutation_alias(self):
+        self.assertIs(
+            Scheduler.get_graph_partition_signature,
+            PARENT_GET_GRAPH_PARTITION_SIGNATURE,
+        )
+
+        scheduler = Scheduler.__new__(Scheduler)
+        scheduler.mutation_real_name = {"mutation_alias": "mutation_real"}
+        scheduler.name_to_buf = {
+            "mutation_alias": SimpleNamespace(
+                node=SimpleNamespace(layout=NoneLayout(device=None))
+            ),
+            "mutation_real": SimpleNamespace(
+                node=SimpleNamespace(layout=object())
+            ),
+        }
+        input_nodes = {
+            name: SimpleNamespace(name=name)
+            for name in ("cross_partition", "mutation_real", "weak_dependency")
+        }
+        scheduler.get_name_to_nodes = lambda: input_nodes
+        scheduler.get_graph_partition_symbol_inputs = (
+            lambda partition, inputs: OrderedSet()
+        )
+
+        partition_node = SimpleNamespace(
+            outputs_by_name={"produced_here": object()},
+            read_writes=ReadWrites(
+                OrderedSet(
+                    [
+                        StarDep("mutation_alias"),
+                        WeakDep("weak_dependency", mutating_buf="produced_here"),
+                    ]
+                ),
+                OrderedSet(),
+                OrderedSet(),
+            ),
+            last_usage=OrderedSet(["cross_partition"]),
+        )
+        graph = SimpleNamespace(
+            get_output_names=lambda: OrderedSet(), constants=OrderedSet()
+        )
+
+        with V.set_graph_handler(graph):
+            signature = scheduler.get_graph_partition_signature(
+                [[partition_node]], [False]
+            )[0]
+
+        self.assertEqual(
+            list(signature.input_nodes), ["mutation_real", "cross_partition"]
+        )
+        self.assertNotIn("weak_dependency", signature.input_nodes)
+        self.assertEqual(
+            signature.input_deallocation,
+            {"mutation_real": False, "cross_partition": True},
+        )
+
+    def test_cleans_only_buffers_removed_during_codegen(self):
+        scheduler = Scheduler.__new__(Scheduler)
+
+        live_output = Mock()
+        live_output.maybe_get_name.return_value = "live_output"
+        prior_output = Mock()
+        prior_output.maybe_get_name.return_value = "prior_output"
+        codegen_output = Mock()
+        codegen_output.maybe_get_name.return_value = "codegen_output"
+        signature = GraphPartitionSignature(
+            symbol_inputs=OrderedSet(),
+            input_nodes={
+                "live_input": Mock(),
+                "prior_input": Mock(),
+                "codegen_input": Mock(),
+            },
+            output_nodes=[live_output, prior_output, codegen_output],
+            input_deallocation={
+                "live_input": False,
+                "prior_input": True,
+                "codegen_input": False,
+            },
+            skip_cudagraph=False,
+            constant_names=["live_constant", "prior_constant", "codegen_constant"],
+        )
+        removed_before_codegen = OrderedSet(
+            ["prior_input", "prior_output", "prior_constant"]
+        )
+        removed_after_codegen = removed_before_codegen | OrderedSet(
+            ["codegen_input", "codegen_output", "codegen_constant"]
+        )
+
+        cleaned = scheduler.clean_removed_buffer_from_partition_signatures(
+            signature, removed_after_codegen - removed_before_codegen
+        )
+
+        self.assertEqual(list(cleaned.input_nodes), ["live_input", "prior_input"])
+        self.assertEqual(
+            cleaned.input_deallocation,
+            {"live_input": False, "prior_input": True},
+        )
+        self.assertEqual(cleaned.output_nodes, [live_output, prior_output])
+        self.assertEqual(cleaned.constant_names, ["live_constant", "prior_constant"])
 
 
 # ===========================================================================
@@ -326,7 +444,7 @@ class TestGraphPartitionNPU(TestCase):
             inp = torch.rand([20, 20], device="npu", requires_grad=True)
             out = foo(inp)
 
-            with config.patch(always_complex_memory_overlap_TESTING_ONLY=True):
+            with config.patch(force_disable_cudagraph_TESTING_ONLY=True):
                 back_inp = torch.empty_strided([20, 20], [0, 1], device="npu")
                 out.backward(back_inp)
 
@@ -513,7 +631,7 @@ class TestGraphPartitionNPU(TestCase):
             _ = cpu_val.to("npu")   # partition boundary
             out = torch.empty_like(x)
             n = x.numel()
-            grid = lambda meta: (triton.cdiv(n, meta["BLOCK"]),)
+            grid = lambda meta: (triton.cdiv(n, meta["BLOCK"]),)  # noqa: E731
             _my_add1_kernel[grid](x, out, n, BLOCK=128)
             return out + 0.0        # 防止 out 被优化掉
 
@@ -524,13 +642,13 @@ class TestGraphPartitionNPU(TestCase):
         # Generated partition subgraph must carry NPU define_kernel overrides.
         # Currently failing because partition uses bare SubgraphPythonWrapperCodegen.
         self.assertIn(
-            "user_autotune_npu", full_code,
+            "user_autotune", full_code,
             "partition subgraph did not apply NPU define_kernel override "
-            "(expected `npu_triton_heuristics.user_autotune_npu`)",
+            "(expected `triton_heuristics.user_autotune`)",
         )
         self.assertIn(
-            "FixedGridNpu", full_code,
-            "partition subgraph did not apply NPU FixedGrid -> FixedGridNpu rewrite",
+            "FixedGrid", full_code,
+            "partition subgraph did not apply FixedGrid",
         )
         out = compiled_f(x)
         self.assertEqual(out, x + 1)

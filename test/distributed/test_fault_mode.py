@@ -1,10 +1,9 @@
 import os.path
 import subprocess
-import torch
-import torch_npu
+import torch  # noqa: F401
+import torch_npu  # noqa: F401
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
-from torch_npu.testing.common_utils import SupportedDevices
 
 
 class TestMode(TestCase):
@@ -29,12 +28,14 @@ class TestMode(TestCase):
         path = os.path.join(os.path.dirname(__file__), '_fault_mode_cases/error_use_same_addr.py')
 
         processes = []
-        p = subprocess.Popen(["torchrun", f"--master_port=29600", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE, text=True)
+        p = subprocess.Popen(
+            ["torchrun", "--master_port=29600", "--nproc-per-node=2", f"{path}"],
+            shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         processes.append(p)
 
-        p = subprocess.Popen(["torchrun", f"--master_port=29600", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE, text=True)
+        p = subprocess.Popen(
+            ["torchrun", "--master_port=29600", "--nproc-per-node=2", f"{path}"],
+            shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         processes.append(p)
         error_info = ""
         for index, p in enumerate(processes):
@@ -79,8 +80,9 @@ class TestMode(TestCase):
     @skipIfUnsupportMultiNPU(2)
     def test_diff_dtype(self):
         path = os.path.join(os.path.dirname(__file__), '_fault_mode_cases/error_diff_dtype.py')
-        process = subprocess.Popen(["torchrun", "--master_port=8080", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE, text=True, errors='ignore')
+        process = subprocess.Popen(
+            ["torchrun", "--master_port=8080", "--nproc-per-node=2", f"{path}"],
+            shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, errors='ignore')
         message = process.stderr.read()
         process.stderr.close()
         process.stdout.close()
@@ -117,7 +119,7 @@ class TestMode(TestCase):
         process.terminate()
         process.wait()
         self.assertIn(
-            "Tensor list input to scatter/gather must match number of collective participants",
+            "Corresponding input/output tensors to reduce_scatter must all reside on the same device",
             message
         )
 
@@ -137,7 +139,6 @@ class TestMode(TestCase):
         )
 
     @skipIfUnsupportMultiNPU(2)
-    @SupportedDevices(['Ascend910A', 'Ascend910B', 'Ascend910_93'])
     def test_hccl_timeout(self):
         path = os.path.join(os.path.dirname(__file__), '_fault_mode_cases/error_hccl_timeout.py')
         process = subprocess.Popen(["torchrun", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
@@ -149,27 +150,7 @@ class TestMode(TestCase):
             stdout_msg, message = process.communicate()
 
         self.assertTrue(
-            "task timeout" in message.lower() or "107020" in message,
-            message
-        )
-
-    @skipIfUnsupportMultiNPU(2)
-    @SupportedDevices(['Ascend950'])
-    def test_hccl_timeout_950(self):
-        path = os.path.join(os.path.dirname(__file__), '_fault_mode_cases/error_hccl_timeout.py')
-        process = subprocess.Popen(["torchrun", "--nproc-per-node=2", f"{path}"], shell=False, stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE, text=True)
-        message = process.stderr.read()
-        process.stderr.close()
-        process.stdout.close()
-        process.terminate()
-        process.wait()
-        self.assertIn(
-            "wait for compute device to finish failed",
-            message
-        )
-        self.assertIn(
-            "task timeout",
+            "EI0002" in message or "Communication_Error_Timeout" in message,
             message
         )
 

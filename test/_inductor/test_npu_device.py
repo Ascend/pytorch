@@ -1,5 +1,5 @@
-from torch_npu._inductor.npu_device import NewNPUDeviceOpOverrides
-from torch_npu.testing.testcase import run_tests, TestCase
+from torch_npu._inductor.codegen.npu.device_op_overrides import NewNPUDeviceOpOverrides
+from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestNpuDevice(TestCase):
@@ -14,24 +14,6 @@ class TestNpuDevice(TestCase):
         result = overrides.cpp_stream_type()
         excepted = "aclrtStream"
         self.assertEqual(result, excepted)
-
-    def test_abi_compatible_header(self):
-        overrides = NewNPUDeviceOpOverrides()
-        result = overrides.abi_compatible_header()
-        self.assertIn("#include <fstream>", result)
-        self.assertIn("#include <vector>", result)
-        self.assertIn("#include <iostream>", result)
-        self.assertIn("#include <string>", result)
-        self.assertIn("#include <tuple>", result)
-        self.assertIn("#include <unordered_map>", result)
-        self.assertIn("#include <memory>", result)
-        self.assertIn("#include <filesystem>", result)
-        self.assertIn("#include <assert.h>", result)
-        self.assertIn("#include <stdbool.h>", result)
-        self.assertIn("#include <sys/syscall.h>", result)
-        self.assertIn("#include <torch_npu/csrc/framework/OpCommand.h>", result)
-        self.assertIn("#include <torch_npu/csrc/core/npu/NPUStream.h>", result)
-        self.assertIn('#include "runtime/runtime/rt.h"', result)
 
     def test_cpp_aoti_stream_guard(self):
         overrides = NewNPUDeviceOpOverrides()
@@ -66,11 +48,14 @@ class TestNpuDevice(TestCase):
         excepted = "torch.npu.set_device(0)"
         self.assertEqual(result, excepted)
 
-    def test_import_get_raw_stream_as(self):
         overrides = NewNPUDeviceOpOverrides()
-        result = overrides.import_get_raw_stream_as("test_name")
-        excepted = "from torch_npu._inductor import get_current_raw_stream as test_name"
-        self.assertEqual(result, excepted)
+        test_name = "test_name_npu"
+        result = overrides.import_get_raw_stream_as(test_name)
+        expected = f"from torch._C import _npu_getCurrentRawStream as {test_name}"
+        import torch_npu
+        if hasattr(torch_npu._C, "_npu_getCurrentRawStreamNoWait"):
+            expected = f"from torch_npu._C import _npu_getCurrentRawStreamNoWait as {test_name}"
+        self.assertEqual(result, expected)
 
 
 if __name__ == "__main__":

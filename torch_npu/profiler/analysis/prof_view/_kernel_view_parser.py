@@ -32,6 +32,13 @@ class KernelViewParser(BaseParser):
                 output_headers.append(header)
         return output_headers
 
+    @classmethod
+    def _get_kernel_headers(cls, all_headers: list, is_all_kernel_headers: bool) -> list:
+        if is_all_kernel_headers:
+            return all_headers
+        shape_headers = [header for header in CsvHeaders.OP_SUMMARY_SHAPE_HEADERS if header in all_headers]
+        return CsvHeaders.OP_SUMMARY_SHOW_HEADERS + shape_headers
+
     def run(self, deps_data: dict):
         ProfilerLogger.init(self._profiler_path, "KernelViewParser")
         self.logger = ProfilerLogger.get_instance()
@@ -41,7 +48,7 @@ class KernelViewParser(BaseParser):
             self._init_step_range(deps_data)
             self.generate_view()
         except Exception as e:
-            self.logger.error("Failed to generate kernel_details.csv, error: %s", str(e), exc_info=True)
+            self.logger.exception("Failed to generate kernel_details.csv.")
             return Constant.FAIL, None
         self.logger.info("KernelViewParser finish.")
         return Constant.SUCCESS, None
@@ -53,8 +60,8 @@ class KernelViewParser(BaseParser):
         for file_path in op_summary_file_set:
             all_data = FileManager.read_csv_file(file_path, OpSummaryBean)
             if all_data:
-                OpSummaryBean.headers = all_data[
-                    0].all_headers if ProfilerConfig().is_all_kernel_headers() else CsvHeaders.OP_SUMMARY_SHOW_HEADERS
+                OpSummaryBean.headers = self._get_kernel_headers(
+                    all_data[0].all_headers, ProfilerConfig().is_all_kernel_headers())
                 output_headers = self._project_map_for_headers(OpSummaryBean.headers)
             if not self.step_range:
                 summary_data.extend([data.row for data in all_data])
@@ -75,11 +82,11 @@ class KernelViewParser(BaseParser):
         if torch_op_node:
             kernel_dict = deps_data.get(Constant.RELATION_PARSER, {})
             if not kernel_dict:
-                self.logger.error("Kernel view get step range failed, the kernel dict is empty.")
+                self.logger.error("Kernel view failed to get the step range; the kernel dict is empty.")
                 return
             step_range = FwkCANNRelationParser(self._profiler_path).get_step_range(torch_op_node[0], kernel_dict)
             if not step_range:
-                self.logger.warning("Kernel view get step range failed, the step range is empty.")
+                self.logger.warning("Kernel view failed to get the step range; the step range is empty.")
             for step_data in step_range:
                 step_id = step_data.get(Constant.STEP_ID)
                 step_start = convert_ns2us_str(step_data.get(Constant.START_TS, 0))

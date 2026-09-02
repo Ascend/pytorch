@@ -5,50 +5,42 @@ namespace at_npu {
 namespace native {
 namespace aoe {
 
-void AoeDumpGraphManager::SetDumpGraphPath(const std::string& dump_path)
-{
-    autotune_graphdumppath = dump_path;
+void AoeDumpGraphManager::SetDumpGraphPath(const std::string& dump_path) {
+  autotune_graphdumppath = dump_path;
 }
 
-std::string AoeDumpGraphManager::GetDumpGraphPath() const
-{
-    return autotune_graphdumppath;
+std::string AoeDumpGraphManager::GetDumpGraphPath() const {
+  return autotune_graphdumppath;
 }
 
-aclGraphDumpOption* AoeDumpGraphManager::CreateGraphDumpOption()
-{
-    AclGraphDumpOption = AclCreateGraphDumpOpt();
-    return AclGraphDumpOption;
+aclGraphDumpOption* AoeDumpGraphManager::CreateGraphDumpOption() {
+  AclGraphDumpOption = AclCreateGraphDumpOpt();
+  return AclGraphDumpOption;
 }
 
-void AoeDumpGraphManager::DestropyGraphDumpOption()
-{
-    AclDestroyGraphDumpOpt(AclGraphDumpOption);
-    AclGraphDumpOption = nullptr;
+void AoeDumpGraphManager::DestropyGraphDumpOption() {
+  AclDestroyGraphDumpOpt(AclGraphDumpOption);
+  AclGraphDumpOption = nullptr;
 }
 
-void AoeDumpGraphManager::EnableAoe()
-{
-    aoe_enable = true;
+void AoeDumpGraphManager::EnableAoe() {
+  aoe_enable = true;
 }
 
-bool AoeDumpGraphManager::IsAoeEnabled() const
-{
-    return aoe_enable;
+bool AoeDumpGraphManager::IsAoeEnabled() const {
+  return aoe_enable;
 }
 
-bool AoeDumpGraphManager::IsInWhitelist(const std::string &opName) const
-{
-    if (white_list_.find(opName) != white_list_.end()) {
-        return true;
-    }
-    return false;
+bool AoeDumpGraphManager::IsInWhitelist(const std::string& opName) const {
+  if (white_list_.find(opName) != white_list_.end()) {
+    return true;
+  }
+  return false;
 }
 
-AoeDumpGraphManager& aoe_manager()
-{
-    static AoeDumpGraphManager instance;
-    return instance;
+AoeDumpGraphManager& aoe_manager() {
+  static AoeDumpGraphManager instance;
+  return instance;
 }
 
 } // namespace aoe

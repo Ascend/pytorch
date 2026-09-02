@@ -1,3 +1,13 @@
+"""
+Add validation cases for torch._C._set_math_sdp_allow_fp16_bf16_reduction API on NPU:
+
+    1. PyTorch community lacks sufficient and direct API validation for this API, so this case is added.
+    2. This file validates setter/getter state switching, backend wrapper linkage, and invalid input handling.
+
+Backend API tests for NPU SDP switches and the private math SDP
+fp16/bf16 reduction flag shared by torch._C and backend wrappers.
+"""
+
 import torch
 import torch.nn as nn
 
@@ -41,6 +51,47 @@ class TorchBackendsApiTestCase(TestCase):
         self.assertEqual(flash_res, False)
         self.assertEqual(mem_mem_efficient_res, False)
         self.assertEqual(math_res, False)
+
+    def test_math_sdp_allow_fp16_bf16_reduction_setter(self):
+        # The private setter should update the matching private getter.
+        setter = torch._C._set_math_sdp_allow_fp16_bf16_reduction
+        getter = torch._C._get_math_sdp_allow_fp16_bf16_reduction
+        original = getter()
+        self.addCleanup(setter, original)
+
+        setter(True)
+        self.assertEqual(getter(), True)
+        setter(False)
+        self.assertEqual(getter(), False)
+
+    def test_math_sdp_allow_fp16_bf16_reduction_backend_wrapper(self):
+        # The public backend wrapper should control the same underlying flag.
+        setter = torch._C._set_math_sdp_allow_fp16_bf16_reduction
+        getter = torch._C._get_math_sdp_allow_fp16_bf16_reduction
+        wrapper = torch.backends.cuda.allow_fp16_bf16_reduction_math_sdp
+        original = getter()
+        self.addCleanup(setter, original)
+
+        wrapper(True)
+        self.assertEqual(getter(), True)
+        wrapper(False)
+        self.assertEqual(getter(), False)
+
+    def test_math_sdp_allow_fp16_bf16_reduction_invalid_value(self):
+        # Invalid inputs should raise and preserve the current math SDP flag.
+        setter = torch._C._set_math_sdp_allow_fp16_bf16_reduction
+        getter = torch._C._get_math_sdp_allow_fp16_bf16_reduction
+        original = getter()
+        self.addCleanup(setter, original)
+
+        setter(True)
+        with self.assertRaises((RuntimeError, TypeError)):
+            setter(1)
+        self.assertEqual(getter(), True)
+
+        with self.assertRaises((RuntimeError, TypeError)):
+            setter(None)
+        self.assertEqual(getter(), True)
 
     def test_aclnn_allow_hf32(self):
         res = torch.npu.aclnn.allow_hf32

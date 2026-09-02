@@ -2,15 +2,15 @@
 #define __NATIVE_NPU_TOOLS_AOEUTILS__
 
 #include <unordered_set>
-#include <third_party/acl/inc/acl/acl_op_compiler.h>
+#include <acl/acl_op_compiler.h>
 #include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace at_npu {
 namespace native {
 namespace aoe {
 
-class AoeDumpGraphManager  {
-public:
+class AoeDumpGraphManager {
+ public:
   void SetDumpGraphPath(const std::string& dump_path);
   std::string GetDumpGraphPath() const;
 
@@ -19,7 +19,7 @@ public:
 
   void EnableAoe();
   bool IsAoeEnabled() const;
-  bool IsInWhitelist(const std::string &opName) const;
+  bool IsInWhitelist(const std::string& opName) const;
 
   bool aoe_enable = false;
   // to save graph for autotune, default path is ./
@@ -138,7 +138,7 @@ public:
       "LogSoftmaxV2",
       "SoftmaxGrad",
       "SoftmaxV2",
-    };
+  };
 };
 
 AoeDumpGraphManager& aoe_manager();

@@ -26,24 +26,25 @@ namespace c10d {
 namespace torch_npu {
 constexpr uint32_t READ_BUF_SZ = 256;
 class Client {
-public:
-    explicit Client(const std::string host, uint16_t port, const std::chrono::milliseconds timeout) noexcept;
-    explicit Client(const std::string localSocketPath, const std::chrono::milliseconds timeout) noexcept;
-    int Connect() noexcept;
-    int TryConnect(int family) noexcept;
-    int TryConnectCore(const ::addrinfo &addr) noexcept;
-    int Close() noexcept;
-    int LocalConnect() noexcept;
-    int LocalClose() noexcept;
-    int SyncCall(const StoreMessage &request, StoreMessage &response) noexcept;
-    int SetReceiveTimeout(const std::chrono::milliseconds &value) const noexcept;
-    int GetSocketFd() const noexcept;
-private:
-    const std::string localSocketPath_{};
-    const std::string host_{};
-    const uint16_t port_{ 0 };
-    int socketFd_;
-    std::chrono::milliseconds timeout_;
+ public:
+  explicit Client(const std::string host, uint16_t port, const std::chrono::milliseconds timeout) noexcept;
+  explicit Client(const std::string localSocketPath, const std::chrono::milliseconds timeout) noexcept;
+  int Connect() noexcept;
+  int TryConnect(int family) noexcept;
+  int TryConnectCore(const ::addrinfo& addr) noexcept;
+  int Close() noexcept;
+  int LocalConnect() noexcept;
+  int LocalClose() noexcept;
+  int SyncCall(const StoreMessage& request, StoreMessage& response) noexcept;
+  int SetReceiveTimeout(const std::chrono::milliseconds& value) const noexcept;
+  int GetSocketFd() const noexcept;
+
+ private:
+  const std::string localSocketPath_{};
+  const std::string host_{};
+  const uint16_t port_{0};
+  int socketFd_;
+  std::chrono::milliseconds timeout_;
 };
-} // torch_npu
-} // c10d
+} // namespace torch_npu
+} // namespace c10d

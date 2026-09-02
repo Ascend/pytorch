@@ -19,11 +19,7 @@ void DcmiInit() {
   static bool initialized = false;
   if (!initialized) {
     int ret = c10_npu::dcmi::DcmiInit();
-    TORCH_CHECK(
-        ret == NPU_OK,
-        "Failed to init dcmi. Error code: ",
-        ret,
-        PTA_ERROR(ErrCode::ACL));
+    TORCH_CHECK(ret == NPU_OK, "Failed to init dcmi. Error code: ", ret, PTA_ERROR(ErrCode::ACL));
     initialized = true;
   }
 }
@@ -33,8 +29,7 @@ std::string GetAffinityCPUBaseInfo(int card_id) {
   int device_id_max = 0;
   int mcu_id = 0;
   int cpu_id = 0;
-  int ret = c10_npu::dcmi::DcmiGetDeviceIdInCard(
-      card_id, &device_id_max, &mcu_id, &cpu_id);
+  int ret = c10_npu::dcmi::DcmiGetDeviceIdInCard(card_id, &device_id_max, &mcu_id, &cpu_id);
   if (ret != NPU_OK) {
     TORCH_NPU_WARN_ONCE(
         "dcmi get device id in card is not supported. "
@@ -44,8 +39,7 @@ std::string GetAffinityCPUBaseInfo(int card_id) {
   device_id = std::max(0, device_id_max - 1);
   char affinity_cpu[TOPO_INFO_MAX_LENTH] = {0};
   int length = 0;
-  ret = c10_npu::dcmi::DcmiGetAffinityCpuInfoByDeviceId(
-      card_id, device_id, affinity_cpu, &length);
+  ret = c10_npu::dcmi::DcmiGetAffinityCpuInfoByDeviceId(card_id, device_id, affinity_cpu, &length);
   if (ret == NPU_OK) {
     return affinity_cpu;
   }
@@ -57,10 +51,7 @@ std::string GetAffinityCPUBaseInfo(int card_id) {
 
 CoreIdList parseAffinityCores(const std::string cpuString) {
   CoreIdList cores;
-  TORCH_CHECK(
-      !cpuString.empty(),
-      "Affinity cpu string is empty",
-      PTA_ERROR(ErrCode::VALUE));
+  TORCH_CHECK(!cpuString.empty(), "Affinity cpu string is empty", PTA_ERROR(ErrCode::VALUE));
   std::stringstream ss_value(cpuString);
   std::string range;
   while (std::getline(ss_value, range, ',')) {
@@ -92,9 +83,7 @@ void GetExclusiveAffinityCPU() {
   int card_id_list[16];
   int list_len = 16;
   TORCH_CHECK(
-      c10_npu::dcmi::DcmiGetCardNumList(
-          &device_count, card_id_list, list_len) == NPU_OK,
-      "Dcmi get card num failed.");
+      c10_npu::dcmi::DcmiGetCardNumList(&device_count, card_id_list, list_len) == NPU_OK, "Dcmi get card num failed.");
   std::unordered_map<std::string, std::vector<int>> rangeAndDevs;
   for (int i = 0; i < device_count; i++) {
     std::string affinity_range = GetAffinityCPUBaseInfo(i);
@@ -105,8 +94,7 @@ void GetExclusiveAffinityCPU() {
       return;
     }
     rangeAndDevs[affinity_range].push_back(i);
-    ASCEND_LOGD(
-        "Device_id: %d, affinity_range: %s.", i, affinity_range.c_str());
+    ASCEND_LOGD("Device_id: %d, affinity_range: %s.", i, affinity_range.c_str());
   }
   for (auto& [affinity_range, dev_list] : rangeAndDevs) {
     CoreIdList cores = parseAffinityCores(affinity_range);
@@ -144,10 +132,6 @@ CoreIdList GetAffinityCores(int card_id) {
   if (it != CardIdAffinityCPU.end()) {
     return it->second;
   }
-  TORCH_CHECK(
-      false,
-      "Can't get affinity cores for card_id ",
-      std::to_string(card_id),
-      PTA_ERROR(ErrCode::VALUE));
+  TORCH_CHECK(false, "Can't get affinity cores for card_id ", std::to_string(card_id), PTA_ERROR(ErrCode::VALUE));
 }
 } // namespace c10_npu

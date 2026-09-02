@@ -1,0 +1,18 @@
+# torch.compile编程模型
+
+- [Dynamo核心概念](dynamo_core_concepts.md)
+- [处理图断裂](graph_breaks_index.md)
+  - [使用`fullgraph=True`识别并消除图断裂](fullgraph_true.md)
+  - [常见图断裂](common_graph_breaks.md)
+  - [使用`torch._dynamo.nonstrict_trace`](dynamo_nonstrict_trace.md)
+  - [自定义算子](custom_ops.md)
+  - [使用`fullgraph=False`](fullgraph_false.md)
+    - [`torch.compile`的应用位置](where_to_apply_compile.md)
+    - [禁用编译和抑制错误](compiler_disable.md)
+    - [切换`error_on_graph_break`](error_on_graph_break.md)
+    - [嵌套图断裂](nested_graph_breaks.md)
+    - [跳过的函数](skipped_functions.md)
+- [非严格追踪编程模型](non_strict_tracing_model.md)
+- [处理重编译](recompilation.md)
+- [tlparse / TORCH_TRACE](observability.md)
+- [报告问题](reporting_issues.md)

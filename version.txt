@@ -1,1 +1,12 @@
+# torch_npu package versions this source tree can produce.
+#
+# build.sh validates the --torch= argument against the versions listed below
+# (one version per non-comment line). The actual build version is otherwise
+# driven by the TORCH_VERSION environment variable (set by build.sh) or, when
+# unset, the installed PyTorch version; setup.py and other build code do NOT
+# read this file to determine the package version. Each entry's base
+# major.minor.patch maps to the matching PyTorch line, and a PEP 440
+# post-release suffix (e.g. .post1) denotes a follow-up build on that line.
+2.15.0
+2.14.0
 2.13.0

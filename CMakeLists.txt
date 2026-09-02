@@ -42,6 +42,8 @@ SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
 SET(CMAKE_CXX_FLAGS_RELEASE "-O2")
 SET(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
 
+option(USE_NPU "Use NPU" ON)
+
 # LTO&PGO optimization in compile option
 SET(IF_APPEND FALSE)
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
@@ -78,9 +80,9 @@ string(FIND "${CMAKE_CXX_FLAGS}" "-std=c++" env_cxx_standard)
 if(env_cxx_standard GREATER -1)
   message(
       WARNING "C++ standard version definition detected in environment variable."
-      "PyTorch requires -std=c++17. Please remove -std=c++ settings in your environment.")
+      "PyTorch requires -std=c++20. Please remove -std=c++ settings in your environment.")
 endif()
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -106,6 +108,10 @@ ELSE()
   message("Release build.")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNDEBUG")
 ENDIF()
+
+if(USE_NPU)
+  string(APPEND CMAKE_CXX_FLAGS " -DUSE_NPU")
+endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-narrowing")
@@ -140,7 +146,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-private-field")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-inconsistent-missing-override")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-aligned-allocation-unavailable")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-c++17-extensions")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-c++20-extensions")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-constexpr-not-const")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-braces")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Qunused-arguments")
@@ -222,6 +228,7 @@ include_directories(${PROJECT_SOURCE_DIR}/third_party/nlohmann/include)
 # Set installed PyTorch dir
 if(DEFINED PYTORCH_INSTALL_DIR)
   include_directories(${PYTORCH_INSTALL_DIR}/include)
+  include_directories(${PYTORCH_INSTALL_DIR}/include/kineto)
   include_directories(${PYTORCH_INSTALL_DIR}/include/torch/csrc/api/include)
   include_directories(${PYTORCH_INSTALL_DIR}/include/torch/csrc/distributed)
 else()
@@ -292,6 +299,14 @@ if (DEFINED BUILD_TENSORPIPE)
     set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
   endif()
   add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/Tensorpipe)
+  # Suppress warning to unblock libnop compilation by clang-17+
+  # See https://github.com/pytorch/pytorch/issues/151316
+  include(CheckCXXCompilerFlag)
+  check_cxx_compiler_flag("-Wno-missing-template-arg-list-after-template-kw"
+      COMPILER_SUPPORTS_NO_MISSING_TEMPLATE_ARG_LIST)
+  if(COMPILER_SUPPORTS_NO_MISSING_TEMPLATE_ARG_LIST)
+    target_compile_options(tensorpipe PRIVATE -Wno-missing-template-arg-list-after-template-kw)
+  endif()
   if(CMAKE_VERSION VERSION_GREATER_EQUAL "4.0.0")
     unset(CMAKE_POLICY_VERSION_MINIMUM)
   endif()
@@ -305,57 +320,72 @@ else()
   set(CPP_SRCS ${ATEN_SRCS} ${INDUCTOR_SRCS} ${CORE_SRCS} ${OPS_PLUGIN_SRCS} ${DIST_SRCS} ${FLOP_SRCS} ${CUS_DTYPE_SRCS} ${LOGGING_SRCS} ${FRAMEWORK_SRCS} ${NPU_SRCS} ${PROF_SRCS} ${IPC_SRCS} ${UTILS_SRCS} ${SAN_SRCS} ${AFD_SRCS})
 endif()
 
-add_library(${PLUGIN_NAME} SHARED ${CPP_SRCS})
+add_library(torch_npu_objs OBJECT ${CPP_SRCS})
 include(CheckCXXCompilerFlag)
 check_cxx_compiler_flag("-fvisibility=hidden" COMPILER_SUPPORTS_HIDDEN_VISIBILITY)
 if(${COMPILER_SUPPORTS_HIDDEN_VISIBILITY})
-  target_compile_options(${PLUGIN_NAME} PRIVATE "-fvisibility=hidden")
+  target_compile_options(torch_npu_objs PRIVATE "-fvisibility=hidden")
 endif()
-
-target_link_options(${PLUGIN_NAME} PRIVATE "-Wl,-Bsymbolic-functions,--no-as-needed")
 
 if (DEFINED BUILD_TORCHAIR)
   add_subdirectory(${TORCHNPU_THIRD_PARTY_ROOT}/torchair)
-  add_dependencies(${PLUGIN_NAME} copy_torchair_pyfiles)
 endif()
 
 add_subdirectory(${TORCHNPU_THIRD_PARTY_ROOT}/fmt EXCLUDE_FROM_ALL)
 
-link_directories(${PYTORCH_INSTALL_DIR}/lib)
-link_directories(${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs)
+add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/dvm)
 
-target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libhccl.so)
-
-if (NOT DEFINED BUILD_LIBTORCH)
-  target_link_libraries(${PLUGIN_NAME} PUBLIC ${PYTORCH_INSTALL_DIR}/lib/libtorch_python.so)
-endif()
-
-target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libascendcl.so)
-target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libacl_op_compiler.so)
-target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libge_runner.so)
-target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libgraph.so)
-
-if (DEFINED BUILD_TENSORPIPE)
-  target_link_libraries(${PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/build/packages/torch_npu/lib/libtensorpipe.so)
-endif()
-
-target_link_libraries(${PLUGIN_NAME} PUBLIC torch torch_cpu c10 fmt::fmt-header-only)
+# Propagate compile definitions and include dirs from PyTorch to the object library
+target_link_libraries(torch_npu_objs PUBLIC torch torch_cpu c10 fmt::fmt-header-only)
 
 if (NOT DEFINED BUILD_LIBTORCH)
   set(ATEN_THREADING "OMP" CACHE STRING "ATen parallel backend")
   message(STATUS "Using ATen parallel backend: ${ATEN_THREADING}")
   if ("${ATEN_THREADING}" STREQUAL "OMP")
-    target_compile_definitions(${PLUGIN_NAME} PUBLIC "-DAT_PARALLEL_OPENMP=1")
+    target_compile_definitions(torch_npu_objs PUBLIC "-DAT_PARALLEL_OPENMP=1")
   elseif ("${ATEN_THREADING}" STREQUAL "NATIVE")
-    target_compile_definitions(${PLUGIN_NAME} PUBLIC "-DAT_PARALLEL_NATIVE=1")
+    target_compile_definitions(torch_npu_objs PUBLIC "-DAT_PARALLEL_NATIVE=1")
   elseif ("${ATEN_THREADING}" STREQUAL "TBB")
-    target_compile_definitions(${PLUGIN_NAME} PUBLIC "-DAT_PARALLEL_NATIVE_TBB=1")
+    target_compile_definitions(torch_npu_objs PUBLIC "-DAT_PARALLEL_NATIVE_TBB=1")
   else()
     message(FATAL_ERROR "Unknown ATen parallel backend: ${ATEN_THREADING}")
   endif()
 
+  target_compile_options(torch_npu_objs PRIVATE "-DC10_BUILD_MAIN_LIB")
+endif()
+
+add_library(${PLUGIN_NAME} SHARED $<TARGET_OBJECTS:torch_npu_objs>)
+target_link_libraries(${PLUGIN_NAME} PUBLIC torch_npu_objs)
+target_link_options(${PLUGIN_NAME} PRIVATE "-Wl,-Bsymbolic-functions,--no-as-needed")
+
+# Shared library: link step, dvm / torchair deps only gate linking, not compilation.
+add_dependencies(${PLUGIN_NAME} dvm_build)
+if (DEFINED BUILD_TORCHAIR)
+  add_dependencies(${PLUGIN_NAME} copy_torchair_pyfiles)
+endif()
+
+target_link_libraries(${PLUGIN_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/third_party/dvm/dvm/libdvm.a)
+
+link_directories(${PYTORCH_INSTALL_DIR}/lib)
+link_directories(${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs)
+
+target_link_libraries(${PLUGIN_NAME} PUBLIC
+  ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libhccl.so
+  ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libascendcl.so
+  ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libacl_op_compiler.so
+  ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libge_runner.so
+  ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libgraph.so)
+
+if (NOT DEFINED BUILD_LIBTORCH)
+  target_link_libraries(${PLUGIN_NAME} PUBLIC ${PYTORCH_INSTALL_DIR}/lib/libtorch_python.so)
+endif()
+
+if (DEFINED BUILD_TENSORPIPE)
+  target_link_libraries(${PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/build/packages/torch_npu/lib/libtensorpipe.so)
+endif()
+
+if (NOT DEFINED BUILD_LIBTORCH)
   include(GNUInstallDirs)
-  target_compile_options(${PLUGIN_NAME} PRIVATE "-DC10_BUILD_MAIN_LIB")
   install(TARGETS ${PLUGIN_NAME} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif()
 

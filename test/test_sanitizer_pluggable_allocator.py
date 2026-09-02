@@ -41,6 +41,7 @@ def build_stub(base_dir):
     build_stub_cmd = [
         "sh",
         os.path.join(base_dir, "third_party/acl/libs/build_stub.sh"),
+        os.path.join(PYTORCH_NPU_INSTALL_PATH, "include"),
     ]
     if subprocess.call(build_stub_cmd) != 0:
         raise RuntimeError(f"Failed to build stub: {build_stub_cmd}")
@@ -79,7 +80,6 @@ class TestSanitizerPluggableAllocator(TestCase):
         extra_ldflags.append(f"-L{PYTORCH_INSTALL_PATH}")
         extra_include_paths = [os.path.join(TEST_DIR, "cpp_extensions")]
         extra_include_paths.append(os.path.join(PYTORCH_NPU_INSTALL_PATH, "include"))
-        extra_include_paths.append(os.path.join(PYTORCH_NPU_INSTALL_PATH, 'include', 'third_party', 'acl', 'inc'))
 
         cls.module = torch.utils.cpp_extension.load(
             name="sanitizer_pluggable_allocator_extensions",

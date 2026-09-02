@@ -5,7 +5,7 @@ from torch.testing._internal.common_utils import (
     instantiate_parametrized_tests,
 )
 from testutils import TestUtils
-import torch_npu
+import torch_npu  # noqa: F401
 
 class TestDropoutWithCheckpointRecompute(TestUtils):
     def test_dropout_with_checkpoint_recompute(self):
@@ -43,4 +43,5 @@ class TestDropoutWithCheckpointRecompute(TestUtils):
 instantiate_parametrized_tests(TestDropoutWithCheckpointRecompute)
 
 if __name__ == "__main__":
-    run_tests()
+    with torch._inductor.config.patch("fallback_random", True):
+        run_tests()

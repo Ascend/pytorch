@@ -17,4 +17,4 @@ void check_and_update_npu_tensor_for_copy(const at::TensorList& dsts, const at::
 #ifndef BUILD_LIBTORCH
 TORCH_NPU_API void bind_npu_recovery_functions(PyObject* module);
 #endif
-}
+} // namespace c10_npu

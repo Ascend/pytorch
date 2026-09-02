@@ -331,7 +331,7 @@ class TestACLGraphConditionalNodes(unittest.TestCase):
 
         with self.assertRaisesRegex(
             RuntimeError,
-            "RNG within data-dependent conditional nodes is not supported yet",
+            "RNG op during graph capture but generator is not registered",
         ):
             with (
                 torch.npu.graph(graph, stream=side_stream),

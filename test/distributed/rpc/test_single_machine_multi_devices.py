@@ -3,16 +3,14 @@ import time
 import unittest
 import warnings
 import torch
-import torch.distributed as dist
 import torch.distributed.autograd as dist_autograd
 import torch.distributed.rpc as rpc
 from torch import multiprocessing as mp
-from torch import nn, Tensor
+from torch import nn
 from torch.distributed.nn.api.remote_module import RemoteModule
-from torch.distributed.rpc import WorkerInfo, PyRRef
+from torch.distributed.rpc import WorkerInfo
 from torch._C import _get_privateuse1_backend_name
 
-import torch_npu
 from torch_npu.distributed.rpc.options import NPUTensorPipeRpcBackendOptions
 from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
 from torch_npu.testing.testcase import TestCase, run_tests
@@ -335,7 +333,7 @@ class TestRpc(TestCase):
 
     @skipIfUnsupportMultiNPU(2)
     def test_async_call_for_cpu(self):
-        inputs = [torch.rand(1024, 1024).cpu(), torch.rand(1024, 1024, 1024).cpu()]
+        inputs = [torch.rand(1024, 1024).cpu(), torch.rand(1024, 1024, 4).cpu()]
         self._test_multiprocess(TestRpc._test_async_call_for_cpu, inputs, self.world_size_2p)
 
     @skipIfUnsupportMultiNPU(2)

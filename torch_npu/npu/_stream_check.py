@@ -360,7 +360,6 @@ class NPUArgumentHandler:
             )
 
     def parse_outputs(self, schema, outputs, *, is_factory: bool = False) -> None:
-        from torch.cuda._sanitizer import zip_arguments
         for res, value in zip(schema.returns, (outputs,)):
             metadata_only = res.alias_info is not None and not res.alias_info.is_write
             pytree.tree_map_(
@@ -380,14 +379,6 @@ class NPUSanitizerDispatchMode(TorchDispatchMode):
         super().__init__()
         self.event_handler = event_handler
         self.args_handler = None
-        self.npu_adjust_autograd = [
-            "adaptive_avg_pool2d", "batch_norm",
-            "log_softmax", "nll_loss", "to"
-        ]
-
-    def enable_autograd(self, aten_api):
-        if aten_api in self.npu_adjust_autograd:
-            torch._C._dispatch_tls_set_dispatch_key_excluded(torch._C.DispatchKey.AutogradFunctionality, False)
 
     def __torch_dispatch__(self, func, types, args=(), kwargs=None):
         kwargs = {} if kwargs is None else kwargs
@@ -399,8 +390,6 @@ class NPUSanitizerDispatchMode(TorchDispatchMode):
         is_factory = bool(FACTORY_FUNCTION_REGEX.match(func._schema.name))
 
         self.args_handler = NPUArgumentHandler()
-        aten_api = func.__name__.split(".")[0]
-        self.enable_autograd(aten_api)
         self.parse_inputs(func._schema, args, kwargs, is_factory=is_factory)
         # execute operator
         outputs = func(*args, **kwargs)
@@ -417,10 +406,10 @@ class NPUSanitizerDispatchMode(TorchDispatchMode):
         npu_stream = 0
         try:
             npu_stream = int(torch_npu.npu.current_stream().npu_stream)
-        except RuntimeError as err:
+        except RuntimeError:
             logger.info(
-                "Failed to get current stream, ignore this kernel launch record. error info is: %s",
-                err
+                "Failed to get current stream, ignore this kernel launch record.",
+                exc_info=True,
             )
             return outputs
         self.check_errors(func, npu_stream)

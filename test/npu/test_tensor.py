@@ -1,4 +1,14 @@
-import itertools
+"""
+Add validation cases for torch._C._TensorMeta API on NPU:
+
+    1. PyTorch community lacks sufficient and direct API validation for this API, so this case is added.
+    2. This file validates Tensor class metaclass relations, NPU Tensor instances,
+       Tensor subclasses, and direct construction errors.
+
+Tensor API tests, including NPU Tensor behavior and torch._C._TensorMeta
+metaclass consistency checks.
+"""
+
 import torch
 from torch.testing import make_tensor
 from torch.testing._internal.common_utils import DeterministicGuard
@@ -10,6 +20,38 @@ from torch_npu.testing.decorator import Dtypes, instantiate_tests
 
 @instantiate_tests
 class TestTensor(TestCase):
+
+    def test_tensor_meta_matches_tensor_classes(self):
+        # _TensorMeta should be the metaclass for Tensor classes, not tensor instances.
+        tensor_meta = torch._C._TensorMeta
+        self.assertIs(type(torch.Tensor), tensor_meta)
+        self.assertEqual(tensor_meta.__module__, "torch._C")
+        self.assertEqual(tensor_meta.__name__, "_TensorMeta")
+        self.assertTrue(isinstance(torch.Tensor, tensor_meta))
+        self.assertTrue(isinstance(torch.nn.Parameter, tensor_meta))
+        self.assertTrue(issubclass(torch.nn.Parameter, torch.Tensor))
+
+    def test_tensor_meta_with_npu_tensor_instance(self, device="npu"):
+        # NPU tensors remain Tensor instances while their class is managed by _TensorMeta.
+        tensor_meta = torch._C._TensorMeta
+        npu_tensor = torch.empty((2, 3), device=device)
+        self.assertTrue(isinstance(npu_tensor, torch.Tensor))
+        self.assertFalse(isinstance(npu_tensor, tensor_meta))
+        self.assertTrue(isinstance(type(npu_tensor), tensor_meta))
+        self.assertEqual(npu_tensor.device.type, "npu")
+
+    def test_tensor_meta_subclass_and_direct_construction(self):
+        # Tensor subclasses use _TensorMeta, but direct _TensorMeta construction is rejected.
+        tensor_meta = torch._C._TensorMeta
+
+        class CustomTensor(torch.Tensor):
+            pass
+
+        self.assertIs(type(CustomTensor), tensor_meta)
+        self.assertTrue(isinstance(CustomTensor, tensor_meta))
+        self.assertTrue(issubclass(CustomTensor, torch.Tensor))
+        with self.assertRaisesRegex(RuntimeError, "Cannot subclass _TensorBase directly"):
+            tensor_meta("DirectTensor", (torch._C._TensorBase,), {})
 
     def test_narrow_empty(self, device="npu"):
         x = torch.randn(2, 3, 4).to(device=device)

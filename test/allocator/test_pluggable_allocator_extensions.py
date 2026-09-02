@@ -1,5 +1,4 @@
 import os
-import sys
 import shutil
 import subprocess
 import ctypes
@@ -21,7 +20,12 @@ def create_build_path(build_directory):
 
 
 def build_stub(base_dir):
-    build_stub_cmd = ["sh", os.path.join(base_dir, 'third_party/acl/libs/build_stub.sh')]
+    build_stub_cmd = [
+        "sh",
+        os.path.join(base_dir, 'third_party/acl/libs/build_stub.sh'),
+        # Build the stub and Extension against the same installed header root.
+        os.path.join(PYTORCH_NPU_INSTALL_PATH, 'include'),
+    ]
     if subprocess.call(build_stub_cmd) != 0:
         raise RuntimeError('Failed to build stub: {}'.format(build_stub_cmd))
 
@@ -47,7 +51,6 @@ class TestPluggableAllocator(TestCase):
         extra_ldflags.append(f"-L{PYTORCH_INSTALL_PATH}")
         extra_include_paths = [os.path.join(TEST_DIR, "cpp_extensions")]
         extra_include_paths.append(os.path.join(PYTORCH_NPU_INSTALL_PATH, 'include'))
-        extra_include_paths.append(os.path.join(PYTORCH_NPU_INSTALL_PATH, 'include', 'third_party', 'acl', 'inc'))
 
         cls.module = torch.utils.cpp_extension.load(
             name="pluggable_allocator_extensions",
@@ -77,7 +80,7 @@ class TestPluggableAllocator(TestCase):
     def test_set_get_device_stats_fn(self):
         os_path = os.path.join(TestPluggableAllocator.build_directory, 'pluggable_allocator_extensions.so')
         myallocator = ctypes.CDLL(os_path)
-        get_device_stats_fn = ctypes.cast(getattr(myallocator, "my_get_device_stats"), ctypes.c_void_p).value
+        get_device_stats_fn = ctypes.cast(myallocator.my_get_device_stats, ctypes.c_void_p).value
 
         TestPluggableAllocator.new_alloc.allocator().set_get_device_stats_fn(get_device_stats_fn)
         self.assertEqual(torch.npu.memory_stats_as_nested_dict()["num_alloc_retries"], 0)
@@ -85,7 +88,7 @@ class TestPluggableAllocator(TestCase):
     def test_set_reset_peak_status_fn(self):
         os_path = os.path.join(TestPluggableAllocator.build_directory, 'pluggable_allocator_extensions.so')
         myallocator = ctypes.CDLL(os_path)
-        reset_peak_status_fn = ctypes.cast(getattr(myallocator, "my_reset_peak_status"), ctypes.c_void_p).value
+        reset_peak_status_fn = ctypes.cast(myallocator.my_reset_peak_status, ctypes.c_void_p).value
 
         TestPluggableAllocator.new_alloc.allocator().set_reset_peak_status_fn(reset_peak_status_fn)
         torch.npu.reset_peak_memory_stats()

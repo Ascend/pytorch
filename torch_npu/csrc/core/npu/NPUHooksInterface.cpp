@@ -11,76 +11,64 @@
 namespace c10_npu {
 
 TORCH_DECLARE_REGISTRY(PrivateUse1HooksRegistry, NPUHooksInterface, NPUHooksArgs);
-#define REGISTER_PRIVATEUSE1_HOOKS(clsname) \
-  C10_REGISTER_CLASS(PrivateUse1HooksRegistry, clsname, clsname)
+#define REGISTER_PRIVATEUSE1_HOOKS(clsname) C10_REGISTER_CLASS(PrivateUse1HooksRegistry, clsname, clsname)
 
 C10_DEFINE_REGISTRY(PrivateUse1HooksRegistry, NPUHooksInterface, NPUHooksArgs)
 
-at::Device NPUHooksInterface::getDeviceFromPtr(void* data) const
-{
-    aclrtPtrAttributes attributes;
-    NPU_CHECK_ERROR(c10_npu::acl::AclrtPointerGetAttributes(data, &attributes));
-    TORCH_CHECK(attributes.location.type != ACL_MEM_LOCATION_TYPE_HOST,
-                "The specified pointer resides on host memory and is not registered with any NPU device.",
-                PTA_ERROR(ErrCode::PTR));
-    return {at::DeviceType::PrivateUse1, attributes.location.id};
+at::Device NPUHooksInterface::getDeviceFromPtr(void* data) const {
+  aclrtPtrAttributes attributes;
+  NPU_CHECK_ERROR(c10_npu::acl::AclrtPointerGetAttributes(data, &attributes));
+  TORCH_CHECK(
+      attributes.location.type != ACL_MEM_LOCATION_TYPE_HOST,
+      "The specified pointer resides on host memory and is not registered with any NPU device.",
+      PTA_ERROR(ErrCode::PTR));
+  return {at::DeviceType::PrivateUse1, attributes.location.id};
 }
 
-void NPUHooksInterface::init() const
-{
+void NPUHooksInterface::init() const {
 #ifndef BUILD_LIBTORCH
-    torch_npu::utils::npu_lazy_init();
+  torch_npu::utils::npu_lazy_init();
 #endif
 }
 
-at::Generator NPUHooksInterface::getNewGenerator(c10::DeviceIndex device_index) const
-{
-    return at::make_generator<at_npu::NPUGeneratorImpl>(device_index);
+at::Generator NPUHooksInterface::getNewGenerator(c10::DeviceIndex device_index) const {
+  return at::make_generator<at_npu::NPUGeneratorImpl>(device_index);
 }
 
-bool NPUHooksInterface::hasPrimaryContext(c10::DeviceIndex device_index) const
-{
-    return c10_npu::isDeviceCtxActive(device_index);
+bool NPUHooksInterface::hasPrimaryContext(c10::DeviceIndex device_index) const {
+  return c10_npu::isDeviceCtxActive(device_index);
 }
 
-void NPUHooksInterface::resizePrivateUse1Bytes(const c10::Storage &storage, size_t new_bytes) const
-{
-    auto storage_impl = static_cast<torch_npu::NPUStorageImpl*>(storage.unsafeGetStorageImpl());
-    auto format = storage_impl->npu_desc_.npu_format_;
-    TORCH_CHECK(at_npu::native::FormatHelper::IsBaseFormatType(format),
-                "Try to resize a storage without base format",
-                PTA_ERROR(ErrCode::TYPE));
+void NPUHooksInterface::resizePrivateUse1Bytes(const c10::Storage& storage, size_t new_bytes) const {
+  auto storage_impl = static_cast<torch_npu::NPUStorageImpl*>(storage.unsafeGetStorageImpl());
+  auto format = storage_impl->npu_desc_.npu_format_;
+  TORCH_CHECK(
+      at_npu::native::FormatHelper::IsBaseFormatType(format),
+      "Try to resize a storage without base format",
+      PTA_ERROR(ErrCode::TYPE));
 
-    auto itemsize = storage_impl->npu_desc_.data_type_.itemsize();
-    TORCH_CHECK(itemsize > 0,
-                "Try to resize a storage with data_type.itemsize <= 0",
-                PTA_ERROR(ErrCode::TYPE));
-    std::vector<int64_t> new_size = {static_cast<int64_t>(new_bytes) / (ptrdiff_t)itemsize};
-    at_npu::native::storage_resize_npu(*storage_impl, new_bytes, new_size, true);
+  auto itemsize = storage_impl->npu_desc_.data_type_.itemsize();
+  TORCH_CHECK(itemsize > 0, "Try to resize a storage with data_type.itemsize <= 0", PTA_ERROR(ErrCode::TYPE));
+  std::vector<int64_t> new_size = {static_cast<int64_t>(new_bytes) / (ptrdiff_t)itemsize};
+  at_npu::native::storage_resize_npu(*storage_impl, new_bytes, new_size, true);
 }
 
-bool NPUHooksInterface::isAvailable() const
-{
-    return c10_npu::device_count() > 0;
+bool NPUHooksInterface::isAvailable() const {
+  return c10_npu::device_count() > 0;
 }
 
-bool NPUHooksInterface::isPinnedPtr(const void* data) const
-{
-    return at_npu::native::CachingHostAllocator_isPinned(const_cast<void*>(data));
+bool NPUHooksInterface::isPinnedPtr(const void* data) const {
+  return at_npu::native::CachingHostAllocator_isPinned(const_cast<void*>(data));
 }
 
-c10::Allocator* NPUHooksInterface::getPinnedMemoryAllocator() const
-{
-    return at_npu::native::getPinnedMemoryAllocator();
+c10::Allocator* NPUHooksInterface::getPinnedMemoryAllocator() const {
+  return at_npu::native::getPinnedMemoryAllocator();
 }
 
-at::PrivateUse1HooksInterface* get_npu_hooks()
-{
-    static at::PrivateUse1HooksInterface* npu_hooks;
-    static c10::once_flag once;
-    c10::call_once(once, [] {
-        npu_hooks = new NPUHooksInterface();
-    });
-    return npu_hooks;
+at::PrivateUse1HooksInterface* get_npu_hooks() {
+  static at::PrivateUse1HooksInterface* npu_hooks;
+  static c10::once_flag once;
+  c10::call_once(once, [] { npu_hooks = new NPUHooksInterface(); });
+  return npu_hooks;
 }
-}
+} // namespace c10_npu

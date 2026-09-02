@@ -8,7 +8,11 @@ from torch_npu.testing.common_utils import create_common_tensor, SupportedDevice
 torch.npu.config.allow_internal_format = True
 
 # ACL format constants
+ACL_FORMAT_NCHW = 0
+ACL_FORMAT_NHWC = 1
 ACL_FORMAT_ND = 2
+ACL_FORMAT_NC1HWC0 = 3
+ACL_FORMAT_FRACTAL_Z = 4
 ACL_FORMAT_FRACTAL_NZ = 29
 
 
@@ -60,7 +64,7 @@ class TestNpuFormatCastAclnn(TestCase):
         self.assertEqual(torch_npu.get_npu_format(out), ACL_FORMAT_FRACTAL_NZ)
         self.assertEqual(out.shape, t.shape)
 
-    @SupportedDevices(['Ascend910B', 'Ascend910_93', 'Ascend950'])
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
     def test_1d_nd_to_nz_fallback_to_nd(self):
         t = torch.empty(12).float().npu()
         out = torch_npu.npu_format_cast(t, ACL_FORMAT_FRACTAL_NZ)
@@ -213,20 +217,96 @@ class TestNpuFormatCastAclnn(TestCase):
     # Group 6: Error cases
     # ------------------------------------------------------------------ #
 
-    @SupportedDevices(['Ascend910B', 'Ascend910_93', 'Ascend950'])
-    def test_noncontiguous_with_internal_format_raises(self):
-        """Non-contiguous tensor with internal format raises or converts correctly."""
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
+    def test_noncontiguous_with_internal_format_fallback(self):
         nz = torch_npu.npu_format_cast(torch.rand(16, 32).half().npu(), ACL_FORMAT_FRACTAL_NZ)
         nz_t = nz.transpose(0, 1)
-        # master may route this case through a newer backend path that can handle
-        # non-contiguous internal-format tensors. v2.7.1 only expected the
-        # unsupported path to raise, so keep both legal behaviors here.
-        try:
-            out = torch_npu.npu_format_cast(nz_t, ACL_FORMAT_ND)
-        except RuntimeError:
-            return
+        out = torch_npu.npu_format_cast(nz_t, ACL_FORMAT_ND)
         self.assertEqual(torch_npu.get_npu_format(out), ACL_FORMAT_ND)
-        self.assertEqual(out.shape, nz_t.shape)
+
+    @SupportedDevices(['Ascend950'])
+    def test_noncontiguous_with_internal_format_raises(self):
+        nz = torch_npu.npu_format_cast(torch.rand(16, 32).half().npu(), ACL_FORMAT_FRACTAL_NZ)
+        nz_t = nz.transpose(0, 1)
+        with self.assertRaises(RuntimeError):
+            torch_npu.npu_format_cast(nz_t, ACL_FORMAT_ND)
+
+    # ------------------------------------------------------------------ #
+    # Group 7: View guard — 2D column-vector (Nx1) fallback to aclop
+    # ------------------------------------------------------------------ #
+    # When a 2D contiguous tensor is a view (storage shape != current shape)
+    # and the target is FRACTAL_NZ, the aclnn path is skipped to avoid
+    # downstream precision issues. The aclop fallback is exercised here.
+    # Example: storage [1, N] viewed as [N, 1] (Nx1 column vector).
+
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
+    def test_2d_view_nx1_nd_to_nz_format_id(self):
+        """View [1, N] -> [N, 1]: format cast to NZ still succeeds."""
+        # Create storage [1, N], then view as [N, 1]
+        N = 16
+        t = torch.rand(1, N).half().npu()
+        t_view = t.t()  # contiguous, Nx1 column vector
+        self.assertTrue(t_view.is_contiguous())
+
+        out = torch_npu.npu_format_cast(t_view, ACL_FORMAT_FRACTAL_NZ)
+        self.assertEqual(torch_npu.get_npu_format(out), ACL_FORMAT_FRACTAL_NZ)
+        self.assertEqual(out.shape, (N, 1))
+        self.assertEqual(out.storage()[1], t_view.storage()[1])
+
+    # ------------------------------------------------------------------ #
+    # Group 8: View guard — sizes mismatch with storage desc falls back
+    #          to aclop (910B/910_93)
+    # ------------------------------------------------------------------ #
+
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
+    def test_view_reshape_internal_to_base_fallback(self):
+        """NC1HWC0 -> reshape view -> NCHW: falls back to aclop (no OOM)."""
+        t = torch_npu.npu_format_cast(torch.rand(4, 8, 28, 28).float().npu(), ACL_FORMAT_NC1HWC0)
+        v = t.reshape(4, -1)
+        out = torch_npu.npu_format_cast(v, ACL_FORMAT_NCHW)
+        self.assertEqual(torch_npu.get_npu_format(out), ACL_FORMAT_NCHW)
+        self.assertTrue(torch.allclose(out.cpu(), v.cpu(), rtol=1e-3, atol=1e-5))
+
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
+    def test_view_reshape_nd_to_nz_fallback(self):
+        """ND -> reshape view -> NZ (fp16): falls back to aclop (no OOM)."""
+        t = torch.rand(32, 64).half().npu()
+        v = t.reshape(-1)
+        out = torch_npu.npu_format_cast(v, ACL_FORMAT_FRACTAL_NZ)
+        self.assertEqual(torch_npu.get_npu_format(out), ACL_FORMAT_FRACTAL_NZ)
+        back = torch_npu.npu_format_cast(out, ACL_FORMAT_ND)
+        self.assertTrue(torch.allclose(back.cpu(), v.cpu(), rtol=1e-2, atol=1e-3))
+
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
+    def test_view_transpose_nd_to_nz_fallback(self):
+        """ND -> transpose view (non-contiguous) -> NZ: falls back to aclop."""
+        t = torch.rand(32, 64).half().npu()
+        v = t.t()
+        out = torch_npu.npu_format_cast(v, ACL_FORMAT_FRACTAL_NZ)
+        self.assertEqual(torch_npu.get_npu_format(out), ACL_FORMAT_FRACTAL_NZ)
+        back = torch_npu.npu_format_cast(out, ACL_FORMAT_ND)
+        self.assertTrue(torch.allclose(back.cpu(), v.cpu(), rtol=1e-2, atol=1e-3))
+
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
+    def test_view_strided_same_shape_nd_to_nz(self):
+        """Same-shape strided view (as_strided) -> NZ: handled on aclnn."""
+        t = torch.rand(32, 64).half().npu()
+        v = torch.as_strided(t, (32, 64), (1, 32))
+        self.assertEqual(v.shape, t.shape)
+        out = torch_npu.npu_format_cast(v, ACL_FORMAT_FRACTAL_NZ)
+        self.assertEqual(torch_npu.get_npu_format(out), ACL_FORMAT_FRACTAL_NZ)
+        back = torch_npu.npu_format_cast(out, ACL_FORMAT_ND)
+        self.assertTrue(torch.allclose(back.cpu(), v.cpu(), rtol=1e-2, atol=1e-3))
+
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
+    def test_view_strided_same_shape_internal_to_base(self):
+        """Same-shape strided view on internal format -> NCHW: aclop fallback."""
+        t = torch_npu.npu_format_cast(torch.rand(4, 8, 28, 28).float().npu(), ACL_FORMAT_NC1HWC0)
+        v = torch.as_strided(t, (4, 8, 28, 28), (1, 4 * 28 * 28, 4 * 28, 4))
+        self.assertEqual(v.shape, t.shape)
+        out = torch_npu.npu_format_cast(v, ACL_FORMAT_NCHW)
+        self.assertEqual(torch_npu.get_npu_format(out), ACL_FORMAT_NCHW)
+        self.assertTrue(torch.allclose(out.cpu(), v.cpu(), rtol=1e-3, atol=1e-5))
 
 
 class TestNpuFormatCastDtypeParam(TestCase):
@@ -679,6 +759,90 @@ class TestZFormatCastOriginal(TestCase):
         supported_output = self.supported_op_exec(npu_input)
         custom_output = self.custom_op_exec(npu_input, self.ACL_FORMAT_NC1HWC0)
         self.assertRtolEqual(supported_output, custom_output)
+
+
+class TestNpuFormatCastForbidInternalFormat(TestCase):
+    """
+    allow_internal_format=False (default on Ascend910B): casting to an
+    internal format downgrades the target to its base format instead of
+    creating an internal-format tensor, matching the pre-aclnn aclop chain
+    (TensorFactories downgrade). Base-format targets are unaffected, and an
+    already-existing internal-format tensor keeps its format.
+    """
+
+    # (target, expected base format, shape, dtype); base formats follow
+    # FormatHelper::GetBaseFormat: FRACTAL_NZ -> ND, NC1HWC0/FRACTAL_Z -> NCHW.
+    DOWNGRADE_CASES = [
+        (ACL_FORMAT_FRACTAL_NZ, ACL_FORMAT_ND, (15, 17), torch.float16),
+        (ACL_FORMAT_FRACTAL_NZ, ACL_FORMAT_ND, (64, 128), torch.float32),
+        (ACL_FORMAT_NC1HWC0, ACL_FORMAT_NCHW, (2, 3, 7, 7), torch.float16),
+        (ACL_FORMAT_FRACTAL_Z, ACL_FORMAT_NCHW, (2, 3, 7, 7), torch.float16),
+    ]
+
+    def setUp(self):
+        super().setUp()
+        # allow_internal_format is write-only on _npuConfig (no getter);
+        # read the backing option instead, the same way npu_config.py does.
+        opt = torch_npu._C._npu_getOption("ALLOW_INTERNAL_FORMAT")
+        self._saved_flag = opt is not None and opt.decode() == "enable"
+
+    def tearDown(self):
+        torch.npu.config.allow_internal_format = self._saved_flag
+        super().tearDown()
+
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
+    def test_disable_downgrades_internal_target_to_base(self):
+        torch.npu.config.allow_internal_format = False
+        for target, base, shape, dtype in self.DOWNGRADE_CASES:
+            with self.subTest(target=target, dtype=dtype):
+                t = torch.rand(*shape).to(dtype).npu()
+                out = torch_npu.npu_format_cast(t, target)
+                self.assertEqual(torch_npu.get_npu_format(out), base)
+                self.assertEqual(out.shape, t.shape)
+                # base format is unpadded: storage holds exactly numel elements
+                self.assertEqual(out.untyped_storage().size(),
+                                 t.numel() * t.element_size())
+                self.assertTrue(torch.equal(out.cpu(), t.cpu()))
+
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
+    def test_disable_base_target_unaffected(self):
+        torch.npu.config.allow_internal_format = False
+        for target, shape in [(ACL_FORMAT_ND, (15, 17)),
+                              (ACL_FORMAT_NCHW, (2, 3, 7, 7)),
+                              (ACL_FORMAT_NHWC, (2, 3, 7, 7))]:
+            with self.subTest(target=target):
+                t = torch.rand(*shape).half().npu()
+                out = torch_npu.npu_format_cast(t, target)
+                self.assertEqual(torch_npu.get_npu_format(out), target)
+                if target != ACL_FORMAT_NHWC:
+                    self.assertTrue(torch.equal(out.cpu(), t.cpu()))
+
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
+    def test_enable_keeps_internal_target(self):
+        torch.npu.config.allow_internal_format = True
+        for target, _, shape, dtype in self.DOWNGRADE_CASES:
+            with self.subTest(target=target, dtype=dtype):
+                t = torch.rand(*shape).to(dtype).npu()
+                out = torch_npu.npu_format_cast(t, target)
+                self.assertEqual(torch_npu.get_npu_format(out), target)
+
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
+    def test_copy_into_existing_internal_format_kept(self):
+        """copy_ into an existing internal-format tensor keeps its format even
+        with allow_internal_format=False: the downgrade only applies when
+        creating a new tensor, matching the aclop chain (cast_into_existing).
+        """
+        torch.npu.config.allow_internal_format = True
+        dst = torch_npu.npu_format_cast(torch.zeros(16, 32).half().npu(),
+                                        ACL_FORMAT_FRACTAL_NZ)
+        self.assertEqual(torch_npu.get_npu_format(dst), ACL_FORMAT_FRACTAL_NZ)
+        src = torch.rand(16, 32).half().npu()
+
+        torch.npu.config.allow_internal_format = False
+        dst.copy_(src)
+
+        self.assertEqual(torch_npu.get_npu_format(dst), ACL_FORMAT_FRACTAL_NZ)
+        self.assertTrue(torch.equal(dst.cpu(), src.cpu()))
 
 
 if __name__ == "__main__":

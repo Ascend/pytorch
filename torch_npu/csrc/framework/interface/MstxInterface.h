@@ -34,7 +34,7 @@ void MstxMemRegionsRegister(mstxDomainHandle_t domain, const mstxMemRegionsRegis
 
 void MstxMemRegionsUnregister(mstxDomainHandle_t domain, const mstxMemRegionsUnregisterBatch_t* desc);
 
-}
-}
+} // namespace native
+} // namespace at_npu
 
 #endif

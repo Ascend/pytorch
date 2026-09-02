@@ -1,87 +1,38 @@
+from __future__ import annotations
+
 import functools
+import logging
 
 import torch
 
+import torch._inductor.config as inductor_config
+log = logging.getLogger("torch._inductor")
 
-# Not good implementation, but no other way
+
 def get_current_raw_stream(device):
     return torch.npu.current_stream(device).npu_stream
 
 
-def patch_is_same_tensor():
-    from torch._subclasses.fake_tensor import FakeTensor
-
-    def is_same_tensor(data: torch.Tensor, value: torch.Tensor):
-        if isinstance(data, FakeTensor) or isinstance(value, FakeTensor):
-            return False
-        return (
-            not data.is_mkldnn
-            and data.size() == value.size()
-            and data.stride() == value.stride()
-            and data.dtype == value.dtype
-            and data.device == value.device
-            and data.untyped_storage().data_ptr() == value.untyped_storage().data_ptr()
-            and data.storage_offset() == value.storage_offset()
-        )
-
-    from torch._inductor import graph, utils
-
-    utils.is_same_tensor = is_same_tensor
-    # We need to do extra-patch because of code like `from xxx import is_same_tensor`
-    graph.is_same_tensor = is_same_tensor
-
-
 def patch_is_gpu():
-    from torch._inductor.utils import GPU_TYPES
+    from torch._inductor.utils import GPU_TYPES, get_gpu_type
 
-    GPU_TYPES.append("npu")
+    if "npu" not in GPU_TYPES:
+        GPU_TYPES.append("npu")
+    get_gpu_type.cache_clear()
 
-    def _return_false(device_interface):
-        return False
 
-    torch._inductor.scheduler.device_need_guard = _return_false
+def resolve_npu_device_index(device_idx=None) -> int:
+    from torch._inductor.utils import decode_device
+
+    return decode_device(torch.device("npu", device_idx)).index
 
 
 def patch_has_triton():
-    from torch.utils._triton import has_triton_package
+    from torch._inductor import compile_fx
+    from torch_npu.utils._dynamo import has_triton
 
-    @functools.lru_cache(None)
-    def has_triton() -> bool:
-        if not has_triton_package():
-            return False
-
-        from torch._dynamo.device_interface import get_interface_for_device
-
-        def cuda_extra_check(device_interface):
-            return True
-
-        def cpu_extra_check(device_interface):
-            import triton.backends
-
-            return "cpu" in triton.backends.backends
-
-        def _return_true(device_interface):
-            return True
-
-        triton_supported_devices = {
-            "cuda": cuda_extra_check,
-            "xpu": _return_true,
-            "cpu": cpu_extra_check,
-            "npu": _return_true,
-        }
-
-        def is_device_compatible_with_triton():
-            for device, extra_check in triton_supported_devices.items():
-                device_interface = get_interface_for_device(device)
-                if device_interface.is_available() and extra_check(device_interface):
-                    return True
-            return False
-
-        return is_device_compatible_with_triton()
-
-    torch.utils._triton.has_triton = has_triton
     torch._inductor.scheduler.has_triton = has_triton
-    torch._inductor.compile_fx.has_triton = has_triton
+    compile_fx.has_triton = has_triton
 
 
 def patch_device_supports_tma():
@@ -92,85 +43,92 @@ def patch_device_supports_tma():
     torch.utils._triton._device_supports_tma = _device_supports_tma
 
 
-def _fx_node_is_input_dependent_cudagraph_unsafe(fx_node: torch.fx.Node) -> bool:
-    """
-    Check if an FX node is cudagraph-unsafe based on its input arguments.
+class classproperty:
+    def __init__(self, func):
+        self.func = func
 
-    Some ops are only cudagraph-unsafe depending on their inputs (e.g., index_put
-    with boolean indices triggers .nonzero() during capture, but integer indices
-    are safe).
-    """
-    from torch.fx.operator_schemas import normalize_function
+    def __get__(self, instance, owner):
+        return self.func(owner)
 
-    target = fx_node.target
-    if not isinstance(target, torch._ops.OpOverload):
+
+def _use_template_for_npu(layout, allowed_layout_dtypes: list[torch.dtype]) -> bool:
+    return layout.device.type == "npu" and layout.dtype in allowed_layout_dtypes
+
+
+def use_triton_template(
+    layout, *, enable_int32: bool = False, enable_float8: bool = False
+) -> bool:
+    from torch._inductor.codegen.common import BackendFeature, has_backend_feature
+    from torch._inductor.utils import _use_autotune_backend, is_gpu
+
+    layout_dtypes = [torch.float16, torch.bfloat16, torch.float32]
+    if enable_int32:
+        layout_dtypes = [torch.float16, torch.bfloat16, torch.float32, torch.int32]
+    if enable_float8:
+        layout_dtypes.extend([torch.float8_e4m3fn, torch.float8_e5m2])
+    return (
+        (
+            (
+                is_gpu(layout.device.type)
+                and _use_template_for_npu(layout, layout_dtypes)
+            )
+            or (layout.device.type == "cpu" and layout.dtype in layout_dtypes)
+        )
+        and inductor_config.max_autotune
+        and _use_autotune_backend("TRITON")
+        and has_backend_feature(layout.device, BackendFeature.TRITON_TEMPLATES)
+    )
+
+
+def use_catlass_template(op_name, layout, m: int, n: int, k: int) -> bool:
+    from torch._inductor.utils import _use_autotune_backend
+    from torch._inductor.virtualized import V
+
+    from .codegen.catlass.catlass_utils import try_import_catlass
+    from .config import catlass as catlass_config
+
+    enabled_ops = catlass_config.catlass_enabled_ops.upper()
+    if enabled_ops == "ALL":
+        pass
+    elif op_name.upper() not in [x.strip() for x in enabled_ops.split(",")]:
         return False
 
-    # index_put with boolean indices triggers .nonzero() during capture
-    if target in (
-        torch.ops.aten.index_put.default,
-        torch.ops.aten.index_put_.default,
-        torch.ops.aten._unsafe_index_put.default,
-    ):
-        normalized = normalize_function(
-            target, fx_node.args, fx_node.kwargs, normalize_to_only_use_kwargs=True
-        )
-        if normalized is not None:
-            _, kwargs = normalized
-            indices = kwargs["indices"]
-            for idx in indices:
-                if idx is not None and idx.meta["val"].dtype in (
-                    torch.bool,
-                    torch.uint8,
-                ):
-                    return True
+    gemm_size = V.graph.sizevars.optimization_hint(m * n * k, fallback=-1)
+    if gemm_size <= 0 or gemm_size < catlass_config.catlass_backend_min_gemm_size:
+        return False
 
-    # ---------------------------------------------------------------------
-    # FA v3 specific check: TND + keep_prob fallback / not supported
-    # When keep_prob is in the range [0, 1) (i.e., dropout is enabled),
-    # the operator should not be captured by ACLGraph. According to the spec,
-    # we raise an explicit error if the user invokes the atomic interface
-    # directly, otherwise we treat it as unsafe for the graph partition.
-    # ---------------------------------------------------------------------
-    if target in (
-        torch.ops.npu.npu_fusion_attention_v3.default,
-        torch.ops.npu.npu_fusion_attention_grad_v3.default,
-    ):
-        normalized = normalize_function(
-            target, fx_node.args, fx_node.kwargs, normalize_to_only_use_kwargs=True
-        )
-        if normalized is not None:
-            _, kwargs = normalized
-            keep_prob = kwargs.get("keep_prob")
-            input_layout = kwargs.get("input_layout")
-            if (
-                keep_prob is not None
-                and float(keep_prob) < 1
-                and input_layout is not None
-                and str(input_layout).upper() == "TND"
-            ):
-                return True
+    # Do not use catlass template on ROCm
+    if torch.version.hip:
+        return False
 
-    return False
-
-
-def patch_fx_node_is_input_dependent_cudagraph_unsafe():
-    from torch._inductor import utils as inductor_utils
-
-    inductor_utils._fx_node_is_input_dependent_cudagraph_unsafe = (
-        _fx_node_is_input_dependent_cudagraph_unsafe
-    )
-    from torch._inductor import lowering as inductor_lowering
-
-    inductor_lowering._fx_node_is_input_dependent_cudagraph_unsafe = (
-        _fx_node_is_input_dependent_cudagraph_unsafe
+    layout_dtypes = [torch.float16, torch.bfloat16, torch.float32]
+    res = (
+        _use_template_for_npu(layout, layout_dtypes)
+        and inductor_config.max_autotune
+        and _use_autotune_backend("CATLASS")
     )
 
+    if res:
+        if not try_import_catlass():
+            log.warning(
+                "Failed to import CATLASS lib. Please check whether "
+                "_inductor.config.catlass.catlass_dir is set correctly. "
+                "Skipping CATLASS backend for now"
+            )
+            return False
 
-def disable_foreach():
-    from torch._inductor.scheduler import Scheduler
+    return res
 
-    def create_foreach_nodes(self):
-        return
+def triton_support_auto_blockify():
+    from triton.backends.ascend.utils import _is_auto_map_parallel_blocks_enabled
+    return _is_auto_map_parallel_blocks_enabled()
 
-    Scheduler.create_foreach_nodes = create_foreach_nodes
+def triton_support_ffts():
+    from triton.backends.ascend.utils import (
+        force_disable_ffts,
+        get_ascend_arch_from_env,
+        is_ffts_supported,
+    )
+
+    arch = get_ascend_arch_from_env()
+    return is_ffts_supported(arch) and (not force_disable_ffts())

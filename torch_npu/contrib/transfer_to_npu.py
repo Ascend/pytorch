@@ -4,11 +4,12 @@ import json
 import collections
 import importlib.metadata
 import logging as logger
+import functools  # noqa: F401
 from functools import wraps
 from typing import Callable, cast, Optional
 import torch
 from torch.utils._device import _device_constructors
-import torch.utils._triton  # ensure module is loaded for patching has_triton below
+from torch.utils._triton import has_triton  # noqa: F401
 from torch.nn.parameter import UninitializedTensorMixin
 from torch._utils import _get_device_module
 from torch.utils import cpp_extension
@@ -78,7 +79,8 @@ class _EventProxy(torch.Event, metaclass=_TorchTypeProxyMeta):
             device = kwargs.get('device', None)
             if device is not None:
                 _replace_cuda_to_npu_in_kwargs(kwargs, 'device', device)
-        instance = super().__new__(cls, *args, **kwargs)
+        # Since torch 2.13, torch.Stream.record_event rejects subclass instances, return a base torch.Event instead.
+        instance = super().__new__(_EventProxy.__mro__[1], *args, **kwargs)
         return instance
 
 
@@ -185,8 +187,10 @@ def _wrapper_cuda(fn):
                 if device is not None:
                     _replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device)
             device_ids = kwargs.get('device_ids', None)
-            if type(device_ids) is list:
-                device_ids = _replace_cuda_to_npu_in_list(device_ids, replace_int)
+            if isinstance(device_ids, list):
+                kwargs["device_ids"] = _replace_cuda_to_npu_in_list(device_ids, replace_int)
+            elif isinstance(device_ids, tuple):
+                kwargs["device_ids"] = tuple(_replace_cuda_to_npu_in_list(list(device_ids), replace_int))
         return fn(*args, **kwargs)
 
     return decorated
@@ -272,9 +276,9 @@ def _wrapper_profiler(fn):
             if 'experimental_config' in kwargs.keys() and \
                     type(kwargs.get('experimental_config')) is not torch_npu.profiler._ExperimentalConfig:
                 logger.warning(
-                    'The parameter experimental_config of torch.profiler.profile has been deleted by the tool '
-                    'because it can only be used in cuda, please manually modify the code '
-                    'and use the experimental_config parameter adapted to npu.')
+                    'The parameter experimental_config of torch.profiler.profile has been removed by the tool '
+                    'because it can only be used with CUDA. Please manually modify the code '
+                    'to use an experimental_config parameter that supports NPU.')
                 del kwargs['experimental_config']
         return fn(*args, **kwargs)
 
@@ -289,9 +293,9 @@ def _jit_script(obj, *args, **kwargs):
     global _warned_jit_fallback
     if _dynamo.use_jit_script:
         if not _warned_jit_fallback:
-            _warned_jit_fallback = True    
+            _warned_jit_fallback = True
             warnings.warn(
-                "using torch.jit.script successfully",
+                "torch.jit.script is in use.",
                 RuntimeWarning,
             )
         return _real_jit_script(obj, *args, **kwargs)
@@ -306,7 +310,8 @@ def _jit_script_method(fn):
 
 def _patch_jit_script():
     msg = ('torch.jit.script and torch.jit.script_method will be disabled by transfer_to_npu, '
-           'which currently does not support them, if you need to enable them, please do not use transfer_to_npu.')
+           'which currently does not support them. If you need to enable them, '
+           'please do not use transfer_to_npu.')
     warnings.warn(msg, RuntimeWarning)
     torch.jit.script = _jit_script
     torch.jit.script_method = _jit_script_method
@@ -418,7 +423,9 @@ def _patch_nametuple(nametuple):
                     _replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device)
             device_ids = kwargs.get('device_ids', None)
             if isinstance(device_ids, list):
-                device_ids = _replace_cuda_to_npu_in_list(device_ids, False)
+                kwargs["device_ids"] = _replace_cuda_to_npu_in_list(device_ids, False)
+            elif isinstance(device_ids, tuple):
+                kwargs["device_ids"] = tuple(_replace_cuda_to_npu_in_list(list(device_ids), False))
         return original__new__(cls, *args, **kwargs)
     nametuple.__new__ = new_nametuple__new__
 
@@ -433,6 +440,18 @@ def _compose_wrappers(*wrappers):
 
 
 def _init():
+    # transfer_to_npu patches these modules during its own import. Import them
+    # explicitly instead of relying on torch_npu import side effects.
+    import torch._dynamo.trace_rules  # noqa: F401
+    import torch._dynamo.utils  # noqa: F401
+    import torch._inductor.runtime.autotune_cache  # noqa: F401
+    import torch._inductor.compile_fx  # noqa: F401
+    import torch._inductor.utils  # noqa: F401
+    import torch._inductor.fx_passes.post_grad  # noqa: F401
+    import torch._inductor.fx_passes.joint_graph  # noqa: F401
+    import torch._inductor.autotune_process  # noqa: F401
+    from torch.distributed.checkpoint import filesystem
+
     _warning_fn('''
     *************************************************************************************************************
     The torch.Tensor.cuda and torch.nn.Module.cuda are replaced with torch.Tensor.npu and torch.nn.Module.npu now..
@@ -462,6 +481,7 @@ def _init():
     _device_wrapper(torch.npu.memory, ['_record_memory_history', '_snapshot'])
     torch.cuda.memory._record_memory_history = torch.npu.memory._record_memory_history
     torch.cuda.memory._snapshot = torch.npu.memory._snapshot
+    torch.cuda.memory._dump_snapshot = torch.npu.memory._dump_snapshot
     torch._C._host_emptyCache = torch_npu._C._npu_hostEmptyCache
 
     # torch.profiler.*
@@ -537,7 +557,7 @@ def _init():
     torch._inductor.autotune_process.get_gpu_type = _get_npu_type
 
     torch._utils._get_available_device_type = _patch_get_available_device_type
-    torch.distributed.checkpoint.filesystem._OverlappingCpuLoader.__init__ = \
+    filesystem._OverlappingCpuLoader.__init__ = \
         _patch_OverlappingCpuLoader_init_
 
     _replace_to_method_in_allowed_methods()
@@ -546,6 +566,5 @@ def _init():
     _device_wrapper(torch.utils.cpp_extension, ['include_paths'])
 
     _patch_nametuple(Kernel)
-
 
 _init()

@@ -30,7 +30,7 @@ def parse_version(version: str) -> Version:
             version_number_str = version[:i]
             break
 
-    return cast(Version, tuple([int(n) for n in version_number_str.split(".")]))
+    return cast(Version, tuple([int(n) for n in version_number_str.split(".") if n]))
 
 
 def apply_replacements(replacements: dict[str, str], text: str) -> str:

@@ -14,6 +14,7 @@ from torch._C._distributed_c10d import (
     _register_process_group,
     FakeProcessGroup,
     PrefixStore,
+    _ProcessGroupWrapper
 )
 from torch.distributed.distributed_c10d import (
     _check_p2p_op_list,
@@ -144,6 +145,14 @@ def _batch_isend_irecv(p2p_op_list):
                     get_group_rank(group, p2p_op.peer) if is_multi_pg else p2p_op.peer
                 )
                 remote_rank_list.append(rank_for_op)
+
+            # NCCL has no batch_isend_irecv op, so PyTorch's ProcessGroupWrapper
+            # does not define a batch_isend_irecv method. When TORCH_DISTRIBUTED_DEBUG=DETAIL
+            # is set, _patched_new_process_group_helper wraps the HCCL PG via
+            # _create_process_group_wrapper, and this path is hit on A5. Unwrap to
+            # the real ProcessGroupHCCL, which implements batch_isend_irecv.
+            if isinstance(_group, _ProcessGroupWrapper):
+                _group = _group.wrapped_pg
             return [_group.batch_isend_irecv(op_type, tensors, remote_rank_list)]
     else:
         # Backward support for Gloo
@@ -533,6 +542,7 @@ def _patched_new_process_group_helper(
     pg_tag=None,
     device_id=None,
     group_desc=None,
+    enable_reconfigure=False,  # noqa: ARG001  accepted for 2.14+ init_process_group signature; HCCL does not consume it
 ):
     """
     Create a new distributed process group.

@@ -14,3 +14,4 @@ from .npu_fused_adamp import NpuFusedAdamP
 from .npu_fused_bert_adam import NpuFusedBertAdam
 from .npu_fused_rmsprop import NpuFusedRMSprop
 from .npu_fused_rmsprop_tf import NpuFusedRMSpropTF
+from .distributed_muon import _DistributedMuon

@@ -7,27 +7,26 @@
 
 #include <c10/core/Device.h>
 #include "torch_npu/csrc/logging/LogContext.h"
-#include <third_party/acl/inc/acl/acl_op.h>
+#include <acl/acl_op.h>
 
 namespace c10_npu {
 
-inline std::shared_ptr<npu_logging::Logger>& GetQueueLogger()
-{
-    static std::shared_ptr<npu_logging::Logger> logger = npu_logging::logging().getLogger("torch_npu.dispatch");
-    return logger;
+inline std::shared_ptr<npu_logging::Logger>& GetQueueLogger() {
+  static std::shared_ptr<npu_logging::Logger> logger = npu_logging::logging().getLogger("torch_npu.dispatch");
+  return logger;
 }
 
-#define TORCH_NPU_QUEUE_LOGD(format, ...)                                      \
-    do {                                                                       \
-        TORCH_NPU_LOGD(c10_npu::GetQueueLogger(), format, ##__VA_ARGS__);      \
-        ASCEND_LOGD(format, ##__VA_ARGS__);                                    \
-    } while (0);
+#define TORCH_NPU_QUEUE_LOGD(format, ...)                             \
+  do {                                                                \
+    TORCH_NPU_LOGD(c10_npu::GetQueueLogger(), format, ##__VA_ARGS__); \
+    ASCEND_LOGD(format, ##__VA_ARGS__);                               \
+  } while (0);
 
-#define TORCH_NPU_QUEUE_LOGI(format, ...)                                      \
-    do {                                                                       \
-        TORCH_NPU_LOGI(c10_npu::GetQueueLogger(), format, ##__VA_ARGS__);      \
-        ASCEND_LOGI(format, ##__VA_ARGS__);                                    \
-    } while (0);
+#define TORCH_NPU_QUEUE_LOGI(format, ...)                             \
+  do {                                                                \
+    TORCH_NPU_LOGI(c10_npu::GetQueueLogger(), format, ##__VA_ARGS__); \
+    ASCEND_LOGI(format, ##__VA_ARGS__);                               \
+  } while (0);
 
 struct sring_idx {
   bool working = false;
@@ -51,12 +50,13 @@ enum RepoStatus {
 
 // c10::SmallVector max size
 const int N = 32;
-// When task queue is empty, poll the read queue for at most 1ms till more tasks sent in.
-// In terms of time granularity, executing query function--IsEmptyQueue() for 200000 times is equal to 1ms.
+// When task queue is empty, poll the read queue for at most 1ms till more tasks
+// sent in. In terms of time granularity, executing query
+// function--IsEmptyQueue() for 200000 times is equal to 1ms.
 const int READ_QUEUE_POLL_MAX_LOOP = 200000;
 
 class ReleaseQueue {
-public:
+ public:
   ReleaseQueue() = default;
   ~ReleaseQueue();
   void PushToReleaseQueue(void* cur_paras);
@@ -65,20 +65,22 @@ public:
   RepoStatus GetStatus() const;
   c10::DeviceIndex GetDeviceID() const;
 
-private:
-  inline bool IsEmptyQueue() {return read_idx.idx == write_idx.idx;};
+ private:
+  inline bool IsEmptyQueue() {
+    return read_idx.idx == write_idx.idx;
+  };
   bool IsFullQueue() const;
   bool WriteToReleaseQueue(void* cur_paras);
   bool ReadFromReleaseQueue();
   void SetStatus(RepoStatus desired);
   void ChangeStatus(RepoStatus expected, RepoStatus desired);
 
-private:
+ private:
   void* data = nullptr;
   std::thread releaser;
   c10::DeviceIndex device_idx;
 
-private:
+ private:
   sring_idx read_idx;
   sring_idx write_idx;
   std::atomic<RepoStatus> repo_status;
@@ -86,7 +88,7 @@ private:
 };
 
 class NPUQueueBase {
-public:
+ public:
   virtual ~NPUQueueBase() {}
   virtual RepoStatus GetStatus() const = 0;
   virtual void SetStatus(RepoStatus desired) = 0;
@@ -104,13 +106,13 @@ public:
 };
 
 class NPUQueueFactoryBase {
-public:
+ public:
   virtual NPUQueueBase* create() = 0;
   virtual ~NPUQueueFactoryBase() {}
 };
 
 class Repository : public NPUQueueBase {
-public:
+ public:
   Repository() = default;
   ~Repository() override;
   RepoStatus GetStatus() const override;
@@ -123,24 +125,36 @@ public:
   bool CheckInit() const override;
   std::string GetPara() override;
   void ClearQueue() override;
-  void SetQueueErrMsg(const char *errmsg) override;
+  void SetQueueErrMsg(const char* errmsg) override;
   std::string GetQueueErrMsg() override;
-  bool IsEmptyRepo() override { return IsEmptyQueue(); }
+  bool IsEmptyRepo() override {
+    return IsEmptyQueue();
+  }
 
-private:
+ private:
   void ReleaseResource();
-  inline bool IsEmptyQueue() {return read_idx.idx == write_idx.idx;};
+  inline bool IsEmptyQueue() {
+    return read_idx.idx == write_idx.idx;
+  };
   bool IsFullQueue() const;
-  void SetWriteWorking(bool isWorking) {write_idx.working = isWorking;};
-  void SetReadWorking(bool isWorking) {read_idx.working = isWorking;};
-  bool IsWriteWorking() const {return write_idx.working;};
-  bool IsReadWorking() const {return read_idx.working;};
+  void SetWriteWorking(bool isWorking) {
+    write_idx.working = isWorking;
+  };
+  void SetReadWorking(bool isWorking) {
+    read_idx.working = isWorking;
+  };
+  bool IsWriteWorking() const {
+    return write_idx.working;
+  };
+  bool IsReadWorking() const {
+    return read_idx.working;
+  };
   bool WriteQueue(void* cur_paras);
   bool ReadQueue();
   void CheckDeviceError(int ret, std::string& err_msg);
   void ThrowDeviceError(RepoStatus current_status, void* cur_paras);
 
-private:
+ private:
   void* data = nullptr;
   std::thread consumer;
   int efd_read;
@@ -149,7 +163,7 @@ private:
   c10::DeviceIndex device_idx;
   std::string error_msg;
 
-private:
+ private:
   sring_idx read_idx;
   sring_idx write_idx;
   std::atomic<RepoStatus> repo_status;
@@ -163,25 +177,30 @@ private:
   ReleaseQueue releaseQueue;
 };
 
-using ACL_EXEC_FUNC     = std::function<int(void*)>;
-using ACL_COPY_FUNC     = std::function<void(void*, void*)>;
-using ACL_RELEASE_FUNC  = std::function<void(void*, ReleaseQueue&)>;
-using ACL_NEW_FUNC      = std::function<void*(int, int&)>;
-using ACL_DELETE_FUNC   = std::function<void(void*)>;
+using ACL_EXEC_FUNC = std::function<int(void*)>;
+using ACL_COPY_FUNC = std::function<void(void*, void*)>;
+using ACL_RELEASE_FUNC = std::function<void(void*, ReleaseQueue&)>;
+using ACL_NEW_FUNC = std::function<void*(int, int&)>;
+using ACL_DELETE_FUNC = std::function<void(void*)>;
 using ACL_COPY_RELEASE_PARM_FUNC = std::function<void(void*, void*)>;
 using ACL_RELEASE_PARAM_FUNC = std::function<void(void*)>;
 
 namespace register_queue_cb {
 class NPUCallBackRegisterBuilder {
-public:
-  NPUCallBackRegisterBuilder(const ACL_EXEC_FUNC& execF, const ACL_COPY_FUNC& copyF,
-    const ACL_RELEASE_FUNC& releaseF, const ACL_NEW_FUNC& newF, const ACL_DELETE_FUNC& deleteF,
-    const ACL_COPY_RELEASE_PARM_FUNC& copyReleaseParamF, const ACL_RELEASE_PARAM_FUNC& releaseParamF);
+ public:
+  NPUCallBackRegisterBuilder(
+      const ACL_EXEC_FUNC& execF,
+      const ACL_COPY_FUNC& copyF,
+      const ACL_RELEASE_FUNC& releaseF,
+      const ACL_NEW_FUNC& newF,
+      const ACL_DELETE_FUNC& deleteF,
+      const ACL_COPY_RELEASE_PARM_FUNC& copyReleaseParamF,
+      const ACL_RELEASE_PARAM_FUNC& releaseParamF);
   ~NPUCallBackRegisterBuilder() {}
 };
 } // namespace register_queue_cb
 
-#define REGISTER_QUEUE_FUNC(execF, copyF, releaseF, newF, deleteF, copyReleaseParamF, releaseParamF)  \
-    static ::c10_npu::register_queue_cb::NPUCallBackRegisterBuilder                     \
-        register_queue_func_builder(execF, copyF, releaseF, newF, deleteF, copyReleaseParamF, releaseParamF);
+#define REGISTER_QUEUE_FUNC(execF, copyF, releaseF, newF, deleteF, copyReleaseParamF, releaseParamF) \
+  static ::c10_npu::register_queue_cb::NPUCallBackRegisterBuilder register_queue_func_builder(       \
+      execF, copyF, releaseF, newF, deleteF, copyReleaseParamF, releaseParamF);
 } // namespace c10_npu

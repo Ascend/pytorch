@@ -6,5 +6,5 @@ namespace native {
 int64_t getFreq();
 bool isSyscntEnable();
 } // namespace native
-} // namespace torchat_npu_npu
+} // namespace at_npu
 #endif

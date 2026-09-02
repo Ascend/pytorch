@@ -12,18 +12,11 @@ TORCH_NPU_API void ReleaseHcclCommList();
 
 using tensor_list2d = std::vector<std::vector<at::Tensor>>;
 
-std::vector<at::Tensor>& broadcast_out(
-    const at::Tensor& tensor,
-    std::vector<at::Tensor>& out_tensors);
+std::vector<at::Tensor>& broadcast_out(const at::Tensor& tensor, std::vector<at::Tensor>& out_tensors);
 
-std::vector<at::Tensor> broadcast(
-    const at::Tensor& tensor,
-    at::IntArrayRef devices);
+std::vector<at::Tensor> broadcast(const at::Tensor& tensor, at::IntArrayRef devices);
 
-tensor_list2d broadcast_coalesced(
-    at::TensorList tensors,
-    at::IntArrayRef devices,
-    size_t buffer_size);
+tensor_list2d broadcast_coalesced(at::TensorList tensors, at::IntArrayRef devices, size_t buffer_size);
 
 std::vector<at::Tensor>& scatter_out(
     const at::Tensor& tensor,
@@ -38,14 +31,8 @@ std::vector<at::Tensor> scatter(
     int64_t dim = 0,
     const c10::optional<std::vector<c10::optional<c10_npu::NPUStream>>>& streams = c10::nullopt);
 
-at::Tensor& gather_out(
-    at::TensorList tensors,
-    at::Tensor& out_tensor,
-    int64_t dim);
+at::Tensor& gather_out(at::TensorList tensors, at::Tensor& out_tensor, int64_t dim);
 
-at::Tensor gather(
-    at::TensorList tensors,
-    int64_t dim,
-    c10::optional<int32_t> destination_index);
-}
+at::Tensor gather(at::TensorList tensors, int64_t dim, c10::optional<int32_t> destination_index);
+} // namespace data_parallel
 } // namespace torch_npu

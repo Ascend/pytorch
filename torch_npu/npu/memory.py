@@ -5,9 +5,7 @@ import ctypes
 import pickle
 import sys
 import os
-import stat
-import platform
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Optional, Tuple
 
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
@@ -40,7 +38,6 @@ __all__ = [
     "NPUPluggableAllocator",
     "change_current_allocator",
     "MemPool",
-    "MemPoolContext",
     "use_mem_pool",
     "host_empty_cache",
     "host_memory_stats",
@@ -56,13 +53,16 @@ if not hasattr(torch_npu._C, "_npu_NPUAllocator"):
 if not hasattr(torch_npu._C, "_MemPool"):
     # Define dummy base classes
     torch_npu._C.__dict__["_MemPool"] = _dummy_type("_MemPool")
-    torch_npu._C.__dict__["_MemPoolContext"] = _dummy_type("_MemPoolContext")
     torch_npu._C.__dict__["_npu_beginAllocateToPool"] = _dummy_type(
         "_npu_beginAllocateToPool"
     )
-    torch_npu._C.__dict__["_npu_endAllocateCurrentStreamToPool"] = _dummy_type(
-        "_npu_endAllocateCurrentStreamToPool"
+    torch_npu._C.__dict__["_npu_beginAllocateCurrentThreadToPool"] = _dummy_type(
+        "_npu_beginAllocateCurrentThreadToPool"
     )
+    torch_npu._C.__dict__["_npu_endAllocateToPool"] = _dummy_type(
+        "_npu_endAllocateToPool"
+    )
+    torch_npu._C.__dict__["_npu_releasePool"] = _dummy_type("_npu_releasePool")
 
 @contextlib.contextmanager
 def _free_mutex():
@@ -102,7 +102,7 @@ def caching_allocator_alloc(size, device=None, stream=None):
     if not isinstance(stream, int):
         raise TypeError('Invalid type for stream argument, must be '
                         '`torch_npu.npu.Stream` or `int` representing a pointer '
-                        'to a exisiting stream' + pta_error(ErrCode.TYPE))
+                        'to a existing stream' + pta_error(ErrCode.TYPE))
     with torch_npu.npu.device(device):
         return torch_npu._C._npu_npuCachingAllocator_raw_alloc(size, stream)
 
@@ -312,6 +312,8 @@ def memory_stats(device=None):
     - ``"num_alloc_retries"``: number of failed ``npuMalloc`` calls that
       result in a cache flush and retry.
     - ``"num_ooms"``: number of out-of-memory errors thrown.
+    - ``"num_oom_rejections"``: number of allocations preemptively rejected by the
+        throw_on_npumalloc_oom + per_process_memory_fraction policy.
     The caching allocator can be configured via ENV to not split blocks larger than a
     defined size (see Memory Management section of the Cuda Semantics documentation).
     This helps avoid memory framentation but may have a performance
@@ -540,17 +542,25 @@ def max_memory_cached(device=None):
     return max_memory_reserved(device=device)
 
 
-def memory_snapshot():
+def memory_snapshot(mempool_id=None):
     r"""Returns a snapshot of the NPU memory allocator state across all devices.
 
     Interpreting the output of this function requires familiarity with the
     memory allocator internals.
 
+    Args:
+        mempool_id (Tuple[int, int], optional): the id of the memory pool to
+            filter the snapshot. If ``None`` (default), the snapshot of all
+            memory pools is returned.
+
     .. note::
         See :ref:`npu-memory-management` for more details about NPU memory
         management.
     """
-    return torch_npu._C._npu_memorySnapshot()["segments"]
+    if mempool_id is None:
+        return torch_npu._C._npu_memorySnapshot(None)["segments"]
+    else:
+        return torch_npu._C._npu_memorySnapshot((mempool_id[0], mempool_id[1]))["segments"]
 
 
 def _format_size(sz, pref_sz):
@@ -775,41 +785,39 @@ class MemPool(torch_npu._C._MemPool):
             define how memory gets allocated in the pool. If :attr:`allocator`
             is ``None`` (default), memory allocation follows the default/
             current configuration of the NPUCachingAllocator.
+        use_on_oom(bool): a bool that indicates if this pool can be used
+            as a last resort if a memory allocation outside of the pool fails due
+            to Out Of Memory. This is False by default.
+        no_split(bool): a bool that indicates if this pool should not split a segment.
+            This is False by default.
 
     """
 
-    def __init__(self, allocator: Optional[torch_npu._C._npu_NPUAllocator] = None):
-        super().__init__(allocator, True)
+    def __init__(
+        self,
+        allocator: Optional[torch_npu._C._npu_NPUAllocator] = None,
+        use_on_oom: bool = False,
+        no_split: bool = False,
+    ):
+        super().__init__(allocator, True, use_on_oom, no_split)
 
     @property
     def id(self) -> Tuple[int, int]:
         r"""Returns the ID of this pool as a tuple of two ints."""
         return super().id
 
-    @property
-    def allocator(self) -> Optional[torch_npu._C._npu_NPUAllocator]:
-        r"""Returns the allocator this MemPool routes allocations to"""
-        return super().allocator
+    def use_count(self) -> int:
+        r"""Returns the reference count of this pool."""
+        return super().use_count()
 
+    def snapshot(self):
+        r"""Return a snapshot of the NPU memory allocator pool state across all
+        devices.
 
-class MemPoolContext(torch_npu._C._MemPoolContext):
-    r"""MemPoolContext holds the currently active pool and stashes the previous
-    pool. On deletion it makes the previous pool active.
-
-    Args:
-        pool(torch_npu.npu.MemPool): a MemPool object to be made active so that
-        allocations route to this pool.
-
-    """
-
-    def __init__(self, pool: MemPool):
-        super().__init__(pool)
-
-    @staticmethod
-    def active_pool() -> Optional[torch_npu._C._MemPool]:
-        r"""Returns the active MemPool"""
-        return torch_npu._C._MemPoolContext.active_pool()
-
+        Interpreting the output of this function requires familiarity with the
+        memory allocator internals.
+        """
+        return memory_snapshot(self.id)
 
 @contextlib.contextmanager
 def use_mem_pool(pool: MemPool, device=None):
@@ -822,17 +830,22 @@ def use_mem_pool(pool: MemPool, device=None):
             the current device, given by :func:`~torch_npu.npu.current_device,
             if :attr:`device` is ``None`` (default).
 
+    .. note::
+        This context manager makes only current thread's allocations route to
+        the given pool. If a new thread is spawned inside the context manager,
+        allocations in that thread will not route to the given pool.
+
     """
-    ctx = MemPoolContext(pool)
     device_index = (
         torch_npu.npu.current_device() if device is None else _get_device_index(device)
     )
-    torch_npu._C._npu_beginAllocateToPool(device_index, pool.id)
+    torch_npu._C._npu_beginAllocateCurrentThreadToPool(device_index, pool.id)
     try:
         yield
     finally:
-        torch_npu._C._npu_endAllocateCurrentStreamToPool(device_index, pool.id)
-        del ctx
+        torch_npu._C._npu_endAllocateToPool(device_index, pool.id)
+        # after endAllocate, need call releasePool to achieve the right count(use_count--)
+        torch_npu._C._npu_releasePool(device_index, pool.id)
 
 
 def _record_memory_history(enabled="all", *args, **kwargs):
@@ -856,7 +869,7 @@ def _record_memory_history(enabled="all", *args, **kwargs):
     Args:
         enabled (Literal[None, "state", "all"], optional):
             `None`, disable recording memory history.
-            `"state"`, keep information for currenly allocated memory.
+            `"state"`, keep information for currently allocated memory.
             `"all"`, additionally keep a history of all alloc/free calls.
             Defaults to "all".
         context (Literal[None, "state", "alloc", "all"], optional):
@@ -886,7 +899,7 @@ def _record_memory_history_impl(
     torch_npu._C._npu_record_memory_history(enabled, context, stacks, max_entries)
 
 
-def _snapshot(device=None):
+def _snapshot(device=None, augment_with_fx_traces=False):
     """Save a snapshot of NPU memory state at the time it was called.
 
     The state is represented as a dictionary with the following structure.
@@ -910,6 +923,7 @@ def _snapshot(device=None):
             segment_type: Literal['small', 'large'] # 'large' (>1MB)
             allocated_size: int # size of memory in use
             active_size: int # size of memory in use or in active_awaiting_free state
+            segment_pool_id: Tuple[int, int] # id of the memory pool owning this segment
             blocks : List[Block]
 
         class Block(TypedDict):
@@ -954,16 +968,30 @@ def _snapshot(device=None):
             frames: List[Frame]
             size: int
             stream: int
+            pool_id: Tuple[int, int] # id of the memory pool for this entry
             device_free: int # only present for OOM, the amount of
                             # memory npu still reports to be free
+
+    Args:
+        device: Device to capture snapshot for. If None, captures for current device.
+        augment_with_fx_traces: If True, augment stack trace frames with FX debug information
+                                that maps generated FX code back to original model source code.
+                                This adds fx_node_op, fx_node_name, fx_node_target and
+                                fx_original_trace fields to Frame objects, and only to frames
+                                that come from FX generated files. Requires the FX graphs to
+                                have been compiled in this same process. Default: False.
 
     Returns:
         The Snapshot dictionary object
     """
-    return torch_npu._C._npu_memorySnapshot()
+    s = torch_npu._C._npu_memorySnapshot(None)
+    if augment_with_fx_traces:
+        from torch._utils import _augment_memory_snapshot_stack_traces
+        s = _augment_memory_snapshot_stack_traces(s)
+    return s
 
 
-def _dump_snapshot(filename="dump_snapshot.pickle"):
+def _dump_snapshot(filename="dump_snapshot.pickle", augment_with_fx_traces=False):
     """
     Save a pickled version of the `torch.memory._snapshot()` dictionary to a file.
 
@@ -971,9 +999,12 @@ def _dump_snapshot(filename="dump_snapshot.pickle"):
 
     Args:
         filename (str, optional): Name of the file to create. Defaults to "dump_snapshot.pickle".
+        augment_with_fx_traces (bool, optional): If True, augment the snapshot with FX debug
+            information before dumping. This maps generated FX code stack traces back to
+            original model source code. Defaults to False.
     """
-    s = _snapshot()
-    with os.fdopen(os.open(filename, os.O_WRONLY | os.O_CREAT, stat.S_IWUSR), "wb") as f:
+    s = _snapshot(augment_with_fx_traces=augment_with_fx_traces)
+    with open(filename, "wb") as f:
         pickle.dump(s, f)
 
     device = torch_npu.npu.current_device()
@@ -994,12 +1025,12 @@ def _dump_snapshot(filename="dump_snapshot.pickle"):
 def _save_segment_usage(filename="output.svg", snapshot=None):
     if snapshot is None:
         snapshot = _snapshot()
-    with os.fdopen(os.open(filename, os.O_WRONLY | os.O_CREAT, stat.S_IWUSR), "w") as f:
+    with open(filename, "w") as f:
         f.write(_segments(snapshot))
 
 
 def _save_memory_usage(filename="output.svg", snapshot=None):
     if snapshot is None:
         snapshot = _snapshot()
-    with os.fdopen(os.open(filename, os.O_WRONLY | os.O_CREAT, stat.S_IWUSR), "w") as f:
+    with open(filename, "w") as f:
         f.write(_memory(snapshot))

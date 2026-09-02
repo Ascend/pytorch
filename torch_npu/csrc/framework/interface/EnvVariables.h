@@ -18,10 +18,35 @@ TORCH_NPU_API bool CheckOpHookEnable();
 bool CheckMmBmmNDDisable();
 bool CheckForbidInternalFormat();
 bool CheckStrongConsistency();
+
+/**
+ Compatible configuration key.
+ */
+enum class CompatibleKey {
+  Randomness,
+};
+
+/**
+ check if the compatible impl is enabled, return true or false.
+ */
 bool CheckCompatibleImpl();
+bool CheckCompatibleImplFor(CompatibleKey compatible_key);
+bool CheckCompatibleImplBlackListFor(CompatibleKey compatible_key);
+
 bool IsAllowFP32ToFP16();
 bool IsAllowConvHF32();
 bool IsAllowMatmulHF32();
+
+class NpuContext {
+ public:
+  bool npuFillUninitializedMemory() const;
+  void setNpuFillUninitializedMemory(bool /*b*/);
+
+ private:
+  bool _npu_fill_uninitialized_memory = false;
+};
+
+NpuContext& globalNpuContext();
 
 } // namespace env
 } // namespace native

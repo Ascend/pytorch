@@ -2,16 +2,18 @@
 
 #include <limits>
 #include <memory>
-#include <unordered_set>
+#include <mutex>
 
 #include <c10/core/GeneratorImpl.h>
+#include <c10/util/flat_hash_map.h>
 #include <ATen/core/Generator.h>
 #include <ATen/Tensor.h>
 #include <ATen/Context.h>
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
+#include "torch_npu/csrc/core/npu/NPUGraphsUtils.h"
 
 namespace c10_npu {
-    struct NPUGraph;
+struct NPUGraph;
 }
 
 namespace at_npu {
@@ -90,104 +92,105 @@ namespace at_npu {
  *
  */
 
-
 // Stores state values. Passed as a kernel argument. See "Usage:" above.
 struct PhiloxNpuState {
-    PhiloxNpuState() = default;
-    PhiloxNpuState(const PhiloxNpuState&) = default;
-    // Called if graph capture is not underway
-    PhiloxNpuState(uint64_t seed, uint64_t offset)
-    {
-        seed_.val = seed;
-        offset_.val = offset;
-    }
-    // Called if graph capture is underway
-    PhiloxNpuState(at::Tensor* seed, at::Tensor* offset_extragraph, uint64_t offset_intragraph, bool secondary_stream_capture_state = false)
-    {
-        seed_.ptr = seed;
-        offset_.ptr = offset_extragraph;
-        offset_intragraph_ = offset_intragraph;
-        captured_ = true;
-        secondary_stream_capture_state_ = secondary_stream_capture_state;
-    }
+  PhiloxNpuState() = default;
+  PhiloxNpuState(const PhiloxNpuState&) = default;
+  // Called if graph capture is not underway
+  PhiloxNpuState(uint64_t seed, uint64_t offset) {
+    seed_.val = seed;
+    offset_.val = offset;
+  }
+  // Called if graph capture is underway
+  PhiloxNpuState(
+      at::Tensor* seed,
+      at::Tensor* offset_extragraph,
+      uint64_t offset_intragraph,
+      bool secondary_stream_capture_state = false) {
+    seed_.ptr = seed;
+    offset_.ptr = offset_extragraph;
+    offset_intragraph_ = offset_intragraph;
+    captured_ = true;
+    secondary_stream_capture_state_ = secondary_stream_capture_state;
+  }
 
-    // Public members, directly accessible by at::Npu::philox::unpack.
-    // If we made them private with getters/setters, the getters/setters
-    // would have to be __device__, and we can't declare __device__ in ATen.
-    union Payload {
-        uint64_t val;
-        at::Tensor* ptr;
-    };
+  // Public members, directly accessible by at::Npu::philox::unpack.
+  // If we made them private with getters/setters, the getters/setters
+  // would have to be __device__, and we can't declare __device__ in ATen.
+  union Payload {
+    uint64_t val;
+    at::Tensor* ptr;
+  };
 
-    Payload seed_{};
-    Payload offset_{};
-    uint64_t offset_intragraph_{0};
-    bool captured_ = false;
-    bool secondary_stream_capture_state_ = false;
+  Payload seed_{};
+  Payload offset_{};
+  uint64_t offset_intragraph_{0};
+  bool captured_ = false;
+  bool secondary_stream_capture_state_ = false;
 };
 
+struct NPUGeneratorCaptureState : public c10::intrusive_ptr_target {
+  uint64_t offset_intragraph_{0};
+  at::Tensor seed_extragraph_{};
+  at::Tensor offset_extragraph_{};
+
+  NPUGeneratorCaptureState() = default;
+  bool is_initialized() const;
+  void initialize(uint64_t seed);
+  void increase(uint64_t increment);
+  uint64_t finalize();
+  void setup_for_replay(uint64_t seed, uint64_t philox_offset);
+};
 
 struct NPUGeneratorState : public c10::intrusive_ptr_target {
-    uint64_t seed_;
-    uint64_t philox_offset_per_thread_;
-    uint64_t offset_intragraph_;
-    bool capturing_{};
-    bool secondary_stream_capture_state_{};
-    std::unordered_set<c10_npu::NPUGraph*> registered_graphs_;
-    at::Tensor seed_extragraph_{};
-    at::Tensor offset_extragraph_{};
+  uint64_t seed_;
+  uint64_t philox_offset_per_thread_;
+  bool secondary_stream_capture_state_{};
+  mutable std::mutex capture_states_mutex_;
+  ska::flat_hash_map<c10_npu::CaptureId_t, c10::intrusive_ptr<NPUGeneratorCaptureState>> capture_states_;
 
-    NPUGeneratorState(
-        uint64_t seed = c10::default_rng_seed_val,
-        uint64_t philox_offset_per_thread = 0,
-        uint64_t offset_intragraph = 0)
-        : seed_(seed),
-        philox_offset_per_thread_(philox_offset_per_thread),
-        offset_intragraph_(offset_intragraph) {}
+  NPUGeneratorState(uint64_t seed = c10::default_rng_seed_val, uint64_t philox_offset_per_thread = 0)
+      : seed_(seed), philox_offset_per_thread_(philox_offset_per_thread) {}
 
-    void increase(uint64_t increment);
-    void register_graph(c10_npu::NPUGraph* graph);
-    void unregister_graph(c10_npu::NPUGraph* graph);
-    void capture_prologue();
-    // capture_epilogue returns the wholegraph_increment
-    uint64_t capture_epilogue();
-    void replay_prologue(uint64_t wholegraph_increment);
-    c10::intrusive_ptr<NPUGeneratorState> clone();
+  void increase(uint64_t increment);
+  NPUGeneratorCaptureState* get_capture_state(c10_npu::CaptureId_t capture_id, bool create_if_not_found = false);
+  // capture_epilogue returns the wholegraph_increment
+  uint64_t capture_epilogue(c10_npu::CaptureId_t capture_id);
+  void replay_prologue(c10_npu::CaptureId_t capture_id, uint64_t wholegraph_increment);
+  void remove_capture_state(c10_npu::CaptureId_t capture_id);
+  c10::intrusive_ptr<NPUGeneratorState> clone();
 };
 
-
 struct TORCH_NPU_API NPUGeneratorImpl : public c10::GeneratorImpl {
-    // Constructors
-    NPUGeneratorImpl(c10::DeviceIndex device_index = -1);
-    NPUGeneratorImpl(c10::DeviceIndex device_index, c10::intrusive_ptr<NPUGeneratorState> state);
-    ~NPUGeneratorImpl() override = default;
+  // Constructors
+  NPUGeneratorImpl(c10::DeviceIndex device_index = -1);
+  NPUGeneratorImpl(c10::DeviceIndex device_index, c10::intrusive_ptr<NPUGeneratorState> state);
+  ~NPUGeneratorImpl() override = default;
 
-    // NPUGeneratorImpl methods
-    std::shared_ptr<NPUGeneratorImpl> clone() const;
-    void set_current_seed(uint64_t seed) override;
-    void set_offset(uint64_t offset) override;
-    uint64_t get_offset() const override;
-    uint64_t current_seed() const override;
-    uint64_t seed() override;
-    void set_state(const c10::TensorImpl& new_state) override;
-    c10::intrusive_ptr<c10::TensorImpl> get_state() const override;
-    void set_philox_offset_per_thread(uint64_t offset);
-    uint64_t philox_offset_per_thread() const;
-    PhiloxNpuState philox_npu_state(uint64_t increment);
-    // For aclgraph
-    void graphsafe_set_state(const c10::intrusive_ptr<GeneratorImpl>& state) override;
-    c10::intrusive_ptr<c10::GeneratorImpl> graphsafe_get_state() const override;
-    void register_graph(c10_npu::NPUGraph* graph);
-    void unregister_graph(c10_npu::NPUGraph* graph);
-    void set_secondary_stream_capture_state(bool secondary_stream_capture_state);
-    // Temporarily accommodates call sites that use philox_engine_inputs.
-    // Allows incremental refactor of call sites to use philox_npu_state.
-    std::pair<uint64_t, uint64_t> philox_engine_inputs(uint64_t increment);
-    static c10::DeviceType device_type();
+  // NPUGeneratorImpl methods
+  std::shared_ptr<NPUGeneratorImpl> clone() const;
+  void set_current_seed(uint64_t seed) override;
+  void set_offset(uint64_t offset) override;
+  uint64_t get_offset() const override;
+  uint64_t current_seed() const override;
+  uint64_t seed() override;
+  void set_state(const c10::TensorImpl& new_state) override;
+  c10::intrusive_ptr<c10::TensorImpl> get_state() const override;
+  void set_philox_offset_per_thread(uint64_t offset);
+  uint64_t philox_offset_per_thread() const;
+  PhiloxNpuState philox_npu_state(uint64_t increment);
+  // For aclgraph
+  void graphsafe_set_state(const c10::intrusive_ptr<GeneratorImpl>& state) override;
+  c10::intrusive_ptr<c10::GeneratorImpl> graphsafe_get_state() const override;
+  void set_secondary_stream_capture_state(bool secondary_stream_capture_state);
+  // Temporarily accommodates call sites that use philox_engine_inputs.
+  // Allows incremental refactor of call sites to use philox_npu_state.
+  std::pair<uint64_t, uint64_t> philox_engine_inputs(uint64_t increment);
+  static c10::DeviceType device_type();
 
-private:
-    NPUGeneratorImpl* clone_impl() const override;
-    c10::intrusive_ptr<NPUGeneratorState> state_;
+ private:
+  NPUGeneratorImpl* clone_impl() const override;
+  c10::intrusive_ptr<NPUGeneratorState> state_;
 };
 
 namespace detail {

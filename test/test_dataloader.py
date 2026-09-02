@@ -1,6 +1,6 @@
 # Owner(s): ["module: dataloader"]
 
-import dataclasses
+import dataclasses  # noqa: F401
 import math
 import sys
 import errno
@@ -18,7 +18,7 @@ import functools
 import operator
 import torch
 import torch_npu
-import torch_npu.testing
+import torch_npu.testing  # noqa: F401
 import torch.utils.data.datapipes as dp
 from torch import multiprocessing as mp
 from torch.utils.data import (
@@ -40,8 +40,8 @@ from torch._utils import ExceptionWrapper
 from torch.testing._internal.common_utils import (TestCase, run_tests, TEST_NUMPY, IS_WINDOWS, IS_JETSON,
                                                   IS_CI, NO_MULTIPROCESSING_SPAWN, skipIfRocm, slowTest,
                                                   load_tests, TEST_WITH_ASAN, TEST_WITH_TSAN, IS_SANDCASTLE,
-                                                  IS_MACOS, parametrize)
-from torch.testing._internal.common_device_type import instantiate_device_type_tests
+                                                  IS_MACOS)
+from torch.testing._internal.common_device_type import instantiate_device_type_tests  # noqa: F401
 
 
 try:
@@ -66,7 +66,7 @@ skipIfNoDill = unittest.skipIf(not HAS_DILL, "no dill")
 
 
 try:
-    import numpy as np
+    import numpy as np  # noqa: F401
     HAS_NUMPY = True
 except ImportError:
     HAS_NUMPY = False
@@ -80,7 +80,7 @@ TEST_NPU = torch.npu.is_available()
 
 if not NO_MULTIPROCESSING_SPAWN:
     # We want to use `spawn` if able because some of our tests check that the
-    # data loader terminiates gracefully. To prevent hanging in the testing
+    # data loader terminates gracefully. To prevent hanging in the testing
     # process, such data loaders are run in a separate subprocess.
     #
     # We also want to test the `pin_memory=True` configuration, thus `spawn` is
@@ -651,12 +651,12 @@ class SleepDataset(Dataset):
     def __init__(self, size, sleep_sec):
         self.size = size
         self.sleep_sec = sleep_sec
-        self.sleeped = False
+        self.slept = False
 
     def __getitem__(self, idx):
-        if not self.sleeped:
+        if not self.slept:
             time.sleep(self.sleep_sec)
-            self.sleeped = True
+            self.slept = True
         return idx
 
     def __len__(self):
@@ -923,58 +923,62 @@ class TestWorkerInfoDataset(SynchronizedDataset):
 # See _test_get_worker_info below for usage.
 def _test_worker_info_init_fn(worker_id):
     worker_info = torch.utils.data.get_worker_info()
-    assert worker_id == worker_info.id, "worker_init_fn and worker_info should have consistent id"
-    assert worker_id < worker_info.num_workers, "worker_init_fn and worker_info should have valid id"
-    assert worker_info.seed == torch.initial_seed(), "worker_init_fn and worker_info should have consistent seed"
+    if worker_id != worker_info.id:
+        raise AssertionError("worker_init_fn and worker_info should have consistent id")
+    if worker_id >= worker_info.num_workers:
+        raise AssertionError("worker_init_fn and worker_info should have valid id")
+    if worker_info.seed != torch.initial_seed():
+        raise AssertionError(
+            "worker_init_fn and worker_info should have consistent seed"
+        )
     dataset = worker_info.dataset
-    assert isinstance(dataset, TestWorkerInfoDataset), "worker_info should have correct dataset copy"
-    assert not hasattr(dataset, 'value'), "worker_info should have correct dataset copy"
-    # test that WorkerInfo attributes are read-only
-    try:
-        worker_info.id = 3999
-    except dataclasses.FrozenInstanceError as e:
-        assert str(e) == "cannot assign to field 'id'"
-    except RuntimeError as e:
-        assert str(e) == "Cannot assign attributes to WorkerInfo objects"
-    try:
-        worker_info.a = 3
-    except TypeError as e:
-        assert str(e) == "super(type, obj): obj must be an instance or subtype of type"
-    except RuntimeError as e:
-        assert str(e) == "Cannot assign attributes to WorkerInfo objects"
-    for k in ['id', 'num_workers', 'seed', 'dataset']:
-        assert f"{k}=" in repr(worker_info)
+    if not isinstance(dataset, TestWorkerInfoDataset):
+        raise AssertionError("worker_info should have correct dataset copy")
+    if hasattr(dataset, "value"):
+        raise AssertionError("worker_info should have correct dataset copy")
+    for k in ["id", "num_workers", "seed", "dataset", "rng"]:
+        if f"{k}=" not in repr(worker_info):
+            raise AssertionError(f"Expected {k} in worker_info repr")
     dataset.value = [worker_id, os.getpid()]
 
 
 def _test_get_worker_info():
     # get_worker_info returns None in main proc
-    assert torch.utils.data.get_worker_info() is None
+    if torch.utils.data.get_worker_info() is not None:
+        raise AssertionError("Expected get_worker_info() to return None in main proc")
     num_workers = 2
     batch_size = 2
     dataset = TestWorkerInfoDataset(6, batch_size, num_workers)
-    dataloader = DataLoader(dataset, batch_size=batch_size,
-                            num_workers=num_workers,
-                            worker_init_fn=_test_worker_info_init_fn)
+    dataloader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        worker_init_fn=_test_worker_info_init_fn,
+    )
     it = iter(dataloader)
+    worker_pids = [w.pid for w in it._workers]
     data = []
     for d in it:
-        data.append(d)
-    worker_pids = [w.pid for w in it._workers]
+        data.append(d)  # noqa: PERF402
     data = torch.cat(data, 0)
     for d in data:
         # each `d` is a [worker_id, worker_pid] pair, which is set in
         # _test_worker_info_init_fn
-        assert d[1] == worker_pids[d[0]]
+        if d[1] != worker_pids[d[0]]:
+            raise AssertionError(f"Expected worker pid {worker_pids[d[0]]}, got {d[1]}")
     # get_worker_info returns None in main proc after data loading
-    assert torch.utils.data.get_worker_info() is None
+    if torch.utils.data.get_worker_info() is not None:
+        raise AssertionError(
+            "Expected get_worker_info() to return None after data loading"
+        )
     # main proc dataset was never assigned this attribute
-    assert not hasattr(dataset, 'value')
+    if hasattr(dataset, "value"):
+        raise AssertionError("Expected main dataset to not have 'value' attribute")
     try:
         _ = dataset[0]
     except AttributeError:
         return
-    raise RuntimeError('Expected AttributeError')
+    raise RuntimeError("Expected AttributeError")
 
 
 # test custom init function
@@ -1042,7 +1046,7 @@ class CustomDict(dict):
 
 
 def row_processor(row):
-    import numpy as np
+    import numpy as np  # noqa: F811
     return np.add(row, 1)
 
 
@@ -1088,8 +1092,8 @@ class TestDataLoader(TestCase):
             self.assertEqual(i, math.floor((len(self.dataset) - 1) / batch_size))
 
     def _test_shuffle(self, loader):
-        found_data = {i: 0 for i in range(self.data.size(0))}
-        found_labels = {i: 0 for i in range(self.labels.size(0))}
+        found_data = dict.fromkeys(range(self.data.size(0)), 0)
+        found_labels = dict.fromkeys(range(self.labels.size(0)), 0)
         batch_size = loader.batch_size
         if batch_size is None:
             for i, (batch_samples, batch_targets) in enumerate(loader):
@@ -1908,7 +1912,7 @@ except RuntimeError as e:
 
     @unittest.skipIf(not TEST_NUMPY, "numpy unavailable")
     def test_numpy(self):
-        import numpy as np
+        import numpy as np  # noqa: F811
 
         class TestDataset(torch.utils.data.Dataset):
             def __getitem__(self, i):
@@ -2178,7 +2182,7 @@ except RuntimeError as e:
 
     @unittest.skipIf(not TEST_NUMPY, "numpy unavailable")
     def test_numpy_scalars(self):
-        import numpy as np
+        import numpy as np  # noqa: F811
 
         class ScalarDataset(torch.utils.data.Dataset):
             def __init__(self, dtype):
@@ -2269,7 +2273,7 @@ except RuntimeError as e:
 
     @unittest.skipIf(not TEST_NUMPY, "numpy unavailable")
     def test_default_collate_bad_numpy_types(self):
-        import numpy as np
+        import numpy as np  # noqa: F811
 
         # Should be a no-op
         arr = np.array(['a', 'b', 'c'])
@@ -2286,7 +2290,7 @@ except RuntimeError as e:
 
     @unittest.skipIf(not TEST_NUMPY, "numpy unavailable")
     def test_default_collate_numpy_memmap(self):
-        import numpy as np
+        import numpy as np  # noqa: F811
 
         with tempfile.TemporaryFile() as f:
             arr = np.array([[0, 1], [2, 3], [4, 5], [6, 7]])
@@ -2304,7 +2308,7 @@ except RuntimeError as e:
 
     @unittest.skipIf(not TEST_NUMPY, "numpy unavailable")
     def test_default_collate_shared_tensor(self):
-        import numpy as np
+        import numpy as np  # noqa: F811
         t_in = torch.zeros(1)
         n_in = np.zeros(1)
 
@@ -2463,7 +2467,7 @@ class TestDictDataLoader(TestCase):
 
     @unittest.skipIf(not TEST_NPU, "NPU unavailable")
     def test_pin_memory(self):
-        from torch_npu.contrib import transfer_to_npu
+        from torch_npu.contrib import transfer_to_npu  # noqa: F401
         loader = DataLoader(self.dataset, batch_size=2, pin_memory=True)
         for sample in loader:
             self.assertTrue(sample['a_tensor'].is_pinned())

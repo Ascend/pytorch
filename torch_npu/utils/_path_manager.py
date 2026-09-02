@@ -49,23 +49,6 @@ class PathManager:
             raise RuntimeError(msg + pta_error(ErrCode.PARAM))
 
     @classmethod
-    def check_path_owner_consistent(cls, path: str):
-        """
-        Function Description:
-            check whether the path belong to process owner
-        Parameter:
-            path: the path to check
-        Exception Description:
-            Raise a RuntimeError when the specified path does not exist
-        """
-
-        if not os.path.exists(path):
-            msg = f"The path does not exist: {path}"
-            raise RuntimeError(msg + pta_error(ErrCode.NOT_FOUND))
-        if os.stat(path).st_uid != os.getuid():
-            warnings.warn(f"Permission mismatch: The owner of {path} does not match.")
-
-    @classmethod
     def check_directory_path_writeable(cls, path):
         """
         Function Description:
@@ -75,9 +58,11 @@ class PathManager:
         Exception Description:
             when invalid data throw exception
         """
-        cls.check_path_owner_consistent(path)
+        if not os.path.exists(path):
+            msg = f"The path does not exist: {path}"
+            raise RuntimeError(msg)
         if os.path.islink(path):
-            msg = f"Invalid path is a soft chain: {path}"
+            msg = f"Invalid path is a symbolic link: {path}"
             warnings.warn(msg)
         if not os.access(path, os.W_OK):
             msg = f"The path permission check failed: {path}"
@@ -87,15 +72,17 @@ class PathManager:
     def check_directory_path_readable(cls, path):
         """
         Function Description:
-            check whether the path is writable
+            check whether the path is readable
         Parameter:
             path: the path to check
         Exception Description:
             when invalid data throw exception
         """
-        cls.check_path_owner_consistent(path)
+        if not os.path.exists(path):
+            msg = f"The path does not exist: {path}"
+            raise RuntimeError(msg)
         if os.path.islink(path):
-            msg = f"Invalid path is a soft chain: {path}"
+            msg = f"Invalid path is a symbolic link: {path}"
             warnings.warn(msg)
         if not os.access(path, os.R_OK):
             msg = f"The path permission check failed: {path}"
@@ -159,7 +146,7 @@ class PathManager:
             warnings.warn("Length of input path exceeds the limit.")
 
         if os.path.islink(path):
-            msg = f"Invalid input path is a soft chain: {path}"
+            msg = f"Invalid input path is a symbolic link: {path}"
             warnings.warn(msg)
 
         pattern = r'(\.|/|_|-|\s|[~0-9a-zA-Z]|[\u4e00-\u9fa5])+'

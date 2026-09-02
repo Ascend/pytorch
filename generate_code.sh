@@ -62,7 +62,8 @@ ${python_execute} -m torchnpugen.gen_backend_stubs  \
   --source_yaml="$source_yaml" \
   --impl_path="$CDIR/torch_npu/csrc/aten" \
   --op_plugin_impl_path="$CDIR/third_party/op-plugin/op_plugin/ops" \
-  --op_plugin_yaml_path="$op_plugin_config_path/op_plugin_functions.yaml"
+  --op_plugin_yaml_path="$op_plugin_config_path/op_plugin_functions.yaml" \
+  --pytorch_version_dir="$pytorch_dir"
 
 ${python_execute} -m torchnpugen.autograd.gen_autograd \
   --out_dir="$CDIR/torch_npu/csrc/aten" \

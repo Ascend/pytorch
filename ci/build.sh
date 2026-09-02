@@ -3,19 +3,20 @@
 set -e
 
 CUR_DIR=$(dirname $(readlink -f $0))
-SUPPORTED_PY_VERSION=(3.9 3.10 3.11 3.12 3.13)
-SUPPORTED_TORCH_VERSION=(2.10.0 2.11.0 2.12.0 2.13.0)
-# Default supported python version is 3.9
-PY_VERSION="3.9"
+SUPPORTED_PY_VERSION=(3.10 3.11 3.12 3.13 3.14)
+# Default supported python version is 3.10
+PY_VERSION="3.10"
 # Torch version to validate against installed PyTorch (empty = skip check)
-# Also written to version.txt before building
+# When set, exported as TORCH_VERSION so setup.py builds the matching package
+# version (e.g. 2.13.0.post1). When unset, setup.py uses the installed
+# PyTorch version. The requested version is validated against version.txt.
 TORCH_VERSION=""
 
 # Parse arguments inside script
 function parse_script_args() {
     local args_num=0
     if [[ "x${1}" = "x" ]]; then
-        # default: bash build.sh (python3.9)
+        # default: bash build.sh (python3.10)
         return 0
     fi
 
@@ -104,17 +105,16 @@ function check_torch_version() {
     if [ -z "${TORCH_VERSION}" ]; then
         return 0
     fi
-    local matched="false"
-    for ver in ${SUPPORTED_TORCH_VERSION[*]}; do
-        if [ "${TORCH_VERSION}" = "${ver}" ]; then
-            matched="true"
-            break
-        fi
-    done
-    if [ "${matched}" = "false" ]; then
-        echo "${TORCH_VERSION} is an unsupported torch version, we suggest ${SUPPORTED_TORCH_VERSION[*]}"
-        exit 1
+    # Simple match against the versions listed in version.txt. The requested
+    # version need not include the .postN suffix: a listed version such as
+    # 2.13.0.post1 matches a request for its base 2.13.0.
+    local version_file="${CUR_DIR}/../version.txt"
+    if grep -v '^#' "${version_file}" | grep -Fq -- "${TORCH_VERSION}"; then
+        return 0
     fi
+    echo "${TORCH_VERSION} is an unsupported torch version, supported versions in version.txt:"
+    grep -v '^#' "${version_file}" | sed '/^[[:space:]]*$/d'
+    exit 1
 }
 
 function check_torch_installed() {
@@ -156,8 +156,7 @@ function main()
 
     if [ -n "${TORCH_VERSION}" ]; then
         export TORCH_VERSION
-        echo "${TORCH_VERSION}" > version.txt
-        echo "Set package version to ${TORCH_VERSION}"
+        echo "Building torch_npu for PyTorch ${TORCH_VERSION}"
     fi
     # if you add or delete file/files in the project, you need to remove the following comment
     # make clean

@@ -7,212 +7,201 @@
 
 namespace c10_npu {
 
-NPUEventManager::NPUEventManager() : thread_pool_(std::make_shared<c10::TaskThreadPool>(5)){};
+NPUEventManager::NPUEventManager() : thread_pool_(std::make_shared<c10::TaskThreadPool>(5)) {};
 
-NPUEventManager &NPUEventManager::GetInstance()
-{
-    static NPUEventManager instance;
-    return instance;
+NPUEventManager& NPUEventManager::GetInstance() {
+  static NPUEventManager instance;
+  return instance;
 }
 
-void NPUEventManager::run(aclrtEvent event)
-{
+void NPUEventManager::run(aclrtEvent event) {
+#ifndef BUILD_LIBTORCH
+  const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+  if (C10_UNLIKELY(trigger)) {
+    trigger->traceNpuEventDeletion(reinterpret_cast<uintptr_t>(event));
+  }
+#endif
+  int err = aclrtDestroyEvent(event);
+  if (err != ACL_ERROR_NONE) {
+    CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
+    C10_NPU_SHOW_ERR_MSG();
+    return;
+  }
+  ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed, event=%p", event);
+  RemoveIpcEvent(event);
+}
+
+aclError NPUEventManager::QueryAndDestroyEvent() {
+  std::lock_guard<std::mutex> guard(event_queue_mutex_);
+  while (!npu_events_.empty()) {
+    aclrtEvent event = npu_events_.front();
+    if (c10_npu::option::OptionsManager::GetPerStreamQueue() || IsIpcEvent(event)) {
+      if (!c10_npu::NPUEventManager::GetInstance().IsEventRecorded(event) ||
+          !c10_npu::NPUEventManager::GetInstance().IsEventWaited(event)) {
+        break;
+      }
+    } else {
+      acl::aclrtEventRecordedStatus recordStatus = acl::ACL_EVENT_RECORDED_STATUS_NOT_READY;
+      NPU_CHECK_ERROR(acl::AclQueryEventRecordedStatus(event, &recordStatus));
+      if (recordStatus != acl::ACL_EVENT_RECORDED_STATUS_COMPLETE) {
+        break;
+      } else {
+        acl::aclrtEventWaitStatus waitStatus = acl::ACL_EVENT_WAIT_STATUS_RESERVED;
+        // if the event usage is unknown, ensure the event id not destroyed in
+        // advance.
+        NPU_CHECK_ERROR(acl::AclQueryEventWaitStatus(event, &waitStatus));
+        if (waitStatus != acl::ACL_EVENT_WAIT_STATUS_COMPLETE) {
+          break;
+        }
+      }
+    }
+    {
+      thread_pool_->run(std::bind(&NPUEventManager::run, this, event));
+    }
+
+    npu_events_.pop_front();
+  }
+  return ACL_ERROR_NONE;
+}
+
+aclError NPUEventManager::LazyDestroy(aclrtEvent npu_event) {
+  if (c10_npu::acl::IsExistCreateEventExWithFlag() && !c10_npu::option::OptionsManager::GetPerStreamQueue() &&
+      !IsIpcEvent(npu_event)) {
+    int err = aclrtDestroyEvent(npu_event);
+    if (err == ACL_ERROR_NONE) {
+      ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed, event=%p", npu_event);
+    } else {
+      CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
+    }
+    return err;
+  }
+  std::lock_guard<std::mutex> guard(event_queue_mutex_);
+  npu_events_.push_back(npu_event);
+  return ACL_ERROR_NONE;
+}
+
+void NPUEventManager::ClearEvent() {
+  if (thread_pool_ != nullptr) {
+    thread_pool_->waitWorkComplete();
+  }
+
+  while (!npu_events_.empty()) {
+    aclrtEvent event = npu_events_.front();
 #ifndef BUILD_LIBTORCH
     const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
     if (C10_UNLIKELY(trigger)) {
-        trigger->traceNpuEventDeletion(reinterpret_cast<uintptr_t>(event));
+      trigger->traceNpuEventDeletion(reinterpret_cast<uintptr_t>(event));
     }
 #endif
-    int err = aclrtDestroyEvent(event);
+    auto err = aclrtDestroyEvent(event);
     if (err != ACL_ERROR_NONE) {
-        CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
-        C10_NPU_SHOW_ERR_MSG();
-        return;
-    }
-    ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed, event=%p", event);
-    RemoveIpcEvent(event);
-}
-
-aclError NPUEventManager::QueryAndDestroyEvent()
-{
-    std::lock_guard<std::mutex> guard(event_queue_mutex_);
-    while (!npu_events_.empty()) {
-        aclrtEvent event = npu_events_.front();
-        if (c10_npu::option::OptionsManager::GetPerStreamQueue() || IsIpcEvent(event)) {
-            if (!c10_npu::NPUEventManager::GetInstance().IsEventRecorded(event) || !c10_npu::NPUEventManager::GetInstance().IsEventWaited(event)) {
-                break;
-            }
-        } else {
-            acl::aclrtEventRecordedStatus recordStatus = acl::ACL_EVENT_RECORDED_STATUS_NOT_READY;
-            NPU_CHECK_ERROR(acl::AclQueryEventRecordedStatus(event, &recordStatus));
-            if (recordStatus != acl::ACL_EVENT_RECORDED_STATUS_COMPLETE) {
-                break;
-            } else {
-                acl::aclrtEventWaitStatus waitStatus = acl::ACL_EVENT_WAIT_STATUS_RESERVED;
-                // if the event usage is unknown, ensure the event id not destroyed in advance.
-                NPU_CHECK_ERROR(acl::AclQueryEventWaitStatus(event, &waitStatus));
-                if (waitStatus != acl::ACL_EVENT_WAIT_STATUS_COMPLETE) {
-                    break;
-                }
-            }
-        }
-        {
-            thread_pool_->run(std::bind(&NPUEventManager::run, this, event));
-        }
-
-        npu_events_.pop_front();
-    }
-    return ACL_ERROR_NONE;
-}
-
-aclError NPUEventManager::LazyDestroy(aclrtEvent npu_event)
-{
-    if (c10_npu::acl::IsExistCreateEventExWithFlag() && !c10_npu::option::OptionsManager::GetPerStreamQueue() && !IsIpcEvent(npu_event)) {
-        int err = aclrtDestroyEvent(npu_event);
-        if (err == ACL_ERROR_NONE) {
-            ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed, event=%p", npu_event);
-        } else {
-            CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
-        }
-        return err;
-    }
-    std::lock_guard<std::mutex> guard(event_queue_mutex_);
-    npu_events_.push_back(npu_event);
-    return ACL_ERROR_NONE;
-}
-
-void NPUEventManager::ClearEvent()
-{
-    if (thread_pool_ != nullptr) {
-        thread_pool_->waitWorkComplete();
-    }
-
-    while (!npu_events_.empty()) {
-        aclrtEvent event = npu_events_.front();
-#ifndef BUILD_LIBTORCH
-        const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
-        if (C10_UNLIKELY(trigger)) {
-            trigger->traceNpuEventDeletion(reinterpret_cast<uintptr_t>(event));
-        }
-#endif
-        auto err = aclrtDestroyEvent(event);
-        if (err != ACL_ERROR_NONE) {
-            CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
-            NPU_CHECK_WARN(err);
-        } else {
-            ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed, event=%p", event);
-        }
-        npu_events_.pop_front();
-    }
-
-    ipc_events_.clear();
-}
-void NPUEventManager::IncreaseUnrecordedCount(aclrtEvent event)
-{
-    std::lock_guard<std::mutex> guard(event_unrecorded_count_mutex_);
-
-    auto it = event_unrecorded_count_.find(event);
-    if (it != event_unrecorded_count_.end()) {
-        it->second++;
-        ASCEND_LOGD("Event: unrecorded count increase, now=%d.", it->second);
+      CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(err);
+      NPU_CHECK_WARN(err);
     } else {
-        event_unrecorded_count_.insert(std::pair<aclrtEvent, int>(event, 1));
-        ASCEND_LOGD("Event: unrecorded count increase, now=%d.", 1);
+      ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed, event=%p", event);
     }
+    npu_events_.pop_front();
+  }
+
+  ipc_events_.clear();
+}
+void NPUEventManager::IncreaseUnrecordedCount(aclrtEvent event) {
+  std::lock_guard<std::mutex> guard(event_unrecorded_count_mutex_);
+
+  auto it = event_unrecorded_count_.find(event);
+  if (it != event_unrecorded_count_.end()) {
+    it->second++;
+    ASCEND_LOGD("Event: unrecorded count increase, now=%d.", it->second);
+  } else {
+    event_unrecorded_count_.insert(std::pair<aclrtEvent, int>(event, 1));
+    ASCEND_LOGD("Event: unrecorded count increase, now=%d.", 1);
+  }
 }
 
-void NPUEventManager::DecreaseUnrecordedCount(aclrtEvent event)
-{
-    std::lock_guard<std::mutex> guard(event_unrecorded_count_mutex_);
+void NPUEventManager::DecreaseUnrecordedCount(aclrtEvent event) {
+  std::lock_guard<std::mutex> guard(event_unrecorded_count_mutex_);
 
-    auto it = event_unrecorded_count_.find(event);
-    TORCH_CHECK(
-        it != event_unrecorded_count_.end(),
-        "Event: event must enqueue before dequeue, event=",
-        (void *) event, PTA_ERROR(ErrCode::INTERNAL));
-    if (it->second == 1) {
-        event_unrecorded_count_.erase(event);
-        ASCEND_LOGD("Event: unrecorded count decrease, now=%d.", 0);
-    } else {
-        it->second--;
-        ASCEND_LOGD("Event: unrecorded count decrease, now=%d.", it->second);
-    }
+  auto it = event_unrecorded_count_.find(event);
+  TORCH_CHECK(
+      it != event_unrecorded_count_.end(),
+      "Event: event must enqueue before dequeue, event=",
+      (void*)event,
+      PTA_ERROR(ErrCode::INTERNAL));
+  if (it->second == 1) {
+    event_unrecorded_count_.erase(event);
+    ASCEND_LOGD("Event: unrecorded count decrease, now=%d.", 0);
+  } else {
+    it->second--;
+    ASCEND_LOGD("Event: unrecorded count decrease, now=%d.", it->second);
+  }
 }
 
-bool NPUEventManager::IsEventRecorded(aclrtEvent event)
-{
-    std::lock_guard<std::mutex> guard(event_unrecorded_count_mutex_);
+bool NPUEventManager::IsEventRecorded(aclrtEvent event) {
+  std::lock_guard<std::mutex> guard(event_unrecorded_count_mutex_);
 
-    auto it = event_unrecorded_count_.find(event);
-    return it == event_unrecorded_count_.end();
+  auto it = event_unrecorded_count_.find(event);
+  return it == event_unrecorded_count_.end();
 }
 
-void NPUEventManager::IncreaseUnwaitedCount(aclrtEvent event)
-{
-    std::lock_guard<std::mutex> guard(event_unwaited_count_mutex_);
+void NPUEventManager::IncreaseUnwaitedCount(aclrtEvent event) {
+  std::lock_guard<std::mutex> guard(event_unwaited_count_mutex_);
 
-    auto it = event_unwaited_count_.find(event);
-    if (it != event_unwaited_count_.end()) {
-        it->second++;
-        ASCEND_LOGD("Event: unwaited count increase, now=%d.", it->second);
-    } else {
-        event_unwaited_count_.insert(std::pair<aclrtEvent, int>(event, 1));
-        ASCEND_LOGD("Event: unwaited count increase, now=%d.", 1);
-    }
+  auto it = event_unwaited_count_.find(event);
+  if (it != event_unwaited_count_.end()) {
+    it->second++;
+    ASCEND_LOGD("Event: unwaited count increase, now=%d.", it->second);
+  } else {
+    event_unwaited_count_.insert(std::pair<aclrtEvent, int>(event, 1));
+    ASCEND_LOGD("Event: unwaited count increase, now=%d.", 1);
+  }
 }
 
-void NPUEventManager::DecreaseUnwaitedCount(aclrtEvent event)
-{
-    std::lock_guard<std::mutex> guard(event_unwaited_count_mutex_);
+void NPUEventManager::DecreaseUnwaitedCount(aclrtEvent event) {
+  std::lock_guard<std::mutex> guard(event_unwaited_count_mutex_);
 
-    auto it = event_unwaited_count_.find(event);
-    TORCH_CHECK(
-        it != event_unwaited_count_.end(),
-        "Event: event wait must enqueue before dequeue, event=",
-        (void *) event, PTA_ERROR(ErrCode::INTERNAL));
-    if (it->second == 1) {
-        event_unwaited_count_.erase(event);
-        ASCEND_LOGD("Event: unwaited count decrease, now=%d.", 0);
-    } else {
-        it->second--;
-        ASCEND_LOGD("Event: unwaited count decrease, now=%d.", it->second);
-    }
+  auto it = event_unwaited_count_.find(event);
+  TORCH_CHECK(
+      it != event_unwaited_count_.end(),
+      "Event: event wait must enqueue before dequeue, event=",
+      (void*)event,
+      PTA_ERROR(ErrCode::INTERNAL));
+  if (it->second == 1) {
+    event_unwaited_count_.erase(event);
+    ASCEND_LOGD("Event: unwaited count decrease, now=%d.", 0);
+  } else {
+    it->second--;
+    ASCEND_LOGD("Event: unwaited count decrease, now=%d.", it->second);
+  }
 }
 
-bool NPUEventManager::IsEventWaited(aclrtEvent event)
-{
-    std::lock_guard<std::mutex> guard(event_unwaited_count_mutex_);
+bool NPUEventManager::IsEventWaited(aclrtEvent event) {
+  std::lock_guard<std::mutex> guard(event_unwaited_count_mutex_);
 
-    auto it = event_unwaited_count_.find(event);
-    return it == event_unwaited_count_.end();
+  auto it = event_unwaited_count_.find(event);
+  return it == event_unwaited_count_.end();
 }
 
-void NPUEventManager::ClearUnrecordedCount()
-{
-    std::lock_guard<std::mutex> guard(event_unrecorded_count_mutex_);
-    event_unrecorded_count_.clear();
+void NPUEventManager::ClearUnrecordedCount() {
+  std::lock_guard<std::mutex> guard(event_unrecorded_count_mutex_);
+  event_unrecorded_count_.clear();
 }
 
-void NPUEventManager::AddIpcEvent(aclrtEvent event)
-{
-    std::lock_guard<std::mutex> guard(ipc_event_mutex_);
-    auto ret = ipc_events_.insert(event);
-    TORCH_CHECK(ret.second,
-        "Event: insert ipc event failed, event=", (void *) event, PTA_ERROR(ErrCode::INTERNAL));
+void NPUEventManager::AddIpcEvent(aclrtEvent event) {
+  std::lock_guard<std::mutex> guard(ipc_event_mutex_);
+  auto ret = ipc_events_.insert(event);
+  TORCH_CHECK(ret.second, "Event: insert ipc event failed, event=", (void*)event, PTA_ERROR(ErrCode::INTERNAL));
 }
 
-void NPUEventManager::RemoveIpcEvent(aclrtEvent event)
-{
-    std::lock_guard<std::mutex> guard(ipc_event_mutex_);
-    auto it = ipc_events_.find(event);
-    if (it != ipc_events_.end()) {
-        ipc_events_.erase(it);
-    }
+void NPUEventManager::RemoveIpcEvent(aclrtEvent event) {
+  std::lock_guard<std::mutex> guard(ipc_event_mutex_);
+  auto it = ipc_events_.find(event);
+  if (it != ipc_events_.end()) {
+    ipc_events_.erase(it);
+  }
 }
 
-bool NPUEventManager::IsIpcEvent(aclrtEvent event)
-{
-    std::lock_guard<std::mutex> guard(ipc_event_mutex_);
-    return ipc_events_.find(event) != ipc_events_.end();
+bool NPUEventManager::IsIpcEvent(aclrtEvent event) {
+  std::lock_guard<std::mutex> guard(ipc_event_mutex_);
+  return ipc_events_.find(event) != ipc_events_.end();
 }
-}  // namespace c10_npu
+} // namespace c10_npu

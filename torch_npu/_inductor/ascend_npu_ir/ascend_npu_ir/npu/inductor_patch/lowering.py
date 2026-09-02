@@ -6,30 +6,18 @@ import dataclasses
 import functools
 import itertools
 import logging
-import math
 import operator
 import os
 import textwrap
 import warnings
 from collections import defaultdict
-from copy import deepcopy
 from collections.abc import Iterable, Sequence
-from typing import Any, Callable, cast, Optional, TYPE_CHECKING, TypeVar, Union
+from typing import Any, Callable, cast, List, Optional, TYPE_CHECKING, TypeVar, Union
 from typing_extensions import ParamSpec
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    Union,
-    )
 from unittest.mock import patch
 
 import sympy
-from sympy.core import Expr, Integer, Symbol
+from sympy.core import Expr
 
 import torch
 import torch.ao.quantization.fx._decomposed
@@ -85,7 +73,6 @@ from torch._inductor.utils import (
     ceildiv,
     decode_device,
     is_dynamic,
-    is_gpu,
     is_pointwise_use,
     is_view,
     needs_fallback_due_to_atomic_add_limitations,
@@ -136,18 +123,15 @@ quantized_decomposed = torch.ops.quantized_decomposed
 from torch_npu._inductor.lowering_common import (
     TracedGraph,
     MLIR_OPERATOR_MAPPING,
-    create_fake_input,
     create_sym_inputs as _create_sym_inputs,
     fetch_graphs as _fetch_graphs,
     get_reduction_type_to_aten_fn,
     map_operators_to_strings as _map_operators_to_strings,
     map_strings_to_operators as _map_strings_to_operators,
-    merge_fx_graphs,
     merge_traced_graphs as _merge_traced_graphs,
     process_ir_constant as _process_ir_constant,
     register_fn_to_aten_fn as _register_fn_to_aten_fn,
     register_to_aten as _register_to_aten,
-    subtract_graph,
 )
 
 fn_to_aten_fn = {}
@@ -1227,6 +1211,7 @@ def expand_as(x, y):
 
 @register_lowering(aten.repeat)
 def repeat(x, repeats):
+    from torch.fx.experimental.symbolic_shapes import free_unbacked_symbols
 
     input_graphs = fetch_graphs([x, repeats])
     node_name = f'repeat_{next(node_id)}'
@@ -2024,7 +2009,7 @@ def fallback_handler(kernel, add_to_fallback_set=True):
 @functools.lru_cache(None)
 def _warn_complex_not_supported():
     warnings.warn(
-        "Torchinductor does not support code generation for complex operators. Performance may be worse than eager."
+        "TorchInductor does not support code generation for complex operators. Performance may be worse than eager."
     )
 
 
@@ -2704,7 +2689,7 @@ def sdpa_constraint(fx_node, *args, **kwargs):
 
         def is_aligned(x):
             return V.graph.sizevars.guard_or_false(
-                sympy.Eq(Mod(x.get_size()[-1], ALIGNMENT), 0)
+                sympy.Eq(sympy.Mod(x.get_size()[-1], ALIGNMENT), 0)
             )
 
         if isinstance(arg.data, ir.BaseView):
@@ -2760,6 +2745,17 @@ make_fallback(aten._histogramdd_from_bin_cts.default)
 # Need templated kernel
 make_fallback(aten.addbmm)
 make_fallback(aten._addmm_activation, warn=False)
+
+# Keep matmul_backward as an extern boundary and accept its input layout
+# directly. Requiring contiguous creates a layout-copy SchedulerNode whose
+# traced graph currently loses the copy semantics during MLIR fusion.
+make_fallback(
+    aten.matmul_backward.default,
+    layout_constraint=None,
+    warn=False,
+    override_decomp=True,
+)
+add_layout_constraint(aten.matmul_backward.default, None)
 
 # Need templated kernel. Probably impossible to write efficiently
 make_fallback(aten.convolution_backward, constrain_to_fx_strides)
@@ -2845,7 +2841,7 @@ make_fallback(torch._prims.rng_prims.run_with_rng_state)
 make_fallback(torch._prims.rng_prims.graphsafe_run_with_rng_state)
 
 
-# Implmented / Half implemented
+# Implemented / Half implemented
 # Scans. Implemented for CUDA, missing CPU
 make_fallback(aten.masked_scatter)
 make_fallback(aten.masked_scatter_backward)
@@ -2861,9 +2857,6 @@ make_fallback(aten._efficientzerotensor)
 make_fallback(aten._sparse_coo_tensor_with_dims_and_tensors)
 make_fallback(aten.to_sparse)
 make_fallback(aten._to_sparse)
-
-# Needs dimname support
-make_fallback(aten.zeros.names)
 
 # 6) Pattern-matched
 make_fallback(
@@ -2995,10 +2988,12 @@ def iota(
         return ops.index_expr(step * index[0] + start, dtype=dtype)
 
     node_name = f'iota_{next(node_id)}'
-    new_graph = merge_traced_graphs([length], prims.iota, node_name, \
-                                    start=start, step=step, \
-                                    dtype=dtype, device=device, \
-                                    requires_grad=requires_grad)
+    new_graph = merge_traced_graphs(
+        [length], prims.iota, node_name,
+        start=start, step=step,
+        dtype=dtype, device=device,
+        requires_grad=requires_grad,
+    )
     return Pointwise.create(
         device=decode_device(device),
         dtype=dtype,
@@ -3049,11 +3044,13 @@ def slice_scatter(x, src, dim=0, start=None, end=None, step=1):
     assert x.get_dtype() == src.get_dtype()
     input_graphs = fetch_graphs([x, src])
     node_name = f'slice_scatter_{next(node_id)}'
-    new_graph = merge_traced_graphs(input_graphs, aten.slice_scatter, node_name, \
-                                    dim=dim,
-                                    start=start,
-                                    end=end,
-                                    step=step)
+    new_graph = merge_traced_graphs(
+        input_graphs, aten.slice_scatter, node_name,
+        dim=dim,
+        start=start,
+        end=end,
+        step=step,
+    )
     x_loader = x.make_loader()
     dim = _validate_dim(x, dim, 0)
     dim_size = x.get_size()[dim]
@@ -3133,10 +3130,12 @@ def tensor(data, *, dtype=None, device=None, layout=None, pin_memory=False):
     assert_nyi(not pin_memory, "pin_memory")
     input_graphs = fetch_graphs([data])
     node_name = f'tensor_{next(node_id)}'
-    new_graph = merge_traced_graphs(input_graphs, torch.tensor, node_name, \
-                                    dtype=dtype,
-                                    device='npu',
-                                    pin_memory=False)
+    new_graph = merge_traced_graphs(
+        input_graphs, torch.tensor, node_name,
+        dtype=dtype,
+        device='npu',
+        pin_memory=False,
+    )
     if isinstance(_unwrap(data), int):
         dtype = dtype or torch.int64
     else:
@@ -3296,8 +3295,10 @@ def _full(fill_value, device, dtype, size):
 
     node_name = f'full_{next(node_id)}'
     # [wtd#18] Use passed-in device param instead of hardcoded 'npu' to avoid device mismatch
-    new_graph = merge_traced_graphs([size, fill_value], aten.full.default, node_name, \
-                                    device=device, dtype=dtype, layout = torch.strided, pin_memory = False)
+    new_graph = merge_traced_graphs(
+        [size, fill_value], aten.full.default, node_name,
+        device=device, dtype=dtype, layout=torch.strided, pin_memory=False,
+    )
 
     return Pointwise.create(
         device=device,
@@ -3547,10 +3548,12 @@ def embedding(weight, indices, padding_idx=-1, scale_grad_by_freq=False, sparse=
 
     input_graphs = fetch_graphs([weight, indices])
     node_name = f'embedding_{next(node_id)}'
-    new_graph = merge_traced_graphs(input_graphs, aten.embedding, node_name, \
-                                    padding_idx=padding_idx,
-                                    scale_grad_by_freq=scale_grad_by_freq,
-                                    sparse=sparse)
+    new_graph = merge_traced_graphs(
+        input_graphs, aten.embedding, node_name,
+        padding_idx=padding_idx,
+        scale_grad_by_freq=scale_grad_by_freq,
+        sparse=sparse,
+    )
 
     return Pointwise.create(
         device=weight.get_device(),
@@ -4629,7 +4632,7 @@ def max_pool2d_with_indices(
         x, kernel_size, stride, padding, dilation, ceil_mode
     )
 
-    indices = _low_memory_max_pool2d_offsets_to_indices(
+    indices = _low_memory_max_pool2d_offsets_to_indices(  # noqa: F821
         offsets, kernel_size[-1], x.shape[-1], stride, padding
     )
 
@@ -5882,8 +5885,11 @@ def make_reduction(reduction_type: ReductionType, override_return_dtype=None):
         else:
             node_name = f'reduction_{next(node_id)}'
             input_graphs = fetch_graphs([x, axis if axis is not None else list(range(len(x.get_size())))])
+            reduction_kwargs = {"keepdim": keepdims}
+            if dtype is not None:
+                reduction_kwargs["dtype"] = dtype
             new_graph = merge_traced_graphs(input_graphs, reduction_type_to_aten_fn[reduction_type],
-                                            node_name, keepdim=keepdims)
+                                            node_name, **reduction_kwargs)
         result = Reduction.create(reduction_type=reduction_type,
                                   input_node=x,
                                   node_name=node_name,
@@ -6178,11 +6184,47 @@ def fill_(x, fill_value):
     return mutate_to(x, full_like(x, fill_value))
 
 
+def _has_slice_op(tensor_box):
+    """
+    Check whether TensorBox is derived from aten.slice.
+    Only check the first origin node.
+    """
+    if not isinstance(tensor_box, TensorBox):
+        return False
+    visited = set()
+
+    def visit(node):
+        if node is None:
+            return False
+        obj_id = id(node)
+        if obj_id in visited:
+            return False
+        visited.add(obj_id)
+        origins = getattr(node, "origins", None)
+        if origins:
+            first_origin = next(iter(origins))
+            if isinstance(first_origin, torch.fx.Node):
+                return first_origin.target == aten.slice.Tensor
+        origin_node = getattr(node, "origin_node", None)
+        if origin_node is not None:
+            return origin_node.target == aten.slice.Tensor
+
+    return visit(tensor_box.data)
+
+
 @register_lowering(aten.copy_, type_promotion_kind=None)
 def copy_(dst, src, non_blocking=False):
     if dst is src:
         # dst.copy_(dst) can happen from the reinplacing pass
         return dst
+    has_slice_dst = _has_slice_op(dst)
+    if has_slice_dst:
+        return fallback_handler(aten.copy_.default)(
+            dst,
+            src,
+            non_blocking=non_blocking,
+        )
+
     src = to_device(src, dst.get_device())
     src = to_dtype(src, dst.get_dtype())
     src = expand(src, dst.get_size())
@@ -6314,18 +6356,6 @@ def fmod(a, b):
 
     return make_pointwise(fn)(a, b)
 
-
-@register_lowering(aten.rsqrt)
-def rsqrt(x):
-    dtype = x.get_dtype()
-    if is_integer_dtype(dtype) or is_boolean_dtype(dtype):
-        x = to_dtype(x, torch.get_default_dtype())
-
-    def _rsqrt(x):
-        return ops.rsqrt(x)
-
-    register_fn_to_aten_fn(_rsqrt, aten.rsqrt)
-    return make_pointwise(_rsqrt)(x)
 
 def split_last_continuous(lst):
     n = len(lst)
@@ -6606,7 +6636,7 @@ def neg(a):
     return make_pointwise(fn)(a)
 
 
-rsqrt = register_pointwise_numeric(aten.rsqrt)
+rsqrt = register_pointwise_numeric(aten.rsqrt)  # noqa: F811
 exp = register_pointwise_numeric_ldf64(aten.exp)
 exp2 = register_pointwise_numeric(aten.exp2)
 expm1 = register_pointwise_numeric(aten.expm1)
@@ -7043,7 +7073,9 @@ def cond(pred, true_fn, false_fn, operands):
 
 
 @register_lowering(torch.ops.higher_order.while_loop, type_promotion_kind=None)
-def while_loop(cond_fn, body_fn, carried_inputs, additional_inputs):
+def while_loop(
+    cond_fn, body_fn, carried_inputs, additional_inputs, stack_output=False
+):
     if any(
         isinstance(x, IRNode) and is_triton(x)
         for x in carried_inputs + additional_inputs
@@ -7053,8 +7085,16 @@ def while_loop(cond_fn, body_fn, carried_inputs, additional_inputs):
             msg = f"{msg} Found from : \n {stack_trace}"
         V.graph.disable_cudagraphs_reason = msg
 
-    result = ir.WhileLoop.create(cond_fn, body_fn, carried_inputs, additional_inputs)
-    return list(map(TensorBox.create, result))
+    result = ir.WhileLoop.create(
+        cond_fn, body_fn, carried_inputs, additional_inputs, stack_output
+    )
+    assert isinstance(result, Sequence)
+    return list(map(ir.WhileLoop._maybe_wrap_as_tensor_box, result))
+
+
+register_lowering(
+    torch.ops.higher_order.while_loop_stack_output, type_promotion_kind=None
+)(functools.partial(while_loop, stack_output=True))
 
 
 @register_lowering(torch.ops.higher_order.invoke_subgraph, type_promotion_kind=None)
@@ -7185,7 +7225,7 @@ def prepare_softmax_online(x, dim):
         # Note: [Split online_softmax_reduce]
         # We don't split reduction for online_softmax_reduce for now.
         # On one hand, supporting split reduction makes things complex since
-        # the splitted out reuctions requires 2 inputs rather than one.
+        # the split out reductions requires 2 inputs rather than one.
         # On the other hand, during training the online_softmax_reduce should
         # usually don't requires a split due to large batch size
         # (more specifically batch size times sequence length).

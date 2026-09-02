@@ -156,7 +156,7 @@ class _ProfInterface:
         self.start_monotonic = _get_monotonic()
         _enable_event_record()
         _start_profiler(npu_prof_config, self.activities)
-        if self.with_flops and self.experimental_config._msprof_tx:
+        if self.with_flops and self.experimental_config.tx_enabled:
             FlopsHookManager.install()
         self.start_gc_detect()
 
@@ -165,7 +165,7 @@ class _ProfInterface:
             return
         if ProfilerActivity.NPU in self.activities:
             torch.npu.synchronize()
-        if self.with_flops and self.experimental_config._msprof_tx:
+        if self.with_flops and self.experimental_config.tx_enabled:
             FlopsHookManager.uninstall()
         _stop_profiler()
         self.stop_gc_detect()

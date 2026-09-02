@@ -9,21 +9,6 @@ from torch._inductor.codegen.simd import code_hash
 from torch._inductor import config
 from torch._inductor.virtualized import V
 
-from torch._inductor.ir import IRNode
-
-from torch._inductor.codegen.common import (
-    IndentedBuffer,
-    Kernel,
-)
-
-from torch._inductor.codegen.triton import (
-    TritonKernel
-)
-
-from torch._inductor.utils import (
-    get_fused_kernel_name,
-)
-from torch._inductor import config, ir, scheduler
 from ... import config as anir_config
 from torch_npu._inductor.lowering_common import (
     MLIR_OPERATOR_MAPPING,
@@ -36,9 +21,6 @@ from ...npu.utils import (
     get_fx_graph_code,
     npu_cast_to_prim_cast,
     parse_fx_example_inputs,
-    fx_graph_op_types,
-    npu_cast_to_prim_cast,
-    get_fx_graph_code,
     scalarize_tensor_ops_on_scalars,
     to_folder,
 )
@@ -75,8 +57,7 @@ class NpuMlirKernel(NpuMetaKernel):
         fd.write("\n")
         fd.write("if __name__ == '__main__':\n")
         fd.write("    from torch._inductor.utils import print_performance\n")
-        fd.write(f"    with torch.no_grad():\n"
-        )
+        fd.write("    with torch.no_grad():\n")
         fd.write(generate_fake_inputs(name_to_example_inputs))
         fd.write("\n")
         fd.write(f"        fn = lambda: mod({call_args_str})\n")
@@ -102,7 +83,9 @@ class NpuMlirScheduling(NpuMetaScheduling):
         )
         return src_code, kernel_info
 
-    def _handle_auto_fallback_mode(self, compile_wrapper, src_code, name, subs_name, meta, wrapper, metadata_comment, mlir_kernel=None):
+    def _handle_auto_fallback_mode(
+        self, compile_wrapper, src_code, name, subs_name, meta, wrapper, metadata_comment, mlir_kernel=None
+    ):
         _basename, _, kernel_path = get_path(code_hash(src_code.strip()), "py")
         compile_wrapper.writeline(f"async_compile.{self._get_compile_api()}({subs_name!r}, '''")
         compile_wrapper.splice(src_code, strip=True)
@@ -136,7 +119,7 @@ class NpuMlirScheduling(NpuMetaScheduling):
         )
         if not os.path.exists(dump_path):
             os.makedirs(dump_path, exist_ok=True)
-            if anir_config.fallback_folder_expand:
+            if anir_config.fallback_fold_expand:
                 fold_expand(mlir_kernel._gm)
             to_folder(mlir_kernel._gm, dump_path, graph_hash=graph_hash, module_name=graph_hash)
 

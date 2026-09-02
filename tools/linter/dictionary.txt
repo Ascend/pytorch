@@ -1,6 +1,7 @@
 aLoad
 aLoads
 ans
+aranges
 aStore
 aStores
 belows
@@ -17,13 +18,15 @@ contiguity
 coo
 DEPENDEES
 deser
+deviceC
 din
 dout
 ElementE
 followings
 fro
 froms
-Halfs
+GemmKernelBase
+Halfssort
 hsa
 indexT
 inH
@@ -67,6 +70,7 @@ supercede
 supercedes
 tbe
 te
-THW
+thw
 tne
+unparseable
 WONT

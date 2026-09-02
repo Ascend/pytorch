@@ -9,10 +9,11 @@
 #include <c10/util/Deprecated.h>
 #include <c10/util/env.h>
 
-#include "third_party/acl/inc/acl/acl_base.h"
+#include <acl/acl_base.h>
 #include "torch_npu/csrc/core/npu/GetCANNInfo.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/core/npu/NpuVariables.h"
 
 namespace c10_npu {
 namespace NPUCachingAllocator {
@@ -20,14 +21,11 @@ const std::string pinMemoryExpandableMinCannVersion = "8.5.0";
 const std::string pinMemoryExpandableMinDriverVersion = "25.5.0";
 const std::string cannModule = "CANN";
 
-bool isDigit(std::string str)
-{
-    if (str.empty()) {
-        return false;
-    }
-    return std::all_of(str.begin(), str.end(), [](unsigned char c) {
-        return std::isdigit(c);
-    });
+bool isDigit(std::string str) {
+  if (str.empty()) {
+    return false;
+  }
+  return std::all_of(str.begin(), str.end(), [](unsigned char c) { return std::isdigit(c); });
 }
 
 namespace {
@@ -39,307 +37,379 @@ const std::unordered_set<std::string> kNPUSupportAccKeys = {
     "expandable_segments",
     "pinned_use_background_threads",
     "large_segment_size_mb",
-    "max_non_split_rounding_mb"
-};
-}
+    "max_non_split_rounding_mb",
+    "pinned_max_round_threshold_mb",
+    "pinned_max_cached_size_mb"};
+} // namespace
 
-NPUAllocatorConfig& NPUAllocatorConfig::instance()
-{
-    static NPUAllocatorConfig s_instance;
-    static std::once_flag s_init_flag;
+NPUAllocatorConfig& NPUAllocatorConfig::instance() {
+  static NPUAllocatorConfig s_instance;
+  static std::once_flag s_init_flag;
 
-    std::call_once(s_init_flag, []() {
-        auto npu_env = c10::utils::get_env("PYTORCH_NPU_ALLOC_CONF");
-        auto acc_env = c10::utils::get_env("PYTORCH_ALLOC_CONF");
-        TORCH_CHECK(!npu_env.has_value() || !acc_env.has_value(),
-            "Both PYTORCH_NPU_ALLOC_CONF and PYTORCH_ALLOC_CONF have been set, please set only one of them.",
-            OPS_ERROR(ErrCode::VALUE));
-        if (!npu_env.has_value() && !acc_env.has_value()) {
-            TORCH_NPU_MEMORY_LOGI("PYTORCH_NPU_ALLOC_CONF and PYTORCH_ALLOC_CONF not been set, use default configuration.");
-            return;
-        }
-        auto env_str = npu_env.has_value() ? npu_env.value() : acc_env.value();
-        TORCH_NPU_MEMORY_LOGI("Get alloc conf env: %s", env_str.c_str());
-        s_instance.parseArgs(env_str);
-    });
-
-    return s_instance;
-}
-
-size_t NPUAllocatorConfig::parsePinMemoryExpandableSegments(const c10::CachingAllocator::ConfigTokenizer& tokenizer, size_t i)
-{
-    tokenizer.checkToken(++i, ":");
-    if (++i < tokenizer.size()) {
-        TORCH_CHECK(i < tokenizer.size() && (tokenizer[i] == "True" || tokenizer[i] == "False"),
-            "Expected a single True/False argument for pin_memory_expandable_segments", OPS_ERROR(ErrCode::PARAM));
-        m_pin_memory_expandable_segments = (tokenizer[i] == "True");
-        if (m_pin_memory_expandable_segments) {
-            if (!IsGteCANNVersion(pinMemoryExpandableMinCannVersion, cannModule)) {
-                TORCH_NPU_WARN_ONCE("m_pin_memory_expandable_segments setting failure, the current cann version does not support this feature, now change to `False`."
-                "To use this feature, you need to upgrade to version " + pinMemoryExpandableMinCannVersion + " or higher");
-                m_pin_memory_expandable_segments = false;
-                return i;
-            }
-            if (!IsGteDriverVersion(pinMemoryExpandableMinDriverVersion)) {
-                TORCH_NPU_WARN_ONCE("m_pin_memory_expandable_segments setting failure, the current driver version does not support this feature, now change to `False`."
-                "To use this feature, you need to upgrade to version " + pinMemoryExpandableMinDriverVersion + " or higher");
-                m_pin_memory_expandable_segments = false;
-                return i;
-            }
-        }
-    } else {
-        TORCH_CHECK(false, "Error, expecting m_pin_memory_expandable_segments value", OPS_ERROR(ErrCode::VALUE));
+  std::call_once(s_init_flag, []() {
+    auto npu_env = c10::utils::get_env("PYTORCH_NPU_ALLOC_CONF");
+    auto acc_env = c10::utils::get_env("PYTORCH_ALLOC_CONF");
+    TORCH_CHECK(
+        !npu_env.has_value() || !acc_env.has_value(),
+        "Both PYTORCH_NPU_ALLOC_CONF and PYTORCH_ALLOC_CONF have been set, please set only one of them.",
+        OPS_ERROR(ErrCode::VALUE));
+    if (!npu_env.has_value() && !acc_env.has_value()) {
+      TORCH_NPU_MEMORY_LOGI("PYTORCH_NPU_ALLOC_CONF and PYTORCH_ALLOC_CONF not been set, use default configuration.");
+      return;
     }
-    return i;
+    auto env_str = npu_env.has_value() ? npu_env.value() : acc_env.value();
+    TORCH_NPU_MEMORY_LOGI("Get alloc conf env: %s", env_str.c_str());
+    s_instance.parseArgs(env_str);
+  });
+
+  return s_instance;
 }
 
-size_t NPUAllocatorConfig::parsePinnedMemRegister(const c10::CachingAllocator::ConfigTokenizer& tokenizer, size_t i)
-{
-    tokenizer.checkToken(++i, ":");
-    if (++i < tokenizer.size()) {
-        TORCH_CHECK(i < tokenizer.size() && (tokenizer[i] == "True" || tokenizer[i] == "False"),
-                    "Expected a single True/False argument for pinned_mem_register", OPS_ERROR(ErrCode::PARAM));
-        m_pinned_mem_register = (tokenizer[i] == "True");
-    } else {
-        TORCH_CHECK(false, "Error, expecting m_pinned_mem_register value", OPS_ERROR(ErrCode::VALUE));
+size_t NPUAllocatorConfig::parsePinMemoryExpandableSegments(
+    const c10::CachingAllocator::ConfigTokenizer& tokenizer,
+    size_t i) {
+  tokenizer.checkToken(++i, ":");
+  if (++i < tokenizer.size()) {
+    TORCH_CHECK(
+        i < tokenizer.size() && (tokenizer[i] == "True" || tokenizer[i] == "False"),
+        "Expected a single True/False argument for pin_memory_expandable_segments",
+        OPS_ERROR(ErrCode::PARAM));
+    m_pin_memory_expandable_segments = (tokenizer[i] == "True");
+    if (m_pin_memory_expandable_segments) {
+      if (!IsGteCANNVersion(pinMemoryExpandableMinCannVersion, cannModule)) {
+        TORCH_NPU_WARN_ONCE(
+            "m_pin_memory_expandable_segments setting failure, the current cann version does not support this feature, now change to `False`."
+            "To use this feature, you need to upgrade to version " +
+            pinMemoryExpandableMinCannVersion + " or higher");
+        m_pin_memory_expandable_segments = false;
+        return i;
+      }
+      // Ascend950 HDK has supported this since its first commercial release.
+      // The first commercial HDK versions are: PCIe card: 25.7, Pod: 25.1,
+      // Server: 25.6.
+      if ((c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend950) &&
+          (!IsGteDriverVersion(pinMemoryExpandableMinDriverVersion))) {
+        TORCH_NPU_WARN_ONCE(
+            "m_pin_memory_expandable_segments setting failure, the current driver version does not support this feature, now change to `False`."
+            "To use this feature, you need to upgrade to version " +
+            pinMemoryExpandableMinDriverVersion + " or higher");
+        m_pin_memory_expandable_segments = false;
+        return i;
+      }
     }
-    return i;
+  } else {
+    TORCH_CHECK(false, "Error, expecting m_pin_memory_expandable_segments value", OPS_ERROR(ErrCode::VALUE));
+  }
+  return i;
 }
 
-size_t NPUAllocatorConfig::parseAddrAlignSize(const c10::CachingAllocator::ConfigTokenizer& tokenizer, size_t i)
-{
-    tokenizer.checkToken(++i, ":");
-    if (++i < tokenizer.size()) {
-        TORCH_CHECK(isDigit(tokenizer[i]), "CachingAllocator option base_addr_aligned_kb is invalid.");
-        size_t val = static_cast<size_t>(stoi(tokenizer[i]));
-        TORCH_CHECK(tokenizer[i].length() == std::to_string(val).length(),
-            "CachingAllocator option base_addr_aligned_kb error, must be [0~16], dtype is int",
-            OPS_ERROR(ErrCode::VALUE));
-        TORCH_CHECK(val >= 0, "CachingAllocator option base_addr_aligned_kb error, must be [0~16], dtype is int",
-            OPS_ERROR(ErrCode::VALUE));
-        TORCH_CHECK(val <= kAlignRoundLarge / 1024,
-            "CachingAllocator option base_addr_aligned_kb error, must be [0~16], dtype is int",
-            OPS_ERROR(ErrCode::VALUE));
-        m_base_addr_aligned_size = val * 1024;
-    } else {
-        TORCH_CHECK(false, "Error, expecting base_addr_aligned_kb value", OPS_ERROR(ErrCode::VALUE));
-    }
-    return i;
+size_t NPUAllocatorConfig::parsePinnedMemRegister(const c10::CachingAllocator::ConfigTokenizer& tokenizer, size_t i) {
+  tokenizer.checkToken(++i, ":");
+  if (++i < tokenizer.size()) {
+    TORCH_CHECK(
+        i < tokenizer.size() && (tokenizer[i] == "True" || tokenizer[i] == "False"),
+        "Expected a single True/False argument for pinned_mem_register",
+        OPS_ERROR(ErrCode::PARAM));
+    m_pinned_mem_register = (tokenizer[i] == "True");
+  } else {
+    TORCH_CHECK(false, "Error, expecting m_pinned_mem_register value", OPS_ERROR(ErrCode::VALUE));
+  }
+  return i;
 }
 
-size_t NPUAllocatorConfig::parseMultiStreamLazyReclaim(const c10::CachingAllocator::ConfigTokenizer& tokenizer, size_t i)
-{
-    tokenizer.checkToken(++i, ":");
-    if (++i < tokenizer.size()) {
-        TORCH_CHECK(i < tokenizer.size() && (tokenizer[i] == "True" || tokenizer[i] == "False"),
-            "Expected a single True/False argument for multi_stream_lazy_reclaim", PTA_ERROR(ErrCode::PARAM));
-        m_multi_stream_lazy_reclaim = (tokenizer[i] == "True");
-    } else {
-        TORCH_CHECK(false, "Error, expecting multi_stream_lazy_reclaim value", PTA_ERROR(ErrCode::PARAM));
-    }
-    return i;
+size_t NPUAllocatorConfig::parseAddrAlignSize(const c10::CachingAllocator::ConfigTokenizer& tokenizer, size_t i) {
+  tokenizer.checkToken(++i, ":");
+  if (++i < tokenizer.size()) {
+    TORCH_CHECK(isDigit(tokenizer[i]), "CachingAllocator option base_addr_aligned_kb is invalid.");
+    size_t val = static_cast<size_t>(stoi(tokenizer[i]));
+    TORCH_CHECK(
+        tokenizer[i].length() == std::to_string(val).length(),
+        "CachingAllocator option base_addr_aligned_kb error, must be [0~16], dtype is int",
+        OPS_ERROR(ErrCode::VALUE));
+    TORCH_CHECK(
+        val >= 0,
+        "CachingAllocator option base_addr_aligned_kb error, must be [0~16], dtype is int",
+        OPS_ERROR(ErrCode::VALUE));
+    TORCH_CHECK(
+        val <= kAlignRoundLarge / 1024,
+        "CachingAllocator option base_addr_aligned_kb error, must be [0~16], dtype is int",
+        OPS_ERROR(ErrCode::VALUE));
+    m_base_addr_aligned_size = val * 1024;
+  } else {
+    TORCH_CHECK(false, "Error, expecting base_addr_aligned_kb value", OPS_ERROR(ErrCode::VALUE));
+  }
+  return i;
 }
 
-size_t NPUAllocatorConfig::parsePerProcessMemoryFraction(const c10::CachingAllocator::ConfigTokenizer& tokenizer, size_t i)
-{
-    tokenizer.checkToken(++i, ":");
-    if (++i < tokenizer.size()) {
-        double val = stod(tokenizer[i]);
-        TORCH_CHECK(val >= 0.0 && val <= 1.0,
-            "per_process_memory_fraction is invalid, set it in [0.0, 1.0]", PTA_ERROR(ErrCode::VALUE));
-        m_per_process_memory_fraction = val;
-    } else {
-        TORCH_CHECK(false, "Error, expecting per_process_memory_fraction value", PTA_ERROR(ErrCode::VALUE));
-    }
-    return i;
+size_t NPUAllocatorConfig::parseMultiStreamLazyReclaim(
+    const c10::CachingAllocator::ConfigTokenizer& tokenizer,
+    size_t i) {
+  tokenizer.checkToken(++i, ":");
+  if (++i < tokenizer.size()) {
+    TORCH_CHECK(
+        i < tokenizer.size() && (tokenizer[i] == "True" || tokenizer[i] == "False"),
+        "Expected a single True/False argument for multi_stream_lazy_reclaim",
+        PTA_ERROR(ErrCode::PARAM));
+    m_multi_stream_lazy_reclaim = (tokenizer[i] == "True");
+  } else {
+    TORCH_CHECK(false, "Error, expecting multi_stream_lazy_reclaim value", PTA_ERROR(ErrCode::PARAM));
+  }
+  return i;
 }
 
-size_t NPUAllocatorConfig::parsePageSize(const c10::CachingAllocator::ConfigTokenizer& tokenizer, size_t i)
-{
-    TORCH_CHECK(i + 2 < tokenizer.size(), "page_size requires format 'page_size:1g'", OPS_ERROR(ErrCode::VALUE));
-    tokenizer.checkToken(++i, ":");
-
-    if (tokenizer[++i] == "1g") {
-        m_page_size_1g = true;
-    } else {
-        TORCH_CHECK(false, "Unsupported page_size value: ", tokenizer[i], OPS_ERROR(ErrCode::VALUE));
-    }
-    return i;
+size_t NPUAllocatorConfig::parsePerProcessMemoryFraction(
+    const c10::CachingAllocator::ConfigTokenizer& tokenizer,
+    size_t i) {
+  tokenizer.checkToken(++i, ":");
+  if (++i < tokenizer.size()) {
+    double val = stod(tokenizer[i]);
+    TORCH_CHECK(
+        val >= 0.0 && val <= 1.0,
+        "per_process_memory_fraction is invalid, set it in [0.0, 1.0]",
+        PTA_ERROR(ErrCode::VALUE));
+    m_per_process_memory_fraction = val;
+  } else {
+    TORCH_CHECK(false, "Error, expecting per_process_memory_fraction value", PTA_ERROR(ErrCode::VALUE));
+  }
+  return i;
 }
 
-size_t NPUAllocatorConfig::parseSegmentSizeMb(const c10::CachingAllocator::ConfigTokenizer& tokenizer, size_t i)
-{
-    TORCH_NPU_WARN_ONCE("`segment_size_mb` is deprecated, please use `large_segment_size_mb` instead.");
-    tokenizer.checkToken(++i, ":");
-    if (++i < tokenizer.size()) {
-        TORCH_CHECK(isDigit(tokenizer[i]), "CachingAllocator option segment_size_mb is invalid.");
-        size_t val = static_cast<size_t>(stoi(tokenizer[i]));
-        TORCH_CHECK(val >= k20MB && val <= k512MB,
-                    "CachingAllocator option segment_size_mb error, must be [20, 512], dtype is int",
-                    OPS_ERROR(ErrCode::VALUE));
-        m_segment_size_mb = val * kMB;
-    } else {
-        TORCH_CHECK(false, "Error, expecting segment_size_mb value", OPS_ERROR(ErrCode::VALUE));
-    }
-    return i;
+size_t NPUAllocatorConfig::parsePageSize(const c10::CachingAllocator::ConfigTokenizer& tokenizer, size_t i) {
+  TORCH_CHECK(i + 2 < tokenizer.size(), "page_size requires format 'page_size:1g'", OPS_ERROR(ErrCode::VALUE));
+  tokenizer.checkToken(++i, ":");
+
+  if (tokenizer[++i] == "1g") {
+    m_page_size_1g = true;
+  } else {
+    TORCH_CHECK(false, "Unsupported page_size value: ", tokenizer[i], OPS_ERROR(ErrCode::VALUE));
+  }
+  return i;
+}
+
+size_t NPUAllocatorConfig::parseSegmentSizeMb(const c10::CachingAllocator::ConfigTokenizer& tokenizer, size_t i) {
+  TORCH_NPU_WARN_ONCE("`segment_size_mb` is deprecated, please use `large_segment_size_mb` instead.");
+  tokenizer.checkToken(++i, ":");
+  if (++i < tokenizer.size()) {
+    TORCH_CHECK(isDigit(tokenizer[i]), "CachingAllocator option segment_size_mb is invalid.");
+    size_t val = static_cast<size_t>(stoi(tokenizer[i]));
+    TORCH_CHECK(
+        val >= k20MB && val <= k512MB,
+        "CachingAllocator option segment_size_mb error, must be [20, 512], dtype is int",
+        OPS_ERROR(ErrCode::VALUE));
+    m_segment_size_mb = val * kMB;
+  } else {
+    TORCH_CHECK(false, "Error, expecting segment_size_mb value", OPS_ERROR(ErrCode::VALUE));
+  }
+  return i;
 }
 
 size_t NPUAllocatorConfig::parseReleaseLockOnNpuMalloc(
     const c10::CachingAllocator::ConfigTokenizer& tokenizer,
-    size_t i)
-{
-    tokenizer.checkToken(++i, ":");
-    if (++i < tokenizer.size()) {
-        TORCH_CHECK(i < tokenizer.size() && (tokenizer[i] == "True" || tokenizer[i] == "False"),
-            "Expected a single True/False argument for release_lock_on_npumalloc", PTA_ERROR(ErrCode::PARAM));
-        m_release_lock_on_npumalloc = (tokenizer[i] == "True");
-    } else {
-        TORCH_CHECK(false, "Error, expecting release_lock_on_npumalloc value", PTA_ERROR(ErrCode::PARAM));
-    }
-    return i;
+    size_t i) {
+  tokenizer.checkToken(++i, ":");
+  if (++i < tokenizer.size()) {
+    TORCH_CHECK(
+        i < tokenizer.size() && (tokenizer[i] == "True" || tokenizer[i] == "False"),
+        "Expected a single True/False argument for release_lock_on_npumalloc",
+        PTA_ERROR(ErrCode::PARAM));
+    m_release_lock_on_npumalloc = (tokenizer[i] == "True");
+  } else {
+    TORCH_CHECK(false, "Error, expecting release_lock_on_npumalloc value", PTA_ERROR(ErrCode::PARAM));
+  }
+  return i;
 }
 
-void NPUAllocatorConfig::parseArgs(const std::string& env, std::set<std::string> supported_settings)
-{
-    if (env.empty()) {
-        return;
+size_t NPUAllocatorConfig::parseThrowOnNpuMallocOom(const c10::CachingAllocator::ConfigTokenizer& tokenizer, size_t i) {
+  tokenizer.checkToken(++i, ":");
+  if (++i < tokenizer.size()) {
+    TORCH_CHECK(
+        i < tokenizer.size() && (tokenizer[i] == "True" || tokenizer[i] == "False"),
+        "Expected a single True/False argument for throw_on_npumalloc_oom",
+        PTA_ERROR(ErrCode::PARAM));
+    m_throw_on_npumalloc_oom = (tokenizer[i] == "True");
+  } else {
+    TORCH_CHECK(false, "Error, expecting throw_on_npumalloc_oom value", PTA_ERROR(ErrCode::PARAM));
+  }
+  return i;
+}
+
+void NPUAllocatorConfig::parseArgs(const std::string& env, std::set<std::string> supported_settings) {
+  if (env.empty()) {
+    return;
+  }
+
+  const auto& accelerator_keys = c10::CachingAllocator::AcceleratorAllocatorConfig::getKeys();
+  const auto& npu_keys = getKeys();
+  c10::CachingAllocator::ConfigTokenizer tokenizer(env);
+
+  for (size_t i = 0; i < tokenizer.size(); i++) {
+    const auto& key = tokenizer[i];
+    auto key_in_acc = accelerator_keys.count(key);
+    auto key_in_npu = npu_keys.count(key);
+    auto key_in_support_acc = kNPUSupportAccKeys.count(key);
+    if (!key_in_acc && !key_in_npu) {
+      TORCH_CHECK_VALUE(false, "Unrecognized key '", key, "' in NPU allocator config, ", OPS_ERROR(ErrCode::VALUE));
+    } else if (!key_in_support_acc && !key_in_npu) {
+      TORCH_CHECK_VALUE(
+          false, "torch_npu not support key '", key, "' in NPU allocator config, ", OPS_ERROR(ErrCode::VALUE));
+    } else if (!supported_settings.empty() && supported_settings.count(key) == 0) {
+      // If supported_settings is not empty, check if the setting is supported
+      // by torch_npu.npu.memory._set_allocator_settings()
+      TORCH_CHECK_VALUE(
+          false,
+          "torch_npu.npu.memory._set_allocator_settings() unsupported setting: ",
+          key,
+          OPS_ERROR(ErrCode::VALUE));
     }
-
-    const auto& accelerator_keys = c10::CachingAllocator::AcceleratorAllocatorConfig::getKeys();
-    const auto& npu_keys = getKeys();
-    c10::CachingAllocator::ConfigTokenizer tokenizer(env);
-
-    for (size_t i = 0; i < tokenizer.size(); i++) {
-        const auto& key = tokenizer[i];
-        auto key_in_acc = accelerator_keys.count(key);
-        auto key_in_npu = npu_keys.count(key);
-        auto key_in_support_acc = kNPUSupportAccKeys.count(key);
-        if (!key_in_acc && !key_in_npu) {
-            TORCH_CHECK_VALUE(false, "Unrecognized key '", key, "' in NPU allocator config, ", OPS_ERROR(ErrCode::VALUE));
-        } else if (!key_in_support_acc && !key_in_npu) {
-            TORCH_CHECK_VALUE(false, "torch_npu not support key '", key, "' in NPU allocator config, ", OPS_ERROR(ErrCode::VALUE));
-        } else if (!supported_settings.empty() && supported_settings.count(key) == 0) {
-            // If supported_settings is not empty, check if the setting is supported by torch_npu.npu.memory._set_allocator_settings()
-            TORCH_CHECK_VALUE(false, "torch_npu.npu.memory._set_allocator_settings() unsupported setting: ", key, OPS_ERROR(ErrCode::VALUE));
-        }
-        i = tokenizer.skipKey(i);
-        if (i + 1 < tokenizer.size()) {
-            tokenizer.checkToken(++i, ",");
-        }
+    i = tokenizer.skipKey(i);
+    if (i + 1 < tokenizer.size()) {
+      tokenizer.checkToken(++i, ",");
     }
+  }
 
-    auto& acc_alloc_conf_ins = c10::CachingAllocator::AcceleratorAllocatorConfig::instance();
-    // Updating status of the AcceleratorAllocatorConfig instance is very important
-    acc_alloc_conf_ins.parseArgs(env);
+  auto& acc_alloc_conf_ins = c10::CachingAllocator::AcceleratorAllocatorConfig::instance();
+  // Updating status of the AcceleratorAllocatorConfig instance is very
+  // important
+  acc_alloc_conf_ins.parseArgs(env);
 
-    for (size_t i = 0; i < tokenizer.size(); i++) {
-        const auto& key = tokenizer[i];
-        if (key == "pin_memory_expandable_segments") {
-            i = parsePinMemoryExpandableSegments(tokenizer, i);
-        } else if (key == "pinned_mem_register") {
-            i = parsePinnedMemRegister(tokenizer, i);
-        } else if (key == "base_addr_aligned_kb") {
-            i = parseAddrAlignSize(tokenizer, i);
-        } else if (key == "page_size") {
-            i = parsePageSize(tokenizer, i);
-        } else if (key == "segment_size_mb") {
-            i = parseSegmentSizeMb(tokenizer, i);
-        } else if (key == "multi_stream_lazy_reclaim") {
-            i = parseMultiStreamLazyReclaim(tokenizer, i);
-        } else if (key == "per_process_memory_fraction") {
-            i = parsePerProcessMemoryFraction(tokenizer, i);
-        } else if (key == "pinned_reserve_segment_size_mb") {
-            tokenizer.checkToken(++i, ":");
-            m_pinned_reserve_segment_size_mb = tokenizer.toSizeT(++i);
-        } else if (key == "release_lock_on_npumalloc") {
-            i = parseReleaseLockOnNpuMalloc(tokenizer, i);
-        } else {
-            i = tokenizer.skipKey(i);
-        }
-        if (i + 1 < tokenizer.size()) {
-            tokenizer.checkToken(++i, ",");
-        }
+  for (size_t i = 0; i < tokenizer.size(); i++) {
+    const auto& key = tokenizer[i];
+    if (key == "pin_memory_expandable_segments") {
+      i = parsePinMemoryExpandableSegments(tokenizer, i);
+    } else if (key == "pinned_mem_register") {
+      i = parsePinnedMemRegister(tokenizer, i);
+    } else if (key == "base_addr_aligned_kb") {
+      i = parseAddrAlignSize(tokenizer, i);
+    } else if (key == "page_size") {
+      i = parsePageSize(tokenizer, i);
+    } else if (key == "segment_size_mb") {
+      i = parseSegmentSizeMb(tokenizer, i);
+    } else if (key == "multi_stream_lazy_reclaim") {
+      i = parseMultiStreamLazyReclaim(tokenizer, i);
+    } else if (key == "per_process_memory_fraction") {
+      i = parsePerProcessMemoryFraction(tokenizer, i);
+    } else if (key == "pinned_reserve_segment_size_mb") {
+      tokenizer.checkToken(++i, ":");
+      m_pinned_reserve_segment_size_mb = tokenizer.toSizeT(++i);
+    } else if (key == "release_lock_on_npumalloc") {
+      i = parseReleaseLockOnNpuMalloc(tokenizer, i);
+    } else if (key == "throw_on_npumalloc_oom") {
+      i = parseThrowOnNpuMallocOom(tokenizer, i);
+    } else {
+      i = tokenizer.skipKey(i);
     }
-    // Check if the environment variable is valid
-    if (acc_alloc_conf_ins.use_expandable_segments()) {
-        TORCH_CHECK(acc_alloc_conf_ins.max_split_size() == std::numeric_limits<size_t>::max() &&
+    if (i + 1 < tokenizer.size()) {
+      tokenizer.checkToken(++i, ",");
+    }
+  }
+  // Check if the environment variable is valid
+  if (acc_alloc_conf_ins.use_expandable_segments()) {
+    TORCH_CHECK(
+        acc_alloc_conf_ins.max_split_size() == std::numeric_limits<size_t>::max() &&
             acc_alloc_conf_ins.garbage_collection_threshold() == 0,
-            "`max_split_size_mb` or `garbage_collection_threshold`, cannot be enabled with "
-            "`expandable_segments`, please set `expandable_segments` to `False`.", OPS_ERROR(ErrCode::PARAM));
-        void *ptr = nullptr;
-        auto status = c10_npu::acl::AclrtReserveMemAddress(&ptr, 512, 0, nullptr, 1);
-        if (status == ACL_ERROR_NONE && ptr != nullptr) {
-            NPU_CHECK_ERROR(c10_npu::acl::AclrtReleaseMemAddress(ptr), "aclrtReleaseMemAddress failed.");
-        } else {
-            NPU_CHECK_ERROR(status, "aclrtReserveMemAddress failed.");
-            const char* const report_msg = "expandable_segments setting failure, now change to `False`.";
-            TORCH_NPU_WARN_ONCE(report_msg);
-            TORCH_NPU_MEMORY_LOGW("%s", report_msg);
-            acc_alloc_conf_ins.parseArgs("expandable_segments:False");
-        }
+        "`max_split_size_mb` or `garbage_collection_threshold`, cannot be enabled with "
+        "`expandable_segments`, please set `expandable_segments` to `False`.",
+        OPS_ERROR(ErrCode::PARAM));
+    void* ptr = nullptr;
+    auto status = c10_npu::acl::AclrtReserveMemAddress(&ptr, 512, 0, nullptr, 1);
+    if (status == ACL_ERROR_NONE && ptr != nullptr) {
+      NPU_CHECK_ERROR(c10_npu::acl::AclrtReleaseMemAddress(ptr), "aclrtReleaseMemAddress failed.");
+    } else {
+      NPU_CHECK_ERROR(status, "aclrtReserveMemAddress failed.");
+      const char* const report_msg = "expandable_segments setting failure, now change to `False`.";
+      TORCH_NPU_WARN_ONCE(report_msg);
+      TORCH_NPU_MEMORY_LOGW("%s", report_msg);
+      acc_alloc_conf_ins.parseArgs("expandable_segments:False");
     }
-    if (m_pinned_mem_register) {
-        if (!c10_npu::acl::AclrtMallocHostWithCfgExist()) {
-            TORCH_NPU_WARN_ONCE("pinned_mem_register setting failure, the current cann version or driver version does not support this feature, now change to `False`."
-                                "To use this feature, you need to upgrade to cann version 8.5.0 or higher and driver version 26.0.rc1 or higher.");
-            m_pinned_mem_register = false;
-        }
-
-        if (m_pinned_mem_register && m_pin_memory_expandable_segments) {
-            m_pinned_mem_register = false;
-            TORCH_NPU_WARN_ONCE("pinned_mem_register setting failure, this feature is not supported when pin_memory_expandable_segments is set to `True`,"
-                " now change to `False`.");
-        }
+  }
+  if (m_pinned_mem_register) {
+    if (!c10_npu::acl::AclrtMallocHostWithCfgExist()) {
+      TORCH_NPU_WARN_ONCE(
+          "pinned_mem_register setting failure, the current cann version or driver version does not support this feature, now change to `False`."
+          "To use this feature, you need to upgrade to cann version 8.5.0 or higher and driver version 26.0.rc1 or higher.");
+      m_pinned_mem_register = false;
     }
 
-    if (c10::CachingAllocator::AcceleratorAllocatorConfig::large_segment_size() != kLargeBuffer && m_segment_size_mb != 0) {
-        TORCH_NPU_WARN_ONCE("Both `segment_size_mb` and `large_segment_size_mb` are set. "
-            "`segment_size_mb` is deprecated. It is recommended to use only `large_segment_size_mb`.");
+    if (m_pinned_mem_register && m_pin_memory_expandable_segments) {
+      m_pinned_mem_register = false;
+      TORCH_NPU_WARN_ONCE(
+          "pinned_mem_register setting failure, this feature is not supported when pin_memory_expandable_segments is set to `True`,"
+          " now change to `False`.");
     }
+  }
 
-    if (m_page_size_1g) {
-        if (c10::CachingAllocator::AcceleratorAllocatorConfig::large_segment_size() != kLargeBuffer || m_segment_size_mb != 0) {
-            TORCH_NPU_WARN_ONCE("`page_size:1g` is set, which will override `large_segment_size_mb` and `segment_size_mb` "
-                "for large pool allocations (size > 1MB). It is recommended to use only `page_size:1g`.");
-        }
+  // pin_memory_expandable_segments uses a dedicated expandable allocator whose
+  // allocate/free path does not consult pinned_max_round_threshold_mb or
+  // pinned_max_cached_size_mb. Warn so users know the thresholds are inert in
+  // this mode. Defaults to size_t::max when unset, so a value below max means
+  // the user set it.
+  if (m_pin_memory_expandable_segments &&
+      (acc_alloc_conf_ins.pinned_max_round_threshold() != std::numeric_limits<size_t>::max() ||
+       acc_alloc_conf_ins.pinned_max_cached_size() != std::numeric_limits<size_t>::max())) {
+    TORCH_NPU_WARN_ONCE(
+        "`pinned_max_round_threshold_mb` and `pinned_max_cached_size_mb` do not take effect "
+        "when `pin_memory_expandable_segments` is enabled. To use these options, set "
+        "`pin_memory_expandable_segments` to `False`.");
+  }
+
+  if (c10::CachingAllocator::AcceleratorAllocatorConfig::large_segment_size() != kLargeBuffer &&
+      m_segment_size_mb != 0) {
+    TORCH_NPU_WARN_ONCE(
+        "Both `segment_size_mb` and `large_segment_size_mb` are set. "
+        "`segment_size_mb` is deprecated. It is recommended to use only `large_segment_size_mb`.");
+  }
+
+  if (m_page_size_1g) {
+    if (c10::CachingAllocator::AcceleratorAllocatorConfig::large_segment_size() != kLargeBuffer ||
+        m_segment_size_mb != 0) {
+      TORCH_NPU_WARN_ONCE(
+          "`page_size:1g` is set, which will override `large_segment_size_mb` and `segment_size_mb` "
+          "for large pool allocations (size > 1MB). It is recommended to use only `page_size:1g`.");
     }
-    // log all the configuration
-    TORCH_NPU_MEMORY_LOGI(
-        "[npu alloc config] "
-        "m_release_lock_on_npumalloc: %d, "
-        "pin_memory_expandable_segments: %d, "
-        "pinned_mem_register: %d, "
-        "base_addr_aligned_kb: %zu, "
-        "page_size_1g: %d, "
-        "segment_size_mb: %zu, "
-        "multi_stream_lazy_reclaim: %d, "
-        "pinned_reserve_segment_size_mb: %zu, "
-        "per_process_memory_fraction: %f.",
-        m_release_lock_on_npumalloc,
-        m_pin_memory_expandable_segments,
-        m_pinned_mem_register,
-        m_base_addr_aligned_size,
-        m_page_size_1g,
-        m_segment_size_mb,
-        m_multi_stream_lazy_reclaim,
-        m_pinned_reserve_segment_size_mb,
-        m_per_process_memory_fraction);
-    TORCH_NPU_MEMORY_LOGI(
-        "[common alloc config] "
-        "max_non_split_rounding_size: %zu, "
-        "max_split_size_mb: %zu, "
-        "garbage_collection_threshold: %f, "
-        "roundup_power2_divisions: %zu, "
-        "expandable_segments: %d, "
-        "pinned_use_background_threads: %d, "
-        "large_segment_size: %zu.",
-        acc_alloc_conf_ins.max_non_split_rounding_size(),
-        acc_alloc_conf_ins.max_split_size(),
-        acc_alloc_conf_ins.garbage_collection_threshold(),
-        acc_alloc_conf_ins.roundup_power2_divisions(),
-        acc_alloc_conf_ins.use_expandable_segments(),
-        acc_alloc_conf_ins.pinned_use_background_threads(),
-        acc_alloc_conf_ins.large_segment_size());
+  }
+  // log all the configuration
+  TORCH_NPU_MEMORY_LOGI(
+      "[npu alloc config] "
+      "m_release_lock_on_npumalloc: %d, "
+      "pin_memory_expandable_segments: %d, "
+      "pinned_mem_register: %d, "
+      "base_addr_aligned_kb: %zu, "
+      "page_size_1g: %d, "
+      "segment_size_mb: %zu, "
+      "multi_stream_lazy_reclaim: %d, "
+      "pinned_reserve_segment_size_mb: %zu, "
+      "per_process_memory_fraction: %f, "
+      "throw_on_npumalloc_oom: %d.",
+      m_release_lock_on_npumalloc,
+      m_pin_memory_expandable_segments,
+      m_pinned_mem_register,
+      m_base_addr_aligned_size,
+      m_page_size_1g,
+      m_segment_size_mb,
+      m_multi_stream_lazy_reclaim,
+      m_pinned_reserve_segment_size_mb,
+      m_per_process_memory_fraction,
+      m_throw_on_npumalloc_oom);
+  TORCH_NPU_MEMORY_LOGI(
+      "[common alloc config] "
+      "max_non_split_rounding_size: %zu, "
+      "max_split_size_mb: %zu, "
+      "garbage_collection_threshold: %f, "
+      "roundup_power2_divisions: %zu, "
+      "expandable_segments: %d, "
+      "pinned_use_background_threads: %d, "
+      "large_segment_size: %zu, "
+      "pinned_max_round_threshold_mb: %zu, "
+      "pinned_max_cached_size_mb: %zu.",
+      acc_alloc_conf_ins.max_non_split_rounding_size(),
+      acc_alloc_conf_ins.max_split_size(),
+      acc_alloc_conf_ins.garbage_collection_threshold(),
+      acc_alloc_conf_ins.roundup_power2_divisions().size(),
+      acc_alloc_conf_ins.use_expandable_segments(),
+      acc_alloc_conf_ins.pinned_use_background_threads(),
+      acc_alloc_conf_ins.large_segment_size(),
+      acc_alloc_conf_ins.pinned_max_round_threshold(),
+      acc_alloc_conf_ins.pinned_max_cached_size());
 }
 REGISTER_ALLOCATOR_CONFIG_PARSE_HOOK(NPUAllocatorConfig)
 } // namespace NPUCachingAllocator

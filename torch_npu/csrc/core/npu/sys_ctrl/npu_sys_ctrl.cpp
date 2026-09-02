@@ -7,6 +7,9 @@
 #include <torch/csrc/utils/python_numbers.h>
 #endif
 
+#include <nlohmann/json.hpp>
+#include <fstream>
+
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
@@ -19,11 +22,12 @@
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/distributed/symm_mem/NPUSHMEMInterface.h"
-#include "third_party/acl/inc/acl/acl_op_compiler.h"
-#include "third_party/acl/inc/acl/acl_rt.h"
+#include <acl/acl_op_compiler.h>
+#include <acl/acl_rt.h>
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 #include "torch_npu/csrc/framework/LazyInitAclops.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#include "torch_npu/csrc/framework/OpParamMaker.h"
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
 #include "torch_npu/csrc/core/npu/GetCANNInfo.h"
 #ifdef SUCCESS
@@ -33,371 +37,409 @@
 #undef FAILED
 #endif
 
-
 namespace {
 const uint32_t kMaxOpExecuteTimeOut = 547U;
 const size_t kMaxPathLen = 4096U;
 
-void SetDefaultAllowInternalFromatDisable()
-{
-    auto allow_internal_format = c10_npu::option::GetOption("ALLOW_INTERNAL_FORMAT");
-    if (allow_internal_format.has_value() && allow_internal_format.value() != "") {
-        return;
-    }
+void SetDefaultAllowInternalFromatDisable() {
+  auto allow_internal_format = c10_npu::option::GetOption("ALLOW_INTERNAL_FORMAT");
+  if (allow_internal_format.has_value() && allow_internal_format.value() != "") {
+    return;
+  }
 
-    c10_npu::option::SetOption("ALLOW_INTERNAL_FORMAT", "disable");
-    ASCEND_LOGI("Set ALLOW_INTERNAL_FORMAT default value disable.");
+  c10_npu::option::SetOption("ALLOW_INTERNAL_FORMAT", "disable");
+  ASCEND_LOGI("Set ALLOW_INTERNAL_FORMAT default value disable.");
 }
 
-void SetDeterministicFromLevel()
-{
-    const static bool isAclStrongConsistencyExist = []() {
-        const std::string kMinRuntimeVersion = "8.5.0";
-        if (IsGteCANNVersion(kMinRuntimeVersion, "RUNTIME")) {
-            return true;
-        }
-        return false;
-    }();
-    if (!isAclStrongConsistencyExist) {
-        NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
-        return;
-    }
-
-    uint32_t level = c10_npu::GetDeterministicLevel();
-    if (level == 1) {
-        NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 1));
-        NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_STRONG_CONSISTENCY, 0));
-        return;
-    } else if (level == 2) {
-        NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 1));
-        NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_STRONG_CONSISTENCY, 1));
-        return;
-    } else if (level != 0) {
-        TORCH_CHECK(false, "'torch_npu.npu.set_deterministic_level' currently only supports configuring 0/1/2 !", PTA_ERROR(ErrCode::VALUE));
-    }
-    NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
-    NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_STRONG_CONSISTENCY, 0));
+void SetDeterministicFromLevel() {
+  at_npu::native::ApplyDeterministicSnapshot(c10_npu::CaptureDeterministicSnapshot(), true);
 }
 
 #ifndef BUILD_LIBTORCH
-std::string GetTorchNpuFile()
-{
-    PyObject *file_attr = nullptr;
-    {
-        pybind11::gil_scoped_acquire get_gil;
-        auto torch = THPObjectPtr(PyImport_ImportModule("torch"));
-        if (!torch) {
-            throw python_error();
-        }
-        file_attr = PyObject_GetAttrString(torch, "__file__");
+std::string GetTorchNpuFile() {
+  PyObject* file_attr = nullptr;
+  {
+    pybind11::gil_scoped_acquire get_gil;
+    auto torch = THPObjectPtr(PyImport_ImportModule("torch"));
+    if (!torch) {
+      throw python_error();
     }
-    if (file_attr) {
-        const char *file_path = PyUnicode_AsUTF8(file_attr);
-        std::string file_path_str = std::string(file_path);
-        std::string key_word = "torch";
-        size_t pos = file_path_str.rfind(key_word);
-        if (pos != std::string::npos) {
-            return file_path_str.substr(0, pos);
-        }
+    file_attr = PyObject_GetAttrString(torch, "__file__");
+  }
+  if (file_attr) {
+    const char* file_path = PyUnicode_AsUTF8(file_attr);
+    std::string file_path_str = std::string(file_path);
+    std::string key_word = "torch";
+    size_t pos = file_path_str.rfind(key_word);
+    if (pos != std::string::npos) {
+      return file_path_str.substr(0, pos);
     }
-    ASCEND_LOGW("Failed to get __file__ attribute.");
-    return "";
+  }
+  ASCEND_LOGW("Failed to get __file__ attribute.");
+  return "";
 }
 #endif
 
-std::string GetAclConfigJsonPath()
-{
+std::string GetAclConfigJsonPath() {
 #ifndef BUILD_LIBTORCH
-    std::string npu_path = GetTorchNpuFile();
-    if (npu_path == "") {
-        ASCEND_LOGW("Failed to get npu path!");
-        return "";
-    }
-    std::string json_path = "";
-    if (c10_npu::is_lazy_set_device()) {
-        json_path = npu_path.append("torch_npu/acl_default.json");
-    } else {
-        json_path = npu_path.append("torch_npu/acl.json");
-    }
+  const char* acl_init_path = c10_npu::option::OptionsManager::GetAclInitPath();
+  if (acl_init_path != nullptr) {
+    std::string json_path = std::string(acl_init_path);
     std::string json_path_str = torch_npu::toolkit::profiler::Utils::RealPath(json_path);
-    if (json_path_str == "") {
-        ASCEND_LOGW("this path:%s is not exist!", json_path.c_str());
+    if (json_path_str.empty()) {
+      TORCH_CHECK(
+          false,
+          "TORCH_ACL_INIT_CONFIG_PATH ",
+          acl_init_path,
+          " is invalid. ",
+          "Please set the environment variable 'TORCH_ACL_INIT_CONFIG_PATH' to a valid JSON config file path.",
+          PTA_ERROR(ErrCode::UNAVAIL));
     }
+
+    std::ifstream config_file(json_path_str);
+    if (!config_file.is_open()) {
+      TORCH_CHECK(
+          false,
+          "Failed to open user acl json ",
+          json_path_str,
+          ". Please ensure the file exists and has read permission.",
+          PTA_ERROR(ErrCode::UNAVAIL));
+    }
+
+    using json = nlohmann::json;
+    json config;
+    try {
+      config_file >> config;
+    } catch (const std::exception& e) {
+      TORCH_CHECK(
+          false,
+          "Failed to parse user acl json ",
+          json_path_str,
+          ". Please check that the file contains valid JSON syntax. Error: ",
+          e.what(),
+          PTA_ERROR(ErrCode::UNAVAIL));
+    }
+
+    if (c10_npu::is_lazy_set_device()) {
+      if (!config.contains("defaultDevice") || !config["defaultDevice"].is_object()) {
+        TORCH_CHECK(
+            false,
+            "User acl json ",
+            json_path_str,
+            " lacks 'defaultDevice' object, required for lazy set_device mode. ",
+            "Please add: \"defaultDevice\": {\"default_device\": \"0\"}",
+            PTA_ERROR(ErrCode::VALUE));
+      }
+      const auto& default_dev = config["defaultDevice"];
+      if (!default_dev.contains("default_device") || !default_dev["default_device"].is_string() ||
+          default_dev["default_device"].get<std::string>() != "0") {
+        TORCH_CHECK(
+            false,
+            "User acl json ",
+            json_path_str,
+            " requires 'defaultDevice.default_device' to be \"0\" in lazy set_device mode. ",
+            "Please set: \"defaultDevice\": {\"default_device\": \"0\"}",
+            PTA_ERROR(ErrCode::VALUE));
+      }
+    } else {
+      if (config.contains("defaultDevice")) {
+        TORCH_CHECK(
+            false,
+            "User acl json ",
+            json_path_str,
+            " contains 'defaultDevice' which is not expected in non-lazy set_device mode. ",
+            "Please remove the 'defaultDevice' field from your JSON config.",
+            PTA_ERROR(ErrCode::VALUE));
+      }
+    }
+
     return json_path_str;
-#else
+  }
+  std::string npu_path = GetTorchNpuFile();
+  if (npu_path == "") {
+    ASCEND_LOGW("Failed to get npu path!");
     return "";
+  }
+  std::string json_path = "";
+  if (c10_npu::is_lazy_set_device()) {
+    json_path = npu_path.append("torch_npu/acl_default.json");
+  } else {
+    json_path = npu_path.append("torch_npu/acl.json");
+  }
+  std::string json_path_str = torch_npu::toolkit::profiler::Utils::RealPath(json_path);
+  if (json_path_str == "") {
+    ASCEND_LOGW("this path:%s is not exist!", json_path.c_str());
+  }
+  return json_path_str;
+#else
+  return "";
 #endif
 }
 } // namespace
 
 namespace c10_npu {
 
-NpuSysCtrl::NpuSysCtrl() : repeat_init_acl_flag_(true), init_flag_(false), lazy_init_flag_(false), host_finalize_flag_(false), device_id_(0) {}
+NpuSysCtrl::NpuSysCtrl()
+    : repeat_init_acl_flag_(true),
+      init_flag_(false),
+      lazy_init_flag_(false),
+      host_finalize_flag_(false),
+      device_id_(0) {}
 
 // Get NpuSysCtrl singleton instance
-NpuSysCtrl &NpuSysCtrl::GetInstance()
-{
-    static NpuSysCtrl instance;
-    return instance;
+NpuSysCtrl& NpuSysCtrl::GetInstance() {
+  static NpuSysCtrl instance;
+  return instance;
 }
 
 // Environment Initialize, return Status: SUCCESS, FAILED
-NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id)
-{
-    if (init_flag_) {
-        return INIT_SUCC;
-    }
-    std::lock_guard<std::mutex> lock(init_mutex_);
-    if (init_flag_) {
-        return INIT_SUCC;
-    }
-    std::string json_path = GetAclConfigJsonPath();
-    const char *json_path_ptr = json_path == "" ? nullptr : json_path.c_str();
-    ASCEND_LOGD("get acl json path:%s.", json_path_ptr);
-    auto init_ret = aclInit(json_path_ptr);
-    // The aclinit function is an important low-level aclInit interface that can only be called once in PTA.
-    // However, because of the different business codes, aclinit may be successfully invoked by other frameworks or components.
-    // ACL_ERROR_REPEAT_INITIALIZE means that aclInit is not called by PTA, so we save the flag variable to control aclFinalize.
-    if (init_ret == ACL_ERROR_REPEAT_INITIALIZE) {
-        repeat_init_acl_flag_ = false;
-        ASCEND_LOGI("acl has already init by other component.");
-    } else if (init_ret != ACL_ERROR_NONE) {
-        NPU_CHECK_ERROR(init_ret, "aclInit");
-    }
-
-    if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()) {
-        NPU_CHECK_ERROR(aclmdlInitDump());
-        ASCEND_LOGD("dump init success");
-    }
-
-    c10_npu::NPUCachingAllocator::init();
-    ASCEND_LOGD("Npu caching allocator initialize successfully");
-    c10_npu::NPUWorkspaceAllocator::init();
-    ASCEND_LOGD("Npu workspace allocator initialize successfully");
-    c10_npu::option::OptionsManager::IsOomSnapshotEnable();
-
-    if (!c10_npu::is_lazy_set_device()) {
-        // There's no need to call c10_npu::GetDevice at the start of the process, because device 0 may not be needed
-        auto ret = aclrtGetDevice(&device_id_);
-        if (ret != ACL_ERROR_NONE) {
-            device_id_ = (device_id == -1) ? 0 : device_id;
-            NPU_CHECK_ERROR(c10_npu::SetDevice(device_id_));
-        } else {
-            ASCEND_LOGW("Npu device %d has been set before global init.", device_id_);
-        }
-    } else {
-        if (device_id >= 0) {
-            NPU_CHECK_ERROR(c10_npu::SetDevice(device_id));
-        }
-    }
-
-    if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()) {
-        const char *aclConfigPath = "acl.json";
-        NPU_CHECK_ERROR(aclmdlSetDump(aclConfigPath));
-        ASCEND_LOGD("set dump config success");
-    }
-
-    auto soc_name = c10_npu::acl::AclGetSocName();
-    // set global soc name
-    c10_npu::SetSocVersion(soc_name);
-
-    if (!c10_npu::is_lazy_set_device()) {
-        if (c10_npu::IsSupportInfNan()) {
-            c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_INFNAN);
-        } else {
-            c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_SATURATION);
-        }
-    }
-
-    auto acl_op_init_mode = c10_npu::option::OptionsManager::GetAclOpInitMode();
-    if (acl_op_init_mode == 0) {
-        at_npu::aclops::InitAclops();
-    } else {
-        at_npu::aclops::InitializeJitCompilationMode();
-    }
-
-    // set default allow_internal_format value
-    if (((c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1) &&
-        (c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend310B1)) ||
-        (c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910_9391)) {
-        SetDefaultAllowInternalFromatDisable();
-    }
-
-    if (!c10_npu::is_lazy_set_device()) {
-        SetDeterministicFromLevel();
-        NPU_CHECK_ERROR(c10_npu::acl::AclrtSetOpExecuteTimeOut(kMaxOpExecuteTimeOut));
-    }
-
-    // lazy call for the setoption
-    for (const auto &iter: lazy_fn_) {
-        ASCEND_LOGD("start setoption for the lazy call.");
-        const auto &call_ = iter.first;
-        const auto &in = iter.second;
-        call_(in);
-    }
-
-    lazy_fn_.clear();
-
-    if (SetThreadAffinityInInitialize()) {
-        SetThreadAffinity(device_id_);
-    }
-
-    init_flag_ = true;
-    ASCEND_LOGD("Npu sys ctrl initialize successfully.");
-
+NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id) {
+  if (init_flag_) {
     return INIT_SUCC;
-}
+  }
+  std::lock_guard<std::mutex> lock(init_mutex_);
+  if (init_flag_) {
+    return INIT_SUCC;
+  }
+  std::string json_path = GetAclConfigJsonPath();
+  const char* json_path_ptr = json_path == "" ? nullptr : json_path.c_str();
+  ASCEND_LOGD("get acl json path:%s.", json_path_ptr);
+  auto init_ret = aclInit(json_path_ptr);
+  // The aclinit function is an important low-level aclInit interface that can
+  // only be called once in PTA. However, because of the different business
+  // codes, aclinit may be successfully invoked by other frameworks or
+  // components. ACL_ERROR_REPEAT_INITIALIZE means that aclInit is not called by
+  // PTA, so we save the flag variable to control aclFinalize.
+  if (init_ret == ACL_ERROR_REPEAT_INITIALIZE) {
+    repeat_init_acl_flag_ = false;
+    ASCEND_LOGI("acl has already init by other component.");
+  } else if (init_ret != ACL_ERROR_NONE) {
+    NPU_CHECK_ERROR(init_ret, "aclInit");
+  }
 
-NpuSysCtrl::SysStatus NpuSysCtrl::LazyInitialize(int device_id)
-{
-    if (!c10_npu::is_lazy_set_device()) {
-        return INIT_SUCC;
-    }
+  if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()) {
+    NPU_CHECK_ERROR(aclmdlInitDump());
+    ASCEND_LOGD("dump init success");
+  }
 
-    if (lazy_init_flag_) {
-        return INIT_SUCC;
-    }
-    std::lock_guard<std::mutex> lock(lazy_init_mutex_);
-    if (lazy_init_flag_) {
-        return INIT_SUCC;
-    }
+  c10_npu::NPUCachingAllocator::init();
+  ASCEND_LOGD("Npu caching allocator initialize successfully");
+  c10_npu::NPUWorkspaceAllocator::init();
+  ASCEND_LOGD("Npu workspace allocator initialize successfully");
+  c10_npu::option::OptionsManager::IsOomSnapshotEnable();
 
-    // There's no need to call c10_npu::GetDevice at the start of the process, because device 0 may not be needed
+  if (!c10_npu::is_lazy_set_device()) {
+    // There's no need to call c10_npu::GetDevice at the start of the process,
+    // because device 0 may not be needed
     auto ret = aclrtGetDevice(&device_id_);
-
-    if (c10_npu::IsSupportInfNan()) {
-        c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_INFNAN);
+    if (ret != ACL_ERROR_NONE) {
+      device_id_ = (device_id == -1) ? 0 : device_id;
+      NPU_CHECK_ERROR(c10_npu::SetDevice(device_id_));
     } else {
-        c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_SATURATION);
+      ASCEND_LOGW("Npu device %d has been set before global init.", device_id_);
     }
+  } else {
+    if (device_id >= 0) {
+      NPU_CHECK_ERROR(c10_npu::SetDevice(device_id));
+    }
+  }
 
+  if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()) {
+    const char* aclConfigPath = "acl.json";
+    NPU_CHECK_ERROR(aclmdlSetDump(aclConfigPath));
+    ASCEND_LOGD("set dump config success");
+  }
+
+  auto soc_name = c10_npu::acl::AclGetSocName();
+  // set global soc name
+  c10_npu::SetSocVersion(soc_name);
+
+  if (!c10_npu::is_lazy_set_device()) {
+    if (c10_npu::IsSupportInfNan()) {
+      c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_INFNAN);
+    } else {
+      c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_SATURATION);
+    }
+  }
+
+  auto acl_op_init_mode = c10_npu::option::OptionsManager::GetAclOpInitMode();
+  if (acl_op_init_mode == 0) {
+    at_npu::aclops::InitAclops();
+  } else {
+    at_npu::aclops::InitializeJitCompilationMode();
+  }
+
+  // set default allow_internal_format value
+  if (((c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1) &&
+       (c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend310B1)) ||
+      (c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910_9391)) {
+    SetDefaultAllowInternalFromatDisable();
+  }
+
+  if (!c10_npu::is_lazy_set_device()) {
     SetDeterministicFromLevel();
     NPU_CHECK_ERROR(c10_npu::acl::AclrtSetOpExecuteTimeOut(kMaxOpExecuteTimeOut));
+  }
 
-    lazy_init_flag_ = true;
-    ASCEND_LOGD("Npu sys ctrl Lazyinitialize successfully.");
+  // lazy call for the setoption
+  for (const auto& iter : lazy_fn_) {
+    ASCEND_LOGD("start setoption for the lazy call.");
+    const auto& call_ = iter.first;
+    const auto& in = iter.second;
+    call_(in);
+  }
 
-    return INIT_SUCC;
+  lazy_fn_.clear();
+
+  if (SetThreadAffinityInInitialize()) {
+    SetThreadAffinity(device_id_);
+  }
+
+  init_flag_ = true;
+  ASCEND_LOGD("Npu sys ctrl initialize successfully.");
+
+  return INIT_SUCC;
 }
 
-NpuSysCtrl::SysStatus NpuSysCtrl::ExchangeDevice(int device)
-{
-    NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::SetDevice(device));
-    device_id_ = device;
+NpuSysCtrl::SysStatus NpuSysCtrl::LazyInitialize(int device_id) {
+  if (!c10_npu::is_lazy_set_device()) {
     return INIT_SUCC;
+  }
+
+  if (lazy_init_flag_) {
+    return INIT_SUCC;
+  }
+  std::lock_guard<std::mutex> lock(lazy_init_mutex_);
+  if (lazy_init_flag_) {
+    return INIT_SUCC;
+  }
+
+  // There's no need to call c10_npu::GetDevice at the start of the process,
+  // because device 0 may not be needed
+  auto ret = aclrtGetDevice(&device_id_);
+
+  if (c10_npu::IsSupportInfNan()) {
+    c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_INFNAN);
+  } else {
+    c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_SATURATION);
+  }
+
+  SetDeterministicFromLevel();
+  NPU_CHECK_ERROR(c10_npu::acl::AclrtSetOpExecuteTimeOut(kMaxOpExecuteTimeOut));
+
+  lazy_init_flag_ = true;
+  ASCEND_LOGD("Npu sys ctrl Lazyinitialize successfully.");
+
+  return INIT_SUCC;
 }
 
-NpuSysCtrl::SysStatus NpuSysCtrl::BackwardsInit()
-{
-    NPU_CHECK_ERROR(c10_npu::SetDevice(device_id_));
-    return INIT_SUCC;
+NpuSysCtrl::SysStatus NpuSysCtrl::ExchangeDevice(int device) {
+  NPU_CHECK_ERROR_WITHOUT_UCE(c10_npu::SetDevice(device));
+  device_id_ = device;
+  return INIT_SUCC;
 }
 
-NpuSysCtrl::SysStatus NpuSysCtrl::OverflowSwitchEnable()
-{
-    if (!c10_npu::IsSupportInfNan()) {
-        c10_npu::acl::AclrtSetStreamOverflowSwitch(c10_npu::getCurrentNPUStream(), 1);
-        ASCEND_LOGI("Npu overflow check switch set successfully.");
-    }
-    return INIT_SUCC;
+NpuSysCtrl::SysStatus NpuSysCtrl::BackwardsInit() {
+  NPU_CHECK_ERROR(c10_npu::SetDevice(device_id_));
+  return INIT_SUCC;
+}
+
+NpuSysCtrl::SysStatus NpuSysCtrl::OverflowSwitchEnable() {
+  if (!c10_npu::IsSupportInfNan()) {
+    c10_npu::acl::AclrtSetStreamOverflowSwitch(c10_npu::getCurrentNPUStream(), 1);
+    ASCEND_LOGI("Npu overflow check switch set successfully.");
+  }
+  return INIT_SUCC;
 }
 
 // Environment Finalize, return SysStatus
-NpuSysCtrl::SysStatus NpuSysCtrl::Finalize()
-{
-    if (!init_flag_) {
-        return FINALIZE_SUCC;
-    }
-
-    this->RegisterReleaseFn(
-        [=]() -> void {
-            c10_npu::NPUEventManager::GetInstance().ClearEvent();
-            NPU_CHECK_WARN(c10_npu::DestroyUsedStreams());
-            NPU_CHECK_WARN(c10_npu::ResetUsedDevices());
-#ifndef BUILD_LIBTORCH
-            if (c10d::symmetric_memory::Aclshmem_finalize_exist()) {
-                auto ret = c10d::symmetric_memory::Aclshmem_finalize();
-                ASCEND_LOGI("shmem_finalize emd, ret is %d", ret);
-            }
-#endif
-            // Maintain a basic point of view, who applies for the resource, the resource is released by whom.
-            // If aclInit is not a PTA call, then aclFinalize should not be a PTA call either.
-            if (repeat_init_acl_flag_) {
-                NPU_CHECK_WARN(aclFinalize());
-            }
-        },
-        ReleasePriority::PriorityLast);
-
-    init_flag_ = false;
-
-    if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()) {
-        NPU_CHECK_WARN(aclmdlFinalizeDump());
-    }
-
-    // call release fn by priority
-    for (const auto &iter: release_fn_) {
-        const auto &fn_vec = iter.second;
-        for (const auto &fn: fn_vec) {
-            fn();
-        }
-    }
-    release_fn_.clear();
-
-    ASCEND_LOGD("Npu sys ctrl finalize successfully.");
+NpuSysCtrl::SysStatus NpuSysCtrl::Finalize() {
+  if (!init_flag_) {
     return FINALIZE_SUCC;
-}
+  }
 
-bool NpuSysCtrl::GetInitFlag()
-{
-    return init_flag_;
-}
+  this->RegisterReleaseFn(
+      [=]() -> void {
+        c10_npu::NPUEventManager::GetInstance().ClearEvent();
+        NPU_CHECK_WARN(c10_npu::DestroyUsedStreams());
+        NPU_CHECK_WARN(c10_npu::ResetUsedDevices());
+#ifndef BUILD_LIBTORCH
+        if (c10d::symmetric_memory::Aclshmem_finalize_exist()) {
+          auto ret = c10d::symmetric_memory::Aclshmem_finalize();
+          ASCEND_LOGI("shmem_finalize emd, ret is %d", ret);
+        }
+#endif
+        // Maintain a basic point of view, who applies for the resource, the
+        // resource is released by whom. If aclInit is not a PTA call, then
+        // aclFinalize should not be a PTA call either.
+        if (repeat_init_acl_flag_) {
+          NPU_CHECK_WARN(aclFinalize());
+        }
+      },
+      ReleasePriority::PriorityLast);
 
-bool NpuSysCtrl::GetLazyInitFlag()
-{
-    return lazy_init_flag_;
-}
+  init_flag_ = false;
 
-void NpuSysCtrl::HostFinalize()
-{
-    host_finalize_flag_ = true;
-}
+  if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()) {
+    NPU_CHECK_WARN(aclmdlFinalizeDump());
+  }
 
-bool NpuSysCtrl::GetHostFinalize()
-{
-    return host_finalize_flag_;
-}
-
-int NpuSysCtrl::InitializedDeviceID()
-{
-    if (GetInitFlag()) {
-        return device_id_;
+  // call release fn by priority
+  for (const auto& iter : release_fn_) {
+    const auto& fn_vec = iter.second;
+    for (const auto& fn : fn_vec) {
+      fn();
     }
-    TORCH_CHECK(false, "no npu device has been initialized!", PTA_ERROR(ErrCode::INTERNAL));
-    return -1;
+  }
+  release_fn_.clear();
+
+  ASCEND_LOGD("Npu sys ctrl finalize successfully.");
+  return FINALIZE_SUCC;
 }
 
-void NpuSysCtrl::RegisterLazyFn(const option::OptionCallBack& call_, const std::string& in)
-{
-    lazy_fn_.emplace_back(std::make_pair(call_, in));
+bool NpuSysCtrl::GetInitFlag() {
+  return init_flag_;
 }
 
-void NpuSysCtrl::RegisterReleaseFn(ReleaseFn release_fn, ReleasePriority priority)
-{
-    const auto& iter = this->release_fn_.find(priority);
-    if (iter != release_fn_.end()) {
-        release_fn_[priority].emplace_back(release_fn);
-    } else {
-        release_fn_[priority] = (std::vector<ReleaseFn>({release_fn}));
-    }
+bool NpuSysCtrl::GetLazyInitFlag() {
+  return lazy_init_flag_;
 }
 
-aclError SetCurrentDevice()
-{
-    if (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
-        c10_npu::SetDevice(c10_npu::NpuSysCtrl::GetInstance().InitializedDeviceID());
-        return ACL_SUCCESS;
-    }
-    TORCH_CHECK(false, "npu device has not been inited.", PTA_ERROR(ErrCode::INTERNAL));
+void NpuSysCtrl::HostFinalize() {
+  host_finalize_flag_ = true;
+}
+
+bool NpuSysCtrl::GetHostFinalize() {
+  return host_finalize_flag_;
+}
+
+int NpuSysCtrl::InitializedDeviceID() {
+  if (GetInitFlag()) {
+    return device_id_;
+  }
+  TORCH_CHECK(false, "no npu device has been initialized!", PTA_ERROR(ErrCode::INTERNAL));
+  return -1;
+}
+
+void NpuSysCtrl::RegisterLazyFn(const option::OptionCallBack& call_, const std::string& in) {
+  lazy_fn_.emplace_back(std::make_pair(call_, in));
+}
+
+void NpuSysCtrl::RegisterReleaseFn(ReleaseFn release_fn, ReleasePriority priority) {
+  const auto& iter = this->release_fn_.find(priority);
+  if (iter != release_fn_.end()) {
+    release_fn_[priority].emplace_back(release_fn);
+  } else {
+    release_fn_[priority] = (std::vector<ReleaseFn>({release_fn}));
+  }
+}
+
+aclError SetCurrentDevice() {
+  if (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
+    c10_npu::SetDevice(c10_npu::NpuSysCtrl::GetInstance().InitializedDeviceID());
+    return ACL_SUCCESS;
+  }
+  TORCH_CHECK(false, "npu device has not been inited.", PTA_ERROR(ErrCode::INTERNAL));
 }
 
 } // namespace c10_npu

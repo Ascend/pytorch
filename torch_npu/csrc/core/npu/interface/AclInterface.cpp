@@ -9,6 +9,7 @@
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/GetCANNInfo.h"
+#include "torch_npu/csrc/distributed/HCCLUtils.hpp"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/sanitizer/NPUTrace.h"
 #endif
@@ -17,12 +18,10 @@ namespace c10_npu {
 
 namespace acl {
 #undef TORCH_NPU_LOAD_FUNC
-#define TORCH_NPU_LOAD_FUNC(funcName) \
-    TORCH_NPU_REGISTER_FUNCTION(libascendcl, funcName)
+#define TORCH_NPU_LOAD_FUNC(funcName) TORCH_NPU_REGISTER_FUNCTION(libascendcl, funcName)
 
 #undef TORCH_NPU_GET_FUNC
-#define TORCH_NPU_GET_FUNC(funcName)           \
-    TORCH_NPU_GET_FUNCTION(libascendcl, funcName)
+#define TORCH_NPU_GET_FUNC(funcName) TORCH_NPU_GET_FUNCTION(libascendcl, funcName)
 
 TORCH_NPU_REGISTER_LIBRARY(libascendcl)
 TORCH_NPU_LOAD_FUNC(aclGetRecentErrMsg)
@@ -78,6 +77,7 @@ TORCH_NPU_LOAD_FUNC(aclrtSynchronizeDeviceWithTimeout)
 TORCH_NPU_LOAD_FUNC(aclrtEventGetTimestamp)
 TORCH_NPU_LOAD_FUNC(aclmdlRICaptureBegin)
 TORCH_NPU_LOAD_FUNC(aclmdlRICaptureGetInfo)
+TORCH_NPU_LOAD_FUNC(aclmdlRIGetId)
 TORCH_NPU_LOAD_FUNC(aclmdlRICaptureEnd)
 TORCH_NPU_LOAD_FUNC(aclmdlRICondHandleCreate)
 TORCH_NPU_LOAD_FUNC(aclmdlRICondHandleGetCondPtr)
@@ -135,1784 +135,1808 @@ TORCH_NPU_LOAD_FUNC(aclrtGetDeviceInfo)
 TORCH_NPU_LOAD_FUNC(aclrtMemset)
 TORCH_NPU_LOAD_FUNC(aclrtMemsetAsync)
 TORCH_NPU_LOAD_FUNC(aclmdlRICaptureThreadExchangeMode)
+TORCH_NPU_LOAD_FUNC(aclrtGetLogicDevIdByUserDevId)
 
 aclprofStepInfoPtr init_stepinfo() {
-    typedef aclprofStepInfoPtr(*npdInitFunc)();
-    static npdInitFunc func = nullptr;
-    if (func == nullptr) {
-        func = (npdInitFunc)TORCH_NPU_GET_FUNC(aclprofCreateStepInfo);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclprofCreateStepInfo", PROF_ERROR(ErrCode::NOT_FOUND));
-    auto ret = func();
-    return ret;
+  typedef aclprofStepInfoPtr (*npdInitFunc)();
+  static npdInitFunc func = nullptr;
+  if (func == nullptr) {
+    func = (npdInitFunc)TORCH_NPU_GET_FUNC(aclprofCreateStepInfo);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclprofCreateStepInfo", PROF_ERROR(ErrCode::NOT_FOUND));
+  auto ret = func();
+  return ret;
 }
 
 NpdStatus destroy_stepinfo(aclprofStepInfoPtr stepInfo) {
-    typedef NpdStatus(*npdDestroyFunc)(aclprofStepInfoPtr);
-    static npdDestroyFunc func = nullptr;
-    if (func == nullptr) {
-        func = (npdDestroyFunc)TORCH_NPU_GET_FUNC(aclprofDestroyStepInfo);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclprofDestroyStepInfo", PROF_ERROR(ErrCode::NOT_FOUND));
-    auto ret = func(stepInfo);
-    return ret;
+  typedef NpdStatus (*npdDestroyFunc)(aclprofStepInfoPtr);
+  static npdDestroyFunc func = nullptr;
+  if (func == nullptr) {
+    func = (npdDestroyFunc)TORCH_NPU_GET_FUNC(aclprofDestroyStepInfo);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclprofDestroyStepInfo", PROF_ERROR(ErrCode::NOT_FOUND));
+  auto ret = func(stepInfo);
+  return ret;
 }
 
 NpdStatus start_deliver_op(aclprofStepInfoPtr stepInfo, aclprofStepTag stepTag, aclrtStream stream) {
-    typedef NpdStatus(*npdStartProfiling)(aclprofStepInfoPtr, aclprofStepTag, aclrtStream);
-    static npdStartProfiling func = nullptr;
-    if (func == nullptr) {
-        func = (npdStartProfiling)TORCH_NPU_GET_FUNC(aclprofGetStepTimestamp);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclprofGetStepTimestamp", PROF_ERROR(ErrCode::NOT_FOUND));
-    auto ret = func(stepInfo, stepTag, stream);
-    return ret;
+  typedef NpdStatus (*npdStartProfiling)(aclprofStepInfoPtr, aclprofStepTag, aclrtStream);
+  static npdStartProfiling func = nullptr;
+  if (func == nullptr) {
+    func = (npdStartProfiling)TORCH_NPU_GET_FUNC(aclprofGetStepTimestamp);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclprofGetStepTimestamp", PROF_ERROR(ErrCode::NOT_FOUND));
+  auto ret = func(stepInfo, stepTag, stream);
+  return ret;
 }
 
 NpdStatus stop_deliver_op(aclprofStepInfoPtr stepInfo, aclprofStepTag stepTag, aclrtStream stream) {
-    typedef NpdStatus(*npdStopProfiling)(aclprofStepInfoPtr, aclprofStepTag, aclrtStream);
-    static npdStopProfiling func = nullptr;
-    if (func == nullptr) {
-        func = (npdStopProfiling)TORCH_NPU_GET_FUNC(aclprofGetStepTimestamp);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclprofGetStepTimestamp", PROF_ERROR(ErrCode::NOT_FOUND));
-    auto ret = func(stepInfo, stepTag, stream);
-    return ret;
+  typedef NpdStatus (*npdStopProfiling)(aclprofStepInfoPtr, aclprofStepTag, aclrtStream);
+  static npdStopProfiling func = nullptr;
+  if (func == nullptr) {
+    func = (npdStopProfiling)TORCH_NPU_GET_FUNC(aclprofGetStepTimestamp);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclprofGetStepTimestamp", PROF_ERROR(ErrCode::NOT_FOUND));
+  auto ret = func(stepInfo, stepTag, stream);
+  return ret;
 }
 
-const char *AclGetErrMsg()
-{
-    typedef const char *(*aclGetErrMsg)();
-    static aclGetErrMsg func = nullptr;
-    if (func == nullptr) {
-        func = (aclGetErrMsg)TORCH_NPU_GET_FUNC(aclGetRecentErrMsg);
-    }
-    if (func != nullptr) {
-        auto res = func();
-        return res != nullptr ? res : "";
-    }
-    return "";
+const char* AclGetErrMsg() {
+  typedef const char* (*aclGetErrMsg)();
+  static aclGetErrMsg func = nullptr;
+  if (func == nullptr) {
+    func = (aclGetErrMsg)TORCH_NPU_GET_FUNC(aclGetRecentErrMsg);
+  }
+  if (func != nullptr) {
+    auto res = func();
+    return res != nullptr ? res : "";
+  }
+  return "";
 }
 
-aclError AclrtCreateStreamWithConfig(aclrtStream *stream, uint32_t priority, uint32_t flag) {
-    ACL_CALL_LOG("aclrtCreateStreamWithConfig", "stream=" << stream << ", priority=" << priority << ", flag=" << flag);
-    typedef aclError(*aclrtCreateStreamWithConfigFunc)(aclrtStream*, uint32_t, uint32_t);
-    static aclrtCreateStreamWithConfigFunc func = nullptr;
-    if (func == nullptr) {
-        func = (aclrtCreateStreamWithConfigFunc)TORCH_NPU_GET_FUNC(aclrtCreateStreamWithConfig);
-    }
+aclError AclrtCreateStreamWithConfig(aclrtStream* stream, uint32_t priority, uint32_t flag) {
+  ACL_CALL_LOG("aclrtCreateStreamWithConfig", "stream=" << stream << ", priority=" << priority << ", flag=" << flag);
+  typedef aclError (*aclrtCreateStreamWithConfigFunc)(aclrtStream*, uint32_t, uint32_t);
+  static aclrtCreateStreamWithConfigFunc func = nullptr;
+  if (func == nullptr) {
+    func = (aclrtCreateStreamWithConfigFunc)TORCH_NPU_GET_FUNC(aclrtCreateStreamWithConfig);
+  }
 
-    aclError ret;
-    if (func != nullptr) {
-        ret = func(stream, priority, flag);
-    } else {
-        ret = aclrtCreateStream(stream);
-    }
-    if (ret == ACL_SUCCESS && stream != nullptr) {
-#ifndef BUILD_LIBTORCH
-        const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
-        if (C10_UNLIKELY(trigger)) {
-            trigger->traceNpuStreamCreation(reinterpret_cast<uintptr_t>(*stream));
-        }
-#endif
-        if (!c10_npu::IsSupportInfNan()) {
-            TORCH_CHECK(AclrtSetStreamOverflowSwitch(*stream, 1) == ACL_SUCCESS, "SET StreamOverflowSwitch Failed.", PROF_ERROR(ErrCode::ACL));
-        }
-        const char* mode = std::getenv("TORCHINDUCTOR_NPU_BACKEND");
-        if (mode != nullptr && std::strcmp(mode, "mlir") == 0) {
-            return AclrtSetStreamFailureMode(*stream, ACL_CONTINUE_ON_FAILURE);
-        }
-        return AclrtSetStreamFailureMode(*stream, ACL_STOP_ON_FAILURE);
-    } else {
-        return ret;
-    }
-}
-
-aclError AclrtSetStreamFailureMode(aclrtStream stream, uint64_t mode) {
-    ACL_CALL_LOG("aclrtSetStreamFailureMode", "stream=" << stream << ", mode=" << mode);
-    if (stream == nullptr) { // default stream
-        return ACL_ERROR_INVALID_PARAM;
-    }
-
-    typedef aclError(*aclrtSetStreamFailureModeFunc)(aclrtStream, uint64_t);
-    static aclrtSetStreamFailureModeFunc func = (aclrtSetStreamFailureModeFunc)TORCH_NPU_GET_FUNC(aclrtSetStreamFailureMode);
-    if (func == nullptr) {
-        return ACL_SUCCESS;
-    }
-    return func(stream, mode);
-}
-
-aclError AclrtSetOpWaitTimeout(uint32_t timeout) {
-    ACL_CALL_LOG("aclrtSetOpWaitTimeout", "timeout=" << timeout);
-    typedef aclError(*aclrtSetOpWaitTimeoutFunc)(uint32_t);
-    static aclrtSetOpWaitTimeoutFunc func = nullptr;
-    if (func == nullptr) {
-        func = (aclrtSetOpWaitTimeoutFunc)TORCH_NPU_GET_FUNC(aclrtSetOpWaitTimeout);
-    }
-    TORCH_CHECK(func, "Failed to find function aclrtSetOpWaitTimeout", PROF_ERROR(ErrCode::NOT_FOUND));
-    return func(timeout);
-}
-
-bool IsExistCreateEventExWithFlag()
-{
-    typedef aclError(*AclrtCreateEventWithFlagFunc)(aclrtEvent*, uint32_t);
-    static AclrtCreateEventWithFlagFunc func = (AclrtCreateEventWithFlagFunc)TORCH_NPU_GET_FUNC(aclrtCreateEventExWithFlag);
-    return func != nullptr;
-}
-
-bool IsExistValueWaitAndWrite()
-{
-    typedef aclError(*AclrtValueWaitFunc)(void*, uint64_t, uint32_t, aclrtStream);
-    static AclrtValueWaitFunc funcWait = (AclrtValueWaitFunc)TORCH_NPU_GET_FUNC(aclrtValueWait);
-    typedef aclError(*AclrtValueWriteFunc)(void*, uint64_t, uint32_t, aclrtStream);
-    static AclrtValueWriteFunc funcwrite = (AclrtValueWriteFunc)TORCH_NPU_GET_FUNC(aclrtValueWrite);
-    return funcWait != nullptr && funcwrite != nullptr;
-}
-
-aclError AclrtValueWait(void* event, aclrtStream stream)
-{
-    ACL_CALL_LOG("aclrtValueWait", "event=" << event << ", stream=" << stream);
-    typedef aclError(*AclrtValueWaitFunc)(void*, uint64_t, uint32_t, aclrtStream);
-    static AclrtValueWaitFunc func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtValueWaitFunc)TORCH_NPU_GET_FUNC(aclrtValueWait);
-    }
-    TORCH_CHECK(func, "Failed to find function aclrtValueWait", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(event, 1, ACL_STREAM_WAIT_VALUE_EQ, stream);
-}
-
-aclError AclrtValueWrite(void* event, uint64_t value, aclrtStream stream)
-{
-    ACL_CALL_LOG("aclrtValueWrite", "event=" << event << ", value=" << value
-             << ", stream=" << stream);
-    typedef aclError(*AclrtValueWriteFunc)(void*, uint64_t, uint32_t, aclrtStream);
-    static AclrtValueWriteFunc func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtValueWriteFunc)TORCH_NPU_GET_FUNC(aclrtValueWrite);
-    }
-    TORCH_CHECK(func, "Failed to find function aclrtValueWrite", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(event, value, 0, stream);
-}
-
-aclError AclrtCreateEventWithFlag(aclrtEvent *event, uint32_t flag)
-{
-    ACL_CALL_LOG("aclrtCreateEventWithFlag", "event=" << event << ", flag=" << flag);
-    typedef aclError(*AclrtCreateEventWithFlagFunc)(aclrtEvent*, uint32_t);
-    // Recommend aclrtCreateEventExWithFlag.
-    // Differences from aclrtCreateEventWithFlag:
-    //   1. Event can be reused naturally, aclrtResetEvent is not supported.
-    //   2. There is no limit on the number of events.
-    //   3. Only support query event record status, aclrtQueryEvent and aclrtQueryEventWaitStatus are not supported.
-    //   4. aclrtDestroyEvent change to asynchronous destroy event.
-    static AclrtCreateEventWithFlagFunc func_ex = (AclrtCreateEventWithFlagFunc)TORCH_NPU_GET_FUNC(aclrtCreateEventExWithFlag);
-    if (func_ex == nullptr) {
-        TORCH_NPU_WARN_ONCE(func_ex, "Failed to find function ", "aclrtCreateEventExWithFlag");
-    }
-    static AclrtCreateEventWithFlagFunc func = (AclrtCreateEventWithFlagFunc)TORCH_NPU_GET_FUNC(aclrtCreateEventWithFlag);
-    TORCH_CHECK(func, "Failed to find function ", "aclrtCreateEventWithFlag", PROF_ERROR(ErrCode::NOT_FOUND));
-    if (flag == ACL_EVENT_EXTERNAL && IsExistValueWaitAndWrite()) {
-        ASCEND_LOGI("External Event: Create the external event via AclrtMallocAlign32");
-        const uint32_t eventMemSize = 32;
-        NPU_CHECK_ERROR(AclrtMallocAlign32(event, eventMemSize, ACL_MEM_MALLOC_NORMAL_ONLY));
-        aclmdlRICaptureMode capture_mode = aclmdlRICaptureMode::ACL_MODEL_RI_CAPTURE_MODE_RELAXED;
-        NPU_CHECK_ERROR(AclmdlRICaptureThreadExchangeMode(&capture_mode));
-        NPU_CHECK_ERROR(AclrtMemSet(*event, eventMemSize, 0, eventMemSize));
-        return AclmdlRICaptureThreadExchangeMode(&capture_mode);
-    }
-    if (func_ex == nullptr) {
-        return func(event, flag);
-    }
-    return func_ex(event, flag);
-}
-
-aclError AclQueryEventWaitStatus(aclrtEvent event, aclrtEventWaitStatus *waitStatus)
-{
-    ACL_CALL_LOG("aclQueryEventWaitStatus", "event=" << event << ", waitStatus=" << waitStatus);
-    typedef aclError (*aclQueryEventWaitStatus)(aclrtEvent event, aclrtEventWaitStatus *waitStatus);
-    static aclQueryEventWaitStatus func = nullptr;
-    if (func == nullptr) {
-        func = (aclQueryEventWaitStatus)TORCH_NPU_GET_FUNC(aclrtQueryEventWaitStatus);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclrtQueryEventWaitStatus", PROF_ERROR(ErrCode::NOT_FOUND));
-    return func(event, waitStatus);
-}
-
-aclError AclQueryEventRecordedStatus(aclrtEvent event, aclrtEventRecordedStatus *status) {
-    ACL_CALL_LOG("aclQueryEventRecordedStatus", "event=" << event << ", status=" << status);
-    typedef aclError (*aclQueryEventStatus)(aclrtEvent event, aclrtEventRecordedStatus *status);
-    static aclQueryEventStatus func = nullptr;
-    if (func == nullptr) {
-        func = (aclQueryEventStatus)TORCH_NPU_GET_FUNC(aclrtQueryEventStatus);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclrtQueryEventStatus", PROF_ERROR(ErrCode::NOT_FOUND));
-    return func(event, status);
-}
-
-bool IsExistQueryEventRecordedStatus()
-{
-    typedef aclError (*aclQueryEventStatus)(aclrtEvent event, aclrtEventRecordedStatus *status);
-    static aclQueryEventStatus func = nullptr;
-    if (func == nullptr) {
-        func = (aclQueryEventStatus)TORCH_NPU_GET_FUNC(aclrtQueryEventStatus);
-    }
-    if (func != nullptr) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
-aclError AclIpcGetEventHandle(aclrtEvent event, aclrtIpcEventHandle *handle)
-{
-    typedef aclError (*aclIpcGetEventHandle)(aclrtEvent event, aclrtIpcEventHandle *handle);
-    static aclIpcGetEventHandle func = nullptr;
-    if (func == nullptr) {
-        func = (aclIpcGetEventHandle)TORCH_NPU_GET_FUNC(aclrtIpcGetEventHandle);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclrtIpcGetEventHandle", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(event, handle);
-}
-
-aclError AclIpcOpenEventHandle(aclrtIpcEventHandle handle, aclrtEvent *event)
-{
-    typedef aclError (*aclIpcOpenEventHandle)(aclrtIpcEventHandle handle, aclrtEvent *event);
-    static aclIpcOpenEventHandle func = nullptr;
-    if (func == nullptr) {
-        func = (aclIpcOpenEventHandle)TORCH_NPU_GET_FUNC(aclrtIpcOpenEventHandle);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclrtIpcOpenEventHandle", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(handle, event);
-}
-
-bool IsSupportIpcEvent(bool ignore_error)
-{
-    static string dbg_msg = "";
-    const static bool is_support = []() -> bool {
-        constexpr long supported_page_size = 4096;
-        long size = sysconf(_SC_PAGE_SIZE);
-        if (size != supported_page_size) {
-            dbg_msg = "IPC Event is not support because IPC event requires page size " +
-                      std::to_string(supported_page_size) +
-                      " but current page size is " + std::to_string(size) +
-                      ", which is not supported by the current HDK(driver).";
-            return false;
-        }
-
-        if (!IsExistCreateEventExWithFlag()) {
-            dbg_msg = "IPC Event is not support because aclrtCreateEventExWithFlag does not exist.";
-            return false;
-        }
-
-        auto func = TORCH_NPU_GET_FUNC(aclrtIpcGetEventHandle);
-        if (func == nullptr) {
-            dbg_msg = "IPC Event is not support because aclrtIpcGetEventHandle does not exist.";
-            return false;
-        }
-
-        c10::DeviceIndex device_index = c10_npu::current_device();
-        c10_npu::LazySetDevice(device_index);
-
-        aclrtEvent npu_event = nullptr;
-        auto ret = c10_npu::acl::AclrtCreateEventWithFlag(&npu_event, ACL_EVENT_IPC);
-        if (ret == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {
-            dbg_msg = "IPC Event is not support because create event with flag ACL_EVENT_IPC failed.";
-            return false;
-        }
-        NPU_CHECK_ERROR(ret);
-        NPU_CHECK_ERROR(aclrtDestroyEvent(npu_event));
-
-        dbg_msg = "IsSupportIpcEvent return true.";
-        return true;
-    }();
-
-    if (!is_support && !ignore_error) {
-        TORCH_CHECK(false, dbg_msg, PTA_ERROR(ErrCode::NOT_SUPPORT));
-    }
-
-    static bool logged = false;
-    if (!logged) {
-        logged = true;
-        ASCEND_LOGD("%s", dbg_msg.c_str());
-    }
-
-    return is_support;
-}
-
-aclError AclProfilingInit(const char *profilerResultPath, size_t length) {
-    ACL_CALL_LOG("aclProfilingInit", "profilerResultPath=" << profilerResultPath << ", length=" << length);
-    typedef aclError (*AclProfInitFunc) (const char *, size_t);
-    static AclProfInitFunc func = nullptr;
-    if (func == nullptr) {
-        func = (AclProfInitFunc)TORCH_NPU_GET_FUNC(aclprofInit);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclprofInit", PROF_ERROR(ErrCode::NOT_FOUND));
-    return func(profilerResultPath, length);
-}
-
-aclError AclProfilingStart(const aclprofConfig *profilerConfig) {
-    ACL_CALL_LOG("aclProfilingStart", "profilerConfig=" << profilerConfig);
-    typedef aclError (*AclProfStartFunc) (const aclprofConfig *);
-    static AclProfStartFunc func = nullptr;
-    if (func == nullptr) {
-        func = (AclProfStartFunc)TORCH_NPU_GET_FUNC(aclprofStart);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclprofStart", PROF_ERROR(ErrCode::NOT_FOUND));
-    return func(profilerConfig);
-}
-
-aclError AclProfilingStop(const aclprofConfig *profilerConfig) {
-    ACL_CALL_LOG("aclProfilingStop", "profilerConfig=" << profilerConfig);
-    typedef aclError (*AclProfStopFunc) (const aclprofConfig*);
-    static AclProfStopFunc func = nullptr;
-    if (func == nullptr) {
-        func = (AclProfStopFunc)TORCH_NPU_GET_FUNC(aclprofStop);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclprofStop", PROF_ERROR(ErrCode::NOT_FOUND));
-    return func(profilerConfig);
-}
-
-aclError AclProfilingFinalize() {
-    typedef aclError (*AclProfFinalizeFunc) ();
-    static AclProfFinalizeFunc func = nullptr;
-    if (func == nullptr) {
-        func = (AclProfFinalizeFunc)TORCH_NPU_GET_FUNC(aclprofFinalize);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclprofFinalize", PROF_ERROR(ErrCode::NOT_FOUND));
-    return func();
-}
-
-aclprofConfig *AclProfilingCreateConfig(
-    uint32_t *deviceIdList,
-    uint32_t deviceNums,
-    aclprofAicoreMetrics aicoreMetrics,
-    aclprofAicoreEvents *aicoreEvents,
-    uint64_t dataTypeConfig) {
-    ACL_CALL_LOG("aclProfilingCreateConfig", "deviceIdList=" << deviceIdList << ", deviceNums=" << deviceNums
-             << ", aicoreMetrics=" << aicoreMetrics << ", aicoreEvents=" << aicoreEvents
-             << ", dataTypeConfig=" << dataTypeConfig);
-    typedef aclprofConfig *(*AclProfCreateConfigFunc) \
-        (uint32_t *, uint32_t, aclprofAicoreMetrics, const aclprofAicoreEvents *, uint64_t);
-    static AclProfCreateConfigFunc func = nullptr;
-    if (func == nullptr) {
-        func = (AclProfCreateConfigFunc)TORCH_NPU_GET_FUNC(aclprofCreateConfig);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclprofCreateConfig", PROF_ERROR(ErrCode::NOT_FOUND));
-    return func(deviceIdList, deviceNums, aicoreMetrics, aicoreEvents, dataTypeConfig);
-}
-
-aclError AclProfilingDestroyConfig(const aclprofConfig *profilerConfig) {
-    ACL_CALL_LOG("aclProfilingDestroyConfig", "profilerConfig=" << profilerConfig);
-    typedef aclError (*AclProfDestroyConfigFunc) (const aclprofConfig *);
-    static AclProfDestroyConfigFunc func = nullptr;
-    if (func == nullptr) {
-        func = (AclProfDestroyConfigFunc)TORCH_NPU_GET_FUNC(aclprofDestroyConfig);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclprofDestroyConfig", PROF_ERROR(ErrCode::NOT_FOUND));
-    return func(profilerConfig);
-}
-
-const char *AclrtGetSocName() {
-    typedef const char *(*aclrtGetSocNameFunc)();
-    static aclrtGetSocNameFunc func = nullptr;
-    if (func == nullptr) {
-        func = (aclrtGetSocNameFunc)TORCH_NPU_GET_FUNC(aclrtGetSocName);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclrtGetSocName", PROF_ERROR(ErrCode::NOT_FOUND));
-    return func();
-}
-
-const char *AclGetSocName() {
-    typedef const char *(*AclGetSoc) ();
-    static AclGetSoc func = nullptr;
-    if (func == nullptr) {
-        func = (AclGetSoc)TORCH_NPU_GET_FUNC(aclrtGetSocName);
-    }
-    if (func == nullptr) {
-        return nullptr;
-    }
-    return func();
-}
-
-aclError AclrtSetDeviceSatMode(aclrtFloatOverflowMode mode) {
-    ACL_CALL_LOG("aclrtSetDeviceSatMode", "mode=" << mode);
-    typedef aclError (*AclrtSetDeviceSatMode)(aclrtFloatOverflowMode mode);
-    static AclrtSetDeviceSatMode func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtSetDeviceSatMode)TORCH_NPU_GET_FUNC(aclrtSetDeviceSatMode);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclrtSetDeviceSatMode", PROF_ERROR(ErrCode::NOT_FOUND));
-    return func(mode);
-}
-
-aclError AclrtSetStreamOverflowSwitch(aclrtStream stream, uint32_t flag) {
-    ACL_CALL_LOG("aclrtSetStreamOverflowSwitch", "stream=" << stream << ", flag=" << flag);
-    typedef aclError (*AclrtSetStreamOverflowSwitch)(aclrtStream, uint32_t);
-    static AclrtSetStreamOverflowSwitch func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtSetStreamOverflowSwitch)TORCH_NPU_GET_FUNC(aclrtSetStreamOverflowSwitch);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclrtSetStreamOverflowSwitch", PROF_ERROR(ErrCode::NOT_FOUND));
-    return func(stream, flag);
-}
-
-aclError AclrtSetOpExecuteTimeOut(uint32_t timeout) {
-    ACL_CALL_LOG("aclrtSetOpExecuteTimeOut", "timeout=" << timeout);
-    typedef aclError (*AclrtSetOpExecuteTimeOutV2)(uint64_t, uint64_t *);
-    static AclrtSetOpExecuteTimeOutV2 funcV2 = nullptr;
-    if (funcV2 == nullptr) {
-        funcV2 = (AclrtSetOpExecuteTimeOutV2)TORCH_NPU_GET_FUNC(aclrtSetOpExecuteTimeOutV2);
-    }
-
-    if (funcV2) {
-        uint64_t value = static_cast<uint64_t>(timeout) * 1000 * 1000;
-        uint64_t actualTimeout = 0;
-        auto ret = funcV2(value, &actualTimeout);
-        ASCEND_LOGI("AclrtSetOpExecuteTimeOutV2 set actual timeout: %zuus", static_cast<size_t>(actualTimeout));
-        return ret;
-    }
-
-    typedef aclError (*AclrtSetOpExecuteTimeOut)(uint32_t);
-    static AclrtSetOpExecuteTimeOut func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtSetOpExecuteTimeOut)TORCH_NPU_GET_FUNC(aclrtSetOpExecuteTimeOut);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclrtSetOpExecuteTimeOut", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(timeout);
-}
-
-aclError AclrtSetOpExecuteTimeOutV2(uint64_t timeout)
-{
-    ACL_CALL_LOG("aclrtSetOpExecuteTimeOutV2", "timeout=" << timeout);
-    typedef aclError (*AclrtSetOpExecuteTimeOutV2)(uint64_t, uint64_t *);
-    static AclrtSetOpExecuteTimeOutV2 func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtSetOpExecuteTimeOutV2)TORCH_NPU_GET_FUNC(aclrtSetOpExecuteTimeOutV2);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclrtSetOpExecuteTimeOutV2", PTA_ERROR(ErrCode::NOT_FOUND));
-    uint64_t actualTimeout = 0;
-    auto ret = func(timeout, &actualTimeout);
-    ASCEND_LOGI("AclrtSetOpExecuteTimeOutV2 set actual timeout: %zuus", static_cast<size_t>(actualTimeout));
-    return ret;
-}
-
-aclError AclrtGetStreamOverflowSwitch(aclrtStream stream, uint32_t *flag) {
-    ACL_CALL_LOG("aclrtGetStreamOverflowSwitch", "stream=" << stream << ", flag=" << flag);
-    typedef aclError (*AclrtGetStreamOverflowSwitch)(aclrtStream, uint32_t*);
-    static AclrtGetStreamOverflowSwitch func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtGetStreamOverflowSwitch)TORCH_NPU_GET_FUNC(aclrtGetStreamOverflowSwitch);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclrtGetStreamOverflowSwitch", PROF_ERROR(ErrCode::NOT_FOUND));
-    return func(stream, flag);
-}
-
-aclError AclrtSynchronizeStreamWithTimeout(aclrtStream stream) {
-    ACL_CALL_LOG("aclrtSynchronizeStreamWithTimeout", "stream=" << stream);
-    if (C10_UNLIKELY(
-        c10_npu::warning_state().get_sync_debug_mode() != SyncDebugMode::L_DISABLED)) {
-        c10_npu::warn_or_error_on_sync();
-    }
+  aclError ret;
+  if (func != nullptr) {
+    ret = func(stream, priority, flag);
+  } else {
+    ret = aclrtCreateStream(stream);
+  }
+  if (ret == ACL_SUCCESS && stream != nullptr) {
 #ifndef BUILD_LIBTORCH
     const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
     if (C10_UNLIKELY(trigger)) {
-        trigger->traceNpuStreamSynchronization(reinterpret_cast<uintptr_t>(stream));
+      trigger->traceNpuStreamCreation(reinterpret_cast<uintptr_t>(*stream));
     }
 #endif
-    typedef aclError (*AclrtSynchronizeStreamWithTimeout)(aclrtStream, int32_t);
-    static AclrtSynchronizeStreamWithTimeout func = (AclrtSynchronizeStreamWithTimeout)TORCH_NPU_GET_FUNC(aclrtSynchronizeStreamWithTimeout);
-    int32_t timeout = c10_npu::option::OptionsManager::GetACLExecTimeout();
-    if (func != nullptr) {
-        return func(stream, timeout);
-    } else {
-        TORCH_NPU_WARN_ONCE(func, "Failed to find function", "aclrtSynchronizeStreamWithTimeout");
-        typedef aclError (*AclrtSynchronizeStream)(aclrtStream);
-        static AclrtSynchronizeStream func_backup = nullptr;
-        if (func_backup == nullptr) {
-            func_backup = (AclrtSynchronizeStream)TORCH_NPU_GET_FUNC(aclrtSynchronizeStream);
-        }
-        TORCH_CHECK(func_backup, "Failed to find function", "aclrtSynchronizeStreamWithTimeout and aclrtSynchronizeStream", PROF_ERROR(ErrCode::NOT_FOUND));
-        return func_backup(stream);
+    static bool forceOverflowCheck = []() -> bool {
+      const char* env = std::getenv("FORCE_OVERFLOW_CHECK");
+      if (env == nullptr || std::strcmp(env, "1") != 0) {
+        return false;
+      }
+      if (!IsGteCANNVersion("9.1.0")) {
+        ASCEND_LOGW(
+            "FORCE_OVERFLOW_CHECK=1 requires CANN >= 9.1.0, current CANN "
+            "version is %s. The env var will be ignored and overflow "
+            "switch will NOT be enabled in inf-nan mode.",
+            GetCANNVersion().c_str());
+        return false;
+      }
+      return true;
+    }();
+    if (!c10_npu::IsSupportInfNan() || forceOverflowCheck) {
+      TORCH_CHECK(
+          AclrtSetStreamOverflowSwitch(*stream, 1) == ACL_SUCCESS,
+          "SET StreamOverflowSwitch Failed.",
+          PROF_ERROR(ErrCode::ACL));
     }
+    const char* mode = std::getenv("TORCHINDUCTOR_NPU_BACKEND");
+    if (mode != nullptr &&
+        (std::strcmp(mode, "mlir") == 0 || std::strcmp(mode, "default") == 0 ||
+         std::strcmp(mode, "triton_experimental") == 0)) {
+      return AclrtSetStreamFailureMode(*stream, ACL_CONTINUE_ON_FAILURE);
+    }
+    return AclrtSetStreamFailureMode(*stream, ACL_STOP_ON_FAILURE);
+  } else {
+    return ret;
+  }
+}
+
+aclError AclrtSetStreamFailureMode(aclrtStream stream, uint64_t mode) {
+  ACL_CALL_LOG("aclrtSetStreamFailureMode", "stream=" << stream << ", mode=" << mode);
+  if (stream == nullptr) { // default stream
+    return ACL_ERROR_INVALID_PARAM;
+  }
+
+  typedef aclError (*aclrtSetStreamFailureModeFunc)(aclrtStream, uint64_t);
+  static aclrtSetStreamFailureModeFunc func =
+      (aclrtSetStreamFailureModeFunc)TORCH_NPU_GET_FUNC(aclrtSetStreamFailureMode);
+  if (func == nullptr) {
+    return ACL_SUCCESS;
+  }
+  return func(stream, mode);
+}
+
+aclError AclrtSetOpWaitTimeout(uint32_t timeout) {
+  ACL_CALL_LOG("aclrtSetOpWaitTimeout", "timeout=" << timeout);
+  typedef aclError (*aclrtSetOpWaitTimeoutFunc)(uint32_t);
+  static aclrtSetOpWaitTimeoutFunc func = nullptr;
+  if (func == nullptr) {
+    func = (aclrtSetOpWaitTimeoutFunc)TORCH_NPU_GET_FUNC(aclrtSetOpWaitTimeout);
+  }
+  TORCH_CHECK(func, "Failed to find function aclrtSetOpWaitTimeout", PROF_ERROR(ErrCode::NOT_FOUND));
+  return func(timeout);
+}
+
+bool IsExistCreateEventExWithFlag() {
+  typedef aclError (*AclrtCreateEventWithFlagFunc)(aclrtEvent*, uint32_t);
+  static AclrtCreateEventWithFlagFunc func =
+      (AclrtCreateEventWithFlagFunc)TORCH_NPU_GET_FUNC(aclrtCreateEventExWithFlag);
+  return func != nullptr;
+}
+
+bool IsExistValueWaitAndWrite() {
+  typedef aclError (*AclrtValueWaitFunc)(void*, uint64_t, uint32_t, aclrtStream);
+  static AclrtValueWaitFunc funcWait = (AclrtValueWaitFunc)TORCH_NPU_GET_FUNC(aclrtValueWait);
+  typedef aclError (*AclrtValueWriteFunc)(void*, uint64_t, uint32_t, aclrtStream);
+  static AclrtValueWriteFunc funcwrite = (AclrtValueWriteFunc)TORCH_NPU_GET_FUNC(aclrtValueWrite);
+  return funcWait != nullptr && funcwrite != nullptr;
+}
+
+aclError AclrtValueWait(void* event, aclrtStream stream) {
+  ACL_CALL_LOG("aclrtValueWait", "event=" << event << ", stream=" << stream);
+  typedef aclError (*AclrtValueWaitFunc)(void*, uint64_t, uint32_t, aclrtStream);
+  static AclrtValueWaitFunc func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtValueWaitFunc)TORCH_NPU_GET_FUNC(aclrtValueWait);
+  }
+  TORCH_CHECK(func, "Failed to find function aclrtValueWait", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(event, 1, ACL_STREAM_WAIT_VALUE_EQ, stream);
+}
+
+aclError AclrtValueWrite(void* event, uint64_t value, aclrtStream stream) {
+  ACL_CALL_LOG("aclrtValueWrite", "event=" << event << ", value=" << value << ", stream=" << stream);
+  typedef aclError (*AclrtValueWriteFunc)(void*, uint64_t, uint32_t, aclrtStream);
+  static AclrtValueWriteFunc func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtValueWriteFunc)TORCH_NPU_GET_FUNC(aclrtValueWrite);
+  }
+  TORCH_CHECK(func, "Failed to find function aclrtValueWrite", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(event, value, 0, stream);
+}
+
+aclError AclrtCreateEventWithFlag(aclrtEvent* event, uint32_t flag) {
+  ACL_CALL_LOG("aclrtCreateEventWithFlag", "event=" << event << ", flag=" << flag);
+  typedef aclError (*AclrtCreateEventWithFlagFunc)(aclrtEvent*, uint32_t);
+  // Recommend aclrtCreateEventExWithFlag.
+  // Differences from aclrtCreateEventWithFlag:
+  //   1. Event can be reused naturally, aclrtResetEvent is not supported.
+  //   2. There is no limit on the number of events.
+  //   3. Only support query event record status, aclrtQueryEvent and
+  //   aclrtQueryEventWaitStatus are not supported.
+  //   4. aclrtDestroyEvent change to asynchronous destroy event.
+  static AclrtCreateEventWithFlagFunc func_ex =
+      (AclrtCreateEventWithFlagFunc)TORCH_NPU_GET_FUNC(aclrtCreateEventExWithFlag);
+  if (func_ex == nullptr) {
+    TORCH_NPU_WARN_ONCE(func_ex, "Failed to find function ", "aclrtCreateEventExWithFlag");
+  }
+  static AclrtCreateEventWithFlagFunc func = (AclrtCreateEventWithFlagFunc)TORCH_NPU_GET_FUNC(aclrtCreateEventWithFlag);
+  TORCH_CHECK(func, "Failed to find function ", "aclrtCreateEventWithFlag", PROF_ERROR(ErrCode::NOT_FOUND));
+  if (flag == ACL_EVENT_EXTERNAL && IsExistValueWaitAndWrite()) {
+    ASCEND_LOGI("External Event: Create the external event via AclrtMallocAlign32");
+    const uint32_t eventMemSize = 32;
+    NPU_CHECK_ERROR(AclrtMallocAlign32(event, eventMemSize, ACL_MEM_MALLOC_NORMAL_ONLY));
+    aclmdlRICaptureMode capture_mode = aclmdlRICaptureMode::ACL_MODEL_RI_CAPTURE_MODE_RELAXED;
+    NPU_CHECK_ERROR(AclmdlRICaptureThreadExchangeMode(&capture_mode));
+    NPU_CHECK_ERROR(AclrtMemSet(*event, eventMemSize, 0, eventMemSize));
+    return AclmdlRICaptureThreadExchangeMode(&capture_mode);
+  }
+  if ((flag == ACL_EVENT_EXTERNAL) || (func_ex == nullptr)) {
+    return func(event, flag);
+  }
+  return func_ex(event, flag);
+}
+
+aclError AclQueryEventWaitStatus(aclrtEvent event, aclrtEventWaitStatus* waitStatus) {
+  ACL_CALL_LOG("aclQueryEventWaitStatus", "event=" << event << ", waitStatus=" << waitStatus);
+  typedef aclError (*aclQueryEventWaitStatus)(aclrtEvent event, aclrtEventWaitStatus* waitStatus);
+  static aclQueryEventWaitStatus func = nullptr;
+  if (func == nullptr) {
+    func = (aclQueryEventWaitStatus)TORCH_NPU_GET_FUNC(aclrtQueryEventWaitStatus);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtQueryEventWaitStatus", PROF_ERROR(ErrCode::NOT_FOUND));
+  return func(event, waitStatus);
+}
+
+aclError AclQueryEventRecordedStatus(aclrtEvent event, aclrtEventRecordedStatus* status) {
+  ACL_CALL_LOG("aclQueryEventRecordedStatus", "event=" << event << ", status=" << status);
+  typedef aclError (*aclQueryEventStatus)(aclrtEvent event, aclrtEventRecordedStatus* status);
+  static aclQueryEventStatus func = nullptr;
+  if (func == nullptr) {
+    func = (aclQueryEventStatus)TORCH_NPU_GET_FUNC(aclrtQueryEventStatus);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtQueryEventStatus", PROF_ERROR(ErrCode::NOT_FOUND));
+  return func(event, status);
+}
+
+bool IsExistQueryEventRecordedStatus() {
+  typedef aclError (*aclQueryEventStatus)(aclrtEvent event, aclrtEventRecordedStatus* status);
+  static aclQueryEventStatus func = nullptr;
+  if (func == nullptr) {
+    func = (aclQueryEventStatus)TORCH_NPU_GET_FUNC(aclrtQueryEventStatus);
+  }
+  if (func != nullptr) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+aclError AclIpcGetEventHandle(aclrtEvent event, aclrtIpcEventHandle* handle) {
+  typedef aclError (*aclIpcGetEventHandle)(aclrtEvent event, aclrtIpcEventHandle* handle);
+  static aclIpcGetEventHandle func = nullptr;
+  if (func == nullptr) {
+    func = (aclIpcGetEventHandle)TORCH_NPU_GET_FUNC(aclrtIpcGetEventHandle);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtIpcGetEventHandle", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(event, handle);
+}
+
+aclError AclIpcOpenEventHandle(aclrtIpcEventHandle handle, aclrtEvent* event) {
+  typedef aclError (*aclIpcOpenEventHandle)(aclrtIpcEventHandle handle, aclrtEvent* event);
+  static aclIpcOpenEventHandle func = nullptr;
+  if (func == nullptr) {
+    func = (aclIpcOpenEventHandle)TORCH_NPU_GET_FUNC(aclrtIpcOpenEventHandle);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtIpcOpenEventHandle", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(handle, event);
+}
+
+bool IsSupportIpcEvent(bool ignore_error) {
+  static string dbg_msg = "";
+  const static bool is_support = []() -> bool {
+    const std::string kMinDriverVersionForNon4KPage = "26.0.RC1";
+    bool skip_page_size_check = IsGteDriverVersion(kMinDriverVersionForNon4KPage);
+
+    // Record page-size context once; appended to later failure/success messages
+    // so the "skipped 4K check" context is not lost when a downstream check
+    // overwrites dbg_msg.
+    if (!skip_page_size_check) {
+      constexpr long supported_page_size = 4096;
+      long size = sysconf(_SC_PAGE_SIZE);
+      if (size != supported_page_size) {
+        dbg_msg = "IPC Event is not support because IPC event requires page size " +
+            std::to_string(supported_page_size) + " but current page size is " + std::to_string(size) +
+            ", which is not supported by the current HDK(driver).";
+        return false;
+      }
+    } else {
+      long size = sysconf(_SC_PAGE_SIZE);
+      ASCEND_LOGD(
+          "skip page size check (driver >= %s, current page size is %ld)", kMinDriverVersionForNon4KPage.c_str(), size);
+    }
+
+    if (!IsExistCreateEventExWithFlag()) {
+      dbg_msg = "IPC Event is not support because aclrtCreateEventExWithFlag does not exist.";
+      return false;
+    }
+
+    auto func = TORCH_NPU_GET_FUNC(aclrtIpcGetEventHandle);
+    if (func == nullptr) {
+      dbg_msg = "IPC Event is not support because aclrtIpcGetEventHandle does not exist.";
+      return false;
+    }
+
+    c10::DeviceIndex device_index = c10_npu::current_device();
+    c10_npu::LazySetDevice(device_index);
+
+    aclrtEvent npu_event = nullptr;
+    auto ret = c10_npu::acl::AclrtCreateEventWithFlag(&npu_event, ACL_EVENT_IPC);
+    if (ret == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {
+      dbg_msg = "IPC Event is not support because create event with flag ACL_EVENT_IPC failed.";
+      return false;
+    }
+    NPU_CHECK_ERROR(ret);
+    NPU_CHECK_ERROR(aclrtDestroyEvent(npu_event));
+
+    dbg_msg = "IsSupportIpcEvent return true.";
+    return true;
+  }();
+
+  if (!is_support && !ignore_error) {
+    TORCH_CHECK(false, dbg_msg, PTA_ERROR(ErrCode::NOT_SUPPORT));
+  }
+
+  static bool logged = false;
+  if (!logged) {
+    logged = true;
+    ASCEND_LOGD("%s", dbg_msg.c_str());
+  }
+
+  return is_support;
+}
+
+aclError AclProfilingInit(const char* profilerResultPath, size_t length) {
+  ACL_CALL_LOG("aclProfilingInit", "profilerResultPath=" << profilerResultPath << ", length=" << length);
+  typedef aclError (*AclProfInitFunc)(const char*, size_t);
+  static AclProfInitFunc func = nullptr;
+  if (func == nullptr) {
+    func = (AclProfInitFunc)TORCH_NPU_GET_FUNC(aclprofInit);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclprofInit", PROF_ERROR(ErrCode::NOT_FOUND));
+  return func(profilerResultPath, length);
+}
+
+aclError AclProfilingStart(const aclprofConfig* profilerConfig) {
+  ACL_CALL_LOG("aclProfilingStart", "profilerConfig=" << profilerConfig);
+  typedef aclError (*AclProfStartFunc)(const aclprofConfig*);
+  static AclProfStartFunc func = nullptr;
+  if (func == nullptr) {
+    func = (AclProfStartFunc)TORCH_NPU_GET_FUNC(aclprofStart);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclprofStart", PROF_ERROR(ErrCode::NOT_FOUND));
+  return func(profilerConfig);
+}
+
+aclError AclProfilingStop(const aclprofConfig* profilerConfig) {
+  ACL_CALL_LOG("aclProfilingStop", "profilerConfig=" << profilerConfig);
+  typedef aclError (*AclProfStopFunc)(const aclprofConfig*);
+  static AclProfStopFunc func = nullptr;
+  if (func == nullptr) {
+    func = (AclProfStopFunc)TORCH_NPU_GET_FUNC(aclprofStop);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclprofStop", PROF_ERROR(ErrCode::NOT_FOUND));
+  return func(profilerConfig);
+}
+
+aclError AclProfilingFinalize() {
+  typedef aclError (*AclProfFinalizeFunc)();
+  static AclProfFinalizeFunc func = nullptr;
+  if (func == nullptr) {
+    func = (AclProfFinalizeFunc)TORCH_NPU_GET_FUNC(aclprofFinalize);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclprofFinalize", PROF_ERROR(ErrCode::NOT_FOUND));
+  return func();
+}
+
+aclprofConfig* AclProfilingCreateConfig(
+    uint32_t* deviceIdList,
+    uint32_t deviceNums,
+    aclprofAicoreMetrics aicoreMetrics,
+    aclprofAicoreEvents* aicoreEvents,
+    uint64_t dataTypeConfig) {
+  ACL_CALL_LOG(
+      "aclProfilingCreateConfig",
+      "deviceIdList=" << deviceIdList << ", deviceNums=" << deviceNums << ", aicoreMetrics=" << aicoreMetrics
+                      << ", aicoreEvents=" << aicoreEvents << ", dataTypeConfig=" << dataTypeConfig);
+  typedef aclprofConfig* (*AclProfCreateConfigFunc)(
+      uint32_t*, uint32_t, aclprofAicoreMetrics, const aclprofAicoreEvents*, uint64_t);
+  static AclProfCreateConfigFunc func = nullptr;
+  if (func == nullptr) {
+    func = (AclProfCreateConfigFunc)TORCH_NPU_GET_FUNC(aclprofCreateConfig);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclprofCreateConfig", PROF_ERROR(ErrCode::NOT_FOUND));
+  return func(deviceIdList, deviceNums, aicoreMetrics, aicoreEvents, dataTypeConfig);
+}
+
+aclError AclProfilingDestroyConfig(const aclprofConfig* profilerConfig) {
+  ACL_CALL_LOG("aclProfilingDestroyConfig", "profilerConfig=" << profilerConfig);
+  typedef aclError (*AclProfDestroyConfigFunc)(const aclprofConfig*);
+  static AclProfDestroyConfigFunc func = nullptr;
+  if (func == nullptr) {
+    func = (AclProfDestroyConfigFunc)TORCH_NPU_GET_FUNC(aclprofDestroyConfig);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclprofDestroyConfig", PROF_ERROR(ErrCode::NOT_FOUND));
+  return func(profilerConfig);
+}
+
+const char* AclrtGetSocName() {
+  typedef const char* (*aclrtGetSocNameFunc)();
+  static aclrtGetSocNameFunc func = nullptr;
+  if (func == nullptr) {
+    func = (aclrtGetSocNameFunc)TORCH_NPU_GET_FUNC(aclrtGetSocName);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtGetSocName", PROF_ERROR(ErrCode::NOT_FOUND));
+  return func();
+}
+
+const char* AclGetSocName() {
+  typedef const char* (*AclGetSoc)();
+  static AclGetSoc func = nullptr;
+  if (func == nullptr) {
+    func = (AclGetSoc)TORCH_NPU_GET_FUNC(aclrtGetSocName);
+  }
+  if (func == nullptr) {
+    return nullptr;
+  }
+  return func();
+}
+
+aclError AclrtSetDeviceSatMode(aclrtFloatOverflowMode mode) {
+  ACL_CALL_LOG("aclrtSetDeviceSatMode", "mode=" << mode);
+  typedef aclError (*AclrtSetDeviceSatMode)(aclrtFloatOverflowMode mode);
+  static AclrtSetDeviceSatMode func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtSetDeviceSatMode)TORCH_NPU_GET_FUNC(aclrtSetDeviceSatMode);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtSetDeviceSatMode", PROF_ERROR(ErrCode::NOT_FOUND));
+  return func(mode);
+}
+
+aclError AclrtSetStreamOverflowSwitch(aclrtStream stream, uint32_t flag) {
+  ACL_CALL_LOG("aclrtSetStreamOverflowSwitch", "stream=" << stream << ", flag=" << flag);
+  typedef aclError (*AclrtSetStreamOverflowSwitch)(aclrtStream, uint32_t);
+  static AclrtSetStreamOverflowSwitch func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtSetStreamOverflowSwitch)TORCH_NPU_GET_FUNC(aclrtSetStreamOverflowSwitch);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtSetStreamOverflowSwitch", PROF_ERROR(ErrCode::NOT_FOUND));
+  return func(stream, flag);
+}
+
+aclError AclrtSetOpExecuteTimeOut(uint32_t timeout) {
+  ACL_CALL_LOG("aclrtSetOpExecuteTimeOut", "timeout=" << timeout);
+  typedef aclError (*AclrtSetOpExecuteTimeOutV2)(uint64_t, uint64_t*);
+  static AclrtSetOpExecuteTimeOutV2 funcV2 = nullptr;
+  if (funcV2 == nullptr) {
+    funcV2 = (AclrtSetOpExecuteTimeOutV2)TORCH_NPU_GET_FUNC(aclrtSetOpExecuteTimeOutV2);
+  }
+
+  if (funcV2) {
+    uint64_t value = static_cast<uint64_t>(timeout) * 1000 * 1000;
+    uint64_t actualTimeout = 0;
+    auto ret = funcV2(value, &actualTimeout);
+    ASCEND_LOGI("AclrtSetOpExecuteTimeOutV2 set actual timeout: %zuus", static_cast<size_t>(actualTimeout));
+    return ret;
+  }
+
+  typedef aclError (*AclrtSetOpExecuteTimeOut)(uint32_t);
+  static AclrtSetOpExecuteTimeOut func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtSetOpExecuteTimeOut)TORCH_NPU_GET_FUNC(aclrtSetOpExecuteTimeOut);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtSetOpExecuteTimeOut", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(timeout);
+}
+
+aclError AclrtSetOpExecuteTimeOutV2(uint64_t timeout) {
+  ACL_CALL_LOG("aclrtSetOpExecuteTimeOutV2", "timeout=" << timeout);
+  typedef aclError (*AclrtSetOpExecuteTimeOutV2)(uint64_t, uint64_t*);
+  static AclrtSetOpExecuteTimeOutV2 func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtSetOpExecuteTimeOutV2)TORCH_NPU_GET_FUNC(aclrtSetOpExecuteTimeOutV2);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtSetOpExecuteTimeOutV2", PTA_ERROR(ErrCode::NOT_FOUND));
+  uint64_t actualTimeout = 0;
+  auto ret = func(timeout, &actualTimeout);
+  ASCEND_LOGI("AclrtSetOpExecuteTimeOutV2 set actual timeout: %zuus", static_cast<size_t>(actualTimeout));
+  return ret;
+}
+
+aclError AclrtGetStreamOverflowSwitch(aclrtStream stream, uint32_t* flag) {
+  ACL_CALL_LOG("aclrtGetStreamOverflowSwitch", "stream=" << stream << ", flag=" << flag);
+  typedef aclError (*AclrtGetStreamOverflowSwitch)(aclrtStream, uint32_t*);
+  static AclrtGetStreamOverflowSwitch func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtGetStreamOverflowSwitch)TORCH_NPU_GET_FUNC(aclrtGetStreamOverflowSwitch);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtGetStreamOverflowSwitch", PROF_ERROR(ErrCode::NOT_FOUND));
+  return func(stream, flag);
+}
+
+aclError AclrtSynchronizeStreamWithTimeout(aclrtStream stream) {
+  ACL_CALL_LOG("aclrtSynchronizeStreamWithTimeout", "stream=" << stream);
+  if (C10_UNLIKELY(c10_npu::warning_state().get_sync_debug_mode() != SyncDebugMode::L_DISABLED)) {
+    c10_npu::warn_or_error_on_sync();
+  }
+#ifndef BUILD_LIBTORCH
+  const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+  if (C10_UNLIKELY(trigger)) {
+    trigger->traceNpuStreamSynchronization(reinterpret_cast<uintptr_t>(stream));
+  }
+#endif
+  typedef aclError (*AclrtSynchronizeStreamWithTimeout)(aclrtStream, int32_t);
+  static AclrtSynchronizeStreamWithTimeout func =
+      (AclrtSynchronizeStreamWithTimeout)TORCH_NPU_GET_FUNC(aclrtSynchronizeStreamWithTimeout);
+  int32_t timeout = c10_npu::option::OptionsManager::GetACLExecTimeout();
+  if (func != nullptr) {
+    return func(stream, timeout);
+  } else {
+    TORCH_NPU_WARN_ONCE(func, "Failed to find function", "aclrtSynchronizeStreamWithTimeout");
+    typedef aclError (*AclrtSynchronizeStream)(aclrtStream);
+    static AclrtSynchronizeStream func_backup = nullptr;
+    if (func_backup == nullptr) {
+      func_backup = (AclrtSynchronizeStream)TORCH_NPU_GET_FUNC(aclrtSynchronizeStream);
+    }
+    TORCH_CHECK(
+        func_backup,
+        "Failed to find function",
+        "aclrtSynchronizeStreamWithTimeout and aclrtSynchronizeStream",
+        PROF_ERROR(ErrCode::NOT_FOUND));
+    return func_backup(stream);
+  }
 }
 
 aclError AclrtDestroyStreamForce(aclrtStream stream) {
-    ACL_CALL_LOG("aclrtDestroyStreamForce", "stream=" << stream);
-    typedef aclError (*AclrtDestroyStreamForce)(aclrtStream);
-    static AclrtDestroyStreamForce func = (AclrtDestroyStreamForce)TORCH_NPU_GET_FUNC(aclrtDestroyStreamForce);
-    if (func != nullptr) {
-        return func(stream);
-    }
-    TORCH_NPU_WARN_ONCE(func, "Failed to find function ", "aclrtDestroyStreamForce");
-    return aclrtDestroyStream(stream);
+  ACL_CALL_LOG("aclrtDestroyStreamForce", "stream=" << stream);
+  typedef aclError (*AclrtDestroyStreamForce)(aclrtStream);
+  static AclrtDestroyStreamForce func = (AclrtDestroyStreamForce)TORCH_NPU_GET_FUNC(aclrtDestroyStreamForce);
+  if (func != nullptr) {
+    return func(stream);
+  }
+  TORCH_NPU_WARN_ONCE(func, "Failed to find function ", "aclrtDestroyStreamForce");
+  return aclrtDestroyStream(stream);
 }
 
-aclError AclrtGetDeviceUtilizationRate(int32_t deviceId, aclrtUtilizationInfo *utilizationInfo) {
-    ACL_CALL_LOG("aclrtGetDeviceUtilizationRate", "deviceId=" << deviceId << ", utilizationInfo=" << utilizationInfo);
-    typedef aclError (*AclrtGetDeviceUtilizationRate)(int32_t, aclrtUtilizationInfo*);
-    static AclrtGetDeviceUtilizationRate func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtGetDeviceUtilizationRate)TORCH_NPU_GET_FUNC(aclrtGetDeviceUtilizationRate);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclrtGetDeviceUtilizationRate", PROF_ERROR(ErrCode::NOT_FOUND));
-    return func(deviceId, utilizationInfo);
+aclError AclrtGetDeviceUtilizationRate(int32_t deviceId, aclrtUtilizationInfo* utilizationInfo) {
+  ACL_CALL_LOG("aclrtGetDeviceUtilizationRate", "deviceId=" << deviceId << ", utilizationInfo=" << utilizationInfo);
+  typedef aclError (*AclrtGetDeviceUtilizationRate)(int32_t, aclrtUtilizationInfo*);
+  static AclrtGetDeviceUtilizationRate func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtGetDeviceUtilizationRate)TORCH_NPU_GET_FUNC(aclrtGetDeviceUtilizationRate);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtGetDeviceUtilizationRate", PROF_ERROR(ErrCode::NOT_FOUND));
+  return func(deviceId, utilizationInfo);
 }
 
-aclError AclrtMallocAlign32(void **devPtr, size_t size, aclrtMemMallocPolicy policy) {
-    ACL_CALL_LOG("aclrtMallocAlign32", "devPtr=" << devPtr << ", size=" << size
-             << ", policy=" << policy);
-    typedef aclError (*AclrtMallocAlign32)(void**, size_t, aclrtMemMallocPolicy);
-    static AclrtMallocAlign32 func = (AclrtMallocAlign32)TORCH_NPU_GET_FUNC(aclrtMallocAlign32);
-    aclError ret;
+aclError AclrtMallocAlign32(void** devPtr, size_t size, aclrtMemMallocPolicy policy) {
+  ACL_CALL_LOG("aclrtMallocAlign32", "devPtr=" << devPtr << ", size=" << size << ", policy=" << policy);
+  typedef aclError (*AclrtMallocAlign32)(void**, size_t, aclrtMemMallocPolicy);
+  static AclrtMallocAlign32 func = (AclrtMallocAlign32)TORCH_NPU_GET_FUNC(aclrtMallocAlign32);
+  aclError ret;
+  if (func != nullptr) {
+    ret = func(devPtr, size, policy);
+  } else {
+    TORCH_NPU_WARN_ONCE(func, "Failed to find function ", "aclrtMallocAlign32");
+    ret = aclrtMalloc(devPtr, size, policy);
+  }
+
+  if (ret != ACL_RT_SUCCESS && (policy == aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE1G_ONLY)) {
+    TORCH_NPU_WARN_ONCE(
+        "The malloc 1G large-page physical memory failed, so malloc 2M page memory."
+        "Using the 2M memory page may result in performance degradation. "
+        "This warning occurs because the PYTORCH_NPU_ALLOC_CONF = page_size:1g configuration is "
+        "enabled, but the pre-allocated number of 1G large pages is insufficient or 1G large-page "
+        "memory pre-allocation is not enabled.");
+    policy = aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST;
     if (func != nullptr) {
-        ret = func(devPtr, size, policy);
+      ret = func(devPtr, size, policy);
     } else {
-        TORCH_NPU_WARN_ONCE(func, "Failed to find function ", "aclrtMallocAlign32");
-        ret = aclrtMalloc(devPtr, size, policy);
+      TORCH_NPU_WARN_ONCE(func, "Failed to find function ", "aclrtMallocAlign32");
+      ret = aclrtMalloc(devPtr, size, policy);
     }
-
-    if (ret != ACL_RT_SUCCESS && (policy == aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE1G_ONLY)) {
-        TORCH_NPU_WARN_ONCE("The malloc 1G large-page physical memory failed, so malloc 2M page memory."
-                            "Using the 2M memory page may result in performance degradation. "
-                            "This warning occurs because the PYTORCH_NPU_ALLOC_CONF = page_size:1g configuration is "
-                            "enabled, but the pre-allocated number of 1G large pages is insufficient or 1G large-page "
-                            "memory pre-allocation is not enabled.");
-        policy = aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST;
-        if (func != nullptr) {
-            ret = func(devPtr, size, policy);
-        } else {
-            TORCH_NPU_WARN_ONCE(func, "Failed to find function ", "aclrtMallocAlign32");
-            ret = aclrtMalloc(devPtr, size, policy);
-        }
-    }
-    return ret;
+  }
+  return ret;
 }
 
-aclError AclrtStreamQuery(aclrtStream stream, aclrtStreamStatus *status) {
-    ACL_CALL_LOG("aclrtStreamQuery", "stream=" << stream << ", status=" << status);
-    typedef aclError (*AclrtStreamQuery)(aclrtStream, aclrtStreamStatus*);
-    static AclrtStreamQuery func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtStreamQuery)TORCH_NPU_GET_FUNC(aclrtStreamQuery);
-    }
-    TORCH_CHECK(func, "Failed to find function aclrtStreamQuery, Please upgrade CANN version.", PROF_ERROR(ErrCode::NOT_FOUND));
-    return func(stream, status);
+aclError AclrtStreamQuery(aclrtStream stream, aclrtStreamStatus* status) {
+  ACL_CALL_LOG("aclrtStreamQuery", "stream=" << stream << ", status=" << status);
+  typedef aclError (*AclrtStreamQuery)(aclrtStream, aclrtStreamStatus*);
+  static AclrtStreamQuery func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtStreamQuery)TORCH_NPU_GET_FUNC(aclrtStreamQuery);
+  }
+  TORCH_CHECK(
+      func, "Failed to find function aclrtStreamQuery, Please upgrade CANN version.", PROF_ERROR(ErrCode::NOT_FOUND));
+  return func(stream, status);
 }
 
 bool can_device_access_peer(c10::DeviceIndex device_id, c10::DeviceIndex peer_device_id) {
-    int32_t can_access_peer = 0;
-    c10::DeviceIndex num_npus = c10_npu::device_count();
-    TORCH_CHECK(device_id >= 0 && device_id < num_npus, PROF_ERROR(ErrCode::VALUE));
-    TORCH_CHECK(peer_device_id >= 0 && peer_device_id < num_npus, PROF_ERROR(ErrCode::VALUE));
-    // To maintain consistency with cuda, returns false when deviceid and peerdeviceid are equal.
-    if (device_id == peer_device_id) {
-        return false;
-    }
-    typedef aclError (*AclrtDeviceCanAccessPeer)(int32_t*, int32_t, int32_t);
-    static AclrtDeviceCanAccessPeer func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtDeviceCanAccessPeer)TORCH_NPU_GET_FUNC(aclrtDeviceCanAccessPeer);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclrtDeviceCanAccessPeer", PROF_ERROR(ErrCode::NOT_FOUND));
-    NPU_CHECK_ERROR(func(&can_access_peer, device_id, peer_device_id), "aclrtDeviceCanAccessPeer");
-    return can_access_peer != 0;
+  int32_t can_access_peer = 0;
+  c10::DeviceIndex num_npus = c10_npu::device_count();
+  TORCH_CHECK(device_id >= 0 && device_id < num_npus, PROF_ERROR(ErrCode::VALUE));
+  TORCH_CHECK(peer_device_id >= 0 && peer_device_id < num_npus, PROF_ERROR(ErrCode::VALUE));
+  // To maintain consistency with cuda, returns false when deviceid and
+  // peerdeviceid are equal.
+  if (device_id == peer_device_id) {
+    return false;
+  }
+  typedef aclError (*AclrtDeviceCanAccessPeer)(int32_t*, int32_t, int32_t);
+  static AclrtDeviceCanAccessPeer func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtDeviceCanAccessPeer)TORCH_NPU_GET_FUNC(aclrtDeviceCanAccessPeer);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtDeviceCanAccessPeer", PROF_ERROR(ErrCode::NOT_FOUND));
+  NPU_CHECK_ERROR(func(&can_access_peer, device_id, peer_device_id), "aclrtDeviceCanAccessPeer");
+  return can_access_peer != 0;
 }
 
-aclError AclrtReserveMemAddress(void **virPtr, size_t size, size_t alignment, void *expectPtr, uint64_t flags,
-                                HcclComm hcclComm)
-{
-    ACL_CALL_LOG("aclrtReserveMemAddress", "virPtr=" << virPtr << ", size=" << size
-             << ", alignment=" << alignment << ", expectPtr=" << expectPtr
-             << ", flags=" << flags << ", hcclComm=" << hcclComm);
-    typedef aclError (*AclrtReserveMemAddress)(void**, size_t, size_t, void*, uint64_t);
-    static AclrtReserveMemAddress func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtReserveMemAddress)TORCH_NPU_GET_FUNC(aclrtReserveMemAddress);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclrtReserveMemAddress", PTA_ERROR(ErrCode::NOT_FOUND));
-    auto ret = func(virPtr, size, alignment, expectPtr, flags);
-    if (hcclComm) {
-        HCCL_CHECK_ERROR(at_npu::hccl::HcclCommSetMemoryRangeFace(hcclComm, &virPtr, size, alignment, flags));
-    }
-    return ret;
+aclError AclrtReserveMemAddress(
+    void** virPtr,
+    size_t size,
+    size_t alignment,
+    void* expectPtr,
+    uint64_t flags,
+    HcclComm hcclComm) {
+  ACL_CALL_LOG(
+      "aclrtReserveMemAddress",
+      "virPtr=" << virPtr << ", size=" << size << ", alignment=" << alignment << ", expectPtr=" << expectPtr
+                << ", flags=" << flags << ", hcclComm=" << hcclComm);
+  typedef aclError (*AclrtReserveMemAddress)(void**, size_t, size_t, void*, uint64_t);
+  static AclrtReserveMemAddress func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtReserveMemAddress)TORCH_NPU_GET_FUNC(aclrtReserveMemAddress);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtReserveMemAddress", PTA_ERROR(ErrCode::NOT_FOUND));
+  auto ret = func(virPtr, size, alignment, expectPtr, flags);
+  if (hcclComm) {
+    HCCL_CHECK_ERROR(at_npu::hccl::HcclCommSetMemoryRangeFace(hcclComm, &virPtr, size, alignment, flags));
+  }
+  return ret;
 }
 
-aclError AclrtReleaseMemAddress(void *virPtr, HcclComm hcclComm)
-{
-    ACL_CALL_LOG("aclrtReleaseMemAddress", "virPtr=" << virPtr << ", hcclComm=" << hcclComm);
-    typedef aclError (*AclrtReleaseMemAddress)(void*);
-    static AclrtReleaseMemAddress func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtReleaseMemAddress)TORCH_NPU_GET_FUNC(aclrtReleaseMemAddress);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclrtReleaseMemAddress", PTA_ERROR(ErrCode::NOT_FOUND));
-    auto ret = func(virPtr);
-    if (hcclComm) {
-        HCCL_CHECK_ERROR(at_npu::hccl::HcclCommUnsetMemoryRangeFace(hcclComm, virPtr));
-    }
-    return ret;
+aclError AclrtReleaseMemAddress(void* virPtr, HcclComm hcclComm) {
+  ACL_CALL_LOG("aclrtReleaseMemAddress", "virPtr=" << virPtr << ", hcclComm=" << hcclComm);
+  typedef aclError (*AclrtReleaseMemAddress)(void*);
+  static AclrtReleaseMemAddress func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtReleaseMemAddress)TORCH_NPU_GET_FUNC(aclrtReleaseMemAddress);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtReleaseMemAddress", PTA_ERROR(ErrCode::NOT_FOUND));
+  auto ret = func(virPtr);
+  if (hcclComm) {
+    HCCL_CHECK_ERROR(at_npu::hccl::HcclCommUnsetMemoryRangeFace(hcclComm, virPtr));
+  }
+  return ret;
 }
 
-aclError AclrtMallocPhysical(aclrtDrvMemHandle *handle, size_t size, const aclrtPhysicalMemProp *prop,
-    uint64_t flags) {
-    ACL_CALL_LOG("aclrtMallocPhysical", "handle=" << handle << ", size=" << size
-             << ", prop=" << prop << ", flags=" << flags);
-    typedef aclError (*AclrtMallocPhysical)(aclrtDrvMemHandle*, size_t, const aclrtPhysicalMemProp*, uint64_t);
-    static AclrtMallocPhysical func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtMallocPhysical)TORCH_NPU_GET_FUNC(aclrtMallocPhysical);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclrtMallocPhysical", PROF_ERROR(ErrCode::NOT_FOUND));
-    aclError ret = func(handle, size, prop, flags);
-    if (ret != ACL_RT_SUCCESS && (prop->memAttr == ACL_HBM_MEM_HUGE1G)) {
-        TORCH_NPU_WARN_ONCE("The malloc 1G large-page physical memory failed, so malloc 2M page memory."
-                            "Using the 2M memory page may result in performance degradation. "
-                            "This warning occurs because the PYTORCH_NPU_ALLOC_CONF = page_size:1g configuration "
-                            "is enabled, but the pre-allocated number of 1G large pages is insufficient "
-                            "or 1G large-page memory pre-allocation is not enabled.");
-        aclrtPhysicalMemProp prop_update = {prop->handleType,
-                                            prop->allocationType,
-                                            ACL_HBM_MEM_HUGE,
-                                            {prop->location.id,
-                                             prop->location.type},
-                                            prop->reserve};
-        ret = func(handle, size, &prop_update, flags);
-    }
-    return ret;
+aclError AclrtMallocPhysical(aclrtDrvMemHandle* handle, size_t size, const aclrtPhysicalMemProp* prop, uint64_t flags) {
+  ACL_CALL_LOG(
+      "aclrtMallocPhysical", "handle=" << handle << ", size=" << size << ", prop=" << prop << ", flags=" << flags);
+  typedef aclError (*AclrtMallocPhysical)(aclrtDrvMemHandle*, size_t, const aclrtPhysicalMemProp*, uint64_t);
+  static AclrtMallocPhysical func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtMallocPhysical)TORCH_NPU_GET_FUNC(aclrtMallocPhysical);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtMallocPhysical", PROF_ERROR(ErrCode::NOT_FOUND));
+  aclError ret = func(handle, size, prop, flags);
+  if (ret != ACL_RT_SUCCESS && (prop->memAttr == ACL_HBM_MEM_HUGE1G)) {
+    TORCH_NPU_WARN_ONCE(
+        "The malloc 1G large-page physical memory failed, so malloc 2M page memory."
+        "Using the 2M memory page may result in performance degradation. "
+        "This warning occurs because the PYTORCH_NPU_ALLOC_CONF = page_size:1g configuration "
+        "is enabled, but the pre-allocated number of 1G large pages is insufficient "
+        "or 1G large-page memory pre-allocation is not enabled.");
+    aclrtPhysicalMemProp prop_update = {
+        prop->handleType,
+        prop->allocationType,
+        ACL_HBM_MEM_HUGE,
+        {prop->location.id, prop->location.type},
+        prop->reserve};
+    ret = func(handle, size, &prop_update, flags);
+  }
+  return ret;
 }
 
 aclError AclrtFreePhysical(aclrtDrvMemHandle handle) {
-    ACL_CALL_LOG("aclrtFreePhysical", "handle=" << handle);
-    typedef aclError (*AclrtFreePhysical)(aclrtDrvMemHandle);
-    static AclrtFreePhysical func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtFreePhysical)TORCH_NPU_GET_FUNC(aclrtFreePhysical);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclrtFreePhysical", PROF_ERROR(ErrCode::NOT_FOUND));
-    return func(handle);
+  ACL_CALL_LOG("aclrtFreePhysical", "handle=" << handle);
+  typedef aclError (*AclrtFreePhysical)(aclrtDrvMemHandle);
+  static AclrtFreePhysical func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtFreePhysical)TORCH_NPU_GET_FUNC(aclrtFreePhysical);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtFreePhysical", PROF_ERROR(ErrCode::NOT_FOUND));
+  return func(handle);
 }
 
-aclError AclrtMapMem(void *virPtr, size_t size, size_t offset, aclrtDrvMemHandle handle, uint64_t flags,
-                     HcclComm hcclComm)
-{
-    ACL_CALL_LOG("aclrtMapMem", "virPtr=" << virPtr << ", size=" << size << ", offset=" << offset
-             << ", handle=" << handle << ", flags=" << flags << ", hcclComm=" << hcclComm);
-    typedef aclError (*AclrtMapMem)(void*, size_t, size_t, aclrtDrvMemHandle, uint64_t);
-    static AclrtMapMem func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtMapMem)TORCH_NPU_GET_FUNC(aclrtMapMem);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclrtMapMem", PTA_ERROR(ErrCode::NOT_FOUND));
-    auto ret = func(virPtr, size, offset, handle, flags);
-    if (hcclComm) {
-        HCCL_CHECK_ERROR(at_npu::hccl::HcclCommActivateCommMemoryFace(hcclComm, virPtr, size, offset, handle, flags));
-    }
-    return ret;
+aclError AclrtMapMem(
+    void* virPtr,
+    size_t size,
+    size_t offset,
+    aclrtDrvMemHandle handle,
+    uint64_t flags,
+    HcclComm hcclComm) {
+  ACL_CALL_LOG(
+      "aclrtMapMem",
+      "virPtr=" << virPtr << ", size=" << size << ", offset=" << offset << ", handle=" << handle << ", flags=" << flags
+                << ", hcclComm=" << hcclComm);
+  typedef aclError (*AclrtMapMem)(void*, size_t, size_t, aclrtDrvMemHandle, uint64_t);
+  static AclrtMapMem func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtMapMem)TORCH_NPU_GET_FUNC(aclrtMapMem);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtMapMem", PTA_ERROR(ErrCode::NOT_FOUND));
+  auto ret = func(virPtr, size, offset, handle, flags);
+  if (hcclComm) {
+    HCCL_CHECK_ERROR(at_npu::hccl::HcclCommActivateCommMemoryFace(hcclComm, virPtr, size, offset, handle, flags));
+  }
+  return ret;
 }
 
-aclError AclrtUnmapMem(void *virPtr, HcclComm hcclComm)
-{
-    ACL_CALL_LOG("aclrtUnmapMem", "virPtr=" << virPtr << ", hcclComm=" << hcclComm);
-    typedef aclError (*AclrtUnmapMem)(void*);
-    static AclrtUnmapMem func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtUnmapMem)TORCH_NPU_GET_FUNC(aclrtUnmapMem);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclrtUnmapMem", PTA_ERROR(ErrCode::NOT_FOUND));
-    auto ret = func(virPtr);
-    if (hcclComm) {
-        HCCL_CHECK_ERROR(at_npu::hccl::HcclCommDeactivateCommMemoryFace(hcclComm, virPtr));
-    }
-    return ret;
+aclError AclrtUnmapMem(void* virPtr, HcclComm hcclComm) {
+  ACL_CALL_LOG("aclrtUnmapMem", "virPtr=" << virPtr << ", hcclComm=" << hcclComm);
+  typedef aclError (*AclrtUnmapMem)(void*);
+  static AclrtUnmapMem func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtUnmapMem)TORCH_NPU_GET_FUNC(aclrtUnmapMem);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtUnmapMem", PTA_ERROR(ErrCode::NOT_FOUND));
+  auto ret = func(virPtr);
+  if (hcclComm) {
+    HCCL_CHECK_ERROR(at_npu::hccl::HcclCommDeactivateCommMemoryFace(hcclComm, virPtr));
+  }
+  return ret;
 }
 
-bool IsExistGetCannAttribute()
-{
-    typedef aclError (*AclGetCannAttribute)(aclCannAttr, int32_t *);
-    static AclGetCannAttribute func = (AclGetCannAttribute) TORCH_NPU_GET_FUNC(aclGetCannAttribute);
-    return func != nullptr;
+bool IsExistGetCannAttribute() {
+  typedef aclError (*AclGetCannAttribute)(aclCannAttr, int32_t*);
+  static AclGetCannAttribute func = (AclGetCannAttribute)TORCH_NPU_GET_FUNC(aclGetCannAttribute);
+  return func != nullptr;
 }
 
-aclError AclGetCannAttributeList(const aclCannAttr **cannAttrList, size_t *num)
-{
-    ACL_CALL_LOG("aclGetCannAttributeList", "cannAttrList=" << cannAttrList << ", num=" << num);
-    typedef aclError (*AclGetCannAttributeList)(const aclCannAttr **, size_t *);
-    static AclGetCannAttributeList func = nullptr;
-    if (func == nullptr) {
-        func = (AclGetCannAttributeList) TORCH_NPU_GET_FUNC(aclGetCannAttributeList);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclGetCannAttributeList", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(cannAttrList, num);
+aclError AclGetCannAttributeList(const aclCannAttr** cannAttrList, size_t* num) {
+  ACL_CALL_LOG("aclGetCannAttributeList", "cannAttrList=" << cannAttrList << ", num=" << num);
+  typedef aclError (*AclGetCannAttributeList)(const aclCannAttr**, size_t*);
+  static AclGetCannAttributeList func = nullptr;
+  if (func == nullptr) {
+    func = (AclGetCannAttributeList)TORCH_NPU_GET_FUNC(aclGetCannAttributeList);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclGetCannAttributeList", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(cannAttrList, num);
 }
 
-aclError AclGetCannAttribute(aclCannAttr cannAttr, int32_t *value)
-{
-    ACL_CALL_LOG("aclGetCannAttribute", "cannAttr=" << cannAttr << ", value=" << value);
-    typedef aclError (*AclGetCannAttribute)(aclCannAttr, int32_t *);
-    static AclGetCannAttribute func = nullptr;
-    if (func == nullptr) {
-        func = (AclGetCannAttribute) TORCH_NPU_GET_FUNC(aclGetCannAttribute);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclGetCannAttribute", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(cannAttr, value);
+aclError AclGetCannAttribute(aclCannAttr cannAttr, int32_t* value) {
+  ACL_CALL_LOG("aclGetCannAttribute", "cannAttr=" << cannAttr << ", value=" << value);
+  typedef aclError (*AclGetCannAttribute)(aclCannAttr, int32_t*);
+  static AclGetCannAttribute func = nullptr;
+  if (func == nullptr) {
+    func = (AclGetCannAttribute)TORCH_NPU_GET_FUNC(aclGetCannAttribute);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclGetCannAttribute", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(cannAttr, value);
 }
 
-aclError AclGetDeviceCapability(uint32_t deviceId, aclDeviceInfo deviceInfo, int64_t *value)
-{
-    ACL_CALL_LOG("aclGetDeviceCapability", "deviceId=" << deviceId << ", deviceInfo=" << deviceInfo
-             << ", value=" << value);
-    typedef aclError (*AclGetDeviceCapability)(uint32_t, aclDeviceInfo, int64_t *);
-    static AclGetDeviceCapability func = nullptr;
-    if (func == nullptr) {
-        func = (AclGetDeviceCapability) TORCH_NPU_GET_FUNC(aclGetDeviceCapability);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclGetDeviceCapability", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(deviceId, deviceInfo, value);
+aclError AclGetDeviceCapability(uint32_t deviceId, aclDeviceInfo deviceInfo, int64_t* value) {
+  ACL_CALL_LOG(
+      "aclGetDeviceCapability", "deviceId=" << deviceId << ", deviceInfo=" << deviceInfo << ", value=" << value);
+  typedef aclError (*AclGetDeviceCapability)(uint32_t, aclDeviceInfo, int64_t*);
+  static AclGetDeviceCapability func = nullptr;
+  if (func == nullptr) {
+    func = (AclGetDeviceCapability)TORCH_NPU_GET_FUNC(aclGetDeviceCapability);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclGetDeviceCapability", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(deviceId, deviceInfo, value);
 }
 
-aclError AclrtGetMemUceInfo(int32_t deviceId, aclrtMemUceInfo* memUceInfoArray, size_t arraySize, size_t *retSize)
-{
-    ACL_CALL_LOG("aclrtGetMemUceInfo", "deviceId=" << deviceId << ", memUceInfoArray=" << memUceInfoArray
-             << ", arraySize=" << arraySize << ", retSize=" << retSize);
-    typedef aclError (*AclrtGetMemUceInfo)(int32_t, aclrtMemUceInfo*, size_t, size_t *);
-    static AclrtGetMemUceInfo func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtGetMemUceInfo) TORCH_NPU_GET_FUNC(aclrtGetMemUceInfo);
-    }
-    if (func == nullptr) {
-        TORCH_NPU_WARN_ONCE(func, "Failed to find function ", "aclrtGetMemUceInfo");
-        return ACL_ERROR_NONE;
-    }
-    return func(deviceId, memUceInfoArray, arraySize, retSize);
+aclError AclrtGetMemUceInfo(int32_t deviceId, aclrtMemUceInfo* memUceInfoArray, size_t arraySize, size_t* retSize) {
+  ACL_CALL_LOG(
+      "aclrtGetMemUceInfo",
+      "deviceId=" << deviceId << ", memUceInfoArray=" << memUceInfoArray << ", arraySize=" << arraySize
+                  << ", retSize=" << retSize);
+  typedef aclError (*AclrtGetMemUceInfo)(int32_t, aclrtMemUceInfo*, size_t, size_t*);
+  static AclrtGetMemUceInfo func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtGetMemUceInfo)TORCH_NPU_GET_FUNC(aclrtGetMemUceInfo);
+  }
+  if (func == nullptr) {
+    TORCH_NPU_WARN_ONCE(func, "Failed to find function ", "aclrtGetMemUceInfo");
+    return ACL_ERROR_NONE;
+  }
+  return func(deviceId, memUceInfoArray, arraySize, retSize);
 }
 
-aclError AclrtDeviceTaskAbort(int32_t deviceId)
-{
-    ACL_CALL_LOG("aclrtDeviceTaskAbort", "deviceId=" << deviceId);
-    typedef aclError (*AclrtDeviceTaskAbort)(int32_t, uint32_t);
-    static AclrtDeviceTaskAbort func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtDeviceTaskAbort) TORCH_NPU_GET_FUNC(aclrtDeviceTaskAbort);
-    }
-    if (func == nullptr) {
-        TORCH_NPU_WARN_ONCE(func, "Failed to find function ", "aclrtDeviceTaskAbort");
-        return ACL_ERROR_NONE;
-    }
-    uint32_t timeout = 0;
-    return func(deviceId, timeout);
+aclError AclrtDeviceTaskAbort(int32_t deviceId) {
+  ACL_CALL_LOG("aclrtDeviceTaskAbort", "deviceId=" << deviceId);
+  typedef aclError (*AclrtDeviceTaskAbort)(int32_t, uint32_t);
+  static AclrtDeviceTaskAbort func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtDeviceTaskAbort)TORCH_NPU_GET_FUNC(aclrtDeviceTaskAbort);
+  }
+  if (func == nullptr) {
+    TORCH_NPU_WARN_ONCE(func, "Failed to find function ", "aclrtDeviceTaskAbort");
+    return ACL_ERROR_NONE;
+  }
+  uint32_t timeout = 0;
+  return func(deviceId, timeout);
 }
 
-aclError AclrtMemUceRepair(int32_t deviceId, aclrtMemUceInfo* memUceInfoArray, size_t arraySize)
-{
-    ACL_CALL_LOG("aclrtMemUceRepair", "deviceId=" << deviceId << ", memUceInfoArray=" << memUceInfoArray
-             << ", arraySize=" << arraySize);
-    typedef aclError (*AclrtMemUceRepair)(int32_t, aclrtMemUceInfo*, size_t);
-    static AclrtMemUceRepair func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtMemUceRepair) TORCH_NPU_GET_FUNC(aclrtMemUceRepair);
-    }
-    if (func == nullptr) {
-        TORCH_NPU_WARN_ONCE(func, "Failed to find function ", "aclrtMemUceRepair");
-        return ACL_ERROR_NONE;
-    }
-    return func(deviceId, memUceInfoArray, arraySize);
+aclError AclrtMemUceRepair(int32_t deviceId, aclrtMemUceInfo* memUceInfoArray, size_t arraySize) {
+  ACL_CALL_LOG(
+      "aclrtMemUceRepair",
+      "deviceId=" << deviceId << ", memUceInfoArray=" << memUceInfoArray << ", arraySize=" << arraySize);
+  typedef aclError (*AclrtMemUceRepair)(int32_t, aclrtMemUceInfo*, size_t);
+  static AclrtMemUceRepair func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtMemUceRepair)TORCH_NPU_GET_FUNC(aclrtMemUceRepair);
+  }
+  if (func == nullptr) {
+    TORCH_NPU_WARN_ONCE(func, "Failed to find function ", "aclrtMemUceRepair");
+    return ACL_ERROR_NONE;
+  }
+  return func(deviceId, memUceInfoArray, arraySize);
 }
 
-aclError AclrtGetMemUsageInfo(uint32_t deviceId, aclrtMemUsageInfo *memUsageInfo, size_t inputNum, size_t *outputNum)
-{
-    ACL_CALL_LOG("aclrtGetMemUsageInfo", "deviceId=" << deviceId << ", memUsageInfo=" << memUsageInfo
-             << ", inputNum=" << inputNum << ", outputNum=" << outputNum);
-    typedef aclError (*AclrtGetMemUsageInfo)(uint32_t, aclrtMemUsageInfo*, size_t, size_t *);
-    static AclrtGetMemUsageInfo func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtGetMemUsageInfo) TORCH_NPU_GET_FUNC(aclrtGetMemUsageInfo);
-    }
-    if (func == nullptr) {
-        TORCH_NPU_WARN_ONCE(func, "Failed to find function ", "aclrtGetMemUsageInfo");
-        return ACL_ERROR_RT_FEATURE_NOT_SUPPORT;
-    }
-    return func(deviceId, memUsageInfo, inputNum, outputNum);
+aclError AclrtGetMemUsageInfo(uint32_t deviceId, aclrtMemUsageInfo* memUsageInfo, size_t inputNum, size_t* outputNum) {
+  ACL_CALL_LOG(
+      "aclrtGetMemUsageInfo",
+      "deviceId=" << deviceId << ", memUsageInfo=" << memUsageInfo << ", inputNum=" << inputNum
+                  << ", outputNum=" << outputNum);
+  typedef aclError (*AclrtGetMemUsageInfo)(uint32_t, aclrtMemUsageInfo*, size_t, size_t*);
+  static AclrtGetMemUsageInfo func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtGetMemUsageInfo)TORCH_NPU_GET_FUNC(aclrtGetMemUsageInfo);
+  }
+  if (func == nullptr) {
+    TORCH_NPU_WARN_ONCE(func, "Failed to find function ", "aclrtGetMemUsageInfo");
+    return ACL_ERROR_RT_FEATURE_NOT_SUPPORT;
+  }
+  return func(deviceId, memUsageInfo, inputNum, outputNum);
 }
 
-aclError AclrtCmoAsync(void* src, size_t size, aclrtCmoType cmoType, aclrtStream stream)
-{
-    ACL_CALL_LOG("aclrtCmoAsync", "src=" << src << ", size=" << size << ", cmoType=" << cmoType
-             << ", stream=" << stream);
-    typedef aclError (*AclrtCmoAsync)(void*, size_t, aclrtCmoType, aclrtStream);
-    static AclrtCmoAsync func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtCmoAsync) TORCH_NPU_GET_FUNC(aclrtCmoAsync);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclrtCmoAsync", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(src, size, cmoType, stream);
+aclError AclrtCmoAsync(void* src, size_t size, aclrtCmoType cmoType, aclrtStream stream) {
+  ACL_CALL_LOG("aclrtCmoAsync", "src=" << src << ", size=" << size << ", cmoType=" << cmoType << ", stream=" << stream);
+  typedef aclError (*AclrtCmoAsync)(void*, size_t, aclrtCmoType, aclrtStream);
+  static AclrtCmoAsync func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtCmoAsync)TORCH_NPU_GET_FUNC(aclrtCmoAsync);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtCmoAsync", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(src, size, cmoType, stream);
 }
 
-aclError AclrtGetLastError(aclrtLastErrLevel flag)
-{
-    ACL_CALL_LOG("aclrtGetLastError", "flag=" << flag);
-    typedef aclError (*AclrtGetLastError)(aclrtLastErrLevel flag);
-    static AclrtGetLastError func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtGetLastError) TORCH_NPU_GET_FUNC(aclrtGetLastError);
-    }
-    if (func == nullptr) {
-        return ACL_ERROR_NONE;
-    }
-    return func(flag);
+aclError AclrtGetLastError(aclrtLastErrLevel flag) {
+  ACL_CALL_LOG("aclrtGetLastError", "flag=" << flag);
+  typedef aclError (*AclrtGetLastError)(aclrtLastErrLevel flag);
+  static AclrtGetLastError func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtGetLastError)TORCH_NPU_GET_FUNC(aclrtGetLastError);
+  }
+  if (func == nullptr) {
+    return ACL_ERROR_NONE;
+  }
+  return func(flag);
 }
 
-aclError AclrtPeekAtLastError(aclrtLastErrLevel flag)
-{
-    ACL_CALL_LOG("aclrtPeekAtLastError", "flag=" << flag);
-    typedef aclError (*AclrtPeekAtLastError)(aclrtLastErrLevel flag);
-    static AclrtPeekAtLastError func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtPeekAtLastError) TORCH_NPU_GET_FUNC(aclrtPeekAtLastError);
-    }
-    if (func == nullptr) {
-        return ACL_ERROR_NONE;
-    }
-    return func(flag);
+aclError AclrtPeekAtLastError(aclrtLastErrLevel flag) {
+  ACL_CALL_LOG("aclrtPeekAtLastError", "flag=" << flag);
+  typedef aclError (*AclrtPeekAtLastError)(aclrtLastErrLevel flag);
+  static AclrtPeekAtLastError func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtPeekAtLastError)TORCH_NPU_GET_FUNC(aclrtPeekAtLastError);
+  }
+  if (func == nullptr) {
+    return ACL_ERROR_NONE;
+  }
+  return func(flag);
 }
 
-aclError AclStressDetect(int32_t deviceId, void *workspace, size_t workspaceSize)
-{
-    ACL_CALL_LOG("aclStressDetect", "deviceId=" << deviceId << ", workspace=" << workspace
-             << ", workspaceSize=" << workspaceSize);
-    typedef aclError (*AclStressDetect)(int32_t, void*, size_t);
-    static AclStressDetect func = nullptr;
-    if (func == nullptr) {
-        func = (AclStressDetect) GetOpApiFuncAddr("StressDetect");
-    }
-    TORCH_CHECK(func, "Failed to find function ", "StressDetect", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(deviceId, workspace, workspaceSize);
+aclError AclStressDetect(int32_t deviceId, void* workspace, size_t workspaceSize) {
+  ACL_CALL_LOG(
+      "aclStressDetect", "deviceId=" << deviceId << ", workspace=" << workspace << ", workspaceSize=" << workspaceSize);
+  typedef aclError (*AclStressDetect)(int32_t, void*, size_t);
+  static AclStressDetect func = nullptr;
+  if (func == nullptr) {
+    func = (AclStressDetect)GetOpApiFuncAddr("StressDetect");
+  }
+  TORCH_CHECK(func, "Failed to find function ", "StressDetect", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(deviceId, workspace, workspaceSize);
 }
 
-aclError AclsysGetCANNVersion(aclCANNPackageName name, aclCANNPackageVersion *version)
-{
-    ACL_CALL_LOG("aclsysGetCANNVersion", "name=" << name << ", version=" << version);
-    using aclsysGetCANNVersionFunc = aclError(*)(aclCANNPackageName, aclCANNPackageVersion *);
-    static aclsysGetCANNVersionFunc func = nullptr;
+aclError AclsysGetCANNVersion(aclCANNPackageName name, aclCANNPackageVersion* version) {
+  ACL_CALL_LOG("aclsysGetCANNVersion", "name=" << name << ", version=" << version);
+  using aclsysGetCANNVersionFunc = aclError (*)(aclCANNPackageName, aclCANNPackageVersion*);
+  static aclsysGetCANNVersionFunc func = nullptr;
+  if (func == nullptr) {
+    func = (aclsysGetCANNVersionFunc)TORCH_NPU_GET_FUNC(aclsysGetCANNVersion);
     if (func == nullptr) {
-        func = (aclsysGetCANNVersionFunc)TORCH_NPU_GET_FUNC(aclsysGetCANNVersion);
-        if (func == nullptr) {
-        return ACL_ERROR_RT_FEATURE_NOT_SUPPORT;
-        }
+      return ACL_ERROR_RT_FEATURE_NOT_SUPPORT;
     }
+  }
 
-    return func(name, version);
+  return func(name, version);
 }
 
-aclError AclsysGetVersionStr(char *pkgName, char *versionStr)
-{
-    ACL_CALL_LOG("aclsysGetVersionStr", "pkgName=" << pkgName << ", versionStr=" << versionStr);
-    using aclsysGetVersionStrFunc = aclError(*)(char *, char *);
-    static aclsysGetVersionStrFunc func = nullptr;
-    func = (aclsysGetVersionStrFunc)TORCH_NPU_GET_FUNC(aclsysGetVersionStr);
-    if (func == nullptr) {
-        return ACL_ERROR_RT_FEATURE_NOT_SUPPORT;
-    }
-    return func(pkgName, versionStr);
+aclError AclsysGetVersionStr(char* pkgName, char* versionStr) {
+  ACL_CALL_LOG("aclsysGetVersionStr", "pkgName=" << pkgName << ", versionStr=" << versionStr);
+  using aclsysGetVersionStrFunc = aclError (*)(char*, char*);
+  static aclsysGetVersionStrFunc func = nullptr;
+  func = (aclsysGetVersionStrFunc)TORCH_NPU_GET_FUNC(aclsysGetVersionStr);
+  if (func == nullptr) {
+    return ACL_ERROR_RT_FEATURE_NOT_SUPPORT;
+  }
+  return func(pkgName, versionStr);
 }
 
-aclError AclrtSynchronizeDeviceWithTimeout(void)
-{
-    typedef aclError (*AclrtSynchronizeDeviceWithTimeout)(int32_t);
-    static AclrtSynchronizeDeviceWithTimeout func = (AclrtSynchronizeDeviceWithTimeout)TORCH_NPU_GET_FUNC(aclrtSynchronizeDeviceWithTimeout);
-    int32_t timeout = c10_npu::option::OptionsManager::GetACLDeviceSyncTimeout();
+aclError AclrtSynchronizeDeviceWithTimeout(void) {
+  typedef aclError (*AclrtSynchronizeDeviceWithTimeout)(int32_t);
+  static AclrtSynchronizeDeviceWithTimeout func =
+      (AclrtSynchronizeDeviceWithTimeout)TORCH_NPU_GET_FUNC(aclrtSynchronizeDeviceWithTimeout);
+  int32_t timeout = c10_npu::option::OptionsManager::GetACLDeviceSyncTimeout();
+  if (func != nullptr) {
+    return func(timeout);
+  } else {
+    if (timeout > 0) {
+      TORCH_NPU_WARN_ONCE(
+          "The ACL_DEVICE_SYNC_TIMEOUT does not take effect. If you want to enable this env, please upgrade CANN to the matching version.");
+    }
+    typedef aclError (*AclrtSynchronizeDevice)(void);
+    static AclrtSynchronizeDevice func_backup = nullptr;
+    if (func_backup == nullptr) {
+      func_backup = (AclrtSynchronizeDevice)TORCH_NPU_GET_FUNC(aclrtSynchronizeDevice);
+    }
+    TORCH_CHECK(
+        func_backup,
+        "Failed to find function ",
+        "aclrtSynchronizeDeviceWithTimeout and aclrtSynchronizeDevice",
+        PTA_ERROR(ErrCode::NOT_FOUND));
+    return func_backup();
+  }
+}
+
+aclError AclrtEventGetTimestamp(aclrtEvent event, uint64_t* timestamp) {
+  ACL_CALL_LOG("aclrtEventGetTimestamp", "event=" << event << ", timestamp=" << timestamp);
+  typedef aclError (*AclrtEventGetTimestamp)(aclrtEvent, uint64_t*);
+  static AclrtEventGetTimestamp func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtEventGetTimestamp)TORCH_NPU_GET_FUNC(aclrtEventGetTimestamp);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtEventGetTimestamp", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(event, timestamp);
+}
+
+aclError AclmdlRICaptureBegin(aclrtStream stream, aclmdlRICaptureMode mode) {
+  ACL_CALL_LOG("aclmdlRICaptureBegin", "stream=" << stream << ", mode=" << mode);
+  typedef aclError (*AclmdlRICaptureBegin)(aclrtStream, aclmdlRICaptureMode);
+  static AclmdlRICaptureBegin func = nullptr;
+  if (func == nullptr) {
+    func = (AclmdlRICaptureBegin)TORCH_NPU_GET_FUNC(aclmdlRICaptureBegin);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclmdlRICaptureBegin", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(stream, mode);
+}
+
+aclError AclmdlRICaptureGetInfo(aclrtStream stream, aclmdlRICaptureStatus* status, aclmdlRI* modelRI) {
+  ACL_CALL_LOG("aclmdlRICaptureGetInfo", "stream=" << stream << ", status=" << status << ", modelRI=" << modelRI);
+  typedef aclError (*AclmdlRICaptureGetInfo)(aclrtStream, aclmdlRICaptureStatus*, aclmdlRI*);
+  static AclmdlRICaptureGetInfo func = nullptr;
+  if (func == nullptr) {
+    func = (AclmdlRICaptureGetInfo)TORCH_NPU_GET_FUNC(aclmdlRICaptureGetInfo);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclmdlRICaptureGetInfo", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(stream, status, modelRI);
+}
+
+bool TryAclmdlRIGetId(aclmdlRI modelRI, uint32_t* modelRIId) {
+  ACL_CALL_LOG("aclmdlRIGetId", "modelRI=" << modelRI << ", modelRIId=" << modelRIId);
+  typedef aclError (*AclmdlRIGetId)(aclmdlRI, uint32_t*);
+  static AclmdlRIGetId func = (AclmdlRIGetId)TORCH_NPU_GET_FUNC(aclmdlRIGetId);
+  if (func == nullptr) {
+    return false;
+  }
+  NPU_CHECK_ERROR(func(modelRI, modelRIId));
+  return true;
+}
+
+aclError AclmdlRICaptureEnd(aclrtStream stream, aclmdlRI* modelRI) {
+  ACL_CALL_LOG("aclmdlRICaptureEnd", "stream=" << stream << ", modelRI=" << modelRI);
+  typedef aclError (*AclmdlRICaptureEnd)(aclrtStream, aclmdlRI*);
+  static AclmdlRICaptureEnd func = nullptr;
+  if (func == nullptr) {
+    func = (AclmdlRICaptureEnd)TORCH_NPU_GET_FUNC(aclmdlRICaptureEnd);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclmdlRICaptureEnd", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(stream, modelRI);
+}
+
+aclError AclmdlRICondHandleCreate(
+    aclmdlRI modelRI,
+    unsigned int defaultLaunchValue,
+    uint32_t flag,
+    aclmdlRICondHandle* handle) {
+  ACL_CALL_LOG(
+      "aclmdlRICondHandleCreate",
+      "modelRI=" << modelRI << ", defaultLaunchValue=" << defaultLaunchValue << ", flag=" << flag
+                 << ", handle=" << handle);
+  typedef aclError (*AclmdlRICondHandleCreate)(aclmdlRI, unsigned int, uint32_t, aclmdlRICondHandle*);
+  static AclmdlRICondHandleCreate func = nullptr;
+  if (func == nullptr) {
+    func = (AclmdlRICondHandleCreate)TORCH_NPU_GET_FUNC(aclmdlRICondHandleCreate);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclmdlRICondHandleCreate", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(modelRI, defaultLaunchValue, flag, handle);
+}
+
+aclError AclmdlRICondHandleGetCondPtr(aclmdlRICondHandle handle, uint64_t** ptr) {
+  ACL_CALL_LOG("aclmdlRICondHandleGetCondPtr", "handle=" << handle << ", ptr=" << ptr);
+  typedef aclError (*AclmdlRICondHandleGetCondPtr)(aclmdlRICondHandle, uint64_t**);
+  static AclmdlRICondHandleGetCondPtr func = nullptr;
+  if (func == nullptr) {
+    func = (AclmdlRICondHandleGetCondPtr)TORCH_NPU_GET_FUNC(aclmdlRICondHandleGetCondPtr);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclmdlRICondHandleGetCondPtr", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(handle, ptr);
+}
+
+aclError AclmdlRIAddCondTask(aclmdlRICondTaskParams params, aclrtStream stream, uint32_t flags) {
+  ACL_CALL_LOG(
+      "aclmdlRIAddCondTask",
+      "handle=" << params.handle << ", type=" << params.type << ", size=" << params.size
+                << ", modelRIArray=" << params.modelRIArray << ", stream=" << stream << ", flags=" << flags);
+  typedef aclError (*AclmdlRIAddCondTask)(aclmdlRICondTaskParams, aclrtStream, uint32_t);
+  static AclmdlRIAddCondTask func = nullptr;
+  if (func == nullptr) {
+    func = (AclmdlRIAddCondTask)TORCH_NPU_GET_FUNC(aclmdlRIAddCondTask);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclmdlRIAddCondTask", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(params, stream, flags);
+}
+
+aclError AclmdlRICaptureToModelRIBegin(aclrtStream stream, aclmdlRI modelRI, aclmdlRICaptureMode mode) {
+  ACL_CALL_LOG("aclmdlRICaptureToModelRIBegin", "stream=" << stream << ", modelRI=" << modelRI << ", mode=" << mode);
+  typedef aclError (*AclmdlRICaptureToModelRIBegin)(aclrtStream, aclmdlRI, aclmdlRICaptureMode);
+  static AclmdlRICaptureToModelRIBegin func = nullptr;
+  if (func == nullptr) {
+    func = (AclmdlRICaptureToModelRIBegin)TORCH_NPU_GET_FUNC(aclmdlRICaptureToModelRIBegin);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclmdlRICaptureToModelRIBegin", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(stream, modelRI, mode);
+}
+
+aclError AclmdlRIDebugPrint(aclmdlRI modelRI) {
+  ACL_CALL_LOG("aclmdlRIDebugPrint", "modelRI=" << modelRI);
+  typedef aclError (*AclmdlRIDebugPrint)(aclmdlRI);
+  static AclmdlRIDebugPrint func = nullptr;
+  if (func == nullptr) {
+    func = (AclmdlRIDebugPrint)TORCH_NPU_GET_FUNC(aclmdlRIDebugPrint);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclmdlRIDebugPrint", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(modelRI);
+}
+
+aclError AclmdlRIExecuteAsync(aclmdlRI modelRI, aclrtStream stream) {
+  ACL_CALL_LOG("aclmdlRIExecuteAsync", "modelRI=" << modelRI << ", stream=" << stream);
+  typedef aclError (*AclmdlRIExecuteAsync)(aclmdlRI, aclrtStream);
+  static AclmdlRIExecuteAsync func = nullptr;
+  if (func == nullptr) {
+    func = (AclmdlRIExecuteAsync)TORCH_NPU_GET_FUNC(aclmdlRIExecuteAsync);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclmdlRIExecuteAsync", PTA_ERROR(ErrCode::NOT_FOUND));
+
+  return func(modelRI, stream);
+}
+
+aclError AclmdlRIDestroy(aclmdlRI modelRI) {
+  ACL_CALL_LOG("aclmdlRIDestroy", "modelRI=" << modelRI);
+  typedef aclError (*AclmdlRIDestroy)(aclmdlRI);
+  static AclmdlRIDestroy func = nullptr;
+  if (func == nullptr) {
+    func = (AclmdlRIDestroy)TORCH_NPU_GET_FUNC(aclmdlRIDestroy);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclmdlRIDestroy", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(modelRI);
+}
+
+bool IsCaptureSupported() {
+  static bool is_support = false;
+  static bool have_load_func = false;
+  static bool default_support_capture =
+      ((GetSocVersion() >= SocVersion::Ascend310P1) && (GetSocVersion() <= SocVersion::Ascend310P7)) ||
+      ((GetSocVersion() >= SocVersion::Ascend910B1) && (GetSocVersion() < SocVersion::Ascend310B1)) ||
+      ((GetSocVersion() >= SocVersion::Ascend910_9391));
+  if (default_support_capture && !have_load_func) {
+    have_load_func = true;
+    typedef aclError (*AclmdlRICaptureGetInfo)(aclrtStream, aclmdlRICaptureStatus*, aclmdlRI*);
+    static AclmdlRICaptureGetInfo func = (AclmdlRICaptureGetInfo)TORCH_NPU_GET_FUNC(aclmdlRICaptureGetInfo);
+    is_support = (func != nullptr);
+  }
+
+  return is_support;
+}
+
+aclError AclmdlRICaptureTaskGrpBegin(aclrtStream stream) {
+  ACL_CALL_LOG("aclmdlRICaptureTaskGrpBegin", "stream=" << stream);
+  typedef aclError (*AclmdlRICaptureTaskGrpBegin)(aclrtStream);
+  static AclmdlRICaptureTaskGrpBegin func = nullptr;
+  if (func == nullptr) {
+    func = (AclmdlRICaptureTaskGrpBegin)TORCH_NPU_GET_FUNC(aclmdlRICaptureTaskGrpBegin);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclmdlRICaptureTaskGrpBegin", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(stream);
+}
+
+aclError AclmdlRICaptureTaskGrpEnd(aclrtStream stream, aclrtTaskGrp* handle) {
+  ACL_CALL_LOG("aclmdlRICaptureTaskGrpEnd", "stream=" << stream << ", handle=" << handle);
+  typedef aclError (*AclmdlRICaptureTaskGrpEnd)(aclrtStream, aclrtTaskGrp*);
+  static AclmdlRICaptureTaskGrpEnd func = nullptr;
+  if (func == nullptr) {
+    func = (AclmdlRICaptureTaskGrpEnd)TORCH_NPU_GET_FUNC(aclmdlRICaptureTaskGrpEnd);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclmdlRICaptureTaskGrpEnd", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(stream, handle);
+}
+
+aclError AclmdlRICaptureTaskUpdateBegin(aclrtStream stream, aclrtTaskGrp handle) {
+  ACL_CALL_LOG("aclmdlRICaptureTaskUpdateBegin", "stream=" << stream << ", handle=" << handle);
+  typedef aclError (*AclmdlRICaptureTaskUpdateBegin)(aclrtStream, aclrtTaskGrp);
+  static AclmdlRICaptureTaskUpdateBegin func = nullptr;
+  if (func == nullptr) {
+    func = (AclmdlRICaptureTaskUpdateBegin)TORCH_NPU_GET_FUNC(aclmdlRICaptureTaskUpdateBegin);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclmdlRICaptureTaskUpdateBegin", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(stream, handle);
+}
+
+aclError AclmdlRICaptureTaskUpdateEnd(aclrtStream stream) {
+  ACL_CALL_LOG("aclmdlRICaptureTaskUpdateEnd", "stream=" << stream);
+  typedef aclError (*AclmdlRICaptureTaskUpdateEnd)(aclmdlRI);
+  static AclmdlRICaptureTaskUpdateEnd func = nullptr;
+  if (func == nullptr) {
+    func = (AclmdlRICaptureTaskUpdateEnd)TORCH_NPU_GET_FUNC(aclmdlRICaptureTaskUpdateEnd);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclmdlRICaptureTaskUpdateEnd", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(stream);
+}
+
+aclError AclmdlRIDebugJsonPrint(aclmdlRI modelRI, const char* path, uint32_t flags) {
+  ACL_CALL_LOG(
+      "aclmdlRIDebugJsonPrint", "modelRI=" << modelRI << ", path=" << (path ? path : "nullptr") << ", flags=" << flags);
+  typedef aclError (*AclmdlRIDebugJsonPrint)(aclmdlRI, const char*, uint32_t flags);
+  static AclmdlRIDebugJsonPrint func = nullptr;
+  if (func == nullptr) {
+    func = (AclmdlRIDebugJsonPrint)TORCH_NPU_GET_FUNC(aclmdlRIDebugJsonPrint);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclmdlRIDebugJsonPrint", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(modelRI, path, flags);
+}
+
+aclError AclrtHostRegister(void* ptr, uint64_t size, aclrtHostRegisterType type, void** devPtr) {
+  ACL_CALL_LOG("aclrtHostRegister", "ptr=" << ptr << ", size=" << size << ", type=" << type << ", devPtr=" << devPtr);
+  typedef aclError (*AclrtHostRegister)(void*, uint64_t, aclrtHostRegisterType, void**);
+  static AclrtHostRegister func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtHostRegister)TORCH_NPU_GET_FUNC(aclrtHostRegister);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclrtHostRegister", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(ptr, size, type, devPtr);
+}
+
+aclError AclrtHostRegisterV2(void* ptr, uint64_t size, uint32_t flag) {
+  typedef aclError (*AclrtHostRegisterV2)(void* ptr, uint64_t size, uint32_t flag);
+  static AclrtHostRegisterV2 func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtHostRegisterV2)TORCH_NPU_GET_FUNC(aclrtHostRegisterV2);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclrtHostRegisterV2", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(ptr, size, flag);
+}
+
+aclError AclrtHostUnregister(void* ptr) {
+  typedef aclError (*AclrtHostUnregister)(void*);
+  static AclrtHostUnregister func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtHostUnregister)TORCH_NPU_GET_FUNC(aclrtHostUnregister);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclrtHostUnregister", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(ptr);
+}
+
+aclError AclrtMallocHostWithCfg(void** ptr, uint64_t size, aclrtMallocConfig* cfg) {
+  ACL_CALL_LOG("aclrtMallocHostWithCfg", "ptr=" << ptr << ", size=" << size << ", cfg=" << cfg);
+  typedef aclError (*AclrtMallocHostWithCfg)(void**, uint64_t, aclrtMallocConfig*);
+  static AclrtMallocHostWithCfg func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtMallocHostWithCfg)TORCH_NPU_GET_FUNC(aclrtMallocHostWithCfg);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclrtMallocHostWithCfg", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(ptr, size, cfg);
+}
+
+bool AclrtMallocHostWithCfgExist() {
+  const static bool isAclrtMallocHostWithCfgExist = []() -> bool {
+    std::string currentCANNVersion = GetCANNVersion("CANN");
+    if (currentCANNVersion == "") {
+      return false;
+    }
+    // Ascend950 HDK has supported this since its first commercial release.
+    // The first commercial HDK versions are: PCIe card: 25.7, Pod: 25.1,
+    // Server: 25.6.
+    const std::string kMinDriverVersion = "26.0.rc1";
+    if ((!IsGteDriverVersion(kMinDriverVersion)) && (c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend950)) {
+      return false;
+    }
+    // determine the runtime version
+    const std::string kMinRuntimeVersion = "8.5.0";
+    if (!IsGteCANNVersion(kMinRuntimeVersion, "RUNTIME")) {
+      return false;
+    }
+    auto func = TORCH_NPU_GET_FUNC(aclrtMallocHostWithCfg);
     if (func != nullptr) {
-        return func(timeout);
-    } else {
-        if (timeout > 0) {
-            TORCH_NPU_WARN_ONCE("The ACL_DEVICE_SYNC_TIMEOUT does not take effect. If you want to enable this env, please upgrade CANN to the matching version.");
-        }
-        typedef aclError (*AclrtSynchronizeDevice)(void);
-        static AclrtSynchronizeDevice func_backup = nullptr;
-        if (func_backup == nullptr) {
-            func_backup = (AclrtSynchronizeDevice)TORCH_NPU_GET_FUNC(aclrtSynchronizeDevice);
-        }
-        TORCH_CHECK(func_backup, "Failed to find function ", "aclrtSynchronizeDeviceWithTimeout and aclrtSynchronizeDevice", PTA_ERROR(ErrCode::NOT_FOUND));
-        return func_backup();
+      ASCEND_LOGI("Successfully to find function aclrtMallocHostWithCfg");
+      return c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1;
     }
+    return false;
+  }();
+  return isAclrtMallocHostWithCfgExist;
 }
 
-aclError AclrtEventGetTimestamp(aclrtEvent event, uint64_t *timestamp)
-{
-    ACL_CALL_LOG("aclrtEventGetTimestamp", "event=" << event << ", timestamp=" << timestamp);
-    typedef aclError (*AclrtEventGetTimestamp)(aclrtEvent, uint64_t*);
-    static AclrtEventGetTimestamp func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtEventGetTimestamp)TORCH_NPU_GET_FUNC(aclrtEventGetTimestamp);
+aclError AclrtIpcMemGetExportKey(void* devPtr, size_t size, char* key, size_t len, uint64_t flag) {
+  ACL_CALL_LOG(
+      "aclrtIpcMemGetExportKey",
+      "devPtr=" << devPtr << ", size=" << size << ", key=" << (key ? "[out buffer]" : "nullptr") << ", len=" << len
+                << ", flag=" << flag);
+  typedef aclError (*AclrtIpcMemGetExportKey)(void*, size_t, char*, size_t, uint64_t);
+  static AclrtIpcMemGetExportKey func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtIpcMemGetExportKey)TORCH_NPU_GET_FUNC(aclrtIpcMemGetExportKey);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclrtIpcMemGetExportKey", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(devPtr, size, key, len, flag);
+}
+
+aclError AclrtIpcMemSetImportPid(const char* key, int32_t* pid, size_t num) {
+  ACL_CALL_LOG("aclrtIpcMemSetImportPid", "has_key=" << (key != nullptr) << ", pid=" << pid << ", num=" << num);
+  typedef aclError (*AclrtIpcMemSetImportPid)(const char*, int32_t*, size_t);
+  static AclrtIpcMemSetImportPid func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtIpcMemSetImportPid)TORCH_NPU_GET_FUNC(aclrtIpcMemSetImportPid);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclrtIpcMemSetImportPid", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(key, pid, num);
+}
+
+aclError AclrtIpcMemImportByKey(void** devPtr, const char* key, uint64_t flag) {
+  ACL_CALL_LOG("aclrtIpcMemImportByKey", "devPtr=" << devPtr << ", has_key=" << (key != nullptr) << ", flag=" << flag);
+  typedef aclError (*AclrtIpcMemImportByKey)(void**, const char*, uint64_t);
+  static AclrtIpcMemImportByKey func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtIpcMemImportByKey)TORCH_NPU_GET_FUNC(aclrtIpcMemImportByKey);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclrtIpcMemImportByKey", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(devPtr, key, flag);
+}
+
+aclError AclrtIpcMemClose(const char* key) {
+  ACL_CALL_LOG("aclrtIpcMemClose", "has_key=" << (key != nullptr));
+  typedef aclError (*AclrtIpcMemClose)(const char*);
+  static AclrtIpcMemClose func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtIpcMemClose)TORCH_NPU_GET_FUNC(aclrtIpcMemClose);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclrtIpcMemClose", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(key);
+}
+
+aclError AclrtMemExportToShareableHandle(
+    aclrtDrvMemHandle handle,
+    aclrtMemHandleType handleType,
+    uint64_t flags,
+    uint64_t* shareableHandle) {
+  ACL_CALL_LOG(
+      "aclrtMemExportToShareableHandle",
+      "handle=" << handle << ", handleType=" << handleType << ", flags=" << flags
+                << ", shareableHandle=" << shareableHandle);
+  typedef aclError (*AclrtMemExportToShareableHandle)(aclrtDrvMemHandle, aclrtMemHandleType, uint64_t, uint64_t*);
+  static AclrtMemExportToShareableHandle func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtMemExportToShareableHandle)TORCH_NPU_GET_FUNC(aclrtMemExportToShareableHandle);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclrtMemExportToShareableHandle", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(handle, handleType, flags, shareableHandle);
+}
+
+aclError AclrtMemSetPidToShareableHandle(uint64_t shareableHandle, int32_t* pid, size_t pidNum) {
+  ACL_CALL_LOG(
+      "aclrtMemSetPidToShareableHandle",
+      "shareableHandle=" << shareableHandle << ", pid=" << pid << ", pidNum=" << pidNum);
+  typedef aclError (*AclrtMemSetPidToShareableHandle)(uint64_t, int32_t*, size_t);
+  static AclrtMemSetPidToShareableHandle func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtMemSetPidToShareableHandle)TORCH_NPU_GET_FUNC(aclrtMemSetPidToShareableHandle);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclrtMemSetPidToShareableHandle", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(shareableHandle, pid, pidNum);
+}
+
+aclError AclrtMemImportFromShareableHandle(uint64_t shareableHandle, int32_t deviceId, aclrtDrvMemHandle* handle) {
+  ACL_CALL_LOG(
+      "aclrtMemImportFromShareableHandle",
+      "shareableHandle=" << shareableHandle << ", deviceId=" << deviceId << ", handle=" << handle);
+  typedef aclError (*AclrtMemImportFromShareableHandle)(uint64_t, int32_t, aclrtDrvMemHandle*);
+  static AclrtMemImportFromShareableHandle func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtMemImportFromShareableHandle)TORCH_NPU_GET_FUNC(aclrtMemImportFromShareableHandle);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclrtMemImportFromShareableHandle", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(shareableHandle, deviceId, handle);
+}
+
+aclError AclrtDeviceGetBareTgid(int32_t* pid) {
+  ACL_CALL_LOG("aclrtDeviceGetBareTgid", "pid=" << pid);
+  typedef aclError (*AclrtDeviceGetBareTgid)(int32_t*);
+  static AclrtDeviceGetBareTgid func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtDeviceGetBareTgid)TORCH_NPU_GET_FUNC(aclrtDeviceGetBareTgid);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclrtDeviceGetBareTgid", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(pid);
+}
+
+aclError AclrtGetDeviceResLimit(int32_t deviceId, aclrtDevResLimitType type, uint32_t* value) {
+  ACL_CALL_LOG("aclrtSetDeviceResLimit", "deviceId=" << deviceId << ", type=" << type << ", value=" << value);
+  typedef aclError (*AclrtGetDeviceResLimit)(int32_t, aclrtDevResLimitType, uint32_t*);
+  static AclrtGetDeviceResLimit func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtGetDeviceResLimit)TORCH_NPU_GET_FUNC(aclrtGetDeviceResLimit);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclrtGetDeviceResLimit", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(deviceId, type, value);
+}
+
+aclError AclrtSetDeviceResLimit(int32_t deviceId, aclrtDevResLimitType type, uint32_t value) {
+  ACL_CALL_LOG("aclrtResetDeviceResLimit", "deviceId=" << deviceId);
+  typedef aclError (*AclrtSetDeviceResLimit)(int32_t, aclrtDevResLimitType, uint32_t);
+  static AclrtSetDeviceResLimit func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtSetDeviceResLimit)TORCH_NPU_GET_FUNC(aclrtSetDeviceResLimit);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclrtSetDeviceResLimit", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(deviceId, type, value);
+}
+
+aclError AclrtResetDeviceResLimit(int32_t deviceId) {
+  ACL_CALL_LOG("aclrtResetDeviceResLimit", "deviceId=" << deviceId);
+  typedef aclError (*AclrtResetDeviceResLimit)(int32_t);
+  static AclrtResetDeviceResLimit func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtResetDeviceResLimit)TORCH_NPU_GET_FUNC(aclrtResetDeviceResLimit);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclrtResetDeviceResLimit", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(deviceId);
+}
+
+aclError AclrtStreamGetId(aclrtStream stream, int32_t* stream_id) {
+  ACL_CALL_LOG("aclrtStreamGetId", "stream=" << stream << ", stream_id=" << stream_id);
+  typedef aclError (*AclrtStreamGetIdFunc)(aclrtStream, int32_t*);
+  static AclrtStreamGetIdFunc func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtStreamGetIdFunc)TORCH_NPU_GET_FUNC(aclrtStreamGetId);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtStreamGetId", PROF_ERROR(ErrCode::NOT_FOUND));
+  return func(stream, stream_id);
+}
+
+bool IsExistMemcpyBatch() {
+  typedef aclError (*AclrtMemcpyBatchFunc)(
+      void**, size_t*, void**, size_t*, size_t, aclrtMemcpyBatchAttr*, size_t*, size_t, size_t*);
+  static AclrtMemcpyBatchFunc func = (AclrtMemcpyBatchFunc)TORCH_NPU_GET_FUNC(aclrtMemcpyBatch);
+  return func != nullptr;
+}
+
+bool IsExistRtGetStreamId() {
+  typedef aclError (*AclrtStreamGetIdFunc)(aclrtStream, int32_t*);
+  static AclrtStreamGetIdFunc func = (AclrtStreamGetIdFunc)TORCH_NPU_GET_FUNC(aclrtStreamGetId);
+  return func != nullptr;
+}
+
+bool IsExistMemcpyBatchAsync() {
+  typedef aclError (*AclrtMemcpyBatchAsyncFunc)(
+      void**, size_t*, void**, size_t*, size_t, aclrtMemcpyBatchAttr*, size_t*, size_t, size_t*);
+  static AclrtMemcpyBatchAsyncFunc func = (AclrtMemcpyBatchAsyncFunc)TORCH_NPU_GET_FUNC(aclrtMemcpyBatchAsync);
+  return func != nullptr;
+}
+
+aclError AclrtMemcpyBatch(
+    void** dsts,
+    size_t* destMax,
+    void** srcs,
+    size_t* sizes,
+    size_t numBatches,
+    aclrtMemcpyBatchAttr* attrs,
+    size_t* attrsIndexes,
+    size_t numAttrs,
+    size_t* failIndex) {
+  ACL_CALL_LOG(
+      "aclrtMemcpyBatch",
+      "dsts=" << dsts << ", destMax=" << destMax << ", srcs=" << srcs << ", sizes=" << sizes
+              << ", numBatches=" << numBatches << ", attrs=" << attrs << ", attrsIndexes=" << attrsIndexes
+              << ", numAttrs=" << numAttrs << ", failIndex=" << failIndex);
+  typedef aclError (*AclrtMemcpyBatchFunc)(
+      void**, size_t*, void**, size_t*, size_t, aclrtMemcpyBatchAttr*, size_t*, size_t, size_t*);
+  static AclrtMemcpyBatchFunc func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtMemcpyBatchFunc)TORCH_NPU_GET_FUNC(aclrtMemcpyBatch);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtMemcpyBatch", PROF_ERROR(ErrCode::NOT_FOUND));
+  return func(dsts, destMax, srcs, sizes, numBatches, attrs, attrsIndexes, numAttrs, failIndex);
+}
+
+aclError AclrtMemcpyBatchAsync(
+    void** dsts,
+    size_t* destMax,
+    void** srcs,
+    size_t* sizes,
+    size_t numBatches,
+    aclrtMemcpyBatchAttr* attrs,
+    size_t* attrsIndexes,
+    size_t numAttrs,
+    size_t* failIndex,
+    aclrtStream stream) {
+  ACL_CALL_LOG(
+      "aclrtMemcpyBatchAsync",
+      "dsts=" << dsts << ", destMax=" << destMax << ", srcs=" << srcs << ", sizes=" << sizes
+              << ", numBatches=" << numBatches << ", attrs=" << attrs << ", attrsIndexes=" << attrsIndexes
+              << ", numAttrs=" << numAttrs << ", failIndex=" << failIndex << ", stream=" << stream);
+  typedef aclError (*AclrtMemcpyBatchAsyncFunc)(
+      void**, size_t*, void**, size_t*, size_t, aclrtMemcpyBatchAttr*, size_t*, size_t, size_t*, aclrtStream);
+  static AclrtMemcpyBatchAsyncFunc func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtMemcpyBatchAsyncFunc)TORCH_NPU_GET_FUNC(aclrtMemcpyBatchAsync);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtMemcpyBatchAsync", PROF_ERROR(ErrCode::NOT_FOUND));
+  return func(dsts, destMax, srcs, sizes, numBatches, attrs, attrsIndexes, numAttrs, failIndex, stream);
+}
+
+aclError AclrtLaunchCallback(aclrtCallback fn, void* userData, aclrtCallbackBlockType blockType, aclrtStream stream) {
+  ACL_CALL_LOG(
+      "aclrtLaunchCallback",
+      "fn=" << reinterpret_cast<void*>(fn) << ", userData=" << userData << ", blockType=" << blockType
+            << ", stream=" << stream);
+  typedef aclError (*AclrtLaunchCallback)(aclrtCallback, void*, aclrtCallbackBlockType, aclrtStream);
+  static AclrtLaunchCallback func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtLaunchCallback)TORCH_NPU_GET_FUNC(aclrtLaunchCallback);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclrtLaunchCallback", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(fn, userData, blockType, stream);
+}
+
+aclError AclrtLaunchHostFunc(aclrtStream stream, aclrtHostFunc func, void* args) {
+  ACL_CALL_LOG(
+      "aclrtLaunchHostFunc", "stream=" << stream << ", func=" << reinterpret_cast<void*>(func) << ", args=" << args);
+  typedef aclError (*AclrtLaunchHostFunc)(aclrtStream, aclrtHostFunc, void*);
+  static AclrtLaunchHostFunc funcptr = nullptr;
+  if (funcptr == nullptr) {
+    funcptr = (AclrtLaunchHostFunc)TORCH_NPU_GET_FUNC(aclrtLaunchHostFunc);
+  }
+
+  TORCH_CHECK(funcptr, "Failed to find function aclrtLaunchHostFunc", PTA_ERROR(ErrCode::NOT_FOUND));
+  return funcptr(stream, func, args);
+}
+
+aclError AclrtSubscribeReport(uint64_t threadId, aclrtStream stream) {
+  ACL_CALL_LOG("aclrtSubscribeReport", "threadId=" << threadId << ", stream=" << stream);
+  typedef aclError (*AclrtSubscribeReport)(uint64_t, aclrtStream);
+  static AclrtSubscribeReport func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtSubscribeReport)TORCH_NPU_GET_FUNC(aclrtSubscribeReport);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclrtSubscribeReport", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(threadId, stream);
+}
+
+aclError AclrtUnSubscribeReport(uint64_t theadId, aclrtStream stream) {
+  ACL_CALL_LOG("aclrtUnSubscribeReport", "threadId=" << theadId << ", stream=" << stream);
+  typedef aclError (*AclrtUnSubscribeReport)(uint64_t, aclrtStream);
+  static AclrtUnSubscribeReport func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtUnSubscribeReport)TORCH_NPU_GET_FUNC(aclrtUnSubscribeReport);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclrtUnSubscribeReport", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(theadId, stream);
+}
+
+bool AclrtMemcpyAsyncWithConditionExist() {
+  const static bool isAclrtMemcpyAsyncWithConditionExist = []() -> bool {
+    std::string currentCANNVersion = GetCANNVersion("CANN");
+    if (currentCANNVersion == "") {
+      return false;
     }
-    TORCH_CHECK(func, "Failed to find function ", "aclrtEventGetTimestamp", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(event, timestamp);
-}
-
-aclError AclmdlRICaptureBegin(aclrtStream stream, aclmdlRICaptureMode mode)
-{
-    ACL_CALL_LOG("aclmdlRICaptureBegin", "stream=" << stream << ", mode=" << mode);
-    typedef aclError (*AclmdlRICaptureBegin)(aclrtStream, aclmdlRICaptureMode);
-    static AclmdlRICaptureBegin func = nullptr;
-    if (func == nullptr) {
-        func = (AclmdlRICaptureBegin) TORCH_NPU_GET_FUNC(aclmdlRICaptureBegin);
+    const std::string kMinDriverVersion = "25.0.RC1";
+    if (!IsGteDriverVersion(kMinDriverVersion)) {
+      return false;
     }
-
-    TORCH_CHECK(func, "Failed to find function aclmdlRICaptureBegin", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(stream, mode);
-}
-
-aclError AclmdlRICaptureGetInfo(aclrtStream stream, aclmdlRICaptureStatus *status, aclmdlRI *modelRI)
-{
-    ACL_CALL_LOG("aclmdlRICaptureGetInfo", "stream=" << stream << ", status=" << status
-             << ", modelRI=" << modelRI);
-    typedef aclError (*AclmdlRICaptureGetInfo)(aclrtStream, aclmdlRICaptureStatus *, aclmdlRI *);
-    static AclmdlRICaptureGetInfo func = nullptr;
-    if (func == nullptr) {
-        func = (AclmdlRICaptureGetInfo) TORCH_NPU_GET_FUNC(aclmdlRICaptureGetInfo);
+    auto func = TORCH_NPU_GET_FUNC(aclrtMemcpyAsyncWithCondition);
+    if (func != nullptr) {
+      ASCEND_LOGI("Successfully to find function aclrtMemcpyAsyncWithCondition");
+      return c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1;
     }
-
-    TORCH_CHECK(func, "Failed to find function aclmdlRICaptureGetInfo", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(stream, status, modelRI);
+    return false;
+  }();
+  return isAclrtMemcpyAsyncWithConditionExist;
 }
 
-aclError AclmdlRICaptureEnd(aclrtStream stream, aclmdlRI *modelRI)
-{
-    ACL_CALL_LOG("aclmdlRICaptureEnd", "stream=" << stream << ", modelRI=" << modelRI);
-    typedef aclError (*AclmdlRICaptureEnd)(aclrtStream, aclmdlRI *);
-    static AclmdlRICaptureEnd func = nullptr;
-    if (func == nullptr) {
-        func = (AclmdlRICaptureEnd) TORCH_NPU_GET_FUNC(aclmdlRICaptureEnd);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclmdlRICaptureEnd", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(stream, modelRI);
-}
-
-aclError AclmdlRICondHandleCreate(aclmdlRI modelRI, unsigned int defaultLaunchValue, uint32_t flag,
-                                  aclmdlRICondHandle *handle)
-{
-    ACL_CALL_LOG("aclmdlRICondHandleCreate", "modelRI=" << modelRI << ", defaultLaunchValue="
-             << defaultLaunchValue << ", flag=" << flag << ", handle=" << handle);
-    typedef aclError (*AclmdlRICondHandleCreate)(aclmdlRI, unsigned int, uint32_t, aclmdlRICondHandle *);
-    static AclmdlRICondHandleCreate func = nullptr;
-    if (func == nullptr) {
-        func = (AclmdlRICondHandleCreate) TORCH_NPU_GET_FUNC(aclmdlRICondHandleCreate);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclmdlRICondHandleCreate", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(modelRI, defaultLaunchValue, flag, handle);
-}
-
-aclError AclmdlRICondHandleGetCondPtr(aclmdlRICondHandle handle, uint64_t **ptr)
-{
-    ACL_CALL_LOG("aclmdlRICondHandleGetCondPtr", "handle=" << handle << ", ptr=" << ptr);
-    typedef aclError (*AclmdlRICondHandleGetCondPtr)(aclmdlRICondHandle, uint64_t **);
-    static AclmdlRICondHandleGetCondPtr func = nullptr;
-    if (func == nullptr) {
-        func = (AclmdlRICondHandleGetCondPtr) TORCH_NPU_GET_FUNC(aclmdlRICondHandleGetCondPtr);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclmdlRICondHandleGetCondPtr", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(handle, ptr);
-}
-
-aclError AclmdlRIAddCondTask(aclmdlRICondTaskParams params, aclrtStream stream, uint32_t flags)
-{
-    ACL_CALL_LOG("aclmdlRIAddCondTask", "handle=" << params.handle << ", type=" << params.type
-             << ", size=" << params.size << ", modelRIArray=" << params.modelRIArray
-             << ", stream=" << stream << ", flags=" << flags);
-    typedef aclError (*AclmdlRIAddCondTask)(aclmdlRICondTaskParams, aclrtStream, uint32_t);
-    static AclmdlRIAddCondTask func = nullptr;
-    if (func == nullptr) {
-        func = (AclmdlRIAddCondTask) TORCH_NPU_GET_FUNC(aclmdlRIAddCondTask);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclmdlRIAddCondTask", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(params, stream, flags);
-}
-
-aclError AclmdlRICaptureToModelRIBegin(aclrtStream stream, aclmdlRI modelRI, aclmdlRICaptureMode mode)
-{
-    ACL_CALL_LOG("aclmdlRICaptureToModelRIBegin", "stream=" << stream << ", modelRI=" << modelRI
-             << ", mode=" << mode);
-    typedef aclError (*AclmdlRICaptureToModelRIBegin)(aclrtStream, aclmdlRI, aclmdlRICaptureMode);
-    static AclmdlRICaptureToModelRIBegin func = nullptr;
-    if (func == nullptr) {
-        func = (AclmdlRICaptureToModelRIBegin) TORCH_NPU_GET_FUNC(aclmdlRICaptureToModelRIBegin);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclmdlRICaptureToModelRIBegin", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(stream, modelRI, mode);
-}
-
-aclError AclmdlRIDebugPrint(aclmdlRI modelRI)
-{
-    ACL_CALL_LOG("aclmdlRIDebugPrint", "modelRI=" << modelRI);
-    typedef aclError (*AclmdlRIDebugPrint)(aclmdlRI);
-    static AclmdlRIDebugPrint func = nullptr;
-    if (func == nullptr) {
-        func = (AclmdlRIDebugPrint) TORCH_NPU_GET_FUNC(aclmdlRIDebugPrint);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclmdlRIDebugPrint", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(modelRI);
-}
-
-aclError AclmdlRIExecuteAsync(aclmdlRI modelRI, aclrtStream stream)
-{
-    ACL_CALL_LOG("aclmdlRIExecuteAsync", "modelRI=" << modelRI << ", stream=" << stream);
-    typedef aclError (*AclmdlRIExecuteAsync)(aclmdlRI, aclrtStream);
-    static AclmdlRIExecuteAsync func = nullptr;
-    if (func == nullptr) {
-        func = (AclmdlRIExecuteAsync) TORCH_NPU_GET_FUNC(aclmdlRIExecuteAsync);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclmdlRIExecuteAsync", PTA_ERROR(ErrCode::NOT_FOUND));
-
-    return func(modelRI, stream);
-}
-
-aclError AclmdlRIDestroy(aclmdlRI modelRI)
-{
-    ACL_CALL_LOG("aclmdlRIDestroy", "modelRI=" << modelRI);
-    typedef aclError (*AclmdlRIDestroy)(aclmdlRI);
-    static AclmdlRIDestroy func = nullptr;
-    if (func == nullptr) {
-        func = (AclmdlRIDestroy) TORCH_NPU_GET_FUNC(aclmdlRIDestroy);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclmdlRIDestroy", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(modelRI);
-}
-
-bool IsCaptureSupported()
-{
-    static bool is_support = false;
-    static bool have_load_func = false;
-    static bool default_support_capture = ((GetSocVersion() >= SocVersion::Ascend910B1) &&
-        (GetSocVersion() < SocVersion::Ascend310B1)) ||
-        ((GetSocVersion() >= SocVersion::Ascend910_9391));
-    if (default_support_capture && !have_load_func) {
-        have_load_func = true;
-        typedef aclError (*AclmdlRICaptureGetInfo)(aclrtStream, aclmdlRICaptureStatus *, aclmdlRI *);
-        static AclmdlRICaptureGetInfo func = (AclmdlRICaptureGetInfo) TORCH_NPU_GET_FUNC(aclmdlRICaptureGetInfo);
-        is_support = (func != nullptr);
-    }
-
-    return is_support;
-}
-
-aclError AclmdlRICaptureTaskGrpBegin(aclrtStream stream)
-{
-    ACL_CALL_LOG("aclmdlRICaptureTaskGrpBegin", "stream=" << stream);
-    typedef aclError (*AclmdlRICaptureTaskGrpBegin)(aclrtStream);
-    static AclmdlRICaptureTaskGrpBegin func = nullptr;
-    if (func == nullptr) {
-        func = (AclmdlRICaptureTaskGrpBegin) TORCH_NPU_GET_FUNC(aclmdlRICaptureTaskGrpBegin);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclmdlRICaptureTaskGrpBegin", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(stream);
-}
-
-aclError AclmdlRICaptureTaskGrpEnd(aclrtStream stream, aclrtTaskGrp *handle)
-{
-    ACL_CALL_LOG("aclmdlRICaptureTaskGrpEnd", "stream=" << stream << ", handle=" << handle);
-    typedef aclError (*AclmdlRICaptureTaskGrpEnd)(aclrtStream, aclrtTaskGrp*);
-    static AclmdlRICaptureTaskGrpEnd func = nullptr;
-    if (func == nullptr) {
-        func = (AclmdlRICaptureTaskGrpEnd) TORCH_NPU_GET_FUNC(aclmdlRICaptureTaskGrpEnd);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclmdlRICaptureTaskGrpEnd", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(stream, handle);
-}
-
-aclError AclmdlRICaptureTaskUpdateBegin(aclrtStream stream, aclrtTaskGrp handle)
-{
-    ACL_CALL_LOG("aclmdlRICaptureTaskUpdateBegin", "stream=" << stream << ", handle=" << handle);
-    typedef aclError (*AclmdlRICaptureTaskUpdateBegin)(aclrtStream, aclrtTaskGrp);
-    static AclmdlRICaptureTaskUpdateBegin func = nullptr;
-    if (func == nullptr) {
-        func = (AclmdlRICaptureTaskUpdateBegin) TORCH_NPU_GET_FUNC(aclmdlRICaptureTaskUpdateBegin);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclmdlRICaptureTaskUpdateBegin", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(stream, handle);
-}
-
-aclError AclmdlRICaptureTaskUpdateEnd(aclrtStream stream)
-{
-    ACL_CALL_LOG("aclmdlRICaptureTaskUpdateEnd", "stream=" << stream);
-    typedef aclError (*AclmdlRICaptureTaskUpdateEnd)(aclmdlRI);
-    static AclmdlRICaptureTaskUpdateEnd func = nullptr;
-    if (func == nullptr) {
-        func = (AclmdlRICaptureTaskUpdateEnd) TORCH_NPU_GET_FUNC(aclmdlRICaptureTaskUpdateEnd);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclmdlRICaptureTaskUpdateEnd", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(stream);
-}
-
-aclError AclmdlRIDebugJsonPrint(aclmdlRI modelRI, const char* path, uint32_t flags)
-{
-    ACL_CALL_LOG("aclmdlRIDebugJsonPrint", "modelRI=" << modelRI << ", path=" << (path ? path : "nullptr") << ", flags=" << flags);
-    typedef aclError (*AclmdlRIDebugJsonPrint)(aclmdlRI, const char*, uint32_t flags);
-    static AclmdlRIDebugJsonPrint func = nullptr;
-    if (func == nullptr) {
-        func = (AclmdlRIDebugJsonPrint) TORCH_NPU_GET_FUNC(aclmdlRIDebugJsonPrint);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclmdlRIDebugJsonPrint", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(modelRI, path, flags);
-}
-
-aclError AclrtHostRegister(void *ptr, uint64_t size, aclrtHostRegisterType type, void **devPtr)
-{
-    ACL_CALL_LOG("aclrtHostRegister", "ptr=" << ptr << ", size=" << size
-             << ", type=" << type << ", devPtr=" << devPtr);
-    typedef aclError (*AclrtHostRegister)(void *, uint64_t, aclrtHostRegisterType, void **);
-    static AclrtHostRegister func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtHostRegister) TORCH_NPU_GET_FUNC(aclrtHostRegister);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclrtHostRegister", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(ptr, size, type, devPtr);
-}
-
-aclError AclrtHostRegisterV2(void *ptr, uint64_t size, uint32_t flag)
-{
-    typedef aclError (*AclrtHostRegisterV2)(void *ptr, uint64_t size, uint32_t flag);
-    static AclrtHostRegisterV2 func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtHostRegisterV2) TORCH_NPU_GET_FUNC(aclrtHostRegisterV2);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclrtHostRegisterV2", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(ptr, size, flag);
-}
-
-aclError AclrtHostUnregister(void *ptr)
-{
-    typedef aclError (*AclrtHostUnregister)(void *);
-    static AclrtHostUnregister func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtHostUnregister) TORCH_NPU_GET_FUNC(aclrtHostUnregister);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclrtHostUnregister", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(ptr);
-}
-
-aclError AclrtMallocHostWithCfg(void **ptr, uint64_t size, aclrtMallocConfig *cfg)
-{
-    ACL_CALL_LOG("aclrtMallocHostWithCfg", "ptr=" << ptr << ", size=" << size << ", cfg=" << cfg);
-    typedef aclError (*AclrtMallocHostWithCfg)(void **, uint64_t, aclrtMallocConfig *);
-    static AclrtMallocHostWithCfg func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtMallocHostWithCfg) TORCH_NPU_GET_FUNC(aclrtMallocHostWithCfg);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclrtMallocHostWithCfg", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(ptr, size, cfg);
-}
-
-bool AclrtMallocHostWithCfgExist()
-{
-    const static bool isAclrtMallocHostWithCfgExist = []() -> bool {
-        std::string currentCANNVersion = GetCANNVersion("CANN");
-        if (currentCANNVersion == "") {
-            return false;
-        }
-        const std::string kMinDriverVersion = "26.0.rc1";
-        if (!IsGteDriverVersion(kMinDriverVersion)) {
-            return false;
-        }
-        // determine the runtime version
-        const std::string kMinRuntimeVersion = "8.5.0";
-        if (!IsGteCANNVersion(kMinRuntimeVersion, "RUNTIME")) {
-            return false;
-        }
-        auto func = TORCH_NPU_GET_FUNC(aclrtMallocHostWithCfg);
-        if (func != nullptr) {
-            ASCEND_LOGI("Successfully to find function aclrtMallocHostWithCfg");
-            return c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1 &&
-                c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend950;
-        }
-        return false;
-    }();
-    return isAclrtMallocHostWithCfgExist;
-}
-
-aclError AclrtIpcMemGetExportKey(void *devPtr, size_t size, char *key, size_t len, uint64_t flag)
-{
-    ACL_CALL_LOG("aclrtIpcMemGetExportKey", "devPtr=" << devPtr << ", size=" << size
-             << ", key=" << (key ? "[out buffer]" : "nullptr") << ", len=" << len
-             << ", flag=" << flag);
-    typedef aclError (*AclrtIpcMemGetExportKey)(void *, size_t, char *, size_t, uint64_t);
-    static AclrtIpcMemGetExportKey func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtIpcMemGetExportKey) TORCH_NPU_GET_FUNC(aclrtIpcMemGetExportKey);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclrtIpcMemGetExportKey", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(devPtr, size, key, len, flag);
-}
-
-aclError AclrtIpcMemSetImportPid(const char *key, int32_t *pid, size_t num)
-{
-    ACL_CALL_LOG("aclrtIpcMemSetImportPid", "has_key=" << (key != nullptr) << ", pid=" << pid << ", num=" << num);
-    typedef aclError (*AclrtIpcMemSetImportPid)(const char *, int32_t *, size_t);
-    static AclrtIpcMemSetImportPid func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtIpcMemSetImportPid) TORCH_NPU_GET_FUNC(aclrtIpcMemSetImportPid);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclrtIpcMemSetImportPid", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(key, pid, num);
-}
-
-aclError AclrtIpcMemImportByKey(void **devPtr, const char *key, uint64_t flag)
-{
-    ACL_CALL_LOG("aclrtIpcMemImportByKey", "devPtr=" << devPtr
-             << ", has_key=" << (key != nullptr) << ", flag=" << flag);
-    typedef aclError (*AclrtIpcMemImportByKey)(void **, const char *, uint64_t);
-    static AclrtIpcMemImportByKey func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtIpcMemImportByKey) TORCH_NPU_GET_FUNC(aclrtIpcMemImportByKey);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclrtIpcMemImportByKey", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(devPtr, key, flag);
-}
-
-aclError AclrtIpcMemClose(const char *key)
-{
-    ACL_CALL_LOG("aclrtIpcMemClose", "has_key=" << (key != nullptr));
-    typedef aclError (*AclrtIpcMemClose)(const char *);
-    static AclrtIpcMemClose func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtIpcMemClose) TORCH_NPU_GET_FUNC(aclrtIpcMemClose);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclrtIpcMemClose", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(key);
-}
-
-aclError AclrtMemExportToShareableHandle(aclrtDrvMemHandle handle, aclrtMemHandleType handleType,
-                                         uint64_t flags, uint64_t *shareableHandle)
-{
-    ACL_CALL_LOG("aclrtMemExportToShareableHandle", "handle=" << handle << ", handleType=" << handleType
-             << ", flags=" << flags << ", shareableHandle=" << shareableHandle);
-    typedef aclError (*AclrtMemExportToShareableHandle)(aclrtDrvMemHandle, aclrtMemHandleType, uint64_t, uint64_t *);
-    static AclrtMemExportToShareableHandle func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtMemExportToShareableHandle) TORCH_NPU_GET_FUNC(aclrtMemExportToShareableHandle);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclrtMemExportToShareableHandle", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(handle, handleType, flags, shareableHandle);
-}
-
-aclError AclrtMemSetPidToShareableHandle(uint64_t shareableHandle, int32_t *pid, size_t pidNum)
-{
-    ACL_CALL_LOG("aclrtMemSetPidToShareableHandle", "shareableHandle=" << shareableHandle
-             << ", pid=" << pid << ", pidNum=" << pidNum);
-    typedef aclError (*AclrtMemSetPidToShareableHandle)(uint64_t, int32_t *, size_t);
-    static AclrtMemSetPidToShareableHandle func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtMemSetPidToShareableHandle) TORCH_NPU_GET_FUNC(aclrtMemSetPidToShareableHandle);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclrtMemSetPidToShareableHandle", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(shareableHandle, pid, pidNum);
-}
-
-aclError AclrtMemImportFromShareableHandle(uint64_t shareableHandle, int32_t deviceId, aclrtDrvMemHandle *handle)
-{
-    ACL_CALL_LOG("aclrtMemImportFromShareableHandle", "shareableHandle=" << shareableHandle
-             << ", deviceId=" << deviceId << ", handle=" << handle);
-    typedef aclError (*AclrtMemImportFromShareableHandle)(uint64_t, int32_t, aclrtDrvMemHandle *);
-    static AclrtMemImportFromShareableHandle func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtMemImportFromShareableHandle) TORCH_NPU_GET_FUNC(aclrtMemImportFromShareableHandle);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclrtMemImportFromShareableHandle", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(shareableHandle, deviceId, handle);
-}
-
-aclError AclrtDeviceGetBareTgid(int32_t *pid)
-{
-    ACL_CALL_LOG("aclrtDeviceGetBareTgid", "pid=" << pid);
-    typedef aclError (*AclrtDeviceGetBareTgid)(int32_t *);
-    static AclrtDeviceGetBareTgid func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtDeviceGetBareTgid) TORCH_NPU_GET_FUNC(aclrtDeviceGetBareTgid);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclrtDeviceGetBareTgid", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(pid);
-}
-
-aclError AclrtGetDeviceResLimit(int32_t deviceId, aclrtDevResLimitType type, uint32_t* value)
-{
-    ACL_CALL_LOG("aclrtSetDeviceResLimit", "deviceId=" << deviceId << ", type=" << type
-             << ", value=" << value);
-    typedef aclError (*AclrtGetDeviceResLimit)(int32_t, aclrtDevResLimitType, uint32_t*);
-    static AclrtGetDeviceResLimit func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtGetDeviceResLimit) TORCH_NPU_GET_FUNC(aclrtGetDeviceResLimit);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclrtGetDeviceResLimit", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(deviceId, type, value);
-}
-
-aclError AclrtSetDeviceResLimit(int32_t deviceId, aclrtDevResLimitType type, uint32_t value)
-{
-    ACL_CALL_LOG("aclrtResetDeviceResLimit", "deviceId=" << deviceId);
-    typedef aclError (*AclrtSetDeviceResLimit)(int32_t, aclrtDevResLimitType, uint32_t);
-    static AclrtSetDeviceResLimit func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtSetDeviceResLimit) TORCH_NPU_GET_FUNC(aclrtSetDeviceResLimit);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclrtSetDeviceResLimit", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(deviceId, type, value);
-}
-
-aclError AclrtResetDeviceResLimit(int32_t deviceId)
-{
-    ACL_CALL_LOG("aclrtResetDeviceResLimit", "deviceId=" << deviceId);
-    typedef aclError (*AclrtResetDeviceResLimit)(int32_t);
-    static AclrtResetDeviceResLimit func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtResetDeviceResLimit) TORCH_NPU_GET_FUNC(aclrtResetDeviceResLimit);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclrtResetDeviceResLimit", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(deviceId);
-}
-
-aclError AclrtStreamGetId(aclrtStream stream, int32_t* stream_id)
-{
-    ACL_CALL_LOG("aclrtStreamGetId", "stream=" << stream << ", stream_id=" << stream_id);
-    typedef aclError(*AclrtStreamGetIdFunc)(aclrtStream, int32_t*);
-    static AclrtStreamGetIdFunc func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtStreamGetIdFunc)TORCH_NPU_GET_FUNC(aclrtStreamGetId);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclrtStreamGetId", PROF_ERROR(ErrCode::NOT_FOUND));
-    return func(stream, stream_id);
-}
-
-bool IsExistMemcpyBatch()
-{
-    typedef aclError(*AclrtMemcpyBatchFunc)(void **, size_t *, void **, size_t *,
-                                            size_t, aclrtMemcpyBatchAttr *, size_t *,
-                                            size_t, size_t *);
-    static AclrtMemcpyBatchFunc func = (AclrtMemcpyBatchFunc) TORCH_NPU_GET_FUNC(aclrtMemcpyBatch);
-    return func != nullptr;
-}
-
-bool IsExistRtGetStreamId()
-{
-    typedef aclError(*AclrtStreamGetIdFunc)(aclrtStream, int32_t*);
-    static AclrtStreamGetIdFunc func = (AclrtStreamGetIdFunc) TORCH_NPU_GET_FUNC(aclrtStreamGetId);
-    return func != nullptr;
-}
-
-bool IsExistMemcpyBatchAsync()
-{
-    typedef aclError(*AclrtMemcpyBatchAsyncFunc)(void **, size_t *, void **, size_t *,
-                                                 size_t, aclrtMemcpyBatchAttr *, size_t *,
-                                                 size_t, size_t *);
-    static AclrtMemcpyBatchAsyncFunc func = (AclrtMemcpyBatchAsyncFunc) TORCH_NPU_GET_FUNC(aclrtMemcpyBatchAsync);
-    return func != nullptr;
-}
-
-aclError AclrtMemcpyBatch(void **dsts, size_t *destMax, void **srcs, size_t *sizes,
-                          size_t numBatches, aclrtMemcpyBatchAttr *attrs, size_t *attrsIndexes,
-                          size_t numAttrs, size_t *failIndex)
-{
-    ACL_CALL_LOG("aclrtMemcpyBatch", "dsts=" << dsts << ", destMax=" << destMax
-             << ", srcs=" << srcs << ", sizes=" << sizes << ", numBatches=" << numBatches
-             << ", attrs=" << attrs << ", attrsIndexes=" << attrsIndexes
-             << ", numAttrs=" << numAttrs << ", failIndex=" << failIndex);
-    typedef aclError(*AclrtMemcpyBatchFunc)(void **, size_t *, void **, size_t *,
-                                            size_t, aclrtMemcpyBatchAttr *, size_t *,
-                                            size_t, size_t *);
-    static AclrtMemcpyBatchFunc func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtMemcpyBatchFunc) TORCH_NPU_GET_FUNC(aclrtMemcpyBatch);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclrtMemcpyBatch", PROF_ERROR(ErrCode::NOT_FOUND));
-    return func(dsts, destMax, srcs, sizes, numBatches, attrs, attrsIndexes, numAttrs, failIndex);
-}
-
-aclError AclrtMemcpyBatchAsync(void **dsts, size_t *destMax, void **srcs, size_t *sizes,
-                               size_t numBatches, aclrtMemcpyBatchAttr *attrs, size_t *attrsIndexes,
-                               size_t numAttrs, size_t *failIndex, aclrtStream stream)
-{
-    ACL_CALL_LOG("aclrtMemcpyBatchAsync", "dsts=" << dsts << ", destMax=" << destMax
-             << ", srcs=" << srcs << ", sizes=" << sizes << ", numBatches=" << numBatches
-             << ", attrs=" << attrs << ", attrsIndexes=" << attrsIndexes
-             << ", numAttrs=" << numAttrs << ", failIndex=" << failIndex
+aclError AclrtMemcpyAsyncWithCondition(
+    void* dst,
+    size_t destMax,
+    const void* src,
+    size_t count,
+    aclrtMemcpyKind kind,
+    aclrtStream stream) {
+  ACL_CALL_LOG(
+      "aclrtMemcpyAsyncWithCondition",
+      "dst=" << dst << ", destMax=" << destMax << ", src=" << src << ", count=" << count << ", kind=" << kind
              << ", stream=" << stream);
-    typedef aclError(*AclrtMemcpyBatchAsyncFunc)(void **, size_t *, void **, size_t *,
-                                                 size_t, aclrtMemcpyBatchAttr *, size_t *,
-                                                 size_t, size_t *, aclrtStream);
-    static AclrtMemcpyBatchAsyncFunc func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtMemcpyBatchAsyncFunc) TORCH_NPU_GET_FUNC(aclrtMemcpyBatchAsync);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclrtMemcpyBatchAsync", PROF_ERROR(ErrCode::NOT_FOUND));
-    return func(dsts, destMax, srcs, sizes, numBatches, attrs, attrsIndexes, numAttrs, failIndex, stream);
+  typedef aclError (*AclrtMemcpyAsyncWithConditionFunc)(
+      void*, size_t, const void*, size_t, aclrtMemcpyKind, aclrtStream);
+  static AclrtMemcpyAsyncWithConditionFunc func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtMemcpyAsyncWithConditionFunc)TORCH_NPU_GET_FUNC(aclrtMemcpyAsyncWithCondition);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtMemcpyAsyncWithCondition", PROF_ERROR(ErrCode::NOT_FOUND));
+  return func(dst, destMax, src, count, kind, stream);
 }
 
-aclError AclrtLaunchCallback(aclrtCallback fn, void *userData, aclrtCallbackBlockType blockType, aclrtStream stream)
-{
-    ACL_CALL_LOG("aclrtLaunchCallback", "fn=" << reinterpret_cast<void*>(fn) << ", userData=" << userData
-             << ", blockType=" << blockType << ", stream=" << stream);
-    typedef aclError (*AclrtLaunchCallback)(aclrtCallback, void *, aclrtCallbackBlockType, aclrtStream);
-    static AclrtLaunchCallback func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtLaunchCallback) TORCH_NPU_GET_FUNC(aclrtLaunchCallback);
-    }
+aclError AclrtSetStreamResLimit(aclrtStream stream, aclrtDevResLimitType type, uint32_t value) {
+  ACL_CALL_LOG("aclrtSetStreamResLimit", "stream=" << stream << ", type=" << type << ", value=" << value);
+  typedef aclError (*AclrtSetStreamResLimit)(aclrtStream, aclrtDevResLimitType, uint32_t);
+  static AclrtSetStreamResLimit func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtSetStreamResLimit)TORCH_NPU_GET_FUNC(aclrtSetStreamResLimit);
+  }
 
-    TORCH_CHECK(func, "Failed to find function aclrtLaunchCallback", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(fn, userData, blockType, stream);
+  TORCH_CHECK(func, "Failed to find function aclrtSetStreamResLimit", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(stream, type, value);
 }
 
-aclError AclrtLaunchHostFunc(aclrtStream stream, aclrtHostFunc func, void *args)
-{
-    ACL_CALL_LOG("aclrtLaunchHostFunc", "stream=" << stream << ", func=" << reinterpret_cast<void*>(func)
-             << ", args=" << args);
-    typedef aclError (*AclrtLaunchHostFunc)(aclrtStream, aclrtHostFunc, void *);
-    static AclrtLaunchHostFunc funcptr = nullptr;
-    if (funcptr == nullptr) {
-        funcptr = (AclrtLaunchHostFunc) TORCH_NPU_GET_FUNC(aclrtLaunchHostFunc);
-    }
+aclError AclrtResetStreamResLimit(aclrtStream stream) {
+  ACL_CALL_LOG("aclrtResetStreamResLimit", "stream=" << stream);
+  typedef aclError (*AclrtResetStreamResLimit)(aclrtStream);
+  static AclrtResetStreamResLimit func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtResetStreamResLimit)TORCH_NPU_GET_FUNC(aclrtResetStreamResLimit);
+  }
 
-    TORCH_CHECK(funcptr, "Failed to find function aclrtLaunchHostFunc", PTA_ERROR(ErrCode::NOT_FOUND));
-    return funcptr(stream, func, args);
+  TORCH_CHECK(func, "Failed to find function aclrtResetStreamResLimit", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(stream);
 }
 
-aclError AclrtSubscribeReport(uint64_t threadId, aclrtStream stream)
-{
-    ACL_CALL_LOG("aclrtSubscribeReport", "threadId=" << threadId << ", stream=" << stream);
-    typedef aclError (*AclrtSubscribeReport)(uint64_t, aclrtStream);
-    static AclrtSubscribeReport func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtSubscribeReport) TORCH_NPU_GET_FUNC(aclrtSubscribeReport);
-    }
+aclError AclrtGetStreamResLimit(aclrtStream stream, aclrtDevResLimitType type, uint32_t* value) {
+  ACL_CALL_LOG("aclrtGetStreamResLimit", "stream=" << stream << ", type=" << type << ", value=" << value);
+  typedef aclError (*AclrtGetStreamResLimit)(aclrtStream, aclrtDevResLimitType, uint32_t*);
+  static AclrtGetStreamResLimit func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtGetStreamResLimit)TORCH_NPU_GET_FUNC(aclrtGetStreamResLimit);
+  }
 
-    TORCH_CHECK(func, "Failed to find function aclrtSubscribeReport", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(threadId, stream);
+  TORCH_CHECK(func, "Failed to find function aclrtGetStreamResLimit", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(stream, type, value);
 }
 
-aclError AclrtUnSubscribeReport(uint64_t theadId, aclrtStream stream)
-{
-    ACL_CALL_LOG("aclrtUnSubscribeReport", "threadId=" << theadId << ", stream=" << stream);
-    typedef aclError (*AclrtUnSubscribeReport)(uint64_t, aclrtStream);
-    static AclrtUnSubscribeReport func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtUnSubscribeReport) TORCH_NPU_GET_FUNC(aclrtUnSubscribeReport);
-    }
+aclError AclrtUseStreamResInCurrentThread(aclrtStream stream) {
+  ACL_CALL_LOG("aclrtUseStreamResInCurrentThread", "stream=" << stream);
+  typedef aclError (*AclrtUseStreamResInCurrentThread)(aclrtStream);
+  static AclrtUseStreamResInCurrentThread func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtUseStreamResInCurrentThread)TORCH_NPU_GET_FUNC(aclrtUseStreamResInCurrentThread);
+  }
 
-    TORCH_CHECK(func, "Failed to find function aclrtUnSubscribeReport", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(theadId, stream);
+  TORCH_CHECK(func, "Failed to find function aclrtUseStreamResInCurrentThread", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(stream);
 }
 
-bool AclrtMemcpyAsyncWithConditionExist()
-{
-    const static bool isAclrtMemcpyAsyncWithConditionExist = []() -> bool {
-        std::string currentCANNVersion = GetCANNVersion("CANN");
-        if (currentCANNVersion == "") {
-            return false;
-        }
-        const std::string kMinDriverVersion = "25.0.RC1";
-        if (!IsGteDriverVersion(kMinDriverVersion)) {
-            return false;
-        }
-        auto func = TORCH_NPU_GET_FUNC(aclrtMemcpyAsyncWithCondition);
-        if (func != nullptr) {
-            ASCEND_LOGI("Successfully to find function aclrtMemcpyAsyncWithCondition");
-            return c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1;
-        }
-        return false;
-    }();
-    return isAclrtMemcpyAsyncWithConditionExist;
+aclError AclrtUnuseStreamResInCurrentThread(aclrtStream stream) {
+  ACL_CALL_LOG("aclrtUnuseStreamResInCurrentThread", "stream=" << stream);
+  typedef aclError (*AclrtUnuseStreamResInCurrentThread)(aclrtStream);
+  static AclrtUnuseStreamResInCurrentThread func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtUnuseStreamResInCurrentThread)TORCH_NPU_GET_FUNC(aclrtUnuseStreamResInCurrentThread);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclrtUnuseStreamResInCurrentThread", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(stream);
 }
 
-aclError AclrtMemcpyAsyncWithCondition(void *dst, size_t destMax, const void *src,
-                                       size_t count, aclrtMemcpyKind kind, aclrtStream stream)
-{
-    ACL_CALL_LOG("aclrtMemcpyAsyncWithCondition", "dst=" << dst << ", destMax=" << destMax
-             << ", src=" << src << ", count=" << count << ", kind=" << kind
-             << ", stream=" << stream);
-    typedef aclError(*AclrtMemcpyAsyncWithConditionFunc)(void*, size_t, const void*, size_t, aclrtMemcpyKind, aclrtStream);
-    static AclrtMemcpyAsyncWithConditionFunc func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtMemcpyAsyncWithConditionFunc)TORCH_NPU_GET_FUNC(aclrtMemcpyAsyncWithCondition);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclrtMemcpyAsyncWithCondition", PROF_ERROR(ErrCode::NOT_FOUND));
-    return func(dst, destMax, src, count, kind, stream);
+aclError AclrtGetResInCurrentThread(aclrtDevResLimitType type, uint32_t* value) {
+  ACL_CALL_LOG("aclrtGetResInCurrentThread", "type=" << type << ", value=" << value);
+  typedef aclError (*AclrtGetResInCurrentThread)(aclrtDevResLimitType, uint32_t*);
+  static AclrtGetResInCurrentThread func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtGetResInCurrentThread)TORCH_NPU_GET_FUNC(aclrtGetResInCurrentThread);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclrtGetResInCurrentThread", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(type, value);
 }
 
-aclError AclrtSetStreamResLimit(aclrtStream stream, aclrtDevResLimitType type, uint32_t value)
-{
-    ACL_CALL_LOG("aclrtSetStreamResLimit", "stream=" << stream << ", type=" << type
-             << ", value=" << value);
-    typedef aclError (*AclrtSetStreamResLimit)(aclrtStream, aclrtDevResLimitType, uint32_t);
-    static AclrtSetStreamResLimit func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtSetStreamResLimit) TORCH_NPU_GET_FUNC(aclrtSetStreamResLimit);
-    }
+aclError AclrtPointerGetAttributes(const void* ptr, aclrtPtrAttributes* attributes) {
+  ACL_CALL_LOG("aclrtPointerGetAttributes", "ptr=" << ptr << ", attributes=" << attributes);
+  using AclrtPointerGetAttributes = aclError (*)(const void*, aclrtPtrAttributes*);
+  static AclrtPointerGetAttributes func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtPointerGetAttributes)TORCH_NPU_GET_FUNC(aclrtPointerGetAttributes);
+  }
 
-    TORCH_CHECK(func, "Failed to find function aclrtSetStreamResLimit", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(stream, type, value);
+  TORCH_CHECK(func, "Failed to find function aclrtPointerGetAttributes", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(ptr, attributes);
 }
 
-aclError AclrtResetStreamResLimit(aclrtStream stream)
-{
-    ACL_CALL_LOG("aclrtResetStreamResLimit", "stream=" << stream);
-    typedef aclError (*AclrtResetStreamResLimit)(aclrtStream);
-    static AclrtResetStreamResLimit func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtResetStreamResLimit) TORCH_NPU_GET_FUNC(aclrtResetStreamResLimit);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclrtResetStreamResLimit", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(stream);
-}
-
-aclError AclrtGetStreamResLimit(aclrtStream stream, aclrtDevResLimitType type, uint32_t* value)
-{
-    ACL_CALL_LOG("aclrtGetStreamResLimit", "stream=" << stream << ", type=" << type
-             << ", value=" << value);
-    typedef aclError (*AclrtGetStreamResLimit)(aclrtStream, aclrtDevResLimitType, uint32_t*);
-    static AclrtGetStreamResLimit func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtGetStreamResLimit) TORCH_NPU_GET_FUNC(aclrtGetStreamResLimit);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclrtGetStreamResLimit", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(stream, type, value);
-}
-
-aclError AclrtUseStreamResInCurrentThread(aclrtStream stream)
-{
-    ACL_CALL_LOG("aclrtUseStreamResInCurrentThread", "stream=" << stream);
-    typedef aclError (*AclrtUseStreamResInCurrentThread)(aclrtStream);
-    static AclrtUseStreamResInCurrentThread func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtUseStreamResInCurrentThread) TORCH_NPU_GET_FUNC(aclrtUseStreamResInCurrentThread);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclrtUseStreamResInCurrentThread", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(stream);
-}
-
-aclError AclrtUnuseStreamResInCurrentThread(aclrtStream stream)
-{
-    ACL_CALL_LOG("aclrtUnuseStreamResInCurrentThread", "stream=" << stream);
-    typedef aclError (*AclrtUnuseStreamResInCurrentThread)(aclrtStream);
-    static AclrtUnuseStreamResInCurrentThread func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtUnuseStreamResInCurrentThread) TORCH_NPU_GET_FUNC(aclrtUnuseStreamResInCurrentThread);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclrtUnuseStreamResInCurrentThread", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(stream);
-}
-
-aclError AclrtGetResInCurrentThread(aclrtDevResLimitType type, uint32_t* value)
-{
-    ACL_CALL_LOG("aclrtGetResInCurrentThread", "type=" << type << ", value=" << value);
-    typedef aclError (*AclrtGetResInCurrentThread)(aclrtDevResLimitType, uint32_t*);
-    static AclrtGetResInCurrentThread func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtGetResInCurrentThread) TORCH_NPU_GET_FUNC(aclrtGetResInCurrentThread);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclrtGetResInCurrentThread", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(type, value);
-}
-
-aclError AclrtPointerGetAttributes(const void *ptr, aclrtPtrAttributes *attributes)
-{
-    ACL_CALL_LOG("aclrtPointerGetAttributes", "ptr=" << ptr << ", attributes=" << attributes);
-    using AclrtPointerGetAttributes = aclError (*)(const void*, aclrtPtrAttributes*);
-    static AclrtPointerGetAttributes func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtPointerGetAttributes) TORCH_NPU_GET_FUNC(aclrtPointerGetAttributes);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclrtPointerGetAttributes", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(ptr, attributes);
-}
-
-bool AclrtPointerGetAttributesExist()
-{
-    const static bool isAclrtPointerGetAttributesExist = []() -> bool {
-        const std::string kMinDriverVersion = "25.5.0";
-        if (!IsGteDriverVersion(kMinDriverVersion)) {
-            return false;
-        }
-        const std::string kMinRuntimeVersion = "8.5.0";
-        if (!IsGteCANNVersion(kMinRuntimeVersion, "RUNTIME")) {
-            return false;
-        }
-        auto func = TORCH_NPU_GET_FUNC(aclrtPointerGetAttributes)
-        return func != nullptr;
-    }();
-    return isAclrtPointerGetAttributesExist;
-}
-
-aclError AclrtSetStreamAttribute(aclrtStream stream, aclrtStreamAttr stmAttrType, aclrtStreamAttrValue *value)
-{
-    ACL_CALL_LOG("aclrtSetStreamAttribute", "stream=" << stream << ", stmAttrType=" << stmAttrType
-             << ", value=" << value);
-    typedef aclError (*AclrtSetStreamAttribute)(aclrtStream, aclrtStreamAttr, aclrtStreamAttrValue*);
-    static AclrtSetStreamAttribute func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtSetStreamAttribute) TORCH_NPU_GET_FUNC(aclrtSetStreamAttribute);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclrtSetStreamAttribute", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(stream, stmAttrType, value);
-}
-
-bool IsExistDeviceGetUuid()
-{
-    typedef aclError (*AclrtDeviceGetUuid)(int32_t, aclrtUuid*);
-    static AclrtDeviceGetUuid func = (AclrtDeviceGetUuid)TORCH_NPU_GET_FUNC(aclrtDeviceGetUuid);
-    return func != nullptr;
-}
-
-aclError AclrtDeviceGetUuid(int32_t deviceId, aclrtUuid* uuid)
-{
-    typedef aclError (*AclrtDeviceGetUuid)(int32_t, aclrtUuid*);
-    static AclrtDeviceGetUuid func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtDeviceGetUuid)TORCH_NPU_GET_FUNC(aclrtDeviceGetUuid);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclrtDeviceGetUuid", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(deviceId, uuid);
-}
-
-bool IsExistAclrtGetErrorVerbose()
-{
+bool AclrtPointerGetAttributesExist() {
+  const static bool isAclrtPointerGetAttributesExist = []() -> bool {
+    // Ascend950 HDK has supported this since its first commercial release.
+    // The first commercial HDK versions are: PCIe card: 25.7, Pod: 25.1,
+    // Server: 25.6.
     if (c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend950) {
+      const std::string kMinDriverVersion = "25.5.0";
+      if (!IsGteDriverVersion(kMinDriverVersion)) {
         return false;
+      }
     }
-    using AclrtGetErrorVerboseFunc = aclError(*)(int32_t, aclrtErrorInfo *);
-    static AclrtGetErrorVerboseFunc func = (AclrtGetErrorVerboseFunc) TORCH_NPU_GET_FUNC(aclrtGetErrorVerbose);
-    return func != nullptr;
+    const std::string kMinRuntimeVersion = "8.5.0";
+    if (!IsGteCANNVersion(kMinRuntimeVersion, "RUNTIME")) {
+      return false;
+    }
+    auto func = TORCH_NPU_GET_FUNC(aclrtPointerGetAttributes) return func != nullptr;
+  }();
+  return isAclrtPointerGetAttributesExist;
 }
 
-aclError AclrtGetErrorVerbose(int32_t deviceId, aclrtErrorInfo *errorInfo)
-{
-    using AclrtGetErrorVerbose = aclError(*)(int32_t, aclrtErrorInfo *);
-    static AclrtGetErrorVerbose func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtGetErrorVerbose) TORCH_NPU_GET_FUNC(aclrtGetErrorVerbose);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclrtGetErrorVerbose", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(deviceId, errorInfo);
+aclError AclrtSetStreamAttribute(aclrtStream stream, aclrtStreamAttr stmAttrType, aclrtStreamAttrValue* value) {
+  ACL_CALL_LOG(
+      "aclrtSetStreamAttribute", "stream=" << stream << ", stmAttrType=" << stmAttrType << ", value=" << value);
+  typedef aclError (*AclrtSetStreamAttribute)(aclrtStream, aclrtStreamAttr, aclrtStreamAttrValue*);
+  static AclrtSetStreamAttribute func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtSetStreamAttribute)TORCH_NPU_GET_FUNC(aclrtSetStreamAttribute);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclrtSetStreamAttribute", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(stream, stmAttrType, value);
 }
 
-bool IsExistAclrtRepairError()
-{
-    if (c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend950) {
-        return false;
-    }
-    using AclrtRepairErrorFunc = aclError(*)(int32_t, const aclrtErrorInfo *);
-    static AclrtRepairErrorFunc func = (AclrtRepairErrorFunc) TORCH_NPU_GET_FUNC(aclrtRepairError);
-    return func != nullptr;
+bool IsExistDeviceGetUuid() {
+  typedef aclError (*AclrtDeviceGetUuid)(int32_t, aclrtUuid*);
+  static AclrtDeviceGetUuid func = (AclrtDeviceGetUuid)TORCH_NPU_GET_FUNC(aclrtDeviceGetUuid);
+  return func != nullptr;
 }
 
-aclError AclrtRepairError(int32_t deviceId, const aclrtErrorInfo *errorInfo)
-{
-    using AclrtRepairError = aclError(*)(int32_t, const aclrtErrorInfo *);
-    static AclrtRepairError func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtRepairError) TORCH_NPU_GET_FUNC(aclrtRepairError);
-    }
-    TORCH_CHECK(func, "Failed to find function ", "aclrtRepairError", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(deviceId, errorInfo);
+aclError AclrtDeviceGetUuid(int32_t deviceId, aclrtUuid* uuid) {
+  typedef aclError (*AclrtDeviceGetUuid)(int32_t, aclrtUuid*);
+  static AclrtDeviceGetUuid func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtDeviceGetUuid)TORCH_NPU_GET_FUNC(aclrtDeviceGetUuid);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclrtDeviceGetUuid", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(deviceId, uuid);
 }
 
-aclError AclrtGetPrimaryCtxState(int32_t deviceId, uint32_t* flags, int32_t* activate)
-{
-    typedef aclError (*AclrtGetPrimaryCtxState)(int32_t, uint32_t*, int32_t*);
-    static AclrtGetPrimaryCtxState func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtGetPrimaryCtxState) TORCH_NPU_GET_FUNC(aclrtGetPrimaryCtxState);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclrtGetPrimaryCtxState", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(deviceId, flags, activate);
+bool IsExistAclrtGetErrorVerbose() {
+  if (c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend950) {
+    return false;
+  }
+  using AclrtGetErrorVerboseFunc = aclError (*)(int32_t, aclrtErrorInfo*);
+  static AclrtGetErrorVerboseFunc func = (AclrtGetErrorVerboseFunc)TORCH_NPU_GET_FUNC(aclrtGetErrorVerbose);
+  return func != nullptr;
 }
 
-bool IsExistAclrtGetDeviceInfo()
-{
-    typedef aclError (*AclrtGetDeviceInfo)(uint32_t, aclrtDevAttr, int64_t *);
-    static AclrtGetDeviceInfo func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtGetDeviceInfo)TORCH_NPU_GET_FUNC(aclrtGetDeviceInfo);
-    }
-    return func != nullptr;
+aclError AclrtGetErrorVerbose(int32_t deviceId, aclrtErrorInfo* errorInfo) {
+  using AclrtGetErrorVerbose = aclError (*)(int32_t, aclrtErrorInfo*);
+  static AclrtGetErrorVerbose func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtGetErrorVerbose)TORCH_NPU_GET_FUNC(aclrtGetErrorVerbose);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtGetErrorVerbose", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(deviceId, errorInfo);
 }
 
-aclError AclrtGetDeviceInfo(uint32_t deviceId, aclrtDevAttr attr, int64_t *value)
-{
-    ACL_CALL_LOG("aclrtGetDeviceInfo", "deviceId=" << deviceId << ", attr=" << attr << ", value=" << value);
-    typedef aclError (*AclrtGetDeviceInfo)(uint32_t, aclrtDevAttr, int64_t *);
-    static AclrtGetDeviceInfo func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtGetDeviceInfo)TORCH_NPU_GET_FUNC(aclrtGetDeviceInfo);
-    }
-    TORCH_CHECK(func, "Failed to find function aclrtGetDeviceInfo", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(deviceId, attr, value);
+bool IsExistAclrtRepairError() {
+  if (c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend950) {
+    return false;
+  }
+  using AclrtRepairErrorFunc = aclError (*)(int32_t, const aclrtErrorInfo*);
+  static AclrtRepairErrorFunc func = (AclrtRepairErrorFunc)TORCH_NPU_GET_FUNC(aclrtRepairError);
+  return func != nullptr;
 }
 
-aclError AclrtMemSet(void *devPtr, size_t maxCount, int32_t value, size_t count)
-{
-    typedef aclError (*AclrtMemSet)(void *, size_t, int32_t, size_t);
-    static AclrtMemSet func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtMemSet) TORCH_NPU_GET_FUNC(aclrtMemset);
-    }
-    TORCH_CHECK(func, "Failed to find function aclrtMemset", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(devPtr, maxCount, value, count);
+aclError AclrtRepairError(int32_t deviceId, const aclrtErrorInfo* errorInfo) {
+  using AclrtRepairError = aclError (*)(int32_t, const aclrtErrorInfo*);
+  static AclrtRepairError func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtRepairError)TORCH_NPU_GET_FUNC(aclrtRepairError);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtRepairError", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(deviceId, errorInfo);
 }
 
-aclError AclrtMemSetAsync(void *devPtr, size_t maxCount, int32_t value, size_t count, aclrtStream stream)
-{
-    typedef aclError (*AclrtMemSetAsync)(void *, size_t, int32_t, size_t, aclrtStream);
-    static AclrtMemSetAsync func = nullptr;
-    if (func == nullptr) {
-        func = (AclrtMemSetAsync) TORCH_NPU_GET_FUNC(aclrtMemsetAsync);
-    }
-    TORCH_CHECK(func, "Failed to find function aclrtMemsetAsync", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(devPtr, maxCount, value, count, stream);
+aclError AclrtGetPrimaryCtxState(int32_t deviceId, uint32_t* flags, int32_t* activate) {
+  typedef aclError (*AclrtGetPrimaryCtxState)(int32_t, uint32_t*, int32_t*);
+  static AclrtGetPrimaryCtxState func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtGetPrimaryCtxState)TORCH_NPU_GET_FUNC(aclrtGetPrimaryCtxState);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclrtGetPrimaryCtxState", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(deviceId, flags, activate);
 }
 
-aclError AclmdlRICaptureThreadExchangeMode(aclmdlRICaptureMode* mode)
-{
-    typedef aclError (*AclmdlRICaptureThreadExchangeMode)(aclmdlRICaptureMode*);
-    static AclmdlRICaptureThreadExchangeMode func = nullptr;
-    if (func == nullptr) {
-        func = (AclmdlRICaptureThreadExchangeMode) TORCH_NPU_GET_FUNC(aclmdlRICaptureThreadExchangeMode);
-    }
-
-    TORCH_CHECK(func, "Failed to find function aclmdlRICaptureThreadExchangeMode", PTA_ERROR(ErrCode::NOT_FOUND));
-    return func(mode);
+bool IsExistAclrtGetDeviceInfo() {
+  typedef aclError (*AclrtGetDeviceInfo)(uint32_t, aclrtDevAttr, int64_t*);
+  static AclrtGetDeviceInfo func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtGetDeviceInfo)TORCH_NPU_GET_FUNC(aclrtGetDeviceInfo);
+  }
+  return func != nullptr;
 }
 
+aclError AclrtGetDeviceInfo(uint32_t deviceId, aclrtDevAttr attr, int64_t* value) {
+  ACL_CALL_LOG("aclrtGetDeviceInfo", "deviceId=" << deviceId << ", attr=" << attr << ", value=" << value);
+  typedef aclError (*AclrtGetDeviceInfo)(uint32_t, aclrtDevAttr, int64_t*);
+  static AclrtGetDeviceInfo func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtGetDeviceInfo)TORCH_NPU_GET_FUNC(aclrtGetDeviceInfo);
+  }
+  TORCH_CHECK(func, "Failed to find function aclrtGetDeviceInfo", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(deviceId, attr, value);
+}
+
+aclError AclrtMemSet(void* devPtr, size_t maxCount, int32_t value, size_t count) {
+  typedef aclError (*AclrtMemSet)(void*, size_t, int32_t, size_t);
+  static AclrtMemSet func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtMemSet)TORCH_NPU_GET_FUNC(aclrtMemset);
+  }
+  TORCH_CHECK(func, "Failed to find function aclrtMemset", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(devPtr, maxCount, value, count);
+}
+
+aclError AclrtMemSetAsync(void* devPtr, size_t maxCount, int32_t value, size_t count, aclrtStream stream) {
+  typedef aclError (*AclrtMemSetAsync)(void*, size_t, int32_t, size_t, aclrtStream);
+  static AclrtMemSetAsync func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtMemSetAsync)TORCH_NPU_GET_FUNC(aclrtMemsetAsync);
+  }
+  TORCH_CHECK(func, "Failed to find function aclrtMemsetAsync", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(devPtr, maxCount, value, count, stream);
+}
+
+aclError AclmdlRICaptureThreadExchangeMode(aclmdlRICaptureMode* mode) {
+  typedef aclError (*AclmdlRICaptureThreadExchangeMode)(aclmdlRICaptureMode*);
+  static AclmdlRICaptureThreadExchangeMode func = nullptr;
+  if (func == nullptr) {
+    func = (AclmdlRICaptureThreadExchangeMode)TORCH_NPU_GET_FUNC(aclmdlRICaptureThreadExchangeMode);
+  }
+
+  TORCH_CHECK(func, "Failed to find function aclmdlRICaptureThreadExchangeMode", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(mode);
+}
+
+aclError AclrtGetLogicDevIdByUserDevId(const int32_t userDevid, int32_t* const logicDevId) {
+  typedef aclError (*AclrtGetLogicDevIdByUserDevId)(const int32_t, int32_t* const);
+  static AclrtGetLogicDevIdByUserDevId func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtGetLogicDevIdByUserDevId)TORCH_NPU_GET_FUNC(aclrtGetLogicDevIdByUserDevId);
+  }
+  TORCH_CHECK(func, "Failed to find function aclrtGetLogicDevIdByUserDevId", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(userDevid, logicDevId);
+}
 } // namespace acl
-} // namespace c10
+} // namespace c10_npu

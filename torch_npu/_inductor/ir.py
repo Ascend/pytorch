@@ -1,114 +1,132 @@
-import itertools
-import torch
-from torch._inductor.virtualized import ops, OpsValue, V
-from torch._inductor.ir import log, Layout
+﻿#!/usr/bin/env python3
+from collections.abc import Callable, Sequence
+from typing_extensions import Never
+
+from sympy import Expr, Integer
+
 from torch._inductor import config
+from torch._inductor.codegen.common import BackendFeature
+from torch._inductor.ir import Reduction, ReductionHint, Scatter, sympy_product
+from torch._inductor.utils import ir_dataclass
+from torch._inductor.virtualized import ops, V
 
+@ir_dataclass
+class IndexputTemplate(Scatter):
+    boundary: int | None = None
 
-def patch_fallback_kernel_codegen():
-    def codegen_npu(self, wrapper) -> None:  # type: ignore[no-untyped-def]
-        kernel = self.op_overload
-        if kernel.namespace == "aten":  # type: ignore[union-attr]
-            if not isinstance(kernel, torch._ops.OpOverload):
-                raise AssertionError(f"kernel should be OpOverload, but got {type(kernel)}")
-            if V.graph.cpp_wrapper:
-                # Fallback all npu op to proxy executor and warn when gpu do not.
-                from torchgen.aoti.fallback_ops import inductor_fallback_ops
-                self.use_runtime_dispatch = True
-                if str(kernel) in inductor_fallback_ops:
-                    log.warning(
-                        "%s is using proxy executor as fallback instead of aoti shim.",
-                        kernel,
-                    )
+    def store_output(
+        self,
+        output_name: str | None,
+        indexer: Callable[[Sequence[Expr]], Never],
+        store_vars: Sequence[Expr],
+    ) -> None:
+        loader = self.make_loader()
+        if output_name is None:
+            output_name = "unnamed"
+        output_indexer = self.output_indexer(store_vars)
+        indirect_indexer = None
+        for var in output_indexer:
+            if str(var).startswith("indirect"):
+                indirect_indexer = var
+                break
 
-        elif kernel.namespace == "_quantized":  # type: ignore[union-attr]
-            # Internal Quantized Fallback Ops
-            if not isinstance(kernel, torch._ops.OpOverload):
-                raise AssertionError
-        elif V.graph.cpp_wrapper:
-            # For non-aten OpOverload, i.e. custom ops
-            # If the op is in custom_ops_to_c_shims, generate direct function call
-            self.use_runtime_dispatch = (
-                kernel not in config.aot_inductor.custom_ops_to_c_shims
-            )
+        return ops.indexput_template(
+            output_name,
+            indexer(output_indexer),
+            loader(store_vars),
+            indirect_indexer,
+            self.boundary,
+        )
 
-        # Handle the special case where a complex number is input to a C-shim kernel for
-        # a scalar input.  The torchgen'ed shim API will use type "double", which is
-        # incompatible with complex numbers, forcing a fallback to runtime dispatch.
-        if (
-            V.graph.cpp_wrapper
-            and isinstance(kernel, torch._ops.OpOverload)
-            and not self.use_runtime_dispatch
-        ):
+class ScatterTemplate(Scatter):
+    def store_output(
+        self,
+        output_name: str | None,
+        indexer: Callable[[Sequence[Expr]], Never],
+        store_vars: Sequence[Expr],
+    ) -> None:
+        loader = self.make_loader()
+        if output_name is None:
+            output_name = "unnamed"
+        output_indexer, boundary = self.output_indexer(store_vars)
+        indirect_indexer = None
+        for var in output_indexer:
+            if str(var).startswith("indirect"):
+                indirect_indexer = var
+                break
 
-            def is_number(t: torch.JitType) -> bool:
-                if isinstance(t, torch.OptionalType):
-                    return is_number(t.getElementType())
-                return isinstance(t, torch.NumberType)
+        return ops.scatter_template(
+            output_name,
+            indexer(output_indexer),
+            loader(store_vars),
+            indirect_indexer,
+            int(boundary),
+        )
 
-            # Using unflatten_args is a bit of a hack, but all the complex arguments we
-            # care about are in self.constant_args, and calling unflatten_args puts them
-            # in the correct order without triggering codegen.
-            args, kwargs = self.unflatten_args(self.inputs, self.constant_args)
-            # Append kwarg values to args.  ordered_kwargs_for_cpp_kernel is guaranteed
-            # to be set, since this is an OpOverload kernel.
-            args_iter = itertools.chain(
-                args,
-                (
-                    self.get_kwargs_value(k, **kwargs)
-                    for k in self.ordered_kwargs_for_cpp_kernel
-                ),
-            )
-            self.use_runtime_dispatch = any(
-                isinstance(v, complex) and is_number(a.real_type)
-                for v, a in zip(args_iter, kernel._schema.arguments)
-            )
+def reduction_split_factor(reduction_ranges):
+    def get_hint(x):
+        if isinstance(x, (int, float)):
+            return x
+        try:
+            return int(V.graph.sizevars.optimization_hint(x))
+        except Exception:
+            return 1
 
-        self.codegen_comment(wrapper)
-        if self.use_runtime_dispatch:
-            exported_args = self.export_extern_kernel_node()
-            wrapper.generate_fallback_kernel_with_runtime_lookup(
-                self.get_name(),
-                self.python_kernel_name,
-                lambda: [*self.codegen_args(), *self.codegen_kwargs()],
-                self.op_overload,
-                exported_args,
-                # NOTE: [special handling of all_reduce_coalesced_'s return value]
-                self.outputs if self.outputs else self.mutation_outputs,
-            )
-        else:
-            wrapper.generate_fallback_kernel(self)
-            if isinstance(self.layout, Layout):
-                self.codegen_size_asserts(wrapper)
-                self.codegen_alignment_asserts(wrapper)
+    ranges = [h for num in reduction_ranges if (h := get_hint(num)) > 1]
+    if not ranges:
+        return 1
+    return min(ranges)
 
-        self.codegen_unbacked_symbol_defs(wrapper)
+def num_splits(
+    device,
+    dst_dtype,
+    src_dtype,
+    inner_fn,
+    ranges,
+    reduction_ranges,
+    reduction_type,
+    reduction_numel,
+    input_node=None,
+):
+    def _is_static(x: object) -> bool:
+        return isinstance(x, (int, Integer))
 
-    from torch._inductor.ir import FallbackKernel
-    FallbackKernel.codegen = codegen_npu
+    reduction_numel_hint = V.graph.sizevars.optimization_hint(reduction_numel)
+    numel_hint = V.graph.sizevars.optimization_hint(sympy_product(ranges))
+    if not (_is_static(reduction_numel_hint) and _is_static(numel_hint)):
+        # We don't support unbacked symints
+        return ReductionHint.DEFAULT, 1
 
+    should_split = reduction_type == "scan" or (
+        not V.graph.has_feature(device, BackendFeature.REDUCE_TO_SINGLE_ELEMENT)
+        and reduction_type
+        not in (
+            "argmax",
+            "argmin",
+        )
+        and config.split_reductions
+    )
 
-def patch_extern_kernel_codegen_size_asserts():
-    from torch._inductor.ir import ExternKernel
-    from . import config as npu_config
-    original_codegen_size_asserts = ExternKernel.codegen_size_asserts
+    if should_split:
+        inner_reduction_splits = reduction_split_factor
+    else:
 
-    def npu_codegen_size_asserts(self, wrapper):
-        fx_node = getattr(self, 'fx_node', None)
-        should_skip = False
-        if fx_node and fx_node.target:
-            skip_config = getattr(npu_config, 'skip_specific_stride_asserts', [])
-            if isinstance(skip_config, (list, tuple)):
-                should_skip = fx_node.target in skip_config
-        if should_skip:
-            if config.size_asserts and not V.graph.cpp_wrapper:
-                from torch._inductor.utils import sympy_product
-                if sympy_product(self.get_size()) == 0:
-                    return
-                wrapper.writeline(
-                    f"# NPU: Skipping stride assertion for {fx_node.target}"
-                )
-        else:
-            original_codegen_size_asserts(self, wrapper)
+        def inner_reduction_splits(reduction_ranges):
+            return 1
 
-    ExternKernel.codegen_size_asserts = npu_codegen_size_asserts
+    if numel_hint == 1:
+        # A reduction whose reduction group has exactly ONE dynamic axis (any other
+        # reduction axes static): keep a single Reduction node (split==1) instead of
+        # a degenerate multilayer split; grid is forced to 1 in select_split_axis so
+        # it loops the runtime numel with a tail mask. Covers pure 1D
+        # (reduction_ranges == [n]) and full reduce with extra static reduction dims
+        # (e.g. [n, 1024] -> reduction_ranges == [n, 1024]).
+        num_dynamic_reduction = sum(1 for r in reduction_ranges if not _is_static(r))
+        if num_dynamic_reduction == 1:
+            return ReductionHint.INNER, 1
+        split = inner_reduction_splits(reduction_ranges)
+        return ReductionHint.INNER, split
+    return ReductionHint.DEFAULT, 1
+
+def patch_num_splits():
+    Reduction.num_splits = num_splits

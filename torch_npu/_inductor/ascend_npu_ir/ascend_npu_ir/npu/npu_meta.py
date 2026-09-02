@@ -5,7 +5,7 @@ from torch._ops import OpOverload, OpOverloadPacket
 from torch._subclasses import fake_tensor as _subclasses_fake_tensor
 from torch._C import DispatchKey
 from torch._decomp import decomposition_table
-from torch_npu._indutor.lowering_common import run_once
+from torch_npu._inductor.lowering_common import run_once
 
 aten = torch.ops.aten
 npu = torch.ops.npu

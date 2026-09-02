@@ -16,7 +16,7 @@
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
-#include <third_party/acl/inc/acl/acl.h>
+#include <acl/acl.h>
 
 namespace c10_npu {
 
@@ -37,9 +37,9 @@ C10_NPU_API c10::DeviceIndex device_count_ensure_non_zero();
  * @retval ACL_ERROR_NONE The function is successfully executed.
  * @retval OtherValues Failure
  */
-C10_NPU_API aclError GetDevice(int32_t *device);
+C10_NPU_API aclError GetDevice(int32_t* device);
 
-aclError GetDeviceWithoutSet(int32_t *device);
+aclError GetDeviceWithoutSet(int32_t* device);
 
 /**
  * @ingroup torch_npu
@@ -89,7 +89,11 @@ void LazySetDevice(c10::DeviceIndex device);
 
 int GetLocalDevice();
 
+enum class DevResLimitType { CUBE = 0, VECTOR = 1 };
+
 aclError SetDeviceResLimit(int32_t device, int32_t type, uint32_t value);
+
+void SetDeviceResLimitFromEnv(c10::DeviceIndex device);
 
 C10_NPU_API uint32_t GetDeviceResLimit(int32_t deviceId, int32_t type);
 
@@ -109,32 +113,46 @@ C10_NPU_API uint32_t GetResInCurrentThread(int32_t type);
 
 void SetDeterministicLevel(uint32_t level);
 
-uint32_t GetDeterministicLevel();
+enum class DeterministicBackend { Legacy, V2 };
+
+struct DeterministicSnapshot {
+  bool deterministic_algorithms_enabled = false;
+  uint32_t requested_level = 0;
+  uint32_t effective_level = 0;
+  DeterministicBackend backend = DeterministicBackend::Legacy;
+};
+
+uint32_t GetEffectiveDeterministicLevel();
+
+DeterministicSnapshot CaptureDeterministicSnapshot();
+
+DeterministicBackend GetDeterministicBackend();
+
+bool IsSupportDeterministicLevel3();
+
+C10_NPU_API uint32_t GetDeterministicLevel();
 
 enum class SyncDebugMode { L_DISABLED = 0, L_WARN, L_ERROR };
 
 // it's used to store npu synchronization state
 // through this global state to determine the synchronization debug mode
 class WarningState {
-public:
-    void set_sync_debug_mode(SyncDebugMode level)
-    {
-        sync_debug_mode = level;
-    }
+ public:
+  void set_sync_debug_mode(SyncDebugMode level) {
+    sync_debug_mode = level;
+  }
 
-    SyncDebugMode get_sync_debug_mode()
-    {
-        return sync_debug_mode;
-    }
+  SyncDebugMode get_sync_debug_mode() {
+    return sync_debug_mode;
+  }
 
-private:
-    SyncDebugMode sync_debug_mode = SyncDebugMode::L_DISABLED;
+ private:
+  SyncDebugMode sync_debug_mode = SyncDebugMode::L_DISABLED;
 };
 
-C10_NPU_API inline WarningState& warning_state()
-{
-    static WarningState warning_state_;
-    return warning_state_;
+C10_NPU_API inline WarningState& warning_state() {
+  static WarningState warning_state_;
+  return warning_state_;
 }
 
 // this function has to be called from callers performing npu synchronizing
@@ -147,36 +165,31 @@ enum class ModelMode { L_UNKNOW = -1, L_TRAIN = 0, L_INFER };
 
 // it's used to store npu call state. eg: forward, backward.
 class ModelState {
-public:
-    void set_call_state(CallStateMode mode)
-    {
-        call_state_mode = mode;
-    }
+ public:
+  void set_call_state(CallStateMode mode) {
+    call_state_mode = mode;
+  }
 
-    CallStateMode get_call_state()
-    {
-        return call_state_mode;
-    }
+  CallStateMode get_call_state() {
+    return call_state_mode;
+  }
 
-    void set_model_mode(ModelMode mode)
-    {
-        model_mode = mode;
-    }
+  void set_model_mode(ModelMode mode) {
+    model_mode = mode;
+  }
 
-    ModelMode get_model_mode()
-    {
-        return model_mode;
-    }
+  ModelMode get_model_mode() {
+    return model_mode;
+  }
 
-private:
-    CallStateMode call_state_mode = CallStateMode::L_UNKNOW;
-    ModelMode model_mode = ModelMode::L_UNKNOW;
+ private:
+  CallStateMode call_state_mode = CallStateMode::L_UNKNOW;
+  ModelMode model_mode = ModelMode::L_UNKNOW;
 };
 
-C10_NPU_API inline ModelState& model_state()
-{
-    static ModelState model_state_;
-    return model_state_;
+C10_NPU_API inline ModelState& model_state() {
+  static ModelState model_state_;
+  return model_state_;
 }
 
 bool IsContextInitialized();

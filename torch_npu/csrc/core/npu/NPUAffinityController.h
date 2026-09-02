@@ -7,8 +7,7 @@
 namespace c10_npu {
 
 enum ThreadType {
-  MAIN_THREAD =
-      0, // 1st performance hotspot, responsible for operator dispatching.
+  MAIN_THREAD = 0, // 1st performance hotspot, responsible for operator dispatching.
   ACL_THREAD = 1, // 2nd performance hotspot in PTA, responsible for handling
                   // the task queue.
   RELEASE_THREAD = 2, // Thread responsible for resource release.
@@ -32,8 +31,7 @@ inline bool isAllDigits(const std::string& str) {
   if (str.empty()) {
     return false;
   }
-  return std::all_of(
-      str.begin(), str.end(), [](unsigned char c) { return std::isdigit(c); });
+  return std::all_of(str.begin(), str.end(), [](unsigned char c) { return std::isdigit(c); });
 }
 
 } // namespace c10_npu

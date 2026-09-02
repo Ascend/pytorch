@@ -82,6 +82,9 @@ class ProfilerConfig:
         self._activities = []
         self._is_load = False
 
+    def reset_is_load(self):
+        self._is_load = False
+
     @property
     def data_simplification(self):
         return self._data_simplification

@@ -19,33 +19,32 @@
 namespace at_npu {
 namespace native {
 
-void memory_swap(void* dst, size_t dst_len, void* src, size_t src_len, int type)
-{
-    TORCH_CHECK(dst != nullptr, "dst is nullptr", PTA_ERROR(ErrCode::PTR));
-    TORCH_CHECK(src != nullptr, "src is nullptr", PTA_ERROR(ErrCode::PTR));
-    TORCH_CHECK(dst_len > 0, "expect dst_len > 0, but got: ", dst_len, PTA_ERROR(ErrCode::VALUE));
-    TORCH_CHECK(src_len > 0, "expect src_len > 0, but got: ", src_len, PTA_ERROR(ErrCode::VALUE));
-    TORCH_CHECK(type >= 0 && type <= 3, "expect type in [0, 3], but got: ", type, PTA_ERROR(ErrCode::VALUE));
+void memory_swap(void* dst, size_t dst_len, void* src, size_t src_len, int type) {
+  TORCH_CHECK(dst != nullptr, "dst is nullptr", PTA_ERROR(ErrCode::PTR));
+  TORCH_CHECK(src != nullptr, "src is nullptr", PTA_ERROR(ErrCode::PTR));
+  TORCH_CHECK(dst_len > 0, "expect dst_len > 0, but got: ", dst_len, PTA_ERROR(ErrCode::VALUE));
+  TORCH_CHECK(src_len > 0, "expect src_len > 0, but got: ", src_len, PTA_ERROR(ErrCode::VALUE));
+  TORCH_CHECK(type >= 0 && type <= 3, "expect type in [0, 3], but got: ", type, PTA_ERROR(ErrCode::VALUE));
 
-    aclrtMemcpyKind kind = aclrtMemcpyKind::ACL_MEMCPY_HOST_TO_HOST;
-    switch (type) {
-        case 0:
-            kind = aclrtMemcpyKind::ACL_MEMCPY_HOST_TO_HOST;
-            break;
-        case 1:
-            kind = aclrtMemcpyKind::ACL_MEMCPY_HOST_TO_DEVICE;
-            break;
-        case 2:
-            kind = aclrtMemcpyKind::ACL_MEMCPY_DEVICE_TO_HOST;
-            break;
-        case 3:
-            kind = aclrtMemcpyKind::ACL_MEMCPY_DEVICE_TO_DEVICE;
-            break;
-        default:
-            break;
-    }
+  aclrtMemcpyKind kind = aclrtMemcpyKind::ACL_MEMCPY_HOST_TO_HOST;
+  switch (type) {
+    case 0:
+      kind = aclrtMemcpyKind::ACL_MEMCPY_HOST_TO_HOST;
+      break;
+    case 1:
+      kind = aclrtMemcpyKind::ACL_MEMCPY_HOST_TO_DEVICE;
+      break;
+    case 2:
+      kind = aclrtMemcpyKind::ACL_MEMCPY_DEVICE_TO_HOST;
+      break;
+    case 3:
+      kind = aclrtMemcpyKind::ACL_MEMCPY_DEVICE_TO_DEVICE;
+      break;
+    default:
+      break;
+  }
 
-    NPU_CHECK_ERROR(c10_npu::queue::LaunchAsyncCopyTask(dst, dst_len, src, src_len, kind));
+  NPU_CHECK_ERROR(c10_npu::queue::LaunchAsyncCopyTask(dst, dst_len, src, src_len, kind));
 }
 
 } // namespace native

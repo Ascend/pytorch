@@ -45,75 +45,39 @@ command = [
 ]
 
 
-# [[linter]]
-# code = 'CLANGFORMAT'
-# include_patterns = [
-#     'aten/src/ATen/*.h',
-#     'aten/src/ATen/cpu/vec/**/*.h',
-#     'aten/src/ATen/accelerator/**/*.h',
-#     'aten/src/ATen/accelerator/**/*.cpp',
-#     'aten/src/ATen/mps/**/*.mm',
-#     'aten/src/ATen/mps/**/*.h',
-#     'aten/src/ATen/xpu/**/*.h',
-#     'aten/src/ATen/xpu/**/*.cpp',
-#     'aten/src/ATen/core/boxing/**/*.h',
-#     'aten/src/ATen/core/dispatch/**/*.h',
-#     'aten/src/ATen/core/Formatting.cpp',
-#     'aten/src/ATen/native/mps/**/*.metal',
-#     'aten/src/ATen/native/mps/**/*.mm',
-#     'aten/src/ATen/native/mps/**/*.h',
-#     'aten/src/ATen/native/vulkan/**/*.h',
-#     'aten/src/ATen/native/vulkan/**/*.cpp',
-#     'aten/src/ATen/native/cuda/MultiTensorApply.cuh',
-#     'aten/src/ATen/native/**/Foreach*.*',
-#     'aten/src/ATen/native/cuda/fused*.*',
-#     'aten/src/ATen/native/cuda/Fused*.cu',
-#     'aten/src/ATen/native/cudnn/*.h',
-#     'aten/src/ATen/native/cudnn/*.cpp',
-#     'aten/src/ATen/native/mkldnn/xpu/**/*.h',
-#     'aten/src/ATen/native/mkldnn/xpu/**/*.cpp',
-#     'aten/src/ATen/native/Tensor*.h',
-#     'aten/src/ATen/native/Tensor*.cpp',
-#     'c10/**/*.h',
-#     'c10/**/*.cpp',
-#     'torch_npu/csrc/**/*.h',
-#     'torch_npu/csrc/**/*.hpp',
-#     'torch_npu/csrc/**/*.cpp',
-#     'torch_npu/nativert/**/*.h',
-#     'torch_npu/nativert/**/*.cpp',
-#     'torch_npu/headeronly/**/*.h',
-#     'test/cpp/**/*.h',
-#     'test/cpp/**/*.cpp',
-# ]
-# exclude_patterns = [
-#     'aten/src/ATen/native/vulkan/api/vk_mem_alloc.h',
-#     'aten/src/ATen/native/mps/kernels/Quantized.metal',
-#     'c10/util/strong_type.h',
-#     '**/fb/**',
-#     'torch_npu/csrc/inductor/aoti_torch/generated/**',
-#     'torch_npu/csrc/jit/serialization/mobile_bytecode_generated.h',
-#     'torch_npu/csrc/utils/pythoncapi_compat.h',
-#     'torch_npu/csrc/core/npu/NPUCachingAllocator.cpp',
-#     'torch_npu/csrc/core/npu/NPUWorkspaceAllocator.cpp',
-#     'aten/src/ATen/dlpack.h',
-# ]
-# init_command = [
-#     'python3',
-#     'tools/linter/adapters/s3_init.py',
-#     '--config-json=tools/linter/adapters/s3_init_config.json',
-#     '--linter=clang-format',
-#     '--dry-run={{DRYRUN}}',
-#     '--output-dir=.lintbin',
-#     '--output-name=clang-format',
-# ]
-# command = [
-#     'python3',
-#     'tools/linter/adapters/clangformat_linter.py',
-#     '--binary=.lintbin/clang-format',
-#     '--',
-#     '@{{PATHSFILE}}'
-# ]
-# is_formatter = true
+[[linter]]
+code = 'CLANGFORMAT'
+include_patterns = [
+    'torch_npu/csrc/**/*.h',
+    'torch_npu/csrc/**/*.hpp',
+    'torch_npu/csrc/**/*.cpp',
+    'torch_npu/nativert/**/*.h',
+    'test/cpp/**/*.h',
+    'test/cpp/**/*.cpp',
+]
+exclude_patterns = [
+    '**/fb/**',
+    'torch_npu/csrc/inductor/aoti_torch/generated/**',
+    'torch_npu/csrc/jit/serialization/mobile_bytecode_generated.h',
+    'torch_npu/csrc/utils/pythoncapi_compat.h',
+]
+init_command = [
+    'python3',
+    'tools/linter/adapters/s3_init.py',
+    '--config-json=tools/linter/adapters/s3_init_config.json',
+    '--linter=clang-format',
+    '--dry-run={{DRYRUN}}',
+    '--output-dir=.lintbin',
+    '--output-name=clang-format',
+]
+command = [
+    'python3',
+    'tools/linter/adapters/clangformat_linter.py',
+    '--binary=.lintbin/clang-format',
+    '--',
+    '@{{PATHSFILE}}'
+]
+is_formatter = true
 
 
 # [[linter]]
@@ -297,47 +261,47 @@ command = [
 #     '@{{PATHSFILE}}'
 # ]
 
-# [[linter]]
-# code = 'TYPEIGNORE'
-# include_patterns = ['**/*.py', '**/*.pyi']
-# exclude_patterns = [
-#     'fb/**',
-#     '**/fb/**',
-#     'test/test_jit.py',
-# ]
-# command = [
-#     'python3',
-#     'tools/linter/adapters/grep_linter.py',
-#     '--pattern=# type:\s*ignore([^\[]|$)',
-#     '--linter-name=TYPEIGNORE',
-#     '--error-name=unqualified type: ignore',
-#     """--error-description=\
-#         This line has an unqualified `type: ignore`; \
-#         please convert it to `type: ignore[xxxx]`\
-#     """,
-#     '--',
-#     '@{{PATHSFILE}}'
-# ]
+[[linter]]
+code = 'TYPEIGNORE'
+include_patterns = ['**/*.py', '**/*.pyi']
+exclude_patterns = [
+    'fb/**',
+    '**/fb/**',
+    'test/test_jit.py',
+]
+command = [
+    'python3',
+    'tools/linter/adapters/grep_linter.py',
+    '--pattern=# type:\s*ignore([^\[]|$)',
+    '--linter-name=TYPEIGNORE',
+    '--error-name=unqualified type: ignore',
+    """--error-description=\
+        This line has an unqualified `type: ignore`; \
+        please convert it to `type: ignore[xxxx]`\
+    """,
+    '--',
+    '@{{PATHSFILE}}'
+]
 
-# [[linter]]
-# code = 'TYPENOSKIP'
-# include_patterns = ['mypy.ini']
-# command = [
-#     'python3',
-#     'tools/linter/adapters/grep_linter.py',
-#     '--pattern=follow_imports\s*=\s*skip',
-#     '--linter-name=TYPENOSKIP',
-#     '--error-name=use of follow_imports = skip',
-#     """--error-description=\
-#         follow_imports = skip is forbidden from mypy.ini configuration as it \
-#         is extremely easy to accidentally turn off type checking unintentionally.  If \
-#         you need to suppress type errors, use a top level # mypy: ignore-errors.  \
-#         Do not rely on automatic Any substitution; instead, manually # type: ignore \
-#         at use sites or define a pyi type stub with more relaxed types. \
-#     """,
-#     '--',
-#     '@{{PATHSFILE}}'
-# ]
+[[linter]]
+code = 'TYPENOSKIP'
+include_patterns = ['mypy.ini']
+command = [
+    'python3',
+    'tools/linter/adapters/grep_linter.py',
+    '--pattern=follow_imports\s*=\s*skip',
+    '--linter-name=TYPENOSKIP',
+    '--error-name=use of follow_imports = skip',
+    """--error-description=\
+        follow_imports = skip is forbidden from mypy.ini configuration as it \
+        is extremely easy to accidentally turn off type checking unintentionally.  If \
+        you need to suppress type errors, use a top level # mypy: ignore-errors.  \
+        Do not rely on automatic Any substitution; instead, manually # type: ignore \
+        at use sites or define a pyi type stub with more relaxed types. \
+    """,
+    '--',
+    '@{{PATHSFILE}}'
+]
 
 # [[linter]]
 # code = 'NOQA'
@@ -361,17 +325,17 @@ command = [
 #     '@{{PATHSFILE}}'
 # ]
 
-# [[linter]]
-# code = 'NATIVEFUNCTIONS'
-# include_patterns=['aten/src/ATen/native/native_functions.yaml']
-# command = [
-#     'uv',
-#     'run',
-#     '--script',
-#     'tools/linter/adapters/nativefunctions_linter.py',
-#     '--native-functions-yml=aten/src/ATen/native/native_functions.yaml',
-# ]
-# is_formatter = true
+[[linter]]
+code = 'NATIVEFUNCTIONS'
+include_patterns=['aten/src/ATen/native/native_functions.yaml']
+command = [
+    'uv',
+    'run',
+    '--script',
+    'tools/linter/adapters/nativefunctions_linter.py',
+    '--native-functions-yml=aten/src/ATen/native/native_functions.yaml',
+]
+is_formatter = true
 
 # [[linter]]
 # code = 'GHA'
@@ -632,37 +596,37 @@ command = [
 #     '@{{PATHSFILE}}'
 # ]
 
-# [[linter]]
-# code = 'ERROR_PRONE_ISINSTANCE'
-# include_patterns = [
-#     'torch_npu/_refs/**/*.py',
-#     'torch_npu/_prims/**/*.py',
-#     'torch_npu/_prims_common/**/*.py',
-#     'torch_npu/_decomp/**/*.py',
-#     'torch_npu/_meta_registrations.py',
-# ]
-# exclude_patterns = [
-#     '**/fb/**',
-# ]
-# command = [
-#     'python3',
-#     'tools/linter/adapters/grep_linter.py',
-#     '--pattern=isinstance\([^)]+(int|float)\)',
-#     '--linter-name=ERROR_PRONE_ISINSTANCE',
-#     '--error-name=error prone isinstance',
-#     """--error-description=\
-#         This line has an isinstance call that directly refers to \
-#         int or float.  This is error-prone because you may also \
-#         have wanted to allow SymInt or SymFloat in your test.  \
-#         To suppress this lint, use an appropriate type alias defined \
-#         in torch._prims_common; use IntLike/FloatLike when you would accept \
-#         both regular and symbolic numbers, Dim for ints representing \
-#         dimensions, or IntWithoutSymInt/FloatWithoutSymFloat if you really \
-#         meant to exclude symbolic numbers.
-#     """,
-#     '--',
-#     '@{{PATHSFILE}}'
-# ]
+[[linter]]
+code = 'ERROR_PRONE_ISINSTANCE'
+include_patterns = [
+    'torch_npu/_refs/**/*.py',
+    'torch_npu/_prims/**/*.py',
+    'torch_npu/_prims_common/**/*.py',
+    'torch_npu/_decomp/**/*.py',
+    'torch_npu/_meta_registrations.py',
+]
+exclude_patterns = [
+    '**/fb/**',
+]
+command = [
+    'python3',
+    'tools/linter/adapters/grep_linter.py',
+    '--pattern=isinstance\([^)]+(int|float)\)',
+    '--linter-name=ERROR_PRONE_ISINSTANCE',
+    '--error-name=error prone isinstance',
+    """--error-description=\
+        This line has an isinstance call that directly refers to \
+        int or float.  This is error-prone because you may also \
+        have wanted to allow SymInt or SymFloat in your test.  \
+        To suppress this lint, use an appropriate type alias defined \
+        in torch._prims_common; use IntLike/FloatLike when you would accept \
+        both regular and symbolic numbers, Dim for ints representing \
+        dimensions, or IntWithoutSymInt/FloatWithoutSymFloat if you really \
+        meant to exclude symbolic numbers.
+    """,
+    '--',
+    '@{{PATHSFILE}}'
+]
 
 # [[linter]]
 # code = 'PYBIND11_SPECIALIZATION'
@@ -700,32 +664,32 @@ command = [
 #     '@{{PATHSFILE}}'
 # ]
 
-# [[linter]]
-# code = 'PYPIDEP'
-# include_patterns = ['.github/**']
-# exclude_patterns = [
-#     '**/*.rst',
-#     '**/*.py',
-#     '**/*.md',
-#     '**/*.diff',
-#     '**/fb/**',
-# ]
-# command = [
-#     'python3',
-#     'tools/linter/adapters/grep_linter.py',
-#     """--pattern=\
-#     (pip|pip3|python -m pip|python3 -m pip|python3 -mpip|python -mpip) \
-#     install ([a-zA-Z0-9][A-Za-z0-9\\._\\-]+)([^/=<>~!]+)[A-Za-z0-9\\._\\-\\*\\+\\!]*$\
-#     """,
-#     '--linter-name=PYPIDEP',
-#     '--error-name=unpinned PyPI install',
-#     """--error-description=\
-#         This line has unpinned PyPi installs; \
-#         please pin them to a specific version: e.g. 'thepackage==1.2'\
-#     """,
-#     '--',
-#     '@{{PATHSFILE}}'
-# ]
+[[linter]]
+code = 'PYPIDEP'
+include_patterns = ['.github/**']
+exclude_patterns = [
+    '**/*.rst',
+    '**/*.py',
+    '**/*.md',
+    '**/*.diff',
+    '**/fb/**',
+]
+command = [
+    'python3',
+    'tools/linter/adapters/grep_linter.py',
+    """--pattern=\
+    (pip|pip3|python -m pip|python3 -m pip|python3 -mpip|python -mpip) \
+    install ([a-zA-Z0-9][A-Za-z0-9\\._\\-]+)([^/=<>~!]+)[A-Za-z0-9\\._\\-\\*\\+\\!]*$\
+    """,
+    '--linter-name=PYPIDEP',
+    '--error-name=unpinned PyPI install',
+    """--error-description=\
+        This line has unpinned PyPi installs; \
+        please pin them to a specific version: e.g. 'thepackage==1.2'\
+    """,
+    '--',
+    '@{{PATHSFILE}}'
+]
 
 # [[linter]]
 # code = 'EXEC'
@@ -750,84 +714,84 @@ command = [
 #     '@{{PATHSFILE}}',
 # ]
 
-# [[linter]]
-# code = 'CUBINCLUDE'
-# include_patterns = ['aten/**']
-# exclude_patterns = [
-#     'aten/src/ATen/cuda/cub*.cuh',
-#     '**/fb/**',
-# ]
-# command = [
-#     'python3',
-#     'tools/linter/adapters/grep_linter.py',
-#     '--pattern=#include <cub/',
-#     '--linter-name=CUBINCLUDE',
-#     '--error-name=direct cub include',
-#     """--error-description=\
-#         This line has a direct cub include; please include \
-#         ATen/cuda/cub.cuh instead and wrap your cub calls in \
-#         at::native namespace if necessary.
-#     """,
-#     '--',
-#     '@{{PATHSFILE}}'
-# ]
+[[linter]]
+code = 'CUBINCLUDE'
+include_patterns = ['aten/**']
+exclude_patterns = [
+    'aten/src/ATen/cuda/cub*.cuh',
+    '**/fb/**',
+]
+command = [
+    'python3',
+    'tools/linter/adapters/grep_linter.py',
+    '--pattern=#include <cub/',
+    '--linter-name=CUBINCLUDE',
+    '--error-name=direct cub include',
+    """--error-description=\
+        This line has a direct cub include; please include \
+        ATen/cuda/cub.cuh instead and wrap your cub calls in \
+        at::native namespace if necessary.
+    """,
+    '--',
+    '@{{PATHSFILE}}'
+]
 
-# [[linter]]
-# code = 'RAWCUDA'
-# include_patterns = [
-#     'aten/**',
-#     'c10/**',
-# ]
-# exclude_patterns = [
-#     'aten/src/ATen/test/**',
-#     'c10/cuda/CUDAFunctions.h',
-#     'c10/cuda/CUDACachingAllocator.cpp',
-#     '**/fb/**',
-# ]
-# command = [
-#     'python3',
-#     'tools/linter/adapters/grep_linter.py',
-#     '--pattern=cudaStreamSynchronize',
-#     '--linter-name=RAWCUDA',
-#     '--error-name=raw CUDA API usage',
-#     """--error-description=\
-#         This line calls raw CUDA APIs directly; please use at::cuda wrappers instead.
-#     """,
-#     '--',
-#     '@{{PATHSFILE}}'
-# ]
+[[linter]]
+code = 'RAWCUDA'
+include_patterns = [
+    'aten/**',
+    'c10/**',
+]
+exclude_patterns = [
+    'aten/src/ATen/test/**',
+    'c10/cuda/CUDAFunctions.h',
+    'c10/cuda/CUDACachingAllocator.cpp',
+    '**/fb/**',
+]
+command = [
+    'python3',
+    'tools/linter/adapters/grep_linter.py',
+    '--pattern=cudaStreamSynchronize',
+    '--linter-name=RAWCUDA',
+    '--error-name=raw CUDA API usage',
+    """--error-description=\
+        This line calls raw CUDA APIs directly; please use at::cuda wrappers instead.
+    """,
+    '--',
+    '@{{PATHSFILE}}'
+]
 
-# [[linter]]
-# code = 'RAWCUDADEVICE'
-# include_patterns = [
-#     'aten/**',
-#     'c10/**',
-#     'torch_npu/csrc/**',
-#     'torch_npu/nativert/**',
-# ]
-# exclude_patterns = [
-#     'aten/src/ATen/cuda/CUDAContext.cpp',
-#     'aten/src/ATen/cuda/CUDAGeneratorImpl.cpp',
-#     'aten/src/ATen/test/**',
-#     'c10/core/impl/InlineDeviceGuard.h',
-#     'c10/cuda/CUDAFunctions.cpp',
-#     'c10/cuda/CUDAGuard.h',
-#     'c10/cuda/impl/CUDATest.cpp',
-#     'torch_npu/csrc/cuda/nccl.cpp',
-#     '**/fb/**',
-# ]
-# command = [
-#     'python3',
-#     'tools/linter/adapters/grep_linter.py',
-#     '--pattern=(cudaSetDevice|cudaGetDevice)\\(',
-#     '--linter-name=RAWCUDADEVICE',
-#     '--error-name=raw CUDA API usage',
-#     """--error-description=\
-#         This line calls raw CUDA APIs directly; please use c10::cuda wrappers instead.
-#     """,
-#     '--',
-#     '@{{PATHSFILE}}'
-# ]
+[[linter]]
+code = 'RAWCUDADEVICE'
+include_patterns = [
+    'aten/**',
+    'c10/**',
+    'torch_npu/csrc/**',
+    'torch_npu/nativert/**',
+]
+exclude_patterns = [
+    'aten/src/ATen/cuda/CUDAContext.cpp',
+    'aten/src/ATen/cuda/CUDAGeneratorImpl.cpp',
+    'aten/src/ATen/test/**',
+    'c10/core/impl/InlineDeviceGuard.h',
+    'c10/cuda/CUDAFunctions.cpp',
+    'c10/cuda/CUDAGuard.h',
+    'c10/cuda/impl/CUDATest.cpp',
+    'torch_npu/csrc/cuda/nccl.cpp',
+    '**/fb/**',
+]
+command = [
+    'python3',
+    'tools/linter/adapters/grep_linter.py',
+    '--pattern=(cudaSetDevice|cudaGetDevice)\\(',
+    '--linter-name=RAWCUDADEVICE',
+    '--error-name=raw CUDA API usage',
+    """--error-description=\
+        This line calls raw CUDA APIs directly; please use c10::cuda wrappers instead.
+    """,
+    '--',
+    '@{{PATHSFILE}}'
+]
 
 # [[linter]]
 # code = 'ROOT_LOGGING'
@@ -867,24 +831,24 @@ command = [
 #     '@{{PATHSFILE}}'
 # ]
 
-# [[linter]]
-# code = 'DEPLOY_DETECTION'
-# include_patterns = [
-#     '**/*.py',
-# ]
-# command = [
-#     'python3',
-#     'tools/linter/adapters/grep_linter.py',
-#     '--pattern=sys\.executable == .torch_deploy.',
-#     '--replace-pattern=s/sys\.executable == .torch_deploy./torch._running_with_deploy\(\)/',
-#     '--linter-name=DEPLOY_DETECTION',
-#     '--error-name=properly detect deploy runner',
-#     """--error-description=\
-#         Do not use sys.executable to detect if running within deploy/multipy, use torch._running_with_deploy().
-#     """,
-#     '--',
-#     '@{{PATHSFILE}}'
-# ]
+[[linter]]
+code = 'DEPLOY_DETECTION'
+include_patterns = [
+    '**/*.py',
+]
+command = [
+    'python3',
+    'tools/linter/adapters/grep_linter.py',
+    '--pattern=sys\.executable == .torch_deploy.',
+    '--replace-pattern=s/sys\.executable == .torch_deploy./torch._running_with_deploy\(\)/',
+    '--linter-name=DEPLOY_DETECTION',
+    '--error-name=properly detect deploy runner',
+    """--error-description=\
+        Do not use sys.executable to detect if running within deploy/multipy, use torch._running_with_deploy().
+    """,
+    '--',
+    '@{{PATHSFILE}}'
+]
 
 # [[linter]]
 # code = 'CMAKE'
@@ -914,22 +878,22 @@ command = [
 #     '@{{PATHSFILE}}',
 # ]
 
-# [[linter]]
-# code = 'SHELLCHECK'
-# include_patterns = [
-#     '.ci/pytorch_npu/**/*.sh'
-# ]
-# exclude_patterns = [
-#     '**/fb/**',
-# ]
-# command = [
-#     'uv',
-#     'run',
-#     '--script',
-#     'tools/linter/adapters/shellcheck_linter.py',
-#     '--',
-#     '@{{PATHSFILE}}',
-# ]
+[[linter]]
+code = 'SHELLCHECK'
+include_patterns = [
+    '.ci/pytorch_npu/**/*.sh'
+]
+exclude_patterns = [
+    '**/fb/**',
+]
+command = [
+    'uv',
+    'run',
+    '--script',
+    'tools/linter/adapters/shellcheck_linter.py',
+    '--',
+    '@{{PATHSFILE}}',
+]
 
 # [[linter]]
 # code = 'ACTIONLINT'
@@ -1180,6 +1144,7 @@ exclude_patterns = [
     'torch_npu/_inductor/kernel/vendored_templates/cutedsl/kernels/**',
     'torch_npu/_inductor/kernel/vendored_templates/cutedsl/dense_blockscaled_gemm_persistent.py',
     'torch_npu/utils/model_dump/preact.mjs',
+    'torch_npu/_inductor/docs/**/*.svg',
 ]
 is_formatter = true
 
@@ -1506,60 +1471,60 @@ is_formatter = true
 #     "**/*requirements*.in",
 # ]
 
-# [[linter]]
-# code = 'COPYRIGHT'
-# include_patterns = ['**']
-# exclude_patterns = [
-#     '.lintrunner.toml',
-#     'fb/**',
-#     '**/fb/**',
-# ]
-# command = [
-#     'python3',
-#     'tools/linter/adapters/grep_linter.py',
-#     '--pattern=Confidential and proprietary',
-#     '--linter-name=COPYRIGHT',
-#     '--error-name=Confidential Code',
-#     """--error-description=\
-#         Proprietary and confidential source code\
-#         should not be contributed to PyTorch codebase\
-#     """,
-#     '--',
-#     '@{{PATHSFILE}}'
-# ]
+[[linter]]
+code = 'COPYRIGHT'
+include_patterns = ['**']
+exclude_patterns = [
+    '.lintrunner.toml',
+    'fb/**',
+    '**/fb/**',
+]
+command = [
+    'python3',
+    'tools/linter/adapters/grep_linter.py',
+    '--pattern=Confidential and proprietary',
+    '--linter-name=COPYRIGHT',
+    '--error-name=Confidential Code',
+    """--error-description=\
+        Proprietary and confidential source code\
+        should not be contributed to PyTorch codebase\
+    """,
+    '--',
+    '@{{PATHSFILE}}'
+]
 
-# [[linter]]
-# code = 'BAZEL_LINTER'
-# include_patterns = ['WORKSPACE']
-# command = [
-#     'python3',
-#     'tools/linter/adapters/bazel_linter.py',
-#     '--binary=.lintbin/bazel',
-#     '--',
-#     '@{{PATHSFILE}}'
-# ]
-# init_command = [
-#     'python3',
-#     'tools/linter/adapters/s3_init.py',
-#     '--config-json=tools/linter/adapters/s3_init_config.json',
-#     '--linter=bazel',
-#     '--dry-run={{DRYRUN}}',
-#     '--output-dir=.lintbin',
-#     '--output-name=bazel',
-# ]
-# is_formatter = true
+[[linter]]
+code = 'BAZEL_LINTER'
+include_patterns = ['WORKSPACE']
+command = [
+    'python3',
+    'tools/linter/adapters/bazel_linter.py',
+    '--binary=.lintbin/bazel',
+    '--',
+    '@{{PATHSFILE}}'
+]
+init_command = [
+    'python3',
+    'tools/linter/adapters/s3_init.py',
+    '--config-json=tools/linter/adapters/s3_init_config.json',
+    '--linter=bazel',
+    '--dry-run={{DRYRUN}}',
+    '--output-dir=.lintbin',
+    '--output-name=bazel',
+]
+is_formatter = true
 
-# [[linter]]
-# code = 'LINTRUNNER_VERSION'
-# include_patterns = ['**']
-# exclude_patterns = [
-#     'fb/**',
-#     '**/fb/**',
-# ]
-# command = [
-#     'python3',
-#     'tools/linter/adapters/lintrunner_version_linter.py'
-# ]
+[[linter]]
+code = 'LINTRUNNER_VERSION'
+include_patterns = ['**']
+exclude_patterns = [
+    'fb/**',
+    '**/fb/**',
+]
+command = [
+    'python3',
+    'tools/linter/adapters/lintrunner_version_linter.py'
+]
 
 # [[linter]]
 # code = 'RUFF'
@@ -1605,132 +1570,132 @@ is_formatter = true
 # ]
 # is_formatter = true
 
-# # This linter prevents merge conflicts in csv files in pytorch by enforcing
-# # three lines of whitespace between entries such that unless people are modifying
-# # the same line, merge conflicts should not arise in git or hg
-# [[linter]]
-# code = 'MERGE_CONFLICTLESS_CSV'
-# include_patterns = [
-#     'benchmarks/dynamo/ci_expected_accuracy/*.csv',
-#     'benchmarks/dynamo/pr_time_benchmarks/expected_results.csv',
-# ]
-# command = [
-#     'python3',
-#     'tools/linter/adapters/no_merge_conflict_csv_linter.py',
-#     '--',
-#     '@{{PATHSFILE}}'
-# ]
-# is_formatter = true
+# This linter prevents merge conflicts in csv files in pytorch by enforcing
+# three lines of whitespace between entries such that unless people are modifying
+# the same line, merge conflicts should not arise in git or hg
+[[linter]]
+code = 'MERGE_CONFLICTLESS_CSV'
+include_patterns = [
+    'benchmarks/dynamo/ci_expected_accuracy/*.csv',
+    'benchmarks/dynamo/pr_time_benchmarks/expected_results.csv',
+]
+command = [
+    'python3',
+    'tools/linter/adapters/no_merge_conflict_csv_linter.py',
+    '--',
+    '@{{PATHSFILE}}'
+]
+is_formatter = true
 
 
-# [[linter]]
-# code = 'META_NO_CREATE_UNBACKED'
-# include_patterns = [
-#   "torch_npu/_meta_registrations.py"
-# ]
-# command = [
-#     'python3',
-#     'tools/linter/adapters/grep_linter.py',
-#     '--pattern=create_unbacked',
-#     '--linter-name=META_NO_CREATE_UNBACKED',
-#     '--error-name=no create_unbacked in meta registrations',
-#     """--error-description=\
-#         Data-dependent operators should have their meta \
-#         registration in torch_npu/_subclasses/fake_impls.py, \
-#         not torch_npu/_meta_registrations.py
-#     """,
-#     '--',
-#     '@{{PATHSFILE}}'
-# ]
+[[linter]]
+code = 'META_NO_CREATE_UNBACKED'
+include_patterns = [
+  "torch_npu/_meta_registrations.py"
+]
+command = [
+    'python3',
+    'tools/linter/adapters/grep_linter.py',
+    '--pattern=create_unbacked',
+    '--linter-name=META_NO_CREATE_UNBACKED',
+    '--error-name=no create_unbacked in meta registrations',
+    """--error-description=\
+        Data-dependent operators should have their meta \
+        registration in torch_npu/_subclasses/fake_impls.py, \
+        not torch_npu/_meta_registrations.py
+    """,
+    '--',
+    '@{{PATHSFILE}}'
+]
 
-# [[linter]]
-# code = 'ATEN_CPU_GPU_AGNOSTIC'
-# include_patterns = [
-#     # aten source
-#     "aten/src/ATen/*.cpp",
-#     "aten/src/ATen/cpu/*.cpp",
-#     "aten/src/ATen/functorch/**/*.cpp",
-#     "aten/src/ATen/nnapi/*.cpp",
-#     "aten/src/ATen/quantized/*.cpp",
-#     "aten/src/ATen/vulkan/*.cpp",
-#     "aten/src/ATen/metal/*.cpp",
-#     "aten/src/ATen/detail/CPUGuardImpl.cpp",
-#     "aten/src/ATen/detail/MetaGuardImpl.cpp",
-#     # aten native source
-#     "aten/src/ATen/native/cpu/*.cpp",
-#     "aten/src/ATen/native/ao_sparse/cpu/kernels/*.cpp",
-#     "aten/src/ATen/native/ao_sparse/quantized/cpu/kernels/*.cpp",
-#     "aten/src/ATen/native/quantized/cpu/kernels/*.cpp",
-#     "aten/src/ATen/native/*.cpp",
-#     "aten/src/ATen/native/cpu/**/*.cpp",
-#     "aten/src/ATen/native/ao_sparse/*.cpp",
-#     "aten/src/ATen/native/ao_sparse/**/*.cpp",
-#     "aten/src/ATen/native/ao_sparse/quantized/*.cpp",
-#     "aten/src/ATen/native/ao_sparse/quantized/**/*.cpp",
-#     "aten/src/ATen/native/nested/*.cpp",
-#     "aten/src/ATen/native/quantized/*.cpp",
-#     "aten/src/ATen/native/quantized/**/*.cpp",
-#     "aten/src/ATen/native/sparse/*.cpp",
-#     "aten/src/ATen/native/transformers/*.cpp",
-#     "aten/src/ATen/native/utils/*.cpp",
-#     "aten/src/ATen/native/xnnpack/*.cpp",
-#     "aten/src/ATen/native/metal/MetalPrepackOpRegister.cpp",
-#     # aten headers
-#     "aten/src/ATen/*.h",
-#     "aten/src/ATen/functorch/**/*.h",
-#     "aten/src/ATen/ops/*.h",
-#     "aten/src/ATen/cpu/**/*.h",
-#     "aten/src/ATen/nnapi/*.h",
-#     "aten/src/ATen/quantized/*.h",
-#     "aten/src/ATen/vulkan/*.h",
-#     "aten/src/ATen/metal/*.h",
-#     "aten/src/ATen/mps/*.h",
-#     # aten native headers
-#     "aten/src/ATen/native/*.h",
-#     "aten/src/ATen/native/cpu/**/*.h",
-#     "aten/src/ATen/native/nested/*.h",
-#     "aten/src/ATen/native/sparse/*.h",
-#     "aten/src/ATen/native/ao_sparse/*.h",
-#     "aten/src/ATen/native/ao_sparse/cpu/*.h",
-#     "aten/src/ATen/native/ao_sparse/quantized/*.h",
-#     "aten/src/ATen/native/ao_sparse/quantized/cpu/*.h",
-#     "aten/src/ATen/native/quantized/*.h",
-#     "aten/src/ATen/native/quantized/cpu/*.h",
-#     "aten/src/ATen/native/transformers/*.h",
-#     "aten/src/ATen/native/quantized/cpu/qnnpack/include/*.h",
-#     "aten/src/ATen/native/utils/*.h",
-#     "aten/src/ATen/native/vulkan/ops/*.h",
-#     "aten/src/ATen/native/xnnpack/*.h",
-#     "aten/src/ATen/native/metal/MetalPrepackOpContext.h",
-#     "aten/src/ATen/native/mps/Copy.h",
-#     "aten/src/ATen/native/mkldnn/**/*.h",
-# ]
-# exclude_patterns = [
-#     "aten/src/ATen/Context.h",
-#     "aten/src/ATen/Context.cpp",
-#     "aten/src/ATen/DLConvertor.cpp",
-#     "aten/src/ATen/core/Array.h",
-#     "aten/src/ATen/native/quantized/ConvUtils.h",
-#     "aten/src/ATen/native/sparse/SparseBlasImpl.cpp",  # triton implementation
-#     "aten/src/ATen/native/transformers/attention.cpp",
-#     "aten/src/ATen/native/**/cudnn/**",  # cudnn is cuda specific
-# ]
-# command = [
-#     'python3',
-#     'tools/linter/adapters/grep_linter.py',
-#     '--pattern=(^#if.*USE_ROCM.*)|(^#if.*USE_CUDA.*)',
-#     '--linter-name=ATEN_CPU',
-#     '--error-name=aten-cpu should be gpu agnostic',
-#     """--error-description=\
-#         We strongly discourage the compile-time divergence \
-#         on ATen-CPU code for different GPU code. This \
-#         disallows sharing the same aten-cpu shared object \
-#         between different GPU backends \
-#     """,
-#     '--',
-#     '@{{PATHSFILE}}'
-# ]
-# is_formatter = true
+[[linter]]
+code = 'ATEN_CPU_GPU_AGNOSTIC'
+include_patterns = [
+    # aten source
+    "aten/src/ATen/*.cpp",
+    "aten/src/ATen/cpu/*.cpp",
+    "aten/src/ATen/functorch/**/*.cpp",
+    "aten/src/ATen/nnapi/*.cpp",
+    "aten/src/ATen/quantized/*.cpp",
+    "aten/src/ATen/vulkan/*.cpp",
+    "aten/src/ATen/metal/*.cpp",
+    "aten/src/ATen/detail/CPUGuardImpl.cpp",
+    "aten/src/ATen/detail/MetaGuardImpl.cpp",
+    # aten native source
+    "aten/src/ATen/native/cpu/*.cpp",
+    "aten/src/ATen/native/ao_sparse/cpu/kernels/*.cpp",
+    "aten/src/ATen/native/ao_sparse/quantized/cpu/kernels/*.cpp",
+    "aten/src/ATen/native/quantized/cpu/kernels/*.cpp",
+    "aten/src/ATen/native/*.cpp",
+    "aten/src/ATen/native/cpu/**/*.cpp",
+    "aten/src/ATen/native/ao_sparse/*.cpp",
+    "aten/src/ATen/native/ao_sparse/**/*.cpp",
+    "aten/src/ATen/native/ao_sparse/quantized/*.cpp",
+    "aten/src/ATen/native/ao_sparse/quantized/**/*.cpp",
+    "aten/src/ATen/native/nested/*.cpp",
+    "aten/src/ATen/native/quantized/*.cpp",
+    "aten/src/ATen/native/quantized/**/*.cpp",
+    "aten/src/ATen/native/sparse/*.cpp",
+    "aten/src/ATen/native/transformers/*.cpp",
+    "aten/src/ATen/native/utils/*.cpp",
+    "aten/src/ATen/native/xnnpack/*.cpp",
+    "aten/src/ATen/native/metal/MetalPrepackOpRegister.cpp",
+    # aten headers
+    "aten/src/ATen/*.h",
+    "aten/src/ATen/functorch/**/*.h",
+    "aten/src/ATen/ops/*.h",
+    "aten/src/ATen/cpu/**/*.h",
+    "aten/src/ATen/nnapi/*.h",
+    "aten/src/ATen/quantized/*.h",
+    "aten/src/ATen/vulkan/*.h",
+    "aten/src/ATen/metal/*.h",
+    "aten/src/ATen/mps/*.h",
+    # aten native headers
+    "aten/src/ATen/native/*.h",
+    "aten/src/ATen/native/cpu/**/*.h",
+    "aten/src/ATen/native/nested/*.h",
+    "aten/src/ATen/native/sparse/*.h",
+    "aten/src/ATen/native/ao_sparse/*.h",
+    "aten/src/ATen/native/ao_sparse/cpu/*.h",
+    "aten/src/ATen/native/ao_sparse/quantized/*.h",
+    "aten/src/ATen/native/ao_sparse/quantized/cpu/*.h",
+    "aten/src/ATen/native/quantized/*.h",
+    "aten/src/ATen/native/quantized/cpu/*.h",
+    "aten/src/ATen/native/transformers/*.h",
+    "aten/src/ATen/native/quantized/cpu/qnnpack/include/*.h",
+    "aten/src/ATen/native/utils/*.h",
+    "aten/src/ATen/native/vulkan/ops/*.h",
+    "aten/src/ATen/native/xnnpack/*.h",
+    "aten/src/ATen/native/metal/MetalPrepackOpContext.h",
+    "aten/src/ATen/native/mps/Copy.h",
+    "aten/src/ATen/native/mkldnn/**/*.h",
+]
+exclude_patterns = [
+    "aten/src/ATen/Context.h",
+    "aten/src/ATen/Context.cpp",
+    "aten/src/ATen/DLConvertor.cpp",
+    "aten/src/ATen/core/Array.h",
+    "aten/src/ATen/native/quantized/ConvUtils.h",
+    "aten/src/ATen/native/sparse/SparseBlasImpl.cpp",  # triton implementation
+    "aten/src/ATen/native/transformers/attention.cpp",
+    "aten/src/ATen/native/**/cudnn/**",  # cudnn is cuda specific
+]
+command = [
+    'python3',
+    'tools/linter/adapters/grep_linter.py',
+    '--pattern=(^#if.*USE_ROCM.*)|(^#if.*USE_CUDA.*)',
+    '--linter-name=ATEN_CPU',
+    '--error-name=aten-cpu should be gpu agnostic',
+    """--error-description=\
+        We strongly discourage the compile-time divergence \
+        on ATen-CPU code for different GPU code. This \
+        disallows sharing the same aten-cpu shared object \
+        between different GPU backends \
+    """,
+    '--',
+    '@{{PATHSFILE}}'
+]
+is_formatter = true
 
 # # `set_linter` detects occurrences of built-in `set` in areas of Python code like
 # # _inductor where the instability of iteration in `set` has proven a problem.
@@ -1771,56 +1736,56 @@ is_formatter = true
 # ]
 # is_formatter = false
 
-# # `import_linter` reports on importing disallowed third party libraries.
-# [[linter]]
-# code = 'IMPORT_LINTER'
-# command = [
-#     'python3',
-#     'tools/linter/adapters/import_linter.py',
-#     '--',
-#     '@{{PATHSFILE}}'
-# ]
-# include_patterns = [
-#    'torch_npu/_dynamo/**',
-# ]
-# is_formatter = false
+# `import_linter` reports on importing disallowed third party libraries.
+[[linter]]
+code = 'IMPORT_LINTER'
+command = [
+    'python3',
+    'tools/linter/adapters/import_linter.py',
+    '--',
+    '@{{PATHSFILE}}'
+]
+include_patterns = [
+   'torch_npu/_dynamo/**',
+]
+is_formatter = false
 
-# [[linter]]
-# code = 'TEST_DEVICE_BIAS'
-# command = [
-#     'python3',
-#     'tools/linter/adapters/test_device_bias_linter.py',
-#     '--',
-#     '@{{PATHSFILE}}',
-# ]
-# include_patterns = [
-#     'test/**/test_*.py',
-# ]
-# exclude_patterns = [
-#     # CPython tests
-#     'test/dynamo/cpython/**',
-# ]
+[[linter]]
+code = 'TEST_DEVICE_BIAS'
+command = [
+    'python3',
+    'tools/linter/adapters/test_device_bias_linter.py',
+    '--',
+    '@{{PATHSFILE}}',
+]
+include_patterns = [
+    'test/**/test_*.py',
+]
+exclude_patterns = [
+    # CPython tests
+    'test/dynamo/cpython/**',
+]
 
-# # 'header_only_linter' reports on properly testing header-only APIs.
-# [[linter]]
-# code = 'HEADER_ONLY_LINTER'
-# command = [
-#     'python3',
-#     'tools/linter/adapters/header_only_linter.py',
-# ]
-# include_patterns = [
-#     'torch_npu/header_only_apis.txt',
-# ]
-# is_formatter = false
+# 'header_only_linter' reports on properly testing header-only APIs.
+[[linter]]
+code = 'HEADER_ONLY_LINTER'
+command = [
+    'python3',
+    'tools/linter/adapters/header_only_linter.py',
+]
+include_patterns = [
+    'torch_npu/header_only_apis.txt',
+]
+is_formatter = false
 
 
-# [[linter]]
-# code = "GB_REGISTRY"
-# include_patterns = ["torch_npu/_dynamo/**/*.py"]
-# command = [
-#   "python3",
-#   "tools/linter/adapters/gb_registry_linter.py",
-# ]
+[[linter]]
+code = "GB_REGISTRY"
+include_patterns = ["torch_npu/_dynamo/**/*.py"]
+command = [
+  "python3",
+  "tools/linter/adapters/gb_registry_linter.py",
+]
 
 # [[linter]]
 # code = 'STABLE_SHIM_VERSION'
@@ -1835,14 +1800,14 @@ is_formatter = true
 #     '@{{PATHSFILE}}'
 # ]
 
-# [[linter]]
-# code = 'STABLE_SHIM_USAGE'
-# include_patterns = [
-#     'torch_npu/csrc/stable/**/*.h',
-# ]
-# command = [
-#     'python3',
-#     'tools/linter/adapters/stable_shim_usage_linter.py',
-#     '--',
-#     '@{{PATHSFILE}}'
-# ]
+[[linter]]
+code = 'STABLE_SHIM_USAGE'
+include_patterns = [
+    'torch_npu/csrc/stable/**/*.h',
+]
+command = [
+    'python3',
+    'tools/linter/adapters/stable_shim_usage_linter.py',
+    '--',
+    '@{{PATHSFILE}}'
+]

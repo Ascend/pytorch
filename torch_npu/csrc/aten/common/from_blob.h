@@ -7,69 +7,60 @@ namespace at_npu {
 namespace native {
 
 class TensorMaker {
-    friend TensorMaker for_blob(void* data, at::IntArrayRef sizes) noexcept;
+  friend TensorMaker for_blob(void* data, at::IntArrayRef sizes) noexcept;
 
-public:
+ public:
+  TensorMaker& strides(at::OptionalIntArrayRef value) noexcept {
+    strides_ = value;
+    return *this;
+  }
 
-    TensorMaker& strides(at::OptionalIntArrayRef value) noexcept
-    {
-        strides_ = value;
-        return *this;
-    }
+  TensorMaker& storage_offset(c10::optional<int64_t> value) noexcept {
+    storage_offset_ = value;
+    return *this;
+  }
 
-    TensorMaker& storage_offset(c10::optional<int64_t> value) noexcept
-    {
-        storage_offset_ = value;
-        return *this;
-    }
+  TensorMaker& target_device(c10::optional<c10::Device> value) noexcept {
+    device_ = value;
+    return *this;
+  }
 
-    TensorMaker& target_device(c10::optional<c10::Device> value) noexcept
-    {
-        device_ = value;
-        return *this;
-    }
+  TensorMaker& options(at::TensorOptions value) noexcept {
+    opts_ = value;
+    return *this;
+  }
 
-    TensorMaker& options(at::TensorOptions value) noexcept
-    {
-        opts_ = value;
-        return *this;
-    }
+  TensorMaker& allocator(c10::Allocator* allocator) noexcept {
+    allocator_ = allocator;
+    return *this;
+  }
 
-    TensorMaker& allocator(c10::Allocator* allocator) noexcept
-    {
-        allocator_ = allocator;
-        return *this;
-    }
+  TensorMaker& deleter(std::function<void(void*)> value) noexcept {
+    deleter_ = std::move(value);
 
-    TensorMaker& deleter(std::function<void(void*)> value) noexcept
-    {
-        deleter_ = std::move(value);
+    return *this;
+  }
+  at::Tensor make_tensor();
 
-        return *this;
-    }
-    at::Tensor make_tensor();
+ private:
+  explicit TensorMaker(void* data, at::IntArrayRef sizes) noexcept : data_{data}, sizes_{sizes} {}
 
-private:
-    explicit TensorMaker(void* data, at::IntArrayRef sizes) noexcept
-        : data_{data}, sizes_{sizes} {}
+  std::size_t computeStorageSize() const noexcept;
 
-    std::size_t computeStorageSize() const noexcept;
+  at::IntArrayRef makeTempSizes() const noexcept;
 
-    at::IntArrayRef makeTempSizes() const noexcept;
-
-    void* data_;
-    at::IntArrayRef sizes_;
-    at::OptionalIntArrayRef strides_{};
-    c10::optional<int64_t> storage_offset_{};
-    c10::optional<c10::Device> device_{};
-    at::TensorOptions opts_{};
-    c10::Allocator* allocator_{};
-    std::function<void(void*)> deleter_{};
+  void* data_;
+  at::IntArrayRef sizes_;
+  at::OptionalIntArrayRef strides_{};
+  c10::optional<int64_t> storage_offset_{};
+  c10::optional<c10::Device> device_{};
+  at::TensorOptions opts_{};
+  c10::Allocator* allocator_{};
+  std::function<void(void*)> deleter_{};
 };
 
-inline TensorMaker for_blob(void* data, at::IntArrayRef sizes) noexcept
-{
-    return TensorMaker{data, sizes};
+inline TensorMaker for_blob(void* data, at::IntArrayRef sizes) noexcept {
+  return TensorMaker{data, sizes};
 }
 
 TORCH_NPU_API at::Tensor from_blob(
@@ -116,10 +107,7 @@ TORCH_NPU_API at::Tensor from_blob(
     at::IntArrayRef strides,
     const at::TensorOptions& options = {});
 
-TORCH_NPU_API at::Tensor from_blob(
-    void* data,
-    at::IntArrayRef sizes,
-    const at::TensorOptions& options = {});
+TORCH_NPU_API at::Tensor from_blob(void* data, at::IntArrayRef sizes, const at::TensorOptions& options = {});
 } // namespace native
 
-}  // namespace at_npu
+} // namespace at_npu

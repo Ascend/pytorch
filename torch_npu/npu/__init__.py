@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 __all__ = [
     "is_initialized",
     "init",
@@ -21,6 +22,8 @@ __all__ = [
     "default_stream",
     "set_sync_debug_mode",
     "get_sync_debug_mode",
+    "set_task_queue_enable",
+    "get_task_queue_enable",
     "init_dump",
     "utilization",
     "finalize_dump",
@@ -50,7 +53,6 @@ __all__ = [
     "memory_snapshot",
     "memory_summary",
     "MemPool",
-    "MemPoolContext",
     "use_mem_pool",
     "get_allocator_backend",
     "NPUPluggableAllocator",
@@ -114,6 +116,7 @@ __all__ = [
     "is_current_stream_capturing",
     "make_graphed_callables",
     "ExternalEvent",
+    "ExternalStream",
     "graph_task_group_begin",
     "graph_task_group_end",
     "graph_task_update_begin",
@@ -140,6 +143,7 @@ __all__ = [
     "register_npu_graph_handler",
     "super_kernel_scope_begin",
     "super_kernel_scope_end",
+    "npurt",
 ]
 
 from typing import Tuple, Union, List, cast, Optional
@@ -148,28 +152,30 @@ import traceback
 import threading
 import os
 import re
+import importlib
 import torch
 from torch.storage import _LegacyStorage, _warn_typed_storage_removal
 from torch._utils import classproperty
 from torch_npu._init.common.warning_utils import _should_print_warning
+from torch_npu._compat.accelerator import get_default_generator
 
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error, prof_error
 from .utils import (obfuscation_initialize, obfuscation_calculate, obfuscation_finalize,
                     synchronize, set_device, current_device, _get_device_index,
                     device, device_of, StreamContext, stream, set_stream, current_stream, default_stream, set_sync_debug_mode,
-                    get_sync_debug_mode, init_dump, current_blas_handle, is_bf16_supported,
+                    get_sync_debug_mode, set_task_queue_enable, get_task_queue_enable,
+                    init_dump, current_blas_handle, is_bf16_supported,
                     finalize_dump, set_dump, get_npu_overflow_flag, clear_npu_overflow_flag,
                     check_uce_in_memory, stress_detect, _get_uce_addr, ipc_collect, set_op_timeout_ms)
 from ._recovery import restart_device, stop_device
-from .streams import Stream, Event, SyncLaunchStream, ExternalEvent
+from .streams import Stream, Event, SyncLaunchStream, ExternalStream, ExternalEvent
 from .mstx import mstx
 from .npu_config import *  # noqa: F403
 from .autocast_utils import *  # noqa: F403
 from .backends import *  # noqa: F403
 from ._backends import *  # noqa: F403
-from .deterministic import enable_deterministic_with_backward, disable_deterministic_with_backward # noqa: F403
-from . import npugraph_ex
+from .deterministic import enable_deterministic_with_backward, disable_deterministic_with_backward  # noqa: F403
 
 from .graphs import (
     NPUGraph,
@@ -189,6 +195,18 @@ from ._npugraph_handlers import (
     NpuGraphOpHandler,
     register_npu_graph_handler,
 )
+
+
+def __getattr__(name):
+    if name == "npugraph_ex":
+        module = importlib.import_module("torch_npu.npu.npugraph_ex")
+        globals()[name] = module
+        return module
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__():
+    return sorted(set(globals()) | {"npugraph_ex"})
 
 
 config = npu_config._npuConfig()
@@ -239,6 +257,40 @@ def init():
     Does nothing if the NPU state is already initialized.
     """
     torch_npu.npu._lazy_init()
+
+
+def npurt():
+    r"""Retrieves the NPU runtime API module.
+
+    This function initializes the NPU runtime environment if it is not already
+    initialized and returns the NPU runtime API module (_npurt). The module
+    provides access to a subset of NPU runtime functions.
+
+    Available APIs include:
+        - npuHostRegister: Register host memory for device access.
+          The `flags` parameter must follow CANN ACL Host Register
+          definitions.
+
+          Refer to:
+          https://www.hiascend.com/document/detail/zh/canncommercial/900/API/runtimeapi/aclcppdevg_03_2128.html
+
+        - npuHostUnregister: Unregister previously registered host memory.
+
+        - npuStreamCreate: Create a raw runtime stream.
+
+        - npuStreamDestroy: Destroy a raw runtime stream.
+
+    Returns:
+        The NPU runtime API module (_npurt).
+
+    Raises:
+        RuntimeError: If the NPU runtime cannot be initialized or the runtime
+            API module is unavailable.
+    """
+    torch_npu.npu._lazy_init()
+    if not hasattr(torch_npu._C, "_npurt"):
+        raise RuntimeError("torch_npu._C._npurt is unavailable in this build.")
+    return torch_npu._C._npurt
 
 
 def _lazy_init():
@@ -318,7 +370,7 @@ def _get_generator(device: torch.device) -> torch._C.Generator:
     idx = device.index
     if idx is None:
         idx = current_device()
-    return torch.npu.default_generators[idx]
+    return get_default_generator(idx)
 
 
 def _set_rng_state_offset(offset: int, device: Union[int, str, torch.device] = 'npu') -> None:
@@ -471,9 +523,9 @@ def can_device_access_peer(device_id, peer_device_id):
     device_id = _get_device_index(device_id, optional=True)
     peer_device_id = _get_device_index(peer_device_id, optional=True)
     if device_id < 0 or device_id >= device_count():
-        raise AssertionError("Invalid devide id" + pta_error(ErrCode.VALUE))
+        raise AssertionError("Invalid device id" + pta_error(ErrCode.VALUE))
     if peer_device_id < 0 or peer_device_id >= device_count():
-        raise AssertionError("Invalid peer devide id" + pta_error(ErrCode.VALUE))
+        raise AssertionError("Invalid peer device id" + pta_error(ErrCode.VALUE))
     return torch_npu._C._npu_canDeviceAccessPeer(device_id, peer_device_id)
 
 
@@ -514,7 +566,8 @@ def get_device_capability(device=None):
     The format should be "major.minor", e.g., "9.0" or "8.0".
 
     .. note::
-        The return value of get_device_capability is only for compatibility with PyTorch and does not represent the actual capability of the NPU device.
+        The return value of get_device_capability is only for compatibility with PyTorch
+        and does not represent the actual capability of the NPU device.
 
     Args:
         device (torch.device or int, optional): The device parameter has no practical meaning.
@@ -535,7 +588,10 @@ def get_device_capability(device=None):
     global _cached_device_capability, _cached_device_capability_env
 
     capability_env = os.getenv("TORCH_NPU_DEVICE_CAPABILITY")
-    warning_str = "The return value of get_device_capability is only for compatibility with PyTorch and does not represent the actual capability of the NPU device."
+    warning_str = (
+        "The return value of get_device_capability is only for compatibility with PyTorch "
+        "and does not represent the actual capability of the NPU device."
+    )
     if not capability_env:
         warnings.warn(f"You can set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. {warning_str}")
         return None
@@ -544,7 +600,8 @@ def get_device_capability(device=None):
     if _cached_device_capability_env == capability_env and _cached_device_capability is not None:
         return _cached_device_capability
 
-    # Validate the format of the environment variable, expected format is 'major.minor' where major and minor are non-negative integers (e.g., '8.0')
+    # Validate the format of the environment variable, expected format is 'major.minor' where major
+    # and minor are non-negative integers (e.g., '8.0')
     pattern = r'^(\d+)\.(\d+)$'
     match = re.match(pattern, capability_env)
     if not match:
@@ -578,6 +635,16 @@ def _aclnn_reselect_static_kernel():
     torch_npu._C._aclnn_reselect_static_kernel()
 
 
+def _aclnn_reselect_static_kernel_with_path(path):
+    torch_npu.npu._lazy_init()
+    torch_npu._C._aclnn_reselect_static_kernel_with_path(path)
+
+def _sleep(cycles):
+    r"""Sleep for the specified number of cycles on the current stream.
+    """
+    torch_npu._C._npu_sleep(cycles)
+
+
 from .random import *  # noqa: F403
 from .memory import *  # noqa: F403
 
@@ -596,33 +663,53 @@ def _comm_switch_nic(ranks, useBackup):
 
 
 def set_deterministic_level(level):
-    warnings.warn("After using 'torch_npu.npu.set_deterministic_level', "
-                  "please do not use 'torch.use_deterministic_algorithms' anymore, "
-                  "as it may cause unknown errors.")
-    if level == 0 and torch.are_deterministic_algorithms_enabled():
-        warnings.warn("The current configuration value of 'torch_npu.npu.set_deterministic_level' "
-                      "conflicts with 'torch.use_deterministic_algorithms'. "
-                      "'torch.use_deterministic_algorithms' has been configured to 'False'")
-        torch.use_deterministic_algorithms(False)
-    elif level >= 1 and not torch.are_deterministic_algorithms_enabled():
-        warnings.warn("The current configuration value of 'torch_npu.npu.set_deterministic_level' "
-                      "conflicts with 'torch.use_deterministic_algorithms'. "
-                      "'torch.use_deterministic_algorithms' has been configured to 'True'")
-        torch.use_deterministic_algorithms(True)
-    torch_npu._C._npu_set_deterministic_level(level)
+    deterministic_enabled = torch.are_deterministic_algorithms_enabled()
+    deterministic_changed = False
+    try:
+        if level == 0 and deterministic_enabled:
+            warnings.warn(
+                "The current configuration value of 'torch_npu.npu.set_deterministic_level' "
+                "conflicts with 'torch.use_deterministic_algorithms'. "
+                "'torch.use_deterministic_algorithms' has been configured to 'False'."
+            )
+            torch.use_deterministic_algorithms(False)
+            deterministic_changed = True
+        elif level >= 1 and not deterministic_enabled:
+            warnings.warn(
+                "The current configuration value of 'torch_npu.npu.set_deterministic_level' "
+                "conflicts with 'torch.use_deterministic_algorithms'. "
+                "'torch.use_deterministic_algorithms' has been configured to 'True'."
+            )
+            torch.use_deterministic_algorithms(True)
+            deterministic_changed = True
+        torch_npu._C._npu_set_deterministic_level(level)
+    except Exception:
+        if deterministic_changed and torch.are_deterministic_algorithms_enabled() != deterministic_enabled:
+            torch.use_deterministic_algorithms(deterministic_enabled)
+        raise
+    warnings.warn(
+        "After using 'torch_npu.npu.set_deterministic_level', "
+        "please do not use 'torch.use_deterministic_algorithms' anymore, "
+        "as it may cause unknown errors."
+    )
 
+
+def _sync_deterministic_level(level):
+    deterministic_enabled = torch.are_deterministic_algorithms_enabled()
+    # When the requested level conflicts with torch.use_deterministic_algorithms,
+    # take the effective level implied by torch's state and persist it to C++.
+    if level == 0 and deterministic_enabled:
+        level = 1
+    elif level >= 1 and not deterministic_enabled:
+        level = 0
+    else:
+        return level
+    torch_npu._C._npu_set_deterministic_level(level)
+    return level
 
 def _get_deterministic_level():
     level = torch_npu._C._npu_get_deterministic_level()
-    if level == 0 and torch.are_deterministic_algorithms_enabled():
-        level = 1
-        torch_npu.npu.set_deterministic_level(level)
-        return level
-    if level >= 1 and not torch.are_deterministic_algorithms_enabled():
-        level = 0
-        torch_npu.npu.set_deterministic_level(level)
-        return level
-    return level
+    return _sync_deterministic_level(level)
 
 
 def use_compatible_impl(is_enable):

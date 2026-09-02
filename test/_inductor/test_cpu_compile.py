@@ -1,6 +1,4 @@
-import os
 import torch
-import numpy as np
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import TestUtils
 
@@ -39,6 +37,49 @@ class TestNetworkCompile(TestUtils):
             cpu_out = output.detach().cpu().numpy()
 
         print(cpu_out)
+
+    def test_gemm_lowerings_are_device_dispatched(self):
+        from torch._inductor import lowering
+
+        for target in (
+            torch.ops.aten.mm.default,
+            torch.ops.aten.addmm.default,
+            torch.ops.aten.bmm.default,
+        ):
+            with self.subTest(target=target):
+                handler = lowering.lowerings[target]
+                self.assertTrue(
+                    getattr(
+                        handler,
+                        "_torch_npu_device_lowering_dispatch",
+                        False,
+                    )
+                )
+
+    def test_cpu_gemm_compile_after_npu_registration(self):
+        cases = (
+            (
+                "mm",
+                lambda mat1, mat2: torch.mm(mat1, mat2),
+                (torch.randn(4, 5), torch.randn(5, 6)),
+            ),
+            (
+                "addmm",
+                lambda bias, mat1, mat2: torch.addmm(bias, mat1, mat2),
+                (torch.randn(4, 6), torch.randn(4, 5), torch.randn(5, 6)),
+            ),
+            (
+                "bmm",
+                lambda mat1, mat2: torch.bmm(mat1, mat2),
+                (torch.randn(2, 4, 5), torch.randn(2, 5, 6)),
+            ),
+        )
+
+        for name, fn, args in cases:
+            with self.subTest(name=name):
+                torch._dynamo.reset()
+                compiled = torch.compile(fn, fullgraph=True)
+                self.assertEqual(compiled(*args), fn(*args))
 
 
 instantiate_parametrized_tests(TestNetworkCompile)
