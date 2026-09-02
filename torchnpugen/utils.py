@@ -43,7 +43,6 @@ from torchgen.model import (
     Arguments,
     BackendIndex,
     BackendMetadata,
-    DeviceCheckType,
     DispatchKey,
     FunctionSchema,
     NativeFunction,
@@ -73,7 +72,6 @@ FIELDS_TO_USE = [
     "precomputed",
 ]
 DEVICE_NOCHECK_SET = set()
-DEVICE_CHECK_NOTSUPPORT_TYPE = {"Tensor[]?"}
 
 
 class PathManager:
@@ -414,7 +412,7 @@ return {self_arg_name};
                 )
             )
 
-            device_check = "  // No device check\n"
+            device_check = "// No device check\n"
             # Backends that require device guards presumably also require device checks.
             if (
                 self.backend_index.device_guard
@@ -598,7 +596,7 @@ if (C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable())) {{
 namespace {{
 
 {returns_type} {name}({args_str}) {{
-{device_check}
+  {device_check}
 {unsafe_tensor_check}
 {device_guard}
 {memory_overlap_check}
@@ -625,27 +623,6 @@ namespace {{
                 return f'm.impl("{f.func.name}",\n{payload});\n'
         else:
             assert_never(self.target)
-
-
-def gen_device_check(
-    type: DeviceCheckType, args: list[Argument], method_name: str
-) -> str:
-    if type == DeviceCheckType.NoCheck:
-        return "  // No device check\n"
-
-    device_check = "c10::optional<at::Device> common_device = at::nullopt;\n"
-    device_check += "(void)common_device; // Suppress unused variable warning\n"
-    for arg in args:
-        # Only tensor like arguments are eligible
-        if (
-            arg.type.is_tensor_like()
-            and str(arg.type) not in DEVICE_CHECK_NOTSUPPORT_TYPE
-        ):
-            device_check += (
-                f"c10::impl::check_and_update_common_device("
-                f'common_device, {arg.name}, "{method_name}", "{arg.name}");\n'
-            )
-    return device_check
 
 
 def arguments(

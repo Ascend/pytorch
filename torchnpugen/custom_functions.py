@@ -10,12 +10,13 @@ from torchgen.gen import (parse_tags_yaml, FileManager, cpp_string, error_check_
 from torchgen.model import (BackendIndex, DispatchKey, Variant,
                             NativeFunction, OperatorName, BackendMetadata, TensorOptionsArguments)
 from torchgen.utils import concatMap, mapMaybe
-from torchgen.context import with_native_function, native_function_manager, method_with_native_function, with_native_function_and_index
+from torchgen.context import (with_native_function, native_function_manager, method_with_native_function,
+                              with_native_function_and_index)
 from torchgen.api.types import DispatcherSignature
 from torchgen.api import cpp
 from torchgen.dest.register_dispatch_key import RegisterDispatchKey
 from torchnpugen.utils import (enable_opplugin, is_op_valid, field_tag, get_opplugin_wrap_name, parse_npu_yaml,
-                           gen_op_hook_post_code)
+                               gen_op_hook_post_code)
 
 
 # Parse native_functions.yaml into a sequence of NativeFunctions and Backend Indices.
@@ -79,7 +80,7 @@ METHOD_DEFINITION = CodeTemplate("""\
 ${return_type} ${name}(${args_str}) {
   ${unpack_out}
   ${unsafe_tensor_check}
-  ${device_check}
+${device_check}
   ${device_guard}
   ${type_definition_body}
 }
@@ -136,8 +137,7 @@ def compute_op_definition(f: NativeFunction):
 
     unsafe_tensor_check = """ // No unsafe tensor check"""
     if len(candidate_tensor_args) > 0:
-        unsafe_tensor_check = \
-"""if (c10_npu::get_npu_data_unsafe_flag()) {"""
+        unsafe_tensor_check = """if (c10_npu::get_npu_data_unsafe_flag()) {"""
         for tensor_arg in candidate_tensor_args:
             unsafe_tensor_check = unsafe_tensor_check + f"""
     c10_npu::check_npu_tensor_is_safe({tensor_arg});"""
@@ -149,9 +149,15 @@ def compute_op_definition(f: NativeFunction):
         f.func.arguments.flat_positional,
         f.func.arguments.flat_kwarg_only,
     )
+    # Skip Tensor[]? args in device check: torch <= 2.13 adaption.h has no
+    # check_and_update_common_device overload for optional<ArrayRef<Tensor>>
+    device_check_args = [
+        a for a in candidate_args
+        if not (a.type.is_tensor_like() and str(a.type) == "Tensor[]?")
+    ]
     device_check = RegisterDispatchKey.gen_device_check(
-        f.device_check, list(candidate_args), name
-    )
+        f.device_check, device_check_args, name
+    ).replace("std::optional<Device>", "std::optional<at::Device>")
 
     candidate_args = itertools.chain(
         self_arg,
@@ -256,8 +262,8 @@ def compute_register_impl(f: NativeFunction, backend_index):
 
 def gen_custom_trace(fm: FileManager, custom_trace_functions: Sequence[NativeFunction], custom_backend_indices):
     env_aclnn_extension_switch = os.getenv('ACLNN_EXTENSION_SWITCH')
-    library_decl = [f'TORCH_LIBRARY_FRAGMENT'] if env_aclnn_extension_switch else [f'TORCH_LIBRARY']
-    fm.write_with_template(f'CustomRegisterSchema.cpp', 'CustomRegisterSchema.cpp', lambda: {
+    library_decl = ['TORCH_LIBRARY_FRAGMENT'] if env_aclnn_extension_switch else ['TORCH_LIBRARY']
+    fm.write_with_template('CustomRegisterSchema.cpp', 'CustomRegisterSchema.cpp', lambda: {
         'custom_op_definitions': list(concatMap(
             lambda f: compute_op_definition(f),
             custom_trace_functions
@@ -281,9 +287,9 @@ def gen_custom_trace(fm: FileManager, custom_trace_functions: Sequence[NativeFun
 def gen_custom_ops_patch(fm: FileManager, custom_trace_functions: Sequence[NativeFunction]):
 
     valid_native_functions = list(filter(should_generate_ops_patch, custom_trace_functions))
-    fm.write_with_template(f'custom_ops.py', 'custom_ops.py', lambda: {
+    fm.write_with_template('custom_ops.py', 'custom_ops.py', lambda: {
         'custom_ops': [f'torch_npu.{ops} = torch.ops.npu.{ops}'
-                       for ops in set([f.func.name.name for f in valid_native_functions])],
+                       for ops in {f.func.name.name for f in valid_native_functions}],
     })
 
 
@@ -335,17 +341,19 @@ def gen_custom_functions_dispatch(
 
     for func_type, file_name in zip(func_type_list, file_name_list):
         fm.write_with_template(
-        f'{file_name}.h', f'{file_name}.h', lambda:{
-        'custom_function_declarations':list(concatMap(
-            lambda f: compute_custom_functions_declaration(f, func_type),
-            custom_functions
-            ))}
+            f'{file_name}.h', f'{file_name}.h', lambda: {
+                'custom_function_declarations': list(concatMap(
+                    lambda f: compute_custom_functions_declaration(f, func_type),
+                    custom_functions
+                )),
+            }
         )
 
         fm.write_with_template(
-        f'{file_name}.cpp', f'{file_name}.cpp', lambda:{
-        'custom_function_definitions':list(concatMap(
-            lambda f: compute_custom_functions_definition(f, func_type),
-            custom_functions
-            ))}
+            f'{file_name}.cpp', f'{file_name}.cpp', lambda: {
+                'custom_function_definitions': list(concatMap(
+                    lambda f: compute_custom_functions_definition(f, func_type),
+                    custom_functions
+                )),
+            }
         )

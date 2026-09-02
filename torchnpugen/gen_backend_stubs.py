@@ -30,7 +30,6 @@ import torchgen.api.dispatcher as dispatcher
 import torchgen.api.native as native
 import torchgen.dest as dest
 import yaml
-from torchgen.api.cpp import JIT_TO_CPP_DEFAULT
 from torchgen.code_template import CodeTemplate
 from torchgen.model import (
     SchemaKind,
@@ -88,7 +87,6 @@ from torchnpugen.utils import (
     filt_compositeimplicitautograd_api,
     filt_exposed_api,
     gen_custom_yaml_path,
-    gen_device_check,
     gen_npu_record_function_guard,
     gen_unstructured,
     gen_unsafe_tensor_check,
@@ -1823,7 +1821,6 @@ def run(
 
 def apply_torchgen_patch():
     dest.RegisterDispatchKey.gen_unstructured = gen_unstructured
-    dest.RegisterDispatchKey.gen_device_check = gen_device_check
     original_compute_native_function_declaration = dest.compute_native_function_declaration
     original_gen_class = StructuredRegisterDispatchKey.gen_class
     original_gen_class_set_output_body = StructuredRegisterDispatchKey.gen_class_set_output_body
@@ -1926,8 +1923,6 @@ resize_out(out, sizes, strides, options);
     StructuredRegisterDispatchKey.gen_class = gen_class
     StructuredRegisterDispatchKey.gen_class_set_output_body = gen_class_set_output_body
     StructuredRegisterDispatchKey.gen_one = gen_one
-    # generate default arguments
-    JIT_TO_CPP_DEFAULT["contiguous_format"] = "c10::MemoryFormat::Contiguous"
     dispatcher.arguments = native.arguments
 
 
