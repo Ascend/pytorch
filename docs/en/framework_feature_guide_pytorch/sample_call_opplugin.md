@@ -21,8 +21,8 @@ After completing the development of the adaptation plugin for the PyTorch framew
     > [!NOTE]
     >
     > The CANN operator corresponding to this example is `aclnnAdd`. For details, see the "NN Operator Interface" section in the CANN Operator Library.
-<!-- "[NN Operator Interface](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/API/aolapi/context/ops-math/aclnnAdd&aclnnInplaceAdd.md)" -->
-<!-- [CANN Operator Library](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/API/aolapi/operatorlist_00001.html) 19行-->
+<!-- For details, see the"[NN Operator Interface](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/API/aolapi/context/ops-math/aclnnAdd&aclnnInplaceAdd.md)" -->
+<!-- For details, see the [CANN Operator Library](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/API/aolapi/operatorlist_00001.html) 19行-->
 
 ## Adaptation Development
 

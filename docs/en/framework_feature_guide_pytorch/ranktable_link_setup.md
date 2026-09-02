@@ -23,7 +23,7 @@ The environment variable `RANK_TABLE_FILE` controls whether collective communica
 This environment variable is not configured by default.
 
  For ranktable file configuration instructions, refer to the "Cluster Information Configuration" section in *CANN HCCL Communication Library*.
- <!-- [Cluster Information Configuration](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/commlib/hcclug/docs/en/user_guide/cluster_info_config/intro.md) -->
+ <!-- refer to the "[Cluster Information Configuration](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/commlib/hcclug/docs/en/user_guide/cluster_info_config/intro.md)" -->
 
 > [!CAUTION]
 >

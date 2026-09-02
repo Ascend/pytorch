@@ -24,4 +24,4 @@ An error occurred when calling the underlying API during initialization, and the
 ## Solution
 
 For details, see the Process Interruption Fault Locating section in *CANN Troubleshooting*.
-<!-- [Process Interruption Fault Locating](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/troubleshooting/troubleshooting_0062.html) -->
+<!-- For details, see the [Process Interruption Fault Locating](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/troubleshooting/troubleshooting_0062.html) section in *CANN Troubleshooting*.-->

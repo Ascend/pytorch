@@ -22,4 +22,4 @@ An operator that is not yet supported on the NPU is called.
 ## Solution
 
 If only a warning is triggered without an error, you can ignore it if performance improvement is not a concern. Otherwise, use other replaceable and supported interfaces of torch. For details, see [Custom APIs](https://gitcode.com/Ascend/op-plugin/blob/26.1.0/docs/en/custom_APIs/overview.md) or Native APIs.
-<!-- see [Custom APIs](https://gitcode.com/Ascend/op-plugin/blob/26.1.0/docs/en/custom_APIs/overview.md) or [Native APIs](../native_apis/pytorch_2-12-0/overview.md). -->
+<!-- For details, see [Custom APIs](https://gitcode.com/Ascend/op-plugin/blob/26.1.0/docs/en/custom_APIs/overview.md) or [Native APIs](../native_apis/pytorch_2-12-0/overview.md). -->

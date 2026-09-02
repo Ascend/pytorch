@@ -20,7 +20,7 @@ export ACL_OP_COMPILER_CACHE_DIR=/home/cache
 - This environment variable must be used in conjunction with `ACL_OP_COMPILER_CACHE_MODE`.
 - If both the environment variable and torch_npu_option are set, the torch_npu_option method in the code takes precedence.
 - If the `ACL_OP_DEBUG_LEVEL` compilation option is set, the compilation cache feature is enabled only when the compilation option value is 0 or 3. Other values disable the compilation cache feature. For details about the ACL_OP_DEBUG_LEVEL compilation option, see the "aclCompileOpt" section in the *CANN Graph Engine API*.
-<!-- [aclCompileOpt](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/API/ascendgraphapi/aclcppdevg_03_1371.html) -->
+<!-- - If the `ACL_OP_DEBUG_LEVEL` compilation option is set, the compilation cache feature is enabled only when the compilation option value is 0 or 3. Other values disable the compilation cache feature. For details about the ACL_OP_DEBUG_LEVEL compilation option, see the "[aclCompileOpt](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/API/ascendgraphapi/aclcppdevg_03_1371.html)" section in the *CANN Graph Engine API*. -->
 
 ## Supported Products
 

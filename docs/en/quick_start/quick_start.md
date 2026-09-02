@@ -11,7 +11,7 @@ This quick start uses the Atlas 800T A2 training server as an example.
 
 - Install the PyTorch framework and the TorchNPU plugin. For details, see [Software Installation](../installation_guide/installation_description.md).
 - Install torchvision matching the PyTorch version. For details, see [Installing torchvision](../installation_guide/installing_torchvision.md).
-<!-- [CANN Software Installation](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum) 7行-->
+<!-- For details, see [CANN Software Installation](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum) 7行-->
 
 ## Model Migration Training
 

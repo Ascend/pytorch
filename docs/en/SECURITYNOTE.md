@@ -231,8 +231,7 @@ PyTorch provides distributed training capabilities and supports training in both
 | Version | All versions | All versions |
 | Special Scenario | None | None |
 | Remarks | This communication process is controlled by the open-source software PyTorch, configured with PyTorch native settings. Refer to the [PyTorch documentation](https://pytorch.org/docs/stable/distributed.html#launch-utility). The source port is automatically assigned by the operating system, and the assignment range is determined by the OS configuration. For example, on Ubuntu: it is specified by the /proc/sys/net/ipv4/ipv4_local_port_range file, which can be viewed via cat /proc/sys/net/ipv4/ipv4_local_port_range or sysctl net.ipv4.ip_local_port_range. | This communication process is controlled by the HCCL component in CANN; TorchNPU does not control it. For the port range, refer to the "Execution Related > Collective Communication > HCCL_IF_BASE_PORT" section in the Environment Variable Reference. |
-<!-- [Environment Variable Reference](https://www.hiascend.com/document/detail/en/canncommercial/82RC1/maintenref/envvar/envref_07_0001.html) -->
-
+<!-- This communication process is controlled by the HCCL component in CANN; TorchNPU does not control it. For the port range, refer to the "Execution Related > Collective Communication > HCCL_IF_BASE_PORT" section in the [Environment Variable Reference](https://www.hiascend.com/document/detail/en/canncommercial/82RC1/maintenref/envvar/envref_07_0001.html). -->
 ## Vulnerability Security Statement
 
 The Ascend for PyTorch community highly values the security of community versions. Vulnerability management specialists are specifically designated to handle vulnerability-related matters. To build a more secure AI full-process toolchain, we look forward to your participation.

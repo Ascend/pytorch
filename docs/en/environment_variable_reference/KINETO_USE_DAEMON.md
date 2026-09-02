@@ -11,7 +11,7 @@ export KINETO_USE_DAEMON=1
 ```
 
 For detailed usage, see the "dynamic\_profile dynamic collection" section in the *CANN Performance Tuning Tool*.
-<!-- [dynamic\_profile dynamic collection](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/devaids/Profiling/atlasprofiling_16_0033.html#ZH-CN_TOPIC_0000002630711622__zh-cn_topic_0000002521150870_section17272160135118) -->
+<!-- see the "[dynamic\_profile dynamic collection](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/devaids/Profiling/atlasprofiling_16_0033.html#ZH-CN_TOPIC_0000002630711622__zh-cn_topic_0000002521150870_section17272160135118)" -->
 
 ## Usage Constraints
 

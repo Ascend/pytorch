@@ -218,7 +218,7 @@ Check CANN-related errors in logs and find the CANN Error Code.
 
 > [!NOTE]  
 > For details about CANN software-related errors, see the CANN Troubleshooting.
-<!-- [CANN Troubleshooting](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/troubleshooting/troubleshooting_0001.html) -->
+<!-- see the [CANN Troubleshooting](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/troubleshooting/troubleshooting_0001.html) Troubleshooting. -->
 
 ## ERR\*\*200
 
@@ -238,7 +238,7 @@ Check CANN-related errors in logs and find the CANN Error Code.
 
 > [!NOTE]  
 > For details about CANN software-related errors, see the CANN Troubleshooting.
-<!-- [CANN Troubleshooting](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/troubleshooting/troubleshooting_0001.html) -->
+<!-- see the [CANN Troubleshooting](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/troubleshooting/troubleshooting_0001.html) Troubleshooting. -->
 
 ## ERR\*\*300
 
@@ -258,7 +258,7 @@ Check CANN-related errors in logs and find the CANN Error Code.
 
 > [!NOTE]  
 > For details about CANN software-related errors, see the CANN Troubleshooting.
-<!-- [CANN Troubleshooting](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/troubleshooting/troubleshooting_0001.html) -->
+<!-- see the [CANN Troubleshooting](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/troubleshooting/troubleshooting_0001.html)Troubleshooting. -->
 
 ## ERR\*\*999
 

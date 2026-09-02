@@ -24,7 +24,7 @@ This section uses the following output information as an example to describe how
     ```
 
     "EZ3002" is the CANN software error code. You can refer to the "Error Code Reference" section in *CANN Troubleshooting* to perform fault analysis based on the corresponding error code information. If the source of the problem remains unclear, you can further check other output information.
-    <!-- "[Error Code Reference](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/troubleshooting/troubleshooting_0225.html)" -->
+    <!-- You can refer to the "[Error Code Reference](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/troubleshooting/troubleshooting_0225.html) section in *CANN Troubleshooting* to perform fault analysis based on the corresponding error code information." -->
 
 2. Check the Python call stack and exception information.
 

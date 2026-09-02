@@ -34,4 +34,4 @@ An operator call error occurs, and the error code **ERR01100** is printed. Possi
 
 1. Check whether the corresponding Kernels or ops package has been installed.
 2. Check whether the input data type of the operator is supported. If not, use a supported data type. For details, refer to the Ascend IR Operator Specifications section in the *CANN Operator Library*.
-<!-- [Ascend IR Operator Specifications](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/API/aolapi/operatorlist_00094.html) -->
+<!-- refer to the [Ascend IR Operator Specifications](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/API/aolapi/operatorlist_00094.html) section in the *CANN Operator Library*. -->
