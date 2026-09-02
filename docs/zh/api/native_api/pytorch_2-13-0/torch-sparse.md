@@ -8,13 +8,22 @@
 > - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
 > - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://pytorch.org/docs/2.13/sparse.html)。
 
-## 目录
+<div style="border:1px solid #d1d5da;margin:10px 0;padding:16px 20px;background-color:#f3f4f5;border-radius:.25rem">
+<div style="margin: 8px 0"><font size="5"><b>目录</b></font></div>
 
 - [Supported operations](#supported-operations)
 
+</div>
+
+<div style="display:none;">
+
+## &#8203;torch.sparse
+
+</div>
+
 ## Supported operations
 
-### <code><i>class</i></code> torch.sparse.Tensor
+### <code><i>class</i></code> torch.Tensor
 
 <div style="margin-left: 2em">
 
@@ -180,7 +189,21 @@
 
 </div>
 
-### torch.sparse.check_sparse_tensor_invariants.disable
+### <code><i>class</i></code> torch.sparse.check_sparse_tensor_invariants
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.sparse.check_sparse_tensor_invariants](https://pytorch.org/docs/2.13/generated/torch.sparse.check_sparse_tensor_invariants.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✘ |
+| <term>Atlas A3 训练系列产品</term> | ✘ |
+| <term>Ascend 950DT</term> | ✘ |
+
+> <font size="3">disable()</font>
 
 <div style="margin-left: 2em">
 
@@ -196,7 +219,7 @@
 
 </div>
 
-### torch.sparse.check_sparse_tensor_invariants.enable
+> <font size="3">enable()</font>
 
 <div style="margin-left: 2em">
 
@@ -212,7 +235,7 @@
 
 </div>
 
-### torch.sparse.check_sparse_tensor_invariants.is_enabled
+> <font size="3">is_enabled()</font>
 
 <div style="margin-left: 2em">
 
@@ -228,6 +251,8 @@
 
 </div>
 
+</div>
+
 ### torch.sparse_compressed_tensor
 
 <div style="margin-left: 2em">
@@ -240,22 +265,6 @@
 | ---- | :----: |
 | <term>Atlas A2 训练系列产品</term> | ✔ |
 | <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
-
-</div>
-
-### torch.sparse.check_sparse_tensor_invariants
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.sparse.check_sparse_tensor_invariants](https://pytorch.org/docs/2.13/generated/torch.sparse.check_sparse_tensor_invariants.html)
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
 | <term>Ascend 950DT</term> | ✘ |
 
 </div>

@@ -8,17 +8,62 @@
 > - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
 > - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://pytorch.org/docs/2.11/autograd.html)。
 
-## 目录
+<div style="border:1px solid #d1d5da;margin:10px 0;padding:16px 20px;background-color:#f3f4f5;border-radius:.25rem">
+<div style="margin: 8px 0"><font size="5"><b>目录</b></font></div>
 
 - [Forward-mode Automatic Differentiation](#forward-mode-automatic-differentiation)
 - [Functional higher level API](#functional-higher-level-api)
-- [Default gradient layouts](#default-gradient-layouts)
-- [Tensor autograd functions](#tensor-autograd-functions)
 - [Function](#function)
+- [Context method mixins](#context-method-mixins)
 - [Numerical gradient checking](#numerical-gradient-checking)
 - [Profiler](#profiler)
 - [Debugging and anomaly detection](#debugging-and-anomaly-detection)
 - [Autograd graph](#autograd-graph)
+
+</div>
+
+<div style="display:none;">
+
+## &#8203;torch.autograd
+
+</div>
+
+### torch.autograd.backward
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.backward](https://pytorch.org/docs/2.11/generated/torch.autograd.backward.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
+
+**限制与说明**：
+
+- `input`仅支持bf16，fp16，fp32，fp64
+- 不支持稀疏张量
+
+</div>
+
+### torch.autograd.grad
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.grad](https://pytorch.org/docs/2.11/generated/torch.autograd.grad.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
+
+</div>
 
 ## Forward-mode Automatic Differentiation
 
@@ -404,47 +449,6 @@
 
 </div>
 
-## Default gradient layouts
-
-### torch.autograd.backward
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.autograd.backward](https://pytorch.org/docs/2.11/generated/torch.autograd.backward.html)
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
-
-**限制与说明**：
-
-- `input`仅支持bf16，fp16，fp32，fp64
-- 不支持稀疏张量
-
-</div>
-
-## Tensor autograd functions
-
-### torch.autograd.grad
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.autograd.grad](https://pytorch.org/docs/2.11/generated/torch.autograd.grad.html)
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
-
-</div>
-
 ## Function
 
 ### <code><i>class</i></code> torch.autograd.Function
@@ -527,6 +531,78 @@
 
 </div>
 
+## Context method mixins
+
+### <code><i>class</i></code> torch.autograd.function.FunctionCtx
+
+<div style="margin-left: 2em">
+
+> <font size="3">mark_dirty()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.function.FunctionCtx.mark_dirty](https://pytorch.org/docs/2.11/generated/torch.autograd.function.FunctionCtx.mark_dirty.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+> <font size="3">mark_non_differentiable()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.function.FunctionCtx.mark_non_differentiable](https://pytorch.org/docs/2.11/generated/torch.autograd.function.FunctionCtx.mark_non_differentiable.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+> <font size="3">save_for_backward()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.function.FunctionCtx.save_for_backward](https://pytorch.org/docs/2.11/generated/torch.autograd.function.FunctionCtx.save_for_backward.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+> <font size="3">set_materialize_grads()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.function.FunctionCtx.set_materialize_grads](https://pytorch.org/docs/2.11/generated/torch.autograd.function.FunctionCtx.set_materialize_grads.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+</div>
+
 ## Numerical gradient checking
 
 ### torch.autograd.gradcheck.gradcheck
@@ -583,6 +659,70 @@
 with torch.autograd.profiler.profile(use_device="npu") as prof:
     ...
 ```
+
+</div>
+
+### profile.export_chrome_trace
+
+<div style="margin-left: 2em">
+
+**原生文档**：[profile.export_chrome_trace](https://pytorch.org/docs/2.11/generated/torch.autograd.profiler.profile.export_chrome_trace.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+### profile.key_averages
+
+<div style="margin-left: 2em">
+
+**原生文档**：[profile.key_averages](https://pytorch.org/docs/2.11/generated/torch.autograd.profiler.profile.key_averages.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+### profile.self_cpu_time_total
+
+<div style="margin-left: 2em">
+
+**原生文档**：[profile.self_cpu_time_total](https://pytorch.org/docs/2.11/generated/torch.autograd.profiler.profile.self_cpu_time_total.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+### profile.total_average
+
+<div style="margin-left: 2em">
+
+**原生文档**：[profile.total_average](https://pytorch.org/docs/2.11/generated/torch.autograd.profiler.profile.total_average.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -749,6 +889,92 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 </div>
 
 ## Autograd graph
+
+### <code><i>class</i></code> torch.autograd.graph.Node
+
+<div style="margin-left: 2em">
+
+> <font size="3">name()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[Node.name](https://pytorch.org/docs/2.11/generated/torch.autograd.graph.Node.name.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+> <font size="3">metadata()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[Node.metadata](https://pytorch.org/docs/2.11/generated/torch.autograd.graph.Node.metadata.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+> <font size="3">next_functions()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[Node.next_functions](https://pytorch.org/docs/2.11/generated/torch.autograd.graph.Node.next_functions.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+> <font size="3">register_hook()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[Node.register_hook](https://pytorch.org/docs/2.11/generated/torch.autograd.graph.Node.register_hook.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+> <font size="3">register_prehook()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[Node.register_prehook](https://pytorch.org/docs/2.11/generated/torch.autograd.graph.Node.register_prehook.html)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+</div>
 
 ### torch.autograd.graph.saved_tensors_hooks
 

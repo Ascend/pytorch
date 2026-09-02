@@ -13,10 +13,19 @@
 >   `source {CANN包安装路径}/nnal/asdsip/set_env.sh`
 > - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://pytorch.org/docs/2.11/fft.html)。
 
-## 目录
+<div style="border:1px solid #d1d5da;margin:10px 0;padding:16px 20px;background-color:#f3f4f5;border-radius:.25rem">
+<div style="margin: 8px 0"><font size="5"><b>目录</b></font></div>
 
 - [Fast Fourier Transforms](#fast-fourier-transforms)
 - [Helper Functions](#helper-functions)
+
+</div>
+
+<div style="display:none;">
+
+## &#8203;torch.fft
+
+</div>
 
 ## Fast Fourier Transforms
 

@@ -8,11 +8,11 @@
 > - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
 > - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://pytorch.org/docs/2.11/model_zoo.html)。
 
-## 目录
+<div style="display:none;">
 
-- [torch.utils.model_zoo](#torchutilsmodel_zoo)
+## &#8203;torch.utils.model\_zoo
 
-## torch.utils.model_zoo
+</div>
 
 ### torch.utils.model_zoo.load_url
 

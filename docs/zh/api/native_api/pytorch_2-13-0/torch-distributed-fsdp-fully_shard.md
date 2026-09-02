@@ -8,11 +8,20 @@
 > - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
 > - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://pytorch.org/docs/2.13/distributed.fsdp.fully_shard.html)。
 
-## 目录
+<div style="border:1px solid #d1d5da;margin:10px 0;padding:16px 20px;background-color:#f3f4f5;border-radius:.25rem">
+<div style="margin: 8px 0"><font size="5"><b>目录</b></font></div>
 
-- [PyTorch FSDP2](#pytorch-fsdp2)
+- [PyTorch FSDP2 (fully_shard)](#pytorch-fsdp2-fully_shard)
 
-## PyTorch FSDP2
+</div>
+
+<div style="display:none;">
+
+## &#8203;torch.distributed.fsdp.fully_shard
+
+</div>
+
+## PyTorch FSDP2 (fully_shard)
 
 ### torch.distributed.fsdp.fully_shard
 

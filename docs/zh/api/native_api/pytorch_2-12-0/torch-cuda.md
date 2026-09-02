@@ -12,13 +12,22 @@
 >   `torch.cuda.current_device` --> `torch.npu.current_device`
 > - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://pytorch.org/docs/2.12/cuda.html)。
 
-## 目录
+<div style="border:1px solid #d1d5da;margin:10px 0;padding:16px 20px;background-color:#f3f4f5;border-radius:.25rem">
+<div style="margin: 8px 0"><font size="5"><b>目录</b></font></div>
 
 - [Random Number Generator](#random-number-generator)
 - [Communication collectives](#communication-collectives)
 - [Streams and events](#streams-and-events)
 - [Graphs (beta)](#graphs-beta)
 - [Memory management](#memory-management)
+
+</div>
+
+<div style="display:none;">
+
+## &#8203;torch.cuda
+
+</div>
 
 ### <code><i>class</i></code> torch.cuda.StreamContext
 
