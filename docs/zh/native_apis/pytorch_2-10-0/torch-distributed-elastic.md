@@ -8,16 +8,25 @@
 > - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
 > - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://docs.pytorch.org/docs/2.10/distributed.elastic.html)。
 
-## 目录
+<div style="border:1px solid #d1d5da;margin:10px 0;padding:16px 20px;background-color:#f3f4f5;border-radius:.25rem">
+<div style="margin: 8px 0"><font size="5"><b>目录</b></font></div>
 
 - [Elastic Agent](#elastic-agent)
-- [Control Plane](#control-plane)
 - [Multiprocessing](#multiprocessing)
 - [Error Propagation](#error-propagation)
 - [Rendezvous](#rendezvous)
 - [Expiration Timers](#expiration-timers)
 - [Metrics](#metrics)
 - [Events](#events)
+- [Control Plane](#control-plane)
+
+</div>
+
+<div style="display:none;">
+
+## &#8203;torch.distributed.elastic
+
+</div>
 
 ## Elastic Agent
 
@@ -368,22 +377,6 @@
 | <term>Ascend 950DT</term> | ✘ |
 
 </div>
-
-</div>
-
-## Control Plane
-
-### torch.distributed.elastic.control_plane.worker_main
-
-<div style="margin-left: 2em">
-
-**支持情况**：
-
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
 
 </div>
 
@@ -1702,6 +1695,22 @@
 </div>
 
 ### torch.distributed.elastic.events.construct_and_record_rdzv_event
+
+<div style="margin-left: 2em">
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✘ |
+
+</div>
+
+## Control Plane
+
+### torch.distributed.elastic.control_plane.worker_main
 
 <div style="margin-left: 2em">
 

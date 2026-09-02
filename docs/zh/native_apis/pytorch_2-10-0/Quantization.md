@@ -8,7 +8,8 @@
 > - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
 > - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://docs.pytorch.org/docs/2.10/quantization-support.html)。
 
-## 目录
+<div style="border:1px solid #d1d5da;margin:10px 0;padding:16px 20px;background-color:#f3f4f5;border-radius:.25rem">
+<div style="margin: 8px 0"><font size="5"><b>目录</b></font></div>
 
 - [torch.ao.quantization](#torchaoquantization)
 - [torch.ao.quantization.qconfig_mapping](#torchaoquantizationqconfig_mapping)
@@ -22,6 +23,14 @@
 - [torch.ao.nn.qat](#torchaonnqat)
 - [torch.ao.nn.quantizable](#torchaonnquantizable)
 - [torch.ao.nn.quantized.dynamic](#torchaonnquantizeddynamic)
+
+</div>
+
+<div style="display:none;">
+
+## &#8203;Quantization
+
+</div>
 
 ### torch.ao.ns.fx.utils.compute_sqnr
 

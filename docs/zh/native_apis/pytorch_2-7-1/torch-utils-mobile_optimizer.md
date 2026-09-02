@@ -7,12 +7,13 @@
 > - 部分API虽在[PyTorch社区文档](https://pytorch.org/docs/2.7/)中存在，但未收录于本支持清单。此类API尚未验证，请谨慎使用。我们将持续进行验证工作，并在验证完成后更新文档。
 > - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
 > - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://pytorch.org/docs/2.7/mobile_optimizer.html)。
+> - 原生社区已不再主动维护当前文档下的API，请谨慎使用。
 
-## 目录
+<div style="display:none;">
 
-- [torch.utils.mobile_optimizer](#torchutilsmobile_optimizer)
+## &#8203;torch.utils.mobile\_optimizer
 
-## torch.utils.mobile_optimizer
+</div>
 
 ### torch.utils.mobile_optimizer.optimize_for_mobile
 

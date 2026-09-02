@@ -9,9 +9,18 @@
 > - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://docs.pytorch.org/docs/2.9/fx.experimental.html)。
 > - 原生社区提示torch.fx.experimental模块下的API属于实验性质，存在随时变更的风险，建议参考原生文档后谨慎使用。
 
-## 目录
+<div style="border:1px solid #d1d5da;margin:10px 0;padding:16px 20px;background-color:#f3f4f5;border-radius:.25rem">
+<div style="margin: 8px 0"><font size="5"><b>目录</b></font></div>
 
 - [torch.fx.experimental.symbolic_shapes](#torchfxexperimentalsymbolic_shapes)
+
+</div>
+
+<div style="display:none;">
+
+## &#8203;torch.fx.experimental
+
+</div>
 
 ## torch.fx.experimental.symbolic_shapes
 

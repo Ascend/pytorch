@@ -8,11 +8,11 @@
 > - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
 > - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://pytorch.org/docs/2.9/benchmark_utils.html)。
 
-## 目录
+<div style="display:none;">
 
-- [Benchmark Utils-torch.utils.benchmark](#benchmark-utils-torchutilsbenchmark)
+## &#8203;torch.utils.benchmark
 
-## Benchmark Utils-torch.utils.benchmark
+</div>
 
 ### <code><i>class</i></code> torch.utils.benchmark.Timer
 
