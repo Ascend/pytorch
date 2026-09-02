@@ -301,6 +301,14 @@ if (DEFINED BUILD_TENSORPIPE)
   add_definitions(-DUSE_RPC_FRAMEWORK)
   set(BUILD_SHARED_LIBS ON)
   add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/Tensorpipe)
+  # Suppress warning to unblock libnop compilation by clang-17+
+  # See https://github.com/pytorch/pytorch/issues/151316
+  include(CheckCXXCompilerFlag)
+  check_cxx_compiler_flag("-Wno-missing-template-arg-list-after-template-kw"
+      COMPILER_SUPPORTS_NO_MISSING_TEMPLATE_ARG_LIST)
+  if(COMPILER_SUPPORTS_NO_MISSING_TEMPLATE_ARG_LIST)
+    target_compile_options(tensorpipe PRIVATE -Wno-missing-template-arg-list-after-template-kw)
+  endif()
   set(BUILD_SHARED_LIBS OFF)
 endif()
 
