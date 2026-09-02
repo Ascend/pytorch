@@ -19,6 +19,7 @@ on:
       - '.github/scripts/run_npu_test_shard.py'
       - '.github/scripts/parse_test_results.py'
       - '.github/scripts/generate_npu_full_test_report.py'
+      - '.github/scripts/send_feishu_notification.py'
   workflow_dispatch:
 
 permissions:

@@ -133,6 +133,7 @@ jobs:
       - test
     if: always() && needs.collect.result == 'success'
     uses: ./.github/workflows/_test-report.yml
+    secrets: inherit
     with:
       core_matrix: ${{ needs.collect.outputs.core_matrix }}
       tensor_matrix: ${{ needs.collect.outputs.tensor_matrix }}
