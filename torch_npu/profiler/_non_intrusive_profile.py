@@ -1,8 +1,7 @@
 import os
-import sys
-import functools
+from weakref import WeakKeyDictionary
 
-import torch
+from torch.optim.optimizer import Optimizer, register_optimizer_step_post_hook
 
 from ..utils._path_manager import PathManager
 from ._dynamic_profiler._dynamic_profiler_utils import DynamicProfilerUtils
@@ -16,45 +15,28 @@ __all__ = [
 ]
 
 
-if torch.__version__ >= "2.0.0":
-    _origin_patch_step_function = torch.optim.Optimizer._patch_step_function
-elif torch.__version__ >= "1.8.0":
-    _origin_patch_step_function = torch.optim.Optimizer._hook_for_profile
-
-
 class _NonIntrusiveProfile:
-    OPTIMIZER_ID = 0
+    _optimizer_step_hook_handle = None
+    _optimizer_steps = WeakKeyDictionary()
+    _profiler_step = 0
 
-    @staticmethod
-    def step_wrapper(func):
+    @classmethod
+    def _optimizer_step_post_hook(cls, optimizer: Optimizer, _args: tuple, _kwargs: dict) -> None:
+        step = cls._optimizer_steps.get(optimizer, 0) + 1
+        cls._optimizer_steps[optimizer] = step
+        if step > cls._profiler_step:
+            dp_step()
+            cls._profiler_step = step
 
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            out = func(*args, **kwargs)
-            _NonIntrusiveProfile.step(*args, **kwargs)
-            return out
-
-        return wrapper
-
-    @staticmethod
-    def patch_step_function(optimizer: torch.optim.Optimizer):
-        _origin_patch_step_function(optimizer)
-        _NonIntrusiveProfile.OPTIMIZER_ID = id(optimizer)  # record the last optimizer
-        step_hooked = getattr(optimizer.__class__.step, "step_hooked", None)
-        if not step_hooked:
-            optimizer.__class__.step = _NonIntrusiveProfile.step_wrapper(optimizer.__class__.step)
-            optimizer.__class__.step.step_hooked = True
-
-    @staticmethod
-    def check_last_optimizer(optimizer: torch.optim.Optimizer):
-        return id(optimizer) == _NonIntrusiveProfile.OPTIMIZER_ID
-
-    @staticmethod
-    def step(*args, **kwargs):
-        optimizer, *_ = args
-        if not _NonIntrusiveProfile.check_last_optimizer(optimizer):
+    @classmethod
+    def _register_optimizer_step_hook(cls) -> None:
+        if cls._optimizer_step_hook_handle is not None:
             return
-        dp_step()
+        cls._optimizer_steps.clear()
+        cls._profiler_step = 0
+        cls._optimizer_step_hook_handle = register_optimizer_step_post_hook(
+            cls._optimizer_step_post_hook
+        )
 
     @staticmethod
     def init():
@@ -83,13 +65,7 @@ class _NonIntrusiveProfile:
                 print_error_msg(f"The path '{prof_config_path}' is invalid, and profiler will not be enabled.")
                 return
             is_dyno = False
-        if is_dyno and sys.version_info < (3, 8):
-            print_error_msg(f"Dynolog only supported above Python 3.8 !.")
-            return
-        elif is_dyno:
+        if is_dyno:
             DynamicProfilerUtils.DYNAMIC_PROFILER_MODEL = DynamicProfilerUtils.DynamicProfilerConfigModel.DYNO_CONFIG
         dp_init(prof_config_path)
-        if torch.__version__ >= "2.0.0":
-            torch.optim.Optimizer._patch_step_function = _NonIntrusiveProfile.patch_step_function
-        elif torch.__version__ >= "1.8.0":
-            torch.optim.Optimizer._hook_for_profile = _NonIntrusiveProfile.patch_step_function
+        _NonIntrusiveProfile._register_optimizer_step_hook()
