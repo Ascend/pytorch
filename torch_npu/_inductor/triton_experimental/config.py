@@ -157,6 +157,12 @@ autotune_fallback: bool = False
 # per-load pad-lane facts, not text matching).
 elide_reduction_where: bool = True
 
+# Promoted rtree shape fix: after the flat-loop rewrite, re-align masked-load ptrs
+# (bar-shaped index vs block-shaped mask) and store offsets (pre-promotion rank vs
+# rank-N value) with the promoted block shape. triton-ascend rejects the implicit
+# ptr-vs-mask broadcasts upstream Triton tolerates.
+promoted_rtree_shape_fix: bool = True
+
 # Inject ``care_padding=False`` on masked loads.
 inject_care_padding: bool = False
 

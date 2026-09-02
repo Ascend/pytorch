@@ -406,12 +406,23 @@ def _npu_rewrite_promoted_rtree_body(kernel, real_sizes, real_ndim):
         flat_subs = getattr(kernel, "_npu_flat_rnode_subs", None) or {}
         flat_recon = {nm: flat_subs[nm] for nm in recon_nodes if nm in flat_subs}
 
+        # Per-slot block token (matches the accumulator tl.full shape): each free
+        # r-node's tile token at its slot, and the KEPT axes' real block extent
+        # (a live x-axis is XBLOCK, not 1 -- only fully-reduced outputs are 1).
+        # Consumed by the load-ptr re-alignment pass (promoted_rtree_shape_fix).
+        slot_block_tokens = [str(real_sizes[s]) for s in range(real_ndim)]
+        for nm in ordered_names:
+            if nm in vtd and 0 <= vtd[nm] < real_ndim:
+                is_dyn = dynamic and node_dyn.get(nm, True)
+                slot_block_tokens[vtd[nm]] = f"{nm}_blk" if is_dyn else f"real_block_{nm}"
+
         _npu_apply_promoted_rtree_lines(
             kernel, prefix, blk_defs, blk_node_names, arange_lines,
             combined_mask, collapsed_shape, collapsed_dim, post_resize,
             r_slots, real_ndim, ordered_names,
             dynamic=dynamic, loop_nodes=loop_nodes, slot_bcast=_slot_bcast,
             flat_recon=flat_recon,
+            real_sizes=real_sizes, slot_block_tokens=slot_block_tokens,
         )
 
 def _npu_preserve_mixed_leaf_mul_where(lines, leaf_names):
@@ -494,6 +505,7 @@ def _npu_apply_promoted_rtree_lines(
     combined_mask, collapsed_shape, collapsed_dim, post_resize,
     r_slots, real_ndim, leaf_names,
     dynamic=False, loop_nodes=None, slot_bcast=None, flat_recon=None,
+    real_sizes=None, slot_block_tokens=None,
 ):
     """In-place edit of kernel.body._lines for one promoted r-tree. Static mode:
     replace the flat ``for r0_offset`` loop with loop-free per-node aranges.
@@ -532,6 +544,9 @@ def _npu_apply_promoted_rtree_lines(
         )
         if store is None:
             return raw
+        changed = False
+        # Value side (pre-existing): the reduction value's broadcast_to still
+        # carries pre-promotion slot sizes; r-slots collapse to 1.
         broadcast = next(
             (
                 item
@@ -594,11 +609,112 @@ def _npu_apply_promoted_rtree_lines(
                     elts.insert(
                         0, ast.copy_location(ast.Constant(value=1), base.args[0])
                     )
-        for slot in r_slots:
-            if 0 <= slot < len(broadcast.args):
-                broadcast.args[slot] = ast.copy_location(
-                    ast.Constant(value=1), broadcast.args[slot]
+            changed = True
+        if broadcast is not None:
+            for slot in r_slots:
+                if 0 <= slot < len(broadcast.args):
+                    broadcast.args[slot] = ast.copy_location(
+                        ast.Constant(value=1), broadcast.args[slot]
+                    )
+            changed = True
+        # Offset side (promoted_rtree_shape_fix): the store offset was emitted at
+        # pre-promotion rank (``tl.full([1,..], 0, dt).broadcast_to(XBLOCK, 1)``)
+        # while the value is now rank real_ndim -- triton-ascend rejects the rank
+        # mismatch. Rewrite the full's rank prefix to [1]*real_ndim and the
+        # broadcast target to per-slot (r-slots "1", kept slots their real block
+        # extent), mirroring the value-side collapse.
+        if ncfg.promoted_rtree_shape_fix and real_sizes is not None:
+            target_tokens = [
+                "1" if s in r_slots else str(real_sizes[s])
+                for s in range(real_ndim)
+            ]
+            for bcast in ast.walk(store):
+                if not (
+                    isinstance(bcast, ast.Call)
+                    and isinstance(bcast.func, ast.Attribute)
+                    and bcast.func.attr == "broadcast_to"
+                    and len(bcast.args) < real_ndim
+                ):
+                    continue
+                inner = bcast.func.value
+                if not (
+                    isinstance(inner, ast.Call)
+                    and isinstance(inner.func, ast.Attribute)
+                    and inner.func.attr == "full"
+                    and inner.args
+                    and isinstance(inner.args[0], (ast.List, ast.Tuple))
+                    and len(inner.args[0].elts) < real_ndim
+                ):
+                    continue
+                first = (
+                    inner.args[0].elts[0] if inner.args[0].elts else inner.args[0]
                 )
+                inner.args[0].elts = [
+                    ast.copy_location(ast.Constant(value=1), first)
+                    for _ in range(real_ndim)
+                ]
+                bcast.args = [
+                    ast.copy_location(ast.parse(tok, mode="eval").body, bcast)
+                    for tok in target_tokens
+                ]
+                changed = True
+        if not changed:
+            return raw
+        rewritten = _npu_render_generated_line(indent, statement)
+        return _npu_replace_raw_line(raw, line, rewritten)
+
+    def _fix_masked_load_ptr(raw):
+        """promoted_rtree_shape_fix load side: a masked load whose ptr index covers
+        only some free r-nodes is a bar ([.., 1, ..]) while the rewrite upgraded its
+        mask to the full block -- an implicit ptr-vs-mask broadcast triton-ascend
+        rejects. Explicitly broadcast the index to the block shape (diag-verified:
+        tl.broadcast_to on the int index tensor is accepted)."""
+        if not (ncfg.promoted_rtree_shape_fix and slot_block_tokens):
+            return raw
+        line = raw if isinstance(raw, str) else getattr(raw, "line", None)
+        parsed = _npu_parse_generated_line(line) if isinstance(line, str) else None
+        if parsed is None:
+            return raw
+        indent, statement = parsed
+        load = next(
+            (item for item in ast.walk(statement) if _npu_is_call(item, "tl.load")),
+            None,
+        )
+        if load is None or len(load.args) < 2 or isinstance(load.args[1], ast.Constant):
+            return raw
+        ptr, mask = load.args[0], load.args[1]
+        mask_names = {n.id for n in ast.walk(mask) if isinstance(n, ast.Name)}
+        # Only loads the rtree rewrite touched: mask built from r-node masks.
+        nodes = {nm for nm in leaf_names if f"{nm}mask" in mask_names}
+        if not nodes:
+            return raw
+        if not (
+            isinstance(ptr, ast.BinOp)
+            and isinstance(ptr.op, ast.Add)
+            and isinstance(ptr.left, ast.Name)
+        ):
+            return raw
+        idx_names = {n.id for n in ast.walk(ptr.right) if isinstance(n, ast.Name)}
+        if nodes <= idx_names:
+            return raw  # index already covers every free r-node (full block)
+        target = ast.List(
+            elts=[ast.parse(tok, mode="eval").body for tok in slot_block_tokens],
+            ctx=ast.Load(),
+        )
+        bcast = ast.Call(
+            func=ast.Attribute(
+                value=ast.Name(id="tl", ctx=ast.Load()),
+                attr="broadcast_to",
+                ctx=ast.Load(),
+            ),
+            args=[ptr.right, target],
+            keywords=[],
+        )
+        new_ptr = ast.BinOp(left=ptr.left, op=ast.Add(), right=bcast)
+        ast.copy_location(bcast, ptr)
+        ast.copy_location(new_ptr, ptr)
+        ast.fix_missing_locations(statement)
+        load.args[0] = new_ptr
         rewritten = _npu_render_generated_line(indent, statement)
         return _npu_replace_raw_line(raw, line, rewritten)
 
@@ -771,6 +887,7 @@ def _npu_apply_promoted_rtree_lines(
         new_lines.append(line)
 
     new_lines = [_rewrite_reduction_store_shape(raw) for raw in new_lines]
+    new_lines = [_fix_masked_load_ptr(raw) for raw in new_lines]
     kernel.body._lines = _npu_preserve_mixed_leaf_mul_where(
         new_lines, leaf_names
     )
