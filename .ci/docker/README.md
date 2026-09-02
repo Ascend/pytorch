@@ -15,7 +15,7 @@
 |------|------|------|
 | **builder (x86_64)** | manylinux2_28-builder | 编译构建 torch-npu wheel 包，包含完整编译工具链 |
 | **builder (aarch64)** | manylinux2_28_aarch64-builder | 编译构建 torch-npu wheel 包，包含完整编译工具链 |
-| **test** | `ubuntu:22.04` | CI 单元测试运行环境，包含 PyTorch CPU、CANN runtime、triton-ascend 和测试框架 |
+| **test** | `ubuntu:22.04` | CI 单元测试运行环境，包含 CANN runtime、triton-ascend 和测试框架（master 版本不含 PyTorch，由 CI 运行时单独构建安装） |
 
 ## 目录结构
 
@@ -92,13 +92,13 @@ torch-npu-test-<ARCH>-cann<CHIP>-py<PYTHON_VERSION>-torch<PYTORCH_VERSION>
 
 Builder 镜像支持以下 Python 版本（由基座镜像提供）：
 
-- Python 3.10 (cpython-3.10.20)
-- Python 3.11 (cpython-3.11.15)
-- Python 3.12 (cpython-3.12.13)
-- Python 3.13 (cpython-3.13.14)
-- Python 3.14 (cpython-3.14.6)
+- Python 3.10
+- Python 3.11
+- Python 3.12
+- Python 3.13
+- Python 3.14
 
-Test 镜像仅使用系统 Python 3.10。
+Test 镜像使用 Miniforge3 创建 conda 环境 `py_${PYTHON_VERSION}`（默认 Python 3.10）。
 
 ## CANN 芯片映射
 
