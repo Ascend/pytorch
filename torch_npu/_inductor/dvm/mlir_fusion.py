@@ -1,7 +1,7 @@
 from typing import List
 import torch
 from torch._higher_order_ops.triton_kernel_wrap import triton_kernel_wrapper_mutation
-from torch._inductor import config
+from torch._inductor import config, ir
 from torch._inductor.fx_passes.control_dependencies import control_deps
 from torch._inductor.codegen.common import IndentedBuffer, register_backend_for_device
 from torch._inductor.codegen.simd import code_hash, SIMDKernel
@@ -99,6 +99,8 @@ anir_config.GENERATE_LIST = [
     aten.lift_fresh_copy,
     aten.lift_fresh_copy.default,
     triton_kernel_wrapper_mutation,
+    torch.ops.higher_order.flex_attention,
+    torch.ops.higher_order.flex_attention_backward,
 ]
 
 def _is_node_supported_by_dvm_rule(node, allow_common_rule=False):
@@ -140,6 +142,15 @@ def _kernel_layout_key(mlir_kernel):
 
 class NpuDvmScheduling(NpuMetaScheduling):
     meta_kernel_type = NpuDvmKernel
+
+    def _get_npu_triton_scheduling(self):
+        scheduling = getattr(self, "_npu_triton_scheduling", None)
+        if scheduling is None:
+            from torch_npu._inductor.codegen.scheduling import NPUTritonScheduling
+
+            scheduling = NPUTritonScheduling(self.scheduler)
+            self._npu_triton_scheduling = scheduling
+        return scheduling
 
     def define_kernel(self, src_code, mlir_kernel, traced_graph, mode=None):
         kernel_key = (src_code, _kernel_layout_key(mlir_kernel))
@@ -237,6 +248,12 @@ class NpuDvmScheduling(NpuMetaScheduling):
     def can_fuse_vertical(self, node1, node2):
         template1 = node1.get_template_node()
         template2 = node2.get_template_node()
+        if isinstance(template1, ir.TritonTemplateBuffer) or isinstance(
+            template2, ir.TritonTemplateBuffer
+        ):
+            # Keep the DVM/Triton boundary explicit.  The Triton template is
+            # emitted as one fused kernel by NPUTritonScheduling below.
+            return False
         if isinstance(template1, DvmTemplateBuffer):
             return can_fuse_dvm_epilogue(node1, node2)
         if isinstance(template2, DvmTemplateBuffer):
@@ -270,8 +287,9 @@ class NpuDvmScheduling(NpuMetaScheduling):
     def can_fuse_horizontal(self, node1, node2):
         template1 = node1.get_template_node()
         template2 = node2.get_template_node()
-        if isinstance(template1, DvmTemplateBuffer) or isinstance(
-            template2, DvmTemplateBuffer
+        template_types = (DvmTemplateBuffer, ir.TritonTemplateBuffer)
+        if isinstance(template1, template_types) or isinstance(
+            template2, template_types
         ):
             return False
         if not dvm_config.disable_post_reduce_fusion:
@@ -285,6 +303,14 @@ class NpuDvmScheduling(NpuMetaScheduling):
         prologue_nodes: List[SchedulerNode] = (),
     ):
         template_buffer = template_node.get_template_node()
+        if isinstance(template_buffer, ir.TritonTemplateBuffer):
+            if prologue_nodes:
+                raise RuntimeError(
+                    "Triton templates under DVM do not support prologue fusion"
+                )
+            return self._get_npu_triton_scheduling().codegen_template(
+                template_node, epilogue_nodes
+            )
         if not isinstance(template_buffer, DvmTemplateBuffer):
             return super().codegen_template(
                 template_node, epilogue_nodes, prologue_nodes
@@ -351,6 +377,14 @@ def _patch_lowering_type_checks():
     def _fallback_node_due_to_unsupported_type(
         node: torch.fx.Node, allow_cpu_inputs=True
     ):
+        if node.target in (
+            torch.ops.higher_order.flex_attention,
+            torch.ops.higher_order.flex_attention_backward,
+        ):
+            # These HOPs use NPU Triton template lowerings under DVM.  Check
+            # this before Inductor's generic HOP test replaces the registered
+            # template lowering with a FallbackKernel.
+            return False
         if fallback_node_due_to_unsupported_type(node, allow_cpu_inputs):
             return True
 
@@ -399,6 +433,10 @@ def _patch_lowering():
         return aten_fn
 
     def sum_(x, axis=None, keepdims=False, *, dtype=None):
+        if isinstance(axis, int):
+            axis = [axis]
+        elif axis is not None:
+            axis = list(axis)
         if axis and any(ax < 0 for ax in axis):
             offset = len(x.get_size())
             axis = [ax + offset if ax < 0 else ax for ax in axis]

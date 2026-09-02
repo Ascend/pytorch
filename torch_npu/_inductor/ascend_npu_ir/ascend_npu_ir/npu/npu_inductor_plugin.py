@@ -271,24 +271,34 @@ from torch._inductor.scheduler import (
 
 def used_or_aliased_buffer_names(node) -> Set[str]:
     used_names: OrderedSet[str] = OrderedSet()
-    if isinstance(node, (SchedulerNode, FusedSchedulerNode)) and not isinstance(node, ForeachKernelSchedulerNode):
+    if isinstance(node, (SchedulerNode, FusedSchedulerNode)) and not isinstance(
+        node, ForeachKernelSchedulerNode
+    ):
         snodes = [node] if isinstance(node, SchedulerNode) else node.snodes
-        for snode in snodes:
-            traced_graph = snode.node.data.traced_graph
-            used_names = used_names.union(traced_graph.get_placeholder_names())
-            used_names.add(snode.node.get_name())
-    else:
-        deps = [
-            dep.name
-            for dep in itertools.chain(node.read_writes.reads, node.read_writes.writes)
+        traced_graphs = [
+            getattr(getattr(snode.node, "data", None), "traced_graph", None)
+            for snode in snodes
         ]
-        while len(deps) > 0:
-            dep = deps.pop()
-            used_names.add(dep)
-            if V.graph.name_to_buffer.get(dep):
-                for alias in V.graph.name_to_buffer[dep].get_inputs_that_alias_output():
-                    if alias not in used_names:
-                        deps.append(alias)
+        if all(traced_graph is not None for traced_graph in traced_graphs):
+            for snode, traced_graph in zip(snodes, traced_graphs):
+                used_names = used_names.union(traced_graph.get_placeholder_names())
+                used_names.add(snode.node.get_name())
+            return used_names
+
+    # TritonTemplateBuffer and other non-MLIR scheduler nodes do not carry a
+    # TracedGraph.  Their scheduler dependencies are the source of truth.
+    deps = [
+        dep.name
+        for dep in itertools.chain(node.read_writes.reads, node.read_writes.writes)
+    ]
+    while len(deps) > 0:
+        dep = deps.pop()
+        used_names.add(dep)
+        if V.graph.name_to_buffer.get(dep):
+            aliases = V.graph.name_to_buffer[dep].get_inputs_that_alias_output()
+            for alias in aliases:
+                if alias not in used_names:
+                    deps.append(alias)
     return used_names
 
 def set_last_usage(

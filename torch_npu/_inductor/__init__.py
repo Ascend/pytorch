@@ -4,6 +4,16 @@ ORG_AUTOLOAD = os.getenv("TORCH_DEVICE_BACKEND_AUTOLOAD", "1")
 os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = "0"
 from torch._inductor.async_compile import AsyncCompile
 
+
+def _configure_dvm_compile_threads():
+    if os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default") == "dvm":
+        import torch
+
+        os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = "1"
+        torch._inductor.config.compile_threads = 1
+
+
+_configure_dvm_compile_threads()
 if os.environ.get("TORCH_WARM_POOL", "1") == "1":
     AsyncCompile.warm_pool()
 os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = ORG_AUTOLOAD
@@ -41,6 +51,24 @@ def _get_backend() -> str:
 def _load_ascendc_backend():
     from . import ascendc
 
+
+def _apply_common_npu_triton_patches():
+    """Apply NPU Triton patches shared by the Triton and DVM backends."""
+    from .autotune_process import patch_tuning_process
+    from .runtime import (
+        patch_create_device_properties,
+        patch_load_cached_autotuning,
+        patch_triton_heuristics_cached_autotune,
+    )
+    from .select_algorithm import patch_algorithm_selector
+
+    patch_triton_heuristics_cached_autotune()
+    patch_create_device_properties()
+    patch_load_cached_autotuning()
+    patch_algorithm_selector()
+    patch_tuning_process()
+
+
 def _load_mlir_backend():
     _apply_common_patches()
     try:
@@ -60,6 +88,12 @@ def _load_mlir_backend():
 def _load_dvm_backend():
     _apply_common_patches()
     import torch
+
+    # DVM kernels and the Triton templates delegated by this backend share
+    # process-local lowering, autotuning, and runtime state.  Keep compilation
+    # in the main process so the hybrid path observes one consistent state.
+    _configure_dvm_compile_threads()
+
     from .lowering_patch import apply_mlir_inductor_patch
     from .ascend_npu_ir.ascend_npu_ir.npu.npu_inductor_plugin import (
         register_mlir_codegen_backend,
@@ -69,8 +103,24 @@ def _load_dvm_backend():
     from .dvm import mlir_fusion
     has_triton = torch.utils._triton.has_triton()
     if has_triton:
-        from .runtime import patch_triton_heuristics_cached_autotune
-        patch_triton_heuristics_cached_autotune()
+        from torch.nn.attention import flex_attention
+
+        from . import config as npu_config
+        from .kernel import (
+            _register_npu_inductor_flex_attention,
+            _validate_device,
+            patch_flex_attention,
+        )
+
+        # Use the existing NPU Triton FlexAttention templates under the DVM
+        # backend.  The MLIR wrapper does not yet implement the mask-out
+        # task-list dispatcher, so keep the fused mask-in template path.
+        patch_flex_attention()
+        flex_attention._validate_device = _validate_device
+        npu_config.flex_attention.flexattention_mask_out = False
+
+        _apply_common_npu_triton_patches()
+        _register_npu_inductor_flex_attention()
 
 def _load_triton_backend():
     _apply_common_patches()
@@ -171,8 +221,8 @@ def _load_triton_backend():
     patch_aot_load()
     patch_get_cpp_torch_device_options()
     patch_constant_fold_uniform_value()
+    _apply_common_npu_triton_patches()
     patch_device_to_aten()
-
     if npu_config.dump_fx_graph:
         from .codegen.ir_fx import _patch_npu_inductor_ir
 
@@ -202,7 +252,6 @@ def _load_triton_backend():
     install_device_lowering_dispatch(LOWERING_OVERRIDE_OP)
 
     patch_pattern_mm_plus_mm()
-    patch_algorithm_selector()
     patch_async_compile()
     patch_scheduler()
     patch_simplify()
@@ -211,11 +260,7 @@ def _load_triton_backend():
     patch_indexing()
     patch_fixed_indexer()
 
-    patch_create_device_properties()
-    patch_load_cached_autotuning()
-    patch_triton_heuristics_cached_autotune()
     patch_fast_launch()
-
     pre_grad_custom_pass_fuc()
     post_grad_custom_pass_fuc()
     register_fav3_partition_pass()
@@ -226,7 +271,6 @@ def _load_triton_backend():
 
     patch_get_optimization_cflags()
     patch_count_bytes()
-    patch_tuning_process()
 
     def add_additional_op():
         from torch._inductor.ops_handler import OpsHandler
