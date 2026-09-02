@@ -15,4 +15,4 @@
 
 // Keep in sync with MIN_SUPPORTED_VERSION in torch_npu/_compat/version.py.
 #define TORCH_NPU_MIN_SUPPORTED_MAJOR 2
-#define TORCH_NPU_MIN_SUPPORTED_MINOR 10
+#define TORCH_NPU_MIN_SUPPORTED_MINOR 13

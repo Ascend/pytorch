@@ -28,7 +28,6 @@ from . import catlass_utils
 from .catlass_python_evg import CatlassEVGCodegen
 from .catlass_kernel import CATLASSTemplateBuffer, CATLASSTemplateKernel
 from .catlass_template import CATLASSTemplate
-from torch_npu._compat.inductor import get_sizevars_backed_var_to_val
 
 log = logging.getLogger("torch._inductor")
 
@@ -173,7 +172,7 @@ class CATLASSGemmTemplate(CATLASSTemplate, ABC):
             if isinstance(x, (int, sympy.Integer)):
                 shape_desc[i] = int(x)
             elif isinstance(x, (sympy.Symbol, sympy.Expr)):
-                x = x.subs(get_sizevars_backed_var_to_val(V.graph.sizevars))
+                x = x.subs(V.graph.sizevars.backed_var_to_val)
                 try:
                     shape_desc[i] = int(x)
                 except Exception:

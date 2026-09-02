@@ -9,4 +9,4 @@ def _parse(version_str: str) -> tuple:
 CURRENT_VERSION: tuple = _parse(torch.__version__)
 
 # Bump this when dropping old version support; run tools/check_compat.py to find stale COMPAT blocks.
-MIN_SUPPORTED_VERSION: tuple = (2, 10)
+MIN_SUPPORTED_VERSION: tuple = (2, 13)

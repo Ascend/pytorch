@@ -13,7 +13,6 @@ from .triton_utils import get_byte_per_numel
 from .. import config as npu_config
 from ..config import num_vector_core, log
 from ..runtime.symbolic_grouping import GroupFeatureSpec, GroupedKernelMeta
-from torch_npu._compat.inductor import get_sizevars_backed_var_to_val
 
 
 _ELEMENTWISE_UNSUPPORTED_OPS = ("masked", "scan", "sort", "rand", "randn", "load_seed")
@@ -82,7 +81,7 @@ class SplitTiling:
     def get_length_val(x):
         length_expr = x.length
         if not isinstance(length_expr, sympy.Integer):
-            return length_expr.subs(get_sizevars_backed_var_to_val(V.graph.sizevars))
+            return length_expr.subs(V.graph.sizevars.backed_var_to_val)
         else:
             return length_expr
 
@@ -960,10 +959,10 @@ class SplitTiling:
         xnumel = x
         ynumel = y
         if isinstance(xnumel, (sympy.Symbol, sympy.Expr)) and not isinstance(xnumel, sympy.Integer):
-            xnumel = xnumel.subs(get_sizevars_backed_var_to_val(V.graph.sizevars))
+            xnumel = xnumel.subs(V.graph.sizevars.backed_var_to_val)
 
         if isinstance(ynumel, (sympy.Symbol, sympy.Expr)) and not isinstance(ynumel, sympy.Integer):
-            ynumel = ynumel.subs(get_sizevars_backed_var_to_val(V.graph.sizevars))
+            ynumel = ynumel.subs(V.graph.sizevars.backed_var_to_val)
 
         if isinstance(xnumel, sympy.Integer) and isinstance(ynumel, int):
             ynumel = sympy.Integer(ynumel)

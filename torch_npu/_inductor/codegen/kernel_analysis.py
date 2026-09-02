@@ -111,7 +111,6 @@ def _kernel_axis_vars(kernel):
     return axis_vars
 
 
-from torch_npu._compat.inductor import get_sizevars_backed_var_to_val
 class IndexAnalysis:
     def __init__(self, kernel, raw_index, is_store_index=False, is_index_expr=False):
         self.kernel = kernel
@@ -121,7 +120,7 @@ class IndexAnalysis:
         # only contains tiling axis vars
         self.var_list = tuple(x[0] for x in self.var_stride if x[0] in self.tiling_axis)
         self.stride_list = tuple(x[1] for x in self.var_stride if x[0] in self.tiling_axis)
-        self.index = raw_index.subs(get_sizevars_backed_var_to_val(V.graph.sizevars))
+        self.index = raw_index.subs(V.graph.sizevars.backed_var_to_val)
         all_var_stride = [
             (key, coeff)
             for key, coeff in self.index.as_coefficients_dict().items()

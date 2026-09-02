@@ -92,7 +92,6 @@ from .split_tiling import SplitTiling
 from .triton_utils import NPUKernelType
 from torch._inductor.shape_propagation import BlockShapeType
 from enum import auto, Enum
-from torch_npu._compat.inductor import get_sizevars_backed_var_to_val
 
 class NPUSymT(Enum):
     SIZE = auto()
@@ -3236,7 +3235,7 @@ class NPUIndexTritonKernel(TritonKernel):
     def load_store_index_in_all_tiling_list(self):
         res = False
         for index in self.load_store_indexing:
-            index = index.subs(get_sizevars_backed_var_to_val(V.graph.sizevars))
+            index = index.subs(V.graph.sizevars.backed_var_to_val)
             analyze = IndexAnalysis(self, index)
             res = res or self.all_tiling_in_var_list(analyze.var_list)
         return res
@@ -3734,7 +3733,7 @@ class NPUIndexTritonKernel(TritonKernel):
         longest = None
         maximum_length = 0
         for index in self.load_store_indexing:
-            index = index.subs(get_sizevars_backed_var_to_val(V.graph.sizevars))
+            index = index.subs(V.graph.sizevars.backed_var_to_val)
             analyze = IndexAnalysis(self, index)
             if len(analyze.var_list) > maximum_length and self.all_tiling_in_var_list(
                 analyze.var_list

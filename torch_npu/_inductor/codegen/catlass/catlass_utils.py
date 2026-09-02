@@ -119,14 +119,13 @@ def _normalize_npu_arch_to_atlas(arch: str) -> str:
     else:
         raise NotImplementedError(f"Unsupported npu arch: {arch}")
 
-from torch_npu._compat.inductor import get_sizevars_backed_var_to_val
 def _trans_sympy_to_int(input_tuple, default_shape=8192):
     output = []
     for x in input_tuple:
         if isinstance(x, (int, sympy.Integer)):
             output.append(int(x))
         elif isinstance(x, (sympy.Symbol, sympy.Expr)):
-            x = x.subs(get_sizevars_backed_var_to_val(V.graph.sizevars))
+            x = x.subs(V.graph.sizevars.backed_var_to_val)
             try:
                 output.append(int(x))
             except Exception:

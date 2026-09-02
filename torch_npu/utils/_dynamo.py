@@ -163,9 +163,7 @@ def patch_inductor_wrapper():
     from typing import Any, Optional
 
     from torch import _TorchCompileInductorWrapper
-    from torch.utils._config_module import Config, ConfigModule
-
-    from torch_npu._compat.utils import make_config_entry
+    from torch.utils._config_module import Config, ConfigModule, _ConfigEntry
 
     src_apply_options = _TorchCompileInductorWrapper.apply_options
     src_init = _TorchCompileInductorWrapper.__init__
@@ -190,28 +188,28 @@ def patch_inductor_wrapper():
             return ori_dict
         if "npu_backend" not in ori_dict:
             ori_dict["npu_backend"] = "default"
-            self._config["npu_backend"] = make_config_entry(
+            self._config["npu_backend"] = _ConfigEntry(
                 Config(default="default", value_type=str),
                 name="npu_backend",
             )
 
         if "enable_shape_handling" not in ori_dict:
             ori_dict["enable_shape_handling"] = False
-            self._config["enable_shape_handling"] = make_config_entry(
+            self._config["enable_shape_handling"] = _ConfigEntry(
                 Config(default=False, value_type=bool),
                 name="enable_shape_handling",
             )
 
         if "shape_handling_configs" not in ori_dict:
             ori_dict["shape_handling_configs"] = []
-            self._config["shape_handling_configs"] = make_config_entry(
+            self._config["shape_handling_configs"] = _ConfigEntry(
                 Config(default=[], value_type=list),
                 name="shape_handling_configs",
             )
 
         if "shape_handling_dict" not in ori_dict:
             ori_dict["shape_handling_dict"] = None
-            self._config["shape_handling_dict"] = make_config_entry(
+            self._config["shape_handling_dict"] = _ConfigEntry(
                 Config(default=None, value_type=dict),
                 name="shape_handling_dict",
             )

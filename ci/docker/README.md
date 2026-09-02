@@ -33,15 +33,15 @@ docker run -it -v /{code_path}/pytorch:/home/pytorch manylinux-builder:v1 bash
 
 **Compile torch_npu**
 
-Take Python 3.9 as an example
+Take Python 3.10 as an example
 
 ```Shell
 cd /home/pytorch
-bash ci/build.sh --python=3.9
+bash ci/build.sh --python=3.10
 ```
 
-Use `--torch=<version>` to target a specific PyTorch version (supported: 2.10.0, 2.11.0, 2.12.0, 2.13.0). The installed PyTorch must match.
+Use `--torch=<version>` to target a specific PyTorch version (supported: 2.13.0, 2.14.0). The installed PyTorch must match.
 
 ```Shell
-bash ci/build.sh --python=3.9 --torch=2.11.0
+bash ci/build.sh --python=3.10 --torch=2.13.0
 ```
