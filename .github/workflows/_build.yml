@@ -169,9 +169,24 @@ jobs:
       # step of this job). continue-on-error keeps a dashboard relay
       # failure from masking the job's real outcome.
       - name: Report fetch completed
+        id: report_fetch_completed
         if: always() && inputs.report_to_upstream
         continue-on-error: true
         uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
+        with:
+          status: completed
+          conclusion: ${{ (steps.resolve.outcome == 'success' && steps.upload_source.outcome == 'success') && 'success' || 'failure' }}
+          job-name: ubuntu-latest / fetch (pytorch)
+          max-time: 60
+
+      # The completion report above is best-effort (continue-on-error) and
+      # occasionally fails on a transient OIDC token mint timeout, which
+      # would silently drop the report to the upstream dashboard. Retry
+      # once after 30s when the first attempt failed.
+      - name: Retry report fetch completed
+        if: always() && inputs.report_to_upstream && steps.report_fetch_completed.outcome == 'failure'
+        continue-on-error: true
+        uses: ./.github/actions/retry-relay-callback
         with:
           status: completed
           conclusion: ${{ (steps.resolve.outcome == 'success' && steps.upload_source.outcome == 'success') && 'success' || 'failure' }}
@@ -473,9 +488,24 @@ jobs:
 
       # Step 8: Report build completed to upstream (same job as in_progress)
       - name: Report build completed
+        id: report_build_completed
         if: always() && inputs.report_to_upstream
         continue-on-error: true
         uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
+        with:
+          status: completed
+          conclusion: ${{ (steps.build_pytorch.outcome == 'success' && steps.build_torchnpu.outcome == 'success' && steps.build_torchvision.outcome == 'success') && 'success' || 'failure' }}
+          job-name: ${{ inputs.runner_label }} / build (pytorch, torch-npu, py3.10)
+          max-time: 60
+
+      # The completion report above is best-effort (continue-on-error) and
+      # occasionally fails on a transient OIDC token mint timeout, which
+      # would silently drop the report to the upstream dashboard. Retry
+      # once after 30s when the first attempt failed.
+      - name: Retry report build completed
+        if: always() && inputs.report_to_upstream && steps.report_build_completed.outcome == 'failure'
+        continue-on-error: true
+        uses: ./.github/actions/retry-relay-callback
         with:
           status: completed
           conclusion: ${{ (steps.build_pytorch.outcome == 'success' && steps.build_torchnpu.outcome == 'success' && steps.build_torchvision.outcome == 'success') && 'success' || 'failure' }}

@@ -312,9 +312,31 @@ jobs:
           retention-days: 7
 
       - name: Report test completed
+        id: report_test_completed
         if: always() && inputs.report_to_upstream
         continue-on-error: true
         uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
+        with:
+          status: completed
+          conclusion: ${{ steps.parse_results.outputs.parse_ok == 'true' && steps.parse_results.outputs.total_failed == '0' && 'success' || 'failure' }}
+          job-name: ${{ inputs.runner_label }} / test (${{ inputs.category }}, ${{ matrix.shard }}, ${{ inputs.num_shards }}, py3.10)
+          max-time: 60
+          test-results: >-
+            {
+              "passed": ${{ steps.parse_results.outputs.passed }},
+              "failed": ${{ steps.parse_results.outputs.total_failed }},
+              "skipped": ${{ steps.parse_results.outputs.skipped }},
+              "total": ${{ steps.parse_results.outputs.total }}
+            }
+
+      # The completion report above is best-effort (continue-on-error) and
+      # occasionally fails on a transient OIDC token mint timeout, which
+      # would silently drop the report to the upstream dashboard. Retry
+      # once after 30s when the first attempt failed.
+      - name: Retry report test completed
+        if: always() && inputs.report_to_upstream && steps.report_test_completed.outcome == 'failure'
+        continue-on-error: true
+        uses: ./.github/actions/retry-relay-callback
         with:
           status: completed
           conclusion: ${{ steps.parse_results.outputs.parse_ok == 'true' && steps.parse_results.outputs.total_failed == '0' && 'success' || 'failure' }}
