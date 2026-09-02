@@ -30,6 +30,11 @@
 #include "third_party/dvm/dvm/include/dvm.h"
 #include "third_party/dvm/dvm/include/dvm_py.h"
 
+namespace fxrt {
+namespace ops {
+class OpDvmCallV2;
+}
+} // namespace fxrt
 
 namespace dvm {
 struct SplitCloneHelper : public dvm::CloneHelper {
@@ -57,6 +62,7 @@ struct SplitCloneHelper : public dvm::CloneHelper {
     std::unordered_map<void*, void*> ref_map_;
 };
 class TorchKernelPy : public KernelPy {
+    friend class fxrt::ops::OpDvmCallV2;
 public:
     TorchKernelPy(int kernel_type, uint32_t flags);
     ~TorchKernelPy();
@@ -99,6 +105,9 @@ public:
         }
         int64_t shape_data[MAX_SIZE];
     };
+    Kernel* RawKernel() {
+        return &kernel_;
+    }
 
 protected:
     enum class LoadType {
@@ -143,6 +152,7 @@ protected:
     aclrtStream stream_;
 };
 class DynKernelPy : public TorchKernelPy {
+    friend class fxrt::ops::OpDvmCallV2;
 public:
     DynKernelPy(int kernel_type, uint32_t flags) : TorchKernelPy(kernel_type, flags) {}
     ~DynKernelPy();
