@@ -1,22 +1,22 @@
-name: PyTorch CI Trigger
+name: PyTorch CI Trigger PR
 
 run-name: >-
-  PyTorch CI Trigger -
+  PyTorch CI Trigger PR -
   ${{
-    format('Push {0}', github.event.client_payload.payload.after)
+    format('PR {0}', github.event.client_payload.payload.pull_request.number)
   }}
 on:
   repository_dispatch:
-    types: [push]
+    types: [pull_request]
 
-# For push events the ref (refs/tags/ciflow/trunk/<PR#>) is unique per
-# PR, so the raw ref serves as the concurrency key — repeated triggers
-# for the same PR cancel each other. Events without a ref fall back to
-# run_id (unique, never cancels).
+# For pull_request events the PR number is unique per PR, so it serves
+# as the concurrency key — repeated triggers for the same PR cancel each
+# other. Events without a PR number fall back to run_id (unique, never
+# cancels).
 concurrency:
   group: >-
     ci-${{ github.event.client_payload.payload.repository.full_name }}-${{
-    github.event.client_payload.payload.ref || github.run_id }}
+    github.event.client_payload.payload.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 permissions:

@@ -1,0 +1,32 @@
+name: PyTorch CI Trigger Push
+
+run-name: >-
+  PyTorch CI Trigger Push -
+  ${{
+    format('Push {0}', github.event.client_payload.payload.after)
+  }}
+on:
+  repository_dispatch:
+    types: [push]
+
+# For push events the ref (refs/tags/ciflow/trunk/<PR#>) is unique per
+# PR, so the raw ref serves as the concurrency key — repeated triggers
+# for the same PR cancel each other. Events without a ref fall back to
+# run_id (unique, never cancels).
+concurrency:
+  group: >-
+    ci-${{ github.event.client_payload.payload.repository.full_name }}-${{
+    github.event.client_payload.payload.ref || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  id-token: write  # Required by report-ci-result to obtain an OIDC token
+
+jobs:
+  forward:
+    uses: Ascend/pytorch/.github/workflows/receive-trigger.yml@ci-test
+    secrets: inherit
+    with:
+      event_type: ${{ github.event.client_payload.event_type }}
+      payload: ${{ toJSON(github.event.client_payload) }}
