@@ -1124,7 +1124,7 @@ def _masked_index_needs_nonnegative_clamp(indexing):
             expr.subs({symbol: sympy.Integer(0) for symbol in expr.free_symbols})
         )
         return bool(origin.is_number and origin.is_negative)
-    except (AttributeError, TypeError, ValueError):
+    except (AttributeError, TypeError, ValueError, ZeroDivisionError):
         return False
 
 
