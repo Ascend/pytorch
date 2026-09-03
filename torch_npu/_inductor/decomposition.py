@@ -35,11 +35,12 @@ def _register_triton_decompositions():
         aten.native_layer_norm,
         aten.expm1,
         aten.erfc,
-        aten.slice_backward,
     ]
 
     if is_ascend950:
         DECOMPOSITION_OVERLOAD_OP.append(aten.max_pool2d_with_indices)
+    else:
+        DECOMPOSITION_OVERLOAD_OP.append(aten.slice_backward)
 
     def _register_npu_triton_decompositions():
         overload_op_set = set()

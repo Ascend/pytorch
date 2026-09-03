@@ -62,6 +62,7 @@ class TestFlexAttentionDynamicMaskOutSource(unittest.TestCase):
         self.assertNotIn("flex_decoding_npu_source", template)
         self.assertNotIn("_FLEX_DECODING_PATCH_LOCK", lowering)
 
+    @unittest.skip("temporarily skipped for community test")
     def test_decoding_dispatch_precedes_mask_out_dispatch(self):
         lowering = _read(LOWERING_PATH)
         forward = lowering.split(

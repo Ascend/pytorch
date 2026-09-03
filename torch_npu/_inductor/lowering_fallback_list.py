@@ -31,7 +31,7 @@ from torch._higher_order_ops._invoke_quant import invoke_quant
 from torch._higher_order_ops.associative_scan import associative_scan
 from torch._higher_order_ops.effects import with_effects
 
-from .config import inductor_indirect_memory_mode, inductor_ascend_linear_mode
+from .config import inductor_indirect_memory_mode, inductor_ascend_linear_mode, is_ascend950
 
 aten = torch.ops.aten
 prims = torch.ops.prims
@@ -437,8 +437,6 @@ NPU_EXTRA_FALLBACK_LIST = [
     aten.sinh.float,
     aten.sinh.int,
     aten.sinh.out,
-    aten.slice_backward,
-    aten.slice_backward.default,
     aten.special_bessel_j0.default,
     aten.special_bessel_j0.out,
     aten.special_bessel_j1.default,
@@ -969,6 +967,12 @@ TORCH_NATIVE_FALLBACK_LIST = [
     run_and_save_rng_state,
     run_with_rng_state,
 ]
+
+if not is_ascend950:
+    NPU_EXTRA_FALLBACK_LIST += [
+        aten.slice_backward,
+        aten.slice_backward.default,
+    ]
 
 FALLBACK_LIST = TORCH_NATIVE_FALLBACK_LIST + NPU_EXTRA_FALLBACK_LIST
 
