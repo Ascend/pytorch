@@ -18,7 +18,7 @@ import urllib.request
 
 WORKFLOW_FILE_MAP = {
     "Nightly Build and Test": "nightly.yml",
-    "Nightly CPU Full Test": "nightly-cpu.yml",
+    "Nightly Device Full Test (Manual)": "nightly-device-full-test.yml",
     "PyTorch CI Trigger PR": "pytorch_ci_trigger_pr.yml",
     "PyTorch CI Trigger Push": "pytorch_ci_trigger_push.yml",
 }

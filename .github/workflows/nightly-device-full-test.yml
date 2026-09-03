@@ -1,25 +1,12 @@
-name: Nightly CPU Full Test
+name: Nightly Device Full Test (Manual)
 
 on:
-  push:
-    branches:
-      - ci-test
-    paths:
-      - '.github/workflows/nightly-cpu.yml'
-      - '.github/workflows/_nightly_build.yml'
-      - '.github/workflows/_nightly_test.yml'
-      - '.github/workflows/_nightly_test-collect.yml'
-      - '.github/workflows/_nightly_test-category.yml'
-      - '.github/workflows/_test-report.yml'
-      - '.github/config/nightly_test_categories.yml'
-      - '.github/config/disabled_testcases.json'
-      - '.github/config/running_skiped_testcases.json'
-      - '.github/scripts/collect_all_cases.py'
-      - '.github/scripts/discover_test_files.py'
-      - '.github/scripts/run_npu_test_shard.py'
-      - '.github/scripts/parse_test_results.py'
-      - '.github/scripts/generate_npu_full_test_report.py'
   workflow_dispatch:
+    inputs:
+      device_env:
+        description: 'Device environment for test execution (e.g., cpu / privateuse1,cpu)'
+        required: false
+        default: 'privateuse1'
 
 permissions:
   id-token: write
@@ -53,7 +40,7 @@ jobs:
       report_to_upstream: false
       hw_classification: ''
       full_scan: true
-      device_env: 'cpu'
+      device_env: ${{ github.event.inputs.device_env || 'privateuse1' }}
       runner_label: 'linux-aarch64-a3-800i-2-cn12-001'
       skip_list: |-
         .github/config/disabled_testcases.json
