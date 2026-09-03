@@ -24,9 +24,6 @@ enable_inplace_buffers = os.environ.get("ENABLE_INPLACE_BUFFERS", "1").lower() i
 if not enable_inplace_buffers:
     inductor_config.inplace_buffers = False
 
-# inductor debug switch
-config.trace.enabled = True
-
 enable_flex_attention_dq_before_scale_materialize = os.environ.get(
     "FLEX_ATTENTION_DQ_BEFORE_SCALE_MATERIALIZE", "1"
 ).lower() in ("1", "true", "yes")
