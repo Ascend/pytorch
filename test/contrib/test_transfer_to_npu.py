@@ -424,5 +424,81 @@ class TestTransferToNpu(TestCase):
         kwargs_output = mock_function(**kwargs_input)
         self.assertEqual(kwargs_output, expected_kwargs_output)
 
+    def test_is_autocast_enabled(self):
+        with torch.autocast('cuda'):
+            self.assertTrue(torch.is_autocast_enabled())
+            self.assertTrue(torch.is_autocast_enabled('cuda'))
+            self.assertTrue(torch.is_autocast_enabled('cuda:0'))
+            self.assertTrue(torch.is_autocast_enabled('npu'))
+            self.assertFalse(torch.is_autocast_enabled('cpu'))
+
+        self.assertFalse(torch.is_autocast_enabled())
+        self.assertFalse(torch.is_autocast_enabled('cuda'))
+        self.assertFalse(torch.is_autocast_enabled('npu'))
+
+    def test_amp_autocast_cuda_redirected(self):
+        with torch.amp.autocast('cuda'):
+            self.assertTrue(torch.is_autocast_enabled('npu'))
+
+    def test_custom_fwd_bwd_cuda_device_type(self):
+        captured = {}
+
+        class Fn(torch.autograd.Function):
+            @staticmethod
+            @torch.amp.custom_fwd(device_type='cuda')
+            def forward(ctx, x):
+                captured['fwd_used_autocast'] = ctx._fwd_used_autocast
+                return x * 2
+
+            @staticmethod
+            @torch.amp.custom_bwd(device_type='cuda')
+            def backward(ctx, grad_output):
+                captured['bwd_autocast'] = torch.is_autocast_enabled('npu')
+                return grad_output * 2
+
+        with torch.autocast('npu'):
+            x = torch.ones(1, device='npu', requires_grad=True)
+            y = Fn.apply(x)
+            y.backward()
+
+        self.assertTrue(captured['fwd_used_autocast'])
+        self.assertTrue(captured['bwd_autocast'])
+
+    def test_custom_fwd_bwd_cuda_with_index(self):
+        captured = {}
+
+        class Fn(torch.autograd.Function):
+            @staticmethod
+            @torch.amp.custom_fwd(device_type='cuda:0')
+            def forward(ctx, x):
+                captured['fwd_used_autocast'] = ctx._fwd_used_autocast
+                return x * 2
+
+            @staticmethod
+            @torch.amp.custom_bwd(device_type='cuda:0')
+            def backward(ctx, grad_output):
+                captured['bwd_autocast'] = torch.is_autocast_enabled('npu')
+                return grad_output * 2
+
+        with torch.autocast('npu'):
+            x = torch.ones(1, device='npu', requires_grad=True)
+            Fn.apply(x).backward()
+
+        self.assertTrue(captured['fwd_used_autocast'])
+        self.assertTrue(captured['bwd_autocast'])
+
+    def test_get_autocast_dtype(self):
+        with torch.autocast('npu', torch.bfloat16):
+            self.assertEqual(torch.get_autocast_gpu_dtype(), torch.bfloat16)
+            self.assertEqual(torch.get_autocast_dtype('cuda'), torch.bfloat16)
+            self.assertEqual(torch.get_autocast_dtype('npu'), torch.bfloat16)
+            self.assertEqual(torch_npu.npu.get_autocast_dtype(), torch.bfloat16)
+
+        self.assertEqual(torch.get_autocast_gpu_dtype(), torch.float16)
+        self.assertEqual(torch.get_autocast_dtype('cuda'), torch.float16)
+        self.assertEqual(torch.get_autocast_dtype('npu'), torch.float16)
+        self.assertEqual(torch_npu.npu.get_autocast_dtype(), torch.float16)
+
+
 if __name__ == "__main__":
     run_tests()
