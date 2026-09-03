@@ -21,7 +21,7 @@
 
 > 镜像中不含 Driver，需在宿主机自行安装。
 
-关于 Dockerfile 及构建脚本的更多细节，详见 [README](./README.md)。
+关于 Dockerfile 及构建脚本的更多细节，详见 [README](https://gitcode.com/Ascend/pytorch/blob/master/docker/devel/README.md)。
 
 ---
 
@@ -44,13 +44,17 @@ Tag 遵循以下格式：
 
 > Python 版本（默认 `3.10`）通过 `PY_VERSION` 构建参数指定，不体现在 tag 中。
 
-### Tag(预装 PyTorch 2.13.0)
+### 最新版本（预装 PyTorch 2.13.0）
 
-- `2.13.0-cann9.1.0-310p-manylinux_2_28`
-- `2.13.0-cann9.1.0-910-manylinux_2_28`
-- `2.13.0-cann9.1.0-910b-manylinux_2_28`
-- `2.13.0-cann9.1.0-a3-manylinux_2_28`
-- `2.13.0-cann9.1.0-950-manylinux_2_28`
+如下所示是最新发布的预装 PyTorch 2.13.0 版本的所有镜像，历史版本所有的 Tag 请参考 [Supported Tags](https://gitcode.com/Ascend/pytorch/blob/master/docker/devel/supported_tags.md)。
+
+| Tag | Dockerfile | 镜像内容 |
+|---|---|---|
+| `2.13.0-cann9.1.0-310p-manylinux_2_28` | [Dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/docker/devel/Dockerfile) | torch-cpu/CANN |
+| `2.13.0-cann9.1.0-910-manylinux_2_28` | [Dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/docker/devel/Dockerfile) | torch-cpu/CANN |
+| `2.13.0-cann9.1.0-910b-manylinux_2_28` | [Dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/docker/devel/Dockerfile) | torch-cpu/CANN |
+| `2.13.0-cann9.1.0-a3-manylinux_2_28` | [Dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/docker/devel/Dockerfile) | torch-cpu/CANN |
+| `2.13.0-cann9.1.0-950-manylinux_2_28` | [Dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/docker/devel/Dockerfile) | torch-cpu/CANN |
 
 ### Dockerfile 构建参数
 
@@ -180,16 +184,6 @@ RUN yum install -y gcc ...
 > - 稳定版本（如 `2.13.0`）：`pip${PY_VERSION} install torch==${TORCH_VERSION} --index-url https://download.pytorch.org/whl/cpu`
 > - dev/nightly 版本（匹配 `*.dev*`，如 `2.13.0.dev20260610`）：`pip${PY_VERSION} install torch==${TORCH_VERSION} --index-url https://download.pytorch.org/whl/nightly/cpu`
 > - 其他详细的编译与开发依赖可见对应仓库目录下的 [requirements(以2.13.0版本为例)](https://gitcode.com/Ascend/pytorch/blob/master/requirements_2.13.txt)。
-
----
-
-## 支持的硬件
-
-| 产品示例                       | 架构             |
-|--------------------------------|----------------|
-| Atlas 800T A2、Atlas 900 A2 PoD | ARM64 / x86_64 |
-| Atlas 800T A3                  | ARM64 / x86_64 |
-| Atlas 300I Pro、Atlas 300V Pro  | ARM64 / x86_64 |
 
 ---
 

@@ -21,7 +21,7 @@ The `torch-npu-devel` image is a development image designed for compiling TorchN
 
 > Driver is not included in the image and must be installed on the host in advance.
 
-For more details on the Dockerfile and build scripts, see [README](./README.md).
+For more details on the Dockerfile and build scripts, see [README](https://gitcode.com/Ascend/pytorch/blob/master/docker/devel/README.md).
 
 ---
 
@@ -44,13 +44,17 @@ Tags follow the format:
 
 > The Python version (default `3.10`) is specified via the `PY_VERSION` build arg and is not part of the tag.
 
-### Tag(Pre-installed PyTorch 2.13.0)
+### Latest Version (Pre-installed PyTorch 2.13.0)
 
-- `2.13.0-cann9.1.0-310p-manylinux_2_28`
-- `2.13.0-cann9.1.0-910-manylinux_2_28`
-- `2.13.0-cann9.1.0-910b-manylinux_2_28`
-- `2.13.0-cann9.1.0-a3-manylinux_2_28`
-- `2.13.0-cann9.1.0-950-manylinux_2_28`
+The following table lists all images of the latest released version with pre-installed PyTorch 2.13.0. For tags associated with historical versions, please refer to [Supported Tags](https://gitcode.com/Ascend/pytorch/blob/master/docker/devel/supported_tags.md).
+
+| Tag | Dockerfile | Image Contents |
+|---|---|---|
+| `2.13.0-cann9.1.0-310p-manylinux_2_28` | [Dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/docker/devel/Dockerfile) | torch-cpu/CANN |
+| `2.13.0-cann9.1.0-910-manylinux_2_28` | [Dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/docker/devel/Dockerfile) | torch-cpu/CANN |
+| `2.13.0-cann9.1.0-910b-manylinux_2_28` | [Dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/docker/devel/Dockerfile) | torch-cpu/CANN |
+| `2.13.0-cann9.1.0-a3-manylinux_2_28` | [Dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/docker/devel/Dockerfile) | torch-cpu/CANN |
+| `2.13.0-cann9.1.0-950-manylinux_2_28` | [Dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/docker/devel/Dockerfile) | torch-cpu/CANN |
 
 ### Dockerfile build parameters
 
@@ -180,16 +184,6 @@ RUN yum install -y gcc ...
 > - Stable version (e.g. `2.13.0`): `pip${PY_VERSION} install torch==${TORCH_VERSION} --index-url https://download.pytorch.org/whl/cpu`
 > - Dev/nightly version (matching `*.dev*`, e.g. `2.13.0.dev20260610`): `pip${PY_VERSION} install torch==${TORCH_VERSION} --index-url https://download.pytorch.org/whl/nightly/cpu`
 > - For other detailed compilation and development dependencies, see [requirements (taking version 2.13.0 as an example)](https://gitcode.com/Ascend/pytorch/blob/master/requirements_2.13.txt) in the corresponding repository directory.
-
----
-
-## Supported Hardware
-
-| Product Examples                | Architecture   |
-|---------------------------------|----------------|
-| Atlas 800T A2, Atlas 900 A2 PoD | ARM64 / x86_64 |
-| Atlas 800T A3                   | ARM64 / x86_64 |
-| Atlas 300I Pro, Atlas 300V Pro  | ARM64 / x86_64 |
 
 ---
 
