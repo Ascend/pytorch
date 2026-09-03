@@ -106,6 +106,7 @@ class TestJitScriptModuleCode(TestCase):
         self.assertTrue(hasattr(model, 'code'))
         self.assertIn('forward', str(model.code))
 
+
 class TestJitScriptModuleCPU(TestCase):
     def _check_model_device(self, model: torch.jit.ScriptModule, device_type: str):
         """Check whether all parameters and buffers of the model are on the specified device."""
@@ -139,6 +140,7 @@ class TestJitScriptModuleCPU(TestCase):
         self.assertIsInstance(cpu_script_model, torch.jit.ScriptModule)
         self._check_model_device(cpu_script_model, "cpu")
         self._run_infer(cpu_script_model, torch.device("cpu"))
+
 
 class TestJitScriptModuleCompile(TestCase):
     def _check_model_device(self, model: torch.jit.ScriptModule, device_type: str):
@@ -320,7 +322,6 @@ class TestScriptModuleApply(TestCase):
         expected = {id(scripted), id(scripted.leaf1), id(scripted.leaf2)}
         self.assertEqual(visited, expected)
 
-
     def test_apply_returns_self(self):
         class Dummy(nn.Module):
             def forward(self, x):
@@ -336,6 +337,60 @@ class TestScriptModuleApply(TestCase):
         ret = scripted.apply(noop)
         self.assertIs(ret, scripted)
 
+
+class TestJitScriptModuleCodeWithConstants(TestCase):
+    def _check_model_device(self, model: torch.jit.ScriptModule, device_type: str):
+        """Check whether all parameters and buffers of the model are on the specified device."""
+        for param in model.parameters():
+            self.assertEqual(param.device.type, device_type)
+        for buf in model.buffers():
+            self.assertEqual(buf.device.type, device_type)
+
+    def test_script_module_code_with_constants(self):
+        @torch.jit.script
+        def apply_scale(x, scale=torch.tensor([2.0])):
+            return x * scale
+
+        class ModelWithConstants(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.conv = torch.nn.Conv2d(1, 1, kernel_size=3, padding=1)
+                self.threshold = 0.5
+
+            def forward(self, x):
+                x = self.conv(x)
+                x = apply_scale(x)
+                if x.mean() > self.threshold:
+                    x = x + 1.0
+                return x
+
+        # Initialize model and convert to ScriptModule
+        model = ModelWithConstants()
+        scripted_model = torch.jit.script(model).npu()
+
+        # Check device placement
+        self._check_model_device(scripted_model, "npu")
+
+        # Verify the functionality of code_with_constants API
+        code_str, constants = scripted_model.code_with_constants
+
+        # 1. Verify the extracted code is a string, contains forward, and matches .code
+        self.assertIsInstance(code_str, str)
+        self.assertIn("def forward", code_str)
+        self.assertEqual(code_str, scripted_model.code)
+
+        # 2. Verify the constants object type
+        self.assertIsInstance(constants, torch.jit._script.ConstMap)
+
+        # 3. Verify constants mapping is non-empty and contains the expected tensor
+        const_keys = list(constants.const_mapping.keys())
+        self.assertGreater(len(const_keys), 0, "ConstMap should not be empty")
+
+        # 4. Assert real CONSTANT.c0 value
+        self.assertEqual(constants.c0, torch.tensor([2.0]))
+
+        # 5. Verify the constant is referenced in the code string
+        self.assertIn("CONSTANTS.c0", code_str)
 
 if __name__ == "__main__":
     run_tests()
