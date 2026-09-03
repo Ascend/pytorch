@@ -201,7 +201,22 @@ def patch_scheduler():
             and isinstance(n.get_template_node(), ir.MultiTemplateBuffer)
             for n in (node1, node2)
         )
-        if not config.benchmark_fusion and not is_multi_template:
+        is_deferred_epilogue_compile_only = any(
+            bool(
+                getattr(
+                    n.get_template_node(),
+                    "_npu_deferred_epilogue_compile_only",
+                    False,
+                )
+            )
+            for n in (node1, node2)
+            if n.get_template_node() is not None
+        )
+        if (
+            not config.benchmark_fusion
+            and not is_multi_template
+            and not is_deferred_epilogue_compile_only
+        ):
             return True
 
         if (
@@ -324,10 +339,9 @@ def patch_scheduler():
             )
             assert isinstance(multi_node, ir.MultiTemplateBuffer)
             choice_timings = multi_node.choice_timings()
-            _, ms1 = multi_node.get_min_choice()
 
             # Eagerly compile and benchmark non-template nodes
-            ms1_choice, ms1 = multi_node.get_min_choice()
+            _, ms1 = multi_node.get_min_choice()
 
             ms2, path2 = (
                 self.benchmark_fused_nodes(node_list_2)
@@ -345,6 +359,11 @@ def patch_scheduler():
             # that break the cpp_wrapper second-pass scheduler initialisation.
             benchmark_catlass_orphans: list[tuple[Any, str, str]] = []
             template_choices = 0
+            _npu_max_epilogue_choices = (
+                max(config.max_epilogue_benchmarked_choices, 4)
+                if is_deferred_epilogue_compile_only
+                else config.max_epilogue_benchmarked_choices
+            )
             for choice, unfused_time in sorted(
                 choice_timings.items(), key=lambda x: x[1]
             ):
@@ -398,7 +417,7 @@ def patch_scheduler():
                         continue
 
                 template_choices += 1
-                if template_choices > config.max_epilogue_benchmarked_choices:
+                if template_choices > _npu_max_epilogue_choices:
                     break
 
                 with multi_node.swap_as_caller(choice):
@@ -450,6 +469,35 @@ def patch_scheduler():
                 return False
 
             def benchmark_when_ready() -> bool:
+                if is_deferred_epilogue_compile_only:
+                    for choice, future, _ in future_choices:
+                        try:
+                            if future is not None:
+                                future.result()
+                        except Exception as e:
+                            fusion_log.info(  # noqa: G200
+                                "FlexAttention fused choice %s failed "
+                                "compilation: %s",
+                                choice.name,
+                                e,
+                            )
+                            continue
+
+                        multi_node.finalize_as_caller(choice)
+                        multi_node._choice_timings = {
+                            choice: choice_timings[choice]
+                        }
+                        fusion_log.info(  # noqa: G200
+                            "FlexAttention selected fused-compilable choice %s",
+                            choice.name,
+                        )
+                        return True
+
+                    fusion_log.warning(
+                        "All FlexAttention choices failed after epilogue fusion"
+                    )
+                    return False
+
                 min_ms_fused = float("inf")
                 ms_fused_choice = None
                 ms_fused_mod = None
@@ -526,6 +574,30 @@ def patch_scheduler():
             return benchmark_when_ready
 
         else:
+            if is_deferred_epilogue_compile_only:
+                try:
+                    future_and_mod_fused = compile_kernel(node_list_fused)
+                except Exception as e:
+                    fusion_log.info(  # noqa: G200
+                        "FlexAttention epilogue fusion failed compilation: %s",
+                        e,
+                    )
+                    return False
+
+                def compile_when_ready() -> bool:
+                    try:
+                        if future_and_mod_fused[0] is not None:
+                            future_and_mod_fused[0].result()
+                    except Exception as e:
+                        fusion_log.info(  # noqa: G200
+                            "FlexAttention epilogue fusion failed compilation: %s",
+                            e,
+                        )
+                        return False
+                    return True
+
+                return compile_when_ready
+
             # Start parallel compilation for all three kernels
             future_and_mod_l1 = compile_kernel(node_list_1)
             future_and_mod_l2 = compile_kernel(node_list_2)

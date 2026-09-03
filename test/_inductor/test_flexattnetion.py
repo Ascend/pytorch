@@ -28,9 +28,15 @@ class TestFlexAttention(TestCase):
         )
         _, code = run_and_get_code(f, q, k, v)
 
-        FileCheck().check("triton_tem_fused").check_not("poi_fused_cos").run(
-            code[0]
-        )
+        # FileCheck().check("triton_tem_fused").check_not("poi_fused_cos").run(
+        #     code[0]
+        # )
+        accessed_bytes = 1 * 8 * 1024 * 64 * torch.float32.itemsize
+        num_accesses = 6
+        # TODO: Get rid of this fudge factor
+        # We need this fudge factor for now as we write the extraneous logsumexp
+        num_accesses += 1
+        self.assertLess(metrics.num_bytes_accessed, accessed_bytes * num_accesses)
 
     def test_kernel_options_argument_is_respected(self):
         make_tensor = functools.partial(

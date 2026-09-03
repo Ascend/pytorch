@@ -1682,8 +1682,13 @@ def _lower_flex_attention_mask_in(
             _filter_autotune_ir_nodes(inputs_for_autotuning, choices),
             layout,
             input_gen_fns=input_gen_fns,
+            return_multi_template=True,
+            defer_epilogue_compile_only=True,
         )
     )
+    _get_triton_template_buffer(
+        out
+    )._npu_deferred_epilogue_compile_only = True
     _attach_flex_subgraph_dependencies(
         out,
         subgraph_inps=(
@@ -2625,7 +2630,12 @@ def _register_npu_inductor_flex_attention():
             _filter_autotune_ir_nodes(inputs_for_autotuning, choices),
             layout,
             input_gen_fns=input_gen_fns,
+            return_multi_template=True,
+            defer_epilogue_compile_only=True,
         )
+        _get_triton_template_buffer(
+            result
+        )._npu_deferred_epilogue_compile_only = True
         _attach_flex_subgraph_dependencies(
             result,
             subgraph_inps=score_mod_other_buffers,
