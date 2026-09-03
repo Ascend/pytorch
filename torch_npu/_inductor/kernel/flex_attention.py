@@ -1251,23 +1251,32 @@ def _filter_autotune_ir_nodes(
     for node in ir_nodes:
         input_by_name.setdefault(node.get_name(), node)
 
-    missing_names = [name for name in expected_names if name not in input_by_name]
-    if missing_names:
-        raise ValueError(
-            "FlexAttention template inputs are missing from autotune inputs: "
-            f"{missing_names}"
-        )
-
     expected_name_set = set(expected_names)
-    aligned_ir_nodes = [input_by_name[name] for name in expected_names]
+    choice_input_by_name = {
+        node.get_name(): node for node in choice_input_nodes
+    }
+    choice_only_names = [
+        name for name in expected_names if name not in input_by_name
+    ]
+    # Template rendering can prologue-fuse a captured ComputedBuffer and expose
+    # its leaf buffers as the actual kernel arguments.  Those leaf nodes are not
+    # present in the pre-render autotune input list, but choice.input_nodes is
+    # the canonical, ordered argument list expected by the benchmark request.
+    aligned_ir_nodes = [
+        input_by_name[name]
+        if name in input_by_name
+        else choice_input_by_name[name]
+        for name in expected_names
+    ]
     unused_names = [
         name for name in input_by_name if name not in expected_name_set
     ]
 
     log.debug(
         "FlexAttention autotune input split: template_ir_nodes=%d "
-        "unused_ir_nodes=%s scalar_exprs=%s",
+        "choice_only_ir_nodes=%s unused_ir_nodes=%s scalar_exprs=%s",
         len(aligned_ir_nodes),
+        choice_only_names,
         unused_names,
         scalar_exprs,
     )
@@ -3312,10 +3321,6 @@ def _register_npu_inductor_flex_attention():
             cur_kernel_options.setdefault(
                 "TORCHINDUCTOR_FLEXATTENTION_MASKOUT",
                 flexattention_mask_out,
-            )
-            cur_kernel_options.setdefault(
-                "NUM_SPARSE_Q_BLOCKS",
-                V.graph.sizevars.guard_int(kv_num_blocks.get_size()[2]),
             )
             return cur_kernel_options
 

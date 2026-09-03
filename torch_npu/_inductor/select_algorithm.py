@@ -37,6 +37,7 @@ from torch._inductor.autotune_process import (
 from torch._inductor.select_algorithm import (
     TritonTemplate,
     TritonTemplateKernel,
+    ModificationWrapper,
     VERIFY,
     DEBUG,
     get_mm_log_filename,
@@ -410,7 +411,17 @@ class NPUTritonTemplate(TritonTemplate):
                 "64-bit indexing is not yet implemented for triton templates"
             )
         if is_flex_attention:
-            index_dtype = "tl.int32" if can_use_32bit_indexing else "tl.int64"
+            # Symbolic sizes and strides are passed to Triton as int64.  Keeping
+            # FlexAttention loop and tile indices in int32 makes the Ascend
+            # dynamic-control-flow pipeline combine incompatible induction and
+            # offset types.  Use one index type throughout dynamic kernels;
+            # retain int32 for statically bounded kernels where it is safe.
+            has_symbolic_numel = bool(getattr(numel, "free_symbols", ()))
+            index_dtype = (
+                "tl.int32"
+                if can_use_32bit_indexing and not has_symbolic_numel
+                else "tl.int64"
+            )
             defines.write(f"INDEX_DTYPE : tl.constexpr = {index_dtype}\n")
 
     def make_runtime_renderer_factory(
@@ -772,6 +783,31 @@ class NPUTritonTemplate(TritonTemplate):
         )
 
 
+class NPUModificationWrapper(ModificationWrapper):
+    """Range-aware captured-buffer indexing for NPU template subgraphs."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._npu_indirect_var_ranges: dict[sympy.Symbol, sympy.Expr] = {}
+
+    def indirect_indexing(self, index_var: str, size, check, wrap_neg=True):
+        symbol = super().indirect_indexing(index_var, size, check, wrap_neg)
+        if size is not None:
+            self._npu_indirect_var_ranges[symbol] = sympy.sympify(size)
+        return symbol
+
+    def _process_indexing(self, index: sympy.Expr) -> str:
+        # Upstream's template ModificationWrapper renders captured-buffer
+        # indices directly, bypassing the normal SIMD range simplifier.  The
+        # indirect-index callbacks above retain the exact bounds that make
+        # mixed-radix view reconstruction safe to collapse.
+        index = V.graph.sizevars.simplify_with_ranges(
+            index,
+            self._npu_indirect_var_ranges,
+        )
+        return self.kernel.kexpr(self.kernel.rename_indexing(index))
+
+
 class NPUTritonTemplateKernel(TritonTemplateKernel):
     """NPU-specific Triton template kernel for code generation.
 
@@ -871,6 +907,60 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
         if shape is None:
             shape = ()
         return super().create_cse_var(name, bounds, dtype, shape, **kwargs)
+
+    def modification(
+        self,
+        subgraph_number: int,
+        output_name: str | None,
+        mask: str | None = None,
+        input_shapes: dict[str, tuple[str, ...]] | None = None,
+        input_dtypes: dict[str, torch.dtype | str] | None = None,
+        **fixed_inputs,
+    ) -> str:
+        """Render an NPU template subgraph with range-aware indexing."""
+        num = 0
+        out = None
+        scatters = []
+        while f"mod_{subgraph_number}_{num}" in self.subgraph_bodies:
+            num += 1
+        with self.create_subgraph_body(f"mod_{subgraph_number}_{num}"):
+            subgraph = self._get_subgraph(subgraph_number)
+            modification_handler = NPUModificationWrapper(
+                self,
+                subgraph_number,
+                fixed_inputs,
+                mask,
+                input_shapes,
+                input_dtypes,
+            )
+            with V.set_ops_handler(modification_handler):
+                assert isinstance(subgraph, (ir.ComputedBuffer, list)), (
+                    "Expected the subgraph to be a ComputedBuffer or a "
+                    f"List[ComputedBuffer], got {type(subgraph)}"
+                )
+                if isinstance(subgraph, list):
+                    for scatter_graph in subgraph:
+                        scatters.append(
+                            self._handle_scatter_graph(scatter_graph)
+                        )
+                elif isinstance(subgraph.data, ir.InputBuffer):
+                    out = subgraph.data.make_loader()(())
+                else:
+                    out = subgraph.data.inner_fn(())
+
+            self.codegen_body()
+            if output_name is not None:
+                assert isinstance(output_name, str)
+                assert out is not None
+                self.body.writeline(f"{output_name} = {out.value}")
+            else:
+                assert out is None
+                for scatter in scatters:
+                    self.body.writeline(str(scatter))
+
+            body_val = self.body.getvalue()
+            self.cse.invalidate(OrderedSet())
+            return body_val
 
     def _register_output_buffer(self, arg_name: str) -> None:
         self.args.output_buffers.setdefault(self.output_node.get_name(), arg_name)
