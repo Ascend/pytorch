@@ -405,10 +405,16 @@ def _get_rng_state_offset(device: Union[int, str, torch.device] = 'npu') -> int:
     return default_generator.get_offset()
 
 
+def _hal_based_avail() -> bool:
+    return os.getenv("PYTORCH_HAL_BASED_NPU_CHECK") == "1"
+
+
 def is_available():
     if (not hasattr(torch_npu._C, '_npu_setDevice')):
         return False
-    return device_count() > 0
+    if _hal_based_avail():
+        return device_count() > 0
+    return torch_npu._C._npu_getDeviceCount() > 0
 
 
 def _parse_visible_devices() -> Union[List[int], List[str]]:
