@@ -497,6 +497,20 @@ def _init():
     torch.Event = _EventProxy
     torch.amp.autocast_mode.autocast.__init__ = _wrapper_cuda(torch.amp.autocast_mode.autocast.__init__)
 
+    # torch.is_autocast_enabled / torch.amp.custom_fwd / torch.amp.custom_bwd
+    _original_is_autocast_enabled = torch.is_autocast_enabled
+
+    def _patched_is_autocast_enabled(device_type=None):
+        if device_type is None or (isinstance(device_type, str) and 'cuda' in device_type):
+            device_type = device_type.replace('cuda', 'npu') if device_type else 'npu'
+        return _original_is_autocast_enabled(device_type)
+
+    torch.is_autocast_enabled = _patched_is_autocast_enabled
+    torch.get_autocast_dtype = _wrapper_cuda(torch.get_autocast_dtype)
+    torch.get_autocast_gpu_dtype = torch_npu.npu.get_autocast_dtype
+    torch.amp.custom_fwd = _wrapper_cuda(torch.amp.custom_fwd)
+    torch.amp.custom_bwd = _wrapper_cuda(torch.amp.custom_bwd)
+
     # torch.Tensor.*
     _device_wrapper(torch.Tensor, torch_tensor_fn_white_list)
     torch.Tensor.cuda = torch.Tensor.npu
