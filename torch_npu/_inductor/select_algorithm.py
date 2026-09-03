@@ -997,14 +997,24 @@ def patch_algorithm_selector() -> None:
         input_gen_fns: Optional[Dict[int, Callable[[ir.Buffer], torch.Tensor]]] = None,
         precompilation_timeout_seconds: int = 60 * 60,
         return_multi_template: bool = False,
+        defer_epilogue_compile_only: bool = False,
     ) -> Any:
         from .codegen.catlass.catlass_kernel import CATLASSTemplateCaller
         global _last_selected_choice
 
-        # Templates selected with input_gen_fns require specific input data to avoid IMA
-        # Passing custom input gen fns to benchmark_fusion NYI, so skip deferred template selection
+        defer_epilogue_to_scheduler = (
+            defer_epilogue_compile_only
+            and return_multi_template
+            and input_gen_fns is not None
+        )
+
+        # Templates selected with input_gen_fns require specific input data to avoid IMA.
+        # FlexAttention keeps using those generators for its lowering-time autotune,
+        # then defers only the final, epilogue-aware compilation choice.
         # TODO(jgong5): support multi-template on CPU
-        if input_gen_fns is not None or layout.device.type == "cpu":
+        if layout.device.type == "cpu" or (
+            input_gen_fns is not None and not defer_epilogue_to_scheduler
+        ):
             return_multi_template = False
 
         choices = [choice for choice in choices if choice is not None]
@@ -1031,7 +1041,11 @@ def patch_algorithm_selector() -> None:
             )
         log.debug("Max autotune selects from %s choices.", str(len(choices)))
 
-        if len(choices) == 1:
+        if (
+            len(choices) == 1
+            and not select_first_compilable_only
+            and not defer_epilogue_compile_only
+        ):
             if not isinstance(choices[0], CATLASSTemplateCaller):
                 # CATLASSTemplateCaller still needs to go through autotuning process to retrieve workspace size.
                 return choices[0].output_node()
@@ -1337,15 +1351,16 @@ def patch_algorithm_selector() -> None:
                 if isinstance(c, TritonTemplateCaller):
                     allowed_prologue_inps |= c.allowed_prologue_inps
 
-            return torch._inductor.ir.TensorBox.create(
-                torch._inductor.ir.MultiTemplateBuffer(
-                    layout,
-                    input_nodes,
-                    get_timings,
-                    choices,
-                    allowed_prologue_inps,
-                )
+            multi_template = torch._inductor.ir.MultiTemplateBuffer(
+                layout,
+                input_nodes,
+                get_timings,
+                choices,
+                allowed_prologue_inps,
             )
+            if defer_epilogue_to_scheduler:
+                multi_template._npu_deferred_epilogue_compile_only = True
+            return torch._inductor.ir.TensorBox.create(multi_template)
 
         timings = do_autotuning(precompile_fn)
         if timings == {} or choices[0] not in timings:
