@@ -54,7 +54,7 @@ from torch._inductor.dtype_propagation import DtypePropagationOpsHandler
 from torch._inductor.shape_propagation import ShapePropagationOpsHandler, get_broadcasted_shape
 from torch._inductor.ir import IRNode
 from torch._inductor.runtime import triton_heuristics
-from torch._inductor.runtime.hints import DeviceProperties, ReductionHint
+from torch._inductor.runtime.hints import AutotuneHint, DeviceProperties, ReductionHint
 from torch._inductor.runtime.runtime_utils import next_power_of_2
 from torch._inductor.scheduler import SchedulerNode
 from torch._inductor.utils import (
@@ -992,6 +992,10 @@ class NPUTritonKernel(TritonKernel):
             (line for line in kernel_src.splitlines() if "inductor_meta" in line),
             None,
         )
+        # NOTE: AutotuneHint is used in the evaluated inductor_meta string (e.g., AutotuneHint.POINTWISE).
+        # The import of AutotuneHint from torch._inductor.runtime.hints (line 54) is required for eval()
+        # to resolve the AutotuneHint references. Do not remove or relocate this import, otherwise eval()
+        # will fail with a NameError when resolving inductor_meta.
         inductor_meta = eval(inductor_meta_str.strip().split("=", 1)[1].rstrip(","))
         new_inductor_meta = self.add_npu_inductor_meta(inductor_meta)
         patched_kernel = kernel_src.replace(

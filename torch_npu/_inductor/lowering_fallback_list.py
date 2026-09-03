@@ -371,7 +371,6 @@ NPU_EXTRA_FALLBACK_LIST = [
     aten.scatter_reduce.two,
     aten.scatter_reduce.two_out,
     aten.scatter_reduce_.two,
-    aten.searchsorted.Tensor,
     aten.set_.source_Tensor,
     aten.sigmoid_,
     aten.sigmoid_.default,
