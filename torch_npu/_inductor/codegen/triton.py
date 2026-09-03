@@ -2173,7 +2173,7 @@ class NPUIndexTritonKernel(TritonKernel):
 
         dtypes = tuple(upcast_compute_type(dtype) for dtype in dtypes)
         cse_compute = functools.partial(self.cse.generate, self.compute)
-        combine_helper_fn = self._lift_helper(combine_fn, len(values), dtypes)
+        combine_helper_fn = self._lift_helper(combine_fn, values, dtypes)
 
         # Pick the scan dimension by locating the reduction axis in the dense
         # layout used by dense_size_list()/dense_size_str().
@@ -2224,11 +2224,13 @@ class NPUIndexTritonKernel(TritonKernel):
                 self.compute,
                 f"{value}.to({triton_compute_type(dtype)})",
                 dtype=dtype,
+                shape=value.shape
             )
             value = self.cse.generate(
                 self.compute,
                 f"tl.broadcast_to({value_dtype}, {self.dense_size_str()})",
                 dtype=dtype,
+                shape=tuple(self.dense_size_list())
             )
             broadcasted_values.append(value)
 
@@ -2274,10 +2276,19 @@ class NPUIndexTritonKernel(TritonKernel):
         )
 
         if not self.persistent_reduction:
+            def _partial_scan_shape(var):
+                if var.shape is None:
+                    return None
+                else:
+                    shape = list(var.shape)
+                    shape[-1] = "1"
+                    return shape
+
             partial_reduce_vars = [
                 cse_compute(
                     f"triton_helpers.select_one(({var}), ({rbase_broadcast}) == ({rblock_sym} - 1), dim={dim}, keep_dims=True)",
                     dtype=upcast_compute_type(var.dtype),
+                    shape=_partial_scan_shape(var),
                 )
                 for var in partial_scan_vars
             ]
@@ -2287,6 +2298,7 @@ class NPUIndexTritonKernel(TritonKernel):
                 cse_compute(
                     f"tl.where(({roffset_expr}) > 0, {full_scan}, {partial_scan})",
                     dtype=partial_scan.dtype,
+                    shape=partial_scan.shape,
                 )
                 for full_scan, partial_scan in zip(full_scan_vars, partial_scan_vars)
             ]

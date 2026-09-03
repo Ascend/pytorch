@@ -260,18 +260,6 @@ def _register_npu_inductor_fallbacks():
         denom = ExpandView.create(denom, list(sum_result.get_size()))
         return to_dtype(div(sum_result, denom), output_dtype)
 
-    @register_lowering(aten.cumsum)
-    def cumsum(x, axis=None, dtype=None):
-        if (is_integer_dtype(x.get_dtype()) or is_boolean_dtype(x.get_dtype())) and dtype is None:
-            # torch.int64->torch.int32
-            dtype = torch.int64 if is_ascend950 else torch.int32
-        if len(x.get_size()) == 0:
-            if axis not in [0, -1]:
-                raise ValueError("axis must be 0 or -1")
-            dtype = dtype or x.get_dtype()
-            return to_dtype(x, dtype, copy=True)
-        return fallback_cumsum(x, dim=axis, dtype=dtype)
-
     @register_lowering(npu.npu_dtype_cast, type_promotion_kind=None)
     def _convert_npu_type(x: TensorBox, dtype: torch.dtype):
         return to_dtype(x, dtype, copy=True)
