@@ -317,7 +317,7 @@ def _patch_jit_script():
     torch.jit.script_method = _jit_script_method
 
 
-def _patch_has_triton():
+def _patch_has_triton(**kwargs):
     return False
 
 

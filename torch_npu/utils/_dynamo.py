@@ -632,7 +632,7 @@ def add_dynamo_methods_init():
 
 
 @functools.lru_cache(None)
-def has_triton() -> bool:
+def has_triton(*, include_cpu: bool = False) -> bool:
     from torch.utils._triton import has_triton_package
 
     if not has_triton_package():
@@ -661,6 +661,8 @@ def has_triton() -> bool:
     def is_device_compatible_with_triton():
         _dynamo_register_interface_for_device()
         for device, extra_check in triton_supported_devices.items():
+            if device == "cpu" and not include_cpu:
+                continue
             device_interface = get_interface_for_device(device)
             if device_interface.is_available() and extra_check(device_interface):
                 return True
