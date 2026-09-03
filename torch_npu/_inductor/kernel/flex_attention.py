@@ -1341,6 +1341,11 @@ def _attach_flex_subgraph_dependencies(
     subgraph_outs: Sequence[Any],
 ) -> None:
     template_buffer = _get_triton_template_buffer(output)
+    # NPU template epilogues use the template's manually-defined output indices
+    # instead of registering them in the regular Triton range tree.  The
+    # scheduler uses this marker to avoid binary epilogue fusion when the other
+    # operand is produced by another template and therefore needs a buffer load.
+    template_buffer._npu_flex_attention_template = True
     template_buffer.subgraph_inps = list(subgraph_inps)
     template_buffer.subgraph_outs = list(subgraph_outs)
 

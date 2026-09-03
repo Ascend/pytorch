@@ -735,6 +735,31 @@ class NPUTritonScheduling(TritonScheduling):
                 why("composite dK/dV templates do not support fusion")
                 return False
 
+        if node1.is_template() and getattr(
+            node1.get_template_node(),
+            "_npu_flex_attention_template",
+            False,
+        ):
+            # A template's own output value is available directly to its
+            # epilogue.  An input produced by a different template requires a
+            # load using xindex, which is not part of the template range tree.
+            own_buffers = node1.get_buffer_names()
+            for buffer_name in node2.used_buffer_names():
+                if buffer_name in own_buffers:
+                    continue
+                scheduler_buffer = self.scheduler.name_to_buf.get(buffer_name)
+                if scheduler_buffer is None:
+                    continue
+                producer = scheduler_buffer.defining_op
+                if producer is node1 or not producer.is_template():
+                    continue
+                if isinstance(producer.get_template_node(), TritonTemplateBuffer):
+                    why(
+                        "NPU FlexAttention epilogues cannot load another "
+                        "Triton template output"
+                    )
+                    return False
+
         if node1.is_split_scan() and not node2.is_split_scan():
             if node2.is_reduction():
                 why("Split scan cannot fuse with reductions")
