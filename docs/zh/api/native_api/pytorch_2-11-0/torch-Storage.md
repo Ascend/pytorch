@@ -1210,9 +1210,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 > <font size="3">dtype()</font>
 
@@ -1244,9 +1244,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 > <font size="3">dtype()</font>
 
