@@ -6398,7 +6398,7 @@
 | <term>Atlas A3 训练系列产品</term> | ✔ |
 | <term>Ascend 950DT</term> | ✘ |
 
-**限制与说明**：`input`仅支持fp32
+**限制与说明**： -
 
 </div>
 
