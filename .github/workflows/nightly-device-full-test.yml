@@ -1,6 +1,11 @@
 name: Nightly Device Full Test (Manual)
 
 on:
+  push:
+    branches:
+      - ci-test
+    paths:
+      - '.github/workflows/nightly-device-full-test.yml'
   workflow_dispatch:
     inputs:
       device_env:
