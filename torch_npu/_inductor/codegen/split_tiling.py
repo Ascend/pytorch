@@ -25,7 +25,7 @@ def _add_wide_group_midpoints(boundaries):
     boundaries = sorted(set(int(boundary) for boundary in boundaries))
     expanded = []
     for index, boundary in enumerate(boundaries):
-        if index and boundary // boundaries[index - 1] > 8:
+        if index and boundary // boundaries[index - 1] >= 4:
             lower = boundaries[index - 1]
             upper_midpoint = next_power_of_2((boundary + 1) // 2)
             lower_limit = next_power_of_2(lower * 8)
