@@ -66,11 +66,14 @@ class TestNPUFastLaunchStatic(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn("struct FastLaunchPlan", source)
+        self.assertIn("packedArgsTemplate", source)
+        self.assertIn("FastLaunchStaticWithPlan", source)
         self.assertIn("aclrtLaunchKernelWithHostArgs", source)
         self.assertIn("ACL_RT_LAUNCH_KERNEL_ATTR_DYN_UBUF_SIZE", source)
         self.assertNotIn("rtKernelLaunch(", source)
         self.assertNotIn("rtKernelLaunchWithFlagV2", source)
-        self.assertIn("SetCustomHandler", source)
+        self.assertIn("OpCommand::RunOpApiV2", source)
+        self.assertNotIn("SetCustomHandler", source)
         self.assertIn("grid product exceeds uint16 max", source)
         self.assertIn("args and arg_kinds size mismatch", source)
 
@@ -96,7 +99,10 @@ class TestNPUFastLaunchStatic(unittest.TestCase):
         self.assertIn("BuildPackedLayout(*plan)", source)
         self.assertIn("plan.argLayouts[index]", source)
         self.assertIn("plan.gridOffsets[index]", source)
-        self.assertIn("packed.args.resize(plan.packedArgsSize, 0)", source)
+        self.assertIn(
+            "plan->packedArgsTemplate.resize(plan->packedArgsSize, 0)", source
+        )
+        self.assertEqual(source.count("packed.args = plan.packedArgsTemplate"), 2)
         self.assertIn("if (!plan.isPureSimt)", source)
         self.assertIn("if (plan.targetSupportFfts)", source)
         self.assertIn("rtGetC2cCtrlAddr(&fftsAddress, &fftsLength)", source)

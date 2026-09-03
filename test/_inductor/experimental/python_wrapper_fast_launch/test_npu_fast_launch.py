@@ -263,7 +263,8 @@ class TestNPUFastLaunch(unittest.TestCase):
         self.assertEqual(calls[1][0], "launch")
         self.assertEqual(calls[1][1][1:5], (99, 2, 1, 1))
         self.assertEqual(calls[1][1][5], (tensor, 3))
-        self.assertFalse(calls[0][1][-1])
+        self.assertFalse(calls[0][1][6])
+        self.assertEqual(calls[0][1][7:], (2, (), ()))
 
     @unittest.skip("temporarily disabled due to known CI failure")
     def test_plan_forwards_ffts_abi_requirement(self):
@@ -289,7 +290,7 @@ class TestNPUFastLaunch(unittest.TestCase):
                 runtime_arg_count=2,
             )
 
-        self.assertTrue(calls[0][-1])
+        self.assertTrue(calls[0][6])
 
     def test_launcher_requiring_hidden_resources_is_negative(self):
         extension = types.SimpleNamespace(
@@ -340,6 +341,109 @@ class TestNPUFastLaunch(unittest.TestCase):
         self.assertEqual(len(autotuner.run_calls), 1)
         self.assertEqual(len(launches), 1)
         self.assertEqual(launches[0][5], (tensor, 4))
+
+    def test_generated_call_slot_is_replaced_by_finalized_entry(self):
+        launches = []
+
+        class Plan:
+            pass
+
+        extension = types.SimpleNamespace(
+            _npu_inductor_make_fast_launch_plan=lambda *args: Plan(),
+            _npu_inductor_fast_launch_with_plan=lambda *args: launches.append(args),
+        )
+        with isolated_fast_launch(extension):
+            bind = importlib.import_module(f"{PACKAGE}.bind")
+            launcher = FakeLauncher()
+            autotuner = FakeAutotuner(launcher)
+            call_slot = [None]
+            call = bind.bind_python_wrapper_kernel_fast(
+                metadata(), autotuner, call_slot=call_slot
+            )
+            tensor = FakeTensor()
+
+            self.assertEqual(call(tensor, 3, stream=99), "fallback")
+            self.assertIsInstance(call_slot[0], bind.FinalizedFastLaunch)
+            self.assertIsNone(call_slot[0](tensor, 4, stream=100))
+
+        self.assertEqual(len(autotuner.run_calls), 1)
+        self.assertEqual(launches[0][5], (tensor, 4))
+
+    def test_finalized_entry_observes_dynamic_launch_hooks(self):
+        launches = []
+        hook_events = []
+
+        class Plan:
+            pass
+
+        extension = types.SimpleNamespace(
+            _npu_inductor_make_fast_launch_plan=lambda *args: Plan(),
+            _npu_inductor_fast_launch_with_plan=lambda *args: launches.append(args),
+        )
+        with isolated_fast_launch(extension):
+            bind = importlib.import_module(f"{PACKAGE}.bind")
+            launcher = FakeLauncher()
+            set_launcher_hook_chains(launcher)
+            autotuner = FakeAutotuner(launcher)
+            call_slot = [None]
+            call = bind.bind_python_wrapper_kernel_fast(
+                metadata(), autotuner, call_slot=call_slot
+            )
+            tensor = FakeTensor()
+
+            self.assertEqual(call(tensor, 3, stream=99), "fallback")
+            finalized = call_slot[0]
+            self.assertIsInstance(finalized, bind.FinalizedFastLaunch)
+            self.assertIsNone(finalized(tensor, 4, stream=100))
+
+            enter = lambda metadata: hook_events.append(("enter", metadata))
+            exit = lambda metadata: hook_events.append(("exit", metadata))
+            launcher._npu_fast_launch_enter_hook.add(enter)
+            launcher._npu_fast_launch_exit_hook.add(exit)
+            self.assertEqual(finalized(tensor, 5, stream=101), "launcher")
+
+            launcher._npu_fast_launch_enter_hook.remove(enter)
+            launcher._npu_fast_launch_exit_hook.remove(exit)
+            self.assertIsNone(finalized(tensor, 6, stream=102))
+
+        self.assertEqual(
+            [launch[5] for launch in launches],
+            [(tensor, 4), (tensor, 6)],
+        )
+        self.assertEqual(launcher.calls, [((tensor, 5), 101)])
+        self.assertEqual([event[0] for event in hook_events], ["enter", "exit"])
+
+    def test_constant_grid_uses_static_cpp_entry(self):
+        calls = []
+
+        class Plan:
+            pass
+
+        extension = types.SimpleNamespace(
+            _npu_inductor_make_fast_launch_plan=lambda *args: (
+                calls.append(("make", args)) or Plan()
+            ),
+            _npu_inductor_fast_launch_with_plan=mock.Mock(),
+            _npu_inductor_fast_launch_static_with_plan=lambda *args: calls.append(
+                ("static", args)
+            ),
+        )
+        with isolated_fast_launch(extension):
+            backend = importlib.import_module(f"{PACKAGE}.backend")
+            launcher = FakeLauncher()
+            launcher._npu_fast_launch_grid_exprs = ("2", "1", "1")
+            tensor = FakeTensor()
+            planned = backend.build_planned_fast_launch(
+                launcher,
+                metadata(),
+                canonical_args=(tensor, 3),
+                runtime_arg_count=2,
+            )
+            planned((tensor, 4), stream=99)
+
+        self.assertEqual(calls[0][1][-1], (2, 1, 1))
+        self.assertEqual(calls[1], ("static", (planned.plan, 99, (tensor, 4))))
+        extension._npu_inductor_fast_launch_with_plan.assert_not_called()
 
     def test_cold_coordinate_descent_promotes_after_autotune(self):
         launches = []
@@ -591,12 +695,15 @@ class TestNPUFastLaunch(unittest.TestCase):
     @unittest.skip("temporarily disabled due to known CI failure")
     def test_incomplete_schema_is_completed_from_launcher_abi(self):
         launches = []
+        make_calls = []
 
         class Plan:
             pass
 
         extension = types.SimpleNamespace(
-            _npu_inductor_make_fast_launch_plan=lambda *args: Plan(),
+            _npu_inductor_make_fast_launch_plan=lambda *args: (
+                make_calls.append(args) or Plan()
+            ),
             _npu_inductor_fast_launch_with_plan=lambda *args: launches.append(args),
         )
         with isolated_fast_launch(extension):
@@ -620,7 +727,9 @@ class TestNPUFastLaunch(unittest.TestCase):
             self.assertIsNone(bound(first, second, 8, False, stream=100))
 
         self.assertEqual(len(launches), 1)
-        self.assertEqual(launches[0][5], (first, second, 8, False, 16))
+        self.assertEqual(launches[0][5], (first, second, 8, False))
+        self.assertEqual(make_calls[0][-3], 4)
+        self.assertEqual(make_calls[0][-2], (16,))
 
     def test_complete_codegen_launcher_schema_conflict_is_negative(self):
         launches = []
