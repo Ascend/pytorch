@@ -182,3 +182,24 @@
 **限制与说明**： `input`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+### torch.special.multigammaln
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.special.multigammaln](https://pytorch.org/docs/2.7/special.html#torch.special.multigammaln)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
+
+**限制与说明**：
+
+- `input`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+- 参数`p`需为正整数，且`input`元素需满足`input > (p - 1) / 2`，否则结果为`nan`或`inf`
+
+</div>
