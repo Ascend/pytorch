@@ -2,6 +2,8 @@
 
 > English | [中文](./OVERVIEW_26.0.0.zh.md)
 
+The plugin is a deep learning adaptation framework based on Atlas, enabling Atlas NPUs to support the PyTorch framework and providing users of the PyTorch framework with the powerful computing power of Atlas AI processors.
+
 ## Quick Reference
 
 - TorchNPU is maintained by the [Atlas PyTorch community](https://www.hiascend.com/developer/software/ai-frameworks/pytorch)
@@ -12,12 +14,6 @@
    - [TorchNPU Documentation](https://www.hiascend.com/document/detail/zh/Pytorch/730/index/index.html)
    - [Developer Community](https://www.hiascend.com/developer)
    - [Issue Feedback](https://gitcode.com/Ascend/pytorch/issues)
-
----
-
-## TorchNPU
-
-The plugin is a deep learning adaptation framework based on Atlas, enabling Atlas NPUs to support the PyTorch framework and providing users of the PyTorch framework with the powerful computing power of Atlas AI processors.
 
 ---
 
@@ -39,7 +35,7 @@ Tags follow the format:
 | OS               | ubuntu22.04 / openeuler24.03                            | OS distribution used for the base image           |
 | Python Version   | py3.11                                                  | Major Python version pre-installed in the image   |
 
-### Tag(26.0.0)
+### Tag list for version 26.0.0
 
 - `2.10.0-cann9.0.0-310p-ubuntu22.04-py3.11`
 - `2.10.0-cann9.0.0-310p-openeuler24.03-py3.11`

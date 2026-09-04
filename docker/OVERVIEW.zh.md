@@ -2,6 +2,8 @@
 
 > [English](./OVERVIEW.md) | 中文
 
+TorchNPU插件是基于昇腾的深度学习适配框架，使昇腾NPU可以支持PyTorch框架，为PyTorch框架的使用者提供昇腾AI处理器的超强算力。
+
 ## 快速参考
 
 - TorchNPU 由 [Ascend for PyTorch community](https://www.hiascend.com/developer/software/ai-frameworks/pytorch) 维护
@@ -15,13 +17,7 @@
 
 ---
 
-## TorchNPU
-
-TorchNPU插件是基于昇腾的深度学习适配框架，使昇腾NPU可以支持PyTorch框架，为PyTorch框架的使用者提供昇腾AI处理器的超强算力。
-
----
-
-## 支持的Tags 及 Dockerfile 使用方法
+## 支持的 Tags 及 Dockerfile 使用方法
 
 ### Tag规范
 
@@ -39,52 +35,61 @@ Tag 遵循以下格式：
 | 操作系统         | ubuntu22.04 / openeuler24.03 | 基础镜像所使用的操作系统发行版 |
 | Python 版本    | py3.12                       | 镜像内置 Python 版本  |
 
-### 构建参数选择参考地址
+## 即时适配版本（pt2.13）Tag列表
 
-### Tag(26.1.0)
+- `2.13.0rc1-cann9.1.0-310p-ubuntu22.04-py3.12`
+- `2.13.0rc1-cann9.1.0-310p-openeuler24.03-py3.12`
+- `2.13.0rc1-cann9.1.0-910b-ubuntu22.04-py3.12`
+- `2.13.0rc1-cann9.1.0-910b-openeuler24.03-py3.12`
+- `2.13.0rc1-cann9.1.0-a3-ubuntu22.04-py3.12`
+- `2.13.0rc1-cann9.1.0-a3-openeuler24.03-py3.12`
+- `2.13.0rc1-cann9.1.0-950-ubuntu22.04-py3.12`
+- `2.13.0rc1-cann9.1.0-950-openeuler24.03-py3.12`
 
-- `2.12.0-cann9.1.0-310p-ubuntu22.04-py3.12`
-- `2.12.0-cann9.1.0-310p-openeuler24.03-py3.12`
-- `2.12.0-cann9.1.0-910b-ubuntu22.04-py3.12`
-- `2.12.0-cann9.1.0-910b-openeuler24.03-py3.12`
-- `2.12.0-cann9.1.0-a3-ubuntu22.04-py3.12`
-- `2.12.0-cann9.1.0-a3-openeuler24.03-py3.12`
-- `2.12.0-cann9.1.0-950-ubuntu22.04-py3.12`
-- `2.12.0-cann9.1.0-950-openeuler24.03-py3.12`
-- `2.11.0-cann9.1.0-310p-ubuntu22.04-py3.12`
-- `2.11.0-cann9.1.0-310p-openeuler24.03-py3.12`
-- `2.11.0-cann9.1.0-910b-ubuntu22.04-py3.12`
-- `2.11.0-cann9.1.0-910b-openeuler24.03-py3.12`
-- `2.11.0-cann9.1.0-a3-ubuntu22.04-py3.12`
-- `2.11.0-cann9.1.0-a3-openeuler24.03-py3.12`
-- `2.11.0-cann9.1.0-950-ubuntu22.04-py3.12`
-- `2.11.0-cann9.1.0-950-openeuler24.03-py3.12`
-- `2.10.0.post4-cann9.1.0-310p-ubuntu22.04-py3.12`
-- `2.10.0.post4-cann9.1.0-310p-openeuler24.03-py3.12`
-- `2.10.0.post4-cann9.1.0-910b-ubuntu22.04-py3.12`
-- `2.10.0.post4-cann9.1.0-910b-openeuler24.03-py3.12`
-- `2.10.0.post4-cann9.1.0-a3-ubuntu22.04-py3.12`
-- `2.10.0.post4-cann9.1.0-a3-openeuler24.03-py3.12`
-- `2.10.0.post4-cann9.1.0-950-ubuntu22.04-py3.12`
-- `2.10.0.post4-cann9.1.0-950-openeuler24.03-py3.12`
-- `2.9.0.post6-cann9.1.0-310p-ubuntu22.04-py3.12`
-- `2.9.0.post6-cann9.1.0-310p-openeuler24.03-py3.12`
-- `2.9.0.post6-cann9.1.0-910b-ubuntu22.04-py3.12`
-- `2.9.0.post6-cann9.1.0-910b-openeuler24.03-py3.12`
-- `2.9.0.post6-cann9.1.0-a3-ubuntu22.04-py3.12`
-- `2.9.0.post6-cann9.1.0-a3-openeuler24.03-py3.12`
-- `2.9.0.post6-cann9.1.0-950-ubuntu22.04-py3.12`
-- `2.9.0.post6-cann9.1.0-950-openeuler24.03-py3.12`
-- `2.7.1.post8-cann9.1.0-310p-ubuntu22.04-py3.12`
-- `2.7.1.post8-cann9.1.0-310p-openeuler24.03-py3.12`
-- `2.7.1.post8-cann9.1.0-910b-ubuntu22.04-py3.12`
-- `2.7.1.post8-cann9.1.0-910b-openeuler24.03-py3.12`
-- `2.7.1.post8-cann9.1.0-a3-ubuntu22.04-py3.12`
-- `2.7.1.post8-cann9.1.0-a3-openeuler24.03-py3.12`
-- `2.7.1.post8-cann9.1.0-950-ubuntu22.04-py3.12`
-- `2.7.1.post8-cann9.1.0-950-openeuler24.03-py3.12`
+### 26.1.1版本Tag列表
 
-[26.0.0 版本相关标签信息](OVERVIEW_26.0.0.zh.md)
+- `2.12.0.post2-cann9.1.0-310p-ubuntu22.04-py3.12`
+- `2.12.0.post2-cann9.1.0-310p-openeuler24.03-py3.12`
+- `2.12.0.post2-cann9.1.0-910b-ubuntu22.04-py3.12`
+- `2.12.0.post2-cann9.1.0-910b-openeuler24.03-py3.12`
+- `2.12.0.post2-cann9.1.0-a3-ubuntu22.04-py3.12`
+- `2.12.0.post2-cann9.1.0-a3-openeuler24.03-py3.12`
+- `2.12.0.post2-cann9.1.0-950-ubuntu22.04-py3.12`
+- `2.12.0.post2-cann9.1.0-950-openeuler24.03-py3.12`
+- `2.11.0.post2-cann9.1.0-310p-ubuntu22.04-py3.12`
+- `2.11.0.post2-cann9.1.0-310p-openeuler24.03-py3.12`
+- `2.11.0.post2-cann9.1.0-910b-ubuntu22.04-py3.12`
+- `2.11.0.post2-cann9.1.0-910b-openeuler24.03-py3.12`
+- `2.11.0.post2-cann9.1.0-a3-ubuntu22.04-py3.12`
+- `2.11.0.post2-cann9.1.0-a3-openeuler24.03-py3.12`
+- `2.11.0.post2-cann9.1.0-950-ubuntu22.04-py3.12`
+- `2.11.0.post2-cann9.1.0-950-openeuler24.03-py3.12`
+- `2.10.0.post6-cann9.1.0-310p-ubuntu22.04-py3.12`
+- `2.10.0.post6-cann9.1.0-310p-openeuler24.03-py3.12`
+- `2.10.0.post6-cann9.1.0-910b-ubuntu22.04-py3.12`
+- `2.10.0.post6-cann9.1.0-910b-openeuler24.03-py3.12`
+- `2.10.0.post6-cann9.1.0-a3-ubuntu22.04-py3.12`
+- `2.10.0.post6-cann9.1.0-a3-openeuler24.03-py3.12`
+- `2.10.0.post6-cann9.1.0-950-ubuntu22.04-py3.12`
+- `2.10.0.post6-cann9.1.0-950-openeuler24.03-py3.12`
+- `2.9.0.post8-cann9.1.0-310p-ubuntu22.04-py3.12`
+- `2.9.0.post8-cann9.1.0-310p-openeuler24.03-py3.12`
+- `2.9.0.post8-cann9.1.0-910b-ubuntu22.04-py3.12`
+- `2.9.0.post8-cann9.1.0-910b-openeuler24.03-py3.12`
+- `2.9.0.post8-cann9.1.0-a3-ubuntu22.04-py3.12`
+- `2.9.0.post8-cann9.1.0-a3-openeuler24.03-py3.12`
+- `2.9.0.post8-cann9.1.0-950-ubuntu22.04-py3.12`
+- `2.9.0.post8-cann9.1.0-950-openeuler24.03-py3.12`
+- `2.7.1.post10-cann9.1.0-310p-ubuntu22.04-py3.12`
+- `2.7.1.post10-cann9.1.0-310p-openeuler24.03-py3.12`
+- `2.7.1.post10-cann9.1.0-910b-ubuntu22.04-py3.12`
+- `2.7.1.post10-cann9.1.0-910b-openeuler24.03-py3.12`
+- `2.7.1.post10-cann9.1.0-a3-ubuntu22.04-py3.12`
+- `2.7.1.post10-cann9.1.0-a3-openeuler24.03-py3.12`
+- `2.7.1.post10-cann9.1.0-950-ubuntu22.04-py3.12`
+- `2.7.1.post10-cann9.1.0-950-openeuler24.03-py3.12`
+
+[26.0.0 版本相关标签信息](https://gitcode.com/Ascend/pytorch/blob/master/docker/OVERVIEW_26.0.0.md)
 
 ### Dockerfile构建参数
 
@@ -99,8 +104,8 @@ dockerfile详见：[dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/d
 | CANN_VERSION              | 昇腾 CANN 工具包版本                   | 是  | CANN 基础镜像仓库       | 9.1.0                                    |
 | ARCH                      | 宿主机硬件架构                         | 是  | 环境硬件              | arm / x86                                |
 | PY_TAG                    | Python 包 ABI 标签（cp + 版本号）       | 是  | 与 PY_VERSION 严格匹配 | cp311                                    |
-| TORCH_NPU_RELEASE_VERSION | TorchNPU 官方发布 Tag（含 pytorch 版本） | 是  | TorchNPU 仓库发行版    | v26.1.0-pytorch2.12.0                    |
-| TORCH_NPU_PATCH_TAG       | TorchNPU 官方发布包名里的版本号            | 是  | TorchNPU 仓库发行版    | 2.12.0                                   |
+| TORCH_NPU_RELEASE_VERSION | TorchNPU 官方发布 Tag（含 pytorch 版本） | 是  | TorchNPU 仓库发行版    | v26.1.1-pytorch2.12.0                    |
+| TORCH_NPU_PATCH_TAG       | TorchNPU 官方发布包名里的版本号            | 是  | TorchNPU 仓库发行版    | 2.12.0.post2                                   |
 | MANYLINUX_VER             | PyPI 包兼容系统版本                    | 否  | torch 官方 whl 规范   | manylinux_2_28                           |
 | PIP_MIRROR_URL            | pip 安装源地址（默认清华源）                | 否  | PyPI 镜像源          | https://pypi.tuna.tsinghua.edu.cn/simple |
 
@@ -110,16 +115,16 @@ dockerfile详见：[dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/d
 
 2. TORCH_NPU_RELEASE_VERSION、TORCH_NPU_PATCH_TAG 参数的取值来自 [TorchNPU 官方发布版本](https://gitcode.com/Ascend/pytorch/releases)。以 whl 包下载地址为例：
 
-https://gitcode.com/Ascend/pytorch/releases/download/v26.1.0-pytorch2.12.0/torch_npu-2.12.0-cp310-cp310-manylinux_2_28_aarch64.whl
+https://gitcode.com/Ascend/pytorch/releases/download/v26.1.1-pytorch2.12.0/torch_npu-2.12.0.post2-cp310-cp310-manylinux_2_28_aarch64.whl
 
-- TORCH_NPU_RELEASE_VERSION 取 `download/` 与 `/torch_npu-` 之间的部分，如 `v26.1.0-pytorch2.12.0`。
-- TORCH_NPU_PATCH_TAG 取 `torch_npu-` 与 `-cp310` 之间的部分，如 `2.12.0`。
+- TORCH_NPU_RELEASE_VERSION 取 `download/` 与 `/torch_npu-` 之间的部分，如 `v26.1.1-pytorch2.12.0`。
+- TORCH_NPU_PATCH_TAG 取 `torch_npu-` 与 `-cp310` 之间的部分，如 `2.12.0.post2`。
 
 ## 快速开始
 
 ### 构建 TorchNPU 镜像
 
-以构建2.12.0-a3-ubuntu22.04-py3.12镜像为例：
+以构建2.12.0.post2-a3-ubuntu22.04-py3.12镜像为例：
 
 ```bash
 docker build \
@@ -130,8 +135,8 @@ docker build \
   --build-arg CANN_VERSION=9.1.0 \
   --build-arg ARCH=arm \
   --build-arg PY_TAG=cp311 \
-  --build-arg TORCH_NPU_RELEASE_TAG=v26.1.0-pytorch2.12.0 \
-  --build-arg TORCH_NPU_PATCH_TAG=2.12.0 \
+  --build-arg TORCH_NPU_RELEASE_TAG=v26.1.1-pytorch2.12.0 \
+  --build-arg TORCH_NPU_PATCH_TAG=2.12.0.post2 \
   -t image_name:tag \
   -f Dockerfile .
 ```
@@ -166,11 +171,29 @@ docker run \
     -it ascend/pta:tag bash
 ```
 
+### 在 950 系列 aarch64 架构产品上运行 CANN 容器
+
+```bash
+docker run \
+    --name pta_container \
+    --device /dev/davinci1 \
+    --device /dev/davinci_manager \
+    --device /dev/hisi_hdc \
+    --device /dev/ummu \
+    --device /dev/uburma \
+    -v /usr/local/dcmi:/usr/local/dcmi \
+    -v /usr/local/bin/npu-smi:/usr/local/bin/npu-smi \
+    -v /usr/local/Ascend/driver/lib64/:/usr/local/Ascend/driver/lib64/ \
+    -v /usr/local/Ascend/driver/version.info:/usr/local/Ascend/driver/version.info \
+    -v /etc/ascend_install.info:/etc/ascend_install.info \
+    -it ascend/pta:tag bash
+```
+
 ### 如何二次开发
 
 ```bash
 # 以 TorchNPU 镜像为基础镜像，叠加用户软件
-FROM quay.io/ascend/torch-npu:2.12.0-cann9.1.0-910b-ubuntu22.04-py3.12
+FROM quay.io/ascend/torch-npu:2.12.0.post2-cann9.1.0-910b-ubuntu22.04-py3.12
 
 RUN apt update -y && \
     apt install gcc ...

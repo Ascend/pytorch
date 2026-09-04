@@ -2,6 +2,8 @@
 
 > [English](./OVERVIEW_26.0.0.md) | 中文
 
+TorchNPU插件是基于昇腾的深度学习适配框架，使昇腾NPU可以支持PyTorch框架，为PyTorch框架的使用者提供昇腾AI处理器的超强算力。
+
 ## 快速参考
 
 - TorchNPU 由 [Ascend for PyTorch community](https://www.hiascend.com/developer/software/ai-frameworks/pytorch) 维护
@@ -15,13 +17,7 @@
 
 ---
 
-## TorchNPU
-
-TorchNPU插件是基于昇腾的深度学习适配框架，使昇腾NPU可以支持PyTorch框架，为PyTorch框架的使用者提供昇腾AI处理器的超强算力。
-
----
-
-## 支持的Tags 及 Dockerfile 使用方法
+## 支持的 Tags 及 Dockerfile 使用方法
 
 ### Tag规范
 
@@ -39,9 +35,7 @@ Tag 遵循以下格式：
 | 操作系统         | ubuntu22.04 / openeuler24.03 | 基础镜像所使用的操作系统发行版 |
 | Python 版本    | py3.11                       | 镜像内置 Python 版本  |
 
-### 构建参数选择参考地址
-
-### Tag(26.0.0)
+### 26.0.0版本Tag列表
 
 - `2.10.0-cann9.0.0-310p-ubuntu22.04-py3.11`
 - `2.10.0-cann9.0.0-310p-openeuler24.03-py3.11`
