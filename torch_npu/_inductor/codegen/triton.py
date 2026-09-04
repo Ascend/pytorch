@@ -54,7 +54,7 @@ from torch._inductor.dtype_propagation import DtypePropagationOpsHandler
 from torch._inductor.shape_propagation import ShapePropagationOpsHandler, get_broadcasted_shape
 from torch._inductor.ir import IRNode
 from torch._inductor.runtime import triton_heuristics
-from torch._inductor.runtime.hints import AutotuneHint, DeviceProperties, ReductionHint
+from torch._inductor.runtime.hints import DeviceProperties, ReductionHint
 from torch._inductor.runtime.runtime_utils import next_power_of_2
 from torch._inductor.scheduler import SchedulerNode
 from torch._inductor.utils import (
@@ -992,10 +992,6 @@ class NPUTritonKernel(TritonKernel):
             (line for line in kernel_src.splitlines() if "inductor_meta" in line),
             None,
         )
-        # NOTE: AutotuneHint is used in the evaluated inductor_meta string (e.g., AutotuneHint.POINTWISE).
-        # The import of AutotuneHint from torch._inductor.runtime.hints (line 54) is required for eval()
-        # to resolve the AutotuneHint references. Do not remove or relocate this import, otherwise eval()
-        # will fail with a NameError when resolving inductor_meta.
         inductor_meta = eval(inductor_meta_str.strip().split("=", 1)[1].rstrip(","))
         new_inductor_meta = self.add_npu_inductor_meta(inductor_meta)
         patched_kernel = kernel_src.replace(
@@ -2173,7 +2169,7 @@ class NPUIndexTritonKernel(TritonKernel):
 
         dtypes = tuple(upcast_compute_type(dtype) for dtype in dtypes)
         cse_compute = functools.partial(self.cse.generate, self.compute)
-        combine_helper_fn = self._lift_helper(combine_fn, values, dtypes)
+        combine_helper_fn = self._lift_helper(combine_fn, len(values), dtypes)
 
         # Pick the scan dimension by locating the reduction axis in the dense
         # layout used by dense_size_list()/dense_size_str().
@@ -2224,13 +2220,11 @@ class NPUIndexTritonKernel(TritonKernel):
                 self.compute,
                 f"{value}.to({triton_compute_type(dtype)})",
                 dtype=dtype,
-                shape=value.shape
             )
             value = self.cse.generate(
                 self.compute,
                 f"tl.broadcast_to({value_dtype}, {self.dense_size_str()})",
                 dtype=dtype,
-                shape=tuple(self.dense_size_list())
             )
             broadcasted_values.append(value)
 
@@ -2276,19 +2270,10 @@ class NPUIndexTritonKernel(TritonKernel):
         )
 
         if not self.persistent_reduction:
-            def _partial_scan_shape(var):
-                if var.shape is None:
-                    return None
-                else:
-                    shape = list(var.shape)
-                    shape[-1] = "1"
-                    return shape
-
             partial_reduce_vars = [
                 cse_compute(
                     f"triton_helpers.select_one(({var}), ({rbase_broadcast}) == ({rblock_sym} - 1), dim={dim}, keep_dims=True)",
                     dtype=upcast_compute_type(var.dtype),
-                    shape=_partial_scan_shape(var),
                 )
                 for var in partial_scan_vars
             ]
@@ -2298,7 +2283,6 @@ class NPUIndexTritonKernel(TritonKernel):
                 cse_compute(
                     f"tl.where(({roffset_expr}) > 0, {full_scan}, {partial_scan})",
                     dtype=partial_scan.dtype,
-                    shape=partial_scan.shape,
                 )
                 for full_scan, partial_scan in zip(full_scan_vars, partial_scan_vars)
             ]
