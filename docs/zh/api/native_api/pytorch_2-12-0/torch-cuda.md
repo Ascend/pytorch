@@ -2,7 +2,6 @@
 
 > [!NOTE]
 >
-> - API的**支持情况**中，✔表示API支持在对应硬件环境上运行，✘表示暂不支持。<br>
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
 > - 部分API虽在[PyTorch社区文档](https://pytorch.org/docs/2.12/)中存在，但未收录于本支持清单。此类API尚未验证，请谨慎使用。我们将持续进行验证工作，并在验证完成后更新文档。
 > - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
@@ -37,13 +36,11 @@
 
 **NPU 形式名称**：torch.npu.StreamContext
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -55,13 +52,11 @@
 
 **NPU 形式名称**：torch_npu.npu.can_device_access_peer
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -73,13 +68,11 @@
 
 **NPU 形式名称**：torch_npu.npu.current_blas_handle
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -91,13 +84,11 @@
 
 **NPU 形式名称**：torch_npu.npu.current_stream
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：未设置`device`时，调用该接口会隐式地初始化当前`device`（默认0卡）
 
@@ -111,13 +102,11 @@
 
 **NPU 形式名称**：torch_npu.npu.default_stream
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：未设置`device`时，调用该接口会隐式地初始化当前`device`（默认0卡）
 
@@ -131,13 +120,11 @@
 
 **NPU 形式名称**：torch_npu.npu.device_count
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -149,13 +136,11 @@
 
 **NPU 形式名称**：torch_npu.npu.device_of
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -167,13 +152,11 @@
 
 **NPU 形式名称**：torch_npu.npu.get_device_capability
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： 通过环境变量TORCH_NPU_DEVICE_CAPABILITY配置`torch_npu.npu.get_device_capability()`的返回值，仅用于兼容原生PyTorch，不代表NPU硬件实际能力
 
@@ -187,13 +170,11 @@
 
 **NPU 形式名称**：torch_npu.npu.get_device_name
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -205,13 +186,11 @@
 
 **NPU 形式名称**：torch_npu.npu.get_device_properties
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： 仅支持name、total_memory、L2_cache_size、cube_core_num和vector_core_num属性，原CUDA上支持的其余属性均返回空字段
 
@@ -225,13 +204,11 @@
 
 **NPU 形式名称**：torch_npu.npu.get_sync_debug_mode
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -243,13 +220,11 @@
 
 **NPU 形式名称**：torch_npu.npu.init
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -261,13 +236,11 @@
 
 **NPU 形式名称**：torch_npu.npu.ipc_collect
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -279,13 +252,11 @@
 
 **NPU 形式名称**：torch_npu.npu.is_available
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -297,13 +268,11 @@
 
 **NPU 形式名称**：torch_npu.npu.is_initialized
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -313,13 +282,11 @@
 
 **原生文档**：[torch.cuda.memory_usage](https://pytorch.org/docs/2.12/generated/torch.cuda.memory_usage.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -331,13 +298,11 @@
 
 **NPU 形式名称**：torch_npu.npu.set_device
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -349,13 +314,11 @@
 
 **NPU 形式名称**：torch_npu.npu.current_device
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -367,13 +330,11 @@
 
 **NPU 形式名称**：torch_npu.npu.set_stream
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -385,13 +346,11 @@
 
 **NPU 形式名称**：torch_npu.npu.set_sync_debug_mode
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -403,13 +362,11 @@
 
 **NPU 形式名称**：torch_npu.npu.stream
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -421,13 +378,11 @@
 
 **NPU 形式名称**：torch_npu.npu.synchronize
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -439,13 +394,11 @@
 
 **NPU 形式名称**：torch_npu.npu.utilization
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -457,13 +410,11 @@
 
 **NPU 形式名称**：torch_npu.npu._sanitizer.enable_npu_sanitizer
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -477,13 +428,11 @@
 
 **NPU 形式名称**：torch_npu.npu.get_rng_state
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -495,13 +444,11 @@
 
 **NPU 形式名称**：torch_npu.npu.set_rng_state
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -513,13 +460,11 @@
 
 **NPU 形式名称**：torch_npu.npu.set_rng_state_all
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -531,13 +476,11 @@
 
 **NPU 形式名称**：torch_npu.npu.manual_seed
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -549,13 +492,11 @@
 
 **NPU 形式名称**：torch_npu.npu.manual_seed_all
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -567,13 +508,11 @@
 
 **NPU 形式名称**：torch_npu.npu.seed
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -585,13 +524,11 @@
 
 **NPU 形式名称**：torch_npu.npu.seed_all
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -603,13 +540,11 @@
 
 **NPU 形式名称**：torch_npu.npu.initial_seed
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -621,13 +556,11 @@
 
 **原生文档**：[torch.cuda.comm.scatter](https://pytorch.org/docs/2.12/generated/torch.cuda.comm.scatter.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -637,13 +570,11 @@
 
 **原生文档**：[torch.cuda.comm.gather](https://pytorch.org/docs/2.12/generated/torch.cuda.comm.gather.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -657,13 +588,11 @@
 
 **NPU 形式名称**：torch_npu.npu.Stream
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 > <font size="3">wait_stream()</font>
 
@@ -671,13 +600,11 @@
 
 **原生文档**：[torch.cuda.Stream.wait_stream](https://pytorch.org/docs/2.12/generated/torch.cuda.Stream_class.html#torch.cuda.Stream.wait_stream)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -691,13 +618,11 @@
 
 **NPU 形式名称**：torch_npu.npu.Event
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 > <font size="3">elapsed_time()</font>
 
@@ -705,13 +630,11 @@
 
 **原生文档**：[torch.cuda.Event.elapsed_time](https://pytorch.org/docs/2.12/generated/torch.cuda.Event.html#torch.cuda.Event.elapsed_time)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -721,13 +644,11 @@
 
 **原生文档**：[torch.cuda.Event.from_ipc_handle](https://pytorch.org/docs/2.12/generated/torch.cuda.Event.html#torch.cuda.Event.from_ipc_handle)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -737,13 +658,11 @@
 
 **原生文档**：[torch.cuda.Event.ipc_handle](https://pytorch.org/docs/2.12/generated/torch.cuda.Event.html#torch.cuda.Event.ipc_handle)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -753,13 +672,11 @@
 
 **原生文档**：[torch.cuda.Event.query](https://pytorch.org/docs/2.12/generated/torch.cuda.Event.html#torch.cuda.Event.query)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -769,13 +686,11 @@
 
 **原生文档**：[torch.cuda.Event.wait](https://pytorch.org/docs/2.12/generated/torch.cuda.Event.html#torch.cuda.Event.wait)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -791,13 +706,11 @@
 
 **NPU 形式名称**：torch.npu.is_current_stream_capturing
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -809,13 +722,11 @@
 
 **NPU 形式名称**：torch.npu.graph_pool_handle
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： 当前仅支持推理场景，不支持训练场景
 
@@ -829,13 +740,11 @@
 
 **NPU 形式名称**：torch.npu.NPUGraph
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： 当前仅支持推理场景，不支持训练场景
 
@@ -845,13 +754,11 @@
 
 **原生文档**：[torch.cuda.CUDAGraph.capture_begin](https://pytorch.org/docs/2.12/generated/torch.cuda.CUDAGraph.html#torch.cuda.CUDAGraph.capture_begin)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： 当前仅支持推理场景，不支持训练场景
 
@@ -863,13 +770,11 @@
 
 **原生文档**：[torch.cuda.CUDAGraph.capture_end](https://pytorch.org/docs/2.12/generated/torch.cuda.CUDAGraph.html#torch.cuda.CUDAGraph.capture_end)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： 当前仅支持推理场景，不支持训练场景
 
@@ -881,13 +786,11 @@
 
 **原生文档**：[torch.cuda.CUDAGraph.debug_dump](https://pytorch.org/docs/2.12/generated/torch.cuda.CUDAGraph.html#torch.cuda.CUDAGraph.debug_dump)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：
 
@@ -902,13 +805,11 @@
 
 **原生文档**：[torch.cuda.CUDAGraph.pool](https://pytorch.org/docs/2.12/generated/torch.cuda.CUDAGraph.html#torch.cuda.CUDAGraph.pool)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**： 当前仅支持推理场景，不支持训练场景
 
@@ -920,13 +821,11 @@
 
 **原生文档**：[torch.cuda.CUDAGraph.replay](https://pytorch.org/docs/2.12/generated/torch.cuda.CUDAGraph.html#torch.cuda.CUDAGraph.replay)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： 当前仅支持推理场景，不支持训练场景
 
@@ -938,13 +837,11 @@
 
 **原生文档**：[torch.cuda.CUDAGraph.reset](https://pytorch.org/docs/2.12/generated/torch.cuda.CUDAGraph.html#torch.cuda.CUDAGraph.reset)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： 当前仅支持推理场景，不支持训练场景
 
@@ -960,13 +857,11 @@
 
 **NPU 形式名称**：torch.npu.graph
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： 当前仅支持推理场景，不支持训练场景
 
@@ -980,13 +875,11 @@
 
 **NPU 形式名称**：torch.npu.make_graphed_callables
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： 当前仅支持推理场景，不支持训练场景
 
@@ -1002,13 +895,11 @@
 
 **NPU 形式名称**：torch_npu.npu.device
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -1020,13 +911,11 @@
 
 **NPU 形式名称**：torch_npu.npu.empty_cache
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -1038,13 +927,11 @@
 
 **NPU 形式名称**：torch_npu.npu.mem_get_info
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -1056,13 +943,11 @@
 
 **NPU 形式名称**：torch_npu.npu.memory_stats
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -1074,13 +959,11 @@
 
 **NPU 形式名称**：torch_npu.npu.memory_summary
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -1092,13 +975,11 @@
 
 **NPU 形式名称**：torch_npu.npu.memory_allocated
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -1110,13 +991,11 @@
 
 **NPU 形式名称**：torch_npu.npu.max_memory_allocated
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -1128,13 +1007,11 @@
 
 **NPU 形式名称**：torch_npu.npu.reset_max_memory_allocated
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -1146,13 +1023,11 @@
 
 **NPU 形式名称**：torch_npu.npu.memory_reserved
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -1164,13 +1039,11 @@
 
 **NPU 形式名称**：torch_npu.npu.max_memory_reserved
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -1182,13 +1055,11 @@
 
 **NPU 形式名称**：torch_npu.npu.set_per_process_memory_fraction
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -1200,13 +1071,11 @@
 
 **NPU 形式名称**：torch_npu.npu.memory_cached
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -1218,13 +1087,11 @@
 
 **NPU 形式名称**：torch_npu.npu.max_memory_cached
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -1236,13 +1103,11 @@
 
 **NPU 形式名称**：torch_npu.npu.reset_max_memory_cached
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -1254,13 +1119,11 @@
 
 **NPU 形式名称**：torch_npu.npu.reset_peak_memory_stats
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -1272,13 +1135,11 @@
 
 **NPU 形式名称**：torch_npu.npu.caching_allocator_alloc
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -1290,13 +1151,11 @@
 
 **NPU 形式名称**：torch_npu.npu.caching_allocator_delete
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -1308,13 +1167,11 @@
 
 **NPU 形式名称**：torch_npu.npu.get_allocator_backend
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -1326,13 +1183,11 @@
 
 **NPU 形式名称**：torch_npu.npu.NPUPluggableAllocator
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**： 该接口涉及高危操作，使用请参考《自定义API》中的“[torch_npu.npu.NPUPluggableAllocator](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/torch-npu-npu-NPUPluggableAllocator.md)”章节。
 
@@ -1346,13 +1201,11 @@
 
 **NPU 形式名称**：torch_npu.npu.change_current_allocator
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**： 该接口涉及高危操作，使用请参考《自定义API》中的“[torch_npu.npu.change_current_allocator](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/torch-npu-npu-change_current_allocator.md)”章节。
 
@@ -1366,13 +1219,11 @@
 
 **NPU 形式名称**：torch.npu.memory.MemPool
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -1394,13 +1245,11 @@
 
 **NPU 形式名称**：torch_npu.npu.reset_accumulated_host_memory_stats
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -1412,13 +1261,11 @@
 
 **NPU 形式名称**：torch_npu.npu.reset_peak_host_memory_stats
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -1430,13 +1277,11 @@
 
 **NPU 形式名称**：torch_npu.npu.host_memory_stats_as_nested_dict
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -1448,12 +1293,10 @@
 
 **NPU 形式名称**：torch_npu.npu.host_memory_stats
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>

@@ -2,7 +2,6 @@
 
 > [!NOTE]
 >
-> - API的**支持情况**中，✔表示API支持在对应硬件环境上运行，✘表示暂不支持。<br>
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
 > - 部分API虽在[PyTorch社区文档](https://pytorch.org/docs/2.7/)中存在，但未收录于本支持清单。此类API尚未验证，请谨慎使用。我们将持续进行验证工作，并在验证完成后更新文档。
 > - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
@@ -36,13 +35,11 @@
 
 **原生文档**：[torch.nn.parallel.data_parallel](https://pytorch.org/docs/2.7/generated/torch.nn.functional.torch.nn.parallel.data_parallel.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -54,13 +51,11 @@
 
 **原生文档**：[torch.nn.functional.conv1d](https://pytorch.org/docs/2.7/generated/torch.nn.functional.conv1d.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -72,13 +67,11 @@
 
 **原生文档**：[torch.nn.functional.conv2d](https://pytorch.org/docs/2.7/generated/torch.nn.functional.conv2d.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32
 
@@ -90,13 +83,11 @@
 
 **原生文档**：[torch.nn.functional.conv3d](https://pytorch.org/docs/2.7/generated/torch.nn.functional.conv3d.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32，complex64
 
@@ -108,13 +99,11 @@
 
 **原生文档**：[torch.nn.functional.conv_transpose1d](https://pytorch.org/docs/2.7/generated/torch.nn.functional.conv_transpose1d.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持fp32
 
@@ -126,13 +115,11 @@
 
 **原生文档**：[torch.nn.functional.conv_transpose2d](https://pytorch.org/docs/2.7/generated/torch.nn.functional.conv_transpose2d.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -144,13 +131,11 @@
 
 **原生文档**：[torch.nn.functional.conv_transpose3d](https://pytorch.org/docs/2.7/generated/torch.nn.functional.conv_transpose3d.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32
 
@@ -162,13 +147,11 @@
 
 **原生文档**：[torch.nn.functional.unfold](https://pytorch.org/docs/2.7/generated/torch.nn.functional.unfold.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32
 
@@ -180,13 +163,11 @@
 
 **原生文档**：[torch.nn.functional.fold](https://pytorch.org/docs/2.7/generated/torch.nn.functional.fold.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -200,13 +181,11 @@
 
 **原生文档**：[torch.nn.functional.avg_pool1d](https://pytorch.org/docs/2.7/generated/torch.nn.functional.avg_pool1d.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32
 
@@ -218,13 +197,11 @@
 
 **原生文档**：[torch.nn.functional.avg_pool2d](https://pytorch.org/docs/2.7/generated/torch.nn.functional.avg_pool2d.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32
 
@@ -236,13 +213,11 @@
 
 **原生文档**：[torch.nn.functional.avg_pool3d](https://pytorch.org/docs/2.7/generated/torch.nn.functional.avg_pool3d.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -252,13 +227,11 @@
 
 **原生文档**：[torch.nn.functional.max_pool1d](https://pytorch.org/docs/2.7/generated/torch.nn.functional.max_pool1d.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：
 
@@ -281,13 +254,11 @@
 
 **原生文档**：[torch.nn.functional.max_pool2d](https://pytorch.org/docs/2.7/generated/torch.nn.functional.max_pool2d.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -310,13 +281,11 @@
 
 **原生文档**：[torch.nn.functional.max_pool3d](https://pytorch.org/docs/2.7/generated/torch.nn.functional.max_pool3d.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -332,13 +301,11 @@
 
 **原生文档**：[torch.nn.functional.max_unpool1d](https://pytorch.org/docs/2.7/generated/torch.nn.functional.max_unpool1d.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持fp16，fp32，fp64，uint8，int8，int32，int64
 
@@ -350,13 +317,11 @@
 
 **原生文档**：[torch.nn.functional.max_unpool2d](https://pytorch.org/docs/2.7/generated/torch.nn.functional.max_unpool2d.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：
 
@@ -371,13 +336,11 @@
 
 **原生文档**：[torch.nn.functional.max_unpool3d](https://pytorch.org/docs/2.7/generated/torch.nn.functional.max_unpool3d.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -387,13 +350,11 @@
 
 **原生文档**：[torch.nn.functional.lp_pool1d](https://pytorch.org/docs/2.7/generated/torch.nn.functional.lp_pool1d.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -405,13 +366,11 @@
 
 **原生文档**：[torch.nn.functional.lp_pool2d](https://pytorch.org/docs/2.7/generated/torch.nn.functional.lp_pool2d.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -423,13 +382,11 @@
 
 **原生文档**：[torch.nn.functional.adaptive_max_pool1d](https://pytorch.org/docs/2.7/generated/torch.nn.functional.adaptive_max_pool1d.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -439,13 +396,11 @@
 
 **原生文档**：[torch.nn.functional.adaptive_max_pool2d](https://pytorch.org/docs/2.7/generated/torch.nn.functional.adaptive_max_pool2d.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -455,13 +410,11 @@
 
 **原生文档**：[torch.nn.functional.adaptive_max_pool3d](https://pytorch.org/docs/2.7/generated/torch.nn.functional.adaptive_max_pool3d.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**： `input`仅支持fp32，fp64
 
@@ -473,13 +426,11 @@
 
 **原生文档**：[torch.nn.functional.adaptive_avg_pool1d](https://pytorch.org/docs/2.7/generated/torch.nn.functional.adaptive_avg_pool1d.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -491,13 +442,11 @@
 
 **原生文档**：[torch.nn.functional.adaptive_avg_pool2d](https://pytorch.org/docs/2.7/generated/torch.nn.functional.adaptive_avg_pool2d.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32
 
@@ -509,13 +458,11 @@
 
 **原生文档**：[torch.nn.functional.adaptive_avg_pool3d](https://pytorch.org/docs/2.7/generated/torch.nn.functional.adaptive_avg_pool3d.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32
 
@@ -527,13 +474,11 @@
 
 **原生文档**：[torch.nn.functional.fractional_max_pool2d](https://pytorch.org/docs/2.7/generated/torch.nn.functional.fractional_max_pool2d.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： 可能回退至CPU执行
 
@@ -545,13 +490,11 @@
 
 **原生文档**：[torch.nn.functional.fractional_max_pool3d](https://pytorch.org/docs/2.7/generated/torch.nn.functional.fractional_max_pool3d.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -563,13 +506,11 @@
 
 **原生文档**：[torch.nn.functional.scaled_dot_product_attention](https://pytorch.org/docs/2.7/generated/torch.nn.functional.scaled_dot_product_attention)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：
 
@@ -608,13 +549,11 @@
 
 **原生文档**：[torch.nn.functional.threshold](https://pytorch.org/docs/2.7/generated/torch.nn.functional.threshold.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -629,13 +568,11 @@
 
 **原生文档**：[torch.nn.functional.threshold_](https://pytorch.org/docs/2.7/generated/torch.nn.functional.threshold_.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -650,13 +587,11 @@
 
 **原生文档**：[torch.nn.functional.relu](https://pytorch.org/docs/2.7/generated/torch.nn.functional.relu.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32，uint8，int8，int32，int64
 
@@ -668,13 +603,11 @@
 
 **原生文档**：[torch.nn.functional.relu_](https://pytorch.org/docs/2.7/generated/torch.nn.functional.relu_.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32，uint8，int8，int32，int64
 
@@ -686,13 +619,11 @@
 
 **原生文档**：[torch.nn.functional.hardtanh](https://pytorch.org/docs/2.7/generated/torch.nn.functional.hardtanh.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
 
@@ -704,13 +635,11 @@
 
 **原生文档**：[torch.nn.functional.hardtanh_](https://pytorch.org/docs/2.7/generated/torch.nn.functional.hardtanh_.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32，int8，int16，int32，int64
 
@@ -722,13 +651,11 @@
 
 **原生文档**：[torch.nn.functional.hardswish](https://pytorch.org/docs/2.7/generated/torch.nn.functional.hardswish.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -743,13 +670,11 @@
 
 **原生文档**：[torch.nn.functional.relu6](https://pytorch.org/docs/2.7/generated/torch.nn.functional.relu6.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
 
@@ -761,13 +686,11 @@
 
 **原生文档**：[torch.nn.functional.elu](https://pytorch.org/docs/2.7/generated/torch.nn.functional.elu.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32，fp64
 
@@ -779,13 +702,11 @@
 
 **原生文档**：[torch.nn.functional.elu_](https://pytorch.org/docs/2.7/generated/torch.nn.functional.elu_.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -797,13 +718,11 @@
 
 **原生文档**：[torch.nn.functional.selu](https://pytorch.org/docs/2.7/generated/torch.nn.functional.selu.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -819,13 +738,11 @@
 
 **原生文档**：[torch.nn.functional.celu](https://pytorch.org/docs/2.7/generated/torch.nn.functional.celu.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -837,13 +754,11 @@
 
 **原生文档**：[torch.nn.functional.leaky_relu](https://pytorch.org/docs/2.7/generated/torch.nn.functional.leaky_relu.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32，fp64
 
@@ -855,13 +770,11 @@
 
 **原生文档**：[torch.nn.functional.leaky_relu_](https://pytorch.org/docs/2.7/generated/torch.nn.functional.leaky_relu_.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32，fp64
 
@@ -873,13 +786,11 @@
 
 **原生文档**：[torch.nn.functional.prelu](https://pytorch.org/docs/2.7/generated/torch.nn.functional.prelu.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -894,13 +805,11 @@
 
 **原生文档**：[torch.nn.functional.rrelu](https://pytorch.org/docs/2.7/generated/torch.nn.functional.rrelu.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32
 
@@ -912,13 +821,11 @@
 
 **原生文档**：[torch.nn.functional.glu](https://pytorch.org/docs/2.7/generated/torch.nn.functional.glu.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32，fp64
 
@@ -930,13 +837,11 @@
 
 **原生文档**：[torch.nn.functional.gelu](https://pytorch.org/docs/2.7/generated/torch.nn.functional.gelu.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -951,13 +856,11 @@
 
 **原生文档**：[torch.nn.functional.logsigmoid](https://pytorch.org/docs/2.7/generated/torch.nn.functional.logsigmoid.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -969,13 +872,11 @@
 
 **原生文档**：[torch.nn.functional.hardshrink](https://pytorch.org/docs/2.7/generated/torch.nn.functional.hardshrink.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -987,13 +888,11 @@
 
 **原生文档**：[torch.nn.functional.softsign](https://pytorch.org/docs/2.7/generated/torch.nn.functional.softsign.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64
 
@@ -1005,13 +904,11 @@
 
 **原生文档**：[torch.nn.functional.softplus](https://pytorch.org/docs/2.7/generated/torch.nn.functional.softplus.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32
 
@@ -1023,13 +920,11 @@
 
 **原生文档**：[torch.nn.functional.softmax](https://pytorch.org/docs/2.7/generated/torch.nn.functional.softmax.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32，fp64
 
@@ -1041,13 +936,11 @@
 
 **原生文档**：[torch.nn.functional.softshrink](https://pytorch.org/docs/2.7/generated/torch.nn.functional.softshrink.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -1059,13 +952,11 @@
 
 **原生文档**：[torch.nn.functional.gumbel_softmax](https://pytorch.org/docs/2.7/generated/torch.nn.functional.gumbel_softmax.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -1075,13 +966,11 @@
 
 **原生文档**：[torch.nn.functional.log_softmax](https://pytorch.org/docs/2.7/generated/torch.nn.functional.log_softmax.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32
 
@@ -1093,13 +982,11 @@
 
 **原生文档**：[torch.nn.functional.tanh](https://pytorch.org/docs/2.7/generated/torch.nn.functional.tanh.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
@@ -1111,13 +998,11 @@
 
 **原生文档**：[torch.nn.functional.sigmoid](https://pytorch.org/docs/2.7/generated/torch.nn.functional.sigmoid.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
@@ -1129,13 +1014,11 @@
 
 **原生文档**：[torch.nn.functional.hardsigmoid](https://pytorch.org/docs/2.7/generated/torch.nn.functional.hardsigmoid.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -1147,13 +1030,11 @@
 
 **原生文档**：[torch.nn.functional.silu](https://pytorch.org/docs/2.7/generated/torch.nn.functional.silu.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32
 
@@ -1165,13 +1046,11 @@
 
 **原生文档**：[torch.nn.functional.mish](https://pytorch.org/docs/2.7/generated/torch.nn.functional.mish.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32
 
@@ -1183,13 +1062,11 @@
 
 **原生文档**：[torch.nn.functional.batch_norm](https://pytorch.org/docs/2.7/generated/torch.nn.functional.batch_norm.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -1205,13 +1082,11 @@
 
 **原生文档**：[torch.nn.functional.group_norm](https://pytorch.org/docs/2.7/generated/torch.nn.functional.group_norm.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：
 
@@ -1227,13 +1102,11 @@
 
 **原生文档**：[torch.nn.functional.layer_norm](https://pytorch.org/docs/2.7/generated/torch.nn.functional.layer_norm.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32
 
@@ -1245,13 +1118,11 @@
 
 **原生文档**：[torch.nn.functional.normalize](https://pytorch.org/docs/2.7/generated/torch.nn.functional.normalize.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32，fp64
 
@@ -1265,13 +1136,11 @@
 
 **原生文档**：[torch.nn.functional.linear](https://pytorch.org/docs/2.7/generated/torch.nn.functional.linear.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32
 
@@ -1283,13 +1152,11 @@
 
 **原生文档**：[torch.nn.functional.bilinear](https://pytorch.org/docs/2.7/generated/torch.nn.functional.bilinear.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32
 
@@ -1303,13 +1170,11 @@
 
 **原生文档**：[torch.nn.functional.dropout](https://pytorch.org/docs/2.7/generated/torch.nn.functional.dropout.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
@@ -1321,13 +1186,11 @@
 
 **原生文档**：[torch.nn.functional.alpha_dropout](https://pytorch.org/docs/2.7/generated/torch.nn.functional.alpha_dropout.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
@@ -1339,13 +1202,11 @@
 
 **原生文档**：[torch.nn.functional.feature_alpha_dropout](https://pytorch.org/docs/2.7/generated/torch.nn.functional.feature_alpha_dropout.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
@@ -1357,13 +1218,11 @@
 
 **原生文档**：[torch.nn.functional.dropout2d](https://pytorch.org/docs/2.7/generated/torch.nn.functional.dropout2d.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -1380,13 +1239,11 @@
 
 **原生文档**：[torch.nn.functional.embedding](https://pytorch.org/docs/2.7/generated/torch.nn.functional.embedding.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：
 
@@ -1401,13 +1258,11 @@
 
 **原生文档**：[torch.nn.functional.embedding_bag](https://pytorch.org/docs/2.7/generated/torch.nn.functional.embedding_bag.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -1417,13 +1272,11 @@
 
 **原生文档**：[torch.nn.functional.one_hot](https://pytorch.org/docs/2.7/generated/torch.nn.functional.one_hot.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持int64
 
@@ -1437,13 +1290,11 @@
 
 **原生文档**：[torch.nn.functional.cosine_similarity](https://pytorch.org/docs/2.7/generated/torch.nn.functional.cosine_similarity.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -1455,13 +1306,11 @@
 
 **原生文档**：[torch.nn.functional.pdist](https://pytorch.org/docs/2.7/generated/torch.nn.functional.pdist.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -1473,13 +1322,11 @@
 
 **原生文档**：[torch.nn.functional.binary_cross_entropy](https://pytorch.org/docs/2.7/generated/torch.nn.functional.binary_cross_entropy.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32
 
@@ -1491,13 +1338,11 @@
 
 **原生文档**：[torch.nn.functional.binary_cross_entropy_with_logits](https://pytorch.org/docs/2.7/generated/torch.nn.functional.binary_cross_entropy_with_logits.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32
 
@@ -1509,13 +1354,11 @@
 
 **原生文档**：[torch.nn.functional.poisson_nll_loss](https://pytorch.org/docs/2.7/generated/torch.nn.functional.poisson_nll_loss.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -1530,13 +1373,11 @@
 
 **原生文档**：[torch.nn.functional.cross_entropy](https://pytorch.org/docs/2.7/generated/torch.nn.functional.cross_entropy.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -1548,13 +1389,11 @@
 
 **原生文档**：[torch.nn.functional.ctc_loss](https://pytorch.org/docs/2.7/generated/torch.nn.functional.ctc_loss.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -1569,13 +1408,11 @@
 
 **原生文档**：[torch.nn.functional.gaussian_nll_loss](https://pytorch.org/docs/2.7/generated/torch.nn.functional.gaussian_nll_loss.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64
 
@@ -1587,13 +1424,11 @@
 
 **原生文档**：[torch.nn.functional.kl_div](https://pytorch.org/docs/2.7/generated/torch.nn.functional.kl_div.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -1609,13 +1444,11 @@
 
 **原生文档**：[torch.nn.functional.l1_loss](https://pytorch.org/docs/2.7/generated/torch.nn.functional.l1_loss.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32，int64
 
@@ -1627,13 +1460,11 @@
 
 **原生文档**：[torch.nn.functional.mse_loss](https://pytorch.org/docs/2.7/generated/torch.nn.functional.mse_loss.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，complex64，complex128
 
@@ -1645,13 +1476,11 @@
 
 **原生文档**：[torch.nn.functional.margin_ranking_loss](https://pytorch.org/docs/2.7/generated/torch.nn.functional.margin_ranking_loss.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32
 
@@ -1663,13 +1492,11 @@
 
 **原生文档**：[torch.nn.functional.multilabel_margin_loss](https://pytorch.org/docs/2.7/generated/torch.nn.functional.multilabel_margin_loss.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：
 
@@ -1684,13 +1511,11 @@
 
 **原生文档**：[torch.nn.functional.multilabel_soft_margin_loss](https://pytorch.org/docs/2.7/generated/torch.nn.functional.multilabel_soft_margin_loss.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32，fp64
 
@@ -1702,13 +1527,11 @@
 
 **原生文档**：[torch.nn.functional.nll_loss](https://pytorch.org/docs/2.7/generated/torch.nn.functional.nll_loss.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -1723,13 +1546,11 @@
 
 **原生文档**：[torch.nn.functional.smooth_l1_loss](https://pytorch.org/docs/2.7/generated/torch.nn.functional.smooth_l1_loss.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32
 
@@ -1741,13 +1562,11 @@
 
 **原生文档**：[torch.nn.functional.soft_margin_loss](https://pytorch.org/docs/2.7/generated/torch.nn.functional.soft_margin_loss.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32，不支持double，complex64，complex128数据类型
 
@@ -1759,13 +1578,11 @@
 
 **原生文档**：[torch.nn.functional.triplet_margin_loss](https://pytorch.org/docs/2.7/generated/torch.nn.functional.triplet_margin_loss.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -1775,13 +1592,11 @@
 
 **原生文档**：[torch.nn.functional.triplet_margin_with_distance_loss](https://pytorch.org/docs/2.7/generated/torch.nn.functional.triplet_margin_with_distance_loss.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -1793,13 +1608,11 @@
 
 **原生文档**：[torch.nn.functional.pixel_shuffle](https://pytorch.org/docs/2.7/generated/torch.nn.functional.pixel_shuffle.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
@@ -1811,13 +1624,11 @@
 
 **原生文档**：[torch.nn.functional.pixel_unshuffle](https://pytorch.org/docs/2.7/generated/torch.nn.functional.pixel_unshuffle.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
@@ -1829,13 +1640,11 @@
 
 **原生文档**：[torch.nn.functional.pad](https://pytorch.org/docs/2.7/generated/torch.nn.functional.pad.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -1851,13 +1660,11 @@
 
 **原生文档**：[torch.nn.functional.interpolate](https://pytorch.org/docs/2.7/generated/torch.nn.functional.interpolate.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：
 
@@ -1873,13 +1680,11 @@
 
 **原生文档**：[torch.nn.functional.upsample](https://pytorch.org/docs/2.7/generated/torch.nn.functional.upsample.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：
 
@@ -1898,13 +1703,11 @@
 
 **原生文档**：[torch.nn.functional.upsample_nearest](https://pytorch.org/docs/2.7/generated/torch.nn.functional.upsample_nearest.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -1919,13 +1722,11 @@
 
 **原生文档**：[torch.nn.functional.upsample_bilinear](https://pytorch.org/docs/2.7/generated/torch.nn.functional.upsample_bilinear.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -1937,13 +1738,11 @@
 
 **原生文档**：[torch.nn.functional.grid_sample](https://pytorch.org/docs/2.7/generated/torch.nn.functional.grid_sample.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持fp16，fp32，fp64
 
@@ -1955,13 +1754,11 @@
 
 **原生文档**：[torch.nn.functional.affine_grid](https://pytorch.org/docs/2.7/generated/torch.nn.functional.affine_grid.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 

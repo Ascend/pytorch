@@ -2,7 +2,6 @@
 
 > [!NOTE]
 >
-> - API的**支持情况**中，✔表示API支持在对应硬件环境上运行，✘表示暂不支持。<br>
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
 > - 部分API虽在[PyTorch社区文档](https://pytorch.org/docs/2.7/)中存在，但未收录于本支持清单。此类API尚未验证，请谨慎使用。我们将持续进行验证工作，并在验证完成后更新文档。
 > - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
@@ -30,13 +29,11 @@
 
 **原生文档**：[torch.func.grad_and_value](https://pytorch.org/docs/2.7/generated/torch.func.grad_and_value.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -46,13 +43,11 @@
 
 **原生文档**：[torch.func.jvp](https://pytorch.org/docs/2.7/generated/torch.func.jvp.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -62,13 +57,11 @@
 
 **原生文档**：[torch.func.linearize](https://pytorch.org/docs/2.7/generated/torch.func.linearize.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -78,13 +71,11 @@
 
 **原生文档**：[torch.func.jacrev](https://pytorch.org/docs/2.7/generated/torch.func.jacrev.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -94,13 +85,11 @@
 
 **原生文档**：[torch.func.jacfwd](https://pytorch.org/docs/2.7/generated/torch.func.jacfwd.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -110,13 +99,11 @@
 
 **原生文档**：[torch.func.hessian](https://pytorch.org/docs/2.7/generated/torch.func.hessian.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -126,13 +113,11 @@
 
 **原生文档**：[torch.func.functionalize](https://pytorch.org/docs/2.7/generated/torch.func.functionalize.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -142,13 +127,11 @@
 
 **原生文档**：[torch.func.vmap](https://pytorch.org/docs/2.7/generated/torch.func.vmap.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -158,13 +141,11 @@
 
 **原生文档**：[torch.func.grad](https://pytorch.org/docs/2.7/generated/torch.func.grad.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -174,13 +155,11 @@
 
 **原生文档**：[torch.func.vjp](https://pytorch.org/docs/2.7/generated/torch.func.vjp.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -192,13 +171,11 @@
 
 **原生文档**：[torch.func.functional_call](https://pytorch.org/docs/2.7/generated/torch.func.functional_call.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -208,13 +185,11 @@
 
 **原生文档**：[torch.func.stack_module_state](https://pytorch.org/docs/2.7/generated/torch.func.stack_module_state.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -224,12 +199,10 @@
 
 **原生文档**：[torch.func.replace_all_batch_norm_modules_](https://pytorch.org/docs/2.7/generated/torch.func.replace_all_batch_norm_modules_.html)
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
