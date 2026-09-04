@@ -2298,7 +2298,7 @@
 | ---- | :----: |
 | <term>Atlas A2 训练系列产品</term> | ✔ |
 | <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+| <term>Ascend 950DT</term> | ✔ |
 
 **限制与说明**： `self`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
@@ -3864,9 +3864,9 @@
 
 | 硬件 | 是否支持 |
 | ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
 
 </div>
 
