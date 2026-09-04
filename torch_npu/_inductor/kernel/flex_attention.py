@@ -2024,6 +2024,7 @@ def _register_npu_inductor_flex_attention():
         freeze_irnodes(mask_graph_buffer)
 
         kernel_options = dict(kernel_options)
+        backend = kernel_options.get("BACKEND", "AUTO")
         # Upstream flex_attention adds GPU backend dispatch options that NPU
         # templates do not consume.
         # Strip them before they leak into triton constexprs and cause
@@ -2050,9 +2051,15 @@ def _register_npu_inductor_flex_attention():
         enable_gqa = V.graph.sizevars.evaluate_expr(
             sympy.Ne(query.get_size()[1], key.get_size()[1])
         )
-        if _use_flex_decoding(
+        use_flex_decoding = _use_flex_decoding(
             query, kv_indices, value, kernel_options, enable_gqa
-        ):
+        )
+        if backend == "TRITON_DECODE" and not use_flex_decoding:
+            raise RuntimeError(
+                "BACKEND='TRITON_DECODE' was specified but flex_decoding cannot be used for this input. "
+                "flex_decoding is only available for short sequence lengths with specific configurations."
+            )
+        if use_flex_decoding:
             try:
                 return _create_npu_flex_decoding_kernel(
                     query,
