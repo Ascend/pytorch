@@ -167,6 +167,8 @@ NPU_EXTRA_FALLBACK_LIST = [
     aten.avg_pool3d_backward,
     aten.avg_pool3d_backward.default,
     aten.avg_pool3d_backward.grad_input,
+    aten.baddbmm.default,
+    aten.baddbmm.out,
     aten.bernoulli.p,
     aten.bernoulli_,
     aten.bernoulli_.Tensor,
