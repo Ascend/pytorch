@@ -24,6 +24,8 @@ def _matmul_checksum(a, b, c):
         raise TypeError(f"tensor should be torch.Tensor, and device type should be npu" + pta_error(ErrCode.PARAM))
     if not isinstance(c, torch.Tensor) or c.device.type != 'npu':
         raise TypeError(f"tensor should be torch.Tensor, and device type should be npu" + pta_error(ErrCode.PARAM))
+    if a.dtype != torch.bfloat16 or b.dtype != torch.bfloat16 or c.dtype != torch.bfloat16:
+        raise TypeError(f"matmul_checksum only supports bfloat16, but got a.dtype={a.dtype}, b.dtype={b.dtype}, c.dtype={c.dtype}" + pta_error(ErrCode.PARAM))
 
     c_sum = torch.sum(c, dim=-1, dtype=torch.float32)
     b1 = torch.sum(b, dim=-1, keepdim=True, dtype=torch.float32)
