@@ -9,7 +9,7 @@
 
 按照如下方法设置环境变量开启飞行记录器
 
-```
+```shell
 export TORCH_HCCL_ENABLE_MONITORING=1 #用于检测是否开启卡住问题检测
 export TORCH_HCCL_DUMP_ON_TIMEOUT=1 # 用于控制是否保存诊断信息
 export TORCH_HCCL_TRACE_BUFFER_SIZE=1 # 用于控制保存的集合通信状态数量
@@ -19,7 +19,7 @@ export TORCH_HCCL_DEBUG_INFO_TEMP_FILE=/tmp/  #保存诊断信息的文件路径
 
 ## 2 工具使用方法
 
-```
+```shell
 python fr_trace.py <trace_dir> [options]
 ```
 
