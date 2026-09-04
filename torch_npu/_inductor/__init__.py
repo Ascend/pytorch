@@ -142,6 +142,7 @@ def _load_triton_backend():
     from . import config as npu_config
     from .async_compile import patch_async_compile
     from .codecache import patch_get_cpp_wrapper_header
+    from .choices import patch_inductor_choices
     from .export import patch_aot_load
     from .codegen._sizevars import patch_simplify
     from .codegen.ir import patch_fixed_indexer, patch_indexing, patch_loop_body
@@ -252,6 +253,8 @@ def _load_triton_backend():
     install_device_lowering_dispatch(LOWERING_OVERRIDE_OP)
 
     patch_pattern_mm_plus_mm()
+    patch_inductor_choices()
+    patch_algorithm_selector()
     patch_async_compile()
     patch_scheduler()
     patch_simplify()

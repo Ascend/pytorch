@@ -1047,7 +1047,22 @@ class NPUIndexTritonKernel(TritonKernel):
         ):
             return
 
-        self.cse.invalidate(self.outside_loop_vars)
+        if not (
+            self.full_static_welford_reduction
+            and npu_config.enable_welford_post_reduction_reuse
+        ):
+            # The pre-reduction values were produced inside a reduction loop
+            # that has exited by the time the epilogue is emitted: drop them
+            # from CSE so the epilogue regenerates them from scratch.
+            self.cse.invalidate(self.outside_loop_vars)
+        # For a full-static Welford reduction the whole reduction extent fits
+        # one static SIMD tile: there is no reduction loop, and the epilogue
+        # is emitted inside the same loop iteration as the pre-reduction
+        # code (all pre-reduction values are still in scope).  Keep the CSE
+        # entries alive so the epilogue reuses the already-computed producer
+        # chain instead of replaying it operator by operator, which is what
+        # made the dual-axis transposed-LayerNorm kernels recompute their
+        # whole producer LayerNorm chain in the second pass.
         self._original_loads_buf = self.loads
         self._original_compute_buf = self.compute
         self._original_stores_buf = self.stores

@@ -13,9 +13,14 @@ from torch._inductor.scheduler import (
 )
 
 from ..autotune_process import FusedCATLASSBenchmarkRequest
+from .. import config as npu_config
 from ..config import log
 from .catlass.catlass_scheduling import CATLASSScheduling
-from .scheduling import NPUNoLinearTritonScheduling, NPUTritonScheduling
+from .scheduling import (
+    NPUNoLinearTritonScheduling,
+    NPUTritonScheduling,
+    _canonical_group_size,
+)
 
 
 if TYPE_CHECKING:
@@ -58,6 +63,29 @@ class NPUCombinedScheduling(CUDACombinedScheduling, TritonScheduling):
                 )  # always False at the moment
         return self._triton_scheduling.can_fuse_horizontal(node1, node2)
 
+    def get_fusion_pair_priority(
+        self, node1: BaseSchedulerNode, node2: BaseSchedulerNode
+    ) -> int:
+        if not npu_config.enable_welford:
+            # Preserve the backend default ordering when the Welford path is
+            # disabled.
+            return super().get_fusion_pair_priority(node1, node2)
+
+        from ..choices import (
+            is_same_welford_output_group,
+            is_welford_epilogue_fusion,
+        )
+
+        # Merge the mean/M2/count siblings first.  Their pointwise consumer can
+        # then fuse vertically with the complete Welford reduction.
+        if is_same_welford_output_group(node1, node2):
+            return 0
+        if is_welford_epilogue_fusion(node1, node2):
+            return 1
+        # Pairs without Welford nodes keep the baseline ordering so unrelated
+        # fusion decisions stay identical to the upstream default.
+        return super().get_fusion_pair_priority(node1, node2)
+
     def codegen_template(
         self,
         template_node: BaseSchedulerNode,
@@ -83,11 +111,23 @@ class NPUCombinedScheduling(CUDACombinedScheduling, TritonScheduling):
                 node,
                 exc_info=True,
             )
+        # regroup snode
+        use_canonical_group = False
+        if npu_config.enable_welford:
+            from ..choices import contains_welford_group
+
+            # Canonicalize group sizes only for kernels containing Welford
+            # reductions; unrelated kernels keep the raw (baseline) groups.
+            use_canonical_group = contains_welford_group(node.get_nodes())
         for snode in node.get_nodes():
-            snode.group = (
-                snode.group[0],
-                self._nolinear_triton_scheduling.group_fn(snode._sizes),
-            )
+            group_fn = self._nolinear_triton_scheduling.group_fn
+            if use_canonical_group:
+                snode.group = (
+                    snode.group[0],
+                    tuple(_canonical_group_size(size) for size in group_fn(snode._sizes)),
+                )
+            else:
+                snode.group = (snode.group[0], group_fn(snode._sizes))
         return self._nolinear_triton_scheduling.codegen_node(node)
 
     def benchmark_fused_nodes(self, nodes):
@@ -119,3 +159,10 @@ class NPUCombinedScheduling(CUDACombinedScheduling, TritonScheduling):
         return self._triton_scheduling.generate_kernel_code_from_nodes(
             nodes, benchmark_kernel, hint_override
         )
+
+    def codegen_combo_kernel(self, node) -> None:
+        for snode, subkernel_node in zip(node.get_nodes(), node.get_subkernel_nodes()):
+            group_fn = self._nolinear_triton_scheduling.group_fn
+            snode.group = (snode.group[0], group_fn(snode._sizes))
+            subkernel_node.group = snode.group
+        return self._triton_scheduling.codegen_combo_kernel(node)
