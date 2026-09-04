@@ -26,7 +26,7 @@ class TestDLPack(TestCase):
         restored = from_dlpack(dlpack_tensor)
 
         # Verify the roundtrip
-        self.assertEqual(original, restored)
+        self.assertEqual(original.cpu(), restored.cpu())
         self.assertEqual(original.dtype, restored.dtype)
         self.assertEqual(original.device, restored.device)
         self.assertEqual(original.shape, restored.shape)
@@ -49,7 +49,7 @@ class TestDLPack(TestCase):
                 dlpack_tensor = to_dlpack(original)
                 restored = from_dlpack(dlpack_tensor)
 
-                self.assertEqual(original, restored)
+                self.assertEqual(original.cpu(), restored.cpu())
                 self.assertEqual(original.shape, restored.shape)
 
     @Dtypes(torch.float)

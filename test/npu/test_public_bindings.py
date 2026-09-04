@@ -825,6 +825,14 @@ class TestPublicBindings(TestCase):
             if mod.startswith("torch.profiler._cupti"):
                 continue
 
+            # Skip CuTe DSL modules, which require the NVIDIA cutlass DSL package (CUDA-only)
+            if "cutedsl" in mod:
+                continue
+
+            # Skip CUDA-only native op kernels backed by CuTe DSL
+            if mod.startswith("torch._native.ops.reductions.inner_tree_kernel"):
+                continue
+
             errors.append(f"{mod} failed to import with error {excep_type}")
         self.assertEqual("", "\n".join(errors))
 

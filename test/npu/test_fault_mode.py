@@ -71,8 +71,12 @@ class TestMode(TestCase):
             torch.distributed.init_process_group(backend="nccl", rank=0, world_size=1)
 
     def test_ckpt_param(self):
+        # The message differs across torch versions: torch <= 2.13 raises
+        # "Passing `context_fn` or `debug` is only supported when use_reentrant=False",
+        # while torch >= 2.14 adds `respect_saved_tensors_hooks` to the list.
+        # Use a loose regex so the test passes on all supported torch versions.
         with self.assertRaisesRegex(ValueError,
-                                    "Passing `context_fn` or `debug` is only supported when use_reentrant=False"):
+                                    "Passing `context_fn`.*is only supported when use_reentrant=False"):
             use_reentrant = True
             a = torch.tensor(1., device="npu:0", requires_grad=True)
 
