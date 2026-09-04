@@ -65,10 +65,10 @@ Ascend PyTorch Profiler可全面采集PyTorch训练/在线推理场景下的性�
 
 1. 在训练脚本（如train\_\*.py文件）/在线推理脚本内添加如下示例代码进行性能数据采集参数配置，之后启动训练/在线推理。
 
-    >[!NOTE]
-    >
-    >- 以下示例代码中的torch\_npu.profiler.profile接口及参数详细介绍请参见[Ascend PyTorch Profiler接口说明](#Ascend-PyTorch-Profiler接口说明)。
-    >- 以下给出两个示例代码，使用不同方式调用**torch\_npu.profiler.profile**接口，可任选其一使用。
+    > [!NOTE]
+    > 
+    > - 以下示例代码中的torch\_npu.profiler.profile接口及参数详细介绍请参见[Ascend PyTorch Profiler接口说明](#Ascend-PyTorch-Profiler接口说明)。
+    > - 以下给出两个示例代码，使用不同方式调用**torch\_npu.profiler.profile**接口，可任选其一使用。
     
     - 示例一：使用with语句调用torch\_npu.profiler.profile接口，自动创建Profiler，采集with范围内代码段的性能数据。
     
@@ -201,12 +201,12 @@ dynamic\_profile动态采集，主要功能是在执行模型训练/在线推理
 
    配置该环境变量后启动训练，dynamic\_profile会在profiler\_config\_path下自动创建模板文件profiler\_config.json，用户可基于模板文件自定义修改配置项。
 
-   >[!NOTE]
-   >
-   >- 该方式仅支持训练场景。
-   >- 该方式下dynamic\_profile不支持采集第一个迭代（step0）的数据。
-   >- 该方式依赖torch原生Optimizer.step\(\)划分训练过程中Profiling的step，不支持自定义Optimizer场景。
-   >- PROF\_CONFIG\_PATH指定的路径可自定义（要求有读写权限），路径格式仅支持由字母、数字和下划线组成的字符串，不支持软链接，例如"/home/xxx/profiler\_config\_path"。
+   > [!NOTE]
+   > 
+   > - 该方式仅支持训练场景。
+   > - 该方式下dynamic\_profile不支持采集第一个迭代（step0）的数据。
+   > - 该方式依赖torch原生Optimizer.step\(\)划分训练过程中Profiling的step，不支持自定义Optimizer场景。
+   > - PROF\_CONFIG\_PATH指定的路径可自定义（要求有读写权限），路径格式仅支持由字母、数字和下划线组成的字符串，不支持软链接，例如"/home/xxx/profiler\_config\_path"。
 
 2. 启动训练任务。
 3. 重新开启一个命令行窗口，修改profiler\_config.json配置文件用以使能Profiling任务。
@@ -799,12 +799,12 @@ if __name__ == "__main__":
 
 - 调用tensorboard\_trace\_handler函数时的落盘目录结构：
 
-  >[!NOTE]
-  >
-  >- PyTorch框架在该场景下输出的性能数据文件基本一致，以下将两种框架数据合并介绍，个别不同会在注释中说明。
-  >- 以下数据文件用户无需打开查看，可使用[MindStudio Insight](https://gitcode.com/Ascend/msinsight/blob/26.1.0/docs/zh/user_guide/overview.md)工具进行性能数据的查看和分析。
-  >- 若kernel\_details.csv中出现StepID空值，用户可通过trace\_view.json文件查看该算子的Step信息，或重新采集Profiling数据。
-  >- 以下数据是基于实际环境采集，若环境中无对应条件，则不会生成对应数据或文件，如模型无AICPU算子，那么即使执行采集也不会生成对应data\_preprocess.csv文件。
+  > [!NOTE]
+  > 
+  > - PyTorch框架在该场景下输出的性能数据文件基本一致，以下将两种框架数据合并介绍，个别不同会在注释中说明。
+  > - 以下数据文件用户无需打开查看，可使用[MindStudio Insight](https://gitcode.com/Ascend/msinsight/blob/26.1.0/docs/zh/user_guide/overview.md)工具进行性能数据的查看和分析。
+  > - 若kernel\_details.csv中出现StepID空值，用户可通过trace\_view.json文件查看该算子的Step信息，或重新采集Profiling数据。
+  > - 以下数据是基于实际环境采集，若环境中无对应条件，则不会生成对应数据或文件，如模型无AICPU算子，那么即使执行采集也不会生成对应data\_preprocess.csv文件。
 
   ```text
   └── localhost.localdomain_139247_20230628101435_ascend_pt    // 性能数据结果目录，命名格式：{worker_name}_{timestamp}_ascend_{framework}，默认情况下{worker_name}为{hostname}_{pid}，{timestamp}为时间戳，{framework}是PyTorch框架的简写（pt）
@@ -865,7 +865,7 @@ if __name__ == "__main__":
 
 > [!NOTE]
 >
->trace\_view.json支持使用MindStudio Insight工具、`chrome://tracing/`和`https://ui.perfetto.dev/`打开。
+> trace\_view.json支持使用MindStudio Insight工具、`chrome://tracing/`和`https://ui.perfetto.dev/`打开。
 
 **图 2**  trace\_view（record\_shapes）  
 ![](../figures/profiler/trace_view_record_shapes.png "../figures/profiler/trace_view_record_shapes.png")
@@ -949,8 +949,9 @@ GC执行时，会阻塞当前进程，需要等待GC完成，若GC时间过长�
 
 文件包含算子的内存占用明细，主要记录算子在NPU上执行所需内存及占用时间，其中内存由TorchNPU和GE申请。字段信息如[表3](#table3)所示。
 
->[!NOTE]
->若operator\_memory.csv文件中出现负值或空值，详细原因请参见[operator\_memory（CANN算子的内存占用明细）](https://gitcode.com/Ascend/msprof/blob/26.1.0/docs/zh/user_guide/profile_data_file_references.md#operator_memory%EF%BC%88cann%E7%AE%97%E5%AD%90%E7%9A%84%E5%86%85%E5%AD%98%E5%8D%A0%E7%94%A8%E6%98%8E%E7%BB%86%EF%BC%89) 的负值空值说明。
+> [!NOTE]
+> 
+> 若operator\_memory.csv文件中出现负值或空值，详细原因请参见[operator\_memory（CANN算子的内存占用明细）](https://gitcode.com/Ascend/msprof/blob/26.1.0/docs/zh/user_guide/profile_data_file_references.md#operator_memory%EF%BC%88cann%E7%AE%97%E5%AD%90%E7%9A%84%E5%86%85%E5%AD%98%E5%8D%A0%E7%94%A8%E6%98%8E%E7%BB%86%EF%BC%89) 的负值空值说明。
 
 **表 3**  operator\_memory<a name="table3"></a>
 
