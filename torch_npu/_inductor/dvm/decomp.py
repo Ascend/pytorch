@@ -2,7 +2,7 @@
 import torch
 from torch._decomp import remove_decompositions
 from torch._inductor import decomposition as inductor_decomp
-
+from torch._inductor.decomposition import pw_cast_for_opmath
 
 aten = torch.ops.aten
 prims = torch.ops.prims
@@ -34,6 +34,8 @@ decomps_to_exclude_npu = [
     aten.nll_loss_forward,
     aten.reflection_pad2d,
     aten.reflection_pad2d_backward,
+    aten.silu.default,
+    aten.silu_backward.default,
     aten.slice.Tensor,
     aten.triu,
     aten.upsample_bilinear2d,
@@ -48,38 +50,53 @@ decomps_to_exclude_npu = [
     torch.ops.npu.npu_rotary_mul_backward,
 ]
 
+cia_decomps_to_exclude_npu = [
+    aten.silu_backward.default,
+]
+
 FP32_MIN_V2 = -8.8
 FP32_MAX_V2 = 8.8
 DOUBLE_X = 2.0
 
 
+@pw_cast_for_opmath
 def tanh(a):
     """
     y = (exp(2x) - 1) / (exp(2x) + 1)
     with x clipped to [-8.8, 8.8] in float32 before multiply-by-2.
     """
-    orig_dtype = a.dtype
-    if orig_dtype != torch.float32:
-        a = a.to(torch.float32)
     x = torch.clamp(a, min=FP32_MIN_V2, max=FP32_MAX_V2)
     x2 = x * DOUBLE_X
     e2x = torch.exp(x2)
-    out = (e2x - 1.0) / (e2x + 1.0)
-
-    if orig_dtype != torch.float32:
-        out = out.to(orig_dtype)
-    return out
+    return (e2x - 1.0) / (e2x + 1.0)
 
 
-
+@pw_cast_for_opmath
 def sigmoid(a: torch.Tensor) -> torch.Tensor:
-    orig_dtype = a.dtype
-    if orig_dtype != torch.float32:
-        a = a.to(torch.float32)
-    out = 1 / (1.0 + torch.exp(torch.neg(a)))
-    if orig_dtype != torch.float32:
-        out = out.to(orig_dtype)
-    return out
+    return aten.reciprocal(1.0 + torch.exp(torch.neg(a)))
+
+
+@pw_cast_for_opmath
+def silu(a: torch.Tensor) -> torch.Tensor:
+    return a / (1.0 + torch.exp(torch.neg(a)))
+
+
+@pw_cast_for_opmath
+def silu_backward(grad: torch.Tensor, self: torch.Tensor) -> torch.Tensor:
+    sigmoid = aten.reciprocal(1.0 + torch.exp(torch.neg(self)))
+    return grad * (sigmoid * (1.0 + (1.0 - sigmoid) * self))
+
+
+def _disable_cia_decompositions():
+    """Keep FunctionalTensorMode from expanding ops before DVM decompositions."""
+    dispatch_key = torch._C.DispatchKey.CompositeImplicitAutograd
+
+    def preserve_for_explicit_decomposition(*_args, **_kwargs):
+        return NotImplemented
+
+    for op in cia_decomps_to_exclude_npu:
+        op.py_kernels.pop(dispatch_key, None)
+        op.py_impl(dispatch_key)(preserve_for_explicit_decomposition)
 
 
 # Constants from cann/ops-nn gelu / gelu_grad
@@ -165,27 +182,20 @@ def _erf_pade_fp32(x: torch.Tensor) -> torch.Tensor:
     return p / q
 
 
+@pw_cast_for_opmath
 def gelu(a: torch.Tensor, approximate: str = "none"):
     """Match eager gelu; DVM path uses resp==resp NaN clear in backward."""
-    orig_dtype = a.dtype
-    if orig_dtype != torch.float32:
-        a = a.to(torch.float32)
     if _gelu_use_tanh_approx(approximate):
         a_cube = a * a * a
         out = a / (1.0 + torch.exp(-_GELU_BETA * (a + _GELU_KAPPA * a_cube)))
     else:
         out = (1.0 + _erf_pade_fp32(a * _M_SQRT1_2)) * (0.5 * a)
-    if orig_dtype != torch.float32:
-        out = out.to(orig_dtype)
     return out
 
 
+@pw_cast_for_opmath
 def gelu_backward(grad: torch.Tensor, self: torch.Tensor, approximate: str = "none"):
     """Match eager gelu_backward; NaN clear via resp==resp (CANN Compare EQ)."""
-    orig_dtype = grad.dtype
-    if orig_dtype != torch.float32:
-        grad = grad.to(torch.float32)
-        self = self.to(torch.float32)
     if _gelu_use_tanh_approx(approximate):
         x_sq = self * self
         px = torch.exp((-_GELU_BETA + _GELU_AN * x_sq) * self)
@@ -198,8 +208,6 @@ def gelu_backward(grad: torch.Tensor, self: torch.Tensor, approximate: str = "no
         cdf = 0.5 * (1.0 + _erf_pade_fp32(self * _M_SQRT1_2))
         pdf = _INV_SQRT_2PI * torch.exp(self * self * -0.5)
         out = grad * (cdf + self * pdf)
-    if orig_dtype != torch.float32:
-        out = out.to(orig_dtype)
     return out
 
 
@@ -231,8 +239,11 @@ def patch_decomp():
     global _dvm_inductor_decomp_patched
     if _dvm_inductor_decomp_patched:
         return
+    _disable_cia_decompositions()
     remove_decompositions(inductor_decomp.decompositions, decomps_to_exclude_npu)
     _register_inductor_decomposition_safe([aten.sigmoid.default], sigmoid)
+    _register_inductor_decomposition_safe([aten.silu.default], silu)
+    _register_inductor_decomposition_safe([aten.silu_backward.default], silu_backward)
     _register_inductor_decomposition_safe([aten.gelu_backward.default], gelu_backward)
     _register_inductor_decomposition_safe([aten.gelu.default], gelu)
     _register_inductor_decomposition_safe([aten.tanh.default], tanh)
