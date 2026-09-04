@@ -2,7 +2,6 @@
 
 > [!NOTE]
 >
-> - API的**支持情况**中，✔表示API支持在对应硬件环境上运行，✘表示暂不支持。<br>
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
 > - 部分API虽在[PyTorch社区文档](https://pytorch.org/docs/2.10/)中存在，但未收录于本支持清单。此类API尚未验证，请谨慎使用。我们将持续进行验证工作，并在验证完成后更新文档。
 > - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
@@ -42,13 +41,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp32
 
@@ -58,13 +55,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp32
 
@@ -74,25 +69,21 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 > <font size="3">cls_to_become()</font>
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -102,13 +93,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -118,13 +107,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp32
 
@@ -132,13 +119,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -148,13 +133,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -164,13 +147,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -178,13 +159,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -192,13 +171,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -208,13 +185,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -222,13 +197,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -238,13 +211,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -254,13 +225,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -268,13 +237,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32，int64
 
@@ -284,13 +251,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -300,13 +265,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp16，fp32
 
@@ -316,13 +279,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -332,13 +293,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -346,13 +305,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -360,13 +317,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -376,13 +331,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -392,13 +345,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp16，fp32
 
@@ -408,13 +359,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -422,13 +371,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -438,13 +385,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -454,13 +399,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -468,13 +411,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -484,13 +425,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -500,13 +439,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -514,13 +451,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -528,13 +463,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -544,13 +477,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -560,13 +491,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -576,13 +505,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -592,13 +519,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -608,13 +533,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -624,13 +547,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -640,13 +561,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -656,13 +575,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -670,13 +587,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -684,13 +599,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -698,13 +611,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -712,13 +623,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -726,13 +635,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -740,13 +647,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -756,13 +661,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -772,13 +675,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -788,13 +689,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -804,13 +703,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp16，fp32，int64
 
@@ -820,13 +717,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：NPU形式名称为torch.nn.Module.npu
 
@@ -836,13 +731,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -850,13 +743,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -868,13 +759,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp32
 
@@ -882,13 +771,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -900,13 +787,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp32
 
@@ -914,13 +799,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -930,13 +813,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -946,13 +827,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -964,13 +843,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp32
 
@@ -978,13 +855,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -994,13 +869,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -1010,13 +883,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -1026,13 +897,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -1042,13 +911,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -1058,13 +925,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -1076,13 +941,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp32
 
@@ -1090,13 +953,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -1106,13 +967,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -1124,13 +983,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp32
 
@@ -1138,13 +995,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -1154,13 +1009,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -1170,13 +1023,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -1186,13 +1037,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -1202,13 +1051,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -1218,13 +1065,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -1234,13 +1079,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -1250,13 +1093,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -1266,13 +1107,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -1282,13 +1121,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -1298,13 +1135,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -1316,13 +1151,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -1330,13 +1163,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -1344,13 +1175,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -1358,13 +1187,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -1372,13 +1199,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持fp32
 
@@ -1388,13 +1213,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -1402,13 +1225,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -1416,13 +1237,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -1432,13 +1251,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -1448,13 +1265,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -1467,13 +1282,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32
 
@@ -1483,13 +1296,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp32
 
@@ -1499,13 +1310,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -1518,13 +1327,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32
 
@@ -1534,13 +1341,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -1548,13 +1353,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -1564,13 +1367,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -1578,13 +1379,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -1598,13 +1397,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -1614,13 +1411,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持fp16
 
@@ -1628,13 +1423,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -1644,13 +1437,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -1658,13 +1449,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -1678,13 +1467,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -1694,13 +1481,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32
 
@@ -1710,13 +1495,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16
 
@@ -1728,13 +1511,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -1742,13 +1523,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -1761,13 +1540,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -1775,13 +1552,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -1791,13 +1566,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -1807,13 +1580,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -1821,13 +1592,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32
 
@@ -1837,13 +1606,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32
 
@@ -1853,13 +1620,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -1867,13 +1632,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
@@ -1883,13 +1646,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持fp16，fp32，int16，int32，int64，bool
 
@@ -1899,13 +1660,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -1913,13 +1672,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -1927,13 +1684,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp32，fp64
 
@@ -1943,13 +1698,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -1959,13 +1712,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -1975,13 +1726,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32
 
@@ -1993,13 +1742,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -2009,13 +1756,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -2025,13 +1770,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -2039,13 +1782,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32，complex64，complex128
 
@@ -2055,13 +1796,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32，complex64，complex128
 
@@ -2071,13 +1810,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -2085,13 +1822,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -2104,13 +1839,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：可能回退至CPU执行
 
@@ -2120,13 +1853,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -2139,13 +1870,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -2158,13 +1887,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -2177,13 +1904,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -2198,13 +1923,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32，fp64
 
@@ -2214,13 +1937,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -2233,13 +1954,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：
 
@@ -2252,13 +1971,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
 
@@ -2268,13 +1985,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -2284,13 +1999,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32，fp64
 
@@ -2300,13 +2013,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -2316,13 +2027,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32
 
@@ -2330,13 +2039,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持bf16，fp16，fp32
 
@@ -2348,13 +2055,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp32
 
@@ -2364,13 +2069,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32，uint8，int8，int32，int64
 
@@ -2380,13 +2083,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
 
@@ -2396,13 +2097,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -2410,13 +2109,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
@@ -2426,13 +2123,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -2442,13 +2137,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -2461,13 +2154,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
@@ -2477,13 +2168,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32
 
@@ -2493,13 +2182,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -2509,13 +2196,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32
 
@@ -2525,13 +2210,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32
 
@@ -2541,13 +2224,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64
 
@@ -2557,13 +2238,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
@@ -2573,13 +2252,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -2592,13 +2269,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32，uint8，int8，int16，int32，int64
 
@@ -2608,13 +2283,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -2626,13 +2299,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32
 
@@ -2642,13 +2313,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32，fp64
 
@@ -2658,13 +2327,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32
 
@@ -2674,13 +2341,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32
 
@@ -2690,25 +2355,21 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 > <font size="3">log_prob()</font>
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -2716,13 +2377,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -2734,13 +2393,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -2750,13 +2407,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -2766,13 +2421,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -2786,13 +2439,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -2806,13 +2457,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -2826,13 +2475,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -2842,13 +2489,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -2863,13 +2508,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -2877,13 +2520,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -2897,13 +2538,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -2917,13 +2556,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -2937,13 +2574,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -2953,13 +2588,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -2974,25 +2607,21 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 > <font size="3">flatten_parameters()</font>
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -3002,13 +2631,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -3016,13 +2643,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：
 
@@ -3037,13 +2662,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -3051,13 +2674,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -3065,13 +2686,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：接口暂不支持`jit_compile=False`，如需在该模式下使用，请将"DynamicGRUV2"添加至"NPU_FUZZY_COMPILE_BLACKLIST"选项内，具体操作可参考[添加二进制黑名单示例](../example_of_adding_a_binary_blocklist.md)
 
@@ -3081,13 +2700,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -3099,13 +2716,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -3113,13 +2728,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -3129,25 +2742,21 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 > <font size="3">forward()</font>
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -3159,25 +2768,21 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 > <font size="3">forward()</font>
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -3191,13 +2796,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -3211,13 +2814,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -3229,13 +2830,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp32
 
@@ -3245,13 +2844,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -3261,13 +2858,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32
 
@@ -3277,13 +2872,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -3291,13 +2884,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -3309,13 +2900,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32
 
@@ -3325,13 +2914,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32，int64，bool
 
@@ -3341,13 +2928,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -3357,13 +2942,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -3375,13 +2958,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：
 
@@ -3392,13 +2973,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp64
 
@@ -3410,13 +2989,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -3427,13 +3004,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持int64
 
@@ -3443,13 +3018,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持int64
 
@@ -3463,13 +3036,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32，int64
 
@@ -3479,13 +3050,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -3495,13 +3064,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -3511,13 +3078,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：
 
@@ -3530,13 +3095,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -3549,13 +3112,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32，int64
 
@@ -3565,13 +3126,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32，int16，int32，int64
 
@@ -3581,13 +3140,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -3600,13 +3157,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -3616,13 +3171,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：
 
@@ -3635,13 +3188,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32，int8，int32，int64
 
@@ -3651,13 +3202,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64
 
@@ -3667,13 +3216,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -3681,13 +3228,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -3701,13 +3246,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32
 
@@ -3717,13 +3260,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -3733,13 +3274,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -3747,13 +3286,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -3767,13 +3304,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -3786,13 +3321,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32
 
@@ -3804,13 +3337,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
@@ -3820,13 +3351,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
@@ -3836,13 +3365,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32，fp64
 
@@ -3852,13 +3379,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：
 
@@ -3873,13 +3398,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
@@ -3891,13 +3414,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -3905,25 +3426,21 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 > <font size="3">join()</font>
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -3931,13 +3448,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -3945,13 +3460,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -3959,13 +3472,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -3977,13 +3488,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
@@ -3993,13 +3502,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -4007,13 +3514,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32
 
@@ -4023,13 +3528,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32，fp64，complex64
 
@@ -4039,13 +3542,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -4053,13 +3554,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -4067,13 +3566,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -4081,13 +3578,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -4095,25 +3590,21 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 > <font size="3">apply()</font>
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -4121,13 +3612,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -4137,13 +3626,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -4151,13 +3638,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -4167,13 +3652,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -4185,25 +3668,21 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 > <font size="3">add_pruning_method()</font>
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -4211,13 +3690,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -4225,13 +3702,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -4239,13 +3714,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -4255,13 +3728,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -4271,13 +3742,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -4289,13 +3758,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持fp32
 
@@ -4303,13 +3770,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -4319,13 +3784,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -4335,13 +3798,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -4351,13 +3812,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -4369,13 +3828,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持fp32
 
@@ -4383,13 +3840,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -4399,13 +3854,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -4415,13 +3868,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -4431,13 +3882,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -4447,13 +3896,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持fp32
 
@@ -4461,13 +3908,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -4477,13 +3922,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -4493,13 +3936,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -4509,13 +3950,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -4527,13 +3966,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持fp32
 
@@ -4541,13 +3978,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -4557,13 +3992,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -4573,13 +4006,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -4589,13 +4020,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -4603,13 +4032,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -4619,13 +4046,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持fp32
 
@@ -4633,13 +4058,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -4649,13 +4072,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -4665,13 +4086,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -4681,13 +4100,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -4697,13 +4114,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -4715,13 +4130,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持int64
 
@@ -4729,13 +4142,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持int64
 
@@ -4745,13 +4156,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -4759,13 +4168,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -4773,13 +4180,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -4789,13 +4194,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -4803,13 +4206,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -4817,13 +4218,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -4831,13 +4230,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -4845,13 +4242,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -4859,13 +4254,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -4873,13 +4266,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持int64
 
@@ -4889,13 +4280,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -4903,13 +4292,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -4917,13 +4304,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -4931,13 +4316,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -4945,13 +4328,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -4959,13 +4340,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -4973,13 +4352,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -4987,13 +4364,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -5001,25 +4376,21 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 > <font size="3">right_inverse()</font>
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -5031,13 +4402,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -5045,13 +4414,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp32，int64
 
@@ -5059,13 +4426,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -5073,13 +4438,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -5089,13 +4452,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -5103,13 +4464,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -5119,13 +4478,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -5133,13 +4490,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -5147,13 +4502,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -5161,13 +4514,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32，int64
 
@@ -5177,13 +4528,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -5193,13 +4542,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -5207,13 +4554,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -5221,13 +4566,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp16，fp32
 
@@ -5237,13 +4580,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -5251,13 +4592,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -5265,13 +4604,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✘ |
-| <term>Atlas A3 训练系列产品</term> | ✘ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -5279,13 +4616,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
@@ -5295,13 +4630,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`input`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
@@ -5309,13 +4642,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 </div>
 
@@ -5327,13 +4658,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✔ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 **限制与说明**：`input`仅支持fp32
 
@@ -5341,13 +4670,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
@@ -5357,13 +4684,11 @@
 
 <div style="margin-left: 2em">
 
-**支持情况**：
+**产品支持情况**：
 
-| 硬件 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A2 训练系列产品</term> | ✔ |
-| <term>Atlas A3 训练系列产品</term> | ✔ |
-| <term>Ascend 950DT</term> | ✘ |
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：不支持
 
 **限制与说明**：`self`仅支持fp32
 
