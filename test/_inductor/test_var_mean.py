@@ -112,6 +112,8 @@ class TestVarMean(TestUtils):
             self.assertIn("X1BLOCK_SUB", code)
             self.assertIn("_acc_sum = tl.zeros([", code)
             self.assertIn(", 1], tl.float32)", code)
+            self.assertEqual(code.count("_acc_sum = tl.zeros(["), 1)
+            self.assertEqual(code.count("_acc_sum_sq = tl.zeros(["), 1)
             self.assertIn("axis=1, keep_dims=True", code)
             self.assertIn("npu_kernel_type': 'simd'", code)
             self.assertIn("'vectorized_welford_axis':", code)
@@ -289,6 +291,8 @@ class TestVarMean(TestUtils):
             self.assertIn("npu_kernel_type': 'simd'", code)
             self.assertIn("'vectorized_welford_axis':", code)
             self.assertNotIn("for loop_r", code)
+            self.assertEqual(code.count("_acc_sum = tl.zeros(["), 1)
+            self.assertEqual(code.count("_acc_sum_sq = tl.zeros(["), 1)
         finally:
             npu_config.enable_welford = previous
             torch._dynamo.reset()
@@ -394,6 +398,8 @@ class TestVarMean(TestUtils):
             self.assertTrue(any(mask in code for mask in tail_masks))
             self.assertNotIn("for loop_r", code)
             self.assertNotIn("_acc_count = tl.zeros", code)
+            self.assertEqual(code.count("_acc_sum = tl.zeros(["), 1)
+            self.assertEqual(code.count("_acc_sum_sq = tl.zeros(["), 1)
             self.assertEqual(code.count("tl.load(in_ptr0"), 1)
         finally:
             npu_config.enable_welford = previous

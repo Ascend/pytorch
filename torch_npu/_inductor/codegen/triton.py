@@ -3228,6 +3228,14 @@ class NPUIndexTritonKernel(TritonKernel):
 
         store_unified_vars = collect_store_unified_vars()
         sub_axis_to_unified_var = build_sub_axis_to_unified_var(store_unified_vars)
+        prefix_spliced = False
+
+        def splice_prefix_once():
+            nonlocal prefix_spliced
+            if prefix_spliced or not self.prefix._lines:
+                return
+            self.body.splice(self.prefix)
+            prefix_spliced = True
 
         def write_post_reduction_indexing():
             if not (
@@ -3321,12 +3329,9 @@ class NPUIndexTritonKernel(TritonKernel):
                     range_val.prefix != "r" or not self.persistent_reduction
                 ) and need_axis_loop:
                     if self.numof_reduction_axis() <= 1:
-                        self.body.splice(self.prefix)
-                        self.prefix.clear()
+                        splice_prefix_once()
                     if range_val._is_scalar_welford_outer_axis():
-                        if self.prefix._lines:
-                            self.body.splice(self.prefix)
-                            self.prefix.clear()
+                        splice_prefix_once()
                         self.body.writeline(
                             f"for {range_val.name} in range("
                             f"{range_val.name}_offset, min("
@@ -3397,17 +3402,13 @@ class NPUIndexTritonKernel(TritonKernel):
                     and range_val.prefix == "r"
                 )
                 if elide_full_reduction_loop and is_first_reduction_tiling:
-                    self.body.splice(self.prefix)
-                    self.prefix.clear()
+                    splice_prefix_once()
                 if not range_val.is_no_loop_axis and not elide_full_reduction_loop:
                     do_indent = True
                     if is_first_reduction_tiling:
-                        self.body.splice(self.prefix)
-                        self.prefix.clear()
+                        splice_prefix_once()
                     if range_val._is_scalar_welford_outer_axis():
-                        if self.prefix._lines:
-                            self.body.splice(self.prefix)
-                            self.prefix.clear()
+                        splice_prefix_once()
                         self.body.writeline(
                             f"for {range_val.name} in range("
                             f"{range_val.name}_offset, min("
@@ -4802,16 +4803,21 @@ class NPUIndexTritonKernel(TritonKernel):
                     keep_dims = ""
                     count_increment = self._reduction_tile_size()
 
-                self.prefix.writeline(
-                    f"{acc_sum} = tl.zeros({acc_shape}, {acc_type})"
-                )
-                self.prefix.writeline(
-                    f"{acc_sum_sq} = tl.zeros({acc_shape}, {acc_type})"
-                )
-                if static_count is None:
+                # Vectorized Welford state is initialized by the vector axis
+                # indexing code after entering each tile.  Keeping another
+                # copy in prefix both duplicates the definitions and makes
+                # their scope depend on where prefix is spliced.
+                if vector_axis is None:
                     self.prefix.writeline(
-                        f"{acc_count} = tl.zeros({acc_shape}, {acc_type})"
+                        f"{acc_sum} = tl.zeros({acc_shape}, {acc_type})"
                     )
+                    self.prefix.writeline(
+                        f"{acc_sum_sq} = tl.zeros({acc_shape}, {acc_type})"
+                    )
+                    if static_count is None:
+                        self.prefix.writeline(
+                            f"{acc_count} = tl.zeros({acc_shape}, {acc_type})"
+                        )
                 self.compute.writeline(
                     f"{acc_sum} += tl.sum({masked_value}, axis={reduce_dim}{keep_dims})"
                 )
