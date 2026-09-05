@@ -39,7 +39,7 @@ from torch_npu._inductor.kernel.flexattention_template import (
     flex_attention_template,
     flex_attention_fwd_mask_compact,
     flex_attention_fwd_mask_out,
-    flex_decoding_npu,
+    flex_decoding_template,
 )
 
 from torch._inductor.ir import (
@@ -139,14 +139,6 @@ except ImportError:
         from torch._inductor.kernel.flex_attention import (
             zeros_and_scatter_lowering,
         )
-
-try:
-    from torch._inductor.kernel.flex.flex_decoding import create_flex_decoding_kernel
-except ImportError:
-    try:
-        from torch._inductor.kernel.flex_decoding import create_flex_decoding_kernel
-    except ImportError:
-        create_flex_decoding_kernel = None
 
 # PyTorch flex_attention exposes/saves LSE in log2 space, matching the
 # upstream kernels that use exp2/log2. NPU templates below compute LSE with
@@ -520,25 +512,6 @@ def _has_sparse_block_mask(
     return not (
         sparse_q_block_size == NO_SPARSE_BLOCK_SIZE
         and sparse_kv_block_size == NO_SPARSE_BLOCK_SIZE
-    )
-
-
-def _use_flex_decoding(query, kernel_options):
-    if create_flex_decoding_kernel is None:
-        return False
-    force_flex = kernel_options.get("FORCE_USE_FLEX_ATTENTION", False)
-    short_query_length = V.graph.sizevars.evaluate_expr(
-        sympy.Lt(query.get_size()[-2], 128)
-    )
-    non_zero_length = V.graph.sizevars.evaluate_expr(sympy.Gt(query.get_size()[-2], 0))
-    static_batch = isinstance(query.get_size()[0], (int, sympy.Integer))
-    static_num_heads = isinstance(query.get_size()[1], (int, sympy.Integer))
-    return (
-        not force_flex
-        and short_query_length
-        and non_zero_length
-        and static_batch
-        and static_num_heads
     )
 
 
@@ -1089,7 +1062,7 @@ def _create_npu_flex_decoding_kernel(*args):
         cur_kernel_options.setdefault("num_stages", num_stages)
         cur_kernel_options.setdefault("USE_TMA", False)
 
-        flex_decoding_npu.maybe_append_choice(
+        flex_decoding_template.maybe_append_choice(
             choices=choices,
             input_nodes=[
                 query,

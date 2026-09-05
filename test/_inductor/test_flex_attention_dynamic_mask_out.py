@@ -24,10 +24,13 @@ except (ImportError, RuntimeError):
 class TestFlexAttentionDynamicMaskOutSource(unittest.TestCase):
     def test_short_query_uses_community_flex_decoding(self):
         lowering = LOWERING_PATH.read_text(encoding="utf-8")
-        self.assertNotIn("upstream_flex_decoding", lowering)
+        self.assertIn("flex_decoding_template,", lowering)
         self.assertIn("def _use_flex_decoding(", lowering)
         self.assertIn("def _create_npu_flex_decoding_kernel(*args):", lowering)
-        self.assertIn("flex_decoding_npu.maybe_append_choice(", lowering)
+        self.assertIn(
+            "flex_decoding_template.maybe_append_choice(",
+            lowering,
+        )
         self.assertIn('"flex_decoding",', lowering)
         self.assertIn("V.graph.sizevars.size_hint(", lowering)
         self.assertIn("config.unbacked_symint_fallback", lowering)
@@ -40,19 +43,14 @@ class TestFlexAttentionDynamicMaskOutSource(unittest.TestCase):
         )
         self.assertIn('cur_kernel_options.setdefault("USE_TMA", False)', lowering)
 
-    def test_npu_template_contains_only_required_memory_changes(self):
+    def test_npu_decoding_uses_community_template(self):
         template = TEMPLATE_PATH.read_text(encoding="utf-8")
-        decoding = template.split("flex_decoding_npu_source =", 1)[1].split(
-            "flex_decoding_npu =", 1
-        )[0]
-        self.assertIn("q_rows = tl.arange(0, BLOCK_M)", decoding)
-        self.assertIn("q_group = q_rows // BLOCK_M_PER_HQ", decoding)
-        self.assertIn("q_m = q_rows % BLOCK_M_PER_HQ", decoding)
-        self.assertNotIn("q = tl.reshape(q,", decoding)
-        self.assertNotIn("M_block_ptr = tl.make_block_ptr(", decoding)
-        self.assertNotIn("L_block_ptr = tl.make_block_ptr(", decoding)
-        self.assertIn("tl.store(M + m_offset + m_offsets", decoding)
-        self.assertIn("tl.store(L + l_offset + l_offsets", decoding)
+        self.assertNotIn("flex_decoding_npu", template)
+        self.assertNotIn("flex_decoding_npu_source", template)
+        self.assertIn(
+            "flex_decoding_template = _wrap_upstream_template(", template
+        )
+        self.assertIn("_upstream_flex_decoding_template", template)
 
     @unittest.skip("temporarily skipped for community test")
     def test_decoding_dispatch_precedes_mask_out_dispatch(self):
