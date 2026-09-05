@@ -1111,9 +1111,9 @@ def patch_algorithm_selector() -> None:
         # FlexAttention keeps using those generators for its lowering-time autotune,
         # then defers only the final, epilogue-aware compilation choice.
         # TODO(jgong5): support multi-template on CPU
-        if layout.device.type == "cpu" or (
+        if (
             input_gen_fns is not None and not defer_epilogue_to_scheduler
-        ):
+        ) or layout.device.type == "cpu":
             return_multi_template = False
 
         choices = [choice for choice in choices if choice is not None]
