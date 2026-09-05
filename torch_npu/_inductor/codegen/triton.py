@@ -40,6 +40,7 @@ from torch._inductor.codegen.triton import (
     TritonCSEVariable,
     TritonKernel,
     TritonKernelOverrides,
+    TritonPrinter,
     upcast_acc_dtype,
     TMACompatibilityChecker, maybe_upcast_float32,
 )
@@ -256,6 +257,19 @@ def flatten(nums):
         else:
             res.append(i)
     return res
+
+
+class NPUTritonPrinter(TritonPrinter):
+    """Print symbolic expressions without introducing unsupported f64 DSL."""
+
+    def _print_Float(self, expr: sympy.Expr) -> str:
+        return super()._print_Float(expr).replace("tl.float64", "tl.float32")
+
+    def _print_ToFloat(self, expr: sympy.Expr) -> str:
+        return super()._print_ToFloat(expr).replace("tl.float64", "tl.float32")
+
+
+npu_texpr = NPUTritonPrinter().doprint
 
 
 class NPUTritonKernelOverrides(TritonKernelOverrides):
@@ -877,6 +891,8 @@ class NPUTritonKernel(TritonKernel):
     NPU triton kernel without linear and loop
     """
 
+    kexpr = npu_texpr
+
     @classmethod
     @functools.lru_cache(None)
     def gen_common_triton_imports(cls) -> str:
@@ -910,6 +926,15 @@ class NPUTritonKernel(TritonKernel):
             fixed_config=fixed_config,
             **kwargs,
         )
+
+    def _has_constant_mask(self, tree: IterationRangesRoot) -> bool:
+        # NPU autotuning can select non-power-of-two block sizes after codegen,
+        # so divisibility by the heuristic max block does not prove that every
+        # candidate has no tail. Fixed configs use the actual block size and
+        # can safely retain the upstream optimization.
+        if self.fixed_config is None:
+            return False
+        return super()._has_constant_mask(tree)
 
     def add_npu_inductor_meta(self, inductor_meta):
         normal_range_trees = [
@@ -960,6 +985,7 @@ class NPUIndexTritonKernel(TritonKernel):
     NPU triton kernel with linear and block_sub loop
     """
 
+    kexpr = npu_texpr
     overrides = NPUTritonKernelOverrides
 
     @classmethod
