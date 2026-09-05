@@ -485,7 +485,12 @@ class DeferredNpuTritonCallWrapper(DeferredTritonCallWrapper):
             arg_signatures,
             is_triton_kernel=True,
             is_pure_simt=is_pure_simt,
-            kernel_params=params,
+            kernel_params={
+                **params,
+                # Triton-Ascend's auto-blockify decision also determines the
+                # number of participants in an unordered sync-block lock.
+                "enable_auto_blockify": enable_auto_blockify,
+            },
         )
         prefix.splice(f"""
         auto launch_call = [=]() {{
@@ -941,6 +946,9 @@ static inline void load_{kernel_name}() {{
         target_support_ffts = triton_support_ffts()
         kernel_params = kernel_params or {}
         lock_num = int(kernel_params.get("lock_num", 0) or 0)
+        sync_block_lock_layout = int(
+            kernel_params.get("sync_block_lock_layout", 0) or 0
+        )
         lock_init_val = int(kernel_params.get("lock_init_val", 0) or 0)
         workspace_size = int(kernel_params.get("workspace_size", 0) or 0)
 
@@ -1015,7 +1023,97 @@ static inline void load_{kernel_name}() {{
             """
 
         sync_block_lock_str = ""
-        if not is_pure_simt and lock_num > 0:
+        if not is_pure_simt and sync_block_lock_layout > 0:
+            # Triton-Ascend 3.6 packs ordered and unordered lock counts in the
+            # low/high 32-bit halves of ``sync_block_lock_layout``.  Ordered
+            # locks occupy one cache line (8 int64 values) each.  Unordered
+            # locks additionally reserve a cache line for the participant
+            # count and two cache lines per participant.
+            ordered_lock_count = sync_block_lock_layout & 0xFFFFFFFF
+            unordered_lock_count = (sync_block_lock_layout >> 32) & 0xFFFFFFFF
+            participant_factor = (
+                2
+                if (
+                    unordered_lock_count > 0
+                    and kernel_params.get("mix_mode") == "mix"
+                    and kernel_params.get("auto_tile_and_bind_subblock", False)
+                )
+                else 1
+            )
+            lock_init = f"""
+            std::vector<int64_t> sync_block_lock_init(
+                sync_block_lock_i64_count,
+                static_cast<int64_t>({lock_init_val}));
+            """
+            block_num_decl = ""
+            participant_num_expr = "0"
+            if unordered_lock_count > 0:
+                block_num_decl = """
+            uint32_t sync_block_lock_block_num = grid_0 * grid_1 * grid_2;
+            """
+                if kernel_params.get("enable_auto_blockify", False):
+                    block_num_decl += f"""
+            sync_block_lock_block_num = std::min(
+                sync_block_lock_block_num,
+                static_cast<uint32_t>({npu_config.num_vector_core}));
+            """
+                participant_num_expr = "sync_block_lock_block_num"
+                lock_init = """
+            std::vector<int64_t> sync_block_lock_init(
+                sync_block_lock_i64_count, static_cast<int64_t>(0));
+            for (uint64_t lock_index = 0;
+                 lock_index < sync_block_lock_unordered_count;
+                 ++lock_index) {
+                const uint64_t lock_offset =
+                    sync_block_lock_ordered_i64_count +
+                    lock_index * sync_block_lock_unordered_stride_i64;
+                sync_block_lock_init[lock_offset] =
+                    static_cast<int64_t>(sync_block_lock_participant_num);
+            }
+            """
+            sync_block_lock_str = f"""
+            {block_num_decl}
+            constexpr uint64_t sync_block_lock_cache_line_i64 = 8;
+            constexpr uint64_t sync_block_lock_ordered_count =
+                {ordered_lock_count};
+            constexpr uint64_t sync_block_lock_unordered_count =
+                {unordered_lock_count};
+            constexpr uint64_t sync_block_lock_participant_factor =
+                {participant_factor};
+            const uint64_t sync_block_lock_participant_num =
+                static_cast<uint64_t>({participant_num_expr})
+                * sync_block_lock_participant_factor;
+            const uint64_t sync_block_lock_unordered_stride_i64 =
+                (1 + 2 * sync_block_lock_participant_num) *
+                sync_block_lock_cache_line_i64;
+            const uint64_t sync_block_lock_ordered_i64_count =
+                sync_block_lock_ordered_count * sync_block_lock_cache_line_i64;
+            const uint64_t sync_block_lock_i64_count =
+                sync_block_lock_ordered_i64_count +
+                sync_block_lock_unordered_count *
+                    sync_block_lock_unordered_stride_i64;
+            uint64_t sync_block_lock_size =
+                sync_block_lock_i64_count * sizeof(int64_t);
+            auto sync_block_lock_tensor = at_npu::native::allocate_workspace(
+                sync_block_lock_size, stream_);
+            sync_block_lock = const_cast<void *>(
+                sync_block_lock_tensor.storage().data());
+            {lock_init}
+            ret = aclrtMemcpy(
+                sync_block_lock,
+                sync_block_lock_size,
+                sync_block_lock_init.data(),
+                sync_block_lock_size,
+                ACL_MEMCPY_HOST_TO_DEVICE);
+            if (ret != ACL_SUCCESS) {{
+                throw std::runtime_error(
+                    std::string("initialize Triton sync block lock failed, 0x")
+                    + std::to_string(ret));
+            }}
+            """
+        elif not is_pure_simt and lock_num > 0:
+            # Triton-Ascend <= 3.2 exposes the already-expanded number of
+            # int64 lock slots through ``lock_num``.
             sync_block_lock_str = f"""
             uint64_t sync_block_lock_size = static_cast<uint64_t>({lock_num})
                 * sizeof(int64_t);

@@ -107,6 +107,38 @@ from ..profiler import simple_trace_handler, mspti_batch_benchmark
 kernel_idx = count()
 
 
+
+def _metadata_value(metadata, name, default=None):
+    """Read a compiler metadata field from both supported metadata shapes."""
+    if isinstance(metadata, dict):
+        return metadata.get(name, default)
+    return getattr(metadata, name, default)
+
+
+def _get_sync_block_lock_num(metadata):
+    """Return a non-zero lock marker for legacy consumers.
+
+    Triton-Ascend 3.6 replaced the old ``lock_num`` field with the packed
+    ``sync_block_lock_layout`` field.  The C++ wrapper receives both fields;
+    this helper keeps the old parameter non-zero for code paths (such as the
+    experimental fast launcher) that only need to know whether a lock exists.
+    """
+    lock_num = int(_metadata_value(metadata, "lock_num", 0) or 0)
+    layout = int(_metadata_value(metadata, "sync_block_lock_layout", 0) or 0)
+    # A layout is a packed count, not an int64-slot count.  It is nevertheless
+    # a useful non-zero marker for consumers that only decide whether the fast
+    # launcher is safe to use.
+    return max(lock_num, layout, 0)
+
+
+def _get_sync_block_lock_layout(metadata):
+    """Return Triton-Ascend's packed ordered/unordered lock layout."""
+    return max(
+        int(_metadata_value(metadata, "sync_block_lock_layout", 0) or 0),
+        0,
+    )
+
+
 class CompileThreadPool:
     def __init__(self):
         self.pool = ThreadPoolExecutor(max_workers=npu_config.precompile_thread_num)
@@ -1455,8 +1487,16 @@ class NPUCachingAutotuner(CachingAutotuner):
                 "has_auto_blockify_blacklist_op",
                 False,
             ),
-            "lock_num": int(
-                getattr(input_launcher.bin.metadata, "lock_num", 0) or 0
+            "lock_num": _get_sync_block_lock_num(input_launcher.bin.metadata),
+            "sync_block_lock_layout": _get_sync_block_lock_layout(
+                input_launcher.bin.metadata
+            ),
+            "auto_tile_and_bind_subblock": bool(
+                _metadata_value(
+                    input_launcher.bin.metadata,
+                    "auto_tile_and_bind_subblock",
+                    False,
+                )
             ),
             "lock_init_val": int(
                 getattr(input_launcher.bin.metadata, "lock_init_val", 0) or 0
@@ -2264,7 +2304,11 @@ class NPUSymbolicGroupedAutotuner(NPUCachingAutotuner):
             "has_auto_blockify_blacklist_op": getattr(
                 metadata, "has_auto_blockify_blacklist_op", False
             ),
-            "lock_num": int(getattr(metadata, "lock_num", 0) or 0),
+            "lock_num": _get_sync_block_lock_num(metadata),
+            "sync_block_lock_layout": _get_sync_block_lock_layout(metadata),
+            "auto_tile_and_bind_subblock": bool(
+                _metadata_value(metadata, "auto_tile_and_bind_subblock", False)
+            ),
             "lock_init_val": int(
                 getattr(metadata, "lock_init_val", 0) or 0
             ),
