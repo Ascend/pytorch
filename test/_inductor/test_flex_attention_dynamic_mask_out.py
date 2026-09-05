@@ -61,8 +61,19 @@ class TestFlexAttentionDynamicMaskOutSource(unittest.TestCase):
             "def _register_npu_inductor_flex_attention():", 1
         )[1]
         self.assertLess(
-            forward.index("if _use_flex_decoding("),
+            forward.index("_use_flex_decoding("),
             forward.index("configured_mask_out = bool("),
+        )
+
+    def test_forced_decoding_rejects_unsupported_inputs(self):
+        lowering = LOWERING_PATH.read_text(encoding="utf-8")
+        self.assertIn('backend = kernel_options.get("BACKEND", "AUTO")', lowering)
+        self.assertIn(
+            'if backend == "TRITON_DECODE" and not use_flex_decoding:', lowering
+        )
+        self.assertIn(
+            "BACKEND='TRITON_DECODE' was specified but flex_decoding cannot be used",
+            lowering,
         )
 
     def test_dynamic_paths_avoid_static_metadata_guards(self):
