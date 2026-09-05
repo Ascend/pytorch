@@ -10,32 +10,27 @@ TEMPLATE_PATH = REPO_ROOT / "torch_npu/_inductor/kernel/flexattention_template.p
 class TestFlexAttentionDynamicMaskOutSource(unittest.TestCase):
     def test_short_query_uses_community_flex_decoding(self):
         lowering = LOWERING_PATH.read_text(encoding="utf-8")
-        self.assertNotIn("upstream_flex_decoding", lowering)
+        self.assertIn("flex_decoding_template,", lowering)
         self.assertIn("def _use_flex_decoding(", lowering)
         self.assertIn("def _create_npu_flex_decoding_kernel(*args):", lowering)
-        self.assertIn("flex_decoding_npu.maybe_append_choice(", lowering)
+        self.assertIn(
+            "flex_decoding_template.maybe_append_choice(",
+            lowering,
+        )
         self.assertIn('"flex_decoding",', lowering)
         self.assertIn(
             'cur_kernel_options.setdefault("USE_TMA", bool(torch.xpu.is_available()))',
             lowering,
         )
 
-    def test_npu_template_contains_only_required_memory_changes(self):
+    def test_npu_decoding_uses_community_template(self):
         template = TEMPLATE_PATH.read_text(encoding="utf-8")
-        decoding = template.split("flex_decoding_npu_source =", 1)[1].split(
-            "flex_decoding_npu =", 1
-        )[0]
-        self.assertIn("q_rows = tl.arange(0, BLOCK_M)", decoding)
-        self.assertIn("q_group = q_rows // BLOCK_M_PER_HQ", decoding)
-        self.assertIn("q_m = q_rows % BLOCK_M_PER_HQ", decoding)
-        self.assertNotIn("q = tl.reshape(q,", decoding)
-        self.assertNotIn("M_block_ptr = tl.make_block_ptr(", decoding)
-        self.assertNotIn("L_block_ptr = tl.make_block_ptr(", decoding)
-        self.assertIn("tl.store(m_ptrs, m_i", decoding)
-        self.assertIn("tl.store(l_ptrs, l_i", decoding)
+        self.assertNotIn("flex_decoding_npu", template)
+        self.assertNotIn("flex_decoding_npu_source", template)
         self.assertIn(
-            "flex_decoding_npu.always_freeze_layout = True", template
+            "flex_decoding_template = _wrap_upstream_template(", template
         )
+        self.assertIn("_upstream_flex_decoding_template", template)
 
     @unittest.skip("temporarily disabled pending decoding dispatch update")
     def test_decoding_dispatch_precedes_mask_out_dispatch(self):

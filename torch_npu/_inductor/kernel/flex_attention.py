@@ -39,7 +39,7 @@ from torch_npu._inductor.kernel.flexattention_template import (
     flex_attention_template,
     flex_attention_fwd_mask_compact,
     flex_attention_fwd_mask_out,
-    flex_decoding_npu,
+    flex_decoding_template,
 )
 
 from torch._inductor.ir import (
@@ -1047,7 +1047,7 @@ def _create_npu_flex_decoding_kernel(*args):
         if cur_kernel_options["USE_TMA"] and not can_use_tma(query, key, value):
             cur_kernel_options["USE_TMA"] = False
 
-        flex_decoding_npu.maybe_append_choice(
+        flex_decoding_template.maybe_append_choice(
             choices=choices,
             input_nodes=[
                 query,
