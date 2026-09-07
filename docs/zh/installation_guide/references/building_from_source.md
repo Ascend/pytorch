@@ -64,12 +64,28 @@ Python3.11的调度（即下发）性能优于Python3.10，建议用Python3.11�
 
     2. 构建镜像。
 
-        我们已提供了可用的Dockerfile，可以自动检测架构来拉取镜像。你可以阅览该目录（pytorch/docker/devel）下的README文件，获取更多信息，并根据其指导构建自己的开发环境。或者您可以直接通过devcontainer工具来构建开发环境。
+        我们已提供了可用的开发镜像，以供您编译构建TorchNPU。您可以从昇腾镜像仓库直接拉取已构建好的镜像：[torch-npu-devel](https://www.hiascend.com/developer/ascendhub/detail/3b0ca76864884546acd07845f6153ee6)
+
+        以Atlas A2 训练系列产品为例，拉取镜像的命令为：
+
+        ```bash
+        docker pull swr.cn-south-1.myhuaweicloud.com/ascendhub/torch-npu-devel:2.13.0-cann9.1.0-910b-manylinux_2_28
+        ```
+
+        我们同样提供了可用的Dockerfile，可以自动检测架构来拉取镜像。你可以阅览该目录（pytorch/docker/devel）下的README文件，获取更多信息，并根据其指导构建自己的开发环境。或者您可以直接通过devcontainer工具来构建开发环境。
 
         ```bash
         cd pytorch/docker/devel
         export DOCKER_BUILDKIT=1
         docker build -t manylinux-builder:v1 .
+        ```
+
+        或直接使用一键式创建容器脚本builder.sh。
+
+        ```bash
+        cd pytorch/docker/devel
+        export DOCKER_BUILDKIT=1
+        bash builder.sh --cann
         ```
 
         > [!NOTE]
@@ -90,6 +106,14 @@ Python3.11的调度（即下发）性能优于Python3.10，建议用Python3.11�
         > - 如果您已通过 `npu-smi` 确保宿主机存在驱动（driver），也可以在启动容器时将其挂载。可参考该目录（pytorch/docker/devel）下README。
 
     4. 编译生成Whl安装包。
+
+       编译前需关注环境中安装的torch版本是否与当前要编译的TorchNPU版本一致，若要更换可使用如下命令：
+
+       ```bash
+       pip3 install torch==2.13.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu # 根据自身需求安装CPU版本的torch
+       ```
+
+        环境准备完成后使用如下命令进行编译：
 
         ```bash
         cd /home/pytorch
@@ -175,6 +199,14 @@ Python3.11的调度（即下发）性能优于Python3.10，建议用Python3.11�
             ```
 
         2. 编译生成Whl安装包。
+
+            编译前需关注环境中安装的torch版本是否与当前要编译的TorchNPU版本一致，若要更换可使用如下命令：
+
+            ```bash
+            pip3 install torch==2.13.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu # 根据自身需求安装CPU版本的torch
+            ```
+
+            环境准备完成后使用如下命令进行编译：
 
             ```bash
             bash ci/build.sh --python=3.10
