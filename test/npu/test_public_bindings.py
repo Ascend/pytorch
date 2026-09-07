@@ -833,6 +833,10 @@ class TestPublicBindings(TestCase):
             if mod.startswith("torch._native.ops.reductions.inner_tree_kernel"):
                 continue
 
+            # Skip FlyDSL modules, which require the AMD flydsl package (ROCm-only)
+            if "flydsl" in mod:
+                continue
+
             errors.append(f"{mod} failed to import with error {excep_type}")
         self.assertEqual("", "\n".join(errors))
 
