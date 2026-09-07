@@ -56,3 +56,19 @@ if CURRENT_VERSION >= (2, 14):
         return mm_strategy
 else:
     from torch.distributed.tensor._ops._matrix_ops import _mm_like_strategy
+
+
+# COMPAT(< 2.14): upstream ShardedTensor.cuda()/to() are CUDA-hardcoded on
+#   torch < 2.14 (torch.cuda.current_device(), shard.tensor.cuda(), device
+#   allowlist {"cuda", "xpu"}), so torch_npu patches a npu() method onto
+#   ShardedTensor. Upstream pytorch#187939 (shipped in 2.14) makes cuda()/to()
+#   hardware-agnostic via torch.accelerator, so the patch is not needed and
+#   must not be applied on torch >= 2.14.
+# CAN REMOVE this block when MIN_SUPPORTED >= (2, 14)
+if CURRENT_VERSION < (2, 14):
+    from torch.distributed._shard.sharded_tensor import ShardedTensor
+    from torch_npu.distributed.tensor._sharded_tensor_patch import _patched_sharded_tensor_npu
+
+    # Add the patched npu() method if it doesn't exist.
+    if not hasattr(ShardedTensor, "npu"):
+        ShardedTensor.npu = _patched_sharded_tensor_npu

@@ -86,13 +86,6 @@ def _patched_sharded_tensor_npu(
     return st_npu
 
 
-def _apply_sharded_tensor_npu_patch():
-    """
-    This function adds the patched npu() method to ShardedTensor class if it doesn't exist.
-    """
-    # Add the patched npu() method if it doesn't exist
-    if not hasattr(ShardedTensor, "npu"):
-        ShardedTensor.npu = _patched_sharded_tensor_npu
-
-# Execute the patch application when the module is imported
-_apply_sharded_tensor_npu_patch()
+# The patch application logic (version gating and attaching npu() to
+# ShardedTensor) moved to torch_npu._compat.distributed; see the
+# COMPAT(< 2.14) block there.
