@@ -467,6 +467,7 @@ def _patch_model_19():
         from PIL import Image
         from torchbenchmark import DATA_PATH
         from torchbenchmark.models.torch_multimodal_clip import Model
+        import torchbenchmark.models.torch_multimodal_clip as torch_multimodal_clip_mod
         from torchmultimodal.models.clip.model import clip_vit_b32
         from torchmultimodal.modules.losses.contrastive_loss_with_temperature import (
             ContrastiveLossWithTemperature,
@@ -488,10 +489,18 @@ def _patch_model_19():
             test=test, device=device, batch_size=batch_size, extra_args=extra_args
         )
 
-        # use global DATA_PATH directly instead of local .data folder
-        self.data_folder = str(DATA_PATH)
         self.image_name = "pizza.jpg"
-        self.image = Image.open(os.path.join(self.data_folder, self.image_name))
+        image_candidates = [
+            os.path.join(os.environ.get("TORCHBENCH_DATA_PATH", ""), self.image_name),
+            os.path.join(str(DATA_PATH), self.image_name),
+            os.path.join(
+                os.path.dirname(torch_multimodal_clip_mod.__file__),
+                ".data",
+                self.image_name,
+            ),
+        ]
+        image_path = next(path for path in image_candidates if os.path.isfile(path))
+        self.image = Image.open(image_path)
         self.text = ["pizza", "dog"] * 16
         self.img_transform = CLIPImageTransform(is_train=False)
         self.text_transform = CLIPTextTransform()
@@ -854,7 +863,7 @@ def _patch_fastNLP_Bert():
 
 @register_patch("drq")
 def _patch_drq():
-    """Load obs.pkl from TORCHBENCH_DATA_PATH / DATA_PATH."""
+    """Load obs.pkl without requiring the optional prepare stage."""
     import pickle as pkl
 
     import numpy as np
@@ -864,8 +873,14 @@ def _patch_drq():
     import torchbenchmark.models.drq as drq_mod
 
     def make_env(cfg):
-        obs_path = os.path.join(str(DATA_PATH), "obs.pkl")
-        mockobs = pkl.load(open(obs_path, "rb"))
+        candidates = [
+            os.path.join(os.environ.get("TORCHBENCH_DATA_PATH", ""), "obs.pkl"),
+            os.path.join(str(DATA_PATH), "obs.pkl"),
+            os.path.join(os.path.dirname(drq_mod.__file__), "obs.pkl"),
+        ]
+        obs_path = next(path for path in candidates if os.path.isfile(path))
+        with open(obs_path, "rb") as obs_file:
+            mockobs = pkl.load(obs_file)
         mockobs = np.random.randint(low=11, high=228, size=mockobs.shape, dtype=np.uint8)
         env = MockEnv(mockobs)
         env = FrameStack(env, k=cfg.frame_stack)

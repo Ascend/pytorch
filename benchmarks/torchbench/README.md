@@ -128,9 +128,14 @@
 
     # 使能--only，运行指定模型
     python3 torchbench.py --accuracy --cold-start-latency --train --float32 --backend inductor --only BERT_pytorch --iterations 50
+
+    # 使能--model-list，运行自定义清单中的模型
+    python3 torchbench.py --accuracy --cold-start-latency --train --float32 --backend inductor --model-list /path/to/models.txt --iterations 50
     ```
 
     执行上述命令后，会在终端界面分别打印出模型执行（eager模式和图模式）的单步"端到端时间"、单步loss、"端到端时间"平均值以及eager模式和图模式精度比较的结果（pass_accuracy or fail_accuracy）
+
+    对inference-only模型，即使使用`--training`，也会自动切换为推理执行，避免训练初始化在不支持训练的模型上失败。
 
 2. 编译总时间验证
 
@@ -143,7 +148,7 @@
 
 3. 算子总时间验证
 
-    算子时间验证需要开启profile工具，添加参数`--enable-profiler`，profile结果默认输出路径为`./profile`，用户指定输出路径可使用参数`--prof-output-path`。
+    算子时间验证需要开启profile工具，添加参数`--enable-profiler`。该参数不指定等级时默认使用`level0`，profile结果默认输出路径为`./profile`，用户指定输出路径可使用参数`--prof-output-path`。
 
     ```shell
     # 不指定profile输出路径
@@ -151,6 +156,9 @@
 
     # 指定profile输出路径
     python3 torchbench.py --accuracy --cold-start-latency --train --float32 --backend inductor --iterations 50 --enable-profiler --prof-output-path 'your/path/for/profile/output/'
+
+    # 指定profile等级
+    python3 torchbench.py --accuracy --cold-start-latency --train --float32 --backend inductor --iterations 50 --enable-profiler=0
     ```
 
     `./profile`下的目录结构示例如下，`step_trace_time.csv`文件中记录了模型执行（eager模式和图模式）的单步算子时间
@@ -169,8 +177,19 @@
     | ······
     ```
 
-4. NPU图模式后端指定
+4. 执行模式指定
 
+    TorchBench默认同时执行eager和compile模式，可通过`--execution-mode`指定执行模式。设置为`eager`时只执行eager预热和时延测量，不构建编译模型；设置为`both`时保持默认行为。使用示例如下
+
+    ```shell
+    # 只测量eager性能
+    python3 torchbench.py --performance --training --float32 --backend inductor --iterations 50 --execution-mode eager
+
+    # 同时测量eager和compile性能
+    python3 torchbench.py --performance --training --float32 --backend inductor --iterations 50 --execution-mode both
+    ```
+
+5. NPU图模式后端指定
     当前NPU图模式后端通过`--npu-backend`参数指定，支持`mlir`、`dvm`、`akg`、`triton`和`triton_experimental`五种模式；不显式指定时，会默认选择端到端时间加速比最大的图模式后端。其中`triton`对应默认 Triton 后端，`triton_experimental`对应独立的实验性 Triton 后端。使用示例如下
 
     ```shell
@@ -186,9 +205,9 @@
     python3 torchbench.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --mfusion --only BERT_pytorch --iterations 50
     ```
 
-5. Aclgraph使能关闭与模式指定
+6. Aclgraph使能关闭与模式指定
 
-    当前NPU图模式后端在静态shape的条件下默认开启aclgraph，如果需要关闭aclgraph，可添加参数`--disable-aclgraph`。示例如下
+    当前NPU图模式后端在静态shape的条件下默认开启aclgraph，如果需要关闭aclgraph，可添加参数`--disable-aclgraph`。该参数同时会关闭Triton cudagraphs和cudagraph_trees，避免关闭aclgraph后仍进入graph捕获。示例如下
 
     ```shell
     python3 torchbench.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --only BERT_pytorch --iterations 50 --disable-aclgraph
@@ -200,7 +219,7 @@
     python3 torchbench.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --only BERT_pytorch --iterations 50 --aclgraph-mode reduce-overhead
     ```
 
-6. 动态shape指定
+7. 动态shape指定
 
     当前NPU图模式后端默认执行静态shape，用户可通过参数`--dynamic-shapes`开启动态shape模式，或者可以通过参数`--dynamic-batch-only`仅针对输入数据的batch轴开启动态shape。示例如下
 
@@ -212,7 +231,7 @@
     python3 torchbench.py --accuracy --cold-start-latency --train --float32 --backend inductor --npu-backend mlir --only BERT_pytorch --iterations 50 --dynamic-batch-only
     ```
 
-7. eager与aot\_eager精度对比定位
+8. eager与aot\_eager精度对比定位
 
     ```shell
     # 不使能--only，默认运行torchbench_models_list.txt目录下的所有模型
@@ -220,6 +239,9 @@
 
     # 使能--only，运行指定模型
     python3 torchbench.py --precision-checker --train --float32 --backend aot_eager --only BERT_pytorch
+
+    # 使能--model-list，运行自定义清单中的模型
+    python3 torchbench.py --precision-checker --train --float32 --backend aot_eager --model-list /path/to/models.txt
     ```
 
     执行上述命令之后，会在终端界面打印出网络模型各模块的精度对比结果。当前工具仅支持eager与aot_eager模式对比。

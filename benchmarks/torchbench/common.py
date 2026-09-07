@@ -256,6 +256,44 @@ output_filename = None
 MAX_DOWNLOAD_ATTEMPTS = 5
 
 
+def prepare_torch_geometric_compile_compat(execution_mode):
+    """Keep GNN model construction compatible across PyG compile APIs.
+
+    Some GNN benchmark models call ``torch_geometric.compile`` while they are
+    being constructed.  That is a model-internal optimization, independent of
+    the TorchBench runner's execution mode. Older PyG releases also exposed
+    ``torch_geometric.compile`` as a module containing ``to_jittable`` while
+    newer releases expose only a function, so the old model code can otherwise
+    fail with ``KeyError: 'torch_geometric.compile'``. Keep this shim local to
+    the benchmark process. In eager-only mode both the model-internal compile
+    and jittable conversion are no-ops; in both mode only the missing-module
+    compatibility fallback is installed.
+    """
+
+    try:
+        import types
+        import torch_geometric
+    except ImportError:
+        return
+
+    def eager_compile(model=None, *args, **kwargs):
+        if model is None:
+            return lambda value: value
+        return model
+
+    if execution_mode == "eager":
+        torch_geometric.compile = eager_compile
+        compile_module = types.ModuleType("torch_geometric.compile")
+        compile_module.to_jittable = lambda model: model
+        sys.modules["torch_geometric.compile"] = compile_module
+    elif "torch_geometric.compile" not in sys.modules:
+        # PyG >= 2.8 exposes torch_geometric.compile as a function and no
+        # longer registers the module expected by this older benchmark code.
+        compile_module = types.ModuleType("torch_geometric.compile")
+        compile_module.to_jittable = lambda model: model
+        sys.modules["torch_geometric.compile"] = compile_module
+
+
 class PathManager:
     MAX_PATH_LENGTH = 4096
     MAX_FILE_NAME_LENGTH = 255
@@ -506,6 +544,37 @@ def speedup_experiment(args, model_iter_fn, model, example_inputs, **kwargs):
         first_fields + data,
     )
     return msg
+
+
+def eager_performance_experiment(args, model_iter_fn, model, example_inputs, **kwargs):
+    """Measure eager latency without constructing or running a compiled model."""
+
+    timings = np.zeros(args.repeat, np.float64)
+    times = args.iterations_per_run
+
+    for rep in trange(args.repeat, desc="running eager benchmark"):
+        timings[rep] = timed(
+            model,
+            model_iter_fn,
+            example_inputs,
+            times=times,
+            collect_outputs=args.collect_outputs,
+        )
+
+    median = float(np.median(timings))
+    first_headers = ["dev", "name", "batch_size"]
+    first_fields = [current_device, current_name, current_batch_size]
+    if kwargs.get("tag") is not None:
+        first_headers.append("tag")
+        first_fields.append(kwargs["tag"])
+
+    headers = first_headers + ["execution_mode", "eager_latency", "abs_latency"]
+    row = first_fields + ["eager", median * 1000, median * 1000]
+    if "eager_peak_mem" in kwargs:
+        headers.append("eager_peak_mem")
+        row.append(kwargs["eager_peak_mem"])
+    output_csv(output_filename, headers, row)
+    return f"eager {median * 1000:.3f} ms"
 
 
 def read_batch_size_from_file(args, filename, model_name):
@@ -1066,6 +1135,9 @@ class BenchmarkRunner:
 
             correct_rerun_result = None
 
+            if getattr(self.args, "execution_mode", "both") == "eager":
+                return record_status("pass_eager", dynamo_start_stats=start_stats)
+
             # Run with Dynamo
             reset_rng_state()
             torch._dynamo.reset()
@@ -1163,6 +1235,18 @@ class BenchmarkRunner:
             eager_latency, eager_peak_mem, _ = warmup(
                 self.model_iter_fn, model, example_inputs, "eager"
             )
+            if getattr(self.args, "execution_mode", "both") == "eager":
+                if not hasattr(model, name):
+                    model.name = name
+                return eager_performance_experiment(
+                    self.args,
+                    self.model_iter_fn,
+                    model,
+                    example_inputs,
+                    tag=tag,
+                    eager_peak_mem=eager_peak_mem,
+                )
+
             optimized_model_iter_fn = optimize_ctx(self.model_iter_fn)
             dynamo_latency, dynamo_peak_mem, dynamo_stats = warmup(
                 optimized_model_iter_fn, model, example_inputs, "dynamo"
@@ -1441,6 +1525,10 @@ def parse_args(args=None):
     """,
     )
     parser.add_argument(
+        "--model-list",
+        help="Path to a model list file. Each non-empty line specifies a model name.",
+    )
+    parser.add_argument(
         "--multiprocess",
         action="store_true",
         help="Create n processes based on the number of devices (distributed use case).",
@@ -1603,6 +1691,12 @@ def parse_args(args=None):
         help="Specify NPU backend (only effective when --backend is inductor)",
     )
     parser.add_argument(
+        "--execution-mode",
+        choices=["both", "eager"],
+        default="both",
+        help="Run eager only, or run the default eager-vs-compiled comparison",
+    )
+    parser.add_argument(
         "--mfusion",
         action="store_true",
         help="Enable mfusion module",
@@ -1670,7 +1764,12 @@ def parse_args(args=None):
     run_mode_group.add_argument(
         "--inference", action="store_true", help="Performs inference"
     )
-    return parser.parse_args(args)
+    parsed_args = parser.parse_args(args)
+    if parsed_args.execution_mode == "eager" and parsed_args.precision_checker:
+        parser.error("--execution-mode eager is incompatible with --precision-checker")
+    if parsed_args.execution_mode == "eager" and parsed_args.dump_compile_time:
+        parser.error("--dump-compile-time requires --execution-mode both")
+    return parsed_args
 
 
 def process_entry(rank, runner, original_dir, args):
@@ -1718,9 +1817,19 @@ def run(runner, args, original_dir=None):
     global current_name, current_device, current_batch_size, output_filename
     optimize_ctx = contextlib.nullcontext()
 
-    if args.backend:
+    execution_mode = getattr(args, "execution_mode", "both")
+    prepare_torch_geometric_compile_compat(execution_mode)
+
+    if args.backend and execution_mode == "both":
         optimize_ctx = configure_compile_options(args, runner)
         experiment = speedup_experiment
+        if args.accuracy:
+            output_filename = f"accuracy_{args.backend}.csv"
+        elif args.precision_checker:
+            output_filename = f"precision_checker_{args.backend}.csv"
+        else:
+            output_filename = f"speedup_{args.backend}.csv"
+    elif args.backend:
         if args.accuracy:
             output_filename = f"accuracy_{args.backend}.csv"
         elif args.precision_checker:
@@ -1872,8 +1981,6 @@ def run(runner, args, original_dir=None):
             else:
                 args.profiler_trace_name = "profile"
 
-    experiment = functools.partial(experiment, args, runner.model_iter_fn)
-
     if args.only:
         # use aclnn by default, otherwise compared with aclop
         if os.environ.get("USE_ACLOP", "0").upper() in ["1", "ON"]:
@@ -1933,6 +2040,7 @@ def run(runner, args, original_dir=None):
             current_name = name
             current_device = device
             current_batch_size = batch_size
+            experiment = functools.partial(experiment, args, runner.model_iter_fn)
             set_model_name(name)
 
             # Look for stuff that looks like batch size, and mark it dynamic.
@@ -1997,6 +2105,19 @@ def run(runner, args, original_dir=None):
                         [device, name, placeholder_batch_size, status]
                         for device in args.devices
                     ]
+                elif args.performance and execution_mode == "eager":
+                    headers = [
+                        "dev",
+                        "name",
+                        "batch_size",
+                        "execution_mode",
+                        "eager_latency",
+                        "abs_latency",
+                    ]
+                    rows = [
+                        [device, name, placeholder_batch_size, "eager", 0.0, 0.0]
+                        for device in args.devices
+                    ]
                 elif args.performance:
                     headers = ["dev", "name", "batch_size", "speedup", "abs_latency"]
                     rows = [
@@ -2056,10 +2177,26 @@ def configure_compile_options(args, runner):
     NPU_MFUSION_NO_ACLGRAPH = getattr(
         runner_module, "NPU_MFUSION_NO_ACLGRAPH", set()
     )
+    import torch._inductor.config
+
     npu_backend = args.npu_backend
     # mode Config
     if args.disable_aclgraph or args.dynamic_shapes or args.dynamic_batch_only:
         mode = None
+        torch._inductor.config.triton.cudagraphs = False
+        torch._inductor.config.triton.cudagraph_trees = False
+
+        original_compile = torch.compile
+
+        def compile_without_graphs(model=None, *compile_args, **compile_kwargs):
+            options = dict(compile_kwargs.pop("options", None) or {})
+            options["triton.cudagraphs"] = False
+            options["triton.cudagraph_trees"] = False
+            return original_compile(
+                model, *compile_args, options=options, **compile_kwargs
+            )
+
+        torch.compile = compile_without_graphs
     else:
         mode = args.aclgraph_mode
     if args.only is not None:

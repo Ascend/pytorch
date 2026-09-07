@@ -188,11 +188,31 @@ NPU_REUQIRE_EVEN_LOWER_LEARNING_RATE = {
 
 # torchbench does not support training for these models (eval/inference only).
 INFERENCE_ONLY_MODELS = {
+    "DALLE2_pytorch",
     "cm3leon_generate",
+    "detectron2_fasterrcnn_r_101_c4",
+    "detectron2_fasterrcnn_r_101_dc5",
+    "detectron2_fasterrcnn_r_101_fpn",
+    "detectron2_fasterrcnn_r_50_c4",
+    "detectron2_fasterrcnn_r_50_dc5",
+    "detectron2_fasterrcnn_r_50_fpn",
+    "detectron2_fcos_r_50_fpn",
+    "detectron2_maskrcnn",
+    "detectron2_maskrcnn_r_101_c4",
+    "detectron2_maskrcnn_r_101_fpn",
+    "detectron2_maskrcnn_r_50_c4",
+    "detectron2_maskrcnn_r_50_fpn",
+    "doctr_det_predictor",
+    "doctr_reco_predictor",
+    "hf_T5_generate",
     "hf_distil_whisper",
+    "hf_Whisper",
+    "maml",
     "pyhpc_equation_of_state",
     "pyhpc_isoneutral_mixing",
     "pyhpc_turbulent_kinetic_energy",
+    "stable_diffusion_text_encoder",
+    "stable_diffusion_unet",
     "sam",
     "yolov3",
 }
@@ -264,6 +284,7 @@ class TorchBenchmarkRunner(BenchmarkRunner):
             )
             is_training = False
             self.args.training = False
+            self.model_iter_fn = self.forward_pass
 
         candidates = [
             f"torchbenchmark.models.{model_name}",
@@ -418,9 +439,13 @@ class TorchBenchmarkRunner(BenchmarkRunner):
             os.path.basename(m) for m in torchbenchmark_models
         }
 
-        # Get models from torchbench_models_list.txt file
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        list_file = os.path.join(script_dir, "torchbench_models_list.txt")
+        if args.model_list:
+            list_file = os.path.abspath(args.model_list)
+            if not os.path.isfile(list_file):
+                raise FileNotFoundError(f"model list not found: {list_file}")
+        else:
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            list_file = os.path.join(script_dir, "torchbench_models_list.txt")
         file_model_names = self._get_models_from_file(list_file)
 
         # Find intersection between torchbenchmark and file list
@@ -430,8 +455,9 @@ class TorchBenchmarkRunner(BenchmarkRunner):
         models_not_in_torchbench = file_model_names - torchbenchmark_model_names
         if models_not_in_torchbench:
             logging.warning(  # noqa: LOG015
-                "The following models from torchbench_models_list.txt are not available "
+                "The following models from %s are not available "
                 "in the torchbenchmark repository and will be skipped: %s",
+                os.path.basename(list_file),
                 ", ".join(sorted(models_not_in_torchbench)),
             )
 
