@@ -30,7 +30,6 @@ from torch_npu._inductor._aclgraph_update_plan import (
     emit_inductor_aclgraph_update_plan_for_wrapper,
 )
 from ..fx_passes.utils.schedule_node_utils import is_multi_stream
-from ..flex_attention_tasklist import DKDV_TASKLIST_HELPER_SOURCE
 
 
 class _RuntimeHelperDefinitionsLine(DeferredLineBase):
@@ -86,7 +85,7 @@ class _NPUKernelCodegenMixin:
 class NPUWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
     def __init__(self):
         self.runtime_helper_definitions = IndentedBuffer()
-        self._flex_attention_dkdv_tasklist_helpers_written = False
+        self._runtime_helper_keys = set()
         super().__init__()
         self.buffer_args_multi_stream_intent = {}
         self.buffer_define_multi_stream = {}
@@ -99,142 +98,12 @@ class NPUWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
             _RuntimeHelperDefinitionsLine(self.runtime_helper_definitions)
         )
 
-    def write_flex_attention_dkdv_tasklist_helpers_once(self) -> None:
-        if self._flex_attention_dkdv_tasklist_helpers_written:
+    def write_runtime_helper_once(self, key, source) -> None:
+        if key in self._runtime_helper_keys:
             return
-        self.runtime_helper_definitions.splice(DKDV_TASKLIST_HELPER_SOURCE)
+        self.runtime_helper_definitions.splice(source)
         self.runtime_helper_definitions.writeline("")
-        self._flex_attention_dkdv_tasklist_helpers_written = True
-
-    def generate_flex_attention_dkdv_dispatch(
-        self,
-        *,
-        dispatch_spec,
-        legacy_kernel_name,
-        legacy_call_args,
-        tasklist_kernel_name,
-        tasklist_call_args,
-        tasklist_no_split_kernel_name,
-        tasklist_no_split_call_args,
-        reduce_kernel_name,
-        reduce_call_args,
-        q_num_blocks_name,
-        full_q_num_blocks_name,
-        dk_name,
-        dv_name,
-        runtime_arg_names,
-    ) -> None:
-        self.write_flex_attention_dkdv_tasklist_helpers_once()
-        suffix = self.next_kernel_suffix()
-        prefix = f"dkdv_tasklist_{suffix}"
-        use_tasklist = f"{prefix}_use_tasklist"
-        max_sub = f"{prefix}_max_sub"
-        work_items_tensor = f"{prefix}_work_items_t"
-        task_offsets_tensor = f"{prefix}_task_offsets_t"
-        split_bases_tensor = f"{prefix}_split_bases_t"
-        dk_partial = f"{prefix}_dk_partial"
-        dv_partial = f"{prefix}_dv_partial"
-        num_split_bases = f"{prefix}_num_split_bases"
-
-        device = V.graph.get_current_device_or_throw()
-        stream = PythonWrapperCodegen.write_get_raw_stream(
-            self, device.index, V.graph
-        )
-        self.writeline(
-            f"{use_tasklist}, {work_items_tensor}, {task_offsets_tensor}, "
-            f"{split_bases_tensor}, {max_sub} = "
-            f"_get_or_build_dkdv_task_list("
-            f"{q_num_blocks_name}, {full_q_num_blocks_name}, "
-            f"{dispatch_spec.batch_size}, "
-            f"{dispatch_spec.num_kv_heads}, {dispatch_spec.num_kv_blocks}, "
-            f"{dispatch_spec.sparse_kv_multiple}, "
-            f"{dispatch_spec.launch_programs}, {dk_name}.device)"
-        )
-        self.writeline(f"if {use_tasklist}:")
-        self.writeline(f"    {num_split_bases} = {split_bases_tensor}.size(0)")
-        self.writeline(f"    if {num_split_bases} > 0:")
-        self.writeline(
-            f"        {dk_partial} = torch.empty_strided("
-            f"({max_sub}, *{dk_name}.size()), "
-            f"({dispatch_spec.partial_dk_stride}, *{dk_name}.stride()), "
-            f"dtype=torch.float32, device={dk_name}.device)"
-        )
-        self.writeline(f"        {dk_partial}.zero_()")
-        self.writeline(
-            f"        {dv_partial} = torch.empty_strided("
-            f"({max_sub}, *{dv_name}.size()), "
-            f"({dispatch_spec.partial_dv_stride}, *{dv_name}.stride()), "
-            f"dtype=torch.float32, device={dv_name}.device)"
-        )
-        self.writeline(f"        {dv_partial}.zero_()")
-        self.writeline("    else:")
-        self.writeline(f"        {split_bases_tensor} = None")
-        self.writeline(f"        {dk_partial} = {dk_name}")
-        self.writeline(f"        {dv_partial} = {dv_name}")
-
-        runtime_values = {
-            "work_items_t": work_items_tensor,
-            "task_offsets_t": task_offsets_tensor,
-            "split_bases_t": split_bases_tensor,
-            "dk_partial": dk_partial,
-            "dv_partial": dv_partial,
-        }
-
-        def replace_runtime_args(call_args):
-            replacements = {
-                outer_name: runtime_values[wrapper_name]
-                for outer_name, wrapper_name in runtime_arg_names.items()
-            }
-            return [replacements.get(str(arg), arg) for arg in call_args]
-
-        tasklist_args = replace_runtime_args(tasklist_call_args)
-        tasklist_grid = [dispatch_spec.launch_programs, 1, 1]
-        tasklist_args_text = ", ".join(
-            self.prepare_triton_kernel_call([*tasklist_args, *tasklist_grid])
-        )
-        tasklist_no_split_args = replace_runtime_args(
-            tasklist_no_split_call_args
-        )
-        tasklist_no_split_args_text = ", ".join(
-            self.prepare_triton_kernel_call(
-                [*tasklist_no_split_args, *tasklist_grid]
-            )
-        )
-        self.writeline(f"    if {num_split_bases} > 0:")
-        self.writeline(
-            f"        {tasklist_kernel_name}.run("
-            f"{tasklist_args_text}, stream={stream})"
-        )
-        self.writeline("    else:")
-        self.writeline(
-            f"        {tasklist_no_split_kernel_name}.run("
-            f"{tasklist_no_split_args_text}, stream={stream})"
-        )
-
-        reduce_args = replace_runtime_args(reduce_call_args)
-        reduce_args_text = ", ".join(
-            self.prepare_triton_kernel_call(
-                [*reduce_args, num_split_bases, 1, 1]
-            )
-        )
-        self.writeline(f"    if {num_split_bases} > 0:")
-        self.writeline(
-            f"        {reduce_kernel_name}.run("
-            f"{reduce_args_text}, stream={stream})"
-        )
-        self.writeline(
-            f"    del {work_items_tensor}, {task_offsets_tensor}, "
-            f"{split_bases_tensor}, {dk_partial}, {dv_partial}"
-        )
-        self.writeline("else:")
-        legacy_grid = [dispatch_spec.launch_programs, 1, 1]
-        legacy_args_text = ", ".join(
-            self.prepare_triton_kernel_call([*legacy_call_args, *legacy_grid])
-        )
-        self.writeline(
-            f"    {legacy_kernel_name}.run({legacy_args_text}, stream={stream})"
-        )
-
+        self._runtime_helper_keys.add(key)
 
     @staticmethod
     def create(

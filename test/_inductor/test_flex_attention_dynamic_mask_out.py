@@ -1,3 +1,4 @@
+import ast
 import math
 import unittest
 from pathlib import Path
@@ -106,17 +107,14 @@ class TestFlexAttentionDynamicMaskOutSource(unittest.TestCase):
         forward_compact = template.split(
             "compute_sparse_mask_kernel_compact =", 1
         )[1].split("compute_bwd_sparse_mask_kernel_compact =", 1)[0]
-        forward_block = template.split(
-            "compute_forward_block_mn_sparse_mask =", 1
-        )[1].split("compute_forward_inner_sparse_mask_direct_index =", 1)[0]
-        forward_kernel = template.split(
-            "compute_flex_attention_sparse_mask_in_loop_no_load_balance =", 1
-        )[1].split("compute_forward_block_mn_full =", 1)[0]
+        forward_kernel = template.split("flex_attention_fwd =", 1)[1].split(
+            "@SymbolicGridFn", 1
+        )[0]
 
         self.assertIn('{{size("FLAT_TO_ROW", 0)}}', forward_compact)
         self.assertIn('{{size("Q", 2)}}', forward_compact)
         self.assertIn('{{size("K", 2)}}', forward_compact)
-        self.assertNotIn("NUM_SPARSE_Q_BLOCKS", forward_block + forward_kernel)
+        self.assertNotIn("NUM_SPARSE_Q_BLOCKS", forward_kernel)
 
     def test_backward_compact_kernels_use_symbolic_mapping_sizes(self):
         template = _read(TEMPLATE_PATH)
@@ -125,7 +123,7 @@ class TestFlexAttentionDynamicMaskOutSource(unittest.TestCase):
         )[1].split("compute_sparse_mask_block_pos_kernel =", 1)[0]
         block_pos = template.split(
             "compute_sparse_mask_block_pos_kernel =", 1
-        )[1].split("compute_forward_block_mn_sparse_mask =", 1)[0]
+        )[1].split("flex_attention_fwd =", 1)[0]
 
         for source in (backward_compact, block_pos):
             self.assertIn('{{size("FLAT_TO_ROW", 0)}}', source)
@@ -154,7 +152,11 @@ class TestFlexAttentionDynamicMaskOutSource(unittest.TestCase):
         lowering = _read(LOWERING_PATH)
 
         self.assertIn("bwd_has_dynamic_shape", lowering)
-        self.assertIn("or bwd_has_dynamic_shape", lowering)
+        self.assertIn("elif bwd_has_dynamic_shape:", lowering)
+        self.assertIn(
+            'eligibility_reason = "dK/dV tasklist requires static shapes"',
+            lowering,
+        )
         self.assertNotIn("NUM_SPARSE_Q_BLOCKS", lowering)
 
     def test_backward_dq_task_count_comes_from_runtime_q_shape(self):
@@ -182,6 +184,107 @@ class TestFlexAttentionDynamicMaskOutNPU(unittest.TestCase):
             scores = scores.masked_fill(q_idx < kv_idx, float("-inf"))
         probabilities = torch.softmax(scores, dim=-1)
         return torch.matmul(probabilities, v.float()).to(q.dtype)
+
+    def test_forward_dynamic_dispatch_runs_both_runtime_branches(self):
+        from torch.nn.attention.flex_attention import create_block_mask, flex_attention
+        from torch_npu._inductor import config as npu_config
+        from torch_npu._inductor.kernel.flex_attention_dispatch import (
+            FLEX_ATTENTION_FWD_DISPATCH_HELPER_SOURCE,
+        )
+
+        def diagonal_mask(_b, _h, q_idx, kv_idx):
+            return q_idx == kv_idx
+
+        def full_mask(_b, _h, q_idx, _kv_idx):
+            return q_idx == q_idx
+
+        seq_len = 512
+        q = torch.randn(1, 1, seq_len, 64, device="npu", dtype=torch.bfloat16)
+        k = torch.randn_like(q)
+        v = torch.randn_like(q)
+        block_mask = create_block_mask(
+            diagonal_mask,
+            B=1,
+            H=1,
+            Q_LEN=seq_len,
+            KV_LEN=seq_len,
+            device="npu",
+        )
+        full_block_mask = create_block_mask(
+            full_mask,
+            B=1,
+            H=1,
+            Q_LEN=seq_len,
+            KV_LEN=seq_len,
+            device="npu",
+        )
+        self.assertTrue(torch.all(block_mask.full_kv_num_blocks == 0).item())
+        self.assertFalse(torch.all(block_mask.full_kv_indices == 0).item())
+
+        dispatch_namespace = {"torch": torch}
+        exec(
+            FLEX_ATTENTION_FWD_DISPATCH_HELPER_SOURCE,
+            dispatch_namespace,
+        )
+        dispatch = dispatch_namespace["dynamic_flexattention_dispatch"]
+
+        def fn(query, key, value):
+            return flex_attention(
+                query,
+                key,
+                value,
+                block_mask=block_mask,
+            )
+
+        original_dispatch = (
+            npu_config.flex_attention.flexattention_dispatch_strategy
+        )
+        npu_config.flex_attention.flexattention_dispatch_strategy = "fwd"
+        try:
+            compiled = torch.compile(fn, backend="inductor", fullgraph=True)
+            self.assertEqual(
+                dispatch(
+                    block_mask.kv_num_blocks,
+                    block_mask.kv_indices,
+                    block_mask.full_kv_num_blocks,
+                    block_mask.full_kv_indices,
+                ),
+                "ALL_SPARSE_BLOCKS",
+            )
+            all_sparse_output = compiled(q, k, v)
+            for name in (
+                "kv_num_blocks",
+                "kv_indices",
+                "full_kv_num_blocks",
+                "full_kv_indices",
+                "q_num_blocks",
+                "q_indices",
+                "full_q_num_blocks",
+                "full_q_indices",
+            ):
+                getattr(block_mask, name).copy_(getattr(full_block_mask, name))
+            self.assertIsNone(
+                dispatch(
+                    block_mask.kv_num_blocks,
+                    block_mask.kv_indices,
+                    block_mask.full_kv_num_blocks,
+                    block_mask.full_kv_indices,
+                )
+            )
+            default_output = compiled(q, k, v)
+        finally:
+            npu_config.flex_attention.flexattention_dispatch_strategy = (
+                original_dispatch
+            )
+            torch._dynamo.reset()
+
+        torch.testing.assert_close(all_sparse_output, v, atol=2e-2, rtol=2e-2)
+        torch.testing.assert_close(
+            default_output,
+            self._dense_reference(q, k, v, causal=False),
+            atol=2e-2,
+            rtol=2e-2,
+        )
 
     def test_forward_compile_for_shape_specific_block_mask_metadata(self):
         from torch._dynamo.testing import CompileCounterWithBackend

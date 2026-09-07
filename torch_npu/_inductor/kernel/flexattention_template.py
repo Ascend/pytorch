@@ -16,7 +16,7 @@ _FWD_COMPILE_OPTIONS = NPUTemplateCompileOption(
         "set_workspace_multibuffer": 4,
         "limit_auto_multi_buffer_buffer": "no-limit",
         "hfusion_enable_multiple_consumer_fusion": True,
-        "multibuffer": False,
+        "multibuffer": True,
         "limit_auto_multi_buffer_only_for_local_buffer": True,
         "tile_mix_vector_loop": 0,
         "tile_mix_cube_loop": 0,
@@ -47,13 +47,6 @@ _BWD_DKDV_COMPILE_OPTIONS = NPUTemplateCompileOption(
         "inter_cache_num": 1,
     }
 )
-
-get_bounded_indices_func = r"""
-@triton.jit
-def get_bounded_indices(indices, max_len=None):
-    return indices % max_len if max_len is not None else indices
-"""
-
 
 compute_compact_sparse_mask_offsets_kernel = r"""
 {{def_kernel("Q_OFFSETS", "TOTAL_BLOCKS", "KV_NUM_BLKS")}}
@@ -310,197 +303,7 @@ compute_sparse_mask_block_pos_kernel = r"""
 """
 
 
-compute_forward_block_mn_sparse_mask = r"""
-@triton.jit
-def forward_block_mn_sparse_mask(
-    {{gen_argdefs()}},
-    q, k, v, Q_LEN, KV_LEN,
-    # accumulated values
-    acc, l_i, m_i,
-    # Offsets
-    off_z, off_h, offs_m, offs_n,
-    MATMUL_PRECISION,
-    q_start,
-    blk_idx_in_list,
-    IS_FULL_BLOCKS, CHECK_BLOCK_BOUNDARY=False,
-
-):
-    # Redefines all kernel parameters (BLOCK_M, etc.) so we don't need to plumb them all through
-    {{gen_defines() | indent_except_first(1)}}
-    # -- compute qk ---
-    qk = tl.dot(q, tl.trans(k))
-    if not PRESCALE_QK:
-        qk *= SM_SCALE
-    # ~~~~~~~~~~~~~~~~~~~ Apply score modification  ~~~~~~~~~~~~~~~~~~~
-    m = get_bounded_indices(offs_m, Q_LEN if CHECK_BLOCK_BOUNDARY else None)
-    n = get_bounded_indices(offs_n, KV_LEN if CHECK_BLOCK_BOUNDARY else None)
-
-    {{ modification(
-        subgraph_number=0,
-        output_name="post_mod_scores",
-        score="qk",
-        b="off_z",
-        h="off_h",
-        m="m",
-        n="n",
-        out="qk"
-    ) | indent_except_first(1) }}
-
-    if not IS_FULL_BLOCKS:
-{% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
-        SPARSE_Q_MULTIPLE: tl.constexpr = (SPARSE_Q_BLOCK_SIZE // BLOCK_M)
-        sparse_h_count = {{size("KV_NUM_BLKS", 1)}}
-        q_sparse_idx = q_start // SPARSE_Q_MULTIPLE
-        q_sparse_start = q_sparse_idx * SPARSE_Q_BLOCK_SIZE
-        sparse_h = off_h % sparse_h_count
-        # Broadcast a B=1 block-mask across B>1 QKV (mirror the other sparse paths).
-        sparse_z_count = {{size("KV_NUM_BLKS", 0)}}
-        sparse_idx_z = off_z % sparse_z_count
-
-        stride_kv_idx_z = {{stride("KV_IDX", 0)}}
-        stride_kv_idx_h = {{stride("KV_IDX", 1)}}
-        stride_kv_idx_m = {{stride("KV_IDX", 2)}}
-        stride_kv_idx_blk = {{stride("KV_IDX", 3)}}
-        kv_block = tl.load(
-            arg_KV_IDX
-            + sparse_idx_z * stride_kv_idx_z
-            + sparse_h * stride_kv_idx_h
-            + q_sparse_idx * stride_kv_idx_m
-            + blk_idx_in_list * stride_kv_idx_blk
-        )
-
-        offs_m_local = offs_m - q_sparse_start
-        offs_n_local = offs_n - kv_block * SPARSE_KV_BLOCK_SIZE
-        stride_q_offsets_z = {{stride("Q_OFFSETS", 0)}}
-        stride_q_offsets_h = {{stride("Q_OFFSETS", 1)}}
-        stride_q_offsets_q = {{stride("Q_OFFSETS", 2)}}
-        q_offsets_idx = (
-            sparse_idx_z * stride_q_offsets_z
-            + sparse_h * stride_q_offsets_h
-            + q_sparse_idx * stride_q_offsets_q
-        )
-        flat_blk = tl.load(arg_Q_OFFSETS + q_offsets_idx) + blk_idx_in_list
-        mask_base = arg_SPARSE_MASK + flat_blk * SPARSE_MASK_STRIDE_BLK
-        mask_offsets = offs_m_local * SPARSE_MASK_STRIDE_M + offs_n_local
-        mask_mod_output = tl.load(mask_base + mask_offsets) != 0
-{% else %}
-        {{ modification(
-            subgraph_number=1,
-            output_name="mask_mod_output",
-            score="qk",
-            b="off_z",
-            h="off_h",
-            m="m",
-            n="n",
-        ) | indent_except_first(2) }}
-        mask_mod_output = mask_mod_output & (offs_m < Q_LEN) & (offs_n < KV_LEN)
-{% endif %}
-        # apply mask for partially unmasked blocks
-        post_mod_scores = tl.where(mask_mod_output, post_mod_scores, float("-inf"))
-    elif CHECK_BLOCK_BOUNDARY:
-        post_mod_scores = tl.where(offs_n < KV_LEN, post_mod_scores, float("-inf"))
-
-    # -- compute scaling constant ---
-    m_ij = tl.maximum(
-        m_i,
-        tl.max(post_mod_scores, 1, propagate_nan=True),
-        propagate_nan=tl.PropagateNan.ALL,
-    )
-    if not ROWS_GUARANTEED_SAFE:
-        masked_out_rows = (m_ij == float("-inf"))
-        m_ij_masked = tl.where(masked_out_rows, 0, m_ij)
-    else:
-        m_ij_masked = m_ij
-
-    alpha = tl.math.exp(m_i - m_ij_masked)
-    p = tl.math.exp(post_mod_scores - m_ij_masked[:, None])
-
-    # NB: l_i update is pulled up here since it's a bit faster
-    # NB: For headdim=256, it's faster to move it back down to after m_i =
-    # m_ij
-    l_i = l_i * alpha + tl.sum(p, 1)
-    # # -- scale and update acc --
-    acc = acc * alpha[:, None]
-    acc = tl.dot(p.to(MATMUL_PRECISION), v, acc)
-    # -- update m_i
-    m_i = m_ij
-
-    return acc, l_i, m_i
-
-"""
-
-compute_forward_inner_sparse_mask_direct_index = r"""
-@triton.jit
-def forward_inner_sparse_mask_direct_index(
-    {{gen_argdefs()}},
-    q, K, V, Q_LEN, KV_LEN,
-    stride_kk, stride_kn, stride_vn, stride_vk,
-    # accumulated values
-    acc, l_i, m_i,
-    # Offsets used as inputs to score_mod & mask_mod
-    off_z, off_h, offs_m,
-    # blocksparse data
-    kv_indices, kv_num_blocks,
-    # start kv and end kv block
-    block_n_start, block_n_end,
-    MATMUL_PRECISION,
-    q_start,
-    IS_FULL_BLOCKS,
-):
-    {{gen_defines() | indent_except_first(1)}}
-
-    SPARSE_KV_MULTIPLE: tl.constexpr = (SPARSE_KV_BLOCK_SIZE // BLOCK_N)
-    offs_k = tl.arange(0, QK_HEAD_DIM)
-    offs_v = tl.arange(0, V_HEAD_DIM)
-
-    if PRESCALE_QK:
-        q = (q * SM_SCALE).to(MATMUL_PRECISION)
-
-    for start_n in range(block_n_start, block_n_end):
-        blk_idx_in_list = start_n // SPARSE_KV_MULTIPLE
-        kv_block = tl.load(kv_indices + blk_idx_in_list)
-        kv_start = kv_block * SPARSE_KV_BLOCK_SIZE + (start_n % SPARSE_KV_MULTIPLE) * BLOCK_N
-        offs_n = kv_start + tl.arange(0, BLOCK_N)
-        k = tl.load(
-            K + offs_n[:, None] * stride_kn + offs_k[None, :] * stride_kk,
-            mask=offs_n[:, None] < KV_LEN,
-            other=0.0,
-        )
-        v = tl.load(
-            V + offs_n[:, None] * stride_vn + offs_v[None, :] * stride_vk,
-            mask=offs_n[:, None] < KV_LEN,
-            other=0.0,
-        )
-
-        if IS_DIVISIBLE:
-            acc, l_i, m_i = forward_block_mn_sparse_mask(
-                {{gen_argdefs()}},
-                q, k, v, Q_LEN, KV_LEN,
-                acc, l_i, m_i,
-                off_z, off_h, offs_m, offs_n[None, :],
-                MATMUL_PRECISION,
-                q_start,
-                blk_idx_in_list,
-                IS_FULL_BLOCKS,
-            )
-        else:
-            acc, l_i, m_i = forward_block_mn_sparse_mask(
-                {{gen_argdefs()}},
-                q, k, v, Q_LEN, KV_LEN,
-                acc, l_i, m_i,
-                off_z, off_h, offs_m, offs_n[None, :],
-                MATMUL_PRECISION,
-                q_start,
-                blk_idx_in_list,
-                IS_FULL_BLOCKS, CHECK_BLOCK_BOUNDARY=True,
-            )
-
-    return acc, l_i, m_i
-
-"""
-
-
-compute_flex_attention_sparse_mask_in_loop_no_load_balance = r"""
+flex_attention_fwd = r"""
 {{def_kernel("Q", "K", "V", "SPARSE_MASK", "Q_OFFSETS", "KV_NUM_BLKS", "KV_IDX", "LSE", "FULL_KV_NUM_BLKS", "FULL_KV_IDX")}}
     tl.static_assert(SPARSE_Q_BLOCK_SIZE >= BLOCK_M and SPARSE_Q_BLOCK_SIZE % BLOCK_M == 0)
     tl.static_assert(SPARSE_KV_BLOCK_SIZE >= BLOCK_N and SPARSE_KV_BLOCK_SIZE % BLOCK_N == 0)
@@ -572,34 +375,103 @@ compute_flex_attention_sparse_mask_in_loop_no_load_balance = r"""
             propagate_nan=tl.PropagateNan.ALL,
         )
 
-        acc, l_i, m_i = forward_inner_sparse_mask_direct_index(
-            {{gen_argdefs()}},
-            q, K_tile, V_tile, Q_LEN, KV_LEN,
-            stride_kk, stride_kn, stride_vn, stride_vk,
-            acc, l_i, m_i,
-            off_zq, off_hq, offs_m[:, None],
-            kv_indices, kv_num_blocks,
-            0, block_n_end,
-            MATMUL_PRECISION,
-            q_start,
-            IS_FULL_BLOCKS=False,
-        )
-{% if HAS_FULL_BLOCKS %}
-        FULL_SPARSE_Z = {{size("FULL_KV_NUM_BLKS", 0)}}
-        FULL_SPARSE_HQ = {{size("FULL_KV_NUM_BLKS", 1)}}
-        full_sparse_idx_z = off_zq % FULL_SPARSE_Z
-        full_sparse_idx_hq = off_hq % FULL_SPARSE_HQ
+        q_sparse = (q * SM_SCALE).to(MATMUL_PRECISION) if PRESCALE_QK else q
 
-        stride_full_kv_num_blks_h = {{stride("FULL_KV_NUM_BLKS", 1)}}
-        stride_full_kv_idx_h = {{stride("FULL_KV_IDX", 1)}}
-        stride_full_kv_idx_m = {{stride("FULL_KV_IDX", 2)}}
+        for start_n in range(0, block_n_end):
+            blk_idx_in_list = start_n // SPARSE_KV_MULTIPLE
+            kv_block = tl.load(kv_indices + blk_idx_in_list)
+            kv_start = (
+                kv_block * SPARSE_KV_BLOCK_SIZE
+                + (start_n % SPARSE_KV_MULTIPLE) * BLOCK_N
+            )
+            offs_n = kv_start + tl.arange(0, BLOCK_N)
+            k = tl.load(
+                K_tile + offs_n[:, None] * stride_kn + offs_k[None, :] * stride_kk,
+                mask=offs_n[:, None] < KV_LEN,
+                other=0.0,
+            )
+            v = tl.load(
+                V_tile + offs_n[:, None] * stride_vn + offs_v[None, :] * stride_vk,
+                mask=offs_n[:, None] < KV_LEN,
+                other=0.0,
+            )
 
-        full_hz_offset = full_sparse_idx_z * FULL_SPARSE_HQ + full_sparse_idx_hq
-        full_kv_num_blks_offset = full_hz_offset * stride_full_kv_num_blks_h + q_sparse_idx
-        full_kv_idx_offset = full_hz_offset * stride_full_kv_idx_h + q_sparse_idx * stride_full_kv_idx_m
-        kv_num_blocks = tl.load(FULL_KV_NUM_BLKS + full_kv_num_blks_offset)
+            qk = tl.dot(q_sparse, tl.trans(k))
+            if not PRESCALE_QK:
+                qk *= SM_SCALE
+            post_mod_scores = qk
 
-        if kv_num_blocks > 0:
+            m = offs_m[:, None] % Q_LEN if not IS_DIVISIBLE else offs_m[:, None]
+            n = offs_n[None, :] % KV_LEN if not IS_DIVISIBLE else offs_n[None, :]
+
+            sparse_h_count = {{size("KV_NUM_BLKS", 1)}}
+            q_sparse_start = q_sparse_idx * SPARSE_Q_BLOCK_SIZE
+            sparse_h = off_hq % sparse_h_count
+            sparse_z_count = {{size("KV_NUM_BLKS", 0)}}
+            sparse_idx_z_for_mask = off_zq % sparse_z_count
+
+            stride_kv_idx_z = {{stride("KV_IDX", 0)}}
+            stride_kv_idx_h_for_mask = {{stride("KV_IDX", 1)}}
+            stride_kv_idx_m_for_mask = {{stride("KV_IDX", 2)}}
+            stride_kv_idx_blk = {{stride("KV_IDX", 3)}}
+            mask_kv_block = tl.load(
+                arg_KV_IDX
+                + sparse_idx_z_for_mask * stride_kv_idx_z
+                + sparse_h * stride_kv_idx_h_for_mask
+                + q_sparse_idx * stride_kv_idx_m_for_mask
+                + blk_idx_in_list * stride_kv_idx_blk
+            )
+
+            offs_m_local = offs_m[:, None] - q_sparse_start
+            offs_n_local = offs_n[None, :] - mask_kv_block * SPARSE_KV_BLOCK_SIZE
+            stride_q_offsets_z = {{stride("Q_OFFSETS", 0)}}
+            stride_q_offsets_h = {{stride("Q_OFFSETS", 1)}}
+            stride_q_offsets_q = {{stride("Q_OFFSETS", 2)}}
+            q_offsets_idx = (
+                sparse_idx_z_for_mask * stride_q_offsets_z
+                + sparse_h * stride_q_offsets_h
+                + q_sparse_idx * stride_q_offsets_q
+            )
+            flat_blk = tl.load(arg_Q_OFFSETS + q_offsets_idx) + blk_idx_in_list
+            mask_base = arg_SPARSE_MASK + flat_blk * SPARSE_MASK_STRIDE_BLK
+            mask_offsets = offs_m_local * SPARSE_MASK_STRIDE_M + offs_n_local
+            mask_mod_output = tl.load(mask_base + mask_offsets) != 0
+            post_mod_scores = tl.where(
+                mask_mod_output, post_mod_scores, float("-inf")
+            )
+
+            m_ij = tl.maximum(
+                m_i,
+                tl.max(post_mod_scores, 1, propagate_nan=True),
+                propagate_nan=tl.PropagateNan.ALL,
+            )
+            if not ROWS_GUARANTEED_SAFE:
+                masked_out_rows = m_ij == float("-inf")
+                m_ij_masked = tl.where(masked_out_rows, 0, m_ij)
+            else:
+                m_ij_masked = m_ij
+
+            alpha = tl.math.exp(m_i - m_ij_masked)
+            p = tl.math.exp(post_mod_scores - m_ij_masked[:, None])
+            l_i = l_i * alpha + tl.sum(p, 1)
+            acc = acc * alpha[:, None]
+            acc = tl.dot(p.to(MATMUL_PRECISION), v, acc)
+            m_i = m_ij
+
+        if HAS_FULL_BLOCKS:
+            FULL_SPARSE_Z = {{size("FULL_KV_NUM_BLKS", 0)}}
+            FULL_SPARSE_HQ = {{size("FULL_KV_NUM_BLKS", 1)}}
+            full_sparse_idx_z = off_zq % FULL_SPARSE_Z
+            full_sparse_idx_hq = off_hq % FULL_SPARSE_HQ
+
+            stride_full_kv_num_blks_h = {{stride("FULL_KV_NUM_BLKS", 1)}}
+            stride_full_kv_idx_h = {{stride("FULL_KV_IDX", 1)}}
+            stride_full_kv_idx_m = {{stride("FULL_KV_IDX", 2)}}
+
+            full_hz_offset = full_sparse_idx_z * FULL_SPARSE_HQ + full_sparse_idx_hq
+            full_kv_num_blks_offset = full_hz_offset * stride_full_kv_num_blks_h + q_sparse_idx
+            full_kv_idx_offset = full_hz_offset * stride_full_kv_idx_h + q_sparse_idx * stride_full_kv_idx_m
+            kv_num_blocks = tl.load(FULL_KV_NUM_BLKS + full_kv_num_blks_offset)
             kv_indices = FULL_KV_IDX + full_kv_idx_offset
 
             for start_n in range(0, kv_num_blocks):
@@ -618,24 +490,42 @@ compute_flex_attention_sparse_mask_in_loop_no_load_balance = r"""
                         other=0.0,
                     )
 
-                    if IS_DIVISIBLE:
-                        acc, l_i, m_i = forward_block_mn_full(
-                            {{gen_argdefs()}},
-                            q, k, v, Q_LEN, KV_LEN,
-                            acc, l_i, m_i,
-                            off_zq, off_hq, offs_m[:, None], offs_n[None, :],
-                            MATMUL_PRECISION,
+                    qk = tl.dot(q, tl.trans(k))
+                    if not PRESCALE_QK:
+                        qk *= SM_SCALE
+                    post_mod_scores = qk
+
+                    m = (
+                        offs_m[:, None] % Q_LEN
+                        if not IS_DIVISIBLE
+                        else offs_m[:, None]
+                    )
+                    n = (
+                        offs_n[None, :] % KV_LEN
+                        if not IS_DIVISIBLE
+                        else offs_n[None, :]
+                    )
+
+                    if not IS_DIVISIBLE:
+                        post_mod_scores = tl.where(
+                            offs_n[None, :] < KV_LEN,
+                            post_mod_scores,
+                            float("-inf"),
                         )
-                    else:
-                        acc, l_i, m_i = forward_block_mn_full(
-                            {{gen_argdefs()}},
-                            q, k, v, Q_LEN, KV_LEN,
-                            acc, l_i, m_i,
-                            off_zq, off_hq, offs_m[:, None], offs_n[None, :],
-                            MATMUL_PRECISION,
-                            CHECK_BLOCK_BOUNDARY=True,
-                        )
-{% endif %}
+
+                    m_ij = tl.maximum(
+                        m_i,
+                        tl.max(post_mod_scores, 1, propagate_nan=True),
+                        propagate_nan=tl.PropagateNan.ALL,
+                    )
+                    masked_out_rows = m_ij == float("-inf")
+                    m_ij_masked = tl.where(masked_out_rows, 0, m_ij)
+                    alpha = tl.math.exp(m_i - m_ij_masked)
+                    p = tl.math.exp(post_mod_scores - m_ij_masked[:, None])
+                    l_i = l_i * alpha + tl.sum(p, 1)
+                    acc = acc * alpha[:, None]
+                    acc = tl.dot(p.to(MATMUL_PRECISION), v, acc)
+                    m_i = m_ij
 
         l_i = tl.where(l_i == 0.0, 1, l_i)
         acc = acc / l_i[:, None]
@@ -655,75 +545,6 @@ compute_flex_attention_sparse_mask_in_loop_no_load_balance = r"""
                 tl.store(l_ptrs, lse)
             else:
                 tl.store(l_ptrs, lse, mask=offs_m < Q_LEN)
-"""
-
-compute_forward_block_mn_full = r"""
-@triton.jit
-def forward_block_mn_full(
-    {{gen_argdefs()}},
-    q, k, v, Q_LEN, KV_LEN,
-    acc, l_i, m_i,
-    off_z, off_h, offs_m, offs_n,
-    MATMUL_PRECISION,
-    CHECK_BLOCK_BOUNDARY=False,
-):
-    {{gen_defines() | indent_except_first(1)}}
-    qk = tl.dot(q, tl.trans(k))
-    if not PRESCALE_QK:
-        qk *= SM_SCALE
-
-    m = get_bounded_indices(offs_m, Q_LEN if CHECK_BLOCK_BOUNDARY else None)
-    n = get_bounded_indices(offs_n, KV_LEN if CHECK_BLOCK_BOUNDARY else None)
-
-    {{ modification(
-        subgraph_number=0,
-        output_name="post_mod_scores",
-        score="qk",
-        b="off_z",
-        h="off_h",
-        m="m",
-        n="n",
-        out="qk"
-    ) | indent_except_first(1) }}
-
-{% if not TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
-    if True:
-        {{ modification(
-            subgraph_number=1,
-            output_name="mask_mod_output",
-            score="qk",
-            b="off_z",
-            h="off_h",
-            m="m",
-            n="n",
-        ) | indent_except_first(2) }}
-        mask_mod_output = mask_mod_output & (offs_m < Q_LEN) & (offs_n < KV_LEN)
-        post_mod_scores = tl.where(
-            mask_mod_output,
-            post_mod_scores,
-            float("-inf"),
-        )
-{% endif %}
-
-    m_ij = tl.maximum(
-        m_i,
-        tl.max(post_mod_scores, 1, propagate_nan=True),
-        propagate_nan=tl.PropagateNan.ALL,
-    )
-    if not ROWS_GUARANTEED_SAFE:
-        masked_out_rows = (m_ij == float("-inf"))
-        m_ij_masked = tl.where(masked_out_rows, 0, m_ij)
-    else:
-        m_ij_masked = m_ij
-
-    alpha = tl.math.exp(m_i - m_ij_masked)
-    p = tl.math.exp(post_mod_scores - m_ij_masked[:, None])
-    l_i = l_i * alpha + tl.sum(p, 1)
-    acc = acc * alpha[:, None]
-    acc = tl.dot(p.to(MATMUL_PRECISION), v, acc)
-    m_i = m_ij
-    return acc, l_i, m_i
-
 """
 
 
@@ -776,19 +597,17 @@ def sparse_mask_block_pos_grid(actual_blocks, meta, *, min, max):
 del TritonTemplate.all_templates["flex_attention"]
 del TritonTemplate.all_templates["flex_attention_backward"]
 
-_FWD_MASK_OUT_SOURCE = (
-    compute_flex_attention_sparse_mask_in_loop_no_load_balance
-    + compute_forward_inner_sparse_mask_direct_index
-    + compute_forward_block_mn_sparse_mask
-    + compute_forward_block_mn_full
-    + get_bounded_indices_func
-)
-
-
 flex_attention_fwd_mask_out = NPUTritonTemplate(
     name="flex_attention_fwd_mask_out",
     grid=flex_attention_in_loop_grid,
-    source=_FWD_MASK_OUT_SOURCE,
+    source=flex_attention_fwd,
+    compile_options=_FWD_COMPILE_OPTIONS,
+)
+
+flex_attention_fwd_mask_out_all_sparse = NPUTritonTemplate(
+    name="flex_attention_fwd_mask_out_all_sparse",
+    grid=flex_attention_in_loop_grid,
+    source=flex_attention_fwd,
     compile_options=_FWD_COMPILE_OPTIONS,
 )
 

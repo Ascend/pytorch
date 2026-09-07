@@ -28,10 +28,8 @@ class FlexAttentionDkdvDispatchSpec:
     partial_dv_stride: int
 
 
-def is_dkdv_tasklist_codegen_compatible(
+def is_dkdv_tasklist_eligible(
     *,
-    cpp_wrapper,
-    aot_mode,
     bq,
     bkv,
     sparse_z,
@@ -46,9 +44,7 @@ def is_dkdv_tasklist_codegen_compatible(
 ):
     static_dimensions = (bq, bkv, sparse_z, sparse_hq)
     return (
-        not cpp_wrapper
-        and not aot_mode
-        and all(isinstance(value, int) for value in static_dimensions)
+        all(isinstance(value, int) for value in static_dimensions)
         and bq == 1
         and bq == bkv
         and sparse_z == bq

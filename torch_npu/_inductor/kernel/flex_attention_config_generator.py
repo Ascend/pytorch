@@ -230,9 +230,7 @@ class FlexAttentionConfigGenerator:
                         block_m=block_m,
                         block_n=block_n,
                         num_warps=4,
-                        num_stages=(
-                            2 if self.mode == FlexMode.BWDDKDV else 1
-                        ),
+                        num_stages=2
                     )
                 )
         return configs

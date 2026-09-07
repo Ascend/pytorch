@@ -297,12 +297,12 @@ class flex_attention:
     """Runtime strategy switches for the NPU FlexAttention lowering."""
 
     flexattention_mask_out = True
-    bwd_dkdv_tasklist = True
+    flexattention_dispatch_strategy = None
 
 
-flex_attention.bwd_dkdv_tasklist = _read_env_bool(
-    "TORCHINDUCTOR_ASCEND_FLEX_ATTENTION_BWD_DKDV_TASKLIST",
-    "1" if flex_attention.bwd_dkdv_tasklist else "0",
+flex_attention.flexattention_dispatch_strategy = os.environ.get(
+    "TORCHINDUCTOR_ASCEND_FLEX_ATTENTION_DISPATCH_STRATEGY",
+    flex_attention.flexattention_dispatch_strategy,
 )
 flex_attention.flexattention_mask_out = _read_env_bool(
     "TORCHINDUCTOR_FLEXATTENTION_MASKOUT",

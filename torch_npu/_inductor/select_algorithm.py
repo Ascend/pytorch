@@ -62,6 +62,10 @@ from torch.utils._ordered_set import OrderedSet
 
 from ..profiler import tensorboard_trace_handler
 from . import config as npu_config
+from .kernel.flex_attention_dispatch import (
+    FlexAttentionDispatchTemplateCaller,
+    resolve_flex_attention_dispatch_plan,
+)
 
 
 log = logging.getLogger("torch._inductor")
@@ -273,53 +277,6 @@ class NPUTritonBenchmarkRequest(TritonGPUBenchmarkRequest):
             stream=stream,
             benchmark_run=True,
         )
-
-
-class NPUFlexAttentionDkdvTemplateBuffer(ir.TritonTemplateBuffer):
-    def __init__(
-        self,
-        layout,
-        inputs,
-        make_kernel_render,
-        runtime_renderer_factory,
-        dispatch_spec,
-        mutated_inputs=None,
-        allowed_prologue_inps=None,
-    ):
-        super().__init__(
-            layout=layout,
-            inputs=inputs,
-            make_kernel_render=make_kernel_render,
-            mutated_inputs=mutated_inputs,
-            allowed_prologue_inps=allowed_prologue_inps,
-        )
-        self.runtime_renderer_factory = runtime_renderer_factory
-        self.dispatch_spec = dispatch_spec
-
-
-class NPUFlexAttentionDkdvTemplateCaller(TritonTemplateCaller):
-    def __init__(
-        self,
-        *args,
-        runtime_renderer_factory,
-        dispatch_spec,
-        **kwargs,
-    ):
-        super().__init__(*args, **kwargs)
-        self.runtime_renderer_factory = runtime_renderer_factory
-        self.dispatch_spec = dispatch_spec
-
-    def output_node(self):
-        buffer = NPUFlexAttentionDkdvTemplateBuffer(
-            layout=self.layout,
-            inputs=self.input_nodes,
-            make_kernel_render=self.make_kernel_render,
-            runtime_renderer_factory=self.runtime_renderer_factory,
-            dispatch_spec=self.dispatch_spec,
-            mutated_inputs=self.mutated_inputs,
-            allowed_prologue_inps=self.allowed_prologue_inps,
-        )
-        return ir.TensorBox.create(buffer)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -537,8 +494,7 @@ class NPUTritonTemplate(TritonTemplate):
         workspace_arg: Optional[Any] = None,
         reset_to_zero_arg_names: Optional[list[str]] = None,
         large_input_buffers: Optional[list[ir.IRNode]] = None,
-        runtime_renderer_factory: Optional[Callable] = None,
-        dispatch_spec: Optional[Any] = None,
+        dispatch_plan=None,
         **kwargs: Any,
     ) -> Optional[ir.ChoiceCaller]:
         kwargs = dict(kwargs)
@@ -717,13 +673,15 @@ class NPUTritonTemplate(TritonTemplate):
 
         caller_type = TritonTemplateCaller
         caller_kwargs = {}
-        if runtime_renderer_factory is not None:
-            assert dispatch_spec is not None
-            caller_type = NPUFlexAttentionDkdvTemplateCaller
-            caller_kwargs = {
-                "runtime_renderer_factory": runtime_renderer_factory,
-                "dispatch_spec": dispatch_spec,
-            }
+        resolved_dispatch_plan = resolve_flex_attention_dispatch_plan(
+            dispatch_plan, V.graph
+        )
+        if (
+            resolved_dispatch_plan is not None
+            and resolved_dispatch_plan.requires_composite_codegen
+        ):
+            caller_type = FlexAttentionDispatchTemplateCaller
+            caller_kwargs = {"dispatch_plan": resolved_dispatch_plan}
 
         return caller_type(
             kernel_hash_name,

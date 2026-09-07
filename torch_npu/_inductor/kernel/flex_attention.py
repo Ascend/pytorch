@@ -14,10 +14,18 @@ from torch.utils._pytree import tree_map
 from torch._inductor import config
 from torch_npu._inductor import config as npu_config
 from torch_npu._inductor.config import log
-from torch_npu._inductor.flex_attention_tasklist import (
+from torch_npu._inductor.kernel.flex_attention_dispatch import (
+    ALL_CODEGEN_CONTEXTS,
+    DkdvDispatchStrategy,
+    FwdDispatchStrategy,
+    FlexAttentionDispatchPlan,
+    PYTHON_ONLY,
+    get_flexattention_dispatch_strategy,
+)
+from torch_npu._inductor.kernel.flex_attention_tasklist import (
     FlexAttentionDkdvDispatchSpec,
     RuntimeTemplateArg,
-    is_dkdv_tasklist_codegen_compatible,
+    is_dkdv_tasklist_eligible,
 )
 from torch_npu._inductor.kernel.flexattention_template import (
     flex_attention_bwd_dkdv_mask_out,
@@ -31,6 +39,7 @@ from torch_npu._inductor.kernel.flexattention_template import (
     flex_attention_compact_mapping,
     flex_attention_fwd_mask_compact,
     flex_attention_fwd_mask_out,
+    flex_attention_fwd_mask_out_all_sparse,
 )
 
 from torch._inductor.ir import (
@@ -92,8 +101,6 @@ from torch._inductor.kernel.flex_attention import (
 # natural exp/log, so the lowering boundary converts between the two bases.
 _LN2 = 0.6931471805599453
 _LOG2E = 1.4426950408889634
-
-
 @SymbolicGridFn
 def _symbolic_flex_attention_backward_grid(
     batch_size,
@@ -1816,6 +1823,10 @@ def _register_npu_inductor_flex_attention():
             for k, v in kernel_options.items()
         }
         kernel_options.setdefault("FLOAT32_PRECISION", get_float32_precision())
+        flexattention_dispatch_strategy = (
+            get_flexattention_dispatch_strategy()
+        )
+        use_fwd_dispatch = flexattention_dispatch_strategy == "fwd"
         score_mod_is_identity = _is_score_mod_identity_graph(subgraph)
         has_score_mod = has_explicit_score_mod and not score_mod_is_identity
         enable_gqa = V.graph.sizevars.evaluate_expr(
@@ -2153,13 +2164,48 @@ def _register_npu_inductor_flex_attention():
                     forward_kernel_options["BLOCK_M"],
                     forward_kernel_options["BLOCK_N"],
                 )
-                error = flex_attention_fwd_mask_out.maybe_append_choice(
+                forward_template = flex_attention_fwd_mask_out
+                forward_dispatch_plan = None
+                if use_fwd_dispatch:
+                    all_sparse_kernel_options = forward_kernel_options.copy()
+                    all_sparse_kernel_options["HAS_FULL_BLOCKS"] = False
+                    all_sparse_num_stages = all_sparse_kernel_options.pop(
+                        "num_stages"
+                    )
+                    all_sparse_num_warps = all_sparse_kernel_options.pop(
+                        "num_warps"
+                    )
+                    all_sparse_template = (
+                        flex_attention_fwd_mask_out_all_sparse
+                    )
+                    all_sparse_renderer_factory = (
+                        all_sparse_template.make_runtime_renderer_factory(
+                            input_nodes=forward_input_nodes,
+                            runtime_args=(),
+                            layout=layout,
+                            num_stages=all_sparse_num_stages,
+                            num_warps=all_sparse_num_warps,
+                            call_sizes=query.get_size(),
+                            subgraphs=[subgraph_buffer],
+                            **all_sparse_kernel_options,
+                        )
+                    )
+                    forward_dispatch_plan = FlexAttentionDispatchPlan(
+                        primary_name="fwd",
+                        strategy=FwdDispatchStrategy(
+                            all_sparse_renderer_factory,
+                        ),
+                        capabilities=PYTHON_ONLY,
+                    )
+
+                error = forward_template.maybe_append_choice(
                     choices=choices,
                     input_nodes=forward_input_nodes,
                     layout=layout,
                     subgraphs=[subgraph_buffer],
                     mutated_inputs=[logsumexp],
                     call_sizes=query.get_size(),
+                    dispatch_plan=forward_dispatch_plan,
                     **forward_kernel_options,
                 )
                 if error is not None:
@@ -2464,6 +2510,12 @@ def _register_npu_inductor_flex_attention():
         kernel_options.pop("BACKEND", None)
         configured_mask_out = bool(
             npu_config.flex_attention.flexattention_mask_out
+        )
+        flexattention_dispatch_strategy = (
+            get_flexattention_dispatch_strategy()
+        )
+        use_dkdv_dispatch = (
+            flexattention_dispatch_strategy == "bwd_dkdv"
         )
         # Mark symbols in custom kernel options as static shapes and add guards.
         kernel_options = {
@@ -2999,7 +3051,7 @@ def _register_npu_inductor_flex_attention():
         tasklist_reduce_ub_safe = True
         if (
             flexattention_mask_out
-            and npu_config.flex_attention.bwd_dkdv_tasklist
+            and use_dkdv_dispatch
             and not bwd_has_dynamic_shape
         ):
             tasklist_safe_dkdv_configs = _filter_dkdv_tasklist_reduce_configs(
@@ -3146,22 +3198,37 @@ def _register_npu_inductor_flex_attention():
             full_q_indices,
         ]
 
-        def make_dkdv_composite_choice_options(
+        def make_dkdv_dispatch_plan(
             dkdv_kernel_options,
             dkdv_subgraphs,
         ):
-            if (
-                not flexattention_mask_out
-                or not npu_config.flex_attention.bwd_dkdv_tasklist
-                or bwd_has_dynamic_shape
-                or not tasklist_reduce_ub_safe
-            ):
-                return {}
+            if not use_dkdv_dispatch:
+                return None
+
+            def make_ineligible_plan(reason):
+                return FlexAttentionDispatchPlan(
+                    primary_name="dkdv",
+                    strategy=DkdvDispatchStrategy(
+                        runtime_renderer_factory=None,
+                        dispatch_spec=None,
+                        eligibility_reason=reason,
+                    ),
+                    capabilities=PYTHON_ONLY,
+                )
+
+            eligibility_reason = None
+            if not flexattention_mask_out:
+                eligibility_reason = "dK/dV mask-out lowering is disabled"
+            elif bwd_has_dynamic_shape:
+                eligibility_reason = "dK/dV tasklist requires static shapes"
+            elif not tasklist_reduce_ub_safe:
+                eligibility_reason = "dK/dV tasklist reduce exceeds UB"
+
+            if eligibility_reason is not None:
+                return make_ineligible_plan(eligibility_reason)
 
             try:
-                compatible = is_dkdv_tasklist_codegen_compatible(
-                    cpp_wrapper=V.graph.cpp_wrapper,
-                    aot_mode=getattr(V.graph, "aot_mode", False),
+                eligible = is_dkdv_tasklist_eligible(
                     bq=bwd_batch_size_hint,
                     bkv=bwd_kv_batch_size_hint,
                     sparse_z=sparse_z_val,
@@ -3178,21 +3245,25 @@ def _register_npu_inductor_flex_attention():
                     ),
                     accum_dtype=broadcasted_grad_key_accum.get_dtype(),
                 )
-                if not compatible:
-                    return {}
+                if not eligible:
+                    eligibility_reason = "dK/dV tasklist is ineligible"
 
-                partial_dk_stride = V.graph.sizevars.evaluate_static_shape(
-                    layout_broadcasted_k_accum.storage_size()
-                )
-                partial_dv_stride = V.graph.sizevars.evaluate_static_shape(
-                    broadcasted_grad_value.get_layout().storage_size()
-                )
+                if eligibility_reason is None:
+                    partial_dk_stride = V.graph.sizevars.evaluate_static_shape(
+                        layout_broadcasted_k_accum.storage_size()
+                    )
+                    partial_dv_stride = V.graph.sizevars.evaluate_static_shape(
+                        broadcasted_grad_value.get_layout().storage_size()
+                    )
             except (AssertionError, NotImplementedError, TypeError, ValueError):
                 log.info(
                     "dK/dV task-list codegen disabled for non-static metadata",
                     exc_info=True,
                 )
-                return {}
+                eligibility_reason = "dK/dV tasklist metadata is non-static"
+
+            if eligibility_reason is not None:
+                return make_ineligible_plan(eligibility_reason)
 
             block_n1 = dkdv_kernel_options["BLOCK_N1"]
             call_sizes = query.get_size() + key.get_size()[1:3]
@@ -3309,11 +3380,16 @@ def _register_npu_inductor_flex_attention():
                 partial_dk_stride=partial_dk_stride,
                 partial_dv_stride=partial_dv_stride,
             )
-            return {
-                "runtime_renderer_factory": runtime_renderer_factory,
-                "dispatch_spec": dispatch_spec,
-            }
+            return FlexAttentionDispatchPlan(
+                primary_name="dkdv",
+                strategy=DkdvDispatchStrategy(
+                    runtime_renderer_factory=runtime_renderer_factory,
+                    dispatch_spec=dispatch_spec,
+                ),
+                capabilities=PYTHON_ONLY,
+            )
 
+        dq_dispatch_plan = FlexAttentionDispatchPlan("dq", None, ALL_CODEGEN_CONTEXTS)
         for cfg in bwd_dq_dict_configs:
             dq_kernel_options = make_bwd_dq_kernel_options(cfg)
             dq_subgraphs, dq_mutated_inputs, dq_run_captured = (
@@ -3332,6 +3408,7 @@ def _register_npu_inductor_flex_attention():
                 reset_to_zero_arg_names=None,
                 large_input_buffers=mask_out_input_nodes,
                 call_sizes=query.get_size() + key.get_size()[1:3],
+                dispatch_plan=dq_dispatch_plan,
                 **dq_kernel_options,
             )
             if len(dq_choices) > prev_dq_choice_count:
@@ -3356,7 +3433,7 @@ def _register_npu_inductor_flex_attention():
             )
             dkdv_kernel_options["RUN_CAPTURED_GRADS"] = dkdv_run_captured
             log_bwd_choice("dkdv", cfg, dkdv_kernel_options)
-            dkdv_composite_choice_options = make_dkdv_composite_choice_options(
+            dkdv_dispatch_plan = make_dkdv_dispatch_plan(
                 dkdv_kernel_options,
                 dkdv_subgraphs,
             )
@@ -3371,7 +3448,7 @@ def _register_npu_inductor_flex_attention():
                 reset_to_zero_arg_names=["arg_DV", "arg_DK"],
                 large_input_buffers=mask_out_input_nodes,
                 call_sizes=query.get_size() + key.get_size()[1:3],
-                **dkdv_composite_choice_options,
+                dispatch_plan=dkdv_dispatch_plan,
                 **dkdv_kernel_options,
             )
             if len(dkdv_choices) > prev_dkdv_choice_count:
