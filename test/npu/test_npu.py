@@ -10,6 +10,8 @@ import torch_npu
 from torch_npu.testing.common_utils import SupportedDevices, freeze_rng_state
 from torch_npu.testing.testcase import run_tests, TestCase
 
+from version_mark import runIfVersion
+
 class TestNpu(TestCase):
     FIFTY_MIL_CYCLES = 50000000
 
@@ -1060,6 +1062,7 @@ class TestNpu(TestCase):
         self.assertEqual(dvar.grad, torch.ones_like(dvar))
         self.assertEqual(type(dvar.grad), type(dvar))
 
+    @runIfVersion(max="2.14")
     def test_type_conversions(self):
         x = torch.randn(5, 5)
         self.assertIsInstance(x.float(), torch.FloatTensor)
