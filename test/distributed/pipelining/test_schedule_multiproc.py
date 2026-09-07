@@ -1,11 +1,11 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates
 # Owner(s): ["oncall: distributed"]
 import copy
+import functools
 import logging
 import os
 import sys
 import tempfile
-import unittest
 from model_registry import ModelWithKwargs, MultiMLP, MultiMLPWithDw
 from schedule_registry import (
     ScheduleUnbalanced,
@@ -30,15 +30,30 @@ from torch.distributed.pipelining import (
 from torch.distributed.pipelining.schedules import _PipelineScheduleRuntime
 from torch.testing._internal.common_distributed import (
     MultiProcContinuousTest,
-    requires_nccl,
 )
 from torch.testing._internal.common_utils import (
     check_leaked_tensors,
     instantiate_parametrized_tests,
     parametrize,
     run_tests,
-    skip_but_pass_in_sandcastle_if,
 )
+
+os.environ["HCCL_NPU_SOCKET_PORT_RANGE"] = "10000,60000"
+
+
+# NPU fork_rng patch: installed torch may call fork_rng without device_type,
+# causing CUDA to be checked and failing on NPU-only systems.
+# Installed by ScheduleTest (setUpClass / _worker_loop) instead of at module
+# scope so that other test modules collected in the same pytest process are
+# unaffected.
+_original_fork_rng = torch.random.fork_rng
+
+
+@functools.wraps(_original_fork_rng)
+def _patched_fork_rng(*args, **kwargs):
+    if kwargs.get("device_type", "cuda") in ("cuda", None):
+        kwargs["device_type"] = "npu"
+    return _original_fork_rng(*args, **kwargs)
 
 
 logger = logging.getLogger(__name__)
@@ -49,7 +64,6 @@ device_type = "npu"
 
 torch.manual_seed(0)
 
-@unittest.skip("Skip: test not adapted")
 class ScheduleTest(MultiProcContinuousTest):
     world_size = int(os.getenv("WORLD_SIZE", 2))
 
@@ -67,6 +81,19 @@ class ScheduleTest(MultiProcContinuousTest):
         super().setUpClass()
         dev_id = cls.rank % torch.npu.device_count()
         cls.device = torch.device(f"npu:{dev_id}")
+        cls._saved_fork_rng = torch.random.fork_rng
+        torch.random.fork_rng = _patched_fork_rng
+
+    @classmethod
+    def tearDownClass(cls):
+        torch.random.fork_rng = cls._saved_fork_rng
+        super().tearDownClass()
+
+    @classmethod
+    def _worker_loop(cls, *args, **kwargs):
+        torch.random.fork_rng = _patched_fork_rng
+        super()._worker_loop(*args, **kwargs)
+
     @property
     def device(self) -> torch.device:
         return torch.device(device_type, self.rank)
@@ -310,8 +337,17 @@ class ScheduleTest(MultiProcContinuousTest):
             output_args = None
         else:
             input_args = (x.chunk(chunks)[0],)
-            with torch.no_grad():
-                output_args = stage_module(*input_args)
+            # In STATIC mode the stage trusts `requires_grad` on these example
+            # tensors for grad buffer setup: the output example drives whether a
+            # stage allocates its grad-recv buffer (_create_grad_recv_info), and
+            # the input example drives whether a stage derives a grad-send meta
+            if self.rank > 0:
+                input_args = tuple(a.detach().requires_grad_(True) for a in input_args)
+            output_args = stage_module(*input_args)
+            if isinstance(output_args, torch.Tensor):
+                output_args = output_args.detach().requires_grad_(output_args.requires_grad)
+            else:
+                output_args = tuple(o.detach().requires_grad_(o.requires_grad) for o in output_args)
 
         # Create a pipeline stage to wrap that submodule
         stage = PipelineStage(
