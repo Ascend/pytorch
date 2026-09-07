@@ -169,6 +169,13 @@ inject_care_padding: bool = False
 # Refactor expanded conv-output store strides onto precomputed ks.
 refactor_clamp_stride: bool = False
 
+# =====================================================================
+# Permute-gather strided-reduction rewrite (opt-in: enable_permute_gather).
+# All tuning thresholds live in this section; codegen keeps only the UB-budget
+# formula constants (_PG_UB_*), matching upstream practice of keeping formula
+# internals module-local (e.g. TRITON_MAX_BLOCK in torch/_inductor codegen).
+# =====================================================================
+
 # Realize a permute+gather into a contiguous buffer at lowering. Default ON: a
 # non-unit inner stride pushed onto the reduction axis (e.g. T5 fwd softmax with a
 # relative-position bias, logical [heads,q,k] over [q,k,heads] storage) degrades to
@@ -177,6 +184,86 @@ refactor_clamp_stride: bool = False
 # guards that keep transpose-for-matmul (harmless non-unit inner stride) on the fast
 # no-realize path.
 realize_permute_gather: bool = True
+
+# Codegen a contiguous-DMA + tl.gather for a permute that pushes a non-unit stride
+# onto the reduction axis, instead of the strided tl.load (scalar gather on Ascend).
+# Keeps the permute as a zero-copy logical view (no realize buffer) and rewrites the
+# consumer load into a contiguous burst DMA of the whole row, then a register-level
+# gather into the logical tile. Requires a reduction axis with unit-input-coeff interior
+# (single-interior geometry, e.g. bias[Sq,Sk,H] permute(2,0,1) reduce over Sk); other
+# shapes fall back to the strided load. OFF by default; opt-in per compile.
+enable_permute_gather: bool = False
+
+# Why 256: the measured fp32 gather/trans crossover sits between stride_r=24
+# (96B: gather wins) and 64 (256B: gather loses, its flat tile overflows UB at
+# R0=128); 64 fp32 = 256B is also half the 910B2 segment-prefetch granularity
+# knee (512B). NOT a DMA alignment boundary -- the flat DMA is alignment-agnostic.
+#
+# Benefit gate for the permute-gather rewrite, in bytes of transpose granularity
+# (permuted inner stride * elemsize). Below this (stride_bytes < gate) the
+# register gather wins: its flat contiguous DMA is alignment-agnostic and the
+# flat tile stays under UB (H<=63 fp32). At/above the gate the layout goes to
+# the trans mode (block_ptr + tl.trans, tails via boundary_check): a gather flat
+# tile would overflow UB (measured H=64: trans 65.7us vs gather R0=64 93.2us,
+# R0=128 compile fail) and trans beats the realized transpose (two-kernel 219us).
+# Measured crossover (fp32, per-iteration device time): stride_r=24/96B gather
+# 46.7us < strided 66us < eager 58us; stride_r=64/256B gather 99us ~ strided
+# 102us > eager 67us; stride_r=128/512B gather 324us > strided 190us. At the
+# same threshold lowering keeps the permute zero-copy (view for the rewrite) vs
+# realizing it (fast strided fallback).
+permute_gather_stride_gate_bytes: int = 256
+
+# Why 64: 64 fp32 = 256B chunk = the gate's DMA efficiency unit; pow2 and a
+# 32B-multiple (hard constraint below), keeping the XBLOCK pin autotune-legal
+# while boundary_check absorbs tails.
+#
+# Static-trans int-axis chunk width, in ELEMENTS (fp32: 64 = 256B chunk, i.e.
+# the same boundary as the gate above). Static trans pins XBLOCK =
+# min(stride_r, ktile) instead of stride_r, so the interior axis is chunked
+# across programs (x1_blocks = ceil(H/ktile)) through the greedy tile chain +
+# group dispatch -- the same mechanism dynamic-H trans already uses, with tails
+# kept exact by boundary_check. Decouples the R0_BLOCK UB cap from H (R0 stops
+# collapsing as H grows: H=4096 R0 1 -> 64, 300 -> 5 r-trips). Must be a
+# multiple of 32B/elemsize (fp32: 8), else tile_align rounding breaks the
+# forced-tiling eval and the rewrite falls back to strided.
+permute_gather_ktile: int = 64
+
+# Dynamic-H (symbolic reduction stride) fallback: the gather index must be
+# compile-time affine in stride_r (rejected by the geometry's static-int gate), so
+# dynamic H can only ride the trans mode's block_ptr + boundary_check, which is
+# shape-generic. OFF -> the strided-load fallback for dynamic H.
+permute_gather_dynamic_trans: bool = True
+
+# Why 4096: TRITON's max_block -- the same cap family as upstream
+# TRITON_MAX_BLOCK (see npu_triton_config_reduction).
+#
+# Gather-mode XBLOCK cap: the gather rewrite pins XBLOCK = stride_r (the
+# interior axis runs the full head in one tile), and the reduction heuristic
+# caps XBLOCK at TRITON's max_block (4096, see npu_triton_config_reduction). A
+# stride_r above that cannot be gathered -> permute_gather_mode returns None
+# for the gather branch, so lowering realizes the permuted layout (the
+# pre-dispatch behavior) instead of compiling an "XBLOCK too large" kernel for
+# huge H (measured H=16384 fp32). The trans branch is NOT capped: it pins
+# XBLOCK = min(stride_r, permute_gather_ktile), which stays 64 for any H, so
+# huge H goes through trans with the int axis chunked across programs.
+permute_gather_max_xblock: int = 4096
+
+
+def permute_gather_mode(stride_r, elemsize):
+    """Dispatch the permute rewrite for a static permuted inner stride of
+    ``stride_r`` elements of ``elemsize`` bytes: "gather" / "trans" / None
+    (fall back to realize). Per-branch caps and mode semantics: see the flags
+    above. Dynamic (symbolic) strides are dispatched in the codegen geometry,
+    which can see the symbolic reduction coefficient. Reads the live config
+    object (install_config_module moves the typed defaults off module globals
+    into instance attributes)."""
+    from torch_npu._inductor.triton_experimental import config as _cfg
+    stride_bytes = stride_r * elemsize
+    if stride_bytes < _cfg.permute_gather_stride_gate_bytes:
+        if stride_r > _cfg.permute_gather_max_xblock:
+            return None  # gather pins XBLOCK = stride_r; capped at max_block
+        return "gather"
+    return "trans"
 
 # Route the MASK-COMPOSITE softmax (aten._safe_softmax, produced from
 # transformers-style causal-mask + softmax patterns) through aclnn instead of

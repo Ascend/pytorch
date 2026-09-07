@@ -2438,6 +2438,26 @@ def reduction(
         )
 
     if len(size_hints) in (2, 3):
+        # Permute-gather rewrite (ncfg.enable_permute_gather): the codegen
+        # rewrote the strided reduction load into a contiguous DMA + tl.gather,
+        # which is only valid when the greedy tile chain gives the interior axis
+        # the full XBLOCK run (real_block_row == 1). Pin exactly the config the
+        # rewrite was validated against; a sweep would run other (XBLOCK, R0_BLOCK)
+        # pairs whose real_block_row != 1 silently miscompile the gather.
+        # Checked BEFORE pin_xr: the rewrite's emitted tiling is only valid
+        # under this forced config, so the PG marker must win over the
+        # diagnostic pin when both are set.
+        _pg = triton_meta.get("npu_permute_gather")
+        if _pg:
+            return cached_autotune(
+                size_hints,
+                [reduction_cfg(int(_pg["XBLOCK"]), int(_pg["R0_BLOCK"]))],
+                triton_meta=triton_meta,
+                inductor_meta=inductor_meta,
+                heuristic_type=HeuristicType.REDUCTION,
+                filename=filename,
+            )
+
         # TEMP DIAGNOSTIC: pin a single (XBLOCK, R0_BLOCK) to measure the real
         # kernel at a chosen trip count. Remove after validation.
         _pin = ncfg.pin_xr

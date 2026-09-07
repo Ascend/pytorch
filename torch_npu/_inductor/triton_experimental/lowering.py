@@ -475,6 +475,15 @@ def _permuted_inner_stride(x, dims):
     return in_stride[last_src]
 
 
+def _elemsize_of(x):
+    """Element size in bytes of ``x``, for the permute-gather benefit gate
+    (transpose granularity = inner_stride * elemsize)."""
+    try:
+        return x.get_dtype().itemsize
+    except Exception:
+        return 4
+
+
 def npu_permute(x, dims):
     """NPU permute: realize a permute that pushes a NON-UNIT stride onto the inner
     axis into a contiguous buffer, instead of folding it into the consumer's loads
@@ -484,7 +493,36 @@ def npu_permute(x, dims):
     stride statically != 1, inner length statically > 1, input an unrealized
     producer or plain buffer; else delegate to upstream permute."""
     result = _upstream_permute(x, dims)
-    if not ncfg.realize_permute_gather:
+    # enable_permute_gather keeps the permute as a zero-copy logical view: the
+    # consumer's reduction load is rewritten (codegen) into a contiguous DMA +
+    # tl.gather. It bypasses the realize path entirely (and the default upstream
+    # fast-path gate below), leaving the view unrealized for the consumer kernel.
+    #
+    # Benefit gate: keep the view only when the rewrite is expected to beat the
+    # realize fallback -- i.e. the transpose granularity (inner stride * elemsize)
+    # is small and the strided/realize path would be DMA-poor. When the gate
+    # rejects (large inner stride, e.g. seg=2M @ stride_r=256), fall through to
+    # the realize path below so the fallback is the fast materialized permute
+    # (measured 434us < eager 709us) rather than the scalar-gather strided load.
+    if ncfg.enable_permute_gather:
+        inner_stride = _permuted_inner_stride(x, list(dims))
+        if not isinstance(inner_stride, (int, sympy.Integer)):
+            # stride unknown (dynamic H): keep the view only when the dynamic-H
+            # trans fallback is on; otherwise fall through to realize so the
+            # permuted layout is materialized instead of a strided scalar-gather
+            # on an unrealized view (codegen geometry returns None in that case).
+            if ncfg.permute_gather_dynamic_trans:
+                return result
+        elif ncfg.permute_gather_mode(int(inner_stride), _elemsize_of(x)):
+            # gather (small inner stride, stride_bytes < 256) or trans (>= 256B,
+            # e.g. H>=64 fp32, int axis chunked to permute_gather_ktile) both keep
+            # the zero-copy view for the codegen rewrite; the geometry picks the
+            # primitive. Realize is no longer the fallback for a large inner
+            # stride -- trans is measured faster there (H=64 65.7us vs two-kernel
+            # realize 219us).
+            return result
+        # else: realize below
+    elif not ncfg.realize_permute_gather:
         return result
     if not isinstance(x, ir.TensorBox) or not isinstance(result, ir.TensorBox):
         return result

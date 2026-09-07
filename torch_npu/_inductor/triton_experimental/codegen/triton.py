@@ -1815,6 +1815,7 @@ class NPUTritonKernel(TritonKernel):
                 name, result_var, index, self._npu_prepared_load_index
             )
             self._record_reduction_load_padinfo(result_var, index)
+            self._npu_pg_record(result_var, name, index)
         finally:
             self._npu_capture_prepared_load_index = False
             self._npu_prepared_load_index = None
@@ -1995,6 +1996,18 @@ class NPUTritonKernel(TritonKernel):
             "index": prepared_index,
             "pointer": self.args.input(name),
         }
+
+    # -- permute-gather reduction rewrite: thin delegates into
+    # permute_gather_rewrite.py (kept as methods for the call sites and the
+    # tests' monkeypatching of _npu_pg_rewrite_body).
+
+    def _npu_pg_record(self, result_var, name, index):
+        from .permute_gather_rewrite import _npu_pg_record as _impl
+        return _impl(self, result_var, name, index)
+
+    def _npu_pg_rewrite_body(self):
+        from .permute_gather_rewrite import _npu_pg_rewrite_body as _impl
+        return _impl(self)
 
     def index_to_str(self, index: sympy.Expr) -> str:
         # The index carries PyTorch's Max(1, dim) stride clamp from dynamic conv-output
@@ -4032,6 +4045,17 @@ class NPUTritonKernel(TritonKernel):
             add_constexpr_arg(f"{tree.prefix.upper()}BLOCK")
 
         self.codegen_body()
+
+        # Permute-gather rewrite (ncfg.enable_permute_gather): after the body text
+        # exists, swap the strided reduction load for a contiguous DMA + tl.gather,
+        # and record the forced (XBLOCK, R0_BLOCK) so reduction() pins exactly the
+        # config the rewrite was validated against (a sweep would hit other
+        # (XBLOCK, R0_BLOCK) pairs whose real_block_row != 1 silently miscompile
+        # the gather). Validation failure -> no marker -> strided load stays.
+        if triton_codegen_linearize and getattr(self, "_npu_pg_candidates", None):
+            _pg_marker = self._npu_pg_rewrite_body()
+            if _pg_marker is not None:
+                triton_meta["npu_permute_gather"] = _pg_marker
 
         # A5 one-program-per-tile: attach the host-side block-count recipe so the launcher
         # reproduces total_blocks (exact program count) and sizes the grid to it.
