@@ -514,12 +514,14 @@ static bool parseIntPair(const std::string& input, int& first_val, int& second_v
   }
 
   std::size_t pos;
+  int tmp_first = -1;
+  int tmp_second = -1;
   try {
-    first_val = std::stoi(first, &pos);
+    tmp_first = std::stoi(first, &pos);
     if (pos != first.size()) {
       return false;
     }
-    second_val = std::stoi(second, &pos);
+    tmp_second = std::stoi(second, &pos);
     if (pos != second.size()) {
       return false;
     }
@@ -527,6 +529,8 @@ static bool parseIntPair(const std::string& input, int& first_val, int& second_v
     return false;
   }
 
+  first_val = tmp_first;
+  second_val = tmp_second;
   return true;
 }
 

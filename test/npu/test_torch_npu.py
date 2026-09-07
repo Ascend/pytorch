@@ -180,6 +180,8 @@ class TorchNPUDeviceTestCase(TestCase):
                 with self.assertRaisesRegex(TypeError, "device must be an int"):
                     torch_npu.npu.get_device_limit(device)
 
+    @SupportedDevices(['Ascend910B', 'Ascend910_93', 'Ascend950'])
+    @SkipIfNotGteCANNVersion("9.2.0")
     def test_set_device_res_limit_from_env(self):
         code = """
 import torch
@@ -200,6 +202,8 @@ assert ans == {"cube_core_num": 8, "vector_core_num": 16}, f"Unexpected: {ans}"
         self.assertEqual(proc.returncode, 0,
                          f"Subprocess failed with stderr: {proc.stderr}")
 
+    @SupportedDevices(['Ascend910B', 'Ascend910_93', 'Ascend950'])
+    @SkipIfNotGteCANNVersion("9.2.0")
     def test_set_device_res_limit_from_env_invalid(self):
         invalid_values = [
             "invalid",
@@ -226,6 +230,44 @@ assert ans == {"cube_core_num": 8, "vector_core_num": 16}, f"Unexpected: {ans}"
                 self.assertEqual(proc.returncode, 0,
                                  f"Subprocess should not crash, val={val}, stderr: {proc.stderr}")
 
+    @SupportedDevices(['Ascend910B', 'Ascend910_93', 'Ascend950'])
+    @SkipIfNotGteCANNVersion("9.2.0")
+    @skipIfUnsupportMultiNPU(2)
+    def test_set_device_res_limit_from_env_partial_invalid(self):
+        """Test that when env value has valid first but invalid second (e.g. "8,abc"),
+        NO device limit is set on any device (the partially parsed value should not leak)."""
+        code = """
+import torch
+import torch_npu
+torch.npu.set_device(0)
+ans0 = torch_npu.npu.get_device_limit(0)
+
+# Initialize device 1 via stream (LazySetDevice)
+stream = torch_npu.npu.Stream(device=torch.device("npu:1"))
+with torch_npu.npu.stream(stream):
+    ans1 = torch_npu.npu.get_device_limit(1)
+
+# The cube_core_num should NOT be partially set to 8 on either device.
+# The invalid value should cause the entire setting to be skipped.
+assert ans0["cube_core_num"] != 8, \
+    f"Device 0 cube_core_num should not be 8, but got: {ans0}"
+assert ans1["cube_core_num"] != 8, \
+    f"Device 1 cube_core_num should not be 8, but got: {ans1}"
+"""
+        env = os.environ.copy()
+        env["NPU_DEVICE_LIMIT"] = "8,abc"
+        proc = subprocess.run(
+            [sys.executable, "-c", code],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        self.assertEqual(proc.returncode, 0,
+                         f"Subprocess failed with stderr: {proc.stderr}")
+
+    @SupportedDevices(['Ascend910B', 'Ascend910_93', 'Ascend950'])
+    @SkipIfNotGteCANNVersion("9.2.0")
     def test_set_device_res_limit_from_env_via_lazy_set_device(self):
         # Trigger LazySetDevice via stream op instead of explicit set_device
         code = """
@@ -250,6 +292,8 @@ assert ans == {"cube_core_num": 8, "vector_core_num": 16}, f"Unexpected: {ans}"
         self.assertEqual(proc.returncode, 0,
                          f"Subprocess failed with stderr: {proc.stderr}")
 
+    @SupportedDevices(['Ascend910B', 'Ascend910_93', 'Ascend950'])
+    @SkipIfNotGteCANNVersion("9.2.0")
     @skipIfUnsupportMultiNPU(2)
     def test_set_device_res_limit_from_env_multi_device(self):
         code = """
