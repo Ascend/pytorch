@@ -69,12 +69,12 @@ AFD_OPS = [
 
 
 class TestTorchNpuBootstrap(TestCase):
-    def _run_python(self, code: str, *, optional: bool = False):
+    def _run_python(self, code: str, *, optional: bool = False, env=None):
         proc = subprocess.run(
             [sys.executable, "-c", textwrap.dedent(code)],
             text=True,
             capture_output=True,
-            env=os.environ.copy(),
+            env=env or os.environ.copy(),
         )
 
         if proc.returncode == 0:
@@ -101,6 +101,25 @@ class TestTorchNpuBootstrap(TestCase):
 
         for code in cases:
             self._run_python(code)
+
+    def test_01_hccl_flight_recorder_preloads_torch_inductor(self):
+        env = os.environ.copy()
+        env["TORCH_HCCL_TRACE_BUFFER_SIZE"] = "1"
+        self._run_python(
+            """
+            import sys
+            import torch
+            import torch_npu
+
+            assert "torch._inductor" in sys.modules
+            assert "torch._inductor.codecache" in sys.modules
+            from torch._inductor.codecache import PyCodeCache
+
+            assert hasattr(PyCodeCache, "stack_frames_for_code")
+            assert "torch_npu._inductor" not in sys.modules
+            """,
+            env=env,
+        )
 
     def test_02_import_state_snapshot(self):
         self._run_python(
