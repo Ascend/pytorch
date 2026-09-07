@@ -37,7 +37,39 @@ def _enable_transfer_to_npu_if_needed():
         )
 
 
+def _preload_inductor_for_hccl_fr_if_needed():
+    """Preload the PyTorch Inductor symbols used by HCCL flight recorder."""
+    trace_buffer_size = os.getenv("TORCH_HCCL_TRACE_BUFFER_SIZE", "0")
+    try:
+        if int(trace_buffer_size) <= 0:
+            return
+    except ValueError:
+        warnings.warn(
+            f"Invalid TORCH_HCCL_TRACE_BUFFER_SIZE={trace_buffer_size!r}; "
+            "skip torch._inductor preload."
+        )
+        return
+
+    try:
+        import importlib
+
+        importlib.import_module("torch._inductor")
+        codecache = importlib.import_module("torch._inductor.codecache")
+        py_code_cache = getattr(codecache, "PyCodeCache", None)
+        if getattr(py_code_cache, "stack_frames_for_code", None) is None:
+            warnings.warn(
+                "HCCL flight recorder is enabled, but "
+                "torch._inductor.codecache.PyCodeCache.stack_frames_for_code is unavailable."
+            )
+    except Exception as error:
+        warnings.warn(
+            "Failed to preload torch._inductor for HCCL flight recorder: "
+            f"{error!r}. HCCL dump will continue with best-effort symbolization."
+        )
+
+
 def _enable_optional_features():
     _enable_sanitizer_if_needed()
     _configure_interactive_mode()
     _enable_transfer_to_npu_if_needed()
+    _preload_inductor_for_hccl_fr_if_needed()
