@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import inspect
+import itertools
 import logging
 from typing import TYPE_CHECKING, Any
 
@@ -28,6 +29,32 @@ def _wait_collective_result(result: Any) -> None:
         torch.Tensor,
         torch.ops._c10d_functional.wait_tensor,
         result,
+    )
+
+
+def _fake_tensors_to_real(
+    args: tuple[Any, ...], kwargs: dict[str, Any]
+) -> tuple[tuple[Any, ...], dict[str, Any]]:
+    """Materialize FakeTensor inputs using the same scheme as CUDA upstream."""
+    from torch._dynamo.testing import rand_strided
+    from torch._inductor.fx_passes.node_runtime_estimation import get_hint
+
+    def to_real(tensor: torch.Tensor) -> torch.Tensor:
+        shape = [get_hint(dim) for dim in tensor.shape]
+        stride = [get_hint(dim) for dim in tensor.stride()]
+        if any(dim is None for dim in itertools.chain(shape, stride)):
+            raise ValueError("Cannot benchmark a tensor with unbacked dimensions")
+        return rand_strided(  # type: ignore[arg-type]
+            shape,
+            stride,
+            device=tensor.device,
+            dtype=tensor.dtype,
+        )
+
+    return torch.utils._pytree.tree_map_only(
+        torch.Tensor,
+        to_real,
+        (args, kwargs),
     )
 
 
@@ -74,6 +101,8 @@ def _benchmark_collective_with_npu_events_impl(
     if not hasattr(torch, "npu") or not torch.npu.is_available():
         return None
 
+    args, kwargs = _fake_tensors_to_real(args, kwargs)
+
     torch.npu.synchronize()
     result = node.target(*args, **kwargs)  # type: ignore[operator]
     _wait_collective_result(result)
@@ -108,6 +137,7 @@ def _build_npu_is_compute_node(
     npu_compute_packets = {
         _get_registered_npu_op_packet("npu_grouped_matmul"),
         _get_registered_npu_op_packet("npu_fusion_attention_v3"),
+        _get_registered_npu_op_packet("npu_fusion_attention_grad_v3"),
     }
     npu_compute_packets.discard(None)
 
@@ -119,6 +149,142 @@ def _build_npu_is_compute_node(
         return packet in npu_compute_packets
 
     return is_compute_node
+
+
+def _balanced_group_list_for_benchmark(
+    tensor: torch.Tensor,
+    args: tuple[Any, ...],
+    kwargs: dict[str, Any],
+    get_hint: Callable[[int | torch.SymInt], int | None],
+) -> torch.Tensor | None:
+    """Build valid, balanced token counts for a GroupedMatmul benchmark."""
+    if tensor.ndim not in (1, 2) or tensor.shape[0] == 0:
+        return None
+
+    num_groups = get_hint(tensor.shape[0])
+    if num_groups is None or num_groups <= 0:
+        return None
+
+    x = args[0] if args else None
+    if not isinstance(x, (list, tuple)) or not x or not isinstance(x[0], torch.Tensor):
+        return None
+
+    x_shape = [get_hint(dim) for dim in x[0].shape]
+    if not x_shape or any(dim is None for dim in x_shape):
+        return None
+
+    if "group_type" not in kwargs:
+        return None
+    group_type = kwargs["group_type"]
+    if group_type is None or isinstance(group_type, bool):
+        return None
+    if not isinstance(group_type, int) or group_type not in (-1, 0, 2):
+        return None
+
+    if group_type == 0:
+        total_size = x_shape[0]
+    elif group_type == 2:
+        # K-split groups the contraction dimension of x, which is its last
+        # dimension regardless of the relative sizes of K and the other axes.
+        total_size = x_shape[-1]
+    else:
+        # group_type == -1 means that the input is not grouped.
+        return None
+    if total_size is None:
+        return None
+
+    quotient, remainder = divmod(total_size, num_groups)
+    counts = [quotient + int(index < remainder) for index in range(num_groups)]
+    group_list_type = int(kwargs.get("group_list_type", 0) or 0)
+    if group_list_type == 0:
+        values: Any = list(itertools.accumulate(counts))
+    elif group_list_type == 1:
+        values = counts
+    elif group_list_type == 2 and tensor.ndim == 2:
+        values = [[index, count] for index, count in enumerate(counts)]
+    else:
+        return None
+
+    return torch.tensor(values, device=tensor.device, dtype=tensor.dtype)
+
+
+def _build_npu_benchmark_node_with_cache_key(
+    upstream_benchmark: Callable[..., tuple[float, str | None]],
+    overlap_scheduling: Any,
+) -> Callable[..., tuple[float, str | None]]:
+    grouped_matmul_packet = _get_registered_npu_op_packet("npu_grouped_matmul")
+
+    @functools.wraps(upstream_benchmark)
+    def benchmark_node_with_cache_key(
+        node: fx.Node,
+        custom_runtime_estimation: Callable[[fx.Node, int | None], float | None]
+        | None = None,
+    ) -> tuple[float, str | None]:
+        packet = getattr(node.target, "overloadpacket", node.target)
+        if packet != grouped_matmul_packet:
+            return upstream_benchmark(node, custom_runtime_estimation)
+
+        custom = overlap_scheduling.get_custom_estimation(
+            node, custom_runtime_estimation, None
+        )
+        if custom is not None:
+            return float(custom), None
+
+        from torch._dynamo.testing import rand_strided
+        from torch.utils._python_dispatch import _disable_current_modes
+
+        success, args, kwargs = torch._inductor.fx_utils.get_fake_args_kwargs(node)
+        if not success:
+            return 0.0, None
+
+        key = f"{str(node.target)}: "
+        unbacked_tensor = False
+        fake_group_list = kwargs.get("group_list")
+
+        def to_real(tensor: torch.Tensor) -> torch.Tensor | None:
+            shape = [overlap_scheduling.get_hint(dim) for dim in tensor.shape]
+            stride = [overlap_scheduling.get_hint(dim) for dim in tensor.stride()]
+            if any(dim is None for dim in itertools.chain(shape, stride)):
+                nonlocal unbacked_tensor
+                unbacked_tensor = True
+                return None
+
+            nonlocal key
+            key += f"T: {shape, stride, tensor.dtype} "
+            if tensor is fake_group_list:
+                balanced = _balanced_group_list_for_benchmark(
+                    tensor,
+                    args,
+                    kwargs,
+                    overlap_scheduling.get_hint,
+                )
+                if balanced is not None:
+                    return balanced
+            return rand_strided(  # type: ignore[arg-type]
+                shape,
+                stride,
+                device=tensor.device,
+                dtype=tensor.dtype,
+            )
+
+        with _disable_current_modes():
+            args, kwargs = torch.utils._pytree.tree_map_only(
+                torch.Tensor,
+                to_real,
+                (args, kwargs),
+            )
+            cached = overlap_scheduling.get_cached_node_time(key)
+            if cached is not None:
+                return float(cached), key
+            if unbacked_tensor:
+                return 0.0, key
+
+            bench = overlap_scheduling.get_collective_do_bench()
+            runtime_ms = bench(lambda: node.target(*args, **kwargs))  # type: ignore[operator]
+            overlap_scheduling.set_cached_node_time(key, runtime_ms)
+            return float(runtime_ms), key
+
+    return benchmark_node_with_cache_key
 
 
 def _unsupported_npu_roofline_estimation(node: fx.Node) -> float:
@@ -293,6 +459,7 @@ def patch_overlap_scheduling() -> None:
         return
 
     upstream_is_compute_node = overlap_scheduling.is_compute_node
+    upstream_benchmark_node = overlap_scheduling.benchmark_node_with_cache_key
     upstream_gather = overlap_scheduling.gather_node_runtime_estimations
     upstream_schedule = overlap_scheduling.schedule_overlap_bucketing
 
@@ -305,6 +472,11 @@ def patch_overlap_scheduling() -> None:
     )
     overlap_scheduling.is_compute_node = _build_npu_is_compute_node(
         upstream_is_compute_node
+    )
+    overlap_scheduling.benchmark_node_with_cache_key = (
+        _build_npu_benchmark_node_with_cache_key(
+            upstream_benchmark_node, overlap_scheduling
+        )
     )
     overlap_scheduling.estimate_roofline_runtime_ms = (
         _unsupported_npu_roofline_estimation
