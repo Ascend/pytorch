@@ -1,5 +1,6 @@
+import itertools
+
 from ._constant import Constant
-from ._constant import convert_ns2us_str
 from ._constant import convert_ns2us_float
 
 __all__ = []
@@ -15,9 +16,12 @@ class TraceEventManager:
     PID_OFFSET = 10
     INDEX_OFFSET = 5
 
+    # Sequential counter for flow event IDs (avoids values > 2^53)
+    _flow_id_counter = itertools.count(1)
+
     @classmethod
     def create_x_event(cls, event: any, cat: str) -> dict:
-        return {"ph": "X", "name": event.name, "pid": event.pid, "tid": event.tid, "ts": convert_ns2us_str(event.ts),
+        return {"ph": "X", "name": event.name, "pid": event.pid, "tid": event.tid, "ts": convert_ns2us_float(event.ts),
                 "dur": convert_ns2us_float(event.dur), "cat": cat, "args": event.args}
 
     @classmethod
@@ -39,17 +43,22 @@ class TraceEventManager:
         return event_list
 
     @classmethod
+    def _next_flow_id(cls) -> int:
+        """Return a monotonically increasing integer safe for JavaScript (under 2^53)."""
+        return next(cls._flow_id_counter)
+
+    @classmethod
     def create_torch_to_npu_flow(cls, start_event: any, end_event: any) -> list:
-        flow_id = end_event.ts
+        flow_id = cls._next_flow_id()
         return [{"ph": "s", "bp": "e", "name": "torch_to_npu", "id": flow_id, "pid": start_event.pid,
-                 "tid": start_event.tid, "ts": convert_ns2us_str(start_event.ts), "cat": "async_npu"},
+                 "tid": start_event.tid, "ts": convert_ns2us_float(start_event.ts), "cat": "async_npu"},
                 {"ph": "f", "bp": "e", "name": "torch_to_npu", "id": flow_id, "pid": end_event.pid,
-                 "tid": end_event.tid, "ts": convert_ns2us_str(end_event.ts), "cat": "async_npu"}]
+                 "tid": end_event.tid, "ts": convert_ns2us_float(end_event.ts), "cat": "async_npu"}]
 
     @classmethod
     def create_task_queue_flow(cls, ph: str, event: any) -> dict:
         return {"ph": ph, "bp": "e", "name": "enqueue_to_dequeue", "id": event.corr_id, "pid": event.pid,
-                "tid": event.tid, "ts": convert_ns2us_str(event.ts), "cat": "async_task_queue"}
+                "tid": event.tid, "ts": convert_ns2us_float(event.ts), "cat": "async_task_queue"}
 
     @classmethod
     def create_fwd_flow(cls, event: any) -> list:
@@ -60,9 +69,9 @@ class TraceEventManager:
                     continue
                 flow_id = fwd_id
                 fwd_list.extend([{"ph": "s", "bp": "e", "name": "fwdbwd", "id": flow_id, "pid": node['start']['pid'],
-                    "tid": node['start']['tid'], "ts": convert_ns2us_str(node['start']['ts']), "cat": "fwdbwd"},
+                    "tid": node['start']['tid'], "ts": convert_ns2us_float(node['start']['ts']), "cat": "fwdbwd"},
                     {"ph": "f", "bp": "e", "name": "fwdbwd", "id": flow_id, "pid": node['end']['pid'],
-                    "tid": node['end']['tid'], "ts": convert_ns2us_str(node['end']['ts']), "cat": "fwdbwd"}])
+                    "tid": node['end']['tid'], "ts": convert_ns2us_float(node['end']['ts']), "cat": "fwdbwd"}])
         return fwd_list
 
     @classmethod
