@@ -2266,6 +2266,8 @@
   optimizer = torch.optim.SGD(model.parameters(), lr=1e-3, foreach=False)
   ```
 
+- 优化器支持启动`fused`，即(`fused=True`)。
+
 > <font size="3">add_param_group()</font>
 
 <div style="margin-left: 2em">

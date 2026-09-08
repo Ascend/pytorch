@@ -2482,6 +2482,26 @@
 
 </div>
 
+### torch.bitwise_right_shift
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.bitwise_right_shift](https://pytorch.org/docs/2.13/generated/torch.bitwise_right_shift.html)
+
+**产品支持情况**：
+
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
+
+**限制与说明**：
+
+- `input`仅支持uint8，int8，int16，int32，int64
+
+- 只能保证shiftBits的数值小于self数据类型位宽时，精度无误差
+
+</div>
+
 ### torch.bitwise_left_shift
 
 <div style="margin-left: 2em">
@@ -2494,7 +2514,11 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**： `input`仅支持uint8，int8，int16，int32，int64
+**限制与说明**：
+
+- `input`仅支持uint8，int8，int16，int32，int64
+
+- 只能保证shiftBits的数值小于self数据类型位宽时，精度无误差
 
 </div>
 
