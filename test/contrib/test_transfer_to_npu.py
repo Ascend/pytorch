@@ -499,6 +499,60 @@ class TestTransferToNpu(TestCase):
         self.assertEqual(torch.get_autocast_dtype('npu'), torch.float16)
         self.assertEqual(torch_npu.npu.get_autocast_dtype(), torch.float16)
 
+    def test_set_autocast_enabled_no_device_arg(self):
+        # set_autocast_enabled without device_type should redirect to NPU
+        torch.set_autocast_enabled(True)
+        self.assertTrue(torch.is_autocast_enabled())
+        self.assertTrue(torch.is_autocast_enabled('npu'))
+        self.assertTrue(torch.is_autocast_enabled('cuda'))
+
+        torch.set_autocast_enabled(False)
+        self.assertFalse(torch.is_autocast_enabled())
+        self.assertFalse(torch.is_autocast_enabled('npu'))
+
+        # keyword arg
+        torch.set_autocast_enabled(enabled=True)
+        self.assertTrue(torch.is_autocast_enabled('npu'))
+        torch.set_autocast_enabled(enabled=False)
+        self.assertFalse(torch.is_autocast_enabled('npu'))
+
+    def test_set_autocast_enabled_dtype(self):
+        # Inside autocast: NPU enabled, dtype bfloat16
+        with torch.autocast('npu', torch.bfloat16):
+            self.assertTrue(torch.is_autocast_enabled('npu'))
+            self.assertEqual(torch.get_autocast_dtype('npu'), torch.bfloat16)
+
+            # set_autocast_enabled('cuda', False) should redirect to NPU
+            torch.set_autocast_enabled('cuda', False)
+            self.assertFalse(torch.is_autocast_enabled('npu'))
+            self.assertFalse(torch.is_autocast_enabled('cuda'))
+
+            # set_autocast_enabled('cuda', True) should restore NPU
+            torch.set_autocast_enabled('cuda', True)
+            self.assertTrue(torch.is_autocast_enabled('npu'))
+
+            # set_autocast_dtype('cuda', float16) should redirect to NPU
+            torch.set_autocast_dtype('cuda', torch.float16)
+            self.assertEqual(torch.get_autocast_dtype('npu'), torch.float16)
+
+            # set_autocast_gpu_dtype should redirect to NPU
+            torch.set_autocast_gpu_dtype(torch.bfloat16)
+            self.assertEqual(torch.get_autocast_gpu_dtype(), torch.bfloat16)
+            self.assertEqual(torch.get_autocast_dtype('npu'), torch.bfloat16)
+
+        # Outside autocast: verify setter/getter consistency
+        torch.set_autocast_enabled('cuda', True)
+        self.assertTrue(torch.is_autocast_enabled('npu'))
+        self.assertTrue(torch.is_autocast_enabled('cuda'))
+        torch.set_autocast_enabled('cuda', False)
+
+        torch.set_autocast_dtype('cuda', torch.bfloat16)
+        self.assertEqual(torch.get_autocast_dtype('npu'), torch.bfloat16)
+        torch.set_autocast_dtype('cuda', torch.float16)
+
+        torch.set_autocast_gpu_dtype(torch.bfloat16)
+        self.assertEqual(torch.get_autocast_gpu_dtype(), torch.bfloat16)
+        torch.set_autocast_gpu_dtype(torch.float16)
 
 if __name__ == "__main__":
     run_tests()
