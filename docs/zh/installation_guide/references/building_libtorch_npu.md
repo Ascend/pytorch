@@ -4,8 +4,9 @@ libtorch\_npu是TorchNPU插件的C++版本，包含运行TorchNPU插件所需的
 
 ## 编译操作
 
-1. 参见[安装前准备](preparing_installation.md)、[安装PyTorch](installing_PyTorch.md)完成依赖与PyTorch的安装。
-2. 获取libtorch\_npu源码。
+1. 参见[快速安装](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=175&ids=89dda9ba9de741349efa03687a487678%2C202%2C106%2C1%2C6%2C177%2C)完成依赖、PyTorch和TorchNPU的安装。
+2. 安装3.18.0版本及以上的CMake，具体请参考[安装3.18.4版本CMake](installing_cmake_3-18-4.md)。
+3. 获取libtorch\_npu源码。
 
     ```bash
     git clone -b v2.7.1-26.1.0 https://gitcode.com/Ascend/pytorch.git
@@ -13,9 +14,9 @@ libtorch\_npu是TorchNPU插件的C++版本，包含运行TorchNPU插件所需的
     git submodule update --init --recursive
     ```
 
-    以v2.7.1-26.1.0为例，拉取对应TorchNPU分支代码。请参见《版本说明》中的“[相关产品版本配套说明](../release_notes/release_notes.md#相关产品版本配套说明)”章节下载TorchNPU其他版本的分支代码。
+    以v2.7.1-26.1.0为例，拉取对应TorchNPU分支代码。请参见《版本说明》中的“[相关产品版本配套说明](../../release_notes/release_notes.md#相关产品版本配套说明)”章节下载TorchNPU其他版本的分支代码。
 
-3. 执行编译生成libtorch\_npu安装包。
+4. 执行编译生成libtorch\_npu安装包。
     > [!NOTE]
     > 
     > 当前libtorch\_npu默认使用CXX11\_ABI=0，支持配置为CXX11\_ABI=1，命令如下：
@@ -30,8 +31,6 @@ libtorch\_npu是TorchNPU插件的C++版本，包含运行TorchNPU插件所需的
     python3 build_libtorch_npu.py
     ```
 
-    编译时依赖的CMake需为3.18.0版本及以上，可参见[安装3.18.4版本CMake](installing_cmake_3-18-4.md)。
-
     默认编译release版本，如需debug版本，添加DEBUG=1环境变量。编译完成后，当前目录下生成libtorch\_npu目录，包含以下文件。
 
     - include：生成的C++头文件。
@@ -43,7 +42,7 @@ libtorch\_npu是TorchNPU插件的C++版本，包含运行TorchNPU插件所需的
 以TorchNPU源码仓v2.7.1-26.1.0分支下“pytorch/examples/libtorch\_resnet”模型为例，介绍libtorch推理的快速使用。
 
 1. 需提前安装torch、TorchNPU、torchvision、hypothesis、expecttest以及packaging。
-    - torch与TorchNPU、torchvision安装请参见[安装PyTorch](installing_PyTorch.md)以及[安装torchvision](installing_torchvision.md)。
+    - torch与TorchNPU、torchvision安装请参见[快速安装](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=175&ids=89dda9ba9de741349efa03687a487678%2C202%2C106%2C1%2C6%2C177%2C)以及[安装torchvision](installing_torchvision.md)。
     - hypothesis、expecttest、packaging安装可执行如下命令。如果使用非root用户进行安装，需要在命令后加`--user`，例如：**pip3 install expecttest --user**。
 
         ```bash
@@ -106,8 +105,8 @@ libtorch\_npu是TorchNPU插件的C++版本，包含运行TorchNPU插件所需的
 
     **图 1**  命令回显
     
-    ![](../figures/command_output.png "命令回显")
+    ![](../../figures/command_output.png "命令回显")
 
     > [!NOTE]
     >
-    > aarch64环境下报torch.libs/\*.so库不存在，请参见[torch.libs/libopenblasp-r0-56e95da7.3.24.so不存在](FAQ.md#torchlibslibopenblasp-r0-56e95da7324so链接报错或libgfortran缺失)。
+    > aarch64环境下报torch.libs/\*.so库不存在，请参见[torch.libs/libopenblasp-r0-56e95da7.3.24.so不存在](../FAQ.md#问题1torchlibslibopenblasp-r0-56e95da7324so链接报错或libgfortran缺失)。
