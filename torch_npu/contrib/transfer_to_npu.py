@@ -235,6 +235,32 @@ def _replace_cuda_to_npu_in_dict(device_dict):
     return new_dict
 
 
+def _patch_is_autocast_enabled(fn):
+    @wraps(fn)
+    @torch._dynamo.disable
+    def decorated(device_type=None):
+        if device_type is None or (isinstance(device_type, str) and 'cuda' in device_type):
+            device_type = device_type.replace('cuda', 'npu') if device_type else 'npu'
+        return fn(device_type)
+    return decorated
+
+
+def _patch_set_autocast_enabled(fn):
+    @wraps(fn)
+    @torch._dynamo.disable
+    def decorated(*args, **kwargs):
+        if len(args) == 1 and 'device_type' not in kwargs:
+            args = ('npu', args[0])
+        elif 'enabled' in kwargs and 'device_type' not in kwargs:
+            kwargs['device_type'] = 'npu'
+        elif args and isinstance(args[0], str) and 'cuda' in args[0]:
+            args = (args[0].replace('cuda', 'npu'),) + args[1:]
+        elif 'device_type' in kwargs and isinstance(kwargs['device_type'], str) and 'cuda' in kwargs['device_type']:
+            kwargs['device_type'] = kwargs['device_type'].replace('cuda', 'npu')
+        return fn(*args, **kwargs)
+    return decorated
+
+
 def _device_wrapper(enter_fn, white_list):
     for fn_name in white_list:
         fn = getattr(enter_fn, fn_name, None)
@@ -505,16 +531,12 @@ def _init():
     torch.amp.autocast_mode.autocast.__init__ = _wrapper_cuda(torch.amp.autocast_mode.autocast.__init__)
 
     # torch.is_autocast_enabled / torch.amp.custom_fwd / torch.amp.custom_bwd
-    _original_is_autocast_enabled = torch.is_autocast_enabled
-
-    def _patched_is_autocast_enabled(device_type=None):
-        if device_type is None or (isinstance(device_type, str) and 'cuda' in device_type):
-            device_type = device_type.replace('cuda', 'npu') if device_type else 'npu'
-        return _original_is_autocast_enabled(device_type)
-
-    torch.is_autocast_enabled = _patched_is_autocast_enabled
+    torch.is_autocast_enabled = _patch_is_autocast_enabled(torch.is_autocast_enabled)
+    torch.set_autocast_enabled = _patch_set_autocast_enabled(torch.set_autocast_enabled)
     torch.get_autocast_dtype = _wrapper_cuda(torch.get_autocast_dtype)
+    torch.set_autocast_dtype = _wrapper_cuda(torch.set_autocast_dtype)
     torch.get_autocast_gpu_dtype = torch_npu.npu.get_autocast_dtype
+    torch.set_autocast_gpu_dtype = torch_npu.npu.set_autocast_dtype
     torch.amp.custom_fwd = _wrapper_cuda(torch.amp.custom_fwd)
     torch.amp.custom_bwd = _wrapper_cuda(torch.amp.custom_bwd)
 
