@@ -195,15 +195,7 @@ jobs:
           echo "============================================"
           echo " ccache statistics: PyTorch build"
           echo "============================================"
-          STATS="$(ccache -s)"
-          echo "${STATS}"
-          {
-            echo "### ccache statistics: PyTorch build"
-            echo ""
-            echo '```'
-            echo "${STATS}"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+          ccache -s
 
       - name: Capture PyTorch wheel info
         id: pytorch_wheel
@@ -313,15 +305,7 @@ jobs:
           echo "============================================"
           echo " ccache statistics: torch_npu build"
           echo "============================================"
-          STATS="$(ccache -s)"
-          echo "${STATS}"
-          {
-            echo "### ccache statistics: torch_npu build"
-            echo ""
-            echo '```'
-            echo "${STATS}"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+          ccache -s
 
       - name: Capture torch_npu wheel info
         id: torchnpu_wheel
