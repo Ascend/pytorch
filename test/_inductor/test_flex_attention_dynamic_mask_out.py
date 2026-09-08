@@ -52,7 +52,14 @@ class TestFlexAttentionDynamicMaskOutSource(unittest.TestCase):
         self.assertIn("autotune_select_algorithm(", adapter)
         self.assertIn('"flex_decoding",', adapter)
         self.assertIn("_get_num_cube_core() // bh * 2", adapter)
-        self.assertIn("configs: list[tuple[int, int, int]] = [(64, 2, 1)]", adapter)
+        self.assertIn(
+            """configs: list[tuple[int, int, int]] = [
+        (128, 2, 2),
+        (64, 2, 2),
+        (32, 2, 2),
+    ]""",
+            adapter,
+        )
         self.assertIn(
             "upstream_flex_decoding.flex_decoding_template.maybe_append_choice(",
             adapter,
