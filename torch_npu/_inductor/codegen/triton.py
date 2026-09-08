@@ -4785,38 +4785,74 @@ class NPUIndexTritonKernel(TritonKernel):
                     resized_shape = tuple(result_shape)
                     reduce_dim = dim
                     keep_dims = ""
-                    count_increment = self._reduction_tile_size()
+                    # Count the valid elements of the current tile instead of
+                    # the full tile size: with a dynamic reduction extent the
+                    # persistent tile is zero-padded (other=0.0 loads), so
+                    # acc_sum/acc_sum_sq stay correct but an unmasked count
+                    # would inflate mean's denominator.  Mirror the axis
+                    # codegen mask-emission condition so only masks that are
+                    # actually defined get referenced; when no axis needs a
+                    # mask the tile is fully covered and the plain tile size
+                    # is exact.  The masks can be 1D (single reduction axis)
+                    # or directional 2D (multiple reduction axes), so sum over
+                    # all elements: acc_count is [1]-shaped and only needs the
+                    # total number of valid elements of the tile.
+                    count_axis_masks = [
+                        f"{node.symbol()}_mask"
+                        for node in self.sorted_axis
+                        if node.is_tiling_axis
+                        and (
+                            self.is_unified_simt_kernel()
+                            or (
+                                not node.is_no_loop_axis
+                                or get_allow_dynamic()
+                            )
+                        )
+                    ]
+                    if count_axis_masks:
+                        count_mask = " & ".join(sorted(count_axis_masks))
+                        count_increment = (
+                            f"tl.sum(({count_mask}).to({acc_type}))"
+                        )
+                    else:
+                        count_increment = self._reduction_tile_size()
 
                 # Vectorized Welford state is initialized by the vector axis
                 # indexing code after entering each tile.  Keeping another
                 # copy in prefix both duplicates the definitions and makes
                 # their scope depend on where prefix is spliced.
                 if vector_axis is None:
+                    # Only the dynamic-count path needs the raw-moment and
+                    # count accumulators: when the reduction numel is
+                    # statically known (full-static below), m2 is computed by
+                    # a centered second pass over masked_value and the count
+                    # is the statically known numel, so neither accumulator
+                    # is required.
                     self.prefix.writeline(
                         f"{acc_sum} = tl.zeros({acc_shape}, {acc_type})"
                     )
-                    self.prefix.writeline(
-                        f"{acc_sum_sq} = tl.zeros({acc_shape}, {acc_type})"
-                    )
                     if static_count is None:
+                        self.prefix.writeline(
+                            f"{acc_sum_sq} = tl.zeros({acc_shape}, {acc_type})"
+                        )
                         self.prefix.writeline(
                             f"{acc_count} = tl.zeros({acc_shape}, {acc_type})"
                         )
                 self.compute.writeline(
                     f"{acc_sum} += tl.sum({masked_value}, axis={reduce_dim}{keep_dims})"
                 )
-                self.compute.writeline(
-                    f"{acc_sum_sq} += tl.sum({masked_value} * {masked_value}, "
-                    f"axis={reduce_dim}{keep_dims})"
-                )
                 if static_count is None:
+                    self.compute.writeline(
+                        f"{acc_sum_sq} += tl.sum({masked_value} * {masked_value}, "
+                        f"axis={reduce_dim}{keep_dims})"
+                    )
                     self.compute.writeline(f"{acc_count} += {count_increment}")
 
-                self.outside_loop_vars |= {acc_sum, acc_sum_sq}
-                self.reduction_result_vars |= {acc_sum, acc_sum_sq}
+                self.outside_loop_vars |= {acc_sum}
+                self.reduction_result_vars |= {acc_sum}
                 if static_count is None:
-                    self.outside_loop_vars.add(acc_count)
-                    self.reduction_result_vars.add(acc_count)
+                    self.outside_loop_vars |= {acc_sum_sq, acc_count}
+                    self.reduction_result_vars |= {acc_sum_sq, acc_count}
 
                 mean = self.cse.newvar(
                     dtype=torch_acc_type, shape=accumulator_shape
@@ -4838,9 +4874,23 @@ class NPUIndexTritonKernel(TritonKernel):
                     self.post_loop_combine.writeline(
                         f"{mean} = {acc_sum} / {count_value}"
                     )
-                self.post_loop_combine.writeline(
-                    f"{m2} = {acc_sum_sq} - {acc_sum} * {acc_sum} / {count_value}"
-                )
+                if static_count is None:
+                    self.post_loop_combine.writeline(
+                        f"{m2} = {acc_sum_sq} - {acc_sum} * {acc_sum} / {count_value}"
+                    )
+                else:
+                    # Scheme A (full-static): the whole reduction extent fits
+                    # one tile with no padding, and masked_value stays live in
+                    # the same loop-iteration scope as the epilogue (no
+                    # reduction loop), so compute m2 directly from its
+                    # centered definition instead of the raw-moment closed
+                    # form sum(x**2) - sum(x)**2/N, whose subtraction loses
+                    # precision to cancellation when mean**2 >> var.
+                    self.post_loop_combine.writeline(
+                        f"{m2} = tl.sum("
+                        f"({masked_value} - {mean}) * ({masked_value} - {mean}), "
+                        f"axis={reduce_dim}{keep_dims})"
+                    )
                 if static_count is None:
                     self.post_loop_combine.writeline(f"{weight} = {count_value}")
                 else:

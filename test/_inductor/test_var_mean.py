@@ -112,8 +112,6 @@ class TestVarMean(TestUtils):
             self.assertIn("X1BLOCK_SUB", code)
             self.assertIn("_acc_sum = tl.zeros([", code)
             self.assertIn(", 1], tl.float32)", code)
-            self.assertEqual(code.count("_acc_sum = tl.zeros(["), 1)
-            self.assertEqual(code.count("_acc_sum_sq = tl.zeros(["), 1)
             self.assertIn("axis=1, keep_dims=True", code)
             self.assertIn("npu_kernel_type': 'simd'", code)
             self.assertIn("'vectorized_welford_axis':", code)
@@ -291,8 +289,9 @@ class TestVarMean(TestUtils):
             self.assertIn("npu_kernel_type': 'simd'", code)
             self.assertIn("'vectorized_welford_axis':", code)
             self.assertNotIn("for loop_r", code)
-            self.assertEqual(code.count("_acc_sum = tl.zeros(["), 1)
-            self.assertEqual(code.count("_acc_sum_sq = tl.zeros(["), 1)
+            # Full-static Welford computes m2 from centered values and does
+            # not need the raw-moment accumulator.
+            self.assertNotIn("_acc_sum_sq", code)
         finally:
             npu_config.enable_welford = previous
             torch._dynamo.reset()
@@ -328,6 +327,71 @@ class TestVarMean(TestUtils):
             code = "\n".join(codes)
             self.assertIn("'vectorized_welford_axis':", code)
             self.assertIn("npu_kernel_type': 'simd'", code)
+        finally:
+            npu_config.enable_welford = previous
+            torch._dynamo.reset()
+
+    def test_welford_dynamic_reduction_extent(self):
+        previous = npu_config.enable_welford
+        npu_config.enable_welford = True
+        torch._dynamo.reset()
+        try:
+            # A dynamic reduction extent takes the non-vectorized persistent
+            # Welford path: the reduction tile is zero-padded, so the count
+            # must come from the axis masks instead of the tile size.
+            input_element = self._generate_tensor((4, 300), "float32")
+            torch._dynamo.mark_dynamic(input_element, 1, min=1, max=512)
+
+            std_var, std_mean = self.op_calc(input_element, -1)
+
+            compiled_op_calc = torch.compile(
+                self.op_calc,
+                backend="inductor",
+                dynamic=True,
+                options={"unroll_reductions_threshold": 1},
+            )
+            inductor_var, inductor_mean = compiled_op_calc(input_element, -1)
+
+            self.assertEqual(
+                std_var, inductor_var, atol=1e-1, rtol=1e-1, equal_nan=True
+            )
+            self.assertEqual(
+                std_mean, inductor_mean, atol=1e-1, rtol=1e-1, equal_nan=True
+            )
+        finally:
+            npu_config.enable_welford = previous
+            torch._dynamo.reset()
+
+    def test_welford_full_static_numerical_stability(self):
+        previous = npu_config.enable_welford
+        npu_config.enable_welford = True
+        torch._dynamo.reset()
+        try:
+            # Large mean, unit variance: the raw-moment closed form
+            # m2 = sum(x**2) - sum(x)**2/N cancels ~7 digits in fp32, while
+            # the two-pass centered form stays exact.
+            hidden = 512
+            rows = 10000.0 + self._generate_tensor((64, hidden), "float32")
+            weight = self._generate_tensor((hidden,), "float32")
+            bias = self._generate_tensor((hidden,), "float32")
+
+            def layer_norm(x, gamma, beta):
+                return F.layer_norm(x, (hidden,), gamma, beta, 1e-6)
+
+            expected = layer_norm(rows, weight, bias)
+            compiled = torch.compile(
+                layer_norm,
+                backend="inductor",
+                dynamic=False,
+                options={"unroll_reductions_threshold": 1},
+            )
+            actual, codes = run_and_get_code(compiled, rows, weight, bias)
+
+            self.assertEqual(expected, actual, atol=1e-2, rtol=1e-2)
+            code = "\n".join(codes)
+            # Full-static Welford computes m2 from centered values and no
+            # longer materializes the raw-moment accumulator.
+            self.assertNotIn("_acc_sum_sq", code)
         finally:
             npu_config.enable_welford = previous
             torch._dynamo.reset()
@@ -398,8 +462,7 @@ class TestVarMean(TestUtils):
             self.assertTrue(any(mask in code for mask in tail_masks))
             self.assertNotIn("for loop_r", code)
             self.assertNotIn("_acc_count = tl.zeros", code)
-            self.assertEqual(code.count("_acc_sum = tl.zeros(["), 1)
-            self.assertEqual(code.count("_acc_sum_sq = tl.zeros(["), 1)
+            self.assertIn("_acc_sum = tl.zeros([", code)
             self.assertEqual(code.count("tl.load(in_ptr0"), 1)
         finally:
             npu_config.enable_welford = previous
