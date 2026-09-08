@@ -35,6 +35,7 @@ from torch._inductor.autotune_process import (
     TritonGPUBenchmarkRequest,
 )
 from torch._inductor.select_algorithm import (
+    AlgorithmSelectorCache,
     TritonTemplate,
     TritonTemplateKernel,
     ModificationWrapper,
@@ -774,6 +775,11 @@ class NPUTritonTemplate(TritonTemplate):
                 "num_warps": num_warps,
                 "allow_tf32": str(kwargs.get("ALLOW_TF32", None)),
                 "acc_type": str(kwargs.get("ACC_TYPE", None)),
+                **{
+                    key: kwargs[key]
+                    for key in AlgorithmSelectorCache.FLEX_ATTENTION_TUNABLE_KEYS
+                    if key in kwargs
+                },
             },
             mutated_inputs=mutated_inputs,
             workspace_arg=workspace_arg,

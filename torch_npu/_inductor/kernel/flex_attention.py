@@ -1025,11 +1025,6 @@ def _create_npu_flex_decoding_kernel(*args):
 
     original_kernel_options = kernel_options.copy()
     for BLOCK_N, num_warps, num_stages in configs:
-        if SPARSE_Q_BLOCK_SIZE % kernel_options["BLOCK_M"] != 0:
-            continue
-        if SPARSE_KV_BLOCK_SIZE % BLOCK_N != 0:
-            continue
-
         cur_kernel_options = original_kernel_options.copy()
         for k in list(cur_kernel_options.keys()):
             if k.startswith("fwd_"):
@@ -1037,7 +1032,12 @@ def _create_npu_flex_decoding_kernel(*args):
                 cur_kernel_options[k[4:]] = v
             if k.startswith("bwd_"):
                 cur_kernel_options.pop(k)
-        cur_kernel_options.setdefault("BLOCK_N", BLOCK_N)
+        cur_kernel_options.setdefault("BLOCK_N", min(BLOCK_N, SPARSE_KV_BLOCK_SIZE))
+        # Validate the effective tile sizes after applying forward overrides.
+        if SPARSE_Q_BLOCK_SIZE % cur_kernel_options["BLOCK_M"] != 0:
+            continue
+        if SPARSE_KV_BLOCK_SIZE % cur_kernel_options["BLOCK_N"] != 0:
+            continue
         cur_kernel_options.setdefault("SPARSE_Q_BLOCK_SIZE", SPARSE_Q_BLOCK_SIZE)
         cur_kernel_options.setdefault("SPARSE_KV_BLOCK_SIZE", SPARSE_KV_BLOCK_SIZE)
         cur_kernel_options.setdefault("num_warps", num_warps)
