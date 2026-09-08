@@ -27,7 +27,7 @@
 
 > [!NOTICE]
 >
-> - 安装运行程序建议使用非root用户，且建议对安装程序的目录文件做好权限管控：文件夹权限设置为750，文件权限设置为640。可以通过设置umask控制安装后文件的权限，如设置umask为0027。更多安全相关内容请参见《[安全声明](../../reference/security_statement.md)》中各组件关于“文件权限控制”的说明。
+> - 安装运行程序建议使用非root用户，且建议对安装程序的目录文件做好权限管控：文件夹权限设置为750，文件权限设置为640。可以通过设置umask控制安装后文件的权限，如设置umask为0027。更多安全相关内容请参见《[安全声明](../reference/security_statement.md)》中各组件关于“文件权限控制”的说明。
 
 - 安装配套版本的NPU驱动固件、CANN软件（Toolkit、ops和NNAL）并配置CANN环境变量，具体请参考《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》。
 
@@ -40,17 +40,19 @@
 
     以上命令以root用户安装后的默认路径为例，请用户根据set\_env.sh的实际路径进行替换。
 
-Python3.11的调度（即下发）性能优于Python3.10，建议用Python3.11及以上。
+- 容器场景下源码安装TorchNPU插件，涉及从外部网络获取社区提供基础镜像、Python第三方库以及编译使用源码，代理配置等相关网络问题请参考[Docker官方文档](https://docs.docker.com/engine/cli/proxy/)。
+
+- 在容器场景下，安装TorchNPU前需预先安装Docker环境，具体请参考[安装Docker](https://docs.docker.com/engine/install/)。
+
+- 在安装不同类型操作系统所需依赖前，请在安装用户下检查源是否可用。以配置华为镜像源为例，可参考[华为开源镜像站](https://mirrors.huaweicloud.com/)中镜像源对应的配置方法操作。
+
+- ython3.11的调度（即下发）性能优于Python3.10，建议用Python3.11及以上。
 
 ## 安装PyTorch框架
 
 具体步骤请参见[PyTorch官网](https://github.com/pytorch/pytorch?tab=readme-ov-file#from-source)。
 
 ## 安装TorchNPU插件
-
-容器场景下源码安装TorchNPU插件，涉及从外部网络获取社区提供基础镜像、Python第三方库以及编译使用源码，代理配置等相关网络问题请参考[Docker官方文档](https://docs.docker.com/engine/cli/proxy/)。
-
-在安装不同类型操作系统所需依赖前，请在安装用户下检查源是否可用。以配置华为镜像源为例，可参考[华为开源镜像站](https://mirrors.huaweicloud.com/)中镜像源对应的配置方法操作。
 
 以下操作步骤以安装PyTorch 2.13.0版本、Python 2.10.0版本为例。
 
@@ -64,15 +66,15 @@ Python3.11的调度（即下发）性能优于Python3.10，建议用Python3.11�
 
     2. 构建镜像。
 
-        我们已提供了可用的开发镜像，以供您编译构建TorchNPU。您可以从昇腾镜像仓库直接拉取已构建好的镜像：[torch-npu-devel](https://www.hiascend.com/developer/ascendhub/detail/3b0ca76864884546acd07845f6153ee6)
+        方式一：为了便于编译构建TorchNPU，昇腾提供了专用的开发镜像。您可以直接从昇腾镜像仓库拉取[torch-npu-devel](https://www.hiascend.com/developer/ascendhub/detail/3b0ca76864884546acd07845f6153ee6)镜像。
 
-        以Atlas A2 训练系列产品为例，拉取镜像的命令为：
+        以<term>Atlas A2 训练系列产品</term>为例，拉取镜像的命令为：
 
         ```bash
         docker pull swr.cn-south-1.myhuaweicloud.com/ascendhub/torch-npu-devel:2.13.0-cann9.1.0-910b-manylinux_2_28
         ```
 
-        我们同样提供了可用的Dockerfile，可以自动检测架构来拉取镜像。你可以阅览该目录（pytorch/docker/devel）下的README文件，获取更多信息，并根据其指导构建自己的开发环境。或者您可以直接通过devcontainer工具来构建开发环境。
+        方式二：仓库提供了Dockerfile，支持自动检测架构来拉取对应的基础镜像。您可以阅览该目录（pytorch/docker/devel）下的[README](https://gitcode.com/Ascend/pytorch/blob/master/docker/devel/README.md)文件，获取更多信息，并根据其指导构建自定义开发环境。此外，您也可以直接通过devcontainer工具来构建开发环境。
 
         ```bash
         cd pytorch/docker/devel
@@ -91,7 +93,7 @@ Python3.11的调度（即下发）性能优于Python3.10，建议用Python3.11�
         > [!NOTE]
         >
         > - Dockerfile会自动根据当前架构（ARM/X86）拉取对应镜像。
-        > - 如果需要指定更具体的构建参数，可参考该目录（pytorch/docker/devel）下README。
+        > - 如果需要指定更具体的构建参数，可参考该目录（pytorch/docker/devel）下的[README](https://gitcode.com/Ascend/pytorch/blob/master/docker/devel/README.md)文件。
         > - 注意不要遗漏命令结尾的“.”。
 
     3. 启动并进入Docker容器，并将TorchNPU源代码挂载至容器内。
@@ -173,12 +175,12 @@ Python3.11的调度（即下发）性能优于Python3.10，建议用Python3.11�
 
                     |PyTorch版本|系统架构|gcc版本|cmake版本|
                     |--|--|--|--|
-                    |2.13.0|X86_64|13.3.1|3.18.4|
-                    |2.13.0|AArch64|13.3.1|4.3.2|
+                    |2.13.0|X86_64|13.3.0|3.18.4|
+                    |2.13.0|AArch64|13.3.0|4.3.2|
 
                     > [!NOTE]
                     >
-                    > 安装指导可参见[安装11.2.0版本gcc](installing_gcc_11-2-0.md)和[安装3.18.4版本cmake](installing_cmake_3-18-4.md)。
+                    > 安装指导可参见[安装gcc](https://ubuntu.com/developers/docs/howto/gcc-setup/)和[安装cmake](https://cmake.org/download/)。
 
         2. 安装环境依赖。
     
@@ -247,4 +249,4 @@ tensor([[-0.6066,  6.3385,  0.0379,  3.3356],
         [-2.1807,  0.2008, -1.1431,  2.1523]], device='npu:0')
 ```
 
-如需查看当前环境中已安装的Python、PyTorch和TorchNPU安装包版本，请参见[查询版本](../references/check_installed_versions.md)。
+如需查看当前环境中已安装的Python、PyTorch和TorchNPU安装包版本，请参见[查询版本](./references/check_installed_versions.md)。

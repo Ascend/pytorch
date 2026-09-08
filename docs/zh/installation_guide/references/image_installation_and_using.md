@@ -2,7 +2,7 @@
 
 镜像安装适用于需要直接进行开发或使用的场景，无需用户手动进行环境搭建。
 
-执行安装命令前，请参见[快速安装](../quick_install.md)中的安装前准备章节完成环境变量配置及其他环境准备。
+执行安装命令前，请参见[快速安装](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=180&ids=89dda9ba9de741349efa03687a487678%2C204%2C200%2C1%2C6%2C177%2C)中的安装前准备章节完成环境变量配置及其他环境准备。
 
 ## 拉取可用镜像
 

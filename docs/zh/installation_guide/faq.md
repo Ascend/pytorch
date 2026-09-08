@@ -201,7 +201,7 @@ gcc --version
 
 **处理方法**
 
-如果GCC版本低于8，请参考《[安装GCC 11.2.0版本](../installation_guide/references/installing_gcc_11-2-0.md)》安装GCC 8及以上版本。
+如果GCC版本低于8，请参考[安装GCC 11.2.0版本](https://ubuntu.com/developers/docs/howto/gcc-setup/)安装GCC 8及以上版本。
 
 ## 安装问题
 
@@ -268,7 +268,7 @@ Segmentation fault
 
 **处理方法**
 
-使用对应的GCC版本进行编译，具体对应版本可参考[GCC和Cmake版本要求](../installation_guide/references/building_from_source.md#gcc_cmake)。
+使用对应的GCC版本进行编译，具体对应版本可参考[GCC和Cmake版本要求](building_from_source.md#gcc_cmake)。
 
 ### 问题4：“import torch_npu”报错找不到torch_npu._C
 
@@ -299,3 +299,25 @@ ModuleNotFoundError: No module named 'torch_npu._C'
 **处理方法**
 
 进入合适的运行目录下重试，如先`cd test`或`cd /home/test`后再“import torch_npu”。
+
+### 问题5：查询已安装的TorchNPU版本
+
+**问题描述**
+
+查询已安装的TorchNPU版本。
+
+**查询方法**
+
+1. 执行以下命令查看TorchNPU安装包版本号。
+
+    ```bash
+    pip list | grep torch_npu
+    ```
+
+    输出如下TorchNPU安装包号。
+
+    ```text
+    torch_npu     2.12.0
+    ```
+
+2. 根据torchNPU安装包版本号查询对应的TorchNPU版本号，具体配套关系请参考[TorchNPU版本配套表](https://gitcode.com/Ascend/pytorch/blob/master/COMPATIBILITY.md#torchnpu-%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%A1%A8)。

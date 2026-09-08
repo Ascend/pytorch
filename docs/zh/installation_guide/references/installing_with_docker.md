@@ -4,7 +4,7 @@ Docker镜像中已预装PyTorch框架、TorchNPU插件及配套的CANN软件，�
 
 ## 启动容器
 
-1. 拉取Docker镜像，具体操作请参考[快速安装](../quick_install.md)。
+1. 拉取Docker镜像，具体操作请参考[快速安装](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=180&ids=89dda9ba9de741349efa03687a487678%2C204%2C200%2C1%2C6%2C177%2C)。
 2. 执行以下命令，启动容器。
 
     ```bash
