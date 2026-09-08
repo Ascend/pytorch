@@ -118,7 +118,6 @@ def build_message(report, skipped_total):
     lines = [
         "【NPU CI 测试失败告警】",
         f"触发Workflow: {workflow_display()}",
-        f"Run名称: {os.environ.get('GITHUB_RUN_NAME', 'unknown')}",
         f"版本: pytorch {pytorch_short} / torch_npu {torch_npu_short}",
         f"总用例: {total} | 通过: {passed} | 失败: {failed} | "
         f"Error: {errors} | 超时: {timeout} | 跳过: {skipped}",
