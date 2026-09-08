@@ -1661,7 +1661,7 @@ def _lower_flex_attention_mask_in(
             _filter_autotune_ir_nodes(inputs_for_autotuning, choices),
             layout,
             input_gen_fns=input_gen_fns,
-            return_multi_template=True,
+            return_multi_template=False,
             defer_epilogue_compile_only=True,
         )
     )
@@ -2616,7 +2616,7 @@ def _register_npu_inductor_flex_attention():
             _filter_autotune_ir_nodes(inputs_for_autotuning, choices),
             layout,
             input_gen_fns=input_gen_fns,
-            return_multi_template=True,
+            return_multi_template=False,
             defer_epilogue_compile_only=True,
         )
         _get_triton_template_buffer(
