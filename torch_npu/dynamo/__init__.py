@@ -232,6 +232,11 @@ def _register_backends():
     global_backend = _get_default_backend(name="npu")
     npugraph_ex_backend = _get_npugraph_ex_backend()
 
+    # torch PR #192345: attach the _dynamo_backend_init hook (torch >= 2.15
+    # only); version-isolated in the compat layer.
+    from torch_npu._compat.dynamo import compat_attach_dynamo_backend_init
+    compat_attach_dynamo_backend_init(global_backend)
+
     _register_npu_backend(global_backend)
     _register_npu_backend(npugraph_ex_backend, NPUGRAPH_EX_BACKEND)
 

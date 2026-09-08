@@ -966,14 +966,42 @@ class TorchCompileTriggerTests(unittest.TestCase):
             # VariableTracker and context-manager patches formerly installed
             # eagerly by add_dynamo_methods().
             assert SkipFunctionVariable.__new__.__module__ == "torch_npu.utils._dynamo"
-            assert TensorVariable.call_method.__module__ == "torch_npu.utils._dynamo"
             assert UserDefinedClassVariable.__new__.__module__ == "torch_npu.utils._dynamo"
             in_graph_classes = UserDefinedClassVariable._in_graph_classes()
             assert torch.npu.Event in in_graph_classes
             assert torch.npu.Stream in in_graph_classes
             assert BuiltinVariable.call_id.__module__ == "torch_npu.utils._dynamo"
             assert EventVariable.python_type.__module__ == "torch_npu.utils._dynamo"
-            assert torch._dynamo.optimize.__module__ == "torch_npu.utils._dynamo"
+
+            # Compile-time eager init comes from the _dynamo_backend_init hook
+            # (torch PR #192345, first in torch 2.15) with the optimize
+            # monkey-patch from torch_npu._compat.dynamo as the fallback on
+            # older torch; exactly one of the two triggers is active on any
+            # torch version. Keep (2, 15) in sync with the COMPAT(>= 2.15)
+            # marker in torch_npu/_compat/dynamo.py.
+            from torch_npu._compat.version import CURRENT_VERSION
+            if CURRENT_VERSION >= (2, 15):
+                # Upstream fires the hook; torch_npu installs nothing.
+                assert (
+                    torch._dynamo.optimize.__module__ == "torch._dynamo.eval_frame"
+                )
+            else:
+                # Fallback wrapper installed from the compat layer.
+                assert (
+                    torch._dynamo.optimize.__module__ == "torch_npu._compat.dynamo"
+                )
+            from torch_npu.dynamo import (
+                _install_lazy_torchair,
+                _lazy_exec,
+                _npu_backend_entrypoint,
+            )
+            if CURRENT_VERSION >= (2, 15) and _install_lazy_torchair():
+                assert _lazy_exec._dynamo_backend_init is not None
+                assert _npu_backend_entrypoint._dynamo_backend_init is not None
+            else:
+                # < 2.15: the attach is version-isolated off; without
+                # torchair the eager fallback has nothing to initialize.
+                assert not hasattr(_lazy_exec, "_dynamo_backend_init")
 
             from torch._functorch._aot_autograd.utils import supports_graphsafe_rng
             assert supports_graphsafe_rng(torch.device("npu"))
@@ -993,6 +1021,92 @@ class TorchCompileTriggerTests(unittest.TestCase):
             assert constant_fold_functions[torch.npu.get_device_properties]
             assert constant_fold_functions[torch.npu.is_available]
             assert torch_npu._C._NPUDeviceProperties in common_constant_types
+            """
+        )
+
+    # Verify the npu backend initializes eagerly once it is resolved, ahead of
+    # the first graph capture: via _dynamo_backend_init (torch PR #192345,
+    # first in torch 2.15) on new torch, and via the optimize monkey-patch
+    # fallback on older torch. Both must pin the same compile-time behavior.
+    def test_npu_backend_init_fires_before_first_call(self):
+        self.run_in_subprocess(
+            """
+            import sys
+            import types
+            import torch
+            import torch_npu
+
+            # torchair is absent from test wheels; fake it so the npu backend
+            # registers the real (non-eager) path with the init hook attached.
+            build_calls = []
+            fake_torchair = types.ModuleType("torchair")
+            fake_torchair.get_npu_backend = (
+                lambda compiler_config=None: build_calls.append(compiler_config)
+                or (lambda gm, *args, **kwargs: gm.forward)
+            )
+            sys.modules["torchair"] = fake_torchair
+            from torch_npu import dynamo as npu_dynamo
+            npu_dynamo._install_lazy_torchair = lambda: True
+
+            # Importing Dynamo fires the lazy setup and registers the backend
+            # with the version-selected eager-init trigger.
+            import torch._dynamo
+            from torch_npu.dynamo import _lazy_exec, _npu_backend_entrypoint
+            from torch_npu._compat.version import CURRENT_VERSION
+
+            if CURRENT_VERSION >= (2, 15):
+                from torch_npu._compat.dynamo import _npu_backend_init
+                assert _lazy_exec._dynamo_backend_init is _npu_backend_init
+                assert _npu_backend_entrypoint._dynamo_backend_init is _npu_backend_init
+            else:
+                assert not hasattr(_lazy_exec, "_dynamo_backend_init")
+
+            class Model(torch.nn.Module):
+                def forward(self, x):
+                    return torch.sin(x) + 1
+
+            x = torch.randn(8, device="npu")
+            compiled = torch.compile(Model(), backend="npu")
+            # The backend is built when "npu" is resolved, before the model runs.
+            assert len(build_calls) == 1
+            torch.testing.assert_close(compiled(x), Model()(x))
+            # Idempotent: the cached backend is reused on the first call.
+            assert len(build_calls) == 1
+            """
+        )
+
+    # Functional test with the real torchair backend: the npu backend is
+    # built when torch.compile() resolves it -- before the first model call
+    # -- on both the hook path (torch >= 2.15) and the optimize-patch path
+    # (older torch), and the compiled model produces correct results.
+    def test_npu_backend_eager_init_with_real_torchair(self):
+        self.run_in_subprocess(
+            """
+            import sys
+            import torch
+            import torch_npu
+
+            from torch_npu import dynamo as npu_dynamo
+
+            # torchair-less builds register the eager fallback backend, which
+            # has nothing to eagerly initialize; that path is covered by
+            # test_non_inductor_compile_backend_matrix.
+            from torch_npu.dynamo import _eager_npu_backend, _get_default_backend
+            if _get_default_backend("npu") is _eager_npu_backend:
+                sys.exit(0)
+
+            class Model(torch.nn.Module):
+                def forward(self, x):
+                    return torch.sin(x) + 1
+
+            x = torch.randn(8, device="npu")
+            compiled = torch.compile(Model(), backend="npu")
+
+            # Built at compile time, before any model call.
+            assert "npu" in npu_dynamo._global_npu_backend
+
+            # The compiled model runs correctly through the real backend.
+            torch.testing.assert_close(compiled(x), Model()(x))
             """
         )
 

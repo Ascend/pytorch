@@ -14,7 +14,6 @@ import torch
 import torch_npu
 import torch_npu._C
 from torch.utils._pytree import TreeSpec, tree_flatten, tree_unflatten
-from torch import _TorchCompileWrapper
 
 
 use_jit_script = False
@@ -255,32 +254,6 @@ def patch_inductor_wrapper():
     _TorchCompileInductorWrapper.apply_options = new_apply_options
     _TorchCompileInductorWrapper.__init__ = new_init
     ConfigModule.get_config_copy = new_get_config_copy
-
-
-def patch_dynamo_optimize():
-    from torch_npu.dynamo import _get_global_npu_backend
-
-    src_optimize = torch._dynamo.optimize
-
-    def npu_optimize(*args, **kwargs):
-        backend = None
-        if "backend" in kwargs:
-            backend = kwargs["backend"]
-        elif len(args) == 1:
-            backend = args[0]
-
-        backend_name = None
-        if isinstance(backend, str):
-            backend_name = backend
-        elif isinstance(backend, _TorchCompileWrapper):
-            backend_name = backend.compiler_name
-
-        if backend_name == "npu":
-            # Init torchair ahead of running model.
-            _get_global_npu_backend(backend_name)
-        return src_optimize(*args, **kwargs)
-
-    torch._dynamo.optimize = npu_optimize
 
 
 def patch_builtin_variable():
@@ -702,7 +675,11 @@ def _lazy_dynamo_setup():
     _run_dynamo_setup_step("trace_rules", _patch_npu_trace_rules)
 
     _run_dynamo_setup_step("graphsafe_rng", register_npu_graphsafe_rng)
-    _run_dynamo_setup_step("dynamo_optimize", patch_dynamo_optimize)
+
+    # torch < 2.15 has no _dynamo_backend_init hook; the compat layer wraps
+    # torch._dynamo.optimize instead. No-op on torch >= 2.15.
+    from torch_npu._compat.dynamo import compat_patch_dynamo_optimize
+    compat_patch_dynamo_optimize()
 
 
 @run_once
