@@ -3,6 +3,7 @@ from torch_npu._compat.version import CURRENT_VERSION
 __all__ = [
     "register_op_strategy",
     "_mm_like_strategy",
+    "_add_ephemeral_timeout_for_all_pgs",
 ]
 
 # register_op_strategy moved from _ops.registration to _ops.utils in PyTorch 2.11.
@@ -56,6 +57,72 @@ if CURRENT_VERSION >= (2, 14):
         return mm_strategy
 else:
     from torch.distributed.tensor._ops._matrix_ops import _mm_like_strategy
+
+
+# COMPAT(< 2026-08-04 torch nightly): the upstream
+#   ``_add_ephemeral_timeout_for_all_pgs`` only became backend-generic
+#   (dispatching through ``ProcessGroup::addEphemeralTimeout``, NPU included)
+#   on the torch nightly of 2026-08-04 (pytorch#191980). On torch 2.13 and
+#   earlier 2.14 nightlies it is CUDA/NCCL-only and a no-op on NPU, so the
+#   torch_npu implementation must be used there.
+# CAN REMOVE else branch when MIN_SUPPORTED >= the 2026-08-04 nightly.
+if CURRENT_VERSION >= (2, 14):
+    import inspect
+
+    from torch.distributed import distributed_c10d as c10d
+
+    _UPSTREAM_EPHEMERAL_TIMEOUT_IS_BACKEND_GENERIC = (
+        "pg._add_ephemeral_timeout" in inspect.getsource(
+            c10d._add_ephemeral_timeout_for_all_pgs)
+    )
+else:
+    _UPSTREAM_EPHEMERAL_TIMEOUT_IS_BACKEND_GENERIC = False
+
+if _UPSTREAM_EPHEMERAL_TIMEOUT_IS_BACKEND_GENERIC:
+    from torch.distributed.distributed_c10d import _add_ephemeral_timeout_for_all_pgs
+else:
+    import torch
+    from torch.distributed import distributed_c10d as c10d
+    from datetime import timedelta
+
+    def _add_ephemeral_timeout_for_all_pgs(timeout: timedelta) -> None:
+        """
+        This API adds an ephemeral timeout extension for all PGs locally
+        on one rank. The timeout gets reset when the first collective issued
+        after API called finished.
+        NOTE: We only support to set timeout for hccl backends for now.
+        NOTE: While this feature provides flexibility in specific scenarios,
+        it introduces statefulness
+        to timeout setting. Therefore, it is advisable to use this API sparingly
+        and consider alternative approaches, such as directly setting the timeout
+        or utilizing a barrier collective (one can set any timeout to the barrier),
+        whenever feasible.
+
+        Args:
+            timeout (timedelta): The delta of timeout to extend.
+
+        Returns:
+            None.
+        """
+        from torch_npu.distributed.distributed_c10d import is_hccl_available
+
+        if not is_hccl_available():
+            return
+
+        try:
+            from torch_npu._C._distributed_c10d import ProcessGroupHCCL
+        except ImportError:
+            return
+
+        for pg in c10d._world.pg_map:
+            devices = pg._device_types
+            if torch.device("npu") in devices:
+                backend = pg._get_backend(torch.device("npu"))
+                if isinstance(backend, ProcessGroupHCCL) and hasattr(
+                    backend, "_add_ephemeral_timeout"
+                ):
+                    backend._add_ephemeral_timeout(timeout)
+    c10d._add_ephemeral_timeout_for_all_pgs = _add_ephemeral_timeout_for_all_pgs
 
 
 # COMPAT(< 2.14): upstream ShardedTensor.cuda()/to() are CUDA-hardcoded on

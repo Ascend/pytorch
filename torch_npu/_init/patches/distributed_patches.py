@@ -2,6 +2,7 @@ import torch
 import torch.distributed.launcher.api
 
 import torch_npu
+import torch_npu._compat.distributed  # noqa: F401
 from torch_npu._init.patches.patch_manager import PatchManager
 
 
@@ -14,10 +15,6 @@ _INTERNAL_REPLACEMENTS = [
     (
         "_C._distributed_c10d.ProcessGroup._get_sequence_number_for_group",
         "distributed.distributed_c10d._hccl_get_sequence_number_for_group",
-    ),
-    (
-        "distributed.distributed_c10d._add_ephemeral_timeout_for_all_pgs",
-        "distributed.distributed_c10d._hccl_add_ephemeral_timeout_for_all_pgs",
     ),
 ]
 

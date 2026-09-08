@@ -418,10 +418,6 @@ class TestTorchNpuBootstrap(TestCase):
                 torch_npu.distributed.distributed_c10d._hccl_get_sequence_number_for_group
             )
 
-            assert c10d._add_ephemeral_timeout_for_all_pgs is (
-                torch_npu.distributed.distributed_c10d._hccl_add_ephemeral_timeout_for_all_pgs
-            )
-
             assert dist.batch_isend_irecv is (
                 torch_npu.distributed.distributed_c10d._batch_isend_irecv
             )
