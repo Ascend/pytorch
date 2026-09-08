@@ -964,13 +964,11 @@ def _create_npu_flex_decoding_kernel(*args):
     freeze_irnodes(mask_mod_other_buffers)
 
     choices: list[Any] = []
-    configs: list[tuple[int, int, int]] = [(64, 2, 1)]
-    if config.max_autotune:
-        configs += [
-            (64, 2, 2),
-            (32, 2, 2),
-            (128, 2, 2),
-        ]
+    configs: list[tuple[int, int, int]] = [
+        (128, 2, 2),
+        (64, 2, 2),
+        (32, 2, 2),
+    ]
 
     kernel_options.setdefault("SM_SCALE", scale)
     bh = max(B * Hkv, 1)
@@ -1103,6 +1101,14 @@ def _create_npu_flex_decoding_kernel(*args):
         7: create_num_blocks_fake_generator(full_kv_indices),
         8: create_indices_fake,
     }
+
+    if prefer_max_tiling_without_benchmark():
+        _tag_choice_attr(
+            choices,
+            "_nobench_select_first_compilable",
+            True,
+        )
+
     buf_ACC = autotune_select_algorithm(
         "flex_decoding",
         choices,
