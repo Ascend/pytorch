@@ -1647,12 +1647,9 @@ def _lower_flex_attention_mask_in(
         _filter_autotune_ir_nodes(inputs_for_autotuning, choices),
         layout,
         input_gen_fns=input_gen_fns,
-        return_multi_template=True,
+        return_multi_template=False,
         defer_epilogue_compile_only=True,
     )
-    # If max-autotune is disabled this is a single, precompiled template; if it
-    # is enabled this is a MultiTemplateBuffer. In either case the scheduler
-    # must compile-check an epilogue fusion instead of accepting it blindly.
     template_buffer = _get_triton_template_buffer(out)
     template_buffer._npu_deferred_epilogue_compile_only = True
     _attach_flex_subgraph_dependencies(
@@ -2609,7 +2606,7 @@ def _register_npu_inductor_flex_attention():
             _filter_autotune_ir_nodes(inputs_for_autotuning, choices),
             layout,
             input_gen_fns=input_gen_fns,
-            return_multi_template=True,
+            return_multi_template=False,
             defer_epilogue_compile_only=True,
         )
         # Keep the compile-only epilogue fallback enabled when max-autotune is
