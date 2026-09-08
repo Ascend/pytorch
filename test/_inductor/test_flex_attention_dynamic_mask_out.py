@@ -8,6 +8,22 @@ TEMPLATE_PATH = REPO_ROOT / "torch_npu/_inductor/kernel/flexattention_template.p
 
 
 class TestFlexAttentionDynamicMaskOutSource(unittest.TestCase):
+    def test_direct_backward_supplies_public_kernel_option_defaults(self):
+        lowering = LOWERING_PATH.read_text(encoding="utf-8")
+        backward = lowering.rsplit(
+            "def flex_attention_backward(*args, **kwargs):", 1
+        )[1]
+        normalization = backward.split("fwd_placeholder_inps =", 1)[0]
+
+        self.assertIn(
+            'kernel_options.setdefault("PRESCALE_QK", False)',
+            normalization,
+        )
+        self.assertIn(
+            'kernel_options.setdefault("WRITE_DQ", True)',
+            normalization,
+        )
+
     def test_short_query_uses_community_flex_decoding(self):
         lowering = LOWERING_PATH.read_text(encoding="utf-8")
         self.assertIn("flex_decoding_template,", lowering)

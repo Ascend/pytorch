@@ -2736,8 +2736,10 @@ def _register_npu_inductor_flex_attention():
             else v
             for k, v in kernel_options.items()
         }
+        kernel_options.setdefault("PRESCALE_QK", False)
         kernel_options.setdefault("ROWS_GUARANTEED_SAFE", False)
         kernel_options.setdefault("BLOCKS_ARE_CONTIGUOUS", False)
+        kernel_options.setdefault("WRITE_DQ", True)
         kernel_options.setdefault("FLOAT32_PRECISION", get_float32_precision())
         kernel_options.setdefault(
             "IS_DIVISIBLE",
