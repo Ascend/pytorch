@@ -129,6 +129,24 @@ jobs:
           echo "wheels_tarball=wheels-${SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
           echo "Resolved ${{ inputs.upstream_ref }} -> ${SHA}"
 
+      # Step 1b: ccache statistics for the PyTorch build. ccache counters are
+      # cumulative per cache directory, so zero them right before the build to
+      # make the "Show ccache statistics (PyTorch build)" step report only this
+      # build. The cache directory is shared across runners; a concurrently
+      # running build may add a few stray counts between reset and show —
+      # display-only impact.
+      - name: Reset ccache statistics (PyTorch build)
+        continue-on-error: true
+        run: |
+          if ! command -v ccache >/dev/null 2>&1; then
+            echo "ccache not installed in the image; skipping statistics"
+            exit 0
+          fi
+          echo "--- ccache configuration (cache_dir / remote_storage) ---"
+          ccache -p
+          echo "--- zero statistics counters ---"
+          ccache -z
+
       # Step 2: Build and install PyTorch
       - name: Build and install PyTorch
         id: build_pytorch
@@ -162,6 +180,30 @@ jobs:
           cd /tmp
           python -c "import torch; print(f'PyTorch version: {torch.__version__}')"
           cd "${GITHUB_WORKSPACE}"
+
+      # Step 2a: Per-build ccache hit/miss report for the PyTorch wheel build.
+      # Runs even when the build failed (miss numbers help debugging), but is
+      # skipped when the build step itself was skipped.
+      - name: Show ccache statistics (PyTorch build)
+        if: ${{ !cancelled() && steps.build_pytorch.outcome != 'skipped' }}
+        continue-on-error: true
+        run: |
+          if ! command -v ccache >/dev/null 2>&1; then
+            echo "ccache not installed in the image; skipping statistics"
+            exit 0
+          fi
+          echo "============================================"
+          echo " ccache statistics: PyTorch build"
+          echo "============================================"
+          STATS="$(ccache -s)"
+          echo "${STATS}"
+          {
+            echo "### ccache statistics: PyTorch build"
+            echo ""
+            echo '```'
+            echo "${STATS}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
 
       - name: Capture PyTorch wheel info
         id: pytorch_wheel
@@ -219,6 +261,18 @@ jobs:
           echo "short=${SHA:0:10}" >> "$GITHUB_OUTPUT"
           echo "torch_npu commit: ${SHA}"
 
+      # Step 3b: Zero the ccache statistics counters right before the
+      # torch_npu build so the "Show ccache statistics (torch_npu build)"
+      # step below reports only this build.
+      - name: Reset ccache statistics (torch_npu build)
+        continue-on-error: true
+        run: |
+          if ! command -v ccache >/dev/null 2>&1; then
+            echo "ccache not installed in the image; skipping statistics"
+            exit 0
+          fi
+          ccache -z
+
       # Step 4: Build and install torch_npu
       - name: Build and install torch_npu
         id: build_torchnpu
@@ -242,6 +296,32 @@ jobs:
 
           pip install --no-deps dist/torch_npu*.whl
           cp dist/torch_npu*.whl /tmp/wheels/
+
+      # Step 4a: Per-build ccache hit/miss report for the torch_npu build.
+      # A healthy incremental build is ~2-3 min with >99% hits; a near-100%
+      # miss (15+ min build) means a widely-included header changed (e.g. an
+      # op-plugin bump regenerating OpApiInterface.h, or new upstream torch
+      # headers) and all ~1230 targets were recompiled.
+      - name: Show ccache statistics (torch_npu build)
+        if: ${{ !cancelled() && steps.build_torchnpu.outcome != 'skipped' }}
+        continue-on-error: true
+        run: |
+          if ! command -v ccache >/dev/null 2>&1; then
+            echo "ccache not installed in the image; skipping statistics"
+            exit 0
+          fi
+          echo "============================================"
+          echo " ccache statistics: torch_npu build"
+          echo "============================================"
+          STATS="$(ccache -s)"
+          echo "${STATS}"
+          {
+            echo "### ccache statistics: torch_npu build"
+            echo ""
+            echo '```'
+            echo "${STATS}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
 
       - name: Capture torch_npu wheel info
         id: torchnpu_wheel
