@@ -18,6 +18,7 @@ import logging
 import sympy
 from . import config as ncfg
 from . import device_props as _device_props
+from . import rescue_rules
 from .lowering_override_list import GENERATE_LIST, KEEP_UPSTREAM_LOWERING
 import torch
 from torch._inductor.lowering import (
@@ -31,6 +32,10 @@ from torch._inductor.lowering import (
     _convert_element_type,
 )
 from torch._inductor import ir
+from torch._inductor.utils import (
+    convert_symint_to_expr,
+    get_dtype_size,
+)
 
 from torch._inductor.decomposition import decompositions
 from torch._prims_common import get_computation_dtype
@@ -590,3 +595,190 @@ def npu_permute(x, dims):
 
 
 overwrite_lowering(aten.permute, npu_permute, type_promotion_kind=None)
+
+
+_upstream_clone = torch._inductor.lowering.clone
+
+
+def _as_sym_expr(v):
+    """int if statically constant, else its sympy expr -- WITHOUT
+    specializing a SymInt (int() plants the guard that breaks mark_dynamic).
+    Upstream convert_symint_to_expr + concrete-value folding; unreadable
+    -> None."""
+    v = convert_symint_to_expr(v)
+    if isinstance(v, (int, sympy.Integer)):
+        return int(v)
+    if isinstance(v, sympy.Basic):
+        return v
+    return None
+
+
+def _sym_exprs(values):
+    """[_as_sym_expr(v) for v in values]; unreadable entries stay None."""
+    return [_as_sym_expr(v) for v in values]
+
+
+def _clone_layout_from_ir(x):
+    """Scenario 1: FixedLayout source (graph input / extern output) answers
+    get_size/get_stride directly; symbols stay symbols, nothing resolves."""
+    sizes = _sym_exprs(x.get_size())
+    if any(s is None for s in sizes):
+        return None  # unreadable sizes: not this scenario
+    try:
+        strides = _sym_exprs(x.get_stride())
+    except Exception:
+        # Generic View over an undecided producer: get_stride() raises
+        # NotImplementedError -- not this scenario.
+        return None
+    if any(s is None for s in strides) or len(strides) != len(sizes):
+        return None
+    return sizes, strides
+
+
+def _clone_layout_from_fx_meta():
+    """Scenario 2: IR cannot commit -- the FX snapshot answers instead
+    (node.args[0].meta["val"], the fake-tensor shape/stride; the fold-back
+    chain lands here).  Symbols stay symbols."""
+    node = getattr(V.graph, "current_node", None)
+    if node is None:
+        return None  # not inside a lowering dispatch
+    try:
+        val = node.args[0].meta["val"]
+        sizes = _sym_exprs(val.shape)
+        strides = _sym_exprs(val.stride())
+    except Exception:
+        return None  # meta unusable (args[0] not a Node / no "val")
+    if any(s is None for s in sizes + strides) or len(sizes) != len(strides):
+        return None
+    return sizes, strides
+
+
+def _clone_input_layout(x):
+    """(sizes, strides) of the clone input -- ints and/or sympy exprs -- or
+    None when unknowable (both scenarios miss; caller keeps upstream)."""
+    layout = _clone_layout_from_ir(x)
+    if layout is not None:
+        return layout
+    return _clone_layout_from_fx_meta()
+
+
+def _record_fold_bet(sizes, strides, reason, substrate=None, src_name=None):
+    """Record a Line-1 fold bet for the codegen cross-check.  Key = (source
+    buffer name, LIVE (size, stride) multiset), built by rescue_rules.bet_key
+    -- the ONE shared join point, so the codegen cross-check cannot drift.
+    The multiset is
+    permutation-invariant (codegen sees the same memory in another dim
+    order) and the name stops same-layout buffers from cross-matching
+    (forged WARNs / strict raises).  The multiset prefers optimization_hint
+    resolution so the codegen-side hinted-int join still matches.  Join is
+    one-directional: unmatched is never an error."""
+    try:
+        bets = getattr(V.graph, "_npu_clone_fold_bets", None)
+        if bets is None:
+            bets = {}
+            V.graph._npu_clone_fold_bets = bets
+        sub = (substrate if substrate is not None
+               else rescue_rules.INT_SUBSTRATE)
+
+        def _hint_pair(s, st):
+            sv = V.graph.sizevars
+            return (int(sv.optimization_hint(s)),
+                    int(sv.optimization_hint(st)))
+
+        bets[rescue_rules.bet_key(src_name, zip(sizes, strides), sub,
+                                  resolve=_hint_pair)] = reason
+    except Exception:
+        pass
+
+
+def npu_clone(x, *, memory_format=None):
+    """NPU clone -- Line 1 of the clone-fold contract.
+
+    Upstream keeps contiguous_format clone lazy so the scheduler folds the
+    permuted view into the consumer's load -- catastrophic on Ascend when
+    bishengir cannot rescue the folded load (mobilevit_s: 27-48 ms/launch
+    vs ~1 ms eager), while over-materializing healthy folds costs 1.6-2.7x
+    (clip_qkv / select_scatter / permute_simple).  fold_verdict decides;
+    materialize lowers to one extern aclnn strided copy (vendor DMA ~12x
+    faster than a generated triton transpose copy).  clone_policy:
+    "contract" (default) / "fold-all"|None (upstream) / "materialize-all".
+    Symbolic layouts: same verdict over the guard-free SizevarsSubstrate;
+    clone_contract_dynamic=False restores the old skip-to-fold."""
+    result = _upstream_clone(x, memory_format=memory_format)
+    policy = ncfg.clone_policy
+    if policy not in (None, "contract", "fold-all", "materialize-all"):
+        raise ValueError(
+            f"config.clone_policy must be one of None, 'contract', "
+            f"'fold-all', 'materialize-all'; got {policy!r}")
+    if policy in (None, "fold-all"):
+        return result
+    if memory_format != torch.contiguous_format:
+        return result
+
+    reason = "policy materialize-all"
+    if policy != "materialize-all":
+        layout = _clone_input_layout(x)
+        if layout is None:
+            log.debug("[clone-contract] fold (layout-unknowable): size=%s",
+                      list(map(str, x.get_size())))
+            return result
+        _sizes, _strides = layout
+        _substrate = None            # None -> plain-int default substrate
+        _skip = None
+        if any(not isinstance(v, int) for v in _sizes + _strides):
+            # Dynamic shape: same algorithm over the guard-free substrate.
+            if not ncfg.clone_contract_dynamic:
+                log.debug("[clone-contract] fold (dynamic, "
+                          "clone_contract_dynamic=False): size=%s stride=%s",
+                          _sizes, _strides)
+                return result
+            try:
+                _substrate = rescue_rules.SizevarsSubstrate(V.graph.sizevars)
+            except Exception as e:                                # noqa: BLE001
+                _skip = f"dynamic layout, substrate unavailable: {e!r}"
+        if _skip is None:
+            # Upstream row-major check (stride-first args), symbol-aware.
+            if ir.is_contiguous_strides_for_shape(_strides, _sizes):
+                log.debug("[clone-contract] fold (row-major): size=%s "
+                          "stride=%s", _sizes, _strides)
+                return result
+            _itemsize = get_dtype_size(x.get_dtype())
+            try:
+                verdict, why = rescue_rules.fold_verdict(
+                    _sizes, _strides, _itemsize,
+                    max_swaps=ncfg.clone_rescue_bet_max_swaps,
+                    min_axis=ncfg.clone_rescue_bet_min_axis,
+                    substrate=_substrate)
+            except Exception as e:                                # noqa: BLE001
+                verdict, why = "materialize", (
+                    f"dynamic verdict error (conservative): {e!r}")
+            if verdict == "fold":
+                # Bet identity: get_name() is pure delegation through
+                # views/boxes to Buffer.name -- it never realizes.
+                try:
+                    _bet_src = x.get_name()
+                except Exception:                                  # noqa: BLE001
+                    _bet_src = None
+                _record_fold_bet(_sizes, _strides, why, _substrate, _bet_src)
+                log.debug("[clone-contract] fold (%s): size=%s stride=%s",
+                          why, _sizes, _strides)
+                return result
+            reason = why
+        else:
+            reason = _skip
+
+    # No IR stride queries here: x may be a generic View over an undecided
+    # producer whose get_stride() raises (foldback lands here via fx-meta).
+    log.debug("[clone-contract] materialize (%s), size=%s",
+              reason, list(map(str, x.get_size())))
+    try:
+        return fallback_handler(aten.clone.default)(x, memory_format=memory_format)
+    except Exception as e:
+        # E.g. a DynamicView the extern kernel cannot realize: keep the lazy
+        # clone (correctness net) but say so -- a materialize verdict
+        # downgraded into the exact fold it rejected.
+        log.debug("[clone-contract] materialize degraded to fold: %r", e)  # noqa: G200
+        return result
+
+
+overwrite_lowering(aten.clone, npu_clone, type_promotion_kind=None)

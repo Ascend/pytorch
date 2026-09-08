@@ -10,11 +10,14 @@ sole caller (``codegen/triton.py``) to avoid a load-time import cycle.
 
 from .. import config as ncfg
 
+import logging
 import sympy
 
 from torch._inductor.virtualized import V
 from torch._inductor.utils import IndentedBuffer
 from torch._inductor.codegen.triton import texpr
+
+_log = logging.getLogger(__name__)
 
 # Vector CMP on A2/A3 lacks native int64/int32, so an int arange < numel decays to
 # a scalar loop; casting the index to fp32 first keeps it on the vector unit.
@@ -166,6 +169,28 @@ def _npu_extract_load_addr(line):
     return addr or None
 
 
+def _npu_load_ptr_token(line):
+    """Base-pointer token of a tl.load line ("in_ptr0 + (addr)" ->
+    "in_ptr0"); keys the pointer-arg table (dtype / buffer)."""
+    key = "tl.load("
+    start = line.find(key)
+    if start < 0:
+        return None
+    rest = line[start + len(key):]
+    depth = 0
+    for j, c in enumerate(rest):
+        if c in "([{":
+            depth += 1
+        elif c in ")]}":
+            if depth == 0:
+                return None
+            depth -= 1
+        elif c == "+" and depth == 0:
+            tok = rest[:j].strip()
+            return tok or None
+    return None
+
+
 def _npu_harvest_node_input_strides(kernel, free_tile_nodes):
     """Per-node input memory-stride RANK, parsed from emitted ``tl.load`` addrs.
     Returns {node_name: rank} using _npu_coeff_rank on each node's iter var; when a
@@ -202,6 +227,247 @@ def _npu_harvest_node_input_strides(kernel, free_tile_nodes):
             if prev is None or rank < prev:
                 result[nm] = rank
     return result
+
+
+def _npu_formula_xblocks(kernel, esz):
+    """XBLOCKs the launcher's own 1D-pointwise formula will bracket around
+    (numel from numels hints, num_load = the exact metadata the launcher
+    reads, signature rebuilt from python_argdefs), so the sweep covers the
+    configs that can actually run.  Failure -> empty set (caller keeps the
+    legacy representatives)."""
+    try:
+        from ..npu_triton_heuristics import _pw1d_formula_configs
+        size_hints = {}
+        for ax in ("x", "y", "z"):
+            v = dict(getattr(kernel, "numels", {}) or {}).get(ax)
+            if v is None:
+                continue
+            h = int(V.graph.sizevars.optimization_hint(v))
+            if h > 0:
+                size_hints[ax] = h
+        if "x" not in size_hints:
+            return set()
+        sig = {}
+        names, _, types, _ = kernel.args.python_argdefs()
+        for nm, ty in zip(names, types):
+            ty = str(ty)
+            if ty.startswith("*"):
+                sig[nm] = ty
+        cfgs = _pw1d_formula_configs(
+            size_hints, {"signature": sig},
+            {"num_load": int(getattr(kernel, "num_load", 1) or 1)}, 1)
+        return {c.kwargs["XBLOCK"] for c in cfgs}
+    except Exception:                                              # noqa: BLE001
+        return set()
+
+
+def _npu_pointwise_tile_contract(kernel, free_tile_nodes, scalar_odo_names):
+    """Line 2 of the clone-fold contract: enforce + verify.  Returns a rank
+    dict for the greedy allocator's _priority_instride_order channel, or {}.
+
+    Line 1's rescue-bet premise -- the stride-1 axis survives tiling with
+    block >= 2 -- is this function's to enforce: the default greedy queue
+    lets the lane axis monopolize the budget and squeeze the stride-1 axis
+    to tile == 1, silently converting a would-be ② rescue into ③ strided
+    (BEiT mask kernel 176 ms squeezed, 3.4 ms promoted, 52x).
+
+    Verdicts via rescue_rules.judge_load fed in SLOT order (divisor
+    DESCENDING -- the core's axis-order contract): harvest per-axis integer
+    coefficients -> pre-filter (a load must walk the LANE slot with integer
+    coeff >= 2 for pathology to be possible) -> judge at representative
+    XBLOCKs (legacy set UNION the launcher's formula candidates) -> if
+    unhealthy, front each squeezed stride-1 candidate (shortest first) and
+    adopt the first trial that makes every load healthy at every XBLOCK
+    with kernel UB inside ub_budget_b() -> verify + bet cross-check (WARN /
+    raise under clone_contract_check).  Parse failure -> {} (default order,
+    byte-identical emission)."""
+    from .. import rescue_rules  # noqa: PLC0415 (local: avoid import cycles)
+
+    buf = getattr(kernel, "loads", None)
+    lines = getattr(buf, "_lines", None) if buf is not None else None
+    if not lines:
+        return {}
+    # The greedy allocator only budgets non-odometer axes; mirror that.
+    nodes = [n for n in free_tile_nodes if n.name not in scalar_odo_names]
+    if len(nodes) < 2:
+        return {}
+
+    def _ih(v):
+        # optimization_hint: int passthrough, never guards.
+        try:
+            return int(V.graph.sizevars.optimization_hint(v))
+        except Exception:
+            return None
+
+    def _div(n):
+        d = _ih(n.divisor)
+        return d if d is not None and d > 0 else None
+
+    # Greedy queue default: divisor ascending, unknown last (mirrors the
+    # allocator).  SLOT order (the judge's contract): divisor DESCENDING.
+    chain_default = sorted(nodes, key=lambda n: (_div(n) is None, _div(n) or 0))
+    slot_names = [n.name for n in sorted(
+        nodes, key=lambda n: (_div(n) is None, -(_div(n) or 0)))]
+    lengths = {n.name: _ih(n.length) for n in nodes}
+
+    syms = {n.name: sympy.Symbol(n.name) for n in nodes}
+
+    # Pointer-arg table from the kernel's own metadata: input/output_buffers
+    # reversed for buffer identity; python_argdefs "*dtype" strings through
+    # the SAME _NPU_PTR_ELEM_BYTES table the launcher reads (miss stays 4).
+    _arg_to_buf = {}
+    _arg_esz = {}
+    try:
+        for _b, _a in dict(kernel.args.input_buffers).items():
+            _arg_to_buf[_a] = _b
+        for _b, _a in dict(kernel.args.output_buffers).items():
+            _arg_to_buf.setdefault(_a, _b)
+        from ..npu_triton_heuristics import _NPU_PTR_ELEM_BYTES
+        _names, _, _types, _ = kernel.args.python_argdefs()
+        for _nm, _ty in zip(_names, _types):
+            _ty = str(_ty)
+            if _ty.startswith("*"):
+                _arg_esz[_nm] = _NPU_PTR_ELEM_BYTES.get(_ty[1:], 4)
+    except Exception:                                              # noqa: BLE001
+        pass
+
+    loads = []
+    for ln in lines:
+        s = ln if isinstance(ln, str) else getattr(ln, "line", "")
+        if "tl.load" not in s:
+            continue
+        addr = _npu_extract_load_addr(s)
+        if addr is None:
+            continue
+        try:
+            expr = sympy.sympify(addr, locals=syms)
+            cf = {}
+            opaque = False
+            for nm, sym in syms.items():
+                c = expr.coeff(sym)
+                if not c.is_Integer:
+                    cf = None
+                    break
+                if c == 0 and sym in expr.free_symbols:
+                    # Axis occurs only inside div_floor/mod (normal dynamic
+                    # addressing) -- walked with an UNKNOWN stride, not a
+                    # broadcast.  Judging a truncated table would read
+                    # healthier than reality: the load exits the domain.
+                    opaque = True
+                    break
+                cf[nm] = int(c)
+        except Exception:                                          # noqa: BLE001
+            cf = None
+        if cf is None or opaque:
+            continue  # unprovable/opaque: not judged, promoted, or joined
+        ptr = _npu_load_ptr_token(s)
+        loads.append((cf, addr, _arg_esz.get(ptr, 4), _arg_to_buf.get(ptr)))
+    if not loads:
+        return {}
+
+    # Pre-filter: pathology needs a load walking the LANE slot with integer
+    # coeff >= 2; healthy-lane kernels return {} (byte-identical emission).
+    lane = slot_names[-1]
+    if not any(cf.get(lane, 0) >= 2 for cf, _, _, _ in loads):
+        return {}
+
+    esz = max((e for _, _, e, _ in loads), default=4)  # UB-clamp domain
+    # xb_cap mirrors the launcher's OWN UB ceiling (_pw1d_formula_configs:
+    # UB // (dt*(num_load+1)*2)) -- the block an UB-bound winner sits at:
+    # every load + the store (+1) stages one xb*esz row, x2 for the rescue
+    # form's copy+transpose double staging (judge_load ub_B).  The clamp
+    # bounds only this synthetic rung (real launcher candidates join via
+    # the _npu_formula_xblocks union below, unclamped; the {1024, 2048,
+    # 4096} literal alone guarantees the 4096 judgment and its ub_over):
+    # below 4096 the rung degenerates to the already-present top (an extra
+    # sub-4096 rung would only inflate the squeezed-axis harvest and the
+    # verify sweep), above 8192 -- one octave past the top -- it is pure
+    # scan cost (the raw cap reaches 64K on 256KB devices).
+    xb_cap = max(4096, min(8192, rescue_rules.ub_budget_b()
+                           // (esz * (len(loads) + 1) * 2)))
+    xbs = sorted({1024, 2048, 4096, xb_cap} | _npu_formula_xblocks(kernel, esz))
+
+    def _judge_all(chain_names, xb):
+        tiles = rescue_rules.tile_chain(chain_names, lengths, xb)
+        out = []
+        for cf, _addr, esz_l, _buf in loads:
+            axes = [(nm, cf[nm], tiles[nm]) for nm in slot_names if nm in cf]
+            out.append(rescue_rules.judge_load(axes, esz=esz_l))
+        return out
+
+    def _violations(chain_names):
+        viol, ub_over = set(), False
+        for xb in xbs:
+            verdicts = _judge_all(chain_names, xb)
+            if sum(r["ub_B"] or 0 for r in verdicts) > rescue_rules.ub_budget_b():
+                ub_over = True
+            for i, r in enumerate(verdicts):
+                if not r["health"]:
+                    viol.add((i, xb))
+        return viol, ub_over
+
+    bets = getattr(V.graph, "_npu_clone_fold_bets", None) or {}
+
+    def _bet_key(cf, buf):
+        # Join with lowering._record_fold_bet via the shared key builder
+        # (rescue_rules.bet_key: ONE liveness rule for both ends of the
+        # join).  `or 0` keeps hint-unresolvable lengths dead.
+        return rescue_rules.bet_key(
+            buf, ((lengths.get(nm) or 0, c) for nm, c in cf.items()))
+
+    def _verify(chain_names, tag):
+        """Final-verdict report + one-directional bet cross-check."""
+        check = ncfg.clone_contract_check
+        if check not in (None, "log", "strict", "off"):
+            raise ValueError(
+                f"config.clone_contract_check must be one of None, 'log', "
+                f"'strict', 'off'; got {check!r}")
+        if check == "off":
+            return
+        for xb in xbs:
+            for i, r in enumerate(_judge_all(chain_names, xb)):
+                if r["health"]:
+                    continue
+                cf, addr, _esz_l, buf = loads[i]
+                matched = _bet_key(cf, buf) in bets
+                _log.warning(
+                    "[tile-contract] %s: load '%s' -> %s at XB=%d%s",
+                    tag, addr, r["verdict"], xb,
+                    " [matched a Line-1 fold bet]" if matched else "")
+                if matched and check == "strict":
+                    raise RuntimeError(
+                        f"clone-fold contract violation: load '{addr}' "
+                        f"landed {r['verdict']} at XB={xb} despite a "
+                        f"Line-1 fold bet")
+
+    default_names = [n.name for n in chain_default]
+    base_viol, base_ub = _violations(default_names)
+    if not base_viol and not base_ub:
+        return {}  # healthy under the default chain: nothing to enforce or report
+
+    # Candidates: stride-1 axes the default chain squeezes to tile == 1.
+    cands = set()
+    for cf, _addr, _esz_l, _buf in loads:
+        for xb in xbs:
+            tiles = rescue_rules.tile_chain(default_names, lengths, xb)
+            for nm, c in cf.items():
+                if (c == 1 and tiles.get(nm, 1) == 1
+                        and (lengths.get(nm) or 0) >= 2):
+                    cands.add(nm)
+    by_name = {n.name: n for n in nodes}
+    for nm in sorted(cands, key=lambda k: (lengths.get(k) or 0, k)):
+        trial = [nm] + [m for m in default_names if m != nm]
+        tviol, tub = _violations(trial)
+        if tviol or tub:
+            continue
+        _verify(trial, f"promoted {nm}")
+        ranks = {nm: 0}
+        ranks.update({m: i + 1 for i, m in enumerate(
+            [m2 for m2 in default_names if m2 != nm])})
+        return ranks
+
+    _verify(default_names, "unhealthy-unfixable")
+    return {}
 
 
 def _codegen_header_npu_for_tree(kernel, tree, code, outer_blocks=None):
@@ -260,6 +526,19 @@ def _codegen_header_npu_for_tree(kernel, tree, code, outer_blocks=None):
             # order correctly under dynamic shape (1 < ks0 < 16*ks0**2).
             ordered = sorted(free_tile_nodes, key=lambda n: in_strides[n.name])
             _priority_instride_order = {n.name: i for i, n in enumerate(ordered)}
+
+    # Line 2 of the clone-fold contract (pointwise x-trees only; the
+    # reduction input-stride priority above and balanced mode take
+    # precedence): enforce the stride-1-survives premise of Line 1's fold
+    # bets via axis promotion, and verify every load's final verdict.
+    if (
+        not _priority_instride_order
+        and ncfg.pointwise_tile_contract
+        and not ncfg.balanced_target
+        and len(free_tile_nodes) >= 2
+    ):
+        _priority_instride_order = _npu_pointwise_tile_contract(
+            kernel, free_tile_nodes, _scalar_odo_names)
 
     # Default: insertion order (byte-identical). Priority is applied in the greedy
     # allocator, not to the real_block def nodes.

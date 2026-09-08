@@ -286,6 +286,39 @@ log_softmax_aclnn_fallback: bool = True
 # per-row scan, 2.5-2.8x slower at vocab widths). 0 disables routing (always
 # Triton).
 softmax_aclnn_max_fuse_numel: int = 256
+# ---- Clone-fold contract -------------------------------------------------
+# rescue_rules.fold_verdict (Line 1, lowering.npu_clone) decides fold vs
+# materialize from tile-independent physics; npu_header._npu_pointwise_
+# tile_contract (Line 2) enforces the stride-1-survives-tiling premise and
+# reports violations.  Every default follows the cost asymmetry: an
+# unrescued fold costs 30-130x (mobilevit_s 27-48 ms/launch vs ~1 ms
+# eager), over-materializing 1.5-3x -- so doubt always materializes.
+#   "contract" (default) | "fold-all"/None = upstream lazy | "materialize-all"
+clone_policy: Optional[str] = "contract"
+
+# Symbolic layouts are judged by the same verdict over the guard-free
+# substrate (statically_known_* / optimization_hint; int()/guard_int -- which
+# broke mark_dynamic historically -- is never used).  False = old skip-to-fold.
+clone_contract_dynamic: bool = True
+
+# Family-R cost gates (L2 transpose trips / L4 min misplaced-axis extent).
+# END-TO-END-MEASURED constants (probe-v2 decision table) -- do not tighten
+# analytically; L4 keeps the strict form (the stride-1-axis exemption
+# regressed mobilevit_s to 0.28x).
+clone_rescue_bet_max_swaps: int = 2
+clone_rescue_bet_min_axis: int = 8
+
+# Line 2 switch (False = baseline greedy order, bisect arm) and the
+# example-shape second ballot for unprovable numeric gates / undecidable
+# orders (verdicts may track the shape bucket on that tier; both outcomes
+# are always numerically correct).
+pointwise_tile_contract: bool = True
+clone_dynamic_hint_tier: bool = True
+
+# "log" (default; None = log) = WARN on fold bets that landed off ①/②;
+# "strict" = additionally raise (CI/adversarial); "off" = silent.
+clone_contract_check: Optional[str] = "log"
+
 
 # Reduction-tree real-block promotion (nested scalar r-loops -> real-block tile).
 rtree_real_block: bool = True
