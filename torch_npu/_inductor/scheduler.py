@@ -468,10 +468,12 @@ def patch_scheduler():
 
             def benchmark_when_ready() -> bool:
                 if is_deferred_epilogue_compile_only:
-                    for choice, future, _ in future_choices:
+                    for choice, future, mod_fused in future_choices:
                         try:
                             if future is not None:
                                 future.result()
+                            else:
+                                mod_fused.triton_.precompile()
                         except Exception as e:
                             fusion_log.info(  # noqa: G200
                                 "FlexAttention fused choice %s failed "
@@ -586,6 +588,8 @@ def patch_scheduler():
                     try:
                         if future_and_mod_fused[0] is not None:
                             future_and_mod_fused[0].result()
+                        else:
+                            future_and_mod_fused[1].triton_.precompile()
                     except Exception as e:
                         fusion_log.info(  # noqa: G200
                             "FlexAttention epilogue fusion failed compilation: %s",
