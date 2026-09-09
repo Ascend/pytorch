@@ -90,6 +90,27 @@ class TestDvmByMlir(TestCase):
             else:
                 os.environ["TORCHINDUCTOR_NPU_BACKEND"] = original_backend
 
+    def test_silu_bf16_matches_aclnn_bitwise(self):
+        def model(grad, x):
+            return (
+                torch.ops.aten.silu.default(x),
+                torch.ops.aten.silu_backward.default(grad, x),
+            )
+
+        numel = 257 * 263
+        x = torch.linspace(-20.0, 20.0, numel, dtype=torch.float32)
+        grad = torch.linspace(-2.0, 2.0, numel, dtype=torch.float32).cos()
+        x = x.to(torch.bfloat16).reshape(257, 263).npu()
+        grad = grad.to(torch.bfloat16).reshape(257, 263).npu()
+
+        with torch.no_grad():
+            expect = model(grad, x)
+            result, codes = self._run_and_get_code_with_dvm(model, grad, x)
+
+        self.assertTrue(torch.equal(expect[0], result[0]))
+        self.assertTrue(torch.equal(expect[1], result[1]))
+        self.assertIn("@dvm.kernel", "\n".join(codes))
+
     @parametrize("dtype", [torch.float16, torch.float32, torch.bfloat16])
     @parametrize("is_dynamic", [True, False])
     def test_basic_partitioning(self, dtype, is_dynamic):
