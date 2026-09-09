@@ -176,6 +176,35 @@ prims = torch.ops.prims
 npu = torch.ops.npu
 
 def _register_npu_inductor_fallbacks():
+    _torch_searchsorted = lowering.searchsorted
+
+    @register_lowering(aten.searchsorted.Tensor, type_promotion_kind=None)
+    def searchsorted(
+        sorted_sequence: TensorBox,
+        self: TensorBox,
+        *,
+        out_int32: bool = False,
+        right: bool = False,
+        side=None,
+        sorter=None,
+    ):
+        # The native Inductor lowering queries physical strides for boundaries and
+        # an optional sorter. Generic views such as SliceView only carry a reindex
+        # function, so realize() materializes the backing storage but does not make
+        # get_stride() available on the existing view object. Build and use a new
+        # contiguous IR value whenever the view has no physical stride.
+        if sorted_sequence.maybe_get_stride() is None:
+            sorted_sequence = ir.ExternKernel.require_contiguous(sorted_sequence)
+        if sorter is not None and sorter.maybe_get_stride() is None:
+            sorter = ir.ExternKernel.require_contiguous(sorter)
+        return _torch_searchsorted(
+            sorted_sequence,
+            self,
+            out_int32=out_int32,
+            right=right,
+            side=side,
+            sorter=sorter,
+        )
 
     env_fallback_list = enable_full_lowering_fallback
     if env_fallback_list:

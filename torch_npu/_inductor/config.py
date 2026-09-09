@@ -164,6 +164,8 @@ inductor_config.triton.coalesce_tiling_analysis = False
 inductor_config.triton.mix_order_reduction = False
 
 enable_fast_gelu = os.getenv("TORCHINDUCTOR_ENABLE_FAST_GELU", "0") == "1"
+allow_pad_lowering = os.getenv("TORCHINDUCTOR_ENABLE_PAD_LOWERING", "0") == "1"
+allow_searchsorted_lowering = os.getenv("TORCHINDUCTOR_ENABLE_SEARCHSORTED_LOWERING", "0") == "1"
 enable_flex_attention_dq_before_scale_materialize = os.environ.get(
     "FLEX_ATTENTION_DQ_BEFORE_SCALE_MATERIALIZE", "1"
 ).lower() in ("1", "true", "yes")

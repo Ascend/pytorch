@@ -31,7 +31,12 @@ from torch._higher_order_ops._invoke_quant import invoke_quant
 from torch._higher_order_ops.associative_scan import associative_scan
 from torch._higher_order_ops.effects import with_effects
 
-from .config import inductor_indirect_memory_mode, inductor_ascend_linear_mode
+from .config import (
+    inductor_indirect_memory_mode,
+    inductor_ascend_linear_mode,
+    allow_pad_lowering,
+    allow_searchsorted_lowering,
+)
 
 aten = torch.ops.aten
 prims = torch.ops.prims
@@ -194,9 +199,9 @@ NPU_EXTRA_FALLBACK_LIST = [
     aten.bucketize.Scalar_out,
     aten.bucketize.Tensor,
     aten.bucketize.Tensor_out,
-    aten.constant_pad_nd,
+    *([aten.constant_pad_nd,
     aten.constant_pad_nd.default,
-    aten.constant_pad_nd.out,
+    aten.constant_pad_nd.out,] if not allow_pad_lowering else []),
     aten.convolution,
     aten.convolution.default,
     aten.convolution.out,
@@ -373,7 +378,7 @@ NPU_EXTRA_FALLBACK_LIST = [
     aten.scatter_reduce.two,
     aten.scatter_reduce.two_out,
     aten.scatter_reduce_.two,
-    aten.searchsorted.Tensor,
+    *([aten.searchsorted.Tensor] if not allow_searchsorted_lowering else []),
     aten.set_.source_Tensor,
     aten.sigmoid_,
     aten.sigmoid_.default,

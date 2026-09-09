@@ -54,7 +54,7 @@ from torch._inductor.dtype_propagation import DtypePropagationOpsHandler
 from torch._inductor.shape_propagation import ShapePropagationOpsHandler, get_broadcasted_shape
 from torch._inductor.ir import IRNode
 from torch._inductor.runtime import triton_heuristics
-from torch._inductor.runtime.hints import DeviceProperties, ReductionHint
+from torch._inductor.runtime.hints import AutotuneHint, DeviceProperties, ReductionHint
 from torch._inductor.runtime.runtime_utils import next_power_of_2
 from torch._inductor.scheduler import SchedulerNode
 from torch._inductor.utils import (
