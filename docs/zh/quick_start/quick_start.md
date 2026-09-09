@@ -7,8 +7,8 @@
 - 安装配套版本的NPU驱动固件、CANN软件（Toolkit、ops和NNAL），具体请参考《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》：
     - 操作系统：选择可用的操作系统（兼容性请参考[兼容性查询助手](https://www.hiascend.com/hardware/compatibility)）
     - 安装类型：选择“离线安装”
-- 安装PyTorch框架及TorchNPU插件，具体请参考[快速安装](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=175&ids=89dda9ba9de741349efa03687a487678%2C202%2C106%2C1%2C6%2C177%2C)。
-- 安装与PyTorch版本配套的torchvision，具体请参考[安装torchvision](../installation_guide/references/installing_torchvision.md)。
+- 安装PyTorch框架及TorchNPU插件，具体请参考《[软件安装](../installation_guide/installation_description.md)》。
+- 安装与PyTorch版本配套的torchvision，具体请参考[安装torchvision](../installation_guide/installing_torchvision.md)。
 
 ## 模型迁移训练
 
@@ -90,31 +90,27 @@
                 },'checkpoint.pth.tar')
     ```
 
-2. 在train.py中添加以下代码开启自动迁移。
+2. 在train.py中添加以下代码。
+
+    - 若用户使用<term>Atlas 训练系列产品</term>，则在迁移完成、训练开始之前，由于其架构特性，用户需要开启混合精度。
+    - 若用户使用<term>Atlas A2 训练系列产品</term>、<term>Atlas A3 训练系列产品</term>或<term>Ascend 950DT</term>，则可以自行选择是否开启混合精度。
+
+    > [!NOTE]
+    >
+    > 具体介绍可参见[混合精度适配](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/zh/mixed_precision_adaptation/adaptation_introduction.md)。
 
     ```diff
         import time
         import torch
         ......
     +   import torch_npu
+    +   from torch_npu.npu import amp # 导入AMP模块
     +   from torch_npu.contrib import transfer_to_npu    # 开启自动迁移
     ```
 
     若未开启自动迁移，用户可参考[手工迁移](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/zh/model_migration/manual_migration.md)进行相关操作。
 
-3. 在train.py中添加以下代码开启AMP混合精度。
-
-    > [!NOTE]
-    > - 若用户使用<term>Atlas 训练系列产品</term>，则在迁移完成、训练开始之前，由于其架构特性，用户需要执行此步骤开启混合精度。
-    > - 若用户使用<term>Atlas A2 训练系列产品</term>、<term>Atlas A3 训练系列产品</term>或<term>Ascend 950DT</term>，则可以自行选择是否开启混合精度，如果选择不开启混合精度，则可以跳过此步骤。
-    > - 混合精度的具体介绍，请参见[混合精度适配](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/zh/mixed_precision_adaptation/adaptation_introduction.md)。
-
-    ```diff
-        import time
-        import torch
-        ......
-    +   from torch_npu.npu import amp # 导入AMP模块
-    ```
+3. 开启AMP混合精度计算。若用户使用<term>Atlas A2 训练系列产品</term>、<term>Atlas A3 训练系列产品</term>或<term>Ascend 950DT</term>，则可以选择跳过此步骤。
 
     在模型、优化器定义之后，定义AMP功能中的GradScaler。
 

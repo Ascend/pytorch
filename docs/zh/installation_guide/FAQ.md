@@ -2,7 +2,7 @@
 
 ## 编译问题
 
-### 问题1：torch.libs/libopenblasp-r0-56e95da7.3.24.so链接报错或libgfortran缺失
+### torch.libs/libopenblasp-r0-56e95da7.3.24.so链接报错或libgfortran缺失
 
 **问题描述**
 
@@ -40,7 +40,7 @@ target_link_libraries(libtorch_resnet "${TORCH_LIBRARIES}")
 target_link_libraries(libtorch_resnet "${TORCH_NPU_LIBRARIES}")
 ```
 
-### 问题2：编译时third_party目录下项目文件缺失或需切换项目commit ID
+### 编译时third_party目录下项目文件缺失或需切换项目commit ID
 
 **问题描述**
 
@@ -83,7 +83,7 @@ git submodule update --init --recursive
 git checkout <commit_id>
 ```
 
-### 问题3：编译时换行符报错
+### 编译时换行符报错
 
 **问题描述**
 
@@ -128,7 +128,7 @@ rm -rf /home/pytorch/build
 bash ci/build.sh
 ```
 
-### 问题4：编译时报错CMake\_minimum\_required
+### 编译时报错CMake\_minimum\_required
 
 **问题描述**
 
@@ -149,7 +149,7 @@ CMake Error at third_party/Tensorpipe/third_party/libuv/CMakeLists.txt:1 (cmake_
 
 您可以在setup.py文件中`class CPPLibBuild`的`run`函数里添加`cmake_args.append('-DCMAKE_POLICY_VERSION_MINIMUM=3.5')`来尝试解决，让CMake以兼容模式处理旧版cmake_minimum_required声明。
 
-### 问题5：编译时报错链接符问题
+### 编译时报错链接符问题
 
 **问题描述**
 
@@ -179,7 +179,7 @@ done
 
 譬如，用`third_party\torchair\torchair\third_party\ascend\include\air\external\ge\ge_error_codes.h`中内容替换`third_party\torchair\torchair\third_party\ascend\include\ascend/include/ascendcl/external/acl/error_codes/rt_error_codes.h`中的内容。
 
-### 问题6：fatal error: 'filesystem' file not found
+### fatal error: 'filesystem' file not found
 
 **问题描述**
 
@@ -201,11 +201,11 @@ gcc --version
 
 **处理方法**
 
-如果GCC版本低于8，请参考《[安装GCC 11.2.0版本](./references/installing_gcc_11-2-0.md)》安装GCC 8及以上版本。
+如果GCC版本低于8，请参考《[安装GCC 11.2.0版本](installing_gcc_11-2-0.md)》安装GCC 8及以上版本。
 
 ## 安装问题
 
-### 问题1：构建完成的whl包与当前使用环境不匹配
+### 构建完成的whl包与当前使用环境不匹配
 
 **问题描述**
 
@@ -229,7 +229,7 @@ ERROR: torch_npuxxx.whl is not a supported wheel on this platform
 bash ci/build.sh --python=3.xx
 ```
 
-### 问题2：ImportError: libhccl.so: cannot open shared object file: No such file or directory
+### ImportError: libhccl.so: cannot open shared object file: No such file or directory
 
 **问题描述**
 
@@ -249,7 +249,7 @@ ImportError: libhccl.so: cannot open shared object file: No such file or directo
 
 请检查是否已安装配套版本的NPU驱动固件、CANN软件（Toolkit、ops 和 NNAL）并正确配置CANN环境变量，具体请参考《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》。
 
-### 问题3：导入torch_npu时，系统报错core dump
+### 导入torch_npu时，系统报错core dump
 
 **问题描述**
 
@@ -268,9 +268,9 @@ Segmentation fault
 
 **处理方法**
 
-使用对应的GCC版本进行编译，具体对应版本可参考[GCC和Cmake版本要求](./references/compilation_installation_using_source_code.md#gcc_cmake)。
+使用对应的GCC版本进行编译，具体对应版本可参考[GCC和Cmake版本要求](compilation_installation_using_source_code.md#gcc_cmake)。
 
-### 问题4：“import torch_npu”报错找不到torch_npu._C
+### “import torch_npu”报错找不到torch_npu._C
 
 **问题描述**
 
@@ -299,25 +299,3 @@ ModuleNotFoundError: No module named 'torch_npu._C'
 **处理方法**
 
 进入合适的运行目录下重试，如先`cd test`或`cd /home/test`后再“import torch_npu”。
-
-### 问题5：查询已安装的TorchNPU版本
-
-**问题描述**
-
-查询已安装的TorchNPU版本。
-
-**查询方法**
-
-1. 执行以下命令查看TorchNPU安装包版本号。
-
-    ```bash
-    pip list | grep torch_npu
-    ```
-
-    输出如下TorchNPU安装包号。
-
-    ```text
-    torch_npu     2.12.0
-    ```
-
-2. 根据torchNPU安装包版本号查询对应的TorchNPU版本号，具体配套关系请参考[TorchNPU版本配套表](https://gitcode.com/Ascend/pytorch/blob/master/COMPATIBILITY.md#torchnpu-%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%A1%A8)。

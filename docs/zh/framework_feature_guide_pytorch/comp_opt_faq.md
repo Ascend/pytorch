@@ -14,7 +14,7 @@
 
 - “fatal error: 'filesystem' file not found.”
 
-    gcc版本过低，请执行命令gcc --version查询版本，并参考[软件安装](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=175&ids=89dda9ba9de741349efa03687a487678%2C202%2C106%2C1%2C6%2C177%2C)安装GCC 8以上版本。
+    gcc版本过低，请执行命令gcc --version查询版本，并参考《[软件安装](../installation_guide/installation_description.md)》安装GCC 8以上版本。
 
 - “Error while loading shared libraries: libomp.so: cannot open shared object file: No such file or directory.”
 

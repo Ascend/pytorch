@@ -14,12 +14,9 @@ Inductor后端支持三种算子编译器，可根据场景选择：
 
 > [!NOTICE]
 >
-> - 使用Inductor后端前，请先安装v3.2.2版本的Triton Ascend。该版本仅支持PyTorch 2.7.1和2.9.0。Triton Ascend的安装说明如下：
->   - 源码编译或在线安装（Pip）时，系统会默认安装了配套版本的Triton Ascend。
->   - 离线安装（Whl）时，请参考[快速安装](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=175&ids=89dda9ba9de741349efa03687a487678%2C202%2C106%2C1%2C6%2C177%2C)文档中的命令进行安装。
-> - 如需了解更多Triton Ascend信息，具体请参考[Triton Ascend](https://triton-ascend.readthedocs.io/zh-cn/v3.2.2/)。<br>
-> - Inductor后端使用MLIR模式时需额外安装Torch-MLIR依赖包，可以在[Torch-MLIR归档地址](https://repo.oepkgs.net/ascend/pytorch/vllm/torch/)下载。<br>
-> - 在import torch前，也可通过TORCHINDUCTOR_NPU_BACKEND环境变量选择编译器模式，具体可参考[TORCHINDUCTOR_NPU_BACKEND](../environment_variable_reference/TORCHINDUCTOR_NPU_BACKEND.md)。
+> Inductor后端需安装最新版本的Triton-Ascend依赖包，具体可参见[Triton-Ascend说明文档](https://gitcode.com/Ascend/triton-ascend/blob/master/docs/sources/getting-started/installation.md)。<br>
+> Inductor后端使用MLIR模式时需额外安装Torch-MLIR依赖包，可以在[Torch-MLIR归档地址](https://repo.oepkgs.net/ascend/pytorch/vllm/torch/)下载。<br>
+> 在import torch前，也可通过TORCHINDUCTOR_NPU_BACKEND环境变量选择编译器模式，具体可参见[TORCHINDUCTOR_NPU_BACKEND](../environment_variable_reference/TORCHINDUCTOR_NPU_BACKEND.md)。
 
 ## 编译器
 
