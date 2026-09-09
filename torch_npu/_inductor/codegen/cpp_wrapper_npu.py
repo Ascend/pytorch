@@ -15,7 +15,8 @@ from torch._inductor.codecache import (
 )
 from torch._inductor.codegen.aoti_hipify_utils import maybe_hipify_code_wrapper
 from torch._inductor.codegen.common import get_device_op_overrides
-from torch._inductor.codegen.cpp_utils import cexpr, DEVICE_TO_ATEN, DTYPE_TO_CPP
+from torch_npu._compat.inductor import device_to_aten
+from torch._inductor.codegen.cpp_utils import cexpr, DTYPE_TO_CPP
 from torch._inductor.codegen.cpp_wrapper_gpu import (
     cpp_string_literal,
     CppWrapperGpu,
@@ -846,9 +847,7 @@ static inline void load_{kernel_name}() {{
         return struct_data, arg_data
 
     def codegen_device(self, device):
-        if device.type not in DEVICE_TO_ATEN:
-            raise RuntimeError(device.type + "not found in DEVICE_TO_ATEN")
-        device_str = DEVICE_TO_ATEN[device.type][5:].lower()  # remove "at::k"
+        device_str = device_to_aten(device.type)[5:].lower()  # remove "at::k"
         if device_str == "privateuse1":
             device_str = "npu"
         self.used_cached_devices.add(device_str)

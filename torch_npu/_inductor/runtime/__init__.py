@@ -1,6 +1,5 @@
 import logging
 from .autotune_cache import patch_load_cached_autotuning
-from .hints import patch_create_device_properties
 try:
     from .triton_helpers import *  # noqa: F403
 except Exception as e:

@@ -2,6 +2,12 @@ from torch._inductor.codegen.common import DeviceOpOverrides, register_device_op
 
 
 class NewNPUDeviceOpOverrides(DeviceOpOverrides):
+    def uses_gpu_cpp_wrapper(self) -> bool:
+        return True
+
+    def aten_device_type(self) -> str:
+        return "at::kPrivateUse1"
+
     def import_get_raw_stream_as(self, name):
         import torch_npu
         from torch._inductor.config import max_autotune

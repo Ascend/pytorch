@@ -1,11 +1,11 @@
 import torch
-from torch._dynamo.device_interface import DeviceInterface, register_interface_for_device, \
+from torch._dynamo.device_interface import DeviceInterface, \
     caching_worker_current_devices, caching_worker_device_properties
 
 from torch_npu._C import _npu_getCurrentRawStream as get_npu_stream
 from ..npu.streams import Event, Stream
 from ..npu import current_device, set_device, device_count, stream, current_stream, \
-    set_stream, synchronize, get_device_capability
+    set_stream, synchronize
 from ..npu import get_device_properties as get_device_properties_npu
 
 
@@ -82,3 +82,19 @@ class NpuInterface(DeviceInterface):
     @staticmethod
     def is_bf16_supported(including_emulation: bool = False):
         return True
+
+    @classmethod
+    def get_multi_processor_count(cls, device=None) -> int:
+        return cls.get_device_properties(device).vector_core_num
+
+    @classmethod
+    def get_cache_system_info(cls):
+        try:
+            device_properties = get_device_properties_npu(current_device())
+        except (AssertionError, RuntimeError):
+            return None
+
+        return {
+            "name": device_properties.name,
+            "cann": torch.version.cann,
+        }

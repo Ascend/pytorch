@@ -22,11 +22,15 @@ from torch_npu.utils._dynamo import (
     _dynamo_register_interface_for_device,
     _inject_inductor_npu_backend_config,
 )
-# all backends need register npu/cpu/mps device_op_overrides
-from .graph import patch_codegen_with_cpp_wrapper
 from .utils import patch_has_triton, patch_device_supports_tma, patch_is_gpu
 # All backends need npu/cpu/mps device_op_overrides.
-from .codegen.common import register_device_op_overrides_npu, patch_cache_base_get_system
+from .codegen.common import register_device_op_overrides_npu
+from torch_npu._compat.inductor import (
+    patch_cache_base_get_system,
+    patch_codegen_with_cpp_wrapper,
+    patch_create_device_properties,
+    patch_device_to_aten,
+)
 from ._npu_meta_registration import npu_patch_meta
 from .shape_handling import NPUShapeHandling, patch_shape_handling
 from .lowering_common import run_once
@@ -56,7 +60,6 @@ def _apply_common_npu_triton_patches():
     """Apply NPU Triton patches shared by the Triton and DVM backends."""
     from .autotune_process import patch_tuning_process
     from .runtime import (
-        patch_create_device_properties,
         patch_load_cached_autotuning,
         patch_triton_heuristics_cached_autotune,
     )
@@ -150,7 +153,6 @@ def _load_triton_backend():
         patch_get_cpp_torch_device_options,
         patch_get_optimization_cflags,
     )
-    from .codegen.cpp_utils import patch_device_to_aten
     from .decomposition import _register_triton_decompositions
     from .fx_passes import patch_pattern_mm_plus_mm, register_fav3_partition_pass
     from .fx_passes.graph_match_pass import (
@@ -171,7 +173,6 @@ def _load_triton_backend():
     )
     from .lowering import make_reduction
     from .runtime import (
-        patch_create_device_properties,
         patch_load_cached_autotuning,
         patch_triton_heuristics_cached_autotune,
     )

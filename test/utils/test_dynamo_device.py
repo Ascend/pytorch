@@ -1,4 +1,6 @@
+from types import SimpleNamespace
 from unittest.mock import patch
+
 from torch._dynamo.device_interface import caching_worker_current_devices, caching_worker_device_properties
 
 from torch_npu.testing.testcase import TestCase, run_tests
@@ -6,6 +8,14 @@ from torch_npu.utils._dynamo_device import NpuInterface
 
 
 class DynamoDevice(TestCase):
+
+    def test_get_multi_processor_count(self):
+        with patch.object(
+            NpuInterface,
+            "get_device_properties",
+            return_value=SimpleNamespace(vector_core_num=32),
+        ):
+            self.assertEqual(NpuInterface.get_multi_processor_count(), 32)
 
     def test_is_bf16_supported_with_emulation(self):
         result = NpuInterface.is_bf16_supported(including_emulation=True)
