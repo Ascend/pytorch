@@ -1,3 +1,5 @@
+# Copyright (c) 2026, Huawei Technologies Co., Ltd
+
 from torch_npu._compat.version import CURRENT_VERSION
 
 
