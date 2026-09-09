@@ -438,6 +438,12 @@ enable_multi_slice_concat = _parse_bool_env(
     "TORCHINDUCTOR_ENABLE_MULTI_SLICE_CONCAT", False
 )
 
+# Rewrite square backward-output transpose(mm(lhs, rhs)) as mm(rhs.T, lhs.T)
+# so parameter gradients are produced directly in contiguous layout.
+enable_grad_matmul_transpose_opt = _parse_bool_env(
+    "TORCHINDUCTOR_ENABLE_GRAD_MATMUL_TRANSPOSE_OPT", False
+)
+
 # grouped_matmul_fusion_pass: merge the independent small GEMMs feeding one cat into
 # npu_grouped_matmul. Gated off until validated on the target model; the rewrite keeps
 # every GEMM's operands intact but the kernel accumulates differently, so results are

@@ -5,6 +5,7 @@ from torch.utils._ordered_set import OrderedSet
 
 from ...config import (
     enable_fused_matmul_relu,
+    enable_grad_matmul_transpose_opt,
     enable_grouped_matmul_fusion,
     enable_multi_slice_concat,
     log,
@@ -20,6 +21,7 @@ ASCEND_CUSTOME_PASS_REGISTER = {
 # registered, so neither the inference nor the training path runs it.
 DEFAULT_SHUT_DOWN_PASSES = (
     (() if enable_fused_matmul_relu else ("fused_matmul_relu_pass",))
+    + (() if enable_grad_matmul_transpose_opt else ("grad_matmul_transpose_opt_pass",))
     + (() if enable_multi_slice_concat else ("multi_slice_concat_pass",))
     + (() if enable_grouped_matmul_fusion else ("grouped_matmul_fusion_pass",))
 )

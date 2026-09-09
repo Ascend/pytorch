@@ -49,6 +49,7 @@ from ..utils.get_binary_fold_result import (
     propagate_fake_tensor,
 )
 from ..utils.symbolic_shape_util import (
+    get_fake_mode,
     is_statically_one,
     materialize_shape,
     refresh_fake_meta,
@@ -3789,6 +3790,139 @@ def grouped_matmul_fusion_pass(
             )
 
     eliminate_dead_code(graph, changed, grouped_matmul_fusion_pass.__name__)
+
+
+def _is_2d_permute(node: torch.fx.Node) -> bool:
+    dims = node.args[1] if len(node.args) == 2 else None
+    return (
+        node.op == "call_function"
+        and node.target == torch.ops.aten.permute.default
+        and isinstance(dims, (list, tuple))
+        and tuple(dims) == (1, 0)
+    )
+
+
+def _transpose_2d_for_grad_mm(
+    graph: torch.fx.Graph,
+    node: torch.fx.Node,
+    fake_val: torch.Tensor,
+    insert_before: torch.fx.Node,
+) -> torch.fx.Node:
+    # Cancel an existing 2-D transpose instead of leaving a redundant pair of views.
+    if _is_2d_permute(node) and isinstance(node.args[0], torch.fx.Node):
+        return node.args[0]
+
+    with graph.inserting_before(insert_before):
+        transposed = graph.call_function(
+            torch.ops.aten.permute.default,
+            args=(node, [1, 0]),
+        )
+    transposed.meta.update(node.meta)
+    transposed.meta["val"] = fake_val
+    return transposed
+
+
+@register_custom_pass(PassType.POST, ignore_inference_check=True)
+def grad_matmul_transpose_opt_pass(graph: torch.fx.Graph) -> None:
+    """Produce square parameter gradients directly in contiguous layout.
+
+    Rewrite a direct backward output ``permute(mm(lhs, rhs), [1, 0])`` to
+    ``mm(rhs.T, lhs.T)``. Restricting the first version to square outputs keeps
+    M/N/K unchanged and limits the performance risk from changing GEMM operands.
+    """
+    output_nodes = [node for node in graph.nodes if node.op == "output"]
+    if len(output_nodes) != 1:
+        return
+    output_node = output_nodes[0]
+
+    # This metadata is installed by compile_fx_backward. Its presence both identifies
+    # a backward graph and lets this pass relax only the matched output stride contract.
+    user_visible_idxs = output_node.meta.get("user_visible_output_idxs")
+    original_strides = output_node.meta.get("original_output_strides")
+    if not isinstance(user_visible_idxs, (list, tuple)) or not isinstance(original_strides, list):
+        return
+
+    output_args = output_node.args[0]
+    if isinstance(output_args, torch.fx.Node):
+        output_args = (output_args,)
+    if not isinstance(output_args, (list, tuple)) or len(original_strides) != len(output_args):
+        return
+
+    fake_mode = get_fake_mode(graph)
+    if fake_mode is None:
+        return
+
+    output_positions = {}
+    for idx, node in enumerate(output_args):
+        if idx in user_visible_idxs and isinstance(node, torch.fx.Node):
+            output_positions.setdefault(node, []).append(idx)
+
+    changed = False
+    supported_dtypes = (torch.float16, torch.bfloat16, torch.float32)
+    for permute_node, positions in output_positions.items():
+        if not _is_2d_permute(permute_node):
+            continue
+        if len(permute_node.users) != 1 or output_node not in permute_node.users:
+            continue
+
+        mm_node = permute_node.args[0]
+        if (
+            not isinstance(mm_node, torch.fx.Node)
+            or mm_node.op != "call_function"
+            or mm_node.target != torch.ops.aten.mm.default
+            or len(mm_node.args) < 2
+            or len(mm_node.users) != 1
+        ):
+            continue
+        lhs, rhs = mm_node.args[:2]
+        if not isinstance(lhs, torch.fx.Node) or not isinstance(rhs, torch.fx.Node):
+            continue
+        if not _is_2d_permute(lhs) or not isinstance(lhs.args[0], torch.fx.Node):
+            continue
+
+        lhs_val = lhs.meta.get("val")
+        rhs_val = rhs.meta.get("val")
+        result_val = permute_node.meta.get("val")
+        lhs_base_val = lhs.args[0].meta.get("val")
+        if not all(isinstance(val, torch.Tensor) and val.ndim == 2 for val in (lhs_val, rhs_val, result_val)):
+            continue
+        if not isinstance(lhs_base_val, torch.Tensor) or lhs_base_val.ndim != 2:
+            continue
+        if any(val.device.type != "npu" for val in (lhs_val, rhs_val, result_val)):
+            continue
+        if result_val.dtype not in supported_dtypes:
+            continue
+        if not statically_known_eq(result_val.shape[0], result_val.shape[1]):
+            continue
+        if not lhs_base_val.is_contiguous() or not rhs_val.is_contiguous() or result_val.is_contiguous():
+            continue
+
+        try:
+            with fake_mode:
+                rhs_t_val = rhs_val.permute(1, 0)
+                lhs_t_val = lhs_val.permute(1, 0)
+                new_result_val = torch.ops.aten.mm.default(rhs_t_val, lhs_t_val)
+        except Exception:
+            continue
+
+        rhs_t = _transpose_2d_for_grad_mm(graph, rhs, rhs_t_val, mm_node)
+        lhs_t = _transpose_2d_for_grad_mm(graph, lhs, lhs_t_val, mm_node)
+        with graph.inserting_before(mm_node):
+            new_mm = graph.call_function(
+                torch.ops.aten.mm.default,
+                args=(rhs_t, lhs_t),
+            )
+        new_mm.meta.update(permute_node.meta)
+        new_mm.meta["val"] = new_result_val
+
+        permute_node.replace_all_uses_with(new_mm)
+        for idx in positions:
+            original_strides[idx] = new_result_val.stride()
+        graph.erase_node(permute_node)
+        graph.erase_node(mm_node)
+        changed = True
+
+    eliminate_dead_code(graph, changed, grad_matmul_transpose_opt_pass.__name__)
 
 
 def eliminate_dead_code(graph, changed, fn_name, POST=True):
