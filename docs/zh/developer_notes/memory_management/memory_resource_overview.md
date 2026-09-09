@@ -92,119 +92,119 @@ TorchNPU自身提供的内存管理功能如下表所示，涵盖内存分配、
     <td>张量创建</td>
     <td><code>torch.empty()</code>、<code>torch.zeros()</code>、<code>torch.ones()</code>、<code>torch.rand()</code> 等</td>
     <td>指定 <code>device='npu'</code> 即可在NPU上分配内存，接口和语义与CUDA完全一致。</td>
-    <td><a href="https://pytorch.org/docs/stable/tensors.html">torch.Tensor</a></td>
+    <td><a href="https://docs.pytorch.org/docs/stable/generated/torch.empty.html">torch.empty</a><br><a href="https://docs.pytorch.org/docs/stable/generated/torch.zeros.html">torch.zeros</a><br><a href="https://docs.pytorch.org/docs/stable/generated/torch.ones.html">torch.ones</a><br><a href="https://docs.pytorch.org/docs/stable/generated/torch.rand.html">torch.rand</a></td>
   </tr>
   <tr>
     <td>张量类型转换</td>
     <td><code>tensor.to()</code>、<code>tensor.cuda()</code>、<code>tensor.npu()</code>、<code>tensor.half()</code>、<code>tensor.bfloat16()</code> 等</td>
     <td>支持CPU到NPU、NPU到CPU以及NPU上不同dtype之间的转换。<code>tensor.npu()</code> 是NPU专用语法糖。</td>
-    <td><a href="https://pytorch.org/docs/stable/tensors.html">torch.Tensor</a></td>
+    <td><a href="https://docs.pytorch.org/docs/stable/generated/torch.Tensor.to.html">torch.Tensor.to</a><br><a href="https://docs.pytorch.org/docs/stable/generated/torch.Tensor.cuda.html">torch.Tensor.cuda</a><br><a href="https://docs.pytorch.org/docs/stable/generated/torch.Tensor.half.html">torch.Tensor.half</a><br><a href="https://docs.pytorch.org/docs/stable/generated/torch.Tensor.bfloat16.html">torch.Tensor.bfloat16</a><br><code>tensor.npu()</code> 为NPU专用接口，上游对应 <code>Tensor.cuda()</code>。</td>
   </tr>
   <tr>
     <td>Pin Memory</td>
     <td><code>tensor.pin_memory()</code>、<code>DataLoader(pin_memory=True)</code></td>
     <td>锁页内存功能在NPU上同样支持，可加速CPU到NPU的数据传输。</td>
-    <td><a href="https://pytorch.org/docs/stable/data.html#memory-pinning">torch.utils.data</a></td>
+    <td><a href="https://docs.pytorch.org/docs/stable/generated/torch.Tensor.pin_memory.html">torch.Tensor.pin_memory</a><br><a href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader">torch.utils.data.DataLoader</a><br><a href="https://docs.pytorch.org/docs/stable/data.html#memory-pinning">DataLoader / Memory Pinning</a></td>
   </tr>
   <tr>
     <td rowspan="7">内存优化</td>
     <td>视图操作</td>
     <td><code>tensor.view()</code>、<code>tensor.reshape()</code>、<code>tensor.permute()</code>、<code>tensor.transpose()</code> 等</td>
     <td>视图操作不分配新内存，与原张量共享存储，可直接在NPU上使用。</td>
-    <td><a href="https://pytorch.org/docs/stable/tensor_view.html">Tensor Views</a></td>
+    <td><a href="https://docs.pytorch.org/docs/stable/generated/torch.Tensor.view.html">torch.Tensor.view</a><br><a href="https://docs.pytorch.org/docs/stable/generated/torch.Tensor.reshape.html">torch.Tensor.reshape</a><br><a href="https://docs.pytorch.org/docs/stable/generated/torch.Tensor.permute.html">torch.Tensor.permute</a><br><a href="https://docs.pytorch.org/docs/stable/generated/torch.Tensor.transpose.html">torch.Tensor.transpose</a></td>
   </tr>
   <tr>
     <td>原位操作</td>
     <td><code>tensor.add_()</code>、<code>tensor.mul_()</code>、<code>tensor.relu_()</code> 等（带下划线后缀的算子）</td>
     <td>原位操作复用已有内存，避免额外分配。NPU上所有支持原位操作的算子与CUDA行为一致。</td>
-    <td><a href="https://pytorch.org/docs/stable/tensors.html">torch.Tensor</a></td>
+    <td><a href="https://docs.pytorch.org/docs/stable/generated/torch.Tensor.add_.html">torch.Tensor.add_</a><br><a href="https://docs.pytorch.org/docs/stable/generated/torch.Tensor.mul_.html">torch.Tensor.mul_</a><br><a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.functional.relu_.html">torch.nn.functional.relu_（对应 tensor.relu_）</a></td>
   </tr>
   <tr>
     <td>推理模式</td>
     <td><code>torch.no_grad()</code>、<code>torch.inference_mode()</code></td>
     <td>禁用自动求导，避免为反向传播保存中间激活，显著降低内存占用。NPU上行为与CUDA完全一致。</td>
-    <td><a href="https://pytorch.org/docs/stable/notes/autograd.html">Autograd</a></td>
+    <td><a href="https://docs.pytorch.org/docs/stable/generated/torch.no_grad.html">torch.no_grad</a><br><a href="https://docs.pytorch.org/docs/stable/generated/torch.autograd.grad_mode.inference_mode.html">torch.inference_mode</a></td>
   </tr>
   <tr>
     <td>混合精度训练（AMP）</td>
     <td><code>torch.amp.autocast(device_type='npu')</code>、<code>torch.npu.amp.autocast()</code></td>
     <td>通过FP16/BF16降低内存占用和计算量。NPU支持与CUDA相同的AMP接口，需指定 <code>device_type='npu'</code> 或使用NPU专用接口。</td>
-    <td><a href="https://pytorch.org/docs/stable/notes/amp_examples.html">Automatic Mixed Precision</a></td>
+    <td><a href="https://docs.pytorch.org/docs/stable/amp.html#torch.autocast">torch.amp.autocast</a><br><a href="https://docs.pytorch.org/docs/stable/amp.html#torch.cuda.amp.autocast">torch.cuda.amp.autocast</a></td>
   </tr>
   <tr>
     <td>梯度检查点</td>
     <td><code>torch.utils.checkpoint.checkpoint()</code></td>
     <td>以计算换内存，在前向过程中不保存中间激活，反向时重新计算。NPU上可直接使用，与CUDA用法相同。</td>
-    <td><a href="https://pytorch.org/docs/stable/checkpoint.html">Checkpointing</a></td>
+    <td><a href="https://docs.pytorch.org/docs/stable/checkpoint.html#torch.utils.checkpoint.checkpoint">torch.utils.checkpoint.checkpoint</a></td>
   </tr>
   <tr>
     <td>参数共享</td>
     <td>将同一张量赋值给多个模块参数</td>
     <td>多个模块共享同一份权重内存，减少模型参数量对应的内存占用。NPU上行为与CUDA一致。</td>
-    <td><a href="https://pytorch.org/docs/stable/notes/modules.html#module-state">Module State</a></td>
+    <td><a href="https://docs.pytorch.org/docs/stable/notes/modules.html#module-state">Module State</a></td>
   </tr>
   <tr>
     <td>模型Checkpoint管理</td>
     <td><code>torch.save()</code>、<code>torch.load()</code></td>
     <td>保存/加载模型时，可通过 <code>map_location='npu'</code> 或 <code>map_location='cpu'</code> 控制张量加载位置，灵活管理设备内存。</td>
-    <td><a href="https://pytorch.org/docs/stable/notes/serialization.html">Serialization</a></td>
+    <td><a href="https://docs.pytorch.org/docs/stable/generated/torch.save.html">torch.save</a><br><a href="https://docs.pytorch.org/docs/stable/generated/torch.load.html">torch.load</a></td>
   </tr>
   <tr>
     <td rowspan="4">内存监控</td>
     <td>内存统计</td>
     <td><code>torch.npu.memory_allocated()</code>、<code>torch.npu.max_memory_allocated()</code>、<code>torch.npu.memory_reserved()</code>、<code>torch.npu.max_memory_reserved()</code></td>
     <td>NPU提供与 <code>torch.cuda.memory_*()</code> 完全对应的接口，用法相同，返回当前设备的内存使用统计。</td>
-    <td><a href="https://pytorch.org/docs/stable/notes/cuda.html">CUDA Memory Management</a></td>
+    <td><a href="https://docs.pytorch.org/docs/stable/generated/torch.cuda.memory.memory_allocated.html">memory_allocated</a><br><a href="https://docs.pytorch.org/docs/stable/generated/torch.cuda.memory.max_memory_allocated.html">max_memory_allocated</a><br><a href="https://docs.pytorch.org/docs/stable/generated/torch.cuda.memory.memory_reserved.html">memory_reserved</a><br><a href="https://docs.pytorch.org/docs/stable/generated/torch.cuda.memory.max_memory_reserved.html">max_memory_reserved</a></td>
   </tr>
   <tr>
     <td>内存概览</td>
     <td><code>torch.npu.memory_summary()</code></td>
     <td>返回格式化的内存使用摘要报告，与 <code>torch.cuda.memory_summary()</code> 对应。</td>
-    <td><a href="https://pytorch.org/docs/stable/notes/cuda.html">CUDA Memory Management</a></td>
+    <td><a href="https://docs.pytorch.org/docs/stable/generated/torch.cuda.memory.memory_summary.html">memory_summary</a></td>
   </tr>
   <tr>
     <td>缓存清理</td>
     <td><code>torch.npu.empty_cache()</code></td>
     <td>释放缓存分配器中未使用的缓存内存，与 <code>torch.cuda.empty_cache()</code> 对应。</td>
-    <td><a href="https://pytorch.org/docs/stable/notes/cuda.html">CUDA Memory Management</a></td>
+    <td><a href="https://docs.pytorch.org/docs/stable/generated/torch.cuda.memory.empty_cache.html">empty_cache</a></td>
   </tr>
   <tr>
     <td>内存峰值重置</td>
     <td><code>torch.npu.reset_peak_memory_stats()</code>、<code>torch.npu.reset_accumulated_memory_stats()</code></td>
     <td>重置内存统计计数器，与 <code>torch.cuda.reset_peak_memory_stats()</code> 等接口对应。</td>
-    <td><a href="https://pytorch.org/docs/stable/notes/cuda.html">CUDA Memory Management</a></td>
+    <td><a href="https://docs.pytorch.org/docs/stable/generated/torch.cuda.memory.reset_peak_memory_stats.html">reset_peak_memory_stats</a><br><a href="https://docs.pytorch.org/docs/stable/generated/torch.cuda.memory.reset_accumulated_memory_stats.html">reset_accumulated_memory_stats</a></td>
   </tr>
   <tr>
     <td rowspan="3">内存管理</td>
     <td>内存池（MemPool）</td>
     <td><code>torch.npu.MemPool()</code>、<code>torch.npu.use_mem_pool()</code></td>
     <td>支持用户创建和使用独立的内存池，将特定张量的内存分配路由到指定内存池。与 <code>torch.cuda.MemPool()</code> 对应。</td>
-    <td><a href="https://pytorch.org/docs/stable/notes/cuda.html">CUDA Memory Management</a></td>
+    <td><a href="https://docs.pytorch.org/docs/stable/generated/torch.cuda.memory.MemPool.html">MemPool</a><br><a href="https://docs.pytorch.org/docs/stable/cuda.html#torch.cuda.use_mem_pool">torch.cuda.use_mem_pool</a></td>
   </tr>
   <tr>
     <td>进程内存限制</td>
     <td><code>torch.npu.set_per_process_memory_fraction()</code>、<code>torch.npu.get_per_process_memory_fraction()</code></td>
     <td>设置/获取当前进程可占用的最大NPU内存比例。与 <code>torch.cuda.set_per_process_memory_fraction()</code> 对应。</td>
-    <td><a href="https://pytorch.org/docs/stable/notes/cuda.html">CUDA Memory Management</a></td>
+    <td><a href="https://docs.pytorch.org/docs/stable/generated/torch.cuda.memory.set_per_process_memory_fraction.html">set_per_process_memory_fraction</a><br><a href="https://docs.pytorch.org/docs/stable/generated/torch.cuda.memory.get_per_process_memory_fraction.html">get_per_process_memory_fraction</a></td>
   </tr>
   <tr>
     <td>内存快照API</td>
     <td><code>torch.npu.memory._record_memory_history()</code>、<code>torch.npu.memory._dump_snapshot()</code>、<code>torch.npu.memory._snapshot()</code></td>
     <td>主动记录内存分配历史并导出快照进行分析。与 <code>torch.cuda.memory._record_memory_history()</code> 等接口对应。</td>
-    <td><a href="https://pytorch.org/docs/stable/notes/cuda.html">CUDA Memory Management</a></td>
+    <td><a href="https://docs.pytorch.org/docs/stable/torch_cuda_memory.html#torch.cuda.memory._record_memory_history">_record_memory_history</a><br><a href="https://docs.pytorch.org/docs/stable/torch_cuda_memory.html#torch.cuda.memory._dump_snapshot">_dump_snapshot</a><br><a href="https://docs.pytorch.org/docs/stable/torch_cuda_memory.html#torch.cuda.memory._snapshot">_snapshot</a></td>
   </tr>
   <tr>
     <td rowspan="2">调试分析</td>
     <td>内存可视化</td>
     <td><code>torch.npu.memory._save_segment_usage()</code>、<code>torch.npu.memory._save_memory_usage()</code></td>
     <td>生成内存使用的SVG火焰图，直观展示内存分配布局。与CUDA端 <code>_memory_viz</code> 工具对应。</td>
-    <td><a href="https://pytorch.org/docs/stable/notes/cuda.html">CUDA Memory Management</a></td>
+    <td><a href="https://github.com/pytorch/pytorch/blob/main/torch/cuda/_memory_viz.py">torch.cuda._memory_viz.segments / memory（SVG 可视化源码）</a></td>
   </tr>
   <tr>
     <td>PyTorch Profiler</td>
     <td><code>torch.profiler.profile()</code> + <code>profile_memory=True</code></td>
     <td>通过PyTorch Profiler采集NPU内存分配时间线和峰值信息，在TensorBoard中可视化分析。</td>
-    <td><a href="https://pytorch.org/docs/stable/profiler.html">torch.profiler</a></td>
+    <td><a href="https://docs.pytorch.org/docs/stable/profiler.html#torch.profiler.profile">torch.profiler.profile</a></td>
   </tr>
 </tbody>
 </table>
