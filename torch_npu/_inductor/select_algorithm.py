@@ -402,28 +402,21 @@ class NPUTritonTemplate(TritonTemplate):
         defines: StringIO,
         numel: sympy.Expr,
         buffers: Any,
-    ) -> None:
-        can_use_32bit_indexing = TritonScheduling.can_use_32bit_indexing(
-            numel, buffers
-        )
-        is_flex_attention = self.name.startswith("flex_attention")
-        if not can_use_32bit_indexing and not is_flex_attention:
-            raise NotImplementedError(
-                "64-bit indexing is not yet implemented for triton templates"
-            )
-        if is_flex_attention:
-            # Symbolic sizes and strides are passed to Triton as int64.  Keeping
-            # FlexAttention loop and tile indices in int32 makes the Ascend
-            # dynamic-control-flow pipeline combine incompatible induction and
-            # offset types.  Use one index type throughout dynamic kernels;
-            # retain int32 for statically bounded kernels where it is safe.
-            has_symbolic_numel = bool(getattr(numel, "free_symbols", ()))
+        index_dtype_override: Optional[str] = None,
+    ) -> str:
+        if index_dtype_override not in (None, "tl.int32", "tl.int64"):
+            raise ValueError(f"Unsupported index dtype: {index_dtype_override}")
+        index_dtype = index_dtype_override
+        if index_dtype is None:
             index_dtype = (
                 "tl.int32"
-                if can_use_32bit_indexing and not has_symbolic_numel
+                if TritonScheduling.can_use_32bit_indexing(numel, buffers)
                 else "tl.int64"
             )
-            defines.write(f"INDEX_DTYPE : tl.constexpr = {index_dtype}\n")
+        # Share the template constant with the kernel's symbolic argument,
+        # indexing and subgraph codegen dtype, as in upstream TritonTemplate.
+        defines.write(f"INDEX_DTYPE : tl.constexpr = {index_dtype}\n")
+        return index_dtype
 
     def make_runtime_renderer_factory(
         self,
@@ -436,6 +429,7 @@ class NPUTritonTemplate(TritonTemplate):
         call_sizes=None,
         subgraphs=None,
         reset_to_zero_arg_names=None,
+        index_dtype_override: Optional[str] = None,
         **kwargs,
     ):
         runtime_args = tuple(runtime_args)
@@ -458,9 +452,12 @@ class NPUTritonTemplate(TritonTemplate):
         else:
             buffers = input_nodes
             numel = sympy_product(call_sizes)
-        self._write_index_dtype_define(defines, numel, buffers)
+        index_dtype = self._write_index_dtype_define(
+            defines, numel, buffers, index_dtype_override
+        )
         kernel_options = {
             "defines": defines.getvalue(),
+            "index_dtype_override": index_dtype,
             "num_stages": num_stages,
             "num_warps": num_warps,
             "grid_fn": self.grid,
@@ -554,6 +551,7 @@ class NPUTritonTemplate(TritonTemplate):
         large_input_buffers: Optional[list[ir.IRNode]] = None,
         runtime_renderer_factory: Optional[Callable] = None,
         dispatch_spec: Optional[Any] = None,
+        index_dtype_override: Optional[str] = None,
         **kwargs: Any,
     ) -> Optional[ir.ChoiceCaller]:
         kwargs = dict(kwargs)
@@ -585,10 +583,9 @@ class NPUTritonTemplate(TritonTemplate):
         else:
             buffers = checked_input_nodes
             numel = sympy_product(call_sizes or layout.size)
-        self._write_index_dtype_define(defines, numel, buffers)
-
-        if not self.name.startswith("flex_attention"):
-            defines.write("INDEX_DTYPE : tl.constexpr = tl.int32\n")
+        index_dtype = self._write_index_dtype_define(
+            defines, numel, buffers, index_dtype_override
+        )
         defines = defines.getvalue()
 
         if call_sizes is None:
@@ -597,6 +594,7 @@ class NPUTritonTemplate(TritonTemplate):
         kernel_options = {
             "input_nodes": input_nodes,
             "defines": defines,
+            "index_dtype_override": index_dtype,
             "num_stages": num_stages,
             "num_warps": num_warps,
             "num_consumer_groups": num_consumer_groups,
@@ -1083,6 +1081,7 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
                 signature,
                 size_dtype=self.index_dtype,
                 argdefs=argdefs,
+                is_template=True,
             ),
             "device": DeviceProperties.create(self.output_node.get_device()),
             "constants": {},
