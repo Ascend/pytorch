@@ -22,7 +22,8 @@ def _clone_schema_under_new_name(original_overload, new_unqualified_name: str) -
     overload = original_overload._schema.overload_name
     if overload:
         head = f"{head}.{overload}"
-    new_head = f"npu::{new_unqualified_name}"
+    # Library("npu", ...) supplies the namespace when defining the proxy.
+    new_head = new_unqualified_name
     if overload:
         new_head = f"{new_head}.{overload}"
     if not schema_str.startswith(head):
