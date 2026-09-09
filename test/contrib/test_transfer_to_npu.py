@@ -294,6 +294,15 @@ class TestTransferToNpu(TestCase):
         self.assertEqual(str(event.device), 'npu')
         self.assertEqual(isinstance(event, torch.Event), True)
 
+    def test_stream_record_event(self):
+        # torch.Stream.record_event rejects subclass instances via C++ exact
+        # type matching; _EventProxy must return a base torch.Event to pass it.
+        event = torch.Event(device='cuda:0')
+        stream = torch.Stream(torch.device('npu'))
+        recorded = stream.record_event(event)
+        self.assertEqual(isinstance(recorded, torch.Event), True)
+        self.assertTrue('npu' in str(recorded.device))
+
     def test_torch_get_device_module(self):
         device_module1 = torch.get_device_module(device='cuda:0')
         device_module2 = torch.get_device_module(device=torch.device('cuda:0'))

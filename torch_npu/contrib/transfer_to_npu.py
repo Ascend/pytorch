@@ -79,7 +79,9 @@ class _EventProxy(torch.Event, metaclass=_TorchTypeProxyMeta):
             device = kwargs.get('device', None)
             if device is not None:
                 _replace_cuda_to_npu_in_kwargs(kwargs, 'device', device)
-        instance = super().__new__(cls, *args, **kwargs)
+        # torch.Stream.record_event rejects subclass instances via C++ exact type
+        # matching; return a base torch.Event to pass the check.
+        instance = super().__new__(_EventProxy.__mro__[1], *args, **kwargs)
         return instance
 
 
