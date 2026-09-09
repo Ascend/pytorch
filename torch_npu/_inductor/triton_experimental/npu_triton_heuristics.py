@@ -198,6 +198,17 @@ def disable_pointwise_autotuning(inductor_meta):
     return not inductor_meta.get("autotune_pointwise", True)
 
 
+def _is_constexpr_signature_error(e: BaseException) -> bool:
+    """The ONE ValueError that is a skippable autotune candidate: triton's
+    ASTSource validates every Config constexpr against the kernel signature
+    and raises "'<name>' is not in list" for fold candidates whose kernel
+    body folds inline (no declared constexpr). A blanket ValueError catch
+    would swallow real codegen bugs, so only this exact shape is
+    candidate-level; both the serial and the parallel precompile paths must
+    discriminate identically."""
+    return isinstance(e, ValueError) and "is not in list" in str(e)
+
+
 def _fmt_config(cfg):
     try:
         return (f"kwargs={dict(cfg.kwargs)} warps={getattr(cfg, 'num_warps', None)} "
@@ -458,7 +469,12 @@ class NPUTritonCompileResult(TritonCompileResult):
             self.inductor_meta, def_args, fn.arg_names
         )
         is_unsplit_scalar_reduction = (
-            npu_num_x_nodes == 0
+            # Non-linearize bodies index xoffset = pid*XBLOCK directly (no
+            # group-dispatch odometer folding), so a grid of 1 would only run
+            # the first tile — they must fall through to the exact-grid branch
+            # below regardless of the x-node count.
+            self.inductor_meta.get("npu_linearize", True)
+            and npu_num_x_nodes == 0
             and grid_type == "Grid1D"
             and "R0_BLOCK" in set(fn.arg_names)
             and not npu_rsplit_partial
@@ -506,6 +522,20 @@ class NPUTritonCompileResult(TritonCompileResult):
             # memoize on the last-seen xnumel with a single-slot cache: the arithmetic +
             # max/min run only when xnumel changes, still correct for any value. The cache
             # cell is bound as a hidden default param (below) so the lookup is LOAD_FAST.
+            grid_0_is_memoized = True
+        elif not self.inductor_meta.get("npu_linearize", True) and grid_type == "Grid1D" and "xnumel" in def_args:
+            # Non-linearize structure: xoffset = pid*XBLOCK with an always-true
+            # xmask (xnumel % XBLOCK == 0) and no group-dispatch folding, so
+            # the grid must be EXACTLY ceil(xnumel/XBLOCK) — one tile per pid.
+            # Larger grids read past the input (MTE fault 507035, vector core
+            # exception — codegen/triton.py sets inductor_meta["npu_linearize"]
+            # =False for these kernels); smaller ones silently drop tiles
+            # (uninitialized output rows, no fault — a min(ceil, NPU_CU_COUNT)
+            # clamp regressed sum(64,128,256) at XBLOCK=128 where ceil=64 > 48).
+            # Unlike the simple-1D pointwise branch there is no num_x_nodes
+            # guarantee that ceil <= NPU_CU_COUNT, so no upper clamp: reductions
+            # time-slice tiles over the cores instead.
+            grid_0_expr = f"max(1, (xnumel + {xblock_val} - 1) // {xblock_val})"
             grid_0_is_memoized = True
         else:
             grid_0_expr = str(NPU_CU_COUNT)
@@ -766,7 +796,11 @@ class NPUCachingAutotuner(CachingAutotuner):
                     compile_failed.append((c, e))
                     last_exc = e
                 except Exception as e:
-                    if isinstance(e, OutOfResources):
+                    # ValueError with the constexpr-signature shape ("'X' is
+                    # not in list"): fold candidates whose kernel body folds
+                    # inline must be skipped, not fail the whole compile. Any
+                    # OTHER ValueError is a real codegen bug and must raise.
+                    if isinstance(e, OutOfResources) or _is_constexpr_signature_error(e):
                         log.debug("  [COMPILE FAIL] %s -> %s: %s", _fmt_config(c), type(e).__name__, e)  # noqa: G200
                         compile_failed.append((c, e))
                         last_exc = e
@@ -779,6 +813,13 @@ class NPUCachingAutotuner(CachingAutotuner):
                 return self._precompile_config(cfg), None
             except (MLIRCompilationError, CompilationError, OutOfResources) as e:
                 return None, e
+            except ValueError as e:
+                # Same discrimination as the serial loop: only the
+                # constexpr-signature shape is candidate-level, every other
+                # ValueError is a real codegen bug and propagates.
+                if _is_constexpr_signature_error(e):
+                    return None, e
+                raise
 
         max_workers = min(compile_threads, len(configs))
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -946,7 +987,16 @@ class NPUCachingAutotuner(CachingAutotuner):
         compile_meta = copy.deepcopy(self.triton_meta)
 
         cfg_kwargs = cfg.kwargs
-        compile_meta["constants"].update(cfg_kwargs)
+        # Only kernel-declared constexprs may enter ASTSource constants. A
+        # cache-loaded Config (read_best -> _load_cached_autotuning) can carry
+        # foreign bookkeeping keys inside kwargs; triton's ast_to_ttir validates
+        # every constants key against the kernel signature and rejects the rest
+        # ("'X' is not in list"), killing every config at once. Filter at the
+        # boundary so a dirty Config degrades to its constexpr payload only.
+        constexpr_names = {self.fn.arg_names[i] for i in self.fn.constexprs}
+        compile_meta["constants"].update(
+            {k: v for k, v in cfg_kwargs.items() if k in constexpr_names}
+        )
         for i in self.fn.constexprs:
             arg_name = self.fn.arg_names[i]
             if arg_name not in compile_meta["constants"] and arg_name in (

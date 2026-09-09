@@ -922,6 +922,87 @@ _TritonPrinter._print_Float = _npu_print_Float
 _TritonPrinter._print_ToFloat = _npu_print_ToFloat
 
 
+# Variant C int64 widening, structural (replaces the old re.sub text rewrite).
+# NpuWiden(x) is an unevaluated marker whose ONLY meaning is printer-level: it
+# renders as "x.to(tl.int64)" (same trick as ToFloat above). The cast is
+# attached to axis factors inside pointer-arithmetic expressions at the sympy
+# level (NPUTritonKernel.index_to_str), so no rendered-text matching is
+# involved and composite terms (c*x0*x1, FloorDiv(x, k)*c) widen correctly.
+class NpuWiden(sympy.Function):
+    @classmethod
+    def eval(cls, arg):
+        return None  # stay unevaluated; survives Add/Mul rebalancing
+
+
+def _npu_print_NpuWiden(self, expr):
+    # Parenthesize anything that is not an atom (same idiom as ToFloat); for
+    # the plain monomial case the atom renders bare, byte-identical to the
+    # old regex output ("268435456*x1.to(tl.int64)").
+    from sympy.printing.precedence import PRECEDENCE
+    s = self.parenthesize(expr.args[0], PRECEDENCE["Atom"] - 0.5)
+    return f"{s}.to(tl.int64)"
+
+
+_TritonPrinter._print_NpuWiden = _npu_print_NpuWiden
+
+
+# R3 hardening: the numel-level gate (select_index_dtype ->
+# can_use_32bit_indexing) only checks total numel and buffer storage sizes,
+# so address expressions carrying large index-arithmetic constants (upstream
+# #186057: model integer math, unfold/flatten offset algebra — constants NOT
+# reflected in any buffer's storage) can overflow int32 in a kernel the gate
+# typed as int32. Widening is cheap (perf-waived) and shape-independent, so
+# arm it on any static proximity hint instead of trying to prove overflow:
+# an integer literal of magnitude >= 2^30 anywhere in the expression
+# (addend, stride coefficient or mod/div base) can bust 2^31 once combined
+# with an axis extent of the same order; a STATIC axis within a whisker of
+# int32_max busts with even a small constant addend. Ordinary strides and
+# offsets sit far below both thresholds.
+_NPU_INT32_ARM_LITERAL = 2**30
+
+
+def _npu_should_widen_address(index_dtype: str, expr: sympy.Expr, range_tree_nodes) -> bool:
+    """Whether index_to_str widens this address expression's axis factors:
+    int64-typed kernels always; int32-typed kernels only on an #186057-class
+    hint (conservative arm — a false positive costs the waived i64 address
+    tax, never correctness).
+
+    Two hints: (a) any integer literal >= 2^30 (fast path); (b) an
+    expression-level bound — substitute every axis symbol with its max lane
+    value and evaluate against the trace-time hint (the upstream
+    #186057/d630a2d direction, vendored as a boolean gate). Arm when the
+    WHOLE expression can bust int32, which closes the dynamic
+    near-max-axis + small-constant corner the literal/axis heuristics
+    missed. Non-monotone terms (ModularIndexing) make a point substitution
+    unsound as a maximum, so their presence arms unconditionally; no hint
+    (unbacked) or any evaluation failure arms too — every tie breaks toward
+    the fail-safe direction. A different runtime shape recompiles through
+    the ordinary shape guards with a fresh hint, so the decision is
+    re-evaluated per instance."""
+    if index_dtype == "tl.int64":
+        return True
+    if any(abs(int(lit)) >= _NPU_INT32_ARM_LITERAL for lit in expr.atoms(sympy.Integer)):
+        return True
+    if expr.has(ModularIndexing):
+        return True
+    subs = {}
+    for sym in expr.free_symbols:
+        node = range_tree_nodes.get(sym)
+        if node is not None:
+            subs[sym] = node.length - 1
+    if not subs:
+        return False
+    try:
+        bound_expr = expr.subs(subs)
+        if isinstance(bound_expr, (int, sympy.Integer)):
+            bound = int(bound_expr)
+        else:
+            bound = int(V.graph.sizevars.guarding_hint_or_throw(bound_expr))
+        return abs(bound) > 2**31 - 1
+    except Exception:
+        return True
+
+
 # Tensor-dimension symbol kinds: any tensor actually indexed by a running kernel
 # has every dim >= 1, so an expression built only from these is >= 1.
 _DIM_SYMT = (SymT.SIZE, SymT.PRECOMPUTED_SIZE, SymT.UNBACKED_INT)
@@ -1147,6 +1228,69 @@ def npu_triton_compute_type(dtype):
         triton_type_name = "float8e5b16"
     return f"tl.{triton_type_name}"
 torch._inductor.codegen.triton.triton_compute_type = npu_triton_compute_type
+
+
+# P1-1 / R7 seams (audited 2026-08-29): int64 must not be silently demoted on
+# the two routes that bypass NPUTritonKernel.dtype_to_str — stores of int64
+# tensors (value-correct until now only while stored values fit int32) and
+# index-as-value casts (which actively NARROWED int64 values back to tl.int32
+# in int32-mode kernels). Both are re-opened with the same module-patch
+# pattern as npu_triton_compute_type above; like it, they are process-global
+# and thus shared with the default backend in mixed processes (accepted,
+# consistent precedent).
+from torch._inductor.codegen.triton import (
+    TritonSymbols as _TritonSymbols,
+    triton_store_type as _upstream_triton_store_type,
+    triton_type as _upstream_triton_type,
+)
+
+
+def npu_triton_store_type(dtype):
+    """int64 stores stay tl.int64 (upstream routes through the demotion
+    mapping); every other dtype delegates to upstream unchanged."""
+    if dtype == torch.int64:
+        return "tl.int64"
+    return _upstream_triton_store_type(dtype)
+
+
+torch._inductor.codegen.triton.triton_store_type = npu_triton_store_type
+
+
+def _npu_value_type_str(dtype):
+    if dtype == torch.int64:
+        return "tl.int64"
+    return _upstream_triton_type(dtype)
+
+
+@classmethod
+def _npu_value_expr(cls, expr, dtype):
+    """Patched copy of upstream TritonSymbols.value_expr, kept in sync with
+    it; the ONLY change is the final cast routing through
+    _npu_value_type_str so int64 index values are not narrowed back to
+    tl.int32 by the demotion mapping.
+
+    Like :meth:`index_expr`, but honors ``dtype`` by setting the kernel
+    index dtype before emitting, and casting the result if needed.
+    """
+    real_index_dtype = V.kernel._index_dtype
+    V.kernel._index_dtype = (
+        dtype if dtype in (torch.int32, torch.int64) else torch.int64
+    )
+    try:
+        var = cls.index_expr(expr, dtype)
+    finally:
+        V.kernel._index_dtype = real_index_dtype
+    if real_index_dtype != dtype or var.dtype != dtype:
+        var = V.kernel.cse.generate(
+            V.kernel.compute,
+            f"({var}).to({_npu_value_type_str(dtype)})",
+            dtype=dtype,
+            shape=var.shape,
+        )
+    return var
+
+
+_TritonSymbols.value_expr = _npu_value_expr
 
 
 class _FlatMapExpr:
@@ -1688,6 +1832,69 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
 class NPUTritonKernel(TritonKernel):
     overrides = NPUTritonKernelOverrides  # type: ignore[assignment]
 
+    def dtype_to_str(self, dtype):
+        # The apply_npu_codegen_patches demotion (_triton_type_mapping
+        # ["tl.int64"] -> "tl.int32") forces index_dtype to "tl.int32" for every
+        # kernel, silently wrapping pointer offsets past 2^31 (e.g.
+        # 268435456*x1 for x1 >= 8 in a >2^31-element reduction) into negative
+        # addresses that fault on Ascend (507035 / vector core exception).
+        # Returning the upstream-native "tl.int64" here restores that signal.
+        #
+        # SCOPE (audited 2026-08-28; do not trust the old "only the index
+        # path is affected" claim): this override reaches EVERY
+        # dtype_to_str(torch.int64) call site — the index_dtype derivation
+        # (simd.py index_dtype property), the arg-reduction with_index trio
+        # (accumulator type AND its torch.iinfo(index_dtype).max sentinel,
+        # which MUST stay type-consistent — narrowing one side alone emits
+        # tl.full(size, 2**63-1, tl.int32) and breaks compilation), and the
+        # reduction intermediate-result cast (upstream
+        # reduction_collapse_dims) which is a DATA context. npu_triton_compute_type
+        # likewise has no int64->int32 branch and bypasses the mapping, so
+        # compute types are not demoted either. As of 2026-08-29 the backend
+        # is fully int64-open across ALL routes: the two former seams —
+        # value_expr (index-as-value casts) and triton_store_type (int64
+        # tensor stores) — are explicitly re-opened via module patches next
+        # to npu_triton_compute_type (they previously stayed demoted through
+        # the mapping, correct only while stored values fit int32). The
+        # remaining demotion surface is the mapping's int64 entry itself,
+        # vestigial for this backend (dtype_to_str overridden, patched routes
+        # bypass it) and kept for default-backend coexistence in mixed
+        # processes; any NEW direct triton_type(torch.int64) call site is
+        # caught by the callsite surface pin in
+        # test_triton_experimental_int32_overflow.
+        if dtype == torch.int64:
+            return "tl.int64"
+        return super().dtype_to_str(dtype)
+
+    def codegen_static_numels(self, code):
+        # Oversized-block-count dispatch audit: upstream stomps static
+        # numels with bare
+        # literals ("r0_numel = 2200000000"). A literal in [2^31, 2^32) types
+        # as triton uint32 and poisons every downstream scalar chain with
+        # signedness errors (rsplit dispatch //, group-base %, found by the
+        # expand->sum >2^31 probe), and block counts past 2^31 wrap int32.
+        # Keep such numels on their runtime arg — typed i64 via
+        # size_dtype=index_dtype in int64 mode — so the whole dispatch chain
+        # promotes to int64 instead. Otherwise kept in sync with upstream
+        # TritonKernel.codegen_static_numels; the persistent-reduction branch
+        # raises because NPU disables persistent reductions.
+        for tree in self.range_trees:
+            if not tree.is_reduction or self.inside_reduction:
+                simplified_tree_numel = V.graph.sizevars.simplify(tree.numel)
+                if (
+                    isinstance(simplified_tree_numel, (sympy.Integer, int))
+                    and int(simplified_tree_numel) < 2**31
+                ):
+                    code.writeline(f"{tree.prefix}numel = {int(simplified_tree_numel)}")
+            if tree.is_reduction and self.persistent_reduction:
+                raise AssertionError(
+                    "persistent reduction is disabled on NPU "
+                    "(should_use_persistent_reduction -> False); extend this "
+                    "override from upstream if that ever changes"
+                )
+            if tree.prefix == "x" and self.no_x_dim:
+                code.writeline("XBLOCK: tl.constexpr = 1")
+
     def should_use_persistent_reduction(self) -> bool:
         # NPU does not support persistent reduction; always use the looped path
         # so that the accumulator (tl.full) is properly initialized.
@@ -1958,7 +2165,7 @@ class NPUTritonKernel(TritonKernel):
         """
         if not ncfg.select_extract_slice:
             return
-        if not triton_codegen_linearize:
+        if not self._npu_linearize:
             return
         if self.inside_reduction:
             return
@@ -2017,9 +2224,60 @@ class NPUTritonKernel(TritonKernel):
         # needs to prove dim >= 1. Mirror the upstream list path.
         if isinstance(index, list):
             return f"[{', '.join(map(self.index_to_str, index))}]"
-        return self.kexpr(self.rename_indexing(_drop_size_clamp(index)))
+        expr = self.rename_indexing(_drop_size_clamp(index))
+        if _npu_should_widen_address(self.index_dtype, expr, self.range_tree_nodes):
+            # Constructive correctness: widen EVERY axis factor in the address
+            # expression, unconditionally — no term analysis, no bounds, no
+            # runtime guards. Every product/sum then computes in int64 (triton
+            # promotes on any i64 operand), so no address can wrap regardless
+            # of term shape (composite strides, FloorDiv/Mod, negative
+            # monomials) and correctness holds for ANY runtime shape: there is
+            # no snapshot to distrust and nothing to recompile. Tile headers
+            # keep lanes int32 (linearize bypasses the upstream
+            # arange/full/pid casts); the i64 footprint is bounded by
+            # (#free axes x XBLOCK) per address site and absorbed by the
+            # autotuner's small-tile fallback when a kernel sits near the UB
+            # ceiling. Dropping provably-redundant casts is deliberately NOT
+            # this layer's job: a wrong selection may only cost speed, never
+            # correctness, so it belongs to an optional demotion pass on top
+            # (upstream #91028/d630a2d ValueRange semantics), never here.
+            for axis in expr.free_symbols & set(self.range_tree_nodes):
+                expr = expr.subs(axis, NpuWiden(axis))
+        return self.kexpr(expr)
 
     def __init__(self, *args, **kwargs):
+        # Placeholder before super().__init__() — initialize_range_tree() and
+        # the pre-codegen header pass (both run inside super().__init__) gate
+        # on this flag. The cross-boundary test MUST match select_index_dtype
+        # exactly (same features instance, cached): past 2^31 elements the
+        # non-linearize structure cannot stay correct (xoffset =
+        # pid.to(i64)*XBLOCK upcasts every arange tile via mixed broadcast —
+        # UB doubling 507034 and wrong results), so force the
+        # linearize structure: the i64 rides the scalar group_base/real_block
+        # chain, tiles stay int32. codegen_linearize then only governs
+        # in-range kernels.
+        features = kwargs.get("features")
+        if features is None and len(args) > 1:
+            features = args[1]
+        force_linearize = False
+        if features is not None:
+            try:
+                force_linearize = (
+                    self.dtype_to_str(features.select_index_dtype()) == "tl.int64"
+                )
+            except Exception:
+                # Fail SAFE, not silent: linearize is the structure this
+                # backend deems correct past 2^31, so an undecidable kernel
+                # must not fall back to the non-linearize path on a swallowed
+                # exception (config semantics may not silently revert to the
+                # unsafe path). An in-range kernel hitting this only pays the
+                # linearize structure — never correctness.
+                log.warning(
+                    "select_index_dtype raised; forcing linearize (safe side)",
+                    exc_info=True,
+                )
+                force_linearize = True
+        self._npu_linearize: bool = bool(triton_codegen_linearize) or force_linearize
         super().__init__(*args, **kwargs)
         self._axis_split_subs: Dict[sympy.Symbol, sympy.Expr] = {}
         # r-axis cross-core split (OUTER reduction): when True, codegen_kernel
@@ -2039,7 +2297,7 @@ class NPUTritonKernel(TritonKernel):
         # detection replaces the old regex text classification.
         self._npu_select_lane_loads: Dict[str, Dict[str, Any]] = {}
 
-        if triton_codegen_linearize:
+        if self._npu_linearize:
             for tree in self.range_trees:
                 if not hasattr(tree, 'tree_node_mapping'):
                     tree.tree_node_mapping = {}
@@ -2123,7 +2381,7 @@ class NPUTritonKernel(TritonKernel):
 
     def prepare_indexing(self, index):
         index = super().prepare_indexing(index)
-        if triton_codegen_linearize:
+        if self._npu_linearize:
             index = self._maybe_split_fused_axes(index)
             index = self._maybe_split_strided_axis(index)
             index = self._simplify_compound_indexing(index)
@@ -3130,7 +3388,7 @@ class NPUTritonKernel(TritonKernel):
     def initialize_range_tree(self, pid_cache):
         """Override to add tree_node_mapping for linearize mode."""
         super().initialize_range_tree(pid_cache)
-        if triton_codegen_linearize:
+        if self._npu_linearize:
             for tree in self.range_trees:
                 if not hasattr(tree, 'tree_node_mapping'):
                     tree.tree_node_mapping = {}
@@ -3165,7 +3423,7 @@ class NPUTritonKernel(TritonKernel):
         return imports.getvalue()
 
     def triton_tensor_ndim(self):
-        if triton_codegen_linearize and getattr(self, '_linearize_applied', False):
+        if self._npu_linearize and getattr(self, '_linearize_applied', False):
             ndim = 0
             for tree in self.range_trees:
                 if tree.tensor_dim is not None:
@@ -3188,7 +3446,7 @@ class NPUTritonKernel(TritonKernel):
         return sum(int(tree.tensor_dim is not None) for tree in self.range_trees)
 
     def dense_size_str(self):
-        if triton_codegen_linearize:
+        if self._npu_linearize:
             ndim = self.triton_tensor_ndim()
             if ndim == 0:
                 return "[]"
@@ -3203,7 +3461,7 @@ class NPUTritonKernel(TritonKernel):
         return f"[{', '.join(sizes)}]"
 
     def reduction_resize(self, value):
-        if triton_codegen_linearize:
+        if self._npu_linearize:
             if not self.no_x_dim and self.inside_reduction:
                 ndims = self.triton_tensor_ndim()
                 if ndims <= 1:
@@ -3238,7 +3496,7 @@ class NPUTritonKernel(TritonKernel):
         # covers sum → upstream emits "[:, None]", broadcasting the OUTER store to [XBLOCK,
         # XBLOCK] (~100x). Mirror the permuted-slot logic, deviating ONLY in permuted-linearize.
         if (
-            triton_codegen_linearize
+            self._npu_linearize
             and not self.no_x_dim
             and self.inside_reduction
             and getattr(self, "_npu_tile_permuted", False)
@@ -3265,7 +3523,7 @@ class NPUTritonKernel(TritonKernel):
         # arange slice and mask. Upstream _combine_contiguous_dims() merges [x0(100),
         # x1(4)] into one flat x2(400), which has no per-node shape and breaks the
         # broadcast. Disable entirely in linearize mode.
-        if triton_codegen_linearize:
+        if self._npu_linearize:
             return index
         return super()._combine_contiguous_dims(index, tree)
 
@@ -3282,7 +3540,7 @@ class NPUTritonKernel(TritonKernel):
             self._npu_prepared_load_index = (
                 result.index if isinstance(result, IndexingOptions) else None
             )
-        if not triton_codegen_linearize:
+        if not self._npu_linearize:
             return result
 
         # Linearize mode emits per-node masks (x0mask, x1mask, …) and xmask = their AND,
@@ -3425,7 +3683,7 @@ class NPUTritonKernel(TritonKernel):
         )
 
     def iteration_ranges_get_pid(self, entry: IterationRangesRoot) -> str:
-        if not triton_codegen_linearize:
+        if not self._npu_linearize:
             return super().iteration_ranges_get_pid(entry)
 
         assert entry.grid_dim is not None
@@ -3433,8 +3691,6 @@ class NPUTritonKernel(TritonKernel):
         # all dimensions — yz grid overflow handling is not needed here.
         key = "(group_base + i)"
         pid = entry.pid_cache.get(key, key)
-        if self.index_dtype != "tl.int32":
-            return f"{pid}.to({self.index_dtype})"
         return pid
 
     def codegen_range_tree(self):
@@ -3443,7 +3699,7 @@ class NPUTritonKernel(TritonKernel):
         For non-r dimensions, calls our custom codegen_header_npu instead of the
         default iteration_ranges_codegen_header.
         """
-        if not triton_codegen_linearize:
+        if not self._npu_linearize:
             return super().codegen_range_tree()
 
         # npu_header owns the large linearize header generator; import lazily to
@@ -3483,9 +3739,9 @@ class NPUTritonKernel(TritonKernel):
                 total_ndim = max(orig_ndim, npu_ndim, tree.tensor_dim + 1)
                 sizes = ["None"] * total_ndim
                 sizes[tree.tensor_dim] = ":"
-                index_dtype = self.index_dtype
-                suffix = f".to({index_dtype})" if index_dtype != "tl.int32" else ""
-                ranges_code = f"tl.arange(0, {tree.prefix.upper()}BLOCK)[{', '.join(sizes)}]{suffix}"
+                # Arange tiles stay int32 (variant C): the pointer arithmetic
+                # promotes only the overflow addend to int64 at the use site.
+                ranges_code = f"tl.arange(0, {tree.prefix.upper()}BLOCK)[{', '.join(sizes)}]"
                 self.body.writeline(
                     f"{tree.prefix}base = {ranges_code}"
                 )
@@ -3506,7 +3762,7 @@ class NPUTritonKernel(TritonKernel):
         assignments (x0 = x0index) are emitted by _codegen_header_npu_for_tree.
         Only r-tree (loop) entries use the default body/indexing_code path.
         """
-        if not triton_codegen_linearize:
+        if not self._npu_linearize:
             return super().codegen_iteration_ranges_entry(entry)
 
         if not entry.root.is_reduction:
@@ -3551,7 +3807,7 @@ class NPUTritonKernel(TritonKernel):
         transpose of the in-loop ``r0_base`` (the latter built from tensor_dim) —
         a loop-carried-type conflict when a free X-axis takes the inner-loop path.
         """
-        if not triton_codegen_linearize:
+        if not self._npu_linearize:
             return super().iteration_ranges_ranges_code(entry)
 
         assert entry.tensor_dim is not None
@@ -3577,23 +3833,23 @@ class NPUTritonKernel(TritonKernel):
                 else:
                     effective_dim += 1
         size = self.indexing_size_str(effective_dim)
-        index_dtype = self.index_dtype
-        convert = f".to({index_dtype})" if index_dtype != "tl.int32" else ""
-        return f"tl.arange(0, {entry.prefix.upper()}BLOCK){size}{convert}"
+        # Arange tiles stay int32 (variant C); see codegen_range_tree.
+        return f"tl.arange(0, {entry.prefix.upper()}BLOCK){size}"
 
     def iteration_ranges_scalar_code(self, entry: IterationRangesRoot, value) -> str:
         """
         Linearize mode: override scalar_code.
         """
-        if not triton_codegen_linearize:
+        if not self._npu_linearize:
             return super().iteration_ranges_scalar_code(entry, value)
 
-        index_dtype = self.index_dtype
+        # Scalar odometer offsets stay int32 (variant C): the int64 cast for
+        # overflow addends rides on the scalar/latent tile at the use site.
         ndim = self.triton_tensor_ndim()
         size = [1] * ndim
         if self.no_x_dim:
-            return f"tl.full([1, 1], {value}, {index_dtype})"
-        return f"tl.full({size}, {value}, {index_dtype})"
+            return f"tl.full([1, 1], {value}, tl.int32)"
+        return f"tl.full({size}, {value}, tl.int32)"
 
     def _npu_rsplit_rprefix(self) -> str:
         """Reduction-tree prefix (e.g. 'r0_') for the rsplit partial kernel."""
@@ -3873,7 +4129,7 @@ class NPUTritonKernel(TritonKernel):
         # Collect block hints for linearize mode
         block_hints = {}
         axis_hints = []
-        if triton_codegen_linearize:
+        if self._npu_linearize:
             for tree in self.range_trees:
                 if tree.prefix != 'r':
                     block_hints[f"{tree.prefix.upper()}BLOCK_HINT"] = tree.get_block_hint()
@@ -3945,7 +4201,7 @@ class NPUTritonKernel(TritonKernel):
             # is no longer emitted as a runtime arg: the greedy-via-unify tile
             # scheme computes real_block from XBLOCK + size hints and never
             # references <node>divisor in the body, so the arg was dead.)
-            if tree.prefix != 'r' and triton_codegen_linearize:
+            if tree.prefix != 'r' and self._npu_linearize:
                 tree_node_mapping = getattr(tree, 'tree_node_mapping', {})
                 for node in tree.nodes.values():
                     if node.name in tree_node_mapping:
@@ -3981,13 +4237,13 @@ class NPUTritonKernel(TritonKernel):
             "mix_mode": "aiv",  # NPU: force vector kernel generation
         }
         triton_meta["configs"] = [config_of(signature)]
-        if triton_codegen_linearize:
+        if self._npu_linearize:
             triton_meta['block_hints'] = block_hints
             triton_meta['axis_hints'] = axis_hints
 
         optimize_mem = V.graph.is_inference or V.graph.is_backward
         npu_num_x_nodes = 0
-        if triton_codegen_linearize:
+        if self._npu_linearize:
             for tree in self.range_trees:
                 if not tree.is_reduction and not tree.is_loop:
                     tree_node_mapping = getattr(tree, 'tree_node_mapping', {})
@@ -4024,12 +4280,19 @@ class NPUTritonKernel(TritonKernel):
         # Mark static r-tree numel as constants so NPU compiler can prove
         # r0_mask = (r0_index < r0_numel) is always true when R0_BLOCK == r0_numel,
         # eliminating the scalar select/boundary-check path in the ttadapter.
-        if triton_codegen_linearize:
+        if self._npu_linearize:
             for tree in self.range_trees:
                 if tree.is_reduction and isinstance(tree.numel, (int, sympy.Integer)):
                     numel_name = f"{tree.prefix}numel"
                     if any(getattr(s, 'name', None) == numel_name for s in signature):
-                        triton_meta["constants"][numel_name] = int(tree.numel)
+                        # Oversized block counts: a constant >= 2^31 specializes the i64 arg to a
+                        # value triton types as uint32 (in [2^31, 2^32)), and
+                        # the resulting uint32->i64 vcast is rejected by
+                        # BiShengIR. Keep such numels on their i64 runtime
+                        # arg; the mask-elimination this enables is
+                        # irrelevant at >2^31 reduction sizes anyway.
+                        if int(tree.numel) < 2**31:
+                            triton_meta["constants"][numel_name] = int(tree.numel)
 
         self.triton_meta = triton_meta
 
@@ -4062,10 +4325,21 @@ class NPUTritonKernel(TritonKernel):
         # codegen_body() has populated pre_loop_code, so the recipe reads finished
         # block-count lines. A5 only (other chips keep group dispatch). Must run before the
         # heuristics decorator serializes inductor_meta.
-        if triton_codegen_linearize and device_props.is_a5():
+        if self._npu_linearize and device_props.is_a5():
             _recipe = self._npu_build_grid_recipe()
             if _recipe is not None:
                 inductor_meta["npu_dispatch_recipe"] = _recipe
+
+        # Linearize flag for the launcher grid: the heuristics grid_0 defaults to
+        # NPU_CU_COUNT (persistent 48-core dispatch) for reduction kernels, which
+        # is only valid under the linearize structure's group logic. A
+        # non-linearize kernel emits xoffset = pid*XBLOCK with an always-true
+        # xmask (xnumel % XBLOCK == 0) and one tile per pid, so the grid must be
+        # exactly ceil(xnumel/XBLOCK): larger reads past the input (MTE fault
+        # 507035, verified at XBLOCK=512/grid=48 on a 8192-xnumel sum), smaller
+        # silently drops tiles. The heuristics launches the exact tile count
+        # when this flag is False.
+        inductor_meta["npu_linearize"] = self._npu_linearize
 
         for helper in self.helper_functions:
             code.writeline("")
@@ -4109,7 +4383,7 @@ class NPUTritonKernel(TritonKernel):
             self.codegen_static_numels(code)
             for old, new in self.args.aliases():
                 code.writeline(f"{old} = {new}")
-            if triton_codegen_linearize:
+            if self._npu_linearize:
                 # Emit the intra-core block->core dispatch prologue (pre_loop
                 # hoists, total_blocks, group_size/group_base), then the body in
                 # the per-core "for i" loop.
@@ -4553,7 +4827,7 @@ class NPUTritonKernel(TritonKernel):
             return
         if self.inside_reduction:
             return
-        if not (triton_codegen_linearize and getattr(self, "_linearize_applied", False)):
+        if not (self._npu_linearize and getattr(self, "_linearize_applied", False)):
             return
         targets = getattr(self, "_npu_select_lane_loads", None)
         if not targets:
@@ -4778,7 +5052,7 @@ class NPUTritonKernel(TritonKernel):
         numel/divisor args in linearize mode.
         In 2.7.1 the method is add_numel_to_call_args (no _and_grid suffix).
         """
-        if not triton_codegen_linearize:
+        if not self._npu_linearize:
             # Non-linearize: upstream behavior
             for tree in self.range_trees:
                 expr = tree.numel if isinstance(tree.numel, (sympy.Integer, sympy.Symbol)) else V.graph.wrapper_code.generate_numel_expr(name, tree)  # noqa: B950
@@ -5193,7 +5467,7 @@ class NPUTritonScheduling(TritonScheduling):
         for kernel in kernels:
             self.codegen_node_schedule_with_kernel(node_schedule, kernel)
 
-        if triton_codegen_linearize:
+        if kernels and kernels[0]._npu_linearize:
             self._apply_linearize(kernels[0] if len(kernels) == 1 else None, node_schedule)
 
         # r-axis cross-core split for OUTER reductions: when the x-axis core
@@ -5356,8 +5630,16 @@ class NPUTritonScheduling(TritonScheduling):
             **partial.inductor_meta_common(),
         }
 
+        # Oversized block counts: a literal >= 2^31 types as uint32 in [2^31, 2^32) and poisons
+        # the div/mod dispatch chain with signedness errors; alias the i64
+        # runtime arg instead (x_total_hint is the sole x axis here).
+        x0numel_def = (
+            "x0numel = xnumel"
+            if int(x_total_hint) >= 2**31
+            else f"x0numel = {int(x_total_hint)}"
+        )
         pre_loop_lines = [
-            f"x0numel = {int(x_total_hint)}",
+            x0numel_def,
             "real_block_x0 = x0numel if x0numel <= XBLOCK else XBLOCK",
             "x0_blocks = (x0numel + real_block_x0 - 1) // real_block_x0",
         ]
@@ -7220,7 +7502,7 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
         """
         Override to track index_vars and var_ranges per node (needed for linearize mode).
         """
-        if triton_codegen_linearize:
+        if kernel._npu_linearize:
             kernel.var_ranges_per_node = []
             kernel.index_vars_per_node = []
 
@@ -7256,7 +7538,7 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                     indexing_dtype_strength_reduction(node._body)
                     index_vars = kernel.split_and_set_ranges(node.get_ranges())
 
-                    if triton_codegen_linearize:
+                    if kernel._npu_linearize:
                         kernel.var_ranges_per_node.append(node.get_ranges())
                         kernel.index_vars_per_node.append(index_vars)
 
@@ -7350,6 +7632,14 @@ def apply_npu_codegen_patches():
     _patch_zero_dim_cpu_tensor_for_npu()
 
     # NPU AI Vector Core does not natively support int64 arithmetic — demote to int32.
+    # Mapping ownership (R7 audit): this entry is process-global and shared
+    # with the default backend in mixed processes. Within triton_experimental
+    # it is now VESTIGIAL for int64 — dtype_to_str is overridden, and the
+    # store/value routes are patched (see npu_triton_store_type /
+    # _npu_value_expr); it survives only so the default backend's own
+    # consumers keep their behaviour. New direct triton_type(torch.int64)
+    # call sites surface through the callsite pin in
+    # test_triton_experimental_int32_overflow.
     import torch._inductor.utils as _inductor_utils
     _inductor_utils._triton_type_mapping["tl.int64"] = "tl.int32"
     # Also patch triton_compute_type which torch_npu overrides with its own

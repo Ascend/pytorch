@@ -26,11 +26,67 @@ _log = logging.getLogger(__name__)
 npu_mask_cmp_fp32 = ncfg.mask_cmp_fp32
 
 
-def _mask_cmp_lhs(index_expr: str) -> str:
-    """Wrap a mask LHS so the `<` runs on the vector unit (fp32) when possible."""
+def _mask_cmp_lhs(index_expr: str, numel=None, index_dtype: str = "tl.int32") -> str:
+    """Wrap a mask LHS so the `<` runs on the vector unit when possible.
+
+    int64 index vectors (kernels whose total element count exceeds 2^31) have
+    no native int64 vector compare on Ascend, so a raw int64 ``<`` decays to a
+    scalar loop. Per-axis indices stay below 2^31 -- only the final linear
+    address combine needs int64 -- so cast the LHS back to int32 for the
+    compare: exact below 2^31 and keeps the compare on the vector unit. The
+    int32 cast is skipped when the axis itself could reach 2^31 (a wrapping
+    mask would be silently wrong) or its length is dynamic (numel not a static
+    int); those keep the correct (scalarized) int64 compare.
+
+    The early return is deliberate PROTECTION, not an oversight: with
+    mask_cmp_fp32 on, falling through to the fp32 compare
+    hangs the kernel -- triton-ascend lowers the fp32 mask compare into
+    vector-core work that never completes (507034 vector-core timeout on a
+    minimal non-reduction kernel, and >10 min with no result on pointwise;
+    verified 2026-08-14). The int32 narrow must therefore stay terminal; the
+    fp32 path should be re-enabled only after the triton-ascend lowering is
+    fixed, at which point the fall-through can be restored per the review.
+    """
+    if index_dtype == "tl.int64" and isinstance(numel, (int, sympy.Integer)) and int(numel) < 2**31:
+        return f"({index_expr}).to(tl.int32)"
     if not npu_mask_cmp_fp32:
         return index_expr
     return f"({index_expr}).to(tl.float32)"
+
+
+def _npu_emit_axis_numel(pre_loop, tree, node):
+    """Emit the per-axis numel definition (oversized-block-count dispatch audit). Static values < 2^31 fold to
+    a tl.constexpr (upstream behaviour). A static value >= 2^31 must NOT
+    become a triton literal — values in [2^31, 2^32) type as uint32 and
+    poison the div/mod dispatch chains with signedness errors, and larger
+    values blow int32 block counts — so it aliases the tree's i64 runtime
+    arg (guaranteed i64: an axis >= 2^31 forces total numel >= 2^31, which
+    selects index_dtype=int64 and size_dtype types the arg i64). The alias
+    divides out the sibling axes' product, exact by range-tree
+    construction (tree numel == product of free-axis numels)."""
+    length = node.length
+    if not isinstance(length, (int, sympy.Integer)):
+        return
+    if int(length) < 2**31:
+        pre_loop.writeline(f"{node.name}numel : tl.constexpr = {int(length)}")
+        return
+    sib_prod = sympy.Integer(1)
+    for n in tree.nodes.values():
+        if n.name in tree.tree_node_mapping or n.name == node.name:
+            continue
+        sib_prod = sib_prod * sympy.sympify(n.length)
+    if not (sib_prod.is_Integer and int(sib_prod) >= 1):
+        raise RuntimeError(
+            f"[triton_experimental] axis {node.name!r} has a static numel "
+            f">= 2^31 ({length}) with non-static sibling axes; this "
+            "combination needs a dedicated lowering (oversized-block-count dispatch)"
+        )
+    if int(sib_prod) == 1:
+        pre_loop.writeline(f"{node.name}numel = {tree.prefix}numel")
+    else:
+        pre_loop.writeline(
+            f"{node.name}numel = {tree.prefix}numel // {int(sib_prod)}"
+        )
 
 
 def _ordered_mapping_items(mapping):
@@ -749,14 +805,12 @@ def _codegen_header_npu_for_tree(kernel, tree, code, outer_blocks=None):
         # Scalar odometer axis: no register tile. real_block==1 so the odometer
         # walks one element/block (block count == numel) and the index is a scalar.
         if node.name in _scalar_odo_names:
-            if isinstance(node.length, (int, sympy.Integer)):
-                pre_loop.writeline(f"{node.name}numel : tl.constexpr = {int(node.length)}")
+            _npu_emit_axis_numel(pre_loop, tree, node)
             pre_loop.writeline(f"real_block_{node.name} : tl.constexpr = 1")
             continue
         # Unify candidates get real_block emitted after the tile is aligned below.
         if node.name in _unify_names:
-            if isinstance(node.length, (int, sympy.Integer)):
-                pre_loop.writeline(f"{node.name}numel : tl.constexpr = {int(node.length)}")
+            _npu_emit_axis_numel(pre_loop, tree, node)
             continue
         # Under greedy-via-unify every non-scalar-odo free axis is a unify
         # candidate; the only other path was the legacy real_block=numel//divisor
@@ -937,6 +991,20 @@ def _codegen_header_npu_for_tree(kernel, tree, code, outer_blocks=None):
     # offsets, emitted after real_block. odometer_opt (default ON): B1 hoists the
     # cumulative block product and divides pid once (shorter div chain); B2 drops
     # provably single-block axes (static numel==1 -> offset 0, no cumprod term).
+    # Oversized-block-count dispatch audit — static numels >= 2^31 must
+    # never become triton
+    # literals. The original "safe by promotion" audit was REFUTED by the
+    # expand->sum >2^31 probe (2026-08-29): literals in [2^31, 2^32) type as
+    # uint32 (signedness errors in the div/mod dispatch chains) and equal_to
+    # specialization turns the uint32 into a BiShengIR-rejected uint32->i64
+    # vcast. Fixed at every emission point (codegen_static_numels, the
+    # per-axis constexpr numels via _npu_emit_axis_numel, block counts, and
+    # the r-tree constants specialization): such numels stay on their i64
+    # runtime arg (size_dtype=index_dtype in int64 mode), so the block
+    # counts, cumblk products, (group_base + i) and % blocks promote to i64
+    # end-to-end through triton's own rules. Pinned by
+    # test_expand_over_int32_blocks_odometer_i64 (> 2^31 total blocks via a
+    # stride-0 expand axis — cheap, 1-element storage).
     _odo_opt = ncfg.odometer_opt
     _free_nodes_ordered = [n for n in tree.nodes.values()
                            if n.name not in tree.tree_node_mapping]
@@ -948,7 +1016,16 @@ def _codegen_header_npu_for_tree(kernel, tree, code, outer_blocks=None):
     for node in _free_nodes_ordered:
         divisor_is_static = isinstance(node.divisor, (int, sympy.Integer))
         length_is_static = isinstance(node.length, (int, sympy.Integer))
-        blocks_is_constexpr = length_is_static and divisor_is_static
+        # Oversized block counts: a static numel >= 2^31 is aliased to the i64 runtime arg by
+        # _npu_emit_axis_numel, so its block count must be runtime too.
+        blocks_is_constexpr = (
+            length_is_static
+            and divisor_is_static
+            and not (
+                isinstance(node.length, (int, sympy.Integer))
+                and int(node.length) >= 2**31
+            )
+        )
         if blocks_is_constexpr:
             pre_loop.writeline(f"{node.name}_blocks : tl.constexpr = ({node.name}numel + real_block_{node.name} - 1) // real_block_{node.name}")  # noqa: B950
         else:
@@ -987,6 +1064,11 @@ def _codegen_header_npu_for_tree(kernel, tree, code, outer_blocks=None):
         tree.node_block_constexpr = {}
     tree.node_block_constexpr.update(node_arange_upper)
 
+    # Kernels whose total element count exceeds 2^31 index with tl.int64 (the
+    # dtype_to_str override in triton.py restores index_dtype). Arange tiles stay
+    # int32 (variant C): index_to_str in triton.py promotes only the overflow
+    # addend (e.g. 268435456*x1) to int64 at the load/store use site, keeping the
+    # big vector tiles int32 (all-int64 tiles double UB and hang -- 507034).
     for node in tree.nodes.values():
         if node.name in tree.tree_node_mapping:
             continue
@@ -1017,7 +1099,8 @@ def _codegen_header_npu_for_tree(kernel, tree, code, outer_blocks=None):
                 line = kernel.iteration_ranges_scalar_code(tree, f"{node.name}offset")
             header_code.writeline(f"{node.name}index = {line}")
             header_code.writeline(f"{node.name} = {node.name}index")
-        header_code.writeline(f"{node.name}mask = {_mask_cmp_lhs(f'{node.name}index')} < {node.name}numel")
+        mask_lhs = _mask_cmp_lhs(f"{node.name}index", node.length, kernel.index_dtype)
+        header_code.writeline(f"{node.name}mask = {mask_lhs} < {node.name}numel")
 
     # Every free axis is now tiled flat (greedy-via-unify / scalar-odometer /
     # static-constexpr): needs_inner_loop is False for all of them, so no axis
