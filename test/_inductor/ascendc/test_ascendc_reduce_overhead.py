@@ -5,6 +5,7 @@ import torch_npu
 from torch.testing._internal.common_utils import run_tests, TestCase
 
 
+@unittest.skip("skip pytorch issue #4684")
 @unittest.skipIf(not torch.npu.is_available(), "requires an NPU device")
 class TestAscendcReduceOverhead(TestCase):
 
