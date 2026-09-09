@@ -1,7 +1,8 @@
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import TestUtils
-import torch_npu
+from version_mark import runIfVersion
+import torch_npu  # noqa: F401
 
 
 class TestCat(TestUtils):
@@ -10,6 +11,7 @@ class TestCat(TestUtils):
         return torch.cat([input_element, input_element], dim)
 
     # case：change shapes
+    @runIfVersion(max="2.13")
     @parametrize('shape', [(8, 16, 32, 64)])
     @parametrize('dim', [-1])
     @parametrize('dtype', ['bfloat16'])
@@ -23,6 +25,7 @@ class TestCat(TestUtils):
     def op_calc_non_contiguous(self, input_element, dim):
         return torch.cat([input_element, input_element], dim)
 
+    @runIfVersion(max="2.13")
     @parametrize('shape', [(8, 16, 32, 64)])
     @parametrize('dim', [1])
     @parametrize('dtype', ['bfloat16'])
@@ -45,6 +48,7 @@ class TestCat(TestUtils):
 
             return output_tensor
 
+    @runIfVersion(max="2.13")
     @parametrize('shape', [(128, 50, 128)])
     @parametrize('dim', [2])
     @parametrize('dtype', ['float32', 'bfloat16'])
@@ -60,8 +64,9 @@ class TestCat(TestUtils):
         with torch.no_grad():
             inductor_out = compiled_model(*inputs)
 
-        self.assertEqual(eager_out, inductor_out,
-                        atol=1e-4, rtol=1e-4, equal_nan=True)
+        self.assertEqual(
+            eager_out, inductor_out, atol=1e-4, rtol=1e-4, equal_nan=True
+        )
 
 instantiate_parametrized_tests(TestCat)
 

@@ -1,6 +1,7 @@
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import TestUtils
+from version_mark import runIfVersion
 
 
 class TestSum(TestUtils):
@@ -12,6 +13,7 @@ class TestSum(TestUtils):
     _reduction_extest_dim4d_low = [-1]
     _reduction_extest_dim4d_all = [0, 1, 2]
 
+    @runIfVersion(max="2.13")
     @parametrize('shape', _reduction_extest_shape4d_all)
     @parametrize('dim', _reduction_extest_dim4d_low)
     @parametrize('dtype', ['float32'])
@@ -35,6 +37,7 @@ class TestSum(TestUtils):
 
         self.assertEqual(std_sum, inductor_sum, atol=1e-1, rtol=1e-1)
 
+    @runIfVersion(max="2.13")
     @parametrize('shape', [(32, 16, 64, 128)])
     @parametrize('dim', _reduction_extest_dim4d_all)
     @parametrize('dtype', ['float32'])
@@ -52,6 +55,7 @@ class TestSum(TestUtils):
     # the runtime loop bound + tail mask.
     _sum_1d_dynamic_sizes = [8, 63, 64, 65, 255, 257, 1024, 1025, 8191, 8193, 50000, 999983]
 
+    @runIfVersion(max="2.13")
     @parametrize('dtype', ['float32'])
     def test_sum_1d_dynamic_shape(self, dtype):
         # One dynamic kernel must stay correct across all sizes without recompiling.
@@ -64,6 +68,7 @@ class TestSum(TestUtils):
             inductor_sum = compiled_op_calc(x, None)
             self.assertEqual(std_sum, inductor_sum)
 
+    @runIfVersion(max="2.13")
     @parametrize('dtype', ['float32'])
     def test_sum_1d_dynamic_shape_group_autotune(self, dtype):
         # Same, with symbolic group-autotune (bucketed path) enabled.

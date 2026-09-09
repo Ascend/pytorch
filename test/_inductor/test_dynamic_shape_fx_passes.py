@@ -18,6 +18,7 @@ import os
 import sys
 import types
 import unittest
+from version_mark import runIfVersion
 
 
 def _shim_missing_torch_internals():
@@ -177,50 +178,60 @@ class TestSymbolicShapeUtil(unittest.TestCase):
         self.assertIsNotNone(self.s1)
 
     # ---- three-valued checks -----------------------------------------
+    @runIfVersion(max="2.13")
     def test_statically_known_eq_int(self):
         self.assertTrue(ssu.statically_known_eq(3, 3))
         self.assertFalse(ssu.statically_known_eq(3, 4))
 
+    @runIfVersion(max="2.13")
     def test_statically_known_eq_same_symbol(self):
         self.assertTrue(ssu.statically_known_eq(self.s0, self.s0))
         self.assertTrue(ssu.statically_known_eq(self.s0 + 1, self.s0 + 1))
 
+    @runIfVersion(max="2.13")
     def test_statically_known_eq_distinct_symbols_unprovable(self):
         # s0 == s1 is undecidable -> False (neither mis-proven true nor adds a guard)
         self.assertFalse(ssu.statically_known_eq(self.s0, self.s1))
 
+    @runIfVersion(max="2.13")
     def test_statically_known_eq_symbol_vs_const_unprovable(self):
         self.assertFalse(ssu.statically_known_eq(self.s0, 5))
 
+    @runIfVersion(max="2.13")
     def test_statically_known_geq_gt_leq(self):
         self.assertTrue(ssu.statically_known_geq(self.s0 + 1, self.s0))
         self.assertTrue(ssu.statically_known_gt(self.s0 + 1, self.s0))
         self.assertTrue(ssu.statically_known_leq(self.s0, self.s0 + 1))
         self.assertFalse(ssu.statically_known_gt(self.s0, self.s0 + 1))
 
+    @runIfVersion(max="2.13")
     def test_is_statically_one(self):
         self.assertTrue(ssu.is_statically_one(1))
         self.assertFalse(ssu.is_statically_one(2))
         self.assertFalse(ssu.is_statically_one(self.s0))
 
+    @runIfVersion(max="2.13")
     def test_shapes_statically_equal(self):
         self.assertTrue(ssu.shapes_statically_equal([self.s0, 3], [self.s0, 3]))
         self.assertFalse(ssu.shapes_statically_equal([self.s0, 3], [self.s1, 3]))
         self.assertFalse(ssu.shapes_statically_equal([self.s0], [self.s0, 1]))
         self.assertFalse(ssu.shapes_statically_equal(None, [1]))
 
+    @runIfVersion(max="2.13")
     def test_has_free_symbols(self):
         self.assertTrue(ssu.has_free_symbols([self.s0, 2]))
         self.assertFalse(ssu.has_free_symbols([2, 3]))
         self.assertFalse(ssu.has_free_symbols(None))
 
     # ---- normalization -----------------------------------------------
+    @runIfVersion(max="2.13")
     def test_resolve_size_arg_scalar(self):
         self.assertEqual(ssu.resolve_size_arg(4), 4)
         self.assertIs(ssu.resolve_size_arg(self.s0), self.s0)
         self.assertIsNone(ssu.resolve_size_arg(True))
         self.assertIsNone(ssu.resolve_size_arg(1.5))
 
+    @runIfVersion(max="2.13")
     def test_resolve_size_arg_node(self):
         # sym_size node: meta['val'] is a SymInt
         sym_size_node = None
@@ -231,22 +242,26 @@ class TestSymbolicShapeUtil(unittest.TestCase):
         if sym_size_node is not None:
             self.assertIsInstance(ssu.resolve_size_arg(sym_size_node), torch.SymInt)
 
+    @runIfVersion(max="2.13")
     def test_resolve_size_list(self):
         self.assertEqual(ssu.resolve_size_list([1, 2, 3]), [1, 2, 3])
         self.assertIsNone(ssu.resolve_size_list([1, object()]))
         self.assertIsNone(ssu.resolve_size_list(5))
 
     # ---- value ranges ------------------------------------------------
+    @runIfVersion(max="2.13")
     def test_statically_fits_int32_int(self):
         self.assertTrue(ssu.statically_fits_int32(0, 100, -100))
         self.assertFalse(ssu.statically_fits_int32(2**31))
         self.assertFalse(ssu.statically_fits_int32())
 
+    @runIfVersion(max="2.13")
     def test_statically_fits_int32_unbounded_symbol(self):
         # An unbounded symbol cannot be proven to fit int32
         self.assertFalse(ssu.statically_fits_int32(self.s0))
 
     # ---- materialization ---------------------------------------------
+    @runIfVersion(max="2.13")
     def test_materialize_shape_from_anchor(self):
         gm = _symbolic_gm(lambda x: x + 1, torch.randn(6, 4))
         ph = [n for n in gm.graph.nodes if n.op == "placeholder"][0]
@@ -261,6 +276,7 @@ class TestSymbolicShapeUtil(unittest.TestCase):
         self.assertIsInstance(mat[0], torch.fx.Node)
         self.assertIs(mat[0].target, torch.ops.aten.sym_size.int)
 
+    @runIfVersion(max="2.13")
     def test_materialize_shape_unresolvable_returns_none(self):
         gm = _symbolic_gm(lambda x: x + 1, torch.randn(6, 4))
         ph = [n for n in gm.graph.nodes if n.op == "placeholder"][0]
@@ -274,6 +290,7 @@ class TestSymbolicShapeUtil(unittest.TestCase):
         self.assertIsNone(mat)
 
     # ---- switch -------------------------------------------------------
+    @runIfVersion(max="2.13")
     def test_switch_off_degrades_to_static(self):
         os.environ["NPU_INDUCTOR_DYNAMIC_FX_PASS"] = "0"
         try:
@@ -285,6 +302,7 @@ class TestSymbolicShapeUtil(unittest.TestCase):
         finally:
             os.environ.pop("NPU_INDUCTOR_DYNAMIC_FX_PASS", None)
 
+    @runIfVersion(max="2.13")
     def test_materialize_shape_switch_off_symbolic_returns_none(self):
         # Switch off is a hard kill-switch: symbolic dims cannot be materialized,
         # but a fully-static shape still passes through unchanged.
@@ -311,6 +329,7 @@ class TestDynamicShapePasses(unittest.TestCase):
     def setUp(self):
         os.environ.pop("NPU_INDUCTOR_DYNAMIC_FX_PASS", None)
 
+    @runIfVersion(max="2.13")
     def test_fold_expand_identity_symbolic(self):
         def fn(x):
             return torch.ops.aten.expand.default(x, [x.size(0), x.size(1)]).relu()
@@ -321,6 +340,7 @@ class TestDynamicShapePasses(unittest.TestCase):
         agp.fold_expand(gm.graph)
         self.assertEqual(_count_target(gm, torch.ops.aten.expand.default), 0)
 
+    @runIfVersion(max="2.13")
     def test_view_fold_identity_symbolic(self):
         def fn(x):
             return torch.ops.aten.view.default(x, [x.size(0), x.size(1)]).relu()
@@ -329,6 +349,7 @@ class TestDynamicShapePasses(unittest.TestCase):
         agp.view_fold_pass(gm.graph)
         self.assertEqual(_count_target(gm, torch.ops.aten.view.default), 0)
 
+    @runIfVersion(max="2.13")
     def test_fold_reduce_static_one_dim(self):
         # Middle dim is statically 1 (0/1 specialization); symbolic batch dim is kept
         def fn(x):
@@ -340,6 +361,7 @@ class TestDynamicShapePasses(unittest.TestCase):
         agp.fold_reduce(gm.graph)
         self.assertEqual(_count_target(gm, torch.ops.aten.sum.dim_IntList), 0)
 
+    @runIfVersion(max="2.13")
     def test_fold_reduce_symbolic_dim_not_folded(self):
         # Reducing a symbolic dim that cannot be proven 1 -> must be kept
         def fn(x):
@@ -349,6 +371,7 @@ class TestDynamicShapePasses(unittest.TestCase):
         agp.fold_reduce(gm.graph)
         self.assertEqual(_count_target(gm, torch.ops.aten.sum.dim_IntList), 1)
 
+    @runIfVersion(max="2.13")
     def test_fold_slice_full_symbolic(self):
         def fn(x):
             return torch.ops.aten.slice.Tensor(x, 0, 0, x.size(0)).relu()
@@ -357,6 +380,7 @@ class TestDynamicShapePasses(unittest.TestCase):
         agp.fold_slice(gm.graph)
         self.assertEqual(_count_target(gm, torch.ops.aten.slice.Tensor), 0)
 
+    @runIfVersion(max="2.13")
     def test_fold_slice_partial_symbolic_not_folded(self):
         # Slicing to s0-1 cannot be proven to cover the full dim -> kept
         def fn(x):
@@ -366,6 +390,7 @@ class TestDynamicShapePasses(unittest.TestCase):
         agp.fold_slice(gm.graph)
         self.assertEqual(_count_target(gm, torch.ops.aten.slice.Tensor), 1)
 
+    @runIfVersion(max="2.13")
     def test_repeat_to_expand_symbolic(self):
         # x:[s0,1] repeat(1,3) -> pure broadcast, can become expand (mul consumer is broadcast-friendly)
         def fn(x):
@@ -377,6 +402,7 @@ class TestDynamicShapePasses(unittest.TestCase):
         self.assertEqual(_count_target(gm, torch.ops.aten.repeat.default), 0)
         self.assertGreaterEqual(_count_target(gm, torch.ops.aten.expand.default), 1)
 
+    @runIfVersion(max="2.13")
     def test_repeat_physical_copy_symbolic_not_rewritten(self):
         # x:[s0,4] repeat(1,3): 2nd dim is neither 1 nor kept -> needs a physical copy, keep repeat
         def fn(x):
@@ -387,6 +413,7 @@ class TestDynamicShapePasses(unittest.TestCase):
         agp.repeat_to_expand_pass(gm.graph)
         self.assertEqual(_count_target(gm, torch.ops.aten.repeat.default), 1)
 
+    @runIfVersion(max="2.13")
     def test_fold_four_op_add_zeros_symbolic(self):
         def fn(x):
             return x + torch.zeros_like(x)
@@ -397,6 +424,7 @@ class TestDynamicShapePasses(unittest.TestCase):
         agp.fold_four_op_pass(gm.graph)
         self.assertEqual(_count_target(gm, torch.ops.aten.add.Tensor), 0)
 
+    @runIfVersion(max="2.13")
     def test_cat_to_view_identity_symbolic(self):
         # cat([x[:, 0:2], x[:, 2:s1]], dim=1) covers all of dim1 -> identity view
         def fn(x):
@@ -409,6 +437,7 @@ class TestDynamicShapePasses(unittest.TestCase):
         agp.cat_to_view_pass(gm.graph)
         self.assertEqual(_count_target(gm, torch.ops.aten.cat.default), 0)
 
+    @runIfVersion(max="2.13")
     def test_cat_to_view_partial_not_folded(self):
         # Slices do not cover the whole dim (missing tail) -> must not fold
         def fn(x):
@@ -427,6 +456,7 @@ class TestSwitchAndStaticRegression(unittest.TestCase):
     def tearDown(self):
         os.environ.pop("NPU_INDUCTOR_DYNAMIC_FX_PASS", None)
 
+    @runIfVersion(max="2.13")
     def test_switch_off_symbolic_slice_not_folded(self):
         os.environ["NPU_INDUCTOR_DYNAMIC_FX_PASS"] = "0"
 
@@ -438,6 +468,7 @@ class TestSwitchAndStaticRegression(unittest.TestCase):
         # Switch off: symbolic full-slice is undecidable -> kept
         self.assertEqual(_count_target(gm, torch.ops.aten.slice.Tensor), 1)
 
+    @runIfVersion(max="2.13")
     def test_switch_off_symbolic_repeat_not_rewritten(self):
         os.environ["NPU_INDUCTOR_DYNAMIC_FX_PASS"] = "0"
 
@@ -450,6 +481,7 @@ class TestSwitchAndStaticRegression(unittest.TestCase):
         # Switch off: symbolic broadcast is not rewritten (materialize refuses sym dims)
         self.assertEqual(_count_target(gm, torch.ops.aten.repeat.default), 1)
 
+    @runIfVersion(max="2.13")
     def test_static_expand_still_folded(self):
         def fn(x):
             return torch.ops.aten.expand.default(x, [4, 5]).relu()
@@ -458,6 +490,7 @@ class TestSwitchAndStaticRegression(unittest.TestCase):
         agp.fold_expand(gm.graph)
         self.assertEqual(_count_target(gm, torch.ops.aten.expand.default), 0)
 
+    @runIfVersion(max="2.13")
     def test_static_slice_still_folded(self):
         def fn(x):
             return torch.ops.aten.slice.Tensor(x, 0, 0, 4).relu()

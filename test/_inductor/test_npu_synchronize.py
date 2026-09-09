@@ -1,12 +1,11 @@
 # Owner(s): ["module: tests"]
 
-import unittest
-import os
 import torch
 from torch.testing._internal.common_utils import run_tests, TestCase, load_tests
 from torch._inductor.utils import run_and_get_code
 import torch_npu
 import torch_npu.testing
+from version_mark import runIfVersion
 
 # load_tests from torch.testing._internal.common_utils is used to automatically filter tests for
 # sharding on sandcastle. This line silences flake warnings
@@ -15,6 +14,7 @@ load_tests = load_tests
 
 class TestSynchronizeSkip(TestCase):
 
+    @runIfVersion(max="2.13")
     def test_synchronize_not_in_compiled_graph(self):
 
         def func_with_synchronize(x):

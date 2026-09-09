@@ -9,6 +9,7 @@ from torch._inductor import (
 )
 from torch._inductor.autotune_process import TuningProcess, TuningProcessPool
 from torch.testing._internal.common_utils import TestCase, run_tests
+from version_mark import runIfVersion
 
 
 COMMUNITY_GET_DEVICE_LIST = TuningProcessPool.get_device_list
@@ -30,6 +31,7 @@ class TestAutotuneProcessAdapter(TestCase):
         inductor_autotune_process.CUDA_VISIBLE_DEVICES = self.visible_devices_key
         super().tearDown()
 
+    @runIfVersion(max="2.13")
     def test_pool_get_device_list_is_community_method(self):
         self.assertEqual(
             COMMUNITY_GET_DEVICE_LIST.__module__,
@@ -37,10 +39,12 @@ class TestAutotuneProcessAdapter(TestCase):
         )
         self.assertIs(TuningProcessPool.get_device_list, COMMUNITY_GET_DEVICE_LIST)
 
+    @runIfVersion(max="2.13")
     def test_single_device_mode(self):
         with inductor_config.patch("autotune_multi_device", False):
             self.assertEqual(self.pool.get_device_list(), [None])
 
+    @runIfVersion(max="2.13")
     def test_multi_device_uses_npu_interface_and_visible_key(self):
         interface = mock.Mock()
         interface.device_count.return_value = 4
@@ -75,6 +79,7 @@ class TestAutotuneProcessAdapter(TestCase):
         ):
             self.assertEqual(self.pool.get_device_list(), [0, 1, 2, 3])
 
+    @runIfVersion(max="2.13")
     def test_tuning_process_scopes_visible_device_to_child(self):
         patch_tuning_process()
         with (
@@ -106,6 +111,7 @@ class TestPatchIsGpu(TestCase):
         inductor_utils.get_gpu_type.cache_clear()
         super().tearDown()
 
+    @runIfVersion(max="2.13")
     def test_patch_is_gpu_is_idempotent_and_clears_cached_device(self):
         inductor_utils.GPU_TYPES[:] = ["cuda"]
         with mock.patch.object(torch.cuda, "is_available", return_value=False):
