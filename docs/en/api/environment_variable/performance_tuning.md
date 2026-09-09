@@ -1,0 +1,9 @@
+# Performance Tuning
+
+- **[CPU\_AFFINITY\_CONF](CPU_AFFINITY_CONF.md)**  
+
+- **[PROF\_CONFIG\_PATH](PROF_CONFIG_PATH.md)**  
+
+- **[KINETO\_USE\_DAEMON](KINETO_USE_DAEMON.md)**  
+
+- **[TORCH\_NPU\_LAZY\_FUSION](TORCH_NPU_LAZY_FUSION.md)**  
