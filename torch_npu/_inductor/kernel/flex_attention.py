@@ -897,6 +897,7 @@ def _create_npu_flex_decoding_kernel(*args):
 
     choices: list[Any] = []
     configs: list[tuple[int, int, int]] = [
+        (64, 2, 1),
         (128, 2, 2),
         (64, 2, 2),
         (32, 2, 2),

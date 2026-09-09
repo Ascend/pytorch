@@ -54,6 +54,7 @@ class TestFlexAttentionDynamicMaskOutSource(unittest.TestCase):
         self.assertIn("_get_num_cube_core() // bh * 2", adapter)
         self.assertIn(
             """configs: list[tuple[int, int, int]] = [
+        (64, 2, 1),
         (128, 2, 2),
         (64, 2, 2),
         (32, 2, 2),
