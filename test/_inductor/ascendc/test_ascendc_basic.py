@@ -10,6 +10,7 @@ from torch.testing._internal.common_utils import (
 )
 
 
+@unittest.skip("skip pytorch issue #4684")
 @unittest.skipIf(not torch.npu.is_available(), "requires an NPU device")
 class TestAscendcBasic(TestCase):
 
