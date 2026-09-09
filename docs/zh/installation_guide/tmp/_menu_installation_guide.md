@@ -5,6 +5,7 @@
 - [FAQ](faq.md)
 - [参考信息](./references/_menu_references.md)
   - [源码编译](references/building_from_source.md)
+  - [编译加速](references/build_acceleration.md)
   - [Docker安装](references/installing_with_docker.md)
   - [（可选）安装扩展模块](references/installing_extensions.md)
     - [编译libtorch\_npu](references/building_libtorch_npu.md)

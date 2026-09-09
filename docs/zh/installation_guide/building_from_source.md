@@ -54,6 +54,8 @@
 
 ## 安装TorchNPU插件
 
+如需缩短源码构建时间，可参考[编译加速](references/build_acceleration.md)配置 Ninja、Mold、CCache，或仅编译所需目标。
+
 以下操作步骤以安装PyTorch 2.13.0版本、Python 2.10.0版本为例。
 
 - **方式一（推荐）：容器场景**
