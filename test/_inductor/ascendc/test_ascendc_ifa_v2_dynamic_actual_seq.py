@@ -149,6 +149,7 @@ def _assert_dynamic_actual_seq_key_reuse(test_case, logs):
         )
 
 
+@unittest.skip("skip pytorch issue #4684")
 @unittest.skipIf(not torch.npu.is_available(), "requires an NPU device")
 class TestAscendcIFAv2DynamicActualSeq(TestCase):
 
