@@ -452,6 +452,10 @@ enable_grouped_matmul_fusion = _parse_bool_env(
     "TORCHINDUCTOR_ENABLE_GROUPED_MATMUL_FUSION", False
 )
 
+# Extend ND x 2D MM folding to padded row-major NPU inputs. Keep it off by
+# default while the supported non-contiguous layouts are validated across models.
+enable_matmul_triton = _parse_bool_env("TORCHINDUCTOR_ENABLE_MATMUL_TRITON", False)
+
 # permute_continous_reduction: when enabled, detects the "permute contiguous reduction"
 # pattern (a non-reduction axis sitting between two reduction axes in stride order)
 # and applies special handling: selects the permute axis as a tiling axis, uses NDDMA
