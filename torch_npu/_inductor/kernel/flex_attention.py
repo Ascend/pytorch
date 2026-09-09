@@ -2893,7 +2893,6 @@ def _register_npu_inductor_flex_attention():
             else None
         )
         if grad_lse is not None:
-            grad_lse = lowerings[aten.mul](grad_lse, _LOG2E)
             delta = lowerings[aten.sub](delta, grad_lse)
             delta = ExternKernel.require_contiguous(delta)
             logsumexp, grad_lse, delta = maybe_realize([logsumexp, grad_lse, delta])
