@@ -16,7 +16,10 @@ from access_control import (
     TestMgr,
     BASE_DIR, TEST_DIR, SLOW_TEST_BLOCKLIST, NOT_RUN_DIRECTLY, EXEC_TIMEOUT, NETWORK_OPS_DIR
 )
-from split_by_time import load_and_validate_time_data, split_by_time, get_test_key
+from split_by_time import (
+    load_and_validate_time_data, split_by_time, get_test_key,
+    estimate_core_select_tasks,
+)
 
 
 def fetch_acl_headers():
@@ -231,6 +234,8 @@ if __name__ == "__main__":
     parser.add_argument('--rank', default=0, type=int, help='Index of current ut nodes')
     parser.add_argument('--world_size', default=0, type=int, help='Number of ut nodes')
     parser.add_argument('--npu_core', help='Run core testcases in npu')
+    parser.add_argument('--estimate_tasks', action="store_true",
+                        help='Estimate core/select task counts (m/n) and exit')
     parser.add_argument('--network_ops', action="store_true", help='Run network_ops testcases in the op-plugin repo')
     options = parser.parse_args()
     print(f"options: {options}")
@@ -255,6 +260,28 @@ if __name__ == "__main__":
     common_files = str(BASE_DIR / 'common_files.txt')
     if os.path.exists(common_files):
         test_mgr.exclude_files_from_list(common_files)
+
+    if options.estimate_tasks:
+        # 动态任务机制：按历史耗时估算 core/select 各自总时长，向上取整得到任务数 m/n，
+        # 传给 CI 用于动态创建 core/select 任务（core=m, select=n），避免固定拆分导致的空跑。
+        task_plan = estimate_core_select_tasks(
+            test_mgr.get_test_files(),
+            str(BASE_DIR / 'time_data.json'),
+        )
+        core_task_count = task_plan['core']['task_count']
+        select_task_count = task_plan['select']['task_count']
+        print(f"***** Dynamic task plan: core={core_task_count}, select={select_task_count}")
+        # 打印 core/select 各自命中的用例清单与预估总耗时，便于核对动态估算是否合格
+        for group_name in ('core', 'select'):
+            group_info = task_plan[group_name]
+            print(f"***** {group_name}: task_count={group_info['task_count']}, "
+                  f"total_time={group_info['total_time']}s, "
+                  f"files({len(group_info['files'])}):")
+            for ut_file in group_info['files']:
+                print(f"      {ut_file}")
+        with open(str(BASE_DIR / 'task_plan.json'), 'w', encoding='utf-8') as f:
+            json.dump({'core': core_task_count, 'select': select_task_count}, f, indent=2)
+        sys.exit(0)
 
     if options.rank > 0 and options.world_size > 0:
         time_data_file = str(BASE_DIR / 'time_data.json')
