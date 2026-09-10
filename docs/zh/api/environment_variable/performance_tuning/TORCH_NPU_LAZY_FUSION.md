@@ -9,6 +9,12 @@
 
 此环境变量默认为未配置。
 
+> [!NOTE]
+>
+> - 此环境变量用于Eager模式下的算子融合，无需经过图编译。
+
+该环境变量由TorchNPU提供，PyTorch没有直接对应的环境变量。
+
 ## 配置示例
 
 ```bash
@@ -17,8 +23,10 @@ export TORCH_NPU_LAZY_FUSION=True
 
 ## 使用约束
 
+- 需在导入`torch_npu`之前设置。
 - 仅在[TASK_QUEUE_ENABLE](../op_execution/TASK_QUEUE_ENABLE.md)为1或2时生效，否则自动禁用算子融合。
 - 仅在主线程及其反向线程生效，其它独立线程（如dataloader worker）自动禁用。
+- 仅在DVM支持的芯片型号上生效。
 
 ## 支持的型号
 

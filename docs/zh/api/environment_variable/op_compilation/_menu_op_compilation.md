@@ -1,4 +1,6 @@
-# 算子编译
+# 单算子编译与缓存
+
+配置单算子模式的编译缓存；torch.compile配置见图编译分类。
 
 - [ACL_OP_COMPILER_CACHE_DIR](ACL_OP_COMPILER_CACHE_DIR.md)
 - [ACL_OP_COMPILER_CACHE_MODE](ACL_OP_COMPILER_CACHE_MODE.md)

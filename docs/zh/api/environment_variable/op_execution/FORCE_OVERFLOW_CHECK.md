@@ -24,6 +24,8 @@ torch_npu.npu.synchronize()
 print(torch_npu.npu.utils.get_npu_overflow_flag())  # True，通过溢出状态标志检出
 ```
 
+该环境变量由TorchNPU提供，PyTorch没有直接对应的环境变量。
+
 ## 配置示例
 
 ```bash
@@ -32,7 +34,7 @@ export FORCE_OVERFLOW_CHECK=1
 
 ## 使用约束
 
-- 需CANN版本不低于9.1.0，版本不满足时该环境变量不生效。
+- 需CANN版本不低于9.1.0，版本不满足时打印WARNING日志并忽略该环境变量。
 - 仅支持配置为“0”或“1”，其他取值视为未配置。
 - 需在进程启动前配置，进程运行过程中修改不会生效。
 

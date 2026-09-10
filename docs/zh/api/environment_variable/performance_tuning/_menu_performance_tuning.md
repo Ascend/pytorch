@@ -1,6 +1,13 @@
-# 性能优化
+# 性能优化与采集
+
+配置CPU绑核、Eager算子融合和Profiler动态采集。
+
+## 执行优化
 
 - [CPU_AFFINITY_CONF](CPU_AFFINITY_CONF.md)
+- [TORCH_NPU_LAZY_FUSION](TORCH_NPU_LAZY_FUSION.md)
+
+## Profiler采集
+
 - [PROF_CONFIG_PATH](PROF_CONFIG_PATH.md)
 - [KINETO_USE_DAEMON](KINETO_USE_DAEMON.md)
-- [TORCH_NPU_LAZY_FUSION](TORCH_NPU_LAZY_FUSION.md)

@@ -2,11 +2,13 @@
 
 ## 功能描述
 
-通过此环境变量可指定需要回退到PyTorch原生的算子列表。当某些算子在NPU后端执行出现问题或需要使用算子原生实现时，可通过此环境变量进行配置。
+通过此环境变量可指定需要回退到PyTorch原生的算子列表。当某些算子在NPU上执行出现问题或需要使用算子原生实现时，可通过此环境变量进行配置。
 
 - 默认值为`None`，不进行算子回退。
 - 配置指定算子：以逗号分隔的算子名称列表（如`aten.div,aten.add.Tensor`），对应的算子将回退到PyTorch原生实现。
 - 配置为`allfallback`：所有算子都回退到PyTorch原生实现。
+
+PyTorch通过`torch._inductor.config.fallback_kernel_list`配置回退算子列表，TorchNPU通过此环境变量提供类似功能。
 
 ## 配置示例
 
@@ -26,7 +28,7 @@ os.environ["NPU_INDUCTOR_FALLBACK_LIST"] = "allfallback"
 
 ## 使用约束
 
-- 该环境变量仅在Inductor后端场景下生效。
+- 该环境变量仅在图模式（Inductor）场景下生效。
 - 算子名称需使用完整的aten算子命名格式（如`aten.div.Tensor`、`aten.add.Tensor`）。
 - 多算子使用逗号进行分隔，不支持空格。
 - 回退操作会导致相应算子失去NPU硬件加速能力，请谨慎使用。
@@ -37,5 +39,4 @@ os.environ["NPU_INDUCTOR_FALLBACK_LIST"] = "allfallback"
 - <term>Atlas 训练系列产品</term>
 - <term>Atlas A2 训练系列产品</term>
 - <term>Atlas A3 训练系列产品</term>
-- <term>Atlas 800I A2 推理产品</term>
-- <term>Ascend 950DT</term>（仅支持Inductor后端编译器中的Triton模式和DVM模式，不支持MLIR模式）
+- <term>Ascend 950DT</term>（仅支持Inductor后端编译器中的Triton模式和DVM模式）

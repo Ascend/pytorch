@@ -7,6 +7,8 @@
 - 配置为“0”时，允许CPU fallback。未配置该环境变量时默认按“0”处理，以保持现有兼容行为。CPU fallback路径可将输入从NPU复制到CPU完成计算，再将结果复制回NPU；已配置告警的路径会打印fallback告警。
 - 配置为“1”时，禁止CPU fallback。算子在进入CPU主要计算前直接报错，错误信息中会包含算子名称和`TORCH_NPU_FALLBACK_CPU_DISABLE=1`，且不会打印“即将fallback到CPU”的告警。
 
+该环境变量由TorchNPU提供，PyTorch没有直接对应的环境变量。
+
 ## 配置示例
 
 禁止已纳管算子的CPU fallback：
