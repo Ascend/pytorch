@@ -1205,22 +1205,31 @@ def patch_algorithm_selector() -> None:
     ) -> Any:
         from .codegen.catlass.catlass_kernel import CATLASSTemplateCaller
 
+        choices = [choice for choice in choices if choice is not None]
+        has_mutated_inputs = any(
+            bool(getattr(choice, "mutated_inputs", None)) for choice in choices
+        )
+
         defer_epilogue_to_scheduler = (
             defer_epilogue_compile_only
             and return_multi_template
             and input_gen_fns is not None
+            and not has_mutated_inputs
         )
 
         # Templates selected with input_gen_fns require specific input data to avoid IMA.
         # FlexAttention keeps using those generators for its lowering-time autotune,
         # then defers only the final, epilogue-aware compilation choice.
+        # MultiTemplateBuffer does not preserve template mutation outputs, so mutating
+        # kernels must be finalized as a regular template buffer.
         # TODO(jgong5): support multi-template on CPU
         if (
-            input_gen_fns is not None and not defer_epilogue_to_scheduler
-        ) or layout.device.type == "cpu":
+            (input_gen_fns is not None and not defer_epilogue_to_scheduler)
+            or layout.device.type == "cpu"
+            or has_mutated_inputs
+        ):
             return_multi_template = False
 
-        choices = [choice for choice in choices if choice is not None]
         successful_precompile_choice_hashes: set[str] = set()
         select_first_compilable_only = bool(choices) and all(
             getattr(choice, "_nobench_select_first_compilable", False)
