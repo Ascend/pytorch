@@ -138,6 +138,55 @@ def _format_choice_debug_label(choice: ChoiceCaller) -> str:
     return str(choice)
 
 
+def _summarize_autotune_error(
+    error: BaseException | str,
+    *,
+    max_lines: int = 8,
+) -> str:
+    """Return the tail of a compiler diagnostic for ERROR-level logging."""
+    lines = [line for line in str(error).splitlines() if line.strip()]
+    if not lines:
+        return (
+            type(error).__name__
+            if isinstance(error, BaseException)
+            else "empty error"
+        )
+
+    tail = lines[-max_lines:]
+    prefix = (
+        "... <earlier compiler diagnostic suppressed>\n"
+        if len(lines) > len(tail)
+        else ""
+    )
+    return prefix + "\n".join(tail)
+
+
+def _log_autotune_error(
+    error_prefix: str,
+    error: BaseException | str,
+    choice: ChoiceCaller,
+    *,
+    ignored: bool,
+) -> None:
+    """Log concise failures at ERROR and full compiler diagnostics at DEBUG."""
+    choice_label = _format_choice_debug_label(choice)
+    suffix = "; ignoring this choice" if ignored else ""
+    log.error(
+        "%s for benchmark choice %s%s:\n%s",
+        error_prefix,
+        choice_label,
+        suffix,
+        _summarize_autotune_error(error),
+    )
+    if log.isEnabledFor(logging.DEBUG):
+        log.debug(
+            "%s full compiler diagnostic for benchmark choice %s:\n%s",
+            error_prefix,
+            choice_label,
+            str(error),
+        )
+
+
 def _tiling_sort_key(choice: ChoiceCaller):
     config_info = _extract_choice_debug_config(choice)
     if isinstance(config_info, dict):
@@ -1267,8 +1316,11 @@ def patch_algorithm_selector() -> None:
                     timeout=precompilation_timeout_seconds,
                 ):
                     if e := future.exception():
-                        log.error(
-                            "Exception %s for benchmark choice %s", e, futures[future]
+                        _log_autotune_error(
+                            "Precompile failed",
+                            e,
+                            futures[future],
+                            ignored=False,
                         )
                     else:
                         successful_precompile_choice_hashes.add(
@@ -1686,9 +1738,11 @@ def patch_algorithm_selector() -> None:
                 try:
                     timing = benchmark_choice_in_current_process(choice, inputs)
                 except NPUCompileError as e:
-                    log.error(
-                        "NPU compilation error during autotuning: \n%s. \nIgnoring this choice.",
-                        str(e),
+                    _log_autotune_error(
+                        "NPU compilation error during autotuning",
+                        e,
+                        choice,
+                        ignored=True,
                     )
                     timing = float("inf")
                 except NotImplementedError as e:
@@ -1701,9 +1755,11 @@ def patch_algorithm_selector() -> None:
                     else:
                         if "illegal memory access" in msg:
                             msg += "\n\nEither error in template or triton bug.\n"
-                    log.error(
-                        "Runtime error during autotuning: \n%s. \nIgnoring this choice.",
+                    _log_autotune_error(
+                        "Runtime error during autotuning",
                         msg,
+                        choice,
+                        ignored=True,
                     )
                     timing = float("inf")
                 except AssertionError as e:
