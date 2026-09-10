@@ -201,7 +201,7 @@ gcc --version
 
 **处理方法**
 
-如果GCC版本低于8，请参考[安装GCC 11.2.0版本](https://ubuntu.com/developers/docs/howto/gcc-setup/)安装GCC 8及以上版本。
+GCC版本过低，请执行命令`gcc --version`查询版本，并GCC 8以上版本，具体请参考[安装GCC](https://ubuntu.com/developers/docs/howto/gcc-setup/)。
 
 ## 安装问题
 
