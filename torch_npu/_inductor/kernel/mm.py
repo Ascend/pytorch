@@ -909,9 +909,45 @@ def _register_npu_inductor_addmm():
         triton_available = is_contiguous_input_tmp and use_triton_template(
             layout_tmp if layout is None else layout
         )
-
+        *b2, k2, n = mat2.get_size()
+        # When N == 1, fall back to ATen addmm even when a triton template is
+        # available, because the Triton addmm template cannot safely handle
+        # N == 1 without modifying the template itself.
+        #
+        # Background — why N == 1 is incompatible with the Triton addmm template:
+        #   bias (N,)  --expand-->  (M, N)  --realize_inputs-->  buf0
+        #              stride (1,)          stride (0, 1)
+        # When N == 1, expand produces a (M, 1) tensor whose M-dim stride is 0
+        # (broadcast).  The bias source has a single element (bias[0]), so
+        # every position in the (M, 1) tensor holds the same scalar value.
+        #
+        # During the pre-codegen buffer-elimination pass, the upstream scheduler
+        # inspects buf0 and finds:
+        #   1. Its data source is a ReinterpretView with stride 0.
+        #   2. make_loader() can inline buf0's content — it returns
+        #      ops.load("bias_src", [0]) directly, bypassing buf0 entirely.
+        #   3. Since buf0 is never actually tl.load-ed (its content is inlined
+        #      into consumer expressions), the scheduler adds buf0 to
+        #      V.graph.removed_buffers — no buffer allocation, no kernel arg.
+        #
+        # Conflict: the Triton addmm template's {{store_output}} still loads the
+        # bias by buffer name via input_node.make_loader() -> ops.load(self.name),
+        # which trips `assert name not in V.graph.removed_buffers`.
+        #
+        # Additionally, the template's B load has no N-dimensional mask, so when
+        # N < BLOCK_N (minimum 16) it would access out-of-bounds columns of B.
+        #
+        # When N >= 2, buf0's source has N distinct elements, so make_loader()
+        # cannot inline it into a single scalar expression — the scheduler
+        # keeps buf0 and no assertion is triggered.
+        #
+        # Fixing this requires either modifying the template (adding an
+        # N-dimensional mask to B's load) or forcing the bias to realize()
+        # into a real Buffer.  Both approaches are intentionally avoided
+        # here to keep the template untouched and the change minimal;
+        # N == 1 simply falls back to the ATen addmm implementation.
         # If neither catlass nor triton templates are available, fall back.
-        if not (catlass_available or triton_available):
+        if (not (catlass_available or triton_available)) or n == 1:
             return fallback_handler(aten.addmm.default)(inp, mat1, mat2, alpha=alpha, beta=beta)
 
         ordered_kwargs_for_cpp_kernel = ("beta", "alpha")
