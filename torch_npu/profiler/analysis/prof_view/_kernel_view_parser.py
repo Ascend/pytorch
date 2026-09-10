@@ -36,7 +36,7 @@ class KernelViewParser(BaseParser):
     def _get_kernel_headers(cls, all_headers: list, is_all_kernel_headers: bool) -> list:
         if is_all_kernel_headers:
             return all_headers
-        shape_headers = [header for header in CsvHeaders.OP_SUMMARY_SHAPE_HEADERS if header in all_headers]
+        shape_headers = [header for header in CsvHeaders.OP_SUMMARY_ADDITIONAL_HEADERS if header in all_headers]
         return CsvHeaders.OP_SUMMARY_SHOW_HEADERS + shape_headers
 
     def run(self, deps_data: dict):
