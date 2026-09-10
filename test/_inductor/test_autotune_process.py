@@ -14,7 +14,7 @@ from version_mark import runIfVersion
 
 COMMUNITY_GET_DEVICE_LIST = TuningProcessPool.get_device_list
 
-from torch_npu._inductor import utils as npu_utils
+from torch_npu._compat.inductor import patch_is_gpu
 from torch_npu._inductor.autotune_process import (
     ASCEND_VISIBLE_DEVICES,
     patch_tuning_process,
@@ -121,10 +121,10 @@ class TestPatchIsGpu(TestCase):
             mock.patch.object(torch.cuda, "is_available", return_value=False),
             mock.patch.object(torch.npu, "is_available", return_value=True),
         ):
-            npu_utils.patch_is_gpu()
+            patch_is_gpu()
             self.assertEqual(inductor_utils.get_gpu_type(), "npu")
             self.assertEqual(inductor_utils.get_gpu_type.cache_info().currsize, 1)
-            npu_utils.patch_is_gpu()
+            patch_is_gpu()
             self.assertEqual(inductor_utils.get_gpu_type.cache_info().currsize, 0)
 
         self.assertEqual(inductor_utils.GPU_TYPES.count("npu"), 1)

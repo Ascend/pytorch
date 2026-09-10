@@ -22,7 +22,7 @@ from torch_npu.utils._dynamo import (
     _dynamo_register_interface_for_device,
     _inject_inductor_npu_backend_config,
 )
-from .utils import patch_has_triton, patch_device_supports_tma, patch_is_gpu
+from .utils import patch_has_triton, patch_device_supports_tma
 # All backends need npu/cpu/mps device_op_overrides.
 from .codegen.common import register_device_op_overrides_npu
 from torch_npu._compat.inductor import (
@@ -30,6 +30,7 @@ from torch_npu._compat.inductor import (
     patch_codegen_with_cpp_wrapper,
     patch_create_device_properties,
     patch_device_to_aten,
+    patch_is_gpu,
 )
 from ._npu_meta_registration import npu_patch_meta
 from .shape_handling import NPUShapeHandling, patch_shape_handling
