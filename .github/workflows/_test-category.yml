@@ -61,6 +61,14 @@ jobs:
       options: --network host
     env:
       PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
+      # CANN plog is NOT written under ~/ascend by default on the new runner
+      # (cn12-001) CANN build, which left crash forensics blind. Pin the plog
+      # directory (job container runs as root, HOME=/root) and the slog level
+      # (0=debug 1=info 2=warning 3=error). Applies to the verify/run steps,
+      # all pytest worker subprocesses (inherited via os.environ), and the
+      # CANN log upload step, which collects from this fixed root.
+      ASCEND_PROCESS_LOG_PATH: /root/ascend/log/plog
+      ASCEND_GLOBAL_LOG_LEVEL: '1'
     strategy:
       matrix:
         shard: ${{ fromJson(inputs.matrix_json) }}
@@ -172,6 +180,9 @@ jobs:
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
           export LD_LIBRARY_PATH=/opt/conda/envs/py_3.10/lib:$LD_LIBRARY_PATH
 
+          mkdir -p "${ASCEND_PROCESS_LOG_PATH}"
+          echo "CANN plog pinned to ${ASCEND_PROCESS_LOG_PATH} (level=${ASCEND_GLOBAL_LOG_LEVEL})"
+
           echo "=== NPU Device Information ==="
           npu-smi info
           echo "=== End of NPU Device Information ==="
@@ -191,6 +202,10 @@ jobs:
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
           export LD_LIBRARY_PATH=/opt/conda/envs/py_3.10/lib:$LD_LIBRARY_PATH
+
+          # Ensure the pinned plog dir exists before workers start (env is
+          # set at job level; workers inherit it via os.environ.copy()).
+          mkdir -p "${ASCEND_PROCESS_LOG_PATH}"
 
           CASES_JSON="cases-shards/${{ inputs.category }}_cases_shard_${{ matrix.shard }}.json"
           TOTAL_CASES=$(python3 -c "import json; d=json.load(open('${CASES_JSON}')); print(d['total_cases'])")
@@ -275,19 +290,39 @@ jobs:
           path: test-reports/
           retention-days: 7
 
-      - name: Compress /root/ascend CANN logs
+      # CANN plog is pinned via job-level ASCEND_PROCESS_LOG_PATH
+      # (/root/ascend/log/plog), so logs land in a known place — no
+      # filesystem search needed. Device logs and atrace also default to
+      # the ~/ascend tree. Keep LOG_ROOT in sync with the job env if the
+      # pinned path ever changes.
+      - name: Collect and compress CANN logs
         if: always()
         run: |
           PREFIX="${{ steps.prefix.outputs.prefix }}"
-          if [ -d "/root/ascend" ]; then
-            echo "=== Compressing /root/ascend CANN logs ==="
-            FILE_COUNT=$(find /root/ascend -type f | wc -l)
-            echo "Found ${FILE_COUNT} files under /root/ascend"
-            tar -czf ascend-cann-logs-${PREFIX}-${{ matrix.shard }}.tar.gz -C /root ascend
-            echo "CANN logs compressed: $(ls -lh ascend-cann-logs-${PREFIX}-${{ matrix.shard }}.tar.gz)"
-          else
-            echo "/root/ascend directory does not exist, skipping"
+          ARTIFACT="ascend-cann-logs-${PREFIX}-${{ matrix.shard }}.tar.gz"
+          LOG_ROOT="/root/ascend"
+          PLOG_DIR="${ASCEND_PROCESS_LOG_PATH:-${LOG_ROOT}/log/plog}"
+
+          echo "=== Collecting CANN logs ==="
+          echo "HOME=${HOME:-<unset>}, USER=$(id -un), UID=$(id -u)"
+          echo "ASCEND_PROCESS_LOG_PATH=${PLOG_DIR}, ASCEND_GLOBAL_LOG_LEVEL=${ASCEND_GLOBAL_LOG_LEVEL:-<unset>}"
+
+          if [ ! -d "${LOG_ROOT}" ]; then
+            echo "WARNING: ${LOG_ROOT} does not exist; CANN wrote no logs, skipping artifact"
+            exit 0
           fi
+
+          PLOG_COUNT=$(find "${PLOG_DIR}" -type f 2>/dev/null | wc -l)
+          FILE_COUNT=$(find "${LOG_ROOT}" -type f 2>/dev/null | wc -l)
+          echo "plog files under ${PLOG_DIR}: ${PLOG_COUNT}"
+          echo "total files under ${LOG_ROOT}: ${FILE_COUNT}"
+          if [ "${FILE_COUNT}" -eq 0 ]; then
+            echo "WARNING: ${LOG_ROOT} is empty; CANN wrote no logs, skipping artifact"
+            exit 0
+          fi
+
+          tar -czf "${ARTIFACT}" -C "$(dirname "${LOG_ROOT}")" "$(basename "${LOG_ROOT}")"
+          echo "CANN logs compressed: $(ls -lh ${ARTIFACT})"
 
       - name: Upload CANN logs
         if: always()
