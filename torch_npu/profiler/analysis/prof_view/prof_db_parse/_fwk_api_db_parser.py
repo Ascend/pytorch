@@ -114,7 +114,7 @@ class FwkApiDbParser(BaseParser):
         if node_launch_str_ids and node_launch_str_ids[0]:
             node_launch_str_id = node_launch_str_ids[0]
         else:
-            self.logger.error("Failed to find node launch str id")
+            self.logger.warning("Can't find node launch str id, which is safe for aclgraph scene.")
             return
         sql = (
             f"select startNs, endNs, globalTid, connectionId from {DbConstant.TABLE_CANN_API} "
