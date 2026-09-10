@@ -48,7 +48,7 @@ Tag 遵循以下格式：
 
 ### 26.1.1版本Tag列表
 
-如下所示是TorchNPU最新发布的26.1.1版本的所有镜像tags，历史版本所有的Tag请参考[Supported Tags](./supported_tags.md)
+如下所示是TorchNPU最新发布的26.1.1版本的所有镜像tags，历史版本所有的Tag请参考[Supported Tags](https://gitcode.com/Ascend/pytorch/blob/master/docker/supported_tags.md)
 
 - `2.12.0.post2-cann9.1.0-310p-ubuntu22.04-py3.12`
 - `2.12.0.post2-cann9.1.0-310p-openeuler24.03-py3.12`
@@ -200,16 +200,6 @@ RUN apt update -y && \
 
 ...
 ```
-
----
-
-## 支持的硬件
-
-| 芯片系列    | 产品示例                           | 架构             |
-|---------|--------------------------------|----------------|
-| 昇腾 910B | Atlas 800T A2、Atlas 900 A2 PoD | ARM64 / x86_64 |
-| 昇腾 A3   | Atlas 800T A3                  | ARM64 / x86_64 |
-| 昇腾 310P | Atlas 300I Pro、Atlas 300V Pro  | ARM64 / x86_64 |
 
 ---
 

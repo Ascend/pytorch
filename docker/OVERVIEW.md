@@ -48,7 +48,7 @@ Tags follow the format:
 
 ### Tag list for version 26.1.1
 
-As shown below are all the image tags of the latest 26.1.1 version released by TorchNPU. For all the historical versions, please refer to [Supported Tags](./supported_tags.md)
+As shown below are all the image tags of the latest 26.1.1 version released by TorchNPU. For all the historical versions, please refer to [Supported Tags](https://gitcode.com/Ascend/pytorch/blob/master/docker/supported_tags.md)
 
 - `2.12.0.post2-cann9.1.0-310p-ubuntu22.04-py3.12`
 - `2.12.0.post2-cann9.1.0-310p-openeuler24.03-py3.12`
@@ -204,22 +204,12 @@ RUN apt update -y && \
 
 ---
 
-## Supported Hardware
-
-| Product Examples                | Architecture   |
-|---------------------------------|----------------|
-| Atlas 800T A2, Atlas 900 A2 PoD | ARM64 / x86_64 |
-| Atlas 800T A3                   | ARM64 / x86_64 |
-| Atlas 300I Pro, Atlas 300V Pro  | ARM64 / x86_64 |
-
----
-
 ## License/Disclaimer
 
 See the [license information](https://gitcode.com/Ascend/pytorch/blob/master/LICENSE) for TorchNPU included in these images.
 
 Like all container images, pre-installed software packages (Python, system libraries, etc.) may be subject to their own licenses.
 
-The released Ascend software images are community versions; they are not intended for commercial use and serve solely as references for production practices.
+The released Atlas software images are community versions; they are not intended for commercial use and serve solely as references for production practices.
 
-Liability disclaimers are displayed in the image startup information and on the Ascend image platform.
+Liability disclaimers are displayed in the image startup information and on the Atlas image platform.
