@@ -1,10 +1,12 @@
 import functools
 import math
 import re
+from unittest.mock import patch
 
 import torch
 import torch_npu
 import torch_npu._inductor  # noqa: F401
+from torch_npu._inductor import config as npu_config
 from torch._inductor import metrics
 from torch._inductor.utils import run_and_get_code
 from torch.nn import functional as F
@@ -28,6 +30,11 @@ def _full_mask(b, h, q_idx, kv_idx):
 class TestFlexAttention(TestCase):
     def setUp(self):
         super().setUp()
+        budget_patch = patch.object(
+            npu_config.flex_attention, "fwd_mask_workspace_bytes", 256 << 20
+        )
+        budget_patch.start()
+        self.addCleanup(budget_patch.stop)
         torch._dynamo.reset()
         metrics.reset()
 
@@ -106,9 +113,16 @@ class TestFlexAttention(TestCase):
             actual.float(), expected.float(), atol=atol, rtol=rtol
         )
 
-    def _assert_mask_out_codegen(self, code):
+    def _assert_mask_out_codegen(self, code, *, workspace):
         source = "\n".join(code)
-        self.assertIn("triton_flex_attention_fwd_mask_compact", source)
+        if workspace:
+            expected = "triton_flex_attention_fwd_workspace_mask_compact"
+            unexpected = "triton_flex_attention_fwd_mask_compact"
+        else:
+            expected = "triton_flex_attention_fwd_mask_compact"
+            unexpected = "triton_flex_attention_fwd_workspace_mask_compact"
+        self.assertRegex(source, rf"{expected}_[0-9]+\s*=")
+        self.assertNotIn(unexpected, source)
         self.assertIsNotNone(
             re.search(
                 r"triton_flex_attention_fwd_mask_out_[0-9]+\s*=",
@@ -166,7 +180,7 @@ class TestFlexAttention(TestCase):
             q, k, v, mask_kind, enable_gqa=enable_gqa
         )
         self._assert_close(actual, expected, dtype)
-        self._assert_mask_out_codegen(code)
+        self._assert_mask_out_codegen(code, workspace=True)
         return block_mask
 
     def test_epilogue_fused(self):
@@ -279,7 +293,7 @@ class TestFlexAttention(TestCase):
                 self._assert_close(actual, expected, q.dtype)
         self.assertEqual(backend.frame_count, 1)
         self.assertIsNotNone(code)
-        self._assert_mask_out_codegen(code)
+        self._assert_mask_out_codegen(code, workspace=False)
 
     def test_compile_vs_sdpa_dtypes_and_head_dims(self):
         for dtype, head_dim in (
@@ -327,7 +341,7 @@ class TestFlexAttention(TestCase):
 
         self._assert_close(actual, expected, dtype)
         self._assert_close(actual_lse, expected_lse, dtype)
-        self._assert_mask_out_codegen(code)
+        self._assert_mask_out_codegen(code, workspace=True)
 
         grad = torch.randn_like(actual)
         actual_grads = torch.autograd.grad(actual, (q, k, v), grad)

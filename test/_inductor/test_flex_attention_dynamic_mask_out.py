@@ -88,7 +88,14 @@ class TestFlexAttentionDynamicMaskOutSource(unittest.TestCase):
 
         self.assertIn("compute_compact_sparse_mask_offsets_kernel", template)
         self.assertIn("compute_compact_sparse_mask_mapping_kernel", template)
-        self.assertIn("tl.atomic_add(TOTAL_BLOCKS", template)
+        self.assertNotIn("tl.atomic_add(TOTAL_BLOCKS", template)
+        offsets = template.split("compute_compact_sparse_mask_offsets_kernel =", 1)[1].split(
+            "compute_compact_sparse_mask_mapping_kernel =", 1
+        )[0]
+        self.assertIn("tl.cumsum(counts, 0) - counts", offsets)
+        self.assertIn("carry += tl.sum(counts, 0)", offsets)
+        self.assertIn("tl.store(TOTAL_BLOCKS, carry)", offsets)
+        self.assertNotIn("tl.atomic_add", offsets)
         self.assertIn('{{size("KV_NUM_BLKS", 0)}}', template)
         self.assertIn('{{size("KV_NUM_BLKS", 2)}}', template)
         self.assertIn(
@@ -124,6 +131,53 @@ class TestFlexAttentionDynamicMaskOutSource(unittest.TestCase):
         self.assertIn('{{size("K", 2)}}', forward_compact)
         self.assertNotIn("NUM_SPARSE_Q_BLOCKS", forward_kernel)
 
+    def test_forward_full_block_metadata_is_render_time_guarded(self):
+        from jinja2 import Environment, StrictUndefined
+
+        tree = ast.parse(_read(TEMPLATE_PATH))
+        source = next(
+            ast.literal_eval(node.value)
+            for node in tree.body
+            if isinstance(node, ast.Assign)
+            and any(isinstance(target, ast.Name) and target.id == "flex_attention_fwd"
+                    for target in node.targets)
+        )
+        template = Environment(undefined=StrictUndefined).from_string(source)
+        for has_full_blocks, has_metadata in ((False, False), (False, True), (True, True)):
+            with self.subTest(has_full_blocks=has_full_blocks, has_metadata=has_metadata):
+                sizes = {
+                    "Q": (1, 1, 128, 64), "K": (1, 1, 128, 64), "V": (1, 1, 128, 64),
+                    "KV_NUM_BLKS": (1, 1, 1), "KV_IDX": (1, 1, 1, 1),
+                    "Q_OFFSETS": (1, 1, 1),
+                    "FULL_KV_NUM_BLKS": (1, 1, 1) if has_metadata else (0,),
+                    "FULL_KV_IDX": (1, 1, 1, 1) if has_metadata else (0,),
+                }
+                full_metadata_queries = []
+
+                def size(name, dim):
+                    if name.startswith("FULL_"):
+                        full_metadata_queries.append((name, dim))
+                    return sizes[name][dim]
+
+                def stride(name, dim=None):
+                    if name.startswith("FULL_"):
+                        full_metadata_queries.append((name, dim))
+                    strides = (1,) * len(sizes[name])
+                    if dim is None:
+                        return ", ".join(map(str, strides))
+                    return strides[dim]
+
+                rendered = template.render(
+                    HAS_FULL_BLOCKS=has_full_blocks,
+                    def_kernel=lambda *names: "def kernel(" + ", ".join(names) + "):",
+                    size=size, stride=stride, store_output=lambda *args, **kwargs: "pass",
+                )
+                ast.parse(rendered)
+                self.assertEqual(bool(full_metadata_queries), has_full_blocks)
+                self.assertEqual("FULL_SPARSE_HQ =" in rendered, has_full_blocks)
+                # Keep both pointer arguments even when the full-block body is omitted.
+                self.assertIn("FULL_KV_NUM_BLKS, FULL_KV_IDX):", rendered)
+
     def test_backward_compact_kernels_use_symbolic_mapping_sizes(self):
         template = _read(TEMPLATE_PATH)
         backward_compact = template.split(
@@ -152,7 +206,11 @@ class TestFlexAttentionDynamicMaskOutSource(unittest.TestCase):
         self.assertIn("actual_blocks", lowering)
         self.assertNotIn("capacity_blocks", lowering)
         self.assertIn("sympy.prod(kv_num_blocks.get_size())", lowering)
-        self.assertIn("lowerings[aten.fill_](total_blocks, 0)", lowering)
+        self.assertNotIn("lowerings[aten.fill_](total_blocks, 0)", lowering)
+        self.assertNotIn("_build_fwd_scan_offsets", lowering)
+        self.assertEqual(lowering.count("_build_runtime_compact_sparse_mask_offsets("), 3)
+        self.assertIn('context="forward"', lowering)
+        self.assertIn('context="backward"', lowering)
         self.assertIn("AssertScalar(", lowering)
         self.assertIn("pending_fresh_unbacked_symbols", lowering)
 

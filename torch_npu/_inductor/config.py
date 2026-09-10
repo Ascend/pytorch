@@ -298,6 +298,8 @@ class flex_attention:
 
     flexattention_mask_out = True
     flexattention_dispatch_strategy = None
+    # Maximum byte-mask workspace per forward. Zero uses exact-capacity allocation.
+    fwd_mask_workspace_bytes = 256 * 1024 * 1024
 
 
 flex_attention.flexattention_dispatch_strategy = os.environ.get(
@@ -307,4 +309,10 @@ flex_attention.flexattention_dispatch_strategy = os.environ.get(
 flex_attention.flexattention_mask_out = _read_env_bool(
     "TORCHINDUCTOR_FLEXATTENTION_MASKOUT",
     "1" if flex_attention.flexattention_mask_out else "0",
+)
+flex_attention.fwd_mask_workspace_bytes = max(
+    0, int(os.environ.get(
+        "TORCHINDUCTOR_ASCEND_FLEX_ATTENTION_FWD_MASK_WORKSPACE_BYTES",
+        str(flex_attention.fwd_mask_workspace_bytes),
+    ))
 )

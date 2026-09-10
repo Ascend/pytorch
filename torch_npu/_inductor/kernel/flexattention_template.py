@@ -50,37 +50,27 @@ _BWD_DKDV_COMPILE_OPTIONS = NPUTemplateCompileOption(
 
 compute_compact_sparse_mask_offsets_kernel = r"""
 {{def_kernel("Q_OFFSETS", "TOTAL_BLOCKS", "KV_NUM_BLKS")}}
-    sparse_z = {{size("KV_NUM_BLKS", 0)}}
     sparse_h = {{size("KV_NUM_BLKS", 1)}}
     sparse_q = {{size("KV_NUM_BLKS", 2)}}
-    row_count = sparse_z * sparse_h * sparse_q
+    row_count = {{size("KV_NUM_BLKS", 0)}} * sparse_h * sparse_q
+    stride_z, stride_h, stride_q = {{stride("KV_NUM_BLKS")}}
 
-    stride_num_z, stride_num_h, stride_num_q = {{stride("KV_NUM_BLKS")}}
-    stride_off_z, stride_off_h, stride_off_q = {{stride("Q_OFFSETS")}}
-
-    pid = tl.program_id(0)
-    num_programs = tl.num_programs(0)
-    for row in range(pid, row_count, num_programs):
+    carry = tl.full((), 0, tl.int32)
+    # Bound the per-program working set even when the number of rows is dynamic.
+    for start in range(0, row_count, SCAN_TILE_ROWS):
+        row = start + tl.arange(0, SCAN_TILE_ROWS)
         q_idx = row % sparse_q
-        tmp = row // sparse_q
-        h_idx = tmp % sparse_h
-        z_idx = tmp // sparse_h
-
-        num_offset = (
-            z_idx * stride_num_z
-            + h_idx * stride_num_h
-            + q_idx * stride_num_q
-        )
-        num_blocks = tl.load(KV_NUM_BLKS + num_offset).to(tl.int32)
-        base = tl.atomic_add(TOTAL_BLOCKS, num_blocks)
-
-        offset = (
-            z_idx * stride_off_z
-            + h_idx * stride_off_h
-            + q_idx * stride_off_q
-        )
-        tl.store(Q_OFFSETS + offset, base)
-
+        h_idx = (row // sparse_q) % sparse_h
+        z_idx = row // (sparse_q * sparse_h)
+        counts = tl.load(
+            KV_NUM_BLKS + z_idx * stride_z + h_idx * stride_h + q_idx * stride_q,
+            mask=row < row_count, other=0,
+        ).to(tl.int32)
+        offsets = carry + tl.cumsum(counts, 0) - counts
+        tl.store(Q_OFFSETS + row, offsets, mask=row < row_count)
+        carry += tl.sum(counts, 0)
+    # This program owns the scalar, so no initialization or atomic is needed.
+    tl.store(TOTAL_BLOCKS, carry)
 """
 
 
@@ -189,6 +179,49 @@ compute_sparse_mask_kernel_compact = r"""
         mask_offsets = offs_m_local[:, None] * SPARSE_MASK_STRIDE_M + offs_n_local[None, :]
         tl.store(mask_base + mask_offsets, mask_mod_output.to(tl.int8))
 """
+
+
+compute_fwd_workspace_offsets = r"""
+{{def_kernel("KV_NUM_BLKS")}}
+    Q_OFFSETS = arg_Q_OFFSETS
+    sparse_h = {{size("KV_NUM_BLKS", 1)}}
+    sparse_q = {{size("KV_NUM_BLKS", 2)}}
+    row_count = {{size("KV_NUM_BLKS", 0)}} * sparse_h * sparse_q
+    stride_z, stride_h, stride_q = {{stride("KV_NUM_BLKS")}}
+
+    row = tl.arange(0, SCAN_BLOCK_ROWS)
+    q_idx = row % sparse_q
+    h_idx = (row // sparse_q) % sparse_h
+    z_idx = row // (sparse_q * sparse_h)
+    counts = tl.load(
+        KV_NUM_BLKS + z_idx * stride_z + h_idx * stride_h + q_idx * stride_q,
+        mask=row < row_count, other=0,
+    ).to(tl.int32)
+    offsets = tl.cumsum(counts, 0) - counts
+    tl.store(Q_OFFSETS + row, offsets, mask=row < row_count)
+"""
+
+
+# Share compact materialization with exact allocation. Mapping buffers in the
+# workspace reserve C slots, so their shape must never be used as the live Np.
+compute_fwd_workspace_mask_compact = compute_sparse_mask_kernel_compact.replace(
+    '{{def_kernel("SPARSE_MASK", "FLAT_TO_ROW", "FLAT_TO_BLK", "Q", "K", "KV_IDX")}}',
+    '{{def_kernel("SPARSE_MASK", "FLAT_TO_ROW", "FLAT_TO_BLK", "Q", "K", "KV_IDX", "Q_OFFSETS", "KV_NUM_BLKS")}}',
+).replace(
+    '    actual_blocks = {{size("FLAT_TO_ROW", 0)}}',
+    r"""    sparse_z_count = {{size("KV_NUM_BLKS", 0)}}
+    count_z, count_h, count_q = {{stride("KV_NUM_BLKS")}}
+    last_row = sparse_z_count * sparse_h_count * sparse_q_count - 1
+    last_count = tl.load(
+        KV_NUM_BLKS + (sparse_z_count - 1) * count_z
+        + (sparse_h_count - 1) * count_h + (sparse_q_count - 1) * count_q
+    )
+    actual_blocks = tl.load(Q_OFFSETS + last_row) + last_count""",
+).replace(
+    "m = offs_m[:, None]", "m = tl.minimum(offs_m[:, None], q_len - 1)",
+).replace(
+    "n = offs_n[None, :]", "n = tl.minimum(offs_n[None, :], kv_len - 1)",
+)
 
 
 compute_bwd_sparse_mask_kernel_compact = r"""
@@ -458,6 +491,8 @@ flex_attention_fwd = r"""
             acc = tl.dot(p.to(MATMUL_PRECISION), v, acc)
             m_i = m_ij
 
+{# Absent full-block metadata must not be inspected while rendering. #}
+{% if HAS_FULL_BLOCKS %}
         if HAS_FULL_BLOCKS:
             FULL_SPARSE_Z = {{size("FULL_KV_NUM_BLKS", 0)}}
             FULL_SPARSE_HQ = {{size("FULL_KV_NUM_BLKS", 1)}}
@@ -527,6 +562,8 @@ flex_attention_fwd = r"""
                     acc = tl.dot(p.to(MATMUL_PRECISION), v, acc)
                     m_i = m_ij
 
+{% endif %}
+
         l_i = tl.where(l_i == 0.0, 1, l_i)
         acc = acc / l_i[:, None]
         idx_zq = off_zq
@@ -557,18 +594,22 @@ def flex_attention_in_loop_grid(
     return (min(total_tiles, meta["NUM_CUBE_CORE"]), 1, 1)
 
 
-# These metadata kernels are pure vector/scalar kernels (loads, stores,
-# atomic_adds) with no ``tl.dot``, so their grids are capped at the vector-core
-# count injected by the lowering as ``NUM_VECTOR_CORE``, rather than the
-# cube-core count used by the main FlexAttention kernels.
+# One program owns the prefix and carries it across bounded scan tiles in
+# both forward exact allocation and backward compact-mask preprocessing.
 @SymbolicGridFn
-def compact_offsets_grid(row_count, meta, *, min, max):
-    return (max(1, min(row_count, meta["NUM_VECTOR_CORE"])), 1, 1)
+def compact_offsets_grid(row_count, meta):
+    return (1, 1, 1)
 
 
+# Mapping/materialization are vector kernels, capped at the vector-core count.
 @SymbolicGridFn
 def compact_mapping_grid(row_count, meta, *, min, max):
     return (max(1, min(row_count, meta["NUM_VECTOR_CORE"])), 1, 1)
+
+
+@SymbolicGridFn
+def fwd_workspace_offsets_grid(row_count, meta):
+    return (1, 1, 1)
 
 
 @SymbolicGridFn
@@ -627,6 +668,19 @@ flex_attention_fwd_mask_compact = NPUTritonTemplate(
     name="flex_attention_fwd_mask_compact",
     grid=compact_sparse_mask_grid,
     source=compute_sparse_mask_kernel_compact,
+)
+
+flex_attention_fwd_workspace_offsets = NPUTritonTemplate(
+    name="flex_attention_fwd_workspace_offsets",
+    grid=fwd_workspace_offsets_grid,
+    source=compute_fwd_workspace_offsets,
+    manual_output_buffer="arg_Q_OFFSETS",
+)
+
+flex_attention_fwd_workspace_mask_compact = NPUTritonTemplate(
+    name="flex_attention_fwd_workspace_mask_compact",
+    grid=compact_sparse_mask_grid,
+    source=compute_fwd_workspace_mask_compact,
 )
 
 flex_attention_bwd_mask_compact = NPUTritonTemplate(

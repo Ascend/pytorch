@@ -40,6 +40,8 @@ from torch_npu._inductor.kernel.flexattention_template import (
     flex_attention_fwd_mask_compact,
     flex_attention_fwd_mask_out,
     flex_attention_fwd_mask_out_all_sparse,
+    flex_attention_fwd_workspace_offsets,
+    flex_attention_fwd_workspace_mask_compact,
 )
 
 from torch._inductor.ir import (
@@ -165,12 +167,39 @@ def _is_named_ir_node(value: Any) -> bool:
 
 
 _EXPLICIT_SCORE_MOD_OPTION = "_NPU_EXPLICIT_SCORE_MOD"
+_FWD_WORKSPACE_OPTION = "_NPU_FWD_MASK_WORKSPACE_BYTES"
 _STREAMING_BLOCK_MASK_TARGET_BYTES = 256 * 1024 * 1024
 _STREAMING_BLOCK_MASK_BYTES_PER_ELEMENT = 8
 _TASKLIST_REDUCE_UB_BUDGET_NUMERATOR = 4
 _TASKLIST_REDUCE_UB_BUDGET_DENOMINATOR = 5
 _TASKLIST_REDUCE_FP32_TILE_COUNT = 3
 _TASKLIST_REDUCE_FP32_BYTES = 4
+
+
+MAX_SCAN_ROWS = 4096
+INT32_MAX = (1 << 31) - 1
+
+
+def fwd_mask_workspace_capacity(count_shape, index_shape, block_size, budget_bytes):
+    """Return a proven capacity, or None; a budget never truncates capacity.
+
+    For valid BlockMask metadata, each count is in [0, index_shape[-1]].
+    B/H here are the mask dimensions, including any singleton broadcasting.
+    Restrict the first implementation to a bounded single-program prefix scan.
+    """
+    if (budget_bytes <= 0 or len(count_shape) != 3 or len(index_shape) != 4
+            or len(block_size) != 2):
+        return None
+    if tuple(count_shape) != tuple(index_shape[:3]):
+        return None
+    if any(dim <= 0 for dim in (*index_shape, *block_size)):
+        return None
+    rows = math.prod(count_shape)
+    capacity = rows * index_shape[-1]
+    elements = capacity * math.prod(block_size)
+    if rows > MAX_SCAN_ROWS or elements > INT32_MAX or elements > budget_bytes:
+        return None
+    return capacity
 
 
 def _filter_dkdv_tasklist_reduce_configs(
@@ -296,6 +325,11 @@ def _build_runtime_compact_sparse_mask_offsets(
     device,
     context: str,
 ):
+    """Build row-ordered offsets and the exact total for forward and backward.
+
+    A single program carries the prefix across bounded scan tiles and owns
+    TOTAL_BLOCKS, including the zero-row case; no fill or atomic is needed.
+    """
     q_offsets = empty_strided(
         kv_num_blocks.get_size(),
         None,
@@ -314,11 +348,8 @@ def _build_runtime_compact_sparse_mask_offsets(
         dtype=torch.int32,
         device=device,
     )
-    total_blocks = _force_fixed_layout(
-        lowerings[aten.fill_](total_blocks, 0),
-        [1],
-    )
     total_layout = FixedLayout(device, torch.int32, [1], stride=[1])
+    row_hint = V.graph.sizevars.size_hint(row_count, fallback=config.unbacked_symint_fallback)
 
     choices = []
     flex_attention_compact_offsets.maybe_append_choice(
@@ -336,7 +367,7 @@ def _build_runtime_compact_sparse_mask_offsets(
         call_sizes=[row_count],
         num_stages=1,
         num_warps=4,
-        NUM_VECTOR_CORE=_get_num_vector_core(),
+        SCAN_TILE_ROWS=min(MAX_SCAN_ROWS, next_power_of_2(max(1, row_hint))),
     )
     if not choices:
         raise RuntimeError(
@@ -359,6 +390,42 @@ def _build_runtime_compact_sparse_mask_offsets(
         },
     )
     return q_offsets, total_blocks, row_count
+
+
+def create_workspace_offsets_fake(x):
+    size = V.graph.sizevars.size_hints(x.get_size())
+    return torch.arange(math.prod(size), dtype=x.get_dtype(), device=x.get_device()).view(size)
+
+
+def create_workspace_strided_int_fake(x, value=0):
+    size = V.graph.sizevars.size_hints(x.get_size())
+    stride = V.graph.sizevars.size_hints(x.get_stride())
+    storage_size = 0 if 0 in size else 1 + sum((n - 1) * s for n, s in zip(size, stride))
+    # Filling backing storage also supports broadcast strides on NPU.
+    storage = torch.full((storage_size,), value, dtype=x.get_dtype(), device=x.get_device())
+    return storage.as_strided(size, stride)
+
+
+def create_workspace_counts_fake(x):
+    return create_workspace_strided_int_fake(x, 1)
+
+
+def _build_fwd_workspace_offsets(kv_num_blocks, row_count):
+    layout = FixedLayout(kv_num_blocks.get_device(), torch.int32, kv_num_blocks.get_size())
+    choices = []
+    flex_attention_fwd_workspace_offsets.maybe_append_choice(
+        choices=choices,
+        input_nodes=[kv_num_blocks],
+        layout=layout,
+        call_sizes=[row_count],
+        SCAN_BLOCK_ROWS=next_power_of_2(row_count),
+        num_stages=1,
+        num_warps=4,
+    )
+    return autotune_select_algorithm(
+        "flex_attention_fwd_workspace_offsets", choices, [kv_num_blocks], layout,
+        input_gen_fns={0: create_workspace_counts_fake},
+    )
 
 
 def _bind_runtime_total_blocks_as_unbacked_size(
@@ -398,6 +465,7 @@ def _build_runtime_compact_sparse_mask_mapping(
     row_count,
     device,
     context: str,
+    use_workspace: bool = False,
 ):
     mapping_layout = FixedLayout(device, torch.int32, [1], stride=[1])
     choices = []
@@ -424,8 +492,8 @@ def _build_runtime_compact_sparse_mask_mapping(
         input_gen_fns={
             0: create_zero_int_tensor_fake,
             1: create_zero_int_tensor_fake,
-            2: create_compact_q_offsets_fake,
-            3: create_sparse_mask_num_blocks_fake,
+            2: create_workspace_offsets_fake if use_workspace else create_compact_q_offsets_fake,
+            3: create_workspace_counts_fake if use_workspace else create_sparse_mask_num_blocks_fake,
         },
     )
 
@@ -619,6 +687,11 @@ def patch_flex_attention() -> None:
             {} if kernel_options is None else dict(kernel_options)
         )
         updated_kernel_options[_EXPLICIT_SCORE_MOD_OPTION] = score_mod is not None
+        # Include the strategy in the HOP/FX cache key, not only in lowering's
+        # process-local config. Otherwise a warm graph cache can ignore a toggle.
+        updated_kernel_options[_FWD_WORKSPACE_OPTION] = (
+            npu_config.flex_attention.fwd_mask_workspace_bytes
+        )
         return current_flex_attention(
             query,
             key,
@@ -1816,6 +1889,9 @@ def _register_npu_inductor_flex_attention():
         has_explicit_score_mod = bool(
             kernel_options.pop(_EXPLICIT_SCORE_MOD_OPTION, False)
         )
+        workspace_budget = int(kernel_options.pop(
+            _FWD_WORKSPACE_OPTION, npu_config.flex_attention.fwd_mask_workspace_bytes
+        ))
         # Strip GPU-specific backend selector (e.g. "TRITON"/"FLASH"/"CUDNN") that
         # has no meaning on NPU and would leak into Triton constexpr parameters.
         kernel_options.pop("BACKEND", None)
@@ -2000,35 +2076,53 @@ def _register_npu_inductor_flex_attention():
         sparse_mask_buffer = None
         sparse_mask_strides = None
 
+        from torch_npu._inductor.fx_passes.utils.schedule_node_utils import is_multi_stream
+
+        # Capacity is shape-derived; the live block count stays on device in
+        # both Python and C++ wrappers. Keep the strategy fixed at lowering,
+        # including the Python warmup pass used by C++ wrapper codegen.
+        static_workspace_path = (
+            not getattr(V.graph, "aot_mode", False)
+            and not is_multi_stream()
+            and not _ir_has_dynamic_shape(query, key, value, kv_num_blocks, kv_indices)
+        )
+        workspace_capacity = None
+        if (static_workspace_path and workspace_budget > 0
+                and kv_num_blocks.get_dtype() == torch.int32
+                and kv_indices.get_dtype() == torch.int32):
+            workspace_capacity = fwd_mask_workspace_capacity(
+                tuple(map(int, kv_num_blocks.get_size())),
+                tuple(map(int, kv_indices.get_size())),
+                (SPARSE_Q_BLOCK_SIZE, SPARSE_KV_BLOCK_SIZE), workspace_budget,
+            )
+        use_workspace = workspace_capacity is not None
+        log.info("FWD mask workspace: budget=%d capacity=%s", workspace_budget, workspace_capacity)
         if flexattention_mask_out:
-            (
-                compact_q_offsets,
-                runtime_total_blocks,
-                row_count,
-            ) = _build_runtime_compact_sparse_mask_offsets(
-                kv_num_blocks=kv_num_blocks,
-                kv_indices=kv_indices,
-                device=query.get_device(),
-                context="forward",
-            )
-            max_runtime_blocks = torch.iinfo(torch.int32).max // (
-                SPARSE_Q_BLOCK_SIZE * SPARSE_KV_BLOCK_SIZE
-            )
-            actual_blocks = _bind_runtime_total_blocks_as_unbacked_size(
-                runtime_total_blocks,
-                max_blocks=max_runtime_blocks,
-            )
+            if use_workspace:
+                row_count = math.prod(map(int, kv_num_blocks.get_size()))
+                compact_q_offsets = _build_fwd_workspace_offsets(kv_num_blocks, row_count)
+                mask_capacity = workspace_capacity
+            else:
+                compact_q_offsets, runtime_total_blocks, row_count = (
+                    _build_runtime_compact_sparse_mask_offsets(
+                        kv_num_blocks=kv_num_blocks,
+                        kv_indices=kv_indices,
+                        device=query.get_device(),
+                        context="forward",
+                    )
+                )
+                max_runtime_blocks = torch.iinfo(torch.int32).max // (
+                    SPARSE_Q_BLOCK_SIZE * SPARSE_KV_BLOCK_SIZE
+                )
+                actual_blocks = _bind_runtime_total_blocks_as_unbacked_size(
+                    runtime_total_blocks, max_blocks=max_runtime_blocks,
+                )
+                mask_capacity = actual_blocks
             compact_flat_to_row = empty_strided(
-                [actual_blocks],
-                [1],
-                dtype=torch.int32,
-                device=query.get_device(),
+                [mask_capacity], [1], dtype=torch.int32, device=query.get_device(),
             )
             compact_flat_to_blk = empty_strided(
-                [actual_blocks],
-                [1],
-                dtype=torch.int32,
-                device=query.get_device(),
+                [mask_capacity], [1], dtype=torch.int32, device=query.get_device(),
             )
             _build_runtime_compact_sparse_mask_mapping(
                 flat_to_row=compact_flat_to_row,
@@ -2038,9 +2132,10 @@ def _register_npu_inductor_flex_attention():
                 row_count=row_count,
                 device=query.get_device(),
                 context="forward",
+                use_workspace=use_workspace,
             )
             sparse_mask_size = [
-                actual_blocks,
+                mask_capacity,
                 SPARSE_Q_BLOCK_SIZE,
                 SPARSE_KV_BLOCK_SIZE,
             ]
@@ -2265,15 +2360,16 @@ def _register_npu_inductor_flex_attention():
             sparse_mask_kernel_options = sparse_mask_base_kernel_options.copy()
             sparse_mask_kernel_options.update(sparse_mask_tiling_config)
             num_choices_before = len(sparse_mask_choices)
-            sparse_mask_template = flex_attention_fwd_mask_compact
             sparse_mask_input_nodes = [
-                sparse_mask_buffer,
-                compact_flat_to_row,
-                compact_flat_to_blk,
-                query,
-                key,
-                kv_indices,
+                sparse_mask_buffer, compact_flat_to_row, compact_flat_to_blk,
+                query, key, kv_indices,
             ]
+            sparse_mask_call_sizes = [mask_capacity]
+            if use_workspace:
+                sparse_mask_template = flex_attention_fwd_workspace_mask_compact
+                sparse_mask_input_nodes.extend([compact_q_offsets, kv_num_blocks])
+            else:
+                sparse_mask_template = flex_attention_fwd_mask_compact
             try:
                 sparse_mask_template.maybe_append_choice(
                     choices=sparse_mask_choices,
@@ -2281,7 +2377,7 @@ def _register_npu_inductor_flex_attention():
                     layout=sparse_mask_layout,
                     subgraphs=[mask_graph_buffer],
                     mutated_inputs=[sparse_mask_buffer],
-                    call_sizes=[actual_blocks],
+                    call_sizes=sparse_mask_call_sizes,
                     NUM_VECTOR_CORE=_get_num_vector_core(),
                     **sparse_mask_kernel_options,
                 )
@@ -2364,14 +2460,7 @@ def _register_npu_inductor_flex_attention():
             mask_mod_other_buffers,
         )
         sparse_mask_inputs_for_autotuning = (
-            [
-                sparse_mask_buffer,
-                compact_flat_to_row,
-                compact_flat_to_blk,
-                query,
-                key,
-                kv_indices,
-            ]
+            sparse_mask_input_nodes
             + sparse_mask_autotune_other_buffers
         )
         sparse_mask_input_gen_fns = {
@@ -2379,6 +2468,12 @@ def _register_npu_inductor_flex_attention():
             2: create_zero_int_tensor_fake,
             5: _create_sparse_mask_indices_fake_generator(),
         }
+        if use_workspace:
+            sparse_mask_input_gen_fns.update({
+                5: create_workspace_strided_int_fake,
+                6: create_workspace_offsets_fake,
+                7: create_workspace_counts_fake,
+            })
         log.info("Sparse mask kernel autotune starting with %d choices", len(sparse_mask_choices))
         sparse_mask_result = autotune_select_algorithm(
             "sparse_mask_kernel",
@@ -2493,6 +2588,7 @@ def _register_npu_inductor_flex_attention():
         )
 
         kernel_options = dict(kernel_options)
+        kernel_options.pop(_FWD_WORKSPACE_OPTION, None)
         bwd_has_dynamic_shape = _ir_has_dynamic_shape(
             query,
             key,
