@@ -268,19 +268,115 @@ jobs:
           path: test-reports/
           retention-days: 7
 
-      - name: Compress /root/ascend CANN logs
+      # CANN runtime writes plog/device/atrace logs to $HOME/ascend (old
+      # runner used /root/ascend because the job container ran as root).
+      # The runner was switched and its container may run with a different
+      # user/HOME, so the log root cannot be assumed anymore — search known
+      # candidates plus the filesystem and aggregate everything found.
+      - name: Search and compress CANN logs
         if: always()
         run: |
           PREFIX="${{ steps.prefix.outputs.prefix }}"
-          if [ -d "/root/ascend" ]; then
-            echo "=== Compressing /root/ascend CANN logs ==="
-            FILE_COUNT=$(find /root/ascend -type f | wc -l)
-            echo "Found ${FILE_COUNT} files under /root/ascend"
-            tar -czf ascend-cann-logs-${PREFIX}-${{ matrix.shard }}.tar.gz -C /root ascend
-            echo "CANN logs compressed: $(ls -lh ascend-cann-logs-${PREFIX}-${{ matrix.shard }}.tar.gz)"
-          else
-            echo "/root/ascend directory does not exist, skipping"
+          ARTIFACT="ascend-cann-logs-${PREFIX}-${{ matrix.shard }}.tar.gz"
+
+          echo "=== Searching for CANN logs ==="
+          echo "HOME=${HOME:-<unset>}, USER=$(id -un), UID=$(id -u)"
+
+          # Known candidates: old runner default /root/ascend, current $HOME,
+          # GHA container home, and any /home/<user> (non-root containers).
+          CANDIDATES="/root/ascend ${HOME:+${HOME}/ascend} /github/home/ascend"
+          for d in /home/*; do
+            if [ -d "${d}" ]; then
+              CANDIDATES="${CANDIDATES} ${d}/ascend"
+            fi
+          done
+          if [ -n "${ASCEND_PROCESS_LOG_PATH:-}" ]; then
+            CANDIDATES="${CANDIDATES} ${ASCEND_PROCESS_LOG_PATH}"
           fi
+
+          # Filesystem-wide search for directories named 'ascend' (lowercase;
+          # the CANN toolkit install /usr/local/Ascend does not match).
+          FS_HITS=$(find / -maxdepth 6 \
+            \( -path /proc -o -path /sys -o -path /dev \) -prune \
+            -o -type d -name ascend -print 2>/dev/null | sort -u || true)
+
+          ALL_DIRS=$(printf '%s\n%s\n' "${CANDIDATES}" "${FS_HITS}" \
+            | tr ' ' '\n' | sed '/^$/d' | sort -u)
+
+          echo "=== Candidate ascend log roots ==="
+          echo "${ALL_DIRS:-<none>}"
+
+          # A dir qualifies as a CANN log root if it has log/ or atrace/
+          # subdirs, or contains plog-/device- log files (names as written
+          # by the old runner: plog-<pid>_<ts>.log, device-<pid>_<ts>.log).
+          has_cann_logs() {
+            [ -d "${1}/log" ] && return 0
+            [ -d "${1}/atrace" ] && return 0
+            local hit
+            hit=$(find "${1}" -maxdepth 3 -type f \( -name 'plog-*.log' -o -name 'device-*.log' \) -print -quit 2>/dev/null || true)
+            [ -n "${hit}" ]
+          }
+
+          FOUND=""
+          while IFS= read -r c; do
+            [ -n "${c}" ] || continue
+            if [ -d "${c}" ] && has_cann_logs "${c}"; then
+              FOUND="${FOUND} ${c}"
+              echo "Found CANN log root: ${c} ($(find "${c}" -type f 2>/dev/null | wc -l) files)"
+            fi
+          done <<< "${ALL_DIRS}"
+
+          # Fallback: no ascend-style root — locate CANN log files by name
+          # (plog-*.log / device-*.log, as collected on the old runner) and
+          # grab them individually.
+          SCATTERED=""
+          if [ -z "${FOUND}" ]; then
+            echo "=== No ascend log root found, searching plog-/device- log files ==="
+            SCATTERED=$(find / -maxdepth 9 \
+              \( -path /proc -o -path /sys -o -path /dev \) -prune \
+              -o -type f \( -name 'plog-*.log' -o -name 'device-*.log' \) -print 2>/dev/null \
+              | head -200 || true)
+            if [ -n "${SCATTERED}" ]; then
+              echo "${SCATTERED}" | head -20
+            fi
+          fi
+
+          if [ -z "${FOUND}" ] && [ -z "${SCATTERED}" ]; then
+            echo "WARNING: no CANN logs found anywhere, skipping artifact"
+            exit 0
+          fi
+
+          # Merge all found roots into one staging tree so the artifact keeps
+          # the legacy layout (ascend/log/..., ascend/atrace/...).
+          STAGE="cann-logs-stage"
+          rm -rf "${STAGE}"
+          mkdir -p "${STAGE}/ascend"
+
+          for c in ${FOUND}; do
+            echo "=== Collecting CANN logs from ${c} ==="
+            cp -a "${c}/." "${STAGE}/ascend/"
+          done
+
+          if [ -n "${SCATTERED}" ]; then
+            mkdir -p "${STAGE}/ascend/scattered"
+            while IFS= read -r f; do
+              [ -n "${f}" ] || continue
+              cp -a "${f}" "${STAGE}/ascend/scattered/$(echo "${f}" | sed 's|^/||; s|/|_|g')"
+            done <<< "${SCATTERED}"
+          fi
+
+          {
+            echo "Aggregated from:${FOUND}"
+            if [ -n "${SCATTERED}" ]; then
+              echo "  plus scattered files (see scattered/)"
+            fi
+            echo "HOME=${HOME:-<unset>}, USER=$(id -un), UID=$(id -u)"
+          } > "${STAGE}/ascend/SOURCES.txt"
+
+          FILE_COUNT=$(find "${STAGE}/ascend" -type f 2>/dev/null | wc -l)
+          echo "=== Total CANN log files collected: ${FILE_COUNT} ==="
+          tar -czf "${ARTIFACT}" -C "${STAGE}" ascend
+          echo "CANN logs compressed: $(ls -lh ${ARTIFACT})"
 
       - name: Upload CANN logs
         if: always()
