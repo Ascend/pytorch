@@ -112,6 +112,7 @@ class TestVarMean(TestUtils):
             self.assertIn("X1BLOCK_SUB", code)
             self.assertIn("_acc_sum = tl.zeros([", code)
             self.assertIn(", 1], tl.float32)", code)
+            self.assertNotIn("_acc_sum_sq", code)
             self.assertIn("axis=1, keep_dims=True", code)
             self.assertIn("npu_kernel_type': 'simd'", code)
             self.assertIn("'vectorized_welford_axis':", code)
@@ -463,6 +464,7 @@ class TestVarMean(TestUtils):
             self.assertNotIn("for loop_r", code)
             self.assertNotIn("_acc_count = tl.zeros", code)
             self.assertIn("_acc_sum = tl.zeros([", code)
+            self.assertNotIn("_acc_sum_sq", code)
             self.assertEqual(code.count("tl.load(in_ptr0"), 1)
         finally:
             npu_config.enable_welford = previous

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+import sympy
+
 from torch._inductor.codegen.cuda_combined_scheduling import CUDACombinedScheduling
 from torch._inductor.codegen.triton import TritonScheduling
 from torch._inductor.scheduler import (
@@ -16,6 +18,7 @@ from ..autotune_process import FusedCATLASSBenchmarkRequest
 from .. import config as npu_config
 from ..config import log
 from .catlass.catlass_scheduling import CATLASSScheduling
+from .npu_kernel_features import NumelList
 from .scheduling import (
     NPUNoLinearTritonScheduling,
     NPUTritonScheduling,
@@ -111,7 +114,22 @@ class NPUCombinedScheduling(CUDACombinedScheduling, TritonScheduling):
         return True
 
     def codegen_node(self, node: FusedSchedulerNode | SchedulerNode):
-        if self.node_can_linear():
+        nodes = node.get_nodes()
+        use_linear = self.node_can_linear()
+        if use_linear and npu_config.enable_welford:
+            from ..choices import contains_welford_group
+
+            _, (_, reduction_numel) = max(
+                nodes, key=lambda candidate: int(candidate.is_reduction())
+            ).group
+            if isinstance(reduction_numel, NumelList):
+                reduction_numel = reduction_numel.numels()
+            use_linear = not (
+                contains_welford_group(nodes)
+                and not isinstance(reduction_numel, (int, sympy.Integer))
+            )
+
+        if use_linear:
             try:
                 return self._triton_scheduling.codegen_node(node)
             except Exception:
@@ -127,8 +145,8 @@ class NPUCombinedScheduling(CUDACombinedScheduling, TritonScheduling):
 
             # Canonicalize group sizes only for kernels containing Welford
             # reductions; unrelated kernels keep the raw (baseline) groups.
-            use_canonical_group = contains_welford_group(node.get_nodes())
-        for snode in node.get_nodes():
+            use_canonical_group = contains_welford_group(nodes)
+        for snode in nodes:
             group_fn = self._nolinear_triton_scheduling.group_fn
             if use_canonical_group:
                 snode.group = (
