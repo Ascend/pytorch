@@ -48,6 +48,8 @@ Tag 遵循以下格式：
 
 ### 26.1.1版本Tag列表
 
+如下所示是TorchNPU最新发布的26.1.1版本的所有镜像tags，历史版本所有的Tag请参考[Supported Tags](./supported_tags.md)
+
 - `2.12.0.post2-cann9.1.0-310p-ubuntu22.04-py3.12`
 - `2.12.0.post2-cann9.1.0-310p-openeuler24.03-py3.12`
 - `2.12.0.post2-cann9.1.0-910b-ubuntu22.04-py3.12`
@@ -88,8 +90,6 @@ Tag 遵循以下格式：
 - `2.7.1.post10-cann9.1.0-a3-openeuler24.03-py3.12`
 - `2.7.1.post10-cann9.1.0-950-ubuntu22.04-py3.12`
 - `2.7.1.post10-cann9.1.0-950-openeuler24.03-py3.12`
-
-[26.0.0 版本相关标签信息](https://gitcode.com/Ascend/pytorch/blob/master/docker/OVERVIEW_26.0.0.md)
 
 ### Dockerfile构建参数
 

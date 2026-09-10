@@ -35,7 +35,7 @@ Tags follow the format:
 | OS               | ubuntu22.04 / openeuler24.03                            | OS distribution used for the base image           |
 | Python Version   | py3.12                                                  | Major Python version pre-installed in the image   |
 
-## List of tags for the timely adaptation version (pt2.13)
+## TorchNPU timely adaptation version (pt2.13)
 
 - `2.13.0rc1-cann9.1.0-310p-ubuntu22.04-py3.12`
 - `2.13.0rc1-cann9.1.0-310p-openeuler24.03-py3.12`
@@ -47,6 +47,8 @@ Tags follow the format:
 - `2.13.0rc1-cann9.1.0-950-openeuler24.03-py3.12`
 
 ### Tag list for version 26.1.1
+
+As shown below are all the image tags of the latest 26.1.1 version released by TorchNPU. For all the historical versions, please refer to [Supported Tags](./supported_tags.md)
 
 - `2.12.0.post2-cann9.1.0-310p-ubuntu22.04-py3.12`
 - `2.12.0.post2-cann9.1.0-310p-openeuler24.03-py3.12`
@@ -88,8 +90,6 @@ Tags follow the format:
 - `2.7.1.post10-cann9.1.0-a3-openeuler24.03-py3.12`
 - `2.7.1.post10-cann9.1.0-950-ubuntu22.04-py3.12`
 - `2.7.1.post10-cann9.1.0-950-openeuler24.03-py3.12`
-
-[Tag information for version 26.0.0](https://gitcode.com/Ascend/pytorch/blob/master/docker/OVERVIEW_26.0.0.zh.md)
 
 ### Dockerfile build parameters
   
