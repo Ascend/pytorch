@@ -104,10 +104,10 @@
                     |2.9.0|AArch64|13.3.0|4.0.3|
                     |2.10.0|X86_64|13.3.0|3.18.4|
                     |2.10.0|AArch64|13.3.0|4.0.3|
-                    |2.11.0|X86_64|13.3.1|3.18.4|
-                    |2.11.0|AArch64|13.3.1|4.3.2|
-                    |2.12.0|X86_64|13.3.1|3.18.4|
-                    |2.12.0|AArch64|13.3.1|4.3.2|
+                    |2.11.0|X86_64|13.3.0|3.18.4|
+                    |2.11.0|AArch64|13.3.0|4.3.2|
+                    |2.12.0|X86_64|13.3.0|3.18.4|
+                    |2.12.0|AArch64|13.3.0|4.3.2|
 
                     > [!NOTE]
                     >
@@ -186,42 +186,20 @@
 
     > [!NOTE]
     >
-    > 由于每个TorchNPU版本会配套多个PyTorch版本发布安装包，因此配套发布的安装包版本号和TorchNPU版本号采取不同命名规则。如果需要查询版本号对应关系，请单击[相关产品版本配套说明](https://gitcode.com/Ascend/pytorch/blob/master/docs/zh/release_notes.md#%E7%9B%B8%E5%85%B3%E4%BA%A7%E5%93%81%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%AF%B4%E6%98%8E)查看。
+    > 由于每个TorchNPU版本会配套多个PyTorch版本发布安装包，因此配套发布的安装包版本号和TorchNPU版本号采取不同命名规则。如果需要查询版本号对应关系，请单击[相关产品版本配套说明](https://gitcode.com/Ascend/pytorch/blob/master/COMPATIBILITY.md#%E6%8E%A8%E8%8D%90%E7%89%88%E6%9C%AC%E7%BB%84%E5%90%88)查看。
 
 ## 安装后验证
 
 执行以下命令可检查PyTorch框架和TorchNPU插件是否已成功安装。
 
-- 方法一
+```Python
+python3 -c "import torch;import torch_npu; a = torch.randn(3, 4).npu(); print(a + a);"
+```
 
-    ```Python
-    python3 -c "import torch;import torch_npu; a = torch.randn(3, 4).npu(); print(a + a);"
-    ```
+输出如下类似信息说明安装成功。
 
-    输出如下类似信息说明安装成功。
-
-    ```text
-    tensor([[-0.6066,  6.3385,  0.0379,  3.3356],
-            [ 2.9243,  3.3134, -1.5465,  0.1916],
-            [-2.1807,  0.2008, -1.1431,  2.1523]], device='npu:0')
-    ```
-
-- 方法二
-
-    ```Python
-    import torch
-    import torch_npu
-    
-    x = torch.randn(2, 2).npu()
-    y = torch.randn(2, 2).npu()
-    z = x.mm(y)
-    
-    print(z)
-    ```
-
-    输出如下类似信息说明安装成功。
-
-    ```text
-    tensor([[-0.0515,  0.3664],
-            [-0.1258, -0.5425]], device='npu:0')
-    ```
+```text
+tensor([[-0.6066,  6.3385,  0.0379,  3.3356],
+        [ 2.9243,  3.3134, -1.5465,  0.1916],
+        [-2.1807,  0.2008, -1.1431,  2.1523]], device='npu:0')
+```

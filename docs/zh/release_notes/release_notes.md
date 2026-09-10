@@ -36,6 +36,8 @@
 
 固件和驱动的版本配套表与所有的昇腾硬件及CANN版本相关，具体选择请参考[CANN版本说明](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/softwareinst/releasenote/9.1.0/release-notes.md)。
 
+TorchNPU提供了丰富的自研插件，其版本配套要求请参考[配套软件库](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.1.0/zh/supported_suites_and_third_party_libraries/supported_suites_and_third_party_libraries.md)。
+
 TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命名规则，前者为TorchNPU匹配的PyTorch版本，详细匹配如下表：
 
 |TorchNPU代码分支名称|PyTorch版本|TorchNPU版本|TorchNPU安装包版本|CANN版本|Python版本|

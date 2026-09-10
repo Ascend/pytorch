@@ -29,6 +29,7 @@ TorchAir-GE后端支持的编译选项（`compiler_config`参数）和详细使�
 import torch
 import torch_npu
 import torchair
+import torch.nn as nn
 
 # 1. 定义模型
 class SimpleMLP(torch.nn.Module):

@@ -56,17 +56,11 @@ torchvision为PyTorch的扩展库，主要用于计算机视觉任务。它包�
 ## 安装后验证
 
 ```Python
-python3
-import torchvision
-print(torchvision.__version__)
+python3 -c "import torchvision; print(torchvision.__version__)"
 ```
 
 如果输出版本号，则表示安装成功。
 
 ```Python
-Python 3.10.17 (main, Nov 4 2025, 17:12:04) [GCC 9.4.0] on linux
-Type "help", "copyright", "credits" or "license" for more information.
->>> import torchvision
->>> print(torchvision.__version__)
 0.22.1
 ```
