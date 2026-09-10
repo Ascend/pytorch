@@ -1,7 +1,6 @@
 import os
 import re
 from pathlib import Path
-import torch_npu
 from .strategy import (
     TestFileStrategy,
     CopyOptStrategy,
@@ -15,6 +14,7 @@ from .constants import (
 
 
 def get_test_torch_version_path():
+    import torch_npu
     torch_npu_version = torch_npu.__version__
     version_list = torch_npu_version.split('.')
     if len(version_list) > 2:

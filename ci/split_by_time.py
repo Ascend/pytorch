@@ -9,6 +9,7 @@
 
 import ast
 import json
+import math
 import os
 from pathlib import Path
 
@@ -20,6 +21,8 @@ DEFAULT_FILE_TIME = 10.0
 DEFAULT_CLASS_TIME = 60.0
 # 慢文件阈值（秒），总耗时 >= 此值则进行类级拆分
 SLOW_FILE_THRESHOLD = 300.0
+# 单个任务时间槽（秒），动态任务机制中用于按总耗时估算任务数，默认 30 分钟
+TASK_TIME_SLOT = 30 * 60
 
 
 def get_op_name(ut_file):
@@ -235,3 +238,97 @@ def split_by_time(test_files, timedata, rank, world_size):
             result[classes_key][ut_file].append(class_name)
 
     return result
+
+
+def estimate_core_select_tasks(test_files, time_data_file, task_time_slot=TASK_TIME_SLOT):
+    """预生成 core/select 用例清单，并估算各自总执行时长与建议任务数。
+
+    用于 CI 动态任务机制：编排层在创建任务前调用本函数，根据历史耗时
+    估算 core 用例（test/npu 下）与 select 用例（其余）各自的总时长，
+    进而计算（向上取整）：
+        m = ceil(core 总时长 / task_time_slot)
+        n = ceil(select 总时长 / task_time_slot)
+    当某一类没有用例时，对应任务数返回 0，避免固定拆分导致的空跑；
+    有对应用例时任务数按总时长向上取整到时间槽，且至少为 1。
+
+    Args:
+        test_files: {'ut_files': [...], 'op_ut_files': [...]}
+        time_data_file: time_data.json 路径（历史耗时数据）
+        task_time_slot: 单个任务时间槽（秒），默认 1800（30 分钟）
+
+    Returns:
+        {
+            'core':   {'files': [...], 'total_time': float, 'task_count': int},
+            'select': {'files': [...], 'total_time': float, 'task_count': int},
+        }
+    """
+    # core 用例定义为 test/npu 目录下的用例，与 --npu_core yes 的判定保持一致
+    npu_dir = str(TEST_DIR / 'npu')
+
+    core_entries = []
+    select_entries = []
+    for ut_type, files in test_files.items():
+        for ut_file in files:
+            entry = (ut_type, ut_file)
+            if str(Path(ut_file)).startswith(npu_dir):
+                core_entries.append(entry)
+            else:
+                select_entries.append(entry)
+
+    # 加载历史耗时数据；加载失败（文件不存在/格式非法）时返回 None，按无数据处理
+    timedata = load_and_validate_time_data(time_data_file)
+    if timedata is None:
+        # 耗时数据未生效时所有文件按默认耗时估算，任务数会恒为下限，需重点排查
+        print(f"***** WARNING: time data not loaded from {time_data_file}, "
+              f"all files fall back to default {DEFAULT_FILE_TIME}s")
+        timedata = {}
+    else:
+        print(f"***** time data loaded: {len(timedata)} entries from {time_data_file}")
+
+    def _sum_total_time(entries):
+        """按文件累计预估总耗时，缺耗时数据的文件回退到默认文件耗时。
+
+        返回 (总耗时, 缺耗时数据的 key 列表)，用于诊断 key 与 time_data.json 是否匹配。
+        """
+        total = 0.0
+        missing_keys = []
+        for ut_type, ut_file in entries:
+            key = get_test_key(ut_file, ut_type)
+            time_data = timedata.get(key)
+            if time_data and isinstance(time_data.get('total_time'), (int, float)):
+                total += time_data['total_time']
+            else:
+                total += DEFAULT_FILE_TIME
+                missing_keys.append(key)
+        return total, missing_keys
+
+    core_total, core_missing = _sum_total_time(core_entries)
+    select_total, select_missing = _sum_total_time(select_entries)
+    for group_name, entries, missing in (
+            ('core', core_entries, core_missing),
+            ('select', select_entries, select_missing)):
+        if missing:
+            print(f"***** {group_name}: {len(missing)}/{len(entries)} files "
+                  f"without time data, fall back to default {DEFAULT_FILE_TIME}s:")
+            # 清单可能很长（如 --all 全量），截断打印避免刷屏
+            for key in missing[:20]:
+                print(f"      {key}")
+            if len(missing) > 20:
+                print(f"      ... and {len(missing) - 20} more")
+
+    # 空清单对应 0 个任务，避免空跑；非空清单按总时长向上取整到时间槽，且至少有 1 个任务
+    core_count = max(1, math.ceil(core_total / task_time_slot)) if core_entries else 0
+    select_count = max(1, math.ceil(select_total / task_time_slot)) if select_entries else 0
+
+    return {
+        'core': {
+            'files': [f for _, f in core_entries],
+            'total_time': round(core_total, 1),
+            'task_count': core_count,
+        },
+        'select': {
+            'files': [f for _, f in select_entries],
+            'total_time': round(select_total, 1),
+            'task_count': select_count,
+        },
+    }
