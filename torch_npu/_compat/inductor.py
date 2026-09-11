@@ -247,25 +247,3 @@ def device_to_aten(device_type: str) -> str:
     from torch._inductor.codegen.cpp_utils import DEVICE_TO_ATEN
 
     return DEVICE_TO_ATEN[device_type]
-
-
-# COMPAT(>= 2.15): GPU_TYPES is derived from DeviceInterface.is_gpu()
-#   (pytorch#190326) as a one-shot snapshot taken when torch._inductor.utils is
-#   first imported, which can precede torch_npu's lazy NpuInterface
-#   registration, so re-run the registry scan instead of appending the literal.
-# CAN REMOVE the pre-2.15 branch when MIN_SUPPORTED >= (2, 15).
-def patch_is_gpu():
-    from torch._inductor.utils import GPU_TYPES, get_gpu_type
-
-    if CURRENT_VERSION < (2, 15):
-        # pre-2.15: GPU_TYPES is a hardcoded literal
-        candidates = ["npu"]
-    else:
-        # the snapshot may have been taken before NpuInterface was
-        # registered, so re-run upstream's registry scan
-        from torch._inductor.utils import _gpu_types
-
-        candidates = _gpu_types()
-
-    GPU_TYPES.extend(t for t in candidates if t not in GPU_TYPES)
-    get_gpu_type.cache_clear()

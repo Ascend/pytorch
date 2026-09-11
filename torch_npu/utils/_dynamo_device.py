@@ -98,7 +98,3 @@ class NpuInterface(DeviceInterface):
             "name": device_properties.name,
             "cann": torch.version.cann,
         }
-
-    @staticmethod
-    def is_gpu() -> bool:
-        return True
