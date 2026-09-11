@@ -54,18 +54,51 @@ try:
     is_ascend950 = get_soc_version() >= 260  # Ascend950 = 260
 except (ImportError, AttributeError):
     is_ascend950 = False
-from benchmark.userbenchmark.dynamo.dynamobench.torchbench import (
-    DONT_CHANGE_BATCH_SIZE,
-    FORCE_AMP_FOR_FP16_BF16_MODELS,
-    MAX_BATCH_SIZE_FOR_ACCURACY_CHECK,
-    NONDETERMINISTIC,
-    ONLY_TRAINING_MODE,
-    REQUIRE_EVEN_HIGHER_TOLERANCE,
-    REQUIRE_HIGHER_TOLERANCE,
-    SLOW_BENCHMARKS,
-    USE_SMALL_BATCH_SIZE,
-    VERY_SLOW_BENCHMARKS,
-)
+
+
+def _load_torchbench_metadata_from_yaml():
+    from benchmark.userbenchmark.dynamo.dynamobench.common import load_yaml_file
+
+    config = load_yaml_file("torchbench.yaml")
+    batch_size = config.get("batch_size", {})
+    tolerance = config.get("tolerance", {})
+    dtype = config.get("dtype", {})
+    accuracy = config.get("accuracy", {})
+    return {
+        "dont_change_batch_size": set(config.get("dont_change_batch_size") or []),
+        "force_amp_for_fp16_bf16_models": set(
+            dtype.get("force_amp_for_fp16_bf16_models") or []
+        ),
+        "max_batch_size_for_accuracy_check": dict(
+            accuracy.get("max_batch_size") or {}
+        ),
+        "non_deterministic": set(config.get("non_deterministic") or []),
+        "only_training": set(config.get("only_training") or []),
+        "require_even_higher_tolerance": set(tolerance.get("even_higher") or []),
+        "require_higher_tolerance": set(tolerance.get("higher") or []),
+        "slow": set(config.get("slow") or []),
+        "training_batch_size": dict(batch_size.get("training") or {}),
+        "very_slow": set(config.get("very_slow") or []),
+    }
+
+
+_torchbench_metadata = _load_torchbench_metadata_from_yaml()
+DONT_CHANGE_BATCH_SIZE = _torchbench_metadata["dont_change_batch_size"]
+FORCE_AMP_FOR_FP16_BF16_MODELS = _torchbench_metadata[
+    "force_amp_for_fp16_bf16_models"
+]
+MAX_BATCH_SIZE_FOR_ACCURACY_CHECK = _torchbench_metadata[
+    "max_batch_size_for_accuracy_check"
+]
+NONDETERMINISTIC = _torchbench_metadata["non_deterministic"]
+ONLY_TRAINING_MODE = _torchbench_metadata["only_training"]
+REQUIRE_EVEN_HIGHER_TOLERANCE = _torchbench_metadata[
+    "require_even_higher_tolerance"
+]
+REQUIRE_HIGHER_TOLERANCE = _torchbench_metadata["require_higher_tolerance"]
+SLOW_BENCHMARKS = _torchbench_metadata["slow"]
+USE_SMALL_BATCH_SIZE = _torchbench_metadata["training_batch_size"]
+VERY_SLOW_BENCHMARKS = _torchbench_metadata["very_slow"]
 
 
 # We are primarily interested in tf32 datatype

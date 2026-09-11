@@ -60,9 +60,8 @@
     ```shell
     git clone https://github.com/pytorch/benchmark.git --depth=1
     cd benchmark
-    git remote set-branches origin '9910b31cc17d175a781412fd9ca6f18a4ee04610'
-    git fetch --depth 1 origin 9910b31cc17d175a781412fd9ca6f18a4ee04610
-    git checkout 9910b31cc17d175a781412fd9ca6f18a4ee04610
+    git fetch --depth 1 origin fb14629994956c16d27c7a9940c5f081afbf68dc
+    git checkout fb14629994956c16d27c7a9940c5f081afbf68dc
     cd ..
     ```
 
