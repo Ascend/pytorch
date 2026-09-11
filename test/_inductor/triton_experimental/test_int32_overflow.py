@@ -7,8 +7,8 @@ from torch._inductor.utils import run_and_get_code
 from torch.testing._internal.common_utils import (
     run_tests,
     instantiate_parametrized_tests,
+    TestCase,
 )
-from testutils import TestUtils
 
 import torch_npu  # noqa: F401
 import torch_npu._inductor.triton_experimental.config as ncfg
@@ -113,7 +113,7 @@ _EXPECTED_INT64_TYPE_CALLSURFACE = [
 ]
 
 
-class TestTritonExperimentalInt32Overflow(TestUtils):
+class TestInt32Overflow(TestCase):
 
     @skipIfInsufficientHBM(17 * 2**30)
     def test_sum_over_int32_max_promotes_overflow_addend(self):
@@ -434,7 +434,7 @@ class TestTritonExperimentalInt32Overflow(TestUtils):
         )
 
 
-instantiate_parametrized_tests(TestTritonExperimentalInt32Overflow)
+instantiate_parametrized_tests(TestInt32Overflow)
 
 if __name__ == "__main__":
     run_tests()
