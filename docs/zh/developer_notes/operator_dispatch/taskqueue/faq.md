@@ -1,8 +1,59 @@
-# 队列清空接口列表
+# 常见问题排查
 
-本附录为 [队列清空](host_taskqueue_parallel_delivery.md#队列清空) 的完整接口列表，供排查时查阅。
+## 问题1：调用栈不准确
 
-## 触发队列清空接口列表
+**问题描述**
+
+TaskQueue环境变量设置为“1”或“2”时，异步操作会导致报错发生位置与主线程的调用点解耦，当Host API在算子下发线程执行时发生报错，主线程获取的Python调用栈可能无法准确反映错误发生位置，导致调用栈信息不准确的情况。
+
+| 错误发生位置 | GPU报错堆栈是否准确 | NPU报错堆栈是否准确（值为1时） |
+|------|------|------|
+| Python、Aten | 是 | 是 |
+| Host API | 是 | 否 |
+| device kernel | 否 | 否 |
+
+**处理方法**
+
+- **Host API层报错**（典型为`aclnnXxx`执行报错）：关闭TaskQueue以获取准确调用栈。
+
+```shell
+# 关闭TaskQueue
+export TASK_QUEUE_ENABLE=0
+```
+
+- **device kernel层报错**：开启强制同步模式（关闭TaskQueue+device synchronize）以明确调用栈。
+
+```shell
+# 开启强制同步模式
+export ASCEND_LAUNCH_BLOCKING=1
+```
+
+## 问题2：队列清空
+
+**问题描述**
+
+队列清空是指CPU侧将缓存在队列中的所有算子完成下发的动作（不一定完成device执行），属于高消耗操作，对Host性能影响较大。
+
+常见Python接口按是否触发队列清空分为两类，完整列表见[队列清空接口列表](#队列清空接口列表)。简要归类如下：
+
+- **触发清空**：设备/流同步、流对象隐式转换（`npu_stream`、`__hash__`、`__repr__`等）、Event时间统计、内存池配置、`tensor.item`、`empty_cache`、dump结束、算子超时设置、aclgraph图捕获开始等。
+- **未触发清空**：设备查询与设置、流设置、`current_stream`/`default_stream`获取NPUStream对象、`Event.record`、`Event.query`、`Event.synchronize`、aclgraph图捕获结束等。
+
+**处理方法**
+
+对延迟敏感的关键路径，应避免频繁调用会触发队列清空的接口。若必须获取`aclrtStream`可以采用以下方法：
+
+- 使用`torch.npu._C._npu_getCurrentRawStreamNoWait`。
+- 使用显式调用 stream(false) 获取 aclrtStream，不触发TaskQueue清空：
+
+    ```cpp
+    // 通过stream(false) 获取aclrtStream，不触发TaskQueue清空
+    auto acl_stream = c10_npu::getCurrentNPUStream().stream(false);
+    ```
+
+### 队列清空接口列表
+
+**触发队列清空接口列表**
 
 | 接口名 | 接口作用 |
 |------|------|
@@ -27,7 +78,7 @@
 | `torch.npu.set_op_timeout_ms` | 设置NPU上算子的执行超时时间 |
 | `torch.npu.graphs.graph.__enter__` | aclgraph图捕获开始 |
 
-## 未触发队列清空接口列表
+**未触发队列清空接口列表**
 
 | 接口名 | 接口作用 |
 |------|------|
