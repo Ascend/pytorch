@@ -622,6 +622,25 @@ def has_triton() -> bool:
     return is_device_compatible_with_triton()
 
 
+def has_triton_ascend() -> bool:
+    """True when the imported ``triton`` module is triton-ascend.
+
+    Community triton and triton-ascend share the import name ``triton``,
+    so ``has_triton_package()`` / pip metadata cannot tell them apart.
+    Triton registers backends in ``triton.backends.backends``; only
+    triton-ascend adds ``ascend``. Same probe as the CPU extra_check above.
+    """
+    try:
+        import triton.backends
+
+        if "ascend" in getattr(triton.backends, "backends", {}):
+            return True
+    except ImportError:
+        pass
+    warnings.warn("triton-ascend is not installed.")
+    return False
+
+
 def patch_has_triton():
     from torch.utils import _triton
 

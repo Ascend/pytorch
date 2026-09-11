@@ -24,7 +24,7 @@ def patch_cache_base_get_system():
             # Use triton_key instead of triton.__version__ as the version
             # is not updated with each code change
             triton_version = triton_key()
-        except ModuleNotFoundError:
+        except ImportError:
             triton_version = None
 
         try:
