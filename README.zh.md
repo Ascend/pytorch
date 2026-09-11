@@ -29,7 +29,7 @@
   <a href="https://github.com/Ascend/pytorch"><img src="https://img.shields.io/badge/Mirror%20Repo-blue?labelColor=white&logo=github&logoColor=black" alt="license"></a>
   <img src="https://gitcode.com/Ascend/pytorch/star/badge.svg" alt="GitCode Star"/>
   <img src="https://gitcode.com/Ascend/pytorch/download/badge.svg" alt="download">
-  <img src="https://github.com/Ascend/pytorch/actions/workflows/pytorch_ci_trigger.yml/badge.svg" alt="ci">
+  <!-- <img src="https://github.com/Ascend/pytorch/actions/workflows/pytorch_ci_trigger.yml/badge.svg" alt="ci"> -->
 </p>
 
 ---
@@ -95,7 +95,7 @@ pip install torch-npu==2.10.0.post2
 
 ### 源码编译安装
 
-编译TorchNPU的详细步骤请参见[源码安装](./docs/zh/installation_guide/references/building_from_source.md)。
+编译TorchNPU的详细步骤请参见[源码安装](./docs/zh/installation_guide/building_from_source.md)。
 
 ## 快速开始
 

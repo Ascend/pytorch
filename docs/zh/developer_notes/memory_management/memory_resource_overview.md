@@ -56,7 +56,7 @@ TorchNPU自身提供的内存管理功能如下表所示，涵盖内存分配、
     <td>多进程数据共享场景，如数据加载进程与训练进程间的数据传输。</td>
   </tr>
   <tr>
-    <td><a href="../operator_dispatch/taskqueue/stream_taskqueue_parallel_delivery.md">Stream级TaskQueue并行下发</a></td>
+    <td><a href="../operator_dispatch/stream_taskqueue_parallel_delivery.md">Stream级TaskQueue并行下发</a></td>
     <td>每个Stream初始化独立的TaskQueue和Dequeue线程，实现二级流水并行下发机制，提升计算效率的同时优化内存使用。</td>
     <td>需要提升下发性能、充分利用多Stream并行的场景。</td>
   </tr>

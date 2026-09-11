@@ -46,7 +46,7 @@
 
 - 在安装不同类型操作系统所需依赖前，请在安装用户下检查源是否可用。以配置华为镜像源为例，可参考[华为开源镜像站](https://mirrors.huaweicloud.com/)中镜像源对应的配置方法操作。
 
-- ython3.11的调度（即下发）性能优于Python3.10，建议用Python3.11及以上。
+- Python3.11的调度（即下发）性能优于Python3.10，建议用Python3.11及以上。
 
 ## 安装PyTorch框架
 
@@ -54,9 +54,9 @@
 
 ## 安装TorchNPU插件
 
-如需缩短源码构建时间，可参考[编译加速](references/build_acceleration.md)配置 Ninja、Mold、CCache，或仅编译所需目标。
+如需缩短源码构建时间，可参考[编译加速](references/build_acceleration.md)配置Ninja、Mold、CCache，或仅编译所需目标。
 
-以下操作步骤以安装PyTorch 2.13.0版本、Python 2.10.0版本为例。
+以下操作步骤以安装PyTorch 2.13.0版本、Python 3.10.0版本为例。
 
 - **方式一（推荐）：容器场景**
     
