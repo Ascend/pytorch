@@ -1,7 +1,22 @@
+# Copyright (c) 2026 Huawei Technologies Co., Ltd
+# All rights reserved.
+#
+# Licensed under the BSD 3-Clause License (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://opensource.org/licenses/BSD-3-Clause
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 Add validation cases for torch.utils.checkpoint APIs on NPU:
 1. PyTorch community tests cover these APIs mainly through checkpoint call chains, so this file adds direct API validations.
-2. This file validates torch.utils.checkpoint.SelectiveCheckpointContext and torch.utils.checkpoint.detach_variable (extendable).
+2. This file validates torch.utils.checkpoint.SelectiveCheckpointContext, detach_variable, and set_device_states (extendable).
 """
 
 import functools
@@ -16,6 +31,23 @@ device_type = acc.type if (acc := torch.accelerator.current_accelerator()) else 
 
 
 class TestUtilsCheckpointAPIs(TestCase):
+
+    def test_set_device_states_restores_npu_rng_sequence(self):
+        torch.npu.manual_seed(20260814)
+        state = torch.npu.get_rng_state(0)
+        expected = torch.rand(8, device=device_type)
+
+        checkpoint_utils.set_device_states([0], [state], device_type=device_type)
+        actual = torch.rand(8, device=device_type)
+
+        self.assertEqual(actual, expected)
+
+        state = torch.npu.get_rng_state(0)
+        expected = torch.rand(8, device=device_type)
+        checkpoint_utils.set_device_states([0], [state])
+        actual = torch.rand(8, device=device_type)
+
+        self.assertEqual(actual, expected)
 
     def test_detach_variable_keeps_device_and_requires_grad(self):
         x = torch.randn(2, 3, device=device_type, requires_grad=True)
