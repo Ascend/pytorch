@@ -42,24 +42,6 @@ def _create_npu_autocast_mode_variable(func, args, kwargs):
 
     return AutocastModeVariable(target_values, initial_values=None, **kwargs)
 
-
-def patch_SkipFunctionVariable():
-    from torch._dynamo.variables.functions import SkipFunctionVariable
-    from torch._dynamo.variables.torch import TorchInGraphFunctionVariable
-
-    def SkipFunctionVariable__new__(cls, value, reason=None, **kwargs):
-        if value in [
-            torch.npu.stream,
-            torch_npu.npu.stream,
-            torch_npu.npu.utils.stream,
-        ]:
-            return TorchInGraphFunctionVariable(value, **kwargs)
-        return cls.__new__raw(cls)
-
-    SkipFunctionVariable.__new__raw = SkipFunctionVariable.__new__
-    SkipFunctionVariable.__new__ = SkipFunctionVariable__new__
-
-
 class _InductorNpuRegistry:
     _disabled_register = False
     _loaded_backend = None
@@ -594,7 +576,6 @@ def _install_dynamo_post_import_trigger():
 def add_dynamo_methods_init():
     steps = (
         ("device_interface", _dynamo_register_interface_for_device),
-        ("skip_function_variable", patch_SkipFunctionVariable),
         ("user_defined_class_variable", patch_user_defined_class_variable),
         ("stream_event_variable", patch_stream_event_variable_python_type),
         ("npu_stream_context", patch_npu_stream_context),

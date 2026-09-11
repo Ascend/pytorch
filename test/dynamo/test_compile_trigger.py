@@ -935,8 +935,8 @@ class TorchCompileTriggerTests(unittest.TestCase):
             """
         )
 
-    # Verify all legacy Dynamo patches remain installed exactly once.
-    def test_dynamo_patch_inventory_is_preserved(self):
+    # Verify remaining Dynamo patches and trace-rule replacements are installed once.
+    def test_dynamo_patch_and_rule_inventory_is_preserved(self):
         self.run_in_subprocess(
             """
             import torch
@@ -949,8 +949,10 @@ class TorchCompileTriggerTests(unittest.TestCase):
             from torch._dynamo.variables.builtin import BuiltinVariable
             from torch._dynamo.variables.streams import EventVariable
             from torch._dynamo.variables.functions import SkipFunctionVariable
-            from torch._dynamo.variables.tensor import TensorVariable
-            from torch._dynamo.variables.torch import constant_fold_functions
+            from torch._dynamo.variables.torch import (
+                TorchInGraphFunctionVariable,
+                constant_fold_functions,
+            )
             from torch._dynamo.variables.user_defined import UserDefinedClassVariable
             from torch._dynamo.utils import common_constant_types
             from torch_npu.dynamo.trace_rule import (
@@ -963,9 +965,33 @@ class TorchCompileTriggerTests(unittest.TestCase):
             assert _dynamo._lazy_dynamo_setup.has_run
             assert get_interface_for_device("npu").device_count() > 0
 
-            # VariableTracker and context-manager patches formerly installed
-            # eagerly by add_dynamo_methods().
-            assert SkipFunctionVariable.__new__.__module__ == "torch_npu.utils._dynamo"
+            # The stream aliases use Dynamo's standard trace-rule route instead
+            # of patching SkipFunctionVariable.__new__.
+            assert not hasattr(_dynamo, "patch_SkipFunctionVariable")
+            assert not hasattr(_dynamo, "patch_TensorVariable_call_method")
+            assert SkipFunctionVariable.__new__.__module__ != "torch_npu.utils._dynamo"
+            stream_names = (
+                "torch.npu.stream",
+                "torch_npu.npu.stream",
+                "torch_npu.npu.utils.stream",
+            )
+            for name in stream_names:
+                assert (
+                    torch_non_c_binding_in_graph_functions_npu[name]
+                    is TorchInGraphFunctionVariable
+                )
+            for stream_fn in (
+                torch.npu.stream,
+                torch_npu.npu.stream,
+                torch_npu.npu.utils.stream,
+            ):
+                assert (
+                    torch._dynamo.trace_rules.lookup(stream_fn)
+                    is TorchInGraphFunctionVariable
+                )
+
+            # The remaining VariableTracker and context-manager patches are
+            # still installed by the lazy Dynamo setup.
             assert UserDefinedClassVariable.__new__.__module__ == "torch_npu.utils._dynamo"
             in_graph_classes = UserDefinedClassVariable._in_graph_classes()
             assert torch.npu.Event in in_graph_classes

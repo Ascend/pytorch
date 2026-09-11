@@ -13,6 +13,8 @@ torch_non_c_binding_in_graph_functions_npu = dict.fromkeys(
         "torch.npu.default_stream",
         "torch.npu.stream",
         "torch.npu.set_stream",
+        "torch_npu.npu.stream",
+        "torch_npu.npu.utils.stream",
         "torch_npu.npu.utils.synchronize",
         "torch.npu.current_device",
         "torch.npu.get_device_capability",
