@@ -14,7 +14,7 @@
 - [升级](upgrade.md)
 - [参考信息](references.md)
   - [配置pip源](configuring_pip_source.md)
-  - [安装11.2.0版本gcc](installing_gcc_11-2-0.md)
-  - [安装3.18.4版本cmake](installing_cmake_3-18-4.md)
+  - [安装11.2.0版本GCC](installing_gcc_11-2-0.md)
+  - [安装3.18.4版本CMake](installing_cmake_3-18-4.md)
 
 - [FAQ](FAQ.md)

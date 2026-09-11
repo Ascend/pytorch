@@ -470,7 +470,7 @@ TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命
 
 |文档名称|内容简介|更新说明|
 |---|---|---|
-|《[软件安装](../installation_guide/installation_description.md)》|提供在昇腾设备安装PyTorch框架训练环境，以及升级、卸载等操作。|&#8226; 新增适配PyTorch 2.11.0和PyTorch 2.12.0。<br>&#8226; 新增软件安装FAQ。<br>&#8226; 新增支持<term>Ascend 950DT</term>相关内容。 |
+|《[软件安装](../installation_guide/installation_description.md)》|提供在昇腾设备上安装PyTorch框架训练环境，以及升级、卸载等操作。|&#8226; 新增适配PyTorch 2.11.0和PyTorch 2.12.0。<br>&#8226; 新增软件安装FAQ。<br>&#8226; 新增支持<term>Ascend 950DT</term>相关内容。 |
 |《[TorchNPU概述](../overview/product_overview.md)》|TorchNPU插件是基于昇腾的深度学习适配框架，使昇腾NPU可以支持PyTorch框架，为PyTorch框架的使用者提供昇腾AI处理器的超强算力。|&#8226; 更新软件架构相关内容。<br>&#8226; 新增TorchNPU插件启动阶段的初始化流程相关内容。<br>&#8226; 新增支持<term>Ascend 950DT</term>相关内容。 |
 |《[快速入门](../quick_start/quick_start.md)》|提供了一个简单的模型迁移样例，采用了最简单的自动迁移方法，帮助用户快速体验GPU模型脚本迁移到昇腾NPU上的流程。|新增支持<term>Ascend 950DT</term>相关内容。 |
 |《[Torch.compile](../torch_compile/pytorch_compilation_mode.md)》|通过“动态图捕获+静态图优化+高效代码生成”的方式显著加速模型训练和推理任务。| &#8226; 内容独立且优化。<br>&#8226; 新增支持<term>Ascend 950DT</term>相关内容。|

@@ -268,7 +268,7 @@ Segmentation fault
 
 **处理方法**
 
-使用对应的GCC版本进行编译，具体对应版本可参考[GCC和Cmake版本要求](compilation_installation_using_source_code.md#gcc_cmake)。
+使用对应的GCC版本进行编译，具体对应版本可参考[GCC和CMake版本要求](compilation_installation_using_source_code.md#gcc_cmake)。
 
 ### 问题4：“import torch_npu”报错找不到torch_npu._C
 
@@ -314,10 +314,10 @@ ModuleNotFoundError: No module named 'torch_npu._C'
     pip list | grep torch_npu
     ```
 
-    输出如下TorchNPU安装包号。
+    输出如下TorchNPU安装包版本号。
 
     ```text
     torch_npu     2.12.0
     ```
 
-2. 根据torchNPU安装包版本号查询对应的TorchNPU版本号，具体配套关系请参考[TorchNPU版本配套表](https://gitcode.com/Ascend/pytorch/blob/master/COMPATIBILITY.md#torchnpu-%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%A1%A8)。
+2. 根据TorchNPU安装包版本号查询对应的TorchNPU版本号，具体配套关系请参考[TorchNPU版本配套表](https://gitcode.com/Ascend/pytorch/blob/master/COMPATIBILITY.md#torchnpu-%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%A1%A8)。

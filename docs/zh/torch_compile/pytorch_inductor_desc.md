@@ -15,7 +15,7 @@ Inductor后端支持三种算子编译器，可根据场景选择：
 > [!NOTICE]
 >
 > - 使用Inductor后端前，请先安装v3.2.2版本的Triton Ascend。该版本仅支持PyTorch 2.7.1和2.9.0。Triton Ascend的安装说明如下：
->   - 源码编译或在线安装（Pip）时，系统会默认安装了配套版本的Triton Ascend。
+>   - 源码编译或在线安装（Pip）时，系统会默认安装配套版本的Triton Ascend。
 >   - 离线安装（Whl）时，请参考[快速安装](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=175&ids=89dda9ba9de741349efa03687a487678%2C202%2C106%2C1%2C6%2C177%2C)文档中的命令进行安装。
 > - 如需了解更多Triton Ascend信息，具体请参考[Triton Ascend](https://triton-ascend.readthedocs.io/zh-cn/v3.2.2/)。<br>
 > - Inductor后端使用MLIR模式时需额外安装Torch-MLIR依赖包，可以在[Torch-MLIR归档地址](https://repo.oepkgs.net/ascend/pytorch/vllm/torch/)下载。<br>
