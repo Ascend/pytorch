@@ -409,14 +409,26 @@ class TestTorchNpuBootstrap(TestCase):
             import torch.distributed.launcher.api as launcher_api
             from torch.distributed.fsdp import sharded_grad_scaler
             from torch_npu.npu.amp.sharded_grad_scaler import _ShardedGradScaler
+            import torch_npu._compat.distributed as compat_distributed
+            from torch_npu._compat.version import CURRENT_VERSION
 
             assert torch._C._distributed_c10d._verify_params_across_processes is (
                 torch_npu.distributed._verify_params_across_processes
             )
 
-            assert torch._C._distributed_c10d.ProcessGroup._get_sequence_number_for_group is (
-                torch_npu.distributed.distributed_c10d._hccl_get_sequence_number_for_group
-            )
+            # COMPAT(< 2.14): on torch < 2.14 the compat block in
+            #   torch_npu/_compat/distributed.py replaces the method with the
+            #   HCCL-aware shim; on torch >= 2.14 the upstream native
+            #   implementation is kept.
+            if CURRENT_VERSION < (2, 14):
+                assert (
+                    torch._C._distributed_c10d.ProcessGroup._get_sequence_number_for_group
+                    is compat_distributed._hccl_get_sequence_number_for_group
+                )
+            else:
+                # On torch >= 2.14 the compat block must not define the shim
+                # at all; the upstream native implementation is kept.
+                assert not hasattr(compat_distributed, "_hccl_get_sequence_number_for_group")
 
             assert dist.batch_isend_irecv is (
                 torch_npu.distributed.distributed_c10d._batch_isend_irecv

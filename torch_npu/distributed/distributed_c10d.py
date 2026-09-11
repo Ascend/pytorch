@@ -50,7 +50,6 @@ from torch_npu.utils._error_code import dist_error, ErrCode
 
 
 logger = logging.getLogger("torch.distributed")
-origin_get_sequence_number_for_group = ProcessGroup._get_sequence_number_for_group
 npu_device_name = None
 
 
@@ -490,11 +489,3 @@ def _destructor_process_group():
     world.pg_coalesce_state.clear()
     _unregister_all_process_groups()
     world.group_count = 0
-
-
-def _hccl_get_sequence_number_for_group(self):
-    backend = torch.distributed.get_backend_config(self)
-    if backend == "hccl" or backend == "npu:hccl":
-        return self._get_backend(torch.device("npu"))._get_sequence_number_for_group()
-    else:
-        return origin_get_sequence_number_for_group(self)

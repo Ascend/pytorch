@@ -12,10 +12,6 @@ _INTERNAL_REPLACEMENTS = [
         "_C._distributed_c10d._verify_params_across_processes",
         "distributed._verify_params_across_processes",
     ),
-    (
-        "_C._distributed_c10d.ProcessGroup._get_sequence_number_for_group",
-        "distributed.distributed_c10d._hccl_get_sequence_number_for_group",
-    ),
 ]
 
 

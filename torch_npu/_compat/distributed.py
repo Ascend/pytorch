@@ -546,3 +546,30 @@ if CURRENT_VERSION < (2, 14):
     # Add the patched npu() method if it doesn't exist.
     if not hasattr(ShardedTensor, "npu"):
         ShardedTensor.npu = _patched_sharded_tensor_npu
+# COMPAT(< 2.14): upstream pytorch#190138 removed the backendSupportsSequenceNumbers
+#   whitelist gate in ProcessGroup::getSequenceNumberForGroup(), which now always
+#   dispatches to the default backend and covers CUSTOM (HCCL) backends natively.
+#   On older torch the whitelist rejects CUSTOM backends, so torch_npu must still
+#   patch ProcessGroup._get_sequence_number_for_group with the HCCL-aware shim.
+# CAN REMOVE when MIN_SUPPORTED >= (2, 14): delete this block and
+#   the version branch in test/test_torch_npu_init.py::test_07.
+if CURRENT_VERSION < (2, 14):
+    from torch._C._distributed_c10d import ProcessGroup as _C10dProcessGroup
+
+    # `torch` / `torch.distributed` are already imported by the
+    # _new_process_group_helper block above, which also only runs on
+    # torch < 2.14.
+    # Capture the upstream implementation before patching so non-HCCL
+    # backends keep dispatching to it.
+    origin_get_sequence_number_for_group = (
+        _C10dProcessGroup._get_sequence_number_for_group
+    )
+
+    def _hccl_get_sequence_number_for_group(self):
+        backend = torch.distributed.get_backend_config(self)
+        if backend == "hccl" or backend == "npu:hccl":
+            return self._get_backend(torch.device("npu"))._get_sequence_number_for_group()
+        else:
+            return origin_get_sequence_number_for_group(self)
+
+    _C10dProcessGroup._get_sequence_number_for_group = _hccl_get_sequence_number_for_group
