@@ -303,6 +303,53 @@ class TestSerialization(TestCase):
                 b = torch.tensor([], dtype=other_dtype, device='npu')
                 save_load_check(a, b)
 
+    def test_default_restore_location_cpu(self):
+        storage = torch.UntypedStorage(24)
+
+        restored = torch.serialization.default_restore_location(storage, "cpu")
+
+        self.assertIs(restored, storage)
+        self.assertEqual(restored.device.type, "cpu")
+        self.assertEqual(restored.nbytes(), storage.nbytes())
+
+    def test_default_restore_location_npu(self):
+        source = torch.arange(6, dtype=torch.float32).npu()
+        storage = source.cpu().untyped_storage()
+
+        for location in ("npu", "npu:0"):
+            with self.subTest(location=location):
+                restored = torch.serialization.default_restore_location(
+                    storage, location
+                )
+
+                self.assertEqual(restored.device.type, "npu")
+                self.assertEqual(restored.nbytes(), storage.nbytes())
+
+                output = torch.empty(
+                    0,
+                    dtype=source.dtype,
+                    device=location,
+                )
+                output.set_(
+                    restored,
+                    0,
+                    source.size(),
+                    source.stride(),
+                )
+                self.assertRtolEqual(source.cpu(), output.cpu())
+
+    def test_default_restore_location_unknown_backend(self):
+        storage = torch.UntypedStorage(24)
+
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "don't know how to restore data location",
+        ):
+            torch.serialization.default_restore_location(
+                storage,
+                "unknown_backend:0",
+            )
+
 
 if __name__ == "__main__":
     run_tests()
