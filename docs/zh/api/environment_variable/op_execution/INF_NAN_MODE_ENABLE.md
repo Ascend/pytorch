@@ -9,7 +9,7 @@
 
 针对<term>Atlas 训练系列产品</term>/<term>Atlas 推理系列产品</term>/<term>Atlas 200I/500 A2 推理产品</term>，仅支持饱和模式，该环境变量不生效。
 
-针对<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>，默认值为“1”（INF_NAN模式），支持配置为“0”（饱和模式）。
+针对<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>，默认值为“1”（INF\_NAN模式），支持配置为“0”（饱和模式）。
 
 针对<term>Ascend 950DT</term>，仅支持INF\_NAN模式，该环境变量不生效。
 
@@ -55,9 +55,14 @@ torch.sqrt(torch.tensor([-1.0], dtype=torch.float16).npu())
 export INF_NAN_MODE_ENABLE=1
 ```
 
+> [!NOTE]
+>
+> 此功能为`torch_npu`特有，PyTorch社区无直接对应变量。
+
 ## 使用约束
 
-无
+- 必须在启动Python进程前配置该环境变量，进程运行过程中修改不会生效。
+- 仅支持配置为“0”或“1”。
 
 ## 支持的型号
 

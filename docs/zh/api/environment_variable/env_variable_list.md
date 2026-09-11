@@ -43,7 +43,7 @@
 |[INF_NAN_MODE_ENABLE](op_execution/INF_NAN_MODE_ENABLE.md)|通过此环境变量可控制AI处理器对输入数据为Inf/NaN的处理方式，即控制AI处理器使用饱和模式还是INF_NAN模式。|
 |[INF_NAN_MODE_FORCE_DISABLE](op_execution/INF_NAN_MODE_FORCE_DISABLE.md)|<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>，通过此环境变量可强制关闭INF_NAN模式。|
 |[FORCE_OVERFLOW_CHECK](op_execution/FORCE_OVERFLOW_CHECK.md)|通过此环境变量可在非饱和模式（INF_NAN模式）下开启溢出检测开关，用于Inf/NaN问题的异步定位。|
-|[COMBINED_ENABLE](op_execution/COMBINED_ENABLE.md)|通过此环境变量可设置combined标志。|
+|[COMBINED_ENABLE](op_execution/COMBINED_ENABLE.md)|通过此环境变量可控制是否启用组合连续化优化，用于优化由多个view操作产生的非连续张量的连续化转换。|
 |[ASCEND_LAUNCH_BLOCKING](op_execution/ASCEND_LAUNCH_BLOCKING.md)|通过此环境变量可控制算子执行时是否启用同步模式。|
 |[TASK_QUEUE_ENABLE](op_execution/TASK_QUEUE_ENABLE.md)|通过此环境变量可配置task_queue算子下发队列是否开启和优化等级。|
 |[PER_STREAM_QUEUE](op_execution/PER_STREAM_QUEUE.md)|通过此环境变量可配置是否开启一个stream一个task_queue算子下发队列。|
@@ -59,6 +59,10 @@
 | --- | --- |
 |[ACL_OP_COMPILER_CACHE_DIR](op_compilation/ACL_OP_COMPILER_CACHE_DIR.md)|通过此环境变量可配置算子编译磁盘缓存的目录。|
 |[ACL_OP_COMPILER_CACHE_MODE](op_compilation/ACL_OP_COMPILER_CACHE_MODE.md)|通过此环境变量可配置算子编译磁盘缓存模式。|
+|[ACL_OP_INIT_MODE](op_compilation/ACL_OP_INIT_MODE.md)|通过此环境变量可配置算子编译的初始化模式。|
+|[ACLNN_EXTENSION_SWITCH](op_compilation/ACLNN_EXTENSION_SWITCH.md)|通过此环境变量可控制op-plugin代码生成过程中是否启用ACLNN扩展代码路径。|
+|[ACLNN_EXTENSION_PATH](op_compilation/ACLNN_EXTENSION_PATH.md)|通过此环境变量可指定ACLNN扩展代码的搜索路径，在op-plugin代码生成过程中生效。|
+|[PYTORCH_CUSTOM_DERIVATIVES_PATH](op_compilation/PYTORCH_CUSTOM_DERIVATIVES_PATH.md)|通过此环境变量可指定自定义算子自动微分定义文件derivatives.yaml的路径，在op-plugin代码生成过程中生效。|
 
 ## 内存管理
 

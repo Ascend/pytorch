@@ -1,4 +1,4 @@
-# TORCH_NPU_USE_COMPATIBLE_IMPL
+# TORCH\_NPU\_USE\_COMPATIBLE\_IMPL
 
 ## 功能描述
 
@@ -12,6 +12,10 @@
 ``` bash
 export TORCH_NPU_USE_COMPATIBLE_IMPL=1
 ```
+
+> [!NOTE]
+>
+> 此功能为`torch_npu`特有，PyTorch社区无直接对应变量。
 
 ## 使用约束
 

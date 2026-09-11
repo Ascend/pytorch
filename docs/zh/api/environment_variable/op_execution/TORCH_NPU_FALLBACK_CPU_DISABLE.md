@@ -1,4 +1,4 @@
-# TORCH_NPU_FALLBACK_CPU_DISABLE
+# TORCH\_NPU\_FALLBACK\_CPU\_DISABLE
 
 ## 功能描述
 
@@ -22,6 +22,10 @@ export TORCH_NPU_FALLBACK_CPU_DISABLE=1
 ```bash
 export TORCH_NPU_FALLBACK_CPU_DISABLE=0
 ```
+
+> [!NOTE]
+>
+> 此功能为`torch_npu`特有，PyTorch社区无直接对应变量。
 
 ## 使用约束
 

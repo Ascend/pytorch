@@ -1,4 +1,4 @@
-# TORCH_NPU_LEGACY_IMPL_LIST
+# TORCH\_NPU\_LEGACY\_IMPL\_LIST
 
 ## 功能描述
 
@@ -29,6 +29,10 @@
 ```bash
 export TORCH_NPU_LEGACY_IMPL_LIST=randomness
 ```
+
+> [!NOTE]
+>
+> 此功能为`torch_npu`特有，PyTorch社区无直接对应变量。
 
 ## 使用约束
 

@@ -2,7 +2,7 @@
 
 ## 功能描述
 
-通过此环境变量可在非饱和模式（INF_NAN模式）下开启溢出检测开关，用于训练过程中Inf/NaN问题的异步定位，不改变浮点计算模式。环境变量默认值为“0”。
+通过此环境变量可在非饱和模式（INF\_NAN模式）下开启溢出检测开关，用于训练过程中Inf/NaN问题的异步定位，不改变浮点计算模式。环境变量默认值为“0”。
 
 - 环境变量值为“0”时：代表不开启溢出检测开关，行为与未配置时一致。
 - 环境变量值为“1”时：代表开启溢出检测开关，溢出检测接口（[get\_npu\_overflow\_flag](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/（beta）torch_npu-npu-get_npu_overflow_flag.md)、[npu\_check\_overflow](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/（beta）torch_npu-npu-utils-npu_check_overflow.md)、[clear\_npu\_overflow\_flag](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/（beta）torch_npu-npu-clear_npu_overflow_flag.md)）在INF\_NAN模式下可用：通过读取溢出状态标志判断是否发生过数值溢出，而非将梯度搬运至Host侧判断是否为Inf/NaN，因此不会引入同步等待，适合对执行时序敏感的溢出定位场景。
@@ -31,6 +31,10 @@ print(torch_npu.npu.utils.get_npu_overflow_flag())  # True，通过溢出状态�
 ```bash
 export FORCE_OVERFLOW_CHECK=1
 ```
+
+> [!NOTE]
+>
+> 此功能为`torch_npu`特有，PyTorch社区无直接对应变量。
 
 ## 使用约束
 

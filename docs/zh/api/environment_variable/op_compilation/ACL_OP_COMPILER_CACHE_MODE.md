@@ -16,6 +16,10 @@
 export ACL_OP_COMPILER_CACHE_MODE=enable
 ```
 
+> [!NOTE]
+>
+> 此功能为`torch_npu`特有，PyTorch社区无直接对应变量。
+
 ## 使用约束
 
 - 该环境变量仅在单算子模式下可以使用，图模式不支持该环境变量。

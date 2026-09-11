@@ -8,6 +8,13 @@
 
 默认配置为0。
 
+> [!NOTE]
+>
+> - **PyTorch社区：** 社区对应环境变量`CUDA_LAUNCH_BLOCKING`，功能一致，均用于控制算子是否采用同步执行模式，但`torch_npu`与`torch`存在以下差异：
+> - 命名不同：NPU使用`ASCEND_LAUNCH_BLOCKING`，GPU使用`CUDA_LAUNCH_BLOCKING`。
+> - `ASCEND_LAUNCH_BLOCKING`设置为“1”时会关闭task_queue算子下发队列（`TASK_QUEUE_ENABLE`设置不生效），`CUDA_LAUNCH_BLOCKING`无此关联机制。
+> - `ASCEND_LAUNCH_BLOCKING`设置为“0”时会增加内存消耗，有导致OOM的风险，`CUDA_LAUNCH_BLOCKING`无此副作用。
+
 ## 配置示例
 
 ```bash
@@ -18,7 +25,6 @@ export ASCEND_LAUNCH_BLOCKING=1
 
 - ASCEND\_LAUNCH\_BLOCKING设置为“1”时，强制算子采用同步模式运行会导致性能下降。
 - ASCEND\_LAUNCH\_BLOCKING设置为“1”时，task\_queue算子队列关闭，[TASK\_QUEUE\_ENABLE](TASK_QUEUE_ENABLE.md)设置不生效。
-
 - ASCEND\_LAUNCH\_BLOCKING设置为“0”时，会增加内存消耗，有导致OOM的风险。
 
 ## 支持的型号

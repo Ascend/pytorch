@@ -23,13 +23,17 @@
     **图 3**  Level 2优化<a id="Level-2优化"></a>       
     ![](../../../figures/Level-2.png)
 
-    此环境变量默认配置为“1”。
+此环境变量默认配置为"1"。
 
 ## 配置示例
 
 ```bash
 export TASK_QUEUE_ENABLE=2
 ```
+
+> [!NOTE]
+>
+> 此功能为`torch_npu`特有，PyTorch社区无直接对应变量。
 
 ## 使用约束
 
