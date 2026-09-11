@@ -84,21 +84,21 @@
 
                 根据实际情况，安装对应gcc和cmake版本，版本信息及安装指导请参见[表1](#gcc_cmake)。
 
-        **表 1**  gcc和cmake版本要求<a id="gcc_cmake"></a>
+                **表 1**  gcc和cmake版本要求<a id="gcc_cmake"></a>
 
-        |PyTorch版本|系统架构|gcc版本|cmake版本|
-        |--|--|--|--|
-        |2.7.1|X86_64|11.2.0|3.18.4|
-        |2.7.1|AArch64|11.2.0|3.31.1|
-        |2.8.0|X86_64|13.3.0|3.18.4|
-        |2.8.0|AArch64|13.3.0|4.0.3|
-        |2.9.0|X86_64|13.3.0|3.18.4|
-        |2.9.0|AArch64|13.3.0|4.0.3|
-        |2.10.0|X86_64|13.3.0|3.18.4|
-        |2.10.0|AArch64|13.3.0|4.0.3|
+                |PyTorch版本|系统架构|gcc版本|cmake版本|
+                |--|--|--|--|
+                |2.7.1|X86_64|11.2.0|3.18.4|
+                |2.7.1|AArch64|11.2.0|3.31.1|
+                |2.8.0|X86_64|13.3.0|3.18.4|
+                |2.8.0|AArch64|13.3.0|4.0.3|
+                |2.9.0|X86_64|13.3.0|3.18.4|
+                |2.9.0|AArch64|13.3.0|4.0.3|
+                |2.10.0|X86_64|13.3.0|3.18.4|
+                |2.10.0|AArch64|13.3.0|4.0.3|
 
-        > [!NOTE]<br>
-        > 安装指导可参见[安装11.2.0版本gcc](installing_gcc_11-2-0.md)和[安装3.18.4版本cmake](installing_cmake_3-18-4.md)。
+                > [!NOTE]<br>
+                > 安装指导可参见[安装11.2.0版本gcc](installing_gcc_11-2-0.md)和[安装3.18.4版本cmake](installing_cmake_3-18-4.md)。
 
     2. 编译生成torch\_npu插件的Whl安装包。
         1. 以v2.7.1-26.0.0为例，下载对应的Ascend Extension for PyTorch分支代码并进入插件根目录。
@@ -130,36 +130,14 @@
 
 执行以下命令可检查PyTorch框架和torch\_npu插件是否已成功安装。
 
-- 方法一
+```Python
+python3 -c "import torch;import torch_npu; a = torch.randn(3, 4).npu(); print(a + a);"
+```
 
-    ```Python
-    python3 -c "import torch;import torch_npu; a = torch.randn(3, 4).npu(); print(a + a);"
-    ```
+输出如下类似信息说明安装成功。
 
-    输出如下类似信息说明安装成功。
-
-    ```python
-    tensor([[-0.6066,  6.3385,  0.0379,  3.3356],
-            [ 2.9243,  3.3134, -1.5465,  0.1916],
-            [-2.1807,  0.2008, -1.1431,  2.1523]], device='npu:0')
-    ```
-
-- 方法二
-
-    ```Python
-    import torch
-    import torch_npu
-    
-    x = torch.randn(2, 2).npu()
-    y = torch.randn(2, 2).npu()
-    z = x.mm(y)
-    
-    print(z)
-    ```
-
-    输出如下类似信息说明安装成功。
-
-    ```ColdFusion
-    tensor([[-0.0515,  0.3664],
-            [-0.1258, -0.5425]], device='npu:0')
+```python
+tensor([[-0.6066,  6.3385,  0.0379,  3.3356],
+        [ 2.9243,  3.3134, -1.5465,  0.1916],
+        [-2.1807,  0.2008, -1.1431,  2.1523]], device='npu:0')
     ```

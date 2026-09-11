@@ -5,7 +5,8 @@ libtorch\_npu是torch\_npu插件的C++版本，包含运行torch\_npu插件所�
 ## 编译操作
 
 1. 参见[安装前准备](preparing_installation.md)、[安装PyTorch](installing_PyTorch.md)完成依赖与PyTorch的安装。
-2. 获取libtorch\_npu源码。
+2. 编译时依赖的CMake需为3.18.0版本及以上，可参见[安装3.18.4版本CMake](installing_cmake_3-18-4.md)。
+3. 获取libtorch\_npu源码。
 
     ```bash
     git clone -b v2.7.1-26.0.0 https://gitcode.com/Ascend/pytorch.git
@@ -15,7 +16,7 @@ libtorch\_npu是torch\_npu插件的C++版本，包含运行torch\_npu插件所�
 
     以v2.7.1-26.0.0为例，拉取对应Ascend Extension for PyTorch分支代码。请参见《版本说明》中的“[相关产品版本配套说明](../release_notes/release_notes.md#相关产品版本配套说明)”章节下载Ascend Extension for PyTorch其他版本的分支代码。
 
-3. 执行编译生成libtorch\_npu安装包。
+4. 执行编译生成libtorch\_npu安装包。
     > [!NOTE]
     > 
     > 当前libtorch\_npu默认使用CXX11\_ABI=0，支持配置为CXX11\_ABI=1，命令如下：
@@ -29,8 +30,6 @@ libtorch\_npu是torch\_npu插件的C++版本，包含运行torch\_npu插件所�
     ```bash
     python3 build_libtorch_npu.py
     ```
-
-    编译时依赖的CMake需为3.18.0版本及以上，可参见[安装3.18.4版本CMake](installing_cmake_3-18-4.md)。
 
     默认编译release版本，如需debug版本，添加DEBUG=1环境变量。编译完成后，当前目录下生成libtorch\_npu目录，包含以下文件。
 

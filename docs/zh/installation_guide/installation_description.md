@@ -35,3 +35,7 @@
 ## 安装方式
 
 本手册提供了离线安装（Whl）和源码安装方式，用户可根据实际需求自行选择安装PyTorch框架和torch\_npu插件的方式，不要求两者安装方式统一。
+
+> [!NOTE]
+>
+> TorchNPU还提供了镜像安装方式，具体请前往[快速安装](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=172&ids=26958bcc909e4cd48fa56d4c4a43ebec%2C98%2C106%2C1%2C6%2C3%2C)页面查看。
