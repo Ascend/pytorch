@@ -104,23 +104,40 @@ _MM_TEMPLATE = """{{def_kernel("A", "B")}}
 
     rm = pid_m * BLOCK_M + tl.arange(0, BLOCK_M)
     rn = pid_n * BLOCK_N + tl.arange(0, BLOCK_N)
-    # Pre-compute row mask once; reused in both K-loop and epilogue.
+
+{% if MASKED_M %}
     m_mask = rm < M
+{% endif %}
+{% if MASKED_N %}
+    n_mask = rn < N
+{% endif %}
 
     offs_k = tl.arange(0, BLOCK_K)
     acc = tl.zeros((BLOCK_M, BLOCK_N), dtype=ACC_TYPE)
 
     for k_idx in range(0, tl.cdiv(K, BLOCK_K)):
-        offs_a_k = k_idx * BLOCK_K + tl.arange(0, BLOCK_K)
-        {% if EVEN_K %}
-        a = tl.load(A + (rm[:, None] * stride_am + offs_a_k[None, :] * stride_ak))
-        b = tl.load(B + (offs_a_k[:, None] * stride_bk + rn[None, :] * stride_bn))
-        {% else %}
-        # K is not a multiple of BLOCK_K: mask out-of-bounds elements
-        k_mask = offs_a_k < K
-        a = tl.load(A + (rm[:, None] * stride_am + offs_a_k[None, :] * stride_ak), mask=k_mask[None, :], other=0.0)
-        b = tl.load(B + (offs_a_k[:, None] * stride_bk + rn[None, :] * stride_bn), mask=k_mask[:, None], other=0.0)
-        {% endif %}
+        offs_k = k_idx * BLOCK_K + tl.arange(0, BLOCK_K)
+{% if MASKED_K %}
+        k_mask = offs_k < K
+{% endif %}
+{% if MASKED_K and MASKED_M %}
+        a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak), mask=m_mask[:, None] & k_mask[None, :], other=0.0)
+{% elif MASKED_K %}
+        a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak), mask=k_mask[None, :], other=0.0)
+{% elif MASKED_M %}
+        a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak), mask=m_mask[:, None], other=0.0)
+{% else %}
+        a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak))
+{% endif %}
+{% if MASKED_K and MASKED_N %}
+        b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn), mask=k_mask[:, None] & n_mask[None, :], other=0.0)
+{% elif MASKED_K %}
+        b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn), mask=k_mask[:, None], other=0.0)
+{% elif MASKED_N %}
+        b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn), mask=n_mask[None, :], other=0.0)
+{% else %}
+        b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn))
+{% endif %}
         acc += tl.dot(a, b{% if ALLOW_HF32 %}, input_precision="tf32"{% endif %}, out_dtype=ACC_TYPE)
 
     # rm, rn, and m_mask are reused from above (no rematerialization).
@@ -128,8 +145,8 @@ _MM_TEMPLATE = """{{def_kernel("A", "B")}}
     idx_n = rn[None, :]
     mask = (idx_m < M) & (idx_n < N)
 
-    {{npu_register_1d("idx_m", "rm", "m_mask")}}
-    {{npu_register_1d("idx_n", "rn", None)}}
+    {# npu_register_1d("idx_m", "rm", "m_mask") #}
+    {# npu_register_1d("idx_n", "rn", None) #}
 
     # inductor generates a suffix
     {{store_output(("idx_m", "idx_n"), "acc", "mask", val_shape=("BLOCK_M", "BLOCK_N"))}}
@@ -208,20 +225,38 @@ _PERSISTENT_MM_TEMPLATE = """
             # Pre-compute row mask once; reused in both K-loop and epilogue.
             # This avoids redundant comparisons and enables 1D load masking
             # for broadcast inputs (e.g. bias[N], mask[M]) in the epilogue.
+{% if MASKED_M %}
             m_mask = rm < M
+{% endif %}
+{% if MASKED_N %}
+            n_mask = rn < N
+{% endif %}
 
             # ---- K-loop: accumulate matmul ----
             acc = tl.zeros((BLOCK_M, BLOCK_N), dtype=ACC_TYPE)
             for k_start in range(0, K, BLOCK_K):
                 offs_k = k_start + rk_init
-                {% if EVEN_K %}
-                a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak))
-                b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn))
-                {% else %}
+{% if MASKED_K %}
                 k_mask = offs_k < K
+{% endif %}
+{% if MASKED_K and MASKED_M %}
+                a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak), mask=m_mask[:, None] & k_mask[None, :], other=0.0)
+{% elif MASKED_K %}
                 a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak), mask=k_mask[None, :], other=0.0)
+{% elif MASKED_M %}
+                a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak), mask=m_mask[:, None], other=0.0)
+{% else %}
+                a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak))
+{% endif %}
+{% if MASKED_K and MASKED_N %}
+                b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn), mask=k_mask[:, None] & n_mask[None, :], other=0.0)
+{% elif MASKED_K %}
                 b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn), mask=k_mask[:, None], other=0.0)
-                {% endif %}
+{% elif MASKED_N %}
+                b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn), mask=n_mask[None, :], other=0.0)
+{% else %}
+                b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn))
+{% endif %}
                 acc += tl.dot(a, b{% if ALLOW_HF32 %}, input_precision="tf32"{% endif %}, out_dtype=ACC_TYPE)
 
             # ---- Store output (inductor generates epilogue suffix) ----
@@ -230,8 +265,8 @@ _PERSISTENT_MM_TEMPLATE = """
             idx_n = rn[None, :]
             mask = (idx_m < M) & (idx_n < N)
 
-            {{npu_register_1d("idx_m", "rm", "m_mask")}}
-            {{npu_register_1d("idx_n", "rn", None)}}
+            {# npu_register_1d("idx_m", "rm", "m_mask") #}
+            {# npu_register_1d("idx_n", "rn", None) #}
             {{store_output(("idx_m", "idx_n"), "acc", "mask", val_shape=("BLOCK_M", "BLOCK_N"), indent_width=12)}}
 """
 
@@ -600,7 +635,9 @@ def _get_npu_mm_configs(
         # For dynamic k, (k % block_k == 0) evaluates to False via sympy
         # structural equality, which correctly selects the masked K-loop
         # path — safe for any runtime K value.
-        even_k = (k % block_k == 0)
+        masked_m = (m % block_m != 0) if not _is_symbolic_dim(m) else True
+        masked_n = (n % block_n != 0) if not _is_symbolic_dim(n) else True
+        masked_k = (k % block_k != 0) if not _is_symbolic_dim(k) else True
         # GROUP_M: largest factor of num_blocks_m ≤ 8 (guarantees
         # num_blocks_m % GROUP_M == 0, safe for NPU super-grouping).
         num_blocks_m = (m_hint + block_m - 1) // block_m
@@ -619,7 +656,9 @@ def _get_npu_mm_configs(
                 "num_warps": 4,
                 "ALLOW_HF32": matmul.allow_hf32,
                 "ACC_TYPE": "tl.float32",
-                "EVEN_K": even_k,
+                "MASKED_M": masked_m,
+                "MASKED_N": masked_n,
+                "MASKED_K": masked_k,
             })
 
     return configs
@@ -748,7 +787,9 @@ def _get_npu_persistent_mm_configs(
         # group_size == GROUP_M always holds (no partial last group).
         group_m = _choose_group_m(num_blocks_m)
         width = group_m * num_blocks_n
-        even_k = (k % block_k == 0)
+        masked_m = (m % block_m != 0) if not _is_symbolic_dim(m) else True
+        masked_n = (n % block_n != 0) if not _is_symbolic_dim(n) else True
+        masked_k = (k % block_k != 0) if not _is_symbolic_dim(k) else True
 
         # Choose 2 core counts based on num_blocks (instead of the
         # previous fixed [8, 16, 32, 56]) — this significantly reduces
@@ -790,7 +831,9 @@ def _get_npu_persistent_mm_configs(
                     "num_warps": 4,
                     "ALLOW_HF32": matmul.allow_hf32,
                     "ACC_TYPE": "tl.float32",
-                    "EVEN_K": even_k,
+                    "MASKED_M": masked_m,
+                    "MASKED_N": masked_n,
+                    "MASKED_K": masked_k,
                 })
 
     return configs

@@ -1691,7 +1691,6 @@ def patch_algorithm_selector() -> None:
             ):
                 for fn, args, kwargs in funcs:
                     for _ in range(TOTAL_STEP):
-                        buffer.sum()
                         fn(*args, **kwargs)
                         torch.npu.synchronize()
                     # One aclnn op may be seperated into multiple ops, recorded in kernel_details.csv,

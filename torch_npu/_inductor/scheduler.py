@@ -1,8 +1,13 @@
 import contextlib
 import copy
+import hashlib
 import itertools
 import logging
 import math
+import os
+import shutil
+import traceback
+import uuid
 from types import ModuleType
 from typing import cast, Any, Callable, Optional, Sequence, Union
 
@@ -26,7 +31,178 @@ from torch._inductor.virtualized import V
 from torch.utils._ordered_set import OrderedSet
 
 from .codegen.catlass.catlass_kernel import CATLASSTemplateCaller
-from .config import is_ascend950
+from .config import is_ascend950, log as npu_log
+
+
+def _do_batch_profiling_for_fusion(ready_choices):
+    """Batch-profile fusion choices using torch_npu.profiler for
+    L2-cache-sensitive benchmarking.
+
+    This mirrors ``do_batch_profiling`` in select_algorithm.py but is
+    adapted for fusion benchmarking where each choice is an already
+    compiled module (``mod_fused``) rather than a ``ChoiceCaller``.
+
+    Why this exists:
+        The original per-choice ``benchmark_codegened_module`` uses
+        event-based timing (``benchmarker.benchmark_gpu``) which is not
+        sensitive enough to L2 cache effects (e.g. ``L2_MODE_A`` /
+        ``L2_MODE_B`` parameters).  A single benchmark call cannot
+        distinguish between configurations that differ only in L2 cache
+        behaviour, so the autotune may randomly pick a slow
+        configuration (e.g. L2_MODE=2, 20 us) over a fast one
+        (L2_MODE=0, 14 us).  Batch profiling with
+        ``torch_npu.profiler`` runs 50 iterations per choice with L2
+        cache flushing, accurately capturing L2 effects and ensuring
+        the fastest configuration is selected.
+
+    Args:
+        ready_choices: list of ``(choice, mod_fused)`` tuples where
+            ``mod_fused`` is an already-compiled module exposing
+            ``get_args()``, ``call`` and ``triton_``.
+
+    Returns:
+        A list of timings (in **ms**) aligned with ``ready_choices``,
+        or ``None`` if batch profiling could not be completed (caller
+        should fall back to per-choice benchmarking).
+    """
+    try:
+        import torch_npu
+        import pandas as pd
+        from .profiler import simple_trace_handler
+    except ImportError:
+        return None
+
+    def delete_file(base_path):
+        if os.path.exists(base_path):
+            try:
+                shutil.rmtree(base_path)
+            except Exception:
+                pass
+
+    # ---- Build call functions for each choice ----
+    funcs = []
+    for choice, mod_fused in ready_choices:
+        try:
+            args = mod_fused.get_args()
+            call = mod_fused.call
+            wrapped_jit_function = mod_fused.triton_
+
+            # Skip choices with register spilling (same threshold as the
+            # original benchmark_codegened_module).
+            launchers = getattr(wrapped_jit_function, "launchers", [])
+            if len(launchers) > 0 and launchers[0].n_spills > 8:
+                return None  # fall back to per-choice which sets inf
+
+            # Trigger compilation / warm-up once.
+            call(wrapped_jit_function.clone_args(*args)[0])
+
+            # Freeze loop variables for the closure.
+            def make_fn(
+                _call=call,
+                _wjf=wrapped_jit_function,
+                _args=args,
+            ):
+                def fn():
+                    _call(_wjf.clone_args(*_args)[0])
+                return fn
+
+            funcs.append(make_fn())
+        except Exception:
+            # If any choice fails to build a call function, fall back to
+            # the original per-choice path which handles errors per choice.
+            return None
+
+    if not funcs:
+        return None
+
+    # ---- Run batch profiling ----
+    torch_path = None
+    try:
+        experimental_config = torch_npu.profiler._ExperimentalConfig(
+            aic_metrics=torch_npu.profiler.AiCMetrics.AiCoreNone,
+            profiler_level=torch_npu.profiler.ProfilerLevel.Level0,
+            l2_cache=False,
+            data_simplification=False,
+        )
+
+        random_uuid = uuid.uuid4().hex
+        md5_hash = hashlib.md5(random_uuid.encode()).hexdigest()
+        torch_path = os.path.join(os.getcwd(), "profile_results", md5_hash)
+
+        TOTAL_STEP = 6
+        l2_cache_size = 192 * (1 << 20)
+        buffer = torch.empty(l2_cache_size // 4, dtype=torch.int, device="npu")
+        buffer = buffer.float()
+        buffer.sum()
+        torch.npu.synchronize()
+
+        with torch_npu.profiler.profile(
+            activities=[torch_npu.profiler.ProfilerActivity.NPU],
+            on_trace_ready=simple_trace_handler(torch_path),
+            record_shapes=False,
+            profile_memory=False,
+            with_stack=False,
+            with_flops=False,
+            with_modules=False,
+            experimental_config=experimental_config,
+        ):
+            for fn in funcs:
+                for _ in range(TOTAL_STEP):
+                    fn()
+                    torch.npu.synchronize()
+                # Separator between choices (produces an "absaicore" row
+                # in kernel_details.csv used to split per-choice timings).
+                buffer.abs_()
+                torch.npu.synchronize()
+        del buffer
+
+        # ---- Parse kernel_details.csv ----
+        for root, _, files in os.walk(torch_path):
+            for file in files:
+                if file != "kernel_details.csv":
+                    continue
+                target_file = os.path.join(root, file)
+                df = pd.read_csv(target_file)
+                # Filter out the L2-cache clear operation (buffer.sum()).
+                filter_cond = ~df["Name"].str.contains(
+                    r"ReduceSum", case=False, na=False
+                )
+                filter_df = df[filter_cond]
+                time_cost = []
+                last_df_index = -1
+                for idx, row in filter_df.iterrows():
+                    if "absaicore" in row["Name"].lower():
+                        time_cost.append(
+                            filter_df.loc[
+                                last_df_index + 1 : idx - 1, "Duration(us)"
+                            ].sum()
+                        )
+                        last_df_index = idx
+                # Convert us -> ms and average over TOTAL_STEP iterations.
+                time_cost = [x / TOTAL_STEP / 1e3 for x in time_cost]
+                delete_file(torch_path)
+                if len(time_cost) != len(ready_choices):
+                    npu_log.warning(
+                        "[NPU Fusion] batch profiling parsed %d timings for "
+                        "%d choices, falling back to per-choice",
+                        len(time_cost),
+                        len(ready_choices),
+                    )
+                    return None
+                return time_cost
+
+        delete_file(torch_path)
+        return None
+    except Exception as e:
+        npu_log.warning(
+            "[NPU Fusion] batch profiling failed: %s, falling back to "
+            "per-choice benchmarking",
+            str(e),
+        )
+        if torch_path is not None:
+            delete_file(torch_path)
+        return None
+
 
 def patch_scheduler():
     @classmethod
@@ -505,7 +681,10 @@ def patch_scheduler():
                 ms_fused_mod = None
 
                 new_timings = {}
-                # Benchmark each choice after compilation completes
+
+                # ---- First pass: resolve all futures and collect
+                # successfully compiled choices. ----
+                ready_choices = []  # list of (choice, mod_fused)
                 for choice, future, mod_fused in future_choices:
                     try:
                         if future is not None:
@@ -521,10 +700,49 @@ def patch_scheduler():
                                 str(e),
                             )
                         continue
-                    with multi_node.swap_as_caller(choice):
-                        ms_fused, path = self.benchmark_codegened_module(
-                            mod_fused, device
-                        )
+                    ready_choices.append((choice, mod_fused))
+
+                if len(ready_choices) == 0:
+                    _cleanup_catlass_orphan_buffers(benchmark_catlass_orphans)
+                    return False
+
+                # ---- NPU: batch profiling for L2-cache-sensitive
+                # benchmarking. ----
+                # The original per-choice ``benchmark_codegened_module`` uses
+                # event-based timing which is not sensitive enough to L2 cache
+                # effects (e.g. ``L2_MODE_A`` / ``L2_MODE_B``).  A single
+                # benchmark call cannot distinguish between configurations
+                # that differ only in L2 cache behaviour, so the autotune may
+                # randomly pick a slow configuration (e.g. L2_MODE=2, ~20us)
+                # over a fast one (L2_MODE=0, ~14us).  Batch profiling with
+                # ``torch_npu.profiler`` runs 50 iterations per choice with L2
+                # cache flushing, accurately capturing L2 effects.
+                batch_timings = _do_batch_profiling_for_fusion(ready_choices)
+
+                if batch_timings is not None and len(batch_timings) == len(
+                    ready_choices
+                ):
+                    # Batch profiling succeeded - use accurate timings.
+                    npu_log.info(
+                        "[NPU Fusion] using batch profiling (profiler, 50 "
+                        "iters/choice) for %d fusion choices",
+                        len(ready_choices),
+                    )
+                    for (choice, mod_fused), ms_fused in zip(
+                        ready_choices, batch_timings
+                    ):
+                        new_timings[choice] = ms_fused
+                        if ms_fused < min_ms_fused:
+                            min_ms_fused = ms_fused
+                            ms_fused_choice = choice
+                            ms_fused_mod = mod_fused
+                else:
+                    # Fallback to original per-choice benchmarking.
+                    for choice, mod_fused in ready_choices:
+                        with multi_node.swap_as_caller(choice):
+                            ms_fused, path = self.benchmark_codegened_module(
+                                mod_fused, device
+                            )
                         new_timings[choice] = ms_fused
                         if ms_fused < min_ms_fused:
                             min_ms_fused = ms_fused
