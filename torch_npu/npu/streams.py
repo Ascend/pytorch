@@ -18,7 +18,7 @@ class Stream(torch_npu._C._NPUStreamBase):
             the stream. If :attr:`device` is ``None`` (default) or a negative
             integer, this will use the current device.
         priority(int, optional): priority of the stream. Lower numbers
-                                 represent higher priorities.
+                                 represent higher priorities. Test
     """
 
     def __new__(cls, device=None, priority=0, **kwargs):
