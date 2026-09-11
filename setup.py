@@ -473,6 +473,8 @@ def get_src_py_and_dst():
         "torch_npu/csrc/*/*/*.h",
         "torch_npu/csrc/*/*/*/*.h",
         "torch_npu/csrc/*/*/*/*/*.h",
+        "third_party/acl/inc/*/*.h",
+        "third_party/acl/inc/*/*/*.h",
         "third_party/hccl/inc/*/*.h",
         "torch_npu/csrc/distributed/HCCLUtils.hpp",
         "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
@@ -503,23 +505,6 @@ def get_src_py_and_dst():
         )
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         ret.append((src, dst))
-
-        # Preserve legacy include paths with forwarding headers, not duplicate ACL headers.
-        wrapper_src = os.path.join(
-            BASE_DIR, "build", "acl_compat_headers", relative_header
-        )
-        os.makedirs(os.path.dirname(wrapper_src), exist_ok=True)
-        with open(wrapper_src, "w", encoding="utf-8", newline="\n") as wrapper_file:
-            wrapper_file.write("#pragma once\n#include <{}>\n".format(
-                relative_header.replace(os.sep, "/")
-            ))
-        wrapper_dst = os.path.join(
-            BASE_DIR,
-            "build/packages/torch_npu/include/third_party/acl/inc",
-            relative_header,
-        )
-        os.makedirs(os.path.dirname(wrapper_dst), exist_ok=True)
-        ret.append((wrapper_src, wrapper_dst))
 
     torch_header_files = [
         "*/*.h",
