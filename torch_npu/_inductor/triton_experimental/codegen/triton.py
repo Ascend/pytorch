@@ -73,6 +73,16 @@ import contextlib
 from torch._inductor import config
 from .. import device_props
 from ..compat import IS_TRITON_36_PLUS
+from ..reduction_index_alias import (
+    ReductionIndexAssignmentState,
+    ReductionIndexAssignmentLine,
+    attach_reduction_index_aliases,
+    build_reduction_index_aliases,
+    make_reduction_loop_pass,
+    render_reduction_index_aliases,
+    superseded_reduction_index_names,
+    validate_reduction_index_alias_scope,
+)
 import torch
 
 
@@ -398,14 +408,6 @@ def _npu_rewrite_promoted_rtree_body(kernel, real_sizes, real_ndim):
         # r-slots as None; kept slots stay ':'.
         post_resize = "[" + ", ".join(resize_parts) + "]"
 
-        # Split-reconstruction aliases (r0_1 = r0_2 + ks0*r0_3 over promoted
-        # sub-nodes): the upstream body still emits r0_1 = r0_index, but promotion
-        # deletes r0_index, so rewrite each to its reconstruction text (from
-        # _npu_flat_rnode_subs) inside the loop where r0_2/r0_3 are in scope.
-        recon_nodes = getattr(tree, "_npu_split_recon_nodes", None) or set()
-        flat_subs = getattr(kernel, "_npu_flat_rnode_subs", None) or {}
-        flat_recon = {nm: flat_subs[nm] for nm in recon_nodes if nm in flat_subs}
-
         # Per-slot block token (matches the accumulator tl.full shape): each free
         # r-node's tile token at its slot, and the KEPT axes' real block extent
         # (a live x-axis is XBLOCK, not 1 -- only fully-reduced outputs are 1).
@@ -416,12 +418,24 @@ def _npu_rewrite_promoted_rtree_body(kernel, real_sizes, real_ndim):
                 is_dyn = dynamic and node_dyn.get(nm, True)
                 slot_block_tokens[vtd[nm]] = f"{nm}_blk" if is_dyn else f"real_block_{nm}"
 
+        # The promoted loop prologue owns every surviving reduction leaf.  Mark
+        # the original range-tree assignments as superseded through their
+        # structured identities; deferred emission will remove them without
+        # inspecting the assignment source.
+        reduction_passes = kernel._reduction_loop_passes_for_prefix(prefix)
+        superseded_indices = set(ordered_names)
+        for reduction_pass in reduction_passes:
+            superseded_indices.update(
+                superseded_reduction_index_names(reduction_pass, ())
+            )
+        kernel._npu_reduction_index_assignment_state.suppress_assignments(
+            prefix, superseded_indices
+        )
         _npu_apply_promoted_rtree_lines(
             kernel, prefix, blk_defs, blk_node_names, arange_lines,
             combined_mask, collapsed_shape, collapsed_dim, post_resize,
             r_slots, real_ndim, ordered_names,
             dynamic=dynamic, loop_nodes=loop_nodes, slot_bcast=_slot_bcast,
-            flat_recon=flat_recon,
             real_sizes=real_sizes, slot_block_tokens=slot_block_tokens,
         )
 
@@ -504,7 +518,7 @@ def _npu_apply_promoted_rtree_lines(
     kernel, prefix, blk_defs, blk_node_names, arange_lines,
     combined_mask, collapsed_shape, collapsed_dim, post_resize,
     r_slots, real_ndim, leaf_names,
-    dynamic=False, loop_nodes=None, slot_bcast=None, flat_recon=None,
+    dynamic=False, loop_nodes=None, slot_bcast=None,
     real_sizes=None, slot_block_tokens=None,
 ):
     """In-place edit of kernel.body._lines for one promoted r-tree. Static mode:
@@ -513,24 +527,21 @@ def _npu_apply_promoted_rtree_lines(
     r-node, each indexing a constexpr {nm}_blk tile); the accumulator persists and
     the reshape-collapse + sum runs once after the loops close."""
     loop_nodes = loop_nodes or []
-    flat_recon = flat_recon or {}
     n_levels = len(loop_nodes)
     # Extra indent for the now-deeper innermost-loop body vs the flat-loop body.
     body_extra_indent = "    " * (n_levels - 1) if dynamic and n_levels else ""
     old_lines = kernel.body._lines
+
+    # The pass list is kernel state, not a property of the promoted-r-tree
+    # shape.  Read it here so callers cannot accidentally pass stale metadata
+    # after another reduction body has been flushed.
+    reduction_passes = tuple(kernel._reduction_loop_passes_for_prefix(prefix))
+    pass_index = 0
+
     new_lines = []
     inserted_defs = False   # hoist block constexpr defs before the group loop
     inside_rloop = False
     rloop_indent = ""
-
-    # Patterns for stale lines to drop inside/around the r-loop.
-    def _is_node_decomp(stripped):
-        # ``r0_1 = (r0_index % 16)`` / ``r0_2 = r0_index // 16`` etc.
-        return (
-            (f"{prefix}index" in stripped)
-            and (" % " in stripped or " // " in stripped)
-            and stripped.split(" = ", 1)[0].strip().startswith(prefix)
-        )
 
     def _rewrite_reduction_store_shape(raw):
         line = raw if isinstance(raw, str) else getattr(raw, "line", None)
@@ -798,6 +809,13 @@ def _npu_apply_promoted_rtree_lines(
         # Detect / remove the flat r-loop header; emit aranges (static) or the
         # nested tile-loop headers + per-tile aranges (dynamic) in its place.
         if not inside_rloop and _is_flat_rloop_header(stripped, prefix):
+            if pass_index >= len(reduction_passes):
+                raise RuntimeError(
+                    f"missing reduction-pass metadata for {prefix} "
+                    f"scope {pass_index}"
+                )
+            reduction_pass = reduction_passes[pass_index]
+            pass_index += 1
             inside_rloop = True
             rloop_indent = indent
             if dynamic:
@@ -820,8 +838,18 @@ def _npu_apply_promoted_rtree_lines(
                 # Static (fully-resident) node aranges — same innermost level so
                 # the combined mask + reshape below see every node in scope.
                 new_lines.extend(f"{inner_indent}{al}" for al in arange_lines)
+                new_lines.extend(
+                    render_reduction_index_aliases(
+                        reduction_pass, kernel.index_to_str, inner_indent
+                    )
+                )
             else:
                 new_lines.extend(f"{indent}{al}" for al in arange_lines)
+                new_lines.extend(
+                    render_reduction_index_aliases(
+                        reduction_pass, kernel.index_to_str, indent
+                    )
+                )
             continue
 
         if inside_rloop:
@@ -837,21 +865,14 @@ def _npu_apply_promoted_rtree_lines(
                     new_lines.append(line)
                     continue
                 body_indent = (cur_indent + body_extra_indent) if dynamic else (cur_indent[4:] if len(cur_indent) >= 4 else cur_indent)  # noqa: B950
-                # Rewrite a split-reconstruction alias (``r0_1 = r0_index``) into its
-                # sub-node reconstruction so the flat node stays valid now r0_index is
-                # gone. Must run BEFORE the scaffolding drop below.
-                _lhs = stripped.split(" = ", 1)[0].strip() if " = " in stripped else None
-                if _lhs in flat_recon:
-                    new_lines.append(f"{body_indent}{_lhs} = {flat_recon[_lhs]}")
-                    continue
-                # Drop r0_index / r0_mask / roffset / rindex scaffolding and
-                # the per-node mod/div decomposition (aranges replace them).
+                # Drop flat-loop scaffolding. Original range-tree index
+                # assignments are ReductionIndexAssignmentLine objects and are suppressed
+                # by structured identity before this rewrite.
                 if (
                     stripped.startswith(f"{prefix}index = ")
                     or stripped.startswith(f"{prefix}mask = ")
                     or stripped.startswith("roffset = ")
                     or stripped.startswith("rindex = ")
-                    or _is_node_decomp(stripped)
                 ):
                     continue
                 # Rewrite the accumulate guard mask r0_mask -> combined mask.
@@ -885,6 +906,15 @@ def _npu_apply_promoted_rtree_lines(
             continue
 
         new_lines.append(line)
+
+    if pass_index != len(reduction_passes):
+        unused = [
+            reduction_pass.scope_id
+            for reduction_pass in reduction_passes[pass_index:]
+        ]
+        raise RuntimeError(
+            f"reduction-pass metadata for {prefix} has no emitted loop: {unused}"
+        )
 
     new_lines = [_rewrite_reduction_store_shape(raw) for raw in new_lines]
     new_lines = [_fix_masked_load_ptr(raw) for raw in new_lines]
@@ -1701,10 +1731,9 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
             dtype = torch.float32
         elif dtype == torch.int64:
             dtype = torch.int32
-        # When all tile dimensions are size 1 (degenerate kernel), use scalar
-        # constant to avoid "Value argument cannot be block type if pointer
-        # argument is not a block" error in tl.store.
         from torch._inductor.codegen.triton import TritonOverrides
+        # Degenerate non-linearized kernels also need a scalar constant: a [1]
+        # block value cannot be stored through a scalar pointer on Triton-Ascend.
         ndim = V.kernel.triton_tensor_ndim()
         if ndim == 0:
             return TritonOverrides.constant(value, dtype)
@@ -2280,6 +2309,13 @@ class NPUTritonKernel(TritonKernel):
         self._npu_linearize: bool = bool(triton_codegen_linearize) or force_linearize
         super().__init__(*args, **kwargs)
         self._axis_split_subs: Dict[sympy.Symbol, sympy.Expr] = {}
+        # A reduction pass is created at the same boundary where codegen_body()
+        # flushes a reduction loop.  Alias expressions are attached later, after
+        # range-tree folding has selected the surviving axes, but their scope IDs
+        # remain the ones assigned at this IR/codegen boundary.
+        self._npu_reduction_loop_passes = []
+        self._npu_reduction_index_alias_plans = {}
+        self._npu_reduction_index_assignment_state = ReductionIndexAssignmentState()
         # r-axis cross-core split (OUTER reduction): when True, codegen_kernel
         # emits the "partial" form — program_id(0) selects a contiguous chunk of
         # the reduction axis (instead of the x-axis group dispatch), every core
@@ -2301,6 +2337,42 @@ class NPUTritonKernel(TritonKernel):
             for tree in self.range_trees:
                 if not hasattr(tree, 'tree_node_mapping'):
                     tree.tree_node_mapping = {}
+
+    def _record_reduction_loop_pass(self):
+        reduction_prefixes = tuple(
+            tree.prefix for tree in self.range_trees if tree.is_loop
+        )
+        reduction_pass = make_reduction_loop_pass(
+            len(self._npu_reduction_loop_passes), reduction_prefixes
+        )
+        for prefix in reduction_prefixes:
+            aliases = self._npu_reduction_index_alias_plans.get(prefix, ())
+            reduction_pass = attach_reduction_index_aliases(
+                (reduction_pass,), prefix, aliases
+            )[0]
+        self._npu_reduction_loop_passes.append(reduction_pass)
+        return reduction_pass
+
+    def _bind_reduction_index_alias_plan(self, tree, visible_symbols):
+        alias_exprs = (
+            getattr(tree, "_npu_reduction_index_alias_exprs", {}) or {}
+        )
+        aliases = build_reduction_index_aliases(alias_exprs)
+        validate_reduction_index_alias_scope(aliases, visible_symbols)
+        self._npu_reduction_index_alias_plans[tree.prefix] = aliases
+        self._npu_reduction_loop_passes = list(
+            attach_reduction_index_aliases(
+                self._npu_reduction_loop_passes, tree.prefix, aliases
+            )
+        )
+        return aliases
+
+    def _reduction_loop_passes_for_prefix(self, prefix):
+        return tuple(
+            reduction_pass
+            for reduction_pass in self._npu_reduction_loop_passes
+            if prefix in reduction_pass.reduction_prefixes
+        )
 
     def _refactor_clamp_stride(self, index: sympy.Expr) -> sympy.Expr:
         """Re-fold an expanded ``(1+H)^k`` store stride onto a precomputed symbol.
@@ -2813,7 +2885,7 @@ class NPUTritonKernel(TritonKernel):
         complete divisor chain tiling exactly the inner block; genuine
         independent reduction axes (span exceeds the inner block) never match.
         Gated by NPU_FOLD_DUALVIEW_RNODE (default on); mirrors the x-tree
-        treatment in _fold_dual_decomp.
+        treatment in _fold_redundant_range_tree_decomposition.
         """
         if not ncfg.fold_dualview_rnode:
             return index
@@ -3222,23 +3294,14 @@ class NPUTritonKernel(TritonKernel):
                 # parent stays live in loads emitted BEFORE the split (`768*r0_1`, no
                 # FloorDiv/Mod → never picked up _axis_split_subs). Record its recon (flat =
                 # inner + c*outer) so codegen_body rewrites `r0_1 = r0_index` → `r0_2 +
-                # ks0*r0_3` and flips _flat_subs_active on; rename_indexing maps `c` (s27).
-                flat_subs = getattr(self, "_npu_flat_rnode_subs", None)
-                if flat_subs is None:
-                    flat_subs = {}
-                    self._npu_flat_rnode_subs = flat_subs
+                # ks0*r0_3`. Keep it on the range-tree as structured SymPy IR;
+                # the reduction-pass binding below decides where it is emitted.
+                aliases = getattr(tree, "_npu_reduction_index_alias_exprs", None)
+                if aliases is None:
+                    aliases = {}
+                    tree._npu_reduction_index_alias_exprs = aliases
                 recon = inner_sym + outer_sym * c
-                flat_subs[split_node.name] = self.kexpr(self.rename_indexing(recon))
-                # Tag as a split-created RECONSTRUCTION alias (flat = inner + c*outer over
-                # sub-nodes promotion DOES emit), distinct from a dual-VIEW alias (flat =
-                # r0_index scaffolding promotion DELETES). The rtree gate bails on any
-                # mapping; this tag lets it allow ours and reconstruct the flat node from
-                # the promoted aranges instead of nested scalar loops.
-                recon_nodes = getattr(tree, "_npu_split_recon_nodes", None)
-                if recon_nodes is None:
-                    recon_nodes = set()
-                    tree._npu_split_recon_nodes = recon_nodes
-                recon_nodes.add(split_node.name)
+                aliases[split_node.name] = recon
 
             if root_mod_redirect is not None:
                 # root % c == leaf % c == inner sub-axis (dropped strides ≡ 0 mod c).
@@ -3783,7 +3846,14 @@ class NPUTritonKernel(TritonKernel):
         # Default behavior for r-tree entries
         line = f"{entry.name} = {self.kexpr(self.rename_indexing(entry.expr))}"
         if entry.root.is_loop:
-            self.indexing_code.writeline(line)
+            self.indexing_code.writeline(
+                ReductionIndexAssignmentLine(
+                    self._npu_reduction_index_assignment_state,
+                    entry.root.prefix,
+                    entry.name,
+                    line,
+                )
+            )
         else:
             self.body.writeline(line)
 
@@ -4494,8 +4564,20 @@ class NPUTritonKernel(TritonKernel):
         """
         r_info = getattr(self, 'linearize_info', None)
         if r_info is None:
+            records_pass = self.inside_reduction and any(
+                tree.is_loop for tree in self.range_trees
+            ) and bool(
+                self.indexing_code
+                or self.loads
+                or self.compute
+                or self.stores
+                or self.post_loop_combine
+                or self.post_loop_store
+            )
             super().codegen_body()
-            self._apply_npu_addr_text_subs()
+            if records_pass:
+                self._record_reduction_loop_pass()
+            self._apply_redundant_range_tree_address_substitutions()
             # Real-block multi-axis reduction rewrite: a promoted r-tree has no
             # linearize_info; super().codegen_body() just materialized the upstream flat
             # ``for r0_offset`` loop into self.body. Rewrite here into per-node real_block
@@ -4551,12 +4633,25 @@ class NPUTritonKernel(TritonKernel):
 
             inner_len_str = _len_str(inner_len, inner_node)
             extra_indent = "    " * len(outer_nodes)
+            reduction_passes = tuple(self._reduction_loop_passes_for_prefix(prefix))
+            reduction_pass = None
+            pass_index = 0
+            generated_indices = (inner_name,) + tuple(
+                node.name for node in outer_nodes
+            )
 
             new_lines = []
             inside_r_loop = False
             for line in self.body._lines:
                 if not isinstance(line, str):
                     if inside_r_loop:
+                        if (
+                            isinstance(line, ReductionIndexAssignmentLine)
+                            and line.index_name in superseded_reduction_index_names(
+                                reduction_pass, generated_indices
+                            )
+                        ):
+                            continue
                         from torch._inductor.codegen.common import DeferredLineBase
                         if isinstance(line, DeferredLineBase):
                             new_lines.append(line.with_prefix(extra_indent))
@@ -4570,6 +4665,13 @@ class NPUTritonKernel(TritonKernel):
 
                 # Detect the flat r-loop start
                 if not inside_r_loop and _is_flat_rloop_header(stripped, prefix):
+                    try:
+                        reduction_pass = reduction_passes[pass_index]
+                        pass_index += 1
+                    except IndexError as exc:
+                        raise RuntimeError(
+                            f"missing reduction-pass metadata for {prefix}"
+                        ) from exc
                     cur_indent = indent
                     for onode in outer_nodes:
                         olen_str = _len_str(onode.length, onode)
@@ -4580,39 +4682,22 @@ class NPUTritonKernel(TritonKernel):
                     continue
 
                 if inside_r_loop:
+                    if stripped.startswith(f"{prefix}index = "):
+                        new_lines.append(f"{extra_indent}{line}")
+                        new_lines.append(
+                            f"{indent}{extra_indent}{inner_name} = {prefix}index"
+                        )
+                        new_lines.extend(
+                            render_reduction_index_aliases(
+                                reduction_pass,
+                                self.index_to_str,
+                                indent + extra_indent,
+                            )
+                        )
+                        continue
                     # Replace: r0_mask = r0_index < r0_numel
                     if f"{prefix}mask = {prefix}index < " in stripped:
                         new_lines.append(f"{indent}{extra_indent}{prefix}mask = {prefix}index < {inner_len_str}")
-                        continue
-                    # Replace: r0_1 = (r0_index % N) → r0_1 = r0_index
-                    if f"{inner_name} = " in stripped and "%" in stripped:
-                        new_lines.append(f"{indent}{extra_indent}{inner_name} = {prefix}index")
-                        continue
-                    # Rewrite a folded flat reduction node assignment
-                    # (`r0_3 = r0_index`) into its sub-axis decomposition
-                    # (`r0_3 = r0_1 + 32*r0_2`) so downstream loads that index
-                    # by the flat node stay valid now that it is no longer an
-                    # independent outer loop.
-                    _flat_subs = getattr(self, "_npu_flat_rnode_subs", None)
-                    if _flat_subs:
-                        _fname = stripped.split(" = ", 1)[0] if " = " in stripped else None
-                        if _fname in _flat_subs:
-                            new_lines.append(f"{indent}{extra_indent}{_fname} = {_flat_subs[_fname]}")
-                            continue
-                    # Remove outer-node decomposition assignments: any
-                    # `r0_2 = ...r0_index...` (with `//`, `%`, or simplified
-                    # mixes) — the Python loop iterator already provides
-                    # this scalar value, so the tensor decomposition would
-                    # shadow it and break loop-carried-variable type checks.
-                    skip = False
-                    for onode in outer_nodes:
-                        if (
-                            f"{onode.name} = " in stripped
-                            and f"{prefix}index" in stripped
-                        ):
-                            skip = True
-                            break
-                    if skip:
                         continue
                     # All other lines inside the loop get extra indent
                     new_lines.append(f"{extra_indent}{line}")
@@ -4621,6 +4706,11 @@ class NPUTritonKernel(TritonKernel):
                 new_lines.append(line)
 
             self.body._lines = new_lines
+            if pass_index != len(reduction_passes):
+                raise RuntimeError(
+                    f"reduction-pass metadata for {prefix} has no emitted loop: "
+                    f"{[p.scope_id for p in reduction_passes[pass_index:]]}"
+                )
             return
 
         tree = r_info['tree']
@@ -4642,39 +4732,22 @@ class NPUTritonKernel(TritonKernel):
         # direct variable references from the nested loop structure.
         new_indexing = IndentedBuffer()
         inner_name = inner_node.name
+        reduction_pass = self._record_reduction_loop_pass()
+        generated_indices = (inner_name,) + tuple(
+            node.name for node in outer_nodes
+        )
         for line in self.indexing_code._lines:
+            if (
+                isinstance(line, ReductionIndexAssignmentLine)
+                and line.index_name in superseded_reduction_index_names(
+                    reduction_pass, generated_indices
+                )
+            ):
+                continue
             if not isinstance(line, str):
                 new_indexing._lines.append(line)
                 continue
-            stripped = line.strip()
-            skip = False
-            # Replace r0_1 = (r0_index % 256) with r0_1 = r0_1_index
-            if f"{inner_name} = " in stripped and "%" in stripped:
-                new_indexing.writeline(f"{inner_name} = {inner_name}_index")
-                skip = True
-            # Rewrite a folded flat reduction node (`r0_3 = r0_index`) into its
-            # sub-axis decomposition so loads indexing the flat node remain
-            # valid now that it is not an independent outer loop.
-            if not skip:
-                _flat_subs = getattr(self, "_npu_flat_rnode_subs", None)
-                if _flat_subs:
-                    _fname = stripped.split(" = ", 1)[0] if " = " in stripped else None
-                    if _fname in _flat_subs:
-                        new_indexing.writeline(f"{_fname} = {_flat_subs[_fname]}")
-                        skip = True
-            # Remove outer-node decomposition (with `//`, `%`, or any
-            # simplified form referencing r0_index) — defined by Python
-            # loop iterator.
-            if not skip:
-                for onode in outer_nodes:
-                    if (
-                        f"{onode.name} = " in stripped
-                        and f"{prefix}index" in stripped
-                    ):
-                        skip = True
-                        break
-            if not skip:
-                new_indexing._lines.append(line)
+            new_indexing._lines.append(line)
 
         # Emit outer scalar loops for each outer r-node
         for level, onode in enumerate(outer_nodes):
@@ -4696,20 +4769,11 @@ class NPUTritonKernel(TritonKernel):
             self.body.writeline(f"{prefix}index = {prefix}offset + {prefix}base")
             self.body.writeline(f"{prefix}mask = {prefix}index < {inner_len_str}")
             self.body.writeline(f"{inner_name}_index = {prefix}index")
-            # A folded flat reduction node's decomp references the inner node by BARE
-            # name (`r0_1 = r0_2 + 512*r0_3`). new_indexing preserves indexing_code order,
-            # where the flat node's line precedes the inner's (r0_1 before r0_2) → r0_2
-            # used before bound. Emit the bare binding HERE before new_indexing AND drop
-            # the later duplicate, so r0_2 is defined exactly once before the expansion.
-            _flat_subs_active = getattr(self, "_npu_flat_rnode_subs", None)
-            if _flat_subs_active:
-                self.body.writeline(f"{inner_name} = {inner_name}_index")
-                _dedup = IndentedBuffer()
-                for _l in new_indexing._lines:
-                    if isinstance(_l, str) and _l.strip() == f"{inner_name} = {inner_name}_index":
-                        continue
-                    _dedup._lines.append(_l)
-                new_indexing = _dedup
+            self.body.writeline(f"{inner_name} = {inner_name}_index")
+            for line in render_reduction_index_aliases(
+                reduction_pass, self.index_to_str, ""
+            ):
+                self.body.writeline(line)
 
             self.body.splice(new_indexing)
             self.body.splice(self.loads)
@@ -4727,10 +4791,10 @@ class NPUTritonKernel(TritonKernel):
         self.stores.clear()
         self.post_loop_combine.clear()
         self.post_loop_store.clear()
-        self._apply_npu_addr_text_subs()
+        self._apply_redundant_range_tree_address_substitutions()
 
-    def _apply_npu_addr_text_subs(self):
-        """Rewrite dual-decomp flat reconstructions inside load/store addresses.
+    def _apply_redundant_range_tree_address_substitutions(self):
+        """Rewrite redundant range-tree addresses to their contiguous basis.
 
         The secondary decomposition's flat reconstruction (e.g. `x2 + 16384*x3`)
         is algebraically equal to the basis flat index but, written as
@@ -4741,7 +4805,9 @@ class NPUTritonKernel(TritonKernel):
         Restricted to address lines — the dead `tmpN = x2 + ...` scalar-compute
         lines keep their original symbols. Idempotent.
         """
-        addr_subs = getattr(self, "_npu_addr_text_subs", None)
+        addr_subs = getattr(
+            self, "_npu_redundant_range_tree_address_substitutions", None
+        )
         if not addr_subs:
             return
         from torch._inductor.utils import DeferredLineBase
@@ -6113,6 +6179,12 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
 
         inner_len_str = _len_str(inner_len, inner_node)
         extra_indent = "    " * len(outer_nodes)
+        reduction_passes = tuple(kernel._reduction_loop_passes_for_prefix(prefix))
+        reduction_pass = None
+        pass_index = 0
+        generated_indices = (inner_name,) + tuple(
+            node.name for node in outer_nodes
+        )
 
         new_lines = []
         inside_r_loop = False
@@ -6120,6 +6192,13 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
         for line in kernel.body._lines:
             if not isinstance(line, str):
                 if inside_r_loop:
+                    if (
+                        isinstance(line, ReductionIndexAssignmentLine)
+                        and line.index_name in superseded_reduction_index_names(
+                            reduction_pass, generated_indices
+                        )
+                    ):
+                        continue
                     from torch._inductor.codegen.common import DeferredLineBase
                     if isinstance(line, DeferredLineBase):
                         new_lines.append(line.with_prefix(extra_indent))
@@ -6132,6 +6211,13 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
             indent = line[:len(line) - len(line.lstrip())] if stripped else ""
 
             if not inside_r_loop and _is_flat_rloop_header(stripped, prefix):
+                try:
+                    reduction_pass = reduction_passes[pass_index]
+                    pass_index += 1
+                except IndexError as exc:
+                    raise RuntimeError(
+                        f"missing reduction-pass metadata for {prefix}"
+                    ) from exc
                 loop_indent = indent
                 cur_indent = indent
                 for onode in outer_nodes:
@@ -6148,31 +6234,21 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                     inside_r_loop = False
                     new_lines.append(line)
                     continue
+                if stripped.startswith(f"{prefix}index = "):
+                    new_lines.append(f"{extra_indent}{line}")
+                    new_lines.append(
+                        f"{indent}{extra_indent}{inner_name} = {prefix}index"
+                    )
+                    new_lines.extend(
+                        render_reduction_index_aliases(
+                            reduction_pass,
+                            kernel.index_to_str,
+                            indent + extra_indent,
+                        )
+                    )
+                    continue
                 if f"{prefix}mask = {prefix}index < " in stripped:
                     new_lines.append(f"{indent}{extra_indent}{prefix}mask = {prefix}index < {inner_len_str}")
-                    continue
-                if f"{inner_name} = " in stripped and "%" in stripped:
-                    new_lines.append(f"{indent}{extra_indent}{inner_name} = {prefix}index")
-                    continue
-                # Rewrite a folded flat reduction node assignment
-                # (`r0_3 = r0_index`) into its sub-axis decomposition so loads
-                # indexing by the flat node stay valid (see _apply_linearize's
-                # reduction flat-node fold).
-                _flat_subs = getattr(kernel, "_npu_flat_rnode_subs", None)
-                if _flat_subs:
-                    _fname = stripped.split(" = ", 1)[0] if " = " in stripped else None
-                    if _fname in _flat_subs:
-                        new_lines.append(f"{indent}{extra_indent}{_fname} = {_flat_subs[_fname]}")
-                        continue
-                skip = False
-                for onode in outer_nodes:
-                    if (
-                        f"{onode.name} = " in stripped
-                        and ("//" in stripped or "%" in stripped)
-                    ):
-                        skip = True
-                        break
-                if skip:
                     continue
                 new_lines.append(f"{extra_indent}{line}")
                 continue
@@ -6180,6 +6256,11 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
             new_lines.append(line)
 
         kernel.body._lines = new_lines
+        if pass_index != len(reduction_passes):
+            raise RuntimeError(
+                f"reduction-pass metadata for {prefix} has no emitted loop: "
+                f"{[p.scope_id for p in reduction_passes[pass_index:]]}"
+            )
 
     @staticmethod
     def _npu_order_trees_by_stride(kernel):
@@ -6319,16 +6400,16 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
         # contiguous-axis-innermost invariant the divisor sort sets up.
         kernel._npu_tile_permuted = True
 
-    def _fold_dual_decomp(self, kernel, tree, tree_expr, tree_node_mapping, matcher):
-        """Collapse a secondary full divisor-chain decomposition onto the basis.
+    def _fold_redundant_range_tree_decomposition(
+        self, kernel, tree, tree_expr, tree_node_mapping, matcher
+    ):
+        """Collapse redundant divisor-chain decompositions onto the basis.
 
         See the call site (NPU_FOLD_DUAL_DECOMP) for the data-layout rationale.
-        Maps every node of the *other* complete chain to div/mod of the basis
-        flat index (added to tree_node_mapping + matcher so it stops being an
-        independent axis), and registers an address-text substitution that
-        rewrites the other chain's flat-reconstruction (e.g. `x2 + 16384*x3`)
-        back to the basis flat text (`x0 + 128*x1`) inside emitted load/store
-        addresses — keeping the access a contiguous burst.
+        A redundant chain can cover the full tree or a span between two basis
+        boundaries. Map its nodes to the basis coordinates so they stop being
+        independent tile axes. For a complete secondary chain, also rewrite its
+        flat address reconstruction to the basis form to keep accesses contiguous.
         """
         sizevars = V.graph.sizevars
         free_nodes = [n for n in tree.nodes.values()
@@ -6357,11 +6438,63 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
             return ns
 
         basis_sorted = _complete_chain(basis_chain)
-        other_sorted = _complete_chain(other_chain)
-        # Only fold a genuine dual decomposition: the basis covers the whole
-        # space on its own AND a second disjoint chain also covers it.
-        if not (basis_sorted and other_sorted):
+        if not basis_sorted or not other_chain:
             return
+
+        def _statically_equal(lhs, rhs):
+            return sizevars.statically_known_equals(lhs, rhs)
+
+        # A second view need not decompose the entire iteration space.  BigBird,
+        # for example, shares the outer [48, 16] axes with the basis and only
+        # represents the inner 4096 elements differently: one view has x0=4096,
+        # the other has x3=64, x5=64.  Treat an alternate chain as redundant when
+        # it starts and ends on boundaries of the complete basis chain.  This is
+        # an exact range-tree relation, not a generated-source pattern match.
+        basis_boundaries = [node.divisor for node in basis_sorted]
+        basis_boundaries.append(
+            basis_sorted[-1].divisor * basis_sorted[-1].length
+        )
+
+        redundant_names = set()
+
+        def _find_basis_boundary(expr):
+            return next(
+                (
+                    boundary
+                    for boundary in basis_boundaries
+                    if _statically_equal(expr, boundary)
+                ),
+                None,
+            )
+
+        # Find contiguous paths through the non-basis nodes.  A path whose two
+        # endpoints are basis boundaries is an alternate decomposition of that
+        # exact basis span.  Search all paths because two fused views can leave
+        # more than one independent alternate span in the same range tree.
+        def _collect_redundant_span_nodes(start, current, path):
+            for node in other_chain:
+                if node.name in path or not _statically_equal(
+                    node.divisor, current
+                ):
+                    continue
+                next_path = path + (node.name,)
+                end = node.divisor * node.length
+                boundary = _find_basis_boundary(end)
+                if boundary is not None and not _statically_equal(boundary, start):
+                    redundant_names.update(next_path)
+                else:
+                    _collect_redundant_span_nodes(start, end, next_path)
+
+        for boundary in basis_boundaries[:-1]:
+            _collect_redundant_span_nodes(boundary, boundary, ())
+
+        if not redundant_names:
+            return
+
+        other_sorted = sorted(
+            (node for node in other_chain if node.name in redundant_names),
+            key=lambda node: sizevars.optimization_hint(node.divisor),
+        )
 
         def _chain_flat(nodes):
             terms = []
@@ -6380,22 +6513,55 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
 
         # Map each secondary node to div/mod of the basis flat index.
         for o in other_sorted:
-            is_top = sizevars.statically_known_equals(o.divisor * o.length, tree.numel)
-            if is_top:
-                node_expr = flat_expr if isinstance(o.divisor, (int, sympy.Integer)) and int(o.divisor) == 1 else FloorDiv(flat_expr, o.divisor)  # noqa: B950
+            span_start = o.divisor
+            span_end = o.divisor * o.length
+            segment = []
+            cursor = span_start
+            for basis_node in basis_sorted:
+                basis_start = basis_node.divisor
+                basis_end = basis_node.divisor * basis_node.length
+                if _statically_equal(
+                    basis_start, cursor
+                ) and not _statically_equal(cursor, span_end):
+                    segment.append(basis_node)
+                    cursor = basis_end
+            if segment and _statically_equal(cursor, span_end):
+                # The alternate coordinate is exactly a contiguous group of
+                # basis digits.  Render the local mixed-radix expression (for
+                # BigBird: x0 = x3 + 64*x5) and avoid a full-index div/mod.
+                node_expr = sympy.Integer(0)
+                for basis_node in segment:
+                    relative_divisor = sizevars.simplify(
+                        basis_node.divisor / span_start
+                    )
+                    node_expr += sympy.Symbol(basis_node.name) * relative_divisor
+                node_expr = sizevars.simplify(node_expr)
+            elif _statically_equal(span_end, tree.numel):
+                node_expr = (
+                    flat_expr
+                    if _statically_equal(o.divisor, sympy.Integer(1))
+                    else FloorDiv(flat_expr, o.divisor)
+                )
             else:
                 node_expr = ModularIndexing(flat_expr, o.divisor, o.length)
             tree_node_mapping[o.name] = node_expr
             matcher[f"{o.name} = {o.name}index"] = f"{o.name} = {node_expr}"
 
-        # Address-text fix: rewrite the secondary chain's flat reconstruction
-        # back to the basis flat text on load/store address lines, so the access
-        # stays contiguous instead of degrading to a div+mod scatter.
-        if recon_text != flat_text:
-            addr_subs = getattr(kernel, "_npu_addr_text_subs", None)
+        # Address-text fix for the original full dual-decomposition case: rewrite
+        # the secondary chain's complete flat reconstruction back to the basis
+        # text so the access stays contiguous.  A partial alternate span (such as
+        # x0 = x3 + 64*x5) is already emitted as a direct structured alias and has
+        # no complete secondary address expression to replace.
+        full_other = _complete_chain(other_sorted)
+        if full_other and recon_text != flat_text:
+            addr_subs = getattr(
+                kernel,
+                "_npu_redundant_range_tree_address_substitutions",
+                None,
+            )
             if addr_subs is None:
                 addr_subs = {}
-                kernel._npu_addr_text_subs = addr_subs
+                kernel._npu_redundant_range_tree_address_substitutions = addr_subs
             addr_subs[recon_text] = flat_text
 
 
@@ -6438,7 +6604,7 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
         if len(free_nodes) < 2:
             return False
 
-        def _same(lhs, rhs):
+        def _statically_equal(lhs, rhs):
             if sizevars.statically_known_equals(lhs, rhs):
                 return True
             try:
@@ -6456,11 +6622,11 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
 
         def _walk(chain, expected):
             for node in free_nodes:
-                if node in chain or not _same(node.divisor, expected):
+                if node in chain or not _statically_equal(node.divisor, expected):
                     continue
                 next_expected = node.divisor * node.length
                 next_chain = chain + [node]
-                if _same(next_expected, tree.numel):
+                if _statically_equal(next_expected, tree.numel):
                     chains.append(next_chain)
                     continue
                 _walk(next_chain, next_expected)
@@ -6491,10 +6657,10 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
             if node.name in basis_names:
                 continue
             divisor = node.divisor
-            if _same(divisor * node.length, tree.numel):
+            if _statically_equal(divisor * node.length, tree.numel):
                 node_expr = (
                     flat_expr
-                    if _same(divisor, sympy.Integer(1))
+                    if _statically_equal(divisor, sympy.Integer(1))
                     else FloorDiv(flat_expr, divisor)
                 )
             else:
@@ -6508,19 +6674,12 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
         if not mapped:
             return False
 
-        flat_subs = getattr(kernel, "_npu_flat_rnode_subs", None)
-        if flat_subs is None:
-            flat_subs = {}
-            kernel._npu_flat_rnode_subs = flat_subs
+        aliases = getattr(tree, "_npu_reduction_index_alias_exprs", None)
+        if aliases is None:
+            aliases = {}
+            tree._npu_reduction_index_alias_exprs = aliases
         for name in mapped:
-            renamed_expr = kernel.rename_indexing(tree_node_mapping[name])
-            flat_subs[name] = kernel.kexpr(renamed_expr)
-
-        recon_nodes = getattr(tree, "_npu_split_recon_nodes", None)
-        if recon_nodes is None:
-            recon_nodes = set()
-            tree._npu_split_recon_nodes = recon_nodes
-        recon_nodes.update(mapped)
+            aliases[name] = tree_node_mapping[name]
         return True
 
     def _apply_linearize(self, kernel, node_schedule):
@@ -6606,6 +6765,14 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                     for index_i, size_i in zip(index_var, var_range):
                         length = sympy.Integer(1)
                         name = str(index_i)
+                        # Only range-tree entries are legal mapping targets.
+                        # A fused/permuted schedule may expose a composite index
+                        # here (for example ``x3 + 64*y0`` spanning two trees).
+                        # Recording that expression as a mapping key later makes
+                        # the header emit it as an assignment LHS.  It is not an
+                        # alias and cannot be folded within this tree.
+                        if name not in tree.nodes:
+                            continue
                         for ind in range(start, len(tree_expr[0])):
                             length *= tree_expr[1][ind]
                             if V.graph.sizevars.statically_known_equals(length, size_i):
@@ -6703,7 +6870,7 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                 and not tree.is_reduction
                 and ncfg.fold_dual_decomp
             ):
-                self._fold_dual_decomp(
+                self._fold_redundant_range_tree_decomposition(
                     kernel, tree, tree_expr, tree_node_mapping, matcher,
                 )
 
@@ -6747,27 +6914,16 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                             if chain_ok:
                                 node_expr = self._flat_node_expr(others_sorted)
                                 tree_node_mapping[flat_node.name] = node_expr
-                                # Flat node is assigned `r0_3 = r0_index` (prefix-level),
-                                # so record the sub for codegen_body to rewrite into
-                                # `r0_3 = <decomp expr>`. Render via rename_indexing so
-                                # symbolic divisors map to arg names (ks0), else str()
-                                # yields the raw size symbol (s70) → NameError.
-                                flat_subs = getattr(kernel, "_npu_flat_rnode_subs", None)
-                                if flat_subs is None:
-                                    flat_subs = {}
-                                    kernel._npu_flat_rnode_subs = flat_subs
-                                renamed_expr = kernel.rename_indexing(node_expr)
-                                flat_subs[flat_node.name] = kernel.kexpr(renamed_expr)
-                                # Tag as a split/fold RECONSTRUCTION alias so rtree
-                                # promotion allows this tree (mapped node rebuilds from
-                                # free sub-node aranges, not deleted r0_index); else the
-                                # mapping-guard rejects it into nested scalar loops. The
-                                # dual-decomp guard still gates unpromotable shapes.
-                                recon_nodes = getattr(tree, "_npu_split_recon_nodes", None)
-                                if recon_nodes is None:
-                                    recon_nodes = set()
-                                    tree._npu_split_recon_nodes = recon_nodes
-                                recon_nodes.add(flat_node.name)
+                                # Preserve the reconstructed flat node in the
+                                # range-tree IR.  The pass plan suppresses the
+                                # original range-tree assignment structurally.
+                                aliases = getattr(
+                                    tree, "_npu_reduction_index_alias_exprs", None
+                                )
+                                if aliases is None:
+                                    aliases = {}
+                                    tree._npu_reduction_index_alias_exprs = aliases
+                                aliases[flat_node.name] = node_expr
 
             tree.tree_node_mapping = tree_node_mapping
 
@@ -6784,6 +6940,34 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
         if ncfg.collapse_xtree and kernel.inside_reduction:
             with V.set_kernel_handler(kernel):
                 self._collapse_rowmajor_xtrees(kernel, matcher)
+
+        # Bind reduction index aliases after all range-tree folds are complete.
+        # Existing passes were recorded when disable_reduction() flushed them;
+        # a final pending pass inherits the plan when codegen_body() records it.
+        # Scope validation uses surviving tree nodes and symbolic size arguments,
+        # never generated Triton source.
+        for tree in kernel.range_trees:
+            expressions = getattr(
+                tree, "_npu_reduction_index_alias_exprs", {}
+            ) or {}
+            if not expressions:
+                continue
+            mapping = getattr(tree, "tree_node_mapping", {}) or {}
+            defined = {
+                node.name
+                for node in tree.nodes.values()
+                if node.name not in mapping
+            }
+            for expr in expressions.values():
+                defined.update(
+                    symbol
+                    for symbol in expr.free_symbols
+                    if symbol_is_type(
+                        symbol,
+                        (SymT.SIZE, SymT.PRECOMPUTED_SIZE, SymT.UNBACKED_INT),
+                    )
+                )
+            kernel._bind_reduction_index_alias_plan(tree, defined)
 
         # R-tree real-block promotion (rtree_real_block): per tree, decide if free sub-nodes
         # each become a REAL tile dim (real_block_rN) vs nested scalar loops → multi-dim
@@ -6840,13 +7024,11 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                           if n.name not in mapping]
                 if len(free_r) < 2:
                     continue
-                # Mapped-node (dual-VIEW) guard: promotion deletes the flat r0_index
-                # scaffolding, so a mapped alias ``r0_3 = r0_index`` dangles → NameError.
-                # EXCEPTION: split RECONSTRUCTION aliases (``r0_1 = r0_2 + ks0*r0_3``)
-                # reference free sub-nodes promotion DOES emit, so they reconstruct
-                # inside the body. Allow when every mapped node is such a recon.
-                recon_nodes = getattr(tree, "_npu_split_recon_nodes", None) or set()
-                if mapping and not all(nm in recon_nodes for nm in mapping):
+                # Promotion removes the flat r0_index scaffold.  It is only valid
+                # when every mapped reduction node has a structured reconstruction
+                # expression over surviving range-tree nodes.
+                aliases = getattr(tree, "_npu_reduction_index_alias_exprs", {}) or {}
+                if mapping and not all(nm in aliases for nm in mapping):
                     continue
                 free_sorted = sorted(free_r, key=_rdiv_key, reverse=True)
                 is_dynamic = any(
@@ -7388,6 +7570,8 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                         real_sizes[dim_idx] = f"{tree.prefix.upper()}BLOCK"
                         dim_idx += 1
         real_dense_size = f"[{', '.join(real_sizes)}]"
+        old_singleton_size = f"[{', '.join(['1'] * orig_ndim)}]"
+        real_singleton_size = f"[{', '.join(['1'] * real_ndim)}]"
         # R-tree's actual slot. If the hook pushed it to an outer slot, upstream's
         # tl.sum(_, ndim-nreduce) still assumes last-dim; rewrite the dim arg to match.
         # real_reduction_dim = where R lives; old_reduction_dim = what upstream emitted.
@@ -7446,6 +7630,20 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                 if needs_fixup:
                     if old_dense_size in _get():
                         _set(_get().replace(old_dense_size, real_dense_size))
+                    # Constants are emitted while the kernel still has one slot
+                    # per range tree.  Splitting a tree into several register
+                    # axes changes the final rank without changing a constant's
+                    # singleton extent.  Preserve shaped-constant semantics, but
+                    # extend its singleton shape to the final rank so consumers
+                    # and stores can broadcast it against the linearized tile.
+                    if (
+                        orig_ndim != real_ndim
+                        and f"tl.full({old_singleton_size}," in _get()
+                    ):
+                        _set(_get().replace(
+                            f"tl.full({old_singleton_size},",
+                            f"tl.full({real_singleton_size},",
+                        ))
                     if (not _promoted_any) and old_slice in _get() and f", {old_reduction_dim})" in _get():
                         _set(_get().replace(
                             f", {old_reduction_dim})", f", {real_reduction_dim})"
