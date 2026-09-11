@@ -243,6 +243,8 @@ def copy_hpp():
             "torch_npu/csrc/inductor/**/*.h",
             "torch_npu/csrc/distributed/*.h",
             "torch_npu/csrc/distributed/*.hpp",
+            "third_party/acl/inc/*/*.h",
+            "third_party/acl/inc/*/*/*.h",
             "third_party/hccl/inc/*/*.h",
         ]
         glob_header_files = []
@@ -270,22 +272,6 @@ def copy_hpp():
             )
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             ret.append((src, dst))
-
-            # Preserve legacy include paths with forwarding headers, not duplicate ACL headers.
-            compat_header = os.path.join(
-                BASE_DIR, "build", "acl_compat_headers", relative_header
-            )
-            os.makedirs(os.path.dirname(compat_header), exist_ok=True)
-            relative_include = relative_header.replace(os.sep, "/")
-            with open(compat_header, "w", encoding="utf-8", newline="\n") as file:
-                file.write(f"#pragma once\n#include <{relative_include}>\n")
-            compat_dst = os.path.join(
-                BASE_DIR,
-                "libtorch_npu/include/third_party/acl/inc",
-                relative_header,
-            )
-            os.makedirs(os.path.dirname(compat_dst), exist_ok=True)
-            ret.append((compat_header, compat_dst))
 
         return ret
     ret = get_src_py_and_dst()
