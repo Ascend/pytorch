@@ -57,8 +57,15 @@ class LocalTensorTestBase(TestCase):
 
 
 class LocalTensorRankTest(LocalTensorTestBase):
+    major, minor = map(int, torch.__version__.split('.')[:2])
+    flag = False
+    if (major, minor) >= (2, 14):
+        flag = True
+
     def setUp(self):
         super().setUp()
+        if self.flag:
+            self._current_rank = 0
 
     def tearDown(self):
         super().tearDown()
@@ -78,6 +85,8 @@ class LocalTensorRankTest(LocalTensorTestBase):
                 torch.distributed.init_process_group(
                     "fake", rank=rank, world_size=self.world_size
                 )
+                if self.flag:
+                    self._current_rank = rank
             original_test()
 
         setattr(self, test_name, rank_loop_wrapper)
@@ -86,7 +95,10 @@ class LocalTensorRankTest(LocalTensorTestBase):
     @property
     def rank(self):
         assert dist.is_initialized(), "Process group is not initialized!"
-        return dist.get_rank()
+        if self.flag:
+            return self._current_rank
+        else:
+            return dist.get_rank()
 
 
 class LocalTensorWorldTest(LocalTensorTestBase):
