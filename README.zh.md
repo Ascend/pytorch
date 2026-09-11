@@ -20,16 +20,16 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white" alt="version">
-  <img src="https://img.shields.io/badge/C++-00599C?style=flat&logo=cplusplus&logoColor=white" alt="rust">
+  <img src="https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/C++-00599C?style=flat&logo=cplusplus&logoColor=white" alt="C++">
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-BSD--3--clause-8A2BE2" alt="license"></a>
   <a href="https://pypi.org/project/torch-npu/"><img src="https://img.shields.io/pypi/v/torch-npu?label=PyPI&color=blue" alt="pypi"></a>
   <img src="https://img.shields.io/badge/Platform-Ascend%20NPU-C31D20" alt="platform">
-  <a href="https://gitcode.com/Ascend/pytorch"><img src="https://img.shields.io/badge/Repo-blue?labelColor=white&logo=gitcode&logoColor=D71D3A" alt="license"></a>
-  <a href="https://github.com/Ascend/pytorch"><img src="https://img.shields.io/badge/Mirror%20Repo-blue?labelColor=white&logo=github&logoColor=black" alt="license"></a>
+  <a href="https://gitcode.com/Ascend/pytorch"><img src="https://img.shields.io/badge/Repo-blue?labelColor=white&logo=gitcode&logoColor=D71D3A" alt="GitCode repository"></a>
+  <a href="https://github.com/Ascend/pytorch"><img src="https://img.shields.io/badge/Mirror%20Repo-blue?labelColor=white&logo=github&logoColor=black" alt="GitHub mirror"></a>
   <img src="https://gitcode.com/Ascend/pytorch/star/badge.svg" alt="GitCode Star"/>
   <img src="https://gitcode.com/Ascend/pytorch/download/badge.svg" alt="download">
-  <!-- <img src="https://github.com/Ascend/pytorch/actions/workflows/pytorch_ci_trigger.yml/badge.svg" alt="ci"> -->
+  <a href="https://github.com/Ascend/pytorch/actions/workflows/pytorch_ci_trigger_pr.yml"><img src="https://github.com/Ascend/pytorch/actions/workflows/pytorch_ci_trigger_pr.yml/badge.svg" alt="PyTorch Upstream CI"></a>
 </p>
 
 ---
@@ -51,7 +51,7 @@ TorchNPU 充分继承和复用上游 PyTorch 的大量成熟功能，并在此�
 **TorchNPU 主要模块介绍：**
 
 - **基础计算：** 广泛支持 PyTorch 原生 API 及自定义 API，覆盖主流AI场景，提供一致性体验，支撑用户快速实现模型和算法。
-- **分布式：** 支持通过 FSDP2 加速分布式训练，核心计算 API 支持 Dtensor，支持 AllGather、AllReduce、AllToAll 等集合通信原语，和 Send、Recv 等点对点通信原语。
+- **分布式：** 支持通过 FSDP2 加速分布式训练，核心计算 API 支持 DTensor，支持 AllGather、AllReduce、AllToAll 等集合通信原语，和 Send、Recv 等点对点通信原语。
 - **图模式：** 通过“动态图捕获+静态图优化+高效代码生成”的方式显著加速模型训练和推理任务，并支持通过 NPUGraph 下沉执行，在 2.6.0 以上版本已支持。
 - **调试调优：** 支持 Profiling 分析计算、通信和内存使用，支持通过 WatchDog 实时监控分析通信异常。
 - **TorchNPU Core：** 支持虚拟内存管理降低内存碎片，在分布式场景支持跨流内存复用优化，通过 PrivateUse1 将算子和设备资源接入 PyTorch。
@@ -71,26 +71,26 @@ TorchNPU 充分继承和复用上游 PyTorch 的大量成熟功能，并在此�
 
 ### 软件包安装
 
-以安装 TorchNPU 2.10.0.post2 版本为例，请按照以下命令进行安装。下载其他版本的方式请参见社区下载页面 [TorchNPU 下载](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download)。
+以安装 TorchNPU 2.12.0 版本为例，请按照以下命令进行安装。下载其他版本的方式请参见社区下载页面 [TorchNPU 下载](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download)。
 
 #### 安装 CANN
 
-安装 9.0.0 版本的 CANN，具体步骤请参见 [CANN 安装指南](https://www.hiascend.com/cann/download)。
+安装 CANN 9.1.0 及与硬件配套的 NPU 驱动和固件，并按照[版本配套](./COMPATIBILITY.md)选择兼容的 Python 版本。具体步骤请参见 [CANN 安装指南](https://www.hiascend.com/cann/download)。
 
 #### 安装 PyTorch
 
-执行以下命令安装 PyTorch 2.10.0：
+执行以下命令安装 PyTorch 2.12.0：
 
 ```bash
-pip install torch==2.10.0 --index-url https://download.pytorch.org/whl/cpu
+pip install torch==2.12.0 --index-url https://download.pytorch.org/whl/cpu
 ```
 
 #### 安装 TorchNPU
 
-执行以下命令安装 TorchNPU 2.10.0.post2：
+执行以下命令安装 TorchNPU 2.12.0：
 
 ```bash
-pip install torch-npu==2.10.0.post2
+pip install torch-npu==2.12.0
 ```
 
 ### 源码编译安装
@@ -103,7 +103,7 @@ pip install torch-npu==2.10.0.post2
 
 ```shell
 # 默认路径，请根据实际安装位置修改
-source /usr/local/Ascend/ascend-toolkit/set_env.sh
+source /usr/local/Ascend/cann/set_env.sh
 ```
 
 ### 运行示例
@@ -131,14 +131,15 @@ tensor([[-0.0515,  0.3664],
 
 ## 社区交流
 
-Ascend for PyTorch 社区由多个 Special Interest Groups（SIGs）组成，每个 SIG 负责特定技术领域的开发、维护和社区协作。以下是当前所有 SIG 的列表，点击对应链接可查看详细说明。
+Ascend for PyTorch 社区由技术委员会（Technical Committee，TC）统筹管理，下设多个特别兴趣小组（Special Interest Groups，SIGs），各 SIG 负责特定技术领域的开发、维护和社区协作。以下是 TC 和当前各 SIG 的介绍，点击对应链接可查看详细说明。
 
-|      SIG名称      | 简要描述                                                                                                   |                                               链接                                                |
+|    TC / SIG名称   | 简要描述                                                                                                   |                                               链接                                                |
 |:---------------:|:-------------------------------------------------------------------------------------------------------|:-----------------------------------------------------------------------------------------------:|
-|    Core SIG     | 聚焦于昇腾 NPU 平台上的 PyTorch 核心适配层开发，负责 `TorchNPU` 扩展库及其算子插件 `OpPlugin` 的设计、实现与维护。                           |    [🔗 了解更多](https://gitcode.com/Ascend/community/tree/master/FrameworkPTAdapter/sigs/core)     |
-| Distributed SIG | 致力于在昇腾 NPU 硬件底座上，围绕 PyTorch 分布式训练框架（torch.distributed）构建高效、易用、可扩展的并行训练能力，为大语言模型、多模态模型和强化学习等场景提供极致性能体验。 | [🔗 了解更多](https://gitcode.com/Ascend/community/tree/master/FrameworkPTAdapter/sigs/distributed) |
-| Graph Mode SIG  | 聚焦于 Dynamo、Inductor、NPUGraph等核心技术，旨在通过自动化的图捕捉与编译优化技术，弥合“易用性”与“高性能”之间的鸿沟。                               | [🔗 了解更多](https://gitcode.com/Ascend/community/tree/master/FrameworkPTAdapter/sigs/graph-mode)  |
-|  Usability SIG  | 致力于推动Ascend for PyTorch易用性体验提升，包含文档、教程、案例等。                                                            |  [🔗 了解更多](https://gitcode.com/Ascend/community/tree/master/FrameworkPTAdapter/sigs/usability)  |
+|       TC        | 负责 Ascend for PyTorch 项目的技术方向与重大技术方案决策、SIG 治理及版本发布评审。 | [🔗 了解更多](https://gitcode.com/Ascend/community/blob/master/AscendForPyTorch/README.md) |
+|    Core SIG     | 聚焦于昇腾 NPU 平台上的 PyTorch 核心适配层开发，负责 `TorchNPU` 扩展库及其算子插件 `OpPlugin` 的设计、实现与维护。                           |    [🔗 了解更多](https://gitcode.com/Ascend/community/tree/master/AscendForPyTorch/sigs/core)     |
+| Distributed SIG | 致力于在昇腾 NPU 硬件底座上，围绕 PyTorch 分布式训练框架（torch.distributed）构建高效、易用、可扩展的并行训练能力，为大语言模型、多模态模型和强化学习等场景提供极致性能体验。 | [🔗 了解更多](https://gitcode.com/Ascend/community/tree/master/AscendForPyTorch/sigs/distributed) |
+| Graph Mode SIG  | 聚焦于 Dynamo、Inductor、NPUGraph等核心技术，旨在通过自动化的图捕捉与编译优化技术，弥合“易用性”与“高性能”之间的鸿沟。                               | [🔗 了解更多](https://gitcode.com/Ascend/community/tree/master/AscendForPyTorch/sigs/graph-mode)  |
+|  Usability SIG  | 致力于推动Ascend for PyTorch易用性体验提升，包含文档、教程、案例等。                                                            |  [🔗 了解更多](https://gitcode.com/Ascend/community/tree/master/AscendForPyTorch/sigs/usability)  |
 
 每个SIG都有自己的例会、邮件列表和贡献指南。点击对应的SIG链接可查看详细联系方式、工作目标及参与方式。欢迎大家为社区做贡献。如果有任何疑问或建议，请提交 [GitCode Issues](https://gitcode.com/Ascend/pytorch/issues)，我们会尽快回复。感谢您的支持。
 

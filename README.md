@@ -20,16 +20,16 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white" alt="version">
-  <img src="https://img.shields.io/badge/C++-00599C?style=flat&logo=cplusplus&logoColor=white" alt="rust">
+  <img src="https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/C++-00599C?style=flat&logo=cplusplus&logoColor=white" alt="C++">
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-BSD--3--clause-8A2BE2" alt="license"></a>
   <a href="https://pypi.org/project/torch-npu/"><img src="https://img.shields.io/pypi/v/torch-npu?label=PyPI&color=blue" alt="pypi"></a>
   <img src="https://img.shields.io/badge/Platform-Ascend%20NPU-C31D20" alt="platform">
-  <a href="https://gitcode.com/Ascend/pytorch"><img src="https://img.shields.io/badge/Repo-blue?labelColor=white&logo=gitcode&logoColor=D71D3A" alt="license"></a>
-  <a href="https://github.com/Ascend/pytorch"><img src="https://img.shields.io/badge/Mirror%20Repo-blue?labelColor=white&logo=github&logoColor=black" alt="license"></a>
+  <a href="https://gitcode.com/Ascend/pytorch"><img src="https://img.shields.io/badge/Repo-blue?labelColor=white&logo=gitcode&logoColor=D71D3A" alt="GitCode repository"></a>
+  <a href="https://github.com/Ascend/pytorch"><img src="https://img.shields.io/badge/Mirror%20Repo-blue?labelColor=white&logo=github&logoColor=black" alt="GitHub mirror"></a>
   <img src="https://gitcode.com/Ascend/pytorch/star/badge.svg" alt="GitCode Star"/>
   <img src="https://gitcode.com/Ascend/pytorch/download/badge.svg" alt="download">
-  <!-- <img src="https://github.com/Ascend/pytorch/actions/workflows/pytorch_ci_trigger.yml/badge.svg" alt="ci"> -->
+  <a href="https://github.com/Ascend/pytorch/actions/workflows/pytorch_ci_trigger_pr.yml"><img src="https://github.com/Ascend/pytorch/actions/workflows/pytorch_ci_trigger_pr.yml/badge.svg" alt="PyTorch Upstream CI"></a>
 </p>
 
 ---
@@ -71,26 +71,26 @@ For the compatibility matrix of released packages (TorchNPU / PyTorch / CANN / P
 
 ### From Binary
 
-Take installing TorchNPU 2.10.0.post2 as an example. Run the following commands for installation. For other versions, please refer to the community download page: [TorchNPU Download](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download).
+Take installing TorchNPU 2.12.0 as an example. Run the following commands for installation. For other versions, please refer to the community download page: [TorchNPU Download](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download).
 
 #### Install CANN
 
-Install CANN 9.0.0. For detailed steps, please refer to the [CANN Installation Guide](https://www.hiascend.com/cann/download).
+Install CANN 9.1.0 and the NPU driver and firmware matching your hardware. Use a compatible Python version from the [compatibility matrix](./COMPATIBILITY.en.md). For detailed steps, please refer to the [CANN Installation Guide](https://www.hiascend.com/cann/download).
 
 #### Install PyTorch
 
-Run the following command to install PyTorch 2.10.0:
+Run the following command to install PyTorch 2.12.0:
 
 ```bash
-pip install torch==2.10.0 --index-url https://download.pytorch.org/whl/cpu
+pip install torch==2.12.0 --index-url https://download.pytorch.org/whl/cpu
 ```
 
 #### Install TorchNPU
 
-Run the following command to install TorchNPU 2.10.0.post2:
+Run the following command to install TorchNPU 2.12.0:
 
 ```bash
-pip install torch-npu==2.10.0.post2
+pip install torch-npu==2.12.0
 ```
 
 ### From Source
@@ -103,7 +103,7 @@ For detailed steps on compiling TorchNPU, please refer to the [Source Installati
 
 ```shell
 # Default path, modify according to your actual installation location
-source /usr/local/Ascend/ascend-toolkit/set_env.sh
+source /usr/local/Ascend/cann/set_env.sh
 ```
 
 ### Run Example
@@ -131,14 +131,15 @@ For complete model migration and training tutorials, please refer to the [Quick 
 
 ## Community
 
-The Ascend for PyTorch community consists of multiple Special Interest Groups (SIGs), each responsible for development, maintenance, and community collaboration in specific technical areas. Below is a list of all current SIGs. Click the corresponding links for detailed descriptions.
+The Ascend for PyTorch community is coordinated by the Technical Committee (TC), with Special Interest Groups (SIGs) responsible for development, maintenance, and community collaboration in specific technical areas. The table below introduces the TC and current SIGs. Click the corresponding links for details.
 
-|    SIG Name     | Description                                                                                                                                                                                                                                                                                        |                                                 Link                                                  |
+|   TC / SIG Name | Description                                                                                                                                                                                                                                                                                        |                                                 Link                                                  |
 |:---------------:|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-----------------------------------------------------------------------------------------------------:|
-|    Core SIG     | Focuses on the development of the PyTorch core adaptation layer on the Ascend NPU platform, responsible for the design, implementation, and maintenance of the `TorchNPU` extension library and its operator plugin `OpPlugin`.                                                                    |    [🔗 Learn more](https://gitcode.com/Ascend/community/tree/master/FrameworkPTAdapter/sigs/core)     |
-| Distributed SIG | Dedicated to building efficient, easy-to-use, and scalable parallel training capabilities based on the PyTorch distributed training framework (torch.distributed) on the Ascend NPU hardware foundation, delivering extreme performance for LLM, multimodal, and reinforcement learning scenarios. | [🔗 Learn more](https://gitcode.com/Ascend/community/tree/master/FrameworkPTAdapter/sigs/distributed) |
-| Graph Mode SIG  | Focuses on core technologies such as Dynamo, Inductor, and NPUGraph, aiming to bridge the gap between "ease of use" and "high performance" through automated graph capture and compilation optimization.                                                                                           | [🔗 Learn more](https://gitcode.com/Ascend/community/tree/master/FrameworkPTAdapter/sigs/graph-mode)  |
-|  Usability SIG  | Dedicated to improving the usability experience of Ascend for PyTorch, including documentation, tutorials, examples, and more.                                                                                                                                                                     |  [🔗 Learn more](https://gitcode.com/Ascend/community/tree/master/FrameworkPTAdapter/sigs/usability)  |
+|       TC        | Oversees technical direction and major technical decisions, SIG governance, and release reviews for Ascend for PyTorch. | [🔗 Learn more](https://gitcode.com/Ascend/community/blob/master/AscendForPyTorch/README.md) |
+|    Core SIG     | Focuses on the development of the PyTorch core adaptation layer on the Ascend NPU platform, responsible for the design, implementation, and maintenance of the `TorchNPU` extension library and its operator plugin `OpPlugin`.                                                                    |    [🔗 Learn more](https://gitcode.com/Ascend/community/tree/master/AscendForPyTorch/sigs/core)     |
+| Distributed SIG | Dedicated to building efficient, easy-to-use, and scalable parallel training capabilities based on the PyTorch distributed training framework (torch.distributed) on the Ascend NPU hardware foundation, delivering extreme performance for LLM, multimodal, and reinforcement learning scenarios. | [🔗 Learn more](https://gitcode.com/Ascend/community/tree/master/AscendForPyTorch/sigs/distributed) |
+| Graph Mode SIG  | Focuses on core technologies such as Dynamo, Inductor, and NPUGraph, aiming to bridge the gap between "ease of use" and "high performance" through automated graph capture and compilation optimization.                                                                                           | [🔗 Learn more](https://gitcode.com/Ascend/community/tree/master/AscendForPyTorch/sigs/graph-mode)  |
+|  Usability SIG  | Dedicated to improving the usability experience of Ascend for PyTorch, including documentation, tutorials, examples, and more.                                                                                                                                                                     |  [🔗 Learn more](https://gitcode.com/Ascend/community/tree/master/AscendForPyTorch/sigs/usability)  |
 
 Each SIG holds regular meetings, mailing lists, and contribution guides. Click the corresponding SIG links to view detailed contact information, goals, and participation guidelines. Everyone is welcome to contribute to the community. If you have any questions or suggestions, please submit [GitHub Issues](https://github.com/Ascend/pytorch/issues). We will reply as soon as possible. Thank you for your support.
 
