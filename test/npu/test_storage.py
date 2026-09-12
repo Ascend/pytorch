@@ -333,6 +333,23 @@ class TestStorage(TestCase):
         cpu_source = cpu_tensor.untyped_storage()
         self.assertIs(cpu_source.cpu(), cpu_source)
 
+    def test_untyped_storage_type(self):
+        """Checks the type query and no-op casts of NPU untyped storage."""
+        cpu_storage = torch.tensor([0, 1, 2, 255], dtype=torch.uint8).untyped_storage()
+        npu_storage = torch.tensor([0, 1, 2, 255], dtype=torch.uint8).npu().untyped_storage()
+        expected_type = "torch.storage.UntypedStorage"
+
+        self.assertEqual(cpu_storage.type(), expected_type)
+        self.assertEqual(npu_storage.type(), expected_type)
+        self.assertEqual(npu_storage.type(None), expected_type)
+        self.assertIs(npu_storage.type(torch.UntypedStorage), npu_storage)
+        self.assertIs(npu_storage.type("torch.UntypedStorage"), npu_storage)
+        self.assertIs(
+            npu_storage.type(torch.UntypedStorage, non_blocking=True), npu_storage
+        )
+        with self.assertRaises(AttributeError):
+            npu_storage.type(object)
+
     def test_type_conversions(self):
         x = torch.randn(5, 5)
         supported_dtypes = ["float", "half", "long", "short", "int", "bool", "char", "byte"]
