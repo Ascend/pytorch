@@ -20,7 +20,6 @@
 >
 > - `TORCH_LOGS`（或`TORCH_NPU_LOGS`）设置后，优先级高于`torch._logging.set_logs()` API调用，API调用将不生效。
 > - 对于TorchNPU新增的模块（如memory、dispatch、acl等），需使用`TORCH_NPU_LOGS`配置，`TORCH_LOGS`不支持这些模块。
-> - 在`INDUCTOR_ASCEND_DEBUG=1`时，等效于`TORCH_LOGS="+inductor"`对`torch._inductor` `logger`的效果。
 
 该变量沿用PyTorch的同名环境变量，配置方式一致。
 

@@ -191,7 +191,6 @@
 | 环境变量名称 | 简介 |
 | --- | --- |
 |[TORCHINDUCTOR_NPU_BACKEND](inductor/TORCHINDUCTOR_NPU_BACKEND.md)|通过该环境变量可配置图模式下的优化模式，支持Triton、DVM、Ascend C等优化模式。|
-|[NPU_INDUCTOR_FALLBACK_LIST](inductor/NPU_INDUCTOR_FALLBACK_LIST.md)|通过此环境变量可指定需要回退到PyTorch原生的算子列表。|
 
 ### 缓存与编译并发
 
@@ -199,7 +198,6 @@
 | --- | --- |
 |[TORCH_CACHING_PRECOMPILE](inductor/TORCH_CACHING_PRECOMPILE.md)|通过此环境变量可开启自动缓存预编译实验性功能，自动保存和加载Dynamo编译缓存，加速后续编译过程，与PyTorch上游行为一致。|
 |[TORCHINDUCTOR_CACHE_DIR](inductor/TORCHINDUCTOR_CACHE_DIR.md)|通过此环境变量可配置Inductor编译缓存的目录路径，与PyTorch上游行为一致。|
-|[INDUCTOR_ASCEND_FX_GRAPH_CACHE](inductor/INDUCTOR_ASCEND_FX_GRAPH_CACHE.md)|通过此环境变量可配置Inductor降层时FX图缓存的目录路径。|
 |[TORCHINDUCTOR_COMPILE_THREADS](inductor/TORCHINDUCTOR_COMPILE_THREADS.md)|通过此环境变量可配置并发编译的进程数量，与PyTorch上游行为一致。|
 |[TORCHNPU_PRECOMPILE_THREADS](inductor/TORCHNPU_PRECOMPILE_THREADS.md)|通过此环境变量可配置torch_npu Inductor的预编译线程数。|
 
@@ -214,9 +212,7 @@
 |[TORCHINDUCTOR_CATLASS_ENABLED_OPS](inductor/TORCHINDUCTOR_CATLASS_ENABLED_OPS.md)|通过此环境变量可配置Catlass模板库支持的矩阵乘类型算子列表，与PyTorch上游的`TORCHINDUCTOR_CUTLASS_ENABLED_OPS`对应。|
 |[CATLASS_EPILOGUE_FUSION](inductor/CATLASS_EPILOGUE_FUSION.md)|通过此环境变量可控制是否开启Catlass epilogue融合功能，与PyTorch上游的`CUTLASS_EPILOGUE_FUSION`对应。|
 |[TORCHINDUCTOR_PROFILE_WITH_DO_BENCH_USING_PROFILING](inductor/TORCHINDUCTOR_PROFILE_WITH_DO_BENCH_USING_PROFILING.md)|通过此环境变量可控制autotune过程中是否使用profiling进行性能测量，与PyTorch上游行为一致。|
-|[ENABLE_INPLACE_BUFFERS](inductor/ENABLE_INPLACE_BUFFERS.md)|通过此环境变量可控制是否启用原地缓冲区优化。|
 |[TORCHINDUCTOR_ENABLE_WELFORD](inductor/TORCHINDUCTOR_ENABLE_WELFORD.md)|通过此环境变量可控制是否启用Welford算法计算方差与均值类归约。|
-|[TORCHINDUCTOR_ENABLE_LAYERNORM_V4](inductor/TORCHINDUCTOR_ENABLE_LAYERNORM_V4.md)|通过此环境变量可控制是否启用LayerNormV4专属实现（需A5系列且Welford同时开启）。|
 |[TORCHINDUCTOR_ENABLE_FAST_GELU](inductor/TORCHINDUCTOR_ENABLE_FAST_GELU.md)|通过此环境变量可控制GELU激活函数是否使用tanh近似decomposition。|
 
 ### 图优化与调度
@@ -224,9 +220,7 @@
 | 环境变量名称 | 简介 |
 | --- | --- |
 |[ENABLE_PARALLEL_SCHEDULER](inductor/ENABLE_PARALLEL_SCHEDULER.md)|通过此环境变量可控制是否启用并行调度器FX pass。|
-|[PARALLEL_SCHEDULER_NODES_MIN](inductor/PARALLEL_SCHEDULER_NODES_MIN.md)|通过此环境变量可配置并行调度器分组的最小调度节点数。|
 |[SHUT_DOWN_FX_PASS_LIST](inductor/SHUT_DOWN_FX_PASS_LIST.md)|通过此环境变量可指定需要关闭的torch_npu图优化FX pass列表。|
-|[NPU_INDUCTOR_DYNAMIC_FX_PASS](inductor/NPU_INDUCTOR_DYNAMIC_FX_PASS.md)|通过此环境变量可控制图优化FX pass是否使用动态shape模式。|
 
 ### 调试、日志与精度检查
 
@@ -234,9 +228,6 @@
 | --- | --- |
 |[TORCH_COMPILE_DEBUG](inductor/TORCH_COMPILE_DEBUG.md)|通过此环境变量可开启torch.compile的调试模式，导出FX图、codegen输出等调试信息。|
 |[（beta）INDUCTOR_ASCEND_CHECK_ACCURACY](inductor/INDUCTOR_ASCEND_CHECK_ACCURACY.md)|INDUCTOR_ASCEND_CHECK_ACCURACY是TorchNPU提供的精度校验工具，在torch.compile图编译模式（Inductor）的Triton模式与DVM模式下自动检测融合算子的数值精度。|
-|[INDUCTOR_ASCEND_DEBUG](inductor/INDUCTOR_ASCEND_DEBUG.md)|通过此环境变量可控制Triton编译时是否启用调试模式。|
-|[INDUCTOR_ASCEND_DUMP_FX_GRAPH](inductor/INDUCTOR_ASCEND_DUMP_FX_GRAPH.md)|通过此环境变量可控制在Inductor降层时是否导出FX图。|
 |[INDUCTOR_ASCEND_LOG_LEVEL](inductor/INDUCTOR_ASCEND_LOG_LEVEL.md)|通过此环境变量可配置Inductor模块的日志级别。|
-|[FX_SUBGRAPH_DUMP_PATH](inductor/FX_SUBGRAPH_DUMP_PATH.md)|通过此环境变量可配置DVM模式下FX子图的dump路径。|
 |[TORCHINDUCTOR_WORKER_LOGPATH](inductor/TORCHINDUCTOR_WORKER_LOGPATH.md)|通过此环境变量可指定Inductor worker子进程的日志路径，与PyTorch上游行为一致。|
-|[TORCHINDUCTOR_WORKER_SUPPRESS_LOGGING](inductor/TORCHINDUCTOR_WORKER_SUPPRESS_LOGGING.md)|通过此环境变量可控制是否抑制Inductor worker子进程的日志输出，与PyTorch上游行为一致。|
+|[TORCHINDUCTOR_WORKER_SUPPRESS_LOGGING](inductor/TORCHINDUCTOR_WORKER_SUPPRESS_LOGGING.md)|通过此环境变量可控制是否输出Inductor worker子进程的日志，与PyTorch上游行为一致。|

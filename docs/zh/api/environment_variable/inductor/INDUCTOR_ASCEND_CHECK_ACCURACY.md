@@ -6,6 +6,13 @@ INDUCTOR_ASCEND_CHECK_ACCURACY是TorchNPU提供的精度校验工具，在torch.
 
 该工具可捕获融合算子对应的FX子图，生成独立可执行的单算子测试用例，并在相同输入条件下比对eager与融合算子的输出差异。当差异超出预设阈值时，自动输出精度校验失败日志及诊断信息，辅助开发者快速定位精度问题。
 
+- 默认值未配置：不启用精度校验。
+- 配置为“1”：启用精度校验，自动检测融合算子的数值精度。
+
+> [!NOTE]
+>
+> 此环境变量开启时，Triton模式（`TORCHINDUCTOR_NPU_BACKEND="default"`）会自动将`torch._inductor.config.split_reductions`设置为`False`。
+
 该环境变量由TorchNPU提供，PyTorch没有直接对应的环境变量。
 
 ## 配置示例
@@ -16,10 +23,10 @@ INDUCTOR_ASCEND_CHECK_ACCURACY是TorchNPU提供的精度校验工具，在torch.
 export INDUCTOR_ASCEND_CHECK_ACCURACY=1
 ```
 
-**表 1** 默认精度阈值
+默认精度阈值如下：
 
 | 数据类型 | 相对误差rtol | 绝对误差atol |
-|:---:|:---:|:---:|
+|:---|:---|:---|
 | float32 | 1.3e-6 | 1e-5 |
 | float16 | 1e-3 | 1e-5 |
 | bfloat16 | 1.6e-2 | 1e-5 |
@@ -51,13 +58,12 @@ CHECK ACCURACY FAILED! Kernel: <kernel_name>, Output idx: <idx>, Mismatched: <m>
 ## 使用约束
 
 - 此环境变量仅可在PyTorch2.7.1和PyTorch2.9.0版本使用。
-
 - 在torch.compile图编译模式（Inductor）下可使用此环境变量。
-
-- 此环境变量开启时，Triton模式（`TORCHINDUCTOR_NPU_BACKEND="default"`）会自动将`torch._inductor.config.split_reductions`设置为`False`。
+- 仅支持Inductor后端编译器中的Triton模式和DVM模式。
 
 ## 支持的型号
 
+- <term>Atlas 训练系列产品</term>
 - <term>Atlas A2 训练系列产品</term>
 - <term>Atlas A3 训练系列产品</term>
-- <term>Ascend 950DT</term>（仅支持Inductor后端编译器中的Triton模式、DVM模式和Ascend C模式）
+- <term>Ascend 950DT</term>
