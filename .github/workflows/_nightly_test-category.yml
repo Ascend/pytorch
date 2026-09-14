@@ -77,7 +77,7 @@ jobs:
       # all pytest worker subprocesses (inherited via os.environ), and the
       # CANN log upload step, which collects from this fixed root.
       ASCEND_PROCESS_LOG_PATH: /root/ascend/log/plog
-      ASCEND_GLOBAL_LOG_LEVEL: '1'
+      ASCEND_GLOBAL_LOG_LEVEL: '2'
     strategy:
       matrix:
         shard: ${{ fromJson(inputs.matrix_json) }}
