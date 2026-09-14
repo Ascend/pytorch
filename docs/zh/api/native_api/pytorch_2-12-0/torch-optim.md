@@ -489,6 +489,7 @@
   ```
 
 - 在某些情况下可能回退至CPU执行
+- 优化器在启动`fused`的情况下（`fused=True`），仅支持Ascend 950DT
 
 > <font size="3">add_param_group()</font>
 
