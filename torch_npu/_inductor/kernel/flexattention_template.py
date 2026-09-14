@@ -1817,7 +1817,7 @@ flex_attention_backward_dkdv_tasklist_source = (
             q_end = q_hi
 {% else %}
             if is_split == 0:
-                q_begin = 0
+                q_begin = tl.zeros([], dtype=INDEX_DTYPE)
                 q_end = q_hi
             else:
                 q_begin = sub_id * q_hi // split_count
@@ -1892,7 +1892,7 @@ flex_attention_backward_dkdv_tasklist_source = (
                 full_q_end = full_q_hi
 {% else %}
                 if is_split == 0:
-                    full_q_begin = 0
+                    full_q_begin = tl.zeros([], dtype=INDEX_DTYPE)
                     full_q_end = full_q_hi
                 else:
                     full_q_begin = sub_id * full_q_hi // split_count
