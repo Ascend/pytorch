@@ -510,7 +510,7 @@ The mstx function collects performance data for communication operators, dataloa
 - dataloader
 - save\_checkpoint
 
-In addition, the mstx function can also obtain performance data for the four key stages of the PyTorch model—dataloader, forward, step, and save_checkpoint—through **mstx\_torch\_plugin**. For details, see [mstx\_torch\_plugin](https://gitcode.com/Ascend/mstt/blob/master/profiler/example/mstx_torch_plugin/README.md).
+In addition, the mstx function can also obtain performance data for the four key stages of the PyTorch model—dataloader, forward, step, and save_checkpoint—through **mstx\_torch\_plugin**. For details, see [mstx\_torch\_plugin](https://gitcode.com/Ascend/mstt/blob/master/profiler/example/mstx_torch_plugin/README_EN.md).
 
 This function allows you to view the execution scheduling of user-defined markers from the framework side to the CANN layer and then to the NPU side, helping identify key functions or events that users want to observe and locate performance issues.
 
@@ -907,7 +907,7 @@ The field information is shown in Table 1.
 |Duration(us)|Execution duration of the current operator, in us.|
 |Wait Time(us)|Operator execution wait time, in us.|
 |Block Num|Number of run splits, corresponding to the number of cores during task execution.|
-|Mix Block Num|Some operators execute on both AI Core and Vector Core simultaneously. The Block Num of the primary accelerator is described in the Block Num field, and the Block Num of the secondary accelerator is described in this field. When `task_time` is `l0`, this field is not collected and displays `N/A`.<br>Supported only on Atlas A2 Training Series/Atlas A2 Inference Series and Atlas A3 Training Series/Atlas A3 Inference Series.|
+|Mix Block Num|Some operators execute on both AI Core and Vector Core simultaneously. The Block Num of the primary accelerator is described in the Block Num field, and the Block Num of the secondary accelerator is described in this field. When Level0, this field is not collected.<br>Supported only on Atlas A2 Training Series/Atlas A2 Inference Series and Atlas A3 Training Series/Atlas A3 Inference Series.|
 |HF32 Eligible|Indicates whether the HF32 precision flag is used. `YES` indicates used, `NO` indicates not used.|
 |Input Shapes|Operator input Shape.|
 |Input Data Types|Operator input data type.|

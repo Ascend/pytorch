@@ -19,13 +19,13 @@ Ascend PyTorch Profiler可全面采集PyTorch训练/在线推理场景下的性�
 
 > [!NOTE]
 >
-> Ascend PyTorch Profiler是专为昇腾NPU环境开发的Profiler工具，其API命名和功能与原生接口有所差异，请查阅本文档了解具体用法。同时，昇腾NPU环境也兼容原生torch.profiler，如需使用原生接口，请参见[使用原生torch.profiler接口采集昇腾NPU环境性能数据](#使用原生torchprofiler接口采集昇腾NPU环境性能数据)。
+> Ascend PyTorch Profiler是专为昇腾NPU环境开发的Profiler工具，其API命名和功能与原生接口有所差异，请查阅本文档了解具体用法。同时，昇腾NPU环境也兼容原生torch.profiler，如需使用原生接口，请参见[使用原生torch.profiler接口采集昇腾NPU环境性能数据](#使用原生torchprofiler接口采集昇腾npu环境性能数据)。
 
 ## 使用前准备
 
 **环境准备**
 
-- 安装配套版本的CANN Toolkit开发套件包或算子包并配置环境变量，具体请参见《[CANN快速安装](https://www.hiascend.com/cann/download)》。
+- 安装配套版本的CANN Toolkit开发套件包或算子包并配置环境变量，具体请参见《[CANN快速安装](https://www.hiascend.com/zh/cann/download)》。
 - 准备好基于PyTorch 2.1.0或更高版本开发的训练模型以及配套的数据集，并按照《PyTorch 训练模型迁移调优指南》中的“[模型迁移](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/zh/model_migration/README.md)”完成PyTorch原始模型向昇腾AI处理器的迁移。
 
 **约束**
@@ -53,6 +53,607 @@ Ascend PyTorch Profiler可全面采集PyTorch训练/在线推理场景下的性�
     - 性能数据会占据一定的磁盘空间，可能存在磁盘写满导致服务器不可用的风险。性能数据所需空间跟模型的参数、采集开关配置、采集的迭代数量有较大关系，须用户自行保证落盘目录下的可用磁盘空间。
     - 性能数据采集时间建议在5min以内，并且预留至少20倍于性能原始数据大小的内存和磁盘空间。原始数据大小指采集落盘后的data目录下数据总大小。
 
+## 快速入门
+
+**环境准备**<a name="环境准备"></a>
+
+1. 准备一台基于昇腾NPU的训练服务器。
+
+2. 安装昇腾NPU驱动和配套版本的CANN软件（包含Toolkit和ops包）并配置环境变量，具体请参见《[CANN 快速安装](https://www.hiascend.com/zh/cann/download)》。
+
+3. 安装框架。
+
+   以安装PyTorch 2.9.0、Python 3.12、系统架构AArch64、torchvision==0.24.0为例，具体请参见《[TorchNPU软件安装](https://gitcode.com/Ascend/pytorch/blob/master/docs/zh/installation_guide/building_from_source.md)》。
+
+   > [!note]
+   >
+   > 建议使用conda安装环境，通过如下命令创建conda、安装相关依赖再根据上述链接的文档安装PyTorch 2.9.0：
+   >
+   > ```bash
+   > conda create -n <conda_name>  python=3.12
+   > conda activate <conda_name>
+   > pip install torchvision==0.24.0
+   > pip install decorator
+   > pip install attrs
+   > ```
+
+**执行采集**
+
+1. 在昇腾NPU环境下创建训练脚本（pytorch_main.py文件）并添加Ascend PyTorch Profiler接口工具，完整代码如下。
+
+   <details>
+   <summary><b>单击展开示例</b></summary>
+
+   ```python
+   import argparse
+   import os
+   import random
+   import shutil
+   import time
+   import warnings
+   from enum import Enum
+
+   import torch
+   import torch.backends.cudnn as cudnn
+   import torch.distributed as dist
+   import torch.multiprocessing as mp
+   import torch.nn as nn
+   import torch.nn.parallel
+   import torch.optim
+   import torch.utils.data
+   import torch.utils.data.distributed
+   import torchvision.datasets as datasets
+   import torchvision.models as models
+   import torchvision.transforms as transforms
+   from torch.optim.lr_scheduler import StepLR
+   from torch.utils.data import Subset
+
+   import torch_npu
+   from torch_npu.contrib import transfer_to_npu
+
+   model_names = sorted(name for name in models.__dict__
+       if name.islower() and not name.startswith("__")
+       and callable(models.__dict__[name]))
+
+   parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
+   parser.add_argument('data', metavar='DIR', nargs='?', default='imagenet',
+                       help='path to dataset (default: imagenet)')
+   parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
+                       choices=model_names,
+                       help='model architecture: ' +
+                           ' | '.join(model_names) +
+                           ' (default: resnet18)')
+   parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
+                       help='number of data loading workers (default: 4)')
+   parser.add_argument('--epochs', default=90, type=int, metavar='N',
+                       help='number of total epochs to run')
+   parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
+                       help='manual epoch number (useful on restarts)')
+   parser.add_argument('-b', '--batch-size', default=256, type=int,
+                       metavar='N',
+                       help='mini-batch size (default: 256), this is the total '
+                            'batch size of all GPUs on the current node when '
+                            'using Data Parallel or Distributed Data Parallel')
+   parser.add_argument('--lr', '--learning-rate', default=0.1, type=float,
+                       metavar='LR', help='initial learning rate', dest='lr')
+   parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
+                       help='momentum')
+   parser.add_argument('--wd', '--weight-decay', default=1e-4, type=float,
+                       metavar='W', help='weight decay (default: 1e-4)',
+                       dest='weight_decay')
+   parser.add_argument('-p', '--print-freq', default=10, type=int,
+                       metavar='N', help='print frequency (default: 10)')
+   parser.add_argument('--resume', default='', type=str, metavar='PATH',
+                       help='path to latest checkpoint (default: none)')
+   parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
+                       help='evaluate model on validation set')
+   parser.add_argument('--pretrained', dest='pretrained', action='store_true',
+                       help='use pre-trained model')
+   parser.add_argument('--world-size', default=-1, type=int,
+                       help='number of nodes for distributed training')
+   parser.add_argument('--rank', default=-1, type=int,
+                       help='node rank for distributed training')
+   parser.add_argument('--dist-url', default='tcp://224.66.41.62:23456', type=str,
+                       help='url used to set up distributed training')
+   parser.add_argument('--dist-backend', default='nccl', type=str,
+                       help='distributed backend')
+   parser.add_argument('--seed', default=None, type=int,
+                       help='seed for initializing training. ')
+   parser.add_argument('--gpu', default=None, type=int,
+                       help='GPU id to use.')
+   parser.add_argument('--multiprocessing-distributed', action='store_true',
+                       help='Use multi-processing distributed training to launch '
+                            'N processes per node, which has N GPUs. This is the '
+                            'fastest way to use PyTorch for either single node or '
+                            'multi node data parallel training')
+   parser.add_argument('--dummy', action='store_true', help="use fake data to benchmark")
+
+   best_acc1 = 0
+
+   def main():
+       args = parser.parse_args()
+
+       if args.seed is not None:
+           random.seed(args.seed)
+           torch.manual_seed(args.seed)
+           cudnn.deterministic = True
+           cudnn.benchmark = False
+           warnings.warn('You have chosen to seed training. '
+                         'This will turn on the CUDNN deterministic setting, '
+                         'which can slow down your training considerably! '
+                         'You may see unexpected behavior when restarting '
+                         'from checkpoints.')
+
+       if args.gpu is not None:
+           warnings.warn('You have chosen a specific GPU. This will completely '
+                         'disable data parallelism.')
+
+       if args.dist_url == "env://" and args.world_size == -1:
+           args.world_size = int(os.environ["WORLD_SIZE"])
+
+       args.distributed = args.world_size > 1 or args.multiprocessing_distributed
+
+       if torch.cuda.is_available():
+           ngpus_per_node = torch.cuda.device_count()
+           if ngpus_per_node == 1 and args.dist_backend == "nccl":
+               warnings.warn("nccl backend >=2.5 requires GPU count>1, see https://github.com/NVIDIA/nccl/issues/103 perhaps use 'gloo'")
+       else:
+           ngpus_per_node = 1
+
+       if args.multiprocessing_distributed:
+           # Since we have ngpus_per_node processes per node, the total world_size
+           # needs to be adjusted accordingly
+           args.world_size = ngpus_per_node * args.world_size
+           # Use torch.multiprocessing.spawn to launch distributed processes: the
+           # main_worker process function
+           mp.spawn(main_worker, nprocs=ngpus_per_node, args=(ngpus_per_node, args))
+       else:
+           # Simply call main_worker function
+           main_worker(args.gpu, ngpus_per_node, args)
+
+   def main_worker(gpu, ngpus_per_node, args):
+       global best_acc1
+       args.gpu = gpu
+
+       if args.gpu is not None:
+           print("Use GPU: {} for training".format(args.gpu))
+
+       if args.distributed:
+           if args.dist_url == "env://" and args.rank == -1:
+               args.rank = int(os.environ["RANK"])
+           if args.multiprocessing_distributed:
+               # For multiprocessing distributed training, rank needs to be the
+               # global rank among all the processes
+               args.rank = args.rank * ngpus_per_node + gpu
+           dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
+                                   world_size=args.world_size, rank=args.rank)
+       # create model
+       if args.pretrained:
+           print("=> using pre-trained model '{}'".format(args.arch))
+           model = models.__dict__[args.arch](pretrained=True)
+       else:
+           print("=> creating model '{}'".format(args.arch))
+           model = models.__dict__[args.arch]()
+       if not torch.cuda.is_available() and not torch.backends.mps.is_available():
+           print('using CPU, this will be slow')
+       elif args.distributed:
+           # For multiprocessing distributed, DistributedDataParallel constructor
+           # should always set the single device scope, otherwise,
+           # DistributedDataParallel will use all available devices.
+           if torch.cuda.is_available():
+               if args.gpu is not None:
+                   torch.cuda.set_device(args.gpu)
+                   model.cuda(args.gpu)
+                   # When using a single GPU per process and per
+                   # DistributedDataParallel, we need to divide the batch size
+                   # ourselves based on the total number of GPUs of the current node.
+                   args.batch_size = int(args.batch_size / ngpus_per_node)
+                   args.workers = int((args.workers + ngpus_per_node - 1) / ngpus_per_node)
+                   model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+               else:
+                   model.cuda()
+                   # DistributedDataParallel will divide and allocate batch_size to all
+                   # available GPUs if device_ids are not set
+                   model = torch.nn.parallel.DistributedDataParallel(model)
+       elif args.gpu is not None and torch.cuda.is_available():
+           torch.cuda.set_device(args.gpu)
+           model = model.cuda(args.gpu)
+       elif torch.backends.mps.is_available():
+           device = torch.device("mps")
+           model = model.to(device)
+       else:
+           # DataParallel will divide and allocate batch_size to all available GPUs
+           if args.arch.startswith('alexnet') or args.arch.startswith('vgg'):
+               model.features = torch.nn.DataParallel(model.features)
+               model.cuda()
+           else:
+               model = torch.nn.DataParallel(model).cuda()
+
+       if torch.cuda.is_available():
+           if args.gpu:
+               device = torch.device('cuda:{}'.format(args.gpu))
+           else:
+               device = torch.device("cuda")
+       elif torch.backends.mps.is_available():
+           device = torch.device("mps")
+       else:
+           device = torch.device("cpu")
+       # define loss function (criterion), optimizer, and learning rate scheduler
+       criterion = nn.CrossEntropyLoss().to(device)
+
+       optimizer = torch.optim.SGD(model.parameters(), args.lr,
+                                   momentum=args.momentum,
+                                   weight_decay=args.weight_decay)
+
+       """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
+       scheduler = StepLR(optimizer, step_size=30, gamma=0.1)
+
+       # optionally resume from a checkpoint
+       if args.resume:
+           if os.path.isfile(args.resume):
+               print("=> loading checkpoint '{}'".format(args.resume))
+               if args.gpu is None:
+                   checkpoint = torch.load(args.resume)
+               elif torch.cuda.is_available():
+                   # Map model to be loaded to specified single gpu.
+                   loc = 'cuda:{}'.format(args.gpu)
+                   checkpoint = torch.load(args.resume, map_location=loc)
+               args.start_epoch = checkpoint['epoch']
+               best_acc1 = checkpoint['best_acc1']
+               if args.gpu is not None:
+                   # best_acc1 may be from a checkpoint from a different GPU
+                   best_acc1 = best_acc1.to(args.gpu)
+               model.load_state_dict(checkpoint['state_dict'])
+               optimizer.load_state_dict(checkpoint['optimizer'])
+               scheduler.load_state_dict(checkpoint['scheduler'])
+               print("=> loaded checkpoint '{}' (epoch {})"
+                     .format(args.resume, checkpoint['epoch']))
+           else:
+               print("=> no checkpoint found at '{}'".format(args.resume))
+
+       # Data loading code
+       if args.dummy:
+           print("=> Dummy data is used!")
+           train_dataset = datasets.FakeData(1281167, (3, 224, 224), 1000, transforms.ToTensor())
+           val_dataset = datasets.FakeData(50000, (3, 224, 224), 1000, transforms.ToTensor())
+       else:
+           traindir = os.path.join(args.data, 'train')
+           valdir = os.path.join(args.data, 'val')
+           normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                        std=[0.229, 0.224, 0.225])
+
+           train_dataset = datasets.ImageFolder(
+               traindir,
+               transforms.Compose([
+                   transforms.RandomResizedCrop(224),
+                   transforms.RandomHorizontalFlip(),
+                   transforms.ToTensor(),
+                   normalize,
+               ]))
+
+           val_dataset = datasets.ImageFolder(
+               valdir,
+               transforms.Compose([
+                   transforms.Resize(256),
+                   transforms.CenterCrop(224),
+                   transforms.ToTensor(),
+                   normalize,
+               ]))
+
+       if args.distributed:
+           train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
+           val_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset, shuffle=False, drop_last=True)
+       else:
+           train_sampler = None
+           val_sampler = None
+
+       train_loader = torch.utils.data.DataLoader(
+           train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
+           num_workers=args.workers, pin_memory=True, sampler=train_sampler)
+
+       val_loader = torch.utils.data.DataLoader(
+           val_dataset, batch_size=args.batch_size, shuffle=False,
+           num_workers=args.workers, pin_memory=True, sampler=val_sampler)
+
+       if args.evaluate:
+           validate(val_loader, model, criterion, args)
+           return
+
+       for epoch in range(args.start_epoch, args.epochs):
+           if args.distributed:
+               train_sampler.set_epoch(epoch)
+
+           # train for one epoch
+           train(train_loader, model, criterion, optimizer, epoch, device, args)
+
+           # evaluate on validation set
+           acc1 = validate(val_loader, model, criterion, args)
+
+           scheduler.step()
+
+           # remember best acc@1 and save checkpoint
+           is_best = acc1 > best_acc1
+           best_acc1 = max(acc1, best_acc1)
+
+           if not args.multiprocessing_distributed or (args.multiprocessing_distributed
+                   and args.rank % ngpus_per_node == 0):
+               save_checkpoint({
+                   'epoch': epoch + 1,
+                   'arch': args.arch,
+                   'state_dict': model.state_dict(),
+                   'best_acc1': best_acc1,
+                   'optimizer' : optimizer.state_dict(),
+                   'scheduler' : scheduler.state_dict()
+               }, is_best)
+
+   def train(train_loader, model, criterion, optimizer, epoch, device, args):
+       batch_time = AverageMeter('Time', ':6.3f')
+       data_time = AverageMeter('Data', ':6.3f')
+       losses = AverageMeter('Loss', ':.4e')
+       top1 = AverageMeter('Acc@1', ':6.2f')
+       top5 = AverageMeter('Acc@5', ':6.2f')
+       progress = ProgressMeter(
+           len(train_loader),
+           [batch_time, data_time, losses, top1, top5],
+           prefix="Epoch: [{}]".format(epoch))
+
+       # switch to train mode
+       model.train()
+
+       end = time.time()
+       experimental_config = torch_npu.profiler._ExperimentalConfig(
+           profiler_level=torch_npu.profiler.ProfilerLevel.Level0,
+           data_simplification=False)
+       with torch_npu.profiler.profile(
+           activities=[
+               torch_npu.profiler.ProfilerActivity.CPU,
+               torch_npu.profiler.ProfilerActivity.NPU
+               ],
+           schedule=torch_npu.profiler.schedule(wait=0, warmup=0, active=1, repeat=1, skip_first=1),
+           on_trace_ready=torch_npu.profiler.tensorboard_trace_handler("./profiling_data"),
+           experimental_config=experimental_config) as prof:
+           for i, (images, target) in enumerate(train_loader):
+               # measure data loading time
+               data_time.update(time.time() - end)
+
+               # move data to the same device as model
+               images = images.to(device, non_blocking=True)
+               target = target.to(device, non_blocking=True)
+
+               # compute output
+               output = model(images)
+               loss = criterion(output, target)
+
+               # measure accuracy and record loss
+               acc1, acc5 = accuracy(output, target, topk=(1, 5))
+               losses.update(loss.item(), images.size(0))
+               top1.update(acc1[0], images.size(0))
+               top5.update(acc5[0], images.size(0))
+
+               # compute gradient and do SGD step
+               optimizer.zero_grad()
+               loss.backward()
+               optimizer.step()
+
+               # measure elapsed time
+               batch_time.update(time.time() - end)
+               end = time.time()
+
+               prof.step()
+
+               if i % args.print_freq == 0:
+                   progress.display(i + 1)
+
+   def validate(val_loader, model, criterion, args):
+
+       def run_validate(loader, base_progress=0):
+           with torch.no_grad():
+               end = time.time()
+               for i, (images, target) in enumerate(loader):
+                   i = base_progress + i
+                   if args.gpu is not None and torch.cuda.is_available():
+                       images = images.cuda(args.gpu, non_blocking=True)
+                   if torch.backends.mps.is_available():
+                       images = images.to('mps')
+                       target = target.to('mps')
+                   if torch.cuda.is_available():
+                       target = target.cuda(args.gpu, non_blocking=True)
+
+                   # compute output
+                   output = model(images)
+                   loss = criterion(output, target)
+
+                   # measure accuracy and record loss
+                   acc1, acc5 = accuracy(output, target, topk=(1, 5))
+                   losses.update(loss.item(), images.size(0))
+                   top1.update(acc1[0], images.size(0))
+                   top5.update(acc5[0], images.size(0))
+
+                   # measure elapsed time
+                   batch_time.update(time.time() - end)
+                   end = time.time()
+
+                   if i % args.print_freq == 0:
+                       progress.display(i + 1)
+
+       batch_time = AverageMeter('Time', ':6.3f', Summary.NONE)
+       losses = AverageMeter('Loss', ':.4e', Summary.NONE)
+       top1 = AverageMeter('Acc@1', ':6.2f', Summary.AVERAGE)
+       top5 = AverageMeter('Acc@5', ':6.2f', Summary.AVERAGE)
+       progress = ProgressMeter(
+           len(val_loader) + (args.distributed and (len(val_loader.sampler) * args.world_size < len(val_loader.dataset))),
+           [batch_time, losses, top1, top5],
+           prefix='Test: ')
+
+       # switch to evaluate mode
+       model.eval()
+
+       run_validate(val_loader)
+       if args.distributed:
+           top1.all_reduce()
+           top5.all_reduce()
+
+       if args.distributed and (len(val_loader.sampler) * args.world_size < len(val_loader.dataset)):
+           aux_val_dataset = Subset(val_loader.dataset,
+                                    range(len(val_loader.sampler) * args.world_size, len(val_loader.dataset)))
+           aux_val_loader = torch.utils.data.DataLoader(
+               aux_val_dataset, batch_size=args.batch_size, shuffle=False,
+               num_workers=args.workers, pin_memory=True)
+           run_validate(aux_val_loader, len(val_loader))
+
+       progress.display_summary()
+
+       return top1.avg
+
+   def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
+       torch.save(state, filename)
+       if is_best:
+           shutil.copyfile(filename, 'model_best.pth.tar')
+
+   class Summary(Enum):
+       NONE = 0
+       AVERAGE = 1
+       SUM = 2
+       COUNT = 3
+
+   class AverageMeter(object):
+       """Computes and stores the average and current value"""
+       def __init__(self, name, fmt=':f', summary_type=Summary.AVERAGE):
+           self.name = name
+           self.fmt = fmt
+           self.summary_type = summary_type
+           self.reset()
+
+       def reset(self):
+           self.val = 0
+           self.avg = 0
+           self.sum = 0
+           self.count = 0
+
+       def update(self, val, n=1):
+           self.val = val
+           self.sum += val * n
+           self.count += n
+           self.avg = self.sum / self.count
+
+       def all_reduce(self):
+           if torch.cuda.is_available():
+               device = torch.device("cuda")
+           elif torch.backends.mps.is_available():
+               device = torch.device("mps")
+           else:
+               device = torch.device("cpu")
+           total = torch.tensor([self.sum, self.count], dtype=torch.float32, device=device)
+           dist.all_reduce(total, dist.ReduceOp.SUM, async_op=False)
+           self.sum, self.count = total.tolist()
+           self.avg = self.sum / self.count
+
+       def __str__(self):
+           fmtstr = '{name} {val' + self.fmt + '} ({avg' + self.fmt + '})'
+           return fmtstr.format(**self.__dict__)
+
+       def summary(self):
+           fmtstr = ''
+           if self.summary_type is Summary.NONE:
+               fmtstr = ''
+           elif self.summary_type is Summary.AVERAGE:
+               fmtstr = '{name} {avg:.3f}'
+           elif self.summary_type is Summary.SUM:
+               fmtstr = '{name} {sum:.3f}'
+           elif self.summary_type is Summary.COUNT:
+               fmtstr = '{name} {count:.3f}'
+           else:
+               raise ValueError('invalid summary type %r' % self.summary_type)
+
+           return fmtstr.format(**self.__dict__)
+
+   class ProgressMeter(object):
+       def __init__(self, num_batches, meters, prefix=""):
+           self.batch_fmtstr = self._get_batch_fmtstr(num_batches)
+           self.meters = meters
+           self.prefix = prefix
+
+       def display(self, batch):
+           entries = [self.prefix + self.batch_fmtstr.format(batch)]
+           entries += [str(meter) for meter in self.meters]
+           print('\t'.join(entries))
+
+       def display_summary(self):
+           entries = [" *"]
+           entries += [meter.summary() for meter in self.meters]
+           print(' '.join(entries))
+
+       def _get_batch_fmtstr(self, num_batches):
+           num_digits = len(str(num_batches // 1))
+           fmt = '{:' + str(num_digits) + 'd}'
+           return '[' + fmt + '/' + fmt.format(num_batches) + ']'
+
+   def accuracy(output, target, topk=(1,)):
+       """Computes the accuracy over the k top predictions for the specified values of k"""
+       with torch.no_grad():
+           maxk = max(topk)
+           batch_size = target.size(0)
+
+           _, pred = output.topk(maxk, 1, True, True)
+           pred = pred.t()
+           correct = pred.eq(target.view(1, -1).expand_as(pred))
+
+           res = []
+           for k in topk:
+               correct_k = correct[:k].reshape(-1).float().sum(0, keepdim=True)
+               res.append(correct_k.mul_(100.0 / batch_size))
+           return res
+
+   if __name__ == '__main__':
+       main()
+   ```
+
+   </details><br>
+
+   > [!NOTE]
+   >
+   > 性能数据会占据一定的磁盘空间，可能存在磁盘写满导致服务器不可用的风险。性能数据所需空间跟模型的参数、采集开关配置、采集的迭代数量有较大关系，须用户自行保证落盘目录下的可用磁盘空间。
+
+2. 执行训练脚本命令，工具会采集模型训练过程中的性能数据。
+
+   ```bash
+   python pytorch_main.py -a resnet50 -b 32 --gpu 1 --dummy
+   ```
+
+3. 查看采集到的PyTorch训练性能数据结果文件。
+
+   训练结束后，在**torch_npu.profiler.tensorboard_trace_handler**接口指定的目录下生成Ascend PyTorch Profiler接口的性能数据结果目录，如下示例。
+
+   ```ColdFusion
+   └── msprof_1784298_20260114085947065_ascend_pt
+   ├── ASCEND_PROFILER_OUTPUT
+   │   ├── analysis.db
+   │   ├── ascend_pytorch_profiler.db
+   │   ├── kernel_details.csv
+   │   ├── operator_details.csv
+   │   ├── step_trace_time.csv
+   │   └── trace_view.json
+   ├── FRAMEWORK
+   ├── logs
+   ├── PROF_000001_20260114085947066_FLRBJLNFMBIDRPMB
+   │   ├── device_1
+   │   │   ├── data
+   ...
+   │   ├── host
+   │   │   ├── data
+   ...
+   │   ├── mindstudio_profiler_log
+   ...
+   │   └── mindstudio_profiler_output
+   │       ├── api_statistic_20260114085954.csv
+   │       ├── msprof_20260114085953.json
+   │       ├── op_summary_20260114085954.csv
+   │       ├── README.txt
+   │       └── task_time_20260114085954.csv
+   ├── profiler_info.json
+   └── profiler_metadata.json
+   ```
+
 ## 采集和自动解析<a id="采集和自动解析"></a>
 
 ### 采集并解析性能数据（torch_npu.profiler.profile）<a id="采集并解析性能数据（torch_npu.profiler.profile）"></a>
@@ -69,26 +670,26 @@ Ascend PyTorch Profiler可全面采集PyTorch训练/在线推理场景下的性�
 
 1. 在训练脚本（如train\_\*.py文件）/在线推理脚本内添加如下示例代码进行性能数据采集参数配置，之后启动训练/在线推理。
 
-    >[!NOTE]
+    > [!NOTE]
     >
-    >- 以下示例代码中的torch\_npu.profiler.profile接口及参数详细介绍请参见[Ascend PyTorch Profiler接口说明](#Ascend-PyTorch-Profiler接口说明)。
-    >- 以下给出两个示例代码，使用不同方式调用**torch\_npu.profiler.profile**接口，可任选其一使用。
-    
+    > - 以下示例代码中的torch\_npu.profiler.profile接口及参数详细介绍请参见[Ascend PyTorch Profiler接口说明](#Ascend-PyTorch-Profiler接口说明)。
+    > - 以下给出两个示例代码，使用不同方式调用**torch\_npu.profiler.profile**接口，可任选其一使用。
+
     - 示例一：使用with语句调用torch\_npu.profiler.profile接口，自动创建Profiler，采集with范围内代码段的性能数据。
-    
+
         ```python
         import torch
         import torch_npu
-        
+
         ...
-        
+
         # 添加Profiling采集扩展配置参数，详细参数介绍可参考下文的参数说明
         experimental_config = torch_npu.profiler._ExperimentalConfig(
             export_type=torch_npu.profiler.ExportType.Text,
             profiler_level=torch_npu.profiler.ProfilerLevel.Level0,
             aic_metrics=torch_npu.profiler.AiCMetrics.AiCoreNone
         )
-        
+
         # 添加Profiling采集基础配置参数，详细参数介绍可参考下文的参数说明
         with torch_npu.profiler.profile(
             activities=[
@@ -100,27 +701,27 @@ Ascend PyTorch Profiler可全面采集PyTorch训练/在线推理场景下的性�
             profile_memory=False,
             with_modules=False,
             experimental_config=experimental_config) as prof:
-        
+
             # 启动性能数据采集
             for step in range(steps):    # 训练函数
                 train_one_step()    # 训练函数
                 prof.step()    # 与schedule配套使用
         ```
-        
+
     - 示例二：创建torch\_npu.profiler.profile对象，通过start和stop接口控制采集性能数据，用户可自定义采集启动的位置。
-    
+
         ```python
         import torch
         import torch_npu
         ...
-        
+    
         # 添加Profiling采集扩展配置参数，详细参数介绍可参考下文的参数说明
         experimental_config = torch_npu.profiler._ExperimentalConfig(
             export_type=torch_npu.profiler.ExportType.Text,
             profiler_level=torch_npu.profiler.ProfilerLevel.Level0,
             aic_metrics=torch_npu.profiler.AiCMetrics.AiCoreNone
         )
-        
+    
         # 添加Profiling采集基础配置参数，详细参数介绍可参考下文的参数说明
         prof = torch_npu.profiler.profile(
             activities=[
@@ -132,30 +733,30 @@ Ascend PyTorch Profiler可全面采集PyTorch训练/在线推理场景下的性�
             profile_memory=False,
             with_modules=False,
             experimental_config=experimental_config)
-        
+    
         prof.start()    # 启动性能数据采集
         for step in range(steps):    # 训练函数
             train_one_step()    # 训练函数
             prof.step()    # 与schedule配套使用
         prof.stop()    # 结束性能数据采集
         ```
-    
+
     以上两个示例主要使用tensorboard\_trace\_handler导出性能数据，也可以使用以下prof.export\_chrome\_trace方式导出单个性能文件“chrome\_trace\_\{pid\}.json”。由于tensorboard\_trace\_handler导出的性能数据包含了prof.export\_chrome\_trace导出的性能数据，所以根据实际需求选择一种方式即可。
-    
+
     ```python
     import torch
     import torch_npu
-    
+
     ...
-    
+
     with torch_npu.profiler.profile() as prof:
-    
+
         # 启动性能数据采集
         for step in range(steps):    # 训练函数
             train_one_step()    # 训练函数
     prof.export_chrome_trace('./chrome_trace_14.json')    # 指定chrome_trace_{pid}.json文件导出路径
     ```
-    
+
 2. 性能数据解析。
 
     支持自动解析（参照以上示例代码中**tensorboard\_trace\_handler**和**prof.export\_chrome\_trace**）和[离线解析](#离线解析)。
@@ -179,7 +780,7 @@ dynamic\_profile动态采集，主要功能是在执行模型训练/在线推理
 - torch_npu.profiler.dynamic_profile.init
 - torch_npu.profiler.dynamic_profile.step
 - torch_npu.profiler.dynamic_profile.start
-- torch_npu-profiler-dynamic_profile.set_state
+- torch_npu-profiler.dynamic_profile.set_state
 
 详细介绍请参见《[torch_npu.profiler接口列表](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-profiler/torch_npu-profiler_list.md)》。
 
@@ -205,12 +806,12 @@ dynamic\_profile动态采集，主要功能是在执行模型训练/在线推理
 
    配置该环境变量后启动训练，dynamic\_profile会在profiler\_config\_path下自动创建模板文件profiler\_config.json，用户可基于模板文件自定义修改配置项。
 
-   >[!NOTE]
+   > [!NOTE]
    >
-   >- 该方式仅支持训练场景。
-   >- 该方式下dynamic\_profile不支持采集第一个迭代（step0）的数据。
-   >- 该方式依赖torch原生Optimizer.step\(\)划分训练过程中Profiling的step，不支持自定义Optimizer场景。
-   >- PROF\_CONFIG\_PATH指定的路径可自定义（要求有读写权限），路径格式仅支持由字母、数字和下划线组成的字符串，不支持软链接，例如"/home/xxx/profiler\_config\_path"。
+   > - 该方式仅支持训练场景。
+   > - 该方式下dynamic\_profile不支持采集第一个迭代（step0）的数据。
+   > - 该方式依赖torch原生Optimizer.step\(\)划分训练过程中Profiling的step，不支持自定义Optimizer场景。
+   > - PROF\_CONFIG\_PATH指定的路径可自定义（要求有读写权限），路径格式仅支持由字母、数字和下划线组成的字符串，不支持软链接，例如"/home/xxx/profiler\_config\_path"。
 
 2. 启动训练任务。
 3. 重新开启一个命令行窗口，修改profiler\_config.json配置文件用以使能Profiling任务。
@@ -403,7 +1004,7 @@ dynamic\_profile动态采集，主要功能是在执行模型训练/在线推理
 
   ```python
   from torch.distributed.distributed_c10d import _world
-  
+
   if (torch.__version__ != '1.11.0') :
       stream_id = _world.default_pg._get_backend(torch.device('npu'))._get_stream_id(False)
       collective_stream = torch.npu.Stream(stream_id=stream_id, device_type=20, device_index=device_id)    # device_index设置实际业务的device_id值
@@ -421,7 +1022,7 @@ dynamic\_profile动态采集，主要功能是在执行模型训练/在线推理
 
   ```python
   from torch.distributed.distributed_c10d import _world
-   
+
   if (torch.__version__ != '1.11.0') :
       stream_id = _world.default_pg._get_backend(torch.device('npu'))._get_stream_id(True)
       p2p_stream = torch.npu.Stream(stream_id=stream_id, device_type=20, device_index=device_id)    # device_index设置实际业务的device_id值
@@ -440,7 +1041,7 @@ dynamic\_profile动态采集，主要功能是在执行模型训练/在线推理
   ```python
   import torch
   import torch_npu
-  
+
   experimental_config = torch_npu.profiler._ExperimentalConfig(
       profiler_level=torch_npu.profiler.ProfilerLevel.Level_none,
       mstx=True,    # 原参数名msprof_tx改为mstx，新版本依旧兼容原参数名msprof_tx
@@ -451,7 +1052,7 @@ dynamic\_profile动态采集，主要功能是在执行模型训练/在线推理
       schedule=torch_npu.profiler.schedule(wait=0, warmup=0, active=1, repeat=1, skip_first=0, skip_first_wait=0),
       on_trace_ready=torch_npu.profiler.tensorboard_trace_handler("./result"),
       experimental_config=experimental_config) as prof:
-         
+
       for step in range(steps):
           train_one_step()    # 用户代码，包含调用mstx接口
           prof.step()
@@ -500,7 +1101,7 @@ dynamic\_profile动态采集，主要功能是在执行模型训练/在线推理
 
 打点数据使用MindStudio Insight工具打开，可视化效果如下：
 
-**图 1**  打点结果示例 
+**图 1**  打点结果示例
 
 ![](../figures/profiler/dot_result.png "../figures/profiler/dot_result.png")
 
@@ -650,7 +1251,7 @@ with torch_npu.profiler.profile(
 
 执行采集并导出memory\_timeline.html后，可视化效果如下：
 
-**图 1**  memory\_timeline  
+**图 1**  memory\_timeline
 ![](../figures/profiler/memory_timeline.png "../figures/profiler/memory_timeline.png")
 
 - Time\(ms\)：为横坐标，表示tensor类型对内存的占用时间，单位ms。
@@ -741,7 +1342,7 @@ if __name__ == "__main__":
 
 完成子线程采集后，生成的子线程性能数据如下：
 
-**图 1**  子线程性能数据  
+**图 1**  子线程性能数据
 ![](../figures/profiler/child_thread_profile_data.png "../figures/profiler/child_thread_profile_data.png")
 
 上图中Thread 455385为主线程，Profiler可正常采集，本功能场景无需关注。另外两个线程中aten前缀的timeline即为本功能采集的torch算子数据。
@@ -762,19 +1363,19 @@ if __name__ == "__main__":
 
     ```python
     from torch_npu.profiler.profiler import analyse
-    
+
     if __name__ == "__main__":
         analyse(profiler_path="./result_data", max_process_number=1, export_type=['text'])
     ```
 
     **表 1**  参数说明
-    
+
     | 参数               | 可选/必选 | 描述                                                         |
     | ------------------ | --------- | ------------------------------------------------------------ |
     | profiler_path      | 必选      | PyTorch性能数据路径。路径格式仅支持由字母、数字和下划线组成的字符串，不支持软链接。指定的目录下保存PyTorch性能数据目录{worker_name}\_{时间戳}_ascend_pt。 |
     | max_process_number | 可选      | 离线解析最大进程数。取值范围为1~CPU核数，默认为CPU核数的一半。若设置超过该环境的CPU核数，则自动取CPU核数；若设置为非法值，则取默认值CPU核数的一半。 |
     | export_type        | 可选      | 设置导出的性能数据结果文件格式，List类型。取值：<br>&#8226; text：表示解析为json和csv格式的timeline和summary文件以及汇总所有性能数据的db格式文件（ascend_pytorch_profiler\_{Rank_ID}.db、analysis.db）。<br>&#8226; db：表示仅解析为汇总所有性能数据的.db格式文件（ascend_pytorch_profiler_{Rank_ID}.db、analysis.db），使用MindStudio Insight工具展示。仅支持on_trace_ready接口导出和离线解析导出，需配套安装支持导出db格式的Toolkit软件包。<br>设置无效值或未配置时，则读取profiler_info.json中的export_type字段，确定导出格式。<br>解析结果数据请参见[输出结果文件说明](#输出结果文件说明)。 |
-    
+
     > [!NOTE]
     >
     > - 离线解析接口支持多性能数据目录并行解析，当性能数据量较大且数据目录较多的情况下，可能因环境内存不足导致解析失败，此时可以通过自定义最大进程数（max\_process\_number）来控制资源的占用。
@@ -803,12 +1404,12 @@ if __name__ == "__main__":
 
 - 调用tensorboard\_trace\_handler函数时的落盘目录结构：
 
-  >[!NOTE]
+  > [!NOTE]
   >
-  >- PyTorch框架在该场景下输出的性能数据文件基本一致，以下将两种框架数据合并介绍，个别不同会在注释中说明。
-  >- 以下数据文件用户无需打开查看，可使用[MindStudio Insight](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/overview.md)工具进行性能数据的查看和分析。
-  >- 若kernel\_details.csv中出现StepID空值，用户可通过trace\_view.json文件查看该算子的Step信息，或重新采集Profiling数据。
-  >- 以下数据是基于实际环境采集，若环境中无对应条件，则不会生成对应数据或文件，如模型无AICPU算子，那么即使执行采集也不会生成对应data\_preprocess.csv文件。
+  > - PyTorch框架在该场景下输出的性能数据文件基本一致，以下将两种框架数据合并介绍，个别不同会在注释中说明。
+  > - 以下数据文件用户无需打开查看，可使用[MindStudio Insight](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/overview.md)工具进行性能数据的查看和分析。
+  > - 若kernel\_details.csv中出现StepID空值，用户可通过trace\_view.json文件查看该算子的Step信息，或重新采集Profiling数据。
+  > - 以下数据是基于实际环境采集，若环境中无对应条件，则不会生成对应数据或文件，如模型无AICPU算子，那么即使执行采集也不会生成对应data\_preprocess.csv文件。
 
   ```text
   └── localhost.localdomain_139247_20230628101435_ascend_pt    // 性能数据结果目录，命名格式：{worker_name}_{timestamp}_ascend_{framework}，默认情况下{worker_name}为{hostname}_{pid}，{timestamp}为时间戳，{framework}是PyTorch框架的简写（pt）
@@ -857,7 +1458,7 @@ if __name__ == "__main__":
 
 **trace\_view.json**
 
-**图 1**  trace\_view  
+**图 1**  trace\_view
 ![](../figures/profiler/trace_view.png "../figures/profiler/trace_view.png")
 
 如图1所示，trace数据主要展示如下区域：
@@ -869,19 +1470,19 @@ if __name__ == "__main__":
 
 > [!NOTE]
 >
->trace\_view.json支持使用MindStudio Insight工具、`chrome://tracing/`和`https://ui.perfetto.dev/`打开。
+> trace\_view.json支持使用MindStudio Insight工具、`chrome://tracing/`和`https://ui.perfetto.dev/`打开。
 
-**图 2**  trace\_view（record\_shapes）  
+**图 2**  trace\_view（record\_shapes）
 ![](../figures/profiler/trace_view_record_shapes.png "../figures/profiler/trace_view_record_shapes.png")
 
 开启record\_shapes时，trace\_view中的上层应用算子会显示Input Dims和Input type信息。
 
-**图 3**  trace\_view（with\_stack）  
+**图 3**  trace\_view（with\_stack）
 ![](../figures/profiler/trace_view_with_stack.png "../figures/profiler/trace_view_with_stack.png")
 
 开启with\_stack时，trace\_view中的上层应用算子会显示Call stack信息。
 
-**图 4**  trace\_view（GC）  
+**图 4**  trace\_view（GC）
 ![](../figures/profiler/trace_view_GC.png "../figures/profiler/trace_view_GC.png")
 
 图4采集结果中Python GC层的时间段为本次GC执行的时间。
@@ -890,7 +1491,7 @@ GC执行时，会阻塞当前进程，需要等待GC完成，若GC时间过长�
 
 **kernel\_details.csv**
 
-**图 5**  kernel\_details  
+**图 5**  kernel\_details
 ![](../figures/profiler/kernel_details.png "../figures/profiler/kernel_details.png")
 
 文件包含在NPU上执行的所有算子的信息。若用户前端调用了schedule进行Step打点，则会增加Step Id字段；但若schedule设置了warmup（不为0），且训练/在线推理的每个Step后存在算子异步执行操作，那么这部分算子异步执行操作在warmup阶段执行的算子可能会被采集到，结果为在kernel\_details.csv中没有Step Id字段。
@@ -912,13 +1513,13 @@ GC执行时，会阻塞当前进程，需要等待GC完成，若GC时间过长�
 |Stream ID|该Task所处的Stream ID。|
 |Name|算子名。|
 |Type|算子类型。|
-|OP State|算子的动静态信息，dynamic表示动态算子，static表示静态算子，通信算子无该状态显示为N/A，该字段仅在--task-time=l1情况下上报，--task-time=l0时显示为N/A。|
+|OP State|算子的动静态信息，dynamic表示动态算子，static表示静态算子，通信算子无该状态显示为N/A，该字段仅在Level1情况下上报，Level0时不上报。|
 |Accelerator Core|AI加速核类型，包括AI Core、AI CPU等。|
 |Start Time(us)|算子执行开始时间，单位us。|
 |Duration(us)|当前算子执行耗时，单位us。|
 |Wait Time(us)|算子执行等待时间，单位us。|
 |Block Num|运行切分数量，对应任务执行时核数。|
-|Mix Block Num|部分算子同时在AI Core和Vector Core上执行，主加速器的Block Num在Block Num字段描述，从加速器的Block Num在本字段描述。task_time为l0时，不采集该字段，显示为N/A。<br>仅Atlas A2 训练系列产品/Atlas A2 推理系列产品和Atlas A3 训练系列产品/Atlas A3 推理系列产品支持。|
+|Mix Block Num|部分算子同时在AI Core和Vector Core上执行，主加速器的Block Num在Block Num字段描述，从加速器的Block Num在本字段描述。Level0时默认不采集该字段。<br>仅Atlas A2 训练系列产品/Atlas A2 推理系列产品和Atlas A3 训练系列产品/Atlas A3 推理系列产品支持。|
 |HF32 Eligible|标识是否使用HF32精度标记，YES表示使用，NO表示未使用。|
 |Input Shapes|算子输入Shape。|
 |Input Data Types|算子输入数据类型。|
@@ -929,7 +1530,7 @@ GC执行时，会阻塞当前进程，需要等待GC完成，若GC时间过长�
 
 **memory\_record.csv**
 
-**图 6**  memory\_record  
+**图 6**  memory\_record
 ![](../figures/profiler/memory_record.png "../figures/profiler/memory_record.png")
 
 文件包含TorchNPU和GE的显存占用记录，主要记录TorchNPU、GE等组件申请的内存及占用时间。字段信息如[表2](#table2)所示。
@@ -948,13 +1549,14 @@ GC执行时，会阻塞当前进程，需要等待GC完成，若GC时间过长�
 
 **operator\_memory.csv**
 
-**图 7**  operator\_memory  
+**图 7**  operator\_memory
 ![](../figures/profiler/operator_memory.png "../figures/profiler/operator_memory.png")
 
 文件包含算子的内存占用明细，主要记录算子在NPU上执行所需内存及占用时间，其中内存由TorchNPU和GE申请。字段信息如[表3](#table3)所示。
 
->[!NOTE]
->若operator\_memory.csv文件中出现负值或空值，详细原因请参见[operator\_memory（CANN算子的内存占用明细）](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/user_guide/profile_data_file_references.md#operator_memory%EF%BC%88cann%E7%AE%97%E5%AD%90%E7%9A%84%E5%86%85%E5%AD%98%E5%8D%A0%E7%94%A8%E6%98%8E%E7%BB%86%EF%BC%89) 的负值空值说明。
+> [!NOTE]
+>
+> 若operator\_memory.csv文件中出现负值或空值，详细原因请参见[operator\_memory（CANN算子的内存占用明细）](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/user_guide/profile_data_file_references.md#operator_memory%EF%BC%88cann%E7%AE%97%E5%AD%90%E7%9A%84%E5%86%85%E5%AD%98%E5%8D%A0%E7%94%A8%E6%98%8E%E7%BB%86%EF%BC%89) 的负值空值说明。
 
 **表 3**  operator\_memory<a name="table3"></a>
 
@@ -978,7 +1580,7 @@ GC执行时，会阻塞当前进程，需要等待GC完成，若GC时间过长�
 
 **npu\_module\_mem.csv**
 
-**图 8**  npu\_module\_mem  
+**图 8**  npu\_module\_mem
 ![](../figures/profiler/npu_module_mem.png "../figures/profiler/npu_module_mem.png")
 
 npu\_module\_mem.csv数据在采集进程中自动采集，包含组件级的内存占用情况，主要记录组件在NPU上执行时，当前时刻所占用的内存。字段信息如[表4](#table4)所示。
@@ -995,7 +1597,7 @@ npu\_module\_mem.csv数据在采集进程中自动采集，包含组件级的内
 
 **operator\_details.csv**
 
-**图 9**  operator\_details  
+**图 9**  operator\_details
 ![](../figures/profiler/operator_details.png "../figures/profiler/operator_details.png")
 
 operator\_details.csv文件包含信息如[表5](#table5)所示。
@@ -1016,7 +1618,7 @@ operator\_details.csv文件包含信息如[表5](#table5)所示。
 
 **step\_trace\_time.csv**
 
-**图 10**  step\_trace\_time  
+**图 10**  step\_trace\_time
 ![](../figures/profiler/step_trace_time.png "../figures/profiler/step_trace_time.png")
 
 迭代中计算和通信的时间统计，包含信息如[表6](#table6)所示。
@@ -1429,13 +2031,14 @@ PCIe带宽数据。
 |activities|可选|CPU、NPU事件采集列表，Enum类型。取值为：<br>&#8226; torch_npu.profiler.ProfilerActivity.CPU：框架侧数据采集的开关。<br>&#8226; torch_npu.profiler.ProfilerActivity.NPU：CANN软件栈及NPU数据采集的开关。<br/>默认情况下两个开关同时开启。|
 |schedule|可选|设置不同step的行为，Callable类型，由schedule类控制。默认不执行任何操作。<br/>torch_npu.profiler._KinetoProfile不支持该参数。|
 |on_trace_ready|可选|采集结束时自动执行操作，Callable类型。当前支持执行tensorboard_trace_handler函数操作。当采集的数据量过大时，在当前环境下不适合直接解析性能数据，或者采集过程中中断了训练/在线推理进程，只采集了部分性能数据，可以采用[离线解析](#离线解析)。<br/>默认不执行任何操作。<br/>torch_npu.profiler._KinetoProfile不支持该参数。<br/>对于使用共享存储的多卡大集群场景，直接使用on_trace_ready执行tensorboard_trace_handler函数的方式进行性能数据落盘，可能因多卡数据直接落盘到共享存储导致性能膨胀的问题。解决方式请参见[PyTorch多卡大集群场景如何避免性能数据直接落盘到共享存储时导致的性能膨胀问题](#PyTorch多卡大集群场景如何避免性能数据直接落盘到共享存储时导致的性能膨胀问题)。|
-|record_shapes|可选|记录框架层算子的InputShapes、InputTypes数据以及在torch_npu.profiler.ProfilerLevel.Level0时开启记录CANN层算子的Shape数据，Bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。|
+|record_shapes|可选|记录框架层算子的InputShapes、InputTypes数据以及在torch_npu.profiler.ProfilerLevel.Level0时开启记录CANN层算子的Shape和Block Num数据，Bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。|
 |profile_memory|可选|记录算子的显存占用情况，Bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。<br/>开启torch_npu.profiler.ProfilerActivity.CPU时，采集框架显存占用情况；torch_npu.profiler.ProfilerActivity.NPU时，采集CANN的显存占用。<br/>已知在安装有glibc<2.34的环境上采集memory数据，可能触发glibc的一个已知[Bug 19329](https://sourceware.org/bugzilla/show_bug.cgi?id=19329)，通过升级环境的glibc版本可解决此问题。|
 |with_stack|可选|记录算子调用栈，Bool类型。包括框架层及CPU算子层的调用信息。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。<br/>开启torch_npu.profiler.ProfilerActivity.CPU时生效。<br/>开启该配置后会引入额外的性能膨胀。|
 |with_modules|可选|记录modules层级的Python调用栈，即框架层的调用信息，Bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。<br/>开启torch_npu.profiler.ProfilerActivity.CPU时生效。<br/>开启该配置后会引入额外的性能膨胀。|
 |with_flops|可选|记录算子浮点操作（该参数暂不支持解析性能数据）。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。<br/>开启torch_npu.profiler.ProfilerActivity.CPU时生效。|
 |experimental_config|可选|扩展参数，通过扩展配置性能分析工具常用的采集项。支持采集项和详细介绍请参见[experimental_config参数说明](#experimental_config参数说明)。|
-|custom_trace_id_callback|可选|为每一份Profiler数据生成一个trace_id进行标识。<br>调用示例请参见[torch_npu.profiler.profile](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-profiler/torch_npu-profiler-profile.md)<br>trace_id输出在profiler\_metadata.json文件中。|
+|execution_trace_observer|可选|PyTorch执行轨迹观测器对象。PyTorch执行轨迹以图的形式表示AI/ML工作负载，支持回放基准测试、模拟器和仿真器。当包含此参数时，观测器的start()和stop()方法将在与PyTorch剖析器相同的时间窗口内被调用。<br>调用示例请参见[torch_npu.profiler.profile](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-profiler/torch_npu-profiler-profile.md)。|
+|custom_trace_id_callback|可选|为每一份Profiler数据生成一个trace_id进行标识。<br>调用示例请参见[torch_npu.profiler.profile](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-profiler/torch_npu-profiler-profile.md)。<br>trace_id输出在profiler\_metadata.json文件中。|
 
 **表 2**  torch\_npu.profiler.profile和torch\_npu.profiler.\_KinetoProfile方法说明
 
@@ -1510,7 +2113,7 @@ profiler\_config.json文件内容如下，以默认配置为例：
 |activities|可选|CPU、NPU事件采集列表。取值为：<br/>&#8226; CPU：框架侧数据采集的开关。<br/>&#8226; NPU：CANN软件栈及NPU数据采集的开关。<br/>默认情况下两个开关同时开启。|
 |prof_dir|可选|采集到的性能数据的存放路径。默认路径为：./。路径格式仅支持由字母、数字和下划线组成的字符串，不支持软链接。|
 |analyse|可选|性能数据自动解析开关，取值为：<br/>&#8226; true：开启自动解析。<br/>&#8226; false：关闭自动解析，即手动解析，采集完后的性能数据可以使用[离线解析](#离线解析)。<br/>默认关闭。|
-|record_shapes|可选|记录框架层算子的InputShapes、InputTypes数据以及在profiler_level为Level0开启记录CANN层算子的Shape数据。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。|
+|record_shapes|可选|记录框架层算子的InputShapes、InputTypes数据以及在profiler_level为Level0开启记录CANN层算子的Shape和Block Num数据。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。|
 |profile_memory|可选|记录算子的显存占用情况。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。<br/>activities开启CPU时，采集框架内存占用情况；activities开启NPU时，采集CANN的显存占用。<br/>已知在安装有glibc<2.34的环境上采集memory数据，可能触发glibc的一个已知[Bug 19329](https://sourceware.org/bugzilla/show_bug.cgi?id=19329)，通过升级环境的glibc版本可解决此问题。|
 |with_stack|可选|记录算子调用栈。包括框架层及CPU算子层的调用信息。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。<br/>activities配置为CPU时生效。|
 |with_flops|可选|记录算子浮点操作（该参数暂不支持解析性能数据）。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。<br/>activities配置为CPU时生效。|
@@ -1594,7 +2197,7 @@ torch_npu.profiler.schedule(wait, active, warmup = 0, repeat = 0, skip_first = 0
 
 torch\_npu.profiler.schedule类、step和on\_trace\_ready函数使用关系示意图如下：
 
-**图 1**  torch\_npu.profiler.schedule类、step和on\_trace\_ready函数使用关系示意图  
+**图 1**  torch\_npu.profiler.schedule类、step和on\_trace\_ready函数使用关系示意图
 ![](../figures/profiler/torch_npu-profiler-schedule.png "../figures/profiler/torch_npu-profiler-schedule.png")
 
 设置示例代码如下：
