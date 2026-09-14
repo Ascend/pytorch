@@ -1,48 +1,32 @@
-name: Torch NPU Upstream v2.7.1 Trigger
+name: Decoupled Test Pipeline
 
 on:
   pull_request:
     paths:
       - '.github/**'
       - 'test_upstream/**'
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      pytorch_commit:
+        description: 'PyTorch commit to checkout for test source'
+        required: false
+        type: string
+        default: '0545bb23f54b26001534a83f25f2729ad8770b68'
+      torch_npu_ref:
+        description: 'Branch/ref of ascend-pytorch to build (empty = current branch)'
+        required: false
+        type: string
+        default: ''
 
 jobs:
-  # ============================================================================
-  # 1. Detect Changed Patches
-  # ============================================================================
-  detect:
-    name: Detect changed patches
-    runs-on: ubuntu-latest
-    outputs:
-      test_files: ${{ steps.detect.outputs.test_files }}
-      has_test_changes: ${{ steps.detect.outputs.has_test_changes }}
-      has_torch_changes: ${{ steps.detect.outputs.has_torch_changes }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Detect changed patch files
-        id: detect
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          BASE_REF: ${{ github.base_ref }}
-          INPUT_PATCH_FILES: ''
-        run: |
-          chmod +x .github/scripts/detect_changed_patches.sh
-          .github/scripts/detect_changed_patches.sh
-
-  # ============================================================================
-  # 2. Trigger Tests
-  # ============================================================================
   trigger_test:
-    needs: detect
-    if: always()
     uses: ./.github/workflows/_torch-npu-upstream-test.yml
     with:
+      docker_image_build: 'swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704'
       distributed_shards: '5'
       regular_shards: '5'
-      test_files: ${{ needs.detect.outputs.test_files || '' }}
+      test_files: ''
+      pytorch_commit: ${{ inputs.pytorch_commit || '0545bb23f54b26001534a83f25f2729ad8770b68' }}
+      torch_npu_ref: ${{ inputs.torch_npu_ref || '' }}

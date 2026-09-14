@@ -6,7 +6,7 @@ on:
       docker_image_build:
         required: false
         type: string
-        default: 'quay.io/kerer/pytorch:torch-npu-builder-aarch64-torch2.7.1-202605230359'
+        default: 'swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704'
         description: Docker image for building torch_npu
       docker_image_test:
         required: false
@@ -38,6 +38,16 @@ on:
         type: string
         default: ''
         description: Test files to run directly (comma-separated)
+      pytorch_commit:
+        required: false
+        type: string
+        default: 'fad74248e78716152917a729adb2b44ba2bab16e'
+        description: PyTorch commit to checkout for test source
+      torch_npu_ref:
+        required: false
+        type: string
+        default: ''
+        description: Branch/ref of ascend-pytorch to checkout for building torch_npu (empty = current branch)
 
 defaults:
   run:
@@ -51,6 +61,7 @@ jobs:
     uses: ./.github/workflows/_torch-npu-upstream-prepare.yml
     with:
       prepared_test_src_artifact: pytorch-test-src-${{ inputs.pytorch_version }}-patched
+      pytorch_commit: ${{ inputs.pytorch_commit }}
 
   # ============================================================================
   # 2. Build torch_npu Wheel
@@ -63,6 +74,8 @@ jobs:
       docker_image: ${{ inputs.docker_image_build }}
       torch_npu_wheel_artifact: torch-npu-wheel-${{ inputs.pytorch_version }}-source
       max_jobs: '40'
+      pytorch_commit: ${{ inputs.pytorch_commit }}
+      torch_npu_ref: ${{ inputs.torch_npu_ref }}
 
   # ============================================================================
   # 3. Collect Test Cases (only when test_files is empty)

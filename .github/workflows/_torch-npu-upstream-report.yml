@@ -118,6 +118,19 @@ jobs:
 
           cat ${REPORT_MD} >> $GITHUB_STEP_SUMMARY
 
+      - name: Generate Excel report
+        run: |
+          echo "=== Generating Excel report ==="
+          pip install openpyxl
+
+          python ascend_pytorch/.github/scripts/generate_report.py \
+            --excel "ascend_pytorch/.github/scripts/Test Class Refactoring Tracker.xlsx" \
+            --reports-dir all-test-reports \
+            --output done_cases_report.xlsx
+
+          echo "=== Excel report generated ==="
+          ls -lh done_cases_report.xlsx
+
       - name: Upload consolidated summary
         if: always()
         uses: actions/upload-artifact@v4
@@ -128,4 +141,5 @@ jobs:
             npu-full-test-summary.json
             distributed_cases_results_by_file.jsonl
             regular_cases_results_by_file.jsonl
+            done_cases_report.xlsx
           retention-days: 60
