@@ -32,7 +32,7 @@ class TestCodegenRegressions(TestCase):
             mock.patch.object(experimental_lowering, "FALLBACK_LIST", []),
         ):
             experimental_lowering._register_npu_inductor_fallbacks()
-        make_fallback.assert_not_called()
+        self.assertNotIn(mock.call(control_deps), make_fallback.call_args_list)
 
     def test_codegen_constant_index_shape_normalization(self):
         upstream_result = IndexingOptions(

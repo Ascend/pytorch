@@ -886,6 +886,27 @@ def _override_native_dropout_decomp():
     extra_random_decomps[aten.native_dropout.default] = native_dropout
 
 
+def _register_upsample_bilinear2d_vec_dispatcher():
+    """Route the vec overload to the native NPU-compatible default overload."""
+    from torch._decomp.decompositions import upsample_compute_output_size
+
+    def upsample_bilinear2d_vec(
+        input, output_size, align_corners, scale_factors
+    ):
+        osize = upsample_compute_output_size(
+            input.size(), output_size, scale_factors
+        )
+        scales = scale_factors if scale_factors else (None, None)
+        return aten.upsample_bilinear2d.default(
+            input, osize, align_corners, scales[0], scales[1]
+        )
+
+    for dispatch_key in (DispatchKey.Autograd, DispatchKey.CompositeImplicitAutograd):
+        aten.upsample_bilinear2d.vec.py_impl(dispatch_key)(
+            upsample_bilinear2d_vec
+        )
+
+
 def _register_triton_experimental_decompositions():
     """Install all triton_experimental decomposition-table overrides and prune the
     exclusion list. Called directly by ``_load_triton_experimental_backend``.
@@ -909,6 +930,10 @@ def _register_triton_experimental_decompositions():
         aten.embedding,
         aten.embedding_dense_backward,
         aten.expm1,
+        aten.reflection_pad2d,
+        aten.reflection_pad2d_backward,
+        aten.upsample_bilinear2d,
+        aten.upsample_bilinear2d_backward,
     ]
     # On A5 (910_95), let these ops go through decomposition instead of
     # falling back, so drop them from the exclusion list.
@@ -922,6 +947,7 @@ def _register_triton_experimental_decompositions():
             npu_decomps_to_exclude.remove(op)
 
     disable_implicit_decomposition()
+    _register_upsample_bilinear2d_vec_dispatcher()
     remove_decompositions(decompositions, npu_decomps_to_exclude)
 
     # Also remove from fast_random_decomps cache (used by select_decomp_table

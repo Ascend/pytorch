@@ -19,7 +19,11 @@ import sympy
 from . import config as ncfg
 from . import device_props as _device_props
 from . import rescue_rules
-from .lowering_override_list import GENERATE_LIST, KEEP_UPSTREAM_LOWERING
+from .lowering_override_list import (
+    EXPLICIT_FALLBACK_LIST,
+    GENERATE_LIST,
+    KEEP_UPSTREAM_LOWERING,
+)
 import torch
 from torch._inductor.lowering import (
     lowerings,
@@ -105,6 +109,10 @@ def _register_npu_inductor_fallbacks():
                  torch._ops.HigherOrderOperator)):
             make_fallback(op)
             FALLBACK_LIST.append(op)
+
+    for op in EXPLICIT_FALLBACK_LIST:
+        make_fallback(op)
+        FALLBACK_LIST.append(op)
 
     # Bernoulli's NPU op-api still consumes host-side seed/offset values via
     # NPUGeneratorImpl::philox_engine_inputs().  CANN does not currently expose
