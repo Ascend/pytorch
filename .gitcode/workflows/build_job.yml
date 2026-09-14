@@ -1,0 +1,91 @@
+name: Build Job
+
+on:
+  workflow_call:
+    inputs:
+      py_version:
+        required: false
+        type: string
+        default: ${{ '3.10' }}
+      pr_id:
+        required: false
+        type: string
+        default: ${{ atomgit.event.pull_request.number }}
+      CP_DOCKER_IMG:
+        required: true
+        type: string
+      torch_branch:
+        required: true
+        type: string
+        default: ${{ atomgit.event.pull_request.base.ref }}
+      runs_on_arch:
+        required: false
+        type: string
+        default: "x64"
+      runs_on_spec:
+        required: false
+        type: string
+        default: "cpu=32"
+
+jobs:
+  Compile:
+    name: Compile
+    select: selected_by_default
+    runs-on: [ self-hosted,"${{ inputs.runs_on_arch }}", "${{ inputs.runs_on_spec }}" ]
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/${{ inputs.CP_DOCKER_IMG }}
+    outputs:
+      need_ut: ${{ steps.check_support.outputs.need_build }}
+    steps:
+      - name: checkout torch_npu
+        uses: checkout
+        with:
+          ref: refs/merge-requests/${{ inputs.pr_id }}/merge
+          fetch-depth: 1
+          submodules: recursive
+          allow-unsafe-pr-checkout: true
+
+      - name: install torch
+        if: ${{ inputs.torch_branch == 'master' }}
+        run: |
+          ARCH="${{ inputs.runs_on_arch }}"
+          if [ "${ARCH}" = "x64" ] || [ "${ARCH}" = "x86" ]; then
+            TORCH_ARCH="x86_64"
+          elif [ "${ARCH}" = "arm64" ] || [ "${ARCH}" = "arm" ]; then
+            TORCH_ARCH="aarch64"
+          else
+            TORCH_ARCH="${ARCH}"
+          fi
+
+          torch_version=$(cat requirements.txt | grep torch== | cut -c 8-25)
+          nightly_date=${torch_version:10:8}
+          echo "torch_version=${torch_version}"
+          echo "nightly_date=${nightly_date}"
+
+          if [ ${#nightly_date} -ne 8 ]; then
+            ver=${torch_version:0:6}
+            url_base="https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/torch/v${ver}"
+          else
+            ver=${torch_version}
+            url_base="https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/torch/master/${nightly_date}"
+          fi
+
+          torch_url="${url_base}/torch-${ver}%2Bcpu-cp310-cp310-manylinux_2_28_${TORCH_ARCH}.whl"
+          echo "torch_url=${torch_url}"
+          pip"${{ inputs.py_version }}" install $torch_url
+
+      - name: compile
+        run: |
+          ls -al
+          export OMP_NUM_THREADS=32
+          pip"${{ inputs.py_version }}" list
+          BUILD_WITHOUT_SHA=1 bash ci/build.sh --python=${{ inputs.py_version }}
+          ls -al ${workspace}
+
+      - name: Upload artifact
+        uses: upload-artifact
+        with:
+          name: torch_npu-${{ inputs.torch_branch }}-${{ inputs.runs_on_arch }}
+          path: |
+            dist/torch_npu*.whl
+          overwrite: true

@@ -1,0 +1,43 @@
+name: check_distribution
+
+on:
+  workflow_call:
+    outputs:
+      need_distribution:
+        description: "是否需要执行distribution测试用例"
+        value: ${{ jobs.distribution.outputs.need_distribution }}
+
+jobs:
+  distribution:
+    name: distribution
+    select: selected_by_default
+    runs-on: [ self-hosted, x86, cpu=32 ]
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/pytorch_images_x86/pytorchx86:v_03
+    outputs:
+      need_distribution: ${{ steps.check_distribution.outputs.need_distribution }}
+    steps:
+      - name: download modify_files.txt
+        uses: download-artifact
+        with:
+          name: modify_files.txt
+          path: ./
+
+      - name: run distribution check
+        id: check_distribution
+        run: |
+          ls
+          cat modify_files.txt
+          need_distribution="no"
+          if [ ! -f modify_files.txt ]; then
+              echo "check modify file exception!" >&2
+          else
+              while IFS= read -r modify_file; do
+                  if echo "$modify_file" | grep -q -E '/(distributed|rpc)'; then
+                      need_distribution="yes"
+                      break
+                  fi
+              done < modify_files.txt
+          fi
+          echo "need_distribution=${need_distribution}" >> "$ATOMGIT_OUTPUT"
+          echo "need_distribution=${need_distribution}"

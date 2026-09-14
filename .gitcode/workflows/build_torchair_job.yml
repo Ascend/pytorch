@@ -1,0 +1,78 @@
+name: Build Job
+
+on:
+  workflow_call:
+    inputs:
+      pr_id:
+        required: false
+        type: string
+        default: ${{ atomgit.event.pull_request.number }}
+      CP_DOCKER_IMG:
+        required: true
+        type: string
+      torch_branch:
+        required: true
+        type: string
+        default: ${{ atomgit.event.pull_request.base.ref }}
+      runs_on_arch:
+        required: false
+        type: string
+        default: "x64"
+      runs_on_spec:
+        required: false
+        type: string
+        default: "cpu=32"
+
+jobs:
+  Compile:
+    name: Compile
+    select: selected_by_default
+    runs-on: [ self-hosted,"${{ inputs.runs_on_arch }}", "${{ inputs.runs_on_spec }}" ]
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/${{ inputs.CP_DOCKER_IMG }}
+    outputs:
+      need_ut: ${{ steps.check_support.outputs.need_build }}
+    steps:
+      - name: checkout torch_npu
+        uses: checkout
+        with:
+          ref: refs/merge-requests/${{ inputs.pr_id }}/merge
+          fetch-depth: 1
+          submodules: recursive
+          allow-unsafe-pr-checkout: true
+
+      - name: compile_3.9
+        run: |
+          ls -al
+          export OMP_NUM_THREADS=32
+          pip"3.9"  list
+          BUILD_WITHOUT_SHA=1 bash ci/build.sh --python="3.9"
+          cp dist/torch_npu*.whl ${ATOMGIT_WORKSPACE}/
+          ls -al ${ATOMGIT_WORKSPACE}
+
+      - name: compile_3.11
+        run: |
+          ls -al
+          export OMP_NUM_THREADS=32
+          pip"3.11" list
+          BUILD_WITHOUT_SHA=1 bash ci/build.sh --python="3.11"
+          cp dist/torch_npu*.whl ${ATOMGIT_WORKSPACE}/
+          ls -al ${ATOMGIT_WORKSPACE}
+
+      - name: oidc-auth
+        uses: huaweicloud-oidc-auth
+        with:
+          audience: pta_pr_obs_for_pytorch
+          region: cn-north-4
+          agency_urn: iam::0d336831568090260fd5c01450729240:agency:pta_obs_pr_trust
+          provider_urn: iam::0d336831568090260fd5c01450729240:oidcProvider:pta_obs_pr
+
+      - name: Upload build outputs to OBS
+        id: upload_obs
+        uses: obs-upload
+        with:
+          endpoint: "obs.cn-north-4.myhuaweicloud.com"
+          bucket: "pta-pr"
+          artifact-path: |
+            dist/torch_npu*.whl
+          object-prefix: "pta/PR/${{ inputs.pr_id }}/"

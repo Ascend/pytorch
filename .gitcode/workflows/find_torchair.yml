@@ -1,0 +1,55 @@
+name: find_torchair
+
+on:
+  workflow_call:
+    outputs:
+      build_torchair:
+        description: "查看pr是否有torchair标签"
+        value: ${{ jobs.torchair.outputs.build_torchair }}
+
+jobs:
+  torchair:
+    name: torchair
+    select: selected_by_default
+    runs-on: [ self-hosted, x86, cpu=32 ]
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/pytorch_images_x86/pytorchx86:v_03
+    outputs:
+      build_torchair: ${{ steps.find_torchair.outputs.build_torchair }}
+    steps:
+      - name: find torchair label
+        id: find_torchair
+        run: |
+          python3 -c "
+          import json, os, logging, urllib.request
+
+          logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(message)s')
+
+          pr_id = '${{ atomgit.event.pull_request.number }}'
+          repo = '${{ atomgit.repository }}'
+          access_token = '${{ atomgit.token }}'
+
+          url = f'https://api.gitcode.com/api/v5/repos/{repo}/pulls/{pr_id}/labels'
+          sep = '&' if '?' in url else '?'
+          logging.info(f'pr_id={pr_id}, url={url}')
+          req = urllib.request.Request(f'{url}{sep}access_token={access_token}')
+          try:
+              with urllib.request.urlopen(req) as res:
+                  logging.info(f'status_code={res.status}')
+                  body = res.read().decode()
+                  logging.info(f'response={body}')
+                  labels = json.loads(body)
+                  for label in labels:
+                      if label.get('name') == 'torchair':
+                          print('build_torchair=yes')
+                          os.system('echo build_torchair=yes >> ' + os.environ['ATOMGIT_OUTPUT'])
+                          raise SystemExit(0)
+          except SystemExit:
+              raise
+          except Exception as e:
+              logging.error(f'request failed: {e}')
+
+          logging.info('no torchair label found')
+          print('build_torchair=no')
+          os.system('echo build_torchair=no >> ' + os.environ['ATOMGIT_OUTPUT'])
+          "

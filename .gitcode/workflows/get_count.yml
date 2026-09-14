@@ -1,0 +1,82 @@
+name: get_count
+
+on:
+  workflow_call:
+    outputs:
+      core:
+        description: "执行核心用例的数量"
+        value: ${{ jobs.count.outputs.core }}
+      select:
+        description: "执行精准测试用例的数量"
+        value: ${{ jobs.count.outputs.select }}
+
+jobs:
+  count:
+    name: count
+    select: selected_by_default
+    runs-on: [ self-hosted, x86, cpu=32 ]
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/pytorch_images_x86/pytorchx86:v_03
+    outputs:
+      core: ${{ steps.get_count.outputs.core }}
+      select: ${{ steps.get_count.outputs.select }}
+    steps:
+      - name: checkout torch_npu
+        uses: checkout
+        with:
+          ref: refs/merge-requests/${{ atomgit.event.pull_request.number }}/merge
+          path: CODE
+          allow-unsafe-pr-checkout: true
+
+      - name: download modify_files.txt
+        uses: download-artifact
+        with:
+          name: modify_files.txt
+          path: ./
+
+      - name: get count
+        id: get_time_data
+        run: |
+          ls
+          cd CODE
+          echo "${{ atomgit.event.pull_request.base.ref }}"
+          wget -c -q --no-check-certificate https://pta-pr.obs.cn-north-4.myhuaweicloud.com/pta/timing/${{ atomgit.event.pull_request.base.ref }}_time_data.json -O time_data.json
+          ls -l
+          ls -l time_data.json
+          cat time_data.json
+
+      - name: install psutil
+        id: get_count
+        run: |
+          case "${{ atomgit.event.pull_request.base.ref }}" in
+            master|v2.7.1|v2.9.0|v2.10.0|v2.11.0|v2.12.0|v2.13.0) ;;
+            *)
+              echo "core=3" >> "$ATOMGIT_OUTPUT"
+              echo "select=2" >> "$ATOMGIT_OUTPUT"
+              exit 0
+              ;;
+          esac
+          pip3.10 install psutil
+          cd CODE || exit 1
+          python3.10 ci/access_control_test.py --estimate_tasks || echo "estimate_tasks failed, fall back to default"
+          cd ..
+          ls -l
+          python3.10 -c "
+          import json, os, logging
+
+          output_file = os.environ['ATOMGIT_OUTPUT']
+          try:
+              with open('CODE/task_plan.json', encoding='utf-8') as f:
+                  plan = json.load(f)
+              core_tasks = plan['core']
+              select_tasks = plan['select']
+          except Exception as e:
+              logging.error(f'parse task_plan.json failed: {e}, use default')
+              core_tasks = 3
+              select_tasks = 2
+          print(core_tasks)
+          print(select_tasks)
+          with open(output_file, 'a') as f:
+              f.write(f'core={core_tasks}\n')
+              f.write(f'select={select_tasks}\n')
+          "

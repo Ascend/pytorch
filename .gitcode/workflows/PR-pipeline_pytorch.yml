@@ -1,0 +1,247 @@
+name: PR-pipeline_pytorch
+
+concurrency:
+  max: 120
+  exceed-action: QUEUE
+  enable: true
+  preemption:
+    enable: true
+    events: [mr_id]
+
+on:
+  pr_comment:
+    types: [created]
+    keyword: '^compile$'
+
+  pull_request_comment:
+    types: [created]
+    branches: [ 'master', 'v2.7.1', 'v2.9.0', 'v2.10.0', 'v2.11.0', 'v2.12.0', 'v2.13.0', '*-26.1.0' ]
+    comments: [ '^compile$' ]
+
+env:
+  repo: ${{ atomgit.event.repository.name }}
+  pr_id: ${{ atomgit.event.pull_request.number }}
+  target_branch: ${{ atomgit.event.pull_request.base.ref }}
+  org_name: "Ascend"
+  img_master_arm: "pytorch_master_a2_aarch64_builder:20260804"
+  img_2_7_1_arm: "pytorch_2.7.1_a2_aarch64_builder:20260804"
+  img_2_9_0_arm: "pytorch_2.9.0_a2_aarch64_builder:20260901"
+  img_2_10_0_arm: "pytorch_2.10.0_a2_aarch64_builder:20260804"
+  img_2_11_0_arm: "pytorch_2.11.0_a2_aarch64_builder:20260804"
+  img_2_12_0_arm: "pytorch_2.12.0_a2_aarch64_builder:20260804"
+  img_2_13_0_arm: "pytorch_2.13.0_a2_aarch64_builder:20260804"
+  img_master_x86: "pytorch_master_a1_x86_64_builder:20260804"
+  img_2_7_1_x86: "pytorch_2.7.1_a1_x86_64_builder:20260804"
+  img_2_9_0_x86: "pytorch_2.9.0_a1_x86_64_builder:20260901"
+  img_2_10_0_x86: "pytorch_2.10.0_a1_x86_64_builder:20260704"
+  img_2_11_0_x86: "pytorch_2.11.0_a1_x86_64_builder:20260704"
+  img_2_12_0_x86: "pytorch_2.12.0_a1_x86_64_builder:20260704"
+  img_2_13_0_x86: "pytorch_2.13.0_a1_x86_64_builder:20260709"
+
+permissions:
+  repository: read
+  id-token: write
+  pr: write
+
+stages:
+  stage_1:
+    name: only_doc
+    jobs:
+      Detect_file_changes:
+        name: Detect_file_changes
+        runs-on: [ self-hosted, x86, cpu=32 ]
+        container:
+          image: swr.cn-north-4.myhuaweicloud.com/pytorch_images_x86/pytorchx86:v_03
+        outputs:
+          need_build_ut: ${{ steps.set-skip.outputs.need_build_ut }}
+        steps:
+          - name: checkout
+            uses: checkout
+            with:
+              ref: refs/merge-requests/${{ env.pr_id }}/merge
+              fetch-depth: 0
+              allow-unsafe-pr-checkout: true
+          - name: Only_doc_commit
+            id: filter
+            uses: paths-changes-filter
+            with:
+              event-name: 'pull_request'
+              base: ${{ atomgit.event.pull_request.base.ref }}
+              repo: ${{ atomgit.repository }}
+              number: ${{ env.pr_id }}
+              token: ${{ atomgit.token }}
+              list-files: json
+              predicate-quantifier: every
+              filters: |
+                changed:
+                  - '**'
+                non-doc:
+                  - '!**/*.md'
+                  - '!**/*.rst'
+                  - '!**/*.log'
+                  - '!**/*.png'
+                  - '!**/*.jpg'
+                  - '!**/*.doc'
+                  - '!**/*.eddx'
+                  - '!**/*.svg'
+
+          - name: set build skip flag
+            id: set-skip
+            run: |
+              echo "changed: ${{ steps.filter.outputs.changed_files }}"
+              echo "non-doc: ${{ steps.filter.outputs.non-doc }}"
+              if [ "${{ steps.filter.outputs.non-doc }}" = "true" ]; then
+                echo "need_build_ut=yes" >> "$ATOMGIT_OUTPUT"
+              else
+                echo "need_build_ut=no" >> "$ATOMGIT_OUTPUT"
+              fi
+              echo "${{ steps.filter.outputs.changed_files }}" | tr -d '[]" ' | tr ',' '\n' > modify_files.txt
+              cat modify_files.txt
+          - name: upload modify_files.txt
+            uses: upload-artifact
+            with:
+              name: modify_files.txt
+              path: modify_files.txt
+              overwrite: true
+
+      associate_pr_comment:
+        name: associate_pr_comment
+        select: selected_by_default
+        runs-on: [ self-hosted, x86, cpu=32 ]
+        steps:
+          - name: associate-pr-comment
+            uses: associate-pr-comment
+
+  stage_2:
+    name: CodeCheck
+    select: selected_by_default
+    jobs:
+      CodeCheck_pre_commit:
+        name: CodeCheck_pre_commit
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
+        runs-on: [ self-hosted, x86, cpu=32 ]
+        container:
+          image: swr.cn-north-4.myhuaweicloud.com/mindspore/mindspore_python3.11:v0.1
+        steps:
+          - name: checkout
+            uses: checkout
+            with:
+              ref: refs/merge-requests/${{ env.pr_id }}/merge
+              allow-unsafe-pr-checkout: true
+          - name: setup-python311
+            run: |
+              PYTHON311_BIN=$(dirname "$(which python3.11)")
+              ln -sf "$(which python3.11)" "$PYTHON311_BIN/python"
+              echo "$PYTHON311_BIN" >> "$ATOMGIT_PATH"
+              python --version
+          - name: install gitleaks
+            run: |
+              cd ${ATOMGIT_WORKSPACE}
+              wget --no-host-directories -c --no-check-certificate https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta-codecheck/gitleaks
+              chmod +x gitleaks
+              cd -
+          - name: pre-commit
+            uses: openlibing-pre-commit-action
+
+      img_select:
+        name: img_select
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
+        runs-on: [ self-hosted, x86, cpu=32 ]
+        container:
+          image: swr.cn-north-4.myhuaweicloud.com/pytorch_images_x86/pytorchx86:v_03
+        outputs:
+          img_arm: ${{ steps.set-img.outputs.img_arm }}
+          img_x86: ${{ steps.set-img.outputs.img_x86 }}
+          target_branch: ${{ steps.set-img.outputs.target_branch }}
+        steps:
+          - name: set img
+            id: set-img
+            run: |
+              echo "target_branch=${{ env.target_branch }}"
+              img_branch=${target_branch//./_}
+              img_branch=${img_branch//v/}
+              img_branch=${img_branch%%-*}
+              echo "img_branch=${img_branch}"
+              img_arm_var="img_${img_branch}_arm"
+              img_x86_var="img_${img_branch}_x86"
+              echo "img_arm=${!img_arm_var}" >> "$ATOMGIT_OUTPUT"
+              echo "img_x86=${!img_x86_var}" >> "$ATOMGIT_OUTPUT"
+              echo "target_branch=${{ env.target_branch }}" >> "$ATOMGIT_OUTPUT"
+
+      check_inductor:
+        name: check_inductor
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
+        uses: .gitcode/workflows/check_inductor.yml
+
+      check_distribution:
+        name: check_distribution
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
+        uses: .gitcode/workflows/check_distribution.yml
+
+      check_torchair:
+        name: check_torchair
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
+        uses: .gitcode/workflows/find_torchair.yml
+
+      get_count:
+        name: get_count
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
+        uses: .gitcode/workflows/get_count.yml
+
+  stage_3:
+    name: Build
+    select: selected_by_default
+    jobs:
+      Build_x86:
+        name: Build_x86
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
+        uses: .gitcode/workflows/build_job.yml
+        with:
+          torch_branch: ${{ atomgit.event.pull_request.base.ref }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_x86 }}
+          runs_on_arch: "x86"
+
+      Build_arm:
+        name: Build_arm
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
+        uses: .gitcode/workflows/build_job.yml
+        with:
+          torch_branch: ${{ jobs.img_select.outputs.target_branch }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          runs_on_arch: "arm"
+
+      Build_x86_onetrack:
+        name: Build_x86
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && env.target_branch == 'master' }}
+        uses: .gitcode/workflows/build_job.yml
+        with:
+          torch_branch: '2.13.0'
+          CP_DOCKER_IMG: ${{ env.img_2_13_0_x86 }}
+          runs_on_arch: "x86"
+
+      Build_arm_onetrack:
+        name: Build_arm
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && env.target_branch == 'master' }}
+        uses: .gitcode/workflows/build_job.yml
+        with:
+          torch_branch: '2.13.0'
+          CP_DOCKER_IMG: ${{ env.img_2_13_0_arm }}
+          runs_on_arch: "arm"
+
+      Build_x86_torchair:
+        name: Build_x86_torchair
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_torchair.outputs.build_torchair == 'yes' && env.target_branch == 'v2.7.1' }}
+        uses: .gitcode/workflows/build_torchair_job.yml
+        with:
+          torch_branch: ${{ atomgit.event.pull_request.base.ref }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_x86 }}
+          runs_on_arch: "x86"
+
+      Build_arm_torchair:
+        name: Build_arm_torchair
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_torchair.outputs.build_torchair == 'yes' && env.target_branch == 'v2.7.1' }}
+        uses: .gitcode/workflows/build_torchair_job.yml
+        with:
+          torch_branch: ${{ jobs.img_select.outputs.target_branch }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          runs_on_arch: "arm"
