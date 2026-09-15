@@ -68,7 +68,6 @@ def _load_mlir_backend():
 
 def _load_dvm_backend():
     _apply_common_patches()
-    import torch
     from .ascend_npu_ir.ascend_npu_ir.npu import npu_inductor_plugin
     from .lowering_patch import apply_mlir_inductor_patch
     from .ascend_npu_ir.ascend_npu_ir.npu.npu_inductor_plugin import (
@@ -77,8 +76,8 @@ def _load_dvm_backend():
     apply_mlir_inductor_patch()
     register_mlir_codegen_backend()
     from .dvm import mlir_fusion
-    has_triton = torch.utils._triton.has_triton()
-    if has_triton:
+    from torch_npu.utils._dynamo import has_triton_ascend
+    if has_triton_ascend():
         from .codegen.triton import patch_gen_common_triton_ext_imports, patch_triton_scheduling
         from .runtime import patch_triton_heuristics_cached_autotune
         patch_gen_common_triton_ext_imports()
