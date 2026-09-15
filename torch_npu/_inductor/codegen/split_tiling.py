@@ -24,7 +24,7 @@ def _add_wide_group_midpoints(boundaries):
     boundaries = sorted({int(boundary) for boundary in boundaries})
     expanded = []
     for index, boundary in enumerate(boundaries):
-        if index and boundary // boundaries[index - 1] > 8:
+        if index and boundary // boundaries[index - 1] >= 4:
             lower = boundaries[index - 1]
             upper_midpoint = next_power_of_2((boundary + 1) // 2)
             lower_limit = next_power_of_2(lower * 8)
@@ -406,7 +406,7 @@ class SplitTiling:
                     stride = int(stride)
                 except (TypeError, ValueError):
                     try:
-                        stride = int(V.graph.sizevars.size_hint(stride))
+                        stride = int(V.graph.sizevars.optimization_hint(stride))
                     except (AttributeError, KeyError, TypeError, ValueError):
                         strides = []
                         break
@@ -458,7 +458,7 @@ class SplitTiling:
             return int(self.get_length_val(axis))
         except (TypeError, ValueError):
             try:
-                return int(V.graph.sizevars.size_hint(axis.length))
+                return int(V.graph.sizevars.optimization_hint(axis.length))
             except (AttributeError, KeyError, TypeError, ValueError):
                 return 1
 
@@ -839,9 +839,7 @@ class SplitTiling:
             if axis_order[axis.name] <= dynamic_order
         ]
         try:
-            split_size_hint = V.graph.sizevars.size_hint(
-                self.total_split_numels(split_axes_through_dynamic)
-            )
+            split_size_hint = V.graph.sizevars.optimization_hint(self.total_split_numels(split_axes_through_dynamic))
         except TypeError:
             return static_split_axes
         if split_size_hint < num_vector_core:
