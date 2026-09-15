@@ -1,0 +1,221 @@
+name: NPU SIGSEGV Repro
+
+# Reproduction + forensics harness for the intermittent test_foreach worker
+# SIGSEGV (see .github/scripts/sigsegv_stress.py docstring for background).
+#
+# Replays a case batch from a source run through the exact CI execution path
+# (run_npu_test_shard.py --worker, pytest.main() per case, one NPU device per
+# batch) in a loop and captures core dumps / gdb backtraces / faulthandler
+# output / CANN plog on every worker death by signal.
+#
+# NOTE on images: the default is the current ci-test test image. The original
+# crashes (runs 34837447197 / 34841388595) happened on:
+#   swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-202608290444-503883d4
+# Pass that value via the docker_image input to reproduce against the original
+# CANN build. A clean run on the new image does NOT prove the crash is fixed
+# until the old image also stops crashing (wheels/image pairing matters).
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: 'Run id providing wheels/source/cases artifacts (the crashed run)'
+        required: true
+        default: '34837447197'
+        type: string
+      case_range:
+        description: '1-based case_idx range from the tensor shard replayed as one batch'
+        required: true
+        default: '10857-10956'
+        type: string
+      device:
+        description: 'NPU device id pinned for all workers'
+        required: true
+        default: '5'
+        type: string
+      workers_per_device:
+        description: 'Concurrent workers per wave (CI density is 32/8 = 4)'
+        required: true
+        default: '4'
+        type: string
+      max_total_minutes:
+        description: 'Overall stress budget in minutes (shared by all modes)'
+        required: true
+        default: '120'
+        type: string
+      stop_after_crashes:
+        description: 'Crash samples to collect per mode before moving on (0 = full budget)'
+        required: true
+        default: '3'
+        type: string
+      run_modes:
+        description: 'Comma-separated modes: worker_batch,pair_case,subprocess_per_case'
+        required: true
+        default: 'worker_batch,pair_case,subprocess_per_case'
+        type: string
+      pair_suspect:
+        description: 'pair_case suspect range (clamp_min + clone: ForeachMaximumList chain)'
+        required: true
+        default: '10857-10858'
+        type: string
+      pair_control:
+        description: 'pair_case control range (cos + cosh)'
+        required: true
+        default: '10859-10860'
+        type: string
+      docker_image:
+        description: 'Test image (see NOTE above for the original-crash image)'
+        required: true
+        default: 'swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609140905-0ba22e2b'
+        type: string
+      allow_core_pattern:
+        description: 'Allow writing /proc/sys/kernel/core_pattern (restored in the final step)'
+        required: true
+        default: true
+        type: boolean
+
+concurrency:
+  group: sigsegv-repro
+  cancel-in-progress: false
+
+permissions:
+  actions: read  # cross-run artifact download
+  contents: read
+
+jobs:
+  repro:
+    runs-on: linux-aarch64-a3-800i-8-cn12-001
+    timeout-minutes: 150
+    container:
+      image: ${{ inputs.docker_image }}
+      options: --network host
+    env:
+      PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
+      ASCEND_PROCESS_LOG_PATH: /root/ascend/log/plog
+      ASCEND_GLOBAL_LOG_LEVEL: '3'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout scripts
+        uses: actions/checkout@v6
+
+      - name: Download wheels from source run
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+          pattern: packages-pytorch-*
+          path: downloads/
+          merge-multiple: true
+
+      - name: Download pytorch source from source run
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+          pattern: pytorch-source-*
+          path: downloads/
+          merge-multiple: true
+
+      - name: Download cases shards from source run
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+          pattern: cases-shards
+          path: downloads/
+          merge-multiple: true
+
+      - name: Extract source and install wheels
+        run: |
+          set -e
+          ls -lh downloads/ | tee downloads-listing.txt
+          ls -lh downloads/*.whl | head -20
+          tar -xzf downloads/pytorch-source-*.tar.gz
+          pip install downloads/torch-*.whl
+          pip install --no-deps downloads/torch_npu*.whl
+          pip install --no-deps downloads/torchvision-*.whl || echo "WARN: torchvision wheel not found"
+          python -c "import torch, torch_npu; print('torch', torch.__version__); print('torch_npu', torch_npu.__version__)"
+
+      - name: Snapshot environment
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+          export LD_LIBRARY_PATH=/opt/conda/envs/py_3.10/lib:$LD_LIBRARY_PATH
+          { npu-smi info; cat /usr/local/Ascend/cann/version.info 2>/dev/null; } | tee repro-env.txt || true
+          cp downloads-listing.txt repro-downloads-listing.txt 2>/dev/null || true
+
+      - name: Install gdb (best-effort)
+        run: apt-get update -qq && apt-get install -y -qq gdb
+        continue-on-error: true
+
+      - name: Configure core dumps
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/repro-run/cores"
+          cat /proc/sys/kernel/core_pattern | tee repro-run/core_pattern.orig
+          if [ "${{ inputs.allow_core_pattern }}" = "true" ] && \
+             echo "$GITHUB_WORKSPACE/repro-run/cores/core.%p.%t" > /proc/sys/kernel/core_pattern 2>/dev/null; then
+            echo "workspace" | tee repro-run/core_pattern.status
+          else
+            echo "unwritable-or-disabled (faulthandler-only mode)" | tee repro-run/core_pattern.status
+          fi
+          ulimit -c || true
+
+      - name: Run stress harness
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+          export LD_LIBRARY_PATH=/opt/conda/envs/py_3.10/lib:$LD_LIBRARY_PATH
+          # ulimit must be set in the shell that parents the workers
+          ulimit -c unlimited
+          python .github/scripts/sigsegv_stress.py \
+            --cases-json downloads/tensor_cases_shard_1.json \
+            --case-range "${{ inputs.case_range }}" \
+            --runner-script .github/scripts/run_npu_test_shard.py \
+            --test-dir pytorch/test \
+            --workdir repro-run \
+            --device "${{ inputs.device }}" \
+            --workers "${{ inputs.workers_per_device }}" \
+            --modes "${{ inputs.run_modes }}" \
+            --max-total-minutes "${{ inputs.max_total_minutes }}" \
+            --stop-after-crashes "${{ inputs.stop_after_crashes }}" \
+            --pair-suspect "${{ inputs.pair_suspect }}" \
+            --pair-control "${{ inputs.pair_control }}" \
+            2>&1 | tee repro-run/harness.log
+
+      - name: Summarize
+        if: always()
+        run: |
+          if [ -f repro-run/stats.jsonl ]; then
+            python .github/scripts/sigsegv_stress.py --summarize-only --workdir repro-run | tee -a repro-run/harness.log
+          else
+            echo "harness produced no stats (see harness.log / ENV_ABORT.txt)"
+          fi
+
+      - name: Upload forensics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sigsegv-repro-${{ github.run_id }}
+          path: |
+            repro-run/stats.json
+            repro-run/stats.jsonl
+            repro-run/summary.md
+            repro-run/harness.log
+            repro-run/core_pattern.orig
+            repro-run/core_pattern.status
+            repro-run/ENV_ABORT.txt
+            repro-run/crash-forensics/
+            repro-env.txt
+            repro-downloads-listing.txt
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Restore core_pattern
+        if: always()
+        run: |
+          if [ -f repro-run/core_pattern.orig ]; then
+            cat repro-run/core_pattern.orig > /proc/sys/kernel/core_pattern 2>/dev/null || true
+            echo "core_pattern restored"
+          fi
