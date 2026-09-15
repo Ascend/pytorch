@@ -104,9 +104,40 @@ class SplitTiling:
         self.kernel.split_axis.clear()
 
         # total numel exceed aicore or total split axis exceed 3
+        def has_dynamic_split_axis():
+            return any(
+                not isinstance(axis.length, sympy.Integer)
+                for axis in self.kernel.split_axis
+            )
+
+        def is_reduction_kernel():
+            return any(axis.prefix == "r" for axis in self.kernel.sorted_axis)
+
         def meet_stop_condition():
             sv = V.graph.sizevars
             current_numels = self.total_split_numels(self.kernel.split_axis)
+            # A dynamic split axis already supplies the grid on its own: the size
+            # hint seen here is one example shape, while the launch derives the
+            # grid from the runtime numel. Adding a second split axis to reach the
+            # core count is therefore speculative, and the cost is permanent: a
+            # split axis can never become a no_loop_axis (see select_no_loop_axis),
+            # so a static low dim pulled in here loses whole-axis residency and its
+            # BLOCK_SUB can no longer span the axis. That fragments the innermost
+            # contiguous dimension for every runtime shape, not just the one whose
+            # hint was used. Reductions only: their grid comes solely from the
+            # non-reduction axes, so the dynamic one is the parallelism.
+            #
+            # Confined to grouped autotune, which is what supplies the per-bucket
+            # runtime block that makes one split axis sufficient. Without it the
+            # single axis would keep the hint's block at every shape, so the old
+            # speculative second axis stays the better bet.
+            if (
+                npu_config.enable_symbolic_shape_group_autotune
+                and self.kernel.split_axis
+                and is_reduction_kernel()
+                and has_dynamic_split_axis()
+            ):
+                return True
             try:
                 val = sv.size_hint(current_numels)
             except TypeError:
@@ -436,6 +467,20 @@ class SplitTiling:
     # stays a single boundary; the ~1e6 1D corner is out of scope.
     _REDUCTION_BUCKETS = (8192,)
     _OUTER_BUCKETS = (256,)
+    # Boundaries for an outer group that also carries static axes, in units of the
+    # dynamic axis (see _scale_buckets_by_static_factor). Such a group spans every
+    # runtime size from a grid-starved shape up to a device-saturating one, which
+    # a single bucket cannot serve: the representative bakes the compile-time
+    # sub-blocks, and those decide how many rows each program walks.
+    #
+    # The boundaries are multiples of the core count because that is what makes a
+    # bucket internally uniform: every shape in (k-1)*cores .. k*cores wants the
+    # same k rows per program, so the representative's sub-blocks are right for
+    # all of them. Aligning the boundaries anywhere else leaves shapes that want
+    # fewer rows sharing a variant tuned for more.
+    _OUTER_BUCKETS_WITH_STATIC_AXES = tuple(
+        num_vector_core * k for k in range(1, 6)
+    )
 
     def _axis_static_length(self, axis):
         try:
@@ -445,6 +490,29 @@ class SplitTiling:
                 return int(V.graph.sizevars.size_hint(axis.length))
             except (AttributeError, KeyError, TypeError, ValueError):
                 return 1
+
+    def _static_group_factor(self, axis_names):
+        names = set(axis_names)
+        factor = 1
+        for axis in self.kernel.sorted_axis:
+            if axis.name in names and isinstance(axis.length, sympy.Integer):
+                factor *= max(1, self._axis_static_length(axis))
+        return factor
+
+    def _scale_buckets_by_static_factor(self, buckets, axis_names, wide_buckets=None):
+        # The boundaries describe the group PRODUCT, so the static axes of the group
+        # are already baked into every runtime value. A group whose static factor
+        # exceeds a boundary would otherwise put every reachable shape in the open
+        # tail, and the tail representative (2 * boundary) divided by that factor
+        # collapses the dynamic axis to a single element: the group then gets tuned
+        # on a workload that cannot fill the grid. Scaling keeps the boundaries
+        # expressed in the dynamic axis, which is what the buckets mean to separate.
+        static_factor = self._static_group_factor(axis_names)
+        if static_factor <= 1:
+            return buckets
+        if wide_buckets is not None:
+            buckets = wide_buckets
+        return tuple(boundary * static_factor for boundary in buckets)
 
     def _default_dynamic_axis_feature(
         self,
@@ -543,7 +611,14 @@ class SplitTiling:
             if outer_names and self._has_dynamic_axis(outer_names):
                 features.append(
                     GroupFeatureSpec(
-                        "outer", "outer_product", outer_names, self._OUTER_BUCKETS
+                        "outer",
+                        "outer_product",
+                        outer_names,
+                        self._scale_buckets_by_static_factor(
+                            self._OUTER_BUCKETS,
+                            outer_names,
+                            self._OUTER_BUCKETS_WITH_STATIC_AXES,
+                        ),
                     )
                 )
             if reduction_names and self._has_dynamic_axis(reduction_names):
@@ -552,7 +627,9 @@ class SplitTiling:
                         "reduction",
                         "reduction_product",
                         reduction_names,
-                        self._REDUCTION_BUCKETS,
+                        self._scale_buckets_by_static_factor(
+                            self._REDUCTION_BUCKETS, reduction_names
+                        ),
                     )
                 )
             return tuple(features)

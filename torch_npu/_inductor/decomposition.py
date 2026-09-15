@@ -168,7 +168,11 @@ def _matmul_backward_inductor(grad, self, other, mask):
 
 
 def _register_triton_decompositions():
-    from .config import is_ascend950, enable_fast_gelu
+    from .config import (
+        is_ascend950,
+        enable_fast_gelu,
+        allow_embedding_dense_backward_lowering,
+    )
     from .lowering import _add_overload
 
     DECOMPOSITION_OVERLOAD_OP = [
@@ -181,7 +185,11 @@ def _register_triton_decompositions():
         aten.expm1,
         aten.native_layer_norm,
         aten.repeat_interleave.Tensor,  # perf issue
-        aten.embedding_dense_backward,
+        *(
+            [aten.embedding_dense_backward]
+            if not allow_embedding_dense_backward_lowering
+            else []
+        ),
         aten.matmul.default,
         aten.matmul_backward.default,
     ]

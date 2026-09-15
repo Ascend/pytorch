@@ -36,6 +36,7 @@ from .config import (
     inductor_ascend_linear_mode,
     allow_pad_lowering,
     allow_searchsorted_lowering,
+    allow_embedding_dense_backward_lowering,
 )
 
 aten = torch.ops.aten
@@ -606,7 +607,7 @@ TORCH_NATIVE_FALLBACK_LIST = [
     aten._embedding_bag_forward_only.out,
     aten._embedding_bag_per_sample_weights_backward.default,
     aten._embedding_bag_per_sample_weights_backward.out,
-    aten.embedding_dense_backward.default,
+    *([aten.embedding_dense_backward.default] if not allow_embedding_dense_backward_lowering else []),
     aten._fft_r2c.default,
     aten._fft_r2c.out,
     aten._flash_attention_backward.default,
