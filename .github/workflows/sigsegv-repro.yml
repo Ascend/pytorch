@@ -8,71 +8,38 @@ name: NPU SIGSEGV Repro
 # batch) in a loop and captures core dumps / gdb backtraces / faulthandler
 # output / CANN plog on every worker death by signal.
 #
-# NOTE on images: the default is the current ci-test test image. The original
-# crashes (runs 34837447197 / 34841388595) happened on:
+# NOTE on images: the container image below is the current ci-test test image.
+# The original crashes (runs 34837447197 / 34841388595) happened on:
 #   swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-202608290444-503883d4
-# Pass that value via the docker_image input to reproduce against the original
+# Edit the container image to that value to reproduce against the original
 # CANN build. A clean run on the new image does NOT prove the crash is fixed
 # until the old image also stops crashing (wheels/image pairing matters).
+#
+# Trigger: push to ci-test touching this workflow, the harness, or the runner
+# script. Edit the REPRO_* env defaults below and push to run again with
+# different parameters.
 
 on:
-  workflow_dispatch:
-    inputs:
-      source_run_id:
-        description: 'Run id providing wheels/source/cases artifacts (the crashed run)'
-        required: true
-        default: '34837447197'
-        type: string
-      case_range:
-        description: '1-based case_idx range from the tensor shard replayed as one batch'
-        required: true
-        default: '10857-10956'
-        type: string
-      device:
-        description: 'NPU device id pinned for all workers'
-        required: true
-        default: '5'
-        type: string
-      workers_per_device:
-        description: 'Concurrent workers per wave (CI density is 32/8 = 4)'
-        required: true
-        default: '4'
-        type: string
-      max_total_minutes:
-        description: 'Overall stress budget in minutes (shared by all modes)'
-        required: true
-        default: '120'
-        type: string
-      stop_after_crashes:
-        description: 'Crash samples to collect per mode before moving on (0 = full budget)'
-        required: true
-        default: '3'
-        type: string
-      run_modes:
-        description: 'Comma-separated modes: worker_batch,pair_case,subprocess_per_case'
-        required: true
-        default: 'worker_batch,pair_case,subprocess_per_case'
-        type: string
-      pair_suspect:
-        description: 'pair_case suspect range (clamp_min + clone: ForeachMaximumList chain)'
-        required: true
-        default: '10857-10858'
-        type: string
-      pair_control:
-        description: 'pair_case control range (cos + cosh)'
-        required: true
-        default: '10859-10860'
-        type: string
-      docker_image:
-        description: 'Test image (see NOTE above for the original-crash image)'
-        required: true
-        default: 'swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609140905-0ba22e2b'
-        type: string
-      allow_core_pattern:
-        description: 'Allow writing /proc/sys/kernel/core_pattern (restored in the final step)'
-        required: true
-        default: true
-        type: boolean
+  push:
+    branches:
+      - ci-test
+    paths:
+      - '.github/workflows/sigsegv-repro.yml'
+      - '.github/scripts/sigsegv_stress.py'
+      - '.github/scripts/run_npu_test_shard.py'
+
+env:
+  # Default repro parameters (edit + push to change)
+  REPRO_SOURCE_RUN_ID: '34837447197'   # run providing wheels/source/cases artifacts (the crashed run)
+  REPRO_CASE_RANGE: '10857-10956'      # 1-based case_idx range from the tensor shard replayed as one batch
+  REPRO_DEVICE: '5'                    # NPU device id pinned for all workers
+  REPRO_WORKERS: '4'                   # concurrent workers per wave (CI density is 32/8 = 4)
+  REPRO_MODES: 'worker_batch,pair_case,subprocess_per_case'
+  REPRO_MAX_TOTAL_MINUTES: '120'       # overall stress budget in minutes (shared by all modes)
+  REPRO_STOP_AFTER_CRASHES: '3'        # crash samples to collect per mode before moving on (0 = full budget)
+  REPRO_PAIR_SUSPECT: '10857-10858'    # suspect pair (clamp_min + clone: ForeachMaximumList chain)
+  REPRO_PAIR_CONTROL: '10859-10860'    # control pair (cos + cosh)
+  REPRO_ALLOW_CORE_PATTERN: 'true'     # allow writing /proc/sys/kernel/core_pattern (restored in the final step)
 
 concurrency:
   group: sigsegv-repro
@@ -87,7 +54,8 @@ jobs:
     runs-on: linux-aarch64-a3-800i-8-cn12-001
     timeout-minutes: 150
     container:
-      image: ${{ inputs.docker_image }}
+      # Current ci-test test image; see NOTE above for the original-crash image
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609140905-0ba22e2b
       options: --network host
     env:
       PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
@@ -103,7 +71,7 @@ jobs:
       - name: Download wheels from source run
         uses: actions/download-artifact@v4
         with:
-          run-id: ${{ inputs.source_run_id }}
+          run-id: ${{ env.REPRO_SOURCE_RUN_ID }}
           github-token: ${{ github.token }}
           pattern: packages-pytorch-*
           path: downloads/
@@ -112,7 +80,7 @@ jobs:
       - name: Download pytorch source from source run
         uses: actions/download-artifact@v4
         with:
-          run-id: ${{ inputs.source_run_id }}
+          run-id: ${{ env.REPRO_SOURCE_RUN_ID }}
           github-token: ${{ github.token }}
           pattern: pytorch-source-*
           path: downloads/
@@ -121,7 +89,7 @@ jobs:
       - name: Download cases shards from source run
         uses: actions/download-artifact@v4
         with:
-          run-id: ${{ inputs.source_run_id }}
+          run-id: ${{ env.REPRO_SOURCE_RUN_ID }}
           github-token: ${{ github.token }}
           pattern: cases-shards
           path: downloads/
@@ -154,7 +122,7 @@ jobs:
         run: |
           mkdir -p "$GITHUB_WORKSPACE/repro-run/cores"
           cat /proc/sys/kernel/core_pattern | tee repro-run/core_pattern.orig
-          if [ "${{ inputs.allow_core_pattern }}" = "true" ] && \
+          if [ "${{ env.REPRO_ALLOW_CORE_PATTERN }}" = "true" ] && \
              echo "$GITHUB_WORKSPACE/repro-run/cores/core.%p.%t" > /proc/sys/kernel/core_pattern 2>/dev/null; then
             echo "workspace" | tee repro-run/core_pattern.status
           else
@@ -171,17 +139,17 @@ jobs:
           ulimit -c unlimited
           python .github/scripts/sigsegv_stress.py \
             --cases-json downloads/tensor_cases_shard_1.json \
-            --case-range "${{ inputs.case_range }}" \
+            --case-range "${{ env.REPRO_CASE_RANGE }}" \
             --runner-script .github/scripts/run_npu_test_shard.py \
             --test-dir pytorch/test \
             --workdir repro-run \
-            --device "${{ inputs.device }}" \
-            --workers "${{ inputs.workers_per_device }}" \
-            --modes "${{ inputs.run_modes }}" \
-            --max-total-minutes "${{ inputs.max_total_minutes }}" \
-            --stop-after-crashes "${{ inputs.stop_after_crashes }}" \
-            --pair-suspect "${{ inputs.pair_suspect }}" \
-            --pair-control "${{ inputs.pair_control }}" \
+            --device "${{ env.REPRO_DEVICE }}" \
+            --workers "${{ env.REPRO_WORKERS }}" \
+            --modes "${{ env.REPRO_MODES }}" \
+            --max-total-minutes "${{ env.REPRO_MAX_TOTAL_MINUTES }}" \
+            --stop-after-crashes "${{ env.REPRO_STOP_AFTER_CRASHES }}" \
+            --pair-suspect "${{ env.REPRO_PAIR_SUSPECT }}" \
+            --pair-control "${{ env.REPRO_PAIR_CONTROL }}" \
             2>&1 | tee repro-run/harness.log
 
       - name: Summarize
