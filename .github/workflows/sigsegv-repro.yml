@@ -67,6 +67,12 @@ jobs:
     steps:
       - name: Checkout scripts
         uses: actions/checkout@v6
+        with:
+          # Checkout to a subdirectory (like the real CI test flow) so the
+          # workspace root does NOT contain the torch_npu/ source tree:
+          # python -c puts cwd at sys.path[0], and the unbuilt source package
+          # would shadow the installed torch_npu wheel (no torch_npu._C).
+          path: ci-scripts
 
       - name: Download wheels from source run
         uses: actions/download-artifact@v4
@@ -137,10 +143,10 @@ jobs:
           export LD_LIBRARY_PATH=/opt/conda/envs/py_3.10/lib:$LD_LIBRARY_PATH
           # ulimit must be set in the shell that parents the workers
           ulimit -c unlimited
-          python .github/scripts/sigsegv_stress.py \
+          python ci-scripts/.github/scripts/sigsegv_stress.py \
             --cases-json downloads/tensor_cases_shard_1.json \
             --case-range "${{ env.REPRO_CASE_RANGE }}" \
-            --runner-script .github/scripts/run_npu_test_shard.py \
+            --runner-script ci-scripts/.github/scripts/run_npu_test_shard.py \
             --test-dir pytorch/test \
             --workdir repro-run \
             --device "${{ env.REPRO_DEVICE }}" \
@@ -156,7 +162,7 @@ jobs:
         if: always()
         run: |
           if [ -f repro-run/stats.jsonl ]; then
-            python .github/scripts/sigsegv_stress.py --summarize-only --workdir repro-run | tee -a repro-run/harness.log
+            python ci-scripts/.github/scripts/sigsegv_stress.py --summarize-only --workdir repro-run | tee -a repro-run/harness.log
           else
             echo "harness produced no stats (see harness.log / ENV_ABORT.txt)"
           fi
