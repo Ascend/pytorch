@@ -1,17 +1,13 @@
 import itertools
 import torch
 from torch.distributed._tensor import distribute_tensor
-from torch.distributed._tensor._utils import (
-    compute_local_shape,
-    compute_local_shape_and_global_offset,
-)
+from torch.distributed._tensor._utils import compute_local_shape_and_global_offset
 from torch.distributed._tensor.device_mesh import DeviceMesh
-from torch.distributed._tensor.placement_types import Replicate, Shard
+from torch.distributed._tensor.placement_types import Replicate, Shard, Partial
 
 from torch.testing._internal.common_utils import run_tests
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 
-import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
 
 
@@ -31,7 +27,7 @@ class UtilTest(DTensorTestBase):
 
         # replicate, shard
         placements2 = [Replicate(), Shard(0)]
-        local_size2 = compute_local_shape(size, mesh, placements2)
+        local_size2, _ = compute_local_shape_and_global_offset(size, mesh, placements2)
         if rank_coordinates[1] < 1:
             self.assertEqual(local_size2, torch.Size([4, 7]))
         else:
@@ -39,7 +35,7 @@ class UtilTest(DTensorTestBase):
 
         # shard, shard
         placements3 = [Shard(0), Shard(1)]
-        local_size3 = compute_local_shape(size, mesh, placements3)
+        local_size3, _ = compute_local_shape_and_global_offset(size, mesh, placements3)
         # first dim
         if rank_coordinates[0] < 3:
             self.assertEqual(local_size3[0], 2)
@@ -109,6 +105,19 @@ class UtilTest(DTensorTestBase):
                 dtensor.to_local(),
                 global_tensor[dim0_start:dim0_end, dim1_start:dim1_end],
             )
+
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_compute_local_shape_and_global_offset_partial(self):
+        # Verify local size and global offset for Partial placement.
+        placements = [Partial()]
+        mesh_tensor = torch.arange(self.world_size)
+        device_mesh = DeviceMesh(self.device_type, mesh_tensor)
+        global_tensor = torch.arange(64).view(8, 8)
+        global_shape = global_tensor.size()
+        local_size, global_offset = compute_local_shape_and_global_offset(global_shape, device_mesh, placements)
+        self.assertEqual(local_size, tuple(global_shape))
+        self.assertEqual(global_offset, tuple([0] * len(global_shape)))
 
 
 if __name__ == "__main__":
