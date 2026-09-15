@@ -2529,7 +2529,37 @@ class NPUSymbolicGroupedAutotuner(NPUCachingAutotuner):
                 return torch.zeros(count, device=device, dtype=dtype)
             return torch.empty(count, device=device, dtype=dtype)
 
-        def materialize_spec(spec, kind):
+        def integer_benchmark_range(spec_index):
+            """Value range the real argument at this position actually spans.
+
+            rand_strided zero-fills integer tensors, so every indirect load in
+            the benchmark resolves to the same element and the gather costs
+            nothing. A gather kernel is then ranked on memory behaviour it will
+            never see: for an embedding reduction the candidates that handle
+            scattered rows well and the ones that do not land within a few
+            percent of each other, while differing by an order of magnitude on
+            real data. Sampling the range the real argument spans restores the
+            divergence, and cannot go out of bounds because the real launch
+            already indexes with exactly these values.
+
+            Restricted to reduction kernels so that every other grouped
+            heuristic keeps benchmarking on byte-identical inputs to today.
+            """
+            if self.heuristic_type not in (
+                HeuristicType.REDUCTION,
+                HeuristicType.PERSISTENT_REDUCTION,
+            ):
+                return None
+            if spec_index >= len(self._grouped_runtime_args_snapshot):
+                return None
+            real_arg = self._grouped_runtime_args_snapshot[spec_index]
+            if not isinstance(real_arg, torch.Tensor) or real_arg.numel() == 0:
+                return None
+            if real_arg.dtype.is_floating_point or real_arg.dtype == torch.bool:
+                return None
+            return int(real_arg.min()), int(real_arg.max())
+
+        def materialize_spec(spec, kind, spec_index=-1):
             spec_kind = spec.get("kind")
             source = spec.get("source")
             if source == "runtime_arg":
@@ -2548,7 +2578,12 @@ class NPUSymbolicGroupedAutotuner(NPUCachingAutotuner):
                 tensor_factory = getattr(self, "_benchmark_tensor_factory", None)
                 if tensor_factory is None:
                     tensor_factory = rand_strided
-                return tensor_factory(size, stride, dtype, spec["device"])
+                tensor = tensor_factory(size, stride, dtype, spec["device"])
+                if not dtype.is_floating_point and dtype != torch.bool:
+                    value_range = integer_benchmark_range(spec_index)
+                    if value_range is not None:
+                        tensor.random_(value_range[0], value_range[1] + 1)
+                return tensor
             if spec_kind == "workspace" and source == "workspace":
                 count = eval_expr(spec["count_expr"])
                 return workspace_factory(
@@ -2560,8 +2595,10 @@ class NPUSymbolicGroupedAutotuner(NPUCachingAutotuner):
             raise RuntimeError(f"{kind} spec source {source} is not supported")
 
         return tuple(
-            materialize_spec(spec, f"{spec.get('kind', 'unknown')} arg")
-            for spec in self.candidate_plan.get("ordered_arg_specs", ())
+            materialize_spec(spec, f"{spec.get('kind', 'unknown')} arg", spec_index)
+            for spec_index, spec in enumerate(
+                self.candidate_plan.get("ordered_arg_specs", ())
+            )
         )
 
     def _build_grouped_benchmark_entries(self):
@@ -2653,6 +2690,12 @@ class NPUSymbolicGroupedAutotuner(NPUCachingAutotuner):
                 timings[entry_idx] = timing
             return tuple(timings)
 
+        # Leaves only the candidates that can still win this group as None, so the
+        # full measurement below runs on those alone.
+        self._screen_grouped_entries(
+            entries, kernel_funcs, kernel_entry_indices, timings
+        )
+
         return tuple(
             timing
             if timing is not None
@@ -2663,6 +2706,76 @@ class NPUSymbolicGroupedAutotuner(NPUCachingAutotuner):
                 **kwargs,
             )
             for entry, timing in zip(entries, timings)
+        )
+
+    # Screening pays for itself only above the selector's own ceiling: below it the
+    # screen would time every candidate and then keep them all anyway.
+    _GROUPED_SCREEN_MIN_CANDIDATES = 200
+
+    def _screen_grouped_entries(
+        self, entries, kernel_funcs, kernel_entry_indices, timings
+    ):
+        """Rank a group's candidates by one launch each, keeping only contenders.
+
+        The non-grouped sweep already works this way (see the prerun block in
+        _benchmark_candidate_entries); the grouped sweep never picked it up and so
+        pays the full repeated measurement for every candidate. A specialized
+        compile can afford that, but a grouped reduction benchmarks a bucket
+        representative rather than a real shape: the pool is an order of magnitude
+        larger, and it holds configs whose loop count explodes at the
+        representative's reduction length. Measuring those to full precision only
+        establishes how badly they lose.
+
+        Candidates that are screened out keep their single-launch time as their
+        timing. That is a fair ranking for them because they are not going to be
+        the group's winner, and the winner itself is still chosen by the same full
+        measurement as before.
+
+        Mutates `timings` in place; entries left at None are the ones to measure.
+        """
+        if self.heuristic_type not in (
+            HeuristicType.REDUCTION,
+            HeuristicType.PERSISTENT_REDUCTION,
+        ):
+            return
+        if len(kernel_entry_indices) <= self._GROUPED_SCREEN_MIN_CANDIDATES:
+            return
+
+        screened_ms = {}
+        by_group = {}
+        for kernel_func, entry_idx in zip(kernel_funcs, kernel_entry_indices):
+            try:
+                elapsed_ms = _measure_prerun_ms(kernel_func)
+            except Exception as exc:
+                screen_log_str = (
+                    f"PreRun [{self.fn.__name__}], grouped candidate: "
+                    f"{entries[entry_idx]['candidate']['candidate_id']}\n err: {exc}"
+                )
+                if not autotune_continue_on_failure:
+                    raise RuntimeError(screen_log_str) from exc
+                log.warning(screen_log_str)
+                timings[entry_idx] = float("inf")
+                continue
+            screened_ms[entry_idx] = elapsed_ms
+            by_group.setdefault(entries[entry_idx]["group_id"], []).append(
+                (entry_idx, elapsed_ms)
+            )
+
+        # Each group picks its own winner, so each group keeps its own contenders.
+        selected = set()
+        for group_timings in by_group.values():
+            selected |= set(_select_prerun_top_candidates(group_timings))
+
+        for entry_idx, elapsed_ms in screened_ms.items():
+            if entry_idx not in selected:
+                timings[entry_idx] = elapsed_ms
+
+        log.info(
+            "%s grouped screen kept %s of %s candidates across %s groups",
+            self.get_fn_name(),
+            len(selected),
+            len(screened_ms),
+            len(by_group),
         )
 
     def _autotune_all_groups(self, *args, **kwargs):
@@ -3370,7 +3483,16 @@ def build_grouped_launch_policy(
         ("axis_name", primary_group_axis),
         ("block_sub", primary_block_sub),
     ]
-    if primary_feature_name in ("pointwise", "elementwise_numel"):
+    if primary_feature_name in (
+        "pointwise",
+        "elementwise_numel",
+        # Reduction grouping needs this just as much: the primary axis is the
+        # only source of grid parallelism, so without it every shape below the
+        # representative inherits the representative's grid and each program
+        # loops over the representative's rows instead of its own.
+        "outer",
+        "reduction",
+    ):
         runtime_rule.extend(
             (
                 ("representative_numel", int(axis_env[primary_group_axis])),
