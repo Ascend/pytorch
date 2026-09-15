@@ -2,8 +2,13 @@ from typing import cast, Dict, List, Optional, Tuple, Union
 import os
 
 import torch
+from torch._ops import OpOverload
 from torch.distributed._tensor.experimental import register_sharding
 from torch.distributed.tensor._dtensor_spec import DTensorSpec, TensorMeta
+from torch.distributed.tensor._ops.single_dim_strategy import (
+    _ShardingPlaceholder,
+    register_single_dim_strategy,
+)
 from torch.distributed.tensor._ops.utils import expand_to_full_mesh_op_strategy
 from torch.distributed.tensor._ops._matrix_ops import _mm_like_strategy
 from torch_npu._compat.distributed import register_op_strategy
@@ -821,6 +826,60 @@ def custom_dropout_backward_sharding(op_schema: OpSchema) -> OpStrategy:
     ])
 
     return output_strategy
+
+
+def _npu_dropout_backward_single_dim_strategy(
+    op: OpOverload,
+    args_schema: Tuple[object, ...],
+    kwargs_schema: Dict[str, object],
+) -> List[List[object]]:
+    """Single-dim strategy for native_dropout_backward on NPU.
+
+    NPU's native_dropout returns a 1D bit-packed uint8 mask (Shard(0)).
+    This strategy keeps mask as Shard(0) while allowing grad_output to be
+    sharded on any dim, producing grad_input with the same placement as
+    grad_output. This avoids redistribution of the mask tensor.
+    """
+    grad_output_meta = args_schema[0]
+    if not isinstance(grad_output_meta, TensorMeta):
+        raise AssertionError
+    placements: List[List[object]] = []
+    for i in range(len(grad_output_meta.shape)):
+        # [output=Shard(i), grad_output=Shard(i), mask=Shard(0)]
+        rule: List[object] = [
+            _ShardingPlaceholder(i),
+            _ShardingPlaceholder(i),
+            Shard(0),
+        ]
+        placements.append(rule)
+    return placements
+
+
+# PT 2.12 introduced the single_dim_strategy framework with higher priority
+# than op_strategy. native_dropout_backward.default has Tag.pointwise and is
+# auto-discovered by _get_pointwise_ops_from_tag(), registered to
+# op_single_dim_strategy_funcs. This overrides torch_npu's
+# custom_dropout_backward_sharding.
+#
+# The built-in pointwise single_dim strategy treats mask as a regular pointwise
+# arg: when grad_output=Shard(1) and mask=Shard(0), it triggers alltoall
+# redistribution on the NPU bit-packed 1D mask tensor, crashing with:
+#   RuntimeError: shape '[240, 4]' is invalid for input of size 240
+#
+# Fix: replace the built-in pointwise single_dim for native_dropout_backward
+# with a custom strategy that keeps mask as Shard(0) (matching the forward
+# strategy custom_dropout_forward_sharding) while allowing grad_output to be
+# sharded on any dim. This avoids mask redistribution entirely.
+_sp = DTensor._op_dispatcher.sharding_propagator
+
+if aten.native_dropout_backward.default in _sp.op_single_dim_strategy_funcs:
+    del _sp.op_single_dim_strategy_funcs[aten.native_dropout_backward.default]
+
+register_single_dim_strategy(
+    aten.native_dropout_backward.default, allow_uneven_sharding=True
+)(
+    _npu_dropout_backward_single_dim_strategy
+)
 
 
 @register_op_strategy(npu.npu_bmmV2.default)
