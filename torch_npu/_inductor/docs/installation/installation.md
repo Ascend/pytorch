@@ -4,11 +4,10 @@
 
 目前Inductor Ascend暂未提供独立软件包，而是作为TorchNPU的子目录（与PyTorch社区相同），随着TorchNPU包一起发布。请直接安装TorchNPU插件，即可使用Inductor Ascend。
 TorchNPU的安装操作具体参考《[TorchNPU 软件安装指南](https://www.hiascend.com/document/detail/zh/Pytorch/730/configandinstg/instg/docs/zh/installation_guide/installation_description.md)》，请保证与CANN相关包的版本匹配（参见《[版本说明](https://www.hiascend.com/document/detail/zh/Pytorch/730/releasenote/docs/zh/release_notes/release_notes.md)》），否则功能可能无法正常使用。
-需要注意的是，当安装的TorchNPU版本为2.7.1及之后版本，均可正常使用Inductor Ascend，对于其他TorchNPU版本请参见对应版本文档中的安装介绍。
 
 ### PyTorch版本支持
 
-当前仅支持 PyTorch 2.9.0 版本。
+当前仅支持 PyTorch 2.7.1 和 2.9.0 版本。
 
 ## 2.2 依赖安装
 

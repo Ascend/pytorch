@@ -214,6 +214,11 @@
 |[TORCHINDUCTOR_PROFILE_WITH_DO_BENCH_USING_PROFILING](inductor/TORCHINDUCTOR_PROFILE_WITH_DO_BENCH_USING_PROFILING.md)|通过此环境变量可控制autotune过程中是否使用profiling进行性能测量，与PyTorch上游行为一致。|
 |[TORCHINDUCTOR_ENABLE_WELFORD](inductor/TORCHINDUCTOR_ENABLE_WELFORD.md)|通过此环境变量可控制是否启用Welford算法计算方差与均值类归约。|
 |[TORCHINDUCTOR_ENABLE_FAST_GELU](inductor/TORCHINDUCTOR_ENABLE_FAST_GELU.md)|通过此环境变量可控制GELU激活函数是否使用tanh近似decomposition。|
+|[INDUCTOR_ASCEND_AGGRESSIVE_AUTOTUNE](inductor/INDUCTOR_ASCEND_AGGRESSIVE_AUTOTUNE.md)|通过此环境变量可控制autotune过程中是否启用batch profiler进行批量性能测量。|
+|[INDUCTOR_ASCEND_SYMBOLIC_GROUP_AUTOTUNE](inductor/INDUCTOR_ASCEND_SYMBOLIC_GROUP_AUTOTUNE.md)|通过此环境变量可控制是否启用动态shape分组autotune，按shape特征分组复用调优结果。|
+|[INDUCTOR_ASCEND_SYMBOLIC_GROUP_TEMPLATES](inductor/INDUCTOR_ASCEND_SYMBOLIC_GROUP_TEMPLATES.md)|通过此环境变量可配置参与动态shape分组autotune的模板类型列表。|
+|[INDUCTOR_ASCEND_ENABLE_COSTMODEL](inductor/INDUCTOR_ASCEND_ENABLE_COSTMODEL.md)|通过此环境变量可控制是否启用CostModel预筛选功能，减少后续编译和实测profiling的config数量。|
+|[INDUCTOR_ASCEND_COSTMODEL_RATIO](inductor/INDUCTOR_ASCEND_COSTMODEL_RATIO.md)|通过此环境变量可控制CostModel预筛选后保留的config比例。|
 
 ### 图优化与调度
 
