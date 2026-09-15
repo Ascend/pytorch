@@ -16,12 +16,11 @@ from torch.distributed.device_mesh import init_device_mesh
 from torch.distributed.tensor import DeviceMesh
 from torch.distributed.tensor._utils import ExplicitRedistributionContext
 from torch.distributed.tensor.debug import CommDebugMode
-from torch.distributed.tensor.placement_types import Replicate, Shard
+from torch.distributed.tensor.placement_types import Replicate, Shard, Partial
 
 from torch.testing._internal.common_utils import run_tests, TestCase
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 
-import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
 
 
@@ -88,6 +87,19 @@ class UtilTest(DTensorTestBase):
                 dtensor.to_local(),
                 global_tensor[dim0_start:dim0_end, dim1_start:dim1_end],
             )
+
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_compute_local_shape_and_global_offset_partial(self):
+        # Verify local size and global offset for Partial placement.
+        placements = [Partial()]
+        mesh_tensor = torch.arange(self.world_size)
+        device_mesh = DeviceMesh(self.device_type, mesh_tensor)
+        global_tensor = torch.arange(64).view(8, 8)
+        global_shape = global_tensor.size()
+        local_size, global_offset = compute_local_shape_and_global_offset(global_shape, device_mesh, placements)
+        self.assertEqual(local_size, tuple(global_shape))
+        self.assertEqual(global_offset, tuple([0] * len(global_shape)))
 
 
 class LocalTensorTestBase(TestCase):
