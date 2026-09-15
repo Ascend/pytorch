@@ -110,6 +110,11 @@ jobs:
           pip install downloads/torch-*.whl
           pip install --no-deps downloads/torch_npu*.whl
           pip install --no-deps downloads/torchvision-*.whl || echo "WARN: torchvision wheel not found"
+          # torch_npu._C needs CANN libs (libhccl.so): source the CANN env
+          # before the import check, like the later steps do.
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+          export LD_LIBRARY_PATH=/opt/conda/envs/py_3.10/lib:$LD_LIBRARY_PATH
           python -c "import torch, torch_npu; print('torch', torch.__version__); print('torch_npu', torch_npu.__version__)"
 
       - name: Snapshot environment
