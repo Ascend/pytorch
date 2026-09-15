@@ -186,6 +186,10 @@ make -j$(nproc)
 
 使用 Ninja、Mold、CCache 和仅编译所需目标的方法，请参见[编译加速](docs/zh/installation_guide/references/build_acceleration.md)。
 
+### 使用Clang编译
+
+使用 Clang 进行编译的方法，请参见[使用Clang编译](docs/zh/installation_guide/references/building_with_clang.md)。
+
 ### 本地静态检查
 
 项目使用 [lintrunner](https://github.com/suo/lintrunner) 进行静态检查，支持在本地运行与 CI 完全一致的检查项，包括 Python 代码风格（Flake8、Ruff、PYFMT）、C++ 格式（ClangFormat、ClangTidy）、拼写检查（Codespell）等。

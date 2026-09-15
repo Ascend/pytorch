@@ -181,6 +181,9 @@ make -j$(nproc)
 
 For instructions on using Ninja, Mold, CCache, and building only the required targets, see [Build Acceleration](docs/en/installation_guide/references/build_acceleration.md).
 
+### Building with Clang
+For instructions on compiling with Clang, please refer to [Building with Clang](docs/en/installation_guide/references/building_with_clang.md)
+
 ### Local static check
 
 Project Use [lintrunner](https://github.com/suo/lintrunner) Perform static check. Check items that are the same as CI can be run locally, including Python code style (Flake8, Ruff, and PYFMT), C++ format (ClangFormat and ClangTidy), and spelling check (Codespell).

@@ -2,6 +2,7 @@
 
 - [源码编译](building_from_source.md)
 - [编译加速](build_acceleration.md)
+- [使用Clang编译](building_with_clang.md)
 - [(可选)安装拓展模块](installing_extensions.md)
   - [编译libtorch\_npu](building_libtorch_npu.md)
   - [安装torchvision](installing_torchvision.md)
