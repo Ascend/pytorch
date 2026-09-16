@@ -24,12 +24,25 @@ What this harness does
 
 Modes (--modes, comma separated, executed in this order)
     worker_batch        replay the whole batch per worker (reproduction)
+    valgrind_batch      replay the whole batch under valgrind memcheck
+                        (--undef-value-errors=no, --error-exitcode=99) to
+                        catch the corrupting heap write with a full native
+                        stack; MALLOC_*/PYTHONMALLOC debug vars are stripped
+                        from the worker env for clean memcheck output.
+                        Requires valgrind on PATH (workflow installs it).
     pair_case           two 2-case batches: the suspect pair (clamp_min +
                         clone, exercises aclnnForeachMaximumList + backward
                         through _foreach_clamp_min -> _foreach_maximum) and
                         a control pair (cos + cosh)
     subprocess_per_case one fresh pytest subprocess per case (control that
                         removes the pytest.main() in-process reuse variable)
+
+Case selection
+    --case-range selects a contiguous 1-based case_idx range (default
+    10857-10956, the batch that crashed in CI). --case-subset overrides it
+    with an explicit list (comma separated, ranges allowed, e.g.
+    "10857,10859,10861-10864"); the given order is preserved so permuted
+    sequences can be replayed for minimal-sequence bisection.
 
 Outputs (under --workdir)
     stats.jsonl         one JSON line per worker/case run
@@ -38,7 +51,8 @@ Outputs (under --workdir)
                         $GITHUB_STEP_SUMMARY when set)
     crash-forensics/    one directory per crash: worker.log (faulthandler),
                         gdb_bt_*.txt, plog.tar.gz, attribution.json,
-                        cores.json, system snapshots
+                        cores.json, system snapshots; valgrind.log for
+                        valgrind workers (memcheck findings with stacks)
 
 Exit codes
     0  finished (crashes, if any, are recorded in stats/forensics)
@@ -61,8 +75,10 @@ from collections import deque
 from pathlib import Path
 
 NPU_FATAL_EXIT_CODE = 70  # keep in sync with run_npu_test_shard.py
+VALGRIND_ERROR_EXIT = 99  # valgrind --error-exitcode: memcheck findings
 MODE_BUDGET_SECONDS = {
     "worker_batch": 3600,
+    "valgrind_batch": 1800,
     "pair-suspect": 900,
     "pair-control": 900,
     "subprocess_per_case": 1800,
@@ -90,6 +106,8 @@ def classify_rc(rc, stopped_by_budget):
         return "ok", ""
     if rc == NPU_FATAL_EXIT_CODE:
         return "npu_fatal", ""
+    if rc == VALGRIND_ERROR_EXIT:
+        return "vg_error", ""
     if rc < 0:
         sig = signal_name(-rc)
         return "crash:" + sig, sig
@@ -143,6 +161,33 @@ def select_range(cases, spec):
     if not out:
         raise SystemExit("no cases found in range %s" % spec)
     return out
+
+
+def select_subset(cases, spec):
+    """Select cases by explicit case_idx list ("10857,10859,10861-10864").
+
+    Ranges are expanded in ascending order; the overall order of the given
+    list is preserved so permuted sequences can be replayed.
+    """
+    wanted = []
+    for part in (p.strip() for p in spec.split(",")):
+        if not part:
+            continue
+        if "-" in part:
+            lo, hi = parse_range(part)
+            wanted.extend(range(lo, hi + 1))
+        else:
+            try:
+                wanted.append(int(part))
+            except ValueError:
+                raise SystemExit("bad case-subset element %r" % part) from None
+    if not wanted:
+        raise SystemExit("empty case-subset")
+    by_idx = {c["case_idx"]: c for c in cases}
+    missing = [i for i in wanted if i not in by_idx]
+    if missing:
+        raise SystemExit("case-subset indices not found: %s" % missing[:10])
+    return [by_idx[i] for i in wanted]
 
 
 def query_torch_root(python):
@@ -199,7 +244,7 @@ class Harness:
 
     # ------------------------------------------------------------- execution
 
-    def run_wave(self, mode_label, iter_num, wave_cases, case_mode=False):
+    def run_wave(self, mode_label, iter_num, wave_cases, case_mode=False, use_valgrind=False):
         iter_dir = self.workdir / mode_label / ("iter-%04d" % iter_num)
         iter_dir.mkdir(parents=True, exist_ok=True)
         records = [None] * self.workers
@@ -214,7 +259,7 @@ class Harness:
                 if case_mode:
                     records[i] = self._run_case_proc(mode_label, iter_num, slot, slot_dir, case, stop_evt, live)
                 else:
-                    records[i] = self._run_worker(mode_label, iter_num, slot, slot_dir, wave_cases, stop_evt, live)
+                    records[i] = self._run_worker(mode_label, iter_num, slot, slot_dir, wave_cases, stop_evt, live, use_valgrind=use_valgrind)
             except Exception as exc:
                 records[i] = RunRecord(
                     mode=mode_label, iter_num=iter_num, slot=slot, batch_id=0, rc=-1,
@@ -250,7 +295,7 @@ class Harness:
                 pass
         return records, iter_dir
 
-    def _run_worker(self, mode_label, iter_num, slot, slot_dir, batch_cases, stop_evt, live):
+    def _run_worker(self, mode_label, iter_num, slot, slot_dir, batch_cases, stop_evt, live, use_valgrind=False):
         slot_dir.mkdir(parents=True, exist_ok=True)
         reports_dir = slot_dir / "reports"
         plog_dir = slot_dir / "plog"
@@ -279,6 +324,16 @@ class Harness:
             self.python, "-u", str(self.runner_script),
             "--worker", str(bi_path), "--test-dir", str(self.test_dir),
         ]
+        if use_valgrind:
+            # Strip allocator-debug envs so memcheck is the single source of
+            # truth for heap findings.
+            for key in ("MALLOC_CHECK_", "MALLOC_PERTURB_", "PYTHONMALLOC"):
+                env.pop(key, None)
+            cmd = [
+                "valgrind", "--tool=memcheck", "--undef-value-errors=no",
+                "--error-exitcode=%d" % VALGRIND_ERROR_EXIT,
+                "--log-file=%s" % (slot_dir / "valgrind.log"),
+            ] + cmd
         return self._spawn_and_read(mode_label, iter_num, slot, slot_dir, cmd, env, batch_id, stop_evt, live)
 
     def _run_case_proc(self, mode_label, iter_num, slot, slot_dir, case, stop_evt, live):
@@ -375,7 +430,7 @@ class Harness:
 
     # --------------------------------------------------------------- drivers
 
-    def run_batch_mode(self, mode_label, cases, budget_s, stop_crashes, health_guard=False):
+    def run_batch_mode(self, mode_label, cases, budget_s, stop_crashes, health_guard=False, use_valgrind=False):
         self.mode_end = time.monotonic() + budget_s
         crashes = 0
         bad_waves = 0
@@ -386,7 +441,7 @@ class Harness:
             if stop_crashes and crashes >= stop_crashes:
                 break
             iter_num += 1
-            records, iter_dir = self.run_wave(mode_label, iter_num, cases)
+            records, iter_dir = self.run_wave(mode_label, iter_num, cases, use_valgrind=use_valgrind)
             wave_crash, wave_progress = self._after_wave(mode_label, iter_num, records, crashes)
             if wave_crash:
                 crashes += 1
@@ -427,9 +482,10 @@ class Harness:
         for rec in records:
             if rec is None:
                 continue
-            if rec.cls.startswith("crash:"):
+            if rec.cls.startswith("crash:") or rec.cls == "vg_error":
                 wave_crash = True
-            if rec.cls in ("ok", "npu_fatal") or rec.cases_completed > 0 or rec.cls.startswith("crash:"):
+            if (rec.cls in ("ok", "npu_fatal", "vg_error")
+                    or rec.cases_completed > 0 or rec.cls.startswith("crash:")):
                 wave_progress = True
             parts.append("%s(rc=%d,done=%d)" % (rec.cls, rec.rc, rec.cases_completed))
         print("[%s] iter %04d: %s | crashes=%d" % (mode_label, iter_num, ",".join(parts), crashes), flush=True)
@@ -442,7 +498,7 @@ class Harness:
         self.crash_counters[mode_label] = n
         crash_dir = self.workdir / "crash-forensics" / ("%s-crash-%02d" % (mode_label, n))
         crash_dir.mkdir(parents=True, exist_ok=True)
-        for name in ("worker.log", "batch_input.json", "cmd.json"):
+        for name in ("worker.log", "batch_input.json", "cmd.json", "valgrind.log"):
             src = slot_dir / name
             if src.exists():
                 shutil.move(str(src), str(crash_dir / name))
@@ -480,7 +536,11 @@ class Harness:
             bt = crash_dir / ("gdb_bt_%s.txt" % core.name)
             gdb_ok = self._gdb_backtrace(core, bt)
             if self.kept_cores < MAX_KEEP_CORES:
-                dest = crash_dir / core.name
+                # Keep cores beside the harness cores dir (runner-local, NOT
+                # under crash-forensics/) so the artifact upload stays small;
+                # gdb_bt_*.txt in crash_dir carries the backtrace.
+                dest = self.cores_dir / "kept" / core.name
+                dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.move(str(core), str(dest))
                 self.kept_cores += 1
                 core_manifest.append({"file": str(dest), "kept": True, "gdb": gdb_ok})
@@ -583,8 +643,9 @@ class Harness:
     def dry_run(self, modes, all_cases, selected, args):
         print("\n=== dry run: planned invocations ===")
         for mode in modes:
-            if mode == "worker_batch":
-                self._print_batch_plan("worker_batch", selected)
+            if mode in ("worker_batch", "valgrind_batch"):
+                self._print_batch_plan(
+                    mode, selected, use_valgrind=(mode == "valgrind_batch"))
             elif mode == "pair_case":
                 for label, spec in (("pair-suspect", args.pair_suspect), ("pair-control", args.pair_control)):
                     self._print_batch_plan(label, select_range(all_cases, spec))
@@ -599,7 +660,7 @@ class Harness:
                       "--junitxml=<reports>/case-%d.xml --timeout=1200 -vv"
                       % (self.python, nodeid, case["case_idx"]))
 
-    def _print_batch_plan(self, label, cases):
+    def _print_batch_plan(self, label, cases, use_valgrind=False):
         batch_input = {
             "batch_id": 1001,
             "test_dir": str(self.test_dir),
@@ -615,6 +676,10 @@ class Harness:
         print("\n[%s] batch_input.json (slot 1 of %d):" % (label, self.workers))
         print(json.dumps(batch_input, indent=1))
         print("[%s] worker cmd:" % label)
+        if use_valgrind:
+            print("  valgrind --tool=memcheck --undef-value-errors=no "
+                  "--error-exitcode=%d --log-file=<iter-dir>/w1/valgrind.log"
+                  % VALGRIND_ERROR_EXIT)
         print("  cwd=%s" % self.test_dir)
         print("  %s -u %s --worker <batch_input.json> --test-dir %s"
               % (self.python, self.runner_script, self.test_dir))
@@ -638,14 +703,16 @@ def summarize(workdir):
     for r in rows:
         d = by_mode.setdefault(
             r.get("mode", "?"),
-            {"runs": 0, "ok": 0, "npu_fatal": 0, "crashes": {}, "abnormal": 0,
-             "stopped": 0, "spawn_error": 0})
+            {"runs": 0, "ok": 0, "npu_fatal": 0, "vg_error": 0, "crashes": {},
+             "abnormal": 0, "stopped": 0, "spawn_error": 0})
         d["runs"] += 1
         cls = r.get("cls", "")
         if cls == "ok":
             d["ok"] += 1
         elif cls == "npu_fatal":
             d["npu_fatal"] += 1
+        elif cls == "vg_error":
+            d["vg_error"] += 1
         elif cls == "stopped":
             d["stopped"] += 1
         elif cls.startswith("crash:"):
@@ -654,7 +721,9 @@ def summarize(workdir):
             d["abnormal"] += 1
         else:
             d["spawn_error"] += 1
-    crash_rows = [r for r in rows if str(r.get("cls", "")).startswith("crash:")]
+    crash_rows = [r for r in rows
+                  if str(r.get("cls", "")).startswith("crash:")
+                  or r.get("cls") == "vg_error"]
     victim_hits = 0
     for r in crash_rows:
         nodeid = r.get("inflight_nodeid") or ""
@@ -664,12 +733,13 @@ def summarize(workdir):
     lines = []
     lines.append("# SIGSEGV repro summary")
     lines.append("")
-    lines.append("| mode | runs | ok | npu_fatal | crashes | abnormal | stopped | spawn_error |")
-    lines.append("|---|---|---|---|---|---|---|---|")
+    lines.append("| mode | runs | ok | npu_fatal | vg_error | crashes | abnormal | stopped | spawn_error |")
+    lines.append("|---|---|---|---|---|---|---|---|---|")
     for m in sorted(by_mode):
         d = by_mode[m]
-        lines.append("| %s | %d | %d | %d | %d | %d | %d | %d |" % (
-            m, d["runs"], d["ok"], d["npu_fatal"], sum(d["crashes"].values()),
+        lines.append("| %s | %d | %d | %d | %d | %d | %d | %d | %d |" % (
+            m, d["runs"], d["ok"], d["npu_fatal"], d["vg_error"],
+            sum(d["crashes"].values()),
             d["abnormal"], d["stopped"], d["spawn_error"]))
     if crash_rows:
         lines.append("")
@@ -679,7 +749,8 @@ def summarize(workdir):
         lines.append("|---|---|---|---|---|---|")
         for r in crash_rows:
             lines.append("| %s | %s | %s | %s | %s | %s |" % (
-                r.get("mode"), r.get("iter_num"), r.get("slot"), r.get("sig"),
+                r.get("mode"), r.get("iter_num"), r.get("slot"),
+                r.get("sig") or r.get("cls"),
                 r.get("cases_completed"), r.get("inflight_nodeid") or "(unknown)"))
         lines.append("")
         lines.append("In-flight case matched a historical CI victim in %d/%d crashes."
@@ -710,12 +781,16 @@ def parse_args(argv=None):
     parser.add_argument("--cases-json", help="tensor_cases_shard_1.json from the cases-shards artifact")
     parser.add_argument("--case-range", default="10857-10956",
                         help="1-based case_idx range replayed as one batch")
+    parser.add_argument("--case-subset", default="",
+                        help="comma-separated case_idx list (ranges allowed, e.g. "
+                             "10857,10859,10861-10864); overrides --case-range; "
+                             "given order is preserved for permuted replays")
     parser.add_argument("--runner-script", help="path to run_npu_test_shard.py")
     parser.add_argument("--test-dir", default="pytorch/test")
     parser.add_argument("--workdir", default="repro-run")
     parser.add_argument("--device", default="5", help="NPU device id pinned for all workers")
     parser.add_argument("--workers", default="4", help="concurrent workers per wave")
-    parser.add_argument("--modes", default="worker_batch,pair_case,subprocess_per_case")
+    parser.add_argument("--modes", default="worker_batch,valgrind_batch,pair_case,subprocess_per_case")
     parser.add_argument("--max-total-minutes", default="120")
     parser.add_argument("--stop-after-crashes", default="3", help="crash samples per mode (0 = full budget)")
     parser.add_argument("--pair-suspect", default="10857-10858",
@@ -743,18 +818,24 @@ def main(argv=None):
         raise SystemExit("test dir not found: %s" % args.test_dir)
 
     modes = [m.strip() for m in args.modes.split(",") if m.strip()]
-    valid = ("worker_batch", "pair_case", "subprocess_per_case")
+    valid = ("worker_batch", "valgrind_batch", "pair_case", "subprocess_per_case")
     unknown = [m for m in modes if m not in valid]
     if unknown or not modes:
         raise SystemExit("--modes must be a non-empty subset of %s" % ",".join(valid))
 
     all_cases = load_cases(args.cases_json)
-    selected = select_range(all_cases, args.case_range)
+    if args.case_subset and args.case_subset.strip():
+        selected = select_subset(all_cases, args.case_subset)
+    else:
+        selected = select_range(all_cases, args.case_range)
     env_updates = build_env_updates(args.runner_script, args.test_dir, args.python)
 
     print("=" * 80, flush=True)
     print("SIGSEGV repro harness", flush=True)
-    print("  cases: %d total, range %s -> %d cases" % (len(all_cases), args.case_range, len(selected)))
+    selection = ("subset %s" % args.case_subset.strip()
+                 if args.case_subset and args.case_subset.strip()
+                 else "range %s" % args.case_range)
+    print("  cases: %d total, %s -> %d cases" % (len(all_cases), selection, len(selected)))
     print("  first: %s" % selected[0]["nodeid"])
     print("  last : %s" % selected[-1]["nodeid"])
     print("  device=%s workers=%s modes=%s budget=%smin stop_after_crashes=%s" % (
@@ -780,6 +861,14 @@ def main(argv=None):
             budget = min(MODE_BUDGET_SECONDS["worker_batch"], remaining)
             _, aborted = harness.run_batch_mode(
                 "worker_batch", selected, budget, stop_crashes, health_guard=True)
+        elif mode == "valgrind_batch":
+            if shutil.which("valgrind") is None:
+                print("[valgrind_batch] SKIP: valgrind not found on PATH "
+                      "(install valgrind to enable this mode)", flush=True)
+                continue
+            budget = min(MODE_BUDGET_SECONDS["valgrind_batch"], remaining)
+            harness.run_batch_mode(
+                "valgrind_batch", selected, budget, stop_crashes, use_valgrind=True)
         elif mode == "pair_case":
             suspect = select_range(all_cases, args.pair_suspect)
             control = select_range(all_cases, args.pair_control)

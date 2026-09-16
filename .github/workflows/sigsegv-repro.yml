@@ -18,6 +18,14 @@ name: NPU SIGSEGV Repro
 # Trigger: push to ci-test touching this workflow, the harness, or the runner
 # script. Edit the REPRO_* env defaults below and push to run again with
 # different parameters.
+#
+# Debugging aids (root-cause localization): the container runs privileged so
+# /proc/sys/kernel/core_pattern is writable (crash cores + gdb backtraces);
+# job env enables glibc heap checking (MALLOC_CHECK_/MALLOC_PERTURB_) and
+# PYTHONMALLOC=debug so heap misuse aborts at the corrupting malloc/free
+# instead of much later; ASCEND_GLOBAL_LOG_LEVEL=1 records the last aclnn
+# ops before a crash. The valgrind_batch harness mode replays the batch
+# under memcheck to catch the corrupting write with a full native stack.
 
 on:
   push:
@@ -32,9 +40,10 @@ env:
   # Default repro parameters (edit + push to change)
   REPRO_SOURCE_RUN_ID: '34837447197'   # run providing wheels/source/cases artifacts (the crashed run)
   REPRO_CASE_RANGE: '10857-10956'      # 1-based case_idx range from the tensor shard replayed as one batch
+  REPRO_CASE_SUBSET: ''                # comma-separated case_idx list (ranges allowed); overrides REPRO_CASE_RANGE; order preserved
   REPRO_DEVICE: '5'                    # NPU device id pinned for all workers
   REPRO_WORKERS: '4'                   # concurrent workers per wave (CI density is 32/8 = 4)
-  REPRO_MODES: 'worker_batch,pair_case,subprocess_per_case'
+  REPRO_MODES: 'worker_batch,valgrind_batch,pair_case'
   REPRO_MAX_TOTAL_MINUTES: '120'       # overall stress budget in minutes (shared by all modes)
   REPRO_STOP_AFTER_CRASHES: '3'        # crash samples to collect per mode before moving on (0 = full budget)
   REPRO_PAIR_SUSPECT: '10857-10858'    # suspect pair (clamp_min + clone: ForeachMaximumList chain)
@@ -56,11 +65,20 @@ jobs:
     container:
       # Current ci-test test image; see NOTE above for the original-crash image
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609140905-0ba22e2b
-      options: --network host
+      # --privileged allows writing /proc/sys/kernel/core_pattern so crash
+      # cores land in repro-run/cores for gdb backtraces
+      options: --network host --privileged
     env:
       PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
       ASCEND_PROCESS_LOG_PATH: /root/ascend/log/plog
-      ASCEND_GLOBAL_LOG_LEVEL: '3'
+      ASCEND_GLOBAL_LOG_LEVEL: '1'  # INFO: record the last aclnn ops before a crash
+      # Heap-corruption tracers: glibc aborts at the corrupting malloc/free
+      # (SIGABRT + core) and freed memory is perturbed so UAF reads fail
+      # fast; PYTHONMALLOC=debug guards the pymalloc pools. The harness
+      # strips these from valgrind workers for clean memcheck output.
+      MALLOC_CHECK_: '3'
+      MALLOC_PERTURB_: '165'
+      PYTHONMALLOC: debug
     defaults:
       run:
         shell: bash
@@ -125,8 +143,8 @@ jobs:
           { npu-smi info; cat /usr/local/Ascend/cann/version.info 2>/dev/null; } | tee repro-env.txt || true
           cp downloads-listing.txt repro-downloads-listing.txt 2>/dev/null || true
 
-      - name: Install gdb (best-effort)
-        run: apt-get update -qq && apt-get install -y -qq gdb
+      - name: Install debugging tools (best-effort)
+        run: apt-get update -qq && apt-get install -y -qq gdb libc6-dbg valgrind
         continue-on-error: true
 
       - name: Configure core dumps
@@ -151,6 +169,7 @@ jobs:
           python ci-scripts/.github/scripts/sigsegv_stress.py \
             --cases-json downloads/tensor_cases_shard_1.json \
             --case-range "${{ env.REPRO_CASE_RANGE }}" \
+            --case-subset "${{ env.REPRO_CASE_SUBSET }}" \
             --runner-script ci-scripts/.github/scripts/run_npu_test_shard.py \
             --test-dir pytorch/test \
             --workdir repro-run \
