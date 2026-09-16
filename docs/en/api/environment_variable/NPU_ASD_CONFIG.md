@@ -28,7 +28,7 @@ export NPU_ASD_CONFIG=enable:true,with_checksum:true,cooldown:5,strikes_num:3,st
 - Feature value detection requires computing the statistical values of activation value gradients, which incurs additional memory usage. The additional memory consumption may be up to 1.5 GB. If your memory is insufficient, OOM (Out of Memory) may occur.
 - This environment variable is applicable to TorchNPU 7.1.0 and later versions. For TorchNPU 7.0.0 and earlier versions, you can use [NPU\_ASD\_ENABLE](NPU_ASD_ENABLE.md) to enable feature value detection. For specific operations, refer to the documentation of the corresponding TorchNPU version.
 - Currently, it can only identify gradient anomalies that occur during model training with data types of **BF16** or **FP32**.
-- The checksum linkage supports only the **BF16** data type.
+- The checksum linkage supports only the **BF16** and **FP32** data types.
 
 ## Supported Products
 

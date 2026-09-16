@@ -55,4 +55,4 @@ export NPU_ASD_CONFIG=enable:true,with_checksum:true,cooldown:5,strikes_num:3,st
 ## 约束说明
 
 - 当前仅能识别数据类型为**BF16**或**FP32**的模型训练过程中出现的梯度异常。
-- checksum联动仅支持**BF16**的数据类型。
+- checksum联动仅支持**BF16**或**FP32**的数据类型。

@@ -28,7 +28,7 @@ export NPU_ASD_CONFIG=enable:true,with_checksum:true,cooldown:5,strikes_num:3,st
 - 特征值检测需要计算激活值梯度的统计值，会产生额外的显存占用，可能存在1.5GB的额外显存消耗，用户显存不足时可能导致OOM（Out of Memory，内存不足）。
 - 此环境变量适用于TorchNPU 7.1.0及以上版本。TorchNPU 7.0.0及以下版本，可使用[NPU\_ASD\_ENABLE](NPU_ASD_ENABLE.md)开启特征值检测，具体操作可参考TorchNPU对应版本资料。
 - 当前仅能识别数据类型为**BF16**或**FP32**的模型训练过程中出现的梯度异常。
-- checksum联动仅支持**BF16**的数据类型。
+- checksum联动仅支持**BF16**或**FP32**的数据类型。
 
 ## 支持的型号
 

@@ -55,4 +55,4 @@ export NPU_ASD_CONFIG=enable:true,with_checksum:true,cooldown:5,strikes_num:3,st
 ## Constraints
 
 - Currently, only gradient anomalies occurring during model training with data types **BF16** or **FP32** can be identified.
-- The checksum linkage function only supports the **BF16** data type.
+- The checksum linkage function only supports the **BF16** and **FP32** data types.
