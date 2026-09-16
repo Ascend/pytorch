@@ -67,6 +67,14 @@ extern HcclResult HcclCreateSubCommConfig(HcclComm *comm, uint32_t rankNum, uint
 extern HcclResult HcclGetRootInfo(HcclRootInfo *rootInfo);
 
 /**
+ * @brief Get root info for scalable communicator initialization.
+ *
+ * @param rootInfo A pointer identifying the hccl root info.
+ * @return HcclResult
+ */
+extern HcclResult HcclGetRootInfoScalable(HcclRootInfo *rootInfo);
+
+/**
  * @brief Initialize HCCL with root info.
  *
  * @param nRanks A integer identifying the rank size of the cluster.
@@ -90,6 +98,23 @@ extern HcclResult HcclCommInitRootInfo(uint32_t nRanks, const HcclRootInfo *root
  * @see HcclCommDestroy()
  */
 extern HcclResult HcclCommInitRootInfoConfig(uint32_t nRanks, const HcclRootInfo *rootInfo, uint32_t rank,
+    const HcclCommConfig *config, HcclComm *comm);
+
+/**
+ * @brief Initialize HCCL with multiple root infos and config params.
+ *
+ * @param nRanks A integer identifying the rank size of the cluster.
+ * @param nRoot The number of root infos in rootInfoList.
+ * @param rootInfoList The root info list. It must be identical on every rank.
+ * @param rank A integer identifying the rank in the communicator.
+ * @param nExtRoot Reserved for hierarchical roots. It must currently be 0.
+ * @param config A pointer identifying config params about the current comm.
+ * @param comm A pointer identifying the initialized communication resource.
+ * @return HcclResult
+ * @see HcclCommDestroy()
+ */
+extern HcclResult HcclCommInitRootInfoScalable(uint32_t nRanks, uint32_t nRoot,
+    const HcclRootInfo *rootInfoList, uint32_t rank, uint32_t nExtRoot,
     const HcclCommConfig *config, HcclComm *comm);
 
 /* *
