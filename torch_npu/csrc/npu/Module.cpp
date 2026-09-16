@@ -2018,8 +2018,13 @@ PyObject* THNPModule_tensor_construct_from_storage(
   at::ScalarType storage_scalar_type;
   bool is_typed_storage = true;
   c10::Storage storage = _r.storage(0, storage_scalar_type, is_typed_storage);
+  // Only pass the TypedStorage's dtype when it is a typed storage;
+  // for UntypedStorage, leave it as Undefined so that the callee falls
+  // back to the StorageDesc's data_type_.
+  at::ScalarType dtype =
+      is_typed_storage ? storage_scalar_type : at::ScalarType::Undefined;
   return THPVariable_Wrap(
-      at_npu::native::set_tensor_with_storage_format(storage));
+      at_npu::native::set_tensor_with_storage_format(storage, dtype));
 
   END_HANDLE_TH_ERRORS
 }
