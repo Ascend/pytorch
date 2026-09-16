@@ -1,0 +1,11 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+pyyaml>=6.0.3
+setuptools>=75.3.2
+wheel>=0.45.1
+cmake>=3.18.4.post1
+numpy>=1.26.4
+ninja
+auditwheel>=5.4.0
+
+torch==2.7.1
