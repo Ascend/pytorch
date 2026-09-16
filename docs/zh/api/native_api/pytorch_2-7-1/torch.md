@@ -320,7 +320,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：不支持
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `obj`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -336,7 +336,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `data`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -728,7 +728,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `tensors`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -746,7 +746,7 @@
 
 **限制与说明**：
 
-- `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64
+- `tensors`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64
 - <term>Ascend 950DT</term>：不支持complex64
 
 </div>
@@ -765,7 +765,7 @@
 
 **限制与说明**：
 
-- `input`仅支持bf16，fp16，fp32，int64，bool，complex64
+- `tensors`仅支持bf16，fp16，fp32，int64，bool，complex64
 - <term>Ascend 950DT</term>：不支持complex64
 
 </div>
@@ -830,7 +830,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64
+**限制与说明**： `tensors`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64
 
 </div>
 
@@ -889,7 +889,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64
+**限制与说明**： `tensors`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64
 
 </div>
 
@@ -1107,7 +1107,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64
+**限制与说明**： `tensors`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64
 
 </div>
 
@@ -1272,7 +1272,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `tensors`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -1454,7 +1454,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64
+**限制与说明**： `tensors`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64
 
 </div>
 
@@ -1828,7 +1828,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**： `input`仅支持fp16，fp32，fp64
+**限制与说明**： `mean`、`std`仅支持fp16，fp32，fp64
 
 </div>
 
@@ -4127,10 +4127,10 @@
 **限制与说明**：
 
 - 双tensor输入的场景约束如下：
-  - `input`仅支持fp16，fp32，uint8，int8，int16，int32，int64
+  - `elements`、`test_elements`仅支持fp16，fp32，uint8，int8，int16，int32，int64
   - 第一个输入`tensor`维度不能大于7维，第二个输入`tensor`维度不能大于8维
 - 单tensor输入的场景约束如下：
-  - `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
+  - `elements`、`test_elements`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
   - 输入`tensor`的维度不大于8维
 
 </div>
@@ -4447,7 +4447,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `tensors`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -4463,7 +4463,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**： `input`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `tensors`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -4479,7 +4479,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**： `input`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `tensors`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -4514,7 +4514,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `tensors`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -4530,7 +4530,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `tensors`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -4578,7 +4578,7 @@
 
 **限制与说明**：
 
-- `input`仅支持bf16，fp16，fp32
+- `x1`、`x2`仅支持bf16，fp16，fp32
 - 当`p=2.0`时，`compute_mode`仅支持"donot_use_mm_for_euclid_dist"模式，传入其他值时，会自动修改为此模式
 - 针对<term>Ascend 950DT</term>，输入为fp16时，精度可能和<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>存在差异
 
@@ -4797,7 +4797,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `operands`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -4912,7 +4912,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `tensors`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 
@@ -4979,7 +4979,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**： `input`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64
+**限制与说明**： `sorted_sequence`、`values`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64
 
 </div>
 
@@ -4995,7 +4995,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**： `input`仅支持fp16，fp32
+**限制与说明**： `a`、`b`仅支持fp16，fp32
 
 </div>
 
@@ -5346,7 +5346,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：不支持
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64
+**限制与说明**： `y`、`x`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
 
@@ -5362,7 +5362,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**： `input`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64
+**限制与说明**： `y`、`x`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64
 
 </div>
 
@@ -5410,7 +5410,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `tensors`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
 

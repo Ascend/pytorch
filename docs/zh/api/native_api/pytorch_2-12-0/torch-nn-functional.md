@@ -1159,7 +1159,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：不支持
 
-**限制与说明**：`input`仅支持bf16，fp16，fp32
+**限制与说明**：`input1`、`input2`、`weight`、`bias`仅支持bf16，fp16，fp32
 
 </div>
 
@@ -1297,7 +1297,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**：`input`仅支持fp16，fp32
+**限制与说明**：`x1`、`x2`仅支持fp16，fp32
 
 </div>
 
@@ -1398,7 +1398,7 @@
 
 **限制与说明**：
 
-- `input`仅支持fp32，fp64
+- `log_probs`仅支持fp32，fp64
 - 目标序列的长度不支持0，即属性`target_lengths`的取值不能包含0
 
 </div>
@@ -1483,7 +1483,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**：`input`仅支持bf16，fp16，fp32
+**限制与说明**：`input1`、`input2`、`target`仅支持bf16，fp16，fp32
 
 </div>
 
@@ -1761,7 +1761,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**：`input`仅支持fp16，fp32
+**限制与说明**：`theta`仅支持fp16，fp32
 
 </div>
 
