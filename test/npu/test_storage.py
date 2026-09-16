@@ -339,6 +339,24 @@ class TestStorage(TestCase):
         self.assertEqual(torch_npu.get_npu_format(y), 29)
         self.assertEqual(x, y)
 
+    def test_deepcopy_dtype_view_over_different_storage_type(self):
+        # Test deepcopy of a dtype view created over storage of a different
+        # underlying type (e.g. fp16 view over uint8 storage). The TypedStorage
+        # dtype must be preserved through _deepcopy, not the StorageDesc
+        # data_type_ which records the original storage dtype.
+        torch.manual_seed(0)
+        torch.npu.manual_seed(0)
+        nbytes = 1024
+        weights = torch.randint(0, 255, (nbytes,), dtype=torch.uint8, device="npu")
+        qscale_view = weights[512:512 + 64].view(torch.float16)
+        self.assertEqual(qscale_view.dtype, torch.float16)
+
+        copied = copy.deepcopy(qscale_view)
+        self.assertEqual(copied.dtype, torch.float16)
+        self.assertEqual(tuple(copied.shape), (32,))
+        # Values should match the original view
+        self.assertEqual(qscale_view.cpu(), copied.cpu())
+
 
 if __name__ == '__main__':
     run_tests()
