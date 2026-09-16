@@ -146,6 +146,20 @@
 
 </div>
 
+> <font size="3">initialize_inference_session()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.onnx.ONNXProgram.initialize_inference_session](https://pytorch.org/docs/2.13/onnx_export.html#torch.onnx.ONNXProgram.initialize_inference_session)
+
+**产品支持情况**：
+
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
+
+</div>
+
 </div>
 
 ### torch.onnx.export
