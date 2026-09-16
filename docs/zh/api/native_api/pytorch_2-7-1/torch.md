@@ -1912,6 +1912,22 @@
 
 </div>
 
+### <code><i>class</i></code> torch.serialization.safe_globals
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.serialization.safe_globals](https://pytorch.org/docs/2.7/notes/serialization.html#torch.serialization.safe_globals)
+
+**支持情况**：
+
+| 硬件 | 是否支持 |
+| ---- | :----: |
+| <term>Atlas A2 训练系列产品</term> | ✔ |
+| <term>Atlas A3 训练系列产品</term> | ✔ |
+| <term>Ascend 950DT</term> | ✔ |
+
+</div>
+
 ## Parallelism
 
 ### torch.get_num_threads
