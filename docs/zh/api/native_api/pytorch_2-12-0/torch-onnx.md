@@ -104,6 +104,20 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：不支持
 
+> <font size="3">apply_weights()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.onnx.ONNXProgram.apply_weights](https://pytorch.org/docs/2.12/onnx_export.html#torch.onnx.ONNXProgram.apply_weights)
+
+**支持情况**：
+
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
+
+</div>
+
 > <font size="3">model_proto()</font>
 
 <div style="margin-left: 2em">
@@ -145,5 +159,19 @@
 - <term>Atlas A2 训练系列产品</term>：支持
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：不支持
+
+</div>
+
+### torch.onnx.verification.verify_onnx_program
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.onnx.verification.verify_onnx_program](https://pytorch.org/docs/2.12/onnx_verification.html#torch.onnx.verification.verify_onnx_program)
+
+**支持情况**：
+
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
