@@ -566,6 +566,62 @@
 
 </div>
 
+### <code><i>class</i></code> torch.autograd.function.NestedIOFunction
+
+<div style="margin-left: 2em">
+
+**原生文档**：[NestedIOFunction](https://pytorch.org/docs/2.7/generated/torch.autograd.function.NestedIOFunction.html)
+
+**产品支持情况**：
+
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
+
+> <font size="3">forward()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[NestedIOFunction.forward](https://pytorch.org/docs/2.7/generated/torch.autograd.function.NestedIOFunction.html#torch.autograd.function.NestedIOFunction.forward)
+
+**产品支持情况**：
+
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
+
+</div>
+
+> <font size="3">forward_extended()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[NestedIOFunction.forward_extended](https://pytorch.org/docs/2.7/generated/torch.autograd.function.NestedIOFunction.html#torch.autograd.function.NestedIOFunction.forward_extended)
+
+**产品支持情况**：
+
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
+
+</div>
+
+> <font size="3">vmap()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[NestedIOFunction.vmap](https://pytorch.org/docs/2.7/generated/torch.autograd.function.NestedIOFunction.html#torch.autograd.function.NestedIOFunction.vmap)
+
+**产品支持情况**：
+
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
+
+</div>
+
+</div>
+
 ## Profiler
 
 ### torch.autograd.profiler.profile
