@@ -1,5 +1,12 @@
 import os
+
 import torch
+
+os.environ["TORCHINDUCTOR_WORKER_START"] = "spawn"
+from torch._inductor import config as inductor_config
+
+inductor_config.worker_start_method = "spawn"
+
 ORG_AUTOLOAD = os.getenv("TORCH_DEVICE_BACKEND_AUTOLOAD", "1")
 os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = "0"
 from torch._inductor.async_compile import AsyncCompile
