@@ -1,0 +1,321 @@
+name: Test Category
+
+on:
+  workflow_call:
+    inputs:
+      category:
+        required: true
+        type: string
+        description: 'Category name: core, tensor, distributed, graph, or others'
+      shard:
+        required: true
+        type: string
+        description: Shard number to run (1-based). Caller drives the matrix.
+      docker_image:
+        required: false
+        type: string
+        default: 'swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704'
+        description: Docker image for running tests
+      runner_label:
+        required: false
+        type: string
+        default: 'npu=1'
+        description: 'Runner scheduling label, e.g. npu=1'
+
+jobs:
+  test:
+    runs-on: [self-hosted, "${{ inputs.runner_label }}"]
+    defaults:
+      run:
+        shell: bash
+    container:
+      image: ${{ inputs.docker_image }}
+      options: --user root --privileged --security-opt label=disable --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi
+    env:
+      # 华为云 pip 镜像源在容器内 SSL 证书校验失败，加 PIP_TRUSTED_HOST 跳过该源证书校验。
+      PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
+      PIP_TRUSTED_HOST: mirrors.huaweicloud.com
+    steps:
+      - name: Compute prefix for this category
+        id: prefix
+        run: |
+          case "${{ inputs.category }}" in
+            distributed) PREFIX="dist" ;;
+            core)        PREFIX="core" ;;
+            tensor)      PREFIX="tensor" ;;
+            graph)       PREFIX="graph" ;;
+            others)      PREFIX="others" ;;
+            regular)     PREFIX="reg" ;;
+            custom)      PREFIX="custom" ;;
+            *)           PREFIX="reg" ;;
+          esac
+          echo "prefix=${PREFIX}" >> "$ATOMGIT_OUTPUT"
+
+      - name: Download PyTorch test directory
+        uses: download-artifact
+        with:
+          name: pytorch-test
+          path: ./
+
+      - name: Extract PyTorch test directory
+        run: |
+          tar -xzf pytorch-test.tar.gz
+          rm pytorch-test.tar.gz
+          echo "test dir extracted: $(du -sh pytorch/test | cut -f1)"
+
+      - name: Download wheels
+        uses: download-artifact
+        with:
+          name: packages-pytorch
+          path: ./
+
+      # 提前到安装 wheel 之前，供下个步骤做分片文件存在性检查
+      - name: Download cases shard JSONs
+        uses: download-artifact
+        with:
+          name: cases-shards
+          path: cases-shards
+
+      - name: Extract and install wheels
+        run: |
+          # 多余分片槽位（静态矩阵多于实际分片数）在此提前跳过，避免白装环境
+          CASES_JSON="cases-shards/${{ inputs.category }}_cases_shard_${{ inputs.shard }}.json"
+          if [ ! -f "${CASES_JSON}" ]; then
+            echo "shard file ${CASES_JSON} not found, skipping wheel installation"
+            exit 0
+          fi
+
+          mkdir -p /tmp/wheels
+          tar -xzf wheels.tar.gz -C /tmp/wheels
+          rm wheels.tar.gz
+          # torch 版本从 build 下发的 torch_npu_info.json 读取，与编译期严格一致
+          TORCH_SPEC=$(python3 -c "
+          import json
+          try:
+              d = json.load(open('torch_npu_info.json'))
+              print(d.get('torch_spec', ''))
+          except Exception:
+              print('')
+          " 2>/dev/null || echo "")
+          if [ -z "${TORCH_SPEC}" ]; then
+            echo "ERROR: 未能从 torch_npu_info.json 读取 torch_spec（制品缺失或格式异常）"
+            exit 1
+          fi
+          echo "Resolved torch from torch_npu_info.json: ${TORCH_SPEC}"
+
+          # pip 加重试，规避并发拉 nightly 源时的瞬时网络故障
+          for i in 1 2 3; do
+            if python3 -m pip install --retries 5 --timeout 120 "torch==${TORCH_SPEC}" --extra-index-url https://download.pytorch.org/whl/nightly/cpu; then
+              break
+            fi
+            if [ "${i}" = "3" ]; then
+              echo "ERROR: pip install torch failed after 3 attempts"
+              exit 1
+            fi
+            echo "pip install torch failed (attempt ${i}/3), retrying in $((i * 20))s..."
+            sleep $((i * 20))
+          done
+          python3 -m pip install --no-deps /tmp/wheels/torch_npu*.whl
+          python3 -m pip install --no-deps /tmp/wheels/torchvision-*.whl || echo "WARNING: torchvision wheel not found in tarball"
+          # run_npu_test_shard.py 给 pytest 传 --timeout（单用例超时），依赖 pytest-timeout 插件；
+          # 镜像未预装时 pytest 报 usage error 4，全部用例秒挂
+          python3 -m pip install pytest-timeout
+
+      - name: Checkout test scripts from trigger commit
+        uses: checkout
+        with:
+          repository: https://gitcode.com/${{ atomgit.repository }}.git
+          # 用触发提交 SHA 而非 master，保证脚本版本与工作流版本自洽
+          ref: ${{ atomgit.sha }}
+          path: ci-scripts
+          fetch-depth: 1
+
+      - name: Run test shard
+        id: run_tests
+        run: |
+          # 分片文件存在性检查必须最先执行：多余槽位（静态矩阵 > 实际分片数）在安装
+          # 步骤就已提前退出、未装 torch_npu，若先跑冒烟会误报 ModuleNotFoundError，
+          # 把应绿色跳过的槽位打成红灯
+          CASES_JSON="cases-shards/${{ inputs.category }}_cases_shard_${{ inputs.shard }}.json"
+          if [ ! -f "${CASES_JSON}" ]; then
+            echo "shard file ${CASES_JSON} not found, skipping test execution"
+            echo "shard_exists=false" >> "$ATOMGIT_OUTPUT"
+            echo "status=0" >> "$ATOMGIT_OUTPUT"
+            exit 0
+          fi
+          echo "shard_exists=true" >> "$ATOMGIT_OUTPUT"
+
+          # CANN 环境初始化：探测并 source set_env.sh，坏环境立即中止（防大面积 561103）
+          _CANN_SET_ENV=""
+          for _p in /usr/local/Ascend/ascend-toolkit/set_env.sh \
+                    /usr/local/Ascend/cann/set_env.sh \
+                    /usr/local/Ascend/nnae/set_env.sh; do
+            if [ -f "${_p}" ]; then _CANN_SET_ENV="${_p}"; break; fi
+          done
+          if [ -z "${_CANN_SET_ENV}" ]; then
+            _CANN_SET_ENV=$(find /usr/local/Ascend -maxdepth 3 -name set_env.sh 2>/dev/null | head -1)
+          fi
+          if [ -z "${_CANN_SET_ENV}" ]; then
+            echo "ERROR: 未找到 CANN set_env.sh，环境坏损，拒绝继续"
+            exit 1
+          fi
+          echo "source CANN env: ${_CANN_SET_ENV}"
+          source "${_CANN_SET_ENV}"
+          if [ -z "${ASCEND_OPP_PATH}" ] || [ ! -d "${ASCEND_OPP_PATH}" ]; then
+            echo "ERROR: ASCEND_OPP_PATH=${ASCEND_OPP_PATH} 未设置或目录不存在，CANN 算子包异常"
+            exit 1
+          fi
+
+          # NPU 冒烟预检：覆盖上次失败面最大的 kernel 路径（random/Cast/abs），坏环境分钟级快速失败
+          if ! python3 -c "
+          import torch
+          import torch_npu
+          assert torch.npu.is_available(), 'torch.npu.is_available() is False'
+          x = torch.randn(4, device='npu')     # aclnnInplaceRandom
+          y = x.to(torch.float16)              # Cast kernel
+          z = (x + 1).abs()
+          torch.npu.synchronize()
+          print(f'smoke ok: {z.shape} {z.dtype}')
+          " ; then
+            echo "ERROR: NPU 冒烟预检失败 —— 环境坏损，提前中止分片"
+            npu-smi info 2>/dev/null || true
+            echo "ASCEND_OPP_PATH=${ASCEND_OPP_PATH}"
+            ls "${ASCEND_OPP_PATH}/built-in" 2>/dev/null || true
+            exit 1
+          fi
+
+          # worker 数按类目本地推导（不依赖 inputs，distributed 串行、其余并发 32）
+          case "${{ inputs.category }}" in
+            distributed) MAX_WORKERS=1 ;;
+            *)           MAX_WORKERS=32 ;;
+          esac
+
+          python3 -c "
+          import torch
+          print(f'torch: {torch.__version__}')
+          import torch_npu
+          print(f'torch_npu: {torch_npu.__version__}')
+          print(f'NPU available: {torch.npu.is_available()}')
+          print(f'NPU count: {torch.npu.device_count()}')
+          "
+
+          TOTAL_CASES=$(python3 -c "import json; d=json.load(open('${CASES_JSON}')); print(d['total_cases'])")
+
+          echo "=== ${{ inputs.category }} Shard ${{ inputs.shard }} ==="
+          echo "Total cases: ${TOTAL_CASES}"
+          echo "Max workers: ${MAX_WORKERS}"
+
+          set +e
+          python3 ci-scripts/.gitcode/scripts/run_npu_test_shard.py \
+            --cases-json "${CASES_JSON}" \
+            --test-dir pytorch/test \
+            --report-dir test-reports \
+            --max-workers ${MAX_WORKERS} \
+            --timeout 1200 \
+            --verbose \
+            2>&1 | tee /tmp/test_${{ inputs.category }}_${{ inputs.shard }}.log
+
+          TEST_STATUS=${PIPESTATUS[0]}
+          set -e
+          echo "status=${TEST_STATUS}" >> "$ATOMGIT_OUTPUT"
+
+      - name: Parse results and package reports
+        id: parse_results
+        if: ${{ always() }}
+        run: |
+          PREFIX="${{ steps.prefix.outputs.prefix }}"
+          CASES_FILE="test-reports/shard_${PREFIX}-${{ inputs.shard }}_cases.json"
+          python3 -c "
+          import json, os, sys
+          stats = {'passed': 0, 'failed': 0, 'errors': 0, 'timeout': 0, 'skipped': 0, 'total': 0}
+          parse_ok = False
+          try:
+              with open('${CASES_FILE}') as f:
+                  d = json.load(f)
+              stats['passed'] = d.get('passed', 0)
+              stats['failed'] = d.get('failed', 0)
+              stats['errors'] = d.get('errors', 0)
+              stats['timeout'] = d.get('timeout', 0)
+              stats['skipped'] = d.get('skipped', 0)
+              stats['total'] = d.get('total_cases', 0)
+              parse_ok = True
+          except Exception as e:
+              print(f'Warning: Could not parse results: {e}', file=sys.stderr)
+          total_failed = stats['failed'] + stats['errors'] + stats['timeout']
+          with open(os.environ['ATOMGIT_OUTPUT'], 'a') as f:
+              for k, v in stats.items():
+                  f.write(f'{k}={v}\n')
+              f.write(f'total_failed={total_failed}\n')
+              f.write(f'parse_ok={str(parse_ok).lower()}\n')
+          print(f'${{ inputs.category }} shard ${{ inputs.shard }}: {stats[\"passed\"]} passed, {stats[\"failed\"]} failed, {stats[\"errors\"]} errors, {stats[\"timeout\"]} timeout, {stats[\"skipped\"]} skipped, {stats[\"total\"]} total')
+          "
+
+          if [ -d "test-reports/junit_xmls" ]; then
+            echo "=== Compressing junit XMLs ==="
+            XML_COUNT=$(find test-reports/junit_xmls -type f -name "*.xml" | wc -l)
+            echo "Found ${XML_COUNT} XML files"
+            tar -czf test-reports/junit_xmls.tar.gz -C test-reports junit_xmls
+            rm -rf test-reports/junit_xmls
+            echo "JUnit XMLs compressed: $(ls -lh test-reports/junit_xmls.tar.gz)"
+          fi
+
+          if [ -d "test-reports/cases_logs" ]; then
+            echo "=== Compressing cases logs ==="
+            LOGS_COUNT=$(find test-reports/cases_logs -type f | wc -l)
+            echo "Found ${LOGS_COUNT} case log files"
+            tar -czf test-reports/cases_logs.tar.gz -C test-reports cases_logs
+            rm -rf test-reports/cases_logs
+            echo "Cases logs compressed: $(ls -lh test-reports/cases_logs.tar.gz)"
+          fi
+
+      - name: Upload test reports
+        # 多余槽位无任何报告产物，跳过上传；always() 保留：真实分片失败时也要传出已产出的报告
+        if: ${{ always() && steps.run_tests.outputs.shard_exists == 'true' }}
+        uses: upload-artifact
+        with:
+          name: test-reports-${{ steps.prefix.outputs.prefix }}-${{ inputs.shard }}
+          path: test-reports/
+          retention-days: 7
+
+      - name: Compress /root/ascend CANN logs
+        if: ${{ always() }}
+        run: |
+          PREFIX="${{ steps.prefix.outputs.prefix }}"
+          if [ -d "/root/ascend" ]; then
+            echo "=== Compressing /root/ascend CANN logs ==="
+            FILE_COUNT=$(find /root/ascend -type f | wc -l)
+            echo "Found ${FILE_COUNT} files under /root/ascend"
+            tar -czf ascend-cann-logs-${PREFIX}-${{ inputs.shard }}.tar.gz -C /root ascend
+            echo "CANN logs compressed: $(ls -lh ascend-cann-logs-${PREFIX}-${{ inputs.shard }}.tar.gz)"
+          else
+            echo "/root/ascend directory does not exist, skipping"
+          fi
+
+      - name: Upload CANN logs
+        if: ${{ always() }}
+        uses: upload-artifact
+        with:
+          name: ascend-cann-logs-${{ steps.prefix.outputs.prefix }}-${{ inputs.shard }}
+          path: ascend-cann-logs-${{ steps.prefix.outputs.prefix }}-${{ inputs.shard }}.tar.gz
+          retention-days: 7
+
+      - name: Collect error logs
+        id: collect_errors
+        if: ${{ always() }}
+        run: |
+          TEST_STATUS="${{ steps.run_tests.outputs.status }}"
+          if [ "${TEST_STATUS:-0}" != "0" ]; then
+            mkdir -p error-logs
+            cp /tmp/test_${{ inputs.category }}_${{ inputs.shard }}.log error-logs/ 2>/dev/null || true
+            echo "has_errors=true" >> "$ATOMGIT_OUTPUT"
+          else
+            echo "has_errors=false" >> "$ATOMGIT_OUTPUT"
+          fi
+
+      - name: Upload error logs
+        if: ${{ steps.collect_errors.outputs.has_errors == 'true' }}
+        uses: upload-artifact
+        with:
+          name: error-logs-${{ steps.prefix.outputs.prefix }}-${{ inputs.shard }}
+          path: error-logs/
+          retention-days: 7

@@ -1,0 +1,165 @@
+# PR test whitelist — category-driven configuration.
+# Each category maps to a set of test files, execution mode, and worker count.
+#
+# 文件清单来源: pytorch-npu-testcase-dashboard
+# (https://blog.huangjingwei.site/pytorch-npu-testcase-dashboard/, window.CASES 数据)
+# 全量收录 dashboard 的 126 个测试文件(均存在于上游 pytorch main),
+# 对应约 17.9 万条用例。白名单文件路径相对上游 pytorch 仓库,
+# 收集阶段 --test-dir 指向 $workspace/pytorch/test(上游源码包),非 torch_npu 仓库。
+#
+# dashboard 类目 → 白名单类目映射:
+#   Core → core, Tensor → tensor, Distributed → distributed,
+#   Graph → graph, Other + Quantization → others
+
+categories:
+  core:
+    workers: 32
+    execution: concurrent
+    runner: linux-aarch64-a3-8
+    files:
+    - test/autograd/test_functional.py
+    - test/autograd/test_logging.py
+    - test/nn/attention/test_open_registry.py
+    - test/nn/test_convolution.py
+    - test/nn/test_dropout.py
+    - test/nn/test_init.py
+    - test/nn/test_lazy_modules.py
+    - test/nn/test_load_state_dict.py
+    - test/nn/test_module_hooks.py
+    - test/nn/test_multihead_attention.py
+    - test/nn/test_parametrization.py
+    - test/nn/test_pooling.py
+    - test/nn/test_pruning.py
+    - test/optim/test_lrscheduler.py
+    - test/optim/test_optim.py
+    - test/optim/test_stateless.py
+    - test/optim/test_swa_utils.py
+    - test/profiler/test_memory_profiler.py
+    - test/test_autograd.py
+    - test/test_comparison_utils.py
+    - test/test_dataloader.py
+    - test/test_functional_autograd_benchmark.py
+    - test/test_functional_optim.py
+    - test/test_logging.py
+    - test/test_mkldnn.py
+    - test/test_module_tracker.py
+    - test/test_modules.py
+    - test/test_native_mha.py
+    - test/test_nnapi.py
+    - test/test_optim.py
+    - test/test_serialization.py
+    - test/test_stateless.py
+  tensor:
+    workers: 32
+    execution: concurrent
+    runner: linux-aarch64-a3-8
+    files:
+    - test/complex_tensor/test_complex_tensor.py
+    - test/test_as_strided.py
+    - test/test_autocast.py
+    - test/test_binary_ufuncs.py
+    - test/test_bmm_outer_product.py
+    - test/test_complex.py
+    - test/test_function_schema.py
+    - test/test_masked.py
+    - test/test_maskedtensor.py
+    - test/test_namedtuple_return_api.py
+    - test/test_native_functions.py
+    - test/test_ops.py
+    - test/test_out_dtype_op.py
+    - test/test_scatter_gather_ops.py
+    - test/test_schema_check.py
+    - test/test_segment_reductions.py
+    - test/test_shape_ops.py
+    - test/test_sparse_csr.py
+    - test/test_tensor_iterator.py
+    - test/test_type_info.py
+    - test/test_type_promotion.py
+    - test/test_unary_ufuncs.py
+    - test/test_view_ops.py
+    - test/torch_np/test_basic.py
+  distributed:
+    workers: 1
+    execution: serial
+    runner: linux-aarch64-a3-8
+    files:
+    - test/distributed/checkpoint/test_compatibility.py
+    - test/distributed/pipelining/test_backward.py
+    - test/distributed/pipelining/test_microbatch.py
+    - test/distributed/pipelining/test_pipe.py
+    - test/distributed/pipelining/test_transformer.py
+    - test/distributed/pipelining/test_unflatten.py
+    - test/distributed/test_store.py
+  graph:
+    workers: 32
+    execution: concurrent
+    runner: linux-aarch64-a3-8
+    files:
+    - test/dynamo/test_iterators.py
+    - test/dynamo/test_mapping_ops.py
+    - test/dynamo/test_metrics_context.py
+    - test/dynamo/test_model_output.py
+    - test/dynamo/test_nb_bool.py
+    - test/dynamo/test_nb_float.py
+    - test/dynamo/test_nb_index.py
+    - test/dynamo/test_nb_int.py
+    - test/dynamo/test_nb_operators.py
+    - test/dynamo/test_nb_shift.py
+    - test/dynamo/test_nested_graph_breaks_wrapped.py
+    - test/dynamo/test_nops.py
+    - test/dynamo/test_optimizers.py
+    - test/dynamo/test_pgo.py
+    - test/dynamo/test_polyfills.py
+    - test/dynamo/test_pre_dispatch.py
+    - test/dynamo/test_python_autograd.py
+    - test/dynamo/test_python_dispatcher.py
+    - test/dynamo/test_recompiles.py
+    - test/dynamo/test_skip_non_tensor.py
+    - test/dynamo/test_utils.py
+    - test/dynamo/test_view.py
+    - test/export/test_hop.py
+    - test/export/test_torchbind.py
+    - test/export/test_tree_utils.py
+    - test/functorch/test_control_flow.py
+    - test/fx/test_cse_pass.py
+    - test/fx/test_dce_pass.py
+    - test/fx/test_dynamism.py
+    - test/fx/test_fx_const_fold.py
+    - test/fx/test_source_matcher_utils.py
+    - test/fx/test_subgraph_rewriter.py
+    - test/higher_order_ops/test_invoke_subgraph.py
+    - test/inductor/test_minifier_utils.py
+    - test/inductor/test_op_completeness.py
+    - test/jit/test_backend_nnapi.py
+    - test/lazy/test_reuse_ir.py
+    - test/test_dispatch.py
+    - test/test_dynamic_shapes.py
+    - test/test_fx.py
+    - test/test_jit.py
+    - test/test_jit_legacy.py
+    - test/test_jit_profiling.py
+    - test/test_jit_simple.py
+    - test/test_prims.py
+  others:
+    workers: 32
+    execution: concurrent
+    runner: linux-aarch64-a3-8
+    files:
+    - test/ao/sparsity/test_structured_sparsifier.py
+    - test/dynamo/test_call_protocol.py
+    - test/dynamo/test_complex.py
+    - test/dynamo/test_contextvars.py
+    - test/dynamo/test_exception_contract.py
+    - test/dynamo/test_nb_and.py
+    - test/dynamo/test_nb_divmod.py
+    - test/dynamo/test_nb_floordiv.py
+    - test/dynamo/test_nb_power.py
+    - test/dynamo/test_nb_remainder.py
+    - test/dynamo/test_nb_truediv.py
+    - test/dynamo/test_nb_xor.py
+    - test/dynamo/test_repr_protocol.py
+    - test/dynamo/test_str_protocol.py
+    - test/dynamo/test_tp_getattro.py
+    - test/dynamo/test_tp_richcompare.py
+    - test/export/test_dynamic_spec_export.py
+    - test/test_ao_sparsity.py

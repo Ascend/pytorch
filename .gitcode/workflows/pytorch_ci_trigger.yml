@@ -1,0 +1,206 @@
+name: PyTorch CI Trigger
+
+on:
+  # PR 评论触发：在目标分支为 master 的 PR 中评论 /run-ci 触发流水线；
+  # 配合 associate-pr-comment 插件可将执行详情回显到 PR 评论区与检查页
+  pull_request_comment:
+    types:
+      - created
+    branches:
+      - master
+    comments:
+      - '/ci-pytorch'
+  workflow_dispatch:
+    inputs:
+      patch_files:
+        required: false
+        type: string
+        default: ''
+        description: '逗号分隔的 patch 路径（预留，暂未使用）'
+
+concurrency:
+  enable: true
+  max: 5
+  exceed-action: QUEUE
+  preemption:
+    enable: true
+    events: [mr_id]
+
+# GitCode 权限体系：read-all 表示所有权限（project/pr/issue/note/repository）只读
+permissions: read-all
+
+# 工作流级环境变量，供各 job 的 with 参数复用
+env:
+  # 统一用 nightly 的 builder 镜像（build/test 同源），CANN 由容器挂载宿主机 /usr/local/Ascend 提供
+  BUILD_DOCKER_IMAGE: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704
+  TEST_DOCKER_IMAGE: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704
+  CASE_PATHS_CONFIG: .gitcode/config/pr_test_whitelist.yml
+  SKIP_LIST: .gitcode/config/pr_skip_list.jsonl
+  HW_CLASSIFICATION: ACCELERATOR
+
+# stages 阶段间串行、阶段内并行；report 放 post 阶段（终态执行，测试失败也汇总）。
+stages:
+  prepare:
+    name: 准备（参数提取与构建）
+    jobs:
+      # 直接读取 atomgit 上下文解析构建参数（atomgit.sha = 触发提交 SHA）
+      extract:
+        runs-on: [self-hosted, npu=8]
+        outputs:
+          upstream_repo: ${{ steps.extract.outputs.upstream_repo }}
+          upstream_ref: ${{ steps.extract.outputs.upstream_ref }}
+          torch_npu_repo: ${{ steps.extract.outputs.torch_npu_repo }}
+          torch_npu_ref: ${{ steps.extract.outputs.torch_npu_ref }}
+          should_build: ${{ steps.extract.outputs.should_build }}
+        steps:
+          - name: Extract build parameters
+            id: extract
+            run: |
+              set -euo pipefail
+
+              echo "event_name: ${{ atomgit.event_name }}"
+              echo "event sha : ${{ atomgit.sha }}"
+              echo "ref       : ${{ atomgit.ref }}"
+
+              UPSTREAM_REPO="GitHub_Trending/py/pytorch"
+              UPSTREAM_REF="main"
+              # torch_npu 用触发仓库 + 触发 SHA，兼容 fork（PR head commit 在 fork 里）
+              TORCH_NPU_REPO="${{ atomgit.repository }}"
+              TORCH_NPU_REF="${{ atomgit.sha }}"
+              SHOULD_BUILD="true"
+
+              echo "should_build=${SHOULD_BUILD}" >> "$ATOMGIT_OUTPUT"
+              echo "upstream_repo=${UPSTREAM_REPO}" >> "$ATOMGIT_OUTPUT"
+              echo "upstream_ref=${UPSTREAM_REF}" >> "$ATOMGIT_OUTPUT"
+              echo "torch_npu_repo=${TORCH_NPU_REPO}" >> "$ATOMGIT_OUTPUT"
+              echo "torch_npu_ref=${TORCH_NPU_REF}" >> "$ATOMGIT_OUTPUT"
+
+              echo "=== Extracted Build Parameters ==="
+              echo "event_type:     ${{ atomgit.event_name }}"
+              echo "upstream_repo:  ${UPSTREAM_REPO}"
+              echo "upstream_ref:   ${UPSTREAM_REF}"
+              echo "torch_npu_repo: ${TORCH_NPU_REPO}"
+              echo "torch_npu_ref:  ${TORCH_NPU_REF}"
+              echo "should_build:   ${SHOULD_BUILD}"
+
+      build:
+        needs: extract
+        if: ${{ jobs.extract.outputs.should_build == 'true' }}
+        uses: ./.gitcode/workflows/_build.yml
+        with:
+          upstream_repo: ${{ jobs.extract.outputs.upstream_repo }}
+          upstream_ref: ${{ jobs.extract.outputs.upstream_ref }}
+          torch_npu_repo: ${{ jobs.extract.outputs.torch_npu_repo }}
+          torch_npu_ref: ${{ jobs.extract.outputs.torch_npu_ref }}
+          docker_image: ${{ env.BUILD_DOCKER_IMAGE }}
+          # 编译走 npu=8 池（8 卡机）；测试分片走 npu=1 池
+          runner_label: 'npu=8'
+
+  collect:
+    name: 用例收集与分片
+    jobs:
+      collect:
+        uses: ./.gitcode/workflows/_test-collect.yml
+        with:
+          case_paths_config: ${{ env.CASE_PATHS_CONFIG }}
+          docker_image: ${{ env.TEST_DOCKER_IMAGE }}
+          hw_classification: ${{ env.HW_CLASSIFICATION }}
+          full_scan: 'false'
+          skip_list: ${{ env.SKIP_LIST }}
+          # 采集走 npu=8 池（轻量任务，与编译同池排队）
+          runner_label: 'npu=8'
+
+  # 阶段内 5 类目并行；GitCode 不支持 fromJson 动态矩阵，用静态矩阵 + 分片文件
+  # 存在性检查跳过超范围分片（实际分片数超上限时 _test-collect.yml 的 CAPS 检查 fail）。
+  test:
+    name: 分类分片测试
+    fail_fast: false
+    jobs:
+      test-core:
+        strategy:
+          fail-fast: false
+          max-parallel: 4
+          matrix:
+            shard: [1,2,3,4]
+        uses: ./.gitcode/workflows/_test-category.yml
+        with:
+          category: core
+          shard: ${{ matrix.shard }}
+          docker_image: ${{ env.TEST_DOCKER_IMAGE }}
+          runner_label: 'npu=1'
+
+      # tensor 用例量最大（4 分片），拆 a/b 两个 job 提高测试阶段并行度
+      test-tensor-a:
+        strategy:
+          fail-fast: false
+          matrix:
+            shard: [1,2]
+        uses: ./.gitcode/workflows/_test-category.yml
+        with:
+          category: tensor
+          shard: ${{ matrix.shard }}
+          docker_image: ${{ env.TEST_DOCKER_IMAGE }}
+          runner_label: 'npu=1'
+
+      test-tensor-b:
+        strategy:
+          fail-fast: false
+          matrix:
+            shard: [3,4]
+        uses: ./.gitcode/workflows/_test-category.yml
+        with:
+          category: tensor
+          shard: ${{ matrix.shard }}
+          docker_image: ${{ env.TEST_DOCKER_IMAGE }}
+          runner_label: 'npu=1'
+
+      test-distributed:
+        strategy:
+          fail-fast: false
+          max-parallel: 4
+          matrix:
+            shard: [1,2,3,4,5,6]
+        uses: ./.gitcode/workflows/_test-category.yml
+        with:
+          category: distributed
+          shard: ${{ matrix.shard }}
+          docker_image: ${{ env.TEST_DOCKER_IMAGE }}
+          runner_label: 'npu=1'
+
+      test-graph:
+        strategy:
+          fail-fast: false
+          matrix:
+            shard: [1,2]
+        uses: ./.gitcode/workflows/_test-category.yml
+        with:
+          category: graph
+          shard: ${{ matrix.shard }}
+          docker_image: ${{ env.TEST_DOCKER_IMAGE }}
+          runner_label: 'npu=1'
+
+      test-others:
+        strategy:
+          fail-fast: false
+          matrix:
+            shard: [1]
+        uses: ./.gitcode/workflows/_test-category.yml
+        with:
+          category: others
+          shard: ${{ matrix.shard }}
+          docker_image: ${{ env.TEST_DOCKER_IMAGE }}
+          runner_label: 'npu=1'
+
+# post 阶段：终态执行（测试失败也会汇总报告）
+post:
+  jobs:
+    report:
+      if: ${{ always() }}
+      uses: ./.gitcode/workflows/_test-report.yml
+      with:
+        core_matrix: ${{ jobs.collect.outputs.core_matrix }}
+        tensor_matrix: ${{ jobs.collect.outputs.tensor_matrix }}
+        distributed_matrix: ${{ jobs.collect.outputs.distributed_matrix }}
+        graph_matrix: ${{ jobs.collect.outputs.graph_matrix }}
+        others_matrix: ${{ jobs.collect.outputs.others_matrix }}
+        docker_image: ${{ env.TEST_DOCKER_IMAGE }}

@@ -1,0 +1,312 @@
+name: Build PyTorch and torch_npu
+
+on:
+  workflow_call:
+    inputs:
+      upstream_repo:
+        required: true
+        type: string
+        description: The upstream repository full name (owner/repo)
+      upstream_ref:
+        required: true
+        type: string
+        description: Git ref to build — branch name (main), tag, or commit SHA
+      torch_npu_repo:
+        required: true
+        type: string
+        description: The torch_npu repository full name (owner/repo)
+      torch_npu_ref:
+        required: false
+        type: string
+        default: 'master'
+        description: The torch_npu repository branch, tag, or SHA to build
+      docker_image:
+        required: false
+        type: string
+        default: 'swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704'
+        description: Docker image for build container.
+      runner_label:
+        required: false
+        type: string
+        # 编译走 npu=8 池（8 卡机）
+        default: 'npu=8'
+        description: 'Runner scheduling label for build, e.g. npu=8'
+    outputs:
+      resolved_short:
+        description: Short SHA (first 10 chars) of upstream PyTorch
+        value: ${{ jobs.fetch.outputs.resolved_short }}
+
+jobs:
+  # ======================================================================
+  # Job 1: Fetch PyTorch source via GitCode 镜像
+  # ======================================================================
+  fetch:
+    runs-on: [self-hosted, npu=8]
+    outputs:
+      resolved_sha: ${{ steps.resolve.outputs.sha }}
+      resolved_short: ${{ steps.resolve.outputs.short }}
+    steps:
+      - name: Checkout upstream PyTorch
+        run: |
+          git init pytorch
+          cd pytorch
+          git remote add origin "https://gitcode.com/${{ inputs.upstream_repo }}.git"
+          git fetch --depth 1 origin "${{ inputs.upstream_ref }}"
+          git checkout -b build FETCH_HEAD
+
+      - name: Resolve actual HEAD SHA
+        id: resolve
+        working-directory: pytorch
+        run: |
+          SHA=$(git rev-parse HEAD)
+          echo "sha=${SHA}" >> "$ATOMGIT_OUTPUT"
+          echo "short=${SHA:0:10}" >> "$ATOMGIT_OUTPUT"
+          echo "Resolved ${{ inputs.upstream_ref }} -> ${SHA}"
+
+      - name: Package PyTorch test directory
+        run: |
+          # 下游 collect/test 只需要 pytorch/test/ 测试用例目录
+          TARBALL="pytorch-test.tar.gz"
+          echo "Packaging pytorch/test/ into ${TARBALL} ..."
+          tar -czf "${TARBALL}" pytorch/test
+          echo "Package size: $(du -h ${TARBALL} | cut -f1)"
+
+      # SHA 走 build_info.json 制品传递：post 阶段 jobs.build.outputs.* 不求值，
+      # 且 job 内引用自身 outputs 可能为空，故用本 job 的 steps.resolve.outputs.*
+      - name: Write PyTorch build info
+        run: |
+          cat > build_info.json <<EOF
+          {
+            "pytorch_repo": "${{ inputs.upstream_repo }}",
+            "pytorch_ref": "${{ inputs.upstream_ref }}",
+            "pytorch_sha": "${{ steps.resolve.outputs.sha }}",
+            "pytorch_short": "${{ steps.resolve.outputs.short }}"
+          }
+          EOF
+          echo "=== build_info.json ==="
+          cat build_info.json
+
+      - name: Upload PyTorch test directory
+        uses: upload-artifact
+        with:
+          name: pytorch-test
+          path: |
+            ./pytorch-test.tar.gz
+            ./build_info.json
+          retention-days: 7
+
+  # ======================================================================
+  # Job 2: Build PyTorch + torch_npu on self-hosted ARM64 runner
+  # ======================================================================
+  build_npu:
+    needs: fetch
+    runs-on: [self-hosted, "${{ inputs.runner_label }}"]
+    defaults:
+      run:
+        shell: bash
+    outputs:
+      torch_npu_sha: ${{ steps.resolve_torch_npu_sha.outputs.sha }}
+      torch_npu_short: ${{ steps.resolve_torch_npu_sha.outputs.short }}
+    container:
+      image: ${{ inputs.docker_image }}
+      options: --user root --privileged --security-opt label=disable --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi
+    env:
+      # 编译并发上限；实际取值在 build 步骤自适应（min(nproc, 128)），防小内存机器 OOM
+      MAX_JOBS: 128
+      USE_CUDA: 0
+      USE_XNNPACK: 0
+      _GLIBCXX_USE_CXX11_ABI: 1
+      BUILD_IGNORE_SVE_UNAVAILABLE: 1
+      BUILD_WITHOUT_SHA: 1
+      # 华为云 pip 镜像源在容器内 SSL 证书校验失败（certificate has expired / certifi 过期），
+      # 加 PIP_TRUSTED_HOST 让 pip 跳过该源的证书校验绕过。
+      PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
+      PIP_TRUSTED_HOST: mirrors.huaweicloud.com
+    steps:
+      - name: Checkout torch_npu
+        uses: checkout
+        with:
+          repository: https://gitcode.com/${{ inputs.torch_npu_repo }}.git
+          ref: ${{ inputs.torch_npu_ref }}
+          path: torch_npu
+          fetch-depth: 1
+
+      # 从仓内 requirements.txt 解析 torch 版本，全链路（build --torch / 测试 pip）跟随该版本
+      - name: Install prebuilt PyTorch wheel
+        id: resolve_torch
+        run: |
+          # 解析仓内 requirements.txt 锁定的 torch 版本
+          TORCH_SPEC=$(grep -E '^torch==' torch_npu/requirements.txt | head -1 | sed 's/^torch==//')
+          if [ -z "${TORCH_SPEC}" ]; then
+            echo "ERROR: 未能在 torch_npu/requirements.txt 找到 torch== 锁定版本"
+            exit 1
+          fi
+          # 派生 major.minor，供 build.sh --torch 校验
+          TORCH_MM=$(echo "${TORCH_SPEC}" | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+')
+          echo "torch_spec=${TORCH_SPEC}" >> "$ATOMGIT_OUTPUT"
+          echo "torch_mm=${TORCH_MM}" >> "$ATOMGIT_OUTPUT"
+          echo "Resolved torch from requirements.txt: ${TORCH_SPEC} (mm=${TORCH_MM})"
+
+          # pip 加重试，规避并发拉源时的瞬时网络故障
+          for i in 1 2 3; do
+            if python3 -m pip install --retries 5 --timeout 120 -r torch_npu/requirements.txt; then
+              break
+            fi
+            if [ "${i}" = "3" ]; then
+              echo "ERROR: pip install requirements failed after 3 attempts"
+              exit 1
+            fi
+            echo "pip install requirements failed (attempt ${i}/3), retrying in $((i * 20))s..."
+            sleep $((i * 20))
+          done
+          python3 -c "import torch; print(f'PyTorch version: {torch.__version__}')"
+
+      - name: Init submodules
+        run: cd torch_npu && git submodule update --init --recursive --jobs=$(nproc)
+
+      - name: Resolve torch_npu SHA
+        id: resolve_torch_npu_sha
+        working-directory: torch_npu
+        run: |
+          SHA=$(git rev-parse HEAD)
+          echo "sha=${SHA}" >> "$ATOMGIT_OUTPUT"
+          echo "short=${SHA:0:10}" >> "$ATOMGIT_OUTPUT"
+          echo "torch_npu commit: ${SHA}"
+
+      # Step 5: Build and install torch_npu
+      - name: Build and install torch_npu
+        id: build_torchnpu
+        working-directory: torch_npu
+        run: |
+          echo "============================================"
+          echo "Building torch_npu..."
+          echo "Repository: ${{ inputs.torch_npu_repo }}"
+          echo "Ref: ${{ inputs.torch_npu_ref }}"
+          echo "============================================"
+
+          # MAX_JOBS 自适应：实际并发取 min(nproc, 128)。8 卡机 nproc>=128 时行为
+          # 不变；核数/内存较小的机器自动降并发，避免 128 路并行 C++ 编译 OOM
+          _CORES=$(nproc)
+          if [ "${_CORES}" -lt "${MAX_JOBS}" ]; then
+            export MAX_JOBS="${_CORES}"
+          fi
+          echo "MAX_JOBS=${MAX_JOBS} (nproc=${_CORES})"
+          unset _CORES
+
+          set +o pipefail
+          # --torch 用 resolve_torch 解析的 major.minor，与实际安装的 torch 一致
+          bash ci/build.sh --python=3.10 --torch=${{ steps.resolve_torch.outputs.torch_mm }} --disable_torchair --disable_rpc 2>&1 | tee /tmp/build-torchnpu.log
+          BUILD_STATUS=${PIPESTATUS[0]}
+          set -o pipefail
+
+          if [ ${BUILD_STATUS} -ne 0 ]; then
+            echo "torch_npu build failed!"
+            exit ${BUILD_STATUS}
+          fi
+
+          python3 -m pip install --no-deps dist/torch_npu*.whl
+          mkdir -p /tmp/wheels
+          cp dist/torch_npu*.whl /tmp/wheels/
+
+          wheel=$(ls /tmp/wheels/torch_npu*.whl | head -1)
+          echo "path=${wheel}" >> "$ATOMGIT_OUTPUT"
+          echo "name=$(basename ${wheel})" >> "$ATOMGIT_OUTPUT"
+
+      - name: Package wheels into tarball
+        run: |
+          TARBALL="wheels.tar.gz"
+          tar -czf "${TARBALL}" -C /tmp/wheels .
+          echo "Wheels tarball size: $(du -h ${TARBALL} | cut -f1)"
+          # torch_npu SHA + torch_spec 走制品传递，供 report 及下游安装使用
+          cat > torch_npu_info.json <<EOF
+          {
+            "torch_npu_repo": "${{ inputs.torch_npu_repo }}",
+            "torch_npu_ref": "${{ inputs.torch_npu_ref }}",
+            "torch_npu_sha": "${{ steps.resolve_torch_npu_sha.outputs.sha }}",
+            "torch_npu_short": "${{ steps.resolve_torch_npu_sha.outputs.short }}",
+            "torch_spec": "${{ steps.resolve_torch.outputs.torch_spec }}"
+          }
+          EOF
+          echo "=== torch_npu_info.json ==="
+          cat torch_npu_info.json
+
+      - name: Upload wheel artifacts
+        uses: upload-artifact
+        with:
+          name: packages-pytorch
+          path: |
+            ./wheels.tar.gz
+            ./torch_npu_info.json
+          retention-days: 7
+
+      - name: Verify NPU device and availability
+        run: |
+          # CANN 环境自初始化：多路径探测 set_env.sh，找不到即退出
+          _CANN_SET_ENV=""
+          for _p in /usr/local/Ascend/ascend-toolkit/set_env.sh \
+                    /usr/local/Ascend/cann/set_env.sh \
+                    /usr/local/Ascend/nnae/set_env.sh; do
+            if [ -f "${_p}" ]; then _CANN_SET_ENV="${_p}"; break; fi
+          done
+          if [ -z "${_CANN_SET_ENV}" ]; then
+            _CANN_SET_ENV=$(find /usr/local/Ascend -maxdepth 3 -name set_env.sh 2>/dev/null | head -1)
+          fi
+          if [ -n "${_CANN_SET_ENV}" ]; then
+            echo "source CANN env: ${_CANN_SET_ENV}"
+            source "${_CANN_SET_ENV}"
+          else
+            echo "ERROR: 未找到 CANN set_env.sh，build 容器内可能未安装 CANN toolkit"
+            exit 1
+          fi
+          # ASCEND_OPP_PATH 是 aclnn kernel 二进制查找根路径，缺失会导致测试期
+          # 大面积 561103（Parse dynamic kernel config fail），在此提前校验
+          if [ -z "${ASCEND_OPP_PATH}" ] || [ ! -d "${ASCEND_OPP_PATH}" ]; then
+            echo "ERROR: ASCEND_OPP_PATH=${ASCEND_OPP_PATH} 未设置或目录不存在，CANN 算子包异常"
+            exit 1
+          fi
+          python3 -c "
+          import torch
+          print(f'torch: {torch.__version__}')
+          import torch_npu
+          print(f'torch_npu: {torch_npu.__version__}')
+          print(f'NPU available: {torch.npu.is_available()}')
+          print(f'NPU count: {torch.npu.device_count()}')
+          "
+
+      - name: Upload build artifacts
+        if: ${{ always() }}
+        uses: upload-artifact
+        with:
+          name: build-artifacts-${{ atomgit.run_number }}
+          path: |
+            /tmp/build-torchnpu.log
+            torch_npu/torch_npu/csrc/inductor/aoti_torch/generated/c_shim_npu.h
+          retention-days: 7
+
+      - name: Summary
+        if: ${{ always() }}
+        run: |
+          TORCH_NPU_SHA=$(git -C torch_npu rev-parse HEAD)
+
+          echo "============================================"
+          echo "             Build Summary"
+          echo "============================================"
+          echo "PyTorch upstream: ${{ inputs.upstream_repo }}"
+          echo "PyTorch ref     : ${{ inputs.upstream_ref }}"
+          echo "PyTorch commit  : ${{ jobs.fetch.outputs.resolved_sha }}"
+          echo "torch_npu repo  : ${{ inputs.torch_npu_repo }}"
+          echo "torch_npu commit: ${TORCH_NPU_SHA}"
+          echo "Max jobs        : ${MAX_JOBS}"
+          echo "============================================"
+
+          {
+            echo "## Build Summary"
+            echo ""
+            echo "| Item | Value |"
+            echo "|------|-------|"
+            echo "| PyTorch upstream | ${{ inputs.upstream_repo }} |"
+            echo "| PyTorch commit | \`${{ jobs.fetch.outputs.resolved_sha }}\` |"
+            echo "| torch_npu repo | ${{ inputs.torch_npu_repo }} |"
+            echo "| torch_npu commit | \`${TORCH_NPU_SHA}\` |"
+            echo "| Max jobs | ${MAX_JOBS} |"
+          } >> "$ATOMGIT_STEP_SUMMARY"
