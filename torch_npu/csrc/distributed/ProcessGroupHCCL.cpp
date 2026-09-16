@@ -89,7 +89,50 @@ using hcclUs = std::chrono::steady_clock::time_point;
 
 constexpr int32_t MAX_GROUP_NAME_LEN = 128;
 constexpr int32_t NSLB_JOBID_OFFSET = 32;
+constexpr const char* HCCL_VERSION_STORE_KEY = "version_key";
 static constexpr int CoalActive = 0x01, CoalColl = 0x02, CoalP2P = 0x04;
+
+// Return the balanced group index for a root rank, or -1 for a non-root rank.
+static int getRootIndex(const int rank, const int numRanks, const int numRoots)
+{
+    TORCH_CHECK(
+        numRanks > 0 && numRoots > 0 && numRoots <= numRanks,
+        "Invalid scalable HCCL group layout: num ranks is ",
+        numRanks,
+        ", root num is ",
+        numRoots,
+        ".",
+        DIST_ERROR(ErrCode::VALUE));
+    const int numLargerGroups = numRanks % numRoots;
+    const int baseGroupSize = numRanks / numRoots;
+    const int largerGroupSize = baseGroupSize + 1;
+    const int largerGroupsRankLimit = numLargerGroups * largerGroupSize;
+
+    if (rank < largerGroupsRankLimit) {
+        if (rank % largerGroupSize != 0) {
+            return -1;
+        }
+        return rank / largerGroupSize;
+    }
+
+    const int rankOffset = rank - largerGroupsRankLimit;
+    if (rankOffset % baseGroupSize != 0) {
+        return -1;
+    }
+    return numLargerGroups + rankOffset / baseGroupSize;
+}
+
+std::vector<uint8_t> getPtaBuildVersion()
+{
+    auto buildDate = __DATE__ != nullptr ? __DATE__ : "";
+    std::vector<uint8_t> version;
+#ifdef PYTORCH_NPU_VERSION
+    auto ptaVersion = PYTORCH_NPU_VERSION != nullptr ? PYTORCH_NPU_VERSION : "";
+    version.insert(version.end(), ptaVersion, ptaVersion + strlen(ptaVersion));
+#endif
+    version.insert(version.end(), buildDate, buildDate + strlen(buildDate));
+    return version;
+}
 
 // HCCL ReduceOp mapping
 std::map<c10d::ReduceOp, HcclReduceOp> hcclOp = {
@@ -2532,6 +2575,99 @@ void ProcessGroupHCCL::broadcastMasterID(
     }
 }
 
+void ProcessGroupHCCL::allgatherScalableRootInfos(
+    int rootIdx,
+    HcclRootInfo* rootInfo,
+    std::vector<HcclRootInfo>& rootInfoList)
+{
+    const auto numRoots = rootInfoList.size();
+    TORCH_CHECK(
+        numRoots > 0, "The scalable HCCL root info list must not be empty.", DIST_ERROR(ErrCode::PARAM));
+
+    const std::string keyPrefix = std::to_string(hcclCommCounter_++) + "_scalable_root_";
+    std::vector<std::string> storeKeys;
+    storeKeys.reserve(numRoots);
+    for (size_t root = 0; root < numRoots; ++root) {
+        storeKeys.emplace_back(keyPrefix + std::to_string(root));
+    }
+    auto version = getPtaBuildVersion();
+
+    if (rootIdx >= 0) {
+        TORCH_CHECK(
+            rootInfo != nullptr,
+            "The scalable HCCL root info must not be null on a root rank.",
+            DIST_ERROR(ErrCode::PTR));
+        auto rootInfoBytes = std::vector<uint8_t>(
+            reinterpret_cast<uint8_t*>(rootInfo), reinterpret_cast<uint8_t*>(rootInfo) + HCCL_ROOT_INFO_BYTES);
+        store_->set(storeKeys[rootIdx], rootInfoBytes);
+        TCPStoreKeyList_.emplace(storeKeys[rootIdx]);
+        TORCH_NPU_HCCL_LOGI(
+            "Generate and publish scalable HCCL root info success, rank is %d, root index is %d, store key is %s.",
+            rank_,
+            rootIdx,
+            storeKeys[rootIdx].c_str());
+        if (rootIdx == 0) {
+            store_->set(HCCL_VERSION_STORE_KEY, version);
+        }
+    }
+
+    std::vector<std::vector<uint8_t>> rootInfoResults;
+    try {
+        rootInfoResults = store_->multiGet(storeKeys);
+    } catch (const std::exception& e) {
+        C10_THROW_ERROR(
+            DistBackendError,
+            c10::str(
+                "Failed to retrieve ",
+                numRoots,
+                " scalable HCCL RootInfo entries from Store on rank ",
+                rank_,
+                ": ",
+                e.what(),
+                ". Verify that every root rank is running and can access the Store.",
+                DIST_ERROR(ErrCode::INTERNAL)));
+    } catch (...) {
+        C10_THROW_ERROR(
+            DistBackendError,
+            c10::str(
+                "Failed to retrieve ",
+                numRoots,
+                " scalable HCCL RootInfo entries from Store on rank ",
+                rank_,
+                ": unknown exception. Verify that every root rank is running and can access the Store.",
+                DIST_ERROR(ErrCode::INTERNAL)));
+    }
+
+    TORCH_CHECK_WITH(
+        DistBackendError,
+        rootInfoResults.size() == numRoots,
+        "Store returned an invalid scalable HCCL RootInfo count: expected ",
+        numRoots,
+        ", got ",
+        rootInfoResults.size(),
+        ".",
+        DIST_ERROR(ErrCode::INTERNAL));
+    for (size_t root = 0; root < numRoots; ++root) {
+        const auto& rootInfoBytes = rootInfoResults[root];
+        TORCH_CHECK_WITH(
+            DistBackendError,
+            rootInfoBytes.size() == HCCL_ROOT_INFO_BYTES,
+            "Store returned an invalid scalable HCCL RootInfo size at root index ",
+            root,
+            ": expected ",
+            HCCL_ROOT_INFO_BYTES,
+            ", got ",
+            rootInfoBytes.size(),
+            ".",
+            DIST_ERROR(ErrCode::INTERNAL));
+        std::memcpy(&rootInfoList[root], rootInfoBytes.data(), rootInfoBytes.size());
+        TCPStoreKeyList_.emplace(storeKeys[root]);
+    }
+    if (store_->get(HCCL_VERSION_STORE_KEY) != version) {
+        TORCH_NPU_WARN("PTA version mismatch");
+    }
+}
+
 // record data volume for HCCL op.
 void ProcessGroupHCCL::recordDataVol(std::string opName, const std::string dataVol, const int currRank,
     std::vector<std::shared_ptr<HCCLComm>>& hcclComms)
@@ -2810,6 +2946,102 @@ c10_npu::NPUStream ProcessGroupHCCL::getHcclNPUStream(const at::Device &device)
     return newStream;
 }
 
+void ProcessGroupHCCL::createHCCLCommScalable(
+    const std::vector<at::Device>& devices,
+    HcclCommConfig* commConfig,
+    std::vector<std::shared_ptr<HCCLComm>>& hcclComms,
+    std::vector<c10_npu::NPUStream>& streamVal,
+    uint32_t numRoots)
+{
+    TORCH_CHECK(
+        hcclCommInitRootInfoScalableExist(),
+        "Scalable RootInfo is enabled by ROOTINFO_SCALABLE_ENABLE, but the current HCCL library does not provide "
+        "HcclGetRootInfoScalable and HcclCommInitRootInfoScalable.",
+        DIST_ERROR(ErrCode::NOT_SUPPORT));
+
+    const int numRanks = getSize();
+    TORCH_CHECK(
+        numRanks > 0 && numRoots > 0 && numRoots <= static_cast<uint32_t>(numRanks),
+        "Invalid scalable HCCL group layout: num ranks is ",
+        numRanks,
+        ", root num is ",
+        numRoots,
+        ".",
+        DIST_ERROR(ErrCode::VALUE));
+    const int numRootGroups = static_cast<int>(numRoots);
+    const int baseGroupSize = numRanks / numRootGroups;
+    const int largerGroupCount = numRanks % numRootGroups;
+    if (rank_ == 0) {
+        TORCH_NPU_HCCL_LOGI(
+            "Scalable HCCL RootInfo path selected, group id is %s, num ranks is %d, root num is %u, "
+            "base group rank num is %d, groups with one extra rank is %d.",
+            options_->group_id.c_str(),
+            numRanks,
+            numRoots,
+            baseGroupSize,
+            largerGroupCount);
+    }
+
+    HcclRootInfo rootInfo;
+    std::vector<HcclRootInfo> rootInfoList(numRoots);
+    const int rootIdx = getRootIndex(rank_, numRanks, numRootGroups);
+    if (rootIdx >= 0) {
+        const int rootGroupSize = baseGroupSize + (rootIdx < largerGroupCount ? 1 : 0);
+        TORCH_NPU_HCCL_LOGI(
+            "Start generating scalable HCCL root info, rank is %d, root index is %d, "
+            "group rank range is [%d, %d], group rank num is %d, num ranks is %d, root num is %u.",
+            rank_,
+            rootIdx,
+            rank_,
+            rank_ + rootGroupSize - 1,
+            rootGroupSize,
+            numRanks,
+            numRoots);
+        HCCL_CHECK_ERROR(hcclGetRootInfoScalable(&rootInfo));
+    }
+
+    auto rootInfoExchangeStartTime = std::chrono::steady_clock::now();
+    allgatherScalableRootInfos(rootIdx, &rootInfo, rootInfoList);
+    auto rootInfoExchangeEndTime = std::chrono::steady_clock::now();
+    auto rootInfoExchangeTime =
+        std::chrono::duration_cast<std::chrono::milliseconds>(rootInfoExchangeEndTime - rootInfoExchangeStartTime);
+    TORCH_NPU_HCCL_LOGI(
+        "All-gather scalable HCCL root infos through store success, group id is %s, root num is %u, use %d ms.",
+        options_->group_id.c_str(),
+        numRoots,
+        rootInfoExchangeTime.count());
+
+    c10_npu::OptionalNPUGuard npuGuard;
+    auto startTime = std::chrono::steady_clock::now();
+    for (size_t i = 0; i < devices.size(); ++i) {
+        const int rank = getRank() * static_cast<int>(devices.size()) + static_cast<int>(i);
+        HcclCommConfig config;
+
+        if (options_->global_ranks_in_group.empty()) {
+            setNSLBCommConfig(&commConfig);
+        }
+
+        npuGuard.set_index(devices[i].index());
+        if (commConfig != nullptr) {
+            checkHcclCommConfigValid(commConfig);
+            hcclComms[i] = HCCLComm::create_scalable_config(numRanks, rank, rootInfoList, commConfig);
+        } else {
+            config = createHcclCommConfigWithOptions();
+            hcclComms[i] = HCCLComm::create_scalable_config(numRanks, rank, rootInfoList, &config);
+        }
+        hcclComms[i]->hcclCommType = static_cast<int>(HcclCommType::DEFAULT);
+        streamVal.push_back(getHcclNPUStream(devices[i]));
+    }
+
+    auto endTime = std::chrono::steady_clock::now();
+    auto timeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+    TORCH_NPU_HCCL_LOGI(
+        "Create hccl comm by hcclCommInitRootInfoScalable success, group id is %s, root num is %u, use %d ms.",
+        options_->group_id.c_str(),
+        numRoots,
+        timeElapsed.count());
+}
+
 void ProcessGroupHCCL::createHCCLCommOrigin(
     const std::string& devicesKey,
     const std::vector<at::Device>& devices,
@@ -2828,6 +3060,27 @@ void ProcessGroupHCCL::createHCCLCommOrigin(
                 return;
             }
             TORCH_NPU_HCCL_LOGI("Sub comm derivation failed in createHCCLCommOrigin, fallback to rootinfo.");
+        }
+    }
+
+    if (commType == HcclCommType::DEFAULT && c10_npu::option::OptionsManager::IsScalableRootInfoEnable()) {
+        if (!IsCompatibleSoc()) {
+            TORCH_NPU_WARN_ONCE(
+                "Scalable RootInfo initialization is supported only on Atlas A2 and A3. "
+                "The current SoC is unsupported; falling back to the original RootInfo initialization path.");
+        } else {
+            const uint32_t ranksPerRoot = c10_npu::option::OptionsManager::GetHcclRanksPerRoot();
+            TORCH_CHECK(
+                ranksPerRoot > 0,
+                "TORCH_HCCL_RANKS_PER_ROOT must be greater than 0.",
+                DIST_ERROR(ErrCode::VALUE));
+            const uint32_t numRanks = static_cast<uint32_t>(getSize());
+            if (numRanks > ranksPerRoot) {
+                // Overflow-safe ceiling division: 512 ranks with ranksPerRoot=127 require 5 roots.
+                const uint32_t numRoots = (numRanks - 1) / ranksPerRoot + 1;
+                createHCCLCommScalable(devices, commConfig, hcclComms, streamVal, numRoots);
+                return;
+            }
         }
     }
 
