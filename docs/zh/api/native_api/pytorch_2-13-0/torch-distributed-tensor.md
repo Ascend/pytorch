@@ -104,6 +104,34 @@
 
 </div>
 
+### <code><i>class</i></code> torch.distributed.tensor.placement_types.Placement
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.tensor.placement_types.Placement](https://pytorch.org/docs/2.13/distributed.tensor.html#torch.distributed.tensor.placement_types.Placement)
+
+**产品支持情况**：
+
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
+
+> <font size="3">is_replicate()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.tensor.placement_types.Placement.is_replicate](https://pytorch.org/docs/2.13/distributed.tensor.html#torch.distributed.tensor.placement_types.Placement.is_replicate)
+
+**产品支持情况**：
+
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
+
+</div>
+
+</div>
+
 ## Different ways to create a DTensor
 
 ### torch.distributed.tensor.distribute_module
