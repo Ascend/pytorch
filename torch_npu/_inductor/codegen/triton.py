@@ -2160,6 +2160,45 @@ class NPUIndexTritonKernel(TritonKernel):
     def _same_grouped_benchmark_expr(self, left, right) -> bool:
         return V.graph.sizevars.simplify(left - right) == 0
 
+    def _grouped_benchmark_affine_symbol_spec(self, symbol):
+        """Recover a symbol that owns no axis from an axis that is affine in it.
+
+        A tensor can be sized by a symbol no axis carries: x[1:] - x[:-1] leaves a
+        single reduction axis spanning s2 - 1 while the input itself is s2 long, so
+        no axis length equals s2. The axis still pins the symbol down, so encode it
+        as that axis plus the offset between them.
+
+        Only an offset is undone, never a coefficient: dividing would need the
+        quotient to be exact for every runtime size, which nothing here
+        establishes. Returning None leaves the caller to reject the plan, which
+        disables grouping for the kernel rather than mis-sizing its benchmark.
+        """
+        for node in self.sorted_axis:
+            length = V.graph.sizevars.simplify(node.length)
+            if not isinstance(length, sympy.Expr):
+                continue
+            if symbol not in length.free_symbols:
+                continue
+            try:
+                poly = sympy.Poly(length, symbol)
+            except (sympy.PolynomialError, TypeError, ValueError):
+                continue
+            if poly.degree() != 1:
+                continue
+            coefficient = poly.coeff_monomial(symbol)
+            offset = poly.coeff_monomial(1)
+            if coefficient != 1 or not offset.is_Integer:
+                continue
+            if offset == 0:
+                return {"axis_name": node.name}
+            return {
+                "add": (
+                    {"axis_name": node.name},
+                    {"const": -int(offset)},
+                )
+            }
+        return None
+
     def _grouped_benchmark_expr_spec(
         self, expr, runtime_arg_name_to_index=None, context=None
     ):
@@ -2177,6 +2216,9 @@ class NPUIndexTritonKernel(TritonKernel):
                     return {"axis_name": node.name}
             if symbol_name in runtime_arg_name_to_index:
                 return {"runtime_arg_index": runtime_arg_name_to_index[symbol_name]}
+            affine_spec = self._grouped_benchmark_affine_symbol_spec(expr)
+            if affine_spec is not None:
+                return affine_spec
         if isinstance(expr, sympy.Mul):
             return {
                 "mul": tuple(

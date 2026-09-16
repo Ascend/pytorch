@@ -479,8 +479,10 @@ class SplitTiling:
     # (grid) axis backfires: the outer axis bakes XBLOCK from the representative, so
     # a mid-of-bucket runtime size (e.g. 257 in (256, 4096]) gets an XBLOCK tuned
     # for 4096 -> too few programs -> core underutilization. The single (256,) tail
-    # (representative 512) is a better all-round compromise. Reduction likewise
-    # stays a single boundary; the ~1e6 1D corner is out of scope.
+    # (representative 512) is a better all-round compromise. Reduction keeps one
+    # boundary wherever an outer axis drives the grid; see
+    # _FULL_REDUCTION_BUCKETS for the grid==1 case, where the tile is the only
+    # thing a bucket can tune and one boundary is too coarse.
     _REDUCTION_BUCKETS = (8192,)
     _OUTER_BUCKETS = (256,)
     # Boundaries for an outer group that also carries static axes, in units of the
@@ -497,6 +499,19 @@ class SplitTiling:
     _OUTER_BUCKETS_WITH_STATIC_AXES = tuple(
         num_vector_core * k for k in range(1, 6)
     )
+
+    # Boundaries for a reduction that owns the whole kernel: no outer axis, no
+    # split axis, so grid==1 and the tile alone decides how many passes the loop
+    # makes. The single _REDUCTION_BUCKETS boundary puts every such axis in one
+    # bucket whose representative is its upper bound, so an axis running 64..256
+    # elements is tuned as if it were 8192 and picks a tile it never fills.
+    #
+    # Boundaries step by four, so above the first bucket no shape shares a
+    # variant tuned for more than four times its own size. The ladder starts at
+    # 64 because the small end is where the loop's own overhead is the whole
+    # cost, and it keeps 8192 on top so the open tail above it draws the same
+    # representative it draws today.
+    _FULL_REDUCTION_BUCKETS = (64, 256, 1024, 4096, 8192)
 
     def _axis_static_length(self, axis):
         try:
@@ -638,13 +653,17 @@ class SplitTiling:
                     )
                 )
             if reduction_names and self._has_dynamic_axis(reduction_names):
+                owns_whole_kernel = not outer_names and not self.kernel.split_axis
                 features.append(
                     GroupFeatureSpec(
                         "reduction",
                         "reduction_product",
                         reduction_names,
                         self._scale_buckets_by_static_factor(
-                            self._REDUCTION_BUCKETS, reduction_names
+                            self._FULL_REDUCTION_BUCKETS
+                            if owns_whole_kernel
+                            else self._REDUCTION_BUCKETS,
+                            reduction_names,
                         ),
                     )
                 )

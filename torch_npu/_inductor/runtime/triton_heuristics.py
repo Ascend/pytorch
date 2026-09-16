@@ -2559,6 +2559,26 @@ class NPUSymbolicGroupedAutotuner(NPUCachingAutotuner):
                 return None
             return int(real_arg.min()), int(real_arg.max())
 
+        def fill_integer_range(tensor, low, high):
+            """Draw from an inclusive range without overflowing its bound.
+
+            random_ takes an exclusive upper bound, which cannot be reached by
+            adding one once the inclusive bound already sits at the dtype
+            maximum, and a real argument does reach it: this reduction's input
+            carries an int64 sentinel at exactly that maximum. Drop that single
+            value from the draw rather than overflow computing the bound. Every
+            value drawn still lies within the range the real argument spans,
+            which is what keeps an indirect load in bounds.
+            """
+            info = torch.iinfo(tensor.dtype)
+            low = max(int(low), info.min)
+            high = min(int(high), info.max)
+            upper_exclusive = high + 1 if high < info.max else info.max
+            if upper_exclusive <= low:
+                tensor.fill_(low)
+                return
+            tensor.random_(low, upper_exclusive)
+
         def materialize_spec(spec, kind, spec_index=-1):
             spec_kind = spec.get("kind")
             source = spec.get("source")
@@ -2582,7 +2602,7 @@ class NPUSymbolicGroupedAutotuner(NPUCachingAutotuner):
                 if not dtype.is_floating_point and dtype != torch.bool:
                     value_range = integer_benchmark_range(spec_index)
                     if value_range is not None:
-                        tensor.random_(value_range[0], value_range[1] + 1)
+                        fill_integer_range(tensor, *value_range)
                 return tensor
             if spec_kind == "workspace" and source == "workspace":
                 count = eval_expr(spec["count_expr"])
