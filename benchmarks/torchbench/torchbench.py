@@ -82,7 +82,37 @@ def _load_torchbench_metadata_from_yaml():
     }
 
 
-_torchbench_metadata = _load_torchbench_metadata_from_yaml()
+def _load_torchbench_metadata():
+    try:
+        from benchmark.userbenchmark.dynamo.dynamobench.torchbench import (
+            DONT_CHANGE_BATCH_SIZE,
+            FORCE_AMP_FOR_FP16_BF16_MODELS,
+            MAX_BATCH_SIZE_FOR_ACCURACY_CHECK,
+            NONDETERMINISTIC,
+            ONLY_TRAINING_MODE,
+            REQUIRE_EVEN_HIGHER_TOLERANCE,
+            REQUIRE_HIGHER_TOLERANCE,
+            SLOW_BENCHMARKS,
+            USE_SMALL_BATCH_SIZE,
+            VERY_SLOW_BENCHMARKS,
+        )
+        return {
+            "dont_change_batch_size": DONT_CHANGE_BATCH_SIZE,
+            "force_amp_for_fp16_bf16_models": FORCE_AMP_FOR_FP16_BF16_MODELS,
+            "max_batch_size_for_accuracy_check": MAX_BATCH_SIZE_FOR_ACCURACY_CHECK,
+            "non_deterministic": NONDETERMINISTIC,
+            "only_training": ONLY_TRAINING_MODE,
+            "require_even_higher_tolerance": REQUIRE_EVEN_HIGHER_TOLERANCE,
+            "require_higher_tolerance": REQUIRE_HIGHER_TOLERANCE,
+            "slow": SLOW_BENCHMARKS,
+            "training_batch_size": USE_SMALL_BATCH_SIZE,
+            "very_slow": VERY_SLOW_BENCHMARKS,
+        }
+    except ImportError:
+        return _load_torchbench_metadata_from_yaml()
+
+
+_torchbench_metadata = _load_torchbench_metadata()
 DONT_CHANGE_BATCH_SIZE = _torchbench_metadata["dont_change_batch_size"]
 FORCE_AMP_FOR_FP16_BF16_MODELS = _torchbench_metadata[
     "force_amp_for_fp16_bf16_models"
