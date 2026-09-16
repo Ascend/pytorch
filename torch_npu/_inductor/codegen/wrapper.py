@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Optional, Union
+from typing import Optional, Sequence, Union
 import contextlib
 from torch._inductor import config
 from torch._inductor.codegen.wrapper import (
@@ -460,6 +460,7 @@ class NPUPythonWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
         args: list[str],
         device: str,
         debug_handle: Optional[int] = None,
+        profiling_args: Optional[Sequence[Optional[str]]] = None,
     ) -> None:
         # add debug printer code for triton kernel calls at (jit) inductor level
         if is_multi_stream():

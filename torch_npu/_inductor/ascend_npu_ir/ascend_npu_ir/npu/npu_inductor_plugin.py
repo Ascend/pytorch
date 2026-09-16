@@ -408,15 +408,13 @@ def npu_can_fuse_vertical(
         if not isinstance(cd, MemoryDep):
             continue
         write_name = self.mutation_renames.get(cd.name, cd.name)
+        fusable_kwargs = (
+            {"allow_index_equivalence": write_name in index_equivalent_dep_names}
+            if index_equivalent_dep_names is not None
+            else {}
+        )
         for rd in node2.unmet_dependencies:
-            if self.fusable_read_and_write(
-                rd,
-                cd,
-                allow_index_equivalence=(
-                    index_equivalent_dep_names is not None
-                    and write_name in index_equivalent_dep_names
-                ),
-            ):
+            if self.fusable_read_and_write(rd, cd, **fusable_kwargs):
                 computed_deps.add(rd)
 
     for dep in node2.unmet_dependencies:

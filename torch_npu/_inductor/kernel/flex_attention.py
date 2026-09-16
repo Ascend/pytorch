@@ -60,7 +60,6 @@ from torch._inductor.lowering import (
     empty,
     empty_strided,
     lowerings,
-    register_lowering,
     to_dtype,
 )
 from torch._inductor.select_algorithm import autotune_select_algorithm
@@ -1956,6 +1955,8 @@ def _lower_flex_attention_backward_mask_in(
 
 
 def _register_npu_inductor_flex_attention():
+    from torch._inductor.lowering import register_lowering
+
     @register_lowering(torch.ops.higher_order.flex_attention, type_promotion_kind=None)
     def flex_attention(
         query,
