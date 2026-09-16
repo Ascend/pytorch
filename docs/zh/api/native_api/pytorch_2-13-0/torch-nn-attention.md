@@ -49,4 +49,18 @@
 
 </div>
 
+> <font size="3"><code><i>property</i></code> shape</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.attention.flex_attention.BlockMask.shape](https://docs.pytorch.org/docs/2.13/nn.attention.flex_attention.html#torch.nn.attention.flex_attention.BlockMask.shape)
+
+**产品支持情况**：
+
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
+
+</div>
+
 </div>
