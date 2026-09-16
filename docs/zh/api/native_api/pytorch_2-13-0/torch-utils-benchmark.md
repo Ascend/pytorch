@@ -23,7 +23,21 @@
 
 - <term>Atlas A2 训练系列产品</term>：支持
 - <term>Atlas A3 训练系列产品</term>：支持
-- <term>Ascend 950DT</term>：不支持
+- <term>Ascend 950DT</term>：支持
+
+> <font size="3">adaptive_autorange()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.utils.benchmark.Timer.adaptive_autorange](https://pytorch.org/docs/2.13/benchmark_utils.html#torch.utils.benchmark.Timer.adaptive_autorange)
+
+**产品支持情况**：
+
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
+
+</div>
 
 > <font size="3">blocked_autorange()</font>
 
@@ -35,7 +49,7 @@
 
 - <term>Atlas A2 训练系列产品</term>：支持
 - <term>Atlas A3 训练系列产品</term>：支持
-- <term>Ascend 950DT</term>：不支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -49,7 +63,7 @@
 
 - <term>Atlas A2 训练系列产品</term>：支持
 - <term>Atlas A3 训练系列产品</term>：支持
-- <term>Ascend 950DT</term>：不支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -63,9 +77,7 @@
 
 - <term>Atlas A2 训练系列产品</term>：支持
 - <term>Atlas A3 训练系列产品</term>：支持
-- <term>Ascend 950DT</term>：不支持
-
-</div>
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -79,7 +91,7 @@
 
 - <term>Atlas A2 训练系列产品</term>：支持
 - <term>Atlas A3 训练系列产品</term>：支持
-- <term>Ascend 950DT</term>：不支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -93,7 +105,7 @@
 
 - <term>Atlas A2 训练系列产品</term>：支持
 - <term>Atlas A3 训练系列产品</term>：支持
-- <term>Ascend 950DT</term>：不支持
+- <term>Ascend 950DT</term>：支持
 
 > <font size="3">as_standardized()</font>
 
@@ -105,7 +117,7 @@
 
 - <term>Atlas A2 训练系列产品</term>：支持
 - <term>Atlas A3 训练系列产品</term>：支持
-- <term>Ascend 950DT</term>：不支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -119,7 +131,7 @@
 
 - <term>Atlas A2 训练系列产品</term>：支持
 - <term>Atlas A3 训练系列产品</term>：支持
-- <term>Ascend 950DT</term>：不支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -133,7 +145,7 @@
 
 - <term>Atlas A2 训练系列产品</term>：支持
 - <term>Atlas A3 训练系列产品</term>：支持
-- <term>Ascend 950DT</term>：不支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -147,7 +159,7 @@
 
 - <term>Atlas A2 训练系列产品</term>：支持
 - <term>Atlas A3 训练系列产品</term>：支持
-- <term>Ascend 950DT</term>：不支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -163,7 +175,7 @@
 
 - <term>Atlas A2 训练系列产品</term>：支持
 - <term>Atlas A3 训练系列产品</term>：支持
-- <term>Ascend 950DT</term>：不支持
+- <term>Ascend 950DT</term>：支持
 
 > <font size="3">denoise()</font>
 
@@ -175,7 +187,7 @@
 
 - <term>Atlas A2 训练系列产品</term>：支持
 - <term>Atlas A3 训练系列产品</term>：支持
-- <term>Ascend 950DT</term>：不支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -189,7 +201,7 @@
 
 - <term>Atlas A2 训练系列产品</term>：支持
 - <term>Atlas A3 训练系列产品</term>：支持
-- <term>Ascend 950DT</term>：不支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -203,7 +215,51 @@
 
 - <term>Atlas A2 训练系列产品</term>：支持
 - <term>Atlas A3 训练系列产品</term>：支持
-- <term>Ascend 950DT</term>：不支持
+- <term>Ascend 950DT</term>：支持
+
+</div>
+
+</div>
+
+### <code><i>class</i></code> torch.utils.benchmark.Compare
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.utils.benchmark.Compare](https://pytorch.org/docs/2.13/benchmark_utils.html#torch.utils.benchmark.Compare)
+
+**产品支持情况**：
+
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
+
+> <font size="3">colorize()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.utils.benchmark.Compare.colorize](https://pytorch.org/docs/2.13/benchmark_utils.html#torch.utils.benchmark.Compare.colorize)
+
+**产品支持情况**：
+
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
+
+</div>
+
+> <font size="3">trim_significant_figures()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.utils.benchmark.Compare.trim_significant_figures](https://pytorch.org/docs/2.13/benchmark_utils.html#torch.utils.benchmark.Compare.trim_significant_figures)
+
+**产品支持情况**：
+
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
+
+</div>
 
 </div>
 
