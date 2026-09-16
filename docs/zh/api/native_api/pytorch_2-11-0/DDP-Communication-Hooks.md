@@ -223,7 +223,19 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32
+> <font size="3">__getstate__()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.algorithms.ddp_comm_hooks.powerSGD_hook.PowerSGDState.__getstate__](https://pytorch.org/docs/2.11/ddp_comm_hooks.html#torch.distributed.algorithms.ddp_comm_hooks.powerSGD_hook.PowerSGDState.__getstate__)
+
+**产品支持情况**：
+
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
+
+</div>
 
 </div>
 
