@@ -132,6 +132,26 @@ std::shared_ptr<HCCLComm> HCCLComm::create_config(
   return comm;
 }
 
+std::shared_ptr<HCCLComm> HCCLComm::create_scalable_config(
+    int numRanks,
+    int rank,
+    const std::vector<HcclRootInfo>& rootInfoList,
+    HcclCommConfig* config) {
+  TORCH_CHECK(!rootInfoList.empty(), "The scalable HCCL root info list must not be empty.", DIST_ERROR(ErrCode::PARAM));
+  auto comm = std::make_shared<HCCLComm>();
+  HCCL_CHECK_ERROR(hcclCommInitRootInfoScalable(
+      static_cast<uint32_t>(numRanks),
+      static_cast<uint32_t>(rootInfoList.size()),
+      rootInfoList.data(),
+      static_cast<uint32_t>(rank),
+      0, // nExtRoot is reserved for hierarchical roots and must currently be zero.
+      config,
+      &(comm->hcclComm_)));
+  c10_npu::NpuSysCtrl::GetInstance().RegisterReleaseFn(
+      [=]() -> void { comm->destroyHcclComm(); }, c10_npu::ReleasePriority::PriorityMiddle);
+  return comm;
+}
+
 std::shared_ptr<HCCLComm> HCCLComm::createGlobalHcclComm(
     const char* clusterInfo,
     uint32_t rank,

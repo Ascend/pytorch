@@ -791,6 +791,9 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
   // Helper that broadcasts HCCL Master ID to all ranks through the store
   void broadcastMasterID(HcclRootInfo* hcclID, bool isSingleP2POp, const std::string& devicesKey, int p2pRank);
 
+  // All-gathers scalable root infos from the selected roots through the process-group store.
+  void allgatherScalableRootInfos(int rootIdx, HcclRootInfo* rootInfo, std::vector<HcclRootInfo>& rootInfoList);
+
   // Helper that either looks up the cached HCCL communicators or creates
   // a new set of HCCL communicators as a cache entry
   std::vector<std::shared_ptr<HCCLComm>>& getHCCLComm(
@@ -1229,6 +1232,13 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
       std::vector<std::shared_ptr<HCCLComm>>& hcclComms,
       std::vector<c10_npu::NPUStream>& streamVal,
       int p2pRank);
+
+  void createHCCLCommScalable(
+      const std::vector<at::Device>& devices,
+      HcclCommConfig* commConfig,
+      std::vector<std::shared_ptr<HCCLComm>>& hcclComms,
+      std::vector<c10_npu::NPUStream>& streamVal,
+      uint32_t numRoots);
 
   bool createHCCLCommEx(
       const std::string& devicesKey,

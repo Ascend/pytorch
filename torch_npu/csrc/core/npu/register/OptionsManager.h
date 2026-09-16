@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <string>
@@ -105,6 +106,8 @@ class OptionsManager {
   static bool IsResumeModeEnable();
   static bool IsCpuFallbackEnable();
   static bool IsSubCommRootInfoEnable();
+  static bool IsScalableRootInfoEnable();
+  static uint32_t GetHcclRanksPerRoot();
   static ReuseMode GetMultiStreamMemoryReuse();
   static bool CheckInfNanModeEnable();
   static bool CheckInfNanModeForceDisable();

@@ -21,6 +21,7 @@ TORCH_NPU_LOAD_FUNCTION(HcclScatter)
 TORCH_NPU_LOAD_FUNCTION(HcclBatchSendRecv)
 TORCH_NPU_LOAD_FUNCTION(HcclAlltoAll)
 TORCH_NPU_LOAD_FUNCTION(HcclCommInitRootInfoConfig)
+TORCH_NPU_LOAD_FUNCTION(HcclCommInitRootInfoScalable)
 TORCH_NPU_LOAD_FUNCTION(HcclGetCommConfigCapability)
 TORCH_NPU_LOAD_FUNCTION(HcclCommInitClusterInfoConfig)
 TORCH_NPU_LOAD_FUNCTION(HcclCreateSubCommConfig)
@@ -31,6 +32,7 @@ TORCH_NPU_LOAD_FUNCTION(HcclCommExchangeMem)
 TORCH_NPU_LOAD_FUNCTION(HcclCommSymWinRegister)
 TORCH_NPU_LOAD_FUNCTION(HcclCommSymWinDeregister)
 TORCH_NPU_LOAD_FUNCTION(HcclGetRootInfo)
+TORCH_NPU_LOAD_FUNCTION(HcclGetRootInfoScalable)
 TORCH_NPU_LOAD_FUNCTION(HcclCommDestroy)
 TORCH_NPU_LOAD_FUNCTION(HcclSend)
 TORCH_NPU_LOAD_FUNCTION(HcclRecv)
@@ -56,6 +58,16 @@ extern HcclResult hcclGetRootInfo(HcclRootInfo* rootInfo) {
   TORCH_CHECK(func, "Failed to find function ", "HcclGetRootInfo", DIST_ERROR(ErrCode::NOT_FOUND));
   auto ret = func(rootInfo);
   return ret;
+}
+
+extern HcclResult hcclGetRootInfoScalable(HcclRootInfo* rootInfo) {
+  using HcclGetRootInfoScalableFunc = HcclResult (*)(HcclRootInfo*);
+  static HcclGetRootInfoScalableFunc func = nullptr;
+  if (func == nullptr) {
+    func = (HcclGetRootInfoScalableFunc)TORCH_NPU_GET_FUNC(HcclGetRootInfoScalable)
+  }
+  TORCH_CHECK(func, "Failed to find function ", "HcclGetRootInfoScalable", DIST_ERROR(ErrCode::NOT_FOUND));
+  return func(rootInfo);
 }
 
 extern HcclResult hcclCommDestroy(HcclComm comm) {
@@ -359,6 +371,17 @@ bool hcclCommInitRootInfoConfigExist() {
   return exist;
 }
 
+bool hcclCommInitRootInfoScalableExist() {
+  static c10::once_flag flag;
+  static bool exist = false;
+  c10::call_once(flag, [&]() {
+    auto getRootInfoFunc = TORCH_NPU_GET_FUNC(HcclGetRootInfoScalable);
+    auto initFunc = TORCH_NPU_GET_FUNC(HcclCommInitRootInfoScalable);
+    exist = getRootInfoFunc != nullptr && initFunc != nullptr;
+  });
+  return exist;
+}
+
 bool hcclAllGatherVExist() {
   static c10::once_flag flag;
   static bool exist = false;
@@ -406,6 +429,24 @@ HcclResult hcclCommInitRootInfoConfig(
   TORCH_CHECK(func, "Failed to find function ", "HcclCommInitRootInfoConfig", DIST_ERROR(ErrCode::NOT_FOUND));
   auto ret = func(nRanks, rootInfo, rank, config, comm);
   return ret;
+}
+
+HcclResult hcclCommInitRootInfoScalable(
+    uint32_t nRanks,
+    uint32_t nRoot,
+    const HcclRootInfo* rootInfoList,
+    uint32_t rank,
+    uint32_t nExtRoot,
+    const HcclCommConfig* config,
+    HcclComm* comm) {
+  using HcclCommInitRootInfoScalableFunc =
+      HcclResult (*)(uint32_t, uint32_t, const HcclRootInfo*, uint32_t, uint32_t, const HcclCommConfig*, HcclComm*);
+  static HcclCommInitRootInfoScalableFunc func = nullptr;
+  if (func == nullptr) {
+    func = (HcclCommInitRootInfoScalableFunc)TORCH_NPU_GET_FUNC(HcclCommInitRootInfoScalable);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "HcclCommInitRootInfoScalable", DIST_ERROR(ErrCode::NOT_FOUND));
+  return func(nRanks, nRoot, rootInfoList, rank, nExtRoot, config, comm);
 }
 
 bool isHcclFeatureSupported(HcclCommConfigCapability configParameter) {
