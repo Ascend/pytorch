@@ -313,7 +313,7 @@ class _MatmulSilentCheck:
         self.registered_modules = []
         self.visited_modules_id = []
         self.matmul_hook_enable = 0
-        self.matmul_with_bf16 = False
+        self.matmul_dtype_supported = False
         self.statistic_value = None
         self.is_outer_call = True
         # link to checksum
@@ -572,7 +572,7 @@ class _MatmulSilentCheck:
                 new_abnormal['striked'] = True
                 if self.with_checksum:
                     self.checksum_state = 1
-                    if not self.matmul_with_bf16:
+                    if not self.matmul_dtype_supported:
                         warnings.warn("Module has no supported dtype grad; checksum will not be linked.")
             return
         while i >= 0:
@@ -587,7 +587,7 @@ class _MatmulSilentCheck:
                     new_abnormal['striked'] = True
                     if self.with_checksum:
                         self.checksum_state = 1
-                        if not self.matmul_with_bf16:
+                        if not self.matmul_dtype_supported:
                             warnings.warn("Module has no supported dtype grad; checksum will not be linked.")
                     break
                 counting_abnormal_pos.append(i)
@@ -610,7 +610,7 @@ class _MatmulSilentCheck:
 
                     if self.with_checksum:
                         self.checksum_state = 1
-                        if not self.matmul_with_bf16:
+                        if not self.matmul_dtype_supported:
                             warnings.warn("Module has no supported dtype grad; checksum will not be linked.")
                 break
             elif not old_abnormal['counted']:
@@ -724,7 +724,7 @@ class _MatmulSilentCheck:
                         loggerSilent.info(msg)
                         self.store.set(f"rank_{i}_info_log", "")
 
-            if not self.with_checksum or not self.matmul_with_bf16:
+            if not self.with_checksum or not self.matmul_dtype_supported:
                 time.sleep(10)
                 continue
 
@@ -807,13 +807,16 @@ class _MatmulSilentCheck:
 
 matmul_check = _MatmulSilentCheck()
 
+_MATMUL_CHECKSUM_DTYPES = (torch.bfloat16, torch.float32)
+
 
 def _trigger_matmul_decorator(func):
     @wraps(func)
     def wrapper(a, b, *args, **kwargs):
         global matmul_check
         result = func(a, b, *args, **kwargs)
-        if matmul_check.checksum_enable and a.dtype == torch.bfloat16 and b.dtype == torch.bfloat16:
+        if (matmul_check.checksum_enable and a.dtype in _MATMUL_CHECKSUM_DTYPES
+                and b.dtype in _MATMUL_CHECKSUM_DTYPES):
             checksum = torch_npu.matmul_checksum(a, b, result)
             matmul_check.checksum_result.logical_or_(checksum)
         return result
@@ -826,7 +829,8 @@ def _trigger_tensor_matmul_decorator(func):
     def wrapper(self, other):
         global matmul_check
         result = func(self, other)
-        if matmul_check.checksum_enable and other.dtype == torch.bfloat16 and self.dtype == torch.bfloat16:
+        if (matmul_check.checksum_enable and other.dtype in _MATMUL_CHECKSUM_DTYPES
+                and self.dtype in _MATMUL_CHECKSUM_DTYPES):
             checksum = torch_npu.matmul_checksum(self, other, result)
             matmul_check.checksum_result.logical_or_(checksum)
         return result
@@ -876,8 +880,8 @@ def _matmul_silent_check_decorator(func):
                                         value.remove()
                                 matmul_check.set_matmul_hook_enable(0)
                                 break
-                            if param.dtype == torch.bfloat16:
-                                matmul_check.matmul_with_bf16 = True
+                            if param.dtype in _MATMUL_CHECKSUM_DTYPES:
+                                matmul_check.matmul_dtype_supported = True
 
                 matmul_check.init_marks[matmul_check.first_module_id] = True
 
