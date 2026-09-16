@@ -1,3 +1,6 @@
+#include <cerrno>
+#include <climits>
+#include <cstdlib>
 #include <string>
 #include <unistd.h>
 #include <iomanip>
@@ -79,6 +82,32 @@ bool OptionsManager::IsSubCommRootInfoEnable()
         return enable != 0;
     }();
     return isSubCommRootInfoEnable;
+}
+
+bool OptionsManager::IsScalableRootInfoEnable()
+{
+    const static bool isScalableRootInfoEnable = []() -> bool {
+        int32_t enable = OptionsManager::GetBoolTypeOption("ROOTINFO_SCALABLE_ENABLE", 0);
+        return enable != 0;
+    }();
+    return isScalableRootInfoEnable;
+}
+
+uint32_t OptionsManager::GetHcclRanksPerRoot()
+{
+    constexpr uint32_t defaultRanksPerRoot = 128;
+    char* envVal = get_and_log_env("TORCH_HCCL_RANKS_PER_ROOT");
+    if (envVal == nullptr) {
+        return defaultRanksPerRoot;
+    }
+    char* end = nullptr;
+    errno = 0;
+    const unsigned long value = std::strtoul(envVal, &end, 10);
+    TORCH_CHECK(
+        errno == 0 && end != envVal && *end == '\0' && value > 0 && value <= UINT32_MAX,
+        "TORCH_HCCL_RANKS_PER_ROOT must be a positive uint32_t value.",
+        PTA_ERROR(ErrCode::VALUE));
+    return static_cast<uint32_t>(value);
 }
 
 ReuseMode OptionsManager::GetMultiStreamMemoryReuse()

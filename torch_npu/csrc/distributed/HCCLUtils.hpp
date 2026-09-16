@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
@@ -51,8 +52,18 @@
 #define ENABLE_HCCL_ERROR_CHECKING
 
 namespace c10d_npu {
+extern HcclResult hcclGetRootInfoScalable(HcclRootInfo* rootInfo);
+extern bool hcclCommInitRootInfoScalableExist();
 extern HcclResult hcclGetCommAsyncError(HcclComm comm, HcclResult* asyncError);
 extern HcclResult hcclCommInitRootInfoConfig(uint32_t nRanks, const HcclRootInfo *rootInfo, uint32_t rank, HcclCommConfig* config, HcclComm *comm);
+extern HcclResult hcclCommInitRootInfoScalable(
+    uint32_t nRanks,
+    uint32_t nRoot,
+    const HcclRootInfo* rootInfoList,
+    uint32_t rank,
+    uint32_t nExtRoot,
+    const HcclCommConfig* config,
+    HcclComm* comm);
 extern HcclResult hcclCommInitClusterInfoConfig(const char *clusterInfo, uint32_t rank, HcclCommConfig *config, HcclComm *comm);
 extern HcclResult hcclCreateSubCommConfig(HcclComm *comm, uint32_t rankNum, uint32_t *rankIds, uint64_t subCommId, uint32_t subCommRankId,
     HcclCommConfig* config, HcclComm *subComm);
@@ -92,6 +103,12 @@ public:
         int numRanks,
         int rank,
         HcclRootInfo& rootInfo,
+        HcclCommConfig* config);
+
+    static std::shared_ptr<HCCLComm> create_scalable_config(
+        int numRanks,
+        int rank,
+        const std::vector<HcclRootInfo>& rootInfoList,
         HcclCommConfig* config);
 
     static std::shared_ptr<HCCLComm> createGlobalHcclComm(
