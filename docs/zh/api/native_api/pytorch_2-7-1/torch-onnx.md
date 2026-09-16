@@ -238,7 +238,7 @@
 
 </div>
 
-> <font size="3">opset_version()</font>
+> <font size="3"><code><i>property</i></code> opset_version</font>
 
 <div style="margin-left: 2em">
 
@@ -246,9 +246,9 @@
 
 **产品支持情况**：
 
-- <term>Atlas A2 训练系列产品</term>：不支持
-- <term>Atlas A3 训练系列产品</term>：不支持
-- <term>Ascend 950DT</term>：不支持
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
@@ -260,9 +260,9 @@
 
 **产品支持情况**：
 
-- <term>Atlas A2 训练系列产品</term>：不支持
-- <term>Atlas A3 训练系列产品</term>：不支持
-- <term>Ascend 950DT</term>：不支持
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
 
 </div>
 
