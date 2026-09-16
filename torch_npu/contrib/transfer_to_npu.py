@@ -44,7 +44,7 @@ torch_cuda_fn_white_list = [
     'synchronize', 'mem_get_info', 'memory_stats', 'memory_summary', 'memory_allocated', 'max_memory_allocated',
     'reset_max_memory_allocated', 'memory_reserved', 'max_memory_reserved', 'reset_max_memory_cached',
     'reset_peak_memory_stats', 'default_stream', 'can_device_access_peer', 'current_stream', 'utilization',
-    'set_per_process_memory_fraction', 'caching_allocator_alloc'
+    'set_per_process_memory_fraction', 'caching_allocator_alloc', 'get_rng_state', 'set_rng_state'
 ]
 torch_distributed_fn_white_list = ['__init__']
 device_kwargs_list = ['device', 'device_type', 'map_location', 'device_id']
@@ -502,6 +502,9 @@ def _init():
         torch.cuda.default_generators = torch_npu.npu.default_generators
 
     torch_npu.npu._lazy_call(_update_cuda_default_generators)
+
+    # torch.cuda.random.*
+    _device_wrapper(torch.cuda.random, ['get_rng_state', 'set_rng_state'])
 
     # torch.cuda.memory.*
     _device_wrapper(torch.npu.memory, ['_record_memory_history', '_snapshot'])

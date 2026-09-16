@@ -552,5 +552,39 @@ class TestTransferToNpu(TestCase):
         self.assertEqual(torch.get_autocast_gpu_dtype(), torch.bfloat16)
         torch.set_autocast_gpu_dtype(torch.float16)
 
+    def test_torch_cuda_get_rng_state(self):
+        torch.npu.set_device(0)
+        baseline = torch.npu.get_rng_state(torch.device('npu:0'))
+
+        self.assertEqual(torch.cuda.get_rng_state(0), baseline)
+        self.assertEqual(torch.cuda.get_rng_state('cuda'), baseline)
+        self.assertEqual(torch.cuda.get_rng_state('cuda:0'), baseline)
+        self.assertEqual(torch.cuda.get_rng_state(torch.device('cuda')), baseline)
+        self.assertEqual(torch.cuda.get_rng_state(torch.device('cuda:0')), baseline)
+        self.assertEqual(torch.cuda.get_rng_state(device=0), baseline)
+        self.assertEqual(torch.cuda.get_rng_state(device=torch.device('cuda:0')), baseline)
+
+        # torch.cuda.random is aliased separately from torch.cuda in _patch_cuda,
+        # so the submodule binding needs its own wrapper.
+        self.assertEqual(torch.cuda.random.get_rng_state(torch.device('cuda:0')), baseline)
+        self.assertEqual(torch.cuda.random.get_rng_state(device='cuda:0'), baseline)
+
+    def test_torch_cuda_set_rng_state(self):
+        torch.npu.set_device(0)
+        original = torch.npu.get_rng_state(0)
+        try:
+            torch.npu.manual_seed(1234)
+            expected = torch.npu.get_rng_state(0)
+
+            torch.npu.manual_seed(5678)
+            torch.cuda.set_rng_state(expected, torch.device('cuda:0'))
+            self.assertEqual(torch.npu.get_rng_state(0), expected)
+
+            torch.npu.manual_seed(5678)
+            torch.cuda.random.set_rng_state(expected, device='cuda:0')
+            self.assertEqual(torch.npu.get_rng_state(0), expected)
+        finally:
+            torch.npu.set_rng_state(original, 0)
+
 if __name__ == "__main__":
     run_tests()
