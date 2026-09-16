@@ -2039,7 +2039,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：不支持
 
-**限制与说明**：`input`仅支持bf16，fp16，fp32
+**限制与说明**：`query`、`key`、`value`仅支持bf16，fp16，fp32
 
 > <font size="3">forward()</font>
 
@@ -2051,7 +2051,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：不支持
 
-**限制与说明**：`self`仅支持bf16，fp16，fp32
+**限制与说明**：`query`、`key`、`value`仅支持bf16，fp16，fp32
 
 </div>
 
@@ -2728,7 +2728,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**：`input`仅支持fp16，fp32
+**限制与说明**：`src`、`tgt`仅支持fp16，fp32
 
 > <font size="3">forward()</font>
 
@@ -2764,7 +2764,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**：`self`仅支持fp32
+**限制与说明**：`src`仅支持fp32
 
 </div>
 
@@ -2870,7 +2870,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**：`input`仅支持bf16，fp16，fp32
+**限制与说明**：`input1`、`input2`仅支持bf16，fp16，fp32
 
 </div>
 
@@ -2985,7 +2985,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：不支持
 
-**限制与说明**：`self`仅支持fp64
+**限制与说明**：`embeddings`仅支持fp64
 
 </div>
 
@@ -3016,7 +3016,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：不支持
 
-**限制与说明**：`self`仅支持int64
+**限制与说明**：`input`、`offsets`仅支持int64
 
 </div>
 
@@ -3030,7 +3030,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：不支持
 
-**限制与说明**：`self`仅支持int64
+**限制与说明**：`embeddings`仅支持int64
 
 </div>
 
@@ -3092,7 +3092,7 @@
 
 **限制与说明**：
 
-- `input`仅支持fp32，fp64
+- `log_probs`仅支持fp32，fp64
 - 不支持`log_probs` 2D输入
 
 </div>
@@ -3200,7 +3200,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**：`input`仅支持bf16，fp16，fp32，int8，int32，int64
+**限制与说明**：`input1`、`input2`、`target`仅支持bf16，fp16，fp32，int8，int32，int64
 
 </div>
 
@@ -3318,7 +3318,7 @@
 
 **限制与说明**：
 
-- `input`仅支持fp16，fp32，uint8，int8，int16，int32，int64
+- `anchor`、`positive`、`negative`仅支持fp16，fp32，uint8，int8，int16，int32，int64
 - 可能回退至CPU执行
 
 </div>
@@ -3333,7 +3333,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**：`input`仅支持bf16，fp16，fp32
+**限制与说明**：`anchor`仅支持bf16，fp16，fp32
 
 </div>
 
@@ -3540,7 +3540,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：不支持
 
-**限制与说明**：`input`仅支持bf16，fp16，fp32，fp64，complex64
+**限制与说明**：`vec`仅支持bf16，fp16，fp32，fp64，complex64
 
 </div>
 
@@ -4578,7 +4578,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**：`input`仅支持fp16，fp32
+**限制与说明**：`sequences`仅支持fp16，fp32
 
 </div>
 

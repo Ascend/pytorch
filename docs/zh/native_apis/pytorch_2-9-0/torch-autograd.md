@@ -39,7 +39,7 @@
 
 **限制与说明**：
 
-- `input`仅支持bf16，fp16，fp32，fp64
+- `tensors`仅支持bf16，fp16，fp32，fp64
 - 不支持稀疏张量
 
 </div>
@@ -80,7 +80,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：不支持
 
-**限制与说明**：`input`仅支持fp32
+**限制与说明**：`tensor`仅支持fp32
 
 </div>
 
@@ -94,7 +94,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：不支持
 
-**限制与说明**：`input`仅支持fp32
+**限制与说明**：`tensor`仅支持fp32
 
 </div>
 
@@ -110,7 +110,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：不支持
 
-**限制与说明**：`input`仅支持fp32
+**限制与说明**：`inputs`仅支持fp32
 
 </div>
 
@@ -124,7 +124,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：不支持
 
-**限制与说明**：`input`仅支持fp32
+**限制与说明**：`inputs`仅支持fp32
 
 </div>
 
@@ -138,7 +138,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：不支持
 
-**限制与说明**：`input`仅支持fp32
+**限制与说明**：`inputs`仅支持fp32
 
 </div>
 
@@ -152,7 +152,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：不支持
 
-**限制与说明**：`input`仅支持fp32
+**限制与说明**：`inputs`仅支持fp32
 
 </div>
 
@@ -166,7 +166,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：不支持
 
-**限制与说明**：`input`仅支持fp32
+**限制与说明**：`inputs`仅支持fp32
 
 </div>
 
@@ -180,7 +180,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：不支持
 
-**限制与说明**：`input`仅支持fp32
+**限制与说明**：`inputs`仅支持fp32
 
 </div>
 

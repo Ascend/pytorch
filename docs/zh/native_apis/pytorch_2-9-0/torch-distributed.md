@@ -327,7 +327,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `p2p_op_list`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -430,7 +430,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**： `output`仅支持bf16，fp16，fp32，int8，int32
+**限制与说明**： `input_list`仅支持bf16，fp16，fp32，int8，int32
 
 </div>
 
@@ -462,7 +462,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**： `output`仅支持fp32
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -478,7 +478,7 @@
 
 **限制与说明**：
 
-- `input`仅支持fp32
+- `input_tensor_list`仅支持fp32
 - 通过设置`torch_npu.npu.use_compatible_impl(True)`，`torch.distributed.all_to_all`切换为与原生实现保持一致
 
 </div>
