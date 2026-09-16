@@ -101,14 +101,30 @@ at::Tensor& NPUNativeFunctions::set_(at::Tensor& self, c10::Storage src) {
   return self;
 }
 
-at::Tensor set_tensor_with_storage_format(c10::Storage src) {
+at::Tensor set_tensor_with_storage_format(c10::Storage src, at::ScalarType storage_scalar_type) {
   if (StorageDescHelper::CheckDescInit(src)) {
     // The storage object src has complete description information,
     // and the tensor object self needs to be brushed to be the same
     auto desc = torch_npu::NPUBridge::GetNpuStorageImpl(src.unsafeGetStorageImpl())->npu_desc_;
-    auto dist_tensor = NPUNativeFunctions::empty(
-        {0}, desc.data_type_.toScalarType(), c10::nullopt, src.device(), false, c10::MemoryFormat::Contiguous);
-    set_storage_nd_npu(dist_tensor, src, 0, desc.base_sizes_.size(), desc.base_sizes_, desc.base_strides_);
+    // Prefer the TypedStorage's dtype (storage_scalar_type) over the
+    // StorageDesc's data_type_, which may differ when a dtype view is
+    // created over storage of a different underlying type (e.g. fp16 view
+    // over uint8 storage).
+    at::ScalarType dtype =
+        (storage_scalar_type != at::ScalarType::Undefined) ? storage_scalar_type : desc.data_type_.toScalarType();
+    auto dist_tensor =
+        NPUNativeFunctions::empty({0}, dtype, c10::nullopt, src.device(), false, c10::MemoryFormat::Contiguous);
+    // When the TypedStorage's dtype differs from the StorageDesc's data_type_,
+    // the desc.base_sizes_ is in units of the original dtype's elements.
+    // Recalculate sizes in the new dtype's element count to avoid semantic
+    // mismatch (e.g. 1024 uint8 elements = 512 float16 elements).
+    if (storage_scalar_type != at::ScalarType::Undefined &&
+        caffe2::TypeMeta::fromScalarType(dtype).itemsize() != desc.data_type_.itemsize()) {
+      int64_t new_numel = static_cast<int64_t>(src.nbytes() / caffe2::TypeMeta::fromScalarType(dtype).itemsize());
+      set_storage_nd_npu(dist_tensor, src, 0, 1, {new_numel}, {1});
+    } else {
+      set_storage_nd_npu(dist_tensor, src, 0, desc.base_sizes_.size(), desc.base_sizes_, desc.base_strides_);
+    }
     return dist_tensor;
   } else {
     // The storage object src doesn't have complete description information,

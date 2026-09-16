@@ -15,7 +15,9 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor set_tensor_with_storage_format(c10::Storage src);
+at::Tensor set_tensor_with_storage_format(
+    c10::Storage src,
+    at::ScalarType storage_scalar_type = at::ScalarType::Undefined);
 
 } // namespace native
 } // namespace at_npu
