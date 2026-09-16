@@ -17,9 +17,14 @@ os.environ["INF_NAN_MODE_FORCE_DISABLE"] = "0"
 # Devices where inf-nan (non-saturation) mode is the default.
 NON_SATURATION_DEVICES = ["Ascend910B", "Ascend910C", "Ascend910_93", "Ascend950"]
 
+# Devices where the float_status ops are supported; Ascend950 is excluded
+# (op-plugin does not support them there).
+FLOAT_STATUS_DEVICES = ["Ascend910B", "Ascend910C", "Ascend910_93"]
+
 
 class TestCheckOverFlow(TestCase):
 
+    @SupportedDevices(FLOAT_STATUS_DEVICES)
     def test_check_over_flow(self):
         # Saturation: original float_status path; inf-nan: register path via FORCE_OVERFLOW_CHECK=1.
         a = torch.Tensor([65535]).npu().half()
@@ -30,7 +35,7 @@ class TestCheckOverFlow(TestCase):
 
 class TestForceOverflowCheck(TestCase):
 
-    @SupportedDevices(NON_SATURATION_DEVICES)
+    @SupportedDevices(FLOAT_STATUS_DEVICES)
     def test_float_status_detection(self, device="npu"):
         # Register-level assertions, mirroring test/custom_ops/test_float_status.py.
         self.assertTrue(utils.is_support_inf_nan())
@@ -51,7 +56,7 @@ class TestForceOverflowCheck(TestCase):
         local_float_status = torch_npu.npu_get_float_status(float_status)
         self.assertTrue(local_float_status.cpu()[0] == 0)
 
-    @SupportedDevices(NON_SATURATION_DEVICES)
+    @SupportedDevices(FLOAT_STATUS_DEVICES)
     def test_npu_check_overflow_register_path(self, device="npu"):
         self.assertTrue(utils.is_support_inf_nan())
         self.assertTrue(utils.is_force_overflow_check())
