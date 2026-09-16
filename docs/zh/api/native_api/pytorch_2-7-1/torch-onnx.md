@@ -54,6 +54,34 @@
 
 </div>
 
+### torch.onnx.verification.verify
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.onnx.verification.verify](https://pytorch.org/docs/2.7/onnx_verification.html#torch.onnx.verification.verify)
+
+**产品支持情况**：
+
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
+
+</div>
+
+### torch.onnx.verification.verify_aten_graph
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.onnx.verification.verify_aten_graph](https://pytorch.org/docs/2.7/onnx_verification.html#torch.onnx.verification.verify_aten_graph)
+
+**产品支持情况**：
+
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
+
+</div>
+
 ### <code><i>class</i></code> torch.onnx.verification.GraphInfo
 
 <div style="margin-left: 2em">
