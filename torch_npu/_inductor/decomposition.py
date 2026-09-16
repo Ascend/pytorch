@@ -1,4 +1,6 @@
 import os
+import functools
+import operator
 from typing import Optional, Tuple
 import torch
 import torch._ops
@@ -9,7 +11,7 @@ from torch._C import DispatchKey
 from torch._decomp import decomposition_table, remove_decompositions
 from torch._prims_common.wrappers import out_wrapper  # noqa: F401
 import torch.nn.functional as F
-
+from . import config as npu_config
 from .lowering_common import add_overload
 from .ascend_npu_ir.ascend_npu_ir import config as anir_config
 from .lowering_common import run_once
@@ -17,6 +19,46 @@ from .lowering_common import run_once
 
 aten = torch.ops.aten
 npu = torch.ops.npu
+
+
+def _can_fold_padded_matmul_input(tensor):
+    """Check for row-major layouts that reshape can compact before matmul."""
+    from torch.fx.experimental.symbolic_shapes import guard_or_false
+
+    if guard_or_false(tensor.numel() == 0):
+        return True
+    if not guard_or_false(tensor.stride(-1) == 1):
+        return False
+
+    # Accept dense row-major suffixes separated only by padding.
+    expected_stride = tensor.size(-1)
+    for size, stride in zip(reversed(tensor.shape[:-1]), reversed(tensor.stride()[:-1])):
+        if guard_or_false(size == 1):
+            continue
+        if not guard_or_false(stride >= expected_stride):
+            return False
+        expected_stride = stride * size
+    return True
+
+
+def _matmul_triton(self, other):
+    """Extend generic ND x 2D folding to padded row-major NPU inputs."""
+    from torch._decomp.decompositions import matmul as generic_matmul, should_fold
+
+    if (
+        npu_config.enable_matmul_triton
+        and self.device.type == "npu"
+        and self.dim() >= 3
+        and other.dim() == 2
+        and not should_fold(self, other, False)
+        and _can_fold_padded_matmul_input(self)
+    ):
+        output_shape = list(self.size()[:-1]) + [other.size(-1)]
+        folded_rows = functools.reduce(operator.mul, self.size()[:-1], 1)
+        self_2d = self.reshape(folded_rows, self.size(-1))
+        return aten._unsafe_view.default(torch.mm(self_2d, other), output_shape)
+
+    return generic_matmul(self, other)
 
 
 def _matmul_backward_inductor(grad, self, other, mask):
@@ -127,7 +169,11 @@ def _matmul_backward_inductor(grad, self, other, mask):
 
 
 def _register_triton_decompositions():
-    from .config import is_ascend950, enable_fast_gelu
+    from .config import (
+        is_ascend950,
+        enable_fast_gelu,
+        allow_embedding_dense_backward_lowering,
+    )
     from .lowering import _add_overload  # noqa: F401
     DECOMPOSITION_OVERLOAD_OP = [
         aten.nll_loss_forward,
@@ -139,7 +185,12 @@ def _register_triton_decompositions():
         aten.native_layer_norm,
         aten.repeat_interleave.Tensor,  # perf issue
         aten.slice_backward,
-        aten.embedding_dense_backward,
+        *(
+            [aten.embedding_dense_backward]
+            if not allow_embedding_dense_backward_lowering
+            else []
+        ),
+        aten.matmul.default,
         aten.matmul_backward.default,
     ]
 
@@ -175,6 +226,7 @@ def _register_triton_decompositions():
                 result = x * sigmoid_z
                 return result
 
+        register_decomposition([aten.matmul.default])(_matmul_triton)
         register_decomposition([aten.matmul_backward.default])(_matmul_backward_inductor)
 
 

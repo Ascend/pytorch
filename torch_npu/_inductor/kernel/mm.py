@@ -266,7 +266,7 @@ def _hint_int(val, fallback: int = 1) -> int:
     """Resolve a (possibly symbolic) dimension to a concrete int hint.
 
     For statically-known dimensions the actual value is returned.
-    For symbolic dimensions ``V.graph.sizevars.size_hint`` is used to
+    For symbolic dimensions ``V.graph.sizevars.optimization_hint`` is used to
     obtain a concrete estimate from the tracing context's example
     inputs (the same mechanism that ``use_catlass_template`` uses for
     ``size_hint(m * n * k)``).
@@ -279,7 +279,7 @@ def _hint_int(val, fallback: int = 1) -> int:
     if static is not None:
         return static
     try:
-        return V.graph.sizevars.size_hint(val)
+        return V.graph.sizevars.optimization_hint(val)
     except Exception:
         return fallback
 

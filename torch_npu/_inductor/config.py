@@ -346,6 +346,9 @@ simt_default_warp_stacksize = 256 * 32
 default_nddma_switch = "1" if is_ascend950 else "0"
 nddma_switch = os.getenv("TORCHINDUCTOR_NDDMA", default_nddma_switch) == "1"
 enable_fast_gelu = os.getenv("TORCHINDUCTOR_ENABLE_FAST_GELU", "0") == "1"
+allow_embedding_dense_backward_lowering = os.getenv(
+    "TORCHINDUCTOR_ENABLE_EMBEDDING_DENSE_BACKWARD_LOWERING", "0"
+) == "1"
 enable_flex_attention_dq_before_scale_materialize = os.environ.get(
     "FLEX_ATTENTION_DQ_BEFORE_SCALE_MATERIALIZE", "1"
 ).lower() in ("1", "true", "yes")
@@ -431,6 +434,12 @@ enable_multi_slice_concat = _parse_bool_env(
     "TORCHINDUCTOR_ENABLE_MULTI_SLICE_CONCAT", False
 )
 
+# Rewrite square backward-output transpose(mm(lhs, rhs)) as mm(rhs.T, lhs.T)
+# so parameter gradients are produced directly in contiguous layout.
+enable_grad_matmul_transpose_opt = _parse_bool_env(
+    "TORCHINDUCTOR_ENABLE_GRAD_MATMUL_TRANSPOSE_OPT", False
+)
+
 # grouped_matmul_fusion_pass: merge the independent small GEMMs feeding one cat into
 # npu_grouped_matmul. Gated off until validated on the target model; the rewrite keeps
 # every GEMM's operands intact but the kernel accumulates differently, so results are
@@ -438,6 +447,10 @@ enable_multi_slice_concat = _parse_bool_env(
 enable_grouped_matmul_fusion = _parse_bool_env(
     "TORCHINDUCTOR_ENABLE_GROUPED_MATMUL_FUSION", False
 )
+
+# Extend ND x 2D MM folding to padded row-major NPU inputs. Keep it off by
+# default while the supported non-contiguous layouts are validated across models.
+enable_matmul_triton = _parse_bool_env("TORCHINDUCTOR_ENABLE_MATMUL_TRITON", False)
 
 class flex_attention:
     """Runtime strategy switches for the NPU FlexAttention lowering."""
