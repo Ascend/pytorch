@@ -30,6 +30,7 @@ class TestDebugMsg(TestUtils):
         run = torch.compile(run_case1, backend='inductor')
         with config.patch(
             {
+                "trace.enabled": True,
                 "trace.debug_dir": tempfile.mkdtemp(),
                 "force_disable_caches": True,
             }
@@ -84,6 +85,7 @@ class TestDebugMsg(TestUtils):
         run = torch.compile(run_case2, backend='inductor')
         with config.patch(
             {
+                "trace.enabled": True,
                 "trace.debug_dir": tempfile.mkdtemp(),
                 "force_disable_caches": True,
             }
