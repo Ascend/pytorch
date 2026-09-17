@@ -743,7 +743,8 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
 ]
 
-requirements = ['torch==2.9.0+cpu' if platform.machine() == 'x86_64' else 'torch==2.9.0']
+requirements = ['torch==2.9.0+cpu' if platform.machine() == 'x86_64' else 'torch==2.9.0',
+                'numpy', 'pyyaml']
 
 ext_modules = [CppExtension(
             'torch_npu._C',
