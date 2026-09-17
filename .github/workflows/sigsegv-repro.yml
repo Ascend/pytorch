@@ -24,8 +24,11 @@ name: NPU SIGSEGV Repro
 # job env enables glibc heap checking (MALLOC_CHECK_/MALLOC_PERTURB_) and
 # PYTHONMALLOC=debug so heap misuse aborts at the corrupting malloc/free
 # instead of much later; ASCEND_GLOBAL_LOG_LEVEL=1 records the last aclnn
-# ops before a crash. The valgrind_batch harness mode replays the batch
-# under memcheck to catch the corrupting write with a full native stack.
+# ops before a crash. The gdb_batch harness mode wraps workers in
+# "gdb -batch" to capture native all-thread stacks at the crash point
+# (core_pattern stays unwritable on this runner platform despite
+# --privileged); valgrind_batch replays the batch under memcheck with its
+# log archived for every run.
 
 on:
   push:
@@ -40,10 +43,10 @@ env:
   # Default repro parameters (edit + push to change)
   REPRO_SOURCE_RUN_ID: '34837447197'   # run providing wheels/source/cases artifacts (the crashed run)
   REPRO_CASE_RANGE: '10857-10956'      # 1-based case_idx range from the tensor shard replayed as one batch
-  REPRO_CASE_SUBSET: ''                # comma-separated case_idx list (ranges allowed); overrides REPRO_CASE_RANGE; order preserved
+  REPRO_CASE_SUBSET: '10857-10865'     # minimal crash window (clamp_min .. expm1, 9 cases); overrides REPRO_CASE_RANGE; order preserved
   REPRO_DEVICE: '5'                    # NPU device id pinned for all workers
   REPRO_WORKERS: '4'                   # concurrent workers per wave (CI density is 32/8 = 4)
-  REPRO_MODES: 'worker_batch,valgrind_batch,pair_case'
+  REPRO_MODES: 'gdb_batch,worker_batch,valgrind_batch'
   REPRO_MAX_TOTAL_MINUTES: '120'       # overall stress budget in minutes (shared by all modes)
   REPRO_STOP_AFTER_CRASHES: '3'        # crash samples to collect per mode before moving on (0 = full budget)
   REPRO_PAIR_SUSPECT: '10857-10858'    # suspect pair (clamp_min + clone: ForeachMaximumList chain)
@@ -205,6 +208,7 @@ jobs:
             repro-run/core_pattern.status
             repro-run/ENV_ABORT.txt
             repro-run/crash-forensics/
+            repro-run/valgrind-logs/
             repro-env.txt
             repro-downloads-listing.txt
           retention-days: 30

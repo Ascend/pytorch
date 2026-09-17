@@ -24,6 +24,13 @@ What this harness does
 
 Modes (--modes, comma separated, executed in this order)
     worker_batch        replay the whole batch per worker (reproduction)
+    gdb_batch           replay the whole batch under gdb -batch (run +
+                        "thread apply all bt full" on signal death); native
+                        stacks for every thread are captured in worker.log
+                        without needing core dumps (runner platforms ignore
+                        --privileged, core_pattern stays unwritable). gdb
+                        exit code 0 with a "Program received signal" marker
+                        is classified as crash.
     valgrind_batch      replay the whole batch under valgrind memcheck
                         (--undef-value-errors=no, --error-exitcode=99) to
                         catch the corrupting heap write with a full native
@@ -51,8 +58,9 @@ Outputs (under --workdir)
                         $GITHUB_STEP_SUMMARY when set)
     crash-forensics/    one directory per crash: worker.log (faulthandler),
                         gdb_bt_*.txt, plog.tar.gz, attribution.json,
-                        cores.json, system snapshots; valgrind.log for
-                        valgrind workers (memcheck findings with stacks)
+                        cores.json, system snapshots; valgrind.log /
+                        gdb_bt.txt for instrumented workers (memcheck
+                        findings / native stacks)
 
 Exit codes
     0  finished (crashes, if any, are recorded in stats/forensics)
@@ -61,6 +69,7 @@ Exit codes
 
 import argparse
 import dataclasses
+import gzip
 import json
 import os
 import re
@@ -76,8 +85,10 @@ from pathlib import Path
 
 NPU_FATAL_EXIT_CODE = 70  # keep in sync with run_npu_test_shard.py
 VALGRIND_ERROR_EXIT = 99  # valgrind --error-exitcode: memcheck findings
+VALGRIND_DONE_GRACE_S = 180  # wait this long after all cases done before killing valgrind
 MODE_BUDGET_SECONDS = {
     "worker_batch": 3600,
+    "gdb_batch": 3600,
     "valgrind_batch": 1800,
     "pair-suspect": 900,
     "pair-control": 900,
@@ -88,6 +99,7 @@ HISTORICAL_VICTIMS = (
     "test_outplace_with_invalid_grads__foreach_floor_npu_float32",
 )
 STARTING_RE = re.compile(r"^\[(\d+)\] Starting: (.*)$")
+GDB_CRASH_RE = re.compile(r"Program received signal (\w+)")
 MAX_KEEP_ITER_DIRS = 2
 MAX_KEEP_CORES = 2
 
@@ -244,10 +256,12 @@ class Harness:
 
     # ------------------------------------------------------------- execution
 
-    def run_wave(self, mode_label, iter_num, wave_cases, case_mode=False, use_valgrind=False):
+    def run_wave(self, mode_label, iter_num, wave_cases, case_mode=False,
+                 use_valgrind=False, use_gdb=False):
         iter_dir = self.workdir / mode_label / ("iter-%04d" % iter_num)
         iter_dir.mkdir(parents=True, exist_ok=True)
         records = [None] * self.workers
+        shared = [{} for _ in range(self.workers)]
         stop_evt = threading.Event()
         live = []
 
@@ -255,11 +269,18 @@ class Harness:
             i = slot - 1
             case = wave_cases[i % len(wave_cases)]
             slot_dir = iter_dir / ("w%d" % slot)
+            shared[i] = {
+                "proc": None, "completed": 0,
+                "total": 1 if case_mode else len(wave_cases),
+                "done_at": None, "killed_after_done": False,
+            }
             try:
                 if case_mode:
                     records[i] = self._run_case_proc(mode_label, iter_num, slot, slot_dir, case, stop_evt, live)
                 else:
-                    records[i] = self._run_worker(mode_label, iter_num, slot, slot_dir, wave_cases, stop_evt, live, use_valgrind=use_valgrind)
+                    records[i] = self._run_worker(
+                        mode_label, iter_num, slot, slot_dir, wave_cases, stop_evt, live,
+                        use_valgrind=use_valgrind, use_gdb=use_gdb, share=shared[i])
             except Exception as exc:
                 records[i] = RunRecord(
                     mode=mode_label, iter_num=iter_num, slot=slot, batch_id=0, rc=-1,
@@ -276,12 +297,24 @@ class Harness:
 
         wave_deadline = min(self.deadline, self.mode_end)
         while any(t.is_alive() for t in threads):
-            if time.monotonic() >= wave_deadline:
+            now = time.monotonic()
+            if now >= wave_deadline:
                 stop_evt.set()
                 for proc in live:
                     if proc.poll() is None:
                         proc.terminate()
                 break
+            if use_valgrind:
+                # valgrind workers may hang after finishing every case (seen
+                # in run 35049336150); kill them after a grace period and
+                # classify as ok_killed — valgrind.log is archived either way.
+                for sh in shared:
+                    proc = sh.get("proc")
+                    if (proc is not None and proc.poll() is None
+                            and sh.get("done_at") is not None
+                            and now - sh["done_at"] > VALGRIND_DONE_GRACE_S):
+                        sh["killed_after_done"] = True
+                        proc.terminate()
             time.sleep(1.0)
         for t in threads:
             t.join(timeout=30.0)
@@ -295,7 +328,8 @@ class Harness:
                 pass
         return records, iter_dir
 
-    def _run_worker(self, mode_label, iter_num, slot, slot_dir, batch_cases, stop_evt, live, use_valgrind=False):
+    def _run_worker(self, mode_label, iter_num, slot, slot_dir, batch_cases, stop_evt, live,
+                    use_valgrind=False, use_gdb=False, share=None):
         slot_dir.mkdir(parents=True, exist_ok=True)
         reports_dir = slot_dir / "reports"
         plog_dir = slot_dir / "plog"
@@ -334,7 +368,24 @@ class Harness:
                 "--error-exitcode=%d" % VALGRIND_ERROR_EXIT,
                 "--log-file=%s" % (slot_dir / "valgrind.log"),
             ] + cmd
-        return self._spawn_and_read(mode_label, iter_num, slot, slot_dir, cmd, env, batch_id, stop_evt, live)
+        elif use_gdb:
+            # Native all-thread stacks at the crash point without core dumps
+            # (this runner platform ignores --privileged, core_pattern is
+            # unwritable). On signal death gdb stops, prints the backtraces
+            # (they land in worker.log), then exits and kills the inferior.
+            cmd = [
+                "gdb", "-q", "--batch",
+                "-ex", "set pagination off",
+                "-ex", "set confirm off",
+                "-ex", "run",
+                "-ex", "echo \\n===CRASH: native stacks===\\n",
+                "-ex", "thread apply all bt full",
+                "-ex", "info threads",
+                "--args",
+            ] + cmd
+        return self._spawn_and_read(
+            mode_label, iter_num, slot, slot_dir, cmd, env, batch_id, stop_evt, live,
+            use_valgrind=use_valgrind, share=share)
 
     def _run_case_proc(self, mode_label, iter_num, slot, slot_dir, case, stop_evt, live):
         slot_dir.mkdir(parents=True, exist_ok=True)
@@ -362,9 +413,10 @@ class Harness:
             stop_evt, live, case_mode=True, case=case)
 
     def _spawn_and_read(self, mode_label, iter_num, slot, slot_dir, cmd, env, batch_id,
-                        stop_evt, live, case_mode=False, case=None):
+                        stop_evt, live, case_mode=False, case=None,
+                        use_valgrind=False, share=None):
         log_path = slot_dir / "worker.log"
-        state = {"inflight": None, "completed": 0, "last_completed": (0, "")}
+        state = {"inflight": None, "completed": 0, "last_completed": (0, ""), "gdb_sig": ""}
         wave_start_ts = time.time()
         t0 = time.monotonic()
         pid = 0
@@ -375,15 +427,24 @@ class Harness:
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                 text=True, encoding="utf-8", errors="replace")
             pid = proc.pid
+            if share is not None:
+                share["proc"] = proc
             live.append(proc)
             for line in proc.stdout:
                 logf.write(line)
                 logf.flush()
                 if not case_mode:
                     self._parse_worker_line(line, state)
+                    if share is not None:
+                        share["completed"] = state["completed"]
+                        if (share["total"] and state["completed"] >= share["total"]
+                                and share["done_at"] is None):
+                            share["done_at"] = time.monotonic()
+                m = GDB_CRASH_RE.search(line)
+                if m:
+                    state["gdb_sig"] = m.group(1)
             rc = proc.wait()
         duration = time.monotonic() - t0
-        cls, sig = classify_rc(rc, stop_evt.is_set())
 
         if case_mode:
             if rc >= 0:
@@ -391,6 +452,25 @@ class Harness:
                 state["last_completed"] = (case["case_idx"], case["nodeid"])
             else:
                 state["inflight"] = case["case_idx"]
+
+        if state["gdb_sig"]:
+            cls, sig = "crash:%s" % state["gdb_sig"], state["gdb_sig"]
+        elif share is not None and share.get("killed_after_done"):
+            cls, sig = "ok_killed", ""
+        else:
+            cls, sig = classify_rc(rc, stop_evt.is_set())
+
+        # Archive valgrind.log for every valgrind run (crash or not): the
+        # memcheck verdict lives in the log even when the worker hangs at
+        # exit and gets killed (run 35049336150 lost these logs).
+        if use_valgrind:
+            vg_log = slot_dir / "valgrind.log"
+            if vg_log.is_file():
+                dest = self.workdir / "valgrind-logs" / (
+                    "%s-iter%04d-w%d.log.gz" % (mode_label, iter_num, slot))
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                with open(vg_log, "rb") as f_in, gzip.open(dest, "wb") as f_out:
+                    shutil.copyfileobj(f_in, f_out)
 
         inflight_idx = state["inflight"] or 0
         inflight_nodeid = self.case_by_idx.get(inflight_idx, {}).get("nodeid", "")
@@ -430,7 +510,8 @@ class Harness:
 
     # --------------------------------------------------------------- drivers
 
-    def run_batch_mode(self, mode_label, cases, budget_s, stop_crashes, health_guard=False, use_valgrind=False):
+    def run_batch_mode(self, mode_label, cases, budget_s, stop_crashes,
+                       health_guard=False, use_valgrind=False, use_gdb=False):
         self.mode_end = time.monotonic() + budget_s
         crashes = 0
         bad_waves = 0
@@ -441,7 +522,8 @@ class Harness:
             if stop_crashes and crashes >= stop_crashes:
                 break
             iter_num += 1
-            records, iter_dir = self.run_wave(mode_label, iter_num, cases, use_valgrind=use_valgrind)
+            records, iter_dir = self.run_wave(
+                mode_label, iter_num, cases, use_valgrind=use_valgrind, use_gdb=use_gdb)
             wave_crash, wave_progress = self._after_wave(mode_label, iter_num, records, crashes)
             if wave_crash:
                 crashes += 1
@@ -484,7 +566,7 @@ class Harness:
                 continue
             if rec.cls.startswith("crash:") or rec.cls == "vg_error":
                 wave_crash = True
-            if (rec.cls in ("ok", "npu_fatal", "vg_error")
+            if (rec.cls in ("ok", "npu_fatal", "vg_error", "ok_killed")
                     or rec.cases_completed > 0 or rec.cls.startswith("crash:")):
                 wave_progress = True
             parts.append("%s(rc=%d,done=%d)" % (rec.cls, rec.rc, rec.cases_completed))
@@ -643,9 +725,11 @@ class Harness:
     def dry_run(self, modes, all_cases, selected, args):
         print("\n=== dry run: planned invocations ===")
         for mode in modes:
-            if mode in ("worker_batch", "valgrind_batch"):
+            if mode in ("worker_batch", "gdb_batch", "valgrind_batch"):
                 self._print_batch_plan(
-                    mode, selected, use_valgrind=(mode == "valgrind_batch"))
+                    mode, selected,
+                    use_valgrind=(mode == "valgrind_batch"),
+                    use_gdb=(mode == "gdb_batch"))
             elif mode == "pair_case":
                 for label, spec in (("pair-suspect", args.pair_suspect), ("pair-control", args.pair_control)):
                     self._print_batch_plan(label, select_range(all_cases, spec))
@@ -660,7 +744,7 @@ class Harness:
                       "--junitxml=<reports>/case-%d.xml --timeout=1200 -vv"
                       % (self.python, nodeid, case["case_idx"]))
 
-    def _print_batch_plan(self, label, cases, use_valgrind=False):
+    def _print_batch_plan(self, label, cases, use_valgrind=False, use_gdb=False):
         batch_input = {
             "batch_id": 1001,
             "test_dir": str(self.test_dir),
@@ -676,6 +760,9 @@ class Harness:
         print("\n[%s] batch_input.json (slot 1 of %d):" % (label, self.workers))
         print(json.dumps(batch_input, indent=1))
         print("[%s] worker cmd:" % label)
+        if use_gdb:
+            print("  gdb -q --batch -ex 'set pagination off' -ex 'set confirm off' "
+                  "-ex run -ex 'thread apply all bt full' -ex 'info threads' --args <python cmd>")
         if use_valgrind:
             print("  valgrind --tool=memcheck --undef-value-errors=no "
                   "--error-exitcode=%d --log-file=<iter-dir>/w1/valgrind.log"
@@ -703,12 +790,14 @@ def summarize(workdir):
     for r in rows:
         d = by_mode.setdefault(
             r.get("mode", "?"),
-            {"runs": 0, "ok": 0, "npu_fatal": 0, "vg_error": 0, "crashes": {},
-             "abnormal": 0, "stopped": 0, "spawn_error": 0})
+            {"runs": 0, "ok": 0, "ok_killed": 0, "npu_fatal": 0, "vg_error": 0,
+             "crashes": {}, "abnormal": 0, "stopped": 0, "spawn_error": 0})
         d["runs"] += 1
         cls = r.get("cls", "")
         if cls == "ok":
             d["ok"] += 1
+        elif cls == "ok_killed":
+            d["ok_killed"] += 1
         elif cls == "npu_fatal":
             d["npu_fatal"] += 1
         elif cls == "vg_error":
@@ -733,12 +822,12 @@ def summarize(workdir):
     lines = []
     lines.append("# SIGSEGV repro summary")
     lines.append("")
-    lines.append("| mode | runs | ok | npu_fatal | vg_error | crashes | abnormal | stopped | spawn_error |")
-    lines.append("|---|---|---|---|---|---|---|---|---|")
+    lines.append("| mode | runs | ok | ok_killed | npu_fatal | vg_error | crashes | abnormal | stopped | spawn_error |")
+    lines.append("|---|---|---|---|---|---|---|---|---|---|")
     for m in sorted(by_mode):
         d = by_mode[m]
-        lines.append("| %s | %d | %d | %d | %d | %d | %d | %d | %d |" % (
-            m, d["runs"], d["ok"], d["npu_fatal"], d["vg_error"],
+        lines.append("| %s | %d | %d | %d | %d | %d | %d | %d | %d | %d |" % (
+            m, d["runs"], d["ok"], d["ok_killed"], d["npu_fatal"], d["vg_error"],
             sum(d["crashes"].values()),
             d["abnormal"], d["stopped"], d["spawn_error"]))
     if crash_rows:
@@ -790,7 +879,7 @@ def parse_args(argv=None):
     parser.add_argument("--workdir", default="repro-run")
     parser.add_argument("--device", default="5", help="NPU device id pinned for all workers")
     parser.add_argument("--workers", default="4", help="concurrent workers per wave")
-    parser.add_argument("--modes", default="worker_batch,valgrind_batch,pair_case,subprocess_per_case")
+    parser.add_argument("--modes", default="gdb_batch,worker_batch,valgrind_batch,pair_case,subprocess_per_case")
     parser.add_argument("--max-total-minutes", default="120")
     parser.add_argument("--stop-after-crashes", default="3", help="crash samples per mode (0 = full budget)")
     parser.add_argument("--pair-suspect", default="10857-10858",
@@ -818,7 +907,7 @@ def main(argv=None):
         raise SystemExit("test dir not found: %s" % args.test_dir)
 
     modes = [m.strip() for m in args.modes.split(",") if m.strip()]
-    valid = ("worker_batch", "valgrind_batch", "pair_case", "subprocess_per_case")
+    valid = ("worker_batch", "gdb_batch", "valgrind_batch", "pair_case", "subprocess_per_case")
     unknown = [m for m in modes if m not in valid]
     if unknown or not modes:
         raise SystemExit("--modes must be a non-empty subset of %s" % ",".join(valid))
@@ -861,6 +950,14 @@ def main(argv=None):
             budget = min(MODE_BUDGET_SECONDS["worker_batch"], remaining)
             _, aborted = harness.run_batch_mode(
                 "worker_batch", selected, budget, stop_crashes, health_guard=True)
+        elif mode == "gdb_batch":
+            if shutil.which("gdb") is None:
+                print("[gdb_batch] SKIP: gdb not found on PATH "
+                      "(install gdb to enable this mode)", flush=True)
+                continue
+            budget = min(MODE_BUDGET_SECONDS["gdb_batch"], remaining)
+            harness.run_batch_mode(
+                "gdb_batch", selected, budget, stop_crashes, use_gdb=True)
         elif mode == "valgrind_batch":
             if shutil.which("valgrind") is None:
                 print("[valgrind_batch] SKIP: valgrind not found on PATH "
