@@ -127,6 +127,7 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
     }                                                                        \
     std::string device_error_msg = c10_npu::getDeviceErrorMessage(error_code); \
     if (!device_error_msg.empty()) {                                         \
+        static c10_npu::acl::AclErrorCode err_map;                           \
         TORCH_CHECK(                                                         \
             false,                                                           \
             __func__,                                                        \
@@ -136,7 +137,11 @@ inline const char* getErrorFunction(const char* /* msg */, const char* args)
             __LINE__,                                                        \
             " NPU function error: ", device_error_msg,                       \
             ", error code is ", error_code,                                  \
-            PTA_ERROR(ErrCode::ACL));                                        \
+            PTA_ERROR(ErrCode::ACL),                                         \
+            (err_map.error_code_map.find(error_code) != err_map.error_code_map.end() ?    \
+                "\n[Error]: " + err_map.error_code_map[error_code] : "."),    \
+            "\n",                                                            \
+            c10_npu::c10_npu_get_error_message());                           \
     }                                                                        \
 
 #define NPU_CHECK_ERROR_CHECK_UCE(err_code, check_uce, ...)                  \
