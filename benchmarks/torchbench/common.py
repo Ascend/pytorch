@@ -1062,6 +1062,11 @@ class BenchmarkRunner:
                 else x,
                 fp64_outputs,
             )
+            # env9: 大 embedding 模型（fambench_dlrm 12.8GB 常驻）在 fp64 golden 收集后
+            # 立即释放 fp64 副本，否则 fp64+orig+两份 eager copy 叠加爆 60GB HBM
+            del model_fp64, inputs_fp64
+            if torch.npu.is_available():
+                torch.npu.empty_cache()
         except Exception:
             log.warning(
                 "fp64 golden ref were not generated for %s. Setting accuracy check to cosine",
@@ -1088,6 +1093,9 @@ class BenchmarkRunner:
                 correct_result = self.run_n_iterations(
                     model_copy, clone_inputs(example_inputs), "eager"
                 )
+                del model_copy  # env9: 大 embedding 模型逐阶段释放，防四副本叠加 OOM
+                if torch.npu.is_available():
+                    torch.npu.empty_cache()
             except Exception as e:
                 accuracy_status = (
                     "eager_1st_run_OOM"
@@ -1105,6 +1113,9 @@ class BenchmarkRunner:
                 correct_rerun_result = self.run_n_iterations(
                     model_copy, clone_inputs(example_inputs)
                 )
+                del model_copy  # env9
+                if torch.npu.is_available():
+                    torch.npu.empty_cache()
             except Exception as e:
                 accuracy_status = (
                     "eager_2nd_run_OOM"

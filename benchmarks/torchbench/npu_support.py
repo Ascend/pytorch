@@ -929,6 +929,74 @@ def _patch_yolov3():
     torch_utils.select_device = new_select_device
 
 
+@register_patch("fambench_dlrm")
+def _patch_model_fambench_dlrm():
+    """fambench_dlrm 的 NPU 适配（monkeypatch，替代对 benchmark 仓源码的 patch 文件）。
+
+    原模型 use_gpu 路径写死 cuda：device=="cuda" 才置 use_gpu（模型与索引张量
+    迁移、v_W_l 迁移、quantize 分支均在其内），validate_fambench_args 在 use_gpu
+    下断言 torch.cuda.is_available()，init/prep 调 torch.cuda.synchronize /
+    manual_seed_all。修法参考 torch_npu/contrib/transfer_to_npu.py 的
+    cuda→npu API 映射，仅取本模型触达的 3 个 API，以 try/finally 作用域限定
+    在 Model.__init__ 窗口（transfer_to_npu 本体是进程级全量替换——import 即
+    改 torch.cuda 整模块、has_triton=False、jit.script 等，会破坏 runner 内
+    其它模型的 triton 编译路径，不能整体启用）；use_gpu 经包装
+    parse_fambench_args 强制置 True，原版迁移路径按 npu 设备原样执行。
+    """
+    try:
+        import torchbenchmark.canary_models.fambench_dlrm as fdlrm
+    except ImportError:
+        log.warning(
+            "Import fambench_dlrm failed; the NPU compatibility patch "
+            "was not applied"
+        )
+        return
+
+    # cuda→npu 映射面字面取自 torch_npu/contrib/transfer_to_npu.py 的
+    # _patch_cuda：_apply_patches([["cuda", torch_npu.npu]]) 即把
+    # torch_npu.npu.__all__ 属性整集覆盖到 torch.cuda（torch.npu.synchronize
+    # 等实现内部还会经 torch._utils._get_device_attr 回落 torch.cuda.
+    # current_device，子集映射覆盖不全，须整集替换）。transfer_to_npu 本体
+    # 是 import 即生效的进程级替换（另含 has_triton=False、jit.script 禁用
+    # 等补丁，会破坏 runner 内其它模型的 triton 编译路径），不能整体启用，
+    # 此处 snapshot/restore 将同一映射面限定在 Model.__init__ 窗口。
+    _npu_cuda_attrs = list(torch_npu.npu.__all__)
+
+    _init_orig = fdlrm.Model.__init__
+    _parse_orig = fdlrm.parse_fambench_args
+
+    def _parse_force_use_gpu(cfg):
+        fambench_args = _parse_orig(cfg)
+        # 原版仅在 device=="cuda" 时置 use_gpu；npu 走同一路径
+        # （dlrm.to(device) + v_W_l 迁移 + dlrm_wrap 索引张量迁移）
+        fambench_args.use_gpu = True
+        return fambench_args
+
+    def _fambench_dlrm_init_new(self, test, device, batch_size=None, extra_args=None):
+        if extra_args is None:
+            extra_args = []
+        _missing = object()
+        saved = {
+            attr: getattr(torch.cuda, attr, _missing) for attr in _npu_cuda_attrs
+        }
+        # dlrm/__init__.py 经 `from .args import parse_fambench_args` 绑定名字，
+        # 须替换 fdlrm 侧属性
+        fdlrm.parse_fambench_args = _parse_force_use_gpu
+        try:
+            for attr in _npu_cuda_attrs:
+                setattr(torch.cuda, attr, getattr(torch_npu.npu, attr))
+            return _init_orig(self, test, device, batch_size, extra_args)
+        finally:
+            fdlrm.parse_fambench_args = _parse_orig
+            for attr, orig in saved.items():
+                if orig is _missing:
+                    delattr(torch.cuda, attr)
+                else:
+                    setattr(torch.cuda, attr, orig)
+
+    fdlrm.Model.__init__ = _fambench_dlrm_init_new
+
+
 def patch_model(model_name):
     if model_name not in _patch_table:
         return

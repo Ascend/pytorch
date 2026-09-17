@@ -217,6 +217,7 @@ REQUIRE_HIGHER_FP16_TOLERANCE.update(NPU_REQUIRE_HIGHER_FP16_TOLERANCE)
 # models in canary_models that we should run anyway
 CANARY_MODELS = {
     "torchrec_dlrm",
+    "fambench_dlrm",
 }
 
 
