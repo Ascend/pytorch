@@ -20,12 +20,15 @@
     do {                                                                     \
         auto Error = err_code;                                               \
         if ((Error) != HCCL_SUCCESS) {                                       \
+            static c10_npu::acl::AclErrorCode err_map;                 \
             CHECK_AND_THROW_ERROR_WITH_SPECIFIC_MESSAGE(Error);              \
             if (c10_npu::option::OptionsManager::IsCompactErrorOutput()) {   \
                 std::ostringstream oss;                                      \
                 oss << " HCCL function error: " << getErrorFunction(#err_code, ##__VA_ARGS__)    \
-                   << ", error code is " << Error << " "                    \
-                   << DIST_ERROR(ErrCode::HCCL) + ".\n";                     \
+                   << ", error code is " << Error                            \
+                   << (err_map.error_code_map.find((int)Error) != err_map.error_code_map.end() ? \
+                       " (" + err_map.error_code_map[(int)Error] + ")" : "")  \
+                   << " " << DIST_ERROR(ErrCode::HCCL) + ".\n";               \
                 std::string err_msg = oss.str();                          \
                 ASCEND_LOGE("%s", err_msg.c_str());                       \
                 std::string errmsg(c10_npu::c10_npu_get_error_message());    \
@@ -35,7 +38,10 @@
             } else {                                                         \
                 auto retmsg = std::string(__func__) + ":" + __FILE__ + ":" + std::to_string(__LINE__) +    \
                     " HCCL function error: " + getErrorFunction(#err_code, ##__VA_ARGS__) +                \
-                    ", error code is " + std::to_string(Error) + " " + DIST_ERROR(ErrCode::HCCL) + ".\n" + \
+                    ", error code is " + std::to_string(Error) +                          \
+                    (err_map.error_code_map.find((int)Error) != err_map.error_code_map.end() ? \
+                        " (" + err_map.error_code_map[(int)Error] + ")" : "") +       \
+                    " " + DIST_ERROR(ErrCode::HCCL) + ".\n" +                             \
                     c10_npu::c10_npu_get_error_message();                                                  \
                 if (c10_npu::isCannOOM(retmsg)) {                                 \
                     if (c10_npu::option::OptionsManager::IsOomSnapshotEnable()) { \
