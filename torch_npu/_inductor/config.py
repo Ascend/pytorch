@@ -23,9 +23,6 @@ enable_inplace_buffers = os.environ.get("ENABLE_INPLACE_BUFFERS", "1").lower() i
 if not enable_inplace_buffers:
     inductor_config.inplace_buffers = False
 
-# inductor debug switch
-config.trace.enabled = True
-
 config.triton.coalesce_tiling_analysis = False
 enable_fast_gelu = os.getenv("TORCHINDUCTOR_ENABLE_FAST_GELU", "0") == "1"
 device = torch.npu.current_device()
