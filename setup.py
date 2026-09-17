@@ -743,7 +743,8 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 
-requirements = ['torch==2.11.0+cpu' if platform.machine() == 'x86_64' else 'torch==2.11.0']
+requirements = ['torch==2.11.0+cpu' if platform.machine() == 'x86_64' else 'torch==2.11.0',
+                'numpy', 'pyyaml']
 
 setup(
     name=os.environ.get('TORCH_NPU_PACKAGE_NAME', 'torch_npu'),
