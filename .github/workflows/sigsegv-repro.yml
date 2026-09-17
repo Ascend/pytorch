@@ -183,8 +183,10 @@ jobs:
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
           export LD_LIBRARY_PATH=/opt/conda/envs/py_3.10/lib:$LD_LIBRARY_PATH
-          # ulimit must be set in the shell that parents the workers
-          ulimit -c unlimited
+          # ulimit must be set in the shell that parents the workers; some
+          # runner containers restrict the core hard limit (run 35194109638)
+          # — degrade gracefully, gdb modes do not need core dumps.
+          ulimit -c unlimited || echo "WARN: core ulimit hard-restricted; core dumps disabled, gdb modes unaffected"
           python ci-scripts/.github/scripts/sigsegv_stress.py \
             --cases-json downloads/tensor_cases_shard_1.json \
             --case-range "${{ env.REPRO_CASE_RANGE }}" \
