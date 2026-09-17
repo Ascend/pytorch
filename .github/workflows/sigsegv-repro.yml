@@ -24,11 +24,27 @@ name: NPU SIGSEGV Repro
 # job env enables glibc heap checking (MALLOC_CHECK_/MALLOC_PERTURB_) and
 # PYTHONMALLOC=debug so heap misuse aborts at the corrupting malloc/free
 # instead of much later; ASCEND_GLOBAL_LOG_LEVEL=1 records the last aclnn
-# ops before a crash. The gdb_batch harness mode wraps workers in
-# "gdb -batch" to capture native all-thread stacks at the crash point
-# (core_pattern stays unwritable on this runner platform despite
-# --privileged); valgrind_batch replays the batch under memcheck with its
-# log archived for every run.
+# ops before a crash.
+#
+# Experiment matrix (E1-E4, root-cause verification plan):
+#   E1 ablation   edit REPRO_CASE_SUBSET per preset below; channels:
+#                 valgrind_batch (error signature) + worker_batch (crash)
+#   E2 dataflow   REPRO_MODES: valgrind_origins_batch (undef-value-errors
+#                 + track-origins: where the stale stack values flow)
+#   E3 native     gdb_aslr_batch (gdb with ASLR kept - gdb's default
+#                 disable-randomization suppressed the crash in run
+#                 35171553271) or attach_gdb_batch (ptrace attach after
+#                 case 1, zero relocation)
+#   E4 race       helgrind_batch (data-race hypothesis)
+#
+# E1 ablation presets (edit + push; expect under H1 "tiling garbage"):
+#   baseline:    10857-10865   -> valgrind errors + worker crashes
+#   no-clamp:    10858-10865   -> both gone (pins the planting case)
+#   clamp-only:  10857         -> errors present, crash unlikely (no
+#                                 follow-on allocation activity)
+#   triple:      10857-10859   -> crash window confirmation
+#   no-clone:    10857,10859-10865
+#   reversed:    10858,10857,10859
 
 on:
   push:
@@ -46,7 +62,7 @@ env:
   REPRO_CASE_SUBSET: '10857-10865'     # minimal crash window (clamp_min .. expm1, 9 cases); overrides REPRO_CASE_RANGE; order preserved
   REPRO_DEVICE: '5'                    # NPU device id pinned for all workers
   REPRO_WORKERS: '4'                   # concurrent workers per wave (CI density is 32/8 = 4)
-  REPRO_MODES: 'gdb_batch,worker_batch,valgrind_batch'
+  REPRO_MODES: 'gdb_aslr_batch,valgrind_batch,worker_batch'
   REPRO_MAX_TOTAL_MINUTES: '120'       # overall stress budget in minutes (shared by all modes)
   REPRO_STOP_AFTER_CRASHES: '3'        # crash samples to collect per mode before moving on (0 = full budget)
   REPRO_PAIR_SUSPECT: '10857-10858'    # suspect pair (clamp_min + clone: ForeachMaximumList chain)
@@ -209,6 +225,8 @@ jobs:
             repro-run/ENV_ABORT.txt
             repro-run/crash-forensics/
             repro-run/valgrind-logs/
+            repro-run/helgrind-logs/
+            repro-run/gdb-logs/
             repro-env.txt
             repro-downloads-listing.txt
           retention-days: 30

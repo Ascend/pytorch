@@ -23,20 +23,29 @@ What this harness does
     CANN plog, and the true in-flight case attribution.
 
 Modes (--modes, comma separated, executed in this order)
-    worker_batch        replay the whole batch per worker (reproduction)
-    gdb_batch           replay the whole batch under gdb -batch (run +
-                        "thread apply all bt full" on signal death); native
-                        stacks for every thread are captured in worker.log
-                        without needing core dumps (runner platforms ignore
-                        --privileged, core_pattern stays unwritable). gdb
-                        exit code 0 with a "Program received signal" marker
-                        is classified as crash.
-    valgrind_batch      replay the whole batch under valgrind memcheck
-                        (--undef-value-errors=no, --error-exitcode=99) to
-                        catch the corrupting heap write with a full native
-                        stack; MALLOC_*/PYTHONMALLOC debug vars are stripped
-                        from the worker env for clean memcheck output.
-                        Requires valgrind on PATH (workflow installs it).
+    worker_batch          replay the whole batch per worker (reproduction)
+    gdb_batch             worker under gdb -batch; native stacks in
+                          worker.log on crash. NOTE: gdb disables ASLR by
+                          default, which suppressed the crash entirely
+                          (run 35171553271: 708 runs, 0 crashes) - prefer
+                          gdb_aslr_batch.
+    gdb_aslr_batch        gdb -batch with "set disable-randomization off":
+                          keeps ASLR so the memory layout matches real
+                          runs; on crash also captures registers, $pc
+                          instructions and /proc mappings (E3 primary).
+    attach_gdb_batch      start the worker normally and ptrace-attach gdb
+                          after the first case completes: zero memory
+                          relocation (E3 fallback when gdb_aslr still
+                          suppresses the crash); native stacks go to
+                          gdb.log. Requires ptrace permission.
+    valgrind_batch        memcheck with --undef-value-errors=no and
+                          --error-exitcode (E1 error-signature channel).
+    valgrind_origins_batch  memcheck with --undef-value-errors=yes and
+                          --track-origins=yes (E2: dataflow of the stale
+                          stack values into their uses).
+    helgrind_batch        valgrind --tool=helgrind with error-exitcode 98
+                          (E4: data-race hypothesis between the acl
+                          dispatch threads and the main thread).
     pair_case           two 2-case batches: the suspect pair (clamp_min +
                         clone, exercises aclnnForeachMaximumList + backward
                         through _foreach_clamp_min -> _foreach_maximum) and
@@ -84,15 +93,44 @@ from collections import deque
 from pathlib import Path
 
 NPU_FATAL_EXIT_CODE = 70  # keep in sync with run_npu_test_shard.py
-VALGRIND_ERROR_EXIT = 99  # valgrind --error-exitcode: memcheck findings
+VALGRIND_ERROR_EXIT = 99  # valgrind memcheck --error-exitcode
+HELGRIND_ERROR_EXIT = 98  # valgrind helgrind --error-exitcode
 VALGRIND_DONE_GRACE_S = 180  # wait this long after all cases done before killing valgrind
 MODE_BUDGET_SECONDS = {
     "worker_batch": 3600,
     "gdb_batch": 3600,
+    "gdb_aslr_batch": 3600,
+    "attach_gdb_batch": 3600,
     "valgrind_batch": 1800,
+    "valgrind_origins_batch": 1800,
+    "helgrind_batch": 1800,
     "pair-suspect": 900,
     "pair-control": 900,
     "subprocess_per_case": 1800,
+}
+# instrument -> valgrind tool flag set (log file name is per tool)
+VALGRIND_FLAG_SETS = {
+    "valgrind": [
+        "--tool=memcheck", "--undef-value-errors=no",
+        "--error-exitcode=%d" % VALGRIND_ERROR_EXIT,
+    ],
+    "valgrind_origins": [
+        "--tool=memcheck", "--undef-value-errors=yes", "--track-origins=yes",
+        "--error-exitcode=%d" % VALGRIND_ERROR_EXIT,
+    ],
+    "helgrind": [
+        "--tool=helgrind", "--error-exitcode=%d" % HELGRIND_ERROR_EXIT,
+    ],
+}
+# mode -> instrument used by run_batch_mode (worker_batch uses None)
+MODE_INSTRUMENTS = {
+    "worker_batch": None,
+    "gdb_batch": "gdb",
+    "gdb_aslr_batch": "gdb_aslr",
+    "attach_gdb_batch": "attach_gdb",
+    "valgrind_batch": "valgrind",
+    "valgrind_origins_batch": "valgrind_origins",
+    "helgrind_batch": "helgrind",
 }
 HISTORICAL_VICTIMS = (
     "test_outplace_with_invalid_grads__foreach_clone_npu_float32",
@@ -100,6 +138,42 @@ HISTORICAL_VICTIMS = (
 )
 STARTING_RE = re.compile(r"^\[(\d+)\] Starting: (.*)$")
 GDB_CRASH_RE = re.compile(r"Program received signal (\w+)")
+
+
+def gdb_wrapper_cmd(inferior_cmd, aslr=False, attach_pid=None):
+    """Build a gdb -batch command line for a worker.
+
+    Wrapper mode (attach_pid=None): gdb runs the inferior via --args; add
+    "set disable-randomization off" with aslr=True so the memory layout
+    matches real runs (gdb disables ASLR by default, which suppresses the
+    crash - run 35171553271: 708 runs, 0 crashes under gdb_batch).
+
+    Attach mode (attach_pid set): ptrace-attach to the already running
+    worker (zero memory relocation) and continue it; used by
+    attach_gdb_batch after the first case completes.
+    """
+    cmd = ["gdb", "-q"]
+    if attach_pid is not None:
+        cmd += ["-p", str(attach_pid)]
+    cmd += [
+        "--batch",
+        "-ex", "set pagination off",
+        "-ex", "set confirm off",
+    ]
+    if aslr:
+        cmd += ["-ex", "set disable-randomization off"]
+    cmd += ["-ex", ("continue" if attach_pid is not None else "run")]
+    cmd += [
+        "-ex", "echo \\n===CRASH: native stacks===\\n",
+        "-ex", "info registers",
+        "-ex", "x/4i $pc",
+        "-ex", "thread apply all bt full",
+        "-ex", "info threads",
+        "-ex", "info proc mappings",
+    ]
+    if attach_pid is None:
+        cmd += ["--args"] + list(inferior_cmd)
+    return cmd
 MAX_KEEP_ITER_DIRS = 2
 MAX_KEEP_CORES = 2
 
@@ -120,6 +194,8 @@ def classify_rc(rc, stopped_by_budget):
         return "npu_fatal", ""
     if rc == VALGRIND_ERROR_EXIT:
         return "vg_error", ""
+    if rc == HELGRIND_ERROR_EXIT:
+        return "hg_error", ""
     if rc < 0:
         sig = signal_name(-rc)
         return "crash:" + sig, sig
@@ -257,7 +333,7 @@ class Harness:
     # ------------------------------------------------------------- execution
 
     def run_wave(self, mode_label, iter_num, wave_cases, case_mode=False,
-                 use_valgrind=False, use_gdb=False):
+                 instrument=None):
         iter_dir = self.workdir / mode_label / ("iter-%04d" % iter_num)
         iter_dir.mkdir(parents=True, exist_ok=True)
         records = [None] * self.workers
@@ -280,7 +356,7 @@ class Harness:
                 else:
                     records[i] = self._run_worker(
                         mode_label, iter_num, slot, slot_dir, wave_cases, stop_evt, live,
-                        use_valgrind=use_valgrind, use_gdb=use_gdb, share=shared[i])
+                        instrument=instrument, share=shared[i])
             except Exception as exc:
                 records[i] = RunRecord(
                     mode=mode_label, iter_num=iter_num, slot=slot, batch_id=0, rc=-1,
@@ -304,10 +380,11 @@ class Harness:
                     if proc.poll() is None:
                         proc.terminate()
                 break
-            if use_valgrind:
-                # valgrind workers may hang after finishing every case (seen
-                # in run 35049336150); kill them after a grace period and
-                # classify as ok_killed — valgrind.log is archived either way.
+            if instrument in ("valgrind", "valgrind_origins", "helgrind"):
+                # valgrind-tool workers may hang after finishing every case
+                # (seen in run 35049336150); kill them after a grace period
+                # and classify as ok_killed — the tool log is archived
+                # either way.
                 for sh in shared:
                     proc = sh.get("proc")
                     if (proc is not None and proc.poll() is None
@@ -329,7 +406,7 @@ class Harness:
         return records, iter_dir
 
     def _run_worker(self, mode_label, iter_num, slot, slot_dir, batch_cases, stop_evt, live,
-                    use_valgrind=False, use_gdb=False, share=None):
+                    instrument=None, share=None):
         slot_dir.mkdir(parents=True, exist_ok=True)
         reports_dir = slot_dir / "reports"
         plog_dir = slot_dir / "plog"
@@ -358,34 +435,24 @@ class Harness:
             self.python, "-u", str(self.runner_script),
             "--worker", str(bi_path), "--test-dir", str(self.test_dir),
         ]
-        if use_valgrind:
-            # Strip allocator-debug envs so memcheck is the single source of
-            # truth for heap findings.
+        if instrument in ("valgrind", "valgrind_origins", "helgrind"):
+            # Strip allocator-debug envs so the tool is the single source of
+            # truth for its findings.
             for key in ("MALLOC_CHECK_", "MALLOC_PERTURB_", "PYTHONMALLOC"):
                 env.pop(key, None)
-            cmd = [
-                "valgrind", "--tool=memcheck", "--undef-value-errors=no",
-                "--error-exitcode=%d" % VALGRIND_ERROR_EXIT,
-                "--log-file=%s" % (slot_dir / "valgrind.log"),
-            ] + cmd
-        elif use_gdb:
+            tool_log = "helgrind.log" if instrument == "helgrind" else "valgrind.log"
+            cmd = (["valgrind"] + VALGRIND_FLAG_SETS[instrument]
+                   + ["--log-file=%s" % (slot_dir / tool_log)] + cmd)
+        elif instrument in ("gdb", "gdb_aslr"):
             # Native all-thread stacks at the crash point without core dumps
             # (this runner platform ignores --privileged, core_pattern is
-            # unwritable). On signal death gdb stops, prints the backtraces
-            # (they land in worker.log), then exits and kills the inferior.
-            cmd = [
-                "gdb", "-q", "--batch",
-                "-ex", "set pagination off",
-                "-ex", "set confirm off",
-                "-ex", "run",
-                "-ex", "echo \\n===CRASH: native stacks===\\n",
-                "-ex", "thread apply all bt full",
-                "-ex", "info threads",
-                "--args",
-            ] + cmd
+            # unwritable). gdb_aslr keeps ASLR enabled (real-run layout).
+            cmd = gdb_wrapper_cmd(cmd, aslr=(instrument == "gdb_aslr"))
+        # attach_gdb: plain worker; _spawn_and_read ptrace-attaches gdb
+        # after the first case completes (no memory relocation at all).
         return self._spawn_and_read(
             mode_label, iter_num, slot, slot_dir, cmd, env, batch_id, stop_evt, live,
-            use_valgrind=use_valgrind, share=share)
+            instrument=instrument, share=share)
 
     def _run_case_proc(self, mode_label, iter_num, slot, slot_dir, case, stop_evt, live):
         slot_dir.mkdir(parents=True, exist_ok=True)
@@ -414,13 +481,16 @@ class Harness:
 
     def _spawn_and_read(self, mode_label, iter_num, slot, slot_dir, cmd, env, batch_id,
                         stop_evt, live, case_mode=False, case=None,
-                        use_valgrind=False, share=None):
+                        instrument=None, share=None):
         log_path = slot_dir / "worker.log"
+        gdb_log_path = slot_dir / "gdb.log"
         state = {"inflight": None, "completed": 0, "last_completed": (0, ""), "gdb_sig": ""}
         wave_start_ts = time.time()
         t0 = time.monotonic()
         pid = 0
         rc = -1
+        attach_proc = None
+        attach_pending = (instrument == "attach_gdb")
         with open(log_path, "w", encoding="utf-8") as logf:
             proc = subprocess.Popen(
                 cmd, cwd=str(self.test_dir), env=env,
@@ -443,7 +513,24 @@ class Harness:
                 m = GDB_CRASH_RE.search(line)
                 if m:
                     state["gdb_sig"] = m.group(1)
+                if attach_pending and state["completed"] >= 1 and proc.poll() is None:
+                    # First case finished (corruption window opens): attach
+                    # gdb without relocating anything in the worker.
+                    attach_pending = False
+                    try:
+                        with open(gdb_log_path, "w", encoding="utf-8") as gf:
+                            attach_proc = subprocess.Popen(
+                                gdb_wrapper_cmd(None, attach_pid=proc.pid),
+                                stdout=gf, stderr=subprocess.STDOUT)
+                    except OSError as exc:
+                        logf.write("attach gdb failed: %s\n" % exc)
             rc = proc.wait()
+        if attach_proc is not None:
+            try:
+                attach_proc.wait(timeout=300)
+            except subprocess.TimeoutExpired:
+                attach_proc.kill()
+                attach_proc.wait(timeout=30)
         duration = time.monotonic() - t0
 
         if case_mode:
@@ -453,6 +540,15 @@ class Harness:
             else:
                 state["inflight"] = case["case_idx"]
 
+        if not state["gdb_sig"] and instrument == "attach_gdb" and gdb_log_path.is_file():
+            # gdb catches the signal before faulthandler: the crash marker
+            # and native stacks live in gdb.log, and gdb kills the worker
+            # on quit (worker rc is then SIGKILL, not the real signal).
+            content = gdb_log_path.read_text(encoding="utf-8", errors="replace")
+            m = GDB_CRASH_RE.search(content)
+            if m:
+                state["gdb_sig"] = m.group(1)
+
         if state["gdb_sig"]:
             cls, sig = "crash:%s" % state["gdb_sig"], state["gdb_sig"]
         elif share is not None and share.get("killed_after_done"):
@@ -460,17 +556,24 @@ class Harness:
         else:
             cls, sig = classify_rc(rc, stop_evt.is_set())
 
-        # Archive valgrind.log for every valgrind run (crash or not): the
-        # memcheck verdict lives in the log even when the worker hangs at
-        # exit and gets killed (run 35049336150 lost these logs).
-        if use_valgrind:
-            vg_log = slot_dir / "valgrind.log"
-            if vg_log.is_file():
-                dest = self.workdir / "valgrind-logs" / (
+        # Archive tool logs for EVERY instrumented run (crash or not): the
+        # verdict lives in the log even when the worker hangs at exit and
+        # gets killed (run 35049336150 lost these logs).
+        if instrument in ("valgrind", "valgrind_origins", "helgrind"):
+            src = slot_dir / ("helgrind.log" if instrument == "helgrind" else "valgrind.log")
+            if src.is_file():
+                sub = "helgrind-logs" if instrument == "helgrind" else "valgrind-logs"
+                dest = self.workdir / sub / (
                     "%s-iter%04d-w%d.log.gz" % (mode_label, iter_num, slot))
                 dest.parent.mkdir(parents=True, exist_ok=True)
-                with open(vg_log, "rb") as f_in, gzip.open(dest, "wb") as f_out:
+                with open(src, "rb") as f_in, gzip.open(dest, "wb") as f_out:
                     shutil.copyfileobj(f_in, f_out)
+        elif instrument == "attach_gdb" and gdb_log_path.is_file():
+            dest = self.workdir / "gdb-logs" / (
+                "%s-iter%04d-w%d.log.gz" % (mode_label, iter_num, slot))
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            with open(gdb_log_path, "rb") as f_in, gzip.open(dest, "wb") as f_out:
+                shutil.copyfileobj(f_in, f_out)
 
         inflight_idx = state["inflight"] or 0
         inflight_nodeid = self.case_by_idx.get(inflight_idx, {}).get("nodeid", "")
@@ -511,7 +614,7 @@ class Harness:
     # --------------------------------------------------------------- drivers
 
     def run_batch_mode(self, mode_label, cases, budget_s, stop_crashes,
-                       health_guard=False, use_valgrind=False, use_gdb=False):
+                       health_guard=False, instrument=None):
         self.mode_end = time.monotonic() + budget_s
         crashes = 0
         bad_waves = 0
@@ -523,7 +626,7 @@ class Harness:
                 break
             iter_num += 1
             records, iter_dir = self.run_wave(
-                mode_label, iter_num, cases, use_valgrind=use_valgrind, use_gdb=use_gdb)
+                mode_label, iter_num, cases, instrument=instrument)
             wave_crash, wave_progress = self._after_wave(mode_label, iter_num, records, crashes)
             if wave_crash:
                 crashes += 1
@@ -564,9 +667,9 @@ class Harness:
         for rec in records:
             if rec is None:
                 continue
-            if rec.cls.startswith("crash:") or rec.cls == "vg_error":
+            if rec.cls.startswith("crash:") or rec.cls in ("vg_error", "hg_error"):
                 wave_crash = True
-            if (rec.cls in ("ok", "npu_fatal", "vg_error", "ok_killed")
+            if (rec.cls in ("ok", "npu_fatal", "vg_error", "hg_error", "ok_killed")
                     or rec.cases_completed > 0 or rec.cls.startswith("crash:")):
                 wave_progress = True
             parts.append("%s(rc=%d,done=%d)" % (rec.cls, rec.rc, rec.cases_completed))
@@ -580,7 +683,7 @@ class Harness:
         self.crash_counters[mode_label] = n
         crash_dir = self.workdir / "crash-forensics" / ("%s-crash-%02d" % (mode_label, n))
         crash_dir.mkdir(parents=True, exist_ok=True)
-        for name in ("worker.log", "batch_input.json", "cmd.json", "valgrind.log"):
+        for name in ("worker.log", "batch_input.json", "cmd.json", "valgrind.log", "helgrind.log", "gdb.log"):
             src = slot_dir / name
             if src.exists():
                 shutil.move(str(src), str(crash_dir / name))
@@ -725,11 +828,9 @@ class Harness:
     def dry_run(self, modes, all_cases, selected, args):
         print("\n=== dry run: planned invocations ===")
         for mode in modes:
-            if mode in ("worker_batch", "gdb_batch", "valgrind_batch"):
+            if mode in MODE_INSTRUMENTS:
                 self._print_batch_plan(
-                    mode, selected,
-                    use_valgrind=(mode == "valgrind_batch"),
-                    use_gdb=(mode == "gdb_batch"))
+                    mode, selected, instrument=MODE_INSTRUMENTS[mode])
             elif mode == "pair_case":
                 for label, spec in (("pair-suspect", args.pair_suspect), ("pair-control", args.pair_control)):
                     self._print_batch_plan(label, select_range(all_cases, spec))
@@ -744,7 +845,7 @@ class Harness:
                       "--junitxml=<reports>/case-%d.xml --timeout=1200 -vv"
                       % (self.python, nodeid, case["case_idx"]))
 
-    def _print_batch_plan(self, label, cases, use_valgrind=False, use_gdb=False):
+    def _print_batch_plan(self, label, cases, instrument=None):
         batch_input = {
             "batch_id": 1001,
             "test_dir": str(self.test_dir),
@@ -760,13 +861,20 @@ class Harness:
         print("\n[%s] batch_input.json (slot 1 of %d):" % (label, self.workers))
         print(json.dumps(batch_input, indent=1))
         print("[%s] worker cmd:" % label)
-        if use_gdb:
-            print("  gdb -q --batch -ex 'set pagination off' -ex 'set confirm off' "
-                  "-ex run -ex 'thread apply all bt full' -ex 'info threads' --args <python cmd>")
-        if use_valgrind:
-            print("  valgrind --tool=memcheck --undef-value-errors=no "
-                  "--error-exitcode=%d --log-file=<iter-dir>/w1/valgrind.log"
-                  % VALGRIND_ERROR_EXIT)
+        if instrument in ("gdb", "gdb_aslr"):
+            print("  %s  # native stacks -> worker.log on crash" % " ".join(
+                gdb_wrapper_cmd(["<python cmd>"], aslr=(instrument == "gdb_aslr"))[:12]))
+            print("    ... (full: set pagination/confirm off, run, info registers,")
+            print("          x/4i $pc, thread apply all bt full, info threads,")
+            print("          info proc mappings, --args python ...)")
+        elif instrument == "attach_gdb":
+            print("  # start worker normally; after case 1 completes:")
+            print("  gdb -q -p <pid> -batch ... -ex continue -ex 'thread apply all bt full'")
+            print("    ... (stacks -> gdb.log; zero memory relocation)")
+        elif instrument in VALGRIND_FLAG_SETS:
+            print("  valgrind %s --log-file=<iter-dir>/w1/%s.log"
+                  % (" ".join(VALGRIND_FLAG_SETS[instrument]),
+                     "helgrind" if instrument == "helgrind" else "valgrind"))
         print("  cwd=%s" % self.test_dir)
         print("  %s -u %s --worker <batch_input.json> --test-dir %s"
               % (self.python, self.runner_script, self.test_dir))
@@ -791,7 +899,8 @@ def summarize(workdir):
         d = by_mode.setdefault(
             r.get("mode", "?"),
             {"runs": 0, "ok": 0, "ok_killed": 0, "npu_fatal": 0, "vg_error": 0,
-             "crashes": {}, "abnormal": 0, "stopped": 0, "spawn_error": 0})
+             "hg_error": 0, "crashes": {}, "abnormal": 0, "stopped": 0,
+             "spawn_error": 0})
         d["runs"] += 1
         cls = r.get("cls", "")
         if cls == "ok":
@@ -802,6 +911,8 @@ def summarize(workdir):
             d["npu_fatal"] += 1
         elif cls == "vg_error":
             d["vg_error"] += 1
+        elif cls == "hg_error":
+            d["hg_error"] += 1
         elif cls == "stopped":
             d["stopped"] += 1
         elif cls.startswith("crash:"):
@@ -812,7 +923,7 @@ def summarize(workdir):
             d["spawn_error"] += 1
     crash_rows = [r for r in rows
                   if str(r.get("cls", "")).startswith("crash:")
-                  or r.get("cls") == "vg_error"]
+                  or r.get("cls") in ("vg_error", "hg_error")]
     victim_hits = 0
     for r in crash_rows:
         nodeid = r.get("inflight_nodeid") or ""
@@ -822,13 +933,13 @@ def summarize(workdir):
     lines = []
     lines.append("# SIGSEGV repro summary")
     lines.append("")
-    lines.append("| mode | runs | ok | ok_killed | npu_fatal | vg_error | crashes | abnormal | stopped | spawn_error |")
-    lines.append("|---|---|---|---|---|---|---|---|---|---|")
+    lines.append("| mode | runs | ok | ok_killed | npu_fatal | vg_error | hg_error | crashes | abnormal | stopped | spawn_error |")
+    lines.append("|---|---|---|---|---|---|---|---|---|---|---|")
     for m in sorted(by_mode):
         d = by_mode[m]
-        lines.append("| %s | %d | %d | %d | %d | %d | %d | %d | %d | %d |" % (
+        lines.append("| %s | %d | %d | %d | %d | %d | %d | %d | %d | %d | %d |" % (
             m, d["runs"], d["ok"], d["ok_killed"], d["npu_fatal"], d["vg_error"],
-            sum(d["crashes"].values()),
+            d["hg_error"], sum(d["crashes"].values()),
             d["abnormal"], d["stopped"], d["spawn_error"]))
     if crash_rows:
         lines.append("")
@@ -879,7 +990,7 @@ def parse_args(argv=None):
     parser.add_argument("--workdir", default="repro-run")
     parser.add_argument("--device", default="5", help="NPU device id pinned for all workers")
     parser.add_argument("--workers", default="4", help="concurrent workers per wave")
-    parser.add_argument("--modes", default="gdb_batch,worker_batch,valgrind_batch,pair_case,subprocess_per_case")
+    parser.add_argument("--modes", default="gdb_aslr_batch,valgrind_batch,worker_batch")
     parser.add_argument("--max-total-minutes", default="120")
     parser.add_argument("--stop-after-crashes", default="3", help="crash samples per mode (0 = full budget)")
     parser.add_argument("--pair-suspect", default="10857-10858",
@@ -907,7 +1018,7 @@ def main(argv=None):
         raise SystemExit("test dir not found: %s" % args.test_dir)
 
     modes = [m.strip() for m in args.modes.split(",") if m.strip()]
-    valid = ("worker_batch", "gdb_batch", "valgrind_batch", "pair_case", "subprocess_per_case")
+    valid = tuple(MODE_INSTRUMENTS) + ("pair_case", "subprocess_per_case")
     unknown = [m for m in modes if m not in valid]
     if unknown or not modes:
         raise SystemExit("--modes must be a non-empty subset of %s" % ",".join(valid))
@@ -950,22 +1061,15 @@ def main(argv=None):
             budget = min(MODE_BUDGET_SECONDS["worker_batch"], remaining)
             _, aborted = harness.run_batch_mode(
                 "worker_batch", selected, budget, stop_crashes, health_guard=True)
-        elif mode == "gdb_batch":
-            if shutil.which("gdb") is None:
-                print("[gdb_batch] SKIP: gdb not found on PATH "
-                      "(install gdb to enable this mode)", flush=True)
+        elif mode in MODE_INSTRUMENTS:
+            instrument = MODE_INSTRUMENTS[mode]
+            needed = "gdb" if instrument in ("gdb", "gdb_aslr", "attach_gdb") else "valgrind"
+            if shutil.which(needed) is None:
+                print("[%s] SKIP: %s not found on PATH "
+                      "(install it to enable this mode)" % (mode, needed), flush=True)
                 continue
-            budget = min(MODE_BUDGET_SECONDS["gdb_batch"], remaining)
-            harness.run_batch_mode(
-                "gdb_batch", selected, budget, stop_crashes, use_gdb=True)
-        elif mode == "valgrind_batch":
-            if shutil.which("valgrind") is None:
-                print("[valgrind_batch] SKIP: valgrind not found on PATH "
-                      "(install valgrind to enable this mode)", flush=True)
-                continue
-            budget = min(MODE_BUDGET_SECONDS["valgrind_batch"], remaining)
-            harness.run_batch_mode(
-                "valgrind_batch", selected, budget, stop_crashes, use_valgrind=True)
+            budget = min(MODE_BUDGET_SECONDS[mode], remaining)
+            harness.run_batch_mode(mode, selected, budget, stop_crashes, instrument=instrument)
         elif mode == "pair_case":
             suspect = select_range(all_cases, args.pair_suspect)
             control = select_range(all_cases, args.pair_control)
