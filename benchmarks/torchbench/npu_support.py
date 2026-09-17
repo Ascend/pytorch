@@ -997,6 +997,119 @@ def _patch_model_fambench_dlrm():
     fdlrm.Model.__init__ = _fambench_dlrm_init_new
 
 
+@register_patch("vision_maskrcnn")
+def _patch_model_vision_maskrcnn():
+    """Route torchvision nms / roi_align to torch_npu ops on NPU.
+
+    The torchvision wheel in this stack ships no CPU kernel for
+    torchvision::nms / torchvision::roi_align, and NPU tensors fall back to
+    the CPU dispatcher, so vision_maskrcnn inference fails on NPU. Redirect
+    both calls to the npu counterparts when the tensors live on NPU; the
+    CPU path keeps the original torchvision implementation.
+    """
+    try:
+        from importlib import import_module
+
+        import torchvision.ops.boxes as tv_boxes
+        import torchvision.ops.poolers as tv_poolers
+
+        # torchvision.ops.roi_align attribute on the package is shadowed by
+        # the function of the same name; import_module fetches the real
+        # submodule so the patch also covers poolers' import site.
+        tv_ra = import_module("torchvision.ops.roi_align")
+    except ImportError:
+        log.warning(
+            "Import torchvision failed or could not get torchvision.ops "
+            "submodules, skip vision_maskrcnn patch"
+        )
+        return
+
+    if not getattr(tv_boxes, "_npu_nms_patched", False):
+        tv_nms_orig = tv_boxes.nms
+
+        def _npu_nms(boxes, scores, iou_threshold):
+            if boxes.is_npu:
+                inp = torch.cat(
+                    [boxes, scores.reshape(-1, 1).to(boxes.dtype)], dim=1
+                )
+                _, idx, keep_mask = torch.ops.npu.npu_nms_with_mask(
+                    inp, float(iou_threshold)
+                )
+                return idx[keep_mask.to(torch.bool)].to(torch.long)
+            return tv_nms_orig(boxes, scores, iou_threshold)
+
+        tv_boxes.nms = _npu_nms
+        tv_boxes._npu_nms_patched = True
+
+    if not getattr(tv_ra, "_npu_patched", False):
+        tv_roi_align_orig = tv_ra.roi_align
+
+        def _npu_roi_align(
+            input,
+            rois,
+            output_size,
+            spatial_scale=1.0,
+            sampling_ratio=-1,
+            aligned=True,
+        ):
+            if input.is_npu:
+                if isinstance(output_size, int):
+                    kh = kw = output_size
+                else:
+                    kh, kw = output_size
+                sn = int(sampling_ratio) if sampling_ratio > 0 else 2
+                mode = 1 if aligned else 0
+                return torch.ops.npu.npu_roi_align(
+                    input, rois, float(spatial_scale), kh, kw, sn, mode
+                )
+            return tv_roi_align_orig(
+                input, rois, output_size, spatial_scale, sampling_ratio, aligned
+            )
+
+        tv_ra.roi_align = _npu_roi_align
+        tv_poolers.roi_align = _npu_roi_align
+        tv_ra._npu_patched = True
+
+
+@register_patch("fambench_xlmr")
+def _patch_model_fambench_xlmr():
+    """fambench_xlmr 的 NPU 适配（monkeypatch，替代对 benchmark 仓源码的 patch 文件）。
+
+    torch>=2.6 默认 weights_only=True 拒绝 fairseq checkpoint（含 argparse.Namespace
+    等非张量对象；官方权重可信）——Model.__init__ 期间临时放回宽松加载，finally 恢复。
+    与设备无关的通用修正，经仅 --only fambench_xlmr 的注册表回调生效。
+
+    模型自身声明的 DEEPCOPY = False 契约（fairseq HubInterface 动态 __getattr__
+    代理导致 copy.deepcopy 无限递归）由 runner 侧 deepcopy_model 消费，此处不再
+    对 WrappedModule 做 __deepcopy__ 改写。
+    """
+    try:
+        import torchbenchmark.canary_models.fambench_xlmr as fxlrm
+    except ImportError:
+        log.warning(
+            "Import fambench_xlmr failed; the NPU compatibility patch was not applied"
+        )
+        return
+
+    _init_orig = fxlrm.Model.__init__
+    _load_orig = torch.load
+
+    def _fambench_xlmr_torch_load(*args, **kwargs):
+        kwargs.setdefault("weights_only", False)
+        return _load_orig(*args, **kwargs)
+
+    def _fambench_xlmr_init_new(self, test, device, batch_size=None, extra_args=None):
+        if extra_args is None:
+            extra_args = []
+        torch.load = _fambench_xlmr_torch_load
+        try:
+            return _init_orig(self, test, device, batch_size, extra_args)
+        finally:
+            torch.load = _load_orig
+
+    fxlrm.Model.__init__ = _fambench_xlmr_init_new
+
+
 def patch_model(model_name):
     if model_name not in _patch_table:
         return

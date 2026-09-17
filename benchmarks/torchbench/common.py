@@ -863,6 +863,11 @@ class BenchmarkRunner:
                     continue  # bad benchmark implementation
 
     def deepcopy_model(self, model):
+        # Mirror upstream util/env_check.py deepcopy_model: models declaring
+        # DEEPCOPY = False (cannot or should not be deep-copied, e.g. fairseq
+        # HubInterface-based models) are used as-is in correctness checking.
+        if not getattr(model, "DEEPCOPY", True):
+            return model
         return copy.deepcopy(model)
 
     def cast_based_on_args(self, model, example_inputs):

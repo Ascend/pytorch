@@ -218,6 +218,7 @@ REQUIRE_HIGHER_FP16_TOLERANCE.update(NPU_REQUIRE_HIGHER_FP16_TOLERANCE)
 CANARY_MODELS = {
     "torchrec_dlrm",
     "fambench_dlrm",
+    "fambench_xlmr",
 }
 
 
@@ -422,6 +423,11 @@ class TorchBenchmarkRunner(BenchmarkRunner):
                 extra_args=extra_args,
             )
         model, example_inputs = benchmark.get_module()
+        # Propagate the DEEPCOPY contract onto the module, mirroring upstream
+        # util/backends/cudagraph.py which sets model.DEEPCOPY = False when the
+        # model must not be copied in correctness checking.
+        if not benchmark.DEEPCOPY:
+            model.DEEPCOPY = False
 
         # Models that must be in train mode while training
         if is_training and model_name in ONLY_TRAINING_MODE:
