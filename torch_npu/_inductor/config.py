@@ -10,8 +10,6 @@ enable_npu_indexing = True
 config.triton.unique_kernel_names = True
 # avoid test_opensora_cases_model_16_forward  reinterpre_tensor issue
 config.allow_buffer_reuse = False
-# inductor debug switch
-config.trace.enabled = True
 
 config.fallback_random = True
 
