@@ -39,9 +39,10 @@ env:
   img_2_13_0_x86: "pytorch_2.13.0_a1_x86_64_builder:20260709"
 
 permissions:
+  project: read
   repository: read
   id-token: write
-  pr: write
+  pr: read
 
 stages:
   stage_1:
@@ -116,8 +117,8 @@ stages:
     name: CodeCheck
     select: selected_by_default
     jobs:
-      CodeCheck_pre_commit:
-        name: CodeCheck_pre_commit
+      lintrunner:
+        name: CodeCheck_lintrunner
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
         runs-on: [ self-hosted, x86, cpu=32 ]
         container:
@@ -127,21 +128,58 @@ stages:
             uses: checkout
             with:
               ref: refs/merge-requests/${{ env.pr_id }}/merge
+              fetch-depth: 0
               allow-unsafe-pr-checkout: true
-          - name: setup-python311
+
+          - name: lintrunner
             run: |
-              PYTHON311_BIN=$(dirname "$(which python3.11)")
-              ln -sf "$(which python3.11)" "$PYTHON311_BIN/python"
-              echo "$PYTHON311_BIN" >> "$ATOMGIT_PATH"
-              python --version
-          - name: install gitleaks
-            run: |
-              cd ${ATOMGIT_WORKSPACE}
-              wget --no-host-directories -c --no-check-certificate https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta-codecheck/gitleaks
-              chmod +x gitleaks
-              cd -
-          - name: pre-commit
-            uses: openlibing-pre-commit-action
+              # ====================== 判断是否存在 lintrunner 配置 ======================
+              { echo "------------------------------------检查是否存在 .lintrunner.toml-----------------------------------"; } 2>/dev/null
+              if [ ! -f ".lintrunner.toml" ]; then
+                  echo "✅ 未找到.lintrunner.toml，跳过代码检查，直接成功"
+                  exit 0
+              fi
+              echo "✅ 找到 lintrunner 配置文件，开始执行检查"
+              { echo "------------------------------------2. show changes files-----------------------------------"; } 2>/dev/null
+              git fetch origin ${{ env.target_branch }}
+              git diff origin/${{ env.target_branch }} HEAD --name-only
+              { echo "------------------------------------3. install lintrunner-----------------------------------"; } 2>/dev/null
+              pip3 install uv -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
+              # 启用缓存
+              export UV_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple/
+              pip3 config set global.index-url https://mirrors.huaweicloud.com/repository/pypi/simple
+              pip3 install --upgrade pip
+              pip3 install lintrunner
+              lintrunner --version
+              { echo "------------------------------------4. init lintrunner-----------------------------------"; } 2>/dev/null
+              lintrunner init
+              { echo "------------------------------------5. lintrunner changes files-----------------------------------"; } 2>/dev/null
+              { echo "--------本地运行指导查看 https://gitcode.com/Ascend/pytorch/blob/master/CONTRIBUTING.md#%E6%9C%AC%E5%9C%B0%E9%9D%99%E6%80%81%E6%A3%80%E6%9F%A5"; } 2>/dev/null
+              git diff origin/${{ env.target_branch }} HEAD --name-only --diff-filter=AM -z | xargs -0 lintrunner
+
+      sca-pr:
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
+        runs-on: [ self-hosted, x86, cpu=32 ]
+        steps:
+          - name: checkout
+            uses: checkout
+          - name: Run SCA PR scan
+            uses: openlibing/sca-action/sca-pr-action@v1.0.0
+            with:
+              project-name: FrameworkPTAdapter
+
+      malicious-scan:
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
+        runs-on: [ self-hosted, x86, cpu=32 ]
+        steps:
+          - name: checkout
+            uses: checkout
+          - name: Run malicious code scan
+            uses: openlibing/malicious-code-scan-action/malicious-code-pr-scan-action@v1.0.0
+            with:
+              repository-name: ${{ atomgit.repository }}
+              pr-id: "${{ atomgit.event.pull_request.number }}"
+              project-name: FrameworkPTAdapter
 
       img_select:
         name: img_select
@@ -245,3 +283,183 @@ stages:
           torch_branch: ${{ jobs.img_select.outputs.target_branch }}
           CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
           runs_on_arch: "arm"
+
+
+  stage_4:
+    name: UT
+    select: selected_by_default
+    jobs:
+      UT_core_part_1:
+        name: UT_core_part_1
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.get_count.outputs.core > '0' }}
+        uses: .gitcode/workflows/ut_job.yml
+        with:
+          torch_branch: ${{ atomgit.event.pull_request.base.ref }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          TEST_RANK: "1"
+          TEST_WORLD_SIZE: "3"
+          NPU_CORE: "yes"
+
+      UT_core_part_2:
+        name: UT_core_part_2
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.get_count.outputs.core > '1' }}
+        uses: .gitcode/workflows/ut_job.yml
+        with:
+          torch_branch: ${{ atomgit.event.pull_request.base.ref }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          TEST_RANK: "2"
+          TEST_WORLD_SIZE: "3"
+          NPU_CORE: "yes"
+
+      UT_core_part_3:
+        name: UT_core_part_3
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.get_count.outputs.core > '2' }}
+        uses: .gitcode/workflows/ut_job.yml
+        with:
+          torch_branch: ${{ atomgit.event.pull_request.base.ref }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          TEST_RANK: "3"
+          TEST_WORLD_SIZE: "3"
+          NPU_CORE: "yes"
+
+      UT_core_part_213:
+        name: UT_core_part_213
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.get_count.outputs.core > '2' && env.target_branch == 'master' }}
+        uses: .gitcode/workflows/ut_job.yml
+        with:
+          torch_branch: '2.13.0'
+          CP_DOCKER_IMG: ${{ env.img_2_13_0_arm }}
+          TEST_RANK: "1"
+          TEST_WORLD_SIZE: "1"
+          NPU_CORE: "yes"
+
+      UT_select_01:
+        name: UT_select_01
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.get_count.outputs.select > '0' }}
+        uses: .gitcode/workflows/ut_job.yml
+        with:
+          torch_branch: ${{ atomgit.event.pull_request.base.ref }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          NPU_CORE: "no"
+          TEST_RANK: "1"
+          TEST_WORLD_SIZE: "2"
+
+      UT_select_02:
+        name: UT_select_02
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.get_count.outputs.select == '2' }}
+        uses: .gitcode/workflows/ut_job.yml
+        with:
+          torch_branch: ${{ atomgit.event.pull_request.base.ref }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          NPU_CORE: "no"
+          TEST_RANK: "2"
+          TEST_WORLD_SIZE: "2"
+
+      UT_select_213:
+        name: UT_select_213
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.get_count.outputs.select == '2' && env.target_branch == 'master' }}
+        uses: .gitcode/workflows/ut_job.yml
+        with:
+          torch_branch: '2.13.0'
+          CP_DOCKER_IMG: ${{ env.img_2_13_0_arm }}
+          NPU_CORE: "no"
+
+      UT_inductor_01:
+        name: UT_inductor_01
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' && env.target_branch != 'master' && !startsWith(env.target_branch, 'v2.12.0') }}
+        uses: .gitcode/workflows/ut_job_inductor.yml
+        with:
+          torch_branch: ${{ atomgit.event.pull_request.base.ref }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          TEST_RANK: "1"
+          TEST_WORLD_SIZE: "4"
+
+      UT_inductor_02:
+        name: UT_inductor_02
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' && env.target_branch != 'master' && !startsWith(env.target_branch, 'v2.12.0') }}
+        uses: .gitcode/workflows/ut_job_inductor.yml
+        with:
+          torch_branch: ${{ atomgit.event.pull_request.base.ref }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          TEST_RANK: "2"
+          TEST_WORLD_SIZE: "4"
+
+      UT_inductor_03:
+        name: UT_inductor_03
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' && env.target_branch != 'master' && !startsWith(env.target_branch, 'v2.12.0') }}
+        uses: .gitcode/workflows/ut_job_inductor.yml
+        with:
+          torch_branch: ${{ atomgit.event.pull_request.base.ref }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          TEST_RANK: "3"
+          TEST_WORLD_SIZE: "4"
+
+      UT_inductor_04:
+        name: UT_inductor_04
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' && env.target_branch != 'master' && !startsWith(env.target_branch, 'v2.12.0') }}
+        uses: .gitcode/workflows/ut_job_inductor.yml
+        with:
+          torch_branch: ${{ atomgit.event.pull_request.base.ref }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          TEST_RANK: "4"
+          TEST_WORLD_SIZE: "4"
+
+      UT_inductor_213:
+        name: UT_inductor_213
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' && env.target_branch == 'master' }}
+        uses: .gitcode/workflows/ut_job_inductor.yml
+        with:
+          torch_branch: '2.13.0'
+          CP_DOCKER_IMG: ${{ env.img_2_13_0_arm }}
+          TEST_RANK: "1"
+          TEST_WORLD_SIZE: "1"
+
+      UT_distributed_01:
+        name: UT_distributed_01
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_distribution.outputs.need_distribution == 'yes' }}
+        uses: .gitcode/workflows/ut_job_distributed.yml
+        with:
+          torch_branch: ${{ atomgit.event.pull_request.base.ref }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          TEST_RANK: "1"
+          TEST_WORLD_SIZE: "4"
+
+      UT_distributed_02:
+        name: UT_distributed_02
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_distribution.outputs.need_distribution == 'yes' }}
+        uses: .gitcode/workflows/ut_job_distributed.yml
+        with:
+          torch_branch: ${{ atomgit.event.pull_request.base.ref }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          TEST_RANK: "2"
+          TEST_WORLD_SIZE: "4"
+
+      UT_distributed_03:
+        name: UT_distributed_03
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_distribution.outputs.need_distribution == 'yes' }}
+        uses: .gitcode/workflows/ut_job_distributed.yml
+        with:
+          torch_branch: ${{ atomgit.event.pull_request.base.ref }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          TEST_RANK: "3"
+          TEST_WORLD_SIZE: "4"
+
+      UT_distributed_04:
+        name: UT_distributed_04
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_distribution.outputs.need_distribution == 'yes' }}
+        uses: .gitcode/workflows/ut_job_distributed.yml
+        with:
+          torch_branch: ${{ atomgit.event.pull_request.base.ref }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          TEST_RANK: "4"
+          TEST_WORLD_SIZE: "4"
+
+      UT_distributed_213:
+        name: UT_distributed_213
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_distribution.outputs.need_distribution == 'yes' && env.target_branch == 'master' }}
+        uses: .gitcode/workflows/ut_job_distributed.yml
+        with:
+          torch_branch: '2.13.0'
+          CP_DOCKER_IMG: ${{ env.img_2_13_0_arm }}
+          TEST_RANK: "1"
+          TEST_WORLD_SIZE: "1"

@@ -34,10 +34,11 @@ jobs:
           name: modify_files.txt
           path: ./
 
-      - name: get count
+      - name: install time_data
         id: get_time_data
         run: |
           ls
+          cp modify_files.txt CODE/
           cd CODE
           echo "${{ atomgit.event.pull_request.base.ref }}"
           wget -c -q --no-check-certificate https://pta-pr.obs.cn-north-4.myhuaweicloud.com/pta/timing/${{ atomgit.event.pull_request.base.ref }}_time_data.json -O time_data.json
@@ -45,7 +46,7 @@ jobs:
           ls -l time_data.json
           cat time_data.json
 
-      - name: install psutil
+      - name: get count
         id: get_count
         run: |
           case "${{ atomgit.event.pull_request.base.ref }}" in
@@ -53,6 +54,8 @@ jobs:
             *)
               echo "core=3" >> "$ATOMGIT_OUTPUT"
               echo "select=2" >> "$ATOMGIT_OUTPUT"
+              echo "core=3"
+              echo "select=2"
               exit 0
               ;;
           esac

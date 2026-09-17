@@ -1,0 +1,206 @@
+name: UT Job
+
+on:
+  workflow_call:
+    inputs:
+      py_version:
+        required: false
+        type: string
+        default: "3.10"
+      pr_id:
+        required: false
+        type: string
+        default: ${{ atomgit.event.pull_request.number }}
+      CP_DOCKER_IMG:
+        required: true
+        type: string
+      torch_branch:
+        required: true
+        type: string
+      TEST_RANK:
+        required: false
+        type: string
+        default: "1"
+      TEST_WORLD_SIZE:
+        required: false
+        type: string
+        default: "1"
+
+jobs:
+  JOB_UT:
+    name: JOB_UT
+    select: selected_by_default
+    runs-on: [ self-hosted, default, npu=1 ]
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/${{ inputs.CP_DOCKER_IMG }}
+    env:
+      TEST_RANK: ${{ inputs.TEST_RANK }}
+      TEST_WORLD_SIZE: ${{ inputs.TEST_WORLD_SIZE }}
+    steps:
+      - name: checkout torch_npu
+        uses: checkout
+        with:
+          ref: refs/merge-requests/${{ inputs.pr_id }}/merge
+          fetch-depth: 1
+          submodules: true
+          path: ./
+          allow-unsafe-pr-checkout: true
+
+      - name: Download build artifact
+        uses: download-artifact
+        with:
+          name: torch_npu-${{ inputs.torch_branch }}-arm
+          path: ./
+
+      - name: download modify_files.txt artifact
+        uses: download-artifact
+        with:
+          name: modify_files.txt
+          path: ./
+
+      - name: install torch
+        if: ${{ inputs.torch_branch == 'master' }}
+        run: |
+          torch_version=$(cat requirements.txt | grep torch== | cut -c 8-25)
+          nightly_date=${torch_version:10:8}
+          echo "torch_version=${torch_version}"
+          echo "nightly_date=${nightly_date}"
+
+          if [ ${#nightly_date} -ne 8 ]; then
+            ver=${torch_version:0:6}
+            url_base="https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/torch/v${ver}"
+          else
+            ver=${torch_version}
+            url_base="https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/torch/master/${nightly_date}"
+          fi
+
+          torch_url="${url_base}/torch-${ver}%2Bcpu-cp310-cp310-manylinux_2_28_aarch64.whl"
+          echo "torch_url=${torch_url}"
+          pip"${{ inputs.py_version }}" install $torch_url
+          pip"${{ inputs.py_version }}" install -r test/requirements.txt
+
+      - name : sync with github
+        run: |
+          cd ${ATOMGIT_WORKSPACE}
+          echo "sync with github"
+          branch_path=${{ atomgit.event.pull_request.base.ref }}
+          if [[ ${{ atomgit.event.pull_request.base.ref }} != ${{ inputs.torch_branch }} ]]; then
+              echo "torch_branch:${{ inputs.torch_branch }}"
+              echo "base_ref:${{ atomgit.event.pull_request.base.ref }}"
+              branch_path=v${{inputs.torch_branch}}
+          fi
+          branch_path=${branch_path%%-*}
+          branch_path=${branch_path%%_*}
+          echo "branch:${branch_path}"
+          temp_folder="testcase_temp"
+          rm -rf "${temp_folder}"
+          mkdir -p "${temp_folder}"
+          wget --no-host-directories -c -q --no-check-certificate https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/test/common_testcase/${branch_path}/testcase.tar.gz -O "${temp_folder}/testcase.tar.gz"
+          tar -zxf "${temp_folder}/testcase.tar.gz" -C "${temp_folder}"
+
+          if [ -e "${ATOMGIT_WORKSPACE}"/test/testfiles_synchronized.txt ]; then
+              cd "${temp_folder}"
+              cat "${ATOMGIT_WORKSPACE}"/test/testfiles_synchronized.txt | while IFS= read -r line; do
+                  line=$(echo "${line}" | tr -d '\r')
+                  if [ "${line}" != "" ]; then
+                      mkdir -p "${ATOMGIT_WORKSPACE}"/"$(dirname "${line}")"
+                      cp -rf "${line}" "${ATOMGIT_WORKSPACE}"/"${line}" || echo "testfiles copy failed: ${line}"
+                  fi
+              done
+              cd "${ATOMGIT_WORKSPACE}"
+          fi
+
+          if [ -e "${ATOMGIT_WORKSPACE}"/test/testfolder_synchronized.txt ]; then
+              cd "${temp_folder}"
+              cat "${ATOMGIT_WORKSPACE}"/test/testfolder_synchronized.txt | while IFS= read -r line; do
+                  line=$(echo "${line}" | tr -d '\r')
+                  if [ "${line}" != "" ]; then
+                      cp -rf "${line}" "${ATOMGIT_WORKSPACE}"/"${line}" || echo "testfolder copy failed: ${line}"
+                  fi
+              done
+              cd "${ATOMGIT_WORKSPACE}"
+          fi
+
+          if [ -e "${ATOMGIT_WORKSPACE}"/test/adaptive_tests.txt ]; then
+              temp_path="test/temp_tests/pytorch/"
+              if [ ! -d "$temp_path" ]; then
+                  mkdir -p "$temp_path"
+                  echo "mkdir $temp_path success"
+              else
+                  echo "$temp_path exists"
+              fi
+              cp -rf "${temp_folder}"/test "${temp_path}"/
+              cd test
+              python"${{ inputs.py_version }}" adapt_testcases_to_npu.py
+          fi
+
+          cd "${ATOMGIT_WORKSPACE}"
+          rm -rf "${temp_folder}"
+          ls ${ATOMGIT_WORKSPACE}/test
+
+      - name: UT torch_npu
+        id: ut_npu
+        run: |
+          ls ${ATOMGIT_WORKSPACE}
+          python_path=$(dirname $(dirname $(readlink -f $(which python${{ inputs.py_version }}))))
+          echo "python_path=${python_path}"
+          export PATH=${python_path}/bin:$PATH
+          source /etc/profile
+          export PYTHONUNBUFFERED=1
+          export OMP_NUM_THREADS=32
+          export PTA_UT_EXEC_TIMEOUT=4800
+
+          echo "Skip several test cases due to unexpected issues."
+          cd ${ATOMGIT_WORKSPACE}/test
+          rm -rf test_jit.py test_jit*.py jit
+          rm -rf distributed/test_register_sharding.py  distributed/fsdp2
+          cd -
+          if [ -e ci/access_control/constants.py ]; then
+              sed -i "s/'test_jit_fuser_te',/   /g" ci/access_control/constants.py
+          fi
+          test_path_dir=${ATOMGIT_WORKSPACE}/test
+          export DISABLED_TESTS_FILE=${test_path_dir}/unsupported_test_cases/.pytorch-disabled-tests.json
+          source /usr/local/Ascend/cann/set_env.sh
+          source /usr/local/Ascend/nnal/atb/set_env.sh
+          pip"${{ inputs.py_version }}" install torch_npu*.whl
+          pip"${{ inputs.py_version }}" install https://repo.oepkgs.net/openeuler/ascend/pytorch/vllm/torch/Torch-MLIR/aarch64/Python310/torch_mlir-0.0.1-cp310-cp310-linux_aarch64.whl
+          pip"${{ inputs.py_version }}" install https://mirrors.huaweicloud.com/ascend/repos/pypi/nightly/triton-ascend/triton_ascend-3.2.2+release20260701-cp310-cp310-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl
+          pip"${{ inputs.py_version }}" list
+          echo "------------------------------------- ENV PATH -------------------------------------"
+          echo ${PATH}
+          echo "------------------------------------------------------------------------------------"
+          cd ci
+          if [[ ${{ atomgit.event.pull_request.base.ref }} == 'master' && ${{ inputs.torch_branch }} != 'master' ]]; then
+              onetrack_branch=${{ inputs.torch_branch }}
+              onetrack_branch=${onetrack_branch%.0}
+              echo "onetrack_branch=${onetrack_branch}"
+              python"${{ inputs.py_version }}" access_control_test.py --between_version="min=${onetrack_branch}" --rank=${{ env.TEST_RANK }} --world_size=${{ env.TEST_WORLD_SIZE }} --npu_core=${{ inputs.NPU_CORE }} 2>&1
+          else
+              python"${{ inputs.py_version }}" access_control_test.py  --rank=${{ env.TEST_RANK }} --world_size=${{ env.TEST_WORLD_SIZE }} --npu_core=${{ inputs.NPU_CORE }} 2>&1
+          fi
+
+          echo "upload_data=no" >> "$ATOMGIT_OUTPUT"
+          if [ -e ${ATOMGIT_WORKSPACE}/time_data.json ]; then
+            cp -f ${ATOMGIT_WORKSPACE}/time_data.json ${ATOMGIT_WORKSPACE}/${{ atomgit.event.pull_request.base.ref }}_time_data.json
+            ls -al ${ATOMGIT_WORKSPACE}
+            echo "upload_data=yes" >> "$ATOMGIT_OUTPUT"
+          fi
+
+      - name: oidc-auth
+        uses: huaweicloud-oidc-auth
+        with:
+          audience: pta_pr_obs_for_pytorch
+          region: cn-north-4
+          agency_urn: iam::0d336831568090260fd5c01450729240:agency:pta_obs_pr_trust
+          provider_urn: iam::0d336831568090260fd5c01450729240:oidcProvider:pta_obs_pr
+
+      - name: Upload time data to OBS
+        if: ${{ steps.ut_npu.outputs.upload_data == 'yes' }}
+        id: upload_obs
+        uses: obs-upload
+        with:
+          endpoint: "obs.cn-north-4.myhuaweicloud.com"
+          bucket: "pta-pr"
+          artifact-path: |
+            ${{ atomgit.event.pull_request.base.ref }}_time_data.json
+          object-prefix: "pta/timing/"

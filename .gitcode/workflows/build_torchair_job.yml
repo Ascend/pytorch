@@ -74,5 +74,5 @@ jobs:
           endpoint: "obs.cn-north-4.myhuaweicloud.com"
           bucket: "pta-pr"
           artifact-path: |
-            dist/torch_npu*.whl
+            torch_npu*.whl
           object-prefix: "pta/PR/${{ inputs.pr_id }}/"
