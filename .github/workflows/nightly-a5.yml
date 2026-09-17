@@ -24,7 +24,7 @@ jobs:
       torch_npu_ref: master
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609141214-9b737f59
       report_to_upstream: false
-      runner_label: 'linux-amd64-a5-2-sh-002'
+      runner_label: 'linux-amd64-a5-2'
       max_jobs: '23'
 
   test:
@@ -42,7 +42,7 @@ jobs:
       hw_classification: ''
       full_scan: true
       device_env: 'privateuse1,cpu'
-      runner_label: 'linux-amd64-a5-2-sh-002'
+      runner_label: 'linux-amd64-a5-2'
       skip_list: |-
         .github/config/disabled_testcases.json
         .github/config/running_skiped_testcases.json

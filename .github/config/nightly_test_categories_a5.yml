@@ -32,7 +32,7 @@ categories:
   core:
     workers: 32
     execution: concurrent
-    runner: linux-amd64-a5-8-sh-002
+    runner: linux-amd64-a5-8
     paths:
       - test/nn
       - test/optim
@@ -62,7 +62,7 @@ categories:
   tensor:
     workers: 32
     execution: concurrent
-    runner: linux-amd64-a5-8-sh-002
+    runner: linux-amd64-a5-8
     paths:
       - test/torch_np
       - test/complex_tensor
@@ -104,14 +104,14 @@ categories:
   distributed:
     workers: 1
     execution: serial
-    runner: linux-amd64-a5-8-sh-002
+    runner: linux-amd64-a5-8
     paths:
       - test/distributed
 
   graph:
     workers: 32
     execution: concurrent
-    runner: linux-amd64-a5-8-sh-002
+    runner: linux-amd64-a5-8
     paths:
       - test/fx
       - test/dynamo
@@ -167,4 +167,4 @@ categories:
   others:
     workers: 32
     execution: concurrent
-    runner: linux-amd64-a5-8-sh-002
+    runner: linux-amd64-a5-8
