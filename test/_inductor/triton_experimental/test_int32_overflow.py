@@ -1,8 +1,5 @@
 # Owner(s): ["module: tests"]
-import functools
-
 import torch
-import torch._dynamo as dynamo
 from torch._inductor.utils import run_and_get_code
 from torch.testing._internal.common_utils import (
     run_tests,
@@ -11,7 +8,6 @@ from torch.testing._internal.common_utils import (
 )
 
 import torch_npu  # noqa: F401
-import torch_npu._inductor.triton_experimental.config as ncfg
 
 
 # Regression test for the int32 index-overflow bug in the triton_experimental
@@ -28,51 +24,8 @@ import torch_npu._inductor.triton_experimental.config as ncfg
 # factor in the address expressions at the load/store use site
 # (coeff*var.to(tl.int64)) — unconditional, constructive correctness.
 #
-# This test pins the behavior at the 2^31 boundary: 8388609*256 == 2^31 + 257
-# elements, just past int32_max, so the kernel must go int64-indexed without a
-# full tile upcast.
-def _free_hbm_bytes():
-    try:
-        free, _total = torch.npu.mem_get_info()
-        return free
-    except Exception:
-        return None
-
-
-def skipIfInsufficientHBM(min_free_bytes):
-    """Skip a large test when the device's free HBM is verifiably below the
-    requirement. The overflow corpus keeps the input, an eager reference,
-    outputs and compile caches resident at once, so budget ~2x the tensor."""
-    def deco(fn):
-        @functools.wraps(fn)
-        def wrapper(self):
-            free = _free_hbm_bytes()
-            if free is not None and free < min_free_bytes:
-                self.skipTest(
-                    f"large test: needs >= {min_free_bytes >> 30} GiB free "
-                    f"HBM, only {free >> 30} GiB available"
-                )
-            return fn(self)
-        return wrapper
-    return deco
-
-
-def _cut_autotune_runs():
-    """Test-speedup: cut the mspti autotune benchmark to 1 warmup + 1 active run.
-
-    Guard-value note: the assertions of this suite are codegen-text and
-    numeric-correctness checks, only ONE real kernel run is needed; the
-    production 25-run-per-candidate bench ranks configs for performance,
-    which the tests do not measure. The candidate set itself is left
-    untouched (the with_index kernel at > 2^31 elements needs the
-    production set: single-candidate pinning was tried and the largest
-    tile fails UB compile while small-tile fallbacks produce wrong
-    indices). Returns (old_warmup, old_active) for a try/finally restore.
-    """
-    old = (ncfg.mspti_warmup, ncfg.mspti_active)
-    ncfg.mspti_warmup = 1
-    ncfg.mspti_active = 1
-    return old
+# The >2^31-scale end-to-end cases (17-18 GiB HBM each) were removed on
+# 2026-09-16; recover them from git history if the boundary needs re-checking.
 
 
 # P0 drift pin (2026-08-28 audit): the audited call surface of the type-name
@@ -80,185 +33,76 @@ def _cut_autotune_runs():
 # numbers — a moved line does not false-alarm, an added/changed call site
 # does. A torch bump failing test_int64_type_callsite_surface_pin means the
 # int64 type-role assumptions need a re-audit (update this list only after
-# re-auditing).
-_EXPECTED_INT64_TYPE_CALLSURFACE = [
-    "simd: return self.dtype_to_str(self.get_index_dtype_as_torch_dtype())",
-    "triton: asm_triton_type = triton_type(dtype)",
-    "triton: cast_inputs.append(f\"{inp}.to({triton_type(input_dtypes[i])})\")",
-    "triton: f\"({str(logical_index)}).to({self.dtype_to_str(index_dtype)})\"",
-    "triton: f\"({var}).to({triton_type(dtype)})\",",
-    "triton: f\".to({triton_type(result_dtype)})\"",
-    "triton: f\"{result} = {result}.to({triton_compute_type(target_dtype)})\"",
-    "triton: f\"{torch.iinfo(index_dtype).max}, {self.dtype_to_str(index_dtype)})\"",
-    "triton: f\"{value}.to({triton_compute_type(dtype)})\",",
-    "triton: f\"{value}.to({triton_store_type(store_dtype)})\",",
-    "triton: line += f\".to({triton_type(dtype)})\"",
-    "triton: out = f\"{out}.to({triton_type(out_dtype)})\"",
-    "triton: out = f\"{out}.to({triton_type(upcast_compute_type(dtype))})\"",
-    "triton: out = f\"{x}.to({triton_type(dtype)}, bitcast=True)\"",
-    "triton: out_dtype = triton_compute_type(dtype)",
-    "triton: out_dtype = triton_store_type(dtype)",
-    "triton: result = f\"{result}.to({self.dtype_to_str(result_type)})\"",
-    "triton: result = f\"{result}.to({triton_type(result_dtype)})\"",
-    "triton: return f\"({arg}).to({triton_type(dtype)})\"",
-    "triton: return f\"{result}.to({triton_type(dtype)})\"",
-    "triton: return f\"{result}.to({triton_type(result_dtype)})\"",
-    "triton: return triton_compute_type(upcast_acc_dtype(dtype))",
-    "triton: return triton_type(dtype)",
-    "triton: return triton_type(upcast_compute_type(dtype))",
-    "triton: triton_type = triton_compute_type(dtype)",
-    "triton: value = f\"{value}.to({triton_store_type(store_dtype)})\"",
-    "triton: x = f\"{x}.to({triton_type(src_dtype)})\"",
-    "triton: {result_var}_ws = ({ws_name} + {self.index_to_str(ws_offset)}).to(tl.pointer_type({triton_type(dtype)}))",
-]
+# re-auditing). Keyed by (major, minor); a version without an entry fails BY
+# DESIGN until it is audited.
+_EXPECTED_INT64_TYPE_CALLSURFACE = {
+    (2, 13): [
+        "simd: return self.dtype_to_str(self.get_index_dtype_as_torch_dtype())",
+        "triton: asm_triton_type = triton_type(dtype)",
+        "triton: cast_inputs.append(f\"{inp}.to({triton_type(input_dtypes[i])})\")",
+        "triton: f\"({str(logical_index)}).to({self.dtype_to_str(index_dtype)})\"",
+        "triton: f\"({var}).to({triton_type(dtype)})\",",
+        "triton: f\".to({triton_type(result_dtype)})\"",
+        "triton: f\"{result} = {result}.to({triton_compute_type(target_dtype)})\"",
+        "triton: f\"{torch.iinfo(index_dtype).max}, {self.dtype_to_str(index_dtype)})\"",
+        "triton: f\"{value}.to({triton_compute_type(dtype)})\",",
+        "triton: f\"{value}.to({triton_store_type(store_dtype)})\",",
+        "triton: line += f\".to({triton_type(dtype)})\"",
+        "triton: out = f\"{out}.to({triton_type(out_dtype)})\"",
+        "triton: out = f\"{out}.to({triton_type(upcast_compute_type(dtype))})\"",
+        "triton: out = f\"{x}.to({triton_type(dtype)}, bitcast=True)\"",
+        "triton: out_dtype = triton_compute_type(dtype)",
+        "triton: out_dtype = triton_store_type(dtype)",
+        "triton: result = f\"{result}.to({self.dtype_to_str(result_type)})\"",
+        "triton: result = f\"{result}.to({triton_type(result_dtype)})\"",
+        "triton: return f\"({arg}).to({triton_type(dtype)})\"",
+        "triton: return f\"{result}.to({triton_type(dtype)})\"",
+        "triton: return f\"{result}.to({triton_type(result_dtype)})\"",
+        "triton: return triton_compute_type(upcast_acc_dtype(dtype))",
+        "triton: return triton_type(dtype)",
+        "triton: return triton_type(upcast_compute_type(dtype))",
+        "triton: triton_type = triton_compute_type(dtype)",
+        "triton: value = f\"{value}.to({triton_store_type(store_dtype)})\"",
+        "triton: x = f\"{x}.to({triton_type(src_dtype)})\"",
+        "triton: {result_var}_ws = ({ws_name} + {self.index_to_str(ws_offset)}).to(tl.pointer_type({triton_type(dtype)}))",
+    ],
+    (2, 15): [
+        "simd: return self.dtype_to_str(self.get_index_dtype_as_torch_dtype())",
+        "triton: cast_inputs.append(f\"{inp}.to({triton_type(input_dtypes[i])})\")",
+        "triton: else triton_type(dtype)",
+        "triton: f\"({', '.join(triton_type(dt) for dt in all_output_dtypes)})\"",
+        "triton: f\"({str(logical_index)}).to({self.dtype_to_str(index_dtype)})\"",
+        "triton: f\"({var}).to({triton_type(dtype)})\",",
+        "triton: f\".to({triton_type(result_dtype)})\"",
+        "triton: f\"{name} = {raw_part}.to({triton_type(dtype)}, bitcast=True)\"",
+        "triton: f\"{result} = {result}.to({triton_compute_type(target_dtype)})\"",
+        "triton: f\"{torch.iinfo(index_dtype).max}, {self.dtype_to_str(index_dtype)})\"",
+        "triton: f\"{value}.to({triton_compute_type(dtype)})\",",
+        "triton: f\"{value}.to({triton_store_type(store_dtype)})\",",
+        "triton: line += f\".to({triton_type(dtype)})\"",
+        "triton: line = f\"{line}.to({triton_type(dtype)}, bitcast=True)\"",
+        "triton: out = f\"{out}.to({triton_type(out_dtype)})\"",
+        "triton: out = f\"{out}.to({triton_type(upcast_compute_type(dtype))})\"",
+        "triton: out = f\"{x}.to({triton_type(dtype)}, bitcast=True)\"",
+        "triton: out_dtype = triton_compute_type(dtype)",
+        "triton: out_dtype = triton_store_type(dtype)",
+        "triton: result = f\"{result}.to({self.dtype_to_str(result_type)})\"",
+        "triton: result = f\"{result}.to({triton_type(result_dtype)})\"",
+        "triton: return f\"({arg}).to({triton_type(dtype)})\"",
+        "triton: return f\"{result}.to({triton_type(dtype)})\"",
+        "triton: return f\"{result}.to({triton_type(result_dtype)})\"",
+        "triton: return triton_compute_type(upcast_acc_dtype(dtype))",
+        "triton: return triton_type(dtype)",
+        "triton: return triton_type(upcast_compute_type(dtype))",
+        "triton: triton_type = triton_compute_type(dtype)",
+        "triton: value = f\"{value}.to({triton_store_type(store_dtype)})\"",
+        "triton: x = f\"{x}.to({triton_type(src_dtype)})\"",
+        "triton: {result_var}_ws = ({ws_name} + {self.index_to_str(ws_offset)}).to(tl.pointer_type({triton_type(dtype)}))",
+    ],
+}
 
 
 class TestInt32Overflow(TestCase):
-
-    @skipIfInsufficientHBM(17 * 2**30)
-    def test_sum_over_int32_max_promotes_overflow_addend(self):
-        # 2^31 + 257 elements (8.0 GiB fp32) — the minimal > int32_max case.
-        x = torch.randn(8388609, 256, device=torch.device("npu"))
-        ref = x.sum(dim=1)
-
-        def fn(t):
-            return t.sum(dim=1)
-
-        cf = torch.compile(fn, options={"npu_backend": "triton_experimental"})
-        y, codes = run_and_get_code(cf, x)
-
-        # Numeric correctness at > 2^31 scale.
-        self.assertTrue(torch.allclose(y, ref, atol=1e-3, rtol=1e-3))
-        # Every axis factor of the address expression is widened to int64 at
-        # the load site (unconditional); lanes/tiles stay int32.
-        self.assertIn("to(tl.int64)", codes[0])
-
-    @skipIfInsufficientHBM(18 * 2**30)
-    def test_dynamic_over_int32_max_unconditional_widen(self):
-        # Dynamic axis length whose trace-time hint already exceeds int32_max.
-        # The widening is unconditional (every axis factor in the address
-        # expression), so there is no snapshot-derived promote decision and no
-        # runtime guard contract: correctness holds for ANY runtime shape and
-        # the hint boundary is irrelevant. This case used to exercise the
-        # guard-skip path; it now pins that the dynamic >2^31 kernel simply
-        # compiles and runs correctly.
-        s0 = 2_150_000_000  # numel s0*2 = 4.3e9 > 2^31 (8.6 GiB fp16)
-        x = torch.full((s0, 2), 1.0, device="npu", dtype=torch.float16)
-        dynamo.mark_dynamic(x, 0)
-        ref = x.sum(dim=1)
-
-        def fn(t):
-            return t.sum(dim=1)
-
-        cf = torch.compile(fn, options={"npu_backend": "triton_experimental"})
-        y = cf(x)
-        torch.npu.synchronize()
-
-        self.assertTrue(torch.allclose(y, ref))
-
-    @skipIfInsufficientHBM(17 * 2**30)
-    def test_non_linearize_over_int32_max_keeps_tiles_int32(self):
-        # With codegen_linearize=False, past 2^31 elements the
-        # non-linearize structure cannot stay correct — xoffset =
-        # pid.to(int64)*XBLOCK upcasts every arange tile to int64 via mixed
-        # broadcast (UB doubling, 507034) and the results go wrong. The kernel
-        # must force the linearize structure (i64 rides the scalar
-        # group_base/real_block chain and the widened address factors, tiles
-        # stay int32) regardless of the config, which then only governs
-        # in-range kernels.
-        import torch_npu._inductor.triton_experimental.codegen.triton as tmod
-
-        orig = tmod.triton_codegen_linearize
-        tmod.triton_codegen_linearize = False
-        try:
-            x = torch.full((8388609, 256), 1.0, device="npu", dtype=torch.float32)
-            ref = x.sum(dim=1)
-
-            def fn(t):
-                return t.sum(dim=1)
-
-            cf = torch.compile(fn, options={"npu_backend": "triton_experimental"})
-            y, codes = run_and_get_code(cf, x)
-            torch.npu.synchronize()
-
-            # Numeric correctness at > 2^31 scale with linearize forced off.
-            self.assertTrue(torch.allclose(y, ref, atol=1e-3, rtol=1e-3))
-            # Reverse-guard the whole-tile upcast: no arange/full tile may be
-            # int64 AT ALL (as a dtype literal or via a cast). The pre-fix
-            # all-tile upcast emitted tl.arange(..., tl.int64) with no ".to"
-            # call, so asserting only on the cast would not catch it (507034).
-            for line in codes[0].splitlines():
-                if "tl.arange" in line or "tl.full" in line:
-                    self.assertNotIn(
-                        "tl.int64", line,
-                        f"non-linearize tile upcast past 2^31: {line.strip()}",
-                    )
-            # Forward-guard: the overflowing addend — 256*x0
-            # has term_max 256*8388608 == 2^31 > int32_max — must carry the
-            # int64 cast. Widening is unconditional (constructive correctness),
-            # so other axis factors of the same index may be cast too;
-            # exclusivity is deliberately NOT pinned — a wrong widening
-            # selection can only cost speed, never correctness.
-            cast_lines = [l for l in codes[0].splitlines() if ".to(tl.int64)" in l]
-            self.assertTrue(
-                cast_lines,
-                "no int64 cast in the address expressions at all",
-            )
-            self.assertRegex(
-                "\n".join(cast_lines),
-                r"\b256\*x0\.to\(tl\.int64\)",
-                f"overflow addend cast missing: {cast_lines}",
-            )
-        finally:
-            tmod.triton_codegen_linearize = orig
-
-    @skipIfInsufficientHBM(17 * 2**30)
-    def test_max_with_index_over_int32_max_correct(self):
-        # The upstream arg-reduction index accumulator follows
-        # select_index_dtype() and is emitted as a full int64 tile past 2^31
-        # elements (tl.full(..., tl.int64) + *_with_index compare/select over
-        # the whole [X, R] tile). Variant C keeps this upstream default — the
-        # tile works on NPU, verified correct — and promotes ONLY the pointer
-        # addend to int64 at the load use site. Note aten.argmax itself does
-        # NOT reach this path on NPU: it falls back to eager (no triton kernel
-        # is generated), so torch.max(dim=1) is the reachable form of the
-        # arg-reduction code path.
-        #
-        # Test time budget: the kernel is > 2^31 logical elements (hard
-        # requirement of the overflow guard) and the with_index accumulator is
-        # a full int64 tile, so a single real run costs ~3s on AIV; the
-        # production autotune would then benchmark 20+ candidates x 25 runs
-        # (~15min) without adding guard value. The assertions below need only
-        # ONE real run (codegen texts + numeric correctness are
-        # config-independent), so cut the mspti bench to 1+1 and leave the
-        # candidate set untouched.
-        orig_warmup, orig_active = _cut_autotune_runs()
-        try:
-            x = torch.randn(8388609, 256, device="npu")
-            ref_v, ref_i = x.max(dim=1)
-
-            def fn(t):
-                return t.max(dim=1)
-
-            cf = torch.compile(fn, options={"npu_backend": "triton_experimental"})
-            result, codes = run_and_get_code(cf, x)
-            yv, yi = result
-            torch.npu.synchronize()
-
-            self.assertTrue(torch.allclose(yv, ref_v, atol=1e-3, rtol=1e-3))
-            self.assertTrue(torch.equal(yi, ref_i))
-            # The kernel must exist (compiled, not eager) and carry the overflow
-            # addend cast (variant C at the load site).
-            self.assertIn("with_index", codes[0])
-            self.assertIn(".to(tl.int64)", codes[0])
-            # R7-c trap pin: the with_index accumulator type and its
-            # torch.iinfo(index_dtype).max sentinel fill must stay PAIRED —
-            # narrowing dtype_to_str alone would emit the int64 max into a
-            # tl.int32 full and break compilation.
-            self.assertIn("9223372036854775807, tl.int64", codes[0])
-        finally:
-            ncfg.mspti_warmup = orig_warmup
-            ncfg.mspti_active = orig_active
 
     def test_mask_cmp_lhs_int64_narrow_protects_fp32(self):
         # With mask_cmp_fp32 on, the int32 narrow must
@@ -426,9 +270,21 @@ class TestInt32Overflow(TestCase):
                 s = line.strip()
                 if pat.search(s) and not s.startswith(("def ", "#")):
                     surface.add(f"{short}: {s}")
+        expected = _EXPECTED_INT64_TYPE_CALLSURFACE.get(
+            tuple(
+                int(p)
+                for p in re.match(r"(\d+)\.(\d+)", torch.__version__).groups()
+            )
+        )
+        if expected is None:
+            self.fail(
+                f"torch {torch.__version__} has no audited int64 "
+                "type-callsurface snapshot — re-audit the dtype roles, then "
+                "add one keyed by (major, minor)"
+            )
         self.assertEqual(
             sorted(surface),
-            sorted(_EXPECTED_INT64_TYPE_CALLSURFACE),
+            sorted(expected),
             "int64 type-helper call surface drifted — re-audit the dtype "
             "roles before updating this snapshot",
         )

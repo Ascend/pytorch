@@ -3592,12 +3592,16 @@ class NPUTritonKernel(TritonKernel):
 
     def indexing(self, index, *, copy_shape=None, dense_indexing=False,
                  override_mask=None, block_ptr=False,
-                 tma_compatibility_checker=None, mask_constant_index=False):
+                 tma_compatibility_checker=None, mask_constant_index=False,
+                 **kwargs):
+        # Forward unknown kwargs verbatim: upstream keeps adding keyword-only
+        # parameters here (2.15 added allow_reduction_invariant_indexing).
         result = super().indexing(
             index, copy_shape=copy_shape, dense_indexing=dense_indexing,
             override_mask=override_mask, block_ptr=block_ptr,
             tma_compatibility_checker=tma_compatibility_checker,
             mask_constant_index=mask_constant_index,
+            **kwargs,
         )
         if getattr(self, "_npu_capture_prepared_load_index", False):
             self._npu_prepared_load_index = (

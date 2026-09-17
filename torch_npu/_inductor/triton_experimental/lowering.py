@@ -425,11 +425,12 @@ import threading as _threading
 _expand_reentry = _threading.local()
 
 
-def npu_expand(x, sizes):
+def npu_expand(x, sizes, **kwargs):
     """NPU expand: realize a SHORT tail-axis broadcast into its own contiguous
     buffer so the consumer reads a full [s,c] operand and bishengir keeps the vector
-    path. Pinned no-fuse. Gated by realize_tail_bcast (see _is_tail_axis_broadcast)."""
-    result = _orig_expand(x, sizes)
+    path. Pinned no-fuse. Gated by realize_tail_bcast (see _is_tail_axis_broadcast).
+    ``**kwargs`` is forwarded untouched to the upstream handler."""
+    result = _orig_expand(x, sizes, **kwargs)
     if not ncfg.realize_tail_bcast:
         return result
     if not _is_tail_axis_broadcast(x, sizes):
