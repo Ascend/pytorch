@@ -63,6 +63,7 @@
   - [torch.utils.tensorboard](./pytorch_2-13-0/torch-utils-tensorboard.md)
   - [Type Info](./pytorch_2-13-0/Type-Info.md)
   - [torch.\_\_config\_\_](./pytorch_2-13-0/torch-__config__.md)
+  - [torch.\_\_future\_\_](./pytorch_2-13-0/torch-__future__.md)
 
 - [PyTorch 2.12.0版本](./pytorch_2-12-0/PyTorch-2-12-0.md)
   - [概述](./pytorch_2-12-0/overview.md)
@@ -128,6 +129,7 @@
   - [Type Info](./pytorch_2-12-0/Type-Info.md)
   - [Named Tensors](./pytorch_2-12-0/Named-Tensors.md)
   - [torch.\_\_config\_\_](./pytorch_2-12-0/torch-__config__.md)
+  - [torch.\_\_future\_\_](./pytorch_2-12-0/torch-__future__.md)
 
 - [PyTorch 2.11.0版本](./pytorch_2-11-0/PyTorch-2-11-0.md)
   - [概述](./pytorch_2-11-0/overview.md)
@@ -193,6 +195,7 @@
   - [Type Info](./pytorch_2-11-0/Type-Info.md)
   - [Named Tensors](./pytorch_2-11-0/Named-Tensors.md)
   - [torch.\_\_config\_\_](./pytorch_2-11-0/torch-__config__.md)
+  - [torch.\_\_future\_\_](./pytorch_2-11-0/torch-__future__.md)
 
 - [PyTorch 2.7.1版本](./pytorch_2-7-1/PyTorch-2-7-1.md)
   - [概述](./pytorch_2-7-1/overview.md)
@@ -259,6 +262,7 @@
   - [Type Info](./pytorch_2-7-1/Type-Info.md)
   - [Named Tensors](./pytorch_2-7-1/Named-Tensors.md)
   - [torch.\_\_config\_\_](./pytorch_2-7-1/torch-__config__.md)
+  - [torch.\_\_future\_\_](./pytorch_2-7-1/torch-__future__.md)
 
 - [确定性计算API支持清单](deterministic_computing_apis.md)
 - [支持DTensor的API清单](dtensor_supported_apis.md)

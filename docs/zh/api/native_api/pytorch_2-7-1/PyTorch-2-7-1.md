@@ -116,7 +116,9 @@
 
 - **[Named Tensors](Named-Tensors.md)**  
 
-- **[torch.\_\_config\_\_](torch-__config__.md)**  
+- **[torch.\_\_config\_\_](torch-__config__.md)**
+
+- **[torch.\_\_future\_\_](torch-__future__.md)**  
 
 - **[torch.distributed.fsdp.fully_shard](torch-distributed-fsdp-fully_shard.md)**  
 
