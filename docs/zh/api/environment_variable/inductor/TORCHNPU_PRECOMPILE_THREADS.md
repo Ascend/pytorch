@@ -11,7 +11,7 @@
 >
 > 该环境变量在`torch_npu._inductor`模块初始化时读取。
 
-PyTorch通过`TORCHINDUCTOR_COMPILE_THREADS`控制编译并发度。TorchNPU在编译并发度配置之外，提供`TORCHNPU_PRECOMPILE_THREADS`单独控制预编译线程数。
+PyTorch通过[TORCHINDUCTOR_COMPILE_THREADS](https://github.com/pytorch/pytorch/blob/main/torch/_inductor/config.py)控制编译并发度。TorchNPU在编译并发度配置之外，提供`TORCHNPU_PRECOMPILE_THREADS`单独控制预编译线程数。
 
 ## 配置示例
 

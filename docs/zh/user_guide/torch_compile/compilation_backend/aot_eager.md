@@ -16,7 +16,7 @@ AOT_Eager特点如下：
 
 - **调试与验证**：确认模型在`torch.compile`图模式下是否正确执行，排除Inductor或其他优化后端引入的问题。
 - **兼容性测试**：验证图捕获和图断裂（graph break）行为是否正常。
-- **基准对照**：与Inductor、NPUGraphs等优化后端做性能对比。
+- **基准对照**：与Inductor、NPUGraphs等优化后端作性能对比。
 
 ## 开启方式
 

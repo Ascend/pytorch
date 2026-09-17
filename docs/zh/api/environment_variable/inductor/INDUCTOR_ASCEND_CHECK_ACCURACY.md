@@ -40,7 +40,7 @@ export INDUCTOR_ASCEND_CHECK_ACCURACY=1
 export INDUCTOR_ASCEND_CHECK_ACCURACY_RTOL_ATOL="rtol=1e-6,atol=1e-7"
 ```
 
-> [!CAUTION]
+> [!NOTE]
 >
 > 如需根据不同数据类型（如float32、float16、bfloat16等）配置不同的精度阈值，请手动修改不同模式源码中的acc_comp_tol字典。各模式配置文件路径如下：
 >

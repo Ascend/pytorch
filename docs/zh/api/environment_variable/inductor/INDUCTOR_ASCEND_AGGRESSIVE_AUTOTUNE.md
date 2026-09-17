@@ -2,7 +2,7 @@
 
 ## 功能描述
 
-控制是否启用batch profiler，默认值为0。
+控制是否启用batch profiler，默认值为“0”。
 
 - 默认值为“0”：关闭batch profiler。
 - 配置为“1”：开启batch profiler。

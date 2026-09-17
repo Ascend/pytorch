@@ -26,9 +26,8 @@ export PYTORCH_HAL_BASED_NPU_CHECK=1
 
 ## 使用约束
 
-此环境变量需在首次调用`torch_npu.npu.is_available()`前设置。
-
-该环境变量仅在值严格等于“1”时生效，若配置为其他值（如“true”、“on”等），均视为未启用，不触发相应功能。
+- 此环境变量需在首次调用`torch_npu.npu.is_available()`前设置。
+- 该环境变量仅在值严格等于“1”时生效，若配置为其他值（如“true”、“on”等），均视为未启用，不触发相应功能。
 
 ## 支持的型号
 
