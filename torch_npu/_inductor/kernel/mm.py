@@ -464,8 +464,21 @@ def _gen_block_n_candidates(n, max_block_dim, max_count=3):
         if s <= effective_max:
             cands.add(s)
     # Divisors of N (secondary — for non-round N)
+    # IMPORTANT: On Ascend NPU, the Cube Unit MMA instruction requires the
+    # N tile dimension (BLOCK_N) to be a multiple of 16.  Non-16-aligned
+    # divisors are rounded UP to the nearest multiple of 16 (e.g. 93->96,
+    # 68->80, 34->48) so that the hardware alignment constraint is satisfied
+    # while still offering tile sizes close to the original divisor.  This
+    # gives the autotuner a richer tiling search space than simply discarding
+    # non-aligned divisors.  Values exceeding max_block_dim after rounding
+    # are skipped.
     for d in _get_divisors(n, 16, effective_max):
-        cands.add(d)
+        if d % 16 == 0:
+            cands.add(d)
+        else:
+            rounded_up = ((d + 15) // 16) * 16
+            if rounded_up <= max_block_dim:
+                cands.add(rounded_up)
     # Safety net: if both standards and divisors were empty (should not
     # happen here since effective_max >= 16), fall back to 16.
     if not cands:
