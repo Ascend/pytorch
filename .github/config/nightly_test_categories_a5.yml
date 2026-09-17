@@ -27,12 +27,13 @@ exclude:
   - test/quantization/core/experimental
   - test/spincli
   - test/test_bundled_images.py
+  - test/distributed
 
 categories:
   core:
-    workers: 32
+    workers: 16
     execution: concurrent
-    runner: linux-amd64-a5-8
+    runner: linux-amd64-a5-2
     paths:
       - test/nn
       - test/optim
@@ -60,9 +61,9 @@ categories:
       - test/test_throughput_benchmark.py
 
   tensor:
-    workers: 32
+    workers: 16
     execution: concurrent
-    runner: linux-amd64-a5-8
+    runner: linux-amd64-a5-2
     paths:
       - test/torch_np
       - test/complex_tensor
@@ -101,17 +102,17 @@ categories:
       - test/test_namedtensor.py
       - test/test_complex.py
 
-  distributed:
-    workers: 1
-    execution: serial
-    runner: linux-amd64-a5-8
-    paths:
-      - test/distributed
+  # distributed:
+  #   workers: 1
+  #   execution: serial
+  #   runner: linux-amd64-a5-8
+  #   paths:
+  #     - test/distributed
 
   graph:
-    workers: 32
+    workers: 16
     execution: concurrent
-    runner: linux-amd64-a5-8
+    runner: linux-amd64-a5-2
     paths:
       - test/fx
       - test/dynamo
@@ -165,6 +166,6 @@ categories:
       - test/distributed/test_inductor_compile_collectives.py
 
   others:
-    workers: 32
+    workers: 16
     execution: concurrent
-    runner: linux-amd64-a5-8
+    runner: linux-amd64-a5-2
