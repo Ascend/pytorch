@@ -266,7 +266,8 @@ def _register_npu_inductor_multi_slice_concat():
             )
             return per_slice_copies(srcs, masks, src_idx, mask_idx)
 
-        out = autotune_select_algorithm(
+        # 2.13+ returns (node, extra); unpack to match mm/bmm/flex_attention.
+        out, _ = autotune_select_algorithm(
             "multi_slice_concat", choices, input_nodes, layout
         )
         # Nothing may be fused into this kernel: it stores its own output, so it renders
