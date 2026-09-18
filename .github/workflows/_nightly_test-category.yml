@@ -58,6 +58,7 @@ on:
 
 jobs:
   test:
+    name: ${{ inputs.category }} shard ${{ matrix.shard }}/${{ inputs.num_shards }}
     runs-on: ${{ inputs.runner_label }}
     permissions:
       id-token: write
