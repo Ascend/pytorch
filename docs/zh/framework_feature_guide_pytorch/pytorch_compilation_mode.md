@@ -32,7 +32,7 @@ NPUGraph_EX后端：通过torch.compile(backend="npugraph_ex")使能，基于ACL
 
 > [!NOTICE]
 >
-> - 使用Inductor后端前，请先安装v3.2.1版本得Triton Ascend。该版本仅支持PyTorch 2.7.1和2.9.0。具体信息请参考[Triton Ascend](https://github.com/triton-lang/triton-ascend/blob/release/3.2.1/README_zh.md)。
+> - 使用Inductor后端前，请先安装v3.2.1版本的Triton Ascend。该版本仅支持PyTorch 2.7.1和2.9.0。具体信息请参考[Triton Ascend](https://github.com/triton-lang/triton-ascend/blob/release/3.2.1/README_zh.md)。
 > - Inductor后端使用MLIR模式时需额外安装Torch-MLIR依赖包，可以在[Torch-MLIR归档地址](https://repo.oepkgs.net/ascend/pytorch/vllm/torch/)下载。
 > - Inductor后端使用MLIR模式时需额外安装Torch-MLIR依赖包，可以在[Torch-MLIR归档地址](https://repo.oepkgs.net/ascend/pytorch/vllm/torch/)下载。
 

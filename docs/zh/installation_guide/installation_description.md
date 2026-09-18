@@ -38,4 +38,4 @@
 
 > [!NOTE]
 >
-> TorchNPU还提供了镜像安装方式，具体请前往[快速安装](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=172&ids=26958bcc909e4cd48fa56d4c4a43ebec%2C98%2C106%2C1%2C6%2C3%2C)页面查看。
+> TorchNPU还提供了镜像安装方式，仅Python 3.11版本支持镜像安装方式，具体请前往[快速安装](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=172&ids=26958bcc909e4cd48fa56d4c4a43ebec%2C98%2C108%2C1%2C6%2C181%2Cd803)页面查看。
