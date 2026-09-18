@@ -15,9 +15,16 @@ TorchNPU环境变量请参考《[TorchNPU环境变量参考](https://www.hiascen
 | Catlass    |TORCHINDUCTOR_NPU_CATLASS_DIR| 环境中catlass库的路径，与社区TORCHINDUCTOR_CUTLASS_DIR保持一致，社区环境变量为TORCHINDUCTOR_CUTLASS_DIR，若路径配置错误，会有WARNING信息提示，并跳过尝试引入catlass后端的功能，默认值为""         |
 | Catlass    |TORCHINDUCTOR_PROFILE_WITH_DO_BENCH_USING_PROFILING| 该环境变量与社区一致，用于管理autotune过程中是否使用profiling进行autotune，"0"为不使用profiling，"1"为使用profiling，默认值为0                  |
 | FXGraph图优化 |SHUT_DOWN_FX_PASS_LIST| 用于精确控制生效的pass，默认为""，即所有pass都生效                                                                                                  |
+| FXGraph图优化 |TORCHINDUCTOR_ENABLE_FUSED_MATMUL_RELU| 控制fused_matmul_relu_pass的开关，将relu(addmm)等图形态融合为npu_fused_matmul，relu不再作为独立的pointwise kernel下发，默认不设置，等价于关闭 |
+| FXGraph图优化 |TORCHINDUCTOR_ENABLE_GRAD_MATMUL_TRANSPOSE_OPT| 控制grad_matmul_transpose_opt_pass的开关，将反向输出上的permute(mm(lhs,rhs),[1,0])改写为mm(rhs.T,lhs.T)，省去对mm结果再做一次转置搬移，默认不设置，等价于关闭 |
+| FXGraph图优化 |TORCHINDUCTOR_ENABLE_GROUPED_MATMUL_FUSION| 控制grouped_matmul_fusion_pass的开关，将汇聚到同一个cat的多个互相独立的小GEMM合并成一次npu_grouped_matmul调用，默认不设置，等价于关闭 |
+| FXGraph图优化 |TORCHINDUCTOR_ENABLE_MULTI_SLICE_CONCAT| 控制multi_slice_concat_pass的开关，将汇聚到同一个cat的一串固定宽度、常量偏移的列切片折叠成单个npu_ext::multi_slice_concat，默认不设置，等价于关闭 |
 | 计算图多流并行 |ENABLE_PARALLEL_SCHEDULER| 是否开启计算图多流并行调度策略，默认为False，即不开启计算图多流并行调度策略，设置为True，表示开启计算图多流并行调度策略                  |
 | 离散访存       |INDUCTOR_INDIRECT_MEMORY_MODE| 是否开启离散访存的融合以及配置融合方式，默认值为"simd_simt_mix"                                                                                                            |
 | 离散访存       |USE_STORE_IN_CAT| 用于控制Inductor针对cat融合的行为，当前默认为False                                                                                               |
+| 动态shape    |INDUCTOR_ASCEND_SYMBOLIC_GROUP_AUTOTUNE| 控制是否启用动态shape分组autotune（grouped autotune），开启后按shape特征将运行时shape划分到不同分组，每组使用代表shape进行一次autotune，默认值为0                                                                                            |
+| 动态shape    |INDUCTOR_ASCEND_SYMBOLIC_GROUP_TEMPLATES| 配置参与动态shape分组autotune的模板类型列表，多个模板以逗号分隔，默认值为"pointwise,reduction,persistent_reduction"                                                                          |
+| 动态shape    |INDUCTOR_ASCEND_SYMBOLIC_GROUP_MAX_BENCHMARK_MEMORY_RATIO| 控制动态shape分组autotune中分组benchmark显存占用预算的比例上限，超出预算时自动回退到普通autotune流程                                                                                 |
 | 自动Tiling优化 |FASTAUTOTUNE| 控制是否使用fast autotune，默认值为0                                                                                                       |
 | 自动Tiling优化 |INDUCTOR_ASCEND_AGGRESSIVE_AUTOTUNE| 控制是否启用batch profiler，默认值为0                                                                                                      |
 | 自动Tiling优化 |TORCHINDUCTOR_COMPILE_THREADS| 多进程编译进程数量，与社区保持一致，默认值为32                                                                                                                |
@@ -25,8 +32,10 @@ TorchNPU环境变量请参考《[TorchNPU环境变量参考](https://www.hiascen
 | 分核 / 限核 |NPU_DEVICE_LIMIT| 控制最多可使用的Cube和Vector的核数，默认值为全部cube和vector核                                                                                                      |
 | CostModel |INDUCTOR_ASCEND_ENABLE_COSTMODEL| 控制是否启用CostModel预筛选，默认值为0                                                                                                      |
 | CostModel |INDUCTOR_ASCEND_COSTMODEL_RATIO| 控制CostModel预筛选后保留的config比例，默认值为0.25                                                                                         |
+| FlexAttention |TORCHINDUCTOR_ASCEND_FLEX_ATTENTION_BWD_DKDV_TASKLIST| 是否允许反向dK/dV任务列表调度，默认值为1。 |
 | 其他         |INDUCTOR_ASCEND_CHECK_ACCURACY| 开启triton后端精度对比工具，dump单算子用例。当启用时，会自动启用INDUCTOR_ASCEND_DUMP_FX_GRAPH功能，默认值为空。                                                     |
 | 其他         |INDUCTOR_ASCEND_DUMP_FX_GRAPH| dump可执行的单算子用例，用于调试和问题排查。当INDUCTOR_ASCEND_CHECK_ACCURACY或AOTI_ASCEND_DEBUG_KERNEL启用时，会自动启用此功能，默认值为空。                             |
 | 其他         |INDUCTOR_ASCEND_LOG_LEVEL| 设置Inductor-Ascend日志等级，控制日志输出的详细程度，默认值为WARNING。                                                                                  |
 | 其他         |TORCHINDUCTOR_NDDMA| 启用Triton-Ascend load随路转置能力。在A2、A3代际理论性能无差异。在A5代际会通过底层nddma特性做转置加速，转置性能有明显增益。                                                    |
-| FlexAttention | [TORCHINDUCTOR_ASCEND_FLEX_ATTENTION_BWD_DKDV_TASKLIST](./flex_attention/TORCHINDUCTOR_ASCEND_FLEX_ATTENTION_BWD_DKDV_TASKLIST.md) | 是否允许反向dK/dV任务列表调度，默认值为1。 |
+| 其他         |ENABLE_INPLACE_BUFFERS| 控制Inductor-Ascend生成Triton Kernel时输入/输出参数是否复用地址空间，未设置或设置为1、true、yes时复用（默认），设置为0、false、no等时不复用，便于multi-buffer流水掩盖 |
+| 其他         |TORCHINDUCTOR_NPU_FAST_LAUNCH| 控制是否启用Planned Fast Launch，用于降低torch.compile生成的Python Wrapper在稳态运行时下发NPU Triton融合kernel的Host侧固定开销，默认关闭 |

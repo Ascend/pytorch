@@ -22,7 +22,7 @@ Inductor-Ascend在继承社区Pytorch Inductor能力的基础上，针对昇腾A
 
 ## 使用约束
 
-- <term>Atlas A5 系列产品</term>
+- <term>Ascend 950DT 系列产品</term>
 
 ## 常用概念
 

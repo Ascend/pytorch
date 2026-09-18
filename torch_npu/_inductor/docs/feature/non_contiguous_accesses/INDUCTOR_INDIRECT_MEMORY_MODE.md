@@ -17,4 +17,4 @@ A2、A3不支持离散访存类算子的inductor融合，仅在A5上支持离散
 
 ## 支持型号
 
-- <term>Atlas A5 训练系列产品</term>
+- <term>Ascend 950DT 系列产品</term>

@@ -28,4 +28,4 @@ export TORCHINDUCTOR_MAX_AUTOTUNE=0
 
 ## 支持的设备
 
-- <term>Atlas A5 系列产品</term>
+- <term>Ascend 950DT 系列产品</term>
