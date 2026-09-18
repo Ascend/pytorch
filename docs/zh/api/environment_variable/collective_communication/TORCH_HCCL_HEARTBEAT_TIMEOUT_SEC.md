@@ -4,9 +4,9 @@
 
 在使用HCCL作为通信后端时，通过此环境变量可设置heartbeat monitor判定WatchDog无响应的超时时间。当WatchDog线程停止响应超过该时长时，monitor将判定其无响应，并触发dump及进程终止。
 
-该环境变量默认值为600s，单位为秒。
+该环境变量默认值为600，单位为s。
 
-该变量对应PyTorch的[`TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC`](https://docs.pytorch.org/docs/2.14/torch_nccl_environment_variables.html)，PyTorch默认为480秒。
+该变量对应PyTorch的[`TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC`](https://docs.pytorch.org/docs/2.14/torch_nccl_environment_variables.html)，PyTorch默认值为480。
 
 ## 配置示例
 

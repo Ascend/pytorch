@@ -4,7 +4,7 @@
 
 通过此环境变量可控制OpPlugin代码生成（codegen）过程中是否启用ACLNN扩展代码路径。
 
-- 配置为`true`或`ON`时：开启该功能，torchnpugen工具在生成算子代码时使用ACLNN扩展相关的源码路径、模板和注册方式；
+- 配置为`true`或`ON`时：开启该功能，在生成算子代码阶段，使用位于[torchnpugen](https://gitcode.com/Ascend/pytorch/tree/master/torchnpugen)目录下的工具包生成算子代码，并采用ACLNN扩展相关的源码路径、模板和注册方式。
 - 未配置时：不使用该功能，使用内置的默认代码生成逻辑。
 
 该环境变量默认未配置，此时不启用ACLNN扩展代码路径。

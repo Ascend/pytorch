@@ -4,9 +4,9 @@
 
 当使用HCCL作为通信后端时，通过此环境变量可设置heartbeat monitor等待异步dump完成的最大时间。当发生超时触发dump时，monitor会等待其他rank的dump完成。超过此时间后，无论dump是否完成，monitor都会终止进程。
 
-该环境变量的默认值为60000ms，单位为毫秒。
+该环境变量的默认值为60000，单位为ms。
 
-该变量对应PyTorch的`TORCH_FR_WAIT_TIMEOUT_DUMP_MILSEC`，PyTorch同时兼容[`TORCH_NCCL_WAIT_TIMEOUT_DUMP_MILSEC`](https://docs.pytorch.org/docs/2.14/torch_nccl_environment_variables.html)，PyTorch默认为15000ms。
+该变量对应PyTorch的`TORCH_FR_WAIT_TIMEOUT_DUMP_MILSEC`，PyTorch同时兼容[`TORCH_NCCL_WAIT_TIMEOUT_DUMP_MILSEC`](https://docs.pytorch.org/docs/2.14/torch_nccl_environment_variables.html)，PyTorch默认值为15000。
 
 ## 配置示例
 
