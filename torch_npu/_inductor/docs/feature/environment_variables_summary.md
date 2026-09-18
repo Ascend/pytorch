@@ -22,11 +22,18 @@ Ascend Extension for PyTorch环境变量请参考《[Ascend Extension for PyTorc
 | 自动Tiling优化 |INDUCTOR_ASCEND_AGGRESSIVE_AUTOTUNE| 控制是否启用batch profiler，默认值为0                                                                                                      |
 | 自动Tiling优化 |TORCHINDUCTOR_COMPILE_THREADS| 多进程编译进程数量，与社区保持一致，默认值为32                                                                                                                |
 | 自动Tiling优化 |TORCHNPU_PRECOMPILE_THREADS| 控制多线程编译线程数量，默认为最大核数的一半（max_precompiled_thread_num = os.cpu_count() // 2），大于1时，使用并发编译                                            |
+| 自动调优优化   |FASTA_CONFIG_OPTIMIZER| 是否启用FASTA config optimizer，对生成的tiling config进行NPU感知的剪枝与多样性过滤，默认值为0（不启用）                                                              |
+| 自动调优优化   |FASTA_R1_PCT| 初始R1分层采样阶段采样的config比例，默认值为0.3                                                                                                                  |
+| 自动调优优化   |FASTA_BASE_BUDGET| 常规复杂度kernel的测量预算（占全部config的比例），默认值为0.35                                                                                                   |
+| 自动调优优化   |FASTA_HIGH_BUDGET| 小规模低维kernel的测量预算，默认值为0.4                                                                                                                        |
+| 自动调优优化   |FASTA_LOW_BUDGET| 大规模高维kernel的测量预算，默认值为0.25                                                                                                                        |
+| 自动调优优化   |FASTA_MAX_ROUNDS| 动态过滤算法的最大优化轮数，默认值为2                                                                                                                           |
 | CostModel |INDUCTOR_ASCEND_ENABLE_COSTMODEL| 控制是否启用CostModel预筛选，默认值为0                                                                                                      |
 | CostModel |INDUCTOR_ASCEND_COSTMODEL_RATIO| 控制CostModel预筛选后保留的config比例，默认值为0.25                                                                                         |
+| FlexAttention |TORCHINDUCTOR_ASCEND_FLEX_ATTENTION_DISPATCH_STRATEGY| 选择可选运行时调度策略：fwd或bwd_dkdv，默认不设置。 |
+| FlexAttention |TORCHINDUCTOR_ASCEND_FLEX_ATTENTION_FWD_MASK_WORKSPACE_BYTES| 前向预生成掩码的有界工作区预算，默认256 MiB；0使用精确容量分配。 |
 | 其他         |INDUCTOR_ASCEND_CHECK_ACCURACY| 开启triton后端精度对比工具，dump单算子用例。当启用时，会自动启用INDUCTOR_ASCEND_DUMP_FX_GRAPH功能，默认值为空。                                                     |
 | 其他         |INDUCTOR_ASCEND_DUMP_FX_GRAPH| dump可执行的单算子用例，用于调试和问题排查。当INDUCTOR_ASCEND_CHECK_ACCURACY或AOTI_ASCEND_DEBUG_KERNEL启用时，会自动启用此功能，默认值为空。                             |
 | 其他         |INDUCTOR_ASCEND_LOG_LEVEL| 设置Inductor-Ascend日志等级，控制日志输出的详细程度，默认值为WARNING。                                                                                  |
+| 其他         |ENABLE_INPLACE_BUFFERS| 控制Inductor-Ascend生成Triton Kernel时输入/输出参数是否复用地址空间。未设置或设置为1、true、yes时复用地址空间（默认值），设置为0、false、no等时不复用地址空间。                       |
 | 其他         |TORCHINDUCTOR_NDDMA| 启用Triton-Ascend load随路转置能力。在A2、A3代际理论性能无差异。在A5代际会通过底层nddma特性做转置加速，转置性能有明显增益。                                                    |
-| FlexAttention | [TORCHINDUCTOR_ASCEND_FLEX_ATTENTION_DISPATCH_STRATEGY](./flex_attention/TORCHINDUCTOR_ASCEND_FLEX_ATTENTION_DISPATCH_STRATEGY.md) | 选择可选运行时调度策略：fwd或bwd_dkdv，默认不设置。 |
-| FlexAttention | [TORCHINDUCTOR_ASCEND_FLEX_ATTENTION_FWD_MASK_WORKSPACE_BYTES](./flex_attention/TORCHINDUCTOR_ASCEND_FLEX_ATTENTION_FWD_MASK_WORKSPACE_BYTES.md) | 前向预生成掩码的有界工作区预算，默认256 MiB；0使用精确容量分配。 |
