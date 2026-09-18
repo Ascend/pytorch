@@ -346,6 +346,46 @@ class TestTensor(TestCase):
 
         self.assertEqual(res1.to('cpu'), expected.to('cpu'))
 
+    def _make_fake_npu_tensor(self, device="npu"):
+        from torch._subclasses.fake_tensor import FakeTensorMode
+        mode = FakeTensorMode(allow_non_fake_inputs=True)
+        x = torch.randn(4, 10, device=device, dtype=torch.float32)
+        return mode.from_tensor(x)
+
+    def test_faketensor_repr(self, device="npu"):
+        # A FakeTensor claims device npu but has no NPUStorageImpl; the
+        # __repr__ patch must skip the get_npu_format probe for it.
+        faketensor = self._make_fake_npu_tensor(device)
+        self.assertIn("FakeTensor", repr(faketensor))
+
+    def test_faketensor_repr_under_dispatch_logging(self, device="npu"):
+        # Dispatch logging formats FakeTensor args via repr(); the nested
+        # get_npu_format probe used to segfault before the guard.
+        import logging
+        from torch._subclasses.fake_tensor import FakeTensorMode
+        try:
+            torch._logging.set_logs(all=logging.DEBUG)
+            with FakeTensorMode(allow_non_fake_inputs=True):
+                x = torch.randn(4, 10, device=device, dtype=torch.float32)
+                self.assertIn("FakeTensor", repr(x.softmax(-1)))
+        finally:
+            torch._logging.set_logs(all=logging.WARNING)
+
+    def test_get_npu_format_faketensor_guarded(self, device="npu"):
+        faketensor = self._make_fake_npu_tensor(device)
+        with self.assertRaises(Exception):
+            torch_npu.get_npu_format(faketensor)
+
+    def test_get_npu_format_faketensor_guarded_no_dispatch(self, device="npu"):
+        # The exact crash path: with Python dispatch disabled the call goes
+        # straight to the C++ kernel, where the storage-type check must turn
+        # it into a catchable error instead of a segfault.
+        from torch.utils._mode_utils import no_dispatch
+        faketensor = self._make_fake_npu_tensor(device)
+        with no_dispatch():
+            with self.assertRaises(Exception):
+                torch_npu.get_npu_format(faketensor)
+
     def test_empty_with_deterministic(self):
         with DeterministicGuard(True, fill_uninitialized_memory=True):
             empty_tensor = torch.empty(2, 3, 4)
