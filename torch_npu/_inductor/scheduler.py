@@ -449,7 +449,8 @@ def patch_scheduler():
                     )
 
         async_compile = torch._inductor.async_compile.AsyncCompile()
-
+        async_compile.warm_pool()
+        async_compile.wait_pool_ready()
         def replace_operation_buffer(
             orig_node: ir.MultiTemplateBuffer, new_node: ir.OperationBuffer
         ) -> None:
@@ -488,16 +489,14 @@ def patch_scheduler():
                 nodes[0]
             ):
                 return None, src_code_or_mod
-
-            if not async_compile.use_process_pool():
-                fut = None
-                mod = PyCodeCache.load(src_code_or_mod)
+            mod = PyCodeCache.load(src_code_or_mod)
+            result = async_compile.triton(
+                kernel_name="triton_", source_code=src_code_or_mod
+            )
+            if isinstance(result, LambdaFuture):
+                fut = result
             else:
-                mod = PyCodeCache.load(src_code_or_mod)
-                fut = async_compile.triton(
-                    kernel_name="triton_", source_code=src_code_or_mod
-                )
-                assert isinstance(fut, LambdaFuture)
+                fut = None
 
             return (fut, mod)
 
@@ -688,7 +687,8 @@ def patch_scheduler():
                 for choice, future, mod_fused in future_choices:
                     try:
                         if future is not None:
-                            future.result()
+                            kernel = future.result()
+                            mod_fused.triton_ = kernel
 
                     # Ideally we would more narrowly catch Exceptions here but
                     # triton  will unpredictably error with valid prologue fusions

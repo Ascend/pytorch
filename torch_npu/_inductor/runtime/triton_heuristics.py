@@ -893,9 +893,6 @@ class NPUCachingAutotuner(CachingAutotuner):
             options,
         )
         options = self.parse_triton_ascend_options(cfg_kwargs, options)
-        # pure simt stack overflow check
-        if compile_meta['compile_mode'] == NPUKernelType.SIMT_ONLY.compile_mode():
-            options['simt_stack_limit'] = npu_config.simt_default_warp_stacksize
 
         from triton.compiler.code_generator import ast_to_ttir
         from triton.compiler.compiler import make_backend
@@ -1108,9 +1105,6 @@ class NPUCachingAutotuner(CachingAutotuner):
             options = self.parse_triton_ascend_options(
                 {"enable_auto_blockify": True}, options
             )
-        # pure simt stack overflow check
-        if compile_meta['compile_mode'] == NPUKernelType.SIMT_ONLY.compile_mode():
-            options['simt_stack_limit'] = npu_config.simt_default_warp_stacksize
 
         compile_kwargs = {
             "target": target,

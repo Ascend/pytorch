@@ -654,28 +654,41 @@ class CppWrapperNpu(CppWrapperGpu):
             stream = self.write_get_raw_stream(device.index, graph_name)
 
             # Build the casted argument list (same logic as CppWrapperGpu).
+            # Pointer args are resolved to raw addresses in block-scoped
+            # temporaries BEFORE the lambda: tensor args are
+            # RAIIAtenTensorHandle (move-only, copy deleted) and cannot be
+            # captured by value, so the deferred launch lambda must only
+            # capture PODs.
             casted = []
-            for arg_type, arg in zip(arg_types, call_args):
+            ptr_decls = []
+            for i, (arg_type, arg) in enumerate(zip(arg_types, call_args)):
                 new_arg = arg
                 if isinstance(arg_type, str) and arg_type.endswith("*") and arg != "nullptr":
-                    new_arg = f"{arg}.data_ptr()"
+                    tmp = f"{kernel_name}_ptr_{i}"
+                    ptr_decls.append(f"void* {tmp} = {arg}.data_ptr();")
+                    new_arg = tmp
                 casted.append(f"({arg_type}){cexpr(new_arg)}")
             call_args_str = ", ".join(casted)
 
-            # Lazy-load the .so on first call, then invoke through the
-            # function pointer.
+            # Lazy-load the .so on first call (host side, before enqueueing).
             self.writeline(f"load_{kernel_name}();")
-            # Synchronize the stream before launching the catlass kernel.
-            # Catlass kernels read input tensors (e.g., offsets/group_list
-            # produced by aten ops like cumsum) directly from device memory.
-            # Aten ops in cpp_wrapper use the implicit "current stream" which
-            # may differ from the explicit stream used by catlass, or the
-            # AscendC <<<>>> launch may not fully respect stream ordering with
-            # preceding aten ops.  This sync ensures all prior operations
-            # (including aten ops that produce catlass inputs) have completed
-            # before the catlass kernel reads them.
-            self.writeline(f"aclrtSynchronizeStream({stream});")
-            self.writeline(f"{kernel_name}({call_args_str}, {stream});")
+            # Route the catlass launch through launchKernel -> RunOpApiV2 so
+            # it is dispatched via the task queue like triton/aten ops.  A
+            # direct AscendC <<<>>> launch on the raw stream bypasses the
+            # queue and can overtake preceding ops still pending in it (e.g.
+            # cumsum producing the offsets/group_list read by grouped GEMM),
+            # causing garbage reads and aicore timeouts.  A pre-launch
+            # aclrtSynchronizeStream is not a sufficient fix: it only waits
+            # for tasks already submitted to the stream, not for tasks still
+            # sitting in the queue.  Queue dispatch restores program order.
+            self.writeline("{")
+            for decl in ptr_decls:
+                self.writeline(decl)
+            self.writeline(
+                f'launchKernel([=]() {{ return {kernel_name}({call_args_str}, {stream}); }}, '
+                f'"{kernel_name}");'
+            )
+            self.writeline("}")
             return
 
         super()._generate_kernel_call_helper(

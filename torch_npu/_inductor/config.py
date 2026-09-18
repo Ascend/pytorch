@@ -349,9 +349,6 @@ if is_ascend950:
     ]:
         inductor_indirect_memory_mode = "simd_simt_mix"
 
-# simt default stacksize is 256 * 32 Byte
-simt_default_warp_stacksize = 256 * 32
-
 # nddma switch
 default_nddma_switch = "1" if is_ascend950 else "0"
 nddma_switch = os.getenv("TORCHINDUCTOR_NDDMA", default_nddma_switch) == "1"
