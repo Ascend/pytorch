@@ -40,7 +40,22 @@ masked_add_compose_pass
 bool_cast_mul_to_where_pass
 sign_diff_hamming_fuse_pass
 batch_embedding_fusion_pass
+stack_sum_to_add_chain_pass
 ```
+
+以下pass默认关闭且不会被注册，需通过对应的环境变量显式使能
+
+```text
+# post（默认关闭，括号内为使能开关）
+fused_matmul_relu_pass          (TORCHINDUCTOR_ENABLE_FUSED_MATMUL_RELU)
+multi_slice_concat_pass         (TORCHINDUCTOR_ENABLE_MULTI_SLICE_CONCAT)
+grad_matmul_transpose_opt_pass  (TORCHINDUCTOR_ENABLE_GRAD_MATMUL_TRANSPOSE_OPT)
+grouped_matmul_fusion_pass      (TORCHINDUCTOR_ENABLE_GROUPED_MATMUL_FUSION)
+```
+
+各开关的取值、验证方式与使用约束见 **[TORCHINDUCTOR_ENABLE_FUSED_MATMUL_RELU](./TORCHINDUCTOR_ENABLE_FUSED_MATMUL_RELU.md)**、**[TORCHINDUCTOR_ENABLE_MULTI_SLICE_CONCAT](./TORCHINDUCTOR_ENABLE_MULTI_SLICE_CONCAT.md)**、**[TORCHINDUCTOR_ENABLE_GRAD_MATMUL_TRANSPOSE_OPT](./TORCHINDUCTOR_ENABLE_GRAD_MATMUL_TRANSPOSE_OPT.md)**、**[TORCHINDUCTOR_ENABLE_GROUPED_MATMUL_FUSION](./TORCHINDUCTOR_ENABLE_GROUPED_MATMUL_FUSION.md)**
+
+上述新增的5个pass的改写在训练图上同样成立，因此不受“仅推理生效”的限制，推理和训练两条路径都会执行。
 
 ## 图优化特性使用示例
 
@@ -95,6 +110,7 @@ DEBUG - Registering function masked_add_compose_pass from module torch_npu._indu
 DEBUG - Registering function bool_cast_mul_to_where_pass from module torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass with pass_type=PassType.POST, fx_pass_level=FxPassLevel.LEVEL1
 DEBUG - Registering function sign_diff_hamming_fuse_pass from module torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass with pass_type=PassType.POST, fx_pass_level=FxPassLevel.LEVEL1
 DEBUG - Registering function batch_embedding_fusion_pass from module torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass with pass_type=PassType.POST, fx_pass_level=FxPassLevel.LEVEL1
+DEBUG - Registering function stack_sum_to_add_chain_pass from module torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass with pass_type=PassType.POST, fx_pass_level=FxPassLevel.LEVEL1
 DEBUG - Registering function cat_slice_cat_fold_pass from module torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass with pass_type=PassType.PRE, fx_pass_level=FxPassLevel.LEVEL1
 DEBUG - Registering function pad_slice_fold from module torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass with pass_type=PassType.PRE, fx_pass_level=FxPassLevel.LEVEL1
 DEBUG - Registering function fold_four_op_pass from module torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass with pass_type=PassType.POST, fx_pass_level=FxPassLevel.LEVEL1
