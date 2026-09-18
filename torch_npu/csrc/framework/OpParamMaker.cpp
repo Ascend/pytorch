@@ -28,6 +28,13 @@ namespace native {
 
 std::recursive_mutex deterministic_launch_mutex;
 
+struct CachedDeterministicRuntimeState {
+  bool valid = false;
+  uint32_t effective_level = 0;
+};
+
+static std::unordered_map<aclrtContext, CachedDeterministicRuntimeState> deterministic_runtime_cache;
+
 void OpAttrMaker::Set(aclopAttr* attr, const string& name, bool value) {
   aclopSetAttrBool(attr, name.c_str(), value);
 }
@@ -102,6 +109,15 @@ bool IsAclStrongConsistencyExist() {
   return isAclStrongConsistencyExist;
 }
 
+aclrtContext GetCurrentContextForDeterministicCache() {
+  aclrtContext context = nullptr;
+  aclError ret = aclrtGetCurrentContext(&context);
+  if (ret != ACL_ERROR_NONE) {
+    return nullptr;
+  }
+  return context;
+}
+
 void ApplyLegacyDeterministicSnapshotLocked(
     const c10_npu::DeterministicSnapshot& snapshot,
     bool isOpapi,
@@ -131,6 +147,14 @@ void ApplyLegacyDeterministicSnapshotLocked(
 }
 
 void ApplyDeterministicSnapshotLocked(const c10_npu::DeterministicSnapshot& snapshot, bool isOpapi) {
+  auto context = GetCurrentContextForDeterministicCache();
+  auto& cached_state = deterministic_runtime_cache[context];
+  if (cached_state.valid && cached_state.effective_level == snapshot.effective_level &&
+      cached_state.effective_level == 0) {
+    return;
+  }
+  cached_state.effective_level = snapshot.effective_level;
+  cached_state.valid = true;
   int64_t cur_level = 0;
   NPU_CHECK_ERROR(AclrtGetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, &cur_level));
   if (snapshot.backend == c10_npu::DeterministicBackend::V2) {
