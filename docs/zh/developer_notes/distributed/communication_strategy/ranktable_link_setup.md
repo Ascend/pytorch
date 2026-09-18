@@ -5,7 +5,7 @@
 支持以rank table文件配置方式建立通信域，来加速通信域建立时间，并做到建链时间几乎和集群规模无关，从而解决大集群下建立通信域的性能瓶颈。
 
 **图 1**  通过rank table建立通信域的流程图  
-![](../../figures/flowchart_for_creating_a_communicator_using_a_ranktable_file.png)
+![](../../../figures/flowchart_for_creating_a_communicator_using_a_ranktable_file.png)
 
 PyTorch通过rank table文件建立全局通信域。子通信域的建立通过对全局通信域做切分实现。
 
@@ -30,7 +30,7 @@ rank table文件配置说明请参考《CANN HCCL集合通信库》中对应的�
 >- 配置的文件路径存在，但配置信息有误时，不会通过默认的协商流程进行集合通信域建链，而是在实际通信时会进行相应的报错。
 >- 配置的文件路径不能为软链接，且具有读取权限。
 
-此环境变量使用详情请参考《环境变量》中的“[RANK\_TABLE\_FILE](../../api/environment_variable/collective_communication/RANK_TABLE_FILE.md)”章节。
+此环境变量使用详情请参考《环境变量》中的“[RANK\_TABLE\_FILE](../../../api/environment_variable/collective_communication/RANK_TABLE_FILE.md)”章节。
 
 ## 使用样例
 
