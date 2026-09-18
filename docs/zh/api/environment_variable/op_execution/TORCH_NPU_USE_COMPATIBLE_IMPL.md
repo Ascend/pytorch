@@ -7,15 +7,13 @@
 - 设置为“0”时，表示关闭一致性配置。
 - 设置为“1”时，表示开启一致性配置。
 
+该环境变量由TorchNPU提供，PyTorch没有直接对应的环境变量。
+
 ## 配置示例
 
 ``` bash
 export TORCH_NPU_USE_COMPATIBLE_IMPL=1
 ```
-
-> [!NOTE]
->
-> 此功能为`torch_npu`特有，PyTorch社区无直接对应变量。
 
 ## 使用约束
 

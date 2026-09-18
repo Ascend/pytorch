@@ -23,10 +23,6 @@ export TORCH_NPU_FALLBACK_CPU_DISABLE=1
 export TORCH_NPU_FALLBACK_CPU_DISABLE=0
 ```
 
-> [!NOTE]
->
-> 此功能为`torch_npu`特有，PyTorch社区无直接对应变量。
-
 ## 使用约束
 
 - 该环境变量仅支持配置为“0”或“1”，默认值为“0”。

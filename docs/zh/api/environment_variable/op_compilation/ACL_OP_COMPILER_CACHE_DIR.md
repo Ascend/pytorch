@@ -8,15 +8,13 @@
 
 如果设置了该环境变量，则按照该环境变量指定路径落盘算子编译缓存；未设置则使用ASCEND\_CACHE\_PATH指定路径；若未设置该环境变量且未使用ASCEND\_CACHE\_PATH指定路径，则使用默认路径（$HOME/atc\_data）。
 
+该环境变量由TorchNPU提供，PyTorch没有直接对应的环境变量。
+
 ## 配置示例
 
 ```bash
 export ACL_OP_COMPILER_CACHE_DIR=/home/cache
 ```
-
-> [!NOTE]
->
-> 此功能为`torch_npu`特有，PyTorch社区无直接对应变量。
 
 ## 使用约束
 

@@ -9,15 +9,13 @@
 
 针对<term>Atlas 训练系列产品</term>/<term>Atlas 推理系列产品</term>/<term>Atlas 200I/500 A2 推理产品</term>/<term>Ascend 950DT</term>，该环境变量不生效。
 
+该环境变量由TorchNPU提供，PyTorch没有直接对应的环境变量。
+
 ## 配置示例
 
 ```bash
 export INF_NAN_MODE_FORCE_DISABLE=1
 ```
-
-> [!NOTE]
->
-> 此功能为`torch_npu`特有，PyTorch社区无直接对应变量。
 
 ## 使用约束
 

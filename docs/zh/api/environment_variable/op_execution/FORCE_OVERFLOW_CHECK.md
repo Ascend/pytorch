@@ -20,21 +20,18 @@ torch_npu.npu.synchronize()
 print(torch_npu.npu.utils.get_npu_overflow_flag())  # True，通过溢出状态标志检出
 ```
 
-> [!NOTICE]  
+> [!NOTE]  
 >
 > - <term>Ascend 950DT</term>不支持使用`get_npu_overflow_flag`等接口查询溢出状态；当<term>Ascend 950DT</term>开启该环境变量开关后，需通过plog中的`aclrtSetStreamOverflowSwitch`相关日志（需配置`ASCEND_GLOBAL_LOG_LEVEL=1`）的方式确认溢出检测开关已生效。
 > - 开启溢出检测开关后，算子执行性能可能受到影响，建议仅在溢出/NaN问题定位场景下配置。
-> - 该环境变量由TorchNPU提供，PyTorch没有直接对应的环境变量。
+
+该环境变量由TorchNPU提供，PyTorch没有直接对应的环境变量。
 
 ## 配置示例
 
 ```bash
 export FORCE_OVERFLOW_CHECK=1
 ```
-
-> [!NOTE]
->
-> 此功能为`torch_npu`特有，PyTorch社区无直接对应变量。
 
 ## 使用约束
 

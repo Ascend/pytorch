@@ -22,6 +22,8 @@
 
 在<term>Ascend 950DT</term>上，上述随机数API默认使用与PyTorch原生社区完全对齐的实现。配置`randomness`后，相关API切换为与<term>Atlas A2 训练系列产品</term>、<term>Atlas A3 训练系列产品</term>一致的随机数实现。
 
+该环境变量由TorchNPU提供，PyTorch没有直接对应的环境变量。
+
 ## 配置示例
 
 配置随机数API使用legacy实现：
@@ -29,10 +31,6 @@
 ```bash
 export TORCH_NPU_LEGACY_IMPL_LIST=randomness
 ```
-
-> [!NOTE]
->
-> 此功能为`torch_npu`特有，PyTorch社区无直接对应变量。
 
 ## 使用约束
 

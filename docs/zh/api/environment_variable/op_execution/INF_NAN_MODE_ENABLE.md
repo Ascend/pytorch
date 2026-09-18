@@ -13,10 +13,6 @@
 
 针对<term>Ascend 950DT</term>，仅支持INF\_NAN模式，该环境变量不生效。
 
-> [!NOTICE]  
->
-> <term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>，若需和<term>Atlas 训练系列产品</term>精度对齐，可配置为“0”饱和模式。饱和模式在计算过程中会将Inf和NaN转换成对应数据类型的最大值和0值，导致后续运算结果出现差异，非特殊情况不建议配置。<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>对饱和模式配置进行了拦截，如需强制开启饱和模式，需配置[INF\_NAN\_MODE\_FORCE\_DISABLE](INF_NAN_MODE_FORCE_DISABLE.md)=1。
-
 饱和模式：Inf置为max，NaN置为0。
 
 Inf示例
@@ -49,15 +45,17 @@ torch.sqrt(torch.tensor([-1.0], dtype=torch.float16).npu())
 # tensor([nan], device='npu:0', dtype=torch.float16)
 ```
 
+> [!NOTE]  
+>
+> <term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>，若需和<term>Atlas 训练系列产品</term>精度对齐，可配置为“0”饱和模式。饱和模式在计算过程中会将Inf和NaN转换成对应数据类型的最大值和0值，导致后续运算结果出现差异，非特殊情况不建议配置。<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>对饱和模式配置进行了拦截，如需强制开启饱和模式，需配置[INF\_NAN\_MODE\_FORCE\_DISABLE](INF_NAN_MODE_FORCE_DISABLE.md)=1。
+
+该环境变量由TorchNPU提供，PyTorch没有直接对应的环境变量。
+
 ## 配置示例
 
 ```bash
 export INF_NAN_MODE_ENABLE=1
 ```
-
-> [!NOTE]
->
-> 此功能为`torch_npu`特有，PyTorch社区无直接对应变量。
 
 ## 使用约束
 

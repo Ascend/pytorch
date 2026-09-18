@@ -2,19 +2,20 @@
 
 ## 功能描述
 
-通过此环境变量可控制op-plugin代码生成（codegen）过程中是否启用ACLNN扩展代码路径。设置为`true`或`ON`时，torchnpugen工具在生成算子代码时使用ACLNN扩展相关的源码路径、模板和注册方式；未设置时，使用内置的默认代码生成逻辑。
+通过此环境变量可控制OpPlugin代码生成（codegen）过程中是否启用ACLNN扩展代码路径。
 
-此环境变量默认不配置，此时不启用ACLNN扩展代码路径。
+- 配置为`true`或`ON`时：开启该功能，torchnpugen工具在生成算子代码时使用ACLNN扩展相关的源码路径、模板和注册方式；
+- 未配置时：不使用该功能，使用内置的默认代码生成逻辑。
+
+该环境变量默认未配置，此时不启用ACLNN扩展代码路径。
+
+该环境变量由TorchNPU提供，PyTorch没有直接对应的环境变量。
 
 ## 配置示例
 
 ```bash
 export ACLNN_EXTENSION_SWITCH=true
 ```
-
-> [!NOTE]
->
-> 此功能为`torch_npu`特有，PyTorch社区无直接对应变量。
 
 ## 使用约束
 

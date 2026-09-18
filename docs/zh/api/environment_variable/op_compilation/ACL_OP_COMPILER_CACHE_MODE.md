@@ -10,15 +10,13 @@
 
 默认配置为`enable`。
 
+该环境变量由TorchNPU提供，PyTorch没有直接对应的环境变量。
+
 ## 配置示例
 
 ```bash
 export ACL_OP_COMPILER_CACHE_MODE=enable
 ```
-
-> [!NOTE]
->
-> 此功能为`torch_npu`特有，PyTorch社区无直接对应变量。
 
 ## 使用约束
 
