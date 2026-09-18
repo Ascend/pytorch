@@ -27,7 +27,7 @@ jobs:
   Compile:
     name: Compile
     select: selected_by_default
-    runs-on: [ self-hosted,"${{ inputs.runs_on_arch }}", "${{ inputs.runs_on_spec }}" ]
+    runs-on: [ self-hosted, op_plugin, "${{ inputs.runs_on_arch }}", "${{ inputs.runs_on_spec }}" ]
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/${{ inputs.CP_DOCKER_IMG }}
     outputs:
@@ -43,21 +43,26 @@ jobs:
 
       - name: compile_3.9
         run: |
-          ls -al
+          git clone -b ${{ atomgit.event.repository.default_branch }} ${{ env.ATOMGIT_REPOSITORY_URL }} cie
+          source cie/.gitcode/scripts/ccache_env.sh
+          export CCACHE_BASEDIR="${ATOMGIT_WORKSPACE}"
           export OMP_NUM_THREADS=32
           pip"3.9"  list
           BUILD_WITHOUT_SHA=1 bash ci/build.sh --python="3.9"
           cp dist/torch_npu*.whl ${ATOMGIT_WORKSPACE}/
           ls -al ${ATOMGIT_WORKSPACE}
+          ccache -p -V -s
 
       - name: compile_3.11
         run: |
-          ls -al
+          source cie/.gitcode/scripts/ccache_env.sh || echo "ccache_env.sh not found"
+          export CCACHE_BASEDIR="${ATOMGIT_WORKSPACE}"
           export OMP_NUM_THREADS=32
           pip"3.11" list
           BUILD_WITHOUT_SHA=1 bash ci/build.sh --python="3.11"
           cp dist/torch_npu*.whl ${ATOMGIT_WORKSPACE}/
           ls -al ${ATOMGIT_WORKSPACE}
+          ccache -p -V -s
 
       - name: oidc-auth
         uses: huaweicloud-oidc-auth

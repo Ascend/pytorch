@@ -31,7 +31,7 @@ jobs:
   Compile:
     name: Compile
     select: selected_by_default
-    runs-on: [ self-hosted,"${{ inputs.runs_on_arch }}", "${{ inputs.runs_on_spec }}" ]
+    runs-on: [ self-hosted, op_plugin, "${{ inputs.runs_on_arch }}", "${{ inputs.runs_on_spec }}" ]
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/${{ inputs.CP_DOCKER_IMG }}
     outputs:
@@ -76,11 +76,13 @@ jobs:
 
       - name: compile
         run: |
-          ls -al
+          git clone -b ${{ atomgit.event.repository.default_branch }} ${{ env.ATOMGIT_REPOSITORY_URL }} cie
+          source cie/.gitcode/scripts/ccache_env.sh
+          export CCACHE_BASEDIR="${ATOMGIT_WORKSPACE}"
           export OMP_NUM_THREADS=32
           pip"${{ inputs.py_version }}" list
           BUILD_WITHOUT_SHA=1 bash ci/build.sh --python=${{ inputs.py_version }}
-          ls -al ${workspace}
+          ccache -p -V -s
 
       - name: Upload artifact
         uses: upload-artifact

@@ -42,7 +42,8 @@ permissions:
   project: read
   repository: read
   id-token: write
-  pr: read
+  pr: write
+  note: write
 
 stages:
   stage_1:
@@ -50,7 +51,7 @@ stages:
     jobs:
       Detect_file_changes:
         name: Detect_file_changes
-        runs-on: [ self-hosted, x86, cpu=32 ]
+        runs-on: [ self-hosted, default, x86, cpu=16 ]
         container:
           image: swr.cn-north-4.myhuaweicloud.com/pytorch_images_x86/pytorchx86:v_03
         outputs:
@@ -108,7 +109,7 @@ stages:
       associate_pr_comment:
         name: associate_pr_comment
         select: selected_by_default
-        runs-on: [ self-hosted, x86, cpu=32 ]
+        runs-on: [ self-hosted, default, x86, cpu=16 ]
         steps:
           - name: associate-pr-comment
             uses: associate-pr-comment
@@ -120,7 +121,7 @@ stages:
       lintrunner:
         name: CodeCheck_lintrunner
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
-        runs-on: [ self-hosted, x86, cpu=32 ]
+        runs-on: [ self-hosted, default, x86, cpu=16 ]
         container:
           image: swr.cn-north-4.myhuaweicloud.com/mindspore/mindspore_python3.11:v0.1
         steps:
@@ -159,18 +160,18 @@ stages:
 
       sca-pr:
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
-        runs-on: [ self-hosted, x86, cpu=32 ]
+        runs-on: [ self-hosted, default, x86, cpu=16 ]
         steps:
           - name: checkout
             uses: checkout
           - name: Run SCA PR scan
             uses: openlibing/sca-action/sca-pr-action@v1.0.0
             with:
-              project-name: FrameworkPTAdapter
+              project-name: AscendForPyTorch
 
       malicious-scan:
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
-        runs-on: [ self-hosted, x86, cpu=32 ]
+        runs-on: [ self-hosted, default, x86, cpu=16 ]
         steps:
           - name: checkout
             uses: checkout
@@ -179,12 +180,12 @@ stages:
             with:
               repository-name: ${{ atomgit.repository }}
               pr-id: "${{ atomgit.event.pull_request.number }}"
-              project-name: FrameworkPTAdapter
+              project-name: AscendForPyTorch
 
       img_select:
         name: img_select
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
-        runs-on: [ self-hosted, x86, cpu=32 ]
+        runs-on: [ self-hosted, default, x86, cpu=16 ]
         container:
           image: swr.cn-north-4.myhuaweicloud.com/pytorch_images_x86/pytorchx86:v_03
         outputs:
@@ -283,7 +284,6 @@ stages:
           torch_branch: ${{ jobs.img_select.outputs.target_branch }}
           CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
           runs_on_arch: "arm"
-
 
   stage_4:
     name: UT

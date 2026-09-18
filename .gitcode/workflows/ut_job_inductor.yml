@@ -118,7 +118,7 @@ jobs:
 
           echo "upload_data=no" >> "$ATOMGIT_OUTPUT"
           if [ -e ${ATOMGIT_WORKSPACE}/time_data.json ]; then
-            cp -f ${ATOMGIT_WORKSPACE}/time_data.json ${ATOMGIT_WORKSPACE}/${{ atomgit.event.pull_request.base.ref }}_time_data.json
+            cp ${ATOMGIT_WORKSPACE}/time_data.json ${ATOMGIT_WORKSPACE}/${{ atomgit.event.pull_request.base.ref }}_time_data.json
             ls -al ${ATOMGIT_WORKSPACE}
             echo "upload_data=yes" >> "$ATOMGIT_OUTPUT"
           fi
