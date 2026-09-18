@@ -29,3 +29,4 @@ TorchNPU环境变量请参考《[TorchNPU环境变量参考](https://www.hiascen
 | 其他         |INDUCTOR_ASCEND_DUMP_FX_GRAPH| dump可执行的单算子用例，用于调试和问题排查。当INDUCTOR_ASCEND_CHECK_ACCURACY或AOTI_ASCEND_DEBUG_KERNEL启用时，会自动启用此功能，默认值为空。                             |
 | 其他         |INDUCTOR_ASCEND_LOG_LEVEL| 设置Inductor-Ascend日志等级，控制日志输出的详细程度，默认值为WARNING。                                                                                  |
 | 其他         |TORCHINDUCTOR_NDDMA| 启用Triton-Ascend load随路转置能力。在A2、A3代际理论性能无差异。在A5代际会通过底层nddma特性做转置加速，转置性能有明显增益。                                                    |
+| FlexAttention | [TORCHINDUCTOR_ASCEND_FLEX_ATTENTION_BWD_DKDV_TASKLIST](./flex_attention/TORCHINDUCTOR_ASCEND_FLEX_ATTENTION_BWD_DKDV_TASKLIST.md) | 是否允许反向dK/dV任务列表调度，默认值为1。 |
