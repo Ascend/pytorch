@@ -4,7 +4,7 @@
 
 SHUT_DOWN_FX_PASS_LIST=xxx,yyy
 
-1. 环境变量默认为""， 即所有pass都生效。
+1. 环境变量默认为""， 即所有pass都生效；但部分pass默认关闭，需通过各自的环境变量另行使能，清单见 [快速入门](./overview.md)。实际跳过的pass是默认关闭清单与本环境变量的并集。
 2. 如果设定了xxx,yyy，则表示关闭xxx和yyy pass (只要某个pass生效，日志会打印"[inductor_fx_pass] xxx works"； 通过关闭某几个pass，可以用来精确控制，排查问题)。
 3. 如果设定为all，则表示关闭所有pass。
 
@@ -124,7 +124,7 @@ DEBUG - Registering function fold_where from module torch_npu._inductor.fx_passe
 
 ## 使用约束
 
-环境变量默认为空(SHUT_DOWN_FX_PASS_LIST="")，图优化特性默认开启，当前仅适用于模型推理过程。
+环境变量默认为空(SHUT_DOWN_FX_PASS_LIST="")，图优化特性默认开启，当前主要适用于模型推理过程；其中标记了 ignore_inference_check 的pass在训练图上同样生效。
 
 ## 支持的型号
 
