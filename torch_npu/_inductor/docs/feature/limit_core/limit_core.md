@@ -17,9 +17,10 @@ export NPU_DEVICE_LIMIT='14,28'
 ```
 
 ## 使用约束
+
 - 在A2/A3/A5代际，Cube和Vector的配比是1:2。因此，设置NPU_DEVICE_LIMIT时，建议Cube和Vector的数量比例达成1:2。
 - 如不设置，则默认使用NPU上全部的Cube和Vector核；
 
 ## 支持的型号
 
-- <term>Atlas A5 系列产品</term>
+- <term>Ascend 950DT 系列产品</term>

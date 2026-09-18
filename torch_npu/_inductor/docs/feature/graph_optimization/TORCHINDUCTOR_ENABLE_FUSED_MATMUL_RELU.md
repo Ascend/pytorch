@@ -58,7 +58,7 @@ DEBUG - Ignoring registration of fused_matmul_relu_pass
 
 该pass的匹配条件是严格的，下列任一条不满足时保持原图不变：
 
-- 仅<term>Atlas A5 系列产品</term>（Ascend 950）提供 npu_fused_matmul 算子。
+- 仅<term>Ascend 950DT 系列产品</term>（Ascend 950）提供 npu_fused_matmul 算子。
 - x1与权重必须均为2维，且x2的rank与x1相同，不支持broadcast。
 - 所有输入的dtype必须一致，且为float16或bfloat16。
 - 带bias时，bias必须是1维且连续。
@@ -66,4 +66,4 @@ DEBUG - Ignoring registration of fused_matmul_relu_pass
 
 ## 支持的型号
 
-- <term>Atlas A5 系列产品</term>
+- <term>Ascend 950DT 系列产品</term>

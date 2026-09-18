@@ -19,6 +19,4 @@ export FASTAUTOTUNE=0
 
 ## 支持型号
 
-- <term>Atlas A2 系列产品</term>
-- <term>Atlas A3 系列产品</term>
-- <term>Atlas A5 系列产品</term>
+- <term>Ascend 950DT 系列产品</term>

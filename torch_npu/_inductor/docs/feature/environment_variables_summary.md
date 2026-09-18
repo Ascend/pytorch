@@ -18,6 +18,9 @@ TorchNPU环境变量请参考《[TorchNPU环境变量参考](https://www.hiascen
 | 计算图多流并行 |ENABLE_PARALLEL_SCHEDULER| 是否开启计算图多流并行调度策略，默认为False，即不开启计算图多流并行调度策略，设置为True，表示开启计算图多流并行调度策略                  |
 | 离散访存       |INDUCTOR_INDIRECT_MEMORY_MODE| 是否开启离散访存的融合以及配置融合方式，默认值为"simd_simt_mix"                                                                                                            |
 | 离散访存       |USE_STORE_IN_CAT| 用于控制Inductor针对cat融合的行为，当前默认为False                                                                                               |
+| 动态shape     |INDUCTOR_ASCEND_SYMBOLIC_GROUP_AUTOTUNE| 控制是否启用动态shape分组autotune（grouped autotune），默认值为"0"，配置为"1"、"true"或"yes"时开启                          |
+| 动态shape     |INDUCTOR_ASCEND_SYMBOLIC_GROUP_TEMPLATES| 控制参与动态shape分组autotune的模板类型列表，多个模板以逗号分隔，默认值为"pointwise,reduction,persistent_reduction"      |
+| 动态shape     |INDUCTOR_ASCEND_SYMBOLIC_GROUP_MAX_BENCHMARK_MEMORY_RATIO| 控制分组autotune benchmark的显存占用预算，超过预算时自动回退到普通autotune流程，默认值为0.25 |
 | 自动Tiling优化 |FASTAUTOTUNE| 控制是否使用fast autotune，默认值为0                                                                                                       |
 | 自动Tiling优化 |INDUCTOR_ASCEND_AGGRESSIVE_AUTOTUNE| 控制是否启用batch profiler，默认值为0                                                                                                      |
 | 自动Tiling优化 |TORCHINDUCTOR_COMPILE_THREADS| 多进程编译进程数量，与社区保持一致，默认值为32                                                                                                                |
@@ -29,3 +32,5 @@ TorchNPU环境变量请参考《[TorchNPU环境变量参考](https://www.hiascen
 | 其他         |INDUCTOR_ASCEND_DUMP_FX_GRAPH| dump可执行的单算子用例，用于调试和问题排查。当INDUCTOR_ASCEND_CHECK_ACCURACY或AOTI_ASCEND_DEBUG_KERNEL启用时，会自动启用此功能，默认值为空。                             |
 | 其他         |INDUCTOR_ASCEND_LOG_LEVEL| 设置Inductor-Ascend日志等级，控制日志输出的详细程度，默认值为WARNING。                                                                                  |
 | 其他         |TORCHINDUCTOR_NDDMA| 启用Triton-Ascend load随路转置能力。在A2、A3代际理论性能无差异。在A5代际会通过底层nddma特性做转置加速，转置性能有明显增益。                                                    |
+| 其他         |TORCHINDUCTOR_NPU_FAST_LAUNCH| 控制是否启用NPU Inductor Planned Fast Launch，用于降低torch.compile生成的Python Wrapper下发NPU Triton融合kernel的Host侧固定开销，默认关闭，需要显式启用 |
+| 其他         |AOTI_ASCEND_DEBUG_KERNEL| 开启AOTI调试内核。当启用时，会自动启用INDUCTOR_ASCEND_DUMP_FX_GRAPH功能，默认值为空 |

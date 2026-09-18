@@ -28,4 +28,4 @@ export TORCHINDUCTOR_PROFILE_WITH_DO_BENCH_USING_PROFILING="0"
 
 ## 支持的型号
 
-- <term>Atlas A5 系列产品</term>
+- <term>Ascend 950DT 系列产品</term>
