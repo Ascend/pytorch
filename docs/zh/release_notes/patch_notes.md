@@ -22,7 +22,7 @@
 
 ## 版本下载地址
 
-软件包下载地址：[快速安装](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=175&ids=89dda9ba9de741349efa03687a487678%2C202%2C106%2C1%2C6%2C177%2C)
+软件包下载地址：[快速安装](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=182&ids=89dda9ba9de741349efa03687a487678%2C202%2C106%2C1%2C6%2C177%2C)
 
 ## 相关产品版本配套说明
 

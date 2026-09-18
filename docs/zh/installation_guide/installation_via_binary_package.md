@@ -1,6 +1,6 @@
 # 方式一：离线安装（Whl）
 
-通过Whl包直接安装PyTorch和TorchNPU插件。
+您可以通过`wget`命令下载PyTorch和TorchNPU的Whl安装包，然后使用Pip工具安装PyTorch和TorchNPU。
 
 执行安装命令前，请参见[安装前准备](preparing_installation.md)完成环境变量配置及其他环境准备。
 
