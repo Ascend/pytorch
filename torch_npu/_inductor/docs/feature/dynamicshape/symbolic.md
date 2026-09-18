@@ -194,6 +194,43 @@ else:
     compiled_model = torch.compile(model_fn, backend='inductor', dynamic=None)
 ```
 
+## 动态shape分组autotune（Symbolic Grouped Autotune）
+
+### 特性简介
+
+在 Symbolic（动态shape）编译场景下，同一个 Triton kernel 可能以多种不同的运行时shape被调用。默认的 autotune 流程会为每一种实际shape各自做一次 benchmark 选优，shape 变化越多，重复编译和调优开销越大，动态shape下的内核渲染性能下降明显。
+
+动态shape分组autotune（grouped autotune）将运行时shape空间按 shape 特征（如动态轴的维度长度、归约维度乘积等）划分为多个分组（bucket），每个分组使用一个“代表shape”做一次 autotune benchmark 并选定最优 config；运行时根据实际shape所处的分组直接复用该分组的调优结果，实现“一次调优，多种shape复用”。相比每种shape单独 autotune，可显著降低动态shape场景下的重复编译和调优开销。
+
+### 基本原理
+
+- **分组（Grouping）**：Inductor-Ascend 从 kernel 中提取分组特征（动态轴的维度长度、归约乘积等），为每个特征构造分桶边界（bucket），将可能的 shape 区间划分成若干个分组。
+- **代表shape（Representative）**：为每个分组在其边界内选取一个代表shape，用于生成该分组的网格（grid）与平铺（tiling）参数并执行 benchmark。
+- **按组调优（Grouped Autotune）**：以代表shape为输入，对每个分组执行一次 autotune benchmark，为该分组选定最优候选 config 与 launcher。
+- **运行时分发（Runtime Dispatch）**：kernel 每次执行时，从实际传入的 numel 参数中提取特征值，通过 bucketize 映射到对应的分组（group_id），直接复用该分组预调的 best launcher，并按策略材料化运行时 block（如 `R0BLOCK_SUB`）完成启动。
+
+### 适用场景
+
+- 使用 `torch.compile(..., dynamic=True)` 符号化编译，且图中存在 pointwise / reduction / persistent_reduction 类 Triton kernel 的场景。
+- 动态shape轴（如 BatchSize、SequenceLength）在运行时会变化，希望降低重复编译和 autotune 开销的场景。
+- 支持 AOT（cpp wrapper）场景下的分组调度与 kernel 落盘复用。
+
+### 环境变量控制
+
+- `INDUCTOR_ASCEND_SYMBOLIC_GROUP_AUTOTUNE`：分组autotune的总开关。
+- `INDUCTOR_ASCEND_SYMBOLIC_GROUP_TEMPLATES`：控制哪些模板类型的 kernel 参与分组autotune。
+
+### 使用约束与自动回退
+
+- 仅对存在动态shape轴的 Triton kernel 生效，静态shape kernel 行为不受影响。
+- 仅对 `pointwise`、`reduction`、`persistent_reduction` 三类模板 kernel 生效，参与调优的模板类型可通过 `INDUCTOR_ASCEND_SYMBOLIC_GROUP_TEMPLATES` 控制。
+- 当前为灰度开关。当分组计划不受支持（kernel 访问签名不一致、无法构造分组代表等）或分组 benchmark 的显存占用超过预算时，会自动回退到普通 autotune 流程。
+
+各环境变量的详细说明请参见：
+
+- **[INDUCTOR_ASCEND_SYMBOLIC_GROUP_AUTOTUNE](./INDUCTOR_ASCEND_SYMBOLIC_GROUP_AUTOTUNE.md)**
+- **[INDUCTOR_ASCEND_SYMBOLIC_GROUP_TEMPLATES](./INDUCTOR_ASCEND_SYMBOLIC_GROUP_TEMPLATES.md)**
+
 ## 与 shapeHandling 的对比
 
 ### 设计理念
@@ -296,7 +333,38 @@ model_dynamic_full = torch.compile(model, backend='inductor', dynamic=True)
 model_auto = torch.compile(model, backend='inductor', dynamic=None)
 ```
 
-### 2. 调试符号化问题
+### 2. 使用动态shape分组autotune
+
+在动态shape（`dynamic=True`）编译场景下，若图中存在大量随 BatchSize、SequenceLength 等动态轴变化的点乘/归约类 Triton kernel，可通过开启分组autotune，用代表shape完成一次调优、供同组多种shape复用，从而降低重复编译和调优开销。
+
+```bash
+# 开启动态shape分组autotune（默认关闭）
+export INDUCTOR_ASCEND_SYMBOLIC_GROUP_AUTOTUNE=1
+
+# 可选：限定参与分组的模板类型（默认 pointwise,reduction,persistent_reduction）
+# export INDUCTOR_ASCEND_SYMBOLIC_GROUP_TEMPLATES=pointwise,reduction
+```
+
+```python
+import torch
+import torch_npu
+
+def model_fn(x):
+    return torch.nn.functional.relu(x).sum(dim=-1)
+
+# 动态shape编译，BatchSize 运行时变化
+compiled_fn = torch.compile(model_fn, backend='inductor', dynamic=True)
+
+# 不同 BatchSize 下，分组autotune按shape自动分配分组并复用组内已调优config，
+# 对同组shape无需重复编译和autotune
+for bs in (16, 17, 32, 33, 64):
+    x = torch.randn(bs, 128, device="npu")
+    out = compiled_fn(x)
+```
+
+**建议**：当动态shape变化范围内出现大量相似shape时，开启分组autotune收益最明显；当分组计划不受支持或分组 benchmark 的显存占用超过预算时，框架会自动回退到普通 autotune 流程。
+
+### 3. 调试符号化问题
 
 ```python
 import torch

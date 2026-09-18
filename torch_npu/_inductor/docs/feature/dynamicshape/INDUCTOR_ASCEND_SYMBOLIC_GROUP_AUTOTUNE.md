@@ -4,10 +4,10 @@
 
 通过此环境变量可控制是否启用动态shape分组autotune（grouped autotune）。
 
-开启后，对于存在动态shape轴的Triton kernel，Inductor-Ascend会按shape特征（如维度长度）将运行时shape划分到不同分组（bucket），每组使用代表shape进行一次autotune benchmark，运行时根据实际shape所在的分组选择对应config。相比每个shape单独autotune，可显著减少动态shape场景下的重复编译和调优开销，实现“一次调优，多种shape复用”。
+开启后，对于存在动态shape轴的Triton kernel，Inductor-Ascend会按shape特征（如维度长度）将运行时shape划分到不同分组（bucket），每组使用代表shape进行一次autotune benchmark，运行时根据实际shape所在的分组选择对应config。相比每个shape单独autotune，可显著减少动态shape场景下的重复编译和调优开销，实现"一次调优，多种shape复用"。
 
-- 默认值为“0”：关闭分组autotune。
-- 配置为“1”、“true”或“yes”：开启分组autotune。
+- 默认值为"0"：关闭分组autotune。
+- 配置为"1"、"true"或"yes"：开启分组autotune。
 
 ## 配置示例
 

@@ -6,10 +6,10 @@
 
 设置`INDUCTOR_ASCEND_SYMBOLIC_GROUP_AUTOTUNE=1`启用分组autotune后，仅列表中的模板kernel会走分组autotune流程，其余模板kernel仍走普通autotune流程，用于灰度控制参与分组调优的kernel范围。
 
-- 未配置时：使用默认值“pointwise,reduction,persistent_reduction”，即三类模板kernel均参与分组autotune，相当于不限制范围。
-- 配置为“pointwise”：逐元素类模板kernel参与分组autotune。
-- 配置为“reduction”：归约类模板kernel参与分组autotune。
-- 配置为“persistent_reduction”：persistent归约类模板kernel参与分组autotune。
+- 未配置时：使用默认值"pointwise,reduction,persistent_reduction"，即三类模板kernel均参与分组autotune，相当于不限制范围。
+- 配置为"pointwise"：逐元素类模板kernel参与分组autotune。
+- 配置为"reduction"：归约类模板kernel参与分组autotune。
+- 配置为"persistent_reduction"：persistent归约类模板kernel参与分组autotune。
 
 ## 配置示例
 
