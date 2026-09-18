@@ -4,7 +4,7 @@
 
 1. After the operator adaptation is complete, the torch_npu package needs to be compiled. It is recommended to use a container scenario for compilation and installation. For detailed operations, refer to the "Method 1 (Recommended): Container Scenario" section in the [Method 2: Installation from Source Code](../installation_guide/compilation_installation_using_source_code.md) chapter of the *AscendExtension for PyTorch Software Installation Guide*.
 2. After torch_npu is installed, unit test (UT) of the newly added operator interfaces is performed. UT ensures that the operator implementation meets expectations through functional correctness verification and boundary condition coverage, reducing joint debugging costs. It also serves as a quality baseline for long-term maintenance, ensuring the stability of the operator adaptation throughout its lifecycle. The test directory for custom operator adaptation is `test/test_custom_ops`.
-  Taking npu_reshape as an example, the following test cases need to be implemented:
+   Taking `npu_reshape` as an example, implement the following test cases:
 
     ```python
     import torch
