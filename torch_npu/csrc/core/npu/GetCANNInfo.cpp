@@ -412,11 +412,13 @@ int64_t DriverVersionToNum(std::string versionStr)
                 alphaVersion = 0;
             }
         }
-        if (!parsed && StartsWith(tokens[index2], "RC") && tokens[index2].length() > validLength2 && StartsWith(tokens[index3], "beta") && tokens[index3].length() > validLength4) {  // ([0-9]+).([0-9]+).RC([0-9]+).beta([0-9]+)
+        if (!parsed && StartsWith(tokens[index2], "RC") && tokens[index2].length() > validLength2 && StartsWith(tokens[index3], "b") && tokens[index3].length() > validLength1) {  // ([0-9]+).([0-9]+).RC([0-9]+).beta([0-9]+) or ([0-9]+).([0-9]+).RC([0-9]+).b([0-9]+)
             std::string rcNumStrb = tokens[index2].substr(2);
             RCVersion = ExtractNumFromStr(rcNumStrb);
-            std::string betaNumStr = tokens[index3].substr(4);
-            bVersion = ExtractNumFromStr(betaNumStr);
+            // "beta<num>" strips the "beta" prefix, plain "b<num>" (eg: rc1.b021) strips the "b" prefix
+            size_t prefixLen = (StartsWith(tokens[index3], "beta") && tokens[index3].length() > validLength4) ? validLength4 : validLength1;
+            std::string bNumStr = tokens[index3].substr(prefixLen);
+            bVersion = ExtractNumFromStr(bNumStr);
             if (RCVersion != -1 && bVersion != -1) {
                 parsed = true;
             } else {
