@@ -31,9 +31,9 @@ exclude:
 
 categories:
   core:
-    workers: 16
+    workers: 8
     execution: concurrent
-    runner: linux-amd64-a5-2
+    runner: linux-amd64-a5-4
     paths:
       - test/nn
       - test/optim
@@ -61,9 +61,9 @@ categories:
       - test/test_throughput_benchmark.py
 
   tensor:
-    workers: 16
+    workers: 8
     execution: concurrent
-    runner: linux-amd64-a5-2
+    runner: linux-amd64-a5-4
     paths:
       - test/torch_np
       - test/complex_tensor
@@ -110,9 +110,9 @@ categories:
   #     - test/distributed
 
   graph:
-    workers: 16
+    workers: 8
     execution: concurrent
-    runner: linux-amd64-a5-2
+    runner: linux-amd64-a5-4
     paths:
       - test/fx
       - test/dynamo
@@ -166,6 +166,6 @@ categories:
       - test/distributed/test_inductor_compile_collectives.py
 
   others:
-    workers: 16
+    workers: 8
     execution: concurrent
-    runner: linux-amd64-a5-2
+    runner: linux-amd64-a5-4
