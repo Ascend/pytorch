@@ -252,3 +252,7 @@ compiled = torch.compile(
 
 - PyTorch版本：必须为2.9.0及以上版本。
 - TorchNPU版本：必须安装与PyTorch版本配套的版本，具体请参考[版本配套](../../../../../COMPATIBILITY.md)。
+
+## 相关文档
+
+关于Guard过滤和校验开销优化，请参见PyTorch 2.14官方文档中的[降低Guard开销](https://docs.pytorch.org/docs/2.14/user_guide/torch_compiler/compile/programming_model.reducing_guard_overhead.html)。更多通用用法和核心概念请参见概述文档中的[参考文档](../overview.md#参考文档)章节。
