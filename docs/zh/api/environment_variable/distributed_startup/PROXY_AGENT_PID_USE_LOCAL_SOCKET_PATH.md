@@ -2,11 +2,10 @@
 
 ## 功能描述
 
-通过此环境变量可将agent进程的PID传递给ParallelStore，用于控制本地socket路径的生成。
+通过此环境变量可将agent进程的PID传递给ParallelStore，用于控制本地socket路径的生成。在`torch_npu_run`的`_create_parallel_handler`中，通过`setdefault`将当前进程PID写入此变量。
 
-默认值：-1（表示未设置）。
-
-在`torch_npu_run`的`_create_parallel_handler`中，通过`setdefault`将当前进程PID写入此变量。
+- 默认值“-1”：表示未设置，ParallelStore不启用基于agent PID的本地socket路径生成。
+- 配置为指定PID：ParallelStore使用该PID生成agent本地socket路径，用于agent与worker之间的本地通信寻址。
 
 该环境变量由TorchNPU提供，PyTorch没有直接对应的环境变量。
 
@@ -17,6 +16,10 @@
 ```bash
 export PROXY_AGENT_PID_USE_LOCAL_SOCKET_PATH=12345
 ```
+
+## 使用约束
+
+无
 
 ## 支持的型号
 

@@ -4,21 +4,13 @@
 
 当使用HCCL作为通信后端时，通过此环境变量可控制发生HCCL超时或错误时是否自动触发Flight Recorder调试信息dump。
 
-- 0：超时或错误时不触发dump。
-- 1：超时或错误时触发本rank的dump，并通过Store协调其他rank同步dump。
+- 配置为“0”：超时或错误时不触发dump。
+- 配置为“1”：超时或错误时触发本rank的dump，并通过Store协调其他rank同步dump。
 
-默认值：0。
+该环境变量默认值配置为“0”。
 
-> [!NOTE]
->
-> - 开启此功能需要`TORCH_HCCL_TRACE_BUFFER_SIZE > 0`，否则无事件可dump。
-> - 开启此功能后，建议同时开启`TORCH_HCCL_ENABLE_MONITORING`，以确保watchDog卡死时也能触发dump。
+该变量对应PyTorch的`TORCH_FR_DUMP_ON_TIMEOUT`(PyTorch 2.15版本及以上)，PyTorch兼容历史版本变量[`TORCH_NCCL_DUMP_ON_TIMEOUT`](https://docs.pytorch.org/tutorials/unstable/flight_recorder_tutorial.html#enabling-flight-recorder)（PyTorch 2.14版本及以下），PyTorch默认开启。
 
-该变量对应PyTorch的`TORCH_FR_DUMP_ON_TIMEOUT`。PyTorch同时兼容`TORCH_NCCL_DUMP_ON_TIMEOUT`名称。
-
-> [!NOTE]
->
-> PyTorch进程组默认开启，TorchNPU默认关闭。
 
 ## 配置示例
 
@@ -29,7 +21,7 @@ export TORCH_HCCL_DUMP_ON_TIMEOUT=1
 ## 使用约束
 
 - 建议配合`TORCH_HCCL_TRACE_BUFFER_SIZE > 0`和`TORCH_HCCL_ENABLE_MONITORING=1`使用。
-- dump文件路径由`TORCH_HCCL_DEBUG_INFO_TEMP_FILE`控制，默认输出到`/tmp/hccl_trace_rank_<rank>`。
+- dump文件路径由[TORCH_HCCL_DEBUG_INFO_TEMP_FILE](TORCH_HCCL_DEBUG_INFO_TEMP_FILE.md)控制，默认输出到`/tmp/hccl_trace_rank_<rank>`。
 
 ## 支持的型号
 

@@ -4,12 +4,12 @@
 
 当使用HCCL作为通信后端时，通过此环境变量可配置HCCL进程组状态保存的间隔时间。
 
-单位为秒，默认值为2秒。如果配置为小于等于0的值，会被重置为2秒。
+- 该环境变量默认值为2s，单位为秒。
+- 如果配置为小于等于0的值，会被重置为2s。
 
 > [!NOTE]
 >
-> - 此环境变量在首次调用时读取并缓存。
-> - 仅当`TORCH_HCCL_STATUS_SAVE_ENABLE=1`时生效。
+> 此环境变量在首次调用时读取并缓存。
 
 该环境变量由TorchNPU提供，PyTorch没有直接对应的环境变量。
 
@@ -18,6 +18,10 @@
 ```bash
 export TORCH_HCCL_STATUS_SAVE_INTERVAL=5
 ```
+
+## 使用约束
+
+仅当`TORCH_HCCL_STATUS_SAVE_ENABLE=1`时生效。
 
 ## 支持的型号
 
