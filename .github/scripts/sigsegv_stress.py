@@ -553,6 +553,14 @@ class Harness:
             cls, sig = "crash:%s" % state["gdb_sig"], state["gdb_sig"]
         elif share is not None and share.get("killed_after_done"):
             cls, sig = "ok_killed", ""
+        elif (instrument in ("gdb", "gdb_aslr") and rc in (0, 1)
+              and share is not None and share.get("total")
+              and state["completed"] >= share["total"]):
+            # gdb -batch exits 1 when post-exit -ex commands (info registers
+            # etc.) error on an already-exited inferior; every case completed
+            # and no crash marker was seen, so the run itself is ok
+            # (run 35221589981: 695/704 gdb_aslr runs misclassified this way).
+            cls, sig = "ok", ""
         else:
             cls, sig = classify_rc(rc, stop_evt.is_set())
 

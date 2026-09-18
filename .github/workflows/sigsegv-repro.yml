@@ -62,7 +62,7 @@ env:
   REPRO_CASE_SUBSET: '10857-10865'     # minimal crash window (clamp_min .. expm1, 9 cases); overrides REPRO_CASE_RANGE; order preserved
   REPRO_DEVICE: '5'                    # NPU device id pinned for all workers
   REPRO_WORKERS: '4'                   # concurrent workers per wave (CI density is 32/8 = 4)
-  REPRO_MODES: 'gdb_aslr_batch,valgrind_batch,worker_batch'
+  REPRO_MODES: 'attach_gdb_batch,valgrind_batch,worker_batch'
   REPRO_MAX_TOTAL_MINUTES: '120'       # overall stress budget in minutes (shared by all modes)
   REPRO_STOP_AFTER_CRASHES: '3'        # crash samples to collect per mode before moving on (0 = full budget)
   REPRO_PAIR_SUSPECT: '10857-10858'    # suspect pair (clamp_min + clone: ForeachMaximumList chain)
