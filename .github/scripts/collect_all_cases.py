@@ -35,6 +35,8 @@ try:
 except ImportError:
     yaml = None
 
+COLLECTION_TIMEOUT_SECONDS = 300
+
 
 
 # ==============================================================================
@@ -503,7 +505,7 @@ def collect_cases_for_file(
             text=True,
             encoding="utf-8",
             errors="replace",
-            timeout=120,
+            timeout=COLLECTION_TIMEOUT_SECONDS,
         )
 
         nodeids = []
@@ -568,7 +570,7 @@ def collect_cases_for_file(
             return (test_file, display_name, nodeids, False, error_msg)
 
     except subprocess.TimeoutExpired:
-        error_msg = f"TIMEOUT: Collection took >120s for {display_name}"
+        error_msg = f"TIMEOUT: Collection took >{COLLECTION_TIMEOUT_SECONDS}s for {display_name}"
         return (test_file, display_name, [], False, error_msg)
     except Exception as e:
         error_msg = f"ERROR: {e}"

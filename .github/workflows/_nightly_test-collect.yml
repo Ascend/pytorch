@@ -276,7 +276,7 @@ jobs:
             --device-env "${{ inputs.device_env }}" \
             --output-dir ${GITHUB_WORKSPACE}/cases-shards \
             --error-log-dir ${GITHUB_WORKSPACE}/collection_errors \
-            --parallel 32 \
+            --parallel 16 \
             2>&1 | tee /tmp/collect_cases.log
 
           echo "=== Generated shard files ==="
