@@ -367,8 +367,15 @@ at::Tensor& NPUNativeFunctions::npu_format_cast_(
 
 int64_t NPUNativeFunctions::get_npu_format(const at::Tensor& self) {
   torch_npu::utils::torch_check_npu(self);
-  auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_;
-  return src_desc.npu_format_;
+  // FakeTensor/MetaTensor carry a plain StorageImpl without npu_desc_;
+  // the unchecked static_cast would read out of bounds and segfault.
+  auto* npu_storage = dynamic_cast<torch_npu::NPUStorageImpl*>(self.storage().unsafeGetStorageImpl());
+  TORCH_CHECK(
+      npu_storage != nullptr,
+      "get_npu_format() requires a real NPU tensor, but got a symbolic "
+      "tensor (FakeTensor/MetaTensor) without NPUStorageImpl.",
+      PTA_ERROR(ErrCode::PARAM));
+  return npu_storage->npu_desc_.npu_format_;
 }
 
 at::Tensor NPUNativeFunctions::_npu_format_cast(const at::Tensor& self, int64_t acl_format) {
