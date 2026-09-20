@@ -791,3 +791,90 @@ def npu_clone(x, *, memory_format=None):
 
 
 overwrite_lowering(aten.clone, npu_clone, type_promotion_kind=None)
+# --- P1: separable aclnn index_select for aten._unsafe_index / aten.index ---
+# msprof: the aclnn Index fallback costs 10ms/iter on yolov3's head (2
+# launches), while eager runs the same x[:, :, ih[:,None], iw] near-zero via
+# separable index_select. Lower the accepted pattern to two chained
+# index_select FALLBACK calls (mirrors eager's fast dispatch path). Both
+# entries are covered — dynamo traces x[:, :, a[:,None], b] to aten.index
+# directly on some paths and to its _unsafe_index decomposition on others;
+# both hit the same AICPU aclnnIndex fallback otherwise. Admission is
+# guard-only (no config gate): the guards accept exactly the provably
+# equivalent separable form (run-of-2: first index an (M,1) column, second
+# 1-D; run-of-1: 1-D); every other shape combination keeps the upstream
+# fallback.
+
+
+def _index_select_rewrite(x, indices, _up):
+    import torch._inductor.ir as _ir
+    # Accepted pattern: len(indices) == x.ndim; exactly one run of 1-2
+    # consecutive Tensor entries; all other entries None.
+    if not isinstance(x, _ir.TensorBox) or len(indices) != len(x.get_size()):
+        return _up(x, indices)
+    tensor_pos = [i for i, t in enumerate(indices) if t is not None]
+    if not tensor_pos:
+        return _up(x, indices)
+    if any(not isinstance(indices[i], _ir.TensorBox) for i in tensor_pos):
+        return _up(x, indices)
+    if tensor_pos != list(range(tensor_pos[0], tensor_pos[-1] + 1)):
+        return _up(x, indices)
+    if len(tensor_pos) > 2:
+        return _up(x, indices)
+    p = tensor_pos[0]
+    idxs = [indices[p + k] for k in range(len(tensor_pos))]
+    for t in idxs:
+        if "int" not in str(t.get_dtype()):
+            return _up(x, indices)
+        size = list(t.get_size())
+        if len(size) == 2:
+            if not V.graph.sizevars.statically_known_equals(
+                    size[1], sympy.Integer(1)):
+                return _up(x, indices)
+    # G8 (joint semantics): index rank must be 1 or 2 — rank-0 keeps the dim
+    # under aten semantics (index_select drops the trailing 1), rank>=3 has
+    # no index_select form. Run-of-2 accepts exactly the separable
+    # outer-product broadcast x[..., a(La,1), b(Lb,)]: within the column
+    # restriction above it is the only combination whose aten broadcast
+    # equals the chained result shape (..., La, Lb) — pairing/diagonal
+    # both-1-D and both-column forms pair indices differently and must fall
+    # back. Run-of-1 admits 1-D only for the same reason.
+    if any(len(t.get_size()) not in (1, 2) for t in idxs):
+        return _up(x, indices)
+    if len(idxs) == 1:
+        if len(idxs[0].get_size()) != 1:
+            return _up(x, indices)
+    elif len(idxs[0].get_size()) != 2 or len(idxs[1].get_size()) != 1:
+        return _up(x, indices)
+    from torch._inductor.lowering import lowerings as _lowerings
+    _up_reshape = _lowerings[torch.ops.aten.reshape.default]
+    _aclnn_index_select = fallback_handler(torch.ops.aten.index_select.default)
+    out = x
+    for k, t in enumerate(idxs):
+        flat = _up_reshape(t, [-1]) if len(t.get_size()) == 2 else t
+        out = _aclnn_index_select(out, p + k, flat)
+    return out
+
+
+def npu_unsafe_index(x, indices):
+    return _index_select_rewrite(x, indices, _up_unsafe_index)
+
+
+def npu_index(x, indices):
+    return _index_select_rewrite(x, indices, _up_index)
+
+
+_up_unsafe_index = fallback_handler(torch.ops.aten._unsafe_index.Tensor)
+_up_index = fallback_handler(torch.ops.aten.index.Tensor)
+# _activate() imports the module first, THEN calls
+# _register_npu_inductor_fallbacks(), whose make_fallback loop would clobber a
+# directly-registered overwrite. Rebind the module-level registrar so the
+# index lowerings are (re)applied after the fallback sweep.
+_orig_npu_inductor_fallbacks = _register_npu_inductor_fallbacks
+
+
+def _register_npu_inductor_fallbacks():  # noqa: F811
+    _orig_npu_inductor_fallbacks()
+    overwrite_lowering(torch.ops.aten._unsafe_index, npu_unsafe_index,
+                       type_promotion_kind=None)
+    overwrite_lowering(torch.ops.aten.index.Tensor, npu_index,
+                       type_promotion_kind=None)
