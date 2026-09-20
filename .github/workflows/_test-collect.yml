@@ -168,8 +168,9 @@ jobs:
         run: |
           UPSTREAM_SHORT="${{ inputs.resolved_short }}"
           ARCH=$(uname -m)
+          PYVER=$(python3 -c "import sys; print(f'py{sys.version_info.major}{sys.version_info.minor}')")
           echo "source_tarball=pytorch-source-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
-          echo "wheels_tarball=wheels-${UPSTREAM_SHORT}-${ARCH}.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "wheels_tarball=wheels-${UPSTREAM_SHORT}-${PYVER}-${ARCH}.tar.gz" >> "$GITHUB_OUTPUT"
 
       # obsutil is preinstalled in the test image; auth is done inline
       # via `obsutil config` (AK/SK are masked by the runner in logs).

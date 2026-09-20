@@ -255,9 +255,10 @@ jobs:
         run: |
           UPSTREAM_SHORT="${{ needs.fetch.outputs.resolved_short }}"
           ARCH=$(uname -m)
+          PYVER=$(python3 -c "import sys; print(f'py{sys.version_info.major}{sys.version_info.minor}')")
           echo "upstream_short=${UPSTREAM_SHORT}" >> "$GITHUB_OUTPUT"
           echo "source_tarball=pytorch-source-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
-          echo "wheels_tarball=wheels-${UPSTREAM_SHORT}-${ARCH}.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "wheels_tarball=wheels-${UPSTREAM_SHORT}-${PYVER}-${ARCH}.tar.gz" >> "$GITHUB_OUTPUT"
 
       - name: Download PyTorch source from OBS
         run: |

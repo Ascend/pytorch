@@ -129,10 +129,11 @@ jobs:
           SHA=$(git rev-parse HEAD)
           SHORT="${SHA:0:10}"
           ARCH=$(uname -m)
+          PYVER=$(python3 -c "import sys; print(f'py{sys.version_info.major}{sys.version_info.minor}')")
           echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
           echo "short=${SHORT}" >> "$GITHUB_OUTPUT"
           echo "upstream_short=${SHORT}" >> "$GITHUB_OUTPUT"
-          echo "wheels_tarball=wheels-${SHORT}-${ARCH}.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "wheels_tarball=wheels-${SHORT}-${PYVER}-${ARCH}.tar.gz" >> "$GITHUB_OUTPUT"
           echo "Resolved ${{ inputs.upstream_ref }} -> ${SHA}"
 
       # Step 1b: ccache statistics for the PyTorch build. ccache counters are

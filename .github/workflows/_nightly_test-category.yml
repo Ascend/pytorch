@@ -113,7 +113,8 @@ jobs:
         run: |
           UPSTREAM_SHORT="${{ inputs.resolved_short }}"
           ARCH=$(uname -m)
-          echo "wheels_tarball=wheels-${UPSTREAM_SHORT}-${ARCH}.tar.gz" >> "$GITHUB_OUTPUT"
+          PYVER=$(python3 -c "import sys; print(f'py{sys.version_info.major}{sys.version_info.minor}')")
+          echo "wheels_tarball=wheels-${UPSTREAM_SHORT}-${PYVER}-${ARCH}.tar.gz" >> "$GITHUB_OUTPUT"
 
       - name: Checkout PyTorch source
         uses: actions/checkout@v6
