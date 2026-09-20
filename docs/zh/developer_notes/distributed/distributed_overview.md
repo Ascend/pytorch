@@ -46,6 +46,8 @@ PyTorch分布式通信层（C10D）提供了集合通信API（如all_reduce、al
 
 - **Ranktable建链**：TorchNPU提供的一种集群建链机制。通过`RANK_TABLE_FILE`环境变量指定JSON格式的rank映射文件，预置各rank的IP和设备信息，跳过默认协商流程直接建链。可以阅读[ranktable 建链](./communication_strategy/ranktable_link_setup.md)来掌握技术细节与注意事项。
 
+- **Scalable RootInfo分级建链**：TorchNPU在默认RootInfo协商路径上提供的可选扩展。大规模通信域可以划分为多个连续且均衡的group，由多个root分别承担RootInfo协商工作，降低单root的建链压力。可以阅读[Scalable RootInfo分级建链](./communication_strategy/scalable_rootinfo_link_setup.md)了解配置方法与使用约束。
+
 ## 基础设施与工具
 
 - **DistributedSampler**：确保分布式训练过程中每个进程加载不同的数据子集。TorchNPU提供与PyTorch一致的用法。可以阅读[PyTorch DistributedSampler](https://pytorch.org/docs/stable/data.html#torch.utils.data.distributed.DistributedSampler)了解基础用法。

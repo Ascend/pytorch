@@ -103,6 +103,8 @@
 |[HCCL_EVENT_TIMEOUT](collective_communication/HCCL_EVENT_TIMEOUT.md)|当使用HCCL作为通信后端时，通过此环境变量可设置等待event完成的超时时间。|
 |[P2P_HCCL_BUFFSIZE](collective_communication/P2P_HCCL_BUFFSIZE.md)|通过此环境变量可配置是否开启点对点通信（`torch.distributed.isend`、`torch.distributed.irecv`和`torch.distributed.batch_isend_irecv`），并使用独立通信域功能。|
 |[RANK_TABLE_FILE](collective_communication/RANK_TABLE_FILE.md)|通过此环境变量可配置RANK_TABLE_FILE文件的路径，用于集合通信域建链。|
+|[ROOTINFO_SCALABLE_ENABLE](collective_communication/ROOTINFO_SCALABLE_ENABLE.md)|通过此环境变量可控制是否开启Scalable RootInfo分级建链。|
+|[TORCH_HCCL_RANKS_PER_ROOT](collective_communication/TORCH_HCCL_RANKS_PER_ROOT.md)|开启Scalable RootInfo后，通过此环境变量可配置每个root期望管理的rank数量。|
 |[(beta) TORCH_HCCL_ZERO_COPY](collective_communication/（beta）TORCH_HCCL_ZERO_COPY.md)|训练或在线推理场景下，可通过此环境变量开启集合通信片内零拷贝功能，减少通信算子在通信过程中片内拷贝次数，提升集合通信效率，降低通信耗时。同时在计算通信并行场景下，降低通信过程中对显存带宽的抢占。|
 |[TORCH_HCCL_HIGH_PRIORITY](collective_communication/TORCH_HCCL_HIGH_PRIORITY.md)|当使用HCCL作为通信后端时，通过此环境变量可控制是否强制使用高优先级NPU stream。|
 
