@@ -312,11 +312,8 @@ class ProgressTracker:
                 "skipped": "[SKIP]",
             }.get(status, "[?]")
 
-            # Truncate nodeid for display
-            display_nodeid = nodeid[:60] + "..." if len(nodeid) > 60 else nodeid
-
             print(f"[{self._completed_tasks}/{self._total_tasks}] {progress_pct:.1f}% "
-                  f"{status_icon} {display_nodeid} ({duration:.1f}s) "
+                  f"{status_icon} {nodeid} ({duration:.1f}s) "
                   f"[elapsed: {elapsed:.0f}s]", flush=True)
 
 
