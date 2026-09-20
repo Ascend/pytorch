@@ -780,22 +780,6 @@
 
 </div>
 
-### torch.fx.graph.map_arg
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.graph.map_arg](https://pytorch.org/docs/2.12/fx.html#torch.fx.graph.map_arg)
-
-**产品支持情况**：
-
-- <term>Atlas A2 训练系列产品</term>：支持
-- <term>Atlas A3 训练系列产品</term>：支持
-- <term>Ascend 950DT</term>：不支持
-
-**限制与说明**： `input`仅支持fp32
-
-</div>
-
 ### <code><i>class</i></code> torch.fx.Node
 
 <div style="margin-left: 2em">
@@ -1361,20 +1345,6 @@
 <div style="margin-left: 2em">
 
 **原生文档**：[torch.fx.replace_pattern](https://pytorch.org/docs/2.12/fx.html#torch.fx.replace_pattern)
-
-**产品支持情况**：
-
-- <term>Atlas A2 训练系列产品</term>：支持
-- <term>Atlas A3 训练系列产品</term>：支持
-- <term>Ascend 950DT</term>：不支持
-
-</div>
-
-### torch.fx.node._type_repr
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.node._type_repr](https://pytorch.org/docs/2.12/fx.html#torch.fx.node._type_repr)
 
 **产品支持情况**：
 

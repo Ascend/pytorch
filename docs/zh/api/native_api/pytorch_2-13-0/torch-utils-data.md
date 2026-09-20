@@ -24,7 +24,9 @@
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.utils.data.IterDataPipe](https://pytorch.org/docs/2.13/data.html#torch.utils.data.IterDataPipe)
+**原生文档**：[torch.utils.data.IterDataPipe](https://docs.pytorch.org/docs/2.13/data.html#torch.utils.data.graph.traverse_dps)
+
+**说明**：链接指向官方文档中的参数类型说明。
 
 **产品支持情况**：
 
@@ -38,35 +40,9 @@
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.utils.data.MapDataPipe](https://pytorch.org/docs/2.13/data.html#torch.utils.data.MapDataPipe)
+**原生文档**：[torch.utils.data.MapDataPipe](https://docs.pytorch.org/docs/2.13/data.html#torch.utils.data.graph.traverse_dps)
 
-**产品支持情况**：
-
-- <term>Atlas A2 训练系列产品</term>：支持
-- <term>Atlas A3 训练系列产品</term>：支持
-- <term>Ascend 950DT</term>：不支持
-
-</div>
-
-### torch.utils.data.graph_settings.apply_sharding
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.utils.data.graph_settings.apply_sharding](https://pytorch.org/docs/2.13/data.html#torch.utils.data.graph_settings.apply_sharding)
-
-**产品支持情况**：
-
-- <term>Atlas A2 训练系列产品</term>：支持
-- <term>Atlas A3 训练系列产品</term>：支持
-- <term>Ascend 950DT</term>：不支持
-
-</div>
-
-### torch.utils.data.graph_settings.get_all_graph_pipes
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.utils.data.graph_settings.get_all_graph_pipes](https://pytorch.org/docs/2.13/data.html#torch.utils.data.graph_settings.get_all_graph_pipes)
+**说明**：链接指向官方文档中的参数类型说明。
 
 **产品支持情况**：
 
@@ -80,7 +56,7 @@
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.utils.data.random_split](https://pytorch.org/docs/2.13/data.html#torch.utils.data.random_split)
+**原生文档**：[torch.utils.data.random_split](https://docs.pytorch.org/docs/2.13/data.html#torch.utils.data.dataset.random_split)
 
 **产品支持情况**：
 

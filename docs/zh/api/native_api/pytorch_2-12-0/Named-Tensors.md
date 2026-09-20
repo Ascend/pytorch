@@ -26,7 +26,7 @@
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.Tensor](https://pytorch.org/docs/2.12/named_tensor.html#torch.Tensor)
+**原生文档**：[torch.Tensor](https://docs.pytorch.org/docs/2.12/named_tensor.html#named-tensors)
 
 **产品支持情况**：
 
@@ -136,7 +136,7 @@
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.Tensor.flatten](https://pytorch.org/docs/2.12/named_tensor.html#torch.Tensor.flatten)
+**原生文档**：[torch.Tensor.flatten](https://docs.pytorch.org/docs/2.12/named_tensor.html#manipulating-dimensions)
 
 **产品支持情况**：
 
