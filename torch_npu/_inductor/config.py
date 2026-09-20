@@ -346,6 +346,7 @@ enable_fast_gelu = os.getenv("TORCHINDUCTOR_ENABLE_FAST_GELU", "0") == "1"
 allow_embedding_dense_backward_lowering = os.getenv(
     "TORCHINDUCTOR_ENABLE_EMBEDDING_DENSE_BACKWARD_LOWERING", "0"
 ) == "1"
+allow_embedding_lowering = os.getenv("TORCHINDUCTOR_ENABLE_EMBEDDING_LOWERING", "1") == "1"
 enable_flex_attention_dq_before_scale_materialize = os.environ.get(
     "FLEX_ATTENTION_DQ_BEFORE_SCALE_MATERIALIZE", "1"
 ).lower() in ("1", "true", "yes")

@@ -31,6 +31,7 @@ from torch._higher_order_ops.effects import with_effects
 from .config import (
     inductor_indirect_memory_mode,
     allow_embedding_dense_backward_lowering,
+    allow_embedding_lowering,
 )
 
 aten = torch.ops.aten
@@ -230,6 +231,9 @@ NPU_EXTRA_FALLBACK_LIST = [
     aten.cumprod.out,
     aten.cumsum.out,
     aten.div_.Tensor_mode,
+    *([aten.embedding,
+        aten.embedding.default,
+        aten.embedding.out,] if not allow_embedding_lowering else []),
     aten.empty,
     aten.empty.memory_format,
     aten.empty.out,
