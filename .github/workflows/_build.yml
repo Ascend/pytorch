@@ -254,9 +254,10 @@ jobs:
         id: sha
         run: |
           UPSTREAM_SHORT="${{ needs.fetch.outputs.resolved_short }}"
+          ARCH=$(uname -m)
           echo "upstream_short=${UPSTREAM_SHORT}" >> "$GITHUB_OUTPUT"
           echo "source_tarball=pytorch-source-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
-          echo "wheels_tarball=wheels-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "wheels_tarball=wheels-${UPSTREAM_SHORT}-${ARCH}.tar.gz" >> "$GITHUB_OUTPUT"
 
       - name: Download PyTorch source from OBS
         run: |

@@ -65,6 +65,11 @@ on:
           Comma-separated device types exported as
           PYTORCH_TESTING_DEVICE_ONLY_FOR during collection. Must match the
           execution phase value.
+      artifact_suffix:
+        required: false
+        type: string
+        default: ''
+        description: Suffix appended to artifact names (e.g. '-a5') to avoid conflicts when multiple collects run in the same workflow run.
     outputs:
       core_matrix:
         description: Core shard matrix JSON
@@ -176,7 +181,8 @@ jobs:
         id: sha
         run: |
           UPSTREAM_SHORT="${{ inputs.resolved_short }}"
-          echo "wheels_tarball=wheels-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
+          ARCH=$(uname -m)
+          echo "wheels_tarball=wheels-${UPSTREAM_SHORT}-${ARCH}.tar.gz" >> "$GITHUB_OUTPUT"
 
       - name: Checkout PyTorch source
         uses: actions/checkout@v6
@@ -338,7 +344,7 @@ jobs:
       - name: Upload cases shard JSONs
         uses: actions/upload-artifact@v4
         with:
-          name: cases-shards
+          name: cases-shards${{ inputs.artifact_suffix }}
           path: cases-shards/
           retention-days: 7
 
@@ -346,7 +352,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: collection-errors
+          name: collection-errors${{ inputs.artifact_suffix }}
           path: collection_errors/
           if-no-files-found: ignore
           retention-days: 7

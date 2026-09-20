@@ -103,8 +103,9 @@ jobs:
         id: sha
         run: |
           UPSTREAM_SHORT="${{ inputs.resolved_short }}"
+          ARCH=$(uname -m)
           echo "source_tarball=pytorch-source-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
-          echo "wheels_tarball=wheels-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "wheels_tarball=wheels-${UPSTREAM_SHORT}-${ARCH}.tar.gz" >> "$GITHUB_OUTPUT"
 
       # obsutil is preinstalled in the test image; auth is done inline
       # via `obsutil config` (AK/SK are masked by the runner in logs).

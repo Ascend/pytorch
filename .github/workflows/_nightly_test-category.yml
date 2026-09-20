@@ -112,7 +112,8 @@ jobs:
         id: sha
         run: |
           UPSTREAM_SHORT="${{ inputs.resolved_short }}"
-          echo "wheels_tarball=wheels-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
+          ARCH=$(uname -m)
+          echo "wheels_tarball=wheels-${UPSTREAM_SHORT}-${ARCH}.tar.gz" >> "$GITHUB_OUTPUT"
 
       - name: Checkout PyTorch source
         uses: actions/checkout@v6

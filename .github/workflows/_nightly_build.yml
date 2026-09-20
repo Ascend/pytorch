@@ -40,6 +40,11 @@ on:
         type: string
         default: '64'
         description: Max parallel compile jobs (MAX_JOBS) for PyTorch and torch_npu builds.
+      artifact_suffix:
+        required: false
+        type: string
+        default: ''
+        description: Suffix appended to artifact names (e.g. '-a5') to avoid conflicts when multiple builds run in the same workflow run.
     outputs:
       resolved_sha:
         description: Full resolved SHA of upstream PyTorch
@@ -123,10 +128,11 @@ jobs:
         run: |
           SHA=$(git rev-parse HEAD)
           SHORT="${SHA:0:10}"
+          ARCH=$(uname -m)
           echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
           echo "short=${SHORT}" >> "$GITHUB_OUTPUT"
           echo "upstream_short=${SHORT}" >> "$GITHUB_OUTPUT"
-          echo "wheels_tarball=wheels-${SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "wheels_tarball=wheels-${SHORT}-${ARCH}.tar.gz" >> "$GITHUB_OUTPUT"
           echo "Resolved ${{ inputs.upstream_ref }} -> ${SHA}"
 
       # Step 1b: ccache statistics for the PyTorch build. ccache counters are
@@ -349,7 +355,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: packages-pytorch-${{ steps.sha.outputs.upstream_short }}
+          name: packages-pytorch-${{ steps.sha.outputs.upstream_short }}${{ inputs.artifact_suffix }}
           path: /tmp/wheels/*.whl
           retention-days: 7
 
@@ -358,7 +364,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: build-artifacts-${{ github.run_number }}
+          name: build-artifacts-${{ github.run_number }}${{ inputs.artifact_suffix }}
           path: |
             /tmp/build-pytorch.log
             /tmp/build-torchnpu.log
