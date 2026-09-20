@@ -1,5 +1,6 @@
+import itertools
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import torch
 from torch._inductor.codegen.rocm.ck_universal_gemm_template import CKGemmTemplate
@@ -29,6 +30,7 @@ from torch_npu.npu import matmul
 from .mm_common import (
     ACCUM_BYTES,
     dtype_to_bytes,
+    L0A_BYTES,
     L0C_BYTES,
     L1_BUFFER_COPIES,
     L1_BYTES,
@@ -96,6 +98,30 @@ def _split_groups(n_groups: int) -> tuple[int, int, bool]:
     return programs, per_program, True
 
 
+class _WideIndexNPUTritonTemplate(NPUTritonTemplate):
+    """A template that may index in 64 bits, because it is written to.
+
+    The base class declines any shape whose buffers need 64-bit indexing, and
+    for a template that indexes in int32 it has to: past 2^31 elements the
+    offsets silently wrap.  The three templates below do not index in int32.
+    Every offset that scales with the batch is taken to INDEX_DTYPE before it is
+    multiplied by a stride, and what remains is bounded by M*K, K*N and M*N,
+    none of which can reach 2^31 in a matmul whose operands fit HBM.
+
+    Without this the large-batch shapes have no candidate at all rather than a
+    slow one: at B4095xM2047xN1023xK513 all sixty configs the generators offer
+    raised here, and the case fell back to ATen reporting 1.00x, which reads
+    like a template that merely tied.
+    """
+
+    def _write_index_dtype_define(self, defines, numel, buffers) -> None:
+        try:
+            super()._write_index_dtype_define(defines, numel, buffers)
+        except NotImplementedError:
+            # The base class raises before writing, so the define is still owed.
+            defines.write("INDEX_DTYPE : tl.constexpr = tl.int64\n")
+
+
 _BMM_TEMPLATE = """{{def_kernel("A", "B")}}
     M = {{size("A", -2)}}
     N = {{size("B", -1)}}
@@ -121,19 +147,34 @@ _BMM_TEMPLATE = """{{def_kernel("A", "B")}}
     pid_m = group_id * GROUP_M + (pid % group_size)
     pid_n = (pid % width) // group_size
 
+    # A ragged M or N tail cannot be left to the store mask alone: on the last
+    # batch the overhanging rows and columns run off the end of the tensor and
+    # the MTE reports an out-of-range DDR address (aicore error 95).  Where the
+    # extent covers at least one whole tile the last tile is pulled back to end
+    # on it, as the persistent template does, and then no load and no store is
+    # masked at all.  The pulled-back tile recomputes the rows or columns it now
+    # shares with its predecessor and stores the same values into them, which an
+    # elementwise epilogue is indifferent to.
+    #
+    # The clamp is on the scalar base and not on rm: `tl.minimum` on the vector
+    # makes the backend materialize the whole 2-D index tensor in UB and every
+    # wide tile then fails to fit.  An extent shorter than its own tile has
+    # nothing to pull back to and keeps the mask.
+{% if SHIFT_M %}
+    rm = tl.minimum(pid_m * BLOCK_M, M - BLOCK_M) + tl.arange(0, BLOCK_M)
+{% else %}
     rm = pid_m * BLOCK_M + tl.arange(0, BLOCK_M)
+{% endif %}
+{% if SHIFT_N %}
+    rn = tl.minimum(pid_n * BLOCK_N, N - BLOCK_N) + tl.arange(0, BLOCK_N)
+{% else %}
     rn = pid_n * BLOCK_N + tl.arange(0, BLOCK_N)
+{% endif %}
 
-    # A ragged M or N tail has to be masked at the load, not just at the store:
-    # on the last batch the overhanging rows/columns run off the end of the
-    # tensor and the MTE reports an out-of-range DDR address (aicore error 95).
-    # Masking, rather than clamping the index, is what keeps the address affine
-    # -- `tl.minimum` on rm makes the backend materialize the whole 2D index
-    # tensor in UB and every wide tile then fails to fit.
-    {% if not EVEN_M %}
+    {% if MASK_M %}
     m_mask = rm < M
     {% endif %}
-    {% if not EVEN_N %}
+    {% if MASK_N %}
     n_mask = rn < N
     {% endif %}
 
@@ -143,24 +184,84 @@ _BMM_TEMPLATE = """{{def_kernel("A", "B")}}
     a_batch_off = idx_q * stride_aq
     b_batch_off = idx_q * stride_bq
 
+
     acc = tl.zeros((BLOCK_M, BLOCK_N), dtype=ACC_TYPE)
 
-    for k_start in range(0, K, BLOCK_K):
+    # Whole K tiles only.  A ragged K overhangs on its last tile and on no
+    # other, so that tile is peeled out below instead of every iteration
+    # carrying k_mask: the mask is a compare, a 2-D `and` against m_mask/n_mask
+    # and a fill on both operands, and at K=1023 with BLOCK_K=128 seven of the
+    # eight iterations would pay all of it to mask nothing.
+    for k_start in range(0, K_MAIN, BLOCK_K):
         offs_k = k_start + tl.arange(0, BLOCK_K)
-        {% if not EVEN_K %}
-        k_mask = offs_k < K
-        {% endif %}
-        a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak + a_batch_off){% if not (EVEN_M and EVEN_K) %}, mask={% if not EVEN_M %}m_mask[:, None]{% if not EVEN_K %} & {% endif %}{% endif %}{% if not EVEN_K %}k_mask[None, :]{% endif %}, other=0.0{% endif %})
-        b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn + b_batch_off){% if not (EVEN_K and EVEN_N) %}, mask={% if not EVEN_K %}k_mask[:, None]{% if not EVEN_N %} & {% endif %}{% endif %}{% if not EVEN_N %}n_mask[None, :]{% endif %}, other=0.0{% endif %})
+        a_ptrs = A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak
+                      + a_batch_off)
+        b_ptrs = B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn
+                      + b_batch_off)
+        a = tl.load(a_ptrs{% if MASK_M %}, mask=m_mask[:, None], other=0.0{% endif %})
+        b = tl.load(b_ptrs{% if MASK_N %}, mask=n_mask[None, :], other=0.0{% endif %})
+{% if L1_COPIES %}
+        # A second L1 slot per operand, so iteration k+1's MTE2 runs under
+        # iteration k's MAC instead of waiting on the same buffer.  The
+        # persistent and batched templates both stage their operands this way;
+        # this loop was the one leaving the two pipes serialized.
+        extension.multibuffer(a, L1_COPIES)
+        extension.multibuffer(b, L1_COPIES)
+{% endif %}
         acc = tl.dot(a, b, acc=acc{% if ALLOW_HF32 %}, input_precision="tf32"{% endif %}, out_dtype=ACC_TYPE)
 
-    # rematerialize rm, rn and idx_q to save registers
+    {% if not EVEN_K %}
+    # The peeled tail, K_MAIN .. K.  It runs once and unconditionally: K_MAIN is
+    # K rounded down to a whole tile, so a ragged K always leaves exactly this
+    # one short tile over.  A K under a single BLOCK_K is the same statement
+    # with an empty loop above it.
+    offs_k = K_MAIN + tl.arange(0, BLOCK_K)
+    k_mask = offs_k < K
+    a_ptrs = A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak
+                  + a_batch_off)
+    b_ptrs = B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn
+                  + b_batch_off)
+    a = tl.load(
+        a_ptrs,
+        mask={% if MASK_M %}m_mask[:, None] & {% endif %}k_mask[None, :],
+        other=0.0,
+    )
+    b = tl.load(
+        b_ptrs,
+        mask=k_mask[:, None]{% if MASK_N %} & n_mask[None, :]{% endif %},
+        other=0.0,
+    )
+    acc = tl.dot(a, b, acc=acc{% if ALLOW_HF32 %}, input_precision="tf32"{% endif %}, out_dtype=ACC_TYPE)
+    {% endif %}
+
+    # rematerialize rm, rn and idx_q to save registers, on the same bases the
+    # loads used so a pulled-back tile stores where it read
+{% if SHIFT_M %}
+    rm = tl.minimum(pid_m * BLOCK_M, M - BLOCK_M) + tl.arange(0, BLOCK_M)
+{% else %}
     rm = pid_m * BLOCK_M + tl.arange(0, BLOCK_M)
+{% endif %}
+{% if SHIFT_N %}
+    rn = tl.minimum(pid_n * BLOCK_N, N - BLOCK_N) + tl.arange(0, BLOCK_N)
+{% else %}
     rn = pid_n * BLOCK_N + tl.arange(0, BLOCK_N)
+{% endif %}
     idx_q = tl.program_id(1).to(INDEX_DTYPE)
     idx_m = rm[:, None]
     idx_n = rn[None, :]
+    # Only an axis that is neither whole nor pulled back still overhangs.  A
+    # tile that overhangs nowhere wants no mask rather than a true one: the
+    # comparison and its 2-D `and` are per-tile work, and they were being paid
+    # even on shapes every axis of which divides.
+    {% if MASK_M and MASK_N %}
     mask = (idx_m < M) & (idx_n < N)
+    {% elif MASK_M %}
+    mask = idx_m < M
+    {% elif MASK_N %}
+    mask = idx_n < N
+    {% else %}
+    mask = None
+    {% endif %}
 
     # inductor generates a suffix
     {{store_output(("idx_q", "idx_m", "idx_n"), "acc", "mask", val_shape=("BLOCK_M", "BLOCK_N"))}}
@@ -176,7 +277,7 @@ _BMM_COMPILE_OPTIONS = NPUTemplateCompileOption(
     }
 )
 
-npu_triton_bmm_template = NPUTritonTemplate(
+npu_triton_bmm_template = _WideIndexNPUTritonTemplate(
     name="npu_triton_bmm",
     grid=npu_bmm_grid,
     source=_BMM_TEMPLATE,
@@ -185,17 +286,152 @@ npu_triton_bmm_template = NPUTritonTemplate(
 )
 
 
+# Widest derived tile.  The L0C square, 256x256, is not the bound on one axis:
+# an oblong holds the same accumulators, and a wide N is what lets a tall A be
+# read once per several hundred columns rather than once per 256.  The L0C test
+# in _derived_tilings is what keeps the pair inside the 256K.
+_MAX_DERIVED_WIDTH = 512
+# How many derived tilings join the table.  Enough for the ranking to see a
+# choice, few enough that the autotune window still goes mostly to the table.
+# Split evenly between the least padded tilings and the deepest-stepping ones,
+# which is why it is even.
+_MAX_DERIVED_TILINGS = 8
+
+
+def _low_waste_widths(extent: int, floor: int) -> List[int]:
+    """Fractal-aligned widths for one extent, least wasteful first.
+
+    The table below is powers of two, and an extent that is not one pays for the
+    rounding in every tile it spans: 513 under a 64-wide tile covers 576.  Twelve
+    percent in one dimension is 1.4x the mmads across three, and on a shape that
+    is compute bound rather than traffic bound that factor is the whole distance
+    to aclnn.  An eleven-fractal width covers 513 in 528 instead, under three
+    percent, which is why the widths worth offering follow from the shape and
+    cannot be tabulated ahead of it.
+
+    The floor is what keeps this from answering with the narrowest width that
+    divides: waste falls monotonically towards a fractal, but a 32-wide tile
+    ran B513xM513xN513xK513 at 0.30x against 0.75x for a 64-wide one, the mmad
+    being too small to pay for its own issue.
+    """
+    extent = int(extent)
+    # An extent under the floor still has one natural width: itself, rounded up
+    # to a fractal.  Flooring that away returns nothing, and since the caller
+    # pairs the three axes, one narrow axis then switches the whole derivation
+    # off -- B7xM4099xN17xK8191 fell back to the table entirely for want of a
+    # 32 on N, taking its long M and K down with it.
+    floor = min(floor, -(-extent // MMAD_M_FRACTAL) * MMAD_M_FRACTAL)
+    waste_of: Dict[int, int] = {}
+    # Counted from the fewest tiles that bring the width under the cap, not
+    # from one: an extent far above the cap spends the whole sweep on widths
+    # too wide to offer and answers with nothing.  K=65536 needs 128 tiles
+    # before the first width is even admissible.
+    first = max(1, -(-extent // _MAX_DERIVED_WIDTH))
+    for tiles in range(first, first + 32):
+        width = -(-extent // tiles)
+        width = -(-width // MMAD_M_FRACTAL) * MMAD_M_FRACTAL
+        if width < floor or width > _MAX_DERIVED_WIDTH:
+            continue
+        # Rounding the width up can empty the last tile, so the count that
+        # matters is the one the width actually needs, not the one it came from.
+        waste = -(-extent // width) * width - extent
+        if waste < waste_of.get(width, waste + 1):
+            waste_of[width] = waste
+    return sorted(waste_of, key=lambda w: (waste_of[w], -w))
+
+
+def _derived_tilings(m: int, n: int, k: int, elem_bytes: int
+                     ) -> List[Tuple[int, int, int]]:
+    """Tilings drawn from the shape, ranked by the mmad volume they pad it to.
+
+    Volume is the ranking rather than per-axis waste because the axes trade
+    against each other: a width that wastes more of N can still win by letting K
+    be covered in fewer, fuller steps.  A shape the table already fits derives
+    widths that are table entries, so it dedupes away and nothing changes.
+    """
+    # What bounds a tile.  L0A and L0B are not the wall they look like: a dot
+    # whose operand slab overruns them is tiled into them by the backend, and
+    # 256x256x256 at twice L0A and 128x512x128 at twice L0B both run correct,
+    # the latter 13% faster than the widest tiling the L0B test admitted.  L0C
+    # is a real wall -- the accumulator has nowhere to spill, and 256x512x128
+    # faults the core -- and so is L1, which is what the slabs stage through.
+    def _staged(block_m: int, block_n: int, block_k: int) -> int:
+        return (block_m + block_n) * block_k * elem_bytes * L1_BUFFER_COPIES
+
+    # Ranked geometries, and the two K steps each one is offered with.
+    pairs: List[Tuple[int, int, int, int]] = []
+    steps: Dict[Tuple[int, int], Tuple[int, int]] = {}
+    for block_m in _low_waste_widths(m, 64):
+        for block_n in _low_waste_widths(n, 64):
+            if block_m * block_n * ACCUM_BYTES > L0C_BYTES:
+                continue
+            fits = [bk for bk in _low_waste_widths(k, 32)
+                    if _staged(block_m, block_n, bk) <= L1_BYTES]
+            # The deepest step the L0 slabs hold is a capacity rather than a
+            # divisor of K, so it is seldom one of the widths above: those are
+            # the ceil(K / tiles) family, and at K=513 that family offers 176,
+            # 112 and 48 but never the 128 that fills L0A at BLOCK_M=256.
+            # Depth is worth ranking beside waste because it is paid per K step
+            # rather than per padded column -- 128 covers 513 in four steps and
+            # a tail against eleven, and measured 16% faster than the 48 that
+            # wastes three percent less.
+            if not fits:
+                continue
+            # The deepest step the A slab holds.  It is a capacity rather than
+            # a divisor of K, so it is seldom one of the widths above -- those
+            # are the ceil(K / tiles) family, and at K=513 that family offers
+            # 176, 112 and 48 but never the 128 that fills L0A at BLOCK_M=256.
+            # Depth is worth offering beside least waste because it is paid per
+            # K step rather than per padded column: 128 covers 513 in four
+            # steps and a tail against eleven, and measured 16% faster than the
+            # 48 that wastes three percent less.
+            cap = min(L0A_BYTES // (block_m * elem_bytes),
+                      L1_BYTES // (L1_BUFFER_COPIES
+                                   * (block_m + block_n) * elem_bytes),
+                      -(-k // MMAD_K_FRACTAL) * MMAD_K_FRACTAL)
+            cap -= cap % MMAD_K_FRACTAL
+            volume = (-(-m // block_m) * block_m
+                      * -(-n // block_n) * block_n
+                      * -(-k // fits[0]) * fits[0])
+            # Equal volume is a real tie -- the same padded mmads either way --
+            # and the wider tile settles it, having fewer programs to launch and
+            # more of its operand reread on chip.
+            pairs.append((volume, -(block_m * block_n), block_m, block_n))
+            steps[(block_m, block_n)] = (fits[0],
+                                         cap if cap >= MMAD_K_FRACTAL else 0)
+    # Depth is offered per geometry rather than ranked against the geometries:
+    # a deep step buys itself by padding K, so it always costs volume, and
+    # ranking the two together either buries every deep step or lets the
+    # deepest few crowd out the shapes that wanted them.
+    pairs.sort()
+    picked: List[Tuple[int, int, int]] = []
+    for _, _, block_m, block_n in pairs:
+        if len(picked) >= _MAX_DERIVED_TILINGS:
+            break
+        for block_k in steps[(block_m, block_n)]:
+            if block_k and (block_m, block_n, block_k) not in picked:
+                picked.append((block_m, block_n, block_k))
+    return picked[:_MAX_DERIVED_TILINGS]
+
+
 def _get_npu_bmm_configs(
     m: int,
     n: int,
     k: int,
+    elem_bytes: int = DEFAULT_ELEM_BYTES,
+    batch: int = 1,
 ) -> List[Dict[str, Any]]:
     """Tilings for the generic template, as (BLOCK_M, BLOCK_N, BLOCK_K).
 
     The same tiling shapes mm offers, plus the wider ones autotune picked up on
     large BMM shapes: BLOCK_N=256 for wide outputs, and BLOCK_K=128/256 to cut
-    the K-loop trip count on long reductions.
+    the K-loop trip count on long reductions.  Ragged shapes then add tilings
+    derived from the shape itself, which the table cannot carry.
     """
+    # The extents arrive as sympy Integers, whose // and % return sympy rather
+    # than int and reach the rendered kernel as such.
+    m, n, k = int(m), int(n), int(k)
+
     configs: List[Dict[str, Any]] = []
 
     tile_shapes = [
@@ -222,13 +458,49 @@ def _get_npu_bmm_configs(
         (32, 32, 128)
     ]
 
+    for tiling in _derived_tilings(m, n, k, elem_bytes):
+        if tiling not in tile_shapes:
+            tile_shapes.append(tiling)
+
     # A BLOCK_K that does not divide K masks every K tile, costing a fill per
     # tile for no extra coverage.  It can still tie on the bare bmm, which is
     # where autotune measures, and then lose once the epilogue is fused: at
     # B32/M200/N200/K1600 the two widths gave 1.10x and 0.92x fused.  Masked
     # widths are therefore offered only when no width divides K, as at K=200.
+    # No l2_cache_mode hint here, unlike the two rank-3 templates.  Bypassing
+    # measured neutral at best on the shapes that want it -- B1023xM1023xN1023
+    # xK1023 moved 8 us out of 11350 -- and at B127xM513xN2047xK1023 the pair
+    # the persistent generator would have chosen ran 4218 us against 1655 us.
+    # Offering it would triple this list for autotune to rediscover that.
+
     aligned = [shape for shape in tile_shapes if k % shape[2] == 0]
-    for block_m, block_n, block_k in (aligned or tile_shapes):
+    tile_shapes = aligned or tile_shapes
+
+    # Drop the tilings that cannot win on traffic.  A tile narrower than the
+    # shape wants re-reads the operands once per tile of the other axis, and the
+    # table carries widths down to 32 for the small shapes, so on a large one it
+    # offers plans moving several times the bytes of the best plan in it.
+    #
+    # They are dropped rather than merely ranked below because autotune's
+    # measurement does not always separate them: at B2047xM2047xN1023xK513 the
+    # top six configs came back inside 0.02% of each other, 64x128x32 among
+    # them, and the winner was decided by which tie the sort saw first.  That
+    # plan profiled 33% slower than the 128x256 it displaced.  Offering only
+    # plans that are near the traffic floor makes the tie harmless, and pays for
+    # the second pass the L1_COPIES knob below adds.
+    def _traffic(tiling):
+        block_m, block_n, _ = tiling
+        return (-(-n // block_n) * m * k    # A, re-read once per N tile
+                + -(-m // block_m) * k * n  # B, re-read once per M tile
+                + m * n)                    # C, written once
+
+    floor = min(_traffic(t) for t in tile_shapes)
+    near = [t for t in tile_shapes if _traffic(t) <= 2 * floor]
+    # Keep a spread for autotune to choose from where the floor is sharp.
+    tile_shapes = near if len(near) >= 6 else sorted(tile_shapes,
+                                                     key=_traffic)[:6]
+
+    for block_m, block_n, block_k in tile_shapes:
         even_k = (k % block_k == 0)
         # GROUP_M: how many M tiles are grouped before advancing N, which is the
         # traversal order and so the L2 reuse.  Row-major (1) is offered only on
@@ -240,7 +512,17 @@ def _get_npu_bmm_configs(
         # One pipeline depth rather than a 2/3 sweep: the two depths of a tiling
         # land within noise of each other, so offering both spends the fused
         # re-measure window on near-duplicates instead of on different plans.
-        for group_m in group_m_values:
+        # Whether a second L1 slot per operand fits beside the first.  Staging
+        # both operands twice is what lets the next K step's MTE2 run under this
+        # step's MAC; where the pair does not fit the loop stays single-buffered
+        # rather than spilling.  Both are offered: the depth is worth a tile's
+        # worth of L1 on a long K and worth nothing on a K of one step.
+        staged = 2 * (block_m + block_n) * block_k * elem_bytes
+        l1_copies_values = ([0, L1_BUFFER_COPIES]
+                            if staged <= L1_BYTES and k > block_k else [0])
+
+        for group_m, l1_copies in itertools.product(group_m_values,
+                                                    l1_copies_values):
             configs.append({
                 # The tile one program owns, and the K step it reduces over.
                 "BLOCK_M": block_m,
@@ -248,18 +530,34 @@ def _get_npu_bmm_configs(
                 "BLOCK_K": block_k,
                 "GROUP_M": group_m,
                 # Depth the frontend runs the K loop ahead of itself, and the
-                # warp count, which the cube path does not vary.
+                # warp count, which the cube path does not vary.  Four was
+                # measured against two once the L1_COPIES slot made a deeper
+                # pipeline mean something, and lost or tied on all eight shapes
+                # it was tried on, by up to 4%.
                 "num_stages": 2,
                 "num_warps": 4,
                 # Whether the mmad may take the tf32 path, and the accumulator
                 # type, which stays fp32 whatever the operands are.
                 "ALLOW_HF32": matmul.allow_hf32,
                 "ACC_TYPE": "tl.float32",
-                # Whether each axis divides its tile.  An axis that does not is
-                # masked at the load, not just at the store.
+                # Whether K divides its tile.  A K that does not leaves one
+                # short tile over, peeled out of the loop and masked there.
                 "EVEN_K": even_k,
-                "EVEN_M": (m % block_m == 0),
-                "EVEN_N": (n % block_n == 0),
+                # Copies of the A/B staging buffers, 0 for none.
+                "L1_COPIES": l1_copies,
+                # How a ragged M or N is covered.  An extent of at least one
+                # whole tile pulls its last tile back to end on the extent and
+                # needs no mask on either the load or the store; a shorter one
+                # has nowhere to pull back to and is masked.  An extent that
+                # divides is neither.
+                "SHIFT_M": (m % block_m != 0) and m >= block_m,
+                "SHIFT_N": (n % block_n != 0) and n >= block_n,
+                "MASK_M": (m % block_m != 0) and m < block_m,
+                "MASK_N": (n % block_n != 0) and n < block_n,
+                # K rounded down to whole tiles: where the unmasked K loop
+                # stops and the peeled tail picks up.  Equal to K when K
+                # divides, which is what leaves the tail unemitted.
+                "K_MAIN": (k // block_k) * block_k,
             })
 
     return configs
@@ -350,20 +648,54 @@ def _k_panels(k: int, block_k: int) -> List[int]:
     return [block_k] * full + _pow2_parts(tail)
 
 
-def _m_candidates(m: int) -> List[int]:
+def _m_candidates(m: int, k: int = 0,
+                  elem_bytes: int = DEFAULT_ELEM_BYTES) -> List[int]:
     """BLOCK_M to search: the rounded-up tile, two halvings of it, and M itself.
 
     Two halvings is the depth a large M needs to reach a tile whose A still fits
     L1 at a long K.  M itself is offered because tl.arange needs a power of two
     only in SIMT mode, which this template does not compile under, and rounding
     to one is sometimes exactly what pushes A out of L1.
+
+    Given K, one more tile is derived from the L1 budget rather than counted
+    down to, since two halvings are a depth and what residency needs is a size.
     """
     whole = _next_pow2(m)
     # 32 is admitted for the batched shapes, where M=48 padded to 64 is a third
     # of every mmad; 16 is not, being a width no large shape wants.
     cands = [bm for bm in (whole, whole // 2, whole // 4) if bm >= 32]
-    if m >= 32 and m not in cands:
+    # M itself only when it is a whole number of fractals.  A tile ragged in
+    # both axes at once drains wrong under a fused epilogue: the store writes
+    # the first row of each fractal and leaves the rest, which is exact on the
+    # bare bmm and 40% wrong once a gelu is fused onto it.  Rounding up instead
+    # of dropping would not help, the rounded tile being the masked one.
+    if m >= 32 and m % MMAD_M_FRACTAL == 0 and m not in cands:
         cands.append(m)
+
+    # A large M runs out of halvings before A fits.  At M=4095 the smallest
+    # tile the count reaches is 1024, which wants 512K of L1 for a single K
+    # panel, so every plan was rejected for holding nothing resident and the
+    # shape fell back to the generic template.  Counting further down would
+    # spend candidates on sizes no shape asks for; the size residency needs is
+    # a division, so it is divided for.
+    #
+    # A's share of L1 is taken as half, the rest being B's ring and the
+    # streaming slot, and it is charged against the K a panel walk covers,
+    # which is K rounded up to a whole fractal rather than K.
+    if k:
+        # int() rather than k as given: mm_args hands down sympy Integers, and
+        # bit_length below is one of the few pieces of int's protocol they do
+        # not carry.  The raise propagates out of the generator and is caught
+        # far enough up that it silently takes every choice down with it, the
+        # generic template's included, and the shape falls back to ATen.
+        covered = -(-int(k) // MMAD_K_FRACTAL) * MMAD_K_FRACTAL
+        rows = (L1_BYTES // 2) // (covered * int(elem_bytes))
+        if rows >= 32:
+            # The largest power of two that fits, capped at the rounded-up M:
+            # past that the tile is padding.
+            fit = min(1 << (rows.bit_length() - 1), whole)
+            if fit >= 32 and fit not in cands:
+                cands.append(fit)
     return cands
 
 
@@ -440,7 +772,9 @@ _BMM_PERSISTENT_TEMPLATE = r"""{{def_kernel("A", "B")}}
             q = slot * BLOCK_Q + offs_q
             m_base = 0
 {% endif %}
-            idx_q = q[:, None, None]
+            # In the index dtype, not q's: every offset below scales with the
+            # batch, and past 2^31 elements an int32 product wraps.
+            idx_q = q[:, None, None].to(INDEX_DTYPE)
             b_base = B + idx_q * stride_bq
             # The tile's rows are covered by M_PANELS, one mmad each.  Panels
             # share the B tile they are interleaved with, so covering M this way
@@ -482,7 +816,10 @@ _BMM_PERSISTENT_TEMPLATE = r"""{{def_kernel("A", "B")}}
                 if ki < K_MASK_FROM:
                     ar_{{ p }} = tl.load(ar_ptrs_{{ p }}{% if MASKED_M %}, mask=m_mask_{{ p }}, other=0.0{% endif %})
                 else:
-                    ar_{{ p }} = tl.load(ar_ptrs_{{ p }}, mask={% if MASKED_M %}m_mask_{{ p }} & {% endif %}(offs_kr[None, None, :] < K), other=0.0)
+                    ar_{{ p }} = tl.load(
+                        ar_ptrs_{{ p }},
+                        mask={% if MASKED_M %}m_mask_{{ p }} & {% endif %}(offs_kr[None, None, :] < K),
+                        other=0.0)
 {% elif MASKED_M %}
                 ar_{{ p }} = tl.load(ar_ptrs_{{ p }}, mask=m_mask_{{ p }}, other=0.0)
 {% else %}
@@ -580,7 +917,10 @@ _BMM_PERSISTENT_TEMPLATE = r"""{{def_kernel("A", "B")}}
                     if ki < K_MASK_FROM:
                         b = tl.load(b_ptrs{% if MASKED_N %}, mask=n_mask, other=0.0{% endif %})
                     else:
-                        b = tl.load(b_ptrs, mask={% if MASKED_N %}n_mask & {% endif %}(offs_k[None, :, None] < K), other=0.0)
+                        b = tl.load(
+                            b_ptrs,
+                            mask={% if MASKED_N %}n_mask & {% endif %}(offs_k[None, :, None] < K),
+                            other=0.0)
 {% elif MASKED_N %}
                     b = tl.load(b_ptrs, mask=n_mask, other=0.0)
 {% else %}
@@ -645,11 +985,14 @@ _BMM_PERSISTENT_TEMPLATE = r"""{{def_kernel("A", "B")}}
 {% else %}
                 mask_{{ p }} = None
 {% endif %}
-                {{store_output(("idx_q", "idx_m_" ~ p, "idx_n"), "acc_" ~ p, "mask_" ~ p, val_shape=("BLOCK_Q", M_PANELS[p], "BLOCK_N"), indent_width=16)}}
+                {{store_output(("idx_q", "idx_m_" ~ p, "idx_n"),
+                               "acc_" ~ p, "mask_" ~ p,
+                               val_shape=("BLOCK_Q", M_PANELS[p], "BLOCK_N"),
+                               indent_width=16)}}
 {% endfor %}
 """
 
-npu_triton_bmm_persistent_template = NPUTritonTemplate(
+npu_triton_bmm_persistent_template = _WideIndexNPUTritonTemplate(
     name="npu_triton_bmm_persistent",
     grid=npu_bmm_persistent_grid,
     source=_BMM_PERSISTENT_TEMPLATE,
@@ -718,7 +1061,9 @@ _BMM_BATCHED_TEMPLATE = r"""{{def_kernel("A", "B")}}
 {% endif %}
     for g in range(n_groups):
         q = first_q + g * BLOCK_Q + offs_q
-        idx_q = q[:, None, None]
+        # See the persistent template: the batch-scaled offsets need the index
+        # dtype, not q's.
+        idx_q = q[:, None, None].to(INDEX_DTYPE)
 
         a_ptrs = A + idx_q * stride_aq + offs_m[None, :, None] * stride_am + offs_k[None, None, :] * stride_ak
 {% if MASKED_M or MASKED_K %}
@@ -754,10 +1099,12 @@ _BMM_BATCHED_TEMPLATE = r"""{{def_kernel("A", "B")}}
 {% else %}
         mask = None
 {% endif %}
-        {{store_output(("idx_q", "idx_m", "idx_n"), "acc", "mask", val_shape=("BLOCK_Q", "BLOCK_M", "BLOCK_N"), indent_width=8)}}
+        {{store_output(("idx_q", "idx_m", "idx_n"), "acc", "mask",
+                       val_shape=("BLOCK_Q", "BLOCK_M", "BLOCK_N"),
+                       indent_width=8)}}
 """
 
-npu_triton_bmm_batched_template = NPUTritonTemplate(
+npu_triton_bmm_batched_template = _WideIndexNPUTritonTemplate(
     name="npu_triton_bmm_batched",
     grid=npu_bmm_batched_grid,
     source=_BMM_BATCHED_TEMPLATE,
@@ -1026,6 +1373,11 @@ def _get_npu_bmm_persistent_configs(
     tile shape, the L2 hints and how the output is divided; every candidate goes
     through ``_persistent_config``, which drops the ones that do not fit.
     """
+    # Coerced once here rather than in _persistent_config alone: the sweep below
+    # does its own arithmetic on these, and the one operation sympy Integers do
+    # not carry, bit_length, is reached before _persistent_config ever runs.
+    batch, m, n, k = int(batch), int(m), int(n), int(k)
+
     configs: List[Dict[str, Any]] = []
     seen = set()
 
@@ -1088,22 +1440,33 @@ def _get_npu_bmm_persistent_configs(
     # of two, which both wastes part of every mmad and is what stops a long K
     # fitting L1 at all; splitting is not free either, since every M tile walks
     # the whole N range and so re-reads B.  Both are offered and measured.
-    for block_m in _m_candidates(m):
-      for block_n in n_widths:
-        # N_TILES=1 is allowed -- the persistent loop and K peeling still apply
-        # without cross-tile reuse -- but a width past the rounded-up N only
-        # pads B and C for no extra mmad width.
-        if block_n > _next_pow2(n):
-            continue
-        # A width whose last tile is less than half used is padding that the
-        # bare ranking does not charge for, a masked column being free without
-        # an epilogue, and the plan then loses once the epilogue is on it.
-        # Shapes covered in one or two tiles have no wider choice.
-        if -(-n // block_n) >= 3 and n % block_n and 2 * (n % block_n) < block_n:
-            continue
-        for block_k in (64, 128, 256):
-            if block_k > _next_pow2(k):
-                continue
+    # N_TILES=1 is allowed -- the persistent loop and K peeling still apply
+    # without cross-tile reuse -- but a width past the rounded-up N only pads B
+    # and C for no extra mmad width.
+    n_widths = [w for w in n_widths if w <= _next_pow2(n)]
+
+    # A width whose last tile is less than half used is padding that the bare
+    # ranking does not charge for, a masked column being free without an
+    # epilogue, and the plan then loses once the epilogue is on it.
+    # Shapes covered in one or two tiles have no wider choice.
+    n_widths = [w for w in n_widths
+                if not (-(-n // w) >= 3 and n % w and 2 * (n % w) < w)]
+
+    # The K steps to sweep.  _persistent_config declines a plan whose K is under
+    # one BLOCK_K -- below it the panels are K's binary decomposition rather
+    # than a peeled tail, and those plans fault the device (507015) -- so a K
+    # shorter than every offered width is a shape with no config at all rather
+    # than a shape with a narrow one: at K=57 all three widths are wider than K
+    # and B777xM888xN111xK57 reached no plan.  Narrower steps are offered only
+    # when the standard three cannot be, a short K being the only thing that
+    # wants one, and the narrowest is a whole mmad fractal.
+    k_steps = [w for w in (64, 128, 256) if w <= k]
+    if not k_steps:
+        k_steps = [w for w in (32, MMAD_K_FRACTAL) if w <= k][:1]
+
+    for block_m, block_n in itertools.product(
+            _m_candidates(m, k, elem_bytes), n_widths):
+        for block_k in k_steps:
             # Which L2 pair to offer turns on whether the operands fit L2.  When
             # they do, a second read of B is a hit and allocating wins; when
             # they do not, they evict each other and bypass wins.  Only the side
@@ -1174,10 +1537,24 @@ def _get_npu_bmm_batched_configs(
       * ``c_tile <= L0C``                (accumulator fits)
       * ``block_q > 1``                  (at least two batches per group)
       * ``batch % block_q == 0``         (batch axis never ragged)
+      * ``k == block_k``                 (rank-3 K pad is not zeroed)
     """
+    batch, m, n, k = int(batch), int(m), int(n), int(k)
+
     # One tile covers the whole matmul in this regime, so the tile is just the
-    # shape rounded up to what tl.arange can express.
+    # shape rounded up to what tl.arange can express.  K is the exception:
+    # a rank-3 load mask does not zero K padding, so a padded K step writes
+    # nans into kept outputs.  Autotune can pick that plan on a hot cache and
+    # miss it on the flushed run: B192xM48xN96xK96 fused add/sub/mul came
+    # back 49% wrong, B200xM400xN100xK300 fused silu/mul wrote nans at
+    # (14, 0, 2).  A K that is already a whole number of fractals needs no
+    # pad; a ragged one is left to the other templates, which peel rather
+    # than pad.
     block_m, block_n, block_k = _next_pow2(m), _next_pow2(n), _next_pow2(k)
+    if k % MMAD_K_FRACTAL == 0:
+        block_k = k
+    if k != block_k:
+        return []
 
     a_tile = _fractal_rows(block_m) * block_k * elem_bytes
     b_tile = block_k * block_n * elem_bytes
@@ -1268,13 +1645,24 @@ def add_npu_triton_bmm_choices(
     """
     input_nodes = [mat1, mat2]
 
-    candidates: List = [(npu_triton_bmm_template, _get_npu_bmm_configs(m, n, k))]
+    # Every template budgets L0 or L1 in bytes, so they need the operand size.
+    # dtype_to_bytes answers 0 for anything it does not know, and 0 would make
+    # every capacity check pass.
+    elem_bytes = dtype_to_bytes(mat1.get_dtype()) or DEFAULT_ELEM_BYTES
 
-    if batch:
-        # Both specialised regimes budget L1 and L0 in bytes, so they need the
-        # operand size.  dtype_to_bytes answers 0 for anything it does not know,
-        # and 0 would make every capacity check pass.
-        elem_bytes = dtype_to_bytes(mat1.get_dtype()) or DEFAULT_ELEM_BYTES
+    candidates: List = [
+        (npu_triton_bmm_template, _get_npu_bmm_configs(m, n, k, elem_bytes, batch)),
+    ]
+
+    # They are also the only templates emitting a rank-3 tl.dot, and that path is
+    # offered at two-byte operands only.  Every capacity check they make was
+    # tuned at two (see DEFAULT_ELEM_BYTES); at four the plans they still accept
+    # are not merely slow.  At B255/M127/N513/K257 fp32 every tiling the
+    # persistent generator produced either returned wrong results or faulted the
+    # AI core, while the identical shapes are exact at fp16.  Autotune ranks on
+    # time alone and so can reject neither: a faulting candidate takes every
+    # candidate for the shape down with it, and a wrong one simply wins.
+    if batch and elem_bytes <= DEFAULT_ELEM_BYTES:
         batched_configs = _get_npu_bmm_batched_configs(batch, m, n, k, elem_bytes)
         if batched_configs:
             candidates.append(
@@ -1310,12 +1698,12 @@ def add_npu_triton_bmm_choices(
                 )
                 if choice is not None:
                     choices.append(choice)
-            except Exception as e:
+            except Exception:
                 log.debug(
-                    "Failed to generate %s choice with config %s: %s",
+                    "Failed to generate %s choice with config %s",
                     template.name,
                     cfg,
-                    e,
+                    exc_info=True,
                 )
 
 

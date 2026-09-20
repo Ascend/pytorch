@@ -658,7 +658,7 @@ class NPUTritonTemplate(TritonTemplate):
                 return None
 
             if self.debug:
-                log.debug("Generated Code:\n", code)
+                log.debug("Generated Code:\n %s", code)
             # Build extra string for cache key and description.
             # We use '-' as the intermediate separator instead of ', ' because some
             # kwargs values (like call_sizes, mutated_inputs, subgraphs) contain
@@ -770,8 +770,8 @@ class NPUTritonTemplate(TritonTemplate):
                 "tile_shape": str(
                     (
                         kwargs.get("BLOCK_M", -1),
-                        kwargs.get("BLOCK_K", -1),
                         kwargs.get("BLOCK_N", -1),
+                        kwargs.get("BLOCK_K", -1)
                     )
                 ),
                 "num_stages": num_stages,
@@ -1311,30 +1311,42 @@ def patch_algorithm_selector() -> None:
             @restore_stdout_stderr()
             def wait_on_futures():
                 counters["inductor"]["select_algorithm_precompile"] += 1
+                failed_choices:List[ChoiceCaller]=[]
                 for future in as_completed(
                     futures,
                     timeout=precompilation_timeout_seconds,
                 ):
-                    if e := future.exception():
-                        _log_autotune_error(
-                            "Precompile failed",
+                    choice = futures[future]
+                    try:
+                        future.result()
+                    except Exception as e:
+                        log.debug(
+                            "Precompile failed for choice %s: %s",
+                            _format_choice_debug_label(choice),
                             e,
-                            futures[future],
-                            ignored=False,
                         )
+                        log.warning(
+                            "Precompile failed for choice %s",
+                            _format_choice_debug_label(choice),
+                        )
+                        failed_choices.append(choice)
                     else:
-                        successful_precompile_choice_hashes.add(
-                            futures[future].hash_key()
-                        )
+                        successful_precompile_choice_hashes.add(choice.hash_key())
                         counters["inductor"]["select_algorithm_num_precompiles"] += 1
                         log.info(
                             "Precompiling benchmark choice %s took %.02fs",
-                            _format_choice_debug_label(futures[future]),
-                            elapsed_times[future],
+                            _format_choice_debug_label(choice),
+                            elapsed_times.get(future, 0.0),
                         )
-
                 executor.shutdown(wait=True)
-
+                if failed_choices:
+                    failed_hashes = {c.hash_key() for c in failed_choices}
+                    choices[:] = [c for c in choices if c.hash_key() not in failed_hashes]
+                    log.warning(
+                        "Removed %d failed choice(s) from candidates; %d remain",
+                        len(failed_hashes),
+                        len(choices),
+                    )
             if not select_first_compilable_only:
                 self.precompile_cache[precompile_key] = wait_on_futures
 
