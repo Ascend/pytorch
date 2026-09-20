@@ -86,8 +86,22 @@ def _add_repr_patch():
     # _tensor_str cat/stack. Force .cpu() to trigger d2h + format cast first.
     _orig_repr = torch.Tensor.__repr__
 
+    _fake_tensor_cls = None
+
+    def _is_symbolic_tensor(t):
+        # FakeTensor claims device npu (fake_device) but has no NPUStorageImpl;
+        # get_npu_format on it segfaults in C++, uncatchable by try/except.
+        nonlocal _fake_tensor_cls
+        if _fake_tensor_cls is None:
+            try:
+                from torch._subclasses.fake_tensor import FakeTensor
+                _fake_tensor_cls = FakeTensor
+            except ImportError:
+                _fake_tensor_cls = False
+        return bool(_fake_tensor_cls) and isinstance(t, _fake_tensor_cls)
+
     def _npu_private_format_repr(self, *, tensor_contents=None):
-        if self.device.type == "npu":
+        if self.device.type == "npu" and not _is_symbolic_tensor(self):
             try:
                 is_private_format = (
                     torch_npu.get_npu_format(self) != int(torch_npu.Format.ND)
