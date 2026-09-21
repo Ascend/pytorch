@@ -105,7 +105,7 @@ jobs:
           if echo "${TORCH_VER}" | grep -Eq '^[0-9]+\.[0-9]+$'; then
             TORCH_VER="${TORCH_VER}.0"
           fi
-          bash ci/build.sh --python="3.10" --torch="${TORCH_VER}" 2>&1 | tee /tmp/build_torch_npu.log
+          bash ci/build.sh --python="3.10" --torch="${TORCH_VER}" 2>&1 | tee "${GITHUB_WORKSPACE}/build_torch_npu.log"
           BUILD_STATUS=${PIPESTATUS[0]}
           ccache -s 2>&1
           if [ ${BUILD_STATUS} -ne 0 ]; then
@@ -115,6 +115,15 @@ jobs:
           WHL=$(ls dist/*.whl 2>/dev/null | head -1)
           echo "Build succeeded: ${WHL}"
           echo "Wheel: ${WHL##*/}" >> build_msg.txt
+
+      - name: Upload build log as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-torch-npu-log
+          path: build_torch_npu.log
+          retention-days: 14
+          overwrite: true
 
       - name: Upload torch-npu wheel as artifact
         uses: actions/upload-artifact@v4
