@@ -55,7 +55,7 @@ jobs:
           echo "ccache Version:" >> build_msg.txt
           ccache --version | head -1 >> build_msg.txt
           echo "PyTorch Version:" >> build_msg.txt
-          python3.10 -c "import torch; print(torch.__version__)" >> build_msg.txt
+          python3.10 -c "import torch; print(torch.__version__)" >> build_msg.txt 2>&1 || echo "not installed yet" >> build_msg.txt
           echo "=== Build Info End ===" >> build_msg.txt
 
       - name: Install PyTorch from official website
