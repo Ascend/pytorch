@@ -28,4 +28,6 @@ export TORCHINDUCTOR_NPU_CATLASS_DIR="/path/to/catlass/dir"
 
 ## 支持的型号
 
+<!-- npu="950" id1 -->
 <term>Ascend 950DT</term>
+<!-- end id1 -->

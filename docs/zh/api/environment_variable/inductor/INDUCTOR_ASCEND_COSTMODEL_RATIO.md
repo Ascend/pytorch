@@ -26,4 +26,6 @@ export INDUCTOR_ASCEND_COSTMODEL_RATIO=0.25
 
 ## 支持的型号
 
+<!-- npu="950" id1 -->
 <term>Ascend 950DT</term>
+<!-- end id1 -->

@@ -11,7 +11,6 @@
 
 该变量对应PyTorch的`TORCH_FR_DUMP_ON_TIMEOUT`(PyTorch 2.15版本及以上)，PyTorch兼容历史版本变量[`TORCH_NCCL_DUMP_ON_TIMEOUT`](https://docs.pytorch.org/tutorials/unstable/flight_recorder_tutorial.html#enabling-flight-recorder)（PyTorch 2.14版本及以下），PyTorch默认开启。
 
-
 ## 配置示例
 
 ```bash
@@ -25,7 +24,15 @@ export TORCH_HCCL_DUMP_ON_TIMEOUT=1
 
 ## 支持的型号
 
+<!-- npu="910" id1 -->
 - <term>Atlas 训练系列产品</term>
+<!-- end id1 -->
+<!-- npu="910b" id2 -->
 - <term>Atlas A2 训练系列产品</term>
+<!-- end id2 -->
+<!-- npu="A3" id3 -->
 - <term>Atlas A3 训练系列产品</term>
+<!-- end id3 -->
+<!-- npu="950" id4 -->
 - <term>Ascend 950DT</term>
+<!-- end id4 -->

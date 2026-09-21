@@ -11,7 +11,7 @@
 
 > [!NOTE]
 >
-> - 此环境变量用于Eager模式下的算子融合，无需经过图编译。
+> 此环境变量用于Eager模式下的算子融合，无需经过图编译。
 
 该环境变量由TorchNPU提供，PyTorch没有直接对应的环境变量。
 
@@ -30,5 +30,9 @@ export TORCH_NPU_LAZY_FUSION=True
 
 ## 支持的型号
 
+<!-- npu="910b" id1 -->
 - <term>Atlas A2 训练系列产品</term>
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
 - <term>Atlas A3 训练系列产品</term>
+<!-- end id2 -->

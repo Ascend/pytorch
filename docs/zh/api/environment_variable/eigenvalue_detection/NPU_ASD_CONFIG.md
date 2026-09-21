@@ -2,7 +2,7 @@
 
 ## 功能描述
 
-通过此环境变量可控制是否开启TorchNPU的特征值检测功能。特征值检测功能具体参见《框架特性》中的“[特征值检测](../../../developer_notes/fault_diagnosis/feature_value_detection.md)”章节。
+通过此环境变量可控制是否开启TorchNPU的特征值检测功能。特征值检测功能具体参见《开发指南》中的“[特征值检测](../../../developer_notes/fault_diagnosis/feature_value_detection.md)”章节。
 
 该环境变量支持以下可选参数：
 
@@ -32,7 +32,15 @@ export NPU_ASD_CONFIG=enable:true,with_checksum:true,cooldown:5,strikes_num:3,st
 
 ## 支持的型号
 
+<!-- npu="910" id1 -->
 - <term>Atlas 训练系列产品</term>
+<!-- end id1 -->
+<!-- npu="910b" id2 -->
 - <term>Atlas A2 训练系列产品</term>
+<!-- end id2 -->
+<!-- npu="A3" id3 -->
 - <term>Atlas A3 训练系列产品</term>
+<!-- end id3 -->
+<!-- npu="950" id4 -->
 - <term>Ascend 950DT</term>
+<!-- end id4 -->

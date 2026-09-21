@@ -41,7 +41,15 @@ export TORCHINDUCTOR_NPU_BACKEND="ascendc"
 
 ## 支持的型号
 
+<!-- npu="910" id1 -->
 - <term>Atlas 训练系列产品</term>
+<!-- end id1 -->
+<!-- npu="910b" id2 -->
 - <term>Atlas A2 训练系列产品</term>
+<!-- end id2 -->
+<!-- npu="A3" id3 -->
 - <term>Atlas A3 训练系列产品</term>
+<!-- end id3 -->
+<!-- npu="950" id4 -->
 - <term>Ascend 950DT</term>
+<!-- end id4 -->
