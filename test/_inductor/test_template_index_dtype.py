@@ -15,6 +15,8 @@ from torch._inductor.virtualized import V
 
 from torch_npu._inductor import select_algorithm as sa
 
+from version_mark import runIfVersion
+
 
 class TestTemplateIndexDtype(unittest.TestCase):
     def make_template(self, name="mm", manual_output_buffer=None):
@@ -27,6 +29,7 @@ class TestTemplateIndexDtype(unittest.TestCase):
         template.debug = False
         return template
 
+    @runIfVersion(max="2.13")
     def test_automatic_and_explicit_selection(self):
         for name in ("mm", "bmm", "flex_attention"):
             for safe in (True, False):
@@ -47,12 +50,14 @@ class TestTemplateIndexDtype(unittest.TestCase):
                             f"INDEX_DTYPE : tl.constexpr = {expected}\n",
                         )
 
+    @runIfVersion(max="2.13")
     def test_invalid_override(self):
         with self.assertRaisesRegex(ValueError, "Unsupported index dtype"):
             self.make_template()._write_index_dtype_define(
                 StringIO(), sympy.Integer(1), [], "tl.float32"
             )
 
+    @runIfVersion(max="2.13")
     def test_real_index_range_selection(self):
         graph = SimpleNamespace(sizevars=SizeVarAllocator())
         for numel, stride, expected in (
@@ -71,6 +76,7 @@ class TestTemplateIndexDtype(unittest.TestCase):
                 )
                 self.assertEqual(dtype, expected)
 
+    @runIfVersion(max="2.13")
     def test_generate_and_final_renderer(self):
         layout = ir.FixedLayout(torch.device("cpu"), torch.float32, [16])
         large = ir.Buffer(name="large", layout=layout)
@@ -130,6 +136,7 @@ class TestTemplateIndexDtype(unittest.TestCase):
             self.assertEqual(len(checked[0][1]), 0 if manual else 1)
             self.assertNotIn(large, checked[0][1])
 
+    @runIfVersion(max="2.13")
     def test_runtime_renderer_and_symbolic_signature(self):
         layout = ir.FixedLayout(torch.device("cpu"), torch.float32, [16])
         for name in ("mm", "flex_attention"):
