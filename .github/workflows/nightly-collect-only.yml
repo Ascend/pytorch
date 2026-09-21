@@ -36,13 +36,10 @@ jobs:
       upstream_repo: pytorch/pytorch
       case_paths_config: .github/config/nightly_test_categories.yml
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609140905-0ba22e2b
-      hw_classification: 'GENERIC ACCELERATOR'
+      hw_classification: ''
       full_scan: true
       device_env: 'privateuse1,cpu'
       runner_label: 'linux-aarch64-a3-800i-2-cn12-001'
-      skip_list: |-
-        .github/config/disabled_testcases.json
-        .github/config/running_skiped_testcases.json
 
   build-a5:
     uses: ./.github/workflows/_nightly_build.yml
@@ -68,13 +65,10 @@ jobs:
       upstream_repo: pytorch/pytorch
       case_paths_config: .github/config/nightly_test_categories.yml
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609141214-9b737f59
-      hw_classification: 'GENERIC ACCELERATOR'
+      hw_classification: ''
       full_scan: true
       device_env: 'privateuse1,cpu'
       runner_label: 'linux-amd64-a5-2'
-      skip_list: |-
-        .github/config/disabled_testcases.json
-        .github/config/running_skiped_testcases.json
       artifact_suffix: '-a5'
 
   summary:
