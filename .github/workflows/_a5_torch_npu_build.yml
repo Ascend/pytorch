@@ -109,7 +109,11 @@ jobs:
           BUILD_STATUS=${PIPESTATUS[0]}
           ccache -s 2>&1
           if [ ${BUILD_STATUS} -ne 0 ]; then
-            echo "Build failed with exit code ${BUILD_STATUS}"
+            echo "===== Build failed (exit ${BUILD_STATUS}), error lines ====="
+            grep -nE "error:|FAILED:|fatal error:|Killed|cc1plus" "${GITHUB_WORKSPACE}/build_torch_npu.log" | tail -n 120 || true
+            echo "===== tail of build log ====="
+            tail -n 80 "${GITHUB_WORKSPACE}/build_torch_npu.log"
+            echo "===== end ====="
             exit ${BUILD_STATUS}
           fi
           WHL=$(ls dist/*.whl 2>/dev/null | head -1)
