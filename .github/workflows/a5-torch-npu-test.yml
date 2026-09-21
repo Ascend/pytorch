@@ -1,13 +1,17 @@
 # TorchNPU 每日自动化验证流水线
 # 流程: build → collect → test(10 分片) → report
-name: Torch NPU Daily Test
+name: A5 Torch NPU Daily Test
 
 on:
   push:
     branches: [ci-test]
     paths:
       - '.github/workflows/a5-torch-npu-test.yml'
-  workflow_dispatch: {}
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
 
 env:
   PYTORCH_BRANCH: "release/2.15"
@@ -27,7 +31,6 @@ env:
   CONTAINER_OPTS_BUILD: "--user root --security-opt label=disable -v /data/torchnpu-ccache:/ccache --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc"
   CONTAINER_OPTS_NPU: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
   CONTAINER_OPTS_COLLECT: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
-  CONTAINER_OPTS_CPU: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
   CONTAINER_OPTS_LIGHT: "--user root"
   # ── 调度标签 ──
   NPU_LABEL_BUILD: "linux-amd64-a5-2"
@@ -35,193 +38,191 @@ env:
   NPU_LABEL_DIST_2CARD: "linux-amd64-a5-2"
   NPU_LABEL_DIST: "linux-amd64-a5-2"
   NPU_LABEL_REG: "linux-amd64-a5-2"
-  NPU_LABEL_REG_CPU: "linux-amd64-a5-2"
   NPU_LABEL_REPORT: "linux-amd64-a5-2"
 
-stages:
-  # Stage 1: 编译
-  stage_build:
-    name: stage_build
-    select: selected_by_default
-    jobs:
-      build:
-        name: build
-        uses: .github/workflows/_a5_torch_npu_build.yml
-        with:
-          PYTHON_VERSION: ${{ env.PYTHON_VERSION }}
-          PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
-          MAX_JOBS: ${{ env.MAX_JOBS }}
-          TORCH_NPU_WHEEL_ARTIFACT_DIR: ${{ env.TORCH_NPU_WHEEL_ARTIFACT_DIR }}
-          DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
-          CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_BUILD }}
-          RUNNER_LABEL: ${{ env.NPU_LABEL_BUILD }}
+jobs:
+  build:
+    uses: ./.github/workflows/_a5_torch_npu_build.yml
+    secrets: inherit
+    with:
+      PYTHON_VERSION: ${{ env.PYTHON_VERSION }}
+      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+      MAX_JOBS: ${{ env.MAX_JOBS }}
+      DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_BUILD }}
+      RUNNER_LABEL: ${{ env.NPU_LABEL_BUILD }}
 
-  # Stage 2: 采集 + 分片
-  stage_collect:
-    name: stage_collect
-    select: selected_by_default
-    jobs:
-      collect:
-        name: collect
-        uses: .github/workflows/_a5_torch_npu_collect.yml
-        with:
-          PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
-          TORCH_NPU_WHEEL_ARTIFACT_DIR: ${{ env.TORCH_NPU_WHEEL_ARTIFACT_DIR }}
-          CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_COLLECT }}
-          DISTRIBUTED_MACHINES: ${{ env.DISTRIBUTED_MACHINES }}
-          DISTRIBUTED_2CARD_SHARDS: ${{ env.DISTRIBUTED_2CARD_SHARDS }}
-          REGULAR_NPU_MACHINES: ${{ env.REGULAR_NPU_MACHINES }}
-          COLLECT_PARALLEL: ${{ env.COLLECT_PARALLEL }}
-          RUNNER_LABEL: ${{ env.NPU_LABEL_COLLECT }}
+  collect:
+    needs: build
+    uses: ./.github/workflows/_a5_torch_npu_collect.yml
+    secrets: inherit
+    with:
+      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+      DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_COLLECT }}
+      DISTRIBUTED_MACHINES: ${{ env.DISTRIBUTED_MACHINES }}
+      DISTRIBUTED_2CARD_SHARDS: ${{ env.DISTRIBUTED_2CARD_SHARDS }}
+      REGULAR_NPU_MACHINES: ${{ env.REGULAR_NPU_MACHINES }}
+      COLLECT_PARALLEL: ${{ env.COLLECT_PARALLEL }}
+      RUNNER_LABEL: ${{ env.NPU_LABEL_COLLECT }}
 
-  # Stage 3: 测试 (10 分片)
-  # 直接调用 _nightly_test_job.yml, 两层结构
-  stage_test:
-    name: stage_test
-    select: selected_by_default
-    jobs:
-      # 分布式: 2 卡 x2 + 其他
-      test_dist_2card_1:
-        name: test-dist-2card-1
-        select: selected_by_default
-        uses: .github/workflows/_a5_torch_npu_test_job.yml
-        with:
-          SHARD_FILE: distributed_2card_cases_shard_1.json
-          REPORT_NAME: test-reports-distributed_2card
-          CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
-          CARDS_PER_TEST: "2"
-          PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
-          CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_COLLECT }}
-          NPU_LABEL: ${{ env.NPU_LABEL_DIST_2CARD }}
+  test-dist-2card-1:
+    needs: collect
+    uses: ./.github/workflows/_a5_torch_npu_test_job.yml
+    secrets: inherit
+    with:
+      SHARD_FILE: distributed_2card_cases_shard_1.json
+      REPORT_NAME: test-reports-distributed_2card
+      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+      CARDS_PER_TEST: "2"
+      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+      DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
+      NPU_LABEL: ${{ env.NPU_LABEL_DIST_2CARD }}
 
-      test_dist_2card_2:
-        name: test-dist-2card-2
-        select: selected_by_default
-        uses: .github/workflows/_a5_torch_npu_test_job.yml
-        with:
-          SHARD_FILE: distributed_2card_cases_shard_2.json
-          REPORT_NAME: test-reports-distributed_2card-2
-          CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
-          CARDS_PER_TEST: "2"
-          PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
-          CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
-          NPU_LABEL: ${{ env.NPU_LABEL_DIST_2CARD }}
+  test-dist-2card-2:
+    needs: collect
+    uses: ./.github/workflows/_a5_torch_npu_test_job.yml
+    secrets: inherit
+    with:
+      SHARD_FILE: distributed_2card_cases_shard_2.json
+      REPORT_NAME: test-reports-distributed_2card-2
+      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+      CARDS_PER_TEST: "2"
+      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+      DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
+      NPU_LABEL: ${{ env.NPU_LABEL_DIST_2CARD }}
 
-      test_dist:
-        name: test-dist
-        select: selected_by_default
-        uses: .github/workflows/_a5_torch_npu_test_job.yml
-        with:
-          SHARD_FILE: distributed_cases_shard_1.json
-          REPORT_NAME: test-reports-distributed
-          CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
-          CARDS_PER_TEST: "8"
-          PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
-          CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
-          NPU_LABEL: ${{ env.NPU_LABEL_DIST }}
+  test-dist:
+    needs: collect
+    uses: ./.github/workflows/_a5_torch_npu_test_job.yml
+    secrets: inherit
+    with:
+      SHARD_FILE: distributed_cases_shard_1.json
+      REPORT_NAME: test-reports-distributed
+      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+      CARDS_PER_TEST: "8"
+      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+      DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
+      NPU_LABEL: ${{ env.NPU_LABEL_DIST }}
 
-      # NPU 常规: 7 分片
-      test_reg_npu_1:
-        name: test-reg-npu-1
-        select: selected_by_default
-        uses: .github/workflows/_a5_torch_npu_test_job.yml
-        with:
-          SHARD_FILE: regular_npu_cases_shard_1.json
-          REPORT_NAME: test-reports-reg-npu-1
-          CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
-          MAX_WORKERS: ${{ env.REG_WORKERS }}
-          PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
-          CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
-          NPU_LABEL: ${{ env.NPU_LABEL_REG }}
+  test-reg-npu-1:
+    needs: collect
+    uses: ./.github/workflows/_a5_torch_npu_test_job.yml
+    secrets: inherit
+    with:
+      SHARD_FILE: regular_npu_cases_shard_1.json
+      REPORT_NAME: test-reports-reg-npu-1
+      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+      MAX_WORKERS: ${{ env.REG_WORKERS }}
+      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+      DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
+      NPU_LABEL: ${{ env.NPU_LABEL_REG }}
 
-      test_reg_npu_2:
-        name: test-reg-npu-2
-        select: selected_by_default
-        uses: .github/workflows/_a5_torch_npu_test_job.yml
-        with:
-          SHARD_FILE: regular_npu_cases_shard_2.json
-          REPORT_NAME: test-reports-reg-npu-2
-          CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
-          MAX_WORKERS: ${{ env.REG_WORKERS }}
-          PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
-          CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
-          NPU_LABEL: ${{ env.NPU_LABEL_REG }}
+  test-reg-npu-2:
+    needs: collect
+    uses: ./.github/workflows/_a5_torch_npu_test_job.yml
+    secrets: inherit
+    with:
+      SHARD_FILE: regular_npu_cases_shard_2.json
+      REPORT_NAME: test-reports-reg-npu-2
+      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+      MAX_WORKERS: ${{ env.REG_WORKERS }}
+      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+      DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
+      NPU_LABEL: ${{ env.NPU_LABEL_REG }}
 
-      test_reg_npu_3:
-        name: test-reg-npu-3
-        select: selected_by_default
-        uses: .github/workflows/_a5_torch_npu_test_job.yml
-        with:
-          SHARD_FILE: regular_npu_cases_shard_3.json
-          REPORT_NAME: test-reports-reg-npu-3
-          CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
-          MAX_WORKERS: ${{ env.REG_WORKERS }}
-          PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
-          CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
-          NPU_LABEL: ${{ env.NPU_LABEL_REG }}
+  test-reg-npu-3:
+    needs: collect
+    uses: ./.github/workflows/_a5_torch_npu_test_job.yml
+    secrets: inherit
+    with:
+      SHARD_FILE: regular_npu_cases_shard_3.json
+      REPORT_NAME: test-reports-reg-npu-3
+      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+      MAX_WORKERS: ${{ env.REG_WORKERS }}
+      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+      DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
+      NPU_LABEL: ${{ env.NPU_LABEL_REG }}
 
-      test_reg_npu_4:
-        name: test-reg-npu-4
-        select: selected_by_default
-        uses: .github/workflows/_a5_torch_npu_test_job.yml
-        with:
-          SHARD_FILE: regular_npu_cases_shard_4.json
-          REPORT_NAME: test-reports-reg-npu-4
-          CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
-          MAX_WORKERS: ${{ env.REG_WORKERS }}
-          PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
-          CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
-          NPU_LABEL: ${{ env.NPU_LABEL_REG }}
+  test-reg-npu-4:
+    needs: collect
+    uses: ./.github/workflows/_a5_torch_npu_test_job.yml
+    secrets: inherit
+    with:
+      SHARD_FILE: regular_npu_cases_shard_4.json
+      REPORT_NAME: test-reports-reg-npu-4
+      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+      MAX_WORKERS: ${{ env.REG_WORKERS }}
+      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+      DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
+      NPU_LABEL: ${{ env.NPU_LABEL_REG }}
 
-      test_reg_npu_5:
-        name: test-reg-npu-5
-        select: selected_by_default
-        uses: .github/workflows/_a5_torch_npu_test_job.yml
-        with:
-          SHARD_FILE: regular_npu_cases_shard_5.json
-          REPORT_NAME: test-reports-reg-npu-5
-          CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
-          MAX_WORKERS: ${{ env.REG_WORKERS }}
-          PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
-          CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
-          NPU_LABEL: ${{ env.NPU_LABEL_REG }}
+  test-reg-npu-5:
+    needs: collect
+    uses: ./.github/workflows/_a5_torch_npu_test_job.yml
+    secrets: inherit
+    with:
+      SHARD_FILE: regular_npu_cases_shard_5.json
+      REPORT_NAME: test-reports-reg-npu-5
+      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+      MAX_WORKERS: ${{ env.REG_WORKERS }}
+      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+      DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
+      NPU_LABEL: ${{ env.NPU_LABEL_REG }}
 
-      test_reg_npu_6:
-        name: test-reg-npu-6
-        select: selected_by_default
-        uses: .github/workflows/_a5_torch_npu_test_job.yml
-        with:
-          SHARD_FILE: regular_npu_cases_shard_6.json
-          REPORT_NAME: test-reports-reg-npu-6
-          CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
-          MAX_WORKERS: ${{ env.REG_WORKERS }}
-          PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
-          CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
-          NPU_LABEL: ${{ env.NPU_LABEL_REG }}
+  test-reg-npu-6:
+    needs: collect
+    uses: ./.github/workflows/_a5_torch_npu_test_job.yml
+    secrets: inherit
+    with:
+      SHARD_FILE: regular_npu_cases_shard_6.json
+      REPORT_NAME: test-reports-reg-npu-6
+      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+      MAX_WORKERS: ${{ env.REG_WORKERS }}
+      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+      DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
+      NPU_LABEL: ${{ env.NPU_LABEL_REG }}
 
-      test_reg_npu_7:
-        name: test-reg-npu-7
-        select: selected_by_default
-        uses: .github/workflows/_a5_torch_npu_test_job.yml
-        with:
-          SHARD_FILE: regular_npu_cases_shard_7.json
-          REPORT_NAME: test-reports-reg-npu-7
-          CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
-          MAX_WORKERS: ${{ env.REG_WORKERS }}
-          PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
-          CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
-          NPU_LABEL: ${{ env.NPU_LABEL_REG }}
+  test-reg-npu-7:
+    needs: collect
+    uses: ./.github/workflows/_a5_torch_npu_test_job.yml
+    secrets: inherit
+    with:
+      SHARD_FILE: regular_npu_cases_shard_7.json
+      REPORT_NAME: test-reports-reg-npu-7
+      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+      MAX_WORKERS: ${{ env.REG_WORKERS }}
+      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+      DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
+      NPU_LABEL: ${{ env.NPU_LABEL_REG }}
 
-  # Stage 4: 报告 (always 执行)
-  stage_report:
-    name: stage_report
-    select: always
-    jobs:
-      report:
-        name: report
-        uses: .github/workflows/_a5_torch_npu_report.yml
-        with:
-          PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
-          CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_LIGHT }}
-          RUNNER_LABEL: ${{ env.NPU_LABEL_REPORT }}
-          
+  report:
+    needs:
+      - test-dist-2card-1
+      - test-dist-2card-2
+      - test-dist
+      - test-reg-npu-1
+      - test-reg-npu-2
+      - test-reg-npu-3
+      - test-reg-npu-4
+      - test-reg-npu-5
+      - test-reg-npu-6
+      - test-reg-npu-7
+    if: always()
+    uses: ./.github/workflows/_a5_torch_npu_report.yml
+    secrets: inherit
+    with:
+      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+      DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_LIGHT }}
+      RUNNER_LABEL: ${{ env.NPU_LABEL_REPORT }}

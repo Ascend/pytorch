@@ -1,4 +1,4 @@
-name: nightly_build
+name: Build torch_npu wheel
 
 on:
   workflow_call:
@@ -7,6 +7,7 @@ on:
         description: Python version
         required: false
         type: string
+        default: "3.10"
       PYTORCH_BRANCH:
         description: PyTorch source branch
         required: false
@@ -15,18 +16,15 @@ on:
         description: C++ compile parallel jobs
         required: false
         type: string
-      TORCH_NPU_WHEEL_ARTIFACT_DIR:
-        description: torch-npu wheel artifact directory
-        required: false
-        type: string
       DOCKER_IMAGE:
         description: Docker image for building
-        required: false
+        required: true
         type: string
       CONTAINER_OPTIONS:
         description: Container options
         required: false
         type: string
+        default: ""
       # 调度标签 (变量化): 编译任务默认调度到编译机
       RUNNER_LABEL:
         required: false
@@ -36,18 +34,14 @@ on:
 jobs:
   build:
     name: build
-    select: selected_by_default
-    runs-on: [ self-hosted, "${{ inputs.RUNNER_LABEL }}" ]
+    runs-on: ${{ inputs.RUNNER_LABEL }}
     container:
-      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704
+      image: ${{ inputs.DOCKER_IMAGE }}
       options: ${{ inputs.CONTAINER_OPTIONS }}
 
-    outputs:
-      wheel: ${{ steps.build.outputs.wheel }}
-      status: ${{ steps.build.outputs.status }}
     steps:
-      - name: checkout
-        uses: checkout
+      - name: Checkout
+        uses: actions/checkout@v6
 
       - name: Write build environment info
         run: |
@@ -89,7 +83,6 @@ jobs:
           ccache -z || true
 
       - name: Build torch_npu wheel
-        id: build
         env:
           CC: "ccache gcc"
           CXX: "ccache g++"
@@ -100,7 +93,7 @@ jobs:
           DISABLE_INSTALL_TORCHAIR: "FALSE"
           BUILD_WITHOUT_SHA: "1"
         run: |
-          export CCACHE_BASEDIR="${ATOMGIT_WORKSPACE}"
+          export CCACHE_BASEDIR="${GITHUB_WORKSPACE}"
           # release/2.15 -> 2.15.0 (build.sh --torch= expects X.Y.Z)
           TORCH_VER=$(echo "${{ inputs.PYTORCH_BRANCH }}" | sed 's|.*/||')
           if echo "${TORCH_VER}" | grep -Eq '^[0-9]+\.[0-9]+$'; then
@@ -109,21 +102,16 @@ jobs:
           bash ci/build.sh --python="3.10" --torch="${TORCH_VER}" 2>&1 | tee /tmp/build_torch_npu.log
           BUILD_STATUS=${PIPESTATUS[0]}
           ccache -s 2>&1
-          echo "${BUILD_STATUS}" > build_status.txt
-          echo "status=${BUILD_STATUS}" >> $ATOMGIT_OUTPUT
-          if [ ${BUILD_STATUS} -eq 0 ]; then
-            WHL=$(ls dist/*.whl 2>/dev/null | head -1)
-            echo "wheel=${WHL}" >> $ATOMGIT_OUTPUT
-            echo "Build succeeded: ${WHL}"
-          else
+          if [ ${BUILD_STATUS} -ne 0 ]; then
             echo "Build failed with exit code ${BUILD_STATUS}"
-            echo "wheel=N/A" >> $ATOMGIT_OUTPUT
+            exit ${BUILD_STATUS}
           fi
           WHL=$(ls dist/*.whl 2>/dev/null | head -1)
+          echo "Build succeeded: ${WHL}"
           echo "Wheel: ${WHL##*/}" >> build_msg.txt
 
       - name: Upload torch-npu wheel as artifact
-        uses: upload-artifact
+        uses: actions/upload-artifact@v4
         with:
           name: torch-npu-wheel
           path: "dist/*.whl"
@@ -131,10 +119,9 @@ jobs:
           overwrite: true
 
       - name: Upload build_msg.txt as artifact
-        uses: upload-artifact
+        uses: actions/upload-artifact@v4
         with:
           name: build-msg
           path: build_msg.txt
           retention-days: 60
           overwrite: true
-

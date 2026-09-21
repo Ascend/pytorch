@@ -1,4 +1,4 @@
-name: nightly_test_job
+name: Run NPU test shard
 
 on:
   workflow_call:
@@ -33,9 +33,14 @@ on:
       PYTORCH_BRANCH:
         required: false
         type: string
+      DOCKER_IMAGE:
+        description: Docker image for testing
+        required: true
+        type: string
       CONTAINER_OPTIONS:
         required: false
         type: string
+        default: ""
       # 调度标签 (变量化): 测试任务默认调度到 NPU 机
       NPU_LABEL:
         required: false
@@ -45,18 +50,18 @@ on:
 jobs:
   test:
     name: test
-    select: selected_by_default
-    runs-on: [ self-hosted, "${{ inputs.NPU_LABEL }}" ]
+    runs-on: ${{ inputs.NPU_LABEL }}
     timeout-minutes: 300
     container:
-      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704
+      image: ${{ inputs.DOCKER_IMAGE }}
       options: ${{ inputs.CONTAINER_OPTIONS }}
+
     steps:
-      - name: checkout
-        uses: checkout
+      - name: Checkout
+        uses: actions/checkout@v6
 
       - name: Download cases-shards
-        uses: download-artifact
+        uses: actions/download-artifact@v4
         with:
           name: cases-shards
           path: cases-shards
@@ -70,7 +75,7 @@ jobs:
           echo "Shard ${{ inputs.SHARD_FILE }} exists, will execute tests"
 
       - name: Download torch-npu-wheel
-        uses: download-artifact
+        uses: actions/download-artifact@v4
         with:
           name: torch-npu-wheel
           path: ./
@@ -121,7 +126,7 @@ jobs:
             --verbose
 
       - name: Upload test reports as artifact
-        uses: upload-artifact
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.REPORT_NAME }}
           path: ${{ inputs.REPORT_NAME }}/

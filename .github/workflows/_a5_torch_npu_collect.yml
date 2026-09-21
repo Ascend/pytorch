@@ -1,4 +1,4 @@
-name: nightly_collect
+name: Collect and shard test cases
 
 on:
   workflow_call:
@@ -7,18 +7,20 @@ on:
         description: PyTorch source branch
         required: false
         type: string
-      TORCH_NPU_WHEEL_ARTIFACT_DIR:
-        description: torch-npu wheel artifact directory
-        required: false
+      DOCKER_IMAGE:
+        description: Docker image for collecting
+        required: true
         type: string
       CONTAINER_OPTIONS:
         description: Container options
         required: false
         type: string
+        default: ""
       DISTRIBUTED_MACHINES:
         description: Number of distributed machines
         required: false
         type: string
+        default: "1"
       DISTRIBUTED_2CARD_SHARDS:
         description: Number of 2card distributed shards
         required: false
@@ -28,10 +30,12 @@ on:
         description: Number of regular NPU machines
         required: false
         type: string
+        default: "7"
       COLLECT_PARALLEL:
         description: Collect parallel
         required: false
         type: string
+        default: "16"
       # 调度标签 (变量化): 收集任务默认调度到编译机
       RUNNER_LABEL:
         required: false
@@ -41,15 +45,14 @@ on:
 jobs:
   collect:
     name: collect
-    select: selected_by_default
-    runs-on: [ self-hosted, "${{ inputs.RUNNER_LABEL }}" ]
+    runs-on: ${{ inputs.RUNNER_LABEL }}
     container:
-      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704
+      image: ${{ inputs.DOCKER_IMAGE }}
       options: ${{ inputs.CONTAINER_OPTIONS }}
 
     steps:
-      - name: checkout
-        uses: checkout
+      - name: Checkout
+        uses: actions/checkout@v6
 
       - name: Install latest PyTorch from official website
         run: |
@@ -64,7 +67,7 @@ jobs:
         run: python3.10 -m pip install --trusted-host mirrors.huaweicloud.com pytest-timeout
 
       - name: Download torch-npu-wheel
-        uses: download-artifact
+        uses: actions/download-artifact@v4
         with:
           name: torch-npu-wheel
           path: ./
@@ -92,16 +95,15 @@ jobs:
             --disabled-methods .github/scripts/a5-torch-npu-test/conf/disabled_test_methods.json
 
       - name: Check shard availability
-        id: check_shards
         run: |
-          echo "has_2card=$(test -f cases-shards/distributed_2card_cases_shard_1.json && echo true || echo false)" >> $ATOMGIT_OUTPUT
-          echo "has_dist=$(test -f cases-shards/distributed_cases_shard_1.json && echo true || echo false)" >> $ATOMGIT_OUTPUT
-          echo "has_reg_npu=$(test -f cases-shards/regular_npu_cases_shard_1.json && echo true || echo false)" >> $ATOMGIT_OUTPUT
+          echo "has_2card=$(test -f cases-shards/distributed_2card_cases_shard_1.json && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "has_dist=$(test -f cases-shards/distributed_cases_shard_1.json && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "has_reg_npu=$(test -f cases-shards/regular_npu_cases_shard_1.json && echo true || echo false)" >> "$GITHUB_OUTPUT"
           echo "=== Shard availability ==="
-          cat $ATOMGIT_OUTPUT
+          cat "$GITHUB_OUTPUT"
 
       - name: Upload cases-shards as artifact
-        uses: upload-artifact
+        uses: actions/upload-artifact@v4
         with:
           name: cases-shards
           path: cases-shards/
@@ -109,9 +111,10 @@ jobs:
           overwrite: true
 
       - name: Upload collection errors as artifact
-        uses: upload-artifact
+        uses: actions/upload-artifact@v4
         with:
           name: collection-errors
           path: collection_errors/
           retention-days: 60
           overwrite: true
+          if-no-files-found: warn
