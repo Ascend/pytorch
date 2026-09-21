@@ -1,49 +1,27 @@
 name: PyTorch Coverage Nightly
 
-# ============================================================================
-# 定时覆盖率流水线：跑 pytorch 源码仓库的 PR 白名单测试并采集 torch 源码覆盖率。
-#
-# 执行内容（复用 .github/scripts/run_pytorch_coverage.sh）：
-#   1. 从 OBS 缓存下载最近一次 nightly build 的 pytorch 源码包 + wheels 包
-#   2. 在 NPU 容器内安装 wheels（torch / torch_npu / torchvision）
-#   3. 解析 pr_test_whitelist.yml（core/tensor/distributed/graph/others 共 229 个文件）
-#      并逐文件执行测试，逐测试采集独立覆盖数据
-#   4. 合并覆盖数据，生成 .coverage / coverage.xml
-#   5. 产物上传：GitHub Artifacts（报告与日志）+ OBS（完整 covdata，长期保存）
-#
-# 前置依赖：OBS 缓存 obs://pytorch-ci-cache/7day-cache/ 中必须已存在
-#   pytorch-source-<short>.tar.gz 与 wheels-<short>-py310-aarch64.tar.gz
-#   （由 _build.yml / _nightly_build.yml 产出，short = pytorch 提交 SHA 前 10 位）。
-#   定时触发时自动解析 pytorch/pytorch main 最新提交；若该提交尚未构建过，
-#   下载步骤会失败并提示——此时可手动 dispatch 传入已构建的 resolved_short。
-#
-# 注意：测试失败不影响覆盖率数据有效性（失败的测试数据带 FAILED 标记），
-#   因此脚本退出码只记录在 test_status 输出里，不会让本流水线标红。
-# ============================================================================
-
 on:
   schedule:
-    # UTC 19:00 = 北京时间 03:00，每天一次（避开 nightly 构建与 PR 测试高峰）
-    - cron: '0 19 * * *'
+    - cron: '0 19 * * *'  # UTC 19:00 = Beijing 03:00, daily
   workflow_dispatch:
     inputs:
       resolved_short:
-        description: '已构建的 pytorch 提交 short SHA（前 10 位）。留空则解析 upstream_ref 最新提交'
+        description: 'Built pytorch commit short SHA (first 10 chars). Empty = resolve latest commit of upstream_ref'
         required: false
         default: ''
         type: string
       upstream_ref:
-        description: 'pytorch/pytorch 的 ref（resolved_short 为空时生效，取其最新提交）'
+        description: 'pytorch/pytorch ref (used when resolved_short is empty)'
         required: false
         default: 'main'
         type: string
       categories:
-        description: '只跑指定类别（逗号分隔，如 core,tensor）。留空跑全部 5 类'
+        description: 'Comma-separated categories to run (e.g. core,tensor). Empty = all 5 categories'
         required: false
         default: ''
         type: string
 
-# 定时与手动触发互斥：新一轮开始时取消仍在跑的上一轮（覆盖率跑全量耗时可能很长）
+# New run cancels the previous in-progress run (full runs may take many hours)
 concurrency:
   group: pytorch-coverage-nightly
   cancel-in-progress: true
@@ -52,17 +30,12 @@ permissions:
   contents: read
 
 env:
-  # 与 _test-collect.yml 一致的容器与 NPU runner
-  DOCKER_IMAGE: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609140905-0ba22e2b
-  RUNNER_LABEL: linux-aarch64-a3-800i-8-cn12-001
   OBS_ENDPOINT: obs.ap-southeast-1.myhuaweicloud.com
-  # 覆盖率产物在 OBS 上的固定存放前缀：只保留一份，每轮全量上传覆盖旧数据
+  # Fixed OBS prefix: single copy, each run fully overwrites the previous data
   OBS_COVERAGE_PREFIX: obs://pytorch-ci-cache/coverage/pytorch
 
 jobs:
-  # ---------------------------------------------------------------------------
-  # Job 1: 解析 pytorch 提交 short SHA（ubuntu 轻量节点，不占 NPU）
-  # ---------------------------------------------------------------------------
+  # Resolve pytorch short SHA on a lightweight ubuntu node (no NPU needed)
   resolve:
     runs-on: ubuntu-latest
     outputs:
@@ -79,7 +52,7 @@ jobs:
           if [ -n "${SHORT}" ]; then
             echo "Using provided resolved_short: ${SHORT}"
           else
-            # 手动未指定 / 定时触发：解析 pytorch/pytorch 最新提交
+            # Resolve the latest commit of pytorch/pytorch (schedule or empty input)
             REF="${{ inputs.upstream_ref }}"
             REF="${REF:-main}"
             echo "Resolving latest commit of pytorch/pytorch@${REF} ..."
@@ -95,23 +68,23 @@ jobs:
           fi
           echo "short=${SHORT}" >> "$GITHUB_OUTPUT"
 
-  # ---------------------------------------------------------------------------
-  # Job 2: 下载产物 → 安装 wheels → 跑覆盖率脚本 → 上传报告
-  # ---------------------------------------------------------------------------
+  # Download artifacts -> install wheels -> run coverage script -> upload reports
+  # NOTE: runs-on / container.image do not support the env context
+  # (only github/needs/vars/inputs etc.), so runner and image are inlined.
   coverage:
     needs: [resolve]
-    runs-on: ${{ env.RUNNER_LABEL }}
-    timeout-minutes: 1440  # 全量 229 个文件串行跑，放宽到 24 小时
+    runs-on: linux-aarch64-a3-800i-8-cn12-001
+    timeout-minutes: 1440  # 229 test files run serially; allow up to 24h
     outputs:
       test_status: ${{ steps.run_coverage.outputs.test_status }}
     container:
-      image: ${{ env.DOCKER_IMAGE }}
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609140905-0ba22e2b
       options: --network host
     env:
       PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
 
     steps:
-      # ---- 计算 OBS 缓存中的 tarball 文件名（与 _build.yml 产出命名一致） ----
+      # Tarball names follow the _build.yml/_nightly_build.yml upload convention
       - name: Compute SHAs
         id: sha
         run: |
@@ -122,7 +95,7 @@ jobs:
           echo "wheels_tarball=wheels-${UPSTREAM_SHORT}-${PYVER}-${ARCH}.tar.gz" >> "$GITHUB_OUTPUT"
           echo "short=${UPSTREAM_SHORT}" >> "$GITHUB_OUTPUT"
 
-      # ---- 下载 pytorch 源码包（obsutil 预装在测试镜像内，2 次重试 + 断点续传） ----
+      # obsutil is preinstalled in the test image; 2 retries + resumable download
       - name: Download PyTorch source from OBS
         run: |
           obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${{ env.OBS_ENDPOINT }}
@@ -148,7 +121,6 @@ jobs:
           rm ${{ steps.sha.outputs.source_tarball }}
           echo "PyTorch source extracted: $(du -sh pytorch/ | cut -f1)"
 
-      # ---- 下载并安装 wheels（被测对象：torch 安装包的 Python 源码） ----
       - name: Download wheels from OBS
         run: |
           obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${{ env.OBS_ENDPOINT }}
@@ -166,6 +138,7 @@ jobs:
           echo "ERROR: ${TARBALL} not found in OBS cache." >&2
           exit 1
 
+      # Device under test: the installed torch python sources
       - name: Extract and install wheels
         run: |
           mkdir -p /tmp/wheels
@@ -174,21 +147,20 @@ jobs:
           pip install /tmp/wheels/torch-*.whl
           pip install --no-deps /tmp/wheels/torch_npu*.whl
           pip install --no-deps /tmp/wheels/torchvision-*.whl || echo "WARNING: torchvision wheel not found in tarball"
-          pip install pyyaml coverage  # 脚本依赖：白名单解析 + 覆盖率采集
+          pip install pyyaml coverage  # script deps: whitelist parsing + coverage
 
-      # ---- 拉取覆盖率脚本（本仓库 ci-test 分支，与 CI 脚本保持同源） ----
+      # Pull the coverage script from this repo (same source as CI scripts)
       - name: Checkout coverage script
         uses: actions/checkout@v6
         with:
           path: ci-scripts
           ref: ci-test
 
-      # ---- 执行覆盖率脚本 ----
-      # 说明：
-      #   - source CANN/atb 环境并补 LD_LIBRARY_PATH（与 _test-collect.yml 一致）
-      #   - OUT_ROOT 指到 workspace，脚本产物统一落在 coverage-out/torch@<日期>/
-      #   - 单测试超时 1800s（nightly 含 inductor 编译类用例，比 PR 门禁的 600s 宽松）
-      #   - 测试失败不中断流水线：退出码记录到 test_status 输出，覆盖数据照常上传
+      # - Source CANN/atb env and extend LD_LIBRARY_PATH (same as _test-collect.yml)
+      # - OUT_ROOT points to workspace: outputs land in coverage-out/torch@<date>/
+      # - Per-test timeout 1800s (nightly includes inductor compile-heavy cases)
+      # - Test failures do not fail the pipeline: the exit code is recorded in
+      #   test_status output and coverage data is uploaded as usual
       - name: Run coverage script
         id: run_coverage
         run: |
@@ -212,7 +184,6 @@ jobs:
           echo "Coverage script finished with status: ${COV_STATUS}"
           echo "test_status=${COV_STATUS}" >> "$GITHUB_OUTPUT"
 
-      # ---- 摘要写入 Job Summary（覆盖率总量 + 失败用例数） ----
       - name: Write job summary
         if: always()
         run: |
@@ -230,7 +201,7 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # ---- 上传 GitHub Artifacts：报告 + 日志（轻量，便于在 Actions 页面直接下载） ----
+      # GitHub Artifacts: report + logs (lightweight, downloadable from the run page)
       - name: Upload coverage artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -243,13 +214,11 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
-      # ---- 上传完整 covdata 到 OBS（长期保存，供覆盖率平台二次分析） ----
-      # 只存一份：固定上传到 <prefix>/latest/，新的全量覆盖旧的（-f 强制覆盖同名对象）。
-      # 本地时间戳目录 torch@YYYYMMDD 先重命名为固定的 torch@latest，
-      # 避免按日期在远端不断堆积新目录。重命名发生在 Artifacts 上传之后，互不影响。
-      # 尽力而为：上传失败不标红（Artifacts 里已有报告与日志）。
-      # 注意：若某轮用 --category 只跑了部分类别，远端旧文件不会被删除（cp 只覆盖同名）；
-      #   如需严格镜像（删除远端多余文件），可改用 obsutil sync。
+      # Full covdata to OBS for long-term retention (rename torch@YYYYMMDD to the
+      # fixed torch@latest so remote objects are overwritten, not accumulated).
+      # Best-effort: failure here does not fail the pipeline (Artifacts has a copy).
+      # NOTE: with --category subsets, stale remote files are NOT deleted (cp only
+      # overwrites same-name objects); switch to obsutil sync for strict mirroring.
       - name: Upload full covdata to OBS
         if: always()
         continue-on-error: true
@@ -262,7 +231,7 @@ jobs:
             exit 0
           fi
 
-          # 归一化为固定目录名 torch@latest（mv 同盘重命名，零拷贝开销）
+          # Normalize to the fixed dir name torch@latest (same-fs mv, zero copy)
           LATEST_DIR="${GITHUB_WORKSPACE}/coverage-out/torch@latest"
           if [ "${COV_DIR}" != "${LATEST_DIR}" ]; then
             rm -rf "${LATEST_DIR}"
