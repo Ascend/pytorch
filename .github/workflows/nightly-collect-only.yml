@@ -76,3 +76,36 @@ jobs:
         .github/config/disabled_testcases.json
         .github/config/running_skiped_testcases.json
       artifact_suffix: '-a5'
+
+  summary:
+    needs: [collect, collect-a5]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout this repo for summary scripts
+        uses: actions/checkout@v6
+        with:
+          ref: ci-test
+
+      - name: Download aarch64 cases-shards
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: cases-shards
+          path: collect-a3
+
+      - name: Download a5 cases-shards
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: cases-shards-a5
+          path: collect-a5
+
+      - name: Render collection summary
+        run: |
+          python3 .github/scripts/summarize_collection.py \
+            --label "A3 (aarch64)" --summary collect-a3/cases_collection_summary.json \
+            --label "A5 (x86_64)" --summary collect-a5/cases_collection_summary.json
