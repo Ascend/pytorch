@@ -80,6 +80,10 @@ jobs:
           assert torch.__version__, 'PyTorch installation failed'
           "
 
+      - name: Install auditwheel
+        run: |
+          python3.10 -m pip install --trusted-host mirrors.huaweicloud.com auditwheel
+
       - name: Configure ccache
         env:
           CCACHE_DIR: "/ccache"
