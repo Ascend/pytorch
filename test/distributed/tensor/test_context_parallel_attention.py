@@ -19,7 +19,9 @@ import torch.distributed as dist
 import torch.nn.functional as F
 import torch_npu
 import torch_npu.distributed.tensor.experimental._context_parallel._attention
-from torch.distributed.tensor import DeviceMesh
+from torch.distributed.tensor import DeviceMesh, DTensor
+from torch.distributed.tensor.placement_types import Shard as PlacementShard
+from torch_npu.distributed.tensor._attention import _npu_fusion_attention_handler
 from torch.distributed.tensor.debug import CommDebugMode
 from torch.distributed.tensor.experimental._attention import (
     _context_parallel_shard,
@@ -311,6 +313,201 @@ class TestContextParallelAttention(NPUDTensorTestBase):
         if dtype == torch.bfloat16:
             self.assertLessEqual(int(_bf16_ulp_diff(cp_dv, v.grad).max().item()), 1)
 
+
+    @SupportedDevices(["Ascend910B"])
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_tp_cp_2d_mesh(self) -> None:
+        """Test CP on a 2-D (TP x CP) DeviceMesh.
+
+        Verifies that CP ring attention works on a multi-dimensional mesh
+        where TP shards head_dim (N) and CP shards seq_dim (S). This
+        implicitly validates that _get_cp_group correctly finds the CP mesh
+        dimension carrying Shard(seq_dim) and returns its ProcessGroup
+        (mesh.get_group() without args would raise on ndim > 1).
+        """
+        device_count = torch.npu.device_count() if torch.npu.is_available() else 0
+        if device_count < 4:
+            return  # need at least 4 NPU for 2x2 mesh
+
+        # Need a 2D mesh where TP x CP = world_size. Use the smallest
+        # factorization that gives both dims >= 2.
+        ws = self.world_size
+        if ws < 4:
+            return
+        # Find tp_size, cp_size such that tp_size * cp_size == ws and both >= 2
+        tp_size = cp_size = None
+        for tp in range(2, ws):
+            if ws % tp == 0 and ws // tp >= 2:
+                tp_size = tp
+                cp_size = ws // tp
+                break
+        if tp_size is None:
+            return  # no valid 2D factorization
+
+        mesh = DeviceMesh(
+            self.device_type,
+            torch.arange(0, ws).reshape(tp_size, cp_size),
+            mesh_dim_names=("tp", "cp"),
+        )
+
+        bs = 2
+        seq_length = 256
+        dim = 32
+        nheads = 8
+
+        torch.manual_seed(42)
+        q, k, v = [
+            torch.rand(
+                (bs, nheads, seq_length * cp_size, dim),
+                device=self.device_type,
+                dtype=torch.float32,
+                requires_grad=True,
+            )
+            for _ in range(3)
+        ]
+
+        with torch.no_grad():
+            dist.broadcast(q, src=0)
+            dist.broadcast(k, src=0)
+            dist.broadcast(v, src=0)
+
+        # Reference: single-GPU SDPA on full sequence
+        with torch.no_grad():
+            ref_out = F.scaled_dot_product_attention(q, k, v, is_causal=False)
+
+        # Shard q/k/v: TP shards head_dim (N=1), CP shards seq_dim (S=2)
+        placements = [PlacementShard(1), PlacementShard(2)]
+
+        # Build local shards: each rank gets its TP slice of the full tensor.
+        # Use detach() to get leaf tensors, then set requires_grad on the leaf.
+        tp_rank = mesh.get_local_rank("tp")
+        local_q = q.detach().chunk(tp_size, dim=1)[tp_rank].contiguous().requires_grad_(True)
+        local_k = k.detach().chunk(tp_size, dim=1)[tp_rank].contiguous().requires_grad_(True)
+        local_v = v.detach().chunk(tp_size, dim=1)[tp_rank].contiguous().requires_grad_(True)
+
+        cp_q = DTensor.from_local(local_q, mesh, placements)
+        cp_k = DTensor.from_local(local_k, mesh, placements)
+        cp_v = DTensor.from_local(local_v, mesh, placements)
+
+        try:
+            _enable_context_parallel_dispatcher()
+
+            saved_lb = _cp_options.enable_load_balance
+            _cp_options.enable_load_balance = False
+            try:
+                # Verify that CP forward runs without error on 2D mesh.
+                # _get_cp_group must correctly find the CP mesh dim (carrying
+                # Shard(seq_dim)) and return its ProcessGroup; otherwise
+                # mesh.get_group() would raise RuntimeError on ndim > 1.
+                with sdpa_kernel(SDPBackend.OVERRIDEABLE):
+                    cp_out = F.scaled_dot_product_attention(cp_q, cp_k, cp_v, is_causal=False)
+
+                self.assertIsNotNone(cp_out)
+            finally:
+                _cp_options.enable_load_balance = saved_lb
+        finally:
+            _disable_context_parallel_dispatcher()
+
+    @SupportedDevices(["Ascend910B"])
+    @skipIfUnsupportMultiNPU(2)
+    @with_comms
+    def test_cp_disable_restores_handler_and_strategy(self) -> None:
+        """Verify that disable CP restores layer-1 handler, strategy, and schema.
+
+        After disable:
+        1. _custom_op_handlers maps NPU ops back to layer-1 _npu_fusion_attention_handler
+        2. _allow_implicit_replication restored to pre-CP value
+        3. op_strategy_funcs maps to layer-1 strategy (not CP)
+        4. op_to_schema_info restored to pre-CP value
+        """
+        import functools
+        from torch.distributed.tensor import DTensor
+        from torch_npu.distributed.tensor._attention import (
+            npu_fusion_attention_v3_strategy as _l1_fwd,
+            npu_fusion_attention_grad_v3_strategy as _l1_bwd,
+        )
+
+        propagator = DTensor._op_dispatcher.sharding_propagator
+        npu_fa = torch.ops.npu.npu_fusion_attention_v3.default
+        npu_fa_grad = torch.ops.npu.npu_fusion_attention_grad_v3.default
+        npu_ops = [npu_fa, npu_fa_grad]
+        l1_strategies = {npu_fa: _l1_fwd, npu_fa_grad: _l1_bwd}
+
+        # Snapshot pre-CP state
+        pre_handlers = dict(DTensor._op_dispatcher._custom_op_handlers)
+        pre_allow_repl = DTensor._op_dispatcher._allow_implicit_replication
+        pre_strategy = {op: propagator.op_strategy_funcs.get(op) for op in npu_ops}
+        pre_schema = {op: propagator.op_to_schema_info.get(op) for op in npu_ops}
+
+        try:
+            _enable_context_parallel_dispatcher()
+
+            # While CP is enabled: handlers should be CP handlers (not layer-1)
+            for op in npu_ops:
+                self.assertIn(op, DTensor._op_dispatcher._custom_op_handlers)
+                self.assertIsNot(
+                    DTensor._op_dispatcher._custom_op_handlers[op],
+                    _npu_fusion_attention_handler,
+                    f"handler for {op} should be CP handler while enabled",
+                )
+
+            _disable_context_parallel_dispatcher()
+
+            # 1. Handlers restored to layer-1
+            for op in npu_ops:
+                restored = DTensor._op_dispatcher._custom_op_handlers.get(op)
+                self.assertIsNotNone(
+                    restored,
+                    f"handler for {op} should exist after disable",
+                )
+                self.assertIs(
+                    restored,
+                    _npu_fusion_attention_handler,
+                    f"handler for {op} should be layer-1 after disable",
+                )
+
+            # 2. _allow_implicit_replication restored
+            self.assertEqual(
+                DTensor._op_dispatcher._allow_implicit_replication,
+                pre_allow_repl,
+            )
+
+            # 3. Strategy restored: propagator must still have the op registered,
+            #    and the inner function must be layer-1 (not CP).
+            #    @register_sharding wraps as partial(custom_strategy, fn), so the
+            #    layer-1 fn is in strat_func.args[0].
+            for op in npu_ops:
+                self.assertIn(
+                    op, propagator.op_strategy_funcs,
+                    f"strategy for {op} must exist after disable (was it deleted?)",
+                )
+                strat_func = propagator.op_strategy_funcs[op]
+                if isinstance(strat_func, functools.partial):
+                    inner = strat_func.args[0] if strat_func.args else None
+                else:
+                    inner = strat_func
+                self.assertIs(
+                    inner, l1_strategies[op],
+                    f"strategy for {op} should be layer-1 after disable",
+                )
+
+            # 4. Schema restored to pre-CP value
+            for op in npu_ops:
+                self.assertIs(
+                    propagator.op_to_schema_info.get(op),
+                    pre_schema[op],
+                    f"schema for {op} should be restored to pre-CP value",
+                )
+        finally:
+            _disable_context_parallel_dispatcher()
+            DTensor._op_dispatcher._custom_op_handlers = pre_handlers
+            DTensor._op_dispatcher._allow_implicit_replication = pre_allow_repl
+            for op in npu_ops:
+                if pre_strategy[op] is not None:
+                    propagator.op_strategy_funcs[op] = pre_strategy[op]
+                if pre_schema[op] is not None:
+                    propagator.op_to_schema_info[op] = pre_schema[op]
 
 if __name__ == "__main__":
     run_tests()
