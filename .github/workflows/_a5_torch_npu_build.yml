@@ -98,6 +98,7 @@ jobs:
           MAX_JOBS: ${{ inputs.MAX_JOBS }}
           DISABLE_INSTALL_TORCHAIR: "FALSE"
           BUILD_WITHOUT_SHA: "1"
+          AUDITWHEEL_PLAT: "manylinux_2_28_x86_64"
         run: |
           export CCACHE_BASEDIR="${GITHUB_WORKSPACE}"
           # release/2.15 -> 2.15.0 (build.sh --torch= expects X.Y.Z)
