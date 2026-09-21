@@ -22,7 +22,7 @@ KNOWN_URLS = {
     },
     (2, 15): {
         "aarch64": "https://download-r2.pytorch.org/whl/nightly/cpu/torch-2.15.0.dev20260816%2Bcpu-cp310-cp310-manylinux_2_28_aarch64.whl",
-        "x86_64": "https://download-r2.pytorch.org/whl/nightly/cpu/torch/torch-2.15.0.dev20260813%2Bcpu-cp310-cp310-manylinux_2_28_x86_64.whl",
+        "x86_64": "https://download-r2.pytorch.org/whl/nightly/cpu/torch-2.15.0.dev20260813%2Bcpu-cp310-cp310-manylinux_2_28_x86_64.whl",
     },
 }
 

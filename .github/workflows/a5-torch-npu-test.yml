@@ -1,6 +1,6 @@
 # TorchNPU 每日自动化验证流水线
 # 流程: build → collect → test(10 分片) → report
-# 本次: 验证 x86_64 torch wheel 改用 download-r2 归档站后编译是否通过
+# 本次: x86_64 wheel 改用 download-r2 平铺路径(去掉 torch/ 子目录)
 name: A5 Torch NPU Daily Test
 
 on:
