@@ -7,6 +7,11 @@ on:
     branches: [ci-test]
     paths:
       - '.github/workflows/a5-torch-npu-test.yml'
+      - '.github/workflows/_a5_torch_npu_build.yml'
+      - '.github/workflows/_a5_torch_npu_collect.yml'
+      - '.github/workflows/_a5_torch_npu_test_job.yml'
+      - '.github/workflows/_a5_torch_npu_report.yml'
+      - '.github/scripts/a5-torch-npu-test/**'
   workflow_dispatch:
 
 permissions:
