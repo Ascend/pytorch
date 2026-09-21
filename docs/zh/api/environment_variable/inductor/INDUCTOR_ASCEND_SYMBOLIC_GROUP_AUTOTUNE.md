@@ -23,4 +23,6 @@ export INDUCTOR_ASCEND_SYMBOLIC_GROUP_AUTOTUNE=1
 
 ## 支持的型号
 
+<!-- npu="950" id1 -->
 <term>Ascend 950PR&950DT系列产品</term>
+<!-- end id1 -->

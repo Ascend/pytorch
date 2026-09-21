@@ -10,8 +10,12 @@
 
 默认值根据设备型号和CANN版本自动确定：
 
+<!-- npu="950" id1 -->
 - 仅支持aclnn的设备（如<term>Ascend 950DT</term>）默认配置为“2”，配置为其他值时将自动切换为“2”。
+<!-- end id1 -->
+<!-- npu="A3,910b" id2 -->
 - <term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>（CANN >= 8.3.RC1），默认值为“1”。
+<!-- end id2 -->
 - 其他设备，默认值为“0”。
 
 该环境变量由TorchNPU提供，PyTorch没有直接对应的环境变量。
@@ -29,9 +33,21 @@ export ACL_OP_INIT_MODE=1
 
 ## 支持的型号
 
+<!-- npu="910" id3 -->
 - <term>Atlas 训练系列产品</term>
+<!-- end id3 -->
+<!-- npu="910b" id4 -->
 - <term>Atlas A2 训练系列产品</term>
+<!-- end id4 -->
+<!-- npu="A3" id5 -->
 - <term>Atlas A3 训练系列产品</term>
+<!-- end id5 -->
+<!-- npu="910b" id8 -->
 - <term>Atlas 800I A2 推理产品</term>
+<!-- end id8 -->
+<!-- npu="310p" id6 -->
 - <term>Atlas 推理系列产品</term>
+<!-- end id6 -->
+<!-- npu="950" id7 -->
 - <term>Ascend 950DT</term>
+<!-- end id7 -->

@@ -45,4 +45,6 @@ export TORCHINDUCTOR_MAX_AUTOTUNE_GEMM_BACKENDS="TRITON"
 
 ## 支持的型号
 
+<!-- npu="950" id1 -->
 <term>Ascend 950DT</term>
+<!-- end id1 -->

@@ -10,7 +10,7 @@
 
 > [!NOTE]
 >
-> 此环境变量在`torch_npu_run`的`_create_parallel_handler`中通过`setdefault`写入，通常由`torch_npu_run`的`--enable_tiered_parallel_tcpstore`参数控制，详细说明可参考[torch_npu_run使用指导](../../../developer_notes/distributed/torch_npu_run.md#使用指导)。
+> 此环境变量在`torch_npu_run`的`_create_parallel_handler`中通过`setdefault`写入，通常由`torch_npu_run`的`--enable_tiered_parallel_tcpstore`参数控制，详细说明可参考[torch_npu_run使用指导](../../../developer_notes/distributed/startup_and_fault_tolerance/torch_npu_run.md)。
 
 该环境变量由TorchNPU提供，PyTorch没有直接对应的环境变量。
 
@@ -26,7 +26,15 @@ export ENABLE_TIERED_PARALLEL_TCPSTORE=true
 
 ## 支持的型号
 
+<!-- npu="910" id1 -->
 - <term>Atlas 训练系列产品</term>
+<!-- end id1 -->
+<!-- npu="910b" id2 -->
 - <term>Atlas A2 训练系列产品</term>
+<!-- end id2 -->
+<!-- npu="A3" id3 -->
 - <term>Atlas A3 训练系列产品</term>
+<!-- end id3 -->
+<!-- npu="950" id4 -->
 - <term>Ascend 950DT</term>
+<!-- end id4 -->
