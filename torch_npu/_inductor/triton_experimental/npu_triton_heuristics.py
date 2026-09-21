@@ -1570,23 +1570,80 @@ npu_dedup_downcast = ncfg.dedup_downcast
 _downcast_memo: dict = {}
 
 
-def _memoized_downcast(src, dst_dtype):
-    """Return ``src.to(dst_dtype)``, reusing a cached copy while ``src`` is alive
-    and unmutated. Falls back to a plain cast if memoization is disabled or the
-    tensor is not weak-referenceable."""
-    if not npu_dedup_downcast:
+def _reachable_span(t):
+    """Storage cells covered by ``t`` from its data_ptr: ``1 + max reachable
+    offset``; zero-size dims contribute nothing. Negative strides cannot
+    occur: torch.as_strided refuses them, so no Python-visible view (and
+    hence no launcher arg) carries them. Shared by the layout-preserving
+    cast and the writeback flat copy so the two cannot drift apart."""
+    span = 1
+    for stride, size in zip(t.stride(), t.shape):
+        if size:
+            span += stride * (size - 1)
+    return span
+
+
+def _to_dtype_preserving_layout(src, dst_dtype):
+    """Cast ``src`` to ``dst_dtype`` keeping the exact storage layout.
+
+    ``Tensor.to()`` routes tensors that are not non-overlapping-and-dense
+    (overlapping ``as_strided`` views, gapped slices, broadcasts) through
+    ``empty_like(preserve_format)``, which falls back to a *contiguous*
+    output -- silently changing the layout. The compiled Triton kernel
+    indexes this arg with the strides recorded at compile time (offsets
+    relative to data_ptr), so a layout change reads/writes the wrong
+    elements. For that class, cast the RAW STORAGE CELLS instead: a dense
+    1-D view over the reachable span from data_ptr, ``.to()`` (fast path
+    on dense input), then re-wrap with the original box strides. This
+    avoids both failure modes of the obvious alternatives -- logical
+    ``.to()`` collapsing the layout, and a strided ``copy_`` into an
+    overlapping/expanded destination tripping the eager internal-overlap
+    guard. Aliased cells hold one value each, so cell-for-cell casting is
+    exact. Gapped views cost a span-sized temp (larger than numel) and
+    re-cast on every launch when ``dedup_downcast`` is off (no memo)."""
+    # _debug_has_internal_overlap returns 0 ("No") exactly for the tensors
+    # whose strides are the contiguous strides of ``shape`` under some dim
+    # permutation (numel >= 2) -- the one class ``Tensor.to(preserve_format)``
+    # reproduces verbatim; 1 is expanded, 2 covers gapped/overlapping. Empty
+    # and single-element tensors also report 0 and ride this fast path. Same
+    # ATen predicate family as the writeback branch below, so input-side and
+    # writeback-side classification cannot drift apart.
+    if torch._debug_has_internal_overlap(src) == 0:
+        # preserve_format reproduces these strides verbatim
         return src.to(dst_dtype)
+    span = _reachable_span(src)
+    if span > 4 * src.numel():
+        # Gapped view: stride preservation forces a span-sized temp (larger
+        # than numel) and casts cells no view position reads. Inherent to
+        # the layout contract; surface it for memory debugging --
+        # contiguifying upstream removes the amplification.
+        log.debug(
+            "boundary downcast: gapped view numel=%d materializes span=%d "
+            "cells; contiguify upstream to avoid the amplification",
+            src.numel(),
+            span,
+        )
+    flat = torch.as_strided(src, (span,), (1,)).to(dst_dtype)
+    return torch.as_strided(flat, src.shape, src.stride())
+
+
+def _memoized_downcast(src, dst_dtype):
+    """Return the layout-preserving cast of ``src``, reusing a cached copy
+    while ``src`` is alive and unmutated. Falls back to a plain cast if
+    memoization is disabled or the tensor is not weak-referenceable."""
+    if not npu_dedup_downcast:
+        return _to_dtype_preserving_layout(src, dst_dtype)
     key = id(src)
     try:
         ver = src._version
     except AttributeError:
-        return src.to(dst_dtype)
+        return _to_dtype_preserving_layout(src, dst_dtype)
     entry = _downcast_memo.get(key)
     if entry is not None:
         wref, e_ver, e_dtype, e_tmp = entry
         if wref() is src and e_ver == ver and e_dtype == dst_dtype:
             return e_tmp
-    tmp = src.to(dst_dtype)
+    tmp = _to_dtype_preserving_layout(src, dst_dtype)
     try:
         wref = weakref.ref(src, lambda _r, _k=key: _downcast_memo.pop(_k, None))
     except TypeError:
@@ -1658,9 +1715,11 @@ def _wrap_launcher_with_downcast(launcher, downcast_args, mutated_arg_names):
                 continue
             if is_output:
                 tmp = (
-                    a.to(dst_dtype)
+                    _to_dtype_preserving_layout(a, dst_dtype)
                     if preserve_input
-                    else torch.empty_like(a, dtype=dst_dtype)
+                    else torch.empty_strided(
+                        a.shape, a.stride(), dtype=dst_dtype, device=a.device
+                    )
                 )
                 writebacks.append((a, tmp, src_dtype))
             else:
@@ -1673,7 +1732,26 @@ def _wrap_launcher_with_downcast(launcher, downcast_args, mutated_arg_names):
 
         ret = launcher(*new_args, stream=stream, **kwargs)
         for orig, tmp, src_dt in writebacks:
-            orig.copy_(tmp.to(src_dt))
+            # copy_ casts dtypes natively; casting tmp first (tmp.to(src_dt))
+            # would materialize a full src-dtype intermediate for layouts
+            # where the fast path isn't dense. A logical copy is required for
+            # gapped layouts (a flat copy would clobber unrelated storage
+            # cells). The flat cell-for-cell copy (exact and order-independent
+            # for aliased cells) is reserved for expanded destinations, the
+            # one class copy_ refuses. Select it by testing the SAME condition
+            # the ATen guard uses -- copy_ raises iff
+            # _debug_has_internal_overlap(t) == 1, while "too hard" (2) cases
+            # such as overlapping as_strided go through the logical copy --
+            # so an OOM or device error propagates instead of diverting into
+            # a flat copy that would scribble tmp's gap cells over
+            # neighbouring storage.
+            if torch._debug_has_internal_overlap(orig) == 1:
+                span = _reachable_span(orig)
+                torch.as_strided(orig, (span,), (1,)).copy_(
+                    torch.as_strided(tmp, (span,), (1,))
+                )
+            else:
+                orig.copy_(tmp)
         return ret
 
     for attr in (

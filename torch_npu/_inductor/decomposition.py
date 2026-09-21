@@ -927,6 +927,15 @@ def _override_native_dropout_decomp():
             return torch.zeros_like(grad_output)
         if tuple(mask.shape) == tuple(grad_output.shape):
             return grad_output * mask.to(dtype=grad_output.dtype) * scale
+        # The packed uint8 mask from _npu_dropout is bit-packed in the C-order
+        # memory traversal of the dropout input, while aclnnDropoutDoMask
+        # unpacks it in the grad's physical traversal order.  A grad whose
+        # physical layout differs (e.g. an FX-level permute view kept by
+        # inductor as a stride-only reinterpretation) silently misaligns the
+        # mask bits and corrupts the gradients.  Materialize the grad to
+        # contiguous so both sides traverse in the same order.  No-op when the
+        # grad is already contiguous.
+        grad_output = grad_output.contiguous()
         return torch.ops.npu.npu_dropout_backward(grad_output, mask, p)
 
     _ind_decomps[aten.native_dropout.default] = native_dropout

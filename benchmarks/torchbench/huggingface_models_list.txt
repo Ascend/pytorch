@@ -1,5 +1,6 @@
 AlbertForMaskedLM,8
 AlbertForQuestionAnswering,8
+AllenaiLongformerBase,8
 BartForCausalLM,8
 BartForConditionalGeneration,4
 BertForMaskedLM,32

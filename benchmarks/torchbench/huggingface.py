@@ -2,6 +2,7 @@
 # BSD 3-Clause License
 
 # Copyright (c) 2026, pytorch
+# Copyright (c) 2016-     Facebook, Inc            (Adam Paszke)
 # All rights reserved.
 
 # Redistribution and use in source and binary forms, with or without
@@ -129,6 +130,10 @@ except ModuleNotFoundError:
 
 for cls in imports:
     exec(f"from transformers import {cls}")
+
+# EXTRA_MODELS consumes these through normal name references, so bind them
+# statically as well (the exec loop above is invisible to flake8).
+from transformers import AutoConfig, AutoModelForMaskedLM  # noqa: E402
 
 
 # These models contain the models present in huggingface_models_list. It is a
@@ -457,7 +462,16 @@ def rand_int_tensor(device, low, high, shape):
     )
 
 
-EXTRA_MODELS = {}
+# Models that don't have a direct class in transformers and need an AutoModel
+# factory + a config loaded from the HuggingFace Hub.  The config is wrapped in
+# a lambda so nothing touches the network (or the local HF cache) at import
+# time; the mirror endpoint is honored through HF_ENDPOINT when set.
+EXTRA_MODELS = {
+    "AllenaiLongformerBase": (
+        lambda: AutoConfig.from_pretrained("allenai/longformer-base-4096"),
+        AutoModelForMaskedLM,
+    ),
+}
 
 NPU_REQUIRE_LEARNING_RATE = {
     "OPTForCausalLM",
@@ -510,14 +524,21 @@ class HuggingfaceRunner(BenchmarkRunner):
                 config.pad_token_id = 0
 
         else:
-            config, model_cls = EXTRA_MODELS[model_name]
+            config_or_fn, model_cls = EXTRA_MODELS[model_name]
+            # Support lazy config (callable) to avoid network access at import
+            config = config_or_fn() if callable(config_or_fn) else config_or_fn
 
         return model_cls, config
 
     @download_retry_decorator
     def _download_model(self, model_name):
         model_cls, config = self._get_model_cls_and_config(model_name)
-        model = model_cls(config)
+        # AutoModel factory classes must be instantiated through from_config()
+        # instead of their constructor.
+        if hasattr(model_cls, "from_config"):
+            model = model_cls.from_config(config)
+        else:
+            model = model_cls(config)
         return model
 
     def load_model(
@@ -573,7 +594,7 @@ class HuggingfaceRunner(BenchmarkRunner):
         return device, model_name, model, example_inputs, batch_size
 
     def iter_model_names(self, args):
-        model_names = list(BATCH_SIZE_KNOWN_MODELS.keys()) + list(EXTRA_MODELS.keys())
+        model_names = list(BATCH_SIZE_KNOWN_MODELS.keys())
         model_names = set(model_names)
         model_names = sorted(model_names)
 
