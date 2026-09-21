@@ -13,58 +13,31 @@ permissions:
   id-token: write
   contents: read
 
-env:
-  PYTORCH_BRANCH: "release/2.15"
-  PYTHON_VERSION: "3.10"
-  # ── 运行参数 ──
-  CASE_TIMEOUT: "1200"
-  REG_WORKERS: "8"
-  COLLECT_PARALLEL: "16"
-  MAX_JOBS: "128"
-  # ── 分片配置 ──
-  DISTRIBUTED_MACHINES: "1"
-  DISTRIBUTED_2CARD_SHARDS: "2"
-  REGULAR_NPU_MACHINES: "7"
-  # ── 镜像 ──
-  DOCKER_BASE_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704"
-  # ── 容器选项 ──
-  CONTAINER_OPTS_BUILD: "--user root --security-opt label=disable -v /data/torchnpu-ccache:/ccache --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc"
-  CONTAINER_OPTS_NPU: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
-  CONTAINER_OPTS_COLLECT: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
-  CONTAINER_OPTS_LIGHT: "--user root"
-  # ── 调度标签 ──
-  NPU_LABEL_BUILD: "linux-amd64-a5-2"
-  NPU_LABEL_COLLECT: "linux-amd64-a5-2"
-  NPU_LABEL_DIST_2CARD: "linux-amd64-a5-2"
-  NPU_LABEL_DIST: "linux-amd64-a5-2"
-  NPU_LABEL_REG: "linux-amd64-a5-2"
-  NPU_LABEL_REPORT: "linux-amd64-a5-2"
-
 jobs:
   build:
     uses: ./.github/workflows/_a5_torch_npu_build.yml
     secrets: inherit
     with:
-      PYTHON_VERSION: ${{ env.PYTHON_VERSION }}
-      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
-      MAX_JOBS: ${{ env.MAX_JOBS }}
-      DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
-      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_BUILD }}
-      RUNNER_LABEL: ${{ env.NPU_LABEL_BUILD }}
+      PYTHON_VERSION: "3.10"
+      PYTORCH_BRANCH: "release/2.15"
+      MAX_JOBS: "128"
+      DOCKER_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704"
+      CONTAINER_OPTIONS: "--user root --security-opt label=disable -v /data/torchnpu-ccache:/ccache --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc"
+      RUNNER_LABEL: "linux-amd64-a5-2"
 
   collect:
     needs: build
     uses: ./.github/workflows/_a5_torch_npu_collect.yml
     secrets: inherit
     with:
-      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
-      DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
-      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_COLLECT }}
-      DISTRIBUTED_MACHINES: ${{ env.DISTRIBUTED_MACHINES }}
-      DISTRIBUTED_2CARD_SHARDS: ${{ env.DISTRIBUTED_2CARD_SHARDS }}
-      REGULAR_NPU_MACHINES: ${{ env.REGULAR_NPU_MACHINES }}
-      COLLECT_PARALLEL: ${{ env.COLLECT_PARALLEL }}
-      RUNNER_LABEL: ${{ env.NPU_LABEL_COLLECT }}
+      PYTORCH_BRANCH: "release/2.15"
+      DOCKER_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704"
+      CONTAINER_OPTIONS: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
+      DISTRIBUTED_MACHINES: "1"
+      DISTRIBUTED_2CARD_SHARDS: "2"
+      REGULAR_NPU_MACHINES: "7"
+      COLLECT_PARALLEL: "16"
+      RUNNER_LABEL: "linux-amd64-a5-2"
 
   test-dist-2card-1:
     needs: collect
@@ -73,12 +46,12 @@ jobs:
     with:
       SHARD_FILE: distributed_2card_cases_shard_1.json
       REPORT_NAME: test-reports-distributed_2card
-      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+      CASE_TIMEOUT: "1200"
       CARDS_PER_TEST: "2"
-      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
-      DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
-      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
-      NPU_LABEL: ${{ env.NPU_LABEL_DIST_2CARD }}
+      PYTORCH_BRANCH: "release/2.15"
+      DOCKER_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704"
+      CONTAINER_OPTIONS: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
+      NPU_LABEL: "linux-amd64-a5-2"
 
   test-dist-2card-2:
     needs: collect
@@ -87,12 +60,12 @@ jobs:
     with:
       SHARD_FILE: distributed_2card_cases_shard_2.json
       REPORT_NAME: test-reports-distributed_2card-2
-      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+      CASE_TIMEOUT: "1200"
       CARDS_PER_TEST: "2"
-      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
-      DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
-      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
-      NPU_LABEL: ${{ env.NPU_LABEL_DIST_2CARD }}
+      PYTORCH_BRANCH: "release/2.15"
+      DOCKER_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704"
+      CONTAINER_OPTIONS: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
+      NPU_LABEL: "linux-amd64-a5-2"
 
   test-dist:
     needs: collect
@@ -101,12 +74,12 @@ jobs:
     with:
       SHARD_FILE: distributed_cases_shard_1.json
       REPORT_NAME: test-reports-distributed
-      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+      CASE_TIMEOUT: "1200"
       CARDS_PER_TEST: "8"
-      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
-      DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
-      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
-      NPU_LABEL: ${{ env.NPU_LABEL_DIST }}
+      PYTORCH_BRANCH: "release/2.15"
+      DOCKER_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704"
+      CONTAINER_OPTIONS: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
+      NPU_LABEL: "linux-amd64-a5-2"
 
   test-reg-npu-1:
     needs: collect
@@ -115,12 +88,12 @@ jobs:
     with:
       SHARD_FILE: regular_npu_cases_shard_1.json
       REPORT_NAME: test-reports-reg-npu-1
-      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
-      MAX_WORKERS: ${{ env.REG_WORKERS }}
-      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
-      DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
-      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
-      NPU_LABEL: ${{ env.NPU_LABEL_REG }}
+      CASE_TIMEOUT: "1200"
+      MAX_WORKERS: "8"
+      PYTORCH_BRANCH: "release/2.15"
+      DOCKER_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704"
+      CONTAINER_OPTIONS: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
+      NPU_LABEL: "linux-amd64-a5-2"
 
   test-reg-npu-2:
     needs: collect
@@ -129,12 +102,12 @@ jobs:
     with:
       SHARD_FILE: regular_npu_cases_shard_2.json
       REPORT_NAME: test-reports-reg-npu-2
-      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
-      MAX_WORKERS: ${{ env.REG_WORKERS }}
-      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
-      DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
-      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
-      NPU_LABEL: ${{ env.NPU_LABEL_REG }}
+      CASE_TIMEOUT: "1200"
+      MAX_WORKERS: "8"
+      PYTORCH_BRANCH: "release/2.15"
+      DOCKER_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704"
+      CONTAINER_OPTIONS: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
+      NPU_LABEL: "linux-amd64-a5-2"
 
   test-reg-npu-3:
     needs: collect
@@ -143,12 +116,12 @@ jobs:
     with:
       SHARD_FILE: regular_npu_cases_shard_3.json
       REPORT_NAME: test-reports-reg-npu-3
-      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
-      MAX_WORKERS: ${{ env.REG_WORKERS }}
-      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
-      DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
-      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
-      NPU_LABEL: ${{ env.NPU_LABEL_REG }}
+      CASE_TIMEOUT: "1200"
+      MAX_WORKERS: "8"
+      PYTORCH_BRANCH: "release/2.15"
+      DOCKER_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704"
+      CONTAINER_OPTIONS: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
+      NPU_LABEL: "linux-amd64-a5-2"
 
   test-reg-npu-4:
     needs: collect
@@ -157,12 +130,12 @@ jobs:
     with:
       SHARD_FILE: regular_npu_cases_shard_4.json
       REPORT_NAME: test-reports-reg-npu-4
-      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
-      MAX_WORKERS: ${{ env.REG_WORKERS }}
-      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
-      DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
-      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
-      NPU_LABEL: ${{ env.NPU_LABEL_REG }}
+      CASE_TIMEOUT: "1200"
+      MAX_WORKERS: "8"
+      PYTORCH_BRANCH: "release/2.15"
+      DOCKER_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704"
+      CONTAINER_OPTIONS: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
+      NPU_LABEL: "linux-amd64-a5-2"
 
   test-reg-npu-5:
     needs: collect
@@ -171,12 +144,12 @@ jobs:
     with:
       SHARD_FILE: regular_npu_cases_shard_5.json
       REPORT_NAME: test-reports-reg-npu-5
-      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
-      MAX_WORKERS: ${{ env.REG_WORKERS }}
-      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
-      DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
-      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
-      NPU_LABEL: ${{ env.NPU_LABEL_REG }}
+      CASE_TIMEOUT: "1200"
+      MAX_WORKERS: "8"
+      PYTORCH_BRANCH: "release/2.15"
+      DOCKER_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704"
+      CONTAINER_OPTIONS: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
+      NPU_LABEL: "linux-amd64-a5-2"
 
   test-reg-npu-6:
     needs: collect
@@ -185,12 +158,12 @@ jobs:
     with:
       SHARD_FILE: regular_npu_cases_shard_6.json
       REPORT_NAME: test-reports-reg-npu-6
-      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
-      MAX_WORKERS: ${{ env.REG_WORKERS }}
-      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
-      DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
-      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
-      NPU_LABEL: ${{ env.NPU_LABEL_REG }}
+      CASE_TIMEOUT: "1200"
+      MAX_WORKERS: "8"
+      PYTORCH_BRANCH: "release/2.15"
+      DOCKER_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704"
+      CONTAINER_OPTIONS: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
+      NPU_LABEL: "linux-amd64-a5-2"
 
   test-reg-npu-7:
     needs: collect
@@ -199,12 +172,12 @@ jobs:
     with:
       SHARD_FILE: regular_npu_cases_shard_7.json
       REPORT_NAME: test-reports-reg-npu-7
-      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
-      MAX_WORKERS: ${{ env.REG_WORKERS }}
-      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
-      DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
-      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
-      NPU_LABEL: ${{ env.NPU_LABEL_REG }}
+      CASE_TIMEOUT: "1200"
+      MAX_WORKERS: "8"
+      PYTORCH_BRANCH: "release/2.15"
+      DOCKER_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704"
+      CONTAINER_OPTIONS: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
+      NPU_LABEL: "linux-amd64-a5-2"
 
   report:
     needs:
@@ -222,7 +195,7 @@ jobs:
     uses: ./.github/workflows/_a5_torch_npu_report.yml
     secrets: inherit
     with:
-      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
-      DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
-      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_LIGHT }}
-      RUNNER_LABEL: ${{ env.NPU_LABEL_REPORT }}
+      PYTORCH_BRANCH: "release/2.15"
+      DOCKER_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704"
+      CONTAINER_OPTIONS: "--user root"
+      RUNNER_LABEL: "linux-amd64-a5-2"
