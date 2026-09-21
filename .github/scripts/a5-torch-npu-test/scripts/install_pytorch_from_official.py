@@ -14,9 +14,16 @@ from datetime import datetime
 
 
 KNOWN_URLS = {
-    (2, 13): "https://download-r2.pytorch.org/whl/cpu/torch-2.13.0%2Bcpu-cp310-cp310-manylinux_2_28_aarch64.whl",
-    (2, 14): "https://download-r2.pytorch.org/whl/nightly/cpu/torch-2.14.0.dev20260811%2Bcpu-cp310-cp310-manylinux_2_28_aarch64.whl",
-    (2, 15): "https://download-r2.pytorch.org/whl/nightly/cpu/torch-2.15.0.dev20260816%2Bcpu-cp310-cp310-manylinux_2_28_aarch64.whl",
+    (2, 13): {
+        "aarch64": "https://download-r2.pytorch.org/whl/cpu/torch-2.13.0%2Bcpu-cp310-cp310-manylinux_2_28_aarch64.whl",
+    },
+    (2, 14): {
+        "aarch64": "https://download-r2.pytorch.org/whl/nightly/cpu/torch-2.14.0.dev20260811%2Bcpu-cp310-cp310-manylinux_2_28_aarch64.whl",
+    },
+    (2, 15): {
+        "aarch64": "https://download-r2.pytorch.org/whl/nightly/cpu/torch-2.15.0.dev20260816%2Bcpu-cp310-cp310-manylinux_2_28_aarch64.whl",
+        "x86_64": "https://download.pytorch.org/whl/nightly/torch/torch-2.15.0.dev20260813%2Bcpu-cp310-cp310-manylinux_2_28_x86_64.whl",
+    },
 }
 
 
@@ -48,9 +55,9 @@ def get_target_version(branch):
     return None
 
 
-def get_known_url(target_version):
+def get_known_url(target_version, arch='aarch64'):
     if target_version and target_version in KNOWN_URLS:
-        return KNOWN_URLS[target_version]
+        return KNOWN_URLS[target_version].get(arch)
     return None
 
 
@@ -235,7 +242,7 @@ def main():
     ver_str = f"{target_version[0]}.{target_version[1]}" if target_version else "latest"
     print(f"Installing PyTorch {ver_str} (arch={args.arch}, python={args.python_tag})")
 
-    known_url = get_known_url(target_version)
+    known_url = get_known_url(target_version, args.arch)
     if known_url:
         print(f"Trying hardcoded URL for version {ver_str}...")
         filename = get_filename_from_url(known_url)

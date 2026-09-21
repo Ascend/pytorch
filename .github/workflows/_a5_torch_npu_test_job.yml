@@ -83,7 +83,7 @@ jobs:
       - name: Install latest PyTorch from official website
         run: |
           python3.10 .github/scripts/a5-torch-npu-test/scripts/install_pytorch_from_official.py \
-            --arch aarch64 \
+            --arch x86_64 \
             --python-tag cp310 \
             --variant cpu \
             --python-exe python3.10 \
