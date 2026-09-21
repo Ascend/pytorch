@@ -1,0 +1,117 @@
+name: nightly_collect
+
+on:
+  workflow_call:
+    inputs:
+      PYTORCH_BRANCH:
+        description: PyTorch source branch
+        required: false
+        type: string
+      TORCH_NPU_WHEEL_ARTIFACT_DIR:
+        description: torch-npu wheel artifact directory
+        required: false
+        type: string
+      CONTAINER_OPTIONS:
+        description: Container options
+        required: false
+        type: string
+      DISTRIBUTED_MACHINES:
+        description: Number of distributed machines
+        required: false
+        type: string
+      DISTRIBUTED_2CARD_SHARDS:
+        description: Number of 2card distributed shards
+        required: false
+        type: string
+        default: "1"
+      REGULAR_NPU_MACHINES:
+        description: Number of regular NPU machines
+        required: false
+        type: string
+      COLLECT_PARALLEL:
+        description: Collect parallel
+        required: false
+        type: string
+      # 调度标签 (变量化): 收集任务默认调度到编译机
+      RUNNER_LABEL:
+        required: false
+        type: string
+        default: "linux-amd64-a5-2"
+
+jobs:
+  collect:
+    name: collect
+    select: selected_by_default
+    runs-on: [ self-hosted, "${{ inputs.RUNNER_LABEL }}" ]
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704
+      options: ${{ inputs.CONTAINER_OPTIONS }}
+
+    steps:
+      - name: checkout
+        uses: checkout
+
+      - name: Install latest PyTorch from official website
+        run: |
+          python3.10 .github/scripts/a5-torch-npu-test/scripts/install_pytorch_from_official.py \
+            --arch aarch64 \
+            --python-tag cp310 \
+            --variant cpu \
+            --python-exe python3.10 \
+            --branch "${{ inputs.PYTORCH_BRANCH }}"
+
+      - name: Install pytest-timeout
+        run: python3.10 -m pip install --trusted-host mirrors.huaweicloud.com pytest-timeout
+
+      - name: Download torch-npu-wheel
+        uses: download-artifact
+        with:
+          name: torch-npu-wheel
+          path: ./
+
+      - name: Setup NPU test environment
+        run: |
+          bash .github/scripts/a5-torch-npu-test/scripts/setup_npu_test_env.sh \
+            --wheel-artifact-dir ./
+
+      - name: Collect and shard test cases
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+          mkdir -p cases-shards collection_errors
+          python3.10 .github/scripts/a5-torch-npu-test/scripts/collect_all_cases.py \
+            --test-dir test \
+            --case-paths-config .github/scripts/a5-torch-npu-test/conf/case_paths_ci.yml \
+            --distributed-shards "${{ inputs.DISTRIBUTED_MACHINES }}" \
+            --distributed-2card-shards "${{ inputs.DISTRIBUTED_2CARD_SHARDS }}" \
+            --regular-npu-shards "${{ inputs.REGULAR_NPU_MACHINES }}" \
+            --output-dir cases-shards \
+            --error-log-dir collection_errors \
+            --parallel "${{ inputs.COLLECT_PARALLEL }}" \
+            --disabled-testcases .github/scripts/a5-torch-npu-test/conf/disabled_testcases.json \
+            --disabled-methods .github/scripts/a5-torch-npu-test/conf/disabled_test_methods.json
+
+      - name: Check shard availability
+        id: check_shards
+        run: |
+          echo "has_2card=$(test -f cases-shards/distributed_2card_cases_shard_1.json && echo true || echo false)" >> $ATOMGIT_OUTPUT
+          echo "has_dist=$(test -f cases-shards/distributed_cases_shard_1.json && echo true || echo false)" >> $ATOMGIT_OUTPUT
+          echo "has_reg_npu=$(test -f cases-shards/regular_npu_cases_shard_1.json && echo true || echo false)" >> $ATOMGIT_OUTPUT
+          echo "=== Shard availability ==="
+          cat $ATOMGIT_OUTPUT
+
+      - name: Upload cases-shards as artifact
+        uses: upload-artifact
+        with:
+          name: cases-shards
+          path: cases-shards/
+          retention-days: 60
+          overwrite: true
+
+      - name: Upload collection errors as artifact
+        uses: upload-artifact
+        with:
+          name: collection-errors
+          path: collection_errors/
+          retention-days: 60
+          overwrite: true

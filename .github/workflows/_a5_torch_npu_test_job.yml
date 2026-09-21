@@ -1,0 +1,129 @@
+name: nightly_test_job
+
+on:
+  workflow_call:
+    inputs:
+      # 分片文件名 (位于 cases-shards/ 下), 如 regular_npu_cases_shard_1.json
+      SHARD_FILE:
+        required: true
+        type: string
+      # 报告目录名, 同时作为上传 artifact 名, 如 test-reports-reg-npu-1
+      REPORT_NAME:
+        required: true
+        type: string
+      # 单用例超时 (秒)
+      CASE_TIMEOUT:
+        required: true
+        type: string
+      # 每个用例占用的卡数 (分布式用例): 2/4/8; 常规用例留空
+      CARDS_PER_TEST:
+        required: false
+        type: string
+        default: ""
+      # 常规用例 pytest-xdist 并发 worker 数; 分布式用例留空
+      MAX_WORKERS:
+        required: false
+        type: string
+        default: ""
+      # npu: NPU 环境 (setup_npu_test_env.sh + source CANN); cpu: 仅安装 wheel
+      SETUP_MODE:
+        required: false
+        type: string
+        default: "npu"
+      PYTORCH_BRANCH:
+        required: false
+        type: string
+      CONTAINER_OPTIONS:
+        required: false
+        type: string
+      # 调度标签 (变量化): 测试任务默认调度到 NPU 机
+      NPU_LABEL:
+        required: false
+        type: string
+        default: "linux-amd64-a5-2"
+
+jobs:
+  test:
+    name: test
+    select: selected_by_default
+    runs-on: [ self-hosted, "${{ inputs.NPU_LABEL }}" ]
+    timeout-minutes: 300
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704
+      options: ${{ inputs.CONTAINER_OPTIONS }}
+    steps:
+      - name: checkout
+        uses: checkout
+
+      - name: Download cases-shards
+        uses: download-artifact
+        with:
+          name: cases-shards
+          path: cases-shards
+
+      - name: Check shard exists
+        run: |
+          if [ ! -f "cases-shards/${{ inputs.SHARD_FILE }}" ]; then
+            echo "Shard ${{ inputs.SHARD_FILE }} does not exist, skipping"
+            exit 0
+          fi
+          echo "Shard ${{ inputs.SHARD_FILE }} exists, will execute tests"
+
+      - name: Download torch-npu-wheel
+        uses: download-artifact
+        with:
+          name: torch-npu-wheel
+          path: ./
+
+      - name: Install latest PyTorch from official website
+        run: |
+          python3.10 .github/scripts/a5-torch-npu-test/scripts/install_pytorch_from_official.py \
+            --arch aarch64 \
+            --python-tag cp310 \
+            --variant cpu \
+            --python-exe python3.10 \
+            --branch "${{ inputs.PYTORCH_BRANCH }}"
+
+      - name: Install pytest-timeout
+        run: python3.10 -m pip install --trusted-host mirrors.huaweicloud.com pytest-timeout
+
+      - name: Setup test environment
+        run: |
+          if [ "${{ inputs.SETUP_MODE }}" = "cpu" ]; then
+            python3.10 -m pip install ./*.whl
+          else
+            bash .github/scripts/a5-torch-npu-test/scripts/setup_npu_test_env.sh --wheel-artifact-dir ./
+          fi
+
+      - name: Execute tests
+        run: |
+          if [ "${{ inputs.SETUP_MODE }}" != "cpu" ]; then
+            source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+            source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+          fi
+
+          EXTRA_ARGS=""
+          if [ -n "${{ inputs.MAX_WORKERS }}" ]; then
+            EXTRA_ARGS="${EXTRA_ARGS} --max-workers ${{ inputs.MAX_WORKERS }}"
+          fi
+          if [ -n "${{ inputs.CARDS_PER_TEST }}" ]; then
+            EXTRA_ARGS="${EXTRA_ARGS} --cards-per-test ${{ inputs.CARDS_PER_TEST }}"
+          fi
+
+          python3.10 .github/scripts/a5-torch-npu-test/scripts/run_npu_test_shard.py \
+            --cases-json "cases-shards/${{ inputs.SHARD_FILE }}" \
+            --test-dir test \
+            --disabled-testcases .github/scripts/a5-torch-npu-test/conf/disabled_testcases.json \
+            --disabled-methods .github/scripts/a5-torch-npu-test/conf/disabled_test_methods.json \
+            --report-dir "${{ inputs.REPORT_NAME }}" \
+            --timeout "${{ inputs.CASE_TIMEOUT }}" \
+            ${EXTRA_ARGS} \
+            --verbose
+
+      - name: Upload test reports as artifact
+        uses: upload-artifact
+        with:
+          name: ${{ inputs.REPORT_NAME }}
+          path: ${{ inputs.REPORT_NAME }}/
+          retention-days: 60
+          overwrite: true

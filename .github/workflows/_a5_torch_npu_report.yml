@@ -1,0 +1,151 @@
+name: nightly_report
+
+on:
+  workflow_call:
+    inputs:
+      PYTORCH_BRANCH:
+        description: PyTorch source branch
+        required: false
+        type: string
+      CONTAINER_OPTIONS:
+        description: Container options
+        required: false
+        type: string
+      # 调度标签 (变量�?: 报告任务默认调度到编译机
+      RUNNER_LABEL:
+        required: false
+        type: string
+        default: "linux-amd64-a5-2"
+
+jobs:
+  report:
+    name: report
+    select: always
+    runs-on: [ self-hosted, "${{ inputs.RUNNER_LABEL }}" ]
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704
+      options: ${{ inputs.CONTAINER_OPTIONS }}
+    steps:
+      - name: checkout
+        uses: checkout
+
+      - name: Prepare placeholder directories
+        run: |
+          for d in cases-shards \
+                   test-reports-distributed_2card \
+                   test-reports-distributed_2card-2 \
+                   test-reports-distributed \
+                   test-reports-reg-npu-1 \
+                   test-reports-reg-npu-2 \
+                   test-reports-reg-npu-3 \
+                   test-reports-reg-npu-4 \
+                   test-reports-reg-npu-5 \
+                   test-reports-reg-npu-6 \
+                   test-reports-reg-npu-7; do
+            mkdir -p "$d"
+          done
+
+      - name: Download cases-shards
+        uses: download-artifact
+        with:
+          name: cases-shards
+          path: cases-shards
+
+      - name: Download test-reports-distributed_2card
+        uses: download-artifact
+        continue-on-error: true
+        with:
+          name: test-reports-distributed_2card
+          path: test-reports-distributed_2card
+
+      - name: Download test-reports-distributed_2card-2
+        uses: download-artifact
+        continue-on-error: true
+        with:
+          name: test-reports-distributed_2card-2
+          path: test-reports-distributed_2card-2
+
+      - name: Download test-reports-distributed
+        uses: download-artifact
+        continue-on-error: true
+        with:
+          name: test-reports-distributed
+          path: test-reports-distributed
+
+      - name: Download test-reports-reg-npu-1
+        uses: download-artifact
+        continue-on-error: true
+        with:
+          name: test-reports-reg-npu-1
+          path: test-reports-reg-npu-1
+
+      - name: Download test-reports-reg-npu-2
+        uses: download-artifact
+        continue-on-error: true
+        with:
+          name: test-reports-reg-npu-2
+          path: test-reports-reg-npu-2
+
+      - name: Download test-reports-reg-npu-3
+        uses: download-artifact
+        continue-on-error: true
+        with:
+          name: test-reports-reg-npu-3
+          path: test-reports-reg-npu-3
+
+      - name: Download test-reports-reg-npu-4
+        uses: download-artifact
+        continue-on-error: true
+        with:
+          name: test-reports-reg-npu-4
+          path: test-reports-reg-npu-4
+
+      - name: Download test-reports-reg-npu-5
+        uses: download-artifact
+        continue-on-error: true
+        with:
+          name: test-reports-reg-npu-5
+          path: test-reports-reg-npu-5
+
+      - name: Download test-reports-reg-npu-6
+        uses: download-artifact
+        continue-on-error: true
+        with:
+          name: test-reports-reg-npu-6
+          path: test-reports-reg-npu-6
+
+      - name: Download test-reports-reg-npu-7
+        uses: download-artifact
+        continue-on-error: true
+        with:
+          name: test-reports-reg-npu-7
+          path: test-reports-reg-npu-7
+
+      - name: Generate Markdown and HTML reports
+        run: |
+          python3.10 .github/scripts/a5-torch-npu-test/scripts/nightly_generate_npu_full_test_report.py \
+            --reports-root . \
+            --output-markdown npu-full-test-summary.md \
+            --output-json npu-full-test-summary.json \
+            --output-html npu-full-test-report.html \
+            --pytorch-version "${{ inputs.PYTORCH_BRANCH }}" \
+            --torch-npu-whl "${{ inputs.PYTORCH_BRANCH }}" \
+            --shard-matrix-json '["dist-2card-1","dist-2card-2","dist-1","reg-npu-1","reg-npu-2","reg-npu-3","reg-npu-4","reg-npu-5","reg-npu-6","reg-npu-7"]' \
+            --cases-summary cases-shards/cases_collection_summary.json \
+            --cases-by-file-dir cases-shards \
+            --docker-image "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704" \
+            --runner "self-hosted"
+
+          echo "=== Test Report Summary ==="
+          cat npu-full-test-summary.md
+
+      - name: Upload reports as artifact
+        uses: upload-artifact
+        with:
+          name: npu-full-test-report
+          path: |
+            npu-full-test-summary.md
+            npu-full-test-summary.json
+            npu-full-test-report.html
+          retention-days: 60
+          overwrite: true
