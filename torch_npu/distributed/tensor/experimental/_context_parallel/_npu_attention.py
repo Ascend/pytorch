@@ -1,9 +1,13 @@
-import os
 import logging
 
 import torch
 import torch_npu
-from torch.distributed.tensor import DTensor, Shard
+from torch.distributed.device_mesh import DeviceMesh
+from torch.distributed.tensor import DTensor, Shard, Replicate
+from torch_npu.distributed.tensor._attention import (
+    npu_fusion_attention_v3_strategy as _layer1_fwd_strategy,
+    npu_fusion_attention_grad_v3_strategy as _layer1_bwd_strategy,
+)
 
 from torch.distributed.tensor.experimental._context_parallel._attention import (
     _cp_options,
@@ -51,6 +55,18 @@ def _get(args, ix: dict, name: str, default=None):
     i = ix[name]
     return args[i] if len(args) > i else default
 
+def _get_kw(args, kwargs, ix: dict, name: str, default=None):
+    """Get value from strategy args (by index) or kwargs (by name).
+
+    Strategy functions receive *args, **kwargs from register_op_strategy.
+    Positional params are in args (indexed by _FWD_IX/_BWD_IX), keyword-only
+    params are in kwargs. This helper checks both.
+    """
+    i = ix[name]
+    if len(args) > i:
+        return args[i]
+    return kwargs.get(name, default)
+
 def _validate_bnsd_layout(
     query: torch.Tensor,
     key: torch.Tensor,
@@ -89,6 +105,15 @@ def _extract_passthrough(args, ix: dict) -> dict:
             pt[name] = v
     return pt
 
+def _extract_passthrough_kwargs(kwargs: dict) -> dict:
+    """Extract passthrough params from kwargs (backward op has keyword-only args)."""
+    pt = {}
+    for name in _PASSTHROUGH_NAMES:
+        v = kwargs.get(name)
+        if v is not None:
+            pt[name] = v
+    return pt
+
 _UNSUPPORTED_CP_PASSTHROUGH_NAMES = (
     "pse",
     "padding_mask",
@@ -104,6 +129,39 @@ def _is_present(value) -> bool:
     if isinstance(value, (list, tuple)) and len(value) == 0:
         return False
     return True
+
+def _validate_cp_passthrough_args_kwargs(kwargs: dict, *, op_name: str) -> None:
+    """Reject per-sequence/per-logit inputs (kwargs variant for backward op)."""
+    unsupported = [name for name in _UNSUPPORTED_CP_PASSTHROUGH_NAMES if _is_present(kwargs.get(name))]
+    if unsupported:
+        raise NotImplementedError(
+            f"{op_name} in NPU context parallel does not support "
+            f"{', '.join(unsupported)} yet. These inputs are tied to global "
+            "sequence positions or attention logits, so they must be sliced and/or "
+            "rotated together with q/k/v for each ring step."
+        )
+    softmax_layout = kwargs.get("softmax_layout", "")
+    if softmax_layout not in (None, ""):
+        raise NotImplementedError(
+            f"{op_name} in NPU context parallel currently supports the default "
+            f"BNSD softmax layout only, got softmax_layout={softmax_layout!r}."
+        )
+
+def _validate_cp_sparse_args_kwargs(kwargs: dict, *, op_name: str) -> None:
+    """Keep mask semantics limited (kwargs variant for backward op)."""
+    sparse_mode = kwargs.get("sparse_mode", 0)
+    atten_mask = kwargs.get("atten_mask")
+    if sparse_mode not in (0, 1, 2, 3):
+        raise NotImplementedError(
+            f"{op_name} in NPU context parallel currently supports only full "
+            f"attention and causal sparse modes 1/2/3, got sparse_mode={sparse_mode!r}."
+        )
+    if _is_present(atten_mask) and sparse_mode not in (1, 2, 3):
+        raise NotImplementedError(
+            f"{op_name} in NPU context parallel does not support arbitrary "
+            f"atten_mask yet. Pass causal sparse_mode 1/2/3 for causal attention; "
+            f"got sparse_mode={sparse_mode!r}."
+        )
 
 def _validate_cp_passthrough_args(args, ix: dict, *, op_name: str) -> None:
     """Reject per-sequence/per-logit inputs that are not ring-step transformed yet."""
@@ -143,29 +201,58 @@ def _validate_cp_sparse_args(args, ix: dict, *, op_name: str) -> None:
             f"got sparse_mode={sparse_mode!r}."
         )
 
-# ============================================================================
-# Global stack: forward pushes step_caches, backward pops them.
-#
-# C++ autograd engine runs backward on different threads (verified via tid mismatch),
-# so threading.local() cannot be used. A module-level list works because:
-# - Python GIL guarantees thread safety
-# - LIFO order matches autograd reverse order (last forward → first backward)
-# - Each rank is an independent process
-# ============================================================================
+def _get_cp_group(mesh: DeviceMesh, args_schema: tuple, tensor_indices: list[int], seq_dim: int):
+    """Get the ProcessGroup for the CP ring, compatible with multi-dim DeviceMesh.
 
-_step_cache_stack: list = []
+    Scans the given arg spec positions for a Shard(seq_dim) placement to
+    identify the CP mesh dimension, then returns the corresponding
+    ProcessGroup via mesh.get_group(mesh_dim).
+
+    For 1-D mesh (the common CP case), this is equivalent to mesh.get_group().
+    For multi-dim mesh (e.g. TP x CP), it finds the mesh dim that carries the
+    sequence shard and returns that dim's group.
+
+    Falls back to mesh.get_group() (no args) for 1-D mesh, matching the
+    native PyTorch _sdpa_handler behavior.
+    """
+    if mesh.ndim == 1:
+        return mesh.get_group()
+
+    # For multi-dim mesh, find which mesh dim carries Shard(seq_dim).
+    # args_schema comes from op_info.schema.args_schema, which contains
+    # DTensorSpec objects (with .placements) for each DTensor arg.
+    from torch.distributed.tensor._dtensor_spec import DTensorSpec
+
+    for idx in tensor_indices:
+        if idx < len(args_schema):
+            spec = args_schema[idx]
+            if isinstance(spec, DTensorSpec):
+                for mesh_dim, placement in enumerate(spec.placements):
+                    if placement.is_shard() and placement.dim == seq_dim:
+                        return mesh.get_group(mesh_dim)
+
+    # No Shard(seq_dim) found -- fall back to default (will raise if ndim > 1,
+    # matching native behavior).
+    return mesh.get_group()
+
+
+# NOTE: The former global stack _step_cache_stack is removed. Softmax stats now
+# flow through op autograd (forward returns merged softmax_max/sum in the v3
+# 6-tuple; native autograd saves them and passes to the backward handler via
+# kwargs). This mirrors native torch CP (merge + chunk + single philox), is
+# compile/PP friendly, and needs no module-level state.
 
 # ============================================================================
-# Format Conversion: softmax_max/sum → logsumexp
+# Format Conversion: softmax_max/sum -> logsumexp
 # ============================================================================
 
 def _convert_softmax_to_logsumexp(
     softmax_max: torch.Tensor,
     softmax_sum: torch.Tensor,
 ) -> torch.Tensor:
-    """npu_fusion_attention softmax_max/sum [B,N,S,8] → logsumexp [B,N,S]。
+    """npu_fusion_attention softmax_max/sum [B,N,S,8] -> logsumexp [B,N,S].
 
-    slot 0: lse = max + log(sum(exp(x - max)))。
+    slot 0: lse = max + log(sum(exp(x - max))).
     """
     sm_max = softmax_max[:, :, :, 0].float()
     sm_sum = softmax_sum[:, :, :, 0].float()
@@ -245,7 +332,7 @@ def _merge_softmax_stats_with_ring_update(
 def _make_forward_op(step_caches: list, *, pt: dict):
     """Create a per-step forward op closure for ring attention.
 
-    step_caches (out param): list mutated in-place — each call appends
+    step_caches (out param): list mutated in-place -- each call appends
         (merged_max, merged_sum, seed, offset) for the current step.
     pt: passthrough dict of params that do not vary across ring steps
         (head_num, input_layout, pre_tockens, next_tockens, etc.).
@@ -270,8 +357,10 @@ def _make_forward_op(step_caches: list, *, pt: dict):
             ).unsqueeze(0).unsqueeze(0)
             sparse_mode = 1
 
+        # npu_fusion_attention_v3: graph-mode-friendly (Tensor seed/offset, no numels).
+        # v1 returns int seed/offset/numels which graph mode can optimize away under dropout.
         (attention_score, softmax_max, softmax_sum, _softmax_out,
-         seed, offset, _numels) = torch_npu.npu_fusion_attention(
+         seed, offset) = torch_npu.npu_fusion_attention_v3(
             query, key, value,
             head_num=pt.get("head_num", N),
             input_layout=pt.get("input_layout", "BNSD"),
@@ -342,7 +431,7 @@ def _make_forward_op(step_caches: list, *, pt: dict):
             ], dim=2)
         else:
             if merge_impl == "op":
-                # merged_attn not used in ring attention
+                # merged_attn is only used for op-based merge, not returned by ring attention
                 if merged_attn is None:
                     raise RuntimeError(
                         "merged_attn is None with merge_impl='op'; "
@@ -365,8 +454,9 @@ def _make_forward_op(step_caches: list, *, pt: dict):
                     softmax_sum,
                 )
 
-        # Push merged softmax stats (cloned to guard against later steps), seed, offset.
-        # Per-step attention_score is not saved; backward uses the merged output via _bop(out).
+        # Save merged softmax stats (cloned to guard against later steps), seed, offset.
+        # The forward handler extracts the final merged stats from step_caches[-1] for the
+        # output 6-tuple. Backward receives stats via autograd kwargs, not from step_caches.
         step_caches.append((merged_max.clone(), merged_sum.clone(), seed, offset))
 
         # Return per-step logsumexp (fed to the native merger for attention output), not the merged version.
@@ -379,7 +469,7 @@ def _make_forward_op(step_caches: list, *, pt: dict):
             None,  # cum_seq_k
             S,     # max_q
             S,     # max_k
-            torch.tensor(seed, dtype=torch.int64, device=query.device),
+            seed.to(torch.int64) if isinstance(seed, torch.Tensor) else torch.tensor(seed, dtype=torch.int64, device=query.device),
             None,  # unused
             torch.empty(0, device=query.device),  # debug_attn_mask
         )
@@ -387,16 +477,19 @@ def _make_forward_op(step_caches: list, *, pt: dict):
     return _op
 
 
-def _make_backward_op(step_caches: list, *, pt: dict):
-    """Create a per-step backward op closure for ring attention.
+def _make_backward_op(merged_max, merged_sum, seed, offset, *, pt: dict):
+    """Per-step backward op closure for ring attention (global-stack-free).
 
-    step_caches: the same list that _make_forward_op populated — consumed in LIFO order.
-        step_caches[i] = (merged_max, merged_sum, seed, offset) for step i;
-        step_caches[-1][:2] holds the final globally-normalized stats for the backward kernel.
-    pt: passthrough dict (same semantics as _make_forward_op).
+    Reads final merged softmax_max/sum (from autograd kwargs) and a single
+    seed/offset (like native CP's single philox). The closure receives
+    already-chunked query/out/grad_out from _templated_ring_attention_backward;
+    for IS_CAUSAL partial steps it slices merged_max/sum to match the chunk.
+
+    Args:
+        merged_max, merged_sum: final merged softmax stats (full seq), autograd-flowed.
+        seed, offset: single rng tensors (from forward's last step), autograd-flowed.
+        pt: passthrough dict (head_num, input_layout, pre/next_tockens, ...).
     """
-
-    idx_box = [0]
 
     def _bop(grad_out, query, key, value, out, logsumexp,
              cum_seq_q, cum_seq_k, max_q, max_k,
@@ -408,19 +501,14 @@ def _make_backward_op(step_caches: list, *, pt: dict):
         S = query.size(2)
         softmax_scale = scale if scale is not None else (1.0 / D**0.5)
 
-        i = idx_box[0]
-        # step_caches[i] holds the running merged state at step i (grows over ring rounds).
-        # Backward needs the final globally-normalized stats, so take step_caches[-1][:2].
-        _, _, seed, offset = step_caches[i]
-        merged_max, merged_sum = step_caches[-1][:2]
-        idx_box[0] += 1
-
-        # IS_CAUSAL partial: native backward already sliced query/out/grad_out to chunk(2)[1].
-        # Slice merged_max/sum to the corresponding trailing half; out is already sliced.
-        if query.size(2) != merged_max.size(2):
+        # IS_CAUSAL partial: _templated_ring_attention_backward already chunked
+        # query/out/grad_out to the trailing half of Q. Slice merged_max/sum to match.
+        cur_max = merged_max
+        cur_sum = merged_sum
+        if query.size(2) != cur_max.size(2):
             S_half = query.size(2)
-            merged_max = merged_max[:, :, S_half:, :]
-            merged_sum = merged_sum[:, :, S_half:, :]
+            cur_max = cur_max[:, :, S_half:, :]
+            cur_sum = cur_sum[:, :, S_half:, :]
 
         atten_mask = None
         sparse_mode = 0
@@ -430,13 +518,15 @@ def _make_backward_op(step_caches: list, *, pt: dict):
             ).unsqueeze(0).unsqueeze(0)
             sparse_mode = 1
 
-        grads = torch_npu.npu_fusion_attention_grad(
+        # v3 grad: accepts Tensor seed/offset (no numels). seed/offset are single
+        # values flowed through autograd (same for all ring steps, like native CP).
+        grads = torch_npu.npu_fusion_attention_grad_v3(
             query, key, value,
             dy=grad_out,
             head_num=pt.get("head_num", N),
             input_layout=pt.get("input_layout", "BNSD"),
-            softmax_max=merged_max,
-            softmax_sum=merged_sum,
+            softmax_max=cur_max,
+            softmax_sum=cur_sum,
             attention_in=out,
             scale_value=softmax_scale,
             keep_prob=1.0 - dropout_p,
@@ -449,7 +539,6 @@ def _make_backward_op(step_caches: list, *, pt: dict):
             pre_tockens=pt.get("pre_tockens", 2147483647),
             next_tockens=pt.get("next_tockens", 2147483647),
             inner_precise=pt.get("inner_precise", 0),
-            numels=0,
         )
         return grads[0], grads[1], grads[2]
 
@@ -457,38 +546,36 @@ def _make_backward_op(step_caches: list, *, pt: dict):
 
 
 # ============================================================================
-# Common: DTensor unwrap helper
-# ============================================================================
-
-def _unwrap_args(args):
-    """Unwrap all DTensors in args to _local_tensor; return (local_args, mesh)."""
-    local_args = []
-    mesh = None
-    for i, a in enumerate(args):
-        if isinstance(a, DTensor):
-            local_args.append(a._local_tensor)
-            if mesh is None:
-                mesh = a.device_mesh
-        elif isinstance(a, torch.Tensor):
-            local_args.append(a)
-        else:
-            local_args.append(a)
-    return local_args, mesh
-
-
-# ============================================================================
-# Forward DTensor Handler — intercepts npu_fusion_attention_v3
+# Forward DTensor Handler -- intercepts npu_fusion_attention_v3
 # ============================================================================
 def _npu_fa_v3_handler(op_call, args, kwargs):
-    """Intercept npu_fusion_attention_v3, run ring attention, return a v3 6-tuple.
+    """Intercept npu_fusion_attention_v3, run ring attention, wrap via propagated spec.
 
-    Unwraps DTensor args manually (standard unwrap_to_op_info rejects mixed
-    DTensor/plain-tensor args). Delegates directly to _templated_ring_attention.
-    Pushes per-step caches onto the global stack for backward consumption.
+    Mirrors native _sdpa_handler: unwrap_to_op_info -> propagate -> ring attention ->
+    wrap(local_results, output_spec). No from_local is used inside the handler:
+    from_local goes through the _FromTorchTensor autograd.Function, which re-dispatches
+    internal aten ops (e.g. detach_) during dynamo/compiled_autograd tracing -- those ops
+    have no sharding strategy and break compile. Output DTensors are built via the direct
+    constructor OpDispatcher.wrap, exactly like native _sdpa_handler and layer1's
+    _npu_fusion_attention_handler.
+
+    Plain non-scalar tensor args (e.g. the atten_mask generated inside the C++ SDPA
+    kernel, which never passes through attention_input_fn) are handled by the global
+    _allow_implicit_replication flag toggled in npu_enable_cp_dtensor_dispatcher, so
+    unwrap_to_op_info auto-replicates them instead of raising 'mixed Tensor/DTensor'.
     """
-    local_args, mesh = _unwrap_args(args)
-    if mesh is None:
-        raise RuntimeError("No DTensor found in _npu_fa_v3_handler args")
+    op_info = DTensor._op_dispatcher.unwrap_to_op_info(op_call, args, kwargs)
+
+    # sharding propagation -> output_spec (matches native _sdpa_handler)
+    DTensor._op_dispatcher.sharding_propagator.propagate(op_info)
+    output_sharding = op_info.output_sharding
+    if output_sharding is None:
+        raise RuntimeError("output sharding should not be None")
+    if output_sharding.needs_redistribute:
+        raise RuntimeError("inputs need to be redistributed")
+
+    mesh = op_info.compute_mesh
+    local_args = op_info.local_args
 
     query, key, value = local_args[0], local_args[1], local_args[2]
 
@@ -498,11 +585,14 @@ def _npu_fa_v3_handler(op_call, args, kwargs):
     keep_prob = _get(local_args, _FWD_IX, "keep_prob", 1.0)
     input_layout = _get(local_args, _FWD_IX, "input_layout", "BNSD")
 
-    logger.debug(
-        "CP forward handler: q=%s k=%s v=%s mesh=%s sparse_mode=%s scale=%s keep_prob=%s",
-        tuple(query.shape), tuple(key.shape), tuple(value.shape),
-        mesh, sparse_mode, scale, keep_prob,
-    )
+    # Fix head_num for TP: original head_num is the global value, but after TP
+    # sharding the local query has fewer heads. Recalculate from local query shape.
+    # This mirrors layer-1 _npu_fusion_attention_handler's head_num correction.
+    if input_layout and 'N' in input_layout:
+        head_dim_idx = input_layout.index('N')
+        local_args = list(local_args)
+        local_args[_FWD_IX["head_num"]] = query.size(head_dim_idx)
+        local_args = tuple(local_args)
 
     _validate_bnsd_layout(
         query,
@@ -529,7 +619,7 @@ def _npu_fa_v3_handler(op_call, args, kwargs):
 
     step_caches: list = []
     op = _make_forward_op(step_caches, pt=pt)
-    group = mesh.get_group()
+    group = _get_cp_group(mesh, op_info.schema.args_schema, [0, 1, 2], seq_dim=2)
     result = _templated_ring_attention(
         group,
         seq_dim=2,
@@ -542,56 +632,57 @@ def _npu_fa_v3_handler(op_call, args, kwargs):
         scale=softmax_scale,
     )
     attn_output = result[0]
-    merged_lse = result[1]
 
-    # Push (step_caches, is_causal, merged_out, merged_lse) for backward handler.
-    # Backward needs merged_out to compute D = sum(dout * O_merged); per-step raw output is not enough.
-    # These forward intermediates need transformation before backward consumes them, so save them here.
-    # Skip this during recompute forward: no need to preserve them for the recompute pass.
-    if torch._C._current_graph_task_id() < 0:
-        _step_cache_stack.append(
-            (step_caches, is_causal, attn_output.detach(), merged_lse.detach())
-        )
-
-    # Build v3 6-tuple. softmax_max/sum come from the final step; op_plugin typically only uses attn_output.
     B, N, S, D = attn_output.shape
     dev = attn_output.device
     if step_caches:
-        sm_max, sm_sum, _, _ = step_caches[-1]
+        sm_max, sm_sum, seed_step, offset_step = step_caches[-1]
         softmax_max = sm_max
         softmax_sum = sm_sum
     else:
         softmax_max = torch.zeros(B, N, S, 8, dtype=torch.float32, device=dev)
         softmax_sum = torch.zeros(B, N, S, 8, dtype=torch.float32, device=dev)
+        seed_step = torch.zeros(1, dtype=torch.int64, device=dev)
+        offset_step = torch.zeros(1, dtype=torch.int64, device=dev)
 
-    return (
+    # local_results matches the v3 forward 6-tuple; wrap() builds the output DTensors via
+    # the direct constructor using the propagated output_spec (compile-safe, no from_local).
+    local_results = (
         attn_output,
         softmax_max,
         softmax_sum,
-        torch.zeros(0, device=dev),                                  # softmax_out
-        torch.tensor([0], dtype=torch.int64, device="cpu"),          # seed
-        torch.tensor([0], dtype=torch.int64, device="cpu"),          # offset
+        torch.zeros(0, device=dev),    # softmax_out (reserve, unused)
+        seed_step.to(torch.int64),     # seed
+        offset_step.to(torch.int64),   # offset
     )
+    return DTensor._op_dispatcher.wrap(local_results, output_sharding.output_spec)
 
 
 # ============================================================================
-# Backward DTensor Handler — intercepts npu_fusion_attention_grad_v3
+# Backward DTensor Handler -- intercepts npu_fusion_attention_grad_v3
 # ============================================================================
 
 def _npu_fa_grad_v3_handler(op_call, args, kwargs):
-    """Intercept npu_fusion_attention_grad_v3, run ring attention backward, return DTensor grads.
+    """Intercept npu_fusion_attention_grad_v3, run ring attention backward, wrap via spec.
 
-    Pops per-step caches from the global stack (pushed by the forward handler).
-    Delegates to _templated_ring_attention_backward, then wraps grad_q/k/v as
-    DTensors with Shard(2). The softmax stats saved by AutogradNPU's backward
-    node are placeholders; the real per-step caches come from _step_cache_stack.
+    Same native-mirroring structure as _npu_fa_v3_handler: unwrap_to_op_info ->
+    propagate -> ring attention backward -> wrap(local_results, output_spec). No from_local.
     """
-    local_args, mesh = _unwrap_args(args)
-    if mesh is None:
-        raise RuntimeError("No DTensor found in npu_fusion_attention_grad_v3 args")
+    op_info = DTensor._op_dispatcher.unwrap_to_op_info(op_call, args, kwargs)
+
+    DTensor._op_dispatcher.sharding_propagator.propagate(op_info)
+    output_sharding = op_info.output_sharding
+    if output_sharding is None:
+        raise RuntimeError("output sharding should not be None")
+    if output_sharding.needs_redistribute:
+        raise RuntimeError("inputs need to be redistributed")
+
+    mesh = op_info.compute_mesh
+    local_args = op_info.local_args
+    local_kwargs = op_info.local_kwargs
 
     query, key, value, dy = local_args[0], local_args[1], local_args[2], local_args[3]
-    input_layout = _get(local_args, _BWD_IX, "input_layout", "BNSD")
+    input_layout = _get(local_args, _BWD_IX, "input_layout", "BNSD") or local_kwargs.get("input_layout", "BNSD")
     _validate_bnsd_layout(
         query,
         key,
@@ -599,18 +690,23 @@ def _npu_fa_grad_v3_handler(op_call, args, kwargs):
         input_layout,
         op_name="npu_fusion_attention_grad_v3",
     )
-    _validate_cp_passthrough_args(
-        local_args,
-        _BWD_IX,
-        op_name="npu_fusion_attention_grad_v3",
-    )
-    _validate_cp_sparse_args(
-        local_args,
-        _BWD_IX,
-        op_name="npu_fusion_attention_grad_v3",
-    )
-    scale_value = _get(local_args, _BWD_IX, "scale_value")
-    keep_prob = _get(local_args, _BWD_IX, "keep_prob", 1.0)
+    _validate_cp_passthrough_args_kwargs(local_kwargs, op_name="npu_fusion_attention_grad_v3")
+    _validate_cp_sparse_args_kwargs(local_kwargs, op_name="npu_fusion_attention_grad_v3")
+
+    # Stats flow through autograd kwargs (now in local_kwargs after unwrap)
+    merged_max = local_kwargs.get("softmax_max", kwargs.get("softmax_max"))
+    merged_sum = local_kwargs.get("softmax_sum", kwargs.get("softmax_sum"))
+    merged_out = local_kwargs.get("attention_in", kwargs.get("attention_in"))
+    seed = local_kwargs.get("seed", kwargs.get("seed"))
+    offset = local_kwargs.get("offset", kwargs.get("offset"))
+    scale_value = local_kwargs.get("scale_value", kwargs.get("scale_value"))
+    keep_prob = local_kwargs.get("keep_prob", kwargs.get("keep_prob", 1.0))
+    is_causal = local_kwargs.get("sparse_mode", kwargs.get("sparse_mode", 0)) in (1, 2, 3)
+
+    # Unwrap DTensor stats to local (stats may flow as DTensor in multi-dim mesh).
+    merged_max = merged_max._local_tensor if isinstance(merged_max, DTensor) else merged_max
+    merged_sum = merged_sum._local_tensor if isinstance(merged_sum, DTensor) else merged_sum
+    merged_out = merged_out._local_tensor if isinstance(merged_out, DTensor) else merged_out
 
     dropout_p = (1.0 - keep_prob) if isinstance(keep_prob, (int, float)) else 0.0
     if scale_value is not None:
@@ -618,18 +714,13 @@ def _npu_fa_grad_v3_handler(op_call, args, kwargs):
     else:
         softmax_scale = 1.0 / query.shape[-1] ** 0.5
 
-    stack = _step_cache_stack
-    if not stack:
-        raise RuntimeError(
-            "step_cache_stack is empty in backward handler; "
-            "forward caches were never pushed or already consumed."
-        )
-    step_caches, is_causal, merged_out, merged_lse = stack.pop()
+    # lse is not an op output (NPU fa uses softmax_max/sum); reconstruct it.
+    merged_lse = _convert_softmax_to_logsumexp(merged_max, merged_sum)
 
-    pt = _extract_passthrough(local_args, _BWD_IX)
+    pt = _extract_passthrough_kwargs(local_kwargs)
 
-    bop = _make_backward_op(step_caches, pt=pt)
-    group = mesh.get_group()
+    bop = _make_backward_op(merged_max, merged_sum, seed, offset, pt=pt)
+    group = _get_cp_group(mesh, op_info.schema.args_schema, [0, 1, 2, 3], seq_dim=2)
     zero = torch.zeros(0, device=query.device)
     result = _templated_ring_attention_backward(
         group,
@@ -654,34 +745,187 @@ def _npu_fa_grad_v3_handler(op_call, args, kwargs):
     )
     grad_q, grad_k, grad_v = result[0], result[1], result[2]
 
-    grad_q_dt = DTensor.from_local(grad_q, mesh, [Shard(2)], run_check=False)
-    grad_k_dt = DTensor.from_local(grad_k, mesh, [Shard(2)], run_check=False)
-    grad_v_dt = DTensor.from_local(grad_v, mesh, [Shard(2)], run_check=False)
-
     dev = query.device
-    grad_pse = torch.zeros(0, device=dev)
-    grad_sink = torch.zeros(0, device=dev)
-    return (grad_q_dt, grad_k_dt, grad_v_dt, grad_pse, grad_sink)
+    local_results = (
+        grad_q,
+        grad_k,
+        grad_v,
+        torch.zeros(0, device=dev),  # grad_pse (unused)
+        torch.zeros(0, device=dev),  # grad_sink (unused)
+    )
+    return DTensor._op_dispatcher.wrap(local_results, output_sharding.output_spec)
 
 
 # ============================================================================
-# CP Sharding Rule
+# CP Sharding Strategies -- extend layer-1 strategies with CP (seq shard)
+#
+# Registered via _op_strategy_context in npu_enable_cp_dtensor_dispatcher (save
+# layer-1's original strategy + schema, register CP-extended strategy) and
+# restored in npu_disable_cp_dtensor_dispatcher (restore layer-1's original
+# strategy + schema). This mirrors native register_cp_sharding_rules/
+# unregister_cp_sharding_rules and ensures CP strategies are only active while
+# the CP dispatcher is enabled.
+#
+# _op_strategy_context registers the function via register_op_strategy, which
+# calls it with a single OpSchema argument (not unpacked args/kwargs like
+# @register_sharding does). So these functions receive op_schema and must:
+#   1. Extract args/kwargs from op_schema.args_schema / op_schema.kwargs_schema
+#   2. Call layer-1's strategy (which expects unpacked specs)
+#   3. Append CP strategy
+#   4. Return via expand_to_full_mesh_op_strategy (like @register_sharding does)
 # ============================================================================
 
-def _scaled_dot_product_attention_cp_strategy(op_schema):
-    """CP strategy: Shard(2) on q/k/v and output. Hardcoded dim=2 assumes BNSD layout."""
+def _extract_strategy_args(op_schema):
+    """Extract args and kwargs from op_schema, converting OpStrategy to DTensorSpec.
+
+    Mirrors @register_sharding's custom_strategy: strategy_to_spec extracts the
+    spec from each arg so layer-1 strategy functions receive what they expect.
+    """
+    from torch.distributed.tensor._op_schema import OpStrategy, TupleStrategy
+
+    def strategy_to_spec(item):
+        if isinstance(item, OpStrategy):
+            return item.strategies[0].output_spec
+        elif isinstance(item, TupleStrategy):
+            return tuple(strategy_to_spec(child) for child in item.children)
+        else:
+            return item
+
+    args = tuple(strategy_to_spec(i) for i in op_schema.args_schema)
+    kwargs = {k: strategy_to_spec(v) for k, v in op_schema.kwargs_schema.items()}
+    return args, kwargs
+
+
+def _npu_fa_v3_cp_strategy(op_schema):
+    """CP-extended sharding strategy for npu_fusion_attention_v3.
+
+    Calls layer-1's strategy to get Replicate/DP/TP, then appends CP (seq shard).
+    """
     from torch.distributed.tensor._ops.utils import (
         expand_to_full_mesh_op_strategy as _expand,
     )
 
+    args, kwargs = _extract_strategy_args(op_schema)
+
+    # Get layer-1 strategies (Replicate/DP/TP)
+    strategies = _layer1_fwd_strategy(*args, **kwargs)
+
+    # Extract params from args (positional) or kwargs (keyword-only)
+    input_layout = _get_kw(args, kwargs, _FWD_IX, "input_layout", "BNSD")
+    pse = _get_kw(args, kwargs, _FWD_IX, "pse")
+    padding_mask = _get_kw(args, kwargs, _FWD_IX, "padding_mask")
+    prefix = _get_kw(args, kwargs, _FWD_IX, "prefix")
+    actual_seq_qlen = _get_kw(args, kwargs, _FWD_IX, "actual_seq_qlen")
+    actual_seq_kvlen = _get_kw(args, kwargs, _FWD_IX, "actual_seq_kvlen")
+    sink = _get_kw(args, kwargs, _FWD_IX, "sink")
+    keep_prob = _get_kw(args, kwargs, _FWD_IX, "keep_prob", 1.0)
+    atten_mask = _get_kw(args, kwargs, _FWD_IX, "atten_mask")
+
     mesh = op_schema.get_mesh_from_args()
-    cp_strategy = [
-        Shard(2),  # output
-        Shard(2),  # query
-        Shard(2),  # key
-        Shard(2),  # value
+    input_index = len(op_schema.op._schema.returns)
+
+    # Determine seq_dim from layout
+    if 'S' in input_layout:
+        seq_dim = input_layout.index('S')
+    elif 'T' in input_layout:
+        seq_dim = input_layout.index('T')
+    else:
+        flat = [out + inp for out, inp in strategies]
+        return _expand(mesh, op_schema, flat, input_index=input_index)
+
+    # Same guard as layer-1: only add sharding if no dropout/per-seq args
+    unused_args = [pse, padding_mask, prefix, actual_seq_qlen, actual_seq_kvlen, sink]
+    if not all(arg is None for arg in unused_args) or keep_prob < 1.0:
+        flat = [out + inp for out, inp in strategies]
+        return _expand(mesh, op_schema, flat, input_index=input_index)
+
+    # Build CP strategy: q/k/v/softmax_max/sum/attention_out all Shard(seq_dim)
+    cp_output = [
+        Shard(seq_dim),  # attention_out
+        Shard(seq_dim),  # softmax_max
+        Shard(seq_dim),  # softmax_sum
+        Replicate(),     # softmax_out (unused)
+        Replicate(),     # seed
+        Replicate(),     # offset
     ]
-    return _expand(mesh, op_schema, [cp_strategy], input_index=1)
+    # input placements: same length as layer-1's (21 entries matching schema)
+    cp_input = list(strategies[0][1])  # copy replicate strategy's input list as template
+    # Override tensor inputs to Shard(seq_dim)
+    for i in range(3):  # query, key, value (indices 0, 1, 2)
+        if cp_input[i] is not None:
+            cp_input[i] = Shard(seq_dim)
+    # atten_mask (index 7) stays as-is from the replicate template (Replicate if
+    # provided, None otherwise) -- it is global, not seq-sharded
+    # All other tensor inputs (pse=5, padding_mask=6, actual_seq_qlen=14, actual_seq_kvlen=15, sink=20)
+    # are None in CP path, so their placement stays None
+
+    strategies.append((cp_output, cp_input))
+    flat = [out + inp for out, inp in strategies]
+    return _expand(mesh, op_schema, flat, input_index=input_index)
+
+
+def _npu_fa_grad_v3_cp_strategy(op_schema):
+    """CP-extended sharding strategy for npu_fusion_attention_grad_v3 (backward).
+
+    Calls layer-1's strategy to get Replicate/DP/TP, then appends CP.
+    """
+    from torch.distributed.tensor._ops.utils import (
+        expand_to_full_mesh_op_strategy as _expand,
+    )
+
+    args, kwargs = _extract_strategy_args(op_schema)
+
+    # Get layer-1 strategies
+    strategies = _layer1_bwd_strategy(*args, **kwargs)
+
+    input_layout = _get_kw(args, kwargs, _BWD_IX, "input_layout", "BNSD")
+    pse = _get_kw(args, kwargs, _BWD_IX, "pse")
+    padding_mask = _get_kw(args, kwargs, _BWD_IX, "padding_mask")
+    prefix = _get_kw(args, kwargs, _BWD_IX, "prefix")
+    actual_seq_qlen = _get_kw(args, kwargs, _BWD_IX, "actual_seq_qlen")
+    actual_seq_kvlen = _get_kw(args, kwargs, _BWD_IX, "actual_seq_kvlen")
+    sink = _get_kw(args, kwargs, _BWD_IX, "sink")
+    keep_prob = _get_kw(args, kwargs, _BWD_IX, "keep_prob", 1.0)
+
+    mesh = op_schema.get_mesh_from_args()
+    input_index = len(op_schema.op._schema.returns)
+
+    if 'S' in input_layout:
+        seq_dim = input_layout.index('S')
+    elif 'T' in input_layout:
+        seq_dim = input_layout.index('T')
+    else:
+        flat = [out + inp for out, inp in strategies]
+        return _expand(mesh, op_schema, flat, input_index=input_index)
+
+    unused_args = [pse, padding_mask, prefix, actual_seq_qlen, actual_seq_kvlen, sink]
+    if not all(arg is None for arg in unused_args) or keep_prob < 1.0:
+        flat = [out + inp for out, inp in strategies]
+        return _expand(mesh, op_schema, flat, input_index=input_index)
+
+    cp_output = [
+        Shard(seq_dim),  # grad_query
+        Shard(seq_dim),  # grad_key
+        Shard(seq_dim),  # grad_value
+        Replicate(),     # grad_pse (unused)
+        Replicate(),     # grad_sink
+    ]
+    # Copy layer-1's replicate input list as template, override tensor inputs
+    cp_input = list(strategies[0][1])
+    # query(0), key(1), value(2), dy(3) -> Shard(seq_dim)
+    for i in range(4):
+        if cp_input[i] is not None:
+            cp_input[i] = Shard(seq_dim)
+    # softmax_max(9), softmax_sum(10), attention_in(12) -> Shard(seq_dim) if present,
+    # matching the v3 grad schema positions (they flow in as Shard(seq) from the
+    # forward output). These indices correspond to _BWD_IX values.
+    for idx in [9, 10, 12]:  # softmax_max, softmax_sum, attention_in
+        if idx < len(cp_input) and cp_input[idx] is not None:
+            cp_input[idx] = Shard(seq_dim)
+
+    strategies.append((cp_output, cp_input))
+    flat = [out + inp for out, inp in strategies]
+    return _expand(mesh, op_schema, flat, input_index=input_index)
 
 
 _npu_fa = torch.ops.npu.npu_fusion_attention_v3.default
@@ -695,45 +939,121 @@ _npu_custom_ops = {
 # ============================================================================
 # CP Dispatcher Enable/Disable
 # ============================================================================
+# Saved values so disable restores the pre-CP state exactly.
+_cp_implicit_replication_prev = None
+_cp_prev_handlers = {}
+
+# Saved _op_strategy_context handles for NPU CP strategies, restored on disable.
+_npu_cp_strategy_contexts = {}
+
+
+def _get_strategy_context():
+    """Return the strategy context manager, compatible across torch versions.
+
+    torch <= 2.13: _op_strategy_context
+    torch >= 2.14: _single_dim_strategy_context (renamed)
+    """
+    from torch.distributed.tensor.experimental._context_parallel._sharding_rules import (
+        _single_dim_strategy_context as _ctx,
+    )
+    return _ctx
+
+
+try:
+    _get_strategy_context()
+except ImportError:
+    def _get_strategy_context():
+        from torch.distributed.tensor.experimental._context_parallel._sharding_rules import (
+            _op_strategy_context as _ctx,
+        )
+        return _ctx
+
+
+def _register_npu_cp_sharding_rules() -> None:
+    """Register NPU CP sharding rules, saving layer-1 originals for restore."""
+    if _npu_cp_strategy_contexts:
+        return
+
+    from torch.distributed.tensor._op_schema import RuntimeSchemaInfo
+
+    _strategy_context = _get_strategy_context()
+    npu_cp_strategies = [
+        (_npu_fa, _npu_fa_v3_cp_strategy, RuntimeSchemaInfo(1)),
+        (_npu_fa_grad, _npu_fa_grad_v3_cp_strategy, RuntimeSchemaInfo(1)),
+    ]
+    for op_overload, strategy_func, schema_info in npu_cp_strategies:
+        ctx = _strategy_context(op_overload, strategy_func, schema_info)
+        ctx.__enter__()
+        _npu_cp_strategy_contexts[op_overload] = ctx
+
+
+def _unregister_npu_cp_sharding_rules() -> None:
+    """Restore NPU sharding rules that were active before CP was enabled."""
+    for ctx in _npu_cp_strategy_contexts.values():
+        ctx.__exit__(None, None, None)
+    _npu_cp_strategy_contexts.clear()
+
+
 def npu_enable_cp_dtensor_dispatcher() -> None:
     """Register NPU SDPA forward/backward handlers and CP sharding rules."""
-    logger.info(f"registering handler keys={[str(k) for k in _npu_custom_ops.keys()]}")
+    # Idempotent guard: if already enabled, do nothing (prevents overwriting
+    # saved layer-1 handlers on repeated enable calls).
+    if _cp_prev_handlers:
+        return
+
+    logger.info("registering handler keys=%s", [str(k) for k in _npu_custom_ops.keys()])
+
+    # Save layer-1 handlers so disable can restore them (CP handlers overwrite
+    # the same op_overload keys; simply deleting would leave no handler at all).
+    _cp_prev_handlers.clear()
+    _cp_prev_handlers.update(
+        {k: DTensor._op_dispatcher._custom_op_handlers.get(k) for k in _npu_custom_ops}
+    )
 
     existing = DTensor._op_dispatcher._custom_op_handlers.copy()
     DTensor._op_dispatcher._custom_op_handlers = {**existing, **_npu_custom_ops}
 
+    # Let plain non-scalar tensor args (e.g. atten_mask passed as a plain Tensor
+    # alongside DTensor q/k/v) auto-receive a Replicate spec in unwrap_to_op_info.
+    # Native SDPA has no such args so it doesn't need this; v3 does. Without it,
+    # unwrap_to_op_info raises 'mixed Tensor/DTensor'.
+    global _cp_implicit_replication_prev
+    _cp_implicit_replication_prev = DTensor._op_dispatcher._allow_implicit_replication
+    DTensor._op_dispatcher._allow_implicit_replication = True
+
+    # Register NPU CP sharding rules (save layer-1 originals, install CP-extended).
+    _register_npu_cp_sharding_rules()
+
+    # Register native CP sharding rules (flash/efficient/cudnn attention) for
+    # completeness, matching the native _enable_cp_dtensor_dispatcher behavior.
     from torch.distributed.tensor.experimental._context_parallel._sharding_rules import (
         register_cp_sharding_rules,
     )
     register_cp_sharding_rules()
 
-    from torch.distributed.tensor._ops.registration import register_op_strategy
-    from torch.distributed.tensor._op_schema import RuntimeSchemaInfo
-    register_op_strategy(
-        _npu_fa,
-        schema_info=RuntimeSchemaInfo(1),
-    )(_scaled_dot_product_attention_cp_strategy)
-
 
 def npu_disable_cp_dtensor_dispatcher() -> None:
     """Remove NPU handlers and unregister CP sharding rules."""
-    logger.info(f"removing handler keys={[str(k) for k in _npu_custom_ops.keys()]}")
+    logger.info("removing handler keys=%s", [str(k) for k in _npu_custom_ops.keys()])
 
-    DTensor._op_dispatcher._custom_op_handlers = {
-        k: v
-        for k, v in DTensor._op_dispatcher._custom_op_handlers.items()
-        if k not in _npu_custom_ops
-    }
+    # Restore layer-1 handlers (or remove if none existed before CP).
+    handlers = DTensor._op_dispatcher._custom_op_handlers
+    for k, prev_handler in _cp_prev_handlers.items():
+        if prev_handler is not None:
+            handlers[k] = prev_handler
+        elif k in handlers:
+            del handlers[k]
+    _cp_prev_handlers.clear()
+
+    global _cp_implicit_replication_prev
+    if _cp_implicit_replication_prev is not None:
+        DTensor._op_dispatcher._allow_implicit_replication = _cp_implicit_replication_prev
+        _cp_implicit_replication_prev = None
+
+    # Restore NPU sharding rules to layer-1 originals.
+    _unregister_npu_cp_sharding_rules()
 
     from torch.distributed.tensor.experimental._context_parallel._sharding_rules import (
         unregister_cp_sharding_rules,
     )
     unregister_cp_sharding_rules(clear_the_cache=False)
-
-    if _step_cache_stack:
-        logger.warning(
-            "CP dispatcher disabled with step_cache_stack depth=%d; "
-            "some forward caches were not consumed by backward.",
-            len(_step_cache_stack),
-        )
-    _step_cache_stack.clear()
