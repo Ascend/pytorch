@@ -1308,6 +1308,16 @@ def _quantized_extra_impls() -> list[str]:
     return extra_impls
 
 
+def _nestedtensor_register_header() -> str:
+    """生成嵌套张量注册所需的头文件,提供 op_api::to_padded_tensor 等声明"""
+    headers = [
+        '#include "op_plugin/OpApiInterface.h"',
+    ]
+    if not _is_aclnn_extension_codegen():
+        headers.append('#include "op_plugin/OpInterface.h"')
+    return "\n".join(headers) + "\n"
+
+
 def _gen_special_registration_body(
     backend_indices: BackendIndex,
     config: SpecialRegisterConfig,
@@ -1380,11 +1390,12 @@ SPECIAL_REGISTERS = {
     "nestedtensor": SpecialRegisterConfig(
         dispatch_key="NestedTensorPrivateUse1",
         filename="NestedTensorRegister",
-        header="",
+        header=_nestedtensor_register_header(),
         extra_impls=[
             'm.impl("unbind.int", TORCH_FN(at::native::NestedTensor_unbind));',
             'm.impl("values", TORCH_FN(at::native::values_nested));',
             'm.impl("_nested_tensor_size", TORCH_FN(at::native::_nested_tensor_size));',
+            'm.impl("to_padded_tensor", TORCH_FN(op_api::to_padded_tensor));',
         ],
     ),
 }
