@@ -43,6 +43,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Configure git safe directory
+        shell: bash
+        run: |
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+
       - name: Write build environment info
         run: |
           echo "=== Build Environment Info ===" > build_msg.txt
@@ -83,6 +88,7 @@ jobs:
           ccache -z || true
 
       - name: Build torch_npu wheel
+        shell: bash
         env:
           CC: "ccache gcc"
           CXX: "ccache g++"
