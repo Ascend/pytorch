@@ -1,3 +1,4 @@
+import ast
 import math
 import unittest
 from pathlib import Path
@@ -38,9 +39,15 @@ class TestFlexAttentionDynamicMaskMetadataSource(unittest.TestCase):
     def test_dynamic_forward_grid_uses_symbolic_min(self):
         template = TEMPLATE_PATH.read_text(encoding="utf-8")
 
-        grid_start = template.index("def flex_attention_in_loop_grid(")
-        grid_end = template.index("\n\n# These metadata kernels", grid_start)
-        grid_source = template[grid_start:grid_end]
+        tree = ast.parse(template)
+        grid_node = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "flex_attention_in_loop_grid"
+        )
+        grid_source = ast.get_source_segment(template, grid_node)
+        self.assertIsNotNone(grid_source)
         self.assertIn("min", grid_source.split("):", 1)[0])
         self.assertIn("min(total_tiles, meta[\"NUM_CUBE_CORE\"])", grid_source)
 

@@ -83,12 +83,13 @@ _BWD_DKDV_COMPILE_OPTIONS = NPUTemplateCompileOption(
 
 def _wrap_upstream_template(
     upstream_template: TritonTemplate,
+    npu_extra_name: str,
 ) -> NPUTritonTemplate:
     """Preserve an initialized upstream template while using NPU codegen."""
     wrapped = NPUTritonTemplate.__new__(NPUTritonTemplate)
     wrapped.__dict__.update(upstream_template.__dict__)
     wrapped.manual_output_buffer = None
-    wrapped.codegen_kernel_name = f"triton_{wrapped.name}"
+    wrapped.npu_extra_name = npu_extra_name
     wrapped.compile_options = NPUTemplateCompileOption()
     TritonTemplate.all_templates[wrapped.name] = wrapped
     return wrapped
@@ -103,37 +104,27 @@ def get_bounded_indices(indices, max_len=None):
 
 compute_compact_sparse_mask_offsets_kernel = r"""
 {{def_kernel("Q_OFFSETS", "TOTAL_BLOCKS", "KV_NUM_BLKS")}}
-    sparse_z = {{size("KV_NUM_BLKS", 0)}}
     sparse_h = {{size("KV_NUM_BLKS", 1)}}
     sparse_q = {{size("KV_NUM_BLKS", 2)}}
-    row_count = sparse_z * sparse_h * sparse_q
+    row_count = {{size("KV_NUM_BLKS", 0)}} * sparse_h * sparse_q
+    stride_z, stride_h, stride_q = {{stride("KV_NUM_BLKS")}}
 
-    stride_num_z, stride_num_h, stride_num_q = {{stride("KV_NUM_BLKS")}}
-    stride_off_z, stride_off_h, stride_off_q = {{stride("Q_OFFSETS")}}
-
-    pid = tl.program_id(0)
-    num_programs = tl.num_programs(0)
-    for row in range(pid, row_count, num_programs):
+    carry = tl.full((), 0, tl.int32)
+    # Bound the per-program working set even when the number of rows is dynamic.
+    for start in range(0, row_count, SCAN_TILE_ROWS):
+        row = start + tl.arange(0, SCAN_TILE_ROWS)
         q_idx = row % sparse_q
-        tmp = row // sparse_q
-        h_idx = tmp % sparse_h
-        z_idx = tmp // sparse_h
-
-        num_offset = (
-            z_idx * stride_num_z
-            + h_idx * stride_num_h
-            + q_idx * stride_num_q
-        )
-        num_blocks = tl.load(KV_NUM_BLKS + num_offset).to(tl.int32)
-        base = tl.atomic_add(TOTAL_BLOCKS, num_blocks)
-
-        offset = (
-            z_idx * stride_off_z
-            + h_idx * stride_off_h
-            + q_idx * stride_off_q
-        )
-        tl.store(Q_OFFSETS + offset, base)
-
+        h_idx = (row // sparse_q) % sparse_h
+        z_idx = row // (sparse_q * sparse_h)
+        counts = tl.load(
+            KV_NUM_BLKS + z_idx * stride_z + h_idx * stride_h + q_idx * stride_q,
+            mask=row < row_count, other=0,
+        ).to(tl.int32)
+        offsets = carry + tl.cumsum(counts, 0) - counts
+        tl.store(Q_OFFSETS + row, offsets, mask=row < row_count)
+        carry += tl.sum(counts, 0)
+    # This program owns the scalar, so no initialization or atomic is needed.
+    tl.store(TOTAL_BLOCKS, carry)
 """
 
 
@@ -242,6 +233,49 @@ compute_sparse_mask_kernel_compact = r"""
         mask_offsets = offs_m_local[:, None] * SPARSE_MASK_STRIDE_M + offs_n_local[None, :]
         tl.store(mask_base + mask_offsets, mask_mod_output.to(tl.int8))
 """
+
+
+compute_fwd_workspace_offsets = r"""
+{{def_kernel("KV_NUM_BLKS")}}
+    Q_OFFSETS = arg_Q_OFFSETS
+    sparse_h = {{size("KV_NUM_BLKS", 1)}}
+    sparse_q = {{size("KV_NUM_BLKS", 2)}}
+    row_count = {{size("KV_NUM_BLKS", 0)}} * sparse_h * sparse_q
+    stride_z, stride_h, stride_q = {{stride("KV_NUM_BLKS")}}
+
+    row = tl.arange(0, SCAN_BLOCK_ROWS)
+    q_idx = row % sparse_q
+    h_idx = (row // sparse_q) % sparse_h
+    z_idx = row // (sparse_q * sparse_h)
+    counts = tl.load(
+        KV_NUM_BLKS + z_idx * stride_z + h_idx * stride_h + q_idx * stride_q,
+        mask=row < row_count, other=0,
+    ).to(tl.int32)
+    offsets = tl.cumsum(counts, 0) - counts
+    tl.store(Q_OFFSETS + row, offsets, mask=row < row_count)
+"""
+
+
+# Share compact materialization with exact allocation. Mapping buffers in the
+# workspace reserve C slots, so their shape must never be used as the live Np.
+compute_fwd_workspace_mask_compact = compute_sparse_mask_kernel_compact.replace(
+    '{{def_kernel("SPARSE_MASK", "FLAT_TO_ROW", "FLAT_TO_BLK", "Q", "K", "KV_IDX")}}',
+    '{{def_kernel("SPARSE_MASK", "FLAT_TO_ROW", "FLAT_TO_BLK", "Q", "K", "KV_IDX", "Q_OFFSETS", "KV_NUM_BLKS")}}',
+).replace(
+    '    actual_blocks = {{size("FLAT_TO_ROW", 0)}}',
+    r"""    sparse_z_count = {{size("KV_NUM_BLKS", 0)}}
+    count_z, count_h, count_q = {{stride("KV_NUM_BLKS")}}
+    last_row = sparse_z_count * sparse_h_count * sparse_q_count - 1
+    last_count = tl.load(
+        KV_NUM_BLKS + (sparse_z_count - 1) * count_z
+        + (sparse_h_count - 1) * count_h + (sparse_q_count - 1) * count_q
+    )
+    actual_blocks = tl.load(Q_OFFSETS + last_row) + last_count""",
+).replace(
+    "m = offs_m[:, None]", "m = tl.minimum(offs_m[:, None], q_len - 1)",
+).replace(
+    "n = offs_n[None, :]", "n = tl.minimum(offs_n[None, :], kv_len - 1)",
+)
 
 
 compute_bwd_sparse_mask_kernel_compact = r"""
@@ -790,18 +824,22 @@ def flex_attention_in_loop_grid(
     return (min(total_tiles, meta["NUM_CUBE_CORE"]), 1, 1)
 
 
-# These metadata kernels are pure vector/scalar kernels (loads, stores,
-# atomic_adds) with no ``tl.dot``, so their grids are capped at the vector-core
-# count injected by the lowering as ``NUM_VECTOR_CORE``, rather than the
-# cube-core count used by the main FlexAttention kernels.
+# One program owns the prefix and carries it across bounded scan tiles in
+# both forward exact allocation and backward compact-mask preprocessing.
 @SymbolicGridFn
-def compact_offsets_grid(row_count, meta, *, min, max):
-    return (max(1, min(row_count, meta["NUM_VECTOR_CORE"])), 1, 1)
+def compact_offsets_grid(row_count, meta):
+    return (1, 1, 1)
 
 
+# Mapping/materialization are vector kernels, capped at the vector-core count.
 @SymbolicGridFn
 def compact_mapping_grid(row_count, meta, *, min, max):
     return (max(1, min(row_count, meta["NUM_VECTOR_CORE"])), 1, 1)
+
+
+@SymbolicGridFn
+def fwd_workspace_offsets_grid(row_count, meta):
+    return (1, 1, 1)
 
 
 @SymbolicGridFn
@@ -828,13 +866,16 @@ def sparse_mask_block_pos_grid(actual_blocks, meta, *, min, max):
 
 
 flex_attention_template = _wrap_upstream_template(
-    _upstream_flex_attention_template
+    _upstream_flex_attention_template,
+    "fwd_main",
 )
 flex_attention_backward_template = _wrap_upstream_template(
-    _upstream_flex_attention_backward_template
+    _upstream_flex_attention_backward_template,
+    "bwd_main",
 )
 flex_decoding_template = _wrap_upstream_template(
-    _upstream_flex_decoding_template
+    _upstream_flex_decoding_template,
+    "fwd_decode",
 )
 
 _FWD_MASK_OUT_SOURCE = (
@@ -849,6 +890,17 @@ flex_attention_fwd_mask_out = NPUTritonTemplate(
     name="flex_attention_fwd_mask_out",
     grid=flex_attention_in_loop_grid,
     source=_FWD_MASK_OUT_SOURCE,
+    npu_extra_name="fwd_main",
+    compile_options=_FWD_COMPILE_OPTIONS,
+)
+
+# Runtime forward dispatch uses the same ABI and grid as the primary kernel,
+# but compiles a variant with HAS_FULL_BLOCKS disabled for all-sparse masks.
+flex_attention_fwd_mask_out_all_sparse = NPUTritonTemplate(
+    name="flex_attention_fwd_mask_out_all_sparse",
+    grid=flex_attention_in_loop_grid,
+    source=_FWD_MASK_OUT_SOURCE,
+    npu_extra_name="fwd_sparse",
     compile_options=_FWD_COMPILE_OPTIONS,
 )
 
@@ -856,24 +908,43 @@ flex_attention_compact_offsets = NPUTritonTemplate(
     name="flex_attention_compact_offsets",
     grid=compact_offsets_grid,
     source=compute_compact_sparse_mask_offsets_kernel,
+    npu_extra_name="mask_offsets",
 )
 
 flex_attention_compact_mapping = NPUTritonTemplate(
     name="flex_attention_compact_mapping",
     grid=compact_mapping_grid,
     source=compute_compact_sparse_mask_mapping_kernel,
+    npu_extra_name="mask_mapping",
 )
 
 flex_attention_fwd_mask_compact = NPUTritonTemplate(
     name="flex_attention_fwd_mask_compact",
     grid=compact_sparse_mask_grid,
     source=compute_sparse_mask_kernel_compact,
+    npu_extra_name="fwd_compact",
+)
+
+flex_attention_fwd_workspace_offsets = NPUTritonTemplate(
+    name="flex_attention_fwd_workspace_offsets",
+    grid=fwd_workspace_offsets_grid,
+    source=compute_fwd_workspace_offsets,
+    npu_extra_name="fwd_ws_offsets",
+    manual_output_buffer="arg_Q_OFFSETS",
+)
+
+flex_attention_fwd_workspace_mask_compact = NPUTritonTemplate(
+    name="flex_attention_fwd_workspace_mask_compact",
+    grid=compact_sparse_mask_grid,
+    source=compute_fwd_workspace_mask_compact,
+    npu_extra_name="fwd_ws_compact",
 )
 
 flex_attention_bwd_mask_compact = NPUTritonTemplate(
     name="flex_attention_bwd_mask_compact",
     grid=compact_sparse_mask_grid,
     source=compute_bwd_sparse_mask_kernel_compact,
+    npu_extra_name="bwd_compact",
     manual_output_buffer="arg_SPARSE_MASK",
 )
 
@@ -881,6 +952,7 @@ flex_attention_bwd_mask_pos = NPUTritonTemplate(
     name="flex_attention_bwd_mask_pos",
     grid=sparse_mask_block_pos_grid,
     source=compute_sparse_mask_block_pos_kernel,
+    npu_extra_name="bwd_mask_pos",
 )
 
 
@@ -908,7 +980,6 @@ flex_attention_backward_qmajor_dq_source = r"""
 
     ZQ = {{size("Q", 0)}}
     HQ = {{size("Q", 1)}}
-    HKV = {{size("K", 1)}}
     Q_LEN = {{size("Q", 2)}}
     ZKV = {{size("K", 0)}}
     KV_LEN = {{size("K", 2)}}
@@ -959,10 +1030,8 @@ flex_attention_backward_qmajor_dq_source = r"""
         sparse_q_block = q_block // SPARSE_Q_MULTIPLE
         offs_m = q_start + tl.arange(0, BLOCK_M2)
 
-        q_base = Q + stride_qz * off_zq + stride_qh * off_hq
         k_base = K + stride_kz * off_zkv + stride_kh * off_hkv
         v_base = V + stride_vz * off_zkv + stride_vh * off_hkv
-        do_base = DO + stride_doz * off_zq + stride_doh * off_hq
         dq_base = DQ + stride_dqz * off_zq + stride_dqh * off_hq
         off_chz = ((off_zq * HQ + off_hq) * Q_LEN).to(INDEX_DTYPE)
         lse_base = LSE + off_chz
@@ -995,7 +1064,6 @@ flex_attention_backward_qmajor_dq_source = r"""
             + sparse_h * stride_kv_idx_h
             + sparse_q_block * stride_kv_idx_m
         )
-{% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
         stride_q_offsets_z = {{stride("Q_OFFSETS", 0)}}
         stride_q_offsets_h = {{stride("Q_OFFSETS", 1)}}
         stride_q_offsets_q = {{stride("Q_OFFSETS", 2)}}
@@ -1005,7 +1073,6 @@ flex_attention_backward_qmajor_dq_source = r"""
             + sparse_q_block * stride_q_offsets_q
         )
         q_offset_base = tl.load(arg_Q_OFFSETS + q_offsets_idx)
-{% endif %}
 
         kv_num_blocks = tl.load(arg_KV_NUM_BLKS + kv_num_offset)
         for kv_work_pos in range(0, kv_num_blocks * SPARSE_KV_MULTIPLE):
@@ -1031,9 +1098,6 @@ flex_attention_backward_qmajor_dq_source = r"""
             if not PRESCALE_QK:
                 qk *= SM_SCALE
 
-            m = get_bounded_indices(offs_m[:, None], Q_LEN if (not IS_DIVISIBLE or not SAFE_HEAD_DIM) else None)
-            n = get_bounded_indices(offs_n[None, :], KV_LEN if (not IS_DIVISIBLE or not SAFE_HEAD_DIM) else None)
-{% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
             flat_blk = q_offset_base + blk_pos
             offs_m_local = offs_m[:, None] - sparse_q_block * SPARSE_Q_BLOCK_SIZE
             offs_n_local = offs_n[None, :] - kv_sparse_idx * SPARSE_KV_BLOCK_SIZE
@@ -1041,54 +1105,11 @@ flex_attention_backward_qmajor_dq_source = r"""
             mask_mod_output = tl.load(
                 arg_SPARSE_MASK + flat_blk * SPARSE_MASK_STRIDE_BLK + mask_offsets
             )
-{% else %}
-            {{ modification(
-                subgraph_number=2,
-                output_name="mask_mod_output",
-                score="qk",
-                b="off_zq",
-                h="off_hq",
-                m="m",
-                n="n",
-            ) | indent_except_first(3) }}
-            mask_mod_output = mask_mod_output & (offs_m[:, None] < Q_LEN) & (offs_n[None, :] < KV_LEN)
-{% endif %}
-{% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
             qk = tl.where(mask_mod_output, qk, float("-inf"))
             p = tl.math.exp(qk - lse[:, None])
-{% else %}
-            pre_mod_scores = qk
-            {{ modification(
-                subgraph_number=0,
-                output_name="post_mod_scores",
-                score="qk",
-                b="off_zq",
-                h="off_hq",
-                m="m",
-                n="n",
-                out="qk",
-            ) | indent_except_first(3) }}
-            post_mod_scores = tl.where(mask_mod_output & (offs_n[None, :] < KV_LEN), post_mod_scores, float("-inf"))
-            p = tl.math.exp(post_mod_scores - lse[:, None])
-{% endif %}
             dp = tl.dot(do, tl.trans(v), input_precision="ieee")
             ds = p * (dp - Di[:, None])
-{% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
             dq += tl.dot(ds.to(MATMUL_PRECISION), k, input_precision="ieee")
-{% else %}
-            {{ modification(
-                subgraph_number=1,
-                output_name="grad_scores",
-                score="pre_mod_scores",
-                b="off_zq",
-                h="off_hq",
-                m="m",
-                n="n",
-                grad_score_mod="ds",
-            ) | indent_except_first(3) }}
-            grad_scores = tl.where(mask_mod_output, grad_scores, 0.0)
-            dq += tl.dot(grad_scores.to(MATMUL_PRECISION), k, input_precision="ieee")
-{% endif %}
 
         if HAS_FULL_BLOCKS:
             full_kv_num_offset = (
@@ -1125,57 +1146,12 @@ flex_attention_backward_qmajor_dq_source = r"""
                 if not PRESCALE_QK:
                     qk *= SM_SCALE
 
-                m = get_bounded_indices(offs_m[:, None], Q_LEN if (not IS_DIVISIBLE or not SAFE_HEAD_DIM) else None)
-                n = get_bounded_indices(offs_n[None, :], KV_LEN if (not IS_DIVISIBLE or not SAFE_HEAD_DIM) else None)
-{% if not TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
-                {{ modification(
-                    subgraph_number=2,
-                    output_name="mask_mod_output",
-                    score="qk",
-                    b="off_zq",
-                    h="off_hq",
-                    m="m",
-                    n="n",
-                ) | indent_except_first(4) }}
-                mask_mod_output = mask_mod_output & (offs_m[:, None] < Q_LEN) & (offs_n[None, :] < KV_LEN)
-{% endif %}
-{% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
                 # full block don't need
                 # qk = tl.where(offs_n[None, :] < KV_LEN, qk, float("-inf"))
                 p = tl.math.exp(qk - lse[:, None])
-{% else %}
-                pre_mod_scores = qk
-                {{ modification(
-                    subgraph_number=0,
-                    output_name="post_mod_scores",
-                    score="qk",
-                    b="off_zq",
-                    h="off_hq",
-                    m="m",
-                    n="n",
-                    out="qk",
-                ) | indent_except_first(4) }}
-                post_mod_scores = tl.where(mask_mod_output, post_mod_scores, float("-inf"))
-                p = tl.math.exp(post_mod_scores - lse[:, None])
-{% endif %}
                 dp = tl.dot(do, tl.trans(v), input_precision="ieee")
                 ds = p * (dp - Di[:, None])
-{% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
                 dq += tl.dot(ds.to(MATMUL_PRECISION), k, input_precision="ieee")
-{% else %}
-                {{ modification(
-                    subgraph_number=1,
-                    output_name="grad_scores",
-                    score="pre_mod_scores",
-                    b="off_zq",
-                    h="off_hq",
-                    m="m",
-                    n="n",
-                    grad_score_mod="ds",
-                ) | indent_except_first(4) }}
-                grad_scores = tl.where(mask_mod_output, grad_scores, 0.0)
-                dq += tl.dot(grad_scores.to(MATMUL_PRECISION), k, input_precision="ieee")
-{% endif %}
 
         dq *= SM_SCALE
         index_m = offs_m[:, None]
@@ -1186,9 +1162,6 @@ flex_attention_backward_qmajor_dq_source = r"""
             dq_mask = (index_m < Q_LEN) & (index_k < QK_HEAD_DIM)
         tl.store(dq_base + index_m * stride_dqm + index_k * stride_dqd, dq, mask=dq_mask)
 
-@triton.jit
-def get_bounded_indices(indices, max_len=None):
-    return indices % max_len if max_len is not None else indices
 """
 
 
@@ -1329,11 +1302,10 @@ flex_attention_backward_dkdv_only_source = r"""
                     {{gen_argdefs()}},
                     Q1, DO1, DK, DELTA1, LSE1, DV1,
                     k, v, Q_LEN, KV_LEN,
-                    off_zq, off_hq1, off_hkv, offs_n1, offs_m1, q_start, q_block, pid_mask, offs_k, offs_v,
+                    off_zq, off_hq1, off_hkv, offs_n1, offs_m1, q_block, pid_mask, offs_k, offs_v,
                     stride_qm, stride_qd, stride_dom, stride_dod,
                     stride_dvm, stride_dvd, stride_kz, stride_kh, stride_kn, stride_kd,
                     MATMUL_PRECISION,
-                    False, CHECK_BLOCK_BOUNDARY=not IS_DIVISIBLE,
                 )
 
             if HAS_FULL_BLOCKS:
@@ -1348,40 +1320,25 @@ flex_attention_backward_dkdv_only_source = r"""
                     q_block = tl.load(q_indices + blk_idx_in_list)
                     q_start = q_block * SPARSE_Q_BLOCK_SIZE + (start_m % SPARSE_Q_MULTIPLE) * BLOCK_M1
                     offs_m1 = q_start + tl.arange(0, BLOCK_M1)
-{% if not PRESCALE_QK %}
                     bwd_dkdv_full_block_mn(
                         {{gen_argdefs()}},
                         Q1, DO1, DK, DELTA1, LSE1, DV1,
                         k, v, Q_LEN, KV_LEN,
-                        off_zq, off_hq1, off_hkv, offs_n1, offs_m1, q_start, offs_k, offs_v,
+                        off_zq, off_hq1, off_hkv, offs_n1, offs_m1, offs_k, offs_v,
                         stride_qm, stride_qd, stride_dom, stride_dod,
                         stride_dvm, stride_dvd, stride_kz, stride_kh, stride_kn, stride_kd,
                         MATMUL_PRECISION,
-                        CHECK_BLOCK_BOUNDARY=False,
                     )
-{% else %}
-                    bwd_dkdv_block_mn(
-                        {{gen_argdefs()}},
-                        Q1, DO1, DK, DELTA1, LSE1, DV1,
-                        k, v, Q_LEN, KV_LEN,
-                        off_zq, off_hq1, off_hkv, offs_n1, offs_m1, q_start, q_block, pid_mask, offs_k, offs_v,
-                        stride_qm, stride_qd, stride_dom, stride_dod,
-                        stride_dvm, stride_dvd, stride_kz, stride_kh, stride_kn, stride_kd,
-                        MATMUL_PRECISION,
-                        True, CHECK_BLOCK_BOUNDARY=not IS_DIVISIBLE,
-                    )
-{% endif %}
 
 @triton.jit
 def bwd_dkdv_block_mn(
     {{gen_argdefs()}},
     Q, DO, DK, DELTA, LSE, DV,
     k, v, Q_LEN, KV_LEN,
-    off_z, off_hq, off_hkv, offs_n1, offs_m1, start_m1, q_sparse_idx, kv_sparse_idx, offs_k, offs_v,
+    off_z, off_hq, off_hkv, offs_n1, offs_m1, q_sparse_idx, kv_sparse_idx, offs_k, offs_v,
     stride_qm, stride_qd, stride_dom, stride_dod,
     stride_dvm, stride_dvd, stride_kz, stride_kh, stride_kn, stride_kd,
     MATMUL_PRECISION,
-    IS_FULL_BLOCKS, CHECK_BLOCK_BOUNDARY=False,
 ):
     {{gen_defines() | indent_except_first(1) }}
     qT = tl.load(
@@ -1397,80 +1354,35 @@ def bwd_dkdv_block_mn(
     qkT = tl.dot(qT, tl.trans(k), input_precision="ieee")
     if not PRESCALE_QK:
         qkT *= SM_SCALE
-    m = get_bounded_indices(offs_m1[:, None], Q_LEN if CHECK_BLOCK_BOUNDARY else None)
-    n = get_bounded_indices(offs_n1[None, :], KV_LEN if (not IS_DIVISIBLE or CHECK_BLOCK_BOUNDARY) else None)
 
-{% if not TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
-    pre_mod_scores = qkT
-    {{ modification(
-        subgraph_number=0,
-        output_name="post_mod_scores",
-        score="qkT",
-        b="off_z",
-        h="off_hq",
-        m="m",
-        n="n",
-        out="qkT"
-    ) | indent_except_first(1) }}
+    sparse_z_count = {{size("KV_NUM_BLKS", 0)}}
+    sparse_h_count = {{size("KV_NUM_BLKS", 1)}}
+    sparse_idx_z = off_z % sparse_z_count
+    sparse_h = off_hq % sparse_h_count
+    q_sparse_start = q_sparse_idx * SPARSE_Q_BLOCK_SIZE
+    block_pos_offset = (
+        sparse_idx_z * {{stride("SPARSE_MASK_BLOCK_POS", 0)}}
+        + sparse_h * {{stride("SPARSE_MASK_BLOCK_POS", 1)}}
+        + q_sparse_idx * {{stride("SPARSE_MASK_BLOCK_POS", 2)}}
+        + kv_sparse_idx * {{stride("SPARSE_MASK_BLOCK_POS", 3)}}
+    )
+    partial_block_idx = tl.load(
+        arg_SPARSE_MASK_BLOCK_POS + block_pos_offset
+    )
+    safe_partial_block_idx = tl.maximum(partial_block_idx, 0)
 
-    if CHECK_BLOCK_BOUNDARY:
-        post_mod_scores = tl.where(offs_n1[None, :] < KV_LEN, post_mod_scores, float("-inf"))
-{% endif %}
+    offs_m_local = offs_m1[:, None] - q_sparse_start
+    offs_n_local = offs_n1[None, :] - kv_sparse_idx * SPARSE_KV_BLOCK_SIZE
+    mask_base = (
+        arg_SPARSE_MASK
+        + safe_partial_block_idx * SPARSE_MASK_STRIDE_BLK
+    )
+    mask_offsets = offs_m_local * SPARSE_MASK_STRIDE_M + offs_n_local
+    mask_mod_output = tl.load(mask_base + mask_offsets)
+    mask_mod_output = mask_mod_output & (partial_block_idx >= 0)
+    qkT = tl.where(mask_mod_output, qkT, float("-inf"))
 
-    if not IS_FULL_BLOCKS:
-{% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
-        sparse_z_count = {{size("KV_NUM_BLKS", 0)}}
-        sparse_h_count = {{size("KV_NUM_BLKS", 1)}}
-        sparse_idx_z = off_z % sparse_z_count
-        sparse_h = off_hq % sparse_h_count
-        q_sparse_start = q_sparse_idx * SPARSE_Q_BLOCK_SIZE
-        block_pos_offset = (
-            sparse_idx_z * {{stride("SPARSE_MASK_BLOCK_POS", 0)}}
-            + sparse_h * {{stride("SPARSE_MASK_BLOCK_POS", 1)}}
-            + q_sparse_idx * {{stride("SPARSE_MASK_BLOCK_POS", 2)}}
-            + kv_sparse_idx * {{stride("SPARSE_MASK_BLOCK_POS", 3)}}
-        )
-        partial_block_idx = tl.load(
-            arg_SPARSE_MASK_BLOCK_POS + block_pos_offset
-        )
-        safe_partial_block_idx = tl.maximum(partial_block_idx, 0)
-
-        offs_m_local = offs_m1[:, None] - q_sparse_start
-        offs_n_local = offs_n1[None, :] - kv_sparse_idx * SPARSE_KV_BLOCK_SIZE
-        mask_base = (
-            arg_SPARSE_MASK
-            + safe_partial_block_idx * SPARSE_MASK_STRIDE_BLK
-        )
-        mask_offsets = offs_m_local * SPARSE_MASK_STRIDE_M + offs_n_local
-        mask_mod_output = tl.load(mask_base + mask_offsets)
-        mask_mod_output = mask_mod_output & (partial_block_idx >= 0)
-{% else %}
-        {{ modification(
-            subgraph_number=2,
-            output_name="mask_mod_output",
-            score="qkT",
-            b="off_z",
-            h="off_hq",
-            m="m",
-            n="n",
-        ) | indent_except_first(2) }}
-        mask_mod_output = mask_mod_output & (offs_m1[:, None] < Q_LEN) & (offs_n1[None, :] < KV_LEN)
-{% endif %}
-{% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
-        qkT = tl.where(mask_mod_output, qkT, float("-inf"))
-{% else %}
-        post_mod_scores = tl.where(
-            mask_mod_output,
-            post_mod_scores,
-            float("-inf"),
-        )
-{% endif %}
-
-{% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
     pT = tl.math.exp(qkT - lse[:, None]).to(MATMUL_PRECISION)
-{% else %}
-    pT = tl.math.exp(post_mod_scores - lse[:, None])
-{% endif %}
     do = tl.load(
         DO + offs_m1[:, None] * stride_dom + offs_v[None, :] * stride_dod,
         mask=(offs_m1[:, None] < Q_LEN) & (offs_v[None, :] < V_HEAD_DIM),
@@ -1491,44 +1403,6 @@ def bwd_dkdv_block_mn(
         Di = tl.load(DELTA + offs_m1, mask=offs_m1 < Q_LEN, other=0.0)
     dpT = tl.dot(do, tl.trans(v), input_precision="ieee")
     dsT = (pT * (dpT - Di[:, None])).to(MATMUL_PRECISION)
-{% if not TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
-    {{ modification(
-        subgraph_number=1,
-        output_name="grad_scores",
-        score="pre_mod_scores",
-        b="off_z",
-        h="off_hq",
-        m="m",
-        n="n",
-        grad_score_mod="dsT"
-    ) | indent_except_first(1) }}
-{% endif %}
-
-{% if RUN_CAPTURED_GRADS %}
-    idx_b = off_z
-    idx_h = off_hq
-    idx_m = m
-    idx_n = n
-    scatter_mask = (offs_m1[:, None] < Q_LEN) & (offs_n1[None, :] < KV_LEN)
-    {{ modification(
-        subgraph_number=3,
-        output_name=None,
-        mask="scatter_mask",
-        score="pre_mod_scores",
-        b="idx_b",
-        h="idx_h",
-        m="idx_m",
-        n="idx_n",
-        grad_score_mod="dsT"
-    ) | indent_except_first(1) }}
-{% endif %}
-
-{% if not TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
-    dsT = grad_scores
-    if not IS_FULL_BLOCKS:
-        dsT = tl.where(mask_mod_output, dsT, 0.0)
-    dsT = tl.where(offs_m1[:, None] < Q_LEN, dsT, 0.0)
-{% endif %}
 
     index_k = offs_k[None, :]
 
@@ -1551,11 +1425,10 @@ def bwd_dkdv_full_block_mn(
     {{gen_argdefs()}},
     Q, DO, DK, DELTA, LSE, DV,
     k, v, Q_LEN, KV_LEN,
-    off_z, off_hq, off_hkv, offs_n1, offs_m1, start_m1, offs_k, offs_v,
+    off_z, off_hq, off_hkv, offs_n1, offs_m1, offs_k, offs_v,
     stride_qm, stride_qd, stride_dom, stride_dod,
     stride_dvm, stride_dvd, stride_kz, stride_kh, stride_kn, stride_kd,
     MATMUL_PRECISION,
-    CHECK_BLOCK_BOUNDARY=False,
 ):
     {{gen_defines() | indent_except_first(1) }}
     qT = tl.load(
@@ -1571,50 +1444,10 @@ def bwd_dkdv_full_block_mn(
     qkT = tl.dot(qT, tl.trans(k), input_precision="ieee")
     if not PRESCALE_QK:
         qkT *= SM_SCALE
-    m = get_bounded_indices(offs_m1[:, None], Q_LEN if CHECK_BLOCK_BOUNDARY else None)
-    n = get_bounded_indices(offs_n1[None, :], KV_LEN if (not IS_DIVISIBLE or CHECK_BLOCK_BOUNDARY) else None)
 
-{% if not TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
-    {{ modification(
-            subgraph_number=2,
-            output_name="mask_mod_output",
-            score="qkT",
-            b="off_z",
-            h="off_hq",
-            m="m",
-            n="n",
-        ) | indent_except_first(1) }}
-    mask_mod_output = mask_mod_output & (offs_m1[:, None] < Q_LEN) & (offs_n1[None, :] < KV_LEN)
-{% endif %}
-
-{% if TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
-    if CHECK_BLOCK_BOUNDARY:
-        qkT = tl.where(offs_n1[None, :] < KV_LEN, qkT, float("-inf"))
     pT = tl.math.exp(qkT - lse[:, None])
-{% else %}
-    pre_mod_scores = qkT
-    {{ modification(
-        subgraph_number=0,
-        output_name="post_mod_scores",
-        score="qkT",
-        b="off_z",
-        h="off_hq",
-        m="m",
-        n="n",
-        out="qkT"
-    ) | indent_except_first(1) }}
-
-    if CHECK_BLOCK_BOUNDARY:
-        post_mod_scores = tl.where(offs_n1[None, :] < KV_LEN, post_mod_scores, float("-inf"))
-
-    post_mod_scores = tl.where(
-        mask_mod_output,
-        post_mod_scores,
-        float("-inf"),
-    )
-
-    pT = tl.math.exp(post_mod_scores - lse[:, None])
-{% endif %}
+    if PRESCALE_QK:
+        pT = pT.to(MATMUL_PRECISION)
     do = tl.load(
         DO + offs_m1[:, None] * stride_dom + offs_v[None, :] * stride_dod,
         mask=(offs_m1[:, None] < Q_LEN) & (offs_v[None, :] < V_HEAD_DIM),
@@ -1635,43 +1468,6 @@ def bwd_dkdv_full_block_mn(
         Di = tl.load(DELTA + offs_m1, mask=offs_m1 < Q_LEN, other=0.0)
     dpT = tl.dot(do, tl.trans(v), input_precision="ieee")
     dsT = (pT * (dpT - Di[:, None])).to(MATMUL_PRECISION)
-{% if not TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
-    {{ modification(
-        subgraph_number=1,
-        output_name="grad_scores",
-        score="pre_mod_scores",
-        b="off_z",
-        h="off_hq",
-        m="m",
-        n="n",
-        grad_score_mod="dsT"
-    ) | indent_except_first(1) }}
-{% endif %}
-
-{% if RUN_CAPTURED_GRADS %}
-    idx_b = off_z
-    idx_h = off_hq
-    idx_m = m
-    idx_n = n
-    scatter_mask = (offs_m1[:, None] < Q_LEN) & (offs_n1[None, :] < KV_LEN)
-    {{ modification(
-        subgraph_number=3,
-        output_name=None,
-        mask="scatter_mask",
-        score="pre_mod_scores",
-        b="idx_b",
-        h="idx_h",
-        m="idx_m",
-        n="idx_n",
-        grad_score_mod="dsT"
-    ) | indent_except_first(1) }}
-{% endif %}
-
-{% if not TORCHINDUCTOR_FLEXATTENTION_MASKOUT %}
-    dsT = grad_scores
-    dsT = tl.where(mask_mod_output, dsT, 0.0)
-    dsT = tl.where(offs_m1[:, None] < Q_LEN, dsT, 0.0)
-{% endif %}
     index_k = offs_k[None, :]
 
     dk = tl.dot(tl.trans(dsT).to(MATMUL_PRECISION), qT, input_precision="ieee")
@@ -1687,11 +1483,6 @@ def bwd_dkdv_full_block_mn(
         dk.shape,
     )
     tl.atomic_add(dk_ptrs, dk, mask=dk_mask)
-
-
-@triton.jit
-def get_bounded_indices(indices, max_len=None):
-    return indices % max_len if max_len is not None else indices
 """
 
 _FLEX_ATTENTION_BACKWARD_DKDV_HELPERS_MARKER = (
@@ -1837,11 +1628,10 @@ flex_attention_backward_dkdv_tasklist_source = (
                     Q1, DO1, DK, DELTA1, LSE1, DV_OUT,
                     k, v, Q_LEN, KV_LEN,
                     off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
-                    q_start, q_block, pid_mask, offs_k, offs_v,
+                    q_block, pid_mask, offs_k, offs_v,
                     stride_qm, stride_qd, stride_dom, stride_dod,
                     stride_dvm, stride_dvd, stride_kz, stride_kh,
                     stride_kn, stride_kd, MATMUL_PRECISION,
-                    False, CHECK_BLOCK_BOUNDARY=not IS_DIVISIBLE,
                 )
 {% else %}
                 if is_split == 0:
@@ -1850,11 +1640,10 @@ flex_attention_backward_dkdv_tasklist_source = (
                         Q1, DO1, DK, DELTA1, LSE1, DV_DIRECT,
                         k, v, Q_LEN, KV_LEN,
                         off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
-                        q_start, q_block, pid_mask, offs_k, offs_v,
+                        q_block, pid_mask, offs_k, offs_v,
                         stride_qm, stride_qd, stride_dom, stride_dod,
                         stride_dvm, stride_dvd, stride_kz, stride_kh,
                         stride_kn, stride_kd, MATMUL_PRECISION,
-                        False, CHECK_BLOCK_BOUNDARY=not IS_DIVISIBLE,
                     )
                 else:
                     bwd_dkdv_block_mn(
@@ -1862,11 +1651,10 @@ flex_attention_backward_dkdv_tasklist_source = (
                         Q1, DO1, DK_SPLIT, DELTA1, LSE1, DV_SPLIT,
                         k, v, Q_LEN, KV_LEN,
                         off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
-                        q_start, q_block, pid_mask, offs_k, offs_v,
+                        q_block, pid_mask, offs_k, offs_v,
                         stride_qm, stride_qd, stride_dom, stride_dod,
                         stride_dvm, stride_dvd, stride_kz, stride_kh,
                         stride_kn, stride_kd, MATMUL_PRECISION,
-                        False, CHECK_BLOCK_BOUNDARY=not IS_DIVISIBLE,
                     )
 {% endif %}
 
@@ -1906,18 +1694,16 @@ flex_attention_backward_dkdv_tasklist_source = (
                         + (start_m % SPARSE_Q_MULTIPLE) * BLOCK_M1
                     )
                     offs_m1 = q_start + tl.arange(0, BLOCK_M1)
-{% if not PRESCALE_QK %}
 {% if TASKLIST_NO_SPLIT %}
                     bwd_dkdv_full_block_mn(
                         {{gen_argdefs()}},
                         Q1, DO1, DK, DELTA1, LSE1, DV_OUT,
                         k, v, Q_LEN, KV_LEN,
                         off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
-                        q_start, offs_k, offs_v,
+                        offs_k, offs_v,
                         stride_qm, stride_qd, stride_dom, stride_dod,
                         stride_dvm, stride_dvd, stride_kz, stride_kh,
                         stride_kn, stride_kd, MATMUL_PRECISION,
-                        CHECK_BLOCK_BOUNDARY=False,
                     )
 {% else %}
                     if is_split == 0:
@@ -1926,11 +1712,10 @@ flex_attention_backward_dkdv_tasklist_source = (
                             Q1, DO1, DK, DELTA1, LSE1, DV_DIRECT,
                             k, v, Q_LEN, KV_LEN,
                             off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
-                            q_start, offs_k, offs_v,
+                            offs_k, offs_v,
                             stride_qm, stride_qd, stride_dom, stride_dod,
                             stride_dvm, stride_dvd, stride_kz, stride_kh,
                             stride_kn, stride_kd, MATMUL_PRECISION,
-                            CHECK_BLOCK_BOUNDARY=False,
                         )
                     else:
                         bwd_dkdv_full_block_mn(
@@ -1938,52 +1723,11 @@ flex_attention_backward_dkdv_tasklist_source = (
                             Q1, DO1, DK_SPLIT, DELTA1, LSE1, DV_SPLIT,
                             k, v, Q_LEN, KV_LEN,
                             off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
-                            q_start, offs_k, offs_v,
+                            offs_k, offs_v,
                             stride_qm, stride_qd, stride_dom, stride_dod,
                             stride_dvm, stride_dvd, stride_kz, stride_kh,
                             stride_kn, stride_kd, MATMUL_PRECISION,
-                            CHECK_BLOCK_BOUNDARY=False,
                         )
-{% endif %}
-{% else %}
-{% if TASKLIST_NO_SPLIT %}
-                    bwd_dkdv_block_mn(
-                        {{gen_argdefs()}},
-                        Q1, DO1, DK, DELTA1, LSE1, DV_OUT,
-                        k, v, Q_LEN, KV_LEN,
-                        off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
-                        q_start, q_block, pid_mask, offs_k, offs_v,
-                        stride_qm, stride_qd, stride_dom, stride_dod,
-                        stride_dvm, stride_dvd, stride_kz, stride_kh,
-                        stride_kn, stride_kd, MATMUL_PRECISION,
-                        True, CHECK_BLOCK_BOUNDARY=not IS_DIVISIBLE,
-                    )
-{% else %}
-                    if is_split == 0:
-                        bwd_dkdv_block_mn(
-                            {{gen_argdefs()}},
-                            Q1, DO1, DK, DELTA1, LSE1, DV_DIRECT,
-                            k, v, Q_LEN, KV_LEN,
-                            off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
-                            q_start, q_block, pid_mask, offs_k, offs_v,
-                            stride_qm, stride_qd, stride_dom, stride_dod,
-                            stride_dvm, stride_dvd, stride_kz, stride_kh,
-                            stride_kn, stride_kd, MATMUL_PRECISION,
-                            True, CHECK_BLOCK_BOUNDARY=not IS_DIVISIBLE,
-                        )
-                    else:
-                        bwd_dkdv_block_mn(
-                            {{gen_argdefs()}},
-                            Q1, DO1, DK_SPLIT, DELTA1, LSE1, DV_SPLIT,
-                            k, v, Q_LEN, KV_LEN,
-                            off_zq, off_hq1, off_hkv, offs_n1, offs_m1,
-                            q_start, q_block, pid_mask, offs_k, offs_v,
-                            stride_qm, stride_qd, stride_dom, stride_dod,
-                            stride_dvm, stride_dvd, stride_kz, stride_kh,
-                            stride_kn, stride_kd, MATMUL_PRECISION,
-                            True, CHECK_BLOCK_BOUNDARY=not IS_DIVISIBLE,
-                        )
-{% endif %}
 {% endif %}
 """
     + _FLEX_ATTENTION_BACKWARD_DKDV_HELPERS_SOURCE
@@ -2057,6 +1801,7 @@ flex_attention_bwd_dq_mask_out = NPUTritonTemplate(
     name="flex_attention_bwd_dq_mask_out",
     grid=flex_attention_backward_dq_grid,
     source=flex_attention_backward_qmajor_dq_source,
+    npu_extra_name="bwd_dq",
     compile_options=_BWD_DQ_COMPILE_OPTIONS,
 )
 
@@ -2064,6 +1809,7 @@ flex_attention_bwd_dkdv_mask_out = NPUTritonTemplate(
     name="flex_attention_bwd_dkdv_mask_out",
     grid=flex_attention_backward_dkdv_grid,
     source=flex_attention_backward_dkdv_only_source,
+    npu_extra_name="bwd_dkdv",
     compile_options=_BWD_DKDV_COMPILE_OPTIONS,
 )
 
@@ -2071,6 +1817,7 @@ flex_attention_bwd_dkdv_tasklist = NPUTritonTemplate(
     name="flex_attention_bwd_dkdv_tasklist",
     grid=flex_attention_backward_dkdv_grid,
     source=flex_attention_backward_dkdv_tasklist_source,
+    npu_extra_name="bwd_tasklist",
     compile_options=_BWD_DKDV_COMPILE_OPTIONS,
 )
 
@@ -2078,6 +1825,7 @@ flex_attention_bwd_dkdv_tasklist_no_split = NPUTritonTemplate(
     name="flex_attention_bwd_dkdv_tasklist_no_split",
     grid=flex_attention_backward_dkdv_grid,
     source=flex_attention_backward_dkdv_tasklist_source,
+    npu_extra_name="bwd_task_nosplit",
     compile_options=_BWD_DKDV_COMPILE_OPTIONS,
 )
 
@@ -2085,5 +1833,6 @@ flex_attention_bwd_dkdv_reduce = NPUTritonTemplate(
     name="flex_attention_bwd_dkdv_reduce",
     grid=flex_attention_backward_dkdv_grid,
     source=flex_attention_backward_dkdv_reduce_source,
+    npu_extra_name="bwd_reduce",
     compile_options=_BWD_DKDV_COMPILE_OPTIONS,
 )

@@ -108,7 +108,6 @@ def _load_dvm_backend():
     if has_triton:
         from torch.nn.attention import flex_attention
 
-        from . import config as npu_config
         from .kernel import (
             _register_npu_inductor_flex_attention,
             _validate_device,
@@ -117,10 +116,10 @@ def _load_dvm_backend():
 
         # Use the existing NPU Triton FlexAttention templates under the DVM
         # backend.  The MLIR wrapper does not yet implement the mask-out
-        # task-list dispatcher, so keep the fused mask-in template path.
+        # task-list dispatcher; the lowering detects DVM and keeps the fused
+        # mask-in template path automatically.
         patch_flex_attention()
         flex_attention._validate_device = _validate_device
-        npu_config.flex_attention.flexattention_mask_out = False
 
         _apply_common_npu_triton_patches()
         _register_npu_inductor_flex_attention()
