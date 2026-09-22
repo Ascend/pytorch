@@ -12,6 +12,14 @@ on:
         type: string
         default: ''
         description: Short SHA of torch_npu (from _build.yml outputs)
+      wheels_tarball:
+        required: true
+        type: string
+        description: >-
+          Full content-addressed wheels tarball name from the build job
+          output (wheels-<upstream_short>-npu-<torch_npu_short>-py<ver>-
+          <image_tag>-<arch>.tar.gz). Passed down to the collect and test
+          jobs for OBS download.
       case_paths_config:
         required: false
         type: string
@@ -80,6 +88,7 @@ jobs:
     secrets: inherit
     with:
       resolved_short: ${{ inputs.resolved_short }}
+      wheels_tarball: ${{ inputs.wheels_tarball }}
       case_paths_config: ${{ inputs.case_paths_config }}
       docker_image: ${{ inputs.docker_image }}
       hw_classification: ${{ inputs.hw_classification }}
@@ -102,6 +111,7 @@ jobs:
     secrets: inherit
     with:
       resolved_short: ${{ inputs.resolved_short }}
+      wheels_tarball: ${{ inputs.wheels_tarball }}
       category: ${{ matrix.category }}
       num_shards: ${{ matrix.num_shards }}
       matrix_json: ${{ matrix.matrix_json }}

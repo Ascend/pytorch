@@ -26,7 +26,7 @@ on:
         type: string
         description: >-
           Full content-addressed wheels tarball name from the build job
-          output (pins upstream SHA, torch_npu SHA, CANN, Python, image tag,
+          output (pins upstream SHA, torch_npu SHA, Python, image tag,
           arch). Passed down to the collect and test jobs for OBS download.
           Required — a locally computed fallback would collide with the PR
           CI wheels key space in the same OBS bucket.

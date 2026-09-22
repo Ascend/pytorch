@@ -68,17 +68,15 @@ env:
   REPRO_PAIR_SUSPECT: '10857-10858'    # suspect pair (clamp_min + clone: ForeachMaximumList chain)
   REPRO_PAIR_CONTROL: '10859-10860'    # control pair (cos + cosh)
   REPRO_ALLOW_CORE_PATTERN: 'true'     # allow writing /proc/sys/kernel/core_pattern (restored in the final step)
-  # Wheels/source source selection: nightly runs publish wheels AND source
-  # ONLY to OBS under content-addressed names (see _nightly_build.yml):
-  #   wheels-<upstream_short>-npu-<npu_short>-cann<x.y.z>-py<x.y>-<image_tag>-<arch>.tar.gz
+  # Wheels/source are published ONLY to OBS (both nightly and PR CI runs)
+  # under content-addressed names:
+  #   wheels-<upstream_short>-npu-<npu_short>-py<ver>-<image_tag>-<arch>.tar.gz
   #   pytorch-source-<upstream_short>.tar.gz
-  # To replay a NIGHTLY run, copy both names from that run's build log
-  # summary into the two vars below — set BOTH together: the wheels name
-  # embeds the upstream SHA, and mixing a source tarball from a different
-  # commit than the wheels would test the wrong code. Leave them empty to
-  # keep the original behavior of pulling the GHA artifacts of
-  # REPRO_SOURCE_RUN_ID (PR CI runs still publish packages-pytorch-* /
-  # pytorch-source-* artifacts).
+  # Copy both names from the source run's build log summary into the two
+  # vars below — set BOTH together: the wheels name embeds the upstream
+  # SHA, and mixing a source tarball from a different commit than the
+  # wheels would test the wrong code. cases-shards still comes from the
+  # GHA artifacts of REPRO_SOURCE_RUN_ID.
   REPRO_WHEELS_TARBALL: ''
   REPRO_SOURCE_TARBALL: ''
 
@@ -124,12 +122,11 @@ jobs:
           # would shadow the installed torch_npu wheel (no torch_npu._C).
           path: ci-scripts
 
-      # OBS mode (nightly runs): download the content-addressed tarballs
-      # directly. The wheels tarball is extracted in place so the shared
-      # "Extract source and install wheels" step below works unchanged for
-      # both modes (downloads/*.whl + downloads/pytorch-source-*.tar.gz).
-      - name: Download wheels and source from OBS (if configured)
-        if: ${{ env.REPRO_WHEELS_TARBALL != '' || env.REPRO_SOURCE_TARBALL != '' }}
+      # Wheels/source come from OBS only (no GHA artifacts for them in any
+      # pipeline). The wheels tarball is extracted in place so the shared
+      # "Extract source and install wheels" step below works unchanged
+      # (downloads/*.whl + downloads/pytorch-source-*.tar.gz).
+      - name: Download wheels and source from OBS
         env:
           WHEELS_TARBALL: ${{ env.REPRO_WHEELS_TARBALL }}
           SOURCE_TARBALL: ${{ env.REPRO_SOURCE_TARBALL }}
@@ -138,7 +135,7 @@ jobs:
           mkdir -p downloads/
 
           for TARBALL in "${WHEELS_TARBALL}" "${SOURCE_TARBALL}"; do
-            [ -z "${TARBALL}" ] && continue
+            [ -z "${TARBALL}" ] && { echo "ERROR: REPRO_WHEELS_TARBALL/REPRO_SOURCE_TARBALL must both be set (copy them from the source run's build log summary)"; exit 1; }
             for attempt in 1 2; do
               echo "=== Download attempt ${attempt}: ${TARBALL} ==="
               if obsutil cp "obs://pytorch-ci-cache/7day-cache/${TARBALL}" "downloads/${TARBALL}" -vlength; then
@@ -151,31 +148,9 @@ jobs:
             done
           done
 
-          if [ -n "${WHEELS_TARBALL}" ]; then
-            tar -xzf "downloads/${WHEELS_TARBALL}" -C downloads/
-            rm "downloads/${WHEELS_TARBALL}"
-          fi
+          tar -xzf "downloads/${WHEELS_TARBALL}" -C downloads/
+          rm "downloads/${WHEELS_TARBALL}"
           ls -lh downloads/ | head -20
-
-      - name: Download wheels from source run
-        if: ${{ env.REPRO_WHEELS_TARBALL == '' }}
-        uses: actions/download-artifact@v4
-        with:
-          run-id: ${{ env.REPRO_SOURCE_RUN_ID }}
-          github-token: ${{ github.token }}
-          pattern: packages-pytorch-*
-          path: downloads/
-          merge-multiple: true
-
-      - name: Download pytorch source from source run
-        if: ${{ env.REPRO_SOURCE_TARBALL == '' }}
-        uses: actions/download-artifact@v4
-        with:
-          run-id: ${{ env.REPRO_SOURCE_RUN_ID }}
-          github-token: ${{ github.token }}
-          pattern: pytorch-source-*
-          path: downloads/
-          merge-multiple: true
 
       - name: Download cases shards from source run
         uses: actions/download-artifact@v4

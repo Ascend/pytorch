@@ -21,8 +21,10 @@ on:
 env:
   OBS_ENDPOINT: obs.ap-southeast-1.myhuaweicloud.com
   OBS_COVERAGE_PREFIX: obs://pytorch-ci-cache/coverage/pytorch
-  # 注意：runs-on / container.image / with.* 字段不支持 env 上下文，
-  # 镜像地址在下方三处内联硬编码（修改镜像时需同步三处）
+  # 镜像完整地址。注意：runs-on / container.image / with.* 字段不支持 env
+  # 上下文，需在下方三处内联硬编码（修改镜像时需同步三处）；run 步骤
+  # （pick 探测）从这里读取 tag 用于 wheels 内容寻址命名（第四处，需同步）
+  DOCKER_IMAGE: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-20260910200430-202609140905-0ba22e2b
 
 jobs:
   # Resolve pytorch commit: full SHA (for building) + short SHA (for tarball names)
@@ -82,27 +84,47 @@ jobs:
     steps:
       - name: Probe OBS cache for built artifacts
         id: probe
+        env:
+          DOCKER_IMAGE: ${{ env.DOCKER_IMAGE }}
         run: |
           set -euo pipefail
           obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${{ env.OBS_ENDPOINT }}
 
           ARCH=$(uname -m)
           PYVER=$(python3 -c "import sys; print(f'py{sys.version_info.major}{sys.version_info.minor}')")
+          IMAGE_TAG="${DOCKER_IMAGE##*:}"
           SHORT="${{ needs.resolve.outputs.short }}"
+
+          # torch_npu master HEAD at probe time — the wheels tarball name
+          # embeds it (content-addressed, same convention as _build.yml).
+          # On a cache miss the coverage job uses the build job's actual
+          # wheels_tarball output instead, so a master-HEAD race between
+          # probe and build cannot produce a stale name.
+          NPU_SHA=$(curl -sf "https://api.github.com/repos/Ascend/pytorch/commits/master" \
+            | python3 -c "import json,sys; print(json.load(sys.stdin)['sha'])" || true)
+          NPU_SHORT="${NPU_SHA:0:10}"
+
           SRC="obs://pytorch-ci-cache/7day-cache/pytorch-source-${SHORT}.tar.gz"
-          WHL="obs://pytorch-ci-cache/7day-cache/wheels-${SHORT}-${PYVER}-${ARCH}.tar.gz"
+          if [ -n "${NPU_SHORT}" ]; then
+            WHEELS_NAME="wheels-${SHORT}-npu-${NPU_SHORT}-${PYVER}-${IMAGE_TAG}-${ARCH}.tar.gz"
+            WHL="obs://pytorch-ci-cache/7day-cache/${WHEELS_NAME}"
+          else
+            WHEELS_NAME=""
+            WHL=""
+            echo "WARN: cannot resolve torch_npu master HEAD, treating as cache miss"
+          fi
 
           echo "Probing cache:"
           echo "  ${SRC}"
-          echo "  ${WHL}"
-          if obsutil ls "${SRC}" >/dev/null 2>&1 && obsutil ls "${WHL}" >/dev/null 2>&1; then
+          echo "  ${WHL:-<unresolved>}"
+          if [ -n "${WHL}" ] && obsutil ls "${SRC}" >/dev/null 2>&1 && obsutil ls "${WHL}" >/dev/null 2>&1; then
             echo "cache_hit=true" >> "$GITHUB_OUTPUT"
           else
             echo "cache_hit=false" >> "$GITHUB_OUTPUT"
           fi
           echo "short=${SHORT}" >> "$GITHUB_OUTPUT"
           echo "source_tarball=pytorch-source-${SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
-          echo "wheels_tarball=wheels-${SHORT}-${PYVER}-${ARCH}.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "wheels_tarball=${WHEELS_NAME}" >> "$GITHUB_OUTPUT"
 
   build:
     needs: [resolve, pick]
@@ -142,7 +164,11 @@ jobs:
         run: |
           echo "short=${{ needs.pick.outputs.short }}" >> "$GITHUB_OUTPUT"
           echo "source_tarball=${{ needs.pick.outputs.source_tarball }}" >> "$GITHUB_OUTPUT"
-          echo "wheels_tarball=${{ needs.pick.outputs.wheels_tarball }}" >> "$GITHUB_OUTPUT"
+          # Cache hit: the probed name is the one that exists in OBS. Cache
+          # miss: the build job resolved torch_npu HEAD itself, so its output
+          # is authoritative (a master-HEAD race between probe and build
+          # would otherwise leave a stale name here).
+          echo "wheels_tarball=${{ needs.pick.outputs.cache_hit == 'true' && needs.pick.outputs.wheels_tarball || needs.build.outputs.wheels_tarball }}" >> "$GITHUB_OUTPUT"
 
       # obsutil is preinstalled in the test image; 2 retries + resumable download
       - name: Download PyTorch source from OBS

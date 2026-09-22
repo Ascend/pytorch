@@ -7,6 +7,13 @@ on:
         required: true
         type: string
         description: Short SHA of upstream PyTorch (from _build.yml outputs)
+      wheels_tarball:
+        required: true
+        type: string
+        description: >-
+          Full content-addressed wheels tarball name from the build job
+          output (wheels-<upstream_short>-npu-<torch_npu_short>-py<ver>-
+          <image_tag>-<arch>.tar.gz), used for the OBS download.
       category:
         required: true
         type: string
@@ -99,14 +106,14 @@ jobs:
           job-name: ${{ inputs.runner_label }} / test (${{ inputs.category }}, ${{ matrix.shard }}, ${{ inputs.num_shards }}, py3.10)
           max-time: 60
 
-      - name: Compute SHAs
+      - name: Compute tarball names
         id: sha
+        env:
+          WHEELS_TARBALL: ${{ inputs.wheels_tarball }}
         run: |
           UPSTREAM_SHORT="${{ inputs.resolved_short }}"
-          ARCH=$(uname -m)
-          PYVER=$(python3 -c "import sys; print(f'py{sys.version_info.major}{sys.version_info.minor}')")
           echo "source_tarball=pytorch-source-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
-          echo "wheels_tarball=wheels-${UPSTREAM_SHORT}-${PYVER}-${ARCH}.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "wheels_tarball=${WHEELS_TARBALL}" >> "$GITHUB_OUTPUT"
 
       # obsutil is preinstalled in the test image; auth is done inline
       # via `obsutil config` (AK/SK are masked by the runner in logs).

@@ -21,10 +21,8 @@ on:
         type: string
         description: >-
           Full content-addressed wheels tarball name from the build job
-          output. Required on purpose: the legacy name computed locally
-          (wheels-<upstream>-<pyver>-<arch>.tar.gz) collides with the PR CI
-          key space in the same OBS bucket, and a silent fallback could
-          install wheels built from a different torch_npu revision.
+          output (wheels-<upstream_short>-npu-<torch_npu_short>-py<ver>-
+          <image_tag>-<arch>.tar.gz), used for the OBS download.
       category:
         required: true
         type: string

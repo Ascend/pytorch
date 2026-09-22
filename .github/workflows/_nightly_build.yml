@@ -61,9 +61,9 @@ on:
       wheels_tarball:
         description: >-
           Content-addressed wheels tarball name pinning every input that can
-          change the wheels: upstream PyTorch SHA, torch_npu SHA, CANN
-          version, Python version, full build image tag and architecture.
-          Passed to the test jobs for OBS download.
+          change the wheels: upstream PyTorch SHA, torch_npu SHA, Python
+          version, full build image tag (which carries the CANN version) and
+          architecture. Passed to the test jobs for OBS download.
         value: ${{ jobs.pytorch_and_torch-npu_build.outputs.wheels_tarball }}
 
 jobs:
@@ -293,9 +293,12 @@ jobs:
 
       # Step 1b: Compute the content-addressed wheels tarball name. The key
       # pins every input that can change the wheels: upstream PyTorch
-      # commit, torch_npu commit, CANN version, Python version, the full
-      # build image tag and the architecture. Same key => byte-identical
-      # wheels, so OBS objects can be reused across pipelines safely.
+      # commit, torch_npu commit, Python version, the full build image tag
+      # and the architecture (the image tag itself carries the CANN
+      # version). Same key => byte-identical wheels, so OBS objects can be
+      # reused across pipelines safely. Same convention as the PR CI
+      # _build.yml, so receive-triggered and nightly builds share one key
+      # space per input tuple.
       - name: Compute wheels tarball name
         id: wheels_name
         env:
@@ -310,24 +313,7 @@ jobs:
           # torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609141214-9b737f59
           IMAGE_TAG="${DOCKER_IMAGE##*:}"
 
-          # CANN version from the image tag (e.g. cann9.2.0); fall back to
-          # the CANN install inside the container when the tag omits it.
-          # Build and test jobs run the same image, so the fallback resolves
-          # identically on both sides.
-          CANN_VER=$(echo "${IMAGE_TAG}" | grep -oE 'cann[0-9]+(\.[0-9]+)+' | head -1 || true)
-          if [ -z "${CANN_VER}" ] && [ -f /usr/local/Ascend/cann/version.info ]; then
-            CANN_RT=$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+' /usr/local/Ascend/cann/version.info | head -1 || true)
-            [ -n "${CANN_RT}" ] && CANN_VER="cann${CANN_RT}"
-          fi
-          if [ -z "${CANN_VER}" ]; then
-            CANN_RT=$(basename "$(readlink -f /usr/local/Ascend/ascend-toolkit/latest 2>/dev/null)" 2>/dev/null || true)
-            if [[ "${CANN_RT}" =~ ^[0-9]+(\.[0-9]+)+$ ]]; then
-              CANN_VER="cann${CANN_RT}"
-            fi
-          fi
-          [ -z "${CANN_VER}" ] && CANN_VER="cann-unknown"
-
-          TARBALL="wheels-${UPSTREAM_SHORT}-npu-${TORCH_NPU_SHORT}-${CANN_VER}-${PYVER}-${IMAGE_TAG}-${ARCH}.tar.gz"
+          TARBALL="wheels-${UPSTREAM_SHORT}-npu-${TORCH_NPU_SHORT}-${PYVER}-${IMAGE_TAG}-${ARCH}.tar.gz"
           echo "wheels_tarball=${TARBALL}" >> "$GITHUB_OUTPUT"
           echo "Wheels tarball: ${TARBALL}"
 

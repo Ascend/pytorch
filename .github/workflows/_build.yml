@@ -53,6 +53,13 @@ on:
       torch_npu_short:
         description: Short SHA (first 10 chars) of torch_npu
         value: ${{ jobs.pytorch_and_torch-npu_build.outputs.torch_npu_short }}
+      wheels_tarball:
+        description: >-
+          Content-addressed wheels tarball name (same convention as the
+          nightly build): wheels-<upstream_short>-npu-<torch_npu_short>-
+          py<ver>-<image_tag>-<arch>.tar.gz. Passed to the test jobs for
+          OBS download.
+        value: ${{ jobs.pytorch_and_torch-npu_build.outputs.wheels_tarball }}
 
 jobs:
   # ======================================================================
@@ -110,12 +117,8 @@ jobs:
           echo "Package size: $(du -h ${TARBALL} | cut -f1)"
           echo "TARBALL=${TARBALL}" >> "$GITHUB_ENV"
 
-      - name: Upload PyTorch source as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.TARBALL }}
-          path: ./${{ env.TARBALL }}
-          retention-days: 7
+      # The source tarball goes to OBS ONLY — no GHA artifact upload (the
+      # self-hosted build/test jobs download from OBS).
 
       # obsutil is not preinstalled on GitHub-hosted runners; install it
       # the same way the CI container images do (mirrors .ci/docker/
@@ -215,6 +218,7 @@ jobs:
     outputs:
       torch_npu_sha: ${{ steps.resolve_torch_npu_sha.outputs.sha }}
       torch_npu_short: ${{ steps.resolve_torch_npu_sha.outputs.short }}
+      wheels_tarball: ${{ steps.wheels_name.outputs.wheels_tarball }}
     container:
       image: ${{ inputs.docker_image }}
       options: --network host
@@ -254,11 +258,8 @@ jobs:
         id: sha
         run: |
           UPSTREAM_SHORT="${{ needs.fetch.outputs.resolved_short }}"
-          ARCH=$(uname -m)
-          PYVER=$(python3 -c "import sys; print(f'py{sys.version_info.major}{sys.version_info.minor}')")
           echo "upstream_short=${UPSTREAM_SHORT}" >> "$GITHUB_OUTPUT"
           echo "source_tarball=pytorch-source-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
-          echo "wheels_tarball=wheels-${UPSTREAM_SHORT}-${PYVER}-${ARCH}.tar.gz" >> "$GITHUB_OUTPUT"
 
       - name: Download PyTorch source from OBS
         run: |
@@ -383,6 +384,26 @@ jobs:
           echo "short=${SHA:0:10}" >> "$GITHUB_OUTPUT"
           echo "torch_npu commit: ${SHA}"
 
+      # Step 3a: Compute the content-addressed wheels tarball name (same
+      # convention as the nightly build): upstream SHA + torch_npu SHA +
+      # Python version + full build image tag + arch. No OBS cache probe
+      # here on purpose: this pipeline is triggered by upstream PR merges,
+      # so the code is always fresh and the content-addressed wheels
+      # almost never exist beforehand.
+      - name: Compute wheels tarball name
+        id: wheels_name
+        env:
+          DOCKER_IMAGE: ${{ inputs.docker_image }}
+          UPSTREAM_SHORT: ${{ needs.fetch.outputs.resolved_short }}
+          TORCH_NPU_SHORT: ${{ steps.resolve_torch_npu_sha.outputs.short }}
+        run: |
+          ARCH=$(uname -m)
+          PYVER=$(python3 -c "import sys; print(f'py{sys.version_info.major}{sys.version_info.minor}')")
+          IMAGE_TAG="${DOCKER_IMAGE##*:}"
+          TARBALL="wheels-${UPSTREAM_SHORT}-npu-${TORCH_NPU_SHORT}-${PYVER}-${IMAGE_TAG}-${ARCH}.tar.gz"
+          echo "wheels_tarball=${TARBALL}" >> "$GITHUB_OUTPUT"
+          echo "Wheels tarball: ${TARBALL}"
+
       # Step 4: Build and install torch_npu
       - name: Build and install torch_npu
         id: build_torchnpu
@@ -414,10 +435,12 @@ jobs:
           echo "path=${wheel}" >> "$GITHUB_OUTPUT"
           echo "name=$(basename ${wheel})" >> "$GITHUB_OUTPUT"
 
-      # Step 5: Package and upload wheel artifacts
+      # Step 5: Package and upload wheel artifacts (OBS only — no GHA
+      # artifact for wheels; the GHA copy previously uploaded as
+      # packages-pytorch-* is intentionally dropped)
       - name: Package wheels into tarball
         run: |
-          TARBALL="${{ steps.sha.outputs.wheels_tarball }}"
+          TARBALL="${{ steps.wheels_name.outputs.wheels_tarball }}"
           tar -czf "${TARBALL}" -C /tmp/wheels .
           echo "Wheels tarball size: $(du -h ${TARBALL} | cut -f1)"
 
@@ -432,7 +455,7 @@ jobs:
         run: |
           obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
 
-          TARBALL="${{ steps.sha.outputs.wheels_tarball }}"
+          TARBALL="${{ steps.wheels_name.outputs.wheels_tarball }}"
           for attempt in 1 2; do
             echo "=== Upload attempt ${attempt} ==="
             if obsutil cp "./${TARBALL}" "obs://pytorch-ci-cache/7day-cache/${TARBALL}" -f -vlength; then
@@ -444,14 +467,6 @@ jobs:
           done
           echo "Upload failed after 2 attempts"
           exit 1
-
-      - name: Upload wheel artifacts
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: packages-pytorch-${{ steps.sha.outputs.upstream_short }}
-          path: /tmp/wheels/*.whl
-          retention-days: 7
 
       # Step 6: Upload build artifacts (always, for debugging failures)
       - name: Upload build artifacts
