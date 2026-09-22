@@ -1,0 +1,37 @@
+name: PyTorch Coverage Nightly
+on:
+  schedule:
+    - cron: '0 19 * * *'  # UTC 19:00 = Beijing 03:00, daily
+  workflow_dispatch:
+    inputs:
+      resolved_short:
+        description: 'Built pytorch commit short SHA (first 10 chars). Empty = resolve latest commit of upstream_ref'
+        required: false
+        default: ''
+        type: string
+      upstream_ref:
+        description: 'pytorch/pytorch ref (used when resolved_short is empty)'
+        required: false
+        default: 'main'
+        type: string
+      categories:
+        description: 'Comma-separated categories to run (e.g. core,tensor). Empty = all 5 categories'
+        required: false
+        default: ''
+        type: string
+
+concurrency:
+  group: pytorch-coverage-nightly
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  coverage:
+    uses: Ascend/pytorch/.github/workflows/_pytorch_coverage.yml@ci-test
+    secrets: inherit
+    with:
+      resolved_short: ${{ inputs.resolved_short }}
+      upstream_ref: ${{ inputs.upstream_ref }}
+      categories: ${{ inputs.categories }}
