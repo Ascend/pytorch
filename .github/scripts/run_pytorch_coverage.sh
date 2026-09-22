@@ -2,13 +2,16 @@
 set -euo pipefail
 
 # run_pytorch_coverage.sh - PyTorch source coverage collection.
-# Called only by .github/workflows/pytorch_coverage_nightly.yml. Runs the
-# pr_test_whitelist.yml test files on the pytorch source tree and collects
+# Called only by .github/workflows/pytorch_coverage_nightly.yml. Runs the PR
+# trigger case set (receive-trigger.yml): pr_test_whitelist.yml files, filtered
+# by hw_classification and minus the pr_skip_list.jsonl nodeids, and collects
 # coverage of the installed torch python sources.
 #
 # Usage:
 #   ./run_pytorch_coverage.sh --test-dir <pytorch>/test \
-#                            [--category c1,c2] [--timeout <seconds>]
+#                            [--category c1,c2] [--timeout <seconds>] \
+#                            [--skip-list <path>] \
+#                            [--hw-classification ACCELERATOR]
 # Env:
 #   OUT_ROOT    output root for all artifacts (default <repo root>/outputs)
 #   PYTHON_BIN  python interpreter (default python)
@@ -23,10 +26,12 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 config_file="${repo_root}/.github/config/pr_test_whitelist.yml"
+skip_list_file="${repo_root}/.github/config/pr_skip_list.jsonl"
 category_filter=""
 test_dir="${GITHUB_WORKSPACE:-${repo_root}}/pytorch/test"
 source_pkg="torch"
 device_env="privateuse1"
+hw_classification="ACCELERATOR"
 timeout_seconds=600
 python_bin="${PYTHON_BIN:-python}"
 
@@ -35,6 +40,8 @@ while [ "$#" -gt 0 ]; do
     --category) category_filter="$2"; shift 2 ;;
     --test-dir) test_dir="$2";        shift 2 ;;
     --timeout)  timeout_seconds="$2"; shift 2 ;;
+    --skip-list) skip_list_file="$2"; shift 2 ;;
+    --hw-classification) hw_classification="$2"; shift 2 ;;
     -*) echo "Unknown option: $1" >&2; exit 2 ;;
     *)  echo "Unexpected positional argument: $1 (targets come from ${config_file})" >&2; exit 2 ;;
   esac
@@ -100,7 +107,35 @@ if [ "${#targets[@]}" -eq 0 ]; then
 fi
 
 echo "=== Targets: ${#targets[@]} file(s) from ${config_file} ==="
-echo "=== test-dir: ${test_dir}  source: ${source_pkg}  device-env: ${device_env} ==="
+echo "=== test-dir: ${test_dir}  source: ${source_pkg}  device-env: ${device_env}  hw-classification: ${hw_classification} ==="
+
+skips_tsv=""
+if [ -n "${skip_list_file}" ] && [ -f "${skip_list_file}" ]; then
+  skips_tsv="$(mktemp)"
+  python3 - "${skip_list_file}" > "${skips_tsv}" <<'PYEOF'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as fh:
+    for line in fh:
+        line = line.strip()
+        if not line or not line.startswith("{"):
+            continue
+        try:
+            obj = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        nodeid = obj.get("nodeid", "")
+        if not nodeid:
+            continue
+        if nodeid.startswith("test/"):
+            nodeid = nodeid[5:]
+        print(f"{nodeid.split('::', 1)[0]}\t{nodeid}")
+PYEOF
+  echo "=== Skip list: $(wc -l < "${skips_tsv}") nodeid(s) from ${skip_list_file} ==="
+else
+  echo "WARNING: skip list not found: ${skip_list_file}, no case filtering applied" >&2
+fi
 
 test_results=()
 failed_logs=()
@@ -195,6 +230,28 @@ run_test_target() {
   log_file="${log_dir}/${test_index}-${flat}.log"
   echo "=== [${category}] Running target: ${file} ==="
 
+  local -a skipped_nodeids=()
+  if [ -n "${skips_tsv}" ]; then
+    mapfile -t skipped_nodeids < <(awk -F'\t' -v f="${file#test/}" '$1 == f {print $2}' "${skips_tsv}")
+  fi
+
+  # conftest.py declares --hw-classification with nargs="+", so it must come
+  # after the test file path and before the option-only --deselect tail.
+  local -a pytest_args=(-m pytest "${file#test/}")
+  if [ -n "${hw_classification}" ]; then
+    pytest_args+=(--hw-classification "${hw_classification}")
+  fi
+  if [ "${#skipped_nodeids[@]}" -gt 0 ]; then
+    echo "  Skipping ${#skipped_nodeids[@]} known-failing case(s) via pytest --deselect"
+    local nid
+    for nid in "${skipped_nodeids[@]}"; do
+      pytest_args+=(--deselect "${nid}")
+    done
+  fi
+
+  local -a run_cmd=("${python_bin}" -u -m coverage run --source="${source_pkg}" --branch)
+  run_cmd+=("${pytest_args[@]}")
+
   # cd into the test dir first (same cwd convention as upstream run_test.py);
   # -u keeps logs streaming
   local script='cd "$1"; shift; exec "$@"'
@@ -203,17 +260,27 @@ run_test_target() {
   setup_coverage "${flat}"
   setup_env "${file}"
   run_logged_command "${log_file}" bash -c "${script}" _ "${test_dir}" \
-    timeout --kill-after=30 "${timeout_seconds}" \
-    "${python_bin}" -u -m coverage run --source="${source_pkg}" --branch "${file#test/}"
+    timeout --kill-after=30 "${timeout_seconds}" "${run_cmd[@]}"
   status=$?
   set -e
+
+  # pytest exit 5 = nothing selected: expected when hw_classification drops every
+  # case of a file, and the PR trigger pipeline collects nothing there either.
+  local no_cases=0
+  if [ "${status}" -eq 5 ]; then
+    echo "  No case selected (hw_classification='${hw_classification}' / all nodeids deselected), not a failure"
+    no_cases=1
+    status=0
+  fi
 
   # FAILED marker lets downstream drop incomplete coverage of failed tests
   if [ "${status}" -ne 0 ]; then
     echo "1" > "$(dirname "${COVERAGE_FILE}")/FAILED"
   fi
 
-  if [ "${status}" -eq 0 ]; then
+  if [ "${no_cases}" -eq 1 ]; then
+    test_results+=( "${category}|${file}|NO_CASES|${log_file}" )
+  elif [ "${status}" -eq 0 ]; then
     test_results+=( "${category}|${file}|PASSED|${log_file}" )
   else
     test_results+=( "${category}|${file}|FAILED|${log_file}" )

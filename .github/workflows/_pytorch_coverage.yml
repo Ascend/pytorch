@@ -218,10 +218,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pytorch-coverage-${{ steps.sha.outputs.short }}
-          path: |
-            coverage-out/torch@latest/coverage.xml
-            coverage-out/torch@latest/.coverage
-            coverage-out/torch@latest/logs/
+          path: coverage-out/torch@latest/
           retention-days: 14
           if-no-files-found: warn
 
