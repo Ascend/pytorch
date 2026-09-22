@@ -38,7 +38,7 @@ jobs:
     with:
       PYTORCH_BRANCH: "release/2.15"
       DOCKER_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609141214-9b737f59"
-      CONTAINER_OPTIONS: "--user root --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
+      CONTAINER_OPTIONS: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
       DISTRIBUTED_MACHINES: "1"
       DISTRIBUTED_2CARD_SHARDS: "2"
       REGULAR_NPU_MACHINES: "7"
@@ -56,7 +56,7 @@ jobs:
       CARDS_PER_TEST: "2"
       PYTORCH_BRANCH: "release/2.15"
       DOCKER_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609141214-9b737f59"
-      CONTAINER_OPTIONS: "--user root --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
+      CONTAINER_OPTIONS: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
       NPU_LABEL: "linux-amd64-a5-2"
 
   test-dist-2card-2:
@@ -70,7 +70,7 @@ jobs:
       CARDS_PER_TEST: "2"
       PYTORCH_BRANCH: "release/2.15"
       DOCKER_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609141214-9b737f59"
-      CONTAINER_OPTIONS: "--user root --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
+      CONTAINER_OPTIONS: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
       NPU_LABEL: "linux-amd64-a5-2"
 
   test-dist:
@@ -84,7 +84,7 @@ jobs:
       CARDS_PER_TEST: "8"
       PYTORCH_BRANCH: "release/2.15"
       DOCKER_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609141214-9b737f59"
-      CONTAINER_OPTIONS: "--user root --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
+      CONTAINER_OPTIONS: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
       NPU_LABEL: "linux-amd64-a5-2"
 
   test-reg-npu-1:
@@ -98,7 +98,7 @@ jobs:
       MAX_WORKERS: "8"
       PYTORCH_BRANCH: "release/2.15"
       DOCKER_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609141214-9b737f59"
-      CONTAINER_OPTIONS: "--user root --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
+      CONTAINER_OPTIONS: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
       NPU_LABEL: "linux-amd64-a5-2"
 
   test-reg-npu-2:
@@ -112,7 +112,7 @@ jobs:
       MAX_WORKERS: "8"
       PYTORCH_BRANCH: "release/2.15"
       DOCKER_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609141214-9b737f59"
-      CONTAINER_OPTIONS: "--user root --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
+      CONTAINER_OPTIONS: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
       NPU_LABEL: "linux-amd64-a5-2"
 
   test-reg-npu-3:
@@ -126,7 +126,7 @@ jobs:
       MAX_WORKERS: "8"
       PYTORCH_BRANCH: "release/2.15"
       DOCKER_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609141214-9b737f59"
-      CONTAINER_OPTIONS: "--user root --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
+      CONTAINER_OPTIONS: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
       NPU_LABEL: "linux-amd64-a5-2"
 
   test-reg-npu-4:
@@ -140,7 +140,7 @@ jobs:
       MAX_WORKERS: "8"
       PYTORCH_BRANCH: "release/2.15"
       DOCKER_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609141214-9b737f59"
-      CONTAINER_OPTIONS: "--user root --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
+      CONTAINER_OPTIONS: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
       NPU_LABEL: "linux-amd64-a5-2"
 
   test-reg-npu-5:
@@ -154,7 +154,7 @@ jobs:
       MAX_WORKERS: "8"
       PYTORCH_BRANCH: "release/2.15"
       DOCKER_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609141214-9b737f59"
-      CONTAINER_OPTIONS: "--user root --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
+      CONTAINER_OPTIONS: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
       NPU_LABEL: "linux-amd64-a5-2"
 
   test-reg-npu-6:
@@ -168,7 +168,7 @@ jobs:
       MAX_WORKERS: "8"
       PYTORCH_BRANCH: "release/2.15"
       DOCKER_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609141214-9b737f59"
-      CONTAINER_OPTIONS: "--user root --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
+      CONTAINER_OPTIONS: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
       NPU_LABEL: "linux-amd64-a5-2"
 
   test-reg-npu-7:
@@ -182,7 +182,7 @@ jobs:
       MAX_WORKERS: "8"
       PYTORCH_BRANCH: "release/2.15"
       DOCKER_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609141214-9b737f59"
-      CONTAINER_OPTIONS: "--user root --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
+      CONTAINER_OPTIONS: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
       NPU_LABEL: "linux-amd64-a5-2"
 
   report:
