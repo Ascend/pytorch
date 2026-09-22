@@ -2,6 +2,12 @@ name: PyTorch Coverage Nightly
 on:
   push:
     branches: [ci-test]  # 临时调试触发器：仅对 ci-test 分支生效，master 不受影响；调试完成后删除本段
+    # Only fire when the coverage pipeline itself changes, so teammates
+    # pushing code commits to ci-test don't trigger full coverage runs.
+    paths:
+      - '.github/workflows/_pytorch_coverage.yml'
+      - '.github/workflows/pytorch_coverage_nightly.yml'
+      - '.github/scripts/run_pytorch_coverage.sh'
   schedule:
     - cron: '0 19 * * *'  # UTC 19:00 = Beijing 03:00, daily
   workflow_dispatch:
