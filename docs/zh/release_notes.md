@@ -126,8 +126,12 @@ TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命
       <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2">在图模式支持输入张量全轴动态（如[-1,-1,-1,-1]）场景下的算子编译，增加图模式在动态shape场景的泛化性和性能。</td>
     </tr>
     <tr>
+      <!-- npu="950" id1 -->
       <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">支持<term>Ascend 950DT</term>款型。</td>
+      <!-- end id1 -->
+      <!-- npu="950" id2 -->
       <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2">将已有的TorchNPU能力在<term>Ascend 950DT</term>中进行适配。</td>
+      <!-- end id2 -->
     </tr>
     <tr>
       <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">将原Ascend Extension for PyTorch和torch_npu统一更名为TorchNPU。</td>
@@ -402,7 +406,9 @@ TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命
 >
 > TorchNPU新增部分API支持及特性支持，具体可参考《[自定义API](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/overview.md)》或《[原生API](../zh/api/native_api/pytorch_2-12-0/overview.md)》。
 
+<!-- npu="950" id5 -->
 ### Ascend 950DT非兼容变更说明
+<!-- end id5 -->
 
 <table>
   <thead align="left">
@@ -414,10 +420,14 @@ TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命
   <tbody>
     <tr>
       <td rowspan="2">TorchNPU</td>
+      <!-- npu="950,A3,910b" id3 -->
       <td>因<term>Ascend 950DT</term>架构变更，部分算子及通信接口发生调整。因此，调用相关API时，需注意<term>Ascend 950DT</term>产品与<term>Atlas A2 训练系列产品</term>/<term>Atlas A3 训练系列产品</term>在接口约束上的差异，具体请参考《<a href="../zh/api/native_api/pytorch_2-12-0/overview.md">原生API</a>》。</td>
+      <!-- end id3 -->
     </tr>
     <tr>
+      <!-- npu="950" id4 -->
       <td><term>Ascend 950DT</term>当前仅支持Inductor后端编译器中的Triton和DVM模式，暂不支持MLIR模式，具体请参考<a href="../zh/user_guide/torch_compile/compilation_backend/inductor.md">Inductor</a>。</td>
+      <!-- end id4 -->
     </tr>
   </tbody>
 </table>
