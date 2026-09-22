@@ -73,6 +73,10 @@ jobs:
   pick:
     needs: [resolve]
     runs-on: linux-aarch64-cpu-24
+    # Container jobs default to sh (dash here), which lacks `set -o pipefail`.
+    defaults:
+      run:
+        shell: bash
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609140905-0ba22e2b
       options: --network host
@@ -149,6 +153,10 @@ jobs:
     if: ${{ always() && (needs.pick.outputs.cache_hit == 'true' || needs.build.result == 'success') }}
     runs-on: linux-aarch64-a3-800i-8-cn12-001
     timeout-minutes: 1440  # 229 test files run serially; allow up to 24h
+    # Container jobs default to sh (dash here); steps use bash arrays/source.
+    defaults:
+      run:
+        shell: bash
     outputs:
       test_status: ${{ steps.run_coverage.outputs.test_status }}
     container:
