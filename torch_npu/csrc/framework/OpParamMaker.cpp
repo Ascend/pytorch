@@ -28,12 +28,12 @@ namespace native {
 
 std::recursive_mutex deterministic_launch_mutex;
 
-struct CachedDeterministicRuntimeState {
+struct ThreadLocalDeterministicState {
   bool valid = false;
-  uint32_t effective_level = 0;
+  uint32_t applied_level = 0;
 };
 
-static std::unordered_map<aclrtContext, CachedDeterministicRuntimeState> deterministic_runtime_cache;
+static thread_local ThreadLocalDeterministicState tls_deterministic_state;
 
 void OpAttrMaker::Set(aclopAttr* attr, const string& name, bool value) {
   aclopSetAttrBool(attr, name.c_str(), value);
@@ -109,15 +109,6 @@ bool IsAclStrongConsistencyExist() {
   return isAclStrongConsistencyExist;
 }
 
-aclrtContext GetCurrentContextForDeterministicCache() {
-  aclrtContext context = nullptr;
-  aclError ret = aclrtGetCurrentContext(&context);
-  if (ret != ACL_ERROR_NONE) {
-    return nullptr;
-  }
-  return context;
-}
-
 void ApplyLegacyDeterministicSnapshotLocked(
     const c10_npu::DeterministicSnapshot& snapshot,
     bool isOpapi,
@@ -147,14 +138,6 @@ void ApplyLegacyDeterministicSnapshotLocked(
 }
 
 void ApplyDeterministicSnapshotLocked(const c10_npu::DeterministicSnapshot& snapshot, bool isOpapi) {
-  auto context = GetCurrentContextForDeterministicCache();
-  auto& cached_state = deterministic_runtime_cache[context];
-  if (cached_state.valid && cached_state.effective_level == snapshot.effective_level &&
-      cached_state.effective_level == 0) {
-    return;
-  }
-  cached_state.effective_level = snapshot.effective_level;
-  cached_state.valid = true;
   int64_t cur_level = 0;
   NPU_CHECK_ERROR(AclrtGetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, &cur_level));
   if (snapshot.backend == c10_npu::DeterministicBackend::V2) {
@@ -177,16 +160,21 @@ aclError RunWithDeterministicSnapshot(
     const c10_npu::DeterministicSnapshot& snapshot,
     bool isOpapi,
     LaunchFunc&& launch) {
-  {
-    std::lock_guard<std::recursive_mutex> lock(deterministic_launch_mutex);
-    ApplyDeterministicSnapshotLocked(snapshot, isOpapi);
-  }
+  ApplyDeterministicSnapshot(snapshot, isOpapi);
   return launch();
 }
 
 void ApplyDeterministicSnapshot(const c10_npu::DeterministicSnapshot& snapshot, bool isOpapi) {
-  std::lock_guard<std::recursive_mutex> lock(deterministic_launch_mutex);
-  ApplyDeterministicSnapshotLocked(snapshot, isOpapi);
+  if (tls_deterministic_state.valid && tls_deterministic_state.applied_level == snapshot.effective_level &&
+      tls_deterministic_state.applied_level == 0) {
+    return;
+  }
+  {
+    std::lock_guard<std::recursive_mutex> lock(deterministic_launch_mutex);
+    ApplyDeterministicSnapshotLocked(snapshot, isOpapi);
+  }
+  tls_deterministic_state.valid = true;
+  tls_deterministic_state.applied_level = snapshot.effective_level;
 }
 
 void ApplyLegacyDeterministicLevelLocked(const int64_t level, bool isOpapi, int64_t cur_level) {
