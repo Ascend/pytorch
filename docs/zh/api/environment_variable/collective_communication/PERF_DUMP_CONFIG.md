@@ -17,7 +17,7 @@ export PERF_DUMP_CONFIG=enable:true
 
 ## 使用约束
 
-配置为`PERF_DUMP_CONFIG=enable:true`后，若`PERF_DUMP_PATH`为空（默认即空）或不是可解析的real path，collective热路径会抛出错误，该路径必须能通过`realpath`解析。
+配置为`PERF_DUMP_CONFIG=enable:true`后，需同时设置`PERF_DUMP_PATH`为可通过`realpath`解析的目录路径（如`/data/perf_logs`），否则collective热路径会抛出错误。若`PERF_DUMP_PATH`为空或无效路径，请先设置该环境变量。
 
 ## 支持的型号
 

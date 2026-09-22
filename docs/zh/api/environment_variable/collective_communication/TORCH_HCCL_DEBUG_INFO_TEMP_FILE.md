@@ -21,6 +21,7 @@
 export TORCH_HCCL_DEBUG_INFO_TEMP_FILE=/data/hccl_trace_rank_
 ```
 
+
 ## 使用约束
 
 仅当`TORCH_HCCL_TRACE_BUFFER_SIZE > 0`且有dump触发时才会生成文件。

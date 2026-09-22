@@ -2,7 +2,7 @@
 
 ## 简介
 
-本特性可以针对不同的通信域配置不同的HCCL参数。通过pg\_options添加hccl\_config配置，将HCCL配置参数从Python层透过TorchNPU传递到HCCL供使用。
+本特性可以针对不同的通信域配置不同的HCCL参数。通过pg\_options添加hccl\_config配置，将HCCL配置参数从Python层通过TorchNPU传递到HCCL供使用。
 
 ## 使用场景
 

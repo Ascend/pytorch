@@ -4,7 +4,7 @@
 
 当使用HCCL作为通信后端时，通过此环境变量可配置命名管道文件，用于外部触发Flight Recorder dump。该环境变量默认值为空。
 
-- 配置为指定路径：在指定路径创建`<stem><rank>.pipe`命名管道文件。
+- 配置为指定路径（作为文件名前缀）：在指定路径创建`<stem><rank>.pipe`命名管道文件，其中`<stem>`为该环境变量的值，`<rank>`为本rank序号。例如配置值为`/tmp/hccl_debug_pipe_`时，rank 0创建的管道文件为`/tmp/hccl_debug_pipe_0.pipe`。
 - 未配置或默认配置：不创建管道文件。
 
 向该管道文件写入任意内容，即可触发HCCL debug dump。
@@ -20,7 +20,7 @@
 创建管道：
 
 ```bash
-export TORCH_HCCL_DEBUG_INFO_PIPE_FILE=/tmp/hccl_debug_pipe
+export TORCH_HCCL_DEBUG_INFO_PIPE_FILE=/tmp/hccl_debug_pipe_
 ```
 
 管道文件在被创建后，用户可通过`echo`等命令向管道写入数据触发dump：

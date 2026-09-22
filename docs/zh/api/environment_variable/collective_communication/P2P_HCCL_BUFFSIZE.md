@@ -2,10 +2,10 @@
 
 ## 功能描述
 
-通过此环境变量可配置是否开启点对点通信（torch.distributed.isend、torch.distributed.irecv和torch.distributed.batch\_isend\_irecv），并使用独立通信域功能。
+通过此环境变量可配置点对点通信（torch.distributed.isend、torch.distributed.irecv和torch.distributed.batch\_isend\_irecv）是否使用独立通信域，以及独立通信域的缓冲区大小。
 
-- 配置为0时：关闭点对点通信，使用独立通信域功能。
-- 配置大于等于1时：开启点对点通信，使用独立通信域功能，并且缓冲区大小为配置值。
+- 配置为0时：不使用独立点对点通信域，点对点通信复用默认通信域。
+- 配置大于等于1时：使用独立点对点通信域，缓冲区大小为配置值。
 
 单位为MB，默认配置为20。
 
