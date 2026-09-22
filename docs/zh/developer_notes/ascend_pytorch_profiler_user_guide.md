@@ -9,7 +9,7 @@ Ascend PyTorch调优工具（Ascend PyTorch Profiler）支持性能数据采集�
 | 数据采集             | 可以根据实际需求任意选择下面其中一种采集方式，注意在同一进程中不可同时选用两种以上方式采集。<br>[采集和自动解析](#采集和自动解析)<br>&#8226; [采集并解析性能数据（torch\_npu.profiler.profile）](#采集并解析性能数据（torch\_npu.profiler.profile）)<br>（推荐）提供完整的采集接口，通过手动在代码中添加接口，可以自由选择采集的内容。<br>&#8226; [采集并解析性能数据（dynamic\_profile）](#采集并解析性能数据（dynamic_profile）)<br>（推荐）支持在训练过程中随时启动采集，支持不修改用户代码直接启动采集，采集方式更灵活。 |
 | （可选）扩展采集功能 | 若有其他数据的采集需求，可选用如下功能。<br>[扩展采集功能](#扩展采集功能)<br/>&#8226; [采集并解析mstx数据](#采集并解析mstx数据)<br>&#8226; [采集环境变量信息](#采集环境变量信息)<br>&#8226; [标记性能数据采集过程](#标记性能数据采集过程)<br>&#8226; [显存可视化](#显存可视化)<br>&#8226; [创建Profiler子线程采集](#创建Profiler子线程采集) |
 | （可选）数据解析     | [离线解析](#离线解析)<br>一般情况下数据采集接口在采集时会进行自动解析，因此离线解析适用于对未解析的性能原始数据解析场景。 |
-| 数据分析             | 完成采集和自动解析或离线解析后，可在性能数据目录下查看对应的性能数据文件，具体文件介绍请参见[输出结果文件说明](#输出结果文件说明)，或将性能数据导入到[MindStudio Insight](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/overview.md)工具中分析。 |
+| 数据分析             | 完成采集和自动解析或离线解析后，可在性能数据目录下查看对应的性能数据文件，具体文件介绍请参见[输出结果文件说明](#输出结果文件说明)，或将性能数据导入到[MindStudio Insight](https://gitcode.com/Ascend/msinsight/blob/26.2.0/docs/zh/user_guide/overview.md)工具中分析。 |
 
 ## 简介
 
@@ -63,7 +63,7 @@ Ascend PyTorch Profiler可全面采集PyTorch训练/在线推理场景下的性�
 
 3. 安装框架。
 
-   以安装PyTorch 2.9.0、Python 3.12、系统架构AArch64、torchvision==0.24.0为例，具体请参见《[TorchNPU软件安装](https://gitcode.com/Ascend/pytorch/blob/master/docs/zh/installation_guide/building_from_source.md)》。
+   以安装PyTorch 2.9.0、Python 3.12、系统架构AArch64、torchvision==0.24.0为例，具体请参见《[TorchNPU软件安装](https://gitcode.com/Ascend/pytorch/blob/v2.14.0-26.2.0/docs/zh/installation_guide/building_from_source.md)》。
 
    > [!note]
    >
@@ -714,14 +714,14 @@ Ascend PyTorch Profiler可全面采集PyTorch训练/在线推理场景下的性�
         import torch
         import torch_npu
         ...
-    
+
         # 添加Profiling采集扩展配置参数，详细参数介绍可参考下文的参数说明
         experimental_config = torch_npu.profiler._ExperimentalConfig(
             export_type=torch_npu.profiler.ExportType.Text,
             profiler_level=torch_npu.profiler.ProfilerLevel.Level0,
             aic_metrics=torch_npu.profiler.AiCMetrics.AiCoreNone
         )
-    
+
         # 添加Profiling采集基础配置参数，详细参数介绍可参考下文的参数说明
         prof = torch_npu.profiler.profile(
             activities=[
@@ -733,7 +733,7 @@ Ascend PyTorch Profiler可全面采集PyTorch训练/在线推理场景下的性�
             profile_memory=False,
             with_modules=False,
             experimental_config=experimental_config)
-    
+
         prof.start()    # 启动性能数据采集
         for step in range(steps):    # 训练函数
             train_one_step()    # 训练函数
@@ -765,9 +765,9 @@ Ascend PyTorch Profiler可全面采集PyTorch训练/在线推理场景下的性�
 
     性能数据结果文件详细介绍请参见[输出结果文件说明](#输出结果文件说明)。
 
-    请参见《[MindStudio Insight系统调优](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/system_tuning.md)》将解析后的性能数据文件进行可视化展示和分析。
+    请参见《[MindStudio Insight系统调优](https://gitcode.com/Ascend/msinsight/blob/26.2.0/docs/zh/user_guide/system_tuning.md)》将解析后的性能数据文件进行可视化展示和分析。
 
-    可以使用[性能分析工具（msprof-analyze）](https://gitcode.com/Ascend/msprof-analyze/blob/master/docs/zh/quick_start/msprof-analyze_quick_start.md)辅助分析性能数据。
+    可以使用[性能分析工具（msprof-analyze）](https://gitcode.com/Ascend/msprof-analyze/blob/26.2.0/docs/zh/quick_start/msprof-analyze_quick_start.md)辅助分析性能数据。
 
 ### 采集并解析性能数据（dynamic\_profile）<a id="采集并解析性能数据（dynamic_profile）"></a>
 
@@ -782,7 +782,7 @@ dynamic\_profile动态采集，主要功能是在执行模型训练/在线推理
 - torch_npu.profiler.dynamic_profile.start
 - torch_npu-profiler.dynamic_profile.set_state
 
-详细介绍请参见《[torch_npu.profiler接口列表](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-profiler/torch_npu-profiler_list.md)》。
+详细介绍请参见《[torch_npu.profiler接口列表](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/zh/custom_APIs/torch_npu-profiler/torch_npu-profiler_list.md)》。
 
 **表 1**  动态采集方式说明
 
@@ -835,9 +835,9 @@ dynamic\_profile动态采集，主要功能是在执行模型训练/在线推理
 
     性能数据结果文件详细介绍请参见[输出结果文件说明](#输出结果文件说明)。
 
-    请参见《[MindStudio Insight系统调优](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/system_tuning.md)》将解析后的性能数据文件进行可视化展示和分析。
+    请参见《[MindStudio Insight系统调优](https://gitcode.com/Ascend/msinsight/blob/26.2.0/docs/zh/user_guide/system_tuning.md)》将解析后的性能数据文件进行可视化展示和分析。
 
-    可以使用[性能分析工具（msprof-analyze）](https://gitcode.com/Ascend/msprof-analyze/blob/master/docs/zh/quick_start/msprof-analyze_quick_start.md)辅助分析性能数据。
+    可以使用[性能分析工具（msprof-analyze）](https://gitcode.com/Ascend/msprof-analyze/blob/26.2.0/docs/zh/quick_start/msprof-analyze_quick_start.md)辅助分析性能数据。
 
 **使用示例（修改用户训练/在线推理脚本，添加dynamic_profile接口方式）**<a name="添加dynamic_profile接口方式"></a>
 
@@ -878,9 +878,9 @@ dynamic\_profile动态采集，主要功能是在执行模型训练/在线推理
 
     性能数据结果文件详细介绍请参见[输出结果文件说明](#输出结果文件说明)。
 
-    请参见《[MindStudio Insight系统调优](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/system_tuning.md)》将解析后的性能数据文件进行可视化展示和分析。
+    请参见《[MindStudio Insight系统调优](https://gitcode.com/Ascend/msinsight/blob/26.2.0/docs/zh/user_guide/system_tuning.md)》将解析后的性能数据文件进行可视化展示和分析。
 
-    可以使用[性能分析工具（msprof-analyze）](https://gitcode.com/Ascend/msprof-analyze/blob/master/docs/zh/quick_start/msprof-analyze_quick_start.md)辅助分析性能数据。
+    可以使用[性能分析工具（msprof-analyze）](https://gitcode.com/Ascend/msprof-analyze/blob/26.2.0/docs/zh/quick_start/msprof-analyze_quick_start.md)辅助分析性能数据。
 
 **使用示例（修改用户训练/在线推理脚本，添加dynamic_profile的dp.start()函数方式）**<a name="添加dynamic_profile的dp.start()函数方式"></a>
 
@@ -925,9 +925,9 @@ dynamic\_profile动态采集，主要功能是在执行模型训练/在线推理
 
     性能数据结果文件详细介绍请参见[输出结果文件说明](#输出结果文件说明)。
 
-    请参见《[MindStudio Insight系统调优](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/system_tuning.md)》将解析后的性能数据文件进行可视化展示和分析。
+    请参见《[MindStudio Insight系统调优](https://gitcode.com/Ascend/msinsight/blob/26.2.0/docs/zh/user_guide/system_tuning.md)》将解析后的性能数据文件进行可视化展示和分析。
 
-    可以使用[性能分析工具（msprof-analyze）](https://gitcode.com/Ascend/msprof-analyze/blob/master/docs/zh/quick_start/msprof-analyze_quick_start.md)辅助分析性能数据。
+    可以使用[性能分析工具（msprof-analyze）](https://gitcode.com/Ascend/msprof-analyze/blob/26.2.0/docs/zh/quick_start/msprof-analyze_quick_start.md)辅助分析性能数据。
 
 ## 扩展采集功能<a id="扩展采集功能"></a>
 
@@ -941,11 +941,11 @@ dynamic\_profile动态采集，主要功能是在执行模型训练/在线推理
 
 1. 在PyTorch脚本中添加Ascend PyTorch Profiler接口，并通过[experimental\_config](#experimental参数说明)的`mstx`参数开启自定义打点功能。
 2. （可选）搭配profiler\_level开关设置为Level\_none（可根据实际采集需要，配置对应的level）以及mstx\_domain\_include或mstx\_domain\_exclude的domain过滤属性，采集打点数据。
-3. 在PyTorch脚本中对于想采集的事件调用[torch\_npu.npu.mstx](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/torch_npu-npu_list.md#table17382716193111)系列接口，采集对应事件的耗时。
+3. 在PyTorch脚本中对于想采集的事件调用[torch\_npu.npu.mstx](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/zh/custom_APIs/torch_npu-npu/torch_npu-npu_list.md#table17382716193111)系列接口，采集对应事件的耗时。
 
 **注意事项**
 
-若用户的代码仅涉及纯CPU侧操作，则调用[torch\_npu.npu.mstx](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/torch_npu-npu_list.md#table17382716193111)系列接口时无需传入stream参数；若用户的代码中包含device操作，且需要观察device侧的耗时情况，则需要传入stream参数。
+若用户的代码仅涉及纯CPU侧操作，则调用[torch\_npu.npu.mstx](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/zh/custom_APIs/torch_npu-npu/torch_npu-npu_list.md#table17382716193111)系列接口时无需传入stream参数；若用户的代码中包含device操作，且需要观察device侧的耗时情况，则需要传入stream参数。
 
 **使用示例**
 
@@ -1122,11 +1122,11 @@ mstx功能默认采集通信算子、dataloader耗时、保存检查点接口耗
 - dataloader
 - save\_checkpoint
 
-此外，mstx功能还可以通过**mstx\_torch\_plugin**获取PyTorch模型中的dataloader、forward、step、save\_checkpoint这四个关键阶段的性能数据，详细介绍请参见《[mstx\_torch\_plugin](https://gitcode.com/Ascend/mstt/blob/master/profiler/example/mstx_torch_plugin/README.md)》。
+此外，mstx功能还可以通过**mstx\_torch\_plugin**获取PyTorch模型中的dataloader、forward、step、save\_checkpoint这四个关键阶段的性能数据，详细介绍请参见《[mstx\_torch\_plugin](https://gitcode.com/Ascend/mstt/blob/26.2.0/profiler/example/mstx_torch_plugin/README.md)》。
 
 可以通过该功能查看用户自定义打点从框架侧到CANN层再到NPU侧的执行调度情况，进而帮助识别用户想观察的关键函数或者事件，定界性能问题。
 
-mstx采集结果数据详细介绍请参见[msproftx数据说明](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/user_guide/profile_data_file_references.md#msproftx%E6%95%B0%E6%8D%AE%E8%AF%B4%E6%98%8E)。
+mstx采集结果数据详细介绍请参见[msproftx数据说明](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/zh/user_guide/profile_data_file_references.md#msproftx%E6%95%B0%E6%8D%AE%E8%AF%B4%E6%98%8E)。
 
 ### 采集环境变量信息<a id="采集环境变量信息"></a>
 
@@ -1392,9 +1392,9 @@ if __name__ == "__main__":
 
     性能数据结果文件详细介绍请参见[输出结果文件说明](#输出结果文件说明)。
 
-    请参见《[MindStudio Insight系统调优](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/system_tuning.md)》将解析后的性能数据文件进行可视化展示和分析。
+    请参见《[MindStudio Insight系统调优](https://gitcode.com/Ascend/msinsight/blob/26.2.0/docs/zh/user_guide/system_tuning.md)》将解析后的性能数据文件进行可视化展示和分析。
 
-    可以使用[性能分析工具（msprof-analyze）](https://gitcode.com/Ascend/msprof-analyze/blob/master/docs/zh/quick_start/msprof-analyze_quick_start.md)辅助分析性能数据。
+    可以使用[性能分析工具（msprof-analyze）](https://gitcode.com/Ascend/msprof-analyze/blob/26.2.0/docs/zh/quick_start/msprof-analyze_quick_start.md)辅助分析性能数据。
 
 ## 输出结果文件说明<a id="输出结果文件说明"></a>
 
@@ -1407,9 +1407,9 @@ if __name__ == "__main__":
   > [!NOTE]
   >
   > - PyTorch框架在该场景下输出的性能数据文件基本一致，以下将两种框架数据合并介绍，个别不同会在注释中说明。
-  > - 以下数据文件用户无需打开查看，可使用[MindStudio Insight](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/overview.md)工具进行性能数据的查看和分析。
+  > - 以下数据文件用户无需打开查看，可使用[MindStudio Insight](https://gitcode.com/Ascend/msinsight/blob/26.2.0/docs/zh/user_guide/overview.md)工具进行性能数据的查看和分析。
   > - 若kernel\_details.csv中出现StepID空值，用户可通过trace\_view.json文件查看该算子的Step信息，或重新采集Profiling数据。
-  > - 以下数据是基于实际环境采集，若环境中无对应条件，则不会生成对应数据或文件，如模型无AICPU算子，那么即使执行采集也不会生成对应data\_preprocess.csv文件。
+  > - 以下数据是基于实际环境采集，若环境中无对应条件，则不会生成对应数据或文件，如模型无AI CPU算子，那么即使执行采集也不会生成对应data\_preprocess.csv文件。
 
   ```text
   └── localhost.localdomain_139247_20230628101435_ascend_pt    // 性能数据结果目录，命名格式：{worker_name}_{timestamp}_ascend_{framework}，默认情况下{worker_name}为{hostname}_{pid}，{timestamp}为时间戳，{framework}是PyTorch框架的简写（pt）
@@ -1450,7 +1450,7 @@ if __name__ == "__main__":
 
   Ascend PyTorch Profiler接口将框架侧的数据与CANN Profiling的数据关联整合，形成trace、Kernel以及memory等性能数据文件。保存在ASCEND\_PROFILER\_OUTPUT目录下，包括json和csv格式的[timeline和summary数据](#timeline和summary数据)、[ascend\_pytorch\_profiler\_\{Rank\_ID\}.db数据](#ascend\_pytorch\_profiler\_\{Rank\_ID\}.db数据)、[analysis.db数据](#analysis.db数据)。
 
-  PROF目录下为CANN Profiling采集的性能数据，主要保存在mindstudio\_profiler\_output目录下和msprof\_\*.db文件内，数据介绍请参见[性能数据文件参考](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/user_guide/profile_data_file_references.md)。
+  PROF目录下为CANN Profiling采集的性能数据，主要保存在mindstudio\_profiler\_output目录下和msprof\_\*.db文件内，数据介绍请参见[性能数据文件参考](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/zh/user_guide/profile_data_file_references.md)。
 
 - PyTorch的场景调用export\_chrome\_trace方法时，Ascend PyTorch Profiler接口会将解析的trace数据写入到\*.json文件中，其中\*为文件名，不存在该文件时在指定路径下自动创建。
 
@@ -1500,7 +1500,7 @@ GC执行时，会阻塞当前进程，需要等待GC完成，若GC时间过长�
 
 > [!NOTE]
 >
-> 当配置experimental\_config的aic\_metrics参数时，kernel\_details.csv文件将根据experimental\_config参数的aic\_metrics配置增加对应字段，主要增加内容请参见[experimental\_config参数说明](#experimental_config参数说明)，文件内相关字段详细介绍请参见[op\_summary（算子详细信息)](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/user_guide/profile_data_file_references.md#op_summary%EF%BC%88%E7%AE%97%E5%AD%90%E8%AF%A6%E7%BB%86%E4%BF%A1%E6%81%AF%EF%BC%89)。
+> 当配置experimental\_config的aic\_metrics参数时，kernel\_details.csv文件将根据experimental\_config参数的aic\_metrics配置增加对应字段，主要增加内容请参见[experimental\_config参数说明](#experimental_config参数说明)，文件内相关字段详细介绍请参见[op\_summary（算子详细信息)](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/zh/user_guide/profile_data_file_references.md#op_summary%EF%BC%88%E7%AE%97%E5%AD%90%E8%AF%A6%E7%BB%86%E4%BF%A1%E6%81%AF%EF%BC%89)。
 
 **表 1**  kernel\_details<a name="table1"></a>
 
@@ -1556,7 +1556,7 @@ GC执行时，会阻塞当前进程，需要等待GC完成，若GC时间过长�
 
 > [!NOTE]
 >
-> 若operator\_memory.csv文件中出现负值或空值，详细原因请参见[operator\_memory（CANN算子的内存占用明细）](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/user_guide/profile_data_file_references.md#operator_memory%EF%BC%88cann%E7%AE%97%E5%AD%90%E7%9A%84%E5%86%85%E5%AD%98%E5%8D%A0%E7%94%A8%E6%98%8E%E7%BB%86%EF%BC%89) 的负值空值说明。
+> 若operator\_memory.csv文件中出现负值或空值，详细原因请参见[operator\_memory（CANN算子的内存占用明细）](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/zh/user_guide/profile_data_file_references.md#operator_memory%EF%BC%88cann%E7%AE%97%E5%AD%90%E7%9A%84%E5%86%85%E5%AD%98%E5%8D%A0%E7%94%A8%E6%98%8E%E7%BB%86%EF%BC%89) 的负值空值说明。
 
 **表 3**  operator\_memory<a name="table3"></a>
 
@@ -1641,43 +1641,43 @@ operator\_details.csv文件包含信息如[表5](#table5)所示。
 
 **task\_time.csv**
 
-task\_time.csv文件用于记录AI任务运行时的调度耗时，示例和字段说明以[task_time（任务调度信息）](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/user_guide/profile_data_file_references.md#task_time%EF%BC%88%E4%BB%BB%E5%8A%A1%E8%B0%83%E5%BA%A6%E4%BF%A1%E6%81%AF%EF%BC%89)为参考，实际结果略有不同，请以实际情况为准。
+task\_time.csv文件用于记录AI任务运行时的调度耗时，示例和字段说明以[task_time（任务调度信息）](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/zh/user_guide/profile_data_file_references.md#task_time%EF%BC%88%E4%BB%BB%E5%8A%A1%E8%B0%83%E5%BA%A6%E4%BF%A1%E6%81%AF%EF%BC%89)为参考，实际结果略有不同，请以实际情况为准。
 
 **data\_preprocess.csv**
 
-data\_preprocess.csv文件记录AI CPU数据，示例和字段说明以[aicpu（AI CPU算子详细耗时）](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/user_guide/profile_data_file_references.md#aicpu%EF%BC%88ai-cpu%E7%AE%97%E5%AD%90%E8%AF%A6%E7%BB%86%E8%80%97%E6%97%B6%EF%BC%89)为参考，实际结果略有不同，请以实际情况为准。
+data\_preprocess.csv文件记录AI CPU数据，示例和字段说明以[aicpu（AI CPU算子详细耗时）](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/zh/user_guide/profile_data_file_references.md#aicpu%EF%BC%88ai-cpu%E7%AE%97%E5%AD%90%E8%AF%A6%E7%BB%86%E8%80%97%E6%97%B6%EF%BC%89)为参考，实际结果略有不同，请以实际情况为准。
 
 **l2\_cache.csv**
 
-示例和字段说明以[l2\_cache（L2 Cache命中率）](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/user_guide/profile_data_file_references.md#l2_cache%EF%BC%88l2-cache%E5%91%BD%E4%B8%AD%E7%8E%87%EF%BC%89)为参考，实际结果略有不同，请以实际情况为准。
+示例和字段说明以[l2\_cache（L2 Cache命中率）](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/zh/user_guide/profile_data_file_references.md#l2_cache%EF%BC%88l2-cache%E5%91%BD%E4%B8%AD%E7%8E%87%EF%BC%89)为参考，实际结果略有不同，请以实际情况为准。
 
 **op\_statistic.csv**
 
-示例和字段说明以[op\_statistic（算子调用次数及耗时）](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/user_guide/profile_data_file_references.md#op_statistic%EF%BC%88%E7%AE%97%E5%AD%90%E8%B0%83%E7%94%A8%E6%AC%A1%E6%95%B0%E5%8F%8A%E8%80%97%E6%97%B6%EF%BC%89)为参考，实际结果略有不同，请以实际情况为准。
+示例和字段说明以[op\_statistic（算子调用次数及耗时）](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/zh/user_guide/profile_data_file_references.md#op_statistic%EF%BC%88%E7%AE%97%E5%AD%90%E8%B0%83%E7%94%A8%E6%AC%A1%E6%95%B0%E5%8F%8A%E8%80%97%E6%97%B6%EF%BC%89)为参考，实际结果略有不同，请以实际情况为准。
 
 **api\_statistic.csv**
 
-示例和字段说明以[api\_statistic（API耗时统计信息）](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/user_guide/profile_data_file_references.md#api_statistic%EF%BC%88api%E8%80%97%E6%97%B6%E7%BB%9F%E8%AE%A1%E4%BF%A1%E6%81%AF%EF%BC%89) \> api\_statistic\_\*.csv文件说明为参考，实际结果略有不同，请以实际情况为准。
+示例和字段说明以[api\_statistic（API耗时统计信息）](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/zh/user_guide/profile_data_file_references.md#api_statistic%EF%BC%88api%E8%80%97%E6%97%B6%E7%BB%9F%E8%AE%A1%E4%BF%A1%E6%81%AF%EF%BC%89) \> api\_statistic\_\*.csv文件说明为参考，实际结果略有不同，请以实际情况为准。
 
 **pcie.csv**
 
-示例和字段说明以[pcie（PCIe带宽）](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/user_guide/profile_data_file_references.md#pcie%EF%BC%88pcie%E5%B8%A6%E5%AE%BD%EF%BC%89) \> pcie\_\*.csv文件说明为参考，实际结果略有不同，请以实际情况为准。
+示例和字段说明以[pcie（PCIe带宽）](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/zh/user_guide/profile_data_file_references.md#pcie%EF%BC%88pcie%E5%B8%A6%E5%AE%BD%EF%BC%89) \> pcie\_\*.csv文件说明为参考，实际结果略有不同，请以实际情况为准。
 
 **hccs.csv**
 
-示例和字段说明以[hccs（集合通信带宽）](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/user_guide/profile_data_file_references.md#hccs%EF%BC%88%E9%9B%86%E5%90%88%E9%80%9A%E4%BF%A1%E5%B8%A6%E5%AE%BD%EF%BC%89) \> hccs\_\*.csv文件说明为参考，实际结果略有不同，请以实际情况为准。
+示例和字段说明以[hccs（集合通信带宽）](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/zh/user_guide/profile_data_file_references.md#hccs%EF%BC%88%E9%9B%86%E5%90%88%E9%80%9A%E4%BF%A1%E5%B8%A6%E5%AE%BD%EF%BC%89) \> hccs\_\*.csv文件说明为参考，实际结果略有不同，请以实际情况为准。
 
 **nic.csv**
 
-示例和字段说明以[nic（每个时间节点网络信息）](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/user_guide/profile_data_file_references.md#nic%EF%BC%88%E6%AF%8F%E4%B8%AA%E6%97%B6%E9%97%B4%E8%8A%82%E7%82%B9%E7%BD%91%E7%BB%9C%E4%BF%A1%E6%81%AF%EF%BC%89) \> nic\_\*.csv文件说明为参考，实际结果略有不同，请以实际情况为准。
+示例和字段说明以[nic（每个时间节点网络信息）](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/zh/user_guide/profile_data_file_references.md#nic%EF%BC%88%E6%AF%8F%E4%B8%AA%E6%97%B6%E9%97%B4%E8%8A%82%E7%82%B9%E7%BD%91%E7%BB%9C%E4%BF%A1%E6%81%AF%EF%BC%89) \> nic\_\*.csv文件说明为参考，实际结果略有不同，请以实际情况为准。
 
 **roce.csv**
 
-示例和字段说明以[roce（RoCE通信接口带宽）](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/user_guide/profile_data_file_references.md#roce%EF%BC%88roce%E9%80%9A%E4%BF%A1%E6%8E%A5%E5%8F%A3%E5%B8%A6%E5%AE%BD%EF%BC%89) \> roce\_\*.csv文件说明为参考，实际结果略有不同，请以实际情况为准。
+示例和字段说明以[roce（RoCE通信接口带宽）](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/zh/user_guide/profile_data_file_references.md#roce%EF%BC%88roce%E9%80%9A%E4%BF%A1%E6%8E%A5%E5%8F%A3%E5%B8%A6%E5%AE%BD%EF%BC%89) \> roce\_\*.csv文件说明为参考，实际结果略有不同，请以实际情况为准。
 
 **soc\_pmu.csv**
 
-示例和字段说明以[soc_pmu（TLB命中率）](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/user_guide/profile_data_file_references.md#soc_pmu%EF%BC%88tlb%E5%91%BD%E4%B8%AD%E7%8E%87%EF%BC%89)为参考，实际结果略有不同，请以实际情况为准。
+示例和字段说明以[soc_pmu（TLB命中率）](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/zh/user_guide/profile_data_file_references.md#soc_pmu%EF%BC%88tlb%E5%91%BD%E4%B8%AD%E7%8E%87%EF%BC%89)为参考，实际结果略有不同，请以实际情况为准。
 
 ### ascend\_pytorch\_profiler\_\{Rank\_ID\}.db数据<a id="ascend_pytorch_profiler_{Rank_ID}.db数据"></a>
 
@@ -2037,8 +2037,8 @@ PCIe带宽数据。
 |with_modules|可选|记录modules层级的Python调用栈，即框架层的调用信息，Bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。<br/>开启torch_npu.profiler.ProfilerActivity.CPU时生效。<br/>开启该配置后会引入额外的性能膨胀。|
 |with_flops|可选|记录算子浮点操作（该参数暂不支持解析性能数据）。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。<br/>开启torch_npu.profiler.ProfilerActivity.CPU时生效。|
 |experimental_config|可选|扩展参数，通过扩展配置性能分析工具常用的采集项。支持采集项和详细介绍请参见[experimental_config参数说明](#experimental_config参数说明)。|
-|execution_trace_observer|可选|PyTorch执行轨迹观测器对象。PyTorch执行轨迹以图的形式表示AI/ML工作负载，支持回放基准测试、模拟器和仿真器。当包含此参数时，观测器的start()和stop()方法将在与PyTorch剖析器相同的时间窗口内被调用。<br>调用示例请参见[torch_npu.profiler.profile](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-profiler/torch_npu-profiler-profile.md)。|
-|custom_trace_id_callback|可选|为每一份Profiler数据生成一个trace_id进行标识。<br>调用示例请参见[torch_npu.profiler.profile](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-profiler/torch_npu-profiler-profile.md)。<br>trace_id输出在profiler\_metadata.json文件中。|
+|execution_trace_observer|可选|PyTorch执行轨迹观测器对象。PyTorch执行轨迹以图的形式表示AI/ML工作负载，支持回放基准测试、模拟器和仿真器。当包含此参数时，观测器的start()和stop()方法将在与PyTorch剖析器相同的时间窗口内被调用。<br>调用示例请参见[torch_npu.profiler.profile](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/zh/custom_APIs/torch_npu-profiler/torch_npu-profiler-profile.md)。|
+|custom_trace_id_callback|可选|为每一份Profiler数据生成一个trace_id进行标识。<br>调用示例请参见[torch_npu.profiler.profile](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/zh/custom_APIs/torch_npu-profiler/torch_npu-profiler-profile.md)。<br>trace_id输出在profiler\_metadata.json文件中。|
 
 **表 2**  torch\_npu.profiler.profile和torch\_npu.profiler.\_KinetoProfile方法说明
 
@@ -2134,9 +2134,9 @@ experimental\_config参数均为可选参数，支持扩展的采集项如下：
 
 |参数|说明|
 |--|--|
-|profiler_level|采集的Level等级。取值为：<br/>&#8226; Level_none：不采集所有Level层级控制的数据，即关闭profiler_level。<br/>&#8226; Level0：采集上层应用数据、底层NPU数据以及NPU上执行的算子信息。配置该参数时，仅采集部分数据，其中部分算子信息不采集，详细情况请参见[op_summary（算子详细信息）](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/user_guide/profile_data_file_references.md#op_summary%EF%BC%88%E7%AE%97%E5%AD%90%E8%AF%A6%E7%BB%86%E4%BF%A1%E6%81%AF%EF%BC%89)。<br/>&#8226; Level1：在Level0的基础上多采集CANN层AscendCL数据和NPU上执行的AI Core性能指标信息、开启aic_metrics=torch_npu.profiler.AiCMetrics.PipeUtilization、生成通信算子的communication.json和communication_matrix.json以及api_statistic.csv文件。<br/>&#8226; Level2：在Level1的基础上多采集CANN层Runtime数据以及AI CPU（data_preprocess.csv文件）数据。<br/>默认值为Level0。|
-|aic_metrics|AI Core的性能指标采集项。取值为：<br/>以下采集项的结果数据将在Kernel View呈现。<br/>以下采集项的结果数据含义可参见[op_summary（算子详细信息）](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/user_guide/profile_data_file_references.md#op_summary%EF%BC%88%E7%AE%97%E5%AD%90%E8%AF%A6%E7%BB%86%E4%BF%A1%E6%81%AF%EF%BC%89)，但具体采集结果请以实际情况为准。<br/>&#8226; AiCoreNone：关闭AI Core的性能指标采集。<br/>&#8226; PipeUtilization：计算单元和搬运单元耗时占比。<br/>&#8226; ArithmeticUtilization：各种计算类指标占比统计。<br/>&#8226; Memory：外部内存读写类指令占比。<br/>&#8226; MemoryL0：内部L0内存读写类指令占比。<br/>&#8226; ResourceConflictRatio：流水线队列类指令占比。<br/>&#8226; MemoryUB：内部UB内存读写类指令占比。<br/>&#8226; L2Cache：读写cache命中次数和缺失后重新分配次数。<br/>&#8226; MemoryAccess：算子在核上访存的带宽数据量。<br/>当profiler_level设置为Level_none或Level0，默认值为AiCoreNone；当profiler_level设置为Level1或Level2，默认值为PipeUtilization。|
-|l2_cache|控制L2 Cache数据采集开关。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。<br/>该采集项在ASCEND_PROFILER_OUTPUT生成l2_cache.csv文件，结果字段介绍请参见[l2_cache（L2 Cache命中率）](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/user_guide/profile_data_file_references.md#l2_cache%EF%BC%88l2-cache%E5%91%BD%E4%B8%AD%E7%8E%87%EF%BC%89)。|
+|profiler_level|采集的Level等级。取值为：<br/>&#8226; Level_none：不采集所有Level层级控制的数据，即关闭profiler_level。<br/>&#8226; Level0：采集上层应用数据、底层NPU数据以及NPU上执行的算子信息。配置该参数时，仅采集部分数据，其中部分算子信息不采集，详细情况请参见[op_summary（算子详细信息）](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/zh/user_guide/profile_data_file_references.md#op_summary%EF%BC%88%E7%AE%97%E5%AD%90%E8%AF%A6%E7%BB%86%E4%BF%A1%E6%81%AF%EF%BC%89)。<br/>&#8226; Level1：在Level0的基础上多采集CANN层AscendCL数据和NPU上执行的AI Core性能指标信息、开启aic_metrics=torch_npu.profiler.AiCMetrics.PipeUtilization、生成通信算子的communication.json和communication_matrix.json以及api_statistic.csv文件。<br/>&#8226; Level2：在Level1的基础上多采集CANN层Runtime数据以及AI CPU（data_preprocess.csv文件）数据。<br/>默认值为Level0。|
+|aic_metrics|AI Core的性能指标采集项。取值为：<br/>以下采集项的结果数据将在Kernel View呈现。<br/>以下采集项的结果数据含义可参见[op_summary（算子详细信息）](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/zh/user_guide/profile_data_file_references.md#op_summary%EF%BC%88%E7%AE%97%E5%AD%90%E8%AF%A6%E7%BB%86%E4%BF%A1%E6%81%AF%EF%BC%89)，但具体采集结果请以实际情况为准。<br/>&#8226; AiCoreNone：关闭AI Core的性能指标采集。<br/>&#8226; PipeUtilization：计算单元和搬运单元耗时占比。<br/>&#8226; ArithmeticUtilization：各种计算类指标占比统计。<br/>&#8226; Memory：外部内存读写类指令占比。<br/>&#8226; MemoryL0：内部L0内存读写类指令占比。<br/>&#8226; ResourceConflictRatio：流水线队列类指令占比。<br/>&#8226; MemoryUB：内部UB内存读写类指令占比。<br/>&#8226; L2Cache：读写cache命中次数和缺失后重新分配次数。<br/>&#8226; MemoryAccess：算子在核上访存的带宽数据量。<br/>当profiler_level设置为Level_none或Level0，默认值为AiCoreNone；当profiler_level设置为Level1或Level2，默认值为PipeUtilization。|
+|l2_cache|控制L2 Cache数据采集开关。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。<br/>该采集项在ASCEND_PROFILER_OUTPUT生成l2_cache.csv文件，结果字段介绍请参见[l2_cache（L2 Cache命中率）](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/zh/user_guide/profile_data_file_references.md#l2_cache%EF%BC%88l2-cache%E5%91%BD%E4%B8%AD%E7%8E%87%EF%BC%89)。|
 |op_attr|控制采集算子的属性信息开关，当前仅支持采集aclnn算子。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。<br/>Level_none时，该参数不生效。|
 |gc_detect_threshold|GC检测阈值。取值范围为大于等于0的数值，单位ms。当用户设置的阈值为数字时，表示开启GC检测，只采集超过阈值的GC事件。<br/>配置为0时表示采集所有的GC事件（可能造成采集数据量过大，请谨慎配置），推荐设置为1ms。<br/>默认为null，表示不开启GC检测功能。<br/>**GC**是Python进程对已经销毁的对象进行内存回收。<br/>该参数解析结果为在trace_view.json中生成GC层或在ascend_pytorch_profiler_{Rank_ID}.db中生成GC_RECORD表。|
 |data_simplification|数据精简模式，开启后将在导出性能数据后删除多余数据，仅保留profiler_*.json文件、ASCEND_PROFILER_OUTPUT目录、PROF_XXX目录下的原始性能数据、FRAMEWORK目录和logs目录，以节省存储空间。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认开启。|
@@ -2145,7 +2145,7 @@ experimental\_config参数均为可选参数，支持扩展的采集项如下：
 |mstx或msprof_tx|打点控制开关，通过开关开启自定义打点功能。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。<br/>该参数使用请参见[采集并解析mstx数据](#采集并解析mstx数据)。<br/>原参数名msprof_tx改为mstx，新版本依旧兼容原参数名msprof_tx。|
 |mstx_domain_include|输出需要的domain数据。调用torch_npu.npu.mstx系列打点接口，使用默认domain或指定domain进行打点时，可选择只输出本参数配置的domain数据。<br/>domain名称为用户调用torch_npu.npu.mstx系列接口传入的domain或默认domain（'default'），domain名称使用List类型输入。<br/>与mstx_domain_exclude参数互斥，若同时配置，则只有mstx_domain_include生效。<br/>须配置mstx=True。|
 |mstx_domain_exclude|过滤不需要的domain数据。调用torch_npu.npu.mstx系列打点接口，使用默认domain或指定domain进行打点时，可选择不输出本参数配置的domain数据。<br/>domain名称为用户调用torch_npu.npu.mstx系列接口传入的domain或默认domain（'default'），domain名称使用List类型输入。<br/>与mstx_domain_include参数互斥，若同时配置，则只有mstx_domain_include生效。<br/>须配置mstx=True。|
-|host_sys|Host侧系统数据采集开关，List类型。默认未配置，表示未开启Host侧系统数据采集。取值为：<br/>&#8226; cpu：进程级别的CPU利用率。<br/>&#8226; mem：进程级别的内存利用率。<br/>&#8226; disk：进程级别的磁盘I/O利用率。<br/>&#8226; network：系统级别的网络I/O利用率。<br/>&#8226; osrt：进程级别的syscall和pthreadcall。<br/>配置示例：host_sys: ["cpu", "disk"]。<br/>&#8226; 采集Host侧disk性能数据需要安装第三方开源工具iotop，采集osrt性能数据需要安装第三方开源工具perf和ltrace，其安装方法参见[安装perf、iotop、ltrace工具](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/profiling/appendices/install_perf_iotop_ltrace.md)。完成安装后须参见[配置用户权限](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/profiling/appendices/config_user_permission.md)完成用户权限配置，且每次重新安装CANN软件包需要重新配置。<br/>&#8226; 使用开源工具ltrace采集osrt性能数据会导致CPU占用率过高，其与应用工程的pthread加解锁相关，会影响进程运行速度。<br/>&#8226; x86_64架构的KylinV10SP1操作系统支持osrt参数，aarch64架构的KylinV10SP1操作系统下不支持osrt参数。<br/>&#8226; 虚拟化环境Euler2.9系统下不支持network参数。|
+|host_sys|Host侧系统数据采集开关，List类型。默认未配置，表示未开启Host侧系统数据采集。取值为：<br/>&#8226; cpu：进程级别的CPU利用率。<br/>&#8226; mem：进程级别的内存利用率。<br/>&#8226; disk：进程级别的磁盘I/O利用率。<br/>&#8226; network：系统级别的网络I/O利用率。<br/>&#8226; osrt：进程级别的syscall和pthreadcall。<br/>配置示例：host_sys: ["cpu", "disk"]。<br/>&#8226; 采集Host侧disk性能数据需要安装第三方开源工具iotop，采集osrt性能数据需要安装第三方开源工具perf和ltrace，其安装方法参见[安装perf、iotop、ltrace工具](https://gitcode.com/cann/oam-tools/blob/9.2.0/docs/zh/profiling/appendices/install_perf_iotop_ltrace.md)。完成安装后须参见[配置用户权限](https://gitcode.com/cann/oam-tools/blob/9.2.0/docs/zh/profiling/appendices/config_user_permission.md)完成用户权限配置，且每次重新安装CANN软件包需要重新配置。<br/>&#8226; 使用开源工具ltrace采集osrt性能数据会导致CPU占用率过高，其与应用工程的pthread加解锁相关，会影响进程运行速度。<br/>&#8226; x86_64架构的KylinV10SP1操作系统支持osrt参数，aarch64架构的KylinV10SP1操作系统下不支持osrt参数。<br/>&#8226; 虚拟化环境Euler2.9系统下不支持network参数。|
 |sys_io|NIC、ROCE、MAC采集开关。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。|
 |sys_interconnection|集合通信带宽数据（HCCS）、PCIe数据采集开关、片间传输带宽信息采集开关。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。|
 
@@ -2158,17 +2158,17 @@ experimental\_config参数均为可选参数，支持扩展的采集项如下：
 |参数|说明|
 |--|--|
 |export_type|设置导出的性能数据结果文件格式，List类型。取值为：<br/>&#8226; torch_npu.profiler.ExportType.Text：表示解析为.json和.csv格式的timeline和summary文件以及汇总所有性能数据的.db格式文件（ascend_pytorch_profiler\_{Rank_ID}.db、analysis.db）。<br/>&#8226; torch_npu.profiler.ExportType.Db：表示仅解析为汇总所有性能数据的.db格式文件（ascend_pytorch_profiler_{Rank_ID}.db、analysis.db），使用MindStudio Insight工具展示。仅支持on_trace_ready接口导出和[离线解析](#离线解析)导出。<br/>设置无效值或未配置均取默认值torch_npu.profiler.ExportType.Text。<br/>解析结果数据请参见[输出结果文件说明](#输出结果文件说明)。|
-|profiler_level|采集的Level等级，Enum类型。取值为：<br/>&#8226; torch_npu.profiler.ProfilerLevel.Level_none：不采集所有Level层级控制的数据，即关闭profiler_level。<br/>&#8226; torch_npu.profiler.ProfilerLevel.Level0：采集上层应用数据、底层NPU数据以及NPU上执行的算子信息。配置该参数时，仅采集部分数据，其中部分算子信息不采集，详细情况请参见[op_summary（算子详细信息）](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/user_guide/profile_data_file_references.md#op_summary%EF%BC%88%E7%AE%97%E5%AD%90%E8%AF%A6%E7%BB%86%E4%BF%A1%E6%81%AF%EF%BC%89)中有关task_time为l0时的说明。<br/>&#8226; torch_npu.profiler.ProfilerLevel.Level1：在Level0的基础上多采集CANN层AscendCL数据和NPU上执行的AI Core性能指标信息、开启aic_metrics=torch_npu.profiler.AiCMetrics.PipeUtilization、生成通信算子的communication.json和communication_matrix.json以及api_statistic.csv文件。<br/>&#8226; torch_npu.profiler.ProfilerLevel.Level2：在Level1的基础上多采集CANN层Runtime数据以及AI CPU（data_preprocess.csv文件）数据。<br/>默认值为torch_npu.profiler.ProfilerLevel.Level0。|
+|profiler_level|采集的Level等级，Enum类型。取值为：<br/>&#8226; torch_npu.profiler.ProfilerLevel.Level_none：不采集所有Level层级控制的数据，即关闭profiler_level。<br/>&#8226; torch_npu.profiler.ProfilerLevel.Level0：采集上层应用数据、底层NPU数据以及NPU上执行的算子信息。配置该参数时，仅采集部分数据，其中部分算子信息不采集，详细情况请参见[op_summary（算子详细信息）](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/zh/user_guide/profile_data_file_references.md#op_summary%EF%BC%88%E7%AE%97%E5%AD%90%E8%AF%A6%E7%BB%86%E4%BF%A1%E6%81%AF%EF%BC%89)中有关task_time为l0时的说明。<br/>&#8226; torch_npu.profiler.ProfilerLevel.Level1：在Level0的基础上多采集CANN层AscendCL数据和NPU上执行的AI Core性能指标信息、开启aic_metrics=torch_npu.profiler.AiCMetrics.PipeUtilization、生成通信算子的communication.json和communication_matrix.json以及api_statistic.csv文件。<br/>&#8226; torch_npu.profiler.ProfilerLevel.Level2：在Level1的基础上多采集CANN层Runtime数据以及AI CPU（data_preprocess.csv文件）数据。<br/>默认值为torch_npu.profiler.ProfilerLevel.Level0。|
 |mstx或msprof_tx|打点控制开关，通过开关开启自定义打点功能，bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。<br/>该参数使用请参见[采集并解析mstx数据](#采集并解析mstx数据)。原参数名msprof_tx改为mstx，新版本依旧兼容原参数名msprof_tx。|
-|mstx_domain_include|输出需要的domain数据。调用[torch_npu.npu.mstx](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/torch_npu-npu-mstx.md)系列打点接口，使用默认domain或指定domain进行打点时，可选择只输出本参数配置的domain数据。<br/>domain名称为用户调用torch_npu.npu.mstx系列接口传入的domain或默认domain（'default'），domain名称使用List类型输入。<br/>与mstx_domain_exclude参数互斥，若同时配置，则只有mstx_domain_include生效。<br/>须配置mstx=True。|
-|mstx_domain_exclude|过滤不需要的domain数据。调用[torch_npu.npu.mstx](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/torch_npu-npu-mstx.md)系列打点接口，使用默认domain或指定domain进行打点时，可选择不输出本参数配置的domain数据。<br/>domain名称为用户调用torch_npu.npu.mstx系列接口传入的domain或默认domain（'default'），domain名称使用List类型输入。<br/>与mstx_domain_include参数互斥，若同时配置，则只有mstx_domain_include生效。<br/>须配置mstx=True。|
-|aic_metrics|AI Core的性能指标采集项。取值为：<br/>以下采集项的结果数据将在Kernel View呈现。<br/>以下采集项的结果数据含义可参见[op_summary（算子详细信息）](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/user_guide/profile_data_file_references.md#op_summary%EF%BC%88%E7%AE%97%E5%AD%90%E8%AF%A6%E7%BB%86%E4%BF%A1%E6%81%AF%EF%BC%89)，但具体采集结果请以实际情况为准。<br/>&#8226; AiCoreNone：关闭AI Core的性能指标采集。<br/>&#8226; PipeUtilization：计算单元和搬运单元耗时占比。<br/>&#8226; ArithmeticUtilization：各种计算类指标占比统计。<br/>&#8226; Memory：外部内存读写类指令占比。<br/>&#8226; MemoryL0：内部L0内存读写类指令占比。<br/>&#8226; ResourceConflictRatio：流水线队列类指令占比。<br/>&#8226; MemoryUB：内部UB内存读写类指令占比。<br/>&#8226; L2Cache：读写cache命中次数和缺失后重新分配次数。<br/>&#8226; MemoryAccess：算子在核上访存的带宽数据量。<br/>当profiler_level设置为torch_npu.profiler.ProfilerLevel.Level_none或torch_npu.profiler.ProfilerLevel.Level0时，默认值为AiCoreNone；当profiler_level设置为torch_npu.profiler.ProfilerLevel.Level1或torch_npu.profiler.ProfilerLevel.Level2时，默认值为PipeUtilization。|
-|l2_cache|控制L2 Cache数据采集开关，bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。<br/>该采集项在ASCEND_PROFILER_OUTPUT生成l2_cache.csv文件，结果字段介绍请参见[l2_cache（L2 Cache命中率）](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/user_guide/profile_data_file_references.md#l2_cache%EF%BC%88l2-cache%E5%91%BD%E4%B8%AD%E7%8E%87%EF%BC%89)。|
+|mstx_domain_include|输出需要的domain数据。调用[torch_npu.npu.mstx](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/zh/custom_APIs/torch_npu-npu/torch_npu-npu-mstx.md)系列打点接口，使用默认domain或指定domain进行打点时，可选择只输出本参数配置的domain数据。<br/>domain名称为用户调用torch_npu.npu.mstx系列接口传入的domain或默认domain（'default'），domain名称使用List类型输入。<br/>与mstx_domain_exclude参数互斥，若同时配置，则只有mstx_domain_include生效。<br/>须配置mstx=True。|
+|mstx_domain_exclude|过滤不需要的domain数据。调用[torch_npu.npu.mstx](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/zh/custom_APIs/torch_npu-npu/torch_npu-npu-mstx.md)系列打点接口，使用默认domain或指定domain进行打点时，可选择不输出本参数配置的domain数据。<br/>domain名称为用户调用torch_npu.npu.mstx系列接口传入的domain或默认domain（'default'），domain名称使用List类型输入。<br/>与mstx_domain_include参数互斥，若同时配置，则只有mstx_domain_include生效。<br/>须配置mstx=True。|
+|aic_metrics|AI Core的性能指标采集项。取值为：<br/>以下采集项的结果数据将在Kernel View呈现。<br/>以下采集项的结果数据含义可参见[op_summary（算子详细信息）](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/zh/user_guide/profile_data_file_references.md#op_summary%EF%BC%88%E7%AE%97%E5%AD%90%E8%AF%A6%E7%BB%86%E4%BF%A1%E6%81%AF%EF%BC%89)，但具体采集结果请以实际情况为准。<br/>&#8226; AiCoreNone：关闭AI Core的性能指标采集。<br/>&#8226; PipeUtilization：计算单元和搬运单元耗时占比。<br/>&#8226; ArithmeticUtilization：各种计算类指标占比统计。<br/>&#8226; Memory：外部内存读写类指令占比。<br/>&#8226; MemoryL0：内部L0内存读写类指令占比。<br/>&#8226; ResourceConflictRatio：流水线队列类指令占比。<br/>&#8226; MemoryUB：内部UB内存读写类指令占比。<br/>&#8226; L2Cache：读写cache命中次数和缺失后重新分配次数。<br/>&#8226; MemoryAccess：算子在核上访存的带宽数据量。<br/>当profiler_level设置为torch_npu.profiler.ProfilerLevel.Level_none或torch_npu.profiler.ProfilerLevel.Level0时，默认值为AiCoreNone；当profiler_level设置为torch_npu.profiler.ProfilerLevel.Level1或torch_npu.profiler.ProfilerLevel.Level2时，默认值为PipeUtilization。|
+|l2_cache|控制L2 Cache数据采集开关，bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。<br/>该采集项在ASCEND_PROFILER_OUTPUT生成l2_cache.csv文件，结果字段介绍请参见[l2_cache（L2 Cache命中率）](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/zh/user_guide/profile_data_file_references.md#l2_cache%EF%BC%88l2-cache%E5%91%BD%E4%B8%AD%E7%8E%87%EF%BC%89)。|
 |op_attr|控制采集算子的属性信息开关，当前仅支持采集aclnn算子，bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。<br/>该参数采集的性能数据仅db格式文件生效；torch_npu.profiler.ProfilerLevel.Level_none时，该参数不生效。|
 |data_simplification|数据精简模式，开启后将在导出性能数据后删除多余数据，仅保留profiler_*.json文件、ASCEND_PROFILER_OUTPUT目录、PROF_XXX目录下的原始性能数据、FRAMEWORK目录和logs目录，以节省存储空间，bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认开启。|
 |record_op_args|控制算子信息统计功能开关，bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。<br/>开启后会在{worker_name}\_{时间戳}_ascend_pt_op_args目录输出采集到算子信息文件。<br/>该参数在AOE工具执行PyTorch训练场景下调优时使用，且不建议与其他性能数据采集接口同时开启。详细介绍请参见《[AOE调优工具用户指南](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/devaids/aoe/auxiliarydevtool_aoe_0001.html)》。|
 |gc_detect_threshold|GC检测阈值，float类型。取值范围为大于等于0的数值，单位ms。当用户设置的阈值为数字时，表示开启GC检测，只采集超过阈值的GC事件。<br/>配置为0时表示采集所有的GC事件（可能造成采集数据量过大，请谨慎配置），推荐设置为1ms。<br/>默认为None，表示不开启GC检测功能。<br/>**GC**是Python进程对已经销毁的对象进行内存回收。<br/>该参数解析结果为在trace_view.json中生成GC层或在ascend_pytorch_profiler_{Rank_ID}.db中生成GC_RECORD表。|
-|host_sys|Host侧系统数据采集开关，List类型。默认未配置，表示未开启Host侧系统数据采集。取值为：<br/>&#8226; torch_npu.profiler.HostSystem.CPU：进程级别的CPU利用率。<br/>&#8226; torch_npu.profiler.HostSystem.MEM：进程级别的内存利用率。<br/>&#8226; torch_npu.profiler.HostSystem.DISK：进程级别的磁盘I/O利用率。<br/>&#8226; torch_npu.profiler.HostSystem.NETWORK：系统级别的网络I/O利用率。<br/>&#8226; torch_npu.profiler.HostSystem.OSRT：进程级别的syscall和pthreadcall。<br/>配置示例：host_sys=[torch_npu.profiler.HostSystem.CPU, torch_npu.profiler.HostSystem.MEM]<br/>&#8226; 采集Host侧disk性能数据需要安装第三方开源工具iotop，采集osrt性能数据需要安装第三方开源工具perf和ltrace，其安装方法参见[安装perf、iotop、ltrace工具](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/profiling/appendices/install_perf_iotop_ltrace.md)。完成安装后须参见[配置用户权限](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/profiling/appendices/config_user_permission.md)完成用户权限配置，且每次重新安装CANN软件包需要重新配置。<br/>&#8226; 使用开源工具ltrace采集osrt性能数据会导致CPU占用率过高，其与应用工程的pthread加解锁相关，会影响进程运行速度。<br/>&#8226; x86_64架构的KylinV10SP1操作系统支持torch_npu.profiler.HostSystem.OSRT参数，aarch64架构的KylinV10SP1操作系统下不支持torch_npu.profiler.HostSystem.OSRT参数。<br/>&#8226; 虚拟化环境Euler2.9系统下不支持torch_npu.profiler.HostSystem.NETWORK参数。|
+|host_sys|Host侧系统数据采集开关，List类型。默认未配置，表示未开启Host侧系统数据采集。取值为：<br/>&#8226; torch_npu.profiler.HostSystem.CPU：进程级别的CPU利用率。<br/>&#8226; torch_npu.profiler.HostSystem.MEM：进程级别的内存利用率。<br/>&#8226; torch_npu.profiler.HostSystem.DISK：进程级别的磁盘I/O利用率。<br/>&#8226; torch_npu.profiler.HostSystem.NETWORK：系统级别的网络I/O利用率。<br/>&#8226; torch_npu.profiler.HostSystem.OSRT：进程级别的syscall和pthreadcall。<br/>配置示例：host_sys=[torch_npu.profiler.HostSystem.CPU, torch_npu.profiler.HostSystem.MEM]<br/>&#8226; 采集Host侧disk性能数据需要安装第三方开源工具iotop，采集osrt性能数据需要安装第三方开源工具perf和ltrace，其安装方法参见[安装perf、iotop、ltrace工具](https://gitcode.com/cann/oam-tools/blob/9.2.0/docs/zh/profiling/appendices/install_perf_iotop_ltrace.md)。完成安装后须参见[配置用户权限](https://gitcode.com/cann/oam-tools/blob/9.2.0/docs/zh/profiling/appendices/config_user_permission.md)完成用户权限配置，且每次重新安装CANN软件包需要重新配置。<br/>&#8226; 使用开源工具ltrace采集osrt性能数据会导致CPU占用率过高，其与应用工程的pthread加解锁相关，会影响进程运行速度。<br/>&#8226; x86_64架构的KylinV10SP1操作系统支持torch_npu.profiler.HostSystem.OSRT参数，aarch64架构的KylinV10SP1操作系统下不支持torch_npu.profiler.HostSystem.OSRT参数。<br/>&#8226; 虚拟化环境Euler2.9系统下不支持torch_npu.profiler.HostSystem.NETWORK参数。|
 |sys_io|NIC、ROCE、MAC采集开关，bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。|
 |sys_interconnection|集合通信带宽数据（HCCS）、PCIe数据采集开关、片间传输带宽信息采集开关，bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。|
 
