@@ -74,7 +74,7 @@ jobs:
     needs: [resolve]
     runs-on: linux-aarch64-cpu-24
     container:
-      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-20260910200430-202609140905-0ba22e2b
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609140905-0ba22e2b
       options: --network host
     outputs:
       cache_hit: ${{ steps.probe.outputs.cache_hit }}
