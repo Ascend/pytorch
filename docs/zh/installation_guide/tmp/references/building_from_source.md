@@ -182,16 +182,6 @@ Python3.11的调度（即下发）性能优于Python3.10，建议用Python3.11�
                     >
                     > 安装指导可参见[安装11.2.0版本gcc](installing_gcc_11-2-0.md)和[安装3.18.4版本cmake](installing_cmake_3-18-4.md)。
 
-        2. 安装环境依赖。
-    
-            ```bash
-            pip install pyyaml
-            pip install setuptools
-            pip install auditwheel
-            ```
-
-            如果使用非root用户安装，需要在命令后加`--user`，例如：**pip3 install pyyaml --user**。
-
     2. 编译生成TorchNPU插件的Whl安装包。
         1. 下载master分支代码并进入TorchNPU插件根目录。
 
@@ -200,7 +190,15 @@ Python3.11的调度（即下发）性能优于Python3.10，建议用Python3.11�
             cd pytorch
             ```
 
-        2. 编译生成Whl安装包。
+        2. 安装环境依赖。
+
+            ```bash
+            pip3 install -r requirements.txt
+            ```
+
+            如果使用非root用户安装，需要在命令后加`--user`，例如：**pip3 install -r requirements.txt --user**。
+
+        3. 编译生成Whl安装包。
 
             编译前需关注环境中安装的torch版本是否与当前要编译的TorchNPU版本一致，若要更换可使用如下命令：
 
@@ -226,12 +224,6 @@ Python3.11的调度（即下发）性能优于Python3.10，建议用Python3.11�
         ```
 
         请用户根据实际情况更改命令中的TorchNPU包名。
-
-    4. 安装pytorch目录下的依赖文件requirements.txt。
-
-        ```bash
-        pip3 install -r requirements.txt
-        ```
 
 ## 安装后验证
 
