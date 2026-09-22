@@ -828,7 +828,7 @@ class TestPublicBindings(TestCase):
                 continue
 
             # Skip CUDA-only native op kernels backed by CuTe DSL
-            if mod.startswith("torch._native.ops.reductions.inner_tree_kernel"):
+            if mod.startswith("torch._native.ops.sum.inner_tree_kernel"):
                 continue
 
             # Skip FlyDSL modules, which require the AMD flydsl package (ROCm-only)
