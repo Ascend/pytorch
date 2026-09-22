@@ -1,0 +1,230 @@
+name: PyTorch Coverage
+on:
+  workflow_call:
+    inputs:
+      resolved_short:
+        description: 'Built pytorch commit short SHA (first 10 chars). Empty = resolve latest commit of upstream_ref'
+        required: false
+        default: ''
+        type: string
+      upstream_ref:
+        description: 'pytorch/pytorch ref (used when resolved_short is empty)'
+        required: false
+        default: 'main'
+        type: string
+      categories:
+        description: 'Comma-separated categories to run (e.g. core,tensor). Empty = all 5 categories'
+        required: false
+        default: ''
+        type: string
+
+env:
+  OBS_ENDPOINT: obs.ap-southeast-1.myhuaweicloud.com
+  # Fixed OBS prefix: single copy, each run fully overwrites the previous data
+  OBS_COVERAGE_PREFIX: obs://pytorch-ci-cache/coverage/pytorch
+
+jobs:
+  # Resolve pytorch short SHA on a lightweight ubuntu node (no NPU needed)
+  resolve:
+    runs-on: ubuntu-latest
+    outputs:
+      short: ${{ steps.resolve.outputs.short }}
+    steps:
+      - name: Resolve pytorch short SHA
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          SHORT="${{ inputs.resolved_short }}"
+          if [ -n "${SHORT}" ]; then
+            echo "Using provided resolved_short: ${SHORT}"
+          else
+            # Resolve the latest commit of pytorch/pytorch (schedule or empty input)
+            REF="${{ inputs.upstream_ref }}"
+            REF="${REF:-main}"
+            echo "Resolving latest commit of pytorch/pytorch@${REF} ..."
+            SHA=$(curl -sf \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              "https://api.github.com/repos/pytorch/pytorch/commits/${REF}" | jq -r '.sha')
+            if [ -z "${SHA}" ] || [ "${SHA}" = "null" ]; then
+              echo "ERROR: cannot resolve pytorch/pytorch@${REF}" >&2
+              exit 1
+            fi
+            SHORT="${SHA:0:10}"
+            echo "Resolved ${REF} -> ${SHA} (short: ${SHORT})"
+          fi
+          echo "short=${SHORT}" >> "$GITHUB_OUTPUT"
+
+  # Download artifacts -> install wheels -> run coverage script -> upload reports
+  # NOTE: runs-on / container.image do not support the env context
+  # (only github/needs/vars/inputs etc.), so runner and image are inlined.
+  coverage:
+    needs: [resolve]
+    runs-on: linux-aarch64-a3-800i-8-cn12-001
+    timeout-minutes: 1440  # 229 test files run serially; allow up to 24h
+    outputs:
+      test_status: ${{ steps.run_coverage.outputs.test_status }}
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609140905-0ba22e2b
+      options: --network host
+    env:
+      PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
+
+    steps:
+      # Tarball names follow the _build.yml/_nightly_build.yml upload convention
+      - name: Compute SHAs
+        id: sha
+        run: |
+          UPSTREAM_SHORT="${{ needs.resolve.outputs.short }}"
+          ARCH=$(uname -m)
+          PYVER=$(python3 -c "import sys; print(f'py{sys.version_info.major}{sys.version_info.minor}')")
+          echo "source_tarball=pytorch-source-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "wheels_tarball=wheels-${UPSTREAM_SHORT}-${PYVER}-${ARCH}.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "short=${UPSTREAM_SHORT}" >> "$GITHUB_OUTPUT"
+
+      # obsutil is preinstalled in the test image; 2 retries + resumable download
+      - name: Download PyTorch source from OBS
+        run: |
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${{ env.OBS_ENDPOINT }}
+
+          TARBALL="${{ steps.sha.outputs.source_tarball }}"
+          for attempt in 1 2; do
+            echo "=== Download attempt ${attempt} ==="
+            if obsutil cp "obs://pytorch-ci-cache/7day-cache/${TARBALL}" "./${TARBALL}" -vlength; then
+              echo "Download succeeded on attempt ${attempt}"
+              exit 0
+            fi
+            echo "Download attempt ${attempt} failed"
+            sleep 10
+          done
+          echo "ERROR: ${TARBALL} not found in OBS cache." >&2
+          echo "The resolved commit ${{ steps.sha.outputs.short }} may not have been built yet." >&2
+          echo "Re-run manually with 'resolved_short' input pointing at a built commit." >&2
+          exit 1
+
+      - name: Extract PyTorch source
+        run: |
+          tar -xzf ${{ steps.sha.outputs.source_tarball }}
+          rm ${{ steps.sha.outputs.source_tarball }}
+          echo "PyTorch source extracted: $(du -sh pytorch/ | cut -f1)"
+
+      - name: Download wheels from OBS
+        run: |
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${{ env.OBS_ENDPOINT }}
+
+          TARBALL="${{ steps.sha.outputs.wheels_tarball }}"
+          for attempt in 1 2; do
+            echo "=== Download attempt ${attempt} ==="
+            if obsutil cp "obs://pytorch-ci-cache/7day-cache/${TARBALL}" "./${TARBALL}" -vlength; then
+              echo "Download succeeded on attempt ${attempt}"
+              exit 0
+            fi
+            echo "Download attempt ${attempt} failed"
+            sleep 10
+          done
+          echo "ERROR: ${TARBALL} not found in OBS cache." >&2
+          exit 1
+
+      # Device under test: the installed torch python sources
+      - name: Extract and install wheels
+        run: |
+          mkdir -p /tmp/wheels
+          tar -xzf ${{ steps.sha.outputs.wheels_tarball }} -C /tmp/wheels
+          rm ${{ steps.sha.outputs.wheels_tarball }}
+          pip install /tmp/wheels/torch-*.whl
+          pip install --no-deps /tmp/wheels/torch_npu*.whl
+          pip install --no-deps /tmp/wheels/torchvision-*.whl || echo "WARNING: torchvision wheel not found in tarball"
+          pip install pyyaml coverage  # script deps: whitelist parsing + coverage
+
+      # Pull the coverage script from this repo (same source as CI scripts)
+      - name: Checkout coverage script
+        uses: actions/checkout@v6
+        with:
+          path: ci-scripts
+          ref: ci-test
+
+      # - Source CANN/atb env and extend LD_LIBRARY_PATH (same as _test-collect.yml)
+      # - OUT_ROOT points to workspace: outputs land in coverage-out/torch@<date>/
+      # - Per-test timeout 1800s (nightly includes inductor compile-heavy cases)
+      # - Test failures do not fail the pipeline: the exit code is recorded in
+      #   test_status output and coverage data is uploaded as usual
+      - name: Run coverage script
+        id: run_coverage
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+          export LD_LIBRARY_PATH=/opt/conda/envs/py_3.10/lib:$LD_LIBRARY_PATH
+
+          COV_ARGS=(--test-dir "${GITHUB_WORKSPACE}/pytorch/test" --timeout 1800)
+          if [ -n "${{ inputs.categories }}" ]; then
+            COV_ARGS+=(--category "${{ inputs.categories }}")
+          fi
+
+          echo "=== Coverage script args: ${COV_ARGS[*]} ==="
+
+          COV_STATUS=0
+          OUT_ROOT="${GITHUB_WORKSPACE}/coverage-out" \
+          PYTHON_BIN=python3 \
+            bash "${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/run_pytorch_coverage.sh" "${COV_ARGS[@]}" \
+            || COV_STATUS=$?
+
+          echo "Coverage script finished with status: ${COV_STATUS}"
+          echo "test_status=${COV_STATUS}" >> "$GITHUB_OUTPUT"
+
+      - name: Write job summary
+        if: always()
+        run: |
+          COV_DIR="$(ls -d ${GITHUB_WORKSPACE}/coverage-out/torch@* 2>/dev/null | head -n1 || true)"
+          {
+            echo "## PyTorch Coverage (${{ steps.sha.outputs.short }})"
+            echo ""
+            echo "- Test status (script exit code): \`${{ steps.run_coverage.outputs.test_status }}\`"
+            if [ -n "${COV_DIR}" ] && [ -f "${COV_DIR}/coverage.xml" ]; then
+              echo "- coverage.xml: \`${COV_DIR}/coverage.xml\`"
+            fi
+            if [ -n "${COV_DIR}" ] && [ -f "${COV_DIR}/logs/failed_cases.json" ]; then
+              FAILED=$(python3 -c "import json; print(json.load(open('${COV_DIR}/logs/failed_cases.json')) and len(json.load(open('${COV_DIR}/logs/failed_cases.json'))))" 2>/dev/null || echo "?")
+              echo "- Failed test files: ${FAILED} (see failed_cases.json)"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # GitHub Artifacts: report + logs (lightweight, downloadable from the run page)
+      - name: Upload coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytorch-coverage-${{ steps.sha.outputs.short }}
+          path: |
+            coverage-out/torch@*/coverage.xml
+            coverage-out/torch@*/.coverage
+            coverage-out/torch@*/logs/
+          retention-days: 14
+          if-no-files-found: warn
+
+      # Full covdata to OBS for long-term retention (rename torch@YYYYMMDD to the
+      # fixed torch@latest so remote objects are overwritten, not accumulated).
+      # Best-effort: failure here does not fail the pipeline (Artifacts has a copy).
+      # NOTE: with --category subsets, stale remote files are NOT deleted (cp only
+      # overwrites same-name objects); switch to obsutil sync for strict mirroring.
+      - name: Upload full covdata to OBS
+        if: always()
+        continue-on-error: true
+        run: |
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${{ env.OBS_ENDPOINT }}
+
+          COV_DIR="$(ls -d ${GITHUB_WORKSPACE}/coverage-out/torch@* 2>/dev/null | head -n1 || true)"
+          if [ -z "${COV_DIR}" ]; then
+            echo "WARNING: no coverage output dir found, skip OBS upload"
+            exit 0
+          fi
+
+          # Normalize to the fixed dir name torch@latest (same-fs mv, zero copy)
+          LATEST_DIR="${GITHUB_WORKSPACE}/coverage-out/torch@latest"
+          if [ "${COV_DIR}" != "${LATEST_DIR}" ]; then
+            rm -rf "${LATEST_DIR}"
+            mv "${COV_DIR}" "${LATEST_DIR}"
+          fi
+
+          obsutil cp "${LATEST_DIR}" "${{ env.OBS_COVERAGE_PREFIX }}/latest/" -r -f -vlength
