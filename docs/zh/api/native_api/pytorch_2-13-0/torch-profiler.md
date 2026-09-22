@@ -24,27 +24,11 @@
 
 ## API Reference
 
-### torch.profiler._KinetoProfile
+### torch.profiler.profile.add_metadata
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.profiler._KinetoProfile](https://pytorch.org/docs/2.13/profiler.html#torch.profiler._KinetoProfile)
-
-**NPU 形式名称**：torch_npu.profiler._KinetoProfile
-
-**产品支持情况**：
-
-- <term>Atlas A2 训练系列产品</term>：支持
-- <term>Atlas A3 训练系列产品</term>：支持
-- <term>Ascend 950DT</term>：不支持
-
-</div>
-
-### torch.profiler._KinetoProfile.add_metadata
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.profiler._KinetoProfile.add_metadata](https://pytorch.org/docs/2.13/profiler.html#torch.profiler._KinetoProfile.add_metadata)
+**原生文档**：[torch.profiler.profile.add_metadata](https://docs.pytorch.org/docs/2.13/profiler.html#torch.profiler.profile.add_metadata)
 
 **NPU 形式名称**：torch_npu.profiler._KinetoProfile.add_metadata
 
@@ -56,11 +40,11 @@
 
 </div>
 
-### torch.profiler._KinetoProfile.add_metadata_json
+### torch.profiler.profile.add_metadata_json
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.profiler._KinetoProfile.add_metadata_json](https://pytorch.org/docs/2.13/profiler.html#torch.profiler._KinetoProfile.add_metadata_json)
+**原生文档**：[torch.profiler.profile.add_metadata_json](https://docs.pytorch.org/docs/2.13/profiler.html#torch.profiler.profile.add_metadata_json)
 
 **NPU 形式名称**：torch_npu.profiler._KinetoProfile.add_metadata_json
 
@@ -72,11 +56,11 @@
 
 </div>
 
-### torch.profiler._KinetoProfile.events
+### torch.profiler.profile.events
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.profiler._KinetoProfile.events](https://pytorch.org/docs/2.13/profiler.html#torch.profiler._KinetoProfile.events)
+**原生文档**：[torch.profiler.profile.events](https://docs.pytorch.org/docs/2.13/profiler.html#torch.profiler.profile.events)
 
 **产品支持情况**：
 
@@ -86,11 +70,11 @@
 
 </div>
 
-### torch.profiler._KinetoProfile.export_chrome_trace
+### torch.profiler.profile.export_chrome_trace
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.profiler._KinetoProfile.export_chrome_trace](https://pytorch.org/docs/2.13/profiler.html#torch.profiler._KinetoProfile.export_chrome_trace)
+**原生文档**：[torch.profiler.profile.export_chrome_trace](https://docs.pytorch.org/docs/2.13/profiler.html#torch.profiler.profile.export_chrome_trace)
 
 **NPU 形式名称**：torch_npu.profiler._KinetoProfile.export_chrome_trace
 
@@ -102,11 +86,11 @@
 
 </div>
 
-### torch.profiler._KinetoProfile.export_memory_timeline
+### torch.profiler.profile.export_memory_timeline
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.profiler._KinetoProfile.export_memory_timeline](https://pytorch.org/docs/2.13/profiler.html#torch.profiler._KinetoProfile.export_memory_timeline)
+**原生文档**：[torch.profiler.profile.export_memory_timeline](https://docs.pytorch.org/docs/2.13/profiler.html#torch.profiler.profile.export_memory_timeline)
 
 **NPU 形式名称**：torch_npu.profiler._KinetoProfile.export_memory_timeline
 
@@ -118,11 +102,11 @@
 
 </div>
 
-### torch.profiler._KinetoProfile.export_stacks
+### torch.profiler.profile.export_stacks
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.profiler._KinetoProfile.export_stacks](https://pytorch.org/docs/2.13/profiler.html#torch.profiler._KinetoProfile.export_stacks)
+**原生文档**：[torch.profiler.profile.export_stacks](https://docs.pytorch.org/docs/2.13/profiler.html#torch.profiler.profile.export_stacks)
 
 **NPU 形式名称**：torch_npu.profiler._KinetoProfile.export_stacks
 
@@ -134,11 +118,11 @@
 
 </div>
 
-### torch.profiler._KinetoProfile.key_averages
+### torch.profiler.profile.key_averages
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.profiler._KinetoProfile.key_averages](https://pytorch.org/docs/2.13/profiler.html#torch.profiler._KinetoProfile.key_averages)
+**原生文档**：[torch.profiler.profile.key_averages](https://docs.pytorch.org/docs/2.13/profiler.html#torch.profiler.profile.key_averages)
 
 **产品支持情况**：
 
@@ -230,7 +214,7 @@
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.profiler.schedule](https://pytorch.org/docs/2.13/profiler.html#torch.profiler.schedule)
+**原生文档**：[torch.profiler.schedule](https://docs.pytorch.org/docs/2.13/profiler.html#torch.profiler.profiler.schedule)
 
 **NPU 形式名称**：torch_npu.profiler.schedule
 
@@ -246,7 +230,7 @@
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.profiler.tensorboard_trace_handler](https://pytorch.org/docs/2.13/profiler.html#torch.profiler.tensorboard_trace_handler)
+**原生文档**：[torch.profiler.tensorboard_trace_handler](https://docs.pytorch.org/docs/2.13/profiler.html#torch.profiler.profiler.tensorboard_trace_handler)
 
 **NPU 形式名称**：torch_npu.profiler.tensorboard_trace_handler
 

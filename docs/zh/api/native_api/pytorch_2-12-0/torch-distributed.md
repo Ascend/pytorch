@@ -127,7 +127,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**： 当`pg_options`参数传入类型为`torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()`时，可通过配置该变量的`hccl_config`属性控制HCCL通信域缓冲区大小。具体示例可参考《PyTorch 训练模型迁移调优指南》的“[hccl_buffer_size](https://www.hiascend.com/document/detail/zh/ModelZoo/traditional_model_train/PyTorch/docs/zh/performance_tuning/performance_tuning_methods/communication_basics_overview.md#hccl_buffer_size)”章节。可通过配置变量`hccl_config`的`group_name`字段设置HCCL通信域的通信组自定义名称，取值为长度不超过32的字符串。
+**限制与说明**： 当`pg_options`参数传入类型为`torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()`时，可通过配置该变量的`hccl_config`属性控制HCCL通信域缓冲区大小。具体示例可参考[通过pg_options配置HCCL通信域参数](../../../developer_notes/distributed/parameter_configuration/setting_HCCL_communicator_parameter.md)中的`hccl_buffer_size`配置说明。可通过配置变量`hccl_config`的`group_name`字段设置HCCL通信域的通信组自定义名称，取值为长度不超过32的字符串。
 
 </div>
 
@@ -273,7 +273,7 @@
 - <term>Atlas A3 训练系列产品</term>：支持
 - <term>Ascend 950DT</term>：支持
 
-**限制与说明**： 当`pg_options`参数传入类型为`torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()`时，可通过配置该变量的`hccl_config`属性控制HCCL通信域缓冲区大小。具体示例可参考《PyTorch 训练模型迁移调优指南》的“[hccl_buffer_size](https://www.hiascend.com/document/detail/zh/ModelZoo/traditional_model_train/PyTorch/docs/zh/performance_tuning/performance_tuning_methods/communication_basics_overview.md#hccl_buffer_size)”章节。可通过配置变量`hccl_config`的`group_name`字段设置HCCL通信域的通信组自定义名称，取值为长度不超过32的字符串。
+**限制与说明**： 当`pg_options`参数传入类型为`torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()`时，可通过配置该变量的`hccl_config`属性控制HCCL通信域缓冲区大小。具体示例可参考[通过pg_options配置HCCL通信域参数](../../../developer_notes/distributed/parameter_configuration/setting_HCCL_communicator_parameter.md)中的`hccl_buffer_size`配置说明。可通过配置变量`hccl_config`的`group_name`字段设置HCCL通信域的通信组自定义名称，取值为长度不超过32的字符串。
 
 </div>
 
@@ -822,7 +822,7 @@
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.distributed.PrefixStore.\_\_init\_\_](https://pytorch.org/docs/2.12/distributed.html#torch.distributed.PrefixStore.\_\_init\_\_)
+**原生文档**：[torch.distributed.PrefixStore.\_\_init\_\_](https://docs.pytorch.org/docs/2.12/distributed.html#torch.distributed.PrefixStore.__init__)
 
 **产品支持情况**：
 
@@ -864,7 +864,7 @@
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.distributed.Store.\_\_init\_\_](https://pytorch.org/docs/2.12/distributed.html#torch.distributed.Store.\_\_init\_\_)
+**原生文档**：[torch.distributed.Store.\_\_init\_\_](https://docs.pytorch.org/docs/2.12/distributed.html#torch.distributed.Store.__init__)
 
 **产品支持情况**：
 

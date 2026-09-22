@@ -20,62 +20,6 @@
 
 </div>
 
-### <code><i>class</i></code> torch.utils.data.IterDataPipe
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.utils.data.IterDataPipe](https://pytorch.org/docs/2.11/data.html#torch.utils.data.IterDataPipe)
-
-**产品支持情况**：
-
-- <term>Atlas A2 训练系列产品</term>：支持
-- <term>Atlas A3 训练系列产品</term>：支持
-- <term>Ascend 950DT</term>：不支持
-
-</div>
-
-### <code><i>class</i></code> torch.utils.data.MapDataPipe
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.utils.data.MapDataPipe](https://pytorch.org/docs/2.11/data.html#torch.utils.data.MapDataPipe)
-
-**产品支持情况**：
-
-- <term>Atlas A2 训练系列产品</term>：支持
-- <term>Atlas A3 训练系列产品</term>：支持
-- <term>Ascend 950DT</term>：不支持
-
-</div>
-
-### torch.utils.data.graph_settings.apply_sharding
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.utils.data.graph_settings.apply_sharding](https://pytorch.org/docs/2.11/data.html#torch.utils.data.graph_settings.apply_sharding)
-
-**产品支持情况**：
-
-- <term>Atlas A2 训练系列产品</term>：支持
-- <term>Atlas A3 训练系列产品</term>：支持
-- <term>Ascend 950DT</term>：不支持
-
-</div>
-
-### torch.utils.data.graph_settings.get_all_graph_pipes
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.utils.data.graph_settings.get_all_graph_pipes](https://pytorch.org/docs/2.11/data.html#torch.utils.data.graph_settings.get_all_graph_pipes)
-
-**产品支持情况**：
-
-- <term>Atlas A2 训练系列产品</term>：支持
-- <term>Atlas A3 训练系列产品</term>：支持
-- <term>Ascend 950DT</term>：不支持
-
-</div>
-
 ## Memory Pinning
 
 ### <code><i>class</i></code> torch.utils.data.TensorDataset
