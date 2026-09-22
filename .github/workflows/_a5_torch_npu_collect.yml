@@ -46,6 +46,9 @@ jobs:
   collect:
     name: collect
     runs-on: ${{ inputs.RUNNER_LABEL }}
+    defaults:
+      run:
+        shell: bash
     container:
       image: ${{ inputs.DOCKER_IMAGE }}
       options: ${{ inputs.CONTAINER_OPTIONS }}
@@ -81,6 +84,7 @@ jobs:
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+          export LD_LIBRARY_PATH=/opt/conda/envs/py_3.10/lib:$LD_LIBRARY_PATH
           mkdir -p cases-shards collection_errors
           python3.10 .github/scripts/a5-torch-npu-test/scripts/collect_all_cases.py \
             --test-dir test \
