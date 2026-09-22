@@ -320,6 +320,7 @@ jobs:
       # pinned path ever changes.
       - name: Collect and compress CANN logs
         if: always()
+        continue-on-error: true
         run: |
           PREFIX="${{ steps.prefix.outputs.prefix }}"
           ARTIFACT="ascend-cann-logs-${PREFIX}-${{ matrix.shard }}.tar.gz"
@@ -349,6 +350,7 @@ jobs:
 
       - name: Upload CANN logs
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: ascend-cann-logs-${{ steps.prefix.outputs.prefix }}-${{ matrix.shard }}
