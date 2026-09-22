@@ -148,7 +148,55 @@ jobs:
           path: ci-scripts
           ref: ci-test
 
-      # Combine every shard's per-process coverage data files and aggregate the
+      # Source snapshot: the exact pytorch source the coverage data was measured
+      # from. The shard containers measured the installed torch wheel, so the
+      # merge step renders coverage.xml through a [paths] map pointing at this
+      # snapshot (the same tarball is moved into the artifact afterwards).
+      - name: Download source snapshot
+        if: always()
+        continue-on-error: true
+        run: |
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${{ env.OBS_ENDPOINT }}
+
+          TARBALL="pytorch-source-${{ needs.resolve.outputs.short }}.tar.gz"
+          mkdir -p "${GITHUB_WORKSPACE}/source"
+          for attempt in 1 2; do
+            echo "=== Download attempt ${attempt} ==="
+            if obsutil cp "obs://pytorch-ci-cache/7day-cache/${TARBALL}" "${GITHUB_WORKSPACE}/source/${TARBALL}" -vlength; then
+              echo "Source snapshot saved: ${GITHUB_WORKSPACE}/source/${TARBALL}"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "WARNING: ${TARBALL} not available in OBS cache, coverage.xml stays without mapped sources" >&2
+
+      # Unpack the snapshot into the conventional convstub layout
+      # (convstub/pytorch/{torch,test}) and tell coverage where the installed
+      # torch sources really are, so coverage xml can read them.
+      - name: Prepare sources for the merge
+        if: always()
+        continue-on-error: true
+        run: |
+          TARBALL="pytorch-source-${{ needs.resolve.outputs.short }}.tar.gz"
+          if [ ! -f "${GITHUB_WORKSPACE}/source/${TARBALL}" ]; then
+            echo "WARNING: no source snapshot tarball, merging without a source map"
+            exit 0
+          fi
+
+          mkdir -p "${GITHUB_WORKSPACE}/convstub/pytorch"
+          tar -xzf "${GITHUB_WORKSPACE}/source/${TARBALL}" -C "${GITHUB_WORKSPACE}/convstub/pytorch" \
+            --strip-components=1 pytorch/torch pytorch/test
+          echo "=== convstub unpacked ==="
+          du -sh "${GITHUB_WORKSPACE}/convstub/pytorch"/* || true
+
+          printf '[paths]\ntorch =\n    %s\n    %s\n' \
+            "${GITHUB_WORKSPACE}/convstub/pytorch/torch" \
+            '/opt/conda/envs/py_3.10/lib/python3.10/site-packages/torch' \
+            > "${GITHUB_WORKSPACE}/merge.coveragerc"
+          echo "COVERAGE_RCFILE=${GITHUB_WORKSPACE}/merge.coveragerc" >> "$GITHUB_ENV"
+          cat "${GITHUB_WORKSPACE}/merge.coveragerc"
+
+      # Combine every shard's per-case coverage data files and aggregate the
       # shard failure lists into torch@latest/.
       - name: Merge shard coverage
         run: |
@@ -167,50 +215,27 @@ jobs:
           name: cases-shards
           path: coverage-out/torch@latest/logs/cases-shards
 
-      # Source snapshot: the exact pytorch source the data came from, so the
-      # merged artifact can render the report locally (coverage html needs the
-      # sources; map the installed paths with a [paths] section).
-      - name: Download source snapshot for the artifact
+      # Only a promoted torch@latest gets the sources: a failed merge leaves the
+      # previous run's artifact untouched.
+      - name: Add source snapshot to the artifact
         if: always()
-        continue-on-error: true
         run: |
           COV_DIR="${GITHUB_WORKSPACE}/coverage-out/torch@latest"
           if [ ! -f "${COV_DIR}/coverage.xml" ]; then
-            echo "WARNING: no merged coverage.xml, skip source snapshot"
+            echo "WARNING: no merged coverage.xml, previous artifact left untouched"
             exit 0
           fi
 
-          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${{ env.OBS_ENDPOINT }}
-
-          TARBALL="pytorch-source-${{ needs.resolve.outputs.short }}.tar.gz"
-          mkdir -p "${COV_DIR}/source"
-          for attempt in 1 2; do
-            echo "=== Download attempt ${attempt} ==="
-            if obsutil cp "obs://pytorch-ci-cache/7day-cache/${TARBALL}" "${COV_DIR}/source/${TARBALL}" -vlength; then
-              echo "Source snapshot saved: ${COV_DIR}/source/${TARBALL}"
-              exit 0
-            fi
-            sleep 10
-          done
-          echo "WARNING: ${TARBALL} not available in OBS cache, artifact stays without sources" >&2
-
-      # Unpack the source snapshot into the conventional convstub layout
-      # (convstub/pytorch/{torch,test}) so coverage html can be rendered locally.
-      - name: Extract source snapshot
-        if: always()
-        continue-on-error: true
-        run: |
-          COV_DIR="${GITHUB_WORKSPACE}/coverage-out/torch@latest"
-          TARBALL="pytorch-source-${{ needs.resolve.outputs.short }}.tar.gz"
-          if [ ! -f "${COV_DIR}/source/${TARBALL}" ]; then
-            echo "WARNING: no source snapshot tarball, skip extraction"
-            exit 0
+          if [ -d "${GITHUB_WORKSPACE}/convstub/pytorch" ]; then
+            rm -rf "${COV_DIR}/convstub"
+            mkdir -p "${COV_DIR}/convstub"
+            mv "${GITHUB_WORKSPACE}/convstub/pytorch" "${COV_DIR}/convstub/pytorch"
           fi
-
-          mkdir -p "${COV_DIR}/convstub/pytorch"
-          tar -xzf "${COV_DIR}/source/${TARBALL}" -C "${COV_DIR}/convstub/pytorch" \
-            --strip-components=1 pytorch/torch pytorch/test
-          echo "=== convstub unpacked ==="
+          TARBALL="pytorch-source-${{ needs.resolve.outputs.short }}.tar.gz"
+          if [ -f "${GITHUB_WORKSPACE}/source/${TARBALL}" ]; then
+            mkdir -p "${COV_DIR}/source"
+            mv "${GITHUB_WORKSPACE}/source/${TARBALL}" "${COV_DIR}/source/${TARBALL}"
+          fi
           du -sh "${COV_DIR}/convstub/pytorch"/* || true
 
       - name: Write job summary

@@ -200,10 +200,12 @@ import os
 from pathlib import Path
 
 _cov = None
+_nodeid = ""
 
 
 def pytest_configure(config):
-    global _cov
+    global _cov, _nodeid
+    _nodeid = ""
     if not os.environ.get("COVERAGE_PROCESS_START"):
         return
     import coverage
@@ -212,20 +214,29 @@ def pytest_configure(config):
     _cov.start()
 
 
+def pytest_collection_modifyitems(session, config, items):
+    global _nodeid
+    # The runner's pytest command line puts flags before the nodeid
+    # (--color=no -ra --tb=short <nodeid> ...), so the collected item is the
+    # only reliable source of the case's own nodeid.
+    if not _nodeid and items:
+        _nodeid = items[0].nodeid
+
+
 def pytest_sessionfinish(session, exitstatus):
-    global _cov
+    global _cov, _nodeid
     if _cov is None:
         return
 
     case_dir = os.environ.get("COVERAGE_CASE_DIR", "")
-    invocation = getattr(getattr(session, "config", None), "invocation_params", None)
-    args = list(getattr(invocation, "args", ()) or ())
-    nodeid = args[0] if args else "unknown"
+    items = list(getattr(session, "items", ()) or ())
+    nodeid = _nodeid or (items[0].nodeid if items else "unknown")
     safe = nodeid.replace("::", "_").replace("/", "_").replace("\\", "_")[:180]
 
     _cov.stop()
     case = _cov
     _cov = None
+    _nodeid = ""
     if not case_dir:
         return
 
@@ -316,6 +327,18 @@ def case_data_name(nodeid: str) -> str:
     return f"{safe}.coverage"
 
 
+def case_data_file(covdata_dir: Path, nodeid: str):
+    # The plugin names the file after pytest's collected nodeid, which may or
+    # may not carry the leading "test/" that the collected case list uses.
+    alternatives = [nodeid]
+    alternatives.append(nodeid[5:] if nodeid.startswith("test/") else f"test/{nodeid}")
+    for candidate in alternatives:
+        path = covdata_dir / case_data_name(candidate)
+        if path.is_file():
+            return path
+    return None
+
+
 groups = {}
 all_failed = []
 total = 0
@@ -339,8 +362,8 @@ for shard in shards:
         flat = flat_name(shard_type, case.get("file", "unknown"))
         if case.get("status", "") in ("failed", "error", "timeout"):
             failed_files.add(flat)
-        data_file = shard / "covdata" / case_data_name(case.get("nodeid", ""))
-        if not data_file.is_file():
+        data_file = case_data_file(shard / "covdata", case.get("nodeid", ""))
+        if data_file is None:
             continue
         groups.setdefault(flat, []).append(data_file)
         claimed.add(data_file)
