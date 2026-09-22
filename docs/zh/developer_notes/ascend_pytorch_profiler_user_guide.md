@@ -714,14 +714,14 @@ Ascend PyTorch Profiler可全面采集PyTorch训练/在线推理场景下的性�
         import torch
         import torch_npu
         ...
-    
+
         # 添加Profiling采集扩展配置参数，详细参数介绍可参考下文的参数说明
         experimental_config = torch_npu.profiler._ExperimentalConfig(
             export_type=torch_npu.profiler.ExportType.Text,
             profiler_level=torch_npu.profiler.ProfilerLevel.Level0,
             aic_metrics=torch_npu.profiler.AiCMetrics.AiCoreNone
         )
-    
+
         # 添加Profiling采集基础配置参数，详细参数介绍可参考下文的参数说明
         prof = torch_npu.profiler.profile(
             activities=[
@@ -733,7 +733,7 @@ Ascend PyTorch Profiler可全面采集PyTorch训练/在线推理场景下的性�
             profile_memory=False,
             with_modules=False,
             experimental_config=experimental_config)
-    
+
         prof.start()    # 启动性能数据采集
         for step in range(steps):    # 训练函数
             train_one_step()    # 训练函数
@@ -1409,7 +1409,7 @@ if __name__ == "__main__":
   > - PyTorch框架在该场景下输出的性能数据文件基本一致，以下将两种框架数据合并介绍，个别不同会在注释中说明。
   > - 以下数据文件用户无需打开查看，可使用[MindStudio Insight](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/overview.md)工具进行性能数据的查看和分析。
   > - 若kernel\_details.csv中出现StepID空值，用户可通过trace\_view.json文件查看该算子的Step信息，或重新采集Profiling数据。
-  > - 以下数据是基于实际环境采集，若环境中无对应条件，则不会生成对应数据或文件，如模型无AICPU算子，那么即使执行采集也不会生成对应data\_preprocess.csv文件。
+  > - 以下数据是基于实际环境采集，若环境中无对应条件，则不会生成对应数据或文件，如模型无AI CPU算子，那么即使执行采集也不会生成对应data\_preprocess.csv文件。
 
   ```text
   └── localhost.localdomain_139247_20230628101435_ascend_pt    // 性能数据结果目录，命名格式：{worker_name}_{timestamp}_ascend_{framework}，默认情况下{worker_name}为{hostname}_{pid}，{timestamp}为时间戳，{framework}是PyTorch框架的简写（pt）
