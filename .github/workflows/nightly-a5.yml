@@ -1,4 +1,4 @@
-name: Nightly Build and Test A5
+name: Nightly Build and Test A5 (All)
 
 on:
   push:
