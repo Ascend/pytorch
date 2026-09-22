@@ -67,7 +67,7 @@ jobs:
   test:
     name: ${{ inputs.category }} shard ${{ matrix.shard }}/${{ inputs.num_shards }}
     runs-on: ${{ inputs.runner_label }}
-    timeout-minutes: 600
+    timeout-minutes: 1200
     permissions:
       id-token: write
       contents: read

@@ -304,8 +304,8 @@ jobs:
             ${CONFIG_ARG} \
             ${FULL_SCAN_ARG} \
             ${SKIP_LIST_ARG} \
-            --regular-threshold 100000 \
-            --distributed-threshold 1000 \
+            --regular-threshold 50000 \
+            --distributed-threshold 3000 \
             --device-env "${{ inputs.device_env }}" \
             --output-dir ${GITHUB_WORKSPACE}/cases-shards \
             --error-log-dir ${GITHUB_WORKSPACE}/collection_errors \
