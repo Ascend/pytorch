@@ -119,7 +119,7 @@ jobs:
             EXTRA_ARGS="${EXTRA_ARGS} --cards-per-test ${{ inputs.CARDS_PER_TEST }}"
           fi
 
-          python3.10 .github/scripts/a5-torch-npu-test/scripts/run_npu_test_shard.py \
+          python3.10 .github/scripts/a5-torch-npu-test/scripts/nightly_run_npu_test_shard.py \
             --cases-json "cases-shards/${{ inputs.SHARD_FILE }}" \
             --test-dir test \
             --disabled-testcases .github/scripts/a5-torch-npu-test/conf/disabled_testcases.json \
