@@ -21,7 +21,8 @@ on:
 env:
   OBS_ENDPOINT: obs.ap-southeast-1.myhuaweicloud.com
   OBS_COVERAGE_PREFIX: obs://pytorch-ci-cache/coverage/pytorch
-  DOCKER_IMAGE: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609140905-0ba22e2b
+  # 注意：runs-on / container.image / with.* 字段不支持 env 上下文，
+  # 镜像地址在下方三处内联硬编码（修改镜像时需同步三处）
 
 jobs:
   # Resolve pytorch commit: full SHA (for building) + short SHA (for tarball names)
@@ -71,7 +72,7 @@ jobs:
     needs: [resolve]
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.DOCKER_IMAGE }}
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609140905-0ba22e2b
       options: --network host
     outputs:
       cache_hit: ${{ steps.probe.outputs.cache_hit }}
@@ -113,7 +114,7 @@ jobs:
       upstream_ref: ${{ needs.resolve.outputs.sha }}
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: master
-      docker_image: ${{ env.DOCKER_IMAGE }}
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609140905-0ba22e2b
       report_to_upstream: false
       runner_label: 'linux-aarch64-cpu-24'
       max_jobs: '23'
@@ -129,7 +130,7 @@ jobs:
     outputs:
       test_status: ${{ steps.run_coverage.outputs.test_status }}
     container:
-      image: ${{ env.DOCKER_IMAGE }}
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609140905-0ba22e2b
       options: --network host
     env:
       PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
