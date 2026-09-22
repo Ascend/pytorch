@@ -44,7 +44,4 @@ jobs:
       full_scan: true
       device_env: 'privateuse1,cpu'
       runner_label: 'linux-amd64-a5-2'
-      skip_list: |-
-        .github/config/disabled_testcases.json
-        .github/config/running_skiped_testcases.json
 
