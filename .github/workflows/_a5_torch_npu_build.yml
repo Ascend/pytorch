@@ -80,10 +80,6 @@ jobs:
           assert torch.__version__, 'PyTorch installation failed'
           "
 
-      - name: Install auditwheel
-        run: |
-          python3.10 -m pip install --trusted-host mirrors.huaweicloud.com auditwheel
-
       - name: Configure ccache
         env:
           CCACHE_DIR: "/ccache"
@@ -102,7 +98,6 @@ jobs:
           MAX_JOBS: ${{ inputs.MAX_JOBS }}
           DISABLE_INSTALL_TORCHAIR: "FALSE"
           BUILD_WITHOUT_SHA: "1"
-          AUDITWHEEL_PLAT: "manylinux_2_28_x86_64"
         run: |
           export CCACHE_BASEDIR="${GITHUB_WORKSPACE}"
           # release/2.15 -> 2.15.0 (build.sh --torch= expects X.Y.Z)
@@ -121,6 +116,12 @@ jobs:
             echo "===== end ====="
             exit ${BUILD_STATUS}
           fi
+          WHL=$(ls dist/*.whl 2>/dev/null | head -1)
+          # bdist_wheel produces a bare `linux_x86_64` platform tag which pip>=26
+          # rejects as invalid. Re-tag it as manylinux_2_28 without auditwheel;
+          # we only install inside this same glibc>=2.28 container, so no real
+          # symbol auditing is needed.
+          python3.10 -m wheel tags --platform-tag manylinux_2_28_x86_64 --remove "${WHL}"
           WHL=$(ls dist/*.whl 2>/dev/null | head -1)
           echo "Build succeeded: ${WHL}"
           echo "Wheel: ${WHL##*/}" >> build_msg.txt
