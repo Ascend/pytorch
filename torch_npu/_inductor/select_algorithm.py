@@ -58,6 +58,10 @@ from torch.utils._ordered_set import OrderedSet
 from ..profiler import tensorboard_trace_handler
 from .codegen.triton import NPUTritonKernel
 from . import config as npu_config
+from .kernel.flex_attention_dispatch import (
+    FlexAttentionDispatchTemplateCaller,
+    resolve_flex_attention_dispatch_plan,
+)
 
 
 log = logging.getLogger("torch._inductor")
@@ -430,7 +434,7 @@ class NPUTritonTemplate(TritonTemplate):
         source: str,
         debug: bool = False,
         manual_output_buffer: Optional[str] = None,
-        codegen_kernel_name: Optional[str] = None,
+        npu_extra_name: Optional[str] = None,
         compile_options: Optional[NPUTemplateCompileOption] = None,
     ) -> None:
         """Initialize NPU Triton template.
@@ -443,7 +447,7 @@ class NPUTritonTemplate(TritonTemplate):
         """
         super().__init__(name, grid, source, debug)
         self.manual_output_buffer = manual_output_buffer
-        self.codegen_kernel_name = codegen_kernel_name or f"triton_{name}"
+        self.npu_extra_name = npu_extra_name
         self.compile_options = compile_options or NPUTemplateCompileOption()
 
     def _write_index_dtype_define(
@@ -553,6 +557,7 @@ class NPUTritonTemplate(TritonTemplate):
                 use_jit=False,
                 **kernel_options,
             )
+            kernel.npu_extra_name = getattr(self, "npu_extra_name", None)
 
             def render():
                 with patch.object(
@@ -601,6 +606,7 @@ class NPUTritonTemplate(TritonTemplate):
         runtime_renderer_factory: Optional[Callable] = None,
         dispatch_spec: Optional[Any] = None,
         index_dtype_override: Optional[str] = None,
+        dispatch_plan=None,
         **kwargs: Any,
     ) -> Optional[ir.ChoiceCaller]:
         kwargs = dict(kwargs)
@@ -753,6 +759,7 @@ class NPUTritonTemplate(TritonTemplate):
                 use_jit=False,
                 **kernel_options,
             )
+            kernel.npu_extra_name = getattr(self, "npu_extra_name", None)
 
             render = functools.partial(
                 kernel.render,
@@ -792,7 +799,16 @@ class NPUTritonTemplate(TritonTemplate):
 
         caller_type = TritonTemplateCaller
         caller_kwargs = {}
-        if runtime_renderer_factory is not None:
+        resolved_dispatch_plan = resolve_flex_attention_dispatch_plan(
+            dispatch_plan, V.graph
+        )
+        if (
+            resolved_dispatch_plan is not None
+            and resolved_dispatch_plan.requires_composite_codegen
+        ):
+            caller_type = FlexAttentionDispatchTemplateCaller
+            caller_kwargs = {"dispatch_plan": resolved_dispatch_plan}
+        elif runtime_renderer_factory is not None:
             assert dispatch_spec is not None
             caller_type = NPUFlexAttentionDkdvTemplateCaller
             caller_kwargs = {

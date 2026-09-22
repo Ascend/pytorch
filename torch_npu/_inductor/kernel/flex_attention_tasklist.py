@@ -28,10 +28,8 @@ class FlexAttentionDkdvDispatchSpec:
     partial_dv_stride: int
 
 
-def is_dkdv_tasklist_codegen_compatible(
+def is_dkdv_tasklist_eligible(
     *,
-    cpp_wrapper,
-    aot_mode,
     bq,
     bkv,
     sparse_z,
@@ -46,9 +44,7 @@ def is_dkdv_tasklist_codegen_compatible(
 ):
     static_dimensions = (bq, bkv, sparse_z, sparse_hq)
     return (
-        not cpp_wrapper
-        and not aot_mode
-        and all(isinstance(value, int) for value in static_dimensions)
+        all(isinstance(value, int) for value in static_dimensions)
         and bq == 1
         and bq == bkv
         and sparse_z == bq
@@ -61,6 +57,13 @@ def is_dkdv_tasklist_codegen_compatible(
         and full_q_num_blocks_contiguous
         and accum_dtype == torch.float32
     )
+
+
+def is_dkdv_tasklist_codegen_compatible(*, cpp_wrapper, aot_mode, **kwargs):
+    """Backward-compatible eligibility check for the legacy lowering path."""
+    if cpp_wrapper or aot_mode:
+        return False
+    return is_dkdv_tasklist_eligible(**kwargs)
 
 
 def compute_dkdv_sparse_weights(q_num_blks, full_q_num_blks):

@@ -30,7 +30,7 @@ from torch_npu._inductor._aclgraph_update_plan import (
     emit_inductor_aclgraph_update_plan_for_wrapper,
 )
 from torch_npu._inductor.utils import resolve_npu_device_index
-from ..flex_attention_tasklist import DKDV_TASKLIST_HELPER_SOURCE
+from ..kernel.flex_attention_tasklist import DKDV_TASKLIST_HELPER_SOURCE
 
 
 class _RuntimeHelperDefinitionsLine(DeferredLineBase):
@@ -218,6 +218,24 @@ class NPUPythonWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
         self.runtime_helper_definitions.splice(DKDV_TASKLIST_HELPER_SOURCE)
         self.runtime_helper_definitions.writeline("")
         self._flex_attention_dkdv_tasklist_helpers_written = True
+
+    def write_runtime_helper_once(self, key, source) -> None:
+        """Add a generated runtime helper at most once per wrapper.
+
+        FlexAttention dispatch strategies use this generic hook so multiple
+        strategies can coexist without duplicating helper definitions.  Keep
+        the legacy dK/dV helper API above for callers from older lowering
+        paths.
+        """
+        written = getattr(self, "_runtime_helper_keys", None)
+        if written is None:
+            written = set()
+            self._runtime_helper_keys = written
+        if key in written:
+            return
+        self.runtime_helper_definitions.splice(source)
+        self.runtime_helper_definitions.writeline("")
+        written.add(key)
 
     def generate_flex_attention_dkdv_dispatch(
         self,

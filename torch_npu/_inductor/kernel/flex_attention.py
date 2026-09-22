@@ -1,6 +1,7 @@
 """ Triton Implementation of the flex_attention Kernel"""
 
 import math
+import os
 from collections.abc import Sequence
 from functools import wraps
 from typing import Any, Dict, Optional, Union
@@ -20,7 +21,15 @@ except ImportError:
         return False
 from torch_npu._inductor import config as npu_config
 from torch_npu._inductor.config import log
-from torch_npu._inductor.flex_attention_tasklist import (
+from torch_npu._inductor.kernel.flex_attention_dispatch import (
+    ALL_CODEGEN_CONTEXTS,
+    DkdvDispatchStrategy,
+    FwdDispatchStrategy,
+    FlexAttentionDispatchPlan,
+    PYTHON_ONLY,
+    get_flexattention_dispatch_strategy,
+)
+from torch_npu._inductor.kernel.flex_attention_tasklist import (
     FlexAttentionDkdvDispatchSpec,
     RuntimeTemplateArg,
     is_dkdv_tasklist_codegen_compatible,
@@ -39,6 +48,9 @@ from torch_npu._inductor.kernel.flexattention_template import (
     flex_attention_template,
     flex_attention_fwd_mask_compact,
     flex_attention_fwd_mask_out,
+    flex_attention_fwd_workspace_mask_compact,
+    flex_attention_fwd_workspace_offsets,
+    flex_attention_fwd_mask_out_all_sparse,
     flex_decoding_template,
 )
 
@@ -124,6 +136,11 @@ _LN2 = 0.6931471805599453
 _LOG2E = 1.4426950408889634
 
 
+def _supports_flex_attention_mask_out() -> bool:
+    """Return whether the selected wrapper can emit mask-out dispatch code."""
+    return os.environ.get("TORCHINDUCTOR_NPU_BACKEND", "default") != "dvm"
+
+
 def _tag_flex_attention_report_choices(new_choices, cfg):
     """Attach tiling metadata used by NPU choice diagnostics."""
     report_config = {
@@ -170,13 +187,59 @@ def _is_named_ir_node(value: Any) -> bool:
     return hasattr(value, "get_name") and hasattr(value, "get_size")
 
 
+def _ir_has_dynamic_shape(*nodes_or_dims: Any) -> bool:
+    """Return whether any IR node/dimension contains a free symbol."""
+    for value in nodes_or_dims:
+        if value is None:
+            continue
+        if isinstance(value, (tuple, list)):
+            if _ir_has_dynamic_shape(*value):
+                return True
+            continue
+        get_size = getattr(value, "get_size", None)
+        if callable(get_size):
+            if _ir_has_dynamic_shape(*get_size()):
+                return True
+            continue
+        if bool(getattr(value, "free_symbols", ())):
+            return True
+    return False
+
+
 _EXPLICIT_SCORE_MOD_OPTION = "_NPU_EXPLICIT_SCORE_MOD"
+_FWD_WORKSPACE_OPTION = "_NPU_FWD_MASK_WORKSPACE_BYTES"
 _STREAMING_BLOCK_MASK_TARGET_BYTES = 256 * 1024 * 1024
 _STREAMING_BLOCK_MASK_BYTES_PER_ELEMENT = 8
 _TASKLIST_REDUCE_UB_BUDGET_NUMERATOR = 4
 _TASKLIST_REDUCE_UB_BUDGET_DENOMINATOR = 5
 _TASKLIST_REDUCE_FP32_TILE_COUNT = 3
 _TASKLIST_REDUCE_FP32_BYTES = 4
+
+
+MAX_SCAN_ROWS = 4096
+INT32_MAX = (1 << 31) - 1
+
+
+def fwd_mask_workspace_capacity(count_shape, index_shape, block_size, budget_bytes):
+    """Return a proven capacity, or None; a budget never truncates capacity.
+
+    For valid BlockMask metadata, each count is in [0, index_shape[-1]].
+    B/H here are the mask dimensions, including any singleton broadcasting.
+    Restrict the first implementation to a bounded single-program prefix scan.
+    """
+    if (budget_bytes <= 0 or len(count_shape) != 3 or len(index_shape) != 4
+            or len(block_size) != 2):
+        return None
+    if tuple(count_shape) != tuple(index_shape[:3]):
+        return None
+    if any(dim <= 0 for dim in (*index_shape, *block_size)):
+        return None
+    rows = math.prod(count_shape)
+    capacity = rows * index_shape[-1]
+    elements = capacity * math.prod(block_size)
+    if rows > MAX_SCAN_ROWS or elements > INT32_MAX or elements > budget_bytes:
+        return None
+    return capacity
 
 
 def _filter_dkdv_tasklist_reduce_configs(
@@ -296,6 +359,11 @@ def _build_runtime_compact_sparse_mask_offsets(
     device,
     context: str,
 ):
+    """Build row-ordered offsets and the exact total for forward and backward.
+
+    A single program carries the prefix across bounded scan tiles and owns
+    TOTAL_BLOCKS, including the zero-row case; no fill or atomic is needed.
+    """
     q_offsets = empty_strided(
         kv_num_blocks.get_size(),
         None,
@@ -316,11 +384,8 @@ def _build_runtime_compact_sparse_mask_offsets(
         dtype=torch.int32,
         device=device,
     )
-    total_blocks = _force_fixed_layout(
-        lowerings[aten.fill_](total_blocks, 0),
-        [1],
-    )
     total_layout = FixedLayout(device, torch.int32, [1], stride=[1])
+    row_hint = V.graph.sizevars.optimization_hint(row_count, fallback=config.unbacked_symint_fallback)
 
     choices = []
     flex_attention_compact_offsets.maybe_append_choice(
@@ -338,7 +403,7 @@ def _build_runtime_compact_sparse_mask_offsets(
         call_sizes=[row_count],
         num_stages=1,
         num_warps=4,
-        NUM_VECTOR_CORE=_get_num_vector_core(),
+        SCAN_TILE_ROWS=min(MAX_SCAN_ROWS, next_power_of_2(max(1, row_hint))),
     )
     if not choices:
         raise RuntimeError(
@@ -364,6 +429,55 @@ def _build_runtime_compact_sparse_mask_offsets(
         },
     )
     return q_offsets, total_blocks, row_count
+
+
+def create_workspace_offsets_fake(x):
+    size = V.graph.sizevars.optimization_hints(
+        x.get_size(),
+        fallback=config.unbacked_symint_fallback,
+    )
+    return torch.arange(math.prod(size), dtype=x.get_dtype(), device=x.get_device()).view(size)
+
+
+def create_workspace_strided_int_fake(x, value=0):
+    size = V.graph.sizevars.optimization_hints(
+        x.get_size(),
+        fallback=config.unbacked_symint_fallback,
+    )
+    stride = V.graph.sizevars.optimization_hints(
+        x.get_stride(),
+        fallback=config.unbacked_symint_fallback,
+    )
+    storage_size = 0 if 0 in size else 1 + sum((n - 1) * s for n, s in zip(size, stride))
+    # Filling backing storage also supports broadcast strides on NPU.
+    storage = torch.full((storage_size,), value, dtype=x.get_dtype(), device=x.get_device())
+    return storage.as_strided(size, stride)
+
+
+def create_workspace_counts_fake(x):
+    return create_workspace_strided_int_fake(x, 1)
+
+
+def _build_fwd_workspace_offsets(kv_num_blocks, row_count):
+    layout = FixedLayout(kv_num_blocks.get_device(), torch.int32, kv_num_blocks.get_size())
+    choices = []
+    flex_attention_fwd_workspace_offsets.maybe_append_choice(
+        choices=choices,
+        input_nodes=[kv_num_blocks],
+        layout=layout,
+        call_sizes=[row_count],
+        SCAN_BLOCK_ROWS=next_power_of_2(row_count),
+        num_stages=1,
+        num_warps=4,
+    )
+    offsets, _ = autotune_select_algorithm(
+        "flex_attention_fwd_workspace_offsets",
+        choices,
+        _filter_autotune_ir_nodes([kv_num_blocks], choices),
+        layout,
+        input_gen_fns={0: create_workspace_counts_fake},
+    )
+    return offsets
 
 
 def _bind_runtime_total_blocks_as_unbacked_size(
@@ -403,6 +517,7 @@ def _build_runtime_compact_sparse_mask_mapping(
     row_count,
     device,
     context: str,
+    use_workspace: bool = False,
 ):
     mapping_layout = FixedLayout(device, torch.int32, [1], stride=[1])
     choices = []
@@ -432,8 +547,8 @@ def _build_runtime_compact_sparse_mask_mapping(
         input_gen_fns={
             0: create_zero_int_tensor_fake,
             1: create_zero_int_tensor_fake,
-            2: create_compact_q_offsets_fake,
-            3: create_sparse_mask_num_blocks_fake,
+            2: create_workspace_offsets_fake if use_workspace else create_compact_q_offsets_fake,
+            3: create_workspace_counts_fake if use_workspace else create_sparse_mask_num_blocks_fake,
         },
     )
 
@@ -625,6 +740,11 @@ def patch_flex_attention() -> None:
             {} if kernel_options is None else dict(kernel_options)
         )
         updated_kernel_options[_EXPLICIT_SCORE_MOD_OPTION] = score_mod is not None
+        # Include the strategy in the HOP/FX cache key, not only in lowering's
+        # process-local config. Otherwise a warm graph cache can ignore a toggle.
+        updated_kernel_options[_FWD_WORKSPACE_OPTION] = (
+            npu_config.flex_attention.fwd_mask_workspace_bytes
+        )
         return current_flex_attention(
             query,
             key,
@@ -950,7 +1070,6 @@ def _create_npu_flex_decoding_kernel(*args):
 
     choices: list[Any] = []
     configs: list[tuple[int, int, int]] = [
-        (64, 2, 1),
         (128, 2, 2),
         (64, 2, 2),
         (32, 2, 2),
@@ -2040,6 +2159,9 @@ def _register_npu_inductor_flex_attention():
         has_explicit_score_mod = bool(
             kernel_options.pop(_EXPLICIT_SCORE_MOD_OPTION, False)
         )
+        workspace_budget = int(kernel_options.pop(
+            _FWD_WORKSPACE_OPTION, npu_config.flex_attention.fwd_mask_workspace_bytes
+        ))
         # Strip GPU-specific backend selector (e.g. "TRITON"/"FLASH"/"CUDNN") that
         # has no meaning on NPU and would leak into Triton constexpr parameters.
         kernel_options.pop("BACKEND", None)
@@ -2083,11 +2205,10 @@ def _register_npu_inductor_flex_attention():
                     "Flex decoding failed, falling back to flex attention: %s",
                     exc,
                 )
-        configured_mask_out = bool(
-            npu_config.flex_attention.flexattention_mask_out
-        )
+        flexattention_dispatch_strategy = get_flexattention_dispatch_strategy()
+        use_fwd_dispatch = flexattention_dispatch_strategy == "fwd"
         use_mask_out = (
-            configured_mask_out
+            _supports_flex_attention_mask_out()
             and not has_score_mod
             and _has_sparse_block_mask(
                 SPARSE_Q_BLOCK_SIZE, SPARSE_KV_BLOCK_SIZE
@@ -2215,6 +2336,7 @@ def _register_npu_inductor_flex_attention():
         kernel_options.setdefault("GQA_SHARED_HEADS", gqa_shared_heads)
 
         flexattention_mask_out = use_mask_out
+        use_fwd_dispatch = use_fwd_dispatch and flexattention_mask_out
         has_full_blocks = full_kv_num_blocks is not None
         has_full_blocks = bool(
             kernel_options.get("HAS_FULL_BLOCKS", has_full_blocks)
@@ -2239,35 +2361,56 @@ def _register_npu_inductor_flex_attention():
         sparse_mask_buffer = None
         sparse_mask_strides = None
 
+        from torch_npu._inductor.fx_passes.utils.schedule_node_utils import is_multi_stream
+
+        # Capacity is shape-derived; the live block count stays on device in
+        # both Python and C++ wrappers. Keep the strategy fixed at lowering,
+        # including the Python warmup pass used by C++ wrapper codegen.
+        static_workspace_path = (
+            not getattr(V.graph, "aot_mode", False)
+            and not is_multi_stream()
+            and not _ir_has_dynamic_shape(query, key, value, kv_num_blocks, kv_indices)
+        )
+        workspace_capacity = None
+        if (static_workspace_path and workspace_budget > 0
+                and kv_num_blocks.get_dtype() == torch.int32
+                and kv_indices.get_dtype() == torch.int32):
+            workspace_capacity = fwd_mask_workspace_capacity(
+                tuple(map(int, kv_num_blocks.get_size())),
+                tuple(map(int, kv_indices.get_size())),
+                (SPARSE_Q_BLOCK_SIZE, SPARSE_KV_BLOCK_SIZE), workspace_budget,
+            )
+        use_workspace = workspace_capacity is not None
+        log.info("FWD mask workspace: budget=%d capacity=%s", workspace_budget, workspace_capacity)
+
         if flexattention_mask_out:
-            (
-                compact_q_offsets,
-                runtime_total_blocks,
-                row_count,
-            ) = _build_runtime_compact_sparse_mask_offsets(
-                kv_num_blocks=kv_num_blocks,
-                kv_indices=kv_indices,
-                device=query.get_device(),
-                context="forward",
-            )
-            max_runtime_blocks = torch.iinfo(torch.int32).max // (
-                SPARSE_Q_BLOCK_SIZE * SPARSE_KV_BLOCK_SIZE
-            )
-            actual_blocks = _bind_runtime_total_blocks_as_unbacked_size(
-                runtime_total_blocks,
-                max_blocks=max_runtime_blocks,
-            )
+            if use_workspace:
+                row_count = math.prod(map(int, kv_num_blocks.get_size()))
+                compact_q_offsets = _build_fwd_workspace_offsets(kv_num_blocks, row_count)
+                mask_capacity = workspace_capacity
+            else:
+                (
+                    compact_q_offsets,
+                    runtime_total_blocks,
+                    row_count,
+                ) = _build_runtime_compact_sparse_mask_offsets(
+                    kv_num_blocks=kv_num_blocks,
+                    kv_indices=kv_indices,
+                    device=query.get_device(),
+                    context="forward",
+                )
+                max_runtime_blocks = torch.iinfo(torch.int32).max // (
+                    SPARSE_Q_BLOCK_SIZE * SPARSE_KV_BLOCK_SIZE
+                )
+                actual_blocks = _bind_runtime_total_blocks_as_unbacked_size(
+                    runtime_total_blocks, max_blocks=max_runtime_blocks,
+                )
+                mask_capacity = actual_blocks
             compact_flat_to_row = empty_strided(
-                [actual_blocks],
-                [1],
-                dtype=torch.int32,
-                device=query.get_device(),
+                [mask_capacity], [1], dtype=torch.int32, device=query.get_device(),
             )
             compact_flat_to_blk = empty_strided(
-                [actual_blocks],
-                [1],
-                dtype=torch.int32,
-                device=query.get_device(),
+                [mask_capacity], [1], dtype=torch.int32, device=query.get_device(),
             )
             _build_runtime_compact_sparse_mask_mapping(
                 flat_to_row=compact_flat_to_row,
@@ -2277,9 +2420,10 @@ def _register_npu_inductor_flex_attention():
                 row_count=row_count,
                 device=query.get_device(),
                 context="forward",
+                use_workspace=use_workspace,
             )
             sparse_mask_size = [
-                actual_blocks,
+                mask_capacity,
                 SPARSE_Q_BLOCK_SIZE,
                 SPARSE_KV_BLOCK_SIZE,
             ]
@@ -2410,6 +2554,35 @@ def _register_npu_inductor_flex_attention():
                     forward_kernel_options["BLOCK_M"],
                     forward_kernel_options["BLOCK_N"],
                 )
+                forward_dispatch_plan = None
+                if use_fwd_dispatch:
+                    all_sparse_kernel_options = forward_kernel_options.copy()
+                    all_sparse_kernel_options["HAS_FULL_BLOCKS"] = False
+                    all_sparse_num_stages = all_sparse_kernel_options.pop(
+                        "num_stages"
+                    )
+                    all_sparse_num_warps = all_sparse_kernel_options.pop(
+                        "num_warps"
+                    )
+                    all_sparse_renderer_factory = (
+                        flex_attention_fwd_mask_out_all_sparse.make_runtime_renderer_factory(
+                            input_nodes=forward_input_nodes,
+                            runtime_args=(),
+                            layout=layout,
+                            num_stages=all_sparse_num_stages,
+                            num_warps=all_sparse_num_warps,
+                            call_sizes=query.get_size(),
+                            subgraphs=[subgraph_buffer],
+                            **all_sparse_kernel_options,
+                        )
+                    )
+                    forward_dispatch_plan = FlexAttentionDispatchPlan(
+                        primary_name="fwd",
+                        strategy=FwdDispatchStrategy(
+                            all_sparse_renderer_factory
+                        ),
+                        capabilities=PYTHON_ONLY,
+                    )
                 error = flex_attention_fwd_mask_out.maybe_append_choice(
                     choices=choices,
                     input_nodes=forward_input_nodes,
@@ -2417,6 +2590,7 @@ def _register_npu_inductor_flex_attention():
                     subgraphs=[subgraph_buffer],
                     mutated_inputs=[logsumexp, max_scores],
                     call_sizes=query.get_size(),
+                    dispatch_plan=forward_dispatch_plan,
                     **forward_kernel_options,
                 )
 
@@ -2470,15 +2644,16 @@ def _register_npu_inductor_flex_attention():
             sparse_mask_kernel_options = sparse_mask_base_kernel_options.copy()
             sparse_mask_kernel_options.update(sparse_mask_tiling_config)
             num_choices_before = len(sparse_mask_choices)
-            sparse_mask_template = flex_attention_fwd_mask_compact
             sparse_mask_input_nodes = [
-                sparse_mask_buffer,
-                compact_flat_to_row,
-                compact_flat_to_blk,
-                query,
-                key,
-                kv_indices,
+                sparse_mask_buffer, compact_flat_to_row, compact_flat_to_blk,
+                query, key, kv_indices,
             ]
+            sparse_mask_call_sizes = [mask_capacity]
+            if use_workspace:
+                sparse_mask_template = flex_attention_fwd_workspace_mask_compact
+                sparse_mask_input_nodes.extend([compact_q_offsets, kv_num_blocks])
+            else:
+                sparse_mask_template = flex_attention_fwd_mask_compact
             try:
                 sparse_mask_template.maybe_append_choice(
                     choices=sparse_mask_choices,
@@ -2486,7 +2661,7 @@ def _register_npu_inductor_flex_attention():
                     layout=sparse_mask_layout,
                     subgraphs=[mask_graph_buffer],
                     mutated_inputs=[sparse_mask_buffer],
-                    call_sizes=[actual_blocks],
+                    call_sizes=sparse_mask_call_sizes,
                     NUM_VECTOR_CORE=_get_num_vector_core(),
                     **sparse_mask_kernel_options,
                 )
@@ -2566,14 +2741,7 @@ def _register_npu_inductor_flex_attention():
             mask_mod_other_buffers,
         )
         sparse_mask_inputs_for_autotuning = (
-            [
-                sparse_mask_buffer,
-                compact_flat_to_row,
-                compact_flat_to_blk,
-                query,
-                key,
-                kv_indices,
-            ]
+            sparse_mask_input_nodes
             + sparse_mask_autotune_other_buffers
         )
         sparse_mask_input_gen_fns = {
@@ -2581,6 +2749,12 @@ def _register_npu_inductor_flex_attention():
             2: create_zero_int_tensor_fake,
             5: _create_sparse_mask_indices_fake_generator(),
         }
+        if use_workspace:
+            sparse_mask_input_gen_fns.update({
+                5: create_workspace_strided_int_fake,
+                6: create_workspace_offsets_fake,
+                7: create_workspace_counts_fake,
+            })
         log.info("Sparse mask kernel autotune starting with %d choices", len(sparse_mask_choices))
         sparse_mask_result, _ = autotune_select_algorithm(
             "sparse_mask_kernel",
@@ -2716,6 +2890,8 @@ def _register_npu_inductor_flex_attention():
             )
 
         kernel_options = dict(kernel_options)
+        # Forward-only strategy hint; never leak into backward constexprs.
+        kernel_options.pop(_FWD_WORKSPACE_OPTION, None)
         # Strip upstream GPU dispatch knobs before they leak into Triton
         # constexprs.
         # WRITE_DQ and OUTPUT_MAX are valid FlexAttention template options.
@@ -2727,9 +2903,6 @@ def _register_npu_inductor_flex_attention():
         # Strip GPU-specific backend selector (e.g. "TRITON"/"FLASH"/"CUDNN") that
         # has no meaning on NPU and would leak into Triton constexpr parameters.
         kernel_options.pop("BACKEND", None)
-        configured_mask_out = bool(
-            npu_config.flex_attention.flexattention_mask_out
-        )
         # Mark symbols in custom kernel options as static shapes and add guards.
         kernel_options = {
             k: V.graph.sizevars.guard_int(v)
@@ -2803,17 +2976,19 @@ def _register_npu_inductor_flex_attention():
         has_score_mod = has_explicit_score_mod and not score_mod_is_identity
 
         flexattention_mask_out = (
-            configured_mask_out
+            _supports_flex_attention_mask_out()
             and not has_score_mod
             and _has_sparse_block_mask(
                 SPARSE_Q_BLOCK_SIZE, SPARSE_KV_BLOCK_SIZE
             )
         )
+        flexattention_dispatch_strategy = get_flexattention_dispatch_strategy()
+        use_dkdv_dispatch = flexattention_dispatch_strategy == "bwd_dkdv"
         log.info(
-            "flex_attention_backward mask route: configured_mask_out=%s "
+            "flex_attention_backward mask route: mask_out_supported=%s "
             "has_explicit_score_mod=%s score_mod_is_identity=%s "
             "flexattention_mask_out=%s",
-            configured_mask_out,
+            _supports_flex_attention_mask_out(),
             has_explicit_score_mod,
             score_mod_is_identity,
             flexattention_mask_out,
@@ -2861,9 +3036,13 @@ def _register_npu_inductor_flex_attention():
                 sparse_kv_block_size=SPARSE_KV_BLOCK_SIZE,
             )
 
+        assert not joint_outputs.mutated_grads, (
+            "FlexAttention backward mask-out requires an identity score_mod "
+            "without captured-gradient side effects"
+        )
+
         kernel_options.setdefault("ROWS_GUARANTEED_SAFE", False)
         kernel_options.setdefault("BLOCKS_ARE_CONTIGUOUS", False)
-        kernel_options["TORCHINDUCTOR_FLEXATTENTION_MASKOUT"] = True
 
         # Construct layout with stride order matching K
         key_size = [Bq, Hkv, seq_len_kv, qk_head_dim]
@@ -3297,7 +3476,6 @@ def _register_npu_inductor_flex_attention():
         tasklist_reduce_ub_safe = True
         if (
             flexattention_mask_out
-            and npu_config.flex_attention.bwd_dkdv_tasklist
             and not bwd_has_dynamic_shape
         ):
             tasklist_safe_dkdv_configs = _filter_dkdv_tasklist_reduce_configs(
@@ -3331,19 +3509,12 @@ def _register_npu_inductor_flex_attention():
             # Blocksparse options
             cur_kernel_options.setdefault("SPARSE_Q_BLOCK_SIZE", SPARSE_Q_BLOCK_SIZE)
             cur_kernel_options.setdefault("SPARSE_KV_BLOCK_SIZE", SPARSE_KV_BLOCK_SIZE)
-            cur_kernel_options.setdefault(
-                "TORCHINDUCTOR_FLEXATTENTION_MASKOUT",
-                flexattention_mask_out,
-            )
             return cur_kernel_options
 
         def make_bwd_dq_kernel_options(cfg: dict) -> dict:
             opts = make_bwd_base_kernel_options(cfg)
             opts.update(
                 {
-                    "TORCHINDUCTOR_FLEXATTENTION_MASKOUT": (
-                        flexattention_mask_out
-                    ),
                     "num_stages": 1,
                     "num_warps": 4,
                 }
@@ -3402,27 +3573,12 @@ def _register_npu_inductor_flex_attention():
                 type(kv_indices).__name__,
                 type(grad_lse).__name__, cur_kernel_options)
 
-        has_captured_grad_side_effect = bool(joint_outputs.mutated_grads)
-        captured_grad_owner = "dkdv" if has_captured_grad_side_effect else None
-        assert captured_grad_owner in (None, "dq", "dkdv")
-        log.debug(
-            "bwd split captured_grad_owner=%s mutated_grads=%d",
-            captured_grad_owner,
-            len(joint_outputs.mutated_grads),
-        )
-
-        def make_bwd_subgraphs_and_mutations(kind: str, base_mutated_inputs: list[Any]):
-            subgraphs = [
+        def make_bwd_subgraphs_and_mutations(base_mutated_inputs: list[Any]):
+            return [
                 fw_subgraph_buffer,
                 joint_outputs.grad_input,
                 mask_graph_buffer,
-            ]
-            mutated_inputs = list(base_mutated_inputs)
-            run_captured_grads = captured_grad_owner == kind
-            if run_captured_grads:
-                subgraphs.append(joint_outputs.captured_grads_compute)
-                mutated_inputs.extend(joint_outputs.mutated_grads)
-            return subgraphs, mutated_inputs, run_captured_grads
+            ], list(base_mutated_inputs)
 
         dq_input_nodes = [
             query,
@@ -3466,12 +3622,24 @@ def _register_npu_inductor_flex_attention():
             dkdv_kernel_options,
             dkdv_subgraphs,
         ):
+            def ineligible_plan(reason):
+                return FlexAttentionDispatchPlan(
+                    primary_name="dkdv",
+                    strategy=DkdvDispatchStrategy(
+                        runtime_renderer_factory=None,
+                        dispatch_spec=None,
+                        eligibility_reason=reason,
+                    ),
+                    capabilities=PYTHON_ONLY,
+                )
+
             if (
                 not flexattention_mask_out
-                or not npu_config.flex_attention.bwd_dkdv_tasklist
                 or bwd_has_dynamic_shape
                 or not tasklist_reduce_ub_safe
             ):
+                if use_dkdv_dispatch:
+                    return ineligible_plan("dK/dV tasklist is not eligible")
                 return {}
 
             try:
@@ -3495,6 +3663,10 @@ def _register_npu_inductor_flex_attention():
                     accum_dtype=broadcasted_grad_key_accum.get_dtype(),
                 )
                 if not compatible:
+                    if use_dkdv_dispatch:
+                        return ineligible_plan(
+                            "dK/dV tasklist is not codegen-compatible"
+                        )
                     return {}
 
                 partial_dk_stride = V.graph.sizevars.guard_int(
@@ -3508,6 +3680,10 @@ def _register_npu_inductor_flex_attention():
                     "dK/dV task-list codegen disabled for non-static metadata",
                     exc_info=True,
                 )
+                if use_dkdv_dispatch:
+                    return ineligible_plan(
+                        "dK/dV tasklist metadata is non-static"
+                    )
                 return {}
 
             block_n1 = dkdv_kernel_options["BLOCK_N1"]
@@ -3625,17 +3801,30 @@ def _register_npu_inductor_flex_attention():
                 partial_dk_stride=partial_dk_stride,
                 partial_dv_stride=partial_dv_stride,
             )
+            if use_dkdv_dispatch:
+                return FlexAttentionDispatchPlan(
+                    primary_name="dkdv",
+                    strategy=DkdvDispatchStrategy(
+                        runtime_renderer_factory=runtime_renderer_factory,
+                        dispatch_spec=dispatch_spec,
+                    ),
+                    capabilities=PYTHON_ONLY,
+                )
             return {
                 "runtime_renderer_factory": runtime_renderer_factory,
                 "dispatch_spec": dispatch_spec,
             }
 
+        dq_dispatch_plan = FlexAttentionDispatchPlan(
+            primary_name="dq",
+            strategy=None,
+            capabilities=ALL_CODEGEN_CONTEXTS,
+        )
         for cfg in bwd_dq_dict_configs:
             dq_kernel_options = make_bwd_dq_kernel_options(cfg)
-            dq_subgraphs, dq_mutated_inputs, dq_run_captured = (
-                make_bwd_subgraphs_and_mutations("dq", [grad_query])
+            dq_subgraphs, dq_mutated_inputs = make_bwd_subgraphs_and_mutations(
+                [grad_query]
             )
-            dq_kernel_options["RUN_CAPTURED_GRADS"] = dq_run_captured
             log_bwd_choice("dq", cfg, dq_kernel_options)
 
             prev_dq_choice_count = len(dq_choices)
@@ -3648,6 +3837,7 @@ def _register_npu_inductor_flex_attention():
                 reset_to_zero_arg_names=None,
                 large_input_buffers=mask_out_input_nodes,
                 call_sizes=query.get_size() + key.get_size()[1:3],
+                dispatch_plan=dq_dispatch_plan,
                 **dq_kernel_options,
             )
             if len(dq_choices) > prev_dq_choice_count:
@@ -3664,18 +3854,23 @@ def _register_npu_inductor_flex_attention():
 
         for cfg in bwd_dkdv_dict_configs:
             dkdv_kernel_options = make_bwd_dkdv_kernel_options(cfg)
-            dkdv_subgraphs, dkdv_mutated_inputs, dkdv_run_captured = (
-                make_bwd_subgraphs_and_mutations(
-                    "dkdv",
-                    [broadcasted_grad_value, broadcasted_grad_key_accum],
-                )
+            dkdv_subgraphs, dkdv_mutated_inputs = make_bwd_subgraphs_and_mutations(
+                [broadcasted_grad_value, broadcasted_grad_key_accum]
             )
-            dkdv_kernel_options["RUN_CAPTURED_GRADS"] = dkdv_run_captured
             log_bwd_choice("dkdv", cfg, dkdv_kernel_options)
             dkdv_composite_choice_options = make_dkdv_composite_choice_options(
                 dkdv_kernel_options,
                 dkdv_subgraphs,
             )
+            dkdv_dispatch_plan = (
+                dkdv_composite_choice_options
+                if isinstance(
+                    dkdv_composite_choice_options, FlexAttentionDispatchPlan
+                )
+                else None
+            )
+            if dkdv_dispatch_plan is not None:
+                dkdv_composite_choice_options = {}
 
             prev_dkdv_choice_count = len(dkdv_choices)
             flex_attention_bwd_dkdv_mask_out.maybe_append_choice(
@@ -3687,6 +3882,7 @@ def _register_npu_inductor_flex_attention():
                 reset_to_zero_arg_names=["arg_DV", "arg_DK"],
                 large_input_buffers=mask_out_input_nodes,
                 call_sizes=query.get_size() + key.get_size()[1:3],
+                dispatch_plan=dkdv_dispatch_plan,
                 **dkdv_composite_choice_options,
                 **dkdv_kernel_options,
             )
@@ -3703,15 +3899,7 @@ def _register_npu_inductor_flex_attention():
         if not flexattention_mask_out:
             bwd_subgraph_inps.extend(mask_mod_other_buffers)
 
-        dq_inputs_for_autotuning = (
-            dq_input_nodes
-            + bwd_subgraph_inps
-            + (
-                list(joint_outputs.mutated_grads)
-                if captured_grad_owner == "dq"
-                else []
-            )
-        )
+        dq_inputs_for_autotuning = dq_input_nodes + bwd_subgraph_inps
         dq_block_metadata_input_idx = 10 if flexattention_mask_out else 7
         dq_input_gen_fns = {
             dq_block_metadata_input_idx: create_num_blocks_fake_generator(kv_indices),
@@ -3731,15 +3919,7 @@ def _register_npu_inductor_flex_attention():
                 }
             )
 
-        dkdv_inputs_for_autotuning = (
-            dkdv_input_nodes
-            + bwd_subgraph_inps
-            + (
-                list(joint_outputs.mutated_grads)
-                if captured_grad_owner == "dkdv"
-                else []
-            )
-        )
+        dkdv_inputs_for_autotuning = dkdv_input_nodes + bwd_subgraph_inps
         dkdv_block_metadata_input_idx = 11 if flexattention_mask_out else 8
         dkdv_input_gen_fns = {
             dkdv_block_metadata_input_idx: create_num_blocks_fake_generator(kv_indices),
@@ -3781,7 +3961,7 @@ def _register_npu_inductor_flex_attention():
                 mask_graph_buffer,
                 joint_outputs,
                 include_mask=not flexattention_mask_out,
-                owns_captured_grads=captured_grad_owner == "dkdv",
+                owns_captured_grads=False,
             ),
         )
 
@@ -3800,7 +3980,7 @@ def _register_npu_inductor_flex_attention():
                 mask_graph_buffer,
                 joint_outputs,
                 include_mask=not flexattention_mask_out,
-                owns_captured_grads=captured_grad_owner == "dq",
+                owns_captured_grads=False,
             ),
         )
 

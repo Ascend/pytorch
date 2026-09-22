@@ -452,18 +452,18 @@ enable_matmul_triton = _parse_bool_env("TORCHINDUCTOR_ENABLE_MATMUL_TRITON", Fal
 class flex_attention:
     """Runtime strategy switches for the NPU FlexAttention lowering."""
 
-    metadata_auto_infer = True
-    flexattention_mask_out = True
-    # Keep rollout disabled until generated outputcode and NPU numerics have
-    # been reviewed. Unsupported graphs always retain the legacy dK/dV path.
-    bwd_dkdv_tasklist = True
+    # Maximum byte-mask workspace per forward. Zero uses exact-capacity allocation.
+    fwd_mask_workspace_bytes = 256 * 1024 * 1024
+    flexattention_dispatch_strategy = None
 
 
-flex_attention.bwd_dkdv_tasklist = _read_env_bool(
-    "TORCHINDUCTOR_ASCEND_FLEX_ATTENTION_BWD_DKDV_TASKLIST",
-    "1" if flex_attention.bwd_dkdv_tasklist else "0",
+flex_attention.fwd_mask_workspace_bytes = max(
+    0, int(os.environ.get(
+        "TORCHINDUCTOR_ASCEND_FLEX_ATTENTION_FWD_MASK_WORKSPACE_BYTES",
+        str(flex_attention.fwd_mask_workspace_bytes),
+    ))
 )
-flex_attention.flexattention_mask_out = _read_env_bool(
-    "TORCHINDUCTOR_FLEXATTENTION_MASKOUT",
-    "1" if flex_attention.flexattention_mask_out else "0",
+flex_attention.flexattention_dispatch_strategy = os.environ.get(
+    "TORCHINDUCTOR_ASCEND_FLEX_ATTENTION_DISPATCH_STRATEGY",
+    flex_attention.flexattention_dispatch_strategy,
 )
