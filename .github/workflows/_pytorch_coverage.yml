@@ -167,6 +167,52 @@ jobs:
           name: cases-shards
           path: coverage-out/torch@latest/logs/cases-shards
 
+      # Source snapshot: the exact pytorch source the data came from, so the
+      # merged artifact can render the report locally (coverage html needs the
+      # sources; map the installed paths with a [paths] section).
+      - name: Download source snapshot for the artifact
+        if: always()
+        continue-on-error: true
+        run: |
+          COV_DIR="${GITHUB_WORKSPACE}/coverage-out/torch@latest"
+          if [ ! -f "${COV_DIR}/coverage.xml" ]; then
+            echo "WARNING: no merged coverage.xml, skip source snapshot"
+            exit 0
+          fi
+
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${{ env.OBS_ENDPOINT }}
+
+          TARBALL="pytorch-source-${{ needs.resolve.outputs.short }}.tar.gz"
+          mkdir -p "${COV_DIR}/source"
+          for attempt in 1 2; do
+            echo "=== Download attempt ${attempt} ==="
+            if obsutil cp "obs://pytorch-ci-cache/7day-cache/${TARBALL}" "${COV_DIR}/source/${TARBALL}" -vlength; then
+              echo "Source snapshot saved: ${COV_DIR}/source/${TARBALL}"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "WARNING: ${TARBALL} not available in OBS cache, artifact stays without sources" >&2
+
+      # Unpack the source snapshot into the conventional convstub layout
+      # (convstub/pytorch/{torch,test}) so coverage html can be rendered locally.
+      - name: Extract source snapshot
+        if: always()
+        continue-on-error: true
+        run: |
+          COV_DIR="${GITHUB_WORKSPACE}/coverage-out/torch@latest"
+          TARBALL="pytorch-source-${{ needs.resolve.outputs.short }}.tar.gz"
+          if [ ! -f "${COV_DIR}/source/${TARBALL}" ]; then
+            echo "WARNING: no source snapshot tarball, skip extraction"
+            exit 0
+          fi
+
+          mkdir -p "${COV_DIR}/convstub/pytorch"
+          tar -xzf "${COV_DIR}/source/${TARBALL}" -C "${COV_DIR}/convstub/pytorch" \
+            --strip-components=1 pytorch/torch pytorch/test
+          echo "=== convstub unpacked ==="
+          du -sh "${COV_DIR}/convstub/pytorch"/* || true
+
       - name: Write job summary
         if: always()
         run: |
@@ -206,8 +252,8 @@ jobs:
           obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${{ env.OBS_ENDPOINT }}
 
           COV_DIR="${GITHUB_WORKSPACE}/coverage-out/torch@latest"
-          if [ ! -d "${COV_DIR}" ]; then
-            echo "WARNING: no promoted coverage dir (torch@latest) found, skip OBS upload"
+          if [ ! -f "${COV_DIR}/coverage.xml" ]; then
+            echo "WARNING: no coverage.xml in ${COV_DIR}, skip OBS upload to keep the remote intact"
             exit 0
           fi
 

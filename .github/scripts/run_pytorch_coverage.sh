@@ -1,80 +1,63 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# run_pytorch_coverage.sh - PyTorch source coverage collection.
-# Called only by .github/workflows/pytorch_coverage_nightly.yml. Runs the PR
-# trigger case set (receive-trigger.yml): pr_test_whitelist.yml files, filtered
-# by hw_classification and minus the pr_skip_list.jsonl nodeids, and collects
-# coverage of the installed torch python sources.
+# run_pytorch_coverage.sh - PyTorch source coverage collection for the sharded
+# coverage pipeline (resolve -> build -> collect -> coverage -> merge).
+#
+#   shard mode: run ONE collected case shard under coverage. It reuses
+#   run_npu_test_shard.py, so the case set, the per-case process isolation, the
+#   worker count and the NPU card binding match the PR trigger pipeline
+#   (receive-trigger.yml).
+#
+#   merge mode: combine every shard's coverage data files into the fixed
+#   torch@latest/ directory (staging first, atomic promotion last).
 #
 # Usage:
-#   # shard mode: run one pre-collected case shard (receive-trigger style jobs)
 #   ./run_pytorch_coverage.sh --cases-json <cases-shards/<cat>_cases_shard_<n>.json> \
 #                            --test-dir <pytorch>/test --out-dir <dir> \
 #                            [--max-workers 32] [--timeout 1200]
-#   # file mode: run the pr_test_whitelist.yml files directly (local/debug)
-#   ./run_pytorch_coverage.sh --test-dir <pytorch>/test \
-#                            [--category c1,c2] [--timeout <seconds>] \
-#                            [--skip-list <path>] [--no-promote] \
-#                            [--hw-classification ACCELERATOR]
-#   # merge mode: combine every shard's coverage data into torch@latest/
 #   ./run_pytorch_coverage.sh --merge <dir1,dir2,...>
 # Env:
-#   OUT_ROOT    output root for all artifacts (default <repo root>/outputs)
+#   OUT_ROOT    output root for merged artifacts (default <repo root>/outputs)
 #   PYTHON_BIN  python interpreter (default python)
 #
-# Shard mode reuses run_npu_test_shard.py (same case isolation, worker count and
-# NPU card binding as the PR trigger pipeline) and measures coverage of the
-# installed torch package through COVERAGE_PROCESS_START + a site-packages
-# startup hook, so every worker/pytest subprocess writes its own data file.
-# Merge mode combines those files, writes coverage.xml and aggregates failures.
-#
-# Outputs land under OUT_ROOT (single copy, crash-safe):
-#   convstub/torch/            source snapshot (matches the run env)
-#   torch@latest/              per-test covdata dirs (+ FAILED markers), logs,
-#                              failed_cases.json, combined .coverage/coverage.xml
-# Each run writes to torch@staging/ and promotes it to torch@latest/ only
-# after the full flow completed — a crashed run keeps the previous data.
+# Coverage measurement: this script writes a .coveragerc (branch/source=torch)
+# and loads a pytest plugin (PYTEST_PLUGINS) in every worker process. The plugin
+# starts coverage for each case's pytest session and, at session end, writes
+# that case's own data file (covdata/<nodeid>.coverage). Nothing depends on
+# atexit or a process-level startup hook, which matters because the shard
+# workers exit through os._exit(0).
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
-config_file="${repo_root}/.github/config/pr_test_whitelist.yml"
-skip_list_file="${repo_root}/.github/config/pr_skip_list.jsonl"
-category_filter=""
 test_dir="${GITHUB_WORKSPACE:-${repo_root}}/pytorch/test"
 source_pkg="torch"
 device_env="privateuse1"
-hw_classification="ACCELERATOR"
-timeout_seconds=600
+timeout_seconds=1200
 python_bin="${PYTHON_BIN:-python}"
 cases_json=""
 merge_dirs=""
 out_dir=""
 max_workers=32
-promote=1
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
-    --category) category_filter="$2"; shift 2 ;;
-    --test-dir) test_dir="$2";        shift 2 ;;
-    --timeout)  timeout_seconds="$2"; shift 2 ;;
-    --skip-list) skip_list_file="$2"; shift 2 ;;
-    --hw-classification) hw_classification="$2"; shift 2 ;;
-    --cases-json) cases_json="$2";    shift 2 ;;
-    --merge)    merge_dirs="$2";      shift 2 ;;
-    --out-dir)  out_dir="$2";         shift 2 ;;
-    --max-workers) max_workers="$2";  shift 2 ;;
-    --no-promote) promote=0;          shift ;;
+    --cases-json)  cases_json="$2";      shift 2 ;;
+    --merge)       merge_dirs="$2";      shift 2 ;;
+    --test-dir)    test_dir="$2";        shift 2 ;;
+    --out-dir)     out_dir="$2";         shift 2 ;;
+    --max-workers) max_workers="$2";     shift 2 ;;
+    --timeout)     timeout_seconds="$2"; shift 2 ;;
     -*) echo "Unknown option: $1" >&2; exit 2 ;;
-    *)  echo "Unexpected positional argument: $1 (targets come from ${config_file})" >&2; exit 2 ;;
+    *)  echo "Unexpected positional argument: $1" >&2; exit 2 ;;
   esac
 done
 
-if [ -z "${cases_json}" ] && [ -z "${merge_dirs}" ] && [ ! -f "${config_file}" ]; then
-  echo "ERROR: whitelist config not found: ${config_file}" >&2
-  exit 1
+if [ -z "${cases_json}" ] && [ -z "${merge_dirs}" ]; then
+  echo "ERROR: use --cases-json (shard mode) or --merge <dirs> (merge mode)" >&2
+  exit 2
 fi
-if [ ! -d "${test_dir}" ]; then
+if [ -n "${cases_json}" ] && [ ! -d "${test_dir}" ]; then
   echo "ERROR: pytorch test dir not found: ${test_dir} (use --test-dir)" >&2
   exit 1
 fi
@@ -84,324 +67,28 @@ if ! command -v "${python_bin}" >/dev/null 2>&1; then
 fi
 
 out_root="${OUT_ROOT:-${repo_root}/outputs}"
-src_snapshot_dir="${out_root}/convstub/${source_pkg}"
-# Single-copy output with crash safety: all artifacts are written to a
-# staging dir first and promoted (atomic mv) to the fixed @latest dir only
-# after the run completed end-to-end — a crashed/killed run leaves the
-# previous @latest data intact.
-staging_dir="${out_root}/${source_pkg}@staging"
-covdata_root="${out_root}/${source_pkg}@latest"
-rm -rf "${staging_dir}"
-log_dir="${staging_dir}/logs"
-mkdir -p "${log_dir}"
-
-# Emit "category<TAB>file" lines from the whitelist. Legacy flat
-# "whitelist:" format is grouped under "regular".
-read_targets() {
-  python3 - "$1" "$2" <<'PYEOF'
-import sys
-try:
-    import yaml
-except ImportError:
-    sys.exit("PyYAML is required: pip install pyyaml")
-data = yaml.safe_load(open(sys.argv[1], encoding="utf-8")) or {}
-cat_filter = set(sys.argv[2].split(",")) if sys.argv[2] else None
-cats = data.get("categories")
-if cats:
-    for name, cfg in cats.items():
-        if cat_filter and name not in cat_filter:
-            continue
-        for f in (cfg or {}).get("files", []):
-            print(f"{name}\t{f}")
-elif "whitelist" in data:
-    for f in data["whitelist"]:
-        print(f"regular\t{f}")
-PYEOF
-}
-
-targets=()
-while IFS=$'\t' read -r cat file; do
-  [ -n "${cat:-}" ] && targets+=("${cat}|${file}")
-done < <(read_targets "${config_file}" "${category_filter}")
-
-if [ "${#targets[@]}" -eq 0 ] && [ -z "${cases_json}" ] && [ -z "${merge_dirs}" ]; then
-  echo "ERROR: no test targets resolved from ${config_file} (category filter: '${category_filter}')" >&2
-  exit 1
-fi
-
-echo "=== Targets: ${#targets[@]} file(s) from ${config_file} ==="
-echo "=== test-dir: ${test_dir}  source: ${source_pkg}  device-env: ${device_env}  hw-classification: ${hw_classification} ==="
-
-skips_tsv=""
-if [ -n "${skip_list_file}" ] && [ -f "${skip_list_file}" ]; then
-  skips_tsv="$(mktemp)"
-  python3 - "${skip_list_file}" > "${skips_tsv}" <<'PYEOF'
-import json
-import sys
-
-with open(sys.argv[1], encoding="utf-8") as fh:
-    for line in fh:
-        line = line.strip()
-        if not line or not line.startswith("{"):
-            continue
-        try:
-            obj = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        nodeid = obj.get("nodeid", "")
-        if not nodeid:
-            continue
-        if nodeid.startswith("test/"):
-            nodeid = nodeid[5:]
-        print(f"{nodeid.split('::', 1)[0]}\t{nodeid}")
-PYEOF
-  echo "=== Skip list: $(wc -l < "${skips_tsv}") nodeid(s) from ${skip_list_file} ==="
-else
-  echo "WARNING: skip list not found: ${skip_list_file}, no case filtering applied" >&2
-fi
-
-test_results=()
-failed_logs=()
-test_index=0
 overall_status=0
 
-# Snapshot the installed torch sources + the test dir so report-time sources
-# match the coverage data exactly.
-dump_source_snapshot() {
-  mkdir -p "${src_snapshot_dir}"
-
-  local torch_path
-  torch_path="$("${python_bin}" -c 'import torch, os; print(os.path.dirname(torch.__file__))' 2>/dev/null || true)"
-  if [ -n "${torch_path}" ] && [ -d "${torch_path}" ]; then
-    echo "=== Dumping torch source: ${torch_path} -> ${src_snapshot_dir}/torch ==="
-    rm -rf "${src_snapshot_dir}/torch"
-    cp -a "${torch_path}" "${src_snapshot_dir}/torch"
-  else
-    echo "WARNING: torch install path not found, skip source snapshot" >&2
-  fi
-
-  echo "=== Dumping test source: ${test_dir} -> ${src_snapshot_dir}/test ==="
-  rm -rf "${src_snapshot_dir}/test"
-  cp -a "${test_dir}" "${src_snapshot_dir}/test"
-}
-
-# Flatten "category + test file" into a valid name: strip .py, / -> __.
-# Example: core|test/nn/test_dropout.py -> core__test__nn__test_dropout
-flatten_name() {
-  local n="$2"; n="${n%.py}"; n="${n//\//__}"
-  printf '%s__%s' "$1" "$n"
-}
-
-setup_coverage() {
-  local covdata_dir="${covdata_root}/$1/covdata"
-  mkdir -p "${covdata_dir}"
-  export COVERAGE_FILE="${covdata_dir}/coverage"
-  echo "  COVERAGE_FILE: ${COVERAGE_FILE}"
-}
-
-# Per-test env: autoload the torch_npu backend (registers privateuse1),
-# instantiate device-parameterized classes for the NPU device only, and make
-# sibling module imports resolve.
-setup_env() {
-  local td; td="$(dirname "${1#test/}")"
-  export TORCH_DEVICE_BACKEND_AUTOLOAD=1
-  export PYTORCH_TESTING_DEVICE_ONLY_FOR="${device_env}"
-  export PYTHONPATH="${test_dir}:${test_dir}/${td}${PYTHONPATH:+:${PYTHONPATH}}"
-}
-
-# TERM then KILL a process group: distributed spawn workers and inductor
-# compile subprocesses may outlive the main process and hold NPU resources.
-terminate_process_group() {
-  local pg="$1"
-  if ! kill -0 -- "-${pg}" 2>/dev/null; then return; fi
-  kill -TERM -- "-${pg}" 2>/dev/null || true
-  for _ in {1..10}; do
-    if ! kill -0 -- "-${pg}" 2>/dev/null; then return; fi
-    sleep 0.5
-  done
-  kill -KILL -- "-${pg}" 2>/dev/null || true
-}
-
-# Run a command into a log file (tailed live); setsid gives it its own
-# process group so the whole group can be cleaned up on exit/timeout.
-run_logged_command() {
-  local log_file="$1"; shift
-  local command_pid process_group="" tail_pid
-  : > "${log_file}"
-  if command -v setsid >/dev/null 2>&1; then
-    setsid "$@" > "${log_file}" 2>&1 &
-    command_pid=$!
-    process_group="${command_pid}"
-  else
-    "$@" > "${log_file}" 2>&1 &
-    command_pid=$!
-  fi
-  tail --pid="${command_pid}" -n +1 -f "${log_file}" &
-  tail_pid=$!
-  wait "${command_pid}"
-  local status=$?
-  if [ -n "${process_group}" ]; then terminate_process_group "${process_group}"; fi
-  wait "${tail_pid}" || true
-  return "${status}"
-}
-
-run_test_target() {
-  local category="$1" file="$2"
-  test_index=$((test_index + 1))
-  local flat log_file
-  flat="$(flatten_name "${category}" "${file}")"
-  log_file="${log_dir}/${test_index}-${flat}.log"
-  echo "=== [${category}] Running target: ${file} ==="
-
-  local -a skipped_nodeids=()
-  if [ -n "${skips_tsv}" ]; then
-    mapfile -t skipped_nodeids < <(awk -F'\t' -v f="${file#test/}" '$1 == f {print $2}' "${skips_tsv}")
-  fi
-
-  # conftest.py declares --hw-classification with nargs="+", so it must come
-  # after the test file path and before the option-only --deselect tail.
-  local -a pytest_args=(-m pytest "${file#test/}")
-  if [ -n "${hw_classification}" ]; then
-    pytest_args+=(--hw-classification "${hw_classification}")
-  fi
-  if [ "${#skipped_nodeids[@]}" -gt 0 ]; then
-    echo "  Skipping ${#skipped_nodeids[@]} known-failing case(s) via pytest --deselect"
-    local nid
-    for nid in "${skipped_nodeids[@]}"; do
-      pytest_args+=(--deselect "${nid}")
-    done
-  fi
-
-  local -a run_cmd=("${python_bin}" -u -m coverage run --source="${source_pkg}" --branch)
-  run_cmd+=("${pytest_args[@]}")
-
-  # cd into the test dir first (same cwd convention as upstream run_test.py);
-  # -u keeps logs streaming
-  local script='cd "$1"; shift; exec "$@"'
-  local status=0
-  set +e
-  setup_coverage "${flat}"
-  setup_env "${file}"
-  run_logged_command "${log_file}" bash -c "${script}" _ "${test_dir}" \
-    timeout --kill-after=30 "${timeout_seconds}" "${run_cmd[@]}"
-  status=$?
-  set -e
-
-  # pytest exit 5 = nothing selected: expected when hw_classification drops every
-  # case of a file, and the PR trigger pipeline collects nothing there either.
-  local no_cases=0
-  if [ "${status}" -eq 5 ]; then
-    echo "  No case selected (hw_classification='${hw_classification}' / all nodeids deselected), not a failure"
-    no_cases=1
-    status=0
-  fi
-
-  # FAILED marker lets downstream drop incomplete coverage of failed tests
-  if [ "${status}" -ne 0 ]; then
-    echo "1" > "$(dirname "${COVERAGE_FILE}")/FAILED"
-  fi
-
-  if [ "${no_cases}" -eq 1 ]; then
-    test_results+=( "${category}|${file}|NO_CASES|${log_file}" )
-  elif [ "${status}" -eq 0 ]; then
-    test_results+=( "${category}|${file}|PASSED|${log_file}" )
-  else
-    test_results+=( "${category}|${file}|FAILED|${log_file}" )
-    failed_logs+=( "${category}|${file}|${log_file}" )
-    if [ "${overall_status}" -eq 0 ]; then
-      overall_status="${status}"
-    fi
-  fi
-}
-
-# Merge per-test coverage into .coverage + coverage.xml. FAILED-marked data
-# still participates; downstream can filter by the FAILED marker if needed.
-combine_coverage() {
-  local data_files=()
-  mapfile -t data_files < <(find "${covdata_root}" -mindepth 3 -maxdepth 3 -name coverage -type f | sort)
-  if [ "${#data_files[@]}" -eq 0 ]; then
-    echo "=== Combine: no coverage data files found, skip ==="
-    return
-  fi
-  echo "=== Combining ${#data_files[@]} coverage data file(s) ==="
-  COVERAGE_FILE="${covdata_root}/.coverage" "${python_bin}" -m coverage combine "${data_files[@]}"
-  COVERAGE_FILE="${covdata_root}/.coverage" "${python_bin}" -m coverage xml \
-    --include="*/${source_pkg}/*" -o "${covdata_root}/coverage.xml"
-  echo "=== Combined coverage: ${covdata_root}/.coverage, report: ${covdata_root}/coverage.xml ==="
-  COVERAGE_FILE="${covdata_root}/.coverage" "${python_bin}" -m coverage report --include="*/${source_pkg}/*" | tail -n 5 || true
-}
-
-print_summary() {
-  local result category file status log_file
-  echo "=== TEST SUMMARY ==="
-  for result in "${test_results[@]}"; do
-    IFS='|' read -r category file status log_file <<< "${result}"
-    echo "  [${category}] ${status}: ${file}  (log: ${log_file})"
-  done
-}
-
-print_failed_summary() {
-  if [ "${#failed_logs[@]}" -eq 0 ]; then
-    echo "=== Failed cases: none ==="
-    return
-  fi
-
-  echo "=== FAILED CASES (${#failed_logs[@]}) ==="
-  local failed category file log_file
-  local json="[" i=0
-  for failed in "${failed_logs[@]}"; do
-    IFS='|' read -r category file log_file <<< "${failed}"
-    echo "  - [${category}] ${file}  (log: ${log_file})"
-    [ "${i}" -gt 0 ] && json+=","
-    json+="{\"category\":\"${category}\",\"name\":\"${file}\",\"log\":\"${log_file}\"}"
-    i=$((i + 1))
-  done
-  json+="]"
-  echo "${json}" > "${log_dir}/failed_cases.json"
-  echo "  failed_cases.json: ${log_dir}/failed_cases.json"
-
-  echo ""
-  for failed in "${failed_logs[@]}"; do
-    IFS='|' read -r category file log_file <<< "${failed}"
-    echo "----- tail of [${category}] ${file} -----"
-    tail -n 30 "${log_file}" 2>/dev/null || true
-    echo ""
-  done
-}
-
-# Extract failing cases from a shard's junit XMLs into a small JSON file.
+# Aggregate the per-case failures from the runner's own result file
+# (report_dir/shard_<prefix>-<shard>_cases.json), no junit parsing needed.
 write_failed_cases() {
-  local junit_dir="$1" out_file="$2"
-  python3 - "$junit_dir" "$out_file" <<'PYEOF'
+  local report_dir="$1" out_file="$2"
+  python3 - "$report_dir" "$out_file" <<'PYEOF'
 import json
 import sys
-import xml.etree.ElementTree as ET
 from pathlib import Path
 
-junit_dir = Path(sys.argv[1])
+report_dir = Path(sys.argv[1])
 out_file = Path(sys.argv[2])
 failed = []
 total = 0
-if junit_dir.is_dir():
-    for xml_file in sorted(junit_dir.glob("*.xml")):
-        try:
-            root = ET.parse(xml_file).getroot()
-        except ET.ParseError:
-            continue
-        for case in root.iter("testcase"):
-            total += 1
-            status = next(
-                (tag for tag in ("failure", "error") if case.find(tag) is not None),
-                "",
-            )
-            if not status:
-                continue
-            classname = case.get("classname", "")
-            name = case.get("name", "")
-            failed.append({
-                "nodeid": f"{classname}::{name}" if classname else name,
-                "status": status,
-            })
+for results_file in sorted(report_dir.glob("shard_*_cases.json")):
+    data = json.loads(results_file.read_text(encoding="utf-8"))
+    total += data.get("total_cases", 0)
+    for case in data.get("cases", []):
+        status = case.get("status", "")
+        if status in ("failed", "error", "timeout"):
+            failed.append({"nodeid": case.get("nodeid", ""), "status": status})
 out_file.write_text(
     json.dumps(
         {"total_cases": total, "total_failed": len(failed), "failed_cases": failed},
@@ -413,8 +100,75 @@ print(f"  failed cases: {len(failed)} of {total} -> {out_file}")
 PYEOF
 }
 
-# Shard mode: one collected case shard through run_npu_test_shard.py — same case
-# isolation, worker count and NPU card binding as the PR trigger pipeline — with
+# Aggregate the runner's per-case logs (report_dir/cases_logs) into one log per
+# test file, named <n>-<flat>.log, so the artifact keeps the file-level view.
+write_file_logs() {
+  local report_dir="$1" out_dir="$2"
+  python3 - "$report_dir" "$out_dir" <<'PYEOF'
+import json
+import sys
+from pathlib import Path
+
+report_dir = Path(sys.argv[1])
+out_dir = Path(sys.argv[2])
+out_dir.mkdir(parents=True, exist_ok=True)
+
+cases = []
+shard_type = "regular"
+for results_file in sorted(report_dir.glob("shard_*_cases.json")):
+    data = json.loads(results_file.read_text(encoding="utf-8"))
+    shard_type = data.get("shard_type", shard_type)
+    cases.extend(data.get("cases", []))
+
+
+def flat_name(file_path: str) -> str:
+    name = file_path[5:] if file_path.startswith("test/") else file_path
+    if name.endswith(".py"):
+        name = name[:-3]
+    return f"{shard_type}__{name.replace('/', '__')}"
+
+
+def sanitize(nodeid: str) -> str:
+    safe = nodeid.replace("::", "_").replace("/", "_").replace("\\", "_")
+    safe = safe.replace("(", "_").replace(")", "_").replace("[", "_").replace("]", "_")
+    safe = safe.replace("<", "_lt_").replace(">", "_gt_")
+    safe = safe.replace('"', "_quot_").replace("|", "_pipe_")
+    safe = safe.replace("*", "_star_").replace("?", "_q_")
+    safe = safe.replace(":", "_colon_")
+    safe = safe.replace(" ", "_")
+    safe = safe.replace(".", "_")
+    while safe.startswith("_"):
+        safe = safe[1:]
+    while "__" in safe:
+        safe = safe.replace("__", "_")
+    if len(safe) > 200:
+        safe = safe[:200]
+    return safe or "unknown_case"
+
+
+groups = {}
+for case in cases:
+    groups.setdefault(case.get("file", "unknown"), []).append(case)
+
+logs_dir = report_dir / "cases_logs"
+for index, (file_path, file_cases) in enumerate(sorted(groups.items()), 1):
+    log_path = out_dir / f"{index}-{flat_name(file_path)}.log"
+    with log_path.open("w", encoding="utf-8") as fh:
+        fh.write(f"=== {file_path}: {len(file_cases)} case(s) ===\n")
+        for case in file_cases:
+            nodeid = case.get("nodeid", "")
+            fh.write(f"\n----- {case.get('status', '?')}  {nodeid} -----\n")
+            case_logs = sorted(logs_dir.glob(f"*_{sanitize(nodeid)}.log"))
+            if case_logs:
+                fh.write(case_logs[0].read_text(encoding="utf-8", errors="replace"))
+            else:
+                fh.write("(case log not found)\n")
+print(f"  file logs: {len(groups)} -> {out_dir}")
+PYEOF
+}
+
+# Shard mode: one collected case shard through run_npu_test_shard.py (same case
+# isolation, worker count and NPU card binding as the PR trigger pipeline) with
 # coverage started in every worker/pytest subprocess.
 run_case_shard() {
   if [ ! -f "${cases_json}" ]; then
@@ -433,21 +187,66 @@ run_case_shard() {
 [run]
 branch = True
 source = ${source_pkg}
-parallel = True
-data_file = ${cov_dir}/.coverage
 EOF
 
-  local site_dir
-  site_dir="$(python3 -c 'import site; print(site.getsitepackages()[0])')"
-  printf 'import coverage; coverage.process_startup()\n' > "${site_dir}/zz_coverage_startup.pth"
+  # Coverage is measured per case: the plugin starts coverage when a case's
+  # pytest session is configured and, at session end, writes that case's data to
+  # its own file (covdata/<nodeid>.coverage) before the worker exits through
+  # os._exit(0) — so no atexit/process-level hook is needed.
+  local plugin_dir="${shard_dir}/cov-plugin"
+  mkdir -p "${plugin_dir}"
+  cat > "${plugin_dir}/zz_cov_plugin.py" <<'PYEOF'
+import os
+from pathlib import Path
+
+_cov = None
+
+
+def pytest_configure(config):
+    global _cov
+    if not os.environ.get("COVERAGE_PROCESS_START"):
+        return
+    import coverage
+
+    _cov = coverage.Coverage(config_file=os.environ["COVERAGE_PROCESS_START"])
+    _cov.start()
+
+
+def pytest_sessionfinish(session, exitstatus):
+    global _cov
+    if _cov is None:
+        return
+
+    case_dir = os.environ.get("COVERAGE_CASE_DIR", "")
+    invocation = getattr(getattr(session, "config", None), "invocation_params", None)
+    args = list(getattr(invocation, "args", ()) or ())
+    nodeid = args[0] if args else "unknown"
+    safe = nodeid.replace("::", "_").replace("/", "_").replace("\\", "_")[:180]
+
+    _cov.stop()
+    case = _cov
+    _cov = None
+    if not case_dir:
+        return
+
+    import coverage
+
+    case_data = coverage.CoverageData(basename=str(Path(case_dir) / f"{safe}.coverage"))
+    case_data.update(case.get_data())
+    case_data.write()
+PYEOF
+
+  export PYTHONPATH="${plugin_dir}${PYTHONPATH:+:${PYTHONPATH}}"
+  export PYTEST_PLUGINS="zz_cov_plugin${PYTEST_PLUGINS:+,${PYTEST_PLUGINS}}"
   export COVERAGE_PROCESS_START="${rc_file}"
+  export COVERAGE_CASE_DIR="${cov_dir}"
 
   echo "=== Cases: ${cases_json}  workers: ${max_workers}  timeout: ${timeout_seconds}s  device-env: ${device_env} ==="
-  echo "=== Coverage rc: ${rc_file}  startup hook: ${site_dir}/zz_coverage_startup.pth ==="
+  echo "=== Coverage rc: ${rc_file}  per-case data dir: ${cov_dir}  pytest plugin: zz_cov_plugin ==="
 
   local status=0
   set +e
-  python3 -u "${repo_root}/.github/scripts/run_npu_test_shard.py" \
+  "${python_bin}" -u "${repo_root}/.github/scripts/run_npu_test_shard.py" \
     --cases-json "${cases_json}" \
     --test-dir "${test_dir}" \
     --report-dir "${report_dir}" \
@@ -458,25 +257,26 @@ EOF
   status=${PIPESTATUS[0]}
   set -e
 
-  write_failed_cases "${report_dir}/junit_xmls" "${shard_dir}/failed_cases.json"
+  write_failed_cases "${report_dir}" "${shard_dir}/failed_cases.json"
+  write_file_logs "${report_dir}" "${shard_dir}/file_logs"
 
-  echo "=== Shard done: exit=${status}, coverage data file(s)=$(find "${cov_dir}" -name '.coverage.*' -type f | wc -l) ==="
+  echo "=== Shard done: exit=${status}, per-case coverage file(s)=$(find "${cov_dir}" -name '*.coverage' -type f | wc -l) ==="
   overall_status="${status}"
 }
 
 # Merge mode: combine every shard's coverage data + failure list into the fixed
-# @latest dir (staging first, promote last, so a crashed merge keeps the
-# previous @latest).
+# @latest dir. Zero data files is a hard error so an empty run can never
+# overwrite the previous @latest / OBS copy.
 merge_coverage() {
   local staging="${out_root}/${source_pkg}@staging"
   local merged="${out_root}/${source_pkg}@latest"
-  local -a dirs=() data_files=()
+  local -a dirs=()
   IFS=',' read -r -a dirs <<< "$1"
 
   rm -rf "${staging}"
-  mkdir -p "${staging}/covdata" "${staging}/logs"
+  mkdir -p "${staging}/logs"
 
-  local src data_file shard_name
+  local src shard_name
   for src in "${dirs[@]}"; do
     if [ ! -d "${src}" ]; then
       echo "WARNING: merge input not found: ${src}" >&2
@@ -484,46 +284,105 @@ merge_coverage() {
     fi
     shard_name="$(basename "${src}")"
     echo "=== Merge input: ${src} ==="
-    mkdir -p "${staging}/covdata/${shard_name}"
-    while IFS= read -r data_file; do
-      cp "${data_file}" "${staging}/covdata/${shard_name}/"
-      data_files+=("${staging}/covdata/${shard_name}/$(basename "${data_file}")")
-    done < <(find "${src}" \( -name '.coverage.*' -o -name 'coverage' \) -type f | sort)
     if [ -f "${src}/run.log" ]; then
       cp "${src}/run.log" "${staging}/logs/${shard_name}.log"
     fi
+    if [ -d "${src}/file_logs" ]; then
+      cp -a "${src}/file_logs/." "${staging}/logs/"
+    fi
   done
 
-  if [ "${#data_files[@]}" -eq 0 ]; then
-    echo "WARNING: no coverage data files found in: ${dirs[*]}" >&2
-  else
-    echo "=== Combining ${#data_files[@]} coverage data file(s) ==="
-    COVERAGE_FILE="${staging}/.coverage" "${python_bin}" -m coverage combine "${data_files[@]}"
-    COVERAGE_FILE="${staging}/.coverage" "${python_bin}" -m coverage xml \
-      --include="*/${source_pkg}/*" -o "${staging}/coverage.xml"
-    echo "=== Combined coverage: ${staging}/.coverage, report: ${staging}/coverage.xml ==="
-    COVERAGE_FILE="${staging}/.coverage" "${python_bin}" -m coverage report \
-      --include="*/${source_pkg}/*" | tail -n 5 || true
-  fi
-
-  python3 - "${staging}/logs/failed_cases.json" "${dirs[@]}" <<'PYEOF'
+  local no_data=0
+  if ! "${python_bin}" - "${staging}" "${dirs[@]}" <<'PYEOF'
 import json
 import sys
 from pathlib import Path
 
-out = Path(sys.argv[1])
+import coverage
+
+staging = Path(sys.argv[1])
 shards = [Path(p) for p in sys.argv[2:]]
+
+
+def flat_name(shard_type: str, file_path: str) -> str:
+    name = file_path[5:] if file_path.startswith("test/") else file_path
+    if name.endswith(".py"):
+        name = name[:-3]
+    return f"{shard_type}__{name.replace('/', '__')}"
+
+
+def case_data_name(nodeid: str) -> str:
+    safe = nodeid.replace("::", "_").replace("/", "_").replace("\\", "_")[:180]
+    return f"{safe}.coverage"
+
+
+groups = {}
 all_failed = []
 total = 0
 sources = []
+failed_files = set()
+unmapped = 0
+
 for shard in shards:
-    shard_file = shard / "failed_cases.json"
-    if not shard_file.is_file():
+    if not shard.is_dir():
         continue
-    data = json.loads(shard_file.read_text(encoding="utf-8"))
-    total += data.get("total_cases", 0)
-    all_failed.extend(data.get("failed_cases", []))
     sources.append(shard.name)
+    shard_type = "regular"
+    cases = []
+    for results_file in sorted(shard.glob("reports/shard_*_cases.json")):
+        data = json.loads(results_file.read_text(encoding="utf-8"))
+        shard_type = data.get("shard_type", shard_type)
+        cases.extend(data.get("cases", []))
+
+    claimed = set()
+    for case in cases:
+        flat = flat_name(shard_type, case.get("file", "unknown"))
+        if case.get("status", "") in ("failed", "error", "timeout"):
+            failed_files.add(flat)
+        data_file = shard / "covdata" / case_data_name(case.get("nodeid", ""))
+        if not data_file.is_file():
+            continue
+        groups.setdefault(flat, []).append(data_file)
+        claimed.add(data_file)
+
+    cov_dir = shard / "covdata"
+    if cov_dir.is_dir():
+        for data_file in sorted(cov_dir.glob("*.coverage")):
+            if data_file not in claimed:
+                groups.setdefault(f"zz_unmapped__{shard.name}", []).append(data_file)
+                unmapped += 1
+
+    shard_file = shard / "failed_cases.json"
+    if shard_file.is_file():
+        data = json.loads(shard_file.read_text(encoding="utf-8"))
+        total += data.get("total_cases", 0)
+        all_failed.extend(data.get("failed_cases", []))
+
+combined = coverage.CoverageData(basename=str(staging / ".coverage"))
+written = 0
+for flat, files in sorted(groups.items()):
+    group_dir = staging / flat / "covdata"
+    group_dir.mkdir(parents=True, exist_ok=True)
+    group_data = coverage.CoverageData(basename=str(group_dir / "coverage"))
+    for path in files:
+        src_data = coverage.CoverageData(basename=str(path))
+        src_data.read()
+        group_data.update(src_data)
+        combined.update(src_data)
+    group_data.write()
+    written += len(files)
+    if flat in failed_files:
+        (group_dir / "FAILED").write_text("1\n", encoding="utf-8")
+
+for flat in sorted(failed_files - set(groups)):
+    group_dir = staging / flat / "covdata"
+    group_dir.mkdir(parents=True, exist_ok=True)
+    (group_dir / "FAILED").write_text("1\n", encoding="utf-8")
+
+if unmapped:
+    print(f"WARNING: {unmapped} coverage data file(s) not matched to any reported case", file=sys.stderr)
+
+out = staging / "logs" / "failed_cases.json"
 out.write_text(
     json.dumps(
         {
@@ -537,7 +396,34 @@ out.write_text(
     encoding="utf-8",
 )
 print(f"  merged failed cases: {len(all_failed)} of {total} -> {out}")
+
+if written == 0:
+    print(f"ERROR: no coverage data files found in: {[str(s) for s in shards]}", file=sys.stderr)
+    sys.exit(1)
+
+combined.write()
+print(f"  per-file coverage: {written} data file(s) into {len(groups)} test group(s)")
 PYEOF
+  then
+    no_data=1
+  fi
+
+  if [ "${no_data}" -eq 0 ]; then
+    if ! COVERAGE_FILE="${staging}/.coverage" "${python_bin}" -m coverage xml \
+      --include="*/${source_pkg}/*" -o "${staging}/coverage.xml"; then
+      no_data=1
+      echo "ERROR: coverage xml failed (no ${source_pkg} data in the merged data file?)" >&2
+    else
+      echo "=== Combined coverage: ${staging}/.coverage, report: ${staging}/coverage.xml ==="
+      COVERAGE_FILE="${staging}/.coverage" "${python_bin}" -m coverage report \
+        --include="*/${source_pkg}/*" | tail -n 5 || true
+    fi
+  fi
+
+  if [ "${no_data}" -eq 1 ]; then
+    echo "ERROR: nothing to promote (no usable coverage data); previous ${merged} left untouched" >&2
+    exit 3
+  fi
 
   rm -rf "${merged}"
   mv "${staging}" "${merged}"
@@ -550,35 +436,6 @@ if [ -n "${merge_dirs}" ]; then
   exit "${overall_status}"
 fi
 
-if [ -n "${cases_json}" ]; then
-  run_case_shard
-  exit "${overall_status}"
-fi
-
-dump_source_snapshot
-
-# Serial execution: distributed tests require it, and device/compile
-# subprocesses make parallel runs unsafe.
-for target in "${targets[@]}"; do
-  IFS='|' read -r category file <<< "${target}"
-  run_test_target "${category}" "${file}"
-done
-
-print_summary
-print_failed_summary
-combine_coverage
-
-# Promote staging -> @latest. Reaching this line means the full flow
-# (all tests + combine) completed end-to-end; test failures do NOT block
-# promotion (per-test FAILED markers inside covdata let downstream filter
-# them out). A crashed/killed run never gets here, so the previous
-# @latest data survives untouched. --no-promote leaves torch@staging for the
-# caller (used when the job hands its data to a later merge job).
-if [ "${promote}" -eq 1 ]; then
-  rm -rf "${covdata_root}"
-  mv "${staging_dir}" "${covdata_root}"
-else
-  echo "=== --no-promote: left ${staging_dir} in place ==="
-fi
-
+run_case_shard
 exit "${overall_status}"
+
