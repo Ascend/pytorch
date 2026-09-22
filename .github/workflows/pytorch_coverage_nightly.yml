@@ -1,5 +1,7 @@
 name: PyTorch Coverage Nightly
 on:
+  push:
+    branches: [ci-test]  # 临时调试触发器：仅对 ci-test 分支生效，master 不受影响；调试完成后删除本段
   schedule:
     - cron: '0 19 * * *'  # UTC 19:00 = Beijing 03:00, daily
   workflow_dispatch:
