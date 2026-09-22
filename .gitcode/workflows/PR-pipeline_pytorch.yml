@@ -44,6 +44,7 @@ permissions:
   id-token: write
   pr: write
   note: write
+  action: read
 
 stages:
   stage_1:
@@ -71,7 +72,7 @@ stages:
               base: ${{ atomgit.event.pull_request.base.ref }}
               repo: ${{ atomgit.repository }}
               number: ${{ env.pr_id }}
-              token: ${{ atomgit.token }}
+              token: ${{ secrets.GIT_TOKEN }}
               list-files: json
               predicate-quantifier: every
               filters: |
@@ -113,6 +114,16 @@ stages:
         steps:
           - name: associate-pr-comment
             uses: associate-pr-comment
+          - name: pre_pipeline
+            id: pre_pipeline
+            uses: cann/.gitcode/actions/pre-pipeline@689551d6b29a77d8c2a005b8f1b3883db24820ef
+            with:
+              owner: ${{ env.org_name }}
+              repo: ${{ atomgit.event.repository.name }}
+              pr_number: ${{ atomgit.event.pull_request.number }}
+              token: ${{ secrets.GIT_TOKEN }}
+              apply_label: 'true'
+              run_url: https://gitcode.com/${{ env.org_name }}/${{ atomgit.event.repository.name }}/actions/runs/${{ atomgit.workflow_run_id }}
 
   stage_2:
     name: CodeCheck
@@ -123,7 +134,7 @@ stages:
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
         runs-on: [ self-hosted, default, x86, cpu=16 ]
         container:
-          image: swr.cn-north-4.myhuaweicloud.com/mindspore/mindspore_python3.11:v0.1
+          image: swr.cn-north-4.myhuaweicloud.com/atlas-ci/common:latest
         steps:
           - name: checkout
             uses: checkout
@@ -463,3 +474,18 @@ stages:
           CP_DOCKER_IMG: ${{ env.img_2_13_0_arm }}
           TEST_RANK: "1"
           TEST_WORLD_SIZE: "1"
+
+post:
+  jobs:
+    query_pipeline:
+      steps:
+        - name: query_pipeline
+          id: query_pipeline
+          uses: cann/.gitcode/actions/query-pipeline@689551d6b29a77d8c2a005b8f1b3883db24820ef
+          with:
+            owner: ${{ env.org_name }}
+            repo: ${{ atomgit.event.repository.name }}
+            run_id: ${{ atomgit.workflow_run_id }}
+            token: ${{ secrets.GIT_TOKEN }}
+            pr_number: ${{ atomgit.event.pull_request.number }}
+            apply_label: 'true'
