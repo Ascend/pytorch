@@ -10,12 +10,21 @@ on:
       resolved_sha:
         required: true
         type: string
-        description: Full SHA of upstream PyTorch — used as the checkout ref so the tested source matches the built wheels exactly.
+        description: Full resolved SHA of upstream PyTorch (interface compatibility; the tested source comes from the OBS tarball keyed by resolved_short).
       upstream_repo:
         required: false
         type: string
         default: 'pytorch/pytorch'
-        description: The upstream repository full name (owner/repo)
+        description: The upstream repository full name (owner/repo). No longer used to clone here — source comes from OBS.
+      wheels_tarball:
+        required: true
+        type: string
+        description: >-
+          Full content-addressed wheels tarball name from the build job
+          output. Required on purpose: the legacy name computed locally
+          (wheels-<upstream>-<pyver>-<arch>.tar.gz) collides with the PR CI
+          key space in the same OBS bucket, and a silent fallback could
+          install wheels built from a different torch_npu revision.
       category:
         required: true
         type: string
@@ -108,22 +117,41 @@ jobs:
           status: in_progress
           job-name: ${{ inputs.runner_label }} / test (${{ inputs.category }}, ${{ matrix.shard }}, ${{ inputs.num_shards }}, py3.10)
 
-      - name: Compute SHAs
+      - name: Compute tarball names
         id: sha
+        env:
+          WHEELS_TARBALL: ${{ inputs.wheels_tarball }}
         run: |
           UPSTREAM_SHORT="${{ inputs.resolved_short }}"
-          ARCH=$(uname -m)
-          PYVER=$(python3 -c "import sys; print(f'py{sys.version_info.major}{sys.version_info.minor}')")
-          echo "wheels_tarball=wheels-${UPSTREAM_SHORT}-${PYVER}-${ARCH}.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "source_tarball=pytorch-source-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "wheels_tarball=${WHEELS_TARBALL}" >> "$GITHUB_OUTPUT"
 
-      - name: Checkout PyTorch source
-        uses: actions/checkout@v6
-        with:
-          repository: ${{ inputs.upstream_repo }}
-          ref: ${{ inputs.resolved_sha }}
-          fetch-depth: 1
-          submodules: false
-          path: pytorch
+      # Source and wheels are fetched from OBS only (no GitHub clone on the
+      # NPU runner, no GHA artifacts): the build job (or the PR CI fetch job,
+      # which shares the same content-addressed key) published
+      # pytorch-source-<upstream_short>.tar.gz there.
+      - name: Download PyTorch source from OBS
+        run: |
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
+
+          TARBALL="${{ steps.sha.outputs.source_tarball }}"
+          for attempt in 1 2; do
+            echo "=== Download attempt ${attempt} ==="
+            if obsutil cp "obs://pytorch-ci-cache/7day-cache/${TARBALL}" "./${TARBALL}" -vlength; then
+              echo "Download succeeded on attempt ${attempt}"
+              exit 0
+            fi
+            echo "Download attempt ${attempt} failed"
+            sleep 10
+          done
+          echo "Download failed after 2 attempts"
+          exit 1
+
+      - name: Extract PyTorch source
+        run: |
+          tar -xzf ${{ steps.sha.outputs.source_tarball }}
+          rm ${{ steps.sha.outputs.source_tarball }}
+          echo "PyTorch source extracted: $(du -sh pytorch/ | cut -f1)"
 
       # obsutil is preinstalled in the test image; auth is done inline
       # via `obsutil config` (AK/SK are masked by the runner in logs).

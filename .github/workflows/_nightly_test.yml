@@ -10,7 +10,7 @@ on:
       resolved_sha:
         required: true
         type: string
-        description: Full SHA of upstream PyTorch — passed down as the checkout ref so the tested source matches the built wheels exactly.
+        description: Full SHA of upstream PyTorch (interface compatibility; source comes from the OBS tarball keyed by resolved_short).
       upstream_repo:
         required: false
         type: string
@@ -21,6 +21,15 @@ on:
         type: string
         default: ''
         description: Short SHA of torch_npu (from _build.yml outputs)
+      wheels_tarball:
+        required: true
+        type: string
+        description: >-
+          Full content-addressed wheels tarball name from the build job
+          output (pins upstream SHA, torch_npu SHA, CANN, Python, image tag,
+          arch). Passed down to the collect and test jobs for OBS download.
+          Required — a locally computed fallback would collide with the PR
+          CI wheels key space in the same OBS bucket.
       case_paths_config:
         required: false
         type: string
@@ -90,6 +99,7 @@ jobs:
     with:
       resolved_short: ${{ inputs.resolved_short }}
       resolved_sha: ${{ inputs.resolved_sha }}
+      wheels_tarball: ${{ inputs.wheels_tarball }}
       upstream_repo: ${{ inputs.upstream_repo }}
       case_paths_config: ${{ inputs.case_paths_config }}
       docker_image: ${{ inputs.docker_image }}
@@ -114,6 +124,7 @@ jobs:
     with:
       resolved_short: ${{ inputs.resolved_short }}
       resolved_sha: ${{ inputs.resolved_sha }}
+      wheels_tarball: ${{ inputs.wheels_tarball }}
       upstream_repo: ${{ inputs.upstream_repo }}
       category: ${{ matrix.category }}
       num_shards: ${{ matrix.num_shards }}

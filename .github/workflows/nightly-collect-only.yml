@@ -33,6 +33,7 @@ jobs:
     with:
       resolved_short: ${{ needs.build.outputs.resolved_short }}
       resolved_sha: ${{ needs.build.outputs.resolved_sha }}
+      wheels_tarball: ${{ needs.build.outputs.wheels_tarball }}
       upstream_repo: pytorch/pytorch
       case_paths_config: .github/config/nightly_test_categories.yml
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609140905-0ba22e2b
@@ -62,6 +63,7 @@ jobs:
     with:
       resolved_short: ${{ needs.build-a5.outputs.resolved_short }}
       resolved_sha: ${{ needs.build-a5.outputs.resolved_sha }}
+      wheels_tarball: ${{ needs.build-a5.outputs.wheels_tarball }}
       upstream_repo: pytorch/pytorch
       case_paths_config: .github/config/nightly_test_categories.yml
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609141214-9b737f59

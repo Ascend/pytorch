@@ -34,6 +34,7 @@ jobs:
     with:
       resolved_short: ${{ needs.build.outputs.resolved_short }}
       resolved_sha: ${{ needs.build.outputs.resolved_sha }}
+      wheels_tarball: ${{ needs.build.outputs.wheels_tarball }}
       upstream_repo: pytorch/pytorch
       torch_npu_short: ${{ needs.build.outputs.torch_npu_short }}
       case_paths_config: .github/config/nightly_test_categories_a5.yml

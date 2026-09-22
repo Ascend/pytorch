@@ -48,22 +48,190 @@ on:
     outputs:
       resolved_sha:
         description: Full resolved SHA of upstream PyTorch
-        value: ${{ jobs.pytorch_and_torch-npu_build.outputs.resolved_sha }}
+        value: ${{ jobs.fetch.outputs.resolved_sha }}
       resolved_short:
         description: Short SHA (first 10 chars) of upstream PyTorch
-        value: ${{ jobs.pytorch_and_torch-npu_build.outputs.resolved_short }}
+        value: ${{ jobs.fetch.outputs.resolved_short }}
       torch_npu_sha:
         description: Full SHA of torch_npu
         value: ${{ jobs.pytorch_and_torch-npu_build.outputs.torch_npu_sha }}
       torch_npu_short:
         description: Short SHA (first 10 chars) of torch_npu
         value: ${{ jobs.pytorch_and_torch-npu_build.outputs.torch_npu_short }}
+      wheels_tarball:
+        description: >-
+          Content-addressed wheels tarball name pinning every input that can
+          change the wheels: upstream PyTorch SHA, torch_npu SHA, CANN
+          version, Python version, full build image tag and architecture.
+          Passed to the test jobs for OBS download.
+        value: ${{ jobs.pytorch_and_torch-npu_build.outputs.wheels_tarball }}
 
 jobs:
   # ======================================================================
-  # Build PyTorch + torch_npu on self-hosted ARM64 runner
+  # Job 1: Fetch PyTorch source on a GitHub free runner and publish it to
+  # OBS only (no GHA artifacts) — mirrors the PR CI _build.yml fetch job.
+  # Self-hosted runners then download the tarball from OBS instead of
+  # cloning from GitHub.
+  # ======================================================================
+  fetch:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # Required by cross-repo-ci-relay-callback to obtain an OIDC token
+      contents: read
+    outputs:
+      resolved_sha: ${{ steps.resolve.outputs.sha }}
+      resolved_short: ${{ steps.resolve.outputs.short }}
+      source_tarball: ${{ steps.resolve.outputs.source_tarball }}
+    steps:
+      # Step 0: Report fetch in_progress to upstream. No continue-on-error,
+      # so an OIDC failure aborts the pipeline early (before any source
+      # download/packaging work is done).
+      - name: Report fetch in_progress
+        if: ${{ inputs.report_to_upstream }}
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
+        with:
+          status: in_progress
+          job-name: ubuntu-latest / fetch (pytorch)
+          max-time: 60
+
+      - name: Checkout upstream PyTorch
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.upstream_repo }}
+          ref: ${{ inputs.upstream_ref }}
+          fetch-depth: 1
+          submodules: false
+          path: pytorch
+
+      - name: Resolve actual HEAD SHA
+        id: resolve
+        working-directory: pytorch
+        run: |
+          SHA=$(git rev-parse HEAD)
+          SHORT="${SHA:0:10}"
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "short=${SHORT}" >> "$GITHUB_OUTPUT"
+          echo "source_tarball=pytorch-source-${SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "Resolved ${{ inputs.upstream_ref }} -> ${SHA}"
+
+      # obsutil is not preinstalled on GitHub-hosted runners; install it
+      # the same way the CI container images do (mirrors .ci/docker/
+      # common/install_obs.sh from the image build repo). Installed under
+      # $HOME because the runner user cannot write to /usr/local.
+      - name: Install obsutil
+        run: |
+          set -e
+          ARCH=$(uname -m)
+          case "${ARCH}" in
+            x86_64)  OBS_ARCH="amd64" ;;
+            aarch64) OBS_ARCH="arm64" ;;
+            *)       echo "Unsupported architecture: ${ARCH}"; exit 1 ;;
+          esac
+          OBS_URL="https://obs-community.obs.cn-north-1.myhuaweicloud.com/obsutil/current/obsutil_linux_${OBS_ARCH}.tar.gz"
+          # Retry to ride out transient cross-border network failures from
+          # GitHub-hosted runners to the Huawei Cloud OBS domain. Verbose
+          # output (no -q) so failures show DNS/TLS/HTTP details.
+          wget --tries=3 --timeout=30 --waitretry=10 --progress=dot:mega "${OBS_URL}"
+          OBSUTIL_HOME="$HOME/.local/obsutil"
+          mkdir -p "${OBSUTIL_HOME}"
+          tar -zxf "obsutil_linux_${OBS_ARCH}.tar.gz" -C "${OBSUTIL_HOME}/"
+          rm -f "obsutil_linux_${OBS_ARCH}.tar.gz"
+          ln -sf "${OBSUTIL_HOME}"/obsutil_linux_${OBS_ARCH}_*/obsutil "${OBSUTIL_HOME}/obsutil"
+          "${OBSUTIL_HOME}/obsutil" version
+
+      # The source tarball is content-addressed by the upstream commit and
+      # shared with the PR CI fetch job, so a hit means the (large)
+      # package+upload can be skipped entirely.
+      - name: Check source cache in OBS
+        id: source_cache
+        run: |
+          set +e
+          export PATH="${HOME}/.local/obsutil:${PATH}"
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
+          TARBALL="${{ steps.resolve.outputs.source_tarball }}"
+          if obsutil stat "obs://pytorch-ci-cache/7day-cache/${TARBALL}" >/dev/null 2>&1; then
+            echo "hit=true" >> "$GITHUB_OUTPUT"
+            echo "Source tarball already cached in OBS, skipping package+upload"
+          else
+            echo "hit=false" >> "$GITHUB_OUTPUT"
+            echo "Source tarball not in OBS cache, packaging now"
+          fi
+
+      - name: Init submodules
+        if: steps.source_cache.outputs.hit != 'true'
+        working-directory: pytorch
+        run: |
+          git submodule update --init --recursive --depth 1 --jobs=$(nproc)
+
+      - name: Package PyTorch source
+        if: steps.source_cache.outputs.hit != 'true'
+        run: |
+          TARBALL="${{ steps.resolve.outputs.source_tarball }}"
+          echo "Packaging pytorch/ into ${TARBALL} ..."
+          tar -czf "${TARBALL}" --exclude='.git' --exclude='*.git' pytorch/
+          echo "Package size: $(du -h ${TARBALL} | cut -f1)"
+
+      # Retry once on failure; uploads above 50MB use segment mode and
+      # resume from the checkpoint left by the failed attempt. -vlength
+      # verifies the object size after upload. Source goes to OBS ONLY —
+      # no GHA artifact upload (the self-hosted build/test jobs download
+      # from OBS).
+      - name: Upload PyTorch source to OBS
+        if: steps.source_cache.outputs.hit != 'true'
+        run: |
+          export PATH="${HOME}/.local/obsutil:${PATH}"
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
+
+          TARBALL="${{ steps.resolve.outputs.source_tarball }}"
+          for attempt in 1 2; do
+            echo "=== Upload attempt ${attempt} ==="
+            if obsutil cp "./${TARBALL}" "obs://pytorch-ci-cache/7day-cache/${TARBALL}" -f -vlength; then
+              echo "Upload succeeded on attempt ${attempt}"
+              exit 0
+            fi
+            echo "Upload attempt ${attempt} failed"
+            sleep 10
+          done
+          echo "Upload failed after 2 attempts"
+          exit 1
+
+      # Report fetch completed: conclusion follows the job's real outcome,
+      # including the cache-hit case where packaging/upload are skipped on
+      # purpose.
+      - name: Report fetch completed
+        id: report_fetch_completed
+        if: always() && inputs.report_to_upstream
+        continue-on-error: true
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
+        with:
+          status: completed
+          conclusion: ${{ job.status == 'success' && 'success' || 'failure' }}
+          job-name: ubuntu-latest / fetch (pytorch)
+          max-time: 60
+
+      # Same retry pattern as the build job's completion report below: the
+      # relay occasionally fails on a transient OIDC token mint timeout.
+      - name: Wait 30s before report retry
+        if: always() && inputs.report_to_upstream && steps.report_fetch_completed.outcome == 'failure'
+        run: sleep 30
+
+      - name: Retry report fetch completed
+        if: always() && inputs.report_to_upstream && steps.report_fetch_completed.outcome == 'failure'
+        continue-on-error: true
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
+        with:
+          status: completed
+          conclusion: ${{ job.status == 'success' && 'success' || 'failure' }}
+          job-name: ubuntu-latest / fetch (pytorch)
+          max-time: 60
+
+  # ======================================================================
+  # Job 2: Build PyTorch + torch_npu on self-hosted ARM64 runner. The
+  # PyTorch source (submodules included) comes from the OBS tarball
+  # published by the fetch job — no GitHub clone on this runner.
   # ======================================================================
   pytorch_and_torch-npu_build:
+    needs: fetch
     runs-on: ${{ inputs.runner_label }}
     permissions:
       id-token: write
@@ -72,10 +240,9 @@ jobs:
       run:
         shell: bash
     outputs:
-      resolved_sha: ${{ steps.sha.outputs.sha }}
-      resolved_short: ${{ steps.sha.outputs.short }}
       torch_npu_sha: ${{ steps.resolve_torch_npu_sha.outputs.sha }}
       torch_npu_short: ${{ steps.resolve_torch_npu_sha.outputs.short }}
+      wheels_tarball: ${{ steps.wheels_name.outputs.wheels_tarball }}
     container:
       image: ${{ inputs.docker_image }}
       options: --network host
@@ -97,52 +264,150 @@ jobs:
           status: in_progress
           job-name: ${{ inputs.runner_label }} / build (pytorch, torch-npu, py3.10)
 
-      # Step 1: Checkout upstream PyTorch source from GitHub (shallow).
-      # Submodules are NOT fetched here: actions/checkout updates them
-      # sequentially, which took ~45min of a 1h build (run 33183990395).
-      # The main-repo checkout alone takes ~10s via the container's code
-      # cache proxy. Submodules are fetched separately in parallel below.
-      - name: Checkout upstream PyTorch
+      # Step 1a: Check out torch_npu and resolve its SHA BEFORE downloading
+      # the PyTorch source or building, so the wheels tarball name (which
+      # embeds the torch_npu commit) can be computed and the OBS cache
+      # consulted before any expensive work. The old key
+      # (wheels-<upstream>-<pyver>-<arch>.tar.gz) omitted the torch_npu
+      # commit, so two pipelines building the same upstream commit with
+      # different torch_npu revisions overwrote each other's wheels in OBS.
+      # Submodules are fetched separately (Step 1d) only when a build is
+      # actually needed.
+      - name: Checkout downstream repo (torch_npu)
         uses: actions/checkout@v6
         with:
-          repository: ${{ inputs.upstream_repo }}
-          ref: ${{ inputs.upstream_ref }}
+          repository: ${{ inputs.torch_npu_repo }}
+          ref: ${{ inputs.torch_npu_ref }}
           fetch-depth: 1
           submodules: false
-          path: pytorch
+          path: torch_npu
 
-      # Fetch submodules with native git parallelism: --jobs runs the
-      # clone/fetch phase (the network bottleneck) for 8 modules at a
-      # time through the cache proxy. --depth=1 keeps the same shallow
-      # semantics the checkout action itself uses for submodules.
-      - name: Fetch PyTorch submodules in parallel
-        working-directory: pytorch
+      - name: Resolve torch_npu SHA
+        id: resolve_torch_npu_sha
+        working-directory: torch_npu
+        run: |
+          SHA=$(git rev-parse HEAD)
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "short=${SHA:0:10}" >> "$GITHUB_OUTPUT"
+          echo "torch_npu commit: ${SHA}"
+
+      # Step 1b: Compute the content-addressed wheels tarball name. The key
+      # pins every input that can change the wheels: upstream PyTorch
+      # commit, torch_npu commit, CANN version, Python version, the full
+      # build image tag and the architecture. Same key => byte-identical
+      # wheels, so OBS objects can be reused across pipelines safely.
+      - name: Compute wheels tarball name
+        id: wheels_name
+        env:
+          DOCKER_IMAGE: ${{ inputs.docker_image }}
+          UPSTREAM_SHORT: ${{ needs.fetch.outputs.resolved_short }}
+          TORCH_NPU_SHORT: ${{ steps.resolve_torch_npu_sha.outputs.short }}
+        run: |
+          ARCH=$(uname -m)
+          PYVER=$(python3 -c "import sys; print(f'py{sys.version_info.major}{sys.version_info.minor}')")
+
+          # Full image tag, e.g.
+          # torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609141214-9b737f59
+          IMAGE_TAG="${DOCKER_IMAGE##*:}"
+
+          # CANN version from the image tag (e.g. cann9.2.0); fall back to
+          # the CANN install inside the container when the tag omits it.
+          # Build and test jobs run the same image, so the fallback resolves
+          # identically on both sides.
+          CANN_VER=$(echo "${IMAGE_TAG}" | grep -oE 'cann[0-9]+(\.[0-9]+)+' | head -1 || true)
+          if [ -z "${CANN_VER}" ] && [ -f /usr/local/Ascend/cann/version.info ]; then
+            CANN_RT=$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+' /usr/local/Ascend/cann/version.info | head -1 || true)
+            [ -n "${CANN_RT}" ] && CANN_VER="cann${CANN_RT}"
+          fi
+          if [ -z "${CANN_VER}" ]; then
+            CANN_RT=$(basename "$(readlink -f /usr/local/Ascend/ascend-toolkit/latest 2>/dev/null)" 2>/dev/null || true)
+            if [[ "${CANN_RT}" =~ ^[0-9]+(\.[0-9]+)+$ ]]; then
+              CANN_VER="cann${CANN_RT}"
+            fi
+          fi
+          [ -z "${CANN_VER}" ] && CANN_VER="cann-unknown"
+
+          TARBALL="wheels-${UPSTREAM_SHORT}-npu-${TORCH_NPU_SHORT}-${CANN_VER}-${PYVER}-${IMAGE_TAG}-${ARCH}.tar.gz"
+          echo "wheels_tarball=${TARBALL}" >> "$GITHUB_OUTPUT"
+          echo "Wheels tarball: ${TARBALL}"
+
+      # Step 1c: Consult the OBS cache BEFORE building. On a cache hit
+      # (e.g. re-running a failed nightly, or another pipeline that already
+      # built the exact same inputs) the whole build is skipped and the
+      # cached wheels are reused by the test jobs. A broken cache probe
+      # degrades to "miss" so the build still runs.
+      - name: Check wheels cache in OBS
+        id: wheels_cache
+        run: |
+          set +e
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
+          TARBALL="${{ steps.wheels_name.outputs.wheels_tarball }}"
+          if obsutil stat "obs://pytorch-ci-cache/7day-cache/${TARBALL}" >/tmp/obs_wheels_stat.log 2>&1; then
+            echo "hit=true" >> "$GITHUB_OUTPUT"
+            echo "Wheels tarball already cached in OBS, build will be skipped"
+          else
+            echo "hit=false" >> "$GITHUB_OUTPUT"
+            echo "Wheels tarball not in OBS cache, proceeding with full build"
+            tail -3 /tmp/obs_wheels_stat.log || true
+          fi
+
+      # Step 1d: Download the PyTorch source tarball published to OBS by
+      # the fetch job (GitHub free runner). Submodules are already included
+      # in the tarball, so no submodule fetch is needed on this runner.
+      # Gated on the wheels cache check: on a cache hit no build runs, so
+      # the ~800MB download would be wasted — the Summary/Report steps only
+      # need the torch_npu checkout.
+      # obsutil is preinstalled in the build image; auth is done inline
+      # via `obsutil config` (AK/SK are masked by the runner in logs).
+      # Objects above the 50MB threshold use segment download
+      # automatically; a failed attempt leaves a checkpoint record in
+      # ~/.obsutil_checkpoint/down, so the retry resumes the transfer
+      # instead of restarting from byte 0. -vlength verifies the local
+      # file size against the object. Do NOT delete the .obs.temp partial
+      # file between attempts — it is the resume state.
+      - name: Download PyTorch source from OBS
+        if: steps.wheels_cache.outputs.hit != 'true'
+        run: |
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
+
+          TARBALL="${{ needs.fetch.outputs.source_tarball }}"
+          for attempt in 1 2; do
+            echo "=== Download attempt ${attempt} ==="
+            if obsutil cp "obs://pytorch-ci-cache/7day-cache/${TARBALL}" "./${TARBALL}" -vlength; then
+              echo "Download succeeded on attempt ${attempt}"
+              exit 0
+            fi
+            echo "Download attempt ${attempt} failed"
+            sleep 10
+          done
+          echo "Download failed after 2 attempts"
+          exit 1
+
+      - name: Extract PyTorch source
+        if: steps.wheels_cache.outputs.hit != 'true'
+        run: |
+          tar -xzf ${{ needs.fetch.outputs.source_tarball }}
+          rm ${{ needs.fetch.outputs.source_tarball }}
+          echo "PyTorch source extracted: $(du -sh pytorch/ | cut -f1)"
+
+      # Step 1e: torch_npu submodules are fetched only when a build is
+      # actually needed (parallel fetch like the PyTorch one above).
+      - name: Fetch torch_npu submodules in parallel
+        if: steps.wheels_cache.outputs.hit != 'true'
+        working-directory: torch_npu
         run: |
           start=$(date +%s)
           git submodule update --init --force --recursive --depth=1 --jobs=8
           echo "Submodule fetch took $(( $(date +%s) - start ))s"
 
-      - name: Resolve SHAs
-        id: sha
-        working-directory: pytorch
-        run: |
-          SHA=$(git rev-parse HEAD)
-          SHORT="${SHA:0:10}"
-          ARCH=$(uname -m)
-          PYVER=$(python3 -c "import sys; print(f'py{sys.version_info.major}{sys.version_info.minor}')")
-          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
-          echo "short=${SHORT}" >> "$GITHUB_OUTPUT"
-          echo "upstream_short=${SHORT}" >> "$GITHUB_OUTPUT"
-          echo "wheels_tarball=wheels-${SHORT}-${PYVER}-${ARCH}.tar.gz" >> "$GITHUB_OUTPUT"
-          echo "Resolved ${{ inputs.upstream_ref }} -> ${SHA}"
-
-      # Step 1b: ccache statistics for the PyTorch build. ccache counters are
+      # Step 2: ccache statistics for the PyTorch build. ccache counters are
       # cumulative per cache directory, so zero them right before the build to
       # make the "Show ccache statistics (PyTorch build)" step report only this
       # build. The cache directory is shared across runners; a concurrently
       # running build may add a few stray counts between reset and show —
       # display-only impact.
       - name: Reset ccache statistics (PyTorch build)
+        if: steps.wheels_cache.outputs.hit != 'true'
         continue-on-error: true
         run: |
           if ! command -v ccache >/dev/null 2>&1; then
@@ -154,14 +419,16 @@ jobs:
           echo "--- zero statistics counters ---"
           ccache -z
 
-      # Step 2: Build and install PyTorch
+      # Step 2: Build and install PyTorch (skipped when the wheels cache
+      # check above hit the exact same content-addressed tarball)
       - name: Build and install PyTorch
+        if: steps.wheels_cache.outputs.hit != 'true'
         id: build_pytorch
         working-directory: pytorch
         run: |
           echo "============================================"
           echo "Building PyTorch from ${{ inputs.upstream_repo }} @ ${{ inputs.upstream_ref }}"
-          echo "Resolved commit: ${{ steps.sha.outputs.sha }}"
+          echo "Resolved commit: ${{ needs.fetch.outputs.resolved_sha }}"
           echo "MAX_JOBS: ${MAX_JOBS}"
           echo "============================================"
 
@@ -205,6 +472,7 @@ jobs:
           ccache -s
 
       - name: Capture PyTorch wheel info
+        if: steps.wheels_cache.outputs.hit != 'true'
         id: pytorch_wheel
         run: |
           wheel=$(ls /tmp/wheels/torch-*.whl | head -1)
@@ -216,6 +484,7 @@ jobs:
       # (pytorch/.github/ci_commit_pins/vision.txt), which is always in sync
       # with the upstream commit being built.
       - name: Build and install torchvision
+        if: steps.wheels_cache.outputs.hit != 'true'
         id: build_torchvision
         run: |
           VISION_COMMIT=$(cat pytorch/.github/ci_commit_pins/vision.txt)
@@ -239,31 +508,11 @@ jobs:
           python -c "import torchvision; print(f'torchvision version: {torchvision.__version__}')"
           cd "${GITHUB_WORKSPACE}"
 
-      # Step 3: Checkout downstream torch_npu (shallow, submodules via
-      # checkout action to leverage its caching; gitee mirrors no longer
-      # needed — submodule URLs point to reachable hosts directly)
-      - name: Checkout downstream repo (torch_npu)
-        uses: actions/checkout@v6
-        with:
-          repository: ${{ inputs.torch_npu_repo }}
-          ref: ${{ inputs.torch_npu_ref }}
-          fetch-depth: 1
-          submodules: recursive
-          path: torch_npu
-
-      - name: Resolve torch_npu SHA
-        id: resolve_torch_npu_sha
-        working-directory: torch_npu
-        run: |
-          SHA=$(git rev-parse HEAD)
-          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
-          echo "short=${SHA:0:10}" >> "$GITHUB_OUTPUT"
-          echo "torch_npu commit: ${SHA}"
-
       # Step 3b: Zero the ccache statistics counters right before the
       # torch_npu build so the "Show ccache statistics (torch_npu build)"
       # step below reports only this build.
       - name: Reset ccache statistics (torch_npu build)
+        if: steps.wheels_cache.outputs.hit != 'true'
         continue-on-error: true
         run: |
           if ! command -v ccache >/dev/null 2>&1; then
@@ -272,8 +521,9 @@ jobs:
           fi
           ccache -z
 
-      # Step 4: Build and install torch_npu
+      # Step 4: Build and install torch_npu (skipped on wheels cache hit)
       - name: Build and install torch_npu
+        if: steps.wheels_cache.outputs.hit != 'true'
         id: build_torchnpu
         working-directory: torch_npu
         run: |
@@ -315,16 +565,20 @@ jobs:
           ccache -s
 
       - name: Capture torch_npu wheel info
+        if: steps.wheels_cache.outputs.hit != 'true'
         id: torchnpu_wheel
         run: |
           wheel=$(ls /tmp/wheels/torch_npu*.whl | head -1)
           echo "path=${wheel}" >> "$GITHUB_OUTPUT"
           echo "name=$(basename ${wheel})" >> "$GITHUB_OUTPUT"
 
-      # Step 5: Package and upload wheel artifacts
+      # Step 5: Package and upload wheel artifacts (OBS only — no GHA
+      # artifact for wheels; the GHA copy previously uploaded as
+      # packages-pytorch-* is intentionally dropped)
       - name: Package wheels into tarball
+        if: steps.wheels_cache.outputs.hit != 'true'
         run: |
-          TARBALL="${{ steps.sha.outputs.wheels_tarball }}"
+          TARBALL="${{ steps.wheels_name.outputs.wheels_tarball }}"
           tar -czf "${TARBALL}" -C /tmp/wheels .
           echo "Wheels tarball size: $(du -h ${TARBALL} | cut -f1)"
 
@@ -336,10 +590,11 @@ jobs:
       # instead of restarting from byte 0. -vlength verifies the uploaded
       # object size against the local file.
       - name: Upload wheels to OBS
+        if: steps.wheels_cache.outputs.hit != 'true'
         run: |
           obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
 
-          TARBALL="${{ steps.sha.outputs.wheels_tarball }}"
+          TARBALL="${{ steps.wheels_name.outputs.wheels_tarball }}"
           for attempt in 1 2; do
             echo "=== Upload attempt ${attempt} ==="
             if obsutil cp "./${TARBALL}" "obs://pytorch-ci-cache/7day-cache/${TARBALL}" -f -vlength; then
@@ -352,17 +607,11 @@ jobs:
           echo "Upload failed after 2 attempts"
           exit 1
 
-      - name: Upload wheel artifacts
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: packages-pytorch-${{ steps.sha.outputs.upstream_short }}${{ inputs.artifact_suffix }}
-          path: /tmp/wheels/*.whl
-          retention-days: 7
-
-      # Step 6: Upload build artifacts (always, for debugging failures)
+      # Step 6: Upload build artifacts (always, for debugging failures).
+      # Build logs only exist when a build actually ran, hence the cache
+      # condition.
       - name: Upload build artifacts
-        if: always()
+        if: always() && steps.wheels_cache.outputs.hit != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts-${{ github.run_number }}${{ inputs.artifact_suffix }}
@@ -384,10 +633,12 @@ jobs:
           echo "============================================"
           echo "PyTorch upstream: ${{ inputs.upstream_repo }}"
           echo "PyTorch ref     : ${{ inputs.upstream_ref }}"
-          echo "PyTorch commit  : ${{ steps.sha.outputs.sha }}"
+          echo "PyTorch commit  : ${{ needs.fetch.outputs.resolved_sha }}"
           echo "torch_npu repo  : ${{ inputs.torch_npu_repo }}"
           echo "torch_npu commit: ${TORCH_NPU_SHA}"
           echo "Max jobs        : ${MAX_JOBS}"
+          echo "Wheels tarball  : ${{ steps.wheels_name.outputs.wheels_tarball }}"
+          echo "Wheels cache    : ${{ steps.wheels_cache.outputs.hit == 'true' && 'HIT (build skipped, wheels reused from OBS)' || 'MISS (full build)' }}"
           echo "============================================"
 
           {
@@ -396,10 +647,12 @@ jobs:
             echo "| Item | Value |"
             echo "|------|-------|"
             echo "| PyTorch upstream | ${{ inputs.upstream_repo }} |"
-            echo "| PyTorch commit | \`${{ steps.sha.outputs.sha }}\` |"
+            echo "| PyTorch commit | \`${{ needs.fetch.outputs.resolved_sha }}\` |"
             echo "| torch_npu repo | ${{ inputs.torch_npu_repo }} |"
             echo "| torch_npu commit | \`${TORCH_NPU_SHA}\` |"
             echo "| Max jobs | ${MAX_JOBS} |"
+            echo "| Wheels tarball | \`${{ steps.wheels_name.outputs.wheels_tarball }}\` |"
+            echo "| Wheels cache | ${{ steps.wheels_cache.outputs.hit == 'true' && 'HIT (build skipped, wheels reused from OBS)' || 'MISS (full build)' }} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
       # Step 8: Report build completed to upstream (same job as in_progress)
@@ -410,7 +663,10 @@ jobs:
         uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
         with:
           status: completed
-          conclusion: ${{ (steps.build_pytorch.outcome == 'success' && steps.build_torchnpu.outcome == 'success' && steps.build_torchvision.outcome == 'success') && 'success' || 'failure' }}
+          # job.status reflects every mandatory step (wheels upload or the
+          # full build chain) including the cache-hit case where the build
+          # steps are skipped on purpose.
+          conclusion: ${{ job.status == 'success' && 'success' || 'failure' }}
           job-name: ${{ inputs.runner_label }} / build (pytorch, torch-npu, py3.10)
 
       # The completion report above is best-effort (continue-on-error) and
@@ -430,6 +686,9 @@ jobs:
         uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
         with:
           status: completed
-          conclusion: ${{ (steps.build_pytorch.outcome == 'success' && steps.build_torchnpu.outcome == 'success' && steps.build_torchvision.outcome == 'success') && 'success' || 'failure' }}
+          # job.status reflects every mandatory step (wheels upload or the
+          # full build chain) including the cache-hit case where the build
+          # steps are skipped on purpose.
+          conclusion: ${{ job.status == 'success' && 'success' || 'failure' }}
           job-name: ${{ inputs.runner_label }} / build (pytorch, torch-npu, py3.10)
 
