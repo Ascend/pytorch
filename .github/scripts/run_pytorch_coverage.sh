@@ -13,10 +13,12 @@ set -euo pipefail
 #   OUT_ROOT    output root for all artifacts (default <repo root>/outputs)
 #   PYTHON_BIN  python interpreter (default python)
 #
-# Outputs land under OUT_ROOT:
+# Outputs land under OUT_ROOT (single copy, crash-safe):
 #   convstub/torch/            source snapshot (matches the run env)
-#   torch@YYYYMMDD/            per-test covdata dirs (+ FAILED markers), logs,
+#   torch@latest/              per-test covdata dirs (+ FAILED markers), logs,
 #                              failed_cases.json, combined .coverage/coverage.xml
+# Each run writes to torch@staging/ and promotes it to torch@latest/ only
+# after the full flow completed — a crashed run keeps the previous data.
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
@@ -53,9 +55,14 @@ fi
 
 out_root="${OUT_ROOT:-${repo_root}/outputs}"
 src_snapshot_dir="${out_root}/convstub/${source_pkg}"
-timestamp="$(date +%Y%m%d)"
-covdata_root="${out_root}/${source_pkg}@${timestamp}"
-log_dir="${covdata_root}/logs"
+# Single-copy output with crash safety: all artifacts are written to a
+# staging dir first and promoted (atomic mv) to the fixed @latest dir only
+# after the run completed end-to-end — a crashed/killed run leaves the
+# previous @latest data intact.
+staging_dir="${out_root}/${source_pkg}@staging"
+covdata_root="${out_root}/${source_pkg}@latest"
+rm -rf "${staging_dir}"
+log_dir="${staging_dir}/logs"
 mkdir -p "${log_dir}"
 
 # Emit "category<TAB>file" lines from the whitelist. Legacy flat
@@ -284,5 +291,13 @@ done
 print_summary
 print_failed_summary
 combine_coverage
+
+# Promote staging -> @latest. Reaching this line means the full flow
+# (all tests + combine) completed end-to-end; test failures do NOT block
+# promotion (per-test FAILED markers inside covdata let downstream filter
+# them out). A crashed/killed run never gets here, so the previous
+# @latest data survives untouched.
+rm -rf "${covdata_root}"
+mv "${staging_dir}" "${covdata_root}"
 
 exit "${overall_status}"
