@@ -75,7 +75,6 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609140905-0ba22e2b
-      options: --network host
     outputs:
       cache_hit: ${{ steps.probe.outputs.cache_hit }}
       short: ${{ steps.probe.outputs.short }}
