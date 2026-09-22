@@ -21,9 +21,15 @@
 
 **产品支持情况**：
 
+<!-- npu="910b" id1 -->
 - <term>Atlas A2 训练系列产品</term>：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
 - <term>Atlas A3 训练系列产品</term>：支持
+<!-- end id2 -->
+<!-- npu="950" id3 -->
 - <term>Ascend 950DT</term>：支持
+<!-- end id3 -->
 
 **限制与说明**：`torch.utils.deterministic.fill_uninitialized_memory`默认值为True。设置`torch.use_deterministic_algorithms`开启确定性后，PyTorch行为是填充未初始化内存，而TorchNPU默认不填充。如需填充生效，需手动将`torch.utils.deterministic.fill_uninitialized_memory`设置为True
 

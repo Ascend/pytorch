@@ -2,7 +2,9 @@
 
 ## 环境准备
 
+<!-- npu="910b" id3 -->
 本快速入门以在Atlas 800T A2 训练服务器上运行为例。
+<!-- end id3 -->
 
 - 安装配套版本的NPU驱动固件、CANN软件（Toolkit、ops和NNAL），具体请参考《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》：
     - 操作系统：选择可用的操作系统（兼容性请参考[兼容性查询助手](https://www.hiascend.com/hardware/compatibility)）
@@ -105,8 +107,13 @@
 3. 在train.py中添加以下代码开启AMP混合精度。
 
     > [!NOTE]
+    >
+    > <!-- npu="910" id1 -->
     > - 若用户使用<term>Atlas 训练系列产品</term>，则在迁移完成、训练开始之前，由于其架构特性，用户需要执行此步骤开启混合精度。
+    > <!-- end id1 -->
+    > <!-- npu="950,A3,910b" id2 -->
     > - 若用户使用<term>Atlas A2 训练系列产品</term>、<term>Atlas A3 训练系列产品</term>或<term>Ascend 950DT</term>，则可以自行选择是否开启混合精度，如果选择不开启混合精度，则可以跳过此步骤。
+    > <!-- end id2 -->
     > - 混合精度的具体介绍，请参见[混合精度适配](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/zh/mixed_precision_adaptation/adaptation_introduction.md)。
 
     ```diff
@@ -181,5 +188,5 @@
     |--|--|--|
     |Megatron-LM分布式大模型|MindSpeed Core亲和加速模块|请参见《[分布式训练加速库迁移指南](https://gitcode.com/Ascend/MindSpeed/blob/master/docs/zh/user-guide/model-migration.md)》。|
     |Megatron-LM大语言模型|MindSpeed LLM套件|请参见《[MindSpeed LLM文档导读](https://gitcode.com/Ascend/MindSpeed-LLM/blob/master/docs/zh/docs_guide.md)》。|
-    |Megatron-LM多模态模型|MindSpeed MM套件|请参见《[MindSpeed MM迁移调优指南](https://gitcode.com/Ascend/MindSpeed-MM/blob/master/docs/zh/pytorch/model-migration.md)》。|
+    |Megatron-LM多模态模型|MindSpeed MM套件|请参见《[MindSpeed MM迁移调优指南](https://gitcode.com/Ascend/MindSpeed-MM/blob/master/docs/zh/guides/development/model-migration.md)》。|
     |大语言模型或多模态模型|veRL套件|请参见《[veRL迁移指南](https://github.com/verl-project/verl/blob/main/docs/ascend_tutorial/zh/dev_guide/model_dev/transfer_to_npu_guide.md)》。|

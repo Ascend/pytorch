@@ -28,9 +28,15 @@
 
 **产品支持情况**：
 
+<!-- npu="910b" id1 -->
 - <term>Atlas A2 训练系列产品</term>：不支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
 - <term>Atlas A3 训练系列产品</term>：不支持
+<!-- end id2 -->
+<!-- npu="950" id3 -->
 - <term>Ascend 950DT</term>：不支持
+<!-- end id3 -->
 
 </div>
 
@@ -44,9 +50,15 @@
 
 **产品支持情况**：
 
+<!-- npu="910b" id4 -->
 - <term>Atlas A2 训练系列产品</term>：不支持
+<!-- end id4 -->
+<!-- npu="A3" id5 -->
 - <term>Atlas A3 训练系列产品</term>：不支持
+<!-- end id5 -->
+<!-- npu="950" id6 -->
 - <term>Ascend 950DT</term>：不支持
+<!-- end id6 -->
 
 </div>
 
@@ -58,8 +70,14 @@
 
 **产品支持情况**：
 
+<!-- npu="910b" id7 -->
 - <term>Atlas A2 训练系列产品</term>：支持
+<!-- end id7 -->
+<!-- npu="A3" id8 -->
 - <term>Atlas A3 训练系列产品</term>：支持
+<!-- end id8 -->
+<!-- npu="950" id9 -->
 - <term>Ascend 950DT</term>：不支持
+<!-- end id9 -->
 
 </div>
