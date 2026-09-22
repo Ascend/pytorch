@@ -145,7 +145,7 @@ setup_coverage() {
 # instantiate device-parameterized classes for the NPU device only, and make
 # sibling module imports resolve.
 setup_env() {
-  local td; td="$(dirname "$1")"
+  local td; td="$(dirname "${1#test/}")"
   export TORCH_DEVICE_BACKEND_AUTOLOAD=1
   export PYTORCH_TESTING_DEVICE_ONLY_FOR="${device_env}"
   export PYTHONPATH="${test_dir}:${test_dir}/${td}${PYTHONPATH:+:${PYTHONPATH}}"
@@ -204,7 +204,7 @@ run_test_target() {
   setup_env "${file}"
   run_logged_command "${log_file}" bash -c "${script}" _ "${test_dir}" \
     timeout --kill-after=30 "${timeout_seconds}" \
-    "${python_bin}" -m coverage run --source="${source_pkg}" --branch -u "${file}"
+    "${python_bin}" -u -m coverage run --source="${source_pkg}" --branch "${file#test/}"
   status=$?
   set -e
 
