@@ -4750,16 +4750,8 @@ class NPUIndexTritonKernel(TritonKernel):
         result_var.mask_vars = {var for var in masks if var[0] != "r"}  # noqa: set_linter
         cond_expr = f"({' & '.join(masks)})"
         if need_permute:
-            # Dual contiguous reduction: masks follow the same permute+reshape
-            # view as the value (equal numel, axis reorder). broadcast_to cannot
-            # transpose.
-            cond = (
-                f"{cond_expr}.permute({permute_order}).reshape({dense_size_str})"
-            )
-        else:
-            # No-loop axes (e.g. static x1) are omitted from masks, so the AND
-            # has fewer elements than the dense tile. reshape() forbids that.
-            cond = f"tl.broadcast_to({cond_expr}, {dense_size_str})"
+            cond_expr = f"{cond_expr}.permute({permute_order})"
+        cond = f"{cond_expr}.reshape({dense_size_str})"
 
         def where_cond(tval, fval):
             if not cond:
