@@ -13,7 +13,7 @@ on:
         default: 'main'
         type: string
       categories:
-        description: 'Comma-separated categories to run (e.g. core,tensor). Empty = all 5 categories'
+        description: 'Comma-separated categories to run for debugging (e.g. core,tensor). Empty = all categories; empty is also the only case where OBS latest is overwritten'
         required: false
         default: ''
         type: string
@@ -80,85 +80,66 @@ jobs:
       runner_label: 'linux-aarch64-cpu-24'
       max_jobs: '23'
 
-  # Download artifacts -> install wheels -> run coverage script -> upload reports
-  # NOTE: runs-on / container.image do not support the env context
-  # (only github/needs/vars/inputs etc.), so runner and image are inlined.
-  coverage:
+  # Collect the PR trigger case set (whitelist + hw_classification + skip list)
+  # and shard it per category, exactly like the PR trigger pipeline.
+  collect:
     needs: [resolve, build]
-    runs-on: linux-aarch64-a3-800i-8-cn12-001
-    timeout-minutes: 1440  # 229 test files run serially; allow up to 24h
-    # Container jobs default to sh (dash here); steps use bash arrays/source.
+    uses: ./.github/workflows/_test-collect.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ needs.resolve.outputs.short }}
+      wheels_tarball: ${{ needs.build.outputs.wheels_tarball }}
+      case_paths_config: .github/config/pr_test_whitelist.yml
+      skip_list: .github/config/pr_skip_list.jsonl
+      hw_classification: 'ACCELERATOR'
+      device_env: 'privateuse1'
+      runner_label: 'linux-aarch64-a3-800i-2-cn12-001'
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609140905-0ba22e2b
+
+  # One job per (category, shard): the job carries its own cases JSON and runs
+  # them under coverage, then uploads its coverage data for the merge job.
+  coverage:
+    needs: [resolve, build, collect]
+    if: ${{ needs.collect.result == 'success' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.collect.outputs.test_matrix) }}
+    uses: ./.github/workflows/_pytorch_coverage_shard.yml
+    secrets: inherit
+    with:
+      category: ${{ matrix.category }}
+      matrix_json: ${{ matrix.matrix_json }}
+      num_shards: ${{ matrix.num_shards }}
+      max_workers: ${{ matrix.max_workers }}
+      runner_label: ${{ matrix.runner_label }}
+      categories_filter: ${{ inputs.categories }}
+      resolved_short: ${{ needs.resolve.outputs.short }}
+      wheels_tarball: ${{ needs.build.outputs.wheels_tarball }}
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609140905-0ba22e2b
+
+  merge:
+    needs: [resolve, build, collect, coverage]
+    if: ${{ always() && needs.coverage.result == 'success' }}
+    runs-on: linux-aarch64-cpu-24
+    timeout-minutes: 120
     defaults:
       run:
         shell: bash
-    outputs:
-      test_status: ${{ steps.run_coverage.outputs.test_status }}
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609140905-0ba22e2b
       options: --network host
     env:
       PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
-
     steps:
-      # Tarball names follow the _build.yml/_nightly_build.yml upload convention
-      - name: Compute SHAs
-        id: sha
-        run: |
-          echo "short=${{ needs.resolve.outputs.short }}" >> "$GITHUB_OUTPUT"
-          echo "source_tarball=pytorch-source-${{ needs.resolve.outputs.short }}.tar.gz" >> "$GITHUB_OUTPUT"
-          echo "wheels_tarball=${{ needs.build.outputs.wheels_tarball }}" >> "$GITHUB_OUTPUT"
+      - name: Download shard coverage data
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-*
+          path: cov-out
 
-      # obsutil is preinstalled in the test image; 2 retries + resumable download
-      - name: Download PyTorch source from OBS
-        run: |
-          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${{ env.OBS_ENDPOINT }}
-
-          TARBALL="${{ steps.sha.outputs.source_tarball }}"
-          for attempt in 1 2; do
-            echo "=== Download attempt ${attempt} ==="
-            if obsutil cp "obs://pytorch-ci-cache/7day-cache/${TARBALL}" "./${TARBALL}" -vlength; then
-              echo "Download succeeded on attempt ${attempt}"
-              exit 0
-            fi
-            echo "Download attempt ${attempt} failed"
-            sleep 10
-          done
-          echo "ERROR: ${TARBALL} not found in OBS cache (build may have failed to upload)." >&2
-          exit 1
-
-      - name: Extract PyTorch source
-        run: |
-          tar -xzf ${{ steps.sha.outputs.source_tarball }}
-          rm ${{ steps.sha.outputs.source_tarball }}
-          echo "PyTorch source extracted: $(du -sh pytorch/ | cut -f1)"
-
-      - name: Download wheels from OBS
-        run: |
-          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${{ env.OBS_ENDPOINT }}
-
-          TARBALL="${{ steps.sha.outputs.wheels_tarball }}"
-          for attempt in 1 2; do
-            echo "=== Download attempt ${attempt} ==="
-            if obsutil cp "obs://pytorch-ci-cache/7day-cache/${TARBALL}" "./${TARBALL}" -vlength; then
-              echo "Download succeeded on attempt ${attempt}"
-              exit 0
-            fi
-            echo "Download attempt ${attempt} failed"
-            sleep 10
-          done
-          echo "ERROR: ${TARBALL} not found in OBS cache (build may have failed to upload)." >&2
-          exit 1
-
-      # Device under test: the installed torch python sources
-      - name: Extract and install wheels
-        run: |
-          mkdir -p /tmp/wheels
-          tar -xzf ${{ steps.sha.outputs.wheels_tarball }} -C /tmp/wheels
-          rm ${{ steps.sha.outputs.wheels_tarball }}
-          pip install /tmp/wheels/torch-*.whl
-          pip install --no-deps /tmp/wheels/torch_npu*.whl
-          pip install --no-deps /tmp/wheels/torchvision-*.whl || echo "WARNING: torchvision wheel not found in tarball"
-          pip install pyyaml coverage  # script deps: whitelist parsing + coverage
+      - name: Install coverage
+        run: pip install coverage pyyaml
 
       - name: Checkout coverage script
         uses: actions/checkout@v6
@@ -167,67 +148,59 @@ jobs:
           path: ci-scripts
           ref: ci-test
 
-      - name: Run coverage script
-        id: run_coverage
+      # Combine every shard's per-process coverage data files and aggregate the
+      # shard failure lists into torch@latest/.
+      - name: Merge shard coverage
         run: |
-          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
-          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
-          export LD_LIBRARY_PATH=/opt/conda/envs/py_3.10/lib:$LD_LIBRARY_PATH
+          SHARD_DIRS="$(cd cov-out && ls -d */ | sed 's:/$::' | sed 's:^:cov-out/:' | paste -sd, -)"
+          echo "=== Merging shards: ${SHARD_DIRS} ==="
 
-          COV_ARGS=(--test-dir "${GITHUB_WORKSPACE}/pytorch/test" --timeout 1800)
-          if [ -n "${{ inputs.categories }}" ]; then
-            COV_ARGS+=(--category "${{ inputs.categories }}")
-          fi
-
-          echo "=== Coverage script args: ${COV_ARGS[*]} ==="
-
-          COV_STATUS=0
           OUT_ROOT="${GITHUB_WORKSPACE}/coverage-out" \
           PYTHON_BIN=python3 \
-            bash "${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/run_pytorch_coverage.sh" "${COV_ARGS[@]}" \
-            || COV_STATUS=$?
+            bash "${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/run_pytorch_coverage.sh" \
+              --merge "${SHARD_DIRS}"
 
-          echo "Coverage script finished with status: ${COV_STATUS}"
-          echo "test_status=${COV_STATUS}" >> "$GITHUB_OUTPUT"
+      # Keep the exact case set used by this run inside the downloadable artifact.
+      - name: Download cases shards for the report bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: cases-shards
+          path: coverage-out/torch@latest/logs/cases-shards
 
       - name: Write job summary
         if: always()
         run: |
-          # Only the promoted torch@latest dir counts: on a crashed run the
-          # script leaves an incomplete torch@staging behind, which must NOT
-          # be reported or uploaded.
           COV_DIR="${GITHUB_WORKSPACE}/coverage-out/torch@latest"
           [ -d "${COV_DIR}" ] || COV_DIR=""
           {
-            echo "## PyTorch Coverage (${{ steps.sha.outputs.short }})"
+            echo "## PyTorch Coverage (${{ needs.resolve.outputs.short }})"
             echo ""
-            echo "- Test status (script exit code): \`${{ steps.run_coverage.outputs.test_status }}\`"
-            echo "- Artifacts: freshly built by this run (commit \`${{ steps.sha.outputs.short }}\`)"
+            echo "- Categories: \`${{ inputs.categories || 'all' }}\`"
+            echo "- Artifacts: freshly built by this run (commit \`${{ needs.resolve.outputs.short }}\`)"
             if [ -n "${COV_DIR}" ] && [ -f "${COV_DIR}/coverage.xml" ]; then
               echo "- coverage.xml: \`${COV_DIR}/coverage.xml\`"
             fi
             if [ -n "${COV_DIR}" ] && [ -f "${COV_DIR}/logs/failed_cases.json" ]; then
-              FAILED=$(python3 -c "import json; print(json.load(open('${COV_DIR}/logs/failed_cases.json')) and len(json.load(open('${COV_DIR}/logs/failed_cases.json'))))" 2>/dev/null || echo "?")
-              echo "- Failed test files: ${FAILED} (see failed_cases.json)"
+              SUMMARY=$(python3 -c "import json; d=json.load(open('${COV_DIR}/logs/failed_cases.json')); print(f\"{d.get('total_failed', 0)} / {d.get('total_cases', 0)}\")")
+              echo "- Failed cases: ${SUMMARY} (see failed_cases.json)"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # GitHub Artifacts: report + logs (lightweight, downloadable from the run page)
       - name: Upload coverage artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pytorch-coverage-${{ steps.sha.outputs.short }}
+          name: pytorch-coverage-${{ needs.resolve.outputs.short }}
           path: coverage-out/torch@latest/
           retention-days: 14
           if-no-files-found: warn
 
       # Full covdata to OBS for long-term retention: single copy on the remote,
-      # each completed run overwrites it. A crashed run leaves only an
-      # incomplete torch@staging locally, which is never uploaded — the remote
-      # keeps the last successful run's data.
+      # each completed run overwrites it. A crashed run never reaches this step,
+      # and a partial (debug) run is never uploaded — the remote keeps the last
+      # complete run's data.
       - name: Upload full covdata to OBS
-        if: always()
+        if: ${{ always() && inputs.categories == '' }}
         continue-on-error: true
         run: |
           obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${{ env.OBS_ENDPOINT }}

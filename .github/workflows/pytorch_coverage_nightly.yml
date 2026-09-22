@@ -6,6 +6,7 @@ on:
     # pushing code commits to ci-test don't trigger full coverage runs.
     paths:
       - '.github/workflows/_pytorch_coverage.yml'
+      - '.github/workflows/_pytorch_coverage_shard.yml'
       - '.github/workflows/pytorch_coverage_nightly.yml'
       - '.github/scripts/run_pytorch_coverage.sh'
   schedule:

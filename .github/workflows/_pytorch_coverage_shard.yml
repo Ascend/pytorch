@@ -1,0 +1,187 @@
+name: PyTorch Coverage Shard
+
+on:
+  workflow_call:
+    inputs:
+      category:
+        required: true
+        type: string
+      matrix_json:
+        required: true
+        type: string
+        description: JSON array of shard numbers for this category
+      num_shards:
+        required: true
+        type: string
+      max_workers:
+        required: true
+        type: string
+      runner_label:
+        required: true
+        type: string
+      resolved_short:
+        required: true
+        type: string
+      wheels_tarball:
+        required: true
+        type: string
+      docker_image:
+        required: false
+        type: string
+        default: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609140905-0ba22e2b
+      case_timeout:
+        required: false
+        type: string
+        default: '1200'
+      categories_filter:
+        required: false
+        type: string
+        default: ''
+        description: 'Comma-separated categories for debug runs; empty = run this shard'
+
+jobs:
+  coverage:
+    name: coverage ${{ inputs.category }} shard ${{ matrix.shard }}/${{ inputs.num_shards }}
+    if: ${{ inputs.categories_filter == '' || contains(inputs.categories_filter, inputs.category) }}
+    runs-on: ${{ inputs.runner_label }}
+    timeout-minutes: 1440
+    defaults:
+      run:
+        shell: bash
+    container:
+      image: ${{ inputs.docker_image }}
+      options: --network host
+    env:
+      PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
+      ASCEND_PROCESS_LOG_PATH: /root/ascend/log/plog
+      ASCEND_GLOBAL_LOG_LEVEL: '3'
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJson(inputs.matrix_json) }}
+    steps:
+      - name: Compute tarball names
+        id: sha
+        env:
+          WHEELS_TARBALL: ${{ inputs.wheels_tarball }}
+        run: |
+          UPSTREAM_SHORT="${{ inputs.resolved_short }}"
+          echo "source_tarball=pytorch-source-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "wheels_tarball=${WHEELS_TARBALL}" >> "$GITHUB_OUTPUT"
+
+      - name: Download PyTorch source from OBS
+        run: |
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
+
+          TARBALL="${{ steps.sha.outputs.source_tarball }}"
+          for attempt in 1 2; do
+            echo "=== Download attempt ${attempt} ==="
+            if obsutil cp "obs://pytorch-ci-cache/7day-cache/${TARBALL}" "./${TARBALL}" -vlength; then
+              echo "Download succeeded on attempt ${attempt}"
+              exit 0
+            fi
+            echo "Download attempt ${attempt} failed"
+            sleep 10
+          done
+          echo "ERROR: ${TARBALL} not found in OBS cache (build may have failed to upload)." >&2
+          exit 1
+
+      - name: Extract PyTorch source
+        run: |
+          tar -xzf ${{ steps.sha.outputs.source_tarball }}
+          rm ${{ steps.sha.outputs.source_tarball }}
+          echo "PyTorch source extracted: $(du -sh pytorch/ | cut -f1)"
+
+      - name: Download wheels from OBS
+        run: |
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
+
+          TARBALL="${{ steps.sha.outputs.wheels_tarball }}"
+          for attempt in 1 2; do
+            echo "=== Download attempt ${attempt} ==="
+            if obsutil cp "obs://pytorch-ci-cache/7day-cache/${TARBALL}" "./${TARBALL}" -vlength; then
+              echo "Download succeeded on attempt ${attempt}"
+              exit 0
+            fi
+            echo "Download attempt ${attempt} failed"
+            sleep 10
+          done
+          echo "ERROR: ${TARBALL} not found in OBS cache (build may have failed to upload)." >&2
+          exit 1
+
+      - name: Extract and install wheels
+        run: |
+          mkdir -p /tmp/wheels
+          tar -xzf ${{ steps.sha.outputs.wheels_tarball }} -C /tmp/wheels
+          rm ${{ steps.sha.outputs.wheels_tarball }}
+          pip install /tmp/wheels/torch-*.whl
+          pip install --no-deps /tmp/wheels/torch_npu*.whl
+          pip install --no-deps /tmp/wheels/torchvision-*.whl || echo "WARNING: torchvision wheel not found in tarball"
+          pip install pyyaml coverage
+
+      - name: Download cases shard JSONs
+        uses: actions/download-artifact@v4
+        with:
+          name: cases-shards
+          path: cases-shards
+
+      - name: Checkout coverage scripts
+        uses: actions/checkout@v6
+        with:
+          repository: Ascend/pytorch
+          path: ci-scripts
+          ref: ci-test
+
+      - name: Verify NPU environment
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+          export LD_LIBRARY_PATH=/opt/conda/envs/py_3.10/lib:$LD_LIBRARY_PATH
+
+          mkdir -p "${ASCEND_PROCESS_LOG_PATH}"
+          npu-smi info
+          python -c "
+          import torch
+          print(f'torch: {torch.__version__}')
+          import torch_npu
+          print(f'torch_npu: {torch_npu.__version__}')
+          print(f'NPU available: {torch.npu.is_available()}')
+          print(f'NPU count: {torch.npu.device_count()}')
+          "
+
+      - name: Run coverage shard
+        id: run_coverage
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+          export LD_LIBRARY_PATH=/opt/conda/envs/py_3.10/lib:$LD_LIBRARY_PATH
+          mkdir -p "${ASCEND_PROCESS_LOG_PATH}"
+
+          CASES_JSON="cases-shards/${{ inputs.category }}_cases_shard_${{ matrix.shard }}.json"
+          OUT_DIR="${GITHUB_WORKSPACE}/cov-out/${{ inputs.category }}-${{ matrix.shard }}"
+
+          echo "=== ${{ inputs.category }} shard ${{ matrix.shard }}/${{ inputs.num_shards }} ==="
+          python3 -c "import json; d=json.load(open('${CASES_JSON}')); print('total cases:', d['total_cases'])"
+          echo "Max workers: ${{ inputs.max_workers }}  Case timeout: ${{ inputs.case_timeout }}s"
+
+          set +e
+          OUT_ROOT="${GITHUB_WORKSPACE}/coverage-out" \
+          PYTHON_BIN=python3 \
+            bash "${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/run_pytorch_coverage.sh" \
+              --cases-json "${CASES_JSON}" \
+              --test-dir "${GITHUB_WORKSPACE}/pytorch/test" \
+              --out-dir "${OUT_DIR}" \
+              --max-workers ${{ inputs.max_workers }} \
+              --timeout ${{ inputs.case_timeout }}
+          STATUS=$?
+          set -e
+          echo "test_status=${STATUS}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload shard coverage data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ inputs.category }}-${{ matrix.shard }}
+          path: ${{ github.workspace }}/cov-out/${{ inputs.category }}-${{ matrix.shard }}/
+          if-no-files-found: warn
+          retention-days: 14
