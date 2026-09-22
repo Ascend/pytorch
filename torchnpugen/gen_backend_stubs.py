@@ -1180,6 +1180,16 @@ def _nestedtensor_register_header() -> str:
         headers.append('#include "op_plugin/OpInterface.h"')
     return "\n".join(headers) + "\n"
 
+def _nestedtensor_extra_impls() -> List[str]:
+    extra_impls = []
+    extra_impls.extend([
+        'm.impl("unbind.int", TORCH_FN(at::native::NestedTensor_unbind));',
+        'm.impl("values", TORCH_FN(at::native::values_nested));',
+        'm.impl("_nested_tensor_size", TORCH_FN(at::native::_nested_tensor_size));',
+    ])
+    if not _is_aclnn_extension_codegen():
+        extra_impls.append('m.impl("to_padded_tensor", TORCH_FN(op_api::to_padded_tensor));')
+    return extra_impls
 
 def _gen_special_registration_body(
     backend_indices: BackendIndex,
@@ -1251,12 +1261,7 @@ SPECIAL_REGISTERS = {
         dispatch_key="NestedTensorPrivateUse1",
         filename="NestedTensorRegister",
         header=_nestedtensor_register_header(),
-        extra_impls=[
-            'm.impl("unbind.int", TORCH_FN(at::native::NestedTensor_unbind));',
-            'm.impl("values", TORCH_FN(at::native::values_nested));',
-            'm.impl("_nested_tensor_size", TORCH_FN(at::native::_nested_tensor_size));',
-            'm.impl("to_padded_tensor", TORCH_FN(op_api::to_padded_tensor));',
-        ],
+        extra_impls=_nestedtensor_extra_impls(),
     ),
 }
 
