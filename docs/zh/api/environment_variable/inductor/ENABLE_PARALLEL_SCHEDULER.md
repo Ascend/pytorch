@@ -28,8 +28,8 @@ export ENABLE_PARALLEL_SCHEDULER=true
 ## 支持的型号
 
 <!-- npu="910" id1 -->
-- <term>Atlas 训练系列产品</term>
+- <term>Atlas训练系列产品</term>
 <!-- end id1 -->
 <!-- npu="950" id2 -->
-- <term>Ascend 950DT</term>
+- <term>Ascend 950DT系列产品</term>
 <!-- end id2 -->

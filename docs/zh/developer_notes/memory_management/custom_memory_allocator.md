@@ -45,5 +45,5 @@ alloc\_fn\_name内存申请函数名必须与C/C++文件中函数名一致。
 free\_fn\_name内存释放函数名必须与C/C++文件中函数名一致。
 
 <!-- npu="950" id1 -->
-<term>Ascend 950DT</term>暂不支持自定义内存分配器特性。
+<term>Ascend 950DT系列产品</term>暂不支持自定义内存分配器特性。
 <!-- end id1 -->

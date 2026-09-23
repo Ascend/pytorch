@@ -33,14 +33,14 @@ export NPU_ASD_CONFIG=enable:true,with_checksum:true,cooldown:5,strikes_num:3,st
 ## 支持的型号
 
 <!-- npu="910" id1 -->
-- <term>Atlas 训练系列产品</term>
+- <term>Atlas训练系列产品</term>
 <!-- end id1 -->
 <!-- npu="910b" id2 -->
-- <term>Atlas A2 训练系列产品</term>
+- <term>Atlas A2训练系列产品</term>
 <!-- end id2 -->
 <!-- npu="A3" id3 -->
-- <term>Atlas A3 训练系列产品</term>
+- <term>Atlas A3训练系列产品</term>
 <!-- end id3 -->
 <!-- npu="950" id4 -->
-- <term>Ascend 950DT</term>
+- <term>Ascend 950DT系列产品</term>
 <!-- end id4 -->

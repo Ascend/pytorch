@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > <!-- npu="950" id1 -->
-> <term>Ascend 950DT</term>暂不支持编译优化（TorchNPU）。
+> <term>Ascend 950DT系列产品</term>暂不支持编译优化（TorchNPU）。
 > <!-- end id1 -->
 
 1. 依赖安装。
