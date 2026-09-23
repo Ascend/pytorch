@@ -21,6 +21,7 @@ on:
 env:
   OBS_ENDPOINT: obs.ap-southeast-1.myhuaweicloud.com
   OBS_COVERAGE_PREFIX: obs://pytorch-ci-cache/coverage/pytorch
+  OBS_SHARD_PREFIX: obs://pytorch-ci-cache/7day-cache/coverage-shards
 
 jobs:
   # Resolve pytorch commit: full SHA (for building) + short SHA (for tarball names)
@@ -196,6 +197,37 @@ jobs:
           echo "COVERAGE_RCFILE=${GITHUB_WORKSPACE}/merge.coveragerc" >> "$GITHUB_ENV"
           cat "${GITHUB_WORKSPACE}/merge.coveragerc"
 
+      # The per-case covdata travelled through OBS (see the shard workflow): pull
+      # each shard's tarball back into its cov-out dir, so the merge step sees the
+      # layout it expects (per-case files under <shard>/covdata/).
+      - name: Download shard covdata from OBS
+        run: |
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${{ env.OBS_ENDPOINT }}
+
+          for shard_dir in cov-out/*/; do
+            # artifact dir is coverage-<category>-<shard>, the OBS object is
+            # <category>-<shard>.tar.gz
+            shard_name="$(basename "${shard_dir}")"
+            object_name="${shard_name#coverage-}"
+            source_url="${{ env.OBS_SHARD_PREFIX }}/${{ github.run_id }}/${object_name}.tar.gz"
+            tarball="${shard_dir}covdata.tar.gz"
+            echo "=== ${shard_name} <- ${source_url} ==="
+            for attempt in 1 2; do
+              if obsutil cp "${source_url}" "${tarball}" -vlength; then
+                break
+              fi
+              echo "Download attempt ${attempt} failed"
+              sleep 10
+            done
+            if [ ! -f "${tarball}" ]; then
+              echo "ERROR: no covdata tarball for ${shard_name}" >&2
+              exit 1
+            fi
+            tar -xzf "${tarball}" -C "${shard_dir}"
+            rm -f "${tarball}"
+            echo "  per-case data file(s): $(find "${shard_dir}covdata" -name '*.coverage' -type f | wc -l)"
+          done
+
       # Combine every shard's per-case coverage data files and aggregate the
       # shard failure lists into torch@latest/.
       - name: Merge shard coverage
@@ -283,3 +315,19 @@ jobs:
           fi
 
           obsutil cp "${COV_DIR}" "${{ env.OBS_COVERAGE_PREFIX }}/latest/" -r -f -vlength
+
+      # The staging tarballs are only needed until the merge succeeded; a failed
+      # merge keeps them (and 7day-cache expires them anyway).
+      - name: Clean up shard covdata in OBS
+        if: always()
+        continue-on-error: true
+        run: |
+          COV_DIR="${GITHUB_WORKSPACE}/coverage-out/torch@latest"
+          if [ ! -f "${COV_DIR}/coverage.xml" ]; then
+            echo "WARNING: merge did not promote, keeping shard covdata in OBS for debugging"
+            exit 0
+          fi
+
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${{ env.OBS_ENDPOINT }}
+          obsutil rm -r -f "${{ env.OBS_SHARD_PREFIX }}/${{ github.run_id }}/"
+          echo "Shard covdata staging removed"

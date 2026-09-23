@@ -55,6 +55,7 @@ jobs:
       PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
       ASCEND_PROCESS_LOG_PATH: /root/ascend/log/plog
       ASCEND_GLOBAL_LOG_LEVEL: '3'
+      OBS_SHARD_PREFIX: obs://pytorch-ci-cache/7day-cache/coverage-shards
     strategy:
       fail-fast: false
       matrix:
@@ -177,11 +178,46 @@ jobs:
           set -e
           echo "test_status=${STATUS}" >> "$GITHUB_OUTPUT"
 
+      # Per-case coverage data costs ~53KB per case (SQLite page overhead), i.e.
+      # ~1GB per full run — far too heavy for the artifact service. Ship it as a
+      # single tarball per shard through OBS instead; the merge job pulls it back.
+      - name: Upload shard covdata to OBS
+        if: always()
+        run: |
+          SHARD_DIR="${GITHUB_WORKSPACE}/cov-out/${{ inputs.category }}-${{ matrix.shard }}"
+          if [ ! -d "${SHARD_DIR}/covdata" ]; then
+            echo "WARNING: no covdata dir in ${SHARD_DIR}, nothing to upload"
+            exit 0
+          fi
+
+          tar -czf "${SHARD_DIR}/covdata.tar.gz" -C "${SHARD_DIR}" covdata
+          echo "covdata tarball: $(ls -lh "${SHARD_DIR}/covdata.tar.gz" | awk '{print $5}')"
+
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
+
+          TARGET="${{ env.OBS_SHARD_PREFIX }}/${{ github.run_id }}/${{ inputs.category }}-${{ matrix.shard }}.tar.gz"
+          for attempt in 1 2; do
+            echo "=== Upload attempt ${attempt} ==="
+            if obsutil cp "${SHARD_DIR}/covdata.tar.gz" "${TARGET}" -f -vlength; then
+              echo "Shard covdata uploaded: ${TARGET}"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "ERROR: failed to upload ${TARGET}" >&2
+          exit 1
+
+      # Only the small per-shard reports/logs stay in the artifact: the merge job
+      # needs them for the case -> test file mapping and the failure markers.
       - name: Upload shard coverage data
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: coverage-${{ inputs.category }}-${{ matrix.shard }}
-          path: ${{ github.workspace }}/cov-out/${{ inputs.category }}-${{ matrix.shard }}/
+          path: |
+            ${{ github.workspace }}/cov-out/${{ inputs.category }}-${{ matrix.shard }}/reports
+            ${{ github.workspace }}/cov-out/${{ inputs.category }}-${{ matrix.shard }}/file_logs
+            ${{ github.workspace }}/cov-out/${{ inputs.category }}-${{ matrix.shard }}/failed_cases.json
+            ${{ github.workspace }}/cov-out/${{ inputs.category }}-${{ matrix.shard }}/run.log
           if-no-files-found: warn
           retention-days: 14
