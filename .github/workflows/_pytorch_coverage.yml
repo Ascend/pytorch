@@ -116,7 +116,7 @@ jobs:
     needs: [resolve, build, collect, coverage]
     if: ${{ always() && needs.coverage.result == 'success' }}
     runs-on: linux-aarch64-cpu-24
-    timeout-minutes: 30
+    timeout-minutes: 120
     defaults:
       run:
         shell: bash
