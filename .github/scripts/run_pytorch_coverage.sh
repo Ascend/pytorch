@@ -1,16 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# run_pytorch_coverage.sh - PyTorch source coverage collection for the sharded
-# coverage pipeline (resolve -> build -> collect -> coverage -> merge).
+# run_pytorch_coverage.sh - PyTorch source coverage for the sharded coverage
+# pipeline (resolve -> build -> collect -> coverage -> merge).
 #
-#   shard mode: run ONE collected case shard under coverage. It reuses
-#   run_npu_test_shard.py, so the case set, the per-case process isolation, the
-#   worker count and the NPU card binding match the PR trigger pipeline
-#   (receive-trigger.yml). The shard directory is already laid out exactly like
-#   the merged output, so merging is a union of the shard directories. Every
-#   group is named after its test file (the path the collected case list uses,
-#   e.g. test/nn/test_linear.py), so nothing is flattened:
+# Shard mode:
 #
 #     <shard>/                          one category shard, e.g. core-1
 #     ├── test/nn/test_linear.py/covdata/coverage   per test file data
@@ -23,10 +17,7 @@ set -euo pipefail
 #     │                                             and then deleted
 #     └── run.log, .coveragerc, cov-plugin/         runner internals
 #
-#   merge mode: union every shard's <test file>/covdata + logs into the fixed
-#   pytorch@latest/ directory, render coverage.xml and promote it atomically
-#   (staging first, atomic promotion last). The caller adds the source snapshot
-#   and publishes, so the final artifact is:
+# Merge mode (--merge) unions the shard dirs into the final artifact:
 #
 #     <artifact>/
 #     ├── convstub/pytorch/
@@ -48,13 +39,6 @@ set -euo pipefail
 # Env:
 #   OUT_ROOT    output root for merged artifacts (default <repo root>/outputs)
 #   PYTHON_BIN  python interpreter (default python)
-#
-# Coverage measurement: this script writes a .coveragerc (branch/source=torch)
-# and loads a pytest plugin (PYTEST_PLUGINS) in every worker process. The plugin
-# starts coverage for each case's pytest session and, at session end, writes
-# that case's own data file (covdata-raw/<nodeid>.coverage). Nothing depends on
-# atexit or a process-level startup hook, which matters because the shard
-# workers exit through os._exit(0).
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
@@ -98,8 +82,6 @@ fi
 out_root="${OUT_ROOT:-${repo_root}/outputs}"
 overall_status=0
 
-# Aggregate the per-case failures from the runner's own result file
-# (report_dir/shard_<prefix>-<shard>_cases.json), no junit parsing needed.
 write_failed_cases() {
   local report_dir="$1" out_file="$2"
   python3 - "$report_dir" "$out_file" <<'PYEOF'
@@ -129,9 +111,6 @@ print(f"  failed cases: {len(failed)} of {total} -> {out_file}")
 PYEOF
 }
 
-# Aggregate the runner's per-case logs (report_dir/cases_logs) into one log per
-# test file, named after that test file, so the artifact keeps the file-level
-# view: logs/<test file path>.log, e.g. logs/test/nn/test_linear.py.log.
 write_file_logs() {
   local report_dir="$1" out_dir="$2"
   python3 - "$report_dir" "$out_dir" <<'PYEOF'
@@ -189,10 +168,6 @@ print(f"  file logs: {len(groups)} -> {out_dir}")
 PYEOF
 }
 
-# Group the per-case data files by test file, writing the layout the merged
-# output needs (<test file path>/covdata/coverage) directly into the shard
-# directory. The shard tarball then carries hundreds of files instead of tens of
-# thousands, and the merge job only has to union them.
 group_case_covdata() {
   local report_dir="$1" raw_dir="$2" shard_dir="$3"
   python3 - "$report_dir" "$raw_dir" "$shard_dir" <<'PYEOF'
@@ -215,8 +190,6 @@ def case_data_name(nodeid: str) -> str:
 
 
 def case_data_file(nodeid: str):
-    # The plugin names the file after pytest's collected nodeid, which may or
-    # may not carry the leading "test/" that the collected case list uses.
     alternatives = [nodeid]
     alternatives.append(nodeid[5:] if nodeid.startswith("test/") else f"test/{nodeid}")
     for candidate in alternatives:
@@ -231,8 +204,7 @@ for results_file in sorted(report_dir.glob("shard_*_cases.json")):
     data = json.loads(results_file.read_text(encoding="utf-8"))
     cases.extend(data.get("cases", []))
 
-# Every group is named after its test file, exactly as the collected case list
-# spells it (e.g. test/nn/test_linear.py), so the artifact mirrors the test tree.
+# Every group is named after its test file, as the collected case list spells it
 groups = {}
 failed_files = set()
 claimed = set()
@@ -278,9 +250,6 @@ print(f"  grouped {written} case data file(s) into {len(groups)} test group(s)")
 PYEOF
 }
 
-# Shard mode: one collected case shard through run_npu_test_shard.py (same case
-# isolation, worker count and NPU card binding as the PR trigger pipeline) with
-# coverage started in every worker/pytest subprocess.
 run_case_shard() {
   if [ ! -f "${cases_json}" ]; then
     echo "ERROR: cases json not found: ${cases_json}" >&2
@@ -301,11 +270,6 @@ branch = True
 source = ${source_pkg}
 EOF
 
-  # Coverage is measured per case: the plugin starts coverage when a case's
-  # pytest session is configured and, at session end, writes that case's data to
-  # its own file (covdata-raw/<nodeid>.coverage) before the worker exits through
-  # os._exit(0) — so no atexit/process-level hook is needed. The per-case files
-  # are grouped by test file once the shard finished (see group_case_covdata).
   local plugin_dir="${shard_dir}/cov-plugin"
   mkdir -p "${plugin_dir}"
   cat > "${plugin_dir}/zz_cov_plugin.py" <<'PYEOF'
@@ -329,9 +293,6 @@ def pytest_configure(config):
 
 def pytest_collection_modifyitems(session, config, items):
     global _nodeid
-    # The runner's pytest command line puts flags before the nodeid
-    # (--color=no -ra --tb=short <nodeid> ...), so the collected item is the
-    # only reliable source of the case's own nodeid.
     if not _nodeid and items:
         _nodeid = items[0].nodeid
 
@@ -393,9 +354,6 @@ PYEOF
   overall_status="${status}"
 }
 
-# Merge mode: combine every shard's coverage data + failure list into the fixed
-# @latest dir (pytorch@latest/). Zero data files is a hard error so an empty run
-# can never overwrite the previous @latest / OBS copy.
 merge_coverage() {
   local staging="${out_root}/${out_name}@staging"
   local merged="${out_root}/${out_name}@latest"
@@ -412,10 +370,6 @@ merge_coverage() {
       continue
     fi
     echo "=== Merge input: ${src} ==="
-    # The shard already wrote the final layout (<test file>/covdata +
-    # logs/<test file>.log + logs/failed_cases.json), so the merge is a union of
-    # the shard dirs. A test file can span two shards (sharding slices cases, not
-    # files), so the per-file logs append; failed_cases.json is regenerated below.
     local log_file log_name target
     while IFS= read -r log_file; do
       log_name="${log_file#"${src}/logs/"}"
@@ -451,9 +405,6 @@ for shard in shards:
         continue
     sources.append(shard.name)
 
-    # Every shard already grouped its per-case data by test file and wrote the
-    # final layout (<test file>/covdata/{coverage,FAILED}), so here it is only a
-    # union across shards.
     for group_dir in sorted(shard.rglob("covdata")):
         if not group_dir.is_dir():
             continue
@@ -524,9 +475,6 @@ PYEOF
     no_data=1
   fi
 
-  # Two patterns: the installed path as recorded during collection
-  # (*/site-packages/torch/*) and the mapped source snapshot
-  # (*/convstub/pytorch/pytorch/*) when the [paths] map is in effect.
   local include_patterns="*/${source_pkg}/*,*/${out_name}/*"
   if [ "${no_data}" -eq 0 ]; then
     if ! COVERAGE_FILE="${staging}/.coverage" "${python_bin}" -m coverage xml \

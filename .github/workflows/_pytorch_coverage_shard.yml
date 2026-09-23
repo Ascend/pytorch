@@ -178,10 +178,6 @@ jobs:
           set -e
           echo "test_status=${STATUS}" >> "$GITHUB_OUTPUT"
 
-      # The whole shard output (per-case covdata + reports/logs) travels through
-      # OBS as one tarball: per-case data costs ~53KB per case (SQLite page
-      # overhead, ~1GB per run), which would choke the artifact service. The merge
-      # job pulls it back, so a run ends with a single merged artifact.
       - name: Upload shard data to OBS
         if: always()
         run: |
@@ -192,9 +188,6 @@ jobs:
             exit 0
           fi
 
-          # The per-case data is already grouped by test file, so the tarball is
-          # small. reports/cases_logs + junit_xmls are one file per case and are
-          # not needed by the merge (logs/ keeps the file-level view).
           tar -czf "${TARBALL}" -C "${SHARD_DIR}" \
             --exclude=./reports/cases_logs --exclude=./reports/junit_xmls .
           echo "shard tarball: $(ls -lh "${TARBALL}" | awk '{print $5}')"

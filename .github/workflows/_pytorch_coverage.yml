@@ -24,7 +24,6 @@ env:
   OBS_SHARD_PREFIX: obs://pytorch-ci-cache/7day-cache/coverage-shards
 
 jobs:
-  # Resolve pytorch commit: full SHA (for building) + short SHA (for tarball names)
   resolve:
     runs-on: ubuntu-latest
     outputs:
@@ -41,7 +40,6 @@ jobs:
           SHORT="${{ inputs.resolved_short }}"
           if [ -n "${SHORT}" ]; then
             echo "Using provided resolved_short: ${SHORT}"
-            # Expand the short SHA to full SHA (also validates it exists)
             FULL=$(curl -sf \
               -H "Authorization: Bearer ${GH_TOKEN}" \
               "https://api.github.com/repos/pytorch/pytorch/commits/${SHORT}" | jq -r '.sha')
@@ -50,7 +48,6 @@ jobs:
               exit 1
             fi
           else
-            # Resolve the latest commit of pytorch/pytorch (schedule or empty input)
             REF="${{ inputs.upstream_ref }}"
             REF="${REF:-main}"
             echo "Resolving latest commit of pytorch/pytorch@${REF} ..."
@@ -81,8 +78,6 @@ jobs:
       runner_label: 'linux-aarch64-cpu-24'
       max_jobs: '23'
 
-  # Collect the PR trigger case set (whitelist + hw_classification + skip list)
-  # and shard it per category, exactly like the PR trigger pipeline.
   collect:
     needs: [resolve, build]
     uses: ./.github/workflows/_test-collect.yml
@@ -97,8 +92,6 @@ jobs:
       runner_label: 'linux-aarch64-a3-800i-2-cn12-001'
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609140905-0ba22e2b
 
-  # One job per (category, shard): the job carries its own cases JSON and runs
-  # them under coverage, then uploads its coverage data for the merge job.
   coverage:
     needs: [resolve, build, collect]
     if: ${{ needs.collect.result == 'success' }}
@@ -132,8 +125,6 @@ jobs:
       options: --network host
     env:
       PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
-      # Everything that ends up inside the artifact lives here, so the artifact
-      # root is exactly {pytorch@latest/, convstub/}.
       COV_ARTIFACTS: ${{ github.workspace }}/coverage-out/artifacts
     steps:
       - name: Install coverage
@@ -146,10 +137,6 @@ jobs:
           path: ci-scripts
           ref: ci-test
 
-      # Source snapshot: the exact pytorch source the coverage data was measured
-      # from (the shard containers measured the installed torch wheel). It is
-      # unpacked as the artifact's sibling tree convstub/pytorch/{pytorch,test}
-      # and mapped through a [paths] section so coverage xml can read it.
       - name: Prepare sources for the merge
         if: always()
         continue-on-error: true
@@ -180,9 +167,6 @@ jobs:
           echo "=== convstub unpacked ==="
           du -sh "${COV_ARTIFACTS}/convstub/pytorch"/* || true
 
-          # ignore_errors: the snapshot can contain files newer Python versions
-          # parse (e.g. torch/testing/_internal/py312_intrinsics.py) while this
-          # container runs py3.10 — skip those instead of failing the report.
           printf '[report]\nignore_errors = True\n\n[paths]\ntorch =\n    %s\n    %s\n' \
             "${COV_ARTIFACTS}/convstub/pytorch/pytorch" \
             '/opt/conda/envs/py_3.10/lib/python3.10/site-packages/torch' \
@@ -190,9 +174,6 @@ jobs:
           echo "COVERAGE_RCFILE=${GITHUB_WORKSPACE}/merge.coveragerc" >> "$GITHUB_ENV"
           cat "${GITHUB_WORKSPACE}/merge.coveragerc"
 
-      # Every shard's data (per-case covdata + reports/logs) comes back from OBS:
-      # the shard list is the collect matrix, so no per-shard artifact is needed
-      # and the run keeps a single merged artifact.
       - name: Download shard data from OBS
         env:
           MATRIX_JSON: ${{ needs.collect.outputs.test_matrix }}
@@ -242,8 +223,6 @@ jobs:
             echo "  test group(s): $(find "${shard_dir}" -type f -path '*/covdata/coverage' | wc -l)"
           done
 
-      # Combine every shard's grouped coverage data + failure list into
-      # pytorch@latest/ (sibling of the convstub/ tree prepared above).
       - name: Merge shard coverage
         run: |
           SHARD_DIRS="$(cd cov-out && ls -d */ | sed 's:/$::' | sed 's:^:cov-out/:' | paste -sd, -)"
@@ -273,8 +252,6 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # Only a promoted pytorch@latest is packaged: without coverage.xml there is
-      # no artifact at all, so a failed merge cannot publish an inconsistent tree.
       - name: Upload coverage artifacts
         if: ${{ always() && hashFiles('coverage-out/artifacts/pytorch@latest/coverage.xml') != '' }}
         uses: actions/upload-artifact@v4
@@ -284,10 +261,6 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
-      # OBS housekeeping. Long-term retention: a single copy on the remote that each
-      # completed full run overwrites (a debug run with a category filter never
-      # touches it). The per-shard staging tarballs are deleted right after a
-      # successful merge; a failed merge keeps them (7day-cache expires them too).
       - name: Publish coverage to OBS and clean up staging
         if: always()
         continue-on-error: true
