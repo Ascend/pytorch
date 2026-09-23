@@ -10,6 +10,7 @@
 #include <vector>
 #include <ATen/Context.h>
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/NPUAffinityController.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
@@ -92,15 +93,28 @@ DeterministicLevel3VersionCheck CheckDeterministicLevel3Version()
         legacy_pkg_failures);
 
     std::vector<DeterministicVersionFailure> split_pkg_failures;
-    const bool split_pkg_supported = CheckVersionGroup(
-        {
-            {"ops_math", kLevel3MinOpsPkgVersion},
-            {"ops_nn", kLevel3MinOpsPkgVersion},
-            {"ops_transformer", kLevel3MinOpsPkgVersion},
-            {"ops_cv", kLevel3MinOpsPkgVersion},
-            {"ops_legacy", kLevel3MinOpsPkgVersion},
-        },
-        split_pkg_failures);
+    std::vector<std::pair<std::string, std::string>> split_pkg_requirements;
+    const bool is_legacy_soc =
+        c10_npu::GetSocVersion() <= c10_npu::SocVersion::Ascend910B ||
+        (c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend310B1 &&
+        c10_npu::GetSocVersion() <= c10_npu::SocVersion::Ascend310B4);
+    if (is_legacy_soc) {
+      split_pkg_requirements = {
+          {"ops_math", kLevel3MinOpsPkgVersion},
+          {"ops_nn", kLevel3MinOpsPkgVersion},
+          {"ops_cv", kLevel3MinOpsPkgVersion},
+          {"ops_legacy", kLevel3MinOpsPkgVersion},
+      };
+    } else {
+      split_pkg_requirements = {
+          {"ops_math", kLevel3MinOpsPkgVersion},
+          {"ops_nn", kLevel3MinOpsPkgVersion},
+          {"ops_transformer", kLevel3MinOpsPkgVersion},
+          {"ops_cv", kLevel3MinOpsPkgVersion},
+          {"ops_legacy", kLevel3MinOpsPkgVersion},
+      };
+    }
+    const bool split_pkg_supported = CheckVersionGroup(split_pkg_requirements, split_pkg_failures);
 
     check.supported = runtime_supported && (legacy_pkg_supported || split_pkg_supported);
     if (check.supported) {
