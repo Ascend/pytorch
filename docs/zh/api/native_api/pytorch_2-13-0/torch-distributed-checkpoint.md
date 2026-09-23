@@ -1042,6 +1042,34 @@
 
 </div>
 
+### <code><i>class</i></code> torch.distributed.checkpoint.metadata.TensorProperties
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.checkpoint.metadata.TensorProperties](https://pytorch.org/docs/2.13/distributed.checkpoint.html#torch.distributed.checkpoint.metadata.TensorProperties)
+
+**产品支持情况**：
+
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
+
+> <font size="3">create_from_tensor()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.checkpoint.metadata.TensorProperties.create_from_tensor](https://pytorch.org/docs/2.13/distributed.checkpoint.html#torch.distributed.checkpoint.metadata.TensorProperties)
+
+**产品支持情况**：
+
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
+
+</div>
+
+</div>
+
 ### <code><i>class</i></code> torch.distributed.checkpoint.LoadPlanner
 
 <div style="margin-left: 2em">
