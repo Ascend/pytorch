@@ -393,6 +393,9 @@ def _load_backend():
     backend = _get_backend()
     loader = _BACKEND_LOADERS.get(backend, _load_triton_backend)
     loader()
+    from .fx_passes.overlap_scheduling import patch_overlap_scheduling
+
+    patch_overlap_scheduling()
     # Invalidate cached decompositions after loading the selected backend.
     from torch._inductor.decomposition import fast_random_decomps
     fast_random_decomps.cache_clear()
