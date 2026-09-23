@@ -5,175 +5,136 @@ Warranty Disclaimer
 THE OPEN SOURCE SOFTWARE IN THIS PRODUCT IS DISTRIBUTED IN THE HOPE THAT IT WILL BE USEFUL, BUT WITHOUT ANY WARRANTY, WITHOUT EVEN THE IMPLIED WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE. SEE THE APPLICABLE LICENSES FOR MORE DETAILS.
 
 Copyright Notice and License Texts
-Software: pytorch v2.6.0
+Software: pytorch v2.14.0
 Copyright notice:
-Copyright (c) Advanced Micro Devices, Inc.
-
 Copyright (c) Microsoft Corporation
-
-Copyright (c) Bjorn Fahller
-
-Copyright (c) 2001-2014 Python Software Foundation All Rights Reserved
-
 Copyright (c) 2011-2013 NYU
-
-Copyright (c) 1995-2011 by Fredrik Lundh
-
-Copyright (c) Edward Z. Yang ezyang@mit.edu
-
+Copyright (c) Meta Platforms, Inc. and affiliates Context Parallel
 Copyright (c) 2014- Facebook, Inc
-
 Copyright (c) 2017 The Android Open Source Project
-
+Copyright (c) 2025-2026, Tri Dao
 Copyright Python Software Foundation
-
-Copyright (c) 2012 Massachusetts Institute of Technology
-
 Copyright (c) 2018 Alex Rogozhnikov
-
 Copyright (c) 2007-2009 Scientific Computing and Imaging Institute, University of Utah
-
-Copyright (c) 2006 Idiap Research Institute
-
-Copyright (c) 2011-2021, NVIDIA CORPORATION. All rights reserved
-
-Copyright (c) 2015 Yangqing Jia All rights reserved
-
+Copyright (c) 2025 - 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved
+Copyright (c) 2021 The Android Open Source Project
+Copyright (c) 2001 Python Software Foundation All Rights Reserved
 Copyright (c) Meta Platforms, Inc.
-
-Copyright 2023-present Facebook. All Rights Reserved
-
 Copyright (c) 2022 Apple Inc.
-
 Copyright (c) 2005-2017, NumPy Developers. All rights reserved
-
 Copyright (c) 1997 - 2002, Makoto Matsumoto and Takuji Nishimura, All rights reserved
-
 Copyright (c) 2014, The Regents
-
+Copyright (c) 2021, 2023-2025 Arm Limited
 Copyright (c) 2005-2010 ActiveState Software Inc.
-
-Copyright Malte Skarupke 2017
-
-Copyright (c) 2006-2010 NEC Laboratories America (Ronan Collobert, Leon Bottou, Iain Melvin, Jason Weston)
-
-Copyright 2005, Google Inc. All rights reserved
-
-Copyright (c) Meta Platforms, Inc. and affiliates
-
-Copyright (c) 2023, Advanced Micro Devices, Inc.
-
+Copyright (c) 2025, Tri Dao. Persistent
 Copyright (c) 2022, Tri Dao
-
-Copyright (c) 2005-2023 NVIDIA Corporation Built
-
+Copyright (c) 2017, The Android Open Source Project
 Copyright (c) 2001-2002 Enthought, Inc. 2003-2019, SciPy Developers. All rights reserved
-
+Copyright (c) 2025, Wentao Guo, Tri Dao
 Copyright 2008 Google Inc. All rights reserved
-
-Copyright (c) 2021, 2023-2024 Arm Limited
-
 Copyright (c) 2003-2017 Josef Weidendorfer. All rights reserved
-
-Copyright (c) 1997-2011 by Secret Labs AB
-
-Copyright (c) 2016- Facebook, Inc
-
 Copyright (c) 2014 Matthew Rocklin
-
-Copyright (c) 2005-2022 NVIDIA Corporation Built
-
-Copyright (c) Facebook, Inc.
-
-Copyright 2019-2020 Kakao Brain
-
-Copyright (c) 2000-2017 Julian Seward. All rights reserved
-
-Copyright (c) 2005-2020 Rich Felker
-
+Copyright (c) 2025-2026, QuACK team
 Copyright (c) 2008 - 2009 NVIDIA Corporation. All rights reserved
-
 Copyright 2010-2014 Rich Geldreich and Tenacious Software LLC
-
 Copyright (c) 2016 Facebook Inc.
-
-Copyright (c) 2001-2004 Idiap Research Institute (Ronan Collobert, Samy Bengio, Johnny Mariethoz)
-
 Copyright 2010-2014 Rich Geldreich and Tenacious Software LLC All Rights Reserved
-
-Copyright (c) 2012-2014 Deepmind Technologies
-
-Copyright (c) 2012 Giovanni Garberoglio Interdisciplinary Laboratory
-
-Copyright (c) 2024, Tri Dao
-
-Copyright (c) Donald Stufft and individual contributors. All rights reserved
-
-Copyright (c) 2018, Steven Moshier All rights reserved
-
+Copyright (c) Meta Platforms, Inc. and affiliates Backward
+Copyright (c) 2025, Wentao Guo, Ted Zadouri, Tri Dao. Persistent
 Copyright (c) 2015 Google Inc. All rights reserved
-
-Copyright (c) 2015-2016 Advanced Micro Devices, Inc. All rights reserved
-
 Copyright (c) 2010-2022 by Alex Clark and contributors
-
 Copyright 2015 Google Inc. All Rights Reserved
-
 Copyright (c) 2017 - 2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved
-
-Copyright (c) 2020-2023, NVIDIA CORPORATION. All rights reserved
-
-Copyright (c) 2016 manylinux
-
-Copyright (c) 2017 - 2022 NVIDIA CORPORATION & AFFILIATES. All rights reserved
-
 Copyright (c) 2011-2012 NEC Laboratories America (Koray Kavukcuoglu)
-
 Copyright 2013-2014 RAD Game
-
 Copyright (c) 2011-2019 Stephan Brumme. All rights reserved
-
 Copyright (c) 2018 MathInf GmbH, Thomas Viehmann
-
-Copyright (c) 2013 Eddy Petrisor
-
-Copyright (c) 2023-2024 The ggml
-
 Copyright (c) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020 Python Software Foundation All Rights Reserved
-
+Copyright (c) 2015 Jeff Preshing
 Copyright 2004-present Facebook. All Rights Reserved
-
-Copyright (c) 2010 ActiveState Software Inc.
-
-Copyright (c) 2006 The Android Open Source Project
-
-(c) Meta Platforms, Inc. and affiliates. All rights reserved
-
-Copyright (c) 2023 Apple Inc.
-
 Copyright (c) Microsoft Corporation. All rights reserved
-
 Copyright 2015 The TensorFlow Authors. All Rights Reserved
-
-Copyright (c) 2023, Tri Dao
-
-Copyright 2022 Cruise LLC
-
-Copyright (c) Meta Platforms, Inc. and affiliates. All rights reserved
-
-Copyright (c) 2022 Cruise LLC. All rights reserved
-
-Copyright (c) 2016-present, Facebook, Inc.
-
-(c) Copyright John Maddock 2006
-
+Copyright (c) 2025, Wentao Guo, Ted Zadouri, Tri Dao
+Copyright 2025 The syntaqlite Authors. All rights reserved
+Copyright (c) 2026 The Android Open Source Project
+Copyright (c) 2020 The Android Open Source Project
+Copyright (c) 2025, Tri Dao. Shared
 Copyright (c) 2011-2014 Idiap Research Institute
-
-Copyright (c) 2014 Indiana University All rights reserved
-
-copyright 2019 The TensorFlow Authors
-
 Copyright (c) 2016-present, Facebook Inc. All rights reserved
+Copyright (c) Advanced Micro Devices, Inc.
+Copyright (c) 2025-2026, Vijay Thakkar, Tri Dao. Rounding
+Copyright (c) Bjorn Fahller
+Copyright (c) 2001-2014 Python Software Foundation All Rights Reserved
+Copyright (c) 1995-2011 by Fredrik Lundh
+Copyright (c) Edward Z. Yang <ezyang@mit.edu>
+Copyright (c) 2012 Massachusetts Institute of Technology
+Copyright (c) 2006 Idiap Research Institute
+Copyright (c) 2011-2021, NVIDIA CORPORATION. All rights reserved
+Copyright (c) 2013-2016, Cameron Desrochers. All rights reserved
+Copyright 2007 Google, Inc. All Rights Reserved
+Copyright (c) 2015 Yangqing Jia All rights reserved
+Copyright (c) 2025, Tri Dao. Composable
+Copyright (c) Meta Platforms, Inc. and affiliates Schema-discovered
+Copyright (c) 2018-2025, Advanced Micro Devices, Inc. All rights reserved
+Copyright 2023-present Facebook. All Rights Reserved
+Copyright (c) 2025, Tri Dao
+Copyright (c) 2024 The Android Open Source Project
+Copyright (c) 2025, Tri Dao. Epilogue
+Copyright Malte Skarupke 2017
+Copyright (c) 2006-2010 NEC Laboratories America (Ronan Collobert, Leon Bottou, Iain Melvin, Jason Weston)
+Copyright (c) 2019 The Android Open Source Project
+Copyright 2005 Robert
+Copyright (c) Meta Platforms, Inc. and affiliates
+Copyright (c) 2023, Advanced Micro Devices, Inc.
+Copyright (c) 2005-2023 NVIDIA Corporation Built
+Copyright (c) 2025-2026, Tri Dao. Persistent
+Copyright (c) 1997-2011 by Secret Labs AB
+Copyright (c) 2026, Tri Dao
+Copyright (c) 2016- Facebook, Inc
+Copyright (c) 2026, Tri Dao. Tooling
+Copyright (c) 2005-2022 NVIDIA Corporation Built
+Copyright (c) Facebook, Inc.
+Copyright 2019-2020 Kakao Brain
+Copyright (c) 2025 The Android Open Source Project
+Copyright (c) 2000-2017 Julian Seward. All rights reserved
+Copyright (c) 2005-2020 Rich Felker
+Copyright (c) 2015-2022, conda-forge contributors All rights reserved
+Copyright (c) 2025, Tri Dao. ComposableEpiMixin
+Copyright (c) 2001-2004 Idiap Research Institute (Ronan Collobert, Samy Bengio, Johnny Mariethoz)
+Copyright (c) 2015-2023 Norbert Juffa All rights reserved
+Copyright (c) 2012-2014 Deepmind Technologies
+Copyright (c) 2024, Tri Dao
+Copyright (c) 2012 Giovanni Garberoglio Interdisciplinary Laboratory
+Copyright (c) Donald Stufft and individual contributors. All rights reserved
+Copyright (c) 2018, Steven Moshier All rights reserved
+Copyright (c) 2022 The Android Open Source Project
+Copyright (c) 2015-2016 Advanced Micro Devices, Inc. All rights reserved
+Copyright (c) 2020-2023, NVIDIA CORPORATION. All rights reserved
+Copyright (c) 2024 Tri Dao. All rights reserved
+Copyright 2015 The Chromium Authors
+Copyright (c) 2016 manylinux
+Copyright (c) 2017 - 2022 NVIDIA CORPORATION & AFFILIATES. All rights reserved
+Copyright (c) 2013 Eddy Petrisor
+Copyright (c) 2023-2024 The ggml
+Copyright 2002 Niels Provos <provos@citi.umich.edu> All rights reserved
+Copyright (c) 2010 ActiveState Software Inc.
+Copyright (c) 2006 The Android Open Source Project
+Copyright (c) 2023 The Android Open Source Project
+Copyright (c) 2023 Apple Inc.
+Copyright (c) 2026, Tri Dao. PyTorch-friendly
+Copyright (c) 2024 Apple Inc.
+Copyright (c) 2025-2026, Tri Dao. Intra-kernel trace
+Copyright 2005 Robert Kern (robert.kern@gmail.com)
+Copyright 2022 Cruise LLC
+Copyright (c) 2013-2020, Cameron Desrochers. All rights reserved
+Copyright (c) 2023 - 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved
+Copyright (c) Meta Platforms, Inc. and affiliates. All rights reserved
+Copyright (c) 2022 Cruise LLC. All rights reserved
+Copyright (c) 2016-present, Facebook, Inc.
+Copyright (c) 2018 The Android Open Source Project
+Copyright (c) 2003-2019 University of Illinois at Urbana-Champaign. All rights reserved
+Copyright (c) 2014 Indiana University All rights reserved
+copyright 2019 The TensorFlow Authors
 
 License: BSD 3-Clause License
 Copyright (c) ,
