@@ -4,6 +4,6 @@
 
 - **[Building libtorch\_npu](building_libtorch_npu.md)**  
 
-- **[Installing the Apex Module](https://gitcode.com/Ascend/apex/tree/master/docs/installing_apex.md)**  
+- **[Installing the Apex Module](https://gitcode.com/Ascend/apex/blob/master/docs/en/installing_apex.md)**  
 
 - **[Installing torchvision](installing_torchvision.md)**  
