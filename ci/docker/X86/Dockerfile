@@ -50,16 +50,19 @@ RUN yum install -y vim-common\
 RUN pip3.9 install pyyaml  \
     && pip3.9 install setuptools  \
     && pip3.9 install torch==2.7.1+cpu --index-url https://download.pytorch.org/whl/cpu \
-    && pip3.9 install numpy==1.21.3
+    && pip3.9 install numpy==1.21.3 \
+    && pip3.9 install "nanobind>=2.9"
 
 RUN pip3.10 install pyyaml  \
     && pip3.10 install setuptools  \
     && pip3.10 install torch==2.7.1+cpu --index-url https://download.pytorch.org/whl/cpu \
-    && pip3.10 install numpy==1.21.3
+    && pip3.10 install numpy==1.21.3 \
+    && pip3.10 install "nanobind>=2.9"
 
 RUN pip3.11 install pyyaml  \
     && pip3.11 install setuptools  \
     && pip3.11 install torch==2.7.1+cpu --index-url https://download.pytorch.org/whl/cpu \
-    && pip3.11 install numpy==1.23.2
+    && pip3.11 install numpy==1.23.2 \
+    && pip3.11 install "nanobind>=2.9"
 
 WORKDIR /home

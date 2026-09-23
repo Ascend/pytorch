@@ -39,6 +39,11 @@ function parse_script_args() {
             args_num=$((args_num-1))
             shift
             ;;
+        --disable_fxrt)
+            export DISABLE_INSTALL_FXRT=TRUE
+            args_num=$((args_num-1))
+            shift
+            ;;
         --disable_rpc)
             export DISABLE_RPC_FRAMEWORK=TRUE
             args_num=$((args_num-1))

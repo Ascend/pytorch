@@ -18,6 +18,7 @@ TorchNPU新增的模块不支持通过原生`TORCH_LOGS`进行设置，如需设
 | env | 环境变量 | 打印调用环境变量日志 |
 | acl | acl | 打印ACL相关日志 |
 | aclgraph | aclgraph | 打印aclgraph相关日志 |
+| fxrt | FXRT图运行时 | 打印FXRT相关日志，日志内容带`[FXRT]`前缀 |
 
 TorchNPU对原生的logging打印功能进行了增强，支持C++侧的日志打印功能。
 

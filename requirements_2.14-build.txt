@@ -7,6 +7,7 @@ wheel>=0.45.1
 cmake>=3.18.4.post1
 numpy>=1.26.4
 ninja
+nanobind>=2.9
 auditwheel>=5.4.0
 
 torch==2.14.0+cpu

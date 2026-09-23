@@ -27,6 +27,7 @@ fro
 froms
 GemmKernelBase
 Halfssort
+hax
 hsa
 indexT
 inH

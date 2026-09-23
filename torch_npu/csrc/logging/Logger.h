@@ -5,6 +5,8 @@
 #include <cstdarg>
 #include <cstdint>
 
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
+
 namespace npu_logging {
 
 enum class LoggingLevel { DEBUG = 10, INFO = 20, WARNING = 30, ERROR = 40, CRITICAL = 50 };
@@ -12,7 +14,7 @@ enum class LoggingLevel { DEBUG = 10, INFO = 20, WARNING = 30, ERROR = 40, CRITI
 // logging level count
 static const int LOGGING_LEVEL_COUNT = 5;
 
-class Logger {
+class TORCH_NPU_API Logger {
  public:
   Logger() = default;
   Logger(const std::string& name) : name_(name) {};

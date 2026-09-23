@@ -39,6 +39,9 @@ BUILD_PERMISSION = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | s
 DISABLE_TORCHAIR = "FALSE"
 if os.environ.get("DISABLE_INSTALL_TORCHAIR") is not None:
     DISABLE_TORCHAIR = os.environ.get("DISABLE_INSTALL_TORCHAIR")
+DISABLE_FXRT = "FALSE"
+if os.environ.get("DISABLE_INSTALL_FXRT") is not None:
+    DISABLE_FXRT = os.environ.get("DISABLE_INSTALL_FXRT")
 DISABLE_RPC = "FALSE"
 if os.environ.get("DISABLE_RPC_FRAMEWORK") is not None:
     DISABLE_RPC = os.environ.get("DISABLE_RPC_FRAMEWORK")
@@ -234,6 +237,12 @@ def check_torchair_valid(base_dir):
         os.path.isdir(torchair_path) and len(os.listdir(torchair_path)) != 0
     )
 
+def check_fxrt_valid(base_dir):
+    fxrt_path = os.path.join(base_dir, 'fxrt/fxrt')
+    return os.path.exists(fxrt_path) and (
+        os.path.isdir(fxrt_path) and len(os.listdir(fxrt_path)) != 0
+    )
+
 
 def check_tensorpipe_valid(base_dir):
     tensorpipe_path = os.path.join(base_dir, 'third_party/Tensorpipe/tensorpipe')
@@ -365,6 +374,13 @@ class CPPLibBuild(build_clib, object):
                 torchair_install_prefix = os.path.join(build_type_dir, "packages/torch_npu/dynamo/torchair")
                 cmake_args.append(f'-DTORCHAIR_INSTALL_PREFIX={torchair_install_prefix}')
                 cmake_args.append(f'-DTORCHAIR_TARGET_PYTHON={sys.executable}')
+
+        if DISABLE_FXRT == 'FALSE':
+            if check_fxrt_valid(BASE_DIR):
+                cmake_args.append('-DBUILD_FXRT=on')
+                fxrt_install_prefix = os.path.join(build_type_dir, "packages/torch_npu/fxrt")
+                cmake_args.append(f'-DFXRT_INSTALL_DST={fxrt_install_prefix}')
+                cmake_args.append(f'-DFXRT_TARGET_PYTHON={sys.executable}')
 
         if DISABLE_RPC == 'FALSE':
             if check_tensorpipe_valid(BASE_DIR):
@@ -790,6 +806,7 @@ setup(
     package_data={
         'torch_npu': [
             '*.so', 'lib/*.so*',
+            'fxrt/*.so', 'fxrt/lib/*.so*',
         ],
         'torchnpugen': [
             '*.py', '**/*.py',

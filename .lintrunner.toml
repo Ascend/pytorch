@@ -54,6 +54,8 @@ include_patterns = [
     'torch_npu/nativert/**/*.h',
     'test/cpp/**/*.h',
     'test/cpp/**/*.cpp',
+    'fxrt/**/*.h',
+    'fxrt/**/*.cpp',
 ]
 exclude_patterns = [
     '**/fb/**',

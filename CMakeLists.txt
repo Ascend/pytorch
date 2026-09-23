@@ -394,6 +394,14 @@ if (NOT DEFINED BUILD_LIBTORCH)
   target_link_libraries(${PLUGIN_NAME} PUBLIC npu_profiler)
 endif()
 
+# fxrt: built as a top-level subdirectory.
+if (DEFINED BUILD_FXRT)
+  set(ENABLE_ASCEND ON)
+  set(ENABLE_CPU ON)
+  set(ENABLE_TORCH_FRONT ON)
+  add_subdirectory(${PROJECT_SOURCE_DIR}/fxrt/fxrt)
+endif()
+
 if (DEFINED BUILD_GTEST)
   enable_testing()
   SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/gtest)

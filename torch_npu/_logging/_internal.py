@@ -43,6 +43,7 @@ def _add_logging_module():
     torch._logging._internal.register_log("acl", "torch_npu.acl")
     torch._logging._internal.register_log("aclgraph", "torch_npu.npugraph")
     torch._logging._internal.register_log("npugraph", "torch_npu.npugraph")
+    torch._logging._internal.register_log("fxrt", "fxrt")
 
 
 def _update_log_state_from_env():

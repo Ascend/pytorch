@@ -190,6 +190,7 @@
             pip install pyyaml
             pip install setuptools
             pip install auditwheel
+            pip install "nanobind>=2.9"
             ```
 
             如果使用非root用户安装，需要在命令后加`--user`，例如：**pip3 install pyyaml --user**。
