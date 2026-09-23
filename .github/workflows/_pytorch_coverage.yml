@@ -123,7 +123,7 @@ jobs:
     needs: [resolve, build, collect, coverage]
     if: ${{ always() && needs.coverage.result == 'success' }}
     runs-on: linux-aarch64-cpu-24
-    timeout-minutes: 120
+    timeout-minutes: 30
     defaults:
       run:
         shell: bash
@@ -132,15 +132,12 @@ jobs:
       options: --network host
     env:
       PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
+      # Everything that ends up inside the artifact lives here, so the artifact
+      # root is exactly {pytorch@latest/, convstub/}.
+      COV_ARTIFACTS: ${{ github.workspace }}/coverage-out/artifacts
     steps:
-      - name: Download shard coverage data
-        uses: actions/download-artifact@v4
-        with:
-          pattern: coverage-*
-          path: cov-out
-
       - name: Install coverage
-        run: pip install coverage pyyaml
+        run: pip install coverage
 
       - name: Checkout coverage script
         uses: actions/checkout@v6
@@ -150,10 +147,10 @@ jobs:
           ref: ci-test
 
       # Source snapshot: the exact pytorch source the coverage data was measured
-      # from. The shard containers measured the installed torch wheel, so the
-      # merge step renders coverage.xml through a [paths] map pointing at this
-      # snapshot (the same tarball is moved into the artifact afterwards).
-      - name: Download source snapshot
+      # from (the shard containers measured the installed torch wheel). It is
+      # unpacked as the artifact's sibling tree convstub/pytorch/{pytorch,test}
+      # and mapped through a [paths] section so coverage xml can read it.
+      - name: Prepare sources for the merge
         if: always()
         continue-on-error: true
         run: |
@@ -164,53 +161,70 @@ jobs:
           for attempt in 1 2; do
             echo "=== Download attempt ${attempt} ==="
             if obsutil cp "obs://pytorch-ci-cache/7day-cache/${TARBALL}" "${GITHUB_WORKSPACE}/source/${TARBALL}" -vlength; then
-              echo "Source snapshot saved: ${GITHUB_WORKSPACE}/source/${TARBALL}"
-              exit 0
+              break
             fi
             sleep 10
           done
-          echo "WARNING: ${TARBALL} not available in OBS cache, coverage.xml stays without mapped sources" >&2
-
-      # Unpack the snapshot into the conventional convstub layout
-      # (convstub/pytorch/{torch,test}) and tell coverage where the installed
-      # torch sources really are, so coverage xml can read them.
-      - name: Prepare sources for the merge
-        if: always()
-        continue-on-error: true
-        run: |
-          TARBALL="pytorch-source-${{ needs.resolve.outputs.short }}.tar.gz"
           if [ ! -f "${GITHUB_WORKSPACE}/source/${TARBALL}" ]; then
-            echo "WARNING: no source snapshot tarball, merging without a source map"
+            echo "WARNING: ${TARBALL} not available in OBS cache, merging without a source map" >&2
             exit 0
           fi
+          echo "Source snapshot saved: ${GITHUB_WORKSPACE}/source/${TARBALL}"
 
-          mkdir -p "${GITHUB_WORKSPACE}/convstub/pytorch"
-          tar -xzf "${GITHUB_WORKSPACE}/source/${TARBALL}" -C "${GITHUB_WORKSPACE}/convstub/pytorch" \
+          rm -rf "${COV_ARTIFACTS}/convstub"
+          mkdir -p "${COV_ARTIFACTS}/convstub/pytorch"
+          tar -xzf "${GITHUB_WORKSPACE}/source/${TARBALL}" -C "${COV_ARTIFACTS}/convstub/pytorch" \
             --strip-components=1 pytorch/torch pytorch/test
+          mv "${COV_ARTIFACTS}/convstub/pytorch/torch" "${COV_ARTIFACTS}/convstub/pytorch/pytorch"
+          rm -f "${GITHUB_WORKSPACE}/source/${TARBALL}"
           echo "=== convstub unpacked ==="
-          du -sh "${GITHUB_WORKSPACE}/convstub/pytorch"/* || true
+          du -sh "${COV_ARTIFACTS}/convstub/pytorch"/* || true
 
-          printf '[paths]\ntorch =\n    %s\n    %s\n' \
-            "${GITHUB_WORKSPACE}/convstub/pytorch/torch" \
+          # ignore_errors: the snapshot can contain files newer Python versions
+          # parse (e.g. torch/testing/_internal/py312_intrinsics.py) while this
+          # container runs py3.10 — skip those instead of failing the report.
+          printf '[report]\nignore_errors = True\n\n[paths]\ntorch =\n    %s\n    %s\n' \
+            "${COV_ARTIFACTS}/convstub/pytorch/pytorch" \
             '/opt/conda/envs/py_3.10/lib/python3.10/site-packages/torch' \
             > "${GITHUB_WORKSPACE}/merge.coveragerc"
           echo "COVERAGE_RCFILE=${GITHUB_WORKSPACE}/merge.coveragerc" >> "$GITHUB_ENV"
           cat "${GITHUB_WORKSPACE}/merge.coveragerc"
 
-      # The per-case covdata travelled through OBS (see the shard workflow): pull
-      # each shard's tarball back into its cov-out dir, so the merge step sees the
-      # layout it expects (per-case files under <shard>/covdata/).
-      - name: Download shard covdata from OBS
+      # Every shard's data (per-case covdata + reports/logs) comes back from OBS:
+      # the shard list is the collect matrix, so no per-shard artifact is needed
+      # and the run keeps a single merged artifact.
+      - name: Download shard data from OBS
+        env:
+          MATRIX_JSON: ${{ needs.collect.outputs.test_matrix }}
+          CATEGORIES: ${{ inputs.categories }}
         run: |
           obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${{ env.OBS_ENDPOINT }}
 
-          for shard_dir in cov-out/*/; do
-            # artifact dir is coverage-<category>-<shard>, the OBS object is
-            # <category>-<shard>.tar.gz
-            shard_name="$(basename "${shard_dir}")"
-            object_name="${shard_name#coverage-}"
-            source_url="${{ env.OBS_SHARD_PREFIX }}/${{ github.run_id }}/${object_name}.tar.gz"
-            tarball="${shard_dir}covdata.tar.gz"
+          SHARDS="$(python3 - <<'PYEOF'
+          import json
+          import os
+
+          keep = {c.strip() for c in os.environ.get("CATEGORIES", "").split(",") if c.strip()}
+          shards = []
+          for entry in json.loads(os.environ.get("MATRIX_JSON") or "[]"):
+              if keep and entry["category"] not in keep:
+                  continue
+              for shard in json.loads(entry["matrix_json"]):
+                  shards.append(f"{entry['category']}-{shard}")
+          print(" ".join(shards))
+          PYEOF
+          )"
+          if [ -z "${SHARDS}" ]; then
+            echo "ERROR: no shards selected (matrix='${MATRIX_JSON}' categories='${CATEGORIES}')" >&2
+            exit 1
+          fi
+          echo "=== Shards from OBS: ${SHARDS} ==="
+
+          for shard_name in ${SHARDS}; do
+            shard_dir="cov-out/${shard_name}"
+            source_url="${{ env.OBS_SHARD_PREFIX }}/${{ github.run_id }}/${shard_name}.tar.gz"
+            tarball="${shard_dir}.tar.gz"
+            mkdir -p "${shard_dir}"
             echo "=== ${shard_name} <- ${source_url} ==="
             for attempt in 1 2; do
               if obsutil cp "${source_url}" "${tarball}" -vlength; then
@@ -220,60 +234,30 @@ jobs:
               sleep 10
             done
             if [ ! -f "${tarball}" ]; then
-              echo "ERROR: no covdata tarball for ${shard_name}" >&2
+              echo "ERROR: no shard tarball for ${shard_name}" >&2
               exit 1
             fi
             tar -xzf "${tarball}" -C "${shard_dir}"
             rm -f "${tarball}"
-            echo "  per-case data file(s): $(find "${shard_dir}covdata" -name '*.coverage' -type f | wc -l)"
+            echo "  test group(s): $(find "${shard_dir}" -type f -path '*/covdata/coverage' | wc -l)"
           done
 
-      # Combine every shard's per-case coverage data files and aggregate the
-      # shard failure lists into torch@latest/.
+      # Combine every shard's grouped coverage data + failure list into
+      # pytorch@latest/ (sibling of the convstub/ tree prepared above).
       - name: Merge shard coverage
         run: |
           SHARD_DIRS="$(cd cov-out && ls -d */ | sed 's:/$::' | sed 's:^:cov-out/:' | paste -sd, -)"
           echo "=== Merging shards: ${SHARD_DIRS} ==="
 
-          OUT_ROOT="${GITHUB_WORKSPACE}/coverage-out" \
+          OUT_ROOT="${COV_ARTIFACTS}" \
           PYTHON_BIN=python3 \
             bash "${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/run_pytorch_coverage.sh" \
               --merge "${SHARD_DIRS}"
 
-      # Keep the exact case set used by this run inside the downloadable artifact.
-      - name: Download cases shards for the report bundle
-        uses: actions/download-artifact@v4
-        with:
-          name: cases-shards
-          path: coverage-out/torch@latest/logs/cases-shards
-
-      # Only a promoted torch@latest gets the sources: a failed merge leaves the
-      # previous run's artifact untouched.
-      - name: Add source snapshot to the artifact
-        if: always()
-        run: |
-          COV_DIR="${GITHUB_WORKSPACE}/coverage-out/torch@latest"
-          if [ ! -f "${COV_DIR}/coverage.xml" ]; then
-            echo "WARNING: no merged coverage.xml, previous artifact left untouched"
-            exit 0
-          fi
-
-          if [ -d "${GITHUB_WORKSPACE}/convstub/pytorch" ]; then
-            rm -rf "${COV_DIR}/convstub"
-            mkdir -p "${COV_DIR}/convstub"
-            mv "${GITHUB_WORKSPACE}/convstub/pytorch" "${COV_DIR}/convstub/pytorch"
-          fi
-          TARBALL="pytorch-source-${{ needs.resolve.outputs.short }}.tar.gz"
-          if [ -f "${GITHUB_WORKSPACE}/source/${TARBALL}" ]; then
-            mkdir -p "${COV_DIR}/source"
-            mv "${GITHUB_WORKSPACE}/source/${TARBALL}" "${COV_DIR}/source/${TARBALL}"
-          fi
-          du -sh "${COV_DIR}/convstub/pytorch"/* || true
-
       - name: Write job summary
         if: always()
         run: |
-          COV_DIR="${GITHUB_WORKSPACE}/coverage-out/torch@latest"
+          COV_DIR="${COV_ARTIFACTS}/pytorch@latest"
           [ -d "${COV_DIR}" ] || COV_DIR=""
           {
             echo "## PyTorch Coverage (${{ needs.resolve.outputs.short }})"
@@ -289,45 +273,39 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # Only a promoted pytorch@latest is packaged: without coverage.xml there is
+      # no artifact at all, so a failed merge cannot publish an inconsistent tree.
       - name: Upload coverage artifacts
-        if: always()
+        if: ${{ always() && hashFiles('coverage-out/artifacts/pytorch@latest/coverage.xml') != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: pytorch-coverage-${{ needs.resolve.outputs.short }}
-          path: coverage-out/torch@latest/
+          path: coverage-out/artifacts/
           retention-days: 14
           if-no-files-found: warn
 
-      # Full covdata to OBS for long-term retention: single copy on the remote,
-      # each completed run overwrites it. A crashed run never reaches this step,
-      # and a partial (debug) run is never uploaded — the remote keeps the last
-      # complete run's data.
-      - name: Upload full covdata to OBS
-        if: ${{ always() && inputs.categories == '' }}
-        continue-on-error: true
-        run: |
-          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${{ env.OBS_ENDPOINT }}
-
-          COV_DIR="${GITHUB_WORKSPACE}/coverage-out/torch@latest"
-          if [ ! -f "${COV_DIR}/coverage.xml" ]; then
-            echo "WARNING: no coverage.xml in ${COV_DIR}, skip OBS upload to keep the remote intact"
-            exit 0
-          fi
-
-          obsutil cp "${COV_DIR}" "${{ env.OBS_COVERAGE_PREFIX }}/latest/" -r -f -vlength
-
-      # The staging tarballs are only needed until the merge succeeded; a failed
-      # merge keeps them (and 7day-cache expires them anyway).
-      - name: Clean up shard covdata in OBS
+      # OBS housekeeping. Long-term retention: a single copy on the remote that each
+      # completed full run overwrites (a debug run with a category filter never
+      # touches it). The per-shard staging tarballs are deleted right after a
+      # successful merge; a failed merge keeps them (7day-cache expires them too).
+      - name: Publish coverage to OBS and clean up staging
         if: always()
         continue-on-error: true
+        env:
+          CATEGORIES: ${{ inputs.categories }}
         run: |
-          COV_DIR="${GITHUB_WORKSPACE}/coverage-out/torch@latest"
-          if [ ! -f "${COV_DIR}/coverage.xml" ]; then
-            echo "WARNING: merge did not promote, keeping shard covdata in OBS for debugging"
+          if [ ! -f "${COV_ARTIFACTS}/pytorch@latest/coverage.xml" ]; then
+            echo "WARNING: merge did not promote, keeping the remote and the staging data untouched"
             exit 0
           fi
 
           obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${{ env.OBS_ENDPOINT }}
+
+          if [ -z "${CATEGORIES}" ]; then
+            obsutil cp "${COV_ARTIFACTS}/." "${{ env.OBS_COVERAGE_PREFIX }}/latest/" -r -f -vlength
+          else
+            echo "Debug run (categories='${CATEGORIES}'), skipping the ${{ env.OBS_COVERAGE_PREFIX }}/latest upload"
+          fi
+
           obsutil rm -r -f "${{ env.OBS_SHARD_PREFIX }}/${{ github.run_id }}/"
-          echo "Shard covdata staging removed"
+          echo "Shard data staging removed"

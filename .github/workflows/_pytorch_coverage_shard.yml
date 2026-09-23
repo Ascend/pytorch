@@ -178,46 +178,38 @@ jobs:
           set -e
           echo "test_status=${STATUS}" >> "$GITHUB_OUTPUT"
 
-      # Per-case coverage data costs ~53KB per case (SQLite page overhead), i.e.
-      # ~1GB per full run — far too heavy for the artifact service. Ship it as a
-      # single tarball per shard through OBS instead; the merge job pulls it back.
-      - name: Upload shard covdata to OBS
+      # The whole shard output (per-case covdata + reports/logs) travels through
+      # OBS as one tarball: per-case data costs ~53KB per case (SQLite page
+      # overhead, ~1GB per run), which would choke the artifact service. The merge
+      # job pulls it back, so a run ends with a single merged artifact.
+      - name: Upload shard data to OBS
         if: always()
         run: |
           SHARD_DIR="${GITHUB_WORKSPACE}/cov-out/${{ inputs.category }}-${{ matrix.shard }}"
-          if [ ! -d "${SHARD_DIR}/covdata" ]; then
-            echo "WARNING: no covdata dir in ${SHARD_DIR}, nothing to upload"
+          TARBALL="${GITHUB_WORKSPACE}/${{ inputs.category }}-${{ matrix.shard }}.tar.gz"
+          if [ ! -d "${SHARD_DIR}" ]; then
+            echo "WARNING: no shard dir ${SHARD_DIR}, nothing to upload"
             exit 0
           fi
 
-          tar -czf "${SHARD_DIR}/covdata.tar.gz" -C "${SHARD_DIR}" covdata
-          echo "covdata tarball: $(ls -lh "${SHARD_DIR}/covdata.tar.gz" | awk '{print $5}')"
+          # The per-case data is already grouped by test file, so the tarball is
+          # small. reports/cases_logs + junit_xmls are one file per case and are
+          # not needed by the merge (logs/ keeps the file-level view).
+          tar -czf "${TARBALL}" -C "${SHARD_DIR}" \
+            --exclude=./reports/cases_logs --exclude=./reports/junit_xmls .
+          echo "shard tarball: $(ls -lh "${TARBALL}" | awk '{print $5}')"
 
           obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
 
           TARGET="${{ env.OBS_SHARD_PREFIX }}/${{ github.run_id }}/${{ inputs.category }}-${{ matrix.shard }}.tar.gz"
           for attempt in 1 2; do
             echo "=== Upload attempt ${attempt} ==="
-            if obsutil cp "${SHARD_DIR}/covdata.tar.gz" "${TARGET}" -f -vlength; then
-              echo "Shard covdata uploaded: ${TARGET}"
+            if obsutil cp "${TARBALL}" "${TARGET}" -f -vlength; then
+              echo "Shard data uploaded: ${TARGET}"
+              rm -f "${TARBALL}"
               exit 0
             fi
             sleep 10
           done
           echo "ERROR: failed to upload ${TARGET}" >&2
           exit 1
-
-      # Only the small per-shard reports/logs stay in the artifact: the merge job
-      # needs them for the case -> test file mapping and the failure markers.
-      - name: Upload shard coverage data
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-${{ inputs.category }}-${{ matrix.shard }}
-          path: |
-            ${{ github.workspace }}/cov-out/${{ inputs.category }}-${{ matrix.shard }}/reports
-            ${{ github.workspace }}/cov-out/${{ inputs.category }}-${{ matrix.shard }}/file_logs
-            ${{ github.workspace }}/cov-out/${{ inputs.category }}-${{ matrix.shard }}/failed_cases.json
-            ${{ github.workspace }}/cov-out/${{ inputs.category }}-${{ matrix.shard }}/run.log
-          if-no-files-found: warn
-          retention-days: 14
