@@ -43,6 +43,8 @@
   - [HCCL_EVENT_TIMEOUT](collective_communication/HCCL_EVENT_TIMEOUT.md)
   - [P2P_HCCL_BUFFSIZE](collective_communication/P2P_HCCL_BUFFSIZE.md)
   - [RANK_TABLE_FILE](collective_communication/RANK_TABLE_FILE.md)
+  - [ROOTINFO_SCALABLE_ENABLE](collective_communication/ROOTINFO_SCALABLE_ENABLE.md)
+  - [TORCH_HCCL_RANKS_PER_ROOT](collective_communication/TORCH_HCCL_RANKS_PER_ROOT.md)
   - [(beta) TORCH_HCCL_ZERO_COPY](collective_communication/（beta）TORCH_HCCL_ZERO_COPY.md)
   - [TORCH_HCCL_HIGH_PRIORITY](collective_communication/TORCH_HCCL_HIGH_PRIORITY.md)
   - [TORCH_HCCL_DESYNC_DEBUG](collective_communication/TORCH_HCCL_DESYNC_DEBUG.md)
