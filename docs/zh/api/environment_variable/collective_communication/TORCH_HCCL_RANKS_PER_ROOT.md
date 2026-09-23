@@ -35,5 +35,5 @@ unset TORCH_HCCL_RANKS_PER_ROOT
 
 ## 支持的型号
 
-- <term>Atlas A2 训练系列产品</term>
-- <term>Atlas A3 训练系列产品</term>
+- <term>Atlas A2训练系列产品</term>
+- <term>Atlas A3训练系列产品</term>

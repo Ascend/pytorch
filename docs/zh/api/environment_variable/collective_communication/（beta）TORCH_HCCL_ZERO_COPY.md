@@ -32,5 +32,5 @@ export TORCH_HCCL_ZERO_COPY=1
 ## 支持的型号
 
 <!-- npu="A3" id1 -->
-<term>Atlas A3 训练系列产品</term>
+<term>Atlas A3训练系列产品</term>
 <!-- end id1 -->

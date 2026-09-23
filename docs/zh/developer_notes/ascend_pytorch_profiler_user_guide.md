@@ -1519,7 +1519,7 @@ GC执行时，会阻塞当前进程，需要等待GC完成，若GC时间过长�
 |Duration(us)|当前算子执行耗时，单位us。|
 |Wait Time(us)|算子执行等待时间，单位us。|
 |Block Num|运行切分数量，对应任务执行时核数。|
-|Mix Block Num|部分算子同时在AI Core和Vector Core上执行，主加速器的Block Num在Block Num字段描述，从加速器的Block Num在本字段描述。Level0时默认不采集该字段。<br>仅Atlas A2 训练系列产品/Atlas A2 推理系列产品和Atlas A3 训练系列产品/Atlas A3 推理系列产品支持。|
+|Mix Block Num|部分算子同时在AI Core和Vector Core上执行，主加速器的Block Num在Block Num字段描述，从加速器的Block Num在本字段描述。Level0时默认不采集该字段。<br>仅Atlas A2系列产品和Atlas A3系列产品支持。|
 |HF32 Eligible|标识是否使用HF32精度标记，YES表示使用，NO表示未使用。|
 |Input Shapes|算子输入Shape。|
 |Input Data Types|算子输入数据类型。|

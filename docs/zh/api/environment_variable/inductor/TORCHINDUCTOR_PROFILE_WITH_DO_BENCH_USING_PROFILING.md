@@ -30,5 +30,5 @@ export TORCHINDUCTOR_PROFILE_WITH_DO_BENCH_USING_PROFILING=1
 ## 支持的型号
 
 <!-- npu="950" id1 -->
-<term>Ascend 950DT</term>
+<term>Ascend 950DT系列产品</term>
 <!-- end id1 -->

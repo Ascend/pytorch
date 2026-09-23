@@ -89,20 +89,20 @@ export CPU_AFFINITY_CONF=2,force:1,npu0:0-3
 ## 使用约束
 
 <!-- npu="910b" id5 -->
-亲和性绑核仅支持<term>Atlas A2 训练系列产品</term>。
+亲和性绑核仅支持<term>Atlas A2训练系列产品</term>。
 <!-- end id5 -->
 
 ## 支持的型号
 
 <!-- npu="910" id1 -->
-- <term>Atlas 训练系列产品</term>
+- <term>Atlas训练系列产品</term>
 <!-- end id1 -->
 <!-- npu="910b" id2 -->
-- <term>Atlas A2 训练系列产品</term>
+- <term>Atlas A2训练系列产品</term>
 <!-- end id2 -->
 <!-- npu="A3" id3 -->
-- <term>Atlas A3 训练系列产品</term>
+- <term>Atlas A3训练系列产品</term>
 <!-- end id3 -->
 <!-- npu="950" id4 -->
-- <term>Ascend 950DT</term>
+- <term>Ascend 950DT系列产品</term>
 <!-- end id4 -->

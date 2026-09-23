@@ -49,7 +49,7 @@ unset TORCH_HCCL_RANKS_PER_ROOT
 
 ## 约束说明
 
-- 仅<term>Atlas A2 训练系列产品</term>和<term>Atlas A3 训练系列产品</term>支持Scalable RootInfo。其他型号即使开启功能，也会打印Warning并回退原RootInfo路径。
+- 仅<term>Atlas A2训练系列产品</term>和<term>Atlas A3训练系列产品</term>支持Scalable RootInfo。其他型号即使开启功能，也会打印Warning并回退原RootInfo路径。
 - 需要配套使用包含`HcclGetRootInfoScalable`和`HcclCommInitRootInfoScalable`接口的CANN/HCCL版本。在支持的设备上已经选中Scalable路径但运行库缺少接口时，会返回不支持错误。
 - 该功能仅作用于RootInfo建链路径，不改变rank table建链行为。配置有效的`RANK_TABLE_FILE`并选择rank table路径时，不会进入Scalable RootInfo路径。
 - P2P通信域继续使用原RootInfo路径。

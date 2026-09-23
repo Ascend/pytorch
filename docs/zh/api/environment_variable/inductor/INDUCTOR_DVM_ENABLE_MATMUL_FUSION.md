@@ -29,8 +29,8 @@ export INDUCTOR_DVM_ENABLE_MATMUL_FUSION=1
 ## 支持的型号
 
 <!-- npu="910b" id1 -->
-- <term>Atlas A2 训练系列产品</term>
+- <term>Atlas A2训练系列产品</term>
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- <term>Atlas A3 训练系列产品</term>
+- <term>Atlas A3训练系列产品</term>
 <!-- end id2 -->

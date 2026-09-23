@@ -13,7 +13,7 @@
 > [!NOTICE]
 >
 > <!-- npu="950" id7 -->
-> <term>Ascend 950DT</term>仅支持expandable\_segments、pinned\_use\_background\_threads、pin\_memory\_expandable\_segments和pinned\_mem\_register四个参数，其余参数均不支持。
+> <term>Ascend 950DT系列产品</term>仅支持expandable\_segments、pinned\_use\_background\_threads、pin\_memory\_expandable\_segments和pinned\_mem\_register四个参数，其余参数均不支持。
 > <!-- end id7 -->
 
 可选参数：
@@ -241,10 +241,10 @@ export PYTORCH_NPU_ALLOC_CONF=release_lock_on_npumalloc:True
 - page\_size特性要求在Ascend HDK 25.0.RC1及以上版本、CANN商用8.1.RC1及以上版本使用，支持如下产品：
 
     <!-- npu="910b" id1 -->
-    - <term>Atlas A2 训练系列产品</term>
+    - <term>Atlas A2训练系列产品</term>
     <!-- end id1 -->
     <!-- npu="A3" id2 -->
-    - <term>Atlas A3 训练系列产品</term>
+    - <term>Atlas A3训练系列产品</term>
     <!-- end id2 -->
 
 - page\_size特性与其他特性同时配置时，仅page\_size配置生效，且申请内存注意事项如下：
@@ -270,14 +270,14 @@ export PYTORCH_NPU_ALLOC_CONF=release_lock_on_npumalloc:True
 ## 支持的型号
 
 <!-- npu="910" id3 -->
-- <term>Atlas 训练系列产品</term>
+- <term>Atlas训练系列产品</term>
 <!-- end id3 -->
 <!-- npu="910b" id4 -->
-- <term>Atlas A2 训练系列产品</term>
+- <term>Atlas A2训练系列产品</term>
 <!-- end id4 -->
 <!-- npu="A3" id5 -->
-- <term>Atlas A3 训练系列产品</term>
+- <term>Atlas A3训练系列产品</term>
 <!-- end id5 -->
 <!-- npu="310p" id6 -->
-- <term>Atlas 推理系列产品</term>
+- <term>Atlas推理系列产品</term>
 <!-- end id6 -->
