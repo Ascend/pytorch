@@ -68,6 +68,8 @@
 
 - **[torch.nn.init](torch-nn-init.md)**  
 
+- **[torch.nn.attention](torch-nn-attention.md)**
+
 - **[torch.onnx](torch-onnx.md)**  
 
 - **[torch.optim](torch-optim.md)**  
