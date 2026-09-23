@@ -30,6 +30,22 @@
 
 </div>
 
+### _`class`_ torch.classes.torchvision.GPUDecoder
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.classes.torchvision.GPUDecoder](https://pytorch.org/vision/stable/io.html)
+
+**产品支持情况**：
+
+- <term>Atlas A2 训练系列产品</term>：不支持
+- <term>Atlas A3 训练系列产品</term>：不支持
+- <term>Ascend 950DT</term>：不支持
+
+**限制与说明**：该接口依赖torchvision GPU decoder扩展，当前Ascend/aarch64环境未提供gpu_decoder.so，无法注册到torch.classes.torchvision
+
+</div>
+
 ## Tensors
 
 ### torch.is_tensor

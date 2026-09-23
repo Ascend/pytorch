@@ -858,6 +858,34 @@
 
 ## Profiler
 
+### <code><i>class</i></code> torch.autograd.profiler.EnforceUnique
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.profiler.EnforceUnique](https://pytorch.org/docs/2.11/generated/torch.autograd.profiler.EnforceUnique.html)
+
+**产品支持情况**：
+
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
+
+</div>
+
+### torch.autograd.profiler_util.MemRecordsAcc.in_interval
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.profiler_util.MemRecordsAcc.in_interval](https://pytorch.org/docs/2.11/generated/torch.autograd.profiler_util.MemRecordsAcc.html)
+
+**产品支持情况**：
+
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
+
+</div>
+
 ### torch.autograd.profiler.profile
 
 <div style="margin-left: 2em">
