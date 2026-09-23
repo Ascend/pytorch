@@ -35,5 +35,9 @@ unset TORCH_HCCL_RANKS_PER_ROOT
 
 ## 支持的型号
 
+<!-- npu="910b" id1 -->
 - <term>Atlas A2训练系列产品</term>
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
 - <term>Atlas A3训练系列产品</term>
+<!-- end id2 -->

@@ -125,10 +125,10 @@ python3 -c "from torchvision.datasets import MNIST; MNIST(root='mnist', train=Tr
     > [!NOTE]
     >
     > <!-- npu="910" id1 -->
-    > - 若用户使用<term>Atlas 训练系列产品</term>，则在迁移完成、训练开始之前，由于其架构特性，用户需要执行此步骤开启混合精度。
+    > - 若用户使用<term>Atlas训练系列产品</term>，则在迁移完成、训练开始之前，由于其架构特性，用户需要执行此步骤开启混合精度。
     > <!-- end id1 -->
     > <!-- npu="950,A3,910b" id2 -->
-    > - 若用户使用<term>Atlas A2 训练系列产品</term>、<term>Atlas A3 训练系列产品</term>或<term>Ascend 950DT</term>，则可以自行选择是否开启混合精度，如果选择不开启混合精度，则可以跳过此步骤。
+    > - 若用户使用<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>或<term>Ascend 950DT系列产品</term>，则可以自行选择是否开启混合精度，如果选择不开启混合精度，则可以跳过此步骤。
     > <!-- end id2 -->
     > - 混合精度的具体介绍，请参见[混合精度适配](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/zh/mixed_precision_adaptation/adaptation_introduction.md)。
 
