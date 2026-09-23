@@ -33,13 +33,13 @@
 **产品支持情况**：
 
 <!-- npu="910b" id1 -->
-- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A2训练系列产品</term>：支持
 <!-- end id1 -->
 <!-- npu="A3" id2 -->
-- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Atlas A3训练系列产品</term>：支持
 <!-- end id2 -->
 <!-- npu="950" id3 -->
-- <term>Ascend 950DT</term>：支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id3 -->
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
@@ -53,13 +53,13 @@
 **产品支持情况**：
 
 <!-- npu="910b" id4 -->
-- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A2训练系列产品</term>：支持
 <!-- end id4 -->
 <!-- npu="A3" id5 -->
-- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Atlas A3训练系列产品</term>：支持
 <!-- end id5 -->
 <!-- npu="950" id6 -->
-- <term>Ascend 950DT</term>：支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id6 -->
 
 **限制与说明**：`local_tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
@@ -75,13 +75,13 @@
 **产品支持情况**：
 
 <!-- npu="910b" id7 -->
-- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A2训练系列产品</term>：支持
 <!-- end id7 -->
 <!-- npu="A3" id8 -->
-- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Atlas A3训练系列产品</term>：支持
 <!-- end id8 -->
 <!-- npu="950" id9 -->
-- <term>Ascend 950DT</term>：支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id9 -->
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64，bool
@@ -99,13 +99,13 @@
 **产品支持情况**：
 
 <!-- npu="910b" id10 -->
-- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A2训练系列产品</term>：支持
 <!-- end id10 -->
 <!-- npu="A3" id11 -->
-- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Atlas A3训练系列产品</term>：支持
 <!-- end id11 -->
 <!-- npu="950" id12 -->
-- <term>Ascend 950DT</term>：支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id12 -->
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64，bool，complex64，complex128
@@ -121,13 +121,13 @@
 **产品支持情况**：
 
 <!-- npu="910b" id13 -->
-- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A2训练系列产品</term>：支持
 <!-- end id13 -->
 <!-- npu="A3" id14 -->
-- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Atlas A3训练系列产品</term>：支持
 <!-- end id14 -->
 <!-- npu="950" id15 -->
-- <term>Ascend 950DT</term>：支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id15 -->
 
 > <font size="3">is_replicate()</font>
@@ -139,13 +139,13 @@
 **产品支持情况**：
 
 <!-- npu="910b" id16 -->
-- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A2训练系列产品</term>：支持
 <!-- end id16 -->
 <!-- npu="A3" id17 -->
-- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Atlas A3训练系列产品</term>：支持
 <!-- end id17 -->
 <!-- npu="950" id18 -->
-- <term>Ascend 950DT</term>：支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id18 -->
 
 </div>
@@ -163,13 +163,13 @@
 **产品支持情况**：
 
 <!-- npu="910b" id19 -->
-- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A2训练系列产品</term>：支持
 <!-- end id19 -->
 <!-- npu="A3" id20 -->
-- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Atlas A3训练系列产品</term>：支持
 <!-- end id20 -->
 <!-- npu="950" id21 -->
-- <term>Ascend 950DT</term>：支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id21 -->
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32
@@ -185,13 +185,13 @@
 **产品支持情况**：
 
 <!-- npu="910b" id22 -->
-- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A2训练系列产品</term>：支持
 <!-- end id22 -->
 <!-- npu="A3" id23 -->
-- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Atlas A3训练系列产品</term>：支持
 <!-- end id23 -->
 <!-- npu="950" id24 -->
-- <term>Ascend 950DT</term>：支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id24 -->
 
 **限制与说明**： `tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64，bool
@@ -209,13 +209,13 @@
 **产品支持情况**：
 
 <!-- npu="910b" id25 -->
-- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A2训练系列产品</term>：支持
 <!-- end id25 -->
 <!-- npu="A3" id26 -->
-- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Atlas A3训练系列产品</term>：支持
 <!-- end id26 -->
 <!-- npu="950" id27 -->
-- <term>Ascend 950DT</term>：不支持
+- <term>Ascend 950DT系列产品</term>：不支持
 <!-- end id27 -->
 
 **限制与说明**： 仅支持NPU fused SDPA路径；`q`/`k`/`v`仅支持BNSD布局；暂不支持`pse`、`padding_mask`、`prefix`、`actual_seq_qlen`、`actual_seq_kvlen`、`sink`以及任意非causal的attention mask；启用load balance时要求使用causal attention；暂不支持通过`torch.compile`编译为计算图
