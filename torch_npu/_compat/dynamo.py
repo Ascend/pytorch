@@ -2,6 +2,31 @@ import torch
 
 from torch_npu._compat.version import CURRENT_VERSION
 
+
+# COMPAT(>= 2.14): PyTorch discovers Stream/Event classes from registered
+# DeviceInterface implementations. Older releases still need torch_npu to add
+# the NPU classes explicitly.
+# CAN REMOVE when MIN_SUPPORTED >= (2, 14)
+def patch_user_defined_class_variable():
+    if CURRENT_VERSION >= (2, 14):
+        return
+
+    import functools
+
+    from torch._dynamo.variables.user_defined import UserDefinedClassVariable
+
+    original_method = UserDefinedClassVariable._in_graph_classes
+
+    @staticmethod
+    @functools.lru_cache(None)
+    def patched_in_graph_classes():
+        result = original_method()
+        result.add(torch.npu.Event)
+        result.add(torch.npu.Stream)
+        return result
+
+    UserDefinedClassVariable._in_graph_classes = patched_in_graph_classes
+
 # torch PR #192345 (first in torch 2.15) fires the backend's
 # _dynamo_backend_init hook at backend resolution. Both the hook attach
 # (torch >= 2.15) and the historical torch._dynamo.optimize fallback

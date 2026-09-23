@@ -401,23 +401,16 @@ def register_npu_current_stream_handler():
 
 
 def patch_user_defined_class_variable():
-    import functools
     from torch._dynamo.variables.user_defined import UserDefinedClassVariable
     from torch._dynamo.variables.torch import TorchCtxManagerClassVariable
     from torch._dynamo.variables.torch import TorchInGraphFunctionVariable
-    original_method = UserDefinedClassVariable._in_graph_classes
+    from torch_npu._compat.dynamo import patch_user_defined_class_variable as compat_patch_user_defined_class_variable
+
+    compat_patch_user_defined_class_variable()
 
     class NPUTorchCtxManagerClassVariable(TorchCtxManagerClassVariable):
         def call_function(self, tx, args, kwargs):
             return _create_npu_autocast_mode_variable(self.value, args, kwargs)
-
-    @staticmethod
-    @functools.lru_cache(None)
-    def patched_in_graph_classes():
-        result = original_method()
-        result.add(torch.npu.Event)
-        result.add(torch.npu.Stream)
-        return result
 
     def UserDefinedClassVariable__new__(cls, value, **kwargs):
         if value in [
@@ -442,7 +435,6 @@ def patch_user_defined_class_variable():
             return TorchInGraphFunctionVariable(value, **kwargs)
         return cls.__new__raw(cls)
 
-    UserDefinedClassVariable._in_graph_classes = patched_in_graph_classes
     UserDefinedClassVariable.__new__raw = UserDefinedClassVariable.__new__
     UserDefinedClassVariable.__new__ = UserDefinedClassVariable__new__
 
