@@ -59,6 +59,12 @@ def _initialize():
     # 4. final extension barrier and shutdown hook
     _initialize_runtime_lifecycle()
 
+    # 4.5 eagerly build the legacy tensortype cache: the lazy init mutates
+    # class attributes inside a dynamo-traced frame and breaks fullgraph
+    # compile. Requires the torch_npu.npu.*Tensor classes injected in step 4.
+    from torch_npu.utils.tensor_methods import _NPUTensortypeCache
+    _NPUTensortypeCache.tensortype_list_dict_init()
+
     # 5. optional runtime features
     _enable_optional_features()
 
