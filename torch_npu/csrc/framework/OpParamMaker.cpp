@@ -727,8 +727,23 @@ void CopyFunc(void* dst, void* src) {
   }
 }
 
+void ReleaseParamFunc(void* ptr);
+
 void ReleaseFunc(void* ptr, c10_npu::ReleaseQueue& releaseQueue) {
-  releaseQueue.PushToReleaseQueue(ptr);
+  // Once an aclop task has started the release thread, keep the original
+  // asynchronous release behavior for all subsequent task types.
+  if (releaseQueue.IsReleaseThreadRunning()) {
+    releaseQueue.PushToReleaseQueue(ptr);
+    return;
+  }
+
+  auto queueParam = static_cast<c10_npu::queue::QueueParas*>(ptr);
+  if (queueParam->paramType == c10_npu::queue::COMPILE_AND_EXECUTE && releaseQueue.StartReleaseThreadIfNeeded()) {
+    releaseQueue.PushToReleaseQueue(ptr);
+    return;
+  }
+
+  ReleaseParamFunc(ptr);
 }
 
 void* NewFunc(int caption, int& size) {

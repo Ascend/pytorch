@@ -18,6 +18,7 @@
 #include <ATen/record_function.h>
 #include <unistd.h>
 #include <sstream>
+#include <system_error>
 #include <sys/time.h>
 #include <sys/eventfd.h>
 #include <acl/acl_rt.h>
@@ -892,10 +893,9 @@ void Repository::InitRepo(c10::DeviceIndex device_id) {
   initialized = true;
   SetStatus(INIT);
   device_idx = device_id;
+  releaseQueue.InitReleaseQueue(device_id);
   std::thread cur_consumer(StartConsume, this, device_id);
   consumer = std::move(cur_consumer);
-
-  releaseQueue.InitReleaseQueue(device_id);
 }
 
 std::string Repository::GetPara() {
@@ -922,8 +922,13 @@ bool ReleaseQueue::WriteToReleaseQueue(void* cur_paras) {
 }
 
 void ReleaseQueue::PushToReleaseQueue(void* cur_paras) {
-  if (initialized == false) {
+  if (buffer_initialized == false) {
     ASCEND_LOGE("Release queue is not initialized, shouldn't call PushToReleaseQueue(). !!");
+    return;
+  }
+
+  if (!IsReleaseThreadRunning()) {
+    ASCEND_LOGE("Release thread is not running, shouldn't call PushToReleaseQueue(). !!");
     return;
   }
 
@@ -951,7 +956,7 @@ bool ReleaseQueue::ReadFromReleaseQueue() {
 }
 
 void ReleaseQueue::PopFromReleaseQueue() {
-  if (initialized == false) {
+  if (buffer_initialized == false) {
     ASCEND_LOGE("Release queue is not initialized, shouldn't call PopFromReleaseQueue(). !!");
     return;
   }
@@ -981,23 +986,68 @@ void StartRelease(ReleaseQueue* releaseQue) {
 }
 
 void ReleaseQueue::InitReleaseQueue(c10::DeviceIndex device_id) {
+  if (buffer_initialized) {
+    return;
+  }
+
+  // Only prepare queue resources here. The release thread is started lazily
+  // when the first aclop task is released.
   if (data == nullptr) {
     data = releaseManager().Init(kReleaseQueueCapacity);
   }
 
-  initialized = true;
-  SetStatus(INIT);
-  std::thread cur_releaser(StartRelease, this);
-  releaser = std::move(cur_releaser);
   device_idx = device_id;
+  buffer_initialized = true;
+  SetStatus(INIT);
+}
+
+bool ReleaseQueue::StartReleaseThreadIfNeeded() {
+  if (buffer_initialized == false) {
+    ASCEND_LOGE("Release queue is not initialized, can't start release thread. !!");
+    return false;
+  }
+
+  auto current_status = worker_status.load();
+  if (current_status == WorkerStatus::RUNNING) {
+    return true;
+  }
+  if (current_status != WorkerStatus::NOT_STARTED) {
+    return false;
+  }
+
+  std::lock_guard<std::mutex> lock(release_thread_mutex);
+  current_status = worker_status.load();
+  if (current_status == WorkerStatus::RUNNING) {
+    return true;
+  }
+  if (current_status != WorkerStatus::NOT_STARTED) {
+    return false;
+  }
+
+  SetStatus(INIT);
+  try {
+    std::thread cur_releaser(StartRelease, this);
+    releaser = std::move(cur_releaser);
+    worker_status.store(WorkerStatus::RUNNING);
+    ASCEND_LOGI("Release thread is started for device %d.", device_idx);
+  } catch (const std::system_error& e) {
+    worker_status.store(WorkerStatus::DISABLED);
+    ASCEND_LOGE("Failed to start release thread, use synchronous release instead. Reason: %s", e.what());
+    return false;
+  }
+  return true;
+}
+
+bool ReleaseQueue::IsReleaseThreadRunning() const {
+  return worker_status.load() == WorkerStatus::RUNNING;
 }
 
 ReleaseQueue::~ReleaseQueue() {
-  if (initialized) {
-    if (releaser.joinable()) {
-      SetStatus(NEED_EXIT);
-      releaser.join();
-    }
+  if (IsReleaseThreadRunning() && releaser.joinable()) {
+    worker_status.store(WorkerStatus::STOPPING);
+    SetStatus(NEED_EXIT);
+    releaser.join();
+    worker_status.store(WorkerStatus::STOPPED);
   }
   releaseManager().DeInit(data);
 }
@@ -1007,7 +1057,7 @@ bool ReleaseQueue::IsFullQueue() const {
 }
 
 RepoStatus ReleaseQueue::GetStatus() const {
-  if (initialized == false) {
+  if (buffer_initialized == false) {
     ASCEND_LOGE("Release queue is not initialized, shouldn't call GetStatus(). !!");
   }
 
@@ -1019,7 +1069,7 @@ c10::DeviceIndex ReleaseQueue::GetDeviceID() const {
 }
 
 void ReleaseQueue::SetStatus(RepoStatus desired) {
-  if (initialized == false) {
+  if (buffer_initialized == false) {
     ASCEND_LOGE("Release queue is not initialized, shouldn't call SetStatus(). !!");
     return;
   }
@@ -1028,7 +1078,7 @@ void ReleaseQueue::SetStatus(RepoStatus desired) {
 }
 
 void ReleaseQueue::ChangeStatus(RepoStatus expected, RepoStatus desired) {
-  if (initialized == false) {
+  if (buffer_initialized == false) {
     ASCEND_LOGE("Release queue is not initialized, shouldn't call ChangeStatus(). !!");
     return;
   }

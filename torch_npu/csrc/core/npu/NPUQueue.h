@@ -62,10 +62,20 @@ class ReleaseQueue {
   void PushToReleaseQueue(void* cur_paras);
   void PopFromReleaseQueue();
   void InitReleaseQueue(c10::DeviceIndex device_id);
+  bool StartReleaseThreadIfNeeded();
+  bool IsReleaseThreadRunning() const;
   RepoStatus GetStatus() const;
   c10::DeviceIndex GetDeviceID() const;
 
  private:
+  enum class WorkerStatus {
+    NOT_STARTED = 0,
+    RUNNING = 1,
+    DISABLED = 2,
+    STOPPING = 3,
+    STOPPED = 4,
+  };
+
   inline bool IsEmptyQueue() {
     return read_idx.idx == write_idx.idx;
   };
@@ -84,7 +94,9 @@ class ReleaseQueue {
   sring_idx read_idx;
   sring_idx write_idx;
   std::atomic<RepoStatus> repo_status;
-  bool initialized = false;
+  std::atomic<WorkerStatus> worker_status{WorkerStatus::NOT_STARTED};
+  std::mutex release_thread_mutex;
+  bool buffer_initialized = false;
 };
 
 class NPUQueueBase {
