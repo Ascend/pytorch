@@ -1,8 +1,11 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates
+# Owner(s): ["oncall: distributed"]
+
 import unittest
 import itertools
 
 import torch
-from torch.distributed._tensor import distribute_tensor, Replicate, Shard
+from torch.distributed._tensor import distribute_tensor, Partial, Replicate, Shard
 from torch.testing._internal.common_utils import (
     instantiate_parametrized_tests,
     parametrize,
@@ -34,6 +37,90 @@ def get_shape_from_layout(batch: int, num_head: int, seq_length: int, dimension:
 
 
 class TestMathOps(NPUDTensorTestBase):
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
+    @with_comms
+    def test_nll_loss_weighted_mean_with_even_target_counts(self):
+        if self.world_size < 2:
+            self.skipTest("requires at least 2 ranks")
+
+        device_mesh = self.build_device_mesh()
+        samples_per_rank = 2
+        batch = self.world_size * samples_per_rank
+
+        x = torch.zeros(batch, 2, device=self.device_type)
+        target = torch.empty(
+            batch, device=self.device_type, dtype=torch.long
+        )
+
+        for rank in range(self.world_size):
+            start = rank * samples_per_rank
+            cls = rank % 2
+            loss = 2.0 if cls == 0 else 4.0
+            target[start : start + samples_per_rank] = cls
+            x[start : start + samples_per_rank, cls] = -loss
+
+        weight = torch.tensor(
+            [1.0, 10.0], device=self.device_type
+        )
+
+        dist_x = distribute_tensor(
+            x, device_mesh, [Shard(0)]
+        )
+        dist_target = distribute_tensor(
+            target, device_mesh, [Replicate()]
+        )
+        dist_weight = distribute_tensor(
+            weight, device_mesh, [Replicate()]
+        )
+
+        y = torch.nn.functional.nll_loss(
+            x,
+            target,
+            weight=weight,
+            reduction="mean",
+        )
+
+        dist_y = torch.nn.functional.nll_loss(
+            dist_x,
+            dist_target,
+            weight=dist_weight,
+            reduction="mean",
+        )
+
+        self.assertTrue(dist_y.placements[0].is_replicate())
+        self.assertEqual(dist_y.to_local(), y)
+
+    @SupportedDevices(['Ascend910B'])
+    @skipIfUnsupportMultiNPU(2)
+    @with_comms
+    def test_foreach_max_sharded(self):
+        device_mesh = self.build_device_mesh()
+
+        torch.manual_seed(42)
+        tensors = [
+            torch.randn(12, 8, device=self.device_type),
+            torch.randn(8, 8, device=self.device_type),
+        ]
+
+        sharded_tensors = [
+            distribute_tensor(tensor, device_mesh, [Shard(0)])
+            for tensor in tensors
+        ]
+
+        expected = torch._foreach_max(tensors)
+        actual = torch._foreach_max(sharded_tensors)
+
+        for expected_max, actual_max in zip(expected, actual):
+            self.assertEqual(
+                actual_max.placements,
+                (Partial("max"),),
+            )
+            self.assertEqual(
+                actual_max.full_tensor(),
+                expected_max,
+            )
+
     @SupportedDevices(['Ascend910B'])
     @skipIfUnsupportMultiNPU(2)
     @with_comms
@@ -397,8 +484,26 @@ class TestConv2d(NPUDTensorTestBase):
         grad_output = torch.ones_like(output_tensor, device="npu")
         grad_output_dtensor = distribute_tensor(grad_output, mesh, [Replicate()])
 
-        input_grad, weight_grad, bias_grad = torch_npu.npu_conv2d_backward(input_tensor, grad_output, weight_tensor, stride, padding, dilation, groups, output_mask)
-        input_dgrad, weight_dgrad, bias_dgrad = torch_npu.npu_conv2d_backward(input_dtensor, grad_output_dtensor, weight_dtensor, stride, padding, dilation, groups, output_mask)
+        input_grad, weight_grad, bias_grad = torch_npu.npu_conv2d_backward(
+            input_tensor,
+            grad_output,
+            weight_tensor,
+            stride,
+            padding,
+            dilation,
+            groups,
+            output_mask,
+        )
+        input_dgrad, weight_dgrad, bias_dgrad = torch_npu.npu_conv2d_backward(
+            input_dtensor,
+            grad_output_dtensor,
+            weight_dtensor,
+            stride,
+            padding,
+            dilation,
+            groups,
+            output_mask,
+        )
         self.assertEqual(input_dgrad.full_tensor(), input_grad)
         self.assertEqual(weight_dgrad.full_tensor(), weight_grad)
         self.assertEqual(bias_dgrad.full_tensor(), bias_grad)
@@ -427,8 +532,26 @@ class TestConv2d(NPUDTensorTestBase):
         grad_output = torch.ones_like(output_tensor, device="npu")
         grad_output_dtensor = distribute_tensor(grad_output, mesh, [Replicate()])
 
-        input_grad, weight_grad, bias_grad = torch_npu.npu_conv2d_backward(input_tensor, grad_output, weight_tensor, stride, padding, dilation, groups, output_mask)
-        input_dgrad, weight_dgrad, bias_dgrad = torch_npu.npu_conv2d_backward(input_dtensor, grad_output_dtensor, weight_dtensor, stride, padding, dilation, groups, output_mask)
+        input_grad, weight_grad, bias_grad = torch_npu.npu_conv2d_backward(
+            input_tensor,
+            grad_output,
+            weight_tensor,
+            stride,
+            padding,
+            dilation,
+            groups,
+            output_mask,
+        )
+        input_dgrad, weight_dgrad, bias_dgrad = torch_npu.npu_conv2d_backward(
+            input_dtensor,
+            grad_output_dtensor,
+            weight_dtensor,
+            stride,
+            padding,
+            dilation,
+            groups,
+            output_mask,
+        )
         self.assertEqual(input_dgrad.full_tensor(), input_grad)
         self.assertEqual(weight_dgrad.full_tensor(), weight_grad)
 
@@ -456,8 +579,26 @@ class TestConv2d(NPUDTensorTestBase):
         grad_output = torch.ones_like(output_tensor, device="npu")
         grad_output_dtensor = distribute_tensor(grad_output, mesh, [Shard(0)])
 
-        input_grad, weight_grad, bias_grad = torch_npu.npu_conv2d_backward(input_tensor, grad_output, weight_tensor, stride, padding, dilation, groups, output_mask)
-        input_dgrad, weight_dgrad, bias_dgrad = torch_npu.npu_conv2d_backward(input_dtensor, grad_output_dtensor, weight_dtensor, stride, padding, dilation, groups, output_mask)
+        input_grad, weight_grad, bias_grad = torch_npu.npu_conv2d_backward(
+            input_tensor,
+            grad_output,
+            weight_tensor,
+            stride,
+            padding,
+            dilation,
+            groups,
+            output_mask,
+        )
+        input_dgrad, weight_dgrad, bias_dgrad = torch_npu.npu_conv2d_backward(
+            input_dtensor,
+            grad_output_dtensor,
+            weight_dtensor,
+            stride,
+            padding,
+            dilation,
+            groups,
+            output_mask,
+        )
         self.assertEqual(input_dgrad.full_tensor(), input_grad)
         self.assertEqual(weight_dgrad.full_tensor(), weight_grad)
         self.assertEqual(bias_dgrad.full_tensor(), bias_grad)
@@ -486,8 +627,26 @@ class TestConv2d(NPUDTensorTestBase):
         grad_output = torch.ones_like(output_tensor, device="npu")
         grad_output_dtensor = distribute_tensor(grad_output, mesh, [Shard(0)])
 
-        input_grad, weight_grad, bias_grad = torch_npu.npu_conv2d_backward(input_tensor, grad_output, weight_tensor, stride, padding, dilation, groups, output_mask)
-        input_dgrad, weight_dgrad, bias_dgrad = torch_npu.npu_conv2d_backward(input_dtensor, grad_output_dtensor, weight_dtensor, stride, padding, dilation, groups, output_mask)
+        input_grad, weight_grad, bias_grad = torch_npu.npu_conv2d_backward(
+            input_tensor,
+            grad_output,
+            weight_tensor,
+            stride,
+            padding,
+            dilation,
+            groups,
+            output_mask,
+        )
+        input_dgrad, weight_dgrad, bias_dgrad = torch_npu.npu_conv2d_backward(
+            input_dtensor,
+            grad_output_dtensor,
+            weight_dtensor,
+            stride,
+            padding,
+            dilation,
+            groups,
+            output_mask,
+        )
         self.assertEqual(input_dgrad.full_tensor(), input_grad)
         self.assertEqual(weight_dgrad.full_tensor(), weight_grad)
 
@@ -515,8 +674,26 @@ class TestConv2d(NPUDTensorTestBase):
         grad_output = torch.ones_like(output_tensor, device="npu")
         grad_output_dtensor = distribute_tensor(grad_output, mesh, [Shard(1)])
 
-        input_grad, weight_grad, bias_grad = torch_npu.npu_conv2d_backward(input_tensor, grad_output, weight_tensor, stride, padding, dilation, groups, output_mask)
-        input_dgrad, weight_dgrad, bias_dgrad = torch_npu.npu_conv2d_backward(input_dtensor, grad_output_dtensor, weight_dtensor, stride, padding, dilation, groups, output_mask)
+        input_grad, weight_grad, bias_grad = torch_npu.npu_conv2d_backward(
+            input_tensor,
+            grad_output,
+            weight_tensor,
+            stride,
+            padding,
+            dilation,
+            groups,
+            output_mask,
+        )
+        input_dgrad, weight_dgrad, bias_dgrad = torch_npu.npu_conv2d_backward(
+            input_dtensor,
+            grad_output_dtensor,
+            weight_dtensor,
+            stride,
+            padding,
+            dilation,
+            groups,
+            output_mask,
+        )
         self.assertEqual(input_dgrad.full_tensor(), input_grad)
         self.assertEqual(weight_dgrad.full_tensor(), weight_grad)
         self.assertEqual(bias_dgrad.full_tensor(), bias_grad)
@@ -544,8 +721,26 @@ class TestConv2d(NPUDTensorTestBase):
         grad_output = torch.ones_like(output_tensor, device="npu")
         grad_output_dtensor = distribute_tensor(grad_output, mesh, [Shard(1)])
 
-        input_grad, weight_grad, bias_grad = torch_npu.npu_conv2d_backward(input_tensor, grad_output, weight_tensor, stride, padding, dilation, groups, output_mask)
-        input_dgrad, weight_dgrad, bias_dgrad = torch_npu.npu_conv2d_backward(input_dtensor, grad_output_dtensor, weight_dtensor, stride, padding, dilation, groups, output_mask)
+        input_grad, weight_grad, bias_grad = torch_npu.npu_conv2d_backward(
+            input_tensor,
+            grad_output,
+            weight_tensor,
+            stride,
+            padding,
+            dilation,
+            groups,
+            output_mask,
+        )
+        input_dgrad, weight_dgrad, bias_dgrad = torch_npu.npu_conv2d_backward(
+            input_dtensor,
+            grad_output_dtensor,
+            weight_dtensor,
+            stride,
+            padding,
+            dilation,
+            groups,
+            output_mask,
+        )
         self.assertEqual(input_dgrad.full_tensor(), input_grad)
         self.assertEqual(weight_dgrad.full_tensor(), weight_grad)
 
@@ -569,8 +764,24 @@ class TestGroupedMatmulAdd(NPUDTensorTestBase):
         transpose_weight = False
         group_type = 2
 
-        torch_npu.npu_grouped_matmul_add_(y, x, weight, group_list, transpose_x=transpose_x, transpose_weight=transpose_weight, group_type=group_type)
-        torch_npu.npu_grouped_matmul_add_(y_dtensor, x_dtensor, weight_dtensor, group_list_dtensor, transpose_x=transpose_x, transpose_weight=transpose_weight, group_type=group_type)
+        torch_npu.npu_grouped_matmul_add_(
+            y,
+            x,
+            weight,
+            group_list,
+            transpose_x=transpose_x,
+            transpose_weight=transpose_weight,
+            group_type=group_type,
+        )
+        torch_npu.npu_grouped_matmul_add_(
+            y_dtensor,
+            x_dtensor,
+            weight_dtensor,
+            group_list_dtensor,
+            transpose_x=transpose_x,
+            transpose_weight=transpose_weight,
+            group_type=group_type,
+        )
         self.assertEqual(y_dtensor.full_tensor(), y)
 
     @SupportedDevices(['Ascend910B'])
@@ -591,8 +802,24 @@ class TestGroupedMatmulAdd(NPUDTensorTestBase):
         transpose_weight = False
         group_type = 2
 
-        torch_npu.npu_grouped_matmul_add_(y, x, weight, group_list, transpose_x=transpose_x, transpose_weight=transpose_weight, group_type=group_type)
-        torch_npu.npu_grouped_matmul_add_(y_dtensor, x_dtensor, weight_dtensor, group_list_dtensor, transpose_x=transpose_x, transpose_weight=transpose_weight, group_type=group_type)
+        torch_npu.npu_grouped_matmul_add_(
+            y,
+            x,
+            weight,
+            group_list,
+            transpose_x=transpose_x,
+            transpose_weight=transpose_weight,
+            group_type=group_type,
+        )
+        torch_npu.npu_grouped_matmul_add_(
+            y_dtensor,
+            x_dtensor,
+            weight_dtensor,
+            group_list_dtensor,
+            transpose_x=transpose_x,
+            transpose_weight=transpose_weight,
+            group_type=group_type,
+        )
         self.assertEqual(y_dtensor.full_tensor(), y)
 
 
@@ -622,10 +849,20 @@ class TestCrossEntropyLoss(NPUDTensorTestBase):
     @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_torch_npu_npu_cross_entropy_loss_replicate(self):
-        x, target, input_dtensor, target_dtensor, _ = self.generate_data_cross_entropy_loss(8, 8, [Replicate()], [Replicate()])
+        (
+            x,
+            target,
+            input_dtensor,
+            target_dtensor,
+            _,
+        ) = self.generate_data_cross_entropy_loss(
+            8, 8, [Replicate()], [Replicate()]
+        )
 
         loss, log_prob, _, _ = torch_npu.npu_cross_entropy_loss(x, target, reduction="none")
-        loss_dtensor, log_prob_dtensor, _, _ = torch_npu.npu_cross_entropy_loss(input_dtensor, target_dtensor, reduction="none")
+        loss_dtensor, log_prob_dtensor, _, _ = torch_npu.npu_cross_entropy_loss(
+            input_dtensor, target_dtensor, reduction="none"
+        )
 
         self.assertEqual(loss_dtensor.full_tensor(), loss)
         self.assertEqual(log_prob_dtensor.full_tensor(), log_prob)
@@ -635,10 +872,20 @@ class TestCrossEntropyLoss(NPUDTensorTestBase):
     @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_torch_npu_npu_cross_entropy_loss_input_shard0_not_evenly_shardable(self):
-        x, target, input_dtensor, target_dtensor, _ = self.generate_data_cross_entropy_loss(7, 8, [Shard(0)], [Shard(0)])
+        (
+            x,
+            target,
+            input_dtensor,
+            target_dtensor,
+            _,
+        ) = self.generate_data_cross_entropy_loss(
+            7, 8, [Shard(0)], [Shard(0)]
+        )
 
         loss, log_prob, _, _ = torch_npu.npu_cross_entropy_loss(x, target, reduction="mean")
-        loss_dtensor, log_prob_dtensor, _, _ = torch_npu.npu_cross_entropy_loss(input_dtensor, target_dtensor, reduction="mean")
+        loss_dtensor, log_prob_dtensor, _, _ = torch_npu.npu_cross_entropy_loss(
+            input_dtensor, target_dtensor, reduction="mean"
+        )
 
         self.assertEqual(loss_dtensor.full_tensor(), loss)
         self.assertEqual(log_prob_dtensor.full_tensor(), log_prob)
@@ -648,10 +895,20 @@ class TestCrossEntropyLoss(NPUDTensorTestBase):
     @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_torch_npu_npu_cross_entropy_loss_input_shard0_evenly_shardable(self):
-        x, target, input_dtensor, target_dtensor, _ = self.generate_data_cross_entropy_loss(8, 8, [Shard(0)], [Shard(0)])
+        (
+            x,
+            target,
+            input_dtensor,
+            target_dtensor,
+            _,
+        ) = self.generate_data_cross_entropy_loss(
+            8, 8, [Shard(0)], [Shard(0)]
+        )
 
         loss, log_prob, _, _ = torch_npu.npu_cross_entropy_loss(x, target, reduction="mean")
-        loss_dtensor, log_prob_dtensor, _, _ = torch_npu.npu_cross_entropy_loss(input_dtensor, target_dtensor, reduction="mean")
+        loss_dtensor, log_prob_dtensor, _, _ = torch_npu.npu_cross_entropy_loss(
+            input_dtensor, target_dtensor, reduction="mean"
+        )
 
         self.assertEqual(loss_dtensor.full_tensor(), loss)
         self.assertEqual(log_prob_dtensor.full_tensor(), log_prob)
@@ -662,11 +919,23 @@ class TestCrossEntropyLoss(NPUDTensorTestBase):
     @with_comms
     def test_torch_npu_npu_cross_entropy_loss_input_shard0_evenly_shardable_weight(self):
         reductions = ["none", "sum"]
-        x, target, weight, input_dtensor, target_dtensor, weight_dtensor, _ = self.generate_data_cross_entropy_loss(8, 8, [Shard(0)], [Shard(0)], [Replicate()])
+        (
+            x,
+            target,
+            weight,
+            input_dtensor,
+            target_dtensor,
+            weight_dtensor,
+            _,
+        ) = self.generate_data_cross_entropy_loss(
+            8, 8, [Shard(0)], [Shard(0)], [Replicate()]
+        )
 
         for re in reductions:
             loss, log_prob, _, _ = torch_npu.npu_cross_entropy_loss(x, target, weight, re)
-            loss_dtensor, log_prob_dtensor, _, _ = torch_npu.npu_cross_entropy_loss(input_dtensor, target_dtensor, weight_dtensor, re)
+            loss_dtensor, log_prob_dtensor, _, _ = torch_npu.npu_cross_entropy_loss(
+                input_dtensor, target_dtensor, weight_dtensor, re
+            )
 
             self.assertEqual(loss_dtensor.full_tensor(), loss)
             self.assertEqual(log_prob_dtensor.full_tensor(), log_prob)
@@ -676,10 +945,20 @@ class TestCrossEntropyLoss(NPUDTensorTestBase):
     @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_torch_npu_npu_cross_entropy_loss_backward_replicate_reduction_is_mean(self):
-        x, target, input_dtensor, target_dtensor, _ = self.generate_data_cross_entropy_loss(8, 8, [Replicate()], [Replicate()])
+        (
+            x,
+            target,
+            input_dtensor,
+            target_dtensor,
+            _,
+        ) = self.generate_data_cross_entropy_loss(
+            8, 8, [Replicate()], [Replicate()]
+        )
 
         loss, log_prob, _, _ = torch_npu.npu_cross_entropy_loss(x, target, reduction="mean")
-        loss_dtensor, log_prob_dtensor, _, _ = torch_npu.npu_cross_entropy_loss(input_dtensor, target_dtensor, reduction="mean")
+        loss_dtensor, log_prob_dtensor, _, _ = torch_npu.npu_cross_entropy_loss(
+            input_dtensor, target_dtensor, reduction="mean"
+        )
 
         loss.backward()
         loss_dtensor.backward()
@@ -691,11 +970,21 @@ class TestCrossEntropyLoss(NPUDTensorTestBase):
     @with_comms
     def test_torch_npu_npu_cross_entropy_loss_backward_input_shard0_reduction_is_none(self):
         reductions = ["none", "sum", "mean"]
-        x, target, input_dtensor, target_dtensor, mesh = self.generate_data_cross_entropy_loss(8, 8, [Shard(0)], [Shard(0)])
+        (
+            x,
+            target,
+            input_dtensor,
+            target_dtensor,
+            mesh,
+        ) = self.generate_data_cross_entropy_loss(
+            8, 8, [Shard(0)], [Shard(0)]
+        )
 
         for re in reductions:
             loss, log_prob, _, _ = torch_npu.npu_cross_entropy_loss(x, target, reduction=re)
-            loss_dtensor, log_prob_dtensor, _, _ = torch_npu.npu_cross_entropy_loss(input_dtensor, target_dtensor, reduction=re)
+            loss_dtensor, log_prob_dtensor, _, _ = torch_npu.npu_cross_entropy_loss(
+                input_dtensor, target_dtensor, reduction=re
+            )
             if re == "none":
                 grad = torch.randn(loss.size(), device="npu")
                 grad_dtensor = distribute_tensor(grad, mesh, [Shard(0)])
@@ -712,10 +1001,20 @@ class TestCrossEntropyLoss(NPUDTensorTestBase):
     @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_torch_npu_npu_cross_entropy_loss_backward_input_shard1_reduction_is_sum(self):
-        x, target, input_dtensor, target_dtensor, _ = self.generate_data_cross_entropy_loss(8, 8, [Shard(1)], [Shard(0)])
+        (
+            x,
+            target,
+            input_dtensor,
+            target_dtensor,
+            _,
+        ) = self.generate_data_cross_entropy_loss(
+            8, 8, [Shard(1)], [Shard(0)]
+        )
 
         loss, log_prob, _, _ = torch_npu.npu_cross_entropy_loss(x, target, reduction="sum")
-        loss_dtensor, log_prob_dtensor, _, _ = torch_npu.npu_cross_entropy_loss(input_dtensor, target_dtensor, reduction="sum")
+        loss_dtensor, log_prob_dtensor, _, _ = torch_npu.npu_cross_entropy_loss(
+            input_dtensor, target_dtensor, reduction="sum"
+        )
 
         loss.backward()
         loss_dtensor.backward()
@@ -737,7 +1036,14 @@ class TestRepeatInterleaveSelfInt(NPUDTensorTestBase):
     @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_torch_repeat_interleave_self_int_replicate(self):
-        input_tensor, repeats_value, input_dtensor, _ = self.generate_data_repeat_interleave_self_int((5, 5), 3, [Replicate()])
+        (
+            input_tensor,
+            repeats_value,
+            input_dtensor,
+            _,
+        ) = self.generate_data_repeat_interleave_self_int(
+            (5, 5), 3, [Replicate()]
+        )
 
         output_dtensor = torch.repeat_interleave(input_dtensor, repeats_value, dim=1)
         output = torch.repeat_interleave(input_tensor, repeats_value, dim=1)
@@ -748,7 +1054,14 @@ class TestRepeatInterleaveSelfInt(NPUDTensorTestBase):
     @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_torch_repeat_interleave_self_int_shard1(self):
-        input_tensor, repeats_value, input_dtensor, _ = self.generate_data_repeat_interleave_self_int((8, 8), 3, [Shard(1)])
+        (
+            input_tensor,
+            repeats_value,
+            input_dtensor,
+            _,
+        ) = self.generate_data_repeat_interleave_self_int(
+            (8, 8), 3, [Shard(1)]
+        )
 
         output_dtensor = torch.repeat_interleave(input_dtensor, repeats_value, dim=1)
         output = torch.repeat_interleave(input_tensor, repeats_value, dim=1)
@@ -759,7 +1072,14 @@ class TestRepeatInterleaveSelfInt(NPUDTensorTestBase):
     @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_torch_repeat_interleave_self_int_shard0(self):
-        input_tensor, repeats_value, input_dtensor, _ = self.generate_data_repeat_interleave_self_int((8, 8), 3, [Shard(0)])
+        (
+            input_tensor,
+            repeats_value,
+            input_dtensor,
+            _,
+        ) = self.generate_data_repeat_interleave_self_int(
+            (8, 8), 3, [Shard(0)]
+        )
 
         output_dtensor = torch.repeat_interleave(input_dtensor, repeats_value, dim=1)
         output = torch.repeat_interleave(input_tensor, repeats_value, dim=1)
@@ -770,7 +1090,14 @@ class TestRepeatInterleaveSelfInt(NPUDTensorTestBase):
     @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_torch_repeat_interleave_self_int_dim_is_None_shard0_is_evenly_shardable(self):
-        input_tensor, repeats_value, input_dtensor, _ = self.generate_data_repeat_interleave_self_int((8, 5), 3, [Shard(0)])
+        (
+            input_tensor,
+            repeats_value,
+            input_dtensor,
+            _,
+        ) = self.generate_data_repeat_interleave_self_int(
+            (8, 5), 3, [Shard(0)]
+        )
 
         output_dtensor = torch.repeat_interleave(input_dtensor, repeats_value)
         output = torch.repeat_interleave(input_tensor, repeats_value)
@@ -781,7 +1108,14 @@ class TestRepeatInterleaveSelfInt(NPUDTensorTestBase):
     @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_torch_repeat_interleave_self_int_shard0_dim1_is_not_evenly_shardable(self):
-        input_tensor, repeats_value, input_dtensor, _ = self.generate_data_repeat_interleave_self_int((5, 5), 3, [Shard(0)])
+        (
+            input_tensor,
+            repeats_value,
+            input_dtensor,
+            _,
+        ) = self.generate_data_repeat_interleave_self_int(
+            (5, 5), 3, [Shard(0)]
+        )
 
         output_dtensor = torch.repeat_interleave(input_dtensor, repeats_value, dim=1)
         output = torch.repeat_interleave(input_tensor, repeats_value, dim=1)
@@ -792,7 +1126,14 @@ class TestRepeatInterleaveSelfInt(NPUDTensorTestBase):
     @skipIfUnsupportMultiNPU(2)
     @with_comms
     def test_torch_repeat_interleave_self_int_shard1_dim1_is_not_evenly_shardable(self):
-        input_tensor, repeats_value, input_dtensor, _ = self.generate_data_repeat_interleave_self_int((5, 8), 3, [Shard(1)])
+        (
+            input_tensor,
+            repeats_value,
+            input_dtensor,
+            _,
+        ) = self.generate_data_repeat_interleave_self_int(
+            (5, 8), 3, [Shard(1)]
+        )
 
         output_dtensor = torch.repeat_interleave(input_dtensor, repeats_value, dim=1)
         output = torch.repeat_interleave(input_tensor, repeats_value, dim=1)
@@ -806,7 +1147,14 @@ class TestRepeatInterleaveSelfInt(NPUDTensorTestBase):
         sizes = [(2, 2), (5, 5), (5, 8), (8, 5), (8, 8)]
 
         for size in sizes:
-            input_tensor, repeats_value, input_dtensor, mesh = self.generate_data_repeat_interleave_self_int(size, 3, [Replicate()])
+            (
+                input_tensor,
+                repeats_value,
+                input_dtensor,
+                mesh,
+            ) = self.generate_data_repeat_interleave_self_int(
+                size, 3, [Replicate()]
+            )
 
             output_dtensor = torch.repeat_interleave(input_dtensor, repeats_value, dim=1)
             output = torch.repeat_interleave(input_tensor, repeats_value, dim=1)
@@ -825,7 +1173,14 @@ class TestRepeatInterleaveSelfInt(NPUDTensorTestBase):
         sizes = [(2, 2), (5, 5), (5, 8), (8, 5), (8, 8)]
 
         for size in sizes:
-            input_tensor, repeats_value, input_dtensor, mesh = self.generate_data_repeat_interleave_self_int(size, 3, [Replicate()])
+            (
+                input_tensor,
+                repeats_value,
+                input_dtensor,
+                mesh,
+            ) = self.generate_data_repeat_interleave_self_int(
+                size, 3, [Replicate()]
+            )
 
             output_dtensor = torch.repeat_interleave(input_dtensor, repeats_value, dim=1)
             output = torch.repeat_interleave(input_tensor, repeats_value, dim=1)
@@ -844,7 +1199,14 @@ class TestRepeatInterleaveSelfInt(NPUDTensorTestBase):
         sizes = [(2, 2), (5, 5), (5, 8), (8, 5), (8, 8)]
 
         for size in sizes:
-            input_tensor, repeats_value, input_dtensor, mesh = self.generate_data_repeat_interleave_self_int(size, 3, [Shard(1)])
+            (
+                input_tensor,
+                repeats_value,
+                input_dtensor,
+                mesh,
+            ) = self.generate_data_repeat_interleave_self_int(
+                size, 3, [Shard(1)]
+            )
 
             output_dtensor = torch.repeat_interleave(input_dtensor, repeats_value, dim=1)
             output = torch.repeat_interleave(input_tensor, repeats_value, dim=1)
@@ -863,7 +1225,14 @@ class TestRepeatInterleaveSelfInt(NPUDTensorTestBase):
         sizes = [(2, 2), (5, 5), (5, 8), (8, 5), (8, 8)]
 
         for size in sizes:
-            input_tensor, repeats_value, input_dtensor, mesh = self.generate_data_repeat_interleave_self_int(size, 3, [Replicate()])
+            (
+                input_tensor,
+                repeats_value,
+                input_dtensor,
+                mesh,
+            ) = self.generate_data_repeat_interleave_self_int(
+                size, 3, [Replicate()]
+            )
 
             output_dtensor = torch.repeat_interleave(input_dtensor, repeats_value)
             output = torch.repeat_interleave(input_tensor, repeats_value)
@@ -882,7 +1251,14 @@ class TestRepeatInterleaveSelfInt(NPUDTensorTestBase):
         sizes = [(2, 2), (5, 5), (5, 8), (8, 5), (8, 8)]
 
         for size in sizes:
-            input_tensor, repeats_value, input_dtensor, mesh = self.generate_data_repeat_interleave_self_int(size, 3, [Shard(0)])
+            (
+                input_tensor,
+                repeats_value,
+                input_dtensor,
+                mesh,
+            ) = self.generate_data_repeat_interleave_self_int(
+                size, 3, [Shard(0)]
+            )
 
             output_dtensor = torch.repeat_interleave(input_dtensor, repeats_value, dim=1)
             output = torch.repeat_interleave(input_tensor, repeats_value, dim=1)
@@ -901,7 +1277,14 @@ class TestRepeatInterleaveSelfInt(NPUDTensorTestBase):
         sizes = [(2, 2), (5, 5), (5, 8), (8, 5), (8, 8)]
 
         for size in sizes:
-            input_tensor, repeats_value, input_dtensor, mesh = self.generate_data_repeat_interleave_self_int(size, 3, [Shard(0)])
+            (
+                input_tensor,
+                repeats_value,
+                input_dtensor,
+                mesh,
+            ) = self.generate_data_repeat_interleave_self_int(
+                size, 3, [Shard(0)]
+            )
 
             output_dtensor = torch.repeat_interleave(input_dtensor, repeats_value, dim=1)
             output = torch.repeat_interleave(input_tensor, repeats_value, dim=1)
@@ -920,7 +1303,14 @@ class TestRepeatInterleaveSelfInt(NPUDTensorTestBase):
         sizes = [(2, 2), (5, 5), (5, 8), (8, 5), (8, 8)]
 
         for size in sizes:
-            input_tensor, repeats_value, input_dtensor, mesh = self.generate_data_repeat_interleave_self_int(size, 3, [Shard(1)])
+            (
+                input_tensor,
+                repeats_value,
+                input_dtensor,
+                mesh,
+            ) = self.generate_data_repeat_interleave_self_int(
+                size, 3, [Shard(1)]
+            )
 
             output_dtensor = torch.repeat_interleave(input_dtensor, repeats_value, dim=1)
             output = torch.repeat_interleave(input_tensor, repeats_value, dim=1)
@@ -939,7 +1329,14 @@ class TestRepeatInterleaveSelfInt(NPUDTensorTestBase):
         sizes = [(2, 2), (5, 5), (5, 8), (8, 5), (8, 8)]
 
         for size in sizes:
-            input_tensor, repeats_value, input_dtensor, mesh = self.generate_data_repeat_interleave_self_int(size, 3, [Shard(1)])
+            (
+                input_tensor,
+                repeats_value,
+                input_dtensor,
+                mesh,
+            ) = self.generate_data_repeat_interleave_self_int(
+                size, 3, [Shard(1)]
+            )
 
             output_dtensor = torch.repeat_interleave(input_dtensor, repeats_value, dim=1)
             output = torch.repeat_interleave(input_tensor, repeats_value, dim=1)
