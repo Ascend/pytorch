@@ -223,6 +223,50 @@ jobs:
             echo "  test group(s): $(find "${shard_dir}" -type f -path '*/covdata/coverage' | wc -l)"
           done
 
+      - name: Trim the snapshot test tree to the tests that ran
+        run: |
+          python3 - <<'PYEOF'
+          import json
+          import sys
+          from pathlib import Path
+
+          test_dir = Path("${COV_ARTIFACTS}/convstub/pytorch/test")
+          if not test_dir.is_dir():
+              print("no snapshot test tree, nothing to trim")
+              sys.exit(0)
+
+          keep = set()
+          for report in sorted(Path("cov-out").glob("*/reports/shard_*_cases.json")):
+              data = json.loads(report.read_text(encoding="utf-8"))
+              for case in data.get("cases", []):
+                  file_path = case.get("file") or ""
+                  if file_path:
+                      keep.add(file_path[5:] if file_path.startswith("test/") else file_path)
+
+          if not keep:
+              print("WARNING: no executed test file found in the shard reports, keeping the tree as it is")
+              sys.exit(0)
+
+          removed = 0
+          for path in sorted(p for p in test_dir.rglob("*") if p.is_file()):
+              if (
+                  path.suffix != ".py"
+                  or path.name == "conftest.py"
+                  or path.relative_to(test_dir).as_posix() in keep
+              ):
+                  continue
+              path.unlink()
+              removed += 1
+          for path in sorted((p for p in test_dir.rglob("*") if p.is_dir()), reverse=True):
+              try:
+                  path.rmdir()
+              except OSError:
+                  pass
+
+          print(f"snapshot test tree: kept {len(keep)} executed test file(s), removed {removed} file(s)")
+          PYEOF
+          du -sh "${COV_ARTIFACTS}/convstub/pytorch/test" || true
+
       - name: Merge shard coverage
         run: |
           SHARD_DIRS="$(cd cov-out && ls -d */ | sed 's:/$::' | sed 's:^:cov-out/:' | paste -sd, -)"
@@ -259,6 +303,7 @@ jobs:
           name: pytorch-coverage-${{ needs.resolve.outputs.short }}
           path: coverage-out/artifacts/
           retention-days: 14
+          include-hidden-files: true
           if-no-files-found: warn
 
       - name: Publish coverage to OBS and clean up staging
