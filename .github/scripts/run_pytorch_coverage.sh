@@ -244,6 +244,19 @@ for group in sorted(failed_files - set(groups)):
     group_dir.mkdir(parents=True, exist_ok=True)
     (group_dir / "FAILED").write_text("1\n", encoding="utf-8")
 
+executed_files = {case.get("file") or "unknown" for case in cases if case.get("status") == "passed"}
+missing_data = sorted(executed_files - set(groups))
+for group in missing_data:
+    group_dir = shard_dir / group / "covdata"
+    group_dir.mkdir(parents=True, exist_ok=True)
+    (group_dir / "FAILED").write_text("1\n", encoding="utf-8")
+
+if missing_data:
+    print(
+        f"WARNING: {len(missing_data)} test file(s) ran passed case(s) but produced no coverage data: "
+        f"{missing_data}",
+        file=sys.stderr,
+    )
 if unmapped:
     print(f"WARNING: {unmapped} coverage data file(s) not matched to any reported case", file=sys.stderr)
 print(f"  grouped {written} case data file(s) into {len(groups)} test group(s)")
@@ -278,16 +291,24 @@ from pathlib import Path
 
 _cov = None
 _nodeid = ""
+_tmp_data = ""
+_session_seq = 0
 
 
 def pytest_configure(config):
-    global _cov, _nodeid
+    global _cov, _nodeid, _tmp_data, _session_seq
     _nodeid = ""
-    if not os.environ.get("COVERAGE_PROCESS_START"):
+    if not os.environ.get("COVERAGE_PLUGIN_RCFILE"):
         return
     import coverage
 
-    _cov = coverage.Coverage(config_file=os.environ["COVERAGE_PROCESS_START"])
+    _session_seq += 1
+    case_dir = os.environ.get("COVERAGE_CASE_DIR", "") or "."
+    _tmp_data = str(Path(case_dir) / f".cov-pending-{os.getpid()}-{_session_seq}")
+    _cov = coverage.Coverage(
+        config_file=os.environ["COVERAGE_PLUGIN_RCFILE"],
+        data_file=_tmp_data,
+    )
     _cov.start()
 
 
@@ -298,7 +319,7 @@ def pytest_collection_modifyitems(session, config, items):
 
 
 def pytest_sessionfinish(session, exitstatus):
-    global _cov, _nodeid
+    global _cov, _nodeid, _tmp_data
     if _cov is None:
         return
 
@@ -309,8 +330,10 @@ def pytest_sessionfinish(session, exitstatus):
 
     _cov.stop()
     case = _cov
+    tmp_data = _tmp_data
     _cov = None
     _nodeid = ""
+    _tmp_data = ""
     if not case_dir:
         return
 
@@ -319,11 +342,15 @@ def pytest_sessionfinish(session, exitstatus):
     case_data = coverage.CoverageData(basename=str(Path(case_dir) / f"{safe}.coverage"))
     case_data.update(case.get_data())
     case_data.write()
+    try:
+        os.remove(tmp_data)
+    except OSError:
+        pass
 PYEOF
 
   export PYTHONPATH="${plugin_dir}${PYTHONPATH:+:${PYTHONPATH}}"
   export PYTEST_PLUGINS="zz_cov_plugin${PYTEST_PLUGINS:+,${PYTEST_PLUGINS}}"
-  export COVERAGE_PROCESS_START="${rc_file}"
+  export COVERAGE_PLUGIN_RCFILE="${rc_file}"
   export COVERAGE_CASE_DIR="${raw_cov_dir}"
 
   echo "=== Cases: ${cases_json}  workers: ${max_workers}  timeout: ${timeout_seconds}s  device-env: ${device_env} ==="
