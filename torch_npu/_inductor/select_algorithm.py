@@ -708,7 +708,7 @@ class NPUTritonTemplate(TritonTemplate):
                 return None
 
             if self.debug:
-                log.debug("Generated Code:\n", code)
+                log.debug("Generated Code:\n %s", code)
             # Build extra string for cache key and description.
             # We use '-' as the intermediate separator instead of ', ' because some
             # kwargs values (like call_sizes, mutated_inputs, subgraphs) contain
