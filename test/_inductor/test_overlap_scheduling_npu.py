@@ -13,6 +13,7 @@ from torch._subclasses.fake_tensor import FakeTensor, FakeTensorMode
 import torch_npu  # noqa: F401
 from torch_npu._inductor.fx_passes import dvm_fusion_regions
 from torch_npu._inductor.fx_passes import overlap_scheduling as npu_overlap
+from version_mark import runIfVersion
 
 
 TestCase = unittest.TestCase
@@ -66,12 +67,14 @@ class _CallableTarget:
 
 
 class TestOverlapSchedulingHelpers(TestCase):
+    @runIfVersion(max="2.13")
     def test_median_uses_lower_value_for_even_samples(self):
         self.assertEqual(npu_overlap._median([5.0, 1.0, 3.0]), 3.0)
         self.assertEqual(npu_overlap._median([9.0, 1.0, 5.0, 3.0]), 3.0)
         with self.assertRaisesRegex(ValueError, "empty list"):
             npu_overlap._median([])
 
+    @runIfVersion(max="2.13")
     def test_fake_tensor_materialization_preserves_tensor_metadata(self):
         mode = FakeTensorMode()
         with mode:
@@ -95,6 +98,7 @@ class TestOverlapSchedulingHelpers(TestCase):
         self.assertEqual(real_index.dtype, torch.int64)
         self.assertEqual(kwargs["constant"], 7)
 
+    @runIfVersion(max="2.13")
     def test_fake_tensor_materialization_rejects_unbacked_dimensions(self):
         mode = FakeTensorMode()
         with mode:
@@ -105,6 +109,7 @@ class TestOverlapSchedulingHelpers(TestCase):
             with self.assertRaisesRegex(ValueError, "unbacked dimensions"):
                 npu_overlap._fake_tensors_to_real((fake,), {})
 
+    @runIfVersion(max="2.13")
     def test_event_benchmark_warmup_order_and_median(self):
         events = _EventFactory([3.0, 1.0, 2.0])
         calls = []
@@ -141,6 +146,7 @@ class TestOverlapSchedulingHelpers(TestCase):
             ],
         )
 
+    @runIfVersion(max="2.13")
     def test_event_benchmark_requires_npu(self):
         fake_npu = types.SimpleNamespace(is_available=lambda: False)
         with mock.patch.object(npu_overlap.torch, "npu", fake_npu, create=True):
@@ -149,6 +155,7 @@ class TestOverlapSchedulingHelpers(TestCase):
 
 
 class TestCollectiveBenchmarkFunctionality(TestCase):
+    @runIfVersion(max="2.13")
     def test_collective_benchmark_returns_none_without_npu(self):
         node = types.SimpleNamespace(target=mock.Mock())
         fake_npu = types.SimpleNamespace(is_available=lambda: False)
@@ -160,6 +167,7 @@ class TestCollectiveBenchmarkFunctionality(TestCase):
             )
         node.target.assert_not_called()
 
+    @runIfVersion(max="2.13")
     def test_collective_benchmark_materializes_and_waits_before_end_event(self):
         events = _EventFactory([0.7, 0.5, 0.6])
         device_calls = []
@@ -195,6 +203,7 @@ class TestCollectiveBenchmarkFunctionality(TestCase):
             self.assertIs(call.args[0], real_args[0])
             self.assertEqual(call.kwargs, real_kwargs)
 
+    @runIfVersion(max="2.13")
     def test_wait_collective_result_walks_nested_tensor_outputs(self):
         first = torch.ones(1)
         second = torch.ones(2)
@@ -217,6 +226,7 @@ class TestCollectiveBenchmarkFunctionality(TestCase):
 
 
 class TestComputeNodeClassification(TestCase):
+    @runIfVersion(max="2.13")
     def test_registered_compute_ops_and_upstream_fallback(self):
         packets = {
             "npu_grouped_matmul": object(),
@@ -260,6 +270,7 @@ class TestBalancedGroupList(TestCase):
     def _hint(value):
         return int(value)
 
+    @runIfVersion(max="2.13")
     def test_group_list_type_zero_is_balanced_cumulative_offsets(self):
         group_list = torch.empty(3, dtype=torch.int64)
         result = npu_overlap._balanced_group_list_for_benchmark(
@@ -272,6 +283,7 @@ class TestBalancedGroupList(TestCase):
         self.assertEqual(result.dtype, group_list.dtype)
         self.assertEqual(result.device, group_list.device)
 
+    @runIfVersion(max="2.13")
     def test_group_list_type_one_is_balanced_counts(self):
         result = npu_overlap._balanced_group_list_for_benchmark(
             torch.empty(3, dtype=torch.int64),
@@ -282,6 +294,7 @@ class TestBalancedGroupList(TestCase):
         self.assertEqual(result.tolist(), [4, 3, 3])
         self.assertEqual(sum(result.tolist()), 10)
 
+    @runIfVersion(max="2.13")
     def test_group_list_type_two_is_id_and_count_matrix(self):
         result = npu_overlap._balanced_group_list_for_benchmark(
             torch.empty(3, 2, dtype=torch.int64),
@@ -291,6 +304,7 @@ class TestBalancedGroupList(TestCase):
         )
         self.assertEqual(result.tolist(), [[0, 4], [1, 3], [2, 3]])
 
+    @runIfVersion(max="2.13")
     def test_k_split_uses_contraction_dimension(self):
         result = npu_overlap._balanced_group_list_for_benchmark(
             torch.empty(4, dtype=torch.int64),
@@ -300,6 +314,7 @@ class TestBalancedGroupList(TestCase):
         )
         self.assertEqual(result.tolist(), [2, 3, 4, 5])
 
+    @runIfVersion(max="2.13")
     def test_more_groups_than_tokens_keeps_total_work(self):
         counts = npu_overlap._balanced_group_list_for_benchmark(
             torch.empty(5, dtype=torch.int64),
@@ -310,6 +325,7 @@ class TestBalancedGroupList(TestCase):
         self.assertEqual(counts.tolist(), [1, 1, 0, 0, 0])
         self.assertEqual(sum(counts.tolist()), 2)
 
+    @runIfVersion(max="2.13")
     def test_invalid_group_list_inputs_fall_back_to_generic_materialization(self):
         valid_x = ([torch.empty(10, 8)],)
         cases = [
@@ -379,6 +395,7 @@ class TestGroupedMatmulBenchmarkWrapper(TestCase):
             return_value=(True, self.fake_args, self.fake_kwargs),
         )
 
+    @runIfVersion(max="2.13")
     def test_non_gmm_node_delegates_to_upstream_unchanged(self):
         wrapper = self._build_wrapper()
         other_node = types.SimpleNamespace(
@@ -388,6 +405,7 @@ class TestGroupedMatmulBenchmarkWrapper(TestCase):
         self.assertEqual(wrapper(other_node, estimator), (9.0, "upstream-key"))
         self.upstream.assert_called_once_with(other_node, estimator)
 
+    @runIfVersion(max="2.13")
     def test_custom_estimation_short_circuits_input_generation(self):
         wrapper = self._build_wrapper()
         estimator = mock.Mock()
@@ -401,6 +419,7 @@ class TestGroupedMatmulBenchmarkWrapper(TestCase):
             self.node, estimator, None
         )
 
+    @runIfVersion(max="2.13")
     def test_invalid_fake_inputs_return_zero_without_benchmark(self):
         wrapper = self._build_wrapper()
         with mock.patch.object(
@@ -411,6 +430,7 @@ class TestGroupedMatmulBenchmarkWrapper(TestCase):
             self.assertEqual(wrapper(self.node), (0.0, None))
         self.overlap.get_collective_do_bench.assert_not_called()
 
+    @runIfVersion(max="2.13")
     def test_cache_hit_reuses_upstream_style_key(self):
         wrapper = self._build_wrapper()
         self.overlap.get_cached_node_time.return_value = 1.75
@@ -425,6 +445,7 @@ class TestGroupedMatmulBenchmarkWrapper(TestCase):
         self.overlap.get_collective_do_bench.assert_not_called()
         self.overlap.set_cached_node_time.assert_not_called()
 
+    @runIfVersion(max="2.13")
     def test_cache_miss_benchmarks_nonzero_balanced_group_list(self):
         wrapper = self._build_wrapper()
 
@@ -444,6 +465,7 @@ class TestGroupedMatmulBenchmarkWrapper(TestCase):
         self.assertEqual(sum(generated.tolist()), 10)
         self.overlap.set_cached_node_time.assert_called_once_with(key, 1.25)
 
+    @runIfVersion(max="2.13")
     def test_cache_key_depends_on_metadata_not_group_list_values(self):
         wrapper = self._build_wrapper()
         self.overlap.get_collective_do_bench.return_value = lambda fn: 1.0
@@ -460,6 +482,7 @@ class TestGroupedMatmulBenchmarkWrapper(TestCase):
                 keys.append(key)
         self.assertEqual(keys[0], keys[1])
 
+    @runIfVersion(max="2.13")
     def test_unbacked_tensor_does_not_run_target(self):
         wrapper = self._build_wrapper()
         self.overlap.get_hint = lambda value: None
@@ -472,10 +495,12 @@ class TestGroupedMatmulBenchmarkWrapper(TestCase):
 
 
 class TestEstimatorAndScheduleGuards(TestCase):
+    @runIfVersion(max="2.13")
     def test_npu_defaults_disable_cuda_fsdp_pre_bucketing(self):
         dist_opts = torch._inductor.config.aten_distributed_optimizations
         self.assertFalse(dist_opts.pre_bucketing_fsdp_collectives)
 
+    @runIfVersion(max="2.13")
     def test_gather_estimator_uses_pytorch_2_13_dict_result(self):
         first = object()
         second = object()
@@ -506,6 +531,7 @@ class TestEstimatorAndScheduleGuards(TestCase):
         build_regions.assert_called_once_with(gm)
         estimate_costs.assert_called_once_with({first: region})
 
+    @runIfVersion(max="2.13")
     def test_collective_estimator_prefers_custom_then_benchmark(self):
         overlap = types.SimpleNamespace(
             get_custom_estimation=mock.Mock(return_value=0.25)
@@ -529,6 +555,7 @@ class TestEstimatorAndScheduleGuards(TestCase):
             node, nruns=5
         )
 
+    @runIfVersion(max="2.13")
     def test_collective_estimator_returns_safe_zero_without_hccl_model(self):
         overlap = types.SimpleNamespace(get_custom_estimation=lambda *args: None)
         runtime_estimation = types.SimpleNamespace(
@@ -542,6 +569,7 @@ class TestEstimatorAndScheduleGuards(TestCase):
         self.assertEqual(estimate(object(), collective_estimator="analytical"), 0.0)
         self.assertEqual(estimate(object(), collective_estimator="benchmark"), 0.0)
 
+    @runIfVersion(max="2.13")
     def test_collective_logger_emits_supplied_aligned_medians(self):
         runtime = types.SimpleNamespace(
             _get_collective_key=lambda node: f"key-{node}",
@@ -568,6 +596,7 @@ class TestEstimatorAndScheduleGuards(TestCase):
         self.assertIn("0.1250", payload)
         self.assertIn("2.5000", payload)
 
+    @runIfVersion(max="2.13")
     def test_schedule_entry_rejects_unsupported_estimators(self):
         upstream = mock.Mock(return_value="gm")
 
@@ -582,6 +611,7 @@ class TestEstimatorAndScheduleGuards(TestCase):
                 wrapped("gm", "benchmark", "analytical")
             self.assertEqual(wrapped("gm", "benchmark", "benchmark"), "gm")
 
+    @runIfVersion(max="2.13")
     def test_schedule_entry_rejects_deterministic_mode(self):
         def schedule(gm, compute_estimator, collective_estimator):
             return gm
@@ -591,6 +621,7 @@ class TestEstimatorAndScheduleGuards(TestCase):
             with self.assertRaisesRegex(NotImplementedError, "deterministic mode"):
                 wrapped("gm", "benchmark", "benchmark")
 
+    @runIfVersion(max="2.13")
     def test_unsupported_npu_roofline_is_zero(self):
         self.assertEqual(npu_overlap._unsupported_npu_roofline_estimation(object()), 0.0)
 
