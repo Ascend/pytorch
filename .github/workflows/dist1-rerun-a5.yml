@@ -1,0 +1,336 @@
+# 分布式 shard-1 重跑流水线（纯增量，不改动任何现有 workflow/脚本/配置）
+#
+# 背景: nightly-a5 run 35881898177 的 distributed shard 1/4（2472 用例）因
+# A5 环境 HCCL 建链问题大面积超时失败、耗时过长。本流水线将该 shard 的
+# 2472 个用例重新切成 N 个分片（默认 10）重跑，复用原 run 的构建产物
+# （pytorch 887633d60b + torch-npu 49fb6a91e9，与原 run 严格同源可比），
+# 测试 job 并发限制为 3。
+#
+# 复用（只读，零修改）:
+#   - _nightly_test-category.yml : 测试 job 模板（OBS 源码/wheels 下载、
+#     执行、报告打包、CANN 日志上传）
+#   - run_npu_test_shard.py      : 用例执行器（模板固定 checkout ci-test 分支）
+#   - 源 run 的 cases-shards artifact 与 OBS 7day-cache 构建产物
+#
+# 用例切分策略: 按源文件聚组（同文件用例不跨分片，保持 runner 按文件分批
+# 的执行效率），文件组按用例数贪心装箱到当前最轻的分片，实现数量均衡。
+#
+# 前置条件:
+#   1. 本文件已推送到 ci-test 分支
+#   2. （建议）取消源 run 中仍在执行的任务，释放 a5-8 机器并避免 HCCL 争抢:
+#      gh run cancel 35881898177 --repo Ascend/pytorch
+#
+# 触发:
+#   gh workflow run dist1-rerun-a5.yml --repo Ascend/pytorch --ref ci-test
+#   （全部参数有默认值，可直接空参触发）
+name: Dist Shard-1 Rerun A5
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: 'Source run id (provides the cases-shards artifact)'
+        required: true
+        default: '35881898177'
+      source_shard_file:
+        description: 'Shard file inside the cases-shards artifact to rerun'
+        required: true
+        default: 'distributed_cases_shard_1.json'
+      num_shards:
+        description: 'Re-split the source cases into this many shards'
+        required: true
+        default: '10'
+      wheels_tarball:
+        description: 'OBS wheels tarball name (pinned to source run build)'
+        required: true
+        default: 'wheels-887633d60b-npu-49fb6a91e9-py310-torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609230925-00b993fc-x86_64.tar.gz'
+      resolved_short:
+        description: 'Upstream PyTorch short SHA (source tarball key)'
+        required: true
+        default: '887633d60b'
+      resolved_sha:
+        description: 'Upstream PyTorch full SHA'
+        required: true
+        default: '887633d60bc8854554715ad2d6794d7c50e39f32'
+
+permissions:
+  id-token: write
+  contents: read
+  # prepare job 跨 run 下载源 run 的 cases-shards artifact
+  actions: read
+
+concurrency:
+  group: dist1-rerun-a5
+  cancel-in-progress: false
+
+jobs:
+  # ==========================================================================
+  # 1. 从源 run 拉取 cases-shards artifact，将 2472 个用例切成 N 个子分片，
+  #    以 "cases-shards" 名义重新上传（_nightly_test-category.yml 原样消费）
+  # ==========================================================================
+  prepare:
+    name: re-shard ${{ inputs.source_shard_file }}
+    runs-on: linux-amd64-a5-2
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609230925-00b993fc
+      options: --network host
+    outputs:
+      shard_matrix: ${{ steps.split.outputs.shard_matrix }}
+      total_cases: ${{ steps.split.outputs.total_cases }}
+      num_shards: ${{ steps.split.outputs.num_shards }}
+    steps:
+      - name: Download cases-shards from source run
+        # 跨 run artifact 下载: 同仓库 + actions:read 权限即可用默认 token。
+        # 若被组织策略拒绝，改用具有 actions:read 的 PAT（存为 repo secret
+        # 后替换下方 github-token）。
+        uses: actions/download-artifact@v4
+        with:
+          name: cases-shards
+          path: source-cases
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Split source shard into balanced sub-shards
+        id: split
+        env:
+          SOURCE_SHARD_FILE: ${{ inputs.source_shard_file }}
+          NUM_SHARDS: ${{ inputs.num_shards }}
+        run: |
+          python3 - <<'PYEOF'
+          import heapq
+          import json
+          import os
+          import sys
+          from collections import defaultdict
+          from pathlib import Path
+
+          source_file = Path(os.environ.get("SOURCE_SHARD_FILE", "distributed_cases_shard_1.json"))
+          source_dir = Path(os.environ.get("SOURCE_DIR", "source-cases"))
+          out_dir = Path(os.environ.get("OUT_DIR", "cases-shards"))
+          num_shards = int(os.environ.get("NUM_SHARDS", "10"))
+
+          src_path = source_dir / source_file
+          if not src_path.is_file():
+              print(f"ERROR: source shard file not found: {src_path}", file=sys.stderr)
+              print(f"Available files: {sorted(p.name for p in source_dir.glob('*.json'))}", file=sys.stderr)
+              sys.exit(1)
+
+          data = json.loads(src_path.read_text(encoding="utf-8"))
+          cases = data.get("cases", [])
+          total = len(cases)
+          test_type = data.get("test_type", "distributed")
+          if total == 0:
+              print("ERROR: source shard has no cases", file=sys.stderr)
+              sys.exit(1)
+
+          # Group by file, preserving original case order inside each group.
+          groups = defaultdict(list)
+          seen = set()
+          for case in cases:
+              nodeid = case.get("nodeid", "")
+              if not nodeid or nodeid in seen:
+                  print(f"ERROR: missing or duplicate nodeid: {nodeid!r}", file=sys.stderr)
+                  sys.exit(1)
+              seen.add(nodeid)
+              groups[case["file"]].append(case)
+
+          if num_shards > len(groups):
+              print(
+                  f"ERROR: num_shards ({num_shards}) exceeds number of file groups "
+                  f"({len(groups)}); some shards would be empty",
+                  file=sys.stderr,
+              )
+              sys.exit(1)
+
+          # Greedy bin packing: largest file group first, onto the lightest shard.
+          shard_counts = [0] * num_shards
+          shard_cases = [[] for _ in range(num_shards)]
+          heap = [(0, i) for i in range(num_shards)]
+          heapq.heapify(heap)
+          for fname in sorted(groups, key=lambda f: -len(groups[f])):
+              group = groups[fname]
+              count, idx = heapq.heappop(heap)
+              shard_cases[idx].extend(group)
+              shard_counts[idx] += len(group)
+              heapq.heappush(heap, (count + len(group), idx))
+
+          # Write sub-shard files with the collector's schema. The output name
+          # keeps the <category>_cases_shard_N.json convention that
+          # _nightly_test-category.yml reconstructs from the category input:
+          #   cases-shards/distributed_cases_shard_<N>.json
+          out_dir.mkdir(parents=True, exist_ok=True)
+          stem = source_file.stem  # e.g. distributed_cases_shard_1
+          base = stem.rsplit("_shard_", 1)[0] if "_shard_" in stem else stem
+          for idx, cases_for_shard in enumerate(shard_cases, start=1):
+              out = {
+                  "shard": idx,
+                  "num_shards": num_shards,
+                  "test_type": test_type,
+                  "total_cases": len(cases_for_shard),
+                  "cases": cases_for_shard,
+              }
+              (out_dir / f"{base}_shard_{idx}.json").write_text(
+                  json.dumps(out, indent=2), encoding="utf-8"
+              )
+
+          # ---- verification ----
+          assert sum(shard_counts) == total, "case count mismatch after split"
+          flat = [c["nodeid"] for sc in shard_cases for c in sc]
+          assert len(set(flat)) == total, "duplicate nodeids after split"
+          file_shard_map = defaultdict(set)
+          for idx, sc in enumerate(shard_cases, start=1):
+              for c in sc:
+                  file_shard_map[c["file"]].add(idx)
+          split_files = {f: s for f, s in file_shard_map.items() if len(s) > 1}
+          assert not split_files, f"files split across shards: {split_files}"
+
+          print(f"Source: {src_path} ({total} cases, {len(groups)} files, "
+                f"test_type={test_type!r})")
+          print(f"Split into {num_shards} shards (case counts): {shard_counts}")
+          print(f"Largest file group: {max(len(g) for g in groups.values())} cases")
+          print("Files split across shards: 0 (verified)")
+
+          matrix = json.dumps(list(range(1, num_shards + 1)))
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
+              f.write(f"shard_matrix={matrix}\n")
+              f.write(f"total_cases={total}\n")
+              f.write(f"num_shards={num_shards}\n")
+          PYEOF
+
+      - name: Upload re-sharded cases
+        uses: actions/upload-artifact@v4
+        with:
+          name: cases-shards
+          path: cases-shards/
+          retention-days: 14
+          if-no-files-found: error
+
+  # ==========================================================================
+  # 2. 测试矩阵: N 个分片，并发限制 3（需求指定），逐片调用现有模板
+  #    _nightly_test-category.yml（不修改；单元素 matrix_json 使并发控制
+  #    完全落在调用方 matrix + max-parallel 上）
+  # ==========================================================================
+  test:
+    needs: prepare
+    name: rerun dist shard
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        shard: ${{ fromJSON(needs.prepare.outputs.shard_matrix) }}
+    uses: ./.github/workflows/_nightly_test-category.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ inputs.resolved_short }}
+      resolved_sha: ${{ inputs.resolved_sha }}
+      wheels_tarball: ${{ inputs.wheels_tarball }}
+      upstream_repo: pytorch/pytorch
+      category: distributed
+      num_shards: ${{ inputs.num_shards }}
+      matrix_json: ${{ format('[{0}]', matrix.shard) }}
+      max_workers: '1'
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609230925-00b993fc
+      report_to_upstream: false
+      runner_label: linux-amd64-a5-8
+      device_env: privateuse1,cpu
+
+  # ==========================================================================
+  # 3. 汇总: 聚合 N 个分片的执行统计，输出总览（部分分片失败也不阻塞）
+  # ==========================================================================
+  summary:
+    needs: [prepare, test]
+    if: always() && needs.prepare.result == 'success'
+    name: aggregate summary
+    runs-on: linux-amd64-a5-2
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609230925-00b993fc
+      options: --network host
+    steps:
+      - name: Download all shard reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-dist-*
+          path: reports
+          merge-multiple: true
+
+      - name: Aggregate results
+        env:
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          SOURCE_SHARD_FILE: ${{ inputs.source_shard_file }}
+          TOTAL_CASES: ${{ needs.prepare.outputs.total_cases }}
+        run: |
+          python3 - <<'PYEOF'
+          import glob
+          import json
+          import os
+
+          def shard_key(path):
+              # reports/shard_dist-<N>_stats.json
+              name = path.rsplit("/", 1)[-1]
+              return int(name.split("shard_dist-")[1].split("_")[0])
+
+          stats_files = sorted(glob.glob("reports/shard_dist-*_stats.json"), key=shard_key)
+          if not stats_files:
+              print("WARNING: no shard stats found, nothing to aggregate")
+
+          rows = []
+          totals = {"total": 0, "passed": 0, "failed": 0, "skipped": 0,
+                    "errors": 0, "timeout": 0, "duration": 0.0}
+          for path in stats_files:
+              with open(path, encoding="utf-8") as f:
+                  s = json.load(f)
+              rows.append((shard_key(path), s))
+              for k in totals:
+                  if k in s:
+                      totals[k] += s[k]
+
+          lines = []
+          lines.append("## Dist Shard-1 Rerun Summary\n")
+          lines.append(f"Source run: {os.environ.get('SOURCE_RUN_ID', 'n/a')} "
+                       f"({os.environ.get('SOURCE_SHARD_FILE', 'n/a')}, "
+                       f"{os.environ.get('TOTAL_CASES', '?')} cases)\n")
+          lines.append("| shard | total | passed | failed | errors | timeout | skipped | duration (h) |")
+          lines.append("|------:|------:|-------:|-------:|-------:|--------:|--------:|-------------:|")
+          for n, s in rows:
+              lines.append(
+                  f"| {n} | {s.get('total', 0)} | {s.get('passed', 0)} | "
+                  f"{s.get('failed', 0)} | {s.get('errors', 0)} | "
+                  f"{s.get('timeout', 0)} | {s.get('skipped', 0)} | "
+                  f"{s.get('duration', 0) / 3600:.2f} |"
+              )
+          if rows:
+              lines.append(
+                  f"| **total** | **{totals['total']}** | **{totals['passed']}** | "
+                  f"**{totals['failed']}** | **{totals['errors']}** | "
+                  f"**{totals['timeout']}** | **{totals['skipped']}** | "
+                  f"**{totals['duration'] / 3600:.2f} |"
+              )
+          summary_md = "\n".join(lines)
+          print(summary_md)
+
+          summary_file = os.environ.get("GITHUB_STEP_SUMMARY")
+          if summary_file:
+              with open(summary_file, "a", encoding="utf-8") as f:
+                  f.write(summary_md + "\n")
+
+          with open("summary.json", "w", encoding="utf-8") as f:
+              json.dump({"per_shard": {str(n): s for n, s in rows},
+                         "totals": totals}, f, indent=2)
+          print(f"\nAggregated {len(rows)} shards -> summary.json")
+          PYEOF
+
+      - name: Upload summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist1-rerun-summary
+          path: summary.json
+          if-no-files-found: warn
