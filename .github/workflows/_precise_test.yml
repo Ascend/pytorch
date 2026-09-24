@@ -15,78 +15,40 @@ on:
         description: Full client_payload as a JSON string
 
 jobs:
-  extract:
+  precision-test:
+    name: Precise test case selection
     runs-on: ubuntu-latest
-    outputs:
-      upstream_repo: ${{ steps.parse.outputs.upstream_repo }}
-      pr_number: ${{ steps.parse.outputs.pr_number }}
-      head_sha: ${{ steps.parse.outputs.head_sha }}
-      base_ref: ${{ steps.parse.outputs.base_ref }}
-      changed_files: ${{ steps.parse.outputs.changed_files }}
     steps:
-      - name: Parse the PR payload
-        id: parse
+      - name: Parse the dispatch payload
+        id: pr
         env:
           EVENT_TYPE: ${{ inputs.event_type }}
           PAYLOAD_JSON: ${{ inputs.payload }}
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
           if [ "${EVENT_TYPE}" != "pull_request" ]; then
-            echo "DEBUG: no pull_request payload (event_type='${EVENT_TYPE}'), the precise-test plan stays empty"
-            echo "upstream_repo=" >> "$GITHUB_OUTPUT"
-            echo "pr_number=" >> "$GITHUB_OUTPUT"
-            echo "head_sha=" >> "$GITHUB_OUTPUT"
-            echo "base_ref=" >> "$GITHUB_OUTPUT"
-            echo "changed_files=0" >> "$GITHUB_OUTPUT"
-            echo "::notice::precise-test debug run: no PR payload, nothing to plan"
+            echo "DEBUG: no pull_request payload (event_type='${EVENT_TYPE}'), the PR stage stays empty"
+            echo "github_pr=" >> "$GITHUB_ENV"
+            echo "::notice::precise-test debug run: no PR payload, only the coverage map is built"
             exit 0
           fi
 
-          ACTION=$(echo "$PAYLOAD_JSON" | jq -r '.payload.action // empty')
           PR_NUMBER=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.number // empty')
           UPSTREAM_REPO=$(echo "$PAYLOAD_JSON" | jq -r '.payload.repository.full_name // empty')
-          HEAD_SHA=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.head.sha // empty')
           BASE_REF=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.base.ref // empty')
 
-          if [ -n "${UPSTREAM_REPO}" ] && [ -n "${PR_NUMBER}" ]; then
-            FILES_JSON=$(curl -sf \
-              -H "Authorization: Bearer ${GH_TOKEN}" \
-              -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/${UPSTREAM_REPO}/pulls/${PR_NUMBER}/files?per_page=100" || echo '[]')
-          else
-            FILES_JSON='[]'
+          if [ -z "${PR_NUMBER}" ] || [ -z "${UPSTREAM_REPO}" ]; then
+            echo "ERROR: cannot read the PR number / upstream repo from the payload" >&2
+            exit 1
           fi
-          CHANGED_FILES=$(echo "$FILES_JSON" | jq -r 'length' 2>/dev/null || echo 0)
 
-          echo "upstream_repo=${UPSTREAM_REPO}" >> "$GITHUB_OUTPUT"
-          echo "pr_number=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
-          echo "head_sha=${HEAD_SHA}" >> "$GITHUB_OUTPUT"
-          echo "base_ref=${BASE_REF}" >> "$GITHUB_OUTPUT"
-          echo "changed_files=${CHANGED_FILES}" >> "$GITHUB_OUTPUT"
+          echo "github_pr=${UPSTREAM_REPO}#${PR_NUMBER}" >> "$GITHUB_ENV"
 
-          echo "=== PR payload ==="
-          echo "action:        ${ACTION}"
-          echo "upstream_repo: ${UPSTREAM_REPO}"
-          echo "pr_number:     ${PR_NUMBER}"
-          echo "head_sha:      ${HEAD_SHA}"
-          echo "base_ref:      ${BASE_REF}"
-          echo "changed_files: ${CHANGED_FILES}"
-          echo "--- first 30 changed files ---"
-          echo "$FILES_JSON" | jq -r '.[:30][] | "  \(.status)\t\(.filename)"'
+          echo "=== pull request ==="
+          echo "github_pr: ${UPSTREAM_REPO}#${PR_NUMBER}"
+          echo "base_ref:  ${BASE_REF}"
 
-  recommend-tests:
-    name: Recommend tests from coverage
-    needs: extract
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    outputs:
-      coverage_dir: ${{ steps.fetch.outputs.coverage_dir }}
-      test_groups: ${{ steps.fetch.outputs.test_groups }}
-      total_cases: ${{ steps.fetch.outputs.total_cases }}
-      coverage_paths: ${{ steps.export-paths.outputs.coverage_paths }}
-    steps:
       - name: Install obsutil
         run: |
           set -euo pipefail
@@ -108,106 +70,133 @@ jobs:
           echo "${OBSUTIL_HOME}" >> "$GITHUB_PATH"
           "${OBSUTIL_HOME}/obsutil" version
 
-      - name: Download the coverage map from OBS
-        id: fetch
+      - name: Download previous coverage data from OBS
         run: |
           set -euo pipefail
 
           obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
 
-          rm -rf cov-dl && mkdir -p cov-dl
+          mkdir -p coverage
           for attempt in 1 2; do
             echo "=== Download attempt ${attempt} ==="
-            if obsutil cp "obs://pytorch-ci-cache/coverage/pytorch/latest/pytorch@latest/" ./cov-dl/ -r -f -vlength; then
+            if obsutil cp "obs://pytorch-ci-cache/coverage/pytorch/latest/" coverage/pytorch/ -r -f -vlength; then
               break
             fi
             sleep 10
           done
 
-          COV_XML="$(find cov-dl -maxdepth 3 -type f -name coverage.xml | head -1)"
-          if [ -z "${COV_XML}" ]; then
-            echo "ERROR: coverage.xml not found after the OBS download" >&2
-            find cov-dl -maxdepth 2 >&2 || true
+          if [ ! -d "coverage/pytorch/pytorch@latest" ] || [ ! -d "coverage/pytorch/convstub" ]; then
+            echo "::error::No previous coverage data found on OBS, cannot build map"
+            find coverage -maxdepth 3
             exit 1
           fi
-          COV_DIR="$(dirname "${COV_XML}")"
-          TEST_GROUPS=$(find "${COV_DIR}/test" -type f -path '*/covdata/coverage' 2>/dev/null | wc -l)
-          TOTAL_CASES=0
-          if [ -f "${COV_DIR}/logs/failed_cases.json" ]; then
-            TOTAL_CASES=$(python3 -c "import json; print(json.load(open('${COV_DIR}/logs/failed_cases.json')).get('total_cases', 0))")
-          fi
 
-          echo "coverage_dir=${COV_DIR}" >> "$GITHUB_OUTPUT"
-          echo "test_groups=${TEST_GROUPS}" >> "$GITHUB_OUTPUT"
-          echo "total_cases=${TOTAL_CASES}" >> "$GITHUB_OUTPUT"
+          echo "=== coverage directory tree ==="
+          find coverage -maxdepth 3 -type d
+          du -sh coverage/pytorch/pytorch@latest coverage/pytorch/convstub
 
-          echo "=== Coverage map ==="
-          du -sh cov-dl
-          echo "coverage_dir: ${COV_DIR}"
-          echo "test groups:  ${TEST_GROUPS} (test/<file>/covdata/coverage)"
-          echo "cases:        ${TOTAL_CASES}"
-          echo "--- coverage.xml header ---"
-          head -1 "${COV_XML}"
-          echo "--- test files with data ---"
-          find "${COV_DIR}/test" -type f -path '*/covdata/coverage' | sed "s|${COV_DIR}/test/||; s|/covdata/coverage||" | sort | head -30
-
-      - name: Recommend tests for the current PR
-        env:
-          UPSTREAM_REPO: ${{ needs.extract.outputs.upstream_repo }}
-          PR_NUMBER: ${{ needs.extract.outputs.pr_number }}
+      - name: generate-param
         run: |
           set -euo pipefail
 
-          COV_DIR="${{ steps.fetch.outputs.coverage_dir }}"
-
-          echo "=== selector inputs ==="
-          echo "pull request:  ${UPSTREAM_REPO}#${PR_NUMBER}"
-          echo "coverage map:  ${COV_DIR}/test/<test file>/covdata/coverage"
-          echo "changed files: resolved from the PR through the GitHub API"
-
-          echo "::notice::precise-test selector is not implemented yet, no test is recommended from the coverage map"
-
-      - name: Export coverage paths output
-        id: export-paths
-        if: always()
-        run: |
-          set -euo pipefail
-
-          FILE="recommended_pytest_paths.txt"
-          if [ -s "${FILE}" ]; then
-            {
-              echo "coverage_paths<<EOF"
-              cat "${FILE}"
-              echo "EOF"
-            } >> "$GITHUB_OUTPUT"
-            echo "Exported $(wc -l < "${FILE}") recommended path(s)"
+          if [ -d "coverage" ]; then
+            COVERAGE_PKG_DIR=$(find coverage -mindepth 1 -maxdepth 1 -type d | head -n1)
+            echo "COVERAGE_PKG_DIR=${COVERAGE_PKG_DIR}"
           else
-            echo "coverage_paths=" >> "$GITHUB_OUTPUT"
-            echo "::notice::${FILE} has no recommended path"
+            echo "::error::coverage directory not found"
+            exit 1
           fi
 
-  precise:
-    name: Precise test plan
-    needs: [extract, recommend-tests]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Plan the precise test set
+          if [ -d "${COVERAGE_PKG_DIR}" ]; then
+            TASK_DIR=$(find "${COVERAGE_PKG_DIR}" -mindepth 1 -maxdepth 1 -type d ! -name "convstub" | head -n1)
+            echo "TASK_DIR=${TASK_DIR}"
+          else
+            echo "::error::task_dir directory not found"
+            exit 1
+          fi
+
+          SOURCE_DIR="${COVERAGE_PKG_DIR}/convstub/pytorch"
+          if [ ! -d "${SOURCE_DIR}" ]; then
+            echo "::error::source dir ${SOURCE_DIR} not found"
+            exit 1
+          fi
+
+          echo "COVERAGE_PKG_DIR=${COVERAGE_PKG_DIR}" >> "$GITHUB_ENV"
+          echo "TASK_DIR=${TASK_DIR}" >> "$GITHUB_ENV"
+          echo "SOURCE_DIR=${SOURCE_DIR}" >> "$GITHUB_ENV"
+
+      - name: Flatten the coverage data for the selector
         run: |
           set -euo pipefail
 
-          echo "=== PR ==="
-          echo "upstream_repo: ${{ needs.extract.outputs.upstream_repo }}"
-          echo "pr_number:     ${{ needs.extract.outputs.pr_number }}"
-          echo "head_sha:      ${{ needs.extract.outputs.head_sha }}"
-          echo "base_ref:      ${{ needs.extract.outputs.base_ref }}"
-          echo "changed_files: ${{ needs.extract.outputs.changed_files }}"
+          python3 - <<'PYEOF'
+          import shutil
+          from pathlib import Path
 
-          echo "=== coverage map (from OBS) ==="
-          echo "coverage_dir:  ${{ needs.recommend-tests.outputs.coverage_dir }}"
-          echo "test groups:   ${{ needs.recommend-tests.outputs.test_groups }}"
-          echo "cases:         ${{ needs.recommend-tests.outputs.total_cases }}"
+          cov_dir = Path("${{ env.TASK_DIR }}")
+          flat_dir = Path("covdata-set")
+
+          if flat_dir.exists():
+              shutil.rmtree(flat_dir)
+          flat_dir.mkdir(parents=True)
+
+          files = 0
+          for covdata in sorted(cov_dir.glob("**/covdata")):
+              test_file = covdata.parent.relative_to(cov_dir).as_posix()
+              if not test_file.startswith("test/") or not test_file.endswith(".py"):
+                  continue
+              case_dir = flat_dir / test_file[:-3].replace("/", "__") / "covdata"
+              case_dir.mkdir(parents=True, exist_ok=True)
+              for src in covdata.glob("coverage*"):
+                  shutil.copy2(src, case_dir / src.name)
+                  files += 1
+
+          cases = sum(1 for item in flat_dir.iterdir() if item.is_dir())
+          print(f"selector input: {files} coverage file(s) in {cases} test case dir(s)")
+          if not cases:
+              raise SystemExit(f"ERROR: no per-test coverage data found under {cov_dir}")
+          for item in sorted(flat_dir.iterdir())[:5]:
+              print(f"  {item.name}/covdata/{sorted(p.name for p in item.glob('covdata/*'))}")
+          PYEOF
+
+      - name: generate-test-case-map
+        uses: lb-actions/precision-test@v1.0.1
+        with:
+          repo: pytorch
+          build-map: true
+          coverage-dir: covdata-set
+          source-dir: ${{ env.SOURCE_DIR }}
+          map-file: test_case_map.json
+
+      - name: generate-select-tests-case
+        id: precision-test
+        if: ${{ env.github_pr != '' }}
+        continue-on-error: true
+        uses: lb-actions/precision-test@v1.0.1
+        with:
+          repo: pytorch
+          github-pr: ${{ env.github_pr }}
+          source-dir: ${{ env.SOURCE_DIR }}
+          map-file: test_case_map.json
+          min-affected: 1
+          dedup: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PYTHON_EXEC_TIMEOUT_SECONDS: "900"
+
+      - name: Show the selected tests
+        if: ${{ steps.precision-test.conclusion == 'success' }}
+        run: |
+          set -euo pipefail
+
+          echo "=== pull request ==="
+          echo "github_pr: ${{ env.github_pr }}"
+
+          if [ ! -s recommended_pytest_paths.txt ]; then
+            echo "::notice::recommended_pytest_paths.txt is empty, no test selected for ${{ env.github_pr }}"
+            exit 0
+          fi
 
           echo "=== recommended tests ==="
-          echo "${{ needs.recommend-tests.outputs.coverage_paths }}"
-
-          echo "::notice::precise-test skeleton: coverage map and the recommendation interface are in place; the changed-file to affected-test mapping, the build and the test run are not implemented yet"
+          cat recommended_pytest_paths.txt
+          echo "total: $(wc -l < recommended_pytest_paths.txt)"
