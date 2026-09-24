@@ -44,7 +44,6 @@ class GPT_OSS_20BTrainer:
         self.model = AutoModelForCausalLM.from_pretrained(
             self.args.model_path,
             torch_dtype=torch.bfloat16 if self.args.use_bf16 else torch.float16,
-            trust_remote_code=True
         )
 
         logger.info("Moving model to %s...", self.args.device_type)
@@ -52,7 +51,6 @@ class GPT_OSS_20BTrainer:
 
         self.tokenizer = AutoTokenizer.from_pretrained(
             self.args.model_path,
-            trust_remote_code=True
         )
 
         if self.tokenizer.pad_token is None:
