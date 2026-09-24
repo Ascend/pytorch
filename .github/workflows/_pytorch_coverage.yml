@@ -268,6 +268,9 @@ jobs:
           du -sh "${COV_ARTIFACTS}/convstub/pytorch/test" || true
 
       - name: Merge shard coverage
+        env:
+          PYTORCH_SHA: ${{ needs.resolve.outputs.sha }}
+          PYTORCH_SHORT: ${{ needs.resolve.outputs.short }}
         run: |
           SHARD_DIRS="$(cd cov-out && ls -d */ | sed 's:/$::' | sed 's:^:cov-out/:' | paste -sd, -)"
           echo "=== Merging shards: ${SHARD_DIRS} ==="
@@ -276,6 +279,41 @@ jobs:
           PYTHON_BIN=python3 \
             bash "${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/run_pytorch_coverage.sh" \
               --merge "${SHARD_DIRS}"
+
+          COV_DIR="${COV_ARTIFACTS}/pytorch@latest"
+          if [ ! -f "${COV_DIR}/coverage.xml" ]; then
+            echo "WARNING: merge did not promote, no manifest written"
+            exit 0
+          fi
+
+          python3 - <<'PYEOF'
+          import json
+          import os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          cov_dir = Path(os.environ["COV_ARTIFACTS"]) / "pytorch@latest"
+          failed = cov_dir / "logs" / "failed_cases.json"
+          counts = json.loads(failed.read_text(encoding="utf-8")) if failed.is_file() else {}
+
+          manifest = {
+              "workflow": "pytorch_coverage_nightly",
+              "repository": os.environ["GITHUB_REPOSITORY"],
+              "run_id": os.environ["GITHUB_RUN_ID"],
+              "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+              "event": os.environ["GITHUB_EVENT_NAME"],
+              "pytorch_sha": os.environ.get("PYTORCH_SHA", ""),
+              "pytorch_short": os.environ.get("PYTORCH_SHORT", ""),
+              "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+              "test_groups": len(list((cov_dir / "test").glob("**/covdata"))),
+              "total_cases": counts.get("total_cases", 0),
+              "total_failed": counts.get("total_failed", 0),
+          }
+          (cov_dir / "manifest.json").write_text(
+              json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
+          )
+          print(json.dumps(manifest, indent=2))
+          PYEOF
 
       - name: Write job summary
         if: always()

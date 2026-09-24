@@ -77,6 +77,7 @@ jobs:
           find coverage -maxdepth 3 -type d | sort | head -20
 
           python3 - <<'PYEOF'
+          import json
           import sys
           from pathlib import Path
 
@@ -111,10 +112,20 @@ jobs:
           package = package_root(source_dir)
           cases = len(list(cov_dir.glob("**/covdata")))
 
+          manifest_file = cov_dir / "manifest.json"
+          if not manifest_file.is_file():
+              sys.exit(f"ERROR: no manifest.json in {cov_dir}, the coverage data was not published by the coverage pipeline")
+          manifest = json.loads(manifest_file.read_text(encoding="utf-8"))
+
+          print("manifest:")
+          for key in ("workflow", "run_id", "event", "pytorch_short", "generated_at", "test_groups", "total_cases"):
+              print(f"  {key}: {manifest.get(key)}")
           print(f"coverage dir:  {cov_dir}")
           print(f"source dir:    {source_dir} (package: {package}/)")
           print(f"test cases:    {cases}")
           print(f"coverage.xml:  {(cov_dir / 'coverage.xml').stat().st_size} bytes")
+          if manifest.get("test_groups") != cases:
+              print(f"WARNING: manifest reports {manifest.get('test_groups')} test group(s), found {cases}")
           if package != "pytorch":
               print("WARNING: the snapshot predates the torch -> pytorch rename, function-level matching will be skipped")
           Path("/tmp/precise.env").write_text(f"TASK_DIR={cov_dir}\nSOURCE_DIR={source_dir}\n")
