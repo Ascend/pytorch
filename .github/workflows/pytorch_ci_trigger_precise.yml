@@ -25,6 +25,8 @@ concurrency:
 
 permissions:
   contents: read
+  # 调试运行要查“本仓最新已合入的 PR”（作用：给 _precise_test.yml 的 PR 查询授权，否则读 PR 列表会被拒）
+  pull-requests: read
   id-token: write  # Required by report-ci-result to obtain an OIDC token
 
 jobs:
