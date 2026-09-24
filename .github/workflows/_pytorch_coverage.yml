@@ -436,7 +436,7 @@ jobs:
         with:
           name: pytorch-coverage-${{ needs.resolve.outputs.short }}
           path: coverage-out/artifacts/
-          retention-days: 14
+          retention-days: 7
           include-hidden-files: true
           if-no-files-found: warn
 
@@ -446,7 +446,7 @@ jobs:
         env:
           CATEGORIES: ${{ inputs.categories }}
         run: |
-          if [ ! -f "${COV_ARTIFACTS}/pytorch@latest/coverage.xml" ]; then
+          if [ ! -f "${COV_ARTIFACTS}/pytorch@latest/coverage.xml" ] || [ ! -d "${COV_ARTIFACTS}/convstub" ]; then
             echo "WARNING: merge did not promote, keeping the remote and the staging data untouched"
             exit 0
           fi
@@ -454,7 +454,10 @@ jobs:
           obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${{ env.OBS_ENDPOINT }}
 
           if [ -z "${CATEGORIES}" ]; then
-            obsutil cp "${COV_ARTIFACTS}/." "${{ env.OBS_COVERAGE_PREFIX }}/latest/" -r -f -vlength
+            obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/latest/torch@latest/" || true
+            obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/latest/artifacts/" || true
+            obsutil cp "${COV_ARTIFACTS}/pytorch@latest/." "${{ env.OBS_COVERAGE_PREFIX }}/latest/pytorch@latest/" -r -f -vlength
+            obsutil cp "${COV_ARTIFACTS}/convstub/." "${{ env.OBS_COVERAGE_PREFIX }}/latest/convstub/" -r -f -vlength
           else
             echo "Debug run (categories='${CATEGORIES}'), skipping the ${{ env.OBS_COVERAGE_PREFIX }}/latest upload"
           fi
