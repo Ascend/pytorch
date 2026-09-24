@@ -17,7 +17,16 @@ on:
 jobs:
   precision-test:
     name: Precise test case selection
-    runs-on: ubuntu-latest
+    runs-on: linux-aarch64-cpu-24
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609140905-0ba22e2b
+      options: --network host
+    env:
+      PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
     steps:
       - name: Parse the dispatch payload
         id: pr
@@ -48,27 +57,6 @@ jobs:
           echo "=== pull request ==="
           echo "github_pr: ${UPSTREAM_REPO}#${PR_NUMBER}"
           echo "base_ref:  ${BASE_REF}"
-
-      - name: Install obsutil
-        run: |
-          set -euo pipefail
-
-          ARCH=$(uname -m)
-          case "${ARCH}" in
-            x86_64)  OBS_ARCH="amd64" ;;
-            aarch64) OBS_ARCH="arm64" ;;
-            *)       echo "Unsupported architecture: ${ARCH}"; exit 1 ;;
-          esac
-          OBS_URL="https://obs-community.obs.cn-north-1.myhuaweicloud.com/obsutil/current/obsutil_linux_${OBS_ARCH}.tar.gz"
-          wget --tries=3 --timeout=30 --waitretry=10 --progress=dot:mega "${OBS_URL}"
-
-          OBSUTIL_HOME="$HOME/.local/obsutil"
-          mkdir -p "${OBSUTIL_HOME}"
-          tar -zxf "obsutil_linux_${OBS_ARCH}.tar.gz" -C "${OBSUTIL_HOME}/"
-          rm -f "obsutil_linux_${OBS_ARCH}.tar.gz"
-          ln -sf "${OBSUTIL_HOME}"/obsutil_linux_${OBS_ARCH}_*/obsutil "${OBSUTIL_HOME}/obsutil"
-          echo "${OBSUTIL_HOME}" >> "$GITHUB_PATH"
-          "${OBSUTIL_HOME}/obsutil" version
 
       - name: Download previous coverage data from OBS
         run: |
