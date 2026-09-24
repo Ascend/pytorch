@@ -57,7 +57,6 @@ class Qwen3Trainer:
             self.args.model_path,
             quantization_config=bnb_config if self.args.use_4bit else None,
             torch_dtype=torch.bfloat16 if self.args.use_bf16 else torch.float32,
-            trust_remote_code=True
         )
 
         logger.info(f"Moving model to {self.args.device_type}...")
@@ -65,7 +64,6 @@ class Qwen3Trainer:
 
         self.tokenizer = AutoTokenizer.from_pretrained(
             self.args.model_path,
-            trust_remote_code=True
         )
 
         if self.tokenizer.pad_token is None:

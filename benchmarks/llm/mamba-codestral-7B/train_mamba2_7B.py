@@ -58,7 +58,7 @@ def setup_environment():
 def parse_args():
     parser = argparse.ArgumentParser(description="Mamba Codestral LoRA finetune")
 
-    parser.add_argument("--model_path", type=str, default="/home/zhangyican/workspace/q4_data/Mamba-Codestral-7B-v0.1", help="Base model path")
+    parser.add_argument("--model_path", type=str, required=True, help="Base model path")
     parser.add_argument("--data_file", type=str, default="./c4_demo.jsonl", help="Training data file path")
     parser.add_argument("--output_dir", type=str, default="./mamba_codestral_lora_no_quant", help="Output directory")
     parser.add_argument("--epochs", type=int, default=3, help="Number of training epochs")
@@ -103,22 +103,20 @@ def main():
     print(f"Loading tokenizer from: {args.model_path}")
     tokenizer = AutoTokenizer.from_pretrained(
         args.model_path,
-        trust_remote_code=True,
         use_fast=True
     )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
-    
+
     print(f"Loading base model from: {args.model_path} (no quantization)")
     base_model = AutoModelForCausalLM.from_pretrained(
         args.model_path,
         torch_dtype=torch.bfloat16,  # Use bfloat16 precision
-        trust_remote_code=True,
         use_cache=False,  # Disable cache to save memory
     )
-    
+
     base_model.gradient_checkpointing_enable()
-    
+
     print(f"Configuring LoRA, target modules: {TARGET_MODULES}")
     peft_config = LoraConfig(
         task_type=TaskType.CAUSAL_LM,
@@ -128,13 +126,13 @@ def main():
         target_modules=TARGET_MODULES,
         bias="none",
     )
-    
+
     print("Attaching LoRA adapters to model...")
     peft_model = get_peft_model(base_model, peft_config)
     peft_model.print_trainable_parameters()  # Print number of trainable parameters
-    
+
     peft_model.to(device)
-    
+
     print("Preparing dataset...")
     from datasets import load_dataset
     dataset = load_dataset(
@@ -142,7 +140,7 @@ def main():
         data_files=args.data_file,
         split="train"
     )
-    
+
     def tokenize_function(examples):
         return tokenizer(
             examples["text"],
@@ -151,7 +149,7 @@ def main():
             max_length=args.max_seq_length,
             return_tensors=None
         )
-    
+
     train_dataset = dataset.map(tokenize_function, batched=True, remove_columns=["text"])
     train_dataset = train_dataset.map(lambda x: {"labels": x["input_ids"]}, batched=True)
 
@@ -160,7 +158,7 @@ def main():
             peft_model,
             dynamic=False
         )
-    
+
     training_args = TrainingArguments(
         output_dir=args.output_dir,
         num_train_epochs=args.epochs,
@@ -183,7 +181,7 @@ def main():
         max_grad_norm=0.3,
         logging_dir=f"{args.output_dir}/logs",
     )
-    
+
     mode = "compile" if args.enable_compile else "eager"
     prof=None
 
@@ -191,7 +189,7 @@ def main():
         profiling_save_path = args.profiler_save_path + '/' + MODEL_NAME + '/' + mode
         prof = get_profile(args.profiler_start_step, args.profiler_end_step, profiling_save_path)
 
-    timing_callback = TimingCallback(prof, mode) 
+    timing_callback = TimingCallback(prof, mode)
 
     print("Initializing Trainer...")
     trainer = Trainer(
@@ -202,7 +200,7 @@ def main():
         data_collator=default_data_collator,
         callbacks=[timing_callback],
     )
-    
+
     print("Starting LoRA training...")
     trainer.train()
 
@@ -213,7 +211,7 @@ def main():
                 numbers = [float(num.strip()) for num in value.split(',') if num.strip()]
                 op_compile_time = sum(numbers)
         print(f"op_compile_time:{op_compile_time * 1e3} ms", )
-    
+
     print(f"Saving LoRA weights to {args.output_dir}")
     peft_model.save_pretrained(args.output_dir)
     tokenizer.save_pretrained(args.output_dir)
