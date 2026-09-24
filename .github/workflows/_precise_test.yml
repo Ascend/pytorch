@@ -29,7 +29,6 @@ jobs:
       PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
     steps:
       - name: Parse the dispatch payload
-        id: pr
         env:
           EVENT_TYPE: ${{ inputs.event_type }}
           PAYLOAD_JSON: ${{ inputs.payload }}
@@ -45,7 +44,6 @@ jobs:
 
           PR_NUMBER=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.number // empty')
           UPSTREAM_REPO=$(echo "$PAYLOAD_JSON" | jq -r '.payload.repository.full_name // empty')
-          BASE_REF=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.base.ref // empty')
 
           if [ -z "${PR_NUMBER}" ] || [ -z "${UPSTREAM_REPO}" ]; then
             echo "ERROR: cannot read the PR number / upstream repo from the payload" >&2
@@ -56,7 +54,6 @@ jobs:
 
           echo "=== pull request ==="
           echo "github_pr: ${UPSTREAM_REPO}#${PR_NUMBER}"
-          echo "base_ref:  ${BASE_REF}"
 
       - name: Download the coverage data from OBS
         run: |
@@ -145,8 +142,7 @@ jobs:
           cov_dir = Path("${{ env.TASK_DIR }}")
           flat_dir = Path("covdata-set")
 
-          if flat_dir.exists():
-              shutil.rmtree(flat_dir)
+          shutil.rmtree(flat_dir, ignore_errors=True)
           flat_dir.mkdir(parents=True)
 
           files = 0
@@ -187,7 +183,6 @@ jobs:
           github-pr: ${{ env.github_pr }}
           source-dir: ${{ env.SOURCE_DIR }}
           map-file: test_case_map.json
-          min-affected: 1
           dedup: true
         env:
           GITHUB_TOKEN: ${{ github.token }}
