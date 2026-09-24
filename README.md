@@ -95,7 +95,7 @@ pip install torch-npu==2.12.0
 
 ### From Source
 
-For detailed steps on compiling TorchNPU, please refer to the [Source Installation Guide](./docs/zh/installation_guide/building_from_source.md).
+For detailed steps on compiling TorchNPU, please refer to the [Source Installation Guide](./docs/zh/installation_guide/references/building_from_source.md).
 
 ## Quick Start
 

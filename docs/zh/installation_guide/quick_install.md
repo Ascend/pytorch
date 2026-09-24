@@ -97,27 +97,36 @@
 
 ### 硬件配套
 
-**表 1**  产品硬件支持列表
-
-|产品|是否支持（训练场景）|
-|--|:-:|
-|<term>Atlas A3 训练系列产品</term>|√|
-|<term>Atlas A3 推理系列产品</term>|x|
-|<term>Atlas A2 训练系列产品</term>|√|
-|<term>Atlas A2 推理系列产品</term>|x|
-|<term>Atlas 200I/500 A2 推理产品</term>|x|
-|<term>Atlas 推理系列产品</term>|x|
-|<term>Atlas 训练系列产品</term>|√|
-
-> [!NOTE]
->
-> 本节表格中“√”代表支持，“x”代表不支持。
+<!-- npu="950" id1 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id2 -->
+<!-- npu="A3" id3 -->
+- <term>Atlas A3推理系列产品</term>：不支持
+<!-- end id3 -->
+<!-- npu="910b" id4 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id4 -->
+<!-- npu="910b" id5 -->
+- <term>Atlas A2推理系列产品</term>：不支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- <term>Atlas训练系列产品</term>：支持
+<!-- end id6 -->
+<!-- npu="310p" id7 -->
+- <term>Atlas推理系列产品</term>：不支持
+<!-- end id7 -->
+<!-- npu="310b" id8 -->
+- <term>Atlas 200I/500 A2推理产品</term>：不支持
+<!-- end id8 -->
 
 ### 环境准备
 
 > [!NOTICE]
 >
-> 安装运行程序建议使用非root用户，且建议对安装程序的目录文件做好权限管控：文件夹权限设置为750，文件权限设置为640。可以通过设置umask控制安装后文件的权限，如设置umask为0027。更多安全相关内容请参见《[安全声明](../../reference/security_statement.md)》中各组件关于“文件权限控制”的说明。
+> 安装运行程序建议使用非root用户，且建议对安装程序的目录文件做好权限管控：文件夹权限设置为750，文件权限设置为640。可以通过设置umask控制安装后文件的权限，如设置umask为0027。更多安全相关内容请参见《[安全声明](../reference/security_statement.md)》中各组件关于“文件权限控制”的说明。
 
 - 安装配套版本的NPU驱动固件、CANN软件（Toolkit、ops和NNAL）并配置CANN环境变量，具体请参考《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/900/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》。
 
@@ -148,12 +157,12 @@ tensor([[-0.6066,  6.3385,  0.0379,  3.3356],
         [-2.1807,  0.2008, -1.1431,  2.1523]], device='npu:0')
 ```
 
-如需查看当前环境中已安装的Python、PyTorch和TorchNPU版本，请参见[查询版本](../tmp/references/check_installed_versions.md)。
+如需查看当前环境中已安装的Python、PyTorch和TorchNPU版本，请参见[查询版本](./references/check_installed_versions.md)。
 
 ## 源码编译
 
-对于大多数用户，推荐直接使用预编译的Whl包安装PyTorch框架和TorchNPU插件，以简化安装流程并获得更稳定的使用体验。如需进行功能测试、二次开发或自定义构建，请参见[源码编译](../tmp/references/building_from_source.md)，从源代码完成编译并获取所需的Whl包。
+对于大多数用户，推荐直接使用预编译的Whl包安装PyTorch框架和TorchNPU插件，以简化安装流程并获得更稳定的使用体验。如需进行功能测试、二次开发或自定义构建，请参见[源码编译](./references/building_from_source.md)，从源代码完成编译并获取所需的Whl包。
 
 ## 安装拓展模块
 
-对于大多数用户，安装PyTorch框架和TorchNPU插件后即可满足基本的训练与推理需求。但是，在特定开发场景下，您可能还需要安装相应的扩展模块。例如，如需使用C++接口进行开发，请参见[编译libtorch_npu](../tmp/references/building_libtorch_npu.md)；如需开展计算机视觉任务，请参见[安装torchvision](../tmp/references/check_installed_versions.md)。
+对于大多数用户，安装PyTorch框架和TorchNPU插件后即可满足基本的训练与推理需求。但是，在特定开发场景下，您可能还需要安装相应的扩展模块。例如，如需使用C++接口进行开发，请参见[编译libtorch_npu](./references//building_libtorch_npu.md)；如需开展计算机视觉任务，请参见[安装torchvision](https://pytorch.org/get-started/locally/)。

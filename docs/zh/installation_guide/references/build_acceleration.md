@@ -1,6 +1,6 @@
 # 编译加速
 
-本文介绍TorchNPU源码构建的编译加速方法，涵盖Ninja、Mold、CCache的使用及按需编译目标的方法。在使用之前，请参考[源码编译](../building_from_source.md)完成环境准备。
+本文介绍TorchNPU源码构建的编译加速方法，涵盖Ninja、Mold、CCache的使用及按需编译目标的方法。在使用之前，请参考[源码编译](building_from_source.md)完成环境准备。
 
 > [!NOTE]
 >

@@ -95,7 +95,7 @@ pip install torch-npu==2.12.0
 
 ### 源码编译安装
 
-编译TorchNPU的详细步骤请参见[源码安装](./docs/zh/installation_guide/building_from_source.md)。
+编译TorchNPU的详细步骤请参见[源码安装](./docs/zh/installation_guide/references/building_from_source.md)。
 
 ## 快速开始
 

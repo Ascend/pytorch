@@ -39,29 +39,29 @@
 
 ## 运行Docker容器
 
-镜像拉取完成后，执行以下命令启动容器。
+1. 镜像拉取完成后，执行以下命令启动容器。
 
-```bash
-docker run -d --rm \
-    --name torch-npu \
-    --privileged \
-    -v /dev:/dev \
-    -v $(pwd):/home/pytorch \
-    -v /usr/local/Ascend/driver:/usr/local/Ascend/driver \
-    -v /usr/local/Ascend/add-ons:/usr/local/Ascend/add-ons \
-    -v /usr/local/sbin/npu-smi:/usr/local/bin/npu-smi \
-    -v /var/log/npu:/usr/slog \
-    -e PY_VERSION=3.11 \
-    -e LD_LIBRARY_PATH=/usr/local/Ascend/driver/lib64:/usr/local/Ascend/driver/lib64/base:/usr/local/Ascend/driver/lib64/common:/usr/local/Ascend/driver/lib64/driver \
-    quay.io/ascend/torch-npu:<镜像标签> \
-    tail -f /dev/null
-```
+    ```bash
+    docker run -d --rm \
+        --name torch-npu \
+        --privileged \
+        -v /dev:/dev \
+        -v $(pwd):/home/pytorch \
+        -v /usr/local/Ascend/driver:/usr/local/Ascend/driver \
+        -v /usr/local/Ascend/add-ons:/usr/local/Ascend/add-ons \
+        -v /usr/local/sbin/npu-smi:/usr/local/bin/npu-smi \
+        -v /var/log/npu:/usr/slog \
+        -e PY_VERSION=3.11 \
+        -e LD_LIBRARY_PATH=/usr/local/Ascend/driver/lib64:/usr/local/Ascend/driver/lib64/base:/usr/local/Ascend/driver/lib64/common:/usr/local/Ascend/driver/lib64/driver \
+        quay.io/ascend/torch-npu:<镜像标签> \
+        tail -f /dev/null
+    ```
 
-容器启动后，执行以下命令进入容器。
+2. 容器启动后，执行以下命令进入容器。
 
-```bash
-docker exec -it torch-npu bash
-```
+    ```bash
+    docker exec -it torch-npu bash
+    ```
 
 > [!NOTE]
 >

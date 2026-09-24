@@ -1,6 +1,6 @@
 # Build Acceleration
 
-This document describes how to speed up TorchNPU source builds using Ninja, Mold, CCache, and target-specific builds. Prepare the build environment by following [Building from Source (Chinese)](../../../zh/installation_guide/building_from_source.md). Run the commands below from the TorchNPU source root.
+This document describes how to speed up TorchNPU source builds using Ninja, Mold, CCache, and target-specific builds. Prepare the build environment by following [Building from Source (Chinese)](../../../en/installation_guide/compilation_installation_using_source_code.md). Run the commands below from the TorchNPU source root.
 
 ## Build with Ninja
 
