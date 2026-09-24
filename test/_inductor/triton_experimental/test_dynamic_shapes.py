@@ -9,6 +9,8 @@ from torch.testing._internal.common_utils import TestCase, run_tests
 
 import torch_npu  # noqa: F401
 import torch_npu._inductor  # noqa: F401
+from torch_npu._inductor.triton_experimental import device_props
+from torch_npu._inductor.triton_experimental.compat import IS_TRITON_36_PLUS
 
 
 EXPERIMENTAL_MARKER = (
@@ -68,6 +70,29 @@ class TestDynamicShapes(TestCase):
             else:
                 actual = compiled(x)
             torch.testing.assert_close(actual, expected, atol=1e-4, rtol=1e-4)
+
+    def test_dynamic_layer_norm_keeps_static_reduction_numel_runtime(self):
+        if not IS_TRITON_36_PLUS or device_props.is_a5():
+            self.skipTest("pre-A5 Triton 3.6 regression")
+
+        def fn(x, weight, bias):
+            return torch.nn.functional.layer_norm(x, (2560,), weight, bias)
+
+        weight = torch.randn(2560, device="npu")
+        bias = torch.randn(2560, device="npu")
+        x = torch.randn(2, 1280, 2560, device="npu")
+        compiled = torch.compile(
+            fn, dynamic=True, options={"npu_backend": "triton_experimental"}
+        )
+        actual, codes = run_and_get_code(compiled, x, weight, bias)
+        self.assertIn(EXPERIMENTAL_MARKER, "\n".join(codes))
+        torch.testing.assert_close(actual, fn(x, weight, bias), rtol=1e-3, atol=1e-3)
+        self.assertNotRegex("\n".join(codes), r"'constants': \{[^}]*'r0_numel': 2560")
+
+        tail = torch.randn(2, 1279, 2560, device="npu")
+        torch.testing.assert_close(
+            compiled(tail, weight, bias), fn(tail, weight, bias), rtol=1e-3, atol=1e-3
+        )
 
     def test_dynamic_shape_gather_and_scatter(self):
         def fn(x, index, update):
