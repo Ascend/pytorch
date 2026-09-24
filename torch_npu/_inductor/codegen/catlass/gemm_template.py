@@ -191,7 +191,7 @@ class CATLASSGemmTemplate(CATLASSTemplate, ABC):
         layout: ir.Layout,
         input_nodes: List[Buffer],
         alpha: Union[float, int] = 1,
-        beta: Union[float, int] = 0,
+        beta: Union[float, int] = 1,
         input_reorder: Optional[List[int]] = None,
         **extra_kwargs,
     ) -> None:
@@ -217,7 +217,7 @@ class CATLASSGemmTemplate(CATLASSTemplate, ABC):
         layout: ir.Layout,
         input_nodes: List[Buffer],
         alpha: Union[float, int] = 1,
-        beta: Union[float, int] = 0,
+        beta: Union[float, int] = 1,
         input_reorder: Optional[List[int]] = None,
         **extra_kwargs,
     ) -> None:
@@ -236,6 +236,11 @@ class CATLASSGemmTemplate(CATLASSTemplate, ABC):
             **extra_kwargs: Additional keyword arguments.
 
         """
+        if alpha != 1 or beta != 1:
+            warning_msg = f"No suitable Catlass GEMM configs found, catlass currently only support alpha=1, beta=1; given choice used alpha={alpha}, beta={beta}"  # noqa: B950
+            log.warning(warning_msg)
+            return
+
         ops = self.gen_ops()
         for name, op in ops:
             self.maybe_append_choice(
@@ -719,7 +724,7 @@ class CATLASS1xGemmTemplate(CATLASSGemmTemplate):
         layout: ir.Layout,
         input_nodes: List[Buffer],
         alpha: Union[float, int] = 1,
-        beta: Union[float, int] = 0,
+        beta: Union[float, int] = 1,
         input_reorder: Optional[List[int]] = None,
         **extra_kwargs,
     ) -> None:
