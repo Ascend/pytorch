@@ -259,9 +259,6 @@ def npurt():
           The `flags` parameter must follow CANN ACL Host Register
           definitions.
 
-          Refer to:
-          https://www.hiascend.com/document/detail/zh/canncommercial/900/API/runtimeapi/aclcppdevg_03_2128.html
-
         - npuHostUnregister: Unregister previously registered host memory.
 
         - npuStreamCreate: Create a raw runtime stream.
