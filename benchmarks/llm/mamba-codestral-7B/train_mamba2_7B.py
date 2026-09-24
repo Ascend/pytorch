@@ -58,7 +58,7 @@ def parse_args():
     parser.add_argument(
         "--model_path",
         type=str,
-        default="/home/zhangyican/workspace/q4_data/Mamba-Codestral-7B-v0.1",
+        required=True,
         help="Base model path",
     )
     parser.add_argument("--data_file", type=str, default="./c4_demo.jsonl", help="Training data file path")
@@ -105,7 +105,6 @@ def main():
     print(f"Loading tokenizer from: {args.model_path}")
     tokenizer = AutoTokenizer.from_pretrained(
         args.model_path,
-        trust_remote_code=True,
         use_fast=True
     )
     if tokenizer.pad_token is None:
@@ -115,7 +114,6 @@ def main():
     base_model = AutoModelForCausalLM.from_pretrained(
         args.model_path,
         torch_dtype=torch.bfloat16,  # Use bfloat16 precision
-        trust_remote_code=True,
         use_cache=False,  # Disable cache to save memory
     )
 

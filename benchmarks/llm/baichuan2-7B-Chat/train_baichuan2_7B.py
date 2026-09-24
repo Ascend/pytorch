@@ -44,7 +44,8 @@ class Baichuan2Trainer:
 
         self.tokenizer = AutoTokenizer.from_pretrained(
             self.args.model_path,
-            trust_remote_code=True,
+            revision=self.args.revision,
+            trust_remote_code=self.args.trust_remote_code,
             padding_side="right",
             model_max_length=self.args.max_length,
         )
@@ -54,7 +55,8 @@ class Baichuan2Trainer:
 
         self.model = AutoModelForCausalLM.from_pretrained(
             self.args.model_path,
-            trust_remote_code=True,
+            revision=self.args.revision,
+            trust_remote_code=self.args.trust_remote_code,
             torch_dtype=torch.bfloat16 if self.args.use_bf16 else torch.float16,
             use_cache=not self.args.gradient_checkpointing,
         )
@@ -236,6 +238,10 @@ def build_argparser():
     parser.add_argument("--mfusion", action="store_true",
                         help="Enable MFusion for graph fusion optimization")
     parser.add_argument("--model_path", type=str, required=True)
+    parser.add_argument("--trust-remote-code", action="store_true",
+                        help="Allow execution of custom code from the model repository")
+    parser.add_argument("--revision", type=str, default=None,
+                        help="Full commit hash for a remote model repository")
     parser.add_argument("--data_path", type=str, required=True)
     parser.add_argument("--output_dir", type=str, default="./baichuan2-finetuned")
     parser.add_argument("--num_epochs", type=int, default=3)
@@ -276,7 +282,17 @@ def build_argparser():
 
 
 def main():
-    args = build_argparser().parse_args()
+    parser = build_argparser()
+    args = parser.parse_args()
+    if args.trust_remote_code and not os.path.isdir(args.model_path):
+        revision = args.revision or ""
+        is_commit_hash = len(revision) == 40 and all(
+            char in "0123456789abcdefABCDEF" for char in revision
+        )
+        if not is_commit_hash:
+            parser.error(
+                "--revision must be a full commit hash when enabling remote code"
+            )
     detect_device_type()
     os.environ['TORCHINDUCTOR_NPU_BACKEND'] = args.npu_backend
     if args.npu_backend == "akg":
