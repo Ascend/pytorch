@@ -210,6 +210,6 @@ See the [license information](https://gitcode.com/Ascend/pytorch/blob/master/LIC
 
 Like all container images, pre-installed software packages (Python, system libraries, etc.) may be subject to their own licenses.
 
-The released Atlas software images are community versions; they are not intended for commercial use and serve solely as references for production practices.
+The released Atlas software images are community versions; they are not intended for commercial use and serve solely as references for production practices. For detailed statements, please refer to [Image License Agreement 2.0](https://www.hiascend.com/en/legal/ascendhub-download)
 
 Liability disclaimers are displayed in the image startup information and on the Atlas image platform.
