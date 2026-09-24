@@ -863,7 +863,7 @@ class TorchCompileTriggerTests(unittest.TestCase):
             """
         )
 
-    # Verify the moved helper preserves the torch_npu v2.9 device predicates.
+    # Verify device predicates and the explicit opt-in for CPU Triton.
     def test_has_triton_preserves_target_device_semantics(self):
         self.run_in_subprocess(
             """
@@ -890,7 +890,7 @@ class TorchCompileTriggerTests(unittest.TestCase):
                 Interface.Worker = Worker
                 return Interface
 
-            def run_case(available, *, package=True):
+            def run_case(available, *, package=True, include_cpu=False):
                 interfaces = {
                     device: make_interface(
                         available=device in available,
@@ -910,7 +910,7 @@ class TorchCompileTriggerTests(unittest.TestCase):
                     _dynamo,
                     "_dynamo_register_interface_for_device",
                 ) as register:
-                    result = _dynamo.has_triton()
+                    result = _dynamo.has_triton(include_cpu=include_cpu)
                     if package:
                         register.assert_called_once_with()
                     else:
@@ -918,6 +918,7 @@ class TorchCompileTriggerTests(unittest.TestCase):
                     return result
 
             assert not run_case({}, package=False)
+            assert not run_case({"cpu"}, package=False, include_cpu=True)
             assert run_case({"cuda"})
             assert run_case({"xpu"})
             triton = types.ModuleType("triton")
@@ -928,10 +929,12 @@ class TorchCompileTriggerTests(unittest.TestCase):
                 sys.modules,
                 {"triton": triton, "triton.backends": triton_backends},
             ):
-                assert run_case({"cpu"})
-                triton_backends.backends = {}
                 assert not run_case({"cpu"})
+                assert run_case({"cpu"}, include_cpu=True)
+                triton_backends.backends = {}
+                assert not run_case({"cpu"}, include_cpu=True)
             assert run_case({"npu"})
+            assert run_case({"cpu", "npu"})
             """
         )
 
@@ -1136,7 +1139,8 @@ class TorchCompileTriggerTests(unittest.TestCase):
             """
         )
 
-    # Verify all legacy Inductor patches remain installed.
+    # Verify required Inductor patches remain installed.
+    # On torch >= 2.15, keep upstream implementations that no longer need patching.
     def test_inductor_patch_inventory_is_preserved(self):
         self.run_in_subprocess(
             """
@@ -1164,6 +1168,12 @@ class TorchCompileTriggerTests(unittest.TestCase):
             # test ordering or on a prior torch.compile invocation.
             import torch._dynamo
             from torch_npu.utils import _dynamo
+            from torch_npu._compat.version import CURRENT_VERSION
+            from torch._inductor.codecache import CacheBase
+            from torch._inductor.graph import GraphLowering
+
+            original_codegen = GraphLowering.codegen_with_cpp_wrapper
+            original_get_system = CacheBase.get_system
 
             _dynamo._lazy_inductor_setup()
 
@@ -1172,8 +1182,6 @@ class TorchCompileTriggerTests(unittest.TestCase):
             import torch._inductor.cudagraph_utils as cudagraph_utils
             import torch._inductor.scheduler as scheduler
             from torch._inductor.codegen.common import get_device_op_overrides
-            from torch._inductor.codecache import CacheBase
-            from torch._inductor.graph import GraphLowering
             from torch._inductor.utils import GPU_TYPES
             from torch_npu.utils import _graph_tree
 
@@ -1190,12 +1198,16 @@ class TorchCompileTriggerTests(unittest.TestCase):
             )
             assert compile_fx.has_triton is torch.utils._triton.has_triton
             assert scheduler.has_triton is torch.utils._triton.has_triton
-            assert GraphLowering.codegen_with_cpp_wrapper.__module__ == (
-                "torch_npu._inductor.graph"
-            )
-            assert CacheBase.get_system.__module__ == (
-                "torch_npu._inductor.codegen.common"
-            )
+            if CURRENT_VERSION < (2, 15):
+                assert GraphLowering.codegen_with_cpp_wrapper.__module__ == (
+                    "torch_npu._compat.inductor"
+                )
+                assert CacheBase.get_system.__module__ == (
+                    "torch_npu._compat.inductor"
+                )
+            else:
+                assert GraphLowering.codegen_with_cpp_wrapper is original_codegen
+                assert CacheBase.get_system is original_get_system
 
             # NPUGraph integrations were formerly applied eagerly alongside
             # the Inductor patches.
