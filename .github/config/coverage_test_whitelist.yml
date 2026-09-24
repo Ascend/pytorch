@@ -1,0 +1,47 @@
+# Coverage test whitelist — the test set the coverage pipeline collects cases from.
+# Subset of pr_test_whitelist.yml: only files that yield ACCELERATOR cases on this
+# platform are listed, because every other file contributes no cases (and therefore
+# no coverage data) under the same hw_classification filter the PR gate uses.
+
+categories:
+  core:
+    workers: 32
+    execution: concurrent
+    runner: linux-aarch64-a3-800i-8-cn12-001
+    files:
+    - test/nn/test_convolution.py
+    - test/nn/test_dropout.py
+    - test/nn/test_embedding.py
+    - test/nn/test_init.py
+    - test/nn/test_lazy_modules.py
+    - test/nn/test_parametrization.py
+    - test/test_functional_autograd_benchmark.py
+    - test/test_modules.py
+  tensor:
+    workers: 32
+    execution: concurrent
+    runner: linux-aarch64-a3-800i-8-cn12-001
+    files:
+    - test/test_binary_ufuncs.py
+    - test/test_foreach.py
+    - test/test_segment_reductions.py
+    - test/test_type_promotion.py
+  distributed:
+    workers: 1
+    execution: serial
+    runner: linux-aarch64-a3-800i-8-cn12-001
+    files: []
+  graph:
+    workers: 32
+    execution: concurrent
+    runner: linux-aarch64-a3-800i-8-cn12-001
+    files:
+    - test/dynamo/test_model_output.py
+    - test/export/test_hop.py
+    - test/test_compile_benchmark_util.py
+    - test/test_prims.py
+  others:
+    workers: 32
+    execution: concurrent
+    runner: linux-aarch64-a3-800i-8-cn12-001
+    files: []
