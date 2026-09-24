@@ -188,6 +188,20 @@
 - <term>Ascend 950DT系列产品</term>：不支持
 <!-- end id24 -->
 
+> <font size="3">compute_values()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.onnx.ONNXProgram.compute_values](https://pytorch.org/docs/2.7/onnx_dynamo.html#torch.onnx.ONNXProgram.compute_values)
+
+**产品支持情况**：
+
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
+
+</div>
+
 > <font size="3">model_proto()</font>
 
 <div style="margin-left: 2em">
