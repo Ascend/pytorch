@@ -986,6 +986,34 @@
 
 </div>
 
+### torch.fx.experimental.symbolic_shapes.has_free_unbacked_symbols
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.experimental.symbolic_shapes.has_free_unbacked_symbols](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.has_free_unbacked_symbols.html)
+
+**产品支持情况**：
+
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
+
+</div>
+
+### torch.fx.experimental.symbolic_shapes.hint_int
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.experimental.symbolic_shapes.hint_int](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.hint_int.html)
+
+**产品支持情况**：
+
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
+
+</div>
+
 ### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts
 
 <div style="margin-left: 2em">
