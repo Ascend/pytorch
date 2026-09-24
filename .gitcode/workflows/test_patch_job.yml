@@ -1,0 +1,67 @@
+name: UT Job
+
+on:
+  workflow_call:
+    inputs:
+      py_version:
+        required: false
+        type: string
+        default: "3.10"
+      pr_id:
+        required: false
+        type: string
+        default: ${{ atomgit.event.pull_request.number }}
+      CP_DOCKER_IMG:
+        required: true
+        type: string
+      torch_branch:
+        required: true
+        type: string
+      runs_on_arch:
+        required: false
+        type: string
+        default: "x64"
+      runs_on_spec:
+        required: false
+        type: string
+        default: "cpu=32"
+
+jobs:
+  JOB_UT:
+    name: JOB_UT
+    select: selected_by_default
+    runs-on: [ self-hosted, op_plugin, "${{ inputs.runs_on_arch }}", "${{ inputs.runs_on_spec }}" ]
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/${{ inputs.CP_DOCKER_IMG }}
+    steps:
+      - name: checkout torch_npu
+        uses: checkout
+        with:
+          ref: refs/merge-requests/${{ inputs.pr_id }}/merge
+          fetch-depth: 1
+          path: ./CODE
+          allow-unsafe-pr-checkout: true
+
+      - name: UT torch_npu
+        id: ut_npu
+        run: |
+          branch="${{ inputs.torch_branch }}"
+          test_branch="${branch%%-*}"
+          wget https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/test/github/${test_branch}/pytorch.tar.gz
+          tar -zxvf pytorch.tar.gz
+          if [ ! -d CODE/test_upstream ]; then
+                echo "torch_branch:${branch} 无 test_upstream，跳过 patch 验证"
+                exit 0
+          fi
+          cp -rf CODE/test_upstream pytorch
+          cd pytorch/test_upstream
+
+          if [ -f apply_test_patch.sh ]; then
+              chmod +x apply_test_patch.sh torch_env_patch.sh
+              pip3.10 install torch==${test_branch#v}+cpu --index-url https://download.pytorch.org/whl/cpu
+              ./torch_env_patch.sh --python=3.10
+              ./apply_test_patch.sh
+          else
+              chmod +x apply_patch.sh
+              ./apply_patch.sh
+          fi

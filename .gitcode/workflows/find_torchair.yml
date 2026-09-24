@@ -20,6 +20,15 @@ jobs:
       - name: find torchair label
         id: find_torchair
         run: |
+          echo "comment_body:${{ atomgit.event.comment.body }}" || echo "comment_body is empty"
+          build_torchair="no"
+          if [[ "${{ atomgit.event.comment.body }}" == *"compile_torchair"* ]]; then
+              build_torchair="yes"
+              echo "build_torchair=${build_torchair}" >> "$ATOMGIT_OUTPUT"
+              echo "build_torchair=${build_torchair}"
+              exit 0
+          fi
+
           python3 -c "
           import json, os, logging, urllib.request
 

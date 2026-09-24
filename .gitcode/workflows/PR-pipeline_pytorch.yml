@@ -1,4 +1,4 @@
-name: PR-pipeline_pytorch
+﻿name: PR-pipeline_pytorch
 
 concurrency:
   max: 120
@@ -15,28 +15,30 @@ on:
 
   pull_request_comment:
     types: [created]
-    branches: [ 'master', 'v2.7.1', 'v2.9.0', 'v2.10.0', 'v2.11.0', 'v2.12.0', 'v2.13.0', '*-26.1.0' ]
-    comments: [ '^compile$' ]
+    branches: [ 'master', 'v2.7.1', 'v2.9.0', 'v2.10.0', 'v2.11.0', 'v2.12.0', 'v2.13.0', '*-26.1.0', '*-26.2.0' ]
+    comments: [ '^compile$' , '^compile_torchair$', '^compile_inductor$' ]
 
 env:
   repo: ${{ atomgit.event.repository.name }}
   pr_id: ${{ atomgit.event.pull_request.number }}
   target_branch: ${{ atomgit.event.pull_request.base.ref }}
   org_name: "Ascend"
-  img_master_arm: "pytorch_master_a2_aarch64_builder:20260804"
+  img_master_arm: "pytorch_master_a2_aarch64_builder:20260922"
   img_2_7_1_arm: "pytorch_2.7.1_a2_aarch64_builder:20260804"
   img_2_9_0_arm: "pytorch_2.9.0_a2_aarch64_builder:20260901"
   img_2_10_0_arm: "pytorch_2.10.0_a2_aarch64_builder:20260804"
   img_2_11_0_arm: "pytorch_2.11.0_a2_aarch64_builder:20260804"
   img_2_12_0_arm: "pytorch_2.12.0_a2_aarch64_builder:20260804"
-  img_2_13_0_arm: "pytorch_2.13.0_a2_aarch64_builder:20260804"
-  img_master_x86: "pytorch_master_a1_x86_64_builder:20260804"
+  img_2_13_0_arm: "pytorch_2.13.0_a2_aarch64_builder:20260922"
+  img_2_14_0_arm: "pytorch_2.14.0_a2_aarch64_builder:20260922"
+  img_master_x86: "pytorch_master_a1_x86_64_builder:20260922"
   img_2_7_1_x86: "pytorch_2.7.1_a1_x86_64_builder:20260804"
   img_2_9_0_x86: "pytorch_2.9.0_a1_x86_64_builder:20260901"
   img_2_10_0_x86: "pytorch_2.10.0_a1_x86_64_builder:20260704"
   img_2_11_0_x86: "pytorch_2.11.0_a1_x86_64_builder:20260704"
   img_2_12_0_x86: "pytorch_2.12.0_a1_x86_64_builder:20260704"
-  img_2_13_0_x86: "pytorch_2.13.0_a1_x86_64_builder:20260709"
+  img_2_13_0_x86: "pytorch_2.13.0_a1_x86_64_builder:20260922"
+  img_2_14_0_x86: "pytorch_2.14.0_a1_x86_64_builder:20260922"
 
 permissions:
   project: read
@@ -217,6 +219,8 @@ stages:
               echo "img_arm=${!img_arm_var}" >> "$ATOMGIT_OUTPUT"
               echo "img_x86=${!img_x86_var}" >> "$ATOMGIT_OUTPUT"
               echo "target_branch=${{ env.target_branch }}" >> "$ATOMGIT_OUTPUT"
+              echo "img_arm=${!img_arm_var}"
+              echo "img_x86=${!img_x86_var}"
 
       check_inductor:
         name: check_inductor
@@ -232,6 +236,11 @@ stages:
         name: check_torchair
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
         uses: .gitcode/workflows/find_torchair.yml
+
+      check_patch:
+        name: check_patch
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
+        uses: .gitcode/workflows/check_patch.yml
 
       get_count:
         name: get_count
@@ -295,6 +304,15 @@ stages:
           torch_branch: ${{ jobs.img_select.outputs.target_branch }}
           CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
           runs_on_arch: "arm"
+
+      test_patch:
+        name: test_patch
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_patch.outputs.need_patch == 'yes' }}
+        uses: .gitcode/workflows/test_patch_job.yml
+        with:
+          torch_branch: ${{ jobs.img_select.outputs.target_branch }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_x86 }}
+          runs_on_arch: "x86"
 
   stage_4:
     name: UT
@@ -377,7 +395,7 @@ stages:
 
       UT_inductor_01:
         name: UT_inductor_01
-        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' && env.target_branch != 'master' && !startsWith(env.target_branch, 'v2.12.0') }}
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' && env.target_branch != 'master' }}
         uses: .gitcode/workflows/ut_job_inductor.yml
         with:
           torch_branch: ${{ atomgit.event.pull_request.base.ref }}
@@ -387,7 +405,7 @@ stages:
 
       UT_inductor_02:
         name: UT_inductor_02
-        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' && env.target_branch != 'master' && !startsWith(env.target_branch, 'v2.12.0') }}
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' && env.target_branch != 'master' }}
         uses: .gitcode/workflows/ut_job_inductor.yml
         with:
           torch_branch: ${{ atomgit.event.pull_request.base.ref }}
@@ -397,7 +415,7 @@ stages:
 
       UT_inductor_03:
         name: UT_inductor_03
-        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' && env.target_branch != 'master' && !startsWith(env.target_branch, 'v2.12.0') }}
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' && env.target_branch != 'master' }}
         uses: .gitcode/workflows/ut_job_inductor.yml
         with:
           torch_branch: ${{ atomgit.event.pull_request.base.ref }}
@@ -407,7 +425,7 @@ stages:
 
       UT_inductor_04:
         name: UT_inductor_04
-        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' && env.target_branch != 'master' && !startsWith(env.target_branch, 'v2.12.0') }}
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' && env.target_branch != 'master' }}
         uses: .gitcode/workflows/ut_job_inductor.yml
         with:
           torch_branch: ${{ atomgit.event.pull_request.base.ref }}

@@ -1,0 +1,42 @@
+name: check_patch
+
+on:
+  workflow_call:
+    outputs:
+      need_patch:
+        description: "是否需要执行test patch验证"
+        value: ${{ jobs.patch.outputs.need_patch }}
+
+jobs:
+  patch:
+    name: patch
+    select: selected_by_default
+    runs-on: [ self-hosted, x86, cpu=16 ]
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/pytorch_images_x86/pytorchx86:v_03
+    outputs:
+      need_patch: ${{ steps.check_patch.outputs.need_patch }}
+    steps:
+      - name: download modify_files.txt
+        uses: download-artifact
+        with:
+          name: modify_files.txt
+          path: ./
+
+      - name: run patch check
+        id: check_patch
+        run: |
+          cat modify_files.txt
+          need_patch="no"
+          if [ ! -f modify_files.txt ]; then
+              echo "check modify file exception!" >&2
+          else
+              while IFS= read -r modify_file; do
+                  if echo "$modify_file" | grep -q -E 'test_upstream'; then
+                      need_patch="yes"
+                      break
+                  fi
+              done < modify_files.txt
+          fi
+          echo "need_patch=${need_patch}" >> "$ATOMGIT_OUTPUT"
+          echo "need_patch=${need_patch}"
