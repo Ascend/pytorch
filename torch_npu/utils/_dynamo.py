@@ -680,6 +680,42 @@ def install_npugraph_mark_step_trigger():
     torch.compiler.npugraph_mark_step_begin = npugraph_mark_step_begin
 
 
+def patch_symbolic_shapes_api_compatibility():
+    import torch.fx.experimental.symbolic_shapes as symbolic_shapes
+
+    hint_int = getattr(symbolic_shapes, "hint_int", None)
+    if hint_int is not None and getattr(hint_int, "_torch_npu_fallback_compat", False):
+        return
+    hint_int_parameters = inspect.signature(hint_int).parameters if hint_int else ()
+
+    def _hint_int_compat(value, fallback=None):
+        if type(value) is int:
+            return value
+        if not isinstance(value, torch.SymInt):
+            raise AssertionError(value)
+        node = value.node
+        if symbolic_shapes.has_free_unbacked_symbols(value):
+            if fallback is not None:
+                return fallback
+            return node.guard_int("", 0)
+        if hint_int is not None and "fallback" in hint_int_parameters:
+            return hint_int(value, fallback)
+        if node.has_hint():
+            return int(node.hint)
+        if fallback is not None:
+            return fallback
+        return node.guard_int("", 0)
+
+    if hint_int is not None:
+        functools.update_wrapper(_hint_int_compat, hint_int)
+    else:
+        _hint_int_compat.__name__ = "hint_int"
+        _hint_int_compat.__qualname__ = "hint_int"
+        _hint_int_compat.__module__ = symbolic_shapes.__name__
+    _hint_int_compat._torch_npu_fallback_compat = True
+    symbolic_shapes.hint_int = _hint_int_compat
+
+
 def add_dynamo_methods():
     patch_has_triton()
 
@@ -692,3 +728,4 @@ def add_dynamo_methods():
         sys.modules["npugraph_ex"] = _LazyNpuGraphEx("npugraph_ex")
     patch_inductor_wrapper()
     install_npugraph_mark_step_trigger()
+    patch_symbolic_shapes_api_compatibility()
