@@ -28,6 +28,10 @@ Add validation cases for torch.fx symbolic_shapes related APIs on NPU:
    - symbolic_shapes.DimConstraints.solve
    - symbolic_shapes.DimConstraints.forced_specializations
    - symbolic_shapes.DimConstraints.prettify_results
+   - symbolic_shapes.has_free_unbacked_symbols
+   - symbolic_shapes.hint_int
+   - symbolic_shapes.InnerTensorKey
+   - symbolic_shapes.InnerTensorKey.get
    - torch.fx.experimental.symbolic_shapes.ShapeEnv.size_hint
    - torch.fx.experimental.symbolic_shapes.ShapeEnv.suppress_guards
    - torch.fx.experimental.symbolic_shapes.ShapeEnvSettings
@@ -240,6 +244,57 @@ class TestSymbolicShapesAPI(TestCase):
         self.assertTrue(symbolic_shapes.sym_eq(1, 1))
         self.assertFalse(symbolic_shapes.sym_eq(1, 2))
 
+
+    def test_has_free_unbacked_symbols_detects_unbacked_symint(self):
+        self.assertTrue(hasattr(symbolic_shapes, "has_free_unbacked_symbols"))
+        has_free_unbacked_symbols = symbolic_shapes.has_free_unbacked_symbols
+
+        sym_int = symbolic_shapes.ShapeEnv().create_unbacked_symint()
+        self.assertFalse(has_free_unbacked_symbols(3))
+        self.assertTrue(has_free_unbacked_symbols(sym_int))
+
+    def test_hint_int_returns_literal_and_supports_fallback(self):
+        self.assertTrue(hasattr(symbolic_shapes, "hint_int"))
+        hint_int = symbolic_shapes.hint_int
+        self.assertEqual(hint_int.__module__, symbolic_shapes.__name__)
+        self.assertIn("hint_int", symbolic_shapes.__all__)
+
+        self.assertEqual(hint_int(7), 7)
+        with self.assertRaises(AssertionError):
+            hint_int(True)
+
+        shape_env = symbolic_shapes.ShapeEnv()
+        source = ConstantSource("hint_int")
+        symbol = shape_env.create_symbol(7, source)
+        concrete_sym_int = shape_env.create_symintnode(
+            symbol, hint=7, source=source
+        )
+        self.assertEqual(hint_int(concrete_sym_int), 7)
+        self.assertEqual(hint_int(concrete_sym_int, fallback=9), 7)
+
+        unbacked_sym_int = shape_env.create_unbacked_symint()
+        self.assertTrue(symbolic_shapes.has_free_unbacked_symbols(unbacked_sym_int))
+        self.assertEqual(hint_int(unbacked_sym_int, fallback=9), 9)
+        with self.assertRaises(symbolic_shapes.GuardOnDataDependentSymNode):
+            hint_int(unbacked_sym_int)
+
+    def test_inner_tensor_key_and_get_cover_identity_and_attribute_access(self):
+        self.assertTrue(hasattr(symbolic_shapes, "InnerTensorKey"))
+        key_cls = symbolic_shapes.InnerTensorKey
+        self.assertTrue(hasattr(key_cls, "get"))
+
+        class Holder:
+            def __init__(self):
+                self.inner = [1, 2, 3]
+
+        holder = Holder()
+        key = key_cls("inner")
+
+        # Cover both the key object's own semantics and its attribute access helper.
+        self.assertEqual(key.get(holder), holder.inner)
+        self.assertEqual(key, key_cls("inner"))
+        self.assertNotEqual(key, key_cls("other"))
+        self.assertEqual(hash(key), hash(key_cls("inner")))
 
     def test_shape_env_size_hint(self):
         shape_env = symbolic_shapes.ShapeEnv()
