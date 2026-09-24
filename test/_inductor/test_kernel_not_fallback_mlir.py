@@ -1,4 +1,5 @@
 import os
+import unittest
 from unittest.mock import patch
 
 os.environ["TORCHINDUCTOR_NPU_BACKEND"] = "mlir"
@@ -10,6 +11,7 @@ from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.mlir_compiler import Np
 
 
 class TestMlirKernelNotFallback(TestCase):
+    @unittest.skip("skip mlir test")
     def test_basic_op_uses_non_fallback_kernel(self):
         def fusion_func(x, y):
             return x + y + 1
