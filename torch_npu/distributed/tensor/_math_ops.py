@@ -259,8 +259,8 @@ def npu_rotary_mul_strategy(x, r1, r2, rotary_mode="half"):
 
     # all replicate strategy
     replicate_strategy = (
-        [Replicate()], # output
-        [Replicate(), Replicate(), Replicate(), None] # x, r1, r2, rotary_mode
+        [Replicate()],  # output
+        [Replicate(), Replicate(), Replicate(), None]  # x, r1, r2, rotary_mode
     )
     acceptable_shardings.append(replicate_strategy)
 
@@ -291,8 +291,8 @@ def npu_rotary_mul_backward_strategy(grad, x, r1, r2, rotary_mode='half'):
 
     # all replicate strategy
     replicate_strategy = (
-        [Replicate(), Replicate(), Replicate()], # dx, d_r1, d_r2
-        [Replicate(), Replicate(), Replicate(), Replicate(), None] # grad, x, r1, r2, rotary_mode
+        [Replicate(), Replicate(), Replicate()],  # dx, d_r1, d_r2
+        [Replicate(), Replicate(), Replicate(), Replicate(), None]  # grad, x, r1, r2, rotary_mode
     )
     acceptable_shardings.append(replicate_strategy)
 
@@ -392,12 +392,12 @@ def custom_npu_conv2d_strategy(x, weight, bias, stride, padding, dilation, group
     # all replicate strategy
     replicate_strategy = (
         [
-            Replicate() # output
+            Replicate()  # output
         ],
         [
             Replicate(),                           # x
             Replicate(),                           # weight
-            None if bias is None else Replicate(), # bias
+            None if bias is None else Replicate(),  # bias
             None, None, None, None                 # others
         ]
     )
@@ -435,7 +435,7 @@ def custom_npu_conv2d_backward_strategy(x, grad_output, weight, stride, padding,
         [
             Replicate(),                            # grad_x
             Replicate(),                            # grad_weight
-            Replicate() if output_mask[2] else None # grad_bias
+            Replicate() if output_mask[2] else None  # grad_bias
         ],
         [
             Replicate(),                            # x
@@ -480,18 +480,29 @@ def custom_grouped_matmul_add__strategy(y, x, weight, group_list, transpose_x=Tr
             Replicate()  # y
         ],
         [
-            Replicate(), # y
-            Replicate(), # x
-            Replicate(), # weight
-            Replicate(), # group_list
+            Replicate(),  # y
+            Replicate(),  # x
+            Replicate(),  # weight
+            Replicate(),  # group_list
             None, None, None
         ]
     )
     acceptable_shardings.append(replicate_strategy)
 
+    # D is always the last dimension of y:
+    # 2D y: [M, D]       -> Shard(1)
+    # 3D y: [G, M, D]    -> Shard(2)
+    y_shard_dim = y.ndim - 1
+
     D_shard_strategy = (
-        [Shard(1)], # y
-        [Shard(1), Replicate(), Shard(1), Replicate(), None, None, None] # y, x, weight, group_list
+        [Shard(y_shard_dim)],  # y
+        [
+            Shard(y_shard_dim),  # y
+            Replicate(),        # x
+            Shard(1),           # weight
+            Replicate(),        # group_list
+            None, None, None
+        ]
     )
     acceptable_shardings.append(D_shard_strategy)
 
@@ -538,15 +549,15 @@ def custom_cross_entropy_loss_sharding(op_schema: OpSchema):
     mesh = input_strategy.mesh
 
     all_replicate: PlacementList = [
-        Replicate(), # loss
-        Replicate(), # log_prob
-        Replicate(), # zloss
-        Replicate(), # lse_for_zloss
-        Replicate(), # x
+        Replicate(),  # loss
+        Replicate(),  # log_prob
+        Replicate(),  # zloss
+        Replicate(),  # lse_for_zloss
+        Replicate(),  # x
         Replicate()  # target
     ]
     if weight_strategy is not None:
-        all_replicate.append(Replicate()) # weight
+        all_replicate.append(Replicate())  # weight
     single_mesh_dim_strategies.append(all_replicate)
 
     if reduction == 'none':
@@ -625,7 +636,7 @@ def custom_npu_repeat_interleave_self_int_strategy(x, repeat, dim=None, output_s
         ],
         [
             Replicate(),     # x
-            None, None, None # others
+            None, None, None  # others
         ]
     )
     acceptable_shardings.append(replicate_strategy)
@@ -702,8 +713,8 @@ def custom_KLDivLoss_forward_strategy(x, target, reduction=_Reduction.get_enum("
             Replicate()  # loss
         ],
         [
-            Replicate(), # x
-            Replicate(), # target
+            Replicate(),  # x
+            Replicate(),  # target
             None, None
         ]
     )
@@ -748,9 +759,9 @@ def custom_KLDivLoss_backward_strategy(grad_out, x, target, reduction=_Reduction
             Replicate()  # dx
         ],
         [
-            Replicate(), # grad_out
-            Replicate(), # x
-            Replicate(), # target
+            Replicate(),  # grad_out
+            Replicate(),  # x
+            Replicate(),  # target
             None, None
         ]
     )
