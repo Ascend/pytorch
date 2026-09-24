@@ -135,7 +135,10 @@ bool FormatHelper::IsBaseFormatType(aclFormat format)
 
 bool FormatHelper::IsBaseFormatType(const at::Tensor &tensor)
 {
-    auto format = torch_npu::NPUBridge::GetNpuStorageImplDesc(tensor).npu_format_;
+    if (typeid(*tensor.storage().unsafeGetStorageImpl()) == typeid(c10::StorageImpl)) {
+        return true;
+    }
+    const auto format = torch_npu::NPUBridge::GetNpuStorageImplDesc(tensor).npu_format_;
     return IsBaseFormatType(format);
 }
 
