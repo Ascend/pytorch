@@ -1,5 +1,5 @@
 # 工作流名称：精确测试选测（作用：覆盖率流水线的下游消费者——根据 PR 改动，从“测试->源码”映射里挑出该跑的测试）
-# 作用（两种触发来源）：PR 事件用载荷里的 PR；push/调试运行自动改用本仓“最新已合入的 PR”，保证全链路都能跑通
+# 作用（两种触发来源）：PR 事件用载荷里的 PR（上游 pytorch/pytorch）；push/调试运行改用上游“最新已合入的 PR”
 name: Precise Test
 
 on:
@@ -76,26 +76,27 @@ jobs:
             exit 0
           fi
 
-          # 分支 B：push / 调试运行（作用：没有 PR 载荷也要能跑通完整选测，故回退用“最新已合入的 PR”）
+          # 分支 B：push / 调试运行（作用：没有 PR 载荷也要能跑通完整选测，故回退用“上游最新已合入的 PR”）
+          # 选择范围是上游 pytorch/pytorch（作用：被选测的 PR 是上游官方 PR，不是本仓 Ascend/pytorch 的）
           # 查最近更新的 30 个已关闭 PR，取其中最新的已合入者（作用：无需人工指定 PR，push 即可复现整条链路）
-          echo "DEBUG: no pull_request payload (event_type='${EVENT_TYPE}'), falling back to the latest merged PR"
+          echo "DEBUG: no pull_request payload (event_type='${EVENT_TYPE}'), falling back to the latest merged upstream PR"
           LATEST_MERGED="$(curl -sf \
             -H "Authorization: Bearer ${GH_TOKEN}" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls?state=closed&sort=updated&direction=desc&per_page=30" \
+            "https://api.github.com/repos/pytorch/pytorch/pulls?state=closed&sort=updated&direction=desc&per_page=30" \
             | jq -r 'map(select(.merged_at != null)) | .[0].number // empty' || true)"
 
           # 查不到或查询失败就退回“只建映射”（作用：网络/权限异常不阻塞调试运行，前几步仍可验证）
           if [ -z "${LATEST_MERGED}" ]; then
             echo "github_pr=" >> "$GITHUB_ENV"
-            echo "::notice::precise-test debug run: no merged PR resolved in ${GITHUB_REPOSITORY} (query failed or none merged), only the coverage map is built"
+            echo "::notice::precise-test debug run: no merged PR resolved in pytorch/pytorch (query failed or none merged), only the coverage map is built"
             exit 0
           fi
 
-          echo "github_pr=${GITHUB_REPOSITORY}#${LATEST_MERGED}" >> "$GITHUB_ENV"
-          echo "::notice::precise-test debug run: using the latest merged PR ${GITHUB_REPOSITORY}#${LATEST_MERGED}"
+          echo "github_pr=pytorch/pytorch#${LATEST_MERGED}" >> "$GITHUB_ENV"
+          echo "::notice::precise-test debug run: using the latest merged upstream PR pytorch/pytorch#${LATEST_MERGED}"
 
           echo "=== debug run ==="
-          echo "github_pr: ${GITHUB_REPOSITORY}#${LATEST_MERGED}"
+          echo "github_pr: pytorch/pytorch#${LATEST_MERGED}"
 
       # 步骤 2：下载覆盖率数据并校验（作用：拿到上游精确测试所需的两个输入——覆盖率数据 + 源码快照）
       - name: Download the coverage data from OBS
