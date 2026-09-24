@@ -1,0 +1,38 @@
+# ==============================================================================
+# case_paths_ci.yml — TorchNPU 测试用例文件级白名单/黑名单
+# ==============================================================================
+# 用途:
+#   - 控制 collect stage 中哪些 test_*.py 文件参与用例采集
+#   - 由 discover_test_files.py 在文件发现阶段应用
+#   - 支持 glob 通配符 (*?[])
+#
+# 生效阶段: Stage 3 (collect)
+# 粒度:     文件级 (test_*.py)
+#
+# 过滤流程:
+#   1. 扫描 ascend-pytorch/test/**/test_*.py → 全部文件
+#   2. 按路径前缀分离: test/distributed/ → distributed; 其余 → regular
+#   3. whitelist 过滤 → 只保留匹配的文件
+#   4. blacklist 过滤 → 排除匹配的文件
+#
+# 扩展策略:
+#   Phase 1: 仅覆盖 test/npu/ (~114 文件), 跑通全流程
+#   Phase 2: 扩展 test/distributed/ + test/nn/ + test/optim/
+#   Phase 3: 根据运行数据持续调整
+# ==============================================================================
+
+# ── 白名单: 只采集这些目录下的测试文件 ──
+# 如果为空，则采集所有非黑名单文件
+whitelist:
+
+
+# "TORCH_DEVICE_BACKEND_AUTOLOAD": "0" 收集阶段默认1，执行阶段必须设置成0，导致收集时能收集到，测试时没有对应用例
+# import torch_npu 在导入时可能会修改 op_db 中的 OpInfo 对象（如添加 NPU 支持的 dtype 信息）。
+#如果 op_db 在 torch_npu 之前被导入，这些修改不会生效，
+#导致 @_gradcheck_ops(op_db + hop_db + custom_op_db) 的参数化结果与收集阶段不一致——pytest
+#运行时找不到收集的 nodeid → XML 为空 → "No testcase in XML"。
+blacklist:
+    # - "test_ops_gradients.py"
+    # - "test_sort_and_select.py"
+    # - "test_torch_fill_uninitialized_memory.py"
+    # - "test_functional_differentials.py"         #完全缺少 import torch_npu

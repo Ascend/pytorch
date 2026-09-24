@@ -1,0 +1,139 @@
+name: nightly_build
+
+on:
+  workflow_call:
+    inputs:
+      PYTHON_VERSION:
+        description: Python version
+        required: false
+        type: string
+      PYTORCH_BRANCH:
+        description: PyTorch source branch
+        required: false
+        type: string
+      MAX_JOBS:
+        description: C++ compile parallel jobs
+        required: false
+        type: string
+      TORCH_NPU_WHEEL_ARTIFACT_DIR:
+        description: torch-npu wheel artifact directory
+        required: false
+        type: string
+      DOCKER_IMAGE:
+        description: Docker image for building
+        required: false
+        type: string
+      CONTAINER_OPTIONS:
+        description: Container options
+        required: false
+        type: string
+      # 调度标签 (变量化): 编译任务默认调度到编译机
+      RUNNER_LABEL:
+        required: false
+        type: string
+        default: "npu=8"
+
+jobs:
+  build:
+    name: build
+    select: selected_by_default
+    runs-on: [ self-hosted, "${{ inputs.RUNNER_LABEL }}" ]
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704
+      options: ${{ inputs.CONTAINER_OPTIONS }}
+
+    outputs:
+      wheel: ${{ steps.build.outputs.wheel }}
+      status: ${{ steps.build.outputs.status }}
+    steps:
+      - name: checkout
+        uses: checkout
+
+      - name: Write build environment info
+        run: |
+          echo "=== Build Environment Info ===" > build_msg.txt
+          echo "Python Version:" >> build_msg.txt
+          python3.10 --version >> build_msg.txt 2>&1
+          echo "CMake Version:" >> build_msg.txt
+          cmake3 --version 2>/dev/null | head -1 >> build_msg.txt || cmake --version 2>/dev/null | head -1 >> build_msg.txt
+          echo "GCC Version:" >> build_msg.txt
+          gcc --version | head -1 >> build_msg.txt
+          echo "ccache Version:" >> build_msg.txt
+          ccache --version | head -1 >> build_msg.txt
+          echo "PyTorch Version:" >> build_msg.txt
+          python3.10 -c "import torch; print(torch.__version__)" >> build_msg.txt
+          echo "=== Build Info End ===" >> build_msg.txt
+
+      - name: Install PyTorch from official website
+        run: |
+          python3.10 .gitcode/scripts/install_pytorch_from_official.py \
+            --arch aarch64 \
+            --python-tag cp310 \
+            --variant cpu \
+            --python-exe python3.10 \
+            --branch "${{ inputs.PYTORCH_BRANCH }}"
+
+      - name: Verify PyTorch installation
+        run: |
+          python3.10 -c "
+          import torch
+          print(f'PyTorch version: {torch.__version__}')
+          assert torch.__version__, 'PyTorch installation failed'
+          "
+
+      - name: Configure ccache
+        env:
+          CCACHE_DIR: "/ccache"
+        run: |
+          ccache -M 10G
+          ccache -z || true
+
+      - name: Build torch_npu wheel
+        id: build
+        env:
+          CC: "ccache gcc"
+          CXX: "ccache g++"
+          CCACHE_DIR: "/ccache"
+          CCACHE_COMPRESS: "1"
+          CCACHE_MAXSIZE: "10G"
+          MAX_JOBS: ${{ inputs.MAX_JOBS }}
+          DISABLE_INSTALL_TORCHAIR: "FALSE"
+          BUILD_WITHOUT_SHA: "1"
+        run: |
+          export CCACHE_BASEDIR="${ATOMGIT_WORKSPACE}"
+          # release/2.15 -> 2.15.0 (build.sh --torch= expects X.Y.Z)
+          TORCH_VER=$(echo "${{ inputs.PYTORCH_BRANCH }}" | sed 's|.*/||')
+          if echo "${TORCH_VER}" | grep -Eq '^[0-9]+\.[0-9]+$'; then
+            TORCH_VER="${TORCH_VER}.0"
+          fi
+          bash ci/build.sh --python="3.10" --torch="${TORCH_VER}" 2>&1 | tee /tmp/build_torch_npu.log
+          BUILD_STATUS=${PIPESTATUS[0]}
+          ccache -s 2>&1
+          echo "${BUILD_STATUS}" > build_status.txt
+          echo "status=${BUILD_STATUS}" >> $ATOMGIT_OUTPUT
+          if [ ${BUILD_STATUS} -eq 0 ]; then
+            WHL=$(ls dist/*.whl 2>/dev/null | head -1)
+            echo "wheel=${WHL}" >> $ATOMGIT_OUTPUT
+            echo "Build succeeded: ${WHL}"
+          else
+            echo "Build failed with exit code ${BUILD_STATUS}"
+            echo "wheel=N/A" >> $ATOMGIT_OUTPUT
+          fi
+          WHL=$(ls dist/*.whl 2>/dev/null | head -1)
+          echo "Wheel: ${WHL##*/}" >> build_msg.txt
+
+      - name: Upload torch-npu wheel as artifact
+        uses: upload-artifact
+        with:
+          name: torch-npu-wheel
+          path: "dist/*.whl"
+          retention-days: 60
+          overwrite: true
+
+      - name: Upload build_msg.txt as artifact
+        uses: upload-artifact
+        with:
+          name: build-msg
+          path: build_msg.txt
+          retention-days: 60
+          overwrite: true

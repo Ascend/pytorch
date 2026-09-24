@@ -127,6 +127,10 @@ def load_categories_config(config_path: Optional[str]) -> Tuple[Dict[str, Dict],
     # Legacy format: flat whitelist
     if "whitelist" in data:
         whitelist = data.get("whitelist", [])
+        if whitelist is None:
+            # case_paths_ci.yml declares "whitelist:" with no value when the
+            # intent is "scan all"; YAML parses that as None.
+            whitelist = []
         if not isinstance(whitelist, list):
             raise ValueError("Expected 'whitelist' to be a list")
         dist_files = [f for f in whitelist if f.startswith("test/distributed/")]
@@ -362,27 +366,81 @@ def _load_skip_list_jsonl(p: Path) -> Dict[str, Dict]:
     return skip_dict
 
 
+def load_disabled_methods(path: Optional[str]) -> Dict[str, Dict]:
+    """Load a method-level disabled list for prefix (startswith) matching.
+
+    Each nodeid key is a base method name (without the parametrization
+    suffix).  Collected nodeids whose normalized form starts with one of
+    these keys are matched, which covers all underscore-suffixed
+    parametrized variants (e.g. ``test_foo`` matches ``test_foo_batch_size_8_...``).
+
+    Returns {method_key: {"source": ..., "reason": ...}} with the 'test/'
+    prefix stripped from each key.
+    """
+    if not path:
+        return {}
+    p = Path(path)
+    if not p.exists():
+        print(f"  WARNING: disabled methods file not found: {p}, skipping method filter")
+        return {}
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"  WARNING: Failed to load disabled methods {p}: {e}")
+        return {}
+
+    result: Dict[str, Dict] = {}
+    if isinstance(data, dict):
+        for key, val in data.items():
+            if not isinstance(key, str) or not key or key.startswith("_"):
+                continue
+            meta = {"source": p.name}
+            if isinstance(val, str):
+                meta["reason"] = val
+            elif isinstance(val, dict):
+                meta.update(val)
+                meta["source"] = p.name
+            result[_normalize_nodeid(key)] = meta
+    elif isinstance(data, list):
+        for key in data:
+            if isinstance(key, str) and key and not key.startswith("_"):
+                result[_normalize_nodeid(key)] = {"source": p.name}
+
+    print(f"  Loaded disabled methods: {len(result)} method-level prefixes from {p}")
+    return result
+
+
 def filter_skipped_cases(
-    cases: List[Dict], skip_dict: Dict[str, Dict]
+    cases: List[Dict],
+    skip_dict: Dict[str, Dict],
+    method_skip: Optional[Dict[str, Dict]] = None,
 ) -> Tuple[List[Dict], List[Dict]]:
-    """Remove cases whose nodeid matches the skip dict.
+    """Remove cases matching the skip dict (exact) or method-level keys (prefix).
 
     Returns a tuple of (filtered_cases, skipped_cases).
     skipped_cases entries include: nodeid, file, skip_reason,
     skip_category, skip_source.
 
-    Prints before/after counts. If skip_dict is empty, returns (cases, [])
+    skip_dict entries match by exact nodeid; method_skip entries match by
+    startswith prefix to cover all parametrized variants of a method.
+
+    Prints before/after counts. If both are empty, returns (cases, [])
     unchanged (zero overhead, backward compatible).
     """
-    if not skip_dict:
+    if not skip_dict and not method_skip:
         return cases, []
 
     filtered = []
     skipped = []
     for c in cases:
         nodeid = _normalize_nodeid(c.get("nodeid", ""))
-        if nodeid in skip_dict:
-            meta = skip_dict[nodeid]
+        meta = skip_dict.get(nodeid)
+        if meta is None and method_skip:
+            for method_key, method_meta in method_skip.items():
+                if nodeid.startswith(method_key):
+                    meta = method_meta
+                    break
+        if meta is not None:
             skipped.append({
                 "nodeid": nodeid,
                 "file": c.get("file", ""),
@@ -846,11 +904,36 @@ def main():
     case_paths_config = args.case_paths_config if args.case_paths_config else None
 
     # Load skip list once (reused for all categories)
-    skip_dict = load_skip_list(args.skip_list)
+    # --disabled-testcases is exact nodeid match; --disabled-methods is
+    # method-level prefix match (covers all parametrized variants).
+    skip_list_paths = list(args.skip_list) if args.skip_list else []
+    if args.disabled_testcases:
+        skip_list_paths.append(args.disabled_testcases)
+    skip_dict = load_skip_list(skip_list_paths if skip_list_paths else None)
+    method_skip = load_disabled_methods(args.disabled_methods)
 
     # Load categories from config (supports new "categories:" and legacy "whitelist:" formats)
     if case_paths_config:
         categories, exclude_list = load_categories_config(case_paths_config)
+        # Backward-compat: legacy case_paths_ci.yml carries empty whitelist /
+        # blacklist (glob rules) to mean "scan all". load_categories_config
+        # returns no categories in that case, so fall back to full
+        # distributed + regular discovery via discover_test_files.
+        if not categories:
+            import discover_test_files
+            dist_files, _ = discover_test_files.discover_test_files(
+                test_dir, "distributed", case_paths_config)
+            reg_files, _ = discover_test_files.discover_test_files(
+                test_dir, "regular", case_paths_config)
+            categories = {}
+            if dist_files:
+                categories["distributed"] = {
+                    "files": dist_files, "workers": 1, "execution": "serial",
+                }
+            if reg_files:
+                categories["regular"] = {
+                    "files": reg_files, "workers": 32, "execution": "concurrent",
+                }
     else:
         # No config: fall back to scanning all test_*.py files via discover_test_files
         import discover_test_files
@@ -918,10 +1001,44 @@ def main():
         )
         print(f"Total {cat_name} cases: {len(cases)}")
 
-        cases, skipped = filter_skipped_cases(cases, skip_dict)
+        cases, skipped = filter_skipped_cases(cases, skip_dict, method_skip)
         all_skipped.extend(skipped)
 
         cases.sort(key=lambda c: (c.get("file", ""), c.get("nodeid", "")))
+
+        # Card classification for distributed tests: split 2card vs rest
+        if cat_name == "distributed" and args.distributed_2card_shards is not None:
+            from classify_distributed_cards import group_cases_by_card_requirement
+            groups = group_cases_by_card_requirement(cases, test_dir)
+            cases_2card = groups.get("2card", [])
+            cases_rest = (
+                groups.get("8card", [])
+                + groups.get("4card", [])
+                + groups.get("3card", [])
+                + groups.get("unclassified", [])
+            )
+
+            # Save 2card as separate category
+            if cases_2card:
+                save_shards(cases_2card, args.distributed_2card_shards,
+                            "distributed_2card", output_dir)
+                save_cases_by_file(cases_2card, files, "distributed_2card", output_dir)
+                summary_categories["distributed_2card"] = {
+                    "test_type": "distributed_2card",
+                    "num_shards": args.distributed_2card_shards,
+                    "total_cases": len(cases_2card),
+                    "total_files": len(files),
+                    "workers": 1,
+                    "execution": "serial",
+                    "shard_sizes": [],
+                }
+                print(f"  [2card] {len(cases_2card)} cases -> "
+                      f"{args.distributed_2card_shards} shards")
+                total_cases += len(cases_2card)
+
+            # Use rest as distributed (8card+unclassified)
+            cases = cases_rest
+            print(f"  [merged] {len(cases)} cases -> {cat_name} (after 2card split)")
 
         # Threshold-based shard count
         threshold = distributed_threshold if cat_name == "distributed" else regular_threshold
@@ -930,14 +1047,26 @@ def main():
         else:
             num_shards = 0
 
+        # Override with fixed shard count if explicitly specified
+        if cat_name == "distributed" and args.distributed_shards is not None:
+            num_shards = max(1, args.distributed_shards) if len(cases) > 0 else 0
+        if cat_name == "regular" and (args.regular_npu_shards is not None or args.regular_shards is not None):
+            fixed = args.regular_npu_shards or args.regular_shards
+            num_shards = max(1, fixed) if len(cases) > 0 else 0
+
         print(f"  Threshold: {threshold}, Cases: {len(cases)} -> Shards: {num_shards}")
 
-        cat_summary = save_shards(cases, num_shards, cat_name, output_dir)
+        # Map category name for shard file naming: regular -> regular_npu when --regular-npu-shards is set
+        output_type = cat_name
+        if cat_name == "regular" and args.regular_npu_shards is not None:
+            output_type = "regular_npu"
+
+        cat_summary = save_shards(cases, num_shards, output_type, output_dir)
         cat_summary["total_files"] = len(files)
         cat_summary["workers"] = cat_config.get("workers", 32)
         cat_summary["execution"] = cat_config.get("execution", "concurrent")
         cat_summary["runner"] = cat_config.get("runner", "linux-aarch64-a3-8")
-        save_cases_by_file(cases, files, cat_name, output_dir)
+        save_cases_by_file(cases, files, output_type, output_dir)
         summary_categories[cat_name] = cat_summary
 
         total_cases += len(cases)
@@ -995,7 +1124,7 @@ def main():
     for cat_name, cat_summary in summary_categories.items():
         n_shards = cat_summary.get("num_shards", 0)
         n_cases = cat_summary.get("total_cases", 0)
-        exec_mode = categories[cat_name].get("execution", "concurrent")
+        exec_mode = cat_summary.get("execution", "concurrent")
         print(f"  {cat_name}: {n_cases} cases -> {n_shards} shards ({exec_mode})")
     print(f"  Total: {total_cases} cases")
 
@@ -1070,6 +1199,30 @@ def parse_args():
              "JSON array, and JSON {nodeid: {reason:...}} formats. "
              "Matching nodeids are removed after collection and recorded in "
              "skipped_cases.json.",
+    )
+    parser.add_argument(
+        "--disabled-testcases",
+        default=None,
+        help="Path to disabled testcases JSON (legacy format). "
+             "Internally merged into --skip-list.",
+    )
+    parser.add_argument(
+        "--disabled-methods",
+        default=None,
+        help="Path to disabled test methods JSON (legacy format). "
+             "Method-level nodeids are matched by prefix (startswith) to "
+             "cover all parametrized variants.",
+    )
+    parser.add_argument(
+        "--regular-npu-shards", type=int, default=None,
+        help="Fixed number of shards for regular/NPU test category. "
+             "Overrides --regular-threshold when set.",
+    )
+    parser.add_argument(
+        "--distributed-2card-shards", type=int, default=None,
+        help="Number of shards for distributed_2card tests. "
+             "When set, distributed files are classified by card count "
+             "(2-card vs rest) and output as separate categories.",
     )
     return parser.parse_args()
 

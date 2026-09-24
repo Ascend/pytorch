@@ -214,3 +214,10 @@ torch_npu/_op_plugin_docs.py
 
 # Scratch space for agent-authored throwaway files
 agent_space/
+
+# IDE (TraeCode/Chromium) runtime log
+debug.log
+
+# 未使用的测试用例配置，仅本地保留，不纳入版本控制
+.gitcode/config/common_cases_pytorch.jsonl
+.gitcode/config/multi_card_testcases.json

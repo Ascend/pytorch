@@ -74,6 +74,16 @@ _TYPE_TO_PREFIX = {
 
 def get_shard_type_prefix(shard_type: str) -> str:
     """Convert shard type to short prefix for file naming."""
+    if shard_type == "distributed":
+        return "dist"
+    if shard_type.startswith("distributed_"):
+        # distributed_2card -> dist-2card; distributed_4card -> dist-4card
+        return "dist-" + shard_type[len("distributed_"):]
+    if shard_type == "custom":
+        return "custom"
+    if shard_type.startswith("regular_"):
+        # regular_npu -> reg-npu; regular_cpu -> reg-cpu
+        return "reg-" + shard_type[len("regular_"):]
     return _TYPE_TO_PREFIX.get(shard_type, "reg")
 
 

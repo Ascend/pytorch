@@ -22,7 +22,7 @@ Test types:
 
 Usage:
     # Pre-collected cases mode (primary usage):
-    python run_npu_test_shard.py \
+    python nightly_run_npu_test_shard.py \
         --cases-json distributed_cases_shard_1.json \
         --test-dir /path/to/pytorch/test \
         --disabled-testcases /path/to/disabled_testcases.json \
@@ -32,7 +32,7 @@ Usage:
         --verbose
 
     # Custom test files mode:
-    python run_npu_test_shard.py \
+    python nightly_run_npu_test_shard.py \
         --test-files test_meta.py,test_nn.py \
         --test-dir /path/to/pytorch/test \
         --disabled-testcases /path/to/disabled_testcases.json \
@@ -42,7 +42,7 @@ Usage:
         --verbose
 
 Note: Shard discovery mode (--shard/--num-shards/--test-type) has been removed.
-      Use collect_all_cases.py for case discovery and sharding.
+      Use nightly_collect_all_cases.py for case discovery and sharding.
 """
 
 import argparse
@@ -189,13 +189,7 @@ def save_case_log(
 
     # Generate safe filename
     safe_name = sanitize_nodeid_for_filename(nodeid)
-    if shard_type.startswith("distributed"):
-        prefix = "dist"
-    elif shard_type.startswith("regular"):
-        prefix = "reg"
-    else:
-        prefix = {"core": "core", "tensor": "tensor", "graph": "graph",
-                  "others": "others", "custom": "custom"}.get(shard_type, "reg")
+    prefix = "dist" if shard_type == "distributed" else "reg"
     log_filename = f"{prefix}-{shard}_{case_idx}_{safe_name}.log"
     log_path = cases_logs_dir / log_filename
 
@@ -225,6 +219,7 @@ def save_case_log(
         "-" * 80,
         stderr or "(empty)",
         "",
+        "=" * 80,
     ])
 
     log_path.write_text("\n".join(content_lines), encoding="utf-8")
@@ -501,8 +496,7 @@ def run_tests_with_tasks_concurrent(
     shard_type: str,
     max_workers: int,
     result_module,
-    quick_test: Optional[int] = None,
-    cards_per_test: int = 0,
+    quick_test: int = None, cards_per_test: int = 0,
 ) -> Tuple[int, float, List[Dict]]:
     """
     Execute pre-collected test cases with concurrent per-case isolation.
@@ -591,12 +585,12 @@ def run_tests_with_tasks_concurrent(
     total_cases = len(tasks)
 
     # Sort and batch tasks: group same-file cases, max 100 per batch
-    batches = sort_and_batch_tasks(tasks, max_cases_per_batch=100)
+    batches = sort_and_batch_tasks(tasks, max_cases_per_batch=50)
 
     print(f"\n{'=' * 80}", flush=True)
     print(f"Pre-collected cases: {total_cases} cases", flush=True)
     print(f"Execution mode: {max_workers} workers concurrent, "
-          f"{len(batches)} batches (max 100 same-file cases per batch, pytest.main() per case)", flush=True)
+          f"{len(batches)} batches (max 1 same-file cases per batch, pytest.main() per case)", flush=True)
     print(f"{'=' * 80}\n", flush=True)
 
     # Print batch summary
@@ -720,7 +714,7 @@ def build_execution_env(
     if torch_path:
         pythonpath_parts.append(torch_path)
 
-    pythonpath_parts.extend([str(repo_root), str(test_dir)])
+    pythonpath_parts.extend([str(test_dir)])
 
     existing_pythonpath = os.environ.get("PYTHONPATH", "")
     if existing_pythonpath:
@@ -729,9 +723,13 @@ def build_execution_env(
     updates = {
         "PYTHONPATH": os.pathsep.join(pythonpath_parts),
         "PYTORCH_TEST_NPU": "1",
+        # 测试文件均显式 import torch_npu, 无需 autoload; 关闭它避免
+        # import torch 时 torch_npu 被重复加载, 导致 torch/__init__.py 二次执行、
+        # "triton" namespace 被注册两次而报 "Only a single TORCH_LIBRARY" 错误。
         "TORCH_DEVICE_BACKEND_AUTOLOAD": "1",
         "NO_TD": "1",
         "PYTHONUNBUFFERED": "1",
+        # "PYTORCH_TESTING_DEVICE_ONLY_FOR": 'privateuse1,cpu'
         # Note: Do NOT set CI=true here, as some test files have conditional
         # test generation logic like:
         #   if not (IS_CI and torch.cuda.is_available()):
@@ -746,7 +744,7 @@ def build_execution_env(
         updates["DISABLED_TESTS_FILE"] = os.path.abspath(disabled_testcases_file)
 
     # Same wiring as DISABLED_TESTS_FILE, but method-level: worker strips the
-    # [param] suffix from each nodeid for startswith matching, so one entry covers all variants
+    # [param] suffix from each nodeid for matching, so one entry covers all variants
     if disabled_methods_file:
         updates["DISABLED_TEST_METHODS_FILE"] = os.path.abspath(disabled_methods_file)
 
@@ -790,106 +788,6 @@ def _build_batch_input_json(
             for t in batch
         ],
     }
-
-
-# ==============================================================================
-# NPU Task Queue Poisoning & Hardware Error Detection
-# ==============================================================================
-#
-# When an aclnn operator fails fatally (operator bug like aclnnRepeat 0-dim,
-# CANN OOM, or hardware AiCore exception), the NPU device context becomes
-# poisoned. The NPU task queue (NPUQueue.cpp) transitions to CAN_EXIT state:
-# all subsequent operators become silent no-ops that produce garbage data
-# (uninitialized device memory). This poisons every remaining test case in
-# the same worker process.
-#
-# Detection: check each case's output for fatal signatures. The poisoning
-# case itself throws a RuntimeError containing one of these strings. After
-# detection, the worker exits with a special exit code; the parent restarts
-# a fresh worker for remaining cases.
-#
-# Two categories of fatal signatures:
-#   1. "The process exits for this inner error":
-#      NPUQueue ERROR_EXIT throw path (operator bugs, OOM). NOT produced
-#      by hardware errors (UCE/ECC go through deviceErrorMap).
-#   2. Hardware errors (EZ9999, EE9999, vector core exception):
-#      AiCore faults that corrupt device state beyond recovery.
-
-NPU_QUEUE_FATAL_EXIT_CODE = 70
-
-# Layer 1: Fatal error signatures (string matching)
-#
-# Two categories:
-#   A. NPUQueue ERROR_EXIT throw path — produces "The process exits for
-#      this inner error" (covers operator bugs like aclnnRepeat, CANN OOM).
-#   B. deviceErrorMap throw path (NPUQueue.cpp:175-183 ThrowDeviceError) —
-#      produces device error labels for hardware faults. These bypass
-#      ERROR_EXIT and go directly to UCE_EXIT / HBM_ECC_EXIT / etc.,
-#      so they do NOT contain the "process exits" signature.
-#
-# Note: EZ9999 / EE9999 / EZ1009 are CANN runtime error codes that appear
-# in the exception message alongside the deviceErrorMap labels. They are
-# kept for additional robustness but are partially redundant with category B.
-NPU_QUEUE_FATAL_SIGNATURES = [
-    # A. NPUQueue ERROR_EXIT (operator bugs, OOM)
-    "The process exits for this inner error",
-    # B. deviceErrorMap labels (hardware faults, NPUQueue.cpp:175-183)
-    "UCE ERROR",
-    "HBM MULTI BIT ECC ERROR",
-    "SUSPECT MEM ERROR",
-    "HCCS LINK ERROR",
-    "HCCL OP RETRY FAILED",
-    "SUSPECT REMOTE ERROR",
-    # C. CANN runtime error codes (redundant with B, kept for robustness)
-    "EZ9999",
-    "EE9999",
-    "EZ1009",
-]
-
-
-def _check_fatal_npu_error(
-    status: str,
-    message: str,
-    stdout: str,
-    stderr: str,
-) -> bool:
-    """Layer 1: Check if a case result contains a known fatal NPU error signature."""
-    if status not in ("failed", "error"):
-        return False
-    combined = (message or "") + "\n" + (stdout or "") + "\n" + (stderr or "")
-    return any(sig in combined for sig in NPU_QUEUE_FATAL_SIGNATURES)
-
-
-def _check_npu_poisoned() -> bool:
-    """
-    Layer 2: Probe NPU device health by running a trivial computation.
-
-    When the NPU task queue is in CAN_EXIT state (poisoned by a prior fatal
-    error), all operators become silent no-ops — NPUQueue.cpp:573-596 Enqueue()
-    returns without executing, and output tensors contain uninitialized device
-    memory. This probe creates a tensor with a known value and verifies the
-    result. If the queue is poisoned, the result will be garbage. If the
-    device is in error state, the sync will throw.
-
-    This catches poisoning paths that signature matching misses (e.g. new
-    CANN error formats, SUSPECT REMOTE ERROR without EZ9999 prefix, etc.).
-
-    Cost: ~1ms per call. Only invoked on failed/error cases where Layer 1
-    did not match, so zero overhead for passing tests.
-    """
-    try:
-        import torch
-        # torch.ones on NPU calls fill_ -> EXEC_NPU_CMD(aclnnInplaceFillScalar)
-        # -> Enqueue -> no-op if CAN_EXIT. sum() similarly no-op.
-        # .item() triggers MakeSureQueueEmpty (sync), which does NOT throw
-        # in CAN_EXIT state (runtime_error left empty, NPUQueue.cpp:313-315),
-        # so it returns garbage from uninitialized device memory.
-        probe = torch.ones(4, device="npu")
-        return probe.sum().item() != 4.0
-    except Exception:
-        # Any exception (sync timeout, device error, OOM) means the device
-        # context is unhealthy and the worker should be restarted.
-        return True
 
 
 def _execute_worker_batch(
@@ -977,14 +875,13 @@ def _execute_worker_batch(
                         nodeid = case_result.get("nodeid", "")
                         status = case_result.get("status", "error")
                         duration = case_result.get("duration", 0.0)
-                        message = case_result.get("message", "")
 
                         full_result = {
                             "nodeid": nodeid,
                             "status": status,
                             "duration": duration,
                             "returncode": int(case_result.get("returncode", 1)),
-                            "message": message,
+                            "message": case_result.get("message", ""),
                             "command": case_result.get("command", ""),
                             "file": case_result.get("file", ""),
                             "case_idx": int(case_result.get("case_idx", 0)),
@@ -998,7 +895,7 @@ def _execute_worker_batch(
                             "nodeid": nodeid,
                             "status": status,
                             "duration": duration,
-                            "message": message[:200],
+                            "message": case_result.get("message", "")[:200],
                         })
                         attempt_completed.add(nodeid)
 
@@ -1060,26 +957,6 @@ def _execute_worker_batch(
                 else:
                     remaining_cases = []
 
-                if remaining_cases:
-                    print(
-                        f"  [Batch {batch_id}] Continuing with "
-                        f"{len(remaining_cases)} remaining cases...",
-                        flush=True,
-                    )
-                continue
-
-            # NPU task queue poisoning or hardware device error: worker
-            # detected the fatal condition and exited cleanly between
-            # cases (os._exit(NPU_QUEUE_FATAL_EXIT_CODE)). Unlike coredump,
-            # no case was in progress — restart for ALL unreported cases
-            # without sacrificing any.
-            if returncode == NPU_QUEUE_FATAL_EXIT_CODE:
-                print(
-                    f"  [Batch {batch_id}] NPU fatal error detected by worker,"
-                    f" restarting for {len(not_reported)} remaining cases...",
-                    flush=True,
-                )
-                remaining_cases = not_reported
                 if remaining_cases:
                     print(
                         f"  [Batch {batch_id}] Continuing with "
@@ -1213,7 +1090,7 @@ def _execute_worker_batch(
 def _worker_main(worker_input_file: str) -> None:
     """
     Worker entry point. Called via:
-        python run_npu_test_shard.py --worker <batch_input.json>
+        python nightly_run_npu_test_shard.py --worker <batch_input.json>
 
     Reads batch input, runs each case via pytest.main() sequentially,
     prints one JSON line per case to stdout, writes batch_results file,
@@ -1241,6 +1118,7 @@ def _worker_main(worker_input_file: str) -> None:
     for key, value in env_updates.items():
         os.environ[key] = value
     if npu_device_id is not None:
+        # npu_device_id can be "3" (single card) or "0,1" (card range)
         os.environ["ASCEND_RT_VISIBLE_DEVICES"] = str(npu_device_id)
 
     # Change to test directory
@@ -1303,7 +1181,7 @@ def _worker_main(worker_input_file: str) -> None:
                 "status": "skipped",
                 "duration": 0.0,
                 "returncode": 0,
-                "message": f"disabled: {skip_reason}",
+                "message": f"disabled by method blacklist: {skip_reason}",
                 "command": "",
                 "file": case["test_file"],
             }
@@ -1316,13 +1194,7 @@ def _worker_main(worker_input_file: str) -> None:
             case_nodeid = case_nodeid[5:]
 
         # Generate XML filename
-        if shard_type.startswith("distributed"):
-            prefix = "dist"
-        elif shard_type.startswith("regular"):
-            prefix = "reg"
-        else:
-            prefix = {"core": "core", "tensor": "tensor", "graph": "graph",
-                      "others": "others", "custom": "custom"}.get(shard_type, "reg")
+        prefix = "dist" if shard_type == "distributed" else "reg"
         safe_name = sanitize_nodeid_for_filename(original_nodeid)
         xml_filename = f"{prefix}-{shard}_{case['case_idx']}_{safe_name}.xml"
         xml_file = junit_xml_dir / xml_filename
@@ -1384,52 +1256,6 @@ def _worker_main(worker_input_file: str) -> None:
             status = xml_result["status"]
             message = xml_result.get("message", "")
 
-        # Check for NPU fatal errors — exit worker immediately to trigger
-        # process-level restart for remaining cases.
-        if status in ("failed", "error"):
-            poisoned = _check_fatal_npu_error(
-                status, message, captured_stdout, captured_stderr
-            )
-            if not poisoned:
-                poisoned = _check_npu_poisoned()
-            if poisoned:
-                # NPU fatal: save result and exit
-                save_case_log(
-                    report_dir=report_dir,
-                    shard=shard,
-                    shard_type=shard_type,
-                    nodeid=original_nodeid,
-                    case_idx=case["case_idx"],
-                    status=status,
-                    stdout=captured_stdout,
-                    stderr=captured_stderr,
-                    duration=duration,
-                    returncode=returncode,
-                    command=command_str,
-                    npu_device_id=npu_device_id,
-                )
-                case_result = {
-                    "case_idx": case["case_idx"],
-                    "nodeid": original_nodeid,
-                    "status": status,
-                    "duration": duration,
-                    "returncode": returncode,
-                    "message": message,
-                    "command": command_str,
-                    "file": case["test_file"],
-                }
-                all_results.append(case_result)
-                print(json.dumps(case_result, ensure_ascii=False), flush=True)
-                print(
-                    f"[{case['case_idx']}] NPU fatal error detected, "
-                    f"exiting worker (code {NPU_QUEUE_FATAL_EXIT_CODE}) "
-                    f"to trigger restart for remaining cases",
-                    flush=True,
-                )
-                sys.stdout.flush()
-                sys.stderr.flush()
-                os._exit(NPU_QUEUE_FATAL_EXIT_CODE)
-
         # Save case log
         save_case_log(
             report_dir=report_dir,
@@ -1472,6 +1298,35 @@ def _worker_main(worker_input_file: str) -> None:
     sys.stdout.flush()
     sys.stderr.flush()
     os._exit(0)
+
+
+def _run_tasks(collected_cases: List[Dict], shard: int,
+               test_dir: Path, report_dir: Path, script_dir: Path,
+               shard_type: str, args, result_module) -> Tuple[int, float, List[Dict]]:
+    """
+    Build tasks from collected cases, prepare env, execute, and return results.
+
+    Centralises the shared "prepare → execute" pipeline used by both --test-files
+    and --cases-json modes.  Execution mode (serial / concurrent / cards-per-test)
+    is decided inside run_tests_with_tasks_concurrent — not here.
+    """
+    tasks = [CaseExecutionTask(case_idx=i, nodeid=c["nodeid"], test_file=c["file"])
+             for i, c in enumerate(collected_cases, 1)]
+
+    clean_existing_junit_xml(report_dir)
+    result_module.get_shard_log_file(report_dir, shard, shard_type).unlink(missing_ok=True)
+
+    env_updates = build_execution_env(
+        test_dir, script_dir, args.disabled_testcases, shard, shard_type,
+        disabled_methods_file=args.disabled_methods,
+    )
+
+    return run_tests_with_tasks_concurrent(
+        tasks, shard, test_dir, report_dir, env_updates,
+        args.timeout, args.verbose, shard_type, args.max_workers,
+        result_module, args.quick_test,
+        cards_per_test=args.cards_per_test,
+    )
 
 
 def save_results_and_summary(
@@ -1642,7 +1497,8 @@ def parse_args():
         description="Run PyTorch NPU tests via per-case isolation pytest execution"
     )
     parser.add_argument(
-        "--test-files", type=str,
+        "--test-files",
+        type=str,
         help="Comma-separated test file paths to run directly (e.g., 'test_meta.py,test_nn.py')",
     )
     parser.add_argument("--cases-json", type=str, help="Path to pre-collected cases JSON file")
@@ -1666,12 +1522,13 @@ def parse_args():
         "--quick-test",
         type=int,
         default=None,
-        help="Quick test mode: execute only N cases for fast verification (default: None, run all cases)",
+        help="Quick test mode: execute only N cases for fast verification "
+        "(default: None, run all cases)",
     )
     parser.add_argument("--cards-per-test", type=int, default=0,
                         help="Cards required per distributed test (default: 0 = no limit, use all cards). "
                              "When >0, allocates card ranges and enables concurrent batch execution. "
-                             "e.g. --cards-per-test 2 on 16-card machine -> 8 concurrent batches.")
+                             "e.g. --cards-per-test 2 on 16-card machine → 8 concurrent batches.")
     parser.add_argument("--worker", type=str, default=None, help=argparse.SUPPRESS)
     args = parser.parse_args()
 
@@ -1689,6 +1546,139 @@ def parse_args():
     return args
 
 
+def _run_mode_test_files(args, test_dir: Path, report_dir: Path, script_dir: Path,
+                         result_module, timestamp: str) -> None:
+    """Execute --test-files mode: parse file names, collect cases online, execute, save."""
+    planned_tests = parse_test_files_input(args.test_files, test_dir)
+    shard, num_shards = 1, 1
+
+    has_distributed = has_distributed_test_files(planned_tests)
+    shard_type = "distributed" if has_distributed else "regular"
+
+    print(f"Test files specified: {len(planned_tests)}")
+    print(f"Test directory: {test_dir}")
+    print(f"Test type: {shard_type}")
+    if has_distributed:
+        distributed_files = [f for f in planned_tests if f.startswith("test/distributed/")]
+        print(f"  Distributed files: {len(distributed_files)}")
+        for df in distributed_files:
+            print(f"    - {strip_test_prefix_and_suffix(df)}")
+    if args.disabled_testcases:
+        print(f"Disabled testcase entries: {result_module.load_disabled_testcases_count(args.disabled_testcases)}")
+    if args.disabled_methods:
+        print(f"Disabled method entries: {result_module.load_disabled_testcases_count(args.disabled_methods)}")
+    print(f"\n{'=' * 80}\n")
+
+    for index, target in enumerate(planned_tests, 1):
+        print(f"  [{index:03d}] {strip_test_prefix_and_suffix(target)}"
+              f"{' [distributed]' if target.startswith('test/distributed/') else ''}")
+
+    info = result_module.create_shard_info(shard, num_shards, timestamp)
+    info.update({
+        "selection_mode": "custom_files", "shard_type": shard_type,
+        "shard_files": len(planned_tests), "total_files": len(planned_tests),
+        "selected_test_files": len(planned_tests), "has_distributed_files": has_distributed,
+    })
+    if args.disabled_testcases:
+        info["disabled_count"] = result_module.load_disabled_testcases_count(args.disabled_testcases)
+
+    result_module.save_test_plan_file(str(report_dir), shard, planned_tests, shard_type)
+
+    cases_list = []
+    returncode = duration = 0
+    if planned_tests:
+        print("\nPhase 1: Collecting test cases...")
+        error_log_dir = report_dir / "collection_errors"
+        collected_cases = collect_all_cases.collect_all_cases(
+            planned_tests, test_dir, error_log_dir, parallel=16,
+        )
+        if args.quick_test and len(collected_cases) > args.quick_test:
+            collected_cases = collected_cases[:args.quick_test]
+            print(f"  Quick test mode: using only {args.quick_test} cases")
+
+        returncode, duration, cases_list = _run_tasks(
+            collected_cases, shard, test_dir, report_dir, script_dir,
+            shard_type, args, result_module,
+        )
+        returncode = returncode or 0
+        duration = duration or 0.0
+
+    save_results_and_summary(
+        result_module=result_module, report_dir=report_dir,
+        shard=shard, shard_type=shard_type,
+        cases_list=cases_list, duration=duration, returncode=returncode,
+        info=info, has_distributed_files=has_distributed,
+    )
+
+
+def _run_mode_cases_json(args, test_dir: Path, report_dir: Path, script_dir: Path,
+                         result_module, timestamp: str) -> None:
+    """Execute --cases-json mode: read pre-collected shard JSON, execute, save."""
+    cases_file = Path(args.cases_json).resolve()
+    if not cases_file.exists():
+        raise FileNotFoundError(f"Cases JSON file not found: {cases_file}")
+
+    cases_data = json.loads(cases_file.read_text(encoding="utf-8"))
+    shard = cases_data["shard"]
+    num_shards = cases_data["num_shards"]
+    shard_type = cases_data.get("test_type", "regular")
+    planned_cases = cases_data["cases"]
+    total_cases = len(planned_cases)
+
+    print(f"Cases JSON: {cases_file}")
+    print(f"Shard: {shard}/{num_shards}")
+    print(f"Test type: {shard_type}")
+    print(f"Total cases: {total_cases}")
+    print(f"Test directory: {test_dir}")
+
+    # Execution mode preview (actual mode decided inside run_tests_with_tasks_concurrent)
+    if shard_type.startswith("distributed"):
+        if args.cards_per_test > 0:
+            print(f"Execution mode: CONCURRENT ({args.cards_per_test} cards/test, "
+                  f"batches auto-scheduled on {args.cards_per_test}-card groups)")
+        else:
+            print("Execution mode: SERIAL (1 batch at a time, all cards visible)")
+    else:
+        print(f"Execution mode: CONCURRENT ({args.max_workers} workers, "
+              f"round-robin single-card, pytest.main() per case)")
+
+    if args.disabled_testcases:
+        print(f"Disabled testcase entries: {result_module.load_disabled_testcases_count(args.disabled_testcases)}")
+    if args.disabled_methods:
+        print(f"Disabled method entries: {result_module.load_disabled_testcases_count(args.disabled_methods)}")
+    print(f"\n{'=' * 80}\n")
+
+    info = result_module.create_shard_info(shard, num_shards, timestamp)
+    info.update({
+        "selection_mode": "cases_json", "shard_type": shard_type,
+        "cases_json_file": str(cases_file), "total_cases": total_cases,
+        "per_case_isolation": True,
+    })
+    if args.disabled_testcases:
+        info["disabled_count"] = result_module.load_disabled_testcases_count(args.disabled_testcases)
+    if args.cards_per_test > 0:
+        info["cards_per_test"] = args.cards_per_test
+
+    cases_list = []
+    returncode = duration = 0
+    if planned_cases:
+        returncode, duration, cases_list = _run_tasks(
+            planned_cases, shard, test_dir, report_dir, script_dir,
+            shard_type, args, result_module,
+        )
+        returncode = returncode or 0
+        duration = duration or 0.0
+    else:
+        print("No cases to execute.")
+
+    save_results_and_summary(
+        result_module=result_module, report_dir=report_dir,
+        shard=shard, shard_type=shard_type,
+        cases_list=cases_list, duration=duration, returncode=returncode,
+        info=info,
+    )
+
+
 def main():
     """Main entry point."""
     args = parse_args()
@@ -1698,20 +1688,11 @@ def main():
         _worker_main(args.worker)
         return  # _worker_main calls os._exit(0), unreachable
 
-    # 预检：pytest-timeout 缺失时 pytest 无法识别 --timeout，所有用例都会以
-    # usage error 4 秒挂（单用例日志表现为 "unrecognized arguments: --timeout=..."）。
-    # 在派发前快速失败并给出可操作提示，避免数千用例全红后才发现环境缺包
-    if importlib.util.find_spec("pytest_timeout") is None:
-        print("ERROR: pytest-timeout 插件未安装，pytest 无法识别 --timeout 参数；"
-              "请先执行: python3 -m pip install pytest-timeout", file=sys.stderr)
-        sys.exit(2)
-
     # Resolve paths
     test_dir = Path(args.test_dir).resolve()
     if not test_dir.is_dir():
         raise FileNotFoundError(f"Test directory not found: {test_dir}")
 
-    repo_root = test_dir.parent
     script_dir = Path(__file__).resolve().parent
     report_dir = Path(args.report_dir).resolve()
     report_dir.mkdir(parents=True, exist_ok=True)
@@ -1722,265 +1703,20 @@ def main():
     timestamp = datetime.now().isoformat()
 
     # ==========================================================================
-    # Mode: Direct execution of specified test files
+    # Dispatch: --test-files (PR 增量) vs --cases-json (日流水线全量)
     # ==========================================================================
     if args.test_files:
         print("=" * 80)
         print("Custom Test Files Execution Mode")
         print("=" * 80)
-
-        # Parse test files input
-        planned_tests = parse_test_files_input(args.test_files, test_dir)
-
-        # Use fixed shard number for custom mode
-        shard = 1
-        num_shards = 1
-
-        # Check for distributed test files: if any exist, run ALL cases as
-        # distributed (serial, no NPU binding). Otherwise run as regular
-        # (concurrent, NPU round-robin binding).
-        has_distributed = has_distributed_test_files(planned_tests)
-        if has_distributed:
-            shard_type = "distributed"
-            effective_workers = 1
-            execution_mode = "serial"
-        else:
-            shard_type = "regular"
-            effective_workers = args.max_workers
-            execution_mode = "concurrent"
-
-        print(f"Test files specified: {len(planned_tests)}")
-        print(f"Test directory: {test_dir}")
-        print(f"Test type: {shard_type}")
-        print(f"Execution mode: {execution_mode} ({effective_workers} workers, pytest.main() per case, batched by file)")
-        if has_distributed:
-            distributed_files = [f for f in planned_tests if f.startswith("test/distributed/")]
-            print(f"  Distributed files: {len(distributed_files)}")
-            for df in distributed_files:
-                print(f"    - {strip_test_prefix_and_suffix(df)}")
-        if args.disabled_testcases:
-            disabled_count = result_module.load_disabled_testcases_count(args.disabled_testcases)
-            print(f"Disabled testcase entries: {disabled_count}")
-        print(f"\n{'=' * 80}\n")
-
-        for index, target in enumerate(planned_tests, 1):
-            display_name = strip_test_prefix_and_suffix(target)
-            is_dist = target.startswith("test/distributed/")
-            dist_marker = " [distributed]" if is_dist else ""
-            print(f"  [{index:03d}] {display_name}{dist_marker}")
-
-        # Create info dict for custom mode
-        info = result_module.create_shard_info(shard, num_shards, timestamp)
-        info["selection_mode"] = "custom_files"
-        info["shard_type"] = shard_type
-        info["shard_files"] = len(planned_tests)
-        info["total_files"] = len(planned_tests)
-        info["selected_test_files"] = len(planned_tests)
-        info["has_distributed_files"] = has_distributed
-        info["execution_mode"] = execution_mode
-        if args.disabled_testcases:
-            info["disabled_count"] = result_module.load_disabled_testcases_count(args.disabled_testcases)
-
-        # Save test plan
-        result_module.save_test_plan_file(str(report_dir), shard, planned_tests, shard_type)
-
-        # Clean old files
-        clean_existing_junit_xml(report_dir)
-        result_module.get_shard_log_file(report_dir, shard, shard_type).unlink(missing_ok=True)
-
-        # Build execution env
-        env_updates = build_execution_env(
-            test_dir, script_dir, args.disabled_testcases, shard, shard_type
-        )
-
-        # Execute tests (custom mode: auto-detect distributed files for execution mode)
-        cases_list = []
-        if planned_tests:
-            # Phase 1: Collect all test cases using collect_all_cases module
-            print("\nPhase 1: Collecting test cases...")
-            error_log_dir = report_dir / "collection_errors"
-            collected_cases = collect_all_cases.collect_all_cases(
-                planned_tests,
-                test_dir,
-                error_log_dir,
-                parallel=16,  # 16 parallel collectors balance speed vs resource usage
-            )
-
-            # Apply quick_test limit if specified
-            if args.quick_test and len(collected_cases) > args.quick_test:
-                collected_cases = collected_cases[:args.quick_test]
-                print(f"  Quick test mode: using only {args.quick_test} cases")
-
-            total_cases = len(collected_cases)
-            print(f"\nPhase 2: Executing {total_cases} cases with {effective_workers} workers")
-
-            # Build CaseExecutionTask list
-            tasks = []
-            for i, case in enumerate(collected_cases, 1):
-                tasks.append(CaseExecutionTask(
-                    case_idx=i,
-                    nodeid=case["nodeid"],
-                    test_file=case["file"],
-                ))
-
-            # Phase 2: Execute cases using run_tests_with_tasks_concurrent
-            # Use effective_workers (1 for distributed files, args.max_workers otherwise)
-            # Note: quick_test already applied above, pass None to avoid redundant check
-            returncode, duration, cases_list = run_tests_with_tasks_concurrent(
-                tasks,
-                shard,
-                test_dir,
-                report_dir,
-                env_updates,
-                args.timeout,
-                args.verbose,
-                shard_type,
-                effective_workers,
-                result_module,
-                None,  # quick_test already applied above
-            )
-            info["per_case_isolation"] = True
-            info["concurrent_workers"] = effective_workers
-            info["returncode"] = returncode
-            info["duration"] = duration
-        else:
-            returncode = 0
-            duration = 0.0
-
-        # Save results and print summary
-        save_results_and_summary(
-            result_module=result_module,
-            report_dir=report_dir,
-            shard=shard,
-            shard_type=shard_type,
-            cases_list=cases_list,
-            duration=duration,
-            returncode=returncode,
-            info=info,
-            execution_mode=execution_mode,
-            concurrent_workers=effective_workers,
-            has_distributed_files=has_distributed,
-        )
-
-        # Exit with 0 to allow step to succeed and report generation to proceed
-        # The actual test results are recorded in cases.json
+        _run_mode_test_files(args, test_dir, report_dir, script_dir, result_module, timestamp)
         sys.exit(0)
 
-    # ==========================================================================
-    # Mode: Pre-collected cases JSON execution
-    # ==========================================================================
     if args.cases_json:
         print("=" * 80)
         print("Pre-collected Cases Execution Mode")
         print("=" * 80)
-
-        cases_file = Path(args.cases_json).resolve()
-        if not cases_file.exists():
-            raise FileNotFoundError(f"Cases JSON file not found: {cases_file}")
-
-        cases_data = json.loads(cases_file.read_text(encoding="utf-8"))
-
-        shard = cases_data["shard"]
-        num_shards = cases_data["num_shards"]
-        shard_type = cases_data.get("test_type", "regular")
-        planned_cases = cases_data["cases"]
-        total_cases = len(planned_cases)
-
-        print(f"Cases JSON: {cases_file}")
-        print(f"Shard: {shard}/{num_shards}")
-        print(f"Test type: {shard_type}")
-        print(f"Total cases: {total_cases}")
-        print(f"Test directory: {test_dir}")
-
-        # Execution mode based on test_type
-        if shard_type == "distributed":
-            print("Execution mode: SERIAL (pytest.main() per case, batched by file)")
-        else:
-            print(f"Execution mode: CONCURRENT ({args.max_workers} workers, pytest.main() per case, batched by file)")
-
-        if args.disabled_testcases:
-            disabled_count = result_module.load_disabled_testcases_count(args.disabled_testcases)
-            print(f"Disabled testcase entries: {disabled_count}")
-
-        print(f"\n{'=' * 80}\n")
-
-        # Create info dict for cases-json mode
-        info = result_module.create_shard_info(shard, num_shards, timestamp)
-        info["selection_mode"] = "cases_json"
-        info["shard_type"] = shard_type
-        info["cases_json_file"] = str(cases_file)
-        info["total_cases"] = total_cases
-        info["per_case_isolation"] = True
-        if args.disabled_testcases:
-            info["disabled_count"] = result_module.load_disabled_testcases_count(args.disabled_testcases)
-
-        # Clean old files
-        clean_existing_junit_xml(report_dir)
-        result_module.get_shard_log_file(report_dir, shard, shard_type).unlink(missing_ok=True)
-
-        # Build execution env
-        env_updates = build_execution_env(
-            test_dir, script_dir, args.disabled_testcases, shard, shard_type
-        )
-
-        # Convert cases to CaseExecutionTask format
-        tasks = []
-        for i, case in enumerate(planned_cases, 1):
-            tasks.append(CaseExecutionTask(
-                case_idx=i,
-                nodeid=case["nodeid"],
-                test_file=case.get("file", ""),
-            ))
-
-        # Execute tests based on shard_type
-        cases_list = []
-        if tasks:
-            # Determine execution mode and worker count
-            if shard_type == "distributed":
-                # Distributed: serial execution (1 worker)
-                effective_workers = 1
-                print("\nExecution mode: SERIAL (distributed tests require sequential execution)")
-            else:
-                # Regular: concurrent execution
-                effective_workers = args.max_workers
-                print(f"\nExecution mode: CONCURRENT ({effective_workers} workers)")
-
-            # Execute tasks directly using the new function
-            returncode, duration, cases_list = run_tests_with_tasks_concurrent(
-                tasks,
-                shard,
-                test_dir,
-                report_dir,
-                env_updates,
-                args.timeout,
-                args.verbose,
-                shard_type,
-                effective_workers,
-                result_module,
-                args.quick_test,
-            )
-            info["execution_mode"] = "serial" if effective_workers == 1 else "concurrent"
-            info["concurrent_workers"] = effective_workers
-
-        else:
-            print("No cases to execute.")
-            returncode = 0
-            duration = 0.0
-
-        # Save results and print summary
-        save_results_and_summary(
-            result_module=result_module,
-            report_dir=report_dir,
-            shard=shard,
-            shard_type=shard_type,
-            cases_list=cases_list,
-            duration=duration,
-            returncode=returncode,
-            info=info,
-        )
-
-        # Exit with 0 to allow step to succeed and report generation to proceed
-        # The actual test results are recorded in cases.json
+        _run_mode_cases_json(args, test_dir, report_dir, script_dir, result_module, timestamp)
         sys.exit(0)
 
     # No valid mode specified (should not reach here due to argument validation)
