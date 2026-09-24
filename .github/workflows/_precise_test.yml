@@ -58,60 +58,70 @@ jobs:
           echo "github_pr: ${UPSTREAM_REPO}#${PR_NUMBER}"
           echo "base_ref:  ${BASE_REF}"
 
-      - name: Download previous coverage data from OBS
+      - name: Download the coverage data from OBS
         run: |
           set -euo pipefail
 
           obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
 
-          mkdir -p coverage
+          rm -rf coverage && mkdir -p coverage
           for attempt in 1 2; do
             echo "=== Download attempt ${attempt} ==="
-            if obsutil cp "obs://pytorch-ci-cache/coverage/pytorch/latest/" coverage/pytorch/ -r -f -vlength; then
+            if obsutil cp "obs://pytorch-ci-cache/coverage/pytorch/latest/" coverage/ -r -f -vlength; then
               break
             fi
             sleep 10
           done
 
-          if [ ! -d "coverage/pytorch/pytorch@latest" ] || [ ! -d "coverage/pytorch/convstub" ]; then
-            echo "::error::No previous coverage data found on OBS, cannot build map"
-            find coverage -maxdepth 3
-            exit 1
-          fi
+          echo "=== OBS layout ==="
+          find coverage -maxdepth 3 -type d | sort | head -20
 
-          echo "=== coverage directory tree ==="
-          find coverage -maxdepth 3 -type d
-          du -sh coverage/pytorch/pytorch@latest coverage/pytorch/convstub
+          python3 - <<'PYEOF'
+          import sys
+          from pathlib import Path
 
-      - name: generate-param
-        run: |
-          set -euo pipefail
+          root = Path("coverage")
+          reports = sorted(root.rglob("coverage.xml"))
+          if not reports:
+              sys.exit("ERROR: coverage.xml not found under the OBS download")
 
-          if [ -d "coverage" ]; then
-            COVERAGE_PKG_DIR=$(find coverage -mindepth 1 -maxdepth 1 -type d | head -n1)
-            echo "COVERAGE_PKG_DIR=${COVERAGE_PKG_DIR}"
-          else
-            echo "::error::coverage directory not found"
-            exit 1
-          fi
+          def rank(path: Path) -> int:
+              return 0 if path.name == "pytorch@latest" else 1
 
-          if [ -d "${COVERAGE_PKG_DIR}" ]; then
-            TASK_DIR=$(find "${COVERAGE_PKG_DIR}" -mindepth 1 -maxdepth 1 -type d ! -name "convstub" | head -n1)
-            echo "TASK_DIR=${TASK_DIR}"
-          else
-            echo "::error::task_dir directory not found"
-            exit 1
-          fi
+          cov_dir = sorted((r.parent for r in reports), key=rank)[0]
 
-          SOURCE_DIR="${COVERAGE_PKG_DIR}/convstub/pytorch"
-          if [ ! -d "${SOURCE_DIR}" ]; then
-            echo "::error::source dir ${SOURCE_DIR} not found"
-            exit 1
-          fi
+          def package_root(item: Path) -> str | None:
+              for name in ("pytorch", "torch"):
+                  package = item / name
+                  if (package / "__init__.py").is_file() or (package / "nn").is_dir():
+                      return name
+              return None
 
-          echo "COVERAGE_PKG_DIR=${COVERAGE_PKG_DIR}" >> "$GITHUB_ENV"
-          echo "TASK_DIR=${TASK_DIR}" >> "$GITHUB_ENV"
-          echo "SOURCE_DIR=${SOURCE_DIR}" >> "$GITHUB_ENV"
+          snaps = [
+              item
+              for item in root.rglob("*")
+              if item.is_dir()
+              and any(part in ("convstub", "covstub") for part in item.parts)
+              and package_root(item)
+          ]
+          if not snaps:
+              sys.exit("ERROR: no source snapshot (convstub/<pkg>) found under the OBS download")
+
+          source_dir = sorted(snaps, key=lambda p: (len(p.parts), p.as_posix()))[0]
+          package = package_root(source_dir)
+          cases = len(list(cov_dir.glob("**/covdata")))
+
+          print(f"coverage dir:  {cov_dir}")
+          print(f"source dir:    {source_dir} (package: {package}/)")
+          print(f"test cases:    {cases}")
+          print(f"coverage.xml:  {(cov_dir / 'coverage.xml').stat().st_size} bytes")
+          if package != "pytorch":
+              print("WARNING: the snapshot predates the torch -> pytorch rename, function-level matching will be skipped")
+          Path("/tmp/precise.env").write_text(f"TASK_DIR={cov_dir}\nSOURCE_DIR={source_dir}\n")
+          PYEOF
+
+          cat /tmp/precise.env >> "$GITHUB_ENV"
+          cat /tmp/precise.env
 
       - name: Flatten the coverage data for the selector
         run: |
