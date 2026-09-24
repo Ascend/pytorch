@@ -315,6 +315,102 @@ jobs:
           print(json.dumps(manifest, indent=2))
           PYEOF
 
+      - name: Backfill missing coverage data from the previous release
+        run: |
+          set -euo pipefail
+
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${{ env.OBS_ENDPOINT }}
+
+          python3 - <<'PYEOF'
+          import json
+          import shutil
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          cov_dir = Path("${{ env.COV_ARTIFACTS }}/pytorch@latest")
+          if not (cov_dir / "coverage.xml").is_file():
+              print("merge did not promote, nothing to backfill")
+              sys.exit(0)
+
+          expected = set()
+          for report in sorted(Path("cov-out").glob("*/reports/shard_*_cases.json")):
+              data = json.loads(report.read_text(encoding="utf-8"))
+              for case in data.get("cases", []):
+                  if case.get("file"):
+                      expected.add(case["file"])
+
+          covered = {
+              p.parent.parent.relative_to(cov_dir).as_posix()
+              for p in cov_dir.glob("test/**/covdata/coverage")
+          }
+          failed = {
+              p.parent.parent.relative_to(cov_dir).as_posix()
+              for p in cov_dir.glob("test/**/covdata/FAILED")
+          }
+          missing = sorted(expected - (covered - failed))
+          if not missing:
+              print("coverage data is complete for all executed test files")
+              sys.exit(0)
+          print(f"{len(missing)} test file(s) missing usable coverage data: {missing}")
+
+          prefix = "obs://pytorch-ci-cache/coverage/pytorch/latest"
+          previous = None
+          for candidate in (f"{prefix}/pytorch@latest", f"{prefix}/artifacts/pytorch@latest"):
+              probe = subprocess.run(
+                  ["obsutil", "stat", f"{candidate}/coverage.xml"],
+                  capture_output=True,
+              )
+              if probe.returncode == 0:
+                  previous = candidate
+                  break
+          if previous is None:
+              print("WARNING: no previous coverage data found on OBS, cannot backfill")
+              sys.exit(0)
+          print(f"previous coverage: {previous}")
+
+          backfilled = []
+          still_missing = []
+          for test_file in missing:
+              target = cov_dir / test_file / "covdata"
+              tmp = cov_dir / test_file / "covdata.backfill"
+              if tmp.exists():
+                  shutil.rmtree(tmp)
+              tmp.mkdir(parents=True)
+              subprocess.run(
+                  [
+                      "obsutil", "cp",
+                      f"{previous}/{test_file}/covdata/",
+                      f"{tmp}/",
+                      "-r", "-f", "-vlength",
+                  ],
+                  capture_output=True,
+              )
+              if not (tmp / "coverage").is_file():
+                  shutil.rmtree(tmp)
+                  still_missing.append(test_file)
+                  continue
+              if target.exists():
+                  shutil.rmtree(target)
+              tmp.rename(target)
+              backfilled.append(test_file)
+
+          manifest_file = cov_dir / "manifest.json"
+          manifest = json.loads(manifest_file.read_text(encoding="utf-8")) if manifest_file.is_file() else {}
+          manifest["test_groups"] = len(list(cov_dir.glob("test/**/covdata/coverage")))
+          manifest["backfilled"] = backfilled
+          if still_missing:
+              manifest["backfill_missing"] = still_missing
+          manifest_file.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+
+          print(f"backfilled {len(backfilled)} test file(s) from the previous release")
+          if still_missing:
+              print(
+                  f"WARNING: still no usable coverage data for {len(still_missing)} test file(s): {still_missing}",
+                  file=sys.stderr,
+              )
+          PYEOF
+
       - name: Write job summary
         if: always()
         run: |
