@@ -34,6 +34,10 @@ pip install -r ../utils/requirements.txt
 python ../utils/download_hf.py --model baichuan-inc/Baichuan2-7B-Chat --save_path ./Baichuan2-7B-Chat
 ```
 
+> [!WARNING]
+> Baichuan2 依赖模型仓中的自定义 Python 代码。脚本默认不执行远程代码；仅在确认模型来源可信后使用 `--trust-remote-code`。
+> 使用远程模型仓时必须同时通过 `--revision` 指定完整的 40 位 commit hash，避免已审核代码被后续更新替换。优先使用本地已校验的模型目录。
+
 ## 2. 数据获取
 
 训练数据集来自 LlamaFactory 仓库示例数据：

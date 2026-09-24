@@ -20,4 +20,5 @@ python train_baichuan2_7B.py \
   --use_lora \
   --use_bf16 \
   --gradient_checkpointing \
+  "$@" \
   > logs/train_baichuan.log 2>&1
