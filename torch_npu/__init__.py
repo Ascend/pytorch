@@ -70,3 +70,9 @@ _initialize()
 def _autoload():
     # We should restore this switch as sub processes need to inherit its value
     os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = ORG_AUTOLOAD
+
+
+# Keep consistent with the 'import torch' case, where _autoload above is
+# called by torch: when 'import torch_npu' comes first, torch skips the
+# autoload, so restore the switch here explicitly.
+_autoload()
