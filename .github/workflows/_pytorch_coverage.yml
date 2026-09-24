@@ -230,7 +230,7 @@ jobs:
           import sys
           from pathlib import Path
 
-          test_dir = Path("${COV_ARTIFACTS}/convstub/pytorch/test")
+          test_dir = Path("${{ env.COV_ARTIFACTS }}/convstub/pytorch/test")
           if not test_dir.is_dir():
               print("no snapshot test tree, nothing to trim")
               sys.exit(0)
