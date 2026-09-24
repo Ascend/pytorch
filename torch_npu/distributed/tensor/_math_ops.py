@@ -490,9 +490,20 @@ def custom_grouped_matmul_add__strategy(y, x, weight, group_list, transpose_x=Tr
     )
     acceptable_shardings.append(replicate_strategy)
 
+    # D is always the last dimension of y:
+    # 2D y: [M, D]       -> Shard(1)
+    # 3D y: [G, M, D]    -> Shard(2)
+    y_shard_dim = y.ndim - 1
+
     D_shard_strategy = (
-        [Shard(1)], # y
-        [Shard(1), Replicate(), Shard(1), Replicate(), None, None, None] # y, x, weight, group_list
+        [Shard(y_shard_dim)], # y
+        [
+            Shard(y_shard_dim), # y
+            Replicate(),        # x
+            Shard(1),           # weight
+            Replicate(),        # group_list
+            None, None, None
+        ]
     )
     acceptable_shardings.append(D_shard_strategy)
 
