@@ -20,12 +20,19 @@
 #   2. （建议）取消源 run 中仍在执行的任务，释放 a5-8 机器并避免 HCCL 争抢:
 #      gh run cancel 35881898177 --repo Ascend/pytorch
 #
-# 触发:
-#   gh workflow run dist1-rerun-a5.yml --repo Ascend/pytorch --ref ci-test
-#   （全部参数有默认值，可直接空参触发）
+# 触发（两种方式，均为仓库惯例）:
+#   1. push 触发: 修改本文件并推送到 ci-test 分支即自动运行（inputs 上下文
+#      为空，全部参数使用内联默认值）
+#   2. 手动 dispatch: workflow 首次运行被 GitHub 注册后可用
+#      gh workflow run dist1-rerun-a5.yml --repo Ascend/pytorch --ref ci-test
+#      （参数可覆盖默认值）
 name: Dist Shard-1 Rerun A5
 
 on:
+  push:
+    branches: [ci-test]
+    paths:
+      - '.github/workflows/dist1-rerun-a5.yml'
   workflow_dispatch:
     inputs:
       source_run_id:
@@ -69,7 +76,7 @@ jobs:
   #    以 "cases-shards" 名义重新上传（_nightly_test-category.yml 原样消费）
   # ==========================================================================
   prepare:
-    name: re-shard ${{ inputs.source_shard_file }}
+    name: re-shard source cases
     runs-on: linux-amd64-a5-2
     timeout-minutes: 30
     defaults:
@@ -91,14 +98,14 @@ jobs:
         with:
           name: cases-shards
           path: source-cases
-          run-id: ${{ inputs.source_run_id }}
+          run-id: ${{ inputs.source_run_id || '35881898177' }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Split source shard into balanced sub-shards
         id: split
         env:
-          SOURCE_SHARD_FILE: ${{ inputs.source_shard_file }}
-          NUM_SHARDS: ${{ inputs.num_shards }}
+          SOURCE_SHARD_FILE: ${{ inputs.source_shard_file || 'distributed_cases_shard_1.json' }}
+          NUM_SHARDS: ${{ inputs.num_shards || '10' }}
         run: |
           python3 - <<'PYEOF'
           import heapq
@@ -225,12 +232,12 @@ jobs:
     uses: ./.github/workflows/_nightly_test-category.yml
     secrets: inherit
     with:
-      resolved_short: ${{ inputs.resolved_short }}
-      resolved_sha: ${{ inputs.resolved_sha }}
-      wheels_tarball: ${{ inputs.wheels_tarball }}
+      resolved_short: ${{ inputs.resolved_short || '887633d60b' }}
+      resolved_sha: ${{ inputs.resolved_sha || '887633d60bc8854554715ad2d6794d7c50e39f32' }}
+      wheels_tarball: ${{ inputs.wheels_tarball || 'wheels-887633d60b-npu-49fb6a91e9-py310-torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609230925-00b993fc-x86_64.tar.gz' }}
       upstream_repo: pytorch/pytorch
       category: distributed
-      num_shards: ${{ inputs.num_shards }}
+      num_shards: ${{ inputs.num_shards || '10' }}
       matrix_json: ${{ format('[{0}]', matrix.shard) }}
       max_workers: '1'
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609230925-00b993fc
@@ -263,8 +270,8 @@ jobs:
 
       - name: Aggregate results
         env:
-          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
-          SOURCE_SHARD_FILE: ${{ inputs.source_shard_file }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id || '35881898177' }}
+          SOURCE_SHARD_FILE: ${{ inputs.source_shard_file || 'distributed_cases_shard_1.json' }}
           TOTAL_CASES: ${{ needs.prepare.outputs.total_cases }}
         run: |
           python3 - <<'PYEOF'
