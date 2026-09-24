@@ -21,7 +21,7 @@ jobs:
       upstream_ref: main
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: master
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609140905-0ba22e2b
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609230923-00b993fc
       report_to_upstream: false
       runner_label: 'linux-aarch64-cpu-24'
       max_jobs: '23'
@@ -36,7 +36,7 @@ jobs:
       wheels_tarball: ${{ needs.build.outputs.wheels_tarball }}
       upstream_repo: pytorch/pytorch
       case_paths_config: .github/config/nightly_test_categories.yml
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609140905-0ba22e2b
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609230923-00b993fc
       hw_classification: ''
       full_scan: true
       device_env: 'privateuse1,cpu'
@@ -50,7 +50,7 @@ jobs:
       upstream_ref: main
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: master
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609141214-9b737f59
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609230925-00b993fc
       report_to_upstream: false
       runner_label: 'linux-amd64-a5-2'
       max_jobs: '23'
@@ -66,7 +66,7 @@ jobs:
       wheels_tarball: ${{ needs.build-a5.outputs.wheels_tarball }}
       upstream_repo: pytorch/pytorch
       case_paths_config: .github/config/nightly_test_categories.yml
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609141214-9b737f59
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609230925-00b993fc
       hw_classification: ''
       full_scan: true
       device_env: 'privateuse1,cpu'
