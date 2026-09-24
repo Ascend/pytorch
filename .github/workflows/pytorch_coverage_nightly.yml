@@ -28,8 +28,11 @@ on:
         type: string
 
 concurrency:
-  group: ${{ github.event_name == 'push' && format('coverage-debug-{0}', github.run_id) || 'pytorch-coverage-nightly' }}
-  cancel-in-progress: true
+  group: >-
+    ${{ github.event_name == 'workflow_dispatch' && inputs.categories != ''
+    && format('pytorch-coverage-debug-{0}', github.run_id)
+    || 'pytorch-coverage-latest' }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
