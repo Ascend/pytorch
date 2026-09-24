@@ -69,8 +69,7 @@ def patch_remove_ops_from_generate_list(op_names=None):
 
 def parse_args():
     p = argparse.ArgumentParser(description="Qwen2-VL 2B Single GPU Training")
-    p.add_argument("--model_name_or_path", type=str,
-                    default="/data/zyc/Qwen2-VL-2B-Instruct")
+    p.add_argument("--model_name_or_path", type=str, required=True)
     p.add_argument("--use_lora", type=str2bool, default=False)
     p.add_argument("--lora_r", type=int, default=64)
     p.add_argument("--lora_alpha", type=int, default=16)
@@ -247,7 +246,6 @@ def main():
         args.model_name_or_path,
         min_pixels=args.min_pixels,
         max_pixels=args.max_pixels,
-        trust_remote_code=True,
     )
     print(f"Processor loading time: {time.time() - t0:.2f}s")
     print(f"  min_pixels = {args.min_pixels}, max_pixels = {args.max_pixels}")
@@ -260,7 +258,6 @@ def main():
     model = Qwen2VLForConditionalGeneration.from_pretrained(
         args.model_name_or_path,
         torch_dtype=torch.bfloat16,
-        trust_remote_code=True,
     )
     print(f"Model loading time: {time.time() - t0:.2f}s")
 
