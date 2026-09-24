@@ -4351,23 +4351,6 @@ class NPUTritonKernel(TritonKernel):
         for arg_num in equal_1_arg_indices(signature):
             triton_meta["constants"][signature[arg_num].name] = 1
 
-        # Mark static r-tree numel as constants so NPU compiler can prove
-        # r0_mask = (r0_index < r0_numel) is always true when R0_BLOCK == r0_numel,
-        # eliminating the scalar select/boundary-check path in the ttadapter.
-        if self._npu_linearize:
-            for tree in self.range_trees:
-                if tree.is_reduction and isinstance(tree.numel, (int, sympy.Integer)):
-                    numel_name = f"{tree.prefix}numel"
-                    if any(getattr(s, 'name', None) == numel_name for s in signature):
-                        # Oversized block counts: a constant >= 2^31 specializes the i64 arg to a
-                        # value triton types as uint32 (in [2^31, 2^32)), and
-                        # the resulting uint32->i64 vcast is rejected by
-                        # BiShengIR. Keep such numels on their i64 runtime
-                        # arg; the mask-elimination this enables is
-                        # irrelevant at >2^31 reduction sizes anyway.
-                        if int(tree.numel) < 2**31:
-                            triton_meta["constants"][numel_name] = int(tree.numel)
-
         self.triton_meta = triton_meta
 
         # Add BLOCK constexpr args
