@@ -14,9 +14,8 @@
 | [算子执行与兼容性](op_execution/_menu_op_execution.md) | 控制算子下发、同步执行、数值模式、溢出检测、实现切换及CPU回退行为。 |
 | [单算子编译与缓存](op_compilation/_menu_op_compilation.md) | 配置单算子模式的编译缓存；torch.compile配置见图编译分类。 |
 | [内存管理](memory_management/_menu_memory_management.md) | 配置缓存分配器、内存复用、OOM快照和对称内存。 |
-| [分布式启动与建链](distributed_startup/_menu_distributed_startup.md) | 配置分布式启动器和ParallelStore；进程组运行时配置见分布式通信分类。 |
-| [分布式通信与诊断](collective_communication/_menu_collective_communication.md) | 配置HCCL进程组、通信监控、性能采集以及DDP和RPC。 |
-| [日志与告警](alarm_message_printing/_menu_alarm_message_printing.md) | 配置PyTorch与TorchNPU通用日志、告警和错误输出；通信及图编译专用诊断配置保留在对应分类。 |
+| [分布式通信与诊断](collective_communication/_menu_collective_communication.md) | 配置HCCL进程组、通信同步、超时诊断和状态采集。 |
+| [日志与告警](alarm_message_printing/_menu_alarm_message_printing.md) | 配置TorchNPU通用日志、告警和错误输出；通信及图编译专用诊断配置保留在对应分类。 |
 | [特征值检测](eigenvalue_detection/_menu_eigenvalue_detection.md) | 配置特征值检测功能及其检测阈值。 |
 | [性能优化与采集](performance_tuning/_menu_performance_tuning.md) | 配置CPU绑核、Eager算子融合和Profiler动态采集。 |
 | [图编译（torch.compile / Inductor）](inductor/_menu_inductor.md) | 按编译流程查找后端选择、缓存、融合调优以及调试诊断配置。 |
@@ -59,10 +58,6 @@
 | --- | --- |
 |[ACL_OP_COMPILER_CACHE_DIR](op_compilation/ACL_OP_COMPILER_CACHE_DIR.md)|通过此环境变量可配置算子编译磁盘缓存的目录。|
 |[ACL_OP_COMPILER_CACHE_MODE](op_compilation/ACL_OP_COMPILER_CACHE_MODE.md)|通过此环境变量可配置算子编译磁盘缓存模式。|
-|[ACL_OP_INIT_MODE](op_compilation/ACL_OP_INIT_MODE.md)|通过此环境变量可配置算子编译的初始化模式。|
-|[ACLNN_EXTENSION_SWITCH](op_compilation/ACLNN_EXTENSION_SWITCH.md)|通过此环境变量可控制op-plugin代码生成过程中是否启用ACLNN扩展代码路径。|
-|[ACLNN_EXTENSION_PATH](op_compilation/ACLNN_EXTENSION_PATH.md)|通过此环境变量可指定ACLNN扩展代码的搜索路径，在op-plugin代码生成过程中生效。|
-|[PYTORCH_CUSTOM_DERIVATIVES_PATH](op_compilation/PYTORCH_CUSTOM_DERIVATIVES_PATH.md)|通过此环境变量可指定自定义算子自动微分定义文件derivatives.yaml的路径，在op-plugin代码生成过程中生效。|
 
 ## 内存管理
 
@@ -79,20 +74,9 @@
 |[TORCH_NPUGRAPH_GC](memory_management/TORCH_NPUGRAPH_GC.md)|通过此环境变量可控制图捕获模式（NPUGraph Capture）过程中是否主动触发Python GC（Garbage Collection）。|
 |[NPU_SHMEM_SYMMETRIC_SIZE](memory_management/NPU_SHMEM_SYMMETRIC_SIZE.md)|通过此环境变量可配置NPU对称内存的堆大小，用于设备间直接内存访问。|
 
-## 分布式启动与建链
-
-配置分布式启动器和ParallelStore；进程组运行时配置见分布式通信分类。
-
-| 环境变量名称 | 简介 |
-| --- | --- |
-|[TORCH_NPU_USE_PARALLEL_TCPSTORE](distributed_startup/TORCH_NPU_USE_PARALLEL_TCPSTORE.md)|通过此环境变量可控制是否启用ParallelStore作为分布式存储后端，提升建链性能。|
-|[TORCH_NPU_ELASTIC_USE_AGENT_STORE](distributed_startup/TORCH_NPU_ELASTIC_USE_AGENT_STORE.md)|通过此环境变量可控制是否使用agent已启动的ParallelStore。|
-|[ENABLE_TIERED_PARALLEL_TCPSTORE](distributed_startup/ENABLE_TIERED_PARALLEL_TCPSTORE.md)|通过此环境变量可控制ParallelStore是否启用分层建链优化模式。|
-|[PROXY_AGENT_PID_USE_LOCAL_SOCKET_PATH](distributed_startup/PROXY_AGENT_PID_USE_LOCAL_SOCKET_PATH.md)|通过此环境变量可将agent PID传递给ParallelStore，用于本地socket路径生成。|
-
 ## 分布式通信与诊断
 
-配置HCCL进程组、通信监控、性能采集以及DDP和RPC。
+配置HCCL进程组、通信同步、超时诊断和状态采集。
 
 ### 通信执行与同步
 
@@ -106,49 +90,27 @@
 |[ROOTINFO_SCALABLE_ENABLE](collective_communication/ROOTINFO_SCALABLE_ENABLE.md)|通过此环境变量可控制是否开启Scalable RootInfo分级建链。|
 |[TORCH_HCCL_RANKS_PER_ROOT](collective_communication/TORCH_HCCL_RANKS_PER_ROOT.md)|开启Scalable RootInfo后，通过此环境变量可配置每个root期望管理的rank数量。|
 |[(beta) TORCH_HCCL_ZERO_COPY](collective_communication/（beta）TORCH_HCCL_ZERO_COPY.md)|训练或在线推理场景下，可通过此环境变量开启集合通信片内零拷贝功能，减少通信算子在通信过程中片内拷贝次数，提升集合通信效率，降低通信耗时。同时在计算通信并行场景下，降低通信过程中对显存带宽的抢占。|
-|[TORCH_HCCL_HIGH_PRIORITY](collective_communication/TORCH_HCCL_HIGH_PRIORITY.md)|当使用HCCL作为通信后端时，通过此环境变量可控制是否强制使用高优先级NPU stream。|
 
 ### 超时监控与故障记录
 
 | 环境变量名称 | 简介 |
 | --- | --- |
 |[TORCH_HCCL_DESYNC_DEBUG](collective_communication/TORCH_HCCL_DESYNC_DEBUG.md)|当使用HCCL作为通信后端时，通过此环境变量可控制是否进行通信超时分析。|
-|[TORCH_HCCL_ENABLE_MONITORING](collective_communication/TORCH_HCCL_ENABLE_MONITORING.md)|当使用HCCL作为通信后端时，通过此环境变量可控制是否启动heartbeat monitor线程。|
-|[TORCH_HCCL_HEARTBEAT_TIMEOUT_SEC](collective_communication/TORCH_HCCL_HEARTBEAT_TIMEOUT_SEC.md)|当使用HCCL作为通信后端时，通过此环境变量可设置heartbeat monitor判定WatchDog卡死的超时时间。|
-|[TORCH_HCCL_COORD_CHECK_MILSEC](collective_communication/TORCH_HCCL_COORD_CHECK_MILSEC.md)|当使用HCCL作为通信后端时，通过此环境变量可设置WatchDog轮询检查Store dump signal的间隔时间。|
-|[TORCH_HCCL_TRACE_BUFFER_SIZE](collective_communication/TORCH_HCCL_TRACE_BUFFER_SIZE.md)|当使用HCCL作为通信后端时，通过此环境变量可配置Flight Recorder环形缓冲区最大事件数，默认关闭。|
-|[TORCH_HCCL_TRACE_CPP_STACK](collective_communication/TORCH_HCCL_TRACE_CPP_STACK.md)|当使用HCCL作为通信后端时，通过此环境变量可控制在记录事件时是否采集C++调用栈。|
-|[TORCH_HCCL_DUMP_ON_TIMEOUT](collective_communication/TORCH_HCCL_DUMP_ON_TIMEOUT.md)|当使用HCCL作为通信后端时，通过此环境变量可控制超时或错误时是否自动触发Flight Recorder dump。|
-|[TORCH_HCCL_WAIT_TIMEOUT_DUMP_MILSEC](collective_communication/TORCH_HCCL_WAIT_TIMEOUT_DUMP_MILSEC.md)|当使用HCCL作为通信后端时，通过此环境变量可设置monitor等待异步dump完成的最大时间。|
-|[TORCH_HCCL_DEBUG_INFO_PIPE_FILE](collective_communication/TORCH_HCCL_DEBUG_INFO_PIPE_FILE.md)|当使用HCCL作为通信后端时，通过此环境变量可配置命名管道文件，用于外部触发Flight Recorder dump。|
-|[TORCH_HCCL_DEBUG_INFO_TEMP_FILE](collective_communication/TORCH_HCCL_DEBUG_INFO_TEMP_FILE.md)|通过此环境变量可配置HCCL dump文件的名称前缀。|
 
-### 状态与性能采集
+### 状态采集
 
 | 环境变量名称 | 简介 |
 | --- | --- |
 |[TORCH_HCCL_STATUS_SAVE_ENABLE](collective_communication/TORCH_HCCL_STATUS_SAVE_ENABLE.md)|通过此环境变量可控制HCCL进程组状态信息的周期性保存。|
 |[TORCH_HCCL_STATUS_SAVE_PATH](collective_communication/TORCH_HCCL_STATUS_SAVE_PATH.md)|通过此环境变量可配置HCCL状态文件的保存目录。|
 |[TORCH_HCCL_STATUS_SAVE_INTERVAL](collective_communication/TORCH_HCCL_STATUS_SAVE_INTERVAL.md)|通过此环境变量可配置HCCL状态保存的间隔时间。|
-|[NSLB_CP](collective_communication/NSLB_CP.md)|通过此环境变量可配置HCCL NSLB采样记录的目录路径。|
-|[NSLB_MAX_RECORD_NUM](collective_communication/NSLB_MAX_RECORD_NUM.md)|通过此环境变量可配置每个PG的最大NSLB采样记录数量。|
-|[PERF_DUMP_CONFIG](collective_communication/PERF_DUMP_CONFIG.md)|通过此环境变量可配置HCCL操作的性能数据记录功能。|
-|[PERF_DUMP_PATH](collective_communication/PERF_DUMP_PATH.md)|通过此环境变量可配置HCCL性能dump文件的输出目录。|
-
-### DDP与RPC
-
-| 环境变量名称 | 简介 |
-| --- | --- |
-|[DDP_SET_LAST_BUCKET_CAP](collective_communication/DDP_SET_LAST_BUCKET_CAP.md)|通过此环境变量可控制DDP的bucket重建顺序。|
-|[TP_SOCKET_IFNAME](collective_communication/TP_SOCKET_IFNAME.md)|通过此环境变量可指定TensorPipe RPC传输层使用的网络接口名称。|
 
 ## 日志与告警
 
-配置PyTorch与TorchNPU通用日志、告警和错误输出；通信及图编译专用诊断配置保留在对应分类。
+配置TorchNPU通用日志、告警和错误输出；通信及图编译专用诊断配置保留在对应分类。
 
 | 环境变量名称 | 简介 |
 | --- | --- |
-|[TORCH_LOGS](alarm_message_printing/TORCH_LOGS.md)|通过此环境变量可控制PyTorch各模块的日志输出级别，与PyTorch上游行为一致。|
 |[TORCH_NPU_WARNING_DISABLE](alarm_message_printing/TORCH_NPU_WARNING_DISABLE.md)|通过此环境变量可配置是否打印TorchNPU的告警信息。|
 |[TORCH_NPU_DISABLED_WARNING](alarm_message_printing/TORCH_NPU_DISABLED_WARNING.md)|该环境变量已废弃，建议使用TORCH_NPU_WARNING_DISABLE替代。用于配置是否打印TorchNPU的告警信息。|
 |[TORCH_NPU_COMPACT_ERROR_OUTPUT](alarm_message_printing/TORCH_NPU_COMPACT_ERROR_OUTPUT.md)|通过此环境变量可精简打印错误信息，开启后会将CANN内部调用栈、TorchNPU错误码等自定义报错信息转移到plog中，仅保留有效的错误说明，提高异常信息的可读性。|
@@ -199,7 +161,6 @@
 | 环境变量名称 | 简介 |
 | --- | --- |
 |[TORCH_CACHING_PRECOMPILE](inductor/TORCH_CACHING_PRECOMPILE.md)|通过此环境变量可开启自动缓存预编译实验性功能，自动保存和加载Dynamo编译缓存，加速后续编译过程，与PyTorch上游行为一致。|
-|[TORCHINDUCTOR_CACHE_DIR](inductor/TORCHINDUCTOR_CACHE_DIR.md)|通过此环境变量可配置Inductor编译缓存的目录路径，与PyTorch上游行为一致。|
 |[TORCHINDUCTOR_COMPILE_THREADS](inductor/TORCHINDUCTOR_COMPILE_THREADS.md)|通过此环境变量可配置并发编译的进程数量，与PyTorch上游行为一致。|
 |[TORCHNPU_PRECOMPILE_THREADS](inductor/TORCHNPU_PRECOMPILE_THREADS.md)|通过此环境变量可配置torch_npu Inductor的预编译线程数。|
 
@@ -207,15 +168,12 @@
 
 | 环境变量名称 | 简介 |
 | --- | --- |
-|[INDUCTOR_DVM_ENABLE_MATMUL_FUSION](inductor/INDUCTOR_DVM_ENABLE_MATMUL_FUSION.md)|通过此环境变量可开启DVM MatMul template融合，将矩阵乘算子融合为DVM template kernel。|
 |[TORCHINDUCTOR_MAX_AUTOTUNE](inductor/TORCHINDUCTOR_MAX_AUTOTUNE.md)|通过此环境变量可控制是否开启max autotune功能，与PyTorch上游行为一致。|
 |[TORCHINDUCTOR_MAX_AUTOTUNE_GEMM_BACKENDS](inductor/TORCHINDUCTOR_MAX_AUTOTUNE_GEMM_BACKENDS.md)|通过此环境变量可配置max autotune过程中矩阵乘算子参与调优的候选实现列表。|
 |[TORCHINDUCTOR_NPU_CATLASS_DIR](inductor/TORCHINDUCTOR_NPU_CATLASS_DIR.md)|通过此环境变量可配置Catlass模板库的路径，与PyTorch上游的`TORCHINDUCTOR_CUTLASS_DIR`对应。|
 |[TORCHINDUCTOR_CATLASS_ENABLED_OPS](inductor/TORCHINDUCTOR_CATLASS_ENABLED_OPS.md)|通过此环境变量可配置Catlass模板库支持的矩阵乘类型算子列表，与PyTorch上游的`TORCHINDUCTOR_CUTLASS_ENABLED_OPS`对应。|
 |[CATLASS_EPILOGUE_FUSION](inductor/CATLASS_EPILOGUE_FUSION.md)|通过此环境变量可控制是否开启Catlass epilogue融合功能，与PyTorch上游的`CUTLASS_EPILOGUE_FUSION`对应。|
 |[TORCHINDUCTOR_PROFILE_WITH_DO_BENCH_USING_PROFILING](inductor/TORCHINDUCTOR_PROFILE_WITH_DO_BENCH_USING_PROFILING.md)|通过此环境变量可控制autotune过程中是否使用profiling进行性能测量，与PyTorch上游行为一致。|
-|[TORCHINDUCTOR_ENABLE_WELFORD](inductor/TORCHINDUCTOR_ENABLE_WELFORD.md)|通过此环境变量可控制是否启用Welford算法计算方差与均值类归约。|
-|[TORCHINDUCTOR_ENABLE_FAST_GELU](inductor/TORCHINDUCTOR_ENABLE_FAST_GELU.md)|通过此环境变量可控制GELU激活函数是否使用tanh近似decomposition。|
 |[INDUCTOR_ASCEND_AGGRESSIVE_AUTOTUNE](inductor/INDUCTOR_ASCEND_AGGRESSIVE_AUTOTUNE.md)|通过此环境变量可控制autotune过程中是否启用batch profiler进行批量性能测量。|
 |[INDUCTOR_ASCEND_SYMBOLIC_GROUP_AUTOTUNE](inductor/INDUCTOR_ASCEND_SYMBOLIC_GROUP_AUTOTUNE.md)|通过此环境变量可控制是否启用动态shape分组autotune，按shape特征分组复用调优结果。|
 |[INDUCTOR_ASCEND_SYMBOLIC_GROUP_TEMPLATES](inductor/INDUCTOR_ASCEND_SYMBOLIC_GROUP_TEMPLATES.md)|通过此环境变量可配置参与动态shape分组autotune的模板类型列表。|
@@ -233,8 +191,5 @@
 
 | 环境变量名称 | 简介 |
 | --- | --- |
-|[TORCH_COMPILE_DEBUG](inductor/TORCH_COMPILE_DEBUG.md)|通过此环境变量可开启torch.compile的调试模式，导出FX图、codegen输出等调试信息。|
 |[（beta）INDUCTOR_ASCEND_CHECK_ACCURACY](inductor/INDUCTOR_ASCEND_CHECK_ACCURACY.md)|INDUCTOR_ASCEND_CHECK_ACCURACY是TorchNPU提供的精度校验工具，在torch.compile图编译模式（Inductor）的Triton模式与DVM模式下自动检测融合算子的数值精度。|
 |[INDUCTOR_ASCEND_LOG_LEVEL](inductor/INDUCTOR_ASCEND_LOG_LEVEL.md)|通过此环境变量可配置Inductor模块的日志级别。|
-|[TORCHINDUCTOR_WORKER_LOGPATH](inductor/TORCHINDUCTOR_WORKER_LOGPATH.md)|通过此环境变量可指定Inductor worker子进程的日志路径，与PyTorch上游行为一致。|
-|[TORCHINDUCTOR_WORKER_SUPPRESS_LOGGING](inductor/TORCHINDUCTOR_WORKER_SUPPRESS_LOGGING.md)|通过此环境变量可控制是否输出Inductor worker子进程的日志，与PyTorch上游行为一致。|
