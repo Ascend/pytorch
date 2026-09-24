@@ -947,26 +947,31 @@ _cp_prev_handlers = {}
 _npu_cp_strategy_contexts = {}
 
 
-def _get_strategy_context():
+_strategy_context_cache = None
+
+
+def _get_strategy_context_compat():
     """Return the strategy context manager, compatible across torch versions.
 
     torch <= 2.13: _op_strategy_context
     torch >= 2.14: _single_dim_strategy_context (renamed)
+
+    Cached after first call to avoid repeated import attempts.
     """
-    from torch.distributed.tensor.experimental._context_parallel._sharding_rules import (
-        _single_dim_strategy_context as _ctx,
-    )
-    return _ctx
+    global _strategy_context_cache
+    if _strategy_context_cache is not None:
+        return _strategy_context_cache
 
-
-try:
-    _get_strategy_context()
-except ImportError:
-    def _get_strategy_context():
+    try:
+        from torch.distributed.tensor.experimental._context_parallel._sharding_rules import (
+            _single_dim_strategy_context as _ctx,
+        )
+    except ImportError:
         from torch.distributed.tensor.experimental._context_parallel._sharding_rules import (
             _op_strategy_context as _ctx,
         )
-        return _ctx
+    _strategy_context_cache = _ctx
+    return _ctx
 
 
 def _register_npu_cp_sharding_rules() -> None:
@@ -976,7 +981,7 @@ def _register_npu_cp_sharding_rules() -> None:
 
     from torch.distributed.tensor._op_schema import RuntimeSchemaInfo
 
-    _strategy_context = _get_strategy_context()
+    _strategy_context = _get_strategy_context_compat()
     npu_cp_strategies = [
         (_npu_fa, _npu_fa_v3_cp_strategy, RuntimeSchemaInfo(1)),
         (_npu_fa_grad, _npu_fa_grad_v3_cp_strategy, RuntimeSchemaInfo(1)),
@@ -996,6 +1001,11 @@ def _unregister_npu_cp_sharding_rules() -> None:
 
 def npu_enable_cp_dtensor_dispatcher() -> None:
     """Register NPU SDPA forward/backward handlers and CP sharding rules."""
+    # Idempotent guard: if already enabled, do nothing (prevents overwriting
+    # saved layer-1 handlers on repeated enable calls).
+    if _cp_prev_handlers:
+        return
+
     logger.info("registering handler keys=%s", [str(k) for k in _npu_custom_ops.keys()])
 
     # Save layer-1 handlers so disable can restore them (CP handlers overwrite
