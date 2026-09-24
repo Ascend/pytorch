@@ -23,6 +23,9 @@
 
 可在链接页面中 `Files and versions` 一栏直接下载。
 
+> [!NOTE]
+> 本脚本使用 Transformers 内置的 GLM4 实现，不执行模型仓自定义 Python 代码。请使用与 `transformers==4.57.1` 兼容的原生 GLM4 模型。
+
 ### 环境提示
 
 本项目依赖已整理到 `requirements.txt`，可直接安装：
