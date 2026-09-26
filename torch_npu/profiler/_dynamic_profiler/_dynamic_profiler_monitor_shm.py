@@ -7,7 +7,6 @@ import mmap
 import time
 import struct
 from datetime import datetime, timezone
-from multiprocessing import current_process
 
 from ..analysis.prof_common_func._constant import print_error_msg
 from ...utils._path_manager import PathManager
@@ -198,15 +197,21 @@ class DynamicProfilerShareMemory:
                 except Exception as ex:
                     # other process will go to step 1 and open shm file
                     try_times -= 1
-                    DynamicProfilerUtils.out_log("Rank {} shared memory create failed, "
-                                                 "retry times = {}, {} has occur.".format(
-                        self._rank_id, try_times, str(ex)), DynamicProfilerUtils.LoggerLevelEnum.ERROR)
+                    DynamicProfilerUtils.out_log(
+                        "Rank {} shared memory create failed, retry times = {}, {} has occur.".format(
+                            self._rank_id, try_times, str(ex)
+                        ),
+                        DynamicProfilerUtils.LoggerLevelEnum.INFO,
+                    )
                     time.sleep(random.uniform(0, 0.02))  # sleep 0 ~ 20 ms
             except Exception as ex:
                 try_times -= 1
-                DynamicProfilerUtils.out_log("Rank {} shared memory create failed, "
-                                             "retry times = {}, {} has occur .".format(
-                    self._rank_id, try_times, str(ex)), DynamicProfilerUtils.LoggerLevelEnum.ERROR)
+                DynamicProfilerUtils.out_log(
+                    "Rank {} shared memory create failed, retry times = {}, {} has occur .".format(
+                        self._rank_id, try_times, str(ex)
+                    ),
+                    DynamicProfilerUtils.LoggerLevelEnum.INFO,
+                )
                 time.sleep(0.02)
 
         if try_times <= 0:
@@ -254,8 +259,11 @@ class DynamicProfilerShareMemory:
 
     def _create_shm_py37(self):
         """Create a json monitor process based on whether the SharedMemory is successfully created py37"""
-        DynamicProfilerUtils.out_log("Dynamic profiler is not work well on python 3.7x, "
-                  "please update to python 3.8+ for better performance.", DynamicProfilerUtils.LoggerLevelEnum.INFO)
+        DynamicProfilerUtils.out_log(
+            "Dynamic profiler is not work well on python 3.7x, "
+            "please update to python 3.8+ for better performance.",
+            DynamicProfilerUtils.LoggerLevelEnum.INFO,
+        )
         try_times = 10
         while try_times:
             try:
@@ -293,9 +301,12 @@ class DynamicProfilerShareMemory:
                 except Exception as ex:
                     # other process will go to step 1 and open shm file
                     try_times -= 1
-                    DynamicProfilerUtils.out_log("Rank {} shared memory create failed, "
-                                                 "retry times = {}, {} has occur .".format(
-                        self._rank_id, try_times, str(ex)), DynamicProfilerUtils.LoggerLevelEnum.ERROR)
+                    DynamicProfilerUtils.out_log(
+                        "Rank {} shared memory create failed, retry times = {}, {} has occur .".format(
+                            self._rank_id, try_times, str(ex)
+                        ),
+                        DynamicProfilerUtils.LoggerLevelEnum.ERROR,
+                    )
                     time.sleep(random.uniform(0, 0.02))  # sleep 0 ~ 20 ms
 
         if try_times <= 0:
