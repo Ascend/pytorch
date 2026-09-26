@@ -1,6 +1,5 @@
 import shutil
 import subprocess
-from ..prof_common_func._path_manager import ProfilerPathManager
 
 __all__ = []
 
@@ -10,9 +9,6 @@ def check_msprof_help_output(search_text: str) -> bool:
     try:
         msprof_path = shutil.which("msprof")
         if not msprof_path:
-            return False
-
-        if not ProfilerPathManager.check_path_permission(msprof_path):
             return False
 
         completed_process = subprocess.run([msprof_path, "--help"], capture_output=True, shell=False, text=True)

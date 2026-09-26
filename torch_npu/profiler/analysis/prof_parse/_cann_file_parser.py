@@ -209,7 +209,10 @@ class CANNFileParser:
             logger.warning("There are no HostToDevice flow events in the msprof timeline.")
 
         if not event_dict:
-            logger.error("There are no kernel events in the msprof timeline.")
+            logger.error(
+                "No kernel events were found in the msprof timeline. NPU profiling data may not have been collected. "
+                "You can check the CANN plog logs for related errors."
+            )
 
         acl_to_npu_dict = {}
         warning_kernel_num = 0
