@@ -3,7 +3,7 @@ from collections import defaultdict
 
 from ._base_parser import BaseParser
 from ..prof_bean._torch_op_node import TorchOpNode
-from ..prof_common_func._constant import Constant, print_warn_msg
+from ..prof_common_func._constant import Constant
 from ..prof_common_func._file_manager import FileManager
 from ..prof_parse._cann_file_parser import CANNFileParser
 from ..prof_parse._cann_file_parser import CANNDataEnum
@@ -67,8 +67,10 @@ class CommunicationParser(BaseParser):
         try:
             self._init_step_list(deps_data)
             self.generate_view()
-        except Exception as e:
-            self.logger.error("Failed to generate communication.json or communication_matrix.json, error: %s", str(e), exc_info=True)
+        except Exception:
+            self.logger.exception(
+                "Failed to generate communication.json or communication_matrix.json."
+            )
             return Constant.FAIL, None
         self.logger.info("CommunicationParser finish.")
         return Constant.SUCCESS, None
@@ -175,7 +177,6 @@ class CommunicationParser(BaseParser):
                 comm_op_type = match_obj.group()
             else:
                 comm_op_type = communication_op.split("__")[0]
-                print_warn_msg(f"Unknown communication op type: {comm_op_type}")
             for link, data in communication_info.items():
                 new_comm_op_name = (comm_op_type, communication_op.split("@")[-1], link)
                 data['Op Name'] = communication_op.split("@")[0]
