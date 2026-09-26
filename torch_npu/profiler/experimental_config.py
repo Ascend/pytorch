@@ -3,8 +3,13 @@ from typing import Union
 
 import torch_npu._C
 
-from .analysis.prof_common_func._constant import Constant, print_warn_msg, print_info_msg
+from .analysis.prof_common_func._constant import (
+    Constant,
+    print_info_msg,
+    print_warn_msg,
+)
 from .analysis.prof_common_func._cann_package_manager import CannPackageManager
+
 
 __all__ = [
     "_ExperimentalConfig",
@@ -190,7 +195,11 @@ class _ExperimentalConfig:
         if not all(export_type in [ExportType.Text, ExportType.Db] for export_type in self._export_type):
             print_warn_msg("Invalid parameter export_type, reset it to text.")
             self._export_type = [ExportType.Text]
-        if self._op_attr and ExportType.Db not in self._export_type:
+        if (
+            self._op_attr
+            and ExportType.Db not in self._export_type
+            and not CannPackageManager.is_support_default_export_db()
+        ):
             print_warn_msg("op_attr switch is invalid with export type set as text.")
             self._op_attr = False
         if self._gc_detect_threshold is not None:

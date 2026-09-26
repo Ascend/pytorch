@@ -120,7 +120,6 @@ test/test_typing.py
 test/test_fx_reinplace_pass.py
 mypy.ini
 test/profiler/profiler_utils_mock_events.json
-test/profiler/test_execution_trace.py
-test/profiler/test_profiler.py
+test/profiler/test_execution_trace.pyt
 test/profiler/test_record_function.py
 test/profiler/test_torch_tidy.py

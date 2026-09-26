@@ -1,14 +1,13 @@
 import unittest
-import warnings
+from unittest.mock import patch
 
 from torch_npu.profiler.experimental_config import supported_ai_core_metrics
 from torch_npu.profiler.experimental_config import supported_profiler_level
 from torch_npu.profiler.experimental_config import supported_export_type
-from torch_npu.profiler.analysis.prof_common_func._constant import Constant
 from torch_npu.profiler.experimental_config import _ExperimentalConfig
 from torch_npu._C._profiler import _ExperimentalConfig as Cpp_ExperimentalConfig
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.profiler.analysis.prof_common_func._constant import Constant, print_warn_msg, print_info_msg
+from torch_npu.profiler.analysis.prof_common_func._constant import Constant
 from torch_npu.profiler.analysis.prof_common_func._cann_package_manager import CannPackageManager
 
 
@@ -17,8 +16,8 @@ class TestExperimentalConfig(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.profile_levels = set([Constant.LEVEL0, Constant.LEVEL1, Constant.LEVEL2])
-        cls.ai_core_metrics = set([
+        cls.profile_levels = {Constant.LEVEL0, Constant.LEVEL1, Constant.LEVEL2}
+        cls.ai_core_metrics = {
             Constant.AicPipeUtilization,
             Constant.AicArithmeticUtilization,
             Constant.AicMemory,
@@ -26,8 +25,8 @@ class TestExperimentalConfig(TestCase):
             Constant.AicMemoryUB,
             Constant.AicResourceConflictRatio,
             Constant.AicL2Cache,
-        ])
-        cls.export_type = set([Constant.Db, Constant.Text])
+        }
+        cls.export_type = {Constant.Db, Constant.Text}
 
     @unittest.skip("Skip test_supported_profiler_level now!")
     def test_supported_profiler_level(self):
@@ -202,6 +201,16 @@ class TestExperimentalConfig(TestCase):
         experimental_config = _ExperimentalConfig(export_type="text")
         self.assertEqual(["text"], experimental_config._export_type)
 
+    def test_op_attr_with_default_db_export(self):
+        with patch.object(CannPackageManager, "is_support_default_export_db", return_value=True):
+            experimental_config = _ExperimentalConfig(op_attr=True, export_type="text")
+        self.assertTrue(experimental_config._op_attr)
+
+    def test_op_attr_without_db_export(self):
+        with patch.object(CannPackageManager, "is_support_default_export_db", return_value=False):
+            experimental_config = _ExperimentalConfig(op_attr=True, export_type="text")
+        self.assertFalse(experimental_config._op_attr)
+
     def test_check_params_invalid_gc_detect_threshold(self):
         experimental_config = _ExperimentalConfig(gc_detect_threshold=-1.0)
         self.assertIsNone(experimental_config._gc_detect_threshold)
@@ -284,8 +293,8 @@ class TestExperimentalConfig(TestCase):
 
     def test_gc_detector_save_file_creation_failure(self):
         from torch_npu.profiler._profiler_gc_detect import ProfGCDetector
-        from unittest.mock import patch, MagicMock
-        import os
+        from unittest.mock import MagicMock, patch
+
         detector = ProfGCDetector(1.0)
         detector.save_info = [(1, 2, 3)]
 

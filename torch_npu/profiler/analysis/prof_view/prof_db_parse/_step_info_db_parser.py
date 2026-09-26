@@ -37,15 +37,17 @@ class StepInfoDbParser(BaseParser):
         try:
             torch_op_node = deps_data.get(Constant.TREE_BUILD_PARSER, [])
             step_range = self.get_step_range(torch_op_node[0] if torch_op_node else None)
-        except Exception as error:
-            self.logger.error("Failed to get step info from db, error: %s", str(error), exc_info=True)
+        except Exception:
+            self.logger.exception("Failed to get step info from db.")
             return Constant.FAIL, []
         self.logger.info("StepInfoDbParser finish.")
         return Constant.SUCCESS, step_range
 
     def get_api_data_in_time_range(self, begin_ts, end_ts) -> list:
         if not TorchDb().judge_table_exist(DbConstant.TABLE_CANN_API):
-            print_warn_msg("Failed to get api data from db.")
+            print_warn_msg(
+                f"Profiler DB table {DbConstant.TABLE_CANN_API} is missing; cannot get API data."
+            )
             return []
         sql = f"select connectionId from {DbConstant.TABLE_CANN_API} " \
               f"where type={self.NODE_LEVEL} and {begin_ts} <= startNs and endNs <= {end_ts}"
@@ -53,14 +55,18 @@ class StepInfoDbParser(BaseParser):
 
     def get_all_api_data(self) -> list:
         if not TorchDb().judge_table_exist(DbConstant.TABLE_CANN_API):
-            print_warn_msg("Failed to get api data from db.")
+            print_warn_msg(
+                f"Profiler DB table {DbConstant.TABLE_CANN_API} is missing; cannot get API data."
+            )
             return []
         sql = f"select connectionId from {DbConstant.TABLE_CANN_API} where type={self.NODE_LEVEL}"
         return TorchDb().fetch_all_data(sql)
 
     def get_task_info_from_api(self, api_data) -> dict:
         if not TorchDb().judge_table_exist(DbConstant.TABLE_TASK):
-            print_warn_msg("Failed to get task data from db.")
+            print_warn_msg(
+                f"Profiler DB table {DbConstant.TABLE_TASK} is missing; cannot get task data."
+            )
             return {}
         sql = f"select startNs, endNs, connectionId, globalTaskId from {DbConstant.TABLE_TASK}"
         task_data = TorchDb().fetch_all_data(sql)
@@ -76,12 +82,16 @@ class StepInfoDbParser(BaseParser):
         if root_node is not None:
             step_node_list = [node for node in root_node.child_node_list if node.is_profiler_step()]
         if not TorchDb().create_connect_db():
-            print_warn_msg(f"Failed to connect to db file: {TorchDb().get_db_path()}")
+            print_warn_msg(
+                f"Unable to connect to profiler DB file (missing or inaccessible): {TorchDb().get_db_path()}"
+            )
             return []
         self.save_step_time(step_node_list)
         step_range = []
-        if not ProfilerPathManager.get_cann_path(self._profiler_path) or \
-            ProfilerConfig().get_level() == Constant.LEVEL_NONE:
+        if (
+            not ProfilerPathManager.get_cann_path(self._profiler_path)
+            or ProfilerConfig().get_level() == Constant.LEVEL_NONE
+        ):
             return step_range
         if not step_node_list:
             start_time = 0
@@ -126,5 +136,8 @@ class StepInfoDbParser(BaseParser):
         step_time_list = []
         for step_node in step_node_list:
             step_time_list.append([step_node.event.name.split("#")[-1], step_node.start_time, step_node.end_time])
-        TorchDb().create_table_with_headers(DbConstant.TABLE_STEP_TIME, TableColumnsManager.TableColumns.get(DbConstant.TABLE_STEP_TIME))
+        TorchDb().create_table_with_headers(
+            DbConstant.TABLE_STEP_TIME,
+            TableColumnsManager.TableColumns.get(DbConstant.TABLE_STEP_TIME),
+        )
         TorchDb().insert_data_into_table(DbConstant.TABLE_STEP_TIME, step_time_list)

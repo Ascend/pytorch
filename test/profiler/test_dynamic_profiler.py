@@ -109,6 +109,18 @@ class TestDynamicProfiler(TestCase):
         if os.path.exists(cls.results_path):
             PathManager.remove_path_safety(cls.results_path)
 
+    def test_missing_optional_experimental_config_params_use_defaults(self):
+        cfg_json = copy.deepcopy(self.json_sample)
+        cfg_json["experimental_config"].pop("host_sys")
+        cfg_json["experimental_config"].pop("sys_io")
+        cfg_json["experimental_config"].pop("sys_interconnection")
+
+        cfg_ctx = ConfigContext(cfg_json)
+
+        self.assertEqual([], cfg_ctx.experimental_config._host_sys)
+        self.assertFalse(cfg_ctx.experimental_config._sys_io)
+        self.assertFalse(cfg_ctx.experimental_config._sys_interconnection)
+
     def test_modify_cfg_prof_dir_invalid(self):
         cfg_json = copy.deepcopy(self.json_sample)
         cfg_json["prof_dir"] = 1
