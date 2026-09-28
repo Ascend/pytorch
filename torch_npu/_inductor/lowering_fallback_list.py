@@ -113,7 +113,6 @@ NPU_EXTRA_FALLBACK_LIST = [
     aten.acosh.float,
     aten.acosh.int,
     aten.acosh.out,
-    aten.adaptive_max_pool2d,
     aten.add_,
     aten.add_.Scalar,
     aten.add_.Tensor,
@@ -452,10 +451,6 @@ NPU_EXTRA_FALLBACK_LIST = [
     inductor.resize_storage_bytes_,
     inductor.resize_storage_bytes_.default,
     invoke_quant,
-    prims._low_memory_max_pool_offsets_to_indices,
-    prims._low_memory_max_pool_offsets_to_indices.default,
-    prims._low_memory_max_pool_with_offsets,
-    prims._low_memory_max_pool_with_offsets.default,
     prims._sink_tokens.default,
     prims._unsafe_index_put_.default,
     prims.acos,
@@ -679,8 +674,6 @@ TORCH_NATIVE_FALLBACK_LIST = [
     aten.exponential.default,
     aten.fractional_max_pool2d_backward.default,
     aten.fractional_max_pool2d_backward.grad_input,
-    aten.fractional_max_pool3d.default,
-    aten.fractional_max_pool3d.output,
     aten.fractional_max_pool3d_backward.default,
     aten.fractional_max_pool3d_backward.grad_input,
     aten.gcd.default,
@@ -730,8 +723,6 @@ TORCH_NATIVE_FALLBACK_LIST = [
     aten.masked_scatter.default,
     aten.masked_scatter.out,
     aten.masked_scatter_backward.default,
-    aten.max_pool3d_with_indices.default,
-    aten.max_pool3d_with_indices.out,
     aten.max_pool3d_with_indices_backward.default,
     aten.max_pool3d_with_indices_backward.grad_input,
     aten.median.default,
@@ -917,11 +908,6 @@ TORCH_NATIVE_FALLBACK_LIST = [
 ]
 
 FALLBACK_LIST = TORCH_NATIVE_FALLBACK_LIST + NPU_EXTRA_FALLBACK_LIST
-
-if inductor_indirect_memory_mode != 'linear':
-    FALLBACK_LIST += [
-        aten.isnan,
-    ]
 
 INDIRECT_MEM_FALLBACK_LIST = [
     aten.cat,

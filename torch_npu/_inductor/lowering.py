@@ -18,6 +18,7 @@ import os
 import sympy
 
 import torch._ops
+from torch._inductor import config as inductor_config
 from torch._inductor import ir
 from torch._inductor import lowering
 from torch._inductor.decomposition import decompositions, pw_cast_for_opmath
@@ -175,6 +176,133 @@ tr_c10d = torch.ops.tr_c10d
 prims = torch.ops.prims
 npu = torch.ops.npu
 
+def _npu_fractional_pooling_offsets(
+    samples,
+    in_sz,
+    out_sz,
+    kernel_sz,
+    dim,
+    ndims,
+):
+    out_sz = out_sz[dim]
+    in_sz = in_sz[dim]
+    kernel_sz = kernel_sz[dim]
+    samples_loader = samples.make_loader()
+
+    def load(prefix, i):
+        samples_shape = samples.get_size()
+
+        if len(samples_shape) == 3:
+            if len(prefix) == 1:
+                sample = samples_loader([0, prefix[0], ndims - 1 - dim])
+            elif len(prefix) >= 2:
+                sample = samples_loader(
+                    [prefix[0], prefix[1], ndims - 1 - dim]
+                )
+            else:
+                sample = samples_loader([0, 0, ndims - 1 - dim])
+        else:
+            sample = samples_loader([*prefix, ndims - 1 - dim])
+
+        i_expr = ops.index_expr(i, samples.get_dtype())
+        diff = ops.index_expr(in_sz - kernel_sz, torch.int64)
+        out_sz_expr = ops.index_expr(out_sz - 1, torch.int64)
+        alpha = ops.truediv(
+            ops.to_dtype(diff, torch.float32),
+            ops.to_dtype(out_sz_expr, torch.float32),
+        )
+        alpha = ops.where(ops.eq(out_sz_expr, 0), 0, alpha)
+        seq_i = ops.trunc((i_expr + sample) * alpha) - ops.trunc(
+            sample * alpha
+        )
+        seq_i = ops.to_dtype(seq_i, torch.int64)
+        mask = ops.lt(i_expr, out_sz_expr)
+        return ops.indirect_indexing(
+            ops.where(mask, seq_i, diff), sympy.sympify(in_sz)
+        )
+
+    return load
+
+
+def _npu_fractional_max_pool(
+    x,
+    kernel_size,
+    output_size,
+    random_samples,
+    n_dim,
+):
+    x.realize_hint()
+    batch, inp_dhw = x.shape[:-n_dim], x.shape[-n_dim:]
+
+    with inductor_config.patch(unroll_reductions_threshold=25):
+        dhw_index_fn = [
+            _npu_fractional_pooling_offsets(
+                samples=random_samples,
+                in_sz=inp_dhw,
+                out_sz=output_size,
+                kernel_sz=kernel_size,
+                ndims=n_dim,
+                dim=d,
+            )
+            for d in range(n_dim)
+        ]
+
+        x_loader = x.make_loader()
+
+        def increments_to_index(idx, reduction_idx):
+            prefix = idx[:-n_dim]
+            bdhw = idx[-n_dim:]
+            return [
+                dhw_index_fn[d](prefix, bdhw[d]) + reduction_idx[d]
+                for d in range(n_dim)
+            ]
+
+        def fn_inner(idx, reduction_idx):
+            prefix = idx[:-n_dim]
+            return x_loader(
+                [*prefix, *increments_to_index(idx, reduction_idx)]
+            )
+
+        new_size = list(batch) + list(output_size)
+        dtype = x.get_dtype()
+        result = Reduction.create(
+            reduction_type="max",
+            input_node=x,
+            device=x.get_device(),
+            dst_dtype=dtype,
+            src_dtype=dtype,
+            inner_fn=fn_inner,
+            ranges=new_size,
+            reduction_ranges=kernel_size,
+        )
+        offsets = Reduction.create(
+            reduction_type="argmax",
+            input_node=x,
+            device=x.get_device(),
+            dst_dtype=torch.int64,
+            src_dtype=dtype,
+            inner_fn=fn_inner,
+            ranges=new_size,
+            reduction_ranges=kernel_size,
+        )
+        if not isinstance(result, TensorBox):
+            raise RuntimeError(
+                f"fractional_max_pool3d result must be a TensorBox, got {type(result)}"
+            )
+        if isinstance(result.data.data, Reduction):
+            result.realize()
+        if not isinstance(offsets, TensorBox):
+            raise RuntimeError(
+                f"fractional_max_pool3d offsets must be a TensorBox, got {type(offsets)}"
+            )
+        if isinstance(offsets.data.data, Reduction):
+            offsets.realize()
+
+        indices = lowering._pool_offsets_to_indices(
+            offsets, kernel_size, x.shape, increments_to_index
+        )
+        return result, indices
+
 def _register_npu_inductor_fallbacks():
     _torch_searchsorted = lowering.searchsorted
 
@@ -226,6 +354,16 @@ def _register_npu_inductor_fallbacks():
     for op in overload_op_set:
         if op in lowerings:
             del lowerings[op]
+
+    @register_lowering(aten.fractional_max_pool3d)
+    def fractional_max_pool3d(x, kernel_size, output_size, random_samples):
+        return _npu_fractional_max_pool(
+            x,
+            kernel_size,
+            output_size,
+            random_samples,
+            n_dim=3,
+        )
 
     if npu_config.dump_fx_graph:
         from .lowering_fx import _register_npu_inductor_fallbacks_fx

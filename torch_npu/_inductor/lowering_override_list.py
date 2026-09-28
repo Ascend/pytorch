@@ -21,6 +21,7 @@ LOWERING_OVERRIDE_OP = [
     aten.var_mean,
     aten.var,
     aten.cat,
+    aten.fractional_max_pool3d,
     aten.pow,
     prims.convert_element_type,
     aten.mm,
