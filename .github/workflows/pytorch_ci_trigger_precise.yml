@@ -3,30 +3,20 @@ name: PyTorch CI Trigger Precise
 run-name: >-
   PyTorch CI Trigger Precise -
   ${{
-    github.event_name == 'push'
-    && format('debug {0}', github.sha)
-    || format('PR {0}', github.event.client_payload.payload.pull_request.number)
+    format('PR {0}', github.event.client_payload.payload.pull_request.number)
   }}
 on:
-  push:
-    branches: [ci-test]
-    paths:
-      - '.github/workflows/pytorch_ci_trigger_precise.yml'
-      - '.github/workflows/_precise_test.yml'
   repository_dispatch:
     types: [pull_request]
 
 concurrency:
   group: >-
-    ${{ github.event_name == 'push' && format('precise-debug-{0}', github.run_id) ||
-    format('precise-{0}-{1}', github.event.client_payload.payload.repository.full_name,
-    github.event.client_payload.payload.pull_request.number || github.run_id) }}
+    precise-${{ github.event.client_payload.payload.repository.full_name }}-${{
+    github.event.client_payload.payload.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 permissions:
   contents: read
-  # 调试运行要查“本仓最新已合入的 PR”（作用：给 _precise_test.yml 的 PR 查询授权，否则读 PR 列表会被拒）
-  pull-requests: read
   id-token: write  # Required by report-ci-result to obtain an OIDC token
 
 jobs:

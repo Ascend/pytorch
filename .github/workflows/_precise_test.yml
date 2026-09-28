@@ -22,30 +22,24 @@ on:
         description: Full client_payload as a JSON string
 
 jobs:
-  # 作用：唯一的 job——把“解析事件 -> 准备映射原料 -> 建映射 -> 选测试 -> 展示结果”串成一条链路
-  # 作用（为什么全放一个 job）：中间产物（covdata-set、test_case_map.json）留在同一台机器上，不用跨 job 上传下载
-  precision-test:
-    # 任务名（作用：在 Actions 页面一眼认出这是选测任务，而非全量测试）
-    name: Precise test case selection
-    # 自托管机型（作用：要把 OBS 上几百 MB 覆盖率数据拉下来，需要大磁盘/稳定网络的自托管机）
-    runs-on: linux-aarch64-cpu-24
-    # 超时 60 分钟（作用：建映射要遍历大量覆盖率数据，给足时长避免被误杀）
-    timeout-minutes: 60
+  # 前置 job（作用：把“要不要跑”的判断放在容器之外——非 PR 事件 / 未合入 PR 完全不起容器）
+  prepare:
+    # 任务名（作用：Actions 页面一眼认出这是选测的前置判断）
+    name: Resolve the PR to compare
+    # GitHub 托管机型（作用：只做载荷解析 + GitHub API 查询，不需要容器；与 receive-trigger 的 extract 同款）
+    runs-on: ubuntu-latest
+    # 交给下游（作用：为空表示本次不需要选测，主 job 直接跳过）
+    outputs:
+      github_pr: ${{ steps.parse.outputs.github_pr }}
     defaults:
       run:
         # 统一 bash（作用：下面脚本用到 bash 语义，避免默认 sh 行为差异）
         shell: bash
-    container:
-      # 容器镜像（作用：镜像内预装 obsutil 与依赖，省去每次现场安装，也保证环境一致）
-      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609230923-00b993fc
-      # 宿主网络（作用：下载 OBS 更稳，少一层 NAT 开销）
-      options: --network host
-    env:
-      # pip 镜像（作用：需要装包时更快，走华为云内网）
-      PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
     steps:
-      # 步骤 1：确定要比对哪个 PR（作用：PR 事件用载荷里的 PR；非 PR 事件（push/调试）直接跳过）
+      # 确定要比对哪个 PR（作用：PR 事件用载荷里的 PR；非 PR 事件（push/调试）/ 未合入 PR 都直接跳过）
       - name: Parse the dispatch payload
+        # 步骤 id（作用：把解析出的 PR 作为 job output 交给下游）
+        id: parse
         env:
           # 事件类型与原始载荷（作用：通过 env 传入，避免把长 JSON 直接拼进脚本导致转义问题）
           EVENT_TYPE: ${{ inputs.event_type }}
@@ -78,7 +72,7 @@ jobs:
                 "https://api.github.com/repos/${UPSTREAM_REPO}/issues/${PR_NUMBER}/labels" || echo '[]')
               HAS_MERGED=$(echo "${LABELS_RESPONSE}" | jq -r '[.[].name] | index("Merged") // ""' 2>/dev/null || true)
             fi
-            # 不需要就整体跳过（作用：避免为未合入的 PR 白拉覆盖率数据、白建映射、白跑选测）
+            # 不需要就整体跳过（作用：不输出 PR，下游 job 收到空值直接跳过，不为未合入的 PR 起容器）
             if [ "${ACTION}" != "closed" ] || [ -z "${HAS_MERGED}" ]; then
               echo "::notice::PR ${UPSTREAM_REPO}#${PR_NUMBER} is not a landed PR (action='${ACTION}', Merged label='${HAS_MERGED:-none}'), the precise selection is skipped"
               {
@@ -89,18 +83,45 @@ jobs:
               } >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
-            # 写成统一标识传给后续步骤（作用：把“仓#号”这一约定集中一处，后面步骤直接复用）
-            echo "github_pr=${UPSTREAM_REPO}#${PR_NUMBER}" >> "$GITHUB_ENV"
+            # 写成统一标识交给下游（作用：把“仓#号”这一约定集中一处，后面步骤直接复用）
+            echo "github_pr=${UPSTREAM_REPO}#${PR_NUMBER}" >> "$GITHUB_OUTPUT"
 
             echo "=== pull request ==="
             echo "github_pr: ${UPSTREAM_REPO}#${PR_NUMBER}"
             exit 0
           fi
 
-          # 非 PR 事件（push / 调试运行）（作用：不涉及 PR，选测无事可做，直接跳过）
+          # 非 PR 事件（push / 调试运行）（作用：不涉及 PR，选测无事可做，直接跳过、不输出 PR）
           echo "::notice::event_type='${EVENT_TYPE}' is not pull_request, the precise selection is skipped"
 
-      # 步骤 2：下载覆盖率数据并校验（作用：拿到上游精确测试所需的两个输入——覆盖率数据 + 源码快照）
+  # 主 job（作用：准备映射原料 -> 建映射 -> 选测试 -> 展示结果）
+  # 作用（为什么全放一个 job）：中间产物（covdata-set、test_case_map.json）留在同一台机器上，不用跨 job 上传下载
+  precision-test:
+    needs: [prepare]
+    # 前置 job 没解析出 PR（非 PR 事件 / 未合入 PR）就整段跳过（作用：不起容器，跳过型运行的全部收益就在这里）
+    if: ${{ needs.prepare.outputs.github_pr }}
+    # 任务名（作用：在 Actions 页面一眼认出这是选测任务，而非全量测试）
+    name: Precise test case selection
+    # 自托管机型（作用：要把 OBS 上几百 MB 覆盖率数据拉下来，需要大磁盘/稳定网络的自托管机）
+    runs-on: linux-aarch64-cpu-24
+    # 超时 60 分钟（作用：建映射要遍历大量覆盖率数据，给足时长避免被误杀）
+    timeout-minutes: 60
+    defaults:
+      run:
+        # 统一 bash（作用：下面脚本用到 bash 语义，避免默认 sh 行为差异）
+        shell: bash
+    container:
+      # 容器镜像（作用：镜像内预装 obsutil 与依赖，省去每次现场安装，也保证环境一致）
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609230923-00b993fc
+      # 宿主网络（作用：下载 OBS 更稳，少一层 NAT 开销）
+      options: --network host
+    env:
+      # 待比对的 PR（作用：由前置 job 解析后传入，下面各步骤用 env.github_pr 判断/取值）
+      github_pr: ${{ needs.prepare.outputs.github_pr }}
+      # pip 镜像（作用：需要装包时更快，走华为云内网）
+      PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
+    steps:
+      # 步骤 1：下载覆盖率数据并校验（作用：拿到上游精确测试所需的两个输入——覆盖率数据 + 源码快照）
       - name: Download the coverage data from OBS
         # 没有可比的 PR 就跳过（作用：非 PR 事件 / 未合入的 PR 不白拉几百 MB 覆盖率数据）
         if: ${{ env.github_pr != '' }}
@@ -201,7 +222,7 @@ jobs:
           cat /tmp/precise.env >> "$GITHUB_ENV"
           cat /tmp/precise.env
 
-      # 步骤 3：把覆盖率数据摊平成选测工具要求的目录布局（作用：适配 action 的输入约定，不改动原始数据）
+      # 步骤 2：把覆盖率数据摊平成选测工具要求的目录布局（作用：适配 action 的输入约定，不改动原始数据）
       - name: Flatten the coverage data for the selector
         # 没有可比的 PR 就跳过（作用：与下载步骤保持一致，避免留下半成品目录）
         if: ${{ env.github_pr != '' }}
@@ -247,14 +268,14 @@ jobs:
               print(f"  {item.name}/covdata/{sorted(p.name for p in item.glob('covdata/*'))}")
           PYEOF
 
-      # 步骤 4：构建“测试 -> 源码”映射（作用：把覆盖率数据 + 源码快照转成选测可用的映射表）
+      # 步骤 3：构建“测试 -> 源码”映射（作用：把覆盖率数据 + 源码快照转成选测可用的映射表）
       - name: generate-test-case-map
         # 没有可比的 PR 就跳过（作用：非 PR 事件 / 未合入的 PR 不白建映射）
         if: ${{ env.github_pr != '' }}
         uses: lb-actions/precision-test@v1.0.1
         with:
           # 仓库类型（作用：告诉 action 用哪套适配逻辑解析 pytorch 的代码结构）
-          repo: pytorch
+          repo: torch_npu
           # 构建映射模式（作用：本次只建映射不选测试，选测试在下一步）
           build-map: true
           # 摊平后的覆盖率数据目录（作用：上一步产物，作为映射的数据来源）
@@ -264,7 +285,7 @@ jobs:
           # 映射文件落点（作用：下一步选测直接复用同一文件，无需重建）
           map-file: test_case_map.json
 
-      # 步骤 5：根据 PR 改动选测试（作用：本工作流的核心产出——最小必要测试集）
+      # 步骤 4：根据 PR 改动选测试（作用：本工作流的核心产出——最小必要测试集）
       - name: generate-select-tests-case
         # 没有可比的 PR 就跳过（作用：非 PR 事件 / 未合入的 PR 不做选测；同时避免空 github_pr 调 API 失败）
         if: ${{ env.github_pr != '' }}
@@ -272,7 +293,7 @@ jobs:
         continue-on-error: true
         uses: lb-actions/precision-test@v1.0.1
         with:
-          repo: pytorch
+          repo: torch_npu
           # 要分析改动的 PR（作用：action 会拉取该 PR 的 diff，与映射表比对）
           github-pr: ${{ env.github_pr }}
           source-dir: ${{ env.SOURCE_DIR }}
@@ -286,7 +307,7 @@ jobs:
           # 单次 Python 执行超时（作用：建图/比对可能较慢，给足 900s 防止被误杀）
           PYTHON_EXEC_TIMEOUT_SECONDS: "900"
 
-      # 步骤 6：展示选测结果（作用：结果写进 job summary，并逐条标注选择原因；空结果只告警不判红）
+      # 步骤 5：展示选测结果（作用：结果写进 job summary，并逐条标注选择原因；空结果只告警不判红）
       - name: Show the selection result
         # 有可比的 PR 才展示（作用：非 PR 事件 / 未合入的 PR 不产出结果）
         if: ${{ env.github_pr != '' }}
