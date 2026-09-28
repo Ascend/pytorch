@@ -1,0 +1,28 @@
+name: PyTorch CI Trigger Precise
+
+run-name: >-
+  PyTorch CI Trigger Precise -
+  ${{
+    format('PR {0}', github.event.client_payload.payload.pull_request.number)
+  }}
+on:
+  repository_dispatch:
+    types: [pull_request]
+
+concurrency:
+  group: >-
+    precise-${{ github.event.client_payload.payload.repository.full_name }}-${{
+    github.event.client_payload.payload.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  id-token: write  # Required by report-ci-result to obtain an OIDC token
+
+jobs:
+  forward:
+    uses: Ascend/pytorch/.github/workflows/_precise_test.yml@ci-test
+    secrets: inherit
+    with:
+      event_type: ${{ github.event.client_payload.event_type }}
+      payload: ${{ toJSON(github.event.client_payload) }}
