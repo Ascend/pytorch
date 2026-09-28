@@ -272,9 +272,9 @@ class ConfigContext:
         mstx = exp_config.get('mstx', False)
         mstx_domain_include = exp_config.get('mstx_domain_include', None)
         mstx_domain_exclude = exp_config.get('mstx_domain_exclude', None)
-        host_sys = exp_config.get('host_sys', None)
-        sys_io = exp_config.get('sys_io', None)
-        sys_interconnection = exp_config.get('sys_interconnection', None)
+        host_sys = exp_config.get('host_sys', [])
+        sys_io = exp_config.get('sys_io', False)
+        sys_interconnection = exp_config.get('sys_interconnection', False)
 
         self.experimental_config = _ExperimentalConfig(
             profiler_level=profiler_level,
