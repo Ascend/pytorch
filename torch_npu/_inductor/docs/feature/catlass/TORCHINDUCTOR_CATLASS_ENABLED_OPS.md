@@ -2,7 +2,7 @@
 
 ## 功能描述
 
-catlass可作用于的矩阵乘类的算子，该环境变量与社区保持一致，社区环境变量为TORCHINDUCTOR_CUTLASS_ENABLED_OPS。
+catlass可作用于矩阵乘类的算子，该环境变量与社区保持一致，社区环境变量为TORCHINDUCTOR_CUTLASS_ENABLED_OPS。
 
 目前可支持的算子类型有：
 mm,addmm,bmm,grouped_mm
@@ -24,3 +24,4 @@ export TORCHINDUCTOR_CATLASS_ENABLED_OPS="mm,addmm,bmm,grouped_mm"
 ## 支持的型号
 
 - <term>Ascend 950DT 系列产品</term>
+- <term>Ascend 950PR 系列产品</term>
