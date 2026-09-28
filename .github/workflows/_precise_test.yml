@@ -324,3 +324,50 @@ jobs:
           echo "=== recommended tests ==="
           cat recommended_pytest_paths.txt
           echo "total: $(wc -l < recommended_pytest_paths.txt)"
+
+      # 步骤 7：校验选测结果（作用：把“pull diff 没拉到却被当成 PR 无改动”的静默失败暴露出来，避免门禁是绿的但一个测试都没跑）
+      - name: Verify the selection result
+        # 无论前面成功与否都校验（作用：选测步骤失败或被跳过时，结果同样需要判定是否可信）
+        if: ${{ always() && env.github_pr != '' }}
+        env:
+          # 调 GitHub API 用（作用：查 PR 的实际改动文件数，作为“空结果是否合理”的判据）
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # 不加 -e（作用：下面用显式判断处理各种“查不到”的情况）
+          set -uo pipefail
+
+          # 有推荐结果就直接通过（作用：正常路径不额外调 API）
+          if [ -s recommended_pytest_paths.txt ]; then
+            echo "selection ok: $(wc -l < recommended_pytest_paths.txt) test file(s) recommended"
+            exit 0
+          fi
+
+          # 拆出仓库与 PR 号（作用：github_pr 的约定是 owner/repo#number）
+          REPO="${github_pr%%#*}"
+          NUM="${github_pr##*#}"
+
+          # 查 PR 的改动文件清单（作用：区分“确实没有改动”与“diff 根本没拉到”）
+          CODE="$(curl -sS -o /tmp/pr-files.json -w '%{http_code}' --max-time 30 \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            "https://api.github.com/repos/${REPO}/pulls/${NUM}/files?per_page=100" || echo 000)"
+          echo "PR changed-files API: http_code=${CODE}"
+
+          # 查不到就不下结论（作用：基础设施问题不冒充“无改动”，但把“结果未验证”显式说出来）
+          if [ "${CODE}" != "200" ]; then
+            echo "::warning::selection is empty and the changed-files API returned ${CODE}; whether the PR diff fetch failed cannot be verified"
+            exit 0
+          fi
+
+          # 统计改动文件数（作用：只有真的改了产品源码，空结果才是异常）
+          CHANGED="$(jq 'length' /tmp/pr-files.json 2>/dev/null || echo 0)"
+          PRODUCT="$(jq '[.[] | select(.filename | test("^torch/"))] | length' /tmp/pr-files.json 2>/dev/null || echo 0)"
+          echo "PR changed file(s): ${CHANGED}, product source file(s): ${PRODUCT}"
+
+          # 有产品源码改动却零推荐 = 本次选测不可信（作用：拦住静默失败；此时选测日志里会有 HTTP 503 / No product source code changes found）
+          if [ "${PRODUCT}" -gt 0 ] 2>/dev/null; then
+            echo "::error::the selector recommended 0 test(s) although PR ${REPO}#${NUM} changes ${PRODUCT} product source file(s); the PR diff fetch likely failed, so this selection is invalid"
+            exit 1
+          fi
+
+          # 没有产品源码改动时空结果是合理的（作用：把“合理为空”与“异常为空”在日志里明确区分）
+          echo "::notice::PR ${REPO}#${NUM} changes no product source file, an empty selection is expected"
