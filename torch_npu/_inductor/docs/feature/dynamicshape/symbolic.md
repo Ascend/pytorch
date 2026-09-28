@@ -222,7 +222,7 @@ else:
 
 ### 使用约束与自动回退
 
-- 仅对存在动态shape轴的 Triton kernel 生效，静态shape kernel 行为不受影响。
+- 仅对存在一个动态shape轴的 Triton kernel 生效，静态shape kernel 行为不受影响。
 - 仅对 `pointwise`、`reduction`、`persistent_reduction` 三类模板 kernel 生效，参与调优的模板类型可通过 `INDUCTOR_ASCEND_SYMBOLIC_GROUP_TEMPLATES` 控制。
 - 当前为灰度开关。当分组计划不受支持（kernel 访问签名不一致、无法构造分组代表等）或分组 benchmark 的显存占用超过预算时，会自动回退到普通 autotune 流程。
 
