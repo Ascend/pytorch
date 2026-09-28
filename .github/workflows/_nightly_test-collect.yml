@@ -142,7 +142,7 @@ on:
         description: Total number of test cases
         value: ${{ jobs.collect.outputs.total_cases }}
       test_matrix:
-        description: JSON array for test matrix (category, num_shards, matrix_json, max_workers)
+        description: JSON array for test matrix, one entry per (category, shard); each entry's matrix_json pins exactly one shard so the caller's strategy.max-parallel caps global test-job concurrency
         value: ${{ jobs.collect.outputs.test_matrix }}
 
 jobs:
@@ -350,7 +350,14 @@ jobs:
               print(f'{cat}_num_shards={n}')
               print(f'{cat}_workers={w}')
 
-          # Build test_matrix for _test.yml matrix include
+          # Build test_matrix for _test.yml matrix include. One entry per
+          # (category, shard): each entry's matrix_json pins exactly one
+          # shard, so every test job lives in the caller's single matrix
+          # and its strategy.max-parallel caps concurrent test jobs
+          # globally. (With one entry per category, max-parallel on the
+          # caller could only limit how many categories are expanded at
+          # once — each category would still launch all its shards.)
+          # Same single-element matrix_json pattern as dist1-rerun-a5.yml.
           test_matrix = []
           for cat in ['core', 'tensor', 'distributed', 'graph', 'others']:
               c = cats.get(cat, {})
@@ -358,13 +365,14 @@ jobs:
               if n > 0:
                   w = c.get('workers', 32)
                   r = c.get('runner', 'linux-aarch64-a3-8')
-                  test_matrix.append({
-                      'category': cat,
-                      'num_shards': str(n),
-                      'matrix_json': json.dumps(list(range(1, n + 1))),
-                      'max_workers': str(w),
-                      'runner_label': r,
-                  })
+                  for shard in range(1, n + 1):
+                      test_matrix.append({
+                          'category': cat,
+                          'num_shards': str(n),
+                          'matrix_json': json.dumps([shard]),
+                          'max_workers': str(w),
+                          'runner_label': r,
+                      })
           print(f'test_matrix={json.dumps(test_matrix)}')
           " >> "$GITHUB_OUTPUT"
 

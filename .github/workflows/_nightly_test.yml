@@ -84,6 +84,18 @@ on:
           The same value must be used in both phases so collected nodeids
           exist when tests run. Example values: "privateuse1" or
           "privateuse1,cpu".
+      test_max_parallel:
+        required: false
+        type: number
+        default: 64
+        description: >-
+          Maximum number of test shard jobs running simultaneously
+          (strategy.max-parallel on the test matrix). The matrix is flat
+          (one entry per category x shard), so this caps global test-job
+          concurrency. The default (64) is far above the total shard
+          count, meaning all shard jobs launch at once and are only
+          bounded by runner availability. Must be >= 1; lower values
+          (e.g. 3) throttle the test phase to that many concurrent jobs.
 
 defaults:
   run:
@@ -110,13 +122,15 @@ jobs:
       device_env: ${{ inputs.device_env }}
 
   # ============================================================================
-  # 2. Run test shards per category (matrix-driven)
+  # 2. Run test shards (flat matrix: one entry per category x shard, so
+  #    strategy.max-parallel caps concurrent test jobs globally)
   # ============================================================================
   test:
     needs: collect
     if: ${{ needs.collect.result == 'success' }}
     strategy:
       fail-fast: false
+      max-parallel: ${{ inputs.test_max_parallel }}
       matrix:
         include: ${{ fromJson(needs.collect.outputs.test_matrix) }}
     uses: ./.github/workflows/_nightly_test-category.yml
