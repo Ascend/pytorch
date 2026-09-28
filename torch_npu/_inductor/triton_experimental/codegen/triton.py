@@ -443,6 +443,16 @@ def _npu_preserve_mixed_leaf_mul_where(lines, leaf_names):
     leaf_names = tuple(leaf_names)
     dependencies = {}
     rewritten = []
+    # Reduction-only kernels (promoted r-tree, no x dim) never define the coarse
+    # ``xmask``; emitting ``& xmask`` in the broadcast guard would produce
+    # NameError('xmask is not defined') in the generated kernel. Only reference
+    # it when the lines actually define it.
+    has_xmask = any(
+        (line if isinstance(line, str) else getattr(line, "line", None) or "")
+        .lstrip()
+        .startswith("xmask =")
+        for line in lines
+    )
 
     def value_dependencies(value):
         source = value
@@ -492,10 +502,19 @@ def _npu_preserve_mixed_leaf_mul_where(lines, leaf_names):
                 else:
                     narrow, missing = None, set()
                 if narrow is not None:
-                    mask = " & ".join(
-                        [f"{leaf}mask" for leaf in leaf_names if leaf in missing]
-                        + ["xmask"]
-                    )
+                    mask_terms = [
+                        f"{leaf}mask" for leaf in leaf_names if leaf in missing
+                    ]
+                    if has_xmask:
+                        mask_terms.append("xmask")
+                    if not mask_terms:
+                        # No usable bound term (missing leaves not in leaf_names
+                        # and no xmask): skip the guard rather than emit
+                        # ``tl.where(, narrow, 0.0)``.
+                        dependencies[lhs] = deps
+                        rewritten.append(raw)
+                        continue
+                    mask = " & ".join(mask_terms)
                     guarded = f"{lhs}_broadcast_guard"
                     rewritten.append(
                         f"{indent}{guarded} = tl.where({mask}, {narrow}, 0.0)"
@@ -3934,9 +3953,15 @@ class NPUTritonKernel(TritonKernel):
 
     def _npu_rsplit_split_tokens(self):
         axis = getattr(self, "npu_rsplit_axis", None)
-        if axis:
-            return axis, f"{axis}numel", f"{axis}inner", axis
         rprefix = self._npu_rsplit_rprefix()
+        if axis:
+            numel = f"{axis}numel"
+            # Sub-node axis (e.g. promoted "r0_0"): the kernel argument carries
+            # the tree-level numel ("r0_numel"); "<subnode>numel" is undefined
+            # in the generated kernel (NameError at the rsplit bound).
+            if axis != rprefix and axis.startswith(rprefix):
+                numel = f"{rprefix}numel"
+            return axis, numel, f"{axis}inner", axis
         return rprefix, f"{rprefix}numel", f"{rprefix}offset", f"{rprefix}index"
 
     def _npu_rsplit_x_total_numel(self) -> str:
