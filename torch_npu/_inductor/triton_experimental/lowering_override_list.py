@@ -73,6 +73,7 @@ GENERATE_LIST = [
     aten.select,
     aten.split,
     aten.permute,
+    aten.as_strided,
     aten.amax,
     aten.cat,
     aten.slice_scatter,
