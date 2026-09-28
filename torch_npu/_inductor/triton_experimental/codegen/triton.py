@@ -65,6 +65,7 @@ from typing import (
 )
 
 from .. import config as ncfg
+from .provable_clamp import _masked_index_needs_nonnegative_clamp
 import ast
 import math
 import sympy
@@ -1243,19 +1244,6 @@ def _int1_cast_transform(line):
 
     rewritten = ReplaceTarget().visit(statement)
     return _npu_render_generated_line(indent, rewritten)
-
-
-def _masked_index_needs_nonnegative_clamp(indexing):
-    if not isinstance(indexing, IndexingOptions) or not indexing.has_tmpmask():
-        return False
-    try:
-        expr = sympy.expand(indexing.index)
-        origin = sympy.expand(
-            expr.subs({symbol: sympy.Integer(0) for symbol in expr.free_symbols})
-        )
-        return bool(origin.is_number and origin.is_negative)
-    except (AttributeError, TypeError, ValueError, ZeroDivisionError):
-        return False
 
 
 def npu_triton_compute_type(dtype):
@@ -3749,7 +3737,7 @@ class NPUTritonKernel(TritonKernel):
                     new_index_str = f"tl.broadcast_to({new_index_str}, {dense})"
                     new_expand_str = dense
 
-        if _masked_index_needs_nonnegative_clamp(result):
+        if _masked_index_needs_nonnegative_clamp(result, self):
             new_index_str = f"tl.maximum({new_index_str}, 0)"
 
         if (

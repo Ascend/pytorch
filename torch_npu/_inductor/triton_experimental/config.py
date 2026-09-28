@@ -87,6 +87,29 @@ split_reduction_modulo: bool = True
 # Skip re-adding a dense broadcast_to when the mask axes are already covered.
 skip_redundant_broadcast: bool = True
 
+
+# Defensive ``tl.maximum(idx, 0)`` wrap on masked loads whose index can go
+# negative at the origin (inner-dim slice base remaps like ``-4 + x0 + ...``,
+# constant_pad_nd windows). Masked lanes are never dereferenced, but the clamp
+# makes the address non-affine and triton-ascend then demotes the whole load
+# to scalar accesses — yolov3 fused_sigmoid on 910B2: 1.7ms clamped vs 19us
+# declamped (~88x kernel-level). Modes:
+#   "provable" — skip the clamp ONLY when the effective mask provably implies
+#          index >= 0 on kept lanes (re-resolve the tmp mask's emitted DSL
+#          definition into ``sym >= k`` atoms + linear lower-bound proof);
+#          a proven skip is a mathematical no-op. Default.
+#   "on"  — always clamp (historical 95c9094da7 behavior)
+#   "log" — clamp unchanged + record every site to the counters (and to
+#           nonnegative_clamp_log_path when set) — zero behavior change
+#   "off" — never clamp (relies on masked lanes not being dereferenced,
+#           which is version-bound — reverify on stack upgrades)
+# Runtime control is config.patch(nonnegative_clamp_mode=...) — per this
+# module's contract there is no env-var layer.
+nonnegative_clamp_mode: str = "provable"
+
+# File path for "log" mode site records; None disables file output.
+nonnegative_clamp_log_path: Optional[str] = None
+
 # Realize a strided slice input into a contiguous buffer.
 realize_strided_slice_input: bool = True
 
