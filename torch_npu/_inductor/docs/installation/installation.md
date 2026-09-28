@@ -7,7 +7,7 @@ TorchNPU的安装操作具体参考《[TorchNPU 软件安装指南](https://www.
 
 ### PyTorch版本支持
 
-当前仅支持 PyTorch 2.7.1 和 2.9.0 版本。
+当前支持 PyTorch 2.7.1 、PyTorch 2.10.0 和 PyTorch 2.13.0 版本。
 
 ## 2.2 依赖安装
 
