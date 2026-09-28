@@ -23,3 +23,4 @@ export TORCHINDUCTOR_NPU_CATLASS_DIR="/path/to/catlass/dir"
 ## 支持的型号
 
 - <term>Ascend 950DT 系列产品</term>
+- <term>Ascend 950PR 系列产品</term>
