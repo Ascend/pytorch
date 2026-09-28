@@ -6,22 +6,30 @@
 
 ### 硬件配套
 
-**表 1**  产品硬件支持列表
-
-|产品|是否支持|
-|--|:-:|
-|<term>Ascend 950DT</term>|√|
-|<term>Atlas A3 训练系列产品</term>|√|
-|<term>Atlas A3 推理系列产品</term>|x|
-|<term>Atlas A2 训练系列产品</term>|√|
-|<term>Atlas A2 推理系列产品</term>|x|
-|<term>Atlas 训练系列产品</term>|√|
-|<term>Atlas 推理系列产品</term>|x|
-|<term>Atlas 200I/500 A2 推理产品</term>|x|
-
-> [!NOTE]
->
-> 本节表格中“√”代表支持，“x”代表不支持。
+<!-- npu="950" id1 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id2 -->
+<!-- npu="A3" id3 -->
+- <term>Atlas A3推理系列产品</term>：不支持
+<!-- end id3 -->
+<!-- npu="910b" id4 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id4 -->
+<!-- npu="910b" id5 -->
+- <term>Atlas A2推理系列产品</term>：不支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- <term>Atlas训练系列产品</term>：支持
+<!-- end id6 -->
+<!-- npu="310p" id7 -->
+- <term>Atlas推理系列产品</term>：不支持
+<!-- end id7 -->
+<!-- npu="310b" id8 -->
+- <term>Atlas 200I/500 A2推理产品</term>：不支持
+<!-- end id8 -->
 
 ### 环境准备
 
@@ -70,7 +78,9 @@
 
         方式一：为了便于编译构建TorchNPU，昇腾提供了专用的开发镜像。您可以直接从昇腾镜像仓库拉取[torch-npu-devel](https://www.hiascend.com/developer/ascendhub/detail/3b0ca76864884546acd07845f6153ee6)镜像。
 
-        以<term>Atlas A2 训练系列产品</term>为例，拉取镜像的命令为：
+        <!-- npu="910b" id9 -->
+        以<term>Atlas A2训练系列产品</term>为例，拉取镜像的命令为：
+        <!-- end id9 -->
 
         ```bash
         docker pull swr.cn-south-1.myhuaweicloud.com/ascendhub/torch-npu-devel:2.13.0-cann9.1.0-910b-manylinux_2_28
