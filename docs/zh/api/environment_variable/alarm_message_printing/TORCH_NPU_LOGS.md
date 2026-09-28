@@ -67,7 +67,7 @@ shmem模块仅在PyTorch 2.7.1及以上版本生效。
 - <term>Atlas A3训练系列产品</term>
 <!-- end id3 -->
 <!-- npu="910b" id6 -->
-- <term>Atlas 800I A2训练服务器</term>
+- <term>Atlas 800I A2推理服务器</term>
 <!-- end id6 -->
 <!-- npu="310p" id4 -->
 - <term>Atlas推理系列产品</term>
