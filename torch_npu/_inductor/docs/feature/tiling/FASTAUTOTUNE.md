@@ -19,4 +19,4 @@ export FASTAUTOTUNE=0
 
 ## 支持型号
 
-- <term>Ascend 950DT 系列产品</term>
+- <term>Ascend 950PR&950DT系列产品</term>
