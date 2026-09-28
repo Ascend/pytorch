@@ -78,12 +78,36 @@ jobs:
 
           # 分支 B：push / 调试运行（作用：没有 PR 载荷也要能跑通完整选测，故回退用“上游最新已合入的 PR”）
           # 选择范围是上游 pytorch/pytorch（作用：被选测的 PR 是上游官方 PR，不是本仓 Ascend/pytorch 的）
-          # 查最近更新的 30 个已关闭 PR，取其中最新的已合入者（作用：无需人工指定 PR，push 即可复现整条链路）
           echo "DEBUG: no pull_request payload (event_type='${EVENT_TYPE}'), falling back to the latest merged upstream PR"
-          LATEST_MERGED="$(curl -sf \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            "https://api.github.com/repos/pytorch/pytorch/pulls?state=closed&sort=updated&direction=desc&per_page=30" \
-            | jq -r 'map(select(.merged_at != null)) | .[0].number // empty' || true)"
+          LATEST_MERGED=""
+          # 首选 Search API（作用：直接按“已合入”筛选，避免“最近关闭的 PR 恰好都没合入”导致空结果）
+          for attempt in 1 2; do
+            CODE="$(curl -sS -o /tmp/gh-search.json -w '%{http_code}' --max-time 30 \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              "https://api.github.com/search/issues?q=repo:pytorch/pytorch+is:pr+is:merged&sort=updated&order=desc&per_page=1" || echo 000)"
+            echo "  search API attempt ${attempt}: http_code=${CODE}"
+            if [ "${CODE}" = "200" ]; then
+              LATEST_MERGED="$(jq -r '.items[0].number // empty' /tmp/gh-search.json 2>/dev/null || true)"
+              break
+            fi
+            head -c 200 /tmp/gh-search.json 2>/dev/null || true
+            sleep 5
+          done
+          # 兜底走列表接口（作用：Search API 被限流/异常时仍能取到；窗口 100 条并打印候选与已合入数量，便于定位）
+          if [ -z "${LATEST_MERGED}" ]; then
+            CODE="$(curl -sS -o /tmp/gh-pulls.json -w '%{http_code}' --max-time 30 \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              "https://api.github.com/repos/pytorch/pytorch/pulls?state=closed&sort=updated&direction=desc&per_page=100" || echo 000)"
+            echo "  pulls list: http_code=${CODE}"
+            if [ "${CODE}" = "200" ]; then
+              LATEST_MERGED="$(jq -r 'map(select(.merged_at != null)) | .[0].number // empty' /tmp/gh-pulls.json 2>/dev/null || true)"
+              jq -r '"  candidates=\(length), merged=\([.[] | select(.merged_at != null)] | length)"' /tmp/gh-pulls.json 2>/dev/null || true
+            else
+              head -c 200 /tmp/gh-pulls.json 2>/dev/null || true
+            fi
+          fi
+          rm -f /tmp/gh-search.json /tmp/gh-pulls.json
+          echo "  resolved merged PR: ${LATEST_MERGED:-<none>}"
 
           # 查不到或查询失败就退回“只建映射”（作用：网络/权限异常不阻塞调试运行，前几步仍可验证）
           if [ -z "${LATEST_MERGED}" ]; then
