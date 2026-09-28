@@ -85,9 +85,9 @@ jobs:
     with:
       resolved_short: ${{ needs.resolve.outputs.short }}
       wheels_tarball: ${{ needs.build.outputs.wheels_tarball }}
-      case_paths_config: .github/config/coverage_test_whitelist.yml
-      skip_list: .github/config/pr_skip_list.jsonl
+      case_paths_config: .github/config/nightly_test_categories.yml
       hw_classification: 'ACCELERATOR'
+      full_scan: true
       device_env: 'privateuse1'
       runner_label: 'linux-aarch64-a3-800i-2-cn12-001'
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609230923-00b993fc
@@ -116,7 +116,7 @@ jobs:
     needs: [resolve, build, collect, coverage]
     if: ${{ always() && needs.coverage.result == 'success' }}
     runs-on: linux-aarch64-cpu-24
-    timeout-minutes: 120
+    timeout-minutes: 180
     defaults:
       run:
         shell: bash
@@ -297,14 +297,6 @@ jobs:
           failed = cov_dir / "logs" / "failed_cases.json"
           counts = json.loads(failed.read_text(encoding="utf-8")) if failed.is_file() else {}
           test_groups = len(list((cov_dir / "test").glob("**/covdata")))
-          whitelist = Path("ci-scripts/.github/config/coverage_test_whitelist.yml")
-          whitelist_files = 0
-          if whitelist.is_file():
-              whitelist_files = sum(
-                  1
-                  for line in whitelist.read_text(encoding="utf-8").splitlines()
-                  if line.strip().startswith("- test/")
-              )
 
           manifest = {
               "workflow": "pytorch_coverage_nightly",
@@ -316,7 +308,6 @@ jobs:
               "pytorch_short": os.environ.get("PYTORCH_SHORT", ""),
               "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
               "test_groups": test_groups,
-              "whitelist_files": whitelist_files,
               "total_cases": counts.get("total_cases", 0),
               "total_failed": counts.get("total_failed", 0),
           }
@@ -324,8 +315,6 @@ jobs:
               json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
           )
           print(json.dumps(manifest, indent=2))
-          if whitelist_files and test_groups < whitelist_files:
-              print(f"WARNING: coverage covers {test_groups} of {whitelist_files} whitelisted test file(s)")
           PYEOF
 
       - name: Backfill missing coverage data from the previous release
@@ -439,8 +428,8 @@ jobs:
               echo "- coverage.xml: \`${COV_DIR}/coverage.xml\`"
             fi
             if [ -n "${COV_DIR}" ] && [ -f "${COV_DIR}/manifest.json" ]; then
-              SURFACE=$(python3 -c "import json; d=json.load(open('${COV_DIR}/manifest.json')); print(f\"{d.get('test_groups', 0)} / {d.get('whitelist_files', 0)}\")")
-              echo "- Test files with coverage: ${SURFACE} (whitelist)"
+              SURFACE=$(python3 -c "import json; d=json.load(open('${COV_DIR}/manifest.json')); print(d.get('test_groups', 0))")
+              echo "- Test files with coverage: ${SURFACE}"
             fi
             if [ -n "${COV_DIR}" ] && [ -f "${COV_DIR}/logs/failed_cases.json" ]; then
               SUMMARY=$(python3 -c "import json; d=json.load(open('${COV_DIR}/logs/failed_cases.json')); print(f\"{d.get('total_failed', 0)} / {d.get('total_cases', 0)}\")")
@@ -475,16 +464,16 @@ jobs:
             obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/latest/torch@latest/" || true
             obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/latest/artifacts/" || true
             obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/previous/" || true
-            obsutil cp "${{ env.OBS_COVERAGE_PREFIX }}/latest/pytorch@latest/." "${{ env.OBS_COVERAGE_PREFIX }}/previous/pytorch@latest/" -r -f -vlength || true
+            obsutil cp "${{ env.OBS_COVERAGE_PREFIX }}/latest/pytorch@latest" "${{ env.OBS_COVERAGE_PREFIX }}/previous/" -r -f -vlength || true
             obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/latest/pytorch@latest/" || true
             obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/latest/convstub/" || true
-            obsutil cp "${COV_ARTIFACTS}/pytorch@latest/." "${{ env.OBS_COVERAGE_PREFIX }}/latest/pytorch@latest/" -r -f -vlength
-            obsutil cp "${COV_ARTIFACTS}/convstub/." "${{ env.OBS_COVERAGE_PREFIX }}/latest/convstub/" -r -f -vlength
+            obsutil cp "${COV_ARTIFACTS}/pytorch@latest" "${{ env.OBS_COVERAGE_PREFIX }}/latest/" -r -f -vlength
+            obsutil cp "${COV_ARTIFACTS}/convstub" "${{ env.OBS_COVERAGE_PREFIX }}/latest/" -r -f -vlength
             check_published() {
               local attempt
               for attempt in 1 2; do
                 obsutil stat "${{ env.OBS_COVERAGE_PREFIX }}/latest/pytorch@latest/manifest.json" >>/tmp/obs-stat.log 2>&1 && return 0
-                obsutil stat "${{ env.OBS_COVERAGE_PREFIX }}/latest/pytorch@latest/pytorch@latest/manifest.json" >>/tmp/obs-stat.log 2>&1 && return 0
+                obsutil stat "${{ env.OBS_COVERAGE_PREFIX }}/latest/pytorch@latest/pytorch@latest/manifest.json" >>/tmp/obs-stat.log 2>&1 && { echo "::warning::layout regression: manifest.json is only under latest/pytorch@latest/pytorch@latest/"; return 0; }
                 sleep 5
               done
               return 1
@@ -495,7 +484,7 @@ jobs:
               tail -5 /tmp/obs-stat.log || true
               echo "::error::post-upload check failed: manifest.json not found on OBS; restoring the previous release"
               obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/latest/pytorch@latest/" || true
-              obsutil cp "${{ env.OBS_COVERAGE_PREFIX }}/previous/pytorch@latest/." "${{ env.OBS_COVERAGE_PREFIX }}/latest/pytorch@latest/" -r -f -vlength || true
+              obsutil cp "${{ env.OBS_COVERAGE_PREFIX }}/previous/pytorch@latest" "${{ env.OBS_COVERAGE_PREFIX }}/latest/" -r -f -vlength || true
               if check_published; then
                 echo "rollback: latest/pytorch@latest restored from previous/"
               else
