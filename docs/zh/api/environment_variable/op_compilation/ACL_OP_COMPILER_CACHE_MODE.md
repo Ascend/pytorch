@@ -36,5 +36,5 @@ export ACL_OP_COMPILER_CACHE_MODE=enable
 - <term>Atlas A3训练系列产品</term>
 <!-- end id3 -->
 <!-- npu="910b" id4 -->
-- <term>Atlas 800I A2训练服务器</term>
+- <term>Atlas 800I A2推理服务器</term>
 <!-- end id4 -->

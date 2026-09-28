@@ -33,7 +33,7 @@ export MULTI_STREAM_MEMORY_REUSE=0
 - <term>Atlas A3训练系列产品</term>
 <!-- end id3 -->
 <!-- npu="910b" id5 -->
-- <term>Atlas 800I A2训练服务器</term>
+- <term>Atlas 800I A2推理服务器</term>
 <!-- end id5 -->
 <!-- npu="950" id4 -->
 - <term>Ascend 950DT系列产品</term>
