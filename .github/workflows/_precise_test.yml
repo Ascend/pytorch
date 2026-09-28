@@ -336,9 +336,26 @@ jobs:
           # 不加 -e（作用：下面用显式判断处理各种“查不到”的情况）
           set -uo pipefail
 
+          # 摘要文件（作用：结论与清单写进 Actions 的 job summary，不翻日志也能看到）
+          SUMMARY="$GITHUB_STEP_SUMMARY"
+          {
+            echo "## Precise test selection"
+            echo ""
+            echo "- PR: \`${github_pr}\`"
+          } >> "$SUMMARY"
+
           # 有推荐结果就直接通过（作用：正常路径不额外调 API）
           if [ -s recommended_pytest_paths.txt ]; then
             echo "selection ok: $(wc -l < recommended_pytest_paths.txt) test file(s) recommended"
+            # 清单写入摘要（作用：选中的测试文件在摘要里一眼可见）
+            {
+              echo "- Recommended test files: $(wc -l < recommended_pytest_paths.txt)"
+              echo "- Verification: OK"
+              echo ""
+              echo '```'
+              cat recommended_pytest_paths.txt
+              echo '```'
+            } >> "$SUMMARY"
             exit 0
           fi
 
@@ -355,6 +372,8 @@ jobs:
           # 查不到就不下结论（作用：基础设施问题不冒充“无改动”，但把“结果未验证”显式说出来）
           if [ "${CODE}" != "200" ]; then
             echo "::warning::selection is empty and the changed-files API returned ${CODE}; whether the PR diff fetch failed cannot be verified"
+            echo "- Recommended test files: 0" >> "$SUMMARY"
+            echo "- Verification: cannot be verified (the changed-files API returned ${CODE})" >> "$SUMMARY"
             exit 0
           fi
 
@@ -366,8 +385,12 @@ jobs:
           # 有产品源码改动却零推荐 = 本次选测不可信（作用：拦住静默失败；此时选测日志里会有 HTTP 503 / No product source code changes found）
           if [ "${PRODUCT}" -gt 0 ] 2>/dev/null; then
             echo "::error::the selector recommended 0 test(s) although PR ${REPO}#${NUM} changes ${PRODUCT} product source file(s); the PR diff fetch likely failed, so this selection is invalid"
+            echo "- Recommended test files: 0" >> "$SUMMARY"
+            echo "- Verification: FAILED, 0 test recommended although PR ${REPO}#${NUM} changes ${PRODUCT} product source file(s)" >> "$SUMMARY"
             exit 1
           fi
 
           # 没有产品源码改动时空结果是合理的（作用：把“合理为空”与“异常为空”在日志里明确区分）
           echo "::notice::PR ${REPO}#${NUM} changes no product source file, an empty selection is expected"
+          echo "- Recommended test files: 0" >> "$SUMMARY"
+          echo "- Verification: empty selection expected (no product source file changed)" >> "$SUMMARY"
