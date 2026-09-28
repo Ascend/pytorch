@@ -73,6 +73,13 @@ def _apply_common_npu_triton_patches():
 
 
 def _load_mlir_backend():
+    import warnings
+
+    warnings.warn(
+        "npu_backend='mlir' is deprecated and will be removed in a future version. "
+        "Please switch to other npu_backend.",
+        FutureWarning,
+    )
     _apply_common_patches()
     try:
         import torch_mlir

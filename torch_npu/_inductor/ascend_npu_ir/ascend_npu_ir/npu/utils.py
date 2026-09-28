@@ -27,7 +27,7 @@ try:
     import torch_mlir
     from torch_mlir.dialects import func as func_dialect
 except ImportError:
-    print("Can NOT find torch_mlir, INSTALL it first.")
+    pass
 
 from ..build_info import ABI_TAG
 from .. import config as anir_config
