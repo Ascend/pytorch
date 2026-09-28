@@ -138,6 +138,20 @@
 
 </div>
 
+### torch.autograd.forward_ad.enter_dual_level
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.forward_ad.enter_dual_level](https://pytorch.org/docs/2.11/generated/torch.autograd.forward_ad.enter_dual_level.html#torch-autograd-forward-ad-enter-dual-level)
+
+**支持情况**：
+
+- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Ascend 950DT</term>：支持
+
+</div>
+
 ## Functional higher level API
 
 ### <code><i>class</i></code> torch.autograd.function.FunctionCtx
