@@ -18,4 +18,4 @@ export TORCHINDUCTOR_COMPILE_THREADS=32
 
 - <term>Atlas A2 推理系列产品</term>
 - <term>Atlas A3 推理系列产品</term>
-- <term>Ascend 950DT 系列产品</term>
+- <term>Ascend 950PR&950DT系列产品</term>
