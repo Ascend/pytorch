@@ -474,11 +474,39 @@ jobs:
           if [ -z "${CATEGORIES}" ]; then
             obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/latest/torch@latest/" || true
             obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/latest/artifacts/" || true
+            obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/previous/" || true
+            obsutil cp "${{ env.OBS_COVERAGE_PREFIX }}/latest/pytorch@latest/." "${{ env.OBS_COVERAGE_PREFIX }}/previous/pytorch@latest/" -r -f -vlength || true
+            obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/latest/pytorch@latest/" || true
+            obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/latest/convstub/" || true
             obsutil cp "${COV_ARTIFACTS}/pytorch@latest/." "${{ env.OBS_COVERAGE_PREFIX }}/latest/pytorch@latest/" -r -f -vlength
             obsutil cp "${COV_ARTIFACTS}/convstub/." "${{ env.OBS_COVERAGE_PREFIX }}/latest/convstub/" -r -f -vlength
+            check_published() {
+              local attempt
+              for attempt in 1 2; do
+                obsutil stat "${{ env.OBS_COVERAGE_PREFIX }}/latest/pytorch@latest/manifest.json" >>/tmp/obs-stat.log 2>&1 && return 0
+                obsutil stat "${{ env.OBS_COVERAGE_PREFIX }}/latest/pytorch@latest/pytorch@latest/manifest.json" >>/tmp/obs-stat.log 2>&1 && return 0
+                sleep 5
+              done
+              return 1
+            }
+            if check_published; then
+              echo "post-upload check: manifest.json present"
+            else
+              tail -5 /tmp/obs-stat.log || true
+              echo "::error::post-upload check failed: manifest.json not found on OBS; restoring the previous release"
+              obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/latest/pytorch@latest/" || true
+              obsutil cp "${{ env.OBS_COVERAGE_PREFIX }}/previous/pytorch@latest/." "${{ env.OBS_COVERAGE_PREFIX }}/latest/pytorch@latest/" -r -f -vlength || true
+              if check_published; then
+                echo "rollback: latest/pytorch@latest restored from previous/"
+              else
+                echo "::error::rollback failed: previous/ is missing or unreadable, latest/pytorch@latest has no coverage data"
+              fi
+              PUBLISH_FAILED=1
+            fi
           else
             echo "Debug run (categories='${CATEGORIES}'), skipping the ${{ env.OBS_COVERAGE_PREFIX }}/latest upload"
           fi
 
           obsutil rm -r -f "${{ env.OBS_SHARD_PREFIX }}/${{ github.run_id }}/"
           echo "Shard data staging removed"
+          exit "${PUBLISH_FAILED:-0}"
