@@ -63,10 +63,20 @@ class ReleaseQueue {
   void PushToReleaseQueue(void* cur_paras);
   void PopFromReleaseQueue();
   void InitReleaseQueue(c10::DeviceIndex device_id);
+  bool StartReleaseThreadIfNeeded();
+  bool IsReleaseThreadRunning() const;
   RepoStatus GetStatus() const;
   c10::DeviceIndex GetDeviceID() const;
 
  private:
+  enum class WorkerStatus {
+    NOT_STARTED = 0,
+    RUNNING = 1,
+    DISABLED = 2,
+    STOPPING = 3,
+    STOPPED = 4,
+  };
+
   inline bool IsEmptyQueue() {
     return read_idx.idx == write_idx.idx;
   };
@@ -77,7 +87,7 @@ class ReleaseQueue {
   void ChangeStatus(RepoStatus expected, RepoStatus desired);
 
  private:
-  void* datas = nullptr;
+  void* data = nullptr;
   std::thread releaser;
   c10::DeviceIndex device_idx;
 
@@ -85,7 +95,9 @@ class ReleaseQueue {
   sring_idx read_idx;
   sring_idx write_idx;
   std::atomic<RepoStatus> repo_status;
-  bool initialized = false;
+  std::atomic<WorkerStatus> worker_status{WorkerStatus::NOT_STARTED};
+  std::mutex release_thread_mutex;
+  bool buffer_initialized = false;
 };
 
 class NPUQueueBase {
@@ -156,7 +168,7 @@ class Repository : public NPUQueueBase {
   void ThrowDeviceError(RepoStatus current_status, void* cur_paras);
 
  private:
-  void* datas = nullptr;
+  void* data = nullptr;
   std::thread consumer;
   int efd_read;
   int efd_write;
@@ -201,15 +213,7 @@ class NPUCallBackRegisterBuilder {
 };
 } // namespace register_queue_cb
 
-#define REGISTER_QUEUE_FUNC(                                                 \
-    execF, copyF, releaseF, newF, deleteF, copyReleaseParamF, releaseParamF) \
-  static ::c10_npu::register_queue_cb::NPUCallBackRegisterBuilder            \
-      register_queue_func_builder(                                           \
-          execF,                                                             \
-          copyF,                                                             \
-          releaseF,                                                          \
-          newF,                                                              \
-          deleteF,                                                           \
-          copyReleaseParamF,                                                 \
-          releaseParamF);
+#define REGISTER_QUEUE_FUNC(execF, copyF, releaseF, newF, deleteF, copyReleaseParamF, releaseParamF) \
+  static ::c10_npu::register_queue_cb::NPUCallBackRegisterBuilder register_queue_func_builder(       \
+      execF, copyF, releaseF, newF, deleteF, copyReleaseParamF, releaseParamF);
 } // namespace c10_npu
