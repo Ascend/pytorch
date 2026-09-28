@@ -1,13 +1,13 @@
 # 工作流名称：精确测试选测（作用：覆盖率流水线的下游消费者——根据 PR 改动，从“测试->源码”映射里挑出该跑的测试）
-# 作用（两种触发来源）：PR 事件用载荷里的 PR（上游 pytorch/pytorch）；push/调试运行改用上游“最新已合入的 PR”
+# 作用（触发来源）：只服务 PR 事件——用载荷里的上游 PR（pytorch/pytorch）；非 PR 事件（push/调试）不做选测
 name: Precise Test
 
 on:
   # workflow_call：声明本文件是可被上层（PR 触发器）复用的入口（作用：触发与执行解耦，PR 事件只需带参数调它）
   workflow_call:
     inputs:
-      # 输入一，作用：区分这次是“PR 事件”还是“调试运行”，决定后面要不要做选测
-      # 作用（取值约定）：来自 repository_dispatch 的事件类型；只有 pull_request 才会走完整选测流程
+      # 输入一，作用：区分这次是“PR 事件”还是其他来源，只有 pull_request 才做选测
+      # 作用（取值约定）：来自 repository_dispatch 的事件类型；非 pull_request（push/调试）直接跳过
       event_type:
         required: false
         type: string
@@ -44,19 +44,19 @@ jobs:
       # pip 镜像（作用：需要装包时更快，走华为云内网）
       PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
     steps:
-      # 步骤 1：确定要比对哪个 PR（作用：PR 事件用载荷里的 PR；push/调试运行则回退到“本仓最新已合入的 PR”）
+      # 步骤 1：确定要比对哪个 PR（作用：PR 事件用载荷里的 PR；非 PR 事件（push/调试）直接跳过）
       - name: Parse the dispatch payload
         env:
           # 事件类型与原始载荷（作用：通过 env 传入，避免把长 JSON 直接拼进脚本导致转义问题）
           EVENT_TYPE: ${{ inputs.event_type }}
           PAYLOAD_JSON: ${{ inputs.payload }}
-          # 调 GitHub API 用（作用：调试运行要查“最新已合入的 PR”，需要鉴权避免限流）
+          # 调 GitHub API 用（作用：载荷里没带 Merged 标签时补查标签接口，需要鉴权避免限流）
           GH_TOKEN: ${{ github.token }}
         run: |
           # 出错即退 + 未定义变量报错 + 管道失败即失败（作用：尽早暴露问题，避免拿着空值继续跑）
           set -euo pipefail
 
-          # 分支 A：PR 事件（作用：正式链路，PR 号必须能从载荷里解析出来）
+          # PR 事件（作用：正式链路，PR 号必须能从载荷里解析出来）
           if [ "${EVENT_TYPE}" = "pull_request" ]; then
             # 解析 PR 号与上游仓库（作用：选测 API 需要“仓库 + PR 号”才能拿到改动清单）
             PR_NUMBER=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.number // empty')
@@ -68,6 +68,27 @@ jobs:
               exit 1
             fi
 
+            # 判断：是否需要后续精准选测（作用：口径与 receive-trigger 的 extract 一致——只有 closed + Merged 标签的“已合入” PR 才需要）
+            ACTION=$(echo "$PAYLOAD_JSON" | jq -r '.payload.action // empty')
+            HAS_MERGED=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.labels // [] | map(.name) | index("Merged") // ""')
+            if [ "${ACTION}" = "closed" ] && [ -z "${HAS_MERGED}" ]; then
+              # 载荷里没有标签就补查 API（作用：MergeBot 可能在 closed 之后才补标签，同 receive-trigger 的兜底）
+              LABELS_RESPONSE=$(curl -sS --max-time 30 \
+                -H "Authorization: Bearer ${GH_TOKEN}" \
+                "https://api.github.com/repos/${UPSTREAM_REPO}/issues/${PR_NUMBER}/labels" || echo '[]')
+              HAS_MERGED=$(echo "${LABELS_RESPONSE}" | jq -r '[.[].name] | index("Merged") // ""' 2>/dev/null || true)
+            fi
+            # 不需要就整体跳过（作用：避免为未合入的 PR 白拉覆盖率数据、白建映射、白跑选测）
+            if [ "${ACTION}" != "closed" ] || [ -z "${HAS_MERGED}" ]; then
+              echo "::notice::PR ${UPSTREAM_REPO}#${PR_NUMBER} is not a landed PR (action='${ACTION}', Merged label='${HAS_MERGED:-none}'), the precise selection is skipped"
+              {
+                echo "## Precise test selection"
+                echo ""
+                echo "- PR: \`${UPSTREAM_REPO}#${PR_NUMBER}\`"
+                echo "- Skipped: not a landed PR (action='${ACTION}', Merged label='${HAS_MERGED:-none}'), no precise selection needed"
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
             # 写成统一标识传给后续步骤（作用：把“仓#号”这一约定集中一处，后面步骤直接复用）
             echo "github_pr=${UPSTREAM_REPO}#${PR_NUMBER}" >> "$GITHUB_ENV"
 
@@ -76,54 +97,13 @@ jobs:
             exit 0
           fi
 
-          # 分支 B：push / 调试运行（作用：没有 PR 载荷也要能跑通完整选测，故回退用“上游最新已合入的 PR”）
-          # 选择范围是上游 pytorch/pytorch（作用：被选测的 PR 是上游官方 PR，不是本仓 Ascend/pytorch 的）
-          echo "DEBUG: no pull_request payload (event_type='${EVENT_TYPE}'), falling back to the latest merged upstream PR"
-          LATEST_MERGED=""
-          # 首选 Search API（作用：直接按“已合入”筛选，避免“最近关闭的 PR 恰好都没合入”导致空结果）
-          for attempt in 1 2; do
-            CODE="$(curl -sS -o /tmp/gh-search.json -w '%{http_code}' --max-time 30 \
-              -H "Authorization: Bearer ${GH_TOKEN}" \
-              "https://api.github.com/search/issues?q=repo:pytorch/pytorch+is:pr+is:merged&sort=updated&order=desc&per_page=1" || echo 000)"
-            echo "  search API attempt ${attempt}: http_code=${CODE}"
-            if [ "${CODE}" = "200" ]; then
-              LATEST_MERGED="$(jq -r '.items[0].number // empty' /tmp/gh-search.json 2>/dev/null || true)"
-              break
-            fi
-            head -c 200 /tmp/gh-search.json 2>/dev/null || true
-            sleep 5
-          done
-          # 兜底走列表接口（作用：Search API 被限流/异常时仍能取到；窗口 100 条并打印候选与已合入数量，便于定位）
-          if [ -z "${LATEST_MERGED}" ]; then
-            CODE="$(curl -sS -o /tmp/gh-pulls.json -w '%{http_code}' --max-time 30 \
-              -H "Authorization: Bearer ${GH_TOKEN}" \
-              "https://api.github.com/repos/pytorch/pytorch/pulls?state=closed&sort=updated&direction=desc&per_page=100" || echo 000)"
-            echo "  pulls list: http_code=${CODE}"
-            if [ "${CODE}" = "200" ]; then
-              LATEST_MERGED="$(jq -r 'map(select(.merged_at != null)) | .[0].number // empty' /tmp/gh-pulls.json 2>/dev/null || true)"
-              jq -r '"  candidates=\(length), merged=\([.[] | select(.merged_at != null)] | length)"' /tmp/gh-pulls.json 2>/dev/null || true
-            else
-              head -c 200 /tmp/gh-pulls.json 2>/dev/null || true
-            fi
-          fi
-          rm -f /tmp/gh-search.json /tmp/gh-pulls.json
-          echo "  resolved merged PR: ${LATEST_MERGED:-<none>}"
-
-          # 查不到或查询失败就退回“只建映射”（作用：网络/权限异常不阻塞调试运行，前几步仍可验证）
-          if [ -z "${LATEST_MERGED}" ]; then
-            echo "github_pr=" >> "$GITHUB_ENV"
-            echo "::notice::precise-test debug run: no merged PR resolved in pytorch/pytorch (query failed or none merged), only the coverage map is built"
-            exit 0
-          fi
-
-          echo "github_pr=pytorch/pytorch#${LATEST_MERGED}" >> "$GITHUB_ENV"
-          echo "::notice::precise-test debug run: using the latest merged upstream PR pytorch/pytorch#${LATEST_MERGED}"
-
-          echo "=== debug run ==="
-          echo "github_pr: pytorch/pytorch#${LATEST_MERGED}"
+          # 非 PR 事件（push / 调试运行）（作用：不涉及 PR，选测无事可做，直接跳过）
+          echo "::notice::event_type='${EVENT_TYPE}' is not pull_request, the precise selection is skipped"
 
       # 步骤 2：下载覆盖率数据并校验（作用：拿到上游精确测试所需的两个输入——覆盖率数据 + 源码快照）
       - name: Download the coverage data from OBS
+        # 没有可比的 PR 就跳过（作用：非 PR 事件 / 未合入的 PR 不白拉几百 MB 覆盖率数据）
+        if: ${{ env.github_pr != '' }}
         run: |
           # 出错即退（作用：数据不全会导致映射不可用，宁可失败也不要产出残缺映射）
           set -euo pipefail
@@ -223,6 +203,8 @@ jobs:
 
       # 步骤 3：把覆盖率数据摊平成选测工具要求的目录布局（作用：适配 action 的输入约定，不改动原始数据）
       - name: Flatten the coverage data for the selector
+        # 没有可比的 PR 就跳过（作用：与下载步骤保持一致，避免留下半成品目录）
+        if: ${{ env.github_pr != '' }}
         run: |
           # 出错即退（作用：摊平不完整会导致映射缺少测试项，宁可失败）
           set -euo pipefail
@@ -267,10 +249,12 @@ jobs:
 
       # 步骤 4：构建“测试 -> 源码”映射（作用：把覆盖率数据 + 源码快照转成选测可用的映射表）
       - name: generate-test-case-map
+        # 没有可比的 PR 就跳过（作用：非 PR 事件 / 未合入的 PR 不白建映射）
+        if: ${{ env.github_pr != '' }}
         uses: lb-actions/precision-test@v1.0.1
         with:
           # 仓库类型（作用：告诉 action 用哪套适配逻辑解析 pytorch 的代码结构）
-          repo: torch_npu
+          repo: pytorch
           # 构建映射模式（作用：本次只建映射不选测试，选测试在下一步）
           build-map: true
           # 摊平后的覆盖率数据目录（作用：上一步产物，作为映射的数据来源）
@@ -282,14 +266,13 @@ jobs:
 
       # 步骤 5：根据 PR 改动选测试（作用：本工作流的核心产出——最小必要测试集）
       - name: generate-select-tests-case
-        id: precision-test
-        # 没有可比的 PR 就跳过（作用：查不到已合入 PR 时退回“只建映射”；同时避免空 github_pr 调 API 失败）
+        # 没有可比的 PR 就跳过（作用：非 PR 事件 / 未合入的 PR 不做选测；同时避免空 github_pr 调 API 失败）
         if: ${{ env.github_pr != '' }}
-        # 不阻塞整体（作用：选测失败不应让 PR 流程红掉，结果为空由下一步降级处理）
+        # 不阻塞整体（作用：选测失败不应让 PR 流程红掉，结果是否可信交由校验步骤判定）
         continue-on-error: true
         uses: lb-actions/precision-test@v1.0.1
         with:
-          repo: torch_npu
+          repo: pytorch
           # 要分析改动的 PR（作用：action 会拉取该 PR 的 diff，与映射表比对）
           github-pr: ${{ env.github_pr }}
           source-dir: ${{ env.SOURCE_DIR }}
@@ -303,38 +286,16 @@ jobs:
           # 单次 Python 执行超时（作用：建图/比对可能较慢，给足 900s 防止被误杀）
           PYTHON_EXEC_TIMEOUT_SECONDS: "900"
 
-      # 步骤 6：展示选出的测试（作用：把结果直接呈现在日志里，便于人工确认与后续任务消费）
-      - name: Show the selected tests
-        # 只有选测成功才展示（作用：失败时上一步已标 continue-on-error，这里不必再产出误导性的空结果）
-        if: ${{ steps.precision-test.conclusion == 'success' }}
+      # 步骤 6：展示选测结果（作用：结果写进 job summary，并逐条标注选择原因；空结果只告警不判红）
+      - name: Show the selection result
+        # 有可比的 PR 才展示（作用：非 PR 事件 / 未合入的 PR 不产出结果）
+        if: ${{ env.github_pr != '' }}
+        env:
+          # 拉 PR 改动清单用（作用：标注“PR 变更的测试文件”这一来源，只做展示，不参与判定）
+          GH_TOKEN: ${{ github.token }}
         run: |
           # 出错即退（作用：展示环节保持严格，避免拼错命令却静默通过）
           set -euo pipefail
-
-          echo "=== pull request ==="
-          echo "github_pr: ${{ env.github_pr }}"
-
-          # 结果为空时给明确提示（作用：区分“没选中”和“步骤没跑”，避免误判）
-          if [ ! -s recommended_pytest_paths.txt ]; then
-            echo "::notice::recommended_pytest_paths.txt is empty, no test selected for ${{ env.github_pr }}"
-            exit 0
-          fi
-
-          # 打印清单与条数（作用：日志可直接复核，也方便复制去做局部验证）
-          echo "=== recommended tests ==="
-          cat recommended_pytest_paths.txt
-          echo "total: $(wc -l < recommended_pytest_paths.txt)"
-
-      # 步骤 7：校验选测结果（作用：把“pull diff 没拉到却被当成 PR 无改动”的静默失败暴露出来，避免门禁是绿的但一个测试都没跑）
-      - name: Verify the selection result
-        # 无论前面成功与否都校验（作用：选测步骤失败或被跳过时，结果同样需要判定是否可信）
-        if: ${{ always() && env.github_pr != '' }}
-        env:
-          # 调 GitHub API 用（作用：查 PR 的实际改动文件数，作为“空结果是否合理”的判据）
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          # 不加 -e（作用：下面用显式判断处理各种“查不到”的情况）
-          set -uo pipefail
 
           # 摘要文件（作用：结论与清单写进 Actions 的 job summary，不翻日志也能看到）
           SUMMARY="$GITHUB_STEP_SUMMARY"
@@ -344,18 +305,10 @@ jobs:
             echo "- PR: \`${github_pr}\`"
           } >> "$SUMMARY"
 
-          # 有推荐结果就直接通过（作用：正常路径不额外调 API）
-          if [ -s recommended_pytest_paths.txt ]; then
-            echo "selection ok: $(wc -l < recommended_pytest_paths.txt) test file(s) recommended"
-            # 清单写入摘要（作用：选中的测试文件在摘要里一眼可见）
-            {
-              echo "- Recommended test files: $(wc -l < recommended_pytest_paths.txt)"
-              echo "- Verification: OK"
-              echo ""
-              echo '```'
-              cat recommended_pytest_paths.txt
-              echo '```'
-            } >> "$SUMMARY"
+          # 空结果只告警（作用：不猜原因——取 diff 失败或没有测试覆盖改动行，都以上面选测步骤的日志为准）
+          if [ ! -s recommended_pytest_paths.txt ]; then
+            echo "::warning::the selector recommended 0 test file(s) for ${github_pr}; check the selector log (a failed PR diff fetch or no mapped coverage for the changed lines)"
+            echo "- Recommended test files: 0" >> "$SUMMARY"
             exit 0
           fi
 
@@ -363,34 +316,51 @@ jobs:
           REPO="${github_pr%%#*}"
           NUM="${github_pr##*#}"
 
-          # 查 PR 的改动文件清单（作用：区分“确实没有改动”与“diff 根本没拉到”）
-          CODE="$(curl -sS -o /tmp/pr-files.json -w '%{http_code}' --max-time 30 \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            "https://api.github.com/repos/${REPO}/pulls/${NUM}/files?per_page=100" || echo 000)"
-          echo "PR changed-files API: http_code=${CODE}"
+          # 拉 PR 改动文件清单，挑出其中的测试文件（作用：复现选测器规则——test/ 下 test_*.py、排除已删除；4 页足以覆盖超长改动清单）
+          CHANGED_TESTS=/tmp/pr-changed-tests.txt
+          : > "${CHANGED_TESTS}"
+          API_OK=0
+          for page in 1 2 3 4; do
+            CODE="$(curl -sS -o /tmp/pr-files.json -w '%{http_code}' --max-time 30 \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              "https://api.github.com/repos/${REPO}/pulls/${NUM}/files?per_page=100&page=${page}" || echo 000)"
+            [ "${CODE}" = "200" ] || break
+            API_OK=1
+            python3 - <<'PYEOF' >> "${CHANGED_TESTS}" 2>/dev/null || true
+          import json
+          from pathlib import PurePosixPath
 
-          # 查不到就不下结论（作用：基础设施问题不冒充“无改动”，但把“结果未验证”显式说出来）
-          if [ "${CODE}" != "200" ]; then
-            echo "::warning::selection is empty and the changed-files API returned ${CODE}; whether the PR diff fetch failed cannot be verified"
-            echo "- Recommended test files: 0" >> "$SUMMARY"
-            echo "- Verification: cannot be verified (the changed-files API returned ${CODE})" >> "$SUMMARY"
-            exit 0
+          for item in json.load(open("/tmp/pr-files.json", encoding="utf-8")):
+              name = item.get("filename", "")
+              if item.get("status") == "removed" or not name.startswith("test/"):
+                  continue
+              if PurePosixPath(name).name.startswith("test_") and name.endswith(".py"):
+                  print(name)
+          PYEOF
+            [ "$(jq 'length' /tmp/pr-files.json 2>/dev/null || echo 0)" -ge 100 ] || break
+          done
+          sort -u -o "${CHANGED_TESTS}" "${CHANGED_TESTS}"
+          if [ "${API_OK}" = "1" ]; then
+            echo "PR changed-files API: http_code=${CODE}, test file(s) changed by the PR: $(wc -l < "${CHANGED_TESTS}")"
+          else
+            echo "::notice::the PR changed-files API returned ${CODE}; the reasons are not annotated"
           fi
 
-          # 统计改动文件数（作用：只有真的改了产品源码，空结果才是异常）
-          CHANGED="$(jq 'length' /tmp/pr-files.json 2>/dev/null || echo 0)"
-          PRODUCT="$(jq '[.[] | select(.filename | test("^torch/"))] | length' /tmp/pr-files.json 2>/dev/null || echo 0)"
-          echo "PR changed file(s): ${CHANGED}, product source file(s): ${PRODUCT}"
-
-          # 有产品源码改动却零推荐 = 本次选测不可信（作用：拦住静默失败；此时选测日志里会有 HTTP 503 / No product source code changes found）
-          if [ "${PRODUCT}" -gt 0 ] 2>/dev/null; then
-            echo "::error::the selector recommended 0 test(s) although PR ${REPO}#${NUM} changes ${PRODUCT} product source file(s); the PR diff fetch likely failed, so this selection is invalid"
-            echo "- Recommended test files: 0" >> "$SUMMARY"
-            echo "- Verification: FAILED, 0 test recommended although PR ${REPO}#${NUM} changes ${PRODUCT} product source file(s)" >> "$SUMMARY"
-            exit 1
-          fi
-
-          # 没有产品源码改动时空结果是合理的（作用：把“合理为空”与“异常为空”在日志里明确区分）
-          echo "::notice::PR ${REPO}#${NUM} changes no product source file, an empty selection is expected"
-          echo "- Recommended test files: 0" >> "$SUMMARY"
-          echo "- Verification: empty selection expected (no product source file changed)" >> "$SUMMARY"
+          # 逐条标注来源写进摘要（作用：区分“PR 自己改的测试（选测器直接加入，不查映射）”与“覆盖率映射命中”）
+          COUNT="$(wc -l < recommended_pytest_paths.txt)"
+          echo "selection ok: ${COUNT} test file(s) recommended"
+          {
+            echo "- Recommended test files: ${COUNT}"
+            echo ""
+            echo "| test file | reason |"
+            echo "| --- | --- |"
+            while IFS= read -r test_path; do
+              if [ "${API_OK}" != "1" ]; then
+                echo "| \`${test_path}\` | 原因未标注（未能获取 PR 改动清单） |"
+              elif grep -Fxq "${test_path}" "${CHANGED_TESTS}"; then
+                echo "| \`${test_path}\` | PR 变更的测试文件（选测器直接加入，不查覆盖率映射） |"
+              else
+                echo "| \`${test_path}\` | 覆盖率映射命中（覆盖了改动行/函数） |"
+              fi
+            done < recommended_pytest_paths.txt
+          } >> "$SUMMARY"
