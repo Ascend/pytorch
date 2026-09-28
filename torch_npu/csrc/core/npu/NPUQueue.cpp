@@ -21,6 +21,8 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <sstream>
+#include <system_error>
+
 
 namespace c10_npu {
 struct timeval delay = {0, 1};
@@ -409,7 +411,7 @@ bool Repository::WriteQueue(void* cur_paras) {
   }
 
   __sync_synchronize();
-  manager().Copy(datas, write_idx.idx, cur_paras);
+  manager().Copy(data, write_idx.idx, cur_paras);
   __sync_synchronize();
 
   TORCH_NPU_QUEUE_LOGD(
@@ -497,16 +499,16 @@ bool Repository::ReadQueue() {
   __sync_synchronize();
 #ifndef BUILD_LIBTORCH
   at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(
-      2, datas, read_idx.idx);
-  auto ret = manager().Call(datas, read_idx.idx);
+      2, data, read_idx.idx);
+  auto ret = manager().Call(data, read_idx.idx);
   at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(
-      3, datas, read_idx.idx);
+      3, data, read_idx.idx);
 #else
-  auto ret = manager().Call(datas, read_idx.idx);
+  auto ret = manager().Call(data, read_idx.idx);
 #endif
   if (ret != 0) {
     repo_error =
-        get_func_error_msg(manager().getCurrentParams(datas, read_idx.idx));
+        get_func_error_msg(manager().getCurrentParams(data, read_idx.idx));
     ASCEND_LOGE(
         "---Thread---%llu: device = %d, write_idx = %u, read_idx = %u, status = %d, ret = %d",
         std::this_thread::get_id(),
@@ -524,7 +526,7 @@ bool Repository::ReadQueue() {
         GetStatus(),
         ret);
     while (!IsEmptyQueue()) { // ignore other tasks
-      manager().Release(datas, read_idx.idx, releaseQueue);
+      manager().Release(data, read_idx.idx, releaseQueue);
       read_idx.idx = (read_idx.idx + 1) & (kQueueCapacity - 1);
     }
     std::string err_msg;
@@ -556,12 +558,12 @@ bool Repository::ReadQueue() {
     return false;
   }
 
-  manager().Release(datas, read_idx.idx, releaseQueue);
+  manager().Release(data, read_idx.idx, releaseQueue);
   __sync_synchronize();
 
   TORCH_NPU_QUEUE_LOGD(
       "ReadQueue: read success, %s, device = %d, write_idx = %u, read_idx = %u, status = %d",
-      get_func_error_msg(manager().getCurrentParams(datas, read_idx.idx))
+      get_func_error_msg(manager().getCurrentParams(data, read_idx.idx))
           .c_str(),
       device_idx,
       write_idx.idx,
@@ -885,7 +887,7 @@ void Repository::Dequeue() {
 }
 
 void Repository::ReleaseResource() {
-  manager().DeInit(datas);
+  manager().DeInit(data);
   if (efd_read > 0) {
     close(efd_read);
     efd_read = -1;
@@ -957,8 +959,8 @@ void StartConsume(Repository* repo, c10::DeviceIndex device_id) {
 }
 
 void Repository::InitRepo(c10::DeviceIndex device_id) {
-  if (datas == nullptr) {
-    datas = manager().Init(kQueueCapacity);
+  if (data == nullptr) {
+    data = manager().Init(kQueueCapacity);
     ASCEND_LOGI("TaskQueue is enable");
   }
 
@@ -969,10 +971,9 @@ void Repository::InitRepo(c10::DeviceIndex device_id) {
   initialized = true;
   SetStatus(INIT);
   device_idx = device_id;
+  releaseQueue.InitReleaseQueue(device_id);
   std::thread cur_consumer(StartConsume, this, device_id);
   consumer = std::move(cur_consumer);
-
-  releaseQueue.InitReleaseQueue(device_id);
 }
 
 std::string Repository::GetPara() {
@@ -981,7 +982,7 @@ std::string Repository::GetPara() {
   }
   __sync_synchronize();
   std::string repo_para =
-      get_func_error_msg(manager().getCurrentParams(datas, read_idx.idx));
+      get_func_error_msg(manager().getCurrentParams(data, read_idx.idx));
   __sync_synchronize();
   return repo_para;
 }
@@ -992,7 +993,7 @@ bool ReleaseQueue::WriteToReleaseQueue(void* cur_paras) {
     return false;
   }
   __sync_synchronize();
-  releaseManager().CopyRealseParam(datas, write_idx.idx, cur_paras);
+  releaseManager().CopyRealseParam(data, write_idx.idx, cur_paras);
 
   __sync_synchronize();
   write_idx.idx = (write_idx.idx + 1) & (kReleaseQueueCapacity - 1);
@@ -1000,9 +1001,13 @@ bool ReleaseQueue::WriteToReleaseQueue(void* cur_paras) {
 }
 
 void ReleaseQueue::PushToReleaseQueue(void* cur_paras) {
-  if (initialized == false) {
-    ASCEND_LOGE(
-        "Release queue is not initialized, shouldn't call PushToReleaseQueue(). !!");
+  if (buffer_initialized == false) {
+    ASCEND_LOGE("Release queue is not initialized, shouldn't call PushToReleaseQueue(). !!");
+    return;
+  }
+
+  if (!IsReleaseThreadRunning()) {
+    ASCEND_LOGE("Release thread is not running, shouldn't call PushToReleaseQueue(). !!");
     return;
   }
 
@@ -1021,7 +1026,7 @@ bool ReleaseQueue::ReadFromReleaseQueue() {
   }
 
   __sync_synchronize();
-  releaseManager().ReleaseParam(datas, read_idx.idx);
+  releaseManager().ReleaseParam(data, read_idx.idx);
 
   __sync_synchronize();
   read_idx.idx = (read_idx.idx + 1) & (kReleaseQueueCapacity - 1);
@@ -1030,9 +1035,8 @@ bool ReleaseQueue::ReadFromReleaseQueue() {
 }
 
 void ReleaseQueue::PopFromReleaseQueue() {
-  if (initialized == false) {
-    ASCEND_LOGE(
-        "Release queue is not initialized, shouldn't call PopFromReleaseQueue(). !!");
+  if (buffer_initialized == false) {
+    ASCEND_LOGE("Release queue is not initialized, shouldn't call PopFromReleaseQueue(). !!");
     return;
   }
 
@@ -1061,25 +1065,70 @@ void StartRelease(ReleaseQueue* releaseQue) {
 }
 
 void ReleaseQueue::InitReleaseQueue(c10::DeviceIndex device_id) {
-  if (datas == nullptr) {
-    datas = releaseManager().Init(kReleaseQueueCapacity);
+  if (buffer_initialized) {
+    return;
   }
 
-  initialized = true;
-  SetStatus(INIT);
-  std::thread cur_releaser(StartRelease, this);
-  releaser = std::move(cur_releaser);
+  // Only prepare queue resources here. The release thread is started lazily
+  // when the first aclop task is released.
+  if (data == nullptr) {
+    data = releaseManager().Init(kReleaseQueueCapacity);
+  }
+
   device_idx = device_id;
+  buffer_initialized = true;
+  SetStatus(INIT);
+}
+
+bool ReleaseQueue::StartReleaseThreadIfNeeded() {
+  if (buffer_initialized == false) {
+    ASCEND_LOGE("Release queue is not initialized, can't start release thread. !!");
+    return false;
+  }
+
+  auto current_status = worker_status.load();
+  if (current_status == WorkerStatus::RUNNING) {
+    return true;
+  }
+  if (current_status != WorkerStatus::NOT_STARTED) {
+    return false;
+  }
+
+  std::lock_guard<std::mutex> lock(release_thread_mutex);
+  current_status = worker_status.load();
+  if (current_status == WorkerStatus::RUNNING) {
+    return true;
+  }
+  if (current_status != WorkerStatus::NOT_STARTED) {
+    return false;
+  }
+
+  SetStatus(INIT);
+  try {
+    std::thread cur_releaser(StartRelease, this);
+    releaser = std::move(cur_releaser);
+    worker_status.store(WorkerStatus::RUNNING);
+    ASCEND_LOGI("Release thread is started for device %d.", device_idx);
+  } catch (const std::system_error& e) {
+    worker_status.store(WorkerStatus::DISABLED);
+    ASCEND_LOGE("Failed to start release thread, use synchronous release instead. Reason: %s", e.what());
+    return false;
+  }
+  return true;
+}
+
+bool ReleaseQueue::IsReleaseThreadRunning() const {
+  return worker_status.load() == WorkerStatus::RUNNING;
 }
 
 ReleaseQueue::~ReleaseQueue() {
-  if (initialized) {
-    if (releaser.joinable()) {
-      SetStatus(NEED_EXIT);
-      releaser.join();
-    }
+  if (IsReleaseThreadRunning() && releaser.joinable()) {
+    worker_status.store(WorkerStatus::STOPPING);
+    SetStatus(NEED_EXIT);
+    releaser.join();
+    worker_status.store(WorkerStatus::STOPPED);
   }
-  releaseManager().DeInit(datas);
+  releaseManager().DeInit(data);
 }
 
 bool ReleaseQueue::IsFullQueue() const {
@@ -1087,9 +1136,8 @@ bool ReleaseQueue::IsFullQueue() const {
 }
 
 RepoStatus ReleaseQueue::GetStatus() const {
-  if (initialized == false) {
-    ASCEND_LOGE(
-        "Release queue is not initialized, shouldn't call GetStatus(). !!");
+  if (buffer_initialized == false) {
+    ASCEND_LOGE("Release queue is not initialized, shouldn't call GetStatus(). !!");
   }
 
   return repo_status.load();
@@ -1100,9 +1148,8 @@ c10::DeviceIndex ReleaseQueue::GetDeviceID() const {
 }
 
 void ReleaseQueue::SetStatus(RepoStatus desired) {
-  if (initialized == false) {
-    ASCEND_LOGE(
-        "Release queue is not initialized, shouldn't call SetStatus(). !!");
+  if (buffer_initialized == false) {
+    ASCEND_LOGE("Release queue is not initialized, shouldn't call SetStatus(). !!");
     return;
   }
 
@@ -1110,9 +1157,8 @@ void ReleaseQueue::SetStatus(RepoStatus desired) {
 }
 
 void ReleaseQueue::ChangeStatus(RepoStatus expected, RepoStatus desired) {
-  if (initialized == false) {
-    ASCEND_LOGE(
-        "Release queue is not initialized, shouldn't call ChangeStatus(). !!");
+  if (buffer_initialized == false) {
+    ASCEND_LOGE("Release queue is not initialized, shouldn't call ChangeStatus(). !!");
     return;
   }
 
