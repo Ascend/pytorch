@@ -15,7 +15,6 @@
 
 from collections import defaultdict
 from warnings import warn
-from math import ceil
 
 from ._base_parser import BaseParser
 from ..prof_common_func._file_tag import FileTag
@@ -24,15 +23,14 @@ from ..prof_parse._fwk_file_parser import FwkFileParser
 from ..prof_bean._memory_use_bean import MemoryUseBean
 from ..prof_bean._op_mark_bean import OpMarkBean
 from ..prof_common_func._constant import Constant, print_warn_msg
-from ..prof_common_func._constant import convert_ns2us_float, convert_ns2us_str
+from ..prof_common_func._constant import convert_ns2us_str
 from ..prof_common_func._log import ProfilerLogger
 from .._profiler_config import ProfilerConfig
 from ..prof_common_func._cann_package_manager import CannPackageManager
 
 __all__ = []
 TASK_QUEUE_ENABLE = 'TASK_QUEUE_ENABLE'
-ATEN_OP_NAME_PREFIX = 'aten'
-NPU_OP_NAME_PREFIX = 'npu'
+SUPPORTED_OP_NAME_PREFIXES = ('aten::', 'npu::', 'atb::')
 
 
 class MemoryPrepareParser(BaseParser):
@@ -67,8 +65,8 @@ class MemoryPrepareParser(BaseParser):
             self._enqueue_data = task_queue_data.get(Constant.ENQUEUE_DATA, [])
             self._dequeue_data = task_queue_data.get(Constant.DEQUEUE_DATA, [])
             self.generate_view()
-        except Exception as e:
-            self.logger.error("Failed to generate pytorch memory data, error: %s", str(e), exc_info=True)
+        except Exception:
+            self.logger.exception("Failed to generate pytorch memory data.")
             return Constant.FAIL, {}
         if self._incomplete_num > 0:
             print_warn_msg(f"{self._incomplete_num} memory record(s) are incomplete.")
@@ -211,8 +209,7 @@ class MemoryPrepareParser(BaseParser):
             return ""
         torch_ops = self.torch_ops_tid_dict.get(enqueue_record.tid, [])
         matched_torch_op = torch_ops[index]
-        while index >= 0 and not (matched_torch_op.name.startswith(ATEN_OP_NAME_PREFIX) or
-                                  matched_torch_op.name.startswith(NPU_OP_NAME_PREFIX)):
+        while index >= 0 and not matched_torch_op.name.startswith(SUPPORTED_OP_NAME_PREFIXES):
             matched_torch_op = matched_torch_op.parent_node
             if not matched_torch_op or not matched_torch_op.event:
                 warn("Unable to find aten operator according to enqueue record.")
@@ -244,7 +241,11 @@ class MemoryPrepareParser(BaseParser):
         device_ids = ProfilerPathManager.get_device_id(cann_path)
         device_tag = "NPU:" + str(device_ids[0]) if len(device_ids) == 1 else ""
         if not self.torch_ops_tid_dict:
-            torch_ops = [torch_op for torch_op in torch_ops if torch_op.name != "empty_tensor" and torch_op.name != "malloc_workspace"]
+            torch_ops = [
+                torch_op
+                for torch_op in torch_ops
+                if torch_op.name not in ("empty_tensor", "malloc_workspace")
+            ]
             for torch_op in torch_ops:
                 self.torch_ops_tid_dict[torch_op.event.tid].append(torch_op)
         for records in ptr_records:
@@ -254,23 +255,45 @@ class MemoryPrepareParser(BaseParser):
                 continue
             op_name = self._get_op_name_of_record(records[0])
             if records_len == 1:
-                if hasattr(records[0], 'component_type') and records[0].component_type == Constant.CACHING_TYPE:
+                if (
+                    hasattr(records[0], 'component_type')
+                    and records[0].component_type == Constant.CACHING_TYPE
+                ):
                     self._incomplete_num += 2
-                combine_data = [op_name, records[0].alloc_size, convert_ns2us_str(records[0].time_ns, "\t"), None, None, None, None,
-                                records[0].total_allocated, records[0].total_reserved, records[0].total_active,
-                                None, None, None,
-                                records[0].stream_ptr, device_tag or records[0].device_tag]
+                combine_data = [
+                    op_name, records[0].alloc_size,
+                    convert_ns2us_str(records[0].time_ns, "\t"),
+                    None, None, None, None,
+                    records[0].total_allocated, records[0].total_reserved,
+                    records[0].total_active, None, None, None,
+                    records[0].stream_ptr, device_tag or records[0].device_tag,
+                ]
             elif records_len == 2:
                 if hasattr(records[0], 'component_type') and records[0].component_type == Constant.CACHING_TYPE:
                     self._incomplete_num += 1
-                active_release_time = convert_ns2us_str(records[1].time_ns, "\t") if records[1].data_type == Constant.MEMORY_BLOCK_FREE else None
-                release_time = convert_ns2us_str(records[1].time_ns, "\t") if records[1].data_type == Constant.MEMORY_FREE else None
-                duration_time = convert_ns2us_str(records[1].time_ns - records[0].time_ns, "\t") if records[1].data_type == Constant.MEMORY_FREE else None
-                active_duration_time = convert_ns2us_str(records[1].time_ns - records[0].time_ns, "\t") if records[1].data_type == Constant.MEMORY_BLOCK_FREE else None
-                combine_data = [op_name, records[0].alloc_size, convert_ns2us_str(records[0].time_ns, "\t"), release_time, active_release_time, duration_time,
-                                active_duration_time, records[0].total_allocated, records[0].total_reserved, records[0].total_active,
-                                records[1].total_allocated, records[1].total_reserved, records[1].total_active,
-                                records[0].stream_ptr, device_tag or records[0].device_tag]
+                is_active_free = records[1].data_type == Constant.MEMORY_BLOCK_FREE
+                is_free = records[1].data_type == Constant.MEMORY_FREE
+                active_release_time = (
+                    convert_ns2us_str(records[1].time_ns, "\t") if is_active_free else None
+                )
+                release_time = convert_ns2us_str(records[1].time_ns, "\t") if is_free else None
+                duration_time = (
+                    convert_ns2us_str(records[1].time_ns - records[0].time_ns, "\t")
+                    if is_free else None
+                )
+                active_duration_time = (
+                    convert_ns2us_str(records[1].time_ns - records[0].time_ns, "\t")
+                    if is_active_free else None
+                )
+                combine_data = [
+                    op_name, records[0].alloc_size,
+                    convert_ns2us_str(records[0].time_ns, "\t"),
+                    release_time, active_release_time, duration_time, active_duration_time,
+                    records[0].total_allocated, records[0].total_reserved,
+                    records[0].total_active, records[1].total_allocated,
+                    records[1].total_reserved, records[1].total_active,
+                    records[0].stream_ptr, device_tag or records[0].device_tag,
+                ]
             elif records_len == 3:
                 free_idx = 1 if records[1].data_type == Constant.MEMORY_FREE else 2
                 active_idx = 1 if free_idx == 2 else 2
@@ -278,10 +301,15 @@ class MemoryPrepareParser(BaseParser):
                 release_time = convert_ns2us_str(records[free_idx].time_ns, "\t")
                 duration_time = convert_ns2us_str(records[free_idx].time_ns - records[0].time_ns, "\t")
                 active_duration_time = convert_ns2us_str(records[active_idx].time_ns - records[0].time_ns, "\t")
-                combine_data = [op_name, records[0].alloc_size, convert_ns2us_str(records[0].time_ns, "\t"), release_time, active_release_time, duration_time,
-                                active_duration_time, records[0].total_allocated, records[0].total_reserved, records[0].total_active,
-                                records[free_idx].total_allocated, records[free_idx].total_reserved, records[free_idx].total_active,
-                                records[0].stream_ptr, device_tag or records[0].device_tag]
+                combine_data = [
+                    op_name, records[0].alloc_size,
+                    convert_ns2us_str(records[0].time_ns, "\t"),
+                    release_time, active_release_time, duration_time, active_duration_time,
+                    records[0].total_allocated, records[0].total_reserved,
+                    records[0].total_active, records[free_idx].total_allocated,
+                    records[free_idx].total_reserved, records[free_idx].total_active,
+                    records[0].stream_ptr, device_tag or records[0].device_tag,
+                ]
             ret_list.append(combine_data)
         return ret_list
 
@@ -291,7 +319,11 @@ class MemoryPrepareParser(BaseParser):
         device_ids = ProfilerPathManager.get_device_id(cann_path)
         device_index = device_ids[0] if len(device_ids) == 1 else -1
         if not self.torch_ops_tid_dict:
-            torch_ops = [torch_op for torch_op in torch_ops if torch_op.name != "empty_tensor" and torch_op.name != "malloc_workspace"]
+            torch_ops = [
+                torch_op
+                for torch_op in torch_ops
+                if torch_op.name not in ("empty_tensor", "malloc_workspace")
+            ]
             for torch_op in torch_ops:
                 self.torch_ops_tid_dict[torch_op.event.tid].append(torch_op)
         for records in ptr_records:
@@ -303,30 +335,51 @@ class MemoryPrepareParser(BaseParser):
             if records_len == 1:
                 if hasattr(records[0], 'component_type') and records[0].component_type == Constant.CACHING_TYPE:
                     self._incomplete_num += 2
-                combine_data = [op_name, records[0].alloc_size_for_db, records[0].time_ns, None, None, None, None,
-                                records[0].total_allocated_for_db, records[0].total_reserved_for_db, records[0].total_active_for_db,
-                                None, None, None,
-                                records[0].stream_ptr, device_index if device_index != -1 else records[0].device_index]
+                combine_data = [
+                    op_name, records[0].alloc_size_for_db, records[0].time_ns,
+                    None, None, None, None,
+                    records[0].total_allocated_for_db,
+                    records[0].total_reserved_for_db,
+                    records[0].total_active_for_db, None, None, None,
+                    records[0].stream_ptr,
+                    device_index if device_index != -1 else records[0].device_index,
+                ]
             elif records_len == 2:
                 if hasattr(records[0], 'component_type') and records[0].component_type == Constant.CACHING_TYPE:
                     self._incomplete_num += 1
-                active_release_time = records[1].time_ns if records[1].data_type == Constant.MEMORY_BLOCK_FREE else None
-                release_time = records[1].time_ns if records[1].data_type == Constant.MEMORY_FREE else None
-                duration_time = records[1].time_ns - records[0].time_ns if records[1].data_type == Constant.MEMORY_FREE else None
-                active_duration_time = records[1].time_ns - records[0].time_ns if records[1].data_type == Constant.MEMORY_BLOCK_FREE else None
-                combine_data = [op_name, records[0].alloc_size_for_db, records[0].time_ns, release_time, active_release_time, duration_time,
-                                active_duration_time, records[0].total_allocated_for_db, records[0].total_reserved_for_db, records[0].total_active_for_db,
-                                records[1].total_allocated_for_db, records[1].total_reserved_for_db, records[1].total_active_for_db,
-                                records[0].stream_ptr, device_index if device_index != -1 else records[0].device_index]
+                is_active_free = records[1].data_type == Constant.MEMORY_BLOCK_FREE
+                is_free = records[1].data_type == Constant.MEMORY_FREE
+                active_release_time = records[1].time_ns if is_active_free else None
+                release_time = records[1].time_ns if is_free else None
+                duration_time = records[1].time_ns - records[0].time_ns if is_free else None
+                active_duration_time = (
+                    records[1].time_ns - records[0].time_ns if is_active_free else None
+                )
+                combine_data = [
+                    op_name, records[0].alloc_size_for_db, records[0].time_ns,
+                    release_time, active_release_time, duration_time, active_duration_time,
+                    records[0].total_allocated_for_db, records[0].total_reserved_for_db,
+                    records[0].total_active_for_db, records[1].total_allocated_for_db,
+                    records[1].total_reserved_for_db, records[1].total_active_for_db,
+                    records[0].stream_ptr,
+                    device_index if device_index != -1 else records[0].device_index,
+                ]
             elif records_len == 3:
                 free_idx = 1 if records[1].data_type == Constant.MEMORY_FREE else 2
                 active_idx = 1 if free_idx == 2 else 2
                 duration_time = records[free_idx].time_ns - records[0].time_ns
                 active_duration_time = records[active_idx].time_ns - records[0].time_ns
-                combine_data = [op_name, records[0].alloc_size_for_db, records[0].time_ns, records[free_idx].time_ns, records[active_idx].time_ns, duration_time,
-                                active_duration_time, records[0].total_allocated_for_db, records[0].total_reserved_for_db, records[0].total_active_for_db,
-                                records[free_idx].total_allocated_for_db, records[free_idx].total_reserved_for_db, records[free_idx].total_active_for_db,
-                                records[0].stream_ptr, device_index if device_index != -1 else records[0].device_index]
+                combine_data = [
+                    op_name, records[0].alloc_size_for_db, records[0].time_ns,
+                    records[free_idx].time_ns, records[active_idx].time_ns,
+                    duration_time, active_duration_time,
+                    records[0].total_allocated_for_db, records[0].total_reserved_for_db,
+                    records[0].total_active_for_db,
+                    records[free_idx].total_allocated_for_db,
+                    records[free_idx].total_reserved_for_db,
+                    records[free_idx].total_active_for_db, records[0].stream_ptr,
+                    device_index if device_index != -1 else records[0].device_index,
+                ]
             ret_list.append(combine_data)
         return ret_list
 
