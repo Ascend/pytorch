@@ -1025,6 +1025,10 @@ def _register_triton_experimental_decompositions():
     _override_rms_norm_decomp()
     _override_native_dropout_decomp()
 
+    # Default backend registers matmul_backward; TE must reuse it, otherwise
+    # TE strict mode raises MissingOperatorWithoutDecomp on matmul grad.
+    register_decomposition([aten.matmul_backward.default])(_matmul_backward_inductor)
+
     @register_decomposition([aten.expm1])
     def expm1(x):
         tensor = torch.exp(x) - torch.ones_like(x)
