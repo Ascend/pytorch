@@ -746,6 +746,7 @@ Ascend PyTorch Profiler可全面采集PyTorch训练/在线推理场景下的性�
     ```python
     import torch
     import torch_npu
+    import os
 
     ...
 
@@ -754,7 +755,7 @@ Ascend PyTorch Profiler可全面采集PyTorch训练/在线推理场景下的性�
         # 启动性能数据采集
         for step in range(steps):    # 训练函数
             train_one_step()    # 训练函数
-    prof.export_chrome_trace('./chrome_trace_14.json')    # 指定chrome_trace_{pid}.json文件导出路径
+    prof.export_chrome_trace(f'./chrome_trace_{os.getpid()}.json')    # 指定chrome_trace_{pid}.json文件导出路径
     ```
 
 2. 性能数据解析。
@@ -2214,7 +2215,7 @@ with torch_npu.profiler.profile(
         active=2,                      # 记录2个step的活动数据，并在之后调用on_trace_ready
         repeat=2,                      # 循环wait+warmup+active过程2遍
         skip_first=1,                  # 跳过1个step
-        skip_first_wait=1            # 跳过第一个wait
+        skip_first_wait=1              # 跳过第一个wait
     ),
     on_trace_ready=torch_npu.profiler.tensorboard_trace_handler('./result')
     ) as prof:
