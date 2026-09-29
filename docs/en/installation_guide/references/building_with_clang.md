@@ -23,6 +23,11 @@ export USE_CUDNN=0
 
 python setup.py build bdist_wheel 2>&1 | tee build.log
 ```
+
+> [!NOTE]
+>
+> A known compilation issue exists when building PyTorch 2.12 with Clang 20. For details, see the related [issue](https://github.com/pytorch/pytorch/issues/185618) in the upstream community. Please modify the code as described in the [fix PR](https://github.com/pytorch/pytorch/pull/185785) before building.
+
 After building torch, install the compiled wheel located in the dist directory.
 
 ## Building TorchNPU with Clang

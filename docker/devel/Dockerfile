@@ -88,8 +88,8 @@ RUN case "${PY_VERSION}" in \
     pip${PY_VERSION} install pyyaml && \
     pip${PY_VERSION} install setuptools wheel && \
     case "${TORCH_VERSION}" in \
-        *.dev*) pip${PY_VERSION} install torch==${TORCH_VERSION} --index-url https://download.pytorch.org/whl/nightly/cpu ;; \
-        *) pip${PY_VERSION} install torch==${TORCH_VERSION} --index-url https://download.pytorch.org/whl/cpu ;; \
+        *.dev*) pip${PY_VERSION} install torch==${TORCH_VERSION} --extra-index-url https://download.pytorch.org/whl/nightly/cpu ;; \
+        *) pip${PY_VERSION} install torch==${TORCH_VERSION} --extra-index-url https://download.pytorch.org/whl/cpu ;; \
     esac && \
     pip${PY_VERSION} install numpy==${NUMPY_VER}
 

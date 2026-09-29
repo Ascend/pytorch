@@ -25,6 +25,10 @@ export USE_CUDNN=0
 python setup.py build bdist_hweel 2>&1 | tee build.log
 ```
 
+> [!NOTE]
+>
+> 使用Clang 20编译PyTorch 2.12时存在已知的编译问题，详见上游社区的[相关issue](https://github.com/pytorch/pytorch/issues/185618)。请参考[修复PR](https://github.com/pytorch/pytorch/pull/185785)中的内容修改代码后，再进行编译。
+
 在编译完torch后，安装位于dist目录下的编译产物。
 
 ## 使用Clang编译TorchNPU
