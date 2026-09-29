@@ -416,6 +416,28 @@ class TestStorage(TestCase):
         with self.assertRaises(AttributeError):
             npu_storage.type(object)
 
+    def test_untyped_storage_complex_float(self):
+        cpu_tensor = torch.tensor([0, 1, 2, 255], dtype=torch.uint8)
+        cpu_storage = cpu_tensor.untyped_storage()
+        npu_storage = cpu_tensor.npu().untyped_storage()
+
+        cpu_result = cpu_storage.complex_float()
+        npu_result = npu_storage.complex_float()
+
+        self.assertIsInstance(npu_result, torch.TypedStorage)
+        self.assertEqual(npu_result.dtype, torch.complex64)
+        self.assertEqual(npu_result.device.type, "npu")
+        self.assertEqual(npu_result.size(), npu_storage.nbytes())
+        self.assertEqual(npu_result.cpu().tolist(), cpu_result.tolist())
+        self.assertNotEqual(npu_result.data_ptr(), npu_storage.data_ptr())
+        self.assertEqual(npu_storage.cpu().tolist(), cpu_storage.tolist())
+
+        empty_result = torch.empty(0, dtype=torch.uint8).npu().untyped_storage().complex_float()
+        self.assertIsInstance(empty_result, torch.TypedStorage)
+        self.assertEqual(empty_result.dtype, torch.complex64)
+        self.assertEqual(empty_result.device.type, "npu")
+        self.assertEqual(empty_result.size(), 0)
+
     def test_type_conversions(self):
         x = torch.randn(5, 5)
         supported_dtypes = ["float", "half", "long", "short", "int", "bool", "char", "byte"]
