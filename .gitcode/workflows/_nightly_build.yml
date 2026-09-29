@@ -81,6 +81,10 @@ jobs:
           assert torch.__version__, 'PyTorch installation failed'
           "
 
+      - name: Install nanobind
+        run: |
+          python3.10 -m pip install nanobind
+
       - name: Configure ccache
         env:
           CCACHE_DIR: "/ccache"
@@ -121,6 +125,7 @@ jobs:
           fi
           WHL=$(ls dist/*.whl 2>/dev/null | head -1)
           echo "Wheel: ${WHL##*/}" >> build_msg.txt
+          exit ${BUILD_STATUS}
 
       - name: Upload torch-npu wheel as artifact
         uses: upload-artifact

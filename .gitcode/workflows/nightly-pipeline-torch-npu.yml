@@ -16,6 +16,27 @@ on:
     - cron: "0 22 * * *"    # 北京时间 22:00
   pull_request:
     branches: [master]
+    paths:
+      - ".gitcode/workflows/nightly-pipeline-torch-npu.yml"
+      - ".gitcode/workflows/_nightly_build.yml"
+      - ".gitcode/workflows/_nightly_collect.yml"
+      - ".gitcode/workflows/_nightly_test_job.yml"
+      - ".gitcode/workflows/_nightly_report.yml"
+      - ".gitcode/scripts/install_pytorch_from_official.py"
+      - ".gitcode/scripts/setup_npu_test_env.sh"
+      - ".gitcode/scripts/collect_all_cases.py"
+      - ".gitcode/scripts/discover_test_files.py"
+      - ".gitcode/scripts/classify_distributed_cards.py"
+      - ".gitcode/scripts/parse_test_results.py"
+      - ".gitcode/scripts/nightly_run_npu_test_shard.py"
+      - ".gitcode/scripts/nightly_generate_npu_full_test_report.py"
+      - ".gitcode/config/case_paths_ci.yml"
+      - ".gitcode/config/disabled_testcases.json"
+      - ".gitcode/config/disabled_test_methods.json"
+  pull_request_comment:
+    types: [created]
+    branches: [master]
+    comments: ['^compile$', '^/compile$']
   workflow_dispatch: {}
 
 env:
