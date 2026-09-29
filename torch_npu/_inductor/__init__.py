@@ -41,6 +41,13 @@ def _get_backend() -> str:
      return os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default")
 
 def _load_mlir_backend():
+    import warnings
+
+    warnings.warn(
+        "npu_backend='mlir' is deprecated and will be removed in a future version. "
+        "Please switch to other npu_backend.",
+        FutureWarning,
+    )
     import torch
     import torch_npu
     try:
