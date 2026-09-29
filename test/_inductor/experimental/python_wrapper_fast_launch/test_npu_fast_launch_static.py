@@ -68,7 +68,7 @@ class TestNPUFastLaunchStatic(unittest.TestCase):
         self.assertIn("struct FastLaunchPlan", source)
         self.assertIn("packedArgsTemplate", source)
         self.assertIn("FastLaunchStaticWithPlan", source)
-        self.assertIn("aclrtLaunchKernelWithHostArgs", source)
+        self.assertIn("aclError result = AclrtLaunchKernelWithHostArgs(", source)
         self.assertIn("ACL_RT_LAUNCH_KERNEL_ATTR_DYN_UBUF_SIZE", source)
         self.assertNotIn("rtKernelLaunch(", source)
         self.assertNotIn("rtKernelLaunchWithFlagV2", source)
