@@ -550,14 +550,28 @@ void createFile(const char* path)
     close(fd);
 }
 
-// Check if current SoC is compatible with compatible mode, only fit in A2 and A3 so far
-inline bool IsCompatibleSoc()
+// Check if current SoC is A2 or A3.
+inline bool IsA2A3Soc()
 {
-    static const bool is_compatible = []() {
+    static const bool is_a2_a3 = []() {
         auto soc_version = c10_npu::GetSocVersion();
         return ((soc_version >= c10_npu::SocVersion::Ascend910B1) && (soc_version < c10_npu::SocVersion::Ascend310B1)) ||
                 ((soc_version >= c10_npu::SocVersion::Ascend910_9391) && (soc_version < c10_npu::SocVersion::Ascend950));
     }();
+    return is_a2_a3;
+}
+
+// Check if current SoC is A5.
+inline bool IsA5Soc()
+{
+    static const bool is_a5 = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend950;
+    return is_a5;
+}
+
+// Check if current SoC supports compatible mode.
+inline bool IsCompatibleSoc()
+{
+    static const bool is_compatible = IsA2A3Soc() || IsA5Soc();
     return is_compatible;
 }
 } // namespace
@@ -3064,7 +3078,7 @@ void ProcessGroupHCCL::createHCCLCommOrigin(
     }
 
     if (commType == HcclCommType::DEFAULT && c10_npu::option::OptionsManager::IsScalableRootInfoEnable()) {
-        if (!IsCompatibleSoc()) {
+        if (!IsA2A3Soc()) {
             TORCH_NPU_WARN_ONCE(
                 "Scalable RootInfo initialization is supported only on Atlas A2 and A3. "
                 "The current SoC is unsupported; falling back to the original RootInfo initialization path.");
@@ -6421,6 +6435,25 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
     if (C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable())) {
         at_npu::native::OpHook::GetInstance().PreHook("reduce_scatter", outputTensors, inputTensors);
     }
+
+    // HcclReduceScatter consumes world_size * output.numel() elements from the
+    // input buffer. Keep the relaxed PyTorch/NCCL-compatible input handling,
+    // but make a potentially incorrect input layout visible to users.
+    for (const auto i : c10::irange(std::min(inputTensors.size(), outputTensors.size()))) {
+        int64_t totalInputNumel = 0;
+        for (const auto& tensor : inputTensors[i]) {
+            totalInputNumel += tensor.numel();
+        }
+        const int64_t expectedInputNumel = outputTensors[i].numel() * static_cast<int64_t>(size_);
+        if (totalInputNumel != expectedInputNumel) {
+            TORCH_NPU_WARN_ONCE(
+                "For reduce_scatter, the total number of input elements should equal world_size times the number ",
+                "of output elements. Otherwise, result correctness is not guaranteed. Got total input elements ",
+                totalInputNumel, ", output elements ", outputTensors[i].numel(), ", world size ", size_,
+                ", and expected total input elements ", expectedInputNumel, ".");
+        }
+    }
+
     bool same_size = check_same_size(inputTensors.back());
     if (same_size) {
         auto inputFlattened = flatten_for_reduce_scatter(inputTensors, outputTensors);
@@ -7845,7 +7878,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
     }
 
     bool use_compatible_impl = at_npu::native::env::CheckCompatibleImpl();
-    bool is_compatible_soc = IsCompatibleSoc();
+    bool is_compatible_soc = IsCompatibleSoc() && !IsA5Soc();
 
     // Variables for different modes
     std::vector<at::Tensor> collectiveInputs;
