@@ -188,7 +188,7 @@ cmake ..
 make -j$(nproc)
 ```
 
-To speed up compilation, the project has built-in automatic detection for Ninja, Mold linker, and CCache. For usage, see [Build Acceleration](docs/en/installation_guide/references/build_acceleration.md).
+To speed up compilation, the project has built-in automatic detection for Ninja, Mold linker, and CCache. For usage, see [Build Acceleration](https://gitcode.com/Ascend/pytorch/blob/master/docs/en/installation_guide/references/build_acceleration.md).
 
 ### Step 6: Local Static Check
 
@@ -196,7 +196,7 @@ After completing code development, please run static checks locally to ensure co
 
 ### Building with Clang
 
-For instructions on compiling with Clang, please refer to [Building with Clang](docs/en/installation_guide/references/building_with_clang.md)
+For instructions on compiling with Clang, please refer to [Building with Clang](https://gitcode.com/Ascend/pytorch/blob/master/docs/en/installation_guide/references/building_with_clang.md).
 
 ### Step 7: Local Functional Verification
 

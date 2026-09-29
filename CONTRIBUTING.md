@@ -188,7 +188,7 @@ cmake ..
 make -j$(nproc)
 ```
 
-如需加快编译速度，项目已内置 Ninja、Mold 链接器、CCache 的自动检测逻辑，使用方法请参见[编译加速](docs/zh/installation_guide/references/build_acceleration.md)。
+如需加快编译速度，项目已内置 Ninja、Mold 链接器、CCache 的自动检测逻辑，使用方法请参见[编译加速](https://gitcode.com/Ascend/pytorch/blob/v2.14.0-26.2.0/docs/zh/installation_guide/references/build_acceleration.md)。
 
 ### 第六步：本地静态检查
 
@@ -196,7 +196,7 @@ make -j$(nproc)
 
 ### 使用 Clang 编译
 
-使用 Clang 进行编译的方法，请参见[使用 Clang 编译](docs/zh/installation_guide/references/building_with_clang.md)。
+使用 Clang 进行编译的方法，请参见[使用 Clang 编译](https://gitcode.com/Ascend/pytorch/blob/v2.14.0-26.2.0/docs/zh/installation_guide/references/building_with_clang.md)。
 
 ### 第七步：本地功能验证
 
