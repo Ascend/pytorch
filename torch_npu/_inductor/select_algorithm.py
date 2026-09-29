@@ -1254,6 +1254,39 @@ def patch_algorithm_selector() -> None:
             if not select_first_compilable_only and (
                 precompile_func := self.precompile_cache.get(precompile_key)
             ):
+                # [Fix for cbuf-overflow on repeated compile of same shape]
+                # When precompile_cache hits, the returned wait_on_futures is a
+                # closure bound to the FIRST call's `choices` list and is wrapped
+                # with @lru_cache, so calling it again will NOT filter the
+                # CURRENT `choices` list. The first call already mutated its own
+                # (stale) list in-place via `choices[:] = [...]`. We must replay
+                # the same failed-hash filtering here on the current choices,
+                # otherwise configs that failed precompilation (e.g. cbuf/L1
+                # overflow configs with BLOCK_K=256) survive into the benchmark
+                # stage. There, triton_heuristics._precompile_configs_parallel
+                # recompiles every config of the fused template kernel; the
+                # offending config triggers BiShengIR "cbuf overflow" and, when
+                # it is the only config of that template, raises
+                # NoTritonConfigsError, aborting the whole graph compile.
+                precompile_func()  # idempotent via @lru_cache; populates failed_hashes
+                _cached_failed_hashes = getattr(
+                    precompile_func, "failed_hashes", None
+                )
+                if _cached_failed_hashes:
+                    _before_cache_filter = len(choices)
+                    choices[:] = [
+                        c
+                        for c in choices
+                        if c.hash_key() not in _cached_failed_hashes
+                    ]
+                    _removed_by_cache = _before_cache_filter - len(choices)
+                    if _removed_by_cache:
+                        log.warning(
+                            "Replayed cached precompile filter: removed "
+                            "%d previously-failed choice(s); %d remain",
+                            _removed_by_cache,
+                            len(choices),
+                        )
                 return precompile_func
 
             log.info(
@@ -1347,6 +1380,18 @@ def patch_algorithm_selector() -> None:
                         len(failed_hashes),
                         len(choices),
                     )
+                # [Fix for cbuf-overflow on repeated compile of same shape]
+                # Record the set of failed choice hashes on the cached callable
+                # itself so that, when precompile_cache is hit by a LATER call
+                # with the same precompile_key (same shape), we can replay the
+                # filtering on the *new* choices list. Without this, the cached
+                # wait_on_futures (bound to the first choices list + @lru_cache)
+                # would silently skip filtering and let compile-failed configs
+                # leak into the benchmark stage, raising NoTritonConfigsError
+                # inside triton_heuristics._precompile_configs_parallel.
+                wait_on_futures.failed_hashes = frozenset(
+                    c.hash_key() for c in failed_choices
+                )
             if not select_first_compilable_only:
                 self.precompile_cache[precompile_key] = wait_on_futures
 

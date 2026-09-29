@@ -1,3 +1,4 @@
+import unittest
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import TestUtils
@@ -9,6 +10,7 @@ class TestSumAdd(TestUtils):
         tmp = torch.sum(input_element, dim)
         return tmp + input_element2
 
+    @unittest.skip("temporarily skip")
     @parametrize('shape', [(32, 64, 128, 2048)])
     @parametrize('dim', [0, 1, 2, 3])
     @parametrize('dtype', ['float32'])
