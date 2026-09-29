@@ -10,6 +10,70 @@ from torch_npu.testing.common_utils import SupportedDevices
 
 class TestStorage(TestCase):
 
+    def test_half_storage_constructor(self):
+        # PyTorch community only covers HalfStorage indirectly through storage.half().
+        values = [-1.0, 0.0, 1.5, 2.0]
+
+        cpu_empty = torch.HalfStorage()
+        self.assertEqual(cpu_empty.size(), 0)
+        self.assertIs(cpu_empty.dtype, torch.float16)
+        self.assertEqual(cpu_empty.device.type, "cpu")
+        self.assertEqual(cpu_empty.type(), "torch.HalfStorage")
+
+        cpu_size = torch.HalfStorage(4)
+        self.assertEqual(cpu_size.size(), 4)
+        self.assertIs(cpu_size.dtype, torch.float16)
+        self.assertEqual(cpu_size.device.type, "cpu")
+        self.assertEqual(cpu_size.type(), "torch.HalfStorage")
+
+        cpu_sequence = torch.HalfStorage(values)
+        self.assertEqual(cpu_sequence.tolist(), values)
+        self.assertIs(cpu_sequence.dtype, torch.float16)
+        self.assertEqual(cpu_sequence.device.type, "cpu")
+        self.assertEqual(cpu_sequence.type(), "torch.HalfStorage")
+
+        cpu_untyped = torch.UntypedStorage(8)
+        cpu_wrapped = torch.HalfStorage(wrap_storage=cpu_untyped)
+        self.assertEqual(cpu_wrapped.size(), 4)
+        self.assertIs(cpu_wrapped.dtype, torch.float16)
+        self.assertEqual(cpu_wrapped.device.type, "cpu")
+
+        npu_tensor = torch.tensor(values, dtype=torch.float16, device="npu")
+        npu_untyped = npu_tensor.untyped_storage()
+        npu_storage = torch_npu.npu.HalfStorage(wrap_storage=npu_untyped)
+        self.assertEqual(npu_storage.size(), 4)
+        self.assertEqual(npu_storage.cpu().tolist(), values)
+        self.assertIs(npu_storage.dtype, torch.float16)
+        self.assertEqual(npu_storage.device.type, "npu")
+        self.assertEqual(npu_storage.type(), "torch_npu.npu.HalfStorage")
+
+        npu_size = torch_npu.npu.HalfStorage(4)
+        self.assertEqual(npu_size.size(), 4)
+        self.assertIs(npu_size.dtype, torch.float16)
+        self.assertEqual(npu_size.device.type, "npu")
+        self.assertEqual(npu_size.type(), "torch_npu.npu.HalfStorage")
+
+        npu_sequence = torch_npu.npu.HalfStorage(values)
+        self.assertEqual(npu_sequence.cpu().tolist(), values)
+        self.assertIs(npu_sequence.dtype, torch.float16)
+        self.assertEqual(npu_sequence.device.type, "npu")
+        self.assertEqual(npu_sequence.type(), "torch_npu.npu.HalfStorage")
+
+        with self.assertRaises(RuntimeError):
+            torch.HalfStorage(1, 2)
+
+        with self.assertRaises(TypeError):
+            torch.HalfStorage(object())
+
+        with self.assertRaises(RuntimeError):
+            torch.HalfStorage(dtype=torch.float16)
+
+        with self.assertRaises(RuntimeError):
+            torch.HalfStorage(device="cpu")
+
+        with self.assertRaises(TypeError):
+            torch.HalfStorage(wrap_storage=object())
+
     def test_storage_method(self):
         # The commented out part are unsupported data types by operators.
         storage_types = [
