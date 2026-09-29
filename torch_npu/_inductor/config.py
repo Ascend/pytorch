@@ -1,3 +1,4 @@
+import functools
 import logging
 import os  # noqa: C101
 import re
@@ -5,7 +6,7 @@ import sys
 
 import torch
 import torch._inductor.config as inductor_config
-from torch_npu.npu._backends import get_soc_version
+import torch_npu
 
 from .utils import classproperty
 
@@ -30,7 +31,13 @@ Ascend910B1 = 220
 Ascend310B1 = 240
 Ascend910_9391 = 250
 Ascend950 = 260
-is_ascend950 = get_soc_version() >= Ascend950
+# Direct C-level soc query: it is a driver-read-only lookup needing no device
+# context (verified to return the same value from an uninitialized process and
+# from a forked child of an initialized one).  get_soc_version()'s
+# _lazy_init() would initialize the device at import time and kill Inductor
+# forked compile workers ("Cannot re-initialize NPU in forked subprocess");
+# the public API itself is left untouched.
+is_ascend950 = torch_npu._C._npu_get_soc_version() >= Ascend950
 
 ub_size = 192 * 1024
 if is_ascend950:
@@ -110,7 +117,22 @@ def _obtain_and_limit_cube_vector_core_num():
     )
     return prop, cube_core_num, vector_core_num
 
-prop, num_cube_core, num_vector_core = _obtain_and_limit_cube_vector_core_num()
+# Core-count queries are resolved lazily: evaluating them at import time
+# initializes NPU (current_device/get_device_properties -> _lazy_init),
+# which kills every >=2-kernel compilation inside Inductor forked compile
+# workers ("Cannot re-initialize NPU in forked subprocess").  All
+# cross-module consumers access these as module attributes, so PEP 562
+# module __getattr__ keeps the lazy contract.
+@functools.lru_cache(maxsize=1)
+def _get_core_nums():
+    return _obtain_and_limit_cube_vector_core_num()
+
+
+def __getattr__(name):
+    if name in ("prop", "num_cube_core", "num_vector_core"):
+        prop, cube, vec = _get_core_nums()
+        return {"prop": prop, "num_cube_core": cube, "num_vector_core": vec}[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def _obtain_precompile_thread_num() -> int:

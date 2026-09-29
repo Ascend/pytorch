@@ -1525,7 +1525,14 @@ npu_elide_reduction_where = ncfg.elide_reduction_where
 # the values triton-ascend ships in its docs) and let the cache pick a winner.
 npu_all_blocks_parallel = ncfg.all_blocks_parallel
 _NPU_AUTO_BLOCKIFY_CANDIDATES = (1, 2, 4, 8)
-_NPU_TOTAL_CORES = get_npu_vector_core_count()
+
+
+@functools.lru_cache(maxsize=1)
+def _npu_total_cores() -> int:
+    # Lazy on purpose: get_npu_vector_core_count() initializes NPU, which
+    # must not happen at import time -- Inductor forked compile workers
+    # re-import this module and are barred from device initialization.
+    return get_npu_vector_core_count()
 
 # Lower bound on grid blocks a 1D-pointwise config must produce, as _NPU_TOTAL_CORES //
 # this divisor (floored at 2). Fewer blocks than cores is NOT automatically bad: on a small
@@ -1803,7 +1810,7 @@ def _filter_balanced_xblock_configs(configs, size_hints, min_xblock_floor=256, a
         # constraint is impossible to satisfy with any reasonable XBLOCK.
         # In that case, prefer XBLOCK >= xnumel (single block, no loop) or
         # XBLOCK that evenly divides xnumel for balanced dispatch.
-        small_kernel = xnumel < _NPU_TOTAL_CORES * 256
+        small_kernel = xnumel < _npu_total_cores() * 256
         min_xblock = min(max(min_xblock_floor, 256), xnumel)
         kept = []
         for cfg in configs:
@@ -1827,7 +1834,7 @@ def _filter_balanced_xblock_configs(configs, size_hints, min_xblock_floor=256, a
                 # cat picked XBLOCK=1664 at 32/40 blocks, 27% faster than 1024 at 52/40).
                 # So admit down to cores // _NPU_MIN_BLOCKS_DIVISOR and let autotune decide.
                 x_blocks = (xnumel + xblock - 1) // xblock
-                min_blocks = max(2, _NPU_TOTAL_CORES // _NPU_MIN_BLOCKS_DIVISOR)
+                min_blocks = max(2, _npu_total_cores() // _NPU_MIN_BLOCKS_DIVISOR)
                 if x_blocks < min_blocks:
                     continue
                 kept.append(cfg)
@@ -1965,7 +1972,7 @@ def _pw1d_formula_configs(size_hints, triton_meta, inductor_meta, min_elem_per_t
     # §1 winner prediction: pred = 0.74 * min(max(band, wave), ub_cap, numel).
     # 0.74 calibrates the winner below the bound; 0.40 / 0.95 are the fitted exponents.
     band = 17500.0 / ((num_load + 1) ** 0.40 * dt)   # MTE amortization band (~17.5 KiB/transfer)
-    wave = (numel / _NPU_TOTAL_CORES) ** 0.95        # wave target, sublinear in numel
+    wave = (numel / _npu_total_cores()) ** 0.95        # wave target, sublinear in numel
     ub_cap = _NPU_UB_CAPACITY_BYTES / (dt * (num_load + 1) * 2)
     pred = 0.74 * min(max(band, wave), ub_cap, numel)
 
@@ -2126,7 +2133,7 @@ def pointwise(
             # seeds. Add geometric candidates between 65536 and numel/total_cores*2 to reach
             # block sizes that saturate the NPU. UB-overflow configs are skipped by
             # _precompile_worker.
-            sat_target = max(numel // _NPU_TOTAL_CORES, 65536) * 2
+            sat_target = max(numel // _npu_total_cores(), 65536) * 2
             cand = 65536
             while cand < sat_target and cand < numel:
                 cand *= 2

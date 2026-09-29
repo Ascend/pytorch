@@ -12,6 +12,21 @@ point, hardware probes are not tunable configuration.
 
 import functools as _functools
 
+import torch_npu
+
+
+def _soc_version_no_init():
+    """Driver-level read-only soc lookup that must not initialize the device.
+
+    Verified to return the same value from an uninitialized process and from
+    a forked child of an initialized one.  The public get_soc_version()
+    triggers _lazy_init(), which at import time (these probes are reached
+    from module-level calls in config.py / npu_triton_heuristics.py, also
+    inside Inductor forked compile workers) raises "Cannot re-initialize NPU
+    in forked subprocess" and kills every >=2-kernel compilation.
+    """
+    return torch_npu._C._npu_get_soc_version()
+
 
 @_functools.lru_cache(maxsize=None)
 def get_npu_vector_core_count() -> int:
@@ -26,8 +41,7 @@ def get_npu_vector_core_count() -> int:
             return int(vector)
         cube = getattr(prop, "cube_core_num", None)
         try:
-            from torch_npu.npu._backends import get_soc_version
-            soc = get_soc_version()
+            soc = _soc_version_no_init()
         except Exception:
             soc = None
         if cube and soc is not None and (220 <= soc < 240 or soc >= 250):
@@ -46,8 +60,7 @@ def get_npu_ub_size_bytes() -> int:
     Ascend950 (soc >= 260). Note this threshold (260) differs from is_a5's 250 --
     a 910_95 at soc 250..259 still has a 192 KiB UB. Falls back to 192 KiB."""
     try:
-        from torch_npu.npu._backends import get_soc_version
-        soc = get_soc_version()
+        soc = _soc_version_no_init()
         if soc is not None and soc >= 260:  # Ascend950
             return 256 * 1024
     except Exception:
@@ -65,8 +78,7 @@ def is_a5() -> bool:
     if ncfg.force_is_a5 is not None:
         return ncfg.force_is_a5
     try:
-        from torch_npu.npu._backends import get_soc_version
-        soc = get_soc_version()
+        soc = _soc_version_no_init()
         return soc is not None and soc >= 250
     except Exception:
         return False
