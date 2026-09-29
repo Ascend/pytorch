@@ -47,6 +47,13 @@ def _load_ascendc_backend():
 
 
 def _load_mlir_backend():
+    import warnings
+
+    warnings.warn(
+        "npu_backend='mlir' is deprecated and will be removed in a future version. "
+        "Please switch to other npu_backend.",
+        FutureWarning,
+    )
     import torch
     _apply_common_patches()
     try:
