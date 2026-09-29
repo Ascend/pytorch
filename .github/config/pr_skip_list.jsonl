@@ -1,4 +1,4 @@
-{"_meta": {"description": "PR-trigger skip list: failed cases from receive-trigger run 31773030818", "source_run": "https://github.com/Ascend/pytorch/actions/runs/31977204768", "total_entries": 5252, "created": "2026-08-14", "updated": "2026-09-28", "additional_source_run": "https://github.com/Ascend/pytorch/actions/runs/32550829750", "additional_source_pr": "https://github.com/Ascend/pytorch/pull/191453", "additional_source_run_2": "https://github.com/Ascend/pytorch/actions/runs/33074236462", "additional_source_run_3": "https://github.com/Ascend/pytorch/actions/runs/33583585145", "update_note": "2026-09-08: added 115 test_convolution.py entries with test class renamed TestConvolutionNNDeviceType->TestConvolutionNNDevice (upstream pytorch PR #195143, run 34205389249).", "additional_source_run_4": "https://github.com/Ascend/pytorch/actions/runs/34368895709", "update_note_2": "2026-09-10: added 804 test_foreach.py entries (TestForeachDevicePRIVATEUSE1) from run 34368895709: upstream pytorch PR #195452 (commit cc324a7cc54c) added hw_classification=ACCELERATOR to TestForeachDevice, newly exposing 3764 foreach cases in PR CI collection; the 804 failures are pre-existing NPU gaps (isclose/foreach aclnn dtype support for complex/float64/bool, fastpath/slowpath parity, no_check shape validation, CUDAGraph assumption), not regressions from the tested PRs", "additional_source_run_5": "https://github.com/Ascend/pytorch/actions/runs/34821789513", "update_note_5": "2026-09-14: added 3 test_prims.py entries auto-blocked from run 34821789513 (PR 192964, torch_npu@7b84f1139e46): failed/error/timeout cases blocked by user request without root-cause analysis; remove when fixed", "additional_source_run_6": "https://github.com/Ascend/pytorch/actions/runs/35401800803", "update_note_6": "2026-09-19: added 84 test_embedding.py entries auto-blocked from run 35401800803 (PR 197459, torch_npu@ea8eb4986957): failed/error/timeout cases blocked by user request without root-cause analysis; remove when fixed", "additional_source_run_7": "https://github.com/Ascend/pytorch/actions/runs/35842190448", "update_note_7": "2026-09-23: added 4 test_binary_ufuncs.py entries auto-blocked from run 35842190448 (PR 194045, torch_npu@acc54de9beee): failed/error/timeout cases blocked by user request without root-cause analysis; remove when fixed", "additional_source_run_8": "https://github.com/Ascend/pytorch/actions/runs/36425134576", "update_note_8": "2026-09-28: added 1 test_binary_ufuncs.py entries auto-blocked from run 36425134576 (PR 197032, torch_npu@142dc619f48b): failed/error/timeout cases blocked by user request without root-cause analysis; remove when fixed"}}
+{"_meta": {"description": "PR-trigger skip list: failed cases from receive-trigger run 31773030818", "source_run": "https://github.com/Ascend/pytorch/actions/runs/31977204768", "total_entries": 5372, "created": "2026-08-14", "updated": "2026-09-29", "additional_source_run": "https://github.com/Ascend/pytorch/actions/runs/32550829750", "additional_source_pr": "https://github.com/Ascend/pytorch/pull/191453", "additional_source_run_2": "https://github.com/Ascend/pytorch/actions/runs/33074236462", "additional_source_run_3": "https://github.com/Ascend/pytorch/actions/runs/33583585145", "update_note": "2026-09-08: added 115 test_convolution.py entries with test class renamed TestConvolutionNNDeviceType->TestConvolutionNNDevice (upstream pytorch PR #195143, run 34205389249).", "additional_source_run_4": "https://github.com/Ascend/pytorch/actions/runs/34368895709", "update_note_2": "2026-09-10: added 804 test_foreach.py entries (TestForeachDevicePRIVATEUSE1) from run 34368895709: upstream pytorch PR #195452 (commit cc324a7cc54c) added hw_classification=ACCELERATOR to TestForeachDevice, newly exposing 3764 foreach cases in PR CI collection; the 804 failures are pre-existing NPU gaps (isclose/foreach aclnn dtype support for complex/float64/bool, fastpath/slowpath parity, no_check shape validation, CUDAGraph assumption), not regressions from the tested PRs", "additional_source_run_5": "https://github.com/Ascend/pytorch/actions/runs/34821789513", "update_note_5": "2026-09-14: added 3 test_prims.py entries auto-blocked from run 34821789513 (PR 192964, torch_npu@7b84f1139e46): failed/error/timeout cases blocked by user request without root-cause analysis; remove when fixed", "additional_source_run_6": "https://github.com/Ascend/pytorch/actions/runs/35401800803", "update_note_6": "2026-09-19: added 84 test_embedding.py entries auto-blocked from run 35401800803 (PR 197459, torch_npu@ea8eb4986957): failed/error/timeout cases blocked by user request without root-cause analysis; remove when fixed", "additional_source_run_7": "https://github.com/Ascend/pytorch/actions/runs/35842190448", "update_note_7": "2026-09-23: added 4 test_binary_ufuncs.py entries auto-blocked from run 35842190448 (PR 194045, torch_npu@acc54de9beee): failed/error/timeout cases blocked by user request without root-cause analysis; remove when fixed", "additional_source_run_8": "https://github.com/Ascend/pytorch/actions/runs/36425134576", "update_note_8": "2026-09-28: added 1 test_binary_ufuncs.py entries auto-blocked from run 36425134576 (PR 197032, torch_npu@142dc619f48b): failed/error/timeout cases blocked by user request without root-cause analysis; remove when fixed", "additional_source_run_9": "https://github.com/Ascend/pytorch/actions/runs/36537126315", "update_note_9": "2026-09-29: added 120 test_binary_ufuncs.py entries auto-blocked from run 36537126315 (PR 196640, torch_npu@555ecb44889d): failed/error/timeout cases blocked by user request without root-cause analysis; remove when fixed"}}
 {"nodeid": "test/nn/test_convolution.py::TestConvolutionNNDevicePRIVATEUSE1::test_Conv2d_backward_depthwise_npu_complex128"}
 {"nodeid": "test/nn/test_convolution.py::TestConvolutionNNDevicePRIVATEUSE1::test_Conv2d_backward_depthwise_npu_float64"}
 {"nodeid": "test/nn/test_convolution.py::TestConvolutionNNDevicePRIVATEUSE1::test_Conv2d_depthwise_naive_groups_npu_float64"}
@@ -255,6 +255,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing__refs_div_trunc_rounding_npu_int16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing__refs_div_trunc_rounding_npu_uint8"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing__refs_eq_npu_complex32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing__refs_eq_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing__refs_eq_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing__refs_eq_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing__refs_float_power_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing__refs_float_power_npu_complex64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing__refs_floor_divide_npu_float64"}
@@ -273,6 +276,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing__refs_mul_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing__refs_mul_npu_complex32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing__refs_mul_npu_complex64"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing__refs_ne_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing__refs_ne_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing__refs_ne_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing__refs_pow_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing__refs_pow_npu_complex64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing__refs_remainder_npu_float64"}
@@ -315,6 +321,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing_div_trunc_rounding_npu_int16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing_div_trunc_rounding_npu_uint8"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing_eq_npu_complex32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing_eq_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing_eq_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing_eq_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing_float_power_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing_float_power_npu_complex64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing_floor_divide_npu_float64"}
@@ -335,6 +344,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing_mul_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing_mul_npu_complex32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing_mul_npu_complex64"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing_ne_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing_ne_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing_ne_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing_polar_npu_float16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing_polar_npu_float32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing_polar_npu_float64"}
@@ -477,6 +489,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1__refs_div_trunc_rounding_npu_int16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1__refs_div_trunc_rounding_npu_uint8"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1__refs_eq_npu_complex32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1__refs_eq_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1__refs_eq_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1__refs_eq_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1__refs_float_power_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1__refs_float_power_npu_complex64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1__refs_floor_divide_npu_float64"}
@@ -495,6 +510,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1__refs_mul_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1__refs_mul_npu_complex32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1__refs_mul_npu_complex64"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1__refs_ne_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1__refs_ne_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1__refs_ne_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1__refs_pow_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1__refs_pow_npu_complex64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1__refs_remainder_npu_float64"}
@@ -537,6 +555,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_div_trunc_rounding_npu_int16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_div_trunc_rounding_npu_uint8"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_eq_npu_complex32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_eq_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_eq_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_eq_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_float_power_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_float_power_npu_complex64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_floor_divide_npu_float64"}
@@ -763,6 +784,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim__refs_eq_npu_int32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim__refs_eq_npu_int64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim__refs_eq_npu_int8"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim__refs_eq_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim__refs_eq_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim__refs_eq_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim__refs_eq_npu_uint8"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim__refs_float_power_npu_bfloat16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim__refs_float_power_npu_bool"}
@@ -983,6 +1007,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim__refs_ne_npu_int32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim__refs_ne_npu_int64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim__refs_ne_npu_int8"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim__refs_ne_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim__refs_ne_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim__refs_ne_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim__refs_ne_npu_uint8"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim__refs_nextafter_npu_bfloat16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim__refs_nextafter_npu_float16"}
@@ -1203,6 +1230,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim_eq_npu_int32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim_eq_npu_int64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim_eq_npu_int8"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim_eq_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim_eq_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim_eq_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim_eq_npu_uint8"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim_float_power_npu_bfloat16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim_float_power_npu_bool"}
@@ -1455,6 +1485,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim_ne_npu_int32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim_ne_npu_int64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim_ne_npu_int8"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim_ne_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim_ne_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim_ne_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim_ne_npu_uint8"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim_nextafter_npu_bfloat16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_large_dim_nextafter_npu_float16"}
@@ -1692,6 +1725,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_mul_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_mul_npu_complex32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_mul_npu_complex64"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_ne_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_ne_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_ne_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_polar_npu_float16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_polar_npu_float32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_size1_polar_npu_float64"}
@@ -1794,6 +1830,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other__refs_div_trunc_rounding_npu_int16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other__refs_div_trunc_rounding_npu_uint8"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other__refs_eq_npu_complex32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other__refs_eq_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other__refs_eq_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other__refs_eq_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other__refs_float_power_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other__refs_float_power_npu_complex64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other__refs_floor_divide_npu_float64"}
@@ -1812,6 +1851,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other__refs_mul_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other__refs_mul_npu_complex32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other__refs_mul_npu_complex64"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other__refs_ne_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other__refs_ne_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other__refs_ne_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other__refs_pow_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other__refs_pow_npu_complex64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other__refs_remainder_npu_float64"}
@@ -1854,6 +1896,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other_div_trunc_rounding_npu_int16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other_div_trunc_rounding_npu_uint8"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other_eq_npu_complex32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other_eq_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other_eq_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other_eq_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other_float_power_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other_float_power_npu_complex64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other_floor_divide_npu_float64"}
@@ -1874,6 +1919,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other_mul_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other_mul_npu_complex32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other_mul_npu_complex64"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other_ne_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other_ne_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other_ne_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other_polar_npu_float16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other_polar_npu_float32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other_polar_npu_float64"}
@@ -1976,6 +2024,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed__refs_div_trunc_rounding_npu_int16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed__refs_div_trunc_rounding_npu_uint8"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed__refs_eq_npu_complex32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed__refs_eq_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed__refs_eq_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed__refs_eq_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed__refs_float_power_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed__refs_float_power_npu_complex64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed__refs_floor_divide_npu_float64"}
@@ -1994,6 +2045,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed__refs_mul_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed__refs_mul_npu_complex32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed__refs_mul_npu_complex64"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed__refs_ne_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed__refs_ne_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed__refs_ne_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed__refs_pow_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed__refs_pow_npu_complex64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed__refs_remainder_npu_float64"}
@@ -2036,6 +2090,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed_div_trunc_rounding_npu_int16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed_div_trunc_rounding_npu_uint8"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed_eq_npu_complex32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed_eq_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed_eq_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed_eq_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed_float_power_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed_float_power_npu_complex64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed_floor_divide_npu_float64"}
@@ -2056,6 +2113,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed_mul_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed_mul_npu_complex32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed_mul_npu_complex64"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed_ne_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed_ne_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed_ne_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed_polar_npu_float16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed_polar_npu_float32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed_polar_npu_float64"}
@@ -2475,6 +2535,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig__refs_div_trunc_rounding_npu_int16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig__refs_div_trunc_rounding_npu_uint8"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig__refs_eq_npu_complex32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig__refs_eq_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig__refs_eq_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig__refs_eq_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig__refs_float_power_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig__refs_float_power_npu_complex64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig__refs_floor_divide_npu_float64"}
@@ -2493,6 +2556,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig__refs_mul_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig__refs_mul_npu_complex32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig__refs_mul_npu_complex64"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig__refs_ne_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig__refs_ne_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig__refs_ne_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig__refs_pow_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig__refs_pow_npu_complex64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig__refs_remainder_npu_float64"}
@@ -2535,6 +2601,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_div_trunc_rounding_npu_int16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_div_trunc_rounding_npu_uint8"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_eq_npu_complex32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_eq_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_eq_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_eq_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand___radd___npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand___radd___npu_complex64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand___rdiv___npu_complex128"}
@@ -2575,6 +2644,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand__refs_div_trunc_rounding_npu_int16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand__refs_div_trunc_rounding_npu_uint8"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand__refs_eq_npu_complex32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand__refs_eq_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand__refs_eq_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand__refs_eq_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand__refs_float_power_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand__refs_float_power_npu_complex64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand__refs_floor_divide_npu_float64"}
@@ -2593,6 +2665,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand__refs_mul_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand__refs_mul_npu_complex32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand__refs_mul_npu_complex64"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand__refs_ne_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand__refs_ne_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand__refs_ne_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand__refs_pow_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand__refs_pow_npu_complex64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand__refs_remainder_npu_float64"}
@@ -2635,6 +2710,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand_div_trunc_rounding_npu_int16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand_div_trunc_rounding_npu_uint8"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand_eq_npu_complex32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand_eq_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand_eq_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand_eq_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand_float_power_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand_float_power_npu_complex64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand_floor_divide_npu_float64"}
@@ -2655,6 +2733,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand_mul_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand_mul_npu_complex32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand_mul_npu_complex64"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand_ne_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand_ne_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand_ne_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand_polar_npu_float16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand_polar_npu_float32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_expand_polar_npu_float64"}
@@ -2767,6 +2848,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index__refs_div_trunc_rounding_npu_int16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index__refs_div_trunc_rounding_npu_uint8"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index__refs_eq_npu_complex32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index__refs_eq_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index__refs_eq_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index__refs_eq_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index__refs_float_power_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index__refs_float_power_npu_complex64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index__refs_floor_divide_npu_float64"}
@@ -2785,6 +2869,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index__refs_mul_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index__refs_mul_npu_complex32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index__refs_mul_npu_complex64"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index__refs_ne_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index__refs_ne_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index__refs_ne_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index__refs_pow_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index__refs_pow_npu_complex64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index__refs_remainder_npu_float64"}
@@ -2827,6 +2914,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index_div_trunc_rounding_npu_int16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index_div_trunc_rounding_npu_uint8"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index_eq_npu_complex32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index_eq_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index_eq_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index_eq_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index_float_power_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index_float_power_npu_complex64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index_floor_divide_npu_float64"}
@@ -2847,6 +2937,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index_mul_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index_mul_npu_complex32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index_mul_npu_complex64"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index_ne_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index_ne_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index_ne_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index_polar_npu_float16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index_polar_npu_float32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_index_polar_npu_float64"}
@@ -2919,6 +3012,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_mul_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_mul_npu_complex32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_mul_npu_complex64"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_ne_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_ne_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_ne_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_polar_npu_float16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_polar_npu_float32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_non_contig_polar_npu_float64"}
@@ -2999,6 +3095,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics__refs_clamp_max_npu_bool"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics__refs_clamp_min_npu_bool"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics__refs_eq_npu_complex32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics__refs_eq_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics__refs_eq_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics__refs_eq_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics__refs_float_power_npu_bfloat16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics__refs_float_power_npu_float16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics__refs_float_power_npu_float32"}
@@ -3015,6 +3114,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics__refs_isclose_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics__refs_isclose_npu_float64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics__refs_lcm_npu_uint8"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics__refs_ne_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics__refs_ne_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics__refs_ne_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics__refs_pow_npu_float32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics__refs_remainder_npu_float64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics__refs_remainder_npu_int16"}
@@ -3025,6 +3127,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_clamp_max_npu_bool"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_clamp_min_npu_bool"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_eq_npu_complex32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_eq_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_eq_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_eq_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_extremal_values__refs_float_power_npu_bfloat16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_extremal_values__refs_float_power_npu_float16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_extremal_values__refs_float_power_npu_float32"}
@@ -3075,6 +3180,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_large_values_remainder_npu_bfloat16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_large_values_remainder_npu_float32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_large_values_remainder_npu_int16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_ne_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_ne_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_ne_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_pow_npu_float32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_remainder_npu_float64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_remainder_npu_int16"}
@@ -3082,6 +3190,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_remainder_npu_uint8"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values__refs_add_npu_complex32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values__refs_eq_npu_complex32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values__refs_eq_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values__refs_eq_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values__refs_eq_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values__refs_float_power_npu_bfloat16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values__refs_float_power_npu_float16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values__refs_float_power_npu_float32"}
@@ -3092,11 +3203,17 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values__refs_isclose_npu_float64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values__refs_lcm_npu_int8"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values__refs_lcm_npu_uint8"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values__refs_ne_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values__refs_ne_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values__refs_ne_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values__refs_remainder_npu_int16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values__refs_remainder_npu_int8"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values__refs_sub_npu_complex32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values_add_npu_complex32"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values_eq_npu_complex32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values_eq_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values_eq_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values_eq_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values_float_power_npu_bfloat16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values_float_power_npu_float16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values_float_power_npu_float32"}
@@ -3109,6 +3226,9 @@
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values_logical_and_npu_complex64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values_logical_or_npu_complex128"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values_logical_or_npu_complex64"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values_ne_npu_uint16"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values_ne_npu_uint32"}
+{"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values_ne_npu_uint64"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values_remainder_npu_int16"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values_remainder_npu_int8"}
 {"nodeid": "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values_sub_npu_complex32"}
