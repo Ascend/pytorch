@@ -1,4 +1,4 @@
-﻿name: PR-pipeline_pytorch
+name: PR-pipeline_pytorch
 
 concurrency:
   max: 120
@@ -113,6 +113,8 @@ stages:
         name: associate_pr_comment
         select: selected_by_default
         runs-on: [ self-hosted, default, x86, cpu=16 ]
+        container:
+          image: swr.cn-north-4.myhuaweicloud.com/pytorch_images_x86/pytorchx86:v_03
         steps:
           - name: associate-pr-comment
             uses: associate-pr-comment
@@ -174,6 +176,8 @@ stages:
       sca-pr:
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
         runs-on: [ self-hosted, default, x86, cpu=16 ]
+        container:
+          image: swr.cn-north-4.myhuaweicloud.com/pytorch_images_x86/pytorchx86:v_03
         steps:
           - name: checkout
             uses: checkout
@@ -185,6 +189,8 @@ stages:
       malicious-scan:
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
         runs-on: [ self-hosted, default, x86, cpu=16 ]
+        container:
+          image: swr.cn-north-4.myhuaweicloud.com/pytorch_images_x86/pytorchx86:v_03
         steps:
           - name: checkout
             uses: checkout
