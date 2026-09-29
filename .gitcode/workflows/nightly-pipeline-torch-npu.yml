@@ -33,10 +33,6 @@ on:
       - ".gitcode/config/case_paths_ci.yml"
       - ".gitcode/config/disabled_testcases.json"
       - ".gitcode/config/disabled_test_methods.json"
-  pull_request_comment:
-    types: [created]
-    branches: [master]
-    comments: ['^compile$', '^/compile$']
   workflow_dispatch: {}
 
 env:
