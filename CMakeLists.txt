@@ -13,6 +13,19 @@ endif()
 project(TORCHNPU CXX C)
 add_compile_options(-fmacro-prefix-map=${CMAKE_SOURCE_DIR}/=)
 
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+
+set(PUBLIC_ENV_CHECK_SCRIPT ${PROJECT_SOURCE_DIR}/tools/check_public_environments.py)
+set(PUBLIC_ENV_SCHEMA ${PROJECT_SOURCE_DIR}/test/torch_npu_schema.json)
+set(PUBLIC_ENV_SOURCE ${PROJECT_SOURCE_DIR}/torch_npu/csrc/core/npu/register/OptionsManager.cpp)
+add_custom_target(check_public_environments
+  COMMAND ${Python3_EXECUTABLE} ${PUBLIC_ENV_CHECK_SCRIPT}
+    --schema ${PUBLIC_ENV_SCHEMA}
+    --source ${PUBLIC_ENV_SOURCE}
+  DEPENDS ${PUBLIC_ENV_CHECK_SCRIPT} ${PUBLIC_ENV_SCHEMA} ${PUBLIC_ENV_SOURCE}
+  COMMENT "Checking public environment variable modes"
+  VERBATIM)
+
 # GCC 11.2 (used in v2.7.1) does not support -fuse-ld=mold
 find_program(MOLD_LINKER mold)
 if(MOLD_LINKER)
@@ -320,6 +333,7 @@ else()
 endif()
 
 add_library(${PLUGIN_NAME} SHARED ${CPP_SRCS})
+add_dependencies(${PLUGIN_NAME} check_public_environments)
 include(CheckCXXCompilerFlag)
 check_cxx_compiler_flag("-fvisibility=hidden" COMPILER_SUPPORTS_HIDDEN_VISIBILITY)
 if(${COMPILER_SUPPORTS_HIDDEN_VISIBILITY})
