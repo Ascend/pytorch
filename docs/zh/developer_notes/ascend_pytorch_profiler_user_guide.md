@@ -746,6 +746,7 @@ Ascend PyTorch Profiler可全面采集PyTorch训练/在线推理场景下的性�
     ```python
     import torch
     import torch_npu
+    import os
 
     ...
 
@@ -754,7 +755,7 @@ Ascend PyTorch Profiler可全面采集PyTorch训练/在线推理场景下的性�
         # 启动性能数据采集
         for step in range(steps):    # 训练函数
             train_one_step()    # 训练函数
-    prof.export_chrome_trace('./chrome_trace_14.json')    # 指定chrome_trace_{pid}.json文件导出路径
+    prof.export_chrome_trace(f'./chrome_trace_{os.getpid()}.json')    # 指定chrome_trace_{pid}.json文件导出路径
     ```
 
 2. 性能数据解析。
@@ -1439,6 +1440,9 @@ if __name__ == "__main__":
       │   └── trace_view.json    // 记录整个AI任务的时间信息
       ├── FRAMEWORK    // 框架侧的原始性能数据，无需关注
       ├── logs    // 解析过程日志
+      ├── PLATFORM_{timestamp}   // NUMA性能数据结果，当前用于内部可视化绘图，用户无需关注
+          ├── platform.db
+          └── metrics.csv
       └── PROF_000001_20230628101435646_FKFLNPEPPRRCFCBA    // CANN层的性能数据，命名格式：PROF_{数字}_{时间戳}_{字符串}，data_simplification配置True开启时，仅保留此目录下的原始性能数据，删除其他数据
             ├── analyze    // 多卡或集群等存在通信的场景下，profiler_level配置为Level1或Level2级别时生成
             ├── device_{Rank_ID}    //  CANN Profiling采集的device侧的原始性能数据
@@ -1451,6 +1455,8 @@ if __name__ == "__main__":
   Ascend PyTorch Profiler接口将框架侧的数据与CANN Profiling的数据关联整合，形成trace、Kernel以及memory等性能数据文件。保存在ASCEND\_PROFILER\_OUTPUT目录下，包括json和csv格式的[timeline和summary数据](#timeline和summary数据)、[ascend\_pytorch\_profiler\_\{Rank\_ID\}.db数据](#ascend\_pytorch\_profiler\_\{Rank\_ID\}.db数据)、[analysis.db数据](#analysis.db数据)。
 
   PROF目录下为CANN Profiling采集的性能数据，主要保存在mindstudio\_profiler\_output目录下和msprof\_\*.db文件内，数据介绍请参见[性能数据文件参考](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/user_guide/profile_data_file_references.md)。
+
+  PLATFORM目录详细介绍请参见[PLATFORM_{timestamp}](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/user_guide/profile_data_file_references.md#platform_timestamp)。
 
 - PyTorch的场景调用export\_chrome\_trace方法时，Ascend PyTorch Profiler接口会将解析的trace数据写入到\*.json文件中，其中\*为文件名，不存在该文件时在指定路径下自动创建。
 
@@ -2145,7 +2151,7 @@ experimental\_config参数均为可选参数，支持扩展的采集项如下：
 |mstx或msprof_tx|打点控制开关，通过开关开启自定义打点功能。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。<br/>该参数使用请参见[采集并解析mstx数据](#采集并解析mstx数据)。<br/>原参数名msprof_tx改为mstx，新版本依旧兼容原参数名msprof_tx。|
 |mstx_domain_include|输出需要的domain数据。调用torch_npu.npu.mstx系列打点接口，使用默认domain或指定domain进行打点时，可选择只输出本参数配置的domain数据。<br/>domain名称为用户调用torch_npu.npu.mstx系列接口传入的domain或默认domain（'default'），domain名称使用List类型输入。<br/>与mstx_domain_exclude参数互斥，若同时配置，则只有mstx_domain_include生效。<br/>须配置mstx=True。|
 |mstx_domain_exclude|过滤不需要的domain数据。调用torch_npu.npu.mstx系列打点接口，使用默认domain或指定domain进行打点时，可选择不输出本参数配置的domain数据。<br/>domain名称为用户调用torch_npu.npu.mstx系列接口传入的domain或默认domain（'default'），domain名称使用List类型输入。<br/>与mstx_domain_include参数互斥，若同时配置，则只有mstx_domain_include生效。<br/>须配置mstx=True。|
-|host_sys|Host侧系统数据采集开关，List类型。默认未配置，表示未开启Host侧系统数据采集。取值为：<br/>&#8226; cpu：进程级别的CPU利用率。<br/>&#8226; mem：进程级别的内存利用率。<br/>&#8226; disk：进程级别的磁盘I/O利用率。<br/>&#8226; network：系统级别的网络I/O利用率。<br/>&#8226; osrt：进程级别的syscall和pthreadcall。<br/>配置示例：host_sys: ["cpu", "disk"]。<br/>&#8226; 采集Host侧disk性能数据需要安装第三方开源工具iotop，采集osrt性能数据需要安装第三方开源工具perf和ltrace，其安装方法参见[安装perf、iotop、ltrace工具](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/profiling/appendices/install_perf_iotop_ltrace.md)。完成安装后须参见[配置用户权限](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/profiling/appendices/config_user_permission.md)完成用户权限配置，且每次重新安装CANN软件包需要重新配置。<br/>&#8226; 使用开源工具ltrace采集osrt性能数据会导致CPU占用率过高，其与应用工程的pthread加解锁相关，会影响进程运行速度。<br/>&#8226; x86_64架构的KylinV10SP1操作系统支持osrt参数，aarch64架构的KylinV10SP1操作系统下不支持osrt参数。<br/>&#8226; 虚拟化环境Euler2.9系统下不支持network参数。|
+|host_sys|Host侧系统数据采集开关，List类型。默认未配置，表示未开启Host侧系统数据采集。取值为：<br/>&#8226; cpu：进程级别的CPU利用率。<br/>&#8226; mem：进程级别的内存利用率。<br/>&#8226; disk：进程级别的磁盘I/O利用率。<br/>&#8226; network：系统级别的网络I/O利用率。<br/>&#8226; osrt：进程级别的syscall和pthreadcall。<br/>&#8226; numa：总读带宽、本节点读带宽、跨节点（远程）读带宽和内部（自身）读带宽；跨节点读流量占总读流量的比例；本节点读流量占总读流量的比例。<br/>配置示例：host_sys: ["cpu", "disk"]。<br/>&#8226; 采集Host侧disk性能数据需要安装第三方开源工具iotop，采集osrt性能数据需要安装第三方开源工具perf和ltrace，其安装方法参见[安装perf、iotop、ltrace工具](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/profiling/appendices/install_perf_iotop_ltrace.md)。完成安装后须参见[配置用户权限](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/profiling/appendices/config_user_permission.md)完成用户权限配置，且每次重新安装CANN软件包需要重新配置。<br/>&#8226; 使用开源工具ltrace采集osrt性能数据会导致CPU占用率过高，其与应用工程的pthread加解锁相关，会影响进程运行速度。<br/>&#8226; x86_64架构的KylinV10SP1操作系统支持osrt参数，aarch64架构的KylinV10SP1操作系统下不支持osrt参数。<br/>&#8226; 虚拟化环境Euler2.9系统下不支持network参数。|
 |sys_io|NIC、ROCE、MAC采集开关。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。|
 |sys_interconnection|集合通信带宽数据（HCCS）、PCIe数据采集开关、片间传输带宽信息采集开关。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。|
 
@@ -2168,7 +2174,7 @@ experimental\_config参数均为可选参数，支持扩展的采集项如下：
 |data_simplification|数据精简模式，开启后将在导出性能数据后删除多余数据，仅保留profiler_*.json文件、ASCEND_PROFILER_OUTPUT目录、PROF_XXX目录下的原始性能数据、FRAMEWORK目录和logs目录，以节省存储空间，bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认开启。|
 |record_op_args|控制算子信息统计功能开关，bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。<br/>开启后会在{worker_name}\_{时间戳}_ascend_pt_op_args目录输出采集到算子信息文件。<br/>该参数在AOE工具执行PyTorch训练场景下调优时使用，且不建议与其他性能数据采集接口同时开启。详细介绍请参见《[AOE调优工具用户指南](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/devaids/aoe/auxiliarydevtool_aoe_0001.html)》。|
 |gc_detect_threshold|GC检测阈值，float类型。取值范围为大于等于0的数值，单位ms。当用户设置的阈值为数字时，表示开启GC检测，只采集超过阈值的GC事件。<br/>配置为0时表示采集所有的GC事件（可能造成采集数据量过大，请谨慎配置），推荐设置为1ms。<br/>默认为None，表示不开启GC检测功能。<br/>**GC**是Python进程对已经销毁的对象进行内存回收。<br/>该参数解析结果为在trace_view.json中生成GC层或在ascend_pytorch_profiler_{Rank_ID}.db中生成GC_RECORD表。|
-|host_sys|Host侧系统数据采集开关，List类型。默认未配置，表示未开启Host侧系统数据采集。取值为：<br/>&#8226; torch_npu.profiler.HostSystem.CPU：进程级别的CPU利用率。<br/>&#8226; torch_npu.profiler.HostSystem.MEM：进程级别的内存利用率。<br/>&#8226; torch_npu.profiler.HostSystem.DISK：进程级别的磁盘I/O利用率。<br/>&#8226; torch_npu.profiler.HostSystem.NETWORK：系统级别的网络I/O利用率。<br/>&#8226; torch_npu.profiler.HostSystem.OSRT：进程级别的syscall和pthreadcall。<br/>配置示例：host_sys=[torch_npu.profiler.HostSystem.CPU, torch_npu.profiler.HostSystem.MEM]<br/>&#8226; 采集Host侧disk性能数据需要安装第三方开源工具iotop，采集osrt性能数据需要安装第三方开源工具perf和ltrace，其安装方法参见[安装perf、iotop、ltrace工具](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/profiling/appendices/install_perf_iotop_ltrace.md)。完成安装后须参见[配置用户权限](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/profiling/appendices/config_user_permission.md)完成用户权限配置，且每次重新安装CANN软件包需要重新配置。<br/>&#8226; 使用开源工具ltrace采集osrt性能数据会导致CPU占用率过高，其与应用工程的pthread加解锁相关，会影响进程运行速度。<br/>&#8226; x86_64架构的KylinV10SP1操作系统支持torch_npu.profiler.HostSystem.OSRT参数，aarch64架构的KylinV10SP1操作系统下不支持torch_npu.profiler.HostSystem.OSRT参数。<br/>&#8226; 虚拟化环境Euler2.9系统下不支持torch_npu.profiler.HostSystem.NETWORK参数。|
+|host_sys|Host侧系统数据采集开关，List类型。默认未配置，表示未开启Host侧系统数据采集。取值为：<br/>&#8226; torch_npu.profiler.HostSystem.CPU：进程级别的CPU利用率。<br/>&#8226; torch_npu.profiler.HostSystem.MEM：进程级别的内存利用率。<br/>&#8226; torch_npu.profiler.HostSystem.DISK：进程级别的磁盘I/O利用率。<br/>&#8226; torch_npu.profiler.HostSystem.NETWORK：系统级别的网络I/O利用率。<br/>&#8226; torch_npu.profiler.HostSystem.OSRT：进程级别的syscall和pthreadcall。<br/>&#8226; torch_npu.profiler.HostSystem.NUMA：总读带宽、本节点读带宽、跨节点（远程）读带宽和内部（自身）读带宽；跨节点读流量占总读流量的比例；本节点读流量占总读流量的比例。<br/>配置示例：host_sys=[torch_npu.profiler.HostSystem.CPU, torch_npu.profiler.HostSystem.MEM]<br/>&#8226; 采集Host侧disk性能数据需要安装第三方开源工具iotop，采集osrt性能数据需要安装第三方开源工具perf和ltrace，其安装方法参见[安装perf、iotop、ltrace工具](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/profiling/appendices/install_perf_iotop_ltrace.md)。完成安装后须参见[配置用户权限](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/profiling/appendices/config_user_permission.md)完成用户权限配置，且每次重新安装CANN软件包需要重新配置。<br/>&#8226; 使用开源工具ltrace采集osrt性能数据会导致CPU占用率过高，其与应用工程的pthread加解锁相关，会影响进程运行速度。<br/>&#8226; x86_64架构的KylinV10SP1操作系统支持torch_npu.profiler.HostSystem.OSRT参数，aarch64架构的KylinV10SP1操作系统下不支持torch_npu.profiler.HostSystem.OSRT参数。<br/>&#8226; 虚拟化环境Euler2.9系统下不支持torch_npu.profiler.HostSystem.NETWORK参数。|
 |sys_io|NIC、ROCE、MAC采集开关，bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。|
 |sys_interconnection|集合通信带宽数据（HCCS）、PCIe数据采集开关、片间传输带宽信息采集开关，bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。|
 
@@ -2214,7 +2220,7 @@ with torch_npu.profiler.profile(
         active=2,                      # 记录2个step的活动数据，并在之后调用on_trace_ready
         repeat=2,                      # 循环wait+warmup+active过程2遍
         skip_first=1,                  # 跳过1个step
-        skip_first_wait=1            # 跳过第一个wait
+        skip_first_wait=1              # 跳过第一个wait
     ),
     on_trace_ready=torch_npu.profiler.tensorboard_trace_handler('./result')
     ) as prof:
