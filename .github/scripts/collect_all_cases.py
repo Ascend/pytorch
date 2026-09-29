@@ -393,6 +393,75 @@ def filter_skipped_cases(
     return filtered, skipped
 
 
+# ==============================================================================
+# Case Whitelist Loading & Filtering
+# ==============================================================================
+
+
+def load_case_whitelist(whitelist_path: Optional[str]) -> Optional[set]:
+    """Load a case-level whitelist.
+
+    Accepts a flat list of nodeids, either as the YAML/JSON document root
+    (``["test/foo.py::Test::test_bar", ...]``) or under a "case_whitelist" /
+    "cases" / "nodeids" / "whitelist" key, so the coverage config file can
+    carry the list next to its ``categories`` section.
+
+    Returns None when no path is given (no filtering).
+    """
+    if not whitelist_path:
+        return None
+
+    p = Path(whitelist_path)
+    if not p.exists():
+        raise FileNotFoundError(f"Case whitelist not found: {p}")
+
+    data = yaml.safe_load(p.read_text(encoding="utf-8"))
+    if isinstance(data, dict):
+        for key in ("case_whitelist", "cases", "nodeids", "whitelist"):
+            if isinstance(data.get(key), list):
+                data = data[key]
+                break
+        else:
+            raise ValueError(f"Unsupported case whitelist format in {p}")
+    if not isinstance(data, list):
+        raise ValueError(f"Unsupported case whitelist format in {p}")
+
+    nodeids = {n for n in data if isinstance(n, str) and n}
+    print(f"  Loaded case whitelist: {len(nodeids)} nodeids from {p}")
+    return nodeids
+
+
+def filter_whitelisted_cases(cases: List[Dict], whitelist: Optional[set]) -> List[Dict]:
+    """Keep only cases listed in the case whitelist (no-op when None)."""
+    if whitelist is None:
+        return cases
+
+    filtered = [c for c in cases if c.get("nodeid", "") in whitelist]
+    print(f"  Case whitelist filter: {len(cases)} -> {len(filtered)} cases "
+          f"(dropped {len(cases) - len(filtered)})")
+    return filtered
+
+
+def restrict_files_to_whitelist(categories: Dict[str, Dict], whitelist: set):
+    """Collect only whitelisted files; ones missing from the config go to 'others'."""
+    wl_files = {n.split("::")[0] for n in whitelist}
+    assigned = set()
+    for cat_cfg in categories.values():
+        cat_cfg["files"] = [f for f in cat_cfg.get("files", []) if f in wl_files]
+        assigned.update(cat_cfg["files"])
+
+    unrouted = sorted(wl_files - assigned)
+    if unrouted:
+        others = categories.get("others")
+        if others is None:
+            runner = next(iter(categories.values()), {}).get("runner", "linux-aarch64-a3-8")
+            others = {"files": [], "workers": 32, "execution": "concurrent", "runner": runner}
+            categories["others"] = others
+        others["files"] = sorted(others.get("files", []) + unrouted)
+        print(f"  Case whitelist: {len(unrouted)} file(s) not listed in the config, "
+              f"routed to 'others': {unrouted}")
+
+
 def _normalize_test_file_path(test_file: str) -> str:
     """
     Remove 'test/' prefix from test file path if present.
@@ -857,6 +926,10 @@ def main():
         categories = {"regular": {"files": all_files, "workers": 32, "execution": "concurrent"}}
         exclude_list = []
 
+    case_whitelist = load_case_whitelist(args.case_whitelist)
+    if case_whitelist is not None and not args.full_scan:
+        restrict_files_to_whitelist(categories, case_whitelist)
+
     # Full-scan mode: scan ALL test_*.py and use config as categorization mapping
     if args.full_scan:
         import discover_test_files
@@ -886,6 +959,7 @@ def main():
     total_cases = 0
     total_files = 0
     all_skipped = []
+    matched_nodeids = set()
 
     for cat_name, cat_config in categories.items():
         print("\n" + "=" * 80)
@@ -917,6 +991,8 @@ def main():
         )
         print(f"Total {cat_name} cases: {len(cases)}")
 
+        cases = filter_whitelisted_cases(cases, case_whitelist)
+        matched_nodeids.update(c.get("nodeid", "") for c in cases)
         cases, skipped = filter_skipped_cases(cases, skip_dict)
         all_skipped.extend(skipped)
 
@@ -941,6 +1017,18 @@ def main():
 
         total_cases += len(cases)
         total_files += len(files)
+
+    # ========================================
+    # Case whitelist coverage report
+    # ========================================
+    if case_whitelist is not None:
+        print(f"Case whitelist: {len(matched_nodeids)} of {len(case_whitelist)} "
+              f"listed case(s) collected")
+        not_collected = case_whitelist - matched_nodeids
+        if not_collected:
+            print(f"  WARNING: {len(not_collected)} listed case(s) were not collected "
+                  f"(hw_classification / renamed / missing file); "
+                  f"e.g. {sorted(not_collected)[:5]}")
 
     # ========================================
     # Save skipped cases record
@@ -973,6 +1061,8 @@ def main():
         overall_summary["hw_classification"] = hw_classification
     if case_paths_config:
         overall_summary["case_paths_config"] = case_paths_config
+    if args.case_whitelist:
+        overall_summary["case_whitelist"] = args.case_whitelist
 
     summary_file = output_dir / "cases_collection_summary.json"
     summary_file.write_text(json.dumps(overall_summary, indent=2), encoding="utf-8")
@@ -1007,6 +1097,14 @@ def parse_args():
         help="Path to whitelist/blacklist YAML (e.g., test_whitelist.yml). "
              "When set, only whitelisted files are collected; when omitted, "
              "all test_*.py files are scanned.",
+    )
+    parser.add_argument(
+        "--case-whitelist",
+        default=None,
+        help="Path to a case-level whitelist (JSON array of nodeids, or an object "
+             "with a 'cases' / 'nodeids' / 'whitelist' list). When set, only the "
+             "listed cases are collected; whitelisted files missing from "
+             "--case-paths-config are routed to 'others'.",
     )
     parser.add_argument(
         "--hw-classification",

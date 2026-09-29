@@ -80,7 +80,7 @@ jobs:
 
   collect:
     needs: [resolve, build]
-    uses: ./.github/workflows/_test-collect.yml
+    uses: ./.github/workflows/_pytorch_coverage_collect.yml
     secrets: inherit
     with:
       resolved_short: ${{ needs.resolve.outputs.short }}
@@ -522,29 +522,6 @@ jobs:
         env:
           PYTHON_EXEC_TIMEOUT_SECONDS: "900"
 
-      - name: Write job summary
-        if: always()
-        run: |
-          COV_DIR="${COV_ARTIFACTS}/pytorch@latest"
-          [ -d "${COV_DIR}" ] || COV_DIR=""
-          {
-            echo "## PyTorch Coverage (${{ needs.resolve.outputs.short }})"
-            echo ""
-            echo "- Categories: \`${{ inputs.categories || 'all' }}\`"
-            echo "- Artifacts: freshly built by this run (commit \`${{ needs.resolve.outputs.short }}\`)"
-            if [ -n "${COV_DIR}" ] && [ -f "${COV_DIR}/coverage.xml" ]; then
-              echo "- coverage.xml: \`${COV_DIR}/coverage.xml\`"
-            fi
-            if [ -n "${COV_DIR}" ] && [ -f "${COV_DIR}/manifest.json" ]; then
-              SURFACE=$(python3 -c "import json; d=json.load(open('${COV_DIR}/manifest.json')); print(d.get('test_groups', 0))")
-              echo "- Test files with coverage: ${SURFACE}"
-            fi
-            if [ -n "${COV_DIR}" ] && [ -f "${COV_DIR}/logs/failed_cases.json" ]; then
-              SUMMARY=$(python3 -c "import json; d=json.load(open('${COV_DIR}/logs/failed_cases.json')); print(f\"{d.get('total_failed', 0)} / {d.get('total_cases', 0)}\")")
-              echo "- Failed cases: ${SUMMARY} (see failed_cases.json)"
-            fi
-          } >> "$GITHUB_STEP_SUMMARY"
-
       - name: Publish coverage to OBS and clean up staging
         if: always()
         continue-on-error: true
@@ -624,3 +601,102 @@ jobs:
           obsutil rm -r -f "${{ env.OBS_SHARD_PREFIX }}/${{ github.run_id }}/"
           echo "Shard data staging removed"
           exit "${PUBLISH_FAILED:-0}"
+
+      - name: Write job summary
+        if: always()
+        continue-on-error: true
+        env:
+          CATEGORIES: ${{ inputs.categories }}
+          RESOLVED_SHORT: ${{ needs.resolve.outputs.short }}
+          OBS_COVERAGE_PREFIX: ${{ env.OBS_COVERAGE_PREFIX }}
+        run: |
+          python3 - <<'PYEOF' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          import os
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          artifacts = Path(os.environ["COV_ARTIFACTS"])
+          cov_dir = artifacts / "pytorch@latest"
+          prefix = os.environ.get("OBS_COVERAGE_PREFIX", "")
+          short = os.environ.get("RESOLVED_SHORT", "")
+          categories = os.environ.get("CATEGORIES") or "all"
+
+          print(f"## PyTorch Coverage ({short})")
+          print()
+          print("| item | value |")
+          print("| --- | --- |")
+
+          def row(name, value):
+              print(f"| {name} | {value} |")
+
+          row("categories", f"`{categories}`")
+          row("artifacts", f"freshly built by this run (commit `{short}`)")
+
+          if not (cov_dir / "coverage.xml").is_file():
+              print()
+              print("merge did not promote, there is no coverage artifact to summarize")
+              raise SystemExit(0)
+
+          manifest = {}
+          manifest_file = cov_dir / "manifest.json"
+          if manifest_file.is_file():
+              try:
+                  manifest = json.loads(manifest_file.read_text(encoding="utf-8"))
+              except Exception:
+                  manifest = {}
+          run_id = str(manifest.get("run_id", ""))
+          if run_id:
+              row("coverage run", f"`{run_id}` (event `{manifest.get('event')}`, attempt {manifest.get('run_attempt')})")
+          if manifest.get("pytorch_sha"):
+              row("built commit", f"`{manifest['pytorch_sha']}`")
+          row("test files with coverage", str(manifest.get("test_groups", "n/a")))
+
+          failed_file = cov_dir / "logs" / "failed_cases.json"
+          failed = {}
+          if failed_file.is_file():
+              try:
+                  failed = json.loads(failed_file.read_text(encoding="utf-8"))
+              except Exception:
+                  failed = {}
+          if failed:
+              row("cases", f"{failed.get('total_cases', 0)} executed, {failed.get('total_failed', 0)} failed")
+
+          try:
+              root = ET.parse(cov_dir / "coverage.xml").getroot()
+              lines_valid = int(root.get("lines-valid", 0))
+              lines_covered = int(root.get("lines-covered", 0))
+              rate = float(root.get("line-rate", 0)) * 100
+              row("coverage (torch)", f"lines {rate:.2f}% ({lines_covered}/{lines_valid})")
+          except Exception as exc:
+              row("coverage (torch)", f"n/a ({exc})")
+
+          backfilled = manifest.get("backfilled") or []
+          if backfilled:
+              shown = ", ".join(f"`{f}`" for f in backfilled[:5])
+              more = f" (+{len(backfilled) - 5} more)" if len(backfilled) > 5 else ""
+              row("backfilled from previous release", f"{len(backfilled)} file(s): {shown}{more}")
+          missing = manifest.get("backfill_missing") or []
+          if missing:
+              shown = ", ".join(f"`{f}`" for f in missing[:5])
+              row("backfill still missing", f"{len(missing)} file(s): {shown}")
+
+          map_file = cov_dir / "test_case_map.json"
+          if map_file.is_file():
+              try:
+                  mapping = json.loads(map_file.read_text(encoding="utf-8"))
+                  file_sum = sum(v.get("file_count", 0) for v in mapping.values() if isinstance(v, dict))
+                  line_sum = sum(v.get("line_count", 0) for v in mapping.values() if isinstance(v, dict))
+                  if file_sum or line_sum:
+                      row("test_case_map", f"published: {file_sum} file(s), {line_sum} line(s)")
+                  else:
+                      row("test_case_map", "published but EMPTY (0 files / 0 lines) - coverage-mapped selection is degraded")
+              except Exception as exc:
+                  row("test_case_map", f"published but unreadable ({exc})")
+          else:
+              row("test_case_map", "not published - the consumer builds it on the spot")
+
+          row("OBS pointer", f"`{prefix}/latest/pointer.json`")
+          if run_id:
+              row("OBS release", f"`{prefix}/releases/{run_id}/release.tar.gz`")
+          PYEOF
