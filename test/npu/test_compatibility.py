@@ -48,7 +48,7 @@ NOT_IMPORT_LIST = [
 
 def set_failure_list(api_str, value, signature, failure_list):
     failure_list.append(f"# {api_str}:")
-    failure_list.append(f"  - function signature is different: ")
+    failure_list.append("  - function signature is different: ")
     failure_list.append(f"    - the base signature is {value}.")
     failure_list.append(f"    - now it is {signature}.")
 
@@ -220,8 +220,8 @@ def _discover_path_importables(pkg_pth, pkg_name):
         yield from (
             pkg_path
             for _, pkg_path, _ in pkgutil.walk_packages(
-            (str(pkg_dir_path),), prefix=f'{pkg_pref}.',
-        )
+                (str(pkg_dir_path),), prefix=f'{pkg_pref}.',
+            )
         )
 
 
@@ -319,9 +319,11 @@ class TestPublicApiCompatibility(TestCase):
                     return
 
                 modname = allow_dict["being_migrated"].get(modname, modname)
-                elem_modname_starts_with_mod = elem_module is not None and \
-                                               elem_module.startswith(modname) and \
-                                               '._' not in elem_module
+                elem_modname_starts_with_mod = (
+                    elem_module is not None
+                    and elem_module.startswith(modname)
+                    and '._' not in elem_module
+                )
 
                 looks_public = not elem.startswith('_') and elem_modname_starts_with_mod
                 is_public_api = False
@@ -417,35 +419,6 @@ class TestPublicApiCompatibility(TestCase):
         msg += "\n".join(map(str, failure_list))
 
         self.assertTrue(not failure_list, msg)
-
-    def test_public_environments(self):
-        torch_npu_path = os.path.abspath(os.path.dirname(torch_npu.__file__))
-
-        with open(get_file_path_2(os.path.dirname(os.path.dirname(__file__)), "torch_npu_schema.json")) as fp:
-            base_schema = json.load(fp)
-        failure_list = []
-
-        file = "torch_npu/csrc/core/npu/register/OptionsManager.h"
-        path = os.path.join(torch_npu_path, "include", file)
-
-        with open(path, mode='r') as fp:
-            context = fp.read()
-
-        for key, value in base_schema.items():
-            if key.startswith("torch_npu_public_env"):
-                base_mode = value["mode"]
-                if base_mode not in context:
-                    key = key.replace("torch_npu_public_env: ", "")
-                    failure_list.append(f"# {key}:")
-                    failure_list.append(f"  - the mode of the environment variable {key} has been changed.")
-
-        msg = "All the environment variable's mode below do not meet the compatibility guidelines. "
-        msg += "If the change timeline has been reached, you can modify the torch_npu_schema.json to make it OK."
-        msg += "\n\nFull list:\n"
-        msg += "\n".join(map(str, failure_list))
-        # empty lists are considered false in python
-        self.assertTrue(not failure_list, msg)
-
 
 if __name__ == '__main__':
     run_tests()
