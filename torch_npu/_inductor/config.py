@@ -10,6 +10,7 @@ import torch_npu
 
 from .utils import classproperty
 
+
 # init inductor log
 def _init_inductor_log():
     log_level_env = os.getenv("INDUCTOR_ASCEND_LOG_LEVEL", "WARNING").upper()
