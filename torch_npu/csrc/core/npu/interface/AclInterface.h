@@ -16,6 +16,10 @@ struct aclrtUuid;
 struct aclrtIpcEventHandle;
 struct aclrtErrorInfo;
 
+typedef void* aclmdlRICondHandle;
+struct tagAclmdlRICondTaskParams;
+typedef struct tagAclmdlRICondTaskParams aclmdlRICondTaskParams;
+
 namespace c10_npu {
 namespace acl {
 enum aclrtEventWaitStatus {
