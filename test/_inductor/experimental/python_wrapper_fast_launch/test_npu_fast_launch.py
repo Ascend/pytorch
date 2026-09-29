@@ -197,6 +197,47 @@ class TestNPUFastLaunch(unittest.TestCase):
         extension._npu_inductor_make_fast_launch_plan.assert_not_called()
         extension._npu_inductor_fast_launch_with_plan.assert_not_called()
 
+    def test_missing_host_args_api_falls_back_without_retrying_plan(self):
+        for static_grid in (False, True):
+            for enable_simt in (False, True):
+                with self.subTest(static_grid=static_grid, enable_simt=enable_simt):
+                    extension = types.SimpleNamespace(
+                        _npu_inductor_make_fast_launch_plan=mock.Mock(
+                            side_effect=RuntimeError(
+                                "Fast Launch is unavailable: the current CANN "
+                                "runtime does not provide aclrtLaunchKernelWithHostArgs"
+                            )
+                        ),
+                        _npu_inductor_fast_launch_with_plan=mock.Mock(),
+                        _npu_inductor_fast_launch_static_with_plan=mock.Mock(),
+                    )
+                    with isolated_fast_launch(extension):
+                        bind = importlib.import_module(f"{PACKAGE}.bind")
+                        launcher = FakeLauncher()
+                        launcher._npu_fast_launch_enable_simt = enable_simt
+                        if static_grid:
+                            launcher._npu_fast_launch_grid_exprs = ("2", "1", "1")
+                        autotuner = FakeAutotuner(launcher)
+                        call_slot = [None]
+                        bound = bind.BoundFastLaunch(
+                            autotuner, metadata(), call_slot=call_slot
+                        )
+                        tensor = FakeTensor()
+
+                        self.assertEqual(bound(tensor, 3, stream=99), "fallback")
+                        self.assertEqual(bound(tensor, 4, stream=99), "launcher")
+                        self.assertEqual(bound(tensor, 5, stream=100), "launcher")
+
+                        self.assertIs(call_slot[0], bound)
+                        self.assertEqual(len(autotuner.run_calls), 1)
+                        self.assertEqual(
+                            launcher.calls,
+                            [((tensor, 4), 99), ((tensor, 5), 100)],
+                        )
+                        extension._npu_inductor_make_fast_launch_plan.assert_called_once()
+                        extension._npu_inductor_fast_launch_with_plan.assert_not_called()
+                        extension._npu_inductor_fast_launch_static_with_plan.assert_not_called()
+
     def test_codegen_missing_signature_is_promotable_incomplete_schema(self):
         with isolated_fast_launch():
             codegen = importlib.import_module(f"{PACKAGE}.codegen")

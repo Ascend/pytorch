@@ -22,6 +22,11 @@ C++ `FastLaunchPlan`；后续调用复用计划，只更新 stream、grid 和参
 
 - 使用 `torch_npu` 2.10 系列中包含本功能的构建产物。
 - PyTorch、torch_npu、CANN 和 NPU 驱动版本相互匹配。
+- Fast Launch 加速特性最低支持 **CANN 8.5.0**。
+- Fast Launch 加速需要运行时 CANN 提供 `aclrtLaunchKernelWithHostArgs`。
+  该接口按需动态加载；缺少接口时不会因它导致 `torch`/`torch_npu` 导入失败。
+  即使启用 Fast Launch，计划创建也会在任务提交前回退到原 Triton launcher，
+  并缓存当前 launcher 不可使用 Fast Launch 的结果。旧版 CANN 不保留该加速。
 - 模型通过 `torch.compile(..., backend="inductor")` 执行，并实际生成 NPU Triton
   kernel。
 
@@ -130,6 +135,7 @@ planned path。
 
 以下稳定问题会阻止 plan 创建并为当前 launcher 安装负缓存：
 
+- 运行时 CANN 不提供 `aclrtLaunchKernelWithHostArgs`。
 - codegen schema 与最终 ABI 冲突，或最终 ABI 不受支持。
 - launcher 元数据明确报告需要非零 workspace、sync block lock 或 device print
   缓冲区。
