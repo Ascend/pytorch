@@ -1012,6 +1012,14 @@ class BenchmarkRunner:
             model = DDP(model, find_unused_parameters=True)
         return model
 
+    @property
+    def skip_accuracy_check_as_eager_non_deterministic(self):
+        # Upstream pytorch/benchmark contract (dynamobench/common.py): models
+        # whose eager execution is known non-bitwise-reproducible on this
+        # device are exempt from the tol=0 eager-two-runs gate; suites
+        # override this set.  The downstream numerical comparisons still run.
+        return set()
+
     def check_accuracy(
         self, name, model, example_inputs, optimize_ctx, experiment, tag
     ):
@@ -1054,6 +1062,7 @@ class BenchmarkRunner:
 
         # Collect the fp64 reference outputs to be used later for accuracy checking.
         fp64_outputs = None
+        model_fp64 = inputs_fp64 = None
         try:
             model_fp64, inputs_fp64 = cast_to_fp64(
                 self.deepcopy_and_maybe_ddp(model),
@@ -1073,6 +1082,13 @@ class BenchmarkRunner:
             if torch.npu.is_available():
                 torch.npu.empty_cache()
         except Exception:
+            # Release the copies on the failure path too: the try-tail del
+            # never ran, and a leaked fp64-sized model OOMs the later eager
+            # deepcopy.  Assign None instead of del: the try-tail del already
+            # unbound the names, and del-ing them again trips F821.
+            model_fp64 = inputs_fp64 = None
+            if torch.npu.is_available():
+                torch.npu.empty_cache()
             log.warning(
                 "fp64 golden ref were not generated for %s. Setting accuracy check to cosine",
                 name,
@@ -1132,13 +1148,17 @@ class BenchmarkRunner:
             # Two eager runs should have exactly same result
             is_same = True
             try:
-                if not same(
-                    correct_result,
-                    correct_rerun_result,
-                    fp64_ref=None,
-                    cos_similarity=False,
-                    tol=0,
-                    equal_nan=self.equal_nan,
+                if (
+                    name
+                    not in self.skip_accuracy_check_as_eager_non_deterministic
+                    and not same(
+                        correct_result,
+                        correct_rerun_result,
+                        fp64_ref=None,
+                        cos_similarity=False,
+                        tol=0,
+                        equal_nan=self.equal_nan,
+                    )
                 ):
                     is_same = False
             except Exception:

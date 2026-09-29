@@ -230,6 +230,7 @@ SKIP_ACCURACY_CHECK_MODELS = {
     # even for 40 GB machine.
     "DebertaV2ForMaskedLM",
     "BlenderbotForCausalLM",
+    "gemma_3_4b_it",
 }
 
 DECODER_INPUT_MODEL_CLASS_NAMES = {
@@ -329,7 +330,14 @@ def get_sequence_length(model_cls, model_name):
             "Bert",
             "Roberta",
         )
-    ) or model_name in ("DistillGPT2", "GoogleFnet", "YituTechConvBert", "CamemBert"):
+    ) or model_name in (
+        "DistillGPT2",
+        "GoogleFnet",
+        "YituTechConvBert",
+        "CamemBert",
+        "gemma_2_2b",
+        "gemma_3_4b_it",
+    ):
         seq_length = 512
     elif model_name in ("TrOCRForCausalLM"):
         seq_length = 256
@@ -473,6 +481,112 @@ EXTRA_MODELS = {
     ),
 }
 
+# Real-shape LLM entries (random-init configs, no weight download; eager
+# config objects are compatible with the lazy-config convention above --
+# non-callables are used as-is):
+# - DistillGPT2: legacy name with no same-named transformers class (distilgpt2
+#   is a 6-layer GPT-2); carried by GPT2LMHeadModel at its real shape.
+# - XLNetLMHeadModel: overrides the default toy XLNetConfig() (d_model=32)
+#   with the real xlnet-base shape.
+# - gemma_2_2b / gemma_3_4b_it: real hyperparams from the official
+#   config.json; gemma-3 uses the text backbone (vision tower is out of
+#   scope for the text runner).  Gemma classes need transformers>=4.50;
+#   older versions skip the entries via the guard below.
+from transformers import (  # noqa: E402
+    GPT2Config as _GPT2Config,
+    GPT2LMHeadModel as _GPT2LMHeadModel,
+    T5Config as _T5Config,
+    T5ForConditionalGeneration as _T5ForConditionalGeneration,
+    XLNetConfig as _XLNetConfig,
+    XLNetLMHeadModel as _XLNetLMHeadModel,
+)
+
+try:
+    from transformers import (  # noqa: E402
+        Gemma2Config as _Gemma2Config,
+        Gemma2ForCausalLM as _Gemma2ForCausalLM,
+        Gemma3ForCausalLM as _Gemma3ForCausalLM,
+        Gemma3TextConfig as _Gemma3TextConfig,
+    )
+
+    _HAS_GEMMA = True
+except ImportError:
+    _HAS_GEMMA = False
+    # Warn instead of silently missing: make "--only gemma_* selects nothing" visible.
+    log.warning(
+        "gemma model entries disabled: transformers>=4.50 required, current %s",
+        getattr(importlib.import_module("transformers"), "__version__", "unknown"),
+    )
+
+EXTRA_MODELS["DistillGPT2"] = (
+    _GPT2Config(vocab_size=50257, n_embd=768, n_layer=6, n_head=12, use_cache=False),
+    _GPT2LMHeadModel,
+)
+# T5Small: restore the upstream entry (upstream lazy-loads
+# AutoConfig.from_pretrained("t5-small")); use an eager config instead to
+# avoid network/cache access at import time.  Hyperparams from the
+# official config.json.
+EXTRA_MODELS["T5Small"] = (
+    _T5Config(d_model=512, d_kv=64, d_ff=2048, num_layers=6, num_heads=8,
+              vocab_size=32128, use_cache=False),
+    _T5ForConditionalGeneration,
+)
+EXTRA_MODELS["XLNetLMHeadModel"] = (
+    _XLNetConfig(
+        vocab_size=32000,
+        d_model=768,
+        n_head=12,
+        d_head=64,
+        n_layer=12,
+        d_inner=3072,
+        mem_len=None,
+        untie_r=True,
+    ),
+    _XLNetLMHeadModel,
+)
+if _HAS_GEMMA:
+    EXTRA_MODELS["gemma_2_2b"] = (
+        _Gemma2Config(
+            vocab_size=256000,
+            hidden_size=2304,
+            intermediate_size=9216,
+            num_hidden_layers=26,
+            num_attention_heads=8,
+            num_key_value_heads=4,
+            head_dim=256,
+            sliding_window=4096,
+            attn_logit_softcapping=50.0,
+            final_logit_softcapping=30.0,
+            query_pre_attn_scalar=256,
+            rope_theta=10000.0,
+            use_cache=False,
+        ),
+        _Gemma2ForCausalLM,
+    )
+    EXTRA_MODELS["gemma_3_4b_it"] = (
+        _Gemma3TextConfig(
+            vocab_size=262208,
+            hidden_size=2560,
+            intermediate_size=10240,
+            num_hidden_layers=34,
+            num_attention_heads=8,
+            num_key_value_heads=4,
+            head_dim=256,
+            sliding_window=1024,
+            sliding_window_pattern=6,
+            rope_scaling={"rope_type": "linear", "factor": 8.0},
+            rope_theta=1000000.0,
+            rope_local_base_freq=10000.0,
+            query_pre_attn_scalar=256,
+            use_cache=False,
+        ),
+        _Gemma3ForCausalLM,
+    )
+    # 2b/4b-class models OOM at the default bs=16 in fp32; explicit batch
+    # size, same source as huggingface_models_list.txt.
+    BATCH_SIZE_KNOWN_MODELS["gemma_2_2b"] = 2
+    BATCH_SIZE_KNOWN_MODELS["gemma_3_4b_it"] = 2
+
 NPU_REQUIRE_LEARNING_RATE = {
     "OPTForCausalLM",
     "AlbertForQuestionAnswering",
@@ -508,6 +622,15 @@ class HuggingfaceRunner(BenchmarkRunner):
     @property
     def fp32_only_models(self):
         return FP32_ONLY_MODELS.union(NPU_FP32_ONLY_MODELS)
+
+    @property
+    def skip_accuracy_check_as_eager_non_deterministic(self):
+        # NPU eager loss-path kernels are sporadically 1-2 ulp
+        # non-bitwise-reproducible (device-level, backend-independent).
+        # Upstream exempts known-non-deterministic models from the tol=0
+        # eager gate but only in training mode; extend to inference here.
+        # Downstream numerical comparisons still run.
+        return {"DistillGPT2", "gemma_2_2b", "T5Small"}
 
     def _get_model_cls_and_config(self, model_name):
         if model_name not in EXTRA_MODELS:

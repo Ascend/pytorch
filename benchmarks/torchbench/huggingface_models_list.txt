@@ -36,3 +36,4 @@ Speech2Text2ForCausalLM,1024
 T5ForConditionalGeneration,8
 TrOCRForCausalLM,64
 XGLMForCausalLM,32
+T5Small,8
