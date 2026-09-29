@@ -116,11 +116,16 @@ static PyObject* THNPStream_synchronize(THNPStream* self, PyObject* noargs) {
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject* THNPStream_set_data_preprocess_stream(THNPStream* self, PyObject* arg) {
+static PyObject* THNPStream_set_data_preprocess_stream(PyObject* _self, PyObject* arg) {
   HANDLE_TH_ERRORS {
+    auto self = (THPStream*)_self;
+    c10_npu::NPUStream npu_stream = c10_npu::NPUStream(c10::Stream::unpack3(
+        self->stream_id,
+        static_cast<c10::DeviceIndex>(self->device_index),
+        static_cast<c10::DeviceType>(self->device_type)));
     pybind11::gil_scoped_release no_gil;
     bool is_data_preprocess_stream = THPUtils_unpackBool(arg);
-    self->npu_stream.setDataPreprocessStream(is_data_preprocess_stream);
+    npu_stream.setDataPreprocessStream(is_data_preprocess_stream);
   }
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS

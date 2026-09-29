@@ -363,6 +363,106 @@ class TestAccelerator(TestCase):
             ):
                 torch.npu.NPUGraph.get_currently_capturing_graph()
 
+    def test_cross_type_event_record_with_npu_event_and_accelerator_stream(self):
+        """torch.npu.Event().record(torch.Stream()) should not crash.
+
+        Before the fix, THNPEvent_record used METH_O without type checking
+        and directly accessed the npu_stream field of the argument, causing
+        an out-of-bounds read when passed a torch.Stream (THPStream) instead
+        of a torch.npu.Stream (THNPStream).
+        """
+        s1 = torch.Stream()
+        event = torch.Event()
+        event.record(s1)
+        event.synchronize()
+
+        s2 = torch.npu.Stream()
+        event.record(s2)
+        event.synchronize()
+
+        npu_event = torch.npu.Event()
+        npu_event.record(s2)
+        npu_event.synchronize()
+
+        # This was the crash scenario before the fix
+        npu_event.record(s1)
+        npu_event.synchronize()
+
+    def test_cross_type_event_wait_with_npu_event_and_accelerator_stream(self):
+        """torch.npu.Event().wait(torch.Stream()) should not crash.
+
+        Before the fix, THNPEvent_wait used METH_O without type checking
+        and directly accessed the npu_stream field, causing UB.
+        """
+        s1 = torch.Stream()
+        s2 = torch.npu.Stream()
+
+        event1 = torch.npu.Event()
+        event2 = torch.npu.Event()
+
+        event1.record(s1)
+        event1.record(s2)
+        event2.record(s1)
+        event2.record(s2)
+
+        event1.wait(s1)
+        event1.wait(s2)
+        event1.synchronize()
+        event2.synchronize()
+
+    def test_cross_type_event_reset_with_npu_event_and_accelerator_stream(self):
+        """torch.npu.Event().reset(torch.Stream()) should not crash.
+
+        Before the fix, THNPEvent_reset used METH_O without type checking
+        and directly accessed the npu_stream field, causing UB.
+        """
+        s1 = torch.Stream()
+        s2 = torch.npu.Stream()
+
+        npu_event = torch.npu.Event()
+        npu_event.record(s1)
+        npu_event.reset(s1)
+        npu_event.record(s2)
+        npu_event.reset(s2)
+
+    def test_cross_type_event_elapsed_time_type_check(self):
+        """torch.npu.Event().elapsed_time() should reject non-Event arguments.
+
+        Before the fix, THNPEvent_elapsed_time used METH_O without type checking
+        and directly accessed the npu_event field, causing UB when passed a
+        non-THNPEvent object.
+        """
+        event1 = torch.npu.Event(enable_timing=True)
+        event2 = torch.npu.Event(enable_timing=True)
+
+        s = torch.Stream()
+        event1.record(s)
+        event2.record(s)
+        torch.npu.synchronize()
+
+        # Valid: two npu Events
+        ms = event1.elapsed_time(event2)
+        self.assertGreaterEqual(ms, 0)
+
+        # Invalid: passing a Stream should raise RuntimeError (type check)
+        with self.assertRaisesRegex(RuntimeError, "expected other to be a torch.npu.Event"):
+            event1.elapsed_time(s)
+
+    def test_accelerator_current_stream_same_underlying_stream_as_npu(self):
+        """torch.accelerator.current_stream() and torch.npu.current_stream()
+        should reference the same underlying NPU stream.
+
+        Although == returns False due to Python subclass __eq__ type
+        rejection, the base fields (stream_id, device_index, device_type)
+        must match.
+        """
+        s_acc = torch.accelerator.current_stream()
+        s_npu = torch.npu.current_stream()
+
+        self.assertEqual(s_acc.stream_id, s_npu.stream_id)
+        self.assertEqual(s_acc.device_index, s_npu.device_index)
+        self.assertEqual(s_acc.device_type, s_npu.device_type)
+
 
 if __name__ == "__main__":
     run_tests()

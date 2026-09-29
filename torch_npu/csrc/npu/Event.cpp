@@ -132,18 +132,39 @@ static PyObject* THNPEvent_get_device(THNPEvent* self, void* unused) {
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject* THNPEvent_record(THNPEvent* self, THNPStream* stream) {
-  HANDLE_TH_ERRORS
-  self->npu_event.record(stream->npu_stream);
-  ASCEND_LOGI("Event: record api is successfully executed, event=%p", self->npu_event.event());
+static PyObject* THNPEvent_record(PyObject* _self, PyObject* _stream) {
+  HANDLE_TH_ERRORS {
+    auto self = (THNPEvent*)_self;
+    TORCH_CHECK(
+        THPStream_Check(_stream),
+        "expected stream to be a torch.Stream or torch.npu.Stream object",
+        PTA_ERROR(ErrCode::PARAM));
+    auto stream = (THPStream*)_stream;
+    c10_npu::NPUStream npu_stream = c10_npu::NPUStream(c10::Stream::unpack3(
+        stream->stream_id,
+        static_cast<c10::DeviceIndex>(stream->device_index),
+        static_cast<c10::DeviceType>(stream->device_type)));
+    self->npu_event.record(npu_stream);
+    ASCEND_LOGI("Event: record api is successfully executed, event=%p", self->npu_event.event());
+  }
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject* THNPEvent_wait(THNPEvent* self, THNPStream* stream) {
+static PyObject* THNPEvent_wait(PyObject* _self, PyObject* _stream) {
   HANDLE_TH_ERRORS {
+    auto self = (THNPEvent*)_self;
+    TORCH_CHECK(
+        THPStream_Check(_stream),
+        "expected stream to be a torch.Stream or torch.npu.Stream object",
+        PTA_ERROR(ErrCode::PARAM));
+    auto stream = (THPStream*)_stream;
+    c10_npu::NPUStream npu_stream = c10_npu::NPUStream(c10::Stream::unpack3(
+        stream->stream_id,
+        static_cast<c10::DeviceIndex>(stream->device_index),
+        static_cast<c10::DeviceType>(stream->device_type)));
     pybind11::gil_scoped_release no_gil;
-    self->npu_event.block(stream->npu_stream);
+    self->npu_event.block(npu_stream);
     ASCEND_LOGI("Event: wait api is successfully executed, event=%p", self->npu_event.event());
   }
   Py_RETURN_NONE;
@@ -156,8 +177,11 @@ static PyObject* THNPEvent_query(THNPEvent* self, PyObject* noargs) {
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject* THNPEvent_elapsed_time(THNPEvent* self, THNPEvent* other) {
+static PyObject* THNPEvent_elapsed_time(PyObject* _self, PyObject* _other) {
   HANDLE_TH_ERRORS
+  auto self = (THNPEvent*)_self;
+  TORCH_CHECK(THNPEvent_Check(_other), "expected other to be a torch.npu.Event object", PTA_ERROR(ErrCode::PARAM));
+  auto other = (THNPEvent*)_other;
   return PyFloat_FromDouble(self->npu_event.elapsed_time(other->npu_event));
   END_HANDLE_TH_ERRORS
 }
@@ -178,10 +202,20 @@ static PyObject* THNPEvent_synchronize(THNPEvent* self, PyObject* noargs) {
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject* THNPEvent_reset(THNPEvent* self, THNPStream* stream) {
+static PyObject* THNPEvent_reset(PyObject* _self, PyObject* _stream) {
   HANDLE_TH_ERRORS {
+    auto self = (THNPEvent*)_self;
+    TORCH_CHECK(
+        THPStream_Check(_stream),
+        "expected stream to be a torch.Stream or torch.npu.Stream object",
+        PTA_ERROR(ErrCode::PARAM));
+    auto stream = (THPStream*)_stream;
+    c10_npu::NPUStream npu_stream = c10_npu::NPUStream(c10::Stream::unpack3(
+        stream->stream_id,
+        static_cast<c10::DeviceIndex>(stream->device_index),
+        static_cast<c10::DeviceType>(stream->device_type)));
     pybind11::gil_scoped_release no_gil;
-    self->npu_event.reset(stream->npu_stream);
+    self->npu_event.reset(npu_stream);
     ASCEND_LOGI("Event: reset api is successfully executed, event=%p", self->npu_event.event());
   }
   Py_RETURN_NONE;
