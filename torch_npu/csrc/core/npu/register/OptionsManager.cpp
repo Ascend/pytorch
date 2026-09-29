@@ -33,6 +33,40 @@ namespace option {
 
 using namespace std;
 
+namespace {
+
+std::unordered_map<int32_t, std::string> hcclZeroCopyMode = {{0, "close"}, {1, "open"}};
+
+std::unordered_map<int32_t, std::string> infNanMode = {{0, "max"}, {1, "inf_nan"}};
+
+std::unordered_map<int32_t, std::string> disableInfNanMode = {{0, "enable"}, {1, "disable"}};
+
+std::unordered_map<int32_t, std::string> combinedEnableMode = {{0, "close"}, {1, "open"}};
+
+std::unordered_map<int32_t, std::string> launchBlockingMode = {{0, "disable"}, {1, "enable"}};
+
+std::unordered_map<int32_t, std::string> asyncErrorHandlingMode = {
+    {0, "NoHandling"},
+    {1, "TearDown"},
+    {2, "CleanUpOnly"},
+    {3, "SkipCleanUp"}};
+
+std::unordered_map<int32_t, std::string> desyncDebugMode = {{0, "close"}, {1, "open"}};
+
+std::unordered_map<int32_t, std::string> logLevelMode =
+    {{0, "debug"}, {1, "info"}, {2, "warning"}, {3, "error"}, {4, "null"}};
+
+std::unordered_map<int32_t, std::string> memoryCacheMode = {{0, "open"}, {1, "close"}};
+
+std::unordered_map<int32_t, std::string> taskQueueEnableMode = {{0, "close"}, {1, "level 1"}, {2, "level 2"}};
+
+std::unordered_map<int32_t, std::string> aclOpInitMode = {
+    {0, "aclops init"},
+    {1, "aclops lazy init"},
+    {2, "aclops disabled"}};
+
+} // namespace
+
 std::atomic<int32_t> g_task_queue_enable_mode{TASK_QUEUE_ENABLE_ENV};
 
 char* get_and_log_env(const char* env_str)
@@ -48,7 +82,6 @@ bool OptionsManager::IsHcclZeroCopyEnable()
 {
     const static bool isHcclZeroCopyEnable = []() -> bool {
         int32_t enable = OptionsManager::GetBoolTypeOption("TORCH_HCCL_ZERO_COPY", 0);
-        std::unordered_map<int32_t, std::string> hcclZeroCopyMode = getHcclZeroCopyMode();
         if (hcclZeroCopyMode.find(enable) == hcclZeroCopyMode.end()) {
             TORCH_CHECK(false, "TORCH_HCCL_ZERO_COPY should be 0 or 1.", PTA_ERROR(ErrCode::VALUE));
         }
@@ -141,7 +174,6 @@ bool OptionsManager::CheckInfNanModeEnable()
 {
     const static bool checkInfNanModeEnable = []() -> bool {
         int32_t enable = OptionsManager::GetBoolTypeOption("INF_NAN_MODE_ENABLE", 1);
-        std::unordered_map<int32_t, std::string> infNanMode = getInfNanMode();
         if (infNanMode.find(enable) == infNanMode.end()) {
             TORCH_CHECK(false, "INF_NAN_MODE_ENABLE should be 0 or 1.", PTA_ERROR(ErrCode::VALUE));
         }
@@ -154,7 +186,6 @@ bool OptionsManager::CheckInfNanModeForceDisable()
 {
     const static bool checkInfNanModeForceDisable = []() -> bool {
         int32_t disable = OptionsManager::GetBoolTypeOption("INF_NAN_MODE_FORCE_DISABLE", 0);
-        std::unordered_map<int32_t, std::string> disableInfNanMode = getDisableInfNanMode();
         if (disableInfNanMode.find(disable) == disableInfNanMode.end()) {
             TORCH_CHECK(false, "INF_NAN_MODE_FORCE_DISABLE should be 0 or 1.", PTA_ERROR(ErrCode::VALUE));
         }
@@ -167,7 +198,6 @@ bool OptionsManager::CheckBlockingEnable()
 {
     const static bool checkBlockingEnable = []() -> bool {
         int32_t blocking_enable = OptionsManager::GetBoolTypeOption("ASCEND_LAUNCH_BLOCKING", 0);
-        std::unordered_map<int32_t, std::string> launchBlockingMode = getLaunchBlockingMode();
         if (launchBlockingMode.find(blocking_enable) == launchBlockingMode.end()) {
             TORCH_CHECK(false, "ASCEND_LAUNCH_BLOCKING should be 0 or 1.", PTA_ERROR(ErrCode::VALUE));
         }
@@ -180,7 +210,6 @@ bool OptionsManager::CheckCombinedOptimizerEnable()
 {
     const static bool checkCombinedOptimizerEnable = []() -> bool {
         int32_t combined_optimize = OptionsManager::GetBoolTypeOption("COMBINED_ENABLE");
-        std::unordered_map<int32_t, std::string> combinedEnableMode = getCombinedEnableMode();
         if (combinedEnableMode.find(combined_optimize) == combinedEnableMode.end()) {
             TORCH_CHECK(false, "COMBINED_ENABLE should be 0 or 1.", PTA_ERROR(ErrCode::VALUE));
         }
@@ -282,7 +311,6 @@ uint32_t OptionsManager::CheckUseHcclAsyncErrorHandleEnable()
             }
         }
         int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 1;
-        std::unordered_map<int32_t, std::string> asyncErrorHandlingMode = getAsyncErrorHandlingMode();
         if (asyncErrorHandlingMode.find(envFlag) == asyncErrorHandlingMode.end()) {
             TORCH_CHECK(false, "TORCH_HCCL_ASYNC_ERROR_HANDLING should be 0, 1, 2, or 3.", PTA_ERROR(ErrCode::VALUE));
         }
@@ -304,7 +332,6 @@ uint32_t OptionsManager::CheckUseDesyncDebugEnable()
             }
         }
         int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 0;
-        std::unordered_map<int32_t, std::string> desyncDebugMode = getDesyncDebugMode();
         if (desyncDebugMode.find(envFlag) == desyncDebugMode.end()) {
             TORCH_CHECK(false, "TORCH_HCCL_DESYNC_DEBUG should be 0 or 1.", PTA_ERROR(ErrCode::VALUE));
         }
@@ -321,7 +348,6 @@ bool OptionsManager::isACLGlobalLogOn(aclLogLevel level)
         char* env_val = std::getenv("ASCEND_GLOBAL_LOG_LEVEL");
         TORCH_NPU_LOGI(c10_npu::GetEnvLogger(), "get env ASCEND_GLOBAL_LOG_LEVEL = %s", env_val);
         int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : ACL_ERROR;
-        std::unordered_map<int32_t, std::string> logLevelMode = getLogLevelMode();
         if (logLevelMode.find(envFlag) == logLevelMode.end()) {
             TORCH_CHECK(false, "ASCEND_GLOBAL_LOG_LEVEL should be 0, 1, 2, 3 or 4.", PTA_ERROR(ErrCode::VALUE));
         }
@@ -604,8 +630,7 @@ uint32_t OptionsManager::GetAclOpInitMode()
                                 ", automatically switched to 2.");
             return default_mode;
         }
-        auto acl_op_init_mode_map = getAclOpInitMode();
-        if (acl_op_init_mode_map.find(static_cast<int32_t>(env_mode)) == acl_op_init_mode_map.end()) {
+        if (aclOpInitMode.find(static_cast<int32_t>(env_mode)) == aclOpInitMode.end()) {
             TORCH_NPU_WARN_ONCE("Get env ACL_OP_INIT_MODE not in [0, 1, 2], so reset it to the default value ",
                                 default_mode, ".");
             return default_mode;
@@ -652,7 +677,6 @@ uint32_t OptionsManager::GetTaskQueueEnable()
     const static uint32_t task_queue_enable = []() -> uint32_t {
         char* env_val = get_and_log_env("TASK_QUEUE_ENABLE");
         int64_t task_queue_enable = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 1;
-        std::unordered_map<int32_t, std::string> taskQueueEnableMode = getTaskQueueEnableMode();
         if (taskQueueEnableMode.find(task_queue_enable) == taskQueueEnableMode.end()) {
             TORCH_CHECK(false, "TASK_QUEUE_ENABLE should be 0, 1 or 2", PTA_ERROR(ErrCode::VALUE));
         }
@@ -663,8 +687,7 @@ uint32_t OptionsManager::GetTaskQueueEnable()
 
 void OptionsManager::SetTaskQueueEnable(int32_t mode)
 {
-    auto valid_modes = getTaskQueueEnableMode();
-    TORCH_CHECK(valid_modes.find(static_cast<int32_t>(mode)) != valid_modes.end(),
+    TORCH_CHECK(taskQueueEnableMode.find(static_cast<int32_t>(mode)) != taskQueueEnableMode.end(),
         "TASK_QUEUE_ENABLE should be 0, 1 or 2, but got ", mode,
         PTA_ERROR(ErrCode::VALUE));
     g_task_queue_enable_mode.store(mode, std::memory_order_relaxed);
@@ -688,7 +711,6 @@ bool OptionsManager::CheckForceUncached()
 {
     const static bool force_uncached = []() -> bool {
         bool force_uncached = OptionsManager::GetBoolTypeOption("PYTORCH_NO_NPU_MEMORY_CACHING");
-        std::unordered_map<int32_t, std::string> memoryCacheMode = getMemoryCacheMode();
         if (memoryCacheMode.find(force_uncached) == memoryCacheMode.end()) {
             TORCH_CHECK(false, "PYTORCH_NO_NPU_MEMORY_CACHING should be 0 or 1.", PTA_ERROR(ErrCode::VALUE));
         }
