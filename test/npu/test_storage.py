@@ -8,6 +8,91 @@ from torch_npu.testing.common_utils import SupportedDevices
 
 class TestStorage(TestCase):
 
+    def test_int_storage_constructor(self):
+        # PyTorch community does not fully cover IntStorage constructor forms.
+        values = [-1, 0, 1, 2, 3, 4]
+
+        cpu_empty = torch.IntStorage()
+        self.assertEqual(cpu_empty.size(), 0)
+        self.assertIs(cpu_empty.dtype, torch.int32)
+        self.assertEqual(cpu_empty.device.type, "cpu")
+        self.assertEqual(cpu_empty.type(), "torch.IntStorage")
+
+        cpu_size = torch.IntStorage(4)
+        self.assertEqual(cpu_size.size(), 4)
+        self.assertIs(cpu_size.dtype, torch.int32)
+        self.assertEqual(cpu_size.device.type, "cpu")
+        self.assertEqual(cpu_size.type(), "torch.IntStorage")
+
+        cpu_zero = torch.IntStorage(0)
+        self.assertEqual(cpu_zero.size(), 0)
+        self.assertEqual(cpu_zero.tolist(), [])
+        self.assertIs(cpu_zero.dtype, torch.int32)
+        self.assertEqual(cpu_zero.device.type, "cpu")
+        self.assertEqual(cpu_zero.type(), "torch.IntStorage")
+
+        cpu_empty_sequence = torch.IntStorage([])
+        self.assertEqual(cpu_empty_sequence.size(), 0)
+        self.assertEqual(cpu_empty_sequence.tolist(), [])
+        self.assertIs(cpu_empty_sequence.dtype, torch.int32)
+        self.assertEqual(cpu_empty_sequence.device.type, "cpu")
+        self.assertEqual(cpu_empty_sequence.type(), "torch.IntStorage")
+
+        cpu_sequence = torch.IntStorage(values)
+        self.assertEqual(cpu_sequence.tolist(), values)
+        self.assertIs(cpu_sequence.dtype, torch.int32)
+        self.assertEqual(cpu_sequence.device.type, "cpu")
+        self.assertEqual(cpu_sequence.type(), "torch.IntStorage")
+
+        cpu_untyped = torch.UntypedStorage(16)
+        cpu_wrapped = torch.IntStorage(wrap_storage=cpu_untyped)
+        self.assertEqual(cpu_wrapped.size(), 4)
+        self.assertIs(cpu_wrapped.dtype, torch.int32)
+        self.assertEqual(cpu_wrapped.device.type, "cpu")
+
+        npu_tensor = torch.tensor(values, dtype=torch.int32, device="npu")
+        npu_untyped = npu_tensor.untyped_storage()
+        npu_storage = torch_npu.npu.IntStorage(wrap_storage=npu_untyped)
+        self.assertEqual(npu_storage.size(), 6)
+        self.assertEqual(npu_storage.cpu().tolist(), values)
+        self.assertIs(npu_storage.dtype, torch.int32)
+        self.assertEqual(npu_storage.device.type, "npu")
+        self.assertEqual(npu_storage.type(), "torch_npu.npu.IntStorage")
+
+        npu_size = torch_npu.npu.IntStorage(4)
+        self.assertEqual(npu_size.size(), 4)
+        self.assertIs(npu_size.dtype, torch.int32)
+        self.assertEqual(npu_size.device.type, "npu")
+        self.assertEqual(npu_size.type(), "torch_npu.npu.IntStorage")
+
+        npu_sequence = torch_npu.npu.IntStorage(values)
+        self.assertEqual(npu_sequence.cpu().tolist(), values)
+        self.assertIs(npu_sequence.dtype, torch.int32)
+        self.assertEqual(npu_sequence.device.type, "npu")
+        self.assertEqual(npu_sequence.type(), "torch_npu.npu.IntStorage")
+
+        npu_empty_sequence = torch_npu.npu.IntStorage([])
+        self.assertEqual(npu_empty_sequence.size(), 0)
+        self.assertEqual(npu_empty_sequence.cpu().tolist(), [])
+        self.assertIs(npu_empty_sequence.dtype, torch.int32)
+        self.assertEqual(npu_empty_sequence.device.type, "npu")
+        self.assertEqual(npu_empty_sequence.type(), "torch_npu.npu.IntStorage")
+
+        with self.assertRaises(RuntimeError):
+            torch.IntStorage(1, 2)
+
+        with self.assertRaises(TypeError):
+            torch.IntStorage(object())
+
+        with self.assertRaises(RuntimeError):
+            torch.IntStorage(dtype=torch.int32)
+
+        with self.assertRaises(RuntimeError):
+            torch.IntStorage(device="cpu")
+
+        with self.assertRaises(TypeError):
+            torch.IntStorage(wrap_storage=object())
+
     def test_storage_method(self):
         # The commented out part are unsupported data types by operators.
         storage_types = [
