@@ -12,11 +12,10 @@ from torch._inductor.runtime.triton_helpers import (
 try:
     extension = tl.extra.cann.extension
     libdevice = tl.extra.cann.libdevice
+    math = tl.math
 except Exception as e:
     logging.debug(f"import tl.extra.cann.extension or tl.extra.cann.libdevice error: {e}")
-    libdevice = tl.extra.ascend.libdevice
 
-math = tl.math
 
 @triton.jit
 def frexp(x):
