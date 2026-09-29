@@ -440,20 +440,6 @@ if CURRENT_VERSION < (2, 14) or not _upstream_supports_npu_default_backend():
 
                     backend_class = creator_fn(dist_backend_opts, backend_options)
 
-            # Set sequence numbers for gloo and nccl backends.
-            if backend_str == Backend.GLOO:
-                if not isinstance(backend_class, ProcessGroupGloo):
-                    raise AssertionError(
-                        f"Expected ProcessGroupGloo, got {type(backend_class)}"
-                    )
-                backend_class._set_sequence_number_for_group()
-            elif backend_str == Backend.NCCL:
-                if not isinstance(backend_class, ProcessGroupNCCL):
-                    raise AssertionError(
-                        f"Expected ProcessGroupNCCL, got {type(backend_class)}"
-                    )
-                backend_class._set_sequence_number_for_group()
-
             # If the type is a subclass of ProcessGroup then return this process group immediately
             # TODO: This defaults to the old behavior for PythonProcessGroups which overwrites the
             # ProcessGroup instance

@@ -703,8 +703,11 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
 
   static const int64_t kProcessGroupHCCLOpTimeoutMillis;
 
-  // Agrees on an initial sequence number for the whole group by having rank 0
-  // create it and broadcast it to other ranks using the store.
+  // COMPAT(< 2.14): torch < 2.14's Backend::setSequenceNumberForGroup() throws
+  //   unless the backend overrides it (2.14, pytorch#188611, turns it into a
+  //   warning no-op and removes the backend overrides), so HCCL keeps this
+  //   empty override.
+  // CAN REMOVE when MIN_SUPPORTED >= (2, 14)
   void setSequenceNumberForGroup() override;
 
   // Retrieves the current sequence number for the whole group, which should be

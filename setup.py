@@ -831,6 +831,10 @@ setup(
         'torch.backends': [
             'torch_npu = torch_npu:_autoload',
         ],
+        'torch.distributed.backends': [
+            'hccl = torch_npu._init.registry.distributed:register_distributed_backend_for_npu',
+            'lccl = torch_npu._init.registry.distributed:register_distributed_backend_for_npu',
+        ],
         'torch_dynamo_backends': [
             'npu = torch_npu.dynamo:_npu_backend_entrypoint',
             'npugraph_ex = torch_npu.dynamo:_npugraph_ex_backend_entrypoint',

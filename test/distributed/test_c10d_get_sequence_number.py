@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Validate ``ProcessGroup._get_sequence_number_for_group`` on NPU.
+"""Validate the sequence number getter and setter on NPU.
 
 On torch < 2.14 the upstream implementation only accepts backends in the
 backendSupportsSequenceNumbers whitelist and rejects CUSTOM (HCCL), so
@@ -24,6 +24,11 @@ upstream implementation for other backends. On torch >= 2.14
 (pytorch#190138) the upstream implementation covers HCCL natively and
 the shim is not installed. See the upstream test
 ``pytorch/test/distributed/test_c10d_nccl.py::ProcessGroupNCCLTest::test_sequence_number_initialized``.
+
+The ``Backend`` level setter is kept for compatibility: on torch < 2.14
+``Backend::setSequenceNumberForGroup()`` throws for backends without an
+override, so ``ProcessGroupHCCL`` keeps an empty override until the minimum
+supported torch version reaches 2.14 (pytorch#188611).
 """
 
 import os
@@ -101,6 +106,25 @@ class TestGetSequenceNumber(TestCase):
         try:
             seq = c10d._get_default_group()._get_sequence_number_for_group()
             self.assertIsInstance(seq, int)
+        finally:
+            dist.destroy_process_group()
+
+    @skipIfUnsupportMultiNPU(1)
+    def test_set_sequence_number_for_group_hccl(self):
+        """The hccl backend setter must not raise on any supported torch.
+
+        On torch < 2.14 ``Backend::setSequenceNumberForGroup()`` throws for
+        backends without an override, so ``ProcessGroupHCCL`` keeps an empty
+        override; without it this call raises "Backend hccl does not yet
+        support sequence numbers". On torch >= 2.14 the base implementation
+        is a warning no-op.
+        """
+        torch.npu.set_device(0)
+        store = dist.FileStore(os.path.join(tempfile.mkdtemp(), "store"), 1)
+        dist.init_process_group("hccl", rank=0, world_size=1, store=store)
+        try:
+            backend = c10d._get_default_group()._get_backend(torch.device("npu"))
+            backend._set_sequence_number_for_group()
         finally:
             dist.destroy_process_group()
 
