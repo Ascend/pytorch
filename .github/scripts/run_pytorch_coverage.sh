@@ -20,8 +20,8 @@ set -euo pipefail
 # Merge mode (--merge) unions the shard dirs into the final artifact:
 #
 #     <artifact>/
-#     ├── convstub/pytorch/
-#     │   ├── pytorch/                  source snapshot (coverage sources)
+#     ├── covstub/
+#     │   ├── torch/                    source snapshot (coverage sources)
 #     │   └── test/                     test files of that snapshot
 #     └── pytorch@latest/
 #         ├── test/nn/test_linear.py/covdata/coverage   per test file data
