@@ -18,8 +18,9 @@ export MULTI_STREAM_MEMORY_REUSE=0
 ```
 
 ## 使用约束
-
-无
+MULTI_STREAM_MEMORY_REUSE=2:
+1. 对于返回 Work 对象的异步集合通信，必须调用该对象的 wait() 方法。
+2. 点对点通信的内存保护机制回退到recordStream。
 
 ## 支持的型号
 
