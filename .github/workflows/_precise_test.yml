@@ -1,20 +1,13 @@
-# 工作流名称：精确测试选测（作用：覆盖率流水线的下游消费者——根据 PR 改动，从“测试->源码”映射里挑出该跑的测试）
-# 作用（触发来源）：只服务 PR 事件——用载荷里的上游 PR（pytorch/pytorch）；非 PR 事件（push/调试）不做选测
 name: Precise Test
 
 on:
-  # workflow_call：声明本文件是可被上层（PR 触发器）复用的入口（作用：触发与执行解耦，PR 事件只需带参数调它）
   workflow_call:
     inputs:
-      # 输入一，作用：区分这次是“PR 事件”还是其他来源，只有 pull_request 才做选测
-      # 作用（取值约定）：来自 repository_dispatch 的事件类型；非 pull_request（push/调试）直接跳过
       event_type:
         required: false
         type: string
         default: ''
         description: Event type from repository_dispatch (pull_request)
-      # 输入二，作用：给选测步骤提供 PR 信息（哪个仓、哪个 PR 号）
-      # 作用（取值约定）：repository_dispatch 的 client_payload 原始 JSON 字符串，由本工作流自己解析
       payload:
         required: false
         type: string
@@ -22,57 +15,41 @@ on:
         description: Full client_payload as a JSON string
 
 jobs:
-  # 前置 job（作用：把“要不要跑”的判断放在容器之外——非 PR 事件 / 未合入 PR 完全不起容器）
   prepare:
-    # 任务名（作用：Actions 页面一眼认出这是选测的前置判断）
     name: Resolve the PR to compare
-    # GitHub 托管机型（作用：只做载荷解析 + GitHub API 查询，不需要容器；与 receive-trigger 的 extract 同款）
     runs-on: ubuntu-latest
-    # 交给下游（作用：为空表示本次不需要选测，主 job 直接跳过）
     outputs:
       github_pr: ${{ steps.parse.outputs.github_pr }}
     defaults:
       run:
-        # 统一 bash（作用：下面脚本用到 bash 语义，避免默认 sh 行为差异）
         shell: bash
     steps:
-      # 确定要比对哪个 PR（作用：PR 事件用载荷里的 PR；非 PR 事件（push/调试）/ 未合入 PR 都直接跳过）
       - name: Parse the dispatch payload
-        # 步骤 id（作用：把解析出的 PR 作为 job output 交给下游）
         id: parse
         env:
-          # 事件类型与原始载荷（作用：通过 env 传入，避免把长 JSON 直接拼进脚本导致转义问题）
           EVENT_TYPE: ${{ inputs.event_type }}
           PAYLOAD_JSON: ${{ inputs.payload }}
-          # 调 GitHub API 用（作用：载荷里没带 Merged 标签时补查标签接口，需要鉴权避免限流）
           GH_TOKEN: ${{ github.token }}
         run: |
-          # 出错即退 + 未定义变量报错 + 管道失败即失败（作用：尽早暴露问题，避免拿着空值继续跑）
           set -euo pipefail
 
-          # PR 事件（作用：正式链路，PR 号必须能从载荷里解析出来）
           if [ "${EVENT_TYPE}" = "pull_request" ]; then
-            # 解析 PR 号与上游仓库（作用：选测 API 需要“仓库 + PR 号”才能拿到改动清单）
             PR_NUMBER=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.number // empty')
             UPSTREAM_REPO=$(echo "$PAYLOAD_JSON" | jq -r '.payload.repository.full_name // empty')
 
-            # 解析失败直接失败（作用：字段名/结构变了要立刻暴露，而不是静默选出零测试）
             if [ -z "${PR_NUMBER}" ] || [ -z "${UPSTREAM_REPO}" ]; then
               echo "ERROR: cannot read the PR number / upstream repo from the payload" >&2
               exit 1
             fi
 
-            # 判断：是否需要后续精准选测（作用：口径与 receive-trigger 的 extract 一致——只有 closed + Merged 标签的“已合入” PR 才需要）
             ACTION=$(echo "$PAYLOAD_JSON" | jq -r '.payload.action // empty')
             HAS_MERGED=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.labels // [] | map(.name) | index("Merged") // ""')
             if [ "${ACTION}" = "closed" ] && [ -z "${HAS_MERGED}" ]; then
-              # 载荷里没有标签就补查 API（作用：MergeBot 可能在 closed 之后才补标签，同 receive-trigger 的兜底）
               LABELS_RESPONSE=$(curl -sS --max-time 30 \
                 -H "Authorization: Bearer ${GH_TOKEN}" \
                 "https://api.github.com/repos/${UPSTREAM_REPO}/issues/${PR_NUMBER}/labels" || echo '[]')
               HAS_MERGED=$(echo "${LABELS_RESPONSE}" | jq -r '[.[].name] | index("Merged") // ""' 2>/dev/null || true)
             fi
-            # 不需要就整体跳过（作用：不输出 PR，下游 job 收到空值直接跳过，不为未合入的 PR 起容器）
             if [ "${ACTION}" != "closed" ] || [ -z "${HAS_MERGED}" ]; then
               echo "::notice::PR ${UPSTREAM_REPO}#${PR_NUMBER} is not a landed PR (action='${ACTION}', Merged label='${HAS_MERGED:-none}'), the precise selection is skipped"
               {
@@ -83,7 +60,6 @@ jobs:
               } >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
-            # 写成统一标识交给下游（作用：把“仓#号”这一约定集中一处，后面步骤直接复用）
             echo "github_pr=${UPSTREAM_REPO}#${PR_NUMBER}" >> "$GITHUB_OUTPUT"
 
             echo "=== pull request ==="
@@ -91,50 +67,33 @@ jobs:
             exit 0
           fi
 
-          # 非 PR 事件（push / 调试运行）（作用：不涉及 PR，选测无事可做，直接跳过、不输出 PR）
           echo "::notice::event_type='${EVENT_TYPE}' is not pull_request, the precise selection is skipped"
 
-  # 主 job（作用：准备映射原料 -> 建映射 -> 选测试 -> 展示结果）
-  # 作用（为什么全放一个 job）：中间产物（covdata-set、test_case_map.json）留在同一台机器上，不用跨 job 上传下载
   precision-test:
     needs: [prepare]
-    # 前置 job 没解析出 PR（非 PR 事件 / 未合入 PR）就整段跳过（作用：不起容器，跳过型运行的全部收益就在这里）
     if: ${{ needs.prepare.outputs.github_pr }}
-    # 任务名（作用：在 Actions 页面一眼认出这是选测任务，而非全量测试）
     name: Precise test case selection
-    # 自托管机型（作用：要把 OBS 上几百 MB 覆盖率数据拉下来，需要大磁盘/稳定网络的自托管机）
     runs-on: linux-aarch64-cpu-24
-    # 超时 60 分钟（作用：建映射要遍历大量覆盖率数据，给足时长避免被误杀）
     timeout-minutes: 60
     defaults:
       run:
-        # 统一 bash（作用：下面脚本用到 bash 语义，避免默认 sh 行为差异）
         shell: bash
     container:
-      # 容器镜像（作用：镜像内预装 obsutil 与依赖，省去每次现场安装，也保证环境一致）
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609230923-00b993fc
-      # 宿主网络（作用：下载 OBS 更稳，少一层 NAT 开销）
       options: --network host
     env:
-      # 待比对的 PR（作用：由前置 job 解析后传入，下面各步骤用 env.github_pr 判断/取值）
       github_pr: ${{ needs.prepare.outputs.github_pr }}
-      # pip 镜像（作用：需要装包时更快，走华为云内网）
       PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
     steps:
-      # 步骤 1：下载覆盖率数据并校验（作用：拿到上游精确测试所需的两个输入——覆盖率数据 + 源码快照）
       - name: Download the coverage data from OBS
-        # 没有可比的 PR 就跳过（作用：非 PR 事件 / 未合入的 PR 不白拉几百 MB 覆盖率数据）
         if: ${{ env.github_pr != '' }}
         run: |
-          # 出错即退（作用：数据不全会导致映射不可用，宁可失败也不要产出残缺映射）
           set -euo pipefail
 
-          # 配置 obsutil 凭据（作用：访问 OBS 必需）
           obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
 
           PREFIX="obs://pytorch-ci-cache/coverage/pytorch"
 
-          # 读发布指针（作用：拿当前 release 的 run_id；指针是最后原子写入的，读到即代表那份数据已完整发布）
           RUN_ID=""
           if obsutil cp "${PREFIX}/latest/pointer.json" /tmp/pointer.json -f -vlength >/dev/null 2>&1; then
             RUN_ID=$(python3 -c "import json;print(json.load(open('/tmp/pointer.json')).get('run_id',''))" 2>/dev/null || true)
@@ -143,19 +102,27 @@ jobs:
             SRC="${PREFIX}/releases/${RUN_ID}/"
             echo "pointer.json: run_id=${RUN_ID}"
           else
-            # 没有指针就退回旧的扁平布局（作用：兼容指针方案上线前的发布）
             SRC="${PREFIX}/latest/"
             echo "::warning::no pointer.json under ${PREFIX}/latest/, falling back to the flat layout"
           fi
 
-          # 最多重试 3 次（作用：容忍网络抖动，避免一次失败就丢掉整个选测）
+          ARCHIVE="${SRC}release.tar.gz"
+          LAYOUT="dir"
+          if obsutil stat "${ARCHIVE}" >/dev/null 2>&1; then
+            LAYOUT="archive"
+          fi
+          echo "release layout: ${LAYOUT}"
+
           DOWNLOADED=""
           for attempt in 1 2 3; do
             echo "=== Download attempt ${attempt} ==="
-            # 清空重建下载目录（作用：避免上次残留混入，导致选错目录/脏数据）
             rm -rf coverage && mkdir -p coverage
-            # 只下指针指向的那个 release（作用：数据本体与源码快照都在这个前缀下，一次拉全）
-            if obsutil cp "${SRC}" coverage/ -r -f -vlength; then
+            if [ "${LAYOUT}" = "archive" ]; then
+              if obsutil cp "${ARCHIVE}" /tmp/release.tar.gz -f -vlength && tar -xzf /tmp/release.tar.gz -C coverage; then
+                DOWNLOADED=1
+                break
+              fi
+            elif obsutil cp "${SRC}" coverage/ -r -f -vlength; then
               DOWNLOADED=1
               break
             fi
@@ -167,31 +134,24 @@ jobs:
           fi
 
           echo "=== OBS layout ==="
-          # 打印目录结构（作用：出问题时能立刻看出多了一层 artifacts/ 之类的嵌套问题）
           find coverage -maxdepth 3 -type d | sort | head -20
 
-          # 校验并解析出两个关键路径（作用：把“目录结构约定”固化下来，后面步骤直接用环境变量）
           EXPECTED_RUN_ID="${RUN_ID}" python3 - <<'PYEOF'
           import json
           import os
           import sys
           from pathlib import Path
 
-          # 下载根目录（作用：所有查找都在它下面进行）
           root = Path("coverage")
           reports = sorted(root.rglob("coverage.xml"))
           if not reports:
-              # 没有报告说明下载不完整或远端结构变了（作用：尽早失败，避免后面白跑）
               sys.exit("ERROR: coverage.xml not found under the OBS download")
 
-          # 排序权重（作用：优先选 pytorch@latest 目录下的报告，避免误选历史/嵌套副本）
           def rank(path: Path) -> int:
               return 0 if path.name == "pytorch@latest" else 1
 
-          # 覆盖率数据目录 = 报告的上一级（作用：后面按它找 per-test covdata 与 manifest）
           cov_dir = sorted((r.parent for r in reports), key=rank)[0]
 
-          # 判断某个目录是否是“源码快照根”（作用：兼容 torch -> pytorch 的改名历史，两种包名都能识别）
           def package_root(item: Path) -> str | None:
               for name in ("pytorch", "torch"):
                   package = item / name
@@ -199,31 +159,25 @@ jobs:
                       return name
               return None
 
-          # 找出所有源码快照候选（作用：只认放在 convstub/covstub 下、且确实含包的目录，排除干扰目录）
           snaps = [
               item
               for item in root.rglob("*")
               if item.is_dir()
-              and any(part in ("convstub", "covstub") for part in item.parts)
+              and any(part in ("covstub", "convstub") for part in item.parts)
               and package_root(item)
           ]
           if not snaps:
-              # 没有源码快照就没法把覆盖率数据映射回源码（作用：这是硬前提，直接失败并说明原因）
-              sys.exit("ERROR: no source snapshot (convstub/<pkg>) found under the OBS download")
+              sys.exit("ERROR: no source snapshot (covstub/<pkg>) found under the OBS download")
 
-          # 选层级最浅、路径最靠前的那个快照（作用：避免误选到嵌套的副本目录）
           source_dir = sorted(snaps, key=lambda p: (len(p.parts), p.as_posix()))[0]
           package = package_root(source_dir)
-          # 测试分组数 = test/ 下 covdata 目录个数（作用：与 manifest 用同一口径统计，便于核对完整性）
           cases = len(list((cov_dir / "test").glob("**/covdata")))
 
-          # manifest 是覆盖率流水线发布的“身份信息”（作用：没有它说明这份数据不是正式发布的，不能用来选测）
           manifest_file = cov_dir / "manifest.json"
           if not manifest_file.is_file():
               sys.exit(f"ERROR: no manifest.json in {cov_dir}, the coverage data was not published by the coverage pipeline")
           manifest = json.loads(manifest_file.read_text(encoding="utf-8"))
 
-          # 打印关键字段（作用：把“这份数据是哪个 commit/哪次 run”写进日志，便于排查数据版本不符）
           print("manifest:")
           for key in ("workflow", "run_id", "event", "pytorch_short", "generated_at", "test_groups", "total_cases"):
               print(f"  {key}: {manifest.get(key)}")
@@ -231,127 +185,86 @@ jobs:
           print(f"source dir:    {source_dir} (package: {package}/)")
           print(f"test cases:    {cases}")
           print(f"coverage.xml:  {(cov_dir / 'coverage.xml').stat().st_size} bytes")
-          # 与发布指针对齐（作用：确认取到的就是当前发布的那一份）
           expected_run = os.environ.get("EXPECTED_RUN_ID", "")
           if expected_run and str(manifest.get("run_id", "")) != expected_run:
               sys.exit(f"ERROR: manifest run_id {manifest.get('run_id')!r} does not match the pointer run_id {expected_run!r}")
-          # 一条 per-test 数据都没有 = 这份发布不可用于选测（作用：0 == 0 也能通过下面的计数比对，先拦住）
           if not cases:
               sys.exit(f"ERROR: no per-test coverage data under {cov_dir}/test")
-          # 分组数对不上直接失败（作用：数据不完整时不要在残缺映射上选测）
           if manifest.get("test_groups") != cases:
               sys.exit(f"ERROR: coverage data is incomplete: manifest reports {manifest.get('test_groups')} test group(s), found {cases} under {cov_dir}/test")
-          # 包名不是 pytorch 说明是改名前的旧快照（作用：提示函数级匹配会失效）
-          if package != "pytorch":
-              print("WARNING: the snapshot predates the torch -> pytorch rename, function-level matching will be skipped")
-          # 产物侧发布的映射文件（作用：有就直接用，省掉现场摊平与建图；旧发布没有则退回现场建图）
           map_file = cov_dir / "test_case_map.json"
           print(f"test_case_map: {'published' if map_file.is_file() else 'not published, will be built on the spot'}")
-          # 把两个路径写到临时文件（作用：给后续步骤提供 TASK_DIR / SOURCE_DIR / MAP_FILE，避免各处重复查找）
           Path("/tmp/precise.env").write_text(f"TASK_DIR={cov_dir}\nSOURCE_DIR={source_dir}\nMAP_FILE={map_file if map_file.is_file() else ''}\n")
           PYEOF
 
-          # 注入后续步骤的环境（作用：同 job 内跨步骤传值；同时打印一次便于核对）
           cat /tmp/precise.env >> "$GITHUB_ENV"
           cat /tmp/precise.env
 
-      # 步骤 2：把覆盖率数据摊平成选测工具要求的目录布局（作用：适配 action 的输入约定，不改动原始数据；产物侧已发布映射时整步跳过）
       - name: Flatten the coverage data for the selector
-        # 发布里没有映射才现场摊平（作用：与建图步骤同为旧数据的兜底路径）
         if: ${{ env.github_pr != '' && env.MAP_FILE == '' }}
         run: |
-          # 出错即退（作用：摊平不完整会导致映射缺少测试项，宁可失败）
           set -euo pipefail
 
           python3 - <<'PYEOF'
           import shutil
           from pathlib import Path
 
-          # 源目录来自上一步解析（作用：明确摊平的输入）
           cov_dir = Path("${{ env.TASK_DIR }}")
-          # 摊平后的输出目录（作用：作为下面 action 的 coverage-dir 输入）
           flat_dir = Path("covdata-set")
 
-          # 清空重建（作用：避免上一次运行的平坦数据残留混入）
           shutil.rmtree(flat_dir, ignore_errors=True)
           flat_dir.mkdir(parents=True)
 
           files = 0
           for covdata in sorted(cov_dir.glob("**/covdata")):
-              # 相对路径即测试文件路径（作用：它同时就是“测试用例”的名字来源）
               test_file = covdata.parent.relative_to(cov_dir).as_posix()
-              # 只处理 test/ 下的 .py（作用：过滤掉 _unmapped 等特殊分组，保证映射只含真实测试文件）
               if not test_file.startswith("test/") or not test_file.endswith(".py"):
                   continue
-              # 目录名规则：测试文件路径把 / 换成 __（作用：满足 action 的扁平命名约定，同时保留可读的层级信息）
               case_dir = flat_dir / test_file[:-3].replace("/", "__") / "covdata"
               case_dir.mkdir(parents=True, exist_ok=True)
-              # 拷贝 coverage* 数据文件（作用：coverage 本体 + 可能的附属文件一起带走，避免漏拷）
               for src in covdata.glob("coverage*"):
                   shutil.copy2(src, case_dir / src.name)
                   files += 1
 
           cases = sum(1 for item in flat_dir.iterdir() if item.is_dir())
           print(f"selector input: {files} coverage file(s) in {cases} test case dir(s)")
-          # 一条数据都没有就直接失败（作用：避免用空输入建出空映射，进而选出零测试）
           if not cases:
               raise SystemExit(f"ERROR: no per-test coverage data found under {cov_dir}")
-          # 打印前几个样例（作用：出问题时能直观看到目录命名与文件是否对）
           for item in sorted(flat_dir.iterdir())[:5]:
               print(f"  {item.name}/covdata/{sorted(p.name for p in item.glob('covdata/*'))}")
           PYEOF
 
-      # 步骤 3：构建“测试 -> 源码”映射（作用：把覆盖率数据 + 源码快照转成选测可用的映射表；产物侧已发布映射时整步跳过）
       - name: generate-test-case-map
-        # 发布里没有映射才现场建图（作用：兼容指针方案上线前的旧发布）
         if: ${{ env.github_pr != '' && env.MAP_FILE == '' }}
         uses: lb-actions/precision-test@v1.0.1
         with:
-          # 仓库类型（作用：告诉 action 用哪套适配逻辑解析 pytorch 的代码结构）
           repo: torch_npu
-          # 构建映射模式（作用：本次只建映射不选测试，选测试在下一步）
           build-map: true
-          # 摊平后的覆盖率数据目录（作用：上一步产物，作为映射的数据来源）
           coverage-dir: covdata-set
-          # 源码快照目录（作用：把覆盖率行号对应到源码函数/行，供改动匹配）
           source-dir: ${{ env.SOURCE_DIR }}
-          # 映射文件落点（作用：下一步选测直接复用同一文件，无需重建）
           map-file: test_case_map.json
 
-      # 步骤 4：根据 PR 改动选测试（作用：本工作流的核心产出——最小必要测试集）
       - name: generate-select-tests-case
-        # 没有可比的 PR 就跳过（作用：非 PR 事件 / 未合入的 PR 不做选测；同时避免空 github_pr 调 API 失败）
         if: ${{ env.github_pr != '' }}
-        # 不阻塞整体（作用：选测失败不应让 PR 流程红掉，结果是否可信交由校验步骤判定）
         continue-on-error: true
         uses: lb-actions/precision-test@v1.0.1
         with:
           repo: torch_npu
-          # 要分析改动的 PR（作用：action 会拉取该 PR 的 diff，与映射表比对）
           github-pr: ${{ env.github_pr }}
           source-dir: ${{ env.SOURCE_DIR }}
-          # 复用发布的映射（作用：产物侧建好的直接用；旧发布没有时 fallback 用现场建的 test_case_map.json）
           map-file: ${{ env.MAP_FILE || 'test_case_map.json' }}
-          # 去重（作用：同一测试文件被多条改动命中时只保留一条）
           dedup: true
         env:
-          # 给 action 调 GitHub API 用（作用：拉取 PR 改动清单需要鉴权，避免限流）
           GITHUB_TOKEN: ${{ github.token }}
-          # 单次 Python 执行超时（作用：建图/比对可能较慢，给足 900s 防止被误杀）
           PYTHON_EXEC_TIMEOUT_SECONDS: "900"
 
-      # 步骤 5：展示选测结果（作用：结果写进 job summary，并逐条标注选择原因；空结果只告警不判红）
       - name: Show the selection result
-        # 有可比的 PR 才展示（作用：非 PR 事件 / 未合入的 PR 不产出结果）
         if: ${{ env.github_pr != '' }}
         env:
-          # 拉 PR 改动清单用（作用：标注“PR 变更的测试文件”这一来源，只做展示，不参与判定）
           GH_TOKEN: ${{ github.token }}
         run: |
-          # 出错即退（作用：展示环节保持严格，避免拼错命令却静默通过）
           set -euo pipefail
 
-          # 摘要文件（作用：结论与清单写进 Actions 的 job summary，不翻日志也能看到）
           SUMMARY="$GITHUB_STEP_SUMMARY"
           {
             echo "## Precise test selection"
@@ -359,18 +272,15 @@ jobs:
             echo "- PR: \`${github_pr}\`"
           } >> "$SUMMARY"
 
-          # 空结果只告警（作用：不猜原因——取 diff 失败或没有测试覆盖改动行，都以上面选测步骤的日志为准）
           if [ ! -s recommended_pytest_paths.txt ]; then
             echo "::warning::the selector recommended 0 test file(s) for ${github_pr}; check the selector log (a failed PR diff fetch or no mapped coverage for the changed lines)"
             echo "- Recommended test files: 0" >> "$SUMMARY"
             exit 0
           fi
 
-          # 拆出仓库与 PR 号（作用：github_pr 的约定是 owner/repo#number）
           REPO="${github_pr%%#*}"
           NUM="${github_pr##*#}"
 
-          # 拉 PR 改动文件清单，挑出其中的测试文件（作用：复现选测器规则——test/ 下 test_*.py、排除已删除；4 页足以覆盖超长改动清单）
           CHANGED_TESTS=/tmp/pr-changed-tests.txt
           : > "${CHANGED_TESTS}"
           API_OK=0
@@ -400,7 +310,6 @@ jobs:
             echo "::notice::the PR changed-files API returned ${CODE}; the reasons are not annotated"
           fi
 
-          # 逐条标注来源写进摘要（作用：区分“PR 自己改的测试（选测器直接加入，不查映射）”与“覆盖率映射命中”）
           COUNT="$(wc -l < recommended_pytest_paths.txt)"
           echo "selection ok: ${COUNT} test file(s) recommended"
           {
