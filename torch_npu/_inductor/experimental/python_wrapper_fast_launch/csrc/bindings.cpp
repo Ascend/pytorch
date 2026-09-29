@@ -17,12 +17,69 @@
 #include <torch/csrc/Exceptions.h>
 #include <torch/csrc/utils/pybind.h>
 
+#include <torch_npu/csrc/core/npu/interface/AclCallDecorator.h>
+#include <torch_npu/csrc/core/npu/register/FunctionLoader.h>
 #include <torch_npu/csrc/framework/OpCommand.h>
 #include <torch_npu/csrc/inductor/mlir/hacl_rt.h>
 
 namespace py = pybind11;
 
 namespace {
+
+#undef TORCH_NPU_LOAD_FUNC
+#define TORCH_NPU_LOAD_FUNC(funcName) \
+  TORCH_NPU_REGISTER_FUNCTION(libascendcl, funcName)
+
+#undef TORCH_NPU_GET_FUNC
+#define TORCH_NPU_GET_FUNC(funcName) \
+  TORCH_NPU_GET_FUNCTION(libascendcl, funcName)
+
+// Register the library before its function in this translation unit, without
+// relying on the initialization order of other ACL interface files.
+TORCH_NPU_REGISTER_LIBRARY(libascendcl)
+TORCH_NPU_LOAD_FUNC(aclrtLaunchKernelWithHostArgs)
+
+using AclrtLaunchKernelWithHostArgsFunc = decltype(&::aclrtLaunchKernelWithHostArgs);
+
+AclrtLaunchKernelWithHostArgsFunc AclrtGetLaunchKernelWithHostArgsFunc() {
+  // Resolve only when a plan is requested, caching both presence and absence.
+  // Keep the loader's registry lookup and mutex off the steady-state path.
+  static const AclrtLaunchKernelWithHostArgsFunc func = [] {
+    void* address = TORCH_NPU_GET_FUNC(aclrtLaunchKernelWithHostArgs);
+    return reinterpret_cast<AclrtLaunchKernelWithHostArgsFunc>(address);
+  }();
+  return func;
+}
+
+bool AclrtLaunchKernelWithHostArgsExist() {
+  return AclrtGetLaunchKernelWithHostArgsFunc() != nullptr;
+}
+
+aclError AclrtLaunchKernelWithHostArgs(
+    aclrtFuncHandle funcHandle,
+    uint32_t numBlocks,
+    aclrtStream stream,
+    aclrtLaunchKernelCfg* cfg,
+    void* hostArgs,
+    size_t argsSize,
+    aclrtPlaceHolderInfo* placeHolderArray,
+    size_t placeHolderNum) {
+  ACL_CALL_LOG(
+      "aclrtLaunchKernelWithHostArgs",
+      "funcHandle=" << funcHandle << ", numBlocks=" << numBlocks
+                    << ", stream=" << stream << ", cfg=" << cfg
+                    << ", hostArgs=" << hostArgs << ", argsSize=" << argsSize
+                    << ", placeHolderArray=" << placeHolderArray
+                    << ", placeHolderNum=" << placeHolderNum);
+  auto func = AclrtGetLaunchKernelWithHostArgsFunc();
+  TORCH_CHECK(
+      func,
+      "Failed to find function aclrtLaunchKernelWithHostArgs",
+      PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(
+      funcHandle, numBlocks, stream, cfg, hostArgs, argsSize,
+      placeHolderArray, placeHolderNum);
+}
 
 enum class FastLaunchArgKind {
   Tensor,
@@ -390,7 +447,7 @@ void SubmitLaunch(const FastLaunchPlan& plan, PackedLaunch packed) {
       launchConfig.numAttrs = 1;
       launchConfigPtr = &launchConfig;
     }
-    aclError result = aclrtLaunchKernelWithHostArgs(
+    aclError result = AclrtLaunchKernelWithHostArgs(
         reinterpret_cast<aclrtFuncHandle>(kernelStub),
         packed.blockNum,
         reinterpret_cast<aclrtStream>(packed.stream),
@@ -418,6 +475,12 @@ std::shared_ptr<FastLaunchPlan> MakeFastLaunchPlan(
     size_t runtimeArgCount,
     const py::sequence& fixedArgs,
     const std::vector<uint32_t>& staticGrid) {
+  // Reject the plan before resource queries or queue submission. Python caches
+  // plan unavailability and keeps using the original Triton launcher.
+  TORCH_CHECK(
+      AclrtLaunchKernelWithHostArgsExist(),
+      "Fast Launch is unavailable: the current CANN runtime does not provide "
+      "aclrtLaunchKernelWithHostArgs");
   TORCH_CHECK(
       sharedMemDynamicSize <= std::numeric_limits<uint32_t>::max(),
       "shared_mem_dynamic_size exceeds uint32 max");
