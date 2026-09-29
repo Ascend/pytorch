@@ -4,16 +4,14 @@
 
 确认max autotune可尝试的后端有哪些，该环境变量与社区max autotune设置可尝试后端的环境变量一致。
 
-若想尝试Catlass的后端，请在该环境变量中配置上"CATLASS"。
-
 默认配置为TORCHINDUCTOR_MAX_AUTOTUNE_GEMM_BACKENDS="ATEN,TRITON,CPP", 此默认值为社区的默认配置。
 
 ## 配置示例
 
-尝试在max autotune中使用ATEN和CATLASS的后端。
+尝试在max autotune中使用ATEN和TRITON的后端。
 
 ```shell
-export TORCHINDUCTOR_MAX_AUTOTUNE_GEMM_BACKENDS="TRITON"
+export TORCHINDUCTOR_MAX_AUTOTUNE_GEMM_BACKENDS="ATEN,TRITON"
 ```
 
 ## 使用约束
@@ -23,6 +21,7 @@ export TORCHINDUCTOR_MAX_AUTOTUNE_GEMM_BACKENDS="TRITON"
 ## 支持的型号
 
 - <term>Ascend 950DT 系列产品</term>
+- <term>Ascend 950PR 系列产品</term>
 
 # TORCHINDUCTOR_MAX_AUTOTUNE （同社区）
 
@@ -55,6 +54,7 @@ export TORCHINDUCTOR_MAX_AUTOTUNE=0
 ## 支持的设备
 
 - <term>Ascend 950DT 系列产品</term>
+- <term>Ascend 950PR 系列产品</term>
 
 # TORCHINDUCTOR_PROFILE_WITH_DO_BENCH_USING_PROFILING （同社区）
 
@@ -87,6 +87,7 @@ export TORCHINDUCTOR_PROFILE_WITH_DO_BENCH_USING_PROFILING="0"
 ## 支持的型号
 
 - <term>Ascend 950DT 系列产品</term>
+- <term>Ascend 950PR 系列产品</term>
 
 # Triton cv特性介绍
 
