@@ -441,7 +441,11 @@ def _patch_nametuple(nametuple):
     def new_nametuple__new__(cls, *args, **kwargs):
         if args:
             args_new = list(args)
-            args = _replace_cuda_to_npu_in_list(args_new, False)
+            fields = getattr(nametuple, '_fields', ())
+            for idx, arg in enumerate(args_new):
+                if idx < len(fields) and fields[idx] in device_kwargs_list:
+                    args_new[idx] = _replace_cuda_to_npu_in_list([arg], False)[0]
+            args = args_new
         if kwargs:
             for device_arg in device_kwargs_list:
                 device = kwargs.get(device_arg, None)

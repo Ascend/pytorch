@@ -347,8 +347,39 @@ class TestTransferToNpu(TestCase):
         self.assertEqual(str(freq_rfft.device), 'npu:0')
 
     def test_torch_autograd_profiler_util_Kernel(self):
-        kernel = torch.autograd.profiler_util.Kernel("model_inference", 'cuda', 11)
-        self.assertEqual(kernel.device, 'npu')
+        positional_cases = (
+            ("cuda_kernel", "cuda:0", 11.5, "npu:0"),
+            ("", "", 0, ""),
+            ("cuda_kernel", torch.device("cuda:2"), 12, torch.device("npu:2")),
+            ("cuda_kernel", 0, 0, 0),
+            ("cuda_kernel", None, 1, None),
+            ("cuda_kernel", ["cuda:0", 0], 1, ["cuda:0", 0]),
+            ("cuda_kernel", ("cuda:0", 0), 1, ("cuda:0", 0)),
+            ("cuda_kernel", {}, 0, {}),
+            ("cuda_kernel", {"cuda:0": "cuda:1"}, 13, {"npu:0": "npu:1"}),
+        )
+        for name, device, duration, expected_device in positional_cases:
+            with self.subTest(name=name, device=device, duration=duration):
+                kernel = torch.autograd.profiler_util.Kernel(name, device, duration)
+                self.assertEqual(kernel.name, name)
+                self.assertEqual(kernel.device, expected_device)
+                self.assertEqual(kernel.duration, duration)
+
+        kernel = torch.autograd.profiler_util.Kernel(
+            name="cuda_kernel", device="cuda:1", duration=14
+        )
+        self.assertEqual(kernel.name, "cuda_kernel")
+        self.assertEqual(kernel.device, "npu:1")
+        self.assertEqual(kernel.duration, 14)
+
+        with self.assertRaises(TypeError):
+            torch.autograd.profiler_util.Kernel("cuda_kernel", "cuda:0")
+        with self.assertRaises(TypeError):
+            torch.autograd.profiler_util.Kernel("cuda_kernel", "cuda:0", 1, 2)
+        with self.assertRaises(TypeError):
+            torch.autograd.profiler_util.Kernel(
+                name="cuda_kernel", device="cuda:0", duration=1, unknown=True
+            )
 
     def test_torch_sparse_compressed_tensor(self):
         # 定义压缩的索引
