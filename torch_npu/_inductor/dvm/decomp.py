@@ -1,9 +1,11 @@
-
 import torch
-from torch._decomp import remove_decompositions
+from torch._decomp import get_decompositions, remove_decompositions
+from torch._decomp.decompositions import compute_only_pw_cast_for_opmath
 from torch._inductor import decomposition as inductor_decomp
 from torch._inductor.decomposition import pw_cast_for_opmath
 from torch_npu._inductor.mfusion.decomp import matmul_backward
+
+from . import config as dvm_config
 
 aten = torch.ops.aten
 prims = torch.ops.prims
@@ -20,6 +22,7 @@ decomps_to_exclude_npu = [
     aten.embedding,
     aten.embedding_backward,
     aten.embedding_dense_backward,
+    aten.index_select,
     aten.gelu.default,
     aten.gelu_backward.default,
     aten.elu.default,
@@ -89,6 +92,52 @@ def silu(a: torch.Tensor) -> torch.Tensor:
 def silu_backward(grad: torch.Tensor, self: torch.Tensor) -> torch.Tensor:
     sigmoid = aten.reciprocal(1.0 + torch.exp(torch.neg(self)))
     return grad * (sigmoid * (1.0 + (1.0 - sigmoid) * self))
+
+
+@compute_only_pw_cast_for_opmath
+def _npu_rms_norm_fp32(
+    x: torch.Tensor, gamma: torch.Tensor, epsilon: float = 1e-6
+) -> tuple[torch.Tensor, torch.Tensor]:
+    norm_dims = tuple(range(x.ndim - gamma.ndim, x.ndim))
+    rstd = torch.rsqrt((x * x).mean(dim=norm_dims, keepdim=True) + epsilon)
+    y = (x * rstd) * gamma
+    return y, rstd
+
+
+def npu_rms_norm(
+    x: torch.Tensor, gamma: torch.Tensor, epsilon: float = 1e-6
+) -> tuple[torch.Tensor, torch.Tensor]:
+    y, rstd = _npu_rms_norm_fp32(x, gamma, epsilon)
+    return y.to(x.dtype), rstd
+
+
+@compute_only_pw_cast_for_opmath
+def _npu_rms_norm_backward_fp32(
+    grad_output: torch.Tensor,
+    x: torch.Tensor,
+    gamma: torch.Tensor,
+    rstd: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    norm_dims = tuple(range(x.ndim - gamma.ndim, x.ndim))
+    batch_dims = tuple(range(x.ndim - gamma.ndim))
+    x_normalized = x * rstd
+    grad_scaled = grad_output * gamma
+    correction = (grad_scaled * x_normalized).mean(dim=norm_dims, keepdim=True)
+    dx = (grad_scaled - x_normalized * correction) * rstd
+    dgamma = grad_output * x_normalized
+    if batch_dims:
+        dgamma = dgamma.sum(dim=batch_dims)
+    return dx, dgamma
+
+
+def npu_rms_norm_backward(
+    grad_output: torch.Tensor,
+    x: torch.Tensor,
+    gamma: torch.Tensor,
+    rstd: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    dx, dgamma = _npu_rms_norm_backward_fp32(grad_output, x, gamma, rstd)
+    return dx.to(x.dtype), dgamma
 
 
 def _disable_cia_decompositions():
@@ -215,6 +264,18 @@ def gelu_backward(grad: torch.Tensor, self: torch.Tensor, approximate: str = "no
     return out
 
 
+dvm_decompositions = {
+    aten.sigmoid.default: sigmoid,
+    aten.silu.default: silu,
+    aten.silu_backward.default: silu_backward,
+    aten.gelu_backward.default: gelu_backward,
+    aten.gelu.default: gelu,
+    aten.tanh.default: tanh,
+    torch.ops.npu.npu_rms_norm.default: npu_rms_norm,
+    torch.ops.npu.npu_rms_norm_backward.default: npu_rms_norm_backward,
+}
+
+
 _dvm_inductor_decomp_patched = False
 
 
@@ -249,14 +310,25 @@ def patch_decomp():
         return
     _disable_cia_decompositions()
     remove_decompositions(inductor_decomp.decompositions, decomps_to_exclude_npu)
-    _register_inductor_decomposition_safe([aten.sigmoid.default], sigmoid)
-    _register_inductor_decomposition_safe([aten.silu.default], silu)
-    _register_inductor_decomposition_safe([aten.silu_backward.default], silu_backward)
-    _register_inductor_decomposition_safe([aten.gelu_backward.default], gelu_backward)
-    _register_inductor_decomposition_safe([aten.gelu.default], gelu)
-    _register_inductor_decomposition_safe([aten.tanh.default], tanh)
+    for op, fn in dvm_decompositions.items():
+        if op is not torch.ops.npu.npu_rms_norm_backward.default:
+            _register_inductor_decomposition_safe([op], fn)
     if enable_matmul_backward_decomp:
         _register_inductor_decomposition_safe(
             [torch.ops.aten.matmul_backward.default], matmul_backward
         )
+    for op, fn in get_decompositions(dvm_config.enable_decomp_list).items():
+        inductor_decomp.decompositions.setdefault(op, fn)
+    for op, fn in dvm_decompositions.items():
+        if (
+            op in dvm_config.enable_decomp_list
+            or op.overloadpacket in dvm_config.enable_decomp_list
+        ):
+            inductor_decomp.decompositions[op] = fn
+    for table in (
+        inductor_decomp.decompositions,
+        inductor_decomp.extra_random_decomps,
+    ):
+        remove_decompositions(table, dvm_config.disable_decomp_list)
+    inductor_decomp.fast_random_decomps.cache_clear()
     _dvm_inductor_decomp_patched = True
