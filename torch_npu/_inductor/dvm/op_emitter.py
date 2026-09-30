@@ -2,7 +2,7 @@ import torch
 import torch.fx
 import torch.utils._pytree as pytree
 
-from . import is_ascend950
+from . import config as dvm_config, is_ascend950
 
 
 aten = torch.ops.aten
@@ -113,19 +113,6 @@ def mm_rule(node: torch.fx.Node):
                 return False
         return True
 
-    def check_k1_fusion(lhs_node, rhs_node):
-        lhs_t = lhs_node.meta["val"]
-        rhs_t = rhs_node.meta["val"]
-        lhs_k = lhs_t.shape[-1]
-        rhs_k = rhs_t.shape[-2]
-        if isinstance(lhs_k, torch.SymInt) or isinstance(rhs_k, torch.SymInt):
-            return True
-        if lhs_k == 1 and rhs_k == 1:
-            return (not _is_last2_transpose_tensor(lhs_t)) and (
-                not _is_last2_transpose_tensor(rhs_t)
-            )
-        return True
-
     if node.target in (aten.mm.default, aten.bmm.default):
         lhs = node.args[0]
         rhs = node.args[1]
@@ -137,7 +124,13 @@ def mm_rule(node: torch.fx.Node):
     if node.meta["val"].dtype not in (torch.float16, torch.bfloat16):
         return False
 
-    return check(lhs) and check(rhs) and check_k1_fusion(lhs, rhs)
+    if not (check(lhs) and check(rhs)):
+        return False
+    rule = dvm_config.matmul_fusion_rule
+    if rule is None:
+        return True
+    lhs_t, rhs_t = lhs.meta["val"], rhs.meta["val"]
+    return rule(rhs_t.shape[-1], lhs_t.shape[-2], lhs_t.shape[-1]) is not False
 
 
 class DvmOpInfo:
@@ -482,6 +475,16 @@ def reduce_min(x, dim=None, keepdim=False):
 def reshape(x, shape):
     shape = format_shape(shape)
     return f"k.reshape({x}, {shape})"
+
+
+@register_dvm_op(
+    aten.cat.default,
+    input_dtypes=DVM_SUPPORT_TYPE,
+    output_dtypes=DVM_SUPPORT_TYPE,
+)
+def cat(inputs, dim=0):
+    inputs = "[" + ", ".join(inputs) + "]"
+    return f"k.concat({inputs}, {dim})"
 
 
 @register_dvm_op(aten.neg.default)
