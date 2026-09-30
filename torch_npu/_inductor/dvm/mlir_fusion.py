@@ -6,7 +6,7 @@ from torch._inductor.fx_passes.control_dependencies import control_deps
 from torch._inductor.codegen.common import IndentedBuffer, register_backend_for_device
 from torch._inductor.codegen.simd import code_hash, SIMDKernel
 from torch._inductor.scheduler import SchedulerNode, WhyNoFuse
-from torch._inductor.utils import get_fused_kernel_name
+from torch._inductor.utils import aggregate_origins, get_fused_kernel_name
 from torch._inductor.virtualized import V
 from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import config as anir_config
 from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.codegen.mlir import (
@@ -98,10 +98,27 @@ anir_config.GENERATE_LIST = [
     aten.copy_,
     aten.lift_fresh_copy,
     aten.lift_fresh_copy.default,
+    aten.cat,
+    aten.clone,
+    aten.mm,
+    aten.bmm,
+    aten.addmm,
+    aten.baddbmm,
     triton_kernel_wrapper_mutation,
 ]
 
 def _is_node_supported_by_dvm_rule(node, allow_common_rule=False):
+    if node.target == aten.cat.default and not dvm_config.enable_cat:
+        return False
+    if node.target == aten.clone.default and dvm_config.view_fusion_level != 2:
+        return False
+    if node.target in (
+        aten.mm.default,
+        aten.bmm.default,
+        aten.addmm.default,
+        aten.baddbmm.default,
+    ) and not dvm_config.enable_matmul_fusion:
+        return False
     if node.target in DVM_OP_REGISTRY:
         _, rule = DVM_OP_REGISTRY.get(node.target)
         return rule(node)
@@ -235,6 +252,12 @@ class NpuDvmScheduling(NpuMetaScheduling):
         return kernel_name
 
     def can_fuse_vertical(self, node1, node2):
+        if node2.is_reduction() and any(
+            origin.target == aten.cat.default
+            for origin in aggregate_origins(node1.get_nodes())
+        ):
+            return False
+
         template1 = node1.get_template_node()
         template2 = node2.get_template_node()
         if isinstance(template1, DvmTemplateBuffer):
@@ -380,48 +403,54 @@ def _patch_lowering_type_checks():
 
 def _patch_lowering():
     from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch.lowering import (
-        is_boolean_dtype,
-        is_integer_dtype,
-        make_reduction,
+        _make_reduction_inner as original_make_reduction_inner,
+        make_reduction as original_make_reduction,
         to_dtype,
     )
 
-    def get_overloads(aten_fn):
-        if not isinstance(aten_fn, (list, tuple)):
-            aten_fn = [aten_fn]
-        else:
-            aten_fn = list(aten_fn)
+    def _traced_graph_contains_cat(traced_graph):
+        graph = getattr(traced_graph, "graph", None)
+        return graph is not None and any(
+            node.op == "call_function"
+            and node.target in (aten.cat, aten.cat.default)
+            for node in graph.nodes
+        )
 
-        for fn in list(aten_fn):
-            if isinstance(fn, torch._ops.OpOverloadPacket):
-                for overload in fn.overloads():
-                    other_fn = getattr(fn, overload)
-                    aten_fn.append(other_fn)
+    def _make_reduction_inner(x, *, axis, keepdims, dtype, override_return_dtype):
+        # Materialize before the Reduction IR captures the pointwise cat loader;
+        # the scheduler veto preserves the resulting boundary.
+        if _traced_graph_contains_cat(x.get_traced_graph()):
+            x.realize()
+        return original_make_reduction_inner(
+            x,
+            axis=axis,
+            keepdims=keepdims,
+            dtype=dtype,
+            override_return_dtype=override_return_dtype,
+        )
 
-        return aten_fn
+    def _make_reduction(reduction_type, override_return_dtype=None):
+        if reduction_type != "sum":
+            return original_make_reduction(reduction_type, override_return_dtype)
 
-    def sum_(x, axis=None, keepdims=False, *, dtype=None):
-        if axis and any(ax < 0 for ax in axis):
-            offset = len(x.get_size())
-            axis = [ax + offset if ax < 0 else ax for ax in axis]
-        if (
-            is_integer_dtype(x.get_dtype()) or is_boolean_dtype(x.get_dtype())
-        ) and dtype is None:
-            dtype = torch.int64
+        reduce_sum = original_make_reduction(
+            reduction_type, override_return_dtype=torch.float32
+        )
 
-        out_dtype = x.get_dtype() if dtype is None else dtype
+        def reduce_sum_in_float32(x, axis=None, keepdims=False, *, dtype=None):
+            out_dtype = override_return_dtype
+            if out_dtype is None:
+                out_dtype = x.get_dtype() if dtype is None else dtype
 
-        fn = make_reduction("sum", override_return_dtype=torch.float32)
-        r = fn(x, axis, keepdims, dtype=torch.float32)
+            result = reduce_sum(x, axis, keepdims, dtype=torch.float32)
+            if out_dtype != torch.float32:
+                result = to_dtype(result, out_dtype)
+            return result
 
-        if out_dtype != torch.float32:
-            r = to_dtype(r, out_dtype)
+        return reduce_sum_in_float32
 
-        return r
-
-    anir_config.disable_any_pbr = False
-    ops = get_overloads([aten.sum, prims.sum])
-    npu_lowering.register_lowering(ops)(sum_)
+    npu_lowering._make_reduction_inner = _make_reduction_inner
+    npu_lowering.make_reduction = _make_reduction
 
 
 class DvmMlirFusionPatch:
@@ -442,6 +471,7 @@ class DvmMlirFusionPatch:
         inductor_config.size_asserts = False
         inductor_config.allow_buffer_reuse = False
         inductor_config.comprehensive_padding = False
+        anir_config.disable_any_pbr = False
         patch_decomp()
         _patch_lowering_type_checks()
         _patch_lowering()
