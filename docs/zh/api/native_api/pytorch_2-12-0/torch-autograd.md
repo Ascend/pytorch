@@ -1147,6 +1147,46 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 
 </div>
 
+### <code><i>class</i></code> torch.autograd.profiler_util.Kernel
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.profiler_util.Kernel](https://pytorch.org/docs/2.12/generated/torch.autograd.profiler_util.Kernel.html)
+
+**产品支持情况**：
+
+<!-- npu="910b" id196 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id196 -->
+<!-- npu="A3" id197 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id197 -->
+<!-- npu="950" id198 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id198 -->
+
+> <font size="3">name</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.profiler_util.Kernel.name](https://pytorch.org/docs/2.12/generated/torch.autograd.profiler_util.Kernel.html#torch.autograd.profiler_util.Kernel.name)
+
+**产品支持情况**：
+
+<!-- npu="910b" id199 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id199 -->
+<!-- npu="A3" id200 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id200 -->
+<!-- npu="950" id201 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id201 -->
+
+</div>
+
+</div>
+
 ### <code><i>class</i></code> torch.autograd.profiler_util.StringTable
 
 <div style="margin-left: 2em">
@@ -1168,6 +1208,86 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 <!-- npu="950" id156 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id156 -->
+
+</div>
+
+> <font size="3">fromkeys()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.profiler_util.StringTable.fromkeys](https://pytorch.org/docs/2.12/generated/torch.autograd.profiler_util.StringTable.html#torch.autograd.profiler_util.StringTable.fromkeys)
+
+**产品支持情况**：
+
+<!-- npu="910b" id202 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id202 -->
+<!-- npu="A3" id203 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id203 -->
+<!-- npu="950" id204 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id204 -->
+
+</div>
+
+> <font size="3">get()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.profiler_util.StringTable.get](https://pytorch.org/docs/2.12/generated/torch.autograd.profiler_util.StringTable.html#torch.autograd.profiler_util.StringTable.get)
+
+**产品支持情况**：
+
+<!-- npu="910b" id205 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id205 -->
+<!-- npu="A3" id206 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id206 -->
+<!-- npu="950" id207 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id207 -->
+
+</div>
+
+> <font size="3">keys()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.profiler_util.StringTable.keys](https://pytorch.org/docs/2.12/generated/torch.autograd.profiler_util.StringTable.html#torch.autograd.profiler_util.StringTable.keys)
+
+**产品支持情况**：
+
+<!-- npu="910b" id208 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id208 -->
+<!-- npu="A3" id209 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id209 -->
+<!-- npu="950" id210 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id210 -->
+
+</div>
+
+> <font size="3">update()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.profiler_util.StringTable.update](https://pytorch.org/docs/2.12/generated/torch.autograd.profiler_util.StringTable.html#torch.autograd.profiler_util.StringTable.update)
+
+**产品支持情况**：
+
+<!-- npu="910b" id211 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id211 -->
+<!-- npu="A3" id212 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id212 -->
+<!-- npu="950" id213 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id213 -->
 
 </div>
 
