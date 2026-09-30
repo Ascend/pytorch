@@ -4,7 +4,6 @@ from torch._inductor.dependencies import MemoryDep
 from torch._inductor.kernel.mm_common import mm_args
 from torch._inductor.utils import sympy_product
 from torch._inductor.virtualized import V
-from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import config as anir_config
 from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch import (
     ir as npu_ir,
     lowering as npu_lowering,
@@ -81,12 +80,6 @@ def _subtract_dvm_template_graph(graph1, graph2, node_name=None):
 
 
 def _register_dvm_mm_template_lowerings():
-    for op in (aten.mm, aten.bmm, aten.addmm, aten.baddbmm):
-        if op in anir_config.FALLBACK_LIST:
-            anir_config.FALLBACK_LIST.remove(op)
-        if op not in anir_config.GENERATE_LIST:
-            anir_config.GENERATE_LIST.append(op)
-
     def make_mm_template(op, mat1, mat2, *, layout=None):
         if V.graph.cpp_wrapper:
             return npu_lowering.fallback_handler(op)(mat1, mat2)
