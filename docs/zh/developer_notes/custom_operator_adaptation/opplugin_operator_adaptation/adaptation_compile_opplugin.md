@@ -4,7 +4,7 @@
 2. TorchNPU安装完成后进行新增算子接口的测试验证。测试验证（UT）通过功能正确性验证、边界条件覆盖等，确保算子实现预期，降低联调成本，同时作为长期维护的质量基线，保障算子适配全生命周期的稳定性，自定义算子适配test目录为test/test\_custom\_ops。
   以npu_reshape为例，需要实现以下用例：
 
- ```python
+    ```python
     import torch
     import numpy as np
     import torch_npu
