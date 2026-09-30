@@ -122,39 +122,18 @@ jobs:
 
           python3 - <<'PYEOF'
           import json
-          import os
           import sys
           from pathlib import Path
 
           root = Path("coverage")
-          reports = sorted(root.rglob("coverage.xml"))
-          if not reports:
+          cov_dir = root / "pytorch@latest"
+          if not (cov_dir / "coverage.xml").is_file():
               sys.exit("ERROR: coverage.xml not found under the OBS download")
 
-          def rank(path: Path) -> int:
-              return 0 if path.name == "pytorch@latest" else 1
+          source_dir = root / "covstub"
+          if not (source_dir / "torch" / "__init__.py").is_file():
+              sys.exit("ERROR: no source snapshot (covstub/torch) found under the OBS download")
 
-          cov_dir = sorted((r.parent for r in reports), key=rank)[0]
-
-          def package_root(item: Path) -> str | None:
-              for name in ("pytorch", "torch"):
-                  package = item / name
-                  if (package / "__init__.py").is_file() or (package / "nn").is_dir():
-                      return name
-              return None
-
-          snaps = [
-              item
-              for item in root.rglob("*")
-              if item.is_dir()
-              and any(part in ("covstub", "convstub") for part in item.parts)
-              and package_root(item)
-          ]
-          if not snaps:
-              sys.exit("ERROR: no source snapshot (covstub/<pkg>) found under the OBS download")
-
-          source_dir = sorted(snaps, key=lambda p: (len(p.parts), p.as_posix()))[0]
-          package = package_root(source_dir)
           cases = len(list((cov_dir / "test").glob("**/covdata")))
 
           manifest_file = cov_dir / "manifest.json"
@@ -166,7 +145,7 @@ jobs:
           for key in ("workflow", "run_id", "event", "pytorch_short", "generated_at", "test_groups", "total_cases"):
               print(f"  {key}: {manifest.get(key)}")
           print(f"coverage dir:  {cov_dir}")
-          print(f"source dir:    {source_dir} (package: {package}/)")
+          print(f"source dir:    {source_dir} (package: torch/)")
           print(f"test cases:    {cases}")
           print(f"coverage.xml:  {(cov_dir / 'coverage.xml').stat().st_size} bytes")
           if not cases:
@@ -174,7 +153,10 @@ jobs:
           if manifest.get("test_groups") != cases:
               sys.exit(f"ERROR: coverage data is incomplete: manifest reports {manifest.get('test_groups')} test group(s), found {cases} under {cov_dir}/test")
           map_file = cov_dir / "test_case_map.json"
-          print(f"test_case_map: {'published' if map_file.is_file() else 'not published, will be built on the spot'}")
+          if map_file.is_file():
+              print("test_case_map: published")
+          else:
+              print("::warning::no test_case_map.json in the coverage release; the selector builds the map on the spot")
           Path("/tmp/precise.env").write_text(f"TASK_DIR={cov_dir}\nSOURCE_DIR={source_dir}\nMAP_FILE={map_file if map_file.is_file() else ''}\n")
           PYEOF
 
@@ -190,7 +172,8 @@ jobs:
           repo: pytorch
           github-pr: ${{ env.github_pr }}
           source-dir: ${{ env.SOURCE_DIR }}
-          map-file: ${{ env.MAP_FILE || 'test_case_map.json' }}
+          coverage-dir: ${{ env.TASK_DIR }}
+          map-file: ${{ env.MAP_FILE }}
           dedup: true
         env:
           GITHUB_TOKEN: ${{ github.token }}
