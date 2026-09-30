@@ -353,60 +353,28 @@ jobs:
           print(f"{len(missing)} test file(s) missing usable coverage data: {missing}")
 
           base = "obs://pytorch-ci-cache/coverage/pytorch"
-          pointer_run_id = ""
-          pointer_file = "/tmp/coverage-pointer.json"
-          if subprocess.run(
-              ["obsutil", "cp", f"{base}/latest/pointer.json", pointer_file, "-f", "-vlength"],
+          # 单对象发布：latest/release.tar.gz 此刻仍是上一版（发布在本步骤之后，并发组保证不会与别的 run 交错）
+          archive_file = "/tmp/previous-release.tar.gz"
+          extract_root = Path("/tmp/previous-release")
+          shutil.rmtree(extract_root, ignore_errors=True)
+          extract_root.mkdir(parents=True)
+          downloaded = subprocess.run(
+              ["obsutil", "cp", f"{base}/latest/release.tar.gz", archive_file, "-f", "-vlength"],
               capture_output=True,
-          ).returncode == 0:
-              try:
-                  pointer_run_id = str(json.loads(Path(pointer_file).read_text(encoding="utf-8")).get("run_id", ""))
-              except Exception:
-                  pointer_run_id = ""
-          candidates = []
-          if pointer_run_id:
-              candidates.append((f"{base}/releases/{pointer_run_id}/pytorch@latest", "dir"))
-              candidates.append((f"{base}/releases/{pointer_run_id}", "archive"))
-          previous = None
-          previous_kind = None
-          for candidate, kind in candidates:
-              probe_target = f"{candidate}/release.tar.gz" if kind == "archive" else f"{candidate}/coverage.xml"
-              probe = subprocess.run(
-                  ["obsutil", "stat", probe_target],
-                  capture_output=True,
+          )
+          extracted_ok = False
+          if downloaded.returncode == 0:
+              extracted_ok = (
+                  subprocess.run(
+                      ["tar", "-xzf", archive_file, "-C", str(extract_root)],
+                      capture_output=True,
+                  ).returncode == 0
               )
-              if probe.returncode == 0:
-                  previous = candidate
-                  previous_kind = kind
-                  break
-          if previous is None:
-              print("WARNING: no previous coverage data found on OBS, cannot backfill")
+          previous_local = extract_root / "pytorch@latest"
+          if not extracted_ok or not (previous_local / "coverage.xml").is_file():
+              print("WARNING: no usable previous release at latest/release.tar.gz, cannot backfill")
               sys.exit(0)
-          print(f"previous coverage: {previous} ({previous_kind})")
-
-          # archive 形态先整份下载解包（作用：单文件发布没法按子路径随机取，解一次供下面逐个文件复制）
-          previous_local = None
-          if previous_kind == "archive":
-              archive_file = "/tmp/previous-release.tar.gz"
-              extract_root = Path("/tmp/previous-release")
-              shutil.rmtree(extract_root, ignore_errors=True)
-              extract_root.mkdir(parents=True)
-              downloaded = subprocess.run(
-                  ["obsutil", "cp", f"{previous}/release.tar.gz", archive_file, "-f", "-vlength"],
-                  capture_output=True,
-              )
-              extracted_ok = False
-              if downloaded.returncode == 0:
-                  extracted_ok = (
-                      subprocess.run(
-                          ["tar", "-xzf", archive_file, "-C", str(extract_root)],
-                          capture_output=True,
-                      ).returncode == 0
-                  )
-              previous_local = extract_root / "pytorch@latest"
-              if not extracted_ok or not (previous_local / "coverage.xml").is_file():
-                  print("WARNING: cannot get the previous release archive from OBS, cannot backfill")
-                  sys.exit(0)
+          print(f"previous coverage: {base}/latest/release.tar.gz")
 
           backfilled = []
           still_missing = []
@@ -416,29 +384,11 @@ jobs:
               if tmp.exists():
                   shutil.rmtree(tmp)
               tmp.mkdir(parents=True)
-              if previous_local is not None:
-                  src_dir = previous_local / test_file / "covdata"
-                  if src_dir.is_dir():
-                      for item in src_dir.iterdir():
-                          if item.is_file():
-                              shutil.copy2(item, tmp / item.name)
-              else:
-                  subprocess.run(
-                      [
-                          "obsutil", "cp",
-                          f"{previous}/{test_file}/covdata/",
-                          f"{tmp}/",
-                          "-r", "-f", "-vlength",
-                      ],
-                      capture_output=True,
-                  )
-                  # obsutil 拷贝目录可能连源目录名一起落地（tmp/covdata/...），摊平一层
-                  inner = tmp / "covdata"
-                  if inner.is_dir():
-                      for item in inner.iterdir():
-                          if item.is_file():
-                              shutil.move(str(item), str(tmp / item.name))
-                      shutil.rmtree(inner, ignore_errors=True)
+              src_dir = previous_local / test_file / "covdata"
+              if src_dir.is_dir():
+                  for item in src_dir.iterdir():
+                      if item.is_file():
+                          shutil.copy2(item, tmp / item.name)
               if not (tmp / "coverage").is_file():
                   shutil.rmtree(tmp)
                   still_missing.append(test_file)
@@ -512,9 +462,9 @@ jobs:
         # 摊平没产出数据就不建（作用：避免在空输入上产出空映射并随 release 发布）
         if: ${{ always() && steps.flatten-map.outputs.built == '1' }}
         continue-on-error: true
-        uses: lb-actions/precision-test@v1.0.1
+        uses: lb-actions/precision-test@v1.0.2
         with:
-          repo: torch_npu
+          repo: pytorch
           build-map: true
           coverage-dir: covdata-set
           source-dir: ${{ env.COV_ARTIFACTS }}/covstub
@@ -536,64 +486,38 @@ jobs:
           obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${{ env.OBS_ENDPOINT }}
 
           if [ -z "${CATEGORIES}" ]; then
-            RELEASE="releases/${{ github.run_id }}"
-            # 记住当前指针指向的旧 release（切换成功后删它，实现“先传后删”）
-            PREVIOUS_RUN_ID=""
-            if obsutil cp "${{ env.OBS_COVERAGE_PREFIX }}/latest/pointer.json" /tmp/pointer-old.json -f -vlength >/dev/null 2>&1; then
-              PREVIOUS_RUN_ID=$(python3 -c "import json;print(json.load(open('/tmp/pointer-old.json')).get('run_id',''))" 2>/dev/null || true)
-            fi
-            echo "previous release: ${PREVIOUS_RUN_ID:-<none>}"
-
-            # 打包成单个对象（作用：15K+ 小对象逐个传既慢，又让消费方长时间暴露在被删窗口里）
+            # 打包成单个对象（作用：单对象 PUT 原子，读者只会看到完整的新/旧版本，没有半份数据，也没有删除竞态）
             tar -C "${COV_ARTIFACTS}" -czf /tmp/release.tar.gz covstub pytorch@latest
             ls -lh /tmp/release.tar.gz
             tar -tzf /tmp/release.tar.gz > /tmp/release-files.txt
             if grep -qx "pytorch@latest/manifest.json" /tmp/release-files.txt && grep -qx "pytorch@latest/coverage.xml" /tmp/release-files.txt; then
-              # 传新 release（指针与旧 release 全程不动：消费方永远拿得到一份完整数据）
-              obsutil cp /tmp/release.tar.gz "${{ env.OBS_COVERAGE_PREFIX }}/${RELEASE}/release.tar.gz" -f -vlength
+              obsutil cp /tmp/release.tar.gz "${{ env.OBS_COVERAGE_PREFIX }}/latest/release.tar.gz" -f -vlength
 
-              # 校验新 release 完整（不完整就不切指针：线上仍是旧 release，无需回滚）
+              # 上传后校验对象存在（作用：半途失败能被发现并让任务变红）
               RELEASE_OK=""
               for attempt in 1 2; do
-                obsutil stat "${{ env.OBS_COVERAGE_PREFIX }}/${RELEASE}/release.tar.gz" >>/tmp/obs-stat.log 2>&1 && { RELEASE_OK=1; break; }
+                obsutil stat "${{ env.OBS_COVERAGE_PREFIX }}/latest/release.tar.gz" >>/tmp/obs-stat.log 2>&1 && { RELEASE_OK=1; break; }
                 sleep 5
               done
               if [ -z "${RELEASE_OK}" ]; then
                 tail -5 /tmp/obs-stat.log || true
-                echo "::error::new release ${RELEASE} is incomplete on OBS; the pointer stays on the previous release"
-                # 删掉这份不完整的 release（作用：不要留下永远没人引用的孤儿目录）
-                obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/${RELEASE}/" || true
+                echo "::error::latest/release.tar.gz is missing on OBS after the upload"
                 PUBLISH_FAILED=1
               else
-                printf '{"run_id": "%s", "release": "%s", "published_at": "%s"}' \
-                  "${{ github.run_id }}" "${RELEASE}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /tmp/pointer.json
-                obsutil cp /tmp/pointer.json "${{ env.OBS_COVERAGE_PREFIX }}/latest/pointer.json" -f -vlength
-                if obsutil cp "${{ env.OBS_COVERAGE_PREFIX }}/latest/pointer.json" /tmp/pointer-read.json -f -vlength && grep -q "${{ github.run_id }}" /tmp/pointer-read.json; then
-                  echo "pointer switched: latest/pointer.json -> ${RELEASE}"
-                  # 切换成功后只删“更老”的 release：上一份要留给可能正在按旧指针下载的消费方
-                  # 排除自身：re-run 复用同一 run_id，不能把刚发布的 release 删掉
-                  for old in $(obsutil ls -d "${{ env.OBS_COVERAGE_PREFIX }}/releases/" 2>/dev/null | grep -oE 'releases/[0-9]+/' | sort -u || true); do
-                    old_id="${old%/}"
-                    old_id="${old_id##*/}"
-                    [ "${old_id}" = "${{ github.run_id }}" ] && continue
-                    [ -n "${PREVIOUS_RUN_ID}" ] && [ "${old_id}" = "${PREVIOUS_RUN_ID}" ] && continue
-                    obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/${old}" || true
-                  done
-                  # 遗留的扁平布局照旧清理
-                  obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/latest/pytorch@latest/" || true
-                  obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/latest/convstub/" || true
-                  obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/latest/torch@latest/" || true
-                  obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/latest/artifacts/" || true
-                  obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/previous/" || true
-                else
-                  echo "::error::pointer verification failed; the previous release is still pointed to"
-                  PUBLISH_FAILED=1
-                fi
+                echo "published: ${{ env.OBS_COVERAGE_PREFIX }}/latest/release.tar.gz (run_id ${{ github.run_id }})"
               fi
             else
               echo "::error::the release archive is incomplete (missing manifest.json / coverage.xml); nothing was uploaded"
               PUBLISH_FAILED=1
             fi
+            # 历史布局清理（幂等；作用：不再有指针/release 目录，避免残留误导消费者）
+            obsutil rm -f "${{ env.OBS_COVERAGE_PREFIX }}/latest/pointer.json" || true
+            obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/releases/" || true
+            obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/latest/pytorch@latest/" || true
+            obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/latest/convstub/" || true
+            obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/latest/torch@latest/" || true
+            obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/latest/artifacts/" || true
+            obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/previous/" || true
           else
             echo "Debug run (categories='${CATEGORIES}'), skipping the ${{ env.OBS_COVERAGE_PREFIX }}/latest upload"
           fi
@@ -696,7 +620,5 @@ jobs:
           else:
               row("test_case_map", "not published - the consumer builds it on the spot")
 
-          row("OBS pointer", f"`{prefix}/latest/pointer.json`")
-          if run_id:
-              row("OBS release", f"`{prefix}/releases/{run_id}/release.tar.gz`")
+          row("OBS release", f"`{prefix}/latest/release.tar.gz`")
           PYEOF
