@@ -435,6 +435,16 @@ class TestNpu(TestCase):
             self.assertEqual(cpu_state, cpu_state_new)
             self.assertEqual(int(npu_state[0]), 2)
 
+    def test_fork_rng(self):
+        with freeze_rng_state():
+            torch.manual_seed(1)
+            cpu_state = torch.get_rng_state()
+            npu_state = torch_npu.npu.get_rng_state()
+            with torch.random.fork_rng(devices=[0]):
+                torch.manual_seed(2)
+            self.assertEqual(torch.get_rng_state(), cpu_state)
+            self.assertEqual(torch_npu.npu.get_rng_state(), npu_state)
+
     def test_get_set_rng_state_input_device(self):
         npu_state = torch_npu.npu.get_rng_state()
         torch_npu.npu.set_rng_state(npu_state)
