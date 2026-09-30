@@ -773,8 +773,6 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
 
   std::shared_ptr<c10::Allocator> getMemAllocator() override;
 
-  bool supportsTensorAlloc(c10::DeviceIndex deviceIdx) override;
-
   void registerMemPool(c10_npu::MemPool* pool, bool symm = false);
   void deregisterMemPool(c10_npu::MemPool* pool);
 

@@ -3443,18 +3443,15 @@ static void _hcclMemFree(void* ptr, size_t size, int device, aclrtStream stream)
 }
 
 std::shared_ptr<c10::Allocator> ProcessGroupHCCL::getMemAllocator() {
+  // The CANN version gate belongs to the HCCL mem allocator itself, not to
+  // Backend::supportsTensorAlloc(), which asks whether allocateTensor() is
+  // implemented (it is not, so the base class answer stays false).
+  static const bool isCannVersionSupported = IsGteCANNVersion("9.2.0-beta", "CANN");
   TORCH_CHECK(
-      supportsTensorAlloc(c10_npu::current_device()),
-      "HCCL mem allocator requires CANN 9.2.0 or later.",
-      DIST_ERROR(ErrCode::NOT_SUPPORT));
+      isCannVersionSupported, "HCCL mem allocator requires CANN 9.2.0 or later.", DIST_ERROR(ErrCode::NOT_SUPPORT));
   static std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator> hcclMemAllocator =
       torch::npu::NPUPluggableAllocator::createCustomAllocator(_hcclMemAlloc, _hcclMemFree);
   return hcclMemAllocator;
-}
-
-bool ProcessGroupHCCL::supportsTensorAlloc(c10::DeviceIndex) {
-  static const bool isCannVersionSupported = IsGteCANNVersion("9.2.0-beta", "CANN");
-  return isCannVersionSupported;
 }
 
 void ProcessGroupHCCL::registerMemPool(c10_npu::MemPool* pool, bool symm) {
