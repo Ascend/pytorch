@@ -127,7 +127,7 @@ class TestMatmulChecksumAbft(TestCase):
         c = torch.matmul(a, b)
         return a, b, c
 
-    @SupportedDevices(['Ascend910B', 'Ascend910C'])
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
     def test_clean_result_no_anomaly(self):
         for dtype in (torch.bfloat16, torch.float32):
             for (m, k, n) in ABFT_CLEAN_SHAPES:
@@ -140,7 +140,7 @@ class TestMatmulChecksumAbft(TestCase):
         a, b, c = self._make(256, 4096, 8, torch.float32)
         self.assertFalse(torch_npu.matmul_checksum(a, b, c).item())
 
-    @SupportedDevices(['Ascend910B', 'Ascend910C'])
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
     def test_corrupted_result_detected(self):
         a, b, c = self._make(256, 1024, 512, torch.bfloat16)
         c2 = c.clone()
@@ -155,7 +155,7 @@ class TestMatmulChecksumAbft(TestCase):
         c32[0, :] += 10.0
         self.assertTrue(torch_npu.matmul_checksum(a32, b32, c32).item())
 
-    @SupportedDevices(['Ascend910B', 'Ascend910C'])
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
     def test_bf16_ab_fp32_c(self):
         # Mixed dtypes per the op contract: bf16 inputs with fp32 output.
         a = torch.randn(256, 1024, dtype=torch.bfloat16).npu()
@@ -167,7 +167,7 @@ class TestMatmulChecksumAbft(TestCase):
         c2[3, 300] += 100.0  # row 3, second column segment
         self.assertTrue(torch_npu.matmul_checksum(a, b, c2).item())
 
-    @SupportedDevices(['Ascend910B', 'Ascend910C'])
+    @SupportedDevices(['Ascend910B', 'Ascend910_93'])
     def test_non_contiguous_b_op_path(self):
         a = torch.randn(8, 16, dtype=torch.bfloat16).npu()
         b = torch.randn(64, 16, dtype=torch.bfloat16).npu().t()  # [16, 64] non-contiguous
