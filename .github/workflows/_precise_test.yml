@@ -45,10 +45,14 @@ jobs:
             ACTION=$(echo "$PAYLOAD_JSON" | jq -r '.payload.action // empty')
             HAS_MERGED=$(echo "$PAYLOAD_JSON" | jq -r '.payload.pull_request.labels // [] | map(.name) | index("Merged") // ""')
             if [ "${ACTION}" = "closed" ] && [ -z "${HAS_MERGED}" ]; then
-              LABELS_RESPONSE=$(curl -sS --max-time 30 \
+              LABELS_CODE=$(curl -sS -o /tmp/pr-labels.json -w '%{http_code}' --max-time 30 \
                 -H "Authorization: Bearer ${GH_TOKEN}" \
-                "https://api.github.com/repos/${UPSTREAM_REPO}/issues/${PR_NUMBER}/labels" || echo '[]')
-              HAS_MERGED=$(echo "${LABELS_RESPONSE}" | jq -r '[.[].name] | index("Merged") // ""' 2>/dev/null || true)
+                "https://api.github.com/repos/${UPSTREAM_REPO}/issues/${PR_NUMBER}/labels" || echo 000)
+              if [ "${LABELS_CODE}" != "200" ]; then
+                echo "::error::cannot fetch the labels of ${UPSTREAM_REPO}#${PR_NUMBER} (http_code=${LABELS_CODE}); the merged state cannot be verified" >&2
+                exit 1
+              fi
+              HAS_MERGED=$(jq -r '[.[].name] | index("Merged") // ""' /tmp/pr-labels.json 2>/dev/null || true)
             fi
             if [ "${ACTION}" != "closed" ] || [ -z "${HAS_MERGED}" ]; then
               echo "::notice::PR ${UPSTREAM_REPO}#${PR_NUMBER} is not a landed PR (action='${ACTION}', Merged label='${HAS_MERGED:-none}'), the precise selection is skipped"
@@ -94,49 +98,29 @@ jobs:
 
           PREFIX="obs://pytorch-ci-cache/coverage/pytorch"
 
-          RUN_ID=""
-          if obsutil cp "${PREFIX}/latest/pointer.json" /tmp/pointer.json -f -vlength >/dev/null 2>&1; then
-            RUN_ID=$(python3 -c "import json;print(json.load(open('/tmp/pointer.json')).get('run_id',''))" 2>/dev/null || true)
-          fi
-          if [ -n "${RUN_ID}" ]; then
-            SRC="${PREFIX}/releases/${RUN_ID}/"
-            echo "pointer.json: run_id=${RUN_ID}"
-          else
-            SRC="${PREFIX}/latest/"
-            echo "::warning::no pointer.json under ${PREFIX}/latest/, falling back to the flat layout"
-          fi
-
-          ARCHIVE="${SRC}release.tar.gz"
-          LAYOUT="dir"
-          if obsutil stat "${ARCHIVE}" >/dev/null 2>&1; then
-            LAYOUT="archive"
-          fi
-          echo "release layout: ${LAYOUT}"
+          ARCHIVE="${PREFIX}/latest/release.tar.gz"
+          echo "release: ${ARCHIVE}"
 
           DOWNLOADED=""
           for attempt in 1 2 3; do
             echo "=== Download attempt ${attempt} ==="
             rm -rf coverage && mkdir -p coverage
-            if [ "${LAYOUT}" = "archive" ]; then
-              if obsutil cp "${ARCHIVE}" /tmp/release.tar.gz -f -vlength && tar -xzf /tmp/release.tar.gz -C coverage; then
-                DOWNLOADED=1
-                break
-              fi
-            elif obsutil cp "${SRC}" coverage/ -r -f -vlength; then
+            if obsutil cp "${ARCHIVE}" /tmp/release.tar.gz -f -vlength && tar -xzf /tmp/release.tar.gz -C coverage; then
               DOWNLOADED=1
               break
             fi
+            echo "download failed (attempt ${attempt})"
             sleep 10
           done
           if [ -z "${DOWNLOADED}" ]; then
-            echo "ERROR: cannot download the coverage data from ${SRC}" >&2
+            echo "ERROR: cannot download the coverage release from ${ARCHIVE}" >&2
             exit 1
           fi
 
           echo "=== OBS layout ==="
           find coverage -maxdepth 3 -type d | sort | head -20
 
-          EXPECTED_RUN_ID="${RUN_ID}" python3 - <<'PYEOF'
+          python3 - <<'PYEOF'
           import json
           import os
           import sys
@@ -185,9 +169,6 @@ jobs:
           print(f"source dir:    {source_dir} (package: {package}/)")
           print(f"test cases:    {cases}")
           print(f"coverage.xml:  {(cov_dir / 'coverage.xml').stat().st_size} bytes")
-          expected_run = os.environ.get("EXPECTED_RUN_ID", "")
-          if expected_run and str(manifest.get("run_id", "")) != expected_run:
-              sys.exit(f"ERROR: manifest run_id {manifest.get('run_id')!r} does not match the pointer run_id {expected_run!r}")
           if not cases:
               sys.exit(f"ERROR: no per-test coverage data under {cov_dir}/test")
           if manifest.get("test_groups") != cases:
@@ -200,56 +181,13 @@ jobs:
           cat /tmp/precise.env >> "$GITHUB_ENV"
           cat /tmp/precise.env
 
-      - name: Flatten the coverage data for the selector
-        if: ${{ env.github_pr != '' && env.MAP_FILE == '' }}
-        run: |
-          set -euo pipefail
-
-          python3 - <<'PYEOF'
-          import shutil
-          from pathlib import Path
-
-          cov_dir = Path("${{ env.TASK_DIR }}")
-          flat_dir = Path("covdata-set")
-
-          shutil.rmtree(flat_dir, ignore_errors=True)
-          flat_dir.mkdir(parents=True)
-
-          files = 0
-          for covdata in sorted(cov_dir.glob("**/covdata")):
-              test_file = covdata.parent.relative_to(cov_dir).as_posix()
-              if not test_file.startswith("test/") or not test_file.endswith(".py"):
-                  continue
-              case_dir = flat_dir / test_file[:-3].replace("/", "__") / "covdata"
-              case_dir.mkdir(parents=True, exist_ok=True)
-              for src in covdata.glob("coverage*"):
-                  shutil.copy2(src, case_dir / src.name)
-                  files += 1
-
-          cases = sum(1 for item in flat_dir.iterdir() if item.is_dir())
-          print(f"selector input: {files} coverage file(s) in {cases} test case dir(s)")
-          if not cases:
-              raise SystemExit(f"ERROR: no per-test coverage data found under {cov_dir}")
-          for item in sorted(flat_dir.iterdir())[:5]:
-              print(f"  {item.name}/covdata/{sorted(p.name for p in item.glob('covdata/*'))}")
-          PYEOF
-
-      - name: generate-test-case-map
-        if: ${{ env.github_pr != '' && env.MAP_FILE == '' }}
-        uses: lb-actions/precision-test@v1.0.1
-        with:
-          repo: torch_npu
-          build-map: true
-          coverage-dir: covdata-set
-          source-dir: ${{ env.SOURCE_DIR }}
-          map-file: test_case_map.json
-
       - name: generate-select-tests-case
+        id: select
         if: ${{ env.github_pr != '' }}
         continue-on-error: true
-        uses: lb-actions/precision-test@v1.0.1
+        uses: lb-actions/precision-test@v1.0.2
         with:
-          repo: torch_npu
+          repo: pytorch
           github-pr: ${{ env.github_pr }}
           source-dir: ${{ env.SOURCE_DIR }}
           map-file: ${{ env.MAP_FILE || 'test_case_map.json' }}
@@ -272,8 +210,15 @@ jobs:
             echo "- PR: \`${github_pr}\`"
           } >> "$SUMMARY"
 
+          SELECT_OUTCOME="${{ steps.select.outcome }}"
+          if [ "${SELECT_OUTCOME}" != "success" ]; then
+            echo "::error::the selector step failed (${SELECT_OUTCOME}) for ${github_pr}; check the generate-select-tests-case log (PR diff fetch / adapter errors)"
+            echo "- Selector failed (\`${SELECT_OUTCOME}\`): see the \`generate-select-tests-case\` step log" >> "$SUMMARY"
+            exit 0
+          fi
+
           if [ ! -s recommended_pytest_paths.txt ]; then
-            echo "::warning::the selector recommended 0 test file(s) for ${github_pr}; check the selector log (a failed PR diff fetch or no mapped coverage for the changed lines)"
+            echo "::warning::the selector recommended 0 test file(s) for ${github_pr} (no mapped coverage for the changed lines)"
             echo "- Recommended test files: 0" >> "$SUMMARY"
             exit 0
           fi
