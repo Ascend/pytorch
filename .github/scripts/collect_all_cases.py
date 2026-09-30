@@ -384,6 +384,7 @@ def filter_skipped_cases(
                 "skip_reason": meta.get("reason", ""),
                 "skip_category": meta.get("category", ""),
                 "skip_source": meta.get("source", ""),
+                "skip_issue": meta.get("issue", ""),
             })
         else:
             filtered.append(c)
