@@ -131,6 +131,26 @@
 
 </div>
 
+### torch.distributed.distributed_c10d.is_ucc_available
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.distributed_c10d.is_ucc_available](https://docs.pytorch.org/docs/2.9/distributed.html)
+
+**产品支持情况**：
+
+<!-- npu="910b" id239 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id239 -->
+<!-- npu="A3" id240 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id240 -->
+<!-- npu="950" id241 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id241 -->
+
+</div>
+
 ### torch.distributed.is_torchelastic_launched
 
 <div style="margin-left: 2em">
