@@ -40,6 +40,10 @@ KERNEL_FACTORY = {
         DynKernel, Kernel.K_VEC, Kernel.F_DYN | Kernel.F_SPEC
     ),
     ("spec", False): partial(Kernel, Kernel.K_VEC, Kernel.F_SPEC),
+    ("vector:opt_fractal", True): partial(
+        DynKernel, Kernel.K_VEC, Kernel.F_DYN | Kernel.F_OPT_FRAC
+    ),
+    ("vector:opt_fractal", False): partial(Kernel, Kernel.K_VEC, Kernel.F_OPT_FRAC),
     ("vector", True): partial(DynKernel, Kernel.K_VEC, Kernel.F_DYN),
     ("vector", False): partial(Kernel, Kernel.K_VEC, 0),
 }
@@ -69,6 +73,7 @@ def kernel(
     """
 
     def decorate(builder):
+        Kernel.set_vf_fusion(dvm_config.vf_fusion)
         kobj = KERNEL_FACTORY[(ktype, dyn_shape)]()
         kernel_name = getattr(builder, "__name__", "<unknown>")
 

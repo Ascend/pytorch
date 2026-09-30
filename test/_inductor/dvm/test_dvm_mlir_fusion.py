@@ -1,5 +1,9 @@
 # Owner(s): ["module: tests"]
 import os
+import subprocess
+import sys
+import textwrap
+from unittest import mock
 
 import torch
 from torch._inductor.utils import run_and_get_code
@@ -223,6 +227,121 @@ class TestDvmByMlir(TestCase):
         self.assertIn("k.equal", code)
         self.assertIn("k.select(", code)
 
+    def test_bf16_cat(self):
+        def model(x):
+            return torch.cat((x, x + 10), dim=-1) + 1
+
+        x = torch.arange(32, dtype=torch.bfloat16, device="npu").reshape(4, 8)
+        with torch.no_grad(), mock.patch(
+            "torch_npu._inductor.dvm.config.enable_cat", True
+        ):
+            expect = model(x)
+            result, codes = self._run_and_get_code_with_dvm(model, x)
+        self.assertEqual(expect, result)
+        self.assertIn("k.concat(", "\n".join(codes))
+
+    def test_cat_reduce(self):
+        def model(x):
+            return torch.cat((x, x + 10), dim=-1).sum(dim=-1)
+
+        x = torch.arange(32, dtype=torch.float32, device="npu").reshape(4, 8)
+        with torch.no_grad(), mock.patch(
+            "torch_npu._inductor.dvm.config.enable_cat", True
+        ):
+            expect = model(x)
+            result, codes = self._run_and_get_code_with_dvm(model, x)
+        self.assertEqual(expect, result)
+        code = "\n".join(codes)
+        self.assertIn("k.concat(", code)
+        self.assertIn("k.sum(", code)
+
+    def test_npu_rms_norm(self):
+        def model(x, gamma):
+            return torch.ops.npu.npu_rms_norm.default(x, gamma)
+
+        x = torch.randn(8, 16, 1024, device="npu")
+        gamma = torch.randn(1024, device="npu")
+        with torch.no_grad():
+            expect = model(x, gamma)
+            result, codes = self._run_and_get_code_with_dvm(model, x, gamma)
+
+        self.assertEqual(expect, result, atol=1e-4, rtol=1e-4)
+        code = "\n".join(codes)
+        self.assertNotIn("torch.ops.npu.npu_rms_norm.default(", code)
+        self.assertIn("@dvm.kernel", code)
+
+    def test_rms_norm_decomp_disabled(self):
+        subprocess.run(
+            [sys.executable, "-c", textwrap.dedent("""
+                import os
+                os.environ.pop("TORCHINDUCTOR_NPU_BACKEND", None)
+
+                import torch
+                import torch_npu
+                from torch._inductor.utils import run_and_get_code
+                from torch_npu._inductor.dvm import config as dvm_config
+
+                dvm_config.disable_decomp_list = [torch.ops.npu.npu_rms_norm]
+                dvm_config.enable_decomp_list = [torch.ops.npu.npu_rms_norm_backward]
+                os.environ["TORCHINDUCTOR_NPU_BACKEND"] = "dvm"
+
+                def model(x, gamma, grad):
+                    y, rstd = torch.ops.npu.npu_rms_norm.default(x, gamma)
+                    dx, dgamma = torch.ops.npu.npu_rms_norm_backward.default(
+                        grad, x, gamma, rstd
+                    )
+                    return y, rstd, dx, dgamma
+
+                x = torch.randn(8, 16, 1024, device="npu")
+                gamma = torch.randn(1024, device="npu")
+                grad = torch.randn_like(x)
+                with torch.no_grad():
+                    expect = model(x, gamma, grad)
+                    result, codes = run_and_get_code(torch.compile(model), x, gamma, grad)
+                torch.testing.assert_close(result, expect, atol=1e-4, rtol=1e-4)
+                code = "\\n".join(codes)
+                assert "torch.ops.npu.npu_rms_norm.default(" in code
+                assert "torch.ops.npu.npu_rms_norm_backward.default(" not in code
+                assert "@dvm.kernel" in code
+            """)],
+            check=True,
+            cwd=os.path.dirname(__file__),
+        )
+
+    @parametrize("dtype", [torch.float32, torch.float16, torch.bfloat16])
+    @parametrize("gamma_shape", [(1024,), (16, 1024)])
+    def test_rms_norm_decomp_matches_cann(self, dtype, gamma_shape):
+        from torch_npu._inductor.dvm import decomp as dvm_decomp
+
+        x = torch.randn(8, 16, 1024, device="npu", dtype=dtype)
+        gamma = torch.randn(*gamma_shape, device="npu", dtype=dtype)
+        grad_output = torch.randn_like(x)
+
+        expected_y, expected_rstd = torch.ops.npu.npu_rms_norm.default(x, gamma)
+        actual_y, actual_rstd = dvm_decomp.npu_rms_norm(x, gamma)
+        expected_dx, expected_dgamma = torch.ops.npu.npu_rms_norm_backward.default(
+            grad_output, x, gamma, expected_rstd
+        )
+        actual_dx, actual_dgamma = dvm_decomp.npu_rms_norm_backward(
+            grad_output, x, gamma, expected_rstd
+        )
+
+        tolerance = {
+            torch.float32: 1e-4,
+            torch.float16: 1e-3,
+            torch.bfloat16: 5e-3,
+        }[dtype]
+        for actual, expected in (
+            (actual_y, expected_y),
+            (actual_rstd, expected_rstd),
+            (actual_dx, expected_dx),
+            (actual_dgamma, expected_dgamma),
+        ):
+            self.assertEqual(actual.dtype, expected.dtype)
+            self.assertEqual(actual.shape, expected.shape)
+            torch.testing.assert_close(
+                actual, expected, rtol=tolerance, atol=tolerance
+            )
 
     @parametrize("dtype", [torch.float16, torch.float32, torch.bfloat16])
     @parametrize("is_dynamic", [True, False])
