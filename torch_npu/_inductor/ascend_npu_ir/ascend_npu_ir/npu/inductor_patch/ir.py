@@ -241,7 +241,9 @@ def _patch_baseview_realize(self):
         buffer = try_get_buffer(self)
         if not buffer:
             return r
-        if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel)):
+        if isinstance(
+            buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel)
+        ) or not hasattr(buffer, "data"):
             return r
         traced_graph = buffer.data.get_traced_graph()
         buf_name = buffer.get_name()
@@ -268,7 +270,9 @@ def _patch_baseview_realize_hint(self):
         buffer = try_get_buffer(self)
         if not buffer:
             return r
-        if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel)):
+        if isinstance(
+            buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel)
+        ) or not hasattr(buffer, "data"):
             return r
         traced_graph = buffer.data.get_traced_graph()
         buf_name = buffer.get_name()
@@ -295,7 +299,9 @@ def _patch_mark_reuse(self, users):
         buffer = try_get_buffer(self)
         if not buffer:
             return r
-        if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel)):
+        if isinstance(
+            buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel)
+        ) or not hasattr(buffer, "data"):
             return r
         traced_graph = buffer.data.get_traced_graph()
         buf_name = buffer.get_name()
