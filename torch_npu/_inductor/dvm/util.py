@@ -7,7 +7,6 @@ from typing import Sequence
 import torch
 from torch._inductor.virtualized import V
 
-from . import config as dvm_config
 from .op_emitter import load, view_load
 
 
@@ -42,23 +41,21 @@ def codegen_maybe_view_load(
     stride: Sequence,
     dtype: torch.dtype,
     *,
-    is_symbolic: bool,
+    view_fusion_level: int,
 ) -> tuple[str, bool]:
     """Return (expr, skip_cont).
 
     skip_cont=False means the caller must manually materialize a non-contiguous
     input with .contiguous() before launching the DVM kernel.
     """
-    if dvm_config.view_fusion_level == 0:
+    dtype_size = dtype.itemsize
+    if view_fusion_level == 0 or dtype_size not in (2, 4):
         return load(shape, dtype), False
 
-    if dvm_config.view_fusion_level == 2:
+    if view_fusion_level == 2:
         return view_load(shape, stride, dtype), True
 
-    if is_symbolic:
-        return load(shape, dtype), False
-
-    if stride[-1] == 1 and shape[-1] != 1:
+    if stride and stride[-1] == 1 and shape[-1] != 1:
         return view_load(shape, stride, dtype), True
 
     return load(shape, dtype), False
