@@ -353,7 +353,6 @@ jobs:
           print(f"{len(missing)} test file(s) missing usable coverage data: {missing}")
 
           base = "obs://pytorch-ci-cache/coverage/pytorch"
-          # 单对象发布：latest/release.tar.gz 此刻仍是上一版（发布在本步骤之后，并发组保证不会与别的 run 交错）
           archive_file = "/tmp/previous-release.tar.gz"
           extract_root = Path("/tmp/previous-release")
           shutil.rmtree(extract_root, ignore_errors=True)
@@ -414,59 +413,33 @@ jobs:
               )
           PYEOF
 
-      # 把覆盖率数据摊平成选测工具要求的目录布局（作用：建图在产物侧做一次，随 release 发布，消费方免建）
-      - name: Flatten the coverage data for the map
-        # 步骤 id（作用：建图步骤据此判断摊平是否产出数据，空输入时不建图）
-        id: flatten-map
+      - name: Check the promoted coverage data
+        id: promote-check
         if: always()
         run: |
           set -euo pipefail
 
-          python3 - <<'PYEOF'
-          import os
-          import shutil
-          from pathlib import Path
-
-          cov_dir = Path(os.environ["COV_ARTIFACTS"]) / "pytorch@latest"
-          if not (cov_dir / "coverage.xml").is_file():
-              print("merge did not promote, skipping the map build")
-              raise SystemExit(0)
-          flat_dir = Path("covdata-set")
-          shutil.rmtree(flat_dir, ignore_errors=True)
-          flat_dir.mkdir(parents=True)
-
-          files = 0
-          for covdata in sorted(cov_dir.glob("**/covdata")):
-              test_file = covdata.parent.relative_to(cov_dir).as_posix()
-              if not test_file.startswith("test/") or not test_file.endswith(".py"):
-                  continue
-              case_dir = flat_dir / test_file[:-3].replace("/", "__") / "covdata"
-              case_dir.mkdir(parents=True, exist_ok=True)
-              for src in covdata.glob("coverage*"):
-                  shutil.copy2(src, case_dir / src.name)
-                  files += 1
-
-          cases = sum(1 for item in flat_dir.iterdir() if item.is_dir())
-          print(f"map input: {files} coverage file(s) in {cases} test case dir(s)")
-          if not cases:
-              raise SystemExit(f"ERROR: no per-test coverage data found under {cov_dir}")
-          PYEOF
-
-          # 摊平出数据才置位（作用：合并未产出数据时跳过建图，避免在空输入上产出空映射）
-          if [ -d covdata-set ] && [ -n "$(ls -A covdata-set)" ]; then
-            echo "built=1" >> "$GITHUB_OUTPUT"
+          if [ ! -f "${COV_ARTIFACTS}/pytorch@latest/coverage.xml" ]; then
+            echo "merge did not promote, skipping the map build"
+            exit 0
           fi
 
-      # 构建“测试 -> 源码”映射（作用：产物侧建一次并随 release 发布；失败不阻塞覆盖率发布，消费方会退回现场建图）
+          GROUP="$(find "${COV_ARTIFACTS}/pytorch@latest/test" -type f -path '*/covdata/coverage' -print -quit)"
+          if [ -z "${GROUP}" ]; then
+            echo "WARNING: merge promoted no per-test coverage data, skipping the map build"
+            exit 0
+          fi
+
+          echo "promoted=1" >> "$GITHUB_OUTPUT"
+
       - name: generate-test-case-map
-        # 摊平没产出数据就不建（作用：避免在空输入上产出空映射并随 release 发布）
-        if: ${{ always() && steps.flatten-map.outputs.built == '1' }}
+        if: ${{ always() && steps.promote-check.outputs.promoted == '1' }}
         continue-on-error: true
         uses: lb-actions/precision-test@v1.0.2
         with:
           repo: pytorch
           build-map: true
-          coverage-dir: covdata-set
+          coverage-dir: ${{ env.COV_ARTIFACTS }}/pytorch@latest
           source-dir: ${{ env.COV_ARTIFACTS }}/covstub
           map-file: ${{ env.COV_ARTIFACTS }}/pytorch@latest/test_case_map.json
         env:
@@ -486,14 +459,12 @@ jobs:
           obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${{ env.OBS_ENDPOINT }}
 
           if [ -z "${CATEGORIES}" ]; then
-            # 打包成单个对象（作用：单对象 PUT 原子，读者只会看到完整的新/旧版本，没有半份数据，也没有删除竞态）
             tar -C "${COV_ARTIFACTS}" -czf /tmp/release.tar.gz covstub pytorch@latest
             ls -lh /tmp/release.tar.gz
             tar -tzf /tmp/release.tar.gz > /tmp/release-files.txt
             if grep -qx "pytorch@latest/manifest.json" /tmp/release-files.txt && grep -qx "pytorch@latest/coverage.xml" /tmp/release-files.txt; then
               obsutil cp /tmp/release.tar.gz "${{ env.OBS_COVERAGE_PREFIX }}/latest/release.tar.gz" -f -vlength
 
-              # 上传后校验对象存在（作用：半途失败能被发现并让任务变红）
               RELEASE_OK=""
               for attempt in 1 2; do
                 obsutil stat "${{ env.OBS_COVERAGE_PREFIX }}/latest/release.tar.gz" >>/tmp/obs-stat.log 2>&1 && { RELEASE_OK=1; break; }
@@ -510,14 +481,6 @@ jobs:
               echo "::error::the release archive is incomplete (missing manifest.json / coverage.xml); nothing was uploaded"
               PUBLISH_FAILED=1
             fi
-            # 历史布局清理（幂等；作用：不再有指针/release 目录，避免残留误导消费者）
-            obsutil rm -f "${{ env.OBS_COVERAGE_PREFIX }}/latest/pointer.json" || true
-            obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/releases/" || true
-            obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/latest/pytorch@latest/" || true
-            obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/latest/convstub/" || true
-            obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/latest/torch@latest/" || true
-            obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/latest/artifacts/" || true
-            obsutil rm -r -f "${{ env.OBS_COVERAGE_PREFIX }}/previous/" || true
           else
             echo "Debug run (categories='${CATEGORIES}'), skipping the ${{ env.OBS_COVERAGE_PREFIX }}/latest upload"
           fi
@@ -618,7 +581,7 @@ jobs:
               except Exception as exc:
                   row("test_case_map", f"published but unreadable ({exc})")
           else:
-              row("test_case_map", "not published - the consumer builds it on the spot")
+              row("test_case_map", "not published - the coverage-mapped selection will be missing")
 
           row("OBS release", f"`{prefix}/latest/release.tar.gz`")
           PYEOF
