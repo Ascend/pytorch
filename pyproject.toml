@@ -1,18 +1,3 @@
-# Package ######################################################################
-
-[project]
-name = "torch_npu"
-dynamic = [
-    "classifiers",
-    "entry-points",
-    "dependencies",
-    "scripts",
-    "version",
-    "description",
-    "readme",
-    "license",
-]
-
 # Linter tools #################################################################
 
 [tool.isort]
