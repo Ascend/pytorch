@@ -46,6 +46,7 @@ from torch._inductor.runtime.hints import (
 from .device_props import get_npu_vector_core_count, get_npu_ub_size_bytes
 from . import device_props
 from .compat import IS_TRITON_36_PLUS
+from .launcher_codegen import _gen_grid_code, _gen_launcher_code
 from torch._inductor.runtime.triton_heuristics import (
     CachingAutotuner,
     TritonCompileResult,
@@ -60,12 +61,15 @@ from torch._inductor.runtime.triton_compat import (
     GPUTarget,
     knobs,
 )
+from torch._inductor.triton_bundler import TritonBundler
 # 2.13.0: upstream triton_compat removed cc_warp_size; warp_size now uses the
 # DeviceProperties.warp_size field (None on NPU -> falls back to 32), matching the
 # upstream triton_heuristics GPUTarget construction.
 from torch._inductor.runtime.runtime_utils import ceildiv, get_max_y_grid, next_power_of_2, triton_hash_to_path_key
 
 import triton
+
+from .static_launcher import NPUStaticTritonCompileResult
 
 log = logging.getLogger(__name__)
 
@@ -217,23 +221,6 @@ def _fmt_config(cfg):
         return str(cfg)
 
 
-def _can_clamp_1d_grid(inductor_meta, def_args, arg_names):
-    """Whether a Grid1D pointwise launch can derive its grid from xnumel.
-
-    A zero free-x-node kernel is the scalar form: its generated body has no
-    per-program x index, so launching every NPU core would make all programs
-    access the same scalar.  Clamp it just like the one-free-node form.
-    Missing metadata remains conservative for custom/legacy kernels.
-    """
-    npu_num_x_nodes = inductor_meta.get("npu_num_x_nodes")
-    return (
-        npu_num_x_nodes in (0, 1)
-        and inductor_meta.get("grid_type", "Grid1D") == "Grid1D"
-        and "xnumel" in def_args
-        and "R0_BLOCK" not in set(arg_names)
-    )
-
-
 class NPUTritonCompileResult(TritonCompileResult):
     """
     Subclass TritonCompileResult to inject the NPU-specific launcher.
@@ -263,8 +250,6 @@ class NPUTritonCompileResult(TritonCompileResult):
             if v is None and k not in known_constants
         }
         none_args -= set(compile_meta["signature"].keys())
-
-        NPU_CU_COUNT = get_npu_vector_core_count()
 
         if IS_TRITON_36_PLUS:
             call_args = list(fn.arg_names)
@@ -454,92 +439,11 @@ class NPUTritonCompileResult(TritonCompileResult):
         if "extra_launcher_args" in self.inductor_meta:
             def_args = [*def_args, *self.inductor_meta["extra_launcher_args"]]
 
-        xblock_val = cfg.kwargs.get("XBLOCK", 1)
-        # Clamp grid_0 for scalar or single-free-node 1D pointwise kernels. The
-        # grid expression below is derived only from xnumel, so it is not valid
-        # for Grid2D/3D or reductions. Keep the separate unsplit scalar
-        # reduction case from master: partial rsplit kernels must use the
-        # regular dispatch path.
-        npu_num_x_nodes = self.inductor_meta.get("npu_num_x_nodes", 0)
-        grid_type = self.inductor_meta.get("grid_type", "Grid1D")
-        npu_rsplit_partial = self.inductor_meta.get(
-            "npu_rsplit_partial", "ws_ptr" in fn.arg_names
+        grid_lines = _gen_grid_code(
+            scope, def_args, fn.arg_names, cfg, self.inductor_meta,
+            num_cores=get_npu_vector_core_count(),
+            is_a5=bool(self.inductor_meta.get("npu_dispatch_recipe")) and device_props.is_a5(),
         )
-        is_simple_1d = _can_clamp_1d_grid(
-            self.inductor_meta, def_args, fn.arg_names
-        )
-        is_unsplit_scalar_reduction = (
-            # Non-linearize bodies index xoffset = pid*XBLOCK directly (no
-            # group-dispatch odometer folding), so a grid of 1 would only run
-            # the first tile — they must fall through to the exact-grid branch
-            # below regardless of the x-node count.
-            self.inductor_meta.get("npu_linearize", True)
-            and npu_num_x_nodes == 0
-            and grid_type == "Grid1D"
-            and "R0_BLOCK" in set(fn.arg_names)
-            and not npu_rsplit_partial
-        )
-
-        # A5 (910_95) one-program-per-tile: kernel emits group_size=1/group_base=program_id
-        # per free-x shape, so the launcher must launch EXACTLY total_blocks (over/under
-        # aliases or drops tiles — odometer periodic modulo total_blocks). Codegen injects a
-        # recipe reproducing it host-side (references XBLOCK literal + <x>numel args); over
-        # 65535 coreDim folds logical→physical. Falls through to group-dispatch when absent.
-        _recipe = self.inductor_meta.get("npu_dispatch_recipe")
-        _grid_recipe_lines = None
-        if _recipe and device_props.is_a5():
-            # Splice every tile-block constexpr the recipe may reference
-            # (XBLOCK / YBLOCK / ZBLOCK for Grid1D/2D/3D) as a literal, so the
-            # recipe lines exec with the same block sizes the kernel was JIT'd
-            # with. Missing one (e.g. YBLOCK on a Grid2D recipe) would NameError
-            # in the grid computation and fail every config.
-            _rl = [f"    {_bn} = {_bv}" for _bn, _bv in cfg.kwargs.items()
-                   if _bn.endswith("BLOCK")]
-            _rl += [f"    {ln}" for ln in _recipe["lines"]]
-            _tb = " * ".join(_recipe["factors"])
-            _rl.append(f"    grid_0 = max(1, {_tb})")
-            _grid_recipe_lines = _rl
-
-        if _grid_recipe_lines is not None:
-            # Not memoized: total_blocks depends on multiple <x>numel args, and
-            # the recipe arithmetic is cheap relative to correctness clarity.
-            grid_0_expr = None
-            grid_0_is_memoized = False
-        elif is_unsplit_scalar_reduction:
-            grid_0_expr = "1"
-            grid_0_is_memoized = False
-        elif is_simple_1d:
-            # Clamp to NPU_CU_COUNT: below it, the full count wastes overhead on idle cores;
-            # the group-dispatch body is well-defined for grid < total_thread (excess lanes
-            # get group_size=0). Lower-bound at 1: an unbacked size can be 0 (speech_transformer
-            # empty slice → xnumel==0) and CANN rejects coreDim==0 (EE1003); one program is a
-            # correct no-op (mask all False). A5 with a free x-axis takes the recipe path.
-            grid_0_expr = (
-                f"max(1, min((xnumel + {xblock_val} - 1) // {xblock_val}, {NPU_CU_COUNT}))"
-            )
-            # grid_0 depends only on xnumel (XBLOCK and NPU_CU_COUNT are baked in). It's a
-            # constant literal for static shapes and usually stable for dynamic ones, so
-            # memoize on the last-seen xnumel with a single-slot cache: the arithmetic +
-            # max/min run only when xnumel changes, still correct for any value. The cache
-            # cell is bound as a hidden default param (below) so the lookup is LOAD_FAST.
-            grid_0_is_memoized = True
-        elif not self.inductor_meta.get("npu_linearize", True) and grid_type == "Grid1D" and "xnumel" in def_args:
-            # Non-linearize structure: xoffset = pid*XBLOCK with an always-true
-            # xmask (xnumel % XBLOCK == 0) and no group-dispatch folding, so
-            # the grid must be EXACTLY ceil(xnumel/XBLOCK) — one tile per pid.
-            # Larger grids read past the input (MTE fault 507035, vector core
-            # exception — codegen/triton.py sets inductor_meta["npu_linearize"]
-            # =False for these kernels); smaller ones silently drop tiles
-            # (uninitialized output rows, no fault — a min(ceil, NPU_CU_COUNT)
-            # clamp regressed sum(64,128,256) at XBLOCK=128 where ceil=64 > 48).
-            # Unlike the simple-1D pointwise branch there is no num_x_nodes
-            # guarantee that ceil <= NPU_CU_COUNT, so no upper clamp: reductions
-            # time-slice tiles over the cores instead.
-            grid_0_expr = f"max(1, (xnumel + {xblock_val} - 1) // {xblock_val})"
-            grid_0_is_memoized = True
-        else:
-            grid_0_expr = str(NPU_CU_COUNT)
-            grid_0_is_memoized = False
 
         # Per-launch host cost reduction: the launcher body runs on every enqueue, and
         # CPython resolves every free name in runner_args / grid_0_expr via LOAD_GLOBAL. All
@@ -550,34 +454,8 @@ class NPUTritonCompileResult(TritonCompileResult):
             "runner", "slow_runner", "function", "metadata",
             "launch_enter_hook", "launch_exit_hook",
             "num_warps", "shared", "cta_args", "bin",
-            "max", "min",
+            "max", "min", "_grid_cache",
         ]
-        scope.setdefault("max", max)
-        scope.setdefault("min", min)
-        bound = [n for n in invariant_names if n in scope]
-        hidden = "".join(f", {n}={n}" for n in bound)
-        if _grid_recipe_lines is not None:
-            # A5 one-program-per-tile: the injected recipe computes grid_0 as the
-            # exact total_blocks (see above). Not memoized -- it depends on
-            # multiple <x>numel args, so a single-slot xnumel cache would be wrong.
-            grid_lines = _grid_recipe_lines
-        elif grid_0_is_memoized:
-            # Single-slot grid cache: [last_xnumel, last_grid_0]. Bound as a
-            # mutable default so it persists across calls and is read/written via
-            # LOAD_FAST. ``-1`` can never equal a real (non-negative) xnumel, so
-            # the first call always misses and populates the slot.
-            scope["_grid_cache"] = [-1, 0]
-            grid_lines = [
-                "    if xnumel == _grid_cache[0]:",
-                "        grid_0 = _grid_cache[1]",
-                "    else:",
-                f"        grid_0 = {grid_0_expr}",
-                "        _grid_cache[0] = xnumel",
-                "        _grid_cache[1] = grid_0",
-            ]
-            hidden += ", _grid_cache=_grid_cache"
-        else:
-            grid_lines = [f"    grid_0 = {grid_0_expr}"]
         if use_fast and fast_args is not None:
             # Hot path: call the FASTCALL ``fast_launch``. It returns None on a
             # real launch and a non-None sentinel (-1) only when it declined
@@ -591,16 +469,10 @@ class NPUTritonCompileResult(TritonCompileResult):
             call_lines = [
                 f"    runner({', '.join(runner_args)})",
             ]
-        lines = [
-            f"def launcher({', '.join(def_args)}, stream{hidden}):",
-            *grid_lines,
-            "    grid_1 = 1",
-            "    grid_2 = 1",
-            *call_lines,
-        ]
-        exec("\n".join(lines), scope)
-
-        launcher = scope["launcher"]
+        launcher = _gen_launcher_code(
+            scope, def_args, runner_args, grid_lines,
+            bound_names=invariant_names, call_lines=call_lines,
+        )
         launcher.config = cfg
         launcher.runnable = True
         launcher.n_regs = getattr(binary, "n_regs", None)
@@ -611,9 +483,6 @@ class NPUTritonCompileResult(TritonCompileResult):
             triton_hash_to_path_key(binary_hash) if binary_hash is not None else None
         )
         launcher.store_cubin = self.inductor_meta.get("store_cubin", False)
-        # Stash def_args so the autotuner can wrap this launcher with
-        # dtype boundary casts (i64->i32, fp64->fp32).
-        launcher._npu_def_args = list(def_args)
         if launcher.store_cubin:
             launcher.fn = fn
             launcher.bin = binary
@@ -728,6 +597,51 @@ class NPUCachingAutotuner(CachingAutotuner):
             _wrap_launcher_with_downcast(launcher, downcast_args=downcast_args, mutated_arg_names=mutated)
             for launcher in self.launchers
         ]
+
+    @staticmethod
+    def _close_static_launcher(launcher) -> None:
+        original = getattr(launcher, "_npu_original_launcher", launcher)
+        CachingAutotuner._close_static_launcher(original)
+
+    def is_statically_launchable(self):
+        return bool(self.compile_results) and all(
+            isinstance(result, NPUStaticTritonCompileResult)
+            for result in self.compile_results
+        )
+
+    def prepare_for_caching(self) -> None:
+        # TritonBundler stores the npubin as a separate cache artifact. Match
+        # the community static launcher and avoid duplicating large binaries in
+        # the pickled autotuner unless the shared fallback switch is enabled.
+        if config.keep_static_cubin_raw:
+            return
+        for result in self.compile_results:
+            if isinstance(result, NPUStaticTritonCompileResult):
+                result.kernel.npubin_raw = None
+
+    def _release_static_launchers_except(self, keep_launcher) -> None:
+        for launcher in self.launchers:
+            if launcher is not keep_launcher:
+                self._close_static_launcher(launcher)
+        if not getattr(keep_launcher, "_is_static", False):
+            return
+        keep_hash = getattr(keep_launcher, "cache_hash", None)
+        if keep_hash is None:
+            return
+        keep_results = [
+            result
+            for result in self.compile_results
+            if isinstance(result, NPUStaticTritonCompileResult)
+            and triton_hash_to_path_key(result.kernel.hash) == keep_hash
+        ]
+        if len(keep_results) != 1:
+            return
+        for result in self.compile_results:
+            if result is not keep_results[0] and isinstance(
+                result, NPUStaticTritonCompileResult
+            ):
+                result.kernel.close()
+        self.compile_results = keep_results
 
     def _partition_configs_by_tier(self, configs):
         """Split configs into (primary, fallback) tiers by tile size.
@@ -850,6 +764,11 @@ class NPUCachingAutotuner(CachingAutotuner):
         from torch._inductor.runtime.triton_heuristics import NoTritonConfigsError
 
         if self.compile_results:
+            for result in self.compile_results:
+                TritonBundler.put(
+                    triton_hash_to_path_key(result.kernel.hash),
+                    int(self.triton_meta.get("device", 0) or 0),
+                )
             return
 
         if self.launchers:
@@ -983,7 +902,7 @@ class NPUCachingAutotuner(CachingAutotuner):
                 log.debug("Fallback config %s also failed: %s", cfg, e)  # noqa: G200
         return results, last_exc
 
-    def _precompile_config(self, cfg: Config) -> "NPUTritonCompileResult":
+    def _precompile_config(self, cfg: Config):
         compile_meta = copy.deepcopy(self.triton_meta)
 
         cfg_kwargs = cfg.kwargs
@@ -1093,6 +1012,23 @@ class NPUCachingAutotuner(CachingAutotuner):
             **self.inductor_meta,
             "block_hints": self.triton_meta.get("block_hints", {}),
         }
+        TritonBundler.put(
+            triton_hash_to_path_key(binary.hash),
+            int(compile_meta.get("device", 0) or 0),
+        )
+        static_kernel = NPUStaticTritonCompileResult.can_statically_launch(
+            binary,
+            compile_meta=compile_meta,
+            inductor_meta=inductor_meta_with_hints,
+            heuristic_type=self.heuristic_type,
+        )
+        if static_kernel is not None:
+            return NPUStaticTritonCompileResult(
+                static_kernel,
+                cfg,
+                compile_meta,
+                inductor_meta_with_hints,
+            )
         return NPUTritonCompileResult(binary, cfg, compile_meta, inductor_meta_with_hints)
 
     def _clone_all_args_for_autotune(self, args, kwargs):
@@ -1764,9 +1700,11 @@ def _wrap_launcher_with_downcast(launcher, downcast_args, mutated_arg_names):
     for attr in (
         "config", "runnable", "n_regs", "n_spills", "shared", "store_cubin",
         "fn", "bin", "def_args", "call_args", "_npu_def_args", "cache_hash",
+        "_is_static", "_expected_positional_count",
     ):
         if hasattr(launcher, attr):
             setattr(wrapped, attr, getattr(launcher, attr))
+    wrapped._npu_original_launcher = launcher
     return wrapped
 
 

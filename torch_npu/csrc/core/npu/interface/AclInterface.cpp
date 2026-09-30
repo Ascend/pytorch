@@ -136,6 +136,11 @@ TORCH_NPU_LOAD_FUNC(aclrtMemset)
 TORCH_NPU_LOAD_FUNC(aclrtMemsetAsync)
 TORCH_NPU_LOAD_FUNC(aclmdlRICaptureThreadExchangeMode)
 TORCH_NPU_LOAD_FUNC(aclrtGetLogicDevIdByUserDevId)
+TORCH_NPU_LOAD_FUNC(aclrtBinaryLoadFromData)
+TORCH_NPU_LOAD_FUNC(aclrtBinaryGetFunction)
+TORCH_NPU_LOAD_FUNC(aclrtBinaryUnLoad)
+TORCH_NPU_LOAD_FUNC(aclrtGetHardwareSyncAddr)
+TORCH_NPU_LOAD_FUNC(aclrtLaunchKernelWithHostArgs)
 
 aclprofStepInfoPtr init_stepinfo() {
   typedef aclprofStepInfoPtr (*npdInitFunc)();
@@ -1938,5 +1943,58 @@ aclError AclrtGetLogicDevIdByUserDevId(const int32_t userDevid, int32_t* const l
   TORCH_CHECK(func, "Failed to find function aclrtGetLogicDevIdByUserDevId", PTA_ERROR(ErrCode::NOT_FOUND));
   return func(userDevid, logicDevId);
 }
+bool IsExistAclrtLaunchKernelWithHostArgs() {
+  using Func = decltype(&aclrtLaunchKernelWithHostArgs);
+  static Func func = (Func)TORCH_NPU_GET_FUNC(aclrtLaunchKernelWithHostArgs);
+  return func != nullptr;
+}
+
+aclError AclrtBinaryLoadFromData(
+    const void* data,
+    size_t length,
+    const aclrtBinaryLoadOptions* options,
+    aclrtBinHandle* binHandle) {
+  using Func = decltype(&aclrtBinaryLoadFromData);
+  static Func func = (Func)TORCH_NPU_GET_FUNC(aclrtBinaryLoadFromData);
+  TORCH_CHECK(func, "Failed to find function aclrtBinaryLoadFromData", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(data, length, options, binHandle);
+}
+
+aclError AclrtBinaryGetFunction(aclrtBinHandle binHandle, const char* kernelName, aclrtFuncHandle* funcHandle) {
+  using Func = decltype(&aclrtBinaryGetFunction);
+  static Func func = (Func)TORCH_NPU_GET_FUNC(aclrtBinaryGetFunction);
+  TORCH_CHECK(func, "Failed to find function aclrtBinaryGetFunction", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(binHandle, kernelName, funcHandle);
+}
+
+aclError AclrtBinaryUnLoad(aclrtBinHandle binHandle) {
+  using Func = decltype(&aclrtBinaryUnLoad);
+  static Func func = (Func)TORCH_NPU_GET_FUNC(aclrtBinaryUnLoad);
+  TORCH_CHECK(func, "Failed to find function aclrtBinaryUnLoad", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(binHandle);
+}
+
+aclError AclrtGetHardwareSyncAddr(void** addr) {
+  using Func = decltype(&aclrtGetHardwareSyncAddr);
+  static Func func = (Func)TORCH_NPU_GET_FUNC(aclrtGetHardwareSyncAddr);
+  TORCH_CHECK(func, "Failed to find function aclrtGetHardwareSyncAddr", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(addr);
+}
+
+aclError AclrtLaunchKernelWithHostArgs(
+    aclrtFuncHandle funcHandle,
+    uint32_t numBlocks,
+    aclrtStream stream,
+    aclrtLaunchKernelCfg* cfg,
+    void* hostArgs,
+    size_t argsSize,
+    aclrtPlaceHolderInfo* placeHolderArray,
+    size_t placeHolderNum) {
+  using Func = decltype(&aclrtLaunchKernelWithHostArgs);
+  static Func func = (Func)TORCH_NPU_GET_FUNC(aclrtLaunchKernelWithHostArgs);
+  TORCH_CHECK(func, "Failed to find function aclrtLaunchKernelWithHostArgs", PTA_ERROR(ErrCode::NOT_FOUND));
+  return func(funcHandle, numBlocks, stream, cfg, hostArgs, argsSize, placeHolderArray, placeHolderNum);
+}
+
 } // namespace acl
 } // namespace c10_npu

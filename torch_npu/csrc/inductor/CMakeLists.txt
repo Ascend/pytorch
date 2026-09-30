@@ -5,6 +5,7 @@ FILE(GLOB _INDUCTOR_SRCS
          aoti_torch/generated/*.cpp
          aoti_package/*.cpp
          ${PROJECT_SOURCE_DIR}/torch_npu/_inductor/experimental/python_wrapper_fast_launch/csrc/*.cpp
+         static_launcher/*.cpp
          dvm/*.cpp
          mlir/*.cpp)
 

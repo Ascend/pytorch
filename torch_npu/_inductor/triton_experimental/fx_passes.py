@@ -16,6 +16,11 @@ import logging
 
 import sympy
 import torch
+from torch._inductor.custom_graph_pass import (
+    CustomGraphPass,
+    get_custom_graph_passes,
+    get_hash_for_files,
+)
 
 from . import config as ncfg
 
@@ -375,6 +380,17 @@ def _elide_int_float_int_roundtrip_pass(graph):
         log.debug("[NPU] int-float-int roundtrip elide: rewrote %s site(s)", rewritten)
 
 
+class ElideIntFloatIntPass(CustomGraphPass):
+    def __call__(self, graph):
+        _elide_int_float_int_roundtrip_pass(graph)
+
+    def uuid(self):
+        # The implementation also checks this flag when invoked, after install.
+        return get_hash_for_files(
+            (__file__,), extra=f"elide_int_float_int={ncfg.elide_int_float_int!r}"
+        )
+
+
 def _install_elide_int_float_int_pass():
     """Register _elide_int_float_int_roundtrip_pass as an inductor post_grad
     custom pass, composing with any pass already set."""
@@ -382,14 +398,10 @@ def _install_elide_int_float_int_pass():
         return
     from torch._inductor import config as inductor_config
 
-    prev = inductor_config.post_grad_custom_post_pass
-
-    def _composed(graph):
-        if prev is not None:
-            prev(graph)
-        _elide_int_float_int_roundtrip_pass(graph)
-
-    inductor_config.post_grad_custom_post_pass = _composed
+    previous = get_custom_graph_passes(inductor_config.post_grad_custom_post_pass)
+    if any(isinstance(pass_, ElideIntFloatIntPass) for pass_ in previous):
+        return
+    inductor_config.post_grad_custom_post_pass = [*previous, ElideIntFloatIntPass()]
     log.debug("[NPU] installed int->float->int roundtrip elide post_grad pass")
 
 

@@ -446,5 +446,29 @@ aclError AclrtMemSet(void* devPtr, size_t maxCount, int32_t value, size_t count)
 
 aclError AclrtMemSetAsync(void* devPtr, size_t maxCount, int32_t value, size_t count, aclrtStream stream);
 
+bool IsExistAclrtLaunchKernelWithHostArgs();
+
+aclError AclrtBinaryLoadFromData(
+    const void* data,
+    size_t length,
+    const aclrtBinaryLoadOptions* options,
+    aclrtBinHandle* binHandle);
+
+aclError AclrtBinaryGetFunction(aclrtBinHandle binHandle, const char* kernelName, aclrtFuncHandle* funcHandle);
+
+aclError AclrtBinaryUnLoad(aclrtBinHandle binHandle);
+
+aclError AclrtGetHardwareSyncAddr(void** addr);
+
+aclError AclrtLaunchKernelWithHostArgs(
+    aclrtFuncHandle funcHandle,
+    uint32_t numBlocks,
+    aclrtStream stream,
+    aclrtLaunchKernelCfg* cfg,
+    void* hostArgs,
+    size_t argsSize,
+    aclrtPlaceHolderInfo* placeHolderArray,
+    size_t placeHolderNum);
+
 } // namespace acl
 } // namespace c10_npu

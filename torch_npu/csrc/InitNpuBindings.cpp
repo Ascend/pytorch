@@ -19,6 +19,7 @@
 #include "torch_npu/csrc/inductor/aoti_package/shape_handling.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/_inductor/experimental/python_wrapper_fast_launch/csrc/bindings.h"
+#include "torch_npu/csrc/inductor/static_launcher/bindings.h"
 #endif
 #include "torch_npu/csrc/distributed/Init.h"
 #include "torch_npu/csrc/afd/Init.h"
@@ -104,8 +105,7 @@ PyObject* THPModule_npu_shutdown(PyObject* self, PyObject* arg) {
   }
 
   ASCEND_LOGI("NPU shutdown NpuSysCtrl Finalize.");
-  c10_npu::NpuSysCtrl::SysStatus status =
-      c10_npu::NpuSysCtrl::GetInstance().Finalize();
+  c10_npu::NpuSysCtrl::SysStatus status = c10_npu::NpuSysCtrl::GetInstance().Finalize();
   if (status != c10_npu::NpuSysCtrl::SysStatus::FINALIZE_SUCC) {
     ASCEND_LOGE("NPU shutdown failed.");
   } else {
@@ -154,9 +154,7 @@ PyObject* THPModule_npu_shutdown_synchronize(PyObject* /* unused */) {
 // the NPU-native factory, bypassing the dispatcher while still running the
 // required NPU storage-descriptor setup inside
 // NPUNativeFunctions::empty_strided.
-static void _npu_unwrap_size_tuple(
-    PyObject* obj,
-    c10::SmallVector<int64_t, 8>& out) {
+static void _npu_unwrap_size_tuple(PyObject* obj, c10::SmallVector<int64_t, 8>& out) {
   TORCH_CHECK(PyTuple_CheckExact(obj), "expected a tuple of ints");
   Py_ssize_t len = PyTuple_GET_SIZE(obj);
   out.reserve(len);
@@ -182,27 +180,18 @@ PyObject* THPModule_empty_strided_npu(PyObject* /* unused */, PyObject* args) {
   _npu_unwrap_size_tuple(PyTuple_GET_ITEM(args, 1), strides);
 
   PyObject* py_dtype = PyTuple_GET_ITEM(args, 2);
-  TORCH_CHECK(
-      THPDtype_Check(py_dtype),
-      "_empty_strided_npu: arg 3 must be a torch.dtype");
+  TORCH_CHECK(THPDtype_Check(py_dtype), "_empty_strided_npu: arg 3 must be a torch.dtype");
   at::ScalarType dtype = reinterpret_cast<THPDtype*>(py_dtype)->scalar_type;
 
-  return THPVariable_Wrap(
-      at_npu::native::empty_strided_npu(sizes, strides, dtype));
+  return THPVariable_Wrap(at_npu::native::empty_strided_npu(sizes, strides, dtype));
   END_HANDLE_TH_ERRORS;
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays, modernize-avoid-c-arrays)
 static PyMethodDef TorchNpuMethods[] = {
     {"_npu_shutdown", (PyCFunction)THPModule_npu_shutdown, METH_O, nullptr},
-    {"_npu_shutdown_synchronize",
-     (PyCFunction)THPModule_npu_shutdown_synchronize,
-     METH_NOARGS,
-     nullptr},
-    {"_empty_strided_npu",
-     (PyCFunction)THPModule_empty_strided_npu,
-     METH_VARARGS,
-     nullptr},
+    {"_npu_shutdown_synchronize", (PyCFunction)THPModule_npu_shutdown_synchronize, METH_NOARGS, nullptr},
+    {"_empty_strided_npu", (PyCFunction)THPModule_empty_strided_npu, METH_VARARGS, nullptr},
     {nullptr, nullptr, 0, nullptr}};
 
 #ifndef BUILD_LIBTORCH
@@ -216,10 +205,7 @@ PyObject* THPModule_sanitizer_enable(PyObject* /* unused */, PyObject* args) {
 }
 
 static PyMethodDef TorchSanitizerMethods[] = {
-    {"_activate_npu_trace",
-     (PyCFunction)THPModule_sanitizer_enable,
-     METH_VARARGS,
-     nullptr},
+    {"_activate_npu_trace", (PyCFunction)THPModule_sanitizer_enable, METH_VARARGS, nullptr},
     {nullptr, nullptr, 0, nullptr}};
 #endif
 
@@ -255,8 +241,7 @@ extern "C"
   AddPyMethodDefs(methods, torch_npu::npurt::npurt_functions());
   AddPyMethodDefs(methods, c10_npu::custom_dtype_functions());
   AddPyMethodDefs(methods, torch_npu::afd::python_functions());
-  static struct PyModuleDef torchnpu_module = {
-      PyModuleDef_HEAD_INIT, "torch_npu._C", nullptr, -1, methods.data()};
+  static struct PyModuleDef torchnpu_module = {PyModuleDef_HEAD_INIT, "torch_npu._C", nullptr, -1, methods.data()};
   module = PyModule_Create(&torchnpu_module);
 
   // This will only initialize base classes and attach them to library namespace
@@ -278,6 +263,7 @@ extern "C"
   RegisterNpuPluggableAllocator(module);
 #ifndef BUILD_LIBTORCH
   RegisterNPUFastLaunchBindings(module);
+  RegisterNPUStaticLauncherBindings(module);
   c10_npu::bind_npu_recovery_functions(module);
 #endif
   initCommMethods();
