@@ -5,7 +5,7 @@ on:
     branches:
       - ci-test
     paths:
-      - '.github/workflows/nightly_all.yml'
+      - '.github/workflows/nightly-a3.yml'
   workflow_dispatch:
 
 permissions:
