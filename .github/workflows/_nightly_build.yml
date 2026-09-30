@@ -118,6 +118,23 @@ jobs:
       # the same way the CI container images do (mirrors .ci/docker/
       # common/install_obs.sh from the image build repo). Installed under
       # $HOME because the runner user cannot write to /usr/local.
+      #
+      # The installed tree is cached via the Actions cache service, which
+      # is served near the GitHub-hosted runners: the common path never
+      # resolves the Huawei Cloud cn-north-1 domain, whose cross-border
+      # DNS lookups intermittently time out from US runners. The key
+      # carries the current quarter, so the cached obsutil refreshes at
+      # the cost of one cross-border download per quarter.
+      - name: Compute obsutil cache key
+        id: obsutil_key
+        run: echo "key=obsutil-${{ runner.arch }}-$(date -u +%Y)Q$(( ($(date -u +%-m) + 2) / 3 ))" >> "$GITHUB_OUTPUT"
+
+      - name: Cache obsutil
+        uses: actions/cache@v6
+        with:
+          path: ~/.local/obsutil
+          key: ${{ steps.obsutil_key.outputs.key }}
+
       - name: Install obsutil
         run: |
           set -e
@@ -127,12 +144,24 @@ jobs:
             aarch64) OBS_ARCH="arm64" ;;
             *)       echo "Unsupported architecture: ${ARCH}"; exit 1 ;;
           esac
+          OBSUTIL_HOME="$HOME/.local/obsutil"
+          # Cache hit: the download below (the flaky cross-border step)
+          # is skipped entirely.
+          if [ -x "${OBSUTIL_HOME}/obsutil" ] && "${OBSUTIL_HOME}/obsutil" version >/dev/null 2>&1; then
+            echo "obsutil restored from Actions cache, skipping download"
+            "${OBSUTIL_HOME}/obsutil" version
+            exit 0
+          fi
+          echo "obsutil not in Actions cache, downloading (first run of the quarter)"
           OBS_URL="https://obs-community.obs.cn-north-1.myhuaweicloud.com/obsutil/current/obsutil_linux_${OBS_ARCH}.tar.gz"
           # Retry to ride out transient cross-border network failures from
           # GitHub-hosted runners to the Huawei Cloud OBS domain. Verbose
           # output (no -q) so failures show DNS/TLS/HTTP details.
           wget --tries=3 --timeout=30 --waitretry=10 --progress=dot:mega "${OBS_URL}"
-          OBSUTIL_HOME="$HOME/.local/obsutil"
+          # Start from a clean slate so a stale restored tree (e.g. a
+          # broken binary plus a new upstream version) cannot leave two
+          # version dirs behind, which would break the symlink glob below.
+          rm -rf "${OBSUTIL_HOME}"
           mkdir -p "${OBSUTIL_HOME}"
           tar -zxf "obsutil_linux_${OBS_ARCH}.tar.gz" -C "${OBSUTIL_HOME}/"
           rm -f "obsutil_linux_${OBS_ARCH}.tar.gz"
