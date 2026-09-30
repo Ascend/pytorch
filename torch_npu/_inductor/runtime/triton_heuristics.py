@@ -1365,18 +1365,12 @@ class NPUCachingAutotuner(CachingAutotuner):
             task_handler = compile_thread_pool.submit(worker, i, c)
             tasks.append(task_handler)
 
-        from torch._dynamo.device_interface import DeviceGuard
-        device_interface = self.get_device_interface()
-        # load binary to the correct device
         compile_results = []
-        with DeviceGuard(device_interface, self.triton_meta["device"]):
-            # need to initialize context
-            device_interface.synchronize(device_interface.current_device())
-            for future in as_completed(tasks):
-                compiled_kernel = future.result()
-                if compiled_kernel is None:
-                    continue
-                compile_results.append(compiled_kernel)
+        for future in as_completed(tasks):
+            compiled_kernel = future.result()
+            if compiled_kernel is None:
+                continue
+            compile_results.append(compiled_kernel)
 
         # first try but return no valid configs
         # so we try tuning more options
@@ -1391,14 +1385,11 @@ class NPUCachingAutotuner(CachingAutotuner):
                 task_handler = compile_thread_pool.submit(worker, i, c)
                 tasks.append(task_handler)
             # collect compiled results
-            with DeviceGuard(device_interface, self.triton_meta["device"]):
-                # need to initialize context
-                device_interface.synchronize(device_interface.current_device())
-                for future in as_completed(tasks):
-                    compiled_kernel = future.result()
-                    if compiled_kernel is None:
-                        continue
-                    compile_results.append(compiled_kernel)
+            for future in as_completed(tasks):
+                compiled_kernel = future.result()
+                if compiled_kernel is None:
+                    continue
+                compile_results.append(compiled_kernel)
 
         if len(compile_results) == 0:
             raise NoTritonConfigsError(

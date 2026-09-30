@@ -6,24 +6,30 @@ from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestWorkerStartMethod(TestCase):
-    def test_inductor_uses_spawn(self):
-        env = os.environ.copy()
-        env["TORCH_DEVICE_BACKEND_AUTOLOAD"] = "0"
-        env["TORCHINDUCTOR_WORKER_START"] = "fork"
-        subprocess.run(
-            [
-                sys.executable,
-                "-c",
-                "from torch._inductor import config; "
-                "assert config.worker_start_method == 'fork'; "
-                "import torch_npu._inductor; "
-                "import os; "
-                "assert os.environ['TORCHINDUCTOR_WORKER_START'] == 'spawn'; "
-                "assert config.worker_start_method == 'spawn'",
-            ],
-            check=True,
-            env=env,
-        )
+    def test_inductor_preserves_worker_start_method(self):
+        for start_method in (None, "fork", "spawn"):
+            with self.subTest(start_method=start_method):
+                env = os.environ.copy()
+                env["TORCH_DEVICE_BACKEND_AUTOLOAD"] = "0"
+                if start_method is None:
+                    env.pop("TORCHINDUCTOR_WORKER_START", None)
+                else:
+                    env["TORCHINDUCTOR_WORKER_START"] = start_method
+                subprocess.run(
+                    [
+                        sys.executable,
+                        "-c",
+                        "from torch._inductor import config; "
+                        "import os; "
+                        "before = config.worker_start_method; "
+                        "before_env = os.environ.get('TORCHINDUCTOR_WORKER_START'); "
+                        "import torch_npu._inductor; "
+                        "assert config.worker_start_method == before; "
+                        "assert os.environ.get('TORCHINDUCTOR_WORKER_START') == before_env",
+                    ],
+                    check=True,
+                    env=env,
+                )
 
 
 if __name__ == "__main__":
