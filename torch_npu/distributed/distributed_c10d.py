@@ -32,6 +32,7 @@ from torch.distributed.distributed_c10d import (
     all_gather,
     Backend,
     GatherOptions,
+    get_global_rank,
     get_group_rank,
     get_rank,
     get_world_size,
@@ -42,6 +43,7 @@ from torch.distributed.distributed_c10d import (
 )
 from torch.distributed.elastic.rendezvous import RendezvousParameters
 
+from torch_npu._compat.version import CURRENT_VERSION
 from torch_npu import npu
 from torch_npu.npu.utils import _is_gte_cann_version
 
@@ -217,6 +219,12 @@ def _gather(tensor, gather_list=None, dst=0, group=None, async_op=False):
     else:
         if tensor.device.type == "npu":
             if use_compatible_impl:
+                # dst is a global rank (upstream semantics, canonicalized in
+                # _gather_object); HCCL validates rootRank in group-local
+                # space, so convert before handing it to the backend. Mirrors
+                # the CPU branch below.
+                group_dst_rank = get_group_rank(group, dst)
+                opts.rootRank = group_dst_rank
                 output_tensors = [gather_list] if my_rank == dst else []
                 _group = group._get_backend(torch.device("npu"))
                 work = _group.gather(output_tensors, input_tensors, opts)
@@ -248,11 +256,37 @@ def _gather(tensor, gather_list=None, dst=0, group=None, async_op=False):
         return None
 
 
-def _gather_object(obj, object_gather_list=None, dst=0, group=None):
+def _gather_object(obj, object_gather_list=None, dst=None, group=None,
+                   group_dst=None, weights_only=False):
     """
     Note:
     Avoid gather_object to use gather func defined in origin distributed_c10d.
     """
+    # COMPAT(< 2.14): pytorch#189353 added weights_only to the upstream
+    # _object_to_tensor/_tensor_to_object in 2.14. On 2.13 the 4th arg does
+    # not exist and weights_only=True cannot be honored; fail loudly instead
+    # of silently falling back to the unsafe pickle path.
+    # CAN REMOVE the else branch when MIN_SUPPORTED_VERSION >= (2, 14)
+    if weights_only and CURRENT_VERSION < (2, 14):
+        raise RuntimeError(
+            "gather_object(weights_only=True) requires torch >= 2.14 "
+            "(upstream pytorch#189353)"
+        )
+    # Align with upstream: dst is the global rank, group_dst is the rank
+    # within `group`; the two are mutually exclusive. PTA's `_gather` takes
+    # the global rank, so canonicalize group_dst back to a global rank here.
+    if dst is None and group_dst is None:
+        dst = 0
+    elif dst is not None and group_dst is not None:
+        raise ValueError(
+            "Cannot specify both dst and group_dst: dst is the destination "
+            "rank on the global process group, group_dst is the destination "
+            "rank on `group`."
+        )
+    elif group_dst is not None:
+        if group is None:
+            group = _get_default_group()
+        dst = get_global_rank(group, group_dst)
     if _rank_not_in_group(group):
         _warn_not_in_group("gather_object")
         return
@@ -261,7 +295,10 @@ def _gather_object(obj, object_gather_list=None, dst=0, group=None):
     my_rank = get_rank()
     _validate_output_list_for_rank(my_rank, dst, object_gather_list)
     current_device = _get_object_coll_device(group)
-    input_tensor, local_size = _object_to_tensor(obj, current_device, group)
+    if CURRENT_VERSION >= (2, 14):
+        input_tensor, local_size = _object_to_tensor(obj, current_device, group, weights_only)
+    else:
+        input_tensor, local_size = _object_to_tensor(obj, current_device, group)
 
     # Gather all local sizes. This is so that we can find the max size, and index
     # until the correct size when deserializing the tensors.
@@ -301,7 +338,10 @@ def _gather_object(obj, object_gather_list=None, dst=0, group=None):
     for i, tensor in enumerate(output_tensors):
         tensor = tensor.type(torch.uint8)
         tensor_size = object_size_list[i]
-        object_gather_list[i] = _tensor_to_object(tensor, tensor_size, group)
+        if CURRENT_VERSION >= (2, 14):
+            object_gather_list[i] = _tensor_to_object(tensor, tensor_size, group, weights_only)
+        else:
+            object_gather_list[i] = _tensor_to_object(tensor, tensor_size, group)
 
 
 def is_hccl_available():
