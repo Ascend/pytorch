@@ -1268,6 +1268,9 @@ PyObject* THNPModule_is_jit_compile_false_wrap(
   if (option_value.has_value() && (option_value.value() == "disable")) {
     Py_RETURN_TRUE;
   } else {
+    if (option_value.has_value() && (option_value.value() == "enable")) {
+      Py_RETURN_FALSE;
+    }
     static const std::string jit_compile_init_option_name = "jitCompileInit";
     auto init_option_value =
         c10_npu::option::GetOption(jit_compile_init_option_name);
