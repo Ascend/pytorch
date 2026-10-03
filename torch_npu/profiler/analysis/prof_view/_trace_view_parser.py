@@ -68,6 +68,25 @@ class TraceViewParser(BaseParser):
         self.logger.info("TraceViewParser finish.")
         return Constant.SUCCESS, None
 
+    @staticmethod
+    def _normalize_timestamps(trace_data: list) -> None:
+        """Convert absolute timestamps to relative (subtract min ts in-place)
+        and ensure ts/dur are numeric, compatible with Chrome Trace Format / Perfetto."""
+        if not trace_data:
+            return
+        # Find the minimum numeric ts among all events (metadata events like "M" have no ts)
+        min_ts = float("inf")
+        for event in trace_data:
+            ts = event.get("ts")
+            if ts is not None and isinstance(ts, (int, float)):
+                min_ts = min(min_ts, ts)
+        if min_ts == float("inf") or min_ts == 0:
+            return
+        for event in trace_data:
+            ts = event.get("ts")
+            if ts is not None and isinstance(ts, (int, float)):
+                event["ts"] = round(ts - min_ts, 3)
+
     def generate_view(self) -> None:
         if not ProfilerPathManager.get_cann_path(self._profiler_path):
             self._trace_data = FwkFileParser(self._profiler_path).get_fwk_trace_data(
@@ -78,6 +97,8 @@ class TraceViewParser(BaseParser):
                 self._prune_trace_by_level(msprof_timeline_data))
             if self._torch_op_node:
                 self._trace_data.extend(self._get_flow_event(msprof_timeline_data))
+        # Normalize to relative timestamps for Perfetto / Chrome Trace Format compatibility
+        self._normalize_timestamps(self._trace_data)
         if os.path.exists(self._temp_trace_file_path):
             FileManager.append_trace_json_by_path(self._temp_trace_file_path, self._trace_data, self._trace_file_path)
         else:
