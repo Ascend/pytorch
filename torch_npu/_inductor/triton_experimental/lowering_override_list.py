@@ -64,6 +64,7 @@ GENERATE_LIST = [
     aten.expand,
     aten.repeat,
     aten.clone,
+    aten.contiguous,
     aten.reshape,
     aten.var_mean,
     aten.sum,

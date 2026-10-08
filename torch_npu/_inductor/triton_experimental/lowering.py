@@ -791,6 +791,23 @@ def npu_clone(x, *, memory_format=None):
 
 
 overwrite_lowering(aten.clone, npu_clone, type_promotion_kind=None)
+
+
+def npu_contiguous(x, memory_format=torch.contiguous_format):
+    """NPU contiguous -- delegate to npu_clone.
+
+    aten.contiguous has no upstream lowering (unlike as_strided), so the bulk
+    fallback pass never sees it and a strict-mode compile of any graph that
+    emits a bare contiguous node (e.g. inside the diag_embed decomposition
+    chain) fails with MissingOperatorWithoutDecomp.  contiguous is exactly a
+    clone with a memory_format contract, so reuse npu_clone: for an already
+    row-major input fold_verdict folds it to a no-op view, and a non-contiguous
+    input lowers to one on-device copy (generated or vendor DMA) -- keeping the
+    copy fuseable instead of a device-side FallbackKernel round-trip."""
+    return npu_clone(x, memory_format=memory_format)
+
+
+overwrite_lowering(aten.contiguous, npu_contiguous, type_promotion_kind=None)
 # --- P1: separable aclnn index_select for aten._unsafe_index / aten.index ---
 # msprof: the aclnn Index fallback costs 10ms/iter on yolov3's head (2
 # launches), while eager runs the same x[:, :, ih[:,None], iw] near-zero via
