@@ -53,6 +53,15 @@ on:
           Comma-separated device types exported as
           PYTORCH_TESTING_DEVICE_ONLY_FOR during execution. Must match the
           collection phase value.
+      batch_execution:
+        required: false
+        type: boolean
+        default: false
+        description: >-
+          When true, run shards via run_npu_test_shard_batch.py (one
+          pytest.main() per same-file batch of max 100 cases, batch-level
+          junit XML, no poisoner checks / restarts; a crashed or hung
+          batch marks all its cases as error).
 
 jobs:
   test:
@@ -226,7 +235,12 @@ jobs:
           echo "Device env: ${{ inputs.device_env }}"
 
           set +e
-          python ci-scripts/.github/scripts/run_npu_test_shard.py \
+          RUNNER="ci-scripts/.github/scripts/run_npu_test_shard.py"
+          if [ "${{ inputs.batch_execution }}" = "true" ]; then
+            RUNNER="ci-scripts/.github/scripts/run_npu_test_shard_batch.py"
+            echo "Execution mode: MERGED BATCH (one pytest.main() per same-file batch)"
+          fi
+          python "${RUNNER}" \
             --cases-json "${CASES_JSON}" \
             --test-dir pytorch/test \
             --report-dir test-reports \

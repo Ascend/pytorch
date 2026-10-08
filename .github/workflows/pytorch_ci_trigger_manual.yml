@@ -98,4 +98,11 @@ jobs:
       report_to_upstream: false
       hw_classification: 'ACCELERATOR'
       device_env: 'privateuse1'
+      # Manual runs use the merged-batch executor (one pytest.main() per
+      # same-file batch of max 100 cases, batch-level junit XML). No
+      # poisoner checks / worker restarts: a crashed or hung batch marks
+      # all its cases as error — acceptable here because the whitelist
+      # keeps failures rare and every failure gets a manual root cause.
+      # PR-gated flows (receive-trigger) keep the default per-case runner.
+      batch_execution: true
       runner_label: 'linux-aarch64-a3-800i-2-cn12-001'

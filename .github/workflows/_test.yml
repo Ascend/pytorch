@@ -74,6 +74,16 @@ on:
           The same value must be used in both phases so collected nodeids
           exist when tests run. Example values: "privateuse1" or
           "privateuse1,cpu".
+      batch_execution:
+        required: false
+        type: boolean
+        default: false
+        description: >-
+          When true, test shards run via run_npu_test_shard_batch.py:
+          one pytest.main() call per same-file batch (max 100 cases) with
+          a batch-level junit XML. No NPU poisoner checks and no worker
+          restarts — a crashed/hung batch marks all its cases as error.
+          Keep false for PR-gated flows (whitelist-verified only).
 
 defaults:
   run:
@@ -120,6 +130,7 @@ jobs:
       report_to_upstream: ${{ inputs.report_to_upstream }}
       runner_label: ${{ matrix.runner_label }}
       device_env: ${{ inputs.device_env }}
+      batch_execution: ${{ inputs.batch_execution }}
 
   # ============================================================================
   # 3. Generate consolidated test report
