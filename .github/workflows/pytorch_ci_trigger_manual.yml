@@ -1,0 +1,83 @@
+name: PyTorch CI Trigger Manual
+
+run-name: >-
+  PyTorch CI Trigger Manual -
+  ${{ format('pytorch@{0} + torch-npu@{1}', inputs.upstream_ref, inputs.torch_npu_ref) }}
+
+# Manual full pipeline: build the latest pytorch/pytorch (main) and
+# Ascend/pytorch (master, torch_npu) and run the same test flow as
+# Receive Trigger (receive-trigger.yml) — same reusable workflows, same
+# parameters — with NO upstream reporting: report_to_upstream is false
+# everywhere, so every pytorch/test-infra cross-repo-ci-relay-callback
+# step is skipped (a manual run has no upstream PR context to report
+# against).
+#
+# The reusable workflows are pinned to @ci-test on purpose:
+#   - the _test*.yml chain only exists on the ci-test branch;
+#   - receive-trigger.yml itself lives on ci-test, so this pipeline
+#     executes the exact same implementation as the PR-triggered one;
+#   - this file modifies nothing — it only adds an independent entry
+#     point, so the receive-trigger flow is untouched.
+#
+# Deployment note: workflow_dispatch requires this file to exist on the
+# DEFAULT branch (master) before it shows up in the "Run workflow"
+# dropdown. Keep the copies on master and ci-test identical — the
+# @ci-test pinning makes the file branch-independent.
+#
+# Concurrency is a dedicated group, never shared with the
+# receive-trigger `ci-<repo>-<PR>` groups: manual runs neither cancel
+# nor get canceled by PR-triggered runs, and repeated manual triggers
+# queue behind each other instead of canceling an in-flight run.
+
+on:
+  workflow_dispatch:
+    inputs:
+      upstream_ref:
+        required: false
+        type: string
+        default: 'main'
+        description: 'pytorch/pytorch ref to build (branch, tag, or commit SHA). Default: latest main.'
+      torch_npu_ref:
+        required: false
+        type: string
+        default: 'master'
+        description: 'Ascend/pytorch (torch_npu) ref to build. Default: latest master.'
+
+concurrency:
+  group: manual-latest-build-test
+  cancel-in-progress: false
+
+jobs:
+  build:
+    uses: Ascend/pytorch/.github/workflows/_build.yml@ci-test
+    secrets: inherit
+    with:
+      upstream_repo: pytorch/pytorch
+      # || fallbacks guard against a cleared/empty input from the UI.
+      upstream_ref: ${{ inputs.upstream_ref || 'main' }}
+      torch_npu_repo: Ascend/pytorch
+      torch_npu_ref: ${{ inputs.torch_npu_ref || 'master' }}
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609230923-00b993fc
+      # Manual run, no upstream PR context — never report to the
+      # upstream dashboard (skips all cross-repo-ci-relay-callback steps).
+      report_to_upstream: false
+      runner_label: 'linux-aarch64-cpu-24'
+      max_jobs: '23'
+
+  test:
+    needs: build
+    if: ${{ needs.build.result == 'success' }}
+    uses: Ascend/pytorch/.github/workflows/_test.yml@ci-test
+    secrets: inherit
+    with:
+      resolved_short: ${{ needs.build.outputs.resolved_short }}
+      torch_npu_short: ${{ needs.build.outputs.torch_npu_short }}
+      wheels_tarball: ${{ needs.build.outputs.wheels_tarball }}
+      case_paths_config: .github/config/pr_test_whitelist.yml
+      skip_list: .github/config/pr_skip_list.jsonl
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609230923-00b993fc
+      # Same as build: no upstream reporting for manual runs.
+      report_to_upstream: false
+      hw_classification: 'ACCELERATOR'
+      device_env: 'privateuse1'
+      runner_label: 'linux-aarch64-a3-800i-2-cn12-001'
