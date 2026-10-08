@@ -50,6 +50,28 @@ on:
           collection and before sharding. When empty, no skip filtering is
           applied. Supports JSONL, JSON {skip_nodeids:[...]}, JSON array,
           and JSON {nodeid: {reason:...}} formats.
+      case_whitelist:
+        required: false
+        type: string
+        default: ''
+        description: >-
+          Path (relative to repo root) to a case-level whitelist: a JSON/YAML
+          list of nodeids (flat array root, or under a case_whitelist/cases/
+          nodeids/whitelist key). When set, collected cases are intersected
+          with this list after collection (before sharding). Empty = keep
+          every collected case.
+      shard_threshold_regular:
+        required: false
+        type: number
+        default: 100000
+        description: >-
+          Max cases per shard for regular categories; num_shards is derived
+          from it (ceil(total/threshold)).
+      shard_threshold_distributed:
+        required: false
+        type: number
+        default: 1000
+        description: Max cases per shard for the distributed category.
       runner_label:
         required: false
         type: string
@@ -280,14 +302,27 @@ jobs:
             done
           fi
 
+          CASE_WHITELIST_ARG=""
+          CASE_WHITELIST_INPUT='${{ inputs.case_whitelist }}'
+          if [ -n "${CASE_WHITELIST_INPUT}" ]; then
+            WHITELIST_PATH="${GITHUB_WORKSPACE}/ci-scripts/${CASE_WHITELIST_INPUT}"
+            if [ -f "${WHITELIST_PATH}" ]; then
+              CASE_WHITELIST_ARG="--case-whitelist ${WHITELIST_PATH}"
+              echo "Case whitelist: ${CASE_WHITELIST_INPUT}"
+            else
+              echo "WARNING: case whitelist file not found: ${WHITELIST_PATH}"
+            fi
+          fi
+
           python3 ${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/collect_all_cases.py \
             --test-dir ${GITHUB_WORKSPACE}/pytorch/test \
             --hw-classification ${{ inputs.hw_classification }} \
             ${CONFIG_ARG} \
             ${FULL_SCAN_ARG} \
             ${SKIP_LIST_ARG} \
-            --regular-threshold 100000 \
-            --distributed-threshold 1000 \
+            ${CASE_WHITELIST_ARG} \
+            --regular-threshold ${{ inputs.shard_threshold_regular }} \
+            --distributed-threshold ${{ inputs.shard_threshold_distributed }} \
             --device-env "${{ inputs.device_env }}" \
             --output-dir ${GITHUB_WORKSPACE}/cases-shards \
             --error-log-dir ${GITHUB_WORKSPACE}/collection_errors \

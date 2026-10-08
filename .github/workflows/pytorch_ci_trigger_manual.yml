@@ -5,12 +5,14 @@ run-name: >-
   ${{ format('pytorch@{0} + torch-npu@{1}', inputs.upstream_ref || 'main', inputs.torch_npu_ref || 'master') }}
 
 # Manual full pipeline: build the latest pytorch/pytorch (main) and
-# Ascend/pytorch (master, torch_npu) and run the same test flow as
-# Receive Trigger (receive-trigger.yml) — same reusable workflows, same
-# parameters — with NO upstream reporting: report_to_upstream is false
-# everywhere, so every pytorch/test-infra cross-repo-ci-relay-callback
-# step is skipped (a manual run has no upstream PR context to report
-# against).
+# Ascend/pytorch (master, torch_npu) and run a full validation pass
+# through the same reusable workflows as Receive Trigger
+# (receive-trigger.yml), but with manual-only parameters: nightly-style
+# full-scan categorization, a passed-testcases intersection as the case
+# filter, and the merged-batch executor. NO upstream reporting:
+# report_to_upstream is false everywhere, so every
+# pytorch/test-infra cross-repo-ci-relay-callback step is skipped
+# (a manual run has no upstream PR context to report against).
 #
 # The reusable workflows are pinned to @ci-test on purpose:
 #   - the _test*.yml chain only exists on the ci-test branch;
@@ -44,22 +46,23 @@ on:
         type: string
         default: 'master'
         description: 'Ascend/pytorch (torch_npu) ref to build. Default: latest master.'
-  # Push trigger: fires when this workflow file itself OR the PR skip list
-  # changes on the ci-test branch (path filter). Skip-list changes are
-  # included on purpose: they alter collection (which cases run) and batch
-  # boundaries, so a full build+test run validates that newly blocked
-  # cases (e.g. poisoner entries) actually stop the failures they target.
-  # All other routine ci-test pushes never start multi-hour runs. Touching
-  # either file and pushing is the git-only way to trigger a run — needed
-  # because workflow_dispatch requires the file on the default branch
-  # (master), while push events work from any branch. inputs.* are empty
-  # on push, so the || fallbacks default the build to
-  # pytorch@main + torch-npu@master.
+  # Push trigger: fires when this workflow file itself OR the passed-case
+  # list changes on the ci-test branch (path filter). The passed-case list
+  # is included on purpose: it IS this pipeline's case filter (collected
+  # cases are intersected with it), so removing a failing case from the
+  # list and pushing is the git-only way to validate the updated case set.
+  # The PR skip list is deliberately NOT here: this pipeline no longer
+  # consumes it (the PR-gated flow does). All other routine ci-test pushes
+  # never start multi-hour runs. Touching either file and pushing is the
+  # git-only way to trigger a run — needed because workflow_dispatch
+  # requires the file on the default branch (master), while push events
+  # work from any branch. inputs.* are empty on push, so the || fallbacks
+  # default the build to pytorch@main + torch-npu@master.
   push:
     branches: [ci-test]
     paths:
       - '.github/workflows/pytorch_ci_trigger_manual.yml'
-      - '.github/config/pr_skip_list.jsonl'
+      - '.github/config/privateuse1_npu_passed_testcases.json'
 
 concurrency:
   group: manual-latest-build-test
@@ -91,11 +94,26 @@ jobs:
       resolved_short: ${{ needs.build.outputs.resolved_short }}
       torch_npu_short: ${{ needs.build.outputs.torch_npu_short }}
       wheels_tarball: ${{ needs.build.outputs.wheels_tarball }}
-      case_paths_config: .github/config/pr_test_whitelist.yml
-      skip_list: .github/config/pr_skip_list.jsonl
+      # Categorization: nightly-style full scan (all test_*.py files,
+      # 3-pass classification via nightly_test_categories.yml: files >
+      # paths > others). Per-category workers/runner labels flow from the
+      # config into the shard matrix automatically.
+      case_paths_config: .github/config/nightly_test_categories.yml
+      full_scan: true
+      # Case-level intersection: only cases listed in the passed-testcases
+      # file are executed. The file holds historically PASSED nodeids;
+      # when a case starts failing, remove its nodeid from the file (and
+      # commit) instead of maintaining a skip list.
+      case_whitelist: .github/config/privateuse1_npu_passed_testcases.json
+      # Shard thresholds aligned with the nightly pipeline.
+      shard_threshold_regular: 50000
+      shard_threshold_distributed: 3000
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609230923-00b993fc
       # Same as build: no upstream reporting for manual runs.
       report_to_upstream: false
+      # Keep hw_classification/device_env in sync with the passed list's
+      # nodeid form (ACCELERATOR + privateuse1 -> *PRIVATEUSE1 classes);
+      # the intersection only matches same-shape nodeids.
       hw_classification: 'ACCELERATOR'
       device_env: 'privateuse1'
       # Manual runs use the merged-batch executor (one pytest.main() per

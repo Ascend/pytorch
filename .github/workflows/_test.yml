@@ -59,6 +59,28 @@ on:
           Path(s) (relative to repo root) to skip list files. Newline-separated
           for multiple files. When set, matching nodeids are removed after
           collection and before sharding.
+      case_whitelist:
+        required: false
+        type: string
+        default: ''
+        description: >-
+          Path (relative to repo root) to a case-level whitelist: a JSON/YAML
+          list of nodeids (flat array root, or under a case_whitelist/cases/
+          nodeids/whitelist key). When set, collected cases are intersected
+          with this list before sharding. Empty = keep every collected case.
+      shard_threshold_regular:
+        required: false
+        type: number
+        default: 100000
+        description: >-
+          Max cases per shard for regular categories; num_shards is derived
+          from it (ceil(total/threshold)). Lower values = more parallel
+          shard jobs.
+      shard_threshold_distributed:
+        required: false
+        type: number
+        default: 1000
+        description: Max cases per shard for the distributed category.
       runner_label:
         required: false
         type: string
@@ -104,6 +126,9 @@ jobs:
       hw_classification: ${{ inputs.hw_classification }}
       full_scan: ${{ inputs.full_scan }}
       skip_list: ${{ inputs.skip_list }}
+      case_whitelist: ${{ inputs.case_whitelist }}
+      shard_threshold_regular: ${{ inputs.shard_threshold_regular }}
+      shard_threshold_distributed: ${{ inputs.shard_threshold_distributed }}
       runner_label: ${{ inputs.runner_label }}
       device_env: ${{ inputs.device_env }}
 
