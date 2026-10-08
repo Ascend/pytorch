@@ -9,8 +9,17 @@ class AscendCustomPostPass(CustomGraphPass):
     def uuid(self):
         return get_hash_for_files((__file__,))
 
+
+class AscendCustomPrePass(CustomGraphPass):
+    def __call__(self, graph):
+        return ascend_custom_passes.run_register_pre_custom_passes(graph)
+
+    def uuid(self):
+        return get_hash_for_files((__file__,))
+
+
 def pre_grad_custom_pass_fuc():
-    config.pre_grad_custom_pass = ascend_custom_passes.run_register_pre_custom_passes
+    config.pre_grad_custom_pass = AscendCustomPrePass()
 
 
 def post_grad_custom_pass_fuc():
