@@ -900,11 +900,32 @@ def _override_native_dropout_decomp():
     (aclnnDropoutDoMask) rejects DT_BOOL and needs the packed uint8 bitmask from
     npu._npu_dropout. Forward calls _npu_dropout for training p∈(0,1); backward
     routes packed masks to npu.npu_dropout_backward and bool masks to the math
-    form (grad * mask * scale)."""
+    form (grad * mask * scale).
+
+    Device-gated: non-NPU inputs delegate to the vanilla-torch decomposition
+    captured before the override, so importing torch_npu._inductor cannot
+    divert a CPU graph onto private npu kernels (#4939)."""
     from torch._inductor.decomposition import decompositions as _ind_decomps
     from torch._decomp.decompositions_for_rng import extra_random_decomps
 
+    # Snapshot the vanilla-torch entries that non-NPU inputs delegate to.  The
+    # forward base-table entry is None (vanilla inductor carries no
+    # aten.native_dropout forward decomp -- it lives in extra_random_decomps),
+    # so the gate returns NotImplemented there.  Re-applying on a backend
+    # switch just chains the snapshots, terminating at the vanilla entry.
+    vanilla_ind_dropout = _ind_decomps.get(aten.native_dropout.default)
+    vanilla_ind_dropout_backward = _ind_decomps.get(aten.native_dropout_backward.default)
+    vanilla_rng_dropout = extra_random_decomps.get(aten.native_dropout.default)
+
+    def _is_npu(tensor) -> bool:
+        # Gate is "non-npu, do not touch" -- no device whitelist to extend.
+        return isinstance(tensor, torch.Tensor) and tensor.device.type == "npu"
+
     def native_dropout(input: torch.Tensor, p: float, train: Optional[bool]):
+        if not _is_npu(input):
+            if vanilla_ind_dropout is None:
+                return NotImplemented
+            return vanilla_ind_dropout(input, p, train)
         dropout_train = True if train is None else train
         if p == 0 or not dropout_train:
             mask = torch.ones_like(input, dtype=torch.bool)
@@ -917,6 +938,10 @@ def _override_native_dropout_decomp():
         return torch.ops.npu._npu_dropout(input, p)
 
     def native_dropout_backward(grad_output: torch.Tensor, mask: torch.Tensor, scale: float):
+        if not _is_npu(grad_output):
+            if vanilla_ind_dropout_backward is None:
+                return NotImplemented
+            return vanilla_ind_dropout_backward(grad_output, mask, scale)
         # aten.native_dropout_backward's third arg is scale = 1 / (1 - p),
         # while npu.npu_dropout_backward expects p. Fast paths match
         # NativeDropoutKernelNpuOpApi.cpp.
@@ -938,13 +963,26 @@ def _override_native_dropout_decomp():
         grad_output = grad_output.contiguous()
         return torch.ops.npu.npu_dropout_backward(grad_output, mask, p)
 
+    def native_dropout_fast_random(input: torch.Tensor, p: float, train: Optional[bool]):
+        if not _is_npu(input):
+            if vanilla_rng_dropout is None:
+                return NotImplemented
+            return vanilla_rng_dropout(input, p, train)
+        return native_dropout(input, p, train)
+
+    # Marker attribute so tests detect the override without string-matching
+    # __module__ (which goes stale if this module is moved or renamed).
+    native_dropout._npu_decomp_override = True
+    native_dropout_backward._npu_decomp_override = True
+    native_dropout_fast_random._npu_decomp_override = True
+
     _ind_decomps[aten.native_dropout.default] = native_dropout
     _ind_decomps[aten.native_dropout_backward.default] = native_dropout_backward
     # select_decomp_table() uses fast_random_decomps() =
     # {**decompositions, **extra_random_decomps}. Since extra_random_decomps
     # contains aten.native_dropout, it would otherwise override _ind_decomps and
     # keep emitting inductor_random_default + bool gt masks.
-    extra_random_decomps[aten.native_dropout.default] = native_dropout
+    extra_random_decomps[aten.native_dropout.default] = native_dropout_fast_random
 
 
 def _register_upsample_bilinear2d_vec_dispatcher():
