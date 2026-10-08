@@ -40,4 +40,4 @@ at::Tensor custom_add(const at::Tensor &x, const at::Tensor &y)
 - 后续参数 `x`、`y`、`z` 为aclnn算子的输入与输出，宏内部将其按值捕获至lambda中。
 - 宏依据aclnn算子参数列表自动将 `at::Tensor` 转换为 `aclTensor*`，开发者无需手动执行类型转换。
 
-自定义算子适配开发请参见：[适配开发及调用（基础样例）](https://gitcode.com/Ascend/op-plugin/tree/master/examples/cpp_extension_base)。
+自定义算子适配开发请参见：[适配开发及调用（基础样例）](https://gitcode.com/Ascend/op-plugin/tree/26.2.0/examples/cpp_extension_base)。

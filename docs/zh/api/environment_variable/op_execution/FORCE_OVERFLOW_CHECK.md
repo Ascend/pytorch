@@ -7,7 +7,7 @@
 - 环境变量值为“0”时：代表不开启溢出检测开关，行为与未配置时一致。
 - 环境变量值为“1”时：代表开启溢出检测开关。
 
-当环境变量开启时，溢出检测接口（[get\_npu\_overflow\_flag](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/（beta）torch_npu-npu-get_npu_overflow_flag.md)、[npu\_check\_overflow](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/（beta）torch_npu-npu-utils-npu_check_overflow.md)、[clear\_npu\_overflow\_flag](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/（beta）torch_npu-npu-clear_npu_overflow_flag.md)）在INF\_NAN模式下可用，可通过溢出状态标志判断数值是否溢出，无需将梯度搬运至Host侧判断是否为Inf/NaN，避免引入同步等待，适合对执行时序敏感的溢出定位场景。
+当环境变量开启时，溢出检测接口（[get\_npu\_overflow\_flag](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/zh/custom_APIs/torch_npu-npu/（beta）torch_npu-npu-get_npu_overflow_flag.md)、[npu\_check\_overflow](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/zh/custom_APIs/torch_npu-npu/（beta）torch_npu-npu-utils-npu_check_overflow.md)、[clear\_npu\_overflow\_flag](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/zh/custom_APIs/torch_npu-npu/（beta）torch_npu-npu-clear_npu_overflow_flag.md)）在INF\_NAN模式下可用，可通过溢出状态标志判断数值是否溢出，无需将梯度搬运至Host侧判断是否为Inf/NaN，避免引入同步等待，适合对执行时序敏感的溢出定位场景。
 
 <!-- npu="A3,910b" id5 -->
 以下为<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>使用get\_npu\_overflow\_flag的示例（其他溢出检测接口使用方式与此类似）：

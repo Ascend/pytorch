@@ -146,7 +146,7 @@ at::Tensor ascendc_add_good(const at::Tensor &x, const at::Tensor &y)
 > }
 > ```
 
-自定义算子扩展开发方法请参见：[自定义算子C++扩展开发示例](https://gitcode.com/Ascend/op-plugin/blob/master/examples/cpp_extension)。
+自定义算子扩展开发方法请参见：[自定义算子C++扩展开发示例](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/examples/cpp_extension)。
 
 ### 数据类型捕获示例
 
