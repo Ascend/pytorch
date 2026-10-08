@@ -9,7 +9,7 @@ import os
 from model_registry import MultiMLP
 
 import torch
-import torch_npu.testing
+import torch_npu  # noqa: F401
 from torch._dynamo import OptimizedModule
 from torch.distributed.pipelining import (
     Schedule1F1B,
@@ -1002,11 +1002,12 @@ class TestBatchP2P(TestCase):
     """Tests that _batch_p2p dispatches homogeneous ops individually to avoid
     head-of-line blocking, while still batching mixed ops for deadlock avoidance."""
 
-    def _make_p2p_op(self, op, group_peer=0):
+    def _make_p2p_op(self, op, group_peer=0, group=None):
         p = MagicMock()
         p.op = op
         p.tensor = torch.zeros(1)
-        p.group = MagicMock()
+        p.group = group if group is not None else MagicMock()
+        p.group.group_name = f"pg_{id(p.group)}"
         p.tag = 0
         p.group_peer = group_peer
         return p
@@ -1018,7 +1019,8 @@ class TestBatchP2P(TestCase):
     @patch("torch.distributed.pipelining.schedules.dist.isend")
     def test_all_isend_dispatched_individually(self, mock_isend, mock_batch):
         mock_isend.return_value = MagicMock()
-        ops = [self._make_p2p_op(mock_isend, group_peer=i) for i in range(3)]
+        group = MagicMock()
+        ops = [self._make_p2p_op(mock_isend, group_peer=i, group=group) for i in range(3)]
 
         result = _batch_p2p(ops)
 
@@ -1034,7 +1036,8 @@ class TestBatchP2P(TestCase):
     @patch("torch.distributed.pipelining.schedules.dist.irecv")
     def test_all_irecv_dispatched_individually(self, mock_irecv, mock_batch):
         mock_irecv.return_value = MagicMock()
-        ops = [self._make_p2p_op(mock_irecv, group_peer=i) for i in range(3)]
+        group = MagicMock()
+        ops = [self._make_p2p_op(mock_irecv, group_peer=i, group=group) for i in range(3)]
 
         result = _batch_p2p(ops)
 
@@ -1051,9 +1054,10 @@ class TestBatchP2P(TestCase):
     @patch("torch.distributed.pipelining.schedules.dist.isend")
     def test_mixed_ops_use_batch(self, mock_isend, mock_irecv, mock_batch):
         mock_batch.return_value = [MagicMock(), MagicMock()]
+        group = MagicMock()
         ops = [
-            self._make_p2p_op(mock_isend, group_peer=0),
-            self._make_p2p_op(mock_irecv, group_peer=1),
+            self._make_p2p_op(mock_isend, group_peer=0, group=group),
+            self._make_p2p_op(mock_irecv, group_peer=1, group=group),
         ]
 
         result = _batch_p2p(ops)
