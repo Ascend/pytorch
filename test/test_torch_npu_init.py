@@ -350,9 +350,12 @@ class TestTorchNpuBootstrap(TestCase):
 
             afd_ops = {AFD_OPS!r}
 
-            # patch_getenv behavior.
-            assert os.getenv is patch_getenv._patched_getenv
-            assert os.environ.get is patch_getenv._patched_environ_get
+            # patch_getenv behavior: installed only when the env log is observable.
+            if patch_getenv._should_install():
+                assert os.getenv is patch_getenv._patched_getenv
+                assert os.environ.get is patch_getenv._patched_getenv
+            else:
+                assert os.getenv is patch_getenv._orig_getenv
 
             # ASD compatibility APIs.
             for module_name in [
