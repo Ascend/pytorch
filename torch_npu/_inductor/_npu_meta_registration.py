@@ -209,3 +209,40 @@ def meta_native_dropout_backward_patch(grad_output: Tensor, mask: Tensor, scale:
         from torch._decomp.decompositions import native_dropout_backward
 
         return native_dropout_backward(grad_output, mask, scale)
+
+
+def _npu_fix_qr_fallback_layouts():
+    # torch_npu's eager linalg_qr (aclnn) returns row-major Q/R, while the
+    # ATen meta kernel declares the LAPACK column-major convention. Inductor
+    # builds fallback output layouts from that meta execution, so compiled
+    # consumers read QR outputs with transposed strides and miscompute (the
+    # svd_lowrank / pca_lowrank spectrum collapse, #5072). On npu, override
+    # that declared layout with the one the device actually returns.
+    import dataclasses
+
+    from torch._inductor import ir
+
+    qr_ops = (aten.linalg_qr.default, aten.linalg_qr.out)
+    orig = ir.FallbackKernel.process_kernel.__func__
+
+    def _rowmajor(t):
+        if not isinstance(t, torch.Tensor) or t.dim() == 0:
+            return t
+        if t.device.type != "npu":
+            return t
+        strides = ir.FlexibleLayout.contiguous_strides(t.shape)
+        return t.as_strided(t.shape, strides, t.storage_offset())
+
+    def process_kernel(cls, kernel, *args, **kwargs):
+        result = orig(cls, kernel, *args, **kwargs)
+        if kernel in qr_ops:
+            eo = result.example_output
+            if isinstance(eo, (tuple, list)):
+                fixed = type(eo)(_rowmajor(t) for t in eo)
+                result = dataclasses.replace(result, example_output=fixed)
+        return result
+
+    ir.FallbackKernel.process_kernel = classmethod(process_kernel)
+
+
+_npu_fix_qr_fallback_layouts()
