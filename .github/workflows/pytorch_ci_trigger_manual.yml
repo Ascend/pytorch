@@ -2,7 +2,7 @@ name: PyTorch CI Trigger Manual
 
 run-name: >-
   PyTorch CI Trigger Manual -
-  ${{ format('pytorch@{0} + torch-npu@{1}', inputs.upstream_ref, inputs.torch_npu_ref) }}
+  ${{ format('pytorch@{0} + torch-npu@{1}', inputs.upstream_ref || 'main', inputs.torch_npu_ref || 'master') }}
 
 # Manual full pipeline: build the latest pytorch/pytorch (main) and
 # Ascend/pytorch (master, torch_npu) and run the same test flow as
@@ -21,8 +21,10 @@ run-name: >-
 #
 # Deployment note: workflow_dispatch requires this file to exist on the
 # DEFAULT branch (master) before it shows up in the "Run workflow"
-# dropdown. Keep the copies on master and ci-test identical — the
-# @ci-test pinning makes the file branch-independent.
+# dropdown; the push trigger below works from any branch and is the
+# primary trigger while the file lives only on ci-test. Keep the copies
+# on master and ci-test identical — the @ci-test pinning makes the file
+# branch-independent.
 #
 # Concurrency is a dedicated group, never shared with the
 # receive-trigger `ci-<repo>-<PR>` groups: manual runs neither cancel
@@ -42,6 +44,17 @@ on:
         type: string
         default: 'master'
         description: 'Ascend/pytorch (torch_npu) ref to build. Default: latest master.'
+  # Push trigger: fires ONLY when this workflow file itself changes on the
+  # ci-test branch (path filter), so routine ci-test pushes (skip-list
+  # updates etc.) never start multi-hour build+test runs. Touching this
+  # file and pushing is the git-only way to trigger a run — needed because
+  # workflow_dispatch requires the file on the default branch (master),
+  # while push events work from any branch. inputs.* are empty on push,
+  # so the || fallbacks default the build to pytorch@main + torch-npu@master.
+  push:
+    branches: [ci-test]
+    paths:
+      - '.github/workflows/pytorch_ci_trigger_manual.yml'
 
 concurrency:
   group: manual-latest-build-test
