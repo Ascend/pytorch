@@ -44,17 +44,22 @@ on:
         type: string
         default: 'master'
         description: 'Ascend/pytorch (torch_npu) ref to build. Default: latest master.'
-  # Push trigger: fires ONLY when this workflow file itself changes on the
-  # ci-test branch (path filter), so routine ci-test pushes (skip-list
-  # updates etc.) never start multi-hour build+test runs. Touching this
-  # file and pushing is the git-only way to trigger a run — needed because
-  # workflow_dispatch requires the file on the default branch (master),
-  # while push events work from any branch. inputs.* are empty on push,
-  # so the || fallbacks default the build to pytorch@main + torch-npu@master.
+  # Push trigger: fires when this workflow file itself OR the PR skip list
+  # changes on the ci-test branch (path filter). Skip-list changes are
+  # included on purpose: they alter collection (which cases run) and batch
+  # boundaries, so a full build+test run validates that newly blocked
+  # cases (e.g. poisoner entries) actually stop the failures they target.
+  # All other routine ci-test pushes never start multi-hour runs. Touching
+  # either file and pushing is the git-only way to trigger a run — needed
+  # because workflow_dispatch requires the file on the default branch
+  # (master), while push events work from any branch. inputs.* are empty
+  # on push, so the || fallbacks default the build to
+  # pytorch@main + torch-npu@master.
   push:
     branches: [ci-test]
     paths:
       - '.github/workflows/pytorch_ci_trigger_manual.yml'
+      - '.github/config/pr_skip_list.jsonl'
 
 concurrency:
   group: manual-latest-build-test
