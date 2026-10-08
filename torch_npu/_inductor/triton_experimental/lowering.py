@@ -164,7 +164,12 @@ overwrite_lowering(
     [
         prims.convert_element_type,
         npu.npu_dtype_cast,
-        npu.npu_dtype_cast_backward
+        npu.npu_dtype_cast_backward,
+        # #4932: the _npu_dtype_cast pair is in GENERATE_LIST (exempt from the
+        # blanket fallback) but had no lowering registered; route it through the
+        # same pointwise cast lowering as its npu_dtype_cast neighbours.
+        npu._npu_dtype_cast,
+        npu._npu_dtype_cast_backward,
     ],
     _convert_element_type, type_promotion_kind=None)
 
