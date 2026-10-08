@@ -89,6 +89,22 @@ GENERATE_LIST = [
     aten.amin,
     aten.slice_scatter,
     aten.select_scatter,
+
+    # View/mutation primitives: keep the upstream inductor lowering (same class as
+    # slice/slice_scatter/select_scatter above). Falling these back materializes
+    # pure layouts as eager extern tensors, so a graph that lowers to
+    # ``view = as_strided(buf, ...)`` + ``view.copy_(src)`` (the as_strided_scatter
+    # composite and any decomposed narrow/flatten/unfold pattern) writes into a
+    # temporary that DCE then drops, silently returning the un-mutated buffer.
+    aten.view,
+    aten.as_strided,
+    aten.as_strided_,
+    aten.as_strided_copy,
+    aten.as_strided_scatter,
+    aten.diagonal,
+    aten.diagonal_scatter,
+    aten.alias,
+    aten.detach,
     npu._npu_dropout,
     aten.empty,
     aten.copy_,
