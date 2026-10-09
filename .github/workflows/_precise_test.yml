@@ -167,7 +167,7 @@ jobs:
         id: select
         if: ${{ env.github_pr != '' }}
         continue-on-error: true
-        uses: lb-actions/precision-test@v1.0.2
+        uses: lb-actions/precision-test@v1.0.4
         with:
           repo: pytorch
           github-pr: ${{ env.github_pr }}
