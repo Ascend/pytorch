@@ -11,11 +11,11 @@ Inductor后端支持四种算子编译器，可根据场景选择：
 | Triton | 默认模式 |`torch.compile(backend="inductor")`| 基于Triton生成融合算子，是Inductor后端的默认选择，适用于大多数场景。详细介绍参见[Triton-Ascend 官方仓库](https://gitcode.com/Ascend/triton-ascend)。|
 | Torch-MLIR | MLIR模式 |`torch.compile(backend="inductor", options={"npu_backend": "mlir"})` | 基于Torch-MLIR生成融合算子，详细介绍参见[Torch-MLIR 官方仓库](https://github.com/llvm/torch-mlir)。<br><term>Ascend 950DT系列产品</term>暂不支持MLIR模式。|
 | DVM | DVM模式 |`torch.compile(backend="inductor", options={"npu_backend": "dvm"})` | 基于DVM生成融合算子。详细介绍参见[DVM 官方仓库](https://gitcode.com/mindspore/dvm/tree/master)。|
-| Ascend C | Ascend C模式 |`torch.compile(backend="inductor", options={"npu_backend": "ascendc"})` | 基于Ascend C生成融合算子，详细介绍参见[Autofuse官方仓库](https://gitcode.com/cann/graph-autofusion/blob/master/autofuse/README.md)。|
+| Ascend C | Ascend C模式 |`torch.compile(backend="inductor", options={"npu_backend": "ascendc"})` | 基于Ascend C生成融合算子，详细介绍参见[Autofuse官方仓库](https://gitcode.com/cann/graph-autofusion/blob/9.2.0/autofuse/README.md)。|
 
 > [!NOTICE]
 >
-> - 使用Inductor后端前，请先安装latest版本的Triton Ascend。该版本仅支持PyTorch 2.7.1和2.9.0。Triton Ascend的安装说明如下：
+> - 使用Inductor后端前，请先安装与PyTorch版本配套的Triton Ascend。该版本仅支持PyTorch 2.7.1、2.10.0和2.13.0。Triton Ascend的安装说明如下：
 >   - 源码编译或在线安装（Pip）时，系统会默认安装配套版本的Triton Ascend。
 >   - 离线安装（Whl）时，请参考[快速安装](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=180&ids=89dda9ba9de741349efa03687a487678%2C204%2C200%2C1%2C6%2C177%2C)文档中的命令进行安装。
 > - 如需了解更多Triton Ascend信息，具体请参考[Triton Ascend](https://triton-ascend.readthedocs.io/zh-cn/latest/)。<br>

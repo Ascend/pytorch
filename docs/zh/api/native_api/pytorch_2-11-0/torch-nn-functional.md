@@ -2394,7 +2394,7 @@
 - <term>Ascend 950DT系列产品</term>：不支持
 <!-- end id307 -->
 
-**限制与说明**： `input`仅支持fp8模式下ScalingType为tensorwise，rowwise和BlockWise1x128，mxfp8模式下ScalingType为BlockWise1x32的排布，mxfp8遵循[aclnnQuantMatmulV5](https://gitcode.com/cann/ops-nn/blob/master/matmul/quant_batch_matmul_v4/docs/aclnnQuantMatmulV5.md)要求（`scale_a`和`scale_b`详见约束说明）
+**限制与说明**：`input`仅支持fp8模式下ScalingType为tensorwise，rowwise和BlockWise1x128，mxfp8模式下ScalingType为BlockWise1x32的排布，mxfp8遵循[aclnnQuantMatmulV5](https://gitcode.com/cann/ops-nn/blob/master/matmul/quant_batch_matmul_v4/docs/aclnnQuantMatmulV5.md)要求（`scale_a`和`scale_b`详见约束说明）
 
 </div>
 

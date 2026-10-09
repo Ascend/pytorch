@@ -320,4 +320,4 @@ ModuleNotFoundError: No module named 'torch_npu._C'
     torch_npu     2.12.0
     ```
 
-2. 根据TorchNPU安装包版本号查询对应的TorchNPU版本号，具体配套关系请参考[TorchNPU版本配套表](https://gitcode.com/Ascend/pytorch/blob/master/COMPATIBILITY.md#torchnpu-%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%A1%A8)。
+2. 根据TorchNPU安装包版本号查询对应的TorchNPU版本号，具体配套关系请参考[TorchNPU版本配套表](https://gitcode.com/Ascend/pytorch/blob/v2.14.0-26.2.0/COMPATIBILITY.md#torchnpu-%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%A1%A8)。

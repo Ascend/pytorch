@@ -54,7 +54,7 @@ for _ in range(1000):
     output = compiled_model(fixed_input)
 ```
 
-## 使用约束
+## 约束说明
 
 1. **必须固定输入形状**：捕获后无法修改batch_size、序列长度等。
 2. **仅支持NN算子**：所有算子必须为aclnn算子方可入图。
