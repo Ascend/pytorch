@@ -793,8 +793,17 @@ def _get_flex_attention_additional_lowerings():
     ops in the score_mod and mask_mod subgraphs.
     """
     from torch._inductor.lowering import make_pointwise
+    from torch_npu._inductor.lowering_patch import capture_lowering_baseline
+    from torch_npu.utils._dynamo import _InductorNpuRegistry
 
     additional_lowerings = {}
+    # Captured tensors (e.g. document IDs) are loaded inside the template.
+    # DVM's global index fallback would create a buffer, which is forbidden in
+    # a pointwise subgraph. Preserve other backends' existing index lowerings.
+    if _InductorNpuRegistry._loaded_backend == "dvm":
+        additional_lowerings[aten.index.Tensor] = (
+            capture_lowering_baseline().lowerings_copy[aten.index.Tensor]
+        )
 
     bitwise_and_fn = make_pointwise(ops.bitwise_and)
 

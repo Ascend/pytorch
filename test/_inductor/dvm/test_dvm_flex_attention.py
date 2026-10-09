@@ -7,6 +7,127 @@ import unittest
 
 
 class TestDVMFlexAttention(unittest.TestCase):
+    def test_composed_mask_pointwise_lowerings(self):
+        script = textwrap.dedent(
+            r"""
+            import math
+            import sys
+
+            import torch
+            import torch_npu
+            from torch.nn.attention.flex_attention import (
+                and_masks,
+                create_block_mask,
+                flex_attention,
+                or_masks,
+            )
+
+            try:
+                __import__("torch_npu._C.dvm")
+            except ImportError as exc:
+                print(f"__SKIP__: dvm is not available: {exc}")
+                sys.exit(0)
+
+            torch.npu.set_device(0)
+            torch.manual_seed(2026)
+            B, H, S, D = 2, 4, 128, 64
+            positions = torch.tensor(
+                [[0, 0, 0, 0, 1, 1, 1, 1] * 16] * B,
+                device="npu",
+                dtype=torch.int32,
+            )
+
+            def causal(b, h, q, kv):
+                return q >= kv
+
+            def document(b, h, q, kv):
+                return positions[b, q] == positions[b, kv]
+
+            def not_document(b, h, q, kv):
+                return ~document(b, h, q, kv)
+
+            def remainder_score(score, b, h, q, kv):
+                return score + ((q - kv) % 3) * 0.125
+
+            indices = torch.arange(S, device="npu")
+            causal_dense = indices[:, None] >= indices[None, :]
+            document_dense = positions[:, :, None] == positions[:, None, :]
+            cases = [
+                ("remainder", or_masks(causal, document),
+                 causal_dense | document_dense, remainder_score),
+                ("and", and_masks(causal, document),
+                 causal_dense & document_dense, None),
+                ("or_not", or_masks(causal, not_document),
+                 causal_dense | ~document_dense, None),
+            ]
+            for name, mask, dense_mask, score_mod in cases:
+                torch._dynamo.reset()
+                inputs = [
+                    torch.randn(B, H, S, D, device="npu", dtype=torch.float16,
+                                requires_grad=True)
+                    for _ in range(3)
+                ]
+                block_mask = create_block_mask(
+                    mask, B=B, H=H, Q_LEN=S, KV_LEN=S, device="npu"
+                )
+
+                def forward(q, k, v, block_mask):
+                    return flex_attention(
+                        q, k, v, block_mask=block_mask, score_mod=score_mod
+                    )
+
+                actual = torch.compile(forward, fullgraph=True)(*inputs, block_mask)
+                grad_out = torch.randn_like(actual)
+                actual_grads = torch.autograd.grad(actual, inputs, grad_out)
+
+                reference_inputs = [
+                    x.detach().float().requires_grad_(True) for x in inputs
+                ]
+                q, k, v = reference_inputs
+                scores = (q @ k.transpose(-2, -1)) / math.sqrt(D)
+                if score_mod is not None:
+                    scores = scores + (
+                        (indices[:, None] - indices[None, :]) % 3
+                    ) * 0.125
+                expected = scores.masked_fill(
+                    ~dense_mask[:, None], float("-inf")
+                ).softmax(dim=-1) @ v
+                expected_grads = torch.autograd.grad(
+                    expected, reference_inputs, grad_out.float()
+                )
+                torch.testing.assert_close(
+                    actual.float(), expected, atol=0.01, rtol=0.01
+                )
+                for actual_grad, expected_grad in zip(actual_grads, expected_grads):
+                    torch.testing.assert_close(
+                        actual_grad.float(), expected_grad, atol=0.03, rtol=0.03
+                    )
+                torch.npu.synchronize()
+                print(f"COMPOSED_MASK_OK: {name}", flush=True)
+            """
+        )
+
+        with tempfile.TemporaryDirectory(prefix="dvm_flex_composed_") as tmp_dir:
+            env = os.environ.copy()
+            env["TORCHINDUCTOR_NPU_BACKEND"] = "dvm"
+            env["TORCHINDUCTOR_COMPILE_THREADS"] = "1"
+            env["TORCHINDUCTOR_FORCE_DISABLE_CACHES"] = "1"
+            env["TORCHINDUCTOR_CACHE_DIR"] = os.path.join(tmp_dir, "cache")
+            env["TRITON_CACHE_DIR"] = os.path.join(tmp_dir, "triton")
+            proc = subprocess.run(
+                [sys.executable, "-c", script],
+                env=env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+            )
+
+        if "__SKIP__:" in proc.stdout:
+            self.skipTest(proc.stdout.strip())
+        self.assertEqual(proc.returncode, 0, proc.stdout)
+        for name in ("and", "or_not", "remainder"):
+            self.assertIn(f"COMPOSED_MASK_OK: {name}", proc.stdout)
+
     def test_uses_npu_triton_templates(self):
         script = textwrap.dedent(
             r"""
@@ -174,6 +295,12 @@ class TestDVMFlexAttention(unittest.TestCase):
             # Load the default (triton) backend before the DVM backend is
             # requested, exercising the mid-process backend switch.
             import torch_npu._inductor  # noqa: F401
+            from torch_npu._inductor.kernel.flex_attention import (
+                _get_flex_attention_additional_lowerings,
+            )
+
+            index_op = torch.ops.aten.index.Tensor
+            assert index_op not in _get_flex_attention_additional_lowerings()
 
             from torch.nn.attention.flex_attention import (
                 create_block_mask,
@@ -247,6 +374,10 @@ class TestDVMFlexAttention(unittest.TestCase):
             )
             actual = compiled(*inputs)
 
+            # Compile options select DVM even though its temporary environment
+            # scope has ended by the time compiled() returns.
+            assert index_op in _get_flex_attention_additional_lowerings()
+
             reference_inputs = [tensor.detach().clone() for tensor in inputs]
             expected = dense_reference(*reference_inputs)
 
@@ -260,6 +391,7 @@ class TestDVMFlexAttention(unittest.TestCase):
             # Deliberately do NOT pin TORCHINDUCTOR_NPU_BACKEND here: the DVM
             # backend must be selected through the torch.compile options so the
             # process performs a default -> dvm backend switch.
+            env.pop("TORCHINDUCTOR_NPU_BACKEND", None)
             env["TORCHINDUCTOR_FORCE_DISABLE_CACHES"] = "1"
             env["TORCHINDUCTOR_CACHE_DIR"] = os.path.join(tmp_dir, "cache")
             env["TRITON_CACHE_DIR"] = os.path.join(tmp_dir, "triton")

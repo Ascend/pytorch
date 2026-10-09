@@ -703,6 +703,24 @@ def make_pointwise(
 
         device = override_device or device
 
+        from torch._inductor.subgraph_lowering import PointwiseSubgraphLowering
+        from torch_npu.utils._dynamo import _InductorNpuRegistry
+
+        if (
+            _InductorNpuRegistry._loaded_backend == "dvm"
+            and isinstance(V.graph, PointwiseSubgraphLowering)
+        ):
+            # DVM template subgraphs consume pointwise IR directly. Even upstream
+            # lowerings can reach this builder through patched helpers such as
+            # to_dtype during type promotion. Their intermediate values have no
+            # MLIR traced graph (or realized strides) to extract.
+            return Pointwise.create(
+                device=device,
+                dtype=dtype,
+                inner_fn=inner_fn,
+                ranges=ranges,
+            )
+
         input_graphs = fetch_graphs(inputs)
         node_name = f'pointwise_{next(node_id)}'
         origin_fn = fn_to_aten_fn[fn]
