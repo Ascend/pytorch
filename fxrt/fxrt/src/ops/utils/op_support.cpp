@@ -175,14 +175,17 @@ OpSupportResult CheckOpSupport(
     const std::string& opName,
     const ir::ValuePtr& outputValue,
     const std::vector<ir::ValuePtr>& inputValues) {
-  if (IsOpSupportWhitelisted(opName)) {
+  const hardware::Device device = GetDeviceFromOutputAndInputs(outputValue, inputValues);
+  // The whitelist keeps the logical Op for the FxConverter Path C / ViewAlias lowering, which
+  // only runs on a device backend. CPU has no Path C, so a whitelisted op without a CPU
+  // registration has to degrade to custom_call here rather than fail later in CreateOperator.
+  if (device.type != hardware::DeviceType::CPU && IsOpSupportWhitelisted(opName)) {
     OpSupportResult r;
     r.status = OpSupportStatus::kOk;
     r.message.clear();
     return r;
   }
 
-  const hardware::Device device = GetDeviceFromOutputAndInputs(outputValue, inputValues);
   if (!IsOpRegisteredOnDevice(opName, device.type)) {
     OpSupportResult r;
     r.status = OpSupportStatus::kUnsupportedDevice;

@@ -1,6 +1,6 @@
 # FXRT
 
-FXRT is a lightweight, high-performance runtime for the inference phase. It lowers PyTorch graphs (via `torch.compile`) onto its own IR and runtime, executing them on Ascend / CPU backends. It focuses on inference latency and memory reuse, with native support for zero-copy view operators.
+FXRT is a lightweight, high-performance runtime for the inference phase. It lowers PyTorch graphs (via `torch.compile`) onto its own IR and runtime, executing them on the Ascend backend. It focuses on inference latency and memory reuse, with native support for zero-copy view operators.
 
 > 中文文档：[README_CN.md](./README_CN.md)
 
@@ -14,7 +14,7 @@ FXRT is a lightweight, high-performance runtime for the inference phase. It lowe
 
 FXRT is built and shipped as part of torch_npu; it is not packaged on its own.
 Build torch_npu from source as usual and the wheel carries FXRT under
-`torch_npu/fxrt`, with the Ascend and CPU backends both enabled:
+`torch_npu/fxrt`:
 
 ```bash
 bash ci/build.sh --python=3.10
@@ -44,7 +44,7 @@ def model(x, y):
     return torch.relu(z)
 
 
-# For the Ascend backend, move tensors to npu; drop .npu() for the CPU backend
+# Move the inputs to npu
 x = torch.randn(2, 8).npu()
 y = torch.randn(2, 8).npu()
 
@@ -63,5 +63,5 @@ Key points:
 
 | Variable | Purpose |
 | --- | --- |
-| `FXRT_DISABLE_VIEW_OPS` | Disable the zero-copy implementation of specific view operators and fall back to the non-view path, for debugging and comparison. Accepts a comma-separated list of operator names, or `all`. |
+| `FXRT_DISABLE_VIEW_OPS` | Disable the zero-copy implementation of specific view operators and fall back to the non-view path, for debugging and comparison. Accepts a comma-separated list drawn from `permute`, `transpose`, `t`, `movedim`, `split` and `chunk`, or `all` to cover them in one go. |
 | `FXRT_DEV_DUMP_IR` | When set to `1`, dumps the compiled IR for debugging |
