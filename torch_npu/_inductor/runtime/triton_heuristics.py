@@ -1916,6 +1916,10 @@ class NPUCostModelAutotuner(NPUCachingAutotuner):
         self._costmodel_fallback_configs = None
 
     def _prepare_configs_for_precompile(self):
+        # Costmodel rebuilds TTIR in the parent after AsyncCompile has cleared
+        # the Python function for pickling.
+        if self.fn.fn is None:
+            self.fn = self._reload_kernel().fn
         runtime_args, runtime_kwargs = self._resolve_costmodel_runtime_inputs()
         self._apply_costmodel_to_configs(*runtime_args, **runtime_kwargs)
 
@@ -1993,8 +1997,16 @@ class NPUCostModelAutotuner(NPUCachingAutotuner):
         if m is None:
             return {}
 
-        ttir_arg_ids = [int(x) for x in re.findall(r"%arg(\d+)\s*:", m.group(1))]
-        if not ttir_arg_ids:
+        # Triton used to print function arguments as ``%arg0``, ``%arg1``,
+        # etc.  Newer Triton-Ascend preserves frontend argument names (for
+        # example ``%x0_numel`` and ``%X0BLOCK``).  Costmodel's
+        # ``--arg-bindings`` interface is positional regardless of the SSA
+        # spelling, so keep the TTIR position while also retaining the name
+        # for a more reliable match against the frontend signature.
+        ttir_arg_names = re.findall(
+            r"%([A-Za-z_.$][\w.$-]*|arg\d+)\s*:", m.group(1)
+        )
+        if not ttir_arg_names:
             return {}
 
         signature_names = list(self.triton_meta.get("signature", {}).keys())
@@ -2013,14 +2025,19 @@ class NPUCostModelAutotuner(NPUCachingAutotuner):
                 name_to_value[name] = value
 
         arg_value_map = {}
-        for pos, arg_id in enumerate(ttir_arg_ids):
+        for pos, ttir_name in enumerate(ttir_arg_names):
+            # Prefer the preserved TTIR name.  Fall back to signature order
+            # for legacy ``%argN`` TTIR and for any renamed/sanitized value.
+            if ttir_name in name_to_value:
+                arg_value_map[pos] = name_to_value[ttir_name]
+                continue
             if pos < len(signature_names):
-                name = signature_names[pos]
-                if name in name_to_value:
-                    arg_value_map[arg_id] = name_to_value[name]
+                signature_name = signature_names[pos]
+                if signature_name in name_to_value:
+                    arg_value_map[pos] = name_to_value[signature_name]
                     continue
             if pos < len(runtime_args):
-                arg_value_map[arg_id] = runtime_args[pos]
+                arg_value_map[pos] = runtime_args[pos]
         return arg_value_map
 
     def _build_costmodel_arg_bindings(self, ttir_text, runtime_args, runtime_kwargs=None, cfg=None):
@@ -2078,7 +2095,7 @@ class NPUCostModelAutotuner(NPUCachingAutotuner):
                 candidate_runtime_kwargs = dict(runtime_kwargs)
                 candidate_runtime_kwargs.update(dict(candidate["runtime_blocks"]))
                 arg_bindings = self._build_costmodel_arg_bindings(
-                    ttir_text, runtime_args, candidate_runtime_kwargs
+                    ttir_text, runtime_args, candidate_runtime_kwargs, cfg
                 )
                 items.append(
                     {
