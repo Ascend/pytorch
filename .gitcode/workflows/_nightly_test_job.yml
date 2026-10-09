@@ -47,7 +47,7 @@ jobs:
     name: test
     select: selected_by_default
     runs-on: [ self-hosted, "${{ inputs.NPU_LABEL }}" ]
-    timeout-minutes: 300
+    timeout-minutes: 360
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704
       options: ${{ inputs.CONTAINER_OPTIONS }}

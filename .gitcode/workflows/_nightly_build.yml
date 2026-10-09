@@ -27,17 +27,23 @@ on:
         description: Container options
         required: false
         type: string
-      # 调度标签 (变量化): 编译任务默认调度到编译机
-      RUNNER_LABEL:
+      # 编译机调度标签 (arch 从入口流水线传递)
+      RUNS_ON_ARCH:
+        description: Runner architecture label
         required: false
         type: string
-        default: "npu=8"
+        default: "arm"
+      RUNS_ON_SPEC:
+        description: Runner CPU spec label
+        required: false
+        type: string
+        default: "cpu=32"
 
 jobs:
   build:
     name: build
     select: selected_by_default
-    runs-on: [ self-hosted, "${{ inputs.RUNNER_LABEL }}" ]
+    runs-on: [ self-hosted, op_plugin, "${{ inputs.RUNS_ON_ARCH }}", "${{ inputs.RUNS_ON_SPEC }}" ]
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704
       options: ${{ inputs.CONTAINER_OPTIONS }}

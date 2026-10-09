@@ -585,7 +585,7 @@ def run_tests_with_tasks_concurrent(
     total_cases = len(tasks)
 
     # Sort and batch tasks: group same-file cases, max 100 per batch
-    batches = sort_and_batch_tasks(tasks, max_cases_per_batch=50)
+    batches = sort_and_batch_tasks(tasks, max_cases_per_batch=100)
 
     print(f"\n{'=' * 80}", flush=True)
     print(f"Pre-collected cases: {total_cases} cases", flush=True)

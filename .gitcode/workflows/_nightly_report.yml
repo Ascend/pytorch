@@ -29,97 +29,18 @@ jobs:
       - name: checkout
         uses: checkout
 
-      - name: Prepare placeholder directories
-        run: |
-          for d in cases-shards \
-                   test-reports-distributed_2card \
-                   test-reports-distributed_2card-2 \
-                   test-reports-distributed \
-                   test-reports-reg-npu-1 \
-                   test-reports-reg-npu-2 \
-                   test-reports-reg-npu-3 \
-                   test-reports-reg-npu-4 \
-                   test-reports-reg-npu-5 \
-                   test-reports-reg-npu-6 \
-                   test-reports-reg-npu-7; do
-            mkdir -p "$d"
-          done
-
       - name: Download cases-shards
         uses: download-artifact
         with:
           name: cases-shards
           path: cases-shards
 
-      - name: Download test-reports-distributed_2card
+      - name: Download all shard test reports
         uses: download-artifact
         continue-on-error: true
         with:
-          name: test-reports-distributed_2card
-          path: test-reports-distributed_2card
-
-      - name: Download test-reports-distributed_2card-2
-        uses: download-artifact
-        continue-on-error: true
-        with:
-          name: test-reports-distributed_2card-2
-          path: test-reports-distributed_2card-2
-
-      - name: Download test-reports-distributed
-        uses: download-artifact
-        continue-on-error: true
-        with:
-          name: test-reports-distributed
-          path: test-reports-distributed
-
-      - name: Download test-reports-reg-npu-1
-        uses: download-artifact
-        continue-on-error: true
-        with:
-          name: test-reports-reg-npu-1
-          path: test-reports-reg-npu-1
-
-      - name: Download test-reports-reg-npu-2
-        uses: download-artifact
-        continue-on-error: true
-        with:
-          name: test-reports-reg-npu-2
-          path: test-reports-reg-npu-2
-
-      - name: Download test-reports-reg-npu-3
-        uses: download-artifact
-        continue-on-error: true
-        with:
-          name: test-reports-reg-npu-3
-          path: test-reports-reg-npu-3
-
-      - name: Download test-reports-reg-npu-4
-        uses: download-artifact
-        continue-on-error: true
-        with:
-          name: test-reports-reg-npu-4
-          path: test-reports-reg-npu-4
-
-      - name: Download test-reports-reg-npu-5
-        uses: download-artifact
-        continue-on-error: true
-        with:
-          name: test-reports-reg-npu-5
-          path: test-reports-reg-npu-5
-
-      - name: Download test-reports-reg-npu-6
-        uses: download-artifact
-        continue-on-error: true
-        with:
-          name: test-reports-reg-npu-6
-          path: test-reports-reg-npu-6
-
-      - name: Download test-reports-reg-npu-7
-        uses: download-artifact
-        continue-on-error: true
-        with:
-          name: test-reports-reg-npu-7
-          path: test-reports-reg-npu-7
+          pattern: "test-reports-*"
+          path: .
 
       - name: Generate Markdown and HTML reports
         run: |
@@ -130,7 +51,7 @@ jobs:
             --output-html npu-full-test-report.html \
             --pytorch-version "${{ inputs.PYTORCH_BRANCH }}" \
             --torch-npu-whl "${{ inputs.PYTORCH_BRANCH }}" \
-            --shard-matrix-json '["dist-2card-1","dist-2card-2","dist-1","reg-npu-1","reg-npu-2","reg-npu-3","reg-npu-4","reg-npu-5","reg-npu-6","reg-npu-7"]' \
+            --shard-matrix-json '["dist-2card-1","dist-2card-2","dist-1","reg-npu-1","reg-npu-2","reg-npu-3","reg-npu-4","reg-npu-5","reg-npu-6","reg-npu-7","reg-npu-8","reg-npu-9","reg-npu-10"]' \
             --cases-summary cases-shards/cases_collection_summary.json \
             --cases-by-file-dir cases-shards \
             --docker-image "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704" \

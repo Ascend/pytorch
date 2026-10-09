@@ -1,13 +1,13 @@
 # TorchNPU 每日自动化验证流水线
-# 流程: build → collect → test(10 分片) → report
+# 流程: build → collect → test(13 job) → report
 #
 # 四个阶段说明:
 #   1. stage_build   编译 PyTorch + torch_npu, 产出 wheel 供后续阶段使用
-#   2. stage_collect 采集用例并分片 (分布式卡数分类 + 常规 NPU 7 分片)
-#   3. stage_test    执行测试, 共 10 个 job:
+#   2. stage_collect 采集用例并分片 (分布式卡数分类 + 常规 NPU 10 分片)
+#   3. stage_test    执行测试, 共 13 个 job:
 #                       - 分布式 2 卡 x2 (test_dist_2card_1/2)
 #                       - 分布式 8 卡   (test_dist)
-#                       - 常规 NPU 7 分片 (test_reg_npu_1..7)
+#                       - 常规 NPU 10 分片 (test_reg_npu_1..10)
 #   4. stage_report  汇总测试报告 (always 执行)
 name: Torch NPU Test Nightly
 
@@ -40,28 +40,27 @@ env:
   PYTHON_VERSION: "3.10"
   # ── 运行参数 ──
   CASE_TIMEOUT: "1200"
-  REG_WORKERS: "8"
+  REG_WORKERS: "16"
   COLLECT_PARALLEL: "16"
   MAX_JOBS: "128"
   # ── 分片配置 ──
   DISTRIBUTED_MACHINES: "1"
   DISTRIBUTED_2CARD_SHARDS: "2"
-  REGULAR_NPU_MACHINES: "7"
+  REGULAR_NPU_MACHINES: "10"
   # ── 镜像 ──
   DOCKER_BASE_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704"
   # ── 容器选项 ──
-  CONTAINER_OPTS_BUILD: "--user root --security-opt label=disable -v /data/torchnpu-ccache:/ccache --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc"
+  CONTAINER_OPTS_BUILD: "--user root -v /data/torchnpu-ccache:/ccache"
   CONTAINER_OPTS_NPU: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
   CONTAINER_OPTS_COLLECT: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
-  CONTAINER_OPTS_CPU: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
   CONTAINER_OPTS_LIGHT: "--user root"
   # ── 调度标签 ──
-  NPU_LABEL_BUILD: "npu=8"
+  BUILD_ARCH: "arm"
   NPU_LABEL_COLLECT: "npu=8"
   NPU_LABEL_DIST_2CARD: "npu=2"
   NPU_LABEL_DIST: "npu=8"
   NPU_LABEL_REG: "npu=1"
-  NPU_LABEL_REG_CPU: "npu=1"
+  NPU_LABEL_REG_2: "npu=2"
   NPU_LABEL_REPORT: "npu=1"
 
 stages:
@@ -80,7 +79,7 @@ stages:
           TORCH_NPU_WHEEL_ARTIFACT_DIR: ${{ env.TORCH_NPU_WHEEL_ARTIFACT_DIR }}
           DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
           CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_BUILD }}
-          RUNNER_LABEL: ${{ env.NPU_LABEL_BUILD }}
+          RUNS_ON_ARCH: ${{ env.BUILD_ARCH }}
 
   # Stage 2: 采集 + 分片
   stage_collect:
@@ -100,7 +99,7 @@ stages:
           COLLECT_PARALLEL: ${{ env.COLLECT_PARALLEL }}
           RUNNER_LABEL: ${{ env.NPU_LABEL_COLLECT }}
 
-  # Stage 3: 测试 (10 分片)
+  # Stage 3: 测试 (13 job)
   # 直接调用 _nightly_test_job.yml, 两层结构
   stage_test:
     name: stage_test
@@ -146,7 +145,7 @@ stages:
           CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
           NPU_LABEL: ${{ env.NPU_LABEL_DIST }}
 
-      # NPU 常规: 7 分片
+      # NPU 常规: 10 分片
       test_reg_npu_1:
         name: test-reg-npu-1
         select: selected_by_default
@@ -237,6 +236,45 @@ stages:
           PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
           CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
           NPU_LABEL: ${{ env.NPU_LABEL_REG }}
+
+      test_reg_npu_8:
+        name: test-reg-npu-8
+        select: selected_by_default
+        uses: .gitcode/workflows/_nightly_test_job.yml
+        with:
+          SHARD_FILE: regular_npu_cases_shard_8.json
+          REPORT_NAME: test-reports-reg-npu-8
+          CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+          MAX_WORKERS: ${{ env.REG_WORKERS }}
+          PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+          CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
+          NPU_LABEL: ${{ env.NPU_LABEL_REG }}
+
+      test_reg_npu_9:
+        name: test-reg-npu-9
+        select: selected_by_default
+        uses: .gitcode/workflows/_nightly_test_job.yml
+        with:
+          SHARD_FILE: regular_npu_cases_shard_9.json
+          REPORT_NAME: test-reports-reg-npu-9
+          CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+          MAX_WORKERS: ${{ env.REG_WORKERS }}
+          PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+          CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
+          NPU_LABEL: ${{ env.NPU_LABEL_REG_2 }}
+
+      test_reg_npu_10:
+        name: test-reg-npu-10
+        select: selected_by_default
+        uses: .gitcode/workflows/_nightly_test_job.yml
+        with:
+          SHARD_FILE: regular_npu_cases_shard_10.json
+          REPORT_NAME: test-reports-reg-npu-10
+          CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+          MAX_WORKERS: ${{ env.REG_WORKERS }}
+          PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+          CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
+          NPU_LABEL: ${{ env.NPU_LABEL_REG_2 }}
 
   # Stage 4: 报告 (always 执行)
   stage_report:
