@@ -92,11 +92,11 @@ using SomeType = old_type;
 - 直接执行：
 
 ```python
-python tools/version_compat_check.py
+python tools/compat_check/version_compat_check.py
 ```
 
 - 或者通过指定参数额外输出报告：
 
 ```python
-python tools/version_compat_check.py --report=check_compat_report_v1.txt
+python tools/compat_check/version_compat_check.py --report=check_compat_report_v1.txt
 ```

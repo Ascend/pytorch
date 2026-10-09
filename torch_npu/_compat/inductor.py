@@ -1,19 +1,29 @@
 # Copyright (c) 2026, Huawei Technologies Co., Ltd
 
-from torch_npu._compat.version import CURRENT_VERSION
+from torch_npu._compat._impl import compat_impl, compat_impl_container
+
+__all__ = [
+    "patch_codegen_with_cpp_wrapper",
+    "patch_create_device_properties",
+    "patch_cache_base_get_system",
+    "patch_device_to_aten",
+    "device_to_aten",
+]
 
 
-# COMPAT(>= 2.15): upstream pytorch#190615 added DeviceOpOverrides and
-#   DeviceInterface hooks for C++ wrapper routing and device properties.
-# CAN REMOVE when MIN_SUPPORTED >= (2, 15): remove the legacy patch helpers.
-def patch_codegen_with_cpp_wrapper():
+# upstream pytorch#190615 added DeviceOpOverrides and DeviceInterface hooks
+# for C++ wrapper routing and device properties.
+@compat_impl(key="patch_codegen_with_cpp_wrapper", ge=(2, 15))
+def patch_codegen_with_cpp_wrapper_upstream():
+    return
+
+
+@compat_impl(key="patch_codegen_with_cpp_wrapper", lt=(2, 15))
+def patch_codegen_with_cpp_wrapper_local():
     """
     patch codegen for cpp wrapper, add npu for codegen_with_cpp_wrapper function
 
     """
-    if CURRENT_VERSION >= (2, 15):
-        return
-
     import itertools
     import torch
     from torch._dynamo.utils import defake
@@ -123,12 +133,19 @@ def patch_codegen_with_cpp_wrapper():
     GraphLowering.codegen_with_cpp_wrapper = npu_codegen_with_cpp_wrapper
 
 
-# COMPAT(>= 2.15): upstream pytorch#190615 added
-#   DeviceInterface.get_multi_processor_count.
-# CAN REMOVE when MIN_SUPPORTED >= (2, 15): stop patching DeviceProperties.create.
-def patch_create_device_properties():
-    if CURRENT_VERSION >= (2, 15):
-        return
+patch_codegen_with_cpp_wrapper = compat_impl_container[
+    "patch_codegen_with_cpp_wrapper"
+].resolve()
+
+
+# upstream pytorch#190615 added DeviceInterface.get_multi_processor_count.
+@compat_impl(key="patch_create_device_properties", ge=(2, 15))
+def patch_create_device_properties_upstream():
+    return
+
+
+@compat_impl(key="patch_create_device_properties", lt=(2, 15))
+def patch_create_device_properties_local():
 
     import functools
     from torch._inductor.runtime.hints import DeviceProperties
@@ -168,11 +185,19 @@ def patch_create_device_properties():
     DeviceProperties.create = NPUDeviceProperties.create
 
 
-# COMPAT(>= 2.15): upstream pytorch#193908 added cache system metadata hooks.
-# CAN REMOVE when MIN_SUPPORTED >= (2, 15): stop replacing CacheBase.get_system.
-def patch_cache_base_get_system():
-    if CURRENT_VERSION >= (2, 15):
-        return
+patch_create_device_properties = compat_impl_container[
+    "patch_create_device_properties"
+].resolve()
+
+
+# upstream pytorch#193908 added cache system metadata hooks.
+@compat_impl(key="patch_cache_base_get_system", ge=(2, 15))
+def patch_cache_base_get_system_upstream():
+    return
+
+
+@compat_impl(key="patch_cache_base_get_system", lt=(2, 15))
+def patch_cache_base_get_system_local():
 
     import hashlib
     import json
@@ -224,26 +249,42 @@ def patch_cache_base_get_system():
     CacheBase.get_system = get_system
 
 
-# COMPAT(>= 2.15): upstream pytorch#193904 removed DEVICE_TO_ATEN and
-#   routes ATen device mapping through DeviceOpOverrides.
-# CAN REMOVE when MIN_SUPPORTED >= (2, 15): stop registering the legacy mapping.
-def patch_device_to_aten():
-    if CURRENT_VERSION >= (2, 15):
-        return
+patch_cache_base_get_system = compat_impl_container[
+    "patch_cache_base_get_system"
+].resolve()
 
+
+# upstream pytorch#193904 removed DEVICE_TO_ATEN and routes ATen device
+# mapping through DeviceOpOverrides.
+@compat_impl(key="patch_device_to_aten", ge=(2, 15))
+def patch_device_to_aten_upstream():
+    return
+
+
+@compat_impl(key="patch_device_to_aten", lt=(2, 15))
+def patch_device_to_aten_local():
     from torch._inductor import codegen
 
     codegen.cpp_utils.DEVICE_TO_ATEN["npu"] = "at::kPrivateUse1"
 
 
-# COMPAT(>= 2.15): upstream pytorch#193904 moved ATen device mapping to
-#   DeviceOpOverrides and added device_to_aten.
-# CAN REMOVE when MIN_SUPPORTED >= (2, 15): use upstream device_to_aten directly.
-def device_to_aten(device_type: str) -> str:
-    if CURRENT_VERSION >= (2, 15):
-        from torch._inductor.codegen.cpp_utils import device_to_aten as upstream_device_to_aten
+patch_device_to_aten = compat_impl_container["patch_device_to_aten"].resolve()
 
-        return upstream_device_to_aten(device_type)
+
+# upstream pytorch#193904 moved ATen device mapping to DeviceOpOverrides and
+# added device_to_aten.
+@compat_impl(key="device_to_aten", ge=(2, 15))
+def device_to_aten_upstream(device_type: str) -> str:
+    from torch._inductor.codegen.cpp_utils import device_to_aten as upstream_device_to_aten
+
+    return upstream_device_to_aten(device_type)
+
+
+@compat_impl(key="device_to_aten", lt=(2, 15))
+def device_to_aten_local(device_type: str) -> str:
     from torch._inductor.codegen.cpp_utils import DEVICE_TO_ATEN
 
     return DEVICE_TO_ATEN[device_type]
+
+
+device_to_aten = compat_impl_container["device_to_aten"].resolve()

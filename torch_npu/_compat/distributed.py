@@ -1,3 +1,4 @@
+from torch_npu._compat._impl import compat_impl, compat_impl_container
 from torch_npu._compat.version import CURRENT_VERSION
 
 __all__ = [
@@ -11,7 +12,7 @@ __all__ = [
 from torch.distributed.tensor._ops.utils import register_op_strategy
 
 
-# COMPAT(>= 2.14): upstream pytorch#186667 removed the helper
+# upstream pytorch#186667 removed the helper
 #   torch.distributed.tensor._ops._matrix_ops._mm_like_strategy as part of the
 #   matrix_ops "single dim strategies" refactor. All three helpers the old
 #   implementation depended on (gen_einsum_strategies, is_tensor_shardable,
@@ -20,8 +21,8 @@ from torch.distributed.tensor._ops.utils import register_op_strategy
 #   callsite (which still uses the old @register_op_strategy pipeline)
 #   untouched, and does not require migrating to the new
 #   register_single_dim_strategy interface.
-# CAN REMOVE else branch when MIN_SUPPORTED >= (2, 14)
-if CURRENT_VERSION >= (2, 14):
+@compat_impl(key="_mm_like_strategy", ge=(2, 14))
+def _mm_like_strategy_local(mm_equation, mesh, op_schema):
     from torch.distributed.tensor._op_schema import OpStrategy
     from torch.distributed.tensor._ops._einsum_strategy import gen_einsum_strategies
     from torch.distributed.tensor._ops.utils import (
@@ -29,59 +30,84 @@ if CURRENT_VERSION >= (2, 14):
         generate_redistribute_costs,
     )
 
-    def _mm_like_strategy(mm_equation, mesh, op_schema):
-        self_strategy, mat2_strategy = op_schema.args_schema
-        if not isinstance(self_strategy, OpStrategy):
-            raise AssertionError(f"Expected OpStrategy, got {type(self_strategy)}")
-        if not isinstance(mat2_strategy, OpStrategy):
-            raise AssertionError(f"Expected OpStrategy, got {type(mat2_strategy)}")
-        mm_strategy = gen_einsum_strategies(mm_equation, mesh)
-        filtered_strategies = []
-        for strtg in mm_strategy.strategies:
-            if strtg.input_specs is None:
-                raise AssertionError(
-                    f"Expected input_specs to be not None, got {strtg.input_specs}"
-                )
-            self_spec = strtg.input_specs[0]
-            mat2_spec = strtg.input_specs[1]
-            if is_tensor_shardable(
-                self_strategy.shape, self_spec, allow_unbacked_sharding=True
-            ) and is_tensor_shardable(
-                mat2_strategy.shape, mat2_spec, allow_unbacked_sharding=True
-            ):
-                strtg.redistribute_cost = [
-                    generate_redistribute_costs(self_strategy, self_spec),
-                    generate_redistribute_costs(mat2_strategy, mat2_spec),
-                ]
-                filtered_strategies.append(strtg)
-        mm_strategy.strategies = filtered_strategies
-        return mm_strategy
-else:
-    from torch.distributed.tensor._ops._matrix_ops import _mm_like_strategy
+    self_strategy, mat2_strategy = op_schema.args_schema
+    if not isinstance(self_strategy, OpStrategy):
+        raise AssertionError(f"Expected OpStrategy, got {type(self_strategy)}")
+    if not isinstance(mat2_strategy, OpStrategy):
+        raise AssertionError(f"Expected OpStrategy, got {type(mat2_strategy)}")
+    mm_strategy = gen_einsum_strategies(mm_equation, mesh)
+    filtered_strategies = []
+    for strtg in mm_strategy.strategies:
+        if strtg.input_specs is None:
+            raise AssertionError(
+                f"Expected input_specs to be not None, got {strtg.input_specs}"
+            )
+        self_spec = strtg.input_specs[0]
+        mat2_spec = strtg.input_specs[1]
+        if is_tensor_shardable(
+            self_strategy.shape, self_spec, allow_unbacked_sharding=True
+        ) and is_tensor_shardable(
+            mat2_strategy.shape, mat2_spec, allow_unbacked_sharding=True
+        ):
+            strtg.redistribute_cost = [
+                generate_redistribute_costs(self_strategy, self_spec),
+                generate_redistribute_costs(mat2_strategy, mat2_spec),
+            ]
+            filtered_strategies.append(strtg)
+    mm_strategy.strategies = filtered_strategies
+    return mm_strategy
 
 
-# COMPAT(< 2026-08-04 torch nightly): the upstream
-#   ``_add_ephemeral_timeout_for_all_pgs`` only became backend-generic
+@compat_impl(key="_mm_like_strategy", lt=(2, 14))
+def _mm_like_strategy_upstream(mm_equation, mesh, op_schema):
+    from torch.distributed.tensor._ops._matrix_ops import (
+        _mm_like_strategy as upstream,
+    )
+
+    return upstream(mm_equation, mesh, op_schema)
+
+
+_mm_like_strategy = compat_impl_container["_mm_like_strategy"].resolve()
+
+
+# the upstream ``_add_ephemeral_timeout_for_all_pgs`` only became backend-generic
 #   (dispatching through ``ProcessGroup::addEphemeralTimeout``, NPU included)
 #   on the torch nightly of 2026-08-04 (pytorch#191980). On torch 2.13 and
 #   earlier 2.14 nightlies it is CUDA/NCCL-only and a no-op on NPU, so the
 #   torch_npu implementation must be used there.
-# CAN REMOVE else branch when MIN_SUPPORTED >= the 2026-08-04 nightly.
-if CURRENT_VERSION >= (2, 14):
+def _probe_upstream_ephemeral_timeout_generic() -> bool:
+    """Whether the upstream implementation is already backend-generic."""
     import inspect
 
     from torch.distributed import distributed_c10d as c10d
 
-    _UPSTREAM_EPHEMERAL_TIMEOUT_IS_BACKEND_GENERIC = (
-        "pg._add_ephemeral_timeout" in inspect.getsource(
-            c10d._add_ephemeral_timeout_for_all_pgs)
+    return (
+        "pg._add_ephemeral_timeout"
+        in inspect.getsource(c10d._add_ephemeral_timeout_for_all_pgs)
     )
-else:
-    _UPSTREAM_EPHEMERAL_TIMEOUT_IS_BACKEND_GENERIC = False
 
-if _UPSTREAM_EPHEMERAL_TIMEOUT_IS_BACKEND_GENERIC:
+
+# The version number alone cannot tell (2.14 itself has a split), so keep the
+# condition in a module-level name and make the two sides complementary with not.
+_UPSTREAM_EPHEMERAL_TIMEOUT_IS_BACKEND_GENERIC = (
+    CURRENT_VERSION >= (2, 14)
+    and _probe_upstream_ephemeral_timeout_generic()
+)
+
+
+@compat_impl(key="_add_ephemeral_timeout_for_all_pgs",
+             judgement=_UPSTREAM_EPHEMERAL_TIMEOUT_IS_BACKEND_GENERIC)
+def _add_ephemeral_timeout_for_all_pgs_upstream():
+    """Upstream is already backend-generic: alias it."""
     from torch.distributed.distributed_c10d import _add_ephemeral_timeout_for_all_pgs
-else:
+
+    return _add_ephemeral_timeout_for_all_pgs
+
+
+@compat_impl(key="_add_ephemeral_timeout_for_all_pgs",
+             judgement=not _UPSTREAM_EPHEMERAL_TIMEOUT_IS_BACKEND_GENERIC)
+def _add_ephemeral_timeout_for_all_pgs_local():
+    """Upstream is still CUDA/NCCL-only: override the c10d entry with ours."""
     from torch.distributed import distributed_c10d as c10d
     from datetime import timedelta
 
@@ -125,16 +151,19 @@ else:
                 ):
                     backend._add_ephemeral_timeout(timeout)
     c10d._add_ephemeral_timeout_for_all_pgs = _add_ephemeral_timeout_for_all_pgs
+    return _add_ephemeral_timeout_for_all_pgs
 
 
-# COMPAT(< 2.14): upstream _new_process_group_helper only resolves an NPU
+_add_ephemeral_timeout_for_all_pgs = compat_impl_container[
+    "_add_ephemeral_timeout_for_all_pgs"
+].apply()
+
+
+# upstream _new_process_group_helper only resolves an NPU
 #   "undefined" backend natively after pytorch#179901 (2.14.0.dev mid-July
 #   2026 nightly). torch_npu used to replace the helper with a patched copy
 #   adding an "HCCL -> BackendType.CUSTOM" branch; restore it on old torch so
 #   init_process_group() without an explicit backend keeps working on NPU.
-# CAN REMOVE when MIN_SUPPORTED_VERSION >= (2, 14) and every 2.14 nightly
-#   includes pytorch#179901: then _upstream_supports_npu_default_backend()
-#   always returns True and this whole block is dead code.
 def _upstream_supports_npu_default_backend() -> bool:
     """Whether upstream _new_process_group_helper natively resolves an NPU
     "undefined" backend to BackendType.CUSTOM.
@@ -154,10 +183,29 @@ def _upstream_supports_npu_default_backend() -> bool:
         or "backend_type_map.get(str(backend))" in src
     )
 
-if CURRENT_VERSION < (2, 14) or not _upstream_supports_npu_default_backend():
-    # Only old torch (2.13.x, early 2.14 nightlies) reaches here; load the
-    # imports and the patched helper lazily so supported torch versions pay
-    # no cost and do not expose the patch.
+
+# pytorch#179901 landed inside the 2.14 line, so probe the upstream source
+# instead of trusting the version number.
+_UPSTREAM_PG_HELPER_OK = (
+    CURRENT_VERSION >= (2, 14) and _upstream_supports_npu_default_backend()
+)
+
+
+@compat_impl(key="_new_process_group_helper", judgement=_UPSTREAM_PG_HELPER_OK)
+def _new_process_group_helper_upstream():
+    """Upstream resolves it natively: alias the upstream helper."""
+    from torch.distributed.distributed_c10d import _new_process_group_helper
+
+    return _new_process_group_helper
+
+
+@compat_impl(key="_new_process_group_helper", judgement=not _UPSTREAM_PG_HELPER_OK)
+def _new_process_group_helper_local():
+    """Older torch (2.13.x, early 2.14 nightlies): use the patched copy.
+
+    Only those versions reach here; load the imports and the patched helper
+    lazily so supported torch versions pay no cost and do not expose the patch.
+    """
     import logging
     import warnings
 
@@ -513,38 +561,41 @@ if CURRENT_VERSION < (2, 14) or not _upstream_supports_npu_default_backend():
         return pg, prefix_store
 
     dist_c10d._new_process_group_helper = _new_process_group_helper
-else:
-    # Upstream resolves it natively: alias the upstream helper.
-    from torch.distributed.distributed_c10d import _new_process_group_helper
+    return _new_process_group_helper
 
 
-# COMPAT(< 2.14): upstream ShardedTensor.cuda()/to() are CUDA-hardcoded on
+_new_process_group_helper = compat_impl_container["_new_process_group_helper"].apply()
+
+
+# upstream ShardedTensor.cuda()/to() are CUDA-hardcoded on
 #   torch < 2.14 (torch.cuda.current_device(), shard.tensor.cuda(), device
 #   allowlist {"cuda", "xpu"}), so torch_npu patches a npu() method onto
 #   ShardedTensor. Upstream pytorch#187939 (shipped in 2.14) makes cuda()/to()
 #   hardware-agnostic via torch.accelerator, so the patch is not needed and
 #   must not be applied on torch >= 2.14.
-# CAN REMOVE this block when MIN_SUPPORTED >= (2, 14)
-if CURRENT_VERSION < (2, 14):
+@compat_impl(key="sharded_tensor_npu_method", lt=(2, 14))
+def sharded_tensor_npu_method_local():
     from torch.distributed._shard.sharded_tensor import ShardedTensor
     from torch_npu.distributed.tensor._sharded_tensor_patch import _patched_sharded_tensor_npu
 
     # Add the patched npu() method if it doesn't exist.
     if not hasattr(ShardedTensor, "npu"):
         ShardedTensor.npu = _patched_sharded_tensor_npu
-# COMPAT(< 2.14): upstream pytorch#190138 removed the backendSupportsSequenceNumbers
+
+
+compat_impl_container["sharded_tensor_npu_method"].apply()
+
+
+# upstream pytorch#190138 removed the backendSupportsSequenceNumbers
 #   whitelist gate in ProcessGroup::getSequenceNumberForGroup(), which now always
 #   dispatches to the default backend and covers CUSTOM (HCCL) backends natively.
 #   On older torch the whitelist rejects CUSTOM backends, so torch_npu must still
 #   patch ProcessGroup._get_sequence_number_for_group with the HCCL-aware shim.
-# CAN REMOVE when MIN_SUPPORTED >= (2, 14): delete this block and
-#   the version branch in test/test_torch_npu_init.py::test_07.
-if CURRENT_VERSION < (2, 14):
+@compat_impl(key="process_group_sequence_number", lt=(2, 14))
+def process_group_sequence_number_local():
+    import torch
     from torch._C._distributed_c10d import ProcessGroup as _C10dProcessGroup
 
-    # `torch` / `torch.distributed` are already imported by the
-    # _new_process_group_helper block above, which also only runs on
-    # torch < 2.14.
     # Capture the upstream implementation before patching so non-HCCL
     # backends keep dispatching to it.
     origin_get_sequence_number_for_group = (
@@ -559,3 +610,6 @@ if CURRENT_VERSION < (2, 14):
             return origin_get_sequence_number_for_group(self)
 
     _C10dProcessGroup._get_sequence_number_for_group = _hccl_get_sequence_number_for_group
+
+
+compat_impl_container["process_group_sequence_number"].apply()

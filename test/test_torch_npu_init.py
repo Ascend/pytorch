@@ -412,7 +412,9 @@ class TestTorchNpuBootstrap(TestCase):
             import torch.distributed.launcher.api as launcher_api
             from torch.distributed.fsdp import sharded_grad_scaler
             from torch_npu.npu.amp.sharded_grad_scaler import _ShardedGradScaler
-            import torch_npu._compat.distributed as compat_distributed
+            # Importing the compat module is what installs (torch < 2.14) or
+            # keeps (torch >= 2.14) the sequence-number shim asserted below.
+            import torch_npu._compat.distributed  # noqa: F401
             from torch_npu._compat.version import CURRENT_VERSION
 
             assert torch._C._distributed_c10d._verify_params_across_processes is (
@@ -422,16 +424,20 @@ class TestTorchNpuBootstrap(TestCase):
             # COMPAT(< 2.14): on torch < 2.14 the compat block in
             #   torch_npu/_compat/distributed.py replaces the method with the
             #   HCCL-aware shim; on torch >= 2.14 the upstream native
-            #   implementation is kept.
+            #   implementation is kept. The shim is a local function inside the
+            #   compat execution function, so identify it by the module that
+            #   owns it rather than by a module attribute.
+            shim_owner = "torch_npu._compat.distributed"
+            sequence_number_impl = (
+                torch._C._distributed_c10d.ProcessGroup._get_sequence_number_for_group
+            )
             if CURRENT_VERSION < (2, 14):
-                assert (
-                    torch._C._distributed_c10d.ProcessGroup._get_sequence_number_for_group
-                    is compat_distributed._hccl_get_sequence_number_for_group
-                )
+                assert sequence_number_impl.__module__ == shim_owner
+                assert sequence_number_impl.__name__ == "_hccl_get_sequence_number_for_group"
             else:
-                # On torch >= 2.14 the compat block must not define the shim
-                # at all; the upstream native implementation is kept.
-                assert not hasattr(compat_distributed, "_hccl_get_sequence_number_for_group")
+                # On torch >= 2.14 the compat block must not take the method
+                # over; the upstream native implementation is kept.
+                assert getattr(sequence_number_impl, "__module__", None) != shim_owner
 
             assert dist.batch_isend_irecv is (
                 torch_npu.distributed.distributed_c10d._batch_isend_irecv
