@@ -108,29 +108,23 @@ class SplitTiling:
         def is_reduction_kernel():
             return any(axis.prefix == "r" for axis in self.kernel.sorted_axis)
 
+        def only_low_dim_candidates_remain():
+            for axis in self.kernel.sorted_axis:
+                if axis.prefix == "r" or axis in self.kernel.split_axis:
+                    continue
+                if axis.sorted_order not in self.kernel.low_dims:
+                    return False
+            return True
+
         def meet_stop_condition():
             sv = V.graph.sizevars
             current_numels = self.total_split_numels(self.kernel.split_axis)
-            # A dynamic split axis already supplies the grid on its own: the size
-            # hint seen here is one example shape, while the launch derives the
-            # grid from the runtime numel. Adding a second split axis to reach the
-            # core count is therefore speculative, and the cost is permanent: a
-            # split axis can never become a no_loop_axis (see select_no_loop_axis),
-            # so a static low dim pulled in here loses whole-axis residency and its
-            # BLOCK_SUB can no longer span the axis. That fragments the innermost
-            # contiguous dimension for every runtime shape, not just the one whose
-            # hint was used. Reductions only: their grid comes solely from the
-            # non-reduction axes, so the dynamic one is the parallelism.
-            #
-            # Confined to grouped autotune, which is what supplies the per-bucket
-            # runtime block that makes one split axis sufficient. Without it the
-            # single axis would keep the hint's block at every shape, so the old
-            # speculative second axis stays the better bet.
             if (
                 npu_config.enable_symbolic_shape_group_autotune
                 and self.kernel.split_axis
                 and is_reduction_kernel()
                 and has_dynamic_split_axis()
+                and only_low_dim_candidates_remain()
             ):
                 return True
             try:
