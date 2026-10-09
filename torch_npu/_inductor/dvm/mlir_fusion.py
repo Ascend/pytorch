@@ -16,9 +16,7 @@ from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.codegen.meta_kernel imp
     NpuMetaScheduling,
     create_fx_from_snodes_by_traced_graph,
 )
-from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.codegen.wrapper import (
-    NpuMlirWrapperCodeGen,
-)
+from .wrapper import NpuDvmWrapperCodeGen
 from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch import (
     lowering as npu_lowering,
 )
@@ -92,6 +90,7 @@ anir_config.GENERATE_LIST = [
     aten.unsqueeze,
     aten.squeeze,
     aten.reshape,
+    aten.permute,
     torch.ops.higher_order.while_loop,
     torch.ops.higher_order.while_loop_stack_output,
     aten.copy,
@@ -111,6 +110,8 @@ anir_config.GENERATE_LIST = [
 
 def _is_node_supported_by_dvm_rule(node, allow_common_rule=False):
     if node.target == aten.cat.default and not dvm_config.enable_cat:
+        return False
+    if node.target == aten.permute.default and not dvm_config.enable_fusion_permute:
         return False
     if node.target == aten.clone.default and dvm_config.view_fusion_level != 2:
         return False
@@ -514,7 +515,7 @@ class DvmMlirFusionPatch:
         if dvm_config.enable_matmul_fusion:
             patch_dvm_matmul_template_fusion()
         register_backend_for_device(
-            "npu", NpuDvmScheduling, NpuMlirWrapperCodeGen
+            "npu", NpuDvmScheduling, NpuDvmWrapperCodeGen
         )
         DvmMlirFusionPatch._enabled = True
 

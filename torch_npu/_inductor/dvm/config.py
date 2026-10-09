@@ -8,6 +8,8 @@ debug_mode = False
 dump_fx_test = False
 # Enable DVM cat fusion only when explicitly requested.
 enable_cat = False
+# Enable DVM permute fusion; permute lowering can emit reinterpret_tensor views.
+enable_fusion_permute = False
 # Configure operator packets/overloads before the DVM backend is loaded.
 # Disabling takes precedence when an operator occurs in both lists.
 disable_decomp_list = []

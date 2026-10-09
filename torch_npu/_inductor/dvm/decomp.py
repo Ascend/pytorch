@@ -30,7 +30,6 @@ decomps_to_exclude_npu = [
     aten.max_pool2d_with_indices,
     aten.max_pool2d_with_indices_backward,
     aten.native_batch_norm,
-    aten.native_group_norm,
     aten.nll_loss2d_backward,
     aten.nll_loss2d_forward,
     aten.nll_loss_backward,
@@ -300,6 +299,9 @@ def patch_decomp():
     global _dvm_inductor_decomp_patched
     if _dvm_inductor_decomp_patched:
         return
+    from ..decomposition import _override_matmul_should_fold_for_npu
+
+    _override_matmul_should_fold_for_npu()
     _disable_cia_decompositions()
     remove_decompositions(inductor_decomp.decompositions, decomps_to_exclude_npu)
     for op, fn in dvm_decompositions.items():
