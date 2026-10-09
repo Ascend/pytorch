@@ -468,7 +468,7 @@ class CATLASSGemmTemplate(CATLASSTemplate, ABC):
 
         # Define Kernel call signature
         # Important: This step also populates Kernel name to node mapping data structures,
-        # which are required further below (for example by the template renderer)
+        # which is required further below (for example by the template renderer)
         inputs = [X, W, Bias, *extra_inputs]
         names = ["X", "W", "Bias", *extra_names] + ["Y"]
         names_str = ",".join(names)
@@ -493,6 +493,14 @@ class CATLASSGemmTemplate(CATLASSTemplate, ABC):
 
                 from .catlass_library.gemm_autotune import may_adjust_l1_tile_for_bias
                 from .catlass_utils import _catlass_tensor_from_node_for_bias
+
+                # When the template already has a Bias input (e.g. addmm
+                # kept as a single template node with 3 inputs), but the epilogue
+                # only has relu (no "add"), _try_fast_fusion returns bias_buffer=None.
+                # In that case, fall back to the Bias from _get_extra_inputs_and_names
+                # (which correctly returns self.input_nodes[2] for 3-input templates).
+                if bias_buffer is None and Bias is not None:
+                    bias_buffer = Bias
 
                 if bias_buffer:
                     bias_tensor = _catlass_tensor_from_node_for_bias(bias_buffer)
