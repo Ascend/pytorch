@@ -1217,6 +1217,10 @@ def patch_algorithm_selector() -> None:
         input_gen_fns: Optional[Dict[int, Callable[[ir.Buffer], torch.Tensor]]] = None,
         precompilation_timeout_seconds: int = 60 * 60,
         return_multi_template: bool = False,
+        best_config_future=None,  # Not supported on NPU
+        is_collective: bool = False,  # Not supported on NPU
+        min_speedup_threshold: float = 1.0,  # Not supported on NPU
+        benchmark_with_cudagraphs: bool = False,  # Not supported on NPU
         defer_epilogue_compile_only: bool = False,
     ) -> Any:
         from .codegen.catlass.catlass_kernel import CATLASSTemplateCaller
