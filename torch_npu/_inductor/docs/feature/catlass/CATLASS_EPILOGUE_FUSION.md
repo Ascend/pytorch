@@ -28,5 +28,4 @@ export CATLASS_EPILOGUE_FUSION=0
 
 ## 支持的型号
 
-- <term>Ascend 950DT 系列产品</term>
-- <term>Ascend 950PR 系列产品</term>
+<term>Ascend 950PR&950DT系列产品</term>

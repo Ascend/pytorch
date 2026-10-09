@@ -36,6 +36,6 @@ TorchNPU环境变量请参考《[TorchNPU环境变量参考](https://www.hiascen
 | 其他         |INDUCTOR_ASCEND_CHECK_ACCURACY| 开启triton后端精度对比工具，dump单算子用例。当启用时，会自动启用INDUCTOR_ASCEND_DUMP_FX_GRAPH功能，默认值为空。                                                     |
 | 其他         |INDUCTOR_ASCEND_DUMP_FX_GRAPH| dump可执行的单算子用例，用于调试和问题排查。当INDUCTOR_ASCEND_CHECK_ACCURACY或AOTI_ASCEND_DEBUG_KERNEL启用时，会自动启用此功能，默认值为空。                             |
 | 其他         |INDUCTOR_ASCEND_LOG_LEVEL| 设置Inductor-Ascend日志等级，控制日志输出的详细程度，默认值为WARNING。                                                                                  |
-| 其他         |TORCHINDUCTOR_NDDMA| 启用Triton-Ascend load随路转置能力。在A2、A3代际理论性能无差异。在A5代际会通过底层nddma特性做转置加速，转置性能有明显增益。                                                    |
+| 其他         |TORCHINDUCTOR_NDDMA| 启用Triton-Ascend load随路转置能力。在Atlas A2系列产品、Atlas A3系列产品代际理论性能无差异。在Ascend 950PR&950DT系列产品代际会通过底层nddma特性做转置加速，转置性能有明显增益。                                                    |
 | 其他         |ENABLE_INPLACE_BUFFERS| 控制Inductor-Ascend生成Triton Kernel时输入/输出参数是否复用地址空间，未设置或设置为1、true、yes时复用（默认），设置为0、false、no等时不复用，便于multi-buffer流水掩盖 |
 | 其他         |TORCHINDUCTOR_NPU_FAST_LAUNCH| 控制是否启用Planned Fast Launch，用于降低torch.compile生成的Python Wrapper在稳态运行时下发NPU Triton融合kernel的Host侧固定开销，默认关闭 |

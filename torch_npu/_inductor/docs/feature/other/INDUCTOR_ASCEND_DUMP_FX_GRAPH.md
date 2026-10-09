@@ -22,4 +22,4 @@ export INDUCTOR_ASCEND_DUMP_FX_GRAPH=1
 
 ## 支持的型号
 
-- <term>Ascend 950DT 系列产品</term>
+<term>Ascend 950DT系列产品</term>

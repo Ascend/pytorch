@@ -13,7 +13,7 @@ Inductor-Ascend在继承社区Pytorch Inductor能力的基础上，针对昇腾A
   <img src="overview_arch.png" width="70%">
 </div>
 
-当前Inductor-Ascend逻辑组件如图2所示，其核心组件是：图优化、lowering、scheduling、CodeGen。此外，针对A5 SIMT，Inductor支持了基于SIMD+SIMT的离散访存类算子融合；引入Catlass算子模板库支持mm/bmm/addmm/groupmm及其与ReLU等pointwise/broadcast类算子融合；支持flex attention；支持动态Shape、支持CppWrapper、支持AOTI等。(相关常用概念见下表)
+当前Inductor-Ascend逻辑组件如图2所示，其核心组件是：图优化、lowering、scheduling、CodeGen。此外，针对Ascend 950DT系列产品 SIMT，Inductor支持了基于SIMD+SIMT的离散访存类算子融合；引入Catlass算子模板库支持mm/bmm/addmm/groupmm及其与ReLU等pointwise/broadcast类算子融合；支持flex attention；支持动态Shape、支持CppWrapper、支持AOTI等。(相关常用概念见下表)
 
 图2 Inductor-Ascend逻辑架构图
 <div align="left">
@@ -22,11 +22,11 @@ Inductor-Ascend在继承社区Pytorch Inductor能力的基础上，针对昇腾A
 
 ## 使用约束
 
-- <term>Ascend 950DT 系列产品</term>
+<term>Ascend 950DT系列产品</term>
 
 ## 常用概念
 
-| 名称 | 说明                                                                                                                                                                                                                                          |
+| 名称 | 说明 |
 |---|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Eager模式 | PyTorch支持的单算子执行模式（未使用torch.compile），特点如下，单击[Link](https://pytorch.org/blog/optimizing-production-pytorch-performance-with-graph-transformations/)可获取PyTorch官网介绍。具有两个特点：（a） 即时执行：每个计算操作在定义后立即执行，无需构建计算图。（b） 动态计算图：每次运行生成计算图。                 |
 | 图模式 | 一般指使用torch.compile加速的模型执行方式。                                                                                                                                                                                                                |
@@ -52,7 +52,7 @@ Inductor-Ascend在继承社区Pytorch Inductor能力的基础上，针对昇腾A
 
 首次阅读本文档时，建议先阅读下表，以帮助您快速获取Inductor-Ascend安装方法、快速上手示例、特性与调优配置、性能分析与优化等。
 
-| 使用场景 | 操作索引                                                                            |
+| 使用场景 | 操作索引 |
 | ------ |---------------------------------------------------------------------------------|
 | 1. 环境准备与安装 | [安装](../installation/installation.md)                                           |
 | 2. 快速开始| [开始](../getting_started/getting_started.md)                                     |

@@ -27,4 +27,4 @@ export INDUCTOR_ASCEND_COSTMODEL_RATIO=0.25
 
 ## 支持型号
 
-- <term>Ascend 950DT 系列产品</term>
+<term>Ascend 950DT系列产品</term>

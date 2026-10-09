@@ -187,4 +187,4 @@ set_property(TARGET aoti_example PROPERTY CXX_STANDARD 17)
 
 ## 设备支持说明
 
-- <term>Ascend 950DT 系列产品</term>
+<term>Ascend 950DT系列产品</term>

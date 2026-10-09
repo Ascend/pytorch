@@ -25,4 +25,4 @@ export ENABLE_INPLACE_BUFFERS=0
 
 ## 支持的型号
 
-- <term>Ascend 950DT 系列产品</term>
+<term>Ascend 950DT系列产品</term>

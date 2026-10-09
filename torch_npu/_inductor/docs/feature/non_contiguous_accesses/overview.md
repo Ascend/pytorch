@@ -24,7 +24,7 @@ tmp1 = tl.load(in_ptr1 + (x1 + 128*tmp0), y0_mask & x1_mask)
 
 ## 原理
 
-由于A2/A3上仅支持simd访存，对于离散访存场景仅能通过标量搬运，因此上述的离散访存算子将会fallback到eager模式运行。而在A5硬件中加入了simt访存能力，对于间接访存的场景使用simt能够加速离散数据的搬运，本特性将会支持上述的离散访存算子在A5硬件上的inductor融合。
+由于Atlas A2系列产品、Atlas A3系列产品上仅支持simd访存，对于离散访存场景仅能通过标量搬运，因此上述的离散访存算子将会fallback到eager模式运行。而在Ascend 950PR&950DT系列产品硬件中加入了simt访存能力，对于间接访存的场景使用simt能够加速离散数据的搬运，本特性将会支持上述的离散访存算子在Ascend 950PR&950DT系列产品硬件上的inductor融合。
 
 如果在Inductor中生成了间接访存的IR，inductor则需要将该Kernel标记为需要使用间接访存相关算子。对于间接访存相关的算子，由于存在多种不同的Codegen以及Autotune逻辑，使用环境变量进行控制。
 
