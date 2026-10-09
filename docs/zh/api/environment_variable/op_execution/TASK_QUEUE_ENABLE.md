@@ -35,11 +35,11 @@ export TASK_QUEUE_ENABLE=2
 
 ## 使用约束
 
-[ASCEND\_LAUNCH\_BLOCKING](ASCEND_LAUNCH_BLOCKING.md)设置为“1”时，task\_queue算子队列关闭，TASK\_QUEUE\_ENABLE设置不生效。
+- [ASCEND\_LAUNCH\_BLOCKING](ASCEND_LAUNCH_BLOCKING.md)设置为“1”时，task\_queue算子队列关闭，TASK\_QUEUE\_ENABLE设置不生效。
 
-TASK\_QUEUE\_ENABLE配置为“2”时，由于内存并发，可能导致运行中NPU内存峰值上升。
+- TASK\_QUEUE\_ENABLE配置为“2”时，由于内存并发，可能导致运行中NPU内存峰值上升。
 
-开启task\_queue优化后，默认一个device对应一个task\_queue。在多线程多流场景下，多个线程的任务通过同一个task\_queue串行下发。若任务间存在跨流依赖（如streamA的任务依赖streamB的任务），原先多线程多流可并行下发，被依赖方与依赖方同时下发解除依赖；改为单 queue 后，若依赖方先入队，因依赖未就绪阻塞队头，被依赖方在队尾无法提前下发，形成死锁。此时需要保证多线程间任务下发的顺序，避免依赖倒置。
+- 开启task\_queue优化后，默认一个device对应一个task\_queue。在多线程多流场景下，多个线程的任务通过同一个task\_queue串行下发。若任务间存在跨流依赖（如streamA的任务依赖streamB的任务），原先多线程多流可并行下发，被依赖方与依赖方同时下发解除依赖；改为单 queue 后，若依赖方先入队，因依赖未就绪阻塞队头，被依赖方在队尾无法提前下发，形成死锁。此时需要保证多线程间任务下发的顺序，避免依赖倒置。
 
 ## 支持的型号
 

@@ -8,7 +8,7 @@
 
 设当前ProcessGroup包含N个rank，本环境变量的取值为R：
 
-- 当N不大于R时：使用原单RootInfo路径。
+- 当N小于等于R时：使用原单RootInfo路径。
 - 当N大于R时：root数量K为`ceil(N / R)`。N个rank会被连续、均衡地划分到K个group，各group的rank数量最多相差1，每个group的首个`local rank`作为root。
 
 ## 配置示例

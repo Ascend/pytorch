@@ -89,7 +89,7 @@
 |[RANK_TABLE_FILE](collective_communication/RANK_TABLE_FILE.md)|通过此环境变量可配置RANK_TABLE_FILE文件的路径，用于集合通信域建链。|
 |[ROOTINFO_SCALABLE_ENABLE](collective_communication/ROOTINFO_SCALABLE_ENABLE.md)|通过此环境变量可控制是否开启Scalable RootInfo分级建链。|
 |[TORCH_HCCL_RANKS_PER_ROOT](collective_communication/TORCH_HCCL_RANKS_PER_ROOT.md)|开启Scalable RootInfo后，通过此环境变量可配置每个root期望管理的rank数量。|
-|[(beta) TORCH_HCCL_ZERO_COPY](collective_communication/（beta）TORCH_HCCL_ZERO_COPY.md)|训练或在线推理场景下，可通过此环境变量开启集合通信片内零拷贝功能，减少通信算子在通信过程中片内拷贝次数，提升集合通信效率，降低通信耗时。同时在计算通信并行场景下，降低通信过程中对显存带宽的抢占。|
+|[（beta）TORCH_HCCL_ZERO_COPY](collective_communication/（beta）TORCH_HCCL_ZERO_COPY.md)|训练或在线推理场景下，可通过此环境变量开启集合通信片内零拷贝功能，减少通信算子在通信过程中片内拷贝次数，提升集合通信效率，降低通信耗时。同时在计算通信并行场景下，降低通信过程中对显存带宽的抢占。|
 
 ### 超时监控与故障记录
 
