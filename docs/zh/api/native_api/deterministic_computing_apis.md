@@ -46,7 +46,6 @@
 
 <!-- npu="A3,910b" id1 -->
 当使用<term>Atlas A2系列产品</term>或<term>Atlas A3系列产品</term>时，[表1](#可开启确定性计算的API列表-1)所示API计算存在随机性，开启确定性计算开关可以保持计算结果的确定性。
-<!-- end id1 -->
 
 **表 1** API列表<a id="可开启确定性计算的API列表-1"></a>
 
@@ -96,9 +95,10 @@
 | `torch.trace` |
 | `torch.mv` |
 
+<!-- end id1 -->
+
 <!-- npu="950" id2 -->
 当使用<term>Ascend 950DT系列产品</term>时，[表2](#可开启确定性计算的API列表-2)所示API计算存在随机性，开启确定性计算开关可以保持计算结果的确定性。
-<!-- end id2 -->
 
 **表 2** API列表<a id="可开启确定性计算的API列表-2"></a>
 
@@ -129,3 +129,4 @@
 | `torch.Tensor.coalesce` |
 | `torch.grid_sampler_2d` 反向 |
 | `torch.grid_sampler_3d` 反向 |
+<!-- end id2 -->
