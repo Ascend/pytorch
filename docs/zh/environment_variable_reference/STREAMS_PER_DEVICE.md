@@ -6,9 +6,9 @@
 
 stream pool采用Round Robin策略。
 
-- 配置为32时：stream pool有32条流。
-- 配置为8时：stream pool有8条流。
-- 配置为其他值时：打印Warning级别日志预警，并配置为默认值32。
+- 配置为“32”时：stream pool有32条流。
+- 配置为“8”时：stream pool有8条流。
+- 配置为其他值时：打印Warning级别日志预警，并配置为默认值“32”。
 
 此环境变量默认值为32。
 

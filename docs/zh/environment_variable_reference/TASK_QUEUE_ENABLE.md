@@ -33,9 +33,9 @@ export TASK_QUEUE_ENABLE=2
 
 ## 使用约束
 
-[ASCEND\_LAUNCH\_BLOCKING](ASCEND_LAUNCH_BLOCKING.md)设置为“1”时，task\_queue算子队列关闭，TASK\_QUEUE\_ENABLE设置不生效。
+- [ASCEND\_LAUNCH\_BLOCKING](ASCEND_LAUNCH_BLOCKING.md)设置为“1”时，task\_queue算子队列关闭，TASK\_QUEUE\_ENABLE设置不生效。
 
-TASK\_QUEUE\_ENABLE配置为“2”时，由于内存并发，可能导致运行中NPU内存峰值上升。
+- TASK\_QUEUE\_ENABLE配置为“2”时，由于内存并发，可能导致运行中NPU内存峰值上升。
 
 ## 支持的型号
 
