@@ -1678,7 +1678,9 @@
 - `snapshot()`返回根据当前内存池ID过滤后的NPU内存分配器状态快照，返回值类型为`list`。
 - `torch.npu.use_mem_pool`仅将当前线程中的内存申请路由到指定内存池，在上下文中创建的新线程不会自动使用该内存池。回收内存池前，需要退出`torch.npu.use_mem_pool`上下文，并释放使用该内存池的Tensor。
 - TorchNPU不提供原生PyTorch 2.7中的`MemPoolContext`和`MemPool.allocator`公开接口，并额外支持`no_split`参数。
+<!-- npu="950" id229 -->
 - Ascend 950DT系列产品支持使用默认NPU缓存分配器创建内存池，不支持通过`allocator`参数指定`NPUPluggableAllocator`。
+<!-- end id229 -->
 
 </div>
 

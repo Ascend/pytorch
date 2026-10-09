@@ -675,7 +675,9 @@
   ```
 
 - 在某些情况下可能回退至CPU执行
-- 优化器在启动`fused`的情况下（`fused=True`），仅支持Ascend 950DT系列产品
+<!-- npu="910b,A3" id652 -->
+- <term>Atlas A2训练系列产品</term>和<term>Atlas A3训练系列产品</term>暂不支持将`fused`设置为`True`。
+<!-- end id652 -->
 
 > <font size="3">add_param_group()</font>
 
