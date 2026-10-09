@@ -22,8 +22,10 @@ export TORCH_NPUGRAPH_GC=1
 
 - The `TORCH_NPUGRAPH_GC` environment variable is read by the PyTorch module and can be configured as "0" or "1". For other values, behavior varies across different PyTorch versions and may change in the future, so configuring them is not recommended.
 
-    >       For versions prior to PyTorch 2.7.1, setting a value other than "0" or "1" will fall back to the default value "0".
-    >       For PyTorch 2.7.1 and later versions, setting a value other than "0" or "1" will fall back to the default value "1".
+    > [!NOTE]  
+    >
+    > - For versions prior to PyTorch 2.7.1, setting a value other than "0" or "1" will fall back to the default value "0".
+    > - For PyTorch 2.7.1 and later versions, setting a value other than "0" or "1" will fall back to the default value "1".
 
 - Setting TORCH\_NPUGRAPH\_GC to "1" will cause a performance degradation during NPUGraph Capture.
 
