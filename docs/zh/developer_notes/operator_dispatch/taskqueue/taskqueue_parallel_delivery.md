@@ -50,8 +50,8 @@
 > [!NOTE]
 > 
 > - 此环境变量默认设置为“1”。
-> - 当配置为“1”或“2”时，非内置算子则需参考[自定义算子接入TaskQueue](taskqueue_op_developer.md)完成适配，适配后同样受`TASK_QUEUE_ENABLE`控制。
-> - 问题排查请参见[常见问题排查](faq.md#常见问题排查)。
+> - 当配置为“1”或“2”时，非内置算子则需参考[自定义算子接入TaskQueue](./taskqueue_op_developer/_menu_taskqueue_op_developer.md)完成适配，适配后同样受`TASK_QUEUE_ENABLE`控制。
+> - 问题排查请参见[FAQ](faq.md)。
 
 ## 使用样例
 
