@@ -23,4 +23,4 @@ export TORCHINDUCTOR_CATLASS_ENABLED_OPS="mm,addmm,bmm,grouped_mm"
 
 ## 支持的型号
 
-- <term>Ascend 950DT 系列产品</term>
+<term>Ascend 950PR&950DT系列产品</term>

@@ -2,7 +2,7 @@
 
 ## 概述
 
-面向A5+PyTorch-v2.9.0，在Inductor-Ascend模块中提供对融合算子自动生成候选tiling集合的能力。Inductor中“VV（Vector‑Vector）融合算子”灵活多变，包括pointwise、规约、以及离散访存等不同类别，这些动态生成的融合算子在昇腾设备上需要寻找到最优tiling（包括编译选项）才能完全发挥其计算性能。同时由于和GPU微架构的区别，为了减少发射的逻辑核数量过多造成的硬件调度开销，Inductor-Ascend中会对一个维度进行两次切分：
+面向Ascend 950PR&950DT系列产品+PyTorch-v2.9.0，在Inductor-Ascend模块中提供对融合算子自动生成候选tiling集合的能力。Inductor中“VV（Vector‑Vector）融合算子”灵活多变，包括pointwise、规约、以及离散访存等不同类别，这些动态生成的融合算子在昇腾设备上需要寻找到最优tiling（包括编译选项）才能完全发挥其计算性能。同时由于和GPU微架构的区别，为了减少发射的逻辑核数量过多造成的硬件调度开销，Inductor-Ascend中会对一个维度进行两次切分：
 
 1. 核间切分：控制每个核处理的数据总量（等价于控制发射的逻辑核数）；
 2. 核内切分：控制单次计算搬运的数据量，通常称其为tiling大小。

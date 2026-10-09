@@ -128,4 +128,4 @@ DEBUG - Registering function fold_where from module torch_npu._inductor.fx_passe
 
 ## 支持的型号
 
-- <term>Ascend 950DT 系列产品</term>
+<term>Ascend 950DT系列产品</term>

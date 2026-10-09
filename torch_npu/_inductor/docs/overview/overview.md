@@ -13,7 +13,7 @@ Inductor-Ascend在继承社区Pytorch Inductor能力的基础上，针对昇腾A
   <img src="overview_arch.png" width="70%">
 </div>
 
-当前Inductor-Ascend逻辑组件如图2所示，其核心组件是：图优化、lowering、scheduling、CodeGen。此外，针对A5 SIMT，Inductor支持了基于SIMD+SIMT的离散访存类算子融合；引入Catlass算子模板库支持mm/bmm/addmm/groupmm及其与ReLU等pointwise/broadcast类算子融合；支持flex attention；支持动态Shape、支持CppWrapper、支持AOTI等。(相关常用概念见下表)
+当前Inductor-Ascend逻辑组件如图2所示，其核心组件是：图优化、lowering、scheduling、CodeGen。此外，针对Ascend 950DT系列产品 SIMT，Inductor支持了基于SIMD+SIMT的离散访存类算子融合；引入Catlass算子模板库支持mm/bmm/addmm/groupmm及其与ReLU等pointwise/broadcast类算子融合；支持flex attention；支持动态Shape、支持CppWrapper、支持AOTI等。(相关常用概念见下表)
 
 图2 Inductor-Ascend逻辑架构图
 <div align="left">
@@ -22,7 +22,7 @@ Inductor-Ascend在继承社区Pytorch Inductor能力的基础上，针对昇腾A
 
 ## 使用约束
 
-- <term>Ascend 950DT 系列产品</term>
+<term>Ascend 950DT系列产品</term>
 
 ## 常用概念
 

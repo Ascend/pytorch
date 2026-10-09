@@ -13,8 +13,8 @@
 
 ## 使用约束
 
-A2、A3不支持离散访存类算子的inductor融合，仅在A5上支持离散访存特性。
+Atlas A2系列产品、Atlas A3系列产品不支持离散访存类算子的inductor融合，仅在Ascend 950DT系列产品上支持离散访存特性。
 
 ## 支持型号
 
-- <term>Ascend 950DT 系列产品</term>
+<term>Ascend 950DT系列产品</term>

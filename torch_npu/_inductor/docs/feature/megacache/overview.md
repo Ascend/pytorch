@@ -116,4 +116,4 @@ compiled_model(x)
 
 ## 设备支持说明
 
-- <term>Ascend 950DT 系列产品</term>
+<term>Ascend 950DT系列产品</term>
