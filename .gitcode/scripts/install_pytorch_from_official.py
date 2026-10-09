@@ -275,17 +275,17 @@ def main():
 
 
 def verify_and_exit(python_exe):
-    print("Verifying installation...")
+    # 不做 import torch 验证: 无卡编译机上镜像预装的是 NPU 版 torch, import 会段错误
+    # (与 PR build_job.yml 一致, 编译走 stub 库不依赖 import torch 成功)
     r = subprocess.run(
-        [python_exe, '-c', 'import torch; print(torch.__version__)'],
+        [python_exe, '-m', 'pip', 'show', 'torch'],
         capture_output=True, text=True
     )
-    if r.returncode == 0:
-        print(f"SUCCESS: PyTorch {r.stdout.strip()} installed")
-        sys.exit(0)
-    else:
-        print("FAILED: Verification failed")
+    if r.returncode != 0:
+        print("FAILED: pip show torch failed")
         sys.exit(1)
+    print("SUCCESS: PyTorch installed")
+    sys.exit(0)
 
 
 if __name__ == '__main__':

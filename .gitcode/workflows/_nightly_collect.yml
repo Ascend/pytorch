@@ -44,7 +44,7 @@ jobs:
     select: selected_by_default
     runs-on: [ self-hosted, "${{ inputs.RUNNER_LABEL }}" ]
     container:
-      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260922
       options: ${{ inputs.CONTAINER_OPTIONS }}
 
     steps:

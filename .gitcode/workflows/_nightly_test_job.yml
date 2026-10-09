@@ -49,7 +49,7 @@ jobs:
     runs-on: [ self-hosted, "${{ inputs.NPU_LABEL }}" ]
     timeout-minutes: 360
     container:
-      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260922
       options: ${{ inputs.CONTAINER_OPTIONS }}
     steps:
       - name: checkout

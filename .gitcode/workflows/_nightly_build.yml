@@ -45,7 +45,7 @@ jobs:
     select: selected_by_default
     runs-on: [ self-hosted, op_plugin, "${{ inputs.RUNS_ON_ARCH }}", "${{ inputs.RUNS_ON_SPEC }}" ]
     container:
-      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704
+      image: ${{ inputs.DOCKER_IMAGE }}
       options: ${{ inputs.CONTAINER_OPTIONS }}
 
     outputs:
@@ -77,38 +77,19 @@ jobs:
             --python-exe python3.10 \
             --branch "${{ inputs.PYTORCH_BRANCH }}"
 
-      - name: Verify PyTorch installation
-        run: |
-          python3.10 -c "
-          import torch
-          print(f'PyTorch version: {torch.__version__}')
-          assert torch.__version__, 'PyTorch installation failed'
-          "
-
       - name: Install nanobind
         run: |
           python3.10 -m pip install nanobind
 
-      - name: Configure ccache
-        env:
-          CCACHE_DIR: "/ccache"
-        run: |
-          ccache -M 10G
-          ccache -z || true
-
       - name: Build torch_npu wheel
         id: build
         env:
-          CC: "ccache gcc"
-          CXX: "ccache g++"
-          CCACHE_DIR: "/ccache"
-          CCACHE_COMPRESS: "1"
-          CCACHE_MAXSIZE: "10G"
           MAX_JOBS: ${{ inputs.MAX_JOBS }}
           DISABLE_INSTALL_TORCHAIR: "FALSE"
           BUILD_WITHOUT_SHA: "1"
         run: |
           export CCACHE_BASEDIR="${ATOMGIT_WORKSPACE}"
+          source .gitcode/scripts/ccache_env.sh
           # release/2.15 -> 2.15.0 (build.sh --torch= expects X.Y.Z)
           TORCH_VER=$(echo "${{ inputs.PYTORCH_BRANCH }}" | sed 's|.*/||')
           if echo "${TORCH_VER}" | grep -Eq '^[0-9]+\.[0-9]+$'; then

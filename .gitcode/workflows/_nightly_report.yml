@@ -23,7 +23,7 @@ jobs:
     select: always
     runs-on: [ self-hosted, "${{ inputs.RUNNER_LABEL }}" ]
     container:
-      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260922
       options: ${{ inputs.CONTAINER_OPTIONS }}
     steps:
       - name: checkout
@@ -54,7 +54,7 @@ jobs:
             --shard-matrix-json '["dist-2card-1","dist-2card-2","dist-1","reg-npu-1","reg-npu-2","reg-npu-3","reg-npu-4","reg-npu-5","reg-npu-6","reg-npu-7","reg-npu-8","reg-npu-9","reg-npu-10"]' \
             --cases-summary cases-shards/cases_collection_summary.json \
             --cases-by-file-dir cases-shards \
-            --docker-image "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260704" \
+            --docker-image "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260922" \
             --runner "self-hosted"
 
           echo "=== Test Report Summary ==="
