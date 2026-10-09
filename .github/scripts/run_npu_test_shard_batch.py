@@ -185,6 +185,108 @@ def _match_batch_results(
 
 
 # ==============================================================================
+# NPU Canary Plugin (per-case poisoning diagnostics)
+# ==============================================================================
+#
+# Merged-batch workers run many cases in ONE pytest process. When an aclnn
+# operator fails fatally (e.g. MirrorPad/TopKV2 tiling failure on boundary
+# inputs), the NPU task queue (NPUQueue.cpp) transitions to CAN_EXIT:
+# subsequent operators become silent no-ops that return garbage from
+# uninitialized device memory (see run_npu_test_shard.py::_check_npu_poisoned
+# for the per-case runner's equivalent probe). The batch runner has no
+# per-process isolation, so one such failure poisons every remaining case in
+# the batch while the poisoning case itself often still reports PASSED.
+#
+# This plugin probes process health after EVERY case so the poisoning case
+# can be identified by name. Diagnostics only: it prints and records
+# findings, never aborts the batch.
+#
+# Output:
+#   - stdout: one "[NPU-CANARY]" line per detection (goes to the batch log)
+#   - report_dir/npu_canary_<shard_type><shard>_b<batch_id>.jsonl: records
+#
+# Disable with NPU_CANARY=0.
+
+
+class NpuCanaryPlugin:
+    """Probe NPU process health around each test case (diagnostics only)."""
+
+    def __init__(self, report_dir, shard, shard_type, batch_id):
+        self.report_dir = Path(report_dir)
+        self.shard = shard
+        self.shard_type = shard_type
+        self.batch_id = batch_id
+        self.enabled = os.environ.get("NPU_CANARY", "1") != "0"
+        self.poisoned = False
+        self._torch = None
+        self._marker_path = self.report_dir / (
+            f"npu_canary_{shard_type}{shard}_b{batch_id}.jsonl"
+        )
+
+    def _probe(self):
+        """Return True if the process NPU state is still healthy.
+
+        Mirrors run_npu_test_shard.py::_check_npu_poisoned: a trivial
+        computation whose result is verified. In CAN_EXIT state operators
+        are silent no-ops, so the result is garbage (or the sync throws).
+        """
+        if self._torch is None:
+            import torch
+
+            self._torch = torch
+        try:
+            probe = self._torch.ones(4, device="npu")
+            return probe.sum().item() == 4.0
+        except Exception:
+            return False
+
+    def _record(self, nodeid, mode):
+        rec = {
+            "nodeid": nodeid,
+            "mode": mode,  # "poisoner" | "victim"
+            "pid": os.getpid(),
+            "shard": f"{self.shard_type}{self.shard}",
+            "batch_id": self.batch_id,
+            "time": datetime.now().isoformat(),
+        }
+        label = (
+            "suspected poisoner (process healthy before this case)"
+            if mode == "poisoner"
+            else "victim (process already poisoned before this case)"
+        )
+        print(
+            f"[NPU-CANARY] {mode.upper()} | {nodeid} | pid {rec['pid']} "
+            f"| batch {self.batch_id} | {label}",
+            flush=True,
+        )
+        try:
+            with open(self._marker_path, "a") as f:
+                f.write(json.dumps(rec) + "\n")
+        except OSError as e:
+            print(f"[NPU-CANARY] marker write failed: {e}", flush=True)
+
+    # ---- pytest hooks ------------------------------------------------------
+    def pytest_runtest_setup(self, item):
+        # Pre-case probe: a failure here means the process was already
+        # poisoned before this case started — this case is a victim, not
+        # the source.
+        if not self.enabled or self.poisoned:
+            return
+        if not self._probe():
+            self.poisoned = True
+            self._record(item.nodeid, "victim")
+
+    def pytest_runtest_teardown(self, item, nextitem):
+        # Post-case probe: a failure here means the case that just finished
+        # poisoned the process (or poisoning slipped past an earlier probe).
+        if not self.enabled or self.poisoned:
+            return
+        if not self._probe():
+            self.poisoned = True
+            self._record(item.nodeid, "poisoner")
+
+
+# ==============================================================================
 # Worker Process (one pytest.main() per batch)
 # ==============================================================================
 
@@ -251,7 +353,13 @@ def _worker_batch_main(worker_input_file: str) -> None:
     print(f"[batch {batch_id}] starting: {len(nodeids)} cases from {display_file}", flush=True)
 
     try:
-        returncode = pytest.main(args=pytest_args)
+        canary = NpuCanaryPlugin(
+            report_dir=report_dir,
+            shard=shard,
+            shard_type=shard_type,
+            batch_id=batch_id,
+        )
+        returncode = pytest.main(args=pytest_args, plugins=[canary])
         if not isinstance(returncode, int):
             returncode = int(returncode) if returncode is not None else 1
     except SystemExit as e:
