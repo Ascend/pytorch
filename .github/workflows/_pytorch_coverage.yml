@@ -435,7 +435,7 @@ jobs:
       - name: generate-test-case-map
         if: ${{ always() && steps.promote-check.outputs.promoted == '1' }}
         continue-on-error: true
-        uses: lb-actions/precision-test@v1.0.2
+        uses: lb-actions/precision-test@v1.0.3
         with:
           repo: pytorch
           build-map: true
