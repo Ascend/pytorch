@@ -38,6 +38,7 @@ void FeatureMgr::Init() {
 
 void FeatureMgr::FormatFeatureList(size_t size, void* featuresData) {
   FeatureRecord* features = static_cast<FeatureRecord*>(featuresData);
+  std::string unsupportedFeatures;
   size_t i = 0;
   while ((features != nullptr) && (i < size)) {
     if (!IsTargetComponent(features->info.affectedComponent, features->info.affectedComponentVersion)) {
@@ -53,13 +54,10 @@ void FeatureMgr::FormatFeatureList(size_t size, void* featuresData) {
     std::string featureName = features->featureName;
     auto it = NAME_TABLE.find(featureName);
     if (it == NAME_TABLE.end()) {
-      printf(
-          "[WARN]%s,%s:%u:Do not support feature: %s, log is: %s\n",
-          __FUNCTION__,
-          FILE_NAME,
-          __LINE__,
-          features->featureName,
-          features->info.infoLog);
+      if (!unsupportedFeatures.empty()) {
+        unsupportedFeatures += "; ";
+      }
+      unsupportedFeatures += featureName + ", log is: " + features->info.infoLog;
       features++;
       i++;
       continue;
@@ -82,6 +80,9 @@ void FeatureMgr::FormatFeatureList(size_t size, void* featuresData) {
     features++;
     i++;
   }
+  if (!unsupportedFeatures.empty()) {
+    TORCH_NPU_WARN_ONCE("Do not support features: ", unsupportedFeatures);
+  }
 }
 
 bool FeatureMgr::IsTargetComponent(const char* component, const char* componentVersion) {
@@ -98,12 +99,23 @@ bool FeatureMgr::IsSupportFeature(FeatureType featureName) {
   auto fmkIt = FMK_FEATURES.find(featureName);
   auto profIt = profFeatures_.find(featureName);
   if (fmkIt == FMK_FEATURES.end() || profIt == profFeatures_.end()) {
-    printf(
-        "[WARN]%s,%s:%u:FMW or CANN do not support this feature type is: %d.\n",
-        __FUNCTION__,
-        FILE_NAME,
-        __LINE__,
-        featureName);
+    switch (featureName) {
+      case FeatureType::FEATURE_ATTR: {
+        TORCH_NPU_WARN_ONCE("FMW or CANN do not support feature: ATTR.");
+        break;
+      }
+      case FeatureType::FEATURE_MEMORY_ACCESS: {
+        TORCH_NPU_WARN_ONCE("FMW or CANN do not support feature: MemoryAccess.");
+        break;
+      }
+      case FeatureType::FEATURE_AICORE_SHAPE: {
+        TORCH_NPU_WARN_ONCE("FMW or CANN do not support feature: AICORE_SHAPE.");
+        break;
+      }
+      default:
+        TORCH_NPU_WARN("FMW or CANN do not support this feature type is: ", static_cast<int>(featureName), ".");
+        break;
+    }
     return false;
   }
 
