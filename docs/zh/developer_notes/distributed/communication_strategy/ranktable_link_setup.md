@@ -1,4 +1,4 @@
-# ranktable建链
+# Rank Table建链
 
 ## 简介
 
