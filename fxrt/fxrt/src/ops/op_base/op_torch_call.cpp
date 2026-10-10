@@ -1,7 +1,10 @@
 #include "ops/op_base/op_torch_call.h"
+#include <algorithm>
 #include <cctype>
+#include <optional>
 #include <sstream>
 #include <unordered_map>
+#include <unordered_set>
 #include <functional>
 
 #ifdef ENABLE_TORCH_NPU
@@ -14,6 +17,26 @@
 
 namespace fxrt {
 namespace ops {
+namespace {
+// Recursively gather every alias-set Symbol from an AliasInfo tree, including those nested in
+// contained types (e.g. split returns Tensor(a)[] whose 'a' lives on the list element, not the outer
+// return). Used to match an output's alias against the inputs' alias sets.
+void CollectAliasSymbols(const c10::AliasInfo* aliasInfo, std::unordered_set<c10::Symbol>& out) {
+  if (aliasInfo == nullptr) {
+    return;
+  }
+  for (const auto& sym : aliasInfo->beforeSets()) {
+    out.insert(sym);
+  }
+  for (const auto& sym : aliasInfo->afterSets()) {
+    out.insert(sym);
+  }
+  for (const auto& contained : aliasInfo->containedTypes()) {
+    CollectAliasSymbols(&contained, out);
+  }
+}
+} // namespace
+
 constexpr size_t kRealInputOffset = 1;
 
 namespace {
@@ -135,6 +158,7 @@ void UpdateNpuDesc(
   desc.origin_format_ = newNpuFormat;
   desc.data_type_ = newTypeMeta;
 }
+
 #endif
 } // namespace
 
@@ -203,12 +227,39 @@ void OpTorchCall::ConvertTensorTupleToStack(const ir::TuplePtr tuple, torch::jit
   for (size_t i = 0; i < tuple->Size(); i++) {
     if (firstRun_) {
       auto atTensor = ToTorchTensor((*tuple)[i]->ToTensor());
+      UpdateTorchTensor(atTensor, (*tuple)[i]->ToTensor());
       vec.push_back(atTensor);
       atTensors_.push_back(atTensor);
     } else {
       CHECK_IF_FAIL(tensorIdx_ < atTensors_.size());
       UpdateTorchTensor(atTensors_[tensorIdx_], (*tuple)[i]->ToTensor());
       vec.push_back(atTensors_[tensorIdx_]);
+    }
+    tensorIdx_++;
+  }
+  torch::jit::push(stack, torch::jit::IValue(vec));
+}
+
+void OpTorchCall::ConvertOptionalTensorTupleToStack(const ir::TuplePtr tuple, torch::jit::Stack& stack) {
+  c10::List<std::optional<at::Tensor>> vec;
+  vec.reserve(tuple->Size());
+  for (size_t i = 0; i < tuple->Size(); i++) {
+    const auto* element = (*tuple)[i].get();
+    if (element->IsNone()) {
+      vec.emplace_back(std::nullopt);
+      continue;
+    }
+
+    CHECK_IF_FAIL(element->IsTensor());
+    if (firstRun_) {
+      auto atTensor = ToTorchTensor(element->ToTensor());
+      UpdateTorchTensor(atTensor, element->ToTensor());
+      vec.emplace_back(atTensor);
+      atTensors_.push_back(atTensor);
+    } else {
+      CHECK_IF_FAIL(tensorIdx_ < atTensors_.size());
+      UpdateTorchTensor(atTensors_[tensorIdx_], element->ToTensor());
+      vec.emplace_back(atTensors_[tensorIdx_]);
     }
     tensorIdx_++;
   }
@@ -263,6 +314,21 @@ void OpTorchCall::ConvertTupleToStack(const ir::TuplePtr tuple, torch::jit::Stac
     return;
   }
 
+  bool hasNone = false;
+  bool isOptionalTensorList = true;
+  for (size_t i = 0; i < size; i++) {
+    const auto* element = (*tuple)[i].get();
+    hasNone = hasNone || element->IsNone();
+    if (!element->IsNone() && !element->IsTensor()) {
+      isOptionalTensorList = false;
+      break;
+    }
+  }
+  if (hasNone && isOptionalTensorList) {
+    ConvertOptionalTensorTupleToStack(tuple, stack);
+    return;
+  }
+
   auto element = (*tuple)[0].get();
   ir::Value::Tag tag = element->GetTag();
   auto tagIdx = static_cast<size_t>(tag);
@@ -279,6 +345,7 @@ void OpTorchCall::ConvertTupleToStack(const ir::TuplePtr tuple, torch::jit::Stac
 void OpTorchCall::ConvertTensorInputToStack(const ir::Value* value, torch::jit::Stack& stack) {
   if (firstRun_) {
     auto atTensor = ToTorchTensor(value->ToTensor());
+    UpdateTorchTensor(atTensor, value->ToTensor());
     atTensors_.push_back(atTensor);
     torch::jit::push(stack, atTensor);
   } else {
@@ -349,14 +416,51 @@ void OpTorchCall::ConvertInputsToStack(const std::vector<const ir::Value*>& inpu
 }
 
 void OpTorchCall::ToFxrtTensor(ir::Value* output, torch::jit::IValue&& ivalue) const {
+  CHECK_IF_NULL(output);
   if (ivalue.isTensor() && output->IsTensor()) {
     auto& tensor = ivalue.toTensor();
     auto& outTensor = output->ToTensor();
+    CHECK_IF_NULL(outTensor);
+    auto& outTensorStorage = outTensor->GetStorage();
+    CHECK_IF_NULL(outTensorStorage);
+
+    // Ref/view output: the runtime has aliased its Storage to the input's (UpdateRefNodeOutputValue +
+    // SetOwnsStorage(false)), so refresh the metadata only. Taking ownership again would double-free.
+    if (!outTensor->CheckOwnsStorage()) {
+      RT_VLOG(VL_OPS) << "OpTorchCall: output " << qualifiedOpName_
+                      << " does not own storage (ref/view), update metadata only";
+      // The ref alias is set up by the runtime (UpdateRefNodeOutputValue aliases the output Storage to the
+      // input's), so the output tensor must sit on a recorded input storage at the very same base address.
+      // inputStorageDataPtrs_ holds storage base addresses, so both sides are compared at that granularity.
+      // Note: ref alias output and input tensor has no deleter, and can not set nullptr to they shared storage, every
+      // output tensor need check output storage data with input for multi-output ref op(such as split)
+      void* data = const_cast<void*>(tensor.storage().data()); // return the original data ptr.
+      auto* outData = outTensorStorage->Data();
+      bool storageNotMatched = inputStorageDataPtrs_.count(data) == 0;
+      if (storageNotMatched || outData != data) {
+        RT_GLOG(EXCEPTION) << "OpTorchCall: output " << qualifiedOpName_
+                           << " does not own storage (ref/view) but the ref alias does not hold: its storage base "
+                           << outData << (storageNotMatched ? " matched no input" : " matched an input")
+                           << ", storage base of the converted tensor " << data
+                           << (outData == data ? " equals it" : " differs from it");
+      }
+      UpdateTensorFromTorch(outTensor, tensor);
+      return;
+    }
+
     auto data_ptr = tensor.storage().set_data_ptr(std::move(c10::DataPtr())); // return the original data ptr.
+    auto* data = data_ptr.get();
+    // Safety net: a plain output that reuses an input's storage means the operator really is a ref/view
+    // but did not declare it. Throwing before SetDataPtrFromAten leaves no double-owning Storage behind.
+    if (inputStorageDataPtrs_.count(data) != 0) {
+      RT_GLOG(EXCEPTION) << "OpTorchCall: output " << qualifiedOpName_
+                         << " shares storage with an input but declares no ref pairs. Refusing to take "
+                         << "ownership (would double-free the device memory); the operator should be "
+                         << "recognised as a ref/view or the schema aliased accordingly.";
+    }
     auto deleter = data_ptr.get_deleter();
     auto* data_to_release = data_ptr.release_context();
-    auto* data = data_ptr.get();
-    outTensor->GetStorage()->SetDataPtrFromAten(data, data_to_release, deleter, tensor.storage().nbytes());
+    outTensorStorage->SetDataPtrFromAten(data, data_to_release, deleter, tensor.storage().nbytes());
     UpdateTensorFromTorch(outTensor, tensor);
   } else if (ivalue.isList()) {
     auto& tuple = output->ToTuple();
@@ -481,6 +585,118 @@ std::string OpTorchCall::GetAvailableTorchOps() const {
   return opsStr.str();
 }
 
+void OpTorchCall::ComputeRefPairsFromSchema(const std::shared_ptr<torch::jit::Operator>& op, const ir::Value* output) {
+  // Determine, from the matched torch operator's schema, which of this op's outputs alias which of its
+  // inputs. When a schema carries alias annotations ("(a)" markers), an output sharing the same alias
+  // set as an input is a ref/view: the output reuses the input's storage instead of being freshly
+  // allocated. Recording that here makes the runtime set up the zero-copy alias (via
+  // GetOutputInputRefPairs -> UpdateRefNodeOutputValue) rather than each output claiming its own copy
+  // of the same device pointer.
+  //
+  // Operators without any alias annotation (e.g. user-defined ops registered via torch.library)
+  // return early with an empty refPairs_, and the runtime falls back to detecting the shared storage
+  // at execution time (see ToFxrtTensor).
+  refPairs_.clear();
+  const auto& schema = op->schema();
+  if (!schema.hasAnyAliasInfo()) {
+    return;
+  }
+
+  const auto& args = schema.arguments();
+  const auto& returns = schema.returns();
+
+  // Torch aliases are expressed as named alias sets shared between arguments and returns. To build the
+  // output->input map we collect the set each *input* argument belongs to before the op runs (a source
+  // tensor always exists before the op executes), then for each output look up which input shares the
+  // output's aliases. A view's alias set is often nested in a contained type (e.g. split returns
+  // Tensor(a)[] whose 'a' lives on the list element, not the outer return), so aliases are gathered
+  // recursively through AliasInfo::containedTypes().
+
+  std::vector<std::unordered_set<c10::Symbol>> inputBeforeSets(args.size());
+  for (size_t i = 0; i < args.size(); ++i) {
+    // Only the alias set the input belongs to BEFORE the op runs matters: a source tensor always exists
+    // before the op, so its pre-op alias set is what a view output can share. (After the op the input may
+    // be demoted to the wildcard, e.g. split's 'a -> *'.)
+    const auto* aliasInfo = args[i].alias_info();
+    if (aliasInfo != nullptr) {
+      inputBeforeSets[i] = aliasInfo->beforeSets();
+    }
+  }
+
+  // Count how many return values carry alias annotations. Pure in-place mutators (e.g. ops that
+  // return void, or that return their mutated inputs as non-aliased values) may have alias
+  // annotations only on *input* arguments; those don't require output ref pairs and we must not
+  // treat them as an error.
+  const size_t annotatedReturnCount = static_cast<size_t>(std::count_if(
+      returns.begin(), returns.end(), [](const c10::Argument& ret) { return ret.alias_info() != nullptr; }));
+
+  // A schema return may be a Tensor[] (represented by one List[Tensor] return argument), while the
+  // runtime IR stores the concrete list elements as a tuple. Expand that one schema return into a
+  // ref pair for every concrete output tensor. refPairs_ addresses only the top-level IR tuple, so
+  // a Tensor[] nested among multiple schema returns is deliberately rejected rather than assigning
+  // incorrect indices to the nested values.
+  size_t outputCursor = 0;
+  for (size_t returnIdx = 0; returnIdx < returns.size(); ++returnIdx) {
+    const auto& returnArg = returns[returnIdx];
+    const auto* aliasInfo = returnArg.alias_info();
+
+    size_t outputCount = 1;
+    const auto& returnType = returnArg.type();
+    const bool isTensorList = returnType->kind() == c10::TypeKind::ListType &&
+        returnType->cast<c10::ListType>()->getElementType()->kind() == c10::TypeKind::TensorType;
+    if (isTensorList) {
+      // ConvertStackToOutput flattens a sole Tensor[] IValue into the output tuple. The tuple size
+      // is therefore the only reliable runtime count (sections/indices can be dynamic).
+      if (returns.size() != 1 || output == nullptr || !output->IsTuple()) {
+        RT_GLOG(EXCEPTION) << "OpTorchCall: schema of " << qualifiedOpName_
+                           << " returns Tensor[] but FXRT ref pairs only support a sole Tensor[] "
+                              "return represented by a top-level tensor tuple";
+      }
+      outputCount = output->ToTuple()->Size();
+    }
+
+    // No alias annotation means this output is freshly allocated and has no ref pair. An output that
+    // does carry one aliases some input regardless of whether it is a pure view (isWrite()==false) or
+    // an inplace write (isWrite()==true): both reuse the input's storage, so both are recorded. We
+    // deliberately do NOT filter on isWrite() here.
+    if (aliasInfo == nullptr) {
+      outputCursor += outputCount;
+      continue;
+    }
+    std::unordered_set<c10::Symbol> outputAliasSyms;
+    CollectAliasSymbols(aliasInfo, outputAliasSyms);
+    for (const auto& sym : outputAliasSyms) {
+      // The wildcard set ("alias::*") means "may alias anything", so it cannot point at a specific
+      // input. Skip it and rely on the concrete named sets.
+      if (sym == c10::AliasInfo::wildcardSet()) {
+        continue;
+      }
+      for (size_t inIdx = 0; inIdx < args.size(); ++inIdx) {
+        if (inputBeforeSets[inIdx].count(sym)) {
+          for (size_t elementIdx = 0; elementIdx < outputCount; ++elementIdx) {
+            const size_t outIdx = outputCursor + elementIdx;
+            refPairs_.emplace_back(outIdx, inIdx);
+            RT_VLOG(VL_OPS) << "OpTorchCall: " << qualifiedOpName_ << " schema declares ref pair: output[" << outIdx
+                            << "] aliases input[" << inIdx << "] via alias set '" << sym.toQualString() << "'";
+          }
+          break;
+        }
+      }
+    }
+    outputCursor += outputCount;
+  }
+
+  // Only enforce the guard when there are annotated return values that we should have been able to
+  // match. If the schema has alias info only on inputs (pure in-place mutator returning void, e.g.
+  // atb::_npu_reshape_and_cache), there are no output ref pairs to produce and that is correct.
+  if (refPairs_.empty() && annotatedReturnCount > 0) {
+    std::stringstream ss;
+    ss << "OpTorchCall: schema of " << qualifiedOpName_ << " declares alias info but none of the "
+       << "output aliases could be matched to an input by alias set";
+    RT_GLOG(EXCEPTION) << ss.str();
+  }
+}
+
 void OpTorchCall::Init(const std::vector<const ir::Value*>& inputs, const ir::Value* output) {
   RT_VLOG(VL_OPS) << "Start init operator: " << qualifiedOpName_ << ", inputs: " << inputs.size();
   auto ops = torch::jit::getAllOperatorsFor(torch::jit::Symbol::fromQualString(qualifiedOpName_));
@@ -489,6 +705,7 @@ void OpTorchCall::Init(const std::vector<const ir::Value*>& inputs, const ir::Va
     std::string mismatch_reason;
     if (MatchOpSchema(inputs, op, &mismatch_reason)) {
       operation_ = op->getOperation();
+      ComputeRefPairsFromSchema(op, output);
       break;
     } else {
       schema_mismatch_reasons.emplace_back(c10::toString(op->schema()), mismatch_reason);
@@ -547,13 +764,24 @@ OpsErrorCode OpTorchCall::CalcWorkspace(
     size_t* workspaceSize) {
   torch::jit::Stack stack;
   tensorIdx_ = 0;
+  // Collect the storage data pointers of the tensor inputs to check whether the output valid.
+  inputStorageDataPtrs_.clear();
+  for (const auto* in : input) {
+    if (in != nullptr && in->IsTensor()) {
+      const auto inStorage = in->ToTensor()->GetStorage();
+      if (inStorage != nullptr && inStorage->Data() != nullptr) {
+        inputStorageDataPtrs_.insert(inStorage->Data());
+      }
+    }
+  }
+
   // Inputs process, convert to aten tensor and push to stack.
   // Note: input here is already stripped of op name by OpCustomCall::CalcWorkspace
   ConvertInputsToStack(input, stack);
   operation_(stack);
-  // Outputs process. Convert aten tensor to ir::Value.
+  // Outputs process. Convert aten tensor to ir::Value. ToFxrtTensor decides by the ref pairs whether to
+  // take ownership of the data (plain op) or share the input Storage (ref/view op).
   ConvertStackToOutput(const_cast<ir::Value*>(output), std::move(stack));
-  CheckOutputInputRef(input, output, qualifiedOpName_);
   firstRun_ = false;
   return SUCCESS;
 }

@@ -43,6 +43,11 @@ def _extract_global_comm_info():
 def _set_communication_info(ptd):
     """Get communication info from torch and set to CollectiveManager for a given process group."""
     pg = _resolve_process_group(ptd)
+    _set_communication_info_for_group(pg, f"{ptd}")
+
+
+def _set_communication_info_for_group(pg, group_name):
+    """Register a torch process group under the name used by an FX op."""
     rank = dist.get_rank() if dist.is_initialized() else 0
     world_size = dist.get_world_size()
 
@@ -56,7 +61,7 @@ def _set_communication_info(ptd):
     CollectiveManager.instance().set_global_rank_size(world_size)
 
     CollectiveManager.instance().create_communication_group(
-        f"{ptd}", rank_list, group_rank, hccl_comm_handle
+        group_name, rank_list, group_rank, hccl_comm_handle
     )
 
 
@@ -65,6 +70,46 @@ def _extract_and_setup_comm_groups(node_args):
     if CollectiveManager.instance().is_group_exist(f"{ptd_arg}"):
         return
     _set_communication_info(ptd_arg)
+
+
+def _get_qualified_op_name(target):
+    """Return the dispatcher-qualified name of a torch custom op target."""
+    return getattr(target, "_qualified_op_name", None)
+
+
+def _extract_and_setup_vllm_group(node):
+    """Resolve a vLLM logical group name to its torch device ProcessGroup."""
+    group_name = node.kwargs.get("group_name")
+    if group_name is None and len(node.args) >= 4:
+        group_name = node.args[3]
+    if not isinstance(group_name, str):
+        raise RuntimeError(
+            "vllm::all_gather requires a constant string group_name for FXRT"
+        )
+    if CollectiveManager.instance().is_group_exist(group_name):
+        return
+
+    try:
+        # pylint: disable=import-outside-toplevel
+        from vllm.distributed.parallel_state import _groups
+    except ImportError as exc:
+        raise RuntimeError(
+            f"cannot resolve vLLM communication group {group_name!r}: "
+            "vllm.distributed.parallel_state is unavailable"
+        ) from exc
+
+    group_ref = _groups.get(group_name)
+    coordinator = group_ref() if group_ref is not None else None
+    if coordinator is None:
+        raise RuntimeError(
+            f"cannot resolve vLLM communication group {group_name!r}"
+        )
+    device_group = getattr(coordinator, "device_group", None)
+    if device_group is None:
+        raise RuntimeError(
+            f"vLLM communication group {group_name!r} has no device_group"
+        )
+    _set_communication_info_for_group(device_group, group_name)
 
 
 def get_collective_info_from_torch(gm: torch.fx.GraphModule):
@@ -77,9 +122,11 @@ def get_collective_info_from_torch(gm: torch.fx.GraphModule):
             if node.op in ("call_function", "call_method"):
                 if node.target in _DIST_OP_LIST:
                     _extract_and_setup_comm_groups(node.args)
+                elif _get_qualified_op_name(node.target) == "vllm::all_gather":
+                    _extract_and_setup_vllm_group(node)
 
 
-def from_torch(obj: Any) -> Value:
+def from_torch(obj: Any) -> Value:  # #lizard forgives
     """
     Convert a torch object to fxrt.ir.Value.
     """
@@ -87,6 +134,9 @@ def from_torch(obj: Any) -> Value:
         return obj
     if isinstance(obj, torch.SymInt):
         return Value(SymbolicVar(str(obj)))
+    sym_bool = getattr(torch, "SymBool", None)
+    if sym_bool is not None and isinstance(obj, sym_bool):
+        return Value(bool(obj))
     if isinstance(obj, torch.SymFloat):
         return Value(float(obj))
     if isinstance(obj, (list, tuple)):

@@ -406,7 +406,6 @@ OpsErrorCode OpPythonCall::CalcWorkspace(
   }
 
   auto ret = PostprocessOutputs(result, const_cast<ir::Value*>(output));
-  CheckOutputInputRef(inputs_, output, opName_);
   firstRun_ = false;
   return ret;
 }

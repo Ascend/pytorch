@@ -1,7 +1,9 @@
 #ifndef __OPS_OP_BASE_OP_CUSTOM_CALL_H__
 #define __OPS_OP_BASE_OP_CUSTOM_CALL_H__
 
+#include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "ops/op_register.h"
@@ -33,10 +35,15 @@ class OpCustomCall : public Operator {
     return operatorPtr_->NeedLaunch();
   }
 
+  std::vector<std::pair<uint32_t, uint32_t>> GetOutputInputRefPairs() const override {
+    return refPairs_;
+  }
+
  protected:
   std::string opName_;
   std::shared_ptr<ops::Operator> operatorPtr_;
   std::vector<const ir::Value*> input_;
+  std::vector<std::pair<uint32_t, uint32_t>> refPairs_;
 };
 } // namespace ops
 } // namespace fxrt

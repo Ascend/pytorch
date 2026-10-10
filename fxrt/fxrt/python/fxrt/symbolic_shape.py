@@ -148,6 +148,14 @@ class SymbolicShapeManager:
             expr = torch_value.node.expr
             return Value(self.convert_sympy_expr_to_symbolic_expr(expr))
 
+        # Shape checks produce SymBool values during Dynamo tracing.  They are
+        # compile-time predicates; FXRT has no symbolic-bool IR value, so keep
+        # the concrete predicate result and let the surrounding assert remain
+        # a compile-time check.
+        sym_bool = getattr(torch, "SymBool", None)
+        if sym_bool is not None and isinstance(torch_value, sym_bool):
+            return Value(bool(torch_value))
+
         # Handle tensor case
         if isinstance(torch_value, torch.Tensor):
             # Convert tensor using from_torch

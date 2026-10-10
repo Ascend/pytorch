@@ -94,7 +94,8 @@ file(MAKE_DIRECTORY ${FXRT_INSTALL_DST})
 # Operator libraries are copied below and deleted from the global lib dir
 # afterwards, so the copy has to wait for every one of them to be linked.
 set(FXRT_OP_LIBS ops_cpu_aten ops_cpu_symbolic ops_ascend_aclnn ops_ascend_aclnn_common
-                 ops_ascend_composite ops_ascend_custom ops_ascend_hccl ops_ascend_mem)
+                 ops_ascend_autofuse ops_ascend_composite ops_ascend_custom ops_ascend_hccl
+                 ops_ascend_mem)
 set(FXRT_DVM_V2_LIB "")
 if(TARGET ops_ascend_dvm_v2)
   list(APPEND FXRT_OP_LIBS ops_ascend_dvm_v2)
@@ -127,6 +128,7 @@ add_custom_target(install_fxrt ALL
                 ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libops_cpu_symbolic.so
                 ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libops_ascend_aclnn.so
                 ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libops_ascend_aclnn_common.so
+                ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libops_ascend_autofuse.so
                 ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libops_ascend_composite.so
                 ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libops_ascend_custom.so
                 ${FXRT_DVM_V2_LIB}

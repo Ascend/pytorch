@@ -33,6 +33,8 @@ per-file-ignores =
     torch/_prims/__init__.py: F401
     # This file embeds long generated C++ launcher templates in f-strings.
     torch_npu/_inductor/ascend_npu_ir/ascend_npu_ir/npu/codegen/cpp_wrapper.py: B950,E128
+    # This file embeds the generated C++ AutoFuse launcher stub in an f-string.
+    fxrt/fxrt/python/fxrt/autofuse_codegen.py: B950
 optional-ascii-coding = True
 exclude =
     ./.git,

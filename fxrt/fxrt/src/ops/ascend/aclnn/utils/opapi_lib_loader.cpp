@@ -44,6 +44,12 @@ static bool isLoaded = false;
 static bool isAclnnInit = false;
 static std::mutex initMutex;
 static std::shared_mutex rwOpApiMutex;
+static std::mutex opApiCacheMutex;
+// This cache used to be thread_local.  libstdc++'s fallback implementation of
+// __cxa_thread_atexit can invoke a TLS destructor after this plugin DSO has
+// already been unloaded during Python shutdown.  A process-wide cache is both
+// sufficient for immutable dlsym results and safe to destroy with the DSO.
+static std::unordered_map<std::string, void*> opApiCache;
 // handler -> libPath
 std::unordered_map<void*, std::string> libHandlers;
 
@@ -95,12 +101,14 @@ void LoadOpApiLib() {
 }
 
 void* GetAclnnOpApiFunc(const char* apiName) {
-  // apiName -> api
-  static thread_local std::unordered_map<std::string, void*> opapiCache;
-  auto iter = opapiCache.find(std::string(apiName));
-  if (iter != opapiCache.end()) {
-    RT_VLOG(VL_OPS) << "OpApi " << apiName << " hit cache";
-    return iter->second;
+  const std::string cacheKey(apiName);
+  {
+    std::lock_guard<std::mutex> cacheLock(opApiCacheMutex);
+    auto iter = opApiCache.find(cacheKey);
+    if (iter != opApiCache.end()) {
+      RT_VLOG(VL_OPS) << "OpApi " << apiName << " hit cache";
+      return iter->second;
+    }
   }
   std::shared_lock<std::shared_mutex> readLock(rwOpApiMutex);
   if (libHandlers.size() == 0) {
@@ -110,13 +118,17 @@ void* GetAclnnOpApiFunc(const char* apiName) {
   for (auto& libHandler : libHandlers) {
     auto apiFunc = GetOpApiFuncFromLib(libHandler.first, libHandler.second.c_str(), apiName);
     if (apiFunc != nullptr) {
-      (void)opapiCache.emplace(std::string(apiName), apiFunc);
+      std::lock_guard<std::mutex> cacheLock(opApiCacheMutex);
+      (void)opApiCache.emplace(cacheKey, apiFunc);
       RT_VLOG(VL_OPS) << "Get OpApiFunc [" << apiName << "] from " << libHandler.second;
       return apiFunc;
     }
   }
   RT_VLOG(VL_OPS) << "Dlsym " << apiName << " failed";
-  (void)opapiCache.emplace(std::string(apiName), nullptr);
+  {
+    std::lock_guard<std::mutex> cacheLock(opApiCacheMutex);
+    (void)opApiCache.emplace(cacheKey, nullptr);
+  }
   return nullptr;
 }
 

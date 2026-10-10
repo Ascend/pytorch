@@ -23,10 +23,9 @@
 #include "torch_npu/csrc/inductor/dvm/pybind_api.h"
 
 namespace py = pybind11;
-
 namespace fxrt {
 namespace ops {
-namespace dvm_v2 {
+
 namespace {
 
 int64_t ScalarInputValue(const ir::Value* value, size_t index) {
@@ -40,24 +39,34 @@ int64_t ScalarInputValue(const ir::Value* value, size_t index) {
   RT_GLOG(EXCEPTION) << "DVM V2 dynamic scalar input[" << index << "] must be int/bool/symbol, got: " << *value;
 }
 
-dvm::DynKernelPy* AsDynKernel(py::handle obj) {
+} // namespace
+
+dvm::TorchKernelPy* OpDvmCallV2::AsTorchKernel(py::handle obj) {
   if (obj.is_none() || obj.ptr() == nullptr) {
-    RT_GLOG(EXCEPTION) << "DVM V2 dynamic kernel object is null.";
+    RT_GLOG(EXCEPTION) << "DVM V2 kernel object is null.";
   }
   if (!py::detail::is_holder_constructed(obj.ptr())) {
-    RT_GLOG(EXCEPTION) << "DVM V2 dynamic kernel object is not a pybind11 holder instance.";
+    RT_GLOG(EXCEPTION) << "DVM V2 kernel object is not a pybind11 holder instance.";
   }
   auto* inst = reinterpret_cast<py::detail::instance*>(obj.ptr());
   auto vh = inst->get_value_and_holder();
   auto* value = vh.value_ptr();
   CHECK_IF_NULL(value);
-  return static_cast<dvm::DynKernelPy*>(value);
+  return static_cast<dvm::TorchKernelPy*>(value);
 }
 
-void UpdateSymShapeData(dvm::DynKernelPy* kernel) {
+dvm::DynKernelPy* OpDvmCallV2::AsDynKernel(py::handle obj) {
+  auto* kernel = AsTorchKernel(obj);
+  if ((kernel->kernel_flags_ & dvm::KernelPy::F_DYN) == 0) {
+    RT_GLOG(EXCEPTION) << "DVM V2 kernel object is not a dynamic kernel.";
+  }
+  return static_cast<dvm::DynKernelPy*>(kernel);
+}
+
+void OpDvmCallV2::UpdateSymShapeData(dvm::DynKernelPy* kernel) {
   CHECK_IF_NULL(kernel);
-  const auto& shapeRefs = kernel->ShapeRefs();
-  const auto& symShapeRefs = kernel->SymShapeRefs();
+  const auto& shapeRefs = kernel->shapes_;
+  const auto& symShapeRefs = kernel->sym_shape_;
   if (shapeRefs.size() != symShapeRefs.size()) {
     RT_GLOG(EXCEPTION) << "DVM V2 dynamic symbolic shape ref count mismatch, shape refs " << shapeRefs.size()
                        << ", symbolic shape refs " << symShapeRefs.size();
@@ -74,20 +83,17 @@ void UpdateSymShapeData(dvm::DynKernelPy* kernel) {
   }
 }
 
-} // namespace
-
-void UpdateDynamicKernelRefs(
-    const py::object& kernelObj,
+void OpDvmCallV2::UpdateDynamicKernelRefs(
+    dvm::DynKernelPy* kernel,
     const std::vector<const ir::Value*>& inputs,
     std::vector<std::vector<int64_t>>* inputShapes,
     std::vector<std::vector<int64_t>>* inputStrides) {
+  CHECK_IF_NULL(kernel);
   CHECK_IF_NULL(inputShapes);
   CHECK_IF_NULL(inputStrides);
-  auto* kernel = AsDynKernel(kernelObj);
-  CHECK_IF_NULL(kernel);
 
-  const auto& loadShapeRefs = kernel->DynLoadShapeRefs();
-  auto& symScalarInputs = kernel->SymScalarInputs();
+  const auto& loadShapeRefs = kernel->dyn_load_shapes_;
+  auto& symScalarInputs = kernel->sym_scalar_input_;
   const size_t numTensorInputs = loadShapeRefs.size();
   const size_t numScalarInputs = symScalarInputs.size();
   if (inputs.size() != numTensorInputs + numScalarInputs) {
@@ -138,8 +144,6 @@ void UpdateDynamicKernelRefs(
 
   UpdateSymShapeData(kernel);
 }
-
-} // namespace dvm_v2
 
 namespace {
 
@@ -345,6 +349,7 @@ OpDvmCallV2::ContiguousCopyPlan::ContiguousCopyPlan(ContiguousCopyPlan&&) noexce
 OpDvmCallV2::ContiguousCopyPlan& OpDvmCallV2::ContiguousCopyPlan::operator=(ContiguousCopyPlan&&) noexcept = default;
 
 OpDvmCallV2::~OpDvmCallV2() {
+  torchKernel_ = nullptr;
   rawKernel_ = nullptr;
   relocs_ = nullptr;
   loads_ = nullptr;
@@ -357,18 +362,19 @@ OpDvmCallV2::~OpDvmCallV2() {
 }
 
 void OpDvmCallV2::RefreshKernelState(const py::object& kernelObj) {
-  rawKernel_ = reinterpret_cast<dvm::Kernel*>(kernelObj.attr("kernel")().cast<uintptr_t>());
-  relocs_ = reinterpret_cast<std::vector<dvm::RelocEntry>*>(kernelObj.attr("relocs")().cast<uintptr_t>());
-  loads_ = reinterpret_cast<std::vector<dvm::NDObject*>*>(kernelObj.attr("loads")().cast<uintptr_t>());
-  stores_ = reinterpret_cast<std::vector<dvm::NDObject*>*>(kernelObj.attr("stores")().cast<uintptr_t>());
-  numTensorInputs_ = kernelObj.attr("num_tensor_inputs")().cast<size_t>();
-  numOutputs_ = kernelObj.attr("num_outputs")().cast<size_t>();
-  workspaceSize_ = kernelObj.attr("workspace_size")().cast<size_t>();
-  isDynamic_ = kernelObj.attr("is_dynamic")().cast<bool>();
-  isSplit_ = kernelObj.attr("is_split")().cast<bool>();
+  torchKernel_ = AsTorchKernel(kernelObj);
+  CHECK_IF_NULL(torchKernel_);
+  rawKernel_ = torchKernel_->RawKernel();
+  relocs_ = &torchKernel_->relocs_;
+  loads_ = &torchKernel_->loads_;
+  stores_ = &torchKernel_->stores_;
+  numTensorInputs_ = torchKernel_->loads_.size();
+  numOutputs_ = torchKernel_->stores_.size();
+  workspaceSize_ = torchKernel_->ws_size_;
+  isDynamic_ = (torchKernel_->kernel_flags_ & dvm::KernelPy::F_DYN) != 0;
+  isSplit_ = torchKernel_->kernel_type_ == dvm::KernelPy::K_SPLIT;
   CHECK_IF_NULL(rawKernel_);
   CHECK_IF_NULL(relocs_);
-  CHECK_IF_NULL(loads_);
   CHECK_IF_NULL(stores_);
 }
 
@@ -433,9 +439,9 @@ void OpDvmCallV2::UpdateOutputMetadata(ir::Value* output) const {
 }
 
 void OpDvmCallV2::UpdateDynamicShapeRefs() {
-  py::gil_scoped_acquire gil;
-  CHECK_IF_NULL(kernelObj_);
-  dvm_v2::UpdateDynamicKernelRefs(*kernelObj_, realInputs_, &dynamicInputShapes_, &dynamicInputStrides_);
+  CHECK_IF_NULL(torchKernel_);
+  auto* dynKernel = static_cast<dvm::DynKernelPy*>(torchKernel_);
+  UpdateDynamicKernelRefs(dynKernel, realInputs_, &dynamicInputShapes_, &dynamicInputStrides_);
 }
 
 OpsErrorCode OpDvmCallV2::InferShape(const std::vector<const ir::Value*>& input, ir::Value* output) {
@@ -590,11 +596,7 @@ OpsErrorCode OpDvmCallV2::CalcWorkspace(
   if (!isSplit_) {
     if (isDynamic_) {
       workspaceSize_ = rawKernel_->PreCodeGen();
-      {
-        py::gil_scoped_acquire gil;
-        CHECK_IF_NULL(kernelObj_);
-        kernelObj_->attr("set_workspace_size")(workspaceSize_);
-      }
+      torchKernel_->ws_size_ = workspaceSize_;
     }
     totalWorkspaceSize_ = PlanContiguousInputs(AlignWorkspaceSize(workspaceSize_));
     *workspaceSize = totalWorkspaceSize_;
@@ -604,11 +606,7 @@ OpsErrorCode OpDvmCallV2::CalcWorkspace(
   size_t dvmWorkspaceSize = 0;
   WorkspaceSizeRecorder recorder(&dvmWorkspaceSize);
   rawKernel_->CodeGen(relocs_->data(), relocs_->size(), &recorder);
-  {
-    py::gil_scoped_acquire gil;
-    CHECK_IF_NULL(kernelObj_);
-    kernelObj_->attr("set_workspace_size")(dvmWorkspaceSize);
-  }
+  torchKernel_->ws_size_ = dvmWorkspaceSize;
   workspaceSize_ = dvmWorkspaceSize;
   totalWorkspaceSize_ = PlanContiguousInputs(AlignWorkspaceSize(workspaceSize_));
   *workspaceSize = totalWorkspaceSize_;

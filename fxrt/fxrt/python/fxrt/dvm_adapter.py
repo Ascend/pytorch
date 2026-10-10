@@ -29,18 +29,6 @@ _DVM_V2_LIBRARY_NAME = "libops_ascend_dvm_v2.so"
 _DVM_V2_LOADED = False
 _DVM_V2_LOAD_ERROR = None
 _DVM_V2_CDLL = None
-_DVM_TEMPLATE_REQUIRED_ATTRS = ("is_split", "kernel_type", "kernel_flags")
-_DVM_KERNEL_REQUIRED_ATTRS = (
-    "kernel",
-    "relocs",
-    "loads",
-    "stores",
-    "num_tensor_inputs",
-    "num_outputs",
-    "workspace_size",
-    "is_dynamic",
-    "is_split",
-)
 
 
 def _dvm_v2_library_path() -> Path:
@@ -74,37 +62,20 @@ def ensure_dvm_v2_runtime_available():
     _DVM_V2_LOAD_ERROR = None
 
 
-def _require_attrs(obj, attrs, what: str):
-    missing = [attr for attr in attrs if not hasattr(obj, attr)]
-    if missing:
-        raise RuntimeError(
-            f"Current torch-npu DVM kernel object does not provide FXRT DVM v2 ABI for {what}; "
-            f"missing attributes: {', '.join(missing)}"
-        )
-
-
 def _materialize_dvm_kernel(dvm_func):
-    """Instantiate and setup an isolated DVM kernel object for one FXRT op."""
+    """Return the kernel object from a decorated dvm.kernel function.
+
+    The template kobj is already built and set up by the @dvm.kernel decorator.
+    fxrt accesses its C++ members directly via friend access, so no Python-side
+    attribute ABI is needed.
+    """
     template = getattr(dvm_func, "kobj", None)
-    builder = getattr(dvm_func, "__wrapped__", None)
-    if template is None or builder is None:
+    if template is None:
         raise RuntimeError(
             "DVM function must be a torch_npu dvm.kernel decorated function "
-            "with both 'kobj' and '__wrapped__' attributes"
+            "with a 'kobj' attribute"
         )
-    _require_attrs(template, _DVM_TEMPLATE_REQUIRED_ATTRS, "kernel template")
-
-    kernel_cls = type(template)
-    if template.is_split():
-        kobj = kernel_cls()
-    else:
-        kobj = kernel_cls(template.kernel_type(), template.kernel_flags())
-    builder(kobj)
-    kobj.setup()
-    if kobj is None:
-        raise RuntimeError("DVM function did not produce a kernel object")
-    _require_attrs(kobj, _DVM_KERNEL_REQUIRED_ATTRS, "materialized kernel")
-    return kobj
+    return template
 
 
 def register_dvm_func(dvm_func) -> str:

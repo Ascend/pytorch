@@ -13,6 +13,8 @@
 namespace dvm {
 class Kernel;
 class NDObject;
+class TorchKernelPy;
+class DynKernelPy;
 struct RelocEntry;
 } // namespace dvm
 
@@ -70,7 +72,17 @@ class OpDvmCallV2 : public Operator {
   std::vector<void*> PrepareContiguousInputs(void* workspace, size_t workspaceSize, void* stream);
   void UpdateDynamicShapeRefs();
 
+  static dvm::TorchKernelPy* AsTorchKernel(pybind11::handle obj);
+  static dvm::DynKernelPy* AsDynKernel(pybind11::handle obj);
+  static void UpdateSymShapeData(dvm::DynKernelPy* kernel);
+  static void UpdateDynamicKernelRefs(
+      dvm::DynKernelPy* kernel,
+      const std::vector<const ir::Value*>& inputs,
+      std::vector<std::vector<int64_t>>* inputShapes,
+      std::vector<std::vector<int64_t>>* inputStrides);
+
   std::string handle_;
+  dvm::TorchKernelPy* torchKernel_{nullptr};
   dvm::Kernel* rawKernel_{nullptr};
   std::vector<dvm::RelocEntry>* relocs_{nullptr};
   std::vector<dvm::NDObject*>* loads_{nullptr};

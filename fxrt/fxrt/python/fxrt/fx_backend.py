@@ -31,7 +31,25 @@ from fxrt.decompose_impl import _decompose_ops_with_fake_mode
 from fxrt.copy_elimination import eliminate_redundant_copy_
 from fxrt.full_decomposition import decompose_full_
 from fxrt.dvm_adapter import lower_compiled_kernel_dvm_node
-from fxrt.compiled_kernel_adapter import lower_compiled_kernel_node
+from fxrt.compiled_kernel_adapter import (
+    lower_compiled_kernel_node,
+    restore_compiled_kernel_arg_layouts_,
+    lower_compiled_kernel_autofuse_node,
+)
+
+
+_FXRT_RUNTIME_SCALAR_TYPES = tuple(
+    scalar_type
+    for scalar_type in (
+        bool,
+        int,
+        float,
+        getattr(torch, "SymInt", None),
+        getattr(torch, "SymFloat", None),
+    )
+    if scalar_type is not None
+)
+
 
 try:
     import torch_npu  # pylint: disable=import-outside-toplevel,unused-import
@@ -46,6 +64,11 @@ def _debug_print(*args, **kwargs):
     pid = os.getpid()
     kwargs["flush"] = True
     print(f"[{timestamp}] [PID:{pid}]", *args, **kwargs)
+
+
+def _is_autofuse_native_enabled() -> bool:
+    """Return whether fx_backend should lower AutoFuse kernels natively."""
+    return os.environ.get("FXRT_AUTOFUSE_NATIVE", "") == "1"
 
 
 def _init_fxrt_config():
@@ -73,7 +96,7 @@ _PRE_FLATTEN_HOOKS = {}
 
 
 def _get_node_meta_value(node: Node):
-    """Return tensor/scalar metadata from FX nodes produced by Dynamo or TDC."""
+    """Return metadata produced by the Dynamo backend input graph."""
     return node.meta.get("example_value", None)
 
 
@@ -109,15 +132,17 @@ def get_pre_flatten_hook(op):
     return _PRE_FLATTEN_HOOKS.get(op)
 
 
+def _is_fxrt_scalar_value(value):
+    """Return whether ``value`` has an FXRT runtime scalar representation."""
+    return isinstance(value, _FXRT_RUNTIME_SCALAR_TYPES)
+
+
 def _is_scalar_arg(arg):
-    """Check if the argument is a scalar type (int, float, bool, torch.SymInt)."""
-    if isinstance(arg, (int, float, bool, torch.SymInt)):
+    """Check whether an FX argument can use an FXRT scalar operator ABI."""
+    if _is_fxrt_scalar_value(arg):
         return True
     if isinstance(arg, Node):
-        if arg.target == "item":
-            return True
-        if isinstance(_get_node_meta_value(arg), (int, float, bool, torch.SymInt)):
-            return True
+        return _is_fxrt_scalar_value(_get_node_meta_value(arg))
     return False
 
 
@@ -165,6 +190,32 @@ def binary_scalar_order_hook(node, input_nodes, executor):
             f"{type(node.args[1]).__name__}"
         )
     return input_nodes
+
+
+# pylint: disable=unused-argument
+def vllm_all_gather_hook(node, input_nodes, executor):
+    """Adapt vLLM's four-argument all_gather ABI to FXRT's native ABI.
+
+    vLLM emits ``(tensor, dim, world_size, group_name)`` while the native
+    FXRT HCCL implementation consumes ``(tensor, world_size, group_name)``
+    and gathers along axis 0.  The c10d functional ABI already has three
+    arguments and is therefore left unchanged.
+    """
+    args = list(input_nodes)
+    if len(args) == 3:
+        return args
+    if len(args) != 4:
+        raise ValueError(f"unexpected all_gather args: {len(args)}")
+
+    dim = _get_example_value_if_node(args[1])
+    if dim != 0:
+        raise NotImplementedError(
+            "FXRT native all_gather currently supports only vLLM dim=0; "
+            f"got dim={dim}"
+        )
+
+    # Drop vLLM's dim argument.  FXRT receives [tensor, world_size, group].
+    return [args[0], args[2], args[3]]
 
 
 # pylint: disable=unused-argument
@@ -742,6 +793,7 @@ def _init_arg_mapping_hooks():
     register_arg_mapping_hook(Op.reduce_sum, reduce_sum_arg_hook)
     register_arg_mapping_hook(Op.squeeze_view, squeeze_arg_hook)
     register_arg_mapping_hook(Op.reduce_mean, reduce_sum_arg_hook)
+    register_arg_mapping_hook(Op.all_gather, vllm_all_gather_hook)
     register_arg_mapping_hook(Op.index_tensor, index_tensor_arg_hook)
     register_arg_mapping_hook(Op.amax, amax_arg_hook)
     register_arg_mapping_hook(Op.var_mean, var_mean_arg_hook)
@@ -2162,6 +2214,7 @@ def _check_and_fallback_op_by_backend_support(
             Op.python_call,
             Op.dvm_call_v2,
             Op.compiled_kernel_mutation,
+            Op.autofuse_call,
             Op.make_tuple,
     ):
         return op
@@ -2214,13 +2267,23 @@ _VARARG_DIM_METHODS = frozenset({
     "expand",
 })
 
+# Factory APIs whose Python call accepts unpacked scalar dimensions while the
+# aten schema takes one int[]/SymInt[] ``size`` argument.
+_VARARG_DIM_FACTORY_FUNCS = frozenset({
+    torch.empty,
+    torch.zeros,
+    torch.ones,
+    torch.rand,
+    torch.randn,
+})
+
 _VARARG_DIM_FUNCS = frozenset({
     torch.functional.einsum,
-})
+}) | _VARARG_DIM_FACTORY_FUNCS
 
 
 def _is_vararg_dim_op(target) -> bool:
-    """Return True if target may pass dims as unpacked scalars after input."""
+    """Return True if target may pass dimensions as unpacked scalars."""
     return target in _VARARG_DIM_METHODS or target in _VARARG_DIM_FUNCS
 
 
@@ -2230,7 +2293,19 @@ def _pack_vararg_dims(target, args):
 
     Example: tensor.view(2, 3) -> tensor.view((2, 3)).
     """
-    if len(args) < 2 or not _is_vararg_dim_op(target):
+    if not _is_vararg_dim_op(target):
+        return args
+
+    # Unlike tensor methods, factory functions have no leading tensor
+    # argument: every positional argument is a dimension. Handle the
+    # one-dimensional scalar form as well as multi-dimensional varargs.
+    # Keep an already packed tuple/list unchanged.
+    if target in _VARARG_DIM_FACTORY_FUNCS:
+        if not args or _is_shape_sequence(args[0]):
+            return args
+        return [list(args)]
+
+    if len(args) < 2:
         return args
     if _is_shape_sequence(args[1]):
         return args
@@ -2253,6 +2328,8 @@ def _argument_to_real_value(value_type, value, arg_len):
     if isinstance(value_type, torch.ListType):
         if isinstance(value, torch.fx.node.Node):
             return value
+        if isinstance(value, immutable_list):
+            return list(value)
         if isinstance(value, (list, tuple)):
             return value
         if value is None:
@@ -2466,6 +2543,9 @@ def _is_value_compatible_with_type(value_type, value: Any) -> bool:
     This is used to disambiguate between multiple overload schemas, so we keep it intentionally
     conservative: if we cannot confidently decide, we return True to avoid false negatives.
     """
+    if isinstance(value, immutable_list):
+        value = list(value)
+
     if isinstance(value_type, torch.OptionalType):
         if value is None:
             return True
@@ -2483,7 +2563,7 @@ def _is_value_compatible_with_type(value_type, value: Any) -> bool:
         if isinstance(value, (list, tuple)):
             if not value:
                 return True
-            return all(_is_value_compatible_with_type(elem_type, v) for v in value)
+            return all(_is_value_compatible_with_type(elem_type, item) for item in value)
         return False
 
     runtime_v = _get_example_value_if_node(value)
@@ -2539,13 +2619,22 @@ def _create_args(schema: torch.FunctionSchema, node: Node, custom_args=None, cus
     flat_args = []
     args = custom_args if custom_args is not None else node.args
     kwargs = custom_kwargs if custom_kwargs is not None else node.kwargs
+    # Dynamo represents literal list arguments as immutable_list.  Normalize
+    # them before schema matching so aten list/SymInt[] parameters match the
+    # same way as eager Python lists.
+    if isinstance(args, immutable_list):
+        args = list(args)
+    kwargs = {
+        key: list(value) if isinstance(value, immutable_list) else value
+        for key, value in kwargs.items()
+    }
     arg_idx = 0
 
     args = _pack_vararg_dims(node.target, args)
 
-    # Some factory ops (e.g. torch.empty) accept varargs size in Python,
-    # while schema expects a single int[]/SymInt[] positional argument.
-    # Normalize positional varargs into one shape sequence before schema matching.
+    # Some Python APIs (e.g. torch.broadcast_tensors) accept varargs tensors,
+    # while the schema expects a single Tensor[] positional argument.
+    # Normalize positional varargs into one list before schema matching.
     positional_schema_args = [a for a in schema.arguments if not a.kwarg_only]
     if (
         len(args) > 1
@@ -3020,6 +3109,16 @@ def _handle_call_node(node, executor, env, sym_mgr):
     ):
         return
 
+    if _is_autofuse_native_enabled() and lower_compiled_kernel_autofuse_node(
+        node,
+        executor,
+        env,
+        sym_mgr,
+        _get_node_meta_value,
+        _add_tuple_getitem_node,
+    ):
+        return
+
     if lower_compiled_kernel_node(
         node,
         executor,
@@ -3116,6 +3215,10 @@ def backend(gm: GraphModule, example_inputs: List[torch.Tensor]):
     """
     graph_id = _next_unique_graph_id()
     _remove_matched_nodes(gm, _OP_MATCHERS)
+    # Before anything else looks at the graph: a compiled kernel addresses its
+    # args with the strides its FX node carries, so those have to be pinned down
+    # while the view chains that produced them are still there to read.
+    restore_compiled_kernel_arg_layouts_(gm)
     if is_enable_dump_ir():
         write_gm_graph(gm, graph_id, get_ir_file_name())
     eliminate_redundant_copy_(gm)

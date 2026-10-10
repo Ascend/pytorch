@@ -209,33 +209,6 @@ at::Tensor ToTorchTensor(const ir::TensorPtr& tensor) {
   return at::Tensor{};
 }
 
-void* GetFirstTensorStorageData(const ir::Value* value) {
-  if (value == nullptr) {
-    return nullptr;
-  }
-  if (value->IsTensor()) {
-    return value->ToTensor()->GetStorage()->Data();
-  } else if (value->IsTuple() && value->ToTuple()->Size() > 0) {
-    return GetFirstTensorStorageData((*value->ToTuple())[0].get());
-  }
-  return nullptr;
-}
-
-void CheckOutputInputRef(
-    const std::vector<const ir::Value*>& input,
-    const ir::Value* output,
-    const std::string& opName) {
-  if (input.size() > 0 && input[0]->IsTensor() && output != nullptr) {
-    const auto* inputStorageData = input[0]->ToTensor()->GetStorage()->Data();
-    void* outputStorageData = GetFirstTensorStorageData(output);
-    if (outputStorageData == inputStorageData) {
-      RT_GLOG(EXCEPTION) << "Custom/Python Call: Operator " << opName << " does not support reference. "
-                         << "Input[0] Storage Data: " << inputStorageData << ", "
-                         << "Output Storage Data: " << outputStorageData;
-    }
-  }
-}
-
 bool IsTorchTensorStandardLayout(const at::Tensor& atTensor) {
   if (!atTensor.is_contiguous() || atTensor.storage_offset() != 0) {
     return false;

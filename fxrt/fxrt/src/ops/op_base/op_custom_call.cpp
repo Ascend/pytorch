@@ -33,6 +33,17 @@ void OpCustomCall::Init(const std::vector<const ir::Value*>& inputs, const ir::V
   for (size_t i = kRealInputIndex; i < inputs.size(); i++) {
     input_[i - kRealInputIndex] = inputs[i];
   }
+
+  // The input indices must be translated: the inner operator numbers its inputs from the first real
+  // argument, while the runtime (OpRunner::input_) still sees the custom-call node inputs, whose
+  // element 0 is the operator name. So every inner input index is shifted by the op name offset.
+  refPairs_.clear();
+  refPairs_ = operatorPtr_->GetOutputInputRefPairs();
+  for (auto& refPair : refPairs_) {
+    refPair.second += kRealInputIndex;
+    RT_VLOG(VL_OPS) << "OpCustomCall: " << opName_ << " ref pair: output[" << refPair.first << "] aliases input["
+                    << refPair.second << "]";
+  }
 }
 
 OpsErrorCode OpCustomCall::InferShape(const std::vector<const ir::Value*>& input, ir::Value* output) {
