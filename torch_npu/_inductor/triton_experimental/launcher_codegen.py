@@ -55,9 +55,10 @@ def _gen_grid_code(scope, def_args, arg_names, cfg, inductor_meta, *, num_cores,
     # aliases or drops tiles — odometer periodic modulo total_blocks). Codegen injects a
     # recipe reproducing it host-side (references XBLOCK literal + <x>numel args); over
     # 65535 coreDim folds logical→physical. Falls through to group-dispatch when absent.
+    is_te_combo = inductor_meta.get("te_combo_meta") is not None
     _recipe = inductor_meta.get("npu_dispatch_recipe")
     _grid_recipe_lines = None
-    if _recipe and is_a5:
+    if _recipe and is_a5 and not is_te_combo:
         # Splice every tile-block constexpr the recipe may reference
         # (XBLOCK / YBLOCK / ZBLOCK for Grid1D/2D/3D) as a literal, so the
         # recipe lines exec with the same block sizes the kernel was JIT'd
@@ -70,7 +71,12 @@ def _gen_grid_code(scope, def_args, arg_names, cfg, inductor_meta, *, num_cores,
         _rl.append(f"    grid_0 = max(1, {_tb})")
         _grid_recipe_lines = _rl
 
-    if _grid_recipe_lines is not None:
+    if is_te_combo:
+        # TE combo dispatch divides one concatenated tile space across every
+        # vector core inside the kernel, so it always launches the full core count.
+        grid_0_expr = str(num_cores)
+        grid_0_is_memoized = False
+    elif _grid_recipe_lines is not None:
         # Not memoized: total_blocks depends on multiple <x>numel args, and
         # the recipe arithmetic is cheap relative to correctness clarity.
         grid_0_expr = None

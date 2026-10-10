@@ -1819,6 +1819,8 @@ _NPU_UB_CAPACITY_BYTES = get_npu_ub_size_bytes()
 # 2.0 matches the observed "requires X bits" report on UB-overflow failures
 # (e.g. a 256-elem fp32 tile with ~9 live broadcasts reported ~36KB used).
 _NPU_UB_OVERHEAD_FACTOR = 2.0
+# Fallback XBLOCK if combo metadata does not provide one; current codegen uses 256.
+_TE_COMBO_DEFAULT_XBLOCK = 256
 # Cap on how many input tiles the UB estimate treats as simultaneously live. A many-input
 # pattern (26-way cat) doesn't hold every tile resident (the compiler streams them), so
 # counting all num_load buffers over-estimates peak UB and rejects tiles that fit (XBLOCK
@@ -2941,6 +2943,26 @@ def persistent_reduction(
             heuristic_type=HeuristicType.PERSISTENT_REDUCTION,
         )
     raise NotImplementedError(f"persistent_reduction size_hints: {size_hints}")
+
+
+def foreach(size_hints, triton_meta, filename=None, inductor_meta=None):
+    """Use one shared XBLOCK config for TE combo members.
+
+    Combo codegen supplies ``combo_xblock`` in metadata. The config kwarg also
+    supplies the XBLOCK constexpr expected by the generated kernel signature.
+    """
+    inductor_meta = {} if inductor_meta is None else inductor_meta
+    combo_meta = inductor_meta.get("te_combo_meta") or {}
+    xblock = int(combo_meta.get("combo_xblock") or _TE_COMBO_DEFAULT_XBLOCK)
+    configs = [Config({"XBLOCK": xblock}, num_warps=8, num_stages=1)]
+    return cached_autotune(
+        size_hints,
+        configs,
+        triton_meta=triton_meta,
+        inductor_meta=inductor_meta,
+        heuristic_type=HeuristicType.POINTWISE,
+        filename=filename,
+    )
 
 
 def grid(*numels):

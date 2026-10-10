@@ -762,6 +762,10 @@ def _codegen_header_npu_for_tree(kernel, tree, code, outer_blocks=None):
     _bal_sizes = {n.name: _size_hint(n) for n in _bal_nodes}
     if _bal_nodes:
         pfx = tree.prefix
+        # A combo keeps tree.prefix unchanged for axis semantics, but each
+        # member needs distinct greedy-budget constexprs in the shared body.
+        combo_slot = getattr(kernel, "_combo_num", None)
+        shared_pfx = f"{pfx}_{combo_slot}" if combo_slot is not None else pfx
         # Most-contiguous first: by input-stride rank when the priority gate fired
         # (reduction, >=2 free axes; T5 position-bias 91x), else by output-divisor
         # hint (pointwise). No-hint axes sort last.
@@ -778,11 +782,11 @@ def _codegen_header_npu_for_tree(kernel, tree, code, outer_blocks=None):
                 rem_ref = _bal_budget
             else:
                 # rem_i = rem_{i-1} // tile_{i-1}, floored to >=1.
-                rem_name = f"{pfx}_g_rem{idx}"
+                rem_name = f"{shared_pfx}_g_rem{idx}"
                 rem_raw = f"({prev_rem_ref}) // {prev_tile_name}"
                 _balanced_shared.append((rem_name, f"({rem_raw}) if ({rem_raw}) > 1 else 1"))
                 rem_ref = rem_name
-            tile_name = f"{pfx}_g_tile{idx}"
+            tile_name = f"{shared_pfx}_g_tile{idx}"
             if s is None:
                 # Unknown size: eat all remaining budget (mask trims the tail).
                 tile_expr = f"({rem_ref})"

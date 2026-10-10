@@ -70,6 +70,24 @@ class TestLauncherCodegen(unittest.TestCase):
                 self.assertEqual(calls, [(expected, 1, 1, 17)])
                 self.assertNotIn("_grid_cache", launcher.__globals__)
 
+    def test_te_combo_uses_full_core_grid(self):
+        meta = {
+            "te_combo_meta": {"combo_num_kernels": 2},
+            "npu_num_x_nodes": 1,
+            "npu_dispatch_recipe": {
+                "lines": ["blocks = (xnumel + XBLOCK - 1) // XBLOCK"],
+                "factors": ["blocks"],
+            },
+        }
+        launcher, calls = self.make_launcher(
+            ["xnumel", "ynumel"], meta,
+            blocks={"XBLOCK": 128}, is_a5=True, num_cores=48,
+        )
+        launcher(1, 10000, stream=17)
+        launcher(10000, 1, stream=19)
+        self.assertEqual([call[0] for call in calls], [48, 48])
+        self.assertNotIn("_grid_cache", launcher.__globals__)
+
     def test_non_linearize_reduction_uses_exact_grid(self):
         # The same shape as upstream's non-linearize sum regression: 64*128
         # output rows. A physical-core cap misses rows; overlaunch can overread.

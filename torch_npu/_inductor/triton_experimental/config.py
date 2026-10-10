@@ -445,5 +445,23 @@ vf_fusion_mode: Optional[str] = None
 vf_merge_level: Optional[int] = None
 
 
+# TE ComboKernel configuration.
+
+# 默认关闭；通过准入检查的静态同构 pointwise 成员才会合并。
+enable_te_combo_kernel: bool = False
+
+# 预留配置；当前准入逻辑始终拒绝动态 shape。
+te_combo_allow_dynamic_shapes: bool = False
+
+# 预留配置；当前准入逻辑始终拒绝 A5。
+te_combo_allow_a5: bool = False
+
+# 预留配置；当前组合 kernel 只使用一套固定配置。
+te_combo_allow_autotune: bool = False
+
+# 组合成员数上限；少于 2 个成员时使用普通 TE kernel。
+te_combo_max_members: int = 8
+
+
 # adds .patch(), .save_config(), attribute access, backend-hash serialization
 install_config_module(sys.modules[__name__])

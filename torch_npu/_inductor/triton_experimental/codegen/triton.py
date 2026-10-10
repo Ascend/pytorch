@@ -2315,6 +2315,10 @@ class NPUTritonKernel(TritonKernel):
                 force_linearize = True
         self._npu_linearize: bool = bool(triton_codegen_linearize) or force_linearize
         super().__init__(*args, **kwargs)
+        # Set by TEComboSubKernel after construction; ordinary kernels leave
+        # these unset and keep the existing dispatch behavior.
+        self._combo_num: Optional[int] = None
+        self._combo_local_tile: Optional[str] = None
         self._axis_split_subs: Dict[sympy.Symbol, sympy.Expr] = {}
         # A reduction pass is created at the same boundary where codegen_body()
         # flushes a reduction loop.  Alias expressions are attached later, after
@@ -4050,6 +4054,44 @@ class NPUTritonKernel(TritonKernel):
             return None
         return {"lines": lines, "factors": factors}
 
+    def _npu_free_blocks_names(self):
+        """The ``<node>_blocks`` variable names that make up this kernel's tile count.
+
+        One entry per free (non-reduction, non-loop) x-tree node, in tree order.
+        Auxiliary axes -- a node whose length is the product of other free nodes'
+        lengths, i.e. a flattened view -- are excluded via ``tree_node_mapping`` so
+        they don't double-count. The product of these is the kernel's total tile
+        count, and the same list is what the combo path needs per sub-kernel
+        (``num_blocks_<k>``), so it is factored out of the dispatch prologue.
+        """
+        all_blocks_names = []
+        for tree in self.range_trees:
+            if not tree.is_reduction and not tree.is_loop:
+                tree_node_mapping = getattr(tree, 'tree_node_mapping', {})
+                all_blocks_names.extend(
+                    f"{n.name}_blocks" for n in tree.nodes.values()
+                    if n.name not in tree_node_mapping
+                )
+        return all_blocks_names
+
+    def _npu_emit_total_blocks(self, code, var_name="total_blocks"):
+        """Emit ``<var_name> = a * b * ...`` and return the name/expr of the product.
+
+        Returns ``var_name`` when a statement was emitted, a bare ``<node>_blocks``
+        name when there is exactly one factor (no statement needed), and ``"1"``
+        when there are none. Normal kernels keep ``var_name="total_blocks"`` so the
+        generated dispatch is byte-identical; the combo path passes
+        ``"num_blocks_<k>"`` to get one tile count per sub-kernel.
+        """
+        all_blocks_names = self._npu_free_blocks_names()
+        if not all_blocks_names:
+            return "1"
+        expr = " * ".join(all_blocks_names)
+        if len(all_blocks_names) > 1:
+            code.writeline(f"{var_name} = {expr}")
+            return var_name
+        return expr
+
     def _codegen_npu_dispatch_prologue(self, code):
         """Emit the per-kernel intra-core block->core dispatch prologue.
 
@@ -4076,27 +4118,15 @@ class NPUTritonKernel(TritonKernel):
         # 2. total_blocks = product of all free-node _blocks. Auxiliary axes (a
         # node whose length is the product of other free nodes' lengths, i.e. a
         # flattened view) are excluded via tree_node_mapping so they don't
-        # double-count.
-        all_blocks_names = []
-        for tree in self.range_trees:
-            if not tree.is_reduction and not tree.is_loop:
-                tree_node_mapping = getattr(tree, 'tree_node_mapping', {})
-                all_blocks_names.extend(
-                    f"{n.name}_blocks" for n in tree.nodes.values()
-                    if n.name not in tree_node_mapping
-                )
+        # double-count. Factored into _npu_emit_total_blocks so the combo path
+        # can emit one tile count per sub-kernel (num_blocks_<k>).
+        all_blocks_names = self._npu_free_blocks_names()
 
         def emit_total_blocks():
             """Emit ``total_blocks = a * b * ...`` if needed; return the var/expr
             naming the product (a bare single name when there's only one factor,
             ``"1"`` when there are none)."""
-            if not all_blocks_names:
-                return "1"
-            expr = " * ".join(all_blocks_names)
-            if len(all_blocks_names) > 1:
-                code.writeline(f"total_blocks = {expr}")
-                return "total_blocks"
-            return expr
+            return self._npu_emit_total_blocks(code, "total_blocks")
 
         # 3. dispatch shape
         if self.npu_rsplit_partial:
@@ -5369,6 +5399,179 @@ class NPUTritonScheduling(TritonScheduling):
 
     def __init__(self, scheduler):
         super().__init__(scheduler)
+
+    def _te_combo_reject_reason(self, nodes):
+        if not ncfg.enable_te_combo_kernel:
+            return "disabled"
+        if device_props.is_a5():
+            return "A5 dispatch is not supported"
+        if not triton_codegen_linearize:
+            return "linearize is required"
+        if not 2 <= len(nodes) <= ncfg.te_combo_max_members:
+            return "member count outside phase-one limit"
+        if V.graph.cpp_wrapper:
+            return "C++ wrapper is not supported"
+
+        dtypes = []
+        block_shapes = []
+        output_shapes = []
+        all_reads = []
+        all_writes = []
+        rw_arg_count = 0
+        for pn in nodes:
+            members = pn.get_nodes()
+            if not members or any(n.is_reduction() or n.is_foreach() or n.is_template() for n in members):
+                return "only pointwise members are supported"
+            numel, rnumel = members[0].group[1]
+            if not isinstance(numel, (int, sympy.Integer)) or rnumel != 1:
+                return "only static pointwise shapes are supported"
+            if int(numel) >= 2**31:
+                return "oversized static axis needs runtime numel argument"
+            if any(n.group[1] != (numel, rnumel) for n in members):
+                return "mixed member shapes"
+            block_shapes.append(int(numel))
+            rw = pn.read_writes
+            reads = {dep.name for dep in rw.reads}
+            writes = {dep.name for dep in rw.writes}
+            rw_arg_count += len(rw.reads) + len(rw.writes)
+            if reads & writes or getattr(pn, "mutations", None):
+                return "mutation or in-place access"
+            all_reads.append(reads)
+            all_writes.append(writes)
+            member_dtypes = set()
+            member_output_shapes = set()
+            for name in reads | writes:
+                try:
+                    dtype = V.graph.get_dtype(name)
+                    member_dtypes.add(dtype)
+                    layout = V.graph.get_buffer(name).get_layout()
+                    if not layout.is_contiguous():
+                        return "non-contiguous layout"
+                    if name in writes:
+                        member_output_shapes.add(tuple(layout.size))
+                except (AttributeError, RuntimeError, KeyError):
+                    return "unknown buffer layout or dtype"
+            if len(member_dtypes) != 1:
+                return "mixed dtype within member"
+            if len(member_output_shapes) != 1:
+                return "mixed output shapes within member"
+            dtypes.append(next(iter(member_dtypes)))
+            output_shapes.append(next(iter(member_output_shapes)))
+        if len(set(block_shapes)) != 1 or len(set(output_shapes)) != 1 or len(set(dtypes)) != 1:
+            return "mixed shapes or dtypes"
+        if any(dtype in (torch.int64, torch.float64) for dtype in dtypes):
+            return "dtype requires TE argument conversion"
+        for i, writes in enumerate(all_writes):
+            if any(writes & (reads | other_writes)
+                   for j, (reads, other_writes) in enumerate(zip(all_reads, all_writes))
+                   if i != j):
+                return "cross-member read/write dependency"
+        if rw_arg_count + 1 >= config.combo_kernel_max_num_args:
+            return "combined ABI exceeds argument limit"
+        # Estimate UB use for the fixed 256-element tile before codegen.
+        ub_bytes = device_props.get_npu_ub_size_bytes()
+        live_vectors = max(len(r) + len(w) for r, w in zip(all_reads, all_writes))
+        if 256 * dtypes[0].itemsize * max(2, live_vectors) * 2 > ub_bytes:
+            return "estimated UB use exceeds capacity"
+        return None
+
+    def codegen_combo_kernel(self, combo_kernel_node):
+        from .triton_combo_kernel import TEComboKernel, TEComboSubKernel
+        from torch._inductor.codegen.simd import NodeInfo
+        from torch._inductor.codegen.triton_combo_kernel import ComboKernel
+        from torch._inductor.codegen.simd_kernel_features import NodeScheduleMarker
+
+        nodes = combo_kernel_node.get_subkernel_nodes()
+        reason = self._te_combo_reject_reason(nodes)
+        if reason is not None:
+            log.debug("TE combo rejected: %s", reason)
+            self._codegen_combo_fallback(nodes)
+            return
+
+        infos = {}
+        for pn in nodes:
+            members = pn.get_nodes()
+            _, (numel, rnumel) = max(members, key=lambda n: int(n.is_reduction())).group
+            schedule = self.generate_node_schedule(members, numel, rnumel)
+            features = SIMDKernelFeatures(schedule, numel, rnumel)
+            tiling = self.select_tiling(schedule, numel, rnumel)
+            infos[pn] = NodeInfo(schedule, tiling, None, numel, rnumel, features, False)
+
+        partitions = ComboKernel.horizontal_partition(
+            nodes, self, infos, custom_algorithm=combo_kernel_node.use_custom_partition_algo
+        )
+        # Phase one accepts only one free x axis. The admission decision still
+        # precedes any node codegen or mark_run, including partition rejection.
+        if (
+            not partitions
+            or sum(map(len, partitions)) != len(nodes)
+            or any(
+                len(p) < 2
+                or len(p) > ncfg.te_combo_max_members
+                or any(
+                    set(infos[n].tiling) != {"x", "r0_"}
+                    or infos[n].tiling != infos[p[0]].tiling
+                    for n in p
+                )
+                for p in partitions
+            )
+        ):
+            log.debug("TE combo rejected: unsupported tiling or partition")
+            self._codegen_combo_fallback(nodes)
+            return
+
+        generated = []
+        for partition in partitions:
+            combo = TEComboKernel(xblock=256)
+            schedules = []
+            for slot, pn in enumerate(partition):
+                info = infos[pn]
+                sub = ComboKernel.create_triton_kernel(
+                    info.tiling, info.features, True, TEComboSubKernel
+                )
+                if not sub._npu_linearize or sub.no_x_dim:
+                    raise AssertionError("TE combo admission allowed a non-linearized member")
+                sub.set_combo_slot(slot, f"local_tile_{slot}")
+                combo.create_sub_kernel(sub)
+                schedules.append(info.node_schedule)
+            for sub in combo.sub_kernels:
+                self._npu_repermute_tensor_dims(sub, sub.features)
+            for sub, schedule in zip(combo.sub_kernels, schedules):
+                self.codegen_node_schedule_with_kernel(schedule, sub)
+            for sub, schedule in zip(combo.sub_kernels, schedules):
+                self._apply_linearize(sub, schedule)
+
+            with V.set_kernel_handler(combo):
+                src = combo.codegen_kernel()
+            generated.append((src, combo, schedules))
+
+        defined = [
+            (self.define_kernel(src, [combo_kernel_node], combo), combo, schedules)
+            for src, combo, schedules in generated
+        ]
+        for kernel_name, combo, schedules in defined:
+            self.codegen_comment(combo_kernel_node.snodes, kernel_name)
+            for sub, schedule in zip(combo.sub_kernels, schedules):
+                with V.set_kernel_handler(sub):
+                    for node in NodeScheduleMarker.only_nodes(schedule):
+                        node.mark_run()
+                V.graph.removed_buffers |= sub.removed_buffers
+                V.graph.inplaced_to_remove |= sub.inplaced_to_remove
+            combo.call_kernel(kernel_name)
+        self.free_buffers_in_scheduler()
+
+    def _codegen_combo_fallback(self, nodes):
+        # The scheduler queues frees for the whole foreach node before calling
+        # us. Standalone codegen frees after each kernel, so keep those frees
+        # pending until every member has been launched.
+        pending_frees = self.scheduler.buffer_names_to_free.copy()
+        self.scheduler.buffer_names_to_free.clear()
+        try:
+            for node in nodes:
+                self.codegen_node(node)
+        finally:
+            self.scheduler.buffer_names_to_free.update(pending_frees)
+        self.free_buffers_in_scheduler()
 
     def create_kernel_choices(self, kernel_features, kernel_args, kernel_kwargs):
         """Override to always use NPUTritonKernel."""

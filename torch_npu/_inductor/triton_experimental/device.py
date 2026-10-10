@@ -15,11 +15,16 @@ from torch._inductor.codegen.common import (
 from torch._dynamo.device_interface import register_interface_for_device
 from torch_npu.utils._dynamo_device import NpuInterface
 
+from . import config as ncfg
+
 
 def register_backend_for_npu():
     from .codegen.triton import NPUTritonScheduling
     from .codegen.wrapper import NPUWrapperCodeGen
-    register_backend_for_device('npu', NPUTritonScheduling, NPUWrapperCodeGen)
+    register_backend_for_device(
+        'npu', NPUTritonScheduling, NPUWrapperCodeGen,
+        device_custom_config=ncfg,
+    )
 
 
 # Inherit the FULL NPU device-op overrides (device_guard / set_device /
