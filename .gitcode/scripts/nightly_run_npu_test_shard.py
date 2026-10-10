@@ -616,13 +616,14 @@ def run_tests_with_tasks_concurrent(
         })
 
     # Execute batches via ThreadPoolExecutor.
-    # 按设备组分串行队列：同一组卡(相同取模余数)的 batch 必须串行，否则某组卡上
-    # 的 batch 先跑完时，空闲 worker 会立即调度到同组卡的下一个 batch，造成同卡
-    # 并发争抢(显存/算力冲突、超时/结果不稳定)。
+    # 按设备组分并发队列：同一组卡(相同取模余数)的 batch 用同一把信号量限流，
+    # 容量 = max_workers，即同一组卡上最多 max_workers 个 batch 并发。
+    # 多卡时各组卡可并行；单卡时 dev_groups=1，等价于全局 max_workers 并发，
+    # 并发上限由 --max-workers 控制。
     dev_groups = 0
     if num_npu_devices is not None:
         dev_groups = max(1, num_npu_devices // cards_per_test) if cards_per_test > 0 else num_npu_devices
-    group_locks = [threading.Lock() for _ in range(dev_groups)]
+    group_semaphores = [threading.Semaphore(max_workers) for _ in range(dev_groups)]
 
     def _execute_one(batch, batch_id):
         # Calculate device ID:
@@ -643,7 +644,7 @@ def run_tests_with_tasks_concurrent(
             shard, shard_type, device_id, result_aggregator, progress_tracker, log_queue,
         )
         if dev_groups:
-            with group_locks[batch_id % dev_groups]:
+            with group_semaphores[batch_id % dev_groups]:
                 _execute_worker_batch(*worker_args)
         else:
             _execute_worker_batch(*worker_args)

@@ -75,14 +75,12 @@ jobs:
           name: torch-npu-wheel
           path: ./
 
-      - name: Install latest PyTorch from official website
+      - name: Install PyTorch
         run: |
-          python3.10 .gitcode/scripts/install_pytorch_from_official.py \
+          python3.10 .gitcode/scripts/install_pytorch_from_requirements.py \
             --arch aarch64 \
             --python-tag cp310 \
-            --variant cpu \
-            --python-exe python3.10 \
-            --branch "${{ inputs.PYTORCH_BRANCH }}"
+            --python-exe python3.10
 
       - name: Install pytest-timeout
         run: python3.10 -m pip install --trusted-host mirrors.huaweicloud.com pytest-timeout

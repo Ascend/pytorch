@@ -43,7 +43,7 @@ jobs:
   build:
     name: build
     select: selected_by_default
-    runs-on: [ self-hosted, op_plugin, "${{ inputs.RUNS_ON_ARCH }}", "${{ inputs.RUNS_ON_SPEC }}" ]
+    runs-on: [ self-hosted, "${{ inputs.RUNS_ON_SPEC }}" ]
     container:
       image: ${{ inputs.DOCKER_IMAGE }}
       options: ${{ inputs.CONTAINER_OPTIONS }}
@@ -68,14 +68,12 @@ jobs:
           ccache --version | head -1 >> build_msg.txt
           echo "=== Build Info End ===" >> build_msg.txt
 
-      - name: Install PyTorch from official website
+      - name: Install PyTorch
         run: |
-          python3.10 .gitcode/scripts/install_pytorch_from_official.py \
+          python3.10 .gitcode/scripts/install_pytorch_from_requirements.py \
             --arch aarch64 \
             --python-tag cp310 \
-            --variant cpu \
-            --python-exe python3.10 \
-            --branch "${{ inputs.PYTORCH_BRANCH }}"
+            --python-exe python3.10
 
       - name: Install nanobind
         run: |

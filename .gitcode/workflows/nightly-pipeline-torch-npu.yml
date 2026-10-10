@@ -22,7 +22,7 @@ on:
       - ".gitcode/workflows/_nightly_collect.yml"
       - ".gitcode/workflows/_nightly_test_job.yml"
       - ".gitcode/workflows/_nightly_report.yml"
-      - ".gitcode/scripts/install_pytorch_from_official.py"
+      - ".gitcode/scripts/install_pytorch_from_requirements.py"
       - ".gitcode/scripts/setup_npu_test_env.sh"
       - ".gitcode/scripts/collect_all_cases.py"
       - ".gitcode/scripts/discover_test_files.py"
@@ -40,7 +40,7 @@ env:
   PYTHON_VERSION: "3.10"
   # ── 运行参数 ──
   CASE_TIMEOUT: "1200"
-  REG_WORKERS: "16"
+  REG_WORKERS: "4"
   COLLECT_PARALLEL: "16"
   MAX_JOBS: "128"
   # ── 分片配置 ──
@@ -51,6 +51,7 @@ env:
   DOCKER_BASE_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260922"
   # ── 容器选项 ──
   CONTAINER_OPTS_BUILD: "--user root"
+  CONTAINER_OPTS_BUILD_NPU: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
   CONTAINER_OPTS_NPU: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
   CONTAINER_OPTS_COLLECT: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
   CONTAINER_OPTS_LIGHT: "--user root"
@@ -78,8 +79,9 @@ stages:
           MAX_JOBS: ${{ env.MAX_JOBS }}
           TORCH_NPU_WHEEL_ARTIFACT_DIR: ${{ env.TORCH_NPU_WHEEL_ARTIFACT_DIR }}
           DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
-          CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_BUILD }}
+          CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_BUILD_NPU }}
           RUNS_ON_ARCH: ${{ env.BUILD_ARCH }}
+          RUNS_ON_SPEC: ${{ env.NPU_LABEL_REG }}
 
   # Stage 2: 采集 + 分片
   stage_collect:
