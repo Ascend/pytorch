@@ -345,7 +345,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id41 -->
 <!-- npu="950" id42 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id42 -->
 
 </div>
@@ -1474,7 +1474,7 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id179 -->
 <!-- npu="950" id180 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id180 -->
 
 </div>
