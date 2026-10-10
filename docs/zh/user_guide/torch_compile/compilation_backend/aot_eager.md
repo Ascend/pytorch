@@ -18,7 +18,7 @@ AOT_Eager特点如下：
 - **兼容性测试**：验证图捕获和图断裂（graph break）行为是否正常。
 - **基准对照**：与Inductor、NPUGraphs等优化后端作性能对比。
 
-## 开启方式
+## 开启方法
 
 ```python
 compiled_model = torch.compile(model, backend="aot_eager")

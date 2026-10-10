@@ -1,36 +1,37 @@
 # 快速入门
 
+本文档以CNN模型识别MNIST手写数字为例，演示如何通过自动迁移将GPU训练脚本迁移至昇腾NPU运行的流程。
+
 ## 环境准备
 
-<!-- npu="910b" id3 -->
 本例以Atlas 800T A2训练服务器为例。
-<!-- end id3 -->
 
 请先完成以下安装及环境配置；已完成的可直接进入数据准备。
 
-- NPU驱动固件和CANN：参见《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》，并按指南加载环境变量。
-- PyTorch框架和TorchNPU插件：参见[源码编译](../installation_guide/references/building_from_source.md)。
-- torchvision：请安装与PyTorch版本配套的CPU版本，参见[安装torchvision](https://pytorch.org/get-started/locally/)。
+- 安装配套版本的NPU驱动固件、CANN软件（Toolkit、ops和NNAL），具体请参见《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》，并按指南加载环境变量。
+- PyTorch框架和TorchNPU插件，具体请参见[快速安装](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=180&ids=89dda9ba9de741349efa03687a487678%2C204%2C200%2C1%2C6%2C177%2C)。
+- 安装与PyTorch版本配套的torchvision，参见[安装torchvision](https://pytorch.org/get-started/locally/)。
 
 ## 数据准备
 
-本例使用MNIST手写数字数据集。首次运行时，脚本通过`download=True`下载数据，需要能够访问数据集下载站点。数据保存在当前工作目录下的`mnist/MNIST/raw/`中；数据已完整下载后，后续运行会复用本地数据。
+本例使用MNIST手写数字数据集。请根据网络环境准备测试数据集：
 
-若训练服务器无法联网，可先在已安装torchvision的联网环境中执行以下命令，再将生成的整个`mnist`目录复制到训练服务器运行脚本的工作目录下，并将训练脚本中的`download=True`改为`download=False`。
+- **方式一**：若训练服务器能够正常联网，首次运行时，[脚本](#脚本)会通过`download=True`下载数据。数据会保存在当前工作目录下的`mnist/MNIST/raw/`中；数据完整下载后，后续运行会复用本地数据。
 
-```bash
-python3 -c "from torchvision.datasets import MNIST; MNIST(root='mnist', train=True, download=True)"
-```
+- **方式二**：若训练服务器无法联网，可先在已安装torchvision的联网环境中执行以下命令，再将生成的整个`mnist`目录复制到训练服务器运行脚本的工作目录下，并将训练脚本中的`download=True`改为`download=False`。
+
+    ```bash
+    python3 -c "from torchvision.datasets import MNIST; MNIST(root='mnist', train=True, download=True)"
+    ```
 
 ## 模型迁移训练
 
-本节以CNN模型识别MNIST手写数字为例，演示如何通过自动迁移，将GPU训练脚本迁移到昇腾NPU上运行。请先完成步骤1～3中的适用修改，再执行步骤4。是否开启混合精度，请根据步骤3中的硬件适用说明选择。
-
 > [!NOTE]
 >
-> 下文`diff`代码块中的`+`表示新增行，`-`表示删除行，`...`表示省略的原有代码。这些标记用于说明修改位置，不应写入`train.py`。普通`python`代码块可直接复制，请保留代码缩进。
+> - 请先完成步骤1～3中的适用修改，再执行步骤4。是否开启混合精度，请根据步骤3中的硬件适用说明选择。
+> - 下文`diff`代码块中的`+`表示新增行，`-`表示删除行，`...`表示省略的原有代码。这些标记用于说明修改位置，不应写入`train.py`。普通`python`代码块可直接复制，请保留代码缩进。
 
-1. 新建脚本train.py，写入以下原GPU脚本代码。
+1. 新建脚本train.py，写入以下原GPU脚本代码。<a id="脚本"></a>
 
     ```python
     # 引入模块
@@ -118,7 +119,7 @@ python3 -c "from torchvision.datasets import MNIST; MNIST(root='mnist', train=Tr
     +from torch_npu.contrib import transfer_to_npu    # 开启自动迁移
     ```
 
-    导入`transfer_to_npu`即开启自动迁移，将本例中的相关CUDA调用映射到NPU。因此，脚本中的`cuda:0`可以保留，模型和数据实际在NPU上运行。若未开启自动迁移，用户可参考[手工迁移](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/zh/model_migration/manual_migration.md)进行相关操作。
+    导入`transfer_to_npu`即开启自动迁移，将本示例中的相关CUDA调用映射到NPU。因此，脚本中的`cuda:0`可以保留，模型和数据实际在NPU上运行。若未开启自动迁移，用户可参考[手工迁移](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/zh/model_migration/manual_migration.md)文档完成迁移。
 
 3. 在train.py中添加以下代码开启AMP混合精度。
 
@@ -132,44 +133,48 @@ python3 -c "from torchvision.datasets import MNIST; MNIST(root='mnist', train=Tr
     > <!-- end id2 -->
     > - 混合精度的具体介绍，请参见[混合精度适配](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/zh/mixed_precision_adaptation/adaptation_introduction.md)。
 
-    AMP（自动混合精度）包含两个主要操作：`autocast`为前向计算中的算子选择适用的计算精度；`GradScaler`通过缩放loss减少低精度梯度下溢的风险，并在参数更新时还原梯度尺度。
+    AMP（Automatic Mixed Precision，自动混合精度）包含两个主要操作：`autocast`为前向计算中的算子选择适用的计算精度；`GradScaler`通过缩放loss减少低精度梯度下溢的风险，并在参数更新时还原梯度尺度。
 
-    在导入区域添加AMP模块，并在模型、优化器定义之后、训练循环之前定义`GradScaler`：
+    1. 在导入区域添加AMP模块，并在模型、优化器定义之后、训练循环之前定义`GradScaler`：
 
-    ```diff
-     import torch_npu
-    +from torch_npu.npu import amp
-     from torch_npu.contrib import transfer_to_npu
-     ...
-     loss_func = nn.CrossEntropyLoss().to(device)    # 定义损失函数
-     optimizer = torch.optim.SGD(model.parameters(), lr=0.1)    # 定义优化器
-    +scaler = amp.GradScaler()    # 定义GradScaler
-     epochs = 10
-    ```
+        ```diff
+        import torch_npu
+        +from torch_npu.npu import amp
+        from torch_npu.contrib import transfer_to_npu
+        ...
+        loss_func = nn.CrossEntropyLoss().to(device)    # 定义损失函数
+        optimizer = torch.optim.SGD(model.parameters(), lr=0.1)    # 定义优化器
+        +scaler = amp.GradScaler()    # 定义GradScaler
+        epochs = 10
+        ```
 
-    将步骤1中从`for epoch in range(epochs):`开始的整个训练循环替换为以下代码，循环之后的模型保存代码保持在原位置。注意，前向计算和loss计算均放在`with amp.autocast():`内部，反向传播在其外部执行。
+    2. 将步骤1中从`for epoch in range(epochs):`开始的整个训练循环替换为以下代码，循环之后的模型保存代码保持在原位置。注意，前向计算和loss计算均放在`with amp.autocast():`内部，反向传播在其外部执行。
 
-    ```python
-    for epoch in range(epochs):
-        for step, (imgs, labels) in enumerate(train_dataloader, start=1):
-            imgs = imgs.to(device)
-            labels = labels.to(device)
-            with amp.autocast():
-                outputs = model(imgs)    # 前向计算
-                loss = loss_func(outputs, labels)    # 损失函数计算
-            optimizer.zero_grad()
-            scaler.scale(loss).backward()    # 缩放loss并反向传播
-            scaler.step(optimizer)    # 还原梯度尺度并更新参数；梯度非有限时跳过更新
-            scaler.update()    # 动态更新缩放系数
-            if step % 100 == 0 or step == len(train_dataloader):
-                print(f"Epoch [{epoch + 1}/{epochs}], Step [{step}/{len(train_dataloader)}], Loss: {loss.item():.4f}")
-    ```
+        ```python
+        for epoch in range(epochs):
+            for step, (imgs, labels) in enumerate(train_dataloader, start=1):
+                imgs = imgs.to(device)
+                labels = labels.to(device)
+                with amp.autocast():
+                    outputs = model(imgs)    # 前向计算
+                    loss = loss_func(outputs, labels)    # 损失函数计算
+                optimizer.zero_grad()
+                scaler.scale(loss).backward()    # 缩放loss并反向传播
+                scaler.step(optimizer)    # 还原梯度尺度并更新参数；梯度非有限时跳过更新
+                scaler.update()    # 动态更新缩放系数
+                if step % 100 == 0 or step == len(train_dataloader):
+                    print(f"Epoch [{epoch + 1}/{epochs}], Step [{step}/{len(train_dataloader)}], Loss: {loss.item():.4f}")
+        ```
 
 4. 在`train.py`所在目录执行以下命令启动训练。首次体验时，可将`epochs = 10`改为`epochs = 1`，先验证一轮训练流程。
 
     ```bash
     python3 train.py
     ```
+
+    > [!NOTE]
+    >
+    > 此命令需要在`train.py`所在目录下执行。
 
     训练过程中，每100个batch及每轮最后一个batch打印一次当前轮次、训练步数和loss，便于观察训练进度。其中，loss为当前batch的损失值。
 
@@ -191,10 +196,8 @@ python3 -c "from torchvision.datasets import MNIST; MNIST(root='mnist', train=Tr
 
 ## 进阶开发
 
-- 如果您想体验PyTorch模型训练迁移更丰富的功能，请前往《[PyTorch训练模型迁移调优指南](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/zh/README.md)》文档阅读了解。
-- 如果您想体验大模型训练更丰富的功能，请参见[表1](#模型迁移指导)了解。
-
-    **表 1**  模型迁移指导<a id="模型迁移指导"></a>    
+- 如果需要体验PyTorch模型训练迁移更丰富的功能，请前往《[PyTorch训练模型迁移调优指南](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/zh/README.md)》文档阅读了解。
+- 如果需要体验大模型训练更丰富的功能，请参见下表了解更多：
 
     |大模型|组件|迁移指导|
     |--|--|--|

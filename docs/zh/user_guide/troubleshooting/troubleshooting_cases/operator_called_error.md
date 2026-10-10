@@ -4,7 +4,7 @@
 
 关键词"**Cannot find bin of op ...**"
 
-```output
+```text
 Traceback (most recent call last):
   File "/home/HwHiAiUser/workspace/qwen2.5-Math-deepseek-R1.py", line 38, in <module>
     generated_ids = model.generate(

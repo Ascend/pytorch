@@ -526,13 +526,13 @@ TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命
       <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4">不依赖特定的CANN版本</td>
     </tr>
     <tr>
-      <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1">torch_npu.get_device_limit</td>
+      <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1">torch.npu.get_device_limit</td>
       <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2">自定义接口</td>
       <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3">修改</td>
       <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4">不依赖特定的CANN版本</td>
     </tr>
     <tr>
-      <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1">torch_npu.get_stream_limit</td>
+      <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1">torch.npu.get_stream_limit</td>
       <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2">自定义接口</td>
       <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3">修改</td>
       <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4">不依赖特定的CANN版本</td>
@@ -1192,7 +1192,7 @@ TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命
       <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4">不依赖特定的CANN版本</td>
     </tr>
     <tr>
-      <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1">torch_npu.reset_stream_limit</td>
+      <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1">torch.npu.reset_stream_limit</td>
       <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2">自定义接口</td>
       <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3">修改</td>
       <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4">不依赖特定的CANN版本</td>
@@ -1210,13 +1210,13 @@ TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命
       <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4">不依赖特定的CANN版本</td>
     </tr>
     <tr>
-      <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1">torch_npu.set_device_limit</td>
+      <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1">torch.npu.set_device_limit</td>
       <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2">自定义接口</td>
       <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3">修改</td>
       <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4">不依赖特定的CANN版本</td>
     </tr>
     <tr>
-      <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1">torch_npu.set_stream_limit</td>
+      <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1">torch.npu.set_stream_limit</td>
       <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2">自定义接口</td>
       <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3">修改</td>
       <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4">不依赖特定的CANN版本</td>
@@ -1648,7 +1648,7 @@ TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命
 |《[环境变量](../zh/api/environment_variable/env_variable_list.md)》|在TorchNPU训练和在线推理过程中可使用的环境变量。|&#8226; 新增PyTorch环境变量对照表。<br>&#8226; 调整部分目录结构。|
 |《[内存管理](../zh/developer_notes/memory_management/memory_resource_overview.md)》|TorchNPU在内存管理方面构建了一套完整的体系，既深度集成了PyTorch原生的内存管理机制，又针对昇腾NPU硬件特性提供了多项独有的优化能力。|内容独立且优化。|
 |《[分布式](../zh/developer_notes/distributed/distributed_overview.md)》|支持的核心特性，涵盖并行策略、分片原语、通信策略、分布式启动与容错等关键能力，并说明各项特性在NPU上的使用方式以及和原生PyTorch的异同。|&#8226; 分布式章节独立展示。<br>&#8226; 新增概述章节。<br>&#8226; 新增并行策略特性。<br>&#8226; 新增通信策略特性。<br>&#8226; 重构通信域参数。 |
-|《[算子下发](../zh/developer_notes/operator_dispatch/automatic_core_binding.md)》|通过自动绑核、Stream级TaskQueue并行下发和编译优化，全面提升TorchNPU下发及程序运行性能。|&#8226; 分布式章节独立展示。<br>&#8226; 新增taskqueue特性。|
+|《[算子下发](../zh/developer_notes/operator_dispatch/automatic_core_binding.md)》|通过自动绑核、Stream级TaskQueue并行下发和编译优化，全面提升TorchNPU下发及程序运行性能。|&#8226; 算子下发章节独立展示。<br>&#8226; 新增taskqueue特性。|
 |《[NPUGraph](../zh/developer_notes/npugraph.md)》|NPUGraph是一种在Eager Mode（单算子执行模式）下使用的静态图捕获技术，将一系列NPU内核定义并封装为一个单元（即操作图），通过单一CPU操作启动多个NPU操作，从而减少启动开销。|内容独立且优化。|
 |《[故障诊断](../zh/developer_notes/fault_diagnosis/feature_value_detection.md)》|在不影响大模型训练性能和精度的前提下，通过基于通信流的静默数据错误特征值检测技术，实现精度问题的快速稳定识别。|内容独立且优化。|
 |《[自定义算子适配开发](../zh/developer_notes/custom_operator_adaptation/opplugin_operator_adaptation/adaptation_overview_opplugin.md)》|基于OpPlugin插件或C++ extensions的方式编写并调用自定义算子。|内容独立且优化。|

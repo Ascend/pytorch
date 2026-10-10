@@ -35,7 +35,7 @@
 
 > [!NOTICE]
 >
-> - 安装运行程序建议使用非root用户，且建议对安装程序的目录文件做好权限管控：文件夹权限设置为750，文件权限设置为640。可以通过设置umask控制安装后文件的权限，如设置umask为0027。更多安全相关内容请参见《[安全声明](../../reference/security_statement.md)》中各组件关于“文件权限控制”的说明。
+> 安装运行程序建议使用非root用户，且建议对安装程序的目录文件做好权限管控：文件夹权限设置为750，文件权限设置为640。可以通过设置umask控制安装后文件的权限，如设置umask为0027。更多安全相关内容请参见《[安全声明](../../reference/security_statement.md)》中各组件关于“文件权限控制”的说明。
 
 - 安装配套版本的NPU驱动固件、CANN软件（Toolkit、ops和NNAL）并配置CANN环境变量，具体请参考《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》。
 
@@ -48,7 +48,7 @@
 
     以上命令以root用户安装后的默认路径为例，请用户根据set\_env.sh的实际路径进行替换。
 
-Python3.11的调度（即下发）性能优于Python3.10，建议用Python3.11及以上。
+- Python3.11的调度（即下发）性能优于Python3.10，建议用Python3.11及以上。
 
 ## 安装PyTorch框架
 
