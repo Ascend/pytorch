@@ -18,6 +18,7 @@ Usage:
     python test_dvm.py -v
 """
 
+import glob
 import os
 import sys
 import unittest
@@ -826,7 +827,7 @@ torch.sum(x, dim=1, out=out)
 class TestDvmFlags(_DvmTestBase):
     """Test op-level disable/enable flags."""
 
-    def _run_with_flags(self, flags, code):
+    def _run_with_flags(self, flags, code, task_queue=None):
         """Run code with specific DVM flags."""
         import torch
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -834,6 +835,8 @@ class TestDvmFlags(_DvmTestBase):
             env = os.environ.copy()
             env.pop("TORCH_NPU_LAZY_FUSION", None)
             env["TORCH_NPU_LAZY_FUSION"] = flags
+            if task_queue is not None:
+                env["TASK_QUEUE_ENABLE"] = str(task_queue)
             full_code = f"""
 import torch, torch_npu
 import numpy as np
@@ -860,6 +863,98 @@ result = (x + y).cpu()
         r_off, _ = compare_dvm_on_off(code)
         r_flag = self._run_with_flags("True disable_ops=add", code)
         self._assert_match(r_off, r_flag)
+
+    def test_script_side_disable_context(self):
+        """A user-script context can split out a region without DVM fusion."""
+        code = """
+x = torch.randn(4, 4).npu()
+with torch.npu.lazy_fusion.disabled():
+    y = x + 1
+result = (y * 2).cpu()
+"""
+        r_off, r_on = compare_dvm_on_off(code)
+        self._assert_match(r_off, r_on)
+
+    def test_dump_python_selected_region(self):
+        """A middle region is selected without passing step IDs to the backend."""
+        for task_queue in (1, 2):
+            with self.subTest(task_queue=task_queue), tempfile.TemporaryDirectory() as dump_dir:
+                code = """
+torch.npu.lazy_fusion.set_dump_disable()
+x = torch.ones(4, 4).npu()
+for step in range(3):
+    with torch.npu.lazy_fusion.dump_enabled(step == 1):
+        x = x + 1
+# No per-step synchronize: queued Q2 graphs must retain their own dump state.
+result = x.cpu()
+"""
+                flags = f"True dump_as_text dump_dir={dump_dir}"
+                result = self._run_with_flags(flags, code, task_queue)
+                self.assertTrue((result == 4).all().item())
+                self._assert_dump_graphs(dump_dir, ["add"])
+
+    def _assert_dump_graphs(self, dump_dir, expected_ops):
+        graph_files = glob.glob(os.path.join(dump_dir, "*_graph.txt"))
+        kernel_files = glob.glob(os.path.join(dump_dir, "*_kernel.txt"))
+        self.assertEqual(len(graph_files), 1)
+        self.assertEqual(len(kernel_files), 1)
+        with open(graph_files[0]) as graph_file:
+            graph = graph_file.read()
+        self.assertEqual(re.findall(r"^lazy_fusion_graph_(\w+)\(", graph, re.MULTILINE), expected_ops)
+        with open(kernel_files[0]) as kernel_file:
+            kernel = kernel_file.read()
+        self.assertEqual(kernel.count("[lazy_fusion before split]"), len(expected_ops))
+        self.assertEqual(kernel.count("[lazy_fusion after split]"), len(expected_ops))
+
+    def test_dump_nested_context_and_exception(self):
+        """Boundaries split pending graphs and nested/exception exits restore state."""
+        code = """
+torch.npu.lazy_fusion.set_dump_disable()
+x = torch.ones(4, 4).npu()
+x = x * 2
+try:
+    with torch.npu.lazy_fusion.dump_enabled():
+        x = x + 1
+        with torch.npu.lazy_fusion.dump_disabled():
+            x = x * 3
+        x = x + 2
+        raise RuntimeError("exit dump region")
+except RuntimeError as error:
+    assert str(error) == "exit dump region"
+x = x * 4
+torch.npu.lazy_fusion.set_dump_enable()
+x = x + 3
+torch.npu.lazy_fusion.set_dump_disable()
+x = x * 5
+result = x.cpu()
+"""
+        for task_queue in (1, 2):
+            with self.subTest(task_queue=task_queue), tempfile.TemporaryDirectory() as dump_dir:
+                result = self._run_with_flags(f"True dump_as_text dump_dir={dump_dir}", code, task_queue)
+                self.assertTrue((result == 235).all().item())
+                self._assert_dump_graphs(dump_dir, ["add", "add", "add"])
+
+    def test_dump_environment_master_switch(self):
+        """Python cannot bypass the environment master switch; env-only still dumps."""
+        for task_queue in (1, 2):
+            for env_dump in (False, True):
+                with self.subTest(task_queue=task_queue, env_dump=env_dump):
+                    with tempfile.TemporaryDirectory() as dump_dir:
+                        code = """
+x = torch.ones(4, 4).npu()
+x = x + 1
+torch.npu.synchronize()
+with torch.npu.lazy_fusion.dump_enabled():
+    x = x * 2
+result = x.cpu()
+"""
+                        flag = "dump_as_text" if env_dump else ""
+                        result = self._run_with_flags(f"True {flag} dump_dir={dump_dir}", code, task_queue)
+                        self.assertTrue((result == 4).all().item())
+                        if env_dump:
+                            self._assert_dump_graphs(dump_dir, ["add", "mul"])
+                        else:
+                            self.assertEqual(glob.glob(os.path.join(dump_dir, "*.txt")), [])
 
 class TestDvmBatchNorm(_DvmTestBase):
     """BatchNorm ops: native_batch_norm, native_batch_norm_backward, stats, gather_stats_with_counts, elemt, backward_elemt."""
@@ -1003,6 +1098,110 @@ out = torch.ops.aten.native_batch_norm_backward.default(
 result = tuple(None if t is None else t.cpu() for t in out)
 """)
                 self._assert_match(r_off, r_on, atol=1e-4, msg=f" shape={shape} mask={mask}")
+
+class TestDvmInplaceBroadcast(_DvmTestBase):
+    def test_valid_broadcast(self):
+        r_off, r_on = compare_dvm_on_off("""
+result = {}
+for op in ('add_', 'sub_', 'mul_', 'div_', 'pow_', 'floor_divide_'):
+    for shape in ((2, 4), (1, 4), (4,), ()):
+        x = torch.full((2, 4), 6.0, device='npu')
+        other = torch.full(shape, 2.0, device='npu')
+        getattr(x, op)(other)
+        result[(op, shape)] = x.cpu()
+""")
+        self._assert_match(r_off, r_on)
+
+    def test_invalid_broadcast_does_not_write(self):
+        code = """
+torch.npu.set_device(0)
+for op in ('add_', 'sub_', 'mul_', 'div_', 'pow_', 'floor_divide_'):
+    for shape in ((8, 4), (1, 1, 4), (1, 3)):
+        # Detect writes beyond self without writing outside the allocation.
+        backing = torch.full((4096,), 7.0, device='npu')
+        x = backing[:4].view(1, 4)
+        other = torch.full(shape, 2.0, device='npu')
+        torch.npu.synchronize()
+        try:
+            getattr(x, op)(other)
+            torch.npu.synchronize()
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError(f'{op} accepted invalid broadcast {shape}')
+        actual = backing.cpu()
+        assert torch.equal(actual, torch.full_like(actual, 7.0)), 'destination corrupted'
+print('INPLACE_BROADCAST_PASS')
+"""
+        for enabled in (False, True):
+            with self.subTest(dvm=enabled):
+                result = _run_in_subprocess_raw(code, enabled)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertIn('INPLACE_BROADCAST_PASS', result.stdout)
+
+
+@unittest.skipIf(_DVM_UNSUPPORTED, _SKIP_DVM_REASON)
+class TestDvmOutputAllocation(unittest.TestCase):
+    """Allocator synchronization must not flush a partially constructed graph."""
+
+    def test_output_allocation_retry(self):
+        # Flags are read at import time. Isolate queue/allocator state and the
+        # per-process memory limit in a fresh interpreter for every case.
+        for queue in (1, 2):
+            for op in ("neg", "mul"):
+                for pending in (False, True):
+                    with self.subTest(queue=queue, op=op, pending=pending):
+                        env = os.environ.copy()
+                        env["TASK_QUEUE_ENABLE"] = str(queue)
+                        env["TORCH_NPU_LAZY_FUSION"] = "1"
+                        for key in ("PYTORCH_NPU_ALLOC_CONF", "TORCH_NPU_DVM_TASK_QUEUE",
+                                    "DVM_Q1_QUEUE_POLL", "DVM_SKIP_ZERO_WS"):
+                            env.pop(key, None)
+                        code = f"""
+import torch
+import torch_npu
+
+torch.npu.set_device(0)
+total = torch.npu.get_device_properties(0).total_memory
+for iteration in range(3):
+    torch.npu.empty_cache()
+    torch.npu.set_per_process_memory_fraction(80 * 1024**2 / total)
+    try:
+        x = torch.ones(8 * 1024**2, device='npu', requires_grad=True)
+        torch.npu.synchronize()
+        # Exercise both Flush's empty-output branch and an already populated
+        # graph. Do not synchronize between this output and the pressured one.
+        prior = x[:256 * 1024] * -1.0 if {pending!r} else None
+        cached = torch.empty(24 * 1024**2, dtype=torch.uint8, device='npu')
+        del cached
+        before = torch.npu.memory_stats()['num_alloc_retries']
+        y = torch.neg(x) if {op!r} == 'neg' else x * -1.0
+        after = torch.npu.memory_stats()['num_alloc_retries']
+        assert after > before, 'test did not trigger allocation retry'
+    finally:
+        # Do not constrain downstream allocations; pressure targets Output only.
+        torch.npu.set_per_process_memory_fraction(1.0)
+    loss = torch.log(y.square()).sum()
+    loss.backward()
+    torch.npu.synchronize()
+    actual, grad = y.cpu(), x.grad.cpu()
+    assert torch.equal(actual, torch.full_like(actual, -1.0)), 'corrupt output'
+    assert loss.item() == 0.0, 'corrupt loss'
+    assert torch.equal(grad, torch.full_like(grad, 2.0)), 'corrupt gradient'
+    if prior is not None:
+        value = prior.cpu()
+        assert torch.equal(value, torch.full_like(value, -1.0)), 'corrupt earlier output'
+        del value
+    del prior, loss, y, x, actual, grad
+print('OUTPUT_ALLOCATION_RETRY_PASS')
+"""
+                        result = subprocess.run(
+                            [sys.executable, "-c", code], env=env,
+                            capture_output=True, text=True, timeout=120,
+                        )
+                        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                        self.assertIn("OUTPUT_ALLOCATION_RETRY_PASS", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()
