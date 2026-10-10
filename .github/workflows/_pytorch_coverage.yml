@@ -85,7 +85,8 @@ jobs:
     with:
       resolved_short: ${{ needs.resolve.outputs.short }}
       wheels_tarball: ${{ needs.build.outputs.wheels_tarball }}
-      case_paths_config: .github/config/coverage_test_whitelist.yml
+      case_paths_config: .github/config/pr_test_whitelist.yml
+      case_whitelist: ''
       skip_list: .github/config/pr_skip_list.jsonl
       hw_classification: 'ACCELERATOR'
       device_env: 'privateuse1'
