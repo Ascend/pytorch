@@ -25,12 +25,16 @@ on:
         required: false
         type: string
         default: "1"
+      runs_on_device:
+        required: false
+        type: string
+        default: "npu=1"
 
 jobs:
   JOB_UT:
     name: JOB_UT
     select: selected_by_default
-    runs-on: [ self-hosted, default, npu=1 ]
+    runs-on: [ self-hosted, default, "${{ inputs.runs_on_device }}" ]
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/${{ inputs.CP_DOCKER_IMG }}
     env:
@@ -166,6 +170,7 @@ jobs:
           pip"${{ inputs.py_version }}" install https://repo.oepkgs.net/openeuler/ascend/pytorch/vllm/torch/Torch-MLIR/aarch64/Python310/torch_mlir-0.0.1-cp310-cp310-linux_aarch64.whl
           pip"${{ inputs.py_version }}" install https://mirrors.huaweicloud.com/ascend/repos/pypi/nightly/triton-ascend/triton_ascend-3.2.2+release20260701-cp310-cp310-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl
           pip"${{ inputs.py_version }}" list
+          python"${{ inputs.py_version }}" -c "import acl;print('npu info:',acl.get_soc_name())" || echo "npu info  get error"
           echo "------------------------------------- ENV PATH -------------------------------------"
           echo ${PATH}
           echo "------------------------------------------------------------------------------------"

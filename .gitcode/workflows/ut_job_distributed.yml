@@ -96,6 +96,7 @@ jobs:
           pip"${{ inputs.py_version }}" install torch_npu*.whl
           # pip"${{ inputs.py_version }}" install https://repo.oepkgs.net/openeuler/ascend/pytorch/vllm/torch/Torch-MLIR/aarch64/Python310/torch_mlir-0.0.1-cp310-cp310-linux_aarch64.whl
           pip"${{ inputs.py_version }}" list
+          python"${{ inputs.py_version }}" -c "import acl;print('npu info:',acl.get_soc_name())" || echo "npu info  get error"
           echo 'test/distributed/test_fault_mode.py' >> "modify_files.txt"
           sed -i '/distributed\|rpc/!d' modify_files.txt
           if [ -e ci/access_control/test_manager.py ]; then

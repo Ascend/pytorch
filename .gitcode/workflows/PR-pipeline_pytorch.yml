@@ -1,4 +1,4 @@
-name: PR-pipeline_pytorch
+﻿name: PR-pipeline_pytorch
 
 concurrency:
   max: 120
@@ -92,16 +92,20 @@ stages:
 
           - name: set build skip flag
             id: set-skip
+            env:
+              CHANGED_FILES: ${{ steps.filter.outputs.changed_files }}
+              NON_DOC: ${{ steps.filter.outputs.non-doc }}
             run: |
-              echo "changed: ${{ steps.filter.outputs.changed_files }}"
-              echo "non-doc: ${{ steps.filter.outputs.non-doc }}"
-              if [ "${{ steps.filter.outputs.non-doc }}" = "true" ]; then
+              echo "changed: $CHANGED_FILES"
+              echo "non-doc: $NON_DOC"
+              if [ "$NON_DOC" = "true" ]; then
                 echo "need_build_ut=yes" >> "$ATOMGIT_OUTPUT"
               else
                 echo "need_build_ut=no" >> "$ATOMGIT_OUTPUT"
               fi
-              echo "${{ steps.filter.outputs.changed_files }}" | tr -d '[]" ' | tr ',' '\n' > modify_files.txt
+              printf '%s' "$CHANGED_FILES" | python3 -c "import json,sys; print('\n'.join(json.load(sys.stdin)))" > modify_files.txt
               cat modify_files.txt
+
           - name: upload modify_files.txt
             uses: upload-artifact
             with:
@@ -324,6 +328,28 @@ stages:
     name: UT
     select: selected_by_default
     jobs:
+      UT_A3_part_1:
+        name: UT_A3_part_1
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && env.target_branch == 'v2.7.1' }}
+        uses: .gitcode/workflows/ut_job.yml
+        with:
+          torch_branch: ${{ atomgit.event.pull_request.base.ref }}
+          CP_DOCKER_IMG: "pytorch_2.7.1_a3_aarch64_builder:20260804"
+          TEST_RANK: "1"
+          TEST_WORLD_SIZE: "2"
+          runs_on_device: "910C=1"
+
+      UT_A3_part_2:
+        name: UT_A3_part_2
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && env.target_branch == 'v2.7.1' }}
+        uses: .gitcode/workflows/ut_job.yml
+        with:
+          torch_branch: ${{ atomgit.event.pull_request.base.ref }}
+          CP_DOCKER_IMG: "pytorch_2.7.1_a3_aarch64_builder:20260804"
+          TEST_RANK: "2"
+          TEST_WORLD_SIZE: "2"
+          runs_on_device: "910C=1"
+
       UT_core_part_1:
         name: UT_core_part_1
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.get_count.outputs.core > '0' }}
