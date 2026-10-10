@@ -78,7 +78,7 @@ jobs:
       upstream_ref: ${{ inputs.upstream_ref || 'main' }}
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: ${{ inputs.torch_npu_ref || 'master' }}
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610100525-b27ba05f
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-builder-aarch64-torch-master-202610100722-a8570f7b
       # Manual run, no upstream PR context — never report to the
       # upstream dashboard (skips all cross-repo-ci-relay-callback steps).
       report_to_upstream: false
