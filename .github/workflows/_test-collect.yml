@@ -269,7 +269,12 @@ jobs:
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
-          export LD_LIBRARY_PATH=/opt/conda/envs/py_3.10/lib:$LD_LIBRARY_PATH
+          # Conda's libstdc++ is newer than the system one (CXXABI_1.3.15
+          # fix, commit 1b25c5f780) and must precede it on the library
+          # path. Resolve the env lib dir from the image's own python
+          # (sys.prefix) so py3.10 and py3.11 images both pick the right
+          # path instead of a hardcoded /opt/conda/envs/py_3.10.
+          export LD_LIBRARY_PATH="$(python3 -c 'import sys; print(sys.prefix)')/lib:$LD_LIBRARY_PATH"
 
           export PYTHONPATH="${GITHUB_WORKSPACE}/ci-scripts/.github/scripts:${PYTHONPATH}"
 

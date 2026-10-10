@@ -78,7 +78,7 @@ jobs:
       upstream_ref: ${{ inputs.upstream_ref || 'main' }}
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: ${{ inputs.torch_npu_ref || 'master' }}
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609230923-00b993fc
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610100359-bd67211b
       # Manual run, no upstream PR context — never report to the
       # upstream dashboard (skips all cross-repo-ci-relay-callback steps).
       report_to_upstream: false
@@ -108,7 +108,7 @@ jobs:
       # Shard thresholds aligned with the nightly pipeline.
       shard_threshold_regular: 50000
       shard_threshold_distributed: 3000
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609230923-00b993fc
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610100359-bd67211b
       # Same as build: no upstream reporting for manual runs.
       report_to_upstream: false
       # Keep hw_classification/device_env in sync with the passed list's

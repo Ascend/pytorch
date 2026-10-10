@@ -106,13 +106,24 @@ jobs:
           esac
           echo "prefix=${PREFIX}" >> "$GITHUB_OUTPUT"
 
+      # Python version is read from the image itself (the conda env on
+      # PATH), never hardcoded: this workflow is shared by callers on
+      # py3.10 images (receive-trigger) and py3.11 images (manual). Used
+      # only by the upstream job-name labels below.
+      - name: Compute Python version
+        id: pyver
+        run: |
+          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+          echo "label=py${PYVER}" >> "$GITHUB_OUTPUT"
+          echo "Image python: $(python3 --version)"
+
       - name: Report test in_progress
         if: ${{ inputs.report_to_upstream }}
         continue-on-error: true
         uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
         with:
           status: in_progress
-          job-name: ${{ inputs.runner_label }} / test (${{ inputs.category }}, ${{ matrix.shard }}, ${{ inputs.num_shards }}, py3.10)
+          job-name: ${{ inputs.runner_label }} / test (${{ inputs.category }}, ${{ matrix.shard }}, ${{ inputs.num_shards }}, ${{ steps.pyver.outputs.label }})
           max-time: 60
 
       - name: Compute tarball names
@@ -197,7 +208,10 @@ jobs:
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
-          export LD_LIBRARY_PATH=/opt/conda/envs/py_3.10/lib:$LD_LIBRARY_PATH
+          # Conda env lib dir resolved from the image's own python so the
+          # newer libstdc++ precedes the system one (CXXABI_1.3.15 fix,
+          # commit 1b25c5f780) on both py3.10 and py3.11 images.
+          export LD_LIBRARY_PATH="$(python3 -c 'import sys; print(sys.prefix)')/lib:$LD_LIBRARY_PATH"
 
           mkdir -p "${ASCEND_PROCESS_LOG_PATH}"
           echo "CANN plog pinned to ${ASCEND_PROCESS_LOG_PATH} (level=${ASCEND_GLOBAL_LOG_LEVEL})"
@@ -220,7 +234,8 @@ jobs:
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
-          export LD_LIBRARY_PATH=/opt/conda/envs/py_3.10/lib:$LD_LIBRARY_PATH
+          # Same libstdc++ precedence fix as the verify step above.
+          export LD_LIBRARY_PATH="$(python3 -c 'import sys; print(sys.prefix)')/lib:$LD_LIBRARY_PATH"
 
           # Ensure the pinned plog dir exists before workers start (env is
           # set at job level; workers inherit it via os.environ.copy()).
@@ -380,7 +395,7 @@ jobs:
         with:
           status: completed
           conclusion: ${{ steps.parse_results.outputs.parse_ok == 'true' && steps.parse_results.outputs.total_failed == '0' && 'success' || 'failure' }}
-          job-name: ${{ inputs.runner_label }} / test (${{ inputs.category }}, ${{ matrix.shard }}, ${{ inputs.num_shards }}, py3.10)
+          job-name: ${{ inputs.runner_label }} / test (${{ inputs.category }}, ${{ matrix.shard }}, ${{ inputs.num_shards }}, ${{ steps.pyver.outputs.label }})
           max-time: 60
           test-results: >-
             {
@@ -408,7 +423,7 @@ jobs:
         with:
           status: completed
           conclusion: ${{ steps.parse_results.outputs.parse_ok == 'true' && steps.parse_results.outputs.total_failed == '0' && 'success' || 'failure' }}
-          job-name: ${{ inputs.runner_label }} / test (${{ inputs.category }}, ${{ matrix.shard }}, ${{ inputs.num_shards }}, py3.10)
+          job-name: ${{ inputs.runner_label }} / test (${{ inputs.category }}, ${{ matrix.shard }}, ${{ inputs.num_shards }}, ${{ steps.pyver.outputs.label }})
           max-time: 60
           test-results: >-
             {
