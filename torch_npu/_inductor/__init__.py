@@ -98,6 +98,7 @@ def _load_mlir_backend():
 def _load_dvm_backend():
     _apply_common_patches()
     import torch
+    import torch_npu.utils._dynamo
 
     # DVM kernels and the Triton templates delegated by this backend share
     # process-local lowering, autotuning, and runtime state.  Keep compilation
@@ -111,7 +112,7 @@ def _load_dvm_backend():
     apply_mlir_inductor_patch()
     register_mlir_codegen_backend()
     from .dvm import mlir_fusion
-    has_triton = torch.utils._triton.has_triton()
+    has_triton = torch_npu.utils._dynamo.has_triton()
     if has_triton:
         from torch.nn.attention import flex_attention
 
@@ -134,8 +135,9 @@ def _load_dvm_backend():
 def _load_triton_backend():
     _apply_common_patches()
     import torch
+    import torch_npu.utils._dynamo
     torch._inductor.runtime.benchmarking.GPU_BENCHMARK_DEVICE_TYPES = ("cuda", "xpu", "mtia", "npu")
-    has_triton = torch.utils._triton.has_triton()
+    has_triton = torch_npu.utils._dynamo.has_triton()
     if not has_triton:
         import warnings
         warnings.warn("triton-ascend is not installed. Please install it first.")
@@ -366,8 +368,9 @@ def _load_triton_experimental_backend():
     # does not re-register the backend or re-apply monkeypatches.
     _apply_common_patches()
     import torch
+    import torch_npu.utils._dynamo
 
-    has_triton = torch.utils._triton.has_triton()
+    has_triton = torch_npu.utils._dynamo.has_triton()
     if not has_triton:
         import warnings
         warnings.warn("triton-ascend is not installed. Please install it first.")
