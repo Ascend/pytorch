@@ -240,6 +240,26 @@
 
 </div>
 
+> <font size="3">release()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.onnx.ONNXProgram.release](https://pytorch.org/docs/2.11/onnx_export.html#torch.onnx.ONNXProgram.release)
+
+**产品支持情况**：
+
+<!-- npu="910b" id37 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id37 -->
+<!-- npu="A3" id38 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id38 -->
+<!-- npu="950" id39 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id39 -->
+
+</div>
+
 </div>
 
 ### torch.onnx.export
