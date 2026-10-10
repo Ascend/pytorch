@@ -21,6 +21,52 @@
 export TORCH_NPU_LAZY_FUSION=True
 ```
 
+### 在脚本中按需开启融合
+
+环境变量需在 `import torch_npu` 前设置。开启环境变量后，可以在用户脚本中按代码区间控制无图融合。
+
+例如，临时关闭某个代码段的无图融合，退出后恢复之前的状态：
+
+```python
+from torch_npu.npu import lazy_fusion
+
+with lazy_fusion.disabled():
+    output = model_part(input)
+```
+
+也可以在外层关闭融合，仅在指定代码段中按需开启：
+
+```python
+from torch_npu.npu import lazy_fusion
+
+with lazy_fusion.disabled():
+    x = preprocess(input)
+    with lazy_fusion.enabled():
+        x = model_part(x)
+    output = postprocess(x)
+```
+
+也可以直接设置开关，设置后持续生效，直到再次修改：
+
+```python
+from torch_npu.npu import lazy_fusion
+
+lazy_fusion.set_disable()
+x = preprocess(input)
+
+lazy_fusion.set_enable()
+output = model(x)
+```
+
+`set_enable()` 开启脚本侧融合开关，`set_disable()` 关闭脚本侧融合开关，两个接口均不接受参数，返回值为 `None`。与 `with` 不同，直接设置不会自动恢复；需要异常退出时自动恢复状态的代码段应使用上下文接口。
+
+两种方式可混用：上下文退出时，将恢复进入前的状态（忽略上下文内部调用的 `set_enable()` 或 `set_disable()`）。
+
+- 环境变量是总开关；未开启环境变量时，`lazy_fusion.enabled()` 和 `lazy_fusion.set_enable()` 均不能单独开启无图融合。
+- 上下文支持嵌套，正常退出或区间内发生异常退出时均恢复之前的状态。
+- 开关状态变化时会提交当前待融合图，避免算子跨越开启/关闭边界融合；接口不等待设备执行完成。
+- 开关是进程级的，应在代码区间边界调用，切换时不要并发构建融合图。
+
 ## 使用约束
 
 - 需在导入`torch_npu`之前设置。
