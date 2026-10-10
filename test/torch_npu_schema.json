@@ -590,6 +590,30 @@
   "torch_npu.jit.register_fusion_pattern.optimize": {
     "signature": "(jit_mod)"
   },
+  "torch_npu.npu.lazy_fusion.disabled": {
+    "signature": "()"
+  },
+  "torch_npu.npu.lazy_fusion.set_disable": {
+    "signature": "() -> None"
+  },
+  "torch_npu.npu.lazy_fusion.enabled": {
+    "signature": "(enabled: bool = True)"
+  },
+  "torch_npu.npu.lazy_fusion.set_dump_disable": {
+    "signature": "() -> None"
+  },
+  "torch_npu.npu.lazy_fusion.set_enable": {
+    "signature": "() -> None"
+  },
+  "torch_npu.npu.lazy_fusion.dump_enabled": {
+    "signature": "(enabled: bool = True)"
+  },
+  "torch_npu.npu.lazy_fusion.set_dump_enable": {
+    "signature": "() -> None"
+  },
+  "torch_npu.npu.lazy_fusion.dump_disabled": {
+    "signature": "()"
+  },
   "torch_npu.npu.BFloat16Storage": {
     "signature": "(*args, wrap_storage=None, dtype=None, device=None, _internal=False)"
   },

@@ -220,6 +220,7 @@ void THNPStream_init(PyObject *module);
 void THNPEvent_init(PyObject *module);
 void THNPGraph_init(PyObject *module);
 void THNPMemPool_init(PyObject* module);
+void THNPLazyFusion_init(PyObject* module);
 void THNPShapeHandling_init(PyObject* module);
 void THDVM_init(PyObject* module);
 void THNPMLIR_init(PyObject* module);
@@ -265,6 +266,7 @@ PyObject* initModule()
     THNPEvent_init(module);
     THNPGraph_init(module);
     THNPMemPool_init(module);
+    THNPLazyFusion_init(module);
     THNPShapeHandling_init(module);
     THDVM_init(module);
     THNPMLIR_init(module);
