@@ -23,6 +23,28 @@
 
 ### torch.nn.attention.flex_attention
 
+#### BlockMask Utilities
+
+##### torch.nn.attention.flex_attention.or_masks
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.attention.flex_attention.or_masks](https://docs.pytorch.org/docs/2.13/nn.attention.flex_attention.html#torch.nn.attention.flex_attention.or_masks)
+
+**产品支持情况**：
+
+<!-- npu="910b" id10 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id10 -->
+<!-- npu="A3" id11 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id11 -->
+<!-- npu="950" id12 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id12 -->
+
+</div>
+
 #### BlockMask
 
 ##### <code><i>class</i></code> torch.nn.attention.flex_attention.BlockMask
