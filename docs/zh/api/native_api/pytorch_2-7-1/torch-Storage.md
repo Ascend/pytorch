@@ -1973,6 +1973,26 @@
 
 </div>
 
+> <font size="3">float8_e4m3fnuz()</font>
+ 
+<div style="margin-left: 2em">
+ 
+**原生文档**：[torch.TypedStorage.float8_e4m3fnuz](https://pytorch.org/docs/2.7/storage.html#torch.TypedStorage.float8_e4m3fnuz)
+ 
+**产品支持情况**：
+
+<!-- npu="910b" id373 -->
+- <term>Atlas A2训练系列产品</term>：不支持
+<!-- end id373 -->
+<!-- npu="A3" id374 -->
+- <term>Atlas A3训练系列产品</term>：不支持
+<!-- end id374 -->
+<!-- npu="950" id375 -->
+- <term>Ascend 950DT系列产品</term>：不支持
+<!-- end id375 -->
+ 
+</div>
+ 
 > <font size="3">float8_e5m2()</font>
 
 <div style="margin-left: 2em">
