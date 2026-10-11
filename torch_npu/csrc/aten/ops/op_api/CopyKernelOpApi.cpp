@@ -28,6 +28,7 @@
 #include "torch_npu/csrc/aten/NPUOpApiNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
+#include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/aten/common/FormatCastHelper.h"
 #include "third_party/op-plugin/op_plugin/utils/op_api_common.h"
 #ifndef BUILD_LIBTORCH
@@ -241,21 +242,37 @@ at::Tensor& NPUNativeOpApiFunctions::copy_(at::Tensor& self, const at::Tensor& s
     auto maybe_outnames = at::namedinference::compute_broadcast_outnames(self, src);
 
     // aclnnInplaceCopy corrupts internal-format storage: on A2/A3 fall back to
-    // the native copy_, on Ascend950 only d2h is supported (cast to base first).
+    // the native copy_; on Ascend950 allow compatible NZ d2d memcpy and d2h
+    // (cast to base first).
     const bool self_is_base = FormatHelper::IsOpInputBaseFormat(self);
     const bool src_is_base = FormatHelper::IsOpInputBaseFormat(src);
+    bool use_nz_memcpy = false;
     if (!self_is_base || !src_is_base) {
         if (!c10_npu::IsAclnnOnly()) {
             return NPUNativeFunctions::copy_(self, src, non_blocking);
         }
-        TORCH_CHECK(!torch_npu::utils::is_npu(self),
+        // Require each tensor to match its storage metadata before copying
+        // the entire padded storage. Detached slices may not be views.
+        use_nz_memcpy = !self_is_base && !src_is_base && self.device() == src.device() &&
+            !self.is_view() && !src.is_view() && self.is_contiguous() && src.is_contiguous() &&
+            self.scalar_type() == src.scalar_type() &&
+            StorageDescHelper::MetaDataAreMatch(&self) &&
+            StorageDescHelper::MetaDataAreMatch(&src) && can_use_memcpy(self, src);
+        TORCH_CHECK(!torch_npu::utils::is_npu(self) || use_nz_memcpy,
             "The copy_ operator with internal format tensors is not supported on Ascend950, "
-            "only device-to-host copies are supported", OPS_ERROR(ErrCode::NOT_SUPPORT));
+            "except for device-to-host copies and same-device copies between contiguous, non-view NZ tensors "
+            "with the same dtype, matching shapes/storage descriptions, zero storage offsets, "
+            "and tensor metadata matching their storage base metadata",
+            OPS_ERROR(ErrCode::NOT_SUPPORT));
     }
 
     if (torch_npu::utils::is_npu(self)) {
         if (torch_npu::utils::is_npu(src)) {
-            copy_d2d_baseformat_opapi(self, src, non_blocking);
+            if (use_nz_memcpy) {
+                copy_d2d_by_memcpy(self, src);
+            } else {
+                copy_d2d_baseformat_opapi(self, src, non_blocking);
+            }
         } else {
             copy_h2d_baseformat_opapi(self, src, non_blocking);
         }
