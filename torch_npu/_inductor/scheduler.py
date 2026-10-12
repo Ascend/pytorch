@@ -490,9 +490,18 @@ def patch_scheduler():
             ):
                 return None, src_code_or_mod
             mod = PyCodeCache.load(src_code_or_mod)
-            result = async_compile.triton(
-                kernel_name="triton_", source_code=src_code_or_mod
-            )
+            try:
+                result = async_compile.triton(
+                    kernel_name="triton_", source_code=src_code_or_mod
+                )
+            except Exception:
+                if fusion_log.isEnabledFor(logging.DEBUG):
+                    fusion_log.debug(
+                        "Exception in compiling:",
+                        exc_info=True,
+                    )
+                return (None, None)
+
             if isinstance(result, LambdaFuture):
                 fut = result
             else:
@@ -692,15 +701,16 @@ def patch_scheduler():
 
                     # Ideally we would more narrowly catch Exceptions here but
                     # triton  will unpredictably error with valid prologue fusions
-                    except Exception as e:
+                    except Exception:
                         if fusion_log.isEnabledFor(logging.DEBUG):
                             fusion_log.debug(
-                                "Exception in compiling %s: %s",
+                                "Exception in compiling %s:",
                                 "prologue" if not epilogue_fusion else "epilogue",
-                                str(e),
+                                exc_info=True,
                             )
                         continue
-                    ready_choices.append((choice, mod_fused))
+                    if mod_fused:
+                        ready_choices.append((choice, mod_fused))
 
                 if len(ready_choices) == 0:
                     _cleanup_catlass_orphan_buffers(benchmark_catlass_orphans)
