@@ -16,6 +16,7 @@ from torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass import
     multi_slice_concat_pass,
 )
 from torch_npu._inductor.kernel.multi_slice_concat import _dedup_inputs
+from version_mark import runIfVersion
 
 
 _CAT = torch.ops.aten.cat.default
@@ -230,6 +231,7 @@ class TestMultiSliceConcatPass(TestUtils):
     # ------------------------------------------------------------------
     @parametrize('rows', [1, 32, 200])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_op_matches_cat_of_slices(self, rows, dtype):
         wide = self._wide(rows, dtype)
         widths = (128,) * len(_W128_OFFSETS)
@@ -241,6 +243,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [200])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_op_handles_mixed_widths(self, rows, dtype):
         wide = self._wide(rows, dtype)
         n = len(_MIXED_WIDTHS)
@@ -252,6 +255,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [200])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_op_handles_non_pow2_width(self, rows, dtype):
         """Model widths are all powers of two, but the template padding branch must work."""
         wide = self._wide(rows, dtype)
@@ -262,6 +266,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32, 200])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_op_masked_segment(self, rows, dtype):
         """A masked segment is equivalent to where(row mask, 0, slice)."""
         wide = self._wide(rows, dtype)
@@ -278,6 +283,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_op_multi_source(self, rows, dtype):
         """src_idx picks which source tensor each segment reads from."""
         a = self._wide(rows, dtype, cols=1024)
@@ -289,6 +295,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_op_rejects_out_of_range_segment(self, rows, dtype):
         wide = self._wide(rows, dtype)
         with self.assertRaises(RuntimeError):
@@ -296,6 +303,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_op_rejects_bad_plan(self, rows, dtype):
         """Mismatched plan lengths or out-of-range indices must raise, not miscompute."""
         wide = self._wide(rows, dtype)
@@ -308,6 +316,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_op_rejects_non_row_mask(self, rows, dtype):
         """A non-[rows, 1] mask broadcasts differently, so it must raise, not guess."""
         wide = self._wide(rows, dtype)
@@ -322,6 +331,7 @@ class TestMultiSliceConcatPass(TestUtils):
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
     @parametrize('dynamic', [False, True])
+    @runIfVersion(max="2.13")
     def test_whole_cat_collapses(self, rows, dtype, dynamic):
         wide = self._wide(rows, dtype)
         widths = (128,) * len(_W128_OFFSETS)
@@ -339,6 +349,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_mixed_widths_from_real_model(self, rows, dtype):
         """L25021 prototype: 45 segments with widths mixed 16/32/128."""
         wide = self._wide(rows, dtype)
@@ -360,6 +371,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_narrow_segments(self, rows, dtype):
         """L27947 prototype: 28 segments of width=8, the narrowest case."""
         wide = self._wide(rows, dtype)
@@ -375,6 +387,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_dynamic_batch_reruns_with_other_shape(self, rows, dtype):
         wide = self._wide(rows, dtype)
         widths = (16,) * len(_W16_OFFSETS)
@@ -393,6 +406,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_new_node_carries_fake_meta(self, rows, dtype):
         wide = self._wide(rows, dtype)
         widths = (16,) * len(_W16_OFFSETS)
@@ -412,6 +426,7 @@ class TestMultiSliceConcatPass(TestUtils):
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
     @parametrize('dynamic', [False, True])
+    @runIfVersion(max="2.13")
     def test_masked_slices_collapse(self, rows, dtype, dynamic):
         wide = self._wide(rows, dtype)
         mask = self._mask(rows)
@@ -437,6 +452,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_interleaved_masked_and_bare_collapse(self, rows, dtype):
         """cat_124 prototype: masked and bare slices strictly alternating.
 
@@ -470,6 +486,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_mask_reshaped_before_where_is_matched(self, rows, dtype):
         """Broadcasts of the condition (reshape/expand to width) must be stripped."""
         wide = self._wide(rows, dtype)
@@ -497,6 +514,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_mask_chain_stops_at_deepest_row_mask(self, rows, dtype):
         """Broadcast stripping must stop at the deepest [rows, 1].
 
@@ -534,6 +552,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_two_masks_registered_separately(self, rows, dtype):
         wide = self._wide(rows, dtype)
         m0, m1 = self._mask(rows), self._mask(rows)
@@ -558,6 +577,7 @@ class TestMultiSliceConcatPass(TestUtils):
     # ------------------------------------------------------------------
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_two_bases_merge_into_one_run(self, rows, dtype):
         """Slices of different bases can share one op; each source costs one pointer arg."""
         a, b = self._wide(rows, dtype), self._wide(rows, dtype)
@@ -580,6 +600,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_source_cap_splits_run(self, rows, dtype):
         a, b = self._wide(rows, dtype), self._wide(rows, dtype)
 
@@ -601,6 +622,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_mask_cap_splits_run(self, rows, dtype):
         wide = self._wide(rows, dtype)
         m0, m1 = self._mask(rows), self._mask(rows)
@@ -623,6 +645,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_masks_disabled_falls_back_to_bare_slices(self, rows, dtype):
         wide = self._wide(rows, dtype)
         mask = self._mask(rows)
@@ -638,6 +661,7 @@ class TestMultiSliceConcatPass(TestUtils):
     # ------------------------------------------------------------------
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_slices_mixed_with_dense_input(self, rows, dtype):
         wide = self._wide(rows, dtype)
         dense = torch.randn((rows, 64), dtype=torch.float16, device=torch.device("npu"))
@@ -658,6 +682,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_interleaved_slices_split_into_runs(self, rows, dtype):
         wide = self._wide(rows, dtype)
         dense = torch.randn((rows, 8), dtype=torch.float16, device=torch.device("npu"))
@@ -682,6 +707,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_segment_cap_splits_run(self, rows, dtype):
         wide = self._wide(rows, dtype)
         widths = (128,) * len(_W128_OFFSETS)
@@ -703,6 +729,7 @@ class TestMultiSliceConcatPass(TestUtils):
     # ------------------------------------------------------------------
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_whole_inputs_alone_not_rewritten(self, rows, dtype):
         """aclnnCat reads contiguous inputs directly; folding them in adds a dispatch."""
         a = self._wide(rows, dtype, cols=64)
@@ -716,6 +743,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_whole_input_joins_paying_run(self, rows, dtype):
         """A whole input saves nothing alone, but rides along a run that already pays."""
         wide = self._wide(rows, dtype)
@@ -734,6 +762,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_single_masked_slice_with_whole_input_not_rewritten(self, rows, dtype):
         """Only one segment costs a dispatch, so the rewrite gains nothing."""
         wide = self._wide(rows, dtype)
@@ -750,6 +779,7 @@ class TestMultiSliceConcatPass(TestUtils):
     # ------------------------------------------------------------------
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_single_slice_not_rewritten(self, rows, dtype):
         """One slice means one dispatch before and after, so there is no gain."""
         wide = self._wide(rows, dtype)
@@ -763,6 +793,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_row_direction_cat_not_rewritten(self, rows, dtype):
         wide = self._wide(rows, dtype)
 
@@ -773,6 +804,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_slice_on_other_dim_not_rewritten(self, rows, dtype):
         """The slice axis differs from the concat axis, so these are not column segments."""
         wide = self._wide(rows, dtype)
@@ -784,6 +816,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_strided_slice_not_rewritten(self, rows, dtype):
         wide = self._wide(rows, dtype)
 
@@ -795,6 +828,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_mixed_dtype_not_rewritten(self, rows, dtype):
         """cat promotes mismatched dtypes, the op does not, so leave it to the original."""
         a, b = self._wide(rows, 'float16'), self._wide(rows, 'float32')
@@ -806,6 +840,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [8])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_three_dim_not_rewritten(self, rows, dtype):
         """The op only supports 2D; higher rank goes back to the original cat."""
         x = torch.randn((rows, 4, 256), dtype=torch.float16, device=torch.device("npu"))
@@ -817,6 +852,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_computed_base_not_rewritten(self, rows, dtype):
         """Skip computed bases so they are not forced to materialize early.
 
@@ -835,6 +871,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_masked_computed_base_not_rewritten(self, rows, dtype):
         """The selected value of a masked segment must also come from a graph input."""
         wide = self._wide(rows, dtype)
@@ -849,6 +886,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_elementwise_mask_not_rewritten(self, rows, dtype):
         """An elementwise mask is not row-wise, so the op cannot express it."""
         wide = self._wide(rows, dtype)
@@ -868,6 +906,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_nonzero_fill_not_rewritten(self, rows, dtype):
         wide = self._wide(rows, dtype)
         mask = self._mask(rows)
@@ -883,6 +922,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_where_between_two_slices_not_rewritten(self, rows, dtype):
         """Selecting between two slices reads two places, not zero-fill; unsupported."""
         wide = self._wide(rows, dtype)
@@ -898,6 +938,7 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
+    @runIfVersion(max="2.13")
     def test_slice_shared_with_other_consumer_is_kept(self, rows, dtype):
         wide = self._wide(rows, dtype)
 
@@ -919,6 +960,7 @@ class TestMultiSliceConcatPass(TestUtils):
     # ------------------------------------------------------------------
     # input dedup in lowering, pinned here since the case above needs the whole chain
     # ------------------------------------------------------------------
+    @runIfVersion(max="2.13")
     def test_dedup_inputs_merges_aliased_buffers(self):
         """Duplicate inputs on one buffer merge, indices are remapped, and -1 stays."""
         first, second = _StubInput("buf5"), _StubInput("buf5")
@@ -926,12 +968,14 @@ class TestMultiSliceConcatPass(TestUtils):
         self.assertEqual(nodes, [first])
         self.assertEqual(indices, [0, -1, 0, 0, 0])
 
+    @runIfVersion(max="2.13")
     def test_dedup_inputs_keeps_distinct_buffers(self):
         first, second = _StubInput("buf5"), _StubInput("buf7")
         nodes, indices = _dedup_inputs([first, second], [1, 0, -1])
         self.assertEqual(nodes, [first, second])
         self.assertEqual(indices, [1, 0, -1])
 
+    @runIfVersion(max="2.13")
     def test_dedup_inputs_rejects_same_buffer_different_layout(self):
         """Same name, different layouts fight over one arg slot; caller must fall back."""
         broadcast = _StubInput("buf5", stride=(0, 1))

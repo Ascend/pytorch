@@ -25,6 +25,7 @@ from torch.testing._internal.common_utils import (
     parametrize,
 )
 from torch.testing._internal.inductor_utils import requires_triton
+from version_mark import runIfVersion
 
 
 DEVICES = ("npu", "cpu")
@@ -61,6 +62,7 @@ class TestCachingPrecompileCodeCache(TestCase):
     @parametrize("dynamic", (False, True))
     @parametrize("device", DEVICES)
     @parametrize("dtype", (torch.float32, torch.bfloat16))
+    @runIfVersion(max="2.13")
     def test_cache_hot_load_caching_precompile(self, device, dtype, dynamic):
         if device == "npu" and not torch.npu.is_available():
             raise unittest.SkipTest("Requires NPU")
@@ -156,6 +158,7 @@ class TestCodeCache(TestCase):
         self._tmpdir.cleanup()
         super().tearDown()
 
+    @runIfVersion(max="2.13")
     def test_codecache(self):
         device_properties = torch_npu.npu.get_device_properties(
             torch_npu.npu.current_device()
@@ -171,6 +174,7 @@ class TestCodeCache(TestCase):
         self.assertEqual(system2["device"]["name"], device_properties.name)
         self.assertEqual(system2["version"]["cann"], torch.version.cann)
 
+    @runIfVersion(max="2.13")
     def test_fx_graph_cache_constant_device(self):
         """fx_graph_cache: tensor constants should remain on NPU after cache load."""
 
