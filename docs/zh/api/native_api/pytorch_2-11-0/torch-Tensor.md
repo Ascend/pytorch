@@ -4984,10 +4984,9 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id681 -->
 <!-- npu="950" id682 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id682 -->
 
-**限制与说明**： `self`仅支持fp32
 
 </div>
 
