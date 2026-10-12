@@ -83,6 +83,10 @@ def _activate():
     # the monster splits into several <=15-load kernels, ~45s, bit-exact.
     apply_npu_overrides()
 
+    # NPU GEMM template heuristics (triton::mm/bmm @ npu) + the "npu" entry in
+    # the benchmarker dispatch registry; both register at module import.
+    from . import npu_template_heuristics  # noqa: F401
+
     device.register_device_op_overrides_for_npu()
 
     from .lowering import (
