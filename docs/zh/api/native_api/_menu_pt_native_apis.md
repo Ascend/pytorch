@@ -63,6 +63,7 @@
   - [torch.utils.tensorboard](./pytorch_2-14-0/torch-utils-tensorboard.md)
   - [Type Info](./pytorch_2-14-0/Type-Info.md)
   - [torch.\_\_config\_\_](./pytorch_2-14-0/torch-__config__.md)
+  - [torch.\_\_future\_\_](./pytorch_2-14-0/torch-__future__.md)
 
 - [PyTorch 2.13.0版本](./pytorch_2-13-0/PyTorch-2-13-0.md)
   - [概述](./pytorch_2-13-0/overview.md)
@@ -326,6 +327,7 @@
   - [Type Info](./pytorch_2-10-0/Type-Info.md)
   - [Named Tensors](./pytorch_2-10-0/Named-Tensors.md)
   - [torch.\_\_config\_\_](./pytorch_2-10-0/torch-__config__.md)
+  - [torch.\_\_future\_\_](./pytorch_2-10-0/torch-__future__.md)
 
 - [PyTorch 2.9.0版本](./pytorch_2-9-0/PyTorch-2-9-0.md)
   - [概述](./pytorch_2-9-0/overview.md)
@@ -392,6 +394,7 @@
   - [Type Info](./pytorch_2-9-0/Type-Info.md)
   - [Named Tensors](./pytorch_2-9-0/Named-Tensors.md)
   - [torch.\_\_config\_\_](./pytorch_2-9-0/torch-__config__.md)
+  - [torch.\_\_future\_\_](./pytorch_2-9-0/torch-__future__.md)
 
 - [PyTorch 2.7.1版本](./pytorch_2-7-1/PyTorch-2-7-1.md)
   - [概述](./pytorch_2-7-1/overview.md)

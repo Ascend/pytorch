@@ -52,3 +52,43 @@
 <!-- end id6 -->
 
 </div>
+
+### torch.\_\_future\_\_.set_swap_module_params_on_conversion
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.\_\_future\_\_.set_swap_module_params_on_conversion](https://pytorch.org/docs/2.13/future_mod.html#torch.__future__.set_swap_module_params_on_conversion)
+
+**产品支持情况**：
+
+<!-- npu="910b" id7 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id7 -->
+<!-- npu="A3" id8 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id8 -->
+<!-- npu="950" id9 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id9 -->
+
+</div>
+
+### torch.\_\_future\_\_.get_swap_module_params_on_conversion
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.\_\_future\_\_.get_swap_module_params_on_conversion](https://pytorch.org/docs/2.13/future_mod.html#torch.__future__.get_swap_module_params_on_conversion)
+
+**产品支持情况**：
+
+<!-- npu="910b" id10 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id10 -->
+<!-- npu="A3" id11 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id11 -->
+<!-- npu="950" id12 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id12 -->
+
+</div>
