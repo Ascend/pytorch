@@ -373,7 +373,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id50 -->
 <!-- npu="950" id51 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id51 -->
 
 </div>
