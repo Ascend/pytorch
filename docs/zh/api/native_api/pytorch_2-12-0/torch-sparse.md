@@ -347,3 +347,23 @@
 <!-- end id48 -->
 
 </div>
+
+### torch.sparse.spdiags
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.sparse.spdiags](https://pytorch.org/docs/2.12/generated/torch.sparse.spdiags.html)
+
+**产品支持情况**：
+
+<!-- npu="910b" id46 -->
+- <term>Atlas A2训练系列产品</term>：不支持
+<!-- end id46 -->
+<!-- npu="A3" id47 -->
+- <term>Atlas A3训练系列产品</term>：不支持
+<!-- end id47 -->
+<!-- npu="950" id48 -->
+- <term>Ascend 950DT系列产品</term>：不支持
+<!-- end id48 -->
+
+</div>
