@@ -105,7 +105,9 @@ on:
           one pytest.main() call per same-file batch (max 100 cases) with
           a batch-level junit XML. No NPU poisoner checks and no worker
           restarts — a crashed/hung batch marks all its cases as error.
-          Keep false for PR-gated flows (whitelist-verified only).
+          Both current callers (the manual pipeline and the PR-gated
+          receive-trigger flow) enable this: the passed-case whitelist
+          keeps failures rare.
 
 defaults:
   run:

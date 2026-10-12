@@ -6,11 +6,12 @@ run-name: >-
 
 # Manual full pipeline: build the latest pytorch/pytorch (main) and
 # Ascend/pytorch (master, torch_npu) and run a full validation pass
-# through the same reusable workflows as Receive Trigger
-# (receive-trigger.yml), but with manual-only parameters: nightly-style
-# full-scan categorization, a passed-testcases intersection as the case
-# filter, and the merged-batch executor. NO upstream reporting:
-# report_to_upstream is false everywhere, so every
+# through the same reusable workflows and the same test mechanism as
+# Receive Trigger (receive-trigger.yml): nightly-style full-scan
+# categorization, a passed-testcases intersection as the case filter,
+# and the merged-batch executor. The only differences are the trigger
+# (manual dispatch/push vs upstream events) and NO upstream reporting:
+# report_to_upstream is false everywhere here, so every
 # pytorch/test-infra cross-repo-ci-relay-callback step is skipped
 # (a manual run has no upstream PR context to report against).
 #
@@ -51,8 +52,9 @@ on:
   # is included on purpose: it IS this pipeline's case filter (collected
   # cases are intersected with it), so removing a failing case from the
   # list and pushing is the git-only way to validate the updated case set.
-  # The PR skip list is deliberately NOT here: this pipeline no longer
-  # consumes it (the PR-gated flow does). All other routine ci-test pushes
+  # The PR skip list is deliberately NOT here: no build-and-test pipeline
+  # on this branch consumes it (only _pytorch_coverage.yml still does).
+  # All other routine ci-test pushes
   # never start multi-hour runs. Touching either file and pushing is the
   # git-only way to trigger a run — needed because workflow_dispatch
   # requires the file on the default branch (master), while push events
@@ -121,6 +123,6 @@ jobs:
       # poisoner checks / worker restarts: a crashed or hung batch marks
       # all its cases as error — acceptable here because the whitelist
       # keeps failures rare and every failure gets a manual root cause.
-      # PR-gated flows (receive-trigger) keep the default per-case runner.
+      # The PR-gated flow (receive-trigger) uses the same executor.
       batch_execution: true
       runner_label: 'linux-aarch64-a3-800i-2-cn12-001'

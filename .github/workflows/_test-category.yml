@@ -107,9 +107,9 @@ jobs:
           echo "prefix=${PREFIX}" >> "$GITHUB_OUTPUT"
 
       # Python version is read from the image itself (the conda env on
-      # PATH), never hardcoded: this workflow is shared by callers on
-      # py3.10 images (receive-trigger) and py3.11 images (manual). Used
-      # only by the upstream job-name labels below.
+      # PATH), never hardcoded: callers may run py3.10 or py3.11 images
+      # (both current callers, receive-trigger and manual, use py3.11).
+      # Used only by the upstream job-name labels below.
       - name: Compute Python version
         id: pyver
         run: |

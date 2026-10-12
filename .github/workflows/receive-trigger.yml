@@ -298,7 +298,7 @@ jobs:
       upstream_ref: ${{ needs.extract.outputs.upstream_ref || needs.extract.outputs.merge_sha || 'main' }}
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: master
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609230923-00b993fc
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610100525-b27ba05f
       report_to_upstream: true
       runner_label: 'linux-aarch64-cpu-24'
       max_jobs: '23'
@@ -312,10 +312,35 @@ jobs:
       resolved_short: ${{ needs.build.outputs.resolved_short }}
       torch_npu_short: ${{ needs.build.outputs.torch_npu_short }}
       wheels_tarball: ${{ needs.build.outputs.wheels_tarball }}
-      case_paths_config: .github/config/pr_test_whitelist.yml
-      skip_list: .github/config/pr_skip_list.jsonl
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609230923-00b993fc
+      # Same test mechanism as the manual pipeline: nightly-style full
+      # scan (all test_*.py files, 3-pass classification via
+      # nightly_test_categories.yml: files > paths > others). Per-category
+      # workers/runner labels flow from the config into the shard matrix
+      # automatically.
+      case_paths_config: .github/config/nightly_test_categories.yml
+      full_scan: true
+      # Case-level intersection with the passed-testcases file: only
+      # historically PASSED nodeids are executed. When a case starts
+      # failing, remove its nodeid from the file (and commit) instead of
+      # maintaining a skip list — the PR skip list is no longer consumed
+      # by this pipeline.
+      case_whitelist: .github/config/privateuse1_npu_passed_testcases.json
+      # Shard thresholds aligned with the manual/nightly pipelines.
+      shard_threshold_regular: 50000
+      shard_threshold_distributed: 3000
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610100525-b27ba05f
+      # PR gate: keep reporting results to the upstream dashboard.
       report_to_upstream: true
+      # Keep hw_classification/device_env in sync with the passed list's
+      # nodeid form (ACCELERATOR + privateuse1 -> *PRIVATEUSE1 classes);
+      # the intersection only matches same-shape nodeids.
       hw_classification: 'ACCELERATOR'
       device_env: 'privateuse1'
+      # Merged-batch executor (one pytest.main() per same-file batch of
+      # max 100 cases, batch-level junit XML), same as the manual
+      # pipeline. No poisoner checks / worker restarts: a crashed or hung
+      # batch marks all its cases as error — acceptable because the
+      # whitelist keeps failures rare and every failure gets a manual
+      # root cause.
+      batch_execution: true
       runner_label: 'linux-aarch64-a3-800i-2-cn12-001'

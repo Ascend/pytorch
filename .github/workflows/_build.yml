@@ -262,8 +262,8 @@ jobs:
     steps:
       # Python version is read from the image itself (the conda env on
       # PATH), never hardcoded: this workflow is shared by callers on
-      # py3.10 images (receive-trigger, coverage) and py3.11 images
-      # (manual). Feeds the torch_npu build (--python=) and the upstream
+      # py3.10 images (coverage) and py3.11 images (receive-trigger,
+      # manual). Feeds the torch_npu build (--python=) and the upstream
       # job-name labels.
       - name: Compute Python version
         id: pyver
