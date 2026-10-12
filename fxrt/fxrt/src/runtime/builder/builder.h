@@ -22,7 +22,7 @@ class Executor;
  * computational graph. It analyzes tensor dependencies, creates operator runners,
  * and builds the final executor with all necessary components.
  */
-class DA_API Builder {
+class FXRT_EXPORT Builder {
  public:
   Builder() = delete;
   explicit Builder(const ir::GraphPtr& graph) : graph_(graph) {}

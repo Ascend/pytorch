@@ -9,7 +9,7 @@
 
 namespace fxrt {
 namespace common {
-class DA_API DynamicLibLoader {
+class FXRT_EXPORT DynamicLibLoader {
  public:
   DynamicLibLoader() {
     filePath_ = GetFilePathFromDlInfo();

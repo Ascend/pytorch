@@ -11,7 +11,7 @@
 
 namespace fxrt {
 namespace ops {
-DA_API int8_t GetCubeMathType();
+FXRT_EXPORT int8_t GetCubeMathType();
 
 } // namespace ops
 } // namespace fxrt

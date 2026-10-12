@@ -5,7 +5,7 @@
 
 namespace fxrt {
 namespace runtime {
-class DA_API PipelineBuilder : public Builder {
+class FXRT_EXPORT PipelineBuilder : public Builder {
  public:
   PipelineBuilder() = delete;
   explicit PipelineBuilder(const ir::GraphPtr& graph);

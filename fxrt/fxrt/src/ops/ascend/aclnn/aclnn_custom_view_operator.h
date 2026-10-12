@@ -42,7 +42,7 @@ namespace ops {
  * Helpers available from "ops/ascend/aclnn/utils/view_utils.h": CalculateViewStrides, CalculateStrides,
  * GetTensorStrides, DynamicDimWrap, UpdateTensorViewInfo.
  */
-class DA_API AclnnCustomViewOperator : public Operator {
+class FXRT_EXPORT AclnnCustomViewOperator : public Operator {
  public:
   AclnnCustomViewOperator() = default;
   ~AclnnCustomViewOperator() override = default;

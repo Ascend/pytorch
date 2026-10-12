@@ -6,7 +6,7 @@
 
 namespace fxrt {
 namespace runtime {
-class DA_API KernelCaptureBuilder : public Builder {
+class FXRT_EXPORT KernelCaptureBuilder : public Builder {
  public:
   KernelCaptureBuilder() = delete;
   explicit KernelCaptureBuilder(const ir::GraphPtr& graph);

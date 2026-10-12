@@ -10,7 +10,7 @@
 namespace fxrt {
 namespace collective {
 
-class DA_API CommunicationGroup {
+class FXRT_EXPORT CommunicationGroup {
  public:
   explicit CommunicationGroup(
       const std::string& name,

@@ -99,7 +99,7 @@ class Tuple : public RefCounted {
  * This class can hold a variety of types, including tensors, scalars, strings,
  * and tuples. It uses a tagged union to store the data efficiently.
  */
-class DA_API Value : public RefCounted {
+class FXRT_EXPORT Value : public RefCounted {
  public:
   /**
    * @brief Enumeration of the possible types a Value can hold.

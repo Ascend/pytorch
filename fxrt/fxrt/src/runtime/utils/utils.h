@@ -26,7 +26,7 @@ FXRT_EXPORT bool IsAclGraphEnabled();
 
 inline bool IsSkipRecordRefCount(ir::NodePtr tensor) {
   CHECK_IF_NULL(tensor);
-  return (tensor->op == ops::Op_End || tensor->op == ops::Op_load || tensor->op == ops::Op_update_state);
+  return tensor->op == ops::Op_End;
 }
 
 inline bool IsNodeOutputFromInput(ir::NodePtr tensor) {

@@ -14,7 +14,7 @@ namespace ops {
  * Users need to inherit this class and implement Launch methods,
  * Note: InferShape function is not concerned, shape inference is handled automatically by the system.
  */
-class DA_API CPUCustomOperator : public Operator {
+class FXRT_EXPORT CPUCustomOperator : public Operator {
  public:
   CPUCustomOperator() = default;
   ~CPUCustomOperator() override = default;

@@ -8,7 +8,7 @@
 
 namespace fxrt {
 namespace runtime {
-class DA_API PipelineExecutor : public Executor {
+class FXRT_EXPORT PipelineExecutor : public Executor {
  public:
   PipelineExecutor() = delete;
   PipelineExecutor(

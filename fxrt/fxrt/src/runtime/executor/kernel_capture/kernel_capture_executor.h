@@ -17,7 +17,7 @@ using MempoolId_t = std::pair<CaptureId_t, CaptureId_t>;
 using BeginAllocFunc = std::function<void(MempoolId_t)>;
 using EndAllocFunc = std::function<void(MempoolId_t)>;
 class KernelCaptureBuilder;
-class DA_API KernelCaptureExecutor : public PipelineExecutor {
+class FXRT_EXPORT KernelCaptureExecutor : public PipelineExecutor {
  public:
   KernelCaptureExecutor() = delete;
   KernelCaptureExecutor(
@@ -56,7 +56,7 @@ class DA_API KernelCaptureExecutor : public PipelineExecutor {
   ir::ValuePtr currentOutput_{nullptr};
 };
 
-class DA_API KernelCaptureExecutorManager {
+class FXRT_EXPORT KernelCaptureExecutorManager {
  public:
   static KernelCaptureExecutorManager& GetInstance();
 

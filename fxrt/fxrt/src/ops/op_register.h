@@ -44,9 +44,9 @@ struct OpFactoryTraits<CPUOpFactory> {
 };
 
 // Function for loading op libs.
-DA_API bool LoadOpLib(const std::string& opLibPrefix, std::stringstream* errMsg);
+FXRT_EXPORT bool LoadOpLib(const std::string& opLibPrefix, std::stringstream* errMsg);
 
-class DA_API OpFactoryBase {
+class FXRT_EXPORT OpFactoryBase {
   using OpFactoryMapType = std::unordered_map<std::string_view, std::unique_ptr<OpFactoryBase>>;
 
  public:
@@ -175,7 +175,7 @@ class OpRegistrar {
 // input count against the op prototype and drive the custom_call fallback.
 // The registration site (next to FXRT_REG_OP in each op file) is the single source
 // of truth for the op prototype; there is no external schema file any more.
-class DA_API OpPrototypeRegistry {
+class FXRT_EXPORT OpPrototypeRegistry {
  public:
   static void Register(const std::string& opName, size_t tensorInputCount);
   static const size_t* GetTensorInputCount(const std::string& opName);

@@ -57,7 +57,7 @@ using _aclSetDynamicTensorAddrFuncPtr = int (*)(
     aclTensorList* tensors,
     void* addr);
 
-#define DECLARE_ACLNN_COMMON_META_FUNC(name) DA_API _##name##FuncPtr name##_ = nullptr
+#define DECLARE_ACLNN_COMMON_META_FUNC(name) FXRT_EXPORT _##name##FuncPtr name##_ = nullptr
 
 #define EXTERN_ACLNN_COMMON_META_FUNC(name) \
   extern _##name##FuncPtr name##_;          \

@@ -58,8 +58,8 @@ namespace fxrt::device::ascend {
 
 #define HAS_ASCEND_API(funcName) HasAscendApi(fxrt::device::ascend::funcName##_)
 
-DA_API std::string GetAscendPath();
-DA_API const char* GetAscendSocVersion();
+FXRT_EXPORT std::string GetAscendPath();
+FXRT_EXPORT const char* GetAscendSocVersion();
 void* GetLibHandler(const std::string& libPath, bool ifGlobal = false);
 void LoadAscendApiSymbols();
 void LoadSimulationApiSymbols();

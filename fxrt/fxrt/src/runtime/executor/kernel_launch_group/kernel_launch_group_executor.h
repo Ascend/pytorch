@@ -14,7 +14,7 @@
 
 namespace fxrt {
 namespace runtime {
-class DA_API KernelLaunchGroupExecutor : public PipelineExecutor {
+class FXRT_EXPORT KernelLaunchGroupExecutor : public PipelineExecutor {
  public:
   KernelLaunchGroupExecutor(
       const std::shared_ptr<std::vector<OpRunner>>& opRunners,

@@ -60,8 +60,18 @@ ExecutionMode GetExecutionMode() {
 
 const std::vector<std::string> GetEnvKernelLibPaths() {
   std::vector<std::string> kernelLibPaths{};
-  constexpr char kKernelLibPathsEnvName[] = "DART_KERNEL_LIB_PATH";
+  constexpr char kKernelLibPathsEnvName[] = "FXRT_KERNEL_LIB_PATH";
+  // The name fxrt used before it moved into torch_npu. Kept for one release so existing
+  // setups keep working; drop it afterwards.
+  constexpr char kLegacyKernelLibPathsEnvName[] = "DART_KERNEL_LIB_PATH";
   const char* pathsCStr = std::getenv(kKernelLibPathsEnvName);
+  if (pathsCStr == nullptr) {
+    pathsCStr = std::getenv(kLegacyKernelLibPathsEnvName);
+    if (pathsCStr != nullptr) {
+      RT_GLOG(WARNING) << kLegacyKernelLibPathsEnvName << " is deprecated, use " << kKernelLibPathsEnvName
+                       << " instead.";
+    }
+  }
   if (pathsCStr == nullptr) {
     return kernelLibPaths;
   }

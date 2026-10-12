@@ -11,14 +11,14 @@ namespace fxrt {
 namespace ops {
 
 // The register entry of new kernel lib.
-#define DART_REGISTER_KERNEL_LIB(KERNEL_LIB_NAME, KERNEL_LIB_CLASS)                 \
+#define FXRT_REGISTER_KERNEL_LIB(KERNEL_LIB_NAME, KERNEL_LIB_CLASS)                 \
   static const fxrt::ops::KernelLibRegistrar g_kernel_lib_##KERNEL_LIB_CLASS##_reg( \
       KERNEL_LIB_NAME, []() { return new (std::nothrow) KERNEL_LIB_CLASS(); });
 
 class KernelLib;
 using KernelLibCreator = std::function<KernelLib*()>;
 
-class DA_API KernelLib {
+class FXRT_EXPORT KernelLib {
  public:
   explicit KernelLib(const std::string&& name) : name_(std::move(name)) {}
   virtual ~KernelLib() = default;
@@ -32,7 +32,7 @@ class DA_API KernelLib {
   std::string name_;
 };
 
-class DA_API KernelLibRegistry {
+class FXRT_EXPORT KernelLibRegistry {
  public:
   static KernelLibRegistry& Instance();
 
@@ -50,7 +50,7 @@ class DA_API KernelLibRegistry {
   std::unordered_map<std::string, void*> kernelLibHandles_;
 };
 
-class DA_API KernelLibRegistrar {
+class FXRT_EXPORT KernelLibRegistrar {
  public:
   KernelLibRegistrar(const std::string& name, const KernelLibCreator&& creator) {
     KernelLibRegistry::Instance().Register(name, std::move(creator));

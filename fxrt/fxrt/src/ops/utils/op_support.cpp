@@ -21,9 +21,7 @@ bool IsOpSupportWhitelisted(const std::string& opName) {
   static const std::unordered_set<std::string> whitelist = {
       "make_tuple",
       "tuple_getitem",
-      "depend",
       "return",
-      "update_state",
       "gather",
       "constant_pad_nd",
       "full_like",

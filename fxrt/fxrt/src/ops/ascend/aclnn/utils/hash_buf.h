@@ -11,8 +11,8 @@ namespace fxrt {
 namespace ops {
 inline constexpr int gHashBufSize = 8192;
 inline constexpr int gHashBufMaxSize = gHashBufSize + 1024;
-extern DA_API thread_local char gHashBuf[gHashBufSize];
-extern DA_API thread_local int gHashOffset;
+extern FXRT_EXPORT thread_local char gHashBuf[gHashBufSize];
+extern FXRT_EXPORT thread_local int gHashOffset;
 
 inline void MemcpyToBuf(const void* data, size_t size) {
   if (size == 0) {
@@ -32,7 +32,7 @@ inline void MemcpyToBuf(const void* data, size_t size) {
   gHashOffset += size;
 }
 
-DA_API uint64_t GenHash(const void* key, const int len, const uint32_t seed = 0xdeadb0d7);
+FXRT_EXPORT uint64_t GenHash(const void* key, const int len, const uint32_t seed = 0xdeadb0d7);
 
 inline uint64_t CalcHashId() {
   if (gHashOffset == gHashBufMaxSize) {

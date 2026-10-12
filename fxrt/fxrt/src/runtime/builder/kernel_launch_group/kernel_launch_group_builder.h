@@ -9,7 +9,7 @@
 
 namespace fxrt {
 namespace runtime {
-class DA_API KernelLaunchGroupBuilder : public Builder {
+class FXRT_EXPORT KernelLaunchGroupBuilder : public Builder {
  public:
   explicit KernelLaunchGroupBuilder(const ir::GraphPtr& graph);
   ~KernelLaunchGroupBuilder() override = default;

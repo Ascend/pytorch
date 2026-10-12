@@ -19,10 +19,10 @@
 namespace fxrt {
 namespace ops {
 // Convert dtype
-DA_API aclDataType Convert(ir::DataType::Type dtype);
+FXRT_EXPORT aclDataType Convert(ir::DataType::Type dtype);
 
 // Convert value to aclScalar
-DA_API aclScalar* Convert(const ir::Value* value);
+FXRT_EXPORT aclScalar* Convert(const ir::Value* value);
 
 // Convert ValuePtr to aclScalar
 inline aclScalar* Convert(const ir::ValuePtr& value) {

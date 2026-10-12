@@ -15,7 +15,7 @@ using ProcFunc = std::function<int()>;
 using LaunchOpFunc = std::function<void(const std::string& /* op_name */, const ProcFunc& /* func */, bool /* sync */)>;
 using WaitLaunchFinishFunc = std::function<void()>;
 
-class DA_API OpAsync {
+class FXRT_EXPORT OpAsync {
  public:
   static void SetLaunchOpFunc(const LaunchOpFunc& launchOpFunc);
   static const LaunchOpFunc& GetLaunchOpFunc();

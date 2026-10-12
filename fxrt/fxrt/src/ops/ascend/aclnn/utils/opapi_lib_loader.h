@@ -18,10 +18,10 @@ inline constexpr const char* kNameOpApiLib = "lib64/libopapi.so";
 inline constexpr const char* kNameCustOpApiLib = "/op_api/lib/libcust_opapi.so";
 extern std::unordered_map<void*, std::string> libHandlers;
 
-DA_API void LoadOpApiLib();
-DA_API void AclnnInit();
-DA_API void AclnnFinalize();
-DA_API void* GetAclnnOpApiFunc(const char* apiName);
+FXRT_EXPORT void LoadOpApiLib();
+FXRT_EXPORT void AclnnInit();
+FXRT_EXPORT void AclnnFinalize();
+FXRT_EXPORT void* GetAclnnOpApiFunc(const char* apiName);
 
 inline void* GetOpApiLibHandler(const std::string& libPath) {
   auto handler = dlopen(libPath.c_str(), RTLD_LAZY);

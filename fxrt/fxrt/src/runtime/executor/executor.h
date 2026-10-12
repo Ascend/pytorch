@@ -41,7 +41,7 @@ enum ExecutionMode : size_t {
  * running computational graph. It holds the graph and operation runners
  * needed for execution.
  */
-class DA_API Executor {
+class FXRT_EXPORT Executor {
  public:
   Executor() = delete;
   Executor(
@@ -72,7 +72,7 @@ class DA_API Executor {
   ir::ValuePtr output_{nullptr};
 };
 
-class DA_API GraphExecutor {
+class FXRT_EXPORT GraphExecutor {
  public:
   GraphExecutor();
   ~GraphExecutor();

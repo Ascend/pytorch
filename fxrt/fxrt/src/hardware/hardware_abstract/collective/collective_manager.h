@@ -18,7 +18,7 @@
 
 namespace fxrt {
 namespace collective {
-class DA_API CollectiveManager {
+class FXRT_EXPORT CollectiveManager {
  public:
   ~CollectiveManager();
   static CollectiveManager& Instance();

@@ -19,7 +19,7 @@ namespace ops {
  * etc.) without relying on static configuration files like ops.list. Supports runtime dynamic
  * loading and registration of custom operators.
  */
-class DA_API CustomOpRegistry {
+class FXRT_EXPORT CustomOpRegistry {
  public:
   using CustomOpFactory = std::function<std::unique_ptr<Operator>()>;
 
@@ -74,7 +74,7 @@ class DA_API CustomOpRegistry {
   std::unordered_map<std::string, CustomOpFactory> custom_ops_;
 };
 
-DA_API std::unique_ptr<Operator> CreateCustomOperator(const std::string& name);
+FXRT_EXPORT std::unique_ptr<Operator> CreateCustomOperator(const std::string& name);
 
 /**
  * @brief Macro for registering custom operators

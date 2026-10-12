@@ -22,7 +22,7 @@ namespace ops {
  *
  * Note: InferShape function is not concerned, shape inference is handled automatically by the system.
  */
-class DA_API AclnnCustomOperator : public Operator {
+class FXRT_EXPORT AclnnCustomOperator : public Operator {
  public:
   /**
    * @brief Constructor

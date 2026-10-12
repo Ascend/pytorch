@@ -6,6 +6,7 @@ from .strategy import (
     CopyOptStrategy,
     OpStrategy,
     DirectoryMappingStrategy,
+    FxrtStrategy,
     CoreTestStrategy
 )
 from .constants import (
@@ -52,6 +53,7 @@ class TestMgr:
             self.test_files['ut_files'] += CopyOptStrategy().identify(modify_file)
             self.test_files['ut_files'] += OpStrategy().identify(modify_file)
             self.test_files['ut_files'] += DirectoryMappingStrategy().identify(modify_file)
+            self.test_files['ut_files'] += FxrtStrategy().identify(modify_file)
             self.test_files['op_ut_files'] += OpStrategy().identify(modify_file)
             self.test_files['ut_files'] += CoreTestStrategy().identify(modify_file)
         unique_files = sorted(set(self.test_files['ut_files']))

@@ -10,6 +10,14 @@
 
 #include "common/visible.h"
 
+namespace fxrt {
+namespace common {
+
+// Declared here rather than in the global namespace: fxrt is linked into the same process as
+// torch_npu, and a global overload takes part in overload resolution for every std::vector
+// streamed anywhere in that process. Streaming the element instead of std::to_string also keeps
+// non-arithmetic T working, which std::to_string rejected. LogStream below finds this by ordinary
+// lookup, so RT_GLOG and RT_VLOG keep accepting vectors.
 template <typename T>
 std::ostream& operator<<(std::ostream& os, const std::vector<T>& vec) noexcept {
   os << "{";
@@ -17,14 +25,11 @@ std::ostream& operator<<(std::ostream& os, const std::vector<T>& vec) noexcept {
     if (i > 0) {
       os << ", ";
     }
-    os << std::to_string(vec[i]);
+    os << vec[i];
   }
   os << "}";
   return os;
 }
-
-namespace fxrt {
-namespace common {
 
 enum class GLogLevel : int { DEBUG = 0, INFO, WARNING, ERROR, CRITICAL, EXCEPTION = CRITICAL };
 

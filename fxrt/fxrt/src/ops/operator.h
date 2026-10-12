@@ -47,7 +47,7 @@ enum OpType { FxrtOp, CustomCallOp, TorchCallOp, PythonCallOp };
 // @brief Abstract base class representing a computational kernel. A Operator encapsulates the core computation logic
 // for a specific operator. Derived classes must implement shape inference and launch operations. Kernels of different
 // device types share the InferShape function, but need to implement their respective Launch functions.
-class DA_API Operator {
+class FXRT_EXPORT Operator {
  public:
   Operator() = default;
   virtual ~Operator() = default;

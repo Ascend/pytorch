@@ -7,7 +7,7 @@
 namespace fxrt {
 namespace ops {
 constexpr size_t kSizeFive = 5;
-DA_API void GatherHash(const ir::TensorPtr& tensor) {
+FXRT_EXPORT void GatherHash(const ir::TensorPtr& tensor) {
   if (tensor == nullptr || tensor->Dtype().value == ir::DataType::Type::Unknown) {
     MemcpyToBuf("None", kSizeFive);
     return;

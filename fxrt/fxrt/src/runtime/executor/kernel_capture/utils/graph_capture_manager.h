@@ -46,7 +46,7 @@ struct CaptureKernelInfo {
 using CaptureKernelInfoPtr = std::shared_ptr<CaptureKernelInfo>;
 using CaptureKernelInfoList = std::vector<CaptureKernelInfoPtr>;
 
-class DA_API GraphCaptureManager {
+class FXRT_EXPORT GraphCaptureManager {
  public:
   GraphCaptureManager() = default;
   ~GraphCaptureManager() = default;

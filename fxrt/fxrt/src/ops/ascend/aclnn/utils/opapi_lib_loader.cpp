@@ -160,6 +160,6 @@ void AclnnFinalize() {
 } // namespace ops
 } // namespace fxrt
 
-extern "C" DA_API void FxrtAclnnFinalize() {
+extern "C" FXRT_EXPORT void FxrtAclnnFinalize() {
   fxrt::ops::AclnnFinalize();
 }
