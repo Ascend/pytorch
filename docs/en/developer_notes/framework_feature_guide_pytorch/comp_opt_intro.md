@@ -1,15 +1,15 @@
 # Introduction to Compilation Optimization Technology
 
-> [!NOTE]
+> [!NOTICE]
 >
-> In the current version, compilation optimization is available only as a trial feature. This functionality may be adjusted or improved in subsequent versions. During use, you are advised to pay attention to subsequent version updates.
+> The compilation optimization function provided by BiSheng Compiler has been discarded. You can use [Clang for compilation](../../../zh/installation_guide/references/building_with_clang.md) instead.
 
 ## Compilation Technology: LTO Link-Time Optimization
 
 LTO is a mature compilation optimization technology that has been widely adopted in the industry. It reduces call overhead through cross-file function inlining, eliminates redundant code via cross-file function specialization and constant propagation, and also enables cross-language optimization. These capabilities deliver considerable performance gains. From a top-down analysis perspective, LTO is effective for both front-end and back-end bottlenecks. LTO optimization is categorized into FullLTO and ThinLTO. ThinLTO is a more recent link-time optimization technique that offers better runtime performance than FullLTO, significantly reducing the time and memory consumption of link-time optimization.
 
 **Figure 1**  LTO optimization schematic diagram  
-<img src="../figures/comp_opt_intro_fig_01.png" height="465.5" width="399.8911">
+<img src="../../figures/comp_opt_intro_fig_01.png" height="465.5" width="399.8911">
 
 ## Compilation Technology: PGO Feedback Optimization
 

@@ -1,6 +1,6 @@
 # 环境变量列表
 
-本手册描述开发者在TorchNPU训练和在线推理过程中可使用的环境变量。基于CANN构建AI应用和业务过程中使用的环境变量请参考《[CANN 环境变量参考](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/maintenref/envvar/envref_07_0001.html)》。
+本手册描述开发者在TorchNPU训练和在线推理过程中可使用的环境变量。基于CANN构建AI应用和业务过程中使用的环境变量请参考《[CANN 环境变量参考](https://gitcode.com/cann/docs/blob/9.2.0/docs/zh/env-vars/README.md)》。
 
 环境变量按使用场景分类。每项在列表中归入一个主要类别；取值、默认行为、设置时机和支持型号以详情页为准。
 

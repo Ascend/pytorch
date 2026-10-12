@@ -38,7 +38,7 @@ TorchNPU完整继承了PyTorch的并行策略，这些高层API可直接组合�
 
 PyTorch分布式通信层（C10D）提供了集合通信API（如all_reduce、all_gather）和点对点通信API（如send、isend），这些API在TorchNPU环境下通过HCCL后端提供相同的语义。
 
-- **HCCL通信后端**：TorchNPU分布式训练的集合通信库，接口语义与原生NCCL一致，支持AllReduce、Broadcast、AllGather、ReduceScatter等操作。可以先阅读[NCCL 通信说明](https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/overview.html)来了解原生通信接口，再阅读[HCCL集合通信库](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/commlib/hcclug/docs/zh/user_guide/hccl_intro.md)来掌握NPU环境下的具体操作与注意事项。
+- **HCCL通信后端**：TorchNPU分布式训练的集合通信库，接口语义与原生NCCL一致，支持AllReduce、Broadcast、AllGather、ReduceScatter等操作。可以先阅读[NCCL 通信说明](https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/overview.html)来了解原生通信接口，再阅读[HCCL集合通信库](https://gitcode.com/cann/hccl/blob/9.2.0/docs/zh/user_guide/hccl_intro.md)来掌握NPU环境下的具体操作与注意事项。
 
 - **集合通信API**：通过`torch.distributed`接口在通信后端`backend="hccl"`下使用AllReduce、Broadcast、AllGather、ReduceScatter等，使用方式与原生一致。可以阅读原生[PyTorch 集合通信](https://pytorch.org/docs/stable/distributed.html)掌握集合通信。
 

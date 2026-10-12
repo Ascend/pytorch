@@ -12,7 +12,7 @@
 
 通过 `torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options` 的 `hccl_config` 字典，可以为通信域配置HCCL参数。调用 `torch.distributed.init_process_group` 或 `torch.distributed.new_group` 时，通过 `pg_options` 传入该配置。
 
-TorchNPU将支持的配置项转换为 `HcclCommConfig` 的对应字段，并在创建HCCL通信域时传入。各字段的功能、取值范围、默认值及硬件约束，统一参见 [HcclCommConfig](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/commlib/hcclug/docs/zh/api_ref/comm_mgr_c/data_type_definition/HcclCommConfig.md)。请在该文档中选择与实际安装的CANN版本对应的说明；可用配置项还需以所使用的TorchNPU版本为准。
+TorchNPU将支持的配置项转换为 `HcclCommConfig` 的对应字段，并在创建HCCL通信域时传入。各字段的功能、取值范围、默认值及硬件约束，统一参见 [HcclCommConfig](https://gitcode.com/cann/hcomm/blob/9.2.0/docs/zh/api_ref/comm_mgr_c/data_type_definition/HcclCommConfig.md)。请在该文档中选择与实际安装的CANN版本对应的说明；可用配置项还需以所使用的TorchNPU版本为准。
 
 ### 参数对应关系
 

@@ -31,7 +31,7 @@
 
 默认值是2。
 
-此环境变量使用详情请参考《环境变量》中的“[MULTI\_STREAM\_MEMORY\_REUSE](https://www.hiascend.com/document/detail/zh/Pytorch/720/comref/Envvariables/Envir_016.html)”章节。
+此环境变量使用详情请参考《环境变量》中的“[MULTI\_STREAM\_MEMORY\_REUSE](../../api/environment_variable/memory_management/MULTI_STREAM_MEMORY_REUSE.md)”章节。
 
 ## 使用样例
 

@@ -10,9 +10,9 @@
 
 > [!NOTE]
 >
-> - acl.init接口详情请参见《CANN Runtime运行时API》中“[函数：init](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/API/runtimeapi/aclpythondevg_01_0851.html)”章节。
-> - acl.rt.set\_op\_wait\_timeout接口详情请参见《CANN Runtime运行时API》中“[函数：set\_op\_wait\_timeout](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/API/runtimeapi/aclpythondevg_01_0102.html)”章节。
-> - acl.rt.stream\_wait\_event接口详情请参见《CANN Runtime运行时API》中“[函数：stream\_wait\_event](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/API/runtimeapi/aclpythondevg_01_0101.html)”章节。
+> - acl.init接口详情请参见《CANN Runtime运行时API》中“[函数：init](https://gitcode.com/cann/runtime/blob/9.2.0/python/docs/zh/api_ref/runtime/init/function-init.md)”章节。
+> - acl.rt.set\_op\_wait\_timeout接口详情请参见《CANN Runtime运行时API》中“[函数：set\_op\_wait\_timeout](https://gitcode.com/cann/runtime/blob/9.2.0/python/docs/zh/api_ref/runtime/event/function-set_op_wait_timeout.md)”章节。
+> - acl.rt.stream\_wait\_event接口详情请参见《CANN Runtime运行时API》中“[函数：stream\_wait\_event](https://gitcode.com/cann/runtime/blob/9.2.0/python/docs/zh/api_ref/runtime/event/function-stream_wait_event.md)”章节。
 
 ## 配置示例
 
@@ -22,7 +22,7 @@ export HCCL_EVENT_TIMEOUT=1800
 
 ## 使用约束
 
-该环境变量被配置时，配置值需要大于HCCL\_EXEC\_TIMEOUT的配置值，HCCL\_EXEC\_TIMEOUT具体可参考《CANN HCCL集合通信库》中的“[HCCL\_EXEC\_TIMEOUT](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/commlib/hcclug/docs/zh/user_guide/hccl_env/HCCL_EXEC_TIMEOUT.md)”章节。
+该环境变量被配置时，配置值需要大于HCCL\_EXEC\_TIMEOUT的配置值，HCCL\_EXEC\_TIMEOUT具体可参考《CANN HCCL集合通信库》中的“[HCCL\_EXEC\_TIMEOUT](https://gitcode.com/cann/hccl/blob/9.2.0/docs/zh/user_guide/hccl_env/HCCL_EXEC_TIMEOUT.md)”章节。
 
 ## 支持的型号
 
