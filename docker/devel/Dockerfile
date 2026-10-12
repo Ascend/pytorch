@@ -85,13 +85,14 @@ RUN case "${PY_VERSION}" in \
         3.14) NUMPY_VER=2.3.4 ;; \
         *) echo "Unsupported Python version: ${PY_VERSION}" && exit 1 ;; \
     esac && \
-    pip${PY_VERSION} install pyyaml && \
-    pip${PY_VERSION} install setuptools wheel && \
+    pip${PY_VERSION} install "pyyaml>=6.0.3" "typing-extensions>=4.10.0" && \
+    pip${PY_VERSION} install "setuptools>=81.0.0" "wheel>=0.45.1" && \
     case "${TORCH_VERSION}" in \
         *.dev*) pip${PY_VERSION} install torch==${TORCH_VERSION} --extra-index-url https://download.pytorch.org/whl/nightly/cpu ;; \
         *) pip${PY_VERSION} install torch==${TORCH_VERSION} --extra-index-url https://download.pytorch.org/whl/cpu ;; \
     esac && \
-    pip${PY_VERSION} install numpy==${NUMPY_VER}
+    pip${PY_VERSION} install numpy==${NUMPY_VER} ninja && \
+    pip${PY_VERSION} install "nanobind>=2.9" "auditwheel>=5.4.0"
 
 FROM builder AS dev
 
