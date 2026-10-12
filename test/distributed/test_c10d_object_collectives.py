@@ -121,5 +121,55 @@ class TestObjectCollectives(TestCase):
 
         self.assertEqual(self.rank, output_list[0])
 
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms()
+    def test_gather_object(self):
+        gather_objects = ["foo", 12, {1: 2}, ["foo", 12, {1: 2}]]
+        obj = gather_objects[dist.get_rank()]
+        output = [None] * dist.get_world_size() if dist.get_rank() == 0 else None
+        dist.gather_object(obj=obj, object_gather_list=output, dst=0)
+        if dist.get_rank() == 0:
+            self.assertEqual(output, gather_objects)
+
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms()
+    def test_gather_object_group_dst(self):
+        # group_dst is the dst rank within `group`. For the default group
+        # (== the global group here), group_dst=0 is equivalent to dst=0.
+        gather_objects = ["foo", 12, {1: 2}, ["foo", 12, {1: 2}]]
+        obj = gather_objects[dist.get_rank()]
+        output = [None] * dist.get_world_size() if dist.get_rank() == 0 else None
+        dist.gather_object(obj=obj, object_gather_list=output, group_dst=0)
+        if dist.get_rank() == 0:
+            self.assertEqual(output, gather_objects)
+
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms()
+    def test_gather_object_subgroup(self):
+        # Sub-group [2, 3] with group_dst=0 (group-local view of global rank
+        # 2). _gather_object canonicalizes group_dst to the global dst, and
+        # torch_npu._gather must convert it back to a group-local rootRank
+        # before calling into HCCL, whose assertRootRank validates in group
+        # space (without the conversion HCCL raises "invalid root rank: 2").
+        # use_compatible_impl must be on so _gather takes the real HCCL
+        # gather path instead of the allgather fallback.
+        torch_npu.npu.use_compatible_impl(True)
+        subgroup = dist.new_group(ranks=[2, 3])
+        if self.rank in (2, 3):
+            output = [None, None] if self.rank == 2 else None
+            dist.gather_object(self.rank, object_gather_list=output,
+                               group=subgroup, group_dst=0)
+            if self.rank == 2:
+                self.assertEqual(output, [2, 3])
+
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms()
+    def test_gather_object_dst_and_group_dst_conflict(self):
+        # dst and group_dst are mutually exclusive. The check raises on all
+        # ranks before any communication happens, so assertRaises is safe
+        # (no barrier deadlock).
+        with self.assertRaises(ValueError):
+            dist.gather_object(obj="foo", object_gather_list=[None], dst=0, group_dst=0)
+
 if __name__ == "__main__":
     run_tests()
