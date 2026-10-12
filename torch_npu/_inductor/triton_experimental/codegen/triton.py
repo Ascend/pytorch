@@ -1711,6 +1711,41 @@ class NPUTritonCSEVariable(TritonCSEVariable):
             self._npu_pad = _PAD_TOP
 
 
+def _npu_int_fits_int32(value) -> bool:
+    """Whether an int64 constant survives a tl.int32 demotion without wrapping.
+
+    The int64->int32 demotion is an AIV perf heuristic (see
+    apply_npu_codegen_patches); it is value-preserving only inside int32 range.
+    A masked-reduction identity (INT64_MIN/INT64_MAX) busts it and re-renders as
+    0/-1, so callers must keep such values native tl.int64.
+    """
+    try:
+        return -(2**31) <= int(value) <= 2**31 - 1
+    except (TypeError, ValueError):
+        return False
+
+
+def _npu_wide_int_constant(value):
+    """Render an out-of-int32-range int64 constant as native tl.int64.
+
+    Mirrors TritonKernelOverrides.constant's shape selection (scalar for a
+    degenerate/fully-singleton kernel, else a [1]*ndim block) but forces
+    tl.int64, since the process-global _npu_triton_compute_type demotion would
+    otherwise re-render it as tl.int32 and wrap the value. int64 is signed, so
+    _shaped_constant's unsigned-negative and -0.0 special cases do not apply.
+    """
+    from torch._inductor.codegen.simd import constant_repr
+
+    ndim = V.kernel.triton_tensor_ndim()
+    all_singleton = all(
+        tree.numel == 1
+        for tree in V.kernel.range_trees
+        if not tree.is_reduction and tree.tensor_dim is not None
+    )
+    shape = [] if (ndim == 0 or all_singleton) else [1] * ndim
+    return f"tl.full({shape}, {constant_repr(int(value))}, tl.int64)"
+
+
 class NPUTritonKernelOverrides(TritonKernelOverrides):
     @staticmethod
     def rsqrt(x):
@@ -1734,6 +1769,14 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
 
     @classmethod
     def constant(cls, value, dtype):
+        # int64->int32 demotion is only safe while the value fits int32; an
+        # out-of-range int64 constant (masked-reduction identity INT64_MIN/MAX)
+        # wraps to 0/-1 through tl.int32. Keep those native tl.int64 and flag
+        # the kernel so codegen_kernel skips its *i64 pointer downcast (else the
+        # value re-truncates through the *i32 store/output pointer on write-back).
+        if dtype == torch.int64 and not _npu_int_fits_int32(value):
+            V.kernel._npu_has_wide_i64_const = True
+            return _npu_wide_int_constant(value)
         if dtype == torch.float64:
             dtype = torch.float32
         elif dtype == torch.int64:
@@ -2343,6 +2386,11 @@ class NPUTritonKernel(TritonKernel):
         # codegen_body time (see _maybe_rewrite_select_lane_load). Structural
         # detection replaces the old regex text classification.
         self._npu_select_lane_loads: Dict[str, Dict[str, Any]] = {}
+
+        # Set by NPUTritonKernelOverrides.constant when an int64 constant is out
+        # of int32 range (masked-reduction identity); consulted in codegen_kernel
+        # to skip the *i64->*i32 pointer downcast so the kernel stays native i64.
+        self._npu_has_wide_i64_const = False
 
         if self._npu_linearize:
             for tree in self.range_trees:
@@ -4342,6 +4390,11 @@ class NPUTritonKernel(TritonKernel):
                 downcast_args[k] = v
                 triton_meta_signature[k] = "*fp32"
             elif v == "*i64":
+                if self._npu_has_wide_i64_const:
+                    # A native tl.int64 constant lives in this kernel; leaving
+                    # the *i64 pointers untouched avoids the second truncation
+                    # (result re-wrapped through the *i32 output on store).
+                    continue
                 downcast_args[k] = v
                 triton_meta_signature[k] = "*i32"
 
