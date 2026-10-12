@@ -37,6 +37,7 @@ from torch._inductor.lowering import expand
 from ..codegen.catlass.gemm_template import CATLASS1xGemmTemplate
 from ..select_algorithm import NPUTritonTemplate
 from ..utils import use_catlass_template, use_triton_template
+from torch_npu.npu import matmul
 
 
 log = logging.getLogger("torch._inductor")
@@ -93,25 +94,42 @@ _MM_TEMPLATE = """{{def_kernel("A", "B")}}
     rm = pid_m * BLOCK_M + tl.arange(0, BLOCK_M)
     rn = pid_n * BLOCK_N + tl.arange(0, BLOCK_N)
 
+{% if MASKED_M %}
+    m_mask = rm < M
+{% endif %}
+{% if MASKED_N %}
+    n_mask = rn < N
+{% endif %}
+
     offs_k = tl.arange(0, BLOCK_K)
     acc = tl.zeros((BLOCK_M, BLOCK_N), dtype=ACC_TYPE)
 
     for k_idx in range(0, tl.cdiv(K, BLOCK_K)):
-        offs_a_k = k_idx * BLOCK_K + tl.arange(0, BLOCK_K)
-        {% if EVEN_K %}
-        a = tl.load(A + (rm[:, None] * stride_am + offs_a_k[None, :] * stride_ak))
-        b = tl.load(B + (offs_a_k[:, None] * stride_bk + rn[None, :] * stride_bn))
-        {% else %}
-        # K is not a multiple of BLOCK_K: mask out-of-bounds elements
-        k_mask = offs_a_k < K
-        a = tl.load(A + (rm[:, None] * stride_am + offs_a_k[None, :] * stride_ak), mask=k_mask[None, :], other=0.0)
-        b = tl.load(B + (offs_a_k[:, None] * stride_bk + rn[None, :] * stride_bn), mask=k_mask[:, None], other=0.0)
-        {% endif %}
-        acc += tl.dot(a, b, allow_tf32=ALLOW_TF32, out_dtype=ACC_TYPE)
+        offs_k = k_idx * BLOCK_K + tl.arange(0, BLOCK_K)
+{% if MASKED_K %}
+        k_mask = offs_k < K
+{% endif %}
+{% if MASKED_K and MASKED_M %}
+        a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak), mask=m_mask[:, None] & k_mask[None, :], other=0.0)
+{% elif MASKED_K %}
+        a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak), mask=k_mask[None, :], other=0.0)
+{% elif MASKED_M %}
+        a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak), mask=m_mask[:, None], other=0.0)
+{% else %}
+        a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak))
+{% endif %}
+{% if MASKED_K and MASKED_N %}
+        b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn), mask=k_mask[:, None] & n_mask[None, :], other=0.0)
+{% elif MASKED_K %}
+        b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn), mask=k_mask[:, None], other=0.0)
+{% elif MASKED_N %}
+        b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn), mask=n_mask[None, :], other=0.0)
+{% else %}
+        b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn))
+{% endif %}
+        acc += tl.dot(a, b{% if ALLOW_HF32 %}, input_precision="tf32"{% endif %}, out_dtype=ACC_TYPE)
 
-    # rematerialize rm and rn to save registers
-    rm = pid_m * BLOCK_M + tl.arange(0, BLOCK_M)
-    rn = pid_n * BLOCK_N + tl.arange(0, BLOCK_N)
+    # rm, rn, and m_mask are reused from above (no rematerialization).
     idx_m = rm[:, None]
     idx_n = rn[None, :]
     mask = (idx_m < M) & (idx_n < N)
@@ -190,24 +208,45 @@ _PERSISTENT_MM_TEMPLATE = """
 
             rm = pid_m * BLOCK_M + tl.arange(0, BLOCK_M)
             rn = pid_n * BLOCK_N + tl.arange(0, BLOCK_N)
+            # Pre-compute row mask once; reused in both K-loop and epilogue.
+            # This avoids redundant comparisons and enables 1D load masking
+            # for broadcast inputs (e.g. bias[N], mask[M]) in the epilogue.
+{% if MASKED_M %}
+            m_mask = rm < M
+{% endif %}
+{% if MASKED_N %}
+            n_mask = rn < N
+{% endif %}
 
             # ---- K-loop: accumulate matmul ----
             acc = tl.zeros((BLOCK_M, BLOCK_N), dtype=ACC_TYPE)
             for k_start in range(0, K, BLOCK_K):
                 offs_k = k_start + rk_init
-                {% if EVEN_K %}
-                a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak))
-                b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn))
-                {% else %}
+{% if MASKED_K %}
                 k_mask = offs_k < K
+{% endif %}
+{% if MASKED_K and MASKED_M %}
+                a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak), mask=m_mask[:, None] & k_mask[None, :], other=0.0)  # noqa: B950
+{% elif MASKED_K %}
                 a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak), mask=k_mask[None, :], other=0.0)
+{% elif MASKED_M %}
+                a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak), mask=m_mask[:, None], other=0.0)
+{% else %}
+                a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak))
+{% endif %}
+{% if MASKED_K and MASKED_N %}
+                b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn), mask=k_mask[:, None] & n_mask[None, :], other=0.0)  # noqa: B950
+{% elif MASKED_K %}
                 b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn), mask=k_mask[:, None], other=0.0)
-                {% endif %}
-                acc += tl.dot(a, b, allow_tf32=ALLOW_TF32, out_dtype=ACC_TYPE)
+{% elif MASKED_N %}
+                b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn), mask=n_mask[None, :], other=0.0)
+{% else %}
+                b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn))
+{% endif %}
+                acc += tl.dot(a, b{% if ALLOW_HF32 %}, input_precision="tf32"{% endif %}, out_dtype=ACC_TYPE)
 
             # ---- Store output (inductor generates epilogue suffix) ----
-            rm = pid_m * BLOCK_M + tl.arange(0, BLOCK_M)
-            rn = pid_n * BLOCK_N + tl.arange(0, BLOCK_N)
+            # rm, rn, and m_mask are reused from above (no rematerialization).
             idx_m = rm[:, None]
             idx_n = rn[None, :]
             mask = (idx_m < M) & (idx_n < N)
@@ -284,6 +323,267 @@ def _hint_int(val, fallback: int = 1) -> int:
         return fallback
 
 
+# ---------------------------------------------------------------------------
+# Dynamic tile config generation helpers
+# ---------------------------------------------------------------------------
+# Inspired by catlass's gemm_autotune.py generate_configs() logic and
+# the tiling optimization principles from optimization_summary.md:
+#
+#   1. BLOCK_M should ideally divide M (eliminates padding — biggest win)
+#   2. BLOCK_N uses standard 16-aligned values (64, 128, 256)
+#   3. BLOCK_K uses divisors of K (mult of 16) or standards (64, 128)
+#   4. num_stages scales with K-loop iteration count
+#   5. GROUP_M is the largest factor of NUM_BLOCKS_M ≤ 8
+#
+# This replaces the previous hardcoded tile_shapes list with a shape-aware
+# generator, significantly reducing the number of autotune configs while
+# improving coverage of good tilings (e.g. BLOCK_M=100 for M=200).
+# ---------------------------------------------------------------------------
+
+def _get_divisors(n, min_val=1, max_val=None):
+    """Get all divisors of *n* in [min_val, max_val], sorted descending.
+
+    Used to find BLOCK_M / BLOCK_N values that perfectly divide the
+    matrix dimension (eliminating padding).
+    """
+    if max_val is None:
+        max_val = n
+    if n < 1:
+        return []
+    divs = set()
+    i = 1
+    while i * i <= n:
+        if n % i == 0:
+            if min_val <= i <= max_val:
+                divs.add(i)
+            j = n // i
+            if min_val <= j <= max_val:
+                divs.add(j)
+        i += 1
+    return sorted(divs, reverse=True)
+
+
+def _gen_block_m_candidates(m, max_block_dim, max_count=5):
+    """Generate BLOCK_M candidates for dimension *m*.
+
+    Combines:
+      * **Divisors of M** in [16, min(M, max_block_dim)] — preferred
+        because they eliminate M-padding (the single biggest perf win
+        per optimization_summary.md, e.g. BLOCK_M=100 for M=200).
+      * **16-aligned standard values** (256, 128, 64, 32) as fallbacks
+        for shapes where M has few useful divisors.
+
+    Guarantees at least one candidate for any positive *m* (using the
+    minimum tile size 16 with row masking when M < 16), so that tiling
+    config generation never produces an empty candidate set.
+
+    Returns at most *max_count* candidates, sorted descending.
+    """
+    effective_max = min(m, max_block_dim)
+    # Fallback for very small M: use the minimum tile size (16) with
+    # row masking (m_mask = rm < M in the kernel template).  This
+    # guarantees a non-empty candidate set for any positive M.
+    if effective_max < 16:
+        if max_block_dim >= 16:
+            return [16]
+        # max_block_dim < 16 (extremely rare): use max_block_dim itself
+        # so we always return at least one positive candidate.
+        return [max(max_block_dim, 1)]
+
+    # Divisors of M (preferred — eliminate padding)
+    divs = _get_divisors(m, 16, effective_max)
+    # 16-aligned standards as fallback
+    standards = [s for s in [256, 128, 64, 32] if s <= effective_max]
+
+    merged = []
+    seen = set()
+    # Top 3 divisors (padding-eliminating)
+    for d in divs[:3]:
+        if d not in seen:
+            merged.append(d)
+            seen.add(d)
+    # Top standard (largest, for compute density)
+    for s in standards[:1]:
+        if s not in seen:
+            merged.append(s)
+            seen.add(s)
+    # Always include smallest standard (e.g. 32) — optimal for small-N shapes
+    if standards and standards[-1] not in seen:
+        merged.append(standards[-1])
+        seen.add(standards[-1])
+    # Safety net: if both divs and standards were empty (should not happen
+    # here since effective_max >= 16), fall back to 16.
+    if not merged:
+        merged.append(16)
+    return sorted(merged, reverse=True)[:max_count]
+
+
+def _gen_block_n_candidates(n, max_block_dim, max_count=3):
+    """Generate BLOCK_N candidates for dimension *n*.
+
+    Primarily uses 16-aligned standard values (256, 128, 64, 32) ≤ N,
+    plus divisors of N for padding elimination when N is not a round
+    number.
+
+    Guarantees at least one candidate for any positive *n* (using the
+    minimum tile size 16 with column masking when N < 16), so that
+    tiling config generation never produces an empty candidate set.
+
+    Returns at most *max_count* candidates, sorted descending.
+    """
+    effective_max = min(n, max_block_dim)
+    # Fallback for very small N: use the minimum tile size (16) with
+    # column masking (idx_n < N in the kernel template).  This
+    # guarantees a non-empty candidate set for any positive N.
+    if effective_max < 16:
+        if max_block_dim >= 16:
+            return [16]
+        # max_block_dim < 16 (extremely rare): use max_block_dim itself.
+        return [max(max_block_dim, 1)]
+
+    cands = set()
+    # Standards (primary)
+    for s in [256, 128, 64, 32]:
+        if s <= effective_max:
+            cands.add(s)
+    # Divisors of N (secondary — for non-round N)
+    # IMPORTANT: On Ascend NPU, the Cube Unit MMA instruction requires the
+    # N tile dimension (BLOCK_N) to be a multiple of 16.  Non-16-aligned
+    # divisors are rounded UP to the nearest multiple of 16 (e.g. 93->96,
+    # 68->80, 34->48) so that the hardware alignment constraint is satisfied
+    # while still offering tile sizes close to the original divisor.  This
+    # gives the autotuner a richer tiling search space than simply discarding
+    # non-aligned divisors.  Values exceeding max_block_dim after rounding
+    # are skipped.
+    for d in _get_divisors(n, 16, effective_max):
+        if d % 16 == 0:
+            cands.add(d)
+        else:
+            rounded_up = ((d + 15) // 16) * 16
+            if rounded_up <= max_block_dim:
+                cands.add(rounded_up)
+    # Safety net: if both standards and divisors were empty (should not
+    # happen here since effective_max >= 16), fall back to 16.
+    if not cands:
+        cands.add(16)
+    return sorted(cands, reverse=True)[:max_count]
+
+
+def _gen_block_k_candidates(k, max_count=3):
+    """Generate BLOCK_K candidates for dimension *k*.
+
+    Combines:
+      * **Standards** [128, 64, 32] (always useful, good pipelining).
+      * **256** when K ≥ 128 — allows a single-iteration K-loop
+        (ceil(K/256)=1) which eliminates loop overhead for
+        mid-range K values (e.g. K=204, K=128).
+      * **K itself** if 16 ≤ K ≤ 256 and K is a multiple of 16.
+      * **K/n** for n in {2, 3, 4} if the result is a multiple of 16
+        and in [16, 256] — these reduce K-loop iterations while
+        keeping EVEN_K=True (no K-mask overhead).
+
+    Guarantees at least one candidate for any positive *k*.
+    For small or non-standard K values (e.g. K=7, K=16, K=17) where
+    none of the above rules produce a candidate, falls back to the
+    minimum tile size 16 (the smallest fp16 MMA tile), which works
+    correctly with EVEN_K=False K-masking in the kernel template.
+
+    Returns at most *max_count* candidates, sorted descending.
+    """
+    cands = set()
+    # Standards — includes 32 for better small-K coverage
+    for std in [128, 64, 32]:
+        if std <= k:
+            cands.add(std)
+    # Include 256 when K is large enough (allows 1-iteration K-loop,
+    # eliminating loop overhead for mid-range K).
+    if k >= 128:
+        cands.add(256)
+    # K itself (if nice — multiple of 16 and >= 16)
+    if 16 <= k <= 256 and k % 16 == 0:
+        cands.add(k)
+    # K / n for small n (reduce K-loop iters, keep EVEN_K)
+    for divisor in (2, 3, 4):
+        if k % divisor == 0:
+            dk = k // divisor
+            if 16 <= dk <= 256 and dk % 16 == 0:
+                cands.add(dk)
+    # ---- Fallback: ensure at least one candidate for any K > 0 ----
+    # For small or non-standard K (e.g. K=7, K=17, prime K), none of
+    # the rules above may produce a candidate.  Use 16 — the minimum
+    # tile size for fp16 MMA — with EVEN_K=False K-masking (the kernel
+    # template's {% else %} branch handles k_mask = offs_k < K).
+    # This guarantees tiling config generation never returns empty.
+    if not cands:
+        cands.add(16)
+    return sorted(cands, reverse=True)[:max_count]
+
+
+def _select_num_stages(k_iters, block_k):
+    """Select num_stages list based on K-loop iteration count.
+
+    Deeper pipelines (more stages) help when there are many K
+    iterations (more parallelism to exploit). For BLOCK_K ≥ 256,
+    limit stages to avoid register overflow.
+
+    Per optimization_summary.md:
+      * K iters ≥ 10 (e.g. K=1920, 15 iters): num_stages up to 6
+      * K iters 2-9: num_stages 3-4
+      * K iters = 1: num_stages 2-3
+    """
+    if block_k >= 256:
+        return [2]  # avoid register overflow for large BLOCK_K
+    if k_iters >= 10:
+        return [4, 6]  # very deep pipeline for many K iters
+    if k_iters >= 2:
+        return [3, 4]
+    return [2, 3]
+
+
+def _gen_tile_combos(m, n, k, max_block_dim):
+    """Generate a focused set of (BLOCK_M, BLOCK_N, BLOCK_K) tile combos.
+
+    Uses the dynamic candidate generators above and combines them into
+    a limited Cartesian product, filtered by the L0C tile-area
+    constraint (BLOCK_M × BLOCK_N ≤ 64K elements for fp32 accumulator).
+
+    Guarantees at least one valid combo for any positive M, N, K (the
+    candidate generators never return empty lists, and a final safety
+    net appends the smallest combo if all larger ones are filtered out
+    by the tile-area constraint).
+
+    Returns a list of (BLOCK_M, BLOCK_N, BLOCK_K) tuples.
+    """
+    block_m_cands = _gen_block_m_candidates(m, max_block_dim)
+    block_n_cands = _gen_block_n_candidates(n, max_block_dim)
+    block_k_cands = _gen_block_k_candidates(k)
+
+    # L0C constraint: accumulator is fp32 (4 bytes), L0C ≈ 256 KB
+    # → max tile area ≈ 64K elements
+    MAX_TILE_AREA = 256 * 1024 // 4  # 65536
+
+    combos = []
+    for block_m in block_m_cands:
+        for block_n in block_n_cands[:3]:  # top 3 N candidates per M
+            if block_m * block_n > MAX_TILE_AREA:
+                continue
+            for block_k in block_k_cands[:2]:  # top 2 K candidates
+                combos.append((block_m, block_n, block_k))
+
+    # ---- Safety net: guarantee at least one valid combo ----
+    # If all combos were filtered out by the tile-area constraint (only
+    # possible when the smallest candidate tiles still exceed 64K —
+    # extremely unlikely since 16*16 = 256 << 65536), fall back to the
+    # smallest available tiles which always fit.
+    if not combos and block_m_cands and block_n_cands and block_k_cands:
+        smallest_m = block_m_cands[-1]
+        smallest_n = block_n_cands[-1]
+        smallest_k = block_k_cands[-1]
+        combos.append((smallest_m, smallest_n, smallest_k))
+
+    return combos
+
+
 def _get_npu_mm_configs(
     m: int,
     n: int,
@@ -291,107 +591,71 @@ def _get_npu_mm_configs(
     *,
     max_block_dim: int = 256,
 ) -> List[Dict[str, Any]]:
-    """Generate tiling configs for NPU triton matmul template.
+    """Generate tiling configs for NPU triton matmul template (dynamic).
 
-    Generates a set of (BLOCK_M, BLOCK_N, BLOCK_K, GROUP_M, num_stages,
-    num_warps) configurations suitable for NPU hardware.
+    Dynamically computes (BLOCK_M, BLOCK_N, BLOCK_K, GROUP_M, num_stages)
+    configurations based on the actual M, N, K shape,
+    following the optimization principles in optimization_summary.md:
 
-    The config space is designed around the Ascend Cube unit:
-      - Tile dimensions are multiples of 16 (Cube unit granularity).
-      - Larger tiles (256×128, 128×256) increase the
-        compute-to-memory-access ratio, keeping the Cube unit busy.
-      - Larger BLOCK_K (128) reduces loop overhead for big-K problems.
+      1. BLOCK_M prioritises divisors of M to eliminate padding
+         (e.g. BLOCK_M=100 for M=200 — the single biggest perf win).
+      2. BLOCK_N uses standard 16-aligned values (64, 128, 256).
+      3. BLOCK_K uses divisors of K (mult of 16) or standards (64, 128).
+      4. num_stages scales with K-loop iteration count.
+      5. GROUP_M is the largest factor of NUM_BLOCKS_M ≤ 8.
+
+    This replaces the previous hardcoded tile_shapes list with a
+    shape-aware generator, significantly reducing the number of
+    autotune configs while improving coverage of good tilings.
 
     Args:
         max_block_dim: Cap BLOCK_M and BLOCK_N at this value.  Set to 128
             for addmm (the bias epilogue fusion adds register pressure).
     """
-    # Resolve m to a concrete hint for GROUP_M selection.
+    # Resolve m/n/k to concrete hints for tile selection.
     # GROUP_M only affects L2 cache super-grouping behaviour, not kernel
     # correctness — the actual grid (grid_m, grid_n) is computed at runtime
     # inside the kernel from the real M, N values.  Using a hint here simply
     # picks a reasonable GROUP_M for the expected shape.
     m_hint = _hint_int(m)
+    n_hint = _hint_int(n)
+    k_hint = _hint_int(k)
 
     configs: List[Dict[str, Any]] = []
 
-    # Core tiling shapes: (BLOCK_M, BLOCK_N, BLOCK_K)
-    # Organised from large (high arithmetic intensity) to small.
-    tile_shapes = [
-        # --- Large tiles: high compute/memory ratio for big matrices ---
-        (256, 128, 64),   # big-M:  e.g. M=12800
-        (128, 256, 64),   # big-N
-        (128, 128, 128),  # big-K:  fewer K-loop iters
-        (128, 64, 128),
-        (64, 128, 128),
-        # --- Medium tiles: balanced ---
-        (128, 128, 64),
-        (128, 64, 64),
-        (64, 128, 64),
-        (64, 64, 64),
-        # --- Small tiles: for small matrices / tail effects ---
-        (64, 64, 32),
-        (32, 64, 32),
-        (64, 32, 32),
-        # --- Small-N tiles: for skinny output matrices (e.g. N=32) ---
-        # Larger BLOCK_M/BLOCK_K compensate for the tiny N dimension.
-        (128, 32, 64),
-        (128, 32, 128),
-        (64, 32, 64),
-        (64, 32, 128),
-        # --- Small-M tiles: for skinny A matrices (e.g. M=32) ---
-        (32, 128, 64),
-        (32, 128, 128),
-        (32, 64, 64),
-        (32, 64, 128),
-        # --- Large-K tiles: reduce K-loop iterations for big-K problems.
-        #     Kept small in M*N to stay within the 256 KB register file.
-        (64, 64, 256),
-        (32, 128, 256),
-        (128, 32, 256),
-        (32, 64, 256),
-    ]
+    # Dynamically generate tile combos based on the actual shape.
+    tile_combos = _gen_tile_combos(m_hint, n_hint, k_hint, max_block_dim)
 
-    for block_m, block_n, block_k in tile_shapes:
-        # Skip tiles that exceed the max block dimension (register safety).
-        if block_m > max_block_dim or block_n > max_block_dim:
-            continue
+    for block_m, block_n, block_k in tile_combos:
         # EVEN_K: keep using the *original* (possibly symbolic) k.
         # For dynamic k, (k % block_k == 0) evaluates to False via sympy
         # structural equality, which correctly selects the masked K-loop
         # path — safe for any runtime K value.
-        even_k = (k % block_k == 0)
-        # Choose GROUP_M adaptively: cap at 8, but use smaller values
-        # when grid_m is small to avoid degenerate super-grouping.
-        # Use m_hint (concrete) so the comparison works for dynamic shapes.
-        grid_m = (m_hint + block_m - 1) // block_m
-        if grid_m >= 8:
-            group_m = 8
-        elif grid_m >= 4:
-            group_m = 4
-        else:
-            group_m = 1
-        # Use num_stages=4 for BLOCK_K=128 to improve pipelining.
-        # For BLOCK_K=256, limit to [2] to avoid register overflow.
-        if block_k >= 256:
-            stages_list = [2]
-        elif block_k >= 128:
-            stages_list = [2, 3, 4]
-        else:
-            stages_list = [2, 3]
+        masked_m = (m % block_m != 0) if not _is_symbolic_dim(m) else True
+        masked_n = (n % block_n != 0) if not _is_symbolic_dim(n) else True
+        masked_k = (k % block_k != 0) if not _is_symbolic_dim(k) else True
+        # GROUP_M: largest factor of num_blocks_m ≤ 8 (guarantees
+        # num_blocks_m % GROUP_M == 0, safe for NPU super-grouping).
+        num_blocks_m = (m_hint + block_m - 1) // block_m
+        group_m = _choose_group_m(num_blocks_m)
+        # num_stages based on K-loop iterations (deeper pipeline for
+        # many K iters, per optimization_summary.md).
+        k_iters = (k_hint + block_k - 1) // block_k
+        stages_list = _select_num_stages(k_iters, block_k)
         for num_stages in stages_list:
-            for num_warps in [4, 8]:
-                configs.append({
-                    "BLOCK_M": block_m,
-                    "BLOCK_N": block_n,
-                    "BLOCK_K": block_k,
-                    "GROUP_M": group_m,
-                    "num_stages": num_stages,
-                    "num_warps": num_warps,
-                    "ALLOW_TF32": "False",
-                    "ACC_TYPE": "tl.float32",
-                    "EVEN_K": even_k,
-                })
+            configs.append({
+                "BLOCK_M": block_m,
+                "BLOCK_N": block_n,
+                "BLOCK_K": block_k,
+                "GROUP_M": group_m,
+                "num_stages": num_stages,
+                "num_warps": 4,
+                "ALLOW_HF32": matmul.allow_hf32,
+                "ACC_TYPE": "tl.float32",
+                "MASKED_M": masked_m,
+                "MASKED_N": masked_n,
+                "MASKED_K": masked_k,
+            })
 
     return configs
 
@@ -501,40 +765,12 @@ def _get_npu_persistent_mm_configs(
 
     configs: List[Dict[str, Any]] = []
 
-    # Core tiling shapes — aligned with the Cube-unit-optimised set.
-    tile_shapes = [
-        (256, 128, 64),   # big-M
-        (128, 256, 64),   # big-N
-        (128, 128, 128),  # big-K
-        (128, 64, 128),
-        (64, 128, 128),
-        (128, 128, 64),
-        (128, 64, 64),
-        (64, 128, 64),
-        (64, 64, 64),
-        # --- Small-N tiles: for skinny output matrices (e.g. N=32) ---
-        (128, 32, 64),
-        (128, 32, 128),
-        (64, 32, 64),
-        (64, 32, 128),
-        # --- Small-M tiles: for skinny A matrices (e.g. M=32) ---
-        (32, 128, 64),
-        (32, 128, 128),
-        (32, 64, 64),
-        (32, 64, 128),
-        # --- Large-K tiles: reduce K-loop iterations for big-K problems.
-        (64, 64, 256),
-        (32, 128, 256),
-        (128, 32, 256),
-        (32, 64, 256),
-    ]
+    # Dynamically generate tile combos based on the actual shape
+    # (same generator as the non-persistent template, so both templates
+    # cover the same padding-eliminating BLOCK_M values).
+    tile_combos = _gen_tile_combos(m, n, k, max_block_dim=256)
 
-    # Number of AI Cores to use for persistent execution.
-    # Ascend 950PR has 56 AI Cores; we try several core counts so the
-    # autotuner can pick the best parallelism vs. per-program work.
-    num_cores_options = [8, 16, 32, 56]
-
-    for block_m, block_n, block_k in tile_shapes:
+    for block_m, block_n, block_k in tile_combos:
         num_blocks_m = (m + block_m - 1) // block_m
         num_blocks_n = (n + block_n - 1) // block_n
         num_blocks = num_blocks_m * num_blocks_n
@@ -547,42 +783,54 @@ def _get_npu_persistent_mm_configs(
         # group_size == GROUP_M always holds (no partial last group).
         group_m = _choose_group_m(num_blocks_m)
         width = group_m * num_blocks_n
-        even_k = (k % block_k == 0)
+        masked_m = (m % block_m != 0) if not _is_symbolic_dim(m) else True
+        masked_n = (n % block_n != 0) if not _is_symbolic_dim(n) else True
+        masked_k = (k % block_k != 0) if not _is_symbolic_dim(k) else True
 
-        for num_cores in num_cores_options:
+        # Choose 2 core counts based on num_blocks (instead of the
+        # previous fixed [8, 16, 32, 56]) — this significantly reduces
+        # the number of configs while still covering the useful
+        # parallelism range.
+        if num_blocks >= 56:
+            core_options = [56, 32]
+        elif num_blocks >= 32:
+            core_options = [32, 16]
+        elif num_blocks >= 16:
+            core_options = [16, 8]
+        else:
+            core_options = [max(num_blocks, 8)]
+
+        # num_stages based on K-loop iterations.
+        k_iters = (k + block_k - 1) // block_k
+        stages_list = _select_num_stages(k_iters, block_k)
+
+        for num_cores in core_options:
             # Don't launch more programs than there are blocks
             actual_num_cores = min(num_cores, num_blocks)
             if actual_num_cores == 0:
                 continue
             # Compute tiles per program (compile-time constant for loop bound)
             num_tiles_per_program = (num_blocks + actual_num_cores - 1) // actual_num_cores
-            # Use num_stages=4 for BLOCK_K=128 to improve pipelining.
-            # For BLOCK_K=256, limit to [2] to avoid register overflow.
-            if block_k >= 256:
-                stages_list = [2]
-            elif block_k >= 128:
-                stages_list = [2, 3, 4]
-            else:
-                stages_list = [2, 3]
             for num_stages in stages_list:
-                for num_warps in [4, 8]:
-                    configs.append({
-                        "BLOCK_M": block_m,
-                        "BLOCK_N": block_n,
-                        "BLOCK_K": block_k,
-                        "GROUP_M": group_m,
-                        "NUM_BLOCKS_M": num_blocks_m,
-                        "NUM_BLOCKS_N": num_blocks_n,
-                        "NUM_BLOCKS": num_blocks,
-                        "WIDTH": width,
-                        "NUM_SMS": actual_num_cores,
-                        "NUM_TILES_PER_PROGRAM": num_tiles_per_program,
-                        "num_stages": num_stages,
-                        "num_warps": num_warps,
-                        "ALLOW_TF32": "False",
-                        "ACC_TYPE": "tl.float32",
-                        "EVEN_K": even_k,
-                    })
+                configs.append({
+                    "BLOCK_M": block_m,
+                    "BLOCK_N": block_n,
+                    "BLOCK_K": block_k,
+                    "GROUP_M": group_m,
+                    "NUM_BLOCKS_M": num_blocks_m,
+                    "NUM_BLOCKS_N": num_blocks_n,
+                    "NUM_BLOCKS": num_blocks,
+                    "WIDTH": width,
+                    "NUM_SMS": actual_num_cores,
+                    "NUM_TILES_PER_PROGRAM": num_tiles_per_program,
+                    "num_stages": num_stages,
+                    "num_warps": 4,
+                    "ALLOW_HF32": matmul.allow_hf32,
+                    "ACC_TYPE": "tl.float32",
+                    "MASKED_M": masked_m,
+                    "MASKED_N": masked_n,
+                    "MASKED_K": masked_k,
+                })
 
     return configs
 
@@ -708,6 +956,7 @@ def is_contiguous_striding(size, stride) -> bool:
         or is_contiguous_col_major(stride, size)
     )
 
+
 def _register_npu_inductor_mm():
     @register_lowering(aten.mm, type_promotion_kind=None)
     def tuned_mm(mat1, mat2, *, layout=None):
@@ -819,6 +1068,7 @@ def _register_npu_inductor_mm():
                 "All choices for GEMM were invalid, using ATen backend as fallback"
             )
             return aten_mm.bind((mat1, mat2), aten_layout).output_node()
+
 
 def _register_npu_inductor_addmm():
 
