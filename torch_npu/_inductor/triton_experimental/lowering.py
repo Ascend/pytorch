@@ -19,8 +19,8 @@ import sympy
 from . import config as ncfg
 from . import device_props as _device_props
 from . import rescue_rules
+from .lowering_fallback_list import EXPLICIT_FALLBACK_LIST
 from .lowering_override_list import (
-    EXPLICIT_FALLBACK_LIST,
     GENERATE_LIST,
     KEEP_UPSTREAM_LOWERING,
 )

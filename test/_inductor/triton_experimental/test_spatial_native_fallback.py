@@ -12,7 +12,7 @@ from torch.testing._internal.common_utils import TestCase, run_tests
 
 import torch_npu  # noqa: F401
 import torch_npu._inductor  # noqa: F401
-from torch_npu._inductor.triton_experimental import lowering_override_list
+from torch_npu._inductor.triton_experimental import lowering_fallback_list
 
 
 class TestSpatialNativeFallback(TestCase):
@@ -24,7 +24,7 @@ class TestSpatialNativeFallback(TestCase):
             torch.ops.aten.upsample_bilinear2d_backward.default,
         )
         for op in expected:
-            self.assertIn(op, lowering_override_list.EXPLICIT_FALLBACK_LIST)
+            self.assertIn(op, lowering_fallback_list.EXPLICIT_FALLBACK_LIST)
 
     def _check_native_forward_backward(self, fn, input, native_ops):
         eager_input = input.detach().clone().requires_grad_()

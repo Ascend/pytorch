@@ -4,10 +4,10 @@
 
 ``GENERATE_LIST``: ops the backend keeps an inductor lowering for (a kernel is
 generated). Every other op that is not a decomposition is turned into a fallback by
-``lowering._register_npu_inductor_fallbacks``. ``EXPLICIT_FALLBACK_LIST``: ops that
-need a native fallback but have no existing lowering for that bulk registration to
-discover. ``KEEP_UPSTREAM_LOWERING``: ops whose upstream lowering must be preserved
-verbatim rather than clobbered into a fallback.
+``lowering._register_npu_inductor_fallbacks``. ``KEEP_UPSTREAM_LOWERING``: ops whose
+upstream lowering must be preserved verbatim rather than clobbered into a fallback.
+Ops the bulk pass cannot discover (no upstream lowering) are listed separately in
+``lowering_fallback_list.EXPLICIT_FALLBACK_LIST``.
 """
 import torch
 from torch._inductor.fx_passes.control_dependencies import control_deps
@@ -90,7 +90,6 @@ GENERATE_LIST = [
     aten.amin,
     aten.slice_scatter,
     aten.select_scatter,
-
     # View/mutation primitives: keep the upstream inductor lowering (same class as
     # slice/slice_scatter/select_scatter above). Falling these back materializes
     # pure layouts as eager extern tensors, so a graph that lowers to
@@ -106,7 +105,9 @@ GENERATE_LIST = [
     aten.diagonal_scatter,
     aten.alias,
     aten.detach,
-    npu._npu_dropout,
+    # npu._npu_dropout moved to EXPLICIT_FALLBACK_LIST (#4935): GENERATE_LIST only
+    # exempts an op from the blanket fallback, and it has no TE lowering -- listing
+    # it here left it exempt-but-ownerless.
     aten.empty,
     aten.copy_,
     aten.split_with_sizes,
@@ -128,16 +129,6 @@ GENERATE_LIST = [
 # on A5 (fail to lower on A2/A3/910B). Mirrors torch_npu's INDIRECT_MEM_OVERRIDE_LIST.
 if _device_props.is_a5():
     GENERATE_LIST += []
-
-# These decompositions are disabled for triton_experimental so the native NPU
-# kernels are retained. They have no upstream lowering, therefore they must be
-# registered explicitly for strict mode (implicit_fallbacks=False).
-EXPLICIT_FALLBACK_LIST = [
-    aten.reflection_pad2d.default,
-    aten.reflection_pad2d_backward.default,
-    aten.upsample_bilinear2d.default,
-    aten.upsample_bilinear2d_backward.default,
-]
 
 # Higher-order and runtime-assertion ops whose intentional upstream lowerings must
 # not be replaced with generic fallbacks.  control_deps carries a Subgraph argument

@@ -688,6 +688,7 @@ class TestPublicBindings(TestCase):
             "torch_npu._inductor.triton_experimental.fx_passes",
             "torch_npu._inductor.triton_experimental.ir",
             "torch_npu._inductor.triton_experimental.lowering",
+            "torch_npu._inductor.triton_experimental.lowering_fallback_list",
             "torch_npu._inductor.triton_experimental.lowering_override_list",
             "torch_npu._inductor.triton_experimental.npu_triton_helpers",
             "torch_npu._inductor.triton_experimental.npu_triton_heuristics",
