@@ -606,7 +606,7 @@ class TorchBenchmarkRunner(BenchmarkRunner):
 
     def forward_pass(self, mod, inputs, collect_outputs=True):
         with self.autocast():
-            return mod(*inputs)
+            return mod(**inputs) if isinstance(inputs, dict) else mod(*inputs)
 
     def forward_and_backward_pass(self, mod, inputs, collect_outputs=True):
         cloned_inputs = clone_inputs(inputs)
