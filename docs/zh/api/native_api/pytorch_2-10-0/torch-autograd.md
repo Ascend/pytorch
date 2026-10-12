@@ -1251,6 +1251,46 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 
 </div>
 
+### <code><i>class</i></code> torch.autograd.profiler_util.Interval
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.profiler_util.Interval](https://pytorch.org/docs/2.10/generated/torch.autograd.profiler_util.Interval.html#torch.autograd.profiler_util.Interval)
+
+**产品支持情况**：
+
+<!-- npu="910b" id199 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id199 -->
+<!-- npu="A3" id200 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id200 -->
+<!-- npu="950" id201 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id201 -->
+
+> <font size="3">elapsed_us()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.profiler_util.Interval.elapsed_us](https://pytorch.org/docs/2.10/generated/torch.autograd.profiler_util.Interval.html#torch.autograd.profiler_util.Interval.elapsed_us)
+
+**产品支持情况**：
+
+<!-- npu="910b" id202 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id202 -->
+<!-- npu="A3" id203 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id203 -->
+<!-- npu="950" id204 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id204 -->
+
+</div>
+
+</div>
+
 ## Debugging and anomaly detection
 
 ### torch.autograd.detect_anomaly
