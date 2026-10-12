@@ -44,6 +44,7 @@ from torch.distributed.distributed_c10d import (
     DebugLevel,
     GatherOptions,
     get_debug_level,
+    get_global_rank,
     get_group_rank,
     get_rank,
     get_world_size,
@@ -238,6 +239,8 @@ def _gather(tensor, gather_list=None, dst=0, group=None, async_op=False):
     else:
         if tensor.device.type == "npu":
             if use_compatible_impl:
+                group_dst_rank = get_group_rank(group, dst)
+                opts.rootRank = group_dst_rank
                 output_tensors = [gather_list] if my_rank == dst else []
                 _group = group._get_backend(torch.device("npu"))
                 work = _group.gather(output_tensors, input_tensors, opts)
@@ -269,11 +272,21 @@ def _gather(tensor, gather_list=None, dst=0, group=None, async_op=False):
         return None
 
 
-def _gather_object(obj, object_gather_list=None, dst=0, group=None):
+def _gather_object(obj, object_gather_list=None, dst=None, group=None, group_dst=None):
     """
     Note:
     Avoid gather_object to use gather func defined in origin distributed_c10d.
     """
+
+    if dst is None and group_dst is None:
+        dst = 0
+    elif dst is not None and group_dst is not None:
+        raise ValueError("Cannot specify both dst and group_dst")
+    elif group_dst is not None:
+        if group is None:
+            group = _get_default_group()
+        dst = get_global_rank(group, group_dst)
+
     if _rank_not_in_group(group):
         _warn_not_in_group("gather_object")
         return
