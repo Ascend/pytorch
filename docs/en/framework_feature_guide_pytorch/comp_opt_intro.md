@@ -1,8 +1,8 @@
 # Introduction to Compilation Optimization Technology
 
-> [!NOTE]
+> [!NOTICE]
 >
-> In the current version, compilation optimization is available only as a trial feature. This functionality may be adjusted or improved in subsequent versions. During use, you are advised to pay attention to subsequent version updates.
+> The compilation optimization function provided by BiSheng Compiler has been discarded.
 
 ## Compilation Technology: LTO Link-Time Optimization
 
