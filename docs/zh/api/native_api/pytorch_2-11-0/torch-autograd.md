@@ -1693,6 +1693,4 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id195 -->
 
-**限制与说明**： `input`仅支持fp32
-
 </div>
