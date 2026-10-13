@@ -13,9 +13,10 @@ from torch.utils._ordered_set import OrderedSet
 
 import torch_npu  # noqa: F401
 import torch_npu._inductor  # noqa: F401
+from torch_npu._inductor.kernel import flex_attention as npu_flex_attention
+from torch_npu._inductor.triton_experimental import launcher_codegen
 from torch_npu._inductor.triton_experimental import lowering as experimental_lowering
 from torch_npu._inductor.triton_experimental import lowering_override_list
-from torch_npu._inductor.triton_experimental import npu_triton_heuristics
 from torch_npu._inductor.triton_experimental.codegen import triton as npu_triton_codegen
 
 
@@ -60,12 +61,46 @@ class TestCodegenRegressions(TestCase):
         )
         for meta, expected in cases:
             with self.subTest(meta=meta):
-                actual = npu_triton_heuristics._can_clamp_1d_grid(
+                actual = launcher_codegen._can_clamp_1d_grid(
                     meta,
                     ["xnumel"],
                     ["out_ptr0", "xnumel", "XBLOCK"],
                 )
                 self.assertEqual(actual, expected)
+
+    def test_flex_attention_precision_legacy_getter_compatibility(self):
+        options = {}
+        with mock.patch.object(
+            npu_flex_attention, "get_float32_precision", return_value="'tf32'"
+        ):
+            npu_flex_attention._set_flex_attention_float32_precision(options, torch.float32)
+        self.assertEqual(options["FLOAT32_PRECISION"], "'tf32'")
+
+    def test_flex_attention_precision_setter_compatibility(self):
+        options = {}
+        upstream_setter = mock.Mock()
+        with (
+            mock.patch.object(npu_flex_attention, "get_float32_precision", None),
+            mock.patch.object(
+                npu_flex_attention,
+                "_upstream_set_float32_precision",
+                upstream_setter,
+            ),
+        ):
+            npu_flex_attention._set_flex_attention_float32_precision(options, torch.bfloat16)
+        upstream_setter.assert_called_once_with(options, torch.bfloat16)
+
+    def test_flex_attention_precision_respects_explicit_option(self):
+        options = {"FLOAT32_PRECISION": "'ieee'"}
+        with (
+            mock.patch.object(npu_flex_attention, "get_float32_precision", None),
+            mock.patch.object(
+                npu_flex_attention, "_upstream_set_float32_precision"
+            ) as upstream_setter,
+        ):
+            npu_flex_attention._set_flex_attention_float32_precision(options, torch.float32)
+        self.assertEqual(options["FLOAT32_PRECISION"], "'ieee'")
+        upstream_setter.assert_not_called()
 
     def test_codegen_min_max_reduction_propagates_nan(self):
         if not torch.npu.is_available():

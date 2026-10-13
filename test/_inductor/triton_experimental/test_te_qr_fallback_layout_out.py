@@ -1,6 +1,6 @@
 """`.out` overload guard for the QR fallback-layout fix (#5072, !47273).
 
-Two guards:
+Three guards:
 
 1. ``test_qr_out_compiled_matches_eager`` -- the compile-able `.out` path:
    with a contiguous caller-allocated output buffer the compiled graph must
@@ -16,7 +16,13 @@ Two guards:
    before Inductor runs, so that case cannot serve as a compiled-path
    guard today.  If upstream Dynamo ever learns to trace it, this test
    fails and flags guard 1's buffer to be upgraded.
+
+3. ``test_qr_fallback_process_kernel_result_compatibility`` -- covers the
+   positional tuple returned by PyTorch 2.13 and the dataclass returned by
+   PyTorch 2.14+ without requiring an NPU.
 """
+
+from dataclasses import dataclass
 
 import pytest
 import torch
@@ -24,6 +30,9 @@ import torch._dynamo
 
 import torch_npu  # noqa: F401
 import torch_npu._inductor  # noqa: F401
+from torch_npu._inductor._npu_meta_registration import (
+    _replace_qr_fallback_example_output,
+)
 
 needs_npu = pytest.mark.skipif(
     not torch.npu.is_available(), reason="requires an NPU device"
@@ -33,6 +42,25 @@ needs_npu = pytest.mark.skipif(
 def _qr_and_consume(a, q_out, r_out):
     q, r = torch.linalg.qr(a, out=(q_out, r_out))
     return q, r, q @ r
+
+
+def test_qr_fallback_process_kernel_result_compatibility():
+    replacement = (object(), object())
+    legacy_result = ("old-output", ["tensor-arg"], [], "unflatten", {})
+    fixed_legacy = _replace_qr_fallback_example_output(legacy_result, replacement)
+    assert fixed_legacy == (replacement, *legacy_result[1:])
+
+    @dataclass(frozen=True)
+    class ProcessKernelResult:
+        example_output: object
+        tensor_args: tuple
+
+    structured_result = ProcessKernelResult("old-output", ("tensor-arg",))
+    fixed_structured = _replace_qr_fallback_example_output(
+        structured_result, replacement
+    )
+    assert fixed_structured.example_output is replacement
+    assert fixed_structured.tensor_args == structured_result.tensor_args
 
 
 @needs_npu

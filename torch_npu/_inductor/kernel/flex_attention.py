@@ -76,6 +76,9 @@ from torch._inductor.lowering import (
 )
 from torch._inductor.select_algorithm import autotune_select_algorithm
 from torch.nn.attention import flex_attention as flex_attention_module
+
+get_float32_precision = None
+_upstream_set_float32_precision = None
 try:
     from torch._inductor.kernel.flex.common import (
         construct_strides,
@@ -91,10 +94,19 @@ try:
     )
     from torch._inductor.kernel.flex.flex_attention import (
         get_bwd_subgraph_outputs,
-        get_float32_precision,
         process_joint_outputs,
         validate_joint_graph,
     )
+    try:
+        from torch._inductor.kernel.flex.flex_attention import (
+            get_float32_precision,
+        )
+    except ImportError:
+        # PyTorch 2.15 moved precision selection from a getter to a helper
+        # that fills the option dict and needs the input dtype.
+        from torch._inductor.kernel.flex.flex_attention import (
+            set_float32_precision as _upstream_set_float32_precision,
+        )
 except ImportError:
     from torch._inductor.kernel.flex_attention import (
         construct_strides,
@@ -111,6 +123,7 @@ except ImportError:
         validate_joint_graph,
         zeros_and_scatter_lowering,
     )
+    _upstream_set_float32_precision = None
     try:
         from torch._inductor.kernel.flex_attention import freeze_irnodes
     except ImportError:
@@ -128,6 +141,16 @@ except ImportError:
                 return node
 
             return tree_map_only(IRNode, freeze, tree)
+
+
+def _set_flex_attention_float32_precision(kernel_options, dtype):
+    if "FLOAT32_PRECISION" in kernel_options:
+        return
+    if get_float32_precision is not None:
+        kernel_options["FLOAT32_PRECISION"] = get_float32_precision()
+    else:
+        _upstream_set_float32_precision(kernel_options, dtype)
+
 
 # PyTorch flex_attention exposes/saves LSE in log2 space, matching the
 # upstream kernels that use exp2/log2. NPU templates below compute LSE with
@@ -1899,7 +1922,7 @@ def _lower_flex_attention_backward_mask_in(
     )
 
     kernel_options = kernel_options.copy()
-    kernel_options.setdefault("FLOAT32_PRECISION", get_float32_precision())
+    _set_flex_attention_float32_precision(kernel_options, query.get_dtype())
     kernel_options.setdefault("PRESCALE_QK", False)
     kernel_options.setdefault("ROWS_GUARANTEED_SAFE", False)
     kernel_options.setdefault("BLOCKS_ARE_CONTIGUOUS", False)
@@ -2181,7 +2204,7 @@ def _register_npu_inductor_flex_attention():
             else v
             for k, v in kernel_options.items()
         }
-        kernel_options.setdefault("FLOAT32_PRECISION", get_float32_precision())
+        _set_flex_attention_float32_precision(kernel_options, query.get_dtype())
         score_mod_is_identity = _is_score_mod_identity_graph(subgraph)
         has_score_mod = has_explicit_score_mod and not score_mod_is_identity
         enable_gqa = V.graph.sizevars.evaluate_expr(
@@ -2923,7 +2946,7 @@ def _register_npu_inductor_flex_attention():
         kernel_options.setdefault("ROWS_GUARANTEED_SAFE", False)
         kernel_options.setdefault("BLOCKS_ARE_CONTIGUOUS", False)
         kernel_options.setdefault("WRITE_DQ", True)
-        kernel_options.setdefault("FLOAT32_PRECISION", get_float32_precision())
+        _set_flex_attention_float32_precision(kernel_options, dtype)
         kernel_options.setdefault(
             "IS_DIVISIBLE",
             _sequence_lengths_are_statically_divisible(seq_len_q, seq_len_kv),

@@ -36,7 +36,7 @@ if __name__ == "__main__":
     import torch  # noqa: F401
     import torch_npu  # noqa: F401
 
-    from torch_npu._inductor.triton_experimental.codegen.triton import (
+    from torch_npu._inductor.triton_experimental.codegen.provable_clamp import (
         _npu_index_provably_nonnegative,
         _npu_mask_lower_atoms,
         _npu_body_defs,
