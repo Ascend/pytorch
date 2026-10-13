@@ -878,10 +878,22 @@ def _index_select_rewrite(x, indices, _up):
 
 
 def npu_unsafe_index(x, indices):
+    from torch._inductor.subgraph_lowering import PointwiseSubgraphLowering
+
+    if isinstance(V.graph, PointwiseSubgraphLowering):
+        from torch._inductor.lowering import index_impl
+
+        return index_impl(x, indices, check=False)
     return _index_select_rewrite(x, indices, _up_unsafe_index)
 
 
 def npu_index(x, indices):
+    from torch._inductor.subgraph_lowering import PointwiseSubgraphLowering
+
+    if isinstance(V.graph, PointwiseSubgraphLowering):
+        from torch._inductor.lowering import index_impl
+
+        return index_impl(x, indices, check=True)
     return _index_select_rewrite(x, indices, _up_index)
 
 

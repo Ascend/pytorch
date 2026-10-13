@@ -176,6 +176,50 @@ def _is_flat_rloop_header(stripped: str, prefix: str) -> bool:
         or stripped.startswith(f"for {prefix}offset in tl.range(0,")
     )
 
+
+def _npu_rewrite_bool_vector_comparisons(lines):
+    """Rewrite boolean ``a > b`` into ``a & ~b`` for CANN.
+
+    Triton's NaN propagation lowering compares two ``tl.int1`` vectors. CANN
+    9.2 rejects that as vector ``vugt``; for boolean values the comparison is
+    exactly ``a and not b``.
+    """
+    bool_names = set()
+    out = []
+    for raw in lines:
+        line = raw if isinstance(raw, str) else getattr(raw, "line", None)
+        parsed = _npu_parse_generated_line(line) if isinstance(line, str) else None
+        if parsed is None:
+            out.append(raw)
+            continue
+        original_line = line
+        indent, statement = parsed
+        assignment = _npu_assignment_parts(statement)
+        if assignment is not None:
+            lhs, value = assignment
+            if isinstance(value, ast.Compare) and len(value.ops) == 1 and isinstance(value.ops[0], ast.NotEq):
+                bool_names.add(lhs)
+            if (
+                isinstance(value, ast.Compare)
+                and len(value.ops) == 1
+                and isinstance(value.ops[0], ast.Gt)
+                and isinstance(value.left, ast.Name)
+                and len(value.comparators) == 1
+                and isinstance(value.comparators[0], ast.Name)
+                and value.left.id in bool_names
+                and value.comparators[0].id in bool_names
+            ):
+                value = ast.BinOp(
+                    left=value.left,
+                    op=ast.BitAnd(),
+                    right=ast.UnaryOp(op=ast.Invert(), operand=value.comparators[0]),
+                )
+                statement.value = value
+                ast.fix_missing_locations(statement)
+                line = _npu_render_generated_line(indent, statement)
+        out.append(_npu_replace_raw_line(raw, original_line, line))
+    return out
+
 def _npu_scalar_odometer_axis_names(kernel, tree):
     """Free x-tree axis names that should be SCALAR odometer axes, not register
     tile dims.
@@ -1753,11 +1797,11 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
 
     @staticmethod
     def minimum(a, b):
-        return f"tl.minimum({a}, {b}, tl.PropagateNan.ALL)"
+        return f"npu_triton_helpers.minimum({a}, {b})"
 
     @staticmethod
     def maximum(a, b):
-        return f"tl.maximum({a}, {b}, tl.PropagateNan.ALL)"
+        return f"npu_triton_helpers.maximum({a}, {b})"
 
     @staticmethod
     def to_dtype(x, dtype: torch.dtype, src_dtype=None, use_compute_types=True):
@@ -1910,6 +1954,15 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
 
 class NPUTritonKernel(TritonKernel):
     overrides = NPUTritonKernelOverrides  # type: ignore[assignment]
+
+    @classmethod
+    def gen_common_triton_imports(cls):
+        imports = IndentedBuffer()
+        imports.splice(super().gen_common_triton_imports())
+        imports.splice(
+            "from torch_npu._inductor.triton_experimental import npu_triton_helpers\n"
+        )
+        return imports.getvalue()
 
     def dtype_to_str(self, dtype):
         # The apply_npu_codegen_patches demotion (_triton_type_mapping
@@ -3520,6 +3573,7 @@ class NPUTritonKernel(TritonKernel):
         imports.splice(
             """
             from torch_npu._inductor.triton_experimental import npu_triton_heuristics
+            from torch_npu._inductor.triton_experimental import npu_triton_helpers
             from torch_npu._inductor.triton_experimental.npu_triton_helpers import libdevice, math as tl_math
             """
         )
@@ -4677,6 +4731,7 @@ class NPUTritonKernel(TritonKernel):
                 )
                 self._npu_rtree_rewrite_done = True
             self._maybe_rewrite_select_lane_load()
+            self.body._lines = _npu_rewrite_bool_vector_comparisons(self.body._lines)
 
             return
 
@@ -4794,6 +4849,7 @@ class NPUTritonKernel(TritonKernel):
                     f"reduction-pass metadata for {prefix} has no emitted loop: "
                     f"{[p.scope_id for p in reduction_passes[pass_index:]]}"
                 )
+            self.body._lines = _npu_rewrite_bool_vector_comparisons(self.body._lines)
             return
 
         tree = r_info['tree']
@@ -4875,6 +4931,7 @@ class NPUTritonKernel(TritonKernel):
         self.post_loop_combine.clear()
         self.post_loop_store.clear()
         self._apply_redundant_range_tree_address_substitutions()
+        self.body._lines = _npu_rewrite_bool_vector_comparisons(self.body._lines)
 
     def _apply_redundant_range_tree_address_substitutions(self):
         """Rewrite redundant range-tree addresses to their contiguous basis.

@@ -66,6 +66,22 @@ def _activate():
 
     device.register_backend_for_npu()
 
+    from torch_npu._inductor import _apply_common_npu_triton_patches
+    from torch.nn.attention import flex_attention
+    from .flex_attention import (
+        _register_npu_inductor_flex_attention,
+        _validate_device,
+        patch_flex_attention,
+    )
+    from torch_npu._inductor import select_algorithm as npu_select_algorithm
+    from .codegen.triton import NPUTritonKernel as experimental_kernel
+
+    _apply_common_npu_triton_patches()
+    npu_select_algorithm.NPUTritonKernel = experimental_kernel
+
+    patch_flex_attention()
+    flex_attention._validate_device = _validate_device
+
     inductor_config.layout_optimization = False
     inductor_config.coordinate_descent_tuning = False
     # Split reductions emit multi-kernel splits whose intermediate buffers have hit
@@ -95,6 +111,7 @@ def _activate():
     )
     _register_npu_inductor_fallbacks()
     _register_softmax_aclnn_fallback()
+    _register_npu_inductor_flex_attention()
 
     device.register_interface_for_npu()
 

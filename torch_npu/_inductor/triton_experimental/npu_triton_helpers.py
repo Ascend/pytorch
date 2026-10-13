@@ -27,6 +27,19 @@ math = tl.math
 
 
 @triton.jit
+def maximum(a, b):
+    if a.dtype.is_bool():
+        return a | b
+    mask = a > b
+    if a.dtype.is_floating():
+        mask |= a != a
+    return tl.where(mask, a, b)
+
+
+triton_helpers.maximum = maximum
+
+
+@triton.jit
 def max2(a, dim):
     return tl.max(a, dim, propagate_nan=True)
 

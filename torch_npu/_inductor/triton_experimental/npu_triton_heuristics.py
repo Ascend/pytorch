@@ -3034,3 +3034,16 @@ def grid(*numels):
         return (x_grid, y_grid, z_grid)
 
     return grid_fn
+
+
+def template(num_stages, num_warps, triton_meta, filename=None, inductor_meta=None, **_kwargs):
+    from torch_npu._inductor.runtime.triton_heuristics import template as npu_template
+
+    return npu_template(
+        num_stages=num_stages,
+        num_warps=num_warps,
+        triton_meta=triton_meta,
+        inductor_meta=inductor_meta,
+        filename=filename,
+        **_kwargs,
+    )
