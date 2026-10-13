@@ -28,7 +28,7 @@ on:
       docker_image:
         required: false
         type: string
-        default: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609230923-00b993fc
+        default: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610100525-b27ba05f
       case_timeout:
         required: false
         type: string
@@ -137,7 +137,7 @@ jobs:
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
-          export LD_LIBRARY_PATH=/opt/conda/envs/py_3.10/lib:$LD_LIBRARY_PATH
+          export LD_LIBRARY_PATH="$(python3 -c 'import sys; print(sys.prefix)')/lib:$LD_LIBRARY_PATH"
 
           mkdir -p "${ASCEND_PROCESS_LOG_PATH}"
           npu-smi info
@@ -155,7 +155,7 @@ jobs:
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
-          export LD_LIBRARY_PATH=/opt/conda/envs/py_3.10/lib:$LD_LIBRARY_PATH
+          export LD_LIBRARY_PATH="$(python3 -c 'import sys; print(sys.prefix)')/lib:$LD_LIBRARY_PATH"
           mkdir -p "${ASCEND_PROCESS_LOG_PATH}"
 
           CASES_JSON="cases-shards/${{ inputs.category }}_cases_shard_${{ matrix.shard }}.json"

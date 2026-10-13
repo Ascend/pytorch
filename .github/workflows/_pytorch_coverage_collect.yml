@@ -53,12 +53,12 @@ on:
       case_whitelist:
         required: false
         type: string
-        default: '.github/config/coverage_test_whitelist.yml'
+        default: '.github/config/privateuse1_npu_passed_testcases.json'
         description: >-
           Path (relative to repo root) to the case-level whitelist; it is
-          expected to be the coverage config itself, i.e. the file carrying the
-          nodeid list under its case_whitelist key. Empty = collect every case
-          of the whitelisted files.
+          expected to be the same nodeid list the PR-gated flow runs (the
+          privateuse1 passed-testcases file). Empty = collect every case of
+          the whitelisted files.
       runner_label:
         required: false
         type: string
@@ -256,7 +256,7 @@ jobs:
         run: |
           source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
-          export LD_LIBRARY_PATH=/opt/conda/envs/py_3.10/lib:$LD_LIBRARY_PATH
+          export LD_LIBRARY_PATH="$(python3 -c 'import sys; print(sys.prefix)')/lib:$LD_LIBRARY_PATH"
 
           export PYTHONPATH="${GITHUB_WORKSPACE}/ci-scripts/.github/scripts:${PYTHONPATH}"
 

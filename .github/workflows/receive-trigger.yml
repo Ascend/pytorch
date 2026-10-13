@@ -311,7 +311,7 @@ jobs:
     with:
       event_type: ${{ inputs.event_type }}
       payload: ${{ inputs.payload }}
-      case_paths_config: .github/config/coverage_test_whitelist.yml
+      case_paths_config: .github/config/privateuse1_npu_passed_testcases.json
 
   test:
     needs: [extract, build, select]

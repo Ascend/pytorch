@@ -73,7 +73,7 @@ jobs:
       upstream_ref: ${{ needs.resolve.outputs.sha }}
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: master
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609230923-00b993fc
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610100525-b27ba05f
       report_to_upstream: false
       runner_label: 'linux-aarch64-cpu-24'
       max_jobs: '23'
@@ -85,12 +85,13 @@ jobs:
     with:
       resolved_short: ${{ needs.resolve.outputs.short }}
       wheels_tarball: ${{ needs.build.outputs.wheels_tarball }}
-      case_paths_config: .github/config/coverage_test_whitelist.yml
-      skip_list: .github/config/pr_skip_list.jsonl
+      case_paths_config: .github/config/nightly_test_categories.yml
+      full_scan: true
+      case_whitelist: .github/config/privateuse1_npu_passed_testcases.json
       hw_classification: 'ACCELERATOR'
       device_env: 'privateuse1'
       runner_label: 'linux-aarch64-a3-800i-2-cn12-001'
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609230923-00b993fc
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610100525-b27ba05f
 
   coverage:
     needs: [resolve, build, collect]
@@ -110,7 +111,7 @@ jobs:
       categories_filter: ${{ inputs.categories }}
       resolved_short: ${{ needs.resolve.outputs.short }}
       wheels_tarball: ${{ needs.build.outputs.wheels_tarball }}
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609230923-00b993fc
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610100525-b27ba05f
 
   merge:
     needs: [resolve, build, collect, coverage]
@@ -121,7 +122,7 @@ jobs:
       run:
         shell: bash
     container:
-      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-master-cann9.2.0-20260910200430-202609230923-00b993fc
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610100525-b27ba05f
       options: --network host
     env:
       PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
@@ -166,9 +167,10 @@ jobs:
           echo "=== covstub unpacked ==="
           du -sh "${COV_ARTIFACTS}/covstub"/* || true
 
+          SITE_TORCH="$(python3 -c 'import sysconfig; print(sysconfig.get_paths()["purelib"] + "/torch")')"
           printf '[report]\nignore_errors = True\n\n[paths]\ntorch =\n    %s\n    %s\n' \
             "${COV_ARTIFACTS}/covstub/torch" \
-            '/opt/conda/envs/py_3.10/lib/python3.10/site-packages/torch' \
+            "${SITE_TORCH}" \
             > "${GITHUB_WORKSPACE}/merge.coveragerc"
           echo "COVERAGE_RCFILE=${GITHUB_WORKSPACE}/merge.coveragerc" >> "$GITHUB_ENV"
           cat "${GITHUB_WORKSPACE}/merge.coveragerc"

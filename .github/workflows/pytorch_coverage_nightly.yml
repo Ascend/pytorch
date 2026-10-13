@@ -3,7 +3,6 @@ on:
   push:
     branches: [ci-test]
     paths:
-      - '.github/config/coverage_test_whitelist.yml'
       - '.github/workflows/_pytorch_coverage.yml'
       - '.github/workflows/_pytorch_coverage_collect.yml'
       - '.github/workflows/_pytorch_coverage_shard.yml'
