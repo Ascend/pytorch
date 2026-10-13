@@ -202,6 +202,26 @@
 
 </div>
 
+### <code><i>class</i></code> torch.distributed.checkpoint.staging.StagingOptions
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.checkpoint.staging.StagingOptions](https://pytorch.org/docs/2.13/distributed.checkpoint.html#torch.distributed.checkpoint.staging.StagingOptions)
+
+**产品支持情况**：
+
+<!-- npu="910b" id241 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id241 -->
+<!-- npu="A3" id242 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id242 -->
+<!-- npu="950" id243 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id243 -->
+
+</div>
+
 ### <code><i>class</i></code> torch.distributed.checkpoint.staging.BlockingAsyncStager
 
 <div style="margin-left: 2em">
