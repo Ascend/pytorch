@@ -45,6 +45,28 @@
 
 </div>
 
+### torch.amp.custom_bwd
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.amp.custom_bwd](https://pytorch.org/docs/2.13/amp.html#torch.amp.custom_bwd)
+
+**NPU 形式名称**：torch_npu.npu.amp.custom_bwd
+
+**产品支持情况**：
+
+<!-- npu="910b" id19 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id19 -->
+<!-- npu="A3" id20 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id20 -->
+<!-- npu="950" id21 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id21 -->
+
+</div>
+
 ### torch.cuda.amp.custom_bwd
 
 <div style="margin-left: 2em">
