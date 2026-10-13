@@ -754,6 +754,26 @@
 
 </div>
 
+### torch.autograd.function.once_differentiable
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.function.once_differentiable](https://pytorch.org/docs/2.12/generated/torch.autograd.function.once_differentiable.html)
+
+**产品支持情况**：
+
+<!-- npu="910b" id214 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id214 -->
+<!-- npu="A3" id215 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id215 -->
+<!-- npu="950" id216 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id216 -->
+
+</div>
+
 ## Numerical gradient checking
 
 ### torch.autograd.gradcheck.gradcheck
@@ -851,6 +871,26 @@
 <!-- npu="950" id114 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id114 -->
+
+</div>
+
+> <font size="3">save_for_backward()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[NestedIOFunction.save_for_backward](https://pytorch.org/docs/2.12/generated/torch.autograd.function.NestedIOFunction.html#torch.autograd.function.NestedIOFunction.save_for_backward)
+
+**产品支持情况**：
+
+<!-- npu="910b" id217 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id217 -->
+<!-- npu="A3" id218 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id218 -->
+<!-- npu="950" id219 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id219 -->
 
 </div>
 
