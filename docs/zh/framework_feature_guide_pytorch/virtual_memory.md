@@ -58,8 +58,6 @@
 
 ## 约束说明
 
-expandable\_segments特性需在Ascend HDK 23.0.0及以上版本上使用。
-
-torch.npu.memory.\_set\_allocator\_settings仅支持在PyTorch2.6.0及以上版本使用。
-
-torch.npu.memory.\_set\_allocator\_settings当前仅支持修改expandable\_segments属性。
+- expandable\_segments特性需在Ascend HDK 23.0.0及以上版本上使用。
+- torch.npu.memory.\_set\_allocator\_settings仅支持在PyTorch2.6.0及以上版本使用。
+- torch.npu.memory.\_set\_allocator\_settings当前仅支持修改expandable\_segments属性。

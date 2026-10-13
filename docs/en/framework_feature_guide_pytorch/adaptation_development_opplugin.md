@@ -135,9 +135,10 @@ Parameters
 
 ### Symint Operator Adaptation
 
-> [!NOTE]  
-> Operators of the symint type must be adapted by referring to this section.<br>
-> The following YAML configuration and adaptation files are existing configurations and files, provided as examples only. You need to modify them based on your actual scenarios.
+> [!NOTE]
+>
+> - Operators of the symint type must be adapted by referring to this section.
+> - The following YAML configuration and adaptation files are existing configurations and files, provided as examples only. You need to modify them based on your actual scenarios.
 
 symint is a data type newly added in PyTorch v2.0 and later. Correspondingly, the `symint` type is added to the configuration in `op_plugin/config/op_plugin_functions.yaml`. Functions configured under the `symint` field indicate that the underlying function implementation supports symint-type input parameters. Functions whose underlying implementation does not support symint do not need to be configured under the `symint` field. When configuration under the `symint` field is required, you need to perform the following operations to adapt the operator:
 

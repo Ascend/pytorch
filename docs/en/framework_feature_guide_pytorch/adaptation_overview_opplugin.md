@@ -4,15 +4,16 @@ OpPlugin is the operator plugin of TorchNPU, providing developers who use the Py
 
 ## What Is Operator Adaptation
 
-Operator adaptation is the core technical process of performing compatibility modification and performance optimization on native ATen IR operators in the PyTorch AI framework, targeting the specific hardware platform of Huawei Ascend chips and their supporting runtime environment.
+Operator adaptation is the core technical process of performing compatibility modification and performance optimization on native ATen IR operators in the PyTorch AI framework, targeting the specific hardware platform of Ascend AI Processor and their supporting runtime environment.
 
 Operators, as the smallest computational units in deep learning tasks (such as convolution, matrix multiplication, activation functions, and addition), are natively implemented primarily for general-purpose hardware such as CPUs and GPUs, without targeted optimization for the architectural characteristics of Ascend NPUs (such as AI Core parallel computing units, heterogeneous storage, and dedicated acceleration instruction sets). Through interface standardization, computational logic restructuring, and invocation of underlying hardware capabilities, operator adaptation ensures that the computational semantics and input/output results of operators on the Ascend platform remain consistent with those on the native PyTorch platform, while fully unleashing the computational potential of Ascend hardware, ultimately achieving efficient and stable execution of PyTorch operators on Ascend NPUs.
 
 From a technical perspective, operator adaptation serves as a "bridge" connecting upper-layer PyTorch framework operators with underlying Ascend hardware computing resources, addressing two core challenges: first, semantic compatibility — eliminating cross-platform interface differences and data format incompatibilities to ensure operator functionality is executable; second, capability mapping — translating PyTorch framework computation requests into execution instructions recognizable by Ascend hardware, maximizing hardware utilization.
 
-> [!NOTE]  
-> ATen IR (ATen Intermediate Representation) is the core intermediate representation at the underlying layer of the PyTorch deep learning framework, serving as the key bridge connecting PyTorch's upper-layer user interfaces with underlying hardware execution logic.<br>
-> ATen IR is defined by PyTorch officially, encapsulating the core semantic information of operators (name, input/output parameter types, computation logic description), shielding the syntactic differences of upper-layer APIs and the implementation details of underlying hardware. It serves as the unified "language" for operator dispatch, compilation optimization, and cross-hardware adaptation within the PyTorch framework. For ATen IR interface documentation, refer to [pytorch/aten/src/ATen/native](https://github.com/pytorch/pytorch/tree/main/aten/src/ATen/native#readme).
+> [!NOTE]
+>
+> - ATen IR (ATen Intermediate Representation) is the core intermediate representation at the underlying layer of the PyTorch deep learning framework, serving as the key bridge connecting PyTorch's upper-layer user interfaces with underlying hardware execution logic.
+> - ATen IR is defined by PyTorch officially, encapsulating the core semantic information of operators (name, input/output parameter types, computation logic description), shielding the syntactic differences of upper-layer APIs and the implementation details of underlying hardware. It serves as the unified "language" for operator dispatch, compilation optimization, and cross-hardware adaptation within the PyTorch framework. For ATen IR interface documentation, refer to [pytorch/aten/src/ATen/native](https://github.com/pytorch/pytorch/tree/main/aten/src/ATen/native#readme).
 
 ## Why Operator Adaptation Is Necessary
 

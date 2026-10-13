@@ -101,6 +101,5 @@ Choose one of the following methods based on your actual situation:
 
 ## Constraints
 
-This feature is only supported on Ascend HDK 25.3.RC1 or later and CANN 8.3.RC1 or later.
-
-Ascend 950DT does not support IPC.
+- This feature is only supported on Ascend HDK 25.3.RC1 or later and CANN 8.3.RC1 or later.
+- Ascend 950DT does not support IPC.

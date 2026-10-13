@@ -15,18 +15,7 @@ The default value of this environment variable is `0`.
 export TORCH_NPU_COMPACT_ERROR_OUTPUT=1
 ```
 
-## Usage Constraints
-
-None
-
-## Supported Products
-
-- <term>Atlas training products</term>
-- <term>Atlas A2 training products</term>
-- <term>Atlas A3 training products</term>
-- <term>Ascend 950DT</term>
-
-## Output Example
+### Output Example
 
 - When set to the default value `0`, normal ERROR printing is performed:
 
@@ -53,3 +42,14 @@ None
     ......
     RuntimeError: CANN error: The argument is invalid.Reason: Set device failed, invalid device, set drv device=100, valid device range is [0, 8) Solution: 1.Check the input parameter range of the function. 2.Check the function invocation relationship.
     ```
+
+## Usage Constraints
+
+None
+
+## Supported Products
+
+- <term>Atlas training products</term>
+- <term>Atlas A2 training products</term>
+- <term>Atlas A3 training products</term>
+- <term>Ascend 950DT</term>

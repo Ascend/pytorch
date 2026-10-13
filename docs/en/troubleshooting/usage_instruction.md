@@ -8,7 +8,7 @@ When an exception error occurs during model building, inference execution, train
 
 > [!NOTE]
 >
-> Generally, ERR\*\*005 indicates an internal error. For internal errors, you can contact Huawei for troubleshooting, or you can submit an issue at [Ascend Community](https://gitcode.com/Ascend/pytorch/issues) for assistance.
+> Generally, ERR\*\*005 indicates an internal error. For internal errors, you can submit an issue at [Ascend Community](https://gitcode.com/Ascend/pytorch/issues) for assistance.
 > The error code-related information described in this document is fully displayed during on-screen error reporting, including possible causes and solutions. Therefore, this section only lists the relevant content for reference.
 
 Due to differences in scenarios, use cases, and failure causes, the printed error code information may vary. Therefore, this document uses the \[%s\] variable format to represent actual print logs. Refer to the actual screen output for the specific logs.

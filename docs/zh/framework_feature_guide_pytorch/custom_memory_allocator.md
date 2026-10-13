@@ -40,8 +40,6 @@ npu_tensor = torch.zeros(10, device='npu')
 
 ## 约束说明
 
-alloc\_fn\_name内存申请函数名必须与C/C++文件中函数名一致。
-
-free\_fn\_name内存释放函数名必须与C/C++文件中函数名一致。
-
-<term>Ascend 950DT</term>暂不支持自定义内存分配器特性。
+- alloc\_fn\_name内存申请函数名必须与C/C++文件中函数名一致。
+- free\_fn\_name内存释放函数名必须与C/C++文件中函数名一致。
+- <term>Ascend 950DT</term>暂不支持自定义内存分配器特性。

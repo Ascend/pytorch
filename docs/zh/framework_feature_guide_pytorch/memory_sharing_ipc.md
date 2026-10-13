@@ -101,6 +101,5 @@ IPC（Inter-Process Communication），表示进程间通信，进程间可以�
 
 ## 约束说明
 
-该特性仅支持在Ascend HDK 25.3.RC1及以上且CANN 8.3.RC1及以上版本使用。
-
-<term>Ascend 950DT</term>暂不支持内存共享（IPC）。
+- 该特性仅支持在Ascend HDK 25.3.RC1及以上且CANN 8.3.RC1及以上版本使用。
+- <term>Ascend 950DT</term>暂不支持内存共享（IPC）。

@@ -40,8 +40,6 @@ npu_tensor = torch.zeros(10, device='npu')
 
 ## Constraints
 
-The `alloc_fn_name` memory allocation function name must match the function name in the C/C++ file.
-
-The `free_fn_name` memory deallocation function name must match the function name in the C/C++ file.
-
-Ascend 950DT does not support the custom memory allocator feature.
+- The `alloc_fn_name` memory allocation function name must match the function name in the C/C++ file.
+- The `free_fn_name` memory deallocation function name must match the function name in the C/C++ file.
+- Ascend 950DT does not support the custom memory allocator feature.
