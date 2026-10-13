@@ -15,4 +15,4 @@
       cd pytorch/third_party/op-plugin
       ```
     
-   3. 在OpPlugin算子适配前，请先确保CANN已有相关算子实现，具体可查询[CANN 算子库](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/API/aolapi/operatorlist_00001.html)。
+   3. 在OpPlugin算子适配前，请先确保CANN已有相关算子实现，具体可查询[CANN 算子库](https://gitcode.com/cann/docs/blob/9.2.0/docs/zh/ops-lib/0_README.md)。

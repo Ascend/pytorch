@@ -4,7 +4,7 @@ OpPlugin是TorchNPU的算子插件，为使用PyTorch框架的开发者提供便
 
 ## 什么是算子适配
 
-算子适配是针对华为昇腾芯片及配套运行环境这一特定硬件平台，对AI框架PyTorch中的原生ATen IR算子进行兼容性改造与性能优化的核心技术过程。
+算子适配是针对昇腾AI处理器及配套运行环境这一特定硬件平台，对AI框架PyTorch中的原生ATen IR算子进行兼容性改造与性能优化的核心技术过程。
 
 算子作为深度学习任务的最小计算单元（如卷积、矩阵乘法、激活函数、加法等），其原生实现多面向CPU、GPU等通用硬件，并未针对昇腾NPU的架构特性（如AI Core并行计算单元、异构存储、专用加速指令集）做针对性优化。算子适配通过接口标准化、计算逻辑重构、底层硬件能力调用等手段，既保证算子在昇腾平台的计算语义、输入输出结果与PyTorch原生平台保持一致，又能充分释放昇腾硬件的计算潜能，最终实现PyTorch算子在昇腾NPU上的高效、稳定运行。
 
@@ -29,4 +29,4 @@ OpPlugin是TorchNPU的算子插件，为使用PyTorch框架的开发者提供便
 ## 如何进行算子适配
 
 - 单算子适配的详细操作可参考后续章节。
-- 图模式算子开发请参考《TorchAir》中的“[自定义算子入图](https://www.hiascend.com/document/detail/zh/Pytorch/730/modthirdparty/torchairuseguide/torchair_00055.html)”章节。
+- 图模式算子开发请参考《TorchAir》中的“[自定义算子入图](https://gitcode.com/Ascend/torchair/blob/master/docs/zh/custom_op_graph/overview.md)”章节。

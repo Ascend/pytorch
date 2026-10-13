@@ -27,7 +27,7 @@ export TORCH_HCCL_ZERO_COPY=1
     ```
 
 - 此环境变量不支持在TorchAir场景下使用。
-- 其他约束请参见《CANN HCCL集合通信库》中“零拷贝功能 \> [使用前必读](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/commlib/hcclug/docs/zh/api_ref/comm_mgr_c/zero_copy_readme.md)”章节。
+- 其他约束请参见《CANN HCCL集合通信库》中“零拷贝功能 \> [使用前必读](https://gitcode.com/cann/hcomm/blob/9.2.0/docs/zh/api_ref/comm_mgr_c/zero_copy_readme.md)”章节。
 
 ## 支持的型号
 

@@ -12,11 +12,11 @@
     cd pytorch/third_party/op-plugin
     ```
 
-3. 在框架算子适配前，请先确保CANN已有相关算子实现，具体可查询[CANN 算子库](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/API/aolapi/operatorlist_00001.html)。
+3. 在框架算子适配前，请先确保CANN已有相关算子实现，具体可查询[CANN 算子库](https://gitcode.com/cann/docs/blob/9.2.0/docs/zh/ops-lib/0_README.md)。
 
     > [!NOTE]
     >
-    > 本示例对应CANN算子为aclnnAdd，可参考《CANN 算子库》中的“[NN算子接口](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/API/aolapi/context/ops-math/aclnnAdd&aclnnInplaceAdd.md)”章节。
+    > 本示例对应CANN算子为aclnnAdd，可参考《CANN 算子库》中的“[NN算子接口](https://gitcode.com/cann/ops-math/blob/9.2.0/math/add/docs/aclnnAdd&aclnnInplaceAdd.md)”章节。
 
 ## 适配开发
 
