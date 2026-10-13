@@ -48,8 +48,7 @@ public:
     static bool IsResumeModeEnable();
     static bool IsCpuFallbackEnable();
     static bool IsSubCommRootInfoEnable();
-    static bool IsScalableRootInfoEnable();
-    static uint32_t GetHcclRanksPerRoot();
+    static int64_t GetHcclRanksPerRoot();
     static ReuseMode GetMultiStreamMemoryReuse();
     static bool CheckInfNanModeEnable();
     static bool CheckInfNanModeForceDisable();
