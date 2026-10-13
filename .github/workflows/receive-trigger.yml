@@ -303,15 +303,29 @@ jobs:
       runner_label: 'linux-aarch64-cpu-24'
       max_jobs: '23'
 
+  select:
+    needs: [extract]
+    if: ${{ inputs.event_type == 'pull_request' && needs.extract.outputs.should_build == 'true' }}
+    uses: ./.github/workflows/_precise_test.yml
+    secrets: inherit
+    with:
+      event_type: ${{ inputs.event_type }}
+      payload: ${{ inputs.payload }}
+      case_paths_config: .github/config/coverage_test_whitelist.yml
+
   test:
-    needs: [extract, build]
-    if: ${{ needs.extract.outputs.should_build == 'true' && needs.build.result == 'success' }}
+    needs: [extract, build, select]
+    if: >-
+      ${{ !cancelled() && needs.extract.outputs.should_build == 'true' &&
+      needs.build.result == 'success' && !(inputs.event_type == 'pull_request' &&
+      needs.select.result == 'success' && needs.select.outputs.precise_files == '') }}
     uses: ./.github/workflows/_test.yml
     secrets: inherit
     with:
       resolved_short: ${{ needs.build.outputs.resolved_short }}
       torch_npu_short: ${{ needs.build.outputs.torch_npu_short }}
       wheels_tarball: ${{ needs.build.outputs.wheels_tarball }}
+      precise_files: ${{ needs.select.result == 'success' && needs.select.outputs.precise_files || '' }}
       # Same test mechanism as the manual pipeline: nightly-style full
       # scan (all test_*.py files, 3-pass classification via
       # nightly_test_categories.yml: files > paths > others). Per-category

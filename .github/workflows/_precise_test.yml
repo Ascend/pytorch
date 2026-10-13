@@ -13,6 +13,22 @@ on:
         type: string
         default: ''
         description: Full client_payload as a JSON string
+      case_paths_config:
+        required: false
+        type: string
+        default: '.github/config/coverage_test_whitelist.yml'
+        description: >-
+          Path (relative to the repo root, on the ci-test branch) to the
+          coverage case whitelist; the recommendation is restricted to the
+          files it lists.
+    outputs:
+      precise_files:
+        description: >-
+          Newline-separated test file paths selected for the run and present
+          in the coverage case whitelist; empty with a successful job means nothing
+          to run, while a failing job makes the caller fall back to the full
+          case list
+        value: ${{ jobs.precision-test.outputs.precise_files }}
 
 jobs:
   prepare:
@@ -76,6 +92,8 @@ jobs:
   precision-test:
     needs: [prepare]
     if: ${{ needs.prepare.outputs.github_pr }}
+    outputs:
+      precise_files: ${{ steps.expose.outputs.files }}
     name: Precise test case selection
     runs-on: linux-aarch64-cpu-24
     timeout-minutes: 60
@@ -166,7 +184,6 @@ jobs:
       - name: generate-select-tests-case
         id: select
         if: ${{ env.github_pr != '' }}
-        continue-on-error: true
         uses: lb-actions/precision-test@v1.0.4
         with:
           repo: pytorch
@@ -178,6 +195,52 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           PYTHON_EXEC_TIMEOUT_SECONDS: "900"
+
+      - name: Checkout the coverage case whitelist
+        if: ${{ env.github_pr != '' }}
+        uses: actions/checkout@v6
+        with:
+          path: ci-scripts
+          ref: ci-test
+
+      - name: Filter the recommendation by the coverage case whitelist
+        if: ${{ env.github_pr != '' }}
+        run: |
+          set -euo pipefail
+
+          if [ ! -s recommended_pytest_paths.txt ]; then
+            echo "no recommendation to filter"
+            exit 0
+          fi
+
+          WHITELIST="ci-scripts/${{ inputs.case_paths_config }}"
+          if [ ! -f "${WHITELIST}" ]; then
+            echo "::warning::coverage case whitelist not found (${WHITELIST}); keeping the unfiltered recommendation"
+            exit 0
+          fi
+
+          python3 - "${WHITELIST}" recommended_pytest_paths.txt <<'PYEOF'
+          import sys
+          import yaml
+
+          cfg_path, rec_path = sys.argv[1:3]
+          cfg = yaml.safe_load(open(cfg_path, encoding="utf-8")) or {}
+          whitelist = {
+              f
+              for cat in (cfg.get("categories") or {}).values()
+              for f in (cat.get("files") or [])
+          }
+          if not whitelist:
+              print("::warning::the coverage case whitelist lists no file; keeping the unfiltered recommendation")
+              sys.exit(0)
+          wanted = [line.strip() for line in open(rec_path, encoding="utf-8") if line.strip()]
+          keep = [f for f in wanted if f in whitelist]
+          dropped = [f for f in wanted if f not in whitelist]
+          open(rec_path, "w", encoding="utf-8").write("".join(f"{f}\n" for f in keep))
+          print(f"case whitelist filter: kept {len(keep)} of {len(wanted)} recommended file(s), dropped {len(dropped)}")
+          for f in dropped:
+              print(f"  dropped, not in the coverage case whitelist: {f}")
+          PYEOF
 
       - name: Show the selection result
         if: ${{ env.github_pr != '' }}
@@ -193,16 +256,9 @@ jobs:
             echo "- PR: \`${github_pr}\`"
           } >> "$SUMMARY"
 
-          SELECT_OUTCOME="${{ steps.select.outcome }}"
-          if [ "${SELECT_OUTCOME}" != "success" ]; then
-            echo "::error::the selector step failed (${SELECT_OUTCOME}) for ${github_pr}; check the generate-select-tests-case log (PR diff fetch / adapter errors)"
-            echo "- Selector failed (\`${SELECT_OUTCOME}\`): see the \`generate-select-tests-case\` step log" >> "$SUMMARY"
-            exit 0
-          fi
-
           if [ ! -s recommended_pytest_paths.txt ]; then
-            echo "::warning::the selector recommended 0 test file(s) for ${github_pr} (no mapped coverage for the changed lines)"
-            echo "- Recommended test files: 0" >> "$SUMMARY"
+            echo "::warning::no test file to run for ${github_pr}: 0 recommended, or none kept by the coverage case whitelist"
+            echo "- Test files to run: 0" >> "$SUMMARY"
             exit 0
           fi
 
@@ -255,3 +311,22 @@ jobs:
               fi
             done < recommended_pytest_paths.txt
           } >> "$SUMMARY"
+
+      - name: Expose the recommendation
+        id: expose
+        if: always()
+        env:
+          SELECT_OUTCOME: ${{ steps.select.outcome }}
+        run: |
+          set -euo pipefail
+
+          if [ -s recommended_pytest_paths.txt ]; then
+            { echo "files<<EOF"; cat recommended_pytest_paths.txt; echo "EOF"; } >> "$GITHUB_OUTPUT"
+            echo "recommended test files: $(wc -l < recommended_pytest_paths.txt)"
+          elif [ "${SELECT_OUTCOME}" = "success" ]; then
+            echo "files=" >> "$GITHUB_OUTPUT"
+            echo "::warning::no test file to run after the precision selection (0 recommended, or none kept by the coverage case whitelist); the test stage is skipped"
+          else
+            echo "files=" >> "$GITHUB_OUTPUT"
+            echo "::error::the precision selector did not succeed (${SELECT_OUTCOME}); the test stage falls back to the full case list"
+          fi
