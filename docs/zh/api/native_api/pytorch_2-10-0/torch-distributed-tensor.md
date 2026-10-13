@@ -215,7 +215,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id26 -->
 <!-- npu="950" id27 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id27 -->
 
 **限制与说明**： 仅支持NPU fused SDPA路径；`q`/`k`/`v`仅支持BNSD布局；暂不支持`pse`、`padding_mask`、`prefix`、`actual_seq_qlen`、`actual_seq_kvlen`、`sink`以及任意非causal的attention mask；启用load balance时要求使用causal attention；暂不支持通过`torch.compile`编译为计算图
