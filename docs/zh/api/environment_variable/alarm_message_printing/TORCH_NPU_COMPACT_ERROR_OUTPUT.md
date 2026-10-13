@@ -15,26 +15,7 @@
 export TORCH_NPU_COMPACT_ERROR_OUTPUT=1
 ```
 
-## 使用约束
-
-无
-
-## 支持的型号
-
-<!-- npu="910" id1 -->
-- <term>Atlas训练系列产品</term>
-<!-- end id1 -->
-<!-- npu="910b" id2 -->
-- <term>Atlas A2训练系列产品</term>
-<!-- end id2 -->
-<!-- npu="A3" id3 -->
-- <term>Atlas A3训练系列产品</term>
-<!-- end id3 -->
-<!-- npu="950" id4 -->
-- <term>Ascend 950DT系列产品</term>
-<!-- end id4 -->
-
-## 结果示例
+### 结果示例
 
 - 设置为默认值“0”，正常进行ERROR打印时：
 
@@ -61,3 +42,22 @@ export TORCH_NPU_COMPACT_ERROR_OUTPUT=1
     ......
     RuntimeError: CANN error: The argument is invalid.Reason: Set device failed, invalid device, set drv device=100, valid device range is [0, 8) Solution: 1.Check the input parameter range of the function. 2.Check the function invocation relationship.
     ```
+
+## 使用约束
+
+无
+
+## 支持的型号
+
+<!-- npu="910" id1 -->
+- <term>Atlas训练系列产品</term>
+<!-- end id1 -->
+<!-- npu="910b" id2 -->
+- <term>Atlas A2训练系列产品</term>
+<!-- end id2 -->
+<!-- npu="A3" id3 -->
+- <term>Atlas A3训练系列产品</term>
+<!-- end id3 -->
+<!-- npu="950" id4 -->
+- <term>Ascend 950DT系列产品</term>
+<!-- end id4 -->
