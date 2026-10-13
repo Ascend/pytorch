@@ -440,6 +440,14 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs) {
               py::arg("opts") = ::c10d::AllgatherOptions(),
               py::call_guard<py::gil_scoped_release>())
           .def(
+              "alltoallvc",
+              &::c10d_npu::ProcessGroupHCCL::_alltoallvc,
+              py::arg("output"),
+              py::arg("input"),
+              py::arg("send_count_matrix"),
+              py::arg("opts") = ::c10d::AllToAllOptions(),
+              py::call_guard<py::gil_scoped_release>())
+          .def(
               "_set_default_timeout",
               &::c10d_npu::ProcessGroupHCCL::setTimeout,
               py::arg("timeout"),
