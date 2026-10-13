@@ -1062,6 +1062,11 @@ def _codegen_header_npu_for_tree(kernel, tree, code, outer_blocks=None):
             line += f" % {node.name}_blocks * real_block_{node.name}"
             header_code.writeline(line)
 
+    if len(_free_nodes_ordered) == 1:
+        header_code.writeline(
+            f"{tree.prefix}offset = {_free_nodes_ordered[0].name}offset"
+        )
+
     # Store on tree so _apply_linearize / dense_size_list_npu can use the
     # constexpr-safe block size per node (for tl.full shape generation).
     if not hasattr(tree, 'node_block_constexpr'):
