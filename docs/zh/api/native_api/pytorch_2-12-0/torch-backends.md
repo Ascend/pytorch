@@ -89,7 +89,7 @@
 - <term>Ascend 950DT系列产品</term>：不支持
 <!-- end id9 -->
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**： `input`仅支持fp32；此API虽然可以在NPU上调用，但实际功能不生效，如需实现类似功能，可使用[torch_npu.npu.matmul.allow_hf32](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/torch_npu-npu-matmul-allow_hf32.md)。
 
 </div>
 

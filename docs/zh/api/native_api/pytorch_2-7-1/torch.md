@@ -7774,6 +7774,8 @@
 - <term>Ascend 950DT系列产品</term>：不支持
 <!-- end id1056 -->
 
+**限制与说明**： 此API在NPU上可调用，但实际功能无效。
+
 </div>
 
 ### torch.get_float32_matmul_precision
