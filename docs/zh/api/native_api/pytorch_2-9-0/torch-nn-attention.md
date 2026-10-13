@@ -101,6 +101,26 @@
 
 </div>
 
+> <font size="3">to()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.attention.flex_attention.BlockMask.to](https://docs.pytorch.org/docs/2.9/nn.attention.flex_attention.html#torch.nn.attention.flex_attention.BlockMask.to)
+
+**产品支持情况**：
+
+<!-- npu="910b" id13 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id13 -->
+<!-- npu="A3" id14 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id14 -->
+<!-- npu="950" id15 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id15 -->
+
+</div>
+
 </div>
 
 ### torch.nn.attention.bias
