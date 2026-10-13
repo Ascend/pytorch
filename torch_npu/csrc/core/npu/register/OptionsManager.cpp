@@ -346,9 +346,23 @@ bool OptionsManager::isACLGlobalLogOn(aclLogLevel level)
         // Directly use std::getenv to get environment variables to avoid circular dependency caused by calling get_and_log_env
         char* env_val = std::getenv("ASCEND_GLOBAL_LOG_LEVEL");
         TORCH_NPU_LOGI(c10_npu::GetEnvLogger(), "get env ASCEND_GLOBAL_LOG_LEVEL = %s", env_val);
-        int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : ACL_ERROR;
-        if (logLevelMode.find(envFlag) == logLevelMode.end()) {
-            TORCH_CHECK(false, "ASCEND_GLOBAL_LOG_LEVEL should be 0, 1, 2, 3 or 4.", PTA_ERROR(ErrCode::VALUE));
+        // Fall back to the default level (ACL_ERROR) when the env var is unset,
+        // empty, non-numeric, or not a valid mode. Do not log or throw on
+        // invalid values: this function is on the hot path of all ASCEND_LOG*
+        // macros, and re-entering it before this static initialization completes
+        // would recurse infinitely.
+        int64_t envFlag = ACL_ERROR;
+        if (env_val != nullptr && env_val[0] != '\0') {
+            char* end_ptr = nullptr;
+            envFlag = strtol(env_val, &end_ptr, 10);
+            // Valid keys come solely from logLevelMode; the round-trip check
+            // (value must be representable as the int32 map key type) rejects
+            // int64 values that wrap into [0, 4] when implicitly narrowed
+            // (e.g. 2**32 -> 0) and would otherwise bypass find().
+            if (end_ptr == env_val || *end_ptr != '\0' || static_cast<int32_t>(envFlag) != envFlag ||
+                logLevelMode.find(envFlag) == logLevelMode.end()) {
+                envFlag = ACL_ERROR;
+            }
         }
         return static_cast<int>(envFlag);
     }();
