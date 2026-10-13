@@ -43,7 +43,6 @@ from torch._inductor.select_algorithm import (
     DEBUG,
     get_mm_log_filename,
     append_to_log,
-    get_num_workers,
     NoValidChoicesError,
     create_inputs_key,
     create_precompile_key,
@@ -55,7 +54,7 @@ from torch._inductor.codegen.common import IndentedBuffer, RemovedArg
 from torch._inductor.exc import CppCompileError
 from torch.utils._ordered_set import OrderedSet
 
-from ..profiler import tensorboard_trace_handler
+from .profiler import simple_trace_handler
 from .codegen.triton import NPUTritonKernel
 from . import config as npu_config
 from .kernel.flex_attention_dispatch import (
@@ -830,8 +829,8 @@ class NPUTritonTemplate(TritonTemplate):
                 "tile_shape": str(
                     (
                         kwargs.get("BLOCK_M", -1),
-                        kwargs.get("BLOCK_K", -1),
                         kwargs.get("BLOCK_N", -1),
+                        kwargs.get("BLOCK_K", -1)
                     )
                 ),
                 "num_stages": num_stages,
@@ -1300,22 +1299,18 @@ def patch_algorithm_selector() -> None:
             ):
                 return no_op
 
-            num_workers = min(get_num_workers(), len(choices))
+            from . import config as npu_config
+            import torch._inductor.config as inductor_config
+
+            # Since mm is tuned case by case, the use of multiple processes for compilation among kernels is
+            # not enabled here. To maintain the desired compilation performance,
+            # npu_config.precompile_thread_num * inductor_config.compile_threads is used as default num_workers here.
+            num_workers = min(len(choices),
+                              npu_config.precompile_thread_num * inductor_config.compile_threads,
+                              os.cpu_count())
 
             if num_workers <= 0:
                 return no_op
-
-            # NOTE: The upstream Python 3.11.0-3.11.8 guard is relaxed here
-            # because NPU codegen already wraps each precompile task in
-            # restore_stdout_stderr(), which prevents the stdout/stderr race
-            # that the version check was protecting against.
-            # Cap workers to npu_config.precompile_thread_num for
-            # consistency with the triton_heuristics compile_thread_pool.
-            try:
-                from .. import config as npu_config
-                num_workers = min(num_workers, npu_config.precompile_thread_num)
-            except Exception:
-                pass
 
             if not select_first_compilable_only:
                 # check local and global cache before precompiling
@@ -1342,6 +1337,39 @@ def patch_algorithm_selector() -> None:
             if not select_first_compilable_only and (
                 precompile_func := self.precompile_cache.get(precompile_key)
             ):
+                # [Fix for cbuf-overflow on repeated compile of same shape]
+                # When precompile_cache hits, the returned wait_on_futures is a
+                # closure bound to the FIRST call's `choices` list and is wrapped
+                # with @lru_cache, so calling it again will NOT filter the
+                # CURRENT `choices` list. The first call already mutated its own
+                # (stale) list in-place via `choices[:] = [...]`. We must replay
+                # the same failed-hash filtering here on the current choices,
+                # otherwise configs that failed precompilation (e.g. cbuf/L1
+                # overflow configs with BLOCK_K=256) survive into the benchmark
+                # stage. There, triton_heuristics._precompile_configs_parallel
+                # recompiles every config of the fused template kernel; the
+                # offending config triggers BiShengIR "cbuf overflow" and, when
+                # it is the only config of that template, raises
+                # NoTritonConfigsError, aborting the whole graph compile.
+                precompile_func()  # idempotent via @lru_cache; populates failed_hashes
+                _cached_failed_hashes = getattr(
+                    precompile_func, "failed_hashes", None
+                )
+                if _cached_failed_hashes:
+                    _before_cache_filter = len(choices)
+                    choices[:] = [
+                        c
+                        for c in choices
+                        if c.hash_key() not in _cached_failed_hashes
+                    ]
+                    _removed_by_cache = _before_cache_filter - len(choices)
+                    if _removed_by_cache:
+                        log.warning(
+                            "Replayed cached precompile filter: removed "
+                            "%d previously-failed choice(s); %d remain",
+                            _removed_by_cache,
+                            len(choices),
+                        )
                 return precompile_func
 
             log.info(
@@ -1399,29 +1427,54 @@ def patch_algorithm_selector() -> None:
             @restore_stdout_stderr()
             def wait_on_futures():
                 counters["inductor"]["select_algorithm_precompile"] += 1
+                failed_choices: List[ChoiceCaller] = []
                 for future in as_completed(
                     futures,
                     timeout=precompilation_timeout_seconds,
                 ):
-                    if e := future.exception():
-                        _log_autotune_error(
-                            "Precompile failed",
-                            e,
-                            futures[future],
-                            ignored=False,
+                    choice = futures[future]
+                    try:
+                        future.result()
+                    except Exception:
+                        log.debug(
+                            "Precompile failed for choice %s:",
+                            _format_choice_debug_label(choice),
+                            exc_info=True,
                         )
+                        log.warning(
+                            "Precompile failed for choice %s",
+                            _format_choice_debug_label(choice),
+                        )
+                        failed_choices.append(choice)
                     else:
-                        successful_precompile_choice_hashes.add(
-                            futures[future].hash_key()
-                        )
+                        successful_precompile_choice_hashes.add(choice.hash_key())
                         counters["inductor"]["select_algorithm_num_precompiles"] += 1
                         log.info(
                             "Precompiling benchmark choice %s took %.02fs",
-                            _format_choice_debug_label(futures[future]),
-                            elapsed_times[future],
+                            _format_choice_debug_label(choice),
+                            elapsed_times.get(future, 0.0),
                         )
-
                 executor.shutdown(wait=True)
+                if failed_choices:
+                    failed_hashes = {c.hash_key() for c in failed_choices}
+                    choices[:] = [c for c in choices if c.hash_key() not in failed_hashes]
+                    log.warning(
+                        "Removed %d failed choice(s) from candidates; %d remain",
+                        len(failed_hashes),
+                        len(choices),
+                    )
+                # [Fix for cbuf-overflow on repeated compile of same shape]
+                # Record the set of failed choice hashes on the cached callable
+                # itself so that, when precompile_cache is hit by a LATER call
+                # with the same precompile_key (same shape), we can replay the
+                # filtering on the *new* choices list. Without this, the cached
+                # wait_on_futures (bound to the first choices list + @lru_cache)
+                # would silently skip filtering and let compile-failed configs
+                # leak into the benchmark stage, raising NoTritonConfigsError
+                # inside triton_heuristics._precompile_configs_parallel.
+                wait_on_futures.failed_hashes = frozenset(
+                    c.hash_key() for c in failed_choices
+                )
 
             if not select_first_compilable_only:
                 self.precompile_cache[precompile_key] = wait_on_futures
@@ -1606,6 +1659,30 @@ def patch_algorithm_selector() -> None:
         if input_gen_fns is None:
             input_gen_fns = {}
 
+        from .codegen.catlass.catlass_kernel import CATLASSTemplateCaller
+
+        def _maybe_reorder_for_catlass_addmm(
+            choice: ChoiceCaller, inpts: list[torch.Tensor]
+        ) -> list[torch.Tensor]:
+            """Reorder (bias, x, w) -> (x, w, bias) for a catlass addmm choice.
+
+            The catlass addmm template was registered with input_nodes
+            [mat1, mat2, inp] (i.e. x, w, bias), so it expects the bias LAST.
+            The triton addmm template and aten addmm both expect bias FIRST
+            (in_ptr0=bias / aten.addmm(bias, x, w)).  ``get_inputs`` always
+            returns the original (bias, x, w) order, so we reorder here only
+            when the current choice is a catlass addmm — i.e. a catlass
+            template that is NOT a grouped matmul (group mm has a different
+            input layout and must not be reordered).
+            """
+            if (
+                isinstance(choice, CATLASSTemplateCaller)
+                and "GroupedMatmulSliceMTla" not in choice.description
+                and len(inpts) == 3
+            ):
+                return [inpts[1], inpts[2], inpts[0]]
+            return inpts
+
         def get_inputs(
             choices: Union[List[ExternKernelCaller], List[TritonTemplateCaller]],
         ) -> AutotuneArgs:
@@ -1638,16 +1715,6 @@ def patch_algorithm_selector() -> None:
                 for input_node in input_nodes
             ]
 
-            from .codegen.catlass.catlass_kernel import CATLASSTemplateCaller
-            is_group_mm = False
-            for choice in choices:
-                if isinstance(choice, CATLASSTemplateCaller) and "GroupedMatmulSliceMTla" in choice.description:
-                    is_group_mm = True
-
-            if not is_group_mm and len(input_nodes) == 3:
-                # reorder inputs here because addmm catlass template
-                # expects (x, w, bias) but torch is bias, x, w
-                example_inputs = example_inputs[1:] + [example_inputs[0]]
             out = cls.benchmark_example_value(layout)
             out_extern = torch.as_strided(
                 out,
@@ -1680,6 +1747,7 @@ def patch_algorithm_selector() -> None:
             is_extern = isinstance(choice, ExternKernelCaller)
             benchmark_tensors = autotune_args.get_benchmark_tensors(is_extern)
             inpts, output = benchmark_tensors.unpack()
+            inpts = _maybe_reorder_for_catlass_addmm(choice, inpts)
             output.zero_()
             result = choice.benchmark(*inpts, out=output)
             if VERIFY and autotune_args.expected is not None:
@@ -1697,6 +1765,7 @@ def patch_algorithm_selector() -> None:
                 is_extern = isinstance(choice, ExternKernelCaller)
                 benchmark_tensors = inputs.get_benchmark_tensors(is_extern)
                 inpts, output = benchmark_tensors.unpack()
+                inpts = _maybe_reorder_for_catlass_addmm(choice, inpts)
                 output.zero_()
                 if is_extern:
                     algo = choice.to_callable()
@@ -1727,8 +1796,8 @@ def patch_algorithm_selector() -> None:
                     shutil.rmtree(base_path)
 
             experimental_config = torch_npu.profiler._ExperimentalConfig(
-                aic_metrics=torch_npu.profiler.AiCMetrics.PipeUtilization,
-                profiler_level=torch_npu.profiler.ProfilerLevel.Level1,
+                aic_metrics=torch_npu.profiler.AiCMetrics.AiCoreNone,
+                profiler_level=torch_npu.profiler.ProfilerLevel.Level0,
                 l2_cache=False,
                 data_simplification=False,
             )
@@ -1738,7 +1807,7 @@ def patch_algorithm_selector() -> None:
 
             num_funcs = len(funcs)
             torch_path = os.path.join(os.getcwd(), "profile_results", md5_hash)
-            TOTAL_STEP = 50
+            TOTAL_STEP = 6
             l2_cache_size = 192 * (1 << 20)
             buffer = torch.empty(l2_cache_size // 4, dtype=torch.int, device="npu")
             buffer = buffer.float()
@@ -1746,7 +1815,7 @@ def patch_algorithm_selector() -> None:
             torch.npu.synchronize()  # shake out of any npu error
             with torch_npu.profiler.profile(
                 activities=[torch_npu.profiler.ProfilerActivity.NPU],
-                on_trace_ready=tensorboard_trace_handler(torch_path),
+                on_trace_ready=simple_trace_handler(torch_path),
                 record_shapes=False,
                 profile_memory=False,
                 with_stack=False,
@@ -1756,12 +1825,11 @@ def patch_algorithm_selector() -> None:
             ):
                 for fn, args, kwargs in funcs:
                     for _ in range(TOTAL_STEP):
-                        buffer.sum()
                         fn(*args, **kwargs)
                         torch.npu.synchronize()
                     # One aclnn op may be separated into multiple ops, recorded in kernel_details.csv,
                     # which makes us hard to analyze the kernel_detail.csv. Therefore, an abs operation is added here,
-                    # aiming to help us recognize different ops.
+                    # aimming to help us recognize different ops.
                     buffer.abs_()
                     torch.npu.synchronize()
             del buffer
