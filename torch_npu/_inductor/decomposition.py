@@ -987,6 +987,11 @@ def _override_native_dropout_decomp():
 
 def _register_upsample_bilinear2d_vec_dispatcher():
     """Route the vec overload to the native NPU-compatible default overload."""
+    # _load_backend() re-runs on backend switches; this dispatcher
+    # registration is process-global and torch library rejects a second
+    # py_impl for the same op + key, so only register once per process.
+    if getattr(_register_upsample_bilinear2d_vec_dispatcher, "_done", False):
+        return
     from torch._decomp.decompositions import upsample_compute_output_size
 
     def upsample_bilinear2d_vec(
@@ -1004,6 +1009,7 @@ def _register_upsample_bilinear2d_vec_dispatcher():
         aten.upsample_bilinear2d.vec.py_impl(dispatch_key)(
             upsample_bilinear2d_vec
         )
+    _register_upsample_bilinear2d_vec_dispatcher._done = True
 
 
 def _register_triton_experimental_decompositions():
