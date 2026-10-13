@@ -11,6 +11,7 @@
 
 | API名称                                     |
 |-------------------------------------------|
+| Tensor.abs                                |
 | Tensor.add                                |
 | Tensor.add\_                              |
 | Tensor.addcdiv\_                          |

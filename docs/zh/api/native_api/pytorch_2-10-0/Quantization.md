@@ -50,7 +50,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id2 -->
 <!-- npu="950" id3 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id3 -->
 
 </div>
@@ -392,7 +392,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id53 -->
 <!-- npu="950" id54 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id54 -->
 
 </div>
@@ -412,7 +412,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id56 -->
 <!-- npu="950" id57 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id57 -->
 
 </div>
@@ -432,7 +432,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id59 -->
 <!-- npu="950" id60 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id60 -->
 
 </div>
@@ -472,7 +472,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id65 -->
 <!-- npu="950" id66 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id66 -->
 
 </div>
@@ -532,7 +532,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id74 -->
 <!-- npu="950" id75 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id75 -->
 
 </div>
@@ -592,7 +592,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id83 -->
 <!-- npu="950" id84 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id84 -->
 
 </div>
@@ -632,7 +632,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id89 -->
 <!-- npu="950" id90 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id90 -->
 
 </div>
@@ -712,7 +712,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id101 -->
 <!-- npu="950" id102 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id102 -->
 
 </div>
@@ -734,7 +734,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id104 -->
 <!-- npu="950" id105 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id105 -->
 
 > <font size="3">from_dict()</font>
@@ -752,7 +752,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id107 -->
 <!-- npu="950" id108 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id108 -->
 
 </div>
@@ -814,7 +814,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id116 -->
 <!-- npu="950" id117 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id117 -->
 
 > <font size="3">INPUT_OUTPUT_NOT_OBSERVED()</font>
@@ -832,7 +832,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id119 -->
 <!-- npu="950" id120 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id120 -->
 
 </div>
@@ -852,7 +852,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id122 -->
 <!-- npu="950" id123 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id123 -->
 
 </div>
@@ -896,7 +896,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id128 -->
 <!-- npu="950" id129 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id129 -->
 
 > <font size="3">from_dict()</font>
@@ -914,7 +914,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id131 -->
 <!-- npu="950" id132 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id132 -->
 
 </div>
@@ -976,7 +976,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id140 -->
 <!-- npu="950" id141 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id141 -->
 
 > <font size="3">from_dict()</font>
@@ -1014,7 +1014,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id146 -->
 <!-- npu="950" id147 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id147 -->
 
 </div>
@@ -1054,7 +1054,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id152 -->
 <!-- npu="950" id153 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id153 -->
 
 </div>
@@ -1094,7 +1094,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id158 -->
 <!-- npu="950" id159 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id159 -->
 
 </div>
@@ -1114,7 +1114,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id161 -->
 <!-- npu="950" id162 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id162 -->
 
 </div>
@@ -1154,7 +1154,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id167 -->
 <!-- npu="950" id168 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id168 -->
 
 </div>
@@ -1174,7 +1174,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id170 -->
 <!-- npu="950" id171 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id171 -->
 
 </div>
@@ -1196,7 +1196,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id173 -->
 <!-- npu="950" id174 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id174 -->
 
 > <font size="3">from_dict()</font>
@@ -1234,7 +1234,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id179 -->
 <!-- npu="950" id180 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id180 -->
 
 </div>
@@ -1254,7 +1254,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id182 -->
 <!-- npu="950" id183 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id183 -->
 
 </div>
@@ -1496,7 +1496,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id218 -->
 <!-- npu="950" id219 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id219 -->
 
 </div>
@@ -1518,7 +1518,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id221 -->
 <!-- npu="950" id222 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id222 -->
 
 </div>
@@ -1620,7 +1620,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id236 -->
 <!-- npu="950" id237 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id237 -->
 
 </div>
@@ -1660,7 +1660,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id242 -->
 <!-- npu="950" id243 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id243 -->
 
 </div>
@@ -1844,7 +1844,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id269 -->
 <!-- npu="950" id270 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id270 -->
 
 </div>
@@ -1906,7 +1906,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id278 -->
 <!-- npu="950" id279 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id279 -->
 
 </div>
@@ -1926,7 +1926,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id281 -->
 <!-- npu="950" id282 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id282 -->
 
 </div>
@@ -1946,7 +1946,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id284 -->
 <!-- npu="950" id285 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id285 -->
 
 </div>
@@ -1968,7 +1968,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id287 -->
 <!-- npu="950" id288 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id288 -->
 
 </div>
@@ -1988,7 +1988,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id290 -->
 <!-- npu="950" id291 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id291 -->
 
 </div>
@@ -2008,7 +2008,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id293 -->
 <!-- npu="950" id294 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id294 -->
 
 </div>
@@ -2028,7 +2028,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id296 -->
 <!-- npu="950" id297 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id297 -->
 
 </div>
@@ -2068,7 +2068,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id302 -->
 <!-- npu="950" id303 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id303 -->
 
 </div>
@@ -2088,7 +2088,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id305 -->
 <!-- npu="950" id306 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id306 -->
 
 </div>
@@ -2108,7 +2108,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id308 -->
 <!-- npu="950" id309 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id309 -->
 
 </div>
@@ -2148,7 +2148,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id314 -->
 <!-- npu="950" id315 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id315 -->
 
 </div>
@@ -2168,7 +2168,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id317 -->
 <!-- npu="950" id318 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id318 -->
 
 </div>
@@ -2208,7 +2208,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id323 -->
 <!-- npu="950" id324 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id324 -->
 
 </div>
@@ -2224,13 +2224,13 @@
 **产品支持情况**：
 
 <!-- npu="910b" id325 -->
-- <term>Atlas A2训练系列产品</term>：不支持
+- <term>Atlas A2训练系列产品</term>：支持
 <!-- end id325 -->
 <!-- npu="A3" id326 -->
-- <term>Atlas A3训练系列产品</term>：不支持
+- <term>Atlas A3训练系列产品</term>：支持
 <!-- end id326 -->
 <!-- npu="950" id327 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id327 -->
 
 </div>
@@ -2246,13 +2246,13 @@
 **产品支持情况**：
 
 <!-- npu="910b" id328 -->
-- <term>Atlas A2训练系列产品</term>：不支持
+- <term>Atlas A2训练系列产品</term>：支持
 <!-- end id328 -->
 <!-- npu="A3" id329 -->
-- <term>Atlas A3训练系列产品</term>：不支持
+- <term>Atlas A3训练系列产品</term>：支持
 <!-- end id329 -->
 <!-- npu="950" id330 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id330 -->
 
 </div>
@@ -2272,7 +2272,7 @@
 - <term>Atlas A3训练系列产品</term>：不支持
 <!-- end id332 -->
 <!-- npu="950" id333 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id333 -->
 
 </div>
@@ -2292,7 +2292,7 @@
 - <term>Atlas A3训练系列产品</term>：不支持
 <!-- end id335 -->
 <!-- npu="950" id336 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id336 -->
 
 </div>
@@ -2312,7 +2312,7 @@
 - <term>Atlas A3训练系列产品</term>：不支持
 <!-- end id338 -->
 <!-- npu="950" id339 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id339 -->
 
 </div>
@@ -2370,10 +2370,10 @@
 **产品支持情况**：
 
 <!-- npu="910b" id346 -->
-- <term>Atlas A2训练系列产品</term>：不支持
+- <term>Atlas A2训练系列产品</term>：支持
 <!-- end id346 -->
 <!-- npu="A3" id347 -->
-- <term>Atlas A3训练系列产品</term>：不支持
+- <term>Atlas A3训练系列产品</term>：支持
 <!-- end id347 -->
 <!-- npu="950" id348 -->
 - <term>Ascend 950DT系列产品</term>：不支持
@@ -2392,13 +2392,13 @@
 **产品支持情况**：
 
 <!-- npu="910b" id349 -->
-- <term>Atlas A2训练系列产品</term>：不支持
+- <term>Atlas A2训练系列产品</term>：支持
 <!-- end id349 -->
 <!-- npu="A3" id350 -->
-- <term>Atlas A3训练系列产品</term>：不支持
+- <term>Atlas A3训练系列产品</term>：支持
 <!-- end id350 -->
 <!-- npu="950" id351 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id351 -->
 
 </div>
@@ -2440,7 +2440,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id356 -->
 <!-- npu="950" id357 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id357 -->
 
 **限制与说明**： `input`仅支持fp32
@@ -2462,7 +2462,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id359 -->
 <!-- npu="950" id360 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id360 -->
 
 **限制与说明**： `input`仅支持fp32
@@ -2484,7 +2484,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id362 -->
 <!-- npu="950" id363 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id363 -->
 
 **限制与说明**： `input`仅支持fp32
@@ -2506,7 +2506,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id365 -->
 <!-- npu="950" id366 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id366 -->
 
 **限制与说明**： `input`仅支持fp32
@@ -2528,7 +2528,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id368 -->
 <!-- npu="950" id369 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id369 -->
 
 **限制与说明**： `input`仅支持fp32
@@ -2546,13 +2546,13 @@
 **产品支持情况**：
 
 <!-- npu="910b" id370 -->
-- <term>Atlas A2训练系列产品</term>：不支持
+- <term>Atlas A2训练系列产品</term>：支持
 <!-- end id370 -->
 <!-- npu="A3" id371 -->
-- <term>Atlas A3训练系列产品</term>：不支持
+- <term>Atlas A3训练系列产品</term>：支持
 <!-- end id371 -->
 <!-- npu="950" id372 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id372 -->
 
 </div>

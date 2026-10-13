@@ -6,11 +6,15 @@
 >
 > - 标注“支持入图”的API，表示该接口可在`torch.compile`编译后的计算图中正常使用，能够被图捕获并参与优化。关于`torch.compile`的说明请参考[torch.compile](../../user_guide/torch_compile/_menu_torch_compile.md)。
 > - 本文档展示的列表均为已验证支持入图的API。部分未验证的API可能也具备支持入图的能力，在昇腾NPU环境中请谨慎使用。我们将持续验证更多API并定期更新本文档。
+> - 标注星号（*）的API存在产品或PyTorch版本限制，详见表格下方说明。
 
 **表 1**  昇腾支持入图的API列表<a id="昇腾支持入图的API列表"></a>
 
 | API名称                                               |
 |-----------------------------------------------------|
+| Tensor.abs                                          |
+| Tensor.add                                          |
+| Tensor.addmm                                        |
 | Tensor.all                                          |
 | Tensor.any                                          |
 | Tensor.argmax                                       |
@@ -95,7 +99,7 @@
 | torch.convolution                                   |
 | torch.cos                                           |
 | torch.cumsum                                        |
-| torch.device                                        |
+| torch.device<sup>*</sup>                                        |
 | torch.distributed.\_all\_gather\_base               |
 | torch.distributed.\_reduce\_scatter\_base           |
 | torch.distributed.all\_gather                       |
@@ -143,14 +147,15 @@
 | torch.native\_dropout                               |
 | torch.ne                                            |
 | torch.neg                                           |
-| torch.nn.functional.cross\_entropy                  |
+| torch.nn.functional.cross\_entropy<sup>*</sup>                  |
 | torch.nn.functional.layer\_norm                     |
 | torch.nn.functional.mse\_loss                       |
 | torch.nn.functional.one\_hot                        |
-| torch.nn.functional.scaled\_dot\_product\_attention |
+| torch.nn.functional.scaled\_dot\_product\_attention<sup>*</sup> |
 | torch.nn.functional.silu                            |
 | torch.nn.functional.softmax                         |
 | torch.nn.GELU                                       |
+| torch.no\_grad                                      |
 | torch.normal                                        |
 | torch.pow                                           |
 | torch.reciprocal                                    |
@@ -188,3 +193,25 @@
 | torch\_npu.npu\_swiglu                              |
 | torch\_npu.npu\_grouped\_matmul                     |
 | torch.\_foreach\_copy\_                             |
+
+特殊说明：
+
+<!-- npu="910b" id1 -->
+- \* `torch.device`：在<term>Atlas A2训练系列产品</term>上，PyTorch版本为2.7.1时不支持入图。
+<!-- end id1 -->
+
+<!-- npu="A3" id2 -->
+- \* `torch.device`：在<term>Atlas A3训练系列产品</term>上，PyTorch版本为2.7.1时不支持入图。
+<!-- end id2 -->
+
+<!-- npu="910b" id3 -->
+- \* `torch.nn.functional.cross_entropy`：在<term>Atlas A2训练系列产品</term>上，PyTorch版本为2.7.1时不支持入图。
+<!-- end id3 -->
+
+<!-- npu="A3" id4 -->
+- \* `torch.nn.functional.cross_entropy`：在<term>Atlas A3训练系列产品</term>上，PyTorch版本为2.7.1时不支持入图。
+<!-- end id4 -->
+
+<!-- npu="950" id5 -->
+- \* `torch.nn.functional.scaled_dot_product_attention`：在<term>Ascend 950DT系列产品</term>上，PyTorch版本为2.7.1、2.9.0、2.10.0、2.11.0、2.12.0、2.13.0、2.14.0时不支持入图。
+<!-- end id5 -->
