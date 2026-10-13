@@ -61,7 +61,6 @@ def _run_scalable_rootinfo_case(
     rank,
     world_size,
     ranks_per_root,
-    scalable_enabled,
     master_ports,
     socket_port_range,
     log_dir,
@@ -70,7 +69,6 @@ def _run_scalable_rootinfo_case(
     os.environ["MASTER_ADDR"] = "127.0.0.1"
     os.environ["HCCL_WHITELIST_DISABLE"] = "1"
     os.environ["HCCL_NPU_SOCKET_PORT_RANGE"] = socket_port_range
-    os.environ["ROOTINFO_SCALABLE_ENABLE"] = "1" if scalable_enabled else "0"
     if ranks_per_root is None:
         os.environ.pop("TORCH_HCCL_RANKS_PER_ROOT", None)
     else:
@@ -150,10 +148,11 @@ class ScalableRootInfoTest(TestCase):
             roots[root_rank] = root_index
         return roots
 
-    def _assert_path_logs(self, log_dir, world_size, ranks_per_root, scalable_enabled, rounds):
-        effective_ranks_per_root = 128 if ranks_per_root is None else ranks_per_root
+    def _assert_path_logs(self, log_dir, world_size, ranks_per_root, rounds):
+        effective_ranks_per_root = -1 if ranks_per_root is None else ranks_per_root
         valid_ranks_per_root = isinstance(effective_ranks_per_root, int) and effective_ranks_per_root > 0
-        scalable_requested = scalable_enabled and valid_ranks_per_root and world_size > effective_ranks_per_root
+        scalable_enabled = valid_ranks_per_root
+        scalable_requested = scalable_enabled and world_size > effective_ranks_per_root
         scalable_supported_soc = self._is_scalable_supported_soc()
         use_scalable_path = scalable_requested and scalable_supported_soc
         expected_roots = (
@@ -217,7 +216,6 @@ class ScalableRootInfoTest(TestCase):
     def _run_case(
         self,
         ranks_per_root,
-        scalable_enabled=True,
         run_all_collectives=False,
         rounds=1,
         expected_error=None,
@@ -236,7 +234,6 @@ class ScalableRootInfoTest(TestCase):
             spawn_args = (
                 world_size,
                 ranks_per_root,
-                scalable_enabled,
                 master_ports,
                 socket_port_range,
                 log_dir,
@@ -248,7 +245,7 @@ class ScalableRootInfoTest(TestCase):
                 return
 
             mp.spawn(_run_scalable_rootinfo_case, args=spawn_args, nprocs=world_size, join=True)
-            self._assert_path_logs(log_dir, world_size, ranks_per_root, scalable_enabled, rounds)
+            self._assert_path_logs(log_dir, world_size, ranks_per_root, rounds)
 
     def test_balanced_roots_and_collectives(self):
         self._run_case(ranks_per_root=2, run_all_collectives=True)
@@ -265,30 +262,34 @@ class ScalableRootInfoTest(TestCase):
     def test_ranks_per_root_equal_to_world_size_uses_original_path(self):
         self._run_case(ranks_per_root=4)
 
-    def test_switch_disabled_uses_original_path(self):
-        self._run_case(ranks_per_root=2, scalable_enabled=False)
+    def test_negative_one_disables_scalable_rootinfo(self):
+        self._run_case(ranks_per_root=-1)
 
-    def test_default_ranks_per_root_uses_original_path(self):
+    def test_unset_ranks_per_root_disables_scalable_rootinfo(self):
         self._run_case(ranks_per_root=None)
 
     def test_repeated_create_and_destroy(self):
         self._run_case(ranks_per_root=2, rounds=2)
 
     def test_zero_ranks_per_root_is_rejected(self):
-        expected_error = (
-            "TORCH_HCCL_RANKS_PER_ROOT must be a positive uint32_t"
-            if self._is_scalable_supported_soc()
-            else None
-        )
+        expected_error = "TORCH_HCCL_RANKS_PER_ROOT must be -1 or a positive uint32_t"
         self._run_case(ranks_per_root=0, expected_error=expected_error)
 
     def test_wrong_ranks_per_root_type_is_rejected(self):
-        expected_error = (
-            "TORCH_HCCL_RANKS_PER_ROOT must be a positive uint32_t"
-            if self._is_scalable_supported_soc()
-            else None
-        )
+        expected_error = "TORCH_HCCL_RANKS_PER_ROOT must be -1 or a positive uint32_t"
         self._run_case(ranks_per_root="invalid", expected_error=expected_error)
+
+    def test_other_negative_ranks_per_root_is_rejected(self):
+        self._run_case(
+            ranks_per_root=-2,
+            expected_error="TORCH_HCCL_RANKS_PER_ROOT must be -1 or a positive uint32_t",
+        )
+
+    def test_out_of_range_ranks_per_root_is_rejected(self):
+        self._run_case(
+            ranks_per_root=2**32,
+            expected_error="TORCH_HCCL_RANKS_PER_ROOT must be -1 or a positive uint32_t",
+        )
 
 
 if __name__ == "__main__":
