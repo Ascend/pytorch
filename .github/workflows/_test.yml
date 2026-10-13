@@ -68,14 +68,6 @@ on:
           list of nodeids (flat array root, or under a case_whitelist/cases/
           nodeids/whitelist key). When set, collected cases are intersected
           with this list before sharding. Empty = keep every collected case.
-      precise_files:
-        required: false
-        type: string
-        default: ''
-        description: >-
-          Newline-separated test file paths recommended by the precision
-          selector. When set, the case set is exactly this list; empty means
-          the regular case_paths_config is used.
       shard_threshold_regular:
         required: false
         type: number
@@ -137,7 +129,6 @@ jobs:
       full_scan: ${{ inputs.full_scan }}
       skip_list: ${{ inputs.skip_list }}
       case_whitelist: ${{ inputs.case_whitelist }}
-      precise_files: ${{ inputs.precise_files }}
       shard_threshold_regular: ${{ inputs.shard_threshold_regular }}
       shard_threshold_distributed: ${{ inputs.shard_threshold_distributed }}
       runner_label: ${{ inputs.runner_label }}
@@ -148,7 +139,7 @@ jobs:
   # ============================================================================
   test:
     needs: collect
-    if: ${{ needs.collect.result == 'success' && needs.collect.outputs.total_cases != '0' }}
+    if: ${{ needs.collect.result == 'success' }}
     strategy:
       fail-fast: false
       matrix:

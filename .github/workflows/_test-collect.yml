@@ -60,15 +60,6 @@ on:
           nodeids/whitelist key). When set, collected cases are intersected
           with this list after collection (before sharding). Empty = keep
           every collected case.
-      precise_files:
-        required: false
-        type: string
-        default: ''
-        description: >-
-          Newline-separated test file paths recommended by the precision
-          selector. When set, the generated precise_cases.yml contains exactly
-          this list and full_scan is not applied; empty means the regular
-          case_paths_config is used.
       shard_threshold_regular:
         required: false
         type: number
@@ -289,28 +280,6 @@ jobs:
 
           CASE_PATHS_CONFIG='${{ inputs.case_paths_config }}'
 
-          PRECISE_FILES='${{ inputs.precise_files }}'
-          if [ -n "${PRECISE_FILES}" ]; then
-            printf '%s\n' "${PRECISE_FILES}" > /tmp/precise_files.txt
-            python3 - /tmp/precise_files.txt "${GITHUB_WORKSPACE}/ci-scripts/.github/config/precise_cases.yml" '${{ inputs.runner_label }}' <<'PYEOF'
-          import sys
-          import yaml
-
-          files_path, out_path, runner = sys.argv[1:4]
-          want = sorted({line.strip() for line in open(files_path, encoding="utf-8") if line.strip()})
-          distributed = [f for f in want if f.startswith("test/distributed/")]
-          regular = [f for f in want if not f.startswith("test/distributed/")]
-          categories = {}
-          if distributed:
-              categories["distributed"] = {"files": distributed, "workers": 1, "execution": "serial", "runner": runner}
-          if regular:
-              categories["others"] = {"files": regular, "workers": 32, "execution": "concurrent", "runner": runner}
-          yaml.safe_dump({"categories": categories}, open(out_path, "w", encoding="utf-8"), sort_keys=False, allow_unicode=True)
-          print(f"precision cases: {len(want)} file(s) selected ({len(distributed)} distributed, {len(regular)} others)")
-          PYEOF
-            CASE_PATHS_CONFIG=.github/config/precise_cases.yml
-          fi
-
           echo "=== Collecting all test cases ==="
           echo "Case paths config: ${CASE_PATHS_CONFIG:-<scan all>}"
 
@@ -320,7 +289,7 @@ jobs:
           fi
 
           FULL_SCAN_ARG=""
-          if [ "${{ inputs.full_scan }}" = "true" ] && [ -z "${PRECISE_FILES}" ]; then
+          if [ "${{ inputs.full_scan }}" = "true" ]; then
             FULL_SCAN_ARG="--full-scan"
           fi
 
