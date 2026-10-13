@@ -42,6 +42,5 @@ npu_tensor = torch.zeros(10, device='npu')
 
 ## Constraints
 
-The `alloc_fn_name` memory allocation function name must match the function name in the C/C++ file.
-
-The memory release function name specified by `free_fn_name` must be consistent with the function name in the C/C++ file.
+- The `alloc_fn_name` memory allocation function name must match the function name in the C/C++ file.
+- The memory release function name specified by `free_fn_name` must be consistent with the function name in the C/C++ file.

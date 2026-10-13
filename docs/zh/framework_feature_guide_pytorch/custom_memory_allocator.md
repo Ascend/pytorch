@@ -40,6 +40,5 @@ npu_tensor = torch.zeros(10, device='npu')
 
 ## 约束说明
 
-alloc\_fn\_name（内存申请函数名）必须与C/C++文件中函数名一致。
-
-free\_fn\_name（内存释放函数名）必须与C/C++文件中函数名一致。
+- alloc\_fn\_name（内存申请函数名）必须与C/C++文件中函数名一致。
+- free\_fn\_name（内存释放函数名）必须与C/C++文件中函数名一致。

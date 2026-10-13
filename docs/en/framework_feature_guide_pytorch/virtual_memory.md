@@ -60,8 +60,6 @@ Choose one of the following methods:
 
 ## Constraints
 
-The expandable_segments feature requires Ascend HDK 23.0.0 or later.
-
-`torch.npu.memory._set_allocator_settings` is only supported in PyTorch 2.6.0 or later.
-
-`torch.npu.memory._set_allocator_settings` currently only supports modifying the expandable_segments attribute.
+- The expandable_segments feature requires Ascend HDK 23.0.0 or later.
+- `torch.npu.memory._set_allocator_settings` is only supported in PyTorch 2.6.0 or later.
+- `torch.npu.memory._set_allocator_settings` currently only supports modifying the expandable_segments attribute.
