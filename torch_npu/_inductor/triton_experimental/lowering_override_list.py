@@ -11,6 +11,7 @@ Ops the bulk pass cannot discover (no upstream lowering) are listed separately i
 """
 import torch
 from torch._inductor.fx_passes.control_dependencies import control_deps
+from torch._inductor import inductor_prims
 
 from . import device_props as _device_props
 
@@ -124,6 +125,8 @@ GENERATE_LIST = [
     aten.bmm,
     aten.addmm,
     aten.glu,
+    aten._foreach_mul,
+    inductor_prims.randint,
 ]
 # A5 (910_95) ONLY: the CANN indirect-mem extension ops behind these exist only
 # on A5 (fail to lower on A2/A3/910B). Mirrors torch_npu's INDIRECT_MEM_OVERRIDE_LIST.
