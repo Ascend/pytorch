@@ -54,7 +54,7 @@ from torch._inductor.codegen.common import (
 )
 from torch._inductor.codegen.wrapper import SymbolicCallArg
 from torch._inductor.runtime.hints import DeviceProperties, ReductionHint
-from torch._inductor.virtualized import V
+from torch._inductor.virtualized import V, ops
 from torch.utils._ordered_set import OrderedSet
 
 from typing import (
@@ -1802,6 +1802,34 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
     @staticmethod
     def maximum(a, b):
         return f"npu_triton_helpers.maximum({a}, {b})"
+
+    @staticmethod
+    def remainder(a, b):
+        """Floor-mod sign correction rewritten to dodge triton-ascend #2290.
+
+        Upstream builds the predicate as ``(signbit(r) != signbit(b))``; when the
+        divisor is a true-valued scalar, triton-ascend folds ``vec_bool !=
+        scalar_bool`` to all-true and over-corrects every ``r != 0`` lane by ``+b``.
+        Expand it against 0 instead — ``(r != 0) & ((r < 0 & b > 0) | (r > 0 & b <
+        0))`` — same values, single fused kernel, no bool-vs-bool ``!=``.
+
+        Not covered (separate triton-ascend defects): integer ``b == 0`` (``% 0``
+        returns -1, eager returns the dividend), and 0-dim f16/bf16 scalar divisors
+        under Inductor test instrumentation (shape-assert miscompile).
+
+        Remove this override once the deployed closed-source bishengir-compile
+        carries the #2290 fix (a triton-ascend source commit is not the trigger).
+        """
+        r = ops.mod(a, b)
+        zero = ops.constant(0, torch.int32)
+        cond = ops.and_(
+            ops.ne(r, zero),
+            ops.or_(
+                ops.and_(ops.lt(r, zero), ops.gt(b, zero)),
+                ops.and_(ops.gt(r, zero), ops.lt(b, zero)),
+            ),
+        )
+        return ops.where(cond, ops.add(r, b), r)
 
     @staticmethod
     def to_dtype(x, dtype: torch.dtype, src_dtype=None, use_compute_types=True):
