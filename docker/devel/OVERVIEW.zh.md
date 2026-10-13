@@ -4,12 +4,12 @@
 
 ## 快速参考
 
-- TorchNPU 由 [Ascend for PyTorch community](https://www.hiascend.com/developer/software/ai-frameworks/pytorch) 维护
+- TorchNPU 由 [Ascend for PyTorch community](https://www.hiascend.com/cn/developer/software/ai-frameworks/pytorch) 维护。
 
 - 从哪里获取帮助
 
    - [AscendHub 镜像仓库](https://www.hiascend.com/developer/ascendhub)
-   - [TorchNPU 文档](https://www.hiascend.com/document/detail/zh/Pytorch/730/index/index.html)
+   - [TorchNPU 文档](https://www.hiascend.com/document/detail/zh/Pytorch/latest/index/index.html)
    - [昇腾开发者社区](https://www.hiascend.com/developer)
    - [问题反馈](https://gitcode.com/Ascend/pytorch/issues)
 
@@ -82,7 +82,7 @@ dockerfile 详见：[dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/
 
 ### 参数来源
 
-1. OBS 上的 CANN `.run` 包按 release train 分目录存放（如 `CANN%209.1.T1`、`CANN%209.1.0`），目录名无法由版本号自动推导。因此当 `CANN_VERSION` 与默认值 `9.1.0` 不同时，必须同时通过 `CANN_RELEASE_TRAIN` 指定对应的发布版本号，否则构建会报错退出。请到 [昇腾官网下载页](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910beta1/softwareinst/instg/instg_0008.html?OS=openEuler&InstallType=local) 查找目标版本对应的目录名。
+1. OBS 上的 CANN `.run` 包按 release train 分目录存放（如 `CANN%209.1.T1`、`CANN%209.1.0`），目录名无法由版本号自动推导。因此当 `CANN_VERSION` 与默认值 `9.1.0` 不同时，必须同时通过 `CANN_RELEASE_TRAIN` 指定对应的发布版本号，否则构建会报错退出。请到 [昇腾官网下载页](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/softwareinst/instg/instg_0008.html) 查找目标版本对应的目录名。
 
 ## 快速开始
 

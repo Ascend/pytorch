@@ -4,13 +4,13 @@
 
 ## Quick Reference
 
-- TorchNPU is maintained by the [Atlas PyTorch community](https://www.hiascend.com/developer/software/ai-frameworks/pytorch)
+- TorchNPU is maintained by the [Atlas PyTorch community](https://www.hiascend.com/eng/developer/software/ai-frameworks/pytorch)
 
 - Where to get help
 
-   - [Image Repository](https://www.hiascend.com/developer/ascendhub)
-   - [TorchNPU Documentation](https://www.hiascend.com/document/detail/zh/Pytorch/730/index/index.html)
-   - [Developer Community](https://www.hiascend.com/developer)
+   - [Image Repository](https://www.hiascend.com/en/developer/ascendhub)
+   - [TorchNPU Documentation](https://www.hiascend.com/document/detail/en/Pytorch/latest/index/index.html)
+   - [Developer Community](https://www.hiascend.com/en)
    - [Issue Feedback](https://gitcode.com/Ascend/pytorch/issues)
 
 ---
@@ -82,7 +82,7 @@ See dockerfile: [dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/dock
 
 ### Parameter Sources
 
-1. CANN `.run` packages are stored in directories by release train on OBS (e.g. `CANN%209.1.T1`, `CANN%209.1.0`). The directory name cannot be derived from the version number, so when `CANN_VERSION` differs from the default `9.1.0`, you must specify `CANN_RELEASE_TRAIN` at the same time, otherwise the build will fail. Find the directory name corresponding to the target version on the [Ascend download page](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910beta1/softwareinst/instg/instg_0008.html?OS=openEuler&InstallType=local).
+1. CANN `.run` packages are stored in directories by release train on OBS (e.g. `CANN%209.1.T1`, `CANN%209.1.0`). The directory name cannot be derived from the version number, so when `CANN_VERSION` differs from the default `9.1.0`, you must specify `CANN_RELEASE_TRAIN` at the same time, otherwise the build will fail. Find the directory name corresponding to the target version on the [Ascend download page](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/latest/softwareinst/instg/instg_0008.html?OS=openEuler&InstallType=local).
 
 ## Quick Start
 
