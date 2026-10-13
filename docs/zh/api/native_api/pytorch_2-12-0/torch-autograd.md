@@ -1203,6 +1203,26 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 
 </div>
 
+> <font size="3">duration</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.profiler_util.Kernel.duration](https://pytorch.org/docs/2.12/generated/torch.autograd.profiler_util.Kernel.html#torch.autograd.profiler_util.Kernel.duration)
+
+**产品支持情况**：
+
+<!-- npu="910b" id223 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id223 -->
+<!-- npu="A3" id224 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id224 -->
+<!-- npu="950" id225 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id225 -->
+
+</div>
+
 </div>
 
 ### <code><i>class</i></code> torch.autograd.profiler_util.StringTable
