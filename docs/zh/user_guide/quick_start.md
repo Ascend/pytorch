@@ -101,7 +101,6 @@
     # 保存模型检查点
     torch.save({
                    'epoch': epochs,
-                   'arch': CNN,
                    'state_dict': model.state_dict(),
                    'optimizer' : optimizer.state_dict(),
                 },'checkpoint.pth.tar')
