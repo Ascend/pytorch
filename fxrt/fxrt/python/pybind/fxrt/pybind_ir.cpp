@@ -3,8 +3,10 @@
 #include <nanobind/stl/vector.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/make_iterator.h>
+#include <algorithm>
 #include <cstdint>
 #include <limits>
+#include <stdexcept>
 #include <optional>
 #include <sstream>
 #include <string>
@@ -26,10 +28,51 @@
 namespace nb = nanobind;
 namespace ir = fxrt::ir;
 namespace hardware = fxrt::hardware;
+namespace ir_export_keys = fxrt::runtime::ir_export_keys;
 using fxrt::runtime::GraphExecutor;
+
+namespace {
+
+/**
+ * @brief Check one exported node dict against the declared schema.
+ *
+ * The writer in export_ir_graph has to stay in step with ir_graph_export_fields.inc, and
+ * neither kind of drift is self-announcing on the far side of the boundary: an undeclared
+ * key is silently ignored by a consumer, and a declared-always key that was not written
+ * reads back as that field's default rather than as an error. Both are checked here, where
+ * it is still cheap -- export runs once per compile, not per execution.
+ */
+void CheckExportedNodeKeys(const nb::dict& node) {
+  const auto& fields = fxrt::runtime::IrExportFields();
+  for (const auto& field : fields) {
+    if (field.always_emitted && !node.contains(field.key)) {
+      throw std::runtime_error(
+          std::string("fxrt IR export: node dict is missing '") + field.key +
+          "', which ir_graph_export_fields.inc declares as always emitted");
+    }
+  }
+  for (auto item : node) {
+    const auto key = nb::cast<std::string>(item.first);
+    const bool declared = std::any_of(
+        fields.begin(), fields.end(), [&key](const fxrt::runtime::IrExportFieldInfo& f) { return key == f.key; });
+    if (!declared) {
+      throw std::runtime_error(
+          "fxrt IR export: node dict carries key '" + key +
+          "', which ir_graph_export_fields.inc does not declare; add it there and bump "
+          "kIrExportSchemaVersion");
+    }
+  }
+}
+
+} // namespace
 
 NB_MODULE(_fxrt_ir, m) { // #lizard forgives
   m.doc() = "Python binding for FXRT";
+
+  // Schema version of GraphExecutor.export_ir_graph's dict. An out-of-tree consumer
+  // reads this to refuse a producer it was not built against; see
+  // src/runtime/executor/ir_graph_export_fields.inc for the contract.
+  m.attr("IR_EXPORT_SCHEMA_VERSION") = fxrt::runtime::kIrExportSchemaVersion;
 
   nb::enum_<fxrt::ops::Op>(m, "Op")
 #define OP(O) .value(#O, fxrt::ops::Op_##O)
@@ -243,50 +286,66 @@ NB_MODULE(_fxrt_ir, m) { // #lizard forgives
             nb::list nodes;
             for (const auto& n : exp.nodes) {
               nb::dict d;
-              d["name"] = n.name;
-              d["kind"] = n.kind;
-              d["op"] = n.op;
-              d["inputs"] = n.inputs;
-              d["shape"] = n.shape;
-              d["sym_shape"] = n.sym_shape;
-              d["dtype"] = n.dtype;
+              d[ir_export_keys::name] = n.name;
+              d[ir_export_keys::kind] = n.kind;
+              d[ir_export_keys::op] = n.op;
+              d[ir_export_keys::inputs] = n.inputs;
+              d[ir_export_keys::shape] = n.shape;
+              // Layout keys are omitted for dense values at offset 0, so their absence is
+              // the default rather than missing information.
+              if (!n.stride.empty()) {
+                d[ir_export_keys::stride] = n.stride;
+              }
+              if (!n.storage_shape.empty()) {
+                d[ir_export_keys::storage_shape] = n.storage_shape;
+              }
+              if (n.storage_offset != 0) {
+                d[ir_export_keys::storage_offset] = n.storage_offset;
+              }
+              d[ir_export_keys::sym_shape] = n.sym_shape;
+              d[ir_export_keys::dtype] = n.dtype;
               if (n.axis != std::numeric_limits<int64_t>::min()) {
-                d["axis"] = n.axis;
+                d[ir_export_keys::axis] = n.axis;
               }
               if (n.has_scalar) {
-                d["scalar"] = n.scalar;
+                d[ir_export_keys::scalar] = n.scalar;
               }
               if (!n.int_list.empty()) {
-                d["int_list"] = n.int_list;
+                d[ir_export_keys::int_list] = n.int_list;
+              }
+              if (!n.sym_list.empty()) {
+                d[ir_export_keys::sym_list] = n.sym_list;
               }
               if (!n.bool_list.empty()) {
-                d["bool_list"] = n.bool_list;
+                d[ir_export_keys::bool_list] = n.bool_list;
               }
               if (!n.output_shapes.empty()) {
-                d["output_shapes"] = n.output_shapes;
+                d[ir_export_keys::output_shapes] = n.output_shapes;
               }
               if (!n.output_dtypes.empty()) {
-                d["output_dtypes"] = n.output_dtypes;
+                d[ir_export_keys::output_dtypes] = n.output_dtypes;
               }
               if (!n.arguments.empty()) {
                 nb::list arguments;
                 for (const auto& argument : n.arguments) {
                   arguments.append(export_value(argument));
                 }
-                d["arguments"] = arguments;
+                d[ir_export_keys::arguments] = arguments;
               }
               if (!n.attrs.empty()) {
                 nb::dict attrs;
                 for (const auto& attr : n.attrs) {
                   attrs[attr.first.c_str()] = export_value(attr.second);
                 }
-                d["attrs"] = attrs;
+                d[ir_export_keys::attrs] = attrs;
               }
+              CheckExportedNodeKeys(d);
               nodes.append(d);
             }
             nb::dict out;
             out["name"] = exp.name;
             out["nodes"] = nodes;
+            out["schema_version"] = fxrt::runtime::kIrExportSchemaVersion;
             return out;
           })
       .def("record_tensor_ref_count", &GraphExecutor::RecordTensorRefCount)

@@ -1,5 +1,6 @@
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
 
 #include <pybind11/pybind11.h> // Bridge
 #include <torch/extension.h>
@@ -904,12 +905,150 @@ nb::object ToTorchTensorWrapper(const ir::TensorPtr& tensor) {
   return nb::steal(po.release().ptr());
 }
 
+/**
+ * @brief Physical storage extent of a torch tensor, in elements.
+ *
+ * An out-of-tree graph consumer needs this to size the buffer behind a view: on NPU the
+ * storage can be larger than the logical sizes because of backend format padding, and
+ * sizes/strides alone do not reveal that.
+ */
+std::vector<int64_t> GetTorchStorageShape(nb::handle h) {
+  pybind11::handle ph(h.ptr());
+  at::Tensor tensor = ph.cast<at::Tensor>();
+#ifdef ENABLE_TORCH_NPU
+  if (tensor.device().type() == at::DeviceType::PrivateUse1) {
+    return at_npu::native::get_npu_storage_sizes(tensor);
+  }
+#endif
+  // CPU/non-NPU views have no backend padding; their accessible span is completely
+  // described by logical sizes, strides and storage_offset.
+  return tensor.sizes().vec();
+}
+
 } // namespace
+
+#ifdef ENABLE_TORCH_NPU
+namespace {
+
+using ExternalFreeFn = void (*)(void*);
+
+/**
+ * @brief Free every record from `begin` onward that still owns its buffer.
+ */
+void ReleaseExternalRange(
+    const std::vector<uintptr_t>& ownedCtxs,
+    const std::vector<uintptr_t>& freeFns,
+    size_t begin) {
+  for (size_t i = begin; i < ownedCtxs.size(); ++i) {
+    if (ownedCtxs[i] != 0 && freeFns[i] != 0) {
+      reinterpret_cast<ExternalFreeFn>(freeFns[i])(reinterpret_cast<void*>(ownedCtxs[i]));
+    }
+  }
+}
+
+/**
+ * @brief Adopt externally allocated device buffers as owning torch NPU tensors.
+ *
+ * Everything crosses as an integer -- device address, opaque context, and a
+ * `void(*)(void*)` deleter -- so a producer compiled against a different C++ ABI can hand
+ * memory over without sharing a single type with torch. That is the whole point: the only
+ * out-of-tree consumer of fxrt's IR export is built _GLIBCXX_USE_CXX11_ABI=0 against GE,
+ * and nothing with a std::string or std::function in its signature can reach it.
+ *
+ * Ownership is all-or-nothing. On success each buffer is owned by exactly one returned
+ * tensor, whose deleter calls `free_fn(owned_ctx)` once. On any failure every buffer not
+ * yet adopted is freed here, so no record is leaked and none is freed twice. A record
+ * with `owned_ctx == 0` is wrapped non-owning, for memory the producer did not own either.
+ *
+ * This is deliberately an unsafe primitive: `free_fn` is a raw function pointer the caller
+ * vouches for, and it is never validated. It lives on the private `_fxrt_torch` module and
+ * is not re-exported by the `fxrt` package.
+ */
+nb::object AdoptExternalDeviceBuffers(
+    const std::vector<uintptr_t>& dataPtrs,
+    const std::vector<std::vector<int64_t>>& shapes,
+    const nb::list& dtypes,
+    const std::vector<uintptr_t>& ownedCtxs,
+    const std::vector<uintptr_t>& freeFns,
+    int64_t deviceIndex) {
+  const size_t count = dataPtrs.size();
+  if (shapes.size() != count || dtypes.size() != count || ownedCtxs.size() != count || freeFns.size() != count) {
+    ReleaseExternalRange(ownedCtxs, freeFns, 0);
+    RT_GLOG(EXCEPTION) << "adopt_external_device_buffers: mismatched record lengths (data_ptrs=" << count
+                       << ", shapes=" << shapes.size() << ", dtypes=" << dtypes.size()
+                       << ", owned_ctxs=" << ownedCtxs.size() << ", free_fns=" << freeFns.size() << ")";
+  }
+  if (deviceIndex < 0) {
+    ReleaseExternalRange(ownedCtxs, freeFns, 0);
+    RT_GLOG(EXCEPTION) << "adopt_external_device_buffers: negative device_index " << deviceIndex;
+  }
+
+  // Resolve the dtypes before taking ownership of anything: a bad dtype must not leave
+  // some buffers adopted and others leaked.
+  std::vector<at::ScalarType> scalarTypes;
+  scalarTypes.reserve(count);
+  try {
+    for (size_t i = 0; i < count; ++i) {
+      pybind11::handle dtypeHandle(dtypes[i].ptr());
+      scalarTypes.push_back(dtypeHandle.cast<at::ScalarType>());
+    }
+  } catch (...) {
+    ReleaseExternalRange(ownedCtxs, freeFns, 0);
+    throw;
+  }
+
+  nb::list tensors;
+  size_t i = 0;
+  try {
+    for (; i < count; ++i) {
+      if (dataPtrs[i] == 0) {
+        RT_GLOG(EXCEPTION) << "adopt_external_device_buffers: null device address for output " << i;
+      }
+      const auto device = c10::Device(c10::DeviceType::PrivateUse1, static_cast<c10::DeviceIndex>(deviceIndex));
+      const auto options = at::TensorOptions().dtype(scalarTypes[i]).device(device);
+      void* data = reinterpret_cast<void*>(dataPtrs[i]);
+
+      at::Tensor tensor;
+      if (ownedCtxs[i] != 0 && freeFns[i] != 0) {
+        void* ctx = reinterpret_cast<void*>(ownedCtxs[i]);
+        auto freeFn = reinterpret_cast<ExternalFreeFn>(freeFns[i]);
+        tensor = at_npu::native::from_blob(data, shapes[i], [ctx, freeFn](void*) { freeFn(ctx); }, options, device);
+      } else {
+        tensor = at_npu::native::from_blob(data, shapes[i], device, options);
+      }
+      // from_blob returned, so record i is now owned by the tensor and must not be freed
+      // by the handler below.
+      pybind11::object wrapped = pybind11::cast(tensor);
+      tensors.append(nb::steal(wrapped.release().ptr()));
+    }
+  } catch (...) {
+    ReleaseExternalRange(ownedCtxs, freeFns, i);
+    throw;
+  }
+  return tensors;
+}
+
+} // namespace
+#endif // ENABLE_TORCH_NPU
 
 NB_MODULE(_fxrt_torch, m) {
   m.doc() = "PyTorch extension for FXRT";
   m.def("from_torch", &FromTorchTensorWrapper, nb::arg("tensor"), nb::arg("is_fake") = false);
   m.def("to_torch", &ToTorchTensorWrapper, nb::rv_policy::reference);
+  m.def("get_storage_shape", &GetTorchStorageShape, nb::arg("tensor"));
+#ifdef ENABLE_TORCH_NPU
+  m.def(
+      "adopt_external_device_buffers",
+      &AdoptExternalDeviceBuffers,
+      nb::arg("data_ptrs"),
+      nb::arg("shapes"),
+      nb::arg("dtypes"),
+      nb::arg("owned_ctxs"),
+      nb::arg("free_fns"),
+      nb::arg("device_index"),
+      "Adopt externally allocated NPU buffers as owning torch tensors. Unsafe: free_fns "
+      "are raw function pointers the caller vouches for, each called exactly once.");
+#endif
   m.def("set_device_context", &SetDeviceContext);
   m.def("clear_graph_input_static_cache", &ClearGraphInputStaticCache, nb::arg("graph_key"));
   m.def(

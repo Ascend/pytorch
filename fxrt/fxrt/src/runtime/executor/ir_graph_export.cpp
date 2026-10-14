@@ -147,6 +147,7 @@ void PushExportNode(
     bool has_scalar = false,
     double scalar = 0.0,
     const std::vector<int64_t>& int_list = {},
+    const std::vector<std::string>& sym_list = {},
     const std::vector<int64_t>& bool_list = {},
     const std::vector<std::vector<int64_t>>& output_shapes = {},
     const std::vector<std::string>& output_dtypes = {},
@@ -164,6 +165,7 @@ void PushExportNode(
   n.has_scalar = has_scalar;
   n.scalar = scalar;
   n.int_list = int_list;
+  n.sym_list = sym_list;
   n.bool_list = bool_list;
   n.output_shapes = output_shapes;
   n.output_dtypes = output_dtypes;
@@ -324,6 +326,14 @@ void ExportIrInputs(
         ShapeForExport(node->output),
         SymShapeForExport(node->output),
         DtypeOfValue(node->output));
+
+    // Layout travels with feeds: a non-dense input is only reconstructible from
+    // stride/storage, and ShapeForExport alone cannot express it.
+    const auto& tensor = node->output->ToTensor();
+    auto& exported = out->nodes.back();
+    exported.stride = tensor->Strides();
+    exported.storage_shape = tensor->StorageShape();
+    exported.storage_offset = tensor->StorageOffset();
   }
 }
 
@@ -351,6 +361,14 @@ void ExportIrParameters(
         ShapeForExport(node->output),
         SymShapeForExport(node->output),
         DtypeOfValue(node->output));
+
+    // Layout travels with feeds: a non-dense input is only reconstructible from
+    // stride/storage, and ShapeForExport alone cannot express it.
+    const auto& tensor = node->output->ToTensor();
+    auto& exported = out->nodes.back();
+    exported.stride = tensor->Strides();
+    exported.storage_shape = tensor->StorageShape();
+    exported.storage_offset = tensor->StorageOffset();
   }
 }
 
@@ -422,6 +440,7 @@ struct ExportInputs {
   bool has_scalar = false;
   double scalar = 0.0;
   std::vector<int64_t> int_list;
+  std::vector<std::string> sym_list;
   std::vector<int64_t> bool_list;
 };
 
@@ -429,19 +448,43 @@ struct ExportInputs {
  * @brief Try to capture int list from tuple.
  * True when make_tuple is an int-size list (expand / BroadcastTo shape), not tensor packing (cat).
  */
-bool TryCaptureIntListTuple(const ir::NodePtr& tuple_node, std::vector<int64_t>* int_list) {
+bool TryCaptureIntListTuple(
+    const ir::NodePtr& tuple_node,
+    std::vector<int64_t>* int_list,
+    std::vector<std::string>* syms = nullptr) {
   if (tuple_node == nullptr || tuple_node->inputs.empty() || int_list == nullptr) {
     return false;
   }
   std::vector<int64_t> dims;
   dims.reserve(tuple_node->inputs.size());
+  std::vector<std::string> texts;
+  texts.reserve(tuple_node->inputs.size());
+  bool any_symbol = false;
   for (const auto& t : tuple_node->inputs) {
-    if (t == nullptr || t->output == nullptr || !t->output->IsInt()) {
+    if (t == nullptr || t->output == nullptr) {
       return false;
     }
-    dims.push_back(t->output->ToInt());
+    if (t->output->IsInt()) {
+      dims.push_back(t->output->ToInt());
+      texts.emplace_back();
+      continue;
+    }
+    // Without a symbol channel to put it in, a symbolic dim is still a hard miss.
+    if (syms == nullptr || !t->output->IsSymbol()) {
+      return false;
+    }
+    const auto symbol = t->output->ToSymbol();
+    if (symbol == nullptr) {
+      return false;
+    }
+    dims.push_back(0); // placeholder; syms[i] carries the value
+    texts.push_back(symbol->ToString());
+    any_symbol = true;
   }
   *int_list = std::move(dims);
+  if (syms != nullptr) {
+    *syms = any_symbol ? std::move(texts) : std::vector<std::string>();
+  }
   return true;
 }
 
@@ -818,6 +861,8 @@ struct AsStridedCapture {
   std::vector<std::string> names;
   std::vector<int64_t> size;
   std::vector<int64_t> stride;
+  std::vector<std::string> size_syms;
+  std::vector<std::string> stride_syms;
   bool has_size = false;
   bool has_stride = false;
   int64_t offset = 0;
@@ -825,17 +870,23 @@ struct AsStridedCapture {
   size_t tuple_slot = 0;
 };
 
-static void AssignAsStridedTupleSlot(AsStridedCapture* cap, std::vector<int64_t> dims, bool captured) {
+static void AssignAsStridedTupleSlot(
+    AsStridedCapture* cap,
+    std::vector<int64_t> dims,
+    std::vector<std::string> syms,
+    bool captured) {
   if (cap == nullptr) {
     return;
   }
   if (cap->tuple_slot == 0) {
     if (captured) {
       cap->size = std::move(dims);
+      cap->size_syms = std::move(syms);
       cap->has_size = true;
     }
   } else if (cap->tuple_slot == 1 && captured) {
     cap->stride = std::move(dims);
+    cap->stride_syms = std::move(syms);
     cap->has_stride = true;
   }
   ++cap->tuple_slot;
@@ -861,8 +912,9 @@ static void CaptureAsStridedArgInputs(
     }
     if (in->op == ops::Op_make_tuple) {
       std::vector<int64_t> dims;
-      const bool captured = TryCaptureIntListTuple(in, &dims);
-      AssignAsStridedTupleSlot(cap, std::move(dims), captured);
+      std::vector<std::string> syms;
+      const bool captured = TryCaptureIntListTuple(in, &dims, &syms);
+      AssignAsStridedTupleSlot(cap, std::move(dims), std::move(syms), captured);
       continue;
     }
     if (in->output->IsInt()) {
@@ -896,6 +948,17 @@ static void PackAsStridedIntList(const AsStridedCapture& cap, ExportInputs* resu
   result->int_list.insert(result->int_list.end(), cap.size.begin(), cap.size.end());
   result->int_list.insert(result->int_list.end(), cap.stride.begin(), cap.stride.end());
   result->int_list.push_back(cap.has_offset ? cap.offset : 0);
+  if (cap.size_syms.empty() && cap.stride_syms.empty()) {
+    return;
+  }
+  result->sym_list.assign(result->int_list.size(), std::string());
+  const size_t rank_u = cap.size.size();
+  for (size_t i = 0; i < cap.size_syms.size() && i < rank_u; ++i) {
+    result->sym_list[i + 1U] = cap.size_syms[i];
+  }
+  for (size_t i = 0; i < cap.stride_syms.size() && i < rank_u; ++i) {
+    result->sym_list[i + 1U + rank_u] = cap.stride_syms[i];
+  }
 }
 
 /**
@@ -984,7 +1047,7 @@ ExportInputs CollectGenericExportInputs(
     }
     if (in->op == ops::Op_make_tuple) {
       // GE Expand/BroadcastTo: shape is Const INT64 1D tensor; export as int_list.
-      if (TryCaptureIntListTuple(in, &result.int_list)) {
+      if (TryCaptureIntListTuple(in, &result.int_list, &result.sym_list)) {
         continue;
       }
       CollectMakeTupleInputs(in, name_of, &result.names);
@@ -1151,6 +1214,7 @@ void ExportIrComputeOps(
         inputs.has_scalar,
         inputs.scalar,
         inputs.int_list,
+        inputs.sym_list,
         inputs.bool_list,
         output_shapes,
         output_dtypes,
