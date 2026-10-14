@@ -390,6 +390,15 @@ git diff --name-only HEAD | xargs lintrunner
 
 更多执行命令可参照[lintrunner wiki](https://github.com/pytorch/pytorch/wiki/lintrunner)。
 
+### 关于流水线中的云端代码检查（codecheck_pre-commit）
+
+PR 流水线中的 `codecheck_pre-commit` 任务不是本地 pre-commit / lintrunner，而是将 PR 提交至云端代码检查服务执行其自有规则集（含安全类规则）。因此需要注意两点：
+
+1. **本地检查通过不代表该任务通过**：云端规则集不随仓库分发，本地无法预检。例如安全规则 `G.EDV.04` 禁止在 `subprocess` 中使用 `shell=True`（严重级），该规则不在 `.flake8` / lintrunner 配置中；
+2. **失败详情的查看方式**：PR 评论中的"详情"链接需要登录流水线平台。外部贡献者可这样定位问题：登录 GitCode 后打开流水线运行页，进入 `codecheck_pre-commit` 任务日志，找到 `openlibing_url:` 开头的一行，其中的 `entryCheckDashCode` 链接即为检查详情页，可看到规则名称、级别、文件与行号。
+
+修复后推送新提交，并在 PR 下评论 `compile` 重新触发流水线（PR 创建者可用；另有 `retry [任务名]`、`stop`）。注意：推送后立即评论 `compile` 可能触发流水线绑定过期提交（提示"获取流水线运行 commitId 不存在"，且各任务长期停留在 QUEUED），此时评论 `stop`、等待约一分钟后再 `compile` 即可恢复。
+
 ## 附录 B：单元测试与功能验证
 
 ### 单元测试指南
