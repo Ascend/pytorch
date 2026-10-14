@@ -44,7 +44,7 @@ PyTorch分布式通信层（C10D）提供了集合通信API（如all_reduce、al
 
 - **点对点通信API**：通过`torch.distributed`接口在通信后端`backend="hccl"`下使用send、isend、recv、irecv等，使用方式与原生一致。可以阅读原生[PyTorch P2P通信](https://pytorch.org/docs/stable/distributed.html#torch.distributed.send)掌握P2P通信。
 
-- **Ranktable建链**：TorchNPU提供的一种集群建链机制。通过`RANK_TABLE_FILE`环境变量指定JSON格式的rank映射文件，预置各rank的IP和设备信息，跳过默认协商流程直接建链。可以阅读[ranktable 建链](./communication_strategy/ranktable_link_setup.md)来掌握技术细节与注意事项。
+- **Ranktable建链**：TorchNPU提供的一种集群建链机制。通过`RANK_TABLE_FILE`环境变量指定JSON格式的rank映射文件，预置各rank的IP和设备信息，跳过默认协商流程直接建链。可以阅读[ranktable建链](./communication_strategy/ranktable_link_setup.md)来掌握技术细节与注意事项。
 
 - **Scalable RootInfo分级建链**：TorchNPU在默认RootInfo协商路径上提供的可选扩展。大规模通信域可以划分为多个连续且均衡的group，由多个root分别承担RootInfo协商工作，降低单root的建链压力。可以阅读[Scalable RootInfo分级建链](./communication_strategy/scalable_rootinfo_link_setup.md)了解配置方法与使用约束。
 

@@ -12,7 +12,7 @@ export PROF_CONFIG_PATH="/path/to/profiler_config_path"
 
 - 配置该环境变量后启动训练，dynamic\_profile会在profiler\_config\_path下自动创建模板文件profiler\_config.json，用户可基于模板文件自定义修改配置项。
 - PROF\_CONFIG\_PATH指定的路径可自定义（要求有读写权限），路径格式仅支持由字母、数字和下划线组成的字符串，不支持软链接，例如`/home/xxx/profiler_config_path`。
-- dynamic\_profile采集功能及profiler\_config.json文件的详细介绍请参见《CANN 性能调优工具》中的“[dynamic\_profile动态采集](../../../developer_notes/ascend_pytorch_profiler_user_guide.md#采集并解析性能数据dynamic_profile)”章节。
+- dynamic\_profile采集功能及profiler\_config.json文件的详细介绍请参见“[dynamic\_profile动态采集](https://gitcode.com/Ascend/pytorch/blob/master/docs/zh/developer_notes/ascend_pytorch_profiler_user_guide.md#%E9%87%87%E9%9B%86%E5%B9%B6%E8%A7%A3%E6%9E%90%E6%80%A7%E8%83%BD%E6%95%B0%E6%8D%AEdynamic_profile)”。
 
 ## 使用约束
 

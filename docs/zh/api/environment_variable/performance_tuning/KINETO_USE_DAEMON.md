@@ -10,7 +10,7 @@
 export KINETO_USE_DAEMON=1
 ```
 
-详细使用方式请参见《CANN 性能调优工具》中的“[dynamic\_profile动态采集](../../../developer_notes/ascend_pytorch_profiler_user_guide.md#采集并解析性能数据dynamic_profile)”章节。
+详细使用方式请参见“[dynamic\_profile动态采集](https://gitcode.com/Ascend/pytorch/blob/master/docs/zh/developer_notes/ascend_pytorch_profiler_user_guide.md#%E9%87%87%E9%9B%86%E5%B9%B6%E8%A7%A3%E6%9E%90%E6%80%A7%E8%83%BD%E6%95%B0%E6%8D%AEdynamic_profile)”。
 
 ## 使用约束
 
