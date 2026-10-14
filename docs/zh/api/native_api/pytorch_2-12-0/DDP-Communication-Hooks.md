@@ -321,11 +321,11 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id42 -->
 
-> <font size="3">__getstate__()</font>
+> <font size="3">\_\_getstate\_\_()</font>
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.distributed.algorithms.ddp_comm_hooks.powerSGD_hook.PowerSGDState.__getstate__](https://pytorch.org/docs/2.12/ddp_comm_hooks.html#torch.distributed.algorithms.ddp_comm_hooks.powerSGD_hook.PowerSGDState.__getstate__)
+**原生文档**：[torch.distributed.algorithms.ddp_comm_hooks.powerSGD_hook.PowerSGDState.\_\_getstate\_\_](https://pytorch.org/docs/2.12/ddp_comm_hooks.html#torch.distributed.algorithms.ddp_comm_hooks.powerSGD_hook.PowerSGDState.__getstate__)
 
 **产品支持情况**：
 
