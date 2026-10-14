@@ -292,6 +292,12 @@ def patch_scheduler():
             self.name_to_fused_node.update(
                 {n.get_name(): node3 for n in node3.get_nodes()}
             )
+
+            # Propagate stream assignment to the fused node so that subsequent
+            # fusion rounds still respect stream boundaries.
+            stream1 = self.node_to_stream.get(node1)
+            if stream1 is not None:
+                self.node_to_stream[node3] = stream1
             return node3
 
         def resolve_pending_fusions(
