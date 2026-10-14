@@ -5871,6 +5871,10 @@ class NPUTritonScheduling(TritonScheduling):
         # See _npu_repermute_tensor_dims.
         for kernel in kernels:
             self._npu_repermute_tensor_dims(kernel, kernel_features)
+            # Issue #5017: single-kernel batches run the linearize pass inside
+            # codegen_node_schedule_with_kernel (covers the benchmarking entry);
+            # multi-kernel batches keep the skip via the len(kernels) == 1 gate.
+            kernel._npu_multi_kernel = len(kernels) > 1
         for kernel in kernels:
             self.codegen_node_schedule_with_kernel(node_schedule, kernel)
 
@@ -7034,6 +7038,12 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
         if kernel is None:
             return
 
+        # Issue #5017: linearize may already have run from the benchmarking
+        # entry in codegen_node_schedule_with_kernel; re-running would rebuild
+        # the matcher and splice the body a second time.
+        if getattr(kernel, "_linearize_applied", False):
+            return
+
         kernel._npu_rsplit_candidate = False
         if _npu_rsplit_outer_applicable(kernel):
             try:
@@ -8082,6 +8092,19 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                         kernel.index_vars_per_node.append(index_vars)
 
                     node.codegen(index_vars)
+
+        # Issue #5017: speedup_by_fusion benchmarking generates candidates via
+        # SIMDScheduling.generate_kernel_code_from_nodes, which calls this method
+        # directly without going through codegen_node_schedule, so the header
+        # state built by _apply_linearize (var_tensor_dims slots, {node}_blocks
+        # preloop defs) is missing. Multi-kernel batches keep upstream semantics
+        # (linearize skipped); _npu_multi_kernel is only set for len(kernels) > 1.
+        if (
+            kernel._npu_linearize
+            and not getattr(kernel, "_npu_multi_kernel", False)
+            and not getattr(kernel, "_linearize_applied", False)
+        ):
+            self._apply_linearize(kernel, node_schedule)
 
 
 # =============================================================================
