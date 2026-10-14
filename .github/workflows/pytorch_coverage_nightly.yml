@@ -3,6 +3,7 @@ on:
   push:
     branches: [ci-test]
     paths:
+      - '.github/config/privateuse1_npu_passed_testcases.json'
       - '.github/workflows/_pytorch_coverage.yml'
       - '.github/workflows/_pytorch_coverage_collect.yml'
       - '.github/workflows/_pytorch_coverage_shard.yml'
