@@ -5,7 +5,7 @@
 
 ## torch
 
-### torch._foreach_maximum_
+### torch.\_foreach_maximum\_
 
 <div style="margin-left: 2em">
 
@@ -49,7 +49,7 @@
 
 </div>
 
-### torch._foreach_pow_
+### torch.\_foreach_pow\_
 
 <div style="margin-left: 2em">
 
@@ -93,7 +93,7 @@
 
 </div>
 
-### torch._foreach_tanh_
+### torch.\_foreach_tanh\_
 
 <div style="margin-left: 2em">
 
@@ -115,7 +115,7 @@
 
 </div>
 
-### torch._foreach_copy_
+### torch.\_foreach_copy\_
 
 <div style="margin-left: 2em">
 
@@ -407,7 +407,7 @@
 
 ## torch.amp
 
-### torch._amp_foreach_non_finite_check_and_unscale_
+### torch.\_amp_foreach_non_finite_check_and_unscale\_
 
 <div style="margin-left: 2em">
 
@@ -429,7 +429,7 @@
 
 </div>
 
-### torch._amp_update_scale_
+### torch.\_amp_update_scale\_
 
 <div style="margin-left: 2em">
 

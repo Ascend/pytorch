@@ -7548,11 +7548,11 @@
 
 </div>
 
-### torch._foreach_neg_
+### torch.\_foreach_neg\_
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch._foreach_neg_](https://pytorch.org/docs/2.12/generated/torch._foreach_neg_.html#torch._foreach_neg_)
+**原生文档**：[torch.\_foreach_neg\_](https://pytorch.org/docs/2.12/generated/torch._foreach_neg_.html#torch._foreach_neg_)
 
 **产品支持情况**：
 
