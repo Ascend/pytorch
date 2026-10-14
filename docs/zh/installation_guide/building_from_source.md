@@ -275,3 +275,26 @@ tensor([[-0.6066,  6.3385,  0.0379,  3.3356],
 ```
 
 如需查看当前环境中已安装的Python、PyTorch和TorchNPU安装包版本，请参见[查询版本](./references/check_installed_versions.md)。
+
+## UT验证
+
+安装完成后，可在源码根目录下执行`cd test`进入test目录，并通过运行UT测试，进一步验证TorchNPU插件的功能是否正常。
+
+1. 安装UT测试依赖文件requirements_2.13.txt。
+
+    ```bash
+    cd test
+    pip3 install -r requirements_2.13.txt
+    ```
+
+    > [!NOTE]
+    >
+    > 依赖文件名与PyTorch版本对应（如requirements_2.13.txt对应PyTorch 2.13.0版本），请根据实际安装的版本选择对应的requirements文件。
+
+2. 运行UT测试，以test_autocast.py为例。
+
+    ```bash
+    python test_autocast.py -v
+    ```
+
+    测试执行完成后，输出中显示`OK`说明测试通过。如需运行其他UT测试用例，可参考test目录下的其他测试文件。
