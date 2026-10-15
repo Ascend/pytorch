@@ -306,7 +306,13 @@ jobs:
           if distributed:
               categories["distributed"] = {"files": distributed, "workers": 1, "execution": "serial", "runner": runner}
           if regular:
-              categories["others"] = {"files": regular, "workers": 32, "execution": "concurrent", "runner": runner}
+              # Route the 32-worker merged-batch "others" shards to the 8-card
+              # host, matching the full-scan per-category runners in
+              # nightly_test_categories.yml. The top-level runner_label points
+              # at a 2-card host whose memory cannot sustain one or more
+              # concurrent 32-worker shards (workers got OOM-killed in PR-gate
+              # runs 38349232597, 38497626707, 38652422865).
+              categories["others"] = {"files": regular, "workers": 32, "execution": "concurrent", "runner": "linux-aarch64-a3-800i-8-cn12-001"}
           yaml.safe_dump({"categories": categories}, open(out_path, "w", encoding="utf-8"), sort_keys=False, allow_unicode=True)
           print(f"precision cases: {len(want)} file(s) selected ({len(distributed)} distributed, {len(regular)} others)")
           PYEOF
