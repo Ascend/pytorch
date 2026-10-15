@@ -294,27 +294,32 @@ jobs:
           CASE_WHITELIST_CONFIG='${{ inputs.case_whitelist }}'
           if [ -n "${PRECISE_FILES}" ]; then
             printf '%s\n' "${PRECISE_FILES}" > /tmp/precise_files.txt
-            python3 - /tmp/precise_files.txt "${GITHUB_WORKSPACE}/ci-scripts/.github/config/precise_cases.yml" '${{ inputs.runner_label }}' <<'PYEOF'
+            PRECISE_CONFIG="${CASE_PATHS_CONFIG:-.github/config/nightly_test_categories.yml}"
+            python3 - /tmp/precise_files.txt "${GITHUB_WORKSPACE}/ci-scripts/${PRECISE_CONFIG}" "${GITHUB_WORKSPACE}/ci-scripts/.github/config/precise_cases.yml" '${{ inputs.runner_label }}' <<'PYEOF'
           import sys
+
           import yaml
 
-          files_path, out_path, runner = sys.argv[1:4]
+          from collect_all_cases import classify_files_full_scan, load_categories_config
+
+          files_path, cfg_in, out_path, runner = sys.argv[1:5]
           want = sorted({line.strip() for line in open(files_path, encoding="utf-8") if line.strip()})
-          distributed = [f for f in want if f.startswith("test/distributed/")]
-          regular = [f for f in want if not f.startswith("test/distributed/")]
-          categories = {}
-          if distributed:
-              categories["distributed"] = {"files": distributed, "workers": 1, "execution": "serial", "runner": runner}
-          if regular:
-              # Route the 32-worker merged-batch "others" shards to the 8-card
-              # host, matching the full-scan per-category runners in
-              # nightly_test_categories.yml. The top-level runner_label points
-              # at a 2-card host whose memory cannot sustain one or more
-              # concurrent 32-worker shards (workers got OOM-killed in PR-gate
-              # runs 38349232597, 38497626707, 38652422865).
-              categories["others"] = {"files": regular, "workers": 32, "execution": "concurrent", "runner": "linux-aarch64-a3-800i-8-cn12-001"}
-          yaml.safe_dump({"categories": categories}, open(out_path, "w", encoding="utf-8"), sort_keys=False, allow_unicode=True)
-          print(f"precision cases: {len(want)} file(s) selected ({len(distributed)} distributed, {len(regular)} others)")
+          categories, exclude_list = load_categories_config(cfg_in)
+          classified = classify_files_full_scan(want, categories, exclude=exclude_list)
+
+          out = {}
+          for name, files in classified.items():
+              if not files:
+                  continue
+              cat = categories.get(name, {})
+              out[name] = {
+                  "files": files,
+                  "workers": cat.get("workers", 32),
+                  "execution": cat.get("execution", "concurrent"),
+                  "runner": runner if name == "distributed" else "linux-aarch64-a3-800i-8-cn12-001",
+              }
+          yaml.safe_dump({"categories": out}, open(out_path, "w", encoding="utf-8"), sort_keys=False, allow_unicode=True)
+          print(f"precision cases: {len(want)} file(s) selected, " + ", ".join(f"{k}={len(v['files'])}" for k, v in out.items()))
           PYEOF
             CASE_PATHS_CONFIG=.github/config/precise_cases.yml
           fi
