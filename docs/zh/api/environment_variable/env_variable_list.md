@@ -26,10 +26,10 @@
 
 | 环境变量名称 | 简介 |
 | --- | --- |
-|[TORCH_ACL_INIT_CONFIG_PATH](op_execution/TORCH_ACL_INIT_CONFIG_PATH.md)|通过此环境变量可指定aclInit初始化配置文件的路径，用于在NPU初始化阶段传入自定义ACL JSON配置。|
+|[TORCH_ACL_INIT_CONFIG_PATH](device_management/TORCH_ACL_INIT_CONFIG_PATH.md)|通过此环境变量可指定aclInit初始化配置文件的路径，用于在NPU初始化阶段传入自定义ACL JSON配置。|
 |[PYTORCH_HAL_BASED_NPU_CHECK](device_management/PYTORCH_HAL_BASED_NPU_CHECK.md)|选择NPU可用性检测路径，配置为1时优先通过Ascend HAL查询设备数量，失败时回退到Runtime。|
 |[STREAMS_PER_DEVICE](device_management/STREAMS_PER_DEVICE.md)|通过此环境变量可配置stream pool的最大流数。|
-|[ACL_DEVICE_SYNC_TIMEOUT](synchronization_timeout/ACL_DEVICE_SYNC_TIMEOUT.md)|通过此环境变量可配置设备同步的超时时间。|
+|[ACL_DEVICE_SYNC_TIMEOUT](device_management/ACL_DEVICE_SYNC_TIMEOUT.md)|通过此环境变量可配置设备同步的超时时间。|
 |[TORCH_NPU_DEVICE_CAPABILITY](device_management/TORCH_NPU_DEVICE_CAPABILITY.md)|通过此环境变量可配置`torch_npu.npu.get_device_capability()`的返回值。|
 |[TORCH_TRANSFER_TO_NPU](device_management/TORCH_TRANSFER_TO_NPU.md)|通过此环境变量可配置是否自动启用transfer_to_npu功能，将PyTorch的CUDA相关API自动替换为NPU对应API。|
 
