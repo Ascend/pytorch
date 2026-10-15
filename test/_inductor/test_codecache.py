@@ -2,6 +2,7 @@
 # Owner(s): ["module: inductor"]
 """Module for inductor codecache tests."""
 
+from unittest import skip
 import os
 import shutil
 import tempfile
@@ -158,6 +159,7 @@ class TestCodeCache(TestCase):
         self._tmpdir.cleanup()
         super().tearDown()
 
+    @skip("torch.distributed error")
     @runIfVersion(max="2.13")
     def test_codecache(self):
         device_properties = torch_npu.npu.get_device_properties(

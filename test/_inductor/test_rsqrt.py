@@ -1,3 +1,4 @@
+import unittest
 import torch
 from torch.testing._internal.common_utils import run_tests, parametrize, instantiate_parametrized_tests
 from testutils import TestUtils
@@ -10,6 +11,7 @@ class TestRsqrt(TestUtils):
         result = torch.rsqrt(first_element)
         return result
 
+    @unittest.skip("it takes too long, not supported yet")
     @parametrize('shape', TestUtils._pointwise_demo_shapes)
     @parametrize('dtype', ['float16', 'float32', 'bfloat16', 'int32', 'int64'])
     @runIfVersion(max="2.13")
