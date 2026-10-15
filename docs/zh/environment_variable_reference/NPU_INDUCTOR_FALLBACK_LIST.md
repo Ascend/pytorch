@@ -1,5 +1,9 @@
 # NPU_INDUCTOR_FALLBACK_LIST
 
+> [!NOTICE]
+>
+> 从本版本起，Inductor后端中的Torch-MLIR编译器已废弃，不再支持使用MLIR模式。
+
 ## 功能描述
 
 通过此环境变量可指定需要回退到PyTorch原生的算子列表。当某些算子在NPU后端执行出现问题或需要使用算子原生实现时，可通过此环境变量进行配置。

@@ -1,5 +1,9 @@
 # TORCHINDUCTOR\_NPU\_BACKEND
 
+> [!NOTICE]
+>
+> 从本版本起，Inductor后端中的Torch-MLIR编译器已废弃，不再支持使用MLIR模式。
+
 ## 功能描述
 
 通过此环境变量可配置图模式（Inductor）下的后端优化策略，支持在Triton、MLIR、DVM等模式之间切换。

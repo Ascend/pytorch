@@ -1,5 +1,9 @@
 # TORCHINDUCTOR\_USE\_AKG
 
+> [!NOTICE]
+>
+> 从本版本起，Inductor后端中的Torch-MLIR编译器已废弃，不再支持使用MLIR模式。
+
 ## 功能描述
 
 通过此环境变量可配置torch.compile图模式（Inductor）下MLIR（Multi-Level Intermediate Representation）模式启用AKG（Auto Kernel Generator）后端优化。AKG基于Affine Dialect进行融合切分等调度优化，提升融合能力，降低调度和执行开销。

@@ -1,5 +1,9 @@
 # （beta）INDUCTOR\_ASCEND\_CHECK\_ACCURACY
 
+> [!NOTICE]
+>
+> 从本版本起，Inductor后端中的Torch-MLIR编译器已废弃，不再支持使用MLIR模式。
+
 ## 功能描述
 
 INDUCTOR_ASCEND_CHECK_ACCURACY是TorchNPU提供的精度校验工具，在torch.compile图编译后端为“inductor”时自动检测融合算子的数值精度。
