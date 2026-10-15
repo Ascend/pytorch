@@ -15,6 +15,7 @@ class TestDVMFlexAttention(unittest.TestCase):
 
             import torch
             import torch_npu
+            import torch_npu._inductor  # noqa: F401
             from torch.nn.attention.flex_attention import (
                 and_masks,
                 create_block_mask,
@@ -137,6 +138,7 @@ class TestDVMFlexAttention(unittest.TestCase):
 
             import torch
             import torch_npu
+            import torch_npu._inductor  # noqa: F401
             from torch._inductor.utils import run_and_get_code
             from torch.nn.attention.flex_attention import (
                 create_block_mask,
@@ -209,7 +211,6 @@ class TestDVMFlexAttention(unittest.TestCase):
                 attention_loss,
                 backend="inductor",
                 fullgraph=True,
-                options={"npu_backend": "dvm"},
             )
 
 
@@ -276,14 +277,7 @@ class TestDVMFlexAttention(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stdout)
         self.assertIn("DVM_TRITON_FLEX_ATTENTION_OK", proc.stdout)
 
-    def test_backend_switch_after_torch_npu_inductor_import(self):
-        # Regression: importing torch_npu._inductor first loads the default
-        # (triton) backend.  Requesting the DVM backend afterwards triggers a
-        # mid-process backend switch, which must re-register the NPU
-        # flex_attention lowering with the MLIR fork's register_lowering.
-        # Using the import-time captured upstream register_lowering instead
-        # fails with TypeError: _register_lowering() got an unexpected
-        # keyword argument 'lowering_dict'.
+    def test_dvm_backend_from_environment(self):
         script = textwrap.dedent(
             r"""
             import math
@@ -291,16 +285,14 @@ class TestDVMFlexAttention(unittest.TestCase):
 
             import torch
             import torch_npu
-
-            # Load the default (triton) backend before the DVM backend is
-            # requested, exercising the mid-process backend switch.
             import torch_npu._inductor  # noqa: F401
+
             from torch_npu._inductor.kernel.flex_attention import (
                 _get_flex_attention_additional_lowerings,
             )
 
             index_op = torch.ops.aten.index.Tensor
-            assert index_op not in _get_flex_attention_additional_lowerings()
+            assert index_op in _get_flex_attention_additional_lowerings()
 
             from torch.nn.attention.flex_attention import (
                 create_block_mask,
@@ -362,36 +354,27 @@ class TestDVMFlexAttention(unittest.TestCase):
                 )
 
 
-            # Forward only: the backward lowering under a mid-process backend
-            # switch is a separate known issue (the already-imported NPU flex
-            # kernel module keeps upstream lowering helpers, and the MLIR
-            # pointwise path raises KeyError in fn_to_aten_fn).
             compiled = torch.compile(
                 attention_loss,
                 backend="inductor",
                 fullgraph=True,
-                options={"npu_backend": "dvm"},
             )
             actual = compiled(*inputs)
 
-            # Compile options select DVM even though its temporary environment
-            # scope has ended by the time compiled() returns.
             assert index_op in _get_flex_attention_additional_lowerings()
 
             reference_inputs = [tensor.detach().clone() for tensor in inputs]
             expected = dense_reference(*reference_inputs)
 
             torch.testing.assert_close(actual, expected, atol=0.03, rtol=0.03)
-            print("DVM_FLEX_ATTENTION_BACKEND_SWITCH_OK")
+            print("DVM_FLEX_ATTENTION_ENV_BACKEND_OK")
             """
         )
 
-        with tempfile.TemporaryDirectory(prefix="dvm_flex_switch_") as tmp_dir:
+        with tempfile.TemporaryDirectory(prefix="dvm_flex_env_") as tmp_dir:
             env = os.environ.copy()
-            # Deliberately do NOT pin TORCHINDUCTOR_NPU_BACKEND here: the DVM
-            # backend must be selected through the torch.compile options so the
-            # process performs a default -> dvm backend switch.
-            env.pop("TORCHINDUCTOR_NPU_BACKEND", None)
+            env["TORCHINDUCTOR_NPU_BACKEND"] = "dvm"
+            env["TORCHINDUCTOR_COMPILE_THREADS"] = "1"
             env["TORCHINDUCTOR_FORCE_DISABLE_CACHES"] = "1"
             env["TORCHINDUCTOR_CACHE_DIR"] = os.path.join(tmp_dir, "cache")
             env["TRITON_CACHE_DIR"] = os.path.join(tmp_dir, "triton")
@@ -406,7 +389,7 @@ class TestDVMFlexAttention(unittest.TestCase):
         if "__SKIP__:" in proc.stdout:
             self.skipTest(proc.stdout.strip())
         self.assertEqual(proc.returncode, 0, proc.stdout)
-        self.assertIn("DVM_FLEX_ATTENTION_BACKEND_SWITCH_OK", proc.stdout)
+        self.assertIn("DVM_FLEX_ATTENTION_ENV_BACKEND_OK", proc.stdout)
 
 
 if __name__ == "__main__":

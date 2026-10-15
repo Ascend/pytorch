@@ -6393,6 +6393,8 @@ def split_last_continuous(lst):
 
 @register_lowering([aten.sum, prims.sum])
 def sum_(x, axis=None, keepdims=False, *, dtype=None):
+    if isinstance(axis, int):
+        axis = [axis]
     if axis and any(ax < 0 for ax in axis):
         offset = len(x.get_size())
         axis = [ax + offset if ax < 0 else ax for ax in axis]

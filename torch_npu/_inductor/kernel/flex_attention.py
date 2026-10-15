@@ -1,7 +1,6 @@
 """ Triton Implementation of the flex_attention Kernel"""
 
 import math
-import os
 from collections.abc import Sequence
 from functools import wraps
 from typing import Any, Dict, Optional, Union
@@ -161,7 +160,7 @@ _LOG2E = 1.4426950408889634
 
 def _supports_flex_attention_mask_out() -> bool:
     """Return whether the selected wrapper can emit mask-out dispatch code."""
-    return os.environ.get("TORCHINDUCTOR_NPU_BACKEND", "default") != "dvm"
+    return True
 
 
 def _tag_flex_attention_report_choices(new_choices, cfg):
