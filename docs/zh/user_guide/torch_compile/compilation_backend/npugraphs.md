@@ -6,7 +6,7 @@
 
 使用该后端时，Dynamo将FX Graph交由NPUGraph自动下沉为ACLGraph静态图重放优化，无需手动管理Stream和捕获流程。NPUGraphs是NPUGraph API的高级封装，自动完成图捕获和重放流程。如需更精细的控制（如手动管理Stream、分区域捕获、动态控制流下的安全子图捕获等），请参考[torch_npu.npu.NPUGraph](../../../developer_notes/npugraph.md)文档中的`NPUGraph`类、`graph()`上下文管理器和`make_graphed_callables` API。
 
-## 适用场景
+## 使用场景
 
 - 输入形状固定、kernel调用频繁的模型。
 - 需要彻底消除启动开销的高迭代训练/推理任务。
@@ -24,7 +24,7 @@ compiled_model = torch.compile(model, backend="npugraphs", options=None)
 | `triton.cudagraphs` | Triton相关配置 |
 | `trace.enabled` | 跟踪开关 |
 | `enable_shape_handling` | 形状处理配置 |
-| `npu_backend` | 指定算子编译器（`"mlir"`、`"dvm"`或`"ascendc"`，默认Triton） |
+| `npu_backend` | 指定算子编译器（`"dvm"`或`"ascendc"`，默认Triton） |
 
 ## 调用样例
 

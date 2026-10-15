@@ -18,7 +18,7 @@
 
 - **方式一**：若训练服务器能够正常联网，首次运行时，[脚本](#脚本)会通过`download=True`下载数据。数据会保存在当前工作目录下的`mnist/MNIST/raw/`中；数据完整下载后，后续运行会复用本地数据。
 
-- **方式二**：若训练服务器无法联网，可先在已安装torchvision的联网环境中执行以下命令，再将生成的整个`mnist`目录复制到训练服务器运行脚本的工作目录下，并将训练脚本中的`download=True`改为`download=False`。
+- **方式二**：若训练服务器无法联网，可先在已安装torchvision的联网环境中执行以下命令，再将生成的整个`mnist`目录复制到训练服务器运行[脚本](#脚本)的工作目录下，并将训练脚本中的`download=True`改为`download=False`。
 
     ```bash
     python3 -c "from torchvision.datasets import MNIST; MNIST(root='mnist', train=True, download=True)"
@@ -88,8 +88,8 @@
     # 设置循环
     for epoch in range(epochs):
         for step, (imgs, labels) in enumerate(train_dataloader, start=1):
-            imgs = imgs.to(device)    # 把图像数据放到指定设备上
-            labels = labels.to(device)    # 把标签数据放到指定设备上
+            imgs = imgs.to(device)    # 把图像数据放到指定GPU上
+            labels = labels.to(device)    # 把标签数据放到指定GPU上
             outputs = model(imgs)    # 前向计算
             loss = loss_func(outputs, labels)    # 损失函数计算
             optimizer.zero_grad()
@@ -120,7 +120,7 @@
 
     导入`transfer_to_npu`即开启自动迁移，将本示例中的相关CUDA调用映射到NPU。因此，脚本中的`cuda:0`可以保留，模型和数据实际在NPU上运行。若未开启自动迁移，用户可参考[手工迁移](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/zh/model_migration/manual_migration.md)文档完成迁移。
 
-3. 在train.py中添加以下代码开启AMP混合精度。
+3. 在train.py中添加以下代码开启AMP（Automatic Mixed Precision，自动混合精度）。
 
     > [!NOTE]
     >
@@ -132,7 +132,7 @@
     > <!-- end id2 -->
     > - 混合精度的具体介绍，请参见[混合精度适配](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/zh/mixed_precision_adaptation/adaptation_introduction.md)。
 
-    AMP（Automatic Mixed Precision，自动混合精度）包含两个主要操作：`autocast`为前向计算中的算子选择适用的计算精度；`GradScaler`通过缩放loss减少低精度梯度下溢的风险，并在参数更新时还原梯度尺度。
+    AMP包含两个主要操作：`autocast`为前向计算中的算子选择适用的计算精度；`GradScaler`通过缩放loss减少低精度梯度下溢的风险，并在参数更新时还原梯度尺度。
 
     1. 在导入区域添加AMP模块，并在模型、优化器定义之后、训练循环之前定义`GradScaler`：
 
@@ -152,8 +152,8 @@
         ```python
         for epoch in range(epochs):
             for step, (imgs, labels) in enumerate(train_dataloader, start=1):
-                imgs = imgs.to(device)
-                labels = labels.to(device)
+                imgs = imgs.to(device)  # 把图像数据放到指定NPU上
+                labels = labels.to(device)  # 把标签数据放到指定NPU上
                 with amp.autocast():
                     outputs = model(imgs)    # 前向计算
                     loss = loss_func(outputs, labels)    # 损失函数计算
@@ -170,10 +170,6 @@
     ```bash
     python3 train.py
     ```
-
-    > [!NOTE]
-    >
-    > 此命令需要在`train.py`所在目录下执行。
 
     训练过程中，每100个batch及每轮最后一个batch打印一次当前轮次、训练步数和loss，便于观察训练进度。其中，loss为当前batch的损失值。
 
@@ -195,7 +191,7 @@
 
 ## 进阶开发
 
-- 如果需要体验PyTorch模型训练迁移更丰富的功能，请前往《[PyTorch训练模型迁移调优指南](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/zh/README.md)》文档阅读了解。
+- 如果需要体验PyTorch模型训练迁移更丰富的功能，请前往《[PyTorch训练模型迁移调优指南](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/zh/_menu.md)》文档阅读了解。
 - 如果需要体验大模型训练更丰富的功能，请参见下表了解更多：
 
     |大模型|组件|迁移指导|

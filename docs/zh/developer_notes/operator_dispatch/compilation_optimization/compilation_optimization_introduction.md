@@ -2,7 +2,7 @@
 
 > [!NOTICE]
 >
-> 基于毕昇编译器提供的编译优化功能已废弃，可以使用[clang编译](../../../installation_guide/references/building_with_clang.md)进行替换。
+> 基于毕昇编译器提供的编译优化功能已废弃，可以使用[Clang编译](../../../installation_guide/references/building_with_clang.md)进行替换。
 
 ## 编译技术：LTO链接时优化
 

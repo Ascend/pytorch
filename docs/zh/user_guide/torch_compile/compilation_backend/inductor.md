@@ -9,7 +9,6 @@ Inductor后端支持四种算子编译器，可根据场景选择：
 | 编译器 | 模式 | 开启方法 | 说明 |
 | - | - | - | - |
 | Triton | 默认模式 |`torch.compile(backend="inductor")`| 基于Triton生成融合算子，是Inductor后端的默认选择，适用于大多数场景。详细介绍参见[Triton-Ascend 官方仓库](https://gitcode.com/Ascend/triton-ascend)。|
-| Torch-MLIR | MLIR模式 |`torch.compile(backend="inductor", options={"npu_backend": "mlir"})` | 基于Torch-MLIR生成融合算子，详细介绍参见[Torch-MLIR 官方仓库](https://github.com/llvm/torch-mlir)。<br><term>Ascend 950DT系列产品</term>暂不支持MLIR模式。|
 | DVM | DVM模式 |`torch.compile(backend="inductor", options={"npu_backend": "dvm"})` | 基于DVM生成融合算子。详细介绍参见[DVM 官方仓库](https://gitcode.com/mindspore/dvm/tree/master)。|
 | Ascend C | Ascend C模式 |`torch.compile(backend="inductor", options={"npu_backend": "ascendc"})` | 基于Ascend C生成融合算子，详细介绍参见[Autofuse官方仓库](https://gitcode.com/cann/graph-autofusion/blob/9.2.0/autofuse/README.md)。|
 
@@ -19,7 +18,6 @@ Inductor后端支持四种算子编译器，可根据场景选择：
 >   - 源码编译或在线安装（Pip）时，系统会默认安装配套版本的Triton Ascend。
 >   - 离线安装（Whl）时，请参考[快速安装](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=180&ids=89dda9ba9de741349efa03687a487678%2C204%2C200%2C1%2C6%2C177%2C)文档中的命令进行安装。
 > - 如需了解更多Triton Ascend信息，具体请参考[Triton Ascend](https://triton-ascend.readthedocs.io/zh-cn/latest/)。<br>
-> - Inductor后端使用MLIR模式时需额外安装Torch-MLIR依赖包，可以在[Torch-MLIR归档地址](https://repo.oepkgs.net/ascend/pytorch/vllm/torch/)下载。<br>
 > - 在import torch前，也可通过TORCHINDUCTOR_NPU_BACKEND环境变量选择编译器模式，具体可参见[TORCHINDUCTOR_NPU_BACKEND](../../../api/environment_variable/inductor/TORCHINDUCTOR_NPU_BACKEND.md)。
 
 ## 编译器
@@ -78,61 +76,6 @@ def call(args):
 ```
 
 其中`triton_poi_fused_mul_0`是Triton编译生成的核心执行接口，用于在指定NPU设备和计算流上执行融合算子计算。
-
-### MLIR
-
-Inductor后端的扩展升级，在保留torch.compile动态图捕获 + 静态图优化 + 高效代码生成的核心逻辑的基础上，借助MLIR的多层级、跨架构编译能力，适配多类硬件架构的深度优化需求，显著提升不同算力平台下模型训练与推理的编译灵活性和性能上限。
-
-Inductor-MLIR编译器包含如下核心组件：
-
-| 组件 | 定位 | 作用 |
-| - | - | - |
-| Inductor-MLIR | 核心编译器（多层级IR优化器） | 将FX Graph转换为MLIR多层级中间表示（IR），通过跨层级的优化策略（如算子拆分与融合、数据类型优化、计算图化简），兼顾编译灵活性与优化深度，适配不同硬件的编译特性。 |
-| MLIR CodeGen | 代码生成器（硬件感知代码生成器） | 接收优化后的MLIR IR，针对目标硬件生成专属的高性能底层代码。 |
-
-#### 调用示例
-
-```python
-import os
-os.environ['TORCHINDUCTOR_NPU_BACKEND'] = 'mlir'
-
-import torch
-import torch_npu
-from torch._inductor.utils import run_and_get_code
-import torch_npu._inductor
-
-# 定义模型
-def op_calc(x, y):
-    return x * y
-
-x = torch.randn((3,), requires_grad=False, dtype=torch.float32, device="npu")
-y = torch.randn((3,), requires_grad=False, dtype=torch.float32, device="npu")
-std_out = op_calc(x, y)
-
-compile_func = torch.compile(op_calc, options={"npu_backend": "mlir"})
-compile_out, codes = run_and_get_code(compile_func, x, y)
-print(codes[0])
-```
-
-#### 输出MLIR融合算子
-
-`codes`为捕获到的MLIR输出代码片段，该代码中包含call函数与benchmark_compiled_model函数，其中call函数内部封装了MLIR编译生成的算子逻辑：
-
-```python
-def call(args):
-    arg0_1, arg1_1 = args
-    args.clear()
-    with torch.npu.utils.device(0):
-        torch.npu.set_device(0)
-        buf0 = empty_strided((3, ), (1, ), device='npu', dtype=torch.float32)
-        stream0 = get_raw_stream(0)
-        mlir_fused_mul_0.run(arg0_1, arg1_1, buf0, stream=stream0)
-        del arg0_1
-        del arg1_1
-    return (buf0, )
-```
-
-其中`mlir_fused_mul_0.run`是MLIR编译生成的核心执行接口，用于在指定NPU设备和计算流上执行融合乘法算子计算，接收输入张量并将计算结果写入输出张量，是MLIR对原始乘法逻辑优化后的底层实现。
 
 ### DVM
 
@@ -313,7 +256,7 @@ Inductor支持的编译选项（`options`参数）：
 | `triton.cudagraphs` | Triton相关配置 |
 | `trace.enabled` | 跟踪开关 |
 | `enable_shape_handling` | 形状处理配置 |
-| `npu_backend` | 指定算子编译器（`"mlir"`、`"dvm"`或`"ascendc"`，默认Triton） |
+| `npu_backend` | 指定算子编译器（`"dvm"`或`"ascendc"`，默认Triton） |
 
 ## 约束说明
 

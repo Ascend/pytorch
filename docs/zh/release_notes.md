@@ -6,6 +6,8 @@
 - 支持通信域以分级建链方式初始化，性能优化。
 - 支持Inductor基于AscendC IR的自动算子融合。
 - 继承DeviceAllocator，支持在Eager模式下启用accelerator memory和graph相关接口。
+- 从本版本起，Inductor后端中的Torch-MLIR编译器已废弃，涉及《Torch.compile》和《环境变量》，具体变更内容请参考[配套版本文档](#版本配套文档)。
+- 从本版本起，基于毕昇编译器提供的编译优化功能已废弃，可以使用[Clang](../zh/installation_guide/references/building_with_clang.md)进行替换。
 
 ## 版本配套说明
 
@@ -1637,22 +1639,22 @@ TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命
 
 |文档名称|内容简介|更新说明|
 |---|---|---|
-|《[软件安装](../zh/installation_guide/references/building_from_source.md)》|提供在昇腾设备安装PyTorch框架训练环境，以及升级、卸载等操作。|&#8226; 新增适配PyTorch 2.13.0和PyTorch 2.14.0。<br>&#8226; 新增编译加速和使用Clang编译文档。|
+|《[安装指南](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=182&ids=89dda9ba9de741349efa03687a487678%2C202%2C106%2C1%2C6%2C177%2C)》|提供在昇腾设备安装PyTorch框架训练环境，以及升级、卸载等操作。|&#8226; 新增适配PyTorch 2.13.0和PyTorch 2.14.0。<br>&#8226; 新增编译加速和使用Clang编译文档。|
 |《[TorchNPU概述](../zh/user_guide/product_overview.md)》|TorchNPU插件是基于昇腾的深度学习适配框架，使昇腾NPU可以支持PyTorch框架，为PyTorch框架的使用者提供昇腾AI处理器的超强算力。|无更新 |
 |《[快速入门](../zh/user_guide/quick_start.md)》|提供了一个简单的模型迁移样例，采用了最简单的自动迁移方法，帮助用户快速体验GPU模型脚本迁移到昇腾NPU上的流程。|优化快速入门文档。|
-|《[Torch.compile](../zh/user_guide/torch_compile/overview.md)》|通过“动态图捕获+静态图优化+高效代码生成”的方式显著加速模型训练和推理任务。|&#8226; Inductor后端新增Ascend C编译器。<br>&#8226; 新增PyTorch官方参考文档链接。  |
+|《[Torch.compile](../zh/user_guide/torch_compile/overview.md)》|通过“动态图捕获+静态图优化+高效代码生成”的方式显著加速模型训练和推理任务。|&#8226; Inductor后端新增Ascend C编译器。<br>&#8226; 新增PyTorch官方参考文档链接。<br>&#8226; 删除Inductor章节中Torch-MLIR编译器相关内容|
 |《[配套软件库](./user_guide/libraries.md)》|为TorchNPU提供扩展能力的配套软件库。|新增Triton Asend组件。|
 |《[故障处理](../zh/user_guide/troubleshooting/troubleshooting_process.md)》|以开发者在执行推理、训练过程中可能遇到的各类异常故障现象为入口，提供自助式问题定位、问题处理方法，方便开发者快速定位并解决故障。|无更新|
 |《[原生API](../zh/api/native_api/pytorch_2-12-0/overview.md)》|提供PyTorch 2.12.0/2.11.0/2.10.0/2.9.0/2.7.1版本原生API在昇腾设备上的支持情况。|&#8226; 新增PyTorch 2.13.0和PyTorch 2.14.0原生API支持清单。<br>&#8226; 内容格式对齐PyTorch社区。 |
-|《[自定义API](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/overview.md)》|提供TorchNPU自定义API的函数原型、功能说明、参数说明与调用示例等。|&#8226; 新增适配PyTorch 2.13.0和PyTorch 2.14.0。<br>&#8226; 具体接口变更请参考[接口变更说明](#接口变更说明)。|
-|《[环境变量](../zh/api/environment_variable/env_variable_list.md)》|在TorchNPU训练和在线推理过程中可使用的环境变量。|&#8226; 新增PyTorch环境变量对照表。<br>&#8226; 调整部分目录结构。|
+|《[自定义API](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/zh/custom_APIs/overview.md)》|提供TorchNPU自定义API的函数原型、功能说明、参数说明与调用示例等。|&#8226; 新增适配PyTorch 2.13.0和PyTorch 2.14.0。<br>&#8226; 具体接口变更请参考[接口变更说明](#接口变更说明)。|
+|《[环境变量](../zh/api/environment_variable/env_variable_list.md)》|在TorchNPU训练和在线推理过程中可使用的环境变量。|&#8226; 新增PyTorch环境变量对照表。<br>&#8226; 调整部分目录结构。<br>&#8226; 删除TORCHINDUCTOR_NPU_BACKEND章节中Torch-MLIR编译器相关内容。<br>&#8226; 删除（beta）INDUCTOR_ASCEND_CHECK_ACCURACY章节中Torch-MLIR编译器相关内容。<br>&#8226; 下架TORCHINDUCTOR_USE_AKG章节。<br>&#8226; 下架NPU_INDUCTOR_FALLBACK_LIST章节。|
 |《[内存管理](../zh/developer_notes/memory_management/memory_resource_overview.md)》|TorchNPU在内存管理方面构建了一套完整的体系，既深度集成了PyTorch原生的内存管理机制，又针对昇腾NPU硬件特性提供了多项独有的优化能力。|内容独立且优化。|
 |《[分布式](../zh/developer_notes/distributed/distributed_overview.md)》|支持的核心特性，涵盖并行策略、分片原语、通信策略、分布式启动与容错等关键能力，并说明各项特性在NPU上的使用方式以及和原生PyTorch的异同。|&#8226; 分布式章节独立展示。<br>&#8226; 新增概述章节。<br>&#8226; 新增并行策略特性。<br>&#8226; 新增通信策略特性。<br>&#8226; 重构通信域参数。 |
 |《[算子下发](../zh/developer_notes/operator_dispatch/automatic_core_binding.md)》|通过自动绑核、Stream级TaskQueue并行下发和编译优化，全面提升TorchNPU下发及程序运行性能。|&#8226; 算子下发章节独立展示。<br>&#8226; 新增taskqueue特性。|
 |《[NPUGraph](../zh/developer_notes/npugraph.md)》|NPUGraph是一种在Eager Mode（单算子执行模式）下使用的静态图捕获技术，将一系列NPU内核定义并封装为一个单元（即操作图），通过单一CPU操作启动多个NPU操作，从而减少启动开销。|内容独立且优化。|
 |《[故障诊断](../zh/developer_notes/fault_diagnosis/feature_value_detection.md)》|在不影响大模型训练性能和精度的前提下，通过基于通信流的静默数据错误特征值检测技术，实现精度问题的快速稳定识别。|内容独立且优化。|
 |《[自定义算子适配开发](../zh/developer_notes/custom_operator_adaptation/opplugin_operator_adaptation/adaptation_overview_opplugin.md)》|基于OpPlugin插件或C++ extensions的方式编写并调用自定义算子。|内容独立且优化。|
-|《[TorchAir](https://gitcode.com/Ascend/torchair/blob/master/docs/zh/overview.md)》|作为昇腾TorchNPU的图模式能力扩展库，提供昇腾设备亲和的torch.compile图模式后端，实现PyTorch网络在昇腾NPU上的图模式推理加速和优化。|&#8226; npugraph_ex功能增强：新增支持SuperKernel融合优化功能、force_recapture功能、图捕获安全策略配置等。<br>&#8226; GE图模式功能增强：扩展npu_stream_switch接口，支持指定并发策略等。<br>&#8226; 新增支持<term>Ascend 950DT</term>相关内容。|
+|《[TorchAir](https://gitcode.com/Ascend/torchair/blob/26.2.0/docs/zh/overview.md)》|作为昇腾TorchNPU的图模式能力扩展库，提供昇腾设备亲和的torch.compile图模式后端，实现PyTorch网络在昇腾NPU上的图模式推理加速和优化。|&#8226; 新增自定义算子零交付件入图特性。<br>&#8226; 新增每次replay前跳过重捕获校验功能。<br>&#8226; SuperKernel融合优化功能增强。|
 |《[安全声明](../zh/reference/security_statement.md)》|提供了TorchNPU、OpPlugin、TorchAir和Ascend Extension for TensorPipe组件的软件版本、系统加固要求、安全配置（数据存储、调试接口、运行环境等）、权限配置、防火墙等设置。|例行更新。|
 
 ## 病毒扫描结果

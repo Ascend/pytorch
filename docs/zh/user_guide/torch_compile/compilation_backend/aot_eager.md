@@ -6,13 +6,13 @@
 
 AOT_Eager特点如下：
 
-- 不做算子融合，不生成Triton/MLIR/DVM/Ascend C融合内核。
+- 不做算子融合，不生成Triton/DVM/Ascend C融合内核。
 - 保留完整的图结构和自动微分信息。
 - 性能与原生Eager模式相近，无明显优化收益。
 
 更多详情可参见[AOTAutograd](https://docs.pytorch.org/docs/2.12/user_guide/torch_compiler/torch.compiler_aot_compile.html)。
 
-## 适用场景
+## 使用场景
 
 - **调试与验证**：确认模型在`torch.compile`图模式下是否正确执行，排除Inductor或其他优化后端引入的问题。
 - **兼容性测试**：验证图捕获和图断裂（graph break）行为是否正常。
