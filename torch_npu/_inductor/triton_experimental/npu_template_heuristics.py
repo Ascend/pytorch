@@ -34,12 +34,20 @@ Importing this module performs two registrations (invoked once from
    The shim mirrors the built-in ``_default_cuda_bench`` / ``_default_xpu_bench``.
 """
 
-from torch._inductor.heuristics.registry import register_template_heuristic
-from torch._inductor.heuristics.template.triton import (
-    BaseConfigHeuristic,
-    GemmConfig,
-    MMTemplateConfigMixin,
-)
+try:
+    from torch._inductor.heuristics.registry import register_template_heuristic
+    from torch._inductor.heuristics.template.triton import (
+        BaseConfigHeuristic,
+        GemmConfig,
+        MMTemplateConfigMixin,
+    )
+except ModuleNotFoundError:
+    from torch._inductor.template_heuristics.registry import register_template_heuristic
+    from torch._inductor.template_heuristics.triton import (
+        BaseConfigHeuristic,
+        GemmConfig,
+        MMTemplateConfigMixin,
+    )
 from torch._inductor.kernel.bmm import bmm_template
 from torch._inductor.kernel.mm import mm_template
 from torch._inductor.runtime.benchmarking import register_benchmarker
