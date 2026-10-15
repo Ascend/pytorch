@@ -6,13 +6,13 @@ The plugin is a deep learning adaptation framework based on Atlas, enabling Atla
 
 ## Quick Reference
 
-- TorchNPU is maintained by the [Atlas PyTorch community](https://www.hiascend.com/developer/software/ai-frameworks/pytorch)
+- TorchNPU is maintained by the [Atlas PyTorch community](https://www.hiascend.com/eng/developer/software/ai-frameworks/pytorch)
 
 - Where to get help
 
-   - [Image Repository](https://www.hiascend.com/developer/ascendhub)
-   - [TorchNPU Documentation](https://www.hiascend.com/document/detail/zh/Pytorch/730/index/index.html)
-   - [Developer Community](https://www.hiascend.com/developer)
+   - [Image Repository](https://www.hiascend.com/en/developer/ascendhub)
+   - [TorchNPU Documentation](https://www.hiascend.com/document/detail/en/Pytorch/latest/index/index.html)
+   - [Developer Community](https://www.hiascend.com/en)
    - [Issue Feedback](https://gitcode.com/Ascend/pytorch/issues)
 
 ---

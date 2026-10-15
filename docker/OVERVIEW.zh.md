@@ -6,12 +6,12 @@ TorchNPU插件是基于昇腾的深度学习适配框架，使昇腾NPU可以支
 
 ## 快速参考
 
-- TorchNPU 由 [Ascend for PyTorch community](https://www.hiascend.com/developer/software/ai-frameworks/pytorch) 维护
+- TorchNPU 由 [Ascend for PyTorch community](https://www.hiascend.com/cn/developer/software/ai-frameworks/pytorch) 维护。
 
 - 从哪里获取帮助
 
    - [AscendHub 镜像仓库](https://www.hiascend.com/developer/ascendhub)
-   - [TorchNPU 文档](https://www.hiascend.com/document/detail/zh/Pytorch/730/index/index.html)
+   - [TorchNPU 文档](https://www.hiascend.com/document/detail/zh/Pytorch/latest/index/index.html)
    - [昇腾开发者社区](https://www.hiascend.com/developer)
    - [问题反馈](https://gitcode.com/Ascend/pytorch/issues)
 
