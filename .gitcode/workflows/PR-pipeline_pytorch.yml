@@ -383,17 +383,6 @@ stages:
           TEST_WORLD_SIZE: "3"
           NPU_CORE: "yes"
 
-      UT_core_part_213:
-        name: UT_core_part_213
-        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.get_count.outputs.core > '2' && env.target_branch == 'master' }}
-        uses: .gitcode/workflows/ut_job.yml
-        with:
-          torch_branch: '2.13.0'
-          CP_DOCKER_IMG: ${{ env.img_2_13_0_arm }}
-          TEST_RANK: "1"
-          TEST_WORLD_SIZE: "1"
-          NPU_CORE: "yes"
-
       UT_select_01:
         name: UT_select_01
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.get_count.outputs.select > '0' }}
@@ -415,15 +404,6 @@ stages:
           NPU_CORE: "no"
           TEST_RANK: "2"
           TEST_WORLD_SIZE: "2"
-
-      UT_select_213:
-        name: UT_select_213
-        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.get_count.outputs.select == '2' && env.target_branch == 'master' }}
-        uses: .gitcode/workflows/ut_job.yml
-        with:
-          torch_branch: '2.13.0'
-          CP_DOCKER_IMG: ${{ env.img_2_13_0_arm }}
-          NPU_CORE: "no"
 
       UT_inductor_01:
         name: UT_inductor_01
@@ -465,15 +445,45 @@ stages:
           TEST_RANK: "4"
           TEST_WORLD_SIZE: "4"
 
-      UT_inductor_213:
-        name: UT_inductor_213
+      UT_inductor_torch213_1:
+        name: UT_inductor_torch213_1
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' && env.target_branch == 'master' }}
         uses: .gitcode/workflows/ut_job_inductor.yml
         with:
           torch_branch: '2.13.0'
           CP_DOCKER_IMG: ${{ env.img_2_13_0_arm }}
           TEST_RANK: "1"
-          TEST_WORLD_SIZE: "1"
+          TEST_WORLD_SIZE: "4"
+
+      UT_inductor_torch213_2:
+        name: UT_inductor_torch213_2
+        if: ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' && env.target_branch == 'master' }}
+        uses: .gitcode/workflows/ut_job_inductor.yml
+        with:
+          torch_branch: '2.13.0'
+          CP_DOCKER_IMG: ${{ env.img_2_13_0_arm }}
+          TEST_RANK: "2"
+          TEST_WORLD_SIZE: "4"
+
+      UT_inductor_torch213_3:
+        name: UT_inductor_torch213_3
+        if: ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' && env.target_branch == 'master' }}
+        uses: .gitcode/workflows/ut_job_inductor.yml
+        with:
+          torch_branch: '2.13.0'
+          CP_DOCKER_IMG: ${{ env.img_2_13_0_arm }}
+          TEST_RANK: "3"
+          TEST_WORLD_SIZE: "4"
+
+      UT_inductor_torch213_4:
+        name: UT_inductor_torch213_4
+        if: ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' && env.target_branch == 'master' }}
+        uses: .gitcode/workflows/ut_job_inductor.yml
+        with:
+          torch_branch: '2.13.0'
+          CP_DOCKER_IMG: ${{ env.img_2_13_0_arm }}
+          TEST_RANK: "4"
+          TEST_WORLD_SIZE: "4"
 
       UT_distributed_01:
         name: UT_distributed_01

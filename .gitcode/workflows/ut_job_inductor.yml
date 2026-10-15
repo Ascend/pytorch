@@ -107,21 +107,28 @@ jobs:
           echo "------------------------------------- ENV PATH -------------------------------------"
           echo ${PATH}
           echo "------------------------------------------------------------------------------------"
-          cd ci
+          time_json_prefix=${{ atomgit.event.pull_request.base.ref }}
           if [[ ${{ atomgit.event.pull_request.base.ref }} == 'master' && ${{ inputs.torch_branch }} != 'master' ]]; then
               onetrack_branch=${{ inputs.torch_branch }}
               onetrack_branch=${onetrack_branch%.0}
               echo "onetrack_branch=${onetrack_branch}"
-              python"${{ inputs.py_version }}" access_control_test.py --inductor --between_version="min=${onetrack_branch}" --rank=${{ env.TEST_RANK }} --world_size=${{ env.TEST_WORLD_SIZE }} 2>&1
+              time_json_prefix=v${{ inputs.torch_branch }}
+              echo "time_json_prefix=${time_json_prefix}"
+              wget -c -q --no-check-certificate https://pta-pr.obs.cn-north-4.myhuaweicloud.com/pta/timing/${time_json_prefix}_time_data.json -O time_data.json
+              cat time_data.json
+              python"${{ inputs.py_version }}" ci/access_control_test.py --inductor --between_version="min=${onetrack_branch}" --rank=${{ env.TEST_RANK }} --world_size=${{ env.TEST_WORLD_SIZE }} 2>&1
           else
-              python"${{ inputs.py_version }}" access_control_test.py --inductor --rank=${{ env.TEST_RANK }} --world_size=${{ env.TEST_WORLD_SIZE }} 2>&1
+              wget -c -q --no-check-certificate https://pta-pr.obs.cn-north-4.myhuaweicloud.com/pta/timing/${{ atomgit.event.pull_request.base.ref }}_time_data.json -O time_data.json
+              cat time_data.json
+              python"${{ inputs.py_version }}" ci/access_control_test.py --inductor --rank=${{ env.TEST_RANK }} --world_size=${{ env.TEST_WORLD_SIZE }} 2>&1
           fi
 
           echo "upload_data=no" >> "$ATOMGIT_OUTPUT"
           if [ -e ${ATOMGIT_WORKSPACE}/time_data.json ]; then
-            cp ${ATOMGIT_WORKSPACE}/time_data.json ${ATOMGIT_WORKSPACE}/${{ atomgit.event.pull_request.base.ref }}_time_data.json
+            cp ${ATOMGIT_WORKSPACE}/time_data.json ${ATOMGIT_WORKSPACE}/${time_json_prefix}_time_data.json
             ls -al ${ATOMGIT_WORKSPACE}
             echo "upload_data=yes" >> "$ATOMGIT_OUTPUT"
+            echo "time_json_prefix=${time_json_prefix}" >> "$ATOMGIT_OUTPUT"
           fi
 
       - name: oidc-auth
@@ -140,5 +147,5 @@ jobs:
           endpoint: "obs.cn-north-4.myhuaweicloud.com"
           bucket: "pta-pr"
           artifact-path: |
-            ${{ atomgit.event.pull_request.base.ref }}_time_data.json
+            ${{ steps.ut_inductor.outputs.time_json_prefix }}_time_data.json
           object-prefix: "pta/timing/"
