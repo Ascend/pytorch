@@ -124,108 +124,108 @@ TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命
 <table>
   <thead align="left">
     <tr>
-      <th class="cellrowborder" valign="top" width="18.801880188018803%" id="mcps1.1.4.1.1">组件</th>
-      <th class="cellrowborder" valign="top" width="32.603260326032604%" id="mcps1.1.4.1.2">特性</th>
-      <th class="cellrowborder" valign="top" width="48.5948594859486%" id="mcps1.1.4.1.3">特性说明</th>
-      <th class="cellrowborder" valign="top" width="32.603260326032604%" id="mcps1.1.4.1.2">适配说明</th>
+      <th>组件</th>
+      <th>特性</th>
+      <th>特性说明</th>
+      <th style="width: 300px; white-space: normal;">适配说明</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td class="cellrowborder" rowspan="19" valign="top" width="18.801880188018803%" headers="mcps1.1.4.1.1">TorchNPU</td>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">DTensor补全。</td>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2">math ops分片策略全覆盖；新增DeviceMesh上的linspace工厂函数。</td>
-      <td class="cellrowborder" valign="top" width="32.603260326032604%" headers="mcps1.1.4.1.2">新增适配PyTorch 2.14.0版本</td>
+      <td rowspan="19">TorchNPU</td>
+      <td>DTensor补全。</td>
+      <td>math ops分片策略全覆盖；新增DeviceMesh上的linspace工厂函数。</td>
+      <td style="width: 300px; white-space: normal;">新增适配PyTorch 2.14.0版本</td>
     </tr>
     <tr>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">c10d架构标准化。</td>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2">后端发现机制重构为Python entrypoints动态注册。</td>
-      <td class="cellrowborder" valign="top" width="32.603260326032604%" headers="mcps1.1.4.1.2">新增适配PyTorch 2.14.0版本</td>
+      <td>c10d架构标准化。</td>
+      <td>后端发现机制重构为Python entrypoints动态注册。</td>
+      <td style="width: 300px; white-space: normal;">新增适配PyTorch 2.14.0版本</td>
     </tr>
     <tr>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">通信容错。</td>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2">NCCL2新增reconfigure能力，支持重建通信子做故障恢复。</td>
-      <td class="cellrowborder" valign="top" width="32.603260326032604%" headers="mcps1.1.4.1.2">新增适配PyTorch 2.14.0版本</td>
+      <td>通信容错。</td>
+      <td>NCCL2新增reconfigure能力，支持重建通信子做故障恢复。</td>
+      <td style="width: 300px; white-space: normal;">新增适配PyTorch 2.14.0版本</td>
     </tr>
     <tr>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">编译配置简化。</td>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2">支持全局设置默认compile后端。</td>
-      <td class="cellrowborder" valign="top" width="32.603260326032604%" headers="mcps1.1.4.1.2">新增适配PyTorch 2.14.0版本</td>
+      <td>编译配置简化。</td>
+      <td>支持全局设置默认compile后端。</td>
+      <td style="width: 300px; white-space: normal;">新增适配PyTorch 2.14.0版本</td>
     </tr>
     <tr>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">算子覆盖扩展。</td>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2">uniform进入编译器分解路径；新增shallow_copy_data_支持跨设备tensor.data=赋值（Dynamo到Inductor全栈）。</td>
-      <td class="cellrowborder" valign="top" width="32.603260326032604%" headers="mcps1.1.4.1.2">新增适配PyTorch 2.14.0版本</td>
+      <td>算子覆盖扩展。</td>
+      <td>uniform进入编译器分解路径；新增shallow_copy_data_支持跨设备tensor.data=赋值（Dynamo到Inductor全栈）。</td>
+      <td style="width: 300px; white-space: normal;">新增适配PyTorch 2.14.0版本</td>
     </tr>
     <tr>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">FSDP2分片灵活性增强。</td>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2">支持逐参数在不同DeviceMesh上独立分片； fully_shard可通过 DataParallelMeshDims在SPMD网格上显式声明数据并行维度。</td>
-      <td class="cellrowborder" valign="top" width="32.603260326032604%" headers="mcps1.1.4.1.2">新增适配PyTorch 2.13.0及以上版本</td>
+      <td>FSDP2分片灵活性增强。</td>
+      <td>支持逐参数在不同DeviceMesh上独立分片； fully_shard可通过 DataParallelMeshDims在SPMD网格上显式声明数据并行维度。</td>
+      <td style="width: 300px; white-space: normal;">新增适配PyTorch 2.13.0及以上版本</td>
     </tr>
     <tr>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">FSDP2 chunked loss。</td>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2">norm/head部分前向，降低大模型训练峰值显存。</td>
-      <td class="cellrowborder" valign="top" width="32.603260326032604%" headers="mcps1.1.4.1.2">新增适配PyTorch 2.13.0及以上版本</td>
+      <td>FSDP2 chunked loss。</td>
+      <td>norm/head部分前向，降低大模型训练峰值显存。</td>
+      <td style="width: 300px; white-space: normal;">新增适配PyTorch 2.13.0及以上版本</td>
     </tr>
     <tr>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">量化支持扩展。</td>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2">AOTInductor C shim层支持MXFP4。</td>
-      <td class="cellrowborder" valign="top" width="32.603260326032604%" headers="mcps1.1.4.1.2">新增适配PyTorch 2.13.0及以上版本</td>
+      <td>量化支持扩展。</td>
+      <td>AOTInductor C shim层支持MXFP4。</td>
+      <td style="width: 300px; white-space: normal;">新增适配PyTorch 2.13.0及以上版本</td>
     </tr>
     <tr>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">重编译控制。</td>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2">新增recompile_limit，调用级限制单函数重编译次数。</td>
-      <td class="cellrowborder" valign="top" width="32.603260326032604%" headers="mcps1.1.4.1.2">新增适配PyTorch 2.13.0及以上版本</td>
+      <td>重编译控制。</td>
+      <td>新增recompile_limit，调用级限制单函数重编译次数。</td>
+      <td style="width: 300px; white-space: normal;">新增适配PyTorch 2.13.0及以上版本</td>
     </tr>
     <tr>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">算子覆盖扩展。</td>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2">inplace自定义算子支持compile；scan输出维度movedim；BatchLinearLHSFusion识别更多linear调用。</td>
-      <td class="cellrowborder" valign="top" width="32.603260326032604%" headers="mcps1.1.4.1.2">新增适配PyTorch 2.13.0及以上版本</td>
+      <td>算子覆盖扩展。</td>
+      <td>inplace自定义算子支持compile；scan输出维度movedim；BatchLinearLHSFusion识别更多linear调用。</td>
+      <td style="width: 300px; white-space: normal;">新增适配PyTorch 2.13.0及以上版本</td>
     </tr>
     <tr>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">Mempool社区特性跟进。</td>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2">架构跟随社区主线，修复显存泄露问题，支持单独的ID控制机制，补齐社区新增特性。</td>
-      <td class="cellrowborder" valign="top" width="32.603260326032604%" headers="mcps1.1.4.1.2">新增适配PyTorch 2.13.0及以上版本</td>
+      <td>Mempool社区特性跟进。</td>
+      <td>架构跟随社区主线，修复显存泄露问题，支持单独的ID控制机制，补齐社区新增特性。</td>
+      <td style="width: 300px; white-space: normal;">新增适配PyTorch 2.13.0及以上版本</td>
     </tr>
     <tr>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">Eager模式API支持torch.accelerator。</td>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2">继承DeviceAllocator，支持在Eager模式下启用accelerator memory和graph相关接口。</td>
-      <td class="cellrowborder" valign="top" width="32.603260326032604%" headers="mcps1.1.4.1.2">新增适配PyTorch 2.13.0及以上版本</td>
+      <td>Eager模式API支持torch.accelerator。</td>
+      <td>继承DeviceAllocator，支持在Eager模式下启用accelerator memory和graph相关接口。</td>
+      <td style="width: 300px; white-space: normal;">新增适配PyTorch 2.13.0及以上版本</td>
     </tr>
     <tr>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">torch.bitwise_right_shift和torch.bitwise_left_shift支持NPU。</td>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2">torch.bitwise_right_shift和torch.bitwise_left_shift支持在NPU上计算，避免fallback回退至CPU。</td>
-      <td class="cellrowborder" valign="top" width="32.603260326032604%" headers="mcps1.1.4.1.2">适配PyTorch 2.12.0及以上版本</td>
+      <td>torch.bitwise_right_shift和torch.bitwise_left_shift支持NPU。</td>
+      <td>torch.bitwise_right_shift和torch.bitwise_left_shift支持在NPU上计算，避免fallback回退至CPU。</td>
+      <td style="width: 300px; white-space: normal;">适配PyTorch 2.12.0及以上版本</td>
     </tr>
     <tr>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">支持Inductor AscendC后端。</td>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2">支持Inductor基于AscendC IR的自动算子融合。</td>
-      <td class="cellrowborder" valign="top" width="32.603260326032604%" headers="mcps1.1.4.1.2">适配PyTorch 2.11.0及以上版本</td>
+      <td>支持Inductor AscendC后端。</td>
+      <td>支持Inductor基于AscendC IR的自动算子融合。</td>
+      <td style="width: 300px; white-space: normal;">适配PyTorch 2.11.0及以上版本</td>
     </tr>
       <tr>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">内存优化配置标准化。</td>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2">重构内存配置项，复用社区通用配置并通过注册机制实现；支持通过PYTORCH_ALLOC_CONF环境变量进行动态配置。</td>
-      <td class="cellrowborder" valign="top" width="32.603260326032604%" headers="mcps1.1.4.1.2">适配PyTorch 2.10.0及以上版本</td>
+      <td>内存优化配置标准化。</td>
+      <td>重构内存配置项，复用社区通用配置并通过注册机制实现；支持通过PYTORCH_ALLOC_CONF环境变量进行动态配置。</td>
+      <td style="width: 300px; white-space: normal;">适配PyTorch 2.10.0及以上版本</td>
     </tr>
     <tr>
-      <td class="cellrowborder" valign="top" width="32.603260326032604%" headers="mcps1.1.4.1.2">支持alltoallvc通信算子。</td>
-      <td class="cellrowborder" valign="top" width="48.5948594859486%" headers="mcps1.1.4.1.3">支持alltoallvc通信算子，优化alltoall通信性能。</td>
-      <td class="cellrowborder" valign="top" width="32.603260326032604%" headers="mcps1.1.4.1.2">&#8226; 适配PyTorch 2.7.1版本<br>&#8226; 适配PyTorch 2.9.0及以上版本</td>
+      <td>支持alltoallvc通信算子。</td>
+      <td>支持alltoallvc通信算子，优化alltoall通信性能。</td>
+      <td style="width: 300px; white-space: normal;">&#8226; 适配PyTorch 2.7.1版本<br>&#8226; 适配PyTorch 2.9.0及以上版本</td>
     </tr>
     <tr>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">通信域支持分级建链初始化。</td>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2">支持通信域以分级建链方式初始化，优化性能。</td>
-      <td class="cellrowborder" valign="top" width="32.603260326032604%" headers="mcps1.1.4.1.2">&#8226; 适配PyTorch 2.7.1版本<br>&#8226; 适配PyTorch 2.9.0及以上版本</td>
+      <td>通信域支持分级建链初始化。</td>
+      <td>支持通信域以分级建链方式初始化，优化性能。</td>
+      <td style="width: 300px; white-space: normal;">&#8226; 适配PyTorch 2.7.1版本<br>&#8226; 适配PyTorch 2.9.0及以上版本</td>
     </tr>
     <tr>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">通信算子支持对称内存。</td>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2">支持内存窗口注册，关键通信算子支持对称内存，提升数据传输效率。</td>
-      <td class="cellrowborder" valign="top" width="32.603260326032604%" headers="mcps1.1.4.1.2">&#8226; 适配PyTorch 2.7.1版本<br>&#8226; 适配PyTorch 2.9.0及以上版本</td>
+      <td>通信算子支持对称内存。</td>
+      <td>支持内存窗口注册，关键通信算子支持对称内存，提升数据传输效率。</td>
+      <td style="width: 300px; white-space: normal;">&#8226; 适配PyTorch 2.7.1版本<br>&#8226; 适配PyTorch 2.9.0及以上版本</td>
     </tr>
     <tr>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">支持Batch一致性配置。</td>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2">torch_npu.npu.set_deterministic_level(level)接口新增枚举值3，用于指定Batch级别的一致性； 通过get接口返回当前的level情况。确定性计算与Batch一致性均支持动态配置。</td>
-      <td class="cellrowborder" valign="top" width="32.603260326032604%" headers="mcps1.1.4.1.2">&#8226; 适配PyTorch 2.7.1<br>&#8226; 适配PyTorch 2.9.0及以上版本</td>
+      <td>支持Batch一致性配置。</td>
+      <td>torch_npu.npu.set_deterministic_level(level)接口新增枚举值3，用于指定Batch级别的一致性； 通过get接口返回当前的level情况。确定性计算与Batch一致性均支持动态配置。</td>
+      <td style="width: 300px; white-space: normal;">&#8226; 适配PyTorch 2.7.1<br>&#8226; 适配PyTorch 2.9.0及以上版本</td>
     </tr>
   </tbody>
 </table>
