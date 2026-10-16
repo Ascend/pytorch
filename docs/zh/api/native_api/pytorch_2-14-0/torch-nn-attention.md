@@ -81,6 +81,26 @@
 
 </div>
 
+> <font size="3">seq\_lengths</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.attention.flex_attention.BlockMask.seq_lengths](https://docs.pytorch.org/docs/2.14/nn.attention.flex_attention.html#torch.nn.attention.flex_attention.BlockMask.seq_lengths)
+
+**产品支持情况**：
+
+<!-- npu="910b" id13 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id13 -->
+<!-- npu="A3" id14 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id14 -->
+<!-- npu="950" id15 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id15 -->
+
+</div>
+
 > <font size="3"><code><i>property</i></code> shape</font>
 
 <div style="margin-left: 2em">
