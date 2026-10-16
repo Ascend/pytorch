@@ -1,0 +1,747 @@
+# TEMPORARY fork of _build.yml used ONLY by pytorch_ci_trigger_manual.yml
+# to validate the wheel-repair fix. The ONLY differences from _build.yml:
+#   1. the "Repair PyTorch wheel" step (Step 2a) below — vendors
+#      builder-only shared libraries (libopenblas from /opt/OpenBLAS plus
+#      libgfortran/libgomp) into torch/lib, sets $ORIGIN RPATHs and
+#      regenerates RECORD, mirroring upstream pytorch's
+#      .ci/wheel/linux/repair_wheel.py;
+#   2. a clean-env import check that strips /opt/OpenBLAS from
+#      LD_LIBRARY_PATH.
+# Motivation: run 38041281352 — the builder image's /opt/OpenBLAS gets
+# dynamically linked into libtorch_cpu.so but is not vendored into the
+# wheel, so `import torch` fails in the test image. All other flows keep
+# using _build.yml untouched; delete this file once the fix is validated
+# and folded back into _build.yml.
+name: Build PyTorch and torch_npu
+
+on:
+  workflow_call:
+    inputs:
+      upstream_repo:
+        required: true
+        type: string
+        description: The upstream repository full name (owner/repo)
+      upstream_ref:
+        required: true
+        type: string
+        description: Git ref to build — branch name (main), tag, or commit SHA
+      torch_npu_repo:
+        required: true
+        type: string
+        description: The torch_npu repository full name (owner/repo)
+      torch_npu_ref:
+        required: false
+        type: string
+        default: 'master'
+        description: The torch_npu repository branch, tag, or SHA to build
+      report_to_upstream:
+        required: false
+        type: boolean
+        default: true
+        description: Whether to report CI status to upstream dashboard
+      runner_label:
+        required: false
+        type: string
+        default: 'linux-aarch64-a3-4'
+        description: Runner label for runs-on and upstream job-name reporting.
+      docker_image:
+        required: false
+        type: string
+        default: 'quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly'
+        description: Docker image for build container.
+      max_jobs:
+        required: false
+        type: string
+        default: '64'
+        description: Max parallel compile jobs (MAX_JOBS) for PyTorch and torch_npu builds.
+    outputs:
+      resolved_sha:
+        description: Full resolved SHA of upstream PyTorch
+        value: ${{ jobs.fetch.outputs.resolved_sha }}
+      resolved_short:
+        description: Short SHA (first 10 chars) of upstream PyTorch
+        value: ${{ jobs.fetch.outputs.resolved_short }}
+      torch_npu_sha:
+        description: Full SHA of torch_npu
+        value: ${{ jobs.pytorch_and_torch-npu_build.outputs.torch_npu_sha }}
+      torch_npu_short:
+        description: Short SHA (first 10 chars) of torch_npu
+        value: ${{ jobs.pytorch_and_torch-npu_build.outputs.torch_npu_short }}
+      wheels_tarball:
+        description: >-
+          Content-addressed wheels tarball name (same convention as the
+          nightly build): wheels-<upstream_short>-npu-<torch_npu_short>-
+          py<ver>-<image_tag>-<arch>.tar.gz. Passed to the test jobs for
+          OBS download.
+        value: ${{ jobs.pytorch_and_torch-npu_build.outputs.wheels_tarball }}
+
+jobs:
+  # ======================================================================
+  # Job 1: Fetch PyTorch source on GitHub free runner (no proxy needed)
+  # ======================================================================
+  fetch:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # Required by cross-repo-ci-relay-callback to obtain an OIDC token
+      contents: read
+    outputs:
+      resolved_sha: ${{ steps.resolve.outputs.sha }}
+      resolved_short: ${{ steps.resolve.outputs.short }}
+    steps:
+      # Step 0: Report fetch in_progress to upstream. Same mandatory
+      # semantics as the build job's in_progress report: no
+      # continue-on-error, so an OIDC failure aborts the pipeline early
+      # (before any source download/packaging work is done).
+      - name: Report fetch in_progress
+        if: ${{ inputs.report_to_upstream }}
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
+        with:
+          status: in_progress
+          job-name: ubuntu-latest / fetch (pytorch)
+          max-time: 60
+
+      - name: Checkout upstream PyTorch
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.upstream_repo }}
+          ref: ${{ inputs.upstream_ref }}
+          fetch-depth: 1
+          submodules: false
+          path: pytorch
+
+      - name: Resolve actual HEAD SHA
+        id: resolve
+        working-directory: pytorch
+        run: |
+          SHA=$(git rev-parse HEAD)
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "short=${SHA:0:10}" >> "$GITHUB_OUTPUT"
+          echo "Resolved ${{ inputs.upstream_ref }} -> ${SHA}"
+
+      - name: Init submodules
+        working-directory: pytorch
+        run: |
+          git submodule update --init --recursive --depth 1 --jobs=$(nproc)
+
+      - name: Package PyTorch source
+        run: |
+          TARBALL="pytorch-source-${{ steps.resolve.outputs.short }}.tar.gz"
+          echo "Packaging pytorch/ into ${TARBALL} ..."
+          tar -czf "${TARBALL}" --exclude='.git' --exclude='*.git' pytorch/
+          echo "Package size: $(du -h ${TARBALL} | cut -f1)"
+          echo "TARBALL=${TARBALL}" >> "$GITHUB_ENV"
+
+      # The source tarball goes to OBS ONLY — no GHA artifact upload (the
+      # self-hosted build/test jobs download from OBS).
+
+      # obsutil is not preinstalled on GitHub-hosted runners; install it
+      # the same way the CI container images do (mirrors .ci/docker/
+      # common/install_obs.sh from the image build repo). Installed under
+      # $HOME because the runner user cannot write to /usr/local.
+      #
+      # The installed tree is cached via the Actions cache service, which
+      # is served near the GitHub-hosted runners: the common path never
+      # resolves the Huawei Cloud cn-north-1 domain, whose cross-border
+      # DNS lookups intermittently time out from US runners. The key
+      # carries the current quarter, so the cached obsutil refreshes at
+      # the cost of one cross-border download per quarter.
+      - name: Compute obsutil cache key
+        id: obsutil_key
+        run: echo "key=obsutil-${{ runner.arch }}-$(date -u +%Y)Q$(( ($(date -u +%-m) + 2) / 3 ))" >> "$GITHUB_OUTPUT"
+
+      - name: Cache obsutil
+        uses: actions/cache@v6
+        with:
+          path: ~/.local/obsutil
+          key: ${{ steps.obsutil_key.outputs.key }}
+
+      - name: Install obsutil
+        run: |
+          set -e
+          ARCH=$(uname -m)
+          case "${ARCH}" in
+            x86_64)  OBS_ARCH="amd64" ;;
+            aarch64) OBS_ARCH="arm64" ;;
+            *)       echo "Unsupported architecture: ${ARCH}"; exit 1 ;;
+          esac
+          OBSUTIL_HOME="$HOME/.local/obsutil"
+          # Cache hit: the download below (the flaky cross-border step)
+          # is skipped entirely.
+          if [ -x "${OBSUTIL_HOME}/obsutil" ] && "${OBSUTIL_HOME}/obsutil" version >/dev/null 2>&1; then
+            echo "obsutil restored from Actions cache, skipping download"
+            "${OBSUTIL_HOME}/obsutil" version
+            exit 0
+          fi
+          echo "obsutil not in Actions cache, downloading (first run of the quarter)"
+          OBS_URL="https://obs-community.obs.cn-north-1.myhuaweicloud.com/obsutil/current/obsutil_linux_${OBS_ARCH}.tar.gz"
+          # Retry to ride out transient cross-border network failures from
+          # GitHub-hosted runners to the Huawei Cloud OBS domain. Verbose
+          # output (no -q) so failures show DNS/TLS/HTTP details.
+          wget --tries=3 --timeout=30 --waitretry=10 --progress=dot:mega "${OBS_URL}"
+          # Start from a clean slate so a stale restored tree (e.g. a
+          # broken binary plus a new upstream version) cannot leave two
+          # version dirs behind, which would break the symlink glob below.
+          rm -rf "${OBSUTIL_HOME}"
+          mkdir -p "${OBSUTIL_HOME}"
+          tar -zxf "obsutil_linux_${OBS_ARCH}.tar.gz" -C "${OBSUTIL_HOME}/"
+          rm -f "obsutil_linux_${OBS_ARCH}.tar.gz"
+          ln -sf "${OBSUTIL_HOME}"/obsutil_linux_${OBS_ARCH}_*/obsutil "${OBSUTIL_HOME}/obsutil"
+          "${OBSUTIL_HOME}/obsutil" version
+
+      # Retry once on failure; uploads above 50MB use segment mode and
+      # resume from the checkpoint left by the failed attempt. -vlength
+      # verifies the object size after upload.
+      - name: Upload PyTorch source to OBS
+        id: upload_source
+        run: |
+          export PATH="${HOME}/.local/obsutil:${PATH}"
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
+
+          TARBALL="${{ env.TARBALL }}"
+          for attempt in 1 2; do
+            echo "=== Upload attempt ${attempt} ==="
+            if obsutil cp "./${TARBALL}" "obs://pytorch-ci-cache/7day-cache/${TARBALL}" -f -vlength; then
+              echo "Upload succeeded on attempt ${attempt}"
+              exit 0
+            fi
+            echo "Upload attempt ${attempt} failed"
+            sleep 10
+          done
+          echo "Upload failed after 2 attempts"
+          exit 1
+
+      # Report fetch completed: conclusion is success only when the
+      # upload of the packaged source succeeded (the last meaningful
+      # step of this job). continue-on-error keeps a dashboard relay
+      # failure from masking the job's real outcome.
+      - name: Report fetch completed
+        id: report_fetch_completed
+        if: always() && inputs.report_to_upstream
+        continue-on-error: true
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
+        with:
+          status: completed
+          conclusion: ${{ (steps.resolve.outcome == 'success' && steps.upload_source.outcome == 'success') && 'success' || 'failure' }}
+          job-name: ubuntu-latest / fetch (pytorch)
+          max-time: 60
+
+      # The completion report above is best-effort (continue-on-error) and
+      # occasionally fails on a transient OIDC token mint timeout, which
+      # would silently drop the report to the upstream dashboard. Retry
+      # once after 30s when the first attempt failed. NOTE: this job does
+      # not check out this repository, so the sleep must be a plain run
+      # step and the retry re-invokes the remote action directly — a
+      # local composite action cannot be resolved here.
+      - name: Wait 30s before report retry
+        if: always() && inputs.report_to_upstream && steps.report_fetch_completed.outcome == 'failure'
+        run: sleep 30
+
+      - name: Retry report fetch completed
+        if: always() && inputs.report_to_upstream && steps.report_fetch_completed.outcome == 'failure'
+        continue-on-error: true
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
+        with:
+          status: completed
+          conclusion: ${{ (steps.resolve.outcome == 'success' && steps.upload_source.outcome == 'success') && 'success' || 'failure' }}
+          job-name: ubuntu-latest / fetch (pytorch)
+          max-time: 60
+
+  # ======================================================================
+  # Job 2: Build PyTorch + torch_npu on self-hosted ARM64 runner
+  # ======================================================================
+  pytorch_and_torch-npu_build:
+    needs: fetch
+    runs-on: ${{ inputs.runner_label }}
+    permissions:
+      id-token: write
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    outputs:
+      torch_npu_sha: ${{ steps.resolve_torch_npu_sha.outputs.sha }}
+      torch_npu_short: ${{ steps.resolve_torch_npu_sha.outputs.short }}
+      wheels_tarball: ${{ steps.wheels_name.outputs.wheels_tarball }}
+    container:
+      image: ${{ inputs.docker_image }}
+      options: --network host
+    env:
+      MAX_JOBS: ${{ inputs.max_jobs }}
+      USE_CUDA: 0
+      USE_XNNPACK: 0
+      _GLIBCXX_USE_CXX11_ABI: 1
+      BUILD_IGNORE_SVE_UNAVAILABLE: 1
+      BUILD_WITHOUT_SHA: 1
+      PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
+    steps:
+      # Python version is read from the image itself (the conda env on
+      # PATH), never hardcoded: this workflow is shared by callers on
+      # py3.10 images (coverage) and py3.11 images (receive-trigger,
+      # manual). Feeds the torch_npu build (--python=) and the upstream
+      # job-name labels.
+      - name: Compute Python version
+        id: pyver
+        run: |
+          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+          echo "version=${PYVER}" >> "$GITHUB_OUTPUT"
+          echo "label=py${PYVER}" >> "$GITHUB_OUTPUT"
+          echo "Image python: $(python3 --version)"
+
+      # Step 0: Report build in_progress to upstream (same job as completed).
+      # Best-effort: the fetch job already registered the pipeline with the
+      # upstream dashboard (its in_progress report is mandatory and fails
+      # the pipeline on error), so a transient OIDC timeout here does not
+      # lose the pipeline registration — retry the build via re-run.
+      - name: Report build in_progress
+        if: ${{ inputs.report_to_upstream }}
+        continue-on-error: true
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
+        with:
+          status: in_progress
+          job-name: ${{ inputs.runner_label }} / build (pytorch, torch-npu, ${{ steps.pyver.outputs.label }})
+          max-time: 60
+
+      # Step 1: Download and extract pre-fetched PyTorch source
+      # obsutil is preinstalled in the build image; auth is done inline
+      # via `obsutil config` (AK/SK are masked by the runner in logs).
+      # Objects above the 50MB threshold use segment download
+      # automatically; a failed attempt leaves a checkpoint record in
+      # ~/.obsutil_checkpoint/down, so the retry resumes the transfer
+      # instead of restarting from byte 0. -vlength verifies the local
+      # file size against the object. Do NOT delete the .obs.temp partial
+      # file between attempts — it is the resume state.
+      - name: Compute SHAs
+        id: sha
+        run: |
+          UPSTREAM_SHORT="${{ needs.fetch.outputs.resolved_short }}"
+          echo "upstream_short=${UPSTREAM_SHORT}" >> "$GITHUB_OUTPUT"
+          echo "source_tarball=pytorch-source-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
+
+      - name: Download PyTorch source from OBS
+        run: |
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
+
+          TARBALL="${{ steps.sha.outputs.source_tarball }}"
+          for attempt in 1 2; do
+            echo "=== Download attempt ${attempt} ==="
+            if obsutil cp "obs://pytorch-ci-cache/7day-cache/${TARBALL}" "./${TARBALL}" -vlength; then
+              echo "Download succeeded on attempt ${attempt}"
+              exit 0
+            fi
+            echo "Download attempt ${attempt} failed"
+            sleep 10
+          done
+          echo "Download failed after 2 attempts"
+          exit 1
+
+      - name: Extract PyTorch source
+        run: |
+          tar -xzf ${{ steps.sha.outputs.source_tarball }}
+          rm ${{ steps.sha.outputs.source_tarball }}
+          echo "PyTorch source extracted: $(du -sh pytorch/ | cut -f1)"
+
+      # Step 2: Build and install PyTorch
+      - name: Build and install PyTorch
+        id: build_pytorch
+        working-directory: pytorch
+        run: |
+          echo "============================================"
+          echo "Building PyTorch from ${{ inputs.upstream_repo }} @ ${{ inputs.upstream_ref }}"
+          echo "Resolved commit: ${{ needs.fetch.outputs.resolved_sha }}"
+          echo "MAX_JOBS: ${MAX_JOBS}"
+          echo "============================================"
+
+          pip install -r requirements.txt
+
+          # Build wheel first, then install from it.
+          # This produces an artifact we can upload for downstream use.
+          mkdir -p /tmp/wheels
+          set +o pipefail
+          python -m pip wheel --no-build-isolation -w /tmp/wheels/ . 2>&1 | tee /tmp/build-pytorch.log
+          BUILD_STATUS=${PIPESTATUS[0]}
+          set -o pipefail
+
+          if [ ${BUILD_STATUS} -ne 0 ]; then
+            echo "PyTorch build failed!"
+            exit ${BUILD_STATUS}
+          fi
+
+          pip install /tmp/wheels/torch-*.whl
+
+          # Must NOT run from pytorch/ source dir: Python would find
+          # the local torch/ source tree instead of the installed package.
+          cd /tmp
+          python -c "import torch; print(f'PyTorch version: {torch.__version__}')"
+          cd "${GITHUB_WORKSPACE}"
+
+      # Step 2a (repair variant, see file header): vendor builder-only
+      # shared libraries into torch/lib so the wheel is self-contained in
+      # the test image. Same approach as upstream pytorch's
+      # .ci/wheel/linux/repair_wheel.py for the aarch64 CPU case.
+      - name: Repair PyTorch wheel (vendor OpenBLAS, set $ORIGIN RPATH)
+        id: repair_wheel
+        run: |
+          set -euo pipefail
+
+          # patchelf: use the image's copy when present, else the PyPI
+          # prebuilt binary (manylinux aarch64 wheel).
+          command -v patchelf >/dev/null 2>&1 || pip install patchelf
+          patchelf --version
+
+          python3 - <<'PYEOF'
+          import base64
+          import csv
+          import hashlib
+          import shutil
+          import subprocess
+          import sys
+          import tempfile
+          import zipfile
+          from pathlib import Path
+
+          WHEELS_DIR = Path("/tmp/wheels")
+          wheels = sorted(WHEELS_DIR.glob("torch-*.whl"))
+          if len(wheels) != 1:
+              sys.exit(f"expected exactly one torch wheel in {WHEELS_DIR}, found {[w.name for w in wheels]}")
+          wheel = wheels[0]
+          print(f"repair: {wheel.name}")
+
+          # Directories that only exist in the builder image; any ldd
+          # resolution landing here must be vendored into the wheel.
+          BUILDER_ONLY_PREFIXES = ("/opt/OpenBLAS", "/acl")
+          # System libs not guaranteed on the test image; upstream's
+          # repair always bundles these for aarch64 CPU builds.
+          ALWAYS_VENDOR_IF_LINKED = ("libgfortran.so.5", "libgomp.so.1")
+
+          with tempfile.TemporaryDirectory() as td:
+              with zipfile.ZipFile(wheel) as zf:
+                  zf.extractall(td)
+              unpacked = Path(td)
+              torch_dir = unpacked / "torch"
+              torch_lib = torch_dir / "lib"
+
+              def ldd(so):
+                  r = subprocess.run(["ldd", str(so)], capture_output=True, text=True)
+                  return r.stdout
+
+              # ---- 1. discover libs to vendor --------------------------
+              to_vendor = {}
+              sos = [p for p in list(torch_dir.glob("*.so*")) + list(torch_lib.glob("*.so*")) if p.is_file()]
+              for so in sos:
+                  for line in ldd(so).splitlines():
+                      if "=>" not in line:
+                          continue
+                      left, right = line.split("=>", 1)
+                      soname = left.strip()
+                      resolved = right.split("(", 1)[0].strip()
+                      if resolved == "not found":
+                          print(f"  warning: {soname} not found for {so.name}")
+                          continue
+                      if not resolved:
+                          continue
+                      if resolved.startswith(BUILDER_ONLY_PREFIXES) and soname not in to_vendor:
+                          to_vendor[soname] = resolved
+                      elif soname in ALWAYS_VENDOR_IF_LINKED and soname not in to_vendor:
+                          to_vendor[soname] = resolved
+
+              # Follow one level: vendored libs may need more deps of
+              # their own (OpenBLAS -> libgfortran/libgomp).
+              for src in list(to_vendor.values()):
+                  for line in ldd(src).splitlines():
+                      if "=>" not in line:
+                          continue
+                      left, right = line.split("=>", 1)
+                      soname = left.strip()
+                      resolved = right.split("(", 1)[0].strip()
+                      if not resolved or resolved == "not found" or soname in to_vendor:
+                          continue
+                      if resolved.startswith(BUILDER_ONLY_PREFIXES) or soname in ALWAYS_VENDOR_IF_LINKED:
+                          to_vendor[soname] = resolved
+
+              if not to_vendor:
+                  print("repair: no builder-only dependencies found, wheel already self-contained")
+              else:
+                  print("repair: vendoring into torch/lib:")
+                  for soname, src in sorted(to_vendor.items()):
+                      print(f"  {soname}  <-  {src}")
+                      shutil.copy2(src, torch_lib / soname)
+
+              # ---- 2. $ORIGIN RPATHs (upstream repair_wheel.py scheme) --
+              for so in torch_dir.glob("*.so*"):
+                  if so.is_file():
+                      subprocess.run(["patchelf", "--set-rpath", "$ORIGIN:$ORIGIN/lib", str(so)], check=True)
+              for so in torch_lib.glob("*.so*"):
+                  if so.is_file():
+                      subprocess.run(["patchelf", "--set-rpath", "$ORIGIN", str(so)], check=True)
+
+              # ---- 3. regenerate RECORD --------------------------------
+              dist_infos = list(unpacked.glob("*.dist-info"))
+              if len(dist_infos) != 1:
+                  sys.exit(f"expected one .dist-info in wheel, found {[p.name for p in dist_infos]}")
+              record = dist_infos[0] / "RECORD"
+              rows = []
+              for f in sorted(unpacked.rglob("*")):
+                  if not f.is_file() or f == record:
+                      continue
+                  rel = f.relative_to(unpacked).as_posix()
+                  data = f.read_bytes()
+                  digest = base64.urlsafe_b64encode(hashlib.sha256(data).digest()).rstrip(b"=").decode()
+                  rows.append((rel, f"sha256={digest}", str(len(data))))
+              rows.append((record.relative_to(unpacked).as_posix(), "", ""))
+              with record.open("w", newline="") as fh:
+                  csv.writer(fh).writerows(rows)
+
+              # ---- 4. repack under the same filename -------------------
+              new_wheel = wheel.with_name(wheel.name + ".repaired")
+              with zipfile.ZipFile(new_wheel, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+                  for f in sorted(unpacked.rglob("*")):
+                      if f.is_file():
+                          zf.write(f, f.relative_to(unpacked).as_posix())
+              new_wheel.replace(wheel)
+              print(f"repair: repacked {wheel.name} ({wheel.stat().st_size / 1e6:.1f} MB)")
+          PYEOF
+
+          # Reinstall so downstream builds (torchvision, torch_npu) link
+          # against the exact artifact the test image will receive.
+          pip install --force-reinstall --no-deps /tmp/wheels/torch-*.whl
+
+          # Clean-env verification: strip the builder's /opt/OpenBLAS from
+          # LD_LIBRARY_PATH to simulate the test image. This closes the
+          # "build-time self-check passes inside the builder" blind spot
+          # from run 38041281352 — if the repair failed to vendor a needed
+          # lib, this import fails and the job stops here.
+          CLEAN_LD_LIBRARY_PATH="$(echo "${LD_LIBRARY_PATH:-}" | tr ':' '\n' | grep -v '^/opt/OpenBLAS' | paste -sd: - || true)"
+          cd /tmp
+          env LD_LIBRARY_PATH="${CLEAN_LD_LIBRARY_PATH}" python - <<'PYEOF'
+          import torch
+          print(f"clean-env torch import ok: {torch.__version__}")
+          x = torch.randn(8, 8)
+          print(f"clean-env matmul ok: {float((x @ x).sum())}")
+          PYEOF
+          cd "${GITHUB_WORKSPACE}"
+
+      - name: Capture PyTorch wheel info
+        id: pytorch_wheel
+        run: |
+          wheel=$(ls /tmp/wheels/torch-*.whl | head -1)
+          echo "path=${wheel}" >> "$GITHUB_OUTPUT"
+          echo "name=$(basename ${wheel})" >> "$GITHUB_OUTPUT"
+
+      # Step 2b: Build and install torchvision from pinned source
+      # vision.txt is read from the already-extracted upstream PyTorch source
+      # (pytorch/.github/ci_commit_pins/vision.txt), which is always in sync
+      # with the upstream commit being built.
+      - name: Build and install torchvision
+        id: build_torchvision
+        run: |
+          VISION_COMMIT=$(cat pytorch/.github/ci_commit_pins/vision.txt)
+          echo "Building torchvision from commit: ${VISION_COMMIT}"
+
+          set +o pipefail
+          pip wheel --no-build-isolation --no-deps \
+            "git+https://github.com/pytorch/vision.git@${VISION_COMMIT}" \
+            -w /tmp/wheels/ 2>&1 | tee /tmp/build-torchvision.log
+          BUILD_STATUS=${PIPESTATUS[0]}
+          set -o pipefail
+
+          if [ ${BUILD_STATUS} -ne 0 ]; then
+            echo "torchvision build failed!"
+            exit ${BUILD_STATUS}
+          fi
+
+          pip install --no-deps /tmp/wheels/torchvision-*.whl
+
+          cd /tmp
+          python -c "import torchvision; print(f'torchvision version: {torchvision.__version__}')"
+          cd "${GITHUB_WORKSPACE}"
+
+      # Step 3: Checkout downstream torch_npu
+      - name: Checkout downstream repo (torch_npu)
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.torch_npu_repo }}
+          ref: ${{ inputs.torch_npu_ref }}
+          fetch-depth: 1
+          submodules: false
+          path: torch_npu
+
+      - name: Rewrite gitee submodule URLs to gitcode mirrors
+        run: |
+          git config --global url."https://gitcode.com/GitHub_Trending/go/googletest.git".insteadOf "https://gitee.com/mirrors/googletest.git"
+          git config --global url."https://gitcode.com/gh_mirrors/li/libnop.git".insteadOf "https://gitee.com/mirrors/libnop.git"
+          git config --global url."https://gitcode.com/gh_mirrors/py/pybind11.git".insteadOf "https://gitee.com/mirrors/pybind11.git"
+          git config --global url."https://gitcode.com/openeuler/libboundscheck.git".insteadOf "https://gitee.com/openeuler/libboundscheck.git"
+
+      - name: Init submodules
+        working-directory: torch_npu
+        run: |
+          git submodule update --init --recursive --jobs=$(nproc)
+
+      - name: Resolve torch_npu SHA
+        id: resolve_torch_npu_sha
+        working-directory: torch_npu
+        run: |
+          SHA=$(git rev-parse HEAD)
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "short=${SHA:0:10}" >> "$GITHUB_OUTPUT"
+          echo "torch_npu commit: ${SHA}"
+
+      # Step 3a: Compute the content-addressed wheels tarball name (same
+      # convention as the nightly build): upstream SHA + torch_npu SHA +
+      # Python version + full build image tag + arch. No OBS cache probe
+      # here on purpose: this pipeline is triggered by upstream PR merges,
+      # so the code is always fresh and the content-addressed wheels
+      # almost never exist beforehand.
+      - name: Compute wheels tarball name
+        id: wheels_name
+        env:
+          DOCKER_IMAGE: ${{ inputs.docker_image }}
+          UPSTREAM_SHORT: ${{ needs.fetch.outputs.resolved_short }}
+          TORCH_NPU_SHORT: ${{ steps.resolve_torch_npu_sha.outputs.short }}
+        run: |
+          ARCH=$(uname -m)
+          PYVER=$(python3 -c "import sys; print(f'py{sys.version_info.major}{sys.version_info.minor}')")
+          IMAGE_TAG="${DOCKER_IMAGE##*:}"
+          TARBALL="wheels-${UPSTREAM_SHORT}-npu-${TORCH_NPU_SHORT}-${PYVER}-${IMAGE_TAG}-${ARCH}.tar.gz"
+          echo "wheels_tarball=${TARBALL}" >> "$GITHUB_OUTPUT"
+          echo "Wheels tarball: ${TARBALL}"
+
+      # Step 4: Build and install torch_npu
+      - name: Build and install torch_npu
+        id: build_torchnpu
+        working-directory: torch_npu
+        run: |
+          echo "============================================"
+          echo "Building torch_npu..."
+          echo "Repository: ${{ inputs.torch_npu_repo }}"
+          echo "Ref: ${{ inputs.torch_npu_ref }}"
+          echo "============================================"
+
+          set +o pipefail
+          bash ci/build.sh --python=${{ steps.pyver.outputs.version }} --disable_torchair --disable_rpc 2>&1 | tee /tmp/build-torchnpu.log
+          BUILD_STATUS=${PIPESTATUS[0]}
+          set -o pipefail
+
+          if [ ${BUILD_STATUS} -ne 0 ]; then
+            echo "torch_npu build failed!"
+            exit ${BUILD_STATUS}
+          fi
+
+          pip install --no-deps dist/torch_npu*.whl
+          cp dist/torch_npu*.whl /tmp/wheels/
+
+      - name: Capture torch_npu wheel info
+        id: torchnpu_wheel
+        run: |
+          wheel=$(ls /tmp/wheels/torch_npu*.whl | head -1)
+          echo "path=${wheel}" >> "$GITHUB_OUTPUT"
+          echo "name=$(basename ${wheel})" >> "$GITHUB_OUTPUT"
+
+      # Step 5: Package and upload wheel artifacts (OBS only — no GHA
+      # artifact for wheels; the GHA copy previously uploaded as
+      # packages-pytorch-* is intentionally dropped)
+      - name: Package wheels into tarball
+        run: |
+          TARBALL="${{ steps.wheels_name.outputs.wheels_tarball }}"
+          tar -czf "${TARBALL}" -C /tmp/wheels .
+          echo "Wheels tarball size: $(du -h ${TARBALL} | cut -f1)"
+
+      # obsutil is preinstalled in the build image; auth is done inline
+      # via `obsutil config` (AK/SK are masked by the runner in logs).
+      # Files above the 50MB threshold use segment upload automatically;
+      # a failed attempt leaves a checkpoint record in
+      # ~/.obsutil_checkpoint/upload, so the retry resumes the transfer
+      # instead of restarting from byte 0. -vlength verifies the uploaded
+      # object size against the local file.
+      - name: Upload wheels to OBS
+        run: |
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
+
+          TARBALL="${{ steps.wheels_name.outputs.wheels_tarball }}"
+          for attempt in 1 2; do
+            echo "=== Upload attempt ${attempt} ==="
+            if obsutil cp "./${TARBALL}" "obs://pytorch-ci-cache/7day-cache/${TARBALL}" -f -vlength; then
+              echo "Upload succeeded on attempt ${attempt}"
+              exit 0
+            fi
+            echo "Upload attempt ${attempt} failed"
+            sleep 10
+          done
+          echo "Upload failed after 2 attempts"
+          exit 1
+
+      # Step 6: Upload build artifacts (always, for debugging failures)
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts-${{ github.run_number }}
+          path: |
+            /tmp/build-pytorch.log
+            /tmp/build-torchnpu.log
+            /tmp/build-torchvision.log
+            torch_npu/torch_npu/csrc/inductor/aoti_torch/generated/c_shim_npu.h
+          if-no-files-found: warn
+
+      # Step 7: Summary
+      - name: Summary
+        if: always()
+        run: |
+          TORCH_NPU_SHA=$(git -C torch_npu rev-parse HEAD)
+
+          echo "============================================"
+          echo "             Build Summary"
+          echo "============================================"
+          echo "PyTorch upstream: ${{ inputs.upstream_repo }}"
+          echo "PyTorch ref     : ${{ inputs.upstream_ref }}"
+          echo "PyTorch commit  : ${{ needs.fetch.outputs.resolved_sha }}"
+          echo "torch_npu repo  : ${{ inputs.torch_npu_repo }}"
+          echo "torch_npu commit: ${TORCH_NPU_SHA}"
+          echo "Max jobs        : ${MAX_JOBS}"
+          echo "============================================"
+
+          {
+            echo "## Build Summary"
+            echo ""
+            echo "| Item | Value |"
+            echo "|------|-------|"
+            echo "| PyTorch upstream | ${{ inputs.upstream_repo }} |"
+            echo "| PyTorch commit | \`${{ needs.fetch.outputs.resolved_sha }}\` |"
+            echo "| torch_npu repo | ${{ inputs.torch_npu_repo }} |"
+            echo "| torch_npu commit | \`${TORCH_NPU_SHA}\` |"
+            echo "| Max jobs | ${MAX_JOBS} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Step 8: Report build completed to upstream (same job as in_progress)
+      - name: Report build completed
+        id: report_build_completed
+        if: always() && inputs.report_to_upstream
+        continue-on-error: true
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
+        with:
+          status: completed
+          conclusion: ${{ (steps.build_pytorch.outcome == 'success' && steps.build_torchnpu.outcome == 'success' && steps.build_torchvision.outcome == 'success') && 'success' || 'failure' }}
+          job-name: ${{ inputs.runner_label }} / build (pytorch, torch-npu, ${{ steps.pyver.outputs.label }})
+          max-time: 60
+
+      # The completion report above is best-effort (continue-on-error) and
+      # occasionally fails on a transient OIDC token mint timeout, which
+      # would silently drop the report to the upstream dashboard. Retry
+      # once after 30s when the first attempt failed. NOTE: this job does
+      # not check out this repository, so the sleep must be a plain run
+      # step and the retry re-invokes the remote action directly — a
+      # local composite action cannot be resolved here.
+      - name: Wait 30s before report retry
+        if: always() && inputs.report_to_upstream && steps.report_build_completed.outcome == 'failure'
+        run: sleep 30
+
+      - name: Retry report build completed
+        if: always() && inputs.report_to_upstream && steps.report_build_completed.outcome == 'failure'
+        continue-on-error: true
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
+        with:
+          status: completed
+          conclusion: ${{ (steps.build_pytorch.outcome == 'success' && steps.build_torchnpu.outcome == 'success' && steps.build_torchvision.outcome == 'success') && 'success' || 'failure' }}
+          job-name: ${{ inputs.runner_label }} / build (pytorch, torch-npu, ${{ steps.pyver.outputs.label }})
+          max-time: 60
+

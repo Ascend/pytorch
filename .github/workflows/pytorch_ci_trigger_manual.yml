@@ -72,7 +72,12 @@ concurrency:
 
 jobs:
   build:
-    uses: Ascend/pytorch/.github/workflows/_build.yml@ci-test
+    # TEMPORARY: wheel-repair variant of _build.yml — vendors builder-only
+    # shared libs (libopenblas from /opt/OpenBLAS) into the torch wheel so
+    # it is self-contained in the test image (fixes the run-38041281352
+    # failure mode). See the _build_repair.yml header. Switch back to
+    # _build.yml once the fix is validated and folded back.
+    uses: Ascend/pytorch/.github/workflows/_build_repair.yml@ci-test
     secrets: inherit
     with:
       upstream_repo: pytorch/pytorch
@@ -80,7 +85,7 @@ jobs:
       upstream_ref: ${{ inputs.upstream_ref || 'main' }}
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: ${{ inputs.torch_npu_ref || 'master' }}
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610160225-8a315d17
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-builder-aarch64-torch-master-202610160225-8a315d17
       # Manual run, no upstream PR context — never report to the
       # upstream dashboard (skips all cross-repo-ci-relay-callback steps).
       report_to_upstream: false
