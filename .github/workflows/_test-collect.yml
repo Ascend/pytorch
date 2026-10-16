@@ -380,12 +380,12 @@ jobs:
           CASE_WHITELIST_INPUT="${CASE_WHITELIST_CONFIG}"
           if [ -n "${CASE_WHITELIST_INPUT}" ]; then
             WHITELIST_PATH="${GITHUB_WORKSPACE}/ci-scripts/${CASE_WHITELIST_INPUT}"
-            if [ -f "${WHITELIST_PATH}" ]; then
-              CASE_WHITELIST_ARG="--case-whitelist ${WHITELIST_PATH}"
-              echo "Case whitelist: ${CASE_WHITELIST_INPUT}"
-            else
-              echo "WARNING: case whitelist file not found: ${WHITELIST_PATH}"
+            if [ ! -f "${WHITELIST_PATH}" ]; then
+              echo "::error::case whitelist file not found: ${WHITELIST_PATH}; refusing to collect without it (would silently widen the case set)"
+              exit 1
             fi
+            CASE_WHITELIST_ARG="--case-whitelist ${WHITELIST_PATH}"
+            echo "Case whitelist: ${CASE_WHITELIST_INPUT}"
           fi
 
           python3 ${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/collect_all_cases.py \

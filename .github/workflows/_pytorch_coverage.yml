@@ -80,7 +80,7 @@ jobs:
 
   collect:
     needs: [resolve, build]
-    uses: ./.github/workflows/_pytorch_coverage_collect.yml
+    uses: ./.github/workflows/_test-collect.yml
     secrets: inherit
     with:
       resolved_short: ${{ needs.resolve.outputs.short }}
