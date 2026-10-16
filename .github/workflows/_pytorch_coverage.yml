@@ -73,7 +73,7 @@ jobs:
       upstream_ref: ${{ needs.resolve.outputs.sha }}
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: master
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610100525-b27ba05f
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610160225-8a315d17
       report_to_upstream: false
       runner_label: 'linux-aarch64-cpu-24'
       max_jobs: '23'
@@ -91,7 +91,7 @@ jobs:
       hw_classification: 'ACCELERATOR'
       device_env: 'privateuse1'
       runner_label: 'linux-aarch64-a3-800i-2-cn12-001'
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610100525-b27ba05f
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610160225-8a315d17
 
   coverage:
     needs: [resolve, build, collect]
@@ -111,7 +111,7 @@ jobs:
       categories_filter: ${{ inputs.categories }}
       resolved_short: ${{ needs.resolve.outputs.short }}
       wheels_tarball: ${{ needs.build.outputs.wheels_tarball }}
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610100525-b27ba05f
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610160225-8a315d17
 
   merge:
     needs: [resolve, build, collect, coverage]
@@ -122,7 +122,7 @@ jobs:
       run:
         shell: bash
     container:
-      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610100525-b27ba05f
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610160225-8a315d17
       options: --network host
     env:
       PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
