@@ -88,6 +88,8 @@ jobs:
       case_paths_config: .github/config/nightly_test_categories.yml
       full_scan: true
       case_whitelist: .github/config/privateuse1_npu_passed_testcases.json
+      shard_threshold_regular: 50000
+      shard_threshold_distributed: 3000
       hw_classification: 'ACCELERATOR'
       device_env: 'privateuse1'
       runner_label: 'linux-aarch64-a3-800i-2-cn12-001'
