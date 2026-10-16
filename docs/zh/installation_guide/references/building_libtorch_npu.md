@@ -40,8 +40,8 @@ libtorch\_npu是TorchNPU插件的C++版本，包含运行TorchNPU插件所需的
 
 以TorchNPU源码仓master分支下“pytorch/examples/libtorch\_resnet”模型为例，介绍libtorch推理的快速使用。
 
-1. 需提前安装torch、TorchNPU、torchvision、hypothesis、expecttest以及packaging。
-    - torch与TorchNPU、torchvision安装请参见[快速安装](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=182&ids=89dda9ba9de741349efa03687a487678%2C202%2C106%2C1%2C6%2C177%2C)以及[安装torchvision](https://pytorch.org/get-started/locally/)。
+1. 需提前安装Torch、TorchNPU、torchvision、hypothesis、expecttest以及packaging。
+    - Torch与TorchNPU、torchvision安装请参见[快速安装](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=182&ids=89dda9ba9de741349efa03687a487678%2C202%2C106%2C1%2C6%2C177%2C)以及[安装torchvision](https://pytorch.org/get-started/locally/)。
     - hypothesis、expecttest、packaging安装可执行如下命令。如果使用非root用户进行安装，需要在命令后加`--user`，例如：**pip3 install expecttest --user**。
 
         ```bash
@@ -108,4 +108,4 @@ libtorch\_npu是TorchNPU插件的C++版本，包含运行TorchNPU插件所需的
 
     > [!NOTE]
     >
-    > aarch64环境下报torch.libs/\*.so库不存在，请参见[torch.libs/libopenblasp-r0-56e95da7.3.24.so不存在](../faq.md#问题1torchlibslibopenblasp-r0-56e95da7324so链接报错或libgfortran缺失)。
+    > aarch64环境下报torch.libs/\*.so库不存在，请参见[torch.libs/libopenblasp-r0-56e95da7.3.24.so不存在](./faq.md#问题1torchlibslibopenblasp-r0-56e95da7324so链接报错或libgfortran缺失)。

@@ -59,5 +59,5 @@ for _ in range(1000):
 
 ## 约束说明
 
-1. 使用TorchAir-GE后端前，确保模型已在昇腾NPU单算子模式（Eager）下正确执行。
-2. 脚本中须先`import torch_npu`，再`import torchair`才能正常使用。
+- 使用TorchAir-GE后端前，确保模型已在昇腾NPU单算子模式（Eager）下正确执行。
+- 脚本中须先`import torch_npu`，再`import torchair`才能正常使用。

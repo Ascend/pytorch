@@ -1,4 +1,4 @@
-# FAQ
+# 问题处理
 
 ## 编译问题
 
@@ -10,7 +10,7 @@ aarch64环境下进行libtorch推理测试，编译时依赖torch.libs/\*.so库�
 
 - 报错截图
 
-    ![](../figures/libtorch_error.png)
+    ![](../../figures/libtorch_error.png)
 
 - 报错文本
 
@@ -268,7 +268,7 @@ Segmentation fault
 
 **处理方法**
 
-使用对应的GCC版本进行编译，具体对应版本可参考[GCC和Cmake版本要求](./references/building_from_source.md#gcc_cmake)。
+使用对应的GCC版本进行编译，具体对应版本可参考[GCC和Cmake版本要求](./building_from_source.md#gcc_cmake)。
 
 ### 问题4：“import torch_npu”报错找不到torch_npu._C
 
