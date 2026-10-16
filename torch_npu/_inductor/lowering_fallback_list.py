@@ -43,7 +43,6 @@ NPU_EXTRA_FALLBACK_LIST = [
     aten.__ilshift__.Scalar,
     aten.__ilshift__.Tensor,
     aten.__ior__.Scalar,
-    aten.__irshift__.Scalar,
     aten.__ixor__.Scalar,
     aten.__lshift__,
     aten.__lshift__.Scalar,
@@ -99,7 +98,6 @@ NPU_EXTRA_FALLBACK_LIST = [
     aten.acosh.float,
     aten.acosh.int,
     aten.acosh.out,
-    aten.adaptive_max_pool2d,
     aten.add_,
     aten.add_.Scalar,
     aten.add_.Tensor,
@@ -175,15 +173,6 @@ NPU_EXTRA_FALLBACK_LIST = [
     aten.bitwise_left_shift_.Tensor_Scalar,
     aten.bitwise_not_,
     aten.bitwise_not_.default,
-    aten.bitwise_right_shift,
-    aten.bitwise_right_shift.Scalar_Tensor,
-    aten.bitwise_right_shift.Scalar_Tensor_out,
-    aten.bitwise_right_shift.Tensor,
-    aten.bitwise_right_shift.Tensor_Scalar,
-    aten.bitwise_right_shift.Tensor_Scalar_out,
-    aten.bitwise_right_shift.Tensor_out,
-    aten.bitwise_right_shift_.Tensor,
-    aten.bitwise_right_shift_.Tensor_Scalar,
     aten.bitwise_xor_,
     aten.bitwise_xor_.Scalar,
     aten.bitwise_xor_.Tensor,
@@ -258,10 +247,6 @@ NPU_EXTRA_FALLBACK_LIST = [
     aten.fractional_max_pool2d,
     aten.fractional_max_pool2d.default,
     aten.fractional_max_pool2d.output,
-    aten.frexp,
-    aten.frexp.Tensor,
-    aten.frexp.Tensor_out,
-    aten.frexp.default,
     aten.hypot,
     aten.hypot.default,
     aten.hypot.out,
@@ -426,10 +411,6 @@ NPU_EXTRA_FALLBACK_LIST = [
     inductor.resize_storage_bytes_,
     inductor.resize_storage_bytes_.default,
     invoke_quant,
-    prims._low_memory_max_pool_offsets_to_indices,
-    prims._low_memory_max_pool_offsets_to_indices.default,
-    prims._low_memory_max_pool_with_offsets,
-    prims._low_memory_max_pool_with_offsets.default,
     prims._sink_tokens.default,
     prims._unsafe_index_put_.default,
     prims.acos,
@@ -479,8 +460,6 @@ NPU_EXTRA_FALLBACK_LIST = [
     prims.fma.default,
     prims.fmod,
     prims.fmod.default,
-    prims.frexp,
-    prims.frexp.default,
     prims.ge,
     prims.ge.default,
     prims.gt,
@@ -548,7 +527,6 @@ NPU_EXTRA_FALLBACK_LIST = [
     with_effects,
 ]
 
-
 FALLBACK_LIST = NPU_EXTRA_FALLBACK_LIST
 
 if not allow_embedding_lowering:
@@ -561,11 +539,6 @@ if not allow_embedding_lowering:
 if not allow_embedding_dense_backward_lowering:
     FALLBACK_LIST += [
         aten.embedding_dense_backward.default,
-    ]
-
-if inductor_indirect_memory_mode != 'linear':
-    FALLBACK_LIST += [
-        aten.isnan,
     ]
 
 INDIRECT_MEM_FALLBACK_LIST = [

@@ -20,10 +20,26 @@ math = tl.math
 
 @triton.jit
 def frexp(x):
-    y = libdevice.ilogb(x) + 1
-    exponent = tl.where(x == 0, 0, y)
-    mantissa = tl.where(x == 0, 0, libdevice.ldexp(x, -y))
-    return mantissa, exponent
+    # dtype-agnostic entry: fp16/bf16 -> fp32 is exact (value-preserving),
+    # and fp16/bf16 subnormals become *normal* fp32 -> no subnormal path needed for them.
+    xf = x.to(tl.float32)
+    xi = xf.to(tl.uint32, bitcast=True)
+    exponent_bits = (xi >> 23) & 0xFF
+    # int32 before debias: uint32 arithmetic wraps for |x| < 1 (negative exponents)
+    exponent = exponent_bits.to(tl.int32) - 126
+
+    mantissa_bits = (xi & 0x807FFFFF) | 0x3F000000
+    mantissa = mantissa_bits.to(tl.float32, bitcast=True)
+    is_zero = xf == 0.0
+
+    exponent = tl.where(is_zero, 0, exponent)
+    mantissa = tl.where(is_zero, xf, mantissa)   # xf, not 0.0: preserves -0.0 sign like torch.frexp
+    # inf/nan (exp field all ones): mantissa passes through, exponent 0
+    is_special = exponent_bits == 0xFF
+    exponent = tl.where(is_special, 0, exponent)
+    mantissa = tl.where(is_special, xf, mantissa)
+    # same significand as x -> exact downcast
+    return mantissa.to(x.dtype), exponent
 
 
 @triton.jit
