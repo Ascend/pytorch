@@ -58,7 +58,7 @@ public:
     static at::Tensor apply_tensor_with_format(const at::Tensor &src, int64_t format, bool keep_format = false);
     static at::Tensor apply_tensor_with_format(const at::Tensor &src, c10::IntArrayRef sizes, int64_t format,
                                                bool keep_format = false);
-    static at::Tensor apply_tensor_with_format(c10::IntArrayRef sizes, const c10::TensorOptions &options,
+    TORCH_NPU_API static at::Tensor apply_tensor_with_format(c10::IntArrayRef sizes, const c10::TensorOptions &options,
                                                int64_t format, bool keep_format = false);
     static at::Tensor apply_tensor_with_sizes(c10::IntArrayRef sizes, const c10::TensorOptions &options);
 
