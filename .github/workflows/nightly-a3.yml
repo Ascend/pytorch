@@ -1,6 +1,9 @@
 name: Nightly Build and Test A3 (All) 
 
 on:
+  schedule:
+    # 每天 01:00（北京时间 UTC+8），Actions cron 为 UTC，即 17:00 UTC（前一天）
+    - cron: '0 17 * * *'
   push:
     branches:
       - ci-test
