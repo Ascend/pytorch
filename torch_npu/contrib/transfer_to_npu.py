@@ -16,6 +16,7 @@ from torch.utils import cpp_extension
 from torch.autograd.profiler_util import Kernel
 from torch_npu.utils import _dynamo
 import torch_npu
+from torch_npu.npu import _pin_memory_utils as npu_pin_memory_utils
 
 try:
     from packaging.version import Version as Version
@@ -403,7 +404,8 @@ def _patch_cuda():
         ['cuda.random', torch_npu.npu.random],
         ['cuda.amp.autocast_mode', torch_npu.npu.amp.autocast_mode],
         ['cuda.amp.common', torch_npu.npu.amp.common],
-        ['cuda.amp.grad_scaler', torch_npu.npu.amp.grad_scaler]
+        ['cuda.amp.grad_scaler', torch_npu.npu.amp.grad_scaler],
+        ['cuda._pin_memory_utils', npu_pin_memory_utils]
     ]
 
     from torch_npu._init.patches.monkey_patches import _apply_patches
