@@ -260,6 +260,26 @@
 
 </div>
 
+> <font size="3">optimize()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.onnx.ONNXProgram.optimize](https://docs.pytorch.org/docs/2.11/onnx_export.html#torch.onnx.ONNXProgram.optimize)
+
+**产品支持情况**：
+
+<!-- npu="910b" id40 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id40 -->
+<!-- npu="A3" id41 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id41 -->
+<!-- npu="950" id42 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id42 -->
+
+</div>
+
 </div>
 
 ### torch.onnx.export
