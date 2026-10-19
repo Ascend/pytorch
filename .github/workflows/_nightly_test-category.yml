@@ -255,7 +255,7 @@ jobs:
             --test-dir pytorch/test \
             --report-dir test-reports \
             --max-workers ${{ inputs.max_workers }} \
-            --timeout 1200 \
+            --timeout 500 \
             --device-env "${{ inputs.device_env }}" \
             --verbose \
             2>&1 | tee /tmp/test_${{ inputs.category }}_${{ matrix.shard }}.log
