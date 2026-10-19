@@ -118,7 +118,7 @@ class CalcuOpUtil {
   static void CheckMemoryOverLaps(c10::ArrayRef<at::Tensor> inputs, c10::ArrayRef<at::Tensor> outputs);
   static bool IsScalarWrappedToTensor(const at::Tensor& tensor);
   static float GetScalarFloatValue(const c10::Scalar& scalar);
-  static int64_t GetTensorNpuFormat(const at::Tensor& tensor);
+  TORCH_NPU_API static int64_t GetTensorNpuFormat(const at::Tensor& tensor);
   static c10::SmallVector<int64_t, SHAPE_SIZE> ConvertIntArrayRefToSmallVector(c10::IntArrayRef intArray);
   static int8_t GetCubeMathType();
   static int8_t GetCubeMathType(bool allowHf32);
