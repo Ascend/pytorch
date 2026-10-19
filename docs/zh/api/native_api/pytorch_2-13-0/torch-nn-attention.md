@@ -45,6 +45,26 @@
 
 </div>
 
+##### torch.nn.attention.flex_attention.noop_mask
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.attention.flex_attention.noop_mask](https://docs.pytorch.org/docs/2.13/nn.attention.flex_attention.html#torch.nn.attention.flex_attention.noop_mask)
+
+**产品支持情况**：
+
+<!-- npu="910b" id16 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id16 -->
+<!-- npu="A3" id17 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id17 -->
+<!-- npu="950" id18 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id18 -->
+
+</div>
+
 #### BlockMask
 
 ##### <code><i>class</i></code> torch.nn.attention.flex_attention.BlockMask
@@ -166,6 +186,26 @@
 <!-- npu="950" id15 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id15 -->
+
+</div>
+
+> <font size="3">to_dense()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.attention.flex_attention.BlockMask.to_dense](https://docs.pytorch.org/docs/2.13/nn.attention.flex_attention.html#torch.nn.attention.flex_attention.BlockMask.to_dense)
+
+**产品支持情况**：
+
+<!-- npu="910b" id19 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id19 -->
+<!-- npu="A3" id20 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id20 -->
+<!-- npu="950" id21 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id21 -->
 
 </div>
 
