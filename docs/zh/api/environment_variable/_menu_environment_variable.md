@@ -3,6 +3,9 @@
 - [环境变量列表](env_variable_list.md)
 <!-- npu="950,A3,910b,910,310p" id19 -->
 - [设备初始化与管理](device_management/_menu_device_management.md)
+  <!-- npu="950,A3,910b,910" id78 -->
+  - [TORCH_DEVICE_BACKEND_AUTOLOAD](device_management/TORCH_DEVICE_BACKEND_AUTOLOAD.md)
+  <!-- end id78 -->
   <!-- npu="A3,910b,910,310p" id1 -->
   - [TORCH_ACL_INIT_CONFIG_PATH](device_management/TORCH_ACL_INIT_CONFIG_PATH.md)
   <!-- end id1 -->

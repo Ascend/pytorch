@@ -26,6 +26,7 @@
 
 | 环境变量名称 | 简介 |
 | --- | --- |
+|[TORCH_DEVICE_BACKEND_AUTOLOAD](device_management/TORCH_DEVICE_BACKEND_AUTOLOAD.md)|通过此环境变量可控制`import torch`时是否自动加载torch_npu，默认开启，关闭后需显式执行`import torch_npu`。|
 |[TORCH_ACL_INIT_CONFIG_PATH](device_management/TORCH_ACL_INIT_CONFIG_PATH.md)|通过此环境变量可指定aclInit初始化配置文件的路径，用于在NPU初始化阶段传入自定义ACL JSON配置。|
 |[PYTORCH_HAL_BASED_NPU_CHECK](device_management/PYTORCH_HAL_BASED_NPU_CHECK.md)|选择NPU可用性检测路径，配置为1时优先通过Ascend HAL查询设备数量，失败时回退到Runtime。|
 |[STREAMS_PER_DEVICE](device_management/STREAMS_PER_DEVICE.md)|通过此环境变量可配置stream pool的最大流数。|
