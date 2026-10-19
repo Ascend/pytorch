@@ -48,6 +48,7 @@ Note: Shard discovery mode (--shard/--num-shards/--test-type) has been removed.
 import argparse
 import contextlib
 import dataclasses
+import faulthandler
 import importlib.util
 import io
 import json
@@ -57,6 +58,7 @@ import subprocess
 import sys
 import threading
 import xml.etree.ElementTree as ET
+from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
@@ -171,6 +173,7 @@ def save_case_log(
     returncode: int,
     command: str,
     npu_device_id: Optional[int] = None,
+    filename_suffix: str = "",
 ) -> Path:
     """
     Save complete execution log for all test cases.
@@ -179,6 +182,9 @@ def save_case_log(
     - Case metadata (nodeid, status, duration, returncode)
     - Full stdout and stderr output
     - Execution command
+
+    filename_suffix appends to the base filename so parent-side crash logs
+    never overwrite a log the worker itself already wrote for the case.
 
     Returns:
         Path to the saved log file
@@ -192,7 +198,7 @@ def save_case_log(
     prefix = {"distributed": "dist", "core": "core", "tensor": "tensor",
               "graph": "graph", "others": "others",
               "regular": "reg", "custom": "custom"}.get(shard_type, "reg")
-    log_filename = f"{prefix}-{shard}_{case_idx}_{safe_name}.log"
+    log_filename = f"{prefix}-{shard}_{case_idx}_{safe_name}{filename_suffix}.log"
     log_path = cases_logs_dir / log_filename
 
     # Write log content
@@ -225,6 +231,130 @@ def save_case_log(
 
     log_path.write_text("\n".join(content_lines), encoding="utf-8")
     return log_path
+
+
+# ==============================================================================
+# Worker Crash Forensics (parent-side pipe capture)
+# ==============================================================================
+#
+# When a worker dies mid-case (SIGABRT/SIGSEGV coredump) or hangs until the
+# idle watchdog kills it, the worker's own pytest output — captured in an
+# in-process StringIO — is lost with the process. The crash evidence (C++
+# abort messages, CANN FATAL output, native stack traces, pytest's
+# fatal-signal dumps) flows to fd 1/2, which the parent merges into the
+# worker's stdout pipe. The reader used to drop those lines as noise; now
+# the last NOISE_TAIL_LINES raw pipe lines are kept per worker instance
+# and written into the affected case's log (same cases_logs/ format), so
+# the standard test-reports artifact chain carries the crash scene.
+#
+# The SIGUSR1 all-thread stack dump requested by the parent before killing
+# a hung worker goes to a dedicated per-batch file instead (see
+# _worker_main / _read_worker_stack_dump): a worker with a large thread
+# pool (OMP/interop threads on a many-core NPU host) can produce more
+# dump lines than the bounded pipe tail, and faulthandler prints the main
+# (hung) thread FIRST — exactly the lines a bounded tail would evict.
+
+NOISE_TAIL_LINES = 600                # bounded crash-log size (~600KB worst)
+NOISE_TAIL_LINE_MAX_CHARS = 1000
+HEARTBEAT_DUMP_WAIT_SECONDS = 3.0     # drain time for the SIGUSR1 stack dump
+
+
+def _is_case_start_marker(line: str) -> bool:
+    """True for the worker's own '[<case_idx>] Starting: <nodeid>' marker lines."""
+    return line.startswith("[") and "] Starting: " in line
+
+
+def _save_crash_case_log(
+    report_dir: Path,
+    shard: int,
+    shard_type: str,
+    task: CaseExecutionTask,
+    status: str,
+    duration: float,
+    returncode: int,
+    message: str,
+    worker_state: Dict,
+    stack_dump: str = "",
+) -> None:
+    """
+    Write a case log for a case whose worker died or was killed mid-run.
+
+    The worker writes its own per-case log only after a case finishes; when
+    it crashes or the idle watchdog kills it, that log never materializes.
+    This parent-side log reuses the cases_logs format and carries:
+    - the bounded tail of the worker's stdout pipe (native abort/CANN
+      output, pytest fatal-signal dumps)
+    - optionally the complete faulthandler all-thread stack dump that the
+      parent requested via SIGUSR1 before killing a hung worker
+
+    Never overwrites an existing log: if the worker somehow already wrote
+    one for this case (e.g. its JSON result line was lost in transport
+    before a later hang), the parent-side copy gets a '_parent' suffix so
+    the worker's own evidence survives.
+    """
+    with worker_state["lock"]:
+        tail = list(worker_state["noise"])
+
+    if tail:
+        stdout_section = (
+            f"{message}\n"
+            f"[parent-side pipe capture: last {len(tail)} lines of worker "
+            f"stdout (fd1+fd2 merged)]\n" + "\n".join(tail)
+        )
+    else:
+        stdout_section = f"{message}\n(no worker output captured on the pipe)"
+
+    if stack_dump:
+        stdout_section += (
+            "\n\n[faulthandler all-thread stack dump, triggered via SIGUSR1 "
+            "before the kill]\n" + stack_dump
+        )
+
+    prefix = {"distributed": "dist", "core": "core", "tensor": "tensor",
+              "graph": "graph", "others": "others",
+              "regular": "reg", "custom": "custom"}.get(shard_type, "reg")
+    safe_name = sanitize_nodeid_for_filename(task.nodeid)
+    base_log = (report_dir / "cases_logs" /
+                f"{prefix}-{shard}_{task.case_idx}_{safe_name}.log")
+    filename_suffix = "_parent" if base_log.exists() else ""
+
+    save_case_log(
+        report_dir=report_dir,
+        shard=shard,
+        shard_type=shard_type,
+        nodeid=task.nodeid,
+        case_idx=task.case_idx,
+        status=status,
+        stdout=stdout_section,
+        stderr="(worker died before pytest teardown; evidence is in the stdout tail above)",
+        duration=duration,
+        returncode=returncode,
+        command="",
+        npu_device_id=worker_state.get("device_id"),
+        filename_suffix=filename_suffix,
+    )
+
+
+def _read_worker_stack_dump(report_dir: Path, batch_id: int) -> str:
+    """
+    Read and remove the current worker attempt's SIGUSR1 stack dump file.
+
+    The worker registers faulthandler against this dedicated file (see
+    _worker_main); the parent reads it right after killing the hung worker
+    group. Each worker restart reopens the file in write mode, so the
+    content always belongs to the attempt that just died. Returns "" when
+    no dump was produced (e.g. the signal never got delivered).
+    """
+    dump_path = report_dir / "stack_dumps" / f"batch_{batch_id}_stack.txt"
+    try:
+        content = dump_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return ""
+    try:
+        dump_path.unlink()
+    except OSError:
+        pass
+    return content
 
 
 class ConcurrentResultAggregator:
@@ -990,6 +1120,9 @@ def _execute_worker_batch(
         batch_input_file.write_text(json.dumps(batch_input, indent=2), encoding="utf-8")
 
         attempt_completed = set()
+        # Reset per-attempt watchdog/forensics state; assigned after Popen.
+        # Stays None if the worker never started (Popen failure path).
+        worker_state = None
 
         try:
             worker_cmd = [
@@ -1007,22 +1140,61 @@ def _execute_worker_batch(
                 text=True,
                 encoding="utf-8",
                 errors="replace",
+                # Own session/process group: lets the idle watchdog and crash
+                # cleanup take down the whole worker tree (worker + leaked
+                # grandchildren such as inductor compile workers) with one
+                # os.killpg(), instead of leaving orphans holding the stdout
+                # pipe open and the NPU devices busy.
+                start_new_session=True,
             )
 
-            last_output_time = monotonic()
+            # Watchdog + forensics state, fresh per worker instance. A fresh
+            # container per Popen is essential: reader threads of previously
+            # killed workers may keep draining leaked-grandchild output
+            # forever, and must never be able to refresh THIS worker's idle
+            # timer (they used to share one closure variable, which kept
+            # restarted workers hung forever too).
+            worker_state = {
+                "last_heartbeat": monotonic(),
+                # Bounded tail of raw pipe lines = crash/hang scene
+                "noise": deque(maxlen=NOISE_TAIL_LINES),
+                "lock": threading.Lock(),
+                "device_id": npu_device_id,
+            }
 
             def _read_stdout():
-                nonlocal last_output_time
                 if proc.stdout:
-                    for line in proc.stdout:
-                        last_output_time = monotonic()
+                    for raw_line in proc.stdout:
+                        line = raw_line.rstrip("\n")
+                        if not line:
+                            continue
+                        # Keep every raw line (truncated) as crash evidence.
+                        with worker_state["lock"]:
+                            worker_state["noise"].append(
+                                line[:NOISE_TAIL_LINE_MAX_CHARS]
+                            )
+
                         line = line.strip()
                         if not line:
                             continue
+
+                        # Only structured worker output refreshes the idle
+                        # watchdog: a JSON result line (case finished) or the
+                        # worker's own "[N] Starting: ..." marker (case
+                        # started). Native C/C++ output and grandchild
+                        # processes (e.g. inductor compile workers) write
+                        # straight to fd 1/2 — that noise must NOT keep a
+                        # hung worker alive.
                         try:
                             case_result = json.loads(line)
                         except json.JSONDecodeError:
+                            if _is_case_start_marker(line):
+                                worker_state["last_heartbeat"] = monotonic()
                             continue
+                        if not isinstance(case_result, dict) or "nodeid" not in case_result:
+                            # JSON-looking noise (e.g. grandchild output)
+                            continue
+                        worker_state["last_heartbeat"] = monotonic()
 
                         nodeid = case_result.get("nodeid", "")
                         status = case_result.get("status", "error")
@@ -1061,18 +1233,45 @@ def _execute_worker_batch(
             while True:
                 returncode = proc.poll()
                 if returncode is not None:
+                    # Worker gone (normal exit, os._exit, or coredump): any
+                    # surviving process-group member is a leaked grandchild
+                    # (compile workers, mp children) still holding the pipe
+                    # or NPU devices — take the whole group down before
+                    # reporting/restarting. Kill before joining the reader
+                    # so the pipe EOFs and the reader thread can exit.
+                    try:
+                        os.killpg(proc.pid, signal.SIGKILL)
+                    except (ProcessLookupError, PermissionError):
+                        pass
                     reader_thread.join(timeout=10)
                     break
 
-                if monotonic() - last_output_time > idle_timeout:
+                if monotonic() - worker_state["last_heartbeat"] > idle_timeout:
                     timeout_occurred = True
-                    hung_duration = monotonic() - last_output_time
+                    hung_duration = monotonic() - worker_state["last_heartbeat"]
                     print(
                         f"  [Batch {batch_id}] Idle timeout ({hung_duration:.0f}s "
-                        f"without output), killing worker...",
+                        f"without worker progress), requesting stack dump and "
+                        f"killing worker group...",
                         flush=True,
                     )
-                    proc.kill()
+                    # First ask the worker for an all-thread stack dump
+                    # (faulthandler, registered in _worker_main). It works
+                    # even when the GIL is held by a hung native call —
+                    # exactly where pytest-timeout's SIGALRM method cannot
+                    # fire — and the dump drains into the noise tail via
+                    # fd 2, landing in the hung case's log.
+                    try:
+                        proc.send_signal(signal.SIGUSR1)
+                    except (ProcessLookupError, OSError):
+                        pass
+                    sleep(HEARTBEAT_DUMP_WAIT_SECONDS)
+                    # Then kill the whole process group: the worker plus any
+                    # leaked grandchildren still holding the pipe or devices.
+                    try:
+                        os.killpg(proc.pid, signal.SIGKILL)
+                    except (ProcessLookupError, PermissionError):
+                        proc.kill()
                     try:
                         returncode = proc.wait(timeout=30)
                     except subprocess.TimeoutExpired:
@@ -1091,12 +1290,17 @@ def _execute_worker_batch(
             if timeout_occurred:
                 if not_reported:
                     hung_case = not_reported[0]
+                    hang_msg = (
+                        f"Case hung (no worker progress for "
+                        f"{hung_duration:.0f}s); case log carries the worker "
+                        f"stdout tail and the faulthandler stack dump"
+                    )
                     timeout_result = {
                         "nodeid": hung_case.nodeid,
                         "status": "timeout",
                         "duration": hung_duration,
-                        "returncode": -1,
-                        "message": f"Case hung (no output for {hung_duration:.0f}s)",
+                        "returncode": -9,
+                        "message": hang_msg,
                         "command": "",
                         "file": hung_case.test_file,
                         "case_idx": hung_case.case_idx,
@@ -1104,6 +1308,11 @@ def _execute_worker_batch(
                     result_aggregator.add_case_result(timeout_result)
                     progress_tracker.mark_completed(
                         hung_case.nodeid, "timeout", hung_duration
+                    )
+                    _save_crash_case_log(
+                        report_dir, shard, shard_type, hung_case,
+                        "timeout", hung_duration, -9, hang_msg, worker_state,
+                        stack_dump=_read_worker_stack_dump(report_dir, batch_id),
                     )
                     completed_nodeids.add(hung_case.nodeid)
                     remaining_cases = not_reported[1:]
@@ -1151,12 +1360,16 @@ def _execute_worker_batch(
 
                 if not_reported:
                     crashed_case = not_reported[0]
+                    crash_msg = (
+                        f"Worker killed by signal ({signal_name}); case log "
+                        f"carries the worker stdout tail captured by the parent"
+                    )
                     error_result = {
                         "nodeid": crashed_case.nodeid,
                         "status": "error",
                         "duration": 0.0,
                         "returncode": returncode,
-                        "message": f"Worker killed by signal ({signal_name})",
+                        "message": crash_msg,
                         "command": "",
                         "file": crashed_case.test_file,
                         "case_idx": crashed_case.case_idx,
@@ -1164,6 +1377,10 @@ def _execute_worker_batch(
                     result_aggregator.add_case_result(error_result)
                     progress_tracker.mark_completed(
                         crashed_case.nodeid, "error", 0.0
+                    )
+                    _save_crash_case_log(
+                        report_dir, shard, shard_type, crashed_case,
+                        "error", 0.0, returncode, crash_msg, worker_state,
                     )
                     completed_nodeids.add(crashed_case.nodeid)
                     remaining_cases = not_reported[1:]
@@ -1306,26 +1523,43 @@ def _execute_worker_batch(
                 f"  [Batch {batch_id}] Worker execution failed: {str(e)[:200]}",
                 flush=True,
             )
+            # Best effort: take down the worker group if a worker was
+            # already started before the exception (worker_state is only
+            # set after a successful Popen, so proc is bound too).
+            if worker_state is not None:
+                try:
+                    os.killpg(proc.pid, signal.SIGKILL)
+                except (ProcessLookupError, PermissionError):
+                    pass
             for task in remaining_cases:
                 if task.nodeid not in completed_nodeids:
+                    failure_msg = f"Worker failure: {str(e)[:200]}"
                     error_result = {
                         "nodeid": task.nodeid,
                         "status": "error",
                         "duration": 0.0,
                         "returncode": 1,
-                        "message": f"Worker failure: {str(e)[:200]}",
+                        "message": failure_msg,
                         "command": "",
                         "file": task.test_file,
                         "case_idx": task.case_idx,
                     }
                     result_aggregator.add_case_result(error_result)
                     progress_tracker.mark_completed(task.nodeid, "error", 0.0)
+                    if worker_state is not None:
+                        _save_crash_case_log(
+                            report_dir, shard, shard_type, task,
+                            "error", 0.0, 1, failure_msg, worker_state,
+                        )
             break
 
     # Cleanup temp file
     batch_input_file.unlink(missing_ok=True)
     results_file = report_dir / f"batch_results_{batch_id}.json"
     results_file.unlink(missing_ok=True)
+    # Remove the stack-dump scratch file (normally already consumed by the
+    # idle-timeout path; this covers the no-hang / header-only leftovers).
+    (report_dir / "stack_dumps" / f"batch_{batch_id}_stack.txt").unlink(missing_ok=True)
 
 
 def _worker_main(worker_input_file: str) -> None:
@@ -1354,6 +1588,32 @@ def _worker_main(worker_input_file: str) -> None:
     shard_type = batch_input.get("shard_type", "regular")
     batch_id = batch_input.get("batch_id", 0)
     npu_device_id = batch_input.get("npu_device_id", None)
+
+    # Forensics: the parent sends SIGUSR1 right before killing a hung
+    # worker; faulthandler then dumps all thread stacks — it works even
+    # when the GIL is held by a stuck native call (CANN sync, C++
+    # deadlock), exactly where pytest-timeout's SIGALRM method cannot
+    # fire. The dump goes to a dedicated per-batch file rather than the
+    # stdout pipe: (1) a worker with a large thread pool (OMP/interop
+    # threads on a many-core NPU host) can produce more dump lines than
+    # the parent's bounded pipe tail, and faulthandler prints the main
+    # (hung) thread FIRST — exactly the lines a bounded tail would evict;
+    # (2) a plain file fd also sidesteps pytest's fd-level capture, which
+    # dup2's a temp file over fd 2 and would swallow dumps registered
+    # against the default sys.stderr. The parent reads the file after the
+    # kill (_read_worker_stack_dump); each worker restart reopens it in
+    # write mode, so the content always belongs to the current attempt.
+    try:
+        dump_dir = report_dir / "stack_dumps"
+        dump_dir.mkdir(parents=True, exist_ok=True)
+        dump_file = open(
+            dump_dir / f"batch_{batch_id}_stack.txt", "w", encoding="utf-8"
+        )
+        dump_file.write(f"# SIGUSR1 stack dump target, worker pid {os.getpid()}\n")
+        dump_file.flush()
+        faulthandler.register(signal.SIGUSR1, file=dump_file, all_threads=True)
+    except (ValueError, OSError):
+        pass
 
     # Apply environment
     for key, value in env_updates.items():
