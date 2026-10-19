@@ -35,3 +35,6 @@ export PYTORCH_ALLOC_CONF=max_split_size_mb:512
 <!-- npu="310p" id4 -->
 - <term>Atlas推理系列产品</term>
 <!-- end id4 -->
+<!-- npu="950" id5 -->
+- <term>Ascend 950DT系列产品</term>
+<!-- end id5 -->

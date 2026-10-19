@@ -1,7 +1,6 @@
 # 环境变量
 
 - [环境变量列表](env_variable_list.md)
-- [PyTorch环境变量对照表](pytorch_comparison.md)
 <!-- npu="950,A3,910b,910,310p" id19 -->
 - [设备初始化与管理](device_management/_menu_device_management.md)
   <!-- npu="A3,910b,910,310p" id1 -->
@@ -63,10 +62,10 @@
 <!-- end id17 -->
 <!-- npu="950,A3,910b,910,310p" id28 -->
 - [内存管理](memory_management/_menu_memory_management.md)
-  <!-- npu="A3,910b,910,310p" id18 -->
+  <!-- npu="950,A3,910b,910,310p" id18 -->
   - [PYTORCH_ALLOC_CONF](memory_management/PYTORCH_ALLOC_CONF.md)
   <!-- end id18 -->
-  <!-- npu="A3,910b,910,310p" id21 -->
+  <!-- npu="950,A3,910b,910,310p" id21 -->
   - [PYTORCH_NPU_ALLOC_CONF](memory_management/PYTORCH_NPU_ALLOC_CONF.md)
   <!-- end id21 -->
   <!-- npu="950,A3,910b,910,310p" id22 -->
@@ -235,5 +234,6 @@
   - [INDUCTOR_ASCEND_LOG_LEVEL](inductor/INDUCTOR_ASCEND_LOG_LEVEL.md)
   <!-- end id76 -->
 <!-- end id77 -->
+- [PyTorch环境变量对照表](pytorch_comparison.md)
 - [附录](appendix/_menu_appendix.md)
   - [在进行模型分布式训练时遇到报错“RuntimeError: The Inner Error ...”](appendix/runtimeerror_Inner_Error.md)
