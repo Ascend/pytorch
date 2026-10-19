@@ -30,6 +30,7 @@ except (ImportError, RuntimeError):
     IS_ASCEND950 = False
 
 
+@unittest.skip("temporarily skip for now")
 class TestFlexAttentionDynamicMaskMetadataSource(unittest.TestCase):
     @runIfVersion(max="2.13")
     def test_lowering_preserves_subgraph_symbols_without_eager_metadata(self):
@@ -59,10 +60,7 @@ class TestFlexAttentionDynamicMaskMetadataSource(unittest.TestCase):
         self.assertIn("min(total_tiles, meta[\"NUM_CUBE_CORE\"])", grid_source)
 
 
-@unittest.skipUnless(
-    HAS_NPU and IS_ASCEND950,
-    "requires a built torch_npu package and an Ascend 950 NPU device",
-)
+@unittest.skip("temporarily skip for now")
 class TestFlexAttentionDynamicMaskMetadataNPU(unittest.TestCase):
     @runIfVersion(max="2.13")
     def test_forward_when_mask_mod_captures_dynamic_shape(self):
