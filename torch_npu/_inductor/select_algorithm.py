@@ -1692,28 +1692,69 @@ def patch_algorithm_selector() -> None:
                 for i, x in enumerate(input_nodes)
             }
             example_inputs = list(unique_example_inputs.values())
-            example_inputs_extern = [
-                (
-                    unique_example_inputs[input_node.get_name()]
-                    if unique_example_inputs[input_node.get_name()].is_mkldnn
-                    else torch.as_strided(
-                        unique_example_inputs[input_node.get_name()],
-                        V.graph.sizevars.optimization_hints(
-                            input_node.get_size(),
-                            fallback=config.unbacked_symint_fallback,
-                        ),
-                        V.graph.sizevars.optimization_hints(
-                            input_node.get_stride(),
-                            fallback=config.unbacked_symint_fallback,
-                        ),
-                        V.graph.sizevars.optimization_hint(
-                            input_node.get_layout().offset,
-                            fallback=config.unbacked_symint_fallback,
-                        ),
+            example_inputs_extern = []
+            for i, input_node in enumerate(input_nodes):
+                input_tensor = unique_example_inputs[input_node.get_name()]
+                if input_tensor.is_mkldnn:
+                    example_inputs_extern.append(input_tensor)
+                    continue
+                if i in input_gen_fns:
+                    # Custom input_gen_fns may return tensors whose shape differs
+                    # from the IR node (e.g. dispatch_on/split_points range
+                    # variants clamp one dim and allocate a compact storage);
+                    # reinterpret with the actual allocated shape, otherwise
+                    # as_strided can exceed the storage and raise setStorage
+                    # out-of-bounds. (Synced from upstream select_algorithm.)
+                    sizes = tuple(input_tensor.size())
+                    strides = tuple(input_tensor.stride())
+                    storage_offset = input_tensor.storage_offset()
+                else:
+                    sizes = V.graph.sizevars.optimization_hints(
+                        input_node.get_size(),
+                        fallback=config.unbacked_symint_fallback,
                     )
+                    strides = V.graph.sizevars.optimization_hints(
+                        input_node.get_stride(),
+                        fallback=config.unbacked_symint_fallback,
+                    )
+                    storage_offset = V.graph.sizevars.optimization_hint(
+                        input_node.get_layout().offset,
+                        fallback=config.unbacked_symint_fallback,
+                    )
+                # Guard against setStorage out-of-bounds when the required
+                # storage exceeds the allocated one; rebuild a large-enough
+                # base tensor (synced from upstream select_algorithm).
+                base = (
+                    input_tensor
+                    if input_tensor._base is None
+                    else input_tensor._base
                 )
-                for input_node in input_nodes
-            ]
+                needed_size = torch._prims_common.compute_required_storage_length(
+                    sizes, strides, storage_offset
+                )
+                current_size = base.untyped_storage().size() // base.element_size()
+                if needed_size > current_size:
+                    if base.dtype == torch.float4_e2m1fn_x2:
+                        new_base = torch.randint(
+                            0,
+                            256,
+                            (needed_size,),
+                            dtype=torch.uint8,
+                            device=base.device,
+                        ).view(torch.float4_e2m1fn_x2)
+                    else:
+                        new_base = torch.randn(
+                            needed_size,
+                            dtype=base.dtype,
+                            device=base.device,
+                            requires_grad=base.requires_grad,
+                        )
+                    base = new_base.as_strided(
+                        base.size(), base.stride(), base.storage_offset()
+                    )
+                example_inputs_extern.append(
+                    torch.as_strided(base, sizes, strides, storage_offset)
+                )
 
             out = cls.benchmark_example_value(layout)
             out_extern = torch.as_strided(
