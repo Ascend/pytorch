@@ -391,18 +391,100 @@ class ElideIntFloatIntPass(CustomGraphPass):
         )
 
 
-def _install_elide_int_float_int_pass():
-    """Register _elide_int_float_int_roundtrip_pass as an inductor post_grad
-    custom pass, composing with any pass already set."""
-    if not ncfg.elide_int_float_int:
-        return
-    from torch._inductor import config as inductor_config
+class TeSourcePinPass(CustomGraphPass):
+    """No-op pass whose uuid() pins the backend source-tree state into the
+    FxGraphCache key.
 
-    previous = get_custom_graph_passes(inductor_config.post_grad_custom_post_pass)
-    if any(isinstance(pass_, ElideIntFloatIntPass) for pass_ in previous):
+    What the default key cannot see and this pins: artifacts are generated
+    by the backend's own Python sources, and the key's torch_key() only
+    hashes the torch tree -- a developing torch_npu edits .py files without
+    bumping any version, so unpinned a warm cache would silently serve
+    artifacts built from the previous sources (stale-artifact reuse after
+    every source edit).
+
+    The backend's config values are NOT pinned here: they already enter
+    the key natively via ``register_backend_for_device(...,
+    device_custom_config=...)`` -> ``custom_backend_codegen_configs``
+    (snapshot through ``save_config_portable``/``_get_dict`` live values).
+
+    uuid() = sha256 over the TE source tree; any edit invalidates cached
+    entries (safe recompile).  The pass itself does nothing: its purpose
+    is purely keying (on cache miss it runs like any post-grad pass; on
+    cache HIT the compile is skipped entirely).
+    """
+
+    def __call__(self, graph):
+        pass
+
+    def uuid(self):
+        return _te_source_digest()
+
+
+def _te_source_digest(base=None):
+    """sha256 over the backend's own Python sources.
+
+    The FxGraphCache key carries the torch version but not the torch_npu
+    checkout state: a developing backend edits .py files without bumping
+    any version, so unpinned a warm cache would silently serve artifacts
+    built from the previous sources.  Hashes exactly what this process
+    imported -- a walk of the installed package dir (the files whose
+    ``__file__`` this process is running) -- so the key stays faithful to
+    the executing code.
+
+    ``base`` overrides the hashed tree root (used by unit tests; the
+    default is this file's package dir).
+    """
+    import os
+
+    if base is None:
+        base = os.path.dirname(os.path.abspath(__file__))
+    files = []
+    for root, dirs, fns in os.walk(base):
+        if "__pycache__" in root:
+            dirs[:] = []
+            continue
+        for fn in fns:
+            if fn.endswith(".py"):
+                files.append(os.path.join(root, fn))
+    parent = os.path.dirname(base)
+    for fn in ("decomposition.py",):
+        p = os.path.join(parent, fn)
+        if os.path.isfile(p):
+            files.append(p)
+    return get_hash_for_files(tuple(sorted(files)), extra="te-source")
+
+
+def _install_elide_int_float_int_pass():
+    """Register the roundtrip elide + TE source cache-key pin as inductor
+    post_grad CustomGraphPass instances, composing with any passes already
+    set (e.g. torch_npu's AscendCustomPostPass).
+
+    CustomGraphPass-with-uuid is mandatory for FxGraphCache compatibility:
+    a raw callable in this slot disables the cross-process FX graph cache
+    for the entire backend ("Unsupported post grad custom pass").
+
+    The TeSourcePinPass is installed unconditionally (not gated on
+    ``elide_int_float_int``): source edits need invalidating cached
+    entries regardless of whether the elide pass itself is on.
+    """
+    from torch._inductor import config as inductor_config
+    from torch._inductor.custom_graph_pass import CustomGraphPass as _CGP
+
+    prev = get_custom_graph_passes(inductor_config.post_grad_custom_post_pass)
+    if prev and not all(isinstance(p, _CGP) for p in prev):
+        # A third-party raw callable keeps FxGraphCache bypassed upstream
+        # (no uuid -> no key).  Do not fabricate a uuid for it.
         return
-    inductor_config.post_grad_custom_post_pass = [*previous, ElideIntFloatIntPass()]
-    log.debug("[NPU] installed int->float->int roundtrip elide post_grad pass")
+
+    chain = list(prev)
+    if not any(isinstance(p, ElideIntFloatIntPass) for p in chain) and ncfg.elide_int_float_int:
+        chain.append(ElideIntFloatIntPass())
+    if not any(isinstance(p, TeSourcePinPass) for p in chain):
+        chain.append(TeSourcePinPass())
+    if chain:
+        inductor_config.post_grad_custom_post_pass = chain
+        log.debug("[NPU] installed FX-cache-compatible post_grad "
+                  "passes: %d", len(chain))
 
 
 def _npu_fold_max1(expr):
