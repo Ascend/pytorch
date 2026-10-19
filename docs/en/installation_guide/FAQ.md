@@ -2,7 +2,7 @@
 
 ## Build Issues
 
-### torch.libs/libopenblasp-r0-56e95da7.3.24.so Link Error or libgfortran Missing
+### Issue 1: Link error for torch.libs/libopenblasp-r0-56e95da7.3.24.so or missing libgfortran
 
 **Symptom**
 
@@ -40,7 +40,7 @@ target_link_libraries(libtorch_resnet "${TORCH_LIBRARIES}")
 target_link_libraries(libtorch_resnet "${TORCH_NPU_LIBRARIES}")
 ```
 
-### Missing Project Files in the third_party Directory During Build or Need to Switch Project Commit ID
+### Issue 2: Missing project files in the third_party directory during build or the need to switch the project commit ID
 
 **Symptom**
 
@@ -77,13 +77,13 @@ In the PyTorch directory, run the following command to initialize and update all
 git submodule update --init --recursive
 ```
 
-To switch the commit ID of a third_party project, go to the corresponding project directory and run:
+To switch the commit ID of a third party project, go to the corresponding project directory and run:
 
 ```bash
 git checkout <commit_id>
 ```
 
-### Build-time Line Break Error
+### Issue 3: Build-time line break error
 
 **Symptom**
 
@@ -128,7 +128,7 @@ rm -rf /home/pytorch/build
 bash ci/build.sh
 ```
 
-### Build-time Error: `CMake_minimum_required`
+### Issue 4: Build-time error: CMake\_minimum\_required
 
 **Symptom**
 
@@ -149,7 +149,7 @@ This means that the CMake version in your container is relatively new (≥ 3.27)
 
 You can try adding `cmake_args.append('-DCMAKE_POLICY_VERSION_MINIMUM=3.5')` in the `run` function of `class CPPLibBuild` in the `setup.py` file, so that CMake processes the legacy `cmake_minimum_required` declaration in compatibility mode.
 
-### Build-time Error: Linker Symbol Issue
+### Issue 5: Build-time linker symbol error
 
 **Symptom**
 
@@ -179,7 +179,7 @@ Or try replacing with the actual content:
 
 For example, replace the content in `third_party\torchair\torchair\third_party\ascend\include\ascend/include/ascendcl/external/acl/error_codes/rt_error_codes.h` with the content in `third_party\torchair\torchair\third_party\ascend\include\air\external\ge\ge_error_codes.h`.
 
-### fatal error: `filesystem` file not found
+### Issue 6: fatal error: 'filesystem' file not found
 
 **Symptom**
 
@@ -205,7 +205,7 @@ If the GCC version is earlier than 8, refer to *[Installing GCC 11.2.0](installi
 
 ## Installation Issues
 
-### The Built whl Package Does Not Match the Current Environment
+### Issue 1: The built whl package does not match the current environment
 
 **Symptom**
 
@@ -229,7 +229,7 @@ Before building the installation package, confirm the Python version required by
 bash ci/build.sh --python=3.xx
 ```
 
-### ImportError: libhccl.so: cannot open shared object file: No such file or directory
+### Issue 2: ImportError: libhccl.so: cannot open shared object file: No such file or directory
 
 **Symptom**
 
@@ -247,10 +247,9 @@ The current environment does not meet the requirements for running TorchNPU. Dur
 
 **Solution**
 
-Check whether the matching NPU driver firmware and CANN software (Toolkit, ops, and NNAL) are installed and whether the CANN environment variables are correctly configured. For details, see *CANN Software Installation*.
-<!-- For details, see *[CANN Software Installation](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)* -->
+Check whether the matching NPU driver firmware and CANN software (Toolkit, ops, and NNAL) are installed and whether the CANN environment variables are correctly configured. For details, see *[CANN Software Installation](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)*.
 
-### System Error: core dump When Importing torch_npu
+### Issue 3: A core dump system error occurs when importing torch_npu
 
 **Symptom**
 
@@ -269,13 +268,13 @@ The GCC version used during the build does not meet expectations. pybind perform
 
 **Solution**
 
-Use the corresponding GCC version for compilation. For specific version mappings, see [GCC and CMake Version Requirements](compilation_installation_using_source_code.md#gcc_cmake).
+Use the corresponding GCC version for compilation. For the specific version mapping, see [GCC and CMake Version Requirements](compilation_installation_using_source_code.md#gcc_cmake).
 
-### "import torch_npu" Reports an Error That torch_npu._C Cannot Be Found
+### Issue 4: Error reported that torch_npu._C cannot be found during torch_npu import
 
 **Symptom**
 
-After TorchNPU is installed, "import torch_npu" reports an error about `torch_npu._C`.
+After TorchNPU is installed, an `torch_npu._C` error is reported during torch_npu import.
 
 Error Text
 
@@ -295,8 +294,30 @@ ModuleNotFoundError: No module named 'torch_npu._C'
 
 **Cause**
 
-Because the installed TorchNPU has the same name as the folder under this project, you cannot run "import torch_npu" in the project directory.
+Because the installed TorchNPU has the same name as the folder under this project, you cannot run `import torch_npu` in the project directory.
 
 **Solution**
 
-Go to a suitable runtime directory and retry, for example, run `cd test` or `cd /home/test` first, then "import torch_npu".
+Go to a suitable runtime directory and retry, for example, run `cd test` or `cd /home/test` first, then `import torch_npu`.
+
+### Issue 5: How to query the installed TorchNPU version
+
+**Symptom**
+
+Query the installed TorchNPU version.
+
+**Query methods**
+
+1. Run the following command to view the TorchNPU package version.
+
+    ```bash
+    pip list | grep torch_npu
+    ```
+
+    The output shows the TorchNPU package version number as follows.
+
+    ```text
+    torch_npu     2.12.0
+    ```
+
+2. Query the corresponding TorchNPU version based on the TorchNPU package version number. For the specific mapping, see the [TorchNPU Version Mapping Table](https://gitcode.com/Ascend/pytorch/blob/master/COMPATIBILITY.md#torchnpu-%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%A1%A8).

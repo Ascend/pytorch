@@ -56,17 +56,11 @@ Take version 0.22.1 as an example to describe how to install torchvision.
 ## Verifying the Installation
 
 ```Python
-python3
-import torchvision
-print(torchvision.__version__)
+python3 -c "import torchvision; print(torchvision.__version__)"
 ```
 
 If a version number is displayed, the installation is successful.
 
 ```Python
-Python 3.10.17 (main, Nov 4 2025, 17:12:04) [GCC 9.4.0] on linux
-Type "help", "copyright", "credits" or "license" for more information.
->>> import torchvision
->>> print(torchvision.__version__)
 0.22.1
 ```

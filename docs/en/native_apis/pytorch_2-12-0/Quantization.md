@@ -1,0 +1,1562 @@
+# Quantization
+
+> [!NOTE]
+>
+> - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
+> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.12/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
+> - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://docs.pytorch.org/docs/2.12/quantization-support.html).
+
+<div style="border:1px solid #d1d5da;margin:10px 0;padding:16px 20px;background-color:#f3f4f5;border-radius:.25rem">
+<div style="margin: 8px 0"><font size="5"><b>Contents</b></font></div>
+
+- [torch.ao.quantization](#torchaoquantization)
+- [torch.ao.quantization.qconfig_mapping](#torchaoquantizationqconfig_mapping)
+- [torch.ao.quantization.backend_config](#torchaoquantizationbackend_config)
+- [torch.ao.quantization.fx.custom_config](#torchaoquantizationfxcustom_config)
+- [torch.ao.quantization.observer](#torchaoquantizationobserver)
+- [torch.ao.quantization.fake_quantize](#torchaoquantizationfake_quantize)
+- [torch.ao.quantization.qconfig](#torchaoquantizationqconfig)
+- [torch.ao.nn.intrinsic](#torchaonnintrinsic)
+- [torch.ao.nn.intrinsic.qat](#torchaonnintrinsicqat)
+- [torch.ao.nn.qat](#torchaonnqat)
+- [torch.ao.nn.quantizable](#torchaonnquantizable)
+- [torch.ao.nn.quantized.dynamic](#torchaonnquantizeddynamic)
+
+</div>
+
+<div style="display:none;">
+
+## &#8203;Quantization
+
+</div>
+
+### torch.ao.ns.fx.utils.compute_sqnr
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Not Supported
+- <term>Atlas A3 training products</term>: Not Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+## torch.ao.quantization
+
+### torch.ao.quantization.prepare_qat
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+### torch.ao.quantization.convert
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.QuantStub
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.DeQuantStub
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.QuantWrapper
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+## torch.ao.quantization.qconfig_mapping
+
+### <code><i>class</i></code> torch.ao.quantization.qconfig_mapping.QConfigMapping
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+> <font size="3">from_dict()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+> <font size="3">set_global()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+> <font size="3">set_module_name()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+> <font size="3">set_module_name_object_type_order()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+> <font size="3">set_module_name_regex()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+> <font size="3">set_object_type()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+> <font size="3">to_dict()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+</div>
+
+### torch.ao.quantization.qconfig_mapping.get_default_qconfig_mapping
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+### torch.ao.quantization.qconfig_mapping.get_default_qat_qconfig_mapping
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+## torch.ao.quantization.backend_config
+
+### <code><i>class</i></code> torch.ao.quantization.backend_config.BackendConfig
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+> <font size="3">configs()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+> <font size="3">from_dict()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+> <font size="3">set_backend_pattern_config()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+> <font size="3">set_backend_pattern_configs()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+> <font size="3">set_name()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+> <font size="3">to_dict()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.backend_config.BackendPatternConfig
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+> <font size="3">add_dtype_config()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+> <font size="3">from_dict()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+> <font size="3">set_dtype_configs()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+> <font size="3">set_fused_module()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+> <font size="3">set_fuser_method()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+> <font size="3">set_observation_type()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+> <font size="3">set_pattern()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+> <font size="3">set_qat_module()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+> <font size="3">set_reference_quantized_module()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+> <font size="3">set_root_module()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+> <font size="3">to_dict()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.backend_config.DTypeConfig
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+> <font size="3">from_dict()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+> <font size="3">to_dict()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.backend_config.DTypeWithConstraints
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.backend_config.ObservationType
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+> <font size="3">INPUT_OUTPUT_NOT_OBSERVED()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+> <font size="3">OUTPUT_SHARE_OBSERVER_WITH_INPUT()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+> <font size="3">OUTPUT_USE_DIFFERENT_OBSERVER_AS_INPUT()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+</div>
+
+## torch.ao.quantization.fx.custom_config
+
+### <code><i>class</i></code> torch.ao.quantization.fx.custom_config.FuseCustomConfig
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+> <font size="3">from_dict()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+> <font size="3">set_preserved_attributes()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+> <font size="3">to_dict()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.fx.custom_config.PrepareCustomConfig
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+> <font size="3">from_dict()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+> <font size="3">set_float_to_observed_mapping()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+> <font size="3">set_input_quantized_indexes()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+> <font size="3">set_non_traceable_module_classes()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+> <font size="3">set_non_traceable_module_names()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+> <font size="3">set_output_quantized_indexes()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+> <font size="3">set_preserved_attributes()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+> <font size="3">set_standalone_module_class()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+> <font size="3">set_standalone_module_name()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+> <font size="3">to_dict()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.fx.custom_config.ConvertCustomConfig
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+> <font size="3">from_dict()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+> <font size="3">set_observed_to_quantized_mapping()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+> <font size="3">set_preserved_attributes()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+> <font size="3">to_dict()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.fx.custom_config.StandaloneModuleConfigEntry
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+## torch.ao.quantization.observer
+
+### <code><i>class</i></code> torch.ao.quantization.observer.ObserverBase
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+> <font size="3">with_args()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+> <font size="3">with_callable_args()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.observer.MinMaxObserver
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+> <font size="3">calculate_qparams()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+> <font size="3">forward()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+> <font size="3">reset_min_max_vals()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.observer.MovingAverageMinMaxObserver
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.observer.PerChannelMinMaxObserver
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+> <font size="3">reset_min_max_vals()</font>
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.observer.MovingAveragePerChannelMinMaxObserver
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.observer.HistogramObserver
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.observer.PlaceholderObserver
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.observer.RecordingObserver
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+**Constraints & Notes**: May fall back to CPU execution
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.observer.NoopObserver
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+### torch.ao.quantization.observer.get_observer_state_dict
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+### torch.ao.quantization.observer.load_observer_state_dict
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+### torch.ao.quantization.observer.default_observer
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+### torch.ao.quantization.observer.default_placeholder_observer
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+### torch.ao.quantization.observer.default_debug_observer
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+### torch.ao.quantization.observer.default_weight_observer
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+### torch.ao.quantization.observer.default_histogram_observer
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+### torch.ao.quantization.observer.default_per_channel_weight_observer
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+### torch.ao.quantization.observer.default_dynamic_quant_observer
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+### torch.ao.quantization.observer.default_float_qparams_observer
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+## torch.ao.quantization.fake_quantize
+
+### <code><i>class</i></code> torch.ao.quantization.fake_quantize.FakeQuantize
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+**Constraints & Notes**: May fall back to CPU execution
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.fake_quantize.FixedQParamsFakeQuantize
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.fake_quantize.FusedMovingAvgObsFakeQuantize
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+**Constraints & Notes**: May fall back to CPU execution
+
+</div>
+
+### torch.ao.quantization.fake_quantize.disable_fake_quant
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+### torch.ao.quantization.fake_quantize.enable_fake_quant
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+### torch.ao.quantization.fake_quantize.disable_observer
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+### torch.ao.quantization.fake_quantize.enable_observer
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+## torch.ao.quantization.qconfig
+
+### <code><i>class</i></code> torch.ao.quantization.qconfig.QConfig
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+### torch.ao.quantization.qconfig.default_qconfig
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+### torch.ao.quantization.qconfig.default_debug_qconfig
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+### torch.ao.quantization.qconfig.default_per_channel_qconfig
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+### torch.ao.quantization.qconfig.default_dynamic_qconfig
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+### torch.ao.quantization.qconfig.float16_dynamic_qconfig
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+### torch.ao.quantization.qconfig.float16_static_qconfig
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+### torch.ao.quantization.qconfig.per_channel_dynamic_qconfig
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+### torch.ao.quantization.qconfig.float_qparams_weight_only_qconfig
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+### torch.ao.quantization.qconfig.default_qat_qconfig
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+### torch.ao.quantization.qconfig.default_weight_only_qconfig
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+### torch.ao.quantization.qconfig.default_activation_only_qconfig
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+### torch.ao.quantization.qconfig.default_qat_qconfig_v2
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+## torch.ao.nn.intrinsic
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.LinearReLU
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Not Supported
+- <term>Atlas A3 training products</term>: Not Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+## torch.ao.nn.intrinsic.qat
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.qat.LinearReLU
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Not Supported
+- <term>Atlas A3 training products</term>: Not Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.qat.ConvBn1d
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Not Supported
+- <term>Atlas A3 training products</term>: Not Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.qat.ConvBnReLU1d
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Not Supported
+- <term>Atlas A3 training products</term>: Not Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.qat.ConvBnReLU2d
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Not Supported
+- <term>Atlas A3 training products</term>: Not Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+### torch.ao.nn.intrinsic.qat.update_bn_stats
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+</div>
+
+### torch.ao.nn.intrinsic.qat.freeze_bn_stats
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Supported
+
+**Constraints & Notes**: May fall back to CPU execution
+
+</div>
+
+## torch.ao.nn.qat
+
+### <code><i>class</i></code> torch.ao.nn.qat.Linear
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Not Supported
+- <term>Atlas A3 training products</term>: Not Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+## torch.ao.nn.quantizable
+
+### <code><i>class</i></code> torch.ao.nn.quantizable.LSTM
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Not Supported
+- <term>Atlas A3 training products</term>: Not Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+## torch.ao.nn.quantized.dynamic
+
+### <code><i>class</i></code> torch.ao.nn.quantized.dynamic.Linear
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Not Supported
+- <term>Atlas A3 training products</term>: Not Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.dynamic.LSTM
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+**Constraints & Notes**: `input` only supports fp32
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.dynamic.GRU
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+**Constraints & Notes**: `input` only supports fp32
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.dynamic.RNNCell
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+**Constraints & Notes**: `input` only supports fp32
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.dynamic.LSTMCell
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+**Constraints & Notes**: `input` only supports fp32
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.dynamic.GRUCell
+
+<div style="margin-left: 2em">
+
+**Support Status**:
+
+- <term>Atlas A2 training products</term>: Supported
+- <term>Atlas A3 training products</term>: Supported
+- <term>Ascend 950DT</term>: Not Supported
+
+**Constraints & Notes**: `input` only supports fp32
+
+</div>

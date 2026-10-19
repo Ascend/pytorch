@@ -30,7 +30,7 @@ The following steps use PyTorch 2.7.1 as an example.
         ```
 
         > [!NOTE]
-        > - `{arch}` indicates the CPU architecture (x86 or ARM).
+        > - `{arch}` indicates the CPU architecture (x86 or Arm).
         > - Be careful not to omit the "." at the end of the command.
 
     3. Enter the Docker container and mount the TorchNPU source code into the container.
@@ -104,17 +104,17 @@ The following steps use PyTorch 2.7.1 as an example.
                     |2.9.0|AArch64|13.3.0|4.0.3|
                     |2.10.0|X86_64|13.3.0|3.18.4|
                     |2.10.0|AArch64|13.3.0|4.0.3|
-                    |2.11.0|X86_64|13.3.1|3.18.4|
-                    |2.11.0|AArch64|13.3.1|4.3.2|
-                    |2.12.0|X86_64|13.3.1|3.18.4|
-                    |2.12.0|AArch64|13.3.1|4.3.2|
+                    |2.11.0|X86_64|13.3.0|3.18.4|
+                    |2.11.0|AArch64|13.3.0|4.3.2|
+                    |2.12.0|X86_64|13.3.0|3.18.4|
+                    |2.12.0|AArch64|13.3.0|4.3.2|
 
                     > [!NOTE]
                     >
                     > For installation guidance, see [Installing gcc 11.2.0](installing_gcc_11-2-0.md) and [Installing cmake 3.18.4](installing_cmake_3-18-4.md).
 
         2. Install the environment dependencies.
-    
+
             ```bash
             pip install pyyaml
             pip install setuptools
@@ -186,42 +186,20 @@ Run the following commands to check the versions of the installed Python, PyTorc
 
     > [!NOTE]
     >
-    > Because each TorchNPU version publishes installation packages for multiple PyTorch versions, the version numbers of the released installation packages and the TorchNPU version numbers follow different naming rules. To query the mapping between version numbers, click [Version Mapping](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.1.0/docs/en/release_notes/release_notes.md).
+    > Because each TorchNPU version is released with installation packages for multiple PyTorch versions, the version numbers of the matching installation packages and the TorchNPU version number follow different naming rules. To query the mapping between version numbers, click [Version Mapping](https://gitcode.com/Ascend/pytorch/blob/master/COMPATIBILITY.md#%E6%8E%A8%E8%8D%90%E7%89%88%E6%9C%AC%E7%BB%84%E5%90%88) to view it.
 
 ## Post-Installation Verification
 
 Run the following commands to check whether the PyTorch framework and the TorchNPU plugin are installed successfully.
 
-- Method 1
+```Python
+python3 -c "import torch;import torch_npu; a = torch.randn(3, 4).npu(); print(a + a);"
+```
 
-    ```Python
-    python3 -c "import torch;import torch_npu; a = torch.randn(3, 4).npu(); print(a + a);"
-    ```
+Output similar to the following indicates a successful installation.
 
-    Output similar to the following indicates a successful installation.
-
-    ```text
-    tensor([[-0.6066,  6.3385,  0.0379,  3.3356],
-            [ 2.9243,  3.3134, -1.5465,  0.1916],
-            [-2.1807,  0.2008, -1.1431,  2.1523]], device='npu:0')
-    ```
-
-- Method 2
-
-    ```Python
-    import torch
-    import torch_npu
-    
-    x = torch.randn(2, 2).npu()
-    y = torch.randn(2, 2).npu()
-    z = x.mm(y)
-    
-    print(z)
-    ```
-
-    Output similar to the following indicates a successful installation.
-
-    ```text
-    tensor([[-0.0515,  0.3664],
-            [-0.1258, -0.5425]], device='npu:0')
-    ```
+```text
+tensor([[-0.6066,  6.3385,  0.0379,  3.3356],
+        [ 2.9243,  3.3134, -1.5465,  0.1916],
+        [-2.1807,  0.2008, -1.1431,  2.1523]], device='npu:0')
+```

@@ -5,7 +5,8 @@ libtorch_npu is the C++ version of the torch_npu plugin, which includes the head
 ## Build Procedure
 
 1. Refer to [Pre-installation Preparation](preparing_installation.md) and [Installing PyTorch](installing_PyTorch.md) to install the dependencies and PyTorch.
-2. Obtain the libtorch_npu source code.
+2. Install CMake 3.18.0 or later. For details, see [Installing CMake 3.18.4](installing_cmake_3-18-4.md).
+3. Obtain the libtorch_npu source code.
 
     ```bash
     git clone -b v2.7.1-26.1.0 https://gitcode.com/Ascend/pytorch.git
@@ -15,7 +16,7 @@ libtorch_npu is the C++ version of the torch_npu plugin, which includes the head
 
     Taking v2.7.1-26.1.0 as an example, pull the corresponding torch_npu branch code. To download the branch code of other torch_npu versions, see the "[Version Mapping](../release_notes/release_notes.md)" section in the *Release Notes*.
 
-3. Run the build to generate the libtorch_npu installation package.
+4. Run the build to generate the libtorch_npu installation package.
     > [!NOTE]
     > 
     > Currently, libtorch_npu uses CXX11_ABI=0 by default and supports configuring CXX11_ABI=1. The command is as follows:
@@ -29,8 +30,6 @@ libtorch_npu is the C++ version of the torch_npu plugin, which includes the head
     ```bash
     python3 build_libtorch_npu.py
     ```
-
-    The CMake version required for the build must be 3.18.0 or later. See [Installing CMake 3.18.4](installing_cmake_3-18-4.md).
 
     The release version is built by default. If you need the debug version, add the DEBUG=1 environment variable. After the build is complete, the libtorch_npu directory is generated in the current directory, containing the following files.
 
@@ -105,8 +104,9 @@ Take the **pytorch/examples/libtorch_resnet** model under the v2.7.1-26.1.0 bran
     The following output indicates a successful build.
 
     **Figure 1** Command output
+
     ![figure](../figures/command_output.png "command output")
 
     > [!NOTE]
     >
-    > In the aarch64 environment, an error is reported that the `torch.libs/*.so` library does not exist. See [torch.libs/libopenblasp-r0-56e95da7.3.24.so does not exist](FAQ.md#torchlibslibopenblasp-r0-56e95da7324so-link-error-or-libgfortran-missing).
+    > In the aarch64 environment, an error is reported that the `torch.libs/*.so` library does not exist. See [torch.libs/libopenblasp-r0-56e95da7.3.24.so does not exist](FAQ.md#issue-1-link-error-for-torchlibslibopenblasp-r0-56e95da7324so-or-missing-libgfortran).

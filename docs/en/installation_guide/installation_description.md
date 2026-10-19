@@ -6,7 +6,7 @@ This document mainly introduces how to quickly complete the installation of the 
 
 ## Installation Solution
 
-This document provides solutions for installing drivers, firmware, CANN software, the PyTorch framework, and the TorchNPU plugin in physical machine, container, and virtual machine scenarios. The deployment architecture is shown in [Figure 1](#figure1).
+This document provides solutions for installing drivers, firmware, <term>CANN</term> software, the PyTorch framework, and the TorchNPU plugin in physical machine, container, and virtual machine scenarios. The deployment architecture is shown in [Figure 1](#figure1).
 
 **Figure 1**  Installation solution<a id="figure1"></a>  
 ![figure1](../figures/installation_scheme.png)
@@ -32,9 +32,8 @@ This document provides solutions for installing drivers, firmware, CANN software
 
 - For more details about Ascend product forms, refer to the [Ascend Product Form Description](https://www.hiascend.com/document/detail/en/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html).
 - For the operating systems supported by each hardware product in physical machine deployment scenarios, refer to the [Compatibility Query Assistant](https://www.hiascend.com/hardware/compatibility).
-- For the operating systems supported by each hardware product in virtual machine and container deployment scenarios, refer to the "OS Compatibility" section in *CANN Software Installation*.
-<!-- refer to the "[OS Compatibility](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/softwareinst/instg/instg_0101.html?OS=openEuler&InstallType=netyum)" section in *CANN Software Installation*. -->
+- For the operating systems supported by each hardware product in virtual machine and container deployment scenarios, refer to the "[OS Compatibility](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/softwareinst/instg/instg_0101.html?OS=openEuler&InstallType=netyum)" section in *CANN Software Installation*.
 
 ## Installation Methods
 
-This guide provides offline installation (Whl) and source code installation methods. You can choose the installation method for the PyTorch framework and the TorchNPU plugin based on your actual requirements. The two installation methods are not required to be the same.
+This guide provides four installation methods: offline installation (whl), source code installation, online installation (pip), and image installation. You can choose the method to install PyTorch and TorchNPU based on your actual requirements. The installation methods are not required to be the same.
