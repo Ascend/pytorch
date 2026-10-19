@@ -2,9 +2,9 @@ __all__ = ["rebuild_npu_event", "rebuild_npu_tensor"]
 
 import multiprocessing
 import torch
-from torch.multiprocessing.reductions import (
+from functools import wraps
+from torch.multiprocessing.reductions import (  # noqa: F401
     shared_cache,
-    rebuild_storage_filename,
     rebuild_storage_empty,
     rebuild_storage_fd,
     StorageWeakRef,
@@ -13,6 +13,7 @@ from torch.multiprocessing.reductions import (
     storage_from_cache,
     rebuild_meta_tensor,
     reduce_nested_tensor,
+    reduce_storage,
 )
 
 import torch_npu
@@ -95,25 +96,30 @@ def rebuild_npu_tensor(
     return t
 
 
-def _npu_reduce_tensor(tensor):
-    from torch.nested._internal.nested_tensor import NestedTensor
+def _npu_reduce_tensor(func):
+    @wraps(func)
+    def wrapper(tensor):
 
-    if tensor.is_nested and not isinstance(tensor, NestedTensor):
-        return reduce_nested_tensor(tensor)
+        reduction = func(tensor)
 
-    storage = tensor._typed_storage()
+        rebuild_func, rebuild_args = reduction
 
-    if tensor.requires_grad and not tensor.is_leaf:
-        raise RuntimeError(
-            "Cowardly refusing to serialize non-leaf tensor which requires_grad, "
-            "since autograd does not support crossing process boundaries.  "
-            "If you just want to transfer the data, call detach() on the tensor "
-            "before serializing (e.g., putting it on the queue)."
-        )
 
-    torch.utils.hooks.warn_if_has_hooks(tensor)
+        if rebuild_func is not rebuild_tensor:
+            return reduction
 
-    if storage._untyped_storage.device.type == "npu":
+        tensor_cls, storage, metadata = rebuild_args
+
+        if storage._untyped_storage.device.type != "npu":
+            return reduction
+
+        (
+            tensor_offset,
+            tensor_size,
+            tensor_stride,
+            requires_grad,
+        ) = metadata
+
         (
             device,
             handle,
@@ -124,86 +130,54 @@ def _npu_reduce_tensor(tensor):
             event_handle,
             event_sync_required,
         ) = storage._share_npu_()
-        tensor_offset = tensor.storage_offset()
+
         shared_cache[handle] = StorageWeakRef(storage)
+
         return (
             rebuild_npu_tensor,
             (
-                type(tensor),
-                tensor.size(),
-                tensor.stride(),
-                tensor_offset,  # tensor offset in its storage
+                tensor_cls,
+                tensor_size,
+                tensor_stride,
+                tensor_offset,
                 type(storage),
                 tensor.dtype,
                 device,
-                handle,  # identifier which NPU allocation is the storage in.
-                storage_size_bytes,  # size(in bytes) of the storage
-                storage_offset_bytes,  # offset(in bytes) of the storage in the NPU allocation
-                tensor.requires_grad,
+                handle,
+                storage_size_bytes,
+                storage_offset_bytes,
+                requires_grad,
                 ref_counter_handle,
                 ref_counter_offset,
                 event_handle,
                 event_sync_required,
             ),
         )
-    elif storage._untyped_storage.device.type == "meta":
-        return (
-            rebuild_meta_tensor,
-            (
-                type(tensor),
-                tensor.size(),
-                tensor.stride(),
-                tensor.storage_offset(),
-                tensor.dtype,
-                tensor.untyped_storage().size(),
-                tensor.requires_grad,
-            ),
-        )
 
-    # _backward_hooks purposely omitted here, see Note [Don't serialize hooks]
-    metadata = (
-        tensor.storage_offset(),
-        tensor.size(),
-        tensor.stride(),
-        tensor.requires_grad,
-    )
-    return (rebuild_tensor, (type(tensor), storage, metadata))
+    return wrapper
 
 
-def _npu_reduce_storage(storage):
-    from torch.multiprocessing import get_sharing_strategy
-
-    if storage.is_npu:
-        raise RuntimeError(
-            "Cannot pickle NPU storage; try pickling a NPU tensor instead"
-        )
-    elif get_sharing_strategy() == "file_system":
-        metadata = storage._share_filename_cpu_()
-        cache_key = metadata[1]
-        rebuild = rebuild_storage_filename
-        if isinstance(storage, torch.TypedStorage):
-            metadata += (storage.dtype,)
-        storage._shared_incref()
-    elif storage.size() == 0:
-        # This is special cased because Empty tensors
-        # (with size 0) cannot be mmapped.
-        return (rebuild_storage_empty, (type(storage),))
-    else:
-        fd, size = storage._share_fd_cpu_()
-        df = multiprocessing.reduction.DupFd(fd)
-        cache_key = fd_id(fd)
-        metadata = (df, size)
-        rebuild = rebuild_storage_fd  # type: ignore[assignment]
-
-    shared_cache[cache_key] = StorageWeakRef(storage)
-    return (rebuild, (type(storage),) + metadata)
+def _npu_reduce_storage(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        storage = args[0] if args else kwargs.get("storage")
+        if storage is not None and storage.device.type == "npu":
+            raise RuntimeError(
+                "Cannot pickle NPU storage; try pickling a NPU tensor instead"
+            )
+        return func(*args, **kwargs)
+    return wrapper
 
 
 def _add_reductions_methods():
     multiprocessing.reduction.register(torch.npu.Event, _npu_reduce_event)
 
     torch.multiprocessing.reductions.reduce_event = _npu_reduce_event
-    torch.multiprocessing.reductions.reduce_tensor = _npu_reduce_tensor
-    torch.multiprocessing.reductions.reduce_storage = _npu_reduce_storage
+
+    _reduce_tensor = _npu_reduce_tensor(torch.multiprocessing.reductions.reduce_tensor)
+    torch.multiprocessing.reductions.reduce_tensor = _reduce_tensor
+
+    _reduce_storage = _npu_reduce_storage(torch.multiprocessing.reductions.reduce_storage)
+    torch.multiprocessing.reductions.reduce_storage = _reduce_storage
 
     torch.multiprocessing.reductions.init_reductions()
