@@ -2045,7 +2045,16 @@ class NPUTritonKernel(TritonKernel):
                     isinstance(simplified_tree_numel, (sympy.Integer, int))
                     and int(simplified_tree_numel) < 2**31
                 ):
-                    code.writeline(f"{tree.prefix}numel = {int(simplified_tree_numel)}")
+                    # Reuse npu_header's helper instead of inlining the
+                    # config read again (review: duplicated logic). Lazy
+                    # import: npu_header imports _FlatMapExpr from this module,
+                    # so a top-level import would create a load cycle.
+                    from .npu_header import _is_batch_invariant
+
+                    if _is_batch_invariant() and tree.prefix == "x":
+                        pass  # keep runtime xnumel arg; don't bake literal
+                    else:
+                        code.writeline(f"{tree.prefix}numel = {int(simplified_tree_numel)}")
             if tree.is_reduction and self.persistent_reduction:
                 raise AssertionError(
                     "persistent reduction is disabled on NPU "

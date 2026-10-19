@@ -2484,6 +2484,23 @@ def reduction(
     if inductor_meta.get("no_x_dim"):
         size_hints = dict(size_hints)
         size_hints["x"] = 1
+    elif inductor_meta.get("batch_invariant"):
+        size_hints = dict(size_hints)
+        _orig_x = size_hints.get("x", 1)
+        if isinstance(_orig_x, int) and _orig_x > 64:
+            size_hints["x"] = 64
+        # Force a single fixed config (XBLOCK=64, R0_BLOCK=128) to ensure
+        # the same kernel binary for all batch sizes. Different XBLOCK values
+        # produce different kernel binaries with different FP behavior on NPU.
+        # R0_BLOCK=128 keeps [64,128]*5*4B*2 ~ 131KB within the 192KB UB limit.
+        return cached_autotune(
+            size_hints,
+            [npu_triton_config_reduction(size_hints, 64, 128)],
+            triton_meta=triton_meta,
+            inductor_meta=inductor_meta,
+            heuristic_type=HeuristicType.REDUCTION,
+            filename=filename,
+        )
 
     if triton_meta is None:
         raise ValueError("[triton_experimental] triton_meta must not be None")
@@ -2847,6 +2864,27 @@ def persistent_reduction(
         )
         cfg.kwargs["R0_BLOCK"] = r
         return cfg
+
+    if inductor_meta.get("batch_invariant") and not inductor_meta.get("no_x_dim"):
+        # batch_invariant: pin a single config so every batch size compiles the
+        # same kernel binary. XBLOCK is pinned to 64 (matching reduction()'s
+        # batch_invariant pinning); R0_BLOCK is derived from rnumel, which is
+        # static across batch sizes. no_x_dim keeps the generic path: x is
+        # constantly 1 there, so its config list is already batch-stable.
+        size_hints = dict(size_hints)
+        if isinstance(size_hints.get("x"), int) and size_hints["x"] > 64:
+            size_hints["x"] = 64
+        r_fixed = rnumel if isinstance(rnumel, int) and rnumel > 0 else next_power_of_2(rnumel)
+        cfg = persistent_cfg(64, r_fixed)
+        cfg.kwargs.pop("R0_BLOCK", None)
+        return cached_autotune(
+            size_hints,
+            [cfg],
+            triton_meta=triton_meta,
+            inductor_meta=inductor_meta,
+            filename=filename,
+            heuristic_type=HeuristicType.PERSISTENT_REDUCTION,
+        )
 
     if len(size_hints) == 2:
         block_hints = triton_meta.get("block_hints", {}) if triton_meta else {}

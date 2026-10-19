@@ -19,6 +19,33 @@ from torch._inductor.codegen.triton import texpr
 
 _log = logging.getLogger(__name__)
 
+
+def _is_batch_invariant():
+    """Check if batch_invariant mode is active (from inductor config)."""
+    try:
+        from torch._inductor import config as inductor_config
+        return bool(getattr(inductor_config, "batch_invariant", False))
+    except Exception:
+        return False
+
+
+def _sibling_product(tree, node):
+    """Product of the other free axes' static numels. A runtime alias of one
+    axis's numel from the tree-level runtime numel arg must divide this out:
+    by range-tree construction the tree numel is the product of all free-axis
+    numels, so ``nodenumel = treenumel // sibling_product``."""
+    sib_prod = sympy.Integer(1)
+    for n in tree.nodes.values():
+        if n.name in tree.tree_node_mapping or n.name == node.name:
+            continue
+        sib_prod = sib_prod * sympy.sympify(n.length)
+    if not (sib_prod.is_Integer and int(sib_prod) >= 1):
+        raise RuntimeError(
+            f"[triton_experimental] axis {node.name!r} has non-static sibling "
+            "axes; its numel cannot be derived from the tree's runtime numel"
+        )
+    return sib_prod
+
 # Vector CMP on A2/A3 lacks native int64/int32, so an int arange < numel decays to
 # a scalar loop; casting the index to fp32 first keeps it on the vector unit.
 # Default off: fp32's 24-bit mantissa loses precision past 2^24, so only opt in
@@ -68,19 +95,23 @@ def _npu_emit_axis_numel(pre_loop, tree, node):
     if not isinstance(length, (int, sympy.Integer)):
         return
     if int(length) < 2**31:
+        if _is_batch_invariant():
+            # batch_invariant: alias the tree's runtime numel instead of baking
+            # a tl.constexpr, so the kernel binary is identical across batch
+            # sizes. On multi-node trees the tree numel is the product of all
+            # free-axis numels, so divide out the sibling axes' product (the
+            # same aliasing invariant the >= 2^31 path below relies on).
+            sib_prod = _sibling_product(tree, node)
+            if int(sib_prod) == 1:
+                pre_loop.writeline(f"{node.name}numel = {tree.prefix}numel")
+            else:
+                pre_loop.writeline(
+                    f"{node.name}numel = {tree.prefix}numel // {int(sib_prod)}"
+                )
+            return
         pre_loop.writeline(f"{node.name}numel : tl.constexpr = {int(length)}")
         return
-    sib_prod = sympy.Integer(1)
-    for n in tree.nodes.values():
-        if n.name in tree.tree_node_mapping or n.name == node.name:
-            continue
-        sib_prod = sib_prod * sympy.sympify(n.length)
-    if not (sib_prod.is_Integer and int(sib_prod) >= 1):
-        raise RuntimeError(
-            f"[triton_experimental] axis {node.name!r} has a static numel "
-            f">= 2^31 ({length}) with non-static sibling axes; this "
-            "combination needs a dedicated lowering (oversized-block-count dispatch)"
-        )
+    sib_prod = _sibling_product(tree, node)
     if int(sib_prod) == 1:
         pre_loop.writeline(f"{node.name}numel = {tree.prefix}numel")
     else:
@@ -787,8 +818,10 @@ def _codegen_header_npu_for_tree(kernel, tree, code, outer_blocks=None):
                 _balanced_shared.append((rem_name, f"({rem_raw}) if ({rem_raw}) > 1 else 1"))
                 rem_ref = rem_name
             tile_name = f"{shared_pfx}_g_tile{idx}"
-            if s is None:
-                # Unknown size: eat all remaining budget (mask trims the tail).
+            if s is None or _is_batch_invariant():
+                # Unknown size or batch_invariant: eat all remaining budget (mask trims the tail).
+                # batch_invariant: use XBLOCK directly (not min(static_length, XBLOCK))
+                # so the constexpr tile is identical across batch sizes -> same kernel binary.
                 tile_expr = f"({rem_ref})"
             else:
                 # tile_i = min(size_i, rem_i) via ternary (bare min() is tl.min).
@@ -1029,6 +1062,7 @@ def _codegen_header_npu_for_tree(kernel, tree, code, outer_blocks=None):
                 isinstance(node.length, (int, sympy.Integer))
                 and int(node.length) >= 2**31
             )
+            and not _is_batch_invariant()
         )
         if blocks_is_constexpr:
             pre_loop.writeline(f"{node.name}_blocks : tl.constexpr = ({node.name}numel + real_block_{node.name} - 1) // real_block_{node.name}")  # noqa: B950
