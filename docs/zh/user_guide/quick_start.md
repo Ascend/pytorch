@@ -8,7 +8,7 @@
 
 请先完成以下安装及环境配置；已完成的可直接进入数据准备。
 
-- 安装配套版本的NPU驱动固件、CANN软件（Toolkit、ops和NNAL），具体请参见《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》，并按指南加载环境变量。
+- 安装配套版本的NPU驱动固件、CANN软件（Toolkit、ops和NNAL），具体请参见《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/920/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》，并按指南加载环境变量。
 - PyTorch框架和TorchNPU插件，具体请参见[快速安装](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=180&ids=89dda9ba9de741349efa03687a487678%2C204%2C200%2C1%2C6%2C177%2C)。
 - 安装与PyTorch版本配套的torchvision，参见[安装torchvision](https://pytorch.org/get-started/locally/)。
 
@@ -118,7 +118,7 @@
     +from torch_npu.contrib import transfer_to_npu    # 开启自动迁移
     ```
 
-    导入`transfer_to_npu`即开启自动迁移，将本示例中的相关CUDA调用映射到NPU。因此，脚本中的`cuda:0`可以保留，模型和数据实际在NPU上运行。若未开启自动迁移，用户可参考[手工迁移](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/zh/model_migration/manual_migration.md)文档完成迁移。
+    导入`transfer_to_npu`即开启自动迁移，将本示例中的相关CUDA调用映射到NPU。因此，脚本中的`cuda:0`可以保留，模型和数据实际在NPU上运行。若未开启自动迁移，用户可参考[手工迁移](https://www.hiascend.com/document/detail/zh/ModelZoo/traditional_model_train/PyTorch/docs/zh/model_migration/manual_migration.md)文档完成迁移。
 
 3. 在train.py中添加以下代码开启AMP（Automatic Mixed Precision，自动混合精度）。
 
@@ -130,7 +130,7 @@
     > <!-- npu="950,A3,910b" id2 -->
     > - 若用户使用<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>或<term>Ascend 950DT系列产品</term>，则可以自行选择是否开启混合精度，如果选择不开启混合精度，则可以跳过此步骤。
     > <!-- end id2 -->
-    > - 混合精度的具体介绍，请参见[混合精度适配](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/zh/mixed_precision_adaptation/adaptation_introduction.md)。
+    > - 混合精度的具体介绍，请参见[混合精度适配](https://www.hiascend.com/document/detail/zh/ModelZoo/traditional_model_train/PyTorch/docs/zh/mixed_precision_adaptation/adaptation_introduction.md)。
 
     AMP包含两个主要操作：`autocast`为前向计算中的算子选择适用的计算精度；`GradScaler`通过缩放loss减少低精度梯度下溢的风险，并在参数更新时还原梯度尺度。
 
@@ -191,7 +191,7 @@
 
 ## 进阶开发
 
-- 如果需要体验PyTorch模型训练迁移更丰富的功能，请前往《[PyTorch训练模型迁移调优指南](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/zh/_menu.md)》文档阅读了解。
+- 如果需要体验PyTorch模型训练迁移更丰富的功能，请前往《[模型迁移调试](https://www.hiascend.com/document/detail/zh/ModelZoo/traditional_model_train/PyTorch/docs/zh/migration_process.md)》文档阅读了解。
 - 如果需要体验大模型训练更丰富的功能，请参见下表了解更多：
 
     |大模型|组件|迁移指导|
