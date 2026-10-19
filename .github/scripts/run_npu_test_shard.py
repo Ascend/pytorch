@@ -62,7 +62,7 @@ from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
-from queue import Queue, Empty
+from queue import Queue, Empty, Full
 from time import monotonic, sleep
 from typing import Dict, List, Optional, Tuple
 
@@ -417,17 +417,177 @@ class ConcurrentResultAggregator:
             }
 
 
+class NonBlockingConsole:
+    """
+    Queued stdout wrapper whose callers can never block on console output.
+
+    A single daemon drain thread owns all real printing; every caller only
+    does a bounded put_nowait. When the step's stdout stops draining (wedged
+    tee / runner log pipe — the failure mode where a direct print blocks
+    forever, historically while holding the progress-tracker lock and
+    freezing every reader thread), exactly one thread blocks and the rest
+    of the machinery (result aggregation, worker supervision, disk
+    forensics) keeps running. Overflow messages are dropped and counted,
+    with a note emitted once draining resumes.
+
+    Progress lines routed here are also written to the on-disk shard log by
+    the log writer thread, so a wedge costs live console output only, never
+    data.
+    """
+
+    def __init__(self, maxsize: int = 2000):
+        self._queue: Queue = Queue(maxsize=maxsize)
+        self._dropped = 0
+        self._reported = 0   # high-water mark of drops covered by a delivered note
+        self._dropped_lock = threading.Lock()
+        self._started = threading.Event()
+        self._thread = threading.Thread(target=self._drain, daemon=True)
+
+    def start(self) -> None:
+        self._started.set()
+        self._thread.start()
+
+    def print(self, msg: str) -> None:
+        """Enqueue a line for printing. Never blocks; drops on overflow."""
+        # Note emission is atomic under the lock: two racing threads must
+        # not both deliver a note for the same span and both advance
+        # _reported past _dropped.
+        with self._dropped_lock:
+            unreported = self._dropped - self._reported
+            if unreported:
+                try:
+                    self._queue.put_nowait(
+                        f"[console] {unreported} message(s) dropped while "
+                        f"stdout was stalled"
+                    )
+                    # Note delivered; mark its span as reported. Drops that
+                    # race in after this snapshot stay unreported for the
+                    # next note.
+                    self._reported += unreported
+                except Full:
+                    pass  # the note itself was dropped; retried next print
+        self._try_enqueue(msg)
+
+    def stats(self) -> Dict:
+        """Drop/pending counters for stall reporting."""
+        with self._dropped_lock:
+            dropped = self._dropped
+        return {"dropped": dropped, "pending": self._queue.qsize()}
+
+    def finish(self, timeout: float) -> bool:
+        """
+        Stop the drain loop and wait for the queue to flush.
+
+        Returns True when the drain thread exited (everything flushed).
+        False means it is still blocked in a write after the budget —
+        stdout is wedged and remaining queued messages will be lost.
+        """
+        self._started.clear()
+        self._thread.join(timeout=timeout)
+        return not self._thread.is_alive()
+
+    def _try_enqueue(self, msg: str) -> bool:
+        """Bounded enqueue; returns False (and counts the drop) when full.
+        Never blocks. (The drop-note path in print() enqueues directly so
+        it can stay atomic under _dropped_lock.)"""
+        try:
+            self._queue.put_nowait(msg)
+            return True
+        except Full:
+            with self._dropped_lock:
+                self._dropped += 1
+            return False
+
+    def _drain(self) -> None:
+        while True:
+            try:
+                msg = self._queue.get(timeout=0.5)
+            except Empty:
+                if not self._started.is_set():
+                    return  # stopped and nothing pending
+                continue
+            try:
+                print(msg, flush=True)
+            except Exception:
+                # stdout closed/unwritable: keep draining silently so the
+                # queue does not fill with undeliverable messages.
+                pass
+
+
+# ==============================================================================
+# Parent-Side Global Stall Watchdog
+# ==============================================================================
+#
+# Safety net for stall modes the per-worker idle watchdogs cannot act on
+# (e.g. a wedged stdout freezing readers on a shared lock, an unknown
+# future deadlock). If NO case completes anywhere for
+# PARENT_STALL_THRESHOLD_SECONDS while the run is active, dump every
+# parent thread's stack to the report dir — paired with the worker-side
+# SIGUSR1 dumps this gives the full causal chain. Disk-only, never prints.
+
+PARENT_STALL_THRESHOLD_SECONDS = 1800   # > measured worst inter-completion gap (~938s in an 11h run)
+PARENT_STALL_CHECK_INTERVAL_SECONDS = 60
+
+
+def _parent_stall_watchdog(
+    progress_tracker: "ProgressTracker",
+    report_dir: Path,
+    stop_event: threading.Event,
+) -> None:
+    """Daemon: snapshot all parent thread stacks while global progress stalls."""
+    last_count = -1
+    last_change = monotonic()
+    while not stop_event.is_set():
+        sleep(PARENT_STALL_CHECK_INTERVAL_SECONDS)
+        if stop_event.is_set():
+            break
+        count = progress_tracker.get_completed()
+        if count != last_count:
+            last_count = count
+            last_change = monotonic()
+            continue
+        stalled_for = monotonic() - last_change
+        if stalled_for < PARENT_STALL_THRESHOLD_SECONDS:
+            continue
+        dump_path = report_dir / f"parent_stall_{int(monotonic())}.txt"
+        try:
+            with open(dump_path, "w", encoding="utf-8") as f:
+                f.write(
+                    f"Global progress stalled for {stalled_for:.0f}s "
+                    f"(completed={count}, no completion anywhere). "
+                    f"All parent thread stacks follow.\n"
+                    f"{'=' * 80}\n"
+                )
+                faulthandler.dump_traceback(file=f)
+        except OSError:
+            pass
+        # Snapshot once per threshold period while the stall persists.
+        last_change = monotonic()
+
+
 class ProgressTracker:
     """Thread-safe progress tracker with real-time output."""
 
-    def __init__(self, total_tasks: int):
+    def __init__(self, total_tasks: int, console: NonBlockingConsole):
         self._total_tasks = total_tasks
         self._completed_tasks = 0
         self._lock = threading.Lock()
         self._start_time = monotonic()
+        self._console = console
+
+    def get_completed(self) -> int:
+        """Read-only completed count (never blocks)."""
+        with self._lock:
+            return self._completed_tasks
 
     def mark_completed(self, nodeid: str, status: str, duration: float) -> None:
-        """Mark task completed and print progress."""
+        """Mark task completed and enqueue a progress line.
+
+        The console enqueue never blocks, so this lock is never held across
+        a potentially blocking operation (the old direct print here could
+        block forever on a wedged stdout while holding the lock, freezing
+        every reader thread and, through them, every worker).
+        """
         with self._lock:
             self._completed_tasks += 1
             elapsed = monotonic() - self._start_time
@@ -442,9 +602,11 @@ class ProgressTracker:
                 "skipped": "[SKIP]",
             }.get(status, "[?]")
 
-            print(f"[{self._completed_tasks}/{self._total_tasks}] {progress_pct:.1f}% "
-                  f"{status_icon} {nodeid} ({duration:.1f}s) "
-                  f"[elapsed: {elapsed:.0f}s]", flush=True)
+            self._console.print(
+                f"[{self._completed_tasks}/{self._total_tasks}] {progress_pct:.1f}% "
+                f"{status_icon} {nodeid} ({duration:.1f}s) "
+                f"[elapsed: {elapsed:.0f}s]"
+            )
 
 
 # ==============================================================================
@@ -703,7 +865,8 @@ def run_tests_with_tasks_concurrent(
     shard_type: str,
     max_workers: int,
     result_module,
-    quick_test: int = None,
+    quick_test: Optional[int] = None,
+    console: Optional[NonBlockingConsole] = None,
 ) -> Tuple[int, float, List[Dict]]:
     """
     Execute pre-collected test cases with concurrent per-case isolation.
@@ -723,12 +886,20 @@ def run_tests_with_tasks_concurrent(
         max_workers: Maximum concurrent subprocesses
         result_module: parse_test_results module
         quick_test: Maximum number of cases to execute (None = all cases)
+        console: NonBlockingConsole for all mid-run output. One is created
+            (and leaked to the process lifetime) when not supplied; callers
+            that want the end-of-run stdout health check should create one,
+            pass it here, and use finish() on it afterwards.
 
     Returns:
         Tuple of (worst_returncode, duration, cases_list_sorted)
     """
     start = monotonic()
     log_file = result_module.get_shard_log_file(report_dir, shard, shard_type)
+
+    if console is None:
+        console = NonBlockingConsole()
+        console.start()
 
     # Create junit_xmls directory for XML reports
     junit_xml_dir = report_dir / "junit_xmls"
@@ -741,10 +912,10 @@ def run_tests_with_tasks_concurrent(
     # distributed tests do not set ASCEND_RT_VISIBLE_DEVICES to allow using all devices
     if shard_type == "distributed":
         num_npu_devices = None
-        print("NPU device allocation: DISABLED (distributed test uses all devices)")
+        console.print("NPU device allocation: DISABLED (distributed test uses all devices)")
     else:
         num_npu_devices = get_npu_device_count()
-        print(f"NPU device allocation: {num_npu_devices} devices detected (round-robin)")
+        console.print(f"NPU device allocation: {num_npu_devices} devices detected (round-robin)")
 
     # Thread-safe result aggregator
     result_aggregator = ConcurrentResultAggregator()
@@ -758,7 +929,15 @@ def run_tests_with_tasks_concurrent(
         daemon=True,
     )
 
-    # Write log header
+    log_thread.start()
+
+    # Quick test: limit number of cases to execute
+    if quick_test and len(tasks) > quick_test:
+        tasks = tasks[:quick_test]
+        console.print(f"Quick test mode: executing only {quick_test} cases")
+
+    # Write log header (after the quick_test truncation so the logged total
+    # matches what actually runs)
     log_queue.put({
         "type": "header",
         "content": (
@@ -772,34 +951,37 @@ def run_tests_with_tasks_concurrent(
         ),
     })
 
-    log_thread.start()
-
-    # Quick test: limit number of cases to execute
-    if quick_test and len(tasks) > quick_test:
-        tasks = tasks[:quick_test]
-        print(f"\nQuick test mode: executing only {quick_test} cases", flush=True)
-
     total_cases = len(tasks)
 
     # Sort and batch tasks: group same-file cases, max 100 per batch
     batches = sort_and_batch_tasks(tasks, max_cases_per_batch=100)
 
-    print(f"\n{'=' * 80}", flush=True)
-    print(f"Pre-collected cases: {total_cases} cases", flush=True)
-    print(f"Execution mode: {max_workers} workers concurrent, "
-          f"{len(batches)} batches (max 100 same-file cases per batch, pytest.main() per case)", flush=True)
-    print(f"{'=' * 80}\n", flush=True)
+    console.print(f"{'=' * 80}")
+    console.print(f"Pre-collected cases: {total_cases} cases")
+    console.print(f"Execution mode: {max_workers} workers concurrent, "
+                  f"{len(batches)} batches (max 100 same-file cases per batch, pytest.main() per case)")
+    console.print(f"{'=' * 80}")
 
     # Print batch summary
     for bi, b in enumerate(batches):
         display_file = b[0].test_file
         if display_file.startswith("test/"):
             display_file = display_file[5:]
-        print(f"  Batch {bi}: {len(b)} cases from {display_file}")
+        console.print(f"  Batch {bi}: {len(b)} cases from {display_file}")
 
-    print(f"\nPhase: Executing {total_cases} pre-collected cases in {len(batches)} batches...", flush=True)
+    console.print(f"Phase: Executing {total_cases} pre-collected cases in {len(batches)} batches...")
 
-    progress_tracker = ProgressTracker(total_cases)
+    progress_tracker = ProgressTracker(total_cases, console)
+
+    # Parent-side global-stall watchdog (see _parent_stall_watchdog): started
+    # only after the tracker exists, stopped as soon as the executor drains.
+    stall_stop = threading.Event()
+    stall_thread = threading.Thread(
+        target=_parent_stall_watchdog,
+        args=(progress_tracker, report_dir, stall_stop),
+        daemon=True,
+    )
+    stall_thread.start()
 
     # Push case_start log entries for all cases (preserves log format)
     for task in tasks:
@@ -837,6 +1019,7 @@ def run_tests_with_tasks_concurrent(
                 result_aggregator,
                 progress_tracker,
                 log_queue,
+                console,
             )
             futures.append((future, batch_id))
 
@@ -845,9 +1028,12 @@ def run_tests_with_tasks_concurrent(
             try:
                 future.result()
             except Exception as e:
-                print(f"  ERROR: Batch {batch_id} execution failed: {str(e)[:200]}", flush=True)
+                console.print(f"  ERROR: Batch {batch_id} execution failed: {str(e)[:200]}")
 
-    # Stop log thread
+    # Stop the stall watchdog and log thread
+    stall_stop.set()
+    stall_thread.join(timeout=2)
+
     elapsed = monotonic() - start
     summary = result_aggregator.get_summary()
 
@@ -871,15 +1057,15 @@ def run_tests_with_tasks_concurrent(
     log_thread.join(timeout=5)
 
     # Print final summary
-    print(f"\n{'=' * 80}", flush=True)
-    print(f"Summary: {summary['total_cases']} cases executed", flush=True)
-    print(f"  Passed: {summary['passed_count']}", flush=True)
-    print(f"  Failed: {summary['failed_count']}", flush=True)
-    print(f"  Errors: {summary['error_count']}", flush=True)
-    print(f"  Timeout: {summary['timeout_count']}", flush=True)
-    print(f"  Skipped: {summary['skipped_count']}", flush=True)
-    print(f"  Duration: {elapsed:.2f}s", flush=True)
-    print(f"{'=' * 80}", flush=True)
+    console.print(f"{'=' * 80}")
+    console.print(f"Summary: {summary['total_cases']} cases executed")
+    console.print(f"  Passed: {summary['passed_count']}")
+    console.print(f"  Failed: {summary['failed_count']}")
+    console.print(f"  Errors: {summary['error_count']}")
+    console.print(f"  Timeout: {summary['timeout_count']}")
+    console.print(f"  Skipped: {summary['skipped_count']}")
+    console.print(f"  Duration: {elapsed:.2f}s")
+    console.print(f"{'=' * 80}")
 
     return summary["worst_returncode"], elapsed, result_aggregator.get_sorted_cases()
 
@@ -1086,6 +1272,7 @@ def _execute_worker_batch(
     result_aggregator: ConcurrentResultAggregator,
     progress_tracker: ProgressTracker,
     log_queue: Queue,
+    console: NonBlockingConsole,
 ) -> None:
     """
     Execute one batch in a worker subprocess using pytest.main().
@@ -1117,14 +1304,24 @@ def _execute_worker_batch(
             }
             for t in remaining_cases
         ]
-        batch_input_file.write_text(json.dumps(batch_input, indent=2), encoding="utf-8")
 
         attempt_completed = set()
+        # Set when THIS attempt's poll loop exits: tells the attempt's reader
+        # thread to stop processing further lines (reconciliation owns result
+        # recovery from disk from that point; a stale reader must not keep
+        # aggregating into the shared trackers).
+        reader_done = threading.Event()
         # Reset per-attempt watchdog/forensics state; assigned after Popen.
         # Stays None if the worker never started (Popen failure path).
         worker_state = None
 
         try:
+            # Inside the try on purpose: a full disk raises OSError here, and
+            # the handler below turns it into per-case error results (keeping
+            # cases.json complete) instead of escaping with the batch's cases
+            # missing from the aggregator entirely.
+            batch_input_file.write_text(json.dumps(batch_input, indent=2), encoding="utf-8")
+
             worker_cmd = [
                 sys.executable, "-u", str(script_path),
                 "--worker", str(batch_input_file),
@@ -1152,8 +1349,7 @@ def _execute_worker_batch(
             # container per Popen is essential: reader threads of previously
             # killed workers may keep draining leaked-grandchild output
             # forever, and must never be able to refresh THIS worker's idle
-            # timer (they used to share one closure variable, which kept
-            # restarted workers hung forever too).
+            # timer or pollute its forensics.
             worker_state = {
                 "last_heartbeat": monotonic(),
                 # Bounded tail of raw pipe lines = crash/hang scene
@@ -1162,9 +1358,28 @@ def _execute_worker_batch(
                 "device_id": npu_device_id,
             }
 
-            def _read_stdout():
+            # Late-binding guard: the reader must capture THIS attempt's
+            # objects BY VALUE. A plain closure shares the enclosing cells,
+            # so after a restart rebinds proc / worker_state /
+            # attempt_completed, a still-running old reader (alive because a
+            # grandchild that escaped the killed process group keeps the old
+            # pipe open) would read the OLD pipe but write into the NEW
+            # worker's noise deque, refresh its heartbeat, and pollute its
+            # attempt set. Default arguments bind at def time, isolating
+            # each attempt.
+            def _read_stdout(
+                proc=proc,
+                worker_state=worker_state,
+                attempt_completed=attempt_completed,
+                reader_done=reader_done,
+            ):
                 if proc.stdout:
                     for raw_line in proc.stdout:
+                        if reader_done.is_set():
+                            # Attempt is over (worker exited or was killed):
+                            # late lines are dropped; the reconciliation
+                            # passes recover results from on-disk evidence.
+                            return
                         line = raw_line.rstrip("\n")
                         if not line:
                             continue
@@ -1244,30 +1459,38 @@ def _execute_worker_batch(
                     except (ProcessLookupError, PermissionError):
                         pass
                     reader_thread.join(timeout=10)
+                    # After the join: a still-alive reader is stuck on a
+                    # pipe held outside the killed group. Flag the attempt
+                    # closed so it exits at its next line instead of
+                    # double-counting results the reconciliation will
+                    # already have recovered.
+                    reader_done.set()
                     break
 
                 if monotonic() - worker_state["last_heartbeat"] > idle_timeout:
                     timeout_occurred = True
                     hung_duration = monotonic() - worker_state["last_heartbeat"]
-                    print(
-                        f"  [Batch {batch_id}] Idle timeout ({hung_duration:.0f}s "
-                        f"without worker progress), requesting stack dump and "
-                        f"killing worker group...",
-                        flush=True,
-                    )
-                    # First ask the worker for an all-thread stack dump
-                    # (faulthandler, registered in _worker_main). It works
-                    # even when the GIL is held by a hung native call —
-                    # exactly where pytest-timeout's SIGALRM method cannot
-                    # fire — and the dump drains into the noise tail via
-                    # fd 2, landing in the hung case's log.
+                    # Recovery ordering is deliberate and MUST NOT start
+                    # with console output: a wedged stdout (full pipe behind
+                    # a stuck tee/runner) blocks a leading print forever and
+                    # smothers the entire recovery chain. Act first, notify
+                    # last:
+                    # 1) ask the worker for an all-thread stack dump
+                    #    (faulthandler registered in _worker_main; works even
+                    #    when the GIL is held by a hung native call — exactly
+                    #    where pytest-timeout's SIGALRM method cannot fire —
+                    #    and it writes straight to the stack_dumps file on
+                    #    disk, immune to both pytest fd capture and stdout
+                    #    state)
+                    # 2) take down the whole process group (worker + leaked
+                    #    grandchildren still holding the pipe or devices)
+                    # 3) reap the worker, join the reader
+                    # 4) notify the console (best effort, never required)
                     try:
                         proc.send_signal(signal.SIGUSR1)
                     except (ProcessLookupError, OSError):
                         pass
                     sleep(HEARTBEAT_DUMP_WAIT_SECONDS)
-                    # Then kill the whole process group: the worker plus any
-                    # leaked grandchildren still holding the pipe or devices.
                     try:
                         os.killpg(proc.pid, signal.SIGKILL)
                     except (ProcessLookupError, PermissionError):
@@ -1277,6 +1500,12 @@ def _execute_worker_batch(
                     except subprocess.TimeoutExpired:
                         returncode = -9
                     reader_thread.join(timeout=10)
+                    reader_done.set()
+                    console.print(
+                        f"  [Batch {batch_id}] Idle timeout ({hung_duration:.0f}s "
+                        f"without worker progress); stack dump requested, "
+                        f"worker group killed"
+                    )
                     break
 
                 sleep(0.5)
@@ -1305,14 +1534,17 @@ def _execute_worker_batch(
                         "file": hung_case.test_file,
                         "case_idx": hung_case.case_idx,
                     }
+                    # Record order: aggregate -> persist forensics to disk ->
+                    # progress bookkeeping. The crash log must be on disk
+                    # before any call that could block on a wedged stdout.
                     result_aggregator.add_case_result(timeout_result)
-                    progress_tracker.mark_completed(
-                        hung_case.nodeid, "timeout", hung_duration
-                    )
                     _save_crash_case_log(
                         report_dir, shard, shard_type, hung_case,
                         "timeout", hung_duration, -9, hang_msg, worker_state,
                         stack_dump=_read_worker_stack_dump(report_dir, batch_id),
+                    )
+                    progress_tracker.mark_completed(
+                        hung_case.nodeid, "timeout", hung_duration
                     )
                     completed_nodeids.add(hung_case.nodeid)
                     remaining_cases = not_reported[1:]
@@ -1320,10 +1552,9 @@ def _execute_worker_batch(
                     remaining_cases = []
 
                 if remaining_cases:
-                    print(
+                    console.print(
                         f"  [Batch {batch_id}] Continuing with "
-                        f"{len(remaining_cases)} remaining cases...",
-                        flush=True,
+                        f"{len(remaining_cases)} remaining cases..."
                     )
                 continue
 
@@ -1333,17 +1564,15 @@ def _execute_worker_batch(
             # no case was in progress — restart for ALL unreported cases
             # without sacrificing any.
             if returncode == NPU_QUEUE_FATAL_EXIT_CODE:
-                print(
+                console.print(
                     f"  [Batch {batch_id}] NPU fatal error detected by worker,"
-                    f" restarting for {len(not_reported)} remaining cases...",
-                    flush=True,
+                    f" restarting for {len(not_reported)} remaining cases..."
                 )
                 remaining_cases = not_reported
                 if remaining_cases:
-                    print(
+                    console.print(
                         f"  [Batch {batch_id}] Continuing with "
-                        f"{len(remaining_cases)} remaining cases...",
-                        flush=True,
+                        f"{len(remaining_cases)} remaining cases..."
                     )
                 continue
 
@@ -1353,10 +1582,6 @@ def _execute_worker_batch(
                     signal_name = signal.Signals(signal_num).name
                 except (ValueError, AttributeError):
                     signal_name = f"signal {signal_num}"
-                print(
-                    f"  [Batch {batch_id}] Worker coredump ({signal_name})",
-                    flush=True,
-                )
 
                 if not_reported:
                     crashed_case = not_reported[0]
@@ -1374,24 +1599,29 @@ def _execute_worker_batch(
                         "file": crashed_case.test_file,
                         "case_idx": crashed_case.case_idx,
                     }
+                    # Record order: aggregate -> persist forensics to disk ->
+                    # progress bookkeeping -> notify (see the idle-timeout
+                    # path for the rationale).
                     result_aggregator.add_case_result(error_result)
-                    progress_tracker.mark_completed(
-                        crashed_case.nodeid, "error", 0.0
-                    )
                     _save_crash_case_log(
                         report_dir, shard, shard_type, crashed_case,
                         "error", 0.0, returncode, crash_msg, worker_state,
+                    )
+                    progress_tracker.mark_completed(
+                        crashed_case.nodeid, "error", 0.0
                     )
                     completed_nodeids.add(crashed_case.nodeid)
                     remaining_cases = not_reported[1:]
                 else:
                     remaining_cases = []
 
+                console.print(
+                    f"  [Batch {batch_id}] Worker coredump ({signal_name})"
+                )
                 if remaining_cases:
-                    print(
+                    console.print(
                         f"  [Batch {batch_id}] Continuing with "
-                        f"{len(remaining_cases)} remaining cases...",
-                        flush=True,
+                        f"{len(remaining_cases)} remaining cases..."
                     )
                 continue
 
@@ -1453,11 +1683,10 @@ def _execute_worker_batch(
                     completed_nodeids.add(task.nodeid)
                     recovered += 1
                 if recovered:
-                    print(
+                    console.print(
                         f"  [Batch {batch_id}] Recovered {recovered} case "
                         f"result(s) from batch results file "
-                        f"(stdout result line lost)",
-                        flush=True,
+                        f"(stdout result line lost)"
                     )
                 remaining = still_missing
 
@@ -1481,21 +1710,19 @@ def _execute_worker_batch(
                     completed_nodeids.add(task.nodeid)
                     recovered += 1
                 if recovered:
-                    print(
+                    console.print(
                         f"  [Batch {batch_id}] Recovered {recovered} case "
                         f"result(s) from JUnit XML files "
-                        f"(stdout result line lost)",
-                        flush=True,
+                        f"(stdout result line lost)"
                     )
                 remaining = still_missing
 
             # Pass 3: no on-disk evidence — synthetic error
             if remaining:
-                print(
+                console.print(
                     f"  [Batch {batch_id}] {len(remaining)} cases missing "
                     f"results (normal exit, no on-disk evidence), "
-                    f"marking as error",
-                    flush=True,
+                    f"marking as error"
                 )
                 for task in remaining:
                     error_result = {
@@ -1519,13 +1746,9 @@ def _execute_worker_batch(
             break
 
         except Exception as e:
-            print(
-                f"  [Batch {batch_id}] Worker execution failed: {str(e)[:200]}",
-                flush=True,
-            )
-            # Best effort: take down the worker group if a worker was
-            # already started before the exception (worker_state is only
-            # set after a successful Popen, so proc is bound too).
+            # Kill first (a wedged stdout must not block cleanup), then
+            # record, then notify. worker_state is only set after a
+            # successful Popen, so proc is bound whenever it is not None.
             if worker_state is not None:
                 try:
                     os.killpg(proc.pid, signal.SIGKILL)
@@ -1545,12 +1768,15 @@ def _execute_worker_batch(
                         "case_idx": task.case_idx,
                     }
                     result_aggregator.add_case_result(error_result)
-                    progress_tracker.mark_completed(task.nodeid, "error", 0.0)
                     if worker_state is not None:
                         _save_crash_case_log(
                             report_dir, shard, shard_type, task,
                             "error", 0.0, 1, failure_msg, worker_state,
                         )
+                    progress_tracker.mark_completed(task.nodeid, "error", 0.0)
+            console.print(
+                f"  [Batch {batch_id}] Worker execution failed: {str(e)[:200]}"
+            )
             break
 
     # Cleanup temp file
@@ -1801,6 +2027,22 @@ def _worker_main(worker_input_file: str) -> None:
     os._exit(0)
 
 
+def _write_console_stall_report(report_dir: Path, console: NonBlockingConsole) -> None:
+    """Record that the step's stdout stopped draining before process exit."""
+    stats = console.stats()
+    try:
+        (report_dir / "CONSOLE_STALLED.txt").write_text(
+            "Step stdout stopped draining: the console drain thread is still\n"
+            "blocked in a write after the run finished. All test results are\n"
+            "complete on disk (see cases.json / stats / info files); only live\n"
+            "console output was affected.\n"
+            f"dropped={stats['dropped']} pending={stats['pending']}\n",
+            encoding="utf-8",
+        )
+    except OSError:
+        pass
+
+
 def save_results_and_summary(
     result_module,
     report_dir: Path,
@@ -1813,6 +2055,7 @@ def save_results_and_summary(
     execution_mode: Optional[str] = None,
     concurrent_workers: Optional[int] = None,
     has_distributed_files: Optional[bool] = None,
+    quiet: bool = False,
 ) -> None:
     """
     Save results and print summary.
@@ -1877,8 +2120,11 @@ def save_results_and_summary(
 
     result_module.save_stats_file(str(report_dir), shard, stats, shard_type)
 
-    # Print summary
-    result_module.print_stats_summary(shard, stats, shard_type)
+    # Print summary (skipped when stdout is known-wedged: print_stats_summary
+    # prints directly and would hang the step after results are already safe
+    # on disk)
+    if not quiet:
+        result_module.print_stats_summary(shard, stats, shard_type)
 
 
 def clean_existing_junit_xml(report_dir: Path) -> None:
@@ -2137,6 +2383,8 @@ def main():
             # Phase 2: Execute cases using run_tests_with_tasks_concurrent
             # Use effective_workers (1 for distributed files, args.max_workers otherwise)
             # Note: quick_test already applied above, pass None to avoid redundant check
+            console = NonBlockingConsole()
+            console.start()
             returncode, duration, cases_list = run_tests_with_tasks_concurrent(
                 tasks,
                 shard,
@@ -2149,6 +2397,7 @@ def main():
                 effective_workers,
                 result_module,
                 None,  # quick_test already applied above
+                console=console,
             )
             info["per_case_isolation"] = True
             info["concurrent_workers"] = effective_workers
@@ -2157,6 +2406,30 @@ def main():
         else:
             returncode = 0
             duration = 0.0
+            console = None
+
+        # Stdout health gate: if the console drain thread is still blocked in
+        # a write here, stdout is wedged — persist everything quietly and
+        # exit hard instead of hanging on the final direct-print summary for
+        # the remaining job-timeout budget. Results are already on disk and
+        # artifacts upload via the if: always() steps.
+        if console is not None and not console.finish(timeout=30):
+            _write_console_stall_report(report_dir, console)
+            save_results_and_summary(
+                result_module=result_module,
+                report_dir=report_dir,
+                shard=shard,
+                shard_type=shard_type,
+                cases_list=cases_list,
+                duration=duration,
+                returncode=returncode,
+                info=info,
+                execution_mode=execution_mode,
+                concurrent_workers=effective_workers,
+                has_distributed_files=has_distributed,
+                quiet=True,
+            )
+            os._exit(0)
 
         # Save results and print summary
         save_results_and_summary(
@@ -2258,6 +2531,8 @@ def main():
                 print(f"\nExecution mode: CONCURRENT ({effective_workers} workers)")
 
             # Execute tasks directly using the new function
+            console = NonBlockingConsole()
+            console.start()
             returncode, duration, cases_list = run_tests_with_tasks_concurrent(
                 tasks,
                 shard,
@@ -2270,6 +2545,7 @@ def main():
                 effective_workers,
                 result_module,
                 args.quick_test,
+                console=console,
             )
             info["execution_mode"] = "serial" if effective_workers == 1 else "concurrent"
             info["concurrent_workers"] = effective_workers
@@ -2278,6 +2554,27 @@ def main():
             print("No cases to execute.")
             returncode = 0
             duration = 0.0
+            console = None
+
+        # Stdout health gate: if the console drain thread is still blocked in
+        # a write here, stdout is wedged — persist everything quietly and
+        # exit hard instead of hanging on the final direct-print summary for
+        # the remaining job-timeout budget. Results are already on disk and
+        # artifacts upload via the if: always() steps.
+        if console is not None and not console.finish(timeout=30):
+            _write_console_stall_report(report_dir, console)
+            save_results_and_summary(
+                result_module=result_module,
+                report_dir=report_dir,
+                shard=shard,
+                shard_type=shard_type,
+                cases_list=cases_list,
+                duration=duration,
+                returncode=returncode,
+                info=info,
+                quiet=True,
+            )
+            os._exit(0)
 
         # Save results and print summary
         save_results_and_summary(
