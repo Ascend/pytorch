@@ -6394,10 +6394,10 @@ def split_last_continuous(lst):
 @register_lowering([aten.sum, prims.sum])
 def sum_(x, axis=None, keepdims=False, *, dtype=None):
     if isinstance(axis, int):
-        axis = [axis]
+        axis = (axis,)
     if axis and any(ax < 0 for ax in axis):
         offset = len(x.get_size())
-        axis = [ax + offset if ax < 0 else ax for ax in axis]
+        axis = tuple(ax + offset if ax < 0 else ax for ax in axis)
     if (
         is_integer_dtype(x.get_dtype()) or is_boolean_dtype(x.get_dtype())
     ) and dtype is None:

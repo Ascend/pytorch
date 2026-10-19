@@ -152,6 +152,11 @@ def patch_inductor_wrapper():
     src_call = _TorchCompileInductorWrapper.__call__
 
     def new_apply_options(self, options: Optional[dict[str, Any]]):
+        if options:
+            # torch >= 2.15 validates the config table directly instead of
+            # calling get_config_copy(), which historically injected our keys.
+            # Register only the config entries; backend loading stays lazy.
+            _inject_inductor_npu_backend_config()
         shape_handling_requested = (
             options is not None and options.get("enable_shape_handling", False)
         )
@@ -633,7 +638,9 @@ def register_npu_graphsafe_rng():
 @run_once
 def _inject_inductor_npu_backend_config():
     """Inject NPU entries into torch._inductor.config on first use."""
-    torch._inductor.config.get_config_copy()
+    from torch._inductor import config
+
+    config.get_config_copy()
 
 
 @run_once

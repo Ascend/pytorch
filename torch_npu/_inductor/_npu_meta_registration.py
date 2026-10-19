@@ -234,6 +234,7 @@ def _npu_fix_qr_fallback_layouts():
     from torch._inductor import ir
 
     qr_ops = (aten.linalg_qr.default, aten.linalg_qr.out)
+    svd_ops = (aten._linalg_svd.default,)
     orig = ir.FallbackKernel.process_kernel.__func__
 
     def _rowmajor(t):
@@ -254,6 +255,15 @@ def _npu_fix_qr_fallback_layouts():
             )
             if isinstance(eo, (tuple, list)):
                 fixed = type(eo)(_rowmajor(t) for t in eo)
+                result = _replace_qr_fallback_example_output(result, fixed)
+        elif kernel in svd_ops:
+            eo = (
+                result.example_output
+                if hasattr(result, "example_output")
+                else result[0]
+            )
+            if isinstance(eo, (tuple, list)) and eo:
+                fixed = type(eo)([_rowmajor(eo[0]), *eo[1:]])
                 result = _replace_qr_fallback_example_output(result, fixed)
         return result
 

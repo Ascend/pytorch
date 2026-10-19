@@ -1,6 +1,6 @@
 import torch
 
-from ..config import num_cube_core
+from .. import config as npu_config
 
 
 # Cube-side on-chip capacities for Atlas A5, from catlass/arch/arch.hpp.  The
@@ -20,9 +20,11 @@ MMAD_K_FRACTAL = 16
 # budgeted at four bytes per element while the operand tiles scale with dtype.
 ACCUM_BYTES = 4
 
-# Resolved the same way the rest of the NPU inductor backend resolves it, so a
-# non-28-core part and an NPU_DEVICE_LIMIT override are both honoured.
-NUM_CUBE_CORES = num_cube_core
+
+def get_num_cube_cores() -> int:
+    """Resolve cube cores lazily, including the configured NPU_DEVICE_LIMIT."""
+    return int(npu_config.num_cube_core)
+
 
 # How many block-loop iterations each core should get, so that consecutive
 # iterations have something to overlap with.

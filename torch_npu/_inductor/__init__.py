@@ -43,6 +43,9 @@ register_device_op_overrides_npu()
 @run_once
 def _apply_common_patches():
     # triton / mlir 后端共用的 patch
+    from .triton_compat import patch_triton_extension_cxx_standard
+
+    patch_triton_extension_cxx_standard()
     patch_has_triton()
     patch_is_gpu()
     patch_device_supports_tma()

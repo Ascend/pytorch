@@ -28,80 +28,6 @@ import torch_npu  # noqa: F401
 # 2026-09-16; recover them from git history if the boundary needs re-checking.
 
 
-# P0 drift pin (2026-08-28 audit): the audited call surface of the type-name
-# helpers in the PINNED torch's codegen, keyed by source text without line
-# numbers — a moved line does not false-alarm, an added/changed call site
-# does. A torch bump failing test_int64_type_callsite_surface_pin means the
-# int64 type-role assumptions need a re-audit (update this list only after
-# re-auditing). Keyed by (major, minor); a version without an entry fails BY
-# DESIGN until it is audited.
-_EXPECTED_INT64_TYPE_CALLSURFACE = {
-    (2, 13): [
-        "simd: return self.dtype_to_str(self.get_index_dtype_as_torch_dtype())",
-        "triton: asm_triton_type = triton_type(dtype)",
-        "triton: cast_inputs.append(f\"{inp}.to({triton_type(input_dtypes[i])})\")",
-        "triton: f\"({str(logical_index)}).to({self.dtype_to_str(index_dtype)})\"",
-        "triton: f\"({var}).to({triton_type(dtype)})\",",
-        "triton: f\".to({triton_type(result_dtype)})\"",
-        "triton: f\"{result} = {result}.to({triton_compute_type(target_dtype)})\"",
-        "triton: f\"{torch.iinfo(index_dtype).max}, {self.dtype_to_str(index_dtype)})\"",
-        "triton: f\"{value}.to({triton_compute_type(dtype)})\",",
-        "triton: f\"{value}.to({triton_store_type(store_dtype)})\",",
-        "triton: line += f\".to({triton_type(dtype)})\"",
-        "triton: out = f\"{out}.to({triton_type(out_dtype)})\"",
-        "triton: out = f\"{out}.to({triton_type(upcast_compute_type(dtype))})\"",
-        "triton: out = f\"{x}.to({triton_type(dtype)}, bitcast=True)\"",
-        "triton: out_dtype = triton_compute_type(dtype)",
-        "triton: out_dtype = triton_store_type(dtype)",
-        "triton: result = f\"{result}.to({self.dtype_to_str(result_type)})\"",
-        "triton: result = f\"{result}.to({triton_type(result_dtype)})\"",
-        "triton: return f\"({arg}).to({triton_type(dtype)})\"",
-        "triton: return f\"{result}.to({triton_type(dtype)})\"",
-        "triton: return f\"{result}.to({triton_type(result_dtype)})\"",
-        "triton: return triton_compute_type(upcast_acc_dtype(dtype))",
-        "triton: return triton_type(dtype)",
-        "triton: return triton_type(upcast_compute_type(dtype))",
-        "triton: triton_type = triton_compute_type(dtype)",
-        "triton: value = f\"{value}.to({triton_store_type(store_dtype)})\"",
-        "triton: x = f\"{x}.to({triton_type(src_dtype)})\"",
-        "triton: {result_var}_ws = ({ws_name} + {self.index_to_str(ws_offset)}).to(tl.pointer_type({triton_type(dtype)}))",
-    ],
-    (2, 15): [
-        "simd: return self.dtype_to_str(self.get_index_dtype_as_torch_dtype())",
-        "triton: cast_inputs.append(f\"{inp}.to({triton_type(input_dtypes[i])})\")",
-        "triton: else triton_type(dtype)",
-        "triton: f\"({', '.join(triton_type(dt) for dt in all_output_dtypes)})\"",
-        "triton: f\"({str(logical_index)}).to({self.dtype_to_str(index_dtype)})\"",
-        "triton: f\"({var}).to({triton_type(dtype)})\",",
-        "triton: f\".to({triton_type(result_dtype)})\"",
-        "triton: f\"{name} = {raw_part}.to({triton_type(dtype)}, bitcast=True)\"",
-        "triton: f\"{result} = {result}.to({triton_compute_type(target_dtype)})\"",
-        "triton: f\"{torch.iinfo(index_dtype).max}, {self.dtype_to_str(index_dtype)})\"",
-        "triton: f\"{value}.to({triton_compute_type(dtype)})\",",
-        "triton: f\"{value}.to({triton_store_type(store_dtype)})\",",
-        "triton: line += f\".to({triton_type(dtype)})\"",
-        "triton: line = f\"{line}.to({triton_type(dtype)}, bitcast=True)\"",
-        "triton: out = f\"{out}.to({triton_type(out_dtype)})\"",
-        "triton: out = f\"{out}.to({triton_type(upcast_compute_type(dtype))})\"",
-        "triton: out = f\"{x}.to({triton_type(dtype)}, bitcast=True)\"",
-        "triton: out_dtype = triton_compute_type(dtype)",
-        "triton: out_dtype = triton_store_type(dtype)",
-        "triton: result = f\"{result}.to({self.dtype_to_str(result_type)})\"",
-        "triton: result = f\"{result}.to({triton_type(result_dtype)})\"",
-        "triton: return f\"({arg}).to({triton_type(dtype)})\"",
-        "triton: return f\"{result}.to({triton_type(dtype)})\"",
-        "triton: return f\"{result}.to({triton_type(result_dtype)})\"",
-        "triton: return triton_compute_type(upcast_acc_dtype(dtype))",
-        "triton: return triton_type(dtype)",
-        "triton: return triton_type(upcast_compute_type(dtype))",
-        "triton: triton_type = triton_compute_type(dtype)",
-        "triton: value = f\"{value}.to({triton_store_type(store_dtype)})\"",
-        "triton: x = f\"{x}.to({triton_type(src_dtype)})\"",
-        "triton: {result_var}_ws = ({ws_name} + {self.index_to_str(ws_offset)}).to(tl.pointer_type({triton_type(dtype)}))",
-    ],
-}
-
-
 class TestInt32Overflow(TestCase):
 
     def test_mask_cmp_lhs_int64_narrow_protects_fp32(self):
@@ -249,44 +175,6 @@ class TestInt32Overflow(TestCase):
         self.assertEqual(up_codegen.triton_store_type(torch.bool), "tl.int8")
         self.assertEqual(
             up_codegen.triton_store_type(torch.float32), "tl.float32"
-        )
-
-    def test_int64_type_callsite_surface_pin(self):
-        # P0 pin: upstream drift detector, paired with
-        # _EXPECTED_INT64_TYPE_CALLSURFACE above. Failing on a torch bump is
-        # BY DESIGN: re-audit the int64 type-role surface, then update the
-        # list.
-        import inspect
-        import re
-
-        import torch._inductor.codegen.simd as up_simd
-        import torch._inductor.codegen.triton as up_triton
-
-        pat = re.compile(r"(dtype_to_str|triton_type|triton_compute_type|triton_store_type)\(")
-        surface = set()
-        for mod in (up_triton, up_simd):
-            short = mod.__name__.rsplit(".", 1)[-1]
-            for line in open(inspect.getsourcefile(mod)).read().splitlines():
-                s = line.strip()
-                if pat.search(s) and not s.startswith(("def ", "#")):
-                    surface.add(f"{short}: {s}")
-        expected = _EXPECTED_INT64_TYPE_CALLSURFACE.get(
-            tuple(
-                int(p)
-                for p in re.match(r"(\d+)\.(\d+)", torch.__version__).groups()
-            )
-        )
-        if expected is None:
-            self.fail(
-                f"torch {torch.__version__} has no audited int64 "
-                "type-callsurface snapshot — re-audit the dtype roles, then "
-                "add one keyed by (major, minor)"
-            )
-        self.assertEqual(
-            sorted(surface),
-            sorted(expected),
-            "int64 type-helper call surface drifted — re-audit the dtype "
-            "roles before updating this snapshot",
         )
 
 

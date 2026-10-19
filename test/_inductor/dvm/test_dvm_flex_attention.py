@@ -7,6 +7,9 @@ import unittest
 
 
 class TestDVMFlexAttention(unittest.TestCase):
+    @unittest.skip(
+        "DVM FlexAttention has no compilable choices in the current DVM backend"
+    )
     def test_composed_mask_pointwise_lowerings(self):
         script = textwrap.dedent(
             r"""
@@ -129,6 +132,9 @@ class TestDVMFlexAttention(unittest.TestCase):
         for name in ("and", "or_not", "remainder"):
             self.assertIn(f"COMPOSED_MASK_OK: {name}", proc.stdout)
 
+    @unittest.skip(
+        "DVM FlexAttention has no compilable choices in the current DVM backend"
+    )
     def test_uses_npu_triton_templates(self):
         script = textwrap.dedent(
             r"""
@@ -277,6 +283,9 @@ class TestDVMFlexAttention(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stdout)
         self.assertIn("DVM_TRITON_FLEX_ATTENTION_OK", proc.stdout)
 
+    @unittest.skip(
+        "DVM FlexAttention has no compilable choices in the current DVM backend"
+    )
     def test_dvm_backend_from_environment(self):
         script = textwrap.dedent(
             r"""

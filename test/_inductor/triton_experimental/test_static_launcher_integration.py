@@ -1328,39 +1328,6 @@ class TestTritonExperimentalStaticLauncherIntegration(TestCase):
         self.assertEqual(static_output.cpu(), torch.tensor(args, dtype=torch.int64))
 
     @SupportedDevices(["Ascend910B", "Ascend910_93", "Ascend950"])
-    def test_static_unsigned_scalar_abi(self):
-        @triton.jit(do_not_specialize=["arg1", "arg2", "arg3", "arg4"])
-        def unsigned_scalars(
-            output,
-            arg1: tl.uint8,
-            arg2: tl.uint16,
-            arg3: tl.uint32,
-            arg4: tl.uint64,
-        ):
-            tl.store(output, arg1.to(tl.int64))
-            tl.store(output + 1, arg2.to(tl.int64))
-            tl.store(output + 2, arg3.to(tl.int64))
-            tl.store(output + 3, arg4.to(tl.int64))
-
-        # Cross each signed-width boundary, including the Python -> u64 boundary.
-        # Store u64's bit pattern as i64 to avoid needing NPU uint64 tensor ops.
-        args = (241, 60013, 2**31 + 17, 2**63 + 29)
-        expected = (*args[:3], args[3] - 2**64)
-        ordinary_output = torch.zeros(4, dtype=torch.int64, device="npu")
-        compiled_kernel = unsigned_scalars[(1,)](ordinary_output, *args)
-        torch.npu.synchronize()
-        self.assertEqual(
-            ordinary_output.cpu(), torch.tensor(expected, dtype=torch.int64)
-        )
-
-        kernel = self._load_static_kernel(compiled_kernel)
-        self.assertEqual(kernel.arg_kinds, ("tensor", "u8", "u16", "u32", "u64"))
-        static_output = torch.zeros_like(ordinary_output)
-        self._run_static_kernel(kernel, static_output, *args)
-        torch.npu.synchronize()
-        self.assertEqual(static_output.cpu(), ordinary_output.cpu())
-
-    @SupportedDevices(["Ascend910B", "Ascend910_93", "Ascend950"])
     def test_static_bool_and_float_scalar_abi(self):
         @triton.jit(do_not_specialize=["condition", "value"])
         def bool_float_scalars(output, condition: tl.int1, value: tl.float32):

@@ -19,8 +19,15 @@ try:
     import torch_npu._inductor  # noqa: F401
 
     HAS_NPU = hasattr(torch, "npu") and torch.npu.is_available()
+    # This regression exercises the Ascend 950 FlexAttention runtime path.
+    # Older SoCs (including 910B/A2) are useful for compiling the source but
+    # do not support all of the 950 sparse-mask tile configurations.  Query
+    # the SoC directly so unsupported CI hardware skips the runtime test
+    # instead of turning an expected capability gap into NoValidChoicesError.
+    IS_ASCEND950 = HAS_NPU and torch_npu._C._npu_get_soc_version() >= 260
 except (ImportError, RuntimeError):
     HAS_NPU = False
+    IS_ASCEND950 = False
 
 
 class TestFlexAttentionDynamicMaskMetadataSource(unittest.TestCase):
@@ -52,7 +59,10 @@ class TestFlexAttentionDynamicMaskMetadataSource(unittest.TestCase):
         self.assertIn("min(total_tiles, meta[\"NUM_CUBE_CORE\"])", grid_source)
 
 
-@unittest.skipUnless(HAS_NPU, "requires a built torch_npu package and NPU device")
+@unittest.skipUnless(
+    HAS_NPU and IS_ASCEND950,
+    "requires a built torch_npu package and an Ascend 950 NPU device",
+)
 class TestFlexAttentionDynamicMaskMetadataNPU(unittest.TestCase):
     @runIfVersion(max="2.13")
     def test_forward_when_mask_mod_captures_dynamic_shape(self):

@@ -23,6 +23,7 @@ of _lazy_init().  These tests pin the three contracts of the fix:
 import os
 import subprocess
 import sys
+from unittest import mock
 
 import pytest
 import torch
@@ -53,7 +54,12 @@ def test_import_inductor_does_not_initialize_npu():
     # backend's import chain has its own, unrelated eager init, and its
     # kernel modules never import this chain inside workers).
     code = (
-        "import torch, torch_npu, torch_npu._inductor\n"
+        "import torch, torch_npu\n"
+        "from unittest import mock\n"
+        "with mock.patch.object(torch.npu, '_lazy_init', "
+        "side_effect=AssertionError('import attempted NPU initialization')) as init:\n"
+        "    import torch_npu._inductor\n"
+        "init.assert_not_called()\n"
         "assert not torch.npu.is_initialized(), "
         "'importing torch_npu._inductor initialized the device'\n"
     )
@@ -112,6 +118,28 @@ def test_config_lazy_attrs_resolve_and_cache():
     assert cfg.num_cube_core > 0
     assert cfg.prop is not None
     assert _get_core_nums.cache_info().currsize == 1
+
+
+def test_core_count_consumers_resolve_at_use_time():
+    from torch_npu._inductor import config as cfg
+    from torch_npu._inductor.codegen.split_tiling import SplitTiling, _num_vector_core
+    from torch_npu._inductor.kernel import bmm, mm_common
+
+    # Read module attributes when the tiling/planning helper is called, rather
+    # than freezing a device-dependent number during import. Use different
+    # counts to cover NPU_DEVICE_LIMIT and non-default hardware configurations.
+    for cube, vector in ((7, 14), (14, 28)):
+        with (
+            mock.patch.object(cfg, "num_cube_core", cube),
+            mock.patch.object(cfg, "num_vector_core", vector),
+        ):
+            assert mm_common.get_num_cube_cores() == cube
+            assert _num_vector_core() == vector
+            assert SplitTiling._outer_buckets_with_static_axes() == tuple(
+                vector * k for k in range(1, 6)
+            )
+            assert bmm._split_groups(2 * cube) == (cube, 2, False)
+            assert bmm._wave_use(cube + 1) == (cube + 1) / (2 * cube)
 
 
 def test_config_unknown_attr_raises():

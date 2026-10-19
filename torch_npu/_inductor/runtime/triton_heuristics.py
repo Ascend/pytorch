@@ -1244,12 +1244,11 @@ class NPUCachingAutotuner(CachingAutotuner):
             for index, config in enumerate(configs)
         ]
 
-        from torch._dynamo.device_interface import DeviceGuard
-        device_interface = self.get_device_interface()
-        with DeviceGuard(device_interface, self.triton_meta["device"]):
-            device_interface.synchronize(device_interface.current_device())
-            for index, future in enumerate(tasks):
-                compile_results[index] = future.result()
+        # Warm-cache compilation also runs in forked workers, where NPU runtime
+        # initialization is forbidden. Device setup belongs in _make_launchers,
+        # after compilation, when the binaries are actually loaded.
+        for index, future in enumerate(tasks):
+            compile_results[index] = future.result()
 
         return compile_results, compile_exceptions, compile_exception_stacks
 
