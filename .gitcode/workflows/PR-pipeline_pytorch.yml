@@ -407,7 +407,7 @@ stages:
 
       UT_inductor_01:
         name: UT_inductor_01
-        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' && env.target_branch != 'master' }}
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' }}
         uses: .gitcode/workflows/ut_job_inductor.yml
         with:
           torch_branch: ${{ atomgit.event.pull_request.base.ref }}
@@ -417,7 +417,7 @@ stages:
 
       UT_inductor_02:
         name: UT_inductor_02
-        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' && env.target_branch != 'master' }}
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' }}
         uses: .gitcode/workflows/ut_job_inductor.yml
         with:
           torch_branch: ${{ atomgit.event.pull_request.base.ref }}
@@ -427,7 +427,7 @@ stages:
 
       UT_inductor_03:
         name: UT_inductor_03
-        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' && env.target_branch != 'master' }}
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' }}
         uses: .gitcode/workflows/ut_job_inductor.yml
         with:
           torch_branch: ${{ atomgit.event.pull_request.base.ref }}
@@ -437,7 +437,7 @@ stages:
 
       UT_inductor_04:
         name: UT_inductor_04
-        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' && env.target_branch != 'master' }}
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' }}
         uses: .gitcode/workflows/ut_job_inductor.yml
         with:
           torch_branch: ${{ atomgit.event.pull_request.base.ref }}
