@@ -162,7 +162,6 @@ def _load_triton_backend():
     from .codegen.ir import patch_fixed_indexer, patch_indexing, patch_loop_body
     from .cpp_builder import (
         patch_get_cpp_torch_device_options,
-        patch_get_optimization_cflags,
     )
     from .decomposition import _register_triton_decompositions
     from .fx_passes import patch_pattern_mm_plus_mm, register_fav3_partition_pass
@@ -284,7 +283,6 @@ def _load_triton_backend():
 
         parallel_scheduler()
 
-    patch_get_optimization_cflags()
     patch_count_bytes()
 
     def add_additional_op():
@@ -397,11 +395,28 @@ _BACKEND_LOADERS = {
     "triton_experimental": _load_triton_experimental_backend,
 }
 
+def _apply_npu_cpp_march_default() -> None:
+    """Default `config.cpp.march` to "" on NPU unless the user set it.
+
+    Inductor's C++ wrapper is host-side control code. Ascend deployments mix
+    host CPU models and GCC toolchains, where `-march=native` /
+    `-march=armv8.x-a+...` can fail on older cross toolchains or break shared
+    compile caches across heterogeneous nodes. `config.cpp.march` is
+    PyTorch's official switch for the architecture flag (env
+    `TORCHINDUCTOR_CPP_MARCH`); an explicit user value always wins.
+    """
+    from torch._inductor import config
+
+    if config.cpp.march is None:
+        config.cpp.march = ""
+
+
 def _load_backend():
     from .lowering_patch import restore_inductor_baseline
 
     # Reset Inductor globals before each backend switch (mlir <-> triton in one process).
     restore_inductor_baseline()
+    _apply_npu_cpp_march_default()
 
     backend = _get_backend()
     loader = _BACKEND_LOADERS.get(backend, _load_triton_backend)
