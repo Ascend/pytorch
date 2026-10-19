@@ -72,12 +72,7 @@ concurrency:
 
 jobs:
   build:
-    # TEMPORARY: wheel-repair variant of _build.yml — vendors builder-only
-    # shared libs (libopenblas from /opt/OpenBLAS) into the torch wheel so
-    # it is self-contained in the test image (fixes the run-38041281352
-    # failure mode). See the _build_repair.yml header. Switch back to
-    # _build.yml once the fix is validated and folded back.
-    uses: Ascend/pytorch/.github/workflows/_build_repair.yml@ci-test
+    uses: Ascend/pytorch/.github/workflows/_build.yml@ci-test
     secrets: inherit
     with:
       upstream_repo: pytorch/pytorch

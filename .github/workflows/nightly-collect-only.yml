@@ -21,7 +21,10 @@ jobs:
       upstream_ref: main
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: master
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610160225-8a315d17
+      # Build in the dedicated builder image; the wheel-repair step in
+      # _nightly_build.yml vendors its private libs (OpenBLAS) into the
+      # torch wheel so it stays self-contained in the test image.
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-builder-aarch64-torch-master-202610160225-8a315d17
       report_to_upstream: false
       runner_label: 'linux-aarch64-cpu-24'
       max_jobs: '23'
@@ -50,7 +53,11 @@ jobs:
       upstream_ref: main
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: master
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.11-torch-master-cann9.2.0-20260910200430-202610160226-8a315d17
+      # Build in the dedicated x86_64 builder image; the wheel-repair
+      # step in _nightly_build.yml vendors its private libs (MKL from
+      # /opt/intel) into the torch wheel so it stays self-contained in
+      # the A5 test image.
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-builder-x86_64-torch-master-202610160227-8a315d17
       report_to_upstream: false
       runner_label: 'linux-amd64-a5-2'
       max_jobs: '23'

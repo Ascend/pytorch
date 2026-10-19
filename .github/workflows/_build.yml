@@ -360,6 +360,25 @@ jobs:
           python -c "import torch; print(f'PyTorch version: {torch.__version__}')"
           cd "${GITHUB_WORKSPACE}"
 
+      # Step 2a: repair the freshly built torch wheel — vendor builder-only
+      # shared libraries (libopenblas from /opt/OpenBLAS, plus
+      # libgfortran/libgomp) into torch/lib and set $ORIGIN RPATHs so the
+      # wheel is self-contained outside the build image, mirroring upstream
+      # pytorch's .ci/wheel/linux/repair_wheel.py (run 38041281352). The
+      # script is a no-op for build images without builder-only prefixes
+      # (e.g. test-image builds) and its clean-env import check fails the
+      # job if the wheel still depends on build-image-only libs.
+      - name: Checkout CI scripts
+        uses: actions/checkout@v6
+        with:
+          path: ci-scripts
+          ref: ci-test
+
+      - name: Repair PyTorch wheel (vendor OpenBLAS, set $ORIGIN RPATH)
+        id: repair_wheel
+        run: |
+          python3 "${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/repair_torch_wheel.py" --wheels-dir /tmp/wheels
+
       - name: Capture PyTorch wheel info
         id: pytorch_wheel
         run: |

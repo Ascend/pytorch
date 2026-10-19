@@ -499,6 +499,29 @@ jobs:
           echo "============================================"
           ccache -s
 
+      # Repair the freshly built torch wheel — vendor builder-only shared
+      # libraries (libopenblas from /opt/OpenBLAS on aarch64, MKL from
+      # /opt/intel on x86_64, plus libgfortran/libgomp) into torch/lib and
+      # set $ORIGIN RPATHs so the wheel is self-contained outside the
+      # build image, mirroring upstream pytorch's
+      # .ci/wheel/linux/repair_wheel.py (run 38041281352). The script is
+      # a no-op for build images without builder-only prefixes (e.g.
+      # test-image builds) and its clean-env import check fails the job
+      # if the wheel still depends on build-image-only libs. Skipped on a
+      # wheels-cache hit together with the build itself.
+      - name: Checkout CI scripts
+        if: steps.wheels_cache.outputs.hit != 'true'
+        uses: actions/checkout@v6
+        with:
+          path: ci-scripts
+          ref: ci-test
+
+      - name: Repair PyTorch wheel (vendor OpenBLAS, set $ORIGIN RPATH)
+        if: steps.wheels_cache.outputs.hit != 'true'
+        id: repair_wheel
+        run: |
+          python3 "${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/repair_torch_wheel.py" --wheels-dir /tmp/wheels
+
       - name: Capture PyTorch wheel info
         if: steps.wheels_cache.outputs.hit != 'true'
         id: pytorch_wheel
