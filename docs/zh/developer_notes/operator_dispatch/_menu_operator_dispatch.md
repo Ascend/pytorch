@@ -13,7 +13,13 @@
 - [编译优化](compilation_optimization/_menu_compilation_optimization.md)
   - [编译优化技术介绍](compilation_optimization/compilation_optimization_introduction.md)
   - [安装毕昇编译器](compilation_optimization/install_bisheng_compiler.md)
+  <!-- npu="A3,910b,910" id1 -->
   - [Python编译优化](compilation_optimization/python_compilation_optimization.md)
+  <!-- end id1 -->
+  <!-- npu="A3,910b,910" id2 -->
   - [PyTorch编译优化](compilation_optimization/pytorch_compilation_optimization.md)
+  <!-- end id2 -->
+  <!-- npu="A3,910b,910" id3 -->
   - [TorchNPU编译优化](compilation_optimization/torch_npu_compilation_optimization.md)
+  <!-- end id3 -->
   - [编译优化常见问题](compilation_optimization/compilation_optimization_faq.md)

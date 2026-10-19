@@ -50,11 +50,11 @@ torch.sqrt(torch.tensor([-1.0], dtype=torch.float16).npu())
 # tensor([nan], device='npu:0', dtype=torch.float16)
 ```
 
+<!-- npu="A3,910b,910" id7 -->
 > [!NOTE]  
 >
-> <!-- npu="A3,910b,910" id6 -->
 > <term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>，若需和<term>Atlas训练系列产品</term>精度对齐，可配置为“0”饱和模式。饱和模式在计算过程中会将Inf和NaN转换成对应数据类型的最大值和0值，导致后续运算结果出现差异，非特殊情况不建议配置。<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>对饱和模式配置进行了拦截，如需强制开启饱和模式，需配置[INF\_NAN\_MODE\_FORCE\_DISABLE](INF_NAN_MODE_FORCE_DISABLE.md)=1。
-> <!-- end id6 -->
+<!-- end id7 -->
 
 该环境变量由TorchNPU提供，PyTorch没有直接对应的环境变量。
 

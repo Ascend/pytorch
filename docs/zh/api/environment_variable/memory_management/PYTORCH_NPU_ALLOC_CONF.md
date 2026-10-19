@@ -10,12 +10,6 @@
 
 缓存分配器会根据申请内存的大小使用不同内存池，小于1MB使用小块内存池，反之使用大块内存池；虚拟内存特性下，大块内存池申请的物理内存粒度（segment\_size\_mb）默认为20MB，小块内存池默认为2MB（不可配置）；大模型场景下小块内存池内存使用通常较少，因此部分环境配置项（page\_size、segment\_size\_mb）只作用于大块内存池。
 
-> [!NOTICE]
->
-> <!-- npu="950" id7 -->
-> <term>Ascend 950DT系列产品</term>仅支持expandable\_segments、pinned\_use\_background\_threads、pin\_memory\_expandable\_segments和pinned\_mem\_register四个参数，其余参数均不支持。
-> <!-- end id7 -->
-
 可选参数：
 
 - max\_split\_size\_mb:<value\>，内存块允许切分上限。
@@ -34,6 +28,7 @@
 
     取值范围为0\~16，设置值需为整数，单位KB，默认值为16。仅在expandable\_segments设置为True的时候生效。若此参数配置为16，在申请大块内存（大于等于2MB）的时候，会尽量保持申请内存的基地址16KB对齐；若配置为0时，申请内存的基地址512B对齐。
 
+<!-- npu="950,A3,910b" id9 -->
 - page\_size:<value\>，设置申请大页内存的大小。
 
     取值仅支持1GB，参考[配置示例](#配置示例)。内存申请粒度为1GB，不足1GB的向上对齐到1GB，始终为1GB的整数倍。在虚拟内存特性下，该配置项只作用于缓存分配器的大块内存池。
@@ -41,6 +36,7 @@
     未配置该选项时，内存申请粒度为2MB，如需申请1GB的大页内存，会占用1024/2=512个页表；设置该选项后，内存申请粒度为1GB，1GB大页内存只占用1个页表，能有效降低页表数量，有效扩大TLB（Translation Lookaside Buffer）缓存的地址范围，从而提升离散访问的性能。
 
     TLB是昇腾AI处理器中用于高速缓存的硬件模块，用于存储最近使用的虚拟地址到物理地址的映射。
+<!-- end id9 -->
 
 - segment\_size\_mb:<value\>，虚拟内存特性下，设置物理内存的申请粒度。
 
@@ -142,12 +138,13 @@ export PYTORCH_NPU_ALLOC_CONF=max_split_size_mb:32,garbage_collection_threshold:
 export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True,base_addr_aligned_kb:16
 ```
 
+<!-- npu="950,A3,910b" id10 -->
 示例三：
 
 ```bash
 export PYTORCH_NPU_ALLOC_CONF=page_size:1g
 ```
-
+<!-- end id10 -->
 示例四：
 
 ```bash
@@ -238,6 +235,7 @@ export PYTORCH_NPU_ALLOC_CONF=release_lock_on_npumalloc:True
 
 - expandable\_segments特性需在Ascend HDK 23.0.0及以上版本上使用。
 - max\_split\_size\_mb和garbage\_collection\_threshold中任意一个为非默认值时，expandable\_segments必须设置为False。
+<!-- npu="950,A3,910b" id8 -->
 - page\_size特性要求在Ascend HDK 25.0.RC1及以上版本、CANN商用8.1.RC1及以上版本使用，支持如下产品：
 
     <!-- npu="910b" id1 -->
@@ -246,13 +244,15 @@ export PYTORCH_NPU_ALLOC_CONF=release_lock_on_npumalloc:True
     <!-- npu="A3" id2 -->
     - <term>Atlas A3训练系列产品</term>
     <!-- end id2 -->
-
+    <!-- npu="950" id22 -->
+    - <term>Ascend 950DT系列产品</term>
+    <!-- end id22 -->
 - page\_size特性与其他特性同时配置时，仅page\_size配置生效，且申请内存注意事项如下：
     - 当申请内存大于1MB时：
         - 若配置page\_size，内存申请粒度为1GB。
         - 若未配置page\_size，内存申请粒度为2MB。
-
     - 当申请内存小于等于1MB时：配置page\_size也不生效，内存申请粒度为2MB。
+<!-- end id8 -->
 - pin_memory_expandable_segments特性要求TorchNPU 7.3.0及以上版本、Ascend HDK 25.5.0及以上版本、CANN商用8.5.0及以上版本使用。
 - pinned_use_background_threads特性要求在TorchNPU 26.0.0及以上版本且PyTorch 2.8.0及以上版本使用。
 - pinned_mem_register使用注意事项如下：
@@ -281,3 +281,6 @@ export PYTORCH_NPU_ALLOC_CONF=release_lock_on_npumalloc:True
 <!-- npu="310p" id6 -->
 - <term>Atlas推理系列产品</term>
 <!-- end id6 -->
+<!-- npu="950" id7 -->
+- <term>Ascend 950DT系列产品</term>
+<!-- end id7 -->

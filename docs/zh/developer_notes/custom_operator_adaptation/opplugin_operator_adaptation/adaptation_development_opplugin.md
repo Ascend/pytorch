@@ -392,14 +392,17 @@ YAML配置有以下两种方式，可根据实际情况进行选择。每个结�
           structured_inherit: abs.out
     ```
 
+<!-- npu="950,A3,910b,910" id2 -->
 ### aclop算子适配
+<!-- end id2 -->
 
+<!-- npu="950" id4 -->
 > [!NOTE]
 >
-> <!-- npu="950" id1 -->
 > <term>Ascend 950DT系列产品</term>暂不支持aclop算子适配。
-> <!-- end id1 -->
+<!-- end id4 -->
 
+<!-- npu="A3,910b,910" id3 -->
 aclop算子是早期的算子实现方式，不推荐使用。适配文件路径为：op\_plugin/ops/aclops/AbsKernelNpu.cpp，文件命名规范为算子名称+KernelNpu，算子名称首字母大写。具体步骤如下：
 
 1. 创建算子适配文件，引入依赖头文件，包括aclop对外接口、算子声明、基础函数等。
@@ -512,6 +515,7 @@ aclop算子是早期的算子实现方式，不推荐使用。适配文件路径
     #endif
     } // namespace acl_op
     ```
+<!-- end id3 -->
 
 ## 算子辅助适配
 

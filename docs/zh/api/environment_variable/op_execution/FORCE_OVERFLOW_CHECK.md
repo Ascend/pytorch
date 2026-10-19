@@ -22,12 +22,11 @@ print(torch_npu.npu.utils.get_npu_overflow_flag())  # True，通过溢出状态�
 ```
 <!-- end id5 -->
 
+<!-- npu="950" id6 -->
 > [!NOTE]  
 >
-> <!-- npu="950" id4 -->
-> - <term>Ascend 950DT系列产品</term>不支持使用`get_npu_overflow_flag`等接口查询溢出状态；当<term>Ascend 950DT系列产品</term>开启该环境变量开关后，需通过plog中的`aclrtSetStreamOverflowSwitch`相关日志（需配置`ASCEND_GLOBAL_LOG_LEVEL=1`）的方式确认溢出检测开关已生效。
-> <!-- end id4 -->
-> - 开启溢出检测开关后，算子执行性能可能受到影响，建议仅在溢出/NaN问题定位场景下配置。
+> <term>Ascend 950DT系列产品</term>不支持使用`get_npu_overflow_flag`等接口查询溢出状态；当<term>Ascend 950DT系列产品</term>开启该环境变量开关后，需通过plog中的`aclrtSetStreamOverflowSwitch`相关日志（需配置`ASCEND_GLOBAL_LOG_LEVEL=1`）的方式确认溢出检测开关已生效。
+<!-- end id6 -->
 
 该环境变量由TorchNPU提供，PyTorch没有直接对应的环境变量。
 
@@ -42,6 +41,7 @@ export FORCE_OVERFLOW_CHECK=1
 - 需CANN版本不低于9.1.0，版本不满足时打印WARNING日志并忽略该环境变量。
 - 仅支持配置为“0”或“1”，其他取值视为未配置。
 - 需在进程启动前配置，进程运行过程中修改不会生效。
+- 开启溢出检测开关后，算子执行性能可能受到影响，建议仅在溢出/NaN问题定位场景下配置。
 
 ## 支持的型号
 
