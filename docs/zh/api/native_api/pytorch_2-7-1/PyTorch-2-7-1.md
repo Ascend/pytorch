@@ -129,3 +129,5 @@
 - **[torch.nested](torch-nested.md)**  
 
 - **[torch.utils.deterministic](torch-utils-deterministic.md)**  
+
+- **[Serialization semantics](Serialization-semantics.md)**  
