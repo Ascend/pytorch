@@ -226,6 +226,31 @@
 
 </div>
 
+### <code><i>class</i></code> torch.autograd.function.BackwardCFunction
+
+<div style="margin-left: 2em">
+
+> <font size="3">apply()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.function.BackwardCFunction.apply](https://docs.pytorch.org/docs/2.14/generated/torch.autograd.function.BackwardCFunction.html#torch.autograd.function.BackwardCFunction.apply)
+
+**产品支持情况**：
+
+<!-- npu="910b" id196 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id196 -->
+<!-- npu="A3" id197 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id197 -->
+<!-- npu="950" id198 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id198 -->
+</div>
+
+</div>
+
 ### <code><i>class</i></code> torch.autograd.graph.Node
 
 <div style="margin-left: 2em">
