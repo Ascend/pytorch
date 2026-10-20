@@ -1012,6 +1012,70 @@ def _register_upsample_bilinear2d_vec_dispatcher():
     _register_upsample_bilinear2d_vec_dispatcher._done = True
 
 
+def _npu_rng_gate():
+    """Device-gate the philox-fed RNG decompositions for NPU (issue 5249).
+
+    The NPU generator is not philox-replayable, so compiled dropout-family
+    masks diverge from eager: npu inputs return ``NotImplemented`` to land on
+    the eager aclnn fallback (bit-exact).  These tables are process-global
+    (opinfo CPU/NPU variants share one process), so non-npu inputs pass
+    through the original decomposition rather than a table edit.
+    """
+    from torch._inductor.decomposition import decompositions
+    from torch._decomp.decompositions_for_rng import extra_random_decomps
+    from torch._inductor.lowering import fallback_handler, lowerings
+
+    aten = torch.ops.aten
+
+    rng_packets = [
+        aten.uniform,
+        aten.uniform_,
+        aten.rrelu_with_noise,
+        aten.rrelu_with_noise_,
+        aten.rrelu_with_noise_functional,
+        # dropout-family masks build on aten.bernoulli; its core
+        # decomposition (rand + lt) is their philox entry point.
+        aten.bernoulli,
+    ]
+
+    def _first_tensor(args, kwargs):
+        for arg in args:
+            if isinstance(arg, torch.Tensor):
+                return arg
+        for arg in kwargs.values():
+            if isinstance(arg, torch.Tensor):
+                return arg
+        return None
+
+    def _gate(orig):
+        @functools.wraps(orig)
+        def gated(*args, **kwargs):
+            tensor_arg = _first_tensor(args, kwargs)
+            if tensor_arg is not None and tensor_arg.device.type == "npu":
+                return NotImplemented
+            return orig(*args, **kwargs)
+
+        gated._npu_rng_gate = True
+        return gated
+
+    for table in (decompositions, extra_random_decomps):
+        for packet in rng_packets:
+            if not hasattr(packet, "overloads"):
+                continue
+            for overload in packet.overloads():
+                op = getattr(packet, overload)
+                orig = table.get(op)
+                if orig is not None and not hasattr(orig, "_npu_rng_gate"):
+                    table[op] = _gate(orig)
+
+    # Strict mode (implicit_fallbacks=False) needs a lowering for the surviving
+    # aten op; only bernoulli.default lacks one upstream.  Register it directly
+    # in lowerings (not make_fallback(), which mutates CPU-visible global tables).
+    for op in (aten.bernoulli.default,):
+        if op not in lowerings:
+            lowerings[op] = fallback_handler(op, add_to_fallback_set=False)
+
+
 def _register_triton_experimental_decompositions():
     """Install all triton_experimental decomposition-table overrides and prune the
     exclusion list. Called directly by ``_load_triton_experimental_backend``.
@@ -1068,6 +1132,8 @@ def _register_triton_experimental_decompositions():
     _override_gelu_decomp()
     _override_rms_norm_decomp()
     _override_native_dropout_decomp()
+
+    _npu_rng_gate()
 
     # Default backend registers matmul_backward; TE must reuse it, otherwise
     # TE strict mode raises MissingOperatorWithoutDecomp on matmul grad.
