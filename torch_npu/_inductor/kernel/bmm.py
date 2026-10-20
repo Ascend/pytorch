@@ -1416,8 +1416,13 @@ def _get_npu_bmm_persistent_configs(
     # column is a B read and an mmad column outside the matrix.  Narrower than
     # these is left to the powers of two, a narrow B panel costing more MTE2
     # efficiency than the overhang does.
-    exact = [n] + [n // t for t in range(2, 9)
-                   if n % t == 0 and (n // t) % 16 == 0]
+    # The persistent rank-3 BatchMmadL1Op path is not safe with a non-fractal
+    # exact N width such as 172.  Non-aligned N is covered by the masked
+    # round-up candidates below instead.
+    exact = ([n] if n % 16 == 0 else []) + [
+        n // t for t in range(2, 9)
+        if n % t == 0 and (n // t) % 16 == 0
+    ]
     added = 0
     for width in exact:
         if added == MAX_EXACT_N_WIDTHS:
