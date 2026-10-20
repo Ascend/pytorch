@@ -51,12 +51,12 @@ TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命
 
 |TorchNPU代码分支名称|PyTorch版本|TorchNPU版本|TorchNPU安装包版本|CANN版本|Python版本|Triton Ascend版本|
 |--|--|--|--|--|--|--|
-|v2.7.1-26.2.0|2.7.1|26.2.0|2.7.1.post11|9.2.0|Python3.9.*x*、Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*|v3.2.2|
+|v2.7.1-26.2.0|2.7.1|26.2.0|2.7.1.post11|9.2.0|Python3.9.*x*、Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*|v3.2.2（在AArch64架构中，不支持在Python3.9.*x*环境中安装Triton Ascend）|
 |v2.9.0-26.2.0|2.9.0|26.2.0|2.9.0.post9|9.2.0|Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*、Python3.14.*x*|无配套版本|
-|v2.10.0-26.2.0|2.10.0|26.2.0|2.10.0.post7|9.2.0|Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*、Python3.14.*x*|v3.6.0|
+|v2.10.0-26.2.0|2.10.0|26.2.0|2.10.0.post7|9.2.0|Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*、Python3.14.*x*|v3.6.0（不支持在Python3.14.*x*环境中安装Triton Ascend）|
 |v2.11.0-26.2.0|2.11.0|26.2.0|2.11.0.post3|9.2.0|Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*、Python3.14.*x*|无配套版本|
 |v2.12.0-26.2.0|2.12.0|26.2.0|2.12.0.post3|9.2.0|Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*、Python3.14.*x*|无配套版本|
-|v2.13.0-26.2.0|2.13.0|26.2.0|2.13.0|9.2.0|Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*、Python3.14.*x*|v3.6.0|
+|v2.13.0-26.2.0|2.13.0|26.2.0|2.13.0|9.2.0|Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*、Python3.14.*x*|v3.6.0（不支持在Python3.14.*x*环境中使安装Triton Ascend）|
 |v2.14.0-26.2.0|2.14.0|26.2.0|2.14.0|9.2.0|Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*、Python3.14.*x*|无配套版本|
 
 ## 版本兼容性说明
@@ -1647,7 +1647,7 @@ TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命
 |《[故障处理](../zh/user_guide/troubleshooting/troubleshooting_process.md)》|以开发者在执行推理、训练过程中可能遇到的各类异常故障现象为入口，提供自助式问题定位、问题处理方法，方便开发者快速定位并解决故障。|无更新|
 |《[原生API](../zh/api/native_api/pytorch_2-12-0/overview.md)》|提供PyTorch 2.12.0/2.11.0/2.10.0/2.9.0/2.7.1版本原生API在昇腾设备上的支持情况。|&#8226; 新增PyTorch 2.13.0和PyTorch 2.14.0原生API支持清单。<br>&#8226; 内容格式对齐PyTorch社区。 |
 |《[自定义API](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/zh/custom_APIs/overview.md)》|提供TorchNPU自定义API的函数原型、功能说明、参数说明与调用示例等。|&#8226; 新增适配PyTorch 2.13.0和PyTorch 2.14.0。<br>&#8226; 具体接口变更请参考[接口变更说明](#接口变更说明)。|
-|《[环境变量](../zh/api/environment_variable/env_variable_list.md)》|在TorchNPU训练和在线推理过程中可使用的环境变量。|&#8226; 新增PyTorch环境变量对照表。<br>&#8226; 调整部分目录结构。<br>&#8226; 删除TORCHINDUCTOR_NPU_BACKEND章节中Torch-MLIR编译器相关内容。<br>&#8226; 删除（beta）INDUCTOR_ASCEND_CHECK_ACCURACY章节中Torch-MLIR编译器相关内容。<br>&#8226; 下架TORCHINDUCTOR_USE_AKG章节。<br>&#8226; 下架NPU_INDUCTOR_FALLBACK_LIST章节。|
+|《[环境变量](../zh/api/environment_variable/env_variable_list.md)》|在TorchNPU训练和在线推理过程中可使用的环境变量。|&#8226; 新增PyTorch环境变量对照表。<br>&#8226; 调整部分目录结构。<br>&#8226; 删除TORCHINDUCTOR_NPU_BACKEND章节中Torch-MLIR编译器相关内容。<br>&#8226; 删除（beta）INDUCTOR_ASCEND_CHECK_ACCURACY章节中Torch-MLIR编译器相关内容。<br>&#8226; 下架TORCHINDUCTOR_USE_AKG章节。<br>&#8226; 下架NPU_INDUCTOR_FALLBACK_LIST章节。<br>&#8226; 下架（beta）TORCHINDUCTOR_ENABLE_MFUSION章节。|
 |《[内存管理](../zh/developer_notes/memory_management/memory_resource_overview.md)》|TorchNPU在内存管理方面构建了一套完整的体系，既深度集成了PyTorch原生的内存管理机制，又针对昇腾NPU硬件特性提供了多项独有的优化能力。|内容独立且优化。|
 |《[分布式](../zh/developer_notes/distributed/distributed_overview.md)》|支持的核心特性，涵盖并行策略、分片原语、通信策略、分布式启动与容错等关键能力，并说明各项特性在NPU上的使用方式以及和原生PyTorch的异同。|&#8226; 分布式章节独立展示。<br>&#8226; 新增概述章节。<br>&#8226; 新增并行策略特性。<br>&#8226; 新增通信策略特性。<br>&#8226; 重构通信域参数。 |
 |《[算子下发](../zh/developer_notes/operator_dispatch/automatic_core_binding.md)》|通过自动绑核、Stream级TaskQueue并行下发和编译优化，全面提升TorchNPU下发及程序运行性能。|&#8226; 算子下发章节独立展示。<br>&#8226; 新增taskqueue特性。|
