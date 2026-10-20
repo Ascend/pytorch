@@ -87,6 +87,8 @@ class _ProfInterface:
         metadata: Optional[dict] = None,
         experimental_config: Optional[_ExperimentalConfig] = None,
         custom_trace_id_callback: Optional[Callable[[], str]] = None,
+        preset_metadata: Optional[dict] = None,
+        metadata_json_adder: Optional[Callable[[str, str], None]] = None,
     ) -> None:
         self._is_env_valid = check_msprof_env()
         self.prof_path = ""
@@ -105,6 +107,8 @@ class _ProfInterface:
         self.experimental_config = experimental_config
         self.schedule = schedule
         self.metadata = metadata
+        self.preset_metadata = preset_metadata if preset_metadata is not None else {}
+        self.metadata_json_adder = metadata_json_adder
         self.custom_trace_id_callback = custom_trace_id_callback
         self.trace_id = ""
         self.gc_detector = None
@@ -154,6 +158,9 @@ class _ProfInterface:
             self.freq = _get_freq()
             self.start_cnt = _get_syscnt()
         self.start_monotonic = _get_monotonic()
+        if self.metadata_json_adder is not None and callable(self.metadata_json_adder):
+            for key, value in self.preset_metadata.items():
+                self.metadata_json_adder(key, value)
         _enable_event_record()
         _start_profiler(npu_prof_config, self.activities)
         if self.with_flops and self.experimental_config.tx_enabled:

@@ -46,6 +46,7 @@ class _KinetoProfile:
         custom_trace_id_callback: Optional[Callable[[], str]] = None,
     ):
         self.metadata = {}
+        self.preset_metadata = {}
         self.prof_if = _ProfInterface(
             activities=activities,
             record_shapes=record_shapes,
@@ -55,6 +56,8 @@ class _KinetoProfile:
             with_modules=with_modules,
             experimental_config=experimental_config,
             metadata=self.metadata,
+            preset_metadata=self.preset_metadata,
+            metadata_json_adder=self.add_metadata_json,
             custom_trace_id_callback=custom_trace_id_callback,
         )
         self.max_meta_size = 50 * 1024
@@ -88,7 +91,8 @@ class _KinetoProfile:
     def add_metadata(self, key: str, value: str):
         if not isinstance(key, str) or not isinstance(value, str):
             print_warn_msg(
-                "The key and value of metadata must be string. Skip this metadata."
+                f"The key and value of metadata must be string. "
+                f"Got key={key!r}, value={value!r}. Skip this metadata."
             )
             return
         if not self._check_str_valid(key) or not self._check_str_valid(value):
@@ -97,33 +101,34 @@ class _KinetoProfile:
         add_size = getsizeof(key) + getsizeof(value)
         if getsizeof(self.metadata) + add_size < self.max_meta_size:
             if key in self.metadata:
-                print_warn_msg(f"{key} is already saved as metadata, override it.")
+                print_warn_msg(f"{key!r} is already saved as metadata, override it.")
             self.metadata[key] = value
         else:
-            print_warn_msg("Too many metadata added. Skip this metadata")
+            print_warn_msg("Too many metadata added. Skip this metadata.")
 
     @no_exception_func()
     def add_metadata_json(self, key: str, value: str):
         if not isinstance(key, str) or not isinstance(value, str):
             print_warn_msg(
-                "The key and value of metadata must be string. Skip this metadata."
+                f"The key and value of metadata must be string. "
+                f"Got key={key!r}, value={value!r}. Skip this metadata."
             )
             return
-        if not self._check_str_valid(key) or not self._check_str_valid(value):
-            print_warn_msg("Invalid input key or value. Skip this metadata.")
+        try:
+            metadata_value = json.loads(value)
+        except ValueError:
+            print_warn_msg(
+                f"The metadata value must be a valid JSON string. "
+                f"Got key={key!r}, value={value!r}. Skip this metadata."
+            )
             return
-        add_size = getsizeof(key) + getsizeof(value)
-        if getsizeof(self.metadata) + add_size < self.max_meta_size:
-            try:
-                if key in self.metadata:
-                    print_warn_msg(f"{key} is already saved as metadata, override it.")
-                self.metadata[key] = json.loads(value)
-            except ValueError:
-                print_warn_msg(
-                    "The metadata value must be json format string. Skip this metadata"
-                )
-        else:
-            print_warn_msg("Too many metadata added. Skip this metadata")
+        if key in self.metadata:
+            print_warn_msg(f"{key!r} is already saved as metadata, override it.")
+        self.metadata[key] = metadata_value
+
+    @no_exception_func()
+    def preset_metadata_json(self, key: str, value: str):
+        self.preset_metadata[key] = value
 
     @no_exception_func()
     def export_stacks(self, output_path: str, metric: str = Constant.METRIC_CPU_TIME):
@@ -247,6 +252,8 @@ class profile(_KinetoProfile):
             experimental_config=experimental_config,
             schedule=self.schedule,
             metadata=self.metadata,
+            preset_metadata=self.preset_metadata,
+            metadata_json_adder=self.add_metadata_json,
             custom_trace_id_callback=custom_trace_id_callback,
         )
         self.on_trace_ready = on_trace_ready

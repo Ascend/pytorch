@@ -63,6 +63,23 @@ class TestActionController(TestCase):
             self.assertEqual(20000, self.prof_if.start_monotonic)
             mock_start.assert_called_once_with("config_obj", supported_activities())
 
+    def test_start_trace_flushes_preset_metadata(self):
+        preset_metadata = {"preset_key": '{"value": 1}'}
+        metadata_json_adder = mock.Mock()
+        self.prof_if.preset_metadata = preset_metadata
+        self.prof_if.metadata_json_adder = metadata_json_adder
+        with (
+            mock.patch(
+                self.namespace + ".NpuProfilerConfig", return_value="config_obj"
+            ),
+            mock.patch(self.namespace + "._start_profiler"),
+            mock.patch(self.namespace + "._get_syscnt_enable", return_value=False),
+            mock.patch(self.namespace + "._get_monotonic", return_value=100),
+        ):
+            self.prof_if.start_trace()
+
+        metadata_json_adder.assert_called_once_with("preset_key", '{"value": 1}')
+
     def test_stop_trace(self):
         with mock.patch(self.namespace + "._stop_profiler") as mock_stop:
             self.prof_if.stop_trace()
