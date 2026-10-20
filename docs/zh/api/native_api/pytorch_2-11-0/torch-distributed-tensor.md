@@ -172,6 +172,24 @@
 
 </div>
 
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.tensor.placement_types.Placement.is_shard](https://docs.pytorch.org/docs/2.11/distributed.tensor.html#torch.distributed.tensor.placement_types.Placement.is_shard)
+
+**产品支持情况**：
+
+<!-- npu="910b" id31 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id31 -->
+<!-- npu="A3" id32 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id32 -->
+<!-- npu="950" id33 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id33 -->
+
+</div>
+
 </div>
 
 ## Different ways to create a DTensor
