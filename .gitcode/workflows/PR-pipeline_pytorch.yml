@@ -15,7 +15,7 @@ on:
 
   pull_request_comment:
     types: [created]
-    branches: [ 'master', 'v2.7.1', 'v2.9.0', 'v2.10.0', 'v2.11.0', 'v2.12.0', 'v2.13.0', '*-26.1.0', '*-26.2.0' ]
+    branches: [ '*' ]
     comments: [ '^compile$' , '^compile_torchair$', '^compile_inductor$' ]
 
 env:
