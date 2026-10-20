@@ -300,6 +300,33 @@ jobs:
           print(f'${{ inputs.category }} shard ${{ matrix.shard }}: {stats[\"passed\"]} passed, {stats[\"failed\"]} failed, {stats[\"errors\"]} errors, {stats[\"timeout\"]} timeout, {stats[\"skipped\"]} skipped, {stats[\"total\"]} total')
           "
 
+      # The shard runners exit 0 by design (even with failing cases) so the
+      # report stage always runs; a crashed runner therefore left this job
+      # green with zero cases executed (run 39334977233: all 6 shards died
+      # at startup with a TypeError and still reported success). Fail the
+      # shard instead when the runner exited non-zero or no results were
+      # recorded for a non-empty shard.
+      - name: Fail shard on missing test results
+        if: always()
+        run: |
+          STATUS="${{ steps.run_tests.outputs.status }}"
+          if [ -n "${STATUS}" ] && [ "${STATUS}" != "0" ]; then
+            echo "::error::shard runner exited with status ${STATUS}; see the error-logs and test-reports artifacts"
+            exit 1
+          fi
+          if [ "${{ steps.parse_results.outputs.parse_ok }}" != "true" ]; then
+            echo "::error::shard results file test-reports/shard_${{ steps.prefix.outputs.prefix }}-${{ matrix.shard }}_cases.json is missing or unparseable; the shard runner likely crashed before recording results"
+            exit 1
+          fi
+          if [ "${{ steps.parse_results.outputs.total }}" != "0" ]; then
+            exit 0
+          fi
+          EXPECTED=$(python3 -c "import json; print(json.load(open('cases-shards/${{ inputs.category }}_cases_shard_${{ matrix.shard }}.json'))['total_cases'])" 2>/dev/null || echo 0)
+          if [ "${EXPECTED}" -gt 0 ]; then
+            echo "::error::shard recorded 0 of ${EXPECTED} expected cases; the shard runner produced no results"
+            exit 1
+          fi
+
       - name: Package test reports
         if: always()
         run: |

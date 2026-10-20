@@ -701,7 +701,13 @@ def run_batch_tests_concurrent(
         print(f"NPU device allocation: {num_npu_devices} devices detected (round-robin)")
 
     result_aggregator = runner.ConcurrentResultAggregator()
-    progress_tracker = runner.ProgressTracker(len(tasks))
+    # ProgressTracker requires a NonBlockingConsole since the wedged-stdout
+    # isolation change (dce9e630e0); route its progress lines through one so
+    # a print can never block the tracker lock. The drain thread is a
+    # daemon, so no explicit teardown is needed here.
+    console = runner.NonBlockingConsole()
+    console.start()
+    progress_tracker = runner.ProgressTracker(len(tasks), console)
     shard_log_lock = threading.Lock()
 
     if quick_test and len(tasks) > quick_test:
