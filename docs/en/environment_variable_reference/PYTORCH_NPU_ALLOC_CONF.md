@@ -153,7 +153,7 @@ export PYTORCH_NPU_ALLOC_CONF=pinned_mem_register:True
   - It is not supported to be configured simultaneously with the pin_memory_expandable_segments feature.
 - Notes on using multi_stream_lazy_reclaim:
   - Feature requirement: Ascend Extension for PyTorch 7.3.0 or later is required.
-  - This feature primarily addresses system efficiency issues when there is a dispatch performance bottleneck on the host side in multi-stream scenarios. In single-stream or few-stream scenarios, or when the host is not the performance bottleneck, this feature provides limited benefit.
+  - This feature primarily addresses system efficiency issues when there is a dispatch performance bottleneck on the host side in multi-stream scenarios. In single-stream or few-stream scenarios, or when the host is not the performance bottleneck, this feature provides limited benefit. Enabling this option in multi-stream scenarios may cause a core dump when the number of Events exceeds 512. **We recommend leaving this option disabled** (the default value is False).
 
 ## Supported Products
 

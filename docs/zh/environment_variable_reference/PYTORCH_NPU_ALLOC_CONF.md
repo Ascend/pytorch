@@ -151,7 +151,7 @@ export PYTORCH_NPU_ALLOC_CONF=pinned_mem_register:True
     - 与pin_memory_expandable_segments特性不支持同时配置。
 - multi_stream_lazy_reclaim使用注意事项：
     - 特性要求在Ascend Extension for PyTorch 7.3.0以上版本上使用。
-    - 该特性主要解决多流场景下，Host侧存在下发性能瓶颈时的系统效率问题。单流、少流场景或者非Host性能瓶颈时，该功能收益不大。
+    - 该特性主要解决多流场景下，Host侧存在下发性能瓶颈时的系统效率问题。单流、少流场景或者非Host性能瓶颈时，该功能收益不大。多流场景下，启用该选项且Events数量超过512时可能触发core dump，**建议不启用**（保持默认值False）。
 
 ## 支持的型号
 
