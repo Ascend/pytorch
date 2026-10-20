@@ -713,6 +713,7 @@
 - 与原接口除了规格限制之外差异点：
   - NPU的随机算法部分用DSA硬件实现，算法在DSA引擎固化与GPU算法实现存在差异，导致dropout功能和GPU结果不一致
   - 当前接口支持输入`query`的head num和`key`/`value`的head num不等长，而原生PyTorch接口不支持
+  - 当前接口传入符合类型要求（`attn_mask`必须为bool或与`query`同dtype，否则直接报错）的非bool类型`attn_mask`时，不会命中融合算子实现路径，而是静默回退到小算子拼接实现，性能存在下降。原生CUDA SDPA支持符合接口要求的浮点加性mask，是否使用融合实现取决于所选后端及其他输入条件。
 
 </div>
 
