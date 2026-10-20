@@ -37,22 +37,32 @@ class TestPassRegistration(unittest.TestCase):
                 fx_passes._install_elide_int_float_int_pass()
                 passes = config.post_grad_custom_post_pass
                 self.assertIsInstance(passes, list)
-                self.assertEqual(passes[:-1], expected)
-                self.assertIsInstance(passes[-1], fx_passes.ElideIntFloatIntPass)
+                # The TE source-tree pin is appended after the elide pass;
+                # it is a no-op, so it does not touch the graph.
+                self.assertEqual(passes[:-2], expected)
+                self.assertIsInstance(passes[-2], fx_passes.ElideIntFloatIntPass)
+                self.assertIsInstance(passes[-1], fx_passes.TeSourcePinPass)
                 graph = []
                 for pass_ in passes:
                     pass_(graph)
                 self.assertEqual(graph, [p.name for p in expected] + ["elide"])
+                # Re-installing must not duplicate or reorder passes.
                 fx_passes._install_elide_int_float_int_pass()
-                self.assertIs(config.post_grad_custom_post_pass, passes)
+                self.assertEqual(
+                    [type(p) for p in config.post_grad_custom_post_pass],
+                    [type(p) for p in passes],
+                )
 
-    def test_disabled_leaves_registration_unchanged(self):
+    def test_disabled_still_pins_source(self):
         previous = RecordingPass("previous")
         with config.patch(post_grad_custom_post_pass=previous), mock.patch.object(
             fx_passes.ncfg, "elide_int_float_int", False
         ):
             fx_passes._install_elide_int_float_int_pass()
-            self.assertIs(config.post_grad_custom_post_pass, previous)
+            passes = config.post_grad_custom_post_pass
+            # elide stays off, but the source pin is unconditional.
+            self.assertEqual(passes[:-1], [previous])
+            self.assertIsInstance(passes[-1], fx_passes.TeSourcePinPass)
 
     def test_uuid_covers_implementation_and_flag(self):
         pass_ = fx_passes.ElideIntFloatIntPass()
@@ -74,7 +84,9 @@ class TestPassRegistration(unittest.TestCase):
             fx_passes.ncfg, "elide_int_float_int", True
         ):
             fx_passes._install_elide_int_float_int_pass()
-            self.assertIs(config.post_grad_custom_post_pass[0], previous)
+            # A foreign raw callable is left untouched: no list wrapping,
+            # no fabricated uuid (upstream keeps its cache bypass).
+            self.assertIs(config.post_grad_custom_post_pass, previous)
             self.assertNotIsInstance(previous, CustomGraphPass)
 
     def test_inductor_collects_each_uuid_in_order(self):
