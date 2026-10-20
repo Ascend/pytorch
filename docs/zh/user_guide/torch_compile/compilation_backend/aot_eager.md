@@ -24,7 +24,7 @@ AOT_Eager特点如下：
 compiled_model = torch.compile(model, backend="aot_eager")
 ```
 
-## 调用示例
+## 调用样例
 
 ```python
 import torch
