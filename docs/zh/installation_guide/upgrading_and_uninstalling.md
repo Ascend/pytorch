@@ -25,7 +25,7 @@
 ## 升级TorchNPU
 
 1. 需要先手动卸载旧版本，具体可参见上述卸载操作。
-2. 安装新版本，具体可参见[快速安装](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=182&ids=89dda9ba9de741349efa03687a487678%2C202%2C106%2C1%2C6%2C177%2C)进行操作。
+2. 安装新版本，具体可参见[快速安装](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download)进行操作。
 
 > [!NOTE]
 >

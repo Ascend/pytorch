@@ -9,7 +9,7 @@
 请先完成以下安装及环境配置；已完成的可直接进入数据准备。
 
 - 安装配套版本的NPU驱动固件、CANN软件（Toolkit、ops和NNAL），具体请参见《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/920/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》，并按指南加载环境变量。
-- PyTorch框架和TorchNPU插件，具体请参见[快速安装](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=180&ids=89dda9ba9de741349efa03687a487678%2C204%2C200%2C1%2C6%2C177%2C)。
+- PyTorch框架和TorchNPU插件，具体请参见[快速安装](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download)。
 - 安装与PyTorch版本配套的torchvision，参见[安装torchvision](https://pytorch.org/get-started/locally/)。
 
 ## 数据准备
