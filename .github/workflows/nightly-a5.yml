@@ -49,4 +49,15 @@ jobs:
       device_env: 'privateuse1,cpu'
       runner_label: 'linux-amd64-a5-2'
       test_max_parallel: 3
+      # Experimental: rewrites the installed triton-ascend backend's
+      # hardcoded -std=c++17 to c++20 and prebuilds npu_utils.so once per
+      # shard container. The a5 x86_64 test image is the one hit by the
+      # deterministic npu_utils build failure (ATen headers require
+      # C++20): run 38846980367 graph-2 alone showed 549 compile
+      # failures + 34 per-case timeouts + ~55h swallowed compile tax.
+      # See the patch step in _nightly_test-category.yml. The a3 aarch64
+      # image has no triton-ascend and is unaffected (same-day a3 run:
+      # graph shards green, codegen_dynamic_shapes 79/79). Flip to false
+      # to disable.
+      patch_triton_cxx20: true
 

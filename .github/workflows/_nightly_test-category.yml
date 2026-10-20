@@ -267,10 +267,22 @@ jobs:
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
           export LD_LIBRARY_PATH="$(python3 -c 'import sys; print(sys.prefix)')/lib:$LD_LIBRARY_PATH"
 
-          TRITON_DIR="$(python3 -c 'import triton, os; print(os.path.dirname(triton.__file__))')"
+          # Guard the triton import: capture its stderr into the variable
+          # and re-emit via stdout. The k8s step wrapper dropped the
+          # script's stderr on early failure (run 39398824822: every a3
+          # shard died here in ~1s with no output because that image has
+          # no triton at all), so an unguarded command substitution would
+          # fail silently.
+          TRITON_OUT="$(python3 -c 'import triton, os; print(os.path.dirname(triton.__file__))' 2>&1)" || {
+            echo "::error::import triton failed in this test image:"
+            echo "${TRITON_OUT}"
+            echo "::error::patch_triton_cxx20 only applies to images with triton-ascend installed (the a5 x86_64 test image); disable it for this pipeline"
+            exit 1
+          }
+          TRITON_DIR="${TRITON_OUT}"
           BACKEND_DIR="${TRITON_DIR}/backends/ascend"
           echo "triton package dir: ${TRITON_DIR}"
-          python3 -c 'import triton; print("triton version:", getattr(triton, "__version__", "unknown"))'
+          python3 -c 'import triton; print("triton version:", getattr(triton, "__version__", "unknown"))' || true
 
           if [ ! -d "${BACKEND_DIR}" ]; then
             echo "::error::triton-ascend backend not found at ${BACKEND_DIR}; image layout changed — refusing to run the experiment unpatched"
