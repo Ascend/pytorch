@@ -463,15 +463,23 @@ class TestNpuProfiler(TestCase):
 
     def test_add_metadata(self):
         worker_name = self.worker_name
-        with torch_npu.profiler.profile(
+        large_value = "x" * 65536
+        preset_value = json.dumps({"source": "preset"})
+        prof = torch_npu.profiler.profile(
             on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(
                 self.results_path, worker_name=worker_name
             )
-        ) as prof:
+        )
+        prof.preset_metadata_json("preset_key", preset_value)
+        with prof:
             for step in range(self.small_steps):
                 self.model_train.train_one_step()
                 prof.add_metadata("test_key1", "test_val1")
                 prof.add_metadata_json("test_key2", "[1,2, 3]")
+                if step == 0:
+                    prof.add_metadata_json(
+                        "large_json", json.dumps({"payload": large_value})
+                    )
         works = os.listdir(self.results_path)
         work_name = None
         for work in works:
@@ -491,6 +499,8 @@ class TestNpuProfiler(TestCase):
         self.assertEqual(True, has_key2)
         self.assertEqual(True, match_val1)
         self.assertEqual(True, match_val2)
+        self.assertEqual({"source": "preset"}, data["preset_key"])
+        self.assertEqual(large_value, data["large_json"]["payload"])
 
     def test_export_stacks(self):
         PathManager.remove_path_safety(self.results_work_path)
