@@ -302,7 +302,7 @@ jobs:
       # the wheel-repair step in _build.yml vendors its /opt/OpenBLAS into
       # the torch wheel so the artifact stays self-contained in the test
       # image below.
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-builder-aarch64-torch-master-202610160225-8a315d17
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-builder-aarch64-torch-master-202610200103-e0dcc43e
       report_to_upstream: true
       runner_label: 'linux-aarch64-cpu-24'
       max_jobs: '23'
