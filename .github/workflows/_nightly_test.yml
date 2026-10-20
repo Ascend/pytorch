@@ -96,6 +96,17 @@ on:
           count, meaning all shard jobs launch at once and are only
           bounded by runner availability. Must be >= 1; lower values
           (e.g. 3) throttle the test phase to that many concurrent jobs.
+      patch_triton_cxx20:
+        required: false
+        type: boolean
+        default: false
+        description: >-
+          Forwarded to every test-category job: rewrite the installed
+          triton-ascend backend's hardcoded -std=c++17 anchors to
+          -std=c++20 and prebuild npu_utils.so once per shard container.
+          Experimental workaround for the deterministic npu_utils build
+          failure against torch master's C++20-only ATen headers; see the
+          patch step in _nightly_test-category.yml for details.
 
 defaults:
   run:
@@ -148,6 +159,7 @@ jobs:
       report_to_upstream: ${{ inputs.report_to_upstream }}
       runner_label: ${{ matrix.runner_label }}
       device_env: ${{ inputs.device_env }}
+      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 }}
 
   # ============================================================================
   # 3. Generate consolidated test report

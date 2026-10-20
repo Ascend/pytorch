@@ -53,3 +53,8 @@ jobs:
         .github/config/disabled_testcases_a3_all.json
         .github/config/running_skiped_testcases.json
         .github/config/unsupport_dtype_testcases.json
+      # Experimental: validates the triton-ascend -std=c++17 -> c++20
+      # workaround against the deterministic npu_utils build failure
+      # (ATen headers require C++20). See the patch step in
+      # _nightly_test-category.yml. Flip to false to disable.
+      patch_triton_cxx20: true
