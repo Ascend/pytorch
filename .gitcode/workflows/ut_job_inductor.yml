@@ -37,15 +37,6 @@ jobs:
       TEST_RANK: ${{ inputs.TEST_RANK }}
       TEST_WORLD_SIZE: ${{ inputs.TEST_WORLD_SIZE }}
     steps:
-      - name: Resolve python version
-        id: resolve_pyver
-        run: |
-          if [ "${{ inputs.torch_branch }}" = "master" ]; then
-            echo "py_version=3.11" >> "$ATOMGIT_OUTPUT"
-          else
-            echo "py_version=${{ inputs.py_version }}" >> "$ATOMGIT_OUTPUT"
-          fi
-
       - name: checkout torch_npu
         uses: checkout
         with:
@@ -83,17 +74,17 @@ jobs:
             url_base="https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/torch/master/${nightly_date}"
           fi
 
-          torch_url="${url_base}/torch-${ver}%2Bcpu-cp311-cp311-manylinux_2_28_aarch64.whl"
+          torch_url="${url_base}/torch-${ver}%2Bcpu-cp310-cp310-manylinux_2_28_aarch64.whl"
           echo "torch_url=${torch_url}"
-          pip"${{ steps.resolve_pyver.outputs.py_version }}" install $torch_url
-          pip"${{ steps.resolve_pyver.outputs.py_version }}" install -r test/requirements.txt
+          pip"${{ inputs.py_version }}" install $torch_url
+          pip"${{ inputs.py_version }}" install -r test/requirements.txt
 
 
       - name: UT torch_npu
         id: ut_inductor
         run: |
           ls ${ATOMGIT_WORKSPACE}
-          python_path=$(dirname $(dirname $(readlink -f $(which python${{ steps.resolve_pyver.outputs.py_version }}))))
+          python_path=$(dirname $(dirname $(readlink -f $(which python${{ inputs.py_version }}))))
           echo "python_path=${python_path}"
           export PATH=${python_path}/bin:$PATH
           source /etc/profile
@@ -106,13 +97,13 @@ jobs:
           export DISABLED_TESTS_FILE=${test_path_dir}/unsupported_test_cases/.pytorch-disabled-tests.json
           source /usr/local/Ascend/cann/set_env.sh
           source /usr/local/Ascend/nnal/atb/set_env.sh
-          pip"${{ steps.resolve_pyver.outputs.py_version }}" install torch_npu*.whl
-          pip"${{ steps.resolve_pyver.outputs.py_version }}" install https://repo.oepkgs.net/openeuler/ascend/pytorch/vllm/torch/Torch-MLIR/aarch64/Python310/torch_mlir-0.0.1-cp310-cp310-linux_aarch64.whl
+          pip"${{ inputs.py_version }}" install torch_npu*.whl
+          pip"${{ inputs.py_version }}" install https://repo.oepkgs.net/openeuler/ascend/pytorch/vllm/torch/Torch-MLIR/aarch64/Python310/torch_mlir-0.0.1-cp310-cp310-linux_aarch64.whl
           if [[ ${{ atomgit.event.pull_request.base.ref }} == 'master' || ${{ atomgit.event.pull_request.base.ref }} == 'v2.10.0' ]]; then
-              pip"${{ steps.resolve_pyver.outputs.py_version }}" install https://mirrors.huaweicloud.com/ascend/repos/pypi/nightly/triton-ascend/triton_ascend-3.2.2+release20260701-cp310-cp310-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl
+              pip"${{ inputs.py_version }}" install https://mirrors.huaweicloud.com/ascend/repos/pypi/nightly/triton-ascend/triton_ascend-3.2.2+release20260701-cp310-cp310-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl
           fi
-          pip"${{ steps.resolve_pyver.outputs.py_version }}" list
-          python"${{ steps.resolve_pyver.outputs.py_version }}" -c "import acl;print('npu info:',acl.get_soc_name())" || echo "npu info  get error"
+          pip"${{ inputs.py_version }}" list
+          python"${{ inputs.py_version }}" -c "import acl;print('npu info:',acl.get_soc_name())" || echo "npu info  get error"
           echo "------------------------------------- ENV PATH -------------------------------------"
           echo ${PATH}
           echo "------------------------------------------------------------------------------------"
@@ -125,11 +116,11 @@ jobs:
               echo "time_json_prefix=${time_json_prefix}"
               wget -c -q --no-check-certificate https://pta-pr.obs.cn-north-4.myhuaweicloud.com/pta/timing/${time_json_prefix}_time_data.json -O time_data.json
               cat time_data.json
-              python"${{ steps.resolve_pyver.outputs.py_version }}" ci/access_control_test.py --inductor --between_version="min=${onetrack_branch}" --rank=${{ env.TEST_RANK }} --world_size=${{ env.TEST_WORLD_SIZE }} 2>&1
+              python"${{ inputs.py_version }}" ci/access_control_test.py --inductor --between_version="min=${onetrack_branch}" --rank=${{ env.TEST_RANK }} --world_size=${{ env.TEST_WORLD_SIZE }} 2>&1
           else
               wget -c -q --no-check-certificate https://pta-pr.obs.cn-north-4.myhuaweicloud.com/pta/timing/${{ atomgit.event.pull_request.base.ref }}_time_data.json -O time_data.json
               cat time_data.json
-              python"${{ steps.resolve_pyver.outputs.py_version }}" ci/access_control_test.py --inductor --rank=${{ env.TEST_RANK }} --world_size=${{ env.TEST_WORLD_SIZE }} 2>&1
+              python"${{ inputs.py_version }}" ci/access_control_test.py --inductor --rank=${{ env.TEST_RANK }} --world_size=${{ env.TEST_WORLD_SIZE }} 2>&1
           fi
 
           echo "upload_data=no" >> "$ATOMGIT_OUTPUT"

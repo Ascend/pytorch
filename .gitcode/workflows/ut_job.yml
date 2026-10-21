@@ -41,15 +41,6 @@ jobs:
       TEST_RANK: ${{ inputs.TEST_RANK }}
       TEST_WORLD_SIZE: ${{ inputs.TEST_WORLD_SIZE }}
     steps:
-      - name: Resolve python version
-        id: resolve_pyver
-        run: |
-          if [ "${{ inputs.torch_branch }}" = "master" ]; then
-            echo "py_version=3.11" >> "$ATOMGIT_OUTPUT"
-          else
-            echo "py_version=${{ inputs.py_version }}" >> "$ATOMGIT_OUTPUT"
-          fi
-
       - name: checkout torch_npu
         uses: checkout
         with:
@@ -87,10 +78,10 @@ jobs:
             url_base="https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/torch/master/${nightly_date}"
           fi
 
-          torch_url="${url_base}/torch-${ver}%2Bcpu-cp311-cp311-manylinux_2_28_aarch64.whl"
+          torch_url="${url_base}/torch-${ver}%2Bcpu-cp310-cp310-manylinux_2_28_aarch64.whl"
           echo "torch_url=${torch_url}"
-          pip"${{ steps.resolve_pyver.outputs.py_version }}" install $torch_url
-          pip"${{ steps.resolve_pyver.outputs.py_version }}" install -r test/requirements.txt
+          pip"${{ inputs.py_version }}" install $torch_url
+          pip"${{ inputs.py_version }}" install -r test/requirements.txt
 
       - name : sync with github
         run: |
@@ -144,7 +135,7 @@ jobs:
               fi
               cp -rf "${temp_folder}"/test "${temp_path}"/
               cd test
-              python"${{ steps.resolve_pyver.outputs.py_version }}" adapt_testcases_to_npu.py
+              python"${{ inputs.py_version }}" adapt_testcases_to_npu.py
           fi
 
           cd "${ATOMGIT_WORKSPACE}"
@@ -155,7 +146,7 @@ jobs:
         id: ut_npu
         run: |
           ls ${ATOMGIT_WORKSPACE}
-          python_path=$(dirname $(dirname $(readlink -f $(which python${{ steps.resolve_pyver.outputs.py_version }}))))
+          python_path=$(dirname $(dirname $(readlink -f $(which python${{ inputs.py_version }}))))
           echo "python_path=${python_path}"
           export PATH=${python_path}/bin:$PATH
           source /etc/profile
@@ -175,11 +166,11 @@ jobs:
           export DISABLED_TESTS_FILE=${test_path_dir}/unsupported_test_cases/.pytorch-disabled-tests.json
           source /usr/local/Ascend/cann/set_env.sh
           source /usr/local/Ascend/nnal/atb/set_env.sh
-          pip"${{ steps.resolve_pyver.outputs.py_version }}" install torch_npu*.whl
-          pip"${{ steps.resolve_pyver.outputs.py_version }}" install https://repo.oepkgs.net/openeuler/ascend/pytorch/vllm/torch/Torch-MLIR/aarch64/Python311/torch_mlir-0.0.1-cp311-cp311-linux_aarch64.whl
-          pip"${{ steps.resolve_pyver.outputs.py_version }}" install https://mirrors.huaweicloud.com/ascend/repos/pypi/nightly/triton-ascend/triton_ascend-3.2.2+release20260701-cp311-cp311-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl
-          pip"${{ steps.resolve_pyver.outputs.py_version }}" list
-          python"${{ steps.resolve_pyver.outputs.py_version }}" -c "import acl;print('npu info:',acl.get_soc_name())" || echo "npu info  get error"
+          pip"${{ inputs.py_version }}" install torch_npu*.whl
+          pip"${{ inputs.py_version }}" install https://repo.oepkgs.net/openeuler/ascend/pytorch/vllm/torch/Torch-MLIR/aarch64/Python310/torch_mlir-0.0.1-cp310-cp310-linux_aarch64.whl
+          pip"${{ inputs.py_version }}" install https://mirrors.huaweicloud.com/ascend/repos/pypi/nightly/triton-ascend/triton_ascend-3.2.2+release20260701-cp310-cp310-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl
+          pip"${{ inputs.py_version }}" list
+          python"${{ inputs.py_version }}" -c "import acl;print('npu info:',acl.get_soc_name())" || echo "npu info  get error"
           echo "------------------------------------- ENV PATH -------------------------------------"
           echo ${PATH}
           echo "------------------------------------------------------------------------------------"
@@ -188,9 +179,9 @@ jobs:
               onetrack_branch=${{ inputs.torch_branch }}
               onetrack_branch=${onetrack_branch%.0}
               echo "onetrack_branch=${onetrack_branch}"
-              python"${{ steps.resolve_pyver.outputs.py_version }}" access_control_test.py --between_version="min=${onetrack_branch}" --rank=${{ env.TEST_RANK }} --world_size=${{ env.TEST_WORLD_SIZE }} --npu_core=${{ inputs.NPU_CORE }} 2>&1
+              python"${{ inputs.py_version }}" access_control_test.py --between_version="min=${onetrack_branch}" --rank=${{ env.TEST_RANK }} --world_size=${{ env.TEST_WORLD_SIZE }} --npu_core=${{ inputs.NPU_CORE }} 2>&1
           else
-              python"${{ steps.resolve_pyver.outputs.py_version }}" access_control_test.py  --rank=${{ env.TEST_RANK }} --world_size=${{ env.TEST_WORLD_SIZE }} --npu_core=${{ inputs.NPU_CORE }} 2>&1
+              python"${{ inputs.py_version }}" access_control_test.py  --rank=${{ env.TEST_RANK }} --world_size=${{ env.TEST_WORLD_SIZE }} --npu_core=${{ inputs.NPU_CORE }} 2>&1
           fi
 
           echo "upload_data=no" >> "$ATOMGIT_OUTPUT"
