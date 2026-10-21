@@ -37,3 +37,14 @@ T5ForConditionalGeneration,8
 TrOCRForCausalLM,64
 XGLMForCausalLM,32
 T5Small,8
+BlenderbotForCausalLM,32
+DistillGPT2,32
+GoogleFnet,32
+M2M100ForConditionalGeneration,64
+Qwen/Qwen3-0.6B,8
+Qwen/Qwen3.5-0.8B,8
+XLNetLMHeadModel,16
+YituTechConvBert,32
+google/gemma-2-2b,8
+meta-llama/Llama-3.2-1B,8
+openai/whisper-tiny,8
