@@ -34,12 +34,14 @@ class NpuProfiler:
                              len(profiler_path_list))
         MultiProcessPool().init_pool(process_number)
 
+        futures = []
         for profiler_path in profiler_path_list:
             PathManager.check_directory_path_writeable(profiler_path)
             profiling_parser = ProfilingParser(profiler_path, analysis_type, output_path, kwargs)
-            MultiProcessPool().submit_task(profiling_parser.analyse_profiling_data)
+            futures.append(MultiProcessPool().submit_task(profiling_parser.analyse_profiling_data))
         if not kwargs.get("async_mode", False):
             MultiProcessPool().close_pool()
+        return futures
 
     @classmethod
     def _check_input_path(cls, path: str):
