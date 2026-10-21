@@ -57,6 +57,6 @@ jobs:
       # workaround against the deterministic npu_utils build failure
       # (ATen headers require C++20). The a3 image ships triton 3.6.0 +
       # triton-ascend 3.6.0 (image build run kerer-ai/pytorch 38840250671).
-      # See .github/scripts/patch_triton_cxx20.sh. Flip to false to
-      # disable.
+      # See the Patch triton cxx20 step in _nightly_test-category.yml.
+      # Flip to false to disable.
       patch_triton_cxx20: true

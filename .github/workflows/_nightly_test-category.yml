@@ -245,14 +245,67 @@ jobs:
       # triton-ascend backend's hardcoded -std=c++17 anchors to
       # -std=c++20 and prebuilds npu_utils.so once per shard container,
       # working around the deterministic npu_utils build failure against
-      # torch master's C++20-only ATen headers. Run as a script FILE:
-      # the k8s step wrapper failed to hand the previous ~90-line inline
-      # version to the container (run 39398824822: every shard died in
-      # ~1s with no output), while it runs ci-scripts/.github/scripts/*
-      # files fine. Full rationale in the script header.
-      - name: Patch triton-ascend -std=c++17 -> c++20 and prebuild npu_utils.so (experimental)
+      # torch master's C++20-only ATen headers. Both prior attempts
+      # (runs 39398824822, 39414850086) died in ~1s with zero output;
+      # every conventionally-written step in the same containers ran
+      # fine, so this keeps strictly to the proven form: plain ASCII
+      # step name, run: | multi-line block, same preamble as the Run
+      # shard step, no bashisms, no script file.
+      - name: Patch triton cxx20
         if: ${{ inputs.patch_triton_cxx20 }}
-        run: bash ci-scripts/.github/scripts/patch_triton_cxx20.sh
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+          export LD_LIBRARY_PATH="$(python3 -c 'import sys; print(sys.prefix)')/lib:${LD_LIBRARY_PATH:-}"
+
+          TRITON_DIR="$(python3 -c 'import triton, os; print(os.path.dirname(triton.__file__))' 2>&1)" || {
+            echo "ERROR: import triton failed in this image:"
+            echo "${TRITON_DIR}"
+            exit 1
+          }
+          BACKEND_DIR="${TRITON_DIR}/backends/ascend"
+          echo "triton package dir: ${TRITON_DIR}"
+          python3 -c 'import triton; print("triton version:", getattr(triton, "__version__", "unknown"))' || true
+
+          if [ ! -d "${BACKEND_DIR}" ]; then
+            echo "ERROR: triton-ascend backend not found at ${BACKEND_DIR}"
+            exit 1
+          fi
+
+          echo "=== compiler inventory ==="
+          echo "CC=${CC:-unset}"
+          command -v clang++ >/dev/null 2>&1 && clang++ --version | head -1 || echo "clang++: not found"
+          command -v g++ >/dev/null 2>&1 && g++ --version | head -1 || echo "g++: not found"
+
+          TARGETS="$(grep -rlF --include='*.py' -- '"-std=c++17"' "${BACKEND_DIR}" || true)"
+          if [ -z "${TARGETS}" ]; then
+            if grep -rqF --include='*.py' -- '"-std=c++20"' "${BACKEND_DIR}"; then
+              echo "already patched, no-op"
+            else
+              echo "ERROR: no c++17/c++20 anchor under ${BACKEND_DIR}, triton-ascend layout drifted"
+              exit 1
+            fi
+          else
+            for f in ${TARGETS}; do
+              sed -i 's/"-std=c++17"/"-std=c++20"/g' "${f}"
+              python3 -m py_compile "${f}"
+              echo "patched ${f}"
+            done
+            if grep -rqF --include='*.py' -- '"-std=c++17"' "${BACKEND_DIR}"; then
+              echo "ERROR: c++17 residue remains after patch"
+              exit 1
+            fi
+          fi
+
+          echo "=== prebuilding npu_utils.so with -std=c++20 ==="
+          time python3 -c "
+          import torch
+          import torch_npu
+          from triton.runtime.driver import driver
+          target = driver.active.get_current_target()
+          print('triton driver initialized:', target)
+          print('npu_utils.so prebuilt OK')
+          "
 
       - name: Run ${{ inputs.category }} shard ${{ matrix.shard }}/${{ inputs.num_shards }}
         id: run_tests
