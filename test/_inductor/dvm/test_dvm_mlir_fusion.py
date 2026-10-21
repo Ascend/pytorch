@@ -1,4 +1,5 @@
 # Owner(s): ["module: tests"]
+import ast
 import os
 import subprocess
 import sys
@@ -143,6 +144,55 @@ class Int64PointwiseFusionModel(torch.nn.Module):
 
 
 class TestDvmByMlir(TestCase):
+    @parametrize("autotune", [False, True])
+    @parametrize("dynamic", [False, True])
+    @parametrize("fallback", [False, True])
+    @mock.patch.dict(os.environ, {"TORCHINDUCTOR_NPU_BACKEND": "dvm"})
+    def test_compile_time_autotune_kernel_definitions(self, autotune, dynamic, fallback):
+        from torch_npu._inductor.dvm import mlir_fusion
+
+        def model(x):
+            y = x * 2.0 + 1.0
+            return y, y.square().sum(dim=-1)
+
+        def make_input(width):
+            return torch.randn((width, 8), device="npu").t()
+
+        original_rule = mlir_fusion._is_node_supported_by_dvm_rule
+
+        def support_rule(node, allow_common_rule=False):
+            # Force complete FX fallback during codegen, preserving partitioning.
+            return original_rule(node, allow_common_rule) and (
+                allow_common_rule or not fallback
+            )
+
+        torch._dynamo.reset()
+        with (
+            torch._inductor.config.patch({
+                "triton.autotune_at_compile_time": autotune,
+                "force_disable_caches": True,
+            }),
+            mock.patch.object(
+                mlir_fusion, "_is_node_supported_by_dvm_rule", side_effect=support_rule
+            ),
+        ):
+            compiled = torch.compile(model, fullgraph=True, dynamic=dynamic)
+            x = make_input(16)
+            result, codes = run_and_get_code(compiled, x)
+            self.assertEqual(result, model(x))
+            x = make_input(23)
+            self.assertEqual(compiled(x), model(x))
+
+        code = "\n".join(codes)
+        self.assertIn("async_compile.import_fx(" if fallback else "@dvm.kernel", code)
+        if autotune:
+            for source in codes:
+                tuning_code = ast.get_docstring(ast.parse(source), clean=False)
+                self.assertIsNotNone(tuning_code)
+                self.assertIn("Compile-time auto-tuning block:", tuning_code)
+                self.assertNotIn("@dvm.kernel", tuning_code)
+                self.assertNotIn("async_compile.import_fx(", tuning_code)
+
     def _run_and_get_code_with_dvm(
         self, model, *args, dynamic=False, options=None, run_count=1
     ):

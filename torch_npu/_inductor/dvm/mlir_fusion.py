@@ -206,6 +206,8 @@ class NpuDvmScheduling(NpuMetaScheduling):
                     "traced_graph_hash": traced_graph_hash,
                     "num_call_functions": get_num_call_functions(mlir_kernel._gm),
                 }
+                # FX fallback does not need autotuning. gpu=False keeps its definition
+                # out of Inductor's compile-time Triton autotune block.
                 self._handle_complete_fallback_mode(
                     compile_wrapper,
                     kernel_name,
@@ -213,6 +215,7 @@ class NpuDvmScheduling(NpuMetaScheduling):
                     wrapper,
                     "",
                     mlir_kernel,
+                    gpu=False,
                 )
                 self._dump_fx_graph_for_fallback(
                     mlir_kernel,
@@ -257,8 +260,10 @@ class NpuDvmScheduling(NpuMetaScheduling):
                         compile_wrapper.getvalue(),
                     )
 
+                # DVM kernels do not need autotuning. gpu=False keeps their definitions
+                # out of Inductor's compile-time Triton autotune block.
                 wrapper.define_kernel(
-                    kernel_name, compile_wrapper.getvalue(), func_code
+                    kernel_name, compile_wrapper.getvalue(), func_code, gpu=False
                 )
 
         return kernel_name

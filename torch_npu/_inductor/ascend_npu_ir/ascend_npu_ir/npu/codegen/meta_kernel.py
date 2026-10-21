@@ -422,10 +422,13 @@ class NpuMetaScheduling(SIMDScheduling):
         if metrics.is_metric_table_enabled("kernel_metadata"):
             metrics.log_kernel_metadata(name, kernel_path, src_code)
 
-    def _handle_complete_fallback_mode(self, compile_wrapper, name, meta, wrapper, metadata_comment, mlir_kernel):
+    def _handle_complete_fallback_mode(
+        self, compile_wrapper, name, meta, wrapper, metadata_comment, mlir_kernel,
+        *, gpu=True,
+    ):
         compile_wrapper.writeline(f"async_compile.import_fx({name!r}, kernel_meta={meta})")
         metadata_comment = f'"""\n{mlir_kernel._gm.print_readable(print_output=False)}\n"""'
-        wrapper.define_kernel(name, compile_wrapper.getvalue(), metadata_comment)
+        wrapper.define_kernel(name, compile_wrapper.getvalue(), metadata_comment, gpu=gpu)
 
     def _handle_default_mode(self, compile_wrapper, src_code, name, subs_name, meta, wrapper, metadata_comment):
         self._handle_auto_fallback_mode(compile_wrapper, src_code, name, subs_name, meta, wrapper, metadata_comment)
