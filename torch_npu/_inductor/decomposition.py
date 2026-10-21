@@ -13,7 +13,6 @@ from torch._prims_common.wrappers import out_wrapper  # noqa: F401
 import torch.nn.functional as F
 from . import config as npu_config
 from .lowering_common import add_overload
-from .ascend_npu_ir.ascend_npu_ir import config as anir_config
 from .lowering_common import run_once
 
 
@@ -233,6 +232,12 @@ def _register_triton_decompositions():
     _register_npu_triton_decompositions()
 
 def _register_mlir_dvm_decompositions():
+    # Import anir config lazily here only: this module is imported by every NPU
+    # backend, while anir config.py sets torch._inductor.config.allow_buffer_reuse
+    # = False at import time (the MLIR codegen does not support buffer reuse).
+    # A module-level import would leak that disable into the Triton backend.
+    from .ascend_npu_ir.ascend_npu_ir import config as anir_config
+
     exclude_list = anir_config.decomps_to_exclude_npu
     if os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default") == "mlir":
         exclude_list.append(torch.ops.aten._safe_softmax)

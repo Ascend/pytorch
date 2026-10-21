@@ -420,16 +420,23 @@ class TritonCompileResultNpu(TritonCompileResult):
             runtime_block_set = set(runtime_block_names)
             cfg_dict = config_to_dict(cfg)
 
-            # 构造 constexpr 参数的字面量替换字典（保留 runtime block 参数）
+            # 构造 constexpr 参数的字面量替换字典（保留 runtime block 参数）。
+            # 用 repr 序列化，使 dtype 常量(如 tl.float32)生成可解析的限定名
+            # "triton.language.float32"，而非 str 的裸名 "fp32"；字符串常量保持 r-string。
+            def _convert_constant(constant):
+                if isinstance(constant, str):
+                    return "r'" + constant + "'"
+                return repr(constant)
+
             repl = {}
             for i in fn.constexprs:
                 arg = fn.arg_names[i]
                 if arg in runtime_block_set:
                     continue
                 if arg in compile_meta["constants"]:
-                    repl[arg] = str(compile_meta["constants"][arg])
+                    repl[arg] = _convert_constant(compile_meta["constants"][arg])
                 elif arg in cfg_dict:
-                    repl[arg] = str(cfg_dict[arg])
+                    repl[arg] = _convert_constant(cfg_dict[arg])
 
             # def_args: 过滤 constexpr 参数（保留 runtime block 参数），
             # 因为调用 launcher 时不传 constexpr 参数
@@ -522,6 +529,11 @@ class TritonCompileResultNpu(TritonCompileResult):
             ),
             "function": get_first_attr(binary, "function", "cu_function"),
             "runner": get_first_attr(binary, "run", "c_wrapper"),
+            # 注入模块命名空间，使 constexpr 常量(如 repr 生成的 "triton.language.float32")
+            # 在 exec 生成 launcher 时能解析，避免 NameError。
+            "math": math,
+            "torch": torch,
+            "triton": triton,
         }
 
         if not hasattr(binary, "launch_metadata"):

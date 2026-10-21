@@ -389,6 +389,14 @@ class NPUPythonWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
         self.imports.splice(
             V.graph.device_ops.import_get_raw_stream_as("get_raw_stream")
         )
+        # After the upstream header, bind empty_strided_npu to the low-overhead
+        # torch_npu C++ entry (make_allocation emits it for NPU buffers), bypassing
+        # the dispatcher like upstream's _empty_strided_<device>.
+        if not V.graph.cpp_wrapper:
+            self.header.writeline("import torch_npu")
+            self.header.writeline(
+                "empty_strided_npu = torch_npu._C._empty_strided_npu"
+            )
 
     @cache_on_self
     def write_triton_header_once(self) -> None:
@@ -460,7 +468,43 @@ class NPUPythonWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
     def make_allocation(
         self, name, device, dtype, shape, stride, allocation_shape=None, is_pinned=False
     ):
-        out = super().make_allocation(name, device, dtype, shape, stride, allocation_shape, is_pinned)
+        # Upstream allocates via the fast empty_strided_<device.type>() entry for
+        # cuda/xpu/mtia; NPU fell into the generic empty_strided() dispatcher
+        # fallback. Mirror the triton_experimental backend: allocate NPU buffers
+        # via the low-overhead torch_npu C++ binding (empty_strided_npu, bound in
+        # write_header); non-NPU branches stay byte-identical to upstream.
+        if allocation_shape is None:
+            allocation_shape = shape
+        codegen_shape_tuple = self.codegen_python_shape_tuple(shape)
+        codegen_allocation_shape_tuple = self.codegen_python_shape_tuple(
+            allocation_shape
+        )
+        codegen_stride_tuple = self.codegen_python_shape_tuple(stride)
+        if config.test_configs.track_memory_lifecycle:
+            out = (
+                f"{name} = tracked_empty_strided("
+                f"{codegen_allocation_shape_tuple}, "
+                f"{codegen_stride_tuple}, "
+                f"dtype={dtype}, "
+                f"device='{device.type}', "
+                f"name='{name}')"
+            )
+            if codegen_shape_tuple != codegen_allocation_shape_tuple:
+                out = out + f".as_strided({codegen_shape_tuple}, {codegen_stride_tuple})"
+        elif device.type == "npu":
+            # optimized NPU path: bypass the dispatcher (torch_npu C++ binding)
+            out = (
+                f"{name} = empty_strided_npu("
+                f"{codegen_allocation_shape_tuple}, "
+                f"{codegen_stride_tuple}, "
+                f"{dtype})"
+            )
+            if codegen_shape_tuple != codegen_allocation_shape_tuple:
+                out = out + f".as_strided({codegen_shape_tuple}, {codegen_stride_tuple})"
+        else:
+            out = super().make_allocation(
+                name, device, dtype, shape, stride, allocation_shape, is_pinned
+            )
         if is_multi_stream():
             if name in self.pre_define_buffer:
                 return ""
