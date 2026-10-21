@@ -1670,3 +1670,23 @@
 <!-- end id231 -->
 
 </div>
+
+### <code><i>class</i></code> torch.distributed.DistNetworkError
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.DistNetworkError](https://docs.pytorch.org/docs/2.14/distributed.html#torch.distributed.DistNetworkError)
+
+**产品支持情况**：
+
+<!-- npu="910b" id235 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id235 -->
+<!-- npu="A3" id236 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id236 -->
+<!-- npu="950" id237 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id237 -->
+
+</div>
