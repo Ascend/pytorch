@@ -1,0 +1,223 @@
+name: nightly_coverage_test_job
+
+on:
+  workflow_call:
+    inputs:
+      # 分片文件名 (位于 cases-shards/ 下), 如 regular_npu_cases_shard_1.json
+      SHARD_FILE:
+        required: true
+        type: string
+      # 测试报告目录名 (本地保存 shard_*_cases.json 与用例日志), 如 cov-reports-reg-npu-1
+      REPORT_NAME:
+        required: true
+        type: string
+      # 覆盖率分片标识: 用作 OBS 7day-cache 中的对象名 (<COVERAGE_SHARD>.tar.gz)
+      COVERAGE_SHARD:
+        required: true
+        type: string
+      # 单用例超时 (秒)
+      CASE_TIMEOUT:
+        required: true
+        type: string
+      # 每个用例占用的卡数 (分布式用例): 2/4/8; 常规用例留空
+      CARDS_PER_TEST:
+        required: false
+        type: string
+        default: ""
+      # 常规用例 pytest-xdist 并发 worker 数; 分布式用例留空
+      MAX_WORKERS:
+        required: false
+        type: string
+        default: ""
+      # 覆盖率统计的目标包
+      COVERAGE_SOURCE:
+        required: false
+        type: string
+        default: "torch_npu"
+      # 分片覆盖率数据的 OBS 7 天缓存前缀
+      OBS_SHARD_PREFIX:
+        required: false
+        type: string
+        default: "pta/coverage/torch_npu/7day-cache/"
+      # 分片覆盖率数据上传的目标桶与端点 (需与 _nightly_coverage_merge.yml 一致)
+      OBS_BUCKET:
+        required: false
+        type: string
+        default: "pta-pr"
+      OBS_ENDPOINT:
+        required: false
+        type: string
+        default: "obs.cn-north-4.myhuaweicloud.com"
+      PYTORCH_BRANCH:
+        required: false
+        type: string
+      CONTAINER_OPTIONS:
+        required: false
+        type: string
+      # 调度标签: 测试任务默认调度到 NPU 机
+      NPU_LABEL:
+        required: false
+        type: string
+        default: "npu=8"
+
+jobs:
+  coverage_test:
+    name: coverage-test
+    select: selected_by_default
+    runs-on: [ self-hosted, "${{ inputs.NPU_LABEL }}" ]
+    timeout-minutes: 360
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260922
+      options: ${{ inputs.CONTAINER_OPTIONS }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: checkout
+        uses: checkout
+
+      - name: Download cases-shards
+        uses: download-artifact
+        with:
+          name: cases-shards
+          path: cases-shards
+
+      - name: Check shard exists
+        id: check_shard
+        run: |
+          if [ ! -f "cases-shards/${{ inputs.SHARD_FILE }}" ]; then
+            echo "Shard ${{ inputs.SHARD_FILE }} does not exist, skipping"
+            echo "has_shard=false" >> $ATOMGIT_OUTPUT
+            exit 0
+          fi
+          echo "Shard ${{ inputs.SHARD_FILE }} exists, will execute tests"
+          echo "has_shard=true" >> $ATOMGIT_OUTPUT
+
+      - name: Download torch-npu-wheel
+        if: ${{ steps.check_shard.outputs.has_shard == 'true' }}
+        uses: download-artifact
+        with:
+          name: torch-npu-wheel
+          path: ./
+
+      - name: Install PyTorch
+        if: ${{ steps.check_shard.outputs.has_shard == 'true' }}
+        run: |
+          python3.10 .gitcode/scripts/install_pytorch_from_requirements.py \
+            --arch aarch64 \
+            --python-tag cp310 \
+            --python-exe python3.10
+
+      - name: Install pytest-timeout and coverage
+        if: ${{ steps.check_shard.outputs.has_shard == 'true' }}
+        run: python3.10 -m pip install --trusted-host mirrors.huaweicloud.com pytest-timeout coverage
+
+      - name: Setup NPU test environment
+        if: ${{ steps.check_shard.outputs.has_shard == 'true' }}
+        run: |
+          bash .gitcode/scripts/setup_npu_test_env.sh --wheel-artifact-dir ./
+
+      - name: Prepare coverage environment
+        if: ${{ steps.check_shard.outputs.has_shard == 'true' }}
+        run: |
+          WORKDIR="${ATOMGIT_WORKSPACE:-$PWD}"
+          mkdir -p cov/raw cov/shard
+          # parallel=True: 每个进程写独立的并行数据文件, 便于归并子进程数据
+          # spawn 出的子进程由 cov/sitecustomize.py + COVERAGE_PROCESS_START 启动采集
+          cat > cov/.coveragerc <<EOF
+          [run]
+          branch = True
+          parallel = True
+          source = ${{ inputs.COVERAGE_SOURCE }}
+          EOF
+          # 被测代码 spawn 出的子进程启动时自动开始采集覆盖率
+          cat > cov/sitecustomize.py <<'EOF'
+          import os
+
+          if os.environ.get("COVERAGE_PROCESS_START"):
+              import coverage
+              coverage.process_startup()
+          EOF
+          cat > cov/env.sh <<EOF
+          export COVERAGE_PLUGIN_RCFILE="${WORKDIR}/cov/.coveragerc"
+          export COVERAGE_CASE_DIR="${WORKDIR}/cov/raw"
+          export PYTEST_PLUGINS="coverage_pytest_plugin"
+          export PYTHONPATH="${WORKDIR}/.gitcode/scripts:${WORKDIR}/cov${PYTHONPATH:+:${PYTHONPATH}}"
+          EOF
+          echo "=== .coveragerc ==="
+          cat cov/.coveragerc
+          echo "=== sitecustomize.py ==="
+          cat cov/sitecustomize.py
+          echo "=== env.sh ==="
+          cat cov/env.sh
+
+      - name: Execute tests with coverage
+        if: ${{ steps.check_shard.outputs.has_shard == 'true' }}
+        run: |
+          source cov/env.sh
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+
+          EXTRA_ARGS=""
+          if [ -n "${{ inputs.MAX_WORKERS }}" ]; then
+            EXTRA_ARGS="${EXTRA_ARGS} --max-workers ${{ inputs.MAX_WORKERS }}"
+          fi
+          if [ -n "${{ inputs.CARDS_PER_TEST }}" ]; then
+            EXTRA_ARGS="${EXTRA_ARGS} --cards-per-test ${{ inputs.CARDS_PER_TEST }}"
+          fi
+
+          set +e
+          python3.10 .gitcode/scripts/nightly_run_npu_test_shard.py \
+            --cases-json "cases-shards/${{ inputs.SHARD_FILE }}" \
+            --test-dir test \
+            --disabled-testcases .gitcode/config/disabled_testcases.json \
+            --disabled-methods .gitcode/config/disabled_test_methods.json \
+            --report-dir "${{ inputs.REPORT_NAME }}" \
+            --timeout "${{ inputs.CASE_TIMEOUT }}" \
+            ${EXTRA_ARGS} \
+            --verbose 2>&1 | tee cov/run.log
+          STATUS=${PIPESTATUS[0]}
+          set -e
+          echo "test_status=${STATUS}" >> $ATOMGIT_OUTPUT
+          echo "测试退出码: ${STATUS} (测试失败不阻断覆盖率产出)"
+          exit 0
+
+      - name: Group coverage data by test file
+        if: ${{ always() && steps.check_shard.outputs.has_shard == 'true' }}
+        run: |
+          python3.10 .gitcode/scripts/coverage_report.py group \
+            --report-dir "${{ inputs.REPORT_NAME }}" \
+            --raw-dir cov/raw \
+            --shard-dir cov/shard
+
+      - name: Package coverage shard for OBS
+        id: pack_shard
+        if: ${{ always() && steps.check_shard.outputs.has_shard == 'true' }}
+        run: |
+          # 判空必须看是否真的有归集结果: cov/shard 目录在准备阶段就已创建
+          if [ -z "$(find cov/shard -type d -name covdata -print -quit)" ]; then
+            echo "无分片覆盖率数据, 跳过打包"
+            exit 0
+          fi
+          tar -czf "${{ inputs.COVERAGE_SHARD }}.tar.gz" -C cov shard
+          ls -lh "${{ inputs.COVERAGE_SHARD }}.tar.gz"
+          echo "packed=1" >> $ATOMGIT_OUTPUT
+
+      - name: oidc-auth
+        if: ${{ steps.pack_shard.outputs.packed == '1' }}
+        uses: huaweicloud-oidc-auth
+        with:
+          audience: pta_pr_obs_for_pytorch
+          region: cn-north-4
+          agency_urn: iam::0d336831568090260fd5c01450729240:agency:pta_obs_pr_trust
+          provider_urn: iam::0d336831568090260fd5c01450729240:oidcProvider:pta_obs_pr
+
+      - name: Upload coverage shard to OBS 7day-cache
+        if: ${{ steps.pack_shard.outputs.packed == '1' }}
+        uses: obs-upload
+        with:
+          endpoint: "${{ inputs.OBS_ENDPOINT }}"
+          bucket: "${{ inputs.OBS_BUCKET }}"
+          artifact-path: |
+            ${{ inputs.COVERAGE_SHARD }}.tar.gz
+          object-prefix: "${{ inputs.OBS_SHARD_PREFIX }}${{ atomgit.workflow_run_id }}/"

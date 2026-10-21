@@ -1,0 +1,296 @@
+name: pytorch_coverage
+
+on:
+  workflow_call:
+    inputs:
+      # 覆盖率统计的目标包
+      COVERAGE_SOURCE:
+        required: false
+        type: string
+        default: "torch_npu"
+      # release.tar.gz 的 OBS 归档前缀
+      OBS_OBJECT_PREFIX:
+        required: false
+        type: string
+        default: "pta/coverage/torch_npu/latest/"
+      # 用例分片策略: round-robin 把超大文件的用例均匀分摊到各分片
+      SHARD_STRATEGY:
+        required: false
+        type: string
+        default: "round-robin"
+
+env:
+  PYTORCH_BRANCH: "release/2.15"
+  PYTHON_VERSION: "3.10"
+  CASE_TIMEOUT: "1200"
+  REG_WORKERS: "4"
+  COLLECT_PARALLEL: "16"
+  MAX_JOBS: "128"
+  DISTRIBUTED_MACHINES: "1"
+  DISTRIBUTED_2CARD_SHARDS: "2"
+  REGULAR_NPU_MACHINES: "10"
+  DOCKER_BASE_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260922"
+  CONTAINER_OPTS_BUILD: "--user root"
+  CONTAINER_OPTS_BUILD_NPU: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
+  CONTAINER_OPTS_NPU: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
+  CONTAINER_OPTS_COLLECT: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci1 --device /dev/davinci2 --device /dev/davinci3 --device /dev/davinci4 --device /dev/davinci5 --device /dev/davinci6 --device /dev/davinci7 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
+  CONTAINER_OPTS_LIGHT: "--user root"
+  BUILD_ARCH: "arm"
+  NPU_LABEL_COLLECT: "npu=8"
+  NPU_LABEL_DIST_2CARD: "npu=2"
+  NPU_LABEL_DIST: "npu=8"
+  NPU_LABEL_REG: "npu=1"
+  NPU_LABEL_REG_2: "npu=2"
+  NPU_LABEL_REPORT: "npu=1"
+
+jobs:
+  build:
+    name: build
+    uses: ./.gitcode/workflows/_nightly_build.yml
+    with:
+      PYTHON_VERSION: ${{ env.PYTHON_VERSION }}
+      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+      MAX_JOBS: ${{ env.MAX_JOBS }}
+      TORCH_NPU_WHEEL_ARTIFACT_DIR: ${{ env.TORCH_NPU_WHEEL_ARTIFACT_DIR }}
+      DOCKER_IMAGE: ${{ env.DOCKER_BASE_IMAGE }}
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_BUILD_NPU }}
+      RUNS_ON_ARCH: ${{ env.BUILD_ARCH }}
+      RUNS_ON_SPEC: ${{ env.NPU_LABEL_REG }}
+
+  collect:
+    name: collect
+    needs: [build]
+    uses: ./.gitcode/workflows/_nightly_collect.yml
+    with:
+      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+      TORCH_NPU_WHEEL_ARTIFACT_DIR: ${{ env.TORCH_NPU_WHEEL_ARTIFACT_DIR }}
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_COLLECT }}
+      DISTRIBUTED_MACHINES: ${{ env.DISTRIBUTED_MACHINES }}
+      DISTRIBUTED_2CARD_SHARDS: ${{ env.DISTRIBUTED_2CARD_SHARDS }}
+      REGULAR_NPU_MACHINES: ${{ env.REGULAR_NPU_MACHINES }}
+      COLLECT_PARALLEL: ${{ env.COLLECT_PARALLEL }}
+      SHARD_STRATEGY: ${{ inputs.SHARD_STRATEGY }}
+      RUNNER_LABEL: ${{ env.NPU_LABEL_COLLECT }}
+
+  cov_dist_2card_1:
+    name: cov-dist-2card-1
+    needs: [build, collect]
+    uses: ./.gitcode/workflows/_nightly_coverage_test_job.yml
+    with:
+      SHARD_FILE: distributed_2card_cases_shard_1.json
+      REPORT_NAME: cov-reports-distributed_2card
+      COVERAGE_SHARD: cov-data-distributed_2card
+      COVERAGE_SOURCE: ${{ inputs.COVERAGE_SOURCE }}
+      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+      CARDS_PER_TEST: "2"
+      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_COLLECT }}
+      NPU_LABEL: ${{ env.NPU_LABEL_DIST_2CARD }}
+
+  cov_dist_2card_2:
+    name: cov-dist-2card-2
+    needs: [build, collect]
+    uses: ./.gitcode/workflows/_nightly_coverage_test_job.yml
+    with:
+      SHARD_FILE: distributed_2card_cases_shard_2.json
+      REPORT_NAME: cov-reports-distributed_2card-2
+      COVERAGE_SHARD: cov-data-distributed_2card-2
+      COVERAGE_SOURCE: ${{ inputs.COVERAGE_SOURCE }}
+      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+      CARDS_PER_TEST: "2"
+      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
+      NPU_LABEL: ${{ env.NPU_LABEL_DIST_2CARD }}
+
+  cov_dist:
+    name: cov-dist
+    needs: [build, collect]
+    uses: ./.gitcode/workflows/_nightly_coverage_test_job.yml
+    with:
+      SHARD_FILE: distributed_cases_shard_1.json
+      REPORT_NAME: cov-reports-distributed
+      COVERAGE_SHARD: cov-data-distributed
+      COVERAGE_SOURCE: ${{ inputs.COVERAGE_SOURCE }}
+      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+      CARDS_PER_TEST: "8"
+      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
+      NPU_LABEL: ${{ env.NPU_LABEL_DIST }}
+
+  cov_reg_npu_1:
+    name: cov-reg-npu-1
+    needs: [build, collect]
+    uses: ./.gitcode/workflows/_nightly_coverage_test_job.yml
+    with:
+      SHARD_FILE: regular_npu_cases_shard_1.json
+      REPORT_NAME: cov-reports-reg-npu-1
+      COVERAGE_SHARD: cov-data-reg-npu-1
+      COVERAGE_SOURCE: ${{ inputs.COVERAGE_SOURCE }}
+      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+      MAX_WORKERS: ${{ env.REG_WORKERS }}
+      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
+      NPU_LABEL: ${{ env.NPU_LABEL_REG }}
+
+  cov_reg_npu_2:
+    name: cov-reg-npu-2
+    needs: [build, collect]
+    uses: ./.gitcode/workflows/_nightly_coverage_test_job.yml
+    with:
+      SHARD_FILE: regular_npu_cases_shard_2.json
+      REPORT_NAME: cov-reports-reg-npu-2
+      COVERAGE_SHARD: cov-data-reg-npu-2
+      COVERAGE_SOURCE: ${{ inputs.COVERAGE_SOURCE }}
+      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+      MAX_WORKERS: ${{ env.REG_WORKERS }}
+      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
+      NPU_LABEL: ${{ env.NPU_LABEL_REG }}
+
+  cov_reg_npu_3:
+    name: cov-reg-npu-3
+    needs: [build, collect]
+    uses: ./.gitcode/workflows/_nightly_coverage_test_job.yml
+    with:
+      SHARD_FILE: regular_npu_cases_shard_3.json
+      REPORT_NAME: cov-reports-reg-npu-3
+      COVERAGE_SHARD: cov-data-reg-npu-3
+      COVERAGE_SOURCE: ${{ inputs.COVERAGE_SOURCE }}
+      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+      MAX_WORKERS: ${{ env.REG_WORKERS }}
+      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
+      NPU_LABEL: ${{ env.NPU_LABEL_REG }}
+
+  cov_reg_npu_4:
+    name: cov-reg-npu-4
+    needs: [build, collect]
+    uses: ./.gitcode/workflows/_nightly_coverage_test_job.yml
+    with:
+      SHARD_FILE: regular_npu_cases_shard_4.json
+      REPORT_NAME: cov-reports-reg-npu-4
+      COVERAGE_SHARD: cov-data-reg-npu-4
+      COVERAGE_SOURCE: ${{ inputs.COVERAGE_SOURCE }}
+      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+      MAX_WORKERS: ${{ env.REG_WORKERS }}
+      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
+      NPU_LABEL: ${{ env.NPU_LABEL_REG }}
+
+  cov_reg_npu_5:
+    name: cov-reg-npu-5
+    needs: [build, collect]
+    uses: ./.gitcode/workflows/_nightly_coverage_test_job.yml
+    with:
+      SHARD_FILE: regular_npu_cases_shard_5.json
+      REPORT_NAME: cov-reports-reg-npu-5
+      COVERAGE_SHARD: cov-data-reg-npu-5
+      COVERAGE_SOURCE: ${{ inputs.COVERAGE_SOURCE }}
+      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+      MAX_WORKERS: ${{ env.REG_WORKERS }}
+      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
+      NPU_LABEL: ${{ env.NPU_LABEL_REG }}
+
+  cov_reg_npu_6:
+    name: cov-reg-npu-6
+    needs: [build, collect]
+    uses: ./.gitcode/workflows/_nightly_coverage_test_job.yml
+    with:
+      SHARD_FILE: regular_npu_cases_shard_6.json
+      REPORT_NAME: cov-reports-reg-npu-6
+      COVERAGE_SHARD: cov-data-reg-npu-6
+      COVERAGE_SOURCE: ${{ inputs.COVERAGE_SOURCE }}
+      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+      MAX_WORKERS: ${{ env.REG_WORKERS }}
+      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
+      NPU_LABEL: ${{ env.NPU_LABEL_REG }}
+
+  cov_reg_npu_7:
+    name: cov-reg-npu-7
+    needs: [build, collect]
+    uses: ./.gitcode/workflows/_nightly_coverage_test_job.yml
+    with:
+      SHARD_FILE: regular_npu_cases_shard_7.json
+      REPORT_NAME: cov-reports-reg-npu-7
+      COVERAGE_SHARD: cov-data-reg-npu-7
+      COVERAGE_SOURCE: ${{ inputs.COVERAGE_SOURCE }}
+      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+      MAX_WORKERS: ${{ env.REG_WORKERS }}
+      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
+      NPU_LABEL: ${{ env.NPU_LABEL_REG }}
+
+  cov_reg_npu_8:
+    name: cov-reg-npu-8
+    needs: [build, collect]
+    uses: ./.gitcode/workflows/_nightly_coverage_test_job.yml
+    with:
+      SHARD_FILE: regular_npu_cases_shard_8.json
+      REPORT_NAME: cov-reports-reg-npu-8
+      COVERAGE_SHARD: cov-data-reg-npu-8
+      COVERAGE_SOURCE: ${{ inputs.COVERAGE_SOURCE }}
+      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+      MAX_WORKERS: ${{ env.REG_WORKERS }}
+      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
+      NPU_LABEL: ${{ env.NPU_LABEL_REG }}
+
+  cov_reg_npu_9:
+    name: cov-reg-npu-9
+    needs: [build, collect]
+    uses: ./.gitcode/workflows/_nightly_coverage_test_job.yml
+    with:
+      SHARD_FILE: regular_npu_cases_shard_9.json
+      REPORT_NAME: cov-reports-reg-npu-9
+      COVERAGE_SHARD: cov-data-reg-npu-9
+      COVERAGE_SOURCE: ${{ inputs.COVERAGE_SOURCE }}
+      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+      MAX_WORKERS: ${{ env.REG_WORKERS }}
+      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
+      NPU_LABEL: ${{ env.NPU_LABEL_REG_2 }}
+
+  cov_reg_npu_10:
+    name: cov-reg-npu-10
+    needs: [build, collect]
+    uses: ./.gitcode/workflows/_nightly_coverage_test_job.yml
+    with:
+      SHARD_FILE: regular_npu_cases_shard_10.json
+      REPORT_NAME: cov-reports-reg-npu-10
+      COVERAGE_SHARD: cov-data-reg-npu-10
+      COVERAGE_SOURCE: ${{ inputs.COVERAGE_SOURCE }}
+      CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
+      MAX_WORKERS: ${{ env.REG_WORKERS }}
+      PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
+      NPU_LABEL: ${{ env.NPU_LABEL_REG_2 }}
+
+  merge:
+    name: merge
+    needs:
+      - build
+      - collect
+      - cov_dist_2card_1
+      - cov_dist_2card_2
+      - cov_dist
+      - cov_reg_npu_1
+      - cov_reg_npu_2
+      - cov_reg_npu_3
+      - cov_reg_npu_4
+      - cov_reg_npu_5
+      - cov_reg_npu_6
+      - cov_reg_npu_7
+      - cov_reg_npu_8
+      - cov_reg_npu_9
+      - cov_reg_npu_10
+    if: ${{ always() }}
+    uses: ./.gitcode/workflows/_nightly_coverage_merge.yml
+    with:
+      COVERAGE_SOURCE: ${{ inputs.COVERAGE_SOURCE }}
+      OBS_OBJECT_PREFIX: ${{ inputs.OBS_OBJECT_PREFIX }}
+      # 与覆盖率分片 job 数一致: 分片不全会拒绝提升为 latest
+      EXPECTED_SHARDS: "13"
+      CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_LIGHT }}
+      RUNNER_LABEL: ${{ env.NPU_LABEL_REPORT }}
