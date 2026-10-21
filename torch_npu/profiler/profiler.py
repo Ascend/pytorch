@@ -22,6 +22,7 @@ from ._profiler_action_controller import ProfActionController
 from ._profiler_path_creator import ProfPathCreator
 from .analysis._npu_profiler import NpuProfiler
 from .analysis.prof_common_func._constant import Constant, print_warn_msg
+from .analysis.prof_common_func._file_manager import FileManager
 from .analysis.prof_common_func._path_manager import ProfilerPathManager
 from .analysis.prof_common_func._utils import no_exception_func
 from .experimental_config import _ExperimentalConfig
@@ -187,6 +188,8 @@ def tensorboard_trace_handler(
     worker_name: Optional[str] = None,
     analyse_flag: bool = True,
     async_mode: bool = False,
+    use_gzip: bool = False,
+    use_python_export: bool = False,
 ):
     ProfPathCreator().init(worker_name=worker_name, dir_name=dir_name)
     if not isinstance(analyse_flag, bool):
@@ -195,10 +198,33 @@ def tensorboard_trace_handler(
     if not isinstance(async_mode, bool):
         print_warn_msg("async_mode is not bool, set by default.")
         async_mode = False
+    if not isinstance(use_gzip, bool):
+        print_warn_msg("use_gzip is not bool, set by default.")
+        use_gzip = False
+
+    def archive_profile(prof_path: str) -> None:
+        try:
+            FileManager.compress_to_tar_gz(
+                prof_path,
+                f"{prof_path}.tar.gz",
+                exclude_names={Constant.FRAMEWORK_DIR},
+            )
+        except RuntimeError as error:
+            print_warn_msg(str(error))
 
     def handler_fn(prof_inst) -> None:
+        futures = None
         if analyse_flag:
-            prof_inst.prof_if.analyse(async_mode=async_mode)
+            futures = prof_inst.prof_if.analyse(async_mode=async_mode)
+        if not use_gzip:
+            return
+        prof_path = prof_inst.prof_if.prof_path
+        if async_mode and analyse_flag:
+            if futures:
+                for future in futures:
+                    future.add_done_callback(lambda _future, path=prof_path: archive_profile(path))
+        else:
+            archive_profile(prof_path)
 
     return handler_fn
 

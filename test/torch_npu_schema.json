@@ -1812,7 +1812,7 @@
     "signature": "()"
   },
   "torch_npu.profiler.tensorboard_trace_handler": {
-    "signature": "(dir_name: Optional[str] = None, worker_name: Optional[str] = None, analyse_flag: bool = True, async_mode: bool = False)"
+    "signature": "(dir_name: Optional[str] = None, worker_name: Optional[str] = None, analyse_flag: bool = True, async_mode: bool = False, use_gzip: bool = False, use_python_export: bool = False)"
   },
   "torch_npu.profiler.dynamic_profile.init": {
     "signature": "(path: str)"
@@ -1878,7 +1878,7 @@
     "signature": "()"
   },
   "torch_npu.profiler.profiler.tensorboard_trace_handler": {
-    "signature": "(dir_name: Optional[str] = None, worker_name: Optional[str] = None, analyse_flag: bool = True, async_mode: bool = False)"
+    "signature": "(dir_name: Optional[str] = None, worker_name: Optional[str] = None, analyse_flag: bool = True, async_mode: bool = False, use_gzip: bool = False, use_python_export: bool = False)"
   },
   "torch_npu.profiler.profiler_interface.supported_activities": {
     "signature": "()"

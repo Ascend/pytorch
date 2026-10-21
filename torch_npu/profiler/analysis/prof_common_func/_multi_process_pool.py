@@ -31,4 +31,4 @@ class MultiProcessPool:
     def submit_task(self, func, *args, **kwargs):
         if not self._pool:
             return
-        self._pool.submit(func, *args, **kwargs)
+        return self._pool.submit(func, *args, **kwargs)

@@ -201,7 +201,7 @@ class _ProfInterface:
         if not self._is_env_valid:
             return
         try:
-            NpuProfiler.analyse(self.prof_path, analysis_type, output_path, **kwargs)
+            return NpuProfiler.analyse(self.prof_path, analysis_type, output_path, **kwargs)
         except Exception as e:
             print_warn_msg(f"Profiling data parsing failed, error: {e}")
 

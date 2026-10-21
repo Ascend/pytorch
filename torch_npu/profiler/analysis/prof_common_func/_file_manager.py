@@ -2,6 +2,7 @@ import csv
 import json
 import os.path
 import gzip
+import tarfile
 
 from typing import Dict, Optional
 from torch_npu.utils._error_code import ErrCode, prof_error
@@ -218,3 +219,30 @@ class FileManager:
                 pass
         except Exception as err:
             raise RuntimeError(f"Can't create file: {file_name}" + prof_error(ErrCode.SYSCALL)) from err
+
+    @classmethod
+    def compress_to_tar_gz(cls, source_path: str, archive_path: str, exclude_names=None):
+        """Create a gzip-compressed tar archive for a directory.
+
+        The source directory is retained as the archive's top-level directory.
+        ``exclude_names`` contains direct child names to omit from the archive.
+        """
+        PathManager.check_input_directory_path(source_path)
+        PathManager.check_input_file_path(archive_path)
+        exclude_names = set(exclude_names or ())
+        root_name = os.path.basename(os.path.normpath(source_path))
+        try:
+            with tarfile.open(archive_path, "w:gz") as archive:
+                archive.add(source_path, arcname=root_name, recursive=False)
+                with os.scandir(source_path) as entries:
+                    for entry in entries:
+                        if entry.name not in exclude_names:
+                            archive.add(
+                                entry.path,
+                                arcname=os.path.join(root_name, entry.name),
+                            )
+        except (OSError, tarfile.TarError) as err:
+            raise RuntimeError(
+                f"Failed to compress directory: {source_path}"
+                + prof_error(ErrCode.SYSCALL)
+            ) from err
