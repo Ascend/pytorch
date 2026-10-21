@@ -1746,10 +1746,25 @@ class NPUCachingAutotuner(CachingAutotuner):
         if launcher.store_cubin and (not benchmark_run or not self.cuda_kernel_saved):
             self.save_gpu_kernel(stream, launcher)
 
-        if self.dump_launch_params:
-            _dump_launch_params(args, kwargs, launcher, self.fn.__name__)
-
         launch_args = self._build_runtime_launch_args(args, runtime_blocks)
+        if self.dump_launch_params:
+            dump_cfg = self.best_candidate_config or launcher.config
+            _, grid = self._interpret_args_grid(args, dump_cfg, runtime_blocks)
+            orig_cfg_kwargs = launcher.config.kwargs
+            if hasattr(self.fn, "arg_names"):
+                valid_kwargs = set(self.fn.arg_names) - set(
+                    getattr(self, "runtime_block_arg_names", ())
+                )
+                launcher.config.kwargs = {
+                    k: v for k, v in orig_cfg_kwargs.items() if k in valid_kwargs
+                }
+            try:
+                _dump_launch_params(
+                    launch_args, kwargs, launcher, self.fn.__name__, grid
+                )
+            finally:
+                launcher.config.kwargs = orig_cfg_kwargs
+
         if self.is_run_debug() and not self.heuristic_type == HeuristicType.USER_AUTOTUNE:
             debug_cfg = self.best_candidate_config or launcher.config
             _, grid = self._interpret_args_grid(args, debug_cfg, runtime_blocks)
