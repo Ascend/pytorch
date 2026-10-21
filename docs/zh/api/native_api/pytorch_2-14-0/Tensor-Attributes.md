@@ -13,6 +13,7 @@
 - [torch.dtype](#torchdtype)
 - [torch.device](#torchdevice)
 - [torch.layout](#torchlayout)
+- [torch.memory_format](#torchmemory_format)
 
 </div>
 
@@ -85,5 +86,32 @@
 <!-- npu="950" id9 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id9 -->
+
+</div>
+
+## torch.memory_format
+
+### <code><i>class</i></code> torch.memory_format
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.memory_format](https://pytorch.org/docs/2.14/tensor_attributes.html#torch.memory_format)
+
+**产品支持情况**：
+
+<!-- npu="910b" id10 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id10 -->
+<!-- npu="A3" id11 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id11 -->
+<!-- npu="950" id12 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id12 -->
+
+**限制与说明**：
+
+- NPU的memory_format仅支持`torch.contiguous_format`和`torch.preserve_format`；`torch.preserve_format`用于`clone`/`empty_like`等保留输入布局，不用于`torch.empty()`。
+- `torch.channels_last`、`torch.channels_last_3d`在NPU上不支持。
 
 </div>
