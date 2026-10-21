@@ -217,6 +217,9 @@ compiled = torch.compile(
   # First compilation
   compiled(x)
 
+  # change the state checked by the target guard; replace as needed
+  change_target_state()
+
   # Verify that no recompilation occurs
   with torch.compiler.set_stance("fail_on_recompile"):
       compiled(x)  # Throws an exception if recompilation occurs
@@ -248,7 +251,11 @@ compiled = torch.compile(
   assert torch.allclose(eager_out, compiled_out, atol=1e-5)
   ```
 
+> [!NOTE]
+>
+> After a runtime state change, perform additional checks based on its effects, such as checking the output's device, dtype, or `requires_grad`. When gradient computation is required, also verify the gradients. Each check should confirm consistency with eager mode under the same state.
+
 ## Constraints
 
-- PyTorch version: Must be 2.9.0 or later.
+- PyTorch version: Must be 2.10.0 or later.
 - TorchNPU version: Must install the version compatible with the PyTorch version. For details, see [Version Notes](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.1.0/docs/en/release_notes/release_notes.md).
