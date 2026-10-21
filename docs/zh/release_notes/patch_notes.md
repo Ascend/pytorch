@@ -61,13 +61,13 @@
     <th class="tg-amwm" colspan="3">CANN版本</th>
   </tr>
   <tr>
-    <th class="tg-c3ow">8.5.X</th>
+    <th class="tg-c3ow">8.5.0</th>
     <th class="tg-c3ow">9.0.X</th>
     <th class="tg-c3ow">9.1.X</th>
   </tr></thead>
 <tbody>
   <tr>
-    <td class="tg-c3ow">7.3.X</td>
+    <td class="tg-c3ow">7.3.0</td>
     <td class="tg-c3ow">Y</td>
     <td class="tg-c3ow">Y</td>
     <td class="tg-c3ow">Y</td>
