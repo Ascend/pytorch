@@ -52,6 +52,8 @@ aten_baddbmm = inductor_bmm.aten_baddbmm
 # guessing smaller would admit plans that overrun L1 on the device.
 DEFAULT_ELEM_BYTES = 2
 
+BATCHED_N_FRACTAL = 16
+
 # A+B working set above which L2 is bypassed rather than allocated.  Below it a
 # second read of B is an L2 hit worth keeping; above it the operands evict each
 # other and no-allocate is the better hint.
@@ -1546,6 +1548,9 @@ def _get_npu_bmm_batched_configs(
     """
     batch, m, n, k = int(batch), int(m), int(n), int(k)
 
+    if k < MMAD_K_FRACTAL:
+        return []
+
     # One tile covers the whole matmul in this regime, so the tile is just the
     # shape rounded up to what tl.arange can express.  K is the exception:
     # a rank-3 load mask does not zero K padding, so a padded K step writes
@@ -1556,6 +1561,8 @@ def _get_npu_bmm_batched_configs(
     # pad; a ragged one is left to the other templates, which peel rather
     # than pad.
     block_m, block_n, block_k = _next_pow2(m), _next_pow2(n), _next_pow2(k)
+    block_m = max(MMAD_M_FRACTAL, block_m)
+    block_n = max(BATCHED_N_FRACTAL, block_n)
     if k % MMAD_K_FRACTAL == 0:
         block_k = k
     if k != block_k:
