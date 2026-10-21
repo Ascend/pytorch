@@ -22,6 +22,10 @@
 
 ## Tensor class reference
 
+<!-- npu="950" id1416 -->
+- 在<term>Ascend 950DT系列产品</term>上，`Tensor.__matmul__`使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+<!-- end id1416 -->
+
 ### <code><i>class</i></code> torch.Tensor
 
 <div style="margin-left: 2em">
@@ -841,7 +845,13 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id117 -->
 
-**限制与说明**： `self`仅支持bf16，fp16，fp32
+**限制与说明**：
+
+- `self`仅支持bf16，fp16，fp32
+
+<!-- npu="950" id1389 -->
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+<!-- end id1389 -->
 
 </div>
 
@@ -1663,7 +1673,13 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id229 -->
 
-**限制与说明**： 可能回退至CPU执行
+**限制与说明**：
+
+- 可能回退至CPU执行
+
+<!-- npu="950" id1391 -->
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+<!-- end id1391 -->
 
 </div>
 
@@ -1908,7 +1924,13 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id262 -->
 
-**限制与说明**： `self`仅支持bf16，fp16，fp32
+**限制与说明**：
+
+- `self`仅支持bf16，fp16，fp32
+
+<!-- npu="950" id1392 -->
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+<!-- end id1392 -->
 
 </div>
 
@@ -3106,6 +3128,10 @@
 **限制与说明**： <term>Ascend 950DT系列产品</term>：不支持fp64，complex64，complex128
 <!-- end id1387 -->
 
+<!-- npu="950" id1393 -->
+- 在<term>Ascend 950DT系列产品</term>上，不支持`uint8`、`int`、`bool`数据类型。
+<!-- end id1393 -->
+
 </div>
 
 > <font size="3">div()</font>
@@ -3636,7 +3662,13 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id496 -->
 
-**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64
+**限制与说明**：
+
+- `self`仅支持bf16，fp16，fp32，fp64
+
+<!-- npu="950" id1394 -->
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+<!-- end id1394 -->
 
 </div>
 
@@ -4060,7 +4092,7 @@
 - `index`维度需与`input`维度一致
 
 <!-- npu="950,A3,910b" id554 -->
-- 针对<term>Ascend 950DT系列产品</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>存在差异
+- 在<term>Ascend 950DT系列产品</term>上，输入包含重复索引时，计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。
 <!-- end id554 -->
 
 </div>
@@ -4566,7 +4598,7 @@
 - `self`仅支持int64
 
 <!-- npu="950,A3,910b" id624 -->
-- 针对<term>Ascend 950DT系列产品</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>存在差异
+- 在<term>Ascend 950DT系列产品</term>上，输入包含重复索引时，计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。
 <!-- end id624 -->
 
 </div>
@@ -4594,7 +4626,7 @@
 - `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 <!-- npu="950,A3,910b" id628 -->
-- 针对<term>Ascend 950DT系列产品</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>存在差异
+- 在<term>Ascend 950DT系列产品</term>上，输入包含重复索引时，计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。
 <!-- end id628 -->
 
 </div>
@@ -6024,7 +6056,13 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id823 -->
 
-**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**：
+
+- `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+
+<!-- npu="950" id1400 -->
+- 在<term>Ascend 950DT系列产品</term>上，`mask`中`True`的数量不能超过`source`的元素数量，否则会报错，与GPU实现一致。
+<!-- end id1400 -->
 
 </div>
 
@@ -6316,7 +6354,13 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id862 -->
 
-**限制与说明**： `self`仅支持bf16，fp16，fp32
+**限制与说明**：
+
+- `self`仅支持bf16，fp16，fp32
+
+<!-- npu="950" id1401 -->
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+<!-- end id1401 -->
 
 </div>
 
@@ -6976,6 +7020,10 @@
 - `self`仅支持bf16，fp16，fp32
 - 可能回退至CPU执行
 
+<!-- npu="950" id1404 -->
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+<!-- end id1404 -->
+
 </div>
 
 > <font size="3">numel()</font>
@@ -7256,7 +7304,13 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id990 -->
 
-**限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**：
+
+- `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+
+<!-- npu="950" id1405 -->
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+<!-- end id1405 -->
 
 </div>
 
@@ -7814,7 +7868,7 @@
 - `self`仅支持fp16，fp32，fp64，int8，int16，int32，int64，bool
 
 <!-- npu="950,A3,910b" id1066 -->
-- 针对<term>Ascend 950DT系列产品</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>存在差异
+- 在<term>Ascend 950DT系列产品</term>上，输入包含重复索引时，计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。
 <!-- end id1066 -->
 
 </div>
@@ -7843,7 +7897,7 @@
 - 可能回退至CPU执行
 
 <!-- npu="950,A3,910b" id1070 -->
-- 针对<term>Ascend 950DT系列产品</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>存在差异
+- 在<term>Ascend 950DT系列产品</term>上，输入包含重复索引时，计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。
 <!-- end id1070 -->
 
 </div>
@@ -7871,7 +7925,7 @@
 - `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 <!-- npu="950,A3,910b" id1074 -->
-- 针对<term>Ascend 950DT系列产品</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>存在差异
+- 在<term>Ascend 950DT系列产品</term>上，输入包含重复索引时，计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。
 <!-- end id1074 -->
 
 </div>
@@ -7899,7 +7953,7 @@
 - `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 <!-- npu="950,A3,910b" id1078 -->
-- 针对<term>Ascend 950DT系列产品</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>存在差异
+- 在<term>Ascend 950DT系列产品</term>上，输入包含重复索引时，计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。
 <!-- end id1078 -->
 
 </div>
@@ -9096,6 +9150,10 @@
 - <term>Atlas推理系列产品</term>不支持跨NPU拷贝
 <!-- end id1241 -->
 
+<!-- npu="950" id1411 -->
+- 在<term>Ascend 950DT系列产品</term>上，不支持转换为`double`数据类型。
+<!-- end id1411 -->
+
 </div>
 
 > <font size="3">to_mkldnn()</font>
@@ -9864,6 +9922,10 @@
 
 - `self`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64
 - 遵循PyTorch社区规范，不再支持对bool类型数据进行处理。针对存量bool类型数据可以通过如下方案进行替换：如果需要输出全True，可以采用`Tensor.bernoulli_(p=1.0)`。如果需要输出均匀分布的bool类型，则采用`Tensor.bernoulli_(p=0.5)`
+
+<!-- npu="950" id1415 -->
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+<!-- end id1415 -->
 
 </div>
 
