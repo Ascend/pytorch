@@ -20,16 +20,18 @@ import textwrap
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+import torchgen.gen_aoti_c_shim as aoti_c_shim
 from torchgen.aoti.fallback_ops import inductor_fallback_ops
 from torchgen.context import method_with_native_function
 from torchgen.gen import FileManager
 from torchgen.gen_aoti_c_shim import (
-    gen_declaration_and_definition,
     gen_static_dispatch_backend_call,
     get_fallback_op_name,
 )
 from torchgen.model import (
     BackendIndex,
+    BaseTy,
+    BaseType,
     DispatchKey,
     NativeFunction,
     NativeFunctionsGroup,
@@ -40,6 +42,12 @@ from torchnpugen.aoti.fallback_ops import inductor_fallback_ops_npu, inductor_fa
 
 
 NPU_DEVICE = "npu"
+
+# NPU AOTI C shims are generated and consumed as C++, so preserve the complete
+# c10::Scalar value instead of flattening every Scalar to double. This is a
+# process-wide torchgen setting and must be installed before shim generation.
+aoti_c_shim.base_type_to_c_type[BaseTy.Scalar] = "c10::Scalar"
+aoti_c_shim.declaration_definition_cache.clear()
 
 NPU_DISPATCH_KEYS: Sequence[DispatchKey] = ()
 
@@ -94,14 +102,22 @@ def _gen_npu_c_shim(
     device = NPU_DEVICE
     backend_call = gen_static_dispatch_backend_call(func, backend_index)
 
+    if any(
+        isinstance(ret.type, BaseType) and ret.type.name == BaseTy.Scalar
+        for ret in schema.returns
+    ):
+        raise RuntimeError(
+            f"NPU AOTI C shim does not support Scalar returns yet: {schema.name}"
+        )
+
     try:
         if header:
-            declaration, _ = gen_declaration_and_definition(
+            declaration, _ = aoti_c_shim.gen_declaration_and_definition(
                 schema, device, backend_call, version_info
             )
             return declaration
         else:
-            _, definition = gen_declaration_and_definition(
+            _, definition = aoti_c_shim.gen_declaration_and_definition(
                 schema, device, backend_call, version_info
             )
             return definition
