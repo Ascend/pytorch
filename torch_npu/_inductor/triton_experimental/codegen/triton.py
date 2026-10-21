@@ -1804,6 +1804,22 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
         return f"npu_triton_helpers.maximum({a}, {b})"
 
     @staticmethod
+    def lt(a, b):
+        return f"npu_triton_helpers.lt({a}, {b})"
+
+    @staticmethod
+    def gt(a, b):
+        return f"npu_triton_helpers.gt({a}, {b})"
+
+    @staticmethod
+    def le(a, b):
+        return f"npu_triton_helpers.le({a}, {b})"
+
+    @staticmethod
+    def ge(a, b):
+        return f"npu_triton_helpers.ge({a}, {b})"
+
+    @staticmethod
     def remainder(a, b):
         """Floor-mod sign correction rewritten to dodge triton-ascend #2290.
 

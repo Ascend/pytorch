@@ -80,3 +80,31 @@ def min2(a, dim):
 
 triton_helpers.max2 = max2
 triton_helpers.min2 = min2
+
+
+@triton.jit
+def lt(a, b):
+    if a.dtype.is_bool():
+        return b & (a != b)
+    return a < b
+
+
+@triton.jit
+def gt(a, b):
+    if a.dtype.is_bool():
+        return a & (a != b)
+    return a > b
+
+
+@triton.jit
+def le(a, b):
+    if a.dtype.is_bool():
+        return b | (a == b)
+    return a <= b
+
+
+@triton.jit
+def ge(a, b):
+    if a.dtype.is_bool():
+        return a | (a == b)
+    return a >= b
