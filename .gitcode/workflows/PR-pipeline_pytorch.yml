@@ -23,7 +23,7 @@ env:
   pr_id: ${{ atomgit.event.pull_request.number }}
   target_branch: ${{ atomgit.event.pull_request.base.ref }}
   org_name: "Ascend"
-  img_master_arm: "pytorch_master_a2_aarch64_builder:20260922"
+  img_master_arm: "pytorch_master_a2_aarch64_test:20261018"
   img_2_7_1_arm: "pytorch_2.7.1_a2_aarch64_builder:20260804"
   img_2_9_0_arm: "pytorch_2.9.0_a2_aarch64_builder:20260901"
   img_2_10_0_arm: "pytorch_2.10.0_a2_aarch64_builder:20260804"
@@ -280,7 +280,7 @@ stages:
           runs_on_arch: "arm"
 
       Build_x86_onetrack:
-        name: Build_x86
+        name: Build_x86_onetrack_v2.13
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && env.target_branch == 'master' }}
         uses: .gitcode/workflows/build_job.yml
         with:
@@ -289,7 +289,7 @@ stages:
           runs_on_arch: "x86"
 
       Build_arm_onetrack:
-        name: Build_arm
+        name: Build_arm_onetrack_v2.13
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && env.target_branch == 'master' }}
         uses: .gitcode/workflows/build_job.yml
         with:
@@ -329,7 +329,7 @@ stages:
     select: selected_by_default
     jobs:
       UT_A3_part_1:
-        name: UT_A3_part_1
+        name: UT_A3_1
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && env.target_branch == 'v2.7.1' }}
         uses: .gitcode/workflows/ut_job.yml
         with:
@@ -340,7 +340,7 @@ stages:
           runs_on_device: "910C=1"
 
       UT_A3_part_2:
-        name: UT_A3_part_2
+        name: UT_A3_2
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && env.target_branch == 'v2.7.1' }}
         uses: .gitcode/workflows/ut_job.yml
         with:
@@ -351,7 +351,7 @@ stages:
           runs_on_device: "910C=1"
 
       UT_core_part_1:
-        name: UT_core_part_1
+        name: UT_core_1
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.get_count.outputs.core > '0' }}
         uses: .gitcode/workflows/ut_job.yml
         with:
@@ -362,7 +362,7 @@ stages:
           NPU_CORE: "yes"
 
       UT_core_part_2:
-        name: UT_core_part_2
+        name: UT_core_2
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.get_count.outputs.core > '1' }}
         uses: .gitcode/workflows/ut_job.yml
         with:
@@ -373,7 +373,7 @@ stages:
           NPU_CORE: "yes"
 
       UT_core_part_3:
-        name: UT_core_part_3
+        name: UT_core_3
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.get_count.outputs.core > '2' }}
         uses: .gitcode/workflows/ut_job.yml
         with:
@@ -384,7 +384,7 @@ stages:
           NPU_CORE: "yes"
 
       UT_select_01:
-        name: UT_select_01
+        name: UT_select_1
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.get_count.outputs.select > '0' }}
         uses: .gitcode/workflows/ut_job.yml
         with:
@@ -395,7 +395,7 @@ stages:
           TEST_WORLD_SIZE: "2"
 
       UT_select_02:
-        name: UT_select_02
+        name: UT_select_2
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.get_count.outputs.select == '2' }}
         uses: .gitcode/workflows/ut_job.yml
         with:
@@ -406,7 +406,7 @@ stages:
           TEST_WORLD_SIZE: "2"
 
       UT_inductor_01:
-        name: UT_inductor_01
+        name: UT_inductor_1
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' }}
         uses: .gitcode/workflows/ut_job_inductor.yml
         with:
@@ -416,7 +416,7 @@ stages:
           TEST_WORLD_SIZE: "4"
 
       UT_inductor_02:
-        name: UT_inductor_02
+        name: UT_inductor_2
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' }}
         uses: .gitcode/workflows/ut_job_inductor.yml
         with:
@@ -426,7 +426,7 @@ stages:
           TEST_WORLD_SIZE: "4"
 
       UT_inductor_03:
-        name: UT_inductor_03
+        name: UT_inductor_3
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' }}
         uses: .gitcode/workflows/ut_job_inductor.yml
         with:
@@ -436,7 +436,7 @@ stages:
           TEST_WORLD_SIZE: "4"
 
       UT_inductor_04:
-        name: UT_inductor_04
+        name: UT_inductor_4
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' }}
         uses: .gitcode/workflows/ut_job_inductor.yml
         with:
@@ -446,7 +446,7 @@ stages:
           TEST_WORLD_SIZE: "4"
 
       UT_inductor_torch213_1:
-        name: UT_inductor_torch213_1
+        name: UT_inductor_onetrack_v2.13_1
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' && env.target_branch == 'master' }}
         uses: .gitcode/workflows/ut_job_inductor.yml
         with:
@@ -456,7 +456,7 @@ stages:
           TEST_WORLD_SIZE: "4"
 
       UT_inductor_torch213_2:
-        name: UT_inductor_torch213_2
+        name: UT_inductor_onetrack_v2.13_2
         if: ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' && env.target_branch == 'master' }}
         uses: .gitcode/workflows/ut_job_inductor.yml
         with:
@@ -466,7 +466,7 @@ stages:
           TEST_WORLD_SIZE: "4"
 
       UT_inductor_torch213_3:
-        name: UT_inductor_torch213_3
+        name: UT_inductor_onetrack_v2.13_3
         if: ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' && env.target_branch == 'master' }}
         uses: .gitcode/workflows/ut_job_inductor.yml
         with:
@@ -476,7 +476,7 @@ stages:
           TEST_WORLD_SIZE: "4"
 
       UT_inductor_torch213_4:
-        name: UT_inductor_torch213_4
+        name: UT_inductor_onetrack_v2.13_4
         if: ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_inductor.outputs.need_inductor == 'yes' && env.target_branch == 'master' }}
         uses: .gitcode/workflows/ut_job_inductor.yml
         with:
@@ -486,7 +486,7 @@ stages:
           TEST_WORLD_SIZE: "4"
 
       UT_distributed_01:
-        name: UT_distributed_01
+        name: UT_distributed_1
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_distribution.outputs.need_distribution == 'yes' }}
         uses: .gitcode/workflows/ut_job_distributed.yml
         with:
@@ -496,7 +496,7 @@ stages:
           TEST_WORLD_SIZE: "4"
 
       UT_distributed_02:
-        name: UT_distributed_02
+        name: UT_distributed_2
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_distribution.outputs.need_distribution == 'yes' }}
         uses: .gitcode/workflows/ut_job_distributed.yml
         with:
@@ -506,7 +506,7 @@ stages:
           TEST_WORLD_SIZE: "4"
 
       UT_distributed_03:
-        name: UT_distributed_03
+        name: UT_distributed_3
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_distribution.outputs.need_distribution == 'yes' }}
         uses: .gitcode/workflows/ut_job_distributed.yml
         with:
@@ -516,7 +516,7 @@ stages:
           TEST_WORLD_SIZE: "4"
 
       UT_distributed_04:
-        name: UT_distributed_04
+        name: UT_distributed_4
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_distribution.outputs.need_distribution == 'yes' }}
         uses: .gitcode/workflows/ut_job_distributed.yml
         with:
@@ -526,7 +526,7 @@ stages:
           TEST_WORLD_SIZE: "4"
 
       UT_distributed_213:
-        name: UT_distributed_213
+        name: UT_distributed_onetrack_v2.13
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && jobs.check_distribution.outputs.need_distribution == 'yes' && env.target_branch == 'master' }}
         uses: .gitcode/workflows/ut_job_distributed.yml
         with:
