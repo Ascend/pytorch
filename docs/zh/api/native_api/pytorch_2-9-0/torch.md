@@ -1066,6 +1066,10 @@
 - <term>Ascend 950DT系列产品</term>：不支持complex64
 <!-- end id146 -->
 
+<!-- npu="950" id1109 -->
+- 在<term>Ascend 950DT系列产品</term>上，不支持`complex`数据类型。
+<!-- end id1109 -->
+
 </div>
 
 ### torch.conj
@@ -1180,7 +1184,7 @@
 - `index`的维度数需与`input`的维度数一致
 
 <!-- npu="950,A3,910b" id162 -->
-- 针对<term>Ascend 950DT系列产品</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>存在差异，例如：
+- 在<term>Ascend 950DT系列产品</term>上，输入包含重复索引时，计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异，例如：
 
   ```python
   # index存在重复索引的示例：索引0被多次使用，Ascend 950DT系列产品上结果可能与A2/A3存在精度差异
@@ -1325,7 +1329,7 @@
 - `input`仅支持bf16，fp16，fp32，uint8，int16，int32，int64，bool，complex64，complex128
 
 <!-- npu="950,A3,910b" id181 -->
-- 针对<term>Ascend 950DT系列产品</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>存在差异，例如：
+- 在<term>Ascend 950DT系列产品</term>上，输入包含重复索引时，计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异，例如：
 
   ```python
   # index存在重复索引的示例：索引0被多次使用，Ascend 950DT系列产品上结果可能与A2/A3存在精度差异
@@ -1559,7 +1563,7 @@
 - 可能回退至CPU执行
 
 <!-- npu="950,A3,910b" id212 -->
-- 针对<term>Ascend 950DT系列产品</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>存在差异，例如：
+- 在<term>Ascend 950DT系列产品</term>上，输入包含重复索引时，计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异，例如：
 
   ```python
   # index存在重复索引的示例：索引0被多次使用，同一位置被多次写入，Ascend 950DT系列产品上结果可能与A2/A3存在精度差异
@@ -1661,7 +1665,7 @@
 - `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 <!-- npu="950,A3,910b" id225 -->
-- 针对<term>Ascend 950DT系列产品</term>，由于硬件差异，在索引存在重复的情况下，精度可能和<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>存在差异，例如：
+- 在<term>Ascend 950DT系列产品</term>上，输入包含重复索引时，计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异，例如：
 
   ```python
   # index存在重复索引的示例：索引0被多次使用，同一位置累加多次，Ascend 950DT系列产品上结果可能与A2/A3存在精度差异
@@ -2235,6 +2239,12 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id303 -->
 
+**限制与说明**：
+
+<!-- npu="950" id1114 -->
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+<!-- end id1114 -->
+
 </div>
 
 ### torch.rand_like
@@ -2260,6 +2270,10 @@
 - `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
 - 遵循PyTorch社区规范，不再支持对bool类型数据进行处理。针对存量bool类型数据可以通过如下方案进行替换：如果需要输出全True，可以采用`torch.bernoulli(input, 1)`。如果需要输出均匀分布的bool类型，则采用`torch.bernoulli(input, 0.5)`
 
+<!-- npu="950" id1115 -->
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+<!-- end id1115 -->
+
 </div>
 
 ### torch.randint
@@ -2279,6 +2293,12 @@
 <!-- npu="950" id309 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id309 -->
+
+**限制与说明**：
+
+<!-- npu="950" id1116 -->
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+<!-- end id1116 -->
 
 </div>
 
@@ -2300,7 +2320,13 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id312 -->
 
-**限制与说明**： `input`仅支持fp16，fp32，int64
+**限制与说明**：
+
+- `input`仅支持fp16，fp32，int64
+
+<!-- npu="950" id1117 -->
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+<!-- end id1117 -->
 
 </div>
 
@@ -2322,6 +2348,12 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id315 -->
 
+**限制与说明**：
+
+<!-- npu="950" id1118 -->
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+<!-- end id1118 -->
+
 </div>
 
 ### torch.randn_like
@@ -2342,7 +2374,13 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id318 -->
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：
+
+- `input`仅支持fp32
+
+<!-- npu="950" id1119 -->
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+<!-- end id1119 -->
 
 </div>
 
@@ -2363,6 +2401,12 @@
 <!-- npu="950" id321 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id321 -->
+
+**限制与说明**：
+
+<!-- npu="950" id1120 -->
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+<!-- end id1120 -->
 
 </div>
 
@@ -2484,7 +2528,13 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id339 -->
 
-**限制与说明**： `input`仅支持fp16，fp32，fp64
+**限制与说明**：
+
+- `input`仅支持fp16，fp32，fp64
+
+<!-- npu="950" id1121 -->
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+<!-- end id1121 -->
 
 </div>
 
@@ -2506,7 +2556,13 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id342 -->
 
-**限制与说明**： `input`仅支持fp16，fp32
+**限制与说明**：
+
+- `input`仅支持fp16，fp32
+
+<!-- npu="950" id1122 -->
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+<!-- end id1122 -->
 
 </div>
 
@@ -2528,7 +2584,13 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id345 -->
 
-**限制与说明**： `mean`、`std`仅支持fp16，fp32，fp64
+**限制与说明**：
+
+- `mean`、`std`仅支持fp16，fp32，fp64
+
+<!-- npu="950" id1123 -->
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+<!-- end id1123 -->
 
 </div>
 
@@ -2907,6 +2969,10 @@
 </div>
 
 ## Math operations
+
+<!-- npu="950" id1138 -->
+- 在<term>Ascend 950DT系列产品</term>上，`torch._foreach_abs`不支持`complex`数据类型。
+<!-- end id1138 -->
 
 ### torch.abs
 
@@ -5274,7 +5340,13 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id717 -->
 
-**限制与说明**： 可能回退至CPU执行
+**限制与说明**：
+
+- 可能回退至CPU执行
+
+<!-- npu="950" id1129 -->
+- 在<term>Ascend 950DT系列产品</term>上，不支持`double`数据类型。
+<!-- end id1129 -->
 
 </div>
 
@@ -6602,7 +6674,13 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id894 -->
 
-**限制与说明**： `operands`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**：
+
+- `operands`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+
+<!-- npu="950" id1132 -->
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+<!-- end id1132 -->
 
 </div>
 
@@ -7108,7 +7186,13 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id963 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32
+**限制与说明**：
+
+- `input`仅支持bf16，fp16，fp32
+
+<!-- npu="950" id1133 -->
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+<!-- end id1133 -->
 
 </div>
 
@@ -7174,7 +7258,13 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id972 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32
+**限制与说明**：
+
+- `input`仅支持bf16，fp16，fp32
+
+<!-- npu="950" id1134 -->
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+<!-- end id1134 -->
 
 </div>
 
@@ -7196,7 +7286,13 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id975 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32
+**限制与说明**：
+
+- `input`仅支持bf16，fp16，fp32
+
+<!-- npu="950" id1135 -->
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+<!-- end id1135 -->
 
 </div>
 
@@ -7271,6 +7367,10 @@
 - 支持Named Tensor
 - 输入最大支持6维
 
+<!-- npu="950" id1136 -->
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+<!-- end id1136 -->
+
 </div>
 
 ### torch.mm
@@ -7291,7 +7391,13 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id987 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32
+**限制与说明**：
+
+- `input`仅支持bf16，fp16，fp32
+
+<!-- npu="950" id1137 -->
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+<!-- end id1137 -->
 
 </div>
 

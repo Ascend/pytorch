@@ -70,7 +70,13 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id6 -->
 
-**限制与说明**： `input`仅支持fp16，fp32
+**限制与说明**：
+
+- `input`仅支持fp16，fp32
+
+<!-- npu="950" id311 -->
+- 在<term>Ascend 950DT系列产品</term>上，底层卷积计算的W维度不能超过1000000，`torch.ao.nn.intrinsic.ConvBn1d`也受此限制；<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>支持W维度大于1000000的场景。
+<!-- end id311 -->
 
 </div>
 
@@ -92,7 +98,14 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id9 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32
+**限制与说明**：
+
+- `input`仅支持bf16，fp16，fp32
+
+<!-- npu="950" id312 -->
+- 在<term>Ascend 950DT系列产品</term>上，默认高性能实现在`fp32`或`complex64`输入场景下，计算精度与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在差异。将`cube_math_type`设置为`4`可切换至高精度模式以对齐精度，但会影响性能。
+- 在<term>Ascend 950DT系列产品</term>上，底层卷积计算的W维度不支持大于1000000的场景；<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>支持该场景。
+<!-- end id312 -->
 
 </div>
 
@@ -357,6 +370,10 @@
   ```
 
 - `return_indices`为True时，返回的`argmax`的数据类型为int32
+
+<!-- npu="950" id313 -->
+- 在<term>Ascend 950DT系列产品</term>上，返回的`indices`与上游PyTorch对齐，与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>的结果可能不完全一致。
+<!-- end id313 -->
 
 </div>
 
@@ -1131,6 +1148,10 @@
 - `input`仅支持bf16，fp16，fp32
 - `approximate`参数仅支持设置为`tanh`
 
+<!-- npu="950" id318 -->
+- 在<term>Ascend 950DT系列产品</term>上，默认近似算法与上游PyTorch一致，与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同，返回结果可能不完全一致。
+<!-- end id318 -->
+
 </div>
 
 ### torch.nn.functional.logsigmoid
@@ -1533,7 +1554,13 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id195 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32
+**限制与说明**：
+
+- `input`仅支持bf16，fp16，fp32
+
+<!-- npu="950" id319 -->
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+<!-- end id319 -->
 
 </div>
 
@@ -1555,11 +1582,21 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id198 -->
 
-**限制与说明**： `input1`、`input2`、`weight`、`bias`仅支持bf16，fp16，fp32
+**限制与说明**：
+
+- `input1`、`input2`、`weight`、`bias`仅支持bf16，fp16，fp32
+
+<!-- npu="950" id320 -->
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+<!-- end id320 -->
 
 </div>
 
 ## Dropout functions
+
+<!-- npu="950" id323 -->
+- 在<term>Ascend 950DT系列产品</term>上，`torch.nn.functional.dropout1d`不支持`complex`数据类型。
+<!-- end id323 -->
 
 ### torch.nn.functional.dropout
 
@@ -2251,6 +2288,10 @@
 - `input`仅支持bf16，fp16，fp32，fp64
 - 支持nearest、linear、bilinear、bicubic、trilinear、area
 - 不支持`scale_factor`
+
+<!-- npu="950" id322 -->
+- 在<term>Ascend 950DT系列产品</term>上，不支持`double`数据类型。
+<!-- end id322 -->
 
 </div>
 

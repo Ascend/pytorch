@@ -2422,6 +2422,10 @@
   torch_npu.npu.use_compatible_impl(True)
   ```
 
+<!-- npu="950" id1014 -->
+- 在<term>Ascend 950DT系列产品</term>上，返回的`indices`与上游PyTorch对齐，与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>的结果可能不完全一致。
+<!-- end id1014 -->
+
 </div>
 
 ### <code><i>class</i></code> torch.nn.MaxPool3d
@@ -2462,7 +2466,13 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id338 -->
 
-**限制与说明**： `input`仅支持fp16，fp32
+**限制与说明**：
+
+- `input`仅支持fp16，fp32
+
+<!-- npu="950" id1015 -->
+- 在<term>Ascend 950DT系列产品</term>上，输入包含重复索引时，计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。
+<!-- end id1015 -->
 
 </div>
 
@@ -3201,7 +3211,13 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id437 -->
 
-**限制与说明**： `query`、`key`、`value`仅支持bf16，fp16，fp32
+**限制与说明**：
+
+- `query`、`key`、`value`仅支持bf16，fp16，fp32
+
+<!-- npu="950" id1016 -->
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+<!-- end id1016 -->
 
 > <font size="3">forward()</font>
 
@@ -3379,6 +3395,10 @@
 
 - `input`仅支持bf16，fp16，fp32
 - `approximate`参数仅支持设置为`tanh`
+
+<!-- npu="950" id1020 -->
+- 在<term>Ascend 950DT系列产品</term>上，默认近似算法与上游PyTorch一致，与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同，返回结果可能不完全一致。
+<!-- end id1020 -->
 
 </div>
 
@@ -4336,7 +4356,13 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id587 -->
 
-**限制与说明**： `src`仅支持fp32
+**限制与说明**：
+
+- `src`仅支持fp32
+
+<!-- npu="950" id1022 -->
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+<!-- end id1022 -->
 
 </div>
 
@@ -4476,7 +4502,13 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id605 -->
 
-**限制与说明**： `input`仅支持fp16，fp32
+**限制与说明**：
+
+- `input`仅支持fp16，fp32
+
+<!-- npu="950" id1023 -->
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+<!-- end id1023 -->
 
 </div>
 
@@ -5277,7 +5309,13 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id710 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64
+**限制与说明**：
+
+- `input`仅支持bf16，fp16，fp32，fp64
+
+<!-- npu="950" id1025 -->
+- 在<term>Ascend 950DT系列产品</term>上，不支持`double`数据类型。
+<!-- end id1025 -->
 
 </div>
 

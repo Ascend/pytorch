@@ -2331,6 +2331,12 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id333 -->
 
+**限制与说明**：
+
+<!-- npu="950" id1433 -->
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+<!-- end id1433 -->
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -6421,6 +6427,12 @@
 
 <div style="margin-left: 2em">
 
+**限制与说明**：
+
+<!-- npu="950" id1434 -->
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+<!-- end id1434 -->
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -8270,6 +8282,12 @@
 ### <code><i>class</i></code> torch.distributions.uniform.Uniform
 
 <div style="margin-left: 2em">
+
+**限制与说明**：
+
+<!-- npu="950" id1435 -->
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+<!-- end id1435 -->
 
 > <font size="3">arg_constraints()</font>
 
