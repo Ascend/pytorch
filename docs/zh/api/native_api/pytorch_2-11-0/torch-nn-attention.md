@@ -9,6 +9,7 @@
 <div style="border:1px solid #d1d5da;margin:10px 0;padding:16px 20px;background-color:#f3f4f5;border-radius:.25rem">
 <div style="margin: 8px 0"><font size="5"><b>目录</b></font></div>
 
+- [Utils](#utils)
 - [Submodules](#submodules)
 
 </div>
@@ -16,6 +17,48 @@
 <div style="display:none;">
 
 ## &#8203;torch.nn.attention
+
+</div>
+
+## Utils
+
+### <code><i>class</i></code> torch.nn.attention.SDPBackend
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.attention.SDPBackend](https://docs.pytorch.org/docs/2.11/generated/torch.nn.attention.SDPBackend.html)
+
+**产品支持情况**：
+
+<!-- npu="910b" id10 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id10 -->
+<!-- npu="A3" id11 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id11 -->
+<!-- npu="950" id12 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id12 -->
+
+> <font size="3">name</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.attention.SDPBackend.name](https://docs.pytorch.org/docs/2.11/generated/torch.nn.attention.SDPBackend.html#torch.nn.attention.SDPBackend.name)
+
+**产品支持情况**：
+
+<!-- npu="910b" id13 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id13 -->
+<!-- npu="A3" id14 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id14 -->
+<!-- npu="950" id15 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id15 -->
+
+</div>
 
 </div>
 
