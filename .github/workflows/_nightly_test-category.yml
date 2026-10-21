@@ -258,14 +258,18 @@ jobs:
           source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
           export LD_LIBRARY_PATH="$(python3 -c 'import sys; print(sys.prefix)')/lib:${LD_LIBRARY_PATH:-}"
 
-          TRITON_DIR="$(python3 -c 'import triton, os; print(os.path.dirname(triton.__file__))' 2>&1)" || {
-            echo "ERROR: import triton failed in this image:"
-            echo "${TRITON_DIR}"
+          # No stderr capture here: this wrapper forwards stderr fine
+          # (proven by run 39524183072) and merging it into the variable
+          # corrupted TRITON_DIR with triton 3.6.0's import-time
+          # FutureWarnings, making BACKEND_DIR a nonexistent multi-line
+          # path. -W ignore keeps those warnings out of the logs.
+          TRITON_DIR="$(python3 -W ignore -c 'import triton, os; print(os.path.dirname(triton.__file__))')" || {
+            echo "ERROR: import triton failed in this image"
             exit 1
           }
           BACKEND_DIR="${TRITON_DIR}/backends/ascend"
           echo "triton package dir: ${TRITON_DIR}"
-          python3 -c 'import triton; print("triton version:", getattr(triton, "__version__", "unknown"))' || true
+          python3 -W ignore -c 'import triton; print("triton version:", getattr(triton, "__version__", "unknown"))' || true
 
           if [ ! -d "${BACKEND_DIR}" ]; then
             echo "ERROR: triton-ascend backend not found at ${BACKEND_DIR}"
