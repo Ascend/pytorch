@@ -127,6 +127,7 @@ GENERATE_LIST = [
     aten.glu,
     aten._foreach_mul,
     inductor_prims.randint,
+    aten.hypot,
 ]
 # A5 (910_95) ONLY: the CANN indirect-mem extension ops behind these exist only
 # on A5 (fail to lower on A2/A3/910B). Mirrors torch_npu's INDIRECT_MEM_OVERRIDE_LIST.
