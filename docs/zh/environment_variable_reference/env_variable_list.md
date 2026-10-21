@@ -87,10 +87,17 @@
 
 **表 10**  图模式环境变量列表
 
+> [!NOTICE]
+>
+> 由于Inductor后端已废弃Torch-MLIR编译器，MLIR模式下的支持功能随之调整：
+>
+>- 若环境变量支持在MLIR模式下使用，则不再支持该功能；
+>- 若环境变量仅适用于MLIR模式，则直接废弃该环境变量。
+
 |环境变量名称|简介|
 |--|--|
 |[TORCHINDUCTOR_NPU_BACKEND](TORCHINDUCTOR_NPU_BACKEND.md)|通过该环境变量可配置图模式下的优化模式，支持Triton、MLIR、DVM等优化模式。|
 |[（beta）INDUCTOR_ASCEND_CHECK_ACCURACY](INDUCTOR_ASCEND_CHECK_ACCURACY.md)|INDUCTOR_ASCEND_CHECK_ACCURACY是TorchNPU提供的精度校验工具，仅在torch.compile图编译后端为"Inductor"且模式为"Triton"时自动检测融合算子的数值精度。|
 |[NPU_INDUCTOR_FALLBACK_LIST](NPU_INDUCTOR_FALLBACK_LIST.md)|通过此环境变量可指定需要回退到PyTorch原生的算子列表。|
 |[（beta）TORCHINDUCTOR_ENABLE_MFUSION](TORCHINDUCTOR_ENABLE_MFUSION.md)|通过此环境变量可控制是否启用MFusion融合优化功能，仅在torch.compile图编译后端为"Inductor"生效。|
-|[TORCHINDUCTOR_USE_AKG](TORCHINDUCTOR_USE_AKG.md)|通过此环境变量可配置torch.compile图模式（Inductor）下MLIR（Multi-Level Intermediate Representation）模式启用AKG（Auto Kernel Generator）后端优化。|
+|[TORCHINDUCTOR_USE_AKG](TORCHINDUCTOR_USE_AKG.md)（已废弃）|Inductor后端中的Torch-MLIR编译器已废弃，不再支持使用当前环境变量。通过此环境变量可配置torch.compile图模式（Inductor）下MLIR（Multi-Level Intermediate Representation）模式启用AKG（Auto Kernel Generator）后端优化。|

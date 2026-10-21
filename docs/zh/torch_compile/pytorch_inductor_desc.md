@@ -9,7 +9,7 @@ Inductor后端支持三种算子编译器，可根据场景选择：
 | 编译器 | 模式 | 开启方法 | 说明 |
 | - | - | - | - |
 | Triton | 默认模式 |`torch.compile(backend="inductor")`| 基于Triton生成融合算子，是Inductor后端的默认选择，适用于大多数场景。详细介绍参见[Triton-Ascend 官方仓库](https://gitcode.com/Ascend/triton-ascend)。|
-| Torch-MLIR | MLIR模式 |`torch.compile(backend="inductor", options={"npu_backend": "mlir"})` | 基于Torch-MLIR生成融合算子，详细介绍参见[Torch-MLIR 官方仓库](https://github.com/llvm/torch-mlir)。<br><term>Ascend 950DT</term>暂不支持MLIR模式。|
+| Torch-MLIR（已废弃） | MLIR模式 |`torch.compile(backend="inductor", options={"npu_backend": "mlir"})` | 从本版本起Torch-MLIR编译器已废弃。<br>基于Torch-MLIR生成融合算子，详细介绍参见[Torch-MLIR 官方仓库](https://github.com/llvm/torch-mlir)。<br><term>Ascend 950DT</term>暂不支持MLIR模式。|
 | DVM | DVM模式 |`torch.compile(backend="inductor", options={"npu_backend": "dvm"})` | 基于DVM生成融合算子。详细介绍参见[DVM 官方仓库](https://gitcode.com/mindspore/dvm/tree/master)。|
 
 > [!NOTICE]
@@ -18,8 +18,9 @@ Inductor后端支持三种算子编译器，可根据场景选择：
 >   - 源码编译或在线安装（Pip）时，系统会默认安装配套版本的Triton Ascend。
 >   - 离线安装（Whl）时，请参考[快速安装](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=182&ids=89dda9ba9de741349efa03687a487678%2C202%2C106%2C1%2C6%2C177%2C)文档中的命令进行安装。
 > - 如需了解更多Triton Ascend信息，具体请参考[Triton Ascend](https://triton-ascend.readthedocs.io/zh-cn/v3.2.2/)。<br>
-> - Inductor后端使用MLIR模式时需额外安装Torch-MLIR依赖包，可以在[Torch-MLIR归档地址](https://repo.oepkgs.net/ascend/pytorch/vllm/torch/)下载。<br>
+> - Inductor后端使用MLIR模式时需额外安装Torch-MLIR依赖包，可以在[Torch-MLIR归档地址](https://repo.oepkgs.net/ascend/pytorch/vllm/torch/Torch-MLIR/)下载，请根据实际系统架构及Python版本选择匹配的依赖包。<br>
 > - 在import torch前，也可通过TORCHINDUCTOR_NPU_BACKEND环境变量选择编译器模式，具体可参考[TORCHINDUCTOR_NPU_BACKEND](../environment_variable_reference/TORCHINDUCTOR_NPU_BACKEND.md)。
+> 从本版本起，Inductor后端中的Torch-MLIR编译器已废弃，不再支持使用MLIR模式。
 
 ## 编译器
 
@@ -80,7 +81,11 @@ def call(args):
 
 ### MLIR
 
-Inductor后端的扩展升级，在保留torch.compile动态图捕获 + 静态图优化 + 高效代码生成的核心逻辑的基础上，借助MLIR的多层级、跨架构编译能力，适配多类硬件架构的深度优化需求，显著提升不同算力平台下模型训练与推理的编译灵活性和性能上限。
+> [!NOTICE]
+>
+> 从本版本起，Inductor后端中的Torch-MLIR编译器已废弃，不再支持使用MLIR模式。
+
+Inductor后端的扩展升级，在保留torch.compile动态图捕获 + 静态图优化 + 高效代码生成的核心逻辑的基础上，借助MLIR的多层级、跨架构编译能力，适配多类硬件架构的深度优化需求，显著提升不同算力平台下模型训练与推理的编译灵活性和性能上限，当前该功能已停止更新，废弃处理。
 
 Inductor-MLIR编译器包含如下核心组件：
 
@@ -257,5 +262,5 @@ Inductor支持的编译选项（`options`参数）：
 
 ## 约束说明
 
-1. 优化器（optimizer）通常不入图，优化器的 `step()` 包含 Python 侧动态逻辑（如学习率调度、梯度累积、自适应更新规则），难以被静态图捕获。
-2. `torch.compile(backend="inductor")` 支持动态形状，但会触发重新编译（增加开销），建议尽量固定形状。
+- 优化器（optimizer）通常不入图，优化器的 `step()` 包含 Python 侧动态逻辑（如学习率调度、梯度累积、自适应更新规则），难以被静态图捕获。
+- `torch.compile(backend="inductor")` 支持动态形状，但会触发重新编译（增加开销），建议尽量固定形状。

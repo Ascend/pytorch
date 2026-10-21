@@ -2,7 +2,7 @@
 
 > [!NOTICE]
 >
-> 从本版本起，Inductor后端中的Torch-MLIR编译器已废弃，不再支持使用MLIR模式。
+> Inductor后端中的Torch-MLIR编译器已废弃，不再支持使用当前环境变量。
 
 ## 功能描述
 

@@ -1,5 +1,9 @@
 # （beta）TORCHINDUCTOR\_ENABLE\_MFUSION
 
+> [!NOTICE]
+>
+> Inductor后端中的Torch-MLIR编译器已废弃，不再支持该环境变量在MLIR模式下的功能。
+
 ## 功能描述
 
 通过此环境变量可控制是否启用MFusion融合优化功能。MFusion是一种针对NPU平台的图融合优化技术，能够自动融合多个算子为单一kernel，从而减少数据传输开销，提升整体计算性能。
