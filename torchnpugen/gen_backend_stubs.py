@@ -1116,14 +1116,15 @@ return {sig.name()}({", ".join(e.expr for e in translate(cpp_sig.arguments(), si
     sig_body.append(gen_npu_structured_return_with_op_hook(f, sig, npu_structured_return_expr(f, k)))
     sig_body_str = "\n".join(sig_body)
 
+    class_def = self.gen_class(
+        f,
+        k,
+        class_name=class_name,
+        parent_class=parent_class,
+        generate_super=self.g.out.structured_inherits is not None,
+    )
     return f"""\
-{self.gen_class(
-    f,
-    k,
-    class_name=class_name,
-    parent_class=parent_class,
-    generate_super=self.g.out.structured_inherits is not None,
-)}
+{class_def}
 
 {sig.defn()} {{
 {sig_body_str}
