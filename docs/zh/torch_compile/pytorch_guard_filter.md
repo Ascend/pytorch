@@ -217,6 +217,9 @@ compiled = torch.compile(
   # 首次编译
   compiled(x)
 
+  # 改变目标guard对应的状态，需替换为实际场景中的操作
+  change_target_state()
+
   # 验证不会重编译
   with torch.compiler.set_stance("fail_on_recompile"):
       compiled(x)  # 如果重编译会抛出异常
@@ -248,7 +251,11 @@ compiled = torch.compile(
   assert torch.allclose(eager_out, compiled_out, atol=1e-5)
   ```
 
+> [!NOTE]
+>
+> 运行时状态变化后，应根据其影响补充验证，例如输出的设备、dtype或`requires_grad`；需要计算梯度时，还应验证梯度结果。各项均应与相同状态下的eager模式一致。
+
 ## 约束说明
 
-- PyTorch版本：必须为2.9.0及以上版本。
+- PyTorch版本：必须为2.10.0及以上版本。
 - TorchNPU版本：必须安装与PyTorch版本配套的版本，具体请参考[版本说明](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.1.0/docs/zh/release_notes/release_notes.md#%E7%9B%B8%E5%85%B3%E4%BA%A7%E5%93%81%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%AF%B4%E6%98%8E)。
