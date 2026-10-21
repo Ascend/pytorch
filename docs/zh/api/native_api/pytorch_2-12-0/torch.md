@@ -8097,6 +8097,26 @@
 
 </div>
 
+### torch.sym_sum
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.sym_sum](https://pytorch.org/docs/2.12/generated/torch.sym_sum.html)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1104 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1104 -->
+<!-- npu="A3" id1105 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1105 -->
+<!-- npu="950" id1106 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1106 -->
+
+</div>
+
 ## Optimizations
 
 ### torch.compile
