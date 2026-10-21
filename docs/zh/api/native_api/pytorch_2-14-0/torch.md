@@ -7917,6 +7917,26 @@
 
 **限制与说明**： -
 
+> <font size="3">as_integer_ratio()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.SymFloat.as_integer_ratio](https://pytorch.org/docs/2.14/torch.html#torch.SymFloat.as_integer_ratio)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1101 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1101 -->
+<!-- npu="A3" id1102 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1102 -->
+<!-- npu="950" id1103 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1103 -->
+
+</div>
+
 </div>
 
 ### torch.sym_float

@@ -7987,7 +7987,25 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1079 -->
 
-**限制与说明**： -
+> <font size="3">as_integer_ratio()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.SymFloat.as_integer_ratio](https://pytorch.org/docs/2.13/torch.html#torch.SymFloat.as_integer_ratio)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1110 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1110 -->
+<!-- npu="A3" id1111 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1111 -->
+<!-- npu="950" id1112 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1112 -->
+
+</div>
 
 </div>
 
