@@ -233,8 +233,6 @@ NPU_EXTRA_FALLBACK_LIST = [
     aten.logcumsumexp.out,
     aten.logical_xor.default,
     aten.logical_xor_.default,
-    aten.max_pool2d_with_indices,
-    aten.max_pool2d_with_indices_backward,
     aten.max_pool2d_with_indices_backward.default,
     aten.max_pool2d_with_indices_backward.grad_input,
     aten.mul_,

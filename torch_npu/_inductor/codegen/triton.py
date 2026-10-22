@@ -3167,6 +3167,7 @@ class NPUIndexTritonKernel(TritonKernel):
             or self.stores
             or self.compute
             or self.post_loop_store
+            or self._deferred_reduction_stores  # Do not skip pending reduction stores.
             or self._original_loads_buf
             or self._original_compute_buf
             or self._original_stores_buf
