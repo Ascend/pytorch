@@ -49,4 +49,14 @@ jobs:
       device_env: 'privateuse1,cpu'
       runner_label: 'linux-amd64-a5-2'
       test_max_parallel: 3
+      # Rewrites the installed triton-ascend backend's hardcoded
+      # -std=c++17 to -std=c++20 and prebuilds npu_utils.so once per
+      # shard container, working around the deterministic npu_utils
+      # build failure against torch master's C++20-only ATen headers.
+      # This image is the original hotspot: run 38846980367 graph-2
+      # alone showed 549 compile failures + 34 per-case timeouts +
+      # ~55h swallowed compile tax. Validated on nightly-a3 run
+      # 39538533016: npu_utils failures -> 0, no side effects.
+      # See the Patch triton cxx20 step in _nightly_test-category.yml.
+      patch_triton_cxx20: true
 

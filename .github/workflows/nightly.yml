@@ -65,4 +65,12 @@ jobs:
         .github/config/disabled_testcases.json
         .github/config/running_skiped_testcases.json
         .github/config/unsupport_dtype_testcases.json
+      # Rewrites the installed triton-ascend backend's hardcoded
+      # -std=c++17 to -std=c++20 and prebuilds npu_utils.so once per
+      # shard container, working around the deterministic npu_utils
+      # build failure against torch master's C++20-only ATen headers.
+      # Validated on nightly-a3 run 39538533016: 199 graph npu_utils
+      # failures -> 0, global failures -1035, no side effects.
+      # See the Patch triton cxx20 step in _nightly_test-category.yml.
+      patch_triton_cxx20: true
 
