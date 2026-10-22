@@ -1,0 +1,374 @@
+# torch.utils.benchmark
+
+> [!NOTE]
+>
+> - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
+> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.9/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
+> - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://pytorch.org/docs/2.9/benchmark_utils.html).
+
+<div style="display:none;">
+
+## &#8203;torch.utils.benchmark
+
+</div>
+
+### <code><i>class</i></code> torch.utils.benchmark.Timer
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.utils.benchmark.Timer](https://pytorch.org/docs/2.9/benchmark_utils.html#torch.utils.benchmark.Timer)
+
+**Support Status**:
+
+<!-- npu="910b" id1 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id2 -->
+<!-- npu="950" id3 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id3 -->
+
+> <font size="3">adaptive_autorange()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.utils.benchmark.Timer.adaptive_autorange](https://pytorch.org/docs/2.9/benchmark_utils.html#torch.utils.benchmark.Timer.adaptive_autorange)
+
+**Support Status**:
+
+<!-- npu="910b" id4 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id4 -->
+<!-- npu="A3" id5 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id5 -->
+<!-- npu="950" id6 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id6 -->
+
+</div>
+
+> <font size="3">blocked_autorange()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.utils.benchmark.Timer.blocked_autorange](https://pytorch.org/docs/2.9/benchmark_utils.html#torch.utils.benchmark.Timer.blocked_autorange)
+
+**Support Status**:
+
+<!-- npu="910b" id7 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id7 -->
+<!-- npu="A3" id8 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id8 -->
+<!-- npu="950" id9 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id9 -->
+
+</div>
+
+> <font size="3">collect_callgrind()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.utils.benchmark.Timer.collect_callgrind](https://pytorch.org/docs/2.9/benchmark_utils.html#torch.utils.benchmark.Timer.collect_callgrind)
+
+**Support Status**:
+
+<!-- npu="910b" id10 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id10 -->
+<!-- npu="A3" id11 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id11 -->
+<!-- npu="950" id12 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id12 -->
+
+</div>
+
+> <font size="3">timeit()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.utils.benchmark.Timer.timeit](https://pytorch.org/docs/2.9/benchmark_utils.html#torch.utils.benchmark.Timer.timeit)
+
+**Support Status**:
+
+<!-- npu="910b" id13 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id13 -->
+<!-- npu="A3" id14 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id14 -->
+<!-- npu="950" id15 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id15 -->
+
+</div>
+
+### <code><i>class</i></code> torch.utils.benchmark.Measurement
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.utils.benchmark.Measurement](https://pytorch.org/docs/2.9/benchmark_utils.html#torch.utils.benchmark.Measurement)
+
+**Support Status**:
+
+<!-- npu="910b" id16 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id16 -->
+<!-- npu="A3" id17 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id17 -->
+<!-- npu="950" id18 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id18 -->
+
+</div>
+
+### <code><i>class</i></code> torch.utils.benchmark.CallgrindStats
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.utils.benchmark.CallgrindStats](https://pytorch.org/docs/2.9/benchmark_utils.html#torch.utils.benchmark.CallgrindStats)
+
+**Support Status**:
+
+<!-- npu="910b" id19 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id19 -->
+<!-- npu="A3" id20 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id20 -->
+<!-- npu="950" id21 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id21 -->
+
+> <font size="3">as_standardized()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.utils.benchmark.CallgrindStats.as_standardized](https://pytorch.org/docs/2.9/benchmark_utils.html#torch.utils.benchmark.CallgrindStats.as_standardized)
+
+**Support Status**:
+
+<!-- npu="910b" id22 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id22 -->
+<!-- npu="A3" id23 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id23 -->
+<!-- npu="950" id24 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id24 -->
+
+</div>
+
+> <font size="3">counts()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.utils.benchmark.CallgrindStats.counts](https://pytorch.org/docs/2.9/benchmark_utils.html#torch.utils.benchmark.CallgrindStats.counts)
+
+**Support Status**:
+
+<!-- npu="910b" id25 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id25 -->
+<!-- npu="A3" id26 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id26 -->
+<!-- npu="950" id27 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id27 -->
+
+</div>
+
+> <font size="3">delta()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.utils.benchmark.CallgrindStats.delta](https://pytorch.org/docs/2.9/benchmark_utils.html#torch.utils.benchmark.CallgrindStats.delta)
+
+**Support Status**:
+
+<!-- npu="910b" id28 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id28 -->
+<!-- npu="A3" id29 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id29 -->
+<!-- npu="950" id30 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id30 -->
+
+</div>
+
+> <font size="3">stats()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.utils.benchmark.CallgrindStats.stats](https://pytorch.org/docs/2.9/benchmark_utils.html#torch.utils.benchmark.CallgrindStats.stats)
+
+**Support Status**:
+
+<!-- npu="910b" id31 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id31 -->
+<!-- npu="A3" id32 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id32 -->
+<!-- npu="950" id33 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id33 -->
+
+</div>
+
+</div>
+
+### <code><i>class</i></code> torch.utils.benchmark.FunctionCounts
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.utils.benchmark.FunctionCounts](https://pytorch.org/docs/2.9/benchmark_utils.html#torch.utils.benchmark.FunctionCounts)
+
+**Support Status**:
+
+<!-- npu="910b" id34 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id34 -->
+<!-- npu="A3" id35 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id35 -->
+<!-- npu="950" id36 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id36 -->
+
+> <font size="3">denoise()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.utils.benchmark.FunctionCounts.denoise](https://pytorch.org/docs/2.9/benchmark_utils.html#torch.utils.benchmark.FunctionCounts.denoise)
+
+**Support Status**:
+
+<!-- npu="910b" id37 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id37 -->
+<!-- npu="A3" id38 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id38 -->
+<!-- npu="950" id39 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id39 -->
+
+</div>
+
+> <font size="3">filter()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.utils.benchmark.FunctionCounts.filter](https://pytorch.org/docs/2.9/benchmark_utils.html#torch.utils.benchmark.FunctionCounts.filter)
+
+**Support Status**:
+
+<!-- npu="910b" id40 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id40 -->
+<!-- npu="A3" id41 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id41 -->
+<!-- npu="950" id42 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id42 -->
+
+</div>
+
+> <font size="3">transform()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.utils.benchmark.FunctionCounts.transform](https://pytorch.org/docs/2.9/benchmark_utils.html#torch.utils.benchmark.FunctionCounts.transform)
+
+**Support Status**:
+
+<!-- npu="910b" id43 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id43 -->
+<!-- npu="A3" id44 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id44 -->
+<!-- npu="950" id45 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id45 -->
+
+</div>
+
+</div>
+
+### <code><i>class</i></code> torch.utils.benchmark.Compare
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.utils.benchmark.Compare](https://pytorch.org/docs/2.9/benchmark_utils.html#torch.utils.benchmark.Compare)
+
+**Support Status**:
+
+<!-- npu="910b" id46 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id46 -->
+<!-- npu="A3" id47 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id47 -->
+<!-- npu="950" id48 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id48 -->
+
+> <font size="3">colorize()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.utils.benchmark.Compare.colorize](https://pytorch.org/docs/2.9/benchmark_utils.html#torch.utils.benchmark.Compare.colorize)
+
+**Support Status**:
+
+<!-- npu="910b" id49 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id49 -->
+<!-- npu="A3" id50 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id50 -->
+<!-- npu="950" id51 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id51 -->
+
+</div>
+
+> <font size="3">trim_significant_figures()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.utils.benchmark.Compare.trim_significant_figures](https://pytorch.org/docs/2.9/benchmark_utils.html#torch.utils.benchmark.Compare.trim_significant_figures)
+
+**Support Status**:
+
+<!-- npu="910b" id52 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id52 -->
+<!-- npu="A3" id53 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id53 -->
+<!-- npu="950" id54 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id54 -->
+
+</div>
+
+</div>
+
+</div>

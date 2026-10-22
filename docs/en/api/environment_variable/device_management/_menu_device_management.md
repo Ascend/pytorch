@@ -1,0 +1,10 @@
+# Device Initialization and Management
+
+Configure device initialization, availability detection, stream resources, and device synchronization waiting.
+
+- [TORCH_ACL_INIT_CONFIG_PATH](TORCH_ACL_INIT_CONFIG_PATH.md)
+- [PYTORCH_HAL_BASED_NPU_CHECK](PYTORCH_HAL_BASED_NPU_CHECK.md)
+- [STREAMS_PER_DEVICE](STREAMS_PER_DEVICE.md)
+- [ACL_DEVICE_SYNC_TIMEOUT](ACL_DEVICE_SYNC_TIMEOUT.md)
+- [TORCH_NPU_DEVICE_CAPABILITY](TORCH_NPU_DEVICE_CAPABILITY.md)
+- [TORCH_TRANSFER_TO_NPU](TORCH_TRANSFER_TO_NPU.md)

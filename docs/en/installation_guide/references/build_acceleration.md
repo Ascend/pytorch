@@ -1,49 +1,66 @@
 # Build Acceleration
 
-This document describes how to speed up TorchNPU source builds using Ninja, Mold, CCache, and target-specific builds. Prepare the build environment by following [Building from Source (Chinese)](../../../en/installation_guide/compilation_installation_using_source_code.md). Run the commands below from the TorchNPU source root.
+This document describes the build acceleration methods for building TorchNPU from source code, covering the use of Ninja, Mold, and CCache, and the method of compiling only required targets. Before using these methods, complete environment preparation by referring to [Building from Source](building_from_source.md).
 
-## Build with Ninja
+> [!NOTE]
+>
+> All the following commands must be executed in the root directory of the TorchNPU source code.
 
-By default, CMake uses the Makefile generator. Installing the Ninja build system can significantly speed up compilation.
+## Building with Ninja
 
-This project`setup.py`Automatically detects whether Ninja is installed on the system: If the environment variable`CMAKE_GENERATOR`Set to`ninja`, or`ninja`Ordered in the`PATH`available in, will automatically use Ninja as the build system.
+CMake uses the Makefile generator by default. Installing the Ninja build system can significantly speed up compilation.
+
+The `setup.py` of this project automatically detects the Ninja environment. If the `ninja` command is included in the system PATH, or the environment variable `CMAKE_GENERATOR` is set to ninja, Ninja build is automatically enabled.
+
+The installation command is as follows:
 
 ```bash
 pip install ninja
 ```
 
-After the Ninja is installed, the compilation takes effect automatically. No additional configuration is required. If the Ninja has been compiled, perform the following operations after installing the Ninja:
+After the installation is complete, no additional configuration is required, and subsequent compilation takes effect automatically. If you have compiled before, you need to clean the build cache after installing Ninja.
+
+The command to clean the build cache is as follows:
 
 ```bash
 python setup.py clean
 ```
 
-## Using Mold Linker
+## Using the Mold Linker
 
-In a development cycle where individual files are frequently modified and recompiled, link time dominates. The system linker (GNU) that comes with most Linux distributions `ld` Slower, using a faster linker can significantly improve the build experience.
+In a development loop where code is frequently modified and recompiled, the linking stage can become a performance bottleneck. Compared with the GNU ld linker used by Linux distributions by default, the Mold linker provides a significant speed advantage, greatly shortening the build time and improving the development experience.
 
-This project's`CMakeLists.txt`Built-in linker automatic detection logic: The mold linker is detected first, and if it exists, the mold linker is automatically enabled.`-fuse-ld=mold`.
+The `CMakeLists.txt` file of this project has integrated automatic linker detection logic, which detects the Mold linker first. If it exists, the Mold linker is automatically started using the `-fuse-ld=mold` parameter.
+
+The installation command is as follows:
 
 ```bash
 sudo apt install mold
-#Alternatively, install the software from the source code: https://github.com/rui314/mold
+# Or install it from the source: https://github.com/rui314/mold
 ```
 
-After the installation, recompile the software automatically takes effect. To confirm that the linker is enabled correctly, check whether the link option in the compilation output contains`-fuse-ld=mold`.
+After a successful installation, recompilation takes effect automatically. To confirm whether the linker is correctly enabled, check whether the link options in the compilation output contain `-fuse-ld=mold`.
 
-## Using the CCache
+## Using CCache
 
-Even if dependency tracking is based on file modification time, there are many scenarios where files are repeatedly compiled. Using ccache can effectively avoid repeated compilation and save a lot of time.
+Although CMake's dependency tracking mechanism can identify file changes, repeated compilation may still be triggered in some scenarios. Introducing CCache can effectively avoid repeated compilation and significantly reduce the time of repeated compilation.
 
-This project's`CMakeLists.txt`The built-in ccache automatic detection logic is automatically enabled after the ccache is installed. However, you are advised to adjust the ccache configuration (such as the cache directory, cache size, and compression) based on the environment to obtain the best results.
+The `CMakeLists.txt` file of this project has integrated automatic CCache detection logic, which is automatically enabled after CCache is installed. For the best results, adjust the CCache configuration based on the actual environment, such as the cache directory, cache size, and compression.
+
+The installation command is as follows:
 
 ```bash
 sudo apt install ccache
-#or the
+# Or
 sudo yum install ccache
 ```
 
-Check whether the ccache takes effect by performing two complete compilations in a row. The second compilation should be significantly faster than the first compilation. If not, check the`build/CMakeCache.txt`medium`CMAKE_C_COMPILER_LAUNCHER`And to the`CMAKE_CXX_COMPILER_LAUNCHER`Whether the variable contains ccache:
+Verify whether CCache takes effect:
+
+1. Perform a complete compilation.
+2. Run the same complete compilation command again. The second compilation should be noticeably faster than the first, because most files will be read directly from the cache.
+
+If the compilation speed has not improved, check whether the `CMAKE_C_COMPILER_LAUNCHER` and `CMAKE_CXX_COMPILER_LAUNCHER` variables in the build cache file (`build/CMakeCache.txt`) contain CCache:
 
 ```cmake
 //C compiler launcher
@@ -53,12 +70,14 @@ CMAKE_C_COMPILER_LAUNCHER:PATH=/usr/bin/ccache
 CMAKE_CXX_COMPILER_LAUNCHER:PATH=/usr/bin/ccache
 ```
 
-## Compile only the required targets
+## Compiling Only Required Targets
 
-If you just have to rebuild`torch_npu.so`, you can directly specify the target in the build directory to avoid full build.
+If you only need to rebuild `torch_npu.so`, you can compile only the target file to avoid time-consuming full compilation.
+
+The command to enter the build directory and compile is as follows:
 
 ```bash
 cd build && ninja torch_npu
 ```
 
-If Ninja is not installed, the`ninja`Replace with`make`That's it.
+If Ninja is not installed in the environment, replace ninja with make in the command.

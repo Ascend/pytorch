@@ -1,18 +1,18 @@
-# FAQ
+# FAQs
 
 ## Build Issues
 
-### torch.libs/libopenblasp-r0-56e95da7.3.24.so Link Error or libgfortran Missing
+### Issue 1: torch.libs/libopenblasp-r0-56e95da7.3.24.so Link Error or Missing libgfortran
 
 **Symptom**
 
-When performing libtorch inference tests in the aarch64 environment, the build depends on `torch.libs/*.so` libraries, which need to be loaded manually.
+When performing libtorch inference tests in an aarch64 environment, the build depends on torch.libs/\*.so libraries, which need to be loaded manually.
 
-- Error Screenshot
+- Error screenshot
 
-    ![figure](../figures/libtorch_error.png)
+    ![](../figures/libtorch_error.png)
 
-- Error Text
+- Error message
 
     ```text
     [100%] Linking CXX executable libtorch_resnet
@@ -27,12 +27,12 @@ When performing libtorch inference tests in the aarch64 environment, the build d
 
 **Solution**
 
-Add the `torch.libs/*.so` library link in the `CMakeLists.txt` build file. Example code:
+Add the link to the torch.libs/\*.so library in the CMakeLists.txt build file. The code example is as follows:
 
 ```cmake
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
-# Add the search path for torch.libs/*.so libraries during the linking phase. Replace the library path in the following command line based on your actual situation
+# Add the search path of the torch.libs/*.so library during compilation and linking. Replace the library path in the following command with the actual path.
 link_directories(/usr/local/python3.8.5/lib/python3.8/site-packages/torch.libs)  
 
 add_executable(libtorch_resnet libtorch_resnet.cpp)
@@ -40,13 +40,13 @@ target_link_libraries(libtorch_resnet "${TORCH_LIBRARIES}")
 target_link_libraries(libtorch_resnet "${TORCH_NPU_LIBRARIES}")
 ```
 
-### Missing Project Files in the third_party Directory During Build or Need to Switch Project Commit ID
+### Issue 2: Missing Project Files in the third_party Directory During Build or the Need to Switch the Project Commit ID
 
 **Symptom**
 
-During the build, submodules are missing or need to be switched to a different version.
+During the build process, submodules are missing or the submodule version needs to be changed.
 
-Error Text
+Error message
 
 ```text
 Traceback (most recent call last):
@@ -71,25 +71,25 @@ RuntimeError: The path does not exist: /home/pytorch/third_party/op-plugin/op_pl
 
 **Solution**
 
-In the PyTorch directory, run the following command to initialize and update all submodules:
+Run the following command in the PyTorch directory to initialize and update all submodules:
 
 ```bash
 git submodule update --init --recursive
 ```
 
-To switch the commit ID of a third_party project, go to the corresponding project directory and run:
+To switch the commit ID of a third_party project, navigate to the corresponding project directory and run:
 
 ```bash
 git checkout <commit_id>
 ```
 
-### Build-time Line Break Error
+### Issue 3: Build Error Caused by Line Breaks
 
 **Symptom**
 
-The line break cannot be recognized during build.
+Build error: unrecognized line breaks.
 
-Error Text
+Error message
 
 ```text
 ci/build.sh: line 2: $'\r': command not found
@@ -101,19 +101,19 @@ ci/build.sh: line 11: syntax error near unexpected token `$'{\r''
 'i/build.sh: line 11: `function parse_script_args() {
 ```
 
-**Cause**
+**Possible Cause**
 
-Windows line break issue. The file uses Windows-style line breaks (CRLF: \r\n), while Linux bash only recognizes Unix-style line breaks (LF: \n), causing "\r" to be executed as part of the command.
+Windows line break issue. The file uses Windows-style line breaks (CRLF: \r\n), but Linux bash only recognizes Unix-style line breaks (LF: \n), causing "\r" to be executed as part of the command.
 
 **Solution**
 
-Try using the dos2unix tool to resolve this.
+You can try using the dos2unix tool to resolve this.
 
 ```bash
 # Install the dos2unix tool
 yum install -y dos2unix
 
-# Batch convert text files (select the files to convert based on your needs and error content)
+# Convert text files in batches (select the files to convert based on your requirements and the error messages)
 find /home/pytorch -type f \
   \( -name "*.sh" -o -name "*.py" -o -name "*.cpp" -o -name "*.h" \
   -o -name "*.c" -o -name "*.cmake" -o -name "CMakeLists.txt" \
@@ -121,77 +121,77 @@ find /home/pytorch -type f \
   -o -name "*.md" -o -name "*.cfg" -o -name "*.in" \) \
   -exec dos2unix {} + 2>/dev/null
 
-# Clean up the previous build cache (CMake cache may retain incorrect configuration)
+# Clear the previous build cache (the CMake cache may retain incorrect configurations)
 rm -rf /home/pytorch/build
 
 # Recompile
 bash ci/build.sh
 ```
 
-### Build-time Error: `CMake_minimum_required`
+### Issue 4: Build Error: CMake\_minimum\_required
 
 **Symptom**
 
-A build-time error occurs due to CMake version mismatch.
+A build error occurs due to a CMake version mismatch.
 
-Error Text
+Error message
 
 ```text
 CMake Error at third_party/Tensorpipe/third_party/libuv/CMakeLists.txt:1 (cmake_minimum_required):
   Compatibility with CMake < 3.5 has been removed from CMake.
 ```
 
-**Cause**
+**Possible Cause**
 
-This means that the CMake version in your container is relatively new (≥ 3.27). Starting from CMake 3.27, projects with `cmake_minimum_required` lower than 3.5 are no longer compatible, and the build exits with an error directly.
+This means the CMake version in your container is relatively new (≥ 3.27). Starting from CMake 3.27, projects with a cmake_minimum_required lower than 3.5 are no longer compatible, and CMake exits directly with an error.
 
 **Solution**
 
-You can try adding `cmake_args.append('-DCMAKE_POLICY_VERSION_MINIMUM=3.5')` in the `run` function of `class CPPLibBuild` in the `setup.py` file, so that CMake processes the legacy `cmake_minimum_required` declaration in compatibility mode.
+You can try to resolve this by adding `cmake_args.append('-DCMAKE_POLICY_VERSION_MINIMUM=3.5')` in the `run` function of `class CPPLibBuild` in the setup.py file, so that CMake processes the old cmake_minimum_required declaration in compatibility mode.
 
-### Build-time Error: Linker Symbol Issue
+### Issue 5: Build Error: Linker Issue
 
 **Symptom**
 
-A build-time error occurs where the linker symbol cannot be correctly recognized.
+Build error: unable to correctly recognize the link symbol.
 
-Error Text
+Error message
 
 ```text
 /home/pytorch/third_party/torchair/torchair/third_party/ascend/include/ascendcl/external/acl/error_codes/rt_error_codes.h:1:1: error: expected unqualified-id before ‘.’ token
 ```
 
-**Cause**
+**Possible Cause**
 
-The file was originally a symbolic link. On Windows, Git automatically converted it into a text file containing a path.
+The file was originally a symbolic link. On Windows, Git automatically converted it into a text file containing the path.
 
 **Solution**
 
 ```bash
-# Fix broken symbolic links (find files whose content is a relative path and recreate them as symbolic links)
+# Fix broken symbolic links (find files whose content is a relative path and rebuild them as symbolic links)
 find /home/pytorch -type f -name "*.h" -exec grep -l '^\.\./' {} \; 2>/dev/null | while read f;do
     target=$(cat "$f")
     ln -sf "$target" "$f"
 done
 ```
 
-Or try replacing with the actual content:
+Or try replacing with actual content:
 
-For example, replace the content in `third_party\torchair\torchair\third_party\ascend\include\ascend/include/ascendcl/external/acl/error_codes/rt_error_codes.h` with the content in `third_party\torchair\torchair\third_party\ascend\include\air\external\ge\ge_error_codes.h`.
+For example, replace the content in `third_party\torchair\torchair\third_party\ascend\include\ascend/include/ascendcl/external/acl/error_codes/rt_error_codes.h` with the content from `third_party\torchair\torchair\third_party\ascend\include\air\external\ge\ge_error_codes.h`.
 
-### fatal error: `filesystem` file not found
+### Issue 6: Fatal Error: 'filesystem' file not found
 
 **Symptom**
 
-A build-time error occurs indicating that the `filesystem` file is missing.
+Build error: "filesystem" file missing.
 
-Error Text
+Error message
 
 ```text
 fatal error: 'filesystem' file not found
 ```
 
-**Cause**
+**Possible Cause**
 
 This error is usually caused by an outdated GCC version. Run the following command to check the current GCC version:
 
@@ -201,83 +201,82 @@ gcc --version
 
 **Solution**
 
-If the GCC version is earlier than 8, refer to *[Installing GCC 11.2.0](installing_gcc_11-2-0.md)* to install GCC 8 or later.
+If the GCC version is lower than 8, see the [Installing GCC](https://ubuntu.com/developers/docs/howto/gcc-setup/) documentation to install GCC 8 or later.
 
 ## Installation Issues
 
-### The Built whl Package Does Not Match the Current Environment
+### Issue 1: The Built whl Package Does Not Match the Current Environment
 
 **Symptom**
 
 After the build is complete, the corresponding whl package cannot be installed.
 
-Error Text
+Error message
 
 ```text
 ERROR: torch_npuxxx.whl is not a supported wheel on this platform
 ```
 
-**Cause**
+**Possible Cause**
 
-The Python environment used during build does not match the Python environment used during installation.
+The Python environment used during the build does not match the Python environment used during installation.
 
 **Solution**
 
-Before building the installation package, confirm the Python version required by the target environment, and specify the corresponding Python version using the `--python` parameter during the build:
+Before compiling and installing the package, confirm the Python version required by the target environment, and specify the corresponding Python version using the `--python` parameter during the build:
 
 ```bash
 bash ci/build.sh --python=3.xx
 ```
 
-### ImportError: libhccl.so: cannot open shared object file: No such file or directory
+### Issue 2: ImportError: libhccl.so: cannot open shared object file: No such file or directory
 
 **Symptom**
 
-When importing torch_npu, the system reports that the `libhccl.so` file is missing.
+When importing torch_npu, the system reports that the libhccl.so file is missing.
 
-Error Text
+Error message
 
 ```text
 ImportError: libhccl.so: cannot open shared object file: No such file or directory
 ```
 
-**Cause**
+**Possible Cause**
 
-The current environment does not meet the requirements for running TorchNPU. During the build, TorchNPU depends on torch, while at runtime it depends on the matching NPU driver firmware and CANN software.
+The current environment does not meet the requirements for running TorchNPU. During the build, TorchNPU depends on torch, while at runtime it depends on the matching NPU driver and firmware and the CANN software.
 
 **Solution**
 
-Check whether the matching NPU driver firmware and CANN software (Toolkit, ops, and NNAL) are installed and whether the CANN environment variables are correctly configured. For details, see *CANN Software Installation*.
-<!-- For details, see *[CANN Software Installation](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)* -->
+Check whether the matching versions of the NPU driver and firmware and the CANN software (Toolkit, ops, and NNAL) have been installed, and configure the CANN environment variables correctly. For details, see [CANN Software Installation](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum).
 
-### System Error: core dump When Importing torch_npu
+### Issue 3: core dump Error When Importing torch_npu
 
 **Symptom**
 
-After building and installing TorchNPU, executing "import torch_npu" causes a system error with a core dump.
+After compiling and installing TorchNPU, running "import torch_npu" causes the system to report a core dump error.
 
-Error Text
+Error message
 
 ```text
 Segmentation fault
 (core dumped)
 ```
 
-**Cause**
+**Possible Cause**
 
-The GCC version used during the build does not meet expectations. pybind performs ABI verification, and different GCC versions have inconsistent `abi_version` values, causing the verification to fail.
+The GCC version used during the build does not meet expectations. pybind performs an ABI check, and different GCC versions have different abi_version values, causing the check to fail.
 
 **Solution**
 
-Use the corresponding GCC version for compilation. For specific version mappings, see [GCC and CMake Version Requirements](compilation_installation_using_source_code.md#gcc_cmake).
+Use the corresponding GCC version for compilation. For the specific matching versions, see [GCC and CMake Version Requirements](./references/building_from_source.md#gcc_cmake).
 
-### "import torch_npu" Reports an Error That torch_npu._C Cannot Be Found
+### Issue 4: "import torch_npu" Error: torch_npu._C Not Found
 
 **Symptom**
 
-After TorchNPU is installed, "import torch_npu" reports an error about `torch_npu._C`.
+After installing TorchNPU, "import torch_npu" reports an error related to torch_npu._C.
 
-Error Text
+Error message
 
 ```text
 Traceback (most recent call last):
@@ -293,10 +292,32 @@ Traceback (most recent call last):
 ModuleNotFoundError: No module named 'torch_npu._C'
 ```
 
-**Cause**
+**Possible Cause**
 
-Because the installed TorchNPU has the same name as the folder under this project, you cannot run "import torch_npu" in the project directory.
+Because the installed TorchNPU has the same name as a folder in the project, "import torch_npu" cannot be run in the project directory.
 
 **Solution**
 
-Go to a suitable runtime directory and retry, for example, run `cd test` or `cd /home/test` first, then "import torch_npu".
+Enter an appropriate working directory and retry. For example, run `cd test` or `cd /home/test` first, and then run "import torch_npu".
+
+### Issue 5: Querying the Installed TorchNPU Version
+
+**Symptom**
+
+Query the installed TorchNPU version.
+
+**Query Method**
+
+1. Run the following command to view the TorchNPU installation package version number.
+
+    ```bash
+    pip list | grep torch_npu
+    ```
+
+    The output shows the TorchNPU installation package version number as follows.
+
+    ```text
+    torch_npu     2.12.0
+    ```
+
+2. Query the corresponding TorchNPU version based on the TorchNPU installation package version number. For details about the compatibility, see [TorchNPU Version Compatibility Table](https://gitcode.com/Ascend/pytorch/blob/v2.14.0-26.2.0/COMPATIBILITY.md#torchnpu-%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%A1%A8).
