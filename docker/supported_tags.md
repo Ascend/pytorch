@@ -2,16 +2,64 @@
 
 A full list tags that are supported with TorchNPU
 
-## List of tags for the timely adaptation version (pt2.13)
+## TorchNPU 26.2.0
 
-- `2.13.0rc1-cann9.1.0-310p-ubuntu22.04-py3.12`
-- `2.13.0rc1-cann9.1.0-310p-openeuler24.03-py3.12`
-- `2.13.0rc1-cann9.1.0-910b-ubuntu22.04-py3.12`
-- `2.13.0rc1-cann9.1.0-910b-openeuler24.03-py3.12`
-- `2.13.0rc1-cann9.1.0-a3-ubuntu22.04-py3.12`
-- `2.13.0rc1-cann9.1.0-a3-openeuler24.03-py3.12`
-- `2.13.0rc1-cann9.1.0-950-ubuntu22.04-py3.12`
-- `2.13.0rc1-cann9.1.0-950-openeuler24.03-py3.12`
+- `2.14.0-cann9.2.0-310p-ubuntu22.04-py3.12`
+- `2.14.0-cann9.2.0-310p-openeuler24.03-py3.12`
+- `2.14.0-cann9.2.0-910b-ubuntu22.04-py3.12`
+- `2.14.0-cann9.2.0-910b-openeuler24.03-py3.12`
+- `2.14.0-cann9.2.0-a3-ubuntu22.04-py3.12`
+- `2.14.0-cann9.2.0-a3-openeuler24.03-py3.12`
+- `2.14.0-cann9.2.0-950-ubuntu22.04-py3.12`
+- `2.14.0-cann9.2.0-950-openeuler24.03-py3.12`
+- `2.13.0-cann9.2.0-310p-ubuntu22.04-py3.12`
+- `2.13.0-cann9.2.0-310p-openeuler24.03-py3.12`
+- `2.13.0-cann9.2.0-910b-ubuntu22.04-py3.12`
+- `2.13.0-cann9.2.0-910b-openeuler24.03-py3.12`
+- `2.13.0-cann9.2.0-a3-ubuntu22.04-py3.12`
+- `2.13.0-cann9.2.0-a3-openeuler24.03-py3.12`
+- `2.13.0-cann9.2.0-950-ubuntu22.04-py3.12`
+- `2.13.0-cann9.2.0-950-openeuler24.03-py3.12`
+- `2.12.0.post3-cann9.2.0-310p-ubuntu22.04-py3.12`
+- `2.12.0.post3-cann9.2.0-310p-openeuler24.03-py3.12`
+- `2.12.0.post3-cann9.2.0-910b-ubuntu22.04-py3.12`
+- `2.12.0.post3-cann9.2.0-910b-openeuler24.03-py3.12`
+- `2.12.0.post3-cann9.2.0-a3-ubuntu22.04-py3.12`
+- `2.12.0.post3-cann9.2.0-a3-openeuler24.03-py3.12`
+- `2.12.0.post3-cann9.2.0-950-ubuntu22.04-py3.12`
+- `2.12.0.post3-cann9.2.0-950-openeuler24.03-py3.12`
+- `2.11.0.post3-cann9.2.0-310p-ubuntu22.04-py3.12`
+- `2.11.0.post3-cann9.2.0-310p-openeuler24.03-py3.12`
+- `2.11.0.post3-cann9.2.0-910b-ubuntu22.04-py3.12`
+- `2.11.0.post3-cann9.2.0-910b-openeuler24.03-py3.12`
+- `2.11.0.post3-cann9.2.0-a3-ubuntu22.04-py3.12`
+- `2.11.0.post3-cann9.2.0-a3-openeuler24.03-py3.12`
+- `2.11.0.post3-cann9.2.0-950-ubuntu22.04-py3.12`
+- `2.11.0.post3-cann9.2.0-950-openeuler24.03-py3.12`
+- `2.10.0.post7-cann9.2.0-310p-ubuntu22.04-py3.12`
+- `2.10.0.post7-cann9.2.0-310p-openeuler24.03-py3.12`
+- `2.10.0.post7-cann9.2.0-910b-ubuntu22.04-py3.12`
+- `2.10.0.post7-cann9.2.0-910b-openeuler24.03-py3.12`
+- `2.10.0.post7-cann9.2.0-a3-ubuntu22.04-py3.12`
+- `2.10.0.post7-cann9.2.0-a3-openeuler24.03-py3.12`
+- `2.10.0.post7-cann9.2.0-950-ubuntu22.04-py3.12`
+- `2.10.0.post7-cann9.2.0-950-openeuler24.03-py3.12`
+- `2.9.0.post9-cann9.2.0-310p-ubuntu22.04-py3.12`
+- `2.9.0.post9-cann9.2.0-310p-openeuler24.03-py3.12`
+- `2.9.0.post9-cann9.2.0-910b-ubuntu22.04-py3.12`
+- `2.9.0.post9-cann9.2.0-910b-openeuler24.03-py3.12`
+- `2.9.0.post9-cann9.2.0-a3-ubuntu22.04-py3.12`
+- `2.9.0.post9-cann9.2.0-a3-openeuler24.03-py3.12`
+- `2.9.0.post9-cann9.2.0-950-ubuntu22.04-py3.12`
+- `2.9.0.post9-cann9.2.0-950-openeuler24.03-py3.12`
+- `2.7.1.post11-cann9.2.0-310p-ubuntu22.04-py3.12`
+- `2.7.1.post11-cann9.2.0-310p-openeuler24.03-py3.12`
+- `2.7.1.post11-cann9.2.0-910b-ubuntu22.04-py3.12`
+- `2.7.1.post11-cann9.2.0-910b-openeuler24.03-py3.12`
+- `2.7.1.post11-cann9.2.0-a3-ubuntu22.04-py3.12`
+- `2.7.1.post11-cann9.2.0-a3-openeuler24.03-py3.12`
+- `2.7.1.post11-cann9.2.0-950-ubuntu22.04-py3.12`
+- `2.7.1.post11-cann9.2.0-950-openeuler24.03-py3.12`
 
 ## TorchNPU 26.1.1
 
