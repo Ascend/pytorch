@@ -22,9 +22,13 @@ on:
       resolved_short:
         required: true
         type: string
-      wheels_tarball:
+      pytorch_wheels_tarball:
         required: true
         type: string
+      torchnpu_wheels_tarball:
+        required: false
+        type: string
+        default: ''
       docker_image:
         required: false
         type: string
@@ -64,11 +68,13 @@ jobs:
       - name: Compute tarball names
         id: sha
         env:
-          WHEELS_TARBALL: ${{ inputs.wheels_tarball }}
+          PYTORCH_WHEELS_TARBALL: ${{ inputs.pytorch_wheels_tarball }}
+          TORCHNPU_WHEELS_TARBALL: ${{ inputs.torchnpu_wheels_tarball }}
         run: |
           UPSTREAM_SHORT="${{ inputs.resolved_short }}"
           echo "source_tarball=pytorch-source-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
-          echo "wheels_tarball=${WHEELS_TARBALL}" >> "$GITHUB_OUTPUT"
+          echo "pytorch_wheels_tarball=${PYTORCH_WHEELS_TARBALL}" >> "$GITHUB_OUTPUT"
+          echo "torchnpu_wheels_tarball=${TORCHNPU_WHEELS_TARBALL}" >> "$GITHUB_OUTPUT"
 
       - name: Download PyTorch source from OBS
         run: |
@@ -93,11 +99,29 @@ jobs:
           rm ${{ steps.sha.outputs.source_tarball }}
           echo "PyTorch source extracted: $(du -sh pytorch/ | cut -f1)"
 
-      - name: Download wheels from OBS
+      - name: Download pytorch wheels from OBS
         run: |
           obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
 
-          TARBALL="${{ steps.sha.outputs.wheels_tarball }}"
+          TARBALL="${{ steps.sha.outputs.pytorch_wheels_tarball }}"
+          for attempt in 1 2; do
+            echo "=== Download attempt ${attempt} ==="
+            if obsutil cp "obs://pytorch-ci-cache/7day-cache/${TARBALL}" "./${TARBALL}" -vlength; then
+              echo "Download succeeded on attempt ${attempt}"
+              exit 0
+            fi
+            echo "Download attempt ${attempt} failed"
+            sleep 10
+          done
+          echo "ERROR: ${TARBALL} not found in OBS cache (build may have failed to upload)." >&2
+          exit 1
+
+      - name: Download torch_npu wheels from OBS
+        if: steps.sha.outputs.torchnpu_wheels_tarball != ''
+        run: |
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
+
+          TARBALL="${{ steps.sha.outputs.torchnpu_wheels_tarball }}"
           for attempt in 1 2; do
             echo "=== Download attempt ${attempt} ==="
             if obsutil cp "obs://pytorch-ci-cache/7day-cache/${TARBALL}" "./${TARBALL}" -vlength; then
@@ -113,8 +137,12 @@ jobs:
       - name: Extract and install wheels
         run: |
           mkdir -p /tmp/wheels
-          tar -xzf ${{ steps.sha.outputs.wheels_tarball }} -C /tmp/wheels
-          rm ${{ steps.sha.outputs.wheels_tarball }}
+          tar -xzf ${{ steps.sha.outputs.pytorch_wheels_tarball }} -C /tmp/wheels
+          rm ${{ steps.sha.outputs.pytorch_wheels_tarball }}
+          if [ -n "${{ steps.sha.outputs.torchnpu_wheels_tarball }}" ]; then
+            tar -xzf ${{ steps.sha.outputs.torchnpu_wheels_tarball }} -C /tmp/wheels
+            rm ${{ steps.sha.outputs.torchnpu_wheels_tarball }}
+          fi
           pip install /tmp/wheels/torch-*.whl
           pip install --no-deps /tmp/wheels/torch_npu*.whl
           pip install --no-deps /tmp/wheels/torchvision-*.whl || echo "WARNING: torchvision wheel not found in tarball"

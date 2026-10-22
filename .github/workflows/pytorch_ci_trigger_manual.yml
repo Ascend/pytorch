@@ -95,7 +95,8 @@ jobs:
     with:
       resolved_short: ${{ needs.build.outputs.resolved_short }}
       torch_npu_short: ${{ needs.build.outputs.torch_npu_short }}
-      wheels_tarball: ${{ needs.build.outputs.wheels_tarball }}
+      pytorch_wheels_tarball: ${{ needs.build.outputs.pytorch_wheels_tarball }}
+      torchnpu_wheels_tarball: ${{ needs.build.outputs.torchnpu_wheels_tarball }}
       # Categorization: nightly-style full scan (all test_*.py files,
       # 3-pass classification via nightly_test_categories.yml: files >
       # paths > others). Per-category workers/runner labels flow from the

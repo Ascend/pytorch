@@ -328,7 +328,8 @@ jobs:
     with:
       resolved_short: ${{ needs.build.outputs.resolved_short }}
       torch_npu_short: ${{ needs.build.outputs.torch_npu_short }}
-      wheels_tarball: ${{ needs.build.outputs.wheels_tarball }}
+      pytorch_wheels_tarball: ${{ needs.build.outputs.pytorch_wheels_tarball }}
+      torchnpu_wheels_tarball: ${{ needs.build.outputs.torchnpu_wheels_tarball }}
       precise_files: ${{ needs.select.result == 'success' && needs.select.outputs.precise_files || '' }}
       # Same test mechanism as the manual pipeline: nightly-style full
       # scan (all test_*.py files, 3-pass classification via

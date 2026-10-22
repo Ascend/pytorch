@@ -12,14 +12,25 @@ on:
         type: string
         default: ''
         description: Short SHA of torch_npu (from _build.yml outputs)
-      wheels_tarball:
+      pytorch_wheels_tarball:
         required: true
         type: string
         description: >-
-          Full content-addressed wheels tarball name from the build job
-          output (wheels-<upstream_short>-npu-<torch_npu_short>-py<ver>-
-          <image_tag>-<arch>.tar.gz). Passed down to the collect and test
-          jobs for OBS download.
+          Content-addressed pytorch-side wheels tarball name (torch +
+          torchvision) from the build job output
+          (wheels-pytorch-<upstream_short>-py<ver>-<image_tag>-<arch>-
+          <recipe>.tar.gz). Passed down to the collect and test jobs for
+          OBS download. A legacy combined tarball name also works: it
+          additionally contains the torch_npu wheel.
+      torchnpu_wheels_tarball:
+        required: false
+        type: string
+        default: ''
+        description: >-
+          torch_npu wheels tarball name from the build job output
+          (wheels-torchnpu-<torch_npu_short>-<upstream_short>-py<ver>-
+          <image_tag>-<arch>-<recipe>.tar.gz). Empty means the torch_npu
+          wheel comes from the pytorch tarball (legacy combined flows).
       case_paths_config:
         required: false
         type: string
@@ -130,7 +141,8 @@ jobs:
     secrets: inherit
     with:
       resolved_short: ${{ inputs.resolved_short }}
-      wheels_tarball: ${{ inputs.wheels_tarball }}
+      pytorch_wheels_tarball: ${{ inputs.pytorch_wheels_tarball }}
+      torchnpu_wheels_tarball: ${{ inputs.torchnpu_wheels_tarball }}
       case_paths_config: ${{ inputs.case_paths_config }}
       docker_image: ${{ inputs.docker_image }}
       hw_classification: ${{ inputs.hw_classification }}
@@ -157,7 +169,8 @@ jobs:
     secrets: inherit
     with:
       resolved_short: ${{ inputs.resolved_short }}
-      wheels_tarball: ${{ inputs.wheels_tarball }}
+      pytorch_wheels_tarball: ${{ inputs.pytorch_wheels_tarball }}
+      torchnpu_wheels_tarball: ${{ inputs.torchnpu_wheels_tarball }}
       category: ${{ matrix.category }}
       num_shards: ${{ matrix.num_shards }}
       matrix_json: ${{ matrix.matrix_json }}

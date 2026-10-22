@@ -47,10 +47,14 @@ on:
         description: 'Re-split the source cases into this many shards'
         required: true
         default: '10'
-      wheels_tarball:
-        description: 'OBS wheels tarball name (pinned to source run build)'
+      pytorch_wheels_tarball:
+        description: 'OBS wheels tarball name (pinned to source run build). Legacy combined tarball: contains the torch, torchvision and torch_npu wheels'
         required: true
         default: 'wheels-887633d60b-npu-49fb6a91e9-py310-torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609230925-00b993fc-x86_64.tar.gz'
+      torchnpu_wheels_tarball:
+        description: 'torch_npu wheels tarball name; empty = the torch_npu wheel comes from the legacy combined tarball above'
+        required: false
+        default: ''
       resolved_short:
         description: 'Upstream PyTorch short SHA (source tarball key)'
         required: true
@@ -234,7 +238,8 @@ jobs:
     with:
       resolved_short: ${{ inputs.resolved_short || '887633d60b' }}
       resolved_sha: ${{ inputs.resolved_sha || '887633d60bc8854554715ad2d6794d7c50e39f32' }}
-      wheels_tarball: ${{ inputs.wheels_tarball || 'wheels-887633d60b-npu-49fb6a91e9-py310-torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609230925-00b993fc-x86_64.tar.gz' }}
+      pytorch_wheels_tarball: ${{ inputs.pytorch_wheels_tarball || 'wheels-887633d60b-npu-49fb6a91e9-py310-torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609230925-00b993fc-x86_64.tar.gz' }}
+      torchnpu_wheels_tarball: ${{ inputs.torchnpu_wheels_tarball || '' }}
       upstream_repo: pytorch/pytorch
       category: distributed
       num_shards: ${{ inputs.num_shards || '10' }}

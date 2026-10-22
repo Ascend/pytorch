@@ -22,10 +22,12 @@ jobs:
       upstream_ref: main
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: master
-      # Build in the dedicated x86_64 builder image; the wheel-repair
-      # step in _nightly_build.yml vendors its private libs (MKL from
-      # /opt/intel) into the torch wheel so it stays self-contained in
-      # the A5 test image.
+      # Build in the dedicated x86_64 builder image. The build step
+      # statically links MKL from the image's /opt/intel (mkl-static
+      # layout, same wiring as upstream build_wheel.py), so the x86_64
+      # torch wheel matches upstream CPU wheels; the wheel-repair step
+      # then vendors libgomp and sets $ORIGIN RPATHs so the wheel stays
+      # self-contained in the A5 test image.
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-builder-x86_64-torch-master-202610160227-8a315d17
       report_to_upstream: false
       runner_label: 'linux-amd64-a5-2'
@@ -38,7 +40,8 @@ jobs:
     with:
       resolved_short: ${{ needs.build.outputs.resolved_short }}
       resolved_sha: ${{ needs.build.outputs.resolved_sha }}
-      wheels_tarball: ${{ needs.build.outputs.wheels_tarball }}
+      pytorch_wheels_tarball: ${{ needs.build.outputs.pytorch_wheels_tarball }}
+      torchnpu_wheels_tarball: ${{ needs.build.outputs.torchnpu_wheels_tarball }}
       upstream_repo: pytorch/pytorch
       torch_npu_short: ${{ needs.build.outputs.torch_npu_short }}
       case_paths_config: .github/config/nightly_test_categories_a5.yml

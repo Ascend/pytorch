@@ -21,15 +21,25 @@ on:
         type: string
         default: ''
         description: Short SHA of torch_npu (from _build.yml outputs)
-      wheels_tarball:
+      pytorch_wheels_tarball:
         required: true
         type: string
         description: >-
-          Full content-addressed wheels tarball name from the build job
-          output (pins upstream SHA, torch_npu SHA, Python, image tag,
-          arch). Passed down to the collect and test jobs for OBS download.
-          Required — a locally computed fallback would collide with the PR
-          CI wheels key space in the same OBS bucket.
+          Content-addressed pytorch-side wheels tarball name (torch +
+          torchvision) from the build job output (pins upstream SHA,
+          Python, image tag, arch). Passed down to the collect and test
+          jobs for OBS download. Required — a locally computed fallback
+          would collide with the PR CI wheels key space in the same OBS
+          bucket.
+      torchnpu_wheels_tarball:
+        required: false
+        type: string
+        default: ''
+        description: >-
+          torch_npu wheels tarball name from the build job output (pins
+          torch_npu SHA and the upstream SHA it was built against).
+          Empty means the torch_npu wheel comes from the pytorch tarball
+          (legacy combined flows).
       case_paths_config:
         required: false
         type: string
@@ -131,7 +141,8 @@ jobs:
     with:
       resolved_short: ${{ inputs.resolved_short }}
       resolved_sha: ${{ inputs.resolved_sha }}
-      wheels_tarball: ${{ inputs.wheels_tarball }}
+      pytorch_wheels_tarball: ${{ inputs.pytorch_wheels_tarball }}
+      torchnpu_wheels_tarball: ${{ inputs.torchnpu_wheels_tarball }}
       upstream_repo: ${{ inputs.upstream_repo }}
       case_paths_config: ${{ inputs.case_paths_config }}
       docker_image: ${{ inputs.docker_image }}
@@ -159,7 +170,8 @@ jobs:
     with:
       resolved_short: ${{ inputs.resolved_short }}
       resolved_sha: ${{ inputs.resolved_sha }}
-      wheels_tarball: ${{ inputs.wheels_tarball }}
+      pytorch_wheels_tarball: ${{ inputs.pytorch_wheels_tarball }}
+      torchnpu_wheels_tarball: ${{ inputs.torchnpu_wheels_tarball }}
       upstream_repo: ${{ inputs.upstream_repo }}
       category: ${{ matrix.category }}
       num_shards: ${{ matrix.num_shards }}

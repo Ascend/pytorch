@@ -53,13 +53,20 @@ on:
       torch_npu_short:
         description: Short SHA (first 10 chars) of torch_npu
         value: ${{ jobs.pytorch_and_torch-npu_build.outputs.torch_npu_short }}
-      wheels_tarball:
+      pytorch_wheels_tarball:
         description: >-
-          Content-addressed wheels tarball name (same convention as the
-          nightly build): wheels-<upstream_short>-npu-<torch_npu_short>-
-          py<ver>-<image_tag>-<arch>.tar.gz. Passed to the test jobs for
+          Content-addressed pytorch-side wheels tarball name (torch +
+          torchvision): wheels-pytorch-<upstream_short>-py<ver>-
+          <image_tag>-<arch>-<recipe>.tar.gz. Passed to the test jobs for
           OBS download.
-        value: ${{ jobs.pytorch_and_torch-npu_build.outputs.wheels_tarball }}
+        value: ${{ jobs.pytorch_and_torch-npu_build.outputs.pytorch_wheels_tarball }}
+      torchnpu_wheels_tarball:
+        description: >-
+          Content-addressed torch_npu wheels tarball name:
+          wheels-torchnpu-<torch_npu_short>-<upstream_short>-py<ver>-
+          <image_tag>-<arch>-<recipe>.tar.gz. Passed to the test jobs for
+          OBS download.
+        value: ${{ jobs.pytorch_and_torch-npu_build.outputs.torchnpu_wheels_tarball }}
 
 jobs:
   # ======================================================================
@@ -247,7 +254,8 @@ jobs:
     outputs:
       torch_npu_sha: ${{ steps.resolve_torch_npu_sha.outputs.sha }}
       torch_npu_short: ${{ steps.resolve_torch_npu_sha.outputs.short }}
-      wheels_tarball: ${{ steps.wheels_name.outputs.wheels_tarball }}
+      pytorch_wheels_tarball: ${{ steps.pytorch_wheels_name.outputs.pytorch_wheels_tarball }}
+      torchnpu_wheels_tarball: ${{ steps.torchnpu_wheels_name.outputs.torchnpu_wheels_tarball }}
     container:
       image: ${{ inputs.docker_image }}
       options: --network host
@@ -303,6 +311,34 @@ jobs:
           echo "upstream_short=${UPSTREAM_SHORT}" >> "$GITHUB_OUTPUT"
           echo "source_tarball=pytorch-source-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
 
+      # Content-addressed name of the pytorch-side wheels cache object
+      # (torch + torchvision). Deliberately does NOT embed the torch_npu
+      # SHA: those wheels do not depend on torch_npu, so the object is
+      # shareable across torch_npu revisions and across pipelines that
+      # use the same builder image. Computed before the torch_npu
+      # checkout so the pytorch package/upload steps below can run (and
+      # cache the wheels) even when torch_npu-side steps later fail.
+      - name: Compute pytorch wheels tarball name
+        id: pytorch_wheels_name
+        env:
+          DOCKER_IMAGE: ${{ inputs.docker_image }}
+          UPSTREAM_SHORT: ${{ needs.fetch.outputs.resolved_short }}
+        run: |
+          ARCH=$(uname -m)
+          PYVER=$(python3 -c "import sys; print(f'py{sys.version_info.major}{sys.version_info.minor}')")
+          IMAGE_TAG="${DOCKER_IMAGE##*:}"
+          # WHEELS_RECIPE: bump when the build recipe changes in a way not
+          # captured by the pinned inputs (upstream SHA, torch_npu SHA,
+          # image tag), so the OBS wheels cache cannot serve wheels built
+          # by an older recipe. v2 = x86_64 builds statically link MKL
+          # from /opt/intel (upstream build_wheel.py scheme) AND the
+          # cache is split into separate pytorch (torch+torchvision) and
+          # torch_npu objects.
+          WHEELS_RECIPE=v2
+          TARBALL="wheels-pytorch-${UPSTREAM_SHORT}-${PYVER}-${IMAGE_TAG}-${ARCH}-${WHEELS_RECIPE}.tar.gz"
+          echo "pytorch_wheels_tarball=${TARBALL}" >> "$GITHUB_OUTPUT"
+          echo "Pytorch wheels tarball: ${TARBALL}"
+
       - name: Download PyTorch source from OBS
         run: |
           obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
@@ -336,6 +372,22 @@ jobs:
           echo "Resolved commit: ${{ needs.fetch.outputs.resolved_sha }}"
           echo "MAX_JOBS: ${MAX_JOBS}"
           echo "============================================"
+
+          # x86_64 only: statically link MKL from the builder image,
+          # mirroring upstream .ci/wheel/linux/build_wheel.py
+          # configure_blas_env(). /opt/intel in pytorch/manylinux2_28-builder:cpu
+          # is the mkl-static layout (.a files only, no /opt/intel/mkl dir),
+          # so FindMKL cannot discover it without these hints and the build
+          # silently falls back to USE_BLAS=0 (Eigen, no BLAS at all;
+          # observed on nightly-a5: repair vendored only libgomp, wheel
+          # 177.5 MB vs upstream 210 MB). aarch64 is untouched: its builder
+          # exposes /opt/OpenBLAS on LD_LIBRARY_PATH and cmake
+          # auto-discovers it. No-op on images without /opt/intel.
+          if [ "$(uname -m)" = "x86_64" ] && [ -d /opt/intel/include ]; then
+            export CMAKE_INCLUDE_PATH="/opt/intel/include"
+            export CMAKE_LIBRARY_PATH="/opt/intel/lib:/lib"
+            echo "MKL wiring (x86_64): CMAKE_LIBRARY_PATH=${CMAKE_LIBRARY_PATH}"
+          fi
 
           pip install -r requirements.txt
 
@@ -414,6 +466,47 @@ jobs:
           python -c "import torchvision; print(f'torchvision version: {torchvision.__version__}')"
           cd "${GITHUB_WORKSPACE}"
 
+      # Step 2c: Package and upload the pytorch-side wheels (torch +
+      # torchvision) immediately after the torchvision build — before any
+      # torch_npu work — so a later torch_npu failure (checkout,
+      # submodules, build) cannot lose the expensive PyTorch build: a
+      # re-run then hits the pytorch cache object and only rebuilds
+      # torch_npu. Explicit globs keep the pip dependency wheels that
+      # `pip wheel` dropped into /tmp/wheels out of the tarball (dead
+      # weight: consumers resolve deps from the index).
+      - name: Package pytorch wheels
+        run: |
+          TARBALL="${{ steps.pytorch_wheels_name.outputs.pytorch_wheels_tarball }}"
+          # cd into the staging dir: shell glob expansion happens before
+          # tar's -C takes effect.
+          ls /tmp/wheels/torch-*.whl /tmp/wheels/torchvision-*.whl >/dev/null
+          (cd /tmp/wheels && tar -czf "${GITHUB_WORKSPACE}/${TARBALL}" torch-*.whl torchvision-*.whl)
+          echo "Pytorch wheels tarball size: $(du -h "${TARBALL}" | cut -f1)"
+
+      # obsutil is preinstalled in the build image; auth is done inline
+      # via `obsutil config` (AK/SK are masked by the runner in logs).
+      # Files above the 50MB threshold use segment upload automatically;
+      # a failed attempt leaves a checkpoint record in
+      # ~/.obsutil_checkpoint/upload, so the retry resumes the transfer
+      # instead of restarting from byte 0. -vlength verifies the uploaded
+      # object size against the local file.
+      - name: Upload pytorch wheels to OBS
+        run: |
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
+
+          TARBALL="${{ steps.pytorch_wheels_name.outputs.pytorch_wheels_tarball }}"
+          for attempt in 1 2; do
+            echo "=== Upload attempt ${attempt} ==="
+            if obsutil cp "./${TARBALL}" "obs://pytorch-ci-cache/7day-cache/${TARBALL}" -f -vlength; then
+              echo "Upload succeeded on attempt ${attempt}"
+              exit 0
+            fi
+            echo "Upload attempt ${attempt} failed"
+            sleep 10
+          done
+          echo "Upload failed after 2 attempts"
+          exit 1
+
       # Step 3: Checkout downstream torch_npu
       - name: Checkout downstream repo (torch_npu)
         uses: actions/checkout@v6
@@ -445,14 +538,15 @@ jobs:
           echo "short=${SHA:0:10}" >> "$GITHUB_OUTPUT"
           echo "torch_npu commit: ${SHA}"
 
-      # Step 3a: Compute the content-addressed wheels tarball name (same
-      # convention as the nightly build): upstream SHA + torch_npu SHA +
-      # Python version + full build image tag + arch. No OBS cache probe
+      # Step 3a: Compute the content-addressed torch_npu wheels tarball
+      # name: torch_npu SHA + upstream SHA + Python version + full build
+      # image tag + arch. The torch_npu wheel is compiled against this
+      # exact torch build, so its key pins BOTH SHAs. No OBS cache probe
       # here on purpose: this pipeline is triggered by upstream PR merges,
       # so the code is always fresh and the content-addressed wheels
       # almost never exist beforehand.
-      - name: Compute wheels tarball name
-        id: wheels_name
+      - name: Compute torch_npu wheels tarball name
+        id: torchnpu_wheels_name
         env:
           DOCKER_IMAGE: ${{ inputs.docker_image }}
           UPSTREAM_SHORT: ${{ needs.fetch.outputs.resolved_short }}
@@ -461,9 +555,17 @@ jobs:
           ARCH=$(uname -m)
           PYVER=$(python3 -c "import sys; print(f'py{sys.version_info.major}{sys.version_info.minor}')")
           IMAGE_TAG="${DOCKER_IMAGE##*:}"
-          TARBALL="wheels-${UPSTREAM_SHORT}-npu-${TORCH_NPU_SHORT}-${PYVER}-${IMAGE_TAG}-${ARCH}.tar.gz"
-          echo "wheels_tarball=${TARBALL}" >> "$GITHUB_OUTPUT"
-          echo "Wheels tarball: ${TARBALL}"
+          # WHEELS_RECIPE: bump when the build recipe changes in a way not
+          # captured by the pinned inputs (upstream SHA, torch_npu SHA,
+          # image tag), so the OBS wheels cache cannot serve wheels built
+          # by an older recipe. v2 = x86_64 builds statically link MKL
+          # from /opt/intel (upstream build_wheel.py scheme) AND the
+          # cache is split into separate pytorch (torch+torchvision) and
+          # torch_npu objects.
+          WHEELS_RECIPE=v2
+          TARBALL="wheels-torchnpu-${TORCH_NPU_SHORT}-${UPSTREAM_SHORT}-${PYVER}-${IMAGE_TAG}-${ARCH}-${WHEELS_RECIPE}.tar.gz"
+          echo "torchnpu_wheels_tarball=${TARBALL}" >> "$GITHUB_OUTPUT"
+          echo "torch_npu wheels tarball: ${TARBALL}"
 
       # Step 4: Build and install torch_npu
       - name: Build and install torch_npu
@@ -496,14 +598,17 @@ jobs:
           echo "path=${wheel}" >> "$GITHUB_OUTPUT"
           echo "name=$(basename ${wheel})" >> "$GITHUB_OUTPUT"
 
-      # Step 5: Package and upload wheel artifacts (OBS only — no GHA
+      # Step 5: Package and upload the torch_npu wheel as its own OBS
+      # cache object (the pytorch-side wheels were already packaged and
+      # uploaded right after the torchvision build). OBS only — no GHA
       # artifact for wheels; the GHA copy previously uploaded as
-      # packages-pytorch-* is intentionally dropped)
-      - name: Package wheels into tarball
+      # packages-pytorch-* is intentionally dropped.
+      - name: Package torch_npu wheel
         run: |
-          TARBALL="${{ steps.wheels_name.outputs.wheels_tarball }}"
-          tar -czf "${TARBALL}" -C /tmp/wheels .
-          echo "Wheels tarball size: $(du -h ${TARBALL} | cut -f1)"
+          TARBALL="${{ steps.torchnpu_wheels_name.outputs.torchnpu_wheels_tarball }}"
+          ls /tmp/wheels/torch_npu-*.whl >/dev/null
+          (cd /tmp/wheels && tar -czf "${GITHUB_WORKSPACE}/${TARBALL}" torch_npu-*.whl)
+          echo "torch_npu wheels tarball size: $(du -h "${TARBALL}" | cut -f1)"
 
       # obsutil is preinstalled in the build image; auth is done inline
       # via `obsutil config` (AK/SK are masked by the runner in logs).
@@ -512,11 +617,11 @@ jobs:
       # ~/.obsutil_checkpoint/upload, so the retry resumes the transfer
       # instead of restarting from byte 0. -vlength verifies the uploaded
       # object size against the local file.
-      - name: Upload wheels to OBS
+      - name: Upload torch_npu wheel to OBS
         run: |
           obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
 
-          TARBALL="${{ steps.wheels_name.outputs.wheels_tarball }}"
+          TARBALL="${{ steps.torchnpu_wheels_name.outputs.torchnpu_wheels_tarball }}"
           for attempt in 1 2; do
             echo "=== Upload attempt ${attempt} ==="
             if obsutil cp "./${TARBALL}" "obs://pytorch-ci-cache/7day-cache/${TARBALL}" -f -vlength; then
@@ -557,6 +662,8 @@ jobs:
           echo "torch_npu repo  : ${{ inputs.torch_npu_repo }}"
           echo "torch_npu commit: ${TORCH_NPU_SHA}"
           echo "Max jobs        : ${MAX_JOBS}"
+          echo "Pytorch wheels  : ${{ steps.pytorch_wheels_name.outputs.pytorch_wheels_tarball }}"
+          echo "torch_npu wheels: ${{ steps.torchnpu_wheels_name.outputs.torchnpu_wheels_tarball }}"
           echo "============================================"
 
           {
@@ -569,6 +676,8 @@ jobs:
             echo "| torch_npu repo | ${{ inputs.torch_npu_repo }} |"
             echo "| torch_npu commit | \`${TORCH_NPU_SHA}\` |"
             echo "| Max jobs | ${MAX_JOBS} |"
+            echo "| Pytorch wheels | \`${{ steps.pytorch_wheels_name.outputs.pytorch_wheels_tarball }}\` |"
+            echo "| torch_npu wheels | \`${{ steps.torchnpu_wheels_name.outputs.torchnpu_wheels_tarball }}\` |"
           } >> "$GITHUB_STEP_SUMMARY"
 
       # Step 8: Report build completed to upstream (same job as in_progress)

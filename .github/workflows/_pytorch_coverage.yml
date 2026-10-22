@@ -84,7 +84,8 @@ jobs:
     secrets: inherit
     with:
       resolved_short: ${{ needs.resolve.outputs.short }}
-      wheels_tarball: ${{ needs.build.outputs.wheels_tarball }}
+      pytorch_wheels_tarball: ${{ needs.build.outputs.pytorch_wheels_tarball }}
+      torchnpu_wheels_tarball: ${{ needs.build.outputs.torchnpu_wheels_tarball }}
       case_paths_config: .github/config/nightly_test_categories.yml
       full_scan: true
       case_whitelist: .github/config/privateuse1_npu_passed_testcases.json
@@ -112,7 +113,8 @@ jobs:
       runner_label: ${{ matrix.runner_label }}
       categories_filter: ${{ inputs.categories }}
       resolved_short: ${{ needs.resolve.outputs.short }}
-      wheels_tarball: ${{ needs.build.outputs.wheels_tarball }}
+      pytorch_wheels_tarball: ${{ needs.build.outputs.pytorch_wheels_tarball }}
+      torchnpu_wheels_tarball: ${{ needs.build.outputs.torchnpu_wheels_tarball }}
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610160225-8a315d17
 
   merge:
