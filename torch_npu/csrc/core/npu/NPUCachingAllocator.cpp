@@ -22,6 +22,7 @@
 #include <acl/acl_rt.h>
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/core/npu/RingBuffer.h"
 #include "torch_npu/csrc/core/npu/NPUAllocatorConfig.h"
 #include "torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h"
 #include "torch_npu/csrc/core/npu/NPURecovery.h"
@@ -996,12 +997,8 @@ class DeviceCachingAllocator {
   bool record_history = false;
 
   std::atomic<CreateContextFn> context_recorder_;
-  size_t alloc_trace_next = 0;
   RecordContext record_context_ = RecordContext::NEVER;
-  size_t alloc_trace_max_entries_ = 1;
-  std::vector<TraceEntry>* alloc_trace; // pointer because we need to intentionally leak this on
-                                        // deallocation it can hold references to Python state which
-                                        // will already be destroyed when we are in exit handlers
+  c10::RingBuffer<TraceEntry> alloc_buffer;
 
   // XXX - maybe we should generalize and have multiple events
   std::vector<OutOfMemoryObserver> oom_observers_;
@@ -1028,8 +1025,7 @@ class DeviceCachingAllocator {
   std::unordered_map<Block*, stream_set> block_to_npugraph_stream_uses;
 
  public:
-  DeviceCachingAllocator(c10::DeviceIndex device)
-      : device_id(device), large_blocks(false), small_blocks(true), alloc_trace(new std::vector<TraceEntry>()) {
+  DeviceCachingAllocator(c10::DeviceIndex device) : device_id(device), large_blocks(false), small_blocks(true) {
     setMemoryFraction(NPUAllocatorConfig::per_process_memory_fraction());
     stats.max_split_size = static_cast<int64_t>(NPUAllocatorConfig::max_split_size());
     context_recorder_.store(nullptr);
@@ -1044,10 +1040,9 @@ class DeviceCachingAllocator {
     TORCH_CHECK(when == RecordContext::NEVER || context_recorder, PTA_ERROR(ErrCode::INTERNAL));
     record_history = enabled;
     context_recorder_.store(record_history ? context_recorder : nullptr);
-    alloc_trace_max_entries_ = std::max(size_t(1), alloc_trace_max_entries);
+    alloc_buffer.setMaxEntries(alloc_trace_max_entries);
     record_context_ = enabled ? when : RecordContext::NEVER;
-    alloc_trace_next = 0;
-    alloc_trace->clear();
+    alloc_buffer.clear();
   }
 
   bool isHistoryEnabled() {
@@ -2167,9 +2162,7 @@ class DeviceCachingAllocator {
   std::vector<TraceEntry> trace() {
     std::lock_guard<std::recursive_mutex> lock(mutex);
     std::vector<TraceEntry> result;
-    result.reserve(alloc_trace->size());
-    result.insert(result.end(), alloc_trace->begin() + alloc_trace_next, alloc_trace->end());
-    result.insert(result.end(), alloc_trace->begin(), alloc_trace->begin() + alloc_trace_next);
+    alloc_buffer.getEntries(result);
 
     return result;
   }
@@ -3525,14 +3518,7 @@ class DeviceCachingAllocator {
     }
 
     if (record_history) {
-      if (alloc_trace->size() < alloc_trace_max_entries_) {
-        alloc_trace->emplace_back(te);
-      } else {
-        (*alloc_trace)[alloc_trace_next++] = te;
-        if (alloc_trace_next == alloc_trace_max_entries_) {
-          alloc_trace_next = 0;
-        }
-      }
+      alloc_buffer.insertEntries(te);
     }
   }
 };
