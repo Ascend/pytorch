@@ -146,6 +146,12 @@ def sanitize_nodeid_for_filename(nodeid: str) -> str:
     safe_name = safe_name.replace(":", "_colon_")
     safe_name = safe_name.replace(" ", "_")
     safe_name = safe_name.replace(".", "_")
+    # Control characters (newlines etc. from parametrized test names) would
+    # otherwise end up in junit/case-log filenames and break artifact upload.
+    safe_name = "".join(
+        "_" if (ord(c) < 32 or ord(c) == 127 or c in "\x85\u2028\u2029") else c
+        for c in safe_name
+    )
 
     # Remove leading underscores and collapse multiple underscores
     while safe_name.startswith("_"):

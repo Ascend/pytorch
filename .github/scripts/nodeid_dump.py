@@ -22,9 +22,22 @@ unaffected. Registers exactly one hook and never touches session.items.
 """
 import json
 import os
+import re
 
 # Characters that break line-oriented transport or single-line display.
 _LINEBREAK_CHARS = "\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029"
+
+# pytest selection args split on "::" and match level by level, but a
+# "[...]" parameter section is matched as a whole: names like
+# test_x[param::value] select fine (verified on pytest 7.3.2 and 9.0.2 \u2014
+# the 1589 functorch test_vmap_registrations "aten::" cases pass), while
+# a bare "::" in the name (e.g. test_x_at::kCPU from test_extension_backend)
+# is never addressable (rc=4). Strip bracket sections before the "::" check.
+_BRACKET_SECTION = re.compile(r"\[[^\]]*\]")
+
+
+def _name_is_addressable(name: str) -> bool:
+    return "::" not in _BRACKET_SECTION.sub("", name)
 
 
 def pytest_collection_finish(session):
@@ -36,11 +49,8 @@ def pytest_collection_finish(session):
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         for item in items:
-            # A nodeid is only usable as a pytest selection argument if no
-            # collector name in its chain contains "::": pytest splits
-            # selection args on every "::" and matches level by level.
             chain = [n.name or "" for n in item.listchain()]
-            selectable = all("::" not in n for n in chain)
+            selectable = all(_name_is_addressable(n) for n in chain)
             hazards = []
             if any(c in item.nodeid for c in _LINEBREAK_CHARS):
                 hazards.append("linebreak")

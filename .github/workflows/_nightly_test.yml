@@ -84,6 +84,15 @@ on:
           The same value must be used in both phases so collected nodeids
           exist when tests run. Example values: "privateuse1" or
           "privateuse1,cpu".
+      collect_script:
+        required: false
+        type: string
+        default: 'collect_all_cases.py'
+        description: >-
+          Collection script to run (relative to .github/scripts). Defaults to
+          the baseline stdout-channel collector. Pass collect_all_cases_v2.py
+          to collect through the dedicated JSONL nodeid channel (execution-
+          phase validation of the channel switch).
       test_max_parallel:
         required: false
         type: number
@@ -131,6 +140,7 @@ jobs:
       skip_list: ${{ inputs.skip_list }}
       runner_label: ${{ inputs.runner_label }}
       device_env: ${{ inputs.device_env }}
+      collect_script: ${{ inputs.collect_script }}
 
   # ============================================================================
   # 2. Run test shards (flat matrix: one entry per category x shard, so
