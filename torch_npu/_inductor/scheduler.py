@@ -368,8 +368,8 @@ def patch_scheduler():
         self, node1: BaseSchedulerNode, node2: BaseSchedulerNode
     ) -> Union[bool, Callable[[], bool]]:
         """
-        If config.benchmark_fusion is False, always return True.
-        Otherwise, return True if fusion can brings speedup.
+        Benchmark fusion when requested.  With benchmarking disabled, still
+        validate expansions of fixed NPU Triton templates at compile time.
         """
 
         is_multi_template = any(
@@ -388,10 +388,22 @@ def patch_scheduler():
             for n in (node1, node2)
             if n.get_template_node() is not None
         )
+        # A selected GEMM template has a fixed tile configuration.  Additional
+        # epilogues can exceed UB even though the base template compiled, so
+        # disabling timing must not bypass compile viability.
+        is_fixed_template_compile_only = (
+            not config.benchmark_fusion
+            and not is_multi_template
+            and any(
+                isinstance(n.get_template_node(), ir.TritonTemplateBuffer)
+                for n in (node1, node2)
+            )
+        )
         if (
             not config.benchmark_fusion
             and not is_multi_template
             and not is_deferred_epilogue_compile_only
+            and not is_fixed_template_compile_only
         ):
             return True
 
@@ -804,14 +816,35 @@ def patch_scheduler():
             return benchmark_when_ready
 
         else:
-            if is_deferred_epilogue_compile_only:
+            if (
+                is_deferred_epilogue_compile_only
+                or is_fixed_template_compile_only
+            ):
+                if is_fixed_template_compile_only:
+                    from torch._dynamo.utils import counters
+
+                    counters["inductor"]["npu_template_compile_check"] += 1
+
+                def log_compile_rejection(error) -> None:
+                    if is_fixed_template_compile_only:
+                        from torch._dynamo.utils import counters
+
+                        counters["inductor"]["npu_template_compile_reject"] += 1
+                        npu_log.warning(
+                            "[NPU Fusion] rejected unbuildable template expansion "
+                            "%s + %s: %s",
+                            node1.get_name(), node2.get_name(), error,
+                        )
+                    else:
+                        fusion_log.info(  # noqa: G200
+                            "FlexAttention epilogue fusion failed compilation: %s",
+                            error,
+                        )
+
                 try:
                     future_and_mod_fused = compile_kernel(node_list_fused)
                 except Exception as e:
-                    fusion_log.info(  # noqa: G200
-                        "FlexAttention epilogue fusion failed compilation: %s",
-                        e,
-                    )
+                    log_compile_rejection(e)
                     return False
 
                 def compile_when_ready() -> bool:
@@ -821,10 +854,7 @@ def patch_scheduler():
                         else:
                             future_and_mod_fused[1].triton_.precompile()
                     except Exception as e:
-                        fusion_log.info(  # noqa: G200
-                            "FlexAttention epilogue fusion failed compilation: %s",
-                            e,
-                        )
+                        log_compile_rejection(e)
                         return False
                     return True
 
