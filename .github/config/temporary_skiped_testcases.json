@@ -1,0 +1,6 @@
+{
+    "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_floor_divide_npu_int8": {"category": "temporarily skipped", "reason": "acl not supported: aclnnInplaceIndexFill (DT_INT8)", "issue": "https://gitcode.com/Ascend/pytorch/issues/5067"},
+    "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_fmod_npu_int8": {"category": "temporarily skipped", "reason": "acl not supported: aclnnInplaceIndexFill (DT_INT8)", "issue": "https://gitcode.com/Ascend/pytorch/issues/5067"},
+    "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics__refs_floor_divide_npu_int8": {"category": "temporarily skipped", "reason": "acl not supported: aclnnInplaceIndexFill (DT_INT8)", "issue": "https://gitcode.com/Ascend/pytorch/issues/5067"},
+    "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics__refs_fmod_npu_int8": {"category": "temporarily skipped", "reason": "acl not supported: aclnnInplaceIndexFill (DT_INT8)", "issue": "https://gitcode.com/Ascend/pytorch/issues/5067"}
+}
