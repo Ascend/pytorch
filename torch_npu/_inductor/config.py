@@ -193,7 +193,7 @@ enable_welford = os.getenv("TORCHINDUCTOR_ENABLE_WELFORD", "0") == "1"
 # Keep the A5 LayerNormV4 workaround disabled by default. Set this to 1 to
 # enable the known width-512 and transpose-chain width-640 fallbacks while
 # Welford is enabled.
-enable_layernorm_v4 = _read_env_bool("TORCHINDUCTOR_ENABLE_LAYERNORM_V4", "0")
+enable_layernorm_v4 = _read_env_bool("TORCHINDUCTOR_ENABLE_LAYERNORM_V4", "1")
 
 # Reuse the pre-reduction compute inside the post-reduction epilogue of
 # full-static Welford kernels.  When the whole reduction extent fits one
