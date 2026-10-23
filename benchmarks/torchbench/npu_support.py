@@ -449,17 +449,6 @@ def _patch_model_10():
     inference_cls._npu_patch_applied = True
 
 
-@register_patch("resnet50", "resnet152", "resnext50_32x4d", "densenet121")
-def _patch_model_18():
-    patch_remove_decomposition(
-        [
-            "aten._native_batch_norm_legit_no_training",
-            "aten.threshold_backward",
-            "aten.native_batch_norm_backward",
-        ]
-    )
-
-
 @register_patch("torch_multimodal_clip")
 def _patch_model_19():
     try:
@@ -740,47 +729,9 @@ def _patch_model_20():
 
     MultiHeadAttention.__init__ = new_init
 
-    patch_remove_ops_from_generate_list(["aten.cat", "aten.full"])
-
-
-@register_patch("hf_T5_base")
-def _patch_model_21():
-    # The current operator suffers from severe performance degradation.
-    # This patch will be removed after the issue is fixed in the future.
-    patch_remove_decomposition(["aten._softmax"])
-    patch_force_fallback_kernels(["mlir_fused_add_lt_neg_where_16"])
-
-
-@register_patch("hf_T5_large")
-def _patch_model_22():
-    # The current operator suffers from severe performance degradation.
-    # This patch will be removed after the issue is fixed in the future.
-    patch_remove_decomposition(["aten._softmax"])
-    patch_force_fallback_kernels(["mlir_fused_add_lt_neg_where_16"])
-
-
-@register_patch("pytorch_unet")
-def _patch_model_23():
-    # Patch to address performance issues in the current network
-    # 1. Prevent aten.constant_pad_nd from participating in fusion.
-    #    This operator will be officially removed from the whitelist in future PTA versions,
-    #    at which point this patch will be deleted.
-    # 2. Disable decomposition for aten.upsample_bilinear2d.default
-    patch_remove_ops_from_generate_list(["aten.constant_pad_nd"])
-
-
-@register_patch("squeezenet1_1")
-def _patch_squeezenet1_1():
-    """
-    fallbackdiv
-    """
-    patch_remove_ops_from_generate_list(["aten.div"])
-    patch_force_fallback_kernels(["mlir_fused_relu_threshold_backward_2"])
-
 
 @register_patch("T5ForConditionalGeneration")
 def _patch_model_24():
-    patch_force_fallback_kernels(["mlir_fused_add_lt_neg_where_13"])
     from torch._higher_order_ops.effects import (
         _EffectType,
         _register_effectful_op,
@@ -812,16 +763,6 @@ def _patch_model_24():
     _T5.forward = _t5_forward_tuple_cache
 
 
-@register_patch("BartForCausalLM")
-def _patch_model_25():
-    patch_exclude_decomps_npu(
-        [
-            "aten.native_layer_norm",
-            "aten.native_layer_norm_backward",
-        ]
-    )
-
-
 @register_patch("DistilBertForMaskedLM")
 def _patch_model_26():
     try:
@@ -836,16 +777,6 @@ def _patch_model_26():
         return
 
     MultiHeadSelfAttention.forward = _hf_distilbert_multiheadselfattention_forward_new
-
-
-@register_patch("timm_resnest")
-def _patch_model_27():
-    patch_remove_decomposition(
-        [
-            "aten.threshold_backward",
-            "aten.native_batch_norm_backward",
-        ]
-    )
 
 
 @register_patch("fastNLP_Bert")
