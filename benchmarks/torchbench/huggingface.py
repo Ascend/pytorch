@@ -527,8 +527,15 @@ EXTRA_MODELS["DistillGPT2"] = (
 # avoid network/cache access at import time.  Hyperparams from the
 # official config.json.
 EXTRA_MODELS["T5Small"] = (
-    _T5Config(d_model=512, d_kv=64, d_ff=2048, num_layers=6, num_heads=8,
-              vocab_size=32128, use_cache=False),
+    _T5Config(
+        d_model=512,
+        d_kv=64,
+        d_ff=2048,
+        num_layers=6,
+        num_heads=8,
+        vocab_size=32128,
+        use_cache=False,
+    ),
     _T5ForConditionalGeneration,
 )
 EXTRA_MODELS["XLNetLMHeadModel"] = (
@@ -630,7 +637,7 @@ class HuggingfaceRunner(BenchmarkRunner):
         # Upstream exempts known-non-deterministic models from the tol=0
         # eager gate but only in training mode; extend to inference here.
         # Downstream numerical comparisons still run.
-        return {"DistillGPT2", "gemma_2_2b", "T5Small"}
+        return {"DistillGPT2", "gemma_2_2b", "T5Small", "T5ForConditionalGeneration"}
 
     def _get_model_cls_and_config(self, model_name):
         if model_name not in EXTRA_MODELS:

@@ -791,6 +791,26 @@ def _patch_model_24():
         _EffectType.ORDERED,
     )
 
+    from transformers.models.t5.modeling_t5 import T5ForConditionalGeneration as _T5
+
+    _t5_forward = _T5.forward
+
+    def _t5_forward_tuple_cache(self, *args, **kwargs):
+        out = _t5_forward(self, *args, **kwargs)
+        pkv = getattr(out, "past_key_values", None)
+        if pkv is not None and hasattr(pkv, "self_attention_cache"):
+
+            def to_tuple(c):
+                return tuple((layer.keys, layer.values) for layer in c.layers)
+
+            out.past_key_values = (
+                to_tuple(pkv.self_attention_cache),
+                to_tuple(pkv.cross_attention_cache),
+            )
+        return out
+
+    _T5.forward = _t5_forward_tuple_cache
+
 
 @register_patch("BartForCausalLM")
 def _patch_model_25():
@@ -805,7 +825,9 @@ def _patch_model_25():
 @register_patch("DistilBertForMaskedLM")
 def _patch_model_26():
     try:
-        from transformers.models.distilbert.modeling_distilbert import MultiHeadSelfAttention
+        from transformers.models.distilbert.modeling_distilbert import (
+            MultiHeadSelfAttention,
+        )
     except ImportError:
         log.warning(
             "Import transformers failed or could not get MultiHeadSelfAttention "
@@ -881,14 +903,15 @@ def _patch_drq():
         obs_path = next(path for path in candidates if os.path.isfile(path))
         with open(obs_path, "rb") as obs_file:
             mockobs = pkl.load(obs_file)
-        mockobs = np.random.randint(low=11, high=228, size=mockobs.shape, dtype=np.uint8)
+        mockobs = np.random.randint(
+            low=11, high=228, size=mockobs.shape, dtype=np.uint8
+        )
         env = MockEnv(mockobs)
         env = FrameStack(env, k=cfg.frame_stack)
         env.seed(cfg.seed)
         return env
 
     drq_mod.make_env = make_env
-
 
 
 @register_patch("yolov3")
@@ -947,8 +970,7 @@ def _patch_model_fambench_dlrm():
         import torchbenchmark.canary_models.fambench_dlrm as fdlrm
     except ImportError:
         log.warning(
-            "Import fambench_dlrm failed; the NPU compatibility patch "
-            "was not applied"
+            "Import fambench_dlrm failed; the NPU compatibility patch was not applied"
         )
         return
 
@@ -976,9 +998,7 @@ def _patch_model_fambench_dlrm():
         if extra_args is None:
             extra_args = []
         _missing = object()
-        saved = {
-            attr: getattr(torch.cuda, attr, _missing) for attr in _npu_cuda_attrs
-        }
+        saved = {attr: getattr(torch.cuda, attr, _missing) for attr in _npu_cuda_attrs}
         # dlrm/__init__.py 经 `from .args import parse_fambench_args` 绑定名字，
         # 须替换 fdlrm 侧属性
         fdlrm.parse_fambench_args = _parse_force_use_gpu
@@ -1029,9 +1049,7 @@ def _patch_model_vision_maskrcnn():
 
         def _npu_nms(boxes, scores, iou_threshold):
             if boxes.is_npu:
-                inp = torch.cat(
-                    [boxes, scores.reshape(-1, 1).to(boxes.dtype)], dim=1
-                )
+                inp = torch.cat([boxes, scores.reshape(-1, 1).to(boxes.dtype)], dim=1)
                 _, idx, keep_mask = torch.ops.npu.npu_nms_with_mask(
                     inp, float(iou_threshold)
                 )
