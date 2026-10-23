@@ -1640,19 +1640,9 @@ class NPUIndexTritonKernel(TritonKernel):
             return False
         if not config.triton.persistent_reductions:
             return False
-        reduction_node = self.find_reduction_node()
         reduction_numel = self.features.reduction_numel
         if isinstance(reduction_numel, NumelList):
             reduction_numel = reduction_numel.numels()
-        if (
-            npu_config.is_ascend950
-            and npu_config.enable_welford
-            and getattr(reduction_node, "reduction_type", None) == "welford_reduce"
-            and V.graph.sizevars.statically_known_leq(reduction_numel, 8192)
-        ):
-            # A5 Welford SIMD consumes a static reduction tile. Its compiler
-            # UB checks still reject individual oversized tile configurations.
-            return True
         if npu_config.is_ascend950:
             threshold = {ReductionHint.INNER: 4096, ReductionHint.DEFAULT: 4096}.get(
                 self.features.get_reduction_hint(), 64
@@ -5010,12 +5000,8 @@ class NPUIndexTritonKernel(TritonKernel):
                     self.post_loop_combine, result_var, accumulator, accumulator_index
                 )
             elif is_welford_reduction(reduction_type):
-                # This path is not expected to be reached for NPUIndexTritonKernel.
-                # Welford reductions fall back to NPUNoLinearTritonScheduling
-                # (NPUTritonKernelWithLoop), which inherits upstream TritonKernel's
-                # native welford support. Raise as a safety net.
-                raise RuntimeError(
-                    "welford_reduction in NPUIndexTritonKernel loop path not expected"
+                result_var = self.welford_reduce(
+                    result_var, reduction_type, value, where_cond, acc_type, dtype
                 )
             else:
                 combine_fn = ir.get_reduction_combine_fn(reduction_type, src_dtype)

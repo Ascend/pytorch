@@ -260,7 +260,7 @@ class TestVarMean(TestUtils):
             npu_config.enable_welford = previous
             torch._dynamo.reset()
 
-    def test_welford_simd_codegen_above_persistent_threshold(self):
+    def test_welford_numerical_above_persistent_threshold(self):
         if not npu_config.is_ascend950:
             self.skipTest("Welford SIMD rollout is Ascend 950-specific")
         previous = npu_config.enable_welford
@@ -281,18 +281,11 @@ class TestVarMean(TestUtils):
                 dynamic=False,
                 options={"unroll_reductions_threshold": 1},
             )
-            actual, codes = run_and_get_code(
+            actual, _ = run_and_get_code(
                 compiled, input_element, weight, bias
             )
 
             self.assertEqual(expected, actual, atol=1e-1, rtol=1e-1)
-            code = "\n".join(codes)
-            self.assertIn("npu_kernel_type': 'simd'", code)
-            self.assertIn("'vectorized_welford_axis':", code)
-            self.assertNotIn("for loop_r", code)
-            # Full-static Welford computes m2 from centered values and does
-            # not need the raw-moment accumulator.
-            self.assertNotIn("_acc_sum_sq", code)
         finally:
             npu_config.enable_welford = previous
             torch._dynamo.reset()

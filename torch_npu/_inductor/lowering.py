@@ -1250,14 +1250,21 @@ def _register_npu_inductor_fallbacks():
                 return False
             if x.dtype not in (torch.float16, torch.bfloat16):
                 return False
+
+            from torch.fx.experimental.symbolic_shapes import free_unbacked_symbols
+
             if not isinstance(normalized_shape, (list, tuple)):
                 shape = (normalized_shape,)
             else:
                 shape = tuple(normalized_shape)
+
+            input_shape = x.get_size()
+            if free_unbacked_symbols(input_shape) or free_unbacked_symbols(shape):
+                return True
+
             if len(shape) != 1 or shape[0] not in (512, 640):
                 return False
 
-            input_shape = x.get_size()
             if len(input_shape) < 2:
                 return False
             row_numel = sympy_product(input_shape[:-1])
