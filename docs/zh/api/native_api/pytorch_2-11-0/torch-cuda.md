@@ -550,15 +550,15 @@
 
 **产品支持情况**：
 
-<!-- npu="910b" id235 -->
+<!-- npu="910b" id236 -->
 - <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id235 -->
-<!-- npu="A3" id236 -->
-- <term>Atlas A3训练系列产品</term>：不支持
 <!-- end id236 -->
-<!-- npu="950" id237 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+<!-- npu="A3" id237 -->
+- <term>Atlas A3训练系列产品</term>：不支持
 <!-- end id237 -->
+<!-- npu="950" id238 -->
+- <term>Ascend 950DT系列产品</term>：不支持
+<!-- end id238 -->
 
 **限制与说明**： 可使用`npu-smi info -t common -i <id>`查看Temperature(C)指标代替。
 
@@ -574,15 +574,15 @@
 
 **产品支持情况**：
 
-<!-- npu="910b" id238 -->
+<!-- npu="910b" id239 -->
 - <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id238 -->
-<!-- npu="A3" id239 -->
-- <term>Atlas A3训练系列产品</term>：不支持
 <!-- end id239 -->
-<!-- npu="950" id240 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+<!-- npu="A3" id240 -->
+- <term>Atlas A3训练系列产品</term>：不支持
 <!-- end id240 -->
+<!-- npu="950" id241 -->
+- <term>Ascend 950DT系列产品</term>：不支持
+<!-- end id241 -->
 
 **限制与说明**： 可使用`npu-smi info -t common -i <id>`查看NPU Real-time Power(W)指标代替。
 
@@ -598,15 +598,15 @@
 
 **产品支持情况**：
 
-<!-- npu="910b" id241 -->
+<!-- npu="910b" id242 -->
 - <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id241 -->
-<!-- npu="A3" id242 -->
-- <term>Atlas A3训练系列产品</term>：不支持
 <!-- end id242 -->
-<!-- npu="950" id243 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+<!-- npu="A3" id243 -->
+- <term>Atlas A3训练系列产品</term>：不支持
 <!-- end id243 -->
+<!-- npu="950" id244 -->
+- <term>Ascend 950DT系列产品</term>：不支持
+<!-- end id244 -->
 
 **限制与说明**： 可使用`npu-smi info -t common -i <id>`查看Aicore curFreq(MHZ)指标代替。
 
