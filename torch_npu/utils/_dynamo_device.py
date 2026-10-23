@@ -64,6 +64,10 @@ class NpuInterface(DeviceInterface):
         return device_count() > 0
 
     @staticmethod
+    def is_triton_capable(device=None) -> bool:
+        return True
+
+    @staticmethod
     def get_compute_capability(device=None):
         r"""Different from cuda, only return the chip model here.
         """

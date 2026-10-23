@@ -517,6 +517,8 @@ def _dynamo_register_interface_for_device():
 
     register_npu_current_stream_handler()
 
+    invalidate_has_triton_cache()
+
 
 def _find_spec_without_finder(finder, fullname):
     """Delegate to the remaining meta-path finders without bypassing them."""
@@ -582,50 +584,19 @@ def add_dynamo_methods_init():
         _run_dynamo_setup_step(name, setup)
 
 
-@functools.lru_cache(None)
-def has_triton(*, include_cpu: bool = False) -> bool:
-    from torch.utils._triton import has_triton_package
+# COMPAT(>= 2.14): patch_has_triton() is called from add_dynamo_methods() below.
+# CAN REMOVE when MIN_SUPPORTED >= (2, 14).
+from torch_npu._compat.inductor import patch_has_triton  # noqa: E402
 
-    if not has_triton_package():
-        return False
-
-    from torch._dynamo.device_interface import get_interface_for_device
-
-    def cuda_extra_check(device_interface):
-        return True
-
-    def cpu_extra_check(device_interface):
-        import triton.backends
-
-        return "cpu" in triton.backends.backends
-
-    def _return_true(device_interface):
-        return True
-
-    triton_supported_devices = {
-        "cuda": cuda_extra_check,
-        "xpu": _return_true,
-        "cpu": cpu_extra_check,
-        "npu": _return_true,
-    }
-
-    def is_device_compatible_with_triton():
-        _dynamo_register_interface_for_device()
-        for device, extra_check in triton_supported_devices.items():
-            if device == "cpu" and not include_cpu:
-                continue
-            device_interface = get_interface_for_device(device)
-            if device_interface.is_available() and extra_check(device_interface):
-                return True
-        return False
-
-    return is_device_compatible_with_triton()
-
-
-def patch_has_triton():
-    from torch.utils import _triton
-
-    _triton.has_triton = has_triton
+# Both outlive the 2.14 cleanup: the Inductor backend loaders and
+# transfer_to_npu call has_triton through this module (it registers
+# NpuInterface before answering, unlike upstream's cached answer);
+# invalidate_has_triton_cache() drops that stale cached answer once
+# registration is done.
+from torch_npu._compat.inductor import (  # noqa: E402, F401
+    has_triton,
+    invalidate_has_triton_cache,
+)
 
 
 def register_npu_graphsafe_rng():

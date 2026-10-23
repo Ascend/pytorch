@@ -27,14 +27,6 @@ def resolve_npu_device_index(device_idx=None) -> int:
     return decode_device(torch.device("npu", device_idx)).index
 
 
-def patch_has_triton():
-    from torch._inductor import compile_fx
-    from torch_npu.utils._dynamo import has_triton
-
-    torch._inductor.scheduler.has_triton = has_triton
-    compile_fx.has_triton = has_triton
-
-
 def patch_device_supports_tma():
     @functools.lru_cache(None)
     def _device_supports_tma():

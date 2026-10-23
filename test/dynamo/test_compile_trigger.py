@@ -46,13 +46,26 @@ class TorchCompileTriggerTests(unittest.TestCase):
             src_wrapper_init = torch._TorchCompileWrapper.__init__
 
             import torch_npu
+            from torch_npu._compat import inductor as compat_inductor
+            from torch_npu._compat.version import CURRENT_VERSION
             from torch_npu.utils import _dynamo
 
             assert not loaded("torch._dynamo")
             assert not loaded("torch._inductor")
             assert not loaded("torch_npu._inductor")
             assert "triton" not in sys.modules
-            assert torch.utils._triton.has_triton is _dynamo.has_triton
+            import torch.utils._triton
+            if CURRENT_VERSION < (2, 14):
+                assert (
+                    torch.utils._triton.has_triton is compat_inductor.has_triton
+                )
+            else:
+                # 2.14+: upstream resolves has_triton() through the
+                # DeviceInterface registry; torch_npu must leave it alone.
+                assert (
+                    torch.utils._triton.has_triton.__module__
+                    == "torch.utils._triton"
+                )
             assert torch.compile is src_compile
             assert torch._TorchCompileWrapper.__init__ is src_wrapper_init
             assert any(
@@ -874,6 +887,7 @@ class TorchCompileTriggerTests(unittest.TestCase):
             import torch
             import torch_npu
             from torch._dynamo import device_interface
+            from torch_npu._compat import inductor as compat_inductor
             from torch_npu.utils import _dynamo
 
             def make_interface(available=False):
@@ -897,7 +911,7 @@ class TorchCompileTriggerTests(unittest.TestCase):
                     )
                     for device in ("cuda", "xpu", "cpu", "npu")
                 }
-                _dynamo.has_triton.cache_clear()
+                compat_inductor.has_triton.cache_clear()
                 with mock.patch.object(
                     torch.utils._triton,
                     "has_triton_package",
@@ -910,7 +924,7 @@ class TorchCompileTriggerTests(unittest.TestCase):
                     _dynamo,
                     "_dynamo_register_interface_for_device",
                 ) as register:
-                    result = _dynamo.has_triton(include_cpu=include_cpu)
+                    result = compat_inductor.has_triton(include_cpu=include_cpu)
                     if package:
                         register.assert_called_once_with()
                     else:
@@ -935,6 +949,144 @@ class TorchCompileTriggerTests(unittest.TestCase):
                 assert not run_case({"cpu"}, include_cpu=True)
             assert run_case({"npu"})
             assert run_case({"cpu", "npu"})
+            """
+        )
+
+    # The 2.14+ registry-based has_triton() discovers NPU through this
+    # capability bit; the DeviceInterface base-class default is False.
+    def test_npu_interface_is_triton_capable(self):
+        self.run_in_subprocess(
+            """
+            import torch
+            import torch_npu
+            import torch._dynamo  # noqa: F401
+
+            from torch._dynamo.device_interface import get_interface_for_device
+            from torch_npu.utils._dynamo_device import NpuInterface
+
+            assert NpuInterface.is_triton_capable()
+            assert get_interface_for_device("npu").is_triton_capable()
+            """
+        )
+
+    # COMPAT(>= 2.14): upstream resolves has_triton() through the
+    #   DeviceInterface registry, so the NPU-local implementation and the two
+    #   patches installing it are pre-2.14 only. torch_npu.utils._dynamo
+    #   re-exports has_triton for its callers (Inductor backend loaders,
+    #   transfer_to_npu) and patch_has_triton for add_dynamo_methods().
+    def test_has_triton_compat_is_version_guarded(self):
+        self.run_in_subprocess(
+            """
+            import sys
+            from unittest import mock
+
+            import torch
+            import torch_npu
+            import torch.utils._triton
+            from torch_npu._compat import inductor as compat_inductor
+            from torch_npu._compat.version import CURRENT_VERSION
+            from torch_npu.utils import _dynamo
+
+            assert _dynamo.has_triton is compat_inductor.has_triton
+            assert _dynamo.patch_has_triton is compat_inductor.patch_has_triton
+
+            if CURRENT_VERSION < (2, 14):
+                compat_inductor.patch_has_triton()
+                assert (
+                    torch.utils._triton.has_triton is compat_inductor.has_triton
+                )
+
+                # Inductor binds has_triton by value at import time, so its
+                # copies need their own patch.
+                compat_inductor.patch_inductor_has_triton_bindings()
+                from torch._inductor import compile_fx, scheduler
+
+                assert compile_fx.has_triton is compat_inductor.has_triton
+                assert scheduler.has_triton is compat_inductor.has_triton
+            else:
+                sentinel = object()
+                with mock.patch.object(
+                    torch.utils._triton, "has_triton", sentinel
+                ):
+                    compat_inductor.patch_has_triton()
+                    assert torch.utils._triton.has_triton is sentinel
+
+                # The bindings patch is a no-op that must not pull Inductor in.
+                inductor_loaded = "torch._inductor" in sys.modules
+                compat_inductor.patch_inductor_has_triton_bindings()
+                assert ("torch._inductor" in sys.modules) == inductor_loaded
+            """
+        )
+
+    # COMPAT(>= 2.14): upstream's has_triton() is cached and answers from the
+    #   DeviceInterface registry, so registering NPU must drop that snapshot;
+    #   below 2.14 torch_npu installs its own has_triton(), which registers the
+    #   interface itself, so there is nothing to invalidate.
+    def test_invalidate_has_triton_cache_is_version_guarded(self):
+        self.run_in_subprocess(
+            """
+            from unittest import mock
+
+            import torch
+            import torch_npu
+            import torch.utils._triton
+            from torch_npu._compat import _impl
+            from torch_npu._compat._impl import compat_impl_container
+
+            cleared = []
+
+            class FakeHasTriton:
+                def cache_clear(self):
+                    cleared.append(1)
+
+            # The registry picks the side at import time, so exercise both
+            # sides by re-resolving under a patched CURRENT_VERSION.
+            with mock.patch.object(
+                torch.utils._triton, "has_triton", FakeHasTriton()
+            ):
+                with mock.patch.object(_impl, "CURRENT_VERSION", (2, 13)):
+                    lt_invalidate = compat_impl_container[
+                        "invalidate_has_triton_cache"
+                    ].resolve()
+                lt_invalidate()
+                assert cleared == []
+
+                with mock.patch.object(_impl, "CURRENT_VERSION", (2, 14)):
+                    ge_invalidate = compat_impl_container[
+                        "invalidate_has_triton_cache"
+                    ].resolve()
+                ge_invalidate()
+                assert cleared == [1]
+
+            # An uncached has_triton (e.g. replaced by transfer_to_npu) is
+            # tolerated.
+            with mock.patch.object(
+                torch.utils._triton, "has_triton", lambda: True
+            ):
+                ge_invalidate()
+            """
+        )
+
+    # Registering the NPU DeviceInterface must invalidate that cache.
+    def test_registration_invalidates_has_triton_cache(self):
+        self.run_in_subprocess(
+            """
+            from unittest import mock
+
+            import torch
+            import torch_npu
+            import torch._dynamo  # noqa: F401
+
+            from torch_npu.utils import _dynamo
+
+            # __wrapped__ bypasses @run_once: the assertion must not depend
+            # on nothing else having registered first.
+            register = _dynamo._dynamo_register_interface_for_device.__wrapped__
+            with mock.patch.object(
+                _dynamo, "invalidate_has_triton_cache"
+            ) as invalidate:
+                register()
+            assert invalidate.call_count == 1
             """
         )
 
@@ -1167,6 +1319,7 @@ class TorchCompileTriggerTests(unittest.TestCase):
             # Exercise the new full-Inductor setup boundary without relying on
             # test ordering or on a prior torch.compile invocation.
             import torch._dynamo
+            from torch_npu._compat.version import CURRENT_VERSION
             from torch_npu.utils import _dynamo
             from torch_npu._compat.version import CURRENT_VERSION
             from torch._inductor.codecache import CacheBase
@@ -1190,9 +1343,16 @@ class TorchCompileTriggerTests(unittest.TestCase):
             assert get_device_op_overrides("npu").__class__.__module__.startswith(
                 "torch_npu._inductor"
             )
-            assert torch.utils._triton.has_triton.__module__ == (
-                "torch_npu.utils._dynamo"
-            )
+            if CURRENT_VERSION < (2, 14):
+                assert torch.utils._triton.has_triton.__module__ == (
+                    "torch_npu._compat.inductor"
+                )
+            else:
+                # 2.14+: upstream's registry-based has_triton() stays in place.
+                assert (
+                    torch.utils._triton.has_triton.__module__
+                    == "torch.utils._triton"
+                )
             assert torch.utils._triton._device_supports_tma.__module__ == (
                 "torch_npu._inductor.utils"
             )

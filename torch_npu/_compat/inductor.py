@@ -1,5 +1,7 @@
 # Copyright (c) 2026, Huawei Technologies Co., Ltd
 
+import functools
+
 from torch_npu._compat._impl import compat_impl, compat_impl_container
 
 __all__ = [
@@ -8,6 +10,10 @@ __all__ = [
     "patch_cache_base_get_system",
     "patch_device_to_aten",
     "device_to_aten",
+    "has_triton",
+    "patch_has_triton",
+    "patch_inductor_has_triton_bindings",
+    "invalidate_has_triton_cache",
 ]
 
 
@@ -288,3 +294,107 @@ def device_to_aten_local(device_type: str) -> str:
 
 
 device_to_aten = compat_impl_container["device_to_aten"].resolve()
+
+
+# upstream pytorch#190324 (first in torch 2.14) resolves has_triton() through
+#   the DeviceInterface registry and NpuInterface.is_triton_capable(), so the
+#   NPU-local has_triton() and the patches installing it are pre-2.14 only.
+#   has_triton is the _local sides' shared body, not a compat point: nothing
+#   binds it on torch >= 2.14.
+# CAN REMOVE this block when MIN_SUPPORTED >= (2, 14), together with the
+#   re-exports in torch_npu.utils._dynamo, their call sites, and the unguarded
+#   overrides in torch_npu.contrib.transfer_to_npu.
+@functools.lru_cache(None)
+def has_triton(*, include_cpu: bool = False) -> bool:
+    from torch.utils._triton import has_triton_package
+
+    if not has_triton_package():
+        return False
+
+    from torch._dynamo.device_interface import get_interface_for_device
+
+    from torch_npu.utils._dynamo import _dynamo_register_interface_for_device
+
+    def cpu_extra_check(device_interface):
+        import triton.backends
+
+        return "cpu" in triton.backends.backends
+
+    triton_supported_devices = {
+        "cuda": lambda di: True,
+        "xpu": lambda di: True,
+        "cpu": cpu_extra_check,
+        "npu": lambda di: True,
+    }
+
+    _dynamo_register_interface_for_device()
+    for device, extra_check in triton_supported_devices.items():
+        if device == "cpu" and not include_cpu:
+            continue
+        device_interface = get_interface_for_device(device)
+        if device_interface.is_available() and extra_check(device_interface):
+            return True
+    return False
+
+
+@compat_impl(key="patch_has_triton", ge=(2, 14))
+def patch_has_triton_upstream():
+    """torch >= 2.14: upstream's registry-based has_triton() stays in place."""
+    return
+
+
+@compat_impl(key="patch_has_triton", lt=(2, 14))
+def patch_has_triton_local():
+    from torch.utils import _triton
+
+    _triton.has_triton = has_triton
+
+
+patch_has_triton = compat_impl_container["patch_has_triton"].resolve()
+
+
+# Same upstream change as above: compile_fx and scheduler bind has_triton by
+#   value at import time, so their copies need this separate patch, after
+#   Inductor is imported.
+@compat_impl(key="patch_inductor_has_triton_bindings", ge=(2, 14))
+def patch_inductor_has_triton_bindings_upstream():
+    """torch >= 2.14: the name is never rebound; every copy shares one cache."""
+    return
+
+
+@compat_impl(key="patch_inductor_has_triton_bindings", lt=(2, 14))
+def patch_inductor_has_triton_bindings_local():
+    from torch._inductor import compile_fx, scheduler
+
+    scheduler.has_triton = has_triton
+    compile_fx.has_triton = has_triton
+
+
+patch_inductor_has_triton_bindings = compat_impl_container[
+    "patch_inductor_has_triton_bindings"
+].resolve()
+
+
+# upstream's has_triton() is functools-cached and registry-based: a call
+#   preceding NpuInterface registration caches a permanent False. Drop that
+#   snapshot after registration; only helps callers that ask again (an
+#   import-time gate stays degraded for the process).
+@compat_impl(key="invalidate_has_triton_cache", ge=(2, 14))
+def invalidate_has_triton_cache_upstream():
+    from torch.utils import _triton
+
+    cache_clear = getattr(_triton.has_triton, "cache_clear", None)
+    if cache_clear is not None:
+        cache_clear()
+
+
+@compat_impl(key="invalidate_has_triton_cache", lt=(2, 14))
+def invalidate_has_triton_cache_local():
+    """torch < 2.14: torch_npu's own has_triton() registers the interface
+    itself, so there is nothing to invalidate."""
+    return
+
+
+invalidate_has_triton_cache = compat_impl_container[
+    "invalidate_has_triton_cache"
+].resolve()
