@@ -41,6 +41,7 @@ from torch._inductor.codegen.simd_kernel_features import (
 )
 from torch._inductor.utils import (
     IndentedBuffer,
+    DelayReplaceLine,
     Placeholder,
     prefix_is_reduction,
     sympy_subs,
@@ -1762,10 +1763,18 @@ class NPUTritonCSEVariable(TritonCSEVariable):
         super().__init__(*args, **kwargs)
         # Default TOP: unknown until proven otherwise.  A bare/un-annotated
         # variable can never wrongly drop a guard.
+        self._npu_shape_op = None
+        self._npu_load_index = None
         self._npu_pad = _PAD_TOP
 
     def update_on_args(self, name, args, kwargs):
         super().update_on_args(name, args, kwargs)
+        if (
+            config.test_configs.runtime_triton_shape_assert
+            and self._npu_shape_op is None
+            and not any(a is self for a in args)
+        ):
+            self._npu_shape_op = (name, args, kwargs)
         # Propagate the pad-lane fact through this op.  Operands that are
         # NPU CSE vars carry their own fact; a bare python int/float operand
         # is an exact constant; anything else is unknown (TOP).
@@ -1828,7 +1837,36 @@ def _npu_wide_int_constant(value):
     )
 
 
+class _ShapeTrackedMaskedBody:
+    def __init__(self, body):
+        self.body = body
+        self.graph = body.graph
+        self.result = None
+
+    def __call__(self):
+        self.result = self.body()
+        return self.result
+
+
 class NPUTritonKernelOverrides(TritonKernelOverrides):
+    @staticmethod
+    def masked(mask, body, other):
+        if not config.test_configs.runtime_triton_shape_assert:
+            return TritonKernelOverrides.masked(mask, body, other)
+
+        tracked_body = _ShapeTrackedMaskedBody(body)
+        result = TritonKernelOverrides.masked(mask, tracked_body, other)
+        if isinstance(result, NPUTritonCSEVariable) and result is not tracked_body.result:
+            op = result._npu_shape_op
+            if op is not None:
+                name, args, _ = op
+                if name == "where" and len(args) == 3 and args[1] is tracked_body.result:
+                    fill = args[2]
+                    if isinstance(fill, NPUTritonCSEVariable) and fill._npu_shape_op is None:
+                        fill._npu_shape_op = ("identity", (tracked_body.result,), {})
+        return result
+
+
     @staticmethod
     def rsqrt(x):
         return f"tl.rsqrt({x})"
@@ -2039,8 +2077,19 @@ class NPUTritonKernel(TritonKernel):
     overrides = NPUTritonKernelOverrides  # type: ignore[assignment]
 
     def codegen_shape_assert(self, buffer, var, shape):
-        condition = _shape_assert_condition(var, shape)
-        buffer.writeline(f"tl.static_assert({condition})")
+        if self._npu_linearize and not self.features.is_reduction():
+            original_shape = tuple(shape)
+
+            def condition():
+                final_shape = self._npu_assert_shapes.get(str(var))
+                return _shape_assert_condition(var, original_shape if final_shape is None else final_shape)
+
+            buffer.writeline(DelayReplaceLine(
+                "__npu_shape_assert__", condition, "tl.static_assert(__npu_shape_assert__)",
+            ))
+        else:
+            condition = _shape_assert_condition(var, shape)
+            buffer.writeline(f"tl.static_assert({condition})")
 
     @classmethod
     def gen_common_triton_imports(cls):
@@ -2244,6 +2293,8 @@ class NPUTritonKernel(TritonKernel):
         self._npu_prepared_load_index = None
         try:
             result_var = super().load(name, index)
+            if config.test_configs.runtime_triton_shape_assert:
+                result_var._npu_load_index = self._npu_prepared_load_index
             # Seed the pad-lane fact while the chosen ``other`` fill is still
             # live on self._load_other (the seeding reads it).
             self._maybe_record_select_lane_load(
@@ -2506,6 +2557,7 @@ class NPUTritonKernel(TritonKernel):
                 )
                 force_linearize = True
         self._npu_linearize: bool = bool(triton_codegen_linearize) or force_linearize
+        self._npu_assert_shapes = {}
         super().__init__(*args, **kwargs)
         # Set by TEComboSubKernel after construction; ordinary kernels leave
         # these unset and keep the existing dispatch behavior.
@@ -7911,6 +7963,7 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
         # keep the sequential dim_idx walk (tensor_dim-indexing there mis-slots tl.full/
         # tl.broadcast_to shapes), so we deviate only when the hook moved a tree.
         real_sizes = ["1"] * real_ndim
+        pointwise_slots = {}
         permuted = getattr(kernel, "_npu_tile_permuted", False)
 
         # Free x-sub-node slot order MUST match var_tensor_dims (divisor-descending);
@@ -7942,7 +7995,8 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                 if not tree.is_reduction:
                     node_block_constexpr = getattr(tree, "node_block_constexpr", {}) or {}
                     for node_slot, node in _ordered_free_nodes(tree, slot):
-                        if node_slot < real_ndim:
+                        if 0 <= node_slot < real_ndim:
+                            pointwise_slots[node.name] = node_slot
                             real_sizes[node_slot] = node_block_constexpr.get(
                                 node.name, f"real_block_{node.name}"
                             )
@@ -7970,7 +8024,8 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                 if not tree.is_reduction:
                     node_block_constexpr = getattr(tree, "node_block_constexpr", {}) or {}
                     for node_slot, node in _ordered_free_nodes(tree, dim_idx):
-                        if node_slot < real_ndim:
+                        if 0 <= node_slot < real_ndim:
+                            pointwise_slots[node.name] = node_slot
                             real_sizes[node_slot] = node_block_constexpr.get(
                                 node.name, f"real_block_{node.name}"
                             )
@@ -7989,6 +8044,76 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                         real_sizes[dim_idx] = f"{tree.prefix.upper()}BLOCK"
                         dim_idx += 1
         real_dense_size = f"[{', '.join(real_sizes)}]"
+        # Assertions are emitted before register axes are split. Reconstruct
+        # their expected shapes separately; never mutate live CSE metadata.
+        if config.test_configs.runtime_triton_shape_assert and not kernel.features.is_reduction():
+            from types import SimpleNamespace
+            from torch._inductor.shape_propagation import (
+                ShapePropagationOpsHandler, get_broadcasted_shape,
+            )
+
+            shape_handler = ShapePropagationOpsHandler()
+            shapes = {}
+            aliases = {}
+            range_names = {v.name for v in kernel.range_tree_nodes}
+            scalar_names = set()
+            for tree in kernel.range_trees:
+                aliases.update(tree.tree_node_mapping)
+                scalar_names.update(getattr(tree, "_npu_scalar_odometer", ()) or ())
+                if tree.tensor_dim is None:
+                    scalar_names.update(n.name for n in tree.nodes.values())
+
+            def index_shape(index):
+                names = {v.name for v in index.free_symbols}
+                for _ in range(len(aliases)):
+                    expanded = set()
+                    for name in names:
+                        if name in aliases:
+                            expanded.update(v.name for v in aliases[name].free_symbols)
+                        else:
+                            expanded.add(name)
+                    if expanded == names:
+                        break
+                    names = expanded
+                if (names & range_names) - pointwise_slots.keys() - scalar_names:
+                    return None
+                shape = [1] * real_ndim
+                for name in names & pointwise_slots.keys():
+                    shape[pointwise_slots[name]] = real_sizes[pointwise_slots[name]]
+                result = tuple(shape) if names & pointwise_slots.keys() else ()
+                for name in names & kernel.cse.varname_map.keys():
+                    if shapes.get(name) is None:
+                        return None
+                    result = get_broadcasted_shape(result, shapes[name])
+                return result
+
+            def shape_arg(arg):
+                if isinstance(arg, CSEVariable):
+                    return SimpleNamespace(shape=shapes.get(arg.name))
+                return arg
+
+            for name, var in kernel.cse.varname_map.items():
+                shape = () if var.shape == () else None
+                if isinstance(var, NPUTritonCSEVariable):
+                    index, op = var._npu_load_index, var._npu_shape_op
+                    if index is not None:
+                        shape = index_shape(index)
+                    elif op is not None:
+                        opname, args, kwargs = op
+                        if opname in ("index_expr", "value_expr"):
+                            shape = index_shape(args[0])
+                        elif opname == "constant":
+                            shape = () if var.shape == () else (1,) * real_ndim
+                        else:
+                            shape = getattr(shape_handler, opname)(
+                                *(shape_arg(a) for a in args),
+                                **{key: shape_arg(value) for key, value in kwargs.items()},
+                            )
+                # Unknown sources stay unknown throughout their consumer chain.
+                # Keep their original expected shapes instead of guessing.
+                shapes[name] = tuple(shape) if shape is not None else None
+
+            kernel._npu_assert_shapes = shapes
         old_singleton_size = f"[{', '.join(['1'] * orig_ndim)}]"
         real_singleton_size = f"[{', '.join(['1'] * real_ndim)}]"
         # R-tree's actual slot. If the hook pushed it to an outer slot, upstream's
