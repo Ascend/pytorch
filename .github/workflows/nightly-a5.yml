@@ -52,7 +52,6 @@ jobs:
       device_env: 'privateuse1,cpu'
       skip_list: |-
         .github/config/disabled_testcases_a5_all.json
-        .github/config/running_skiped_testcases.json
         .github/config/unsupport_dtype_testcases.json
         .github/config/temporary_skiped_testcases.json
       runner_label: 'linux-amd64-a5-2'
