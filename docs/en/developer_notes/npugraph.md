@@ -4,7 +4,7 @@
 
 NPUGraph is a static graph capture technique used in Eager Mode (single-operator execution mode). It defines and encapsulates a series of NPU kernel definitions into a unit (that is, an operation graph), and starts multiple NPU operations through a single CPU operation, thereby reducing startup overhead. For more core principles, see [CUDA Graphs](https://pytorch.org/blog/accelerating-pytorch-with-cuda-graphs/).
 
-### Working Process
+### Application Scenarios
 
 1. **Capture**: After the NPU stream is placed in capture mode, kernel calls are recorded as a computation graph structure.
 2. **Replay**: After capture is complete, use `g.replay()` to replay the same computation logic multiple times. Each replay uses exactly the same kernel sequence and execution order as those during capture, without repeated graph construction or kernel launch preparation.

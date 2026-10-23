@@ -32,7 +32,7 @@ export PER_STREAM_QUEUE=1
 ## Constraints
 
 - This feature depends on TaskQueue. It takes effect only when `TASK_QUEUE_ENABLE` is configured as "1" or "2".
-- This feature does not support the scenario of [process-level online recovery](https://gitcode.com/Ascend/mind-cluster/blob/release%2Fv26.2.0/docs/en/scheduling/04_usage/05_fault_recovery/01_resumable_training/02_configuration/01_configuring_fault_handling_policies.md#%E9%85%8D%E7%BD%AE%E8%BF%9B%E7%A8%8B%E7%BA%A7%E5%9C%A8%E7%BA%BF%E6%81%A2%E5%A4%8D).
+- This feature does not support the scenario of [process-level online recovery](https://gitcode.com/Ascend/mind-cluster/blob/release_v26.2.0/docs/en/scheduling/04_usage/05_fault_recovery/01_resumable_training/02_configuration/01_configuring_fault_handling_policies.md#%E9%85%8D%E7%BD%AE%E8%BF%9B%E7%A8%8B%E7%BA%A7%E5%9C%A8%E7%BA%BF%E6%81%A2%E5%A4%8D).
 - When this feature is enabled, OOM in the TaskQueue of a non-default stream does not immediately trigger a memory snapshot.
 - When this feature is enabled, there will be multiple TaskQueues in a multi-stream scenario, corresponding to multiple threads, which may cause resource contention and affect performance.
 - When this feature is enabled, if there are Event interactions between multiple streams, the first-level pipeline may incur additional overhead to ensure that Events are delivered in order in the second-level pipeline, affecting performance.

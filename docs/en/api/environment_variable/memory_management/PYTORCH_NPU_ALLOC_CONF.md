@@ -10,12 +10,6 @@ This environment variable controls the behavior of the cache allocator. Configur
 
 The cache allocator uses different memory pools based on the size of the requested memory. Requests smaller than 1 MB use the small block memory pool, and requests of other sizes use the large block memory pool. With the virtual memory feature, the physical memory allocation granularity (`segment_size_mb`) for the large block memory pool defaults to 20 MB, and that for the small block memory pool defaults to 2 MB (non-configurable). In LLM scenarios, the small block memory pool typically has low memory usage. Therefore, certain environment configuration items (`page_size`, `segment_size_mb`) apply only to the large block memory pool.
 
-> [!NOTICE]
->
-> <!-- npu="950" id7 -->
-> <term>Ascend 950DT products</term> support only four parameters: expandable\_segments, pinned\_use\_background\_threads, pin\_memory\_expandable\_segments, and pinned\_mem\_register. The remaining parameters are not supported.
-> <!-- end id7 -->
-
 Optional parameters:
 
 - `max_split_size_mb:<value\>`, the upper limit for splitting memory blocks.
@@ -34,6 +28,7 @@ Optional parameters:
 
     The value range is 0 to 16, and the value must be an integer, in KB. The default value is 16. This parameter takes effect only when `expandable_segments` is set to True. If this parameter is configured as 16, when large block memory (greater than or equal to 2 MB) is requested, the base address of the requested memory is kept aligned to 16 KB as much as possible. If configured as 0, the base address of the requested memory is aligned to 512 B.
 
+<!-- npu="950,A3,910b" id7 -->
 - `page_size:<value\>`, sets the size for requesting large page memory.
 
     The value supports only 1 GB. Refer to [Configuration Example](#configuration-example). The memory allocation granularity is 1 GB. Amounts less than 1 GB are rounded up to 1 GB, and the allocated amount is always an integer multiple of 1 GB. With the virtual memory feature, this configuration item applies only to the large block memory pool of the cache allocator.
@@ -41,6 +36,7 @@ Optional parameters:
     When this option is not configured, the memory allocation granularity is 2 MB. To request 1 GB of large page memory, 1024/2 = 512 page table entries are occupied. After this option is set, the memory allocation granularity is 1 GB, and 1 GB of large page memory occupies only 1 page table entry. This effectively reduces the number of page table entries and expands the address range covered by the TLB (Translation Lookaside Buffer) cache, improving the performance of scattered access.
 
     The TLB is a hardware module for high-speed caching in Ascend AI processors, storing the mapping from recently used virtual addresses to physical addresses.
+<!-- end id7 -->
 
 - `segment_size_mb:<value\>`, sets the allocation granularity of physical memory under the virtual memory feature.
 
@@ -142,11 +138,13 @@ Example 2:
 export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True,base_addr_aligned_kb:16
 ```
 
+<!-- npu="950,A3,910b" id8 -->
 Example 3:
 
 ```bash
 export PYTORCH_NPU_ALLOC_CONF=page_size:1g
 ```
+<!-- end id8 -->
 
 Example 4:
 
@@ -238,6 +236,7 @@ export PYTORCH_NPU_ALLOC_CONF=release_lock_on_npumalloc:True
 
 - The `expandable_segments` feature must be used on Ascend HDK 23.0.0 or later.
 - When either `max_split_size_mb` or `garbage_collection_threshold` is set to a non-default value, `expandable_segments` must be set to False.
+<!-- npu="950,A3,910b" id10 -->
 - The `page_size` feature requires Ascend HDK 25.0.RC1 or later and CANN Commercial Use 8.1.RC1 or later, and supports the following products:
 
     <!-- npu="910b" id1 -->
@@ -246,13 +245,16 @@ export PYTORCH_NPU_ALLOC_CONF=release_lock_on_npumalloc:True
     <!-- npu="A3" id2 -->
     - <term>Atlas A3 training products</term>
     <!-- end id2 -->
-
+    <!-- npu="950" id9 -->
+    - <term>Ascend 950DT products</term>
+    <!-- end id9 -->
 - When the `page_size` feature is configured together with other features, only the `page_size` configuration takes effect. Notes on requesting memory are as follows:
     - When the requested memory is greater than 1 MB:
         - If `page_size` is configured, the memory allocation granularity is 1 GB.
         - If `page_size` is not configured, the memory allocation granularity is 2 MB.
 
     - When the requested memory is less than or equal to 1 MB: `page_size` does not take effect even if configured, and the memory allocation granularity is 2 MB.
+<!-- end id10 -->
 - The `pin_memory_expandable_segments` feature requires TorchNPU 7.3.0 or later, Ascend HDK 25.5.0 or later, and CANN Commercial Use 8.5.0 or later.
 - The `pinned_use_background_threads` feature requires TorchNPU 26.0.0 or later and PyTorch 2.8.0 or later.
 - Notes on using `pinned_mem_register` are as follows:
@@ -281,3 +283,6 @@ export PYTORCH_NPU_ALLOC_CONF=release_lock_on_npumalloc:True
 <!-- npu="310p" id6 -->
 - <term>Atlas inference products</term>
 <!-- end id6 -->
+<!-- npu="950" id11 -->
+- <term>Ascend 950DT products</term>
+<!-- end id11 -->

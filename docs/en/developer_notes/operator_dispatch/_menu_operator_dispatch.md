@@ -13,7 +13,13 @@
 - [Compilation Optimization](compilation_optimization/_menu_compilation_optimization.md)
   - [Introduction to Compilation Optimization Technologies](compilation_optimization/compilation_optimization_introduction.md)
   - [Installing BiSheng Compiler](compilation_optimization/install_bisheng_compiler.md)
+  <!-- npu="A3,910b,910" id1 -->
   - [Python Compilation Optimization](compilation_optimization/python_compilation_optimization.md)
+  <!-- end id1 -->
+  <!-- npu="910b,910,310p" id2 -->
   - [PyTorch Compilation Optimization](compilation_optimization/pytorch_compilation_optimization.md)
+  <!-- end id2 -->
+  <!-- npu="A3,910b,910" id3 -->
   - [TorchNPU Compilation Optimization](compilation_optimization/torch_npu_compilation_optimization.md)
+  <!-- end id3 -->
   - [Compilation Optimization FAQs](compilation_optimization/compilation_optimization_faq.md)

@@ -1,10 +1,10 @@
 # Python Compilation Optimization
 
+<!-- npu="950" id1 -->
 > [!NOTE]
 >
-> <!-- npu="950" id1 -->
 > <term>Ascend 950DT products</term> do not yet support Python compilation optimization.
-> <!-- end id1 -->
+<!-- end id1 -->
 
 Starting with Python 3.6, Link-Time Optimization (LTO) and Profile-Guided Optimization (PGO) are supported and can be enabled at compile time.
 

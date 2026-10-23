@@ -40,4 +40,4 @@ at::Tensor custom_add(const at::Tensor &x, const at::Tensor &y)
 - The subsequent parameters `x`, `y`, and `z` are the inputs and outputs of the aclnn operator, which the macro captures by value into the lambda.
 - Based on the aclnn operator parameter list, the macro automatically converts `at::Tensor` to `aclTensor*`; developers do not need to perform type conversion manually.
 
-For custom operator adaptation development, see: [Adaptation Development and Invocation (Basic Example)](https://gitcode.com/Ascend/op-plugin/tree/26.2.0/examples/cpp_extension_base/README.md).
+For custom operator adaptation development, see: [Adaptation Development and Invocation (Basic Example)](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/examples/cpp_extension_base/README_en.md).

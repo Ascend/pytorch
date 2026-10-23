@@ -1,10 +1,10 @@
 # TorchNPU Compilation Optimization
 
+<!-- npu="950" id1 -->
 > [!NOTE]
 >
-> <!-- npu="950" id1 -->
 > <term>Ascend 950DT products</term> do not yet support compilation optimization (TorchNPU).
-> <!-- end id1 -->
+<!-- end id1 -->
 
 1. Dependency installation.
 

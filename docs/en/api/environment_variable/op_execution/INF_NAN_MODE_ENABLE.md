@@ -50,11 +50,11 @@ torch.sqrt(torch.tensor([-1.0], dtype=torch.float16).npu())
 # tensor([nan], device='npu:0', dtype=torch.float16)
 ```
 
+<!-- npu="A3,910b,910" id6 -->
 > [!NOTE]  
 >
-> <!-- npu="A3,910b,910" id6 -->
 > For <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>, if precision alignment with <term>Atlas training products</term> is required, you can configure it to "0" saturation mode. In saturation mode, Inf and NaN are converted to the maximum value and 0 of the corresponding data type during computation, which may cause differences in subsequent calculation results. You are advised not to configure it except in special circumstances. <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term> have an interception mechanism for the saturation mode configuration. If you need to forcibly enable saturation mode, configure [INF\_NAN\_MODE\_FORCE\_DISABLE](INF_NAN_MODE_FORCE_DISABLE.md)=1.
-> <!-- end id6 -->
+<!-- end id6 -->
 
 This environment variable is provided by TorchNPU. PyTorch does not have a directly corresponding environment variable.
 

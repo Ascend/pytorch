@@ -146,7 +146,7 @@ at::Tensor ascendc_add_good(const at::Tensor &x, const at::Tensor &y)
 > }
 > ```
 
-For custom operator extension development methods, see: [Custom Operator C++ Extension Development Example](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/examples/cpp_extension).
+For custom operator extension development methods, see: [Custom Operator C++ Extension Development Example](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/examples/cpp_extension/README_en.md).
 
 ### Data Type Capture Examples
 

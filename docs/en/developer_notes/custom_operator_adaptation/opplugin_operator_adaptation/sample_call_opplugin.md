@@ -16,7 +16,7 @@ After completing the development of the adaptation plugin for the PyTorch framew
 
     > [!NOTE]
     >
-    > The CANN operator corresponding to this example is `aclnnAdd`. For details, see the "[NN Operator Interface](https://gitcode.com/cann/ops-math/blob/9.2.0/math/add/docs/aclnnAdd&aclnnInplaceAdd.md)" section in the CANN Operator Library.
+    > The CANN operator corresponding to this example is `aclnnAdd`. For details, see the "[NN Operator Interface](https://gitcode.com/cann/ops-math/blob/9.2.0/math/add/docs/aclnnAdd&aclnnInplaceAdd_en.md)" section in the CANN Operator Library.
 
 ## Adaptation Development
 

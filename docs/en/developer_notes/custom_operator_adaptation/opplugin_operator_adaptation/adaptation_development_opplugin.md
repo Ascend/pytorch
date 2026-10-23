@@ -392,14 +392,17 @@ There are two YAML configuration methods, and you can choose either based on the
           structured_inherit: abs.out
     ```
 
+<!-- npu="950,A3,910b,910" id2 -->
 ### aclop Operator Adaptation
+<!-- end id2 -->
 
+<!-- npu="950" id1 -->
 > [!NOTE]
 >
-> <!-- npu="950" id1 -->
 > <term>Ascend 950DT products</term> do not yet support aclop operator adaptation.
-> <!-- end id1 -->
+<!-- end id1 -->
 
+<!-- npu="A3,910b,910" id3 -->
 aclop operators are an earlier operator implementation method and are not recommended. The adaptation file path is `op_plugin/ops/aclops/AbsKernelNpu.cpp`. The file naming convention is Operator Name + `KernelNpu`, with the first letter of the operator name capitalized. The specific steps are as follows:
 
 1. Create the operator adaptation file and include the dependency header files, including the aclop external interface, operator declarations, base functions, and so on.
@@ -512,6 +515,7 @@ aclop operators are an earlier operator implementation method and are not recomm
     #endif
     } // namespace acl_op
     ```
+<!-- end id3 -->
 
 ## Auxiliary Operator Adaptation
 

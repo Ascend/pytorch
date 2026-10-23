@@ -17,12 +17,12 @@ Configuration format: `CPU_AFFINITY_CONF=<mode>,force:<value0>,npu<value1>:<valu
 
 Parameter settings:
 
-1. `<mode>`: Required parameter. Specifies the binding mode.
+- `<mode>`: Required parameter. Specifies the binding mode.
     - `0` or not set: Disables CPU binding.
     - `1`: Enables coarse-grained binding.
     - `2`: Enables fine-grained binding.
 
-2. `force:<value0>`: Optional parameter. Specifies whether to force binding and skip conflict detection.
+- `force:<value0>`: Optional parameter. Specifies whether to force binding and skip conflict detection.
     - Not set (default) or set to `0`: Keeps the original behavior. When the configured binding range conflicts with the current CPU affinity of the process, the binding is skipped and a WARNING log is generated.
     - `1`: Skips conflict detection and forcibly applies the binding configuration. It applies to scenarios such as container core isolation, where the available cores are limited by Cgroup (Control Groups). This prevents conflict detection misjudgment caused by the Cgroup limitation on the number of available CPU cores, which would otherwise invalidate the binding configuration.
 
@@ -30,14 +30,16 @@ Parameter settings:
     >
     > `force:1` only skips software-level conflict detection. It cannot break through the hard limit of the OS or Cgroup. The actual binding result is still constrained by the CPU core range allowed by the operating system.
 
-3. `npu<value1>:<value2>-<value3>`: Optional parameter. Specifies a custom CPU binding range for the NPU service. The custom binding range takes effect only when the binding feature is enabled, that is, when `mode` is set to `1` or `2`.
+- `npu<value1>:<value2>-<value3>`: Optional parameter. Specifies a custom CPU binding range for the NPU service. The custom binding range takes effect only when the binding feature is enabled, that is, when `mode` is set to `1` or `2`.
     - `npu<value1>:<value2>-<value3>` binds the threads of card `value1` to the CPU cores in the closed interval from `value2` to `value3`. For example, `npu0:0-2` indicates that the binding range of the service threads of NPU card 0 is [0,2].
     - You can configure multiple binding ranges for one NPU card. For example, if you set the environment variable `CPU_AFFINITY_CONF=1,npu0:0-2,npu0:4-5`, the binding range of NPU card 0 is [0,2] and [4,5].
     - You can configure binding ranges for multiple NPU cards. For example, if you set the environment variable `CPU_AFFINITY_CONF=1,npu0:0-0,npu2:1-2,npu2:4-4`, the binding range of NPU card 0 is changed to [0,0], the binding range of NPU card 2 is changed to [1,2] and [4,4], and the binding ranges of other NPU cards remain unchanged.
 
-4. `npu_affine:<value4>`: Optional parameter. Specifies whether to enable NPU affinity binding.
+<!-- npu="910b" id6 -->
+- `npu_affine:<value4>`: Optional parameter. Specifies whether to enable NPU affinity binding.
     - `0` or not set: Disables affinity binding.
     - `1`: Enables affinity binding.
+<!-- end id6 -->
 
 CPU binding is disabled by default. If you need to improve performance through CPU binding, you are advised to use fine-grained binding.
 
@@ -72,13 +74,7 @@ For example, the binding range of NPU card 0 is [0,1], the binding range of NPU 
 export CPU_AFFINITY_CONF=1,npu0:0-1,npu1:2-5,npu1:7-8,npu3:9-9
 ```
 
-Example 4: NPU affinity binding
-
-```bash
-export CPU_AFFINITY_CONF=1,npu_affine:1
-```
-
-Example 5: Forcing binding in the container core isolation scenario
+Example 4: Forcing binding in the container core isolation scenario
 
 When the container limits the available cores through Cgroup, set `force:1` to skip conflict detection and forcibly apply the binding configuration:
 
@@ -86,9 +82,17 @@ When the container limits the available cores through Cgroup, set `force:1` to s
 export CPU_AFFINITY_CONF=2,force:1,npu0:0-3
 ```
 
-## Usage Constraints
+<!-- npu="910b" id7 -->
+Example 5: NPU affinity binding
+
+```bash
+export CPU_AFFINITY_CONF=1,npu_affine:1
+```
+<!-- end id7 -->
 
 <!-- npu="910b" id5 -->
+## Usage Constraints
+
 Affinity binding is supported only on <term>Atlas A2 training products</term>.
 <!-- end id5 -->
 

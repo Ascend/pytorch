@@ -1,7 +1,6 @@
 # Environment Variable Reference
 
 - [Environment Variable List](env_variable_list.md)
-- [PyTorch Environment Variable Comparison Table](pytorch_comparison.md)
 <!-- npu="950,A3,910b,910,310p" id19 -->
 - [Device Initialization and Management](device_management/_menu_device_management.md)
   <!-- npu="A3,910b,910,310p" id1 -->
@@ -63,10 +62,10 @@
 <!-- end id17 -->
 <!-- npu="950,A3,910b,910,310p" id28 -->
 - [Memory Management](memory_management/_menu_memory_management.md)
-  <!-- npu="A3,910b,910,310p" id18 -->
+  <!-- npu="950,A3,910b,910,310p" id18 -->
   - [PYTORCH_ALLOC_CONF](memory_management/PYTORCH_ALLOC_CONF.md)
   <!-- end id18 -->
-  <!-- npu="A3,910b,910,310p" id21 -->
+  <!-- npu="950,A3,910b,910,310p" id21 -->
   - [PYTORCH_NPU_ALLOC_CONF](memory_management/PYTORCH_NPU_ALLOC_CONF.md)
   <!-- end id21 -->
   <!-- npu="950,A3,910b,910,310p" id22 -->
@@ -235,5 +234,6 @@
   - [INDUCTOR_ASCEND_LOG_LEVEL](inductor/INDUCTOR_ASCEND_LOG_LEVEL.md)
   <!-- end id76 -->
 <!-- end id77 -->
+- [PyTorch Environment Variable Comparison Table](pytorch_comparison.md)
 - [Appendix](appendix/_menu_appendix.md)
   - [Error "RuntimeError: The Inner Error ..." Reported During Distributed Model Training](appendix/runtimeerror_Inner_Error.md)
