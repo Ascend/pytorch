@@ -43,8 +43,6 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id3 -->
 
-**限制与说明**： -
-
 > <font size="3">kv_indices</font>
 
 <div style="margin-left: 2em">
@@ -62,8 +60,6 @@
 <!-- npu="950" id6 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id6 -->
-
-**限制与说明**： -
 
 </div>
 

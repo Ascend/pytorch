@@ -48,8 +48,6 @@
 
 **原生文档**：[torch.onnx.register_custom_op_symbolic](https://pytorch.org/docs/2.14/onnx.html#torch.onnx.register_custom_op_symbolic)
 
-**版本说明**：该旧版TorchScript导出辅助接口已废弃；新导出流程请使用`torch.onnx.export`。
-
 **产品支持情况**：
 
 <!-- npu="910b" id4 -->
@@ -70,8 +68,6 @@
 
 **原生文档**：[torch.onnx.unregister_custom_op_symbolic](https://pytorch.org/docs/2.14/onnx.html#torch.onnx.unregister_custom_op_symbolic)
 
-**版本说明**：该旧版TorchScript导出辅助接口已废弃；新导出流程请使用`torch.onnx.export`。
-
 **产品支持情况**：
 
 <!-- npu="910b" id7 -->
@@ -91,8 +87,6 @@
 <div style="margin-left: 2em">
 
 **原生文档**：[torch.onnx.select_model_mode_for_export](https://pytorch.org/docs/2.14/onnx.html#torch.onnx.select_model_mode_for_export)
-
-**版本说明**：该接口已废弃，请在导出前设置模型训练或推理模式。
 
 **产品支持情况**：
 

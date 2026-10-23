@@ -864,8 +864,6 @@
 
 **原生文档**：[torch.autograd.profiler.profile](https://pytorch.org/docs/2.14/autograd.html#torch.autograd.profiler.profile)
 
-**版本说明**：`use_cuda`参数已移除，请使用`use_device`；`with_modules`已废弃，动态图模块跟踪请使用`with_stack=True`。
-
 **产品支持情况**：
 
 <!-- npu="910b" id118 -->

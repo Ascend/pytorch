@@ -63,8 +63,6 @@
 
 **原生文档**：[torch.testing.assert_allclose](https://pytorch.org/docs/2.10/testing.html#torch.testing.assert_allclose)
 
-**版本说明**：该接口已废弃，请使用`torch.testing.assert_close`。
-
 **产品支持情况**：
 
 <!-- npu="910b" id7 -->

@@ -1057,12 +1057,8 @@
 - `tensors`仅支持bf16，fp16，fp32，int64，bool，complex64
 
 <!-- npu="950" id146 -->
-- <term>Ascend 950DT系列产品</term>：不支持complex64
-<!-- end id146 -->
-
-<!-- npu="950" id1105 -->
 - 在<term>Ascend 950DT系列产品</term>上，不支持`complex`数据类型。
-<!-- end id1105 -->
+<!-- end id146 -->
 
 </div>
 
@@ -1639,6 +1635,30 @@
 
 </div>
 
+### torch.scatter_add
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.scatter_add](https://pytorch.org/docs/2.11/generated/torch.scatter_add.html)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1138 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1138 -->
+<!-- npu="A3" id1139 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1139 -->
+<!-- npu="950" id1140 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1140 -->
+
+<!-- npu="950" id1134 -->
+**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，`torch.scatter_add`的输入包含重复索引时，计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。
+<!-- end id1134 -->
+
+</div>
+
 ### torch.scatter_reduce
 
 <div style="margin-left: 2em">
@@ -2186,7 +2206,7 @@
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.torch.default_generator](https://pytorch.org/docs/2.11/torch.html#torch.torch.default_generator)
+**原生文档**：[torch.default_generator](https://pytorch.org/docs/2.11/torch.html#torch.default_generator)
 
 **产品支持情况**：
 
@@ -2220,10 +2240,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id302 -->
 
-**限制与说明**：
-
 <!-- npu="950" id1109 -->
-- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
 <!-- end id1109 -->
 
 </div>
@@ -2275,10 +2293,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id308 -->
 
-**限制与说明**：
-
 <!-- npu="950" id1111 -->
-- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
 <!-- end id1111 -->
 
 </div>
@@ -2329,10 +2345,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id314 -->
 
-**限制与说明**：
-
 <!-- npu="950" id1113 -->
-- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
 <!-- end id1113 -->
 
 </div>
@@ -2383,10 +2397,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id320 -->
 
-**限制与说明**：
-
 <!-- npu="950" id1115 -->
-- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
 <!-- end id1115 -->
 
 </div>
@@ -2951,14 +2963,6 @@
 
 ## Math operations
 
-<!-- npu="950" id1133 -->
-- 在<term>Ascend 950DT系列产品</term>上，`torch._foreach_abs`不支持`complex`数据类型。
-<!-- end id1133 -->
-
-<!-- npu="950" id1134 -->
-- 在<term>Ascend 950DT系列产品</term>上，`torch.scatter_add`的输入包含重复索引时，计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。
-<!-- end id1134 -->
-
 ### torch.abs
 
 <div style="margin-left: 2em">
@@ -3178,9 +3182,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id428 -->
 
-**限制与说明**：
-
-- `input`仅支持fp16，fp32
+**限制与说明**： `input`仅支持fp16，fp32
 
 </div>
 
@@ -7552,6 +7554,30 @@
 
 </div>
 
+### torch._foreach_abs
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch._foreach_abs](https://pytorch.org/docs/2.11/generated/torch._foreach_abs.html)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1135 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1135 -->
+<!-- npu="A3" id1136 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1136 -->
+<!-- npu="950" id1137 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1137 -->
+
+<!-- npu="950" id1133 -->
+**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，`torch._foreach_abs`不支持`complex`数据类型。
+<!-- end id1133 -->
+
+</div>
+
 ### torch._foreach_sqrt
 
 <div style="margin-left: 2em">
@@ -8014,8 +8040,6 @@
 <!-- npu="950" id1076 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1076 -->
-
-**限制与说明**： -
 
 </div>
 

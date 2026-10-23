@@ -138,8 +138,6 @@
 
 **原生文档**：[torch.profiler._KinetoProfile.export_memory_timeline](https://pytorch.org/docs/2.10/profiler.html#torch.profiler._KinetoProfile.export_memory_timeline)
 
-**版本说明**：该接口已废弃；上游建议改用CUDA memory snapshot接口，具体设备支持范围需另行确认。
-
 **NPU 形式名称**：torch_npu.profiler._KinetoProfile.export_memory_timeline
 
 **产品支持情况**：

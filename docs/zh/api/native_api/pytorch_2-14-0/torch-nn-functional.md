@@ -34,7 +34,7 @@
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.nn.parallel.data_parallel](https://pytorch.org/docs/2.14/generated/torch.nn.functional.torch.nn.parallel.data_parallel.html#torch.nn.parallel.data_parallel)
+**原生文档**：[torch.nn.parallel.data_parallel](https://pytorch.org/docs/2.14/generated/torch.nn.parallel.data_parallel.html#torch.nn.parallel.data_parallel)
 
 **产品支持情况**：
 
@@ -706,9 +706,7 @@
 
 **限制与说明**：
 
-- `query`、`key`、`value`仅支持bf16、fp16和fp32。所有参数输入均符合以下约束
-- **约束**：
-- 所有参数输入符合规格：
+- `query`、`key`、`value`仅支持bf16、fp16和fp32，且所有输入参数须满足以下规格约束：
   - 输入`query`、`key`、`value`的N：batch size，当前只支持[N，head_num, S(L), E(Ev)]的排布方式，取值范围1~2K
   - 输入`query`的head num和`key`/`value`的head num必须成比例关系，即Nq/Nkv必须是非0整数，取值范围1~256
   - 输入`query`的L：Target sequence length，取值范围1~512K
@@ -1594,10 +1592,6 @@
 
 ## Dropout functions
 
-<!-- npu="950" id323 -->
-- 在<term>Ascend 950DT系列产品</term>上，`torch.nn.functional.dropout1d`不支持`complex`数据类型。
-<!-- end id323 -->
-
 ### torch.nn.functional.dropout
 
 <div style="margin-left: 2em">
@@ -1661,6 +1655,30 @@
 <!-- end id207 -->
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+
+</div>
+
+### torch.nn.functional.dropout1d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.functional.dropout1d](https://pytorch.org/docs/2.14/generated/torch.nn.functional.dropout1d.html)
+
+**产品支持情况**：
+
+<!-- npu="910b" id324 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id324 -->
+<!-- npu="A3" id325 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id325 -->
+<!-- npu="950" id326 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id326 -->
+
+<!-- npu="950" id323 -->
+**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，`torch.nn.functional.dropout1d`不支持`complex`数据类型。
+<!-- end id323 -->
 
 </div>
 
@@ -2301,8 +2319,6 @@
 
 **原生文档**：[torch.nn.functional.upsample](https://pytorch.org/docs/2.14/generated/torch.nn.functional.upsample.html)
 
-**版本说明**：该接口已废弃，请使用`torch.nn.functional.interpolate`。
-
 **产品支持情况**：
 
 <!-- npu="910b" id290 -->
@@ -2332,8 +2348,6 @@
 
 **原生文档**：[torch.nn.functional.upsample_nearest](https://pytorch.org/docs/2.14/generated/torch.nn.functional.upsample_nearest.html)
 
-**版本说明**：该接口已废弃，请使用`torch.nn.functional.interpolate(..., mode="nearest")`。
-
 **产品支持情况**：
 
 <!-- npu="910b" id293 -->
@@ -2358,8 +2372,6 @@
 <div style="margin-left: 2em">
 
 **原生文档**：[torch.nn.functional.upsample_bilinear](https://pytorch.org/docs/2.14/generated/torch.nn.functional.upsample_bilinear.html)
-
-**版本说明**：该接口已废弃，请使用`torch.nn.functional.interpolate(..., mode="bilinear", align_corners=True)`。
 
 **产品支持情况**：
 

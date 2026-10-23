@@ -1059,12 +1059,8 @@
 - `tensors`仅支持bf16，fp16，fp32，int64，bool，complex64
 
 <!-- npu="950" id146 -->
-- <term>Ascend 950DT系列产品</term>：不支持complex64
-<!-- end id146 -->
-
-<!-- npu="950" id1112 -->
 - 在<term>Ascend 950DT系列产品</term>上，不支持`complex`数据类型。
-<!-- end id1112 -->
+<!-- end id146 -->
 
 </div>
 
@@ -2221,7 +2217,7 @@
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.torch.default_generator](https://pytorch.org/docs/2.7/torch.html#torch.torch.default_generator)
+**原生文档**：[torch.default_generator](https://pytorch.org/docs/2.7/torch.html#torch.default_generator)
 
 **产品支持情况**：
 
@@ -2255,10 +2251,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id306 -->
 
-**限制与说明**：
-
 <!-- npu="950" id1117 -->
-- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
 <!-- end id1117 -->
 
 </div>
@@ -2310,10 +2304,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id312 -->
 
-**限制与说明**：
-
 <!-- npu="950" id1119 -->
-- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
 <!-- end id1119 -->
 
 </div>
@@ -2364,10 +2356,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id318 -->
 
-**限制与说明**：
-
 <!-- npu="950" id1121 -->
-- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
 <!-- end id1121 -->
 
 </div>
@@ -2418,10 +2408,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id324 -->
 
-**限制与说明**：
-
 <!-- npu="950" id1123 -->
-- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
 <!-- end id1123 -->
 
 </div>
@@ -2986,10 +2974,6 @@
 
 ## Math operations
 
-<!-- npu="950" id1141 -->
-- 在<term>Ascend 950DT系列产品</term>上，`torch._foreach_abs`不支持`complex`数据类型。
-<!-- end id1141 -->
-
 ### torch.abs
 
 <div style="margin-left: 2em">
@@ -3209,9 +3193,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id432 -->
 
-**限制与说明**：
-
-- `input`仅支持fp16，fp32
+**限制与说明**： `input`仅支持fp16，fp32
 
 </div>
 
@@ -7585,6 +7567,30 @@
 
 </div>
 
+### torch._foreach_abs
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch._foreach_abs](https://pytorch.org/docs/2.7/generated/torch._foreach_abs.html)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1142 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1142 -->
+<!-- npu="A3" id1143 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1143 -->
+<!-- npu="950" id1144 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1144 -->
+
+<!-- npu="950" id1141 -->
+**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，`torch._foreach_abs`不支持`complex`数据类型。
+<!-- end id1141 -->
+
+</div>
+
 ### torch._foreach_sqrt
 
 <div style="margin-left: 2em">
@@ -8047,8 +8053,6 @@
 <!-- npu="950" id1080 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1080 -->
-
-**限制与说明**： -
 
 > <font size="3">is_integer()</font>
 

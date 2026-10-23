@@ -567,9 +567,6 @@
 
 **产品支持情况**：
 
-<!-- npu="910" id76 -->
-- <term>Atlas训练系列产品</term>：支持
-<!-- end id76 -->
 <!-- npu="910b" id77 -->
 - <term>Atlas A2训练系列产品</term>：支持
 <!-- end id77 -->
