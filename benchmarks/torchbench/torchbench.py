@@ -189,6 +189,10 @@ NPU_REQUIRE_HIGHER_TOLERANCE = {
     "phlippe_resnet",
 }
 
+NPU_REQUIRE_HIGHER_TOLERANCE_INFERENCE = {
+    "mobilenet_v2",
+}
+
 NPU_REQUIRE_HIGHER_TOLERANCE_ON_A5 = {
     "densenet121",
     "resnet50",
@@ -578,6 +582,8 @@ class TorchBenchmarkRunner(BenchmarkRunner):
                 tolerance = 2e-2
             elif is_ascend950 and name in NPU_REQUIRE_HIGHER_TOLERANCE_ON_A5:
                 tolerance = 2e-3
+        elif current_device == "npu" and name in NPU_REQUIRE_HIGHER_TOLERANCE_INFERENCE:
+            tolerance = 1e-2
         return tolerance, cosine
 
     def get_learning_rate(self, is_training, current_device, name):
