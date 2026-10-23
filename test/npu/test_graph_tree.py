@@ -6,8 +6,11 @@ from unittest.mock import patch, MagicMock, ANY
 import weakref
 import pytest
 import torch
+import torch._dynamo  # noqa: F401
 import torch_npu
+from torch._dynamo.callback import CallbackTrigger
 from torch._dynamo.graph_bytecode_inputs import CURRENT_STREAM_INDEX
+from torch._guards import CompileId
 from torch_npu.npu._graph_tree import (
     check_memory_pool,
     clear_cublas_manager,
@@ -36,6 +39,8 @@ from torch_npu.npu._graph_tree import (
     FunctionID,
     GraphID,
     _update_current_stream_external_object,
+    dynamo_timed_cudagraph,
+    format_inputs_log,
 )
 from torch_npu.testing.testcase import TestCase, run_tests
 
@@ -123,7 +128,7 @@ class TestNpuGraphFunctions(TestCase):
             model, inputs, (), device_index=0, is_backward=False, is_inference=False
         )
         mock_manager.add_function.assert_called_with(
-            model, inputs, (), None, CompilationMode.FORWARD, (), (), ()
+            model, inputs, (), None, CompilationMode.FORWARD, (), (), (), None
         )
 
         # Test backward mode
@@ -132,7 +137,7 @@ class TestNpuGraphFunctions(TestCase):
             model, inputs, (), device_index=0, is_backward=True, is_inference=False
         )
         mock_manager.add_function.assert_called_with(
-            model, inputs, (), None, CompilationMode.BACKWARD, (), (), ()
+            model, inputs, (), None, CompilationMode.BACKWARD, (), (), (), None
         )
 
         # Test invalid mode combination
@@ -140,6 +145,46 @@ class TestNpuGraphFunctions(TestCase):
             npugraphify(
                 model, inputs, (), device_index=0, is_backward=True, is_inference=True
             )
+
+    @patch("torch_npu.npu._graph_tree.dynamo_timed_cudagraph")
+    @patch("torch_npu.npu._graph_tree.get_container")
+    def test_npugraphify_timing(self, mock_container, mock_timed):
+        mock_manager = MagicMock()
+        mock_container.return_value.get_tree_manager.return_value = mock_manager
+        compile_id = CompileId(frame_id=1, frame_compile_id=2)
+        model = MagicMock()
+        inputs = [torch.tensor([1])]
+
+        npugraphify(
+            model,
+            inputs,
+            (),
+            device_index=0,
+            is_backward=False,
+            is_inference=False,
+            compile_id=compile_id,
+        )
+
+        mock_timed.assert_called_once_with(
+            "cudagraphify.get_container", compile_id, CompilationMode.FORWARD
+        )
+
+    @patch("torch_npu.npu._graph_tree.dynamo_timed")
+    def test_dynamo_timed_cudagraph(self, mock_dynamo_timed):
+        compile_id = CompileId(frame_id=3, frame_compile_id=4)
+
+        with dynamo_timed_cudagraph(
+            "test.region", compile_id, CompilationMode.BACKWARD
+        ):
+            pass
+
+        mock_dynamo_timed.assert_called_once_with(
+            "test.region",
+            log_pt2_compile_event=True,
+            compile_id=compile_id,
+            is_backward=True,
+            dynamo_compile_column_us="runtime_cudagraphify_time_us",
+        )
 
 
 class TestTreeManagerContainer(TestCase):
@@ -377,6 +422,34 @@ class TestNPUGraphNode:
         assert node.device == 0
         assert node.parent == mock_parent_node
         assert node.graph is not None
+
+    def test_record_timing(self, mock_wrapped_function, mock_parent_node):
+        compile_id = CompileId(frame_id=1, frame_compile_id=2)
+        with patch(
+            "torch_npu.npu._graph_tree.dynamo_timed_cudagraph"
+        ) as mock_timed, patch(
+            "torch_npu.npu._graph_tree._use_npu_memory_pool_manager"
+        ), patch(
+            "torch_npu.npu._graph_tree.check_memory_pool"
+        ), patch(
+            "torch_npu._C._npu_getCheckpointState"
+        ):
+            NPUGraphNode(
+                wrapped_function=mock_wrapped_function,
+                graph_id=1,
+                parent=mock_parent_node,
+                inputs=[torch.tensor([1.0], device="npu")],
+                npu_graphs_pool=(0, 0),
+                device_index=0,
+                stack_traces=None,
+                stream=torch.npu.Stream(),
+                mode=CompilationMode.FORWARD,
+                compile_id=compile_id,
+            )
+
+        mock_timed.assert_called_once_with(
+            "CUDAGraphNode.record", compile_id, CompilationMode.FORWARD
+        )
 
     def test_invalid_input_type(self, mock_wrapped_function):
         with pytest.raises(RuntimeError):
@@ -940,7 +1013,7 @@ class TestCheckMemoryPool(TestCase):
             check_memory_pool("npu:0", (0, 0), invalid_storages)
 
 
-class TestNPUGraphTreeManager:
+class TestNPUGraphTreeManager(TestCase):
     @patch('torch_npu.npu._graph_tree.NPUGraphTreeManager._run')
     def test_run_forward_mode(self, mock_run):
         manager = NPUGraphTreeManager(0)
@@ -984,15 +1057,21 @@ class TestNPUGraphTreeManager:
         assert manager.roots is None
         assert manager.current_node is None
 
+    @patch("torch._dynamo.callback_handler.install_callbacks")
     @patch('torch.npu.synchronize')
     @patch('torch_npu.npu._graph_tree.NPUGraphNode')
-    def test_record_function(self, mock_node, mock_synchronize):
+    def test_record_function(self, mock_node, mock_synchronize, mock_install):
         manager = NPUGraphTreeManager(0)
+        compile_id = CompileId(frame_id=1, frame_compile_id=2)
         manager.ids_to_funcs[FunctionID(1)] = MagicMock()
         manager.ids_to_stack_traces[FunctionID(1)] = "stack_trace"
         manager.npu_graphs_thread_pool = "pool_handle"
         manager.device_index = 0
         manager.stream = MagicMock()
+        manager.id_to_mode[FunctionID(1)] = CompilationMode.FORWARD
+        manager.id_to_compile_id[FunctionID(1)] = compile_id
+        manager.mode = CompilationMode.FORWARD
+        manager.compile_id = compile_id
 
         # 设置模拟返回值
         mock_node_instance = MagicMock()
@@ -1000,10 +1079,14 @@ class TestNPUGraphTreeManager:
         mock_node_instance.run_first_inputs.return_value = [torch.tensor([1.0])]
 
         # 执行测试
-        result = manager.record_function([torch.tensor([1.0])], FunctionID(1))
+        with patch("torch_npu.npu._graph_tree.log.debug") as mock_log_debug:
+            result = manager.record_function([torch.tensor([1.0])], FunctionID(1))
 
         # 验证调用
         mock_synchronize.assert_any_call()
+        mock_install.assert_called_once_with(
+            CallbackTrigger.CUDAGRAPH_RECORDING, str(compile_id)
+        )
         mock_node.assert_called_once_with(
             manager.ids_to_funcs[FunctionID(1)],
             ANY,  # graph_id
@@ -1012,8 +1095,25 @@ class TestNPUGraphTreeManager:
             "pool_handle",
             0,
             "stack_trace",
-            manager.stream
+            manager.stream,
+            mode=CompilationMode.FORWARD,
+            compile_id=compile_id,
         )
+        mock_log_debug.assert_any_call(
+            "[%s] Recording function=%s, mode=%s, npu_graph_id=%d, inputs: %s",
+            compile_id,
+            ANY,
+            "FORWARD",
+            ANY,
+            ANY,
+        )
+        record_logs = [
+            call
+            for call in mock_log_debug.call_args_list
+            if call[0][0] == "[%s] Recording function=%s, mode=%s, npu_graph_id=%d, inputs: %s"
+        ]
+        self.assertTrue(record_logs)
+        self.assertIn("Tensor(size=[1]", record_logs[0][0][5])
         assert isinstance(mock_node.call_args[0][1], GraphID)
         assert manager.current_node == mock_node_instance
         assert manager.path_state == ExecutionState.RECORDING
@@ -1273,11 +1373,25 @@ class TestNPUGraphTreeManager:
         manager.current_node = mock_current_node
         manager.check_warn_on_unable_to_start_executing(FunctionID(1))
         mock_warn.assert_called_once_with(
-            "Unable to hit fast path of NPUGraphs because of pending, uninvoked backwards. "
-            "Consider running with torch.no_grad() or using torch.compiler.npugraph_mark_step_begin() "
-            "before each model invocation"
+            "Unable to hit fast path of NPUGraphs because outputs from a previous step "
+            "still require backward. Ensure backward() is invoked or detach outputs. "
+            "You may also call torch.compiler.npugraph_mark_step_begin() before each model invocation."
         )
         assert FunctionID(1) in manager.warned_functions
+
+    def test_format_dealloc_msg_tensor_output(self):
+        msg = NPUGraphTreeManager.format_dealloc_msg("trace")
+        self.assertIn("accessing tensor output of NPUGraphs", msg)
+        self.assertIn("npugraph_mark_step_begin", msg)
+
+    def test_format_dealloc_msg_grad_output(self):
+        msg = NPUGraphTreeManager.format_dealloc_msg(
+            "trace", is_grad_output=True
+        )
+        self.assertIn("gradient tensor output of NPUGraphs", msg)
+        self.assertIn("gradient accumulation", msg)
+        self.assertIn("allocate stable .grad buffers", msg)
+        self.assertIn("set .grad to None", msg)
 
 
 class TestUpdateCurrentStreamExternalObject(TestCase):
@@ -1289,6 +1403,29 @@ class TestUpdateCurrentStreamExternalObject(TestCase):
             with _update_current_stream_external_object():
                 pass
         mock_set.assert_called_once_with(CURRENT_STREAM_INDEX, fake_stream)
+
+
+class TestFormatInputsLog(TestCase):
+    def test_format_inputs_log_tensor(self):
+        t = torch.ones(2, 3, device="npu")
+        s = format_inputs_log([t])
+        self.assertIn("Tensor(size=[2, 3]", s)
+        self.assertIn("dtype=", s)
+        self.assertIn("data_ptr=0x", s)
+
+    def test_format_inputs_log_mixed(self):
+        s = format_inputs_log([None, 3, "str"])
+        self.assertIn("[0]: None", s)
+        self.assertIn("[1]: int(3)", s)
+        self.assertIn("[2]: str", s)
+
+    def test_format_inputs_log_empty(self):
+        self.assertEqual(format_inputs_log([]), "[]")
+
+    def test_format_inputs_log_truncated(self):
+        s = format_inputs_log(list(range(12)))
+        self.assertIn("... (2 more items)", s)
+        self.assertNotIn("[10]", s)
 
 
 if __name__ == "__main__":

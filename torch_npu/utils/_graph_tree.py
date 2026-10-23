@@ -124,6 +124,7 @@ def npugraphify(
             constants=constants,
             placeholders=placeholders,
             mutated_input_idxs=mutated_input_idxs,
+            compile_id=torch._guards.CompileContext.current_compile_id(),
         )
     else:
         npugraphify_fn = npugraphify_impl

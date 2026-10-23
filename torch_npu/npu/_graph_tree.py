@@ -40,6 +40,7 @@ import dataclasses
 import functools
 import gc
 import itertools
+import logging
 import operator
 import sys
 import threading
@@ -68,6 +69,7 @@ from typing import (
 
 import torch.fx
 from torch import Tensor
+from torch._dynamo.callback import CallbackTrigger
 from torch._dynamo.mutation_guard import GenerationTracker
 from torch._dynamo.utils import counters, dynamo_timed, preserve_rng_state
 from torch._inductor import config
@@ -130,6 +132,30 @@ S = TypeVar("S", bound="StorageWeakRefWrapper")
 log = torch._logging.getArtifactLogger("torch_npu.npugraph", "cudagraphs")
 
 
+def format_inputs_log(inputs: Sequence[object]) -> str:
+    def format_item(i: int, inp: object) -> str:
+        if isinstance(inp, torch.Tensor):
+            return (
+                f"[{i}]: Tensor(size={list(inp.size())}, stride={inp.stride()}, "
+                f"dtype={inp.dtype}, data_ptr=0x{inp.data_ptr():X})"
+            )
+        elif inp is None:
+            return f"[{i}]: None"
+        else:
+            return f"[{i}]: {type(inp).__name__}({inp})"
+
+    n = len(inputs)
+    if n == 0:
+        return "[]"
+
+    max_items = 10
+    parts = [format_item(i, inp) for i, inp in enumerate(inputs[:max_items])]
+    if n > max_items:
+        parts.append(f"... ({n - max_items} more items)")
+
+    return ", ".join(parts)
+
+
 @dataclasses.dataclass(frozen=True)
 class GraphID:
     "Unique counter of a npu graph recording"
@@ -188,6 +214,22 @@ def get_history_recording() -> ContextManager[None]:
     if not config.triton.cudagraph_trees_history_recording:
         return contextlib.nullcontext()
     return enable_history_recording()
+
+
+@contextlib.contextmanager
+def dynamo_timed_cudagraph(
+    name: str,
+    compile_id: Optional[Any],
+    mode: Optional["CompilationMode"],
+) -> Generator[Any, None, None]:
+    with dynamo_timed(
+        name,
+        log_pt2_compile_event=True,
+        compile_id=compile_id,
+        is_backward=mode == CompilationMode.BACKWARD,
+        dynamo_compile_column_us="runtime_cudagraphify_time_us",
+    ):
+        yield
 
 
 class TreeManagerContainer:
@@ -363,10 +405,15 @@ def npugraphify_impl(
         if fn is not None:
             return fn(inputs)
 
+        compile_id = kwargs.get("compile_id", "")
         if int_key is None:
-            log.debug("NPUGRAPH-TREE Compile recording, key=None")
+            log.info(
+                "[%s] Recording npugraph tree for graph without symints", compile_id
+            )
         else:
-            log.debug("NPUGRAPH-TREE Compile recording, key=%s", int_key)
+            log.info(
+                "[%s] Recording npugraph tree for symint key %s", compile_id, int_key
+            )
 
         if not has_warn:
             has_warn = maybe_warning_due_to_dynamic_shape(fn_cache, int_key)
@@ -398,8 +445,8 @@ def npugraphify(
     constants: Tuple[torch.Tensor, ...] = (),
     placeholders: Tuple[PlaceholderInfo, ...] = (),
     mutated_input_idxs: Tuple[int, ...] = (),
+    compile_id: Optional[Any] = None,
 ) -> Tuple[ModelType, OutputType]:
-    manager = get_container(device_index).get_tree_manager()
     if is_backward and is_inference:
         raise RuntimeError("check is_backward and is_inference fail")
     mode = (
@@ -407,6 +454,9 @@ def npugraphify(
         if is_backward
         else (CompilationMode.INFERENCE if is_inference else CompilationMode.FORWARD)
     )
+
+    with dynamo_timed_cudagraph("cudagraphify.get_container", compile_id, mode):
+        manager = get_container(device_index).get_tree_manager()
 
     return manager.add_function(
         model,
@@ -417,6 +467,7 @@ def npugraphify(
         constants,
         placeholders,
         mutated_input_idxs,
+        compile_id,
     )
 
 
@@ -794,6 +845,8 @@ class NPUGraphNode:
         device_index: int,
         stack_traces: Optional[StackTraces],
         stream: torch.npu.Stream,
+        mode: Optional["CompilationMode"] = None,
+        compile_id: Optional[Any] = None,
     ) -> None:
         if not isinstance(inputs, (list, tuple)):
             raise RuntimeError("check isinstance(inputs, (list, tuple))")
@@ -805,6 +858,8 @@ class NPUGraphNode:
         self.device = device_index
         self.stack_traces = stack_traces
         self.stream = stream
+        self.mode = mode
+        self.compile_id = compile_id
 
         # Enable re-record a cudagraph when static tensor address changed.
         # if not we should error when it changed.
@@ -1003,8 +1058,10 @@ class NPUGraphNode:
         self.static_output_tensors: OutputList[Optional[Tensor]] = []
 
         # Cleared after recording
-        self.recording_outputs: Optional[OutputType] = self._record(
-            wrapped_function.model, recording_inputs)
+        with dynamo_timed_cudagraph("CUDAGraphNode.record", compile_id, mode):
+            self.recording_outputs: Optional[OutputType] = self._record(
+                wrapped_function.model, recording_inputs
+            )
         self.outputs_metadata: OutputList[Union[Dict[str, Any], int, None]] = []
 
         # As with inputs, we do not want to keep the outputs permanently alive because that would prevent
@@ -1093,7 +1150,12 @@ class NPUGraphNode:
         return outputs
 
     def run(self, new_inputs: List[InputType]) -> OutputType:
-        log.debug("NPUGRAPH-TREE Node Run node=%s", self.id)
+        log.debug(
+            "NPUGRAPH-TREE [%s] Node Replay node=%s, mode=%s",
+            self.compile_id,
+            self.id,
+            self.mode.name if self.mode else "unknown",
+        )
         self.check_static_inputs_are_stable(new_inputs)
         aclgraph_update_submitted = update_aclgraph_records_for_graph(
             resolve_aclgraph_update_plan(self.aclgraph_update_plan, new_inputs),
@@ -1296,9 +1358,11 @@ class NPUGraphNode:
         validate_aclgraph_update_plan_for_graph(self.aclgraph_update_plan, self.graph)
         update_aclgraph_records_for_graph(aclgraph_cpu_update_input, self.graph)
 
-        log.debug("NPUGRAPH-TREE Node Record node=%s recorded: outputs=%d, "
+        log.debug("NPUGRAPH-TREE [%s] Node Record node=%s, mode=%s, outputs=%d, "
                   "non_static_inputs=%d, static_input_idxs=%d",
-                  self.id, len(static_outputs),
+                  self.compile_id, self.id,
+                  self.mode.name if self.mode else "unknown",
+                  len(static_outputs),
                   len(self.non_static_input_idx), len(self.static_input_idxs))
 
         return static_outputs
@@ -2036,6 +2100,7 @@ class NPUGraphTreeManager:
         self.debug_checkpointing_counter = 0
 
         self.id_to_mode: Dict[FunctionID, CompilationMode] = {}
+        self.id_to_compile_id: Dict[FunctionID, Optional[Any]] = {}
 
         # Note: [Backward Generation Handling]
         # We generally perform a sequence of forward executions followed by backward executions.
@@ -2053,12 +2118,14 @@ class NPUGraphTreeManager:
 
         self.running_forwards_with_pending_backwards = False
         self.mode: Optional[CompilationMode] = None
+        self.compile_id: Optional[Any] = None
         self.disable_invalidate_aliases = False
 
     def run(self, new_inputs: List[InputType], function_id: FunctionID) -> OutputType:
         if self.graph is None:
             raise RuntimeError("Running NPUGraph after shutdown")
         self.mode = self.id_to_mode[function_id]
+        self.compile_id = self.id_to_compile_id.get(function_id)
         out = self._run(new_inputs, function_id)
 
         # The forwards are only pending following invocation, not before
@@ -2187,11 +2254,29 @@ class NPUGraphTreeManager:
                 if status == CheckInvariantStatus.SUCCESS:
                     return self.execute_node(child, new_inputs)
 
-                if (
-                    status == CheckInvariantStatus.StaticInputIdxMismatch
-                    or status == CheckInvariantStatus.CudagraphManagedIdxMismatch
-                ):
+                # Keep the existing torch_npu accounting: only these two
+                # statuses count toward the unexpected re-record limit. Log
+                # every mismatch reason so the user can diagnose any re-record.
+                counts_toward_limit = status in (
+                    CheckInvariantStatus.StaticInputIdxMismatch,
+                    CheckInvariantStatus.CudagraphManagedIdxMismatch,
+                )
+                if counts_toward_limit:
                     unexpected_rerecord = True
+                if log.isEnabledFor(logging.DEBUG):
+                    reason = status_logger()
+                    log.debug(
+                        "[%s] Re-recording function=%s, mode=%s, status=%s, reason=%s",
+                        self.compile_id,
+                        self.get_func_name(function_id),
+                        self._format_mode(function_id),
+                        status.name,
+                        reason,
+                    )
+                    if counts_toward_limit:
+                        unexpected_rerecord_reason = reason
+                elif counts_toward_limit:
+                    # Defer reason computation until needed (for exceed_rerecord_limit)
                     unexpected_rerecord_reason = status_logger
 
             # now that we know the new function can't be run as a child of the
@@ -2220,11 +2305,16 @@ class NPUGraphTreeManager:
                 self.num_rerecord[curr_node_id][function_id] += 1
                 if self.exceed_rerecord_limit(curr_node_id, function_id):
                     _id = curr_node_id.id if curr_node_id else None
+                    reason = (
+                        unexpected_rerecord_reason
+                        if isinstance(unexpected_rerecord_reason, str)
+                        else unexpected_rerecord_reason()
+                    )
                     log_cudagraph_skip_and_bump_counter(
-                        f"skipping npuagraph due to function {function_id.id} exceeding max "
+                        f"skipping npugraph due to function {function_id.id} exceeding max "
                         f"re-recording limit "
                         f"(={torch._inductor.config.triton.cudagraph_unexpected_rerecord_limit}) "
-                        f"on npugraph node {_id} due to {unexpected_rerecord_reason()}."
+                        f"on npugraph node {_id} due to {reason}."
                     )
                     return self.ids_to_funcs[function_id].model(new_inputs)
 
@@ -2274,30 +2364,44 @@ class NPUGraphTreeManager:
     ) -> OutputType:
         if isinstance(self.current_node, NPUWarmupNode):
             raise RuntimeError("self.current_node is NPUWarmupNode object")
-        graph_id = self.new_graph_id()
-        log.debug("NPUGRAPH-TREE Node Record function=%s, graph=%s", function_id.id, graph_id.id)
-        torch.npu.synchronize()
-        node = NPUGraphNode(
-            self.ids_to_funcs[function_id],
-            graph_id,
-            self.current_node,
-            new_inputs,
-            self.npu_graphs_thread_pool,
-            self.device_index,
-            self.ids_to_stack_traces[function_id],
-            self.stream,
-        )
-        if self.current_node is None:
-            self.roots[function_id].append(node)
-        else:
-            self.current_node.add_child(function_id, node)
-        self.current_node = node
-        self.path_state = ExecutionState.RECORDING
-        self.update_generation()
-        log.debug("NPUGRAPH-TREE State state=RECORDING, node=%s, gen=%d",
-                  graph_id.id, self.current_gen)
-        torch.npu.synchronize()
-        return node.run_first_inputs(new_inputs)
+        compile_id = self.id_to_compile_id.get(function_id, self.compile_id)
+        mode = self.id_to_mode.get(function_id, self.mode)
+        with torch._dynamo.callback_handler.install_callbacks(
+            CallbackTrigger.CUDAGRAPH_RECORDING, str(compile_id)
+        ):
+            graph_id = self.new_graph_id()
+            log.debug(
+                "[%s] Recording function=%s, mode=%s, npu_graph_id=%d, inputs: %s",
+                compile_id,
+                self.get_func_name(function_id),
+                self._format_mode(function_id),
+                graph_id.id,
+                format_inputs_log(new_inputs),
+            )
+            torch.npu.synchronize()
+            node = NPUGraphNode(
+                self.ids_to_funcs[function_id],
+                graph_id,
+                self.current_node,
+                new_inputs,
+                self.npu_graphs_thread_pool,
+                self.device_index,
+                self.ids_to_stack_traces[function_id],
+                self.stream,
+                mode=mode,
+                compile_id=compile_id,
+            )
+            if self.current_node is None:
+                self.roots[function_id].append(node)
+            else:
+                self.current_node.add_child(function_id, node)
+            self.current_node = node
+            self.path_state = ExecutionState.RECORDING
+            self.update_generation()
+            log.debug("NPUGRAPH-TREE State state=RECORDING, node=%s, gen=%d",
+                      graph_id.id, self.current_gen)
+            torch.npu.synchronize()
+            return node.run_first_inputs(new_inputs)
 
     def execute_node(
         self, node: NPUGraphNode, new_inputs: List[InputType]
@@ -2307,7 +2411,21 @@ class NPUGraphTreeManager:
         self.update_generation()
         log.debug("NPUGRAPH-TREE State state=EXECUTION, node=%s, gen=%d",
                   node.id, self.current_gen)
-        log.debug("NPUGRAPH-TREE Execute node=%s", self.current_node.id)
+        function_id = getattr(getattr(node, "wrapped_function", None), "id", None)
+        func_name = (
+            self.get_func_name(function_id)
+            if isinstance(function_id, FunctionID)
+            and function_id in self.ids_to_funcs
+            else "unknown"
+        )
+        log.debug(
+            "[%s] Replaying function=%s, mode=%s, npu_graph_id=%s, gen=%d",
+            self.compile_id,
+            func_name,
+            self._format_mode(function_id),
+            getattr(node.id, "id", node.id),
+            self.current_gen,
+        )
         return node.run(new_inputs)
 
     def run_eager(
@@ -2316,10 +2434,20 @@ class NPUGraphTreeManager:
         # this is only stored on current node, because when we start a new path,
         # we will deallocate it
         already_warm = function_id in self.warmed_up_functions
+        func_name = self.get_func_name(function_id)
         if not already_warm:
-            log.debug("NPUGRAPH-TREE Warmup Running warmup, function=%s", function_id)
+            log.debug(
+                "[%s] Running warmup function=%s, mode=%s",
+                self.compile_id,
+                func_name,
+                self._format_mode(function_id),
+            )
         else:
-            log.debug("NPUGRAPH-TREE Eager Running eager (ancestor warmup), function=%s", function_id)
+            log.debug(
+                "[%s] Running eager function=%s",
+                self.compile_id,
+                func_name,
+            )
         self.warmed_up_functions.add(function_id)
         node = NPUWarmupNode(
             self.ids_to_funcs[function_id],
@@ -2345,6 +2473,17 @@ class NPUGraphTreeManager:
     def new_func_id(self) -> FunctionID:
         return FunctionID(next(self.func_counter))
 
+    def get_func_name(self, function_id: FunctionID) -> str:
+        return getattr(self.ids_to_funcs[function_id].model, "__name__", "unknown")
+
+    def _format_mode(self, function_id: Optional[FunctionID]) -> str:
+        mode = (
+            self.id_to_mode.get(function_id, self.mode)
+            if function_id is not None
+            else self.mode
+        )
+        return mode.name if mode is not None else "unknown"
+
     def add_function(
         self,
         model: ModelType,
@@ -2355,8 +2494,10 @@ class NPUGraphTreeManager:
         constants: Tuple[torch.Tensor, ...],
         placeholders: Tuple[PlaceholderInfo, ...],
         mutated_input_idxs: Tuple[int, ...],
+        compile_id: Optional[Any] = None,
     ) -> Tuple[ModelType, OutputType]:
         id_for_func = self.new_func_id()
+        self.id_to_compile_id[id_for_func] = compile_id
         self.ids_to_stack_traces[id_for_func] = stack_traces
         self.ids_to_funcs[id_for_func] = WrappedFunction(
             model,
@@ -2509,16 +2650,29 @@ class NPUGraphTreeManager:
 
         self.warned_functions.add(function_id)
         warnings.warn(
-            "Unable to hit fast path of NPUGraphs because of pending, uninvoked backwards. "
-            "Consider running with torch.no_grad() or using torch.compiler.npugraph_mark_step_begin() "
-            "before each model invocation."
+            "Unable to hit fast path of NPUGraphs because outputs from a previous step "
+            "still require backward. Ensure backward() is invoked or detach outputs. "
+            "You may also call torch.compiler.npugraph_mark_step_begin() before each model invocation."
         )
 
     @staticmethod
-    def format_dealloc_msg(stack_trace: Optional[str]) -> str:
+    def format_dealloc_msg(
+        stack_trace: Optional[str], *, is_grad_output: bool = False
+    ) -> str:
         stack_trace = (
             stack_trace.strip() if stack_trace else "[Could not find stack trace]"
         )
+        if is_grad_output:
+            return (
+                "Error: accessing gradient tensor output of NPUGraphs that has been overwritten "
+                f"by a subsequent run. Stack trace: {stack_trace}. "
+                "This can happen with torch.compile(mode='reduce-overhead') and gradient "
+                "accumulation when a .grad tensor is allocated during NPUGraph capture. "
+                "If you need gradient accumulation, allocate stable .grad buffers outside "
+                "NPUGraph capture before the compiled backward runs, for example by running "
+                "an eager warmup iteration or by preallocating zeroed .grad tensors. "
+                "If you do not need gradient accumulation, set .grad to None before each backward."
+            )
         return (
             "Error: accessing tensor output of NPUGraphs that has been overwritten by a subsequent run. "
             f"Stack trace: {stack_trace}. "
@@ -2532,17 +2686,24 @@ class NPUGraphTreeManager:
         # we could also allow the these weak refs to continue to be allocated,
         # but that adds some complications.
 
-        stor_stack_trace: Dict[int, Optional[str]] = {}
+        stor_stack_trace: Dict[int, Tuple[Optional[str], bool]] = {}
         for node in self.current_node._path_from_root:
             if not len(node.tensor_weakrefs) == len(node.stack_traces):
                 raise RuntimeError("check len(node.tensor_weakrefs) == len(node.stack_traces) fail")
+            function_id = getattr(node.wrapped_function, "id", None)
+            is_grad_output = (
+                self.id_to_mode.get(function_id) == CompilationMode.BACKWARD
+            )
             for t, stack_trace in zip(node.tensor_weakrefs, node.stack_traces):
                 ten = None if t is None else t()
                 if ten is None:
                     continue
 
                 torch_npu._C._set_storage_access_error_msg(
-                    ten, self.format_dealloc_msg(stack_trace)
+                    ten,
+                    self.format_dealloc_msg(
+                        stack_trace, is_grad_output=is_grad_output
+                    ),
                 )
 
             # we would to enable the following assertion, but an internal model failed with a command
@@ -2558,7 +2719,10 @@ class NPUGraphTreeManager:
                 if not storage_ref:
                     continue
 
-                stor_stack_trace[storage_ref.data_ptr()] = stack_trace
+                stor_stack_trace[storage_ref.data_ptr()] = (
+                    stack_trace,
+                    is_grad_output,
+                )
 
         deleted = set()
         for storage_ref in self.current_node.path_live_weakrefs():
@@ -2566,8 +2730,11 @@ class NPUGraphTreeManager:
             if _storage_deref and storage_ref.data_ptr() not in deleted:
                 deleted.add(storage_ref.data_ptr())
 
+                stack_trace, is_grad_output = stor_stack_trace.get(
+                    storage_ref.data_ptr(), (None, False)
+                )
                 msg = self.format_dealloc_msg(
-                    stor_stack_trace.get(storage_ref.data_ptr())
+                    stack_trace, is_grad_output=is_grad_output
                 )
                 torch_npu._C._free_And_Remove_DeleterFn(_storage_deref)
 
@@ -2592,7 +2759,10 @@ class NPUGraphTreeManager:
             raise RuntimeError("check self.current_node is NPUGraphNode object fail")
         self.debug_checkpointing_counter += 1
         log.debug(
-            "Checkpointing cuda caching allocator state. Number of checkpoints %d",
+            "[%s] Checkpointing npu caching allocator state, mode=%s, "
+            "number of checkpoints %d",
+            self.compile_id,
+            self._format_mode(getattr(self.current_node.wrapped_function, "id", None)),
             self.debug_checkpointing_counter,
         )
 
