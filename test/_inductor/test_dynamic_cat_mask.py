@@ -51,6 +51,7 @@ class TestDynamicCatMask(TestCase):
         the guard a masked subblock puts on its load.
         """
         kernel = object.__new__(triton_codegen.NPUIndexTritonKernel)
+        kernel.optimize_mask = True
         kernel.sorted_axis = [self._axis("x0"), self._axis("y1")]
         kernel.persistent_reduction = False
         kernel.npu_kernel_type = triton_codegen.NPUKernelType.SIMD

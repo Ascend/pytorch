@@ -472,11 +472,16 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
         codegen_mask = self.is_tiling_axis and (
             not self.is_no_loop_axis or is_dynamic_axis(self)
         )
-        if V.kernel.is_unified_simt_kernel():
+        if V.kernel.is_unified_simt_kernel() or (V.kernel.persistent_reduction and self.is_reduction):
             codegen_mask = self.is_tiling_axis
         if self.is_vectorized_split:
             codegen_mask = True
         if codegen_mask:
+            if V.kernel._has_constant_axis_mask(self):
+                self.writeline(f"{self.name}_mask = True")
+                for var in self.var_directions:
+                    self.writeline(f"{var.name}_mask = True")
+                return
             BLOCK_NAME = f"{self.name.upper()}BLOCK"
             upper = (
                 f"min({BLOCK_NAME}+{self.symbol()}_offset, {self.name}_numel)"
@@ -2503,13 +2508,9 @@ class NPUIndexTritonKernel(TritonKernel):
                 continue
 
             node = self.range_tree_nodes[symbol]
-            simplified_tree_numel = V.graph.sizevars.simplify(node.length)
-            if isinstance(simplified_tree_numel, (sympy.Integer, int)):
-                val = int(simplified_tree_numel)
-            else:
+            val = self._get_static_reduction_block_size(node)
+            if val is None:
                 continue
-            if self.is_unified_simt_kernel():
-                val = next_power_of_2(val)
             code.writeline(f"{node.name.upper()}BLOCK_SUB: tl.constexpr = {val}")
 
         for axis in self.sorted_axis:
@@ -3977,6 +3978,34 @@ class NPUIndexTritonKernel(TritonKernel):
             or self.npu_kernel_type == NPUKernelType.SIMD_SIMT_MIX
         )
 
+    def _get_static_reduction_block_size(self, node):
+        numel = V.graph.sizevars.simplify(node.length)
+        if not isinstance(numel, (int, sympy.Integer)):
+            return None
+        block = int(numel)
+        return next_power_of_2(block) if self.is_unified_simt_kernel() else block
+
+    def _has_constant_axis_mask(self, node):
+        if (
+            not self.optimize_mask
+            or not self.persistent_reduction
+            or not node.is_reduction
+            or node.is_vectorized_split
+        ):
+            return False
+        # Match CUDA's divisibility proof, using the BLOCK_SUB actually emitted
+        # for this axis. NPU autotuning does not require power-of-two blocks.
+        # Persistent split axes also cover the full extent: their runtime BLOCK
+        # is fixed to numel by set_reduction_runtime_blocks_to_numel, and their
+        # generated index has no program offset.
+        block = self._get_static_reduction_block_size(node)
+        return (
+            block is not None
+            and block > 0
+            and V.graph.sizevars.statically_known_gt(node.length, 0)
+            and V.graph.sizevars.statically_known_multiple_of(node.length, block)
+        )
+
     def filter_masks(self, mask_vars, index_vars=None):
         variable_mask_vars = {  # noqa: set_linter
             mask_var
@@ -4008,9 +4037,8 @@ class NPUIndexTritonKernel(TritonKernel):
             )
 
         for node in self.sorted_axis:
-            is_persistent_reduction_axis = (
-                self.persistent_reduction and node.is_reduction
-            )
+            if self._has_constant_axis_mask(node):
+                continue
             if node.is_vectorized_split:
                 masked_axis_name.append(node.name)
                 continue
@@ -4020,8 +4048,11 @@ class NPUIndexTritonKernel(TritonKernel):
             else:
                 if (
                     not node.is_tiling_axis
-                    or is_persistent_reduction_axis
-                    or (node.is_no_loop_axis and not is_dynamic_axis(node))
+                    or (
+                        node.is_no_loop_axis
+                        and not is_dynamic_axis(node)
+                        and not (self.persistent_reduction and node.is_reduction)
+                    )
                 ):
                     continue
 
@@ -4074,14 +4105,7 @@ class NPUIndexTritonKernel(TritonKernel):
     ) -> CSEVariable | tuple[CSEVariable, ...]:
         if not self.inside_reduction:
             raise RuntimeError("assert self.inside_reduction")
-        if self.persistent_reduction and self.numof_reduction_axis() == 1:
-            masks = {  # noqa: set_linter
-                f"{node.symbol()}_mask"
-                for node in self.sorted_axis
-                if node.name[0] != "r"
-            }
-        else:
-            masks = {f"{node.symbol()}_mask" for node in self.sorted_axis}  # noqa: set_linter
+        masks = {f"{node.symbol()}_mask" for node in self.sorted_axis}  # noqa: set_linter
         self.filter_masks(masks)
         masks = sorted(masks)
         if self._load_mask:
@@ -4206,10 +4230,46 @@ class NPUIndexTritonKernel(TritonKernel):
         result_shape[dim] = "1"
         result_var: Any = self.cse.newvar(dtype=torch_acc_type, shape=tuple(result_shape))
         result_var.mask_vars = {var for var in masks if var[0] != "r"}  # noqa: set_linter
-        cond_expr = f"({' & '.join(masks)})"
-        if need_permute:
-            cond_expr = f"{cond_expr}.permute({permute_order})"
-        cond = f"{cond_expr}.reshape({dense_size_str})"
+        cond_expr = " & ".join(masks)
+        if not cond_expr:
+            cond = ""
+        else:
+            num_reduction_axes = self.numof_reduction_axis()
+            rebuild_axis_masks = self.persistent_reduction or num_reduction_axes > 1
+            if rebuild_axis_masks:
+                value_order = list(reversed(self.golden_var_list))
+                full_shape = self.reduce_analysis.dense_size_list()
+                mask_terms = []
+                for node in self.sorted_axis:
+                    mask_name = f"{node.symbol()}_mask"
+                    if mask_name not in masks or node.symbol() not in value_order:
+                        continue
+                    mask_shape = ["1"] * len(value_order)
+                    mask_shape[value_order.index(node.symbol())] = (
+                        f"{node.name.upper()}BLOCK_SUB"
+                    )
+                    mask_terms.append(
+                        f"{mask_name}.reshape([{', '.join(mask_shape)}])"
+                    )
+                if mask_terms:
+                    cond_expr = " & ".join(mask_terms)
+                    if num_reduction_axes > 1:
+                        cond_expr = f"tl.broadcast_to(({cond_expr}), [{', '.join(full_shape)}])"
+                    else:
+                        cond_expr = f"({cond_expr})"
+            else:
+                cond_expr = f"({cond_expr})"
+            if need_permute:
+                cond_expr = f"({cond_expr}).permute({permute_order})"
+            if self.persistent_reduction and num_reduction_axes == 1:
+                cond = f"tl.broadcast_to({cond_expr}, {dense_size_str})"
+            else:
+                cond = f"tl.reshape({cond_expr}, {dense_size_str})"
+            if rebuild_axis_masks:
+                axis_mask_names = {f"{node.symbol()}_mask" for node in self.sorted_axis}
+                for mask in masks:
+                    if mask not in axis_mask_names:
+                        cond = f"({cond}) & ({mask})"
 
         def where_cond(tval, fval):
             if not cond:
@@ -4217,7 +4277,40 @@ class NPUIndexTritonKernel(TritonKernel):
             return TritonKernelOverrides.where(cond, tval, fval)
 
         if self.persistent_reduction:
-            masked_value = value
+            if reduction_type == "welford_reduce":
+                # NPU's dedicated SIMD Welford path covers the full static
+                # reduction and handles its outer-axis layout separately.
+                masked_value = value
+            else:
+                default = ir.Reduction.default_value(reduction_type, src_dtype)
+
+                def update_constant_dtype(constant, src_dtype, dst_dtype):
+                    # Match upstream: an integer extremum must match the actual
+                    # value dtype, which can differ from the reduction source.
+                    if src_dtype.is_floating_point or src_dtype == torch.bool:
+                        return constant
+                    if src_dtype == dst_dtype or constant == 0:
+                        return constant
+                    if constant == torch.iinfo(src_dtype).max:
+                        return torch.iinfo(dst_dtype).max
+                    if constant == torch.iinfo(src_dtype).min:
+                        return torch.iinfo(dst_dtype).min
+                    return constant
+
+                def mask_value(current_value, current_default):
+                    current_default = update_constant_dtype(current_default, src_dtype, current_value.dtype)
+                    default_str = self._map_tuple_or_scalar(constant_repr, current_default)
+                    return self.cse.generate(
+                        self.compute,
+                        where_cond(current_value, default_str),
+                        dtype=current_value.dtype,
+                        shape=current_value.shape,
+                    )
+
+                if isinstance(value, tuple):
+                    masked_value = [mask_value(v, d) for v, d in zip(value, default)]
+                else:
+                    masked_value = mask_value(value, default)
 
             if reduction_type in {"argmax", "argmin", "max", "min"}:
                 if reduction_type == "argmax" or reduction_type == "argmin":
@@ -4226,7 +4319,10 @@ class NPUIndexTritonKernel(TritonKernel):
                     reshape_str = self.reduce_analysis.get_reduce_dim_reshape(
                         reduce_axis
                     )
-                    broadcast_string = f"tl.broadcast_to({reduce_axis.symbol()}.reshape({reshape_str}), {masked_value}.shape)"
+                    broadcast_string = (
+                        f"tl.broadcast_to({reduce_axis.symbol()}.reshape({reshape_str}), "
+                        f"{masked_value}.shape)"
+                    )
                     accumulator_index = str(
                         self.cse.generate(
                             self.compute, broadcast_string, dtype=torch.int64, shape=masked_value.shape,
@@ -4933,7 +5029,7 @@ class NPUIndexTritonKernel(TritonKernel):
             if sv.statically_known_equals(remaining[i], expr):
                 pass
             elif not sv.statically_known_multiple_of(remaining[i], expr):
-                raise CantSplit
+                raise CantSplit(remaining[i], expr)
             # guard on the last item out
             remaining[i] = FloorDiv(remaining[i], expr)
             new_ranges[i].append(expr)
@@ -4970,13 +5066,13 @@ class NPUIndexTritonKernel(TritonKernel):
                 group_size = remaining[group]
                 # size should be divisible by group_size
                 if not sv.statically_known_multiple_of(remained_size, group_size):
-                    raise CantSplit
+                    raise CantSplit(remained_size, group_size)
                 index_list.append(add_range(group, group_size))
                 remained_size = FloorDiv(remained_size, group_size)
                 stride_list.append(remained_size)
                 group = group + 1
             if remained_size != 1:
-                raise CantSplit
+                raise CantSplit(remained_size, 1)
             return_getters.append(make_combined(stride_list, index_list))
 
         def safe_size_hint_is_one(expr):
@@ -5001,12 +5097,12 @@ class NPUIndexTritonKernel(TritonKernel):
                 ):
                     # scroll to next group with remaining elements
                     current_group += 1
+                if current_group >= len(remaining):
+                    raise CantSplit(size, 0)
                 if sv.statically_known_gt(size, remaining[current_group]):
                     # add multiple ranges (two or more) to the list, as well as the getter funcs
                     add_multiple_range(size, return_getters)
                 else:
-                    if current_group >= len(remaining):
-                        raise CantSplit
                     return_getters.append(
                         operator.itemgetter(add_range(current_group, size))
                     )

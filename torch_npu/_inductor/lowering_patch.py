@@ -10,6 +10,7 @@ from __future__ import annotations
 import copy
 import functools
 import importlib
+import inspect
 import os
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
@@ -268,7 +269,7 @@ def restore_lowering_baseline() -> None:
 
 
 def _snapshot_inductor_attr(owner, name):
-    return owner, name, hasattr(owner, name), getattr(owner, name, None)
+    return owner, name, hasattr(owner, name), inspect.getattr_static(owner, name, None)
 
 
 def _get_inductor_attr_baseline():
@@ -276,10 +277,12 @@ def _get_inductor_attr_baseline():
     if _INDUCTOR_ATTR_BASELINE is not None:
         return _INDUCTOR_ATTR_BASELINE
 
+    from torch._inductor import ir as inductor_ir
     from torch._inductor import scheduler as inductor_scheduler
 
     Scheduler = inductor_scheduler.Scheduler
     _INDUCTOR_ATTR_BASELINE = (
+        _snapshot_inductor_attr(inductor_ir.Layout, "_stride_expr_ge_or_false"),
         _snapshot_inductor_attr(Scheduler, "_codegen"),
         _snapshot_inductor_attr(Scheduler, "compute_ancestors"),
         _snapshot_inductor_attr(inductor_scheduler, "_prune_redundant_deps"),
