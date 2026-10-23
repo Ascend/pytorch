@@ -1639,7 +1639,7 @@ TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命
 
 |文档名称|内容简介|更新说明|
 |---|---|---|
-|《[安装指南](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=182&ids=89dda9ba9de741349efa03687a487678%2C202%2C106%2C1%2C6%2C177%2C)》|提供在昇腾设备安装PyTorch框架训练环境，以及升级、卸载等操作。|&#8226; 新增适配PyTorch 2.13.0和PyTorch 2.14.0。<br>&#8226; 新增编译加速和使用Clang编译文档。|
+|《[安装指南](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download)》|提供在昇腾设备安装PyTorch框架训练环境，以及升级、卸载等操作。|&#8226; 新增适配PyTorch 2.13.0和PyTorch 2.14.0。<br>&#8226; 新增编译加速和使用Clang编译文档。|
 |《[TorchNPU概述](../zh/user_guide/product_overview.md)》|TorchNPU插件是基于昇腾的深度学习适配框架，使昇腾NPU可以支持PyTorch框架，为PyTorch框架的使用者提供昇腾AI处理器的超强算力。|无更新 |
 |《[快速入门](../zh/user_guide/quick_start.md)》|提供了一个简单的模型迁移样例，采用了最简单的自动迁移方法，帮助用户快速体验GPU模型脚本迁移到昇腾NPU上的流程。|优化快速入门文档。|
 |《[Torch.compile](../zh/user_guide/torch_compile/overview.md)》|通过“动态图捕获+静态图优化+高效代码生成”的方式显著加速模型训练和推理任务。|&#8226; Inductor后端新增Ascend C编译器。<br>&#8226; 新增PyTorch官方参考文档链接。<br>&#8226; 删除Inductor章节中Torch-MLIR编译器相关内容|
