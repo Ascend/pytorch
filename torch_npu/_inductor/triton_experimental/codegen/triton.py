@@ -44,6 +44,7 @@ from torch._inductor.utils import (
     Placeholder,
     prefix_is_reduction,
     sympy_subs,
+    upcast_compute_type,
 )
 from torch.utils._sympy.functions import FloorDiv, ModularIndexing
 from torch._inductor.codegen.common import (
@@ -88,6 +89,38 @@ import torch
 
 
 triton_codegen_linearize = ncfg.codegen_linearize
+
+
+_original_check_shape = None
+
+
+def _shape_assert_condition(name, shape):
+    checks = [f"len({name}.shape) == {len(shape)}"]
+    checks.extend(f"{name}.shape[{axis}] == {dim}" for axis, dim in enumerate(shape))
+    condition = checks[0]
+    for check in checks[1:]:
+        condition = f"({condition}) and ({check})"
+    return condition
+
+
+def _npu_check_shape(buffer, var, shape):
+    if (
+        shape is not None
+        and config.test_configs.runtime_triton_shape_assert
+        and isinstance(V.kernel, NPUTritonKernel)
+    ):
+        V.kernel.codegen_shape_assert(buffer, var, shape)
+    else:
+        _original_check_shape(buffer, var, shape)
+
+
+def _patch_npu_shape_assert():
+    from torch._inductor.codegen import common
+
+    global _original_check_shape
+    if _original_check_shape is None:
+        _original_check_shape = common.check_shape
+        common.check_shape = _npu_check_shape
 
 
 def _npu_parse_generated_line(line: str):
@@ -1787,7 +1820,12 @@ def _npu_wide_int_constant(value):
         if not tree.is_reduction and tree.tensor_dim is not None
     )
     shape = [] if (ndim == 0 or all_singleton) else [1] * ndim
-    return f"tl.full({shape}, {constant_repr(int(value))}, tl.int64)"
+    return V.kernel.cse.generate(
+        V.kernel.compute,
+        f"tl.full({shape}, {constant_repr(int(value))}, tl.int64)",
+        dtype=torch.int64,
+        shape=tuple(shape),
+    )
 
 
 class NPUTritonKernelOverrides(TritonKernelOverrides):
@@ -1873,16 +1911,17 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
         # Degenerate non-linearized kernels also need a scalar constant: a [1]
         # block value cannot be stored through a scalar pointer on Triton-Ascend.
         ndim = V.kernel.triton_tensor_ndim()
-        if ndim == 0:
-            return TritonOverrides.constant(value, dtype)
-        # Check if all range tree dimensions have numel=1
-        all_singleton = all(
+        if ndim == 0 or all(
             tree.numel == 1
             for tree in V.kernel.range_trees
             if not tree.is_reduction and tree.tensor_dim is not None
-        )
-        if all_singleton:
-            return TritonOverrides.constant(value, dtype)
+        ):
+            return V.kernel.cse.generate(
+                V.kernel.compute,
+                TritonOverrides.constant(value, dtype),
+                dtype=upcast_compute_type(dtype),
+                shape=(),
+            )
         return super().constant(value, dtype)
 
     @staticmethod
@@ -1998,6 +2037,10 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
 
 class NPUTritonKernel(TritonKernel):
     overrides = NPUTritonKernelOverrides  # type: ignore[assignment]
+
+    def codegen_shape_assert(self, buffer, var, shape):
+        condition = _shape_assert_condition(var, shape)
+        buffer.writeline(f"tl.static_assert({condition})")
 
     @classmethod
     def gen_common_triton_imports(cls):
@@ -8211,6 +8254,7 @@ def _patch_zero_dim_cpu_tensor_for_npu():
 
 def apply_npu_codegen_patches():
     """Install the NPU codegen/scheduler monkeypatches (called from overrides.py)."""
+    _patch_npu_shape_assert()
     if triton_codegen_linearize:
         # codegen_range_tree / iteration_ranges_* are real methods on
         # NPUTritonKernel; only attach get_block_hint here (used by NPUTritonScheduling).
