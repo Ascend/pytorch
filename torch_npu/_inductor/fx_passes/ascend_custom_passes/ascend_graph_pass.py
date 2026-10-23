@@ -967,7 +967,9 @@ def dtype_optimal_pass(graph: torch.fx.Graph) -> None:
                 if hasattr(input_node, "meta")
                 else None
             )
-            input_dtype = input_fake.dtype if input_fake is not None else None
+            input_dtype = (
+                input_fake.dtype if isinstance(input_fake, torch.Tensor) else None
+            )
             target_dtype = (
                 node.args[1] if len(node.args) > 1 else node.kwargs.get("dtype", None)
             )
