@@ -1,4 +1,5 @@
 import functools
+import threading
 from typing import (
     Any,
     Callable,
@@ -127,16 +128,17 @@ def npugraphify(
     else:
         npugraphify_fn = npugraphify_impl
 
-    compiled_fn = None
+    thread_local = threading.local()
 
     def run(new_inputs: Sequence[InputType]) -> Any:
-        nonlocal compiled_fn
+        compiled_fn = getattr(thread_local, "compiled_fn", None)
         if compiled_fn is None:
             with dynamo_utils.dynamo_timed(
                 "npugraphify",
                 log_pt2_compile_event=True,
             ), dynamo_utils.preserve_rng_state():
                 compiled_fn = npugraphify_fn(model, new_inputs, static_input_idxs)
+            thread_local.compiled_fn = compiled_fn
         return compiled_fn(new_inputs)
 
     return run

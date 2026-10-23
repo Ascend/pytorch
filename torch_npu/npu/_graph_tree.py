@@ -92,6 +92,10 @@ from torch._inductor.cudagraph_utils import (
     PlaceholderInfo,
     WrappedFunction,
 )
+from torch._dynamo.graph_bytecode_inputs import (
+    CURRENT_STREAM_INDEX,
+    set_external_object_by_index,
+)
 from torch.multiprocessing.reductions import StorageWeakRef
 from torch.storage import UntypedStorage
 from torch.utils import _pytree as pytree
@@ -110,6 +114,10 @@ from torch_npu.npu._aclgraph_update_plan.resolver import (
     validate_aclgraph_update_plan_for_graph,
 )
 import torch_npu.npu.aclnn
+from torch_npu.npu._npugraph_conditional_nodes import (
+    ControlFlowOpWarmupDispatchMode,
+    NPUGraphCaptureControlFlowOpDispatchMode,
+)
 
 if TYPE_CHECKING:
     from torch._inductor.utils import InputType
@@ -257,22 +265,30 @@ class TreeManagerContainer:
             return self.tree_manager
 
 
+def _initialize_tls(local: threading.local) -> None:
+    # one tree manager per device
+    # Use npu-specific TLS keys to avoid colliding with upstream
+    # torch._inductor.cudagraph_trees, which stashes the same-named objects under
+    # the keys "tree_manager_containers" / "tree_manager_locks". Upstream's stash
+    # does not INCREF, so overwriting an entry triggers use-after-free on the
+    # previous owner. See cudagraph_trees.py lines 306-321.
+    local.npu_tree_manager_containers = {}
+    local.npu_tree_manager_locks = defaultdict(threading.Lock)
+
+    # We need to register this as an object that will be copied over as TLS when new
+    # threads are created in autograd
+    torch._C._stash_obj_in_tls("npu_tree_manager_containers", local.npu_tree_manager_containers)
+    torch._C._stash_obj_in_tls("npu_tree_manager_locks", local.npu_tree_manager_locks)
+
+
 local = threading.local()
-
-# one tree manager per device
-# Use npu-specific TLS keys to avoid colliding with upstream
-# torch._inductor.cudagraph_trees, which stashes the same-named objects under
-# the keys "tree_manager_containers" / "tree_manager_locks". Upstream's stash
-# does not INCREF, so overwriting an entry triggers use-after-free on the
-# previous owner. See cudagraph_trees.py lines 306-321.
-local.npu_tree_manager_containers = {}
-local.npu_tree_manager_locks = defaultdict(threading.Lock)
+_initialize_tls(local)
 
 
-# We need to register this as an object that will be copied over as TLS when new
-# threads are created in autograd
-torch._C._stash_obj_in_tls("npu_tree_manager_containers", local.npu_tree_manager_containers)
-torch._C._stash_obj_in_tls("npu_tree_manager_locks", local.npu_tree_manager_locks)
+# NPU graph capture and private-pool warmup are process-wide NPU states. Keep
+# them serialized across Python threads so a synchronize or allocator-pool switch
+# in one thread does not invalidate another thread's capture.
+graph_capture_lock = threading.Lock()
 
 
 def reset_npugraph_trees() -> None:
@@ -297,10 +313,10 @@ def reset_npugraph_trees() -> None:
 def get_obj(thread_local: Any, attr_name: str) -> Any:
     if hasattr(thread_local, attr_name):
         return getattr(thread_local, attr_name)
-    else:
-        if not torch._C._is_key_in_tls(attr_name):
-            raise RuntimeError("check torch._C._is_key_in_tls(attr_name) fail")
-        return torch._C._get_obj_in_tls(attr_name)
+    if not torch._C._is_key_in_tls(attr_name):
+        _initialize_tls(thread_local)
+        return getattr(thread_local, attr_name)
+    return torch._C._get_obj_in_tls(attr_name)
 
 
 def get_container(device_index: int) -> TreeManagerContainer:
@@ -524,6 +540,19 @@ def _use_npu_memory_pool_manager(
     torch.npu.current_stream().wait_stream(stream)
 
 
+@contextlib.contextmanager
+def _update_current_stream_external_object() -> Generator[None, None, None]:
+    """Update the external object registry so custom ops see the capture stream.
+
+    During npugraph recording/warmup the current stream differs from the
+    trace-time default stream.  The external object at CURRENT_STREAM_INDEX
+    must reflect the actual current stream so that custom ops (e.g. event
+    record/wait) executed during capture use the right stream.
+    """
+    set_external_object_by_index(CURRENT_STREAM_INDEX, torch.npu.current_stream())
+    yield
+
+
 def map_to_ref(t: Optional[Tensor]) -> Optional[StorageWeakRefWrapper]:
     if not isinstance(t, torch.Tensor):
         if t is not None:
@@ -618,7 +647,7 @@ class NPUWarmupNode:
             self.device_index
         ), disable_conv_cache_emptying(), clear_cublas_manager(), _use_npu_memory_pool_manager(
             self.device_index, self.npu_graphs_pool, self.stream
-        ), get_history_recording():
+        ), _update_current_stream_external_object(), ControlFlowOpWarmupDispatchMode(), get_history_recording():
             if torch_npu.npu.aclnn._use_static_aclnn_kernel:
                 from torch_npu._inductor.npu_static_kernel import StaticKernelCompiler
                 static_kernel_compiler = StaticKernelCompiler()
@@ -1254,7 +1283,7 @@ class NPUGraphNode:
             pool=self.npu_graphs_pool,
             capture_error_mode="thread_local",
             auto_dispatch_capture=True,
-        ), get_history_recording():
+        ), _update_current_stream_external_object(), NPUGraphCaptureControlFlowOpDispatchMode(), get_history_recording():
             static_outputs = model(inputs)
 
         # running model should reclaim memory
@@ -1946,7 +1975,7 @@ class NPUGraphTreeManager:
         # will not be reused; separate recordings would have use the same memory pool, but not
         # the same memory.
 
-        with torch.npu.device(device_index):
+        with graph_capture_lock, torch.npu.device(device_index):
             torch.npu.synchronize()
             self.stream = torch.npu.Stream()
             self.stream.wait_stream(torch.npu.current_stream())
@@ -2138,7 +2167,8 @@ class NPUGraphTreeManager:
                 "NPUGraphTreeManager.run_eager",
                 log_pt2_compile_event=True,
             ):
-                out = self.run_eager(new_inputs, function_id)
+                with graph_capture_lock:
+                    out = self.run_eager(new_inputs, function_id)
             return out
 
         if isinstance(self.current_node, NPUWarmupNode):
@@ -2210,7 +2240,8 @@ class NPUGraphTreeManager:
             "NPUGraphTreeManager.record_function",
             log_pt2_compile_event=True,
         ):
-            out = self.record_function(new_inputs, function_id)
+            with graph_capture_lock:
+                out = self.record_function(new_inputs, function_id)
 
         return out
 

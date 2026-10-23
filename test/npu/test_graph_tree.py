@@ -7,6 +7,7 @@ import weakref
 import pytest
 import torch
 import torch_npu
+from torch._dynamo.graph_bytecode_inputs import CURRENT_STREAM_INDEX
 from torch_npu.npu._graph_tree import (
     check_memory_pool,
     clear_cublas_manager,
@@ -34,6 +35,7 @@ from torch_npu.npu._graph_tree import (
     ExecutionState,
     FunctionID,
     GraphID,
+    _update_current_stream_external_object,
 )
 from torch_npu.testing.testcase import TestCase, run_tests
 
@@ -1276,6 +1278,17 @@ class TestNPUGraphTreeManager:
             "before each model invocation"
         )
         assert FunctionID(1) in manager.warned_functions
+
+
+class TestUpdateCurrentStreamExternalObject(TestCase):
+    def test_update_current_stream_external_object(self):
+        fake_stream = MagicMock()
+        with patch("torch.npu.current_stream", return_value=fake_stream), patch(
+            "torch_npu.npu._graph_tree.set_external_object_by_index"
+        ) as mock_set:
+            with _update_current_stream_external_object():
+                pass
+        mock_set.assert_called_once_with(CURRENT_STREAM_INDEX, fake_stream)
 
 
 if __name__ == "__main__":
