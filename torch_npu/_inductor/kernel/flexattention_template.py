@@ -732,6 +732,8 @@ compute_flex_attention_sparse_mask_in_loop_no_load_balance = r"""
         if OUTPUT_LOGSUMEXP:
             l_ptrs = LSE + off_hz * Q_LEN + offs_m
             lse = m_i + tl.math.log(l_i)
+            # Saved LSE uses log2 at the higher-order/AOT boundary.
+            lse = lse * 1.4426950408889634
             if IS_DIVISIBLE:
                 tl.store(l_ptrs, lse)
             else:
@@ -1050,6 +1052,8 @@ flex_attention_backward_qmajor_dq_source = r"""
             other=0.0,
         )
         lse = tl.load(lse_base + offs_m, mask=offs_m < Q_LEN, other=float("-inf"))
+        # Convert saved log2 LSE to natural base inside each consumer.
+        lse = lse * 0.6931471805599453
         lse = tl.where(lse == -float("inf"), 0.0, lse)
         Di = tl.load(delta_base + offs_m, mask=offs_m < Q_LEN, other=0.0)
         dq = tl.zeros([BLOCK_M2, QK_HEAD_DIM], dtype=tl.float32)
@@ -1350,6 +1354,8 @@ def bwd_dkdv_block_mn(
         lse = tl.load(LSE + offs_m1)
     else:
         lse = tl.load(LSE + offs_m1, mask=offs_m1 < Q_LEN, other=float("-inf"))
+    # Convert saved log2 LSE to natural base inside each consumer.
+    lse = lse * 0.6931471805599453
     lse = tl.where(lse == -float("inf"), 0.0, lse)
     qkT = tl.dot(qT, tl.trans(k), input_precision="ieee")
     if not PRESCALE_QK:
@@ -1440,6 +1446,8 @@ def bwd_dkdv_full_block_mn(
         lse = tl.load(LSE + offs_m1)
     else:
         lse = tl.load(LSE + offs_m1, mask=offs_m1 < Q_LEN, other=float("-inf"))
+    # Convert saved log2 LSE to natural base inside each consumer.
+    lse = lse * 0.6931471805599453
     lse = tl.where(lse == -float("inf"), 0.0, lse)
     qkT = tl.dot(qT, tl.trans(k), input_precision="ieee")
     if not PRESCALE_QK:

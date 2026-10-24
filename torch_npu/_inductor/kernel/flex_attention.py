@@ -70,6 +70,7 @@ from torch._inductor.runtime.runtime_utils import is_power_of_2, next_power_of_2
 from torch._inductor.lowering import (
     empty,
     empty_strided,
+    fallback_handler,
     lowerings,
     to_dtype,
 )
@@ -573,6 +574,10 @@ def _build_runtime_compact_sparse_mask_mapping(
             3: create_workspace_counts_fake if use_workspace else create_sparse_mask_num_blocks_fake,
         },
     )
+
+
+def _aten_fallback(op, *args, **kwargs):
+    return fallback_handler(op, add_to_fallback_set=False)(*args, **kwargs)
 
 
 def _maybe_copy_to_dtype(x: TensorBox, dtype: torch.dtype) -> TensorBox:
@@ -2832,7 +2837,7 @@ def _register_npu_inductor_flex_attention():
 
         return (
             result,
-            lowerings[aten.mul](logsumexp, _LOG2E),
+            logsumexp,  # Fused log2 conversion in fwd mask-out template.
             lowerings[aten.mul](max_scores, _LOG2E),
         )
 
@@ -3094,7 +3099,7 @@ def _register_npu_inductor_flex_attention():
 
         # Saved statistics use log2 at the PyTorch boundary; NPU templates use
         # natural logarithms internally.
-        logsumexp = lowerings[aten.mul](logsumexp, _LN2)
+        # Backward templates load log2 LSE and convert it internally.
         mul_delta = lowerings[aten.mul](out, grad_out)
         delta = lowerings[aten.sum](mul_delta, axis=-1)
         delta = lowerings[prims.convert_element_type](delta, torch.float32)
@@ -3138,14 +3143,8 @@ def _register_npu_inductor_flex_attention():
             dtype=torch.float32,
             device=key.get_device(),
         )
-        broadcasted_grad_value = _force_fixed_layout(
-            lowerings[aten.fill_](broadcasted_grad_value, 0),
-            value_strides,
-        )
-        broadcasted_grad_key_accum = _force_fixed_layout(
-            lowerings[aten.fill_](broadcasted_grad_key_accum, 0),
-            key_strides,
-        )
+        _aten_fallback(aten.fill_.Scalar, broadcasted_grad_value, 0)
+        _aten_fallback(aten.fill_.Scalar, broadcasted_grad_key_accum, 0)
 
         kernel_options.setdefault("SM_SCALE", scale)
         # Determine GQA factor
@@ -3291,7 +3290,7 @@ def _register_npu_inductor_flex_attention():
                 device=query.get_device(),
             )
             bwd_sparse_mask_block_pos_buffer = _force_fixed_layout(
-                lowerings[aten.fill_](bwd_sparse_mask_block_pos_buffer, -1),
+                _aten_fallback(aten.fill_.Scalar, bwd_sparse_mask_block_pos_buffer, -1),
                 bwd_sparse_mask_block_pos_strides,
             )
 
@@ -4024,21 +4023,29 @@ def _register_npu_inductor_flex_attention():
                 f"Got Bq={V.graph.sizevars.evaluate_expr(Bq)} "
                 f"and Bkv={V.graph.sizevars.evaluate_expr(Bkv)}"
             )
-            grad_key_accum = lowerings[aten.sum](
-                broadcasted_grad_key_accum, axis=0, keepdims=True
+            grad_key_accum = _aten_fallback(
+                aten.sum.dim_IntList, broadcasted_grad_key_accum, [0], True
             )
-            grad_value_accum = lowerings[aten.sum](
-                broadcasted_grad_value, axis=0, keepdims=True
+            grad_value_accum = _aten_fallback(
+                aten.sum.dim_IntList, broadcasted_grad_value, [0], True
             )
         if not kernel_options.get("PRESCALE_QK", False):
             sm_scale = kernel_options["SM_SCALE"]
-            grad_key_accum = lowerings[aten.mul](grad_key_accum, sm_scale)
-        grad_key = _maybe_copy_to_dtype(grad_key_accum, key.get_dtype())
-        grad_value = _maybe_copy_to_dtype(
-            grad_value_accum, value.get_dtype()
+            grad_key_accum = _aten_fallback(aten.mul.Scalar, grad_key_accum, sm_scale)
+        # Keep allocation opaque so consumers cannot inline the uninitialized
+        # empty_strided value after the ATen copy_ mutation.
+        # ATen copy_ performs the dtype cast into explicit output strides.
+        grad_key = _aten_fallback(
+            aten.empty_strided.default,
+            key.get_size(), key_strides, dtype=key.get_dtype(), device=key.get_device()
         )
-        grad_key = _force_fixed_layout(grad_key, key_strides)
-        grad_value = _force_fixed_layout(grad_value, value_strides)
+        _aten_fallback(aten.copy_.default, grad_key, grad_key_accum)
+        grad_value = _aten_fallback(
+            aten.empty_strided.default,
+            value.get_size(), value_strides,
+            dtype=value.get_dtype(), device=value.get_device(),
+        )
+        _aten_fallback(aten.copy_.default, grad_value, grad_value_accum)
         grad_query = _force_fixed_layout(
             _maybe_copy_to_dtype(grad_query, query.get_dtype()),
             grad_query_strides,
