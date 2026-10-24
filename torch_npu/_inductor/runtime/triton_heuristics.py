@@ -780,7 +780,13 @@ class NPUCachingAutotuner(CachingAutotuner):
         if self.compile_results:
             return self._precompile_worker_serial()
         self._prepare_precompile()
-        if npu_config.precompile_thread_num > 1:
+        # template() has no size hints; foreach() also uses TEMPLATE but keeps
+        # size hints and must retain parallel compilation of its vector configs.
+        is_template = (
+            self.heuristic_type == HeuristicType.TEMPLATE
+            and self.size_hints is None
+        )
+        if npu_config.precompile_thread_num > 1 and not is_template:
             self._precompile_worker_parallel()
         else:
             self._precompile_worker_serial()
