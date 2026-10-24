@@ -14,6 +14,8 @@ __all__ = [
     "patch_has_triton",
     "patch_inductor_has_triton_bindings",
     "invalidate_has_triton_cache",
+    "get_cpp_torch_device_options",
+    "patch_npu_cpp_device_options",
 ]
 
 
@@ -397,4 +399,52 @@ def invalidate_has_triton_cache_local():
 
 invalidate_has_triton_cache = compat_impl_container[
     "invalidate_has_triton_cache"
+].resolve()
+
+
+# COMPAT(>= 2.15): upstream pytorch#190614 added the
+#   DeviceInterface.get_cpp_device_options hook.
+# CAN REMOVE when MIN_SUPPORTED >= (2, 15): remove this fallback and its call
+def get_cpp_torch_device_options(
+    device_type: str, aot_mode: bool = False, compile_only: bool = False
+):
+    from torch_npu._inductor.cpp_builder import include_paths, library_paths
+
+    npu = device_type == "npu"
+    definitions = []
+    include_dirs = include_paths(npu)
+    cflags = []
+    ldflags = []
+    libraries_dirs = library_paths(npu)
+    libraries = []
+    passthough_args = []
+    if npu:
+        definitions.append("USE_NPU")
+        libraries += ["torch_npu", "runtime", "ascendcl"]
+        passthough_args += ["-DBUILD_LIBTORCH=ON -Wno-unused-function"]
+    return (
+        definitions,
+        include_dirs,
+        cflags,
+        ldflags,
+        libraries_dirs,
+        libraries,
+        passthough_args,
+    )
+
+
+@compat_impl(key="patch_npu_cpp_device_options", ge=(2, 15))
+def patch_npu_cpp_device_options_upstream():
+    return
+
+
+@compat_impl(key="patch_npu_cpp_device_options", lt=(2, 15))
+def patch_npu_cpp_device_options_local():
+    from torch._inductor import cpp_builder
+
+    cpp_builder.get_cpp_torch_device_options = get_cpp_torch_device_options
+
+
+patch_npu_cpp_device_options = compat_impl_container[
+    "patch_npu_cpp_device_options"
 ].resolve()

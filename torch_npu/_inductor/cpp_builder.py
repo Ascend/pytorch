@@ -1,7 +1,4 @@
 import os
-from typing import List, Tuple
-
-import torch
 from torch.utils.cpp_extension import _TORCH_PATH
 
 from torch_npu.utils.cpp_extension import PYTORCH_NPU_INSTALL_PATH
@@ -20,7 +17,7 @@ else:
 TORCH_LIB_PATH = os.path.join(_TORCH_PATH, 'lib')
 
 
-def include_paths(npu: bool = False) -> List[str]:
+def include_paths(npu: bool = False) -> list[str]:
     """
     Get the include paths required to build a C++ extension.
 
@@ -55,7 +52,7 @@ def include_paths(npu: bool = False) -> List[str]:
     return paths
 
 
-def library_paths(npu: bool = False) -> List[str]:
+def library_paths(npu: bool = False) -> list[str]:
     """
     Get the library paths required to build a C++.
 
@@ -81,43 +78,8 @@ def library_paths(npu: bool = False) -> List[str]:
     return paths
 
 
-def get_cpp_torch_device_options(
-    device_type: str,
-    aot_mode: bool = False,
-    compile_only: bool = False,
-) -> Tuple[List[str], List[str], List[str], List[str], List[str], List[str], List[str]]:
-
-    npu = "npu" == device_type
-
-    definitions: List[str] = []
-    include_dirs: List[str] = []
-    cflags: List[str] = []
-    ldflags: List[str] = []
-    libraries_dirs: List[str] = []
-    libraries: List[str] = []
-    passthough_args: List[str] = []
-
-    include_dirs = include_paths(npu)
-    libraries_dirs = library_paths(npu)
-
-    if npu:
-        definitions.append("USE_NPU")
-        libraries += ["torch_npu", "runtime", "ascendcl"]
-
-        # Could not add BUILD_LIBTORCH=ON to definitions because it cannot
-        # process definition include "=" like -DXXX=xx.
-        passthough_args += ["-DBUILD_LIBTORCH=ON -Wno-unused-function"]
-
-    return (
-        definitions,
-        include_dirs,
-        cflags,
-        ldflags,
-        libraries_dirs,
-        libraries,
-        passthough_args,
-    )
-
-
 def patch_get_cpp_torch_device_options():
-    torch._inductor.cpp_builder.get_cpp_torch_device_options = get_cpp_torch_device_options
+    # Keep the legacy entry point used by AscendC; delegate to the compat layer.
+    from torch_npu._compat.inductor import patch_npu_cpp_device_options
+
+    patch_npu_cpp_device_options()

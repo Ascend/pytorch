@@ -74,6 +74,12 @@ class NpuInterface(DeviceInterface):
         return torch.npu.get_device_name(device)
 
     @staticmethod
+    def get_cpp_device_options(aot_mode: bool, compile_only: bool):
+        from torch_npu._compat.inductor import get_cpp_torch_device_options
+
+        return get_cpp_torch_device_options("npu", aot_mode, compile_only)
+
+    @staticmethod
     def exchange_device(device: int) -> int:
         curr_device = current_device()
         set_device(device)
