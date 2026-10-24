@@ -23,10 +23,22 @@ EXIT_HANDLER_REGISTERED = False
 log = logging.getLogger("torch._inductor")
 
 
+def _npu_init_autotune_subprocess(fp32_precision: str) -> bool:
+    """
+    NPU-specific subprocess initialization.
+    Replaces the CUDA-only _init_autotune_subprocess so that spawned
+    autotune workers initialize the NPU device context instead of CUDA.
+    """
+    if torch.npu.is_available():
+        torch.zeros(1, device="npu")
+    return True
+
+
 def patch_tuning_process():
     from torch._inductor import autotune_process
 
     autotune_process.CUDA_VISIBLE_DEVICES = ASCEND_VISIBLE_DEVICES
+    autotune_process._init_autotune_subprocess = _npu_init_autotune_subprocess
 
     # Replace GPUDeviceBenchmarkMixin with NPUDeviceBenchmarkMixin in
     # ExternKernelGPUBenchmarkRequest so that extern kernel benchmarks

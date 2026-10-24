@@ -33,6 +33,9 @@ from torch._inductor.autotune_process import (
     TritonBenchmarkRequest,
     TritonCPUBenchmarkRequest,
     TritonGPUBenchmarkRequest,
+    AsyncAutotuner,
+    PrecompileThreadPool,
+    use_pipelined_autotuning,
 )
 from torch._inductor.select_algorithm import (
     AlgorithmSelectorCache,
@@ -1178,7 +1181,6 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
             **TritonKernel.inductor_meta_common(),
             **FixedGrid.setup_grid_as_args(),
         }
-
         if config.profile_bandwidth or config.benchmark_kernel:
             num_gb = self.estimate_kernel_num_bytes() / 1e9
             inductor_meta["kernel_num_gb"] = num_gb
@@ -1396,8 +1398,13 @@ def patch_algorithm_selector() -> None:
                     future,
                     elapsed_times[future],
                 )
-
-            executor = ThreadPoolExecutor(max_workers=num_workers)
+            catlass_kernels = [
+                c for c in choices if isinstance(c, CATLASSTemplateCaller)
+            ]
+            if use_pipelined_autotuning() and not catlass_kernels:
+                executor = PrecompileThreadPool.get_instance()
+            else:
+                executor = ThreadPoolExecutor(max_workers=num_workers)
             async_compile = torch._inductor.async_compile.AsyncCompile()
 
             futures: dict[Future[Any], ChoiceCaller] = {}
@@ -1454,7 +1461,11 @@ def patch_algorithm_selector() -> None:
                             _format_choice_debug_label(choice),
                             elapsed_times.get(future, 0.0),
                         )
-                executor.shutdown(wait=True)
+                catlass_kernels = [
+                    c for c in choices if isinstance(c, CATLASSTemplateCaller)
+                ]
+                if (not use_pipelined_autotuning()) or (use_pipelined_autotuning() and catlass_kernels):
+                    executor.shutdown(wait=True)
                 if failed_choices:
                     failed_hashes = {c.hash_key() for c in failed_choices}
                     choices[:] = [c for c in choices if c.hash_key() not in failed_hashes]
@@ -1496,7 +1507,8 @@ def patch_algorithm_selector() -> None:
             # do the optional warmup
             tuning_pool.initialize()
 
-        def do_autotuning(precompile_fn):
+        def do_autotuning(precompile_fn, choices_override=None):
+            effective_choices = choices_override if choices_override is not None else choices
             precompile_start_ts = time.time()
             with dynamo_timed(
                 f"{name}_template_precompiling",
@@ -1508,13 +1520,20 @@ def patch_algorithm_selector() -> None:
 
             autotune_start_ts = time.time()
             timings = self.lookup(
-                choices,
+                effective_choices,
                 name,
                 inputs_key,
                 autotune,
             )
             autotune_elapse = time.time() - autotune_start_ts
-            log.debug("Autotuning elapsed time: %.02fs", autotune_elapse)
+
+            log.info(
+                "[autotune] %s: precompile=%.3fs, benchmark=%.3fs, choices=%d",
+                name,
+                precompile_elapse,
+                autotune_elapse,
+                len(effective_choices),
+            )
 
             if timings and all(
                 not math.isfinite(timing) for timing in timings.values()
@@ -1534,7 +1553,7 @@ def patch_algorithm_selector() -> None:
                 )
 
             for feedback_fn in self.feedback_saver_fns:
-                feedback_fn(timings, name, input_nodes, choices)
+                feedback_fn(timings, name, input_nodes, effective_choices)
 
             return timings
 
@@ -1571,27 +1590,114 @@ def patch_algorithm_selector() -> None:
             )
             return selected_choice.output_node(), selected_choice
 
-        precompile_fn = precompile(choices)
-
         if return_multi_template and (config.max_autotune or config.max_autotune_gemm):
+            catlass_kernels = [
+                c for c in choices if isinstance(c, CATLASSTemplateCaller)
+            ]
+            if use_pipelined_autotuning() and not catlass_kernels:
+                extern_kernels = [
+                    c for c in choices if AlgorithmSelectorCache._is_extern(c)
+                ]
+                triton_kernels = [
+                    c for c in choices if not AlgorithmSelectorCache._is_extern(c)
+                ]
 
-            def get_timings(hint_override=None):
-                timings = do_autotuning(precompile_fn)
-                min_extern_choice = float("inf")
-                for choice, timing in timings.items():
-                    if isinstance(choice, ExternKernelCaller):
-                        min_extern_choice = min(min_extern_choice, timing)
+                if triton_kernels:
+                    precompile_fn = precompile(triton_kernels)
+                    precompile_future = precompile_fn
+                else:
+                    precompile_future = None
+                if extern_kernels:
+                    AsyncAutotuner.start(extern_kernels, inputs_key)
 
-                timings = {
-                    choice: time
-                    for choice, time in timings.items()
-                    if (
-                        time <= min_extern_choice
-                        or not isinstance(choice, ExternKernelCaller)
+
+                def get_timings(hint_override=None):
+                    assert not hint_override, (
+                        "Hint not supported with pipelined autotuning"
                     )
-                }
+                    precompile_wait_start = time.time()
+                    triton_kernels_to_bench = []
+                    if precompile_future:
+                        try:
+                            precompile_future()
+                        except NoValidChoicesError:
+                            triton_kernels_to_bench = []
+                        else:
+                            triton_kernels_to_bench = [
+                                c for c in triton_kernels if not c.failed
+                            ]
+                    else:
+                        triton_kernels_to_bench = triton_kernels
+                    precompile_wait_elapse = time.time() - precompile_wait_start
 
-                return timings
+                    if triton_kernels_to_bench:
+                        AsyncAutotuner.start(triton_kernels_to_bench, inputs_key)
+
+                    bench_wait_start = time.time()
+                    triton_timings = {}
+                    if triton_kernels_to_bench:
+                        triton_timings = AsyncAutotuner.get_results(
+                            triton_kernels_to_bench, inputs_key
+                        )
+
+                    extern_timings = {}
+                    if extern_kernels:
+                        extern_timings = AsyncAutotuner.get_results(
+                            extern_kernels, inputs_key
+                        )
+                    bench_wait_elapse = time.time() - bench_wait_start
+
+                    log.info(
+                        "[pipelined_autotune] %s: precompile_time=%.3fs, "
+                        "bench_time=%.3fs, extern_kernels nums= %s, triton_kernels nums= %s",
+                        name,
+                        precompile_wait_elapse,
+                        bench_wait_elapse,
+                        len(extern_kernels),
+                        len(triton_kernels)
+                    )
+
+                    results = {**triton_timings, **extern_timings}
+
+                    if results and all(
+                        not math.isfinite(timing) for timing in results.values()
+                    ):
+                        raise NoValidChoicesError
+
+                    min_extern_choice = float("inf")
+                    for choice, timing in results.items():
+                        if isinstance(choice, ExternKernelCaller):
+                            min_extern_choice = min(min_extern_choice, timing)
+
+                    results = {
+                        choice: time
+                        for choice, time in results.items()
+                        if (
+                            time <= min_extern_choice
+                            or not isinstance(choice, ExternKernelCaller)
+                        )
+                    }
+                    return results
+            else:
+                precompile_fn = precompile(choices)
+
+                def get_timings(hint_override=None):
+                    timings = do_autotuning(precompile_fn)
+                    min_extern_choice = float("inf")
+                    for choice, timing in timings.items():
+                        if isinstance(choice, ExternKernelCaller):
+                            min_extern_choice = min(min_extern_choice, timing)
+
+                    timings = {
+                        choice: time
+                        for choice, time in timings.items()
+                        if (
+                            time <= min_extern_choice
+                            or not isinstance(choice, ExternKernelCaller)
+                        )
+                    }
+
+                    return timings
 
             # We take the union of allowed prologue inputs from all choices,
             # and, within benchmark fusion, don't allow prologue fusion for
@@ -1612,6 +1718,7 @@ def patch_algorithm_selector() -> None:
                 multi_template._npu_deferred_epilogue_compile_only = True
             return torch._inductor.ir.TensorBox.create(multi_template), None
 
+        precompile_fn = precompile(choices)
         timings = do_autotuning(precompile_fn)
         if timings == {} or choices[0] not in timings:
             fallback_choice = _select_first_usable_choice_in_order(
@@ -1636,6 +1743,7 @@ def patch_algorithm_selector() -> None:
         selected_choice = selected_key.output_node()
         log.debug("selected choice: %s", str(selected_choice))
         return selected_choice, selected_key
+
 
     @classmethod
     def make_benchmark_fn(
