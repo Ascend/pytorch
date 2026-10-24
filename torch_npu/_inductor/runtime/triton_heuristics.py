@@ -932,15 +932,7 @@ class NPUCachingAutotuner(CachingAutotuner):
                 compile_exceptions[index] = exc
         return compile_results, compile_exceptions, compile_exception_stacks
 
-    def _configs_with_vf_fusion(self, configs):
-        retry_configs = []
-        for candidate_config in configs:
-            retry_config = copy.deepcopy(candidate_config)
-            retry_config.kwargs["enable_vf_fusion"] = True
-            retry_configs.append(retry_config)
-        return retry_configs
-
-    def _precompile_configs_with_vf_retry(self, configs, compile_once):
+    def _precompile_configs_with(self, configs, compile_once):
         if not configs:
             raise NoTritonConfigsError("No triton configs are available")
 
@@ -949,16 +941,6 @@ class NPUCachingAutotuner(CachingAutotuner):
         successful_results = [
             result for result in compile_results if result is not None
         ]
-        if not successful_results:
-            retry_results, retry_exceptions, retry_exception_stacks = compile_once(
-                self._configs_with_vf_fusion(configs)
-            )
-            successful_results = [
-                result for result in retry_results if result is not None
-            ]
-            exceptions = retry_exceptions + exceptions
-            exception_stacks = retry_exception_stacks + exception_stacks
-
         if not successful_results:
             exc, exc_stack = next(
                 (
@@ -980,7 +962,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         return successful_results
 
     def _precompile_configs(self, configs):
-        return self._precompile_configs_with_vf_retry(
+        return self._precompile_configs_with(
             configs, self._precompile_configs_once
         )
 
@@ -1265,7 +1247,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         return compile_results, compile_exceptions, compile_exception_stacks
 
     def _precompile_configs_parallel(self, configs):
-        return self._precompile_configs_with_vf_retry(
+        return self._precompile_configs_with(
             configs, self._precompile_configs_parallel_once
         )
 
