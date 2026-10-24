@@ -37,7 +37,8 @@ from torch._inductor.runtime.runtime_utils import (
 )
 from torch._inductor.utils import triton_version_uses_attrs_dict
 from torch.utils._ordered_set import OrderedSet
-from torch._inductor.runtime.triton_heuristics import (
+# used for wrapper codegen, do not remove this
+from torch._inductor.runtime.triton_heuristics import ( # noqa: F401
     CachingAutotuner,
     HeuristicType,
     unique_configs,
@@ -61,7 +62,11 @@ from torch._inductor.runtime.triton_heuristics import (
     Grid1D,
     Grid2D,
     Grid2DWithYZOverflow,
-    Grid3D
+    Grid3D,
+    fixed_config,
+    user_autotune,
+    split_scan,
+    template
 )
 from .symbolic_grouping import (
     UnsupportedGroupedPlan,
@@ -69,12 +74,6 @@ from .symbolic_grouping import (
     build_group_representatives,
     find_primary_feature_index,
     is_open_bucket_group,
-)
-# used for wrapper codegen, do not remove this
-from torch._inductor.runtime.triton_heuristics import ( # noqa: F401
-    fixed_config,
-    user_autotune,
-    template
 )
 
 from torch._inductor.runtime.runtime_utils import triton_hash_to_path_key
