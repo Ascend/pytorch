@@ -1,4 +1,6 @@
 {
+    "test/inductor/test_torchinductor_opinfo.py::TestInductorOpInfoNPU::test_comprehensive_full_like_npu_uint16": {"category": "dtype not supported (cann)", "reason": "dtype not supported (UInt16)", "issue": "https://gitcode.com/Ascend/pytorch/issues/5139"},
+    "test/inductor/test_torchinductor_opinfo.py::TestInductorOpInfoNPU::test_comprehensive_full_like_npu_uint32": {"category": "dtype not supported (cann)", "reason": "dtype not supported (UInt32)", "issue": "https://gitcode.com/Ascend/pytorch/issues/5139"},
     "test/complex_tensor/test_complex_tensor.py::TestComplexTensorPRIVATEUSE1::test_consistency_angle_npu_complex128": {"category": "dtype not supported (cann)", "reason": "acl not supported: aclnnAngleV2 (DT_COMPLEX128)", "issue": "https://gitcode.com/Ascend/pytorch/issues/5157"},
     "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing__refs_clamp_max_npu_bool": {"category": "dtype not supported (api)", "reason": "not implemented for torch.clamp (DT_BOOL)", "issue": "https://gitcode.com/Ascend/pytorch/issues/5153"},
     "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing__refs_clamp_min_npu_bool": {"category": "dtype not supported (api)", "reason": "not implemented for torch.clamp (DT_BOOL)", "issue": "https://gitcode.com/Ascend/pytorch/issues/5153"},
