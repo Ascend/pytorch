@@ -55,6 +55,7 @@ import os
 import signal
 import subprocess
 import sys
+import tempfile
 import threading
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
@@ -1591,9 +1592,13 @@ def _run_mode_test_files(args, test_dir: Path, report_dir: Path, script_dir: Pat
     if planned_tests:
         print("\nPhase 1: Collecting test cases...")
         error_log_dir = report_dir / "collection_errors"
-        collected_cases = collect_all_cases.collect_all_cases(
-            planned_tests, test_dir, error_log_dir, parallel=16,
-        )
+        # Per-file JSONL nodeid dumps are transient channel state; a
+        # temp dir keeps them out of the uploaded test-reports artifact.
+        with tempfile.TemporaryDirectory(prefix="nodeid_dumps_") as dump_root:
+            collected_cases, _nodeid_meta = collect_all_cases.collect_all_cases(
+                planned_tests, test_dir, error_log_dir,
+                dump_dir=Path(dump_root), parallel=16,
+            )
         if args.quick_test and len(collected_cases) > args.quick_test:
             collected_cases = collected_cases[:args.quick_test]
             print(f"  Quick test mode: using only {args.quick_test} cases")

@@ -1,6 +1,26 @@
 #!/usr/bin/env python3
 """
-Collect all test cases and split into shards.
+Collect all test cases and split into shards (dedicated JSONL nodeid channel).
+
+Nodeids are read from the PYTEST_NODEID_FILE dump written by the nodeid_dump
+pytest plugin (see ../../nodeid_dump.py, i.e. .github/scripts/nodeid_dump.py)
+instead of being parsed from `pytest --collect-only -q` stdout lines. Terminal
+output is pure log, and names containing newlines / `::` / edge whitespace
+survive verbatim (the old stdout parsing split them into a truncated fake
+nodeid plus a silently dropped line — e.g. torch @parametrize names with
+embedded newlines, or names containing the words "collected"/"selected"
+killed by the summary-line filter).
+
+Channel design, in full:
+  - per-file collection adds `-p nodeid_dump` and PYTEST_NODEID_FILE to the
+    pytest subprocess; the dump path mirrors the file's directory layout
+    under --dump-dir (collision-free by construction)
+  - nodeids come from _parse_nodeid_dump (existence / JSON / trailing-count
+    reconciliation); a broken dump marks the file as a collection error —
+    there is NO fallback to stdout line parsing (that is the bug)
+  - a preflight run verifies the plugin chain before batch collection
+  - nodeid_report.json lands in --output-dir (unselectable and hazardous
+    names, per-file counts) for channel-health monitoring
 
 This script runs in prepare job (once) to:
 1. Discover test files by type (distributed/regular)
@@ -17,6 +37,7 @@ Usage:
         --regular-shards 5 \
         --output-dir /path/to/output \
         --error-log-dir /path/to/error_logs \
+        --dump-dir /path/to/nodeid_dumps \
         --parallel 16
 """
 
@@ -26,9 +47,16 @@ import math
 import os
 import subprocess
 import sys
+import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+
+# Directory containing nodeid_dump.py. This script lives two levels deeper
+# (.github/scripts/a5-torch-npu-test/scripts/ -> .github/scripts), and the
+# A5 collect workflow does not export a PYTHONPATH covering it, so the
+# plugin dir is computed here and injected into every pytest subprocess.
+_NODEID_PLUGIN_DIR = Path(__file__).resolve().parents[2]
 
 try:
     import yaml
@@ -490,13 +518,106 @@ def get_test_file_parent_dir(test_file: str, test_dir: Path) -> Path:
     return test_dir / test_file_path.parent
 
 
+# ==============================================================================
+# Dedicated nodeid channel (JSONL dump written by nodeid_dump.py)
+# ==============================================================================
+
+
+def _parse_nodeid_dump(dump_path: Path) -> Tuple[List[str], Dict, Optional[str]]:
+    """Parse a nodeid_dump JSONL file.
+
+    Returns (nodeids, meta, error); error is None iff the dump exists,
+    parses fully, and its record count matches the trailing count record.
+
+    Splitting is done on "\n" exactly — never str.splitlines(): the dump
+    is written one record per "\n" as pure ASCII (json.dumps defaults to
+    ensure_ascii=True, so every non-ASCII or control character becomes a
+    \\uXXXX escape), while splitlines() would additionally split on
+    \\v \\f \\x1c \\x1d \\x1e \\x85 \\u2028 \\u2029 and resurrect the very
+    line-splitting bug this channel exists to fix.
+    """
+    meta: Dict = {"unselectable": [], "hazards": {}}
+    if not dump_path.exists():
+        return [], meta, (
+            "nodeid dump not produced (plugin missing or collection crashed "
+            "before pytest_collection_finish)"
+        )
+    try:
+        raw = dump_path.read_text(encoding="utf-8")
+        records = [json.loads(line) for line in raw.split("\n") if line]
+    except (json.JSONDecodeError, UnicodeDecodeError, OSError) as e:
+        return [], meta, f"nodeid dump corrupt: {e}"
+    if not records or "count" not in records[-1]:
+        return [], meta, "nodeid dump missing trailing count record"
+    cases = records[:-1]
+    if len(cases) != records[-1]["count"]:
+        return [], meta, (
+            f"nodeid dump inconsistent: {len(cases)} records vs count "
+            f"{records[-1]['count']}"
+        )
+    if any(not isinstance(r, dict) or "nodeid" not in r for r in cases):
+        return [], meta, "nodeid dump has malformed records"
+    nodeids = [r["nodeid"] for r in cases]
+    meta["unselectable"] = [r["nodeid"] for r in cases if not r.get("selectable", True)]
+    meta["hazards"] = {r["nodeid"]: r.get("hazards", []) for r in cases if r.get("hazards")}
+    return nodeids, meta, None
+
+
+def _preflight_nodeid_plugin() -> None:
+    """
+    Verify the nodeid_dump plugin chain end-to-end before batch collection.
+
+    Runs a minimal pytest --collect-only in a temp directory with
+    PYTEST_NODEID_FILE set and asserts the dump is produced and carries a
+    count record (~2s, once per run). A deployment mistake — plugin file
+    missing, not importable via -p — fails here loudly instead of
+    surfacing as "dump not produced" for all files.
+    """
+    with tempfile.TemporaryDirectory() as d:
+        probe = Path(d) / "test_probe.py"
+        probe.write_text("def test_ok():\n    pass\n", encoding="utf-8")
+        dump = Path(d) / "probe.nodeids.jsonl"
+        env = dict(os.environ)
+        env["PYTEST_NODEID_FILE"] = str(dump)
+        env["PYTHONPATH"] = str(_NODEID_PLUGIN_DIR) + ":" + env.get("PYTHONPATH", "")
+        try:
+            r = subprocess.run(
+                [sys.executable, "-m", "pytest", "--collect-only", "--quiet",
+                 "-p", "nodeid_dump", "test_probe.py"],
+                cwd=d, env=env, capture_output=True, text=True,
+                encoding="utf-8", errors="replace", timeout=120,
+            )
+        except Exception as e:
+            print(f"FATAL: nodeid_dump preflight could not run pytest: {e}",
+                  file=sys.stderr)
+            sys.exit(1)
+        dump_ok = (
+            r.returncode == 0
+            and dump.exists()
+            and '"count"' in dump.read_text(encoding="utf-8")
+        )
+        if not dump_ok:
+            print(
+                "FATAL: nodeid_dump plugin preflight failed — the dedicated "
+                "nodeid channel is not deployable; refusing to collect.",
+                file=sys.stderr,
+            )
+            print(f"  rc={r.returncode} dump_exists={dump.exists()}",
+                  file=sys.stderr)
+            print((r.stdout or "")[-1000:], file=sys.stderr)
+            print((r.stderr or "")[-1000:], file=sys.stderr)
+            sys.exit(1)
+    print("[preflight] nodeid_dump plugin chain OK")
+
+
 def collect_cases_for_file(
     test_file: str,
     test_dir: Path,
+    dump_dir: Path,
     hw_classification: Optional[List[str]] = None,
-) -> Tuple[str, str, List[str], bool, str]:
+) -> Tuple[str, str, List[str], bool, str, Dict]:
     """
-    Collect test cases from a single file.
+    Collect test cases from a single file (dedicated JSONL nodeid channel).
 
     Adds test file's parent directory to PYTHONPATH to enable
     imports of sibling modules (e.g., 'from model_registry import MLPModule').
@@ -504,6 +625,9 @@ def collect_cases_for_file(
     Args:
         test_file: Test file path (e.g., "test/distributed/test_c10d.py")
         test_dir: Path to PyTorch test directory
+        dump_dir: Root directory for per-file nodeid dumps. The dump path
+            mirrors the test file's directory layout, so two different files
+            can never map to the same dump path (a/b.py vs a_b.py).
         hw_classification: Optional list of hardware classification filters
             (e.g., ["ACCELERATOR"]). When set, --hw-classification is passed
             to pytest --collect-only so only tests with matching hw_classification
@@ -511,12 +635,13 @@ def collect_cases_for_file(
             exit code 5, which is treated as success (0 cases) in this mode.
 
     Returns:
-        Tuple of (test_file, display_name, nodeids, success, error_message)
+        Tuple of (test_file, display_name, nodeids, success, error_message, meta)
         - test_file: Original test file path
         - display_name: Short name for logging (remove test/ prefix and .py suffix)
-        - nodeids: List of collected test case nodeids
+        - nodeids: List of collected test case nodeids (from the JSONL dump)
         - success: True if collection succeeded without errors
         - error_message: Error details if collection failed, empty string otherwise
+        - meta: {"unselectable": [unselectable nodeids], "hazards": {nodeid: [kinds]}}
     """
     test_file_rel = _normalize_test_file_path(test_file)
 
@@ -534,12 +659,26 @@ def collect_cases_for_file(
     existing_pythonpath = env.get("PYTHONPATH", "")
     env["PYTHONPATH"] = str(test_file_dir) + (":" + existing_pythonpath if existing_pythonpath else "")
 
+    # Dedicated nodeid channel: the plugin is imported from the repo's
+    # .github/scripts (two levels up from this script) via -p nodeid_dump.
+    # The dump path mirrors the file's directory layout under dump_dir
+    # (collision-free by construction).
+    env["PYTHONPATH"] = str(_NODEID_PLUGIN_DIR) + ":" + env["PYTHONPATH"]
+    dump_path = dump_dir / (test_file_rel + ".nodeids.jsonl")
+    dump_path.parent.mkdir(parents=True, exist_ok=True)
+    dump_path.unlink(missing_ok=True)
+    env["PYTEST_NODEID_FILE"] = str(dump_path)
+
     command = [
         sys.executable,
         "-m",
         "pytest",
         "--collect-only",
         "--quiet",
+        # Dedicated nodeid channel; also fails fast if the plugin is
+        # not deployed (the preflight covers this, -p makes it doubly sure).
+        "-p",
+        "nodeid_dump",
         test_file_rel,
     ]
     # --hw-classification must come AFTER the test file path because
@@ -563,23 +702,18 @@ def collect_cases_for_file(
             timeout=120,
         )
 
-        nodeids = []
-        for line in result.stdout.splitlines():
-            stripped = line.strip()
-            # pytest --collect-only -q outputs clean nodeids, one per line
-            # Filter rules:
-            # 1. Skip empty lines
-            # 2. Skip summary lines (contain "collected" or "selected")
-            # 3. Skip separator lines (start with "=")
-            # 4. Must contain ".py::" to ensure it's a Python test file nodeid
-            if not stripped:
-                continue
-            if "collected" in stripped or "selected" in stripped:
-                continue
-            if stripped.startswith("="):
-                continue
-            if ".py::" in stripped:
-                nodeids.append(stripped)
+        nodeids, meta, dump_error = _parse_nodeid_dump(dump_path)
+        if dump_error:
+            # The dedicated channel is untrustworthy -> collection error.
+            # NEVER fall back to stdout line parsing: that is the bug being
+            # fixed (names cannot survive a terminal-rendered channel).
+            error_msg = (
+                f"{dump_error}\n"
+                f"--- stdout tail ---\n{result.stdout[-2000:]}"
+            )
+            if result.stderr.strip():
+                error_msg += "\n--- stderr ---\n" + result.stderr.strip()[:2000]
+            return (test_file, display_name, [], False, error_msg, meta)
 
         # Check for collection errors based on pytest exit codes:
         #   0: all passed (success)
@@ -595,9 +729,9 @@ def collect_cases_for_file(
         # cases, which indicates a problem.
         device_filtered = bool(env.get("PYTORCH_TESTING_DEVICE_ONLY_FOR"))
         if result.returncode in (0, 3):
-            return (test_file, display_name, nodeids, True, "")
+            return (test_file, display_name, nodeids, True, "", meta)
         elif (hw_classification or device_filtered) and result.returncode == 5:
-            return (test_file, display_name, nodeids, True, "")
+            return (test_file, display_name, nodeids, True, "", meta)
         else:
             # returncode 2, 4, 5: real collection error
             # returncode 5 specifically means no tests collected - a problem for selected files
@@ -624,38 +758,46 @@ def collect_cases_for_file(
                 diag_lines.append("--- Diagnostics FAILED ---")
             error_msg += "\n" + "\n".join(diag_lines)
 
-            return (test_file, display_name, nodeids, False, error_msg)
+            return (test_file, display_name, nodeids, False, error_msg, meta)
 
     except subprocess.TimeoutExpired:
         error_msg = f"TIMEOUT: Collection took >120s for {display_name}"
-        return (test_file, display_name, [], False, error_msg)
+        return (test_file, display_name, [], False, error_msg, {"unselectable": [], "hazards": {}})
     except Exception as e:
         error_msg = f"ERROR: {e}"
-        return (test_file, display_name, [], False, error_msg)
+        return (test_file, display_name, [], False, error_msg, {"unselectable": [], "hazards": {}})
 
 
 def collect_all_cases(
     test_files: List[str],
     test_dir: Path,
     error_log_dir: Path,
+    dump_dir: Path,
     parallel: int = 16,
     hw_classification: Optional[List[str]] = None,
-) -> List[Dict]:
+) -> Tuple[List[Dict], List[Dict]]:
     """
-    Collect all cases from all files.
+    Collect all cases from all files (dedicated JSONL nodeid channel).
 
     Args:
         test_files: List of test file paths
         test_dir: Path to PyTorch test directory
         error_log_dir: Directory to save error logs for failed collections
+        dump_dir: Root directory for per-file nodeid dumps (transient; keep
+            it outside --output-dir so dumps are not uploaded as artifacts)
         parallel: Number of parallel workers
         hw_classification: Optional hardware classification filter
             (e.g., ["ACCELERATOR"])
 
     Returns:
-        List of dicts with nodeid and file for each collected case
+        Tuple of (all_cases, nodeid_meta):
+        - all_cases: list of dicts with nodeid and file for each collected case
+        - nodeid_meta: per-file channel records
+          [{"file", "case_count_raw", "unselectable", "hazards"}], aggregated into
+          nodeid_report.json by main()
     """
     all_cases = []
+    nodeid_meta: List[Dict] = []
     failed_files = []  # Track files with collection errors for logging
 
     if hw_classification:
@@ -665,12 +807,16 @@ def collect_all_cases(
         print(f"Collecting cases from {len(test_files)} files with {parallel} workers...")
     print("=" * 60)
 
-    # Create error log directory
+    # Create error log directory and dump directory
     error_log_dir.mkdir(parents=True, exist_ok=True)
+    dump_dir.mkdir(parents=True, exist_ok=True)
 
     with ThreadPoolExecutor(max_workers=parallel) as executor:
         futures = {
-            executor.submit(collect_cases_for_file, f, test_dir, hw_classification): f
+            executor.submit(
+                collect_cases_for_file, f, test_dir, dump_dir,
+                hw_classification,
+            ): f
             for f in test_files
         }
 
@@ -680,8 +826,16 @@ def collect_all_cases(
         total_cases = 0
 
         for future in as_completed(futures):
-            test_file, display_name, nodeids, success, error_msg = future.result()
+            test_file, display_name, nodeids, success, error_msg, meta = future.result()
             completed += 1
+
+            nodeid_meta.append({
+                "file": test_file,
+                # RAW (pre whitelist/skip filtering) count, informational.
+                "case_count_raw": len(nodeids),
+                "unselectable": meta.get("unselectable", []),
+                "hazards": meta.get("hazards", {}),
+            })
 
             if success:
                 successful_count += 1
@@ -731,7 +885,7 @@ def collect_all_cases(
     if failed_count > 0:
         print(f"  WARNING: {failed_count} files had collection errors (logs saved to {error_log_dir})")
 
-    return all_cases
+    return all_cases, nodeid_meta
 
 
 def save_error_logs(failed_files: List[Dict], error_log_dir: Path) -> None:
@@ -900,6 +1054,11 @@ def main():
     error_log_dir = Path(args.error_log_dir).resolve() if args.error_log_dir else output_dir / "collection_errors"
     error_log_dir.mkdir(parents=True, exist_ok=True)
 
+    # Fail fast if the nodeid_dump plugin chain is not deployable (plugin
+    # file missing / not importable via -p): a deployment mistake must
+    # abort here rather than surface as "dump not produced" per file.
+    _preflight_nodeid_plugin()
+
     hw_classification = args.hw_classification if args.hw_classification else None
     case_paths_config = args.case_paths_config if args.case_paths_config else None
 
@@ -971,6 +1130,11 @@ def main():
     total_files = 0
     all_skipped = []
 
+    # Transient per-file nodeid dumps (keep outside output_dir so they are
+    # never uploaded as artifacts) and the per-category channel metadata.
+    dump_dir = Path(args.dump_dir).resolve()
+    nodeid_meta_by_cat: Dict[str, List[Dict]] = {}
+
     for cat_name, cat_config in categories.items():
         print("\n" + "=" * 80)
         print(f"Collecting {cat_name} test cases")
@@ -995,10 +1159,11 @@ def main():
             }
             continue
 
-        cases = collect_all_cases(
-            files, test_dir, error_log_dir / cat_name,
+        cases, cat_nodeid_meta = collect_all_cases(
+            files, test_dir, error_log_dir / cat_name, dump_dir,
             args.parallel, hw_classification,
         )
+        nodeid_meta_by_cat[cat_name] = cat_nodeid_meta
         print(f"Total {cat_name} cases: {len(cases)}")
 
         cases, skipped = filter_skipped_cases(cases, skip_dict, method_skip)
@@ -1109,6 +1274,41 @@ def main():
     print(f"\nOverall summary saved to {summary_file}")
 
     # ========================================
+    # Save nodeid channel health report
+    # ========================================
+    # Names the channel can see but pytest can never select (`::`
+    # in a collector name) or that are hazardous for line-oriented
+    # consumers, plus per-file RAW (pre whitelist/skip filtering)
+    # collection counts — informational only. Post-filter case counts
+    # are in <cat>_cases_by_file.jsonl. Written into output_dir so it
+    # lands in the cases-shards artifact next to the shard JSONs.
+    unselectable = []
+    hazards = []
+    per_file = []
+    for cat_name, cat_meta in nodeid_meta_by_cat.items():
+        for rec in cat_meta:
+            per_file.append({
+                "category": cat_name,
+                "file": rec["file"],
+                "case_count_raw": rec["case_count_raw"],
+            })
+            for n in rec.get("unselectable", []):
+                unselectable.append({"category": cat_name, "file": rec["file"], "nodeid": n})
+            for n, h in rec.get("hazards", {}).items():
+                hazards.append({"category": cat_name, "file": rec["file"], "nodeid": n, "hazards": h})
+    nodeid_report = {
+        "unselectable_count": len(unselectable),
+        "hazard_count": len(hazards),
+        "unselectable": unselectable,
+        "hazards": hazards,
+        "per_file": per_file,
+    }
+    nodeid_report_file = output_dir / "nodeid_report.json"
+    nodeid_report_file.write_text(json.dumps(nodeid_report, indent=2), encoding="utf-8")
+    print(f"Nodeid report saved to {nodeid_report_file} "
+          f"({len(unselectable)} unselectable, {len(hazards)} hazardous names)")
+
+    # ========================================
     # Global validation
     # ========================================
     if hw_classification and total_cases == 0:
@@ -1180,6 +1380,13 @@ def parse_args():
     parser.add_argument(
         "--error-log-dir",
         help="Output directory for collection error logs (default: output-dir/collection_errors)",
+    )
+    parser.add_argument(
+        "--dump-dir",
+        default="./nodeid_dumps",
+        help="Root directory for transient per-file nodeid JSONL dumps written "
+             "by the nodeid_dump plugin (default: ./nodeid_dumps). Keep it "
+             "outside --output-dir to avoid uploading dumps as artifacts.",
     )
     parser.add_argument("--parallel", type=int, default=16, help="Parallel collection workers")
     parser.add_argument(

@@ -6,10 +6,8 @@ on:
       - ci-test
     paths:
       - '.github/workflows/nightly-collect-only.yml'
-      - '.github/workflows/_nightly_test-collect-shadow.yml'
-      - '.github/scripts/collect_all_cases_v2.py'
+      - '.github/scripts/collect_all_cases.py'
       - '.github/scripts/nodeid_dump.py'
-      - '.github/scripts/diff_collection.py'
   workflow_dispatch:
 
 permissions:
@@ -36,31 +34,6 @@ jobs:
   collect:
     needs: build
     uses: ./.github/workflows/_nightly_test-collect.yml
-    secrets: inherit
-    with:
-      resolved_short: ${{ needs.build.outputs.resolved_short }}
-      resolved_sha: ${{ needs.build.outputs.resolved_sha }}
-      pytorch_wheels_tarball: ${{ needs.build.outputs.pytorch_wheels_tarball }}
-      torchnpu_wheels_tarball: ${{ needs.build.outputs.torchnpu_wheels_tarball }}
-      upstream_repo: pytorch/pytorch
-      case_paths_config: .github/config/nightly_test_categories.yml
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610160225-8a315d17
-      hw_classification: ''
-      full_scan: true
-      device_env: 'privateuse1,cpu'
-      runner_label: 'linux-aarch64-a3-800i-2-cn12-001'
-
-  # Shadow collection (plan stage 2, agent_space/nodeid-collection-plan-a.md):
-  # same build, same source, same config, same image, same runner type as
-  # `collect` — the ONLY difference is the nodeid channel (dedicated JSONL
-  # file via the nodeid_dump pytest plugin vs stdout line parsing). Runs
-  # collect_all_cases_v2.py; the baseline collect job and every existing
-  # script stay untouched. Outputs are diffed in shadow-diff below.
-  # Delete this job (and _nightly_test-collect-shadow.yml) once the JSONL
-  # channel is promoted to the main collect script.
-  collect-shadow:
-    needs: build
-    uses: ./.github/workflows/_nightly_test-collect-shadow.yml
     secrets: inherit
     with:
       resolved_short: ${{ needs.build.outputs.resolved_short }}
@@ -144,46 +117,3 @@ jobs:
             --label "A3 (aarch64)" --summary collect-a3/cases_collection_summary.json \
             --label "A5 (x86_64)" --summary collect-a5/cases_collection_summary.json
 
-  # Diff the baseline stdout-channel collection against the shadow JSONL
-  # channel from the same run (same build, same source, same config — the
-  # only variable is the channel). Expected signature: positional "changed"
-  # entries only (truncated fake nodeids becoming complete, e.g. the
-  # test_utils_config_module.py newline names), zero added/removed, total
-  # counts identical. Convergence for 2-3 consecutive nights is the stage-2
-  # gate in the plan. Delete this job together with collect-shadow.
-  shadow-diff:
-    needs: [collect, collect-shadow]
-    if: always()
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout this repo for diff script
-        uses: actions/checkout@v6
-        with:
-          ref: ci-test
-
-      - name: Download baseline cases-shards (stdout channel)
-        continue-on-error: true
-        uses: actions/download-artifact@v4
-        with:
-          name: cases-shards
-          path: old
-
-      - name: Download shadow cases-shards (JSONL channel)
-        continue-on-error: true
-        uses: actions/download-artifact@v4
-        with:
-          name: cases-shards-shadow
-          path: new
-
-      - name: Diff collection results
-        run: |
-          # diff_collection.py appends its full report to
-          # $GITHUB_STEP_SUMMARY itself when the variable is set (GitHub
-          # sets it for run steps) — do not cat the output again.
-          python3 .github/scripts/diff_collection.py \
-            --old old \
-            --new new \
-            --label-old "stdout (baseline A3)" \
-            --label-new "JSONL (shadow A3)"

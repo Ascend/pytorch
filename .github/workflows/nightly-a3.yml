@@ -10,14 +10,6 @@ on:
     paths:
       - '.github/workflows/nightly-a3.yml'
   workflow_dispatch:
-    inputs:
-      collect_channel:
-        description: 'nodeid collection channel: stdout = baseline parser, jsonl = dedicated JSONL channel (v2 validation)'
-        type: choice
-        default: 'stdout'
-        options:
-          - 'stdout'
-          - 'jsonl'
 
 permissions:
   id-token: write
@@ -69,9 +61,3 @@ jobs:
       # See the Patch triton cxx20 step in _nightly_test-category.yml.
       # Flip to false to disable.
       patch_triton_cxx20: true
-      # nodeid collection channel switch (plan stage 2.5: execution-phase
-      # validation before promoting the JSONL channel). Default stdout keeps
-      # the scheduled/push runs byte-identical; dispatch with
-      # collect_channel=jsonl to run the whole pipeline (collect + execute)
-      # on collect_all_cases_v2.py output.
-      collect_script: ${{ inputs.collect_channel == 'jsonl' && 'collect_all_cases_v2.py' || 'collect_all_cases.py' }}

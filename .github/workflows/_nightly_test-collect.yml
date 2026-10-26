@@ -89,15 +89,6 @@ on:
         type: string
         default: ''
         description: Suffix appended to artifact names (e.g. '-a5') to avoid conflicts when multiple collects run in the same workflow run.
-      collect_script:
-        required: false
-        type: string
-        default: 'collect_all_cases.py'
-        description: >-
-          Collection script to run (relative to .github/scripts). Defaults to
-          the baseline stdout-channel collector. Pass collect_all_cases_v2.py
-          to collect through the dedicated JSONL nodeid channel (execution-
-          phase validation of the channel switch).
     outputs:
       core_matrix:
         description: Core shard matrix JSON
@@ -343,7 +334,7 @@ jobs:
             done
           fi
 
-          python3 ${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/${{ inputs.collect_script }} \
+          python3 ${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/collect_all_cases.py \
             --test-dir ${GITHUB_WORKSPACE}/pytorch/test \
             --hw-classification ${{ inputs.hw_classification }} \
             ${CONFIG_ARG} \
