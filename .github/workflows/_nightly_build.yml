@@ -370,11 +370,11 @@ jobs:
           # WHEELS_RECIPE: bump when the build recipe changes in a way not
           # captured by the pinned inputs (upstream SHA, torch_npu SHA,
           # image tag), so the OBS wheels cache cannot serve wheels built
-          # by an older recipe. v2 = x86_64 builds statically link MKL
-          # from /opt/intel (upstream build_wheel.py scheme) AND the
-          # cache is split into separate pytorch (torch+torchvision) and
-          # torch_npu objects.
-          WHEELS_RECIPE=v2
+          # by an older recipe. v3 = torchvision wheels are repaired
+          # (image libs vendored into torchvision.libs/, $ORIGIN RPATHs)
+          # on top of v2 (x86_64 static MKL from /opt/intel + the
+          # pytorch/torch_npu cache split).
+          WHEELS_RECIPE=v3
           PYTORCH_TARBALL="wheels-pytorch-${UPSTREAM_SHORT}-${PYVER}-${IMAGE_TAG}-${ARCH}-${WHEELS_RECIPE}.tar.gz"
           TORCHNPU_TARBALL="wheels-torchnpu-${TORCH_NPU_SHORT}-${UPSTREAM_SHORT}-${PYVER}-${IMAGE_TAG}-${ARCH}-${WHEELS_RECIPE}.tar.gz"
           echo "pytorch_wheels_tarball=${PYTORCH_TARBALL}" >> "$GITHUB_OUTPUT"
@@ -626,6 +626,21 @@ jobs:
           cd /tmp
           python -c "import torchvision; print(f'torchvision version: {torchvision.__version__}')"
           cd "${GITHUB_WORKSPACE}"
+
+      # Step 2b: repair the freshly built torchvision wheel — vendor the
+      # build image's image libraries (libjpeg.so.62 + libpng16.so.16 on
+      # the manylinux builders, RHEL-family sonames) into
+      # torchvision.libs/ and set $ORIGIN RPATHs, mirroring upstream
+      # pytorch/vision's packaging/wheel/relocate.py. Without this the
+      # image extension fails to load on systems that lack the linked
+      # soname (Ubuntu ships libjpeg.so.8, a different soname — observed
+      # installing our x86_64 wheels on a vanilla Ubuntu machine).
+      # Runs before the pytorch wheels are packaged so the cache object
+      # holds the repaired wheel.
+      - name: Repair torchvision wheel (vendor image libs, set $ORIGIN RPATH)
+        if: steps.wheels_cache.outputs.pytorch_hit != 'true'
+        run: |
+          python3 "${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/repair_torchvision_wheel.py" --wheels-dir /tmp/wheels
 
       # Step 2c: Package and upload the pytorch-side wheels (torch +
       # torchvision) immediately after the torchvision build — before any
