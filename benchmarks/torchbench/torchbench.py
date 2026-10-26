@@ -397,7 +397,21 @@ class TorchBenchmarkRunner(BenchmarkRunner):
         if part:
             extra_args = ["--part", part]
 
-        if model_name == "vision_maskrcnn" and is_training:
+        if model_name == "functorch_maml_omniglot":
+            import numpy as np
+
+            numpy_core = np._core if hasattr(np, "_core") else np.core
+            reconstruct = numpy_core.multiarray._reconstruct
+            with torch.serialization.safe_globals(
+                [(reconstruct, "numpy.core.multiarray._reconstruct")]
+            ):
+                benchmark = benchmark_cls(
+                    test="train" if is_training else "eval",
+                    device=device,
+                    batch_size=batch_size,
+                    extra_args=extra_args,
+                )
+        elif model_name == "vision_maskrcnn" and is_training:
             # Output of vision_maskrcnn model is a list of bounding boxes,
             # sorted on the basis of their scores. This makes accuracy
             # comparison hard with torch.compile. torch.compile can cause minor

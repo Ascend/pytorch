@@ -6,7 +6,7 @@ opencv-python-headless
 
 # 深度学习与NLP
 torchvision==0.28.0
-transformers==4.36.0
+transformers==4.57.1
 timm
 fastNLP==0.6.0
 onnx
@@ -16,6 +16,26 @@ kaldi_io
 
 # 日志与可视化
 tensorboardX
+
+# Additional dependencies for the community TorchBench model lists
+pandas==2.3.3
+Pillow==12.3.0
+scikit-image==0.25.2
+scipy==1.15.3
+tqdm==4.67.1
+ffmpeg-python==0.2.0
+lameenc==1.9.0
+musdb==0.4.3
+museval==0.4.1
+treetable==0.2.6
+python-doctr==1.0.1
+rapidfuzz==3.14.5
+einops==0.8.2
+higher==0.2.1
+opacus==1.1.2
+pycocotools==2.0.11
+expecttest==0.3.0
+requests==2.34.2
 
 # 多模态库（需要从源码安装）
 git+https://github.com/facebookresearch/multimodal.git

@@ -65,7 +65,11 @@
     cd ..
     ```
 
+新增模型需要的 Python 依赖见本目录的 `requirements.txt`。其余环境准备步骤保持不变。
+
 ## 准备数据集
+
+`TORCHBENCH_DATA_PATH` 用于指定 TorchBench 数据目录。PTA 会用它覆盖 TorchBench 的 `DATA_PATH`，供使用该目录的模型查找数据；它不会下载数据或改变模型计算。未设置时使用 TorchBench 默认目录。少数数据使用固定路径，见第 3 步的特别说明。
 
 1. 部分模型需要少量数据集，名单如下
 
@@ -77,13 +81,16 @@
         - LearningToPaint_inputs.tar.gz
         - speech_transformer_inputs.tar.gz
         - coco128.tar.gz
+        - Background_Matting_inputs.tar.gz
+        - coco2017-minimal.tar.gz  # 需放到指定路径，见第 3 步
     # 其它数据文件
         - obs.pkl
         - sam_vit_h_4b8939.pth
         - truck.jpg
+        - pizza.jpg
     ```
 
-2. 下载数据集可以使用下方URL
+2. 下载数据集可以使用下方 URL
 
     ```text
     # 直接访问，即可下载数据集
@@ -92,28 +99,39 @@
     https://ossci-datasets.s3.amazonaws.com/torchbench/data/LearningToPaint_inputs.tar.gz
     https://ossci-datasets.s3.amazonaws.com/torchbench/data/speech_transformer_inputs.tar.gz
     https://ossci-datasets.s3.amazonaws.com/torchbench/data/coco128.tar.gz
+    https://ossci-datasets.s3.amazonaws.com/torchbench/data/Background_Matting_inputs.tar.gz
+    https://ossci-datasets.s3.amazonaws.com/torchbench/data/coco2017-minimal.tar.gz
     https://ossci-datasets.s3.amazonaws.com/torchbench/models/drq/obs.pkl
     https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth
     https://github.com/facebookresearch/segment-anything/raw/main/notebooks/images/truck.jpg
+    https://ossci-assets.s3.us-east-1.amazonaws.com/2880px-Pizza-3007395.jpg
+    https://ossci-datasets.s3.amazonaws.com/torchbench/models/maml_omniglot/batch.pt
     ```
 
-3. 下载后的数据集放到任意目录下，然后使用环境变量`TORCHBENCH_DATA_PATH`指定数据集目录，运行测试脚本
+3. 在 `benchmarks/torchbench` 目录下执行以下命令。下载文件放在当前目录，数据集解压到 `./dataset`；然后使用环境变量 `TORCHBENCH_DATA_PATH` 指定数据集目录。
 
     ```shell
     # 创建数据集./dataset目录
-    mkdir ./dataset
+    mkdir -p ./dataset
 
-    # 将数据集移动到./dataset目录下后，解压数据集
-    tar -xvzf Super_SloMo_inputs.tar.gz
-    tar -xvzf pytorch_stargan_inputs.tar.gz
-    tar -xvzf LearningToPaint_inputs.tar.gz
-    tar -xvzf speech_transformer_inputs.tar.gz
-    tar -xvzf coco128.tar.gz
+    # 解压普通数据集
+    tar -xvzf Super_SloMo_inputs.tar.gz -C ./dataset
+    tar -xvzf pytorch_stargan_inputs.tar.gz -C ./dataset
+    tar -xvzf LearningToPaint_inputs.tar.gz -C ./dataset
+    tar -xvzf speech_transformer_inputs.tar.gz -C ./dataset
+    tar -xvzf coco128.tar.gz -C ./dataset
+    tar -xvzf Background_Matting_inputs.tar.gz -C ./dataset
 
     # 其它数据文件直接放到数据集目录
-    cp obs.pkl sam_vit_h_4b8939.pth truck.jpg ./dataset/
+    cp obs.pkl sam_vit_h_4b8939.pth truck.jpg pizza.jpg ./dataset/
 
-    # 使用环境变量，指定数据集目录
+    # coco2017-minimal 与 MAML Omniglot 使用固定路径，不放在 ./dataset
+    mkdir -p benchmark/torchbenchmark/data/.data
+    tar -xvzf coco2017-minimal.tar.gz -C benchmark/torchbenchmark/data/.data
+    mkdir -p benchmark/torchbenchmark/models/maml_omniglot
+    cp batch.pt benchmark/torchbenchmark/models/maml_omniglot/batch.pt
+
+    # 指定数据目录
     export TORCHBENCH_DATA_PATH="./dataset"
     ```
 
