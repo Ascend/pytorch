@@ -36,6 +36,23 @@ def patch_gm_placeholder_strides_from_codegen_args(
         )
 
 
+def can_use_view_load(
+    shape: Sequence,
+    stride: Sequence,
+    dtype: torch.dtype,
+    *,
+    view_fusion_level: int,
+) -> bool:
+    dtype_size = dtype.itemsize
+    if view_fusion_level == 0 or dtype_size not in (2, 4):
+        return False
+
+    if view_fusion_level == 2:
+        return True
+
+    return bool(stride) and stride[-1] == 1 and shape[-1] != 1
+
+
 def codegen_maybe_view_load(
     shape: Sequence,
     stride: Sequence,
@@ -48,14 +65,9 @@ def codegen_maybe_view_load(
     skip_cont=False means the caller must manually materialize a non-contiguous
     input with .contiguous() before launching the DVM kernel.
     """
-    dtype_size = dtype.itemsize
-    if view_fusion_level == 0 or dtype_size not in (2, 4):
-        return load(shape, dtype), False
-
-    if view_fusion_level == 2:
-        return view_load(shape, stride, dtype), True
-
-    if stride and stride[-1] == 1 and shape[-1] != 1:
+    if can_use_view_load(
+        shape, stride, dtype, view_fusion_level=view_fusion_level
+    ):
         return view_load(shape, stride, dtype), True
 
     return load(shape, dtype), False

@@ -3,7 +3,7 @@ import torch
 from torch._higher_order_ops.triton_kernel_wrap import triton_kernel_wrapper_mutation
 from torch._inductor import config, ir
 from torch._inductor.fx_passes.control_dependencies import control_deps
-from torch._inductor.codegen.common import IndentedBuffer, register_backend_for_device
+from torch._inductor.codegen.common import IndentedBuffer, Kernel, register_backend_for_device
 from torch._inductor.codegen.simd import code_hash, SIMDKernel
 from torch._inductor.scheduler import SchedulerNode, WhyNoFuse
 from torch._inductor.utils import aggregate_origins, get_fused_kernel_name
@@ -24,7 +24,7 @@ from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.utils import (
     get_num_call_functions,
 )
 
-from . import config as dvm_config
+from . import config as dvm_config, is_ascend950
 from .decomp import patch_decomp
 from .fx_test import generate_dvm_fx_case
 from .graph_build import DvmCodegenInterpreter
@@ -39,6 +39,7 @@ from .template import (
     DvmTemplateBuffer,
     patch_dvm_matmul_template_fusion,
 )
+from .util import can_use_view_load
 
 aten = torch.ops.aten
 prims = torch.ops.prims
@@ -108,12 +109,23 @@ anir_config.GENERATE_LIST = [
     torch.ops.higher_order.flex_attention_backward,
 ]
 
+
+def _is_clone_supported_by_view_level(node):
+    inp = node.args[0].meta["val"]
+    return inp.is_contiguous() or can_use_view_load(
+        inp.shape,
+        inp.stride(),
+        inp.dtype,
+        view_fusion_level=dvm_config.view_fusion_level,
+    )
+
+
 def _is_node_supported_by_dvm_rule(node, allow_common_rule=False):
     if node.target == aten.cat.default and not dvm_config.enable_cat:
         return False
     if node.target == aten.permute.default and not dvm_config.enable_fusion_permute:
         return False
-    if node.target == aten.clone.default and dvm_config.view_fusion_level != 2:
+    if node.target == aten.clone.default and not _is_clone_supported_by_view_level(node):
         return False
     if node.target in (
         aten.mm.default,
@@ -325,6 +337,15 @@ class NpuDvmScheduling(NpuMetaScheduling):
             return super().can_fuse_horizontal(node1, node2)
         return False
 
+    def get_fusion_pair_priority(self, node1, node2):
+        priority = super().get_fusion_pair_priority(node1, node2)
+        if (
+            isinstance(node1.get_template_node(), DvmTemplateBuffer)
+            and len(node1.get_nodes()) == 1
+        ):
+            return priority + 1
+        return priority
+
     def codegen_template(
         self,
         template_node: SchedulerNode,
@@ -348,6 +369,13 @@ class NpuDvmScheduling(NpuMetaScheduling):
             raise RuntimeError(
                 "DVM matmul template only supports pointwise epilogue fusion"
             )
+
+        if is_ascend950 and not epilogue_nodes:
+            with V.set_kernel_handler(Kernel(increase_kernel_count=False)):
+                template_node.mark_run()
+            template_buffer.codegen_unfused(V.graph.wrapper_code)
+            self.free_buffers_in_scheduler()
+            return
 
         snodes = [template_node, *epilogue_nodes]
         fused_node_names = set()

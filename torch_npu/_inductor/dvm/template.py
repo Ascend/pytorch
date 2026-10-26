@@ -57,15 +57,28 @@ class _DvmTemplateGraph(TracedGraph):
 
 
 class DvmTemplateBuffer(ir.TemplateBuffer):
-    def __init__(self, layout, inputs, traced_graph, input_bindings):
+    def __init__(self, layout, inputs, traced_graph, input_bindings, op, kwargs=None):
         self.traced_graph = _DvmTemplateGraph(traced_graph, input_bindings)
         self.input_bindings = input_bindings
+        self.op = op
+        self.kwargs = kwargs or {}
         super().__init__(layout, inputs, make_kernel_render=None)
         # Reuse NPU meta_kernel's snode.node.data.traced_graph rebuild path.
         self.data = self
 
     def get_traced_graph(self):
         return _make_template_input_graph(self)
+
+    def codegen_unfused(self, wrapper):
+        fallback = ir.ExternKernel(
+            self.get_name(),
+            self.get_layout(),
+            self.inputs,
+            kwargs=self.kwargs,
+            op_overload=self.op.overloadpacket.out,
+        )
+        fallback.origins = self.origins
+        wrapper.generate_extern_kernel_out(fallback)
 
 
 def _subtract_dvm_template_graph(graph1, graph2, node_name=None):
@@ -108,6 +121,7 @@ def _register_dvm_mm_template_lowerings():
                 inputs,
                 traced_graph,
                 input_bindings=input_bindings,
+                op=op,
             )
         )
 
@@ -164,6 +178,8 @@ def _register_dvm_mm_template_lowerings():
                 [inp, *matrix_inputs],
                 traced_graph,
                 input_bindings=input_bindings,
+                op=op,
+                kwargs={"alpha": alpha, "beta": beta},
             )
         )
 
@@ -243,6 +259,13 @@ def _has_unsupported_epilogue_broadcast(node: scheduler.SchedulerNode) -> bool:
     return False
 
 
+def _is_view_only_epilogue(node: scheduler.BaseSchedulerNode) -> bool:
+    return not any(
+        set(snode._body.op_counts) - {"load", "store", "output", "index_expr"}
+        for snode in node.get_nodes()
+    )
+
+
 def can_fuse_dvm_epilogue(
     template_node: scheduler.BaseSchedulerNode,
     epilogue_node: scheduler.BaseSchedulerNode,
@@ -281,5 +304,8 @@ def can_fuse_dvm_epilogue(
             return False
         if _has_unsupported_epilogue_broadcast(node):
             return False
+
+    if _is_view_only_epilogue(epilogue_node):
+        return False
 
     return True
