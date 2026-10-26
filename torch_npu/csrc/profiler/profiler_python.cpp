@@ -9,7 +9,7 @@
 #include <Python.h>
 #include <frameobject.h>
 
-#include "torch_npu/csrc/profiler/npu_profiler.h"
+#include "torch_npu/csrc/profiler/profiler_callbacks.h"
 #include "torch_npu/csrc/profiler/profiler_mgr.h"
 #include "torch_npu/csrc/profiler/utils.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"

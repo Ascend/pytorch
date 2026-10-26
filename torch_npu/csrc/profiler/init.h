@@ -1,5 +1,6 @@
 #ifndef PROFILER_INIT_INC
 #define PROFILER_INIT_INC
+#include <torch/csrc/python_headers.h>
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace torch_npu {

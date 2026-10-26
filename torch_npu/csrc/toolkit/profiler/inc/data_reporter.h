@@ -1,7 +1,7 @@
 #pragma once
 
 #include "torch_npu/csrc/profiler/containers.h"
-#include "torch_npu/csrc/profiler/profiler_python.h"
+#include "torch_npu/csrc/profiler/python_tracer_types.h"
 
 #include <stdint.h>
 #include <vector>
