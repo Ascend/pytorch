@@ -10,9 +10,10 @@ OpPlugin是TorchNPU的算子插件，为使用PyTorch框架的开发者提供便
 
 从技术本质来看，算子适配是连接上层PyTorch框架算子与底层昇腾硬件计算资源的“桥梁”，解决两大核心问题：一是语义兼容，消除跨平台接口差异、数据格式不兼容等问题，确保算子功能可执行；二是能力映射，将PyTorch框架的计算请求转化为昇腾硬件可识别的执行指令，最大化硬件利用率。
 
-> [!NOTE]  
-> ATen IR（Aten Intermediate Representation，Aten中间表示）是PyTorch深度学习框架底层的核心中间表示形式，是连接PyTorch上层用户接口与底层硬件执行逻辑的关键载体。<br>
-> ATen IR由PyTorch官方定义，封装了算子的核心语义信息（名称、入参/返回值类型、计算逻辑描述），屏蔽了上层API的语法差异和底层硬件的实现细节，是PyTorch框架内算子分发、编译优化、跨硬件适配的统一“语言”。ATen IR接口说明，请参考[pytorch/aten/src/ATen/native](https://github.com/pytorch/pytorch/tree/main/aten/src/ATen/native#readme)。
+> [!NOTE]
+>
+> - ATen IR（Aten Intermediate Representation，Aten中间表示）是PyTorch深度学习框架底层的核心中间表示形式，是连接PyTorch上层用户接口与底层硬件执行逻辑的关键载体。
+> - ATen IR由PyTorch官方定义，封装了算子的核心语义信息（名称、入参/返回值类型、计算逻辑描述），屏蔽了上层API的语法差异和底层硬件的实现细节，是PyTorch框架内算子分发、编译优化、跨硬件适配的统一“语言”。ATen IR接口说明，请参考[pytorch/aten/src/ATen/native](https://github.com/pytorch/pytorch/tree/main/aten/src/ATen/native#readme)。
 
 ## 为什么要做算子适配
 

@@ -135,9 +135,10 @@ backward:
 
 ### symint算子适配
 
-> [!NOTE]  
-> symint类型算子需参考此部分进行适配。<br>
-> 以下yaml配置和适配文件为已有配置和文件，此处仅为示例，用户需根据实际场景更改。
+> [!NOTE]
+>
+> - symint类型算子需参考此部分进行适配。
+> - 以下yaml配置和适配文件为已有配置和文件，此处仅为示例，用户需根据实际场景更改。
 
 symint为PyTorch在v2.0及以上版本新增的数据类型，op\_plugin/config/op\_plugin\_functions.yaml配置中对应添加了symint类型。配置在symint字段下的函数表示底层函数实现支持了symint类型入参。对于底层不支持symint的函数，则无需在symint字段配置。当需要在symint字段配置时，用户进行如下操作进行算子适配:
 
