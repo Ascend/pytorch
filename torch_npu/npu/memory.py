@@ -968,6 +968,7 @@ def _snapshot(device=None, augment_with_fx_traces=False):
             frames: List[Frame]
             size: int
             stream: int
+            time_us: int # absolute timestamp of the event in microseconds since unix epoch
             pool_id: Tuple[int, int] # id of the memory pool for this entry
             device_free: int # only present for OOM, the amount of
                             # memory npu still reports to be free

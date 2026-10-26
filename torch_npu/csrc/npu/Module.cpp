@@ -1370,6 +1370,7 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* arg) {
 
   if (mempool_id.first == 0 && mempool_id.second == 0) {
     auto workspace_snapshot = c10_npu::NPUWorkspaceAllocator::snapshot();
+
     for (size_t i = 0; i < workspace_snapshot.segments.size(); i++) {
       segments.append(segmentInfoToDict(workspace_snapshot.segments[i]));
     }
@@ -1397,6 +1398,7 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* arg) {
   py::str oom_s = "oom";
   py::str device_free_s = "device_free";
   py::str pool_id_s = "pool_id";
+  py::str time_us_s = "time_us";
 
   using namespace c10_npu::NPUCachingAllocator;
 
@@ -1442,6 +1444,7 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* arg) {
       trace_entry[te.action_ == TraceEntry::OOM ? device_free_s : addr_s] = te.addr_;
       trace_entry[size_s] = te.size_;
       trace_entry[stream_s] = int64_t(te.stream_);
+      trace_entry[time_us_s] = te.time_.t_;
       trace_entry[pool_id_s] = te.mempool_;
       trace.append(trace_entry);
     }

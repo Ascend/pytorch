@@ -2159,11 +2159,16 @@ class DeviceCachingAllocator {
     return result;
   }
 
-  std::vector<TraceEntry> trace() {
+  std::vector<TraceEntry> trace(const std::function<c10::time_t(c10::approx_time_t)>& tsc_to_us) {
     std::lock_guard<std::recursive_mutex> lock(mutex);
     std::vector<TraceEntry> result;
     alloc_buffer.getEntries(result);
 
+    // Convert all the timestamps from approximate clock ticks to epoch time
+    // in microseconds.
+    for (auto& te : result) {
+      te.time_.t_ = tsc_to_us(te.time_.approx_t_);
+    }
     return result;
   }
 
@@ -3510,6 +3515,7 @@ class DeviceCachingAllocator {
         size,
         stream,
         mempool_id,
+        c10::getApproximateTime(),
         record_context_ >= RecordContext::ALLOC ? std::move(context) : nullptr);
 
     // Callbacks should not include any Pytorch call
@@ -3909,11 +3915,19 @@ class NpuCachingAllocator : public NPUAllocator {
     return;
   }
 
+  c10::ApproximateClockToUnixTimeConverter clock_converter;
+
   SnapshotInfo snapshot(MempoolId_t mempool_id) override {
     SnapshotInfo result;
     int count = static_cast<int>(device_allocator.size());
+
+    // Set-up converter to convert timestamps from approximate clock ticks
+    // to microseconds.
+    auto tsc_to_ns = clock_converter.makeConverter();
+    auto tsc_to_us = [=](c10::approx_time_t t_approx) { return tsc_to_ns(t_approx) / 1000; };
+
     for (int i = 0; i < count; i++) {
-      result.device_traces.emplace_back(device_allocator[i]->trace());
+      result.device_traces.emplace_back(device_allocator[i]->trace(tsc_to_us));
       auto snap = device_allocator[i]->snapshot(mempool_id);
       result.segments.insert(result.segments.end(), snap.begin(), snap.end());
     }

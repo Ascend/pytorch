@@ -1,6 +1,7 @@
 #pragma once
 
 #include <c10/core/CachingDeviceAllocator.h>
+#include <c10/util/ApproximateClock.h>
 #include <c10/util/Registry.h>
 #include <c10/util/SmallVector.h>
 #include "torch_npu/csrc/logging/LogContext.h"
@@ -114,6 +115,14 @@ struct AllocatorState {
   virtual ~AllocatorState() = default;
 };
 
+// Timestamp storage for trace entries. At record time it holds the raw
+// approximate-clock tick (approx_t_); at snapshot time it is overwritten in
+// place with unix epoch microseconds (t_).
+union trace_time_ {
+  c10::time_t t_;
+  c10::approx_time_t approx_t_;
+};
+
 struct TraceEntry {
   enum Action {
     ALLOC, // API made to the caching allocator for new memory
@@ -141,6 +150,7 @@ struct TraceEntry {
       size_t size,
       aclrtStream stream,
       MempoolId_t mempool = {0, 0},
+      c10::approx_time_t time = 0,
       std::shared_ptr<c10::GatheredContext> context = nullptr)
       : action_(action),
         device_(device),
@@ -148,7 +158,9 @@ struct TraceEntry {
         context_(std::move(context)),
         stream_(stream),
         size_(size),
-        mempool_(std::move(mempool)) {}
+        mempool_(std::move(mempool)) {
+    time_.approx_t_ = time;
+  }
   Action action_;
   int device_;
   int64_t addr_; // for OOM, this is the amount of free bytes reported by cuda
@@ -156,6 +168,7 @@ struct TraceEntry {
   aclrtStream stream_;
   int64_t size_;
   MempoolId_t mempool_;
+  trace_time_ time_{};
 };
 
 struct SnapshotInfo {

@@ -284,6 +284,7 @@ class DeviceWorkspaceAllocator {
           block_pair.second->size,
           block_pair.first,
           MempoolId_t{0, 0},
+          c10::getApproximateTime(),
           record_context_ >= RecordContext::ALLOC ? block_pair.second->context_when_allocated : nullptr);
       alloc_trace.emplace_back(te);
 
@@ -294,6 +295,7 @@ class DeviceWorkspaceAllocator {
           block_pair.second->size,
           block_pair.first,
           MempoolId_t{0, 0},
+          c10::getApproximateTime(),
           record_context_ >= RecordContext::ALLOC ? block_pair.second->context_when_allocated : nullptr);
       alloc_trace.emplace_back(te);
 
@@ -304,6 +306,7 @@ class DeviceWorkspaceAllocator {
           block_pair.second->size,
           block_pair.first,
           MempoolId_t{0, 0},
+          c10::getApproximateTime(),
           record_context_ >= RecordContext::ALLOC ? block_pair.second->context_when_allocated : nullptr);
       alloc_trace.emplace_back(te);
     }
@@ -405,6 +408,9 @@ static void local_raw_delete(void* ptr);
 class NpuWorkspaceAllocator : public c10::Allocator {
  public:
   std::vector<std::unique_ptr<DeviceWorkspaceAllocator>> device_allocator;
+  // Workspace traces are recorded as raw approximate-clock ticks; convert
+  // them to epoch microseconds in snapshot().
+  c10::ApproximateClockToUnixTimeConverter clock_converter;
 
   void init(int device_count) {
     int size = static_cast<int>(device_allocator.size());
@@ -459,6 +465,14 @@ class NpuWorkspaceAllocator : public c10::Allocator {
       result.device_traces.emplace_back(device_allocator[i]->get_trace());
       auto snap = device_allocator[i]->get_segm();
       result.segments.insert(result.segments.end(), snap.begin(), snap.end());
+    }
+    // Convert workspace trace timestamps from raw approximate-clock ticks to
+    // epoch microseconds.
+    auto tsc_to_ns = clock_converter.makeConverter();
+    for (auto& trace : result.device_traces) {
+      for (auto& te : trace) {
+        te.time_.t_ = tsc_to_ns(te.time_.approx_t_) / 1000;
+      }
     }
     return result;
   }
