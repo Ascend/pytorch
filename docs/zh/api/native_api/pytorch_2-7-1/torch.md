@@ -8046,8 +8046,6 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1074 -->
 
-**限制与说明**： `input`仅支持fp32
-
 </div>
 
 ### <code><i>class</i></code> torch.SymBool
