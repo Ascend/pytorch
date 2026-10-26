@@ -25,6 +25,8 @@ class TestCompileOptionsColdStart(TestCase):
             timeout=90,
             env=env,
         )
+        if result.returncode == 77:
+            self.skipTest(result.stdout.strip())
         self.assertEqual(
             result.returncode,
             0,
@@ -46,6 +48,8 @@ class TestCompileOptionsColdStart(TestCase):
             )
             assert callable(compiled)
             assert "torch_npu._inductor" not in sys.modules
+            from torch._inductor import codecache
+            codecache.triton_key()
             assert not torch.npu.is_initialized()
         """)
 
@@ -67,6 +71,69 @@ class TestCompileOptionsColdStart(TestCase):
             for key, value in options.items():
                 assert wrapper.config[key] == value, (key, wrapper.config)
             assert "torch_npu._inductor" not in sys.modules
+            assert not torch.npu.is_initialized()
+        """)
+
+    def test_triton_cache_key_does_not_initialize_npu(self):
+        self._run_fresh("""
+            import torch
+            import torch_npu
+            from torch_npu.utils._triton import patch_triton_target_no_device_init
+
+            if not patch_triton_target_no_device_init():
+                print("SKIP: Ascend Triton target patch unavailable")
+                raise SystemExit(77)
+            from torch._inductor import codecache
+
+            assert not torch.npu.is_initialized()
+            key = codecache.triton_key()
+            assert isinstance(key, str) and key
+            assert not torch.npu.is_initialized()
+
+            compiled = torch.compile(lambda x: x + 1)
+            assert callable(compiled)
+            # Join the speculative prefetch started by torch.compile(); a cache
+            # miss here walks and imports the Triton backend packages.
+            assert codecache.triton_key() == key
+            assert not torch.npu.is_initialized()
+        """)
+
+    def test_ascend_triton_backend_import_keeps_npu_lazy(self):
+        self._run_fresh("""
+            import torch
+            import torch_npu
+            from torch_npu.utils._triton import patch_triton_target_no_device_init
+
+            if not patch_triton_target_no_device_init():
+                print("SKIP: Ascend Triton target patch unavailable")
+                raise SystemExit(77)
+
+            import triton.backends.ascend.runtime
+            import triton.backends.ascend.runtime.cv_autotune
+            from triton.backends.ascend.runtime.cv_autotune.hardware_consts import (
+                get_default_hardware_constraints,
+            )
+            assert get_default_hardware_constraints().max_l1_size > 0
+            assert not torch.npu.is_initialized()
+            assert patch_triton_target_no_device_init() is False
+        """)
+
+    def test_triton_target_patch_is_idempotent(self):
+        self._run_fresh("""
+            import sys
+            import torch
+            import torch_npu
+            from torch_npu.utils._triton import patch_triton_target_no_device_init
+
+            name = "triton.backends.ascend.runtime.utils"
+            if not patch_triton_target_no_device_init():
+                print("SKIP: Ascend Triton target patch unavailable")
+                raise SystemExit(77)
+            assert patch_triton_target_no_device_init() is False
+            import triton.backends.ascend.runtime.utils as runtime_utils
+            assert sys.modules[name] is runtime_utils
+            assert runtime_utils.target.arch
+            assert patch_triton_target_no_device_init() is False
             assert not torch.npu.is_initialized()
         """)
 

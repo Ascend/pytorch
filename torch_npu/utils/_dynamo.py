@@ -213,6 +213,12 @@ def patch_inductor_wrapper():
         finally:
             del self._npu_defer_shape_handling
             del self._npu_shape_handling_requested
+        # Keep this hook outside torch_npu._inductor, whose import initializes the backend.
+        from torch_npu.utils._triton import patch_triton_target_no_device_init
+
+        # torch.compile() prefetches cache keys as soon as this constructor
+        # returns, and hashing them imports Ascend Triton backend packages.
+        patch_triton_target_no_device_init()
         _lazy_dynamo_setup()
         if shape_handling_requested:
             _patch_shape_handling()
