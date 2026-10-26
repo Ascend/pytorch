@@ -14,6 +14,7 @@ from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch.lowering
 )
 from torch_npu._inductor.lowering_common import TracedGraph, create_fake_input
 
+from . import config as dvm_config
 from .op_emitter import mm_rule
 
 aten = torch.ops.aten
@@ -193,6 +194,7 @@ def _register_dvm_mm_template_lowerings():
 
 
 def _keep_addmm_for_dvm_template():
+    """Keep existing addmm nodes by disabling addmm -> mm + add."""
     from torch._inductor.fx_passes import post_grad
 
     for entries in post_grad.pass_patterns[2].patterns.values():
@@ -200,6 +202,22 @@ def _keep_addmm_for_dvm_template():
             if entry.extra_check is post_grad.should_prefer_unfused_addmm:
                 entry.extra_check = lambda _match: False
                 return
+
+
+def _disable_addmm_fusion_for_dvm():
+    """Disable mm + add -> addmm when matmul templates are not enabled."""
+    if (
+        not dvm_config.disable_addmm_fusion
+        or dvm_config.enable_matmul_fusion
+    ):
+        return
+
+    from torch._inductor.fx_passes import post_grad
+
+    for entries in post_grad.pass_patterns[2].patterns.values():
+        for entry in entries:
+            if getattr(entry, "handler", None) is post_grad.addmm:
+                entry.extra_check = lambda _match: False
 
 
 def patch_dvm_matmul_template_fusion() -> None:
