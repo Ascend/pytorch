@@ -91,7 +91,7 @@ import torch_npu
 
 from torch_npu._inductor.npu_compare import check_accuracy_triton
 
-from .tile_generator import TileGenerator
+from .tile_generator import TileGenerator, ub_overflow_retry_configs
 from ..codegen.triton_utils import NPUKernelType
 from ..config import log, autotune_continue_on_failure
 from .. import config as npu_config
@@ -943,6 +943,7 @@ class NPUCachingAutotuner(CachingAutotuner):
             raise NoTritonConfigsError("No triton configs are available")
 
         compile_start_time = time.perf_counter()
+        attempted_configs = list(configs)
         compile_results, exceptions, exception_stacks = compile_once(configs)
         successful_results = [
             result for result in compile_results if result is not None
@@ -956,10 +957,28 @@ class NPUCachingAutotuner(CachingAutotuner):
                 ),
                 (None, ""),
             )
-            raise NoTritonConfigsError(
+            error = NoTritonConfigsError(
                 f"No valid triton configs for kernel {self.get_fn_name()}. "
                 f"{type(exc).__name__}: {exc} \nStack trace:{exc_stack}"
             )
+            # All compile tasks have finished. Only an entirely UB-overflow
+            # batch supplies feedback to the outer, one-shot search stage.
+            if type(self) is NPUCachingAutotuner and len(exceptions) == len(attempted_configs):
+                failures = []
+                for cfg, failure in zip(attempted_configs, exceptions):
+                    match = re.search(
+                        r"ub overflow.*?requires (\d+) bits while (\d+) bits available",
+                        str(failure), re.IGNORECASE,
+                    ) if failure is not None else None
+                    if match is None:
+                        break
+                    required, available = map(int, match.groups())
+                    if not required > available > 0:
+                        break
+                    failures.append((cfg, required, available))
+                else:
+                    error.ub_overflow_failures = tuple(failures)
+            raise error
         log.debug(
             "kernel: %s config compile elapsed time: %ss",
             self.get_fn_name(),
@@ -987,7 +1006,64 @@ class NPUCachingAutotuner(CachingAutotuner):
         if self.launchers:
             raise AssertionError("Before _precompile_worker, launchers must bt empty")
 
-        self._precompile_current_configs(compile_fn)
+        # Only the ordinary autotuner supports UB retry. Subclasses keep their
+        # existing precompile flow, including costmodel and grouped autotune.
+        if type(self) is not NPUCachingAutotuner:
+            self._precompile_current_configs(compile_fn)
+            return
+
+        try:
+            self._precompile_current_configs(compile_fn)
+        except NoTritonConfigsError as error:
+            failures = getattr(error, "ub_overflow_failures", ())
+            if not failures:
+                raise
+            try:
+                if self._retry_with_smaller_configs(compile_fn, failures):
+                    return
+            except NoTritonConfigsError:
+                pass
+            # A failed or unavailable retry must preserve the original batch error.
+            raise
+
+    def _retry_with_smaller_configs(self, compile_fn, failures):
+        if (
+            getattr(self, "_ub_retry_attempted", False)
+            or self.custom_kernel
+            or self.inductor_meta.get("group_enabled", False)
+        ):
+            return False
+        original_configs = unique_configs(self.configs)
+        constexpr_names = {self.fn.arg_names[index] for index in self.fn.constexprs}
+        extra_configs = ub_overflow_retry_configs(
+            original_configs, failures, self.inductor_meta, constexpr_names,
+            self.runtime_block_arg_names,
+            persistent_reduction=self.heuristic_type in (
+                HeuristicType.PERSISTENT_REDUCTION, HeuristicType.TEMPLATE,
+            ),
+        )
+        if not extra_configs:
+            return False
+        self._ub_retry_attempted = True
+        expanded_configs = [*original_configs, *extra_configs]
+        expanded_plan = self._build_candidate_plan(expanded_configs)
+        extra_variant_ids = {
+            entry["variant_id"] for entry in expanded_plan["candidate_entries"][len(original_configs):]
+        }
+        extra_variants = [cfg for cfg in self._precompile_variant_configs(expanded_configs)
+                          if cfg._runtime_variant_id in extra_variant_ids]
+        log.warning(
+            "All original configs failed with UB overflow for %s; "
+            "retry adds %d smaller configs once: %s",
+            self.get_fn_name(), len(extra_variants), [cfg.kwargs for cfg in extra_variants],
+        )
+        # Compile the appended configs once, without recursive expansion.
+        compile_results = compile_fn(extra_variants)
+        # Publish the expanded candidate space only after the new batch succeeds.
+        self.configs = expanded_configs
+        self.candidate_plan = expanded_plan
+        self.compile_results = compile_results
+        return True
 
     def _precompile_worker_serial(self):
         self._precompile_worker_with(self._precompile_configs)

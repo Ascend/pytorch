@@ -378,6 +378,14 @@ class ReductionAnalysis:
 
     def dense_post_reduction_list(self) -> List[str]:
         reduction_list_str = f"{' * '.join(self.dense_reduction_list())}"
+        if self.kernel._use_contiguous_sum_layout():
+            # Reduction slots become "1" outside the reduction body. Filter
+            # by axis identity so those slots do not reappear as kept axes.
+            return [
+                f"{axis.name.upper()}BLOCK_SUB"
+                for axis in reversed(self.kernel.golden_var_list)
+                if axis.name[0] != "r"
+            ] + [reduction_list_str]
         no_reduction_list = []
         # ensure order
         for dense_size in self.dense_size_list():

@@ -11,6 +11,8 @@ from torch._inductor.scheduler import (
     Scheduler,
     SchedulerNode,
 )
+from torch._inductor.virtualized import V
+from torch.utils._ordered_set import OrderedSet
 
 from ..autotune_process import FusedCATLASSBenchmarkRequest
 from .. import config as npu_config
@@ -102,7 +104,67 @@ class NPUCombinedScheduling(CUDACombinedScheduling, TritonScheduling):
                 template_node, epilogue_nodes, prologue_nodes
             )
 
+    def _regroup_for_nolinear(self, nodes: Sequence[BaseSchedulerNode]) -> list[BaseSchedulerNode]:
+        snodes = list(dict.fromkeys(snode for node in nodes for snode in node.get_nodes()))
+        use_canonical_group = False
+        if npu_config.enable_welford:
+            from ..choices import contains_welford_group
+
+            use_canonical_group = contains_welford_group(snodes)
+        for snode in snodes:
+            group = self._nolinear_triton_scheduling.group_fn(snode._sizes)
+            if use_canonical_group:
+                group = tuple(_canonical_group_size(size) for size in group)
+            snode.group = (snode.group[0], group)
+        return snodes
+
+    def _split_nolinear_nodes(self, snodes: Sequence[BaseSchedulerNode]) -> list[BaseSchedulerNode]:
+        # Fusion was accepted with index groups.  Revalidate it with the
+        # fallback backend after rebuilding scalar groups from merged loops.
+        assert self.scheduler is not None
+        snodes = self.scheduler.topological_sort_schedule(list(snodes))
+        groups: list[BaseSchedulerNode] = []
+        backend = self._nolinear_triton_scheduling
+        for snode in snodes:
+            if groups:
+                previous = groups[-1]
+                vertical = bool(previous.get_operation_names() & snode.ancestors)
+                can_fuse = backend.can_fuse_vertical if vertical else backend.can_fuse_horizontal
+                if can_fuse(previous, snode):
+                    groups[-1] = FusedSchedulerNode.fuse(previous, snode)
+                    continue
+            groups.append(snode)
+        return groups
+
+    def _codegen_nolinear_groups(self, node: BaseSchedulerNode, groups: Sequence[BaseSchedulerNode]) -> None:
+        assert self.scheduler is not None
+        scheduler = self.scheduler
+        # Preserve buffers needed outside the original fused node, then compute
+        # last uses at the new kernel boundaries (including aliases/mutations).
+        future_used_buffers = OrderedSet(
+            scheduler.mutation_real_name.get(name, name)
+            for name in node.used_or_aliased_buffer_names()
+        ) - node.last_usage
+        for group in reversed(groups):
+            group.set_last_usage(future_used_buffers, scheduler.mutation_real_name)
+            future_used_buffers.update(group.last_usage)
+            for snode in group.get_nodes():
+                scheduler.name_to_fused_node[snode.get_name()] = group
+
+        # The outer scheduler queued all of node.last_usage before entering
+        # codegen.  Each subkernel must free only its own last uses instead.
+        scheduler.buffer_names_to_free.difference_update(node.last_usage)
+        # Keep current_node as the original entry in scheduler.nodes: wrapper
+        # memory planning uses its position in that list for allocations/frees.
+        for group in groups:
+            scheduler.buffer_names_to_free.update(group.last_usage)
+            self._nolinear_triton_scheduling.codegen_node(group)
+            scheduler.available_buffer_names.update(group.get_buffer_names())
+            scheduler.completed_operations.update(group.get_operation_names())
+
     def codegen_node(self, node: FusedSchedulerNode | SchedulerNode):
+        removed_buffers = V.graph.removed_buffers.copy()
+        inplaced_to_remove = V.graph.inplaced_to_remove.copy()
         try:
             return self._triton_scheduling.codegen_node(node)
         except Exception:
@@ -111,24 +173,15 @@ class NPUCombinedScheduling(CUDACombinedScheduling, TritonScheduling):
                 node,
                 exc_info=True,
             )
-        # regroup snode
-        use_canonical_group = False
-        if npu_config.enable_welford:
-            from ..choices import contains_welford_group
-
-            # Canonicalize group sizes only for kernels containing Welford
-            # reductions; unrelated kernels keep the raw (baseline) groups.
-            use_canonical_group = contains_welford_group(node.get_nodes())
-        for snode in node.get_nodes():
-            group_fn = self._nolinear_triton_scheduling.group_fn
-            if use_canonical_group:
-                snode.group = (
-                    snode.group[0],
-                    tuple(_canonical_group_size(size) for size in group_fn(snode._sizes)),
-                )
-            else:
-                snode.group = (snode.group[0], group_fn(snode._sizes))
-        return self._nolinear_triton_scheduling.codegen_node(node)
+        # A failed fused kernel may have marked intermediates as kernel-local.
+        # Split fallback kernels need those buffers to be materialized again.
+        V.graph.removed_buffers.clear()
+        V.graph.removed_buffers.update(removed_buffers)
+        V.graph.inplaced_to_remove.clear()
+        V.graph.inplaced_to_remove.update(inplaced_to_remove)
+        snodes = self._regroup_for_nolinear([node])
+        groups = self._split_nolinear_nodes(snodes)
+        return self._codegen_nolinear_groups(node, groups)
 
     def benchmark_fused_nodes(self, nodes):
         try:
@@ -139,12 +192,18 @@ class NPUCombinedScheduling(CUDACombinedScheduling, TritonScheduling):
                 {n.get_name() for n in nodes},
                 exc_info=True,
             )
-        # regroup snode
-        for node in nodes:
-            for snode in node.get_nodes():
-                group_fn = self._nolinear_triton_scheduling.group_fn
-                snode.group = (snode.group[0], group_fn(snode._sizes))
-        return self._nolinear_triton_scheduling.benchmark_fused_nodes(nodes)
+        snodes = list(dict.fromkeys(snode for node in nodes for snode in node.get_nodes()))
+        original_groups = [(snode, snode.group) for snode in snodes]
+        try:
+            self._regroup_for_nolinear(nodes)
+            groups = self._split_nolinear_nodes(snodes)
+            if len(groups) != 1:
+                # A split kernel is not the fused candidate being benchmarked.
+                return float("inf"), ""
+            return self._nolinear_triton_scheduling.benchmark_fused_nodes(groups[0].get_nodes())
+        finally:
+            for snode, group in original_groups:
+                snode.group = group
 
     def benchmark_codegened_module(self, module):
         if isinstance(module, FusedCATLASSBenchmarkRequest):

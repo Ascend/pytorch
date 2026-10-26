@@ -3053,6 +3053,8 @@ class NPUIndexTritonKernel(TritonKernel):
 
     # for creat constant tensor, if have two axis, constant=tl.full([1,1]) else  tl.full([1])
     def triton_tensor_ndim(self):
+        if self._use_contiguous_sum_layout():
+            return len(self.golden_var_list) - self.numof_reduction_axis() + 1
         if self.numof_reduction_axis() > 1:
             if self.is_contiguous_reduction():
                 return len(self.tiling_axis) - self.numof_reduction_axis() + 1
@@ -3895,6 +3897,36 @@ class NPUIndexTritonKernel(TritonKernel):
             sizes[i] = f"{axis.name.upper()}BLOCK_SUB"
         return sizes
 
+    def _use_contiguous_sum_layout(self):
+        # Limit the layout correction to sum kernels with adjacent value
+        # reduction axes and at least one preserved output axis. In particular,
+        # do not change indexed/statistical reductions or mixed reduction kernels.
+        num_red = self.numof_reduction_axis()
+        if num_red <= 1:
+            return False
+
+        node_schedule = getattr(self, "node_schedule", None)
+        if node_schedule is None:
+            node_schedule = self.features.node_schedule
+        reductions = [
+            node.node.data
+            for node in self._iter_schedule_nodes(node_schedule)
+            if isinstance(node.node.data, ir.Reduction)
+        ]
+        if not reductions or any(node.reduction_type != "sum" for node in reductions):
+            return False
+
+        if not self.golden_var_list:
+            self.select_golden_varlist()
+        reduction_dims = [
+            i for i, axis in enumerate(self.golden_var_list) if axis.name[0] == "r"
+        ]
+        return (
+            len(reduction_dims) == num_red
+            and num_red < len(self.golden_var_list)
+            and reduction_dims[-1] - reduction_dims[0] + 1 == num_red
+        )
+
     def is_contiguous_reduction(self):
         def is_contiguous_axis(axis_list):
             axis_set = set(axis_list)  # noqa: set_linter
@@ -3912,7 +3944,7 @@ class NPUIndexTritonKernel(TritonKernel):
             for i, x in enumerate(reversed(stride_sorted_var_list)):
                 if x.name[0] == "r":
                     reduction_dim_list.append(i)
-            return is_contiguous_axis(reduction_dim_list)
+            return is_contiguous_axis(reduction_dim_list) or self._use_contiguous_sum_layout()
         return False
 
     def dense_size_str(self):
@@ -4115,6 +4147,14 @@ class NPUIndexTritonKernel(TritonKernel):
 
         dense_size_str = self.dense_size_str()
         value_shape = tuple(self.dense_size_list())
+        use_contiguous_sum_layout = self._use_contiguous_sum_layout()
+        broadcast_shape = (
+            tuple(self.reduce_analysis.dense_size_list())
+            if use_contiguous_sum_layout else value_shape
+        )
+        broadcast_size_str = (
+            f"[{', '.join(broadcast_shape)}]" if use_contiguous_sum_layout else dense_size_str
+        )
         permute_order = None
         need_permute = False
         axis_list = []
@@ -4123,13 +4163,13 @@ class NPUIndexTritonKernel(TritonKernel):
                 if str(axis) in str(index) and (axis not in axis_list):
                     axis_list.append(axis)
 
-        if len(axis_list) < len(self.dense_size_list()):
+        if len(axis_list) < len(broadcast_shape):
             value = self._map_tuple_or_scalar(
                 lambda v: self.cse.generate(
                     self.compute,
-                    f"tl.broadcast_to({v}, {dense_size_str})",
+                    f"tl.broadcast_to({v}, {broadcast_size_str})",
                     dtype=v.dtype,
-                    shape=value_shape,
+                    shape=broadcast_shape,
                 ),
                 value,
             )
@@ -4226,8 +4266,14 @@ class NPUIndexTritonKernel(TritonKernel):
         dim = self.reduction_dim()
         acc_type = triton_acc_type(src_dtype)
         torch_acc_type = upcast_acc_dtype(src_dtype)
-        result_shape = list(self.dense_size_list())
-        result_shape[dim] = "1"
+        if use_contiguous_sum_layout:
+            result_shape = [
+                "1" if axis.name[0] == "r" else size
+                for axis, size in zip(reversed(self.golden_var_list), broadcast_shape)
+            ]
+        else:
+            result_shape = list(self.dense_size_list())
+            result_shape[dim] = "1"
         result_var: Any = self.cse.newvar(dtype=torch_acc_type, shape=tuple(result_shape))
         result_var.mask_vars = {var for var in masks if var[0] != "r"}  # noqa: set_linter
         cond_expr = " & ".join(masks)
@@ -4476,7 +4522,7 @@ class NPUIndexTritonKernel(TritonKernel):
                     self.compute,
                     final_reduction(masked_value),
                     dtype=masked_value.dtype,
-                    shape=masked_value.shape,
+                    shape=tuple(result_shape) if use_contiguous_sum_layout else masked_value.shape,
                 )
         else:
             accumulator = self.cse.namedvar(f"_{result_var}", dtype=torch_acc_type, shape=tuple(self.dense_size_list()))

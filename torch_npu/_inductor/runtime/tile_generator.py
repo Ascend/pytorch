@@ -16,6 +16,95 @@ def aligned_numel_32byte(numel, dtype_bytes):
     return aligned
 
 
+def ub_overflow_retry_configs(
+    configs, failures, inductor_meta, constexpr_names, runtime_block_names=(),
+    persistent_reduction=False, max_configs=4,
+):
+    """Continue below the smallest failed tile, in one bounded batch.
+
+    Compiler UB demand is only an estimate for a smaller tile.  Keep the
+    compile mode/options and fixed axes, and let compilation validate it.
+    """
+    axis_names = inductor_meta.get("axis_names", ())
+    tiling_axes = inductor_meta.get("tiling_axis", ())
+    if not axis_names or not tiling_axes or max_configs <= 0:
+        return []
+    constexpr_names = set(constexpr_names)
+    remap = inductor_meta.get("requires_no_linear_block_remap") is True
+    block_names = []
+    for axis in tiling_axes:
+        name = axis_names[axis].upper() + ("BLOCK" if remap else "BLOCK_SUB")
+        if name in constexpr_names:
+            block_names.append((axis, name))
+    if not block_names:
+        return []
+
+    def key(cfg):
+        # Runtime blocks and legacy split_blocks do not change compilation.
+        ignored = {*runtime_block_names, "split_blocks"}
+        options = tuple(getattr(cfg, name, None) for name in ("num_warps", "num_stages", "num_ctas", "maxnreg"))
+        return (options, tuple(sorted(
+            (name, repr(value)) for name, value in cfg.kwargs.items() if name not in ignored
+        )))
+
+    def volume(cfg):
+        return functools.reduce(lambda a, b: a * b, (
+            cfg.kwargs[name] for _, name in block_names
+        ), 1)
+
+    reports = {}
+    for cfg, required, available in failures:
+        if required > available > 0:
+            cfg_key = key(cfg)
+            previous = reports.get(cfg_key)
+            if previous is None or required * previous[1] < previous[0] * available:
+                reports[cfg_key] = (required, available)
+    seeds = [cfg for cfg in configs if key(cfg) in reports and all(
+        isinstance(cfg.kwargs.get(name), int) and cfg.kwargs[name] > 0 for _, name in block_names
+    )]
+    if not seeds:
+        return []
+    seed = min(seeds, key=lambda cfg: (volume(cfg), bool(cfg.kwargs.get("multibuffer", False))))
+    minimum_volume = min(volume(cfg) for cfg in configs if all(
+        isinstance(cfg.kwargs.get(name), int) and cfg.kwargs[name] > 0 for _, name in block_names
+    ))
+    required, available = reports[key(seed)]
+    # Leave 20% headroom for alignment, fixed buffers and non-linear lowering.
+    target_volume = min(minimum_volume - 1, volume(seed) * available * 4 // (required * 5))
+    fixed_axes = set(inductor_meta.get("no_loop_axis", ()))
+    shrink_names = [name for axis, name in block_names if axis not in fixed_axes and not (
+        persistent_reduction and axis_names[axis].startswith("r")
+    )]
+    if not shrink_names:
+        return []
+
+    candidate = copy.deepcopy(seed)
+
+    def descend():
+        # Reduce outer axes first, then continue into the inner tile.  This
+        # follows one chain rather than expanding a Cartesian product of axes.
+        for name in shrink_names:
+            value = candidate.kwargs[name]
+            if value > 1:
+                candidate.kwargs[name] = 1 << ((value - 1).bit_length() - 1)
+                return True
+        return False
+
+    while volume(candidate) > max(1, target_volume):
+        if not descend():
+            break
+    seen = {key(cfg) for cfg in configs}
+    extra_configs = []
+    for _ in range(max_configs):
+        candidate_key = key(candidate)
+        if volume(candidate) < minimum_volume and candidate_key not in seen:
+            extra_configs.append(copy.deepcopy(candidate))
+            seen.add(candidate_key)
+        if not descend():
+            break
+    return extra_configs
+
+
 # generate tiling configs
 class TileGenerator:
 
