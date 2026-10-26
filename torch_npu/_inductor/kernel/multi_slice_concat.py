@@ -1,24 +1,10 @@
 """Triton template and lowering for ``npu_ext::multi_slice_concat``.
 
-A run of fixed-width column slices over several wide tables, lowered to a single
-kernel: blocked by rows, each program handling all segments for ``BLOCK_ROWS`` rows,
-with segments unrolled statically at render time. Source indices, offsets and widths
-are compile-time constants, so addressing is affine fixed-width copies, not a gather.
+The segments are unrolled into one kernel blocked by rows; offsets and widths are
+compile-time constants. ``cat_dim=1`` lays them side by side, ``cat_dim=0`` stacks them.
 
-Masked segments add a ``tl.where``. The mask is a ``[rows, 1]`` boolean loaded once up
-front and reused across segments.
-
-Output goes through ``manual_output_buffer``: the full output can be thousands of
-columns wide, too much to stage on chip for a single ``store_output``, so the template
-stores per segment instead. That gives up epilogue fusion: with no ``store_output`` there
-is no hook to render an epilogue into, and one fused in anyway would be skipped by codegen
-rather than emitted, silently dropping the consumer's computation. The lowering therefore
-marks the output in ``V.graph.no_fuse_buffer_names``, which the scheduler honours before
-it asks the backend, so the concat is fused into nothing at all.
-
-The segment plan is baked into the template source and the instance cached by plan, so
-autotune kwargs stay down to ``BLOCK_ROWS`` and the kernel name does not grow with the
-offset count.
+The template stores the output itself (``manual_output_buffer``), so it has no
+``store_output`` hook and must not be fused with anything.
 """
 
 __all__ = ["_register_npu_inductor_multi_slice_concat"]
@@ -28,6 +14,7 @@ import hashlib
 import logging
 
 import sympy
+import torch
 
 from torch._inductor import ir
 from torch._inductor.ir import FixedLayout
@@ -46,8 +33,10 @@ log = logging.getLogger(__name__)
 
 @SymbolicGridFn
 def _multi_slice_concat_grid(rows, cols, meta, *, cdiv):
-    """Program count depends only on the row count, not the segment count."""
     return (cdiv(rows, meta["BLOCK_ROWS"]), 1, 1)
+
+
+_ALIGN_BYTES = 32
 
 
 def _next_pow2(n):
@@ -57,8 +46,33 @@ def _next_pow2(n):
     return p
 
 
-def _build_source(n_srcs, n_masks, src_idx, offsets, widths, mask_idx):
-    """Render the kernel source; all indices and widths are compile-time constants."""
+def _prev_pow2(n):
+    p = 1
+    while p * 2 <= n:
+        p *= 2
+    return p
+
+
+def _pad_width(width, esize):
+    """Tile width for a segment: a power of two, at least 32 bytes.
+
+    A tile row under 32 bytes drops the DMA to scalar moves. A power of two is faster
+    than a merely aligned width (10.0us vs 5.6us for 192 vs 256 fp16 columns).
+    The padding must be masked with a prefix ``cols < width``; any other mask shape
+    also falls back to scalar moves.
+    """
+    return max(_next_pow2(width), _next_pow2(max(1, _ALIGN_BYTES // esize)))
+
+
+def _out_index(cat_dim, idx, prefix, width, total):
+    """Output row stride and segment base offset, as source text."""
+    if cat_dim == 1:
+        return str(total), str(prefix)
+    # seg_rows is ROWS in INDEX_DTYPE; ROWS itself may be an int32 argument.
+    return str(width), "0" if idx == 0 else f"seg_rows * {idx * width}"
+
+
+def _build_source(n_srcs, n_masks, src_idx, offsets, widths, mask_idx, esize, cat_dim):
     total = sum(widths)
     src_names = [f"SRC{i}" for i in range(n_srcs)]
     mask_names = [f"MASK{i}" for i in range(n_masks)]
@@ -69,16 +83,17 @@ def _build_source(n_srcs, n_masks, src_idx, offsets, widths, mask_idx):
     for i, name in enumerate(src_names):
         lines.append('    stride_src%d_r = {{stride("%s", 0)}}' % (i, name))
         lines.append('    stride_src%d_c = {{stride("%s", 1)}}' % (i, name))
-    # Only column 0 of a mask is read, so the column stride is unused. A broadcast mask
-    # has row stride 0, making every row read the same element, which is correct.
     for i, name in enumerate(mask_names):
         lines.append('    stride_mask%d = {{stride("%s", 0)}}' % (i, name))
     lines.append("")
-    lines.append("    pid = tl.program_id(0).to(tl.int32)")
-    lines.append("    rows = pid * BLOCK_ROWS + tl.arange(0, BLOCK_ROWS)")
+    # Every index term carries INDEX_DTYPE: rows * stride overflows int32 long before
+    # the buffer needs 64-bit addressing.
+    lines.append("    pid = tl.program_id(0).to(INDEX_DTYPE)")
+    lines.append("    rows = pid * BLOCK_ROWS + tl.arange(0, BLOCK_ROWS).to(INDEX_DTYPE)")
     lines.append("    row_mask = rows < ROWS")
+    if cat_dim == 0 and len(widths) > 1:
+        lines.append("    seg_rows = tl.full([], ROWS, INDEX_DTYPE)")
 
-    # Load masks once up front so segments sharing one do not reload it.
     for i in range(n_masks):
         lines.append("")
         lines.append(
@@ -91,20 +106,25 @@ def _build_source(n_srcs, n_masks, src_idx, offsets, widths, mask_idx):
     for idx, (si, off, width, mi) in enumerate(
         zip(src_idx, offsets, widths, mask_idx)
     ):
-        pad = _next_pow2(width)
-        # tl.arange needs a power of two, so over-read and trim with a column mask.
+        pad = _pad_width(width, esize)
         access = (
             "row_mask[:, None]"
             if pad == width
             else f"row_mask[:, None] & (cols{idx}[None, :] < {width})"
         )
+        row_stride, out_base = _out_index(cat_dim, idx, prefix, width, total)
+        dest = (
+            f"out[:, {prefix}:{prefix + width}]"
+            if cat_dim == 1
+            else f"out rows [{idx} * ROWS, {idx + 1} * ROWS)"
+        )
         lines.append("")
         lines.append(
             f"    # segment {idx}: SRC{si}[:, {off}:{off + width}]"
             f"{'' if mi < 0 else f' masked by MASK{mi}'}"
-            f" -> out[:, {prefix}:{prefix + width}]"
+            f" -> {dest}"
         )
-        lines.append(f"    cols{idx} = tl.arange(0, {pad})")
+        lines.append(f"    cols{idx} = tl.arange(0, {pad}).to(INDEX_DTYPE)")
         lines.append(f"    val{idx} = tl.load(")
         lines.append(
             f"        arg_SRC{si} + rows[:, None] * stride_src{si}_r "
@@ -114,11 +134,11 @@ def _build_source(n_srcs, n_masks, src_idx, offsets, widths, mask_idx):
         lines.append("        other=0,")
         lines.append("    )")
         if mi >= 0:
-            # Zero the whole row where the mask is true, matching where(mask, 0, x).
             lines.append(f"    val{idx} = tl.where(m{mi}, 0, val{idx})")
         lines.append("    tl.store(")
         lines.append(
-            f"        OUT + rows[:, None] * {total} + ({prefix} + cols{idx}[None, :]),"
+            f"        OUT + rows[:, None] * {row_stride} "
+            f"+ ({out_base} + cols{idx}[None, :]),"
         )
         lines.append(f"        val{idx},")
         lines.append(f"        mask={access},")
@@ -129,62 +149,80 @@ def _build_source(n_srcs, n_masks, src_idx, offsets, widths, mask_idx):
 
 
 @functools.lru_cache(maxsize=None)
-def _template_for(n_srcs, n_masks, src_idx, offsets, widths, mask_idx):
-    """Cache the template by plan so a repeated plan reuses one instance."""
-    plan = (n_srcs, n_masks, src_idx, offsets, widths, mask_idx)
-    # TritonTemplate keys globally on name and raises on a collision, so the name has to
-    # track the plan. A content digest rather than hash(), which is only stable in-process.
+def _template_for(n_srcs, n_masks, src_idx, offsets, widths, mask_idx, esize, cat_dim):
+    plan = (n_srcs, n_masks, src_idx, offsets, widths, mask_idx, esize, cat_dim)
+    # Template names are global and must not collide; hash() is not stable across processes.
     digest = hashlib.sha256(repr(plan).encode()).hexdigest()[:16]
     return NPUTritonTemplate(
         name=f"npu_multi_slice_concat_{digest}",
         grid=_multi_slice_concat_grid,
-        source=_build_source(n_srcs, n_masks, src_idx, offsets, widths, mask_idx),
+        source=_build_source(n_srcs, n_masks, src_idx, offsets, widths, mask_idx,
+                             esize, cat_dim),
         manual_output_buffer="arg_OUT",
     )
 
 
-# Only one segment is resident at a time: BLOCK_ROWS x next_pow2(width) elements.
-# Capping on element count keeps a wide segment plus a large BLOCK_ROWS on chip.
-_MAX_TILE_ELEMS = 32768
+# How many segment tiles stay live is up to the backend allocator; a 16-segment kernel
+# was seen holding 8. Over-reserving only lowers BLOCK_ROWS, which device time is flat
+# in; under-reserving fails the only config and aborts the graph compile.
+_ASSUMED_LIVE_TILES = 8
+
+# The smallest UB among known targets, used when the backend cannot tell us.
+_FALLBACK_UB_BYTES = 192 * 1024
+
+_MAX_BLOCK_ROWS = 256
 
 
-def _get_configs(max_width):
-    """Row-blocking configs. For a pure copy kernel only the rows per program matter;
-    num_stages / num_warps reuse the mm template's range rather than widening the search."""
-    row_cap = max(1, _MAX_TILE_ELEMS // _next_pow2(max_width))
-    configs = []
-    for block_rows in (8, 32, 64, 128, 256):
-        if block_rows > row_cap:
-            break
-        for num_stages in (2, 3):
-            for num_warps in (4, 8):
-                configs.append(
-                    {
-                        "BLOCK_ROWS": block_rows,
-                        "num_stages": num_stages,
-                        "num_warps": num_warps,
-                    }
-                )
-    # A very wide segment can push row_cap below 8; keep one config so choices is non-empty.
-    if not configs:
-        configs = [{"BLOCK_ROWS": max(1, row_cap), "num_stages": 2, "num_warps": 4}]
-    return configs
+@functools.lru_cache(maxsize=None)
+def _ub_bytes():
+    """Usable UB bytes, from the backend's budget rather than the raw capacity."""
+    try:
+        from triton.backends.ascend.utils import graph_ub_budget_bytes_for_arch
+        from triton.runtime import driver
+
+        arch = getattr(driver.active.get_current_target(), "arch", "")
+        budget = graph_ub_budget_bytes_for_arch(arch) or 0
+        if budget > 0:
+            return budget
+    except Exception:  # no device, or a backend without the resolver
+        pass
+    log.warning("multi_slice_concat: could not read the UB budget, assuming %d bytes",
+                _FALLBACK_UB_BYTES)
+    return _FALLBACK_UB_BYTES
+
+
+def _max_tile_elems(esize, n_segments=_ASSUMED_LIVE_TILES):
+    """Element budget for one segment tile; a run cannot hold more tiles than segments."""
+    live = min(max(1, n_segments), _ASSUMED_LIVE_TILES)
+    return max(1, _ub_bytes() // live // esize)
+
+
+def _get_configs(max_width, esize, n_segments, rows=None):
+    """A single config: num_stages, num_warps and BLOCK_ROWS do not move device time.
+
+    BLOCK_ROWS covers all rows when known, capped by the UB budget and kept a power
+    of two, so this one config always compiles.
+    """
+    row_cap = _max_tile_elems(esize, n_segments) // _pad_width(max_width, esize)
+    block_rows = _MAX_BLOCK_ROWS
+    if isinstance(rows, int) and rows > 0:
+        block_rows = min(block_rows, _next_pow2(rows))
+    block_rows = min(block_rows, _prev_pow2(max(1, row_cap)))
+    return [
+        {
+            "BLOCK_ROWS": max(1, block_rows),
+            "num_stages": 2,
+            "num_warps": 4,
+        }
+    ]
 
 
 def _dedup_inputs(nodes, indices):
     """Merge inputs backed by the same buffer and remap the plan indices onto them.
 
-    ``def_kernel`` registers arguments in two differently keyed dicts:
-    ``named_input_nodes`` by template parameter name and ``args.input_buffers`` by buffer
-    name. One buffer appearing twice makes the latter overwrite itself, leaving the
-    earlier ``arg_`` name undefined and the rendered kernel raising NameError, while the
-    stride lines still work because they come from the other dict.
-
-    This is common in real graphs: one row mask squeezed and reshaped at two sites is two
-    fx nodes, which inductor then CSEs back into a single ComputedBuffer.
-
-    Two views sharing a name but not a layout cannot both be expressed, since
-    ``input_buffers`` still has one slot, so return None and let the caller fall back.
+    ``def_kernel`` keys inputs by buffer name, so a buffer passed twice leaves an
+    ``arg_`` name undefined. Same-named views with different layouts cannot be
+    expressed at all; return None so the caller falls back.
     """
     unique, remap, seen = [], [], {}
     for node in nodes:
@@ -207,23 +245,22 @@ def _dedup_inputs(nodes, indices):
 
 
 def _register_npu_inductor_multi_slice_concat():
-    # The op is defined on the fx_passes side; import it so torch.ops.npu_ext is populated.
     from ..fx_passes.ascend_custom_passes.ascend_graph_pass import (
+        MULTI_SLICE_CONCAT_DTYPES,
         MULTI_SLICE_CONCAT_TARGET,
     )
 
     @register_lowering(MULTI_SLICE_CONCAT_TARGET, type_promotion_kind=None)
-    def multi_slice_concat(srcs, masks, src_idx, offsets, widths, mask_idx):
+    def multi_slice_concat(srcs, masks, src_idx, offsets, widths, mask_idx, cat_dim=1):
         srcs = [ir.ExternKernel.realize_input(src) for src in srcs]
         masks = [ir.ExternKernel.realize_input(mask) for mask in masks]
 
         def per_slice_copies(srcs, masks, src_idx, mask_idx):
-            """Fall back to the eager decomposition: still correct, one Slice per segment."""
             return fallback_handler(MULTI_SLICE_CONCAT_TARGET, add_to_fallback_set=False)(
-                srcs, masks, list(src_idx), list(offsets), list(widths), list(mask_idx)
+                srcs, masks, list(src_idx), list(offsets), list(widths), list(mask_idx),
+                cat_dim,
             )
 
-        # Dedup before templating: the plan is both the cache key and the pointer count.
         uniq_srcs, uniq_src_idx = _dedup_inputs(srcs, src_idx)
         uniq_masks, uniq_mask_idx = _dedup_inputs(masks, mask_idx)
         if uniq_srcs is None or uniq_masks is None:
@@ -238,24 +275,81 @@ def _register_npu_inductor_multi_slice_concat():
         src_idx, offsets = tuple(src_idx), tuple(offsets)
         widths, mask_idx = tuple(widths), tuple(mask_idx)
 
+        if cat_dim not in (0, 1):
+            log.warning(
+                "multi_slice_concat: cat_dim=%s is not 0 or 1, falling back", cat_dim
+            )
+            return per_slice_copies(srcs, masks, src_idx, mask_idx)
+
+        # The op is public, so these are rechecked for direct callers.
+        dtypes = {src.get_dtype() for src in srcs}
+        if len(dtypes) > 1 or not dtypes <= MULTI_SLICE_CONCAT_DTYPES:
+            log.warning(
+                "multi_slice_concat: source dtypes %s are mixed or unsupported by the "
+                "template, falling back",
+                sorted(str(d) for d in dtypes),
+            )
+            return per_slice_copies(srcs, masks, src_idx, mask_idx)
+        if any(mask.get_dtype() is not torch.bool for mask in masks):
+            log.warning(
+                "multi_slice_concat: row masks must be bool, falling back"
+            )
+            return per_slice_copies(srcs, masks, src_idx, mask_idx)
+        if cat_dim == 0 and len(set(widths)) > 1:
+            log.warning(
+                "multi_slice_concat: cat_dim=0 needs one width for all segments, "
+                "got %d distinct, falling back",
+                len(set(widths)),
+            )
+            return per_slice_copies(srcs, masks, src_idx, mask_idx)
+
         total = sum(widths)
         rows = srcs[0].get_size()[0]
+        out_size = (
+            [rows, sympy.Integer(total)]
+            if cat_dim == 1
+            else [rows * len(widths), sympy.Integer(widths[0])]
+        )
+        out_cols = total if cat_dim == 1 else widths[0]
         layout = FixedLayout(
             srcs[0].get_device(),
             srcs[0].get_dtype(),
-            [rows, sympy.Integer(total)],
-            stride=[sympy.Integer(total), sympy.Integer(1)],
+            out_size,
+            stride=[sympy.Integer(out_cols), sympy.Integer(1)],
         )
 
-        # def_kernel orders parameters as all sources then all masks; input_nodes must match.
+        # Must match the def_kernel parameter order: sources, then masks.
         input_nodes = [*srcs, *masks]
+        esize = srcs[0].get_dtype().itemsize
+
+        # BLOCK_ROWS cannot go below 1, so a single row over budget cannot fit in UB.
+        widest_tile = max(_pad_width(width, esize) for width in widths)
+        tile_budget = _max_tile_elems(esize, len(widths))
+        if widest_tile > tile_budget:
+            log.warning(
+                "multi_slice_concat: widest segment tile is %d elements, over the %d "
+                "the UB budget allows for %d segments of this dtype, falling back to "
+                "per-slice copies",
+                widest_tile,
+                tile_budget,
+                len(widths),
+            )
+            return per_slice_copies(srcs, masks, src_idx, mask_idx)
+
         template = _template_for(
-            len(srcs), len(masks), src_idx, offsets, widths, mask_idx
+            len(srcs), len(masks), src_idx, offsets, widths, mask_idx, esize, cat_dim,
         )
         choices = []
-        for cfg in _get_configs(max(widths)):
+        # The grid covers the segment rows, not the output rows of a row concat.
+        call_sizes = [rows, sympy.Integer(out_cols)]
+        static_rows = int(rows) if isinstance(rows, (int, sympy.Integer)) else None
+        for cfg in _get_configs(max(widths), esize, len(widths), static_rows):
             template.maybe_append_choice(
-                choices=choices, input_nodes=input_nodes, layout=layout, **cfg
+                choices=choices,
+                input_nodes=input_nodes,
+                layout=layout,
+                call_sizes=call_sizes,
+                **cfg,
             )
 
         if not choices:
@@ -269,11 +363,6 @@ def _register_npu_inductor_multi_slice_concat():
         out = autotune_select_algorithm(
             "multi_slice_concat", choices, input_nodes, layout
         )
-        # Nothing may be fused into this kernel: it stores its own output, so it renders
-        # no store_output hook, and an epilogue the scheduler fused in would be skipped by
-        # codegen rather than emitted -- the kernel would return the bare concat with the
-        # consumer's computation gone. ``Scheduler.can_fuse`` tests this set before it
-        # consults the backend, so one name here refuses epilogue and horizontal fusion
-        # alike.
+        # No store_output hook: a fused epilogue would be silently dropped by codegen.
         V.graph.no_fuse_buffer_names.add(out.get_name())
         return out

@@ -16,10 +16,20 @@ import torch_npu
 import torch_npu._inductor
 from torch_npu._inductor import config as npu_config
 from torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass import (
+    MULTI_SLICE_CONCAT_DTYPES,
     MULTI_SLICE_CONCAT_TARGET,
     multi_slice_concat_pass,
 )
-from torch_npu._inductor.kernel.multi_slice_concat import _dedup_inputs
+from torch_npu._inductor.kernel.multi_slice_concat import (
+    _ASSUMED_LIVE_TILES,
+    _build_source,
+    _dedup_inputs,
+    _get_configs,
+    _max_tile_elems,
+    _next_pow2,
+    _pad_width,
+    _ub_bytes,
+)
 
 
 _CAT = torch.ops.aten.cat.default
@@ -29,7 +39,7 @@ _FULL = torch.ops.aten.full.default
 _MSC = torch.ops.npu_ext.multi_slice_concat
 
 # operator arg positions, so node.args is not indexed by bare numbers
-_A_SRCS, _A_MASKS, _A_SRC_IDX, _A_OFFSETS, _A_WIDTHS, _A_MASK_IDX = range(6)
+_A_SRCS, _A_MASKS, _A_SRC_IDX, _A_OFFSETS, _A_WIDTHS, _A_MASK_IDX, _A_CAT_DIM = range(7)
 
 # wide feature table and offsets from real model output code, all compile-time constants.
 _WIDE_COLS = 69876
@@ -76,12 +86,15 @@ def _kernel_source(code, marker):
     splitting on that keeps kernels apart; requiring a def line drops the call section.
     Kernels are matched on a rendered argument name, not on the kernel name, which
     define_kernel builds from node origins rather than from the template.
+
+    Cut at the end of the source string, not at the next kernel, whose provenance
+    comment would otherwise be included.
     """
     for chunk in code.split("async_compile.triton("):
         if marker in chunk and any(
             line.startswith("def ") for line in chunk.splitlines()
         ):
-            return chunk
+            return chunk.split("''', device_str=")[0]
     return None
 
 
@@ -101,7 +114,7 @@ def _pass_spy():
     original = []
 
     def spy(graph):
-        multi_slice_concat_pass(graph)
+        multi_slice_concat_pass(graph, aclnn_copy_free_inputs=0)
         stats["nodes"] += len(_op_nodes(graph))
 
     spy.__name__ = multi_slice_concat_pass.__name__
@@ -222,6 +235,8 @@ class TestMultiSliceConcatPass(TestUtils):
                              dtype=torch.bool)
 
     def _run_pass(self, fn, *tensors, dynamic=False, **limits):
+        # These tests pin matching, not profitability; the aclnn gate is opt-in.
+        limits.setdefault("aclnn_copy_free_inputs", 0)
         captured = _capture(fn, *tensors, dynamic=dynamic)
         multi_slice_concat_pass(captured.graph, **limits)
         captured.gm.recompile()
@@ -767,13 +782,178 @@ class TestMultiSliceConcatPass(TestUtils):
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
-    def test_row_direction_cat_not_rewritten(self, rows, dtype):
+    def test_small_column_cat_left_to_aclnn(self, rows, dtype):
+        """A column concat within aclnnCat's copy-free window is not rewritten."""
         wide = self._wide(rows, dtype)
+        offsets = _W16_OFFSETS[:8]
 
         def fn(x):
-            return _CAT([_SLICE(x, -1, 0, 16), _SLICE(x, -1, 64, 80)], 0)
+            return _col_concat(x, offsets, (16,) * len(offsets))
 
-        self.assertEqual(len(_op_nodes(self._run_pass(fn, wide).graph)), 0)
+        gm = self._run_pass(fn, wide, aclnn_copy_free_inputs=32)
+        self.assertEqual(len(_op_nodes(gm.graph)), 0)
+        self.assertEqual(_count(gm.graph, _CAT), 1)
+
+    @parametrize('rows', [32])
+    @parametrize('dtype', ['float16'])
+    def test_wide_column_cat_rewritten_past_aclnn_window(self, rows, dtype):
+        """Past 32 inputs aclnnCat pays one Slice per input, which the rewrite saves."""
+        wide = self._wide(rows, dtype)
+        offsets = tuple(64 * i for i in range(33))
+
+        def fn(x):
+            return _col_concat(x, offsets, (16,) * len(offsets))
+
+        gm = self._run_pass(fn, wide, aclnn_copy_free_inputs=32)
+        self.assertEqual(len(_op_nodes(gm.graph)), 1)
+        self._assert_bitwise_equal(_col_concat_ref(wide, offsets, (16,) * len(offsets)),
+                                   gm(wide), "column concat past the aclnn window")
+
+    @parametrize('rows', [32])
+    @parametrize('dtype', ['float16'])
+    def test_row_cat_not_gated_by_aclnn_window(self, rows, dtype):
+        """aclnnCat has no copy-free path for dim 0, so few segments still pay."""
+        wide = self._wide(rows, dtype)
+        offsets = _W8_OFFSETS[:4]
+
+        def fn(x):
+            return _CAT([_SLICE(x, -1, off, off + 8) for off in offsets], 0)
+
+        gm = self._run_pass(fn, wide, aclnn_copy_free_inputs=32)
+        self.assertEqual(len(_op_nodes(gm.graph)), 1)
+
+    def test_pad_width_is_a_pow2_whole_number_of_blocks(self):
+        """The tile width is a power of two and a whole number of 32-byte blocks."""
+        f16, f32 = torch.float16.itemsize, torch.float32.itemsize
+        self.assertEqual(_pad_width(192, f16), 256, "a width off pow2 costs 1.8x")
+        self.assertEqual(_pad_width(8, f16), 16, "16B must round up to one block")
+        self.assertEqual(_pad_width(17, f16), 32, "a block is 16 fp16 elements")
+        self.assertEqual(_pad_width(9, f32), 16, "a block is 8 fp32 elements")
+        for esize in (1, 2, 4, 8):
+            for width in range(1, 300):
+                pad = _pad_width(width, esize)
+                self.assertGreaterEqual(pad, width)
+                self.assertEqual((pad * esize) % 32, 0, f"w={width} esize={esize}")
+                self.assertEqual(pad, _next_pow2(pad), f"w={width} esize={esize}")
+
+    def test_block_rows_is_a_power_of_two(self):
+        """Both tile extents are tl.arange lengths, so both stay powers of two."""
+        for esize in (2, 4):
+            for width in (1, 8, 192, 1000):
+                for nseg, rows in ((2, 61), (16, 61), (128, None)):
+                    cfg, = _get_configs(width, esize, nseg, rows)
+                    br = cfg["BLOCK_ROWS"]
+                    self.assertEqual(br, _next_pow2(br), f"BLOCK_ROWS={br} is not pow2")
+
+    def test_tile_budget_follows_the_ub_size(self):
+        """The tile budget is in bytes of UB, shared by several live tiles."""
+        ub = _ub_bytes()
+        self.assertGreaterEqual(ub, 192 * 1024, "UB should be at least the fallback")
+        share = ub // _ASSUMED_LIVE_TILES
+        for esize in (1, 2, 4, 8):
+            elems = _max_tile_elems(esize)
+            self.assertEqual(elems, share // esize)
+            self.assertLessEqual(elems * esize, share)
+            self.assertGreater(elems * esize, share - esize)
+        self.assertGreater(_ASSUMED_LIVE_TILES, 1,
+                           "a kernel holds more than one segment tile at a time")
+        # A run cannot have more tiles live than segments, so a short run gets more.
+        self.assertEqual(_max_tile_elems(2, 2), ub // 2 // 2)
+        self.assertEqual(_max_tile_elems(2, 128), _max_tile_elems(2, _ASSUMED_LIVE_TILES),
+                         "past the assumed count the budget must stop shrinking")
+
+    def test_block_rows_keeps_the_tile_inside_the_budget(self):
+        """The single config must fit in UB, or the graph compile fails outright."""
+        for esize in (2, 4):
+            for width in (8, 192, 1000, 5000):
+                for nseg, rows in ((2, 61), (16, 61), (128, None), (16, 4096)):
+                    budget = _max_tile_elems(esize, nseg)
+                    if _pad_width(width, esize) > budget:
+                        # Refused by the lowering before any config is built.
+                        continue
+                    cfg, = _get_configs(width, esize, nseg, rows)
+                    tile = cfg["BLOCK_ROWS"] * _pad_width(width, esize)
+                    self.assertLessEqual(
+                        tile, budget,
+                        f"tile over budget at width={width} esize={esize} nseg={nseg}")
+                    self.assertGreaterEqual(cfg["BLOCK_ROWS"], 1)
+
+    def test_padded_tile_masks_with_a_prefix(self):
+        """Padding is masked by a prefix cols < width, even at the row end."""
+        cols = 1410
+        source = _build_source(1, 0, (0, 0), (1372, cols - 8), (8, 8), (-1, -1),
+                               torch.float16.itemsize, 0)
+        self.assertIn(f"({cols - 8} + cols1[None, :])", source)
+        self.assertIn("(cols1[None, :] < 8)", source)
+        self.assertNotIn("<= cols", source)
+
+    @parametrize('rows', [32])
+    @parametrize('dtype', ['float16'])
+    def test_row_direction_cat_rewritten(self, rows, dtype):
+        """Column slices stacked along rows: [rows, w] segments into [rows * n, w]."""
+        wide = self._wide(rows, dtype)
+        offsets = _W16_OFFSETS
+
+        def fn(x):
+            return _CAT([_SLICE(x, -1, off, off + 16) for off in offsets], 0)
+
+        gm = self._run_pass(fn, wide)
+        ops = _op_nodes(gm.graph)
+        self.assertEqual(len(ops), 1, "row-direction segments should collapse into one op")
+        self.assertEqual(_count(gm.graph, _CAT), 0)
+        self.assertEqual(ops[0].args[_A_CAT_DIM], 0, "the concat dim must be recorded")
+        self.assertEqual(list(ops[0].args[_A_OFFSETS]), list(offsets))
+        expected = torch.cat([wide[..., off:off + 16] for off in offsets], dim=0)
+        out = gm(wide)
+        self.assertEqual(out.shape, (rows * len(offsets), 16))
+        self._assert_bitwise_equal(expected, out, "row-direction concat")
+
+    @parametrize('rows', [32])
+    @parametrize('dtype', ['float16'])
+    def test_row_direction_mixed_widths_not_rewritten(self, rows, dtype):
+        """A row concat plan with mixed widths is rejected by the op."""
+        wide = self._wide(rows, dtype)
+        with self.assertRaisesRegex(RuntimeError, "needs one width"):
+            _MSC([wide], [], [0, 0], [0, 64], [16, 32], [-1, -1], 0)
+
+    @parametrize('rows', [32])
+    def test_unaddressable_dtype_not_rewritten(self, rows):
+        """A dtype outside the whitelist stays on aten.cat."""
+        # On CPU: the NPU cannot fill a complex tensor.
+        wide = torch.zeros(rows, 1024, dtype=torch.complex64)
+        self.assertNotIn(wide.dtype, MULTI_SLICE_CONCAT_DTYPES)
+
+        def fn(x):
+            return _CAT([_SLICE(x, -1, off, off + 16) for off in (0, 64, 128, 192)], 1)
+
+        gm = self._run_pass(fn, wide)
+        self.assertEqual(_op_nodes(gm.graph), [], 'an unaddressable dtype must not fold')
+        self.assertEqual(_count(gm.graph, _CAT), 1)
+
+    def test_packed_dtypes_excluded(self):
+        """Packed dtypes report itemsize per container, so they are excluded."""
+        for name in ('float4_e2m1fn_x2', 'int4', 'uint1'):
+            dtype = getattr(torch, name, None)
+            if dtype is None:
+                continue
+            self.assertEqual(dtype.itemsize, 1, f'premise: {name} packs into one byte')
+            self.assertNotIn(dtype, MULTI_SLICE_CONCAT_DTYPES)
+
+    @parametrize('rows', [32])
+    @parametrize('dtype', ['float16'])
+    def test_index_arithmetic_uses_template_index_dtype(self, rows, dtype):
+        """Every index term carries INDEX_DTYPE, not an implicit int32."""
+        src = _build_source(1, 1, (0, 0), (0, 64), (16, 16), (-1, 0), 2, 1)
+        self.assertNotIn('tl.int32', src, 'index arithmetic must not pin int32')
+        for term in ('tl.program_id(0)', 'tl.arange(0, BLOCK_ROWS)', 'tl.arange(0, 16)'):
+            self.assertIn(
+                f'{term}.to(INDEX_DTYPE)', src, f'{term} must carry INDEX_DTYPE'
+            )
+        src = _build_source(1, 0, (0, 0, 0), (0, 64, 128), (16, 16, 16), (-1, -1, -1), 2, 0)
+        self.assertNotIn('tl.int32', src, 'index arithmetic must not pin int32')
+        self.assertIn('seg_rows = tl.full([], ROWS, INDEX_DTYPE)', src)
+        self.assertNotIn('ROWS * 16', src, 'a segment base must not multiply the raw ROWS')
+        self.assertIn('seg_rows * 32', src)
 
     @parametrize('rows', [32])
     @parametrize('dtype', ['float16'])
@@ -952,6 +1132,31 @@ class TestMultiSliceConcatPass(TestUtils):
                 other = self._wide(rows * 2, dtype)
                 torch._dynamo.mark_dynamic(other, 0)
                 self._assert_bitwise_equal(fn(other), compiled(other), "dynamic batch artifact")
+
+    @unittest.skipUnless(_ENABLED, _NEEDS_FLAG)
+    @parametrize('rows', [2])
+    @parametrize('dtype', ['float16'])
+    def test_compile_oversized_segment_falls_back(self, rows, dtype):
+        """A segment whose single row exceeds the tile budget falls back in the lowering."""
+        budget = _max_tile_elems(torch.float16.itemsize, 2)
+        width = budget + 1
+        # Wider than both segments, or the cat folds back into the source before the pass.
+        wide = self._wide(rows, dtype, cols=2 * width + 64)
+        self.assertGreater(
+            _pad_width(width, torch.float16.itemsize), budget,
+            "premise: this width does not fit the tile budget")
+
+        def fn(x):
+            return torch.cat([x[:, 0:width], x[:, width:2 * width]], dim=-1)
+
+        with torch.no_grad(), _pass_spy() as stats:
+            compiled = torch.compile(fn, backend="inductor", dynamic=False)
+            actual, codes = run_and_get_code(compiled, wide)
+            self.assertGreater(stats["nodes"], 0, "pass should still fire")
+            self._assert_bitwise_equal(fn(wide), actual, "oversized segment fallback")
+            self.assertIsNone(
+                _kernel_source(codes[0], "arg_SRC0"),
+                "an oversized segment must not reach the template")
 
     @unittest.skipUnless(_ENABLED, _NEEDS_FLAG)
     @parametrize('rows', [200])

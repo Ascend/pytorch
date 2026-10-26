@@ -72,12 +72,35 @@ torch.library.define(
 torch.library.define(
     "npu_ext::multi_slice_concat",
     "(Tensor[] srcs, Tensor[] masks, int[] src_idx, int[] offsets, int[] widths, "
-    "int[] mask_idx) -> Tensor",
+    "int[] mask_idx, int cat_dim=1) -> Tensor",
+)
+
+# Dtypes whose itemsize is exactly one addressable element; packed, sub-byte and
+# complex dtypes are excluded. A whitelist, so new dtypes fall back to aten.cat.
+MULTI_SLICE_CONCAT_DTYPES = frozenset(
+    {
+        torch.float16,
+        torch.bfloat16,
+        torch.float32,
+        torch.float64,
+        torch.uint8,
+        torch.int8,
+        torch.int16,
+        torch.int32,
+        torch.int64,
+        torch.bool,
+    }
 )
 
 
-def _multi_slice_concat_ref(srcs, masks, src_idx, offsets, widths, mask_idx):
+def _multi_slice_concat_ref(srcs, masks, src_idx, offsets, widths, mask_idx, cat_dim=1):
     n = len(offsets)
+    if cat_dim not in (0, 1):
+        raise RuntimeError(f"multi_slice_concat: cat_dim={cat_dim} is not 0 or 1")
+    if cat_dim == 0 and len(set(widths)) > 1:
+        raise RuntimeError(
+            f"multi_slice_concat: cat_dim=0 needs one width for all segments, got {widths}"
+        )
     if not (len(src_idx) == len(widths) == len(mask_idx) == n):
         raise RuntimeError(
             "multi_slice_concat: segment arrays disagree in length "
@@ -125,7 +148,7 @@ def _multi_slice_concat_ref(srcs, masks, src_idx, offsets, widths, mask_idx):
                 mask, torch.ops.aten.zeros_like.default(part), part
             )
         parts.append(part)
-    return torch.ops.aten.cat.default(parts, -1)
+    return torch.ops.aten.cat.default(parts, -1 if cat_dim == 1 else 0)
 
 
 # CompositeExplicitAutograd also covers the Meta key, and the reference is built purely
@@ -3149,7 +3172,7 @@ def _msc_segment(node, cat_dtype, rows):
     return base, off, width, None, 0 if contiguous else 1
 
 
-def _msc_runs(inputs, cat_dtype, rows, max_segments, max_sources, max_masks):
+def _msc_runs(inputs, cat_dtype, rows, cat_dim, max_segments, max_sources, max_masks):
     """Split the cat inputs into runs that are adjacent and worth merging.
 
     Only adjacent inputs can merge: they occupy a contiguous column range in the output,
@@ -3183,9 +3206,10 @@ def _msc_runs(inputs, cat_dtype, rows, max_segments, max_sources, max_masks):
 
         base, mask = seg[0], seg[3]
         if cur and (
-            len(cur) >= max_segments
+            (max_segments is not None and len(cur) >= max_segments)
             or (base not in srcs and len(srcs) >= max_sources)
             or (mask is not None and mask not in masks and len(masks) >= max_masks)
+            or (cat_dim == 0 and seg[2] != cur[0][2])
         ):
             # At the cap, close the run and start the next one from this segment.
             if worth(cur):
@@ -3205,7 +3229,7 @@ def _msc_runs(inputs, cat_dtype, rows, max_segments, max_sources, max_masks):
     return runs
 
 
-def _msc_build_node(graph, cat, run):
+def _msc_build_node(graph, cat, run, cat_dim):
     """Emit one multi_slice_concat node for a run, or None if self-validation fails."""
     srcs = []
     masks = []
@@ -3234,7 +3258,7 @@ def _msc_build_node(graph, cat, run):
             if fake_mode is not None:
                 stack.enter_context(fake_mode)
             fake_out = _multi_slice_concat_ref(
-                fake_srcs, fake_masks, src_idx, offsets, widths, mask_idx
+                fake_srcs, fake_masks, src_idx, offsets, widths, mask_idx, cat_dim
             )
     except Exception as exc:  # a gap in matching; skip rather than emit a wrong graph
         log.debug("[inductor_fx] multi_slice_concat segment plan validation failed: %s", exc)
@@ -3243,7 +3267,7 @@ def _msc_build_node(graph, cat, run):
     with graph.inserting_before(cat):
         node = graph.call_function(
             MULTI_SLICE_CONCAT_TARGET,
-            args=(srcs, masks, src_idx, offsets, widths, mask_idx),
+            args=(srcs, masks, src_idx, offsets, widths, mask_idx, cat_dim),
         )
     node.meta["val"] = fake_out
     return node
@@ -3253,9 +3277,10 @@ def _msc_build_node(graph, cat, run):
 def multi_slice_concat_pass(
     graph: torch.fx.Graph,
     *,
-    max_segments: int = 64,
+    max_segments: Optional[int] = 128,
     max_sources: int = 32,
     max_masks: int = 4,
+    aclnn_copy_free_inputs: int = 32,
 ) -> None:
     """Fold a run of fixed-width column slices into one npu_ext::multi_slice_concat.
 
@@ -3263,12 +3288,13 @@ def multi_slice_concat_pass(
     and each masked one a where. The rewrite moves the same data in one dispatch, with
     fixed-width copies rather than indirect addressing.
 
-    Matching is strict: anything that does not fit is left to aten.cat.
+    Handles both concat dims; anything that does not fit is left to aten.cat.
 
-    max_segments caps the run length, since every segment is unrolled in the kernel
-    body. max_sources caps the distinct source tensors, each costing a kernel pointer
-    argument. max_masks caps the row masks held live across segments; real graphs use
-    a couple per cat. The caps only bound pathological graphs.
+    max_segments caps a run, since compile time grows superlinearly with the unrolled
+    segments; longer cats are split and stitched by the original cat. max_sources caps
+    the kernel pointer arguments, max_masks the row masks held live. Column concats of
+    at most aclnn_copy_free_inputs inputs are left to aclnnCat, which reads them
+    copy-free.
     """
     changed = False
     for cat in list(graph.nodes):
@@ -3282,14 +3308,28 @@ def multi_slice_concat_pass(
         cat_dtype = get_node_dtype(cat)
         if cat_shape is None or cat_dtype is None or len(cat_shape) != 2:
             continue
-        # Column concat along the last dim only; row concat is not this op's semantics.
-        if normalize_dim(dim, 2) != 1:
+        if cat_dtype not in MULTI_SLICE_CONCAT_DTYPES:
             continue
+        cat_dim = normalize_dim(dim, 2)
+        # aclnnCat has no copy-free path for dim 0, so row concats are not gated.
+        if cat_dim == 1 and len(inputs) <= aclnn_copy_free_inputs:
+            continue
+
+        if cat_dim == 1:
+            rows = cat_shape[0]
+        else:
+            in_shapes = [get_node_shape(inp, allow_symbolic=True) for inp in inputs]
+            if any(shape is None or len(shape) != 2 for shape in in_shapes):
+                continue
+            rows = in_shapes[0][0]
+            if not all(statically_known_eq(shape[0], rows) for shape in in_shapes):
+                continue
 
         runs = _msc_runs(
             list(inputs),
             cat_dtype,
-            cat_shape[0],
+            rows,
+            cat_dim,
             max_segments,
             max_sources,
             max_masks,
@@ -3301,7 +3341,7 @@ def multi_slice_concat_pass(
         # Replace back to front so earlier run indices stay valid.
         replaced = 0
         for start, run in reversed(runs):
-            node = _msc_build_node(graph, cat, run)
+            node = _msc_build_node(graph, cat, run, cat_dim)
             if node is None:
                 continue
             new_inputs[start:start + len(run)] = [node]
