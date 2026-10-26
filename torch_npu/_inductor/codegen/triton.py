@@ -4230,6 +4230,22 @@ class NPUIndexTritonKernel(TritonKernel):
                     value,
                 )
 
+        # For arg reductions on non-contiguous inputs, upstream lowering returns
+        # a (value, logical_index) tuple loader to keep row-major index
+        # semantics (see _make_reduction_inner). The tuple goes through the
+        # broadcast/reshape maps above so value and index stay shape-aligned.
+        # The type set mirrors upstream arg_reduction_types.
+        logical_index = None
+        if reduction_type in {
+            "argmax",
+            "argmin",
+            "argmax_value",
+            "argmin_value",
+            "argmax_with_value",
+            "argmin_with_value",
+        } and isinstance(value, tuple):
+            value, logical_index = value
+
         dim: int
         root_op: str
 
@@ -4360,20 +4376,33 @@ class NPUIndexTritonKernel(TritonKernel):
 
             if reduction_type in {"argmax", "argmin", "max", "min"}:
                 if reduction_type == "argmax" or reduction_type == "argmin":
-                    reduce_axis = get_reduction_axis()
-                    broadcast_string: str
-                    reshape_str = self.reduce_analysis.get_reduce_dim_reshape(
-                        reduce_axis
-                    )
-                    broadcast_string = (
-                        f"tl.broadcast_to({reduce_axis.symbol()}.reshape({reshape_str}), "
-                        f"{masked_value}.shape)"
-                    )
-                    accumulator_index = str(
-                        self.cse.generate(
-                            self.compute, broadcast_string, dtype=torch.int64, shape=masked_value.shape,
+                    if logical_index is not None:
+                        # Non-contiguous input: use the loader-computed
+                        # logical row-major index instead of the axis-derived
+                        # physical one
+                        accumulator_index = str(
+                            self.cse.generate(
+                                self.compute,
+                                f"({str(logical_index)}).to(tl.int64)",
+                                dtype=torch.int64,
+                                shape=masked_value.shape,
+                            )
                         )
-                    )
+                    else:
+                        reduce_axis = get_reduction_axis()
+                        broadcast_string: str
+                        reshape_str = self.reduce_analysis.get_reduce_dim_reshape(
+                            reduce_axis
+                        )
+                        broadcast_string = (
+                            f"tl.broadcast_to({reduce_axis.symbol()}.reshape({reshape_str}), "
+                            f"{masked_value}.shape)"
+                        )
+                        accumulator_index = str(
+                            self.cse.generate(
+                                self.compute, broadcast_string, dtype=torch.int64, shape=masked_value.shape,
+                            )
+                        )
                     root_op = {"argmax": "max", "argmin": "min"}[reduction_type]
                     final_argreduce(
                         self.compute, result_var, masked_value, accumulator_index
@@ -4540,11 +4569,19 @@ class NPUIndexTritonKernel(TritonKernel):
                     f"{accumulator_index} = tl.full({self.dense_size_str()}, {long_max}, tl.int64)"
                 )
                 root_op = {"argmax": "max", "argmin": "min"}[reduction_type]
+                # Non-contiguous input: combine with the loader-computed
+                # logical row-major index; fall back to the axis-derived
+                # physical index otherwise
+                index_arg = (
+                    f"({str(logical_index)}).to(tl.int64)"
+                    if logical_index is not None
+                    else get_reduction_axis().name
+                )
 
                 self.compute.splice(
                     f"""\
                 {accumulator}_next, {accumulator_index}_next = triton_helpers.{root_op}imum_with_index(
-                    {accumulator}, {accumulator_index}, {value}, {get_reduction_axis().name}
+                    {accumulator}, {accumulator_index}, {value}, {index_arg}
                 )
                 {accumulator} = {where_cond(f"{accumulator}_next", accumulator)}
                 {accumulator_index} = {where_cond(f"{accumulator_index}_next", accumulator_index)}

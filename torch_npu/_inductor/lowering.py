@@ -150,6 +150,7 @@ def make_reduction(reduction_type: ReductionType, override_return_dtype=None):
             keepdims=keepdims,
             dtype=dtype,
             override_return_dtype=override_return_dtype,
+            reduction_type=reduction_type,
         )
         if npu_config.dump_fx_graph:
             node_name = f'reduction_{next(node_id)}'

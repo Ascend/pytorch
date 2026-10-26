@@ -847,7 +847,12 @@ def to_dtype(x: TensorBox, dtype: torch.dtype, copy=False):
     register_fn_to_aten_fn(_to_dtype, aten.to.dtype)
     return make_pointwise(_to_dtype, override_return_dtype=dtype, dtype=dtype)(x)
 
-def _make_reduction_inner(x, *, axis, keepdims, dtype, override_return_dtype):
+def _make_reduction_inner(
+    x, *, axis, keepdims, dtype, override_return_dtype, reduction_type=None
+):
+    # reduction_type kept for signature parity with upstream; the fx codegen
+    # derives argmax/argmin indices itself (see codegen/ir_fx.py) and does not
+    # use the logical-index tuple loader.
     if dtype is not None:
         x = to_dtype(x, dtype)
     size = x.get_size()
