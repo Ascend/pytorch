@@ -2,6 +2,8 @@
 
 import os
 
+from torch_npu._inductor.config import is_ascend950
+
 # Run post-launch DVM debug checks.
 debug_mode = False
 # Emit standalone FX regression cases for DVM-fused graphs.
@@ -25,6 +27,10 @@ disable_post_reduce_fusion = False
 enable_matmul_fusion = (
     os.environ.get("INDUCTOR_DVM_ENABLE_MATMUL_FUSION", "0") == "1"
 )
+# Avoid extra casts in the pre-A5 aclnnAddmm path by keeping mm + add
+# separate by default unless matmul templates are enabled.
+# A5 keeps Inductor's default.
+disable_addmm_fusion = not is_ascend950
 # Optional callback (n, m, k) for (..., m, k) @ (..., k, n).
 # Returning False vetoes fusion; otherwise the existing fusion rules apply.
 matmul_fusion_rule = None

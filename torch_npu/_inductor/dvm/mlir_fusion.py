@@ -37,6 +37,7 @@ from .op_emitter import (
 from .template import (
     can_fuse_dvm_epilogue,
     DvmTemplateBuffer,
+    _disable_addmm_fusion_for_dvm,
     patch_dvm_matmul_template_fusion,
 )
 from .util import can_use_view_load
@@ -545,6 +546,7 @@ class DvmMlirFusionPatch:
         patch_decomp()
         _patch_lowering_type_checks()
         _patch_lowering()
+        _disable_addmm_fusion_for_dvm()
         if dvm_config.enable_matmul_fusion:
             patch_dvm_matmul_template_fusion()
         register_backend_for_device(
