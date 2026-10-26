@@ -8320,7 +8320,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1107 -->
 
-> <font size="3">name()</font>
+> <font size="3">name</font>
 
 <div style="margin-left: 2em">
 
