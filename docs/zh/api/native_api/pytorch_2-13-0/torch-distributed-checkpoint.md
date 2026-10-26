@@ -1068,18 +1068,6 @@
 
 **原生文档**：[torch.distributed.checkpoint.metadata.TensorProperties](https://pytorch.org/docs/2.13/distributed.checkpoint.html#torch.distributed.checkpoint.metadata.TensorProperties)
 
-**产品支持情况**：
-
-<!-- npu="910b" id229 -->
-- <term>Atlas A2 训练系列产品</term>：支持
-<!-- end id229 -->
-<!-- npu="A3" id230 -->
-- <term>Atlas A3 训练系列产品</term>：支持
-<!-- end id230 -->
-<!-- npu="950" id231 -->
-- <term>Ascend 950DT</term>：支持
-<!-- end id231 -->
-
 > <font size="3">create_from_tensor()</font>
 
 <div style="margin-left: 2em">
@@ -1306,7 +1294,7 @@
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.distributed.checkpoint.ReadItem](https://pytorch.org/docs/2.13/distributed.checkpoint.html#torch.distributed.checkpoint.ReadItem)
+**原生文档**：[torch.distributed.checkpoint.metadata.MetadataIndex](https://pytorch.org/docs/2.13/distributed.checkpoint.html#torch.distributed.checkpoint.metadata.MetadataIndex)
 
 **产品支持情况**：
 
@@ -1608,15 +1596,15 @@
 
 **产品支持情况**：
 
-<!-- npu="910b" id232 -->
+<!-- npu="910b" id244 -->
 - <term>Atlas A2 训练系列产品</term>：支持
-<!-- end id232 -->
-<!-- npu="A3" id233 -->
+<!-- end id244 -->
+<!-- npu="A3" id245 -->
 - <term>Atlas A3 训练系列产品</term>：支持
-<!-- end id233 -->
-<!-- npu="950" id234 -->
+<!-- end id245 -->
+<!-- npu="950" id246 -->
 - <term>Ascend 950DT</term>：未验证（A5无多卡环境）
-<!-- end id234 -->
+<!-- end id246 -->
 
 </div>
 

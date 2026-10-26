@@ -929,8 +929,6 @@
 
 **原生文档**：[torch.autograd.profiler.profile](https://pytorch.org/docs/2.14/autograd.html#torch.autograd.profiler.profile)
 
-**版本说明**：`use_cuda`参数已移除，请使用`use_device`；`with_modules`已废弃，动态图模块跟踪请使用`with_stack=True`。
-
 **产品支持情况**：
 
 <!-- npu="910b" id118 -->
@@ -1180,15 +1178,15 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 
 **产品支持情况**：
 
-<!-- npu="910b" id196 -->
+<!-- npu="910b" id220 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id196 -->
-<!-- npu="A3" id197 -->
+<!-- end id220 -->
+<!-- npu="A3" id221 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id197 -->
-<!-- npu="950" id198 -->
+<!-- end id221 -->
+<!-- npu="950" id222 -->
 - <term>Ascend 950DT系列产品</term>：支持
-<!-- end id198 -->
+<!-- end id222 -->
 
 > <font size="3">name</font>
 
@@ -1218,15 +1216,15 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 
 **产品支持情况**：
 
-<!-- npu="910b" id214 -->
+<!-- npu="910b" id223 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id214 -->
-<!-- npu="A3" id215 -->
+<!-- end id223 -->
+<!-- npu="A3" id224 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id215 -->
-<!-- npu="950" id216 -->
+<!-- end id224 -->
+<!-- npu="950" id225 -->
 - <term>Ascend 950DT系列产品</term>：支持
-<!-- end id216 -->
+<!-- end id225 -->
 
 </div>
 
@@ -1240,15 +1238,15 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 
 **产品支持情况**：
 
-<!-- npu="910b" id214 -->
+<!-- npu="910b" id229 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id214 -->
-<!-- npu="A3" id215 -->
+<!-- end id229 -->
+<!-- npu="A3" id230 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id215 -->
-<!-- npu="950" id216 -->
+<!-- end id230 -->
+<!-- npu="950" id231 -->
 - <term>Ascend 950DT系列产品</term>：支持
-<!-- end id216 -->
+<!-- end id231 -->
 
 > <font size="3">values()</font>
 
@@ -1360,15 +1358,15 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 
 **产品支持情况**：
 
-<!-- npu="910b" id199 -->
+<!-- npu="910b" id232 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id199 -->
-<!-- npu="A3" id200 -->
+<!-- end id232 -->
+<!-- npu="A3" id233 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id200 -->
-<!-- npu="950" id201 -->
+<!-- end id233 -->
+<!-- npu="950" id234 -->
 - <term>Ascend 950DT系列产品</term>：支持
-<!-- end id201 -->
+<!-- end id234 -->
 
 > <font size="3">elapsed_us()</font>
 
@@ -1378,15 +1376,15 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 
 **产品支持情况**：
 
-<!-- npu="910b" id202 -->
+<!-- npu="910b" id226 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id202 -->
-<!-- npu="A3" id203 -->
+<!-- end id226 -->
+<!-- npu="A3" id227 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id203 -->
-<!-- npu="950" id204 -->
+<!-- end id227 -->
+<!-- npu="950" id228 -->
 - <term>Ascend 950DT系列产品</term>：支持
-<!-- end id204 -->
+<!-- end id228 -->
 
 </div>
 

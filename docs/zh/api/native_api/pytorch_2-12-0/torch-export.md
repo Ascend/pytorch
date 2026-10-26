@@ -101,15 +101,15 @@
 
 **产品支持情况**：
 
-<!-- npu="910b" id25 -->
+<!-- npu="910b" id79 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id25 -->
-<!-- npu="A3" id26 -->
+<!-- end id79 -->
+<!-- npu="A3" id80 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id26 -->
-<!-- npu="950" id27 -->
+<!-- end id80 -->
+<!-- npu="950" id81 -->
 - <term>Ascend 950DT系列产品</term>：支持
-<!-- end id27 -->
+<!-- end id81 -->
 
 > <font size="3">copy()</font>
 
@@ -481,15 +481,15 @@
 
 **产品支持情况**：
 
-<!-- npu="910b" id22 -->
+<!-- npu="910b" id82 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id22 -->
-<!-- npu="A3" id23 -->
+<!-- end id82 -->
+<!-- npu="A3" id83 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id23 -->
-<!-- npu="950" id24 -->
+<!-- end id83 -->
+<!-- npu="950" id84 -->
 - <term>Ascend 950DT系列产品</term>：支持
-<!-- end id24 -->
+<!-- end id84 -->
 
 > <font size="3">adapt()</font>
 
@@ -521,15 +521,15 @@
 
 **产品支持情况**：
 
-<!-- npu="910b" id28 -->
+<!-- npu="910b" id70 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id28 -->
-<!-- npu="A3" id29 -->
+<!-- end id70 -->
+<!-- npu="A3" id71 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id29 -->
-<!-- npu="950" id30 -->
+<!-- end id71 -->
+<!-- npu="950" id72 -->
 - <term>Ascend 950DT系列产品</term>：支持
-<!-- end id30 -->
+<!-- end id72 -->
 
 </div>
 
@@ -541,15 +541,15 @@
 
 **产品支持情况**：
 
-<!-- npu="910b" id31 -->
+<!-- npu="910b" id73 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id31 -->
-<!-- npu="A3" id32 -->
+<!-- end id73 -->
+<!-- npu="A3" id74 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id32 -->
-<!-- npu="950" id33 -->
+<!-- end id74 -->
+<!-- npu="950" id75 -->
 - <term>Ascend 950DT系列产品</term>：支持
-<!-- end id33 -->
+<!-- end id75 -->
 
 </div>
 
@@ -561,14 +561,14 @@
 
 **产品支持情况**：
 
-<!-- npu="910b" id34 -->
+<!-- npu="910b" id76 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id34 -->
-<!-- npu="A3" id35 -->
+<!-- end id76 -->
+<!-- npu="A3" id77 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id35 -->
-<!-- npu="950" id36 -->
+<!-- end id77 -->
+<!-- npu="950" id78 -->
 - <term>Ascend 950DT系列产品</term>：支持
-<!-- end id36 -->
+<!-- end id78 -->
 
 </div>

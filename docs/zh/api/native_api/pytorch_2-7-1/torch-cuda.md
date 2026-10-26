@@ -529,13 +529,13 @@
 **产品支持情况**：
 
 <!-- npu="910b" id229 -->
-- <term>Atlas A2训练系列产品</term>：不支持
+- <term>Atlas A2训练系列产品</term>：支持
 <!-- end id229 -->
 <!-- npu="A3" id230 -->
-- <term>Atlas A3训练系列产品</term>：不支持
+- <term>Atlas A3训练系列产品</term>：支持
 <!-- end id230 -->
 <!-- npu="950" id231 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id231 -->
 
 **限制与说明**： 可使用`npu-smi info -t common -i <id>`查看Temperature(C)指标代替。
@@ -553,13 +553,13 @@
 **产品支持情况**：
 
 <!-- npu="910b" id232 -->
-- <term>Atlas A2训练系列产品</term>：不支持
+- <term>Atlas A2训练系列产品</term>：支持
 <!-- end id232 -->
 <!-- npu="A3" id233 -->
-- <term>Atlas A3训练系列产品</term>：不支持
+- <term>Atlas A3训练系列产品</term>：支持
 <!-- end id233 -->
 <!-- npu="950" id234 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id234 -->
 
 **限制与说明**： 可使用`npu-smi info -t common -i <id>`查看NPU Real-time Power(W)指标代替。
@@ -577,13 +577,13 @@
 **产品支持情况**：
 
 <!-- npu="910b" id235 -->
-- <term>Atlas A2训练系列产品</term>：不支持
+- <term>Atlas A2训练系列产品</term>：支持
 <!-- end id235 -->
 <!-- npu="A3" id236 -->
-- <term>Atlas A3训练系列产品</term>：不支持
+- <term>Atlas A3训练系列产品</term>：支持
 <!-- end id236 -->
 <!-- npu="950" id237 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id237 -->
 
 **限制与说明**： 可使用`npu-smi info -t common -i <id>`查看Aicore curFreq(MHZ)指标代替。
@@ -1750,9 +1750,9 @@
 - `snapshot()`返回根据当前内存池ID过滤后的NPU内存分配器状态快照，返回值类型为`list`。
 - `torch.npu.use_mem_pool`仅将当前线程中的内存申请路由到指定内存池，在上下文中创建的新线程不会自动使用该内存池。回收内存池前，需要退出`torch.npu.use_mem_pool`上下文，并释放使用该内存池的Tensor。
 - TorchNPU不提供原生PyTorch 2.7中的`MemPoolContext`和`MemPool.allocator`公开接口，并额外支持`no_split`参数。
-<!-- npu="950" id229 -->
+<!-- npu="950" id238 -->
 - Ascend 950DT系列产品支持使用默认NPU缓存分配器创建内存池，不支持通过`allocator`参数指定`NPUPluggableAllocator`。
-<!-- end id229 -->
+<!-- end id238 -->
 
 </div>
 

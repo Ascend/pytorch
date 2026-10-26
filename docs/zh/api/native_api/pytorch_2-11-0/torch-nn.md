@@ -2080,8 +2080,8 @@
 
 - `input`仅支持fp16，fp32
 
-<!-- npu="910b,910" id287 -->
-- <term>Atlas训练系列产品</term>/<term>Atlas A2训练系列产品</term>，需手动设置`torch.npu.config.allow_internal_format`为False，才可支持3维输入
+<!-- npu="910b" id287 -->
+- <term>Atlas A2训练系列产品</term>，需手动设置`torch.npu.config.allow_internal_format`为False，才可支持3维输入
 <!-- end id287 -->
 
 </div>
@@ -5953,18 +5953,6 @@
 <div style="margin-left: 2em">
 
 **原生文档**：[torch.nn.utils.prune.Identity](https://pytorch.org/docs/2.11/generated/torch.nn.utils.prune.Identity_class.html#torch.nn.utils.prune.Identity)
-
-**产品支持情况**：
-
-<!-- npu="910b" id801 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id801 -->
-<!-- npu="A3" id802 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id802 -->
-<!-- npu="950" id803 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id803 -->
 
 **限制与说明**：`input`仅支持fp32
 

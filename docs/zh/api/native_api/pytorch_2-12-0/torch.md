@@ -1079,12 +1079,8 @@
 - `tensors`仅支持bf16，fp16，fp32，int64，bool，complex64
 
 <!-- npu="950" id146 -->
-- <term>Ascend 950DT系列产品</term>：不支持complex64
-<!-- end id146 -->
-
-<!-- npu="950" id1114 -->
 - 在<term>Ascend 950DT系列产品</term>上，不支持`complex`数据类型。
-<!-- end id1114 -->
+<!-- end id146 -->
 
 </div>
 
@@ -1661,6 +1657,30 @@
 
 </div>
 
+### torch.scatter_add
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.scatter_add](https://pytorch.org/docs/2.12/generated/torch.scatter_add.html)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1153 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1153 -->
+<!-- npu="A3" id1154 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1154 -->
+<!-- npu="950" id1155 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1155 -->
+
+<!-- npu="950" id1143 -->
+**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，`torch.scatter_add`的输入包含重复索引时，计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。
+<!-- end id1143 -->
+
+</div>
+
 ### torch.scatter_reduce
 
 <div style="margin-left: 2em">
@@ -2208,7 +2228,7 @@
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.torch.default_generator](https://pytorch.org/docs/2.12/torch.html#torch.torch.default_generator)
+**原生文档**：[torch.default_generator](https://pytorch.org/docs/2.12/torch.html#torch.default_generator)
 
 **产品支持情况**：
 
@@ -2242,10 +2262,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id302 -->
 
-**限制与说明**：
-
 <!-- npu="950" id1118 -->
-- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
 <!-- end id1118 -->
 
 </div>
@@ -2297,10 +2315,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id308 -->
 
-**限制与说明**：
-
 <!-- npu="950" id1120 -->
-- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
 <!-- end id1120 -->
 
 </div>
@@ -2351,10 +2367,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id314 -->
 
-**限制与说明**：
-
 <!-- npu="950" id1122 -->
-- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
 <!-- end id1122 -->
 
 </div>
@@ -2403,10 +2417,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id320 -->
 
-**限制与说明**：
-
 <!-- npu="950" id1124 -->
-- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
 <!-- end id1124 -->
 
 </div>
@@ -3011,14 +3023,6 @@
 
 ## Math operations
 
-<!-- npu="950" id1142 -->
-- 在<term>Ascend 950DT系列产品</term>上，`torch._foreach_abs`不支持`complex`数据类型。
-<!-- end id1142 -->
-
-<!-- npu="950" id1143 -->
-- 在<term>Ascend 950DT系列产品</term>上，`torch.scatter_add`的输入包含重复索引时，计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。
-<!-- end id1143 -->
-
 ### torch.abs
 
 <div style="margin-left: 2em">
@@ -3238,9 +3242,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id428 -->
 
-**限制与说明**：
-
-- `input`仅支持fp16，fp32
+**限制与说明**： `input`仅支持fp16，fp32
 
 </div>
 
@@ -7612,6 +7614,30 @@
 
 </div>
 
+### torch._foreach_abs
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch._foreach_abs](https://pytorch.org/docs/2.12/generated/torch._foreach_abs.html)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1150 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1150 -->
+<!-- npu="A3" id1151 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1151 -->
+<!-- npu="950" id1152 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1152 -->
+
+<!-- npu="950" id1142 -->
+**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，`torch._foreach_abs`不支持`complex`数据类型。
+<!-- end id1142 -->
+
+</div>
+
 ### torch._foreach_sqrt
 
 <div style="margin-left: 2em">
@@ -8081,15 +8107,15 @@
 
 **产品支持情况**：
 
-<!-- npu="910b" id1107 -->
+<!-- npu="910b" id1144 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id1107 -->
-<!-- npu="A3" id1108 -->
+<!-- end id1144 -->
+<!-- npu="A3" id1145 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id1108 -->
-<!-- npu="950" id1109 -->
+<!-- end id1145 -->
+<!-- npu="950" id1146 -->
 - <term>Ascend 950DT系列产品</term>：支持
-<!-- end id1109 -->
+<!-- end id1146 -->
 
 </div>
 
@@ -8229,15 +8255,15 @@
 
 **产品支持情况**：
 
-<!-- npu="910b" id1104 -->
+<!-- npu="910b" id1147 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id1104 -->
-<!-- npu="A3" id1105 -->
+<!-- end id1147 -->
+<!-- npu="A3" id1148 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id1105 -->
-<!-- npu="950" id1106 -->
+<!-- end id1148 -->
+<!-- npu="950" id1149 -->
 - <term>Ascend 950DT系列产品</term>：支持
-<!-- end id1106 -->
+<!-- end id1149 -->
 
 </div>
 

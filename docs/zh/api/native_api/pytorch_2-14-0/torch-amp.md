@@ -29,8 +29,6 @@
 
 **原生文档**：[torch.cuda.amp.autocast](https://pytorch.org/docs/2.14/amp.html#torch.cuda.amp.autocast)
 
-**版本说明**：该接口已废弃，请使用`torch.amp.autocast("cuda", ...)`。
-
 **NPU 形式名称**：torch_npu.npu.amp.autocast
 
 **产品支持情况**：
@@ -96,8 +94,6 @@
 <div style="margin-left: 2em">
 
 **原生文档**：[torch.cpu.amp.autocast](https://pytorch.org/docs/2.14/amp.html#torch.cpu.amp.autocast)
-
-**版本说明**：该接口已废弃，请使用`torch.amp.autocast("cpu", ...)`。
 
 **NPU 形式名称**：torch.cpu.amp.autocast
 
@@ -167,8 +163,6 @@
 
 **原生文档**：[torch.cuda.amp.GradScaler](https://pytorch.org/docs/2.14/amp.html#torch.cuda.amp.GradScaler)
 
-**版本说明**：该接口已废弃，请使用`torch.amp.GradScaler("cuda", ...)`。
-
 **NPU 形式名称**：torch_npu.npu.amp.GradScaler
 
 **产品支持情况**：
@@ -195,14 +189,14 @@
 
 **产品支持情况**：
 
-<!-- npu="910b" id19 -->
+<!-- npu="910b" id22 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id19 -->
-<!-- npu="A3" id20 -->
+<!-- end id22 -->
+<!-- npu="A3" id23 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id20 -->
-<!-- npu="950" id21 -->
+<!-- end id23 -->
+<!-- npu="950" id24 -->
 - <term>Ascend 950DT系列产品</term>：支持
-<!-- end id21 -->
+<!-- end id24 -->
 
 </div>

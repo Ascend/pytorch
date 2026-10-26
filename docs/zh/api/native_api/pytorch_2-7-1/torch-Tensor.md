@@ -22,10 +22,6 @@
 
 ## Tensor class reference
 
-<!-- npu="950" id1416 -->
-- 在<term>Ascend 950DT系列产品</term>上，`Tensor.__matmul__`使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
-<!-- end id1416 -->
-
 ### <code><i>class</i></code> torch.Tensor
 
 <div style="margin-left: 2em">
@@ -765,9 +761,6 @@
 <!-- npu="A3,910b" id105 -->
 - <term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>：`self`仅支持bf16，fp16，fp32，fp64
 <!-- end id105 -->
-<!-- npu="910" id106 -->
-- <term>Atlas训练系列产品</term>：`self`仅支持fp16，fp32，fp64
-<!-- end id106 -->
 - int64类型不支持三个`tensor`同时广播
 
 </div>
@@ -820,9 +813,6 @@
 <!-- npu="A3,910b" id113 -->
 - <term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>：`self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64
 <!-- end id113 -->
-<!-- npu="910" id114 -->
-- <term>Atlas训练系列产品</term>：`self`仅支持fp16，fp32，fp64，uint8，int8，int32，int64
-<!-- end id114 -->
 - int64类型不支持三个`tensor`同时广播
 
 </div>
@@ -3125,12 +3115,8 @@
 <!-- end id424 -->
 
 <!-- npu="950" id1387 -->
-**限制与说明**： <term>Ascend 950DT系列产品</term>：不支持fp64，complex64，complex128
+**限制与说明**：在<term>Ascend 950DT系列产品</term>上，不支持`bool`、`uint8`、`int`、`fp64`、`complex64`、`complex128`数据类型。
 <!-- end id1387 -->
-
-<!-- npu="950" id1393 -->
-- 在<term>Ascend 950DT系列产品</term>上，不支持`uint8`、`int`、`bool`数据类型。
-<!-- end id1393 -->
 
 </div>
 
@@ -9139,10 +9125,6 @@
 
 - `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 - 当前NPU设备仅支持设置`memory_format`为torch.contiguous_format或torch.preserve_format
-
-<!-- npu="310p" id1241 -->
-- <term>Atlas推理系列产品</term>不支持跨NPU拷贝
-<!-- end id1241 -->
 
 <!-- npu="950" id1411 -->
 - 在<term>Ascend 950DT系列产品</term>上，不支持转换为`double`数据类型。

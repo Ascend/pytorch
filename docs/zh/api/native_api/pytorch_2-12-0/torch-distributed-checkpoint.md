@@ -1226,7 +1226,7 @@
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.distributed.checkpoint.ReadItem](https://pytorch.org/docs/2.12/distributed.checkpoint.html#torch.distributed.checkpoint.ReadItem)
+**原生文档**：[torch.distributed.checkpoint.metadata.MetadataIndex](https://pytorch.org/docs/2.12/distributed.checkpoint.html#torch.distributed.checkpoint.metadata.MetadataIndex)
 
 **产品支持情况**：
 

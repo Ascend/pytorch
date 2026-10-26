@@ -106,8 +106,6 @@
 
 **原生文档**：[torch.accelerator.set_device_idx](https://pytorch.org/docs/2.14/generated/torch.accelerator.set_device_idx.html)
 
-**版本说明**：该接口已废弃，请使用`torch.accelerator.set_device_index`。
-
 **产品支持情况**：
 
 <!-- npu="910b" id13 -->
@@ -147,8 +145,6 @@
 <div style="margin-left: 2em">
 
 **原生文档**：[torch.accelerator.current_device_idx](https://pytorch.org/docs/2.14/generated/torch.accelerator.current_device_idx.html)
-
-**版本说明**：该接口已废弃，请使用`torch.accelerator.current_device_index`。
 
 **产品支持情况**：
 

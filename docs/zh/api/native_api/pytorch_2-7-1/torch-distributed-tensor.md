@@ -150,6 +150,8 @@
 
 </div>
 
+> <font size="3">is_shard()</font>
+
 <div style="margin-left: 2em">
 
 **原生文档**：[torch.distributed.tensor.placement_types.Placement.is_shard](https://docs.pytorch.org/docs/2.7/distributed.tensor.html#torch.distributed.tensor.placement_types.Placement.is_shard)

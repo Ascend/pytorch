@@ -1157,8 +1157,6 @@
 
 **原生文档**：[torch.jit.ScriptModule.state_dict](https://pytorch.org/docs/2.9/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.state_dict)
 
-**版本说明**：`destination`、`prefix`和`keep_vars`的位置参数传法已废弃，请使用关键字参数。
-
 **产品支持情况**：
 
 <!-- npu="910b" id160 -->
