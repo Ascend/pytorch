@@ -9,6 +9,9 @@ on:
       - ci-test
     paths:
       - '.github/workflows/nightly-a3.yml'
+      - '.github/config/disabled_testcases_a3_all.json'
+      - '.github/config/running_skiped_testcases.json'
+      - '.github/config/unsupport_dtype_testcases.json'
   workflow_dispatch:
 
 permissions:
