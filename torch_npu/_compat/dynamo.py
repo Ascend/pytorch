@@ -8,17 +8,17 @@ __all__ = [
     "compat_patch_dynamo_optimize",
 ]
 
-# upstream pytorch#191513 (first in torch 2.14) makes PyTorch discover Stream/Event
-#   classes from registered DeviceInterface implementations. Older releases still
-#   need torch_npu to add the NPU classes to UserDefinedClassVariable by hand.
+# upstream pytorch#191513 makes PyTorch discover Stream/Event classes from
+#   registered DeviceInterface implementations. torch 2.14 still needs torch_npu
+#   to add the NPU classes to UserDefinedClassVariable by hand; noop from 2.15.
 #   The consumer (torch_npu/utils/_dynamo.py) imports this name and calls it.
-@compat_impl(key="patch_user_defined_class_variable", ge=(2, 14))
+@compat_impl(key="patch_user_defined_class_variable", ge=(2, 15))
 def patch_user_defined_class_variable_upstream():
-    """torch >= 2.14 discovers Stream/Event from DeviceInterface: nothing to do."""
+    """torch >= 2.15 discovers Stream/Event from DeviceInterface: nothing to do."""
     return
 
 
-@compat_impl(key="patch_user_defined_class_variable", lt=(2, 14))
+@compat_impl(key="patch_user_defined_class_variable", lt=(2, 15))
 def patch_user_defined_class_variable_local():
     import functools
 
