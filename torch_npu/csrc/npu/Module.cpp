@@ -76,6 +76,7 @@ struct NPUDeviceProp {
   int64_t cube_core_num = 0;
   int64_t vector_core_num = 0;
   int64_t L2_cache_size = 0;
+  std::optional<int64_t> ubuf_size;
   std::optional<int> major;
   std::optional<int> minor;
   std::optional<int> is_multi_gpu_board;
@@ -151,6 +152,7 @@ void RegisterNPUDeviceProperties(PyObject* module) {
       .def_readonly("cube_core_num", &NPUDeviceProp::cube_core_num)
       .def_readonly("vector_core_num", &NPUDeviceProp::vector_core_num)
       .def_readonly("L2_cache_size", &NPUDeviceProp::L2_cache_size)
+      .def_readonly("ubuf_size", &NPUDeviceProp::ubuf_size)
       .def_readonly("major", &NPUDeviceProp::major)
       .def_readonly("minor", &NPUDeviceProp::minor)
       .def_readonly("is_multi_gpu_board", &NPUDeviceProp::is_multi_gpu_board)
@@ -167,7 +169,13 @@ void RegisterNPUDeviceProperties(PyObject* module) {
                << "', total_memory=" << prop.totalGlobalMem / (CHANGE_UNIT_SIZE * CHANGE_UNIT_SIZE)
                << "MB, cube_core_num=" << prop.cube_core_num << ", vector_core_num=" << prop.vector_core_num
                << ", uuid=" << uuid_to_string(prop.uuid.bytes)
-               << ", L2_cache_size=" << prop.L2_cache_size / (CHANGE_UNIT_SIZE * CHANGE_UNIT_SIZE) << "MB)";
+               << ", L2_cache_size=" << prop.L2_cache_size / (CHANGE_UNIT_SIZE * CHANGE_UNIT_SIZE) << "MB";
+        if (prop.ubuf_size.has_value()) {
+          stream << ", ubuf_size=" << prop.ubuf_size.value() / CHANGE_UNIT_SIZE << " KB";
+        } else {
+          stream << ", ubuf_size=None";
+        }
+        stream << ")";
         return stream.str();
       });
   m.def(
@@ -236,6 +244,25 @@ void initDeviceProperty(int64_t deviceid) {
 
   NPU_CHECK_ERROR_WITHOUT_UCE(aclGetDeviceCapability(deviceid, ACL_DEVICE_INFO_L2_SIZE, &L2_cache_size));
   device_properties[deviceid].L2_cache_size = L2_cache_size;
+
+  if (device_info_avail) {
+    int64_t tmp_ubuf_size = 0;
+    aclError acl_ret = c10_npu::acl::AclrtGetDeviceInfo(
+        static_cast<uint32_t>(deviceid), ACL_DEV_ATTR_UBUF_PER_VECTOR_CORE, &tmp_ubuf_size);
+    if (acl_ret == ACL_ERROR_NONE) {
+      // Per CANN docs, only Ascend 950PR/950DT series support this attribute
+      // and other products return 0 by default. Treat 0 as not supported so
+      // Python side sees None instead of a fake zero size.
+      if (tmp_ubuf_size > 0) {
+        device_properties[deviceid].ubuf_size = tmp_ubuf_size;
+      }
+    } else {
+      TORCH_NPU_WARN_ONCE(
+          "AclrtGetDeviceInfo failed to get ubuf size, error code is ",
+          acl_ret,
+          ". The attribute may not be supported by this CANN/driver combination.");
+    }
+  }
 
   // Set multi_processor_count to vector_core_num for compatibility with
   // DataParallel balance check Use vector_core_num as it represents the number

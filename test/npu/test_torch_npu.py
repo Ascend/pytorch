@@ -65,6 +65,13 @@ class TorchNPUDeviceTestCase(TestCase):
         self.assertIsInstance(props.cube_core_num, int)
         self.assertIsInstance(props.vector_core_num, int)
         self.assertIsInstance(props.L2_cache_size, int)
+        # ubuf_size is None when the current product/CANN combination does
+        # not support the UBUF attribute; otherwise it is a positive
+        # byte count.
+        ubuf_size = props.ubuf_size
+        if ubuf_size is not None:
+            self.assertIsInstance(ubuf_size, int)
+            self.assertGreater(ubuf_size, 0)
 
     def test_npu_get_unsupported_device_properties(self):
         props = torch_npu.npu.get_device_properties(0)
