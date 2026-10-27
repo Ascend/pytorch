@@ -749,7 +749,13 @@ class NPUCachingAutotuner(CachingAutotuner):
         reload_kernel: Optional[Callable[[], CachingAutotuner]] = None,
         static_triton_bundle_key: Optional[str] = None,
     ):
-        if npu_config.precompile_thread_num > 1:
+        # template() has no size hints; foreach() also uses TEMPLATE but keeps
+        # size hints and must retain parallel compilation of its vector configs.
+        is_template = (
+            self.heuristic_type == HeuristicType.TEMPLATE
+            and self.size_hints is None
+        )
+        if npu_config.precompile_thread_num > 1 and not is_template:
             self._precompile_parallel(warm_cache_only, reload_kernel)
         else:
             self._precompile_sequential(warm_cache_only, reload_kernel)
@@ -760,7 +766,14 @@ class NPUCachingAutotuner(CachingAutotuner):
         reload_kernel: Optional[Callable[[], CachingAutotuner]] = None,
         static_triton_bundle_key: Optional[str] = None,
     ):
+        # Costmodel preparation may reload the function cleared for pickling.
+        if reload_kernel is not None:
+            self._reload_kernel = reload_kernel
+
         start_time = time.perf_counter()
+        if getattr(self, "skip_precompile", False):
+            return
+
         self._prepare_configs_for_precompile()
         if self.candidate_plan is None:
             self.candidate_plan = build_candidate_plan(
@@ -771,12 +784,6 @@ class NPUCachingAutotuner(CachingAutotuner):
             self._precompile_worker()
             return
         with self.lock:
-            # Helper function for reloading a kernel generated in a worker
-            # in the parent class. Normally we don't need to reload the kernel
-            # in the parent process, but in certain cases (coordesc tuning, dynamic_scale_rblock),
-            # we need to actually run compilation on the parent process
-            if reload_kernel is not None:
-                self._reload_kernel = reload_kernel
             self._precompile_worker()
             self._make_launchers()
         self._refresh_variant_launchers()
