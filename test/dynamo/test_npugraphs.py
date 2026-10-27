@@ -131,6 +131,43 @@ class NpuGraphsTests(torch._dynamo.test_case.TestCase):
             x.fill_(value)
             self.assertTrue(same(compiled(x), fn(x)))
 
+    @torch._dynamo.config.patch("error_on_recompile", True)
+    @torch._inductor.config.patch("triton.cudagraph_unexpected_rerecord_limit", 1)
+    def test_param_ptr_churn_does_not_count_toward_rerecord_limit(self):
+        # Distinct nn.Parameter pointers across calls trigger StaticInputIdxMismatch
+        # each time. Those mismatches re-record but must not count against
+        # cudagraph_unexpected_rerecord_limit.
+        _graph_tree.reset_npugraph_trees()
+        self.addCleanup(_graph_tree.reset_npugraph_trees)
+
+        def fn(x, y):
+            return x * y
+
+        fn_compiled = torch.compile(fn, mode="reduce-overhead")
+        # Burn through more distinct params than the limit (1) allows if counted.
+        for _ in range(5):
+            p = torch.nn.Parameter(torch.rand(2, 2, device="npu"))
+            expected = fn(p, p)
+            # No backward() is invoked, so explicitly end each invocation.
+            # Otherwise the tree stays in the recording state and the new
+            # parameter pointer is never checked against the existing roots.
+            torch.compiler.npugraph_mark_step_begin()
+            result = fn_compiled(p, p)
+            self.assertTrue(same(result, expected))
+            torch.compiler.npugraph_mark_step_begin()
+            result = fn_compiled(p, p)
+            self.assertTrue(same(result, expected))
+
+        manager = _graph_tree.get_manager(0, create_if_none_exists=False)
+        self.assertIsNotNone(manager)
+        # Confirm that re-recording actually happened, otherwise the zero
+        # counters below would not prove that churn is excluded from the limit.
+        self.assertGreater(manager.debug_fail_counter, 0)
+        # Counter never bumped for any (node, function).
+        for fn_to_count in manager.num_rerecord.values():
+            for count in fn_to_count.values():
+                self.assertEqual(count, 0)
+
 if __name__ == "__main__":
     from torch._dynamo.test_case import run_tests
 

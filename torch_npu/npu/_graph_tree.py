@@ -863,10 +863,7 @@ class NPUGraphNode:
 
         # Enable re-record a cudagraph when static tensor address changed.
         # if not we should error when it changed.
-        self.rerecord_if_static_inputs_change = (
-            torch._dynamo.config.inline_inbuilt_nn_modules
-            or torch._inductor.config.triton.cudagraph_support_input_mutation
-        )
+        self.rerecord_if_static_inputs_change = True
 
         # if this is a root parent will be None. use weakref to prevent reference cycle
         self._parent = weakref.ref(parent) if parent is not None else None
@@ -1935,6 +1932,7 @@ def check_memory_pool(
     # at this point we are past the fast-path. we have seen rare cases where a dead tensor is dead,
     # but hasn't been gc'd yet, and gives false positive for allocated_not_in_live_storages
     gc.collect()
+    torch.npu.synchronize()
 
     segments = get_npugraph_segments(pool_id)
 
@@ -2180,9 +2178,6 @@ class NPUGraphTreeManager:
     def exceed_rerecord_limit(
         self, node_id: Optional[GraphID], function_id: FunctionID
     ) -> bool:
-        if torch._dynamo.config.inline_inbuilt_nn_modules:
-            return False
-
         return (
             self.num_rerecord[node_id][function_id]
             > torch._inductor.config.triton.cudagraph_unexpected_rerecord_limit
@@ -2254,15 +2249,18 @@ class NPUGraphTreeManager:
                 if status == CheckInvariantStatus.SUCCESS:
                     return self.execute_node(child, new_inputs)
 
-                # Keep the existing torch_npu accounting: only these two
-                # statuses count toward the unexpected re-record limit. Log
-                # every mismatch reason so the user can diagnose any re-record.
-                counts_toward_limit = status in (
-                    CheckInvariantStatus.StaticInputIdxMismatch,
-                    CheckInvariantStatus.CudagraphManagedIdxMismatch,
+                # StaticInputIdxMismatch fires on non-npugraph-managed static
+                # inputs (nn parameters / mark_static_address tensors) whose
+                # identity can churn. We re-record but do not count those toward
+                # cudagraph_unexpected_rerecord_limit. All other mismatch
+                # reasons (managed ptr, liveness) do count. Log every mismatch
+                # reason so the user can diagnose any re-record.
+                counts_toward_limit = (
+                    status != CheckInvariantStatus.StaticInputIdxMismatch
                 )
                 if counts_toward_limit:
                     unexpected_rerecord = True
+                    unexpected_rerecord_reason = status_logger
                 if log.isEnabledFor(logging.DEBUG):
                     reason = status_logger()
                     log.debug(
@@ -2275,9 +2273,6 @@ class NPUGraphTreeManager:
                     )
                     if counts_toward_limit:
                         unexpected_rerecord_reason = reason
-                elif counts_toward_limit:
-                    # Defer reason computation until needed (for exceed_rerecord_limit)
-                    unexpected_rerecord_reason = status_logger
 
             # now that we know the new function can't be run as a child of the
             # current node, if it is a root, try to end the current execution.
@@ -2688,8 +2683,12 @@ class NPUGraphTreeManager:
 
         stor_stack_trace: Dict[int, Tuple[Optional[str], bool]] = {}
         for node in self.current_node._path_from_root:
-            if not len(node.tensor_weakrefs) == len(node.stack_traces):
-                raise RuntimeError("check len(node.tensor_weakrefs) == len(node.stack_traces) fail")
+            if len(node.tensor_weakrefs) != len(node.stack_traces):
+                log.warning(
+                    "tensor_weakrefs length (%d) != stack_traces length (%d)",
+                    len(node.tensor_weakrefs),
+                    len(node.stack_traces),
+                )
             function_id = getattr(node.wrapped_function, "id", None)
             is_grad_output = (
                 self.id_to_mode.get(function_id) == CompilationMode.BACKWARD

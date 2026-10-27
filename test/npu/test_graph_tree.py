@@ -11,6 +11,7 @@ import torch_npu
 from torch._dynamo.callback import CallbackTrigger
 from torch._dynamo.graph_bytecode_inputs import CURRENT_STREAM_INDEX
 from torch._guards import CompileId
+from torch._inductor.cudagraph_utils import CheckInvariantStatus
 from torch_npu.npu._graph_tree import (
     check_memory_pool,
     clear_cublas_manager,
@@ -912,7 +913,8 @@ class TestFormatTb(TestCase):
 
 class TestCheckMemoryPool(TestCase):
     @patch('torch_npu._C._npu_checkPoolLiveAllocations')
-    def test_check_memory_pool_fast_path_pass(self, mock_check):
+    @patch('torch.npu.synchronize')
+    def test_check_memory_pool_fast_path_pass(self, mock_sync, mock_check):
         mock_check.return_value = True
 
         mock_storage1 = MagicMock(spec=StorageWeakRefWrapper)
@@ -927,13 +929,15 @@ class TestCheckMemoryPool(TestCase):
         mock_check.assert_called_once_with(
             "npu:0", (0, 0), {1001, 1002}
         )
+        mock_sync.assert_not_called()
 
     @patch('torch_npu._C._npu_checkPoolLiveAllocations')
     @patch('torch_npu.npu._graph_tree.get_npugraph_segments')
     @patch('torch_npu.npu._graph_tree.format_tb')
     @patch('gc.collect')
+    @patch('torch.npu.synchronize')
     def test_check_memory_pool_slow_path_all_match(
-        self, mock_gc, mock_format_tb, mock_segments, mock_check
+        self, mock_sync, mock_gc, mock_format_tb, mock_segments, mock_check
     ):
         mock_check.return_value = False
         mock_segments.return_value = [
@@ -951,6 +955,7 @@ class TestCheckMemoryPool(TestCase):
         mock_storage.return_value = True
         check_memory_pool("npu:0", (0, 0), [mock_storage])
         mock_gc.assert_called_once_with()
+        mock_sync.assert_called_once_with()
         mock_segments.assert_called_once_with((0, 0))
         mock_format_tb.assert_not_called()
 
@@ -1392,6 +1397,86 @@ class TestNPUGraphTreeManager(TestCase):
         self.assertIn("gradient accumulation", msg)
         self.assertIn("allocate stable .grad buffers", msg)
         self.assertIn("set .grad to None", msg)
+
+    def _make_rerecord_manager(self, status, f_id=FunctionID(1)):
+        manager = NPUGraphTreeManager(0)
+        self.addCleanup(manager.shutdown)
+        wrapped = MagicMock()
+        wrapped.mutated_input_idxs = []
+        manager.ids_to_funcs[f_id] = wrapped
+        manager.warmed_up_functions.add(f_id)
+        child = MagicMock()
+        child.check_invariants.return_value = (status, lambda: f"{status}")
+        manager.roots[f_id] = [child]
+        # Pre-register the mutation hint so _run skips the mutation probe.
+        manager.non_npugraph_managed_mutation_hint[None][f_id] = False
+        manager.record_function = MagicMock(return_value="recorded")
+        manager.try_end_curr_execution = MagicMock()
+        return manager, f_id
+
+    def test_exceed_rerecord_limit_is_effective(self):
+        from torch._inductor import config as inductor_config
+
+        manager = NPUGraphTreeManager(0)
+        self.addCleanup(manager.shutdown)
+        f_id = FunctionID(1)
+        with inductor_config.patch("triton.cudagraph_unexpected_rerecord_limit", 1):
+            self.assertFalse(manager.exceed_rerecord_limit(None, f_id))
+            manager.num_rerecord[None][f_id] = 1
+            self.assertFalse(manager.exceed_rerecord_limit(None, f_id))
+            manager.num_rerecord[None][f_id] = 2
+            self.assertTrue(manager.exceed_rerecord_limit(None, f_id))
+
+    def test_static_input_mismatch_does_not_count_toward_rerecord_limit(self):
+        manager, f_id = self._make_rerecord_manager(
+            CheckInvariantStatus.StaticInputIdxMismatch
+        )
+        manager._run([torch.tensor([1.0], device="npu")], f_id)
+        self.assertEqual(manager.num_rerecord[None][f_id], 0)
+        manager.record_function.assert_called_once()
+
+    def test_structural_mismatch_counts_toward_rerecord_limit(self):
+        for status in (
+            CheckInvariantStatus.CudagraphManagedIdxMismatch,
+            CheckInvariantStatus.ExpectedDeadIndicesBeforeGraphMismatch,
+        ):
+            manager, f_id = self._make_rerecord_manager(status)
+            manager._run([torch.tensor([1.0], device="npu")], f_id)
+            self.assertEqual(manager.num_rerecord[None][f_id], 1)
+            manager.record_function.assert_called_once()
+
+    def test_exceed_rerecord_limit_falls_back_to_eager(self):
+        from torch._inductor import config as inductor_config
+
+        with inductor_config.patch("triton.cudagraph_unexpected_rerecord_limit", 0):
+            manager, f_id = self._make_rerecord_manager(
+                CheckInvariantStatus.CudagraphManagedIdxMismatch
+            )
+            manager.ids_to_funcs[f_id].model = MagicMock(return_value="eager_out")
+            out = manager._run([torch.tensor([1.0], device="npu")], f_id)
+            self.assertEqual(out, "eager_out")
+            manager.record_function.assert_not_called()
+
+    def test_dealloc_current_path_weakrefs_warns_on_mismatch(self):
+        # The manager is constructed without __init__ so this warning-only
+        # path does not allocate an NPU graph or a private memory pool.
+        manager = object.__new__(NPUGraphTreeManager)
+        manager.id_to_mode = {}
+        manager.disable_invalidate_aliases = True
+
+        node = MagicMock()
+        node.wrapped_function.id = FunctionID(1)
+        node.tensor_weakrefs = [None]
+        node.stack_traces = []
+        node.outputs_weakrefs = []
+        node.path_live_weakrefs.return_value = []
+
+        manager.current_node = MagicMock()
+        manager.current_node._path_from_root = [node]
+
+        with patch("torch_npu.npu._graph_tree.log.warning") as mock_warning:
+            manager.dealloc_current_path_weakrefs()
+        mock_warning.assert_called_once()
 
 
 class TestUpdateCurrentStreamExternalObject(TestCase):
