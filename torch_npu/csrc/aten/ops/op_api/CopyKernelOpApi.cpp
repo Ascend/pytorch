@@ -23,7 +23,7 @@
 #include "torch_npu/csrc/aten/CustomFunctions.h"
 #include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
 #include "torch_npu/csrc/core/npu/CachingHostAllocator.h"
-#include "torch_npu/csrc/custom_dtype/Init.h"
+#include "torch_npu/csrc/custom_dtype/CustomDType.h"
 #include "torch_npu/csrc/aten/NPUOpApiNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"

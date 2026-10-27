@@ -7,7 +7,8 @@
 #include <unordered_set>
 #include "torch_npu/csrc/framework/interface/MstxInterface.h"
 #include "torch_npu/csrc/toolkit/profiler/common/singleton.h"
-#include "torch_npu/csrc/npu/Stream.h"
+#include <string>
+#include <vector>
 
 namespace torch_npu {
 namespace profiler {

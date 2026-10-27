@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ATen/ATen.h>
-#include "torch_npu/csrc/custom_dtype/Init.h"
+#include "torch_npu/csrc/custom_dtype/CustomDType.h"
 
 namespace c10_npu {
 at::Tensor cast_to_fp8(const at::Tensor& input, int otype);

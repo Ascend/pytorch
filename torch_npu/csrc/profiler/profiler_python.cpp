@@ -11,7 +11,7 @@
 
 #include "torch_npu/csrc/profiler/profiler_callbacks.h"
 #include "torch_npu/csrc/profiler/profiler_mgr.h"
-#include "torch_npu/csrc/profiler/utils.h"
+#include "torch_npu/csrc/profiler/python/python_frame_utils.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
 #include "torch_npu/csrc/toolkit/profiler/inc/data_reporter.h"

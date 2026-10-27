@@ -36,7 +36,7 @@
 #include "op_plugin/OpInterface.h"
 #include "torch_npu/csrc/aten/common/from_blob.h"
 #ifndef BUILD_LIBTORCH
-#include "torch_npu/csrc/profiler/utils.h"
+#include "torch_npu/csrc/profiler/record_function.h"
 #endif
 
 namespace at_npu {
