@@ -74,6 +74,14 @@ on:
           pytest.main() per same-file batch of max 100 cases, batch-level
           junit XML, no poisoner checks / restarts; a crashed or hung
           batch marks all its cases as error).
+      retry_max_cases:
+        required: false
+        type: string
+        default: '100'
+        description: >-
+          Max failed/error/timeout cases retried serially per shard after
+          the main run (0 = unlimited); cases beyond the cap keep their
+          original results.
 
 jobs:
   test:
@@ -305,6 +313,39 @@ jobs:
           set -e
           echo "status=${TEST_STATUS}" >> "$GITHUB_OUTPUT"
 
+      # Serial (single-process, no concurrency) second chance for the
+      # shard's failed/error/timeout cases — a large share of these are
+      # transient NPU/infra flakes (device poison, watchdog kills, worker
+      # crashes) that pass when re-run alone. Runs before the results are
+      # parsed so every downstream consumer (parse step, report generator,
+      # upstream dashboard) sees post-retry numbers. Retry-passed cases get
+      # their junit XML / case log refreshed in place; still-failing cases
+      # keep the original files, with the retry evidence preserved under
+      # test-reports/retry/. The script always exits 0 — case failures stay
+      # recorded in cases.json and the shard verdict is decided later.
+      - name: Retry failed cases for ${{ inputs.category }} shard ${{ matrix.shard }}/${{ inputs.num_shards }}
+        id: retry_failed
+        if: always() && steps.run_tests.outcome != 'skipped'
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+          # Same libstdc++ precedence fix as the run step above.
+          export LD_LIBRARY_PATH="$(python3 -c 'import sys; print(sys.prefix)')/lib:$LD_LIBRARY_PATH"
+
+          # Ensure the pinned plog dir exists before retry workers start.
+          mkdir -p "${ASCEND_PROCESS_LOG_PATH}"
+
+          python ci-scripts/.github/scripts/retry_failed_cases.py \
+            --cases-file "test-reports/shard_${{ steps.prefix.outputs.prefix }}-${{ matrix.shard }}_cases.json" \
+            --test-dir pytorch/test \
+            --report-dir test-reports \
+            --retry-report-dir test-reports/retry \
+            --timeout 1200 \
+            --device-env "${{ inputs.device_env }}" \
+            --max-retry-cases ${{ inputs.retry_max_cases || '100' }} \
+            --verbose \
+            2>&1 | tee /tmp/retry_${{ inputs.category }}_${{ matrix.shard }}.log
+
       - name: Parse test results
         id: parse_results
         if: always()
@@ -384,6 +425,15 @@ jobs:
             echo "Cases logs compressed: $(ls -lh test-reports/cases_logs.tar.gz)"
           fi
 
+          if [ -d "test-reports/retry" ]; then
+            echo "=== Compressing retry reports ==="
+            RETRY_COUNT=$(find test-reports/retry -type f | wc -l)
+            echo "Found ${RETRY_COUNT} retry report files"
+            tar -czf test-reports/retry_reports.tar.gz -C test-reports retry
+            rm -rf test-reports/retry
+            echo "Retry reports compressed: $(ls -lh test-reports/retry_reports.tar.gz)"
+          fi
+
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -441,6 +491,7 @@ jobs:
         run: |
           mkdir -p error-logs
           cp /tmp/test_${{ inputs.category }}_${{ matrix.shard }}.log error-logs/ 2>/dev/null || true
+          cp /tmp/retry_${{ inputs.category }}_${{ matrix.shard }}.log error-logs/ 2>/dev/null || true
 
       - name: Upload error logs
         if: failure()
