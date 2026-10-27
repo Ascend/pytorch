@@ -63,6 +63,14 @@ A full list tags that are supported with TorchNPU
 
 ## TorchNPU 26.1.1
 
+- `2.13.0rc1-cann9.1.0-310p-ubuntu22.04-py3.12`
+- `2.13.0rc1-cann9.1.0-310p-openeuler24.03-py3.12`
+- `2.13.0rc1-cann9.1.0-910b-ubuntu22.04-py3.12`
+- `2.13.0rc1-cann9.1.0-910b-openeuler24.03-py3.12`
+- `2.13.0rc1-cann9.1.0-a3-ubuntu22.04-py3.12`
+- `2.13.0rc1-cann9.1.0-a3-openeuler24.03-py3.12`
+- `2.13.0rc1-cann9.1.0-950-ubuntu22.04-py3.12`
+- `2.13.0rc1-cann9.1.0-950-openeuler24.03-py3.12`
 - `2.12.0.post2-cann9.1.0-310p-ubuntu22.04-py3.12`
 - `2.12.0.post2-cann9.1.0-310p-openeuler24.03-py3.12`
 - `2.12.0.post2-cann9.1.0-910b-ubuntu22.04-py3.12`
