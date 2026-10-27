@@ -4,3 +4,4 @@
 - [编译libtorch\_npu](building_libtorch_npu.md)
 - [使用Clang编译](building_with_clang.md)
 - [查询版本](check_installed_versions.md)
+- [问题处理](faq.md)

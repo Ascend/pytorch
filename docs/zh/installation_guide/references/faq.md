@@ -1,4 +1,4 @@
-# FAQ
+# 问题处理
 
 ## 编译问题
 
@@ -10,7 +10,7 @@ aarch64环境下进行libtorch推理测试，编译时依赖torch.libs/\*.so库�
 
 - 报错截图
 
-    ![](../figures/libtorch_error.png)
+    ![](../../figures/libtorch_error.png)
 
 - 报错文本
 
@@ -247,7 +247,7 @@ ImportError: libhccl.so: cannot open shared object file: No such file or directo
 
 **处理方法**
 
-请检查是否已安装配套版本的NPU驱动固件、CANN软件（Toolkit、ops 和 NNAL）并正确配置CANN环境变量，具体请参考《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》。
+请检查是否已安装配套版本的NPU驱动固件、CANN软件（Toolkit、ops 和 NNAL）并正确配置CANN环境变量，具体请参考《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/920/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》。
 
 ### 问题3：导入torch_npu时，系统报错core dump
 
@@ -268,7 +268,7 @@ Segmentation fault
 
 **处理方法**
 
-使用对应的GCC版本进行编译，具体对应版本可参考[GCC和CMake版本要求](building_from_source.md#gcc_cmake)。
+使用对应的GCC版本进行编译，具体对应版本可参考[GCC和CMake版本要求](../building_from_source.md#gcc_cmake)。
 
 ### 问题4：“import torch_npu”报错找不到torch_npu._C
 

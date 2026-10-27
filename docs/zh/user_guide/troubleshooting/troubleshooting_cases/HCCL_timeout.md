@@ -21,4 +21,4 @@ there are(is) 1 abnormal device(s):
 
 ## 解决措施
 
-根据错误码EI0002，可参见《HCCL集合通信库用户指南》中的“[执行通信操作超时（EI0002）](https://www.hiascend.com/document/detail/zh/canncommercial/83RC1/hccl/hcclug/hcclug_000031.html)”章节指导进行故障处理。
+根据错误码EI0002，可参见《HCCL集合通信库用户指南》中的“[执行通信操作超时（EI0002）](https://gitcode.com/cann/hcomm/blob/master/docs/zh/error_codes/EI0002-Communication_Error_Timeout.md)”章节指导进行故障处理。
