@@ -26,6 +26,13 @@ TorchNPU需与特定版本的PyTorch、CANN、Python及固件与驱动配合使�
 
 | TorchNPU版本 | TorchNPU安装包版本 | PyTorch版本 | CANN版本 |
 |:---:|:---:|:---:|:---:|
+| 26.2.0 | 2.14.0 | 2.14.0 | CANN 9.2.0 |
+| 26.2.0 | 2.13.0 | 2.13.0 | CANN 9.2.0 |
+| 26.2.0 | 2.12.0.post3 | 2.12.0 | CANN 9.2.0 |
+| 26.2.0 | 2.11.0.post3 | 2.11.0 | CANN 9.2.0 |
+| 26.2.0 | 2.10.0.post7 | 2.10.0 | CANN 9.2.0 |
+| 26.2.0 | 2.9.0.post9 | 2.9.0 | CANN 9.2.0 |
+| 26.2.0 | 2.7.1.post11 | 2.7.1 | CANN 9.2.0 |
 | 26.1.1 | 2.12.0.post2 | 2.12.0 | CANN 9.1.X |
 | 26.1.1 | 2.11.0.post2 | 2.11.0 | CANN 9.1.X |
 | 26.1.1 | 2.10.0.post6 | 2.10.0 | CANN 9.1.X |
@@ -107,6 +114,7 @@ TorchNPU需与特定版本的PyTorch、CANN、Python及固件与驱动配合使�
 
 |   PyTorch版本   |                           Python版本                           |
 |:--------------:|:-------------------------------------------------------------:|
+| PyTorch 2.14.0 | Python3.10, Python3.11, Python 3.12, Python 3.13, Python 3.14 |
 | PyTorch 2.13.0 | Python3.10, Python3.11, Python 3.12, Python 3.13, Python 3.14 |
 | PyTorch 2.12.0 | Python3.10, Python3.11, Python 3.12, Python 3.13, Python 3.14 |
 | PyTorch 2.11.0 | Python3.10, Python3.11, Python 3.12, Python 3.13, Python 3.14 |
