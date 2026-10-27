@@ -1289,28 +1289,6 @@ class NPUCachingAutotuner(CachingAutotuner):
                     continue
                 compile_results.append(compiled_kernel)
 
-        # first try but return no valid configs
-        # so we try tuning more options
-        if len(compile_results) == 0:
-            # set up new configs
-            for i in range(len(configs)):
-                # in future, adjust more options
-                configs[i].kwargs["enable_vf_fusion"] = True
-            # start compilation tasks
-            tasks = []
-            for i, c in enumerate(configs):
-                task_handler = compile_thread_pool.submit(worker, i, c)
-                tasks.append(task_handler)
-            # collect compiled results
-            with DeviceGuard(device_interface, self.triton_meta["device"]):
-                # need to initialize context
-                device_interface.synchronize(device_interface.current_device())
-                for future in as_completed(tasks):
-                    compiled_kernel = future.result()
-                    if compiled_kernel is None:
-                        continue
-                    compile_results.append(compiled_kernel)
-
         if len(compile_results) == 0:
             raise NoTritonConfigsError(
                 f"No valid triton configs for kernel {self.get_fn_name()}. {type(compile_exc_results[0]).__name__}: {compile_exc_results[0]} \nStack trace:{compile_exc_stack_results[0]}"
