@@ -16,8 +16,10 @@
 """
 Add validation cases for torch.onnx.ONNXProgram APIs on NPU:
 1. PyTorch community lacks sufficient and direct API validations for some APIs, so this file is added.
-2. This file validates torch.onnx.ONNXProgram.model_proto (extendable).
+2. This file validates torch.onnx.ONNXProgram.model_proto, torch.onnx.ONNXProgram.optimize (extendable).
 """
+
+from __future__ import annotations
 
 import torch
 from torch.testing._internal import common_utils
@@ -81,6 +83,50 @@ class TestONNXProgramModelProto(common_utils.TestCase):
         proto = onnx_program.model_proto
         self.assertEqual(len(proto.graph.input), 2)
         self.assertEqual(len(proto.graph.output), 2)
+
+
+class ONNXProgramOptimizeTest(common_utils.TestCase):
+    """Tests for ONNXProgram.optimize method."""
+
+    def _create_onnx_program(self) -> torch.onnx.ONNXProgram:
+        """Helper to create an unoptimized ONNXProgram from a simple model."""
+        class Model(torch.nn.Module):
+            def forward(self, x):
+                return (x + 1) * 2
+
+        x = torch.randn(3).to(device_type)
+        onnx_program = torch.onnx.export(
+            Model().eval(), (x,), dynamo=True, optimize=False, verbose=False
+        )
+        return onnx_program
+
+    def test_optimize_returns_none(self):
+        """optimize() should return None."""
+        onnx_program = self._create_onnx_program()
+        result = onnx_program.optimize()
+        self.assertIsNone(result)
+
+    def test_optimize_model_valid(self):
+        """The model should be valid after optimize()."""
+        onnx_program = self._create_onnx_program()
+        onnx_program.optimize()
+        self.assertIsNotNone(onnx_program.model)
+        self.assertIsNotNone(onnx_program.model.graph)
+
+    def test_optimize_idempotent(self):
+        """Calling optimize() twice should not raise."""
+        onnx_program = self._create_onnx_program()
+        onnx_program.optimize()
+        onnx_program.optimize()
+
+    def test_optimize_preserves_io_count(self):
+        """The optimized model should preserve graph input/output count."""
+        onnx_program = self._create_onnx_program()
+        num_inputs = len(onnx_program.model.graph.inputs)
+        num_outputs = len(onnx_program.model.graph.outputs)
+        onnx_program.optimize()
+        self.assertEqual(len(onnx_program.model.graph.inputs), num_inputs)
+        self.assertEqual(len(onnx_program.model.graph.outputs), num_outputs)
 
 
 if __name__ == "__main__":
