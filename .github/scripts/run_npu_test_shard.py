@@ -1095,6 +1095,15 @@ def build_execution_env(
 
     pythonpath_parts.extend([str(repo_root), str(test_dir)])
 
+    # 分布式用例目录需显式加入 PYTHONPATH：这两个目录下的用例 import 同目录
+    # 的 helper 模块（如 model_registry/schedule_registry），需保证其所在目录在 sys.path 中。
+    pythonpath_parts.extend(
+        [
+            str(test_dir / "distributed" / "pipelining"),
+            str(test_dir / "distributed" / "local_tensor_tutorial_examples"),
+        ]
+    )
+
     existing_pythonpath = os.environ.get("PYTHONPATH", "")
     if existing_pythonpath:
         pythonpath_parts.append(existing_pythonpath)
