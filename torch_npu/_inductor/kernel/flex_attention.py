@@ -58,10 +58,12 @@ from torch._inductor.ir import (
     ComputedBuffer,
     DynamicScalar,
     ExternKernel,
+    FallbackKernel,
     FixedLayout,
     FlexibleLayout,
     get_fill_order,
     IRNode,
+    MultiOutput,
     StorageBox,
     TensorBox,
     TritonTemplateBuffer,
@@ -577,7 +579,16 @@ def _build_runtime_compact_sparse_mask_mapping(
 
 
 def _aten_fallback(op, *args, **kwargs):
-    return fallback_handler(op, add_to_fallback_set=False)(*args, **kwargs)
+    result = fallback_handler(op, add_to_fallback_set=False)(*args, **kwargs)
+    if V.graph.cpp_wrapper and op in (aten.fill_.Scalar, aten.mul_.Scalar):
+        # In-place NPU C shims do not take a returned tensor handle. Use
+        # schema-based dispatch instead of passing the fallback output to them.
+        output = result.data.data
+        assert isinstance(output, MultiOutput)
+        fallback = output.inputs[0]
+        assert isinstance(fallback, FallbackKernel)
+        fallback.use_runtime_dispatch = True
+    return result
 
 
 def _maybe_copy_to_dtype(x: TensorBox, dtype: torch.dtype) -> TensorBox:
@@ -3289,8 +3300,11 @@ def _register_npu_inductor_flex_attention():
                 dtype=torch.int32,
                 device=query.get_device(),
             )
+            _aten_fallback(aten.fill_.Scalar, bwd_sparse_mask_block_pos_buffer, -1)
+            # The in-place fallback result aliases its input. Keep the original
+            # buffer live until the backward templates finish reading it.
             bwd_sparse_mask_block_pos_buffer = _force_fixed_layout(
-                _aten_fallback(aten.fill_.Scalar, bwd_sparse_mask_block_pos_buffer, -1),
+                bwd_sparse_mask_block_pos_buffer,
                 bwd_sparse_mask_block_pos_strides,
             )
 
@@ -4031,7 +4045,10 @@ def _register_npu_inductor_flex_attention():
             )
         if not kernel_options.get("PRESCALE_QK", False):
             sm_scale = kernel_options["SM_SCALE"]
-            grad_key_accum = _aten_fallback(aten.mul.Scalar, grad_key_accum, sm_scale)
+            # NPU's out-of-place mul can return contiguous storage even when
+            # its meta result preserves transposed strides. Scale the FP32
+            # accumulator in place to preserve its explicit layout.
+            _aten_fallback(aten.mul_.Scalar, grad_key_accum, sm_scale)
         # Keep allocation opaque so consumers cannot inline the uninitialized
         # empty_strided value after the ATen copy_ mutation.
         # ATen copy_ performs the dtype cast into explicit output strides.
