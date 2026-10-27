@@ -8,14 +8,14 @@ The following table lists the software packages supported by the TorchNPU.
 |:---------------------------------:|:--------------:|:--------------:|:--------------------------------------------- |:--------------:|
 |              2.16.0               |    Planned     |  Unpublished   | Expected to be released in 2027/03            |       -        |
 |              2.15.0               |    Planned     |  Unpublished   | Expected to be released in 2026/12            |       -        |
-|              2.14.0               |  development   |  Unpublished   | Expected to be released in 2026/10            |       -        |
-|              2.13.0               |  development   |  Unpublished   | Expected to be released in 2026/10            |       -        |
+|              2.14.0               |  development   | 2026 / 10 / 15 | Expected to enter maintenance from 2027/04/15 |       -        |
+|              2.13.0               |  development   | 2026 / 10 / 15 | Expected to enter maintenance from 2027/04/15 |       -        |
 |              2.12.0               |  development   | 2026 / 07 / 26 | Expected to enter maintenance from 2027/01/26 |       -        |
 |              2.11.0               |  development   | 2026 / 07 / 26 | Expected to enter maintenance from 2027/01/26 |       -        |
 |              2.10.0               |  development   | 2026 / 04 / 30 | Expected to enter maintenance from 2026/10/30 |       -        |
-|               2.9.0               |  development   | 2026 / 01 / 15 | Expected to enter maintenance from 2026/10/15 |       -        |
-|               2.8.0               |  Maintenance   | 2025 / 10 / 15 | Expected to enter EOL from 2026/10/15         |       -        |
-|               2.7.1               |  development   | 2025 / 10 / 15 | Expected to enter maintenance from 2026/10/15 |       -        |
+|               2.9.0               |  Maintenance   | 2026 / 01 / 15 | Expected to enter EOL status from 2027/04/15  |       -        |
+|               2.8.0               |      EOL       | 2025 / 10 / 15 | -                                             | 2026 / 10 / 15 |
+|               2.7.1               |  Maintenance   | 2025 / 10 / 15 | Expected to enter EOL status from 2027/04/15  |       -        |
 |               2.6.0               |  Maintenance   | 2025 / 07 / 25 | Expected to enter EOL status from 2027/01/25  |       -        |
 |               2.5.1               |      EOL       | 2024 / 11 / 08 | -                                             | 2026 / 08 / 08 |
 |               2.4.0               |      EOL       | 2024 / 10 / 15 | -                                             | 2026 / 06 / 15 |
