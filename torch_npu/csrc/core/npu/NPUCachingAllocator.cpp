@@ -998,6 +998,7 @@ class DeviceCachingAllocator {
 
   std::atomic<CreateContextFn> context_recorder_;
   RecordContext record_context_ = RecordContext::NEVER;
+  std::unordered_set<TraceEntry::Action> skip_actions_list;
   c10::RingBuffer<TraceEntry> alloc_buffer;
 
   // XXX - maybe we should generalize and have multiple events
@@ -1035,10 +1036,16 @@ class DeviceCachingAllocator {
       bool enabled,
       CreateContextFn context_recorder,
       size_t alloc_trace_max_entries,
-      RecordContext when) {
+      RecordContext when,
+      const std::vector<std::string>& skip_actions) {
     std::unique_lock<std::recursive_mutex> lock(mutex);
     TORCH_CHECK(when == RecordContext::NEVER || context_recorder, PTA_ERROR(ErrCode::INTERNAL));
     record_history = enabled;
+    skip_actions_list.clear();
+    for (const auto& action_str : skip_actions) {
+      auto action = parseTraceEntryAction(action_str);
+      skip_actions_list.insert(action);
+    }
     context_recorder_.store(record_history ? context_recorder : nullptr);
     alloc_buffer.setMaxEntries(alloc_trace_max_entries);
     record_context_ = enabled ? when : RecordContext::NEVER;
@@ -3524,7 +3531,10 @@ class DeviceCachingAllocator {
     }
 
     if (record_history) {
-      alloc_buffer.insertEntries(te);
+      bool should_skip = skip_actions_list.contains(action);
+      if (!should_skip) {
+        alloc_buffer.insertEntries(te);
+      }
     }
   }
 };
@@ -3664,10 +3674,14 @@ class NpuCachingAllocator : public NPUAllocator {
     device_allocator[device]->setMemoryFraction(fraction);
   }
 
-  void recordHistory(bool enabled, CreateContextFn context_recorder, size_t alloc_trace_max_entries, RecordContext when)
-      override {
+  void recordHistory(
+      bool enabled,
+      CreateContextFn context_recorder,
+      size_t alloc_trace_max_entries,
+      RecordContext when,
+      const std::vector<std::string>& skip_actions) override {
     for (auto& allocator : device_allocator) {
-      allocator->recordHistory(enabled, context_recorder, alloc_trace_max_entries, when);
+      allocator->recordHistory(enabled, context_recorder, alloc_trace_max_entries, when, skip_actions);
     }
   }
 

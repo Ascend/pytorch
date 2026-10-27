@@ -180,8 +180,12 @@ void RegisterNPUDeviceProperties(PyObject* module) {
       });
   m.def(
       "_npu_record_memory_history",
-      static_cast<void (*)(c10::optional<std::string>, c10::optional<std::string>, std::string, size_t)>(
-          torch_npu::_record_memory_history));
+      static_cast<void (*)(
+          c10::optional<std::string>,
+          c10::optional<std::string>,
+          const std::string&,
+          size_t,
+          const std::vector<std::string>&)>(torch_npu::_record_memory_history));
 
   m.def("_npu_isHistoryEnabled", []() { return c10_npu::NPUCachingAllocator::isHistoryEnabled(); });
 

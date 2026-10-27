@@ -5,6 +5,7 @@ import ctypes
 import pickle
 import sys
 import os
+from inspect import signature
 from typing import Optional, Tuple
 
 import torch_npu
@@ -884,6 +885,11 @@ def _record_memory_history(enabled="all", *args, **kwargs):
             Defaults to "all".
         max_entries (int, optional): Keep a maximum of `max_entries`
             alloc/free events in the recorded history recorded.
+        skip_actions (list[str], optional): Event types to omit from history:
+            "alloc", "free_requested", "free_completed", "segment_alloc",
+            "segment_free", "segment_map", "segment_unmap", "snapshot", "oom",
+            or "workspace_snapshot". Defaults to None (record all actions).
+            This does not affect allocation state or allocator trace trackers.
     """
     return _record_memory_history_impl(enabled, *args, **kwargs)
 
@@ -894,9 +900,16 @@ def _record_memory_history_impl(
     stacks: str = "all",
     max_entries: int = sys.maxsize,
     device=None,
+    skip_actions: list[str] | None = None,
 ):
     torch_npu.npu._lazy_init()
-    torch_npu._C._npu_record_memory_history(enabled, context, stacks, max_entries)
+    torch_npu._C._npu_record_memory_history(
+        enabled, context, stacks, max_entries,
+        skip_actions if skip_actions is not None else [],
+    )
+
+
+_record_memory_history.__signature__ = signature(_record_memory_history_impl)
 
 
 def _snapshot(device=None, augment_with_fx_traces=False):

@@ -26,7 +26,11 @@ c10::Allocator* get();
 void init();
 c10::DataPtr malloc_with_stream(size_t size, aclrtStream stream);
 void emptyCache(int device, bool check_error = true);
-void recordHistory(bool enabled, CreateContextFn context_recorder, RecordContext when);
+void recordHistory(
+    bool enabled,
+    CreateContextFn context_recorder,
+    RecordContext when,
+    const std::vector<std::string>& skip_actions);
 SnapshotInfo snapshot();
 DeviceStats getDeviceStats(int device);
 

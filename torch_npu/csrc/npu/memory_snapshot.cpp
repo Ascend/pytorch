@@ -37,8 +37,9 @@ static void checkOptionIn(const std::string& option, std::initializer_list<std::
 void _record_memory_history(
     c10::optional<std::string> enabled,
     c10::optional<std::string> context,
-    std::string stacks,
-    size_t max_entries) {
+    const std::string& stacks,
+    size_t max_entries,
+    const std::vector<std::string>& skip_actions) {
   if (enabled) {
     checkOptionIn(*enabled, {"state", "all"}, "expected state to be 'state', 'all', or None");
   }
@@ -46,9 +47,13 @@ void _record_memory_history(
     checkOptionIn(*context, {"state", "alloc", "all"}, "expected context to be 'state', 'alloc', 'all', or None");
   }
   checkOptionIn(stacks, {"python", "all"}, "expected stacks to be 'python', or 'all'");
+  // Validate before updating either allocator's recording configuration.
+  for (const auto& action : skip_actions) {
+    c10_npu::NPUCachingAllocator::parseTraceEntryAction(action);
+  }
 
   c10_npu::NPUCachingAllocator::CreateContextFn recorder = gather;
-  if (enabled && stacks == "all") {
+  if (enabled && context && stacks == "all") {
     recorder = gather_with_cpp;
     // warm up C++ stack unwinding
 #if defined(__x86_64__)
@@ -68,8 +73,8 @@ void _record_memory_history(
       when = c10_npu::NPUCachingAllocator::RecordContext::STATE;
     }
   }
-  c10_npu::NPUCachingAllocator::recordHistory(enabled.has_value(), recorder, max_entries, when);
-  c10_npu::NPUWorkspaceAllocator::recordHistory(enabled.has_value(), recorder, when);
+  c10_npu::NPUCachingAllocator::recordHistory(enabled.has_value(), recorder, max_entries, when, skip_actions);
+  c10_npu::NPUWorkspaceAllocator::recordHistory(enabled.has_value(), recorder, when, skip_actions);
 }
 
 std::string write_pickle(const c10::IValue& v) {

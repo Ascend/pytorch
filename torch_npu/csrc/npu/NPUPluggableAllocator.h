@@ -92,7 +92,8 @@ struct NPUPluggableAllocator : public c10_npu::NPUCachingAllocator::NPUAllocator
       bool enabled,
       c10_npu::NPUCachingAllocator::CreateContextFn context_recorder,
       size_t alloc_trace_max_entries,
-      c10_npu::NPUCachingAllocator::RecordContext when) override;
+      c10_npu::NPUCachingAllocator::RecordContext when,
+      const std::vector<std::string>& skip_actions) override;
   void attachOutOfMemoryObserver(c10_npu::NPUCachingAllocator::OutOfMemoryObserver observer) override;
   void attachOomRejectionObserver(c10_npu::NPUCachingAllocator::OomRejectionObserver observer) override;
   void attachAllocatorTraceTracker(c10_npu::NPUCachingAllocator::AllocatorTraceTracker tracker) override;

@@ -1,5 +1,6 @@
 #include <memory>
 #include <vector>
+#include <unordered_set>
 
 #include <c10/util/flat_hash_map.h>
 #include <c10/util/irange.h>
@@ -261,9 +262,18 @@ class DeviceWorkspaceAllocator {
     ASCEND_LOGD("NPUWorkspaceAllocator end empty cache with check_error = %d", check_error);
   }
 
-  void record_history(bool enabled, CreateContextFn context_recorder, RecordContext when) {
+  void record_history(
+      bool enabled,
+      CreateContextFn context_recorder,
+      RecordContext when,
+      const std::vector<std::string>& skip_actions) {
     std::lock_guard<std::recursive_mutex> lock(mutex);
     TORCH_CHECK(when == RecordContext::NEVER || context_recorder, PTA_ERROR(ErrCode::INTERNAL));
+    skip_actions_list.clear();
+    for (const auto& action_str : skip_actions) {
+      auto action = NPUCachingAllocator::parseTraceEntryAction(action_str);
+      skip_actions_list.insert(action);
+    }
     record_flag = enabled;
     context_recorder_.store(record_flag ? context_recorder : nullptr);
     record_context_ = enabled ? when : RecordContext::NEVER;
@@ -286,7 +296,9 @@ class DeviceWorkspaceAllocator {
           MempoolId_t{0, 0},
           c10::getApproximateTime(),
           record_context_ >= RecordContext::ALLOC ? block_pair.second->context_when_allocated : nullptr);
-      alloc_trace.emplace_back(te);
+      if (!skip_actions_list.contains(te.action_)) {
+        alloc_trace.emplace_back(te);
+      }
 
       te = TraceEntry(
           TraceEntry::SEGMENT_ALLOC,
@@ -297,7 +309,9 @@ class DeviceWorkspaceAllocator {
           MempoolId_t{0, 0},
           c10::getApproximateTime(),
           record_context_ >= RecordContext::ALLOC ? block_pair.second->context_when_allocated : nullptr);
-      alloc_trace.emplace_back(te);
+      if (!skip_actions_list.contains(te.action_)) {
+        alloc_trace.emplace_back(te);
+      }
 
       te = TraceEntry(
           TraceEntry::ALLOC,
@@ -308,7 +322,9 @@ class DeviceWorkspaceAllocator {
           MempoolId_t{0, 0},
           c10::getApproximateTime(),
           record_context_ >= RecordContext::ALLOC ? block_pair.second->context_when_allocated : nullptr);
-      alloc_trace.emplace_back(te);
+      if (!skip_actions_list.contains(te.action_)) {
+        alloc_trace.emplace_back(te);
+      }
     }
 #endif
     return alloc_trace;
@@ -386,6 +402,7 @@ class DeviceWorkspaceAllocator {
   mutable std::recursive_mutex mutex;
   ska::flat_hash_map<aclrtStream, WorkspaceBlock*> blocks;
   bool record_flag = false;
+  std::unordered_set<TraceEntry::Action> skip_actions_list;
   std::atomic<CreateContextFn> context_recorder_;
   RecordContext record_context_ = RecordContext::NEVER;
 #ifndef BUILD_LIBTORCH
@@ -452,9 +469,13 @@ class NpuWorkspaceAllocator : public c10::Allocator {
     allocated_ptrs.clear();
   }
 
-  void record_history(bool enabled, CreateContextFn context_recorder, RecordContext when) {
+  void record_history(
+      bool enabled,
+      CreateContextFn context_recorder,
+      RecordContext when,
+      const std::vector<std::string>& skip_actions) {
     for (auto& allocator : device_allocator) {
-      allocator->record_history(enabled, context_recorder, when);
+      allocator->record_history(enabled, context_recorder, when, skip_actions);
     }
   }
 
@@ -591,8 +612,12 @@ void emptyCache(int device, bool check_error) {
   workspace_allocator.empty_cache(device, check_error);
 }
 
-void recordHistory(bool enabled, CreateContextFn context_recorder, RecordContext when) {
-  workspace_allocator.record_history(enabled, context_recorder, when);
+void recordHistory(
+    bool enabled,
+    CreateContextFn context_recorder,
+    RecordContext when,
+    const std::vector<std::string>& skip_actions) {
+  workspace_allocator.record_history(enabled, context_recorder, when, skip_actions);
 }
 SnapshotInfo snapshot() {
   return workspace_allocator.snapshot();

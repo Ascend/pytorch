@@ -14,6 +14,7 @@
 
 #include <mutex>
 #include <atomic>
+#include <unordered_map>
 
 inline std::shared_ptr<npu_logging::Logger>& GetLoggerMem() {
   static std::shared_ptr<npu_logging::Logger> loggerMem = npu_logging::logging().getLogger("torch_npu.memory");
@@ -171,6 +172,23 @@ struct TraceEntry {
   trace_time_ time_{};
 };
 
+inline TraceEntry::Action parseTraceEntryAction(const std::string& action) {
+  static const std::unordered_map<std::string, TraceEntry::Action> actions = {
+      {"alloc", TraceEntry::Action::ALLOC},
+      {"free_requested", TraceEntry::Action::FREE_REQUESTED},
+      {"free_completed", TraceEntry::Action::FREE_COMPLETED},
+      {"segment_alloc", TraceEntry::Action::SEGMENT_ALLOC},
+      {"segment_free", TraceEntry::Action::SEGMENT_FREE},
+      {"segment_map", TraceEntry::Action::SEGMENT_MAP},
+      {"segment_unmap", TraceEntry::Action::SEGMENT_UNMAP},
+      {"snapshot", TraceEntry::Action::SNAPSHOT},
+      {"oom", TraceEntry::Action::OOM},
+      {"workspace_snapshot", TraceEntry::Action::WORKSPACE_SNAPSHOT}};
+  auto it = actions.find(action);
+  TORCH_CHECK(it != actions.end(), "Unknown memory history action: ", action, PTA_ERROR(ErrCode::PARAM));
+  return it->second;
+}
+
 struct SnapshotInfo {
   std::vector<SegmentInfo> segments;
   std::vector<std::vector<TraceEntry>> device_traces;
@@ -313,7 +331,8 @@ class NPUAllocator : public c10::DeviceAllocator {
       bool enabled,
       CreateContextFn context_recorder,
       size_t alloc_trace_max_entries,
-      RecordContext when) = 0;
+      RecordContext when,
+      const std::vector<std::string>& skip_actions) = 0;
   virtual void attachOutOfMemoryObserver(OutOfMemoryObserver observer) = 0;
   virtual void attachOomRejectionObserver(OomRejectionObserver observer) = 0;
   virtual bool checkUceInMemPool(int device) = 0;
@@ -505,8 +524,9 @@ inline void recordHistory(
     bool enabled,
     CreateContextFn context_recorder,
     size_t alloc_trace_max_entries,
-    RecordContext when) {
-  return get()->recordHistory(enabled, context_recorder, alloc_trace_max_entries, when);
+    RecordContext when,
+    const std::vector<std::string>& skip_actions) {
+  return get()->recordHistory(enabled, context_recorder, alloc_trace_max_entries, when, skip_actions);
 }
 
 inline bool isHistoryEnabled() {
