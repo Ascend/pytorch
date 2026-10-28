@@ -187,8 +187,10 @@ def _load_triton_backend():
     from .scheduler import patch_scheduler
     from .select_algorithm import patch_algorithm_selector
 
-    from .graph import patch_count_bytes
+    from .graph import patch_count_bytes, patch_propagate_mutation
     from .autotune_process import patch_tuning_process
+
+    patch_propagate_mutation()
     patch_flex_attention()
 
     def _patch_flex_attention_singleton_sort():

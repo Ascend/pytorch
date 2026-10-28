@@ -279,9 +279,11 @@ def _get_inductor_attr_baseline():
 
     from torch._inductor import ir as inductor_ir
     from torch._inductor import scheduler as inductor_scheduler
+    from torch._inductor.graph import GraphLowering
 
     Scheduler = inductor_scheduler.Scheduler
     _INDUCTOR_ATTR_BASELINE = (
+        _snapshot_inductor_attr(GraphLowering, "propagate_mutation"),
         _snapshot_inductor_attr(inductor_ir.Layout, "_stride_expr_ge_or_false"),
         _snapshot_inductor_attr(Scheduler, "_codegen"),
         _snapshot_inductor_attr(Scheduler, "compute_ancestors"),
