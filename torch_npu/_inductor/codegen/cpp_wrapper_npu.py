@@ -836,6 +836,18 @@ static inline void load_{kernel_name}() {{
             writer.writeline(f"float {scalar} = float({scalar_tmp});")
             struct_data = f"float {scalar} __attribute__((aligned(4)));"
             arg_data = f"static_cast<float>({scalar})"
+        elif dtype == torch.bool:
+            # aoti_torch_item_bool requires a bool* out param, while triton-ascend
+            # kernels take bool args as int32_t, so extract into a bool temporary
+            # first and then cast it to int32_t.
+            scalar_tmp = f"{scalar}_tmp"
+            writer.writeline(f"bool {scalar_tmp};")
+            writer.writeline(
+                f"AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_item_bool({tensor}, &{scalar_tmp}));"
+            )
+            writer.writeline(f"int32_t {scalar} = int32_t({scalar_tmp});")
+            struct_data = f"int32_t {scalar} __attribute__((aligned(4)));"
+            arg_data = f"static_cast<int32_t>({scalar})"
         else:
             writer.writeline(f"{DTYPE_TO_TA_TYPE[dtype]} {scalar};")
             writer.writeline(
