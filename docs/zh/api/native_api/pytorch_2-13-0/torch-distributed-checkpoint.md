@@ -1490,6 +1490,26 @@
 
 </div>
 
+### <code><i>class</i></code> torch.distributed.checkpoint.planner.TensorWriteData
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.checkpoint.planner.TensorWriteData](https://pytorch.org/docs/2.13/distributed.checkpoint.html#torch.distributed.checkpoint.planner.TensorWriteData)
+
+**产品支持情况**：
+
+<!-- npu="910b" id229 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id229 -->
+<!-- npu="A3" id230 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id230 -->
+<!-- npu="950" id231 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id231 -->
+
+</div>
+
 ### <code><i>class</i></code> torch.distributed.checkpoint.staging.AsyncStager
 
 <div style="margin-left: 2em">
