@@ -83,6 +83,13 @@ DLDataType getDLDataType(const Tensor& t) {
     case ScalarType::Float8_e4m3fn:
     case ScalarType::Float8_e4m3fnuz:
     case ScalarType::Float8_e8m0fnu:
+#if TORCH_NPU_VERSION_GE(2, 16)
+    // COMPAT(>= 2.16): Upstream pytorch#201269 added Float8_e5m3fnu. DLPack
+    // has no encoding for it, so treat it as unsupported, matching the other
+    // Float8 handling above.
+    // CAN REMOVE <branch> when MIN_SUPPORTED >= (2, 16)
+    case ScalarType::Float8_e5m3fnu:
+#endif
       TORCH_CHECK(false, "float8 types are not supported by dlpack", PTA_ERROR(ErrCode::TYPE));
       break;
     case ScalarType::QInt8:

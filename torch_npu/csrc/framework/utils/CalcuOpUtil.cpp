@@ -42,6 +42,18 @@ AT_FORALL_SCALAR_TYPES_WITH_COMPLEX_AND_QINTS(ENUM_PAIR_FUNC)
 #define AT_SCALAR_TYPE_V214_ADDS(_) /* nothing on <2.14 */
 #endif
 
+// COMPAT(>= 2.16): Upstream pytorch#201269
+// appended Float8_e5m3fnu after BComplex32,
+// shifting Undefined/NumOptions by one. Gate the extra mapping entry so
+// 2.15 and earlier (where the dtype does not exist) still build. Ascend has
+// no native Float8_e5m3fnu dtype, so map to ACL_DT_UNDEFINED.
+// CAN REMOVE <branch> when MIN_SUPPORTED >= (2, 16)
+#if TORCH_NPU_VERSION_GE(2, 16)
+#define AT_SCALAR_TYPE_V216_ADDS(_) _(at::ScalarType::Float8_e5m3fnu, ACL_DT_UNDEFINED)
+#else
+#define AT_SCALAR_TYPE_V216_ADDS(_) /* nothing on <2.16 */
+#endif
+
 #define AT_ALL_SCALAR_TYPE_AND_ACL_DATATYPE_PAIR(_)    \
   _(at::ScalarType::Byte, ACL_UINT8)                   \
   _(at::ScalarType::Char, ACL_INT8)                    \
@@ -90,6 +102,7 @@ AT_FORALL_SCALAR_TYPES_WITH_COMPLEX_AND_QINTS(ENUM_PAIR_FUNC)
   _(at::ScalarType::Float8_e8m0fnu, ACL_FLOAT8_E8M0)   \
   _(at::ScalarType::Float4_e2m1fn_x2, ACL_FLOAT4_E2M1) \
   AT_SCALAR_TYPE_V214_ADDS(_)                          \
+  AT_SCALAR_TYPE_V216_ADDS(_)                          \
   _(at::ScalarType::Undefined, ACL_DT_UNDEFINED)       \
   _(at::ScalarType::NumOptions, ACL_DT_UNDEFINED)
 
