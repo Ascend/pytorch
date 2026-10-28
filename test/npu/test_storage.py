@@ -7,6 +7,8 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import SupportedDevices
 
+device_type = acc.type if (acc := torch.accelerator.current_accelerator()) else "cpu"
+
 
 class TestStorage(TestCase):
 
@@ -437,6 +439,23 @@ class TestStorage(TestCase):
         self.assertEqual(empty_result.dtype, torch.complex64)
         self.assertEqual(empty_result.device.type, "npu")
         self.assertEqual(empty_result.size(), 0)
+
+    def test_untyped_storage_complex_double(self):
+        values = [1.0, -2.0, 3.0, -4.0, 5.0, -6.0, 7.0, -8.0]
+        cpu_storage = torch.tensor(values, dtype=torch.float32).untyped_storage()
+        npu_storage = (
+            torch.tensor(values, dtype=torch.float32).to(device_type).untyped_storage()
+        )
+
+        cpu_result = cpu_storage.complex_double()
+        npu_result = npu_storage.complex_double()
+
+        self.assertEqual(cpu_result.dtype, torch.cdouble)
+        self.assertEqual(npu_result.dtype, torch.cdouble)
+        self.assertEqual(cpu_result.size(), cpu_storage.nbytes())
+        self.assertEqual(npu_result.size(), npu_storage.nbytes())
+        self.assertEqual(npu_result.device.type, device_type)
+        self.assertEqual(cpu_result.tolist(), npu_result.cpu().tolist())
 
     def test_type_conversions(self):
         x = torch.randn(5, 5)
