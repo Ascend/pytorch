@@ -503,6 +503,119 @@ class TestStorage(TestCase):
         # Values should match the original view
         self.assertEqual(qscale_view.cpu(), copied.cpu())
 
+    def _make_fused_uint8_flat(self, nbytes):
+        return torch.randint(0, 255, (nbytes,), dtype=torch.uint8, device="npu")
+
+    def _fbgemm_split_views(self, fused_2d):
+        weight = fused_2d[:, 4:]
+        qscale = fused_2d[:, 0:2].view(torch.float16)
+        qbias = fused_2d[:, 2:4].view(torch.float16)
+        return weight, qscale, qbias
+
+    def test_deepcopy_shared_storage_multi_dtype_views(self):
+        # Within a single deepcopy call, tensors sharing one storage but with
+        # different dtypes must each get a copied storage of their own dtype,
+        # in both copy orders (issue 5378).
+        torch.manual_seed(0)
+        torch.npu.manual_seed(0)
+        fused = self._make_fused_uint8_flat(1024)
+        view = fused[512:512 + 128].view(torch.float16)
+
+        copied = copy.deepcopy([fused, view])
+        self.assertEqual(copied[0].dtype, torch.uint8)
+        self.assertEqual(copied[1].dtype, torch.float16)
+        self.assertEqual(fused.cpu(), copied[0].cpu())
+        self.assertEqual(view.view(torch.uint8).cpu(), copied[1].view(torch.uint8).cpu())
+        # Copies must be newly allocated, never aliases of the source storage.
+        src_ptr = fused.untyped_storage().data_ptr()
+        self.assertNotEqual(copied[0].untyped_storage().data_ptr(), src_ptr)
+        self.assertNotEqual(copied[1].untyped_storage().data_ptr(), src_ptr)
+
+        copied = copy.deepcopy([view, fused])
+        self.assertEqual(copied[0].dtype, torch.float16)
+        self.assertEqual(copied[1].dtype, torch.uint8)
+        self.assertEqual(view.view(torch.uint8).cpu(), copied[0].view(torch.uint8).cpu())
+        self.assertEqual(fused.cpu(), copied[1].cpu())
+        self.assertNotEqual(copied[0].untyped_storage().data_ptr(), src_ptr)
+        self.assertNotEqual(copied[1].untyped_storage().data_ptr(), src_ptr)
+
+    def test_deepcopy_fbgemm_split_three_views(self):
+        # torchrec quantized EBC layout: weight(uint8) / weight_qscale(fp16) /
+        # weight_qbias(fp16) are three views of one fused uint8 storage
+        # (per row: [scale 2B][bias 2B][int8 weight]).
+        torch.manual_seed(0)
+        torch.npu.manual_seed(0)
+        rows, row_bytes = 64, 516
+        fused = self._make_fused_uint8_flat(rows * row_bytes).view(rows, row_bytes)
+        weight, qscale, qbias = self._fbgemm_split_views(fused)
+
+        copied = copy.deepcopy([weight, qscale, qbias])
+        self.assertEqual(copied[0].dtype, torch.uint8)
+        self.assertEqual(copied[1].dtype, torch.float16)
+        self.assertEqual(copied[2].dtype, torch.float16)
+        self.assertEqual(weight.cpu(), copied[0].cpu())
+        self.assertEqual(qscale.view(torch.uint8).cpu(), copied[1].view(torch.uint8).cpu())
+        self.assertEqual(qbias.view(torch.uint8).cpu(), copied[2].view(torch.uint8).cpu())
+        # Copies of views over one storage must keep sharing the copied storage
+        # and must not alias the source storage.
+        ptrs = {t.untyped_storage().data_ptr() for t in copied}
+        self.assertEqual(len(ptrs), 1)
+        src_ptr = fused.untyped_storage().data_ptr()
+        for t in copied:
+            self.assertNotEqual(t.untyped_storage().data_ptr(), src_ptr)
+
+    def test_deepcopy_module_buffers_shared_storage(self):
+        # nn.Module with registered buffers sharing one storage, like the
+        # torchrec quantized EBC deepcopied as a whole.
+        torch.manual_seed(0)
+        torch.npu.manual_seed(0)
+        rows, row_bytes = 64, 516
+        fused = self._make_fused_uint8_flat(rows * row_bytes).view(rows, row_bytes)
+        weight, qscale, qbias = self._fbgemm_split_views(fused)
+        module = torch.nn.Module()
+        module.register_buffer("weight", weight)
+        module.register_buffer("weight_qscale", qscale)
+        module.register_buffer("weight_qbias", qbias)
+
+        copied = copy.deepcopy(module)
+        self.assertEqual(copied._buffers["weight"].dtype, torch.uint8)
+        self.assertEqual(copied._buffers["weight_qscale"].dtype, torch.float16)
+        self.assertEqual(copied._buffers["weight_qbias"].dtype, torch.float16)
+        self.assertEqual(weight.cpu(), copied._buffers["weight"].cpu())
+        self.assertEqual(
+            qscale.view(torch.uint8).cpu(), copied._buffers["weight_qscale"].view(torch.uint8).cpu()
+        )
+        ptrs = {t.untyped_storage().data_ptr() for t in copied._buffers.values()}
+        self.assertEqual(len(ptrs), 1)
+        src_ptr = fused.untyped_storage().data_ptr()
+        for t in copied._buffers.values():
+            self.assertNotEqual(t.untyped_storage().data_ptr(), src_ptr)
+
+    def test_deepcopy_shared_storage_same_dtype_aliasing(self):
+        # Same-dtype tensors sharing one storage keep sharing the copy
+        # (the behavior the memo cache was introduced for).
+        torch.manual_seed(0)
+        torch.npu.manual_seed(0)
+        a = torch.randn(4, 4, device="npu")
+        b = a[1:]
+        copied = copy.deepcopy([a, b])
+        self.assertEqual(copied[0].untyped_storage().data_ptr(), copied[1].untyped_storage().data_ptr())
+        self.assertNotEqual(copied[0].untyped_storage().data_ptr(), a.untyped_storage().data_ptr())
+        self.assertEqual(b.cpu(), copied[1].cpu())
+
+    def test_deepcopy_bare_typed_storage(self):
+        # A TypedStorage over a bare (desc-uninitialized) NPU storage must
+        # still deepcopy with its own dtype.
+        us = torch.UntypedStorage(1024, device="npu")
+        ts = torch.storage.TypedStorage(wrap_storage=us, dtype=torch.float16, _internal=True)
+        x = torch.empty(0, dtype=torch.float16, device="npu")
+        x.set_(ts, 0, (512,), (1,))
+
+        copied = copy.deepcopy(x)
+        self.assertEqual(copied.dtype, torch.float16)
+        self.assertEqual(tuple(copied.shape), (512,))
+        self.assertNotEqual(copied.untyped_storage().data_ptr(), us.data_ptr())
+
 
 if __name__ == '__main__':
     run_tests()
