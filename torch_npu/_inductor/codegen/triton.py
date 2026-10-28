@@ -50,6 +50,7 @@ from torch._inductor.codegen.triton_utils import (
     signature_of,
     signature_to_meta,
 )
+from torch._inductor.dependencies import MemoryDep
 from torch._inductor.dtype_propagation import DtypePropagationOpsHandler
 from torch._inductor.shape_propagation import ShapePropagationOpsHandler, get_broadcasted_shape
 from torch._inductor.ir import IRNode
@@ -1112,6 +1113,31 @@ class NPUIndexTritonKernel(TritonKernel):
 
         return ctx()
 
+    def _estimate_reduction_input_bytes(self, reduction_numel) -> sympy.Expr:
+        """Estimate input-load pressure for persistent-reduction selection.
+
+        Count each distinct external access as a full-R input in its source
+        dtype. This coarse estimate does not model broadcasting, X tiles,
+        dtype conversions, intermediates or value liveness. Actual peak UB
+        usage depends on compiler scheduling and buffer reuse.
+        """
+        # Count distinct external accesses in the reduction loop. Buffers
+        # produced by an earlier fused node can be reused without a load.
+        reads = set()
+        produced = set()
+        for node in EnableReduction.filter(self.features.node_schedule):
+            for dep in node.read_writes.reads:
+                if (
+                    isinstance(dep, MemoryDep)
+                    and dep.name not in produced
+                    and not V.graph.is_unspec_arg(dep.name)
+                ):
+                    reads.add(dep)
+            produced.update(dep.name for dep in node.read_writes.writes)
+
+        bytes_per_element = sum(V.graph.get_dtype(dep.name).itemsize for dep in reads)
+        return reduction_numel * bytes_per_element
+
     def should_use_persistent_reduction(self) -> bool:
         """
         Heuristic to decide if a persistent reduction should be used.
@@ -1131,6 +1157,21 @@ class NPUIndexTritonKernel(TritonKernel):
             threshold = {ReductionHint.INNER: 1024, ReductionHint.DEFAULT: 1024}.get(
                 self.features.get_reduction_hint(), 64
             )
+        # Many early loads over a large reduction can keep enough values live
+        # to overflow UB. Use 256 KiB as an empirical input-pressure watermark,
+        # not as the device's usable UB capacity. Keep the existing threshold
+        # when exceeding the watermark cannot be proven statically.
+        if (
+            npu_config.is_ascend950
+            and not V.graph.sizevars.statically_known_leq(reduction_numel, 1024)
+            and V.graph.sizevars.statically_known_gt(
+                self._estimate_reduction_input_bytes(reduction_numel), 256 * 1024
+            )
+        ):
+            # Reduce only the base threshold. Cooperative reduction and
+            # multi-kernel paths may have different resource requirements,
+            # so preserve their existing threshold adjustments below.
+            threshold = min(threshold, 1024)
         if self.cooperative_reduction:
             # The RSPLIT of cooperative reductions means each thread block is operating on fewer elements
             try:
