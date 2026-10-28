@@ -50,7 +50,7 @@ from fx.test_gradual_type import AnnotationsTest  # noqa: F401
 from fx.test_gradual_type import TypeCheckerTest  # noqa: F401
 from fx.named_tup import MyNamedTup
 
-from torch.testing._internal.common_utils import TestCase, run_tests
+from torch.testing._internal.common_utils import TestCase
 import torch_npu
 import torch_npu.testing
 from torch.testing import FileCheck
@@ -600,26 +600,27 @@ class TestFX(JitTestCase):
             seen_names.add(node.name)
 
     def test_stack_traces(self):
+        def foo(a, b):
+            return a * b
+
         class M(torch.nn.Module):
             def forward(self, a, b):
-                return a + b
+                c = a + b
+                c = foo(a, c)
+                return c
 
         tracer = torch.fx.Tracer()
         tracer.record_stack_traces = True
 
         graph = tracer.trace(M())
-        # saving the original list because we will insert new nodes as a part of a test
-        orig_graph_nodes = list(graph.nodes)
-        for node in orig_graph_nodes:
-            if node.op == 'output':
-                continue
-            self.assertTrue(node.stack_trace is not None)
-            assert 'test_fx.py' in node.stack_trace
-
-            # verify that copying the node does not lose the stack trace
-            new_node = graph.node_copy(node)
-            self.assertTrue(new_node.stack_trace is not None)
-            assert 'test_fx.py' in new_node.stack_trace
+        # pytorch#151029 filters tracer frames, so placeholder nodes can have an
+        # empty stack_trace. Check the user lines that remain.
+        stack_traces = "\n".join(
+            [node.meta.get("stack_trace", "") or "" for node in graph.nodes]
+        )
+        FileCheck().check_count("c = a + b", 1, exactly=True).run(stack_traces.strip())
+        FileCheck().check_count("c = foo(a, c)", 1, exactly=True).run(stack_traces.strip())
+        FileCheck().check_count("return a * b", 1, exactly=True).run(stack_traces.strip())
 
     def test_stack_traces_with_transformer(self):
         class M(torch.nn.Module):
@@ -789,7 +790,7 @@ class TestFX(JitTestCase):
             wrapper = WrapperModule(interpreter)
 
             # Create a graph that: 1) Takes function arguments 2) Invokes the interpreter
-            # 3) Returns the speficied return value
+            # 3) Returns the specified return value
 
             graph = torch.fx.Graph()
             # Add placeholders for fn inputs
@@ -1199,7 +1200,9 @@ class TestFX(JitTestCase):
 
         bio.seek(0)
 
-        loaded = torch.load(bio)
+        # pytorch#137602 defaults weights_only to True. GraphModule needs the
+        # reduce_graph_module global, which is not on the safe list.
+        loaded = torch.load(bio, weights_only=False)
 
         torch.testing.assert_close(loaded(x), x[0])
 
@@ -1675,8 +1678,8 @@ class TestFX(JitTestCase):
         x = torch.randn(5, 5, 224, 224)
         shape_prop.ShapeProp(traced).propagate(x)
 
-        assert(all(node.meta['tensor_meta'].memory_format is torch.contiguous_format
-                   for node in traced.graph.nodes))
+        assert (all(node.meta['tensor_meta'].memory_format is torch.contiguous_format
+                    for node in traced.graph.nodes))
 
         x_channels_last = x.contiguous(memory_format=torch.channels_last)
         traced.to(memory_format=torch.channels_last)
@@ -1732,8 +1735,8 @@ class TestFX(JitTestCase):
         traced_3d = symbolic_trace(test_mod_3d)
         x_3d = torch.randn(5, 5, 224, 224, 15)
         shape_prop.ShapeProp(traced_3d).propagate(x_3d)
-        assert(all(node.meta['tensor_meta'].memory_format is torch.contiguous_format
-                   for node in traced_3d.graph.nodes))
+        assert (all(node.meta['tensor_meta'].memory_format is torch.contiguous_format
+                    for node in traced_3d.graph.nodes))
 
         x_channels_last_3d = x_3d.contiguous(memory_format=torch.channels_last_3d)
         traced_3d.to(memory_format=torch.channels_last_3d)
@@ -2011,8 +2014,8 @@ class TestFX(JitTestCase):
         foo_scripted = torch.jit.script(Foo())
         foo_scripted(Pair(torch.rand(5), torch.rand(5)), torch.rand(5), 3)
 
-        fxed = symbolic_trace(Foo())
-        fxed_scripted = torch.jit.script(fxed)
+        fxed = symbolic_trace(Foo())  # codespell:ignore fxed
+        fxed_scripted = torch.jit.script(fxed)  # codespell:ignore fxed
         fxed_scripted(Pair(torch.rand(5), torch.rand(5)), torch.rand(5), 3)
 
     def test_fn_type_annotation_empty(self):
@@ -2529,7 +2532,7 @@ class TestFX(JitTestCase):
                 return self.a.b, self.a.b.t(), self.a.b.view(12)
 
         traced = torch.fx.symbolic_trace(Foo())
-        assert(all('constant' not in node.target for node in traced.graph.nodes))
+        assert (all('constant' not in node.target for node in traced.graph.nodes))
 
     def test_single_default_arg(self):
         class M(torch.nn.Module):
@@ -2788,7 +2791,8 @@ class TestFX(JitTestCase):
     def test_no_mutation(self):
         from torch.fx.immutable_collections import immutable_list
         x = immutable_list([3, 4])
-        with self.assertRaisesRegex(NotImplementedError, "new_args"):
+        # pytorch#144640 raises TypeError from immutable_list.
+        with self.assertRaisesRegex(TypeError, "new_args"):
             x[0] = 4
 
     def test_partial_trace(self):
@@ -2803,7 +2807,7 @@ class TestFX(JitTestCase):
         mod_false = symbolic_trace(mod, concrete_args={'y': False})
         self.assertEqual(mod_true(3, True), 6)
         print(mod_true.code)
-        assert(any(i.target == torch._assert for i in mod_true.graph.nodes))
+        assert (any(i.target == torch._assert for i in mod_true.graph.nodes))
         with self.assertRaises(AssertionError):
             mod_true(3, False)
         self.assertEqual(mod_false(3, False), 3)
@@ -3586,17 +3590,17 @@ class TestFX(JitTestCase):
             self.assertEqual(nf.graph.process_outputs(bare_fx(*nf.graph.process_inputs(val))), orig_out)
 
             assert num_flat_args == 0 or "tree_flatten_spec" in nf.code
-            assert(sum([i.op == 'placeholder' for i in nf.graph.nodes]) == num_flat_args)
+            assert (sum([i.op == 'placeholder' for i in nf.graph.nodes]) == num_flat_args)
 
             nf = symbolic_trace(nf)
             self.assertEqual(nf(val), orig_out)
             assert "tree_flatten_spec" not in nf.code
-            assert(sum([i.op == 'placeholder' for i in nf.graph.nodes]) == 1)
+            assert (sum([i.op == 'placeholder' for i in nf.graph.nodes]) == 1)
 
             nf = symbolic_trace(nf, concrete_args={'x': inp})
             self.assertEqual(nf(val), orig_out)
             assert num_flat_args == 0 or "tree_flatten_spec" in nf.code
-            assert(sum([i.op == 'placeholder' for i in nf.graph.nodes]) == num_flat_args)
+            assert (sum([i.op == 'placeholder' for i in nf.graph.nodes]) == num_flat_args)
 
             pickled = pickle.dumps(nf)
             nf = pickle.loads(pickled)
@@ -3687,7 +3691,7 @@ def forward(self, args_list: List[torch.Tensor]){maybe_return_annotation}:
                 return [('List', typing.List)]
 
             def process_inputs(self, *inputs):
-                assert(len(inputs) == 1)
+                assert (len(inputs) == 1)
                 return inputs[0]
 
         def f(a, b):
@@ -3722,7 +3726,7 @@ def forward(self, args_list: List[torch.Tensor]){maybe_return_annotation}:
                 return [('List', typing.List)]
 
             def process_inputs(self, *inputs):
-                assert(len(inputs) == 1)
+                assert (len(inputs) == 1)
                 return inputs[0]
 
         def f(a, b):
@@ -3751,7 +3755,7 @@ def forward(self, args_list: List[torch.Tensor]){maybe_return_annotation}:
                 return [('List', typing.List)]
 
             def process_inputs(self, *inputs):
-                assert(len(inputs) == 1)
+                assert (len(inputs) == 1)
                 return inputs[0]
 
             def generate_output(self, output_args):
@@ -4071,7 +4075,7 @@ class TestFXAPIBackwardCompatibility(JitTestCase):
                   f"unintended, please revert it. If it was intended, check with the FX " \
                   f"team to ensure that the proper deprecation protocols have been followed " \
                   f"and subsequently --accept the change."
-            raise AssertionError(msg)  # noqa: TRY200
+            raise AssertionError(msg)  # noqa: B904
 
     def test_class_member_back_compat(self):
         """
@@ -4102,24 +4106,28 @@ class TestFXAPIBackwardCompatibility(JitTestCase):
     def test_public_api_surface(self):
         non_back_compat_objects = {}
 
-        def check_symbols_have_bc_designation(m, prefix):
+        def check_symbols_have_bc_designation(m, seen):
             if not m.__name__.startswith('torch.fx'):
                 return
             if m.__name__.startswith('torch.fx.experimental'):
                 return
+            # pytorch#125706: inner functions point back at modules and recurse.
+            seen.add(m.__name__)
             for k, v in m.__dict__.items():
+                if hasattr(v, '__name__') and v.__name__ in seen:
+                    continue
                 if v is m:
                     continue
                 if k.startswith('_'):
                     continue
                 if isinstance(v, types.ModuleType):
-                    check_symbols_have_bc_designation(v, prefix + [k])
+                    check_symbols_have_bc_designation(v, seen)
                 elif isinstance(v, (type, types.FunctionType)):
                     if v not in _MARKED_WITH_COMPATIBILITY:
                         non_back_compat_objects.setdefault(v)
 
-        check_symbols_have_bc_designation(torch.fx, ['torch', 'fx'])
-        check_symbols_have_bc_designation(torch.fx.passes, ['torch', 'fx', 'passes'])
+        check_symbols_have_bc_designation(torch.fx, set())
+        check_symbols_have_bc_designation(torch.fx.passes, set())
 
         non_back_compat_strs = [torch.typename(obj) for obj in non_back_compat_objects.keys()]
         # Only want objects in torch.fx
@@ -4161,7 +4169,8 @@ class TestFXAPIBackwardCompatibility(JitTestCase):
         b = io.BytesIO()
         torch.save(gm, b)
         b.seek(0)
-        reload_gm = torch.load(b)
+        # Same weights_only default as test_tuple_no_subscript.
+        reload_gm = torch.load(b, weights_only=False)
         self.assertTrue(hasattr(reload_gm, "foo"))
         self.assertTrue(hasattr(reload_gm, "dummy_buffer"))
         self.assertTrue(hasattr(reload_gm, "dummy_parameter"))
@@ -4220,7 +4229,6 @@ class TestFunctionalTracing(JitTestCase):
         "linear": BUILT_IN_FUNC,
         "logsigmoid": BUILT_IN_FUNC,
         "one_hot": BUILT_IN_FUNC,
-        "pad": ARG_TYPE_MISMATCH,
         "pairwise_distance": BUILT_IN_FUNC,
         "pdist": BUILT_IN_FUNC,
         "pixel_shuffle": BUILT_IN_FUNC,
@@ -4256,12 +4264,6 @@ class TestFunctionalTracing(JitTestCase):
         "fold": PROXY_ITERATED,
         "unfold": PROXY_ITERATED,
 
-        "adaptive_max_pool1d_with_indices": ARG_TYPE_MISMATCH,
-        "fractional_max_pool2d_with_indices": ARG_TYPE_MISMATCH,
-        "fractional_max_pool3d_with_indices": ARG_TYPE_MISMATCH,
-        "layer_norm": ARG_TYPE_MISMATCH,
-        "lp_pool1d": ARG_TYPE_MISMATCH,
-
         "affine_grid": CONTROL_FLOW,
         "alpha_dropout": CONTROL_FLOW,
         "batch_norm": CONTROL_FLOW,
@@ -4270,6 +4272,7 @@ class TestFunctionalTracing(JitTestCase):
         "celu": CONTROL_FLOW,
         "cosine_embedding_loss": CONTROL_FLOW,
         "cross_entropy": CONTROL_FLOW,
+        "linear_cross_entropy": CONTROL_FLOW,
         "ctc_loss": CONTROL_FLOW,
         "dropout": CONTROL_FLOW,
         "dropout1d": CONTROL_FLOW,
@@ -4295,9 +4298,7 @@ class TestFunctionalTracing(JitTestCase):
         "leaky_relu": CONTROL_FLOW,
         "local_response_norm": CONTROL_FLOW,
         "margin_ranking_loss": CONTROL_FLOW,
-        "max_pool1d_with_indices": ARG_TYPE_MISMATCH,
-        "max_pool2d_with_indices": ARG_TYPE_MISMATCH,
-        "max_pool3d_with_indices": ARG_TYPE_MISMATCH,
+        "max_pool3d_with_indices": CONTROL_FLOW,
         "mse_loss": CONTROL_FLOW,
         "multi_head_attention_forward": CONTROL_FLOW,
         "multi_margin_loss": CONTROL_FLOW,
