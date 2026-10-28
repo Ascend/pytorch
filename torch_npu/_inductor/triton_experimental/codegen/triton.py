@@ -1347,7 +1347,12 @@ def npu_triton_compute_type(dtype):
         triton_type_name = "int1"
     elif (
         triton_type_name in ("float16", "bfloat16")
+        # both flags must allow it: the vendor flag keeps the production
+        # compute typing unchanged, the upstream flag lets
+        # config.triton.codegen_upcast_to_fp32=False take full effect on NPU
+        # (it already gates the upstream load-level cast)
         and ncfg.npu_triton.codegen_upcast_to_fp32
+        and torch._inductor.config.triton.codegen_upcast_to_fp32
     ):
         triton_type_name = "float32"
     elif triton_type_name == "float8_e4m3fn":
