@@ -37,7 +37,12 @@ class KernelViewParser(BaseParser):
         if is_all_kernel_headers:
             return all_headers
         shape_headers = [header for header in CsvHeaders.OP_SUMMARY_ADDITIONAL_HEADERS if header in all_headers]
-        return CsvHeaders.OP_SUMMARY_SHOW_HEADERS + shape_headers
+        selected_headers = CsvHeaders.OP_SUMMARY_SHOW_HEADERS + shape_headers
+        extra_headers = [
+            header for header in all_headers
+            if header not in selected_headers and header not in CsvHeaders.OP_SUMMARY_LEVEL0_IGNORED_HEADERS
+        ]
+        return selected_headers + extra_headers
 
     def run(self, deps_data: dict):
         ProfilerLogger.init(self._profiler_path, "KernelViewParser")
