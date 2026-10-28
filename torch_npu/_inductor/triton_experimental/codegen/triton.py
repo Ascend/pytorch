@@ -14,31 +14,52 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from torch._inductor.codegen.triton import (
-    TritonScheduling,
-    TritonKernel,
-    TritonKernelOverrides,
-    BlockPtrOptions,
-    TritonCSEVariable,
-    IndexingOptions,
-    texpr,
-    log,
-    is_sympy_integer_like,
-    is_welford_reduction,
-    TritonSymbols,
+import ast
+import contextlib
+import inspect
+import math
+from typing import (
+    Any,
+    Dict,
+    Optional,
+    cast,
 )
-from torch.utils._sympy.symbol import symbol_is_type, prefix_str, SymT
-from torch._inductor.codegen.multi_kernel import MultiKernel
+
+import sympy
+import torch
 from torch._dynamo.utils import counters
+from torch._inductor import config
+from torch._inductor.codegen.common import (
+    ArgName,
+    ConstexprArg,
+    CSEVariable,
+    SizeArg,
+)
+from torch._inductor.codegen.multi_kernel import MultiKernel
 from torch._inductor.codegen.simd import (
-    IterationRangesRoot,
     IterationRangesEntry,
+    IterationRangesRoot,
 )
 from torch._inductor.codegen.simd_kernel_features import (
-    SIMDKernelFeatures,
     DisableReduction,
     EnableReduction,
+    SIMDKernelFeatures,
 )
+from torch._inductor.codegen.triton import (
+    BlockPtrOptions,
+    IndexingOptions,
+    TritonCSEVariable,
+    TritonKernel,
+    TritonKernelOverrides,
+    TritonScheduling,
+    TritonSymbols,
+    is_sympy_integer_like,
+    is_welford_reduction,
+    log,
+    texpr,
+)
+from torch._inductor.codegen.wrapper import SymbolicCallArg
+from torch._inductor.runtime.hints import DeviceProperties, ReductionHint
 from torch._inductor.utils import (
     IndentedBuffer,
     DelayReplaceLine,
@@ -47,38 +68,17 @@ from torch._inductor.utils import (
     sympy_subs,
     upcast_compute_type,
 )
-from torch.utils._sympy.functions import FloorDiv, ModularIndexing
-from torch._inductor.codegen.common import (
-    SizeArg,
-    CSEVariable,
-    ArgName,
-    ConstexprArg,
-)
-from torch._inductor.codegen.wrapper import SymbolicCallArg
-from torch._inductor.runtime.hints import DeviceProperties, ReductionHint
 from torch._inductor.virtualized import V, ops
 from torch.utils._ordered_set import OrderedSet
+from torch.utils._sympy.functions import FloorDiv, ModularIndexing
+from torch.utils._sympy.symbol import SymT, prefix_str, symbol_is_type
 
-from typing import (
-    cast,
-    Dict,
-    Any,
-    Optional,
-)
-
-from .. import config as ncfg
+from .. import config as ncfg, device_props
 from .provable_clamp import _masked_index_needs_nonnegative_clamp
-import ast
-import math
-import sympy
-import contextlib
-
-from torch._inductor import config
-from .. import device_props
 from ..compat import IS_TRITON_36_PLUS
 from ..reduction_index_alias import (
-    ReductionIndexAssignmentState,
     ReductionIndexAssignmentLine,
+    ReductionIndexAssignmentState,
     attach_reduction_index_aliases,
     build_reduction_index_aliases,
     make_reduction_loop_pass,
@@ -86,7 +86,6 @@ from ..reduction_index_alias import (
     superseded_reduction_index_names,
     validate_reduction_index_alias_scope,
 )
-import torch
 
 
 triton_codegen_linearize = ncfg.codegen_linearize
@@ -1025,6 +1024,7 @@ def _npu_apply_promoted_rtree_lines(
 # so that candidate 2D tilings with non-32-aligned y-dim are not rejected.
 from torch._inductor.codegen.simd import CandidateTiling as _CandidateTiling
 
+
 @staticmethod
 def _npu_is_good_size(s):
     from torch._inductor.virtualized import V
@@ -1036,6 +1036,7 @@ _CandidateTiling.is_good_size = _npu_is_good_size
 # NPU does not support tl.float64/tl.int64 in compute. Patch the sympy printer
 # so that Float constants and ToFloat casts use tl.float32 instead of tl.float64.
 from torch._inductor.codegen.triton import TritonPrinter as _TritonPrinter
+
 
 def _npu_print_Float(self, expr):
     return f"tl.full([], {expr}, tl.float32)"
@@ -1178,10 +1179,26 @@ def _drop_size_clamp(expr):
 # via a scalar pointer, causing "Value argument cannot be block type" errors.
 _orig_codegen_broadcast_and_reshape = BlockPtrOptions.codegen_broadcast_and_reshape
 
-def _npu_codegen_broadcast_and_reshape(self, value, initial_shape, final_shape, allow_implicit):
+# Version-compatible forwarding: upstream PR #165541 (2025-12) added a required
+# ``for_store`` parameter to ``codegen_broadcast_and_reshape``; older versions do
+# not accept it.  Inspect the upstream signature once at import time and forward
+# only the keyword arguments the upstream function actually accepts, so the
+# wrapper works with both pre- and post-#165541 PyTorch versions without
+# hard-coding parameter names.  Unknown kwargs are intentionally dropped
+# rather than rejected: a future upstream parameter rename would degrade to
+# default semantics silently, so revisit this filter on any upstream
+# signature change.
+_orig_codegen_params = set(inspect.signature(_orig_codegen_broadcast_and_reshape).parameters)
+
+def _npu_codegen_broadcast_and_reshape(
+    self, value, initial_shape, final_shape, allow_implicit, **kwargs
+):
     if all(V.graph.sizevars.statically_known_equals(d, 1) for d in self.broadcast_shape):
         return value
-    return _orig_codegen_broadcast_and_reshape(self, value, initial_shape, final_shape, allow_implicit)
+    filtered_kwargs = {k: v for k, v in kwargs.items() if k in _orig_codegen_params}
+    return _orig_codegen_broadcast_and_reshape(
+        self, value, initial_shape, final_shape, allow_implicit, **filtered_kwargs
+    )
 
 BlockPtrOptions.codegen_broadcast_and_reshape = _npu_codegen_broadcast_and_reshape
 
@@ -1946,6 +1963,7 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
         elif dtype == torch.int64:
             dtype = torch.int32
         from torch._inductor.codegen.triton import TritonOverrides
+
         # Degenerate non-linearized kernels also need a scalar constant: a [1]
         # block value cannot be stored through a scalar pointer on Triton-Ascend.
         ndim = V.kernel.triton_tensor_ndim()
@@ -4445,7 +4463,10 @@ class NPUTritonKernel(TritonKernel):
         3. Wrap kernel body in group-based loop
         """
         from torch._inductor.codegen.triton_utils import (
-            config_of, signature_to_meta, equal_1_arg_indices, non_constexpr_signature
+            config_of,
+            equal_1_arg_indices,
+            non_constexpr_signature,
+            signature_to_meta,
         )
 
         # r-axis cross-core split: allocate the per-core partial workspace BEFORE
@@ -6753,6 +6774,7 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
             return trees
         try:
             from torch._inductor.dependencies import MemoryDep
+
             # Two-pass aggregation. joint_max[tree] — max stride over deps where BOTH a
             #   pointwise and reduction var appear (only these disclose pw-vs-red layout);
             #   max not min so the heaviest tensor wins. fallback_min[tree] — min stride
@@ -8276,7 +8298,9 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                 elif node is EnableReduction:
                     stack.close()
                 else:
-                    from torch._inductor.optimize_indexing import indexing_dtype_strength_reduction
+                    from torch._inductor.optimize_indexing import (
+                        indexing_dtype_strength_reduction,
+                    )
                     indexing_dtype_strength_reduction(node._body)
                     index_vars = kernel.split_and_set_ranges(node.get_ranges())
 
@@ -8352,8 +8376,8 @@ def _patch_zero_dim_cpu_tensor_for_npu():
     GPU_TYPES.append("npu"), narrowly re-implement it to also register 0-dim CPU
     buffers read by NPU nodes, leaving every other is_gpu path untouched.
     """
-    from torch._inductor.scheduler import Scheduler
     from torch._inductor.ir import MultiOutputLayout, NoneLayout, get_device_type
+    from torch._inductor.scheduler import Scheduler
 
     def _npu_update_zero_dim_cpu_tensor(self) -> None:
         for node in self.nodes:
