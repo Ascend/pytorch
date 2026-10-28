@@ -40,6 +40,8 @@ As the core component of the Ascend for PyTorch community, **TorchNPU** is a dee
 
 Ascend is a full-stack AI computing infrastructure for industry applications and services based on Huawei Ascend AI processors and software. For more information about Ascend, see [Ascend Community](https://www.hiascend.com/en/).
 
+<p style="color: #6b7280;"><sub>About Ascend NPU: Ascend NPU (Neural Processing Unit) is a series of AI accelerators developed by Huawei.</sub></p>
+
 ## Key Features
 
 TorchNPU fully inherits and reuses extensive mature capabilities from upstream PyTorch, and on this foundation provides deep adaptation and optimization for Ascend NPU. The diagram below illustrates the main functional modules of TorchNPU:

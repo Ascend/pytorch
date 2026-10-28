@@ -40,6 +40,8 @@
 
 昇腾为基于华为昇腾 AI 处理器和软件的行业应用及服务提供全栈 AI 计算基础设施。您可以通过访问[昇腾社区](https://www.hiascend.com/zh/)，了解关于昇腾的更多信息。
 
+<p style="color: #6b7280;"><sub>关于昇腾NPU：昇腾NPU（Neural Processing Unit，神经网络处理器）是华为开发的系列AI加速器。</sub></p>
+
 ## 核心特性
 
 TorchNPU 充分继承和复用上游 PyTorch 的大量成熟功能，并在此基础上针对昇腾 NPU 进行深度适配与优化，下图展示了 TorchNPU 的主要功能模块：
