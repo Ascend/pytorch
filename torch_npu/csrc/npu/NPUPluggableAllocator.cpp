@@ -361,6 +361,7 @@ void NPUPluggableAllocator::recordHistory(
     c10_npu::NPUCachingAllocator::CreateContextFn context_recorder,
     size_t alloc_trace_max_entries,
     c10_npu::NPUCachingAllocator::RecordContext when,
+    bool clearHistory,
     const std::vector<std::string>& skip_actions) {
   TORCH_NPU_WARN(
       "NPUPluggableAllocator does not yet support recordHistory. "

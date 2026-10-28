@@ -332,6 +332,7 @@ class NPUAllocator : public c10::DeviceAllocator {
       CreateContextFn context_recorder,
       size_t alloc_trace_max_entries,
       RecordContext when,
+      bool clearHistory,
       const std::vector<std::string>& skip_actions) = 0;
   virtual void attachOutOfMemoryObserver(OutOfMemoryObserver observer) = 0;
   virtual void attachOomRejectionObserver(OomRejectionObserver observer) = 0;
@@ -525,8 +526,9 @@ inline void recordHistory(
     CreateContextFn context_recorder,
     size_t alloc_trace_max_entries,
     RecordContext when,
+    bool clearHistory,
     const std::vector<std::string>& skip_actions) {
-  return get()->recordHistory(enabled, context_recorder, alloc_trace_max_entries, when, skip_actions);
+  return get()->recordHistory(enabled, context_recorder, alloc_trace_max_entries, when, clearHistory, skip_actions);
 }
 
 inline bool isHistoryEnabled() {

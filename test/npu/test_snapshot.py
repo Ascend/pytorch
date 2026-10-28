@@ -46,6 +46,30 @@ class TestMemoryHistoryBuffer(TestCase):
         self.assertEqual([event["action"] for event in traces], ["alloc"])
         self.assertEqual(traces[0]["addr"], tensor.data_ptr())
 
+    def test_clear_history(self):
+        memory = torch_npu.npu.memory
+        memory._record_memory_history(context=None, stacks="python", max_entries=5)
+        tensors = [torch.empty(4096, dtype=torch.uint8, device="npu") for _ in range(12)]
+        torch_npu.npu.synchronize()
+        before = memory._snapshot()["device_traces"][self.device]
+        self.assertEqual([event["action"] for event in before], ["alloc"] * 5)
+        self.assertEqual([event["addr"] for event in before], [tensor.data_ptr() for tensor in tensors[-5:]])
+
+        memory._record_memory_history(context=None, stacks="python", max_entries=5)
+        after = memory._snapshot()["device_traces"][self.device]
+        self.assertEqual([event["addr"] for event in after[:-1]], [event["addr"] for event in before[1:]])
+        self.assertEqual([event["action"] for event in after], ["alloc"] * 4 + ["snapshot"])
+
+        memory._record_memory_history(context=None, stacks="python", max_entries=5, clear_history=True)
+        self.assertEqual(memory._snapshot()["device_traces"][self.device], [])
+        second = torch.empty(4096, dtype=torch.uint8, device="npu")
+        torch_npu.npu.synchronize()
+        traces = memory._snapshot()["device_traces"][self.device]
+        self.assertTrue(any(event["action"] == "alloc" and event["addr"] == second.data_ptr() for event in traces))
+
+        memory._record_memory_history(None)
+        self.assertEqual(memory._snapshot()["device_traces"][self.device], [])
+
     def test_memory_history_free_events(self):
         memory = torch_npu.npu.memory
         memory._record_memory_history(context=None, stacks="python", max_entries=16)
@@ -76,7 +100,7 @@ class TestMemoryHistoryBuffer(TestCase):
         tensors = [torch.empty(4096, dtype=torch.uint8, device="npu") for _ in range(8)]
         torch_npu.npu.synchronize()
         self.assertEqual(len(memory._snapshot()["device_traces"][self.device]), 3)
-        memory._record_memory_history(context=None, stacks="python", max_entries=6)
+        memory._record_memory_history(context=None, stacks="python", max_entries=6, clear_history=True)
         tensors.extend(torch.empty(4096, dtype=torch.uint8, device="npu") for _ in range(8))
         torch_npu.npu.synchronize()
         traces = memory._snapshot()["device_traces"][self.device]
@@ -93,7 +117,7 @@ class TestMemoryHistoryBuffer(TestCase):
     def test_skip_actions(self, skip_actions):
         memory = torch_npu.npu.memory
         for skipped in (["alloc"], skip_actions, None):
-            memory._record_memory_history(context=None, stacks="python", skip_actions=skipped)
+            memory._record_memory_history(context=None, stacks="python", clear_history=True, skip_actions=skipped)
             baseline = memory.memory_allocated()
             tensor = torch.empty(4 * 1024 * 1024, dtype=torch.uint8, device="npu")
             address = tensor.data_ptr()
@@ -125,9 +149,12 @@ class TestMemoryHistoryBuffer(TestCase):
         before = memory._snapshot()["device_traces"][self.device]
         self.assertTrue(any(event["addr"] == tensor.data_ptr() for event in before))
         with self.assertRaises(error):
-            memory._record_memory_history(skip_actions=skip_actions)
+            memory._record_memory_history(clear_history=True, skip_actions=skip_actions)
         self.assertTrue(torch_npu._C._npu_isHistoryEnabled())
-        self.assertEqual(memory._snapshot()["device_traces"][self.device], before)
+        self.assertEqual(
+            [(event["action"], event["addr"]) for event in memory._snapshot()["device_traces"][self.device]],
+            [(event["action"], event["addr"]) for event in before],
+        )
 
     @parametrize("skip_actions", [
         None, [], ["workspace_snapshot"], ["segment_alloc"], ["alloc"],

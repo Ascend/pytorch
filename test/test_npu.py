@@ -4342,7 +4342,6 @@ class TestFXMemoryProfilerNpu(TestCase):
                 compiled(torch.randn(10, 10, device="npu"))
                 snapshot = torch_npu.npu.memory._snapshot(augment_with_fx_traces=True)
             finally:
-                # No clear_history parameter here, unlike the upstream CUDA helper.
                 torch_npu.npu.memory._record_memory_history(enabled=None)
 
         self.assertIn("segments", snapshot)

@@ -885,6 +885,8 @@ def _record_memory_history(enabled="all", *args, **kwargs):
             Defaults to "all".
         max_entries (int, optional): Keep a maximum of `max_entries`
             alloc/free events in the recorded history recorded.
+        clear_history (bool, optional): Clear existing history when enabling
+            recording. Defaults to False. Disabling recording always clears history.
         skip_actions (list[str], optional): Event types to omit from history:
             "alloc", "free_requested", "free_completed", "segment_alloc",
             "segment_free", "segment_map", "segment_unmap", "snapshot", "oom",
@@ -900,11 +902,12 @@ def _record_memory_history_impl(
     stacks: str = "all",
     max_entries: int = sys.maxsize,
     device=None,
+    clear_history: bool = False,
     skip_actions: list[str] | None = None,
 ):
     torch_npu.npu._lazy_init()
     torch_npu._C._npu_record_memory_history(
-        enabled, context, stacks, max_entries,
+        enabled, context, stacks, max_entries, clear_history,
         skip_actions if skip_actions is not None else [],
     )
 

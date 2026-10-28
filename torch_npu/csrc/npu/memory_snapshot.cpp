@@ -39,6 +39,7 @@ void _record_memory_history(
     c10::optional<std::string> context,
     const std::string& stacks,
     size_t max_entries,
+    bool clearHistory,
     const std::vector<std::string>& skip_actions) {
   if (enabled) {
     checkOptionIn(*enabled, {"state", "all"}, "expected state to be 'state', 'all', or None");
@@ -73,7 +74,8 @@ void _record_memory_history(
       when = c10_npu::NPUCachingAllocator::RecordContext::STATE;
     }
   }
-  c10_npu::NPUCachingAllocator::recordHistory(enabled.has_value(), recorder, max_entries, when, skip_actions);
+  c10_npu::NPUCachingAllocator::recordHistory(
+      enabled.has_value(), recorder, max_entries, when, clearHistory, skip_actions);
   c10_npu::NPUWorkspaceAllocator::recordHistory(enabled.has_value(), recorder, when, skip_actions);
 }
 

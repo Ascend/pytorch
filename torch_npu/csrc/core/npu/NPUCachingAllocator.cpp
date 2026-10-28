@@ -1037,6 +1037,7 @@ class DeviceCachingAllocator {
       CreateContextFn context_recorder,
       size_t alloc_trace_max_entries,
       RecordContext when,
+      bool clearHistory,
       const std::vector<std::string>& skip_actions) {
     std::unique_lock<std::recursive_mutex> lock(mutex);
     TORCH_CHECK(when == RecordContext::NEVER || context_recorder, PTA_ERROR(ErrCode::INTERNAL));
@@ -1049,7 +1050,9 @@ class DeviceCachingAllocator {
     context_recorder_.store(record_history ? context_recorder : nullptr);
     alloc_buffer.setMaxEntries(alloc_trace_max_entries);
     record_context_ = enabled ? when : RecordContext::NEVER;
-    alloc_buffer.clear();
+    if (!enabled || clearHistory) {
+      alloc_buffer.clear();
+    }
   }
 
   bool isHistoryEnabled() {
@@ -3679,9 +3682,10 @@ class NpuCachingAllocator : public NPUAllocator {
       CreateContextFn context_recorder,
       size_t alloc_trace_max_entries,
       RecordContext when,
+      bool clearHistory,
       const std::vector<std::string>& skip_actions) override {
     for (auto& allocator : device_allocator) {
-      allocator->recordHistory(enabled, context_recorder, alloc_trace_max_entries, when, skip_actions);
+      allocator->recordHistory(enabled, context_recorder, alloc_trace_max_entries, when, clearHistory, skip_actions);
     }
   }
 

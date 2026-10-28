@@ -185,6 +185,7 @@ void RegisterNPUDeviceProperties(PyObject* module) {
           c10::optional<std::string>,
           const std::string&,
           size_t,
+          bool,
           const std::vector<std::string>&)>(torch_npu::_record_memory_history));
 
   m.def("_npu_isHistoryEnabled", []() { return c10_npu::NPUCachingAllocator::isHistoryEnabled(); });
