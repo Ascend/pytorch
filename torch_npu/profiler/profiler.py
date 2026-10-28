@@ -3,6 +3,7 @@ import json
 import os.path
 from collections.abc import Callable, Iterable
 from sys import getsizeof
+from threading import Lock
 from typing import Any, Optional, Union
 
 import torch.autograd.profiler as prof
@@ -203,13 +204,15 @@ def tensorboard_trace_handler(
         use_gzip = False
 
     def archive_profile(prof_path: str) -> None:
+        archive_path = f"{prof_path}.tar.gz"
+        temporary_path = f"{archive_path}.tmp"
         try:
-            FileManager.compress_to_tar_gz(
-                prof_path,
-                f"{prof_path}.tar.gz",
-                exclude_names={Constant.FRAMEWORK_DIR},
-            )
-        except RuntimeError as error:
+            FileManager.compress_to_tar_gz(prof_path, temporary_path)
+            os.replace(temporary_path, archive_path)
+            PathManager.remove_path_safety(prof_path)
+        except (OSError, RuntimeError) as error:
+            if os.path.exists(temporary_path):
+                PathManager.remove_file_safety(temporary_path)
             print_warn_msg(str(error))
 
     def handler_fn(prof_inst) -> None:
@@ -221,8 +224,22 @@ def tensorboard_trace_handler(
         prof_path = prof_inst.prof_if.prof_path
         if async_mode and analyse_flag:
             if futures:
+                archive_lock = Lock()
+                archived = False
+
+                def archive_when_ready(_future) -> None:
+                    nonlocal archived
+                    with archive_lock:
+                        if archived or not all(future.done() for future in futures):
+                            return
+                        archived = True
+                    if any(future.cancelled() or future.exception() is not None for future in futures):
+                        print_warn_msg("Profiling data parsing failed; original data is retained.")
+                        return
+                    archive_profile(prof_path)
+
                 for future in futures:
-                    future.add_done_callback(lambda _future, path=prof_path: archive_profile(path))
+                    future.add_done_callback(archive_when_ready)
         else:
             archive_profile(prof_path)
 
