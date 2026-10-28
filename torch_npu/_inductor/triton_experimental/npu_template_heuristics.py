@@ -32,18 +32,31 @@ Importing this module performs two registrations (invoked once from
    "cuda" on NPU-only builds and dies with "Torch not compiled with CUDA
    enabled" while benchmarking the ATen extern choice under max_autotune.
    The shim mirrors the built-in ``_default_cuda_bench`` / ``_default_xpu_bench``.
+
+3. An ``addmm``/``baddbmm`` (op_name-scoped) registration of an
+   ``AddMMConfigMixin`` subclass, mirroring the XPU precedent
+   (``XPUAddmmTemplateConfigHeuristic``). The addmm lookup passes
+   op_name="addmm" to the registry, so the plain mm/bmm registration above
+   is invisible to it: the fallback base heuristic's identity input
+   adjustment drops the bias epilogue (prefix_args / epilogue_fn) and trips
+   def_kernel's assert (2, 3, 0, 3).
 """
 
 try:
     from torch._inductor.heuristics.registry import register_template_heuristic
     from torch._inductor.heuristics.template.triton import (
+        AddMMConfigMixin,
         BaseConfigHeuristic,
         GemmConfig,
         MMTemplateConfigMixin,
     )
 except ModuleNotFoundError:
+    # master maintains torch 2.13+, where AddMMConfigMixin is re-exported by
+    # template_heuristics.triton (from triton_addmm) and the registry accepts
+    # op_name.
     from torch._inductor.template_heuristics.registry import register_template_heuristic
     from torch._inductor.template_heuristics.triton import (
+        AddMMConfigMixin,
         BaseConfigHeuristic,
         GemmConfig,
         MMTemplateConfigMixin,
@@ -85,6 +98,12 @@ class NPUConfigHeuristic(BaseConfigHeuristic):
 @register_template_heuristic(bmm_template.uid, "npu")
 class NPUMMTemplateConfigHeuristic(MMTemplateConfigMixin, NPUConfigHeuristic):
     """Standard MM/BMM template heuristic for NPU."""
+
+
+@register_template_heuristic(mm_template.uid, "npu", op_name="addmm")
+@register_template_heuristic(bmm_template.uid, "npu", op_name="baddbmm")
+class NPUAddMMTemplateConfigHeuristic(AddMMConfigMixin, NPUMMTemplateConfigHeuristic):
+    """Addmm/baddbmm specific mixin for NPU (mirrors CUDAAddMMTemplateConfigHeuristic)."""
 
 
 def _default_npu_bench(self, f, *, warmup, rep, **kw):
