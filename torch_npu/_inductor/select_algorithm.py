@@ -1509,14 +1509,25 @@ def patch_algorithm_selector() -> None:
 
         def do_autotuning(precompile_fn, choices_override=None):
             effective_choices = choices_override if choices_override is not None else choices
+            catlass_kernels = [
+                c for c in effective_choices if isinstance(c, CATLASSTemplateCaller)
+            ]
             precompile_start_ts = time.time()
-            with dynamo_timed(
-                f"{name}_template_precompiling",
-                log_pt2_compile_event=True,
-                dynamo_compile_column_us="compile_time_autotune_time_us",
-            ):
+            # In a subprocess, V.graph defined in the main thread cannot be accessed, resulting in a null pointer error.
+            if (not use_pipelined_autotuning()) or (use_pipelined_autotuning() and catlass_kernels):
+                with dynamo_timed(
+                    f"{name}_template_precompiling",
+                    log_pt2_compile_event=True,
+                    dynamo_compile_column_us="compile_time_autotune_time_us",
+                ):
+                    precompile_fn()
+            else:
                 precompile_fn()
             precompile_elapse = time.time() - precompile_start_ts
+
+            if use_pipelined_autotuning() and not catlass_kernels:
+                AsyncAutotuner.start(effective_choices, inputs_key)
+                return
 
             autotune_start_ts = time.time()
             timings = self.lookup(
@@ -1604,7 +1615,8 @@ def patch_algorithm_selector() -> None:
 
                 if triton_kernels:
                     precompile_fn = precompile(triton_kernels)
-                    precompile_future = precompile_fn
+                    precompile_instance = PrecompileThreadPool.get_instance()
+                    precompile_future = precompile_instance.submit(do_autotuning, precompile_fn, triton_kernels)
                 else:
                     precompile_future = None
                 if extern_kernels:
@@ -1619,7 +1631,7 @@ def patch_algorithm_selector() -> None:
                     triton_kernels_to_bench = []
                     if precompile_future:
                         try:
-                            precompile_future()
+                            precompile_future.result()
                         except NoValidChoicesError:
                             triton_kernels_to_bench = []
                         else:
@@ -1630,14 +1642,20 @@ def patch_algorithm_selector() -> None:
                         triton_kernels_to_bench = triton_kernels
                     precompile_wait_elapse = time.time() - precompile_wait_start
 
-                    if triton_kernels_to_bench:
-                        AsyncAutotuner.start(triton_kernels_to_bench, inputs_key)
-
                     bench_wait_start = time.time()
                     triton_timings = {}
-                    if triton_kernels_to_bench:
-                        triton_timings = AsyncAutotuner.get_results(
-                            triton_kernels_to_bench, inputs_key
+                    if triton_kernels:
+
+                        def cached_benchmark(triton_kernels):
+                            return AsyncAutotuner.get_results(
+                                triton_kernels, inputs_key
+                            )
+
+                        triton_timings = self.lookup(
+                            triton_kernels,
+                            name,
+                            inputs_key,
+                            cached_benchmark
                         )
 
                     extern_timings = {}
@@ -1648,8 +1666,8 @@ def patch_algorithm_selector() -> None:
                     bench_wait_elapse = time.time() - bench_wait_start
 
                     log.info(
-                        "[pipelined_autotune] %s: precompile_time=%.3fs, "
-                        "bench_time=%.3fs, extern_kernels nums= %s, triton_kernels nums= %s",
+                        "[pipelined_autotune] %s: precompile_time=%.6fs, "
+                        "bench_time=%.6fs, extern_kernels nums= %s, triton_kernels nums= %s",
                         name,
                         precompile_wait_elapse,
                         bench_wait_elapse,
