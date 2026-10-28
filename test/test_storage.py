@@ -14,9 +14,10 @@
 # limitations under the License.
 
 """
-Add validation cases for torch.UntypedStorage APIs on NPU:
+Add validation cases for torch.TypedStorage and torch.UntypedStorage on NPU:
 1. PyTorch community lacks sufficient and direct API validations for some APIs, so this file is added.
-2. This file validates torch.UntypedStorage.fill_ and torch.UntypedStorage.float (extendable).
+2. This file validates torch.UntypedStorage.fill_, torch.UntypedStorage.float,
+   torch.TypedStorage.int, and torch.UntypedStorage (extendable).
 """
 import torch
 from torch.testing._internal.common_utils import TestCase
@@ -108,6 +109,39 @@ class TestUntypedStorageFloatNPU(TestCase):
         storage = t.untyped_storage()
         result = storage.float()
         self.assertEqual(result.size(), 0)
+
+
+class TestTypedStorage(TestCase):
+
+    def test_int_npu(self):
+        # Validate TypedStorage with int for boundary sizes, consistency, and scalar read/write operations.
+        for size in [0, 4, 100]:
+            cpu_base_storage = torch.TypedStorage(size, dtype=torch.float32, device="cpu")
+            npu_base_storage = torch.TypedStorage(size, dtype=torch.float32, device=device_type)
+            cpu_storage = cpu_base_storage.int()
+            npu_storage = npu_base_storage.int()
+            self.assertEqual(npu_storage.size(), cpu_storage.size())
+            self.assertEqual(npu_storage.dtype, torch.int)
+            self.assertEqual(npu_storage.dtype, cpu_storage.dtype)
+            if size > 0:
+                cpu_storage.fill_(1)
+                npu_storage.copy_(cpu_storage)
+                npu_storage[0] = 5
+                self.assertEqual(npu_storage[0], 5)
+
+
+class TestUntypedStorage(TestCase):
+
+    def test_untyped_storage_npu(self):
+        # Validate UntypedStorage for boundary sizes, CPU/NPU consistency, and basic data assignment.
+        for size in [0, 10, 100]:
+            cpu_storage = torch.UntypedStorage(size, device="cpu")
+            npu_storage = torch.UntypedStorage(size, device=device_type)
+            self.assertEqual(npu_storage.size(), cpu_storage.size())
+            if size > 0:
+                cpu_storage[0] = 1
+                npu_storage.copy_(cpu_storage)
+                self.assertEqual(npu_storage[0], 1)
 
 
 if __name__ == "__main__":
