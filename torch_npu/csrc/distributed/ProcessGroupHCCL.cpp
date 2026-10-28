@@ -4399,6 +4399,14 @@ HcclCommConfig ProcessGroupHCCL::createHcclCommConfigWithOptions()
         }
     }
 
+    if (options_->hccl_config.find("hccl_deterministic") != options_->hccl_config.end()) {
+        if (std::holds_alternative<uint32_t>(options_->hccl_config["hccl_deterministic"])) {
+            config.hcclDeterministic = std::get<uint32_t>(options_->hccl_config["hccl_deterministic"]);
+        } else {
+            TORCH_CHECK(false, "Value type of hccl_deterministic should be int.", DIST_ERROR(ErrCode::TYPE));
+        }
+    }
+
     if (options_->hccl_config.find("group_name") != options_->hccl_config.end()) {
         if (std::holds_alternative<std::string>(options_->hccl_config["group_name"])) {
             auto hcclGroupName = std::get<std::string>(options_->hccl_config["group_name"]);
