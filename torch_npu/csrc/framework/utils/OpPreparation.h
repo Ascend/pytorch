@@ -43,7 +43,7 @@ class OpPreparation {
   static int64_t get_tensor_npu_format(const at::Tensor& tensor);
   static c10::SmallVector<int64_t, 5> get_tensor_desc_base_sizes(const at::Tensor& tensor);
   // check output tensor
-  static void check_tensor(
+  TORCH_NPU_API static void check_tensor(
       const std::initializer_list<at::Tensor>& src_list,
       at::Tensor& dst,
       at::ScalarType expect_dtype,
