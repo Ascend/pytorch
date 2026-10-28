@@ -7,3 +7,4 @@ class CsvHeaders(object):
                                      "Output Data Types", "Output Formats"]
     OP_SUMMARY_KERNEL_BASE_HEADERS = ["Device_id", "Name", "Type", "Accelerator Core", "Start Time(us)", "Duration(us)",
                                       "Wait Time(us)", "Block Num"]
+    OP_SUMMARY_LEVEL0_IGNORED_HEADERS = ["Model ID", "Task ID", "Stream ID", "OP State", "HF32 Eligible"]
