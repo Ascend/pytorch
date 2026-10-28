@@ -56,15 +56,19 @@ def _cpu(self):
 
 def _deepcopy(self, memo):
     if self.device.type != 'cpu':
+        # Cache the cloned UntypedStorage by _cdata (same convention as
+        # UntypedStorage.__deepcopy__) and re-wrap it with self.dtype, so
+        # multi-dtype views of one storage keep their own dtype.
         memo = memo.setdefault('torch', {})
-        if self._cdata in memo:
-            return memo[self._cdata]
-        src_tensor = torch_npu._C._tensor_construct_from_storage(self)
-        dst_tensor = src_tensor.clone()
-        dst_tensor = torch_npu.npu_format_cast(dst_tensor, torch_npu.get_npu_format(src_tensor))
-        new_storage = dst_tensor._typed_storage()
-        memo[self._cdata] = new_storage
-        return new_storage
+        if self._cdata not in memo:
+            src_tensor = torch_npu._C._tensor_construct_from_storage(self)
+            # Guard against a stale or uninitialized StorageDesc dtype.
+            if src_tensor.dtype != self.dtype:
+                src_tensor = src_tensor.view(self.dtype)
+            dst_tensor = src_tensor.clone()
+            dst_tensor = torch_npu.npu_format_cast(dst_tensor, torch_npu.get_npu_format(src_tensor))
+            memo[self._cdata] = dst_tensor.untyped_storage()
+        return self._new_wrapped_storage(memo[self._cdata])
     else:
         return self._new_wrapped_storage(copy.deepcopy(self._untyped_storage, memo))
 
@@ -114,9 +118,9 @@ def _add_storage_methods():
     torch.storage.TypedStorage._deepcopy = _deepcopy
     torch.storage.UntypedStorage.double = _untyped_double
 
-    setattr(torch.UntypedStorage, "_share_npu_", _share_npu_)
-    setattr(torch.UntypedStorage, "_new_shared_npu", _new_shared_npu)
-    setattr(torch.UntypedStorage, "_release_ipc_counter_npu", _release_ipc_counter_npu)
-    setattr(torch.TypedStorage, "_share_npu_", _typed_storage_share_npu_)
-    setattr(torch.TypedStorage, "_new_shared_npu", _typed_storage_new_shared_npu)
-    setattr(torch.TypedStorage, "_release_ipc_counter_npu", _typed_storage_release_ipc_counter_npu)
+    torch.UntypedStorage._share_npu_ = _share_npu_
+    torch.UntypedStorage._new_shared_npu = _new_shared_npu
+    torch.UntypedStorage._release_ipc_counter_npu = _release_ipc_counter_npu
+    torch.TypedStorage._share_npu_ = _typed_storage_share_npu_
+    torch.TypedStorage._new_shared_npu = _typed_storage_new_shared_npu
+    torch.TypedStorage._release_ipc_counter_npu = _typed_storage_release_ipc_counter_npu
