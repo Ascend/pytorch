@@ -178,7 +178,6 @@ NPU_EXTRA_FALLBACK_LIST = [
     aten.expm1.float,
     aten.expm1.int,
     aten.expm1.out,
-    aten.fill_,
     aten.fmod,
     aten.fmod.Scalar,
     aten.fmod.Scalar_out,

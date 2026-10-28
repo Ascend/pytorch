@@ -1923,6 +1923,23 @@ class NPUCachingAutotuner(CachingAutotuner):
             for arg in self.fn.arg_names
             if "_numel" in arg
         ]
+        # Constexpr args are passed as kwargs (e.g. BLOCK_SIZE=16) and take no
+        # positional slot. Keeping them in the name list would shift every
+        # following name and bind the trailing grid extras (_grid_0 ...) to the
+        # wrong values, leaving _grid_2 undefined. Use triton's own constexpr
+        # indices first so the filtering matches make_launcher's def_args, and
+        # merge the declared_constexpr_names metadata as a complement. Args kept
+        # in def_args as runtime blocks must stay positional.
+        constexpr_names = {
+            self.fn.arg_names[i]
+            for i in getattr(self.fn, "constexprs", ())
+            if i < len(self.fn.arg_names)
+        }
+        constexpr_names.update(self.inductor_meta.get("declared_constexpr_names", ()))
+        constexpr_names.difference_update(self.runtime_block_arg_names)
+        positional_arg_names = [
+            arg for arg in self.fn.arg_names if arg not in constexpr_names
+        ]
         runtime_blocks = runtime_blocks or ()
         if self.inductor_meta.get("group_enabled", False):
             runtime_block_names = tuple(
@@ -1937,7 +1954,7 @@ class NPUCachingAutotuner(CachingAutotuner):
                 dict(
                     zip(
                         [
-                            *self.fn.arg_names,
+                            *positional_arg_names,
                             *self.inductor_meta.get("extra_launcher_args", ()),
                             *runtime_block_names,
                         ],
@@ -1952,7 +1969,7 @@ class NPUCachingAutotuner(CachingAutotuner):
                 dict(
                     zip(
                         [
-                            *self.fn.arg_names,
+                            *positional_arg_names,
                             *self.inductor_meta.get("extra_launcher_args", ()),
                             *self.runtime_block_arg_names,
                         ],
@@ -1965,7 +1982,7 @@ class NPUCachingAutotuner(CachingAutotuner):
                 dict(
                     zip(
                         [
-                            *self.fn.arg_names,
+                            *positional_arg_names,
                             *self.inductor_meta.get("extra_launcher_args", ()),
                         ],
                         args,
