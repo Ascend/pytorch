@@ -244,11 +244,20 @@ class CompatModuleExportsTest(unittest.TestCase):
             accelerator,
             distributed,
             dynamo,
+            graph_tree,
             inductor,
             version,
         )
 
-        for module in (_impl, version, accelerator, dynamo, distributed, inductor):
+        for module in (
+            _impl,
+            version,
+            accelerator,
+            dynamo,
+            distributed,
+            graph_tree,
+            inductor,
+        ):
             self.assertTrue(
                 hasattr(module, "__all__"),
                 f"{module.__name__} does not declare __all__",

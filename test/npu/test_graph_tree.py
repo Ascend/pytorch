@@ -1,3 +1,4 @@
+import contextlib
 import os
 
 os.environ["ASCEND_LAUNCH_BLOCKING"] = "0"
@@ -12,9 +13,15 @@ from torch._dynamo.callback import CallbackTrigger
 from torch._dynamo.graph_bytecode_inputs import CURRENT_STREAM_INDEX
 from torch._guards import CompileId
 from torch._inductor.cudagraph_utils import CheckInvariantStatus
+from torch_npu._compat.graph_tree import (
+    CustomClassBase,
+    is_opaque_input,
+    register_opaque_input,
+)
 from torch_npu.npu._graph_tree import (
     check_memory_pool,
     clear_cublas_manager,
+    copy_strided_storage_,
     disable_conv_cache_emptying,
     enable_history_recording,
     format_tb,
@@ -48,6 +55,14 @@ from torch_npu.testing.testcase import TestCase, run_tests
 
 device = "npu:0"
 torch.npu.set_device(device)
+
+
+class _TestOpaqueInput(CustomClassBase):
+    def __init__(self, value):
+        self.value = value
+
+
+register_opaque_input(_TestOpaqueInput)
 
 
 class TestCublasCacheManagement(TestCase):
@@ -403,6 +418,22 @@ class TestNPUGraphNode:
         torch_npu._C._npu_endAllocateToPool(0, (0, 0))
         torch_npu._C._npu_releasePool(0, (0, 0))
 
+    @staticmethod
+    def _create_node(wrapped_function, parent, inputs):
+        with patch("torch_npu.npu._graph_tree._use_npu_memory_pool_manager"), patch(
+            "torch_npu.npu._graph_tree.check_memory_pool"
+        ), patch("torch_npu._C._npu_getCheckpointState"):
+            return NPUGraphNode(
+                wrapped_function=wrapped_function,
+                graph_id=1,
+                parent=parent,
+                inputs=inputs,
+                npu_graphs_pool=(0, 0),
+                device_index=0,
+                stack_traces=None,
+                stream=torch.npu.Stream(),
+            )
+
     def test_initialization(self, mock_wrapped_function, mock_parent_node):
         inputs = [torch.tensor([1.0], device="npu")]
         with patch("torch_npu.npu._graph_tree._use_npu_memory_pool_manager"), patch(
@@ -451,6 +482,32 @@ class TestNPUGraphNode:
         mock_timed.assert_called_once_with(
             "CUDAGraphNode.record", compile_id, CompilationMode.FORWARD
         )
+
+    def test_opaque_input_is_static_but_not_data_ptr_checked(
+        self, mock_wrapped_function, mock_parent_node
+    ):
+        opaque = _TestOpaqueInput(1)
+        assert is_opaque_input(opaque)
+        inputs = [torch.tensor([1.0], device="npu"), opaque]
+
+        node = self._create_node(mock_wrapped_function, mock_parent_node, inputs)
+
+        assert 1 in node.static_input_idxs
+        assert 1 not in node.non_static_input_idx
+        assert 1 not in node.non_managed_static_input_idxs
+        assert 1 not in node.tensor_static_input_idxs
+        assert node.static_input_data_ptrs[1] is None
+        assert node.expanded_dims[1] == []
+        assert node.reconstructed_inputs[1] is opaque
+
+        node.rerecord_if_static_inputs_change = True
+        with patch(
+            "torch_npu._C._tensors_data_ptrs_at_indices_equal", return_value=True
+        ) as mock_equal:
+            node.check_invariants([torch.tensor([1.0], device="npu"), opaque])
+        assert mock_equal.call_count >= 1
+        for call in mock_equal.call_args_list:
+            assert 1 not in call.args[2]
 
     def test_invalid_input_type(self, mock_wrapped_function):
         with pytest.raises(RuntimeError):
@@ -839,6 +896,74 @@ class TestNPUGraphNodeRun(TestCase):
         # Execute and verify cleanup
         node.run(input_copy)
         self.assertEqual(len(input_copy), 0)
+
+
+class TestCopyInputsAndRemoveFromSrc(TestCase):
+    @staticmethod
+    def _make_node(non_static_input_idx, expanded_dims):
+        node = NPUGraphNode.__new__(NPUGraphNode)
+        node.non_static_input_idx = non_static_input_idx
+        node.expanded_dims = expanded_dims
+        return node
+
+    @patch("torch_npu.npu._graph_tree.copy_strided_storage_")
+    @patch(
+        "torch_npu.npu._graph_tree.torch._foreach_copy_",
+        wraps=torch._foreach_copy_,
+    )
+    def test_copy_inputs_normal_inputs(self, mock_foreach_copy, mock_storage_copy):
+        node = self._make_node([0], [[]])
+        src = torch.randn(4, device="npu")
+        dst = torch.empty_strided(
+            src.size(), src.stride(), dtype=src.dtype, device=src.device
+        )
+        dsts = [dst]
+        srcs = [src]
+        node._copy_inputs_and_remove_from_src(dsts, srcs)
+        self.assertTrue(torch.equal(dst, src))
+        self.assertIsNone(srcs[0])
+        mock_foreach_copy.assert_called_once()
+        mock_storage_copy.assert_not_called()
+
+    @patch(
+        "torch_npu.npu._graph_tree.copy_strided_storage_",
+        wraps=copy_strided_storage_,
+    )
+    @patch("torch_npu.npu._graph_tree.torch._foreach_copy_")
+    def test_copy_inputs_self_overlap_fallback(
+        self, mock_foreach_copy, mock_storage_copy
+    ):
+        node = self._make_node([0], [[]])
+        src = torch.randn(6, device="npu").as_strided((2, 3), (2, 1))
+        dst_base = torch.randn(6, device="npu")
+        dst = dst_base.as_strided((2, 3), (2, 1))
+        dsts = [dst]
+        srcs = [src]
+        node._copy_inputs_and_remove_from_src(dsts, srcs)
+        self.assertTrue(torch.equal(dst, src))
+        self.assertIsNone(srcs[0])
+        mock_storage_copy.assert_called_once_with(dst, src)
+        mock_foreach_copy.assert_not_called()
+
+    @patch(
+        "torch_npu.npu._graph_tree.copy_strided_storage_",
+        wraps=copy_strided_storage_,
+    )
+    @patch("torch_npu.npu._graph_tree.torch._foreach_copy_")
+    def test_copy_inputs_expanded_self_overlap_fallback(
+        self, mock_foreach_copy, mock_storage_copy
+    ):
+        node = self._make_node([0], [[0]])
+        src_base = torch.randn(6, device="npu").as_strided((2, 3), (2, 1))
+        src = src_base.expand(4, 2, 3)
+        dst_base = torch.randn(6, device="npu").as_strided((2, 3), (2, 1))
+        dst = dst_base.expand(4, 2, 3)
+
+        node._copy_inputs_and_remove_from_src([dst], [src])
+
+        self.assertTrue(torch.equal(dst, src))
+        mock_storage_copy.assert_called_once_with(dst, src)
+        mock_foreach_copy.assert_not_called()
 
 
 class TestGetNpugraphSegments(TestCase):
@@ -1511,6 +1636,36 @@ class TestFormatInputsLog(TestCase):
         s = format_inputs_log(list(range(12)))
         self.assertIn("... (2 more items)", s)
         self.assertNotIn("[10]", s)
+
+
+class TestNonTensorInputs(TestCase):
+    @staticmethod
+    def _make_allocate_node():
+        node = NPUGraphNode.__new__(NPUGraphNode)
+        node.device = 0
+        node.static_input_idxs = []
+        node.non_static_input_idx = [0, 1]
+        node.expanded_dims = [[], []]
+        node.npu_graphs_pool = (0, 0)
+        node.stream = MagicMock()
+        return node
+
+    @patch(
+        "torch_npu.npu._graph_tree._use_npu_memory_pool_manager",
+        lambda *a, **k: contextlib.nullcontext(),
+    )
+    @patch("torch.npu.synchronize")
+    def test_allocate_recording_inputs_accepts_generator_and_int(self, mock_sync):
+        node = self._make_allocate_node()
+        gen = torch.Generator(device="npu")
+        with patch(
+            "torch.npu.device", return_value=contextlib.nullcontext()
+        ), patch("torch.npu.current_stream"), patch(
+            "torch_npu.npu._graph_tree.static_input"
+        ):
+            recording = node._allocate_and_copy_recording_inputs([gen, 3])
+        self.assertIs(recording[0], gen)
+        self.assertEqual(recording[1], 3)
 
 
 if __name__ == "__main__":

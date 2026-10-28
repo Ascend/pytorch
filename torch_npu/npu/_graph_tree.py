@@ -98,6 +98,7 @@ from torch._dynamo.graph_bytecode_inputs import (
     CURRENT_STREAM_INDEX,
     set_external_object_by_index,
 )
+from torch._inductor.output_code import copy_strided_storage_
 from torch.multiprocessing.reductions import StorageWeakRef
 from torch.storage import UntypedStorage
 from torch.utils import _pytree as pytree
@@ -105,6 +106,10 @@ from torch.utils._ordered_set import OrderedSet
 from torch.utils.weak import TensorWeakRef
 
 import torch_npu
+from torch_npu._compat.graph_tree import (
+    CustomClassBase,
+    is_opaque_input as is_custom_class_obj,
+)
 from torch_npu.npu._graph_tree_state import MarkStepBox  # noqa: F401
 from torch_npu._C import (
     _npu_NPUAllocator_AllocatorState as AllocatorState,
@@ -919,8 +924,19 @@ class NPUGraphNode:
         # and also aliases an output of the current CUDAGraphNode
         self.preserved_aliased_inputs: InputList[bool] = [False] * len(inputs)
 
+        # Opaque values (e.g. DeviceMesh, ProcessGroup, custom class) are
+        # non-tensor inputs that cannot be copied like tensors. Include them in
+        # static_input_idxs to keep them out of non_static_input_idx (which
+        # drives the tensor-copy path), but exclude them from any data-pointer
+        # stability list since they have no data_ptr.
+        opaque_input_idxs = OrderedSet(
+            i for i, inp in enumerate(inputs) if is_custom_class_obj(inp)
+        )
+
         self.static_input_idxs: List[int] = list(
-            set(wrapped_function.static_input_idxs) | set(self.npugraph_managed_idxs)
+            set(wrapped_function.static_input_idxs)
+            | set(self.npugraph_managed_idxs)
+            | set(opaque_input_idxs)
         )
 
         self.non_static_input_idx: LevelList[int] = [
@@ -936,8 +952,12 @@ class NPUGraphNode:
         self.non_managed_static_input_idxs: LevelList[int] = [
             i
             for i in wrapped_function.static_input_idxs
-            if i not in self.npugraph_managed_idxs
+            if i not in self.npugraph_managed_idxs and i not in opaque_input_idxs
         ]
+
+        self.tensor_static_input_idxs: List[int] = list(
+            set(wrapped_function.static_input_idxs) | set(self.npugraph_managed_idxs)
+        )
 
         def maybe_get_static_data_ptr(
             idx: int,
@@ -1087,7 +1107,15 @@ class NPUGraphNode:
             if not isinstance(srcs[idx], torch.Tensor):
                 continue
             expanded_dims = self.expanded_dims[idx]
-            dst_tensors.append(index_expanded_dims(dsts[idx], expanded_dims))  # type: ignore[arg-type]
+            indexed_dst = index_expanded_dims(dsts[idx], expanded_dims)  # type: ignore[arg-type]
+            if torch._debug_has_internal_overlap(indexed_dst) != 0:
+                # rare path: dst still self-overlaps after dropping expanded dims,
+                # so a regular strided copy would be ambiguous; copy the strided
+                # extent bytewise so dst's overlap pattern is reproduced verbatim.
+                copy_strided_storage_(dsts[idx], srcs[idx])  # type: ignore[arg-type]
+                srcs[idx] = None  # type: ignore[call-overload]
+                continue
+            dst_tensors.append(indexed_dst)
             src_tensors.append(index_expanded_dims(srcs[idx], expanded_dims))  # type: ignore[arg-type]
             srcs[idx] = None  # type: ignore[call-overload]
         # Fails on empty lists
@@ -1777,8 +1805,10 @@ class NPUGraphNode:
         ):
             for i, inp in enumerate(inputs):
                 if not isinstance(inp, torch.Tensor):
-                    if not isinstance(inp, int):
-                        raise RuntimeError("check isinstance(inp, int) fail")
+                    if not isinstance(inp, (int, torch.Generator, CustomClassBase)):
+                        raise RuntimeError(
+                            "check isinstance(inp, (int, torch.Generator, CustomClassBase)) fail"
+                        )
                     recording_inputs.append(inp)
                 elif i not in self.static_input_idxs:
                     # static_input does an allocation!
@@ -1843,18 +1873,18 @@ class NPUGraphNode:
             and not torch_npu._C._tensors_data_ptrs_at_indices_equal(
                 inputs,  # type: ignore[arg-type]
                 self.static_input_data_ptrs,
-                self.static_input_idxs,
+                self.tensor_static_input_idxs,
             )
         ):
             status = CheckInvariantStatus.StaticInputIdxMismatch
             log.debug("NPUGRAPH-TREE Invariant node=%s mismatch: StaticInputIdx, "
                       "expected_ptrs_at_static=%s",
                       self.id,
-                      [self.static_input_data_ptrs[i] for i in self.static_input_idxs
+                      [self.static_input_data_ptrs[i] for i in self.tensor_static_input_idxs
                        if i < len(self.static_input_data_ptrs)])
             _logger = functools.partial(
                 _logger,
-                self.static_input_idxs,
+                self.tensor_static_input_idxs,
                 status,
             )
             return status, _logger
