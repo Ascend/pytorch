@@ -138,6 +138,32 @@
 
 </div>
 
+### <code><i>class</i></code> torch.autograd.forward_ad.UnpackedDualTensor
+
+<div style="margin-left: 2em">
+
+> <font size="3">primal</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.forward_ad.UnpackedDualTensor.primal](https://pytorch.org/docs/2.9/generated/torch.autograd.forward_ad.UnpackedDualTensor.html#torch.autograd.forward_ad.UnpackedDualTensor.primal)
+
+**产品支持情况**：
+
+<!-- npu="910b" id235 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id235 -->
+<!-- npu="A3" id236 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id236 -->
+<!-- npu="950" id237 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id237 -->
+
+</div>
+
+</div>
+
 ## Functional higher level API
 
 ### <code><i>class</i></code> torch.autograd.function.FunctionCtx
@@ -776,6 +802,32 @@
 <!-- npu="950" id216 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id216 -->
+
+</div>
+
+### <code><i>class</i></code> torch.autograd.function.InplaceFunction
+
+<div style="margin-left: 2em">
+
+> <font size="3">save_for_forward()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.function.InplaceFunction.save_for_forward](https://pytorch.org/docs/2.9/generated/torch.autograd.function.InplaceFunction.html#torch.autograd.function.InplaceFunction.save_for_forward)
+
+**产品支持情况**：
+
+<!-- npu="910b" id238 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id238 -->
+<!-- npu="A3" id239 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id239 -->
+<!-- npu="950" id240 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id240 -->
+
+</div>
 
 </div>
 

@@ -10,6 +10,7 @@
 <div style="border:1px solid #d1d5da;margin:10px 0;padding:16px 20px;background-color:#f3f4f5;border-radius:.25rem">
 <div style="margin: 8px 0"><font size="5"><b>目录</b></font></div>
 
+- [torchrun (Elastic Launch)](#torchrun-elastic-launch)
 - [Elastic Agent](#elastic-agent)
 - [Multiprocessing](#multiprocessing)
 - [Error Propagation](#error-propagation)
@@ -24,6 +25,28 @@
 <div style="display:none;">
 
 ## &#8203;torch.distributed.elastic
+
+</div>
+
+## torchrun (Elastic Launch)
+
+### torch.distributed.run.main
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.run.main](https://pytorch.org/docs/2.13/elastic/generated/torch.distributed.run.main.html)
+
+**产品支持情况**：
+
+<!-- npu="910b" id364 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id364 -->
+<!-- npu="A3" id365 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id365 -->
+<!-- npu="950" id366 -->
+- <term>Ascend 950DT系列产品</term>：不支持
+<!-- end id366 -->
 
 </div>
 
