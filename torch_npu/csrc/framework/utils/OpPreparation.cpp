@@ -171,7 +171,7 @@ static void check_tensor_size(const std::initializer_list<at::Tensor> &src_list,
     return;
 }
 
-void OpPreparation::check_tensor(const std::initializer_list<at::Tensor> &src_list,
+TORCH_NPU_API void OpPreparation::check_tensor(const std::initializer_list<at::Tensor> &src_list,
                                  at::Tensor &dst,
                                  at::ScalarType expect_dtype,
                                  c10::IntArrayRef expect_size)
