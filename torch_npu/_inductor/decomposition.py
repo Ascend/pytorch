@@ -81,7 +81,7 @@ def _matmul_backward_inductor(grad, self, other, mask):
         nonlocal grad_self, grad_other
         grad_self = grad.unsqueeze(1).mm(other.unsqueeze(0)) if mask[0] else grad_self
         grad_other = (
-            self.transpose(-1, -2).mm(grad.unsqueeze(1)).squeeze_(1)
+            self.transpose(-1, -2).mm(grad.unsqueeze(1)).squeeze(1)
             if mask[1]
             else grad_other
         )
@@ -90,7 +90,7 @@ def _matmul_backward_inductor(grad, self, other, mask):
     def matmul_backward_1d_2d():
         nonlocal grad_self, grad_other
         grad_self = (
-            grad.unsqueeze(0).mm(other.transpose(-1, -2)).squeeze_(0)
+            grad.unsqueeze(0).mm(other.transpose(-1, -2)).squeeze(0)
             if mask[0]
             else grad_self
         )
@@ -100,10 +100,11 @@ def _matmul_backward_inductor(grad, self, other, mask):
     def matmul_backward_nd_lt3d():
         nonlocal grad_self, grad_other
         view_size = 1 if dim_other == 1 else size_grad[-1]
+        folded_rows = functools.reduce(operator.mul, size_self[:-1], 1)
         unfolded_grad = (
             (grad.unsqueeze(-1) if dim_other == 1 else grad)
             .contiguous()
-            .view(-1, view_size)
+            .view(folded_rows, view_size)
         )
         if mask[0]:
             unfolded_other = (
@@ -112,7 +113,7 @@ def _matmul_backward_inductor(grad, self, other, mask):
             grad_self = unfolded_grad.mm(unfolded_other).view(size_self)
 
         if mask[1]:
-            unfolded_self = self.contiguous().view(-1, size_self[-1])
+            unfolded_self = self.contiguous().view(folded_rows, size_self[-1])
             grad_other = (
                 unfolded_self.transpose(-1, -2).mm(unfolded_grad).view(size_other)
             )
@@ -121,16 +122,17 @@ def _matmul_backward_inductor(grad, self, other, mask):
     def matmul_backward_lt3d_nd():
         nonlocal grad_self, grad_other
         view_size = 1 if dim_self == 1 else size_grad[-2]
+        folded_rows = functools.reduce(operator.mul, size_other[:-2], 1) * size_other[-1]
         unfolded_grad_t = (
-            grad.view(-1, view_size)
+            grad.view(folded_rows, view_size)
             if dim_self == 1
-            else grad.transpose(-1, -2).contiguous().view(-1, view_size)
+            else grad.transpose(-1, -2).contiguous().view(folded_rows, view_size)
         )
         if mask[0]:
             unfolded_other_t = (
                 other.transpose(-1, -2)
                 .contiguous()
-                .view(-1, size_other[-2])
+                .view(folded_rows, size_other[-2])
                 .transpose(-1, -2)
             )
             grad_self = (
