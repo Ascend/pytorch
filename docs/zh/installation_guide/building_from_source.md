@@ -64,7 +64,7 @@
 
 如需缩短源码构建时间，可参考[编译加速](references/build_acceleration.md)配置Ninja、Mold、CCache，或仅编译所需目标。
 
-以下操作步骤以安装PyTorch 2.13.0版本、Python 3.10.0版本为例。
+以下操作步骤以安装PyTorch 2.14.0版本、Python 3.11.0版本为例。
 
 - **方式一（推荐）：容器场景**
     
@@ -74,55 +74,35 @@
         git clone https://gitcode.com/Ascend/pytorch.git -b master --depth 1
         ```
 
-    2. 构建并启动容器。
+    2. 自构建并启动容器。
 
-        开发镜像有两种获取方式：直接从昇腾镜像仓库拉取已构建好的镜像，或使用Dockerfile自行构建。
+        TorchNPU提供了可用的Dockerfile，可以自动检测架构来拉取镜像。您可以阅览该目录（pytorch/docker/devel）下的README文件，获取更多信息，并根据其指导构建自己的开发环境。或者直接通过devcontainer工具来构建开发环境。
 
-        - 直接拉取镜像
+        ```bash
+        cd pytorch/docker/devel
+        export DOCKER_BUILDKIT=1
+        docker build -t manylinux-builder:v1 .
+        ```
 
-            我们已提供了可用的开发镜像，以供您编译构建TorchNPU。您可以从昇腾镜像仓库直接拉取：[torch-npu-devel](https://www.hiascend.com/developer/ascendhub/detail/3b0ca76864884546acd07845f6153ee6)
+        或直接使用一键式创建容器脚本builder.sh。
 
-            以Atlas A2 训练系列产品为例，拉取镜像的命令为：
+        ```bash
+        cd pytorch/docker/devel
+        export DOCKER_BUILDKIT=1
+        bash builder.sh --cann
+        ```
 
-            ```bash
-            docker pull swr.cn-south-1.myhuaweicloud.com/ascendhub/torch-npu-devel:2.13.0rc1-cann9.1.0-910b-manylinux_2_28
-            ```
+        > [!NOTE]
+        >
+        > - Dockerfile会自动根据当前架构（ARM/X86）拉取对应镜像。
+        > - 如果需要指定更具体的构建参数，可参考该目录（pytorch/docker/devel）下README。
+        > - 注意不要遗漏命令结尾的“.”。
 
-            拉取完成后，使用以下命令启动并进入Docker容器，并将TorchNPU源代码挂载至容器内：
+        构建完成后，使用以下命令启动并进入Docker容器，并将TorchNPU源代码挂载至容器内：
 
-            ```bash
-            docker run -it -v /{code_path}/pytorch:/home/pytorch swr.cn-south-1.myhuaweicloud.com/ascendhub/torch-npu-devel:2.13.0rc1-cann9.1.0-910b-manylinux_2_28 bash
-            ```
-
-        - 自构建镜像
-
-            我们同样提供了可用的Dockerfile，可以自动检测架构来拉取镜像。你可以阅览该目录（pytorch/docker/devel）下的README文件，获取更多信息，并根据其指导构建自己的开发环境。或者您可以直接通过devcontainer工具来构建开发环境。
-
-            ```bash
-            cd pytorch/docker/devel
-            export DOCKER_BUILDKIT=1
-            docker build -t manylinux-builder:v1 .
-            ```
-
-            或直接使用一键式创建容器脚本builder.sh。
-
-            ```bash
-            cd pytorch/docker/devel
-            export DOCKER_BUILDKIT=1
-            bash builder.sh --cann
-            ```
-
-            > [!NOTE]
-            >
-            > - Dockerfile会自动根据当前架构（ARM/X86）拉取对应镜像。
-            > - 如果需要指定更具体的构建参数，可参考该目录（pytorch/docker/devel）下README。
-            > - 注意不要遗漏命令结尾的“.”。
-
-            构建完成后，使用以下命令启动并进入Docker容器，并将TorchNPU源代码挂载至容器内：
-
-            ```bash
-            docker run -it -v /{code_path}/pytorch:/home/pytorch manylinux-builder:v1 bash
-            ```
+        ```bash
+        docker run -it -v /{code_path}/pytorch:/home/pytorch manylinux-builder:v1 bash
+        ```
 
         _{code_path}_ 表示TorchNPU源代码路径，请根据实际情况进行替换。
 
@@ -136,17 +116,17 @@
        编译前需关注环境中安装的torch版本是否与当前要编译的TorchNPU版本一致，若要更换可使用如下命令：
 
        ```bash
-       pip3 install torch==2.13.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu # 根据自身需求安装CPU版本的torch
+       pip3 install torch==2.14.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu # 根据自身需求安装CPU版本的torch
        ```
 
         环境准备完成后使用如下命令进行编译：
 
         ```bash
         cd /home/pytorch
-        bash ci/build.sh --python=3.10
+        bash ci/build.sh --python=3.11
         ```
 
-        如需指定其他Python版本，请使用--python=3.10、--python=3.11、--python=3.12、--python=3.13或--python=3.14。
+        如需指定其他Python版本，请使用--python=3.10、--python=3.12、--python=3.13或--python=3.14。
         > [!NOTE]
         > 
         > 默认编译Release版本。如需编译Debug版本，请在执行构建命令时设置环境变量`DEBUG=1`。
@@ -154,15 +134,15 @@
     4. 在运行环境中安装生成的TorchNPU插件包，如果使用非root用户进行安装，需要在命令后加`--user`。
 
         ```bash
-        pip3 install --upgrade dist/torch_npu-2.13.0rc1-cp310-cp310-linux_aarch64.whl
+        pip3 install --upgrade dist/torch_npu-2.14.0-cp311-cp311-manylinux_2_28_aarch64.whl
         ```
 
         请用户根据实际情况更改命令中的TorchNPU包名。
 
-    5. 在运行环境中安装pytorch目录下的依赖文件requirements_2.13.txt。
+    5. 在运行环境中安装pytorch目录下的依赖文件requirements_2.14.txt。
 
         ```bash
-        pip3 install -r requirements_2.13.txt
+        pip3 install -r requirements_2.14.txt
         ```
 
 - **方式二：物理机及虚拟机场景**
@@ -199,8 +179,20 @@
 
                     |PyTorch版本|系统架构|gcc版本|cmake版本|
                     |--|--|--|--|
+                    |2.7.1|X86_64|11.2.0|3.18.4|
+                    |2.7.1|AArch64|11.2.0|3.31.1|
+                    |2.9.0|X86_64|13.3.0|3.18.4|
+                    |2.9.0|AArch64|13.3.0|4.0.3|
+                    |2.10.0|X86_64|13.3.0|3.18.4|
+                    |2.10.0|AArch64|13.3.0|4.0.3|
+                    |2.11.0|X86_64|13.3.0|3.18.4|
+                    |2.11.0|AArch64|13.3.0|4.3.2|
+                    |2.12.0|X86_64|13.3.0|3.18.4|
+                    |2.12.0|AArch64|13.3.0|4.3.2|
                     |2.13.0|X86_64|13.3.0|3.18.4|
                     |2.13.0|AArch64|13.3.0|4.3.2|
+                    |2.14.0|X86_64|13.3.0|3.18.4|
+                    |2.14.0|AArch64|13.3.0|4.4.3|
 
                     > [!NOTE]
                     >
@@ -230,16 +222,16 @@
             编译前需关注环境中安装的torch版本是否与当前要编译的TorchNPU版本一致，若要更换可使用如下命令：
 
             ```bash
-            pip3 install torch==2.13.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu # 根据自身需求安装CPU版本的torch
+            pip3 install torch==2.14.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu # 根据自身需求安装CPU版本的torch
             ```
 
             环境准备完成后使用如下命令进行编译：
 
             ```bash
-            bash ci/build.sh --python=3.10
+            bash ci/build.sh --python=3.11
             ```
 
-            如需指定其他Python版本，请使用--python=3.10、--python=3.11、--python=3.12、--python=3.13或--python=3.14。
+            如需指定其他Python版本，请使用--python=3.10、--python=3.12、--python=3.13或--python=3.14。
             > [!NOTE]
             > 
             > 默认编译Release版本。如需编译Debug版本，请在执行构建命令时设置环境变量`DEBUG=1`。
@@ -247,7 +239,7 @@
     3. 安装pytorch/dist目录下生成的插件TorchNPU包，如果使用非root用户安装，需要在命令后加`--user`。
 
         ```bash
-        pip3 install --upgrade dist/torch_npu-2.13.0rc1-cp310-cp310-linux_aarch64.whl
+        pip3 install --upgrade dist/torch_npu-2.14.0-cp311-cp311-manylinux_2_28_aarch64.whl
         ```
 
         请用户根据实际情况更改命令中的TorchNPU包名。
@@ -280,16 +272,16 @@ tensor([[-0.6066,  6.3385,  0.0379,  3.3356],
 
 安装完成后，可在源码根目录下执行`cd test`进入test目录，并通过运行UT测试，进一步验证TorchNPU插件的功能是否正常。
 
-1. 安装UT测试依赖文件requirements_2.13.txt。
+1. 安装UT测试依赖文件requirements_2.14.txt。
 
     ```bash
     cd test
-    pip3 install -r requirements_2.13.txt
+    pip3 install -r requirements_2.14.txt
     ```
 
     > [!NOTE]
     >
-    > 依赖文件名与PyTorch版本对应（如requirements_2.13.txt对应PyTorch 2.13.0版本），请根据实际安装的版本选择对应的requirements文件。
+    > 依赖文件名与PyTorch版本对应（如requirements_2.14.txt对应PyTorch 2.14.0版本），请根据实际安装的版本选择对应的requirements文件。
 
 2. 运行UT测试，以test_autocast.py为例。
 
