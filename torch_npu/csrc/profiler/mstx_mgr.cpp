@@ -40,8 +40,8 @@ void rangeEndImpl(int ptRangeId, mstxDomainHandle_t domain) {
   }
 }
 
-thread_local std::unordered_map<std::string, std::stack<int>> MstxMgr::domainPushDepthStacks_ = {};
-thread_local bool MstxMgr::pushWithStream_ = false;
+thread_local std::unordered_map<std::string, std::stack<MstxMgr::RangePushContext>> MstxMgr::domainPushDepthStacks_ =
+    {};
 
 MstxMgr::MstxMgr() {}
 
@@ -76,15 +76,13 @@ int MstxMgr::rangePush(const char* message, const aclrtStream stream, const char
   // depth before push to return
   int ret = domainPushDepthStacks_[domainStr].size();
   int id = ptRangeId_++;
-  domainPushDepthStacks_[domainStr].push(id);
+  domainPushDepthStacks_[domainStr].push({id, stream != nullptr});
   mstxDomainHandle_t domainHandle = createProfDomain(domainStr);
   // currently use rangeStartImpl to implement rangePushImpl.
   if (stream == nullptr) {
-    pushWithStream_ = false;
     rangeStartImpl(message, nullptr, id, domainHandle);
     return ret;
   }
-  pushWithStream_ = true;
   auto range_push_call = [msg_ptr = std::make_shared<std::string>(message), stream, id, domainHandle]() -> int {
     rangeStartImpl(msg_ptr->c_str(), stream, id, domainHandle);
     return 0;
@@ -104,13 +102,14 @@ int MstxMgr::rangePop(const char* domain) {
   if (!isMstxTxDomainEnable(domainStr)) {
     return -1;
   }
-  int id = domainPushDepthStacks_[domainStr].top();
+  const auto context = domainPushDepthStacks_[domainStr].top();
+  int id = context.id;
   domainPushDepthStacks_[domainStr].pop();
   // depth after pop to return
   int ret = domainPushDepthStacks_[domainStr].size();
   mstxDomainHandle_t domainHandle = createProfDomain(domainStr);
   // currently use rangeEndImpl to implement rangePopImpl.
-  if (!pushWithStream_) {
+  if (!context.withStream) {
     rangeEndImpl(id, domainHandle);
     return ret;
   }
