@@ -33,6 +33,7 @@ from torch.testing import FileCheck
 from torch.testing._internal.inductor_utils import requires_triton
 from torch.utils._python_dispatch import TorchDispatchMode
 
+from torch_npu._compat.version import CURRENT_VERSION
 from torch_npu.npu._graph_tree import get_container
 
 try:
@@ -50,6 +51,10 @@ except ImportError:
         return decorator
 
 TEST_NPU = torch.npu.is_available()
+# COMPAT(< 2.14): upstream Inductor does not pass kernel_free_cudagraph through
+# cudagraphify. The graph-tree compatibility shim keeps the attribute for
+# imports, but there is no producer for the flag on those versions.
+KERNEL_FREE_CUDAGRAPH_SUPPORTED = CURRENT_VERSION >= (2, 14)
 aten = torch.ops.aten
 
 # ---------------------------------------------------------------------------
@@ -195,13 +200,8 @@ class TestGraphPartitionCodegen(TestCase):
 # ===========================================================================
 
 
-@runIfVersion(max="2.13")
-@requires_triton()
-@unittest.skipIf(not TEST_NPU, "requires NPU")
-class TestGraphPartitionNPU(TestCase):
-    """Tests that graph partition works end-to-end with NPU graph trees.
-    Many tests verify npugraph tree state (partition count, graph id, etc.).
-    """
+class GraphPartitionTestBase(TestCase):
+    """Shared graph tree setup for NPU graph partition tests."""
 
     def setUp(self):
         super().setUp()
@@ -238,6 +238,15 @@ class TestGraphPartitionNPU(TestCase):
         return get_container(
             device_index if device_index else self.device_idx
         ).tree_manager
+
+
+@runIfVersion(max="2.13")
+@requires_triton()
+@unittest.skipIf(not TEST_NPU, "requires NPU")
+class TestGraphPartitionNPU(GraphPartitionTestBase):
+    """Tests that graph partition works end-to-end with NPU graph trees.
+    Many tests verify npugraph tree state (partition count, graph id, etc.).
+    """
 
     # -----------------------------------------------------------------------
     # Basic partition tests
@@ -523,6 +532,88 @@ class TestGraphPartitionNPU(TestCase):
         _, code = run_and_get_code(f2_compiled, x)
         num_partitions = get_num_partitions(code)
         self.assertEqual(num_partitions, 2)
+
+
+@requires_triton()
+@unittest.skipIf(not TEST_NPU, "requires NPU")
+class TestGraphPartitionE2E(GraphPartitionTestBase):
+    """End-to-end graph partition coverage for current PyTorch versions."""
+
+    @runIfVersion(min="2.14")
+    @unittest.skipUnless(
+        KERNEL_FREE_CUDAGRAPH_SUPPORTED,
+        "kernel_free_cudagraph is only forwarded by PyTorch >= 2.14",
+    )
+    @config.patch("graph_partition", False)
+    def test_kernel_free_view_only_graph(self):
+        # View-only graphs have no device kernels. Keep the graph unpartitioned
+        # so it reaches the kernel-free tree-node path directly; the node must
+        # still execute in the private pool, but must not create or replay an
+        # empty NPU graph.
+        def f(x):
+            return x.reshape(1, -1, 4)
+
+        x = torch.randn(6, 4, device="npu")
+        compiled_f = torch.compile(f, mode="reduce-overhead", fullgraph=True)
+
+        for _ in range(3):
+            self.assertEqual(compiled_f(x), f(x))
+
+        manager = self.get_manager()
+        self.assertIsNotNone(manager)
+        nodes = list(manager.get_roots())
+        self.assertEqual(len(nodes), 1)
+        self.assertTrue(nodes[0].wrapped_function.kernel_free_cudagraph)
+        self.assertIsNone(nodes[0].graph)
+
+    @config.patch("graph_partition", True)
+    @dynamo_config.patch(capture_scalar_outputs=True)
+    def test_graph_partition_cpu_scalar_item(self):
+        # The CPU scalar partition contains a host-side .item() and must not
+        # be capture-unsafe or change the result.
+        def f(x):
+            y = x + 1
+            scalar = y.item()
+            return x + y + scalar
+
+        x = torch.tensor(1, device="npu")
+        compiled_f = torch.compile(f, mode="reduce-overhead")
+        self.assertEqual(compiled_f(x), f(x))
+
+    @config.patch("graph_partition", True)
+    def test_graph_partition_forward_backward(self):
+        # A real partitioned model must capture both forward partitions and
+        # the backward partition without losing accuracy.
+        class Mod(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.linear = torch.nn.Linear(16, 16)
+
+            def forward(self, x):
+                x1 = x + 1
+                y1 = x + 2
+                y_cpu = y1.cpu() + 1
+                z = x @ y1
+                inp = x1 + y1 + z + y_cpu.npu()
+                return self.linear(inp)
+
+        model = Mod().npu()
+        input_data = torch.randn(16, 16, device="npu")
+        criterion = torch.nn.CrossEntropyLoss()
+        optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+        compiled_model = torch.compile(model, mode="reduce-overhead")
+
+        for _ in range(5):
+            output = compiled_model(input_data)
+            target = torch.randint(0, 10, (16,), device="npu")
+            loss = criterion(output, target)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            self.assertTrue(torch.isfinite(loss))
+
+        # 2 forward partitions and 1 backward partition.
+        self.assertEqual(self.get_manager().new_graph_id().id, 3)
 
 
 if __name__ == "__main__":

@@ -49,6 +49,7 @@ from torch_npu.npu._graph_tree import (
     _update_current_stream_external_object,
     dynamo_timed_cudagraph,
     format_inputs_log,
+    is_cudagraph_capture_sizes,
 )
 from torch_npu.testing.testcase import TestCase, run_tests
 
@@ -144,7 +145,7 @@ class TestNpuGraphFunctions(TestCase):
             model, inputs, (), device_index=0, is_backward=False, is_inference=False
         )
         mock_manager.add_function.assert_called_with(
-            model, inputs, (), None, CompilationMode.FORWARD, (), (), (), None
+            model, inputs, (), None, CompilationMode.FORWARD, (), (), (), None, False
         )
 
         # Test backward mode
@@ -153,7 +154,7 @@ class TestNpuGraphFunctions(TestCase):
             model, inputs, (), device_index=0, is_backward=True, is_inference=False
         )
         mock_manager.add_function.assert_called_with(
-            model, inputs, (), None, CompilationMode.BACKWARD, (), (), (), None
+            model, inputs, (), None, CompilationMode.BACKWARD, (), (), (), None, False
         )
 
         # Test invalid mode combination
@@ -371,6 +372,7 @@ def mock_wrapped_function():
         spec=WrappedFunction,
         static_input_idxs=[0],
         constants=[],
+        kernel_free_cudagraph=False,
         model=MagicMock(side_effect=model_side_effect),
     )
 
@@ -810,6 +812,7 @@ class TestNPUGraphNodeRun(TestCase):
             spec=WrappedFunction,
             static_input_idxs=[0],
             constants=[],
+            kernel_free_cudagraph=False,
             model=MagicMock(side_effect=model_side_effect),
         )
         self.graph_id = 1
@@ -896,6 +899,40 @@ class TestNPUGraphNodeRun(TestCase):
         # Execute and verify cleanup
         node.run(input_copy)
         self.assertEqual(len(input_copy), 0)
+
+    def test_kernel_free_record_uses_pool_without_capture(
+        self, mock_pool, mock_check, mock_replay
+    ):
+        """Kernel-free _record must use the private pool, not capture a graph."""
+        self.wrapped_function.kernel_free_cudagraph = True
+        with patch(
+            "torch_npu.npu._graph_tree.resolve_aclgraph_update_plan"
+        ) as mock_resolve, patch(
+            "torch_npu.npu._graph_tree.torch.npu.graph"
+        ) as mock_graph:
+            node = self._create_node([self.static_input])
+
+        # Once for recording-input allocation, once for kernel-free _record.
+        self.assertEqual(mock_pool.call_count, 2)
+        mock_resolve.assert_not_called()
+        mock_graph.assert_not_called()
+        mock_replay.assert_not_called()
+        self.wrapped_function.model.assert_called_once()
+        self.assertIsNone(node.graph)
+
+    def test_kernel_free_run_skips_aclgraph_update(
+        self, mock_pool, mock_check, mock_replay
+    ):
+        """A kernel-free node has no graph, so run() must skip aclgraph updates."""
+        self.wrapped_function.kernel_free_cudagraph = True
+        node = self._create_node([self.static_input])
+
+        with patch(
+            "torch_npu.npu._graph_tree.update_aclgraph_records_for_graph"
+        ) as mock_update:
+            node.run([self.static_input.clone()])
+
+        mock_update.assert_not_called()
 
 
 class TestCopyInputsAndRemoveFromSrc(TestCase):
@@ -1666,6 +1703,100 @@ class TestNonTensorInputs(TestCase):
             recording = node._allocate_and_copy_recording_inputs([gen, 3])
         self.assertIs(recording[0], gen)
         self.assertEqual(recording[1], 3)
+
+
+class TestKernelFreeGraphNode(TestCase):
+    def test_run_graph_is_noop_for_kernel_free(self):
+        node = NPUGraphNode.__new__(NPUGraphNode)
+        node.wrapped_function = MagicMock(kernel_free_cudagraph=True)
+        node.graph = None
+        node.run_graph()
+
+    def test_run_graph_requires_graph_for_normal_node(self):
+        node = NPUGraphNode.__new__(NPUGraphNode)
+        node.wrapped_function = MagicMock(kernel_free_cudagraph=False)
+        node.graph = None
+        with self.assertRaises(RuntimeError):
+            node.run_graph()
+
+
+class TestCaptureSizes(TestCase):
+    def test_is_cudagraph_capture_sizes(self):
+        from torch._inductor import config as inductor_config
+
+        with inductor_config.patch({"triton.cudagraph_capture_sizes": None}):
+            self.assertTrue(is_cudagraph_capture_sizes(None))
+            self.assertTrue(is_cudagraph_capture_sizes(2))
+            self.assertTrue(is_cudagraph_capture_sizes((2, 3)))
+
+        with inductor_config.patch(
+            {"triton.cudagraph_capture_sizes": (2, 5, 7)}
+        ):
+            self.assertTrue(is_cudagraph_capture_sizes(2))
+            self.assertTrue(is_cudagraph_capture_sizes(5))
+            self.assertFalse(is_cudagraph_capture_sizes(3))
+            self.assertFalse(is_cudagraph_capture_sizes(None))
+
+        with inductor_config.patch(
+            {"triton.cudagraph_capture_sizes": ((2, 3), (4, 5))}
+        ):
+            self.assertTrue(is_cudagraph_capture_sizes((2, 3)))
+            self.assertTrue(is_cudagraph_capture_sizes((4, 5)))
+            self.assertFalse(is_cudagraph_capture_sizes((3, 2)))
+            self.assertFalse(is_cudagraph_capture_sizes(None))
+
+    @patch("torch_npu.npu._graph_tree.npugraphify")
+    def test_npugraphify_impl_respects_capture_sizes(self, mock_npugraphify):
+        from torch._inductor import config as inductor_config
+
+        cases = (
+            ([2], (2,), True),
+            ([2, 3], ((2, 3),), True),
+            ([3], (2,), False),
+            ([2, 3], ((4, 5),), False),
+        )
+        for inputs, capture_sizes, allowed in cases:
+            with self.subTest(inputs=inputs, capture_sizes=capture_sizes):
+                mock_npugraphify.reset_mock()
+                mock_npugraphify.return_value = (
+                    MagicMock(return_value="captured"),
+                    "captured",
+                )
+                model = MagicMock(return_value="eager")
+                impl = npugraphify_impl(model, inputs, ())
+                with inductor_config.patch(
+                    {"triton.cudagraph_capture_sizes": capture_sizes}
+                ):
+                    first = impl(list(inputs))
+                    second = impl(list(inputs))
+
+                if allowed:
+                    self.assertEqual(first, "captured")
+                    self.assertEqual(second, "captured")
+                    mock_npugraphify.assert_called_once()
+                    model.assert_not_called()
+                else:
+                    self.assertEqual(first, "eager")
+                    self.assertEqual(second, "eager")
+                    mock_npugraphify.assert_not_called()
+                    self.assertEqual(model.call_count, 2)
+
+    @patch("torch_npu.npu._graph_tree.maybe_warning_due_to_dynamic_shape")
+    @patch("torch_npu.npu._graph_tree.npugraphify")
+    def test_npugraphify_impl_warns_once_for_dynamic_shapes(
+        self, mock_npugraphify, mock_warning
+    ):
+        from torch._inductor import config as inductor_config
+
+        mock_npugraphify.return_value = (MagicMock(), "captured")
+        mock_warning.return_value = True
+        model = MagicMock()
+        impl = npugraphify_impl(model, [1], ())
+        with inductor_config.patch({"triton.cudagraph_capture_sizes": None}):
+            impl([1])
+            impl([2])
+
+        mock_warning.assert_called_once()
 
 
 if __name__ == "__main__":

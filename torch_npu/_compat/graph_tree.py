@@ -2,7 +2,12 @@
 
 from torch_npu._compat._impl import compat_impl, compat_impl_container
 
-__all__ = ["CustomClassBase", "is_opaque_input", "register_opaque_input"]
+__all__ = [
+    "CustomClassBase",
+    "is_opaque_input",
+    "make_wrapped_function",
+    "register_opaque_input",
+]
 
 
 # torch >= 2.14 renamed OpaqueBase/is_opaque_value to
@@ -57,3 +62,70 @@ def register_opaque_input_local(cls):
 
 
 register_opaque_input = compat_impl_container["register_opaque_input"].resolve()
+
+
+@compat_impl(key="make_wrapped_function", ge=(2, 14))
+def make_wrapped_function_upstream(
+    model,
+    static_input_idxs,
+    function_id,
+    constants,
+    placeholders,
+    mutated_input_idxs,
+    *,
+    kernel_free_cudagraph=False,
+    user_visible_output_idxs=(),
+):
+    from torch._inductor.cudagraph_utils import WrappedFunction
+
+    return WrappedFunction(
+        model,
+        static_input_idxs,
+        function_id,
+        constants,
+        placeholders,
+        mutated_input_idxs,
+        kernel_free_cudagraph=kernel_free_cudagraph,
+        user_visible_output_idxs=frozenset(user_visible_output_idxs),
+    )
+
+
+@compat_impl(key="make_wrapped_function", lt=(2, 14))
+def make_wrapped_function_local(
+    model,
+    static_input_idxs,
+    function_id,
+    constants,
+    placeholders,
+    mutated_input_idxs,
+    *,
+    kernel_free_cudagraph=False,
+    user_visible_output_idxs=(),
+):
+    import dataclasses
+
+    from torch._inductor.cudagraph_utils import WrappedFunction
+
+    # torch 2.13's WrappedFunction has neither of these fields. Add them on a
+    # local subclass so the graph-tree code can use the same attributes on all
+    # supported PyTorch versions.
+    @dataclasses.dataclass(frozen=True)
+    class _LocalWrappedFunction(WrappedFunction):
+        kernel_free_cudagraph: bool = False
+        user_visible_output_idxs: frozenset = dataclasses.field(
+            default_factory=frozenset
+        )
+
+    return _LocalWrappedFunction(
+        model,
+        static_input_idxs,
+        function_id,
+        constants,
+        placeholders,
+        mutated_input_idxs,
+        kernel_free_cudagraph=kernel_free_cudagraph,
+        user_visible_output_idxs=frozenset(user_visible_output_idxs),
+    )
+
+
+make_wrapped_function = compat_impl_container["make_wrapped_function"].resolve()

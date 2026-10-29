@@ -109,6 +109,7 @@ import torch_npu
 from torch_npu._compat.graph_tree import (
     CustomClassBase,
     is_opaque_input as is_custom_class_obj,
+    make_wrapped_function,
 )
 from torch_npu.npu._graph_tree_state import MarkStepBox  # noqa: F401
 from torch_npu._C import (
@@ -385,6 +386,17 @@ def get_manager(
     return get_container(device_index).tree_manager
 
 
+def is_cudagraph_capture_sizes(int_key: Union[int, Tuple[int, ...]]) -> bool:
+    """
+    Returns true if all dynamic shapes should be captured or the dynamic shape
+    int_key should be captured.
+    """
+    return (
+        config.triton.cudagraph_capture_sizes is None
+        or int_key in config.triton.cudagraph_capture_sizes
+    )
+
+
 def npugraphify_impl(
     model: ModelType,
     inputs: List[InputType],
@@ -406,6 +418,10 @@ def npugraphify_impl(
         nonlocal has_warn
 
         int_key = get_ints(inputs)
+
+        if not is_cudagraph_capture_sizes(int_key):
+            return model(inputs)
+
         fn = fn_cache.get(int_key)
         if fn is not None:
             return fn(inputs)
@@ -451,6 +467,7 @@ def npugraphify(
     placeholders: Tuple[PlaceholderInfo, ...] = (),
     mutated_input_idxs: Tuple[int, ...] = (),
     compile_id: Optional[Any] = None,
+    kernel_free_cudagraph: bool = False,
 ) -> Tuple[ModelType, OutputType]:
     if is_backward and is_inference:
         raise RuntimeError("check is_backward and is_inference fail")
@@ -473,6 +490,7 @@ def npugraphify(
         placeholders,
         mutated_input_idxs,
         compile_id,
+        kernel_free_cudagraph,
     )
 
 
@@ -1021,7 +1039,9 @@ class NPUGraphNode:
         del inputs
 
         # graph used for recording model invocation
-        self.graph: Optional[torch.npu.NPUGraph] = torch.npu.NPUGraph()
+        self.graph: Optional[torch.npu.NPUGraph] = (
+            None if wrapped_function.kernel_free_cudagraph else torch.npu.NPUGraph()
+        )
 
         # we allocate non-static inputs within the same memory pool as the NPUGraph
         # which we will record the model with. For memory efficiency, it is important
@@ -1096,7 +1116,8 @@ class NPUGraphNode:
                     raise RuntimeError("check isinstance(out, (int, type(None))) fail")
                 self.outputs_metadata.append(out)
 
-        self.graph.replay()
+        if self.graph is not None:
+            self.graph.replay()
 
     def _copy_inputs_and_remove_from_src(
         self, dsts: List[InputType], srcs: List[InputType]
@@ -1182,10 +1203,12 @@ class NPUGraphNode:
             self.mode.name if self.mode else "unknown",
         )
         self.check_static_inputs_are_stable(new_inputs)
-        aclgraph_update_submitted = update_aclgraph_records_for_graph(
-            resolve_aclgraph_update_plan(self.aclgraph_update_plan, new_inputs),
-            self.graph,
-        )
+        aclgraph_update_submitted = False
+        if not self.wrapped_function.kernel_free_cudagraph:
+            aclgraph_update_submitted = update_aclgraph_records_for_graph(
+                resolve_aclgraph_update_plan(self.aclgraph_update_plan, new_inputs),
+                self.graph,
+            )
         self._copy_inputs_and_remove_from_src(self.reconstructed_inputs, new_inputs)
 
         self.run_graph()
@@ -1309,6 +1332,8 @@ class NPUGraphNode:
         return output_storages
 
     def run_graph(self) -> None:
+        if self.wrapped_function.kernel_free_cudagraph:
+            return
         if self.graph is None:
             raise RuntimeError("check self.graph is not None fail")
         self.graph.replay()
@@ -1356,6 +1381,24 @@ class NPUGraphNode:
             ]
 
             check_memory_pool(self.device, self.npu_graphs_pool, memory)
+
+        if self.wrapped_function.kernel_free_cudagraph:
+            with preserve_rng_state(), torch.npu.device(
+                self.device
+            ), clear_cublas_manager(), _use_npu_memory_pool_manager(
+                self.device, self.npu_graphs_pool, self.stream
+            ), _update_current_stream_external_object(), \
+                    ControlFlowOpWarmupDispatchMode(), get_history_recording():
+                static_outputs = model(inputs)
+
+            # running model should reclaim memory
+            if not len(inputs) == 0:
+                raise RuntimeError("check len(inputs) == 0 fail")
+            if not isinstance(static_outputs, (list, tuple)):
+                static_outputs = (static_outputs,)
+
+            self._add_first_outputs(static_outputs, static_input_persistent_storage_ptrs)
+            return static_outputs
 
         aclgraph_cpu_update_input = resolve_aclgraph_update_plan(
             self.aclgraph_update_plan,
@@ -2520,17 +2563,19 @@ class NPUGraphTreeManager:
         placeholders: Tuple[PlaceholderInfo, ...],
         mutated_input_idxs: Tuple[int, ...],
         compile_id: Optional[Any] = None,
+        kernel_free_cudagraph: bool = False,
     ) -> Tuple[ModelType, OutputType]:
         id_for_func = self.new_func_id()
         self.id_to_compile_id[id_for_func] = compile_id
         self.ids_to_stack_traces[id_for_func] = stack_traces
-        self.ids_to_funcs[id_for_func] = WrappedFunction(
+        self.ids_to_funcs[id_for_func] = make_wrapped_function(
             model,
             list(static_input_idxs),
             id_for_func,
             tuple(t for t in constants if isinstance(t, torch.Tensor) and t.is_npu),
             placeholders,
             mutated_input_idxs,
+            kernel_free_cudagraph=kernel_free_cudagraph,
         )
         self.id_to_mode[id_for_func] = mode
         fn = functools.partial(self.run, function_id=id_for_func)
