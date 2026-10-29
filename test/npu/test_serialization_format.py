@@ -185,7 +185,7 @@ class TestCopyFormat(TestCase):
 
 @unittest.skipUnless(IS_ASCEND950, "Ascend950 only")
 class TestCopyFormatAscend950(TestCase):
-    """Ascend950: internal-format copy_ is only supported device-to-host."""
+    """Ascend950: internal-format copy_ supports d2h and NZ<-NZ d2d memcpy; other directions raise."""
 
     COPY_TEST_DTYPE = torch.float16
 
@@ -223,14 +223,20 @@ class TestCopyFormatAscend950(TestCase):
         with self.assertRaisesRegex(RuntimeError, "not supported on Ascend950"):
             dst_nz.copy_(torch.randn(8, 8, dtype=self.COPY_TEST_DTYPE))
 
-    def test_copy_nz_d2d_not_supported(self):
-        src_nz = cast_copy_tensor(torch.randn(8, 8, dtype=self.COPY_TEST_DTYPE).npu(),
-                                  FORMAT_INFO["FRACTAL_NZ"])
+    def test_copy_nz_d2d(self):
+        """NZ <- NZ d2d copy is supported via memcpy on Ascend950."""
+        src_cpu = torch.randn(8, 8, dtype=self.COPY_TEST_DTYPE)
+        src_nz = cast_copy_tensor(src_cpu.npu(), FORMAT_INFO["FRACTAL_NZ"])
         dst_nz = cast_copy_tensor(torch.zeros(8, 8, dtype=self.COPY_TEST_DTYPE).npu(),
                                   FORMAT_INFO["FRACTAL_NZ"])
-        with self.assertRaisesRegex(RuntimeError, "not supported on Ascend950"):
-            dst_nz.copy_(src_nz)
+        dst_nz.copy_(src_nz)
+        self.assertTrue(torch.equal(dst_nz.cpu(), src_cpu))
+        self.assertIn(torch_npu.get_npu_format(dst_nz), NZ_FORMAT_FAMILY)
 
+    def test_copy_nz_to_nd_d2d_not_supported(self):
+        """Mixed base <- NZ d2d copy still raises on Ascend950."""
+        src_nz = cast_copy_tensor(torch.randn(8, 8, dtype=self.COPY_TEST_DTYPE).npu(),
+                                  FORMAT_INFO["FRACTAL_NZ"])
         dst_nd = torch.zeros(8, 8, dtype=self.COPY_TEST_DTYPE).npu()
         with self.assertRaisesRegex(RuntimeError, "not supported on Ascend950"):
             dst_nd.copy_(src_nz)
