@@ -58,7 +58,12 @@ def _register_npu_inductor_fallbacks():
                         torch._ops.HigherOrderOperator,
                     ),
                 ):
-                    make_fallback(op)
+                    # override_decomp: torch >= 2.16 registers ops in the
+                    # global decomposition registry (e.g. via torch._refs)
+                    # that the snapshot filter above does not see, and the
+                    # make_fallback CI guard would reject the fallback.
+                    # Same at the call sites below.
+                    make_fallback(op, override_decomp=True)
 
     def fallback_via_fallback_set(fallback_set):
         for op in lowering.lowerings:
@@ -71,7 +76,7 @@ def _register_npu_inductor_fallbacks():
                         torch._ops.HigherOrderOperator,
                     ),
                 ):
-                    make_fallback(op)
+                    make_fallback(op, override_decomp=True)
 
     def enable_full_lowering_fallback():
         ops_to_fallback = list(
@@ -90,12 +95,12 @@ def _register_npu_inductor_fallbacks():
             )
         )
         for op in ops_to_fallback:
-            make_fallback(op)
+            make_fallback(op, override_decomp=True)
 
         fallback_ops_with_meta(
             lowerings,
             decomposition.decompositions,
-            make_fallback,
+            lambda op: make_fallback(op, override_decomp=True),
         )
 
     if config.fallback_to_aten_mode not in {"off", "include", "exclude", "all"}:

@@ -263,9 +263,14 @@ class _NpugraphsBackendEntryPoint:
     compiler_name = "npugraphs"
 
     def __call__(self, gm, example_inputs, **kwargs):
-        from torch_npu.utils._dynamo import _lazy_dynamo_setup, _lazy_inductor_setup
+        from torch_npu.utils._dynamo import (
+            _lazy_dynamo_setup,
+            _lazy_inductor_setup,
+            register_inductor_npu,
+        )
 
         _lazy_dynamo_setup()
+        register_inductor_npu()
         _lazy_inductor_setup()
         from torch_npu.utils._graph_tree import NpugraphsBackend
 

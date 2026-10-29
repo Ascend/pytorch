@@ -2729,9 +2729,11 @@ def sdpa_constraint(fx_node, *args, **kwargs):
 
 # WIP
 make_fallback(aten._adaptive_avg_pool3d)  # @isuruf
-make_fallback(aten.adaptive_max_pool3d)  # @isuruf
+# torch >= 2.16 ships decompositions for these two ops; the DVM/MLIR lowering
+# keeps the aclnn fallback until the decomposed forms are validated on DVM.
+make_fallback(aten.adaptive_max_pool3d, override_decomp=True)  # @isuruf
 make_fallback(aten.fractional_max_pool3d)  # @isuruf
-make_fallback(aten.max_pool3d_with_indices)  # @isuruf (can this one be implemented?)
+make_fallback(aten.max_pool3d_with_indices, override_decomp=True)  # @isuruf (can this one be implemented?)
 
 
 # 1) Easy

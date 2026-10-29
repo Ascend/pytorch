@@ -17,7 +17,7 @@ from torch.utils._pytree import TreeSpec, tree_flatten, tree_unflatten
 
 
 use_jit_script = False
-log = logging.getLogger(__name__)
+
 
 def _create_npu_autocast_mode_variable(func, args, kwargs):
     from torch._dynamo.variables.base import VariableTracker
@@ -105,8 +105,8 @@ def _resolve_npu_backend_from_wrapper(wrapper) -> str:
     return _resolve_npu_backend(wrapper.config.get("npu_backend"))
 
 
-class _NpuBackendScope:
-    """Apply resolved npu backend for one compile invocation and restore env."""
+class _NpuBackendEnvScope:
+    """Publish the selected npu backend through the env for one compile."""
 
     def __init__(self, backend: str):
         self.backend = backend
@@ -114,19 +114,7 @@ class _NpuBackendScope:
 
     def __enter__(self):
         self._old_env = os.environ.get("TORCHINDUCTOR_NPU_BACKEND")
-        try:
-            os.environ["TORCHINDUCTOR_NPU_BACKEND"] = self.backend
-            register_inductor_npu()
-            _lazy_inductor_setup()
-            if self.backend == "ascendc":
-                from torch_npu._inductor.deterministic_cache import (
-                    patch_npu_deterministic_level_cache_keys,
-                )
-
-                patch_npu_deterministic_level_cache_keys()
-        except BaseException:
-            self._restore_backend_env()
-            raise
+        os.environ["TORCHINDUCTOR_NPU_BACKEND"] = self.backend
         return self
 
     def __exit__(self, exc_type, exc, tb):
@@ -202,13 +190,13 @@ def patch_inductor_wrapper():
         return ori_dict
 
     def new_init(self, mode, options, dynamic, name=None):
+        # Backend initialization lives in the loaders and the upstream
+        # _inductor_backend_init hook; MLIR keeps its construction-time
+        # initialization until its stream-recovery semantics is confirmed.
         self._npu_defer_shape_handling = True
         self._npu_shape_handling_requested = False
         try:
-            if name is not None:
-                src_init(self, mode, options, dynamic, name)
-            else:
-                src_init(self, mode, options, dynamic)
+            src_init(self, mode, options, dynamic, name)
             shape_handling_requested = self._npu_shape_handling_requested
         finally:
             del self._npu_defer_shape_handling
@@ -224,17 +212,25 @@ def patch_inductor_wrapper():
             _patch_shape_handling()
         backend = _resolve_npu_backend_from_wrapper(self)
         if backend == "mlir":
-            with _NpuBackendScope(backend):
-                log.info("Running MLIR backend")
+            with _NpuBackendEnvScope(backend):
+                register_inductor_npu()
+                _lazy_inductor_setup()
                 device_id = torch_npu.npu.current_device()
                 torch_npu._C._recovery_all_npu_stream(device_id)
-        if backend == "dvm":
-            with _NpuBackendScope(backend):
-                log.info("Running dvm backend")
+        from torch_npu._compat.inductor import (
+            compat_prepare_dvm_backend_on_wrapper_init,
+        )
+
+        compat_prepare_dvm_backend_on_wrapper_init(backend)
 
     def new_call(self, model_, inputs_):
         backend = _resolve_npu_backend_from_wrapper(self)
-        with _NpuBackendScope(backend):
+        with _NpuBackendEnvScope(backend):
+            from torch_npu._compat.inductor import (
+                compat_prepare_inductor_backend_for_call,
+            )
+
+            compat_prepare_inductor_backend_for_call(backend)
             if backend == "ascendc":
                 from torch_npu.dynamo._deterministic_guard import (
                     install_npu_deterministic_level_guard,
@@ -641,9 +637,7 @@ def _lazy_dynamo_setup():
 
 @run_once
 def _lazy_inductor_setup():
-    """Initialize NPU Inductor support only for an Inductor-based backend."""
-    register_inductor_npu()
-
+    """Install shared NPU Inductor integration independently of backend registration."""
     from torch_npu.utils._graph_tree import _apply_npugraph_tree_methods
     _apply_npugraph_tree_methods()
 

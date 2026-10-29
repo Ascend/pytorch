@@ -886,3 +886,7 @@ torch._storage_classes.add(ByteStorage)
 torch._storage_classes.add(HalfStorage)
 torch._storage_classes.add(BoolStorage)
 torch._storage_classes.add(BFloat16Storage)
+
+import sys
+from torch_npu._compat.inductor import compat_attach_inductor_backend_init
+compat_attach_inductor_backend_init(sys.modules[__name__])

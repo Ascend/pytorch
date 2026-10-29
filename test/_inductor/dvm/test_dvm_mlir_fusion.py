@@ -335,6 +335,15 @@ class TestDvmByMlir(TestCase):
                 dvm_config.enable_decomp_list = [torch.ops.npu.npu_rms_norm_backward]
                 os.environ["TORCHINDUCTOR_NPU_BACKEND"] = "dvm"
 
+                # The lazy design runs the default->dvm backend switch (which
+                # reloads torch._inductor.graph) on the first compile call;
+                # run_and_get_code hooks GraphLowering.save_output_code on the
+                # module current when it starts, so load the DVM backend up
+                # front to keep the reload outside the collection window.
+                from torch_npu.utils._dynamo import register_inductor_npu
+
+                register_inductor_npu()
+
                 def model(x, gamma, grad):
                     y, rstd = torch.ops.npu.npu_rms_norm.default(x, gamma)
                     dx, dgamma = torch.ops.npu.npu_rms_norm_backward.default(

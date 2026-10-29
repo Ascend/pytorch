@@ -1,4 +1,7 @@
+import logging
 import os
+
+log = logging.getLogger(__name__)
 
 ORG_AUTOLOAD = os.getenv("TORCH_DEVICE_BACKEND_AUTOLOAD", "1")
 os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = "0"
@@ -57,6 +60,11 @@ def _get_backend() -> str:
     return os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default")
 
 def _load_ascendc_backend():
+    # Formerly applied per compile by the wrapper scope; now applied as part
+    # of backend activation.
+    from .deterministic_cache import patch_npu_deterministic_level_cache_keys
+
+    patch_npu_deterministic_level_cache_keys()
     from . import ascendc
 
 
@@ -84,6 +92,7 @@ def _load_mlir_backend():
         "Please switch to other npu_backend.",
         FutureWarning,
     )
+    log.info("Running MLIR backend")
     _apply_common_patches()
     try:
         import torch_mlir
@@ -95,11 +104,12 @@ def _load_mlir_backend():
     from .ascend_npu_ir.ascend_npu_ir.npu.npu_inductor_plugin import (
         register_mlir_codegen_backend,
     )
-
     apply_mlir_inductor_patch()
     register_mlir_codegen_backend()
 
+
 def _load_dvm_backend():
+    log.info("Running DVM backend")
     _apply_common_patches()
     import torch
     import torch_npu.utils._dynamo

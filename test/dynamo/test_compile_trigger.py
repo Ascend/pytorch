@@ -322,8 +322,10 @@ class TorchCompileTriggerTests(unittest.TestCase):
             ), mock.patch.object(
                 _dynamo, "_lazy_inductor_setup", lambda: None
             ), mock.patch.object(
+                _dynamo, "register_inductor_npu", lambda: None
+            ), mock.patch.object(
                 _dynamo,
-                "_NpuBackendScope",
+                "_NpuBackendEnvScope",
                 lambda backend: contextlib.nullcontext(),
             ), mock.patch.object(
                 _graph_tree,
@@ -570,7 +572,7 @@ class TorchCompileTriggerTests(unittest.TestCase):
             env_name = "TORCHINDUCTOR_NPU_BACKEND"
             original_env = os.environ.get(env_name)
             try:
-                with _dynamo._NpuBackendScope(1):
+                with _dynamo._NpuBackendEnvScope(1):
                     raise AssertionError("scope entry must fail")
             except TypeError as error:
                 assert "str" in str(error)
@@ -613,12 +615,10 @@ class TorchCompileTriggerTests(unittest.TestCase):
             ):
                 wrapper = torch._TorchCompileInductorWrapper(None, options, None)
 
-            normalized_options = {
-                "npu_backend": "mlir",
-                "enable_shape_handling": True,
-            }
             assert wrapper.config["npu_backend"] == "mlir"
             assert wrapper.config["enable_shape_handling"] is True
+            # Shape handling installs before the mlir backend, which still
+            # initializes at construction.
             assert events == [
                 ("shape_handling", None),
                 ("scope_register", "mlir"),
@@ -762,16 +762,14 @@ class TorchCompileTriggerTests(unittest.TestCase):
             """
         )
 
-    # Verify a real torch.compile Inductor entry initializes the full stack.
-    # Patch only the final compile_fx lowering step so this test exercises the
-    # NPU Dynamo/Inductor wrapper and lazy setup without compiling a Triton
-    # kernel in the environment.
+    # Verify a real torch.compile Inductor entry initializes the full stack:
+    # construction stays lazy; the wrapper installs shared setup and the
+    # upstream hook registers the backend on the first call.
     @unittest.skipUnless(importlib.util.find_spec("triton"), "requires triton-ascend")
     def test_npu_inductor_initialization_chain(self):
         self.run_in_subprocess(
             """
             import sys
-            from unittest import mock
 
             import torch
             import torch_npu
@@ -780,31 +778,82 @@ class TorchCompileTriggerTests(unittest.TestCase):
             def fn(x):
                 return torch.sin(x) + 1
 
-            x = torch.randn(8, device="npu")
-            compiled = torch.compile(fn, backend="inductor", fullgraph=True)
+            x = torch.randn(8)
+            compiled = torch.compile(fn, options={"npu_backend": "default"})
 
             assert _dynamo._lazy_dynamo_setup.has_run
             assert not _dynamo._lazy_inductor_setup.has_run
             assert "torch_npu._inductor" not in sys.modules
 
-            import torch._inductor.compile_fx as compile_fx
-
-            compile_calls = []
-
-            def fake_compile_fx(model, inputs, **kwargs):
-                compile_calls.append((model, inputs, kwargs))
-                return lambda *args, **kwargs: args[0]
-
-            with mock.patch.object(compile_fx, "compile_fx", fake_compile_fx):
-                compiled(x)
-
-            assert len(compile_calls) == 1
+            torch.testing.assert_close(compiled(x), fn(x))
 
             from torch._dynamo.device_interface import get_interface_for_device
+            from torch._inductor.codegen.common import get_scheduling_for_device
 
-            assert _dynamo._lazy_dynamo_setup.has_run
             assert _dynamo._lazy_inductor_setup.has_run
+            assert "torch_npu._inductor" in sys.modules
+            assert get_scheduling_for_device("npu") is not None
             assert get_interface_for_device("npu").device_count() > 0
+            """
+        )
+
+    def test_inductor_setup_without_backend_registration(self):
+        self.run_in_subprocess(
+            """
+            import sys
+            from unittest import mock
+
+            import torch
+            import torch_npu
+            from torch_npu.utils import _dynamo
+            from torch._inductor.codegen.common import get_scheduling_for_device
+
+            assert get_scheduling_for_device("npu") is None
+            with mock.patch.object(
+                _dynamo, "register_inductor_npu",
+                side_effect=AssertionError("setup must not register a backend"),
+            ):
+                _dynamo._lazy_inductor_setup()
+                from torch._inductor import compile_fx, cudagraph_trees
+                from torch_npu.utils import _graph_tree
+
+                manager = cudagraph_trees.get_manager
+                _dynamo._lazy_inductor_setup()
+                assert cudagraph_trees.get_manager is manager
+                assert compile_fx.cudagraphify is _graph_tree.npugraphify
+
+            assert _dynamo._lazy_inductor_setup.has_run
+            assert get_scheduling_for_device("npu") is None
+            assert "torch_npu._inductor" not in sys.modules
+            assert torch._inductor.config.npu_backend == "default"
+            """
+        )
+
+    @unittest.skipUnless(importlib.util.find_spec("triton"), "requires triton-ascend")
+    def test_inductor_wrapper_setup_after_preimport(self):
+        self.run_in_subprocess(
+            """
+            import torch
+            import torch_npu
+            import torch_npu._inductor
+            from torch_npu.utils import _dynamo
+            from torch._inductor.codegen.common import get_scheduling_for_device
+
+            assert get_scheduling_for_device("npu") is not None
+            assert not _dynamo._lazy_inductor_setup.has_run
+
+            def fn(x):
+                return torch.sin(x) + 1
+
+            x = torch.randn(8, device="npu")
+            compiled = torch.compile(fn, options={"npu_backend": "default"})
+            torch.testing.assert_close(compiled(x), fn(x))
+
+            from torch._inductor import compile_fx
+            from torch_npu.utils import _graph_tree
+
+            assert _dynamo._lazy_inductor_setup.has_run
+            assert compile_fx.cudagraphify is _graph_tree.npugraphify
             """
         )
 
@@ -1316,8 +1365,22 @@ class TorchCompileTriggerTests(unittest.TestCase):
                 "torch_npu.utils._inductor"
             )
 
-            # Exercise the new full-Inductor setup boundary without relying on
-            # test ordering or on a prior torch.compile invocation.
+            # The device-module hook (torch PR #192896, first in torch 2.15)
+            # is attached from the compat layer; inductor fires it at every
+            # compile entry while the device is unregistered.
+            from torch_npu._compat.version import CURRENT_VERSION
+
+            if CURRENT_VERSION >= (2, 15):
+                from torch_npu._compat.inductor import _npu_inductor_backend_init
+
+                assert (
+                    torch.npu._inductor_backend_init is _npu_inductor_backend_init
+                )
+            else:
+                assert not hasattr(torch.npu, "_inductor_backend_init")
+
+            # Exercise backend registration and shared setup independently of
+            # test ordering or a prior torch.compile invocation.
             import torch._dynamo
             from torch_npu._compat.version import CURRENT_VERSION
             from torch_npu.utils import _dynamo
@@ -1328,6 +1391,7 @@ class TorchCompileTriggerTests(unittest.TestCase):
             original_codegen = GraphLowering.codegen_with_cpp_wrapper
             original_get_system = CacheBase.get_system
 
+            _dynamo.register_inductor_npu()
             _dynamo._lazy_inductor_setup()
 
             import torch._inductor.compile_fx as compile_fx
@@ -1388,6 +1452,137 @@ class TorchCompileTriggerTests(unittest.TestCase):
             assert config.enable_shape_handling is False
             assert config.shape_handling_configs == []
             assert config.shape_handling_dict is None
+            """
+        )
+
+    # Direct compile_fx() bypasses _TorchCompileInductorWrapper. On torch
+    # >= 2.15 the device-module hook registers the NPU backend on this path.
+    # Shared setup remains the responsibility of wrapper-based entry points.
+    @unittest.skipUnless(importlib.util.find_spec("triton"), "requires triton-ascend")
+    def test_inductor_backend_init_covers_direct_compile_fx(self):
+        self.run_in_subprocess(
+            """
+            import sys
+
+            import torch
+            import torch_npu
+            import torch.fx
+
+            from torch_npu._compat.version import CURRENT_VERSION
+            from torch._inductor.codegen.common import get_scheduling_for_device
+            from torch._inductor.compile_fx import compile_fx
+
+            assert get_scheduling_for_device("npu") is None
+
+            gm = torch.fx.symbolic_trace(lambda x: torch.sin(x) + 1)
+            compile_fx(gm, [torch.randn(8)])
+
+            from torch_npu.utils import _dynamo
+            assert not _dynamo._lazy_inductor_setup.has_run
+            if CURRENT_VERSION >= (2, 15):
+                assert get_scheduling_for_device("npu") is not None
+            else:
+                assert "torch_npu._inductor" not in sys.modules
+            """
+        )
+
+    # A mid-process backend switch stays wrapper-driven: the compile scope
+    # detects the changed selection and reloads the backend before the
+    # compile starts.
+    @unittest.skipUnless(importlib.util.find_spec("triton"), "requires triton-ascend")
+    def test_inductor_backend_switch_reloads(self):
+        self.run_in_subprocess(
+            """
+            import os
+
+            import torch
+            import torch_npu
+
+            from torch._inductor.codegen.common import get_scheduling_for_device
+            from torch_npu.utils._dynamo import _InductorNpuRegistry
+
+            def fn(x):
+                return torch.sin(x) + 1
+
+            x = torch.randn(8)
+            torch.compile(fn)(x)
+            assert _InductorNpuRegistry._loaded_backend == "default"
+            assert get_scheduling_for_device("npu") is not None
+
+            # A mid-process backend change takes effect within the same
+            # compile: the loader for the new selection runs and its
+            # registration is live before the compile starts.
+            import torch_npu._inductor as npu_inductor
+            from torch_npu._inductor import _load_triton_backend
+            from torch_npu._inductor.codegen.npu_combined_scheduling import (
+                NPUCombinedScheduling,
+            )
+
+            calls = []
+
+            def fake_loader():
+                calls.append("fake")
+                _load_triton_backend()
+
+            npu_inductor._BACKEND_LOADERS["fake"] = fake_loader
+            os.environ["TORCHINDUCTOR_NPU_BACKEND"] = "fake"
+
+            def fn2(x):
+                return torch.cos(x) + 2
+
+            torch.compile(fn2)(x)
+
+            assert calls == ["fake"]
+            assert _InductorNpuRegistry._loaded_backend == "fake"
+            assert get_scheduling_for_device("npu") is NPUCombinedScheduling
+            """
+        )
+
+    # DVM initialization moves from wrapper construction (old torch) to the
+    # upstream device hook (torch >= 2.15).
+    @unittest.skipUnless(importlib.util.find_spec("triton"), "requires triton-ascend")
+    def test_dvm_backend_initialization_by_version(self):
+        self.run_in_subprocess(
+            """
+            import sys
+
+            import torch
+            import torch_npu
+            from torch_npu._compat.version import CURRENT_VERSION
+
+            def fn(v):
+                return torch.sin(v) + 1
+
+            torch._TorchCompileInductorWrapper(None, {"npu_backend": "dvm"}, None)
+
+            if CURRENT_VERSION >= (2, 15):
+                # Construction stays lazy; the first call initializes through
+                # the upstream device hook.
+                assert "torch_npu._inductor" not in sys.modules
+                x = torch.randn(8)
+                torch.compile(fn, options={"npu_backend": "dvm"})(x)
+                assert "torch_npu._inductor" in sys.modules
+            else:
+                # Old torch has no device hook; construction initializes DVM.
+                assert "torch_npu._inductor" in sys.modules
+            """
+        )
+
+    # The compile pool warm-up keeps its historical import-time behavior on
+    # every torch version; pool workers never touch Dynamo's compile lock, so
+    # warming from inside it (wrapper call path, or the torch >= 2.15 device
+    # hook) is equivalent to the long-standing behavior.
+    def test_warm_inductor_pool_at_import(self):
+        self.run_in_subprocess(
+            """
+            from unittest import mock
+
+            with mock.patch(
+                "torch._inductor.async_compile.AsyncCompile.warm_pool"
+            ) as warm:
+                import torch_npu._inductor
+
+            warm.assert_called_once()
             """
         )
 

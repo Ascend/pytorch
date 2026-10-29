@@ -16,6 +16,9 @@ __all__ = [
     "invalidate_has_triton_cache",
     "get_cpp_torch_device_options",
     "patch_npu_cpp_device_options",
+    "compat_attach_inductor_backend_init",
+    "compat_prepare_inductor_backend_for_call",
+    "compat_prepare_dvm_backend_on_wrapper_init",
 ]
 
 
@@ -447,4 +450,102 @@ def patch_npu_cpp_device_options_local():
 
 patch_npu_cpp_device_options = compat_impl_container[
     "patch_npu_cpp_device_options"
+].resolve()
+
+
+# torch PR #192896 (first in torch 2.15) fires the device module's
+# _inductor_backend_init hook at every inductor compile entry while the
+# device is unregistered. Both the hook attach (torch >= 2.15) and the
+# historical wrapper-driven initialization (torch < 2.15) live here,
+# version-isolated.
+
+
+def _npu_inductor_backend_init():
+    """Load and register the NPU backend through the torch device hook.
+
+    torch >= 2.15 calls this at every inductor compile entry while the device
+    is unregistered, so it must be idempotent.
+    """
+    from torch_npu.utils._dynamo import register_inductor_npu
+
+    register_inductor_npu()
+
+
+@compat_impl(key="compat_attach_inductor_backend_init", ge=(2, 15))
+def compat_attach_inductor_backend_init_upstream(device_module):
+    """Attach the device-module hook on torch >= 2.15."""
+    device_module._inductor_backend_init = _npu_inductor_backend_init
+
+
+@compat_impl(key="compat_attach_inductor_backend_init", lt=(2, 15))
+def compat_attach_inductor_backend_init_local(device_module):
+    """torch < 2.15 has no _inductor_backend_init hook: do nothing."""
+    return
+
+
+compat_attach_inductor_backend_init = compat_impl_container[
+    "compat_attach_inductor_backend_init"
+].resolve()
+
+
+@compat_impl(key="compat_prepare_inductor_backend_for_call", ge=(2, 15))
+def compat_prepare_inductor_backend_for_call_upstream(backend):
+    """On torch >= 2.15 the upstream hook owns the first load; the wrapper
+    switches an already initialized backend and installs shared integration.
+    """
+    from torch_npu.utils._dynamo import (
+        _InductorNpuRegistry,
+        _lazy_inductor_setup,
+        register_inductor_npu,
+    )
+
+    loaded_backend = _InductorNpuRegistry._loaded_backend
+    if loaded_backend is not None and loaded_backend != backend:
+        register_inductor_npu()
+    _lazy_inductor_setup()
+
+
+@compat_impl(key="compat_prepare_inductor_backend_for_call", lt=(2, 15))
+def compat_prepare_inductor_backend_for_call_local(backend):
+    """On older torch the wrapper remains responsible for first-time
+    initialization.
+    """
+    from torch_npu.utils._dynamo import _lazy_inductor_setup, register_inductor_npu
+
+    register_inductor_npu()
+    _lazy_inductor_setup()
+
+
+compat_prepare_inductor_backend_for_call = compat_impl_container[
+    "compat_prepare_inductor_backend_for_call"
+].resolve()
+
+
+@compat_impl(key="compat_prepare_dvm_backend_on_wrapper_init", ge=(2, 15))
+def compat_prepare_dvm_backend_on_wrapper_init_upstream(backend):
+    """torch >= 2.15 initializes lazily through the device hook."""
+    return
+
+
+@compat_impl(key="compat_prepare_dvm_backend_on_wrapper_init", lt=(2, 15))
+def compat_prepare_dvm_backend_on_wrapper_init_local(backend):
+    """Preserve the historical eager DVM initialization performed during
+    wrapper construction on old torch.
+    """
+    from torch_npu.utils._dynamo import (
+        _NpuBackendEnvScope,
+        _lazy_inductor_setup,
+        register_inductor_npu,
+    )
+
+    if backend != "dvm":
+        return
+
+    with _NpuBackendEnvScope(backend):
+        register_inductor_npu()
+        _lazy_inductor_setup()
+
+
+compat_prepare_dvm_backend_on_wrapper_init = compat_impl_container[
+    "compat_prepare_dvm_backend_on_wrapper_init"
 ].resolve()
