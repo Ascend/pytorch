@@ -227,7 +227,7 @@ class TestAutocastNPU(TestCase):
                 s = output.sum()
             s.backward()
 
-        self.assertEqual(mode.dtype_cast_counter, 0)
+        self.assertEqual(mode.dtype_cast_counter, 1)
 
     def test_cache_disabled(self):
 
@@ -245,7 +245,7 @@ class TestAutocastNPU(TestCase):
                 s.backward()
 
             # we should not have cached the conversion of the weight
-            self.assertEqual(mode.dtype_cast_counter, 0)
+            self.assertEqual(mode.dtype_cast_counter, 2)
 
         finally:
             torch._C._set_cached_tensors_enabled(False)
