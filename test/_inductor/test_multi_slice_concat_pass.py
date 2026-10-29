@@ -1,6 +1,7 @@
 import contextlib
 import types
 import unittest
+from unittest import mock
 
 import torch
 from torch._inductor.utils import run_and_get_code
@@ -114,7 +115,7 @@ def _pass_spy():
     original = []
 
     def spy(graph):
-        multi_slice_concat_pass(graph, aclnn_copy_free_inputs=0)
+        multi_slice_concat_pass(graph, aclnn_copy_free_inputs=0, indexed_same_source=False)
         stats["nodes"] += len(_op_nodes(graph))
 
     spy.__name__ = multi_slice_concat_pass.__name__
@@ -238,6 +239,8 @@ class TestMultiSliceConcatPass(TestUtils):
         # These tests pin matching, not profitability; the aclnn gate is opt-in.
         limits.setdefault("aclnn_copy_free_inputs", 0)
         captured = _capture(fn, *tensors, dynamic=dynamic)
+        # This suite validates the existing multi-source/row-mask template.
+        limits.setdefault("indexed_same_source", False)
         multi_slice_concat_pass(captured.graph, **limits)
         captured.gm.recompile()
         return captured
@@ -844,6 +847,30 @@ class TestMultiSliceConcatPass(TestUtils):
                     cfg, = _get_configs(width, esize, nseg, rows)
                     br = cfg["BLOCK_ROWS"]
                     self.assertEqual(br, _next_pow2(br), f"BLOCK_ROWS={br} is not pow2")
+
+    def test_row_tiles_preserve_device_parallelism(self):
+        for cores in (1, 16, 32, 56, 80):
+            with mock.patch.object(npu_config, "num_vector_core", cores):
+                for rows in (1, 3, 61, 378, 388, 1024, 16384):
+                    cfg, = _get_configs(1, 2, 128, rows)
+                    block_rows = cfg["BLOCK_ROWS"]
+                    programs = (rows + block_rows - 1) // block_rows
+                    self.assertGreaterEqual(programs * 2, min(rows, cores))
+                    self.assertEqual(block_rows, _next_pow2(block_rows))
+        with mock.patch.object(npu_config, "num_vector_core", 56):
+            for segments in (64, 128):
+                cfg, = _get_configs(1, 2, segments, 378)
+                self.assertEqual(cfg["BLOCK_ROWS"], 8)
+
+    def test_wide_segments_keep_ub_bounded_tiles(self):
+        with mock.patch("torch_npu._inductor.kernel.multi_slice_concat._ub_bytes",
+                        return_value=192 * 1024):
+            for cores in (1, 56, 80):
+                with mock.patch.object(npu_config, "num_vector_core", cores):
+                    cfg, = _get_configs(256, 2, 4, 378)
+                    self.assertEqual(cfg["BLOCK_ROWS"], 64)
+                    cfg, = _get_configs(256, 2, 4, 3)
+                    self.assertEqual(cfg["BLOCK_ROWS"], 4)
 
     def test_tile_budget_follows_the_ub_size(self):
         """The tile budget is in bytes of UB, shared by several live tiles."""

@@ -1,11 +1,4 @@
-"""Triton template and lowering for ``npu_ext::multi_slice_concat``.
-
-The segments are unrolled into one kernel blocked by rows; offsets and widths are
-compile-time constants. ``cat_dim=1`` lays them side by side, ``cat_dim=0`` stacks them.
-
-The template stores the output itself (``manual_output_buffer``), so it has no
-``store_output`` hook and must not be fused with anything.
-"""
+"""Indexed slice loads and a static multi-source slice-cat template."""
 
 __all__ = ["_register_npu_inductor_multi_slice_concat"]
 
@@ -23,12 +16,46 @@ from torch._inductor.select_algorithm import (
     autotune_select_algorithm,
     SymbolicGridFn,
 )
-from torch._inductor.virtualized import V
+from torch._inductor.virtualized import V, ops
 
 from ..select_algorithm import NPUTritonTemplate
 
 
 log = logging.getLogger(__name__)
+
+
+def _register_indexed_slice_concat(target):
+    @register_lowering(target, type_promotion_kind=None)
+    def indexed_slice_concat(src, offsets, widths, dtype):
+        src = ir.ExternKernel.realize_input(src)
+        columns = [column for offset, width in zip(offsets, widths)
+                   for column in range(offset, offset + width)]
+        # A compiler-owned constant, built once rather than on every invocation.
+        with torch.utils._python_dispatch._disable_current_modes():
+            value = torch.tensor(columns, dtype=torch.int64, device=src.get_device())
+        index = ir.ExternKernel.realize_input(V.graph.add_tensor_constant(value))
+        source_loader, index_loader = src.make_loader(), index.make_loader()
+
+        def inner(idx):
+            row, col = idx
+            # The validated slice plan contains only nonnegative, in-bounds columns.
+            source_col = ops.indirect_indexing(
+                index_loader([col]), src.get_size()[1], check=False, wrap_neg=False,
+            )
+            result = source_loader([row, source_col])
+            if src.get_dtype() != dtype:
+                result = ops.to_dtype(result, dtype, use_compute_types=False)
+            return result
+
+        out = ir.Pointwise.create(
+            device=src.get_device(), dtype=dtype, inner_fn=inner,
+            ranges=[src.get_size()[0], sympy.Integer(len(columns))],
+        )
+        # Keep dtype conversion materialized so consumers cannot remove its rounding.
+        if src.get_dtype() != dtype:
+            out.realize()
+            V.graph.no_fuse_buffer_names.add(out.get_name())
+        return out
 
 
 @SymbolicGridFn
@@ -54,13 +81,7 @@ def _prev_pow2(n):
 
 
 def _pad_width(width, esize):
-    """Tile width for a segment: a power of two, at least 32 bytes.
-
-    A tile row under 32 bytes drops the DMA to scalar moves. A power of two is faster
-    than a merely aligned width (10.0us vs 5.6us for 192 vs 256 fp16 columns).
-    The padding must be masked with a prefix ``cols < width``; any other mask shape
-    also falls back to scalar moves.
-    """
+    """Use a power-of-two tile of at least 32 bytes; mask the padded columns."""
     return max(_next_pow2(width), _next_pow2(max(1, _ALIGN_BYTES // esize)))
 
 
@@ -78,6 +99,7 @@ def _build_source(n_srcs, n_masks, src_idx, offsets, widths, mask_idx, esize, ca
     mask_names = [f"MASK{i}" for i in range(n_masks)]
 
     lines = ['{{def_kernel(%s)}}' % ", ".join(f'"{n}"' for n in src_names + mask_names)]
+    # SRC*/MASK* aliases include view offsets; arg_* pointers do not.
     lines.append("    OUT = arg_OUT")
     lines.append('    ROWS = {{size("%s", 0)}}' % src_names[0])
     for i, name in enumerate(src_names):
@@ -98,7 +120,7 @@ def _build_source(n_srcs, n_masks, src_idx, offsets, widths, mask_idx, esize, ca
         lines.append("")
         lines.append(
             f"    m{i} = tl.load("
-            f"arg_MASK{i} + rows[:, None] * stride_mask{i}, "
+            f"MASK{i} + rows[:, None] * stride_mask{i}, "
             "mask=row_mask[:, None], other=0)"
         )
 
@@ -127,7 +149,7 @@ def _build_source(n_srcs, n_masks, src_idx, offsets, widths, mask_idx, esize, ca
         lines.append(f"    cols{idx} = tl.arange(0, {pad}).to(INDEX_DTYPE)")
         lines.append(f"    val{idx} = tl.load(")
         lines.append(
-            f"        arg_SRC{si} + rows[:, None] * stride_src{si}_r "
+            f"        SRC{si} + rows[:, None] * stride_src{si}_r "
             f"+ ({off} + cols{idx}[None, :]) * stride_src{si}_c,"
         )
         lines.append(f"        mask={access},")
@@ -162,9 +184,7 @@ def _template_for(n_srcs, n_masks, src_idx, offsets, widths, mask_idx, esize, ca
     )
 
 
-# How many segment tiles stay live is up to the backend allocator; a 16-segment kernel
-# was seen holding 8. Over-reserving only lowers BLOCK_ROWS, which device time is flat
-# in; under-reserving fails the only config and aborts the graph compile.
+# Reserve UB for up to eight simultaneously live segment tiles.
 _ASSUMED_LIVE_TILES = 8
 
 # The smallest UB among known targets, used when the backend cannot tell us.
@@ -198,15 +218,18 @@ def _max_tile_elems(esize, n_segments=_ASSUMED_LIVE_TILES):
 
 
 def _get_configs(max_width, esize, n_segments, rows=None):
-    """A single config: num_stages, num_warps and BLOCK_ROWS do not move device time.
+    """Keep UB-bounded tiles; distribute narrow column segments across cores."""
+    from .. import config as npu_config
 
-    BLOCK_ROWS covers all rows when known, capped by the UB budget and kept a power
-    of two, so this one config always compiles.
-    """
     row_cap = _max_tile_elems(esize, n_segments) // _pad_width(max_width, esize)
     block_rows = _MAX_BLOCK_ROWS
-    if isinstance(rows, int) and rows > 0:
-        block_rows = min(block_rows, _next_pow2(rows))
+    if isinstance(rows, (int, sympy.Integer)) and rows > 0:
+        tile_rows = int(rows)
+        # Wide segments benefit from larger transfers; keep their original tile.
+        if max_width * esize <= _ALIGN_BYTES:
+            cores = max(1, npu_config.num_vector_core)
+            tile_rows = (tile_rows + cores - 1) // cores
+        block_rows = min(block_rows, _next_pow2(tile_rows))
     block_rows = min(block_rows, _prev_pow2(max(1, row_cap)))
     return [
         {
@@ -218,11 +241,9 @@ def _get_configs(max_width, esize, n_segments, rows=None):
 
 
 def _dedup_inputs(nodes, indices):
-    """Merge inputs backed by the same buffer and remap the plan indices onto them.
+    """Deduplicate identical layouts; reject differing views of the same buffer.
 
-    ``def_kernel`` keys inputs by buffer name, so a buffer passed twice leaves an
-    ``arg_`` name undefined. Same-named views with different layouts cannot be
-    expressed at all; return None so the caller falls back.
+    def_kernel keys arguments by buffer name, so it cannot distinguish those views.
     """
     unique, remap, seen = [], [], {}
     for node in nodes:
@@ -246,9 +267,12 @@ def _dedup_inputs(nodes, indices):
 
 def _register_npu_inductor_multi_slice_concat():
     from ..fx_passes.ascend_custom_passes.ascend_graph_pass import (
+        INDEXED_SLICE_CONCAT_TARGET,
         MULTI_SLICE_CONCAT_DTYPES,
         MULTI_SLICE_CONCAT_TARGET,
     )
+
+    _register_indexed_slice_concat(INDEXED_SLICE_CONCAT_TARGET)
 
     @register_lowering(MULTI_SLICE_CONCAT_TARGET, type_promotion_kind=None)
     def multi_slice_concat(srcs, masks, src_idx, offsets, widths, mask_idx, cat_dim=1):

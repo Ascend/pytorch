@@ -8,6 +8,7 @@ from torch.fx.experimental.proxy_tensor import make_fx
 import torch_npu
 import torch_npu._inductor  # noqa: F401 - initialize the NPU Inductor backend
 from torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass import (
+    INDEXED_SLICE_CONCAT_TARGET,
     MULTI_SLICE_CONCAT_TARGET,
     fold_cat,
     multi_slice_concat_pass,
@@ -133,10 +134,16 @@ class TestGraph(unittest.TestCase):
             self.assertEqual(gm.code, before)
 
     def test_composition_and_registration_order(self):
-        gm = self.check(pattern)
-        multi_slice_concat_pass(gm.graph, max_segments=64, aclnn_copy_free_inputs=0)
-        self.assertEqual(count(gm, MULTI_SLICE_CONCAT_TARGET), 1)
-        self.assertEqual(count(gm, CAST), 1)
+        for indexed in (False, True):
+            with self.subTest(indexed=indexed):
+                gm = self.check(pattern)
+                multi_slice_concat_pass(
+                    gm.graph, max_segments=64, aclnn_copy_free_inputs=0,
+                    indexed_same_source=indexed,
+                )
+                self.assertEqual(count(gm, MULTI_SLICE_CONCAT_TARGET), int(not indexed))
+                self.assertEqual(count(gm, INDEXED_SLICE_CONCAT_TARGET), int(indexed))
+                self.assertEqual(count(gm, CAST), 1)
         names = [
             fn.__name__
             for levels in ASCEND_CUSTOME_PASS_REGISTER.values()

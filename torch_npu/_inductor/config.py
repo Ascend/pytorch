@@ -428,10 +428,8 @@ enable_fused_matmul_relu = _parse_bool_env(
     "TORCHINDUCTOR_ENABLE_FUSED_MATMUL_RELU", False
 )
 
-# multi_slice_concat_pass: rewrite a run of constant-offset column slices feeding
-# one cat into npu_ext::multi_slice_concat, so a single kernel replaces the N Slice
-# copies aclnnCat needs. Gated off until validated on hardware; the rewrite is pure
-# data movement and cannot affect numerics.
+# Enable pointwise sinking and static 2D slice-cat fusion.
+# Unsupported patterns retain their original path.
 enable_multi_slice_concat = _parse_bool_env(
     "TORCHINDUCTOR_ENABLE_MULTI_SLICE_CONCAT", False
 )
