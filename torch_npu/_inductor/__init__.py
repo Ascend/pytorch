@@ -162,8 +162,10 @@ def _load_triton_backend():
     from .select_algorithm import patch_algorithm_selector
     from .shape_handling import NPUShapeHandling, patch_shape_handling
 
-    from .graph import patch_count_bytes
+    from .graph import patch_count_bytes, patch_propagate_mutation
     from .autotune_process import patch_tuning_process, patch_tuning_process_pool
+
+    patch_propagate_mutation()
     flex_attention._validate_device = _validate_device
     patch_flex_attention()
 
