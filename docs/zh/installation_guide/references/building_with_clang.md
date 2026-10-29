@@ -4,7 +4,7 @@
 
 ```bash
 export CC=clang
-export CC=clang++
+export CXX=clang++
 ```
 
 ## 使用Clang编译PyTorch
@@ -18,7 +18,7 @@ export USE_CUDA=0
 export USE_CUDNN=0
 
 # 若为ARM架构，可能需要进行特殊链接器优化设置
-# export USE_PRIOTIZED_TEXT_FOR_LD=OFF
+# export USE_PRIORITIZED_TEXT_FOR_LD=OFF
 
 python setup.py build bdist_hweel 2>&1 | tee build.log
 ```

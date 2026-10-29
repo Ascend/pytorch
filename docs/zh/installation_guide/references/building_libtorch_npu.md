@@ -5,7 +5,8 @@ libtorch\_npu是TorchNPU插件的C++版本，包含运行TorchNPU插件所需的
 ## 编译操作
 
 1. 参见[快速安装](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download)完成依赖、PyTorch和TorchNPU的安装。
-2. 获取libtorch\_npu源码。
+2. 安装3.18.0版本及以上的CMake，可参见[安装CMake](https://cmake.org/download/)。
+3. 获取libtorch\_npu源码。
 
     ```bash
     git clone -b master https://gitcode.com/Ascend/pytorch.git
@@ -13,7 +14,7 @@ libtorch\_npu是TorchNPU插件的C++版本，包含运行TorchNPU插件所需的
     git submodule update --init --recursive
     ```
 
-3. 执行编译生成libtorch\_npu安装包。
+4. 执行编译生成libtorch\_npu安装包。
     > [!NOTE]
     > 
     > 当前libtorch\_npu默认使用CXX11\_ABI=0，支持配置为CXX11\_ABI=1，命令如下：
@@ -27,8 +28,6 @@ libtorch\_npu是TorchNPU插件的C++版本，包含运行TorchNPU插件所需的
     ```bash
     python3 build_libtorch_npu.py
     ```
-
-    编译时依赖的CMake需为3.18.0版本及以上，可参见[安装CMake](https://cmake.org/download/)。
 
     默认编译release版本，如需debug版本，添加DEBUG=1环境变量。编译完成后，当前目录下生成libtorch\_npu目录，包含以下文件。
 
@@ -88,7 +87,7 @@ libtorch\_npu是TorchNPU插件的C++版本，包含运行TorchNPU插件所需的
     |--|--|
     |torch_npu::init_npu()|使用NPU设备前需进行初始化，输入值格式为npu:*id*，其中id为NPU卡号。|
     |at::Device()|通过传NPU字符串构造NPU设备，输入值格式为npu:*id*，其中id为NPU卡号。|
-    |torch_npu::finalize_npu()|使用NPU设备结束需进行反初始化，输入值格式为npu:*id*，其中id为NPU卡号。|
+    |torch_npu::finalize_npu()|使用NPU设备结束需进行反初始化，无入参。|
 
 4. 执行编译并推理。
 
