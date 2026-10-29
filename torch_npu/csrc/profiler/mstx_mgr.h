@@ -14,6 +14,7 @@ namespace profiler {
 
 const std::string DOMAIN_COMMUNICATION = "communication";
 const std::string DOMAIN_DEFAULT = "default";
+const std::string DOMAIN_RECORD_FUNCTION = "record_function";
 const std::string DOMAIN_CACHING = "ptaCaching";
 const std::string DOMAIN_WORKSPACE = "ptaWorkspace";
 
@@ -51,8 +52,11 @@ private:
     bool isMsprofTxEnable();
 
 private:
-    static thread_local std::unordered_map<std::string, std::stack<int>> domainPushDepthStacks_;
-    static thread_local bool pushWithStream_;
+    struct RangePushContext {
+        int id;
+        bool withStream;
+    };
+    static thread_local std::unordered_map<std::string, std::stack<RangePushContext>> domainPushDepthStacks_;
     std::atomic<int> ptRangeId_{1};
     std::unordered_set<int> ptRangeIdsWithStream_;
     std::mutex mtx_;
@@ -61,5 +65,5 @@ private:
     std::vector<std::string> domain_include_;
     std::vector<std::string> domain_exclude_;
 };
-}
+} // namespace profiler
 } // namespace torch_npu

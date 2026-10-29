@@ -216,6 +216,61 @@ class TestNpuProfiler(TestCase):
             ),
         )
 
+    def test_record_function_npu_annotation(self):
+        worker_name = self.worker_name
+        annotation_name = "record_function_npu_annotation_test"
+        with torch_npu.profiler.profile(
+            activities=[
+                torch_npu.profiler.ProfilerActivity.CPU,
+                torch_npu.profiler.ProfilerActivity.NPU,
+            ],
+            on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(
+                self.results_path, worker_name=worker_name
+            ),
+            experimental_config=torch_npu.profiler._ExperimentalConfig(mstx=True),
+        ):
+            with torch.profiler.record_function(annotation_name):
+                self.model_train.train_one_step()
+
+        trace_path = os.path.join(
+            self._get_tensorboard_output(self.results_path, worker_name), self.TRACE_FILE_NAME
+        )
+        with open(trace_path, encoding="utf-8") as trace_file:
+            trace_events = json.load(trace_file)
+        annotation_events = [
+            event
+            for event in trace_events
+            if event.get("name") == annotation_name and event.get("ph") == "X"
+        ]
+        self.assertTrue(any(event.get("cat") == "cpu_op" for event in annotation_events))
+        self.assertTrue(any(event.get("cat") != "cpu_op" for event in annotation_events))
+
+    def test_record_function_cpu_only_no_npu_annotation(self):
+        worker_name = self.worker_name
+        annotation_name = "record_function_cpu_only_annotation_test"
+        with torch_npu.profiler.profile(
+            activities=[torch_npu.profiler.ProfilerActivity.CPU],
+            on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(
+                self.results_path, worker_name=worker_name
+            ),
+            experimental_config=torch_npu.profiler._ExperimentalConfig(mstx=True),
+        ):
+            with torch.profiler.record_function(annotation_name):
+                self.model_train.train_one_step()
+
+        trace_path = os.path.join(
+            self._get_tensorboard_output(self.results_path, worker_name), self.TRACE_FILE_NAME
+        )
+        with open(trace_path, encoding="utf-8") as trace_file:
+            trace_events = json.load(trace_file)
+        annotation_events = [
+            event
+            for event in trace_events
+            if event.get("name") == annotation_name and event.get("ph") == "X"
+        ]
+        self.assertTrue(any(event.get("cat") == "cpu_op" for event in annotation_events))
+        self.assertFalse(any(event.get("cat") != "cpu_op" for event in annotation_events))
+
     @unittest.skip("skip now")
     def test_activities_npu(self):
         worker_name = self.worker_name
