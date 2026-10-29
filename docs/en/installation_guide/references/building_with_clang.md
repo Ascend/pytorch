@@ -1,16 +1,17 @@
 # Building with Clang
-To compile TorchNPU with Clang, you first need to install the CPU-only upstream torch package compiled with Clang. However, this package is not provided by the official PyTorch community, so you will need to build it yourself.
 
-Before compiling, ensure that the compiler settings are correctly configured:
+To compile TorchNPU with Clang, you need to first install the CPU package of PyTorch compiled with Clang. However, this package is not provided in the native community, so users need to compile it themselves.
+
+Before compilation, ensure that the compiler settings are correct:
 
 ```bash
 export CC=clang
-export CXX=clang++
+export CC=clang++
 ```
 
-## Building upstream torch with Clang
+## Compiling PyTorch with Clang
 
-After downloading the corresponding source code, you must first install the requirements-build.txt from the repository, and then proceed to build the CPU package:
+After downloading the corresponding source code, you need to first install the requirements-build.txt of the corresponding repository, and then compile the CPU package:
 
 ```bash
 pip install -r requirements-build.txt
@@ -18,18 +19,18 @@ pip install -r requirements-build.txt
 export USE_CUDA=0
 export USE_CUDNN=0
 
-# For ARM architectures, you may need to enable special linker optimizations
-# export USE_PRIORITIZED_TEXT_FOR_LD=OFF
+# If the ARM architecture is used, special linker optimization settings may be required
+# export USE_PRIOTIZED_TEXT_FOR_LD=OFF
 
-python setup.py build bdist_wheel 2>&1 | tee build.log
+python setup.py build bdist_hweel 2>&1 | tee build.log
 ```
 
 > [!NOTE]
 >
-> A known compilation issue exists when building PyTorch 2.12 with Clang 20. For details, see the related [issue](https://github.com/pytorch/pytorch/issues/185618) in the upstream community. Please modify the code as described in the [fix PR](https://github.com/pytorch/pytorch/pull/185785) before building.
+> When compiling PyTorch 2.12 with Clang 20, there is a known compilation issue. For details, see the [related issue](https://github.com/pytorch/pytorch/issues/185618) in the upstream community. Modify the code by referring to the content in the [fixing PR](https://github.com/pytorch/pytorch/pull/185785) before compiling.
 
-After building torch, install the compiled wheel located in the dist directory.
+After compiling PyTorch, install the build artifacts in the dist directory.
 
-## Building TorchNPU with Clang
+## Compiling TorchNPU with Clang
 
-After ensuring that the Clang‑compiled PyTorch is installed, navigate to the TorchNPU repository directory and begin compiling TorchNPU. The compilation process is the same as before; you only need to ensure that the compiler settings are correctly set.
+After ensuring that PyTorch compiled with Clang is installed, enter the TorchNPU repository directory and start compiling TorchNPU. The compilation method is the same as that of normal TorchNPU compilation; you only need to ensure that the compiler settings are correct.

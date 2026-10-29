@@ -1,0 +1,8 @@
+# Feature Value Detection
+
+Configure the feature value detection feature and its detection thresholds.
+
+- [NPU_ASD_ENABLE](NPU_ASD_ENABLE.md)
+- [NPU_ASD_UPPER_THRESH](NPU_ASD_UPPER_THRESH.md)
+- [NPU_ASD_SIGMA_THRESH](NPU_ASD_SIGMA_THRESH.md)
+- [NPU_ASD_CONFIG](NPU_ASD_CONFIG.md)
