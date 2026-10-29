@@ -1399,7 +1399,6 @@ def _npu_value_type_str(dtype):
     return _upstream_triton_type(dtype)
 
 
-@classmethod
 def _npu_value_expr(cls, expr, dtype):
     """Patched copy of upstream TritonSymbols.value_expr, kept in sync with
     it; the ONLY change is the final cast routing through
@@ -1427,7 +1426,7 @@ def _npu_value_expr(cls, expr, dtype):
     return var
 
 
-_TritonSymbols.value_expr = _npu_value_expr
+_TritonSymbols.value_expr = classmethod(_npu_value_expr)
 
 
 class _FlatMapExpr:
@@ -1949,7 +1948,9 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
     def to_dtype(x, dtype: torch.dtype, src_dtype=None, use_compute_types=True):
         if dtype == torch.float64:
             dtype = torch.float32
-        elif dtype == torch.int64:
+        elif dtype == torch.int64 and not getattr(
+            V.kernel, "_npu_int64_exempt", False
+        ):
             dtype = torch.int32
         return TritonKernelOverrides.to_dtype(x, dtype, src_dtype, use_compute_types)
 
@@ -1965,7 +1966,9 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
             return _npu_wide_int_constant(value)
         if dtype == torch.float64:
             dtype = torch.float32
-        elif dtype == torch.int64:
+        elif dtype == torch.int64 and not getattr(
+            V.kernel, "_npu_int64_exempt", False
+        ):
             dtype = torch.int32
         from torch._inductor.codegen.triton import TritonOverrides
 
@@ -1984,6 +1987,14 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
                 shape=(),
             )
         return super().constant(value, dtype)
+
+    @classmethod
+    def value_expr(cls, expr, dtype):
+        if not getattr(V.kernel, "_npu_int64_exempt", False):
+            return TritonKernelOverrides.value_expr(expr, dtype)
+        # Same patch as _TritonSymbols.value_expr above: keep the honest
+        # tl.int64 in the final cast for int64-exempt kernels.
+        return _npu_value_expr(cls, expr, dtype)
 
     @staticmethod
     def extract_slice(x, offsets, sizes, strides):
@@ -2579,6 +2590,13 @@ class NPUTritonKernel(TritonKernel):
                     exc_info=True,
                 )
                 force_linearize = True
+        # Kernel-level int64 exemption (RNG kernels): set to True by
+        # NPUTritonScheduling.codegen_node_schedule_with_kernel when the
+        # schedule contains inductor_randint, before any body codegen.
+        # Gates to_dtype/constant/value_expr, the signature *i64 downcast
+        # loop and _npu_triton_compute_type. Non-RNG kernels keep the legacy
+        # demoted-to-i32 behavior unchanged.
+        self._npu_int64_exempt: bool = False
         self._npu_linearize: bool = bool(triton_codegen_linearize) or force_linearize
         self._npu_assert_shapes = {}
         super().__init__(*args, **kwargs)
@@ -4608,7 +4626,13 @@ class NPUTritonKernel(TritonKernel):
         triton_meta_signature = signature_to_meta(
             signature, size_dtype=self.index_dtype, argdefs=argdefs
         )
-        # NPU does not support fp64/i64; downcast to fp32/i32
+        # NPU does not support fp64/i64; downcast to fp32/i32. RNG kernels
+        # (scheduling-level randint whitelist) are exempt from the *i64
+        # demotion: they need true i64 pointers/values or bounds and outputs
+        # wrap silently past 2**31. With no downcast_args the launcher
+        # shadow-buffer path is skipped automatically (npu_triton_heuristics
+        # bypasses on empty downcast_args).
+        npu_int64_exempt = getattr(self, "_npu_int64_exempt", False)
         downcast_args = {}
         for k, v in triton_meta_signature.items():
             if v == "fp64":
@@ -4622,6 +4646,11 @@ class NPUTritonKernel(TritonKernel):
                     # A native tl.int64 constant lives in this kernel; leaving
                     # the *i64 pointers untouched avoids the second truncation
                     # (result re-wrapped through the *i32 output on store).
+                    continue
+                if npu_int64_exempt:
+                    # RNG kernels need true i64 pointers/values or bounds;
+                    # demotion truncates seeds/bounds and outputs wrap
+                    # silently past 2**31.
                     continue
                 downcast_args[k] = v
                 triton_meta_signature[k] = "*i32"
@@ -8271,6 +8300,23 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
         """
         Override to track index_vars and var_ranges per node (needed for linearize mode).
         """
+        # Kernel-level int64 exemption: kernels containing
+        # inductor_randint need true i64 semantics end to end. The
+        # randint64 lowering evaluates low/high through ops.value_expr(int64)
+        # and emits the seed as a plain buffer load (no ops.load_seed), so the
+        # op is only identifiable at scheduling time, before any int64
+        # demotion point fires; demoting bounds/values to i32 wraps them
+        # silently past 2**31.
+        # Resolved at scheduling time, not module import: the op registers
+        # with torch._inductor, which is not guaranteed to be loaded when
+        # this module imports. Identity match is stable under alias/rename.
+        rng_i64_exempt_ops = (torch.ops.prims.inductor_randint.default,)
+        for node in node_schedule:
+            data = getattr(getattr(node, "node", None), "data", None)
+            fx_node = getattr(data, "origin_node", None)
+            if fx_node is not None and fx_node.target in rng_i64_exempt_ops:
+                kernel._npu_int64_exempt = True
+                break
         if kernel._npu_linearize:
             kernel.var_ranges_per_node = []
             kernel.index_vars_per_node = []
@@ -8435,7 +8481,12 @@ def apply_npu_codegen_patches():
     def _npu_triton_compute_type(dtype):
         result = _orig_compute_type(dtype)
         if result == "tl.int64":
-            return "tl.int32"
+            try:
+                exempt = bool(getattr(V.kernel, "_npu_int64_exempt", False))
+            except Exception:
+                exempt = False
+            if not exempt:
+                return "tl.int32"
         return result
 
     _triton_codegen.triton_compute_type = _npu_triton_compute_type
