@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from torch._inductor import metrics
 from torch._inductor.codegen.cuda_combined_scheduling import CUDACombinedScheduling
 from torch._inductor.codegen.triton import TritonScheduling
 from torch._inductor.scheduler import (
@@ -165,9 +166,11 @@ class NPUCombinedScheduling(CUDACombinedScheduling, TritonScheduling):
     def codegen_node(self, node: FusedSchedulerNode | SchedulerNode):
         removed_buffers = V.graph.removed_buffers.copy()
         inplaced_to_remove = V.graph.inplaced_to_remove.copy()
+        kernel_count = metrics.generated_kernel_count
         try:
             return self._triton_scheduling.codegen_node(node)
         except Exception:
+            metrics.generated_kernel_count = kernel_count
             log.debug(
                 "index codegen for node %s failed, falling back to no-linear codegen",
                 node,
