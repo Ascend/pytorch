@@ -1345,6 +1345,10 @@ def npu_triton_compute_type(dtype):
     triton_type_name = str(dtype).split(".")[-1]
     if triton_type_name == "bool":
         triton_type_name = "int1"
+    elif triton_type_name == "float64":
+        # No fp64 hardware support; compute in fp32, matching the
+        # signature-level downcast in codegen_kernel.
+        triton_type_name = "float32"
     elif (
         triton_type_name in ("float16", "bfloat16")
         # both flags must allow it: the vendor flag keeps the production
@@ -6191,6 +6195,13 @@ class NPUTritonScheduling(TritonScheduling):
         size_hints = {"x": int(x_total_hint), "r0_": total_cores}
         from torch._inductor.codegen.triton_utils import _type_of
         dt_star = _type_of(out_dtype)  # e.g. "*fp32"
+        # This meta bypasses the signature downcast loop in codegen_kernel, so
+        # fp64 out_dtype must downcast here for _wrap_launcher_with_downcast
+        # to handle it like every other fp64 kernel.
+        merge_downcast = {}
+        if dt_star == "*fp64":
+            merge_downcast = {"in_ptr0": "*fp64", "out_ptr0": "*fp64"}
+            dt_star = "*fp32"
         # Build the combine-kernel attrs config directly (config_of() resolves alignment
         # via scheduler.name_to_buf, but our "in_ptr0"/"out_ptr0" aren't real graph buffers).
         # Mark pointers (0,1) and static xnumel (2) 16-divisible: workspace+output are
@@ -6219,6 +6230,7 @@ class NPUTritonScheduling(TritonScheduling):
                 "xnumel": "i32",
                 "r0_numel": "i32",
             },
+            **({"downcast_args": merge_downcast} if merge_downcast else {}),
             "device": DeviceProperties.create(V.graph.get_current_device_or_throw()),
             "constants": {"r0_numel": total_cores},
             "mix_mode": "aiv",
