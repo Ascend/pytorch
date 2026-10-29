@@ -51,6 +51,7 @@ from torch._inductor.runtime.triton_heuristics import (
     CachingAutotuner,
     TritonCompileResult,
     autotune_hints_to_configs,
+    filter_reduction_configs_for_determinism,
     triton_config_reduction,
     get_first_attr,
 )
@@ -1400,12 +1401,19 @@ def cached_autotune(
     Override of cached_autotune to redirect to NPU autotuner subclass.
     In 2.7.1, uses AutotuneCache instead of manual file caching.
     """
+    inductor_meta = {} if inductor_meta is None else inductor_meta
+    deterministic_reduction = heuristic_type in (HeuristicType.REDUCTION, HeuristicType.PERSISTENT_REDUCTION) and any(
+        inductor_meta.get(key, False)
+        for key in ("deterministic", "are_deterministic_algorithms_enabled", "force_filter_reduction_configs")
+    )
+    if deterministic_reduction:
+        # Different reduction tiles change floating-point accumulation order.
+        # Filter before reading a timing-selected cache entry, as upstream does.
+        configs = filter_reduction_configs_for_determinism(inductor_meta, configs)
     configs = _npu_unique_configs(configs)
     if len(configs) != 1 and not filename:
         raise ValueError("[triton_experimental] cached_autotune requires a filename when multiple configs are given")
-    inductor_meta = {} if inductor_meta is None else inductor_meta
-
-    disabled = inductor_meta.get("force_disable_caches", False)
+    disabled = inductor_meta.get("force_disable_caches", False) or deterministic_reduction
 
     autotune_cache = None
     if (
