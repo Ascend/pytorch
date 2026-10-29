@@ -1869,6 +1869,17 @@ class _ShapeTrackedMaskedBody:
         return self.result
 
 
+def _npu_kernel_is_degenerate(kernel):
+    # Mirrors the constant override's degeneracy predicate.
+    if kernel.triton_tensor_ndim() == 0:
+        return True
+    return all(
+        tree.numel == 1
+        for tree in kernel.range_trees
+        if not tree.is_reduction and tree.tensor_dim is not None
+    )
+
+
 class NPUTritonKernelOverrides(TritonKernelOverrides):
     @staticmethod
     def masked(mask, body, other):
@@ -3931,9 +3942,17 @@ class NPUTritonKernel(TritonKernel):
         # Explicit copy_shape requests are left untouched.
         expand_str = result.expand_str
         expand_shape = result.expand_shape
+        # Degenerate kernels: honest 0-d; a rank-one CSE shape misreports it (#5020).
         if is_sympy_integer_like(index) and copy_shape is None:
-            expand_str = "[1]"
-            expand_shape = (1,)
+            if all(
+                V.graph.sizevars.statically_known_equals(tree.numel, 1)
+                for tree in self.range_trees
+            ):
+                expand_str = ""
+                expand_shape = ()
+            else:
+                expand_str = "[1]"
+                expand_shape = (1,)
 
         new_mask_vars = OrderedSet()
         # Pre-compute the inner reduction node per reduction tree. In nested-loop mode
@@ -4815,20 +4834,22 @@ class NPUTritonKernel(TritonKernel):
         # constant-index loads, but the store pointer is scalar — causing
         # "Value argument cannot be block type" errors on NPU triton.
         # Replace each occurrence by propagating the inner variable.
-        marker = "tl.broadcast_to("
-        suffix = ", [1])"
-        while marker in src and suffix in src:
-            idx = src.find(marker)
-            end = src.find(suffix, idx)
-            if end == -1:
-                break
-            inner = src[idx + len(marker):end]
-            # Only strip if inner is a simple variable name (no nested parens)
-            if inner.isidentifier():
-                full_expr = marker + inner + suffix
-                src = src.replace(full_expr, inner, 1)
-            else:
-                break
+        # Strip only in degenerate kernels; elsewhere [1] broadcasts are legitimate.
+        if _npu_kernel_is_degenerate(self):
+            marker = "tl.broadcast_to("
+            suffix = ", [1])"
+            while marker in src and suffix in src:
+                idx = src.find(marker)
+                end = src.find(suffix, idx)
+                if end == -1:
+                    break
+                inner = src[idx + len(marker):end]
+                # Only strip if inner is a simple variable name (no nested parens)
+                if inner.isidentifier():
+                    full_expr = marker + inner + suffix
+                    src = src.replace(full_expr, inner, 1)
+                else:
+                    break
         # NPU has no warps — debug_barrier is unnecessary
         lines = src.split("\n")
         src = "\n".join(line for line in lines if "tl.debug_barrier()" not in line)
@@ -8505,3 +8526,15 @@ def apply_npu_codegen_patches():
                 )
 
     _triton_heuristics.check_config = _npu_check_config
+
+    # f64 runs as f32; assert the emulated dtype (triton_type() lacks fp64).
+    import torch._inductor.codegen.common as _cg_common
+
+    _check_dtype_orig = _cg_common.check_dtype
+
+    def _npu_check_dtype(buffer, var, dtype):
+        if dtype == torch.float64 and isinstance(V.kernel, NPUTritonKernel):
+            dtype = torch.float32
+        return _check_dtype_orig(buffer, var, dtype)
+
+    _cg_common.check_dtype = _npu_check_dtype

@@ -1350,6 +1350,43 @@ def _npu_hash_configs(configs):
     return hasher.hexdigest()
 
 
+def _add_tile_consistent_config(size_hints, configs, fn, heuristic_type):
+    # Tiny dynamic sizes fail the (XBLOCK,) assert; swap in one config at tile width.
+    # Reads kernel source, not a config flag: patches do not reach compile workers.
+    if heuristic_type != HeuristicType.POINTWISE:
+        return configs
+    import inspect
+
+    try:
+        gated = any(
+            ".shape ==" in ln for ln in inspect.getsource(fn.fn).splitlines()
+        )
+    except Exception:
+        return configs
+    if not gated or not configs:
+        return configs
+    if isinstance(size_hints, dict):
+        hint = size_hints.get("x")
+    elif size_hints:
+        hint = size_hints[0]
+    else:
+        hint = None
+    if not isinstance(hint, int) or hint <= 0:
+        return configs
+    align = max(int(ncfg.tile_align), 1)
+
+    def _aligned(n):
+        return ((n + align - 1) // align) * align
+
+    for cfg in configs:
+        xb = cfg.kwargs.get("XBLOCK")
+        if not isinstance(xb, int) or xb <= 0 or _aligned(min(hint, xb)) == xb:
+            return configs
+    extra = copy.deepcopy(configs[-1])
+    extra.kwargs["XBLOCK"] = _aligned(hint)
+    return [extra]
+
+
 def cached_autotune(
     size_hints: Optional[List[int]],
     configs: List[Config],
@@ -1402,11 +1439,15 @@ def cached_autotune(
                         raise RuntimeError("[triton_experimental] XBLOCK must be 1 when the kernel has no XBLOCK parameter")
                     tconfig.kwargs.pop("XBLOCK")
 
+        final_configs = _add_tile_consistent_config(
+            size_hints, configs, fn, heuristic_type
+        )
+
         return NPUCachingAutotuner(
             fn,
             triton_meta=triton_meta,
             inductor_meta=inductor_meta,
-            configs=configs,
+            configs=final_configs,
             save_cache_hook=autotune_cache and autotune_cache.save,
             mutated_arg_names=mutated_arg_names,
             reset_to_zero_arg_names=reset_to_zero_arg_names,

@@ -1,4 +1,5 @@
 import os
+from types import SimpleNamespace
 from unittest import mock
 
 os.environ.setdefault("TORCHINDUCTOR_NPU_BACKEND", "triton_experimental")
@@ -41,6 +42,27 @@ class TestCodegenRegressions(TestCase):
         )
         kernel = object.__new__(npu_triton_codegen.NPUTritonKernel)
         kernel._npu_linearize = True
+        kernel.range_trees = [SimpleNamespace(numel=4, is_reduction=False)]
+        kernel._load_mask = None
+        sizevars = SimpleNamespace(statically_known_equals=lambda expr, value: False)
+        virtualized = SimpleNamespace(graph=SimpleNamespace(sizevars=sizevars))
+        with (
+            mock.patch.object(TritonKernel, "indexing", return_value=upstream_result),
+            mock.patch.object(npu_triton_codegen, "triton_codegen_linearize", True),
+            mock.patch.object(npu_triton_codegen, "V", virtualized),
+            mock.patch.object(kernel, "filter_masks"),
+        ):
+            result = kernel.indexing(sympy.Integer(0))
+        self.assertEqual(result.expand_str, "[1]")
+        self.assertEqual(result.expand_shape, (1,))
+
+    def test_codegen_constant_index_shape_normalization_degenerate(self):
+        # 0-d extreme (no range trees): keep the honest 0-d shape (#5020).
+        upstream_result = IndexingOptions(
+            "0", OrderedSet(), "[1, 1]", False, sympy.Integer(0), expand_shape=(1, 1)
+        )
+        kernel = object.__new__(npu_triton_codegen.NPUTritonKernel)
+        kernel._npu_linearize = True
         kernel.range_trees = []
         kernel._load_mask = None
         with (
@@ -49,8 +71,8 @@ class TestCodegenRegressions(TestCase):
             mock.patch.object(kernel, "filter_masks"),
         ):
             result = kernel.indexing(sympy.Integer(0))
-        self.assertEqual(result.expand_str, "[1]")
-        self.assertEqual(result.expand_shape, (1,))
+        self.assertEqual(result.expand_str, "")
+        self.assertEqual(result.expand_shape, ())
 
     def test_codegen_scalar_pointwise_grid_clamp_contract(self):
         cases = (
