@@ -371,7 +371,11 @@ class NpuDvmScheduling(NpuMetaScheduling):
                 "DVM matmul template only supports pointwise epilogue fusion"
             )
 
-        if is_ascend950 and not epilogue_nodes:
+        if (
+            is_ascend950
+            and not epilogue_nodes
+            and template_buffer.op in (aten.mm.default, aten.bmm.default)
+        ):
             with V.set_kernel_handler(Kernel(increase_kernel_count=False)):
                 template_node.mark_run()
             template_buffer.codegen_unfused(V.graph.wrapper_code)

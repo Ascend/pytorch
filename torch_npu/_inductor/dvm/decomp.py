@@ -30,6 +30,8 @@ decomps_to_exclude_npu = [
     aten.max_pool2d_with_indices,
     aten.max_pool2d_with_indices_backward,
     aten.native_batch_norm,
+    aten.native_dropout.default,
+    aten.native_dropout_backward.default,
     aten.nll_loss2d_backward,
     aten.nll_loss2d_forward,
     aten.nll_loss_backward,
@@ -294,6 +296,12 @@ def _register_inductor_decomposition_safe(overloads, fn):
         raise
 
 
+def _remove_extra_random_decomps():
+    """Keep RNG ops native so dropout retains its packed uint8 mask."""
+    inductor_decomp.extra_random_decomps.clear()
+    inductor_decomp.fast_random_decomps.cache_clear()
+
+
 def patch_decomp():
     """Patch Inductor decomposition for DVM paths (idempotent)."""
     global _dvm_inductor_decomp_patched
@@ -320,5 +328,5 @@ def patch_decomp():
         inductor_decomp.extra_random_decomps,
     ):
         remove_decompositions(table, dvm_config.disable_decomp_list)
-    inductor_decomp.fast_random_decomps.cache_clear()
+    _remove_extra_random_decomps()
     _dvm_inductor_decomp_patched = True
