@@ -4551,6 +4551,17 @@ class NPUIndexTritonKernel(TritonKernel):
                 {str(var) for var in index_vars}  # noqa: set_linter
             )
 
+        # cumsum is codegen'ed as ops.scan, which relies on keeping the axis
+        # masks (including the persistent reduction axis) for its partial
+        # scan / accumulator update.  Other kernels must drop the redundant
+        # persistent reduction axis masks, otherwise the generated
+        # tl.load/tl.store carries useless masks (e.g. Layernorm perf
+        # regression).
+        kernel_features = getattr(self, "features", None)
+        keep_persistent_reduction_mask = (
+            kernel_features is not None and kernel_features.contains_op("scan")
+        )
+
         for node in self.sorted_axis:
             allow_dynamic = get_allow_dynamic()
             is_persistent_reduction_axis = (
@@ -4565,6 +4576,10 @@ class NPUIndexTritonKernel(TritonKernel):
             else:
                 if (
                     not node.is_tiling_axis
+                    or (
+                        is_persistent_reduction_axis
+                        and not keep_persistent_reduction_mask
+                    )
                     or (node.is_no_loop_axis and not allow_dynamic)
                 ):
                     continue
