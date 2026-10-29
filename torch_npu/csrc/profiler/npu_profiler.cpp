@@ -7,6 +7,8 @@
 
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "torch_npu/csrc/profiler/npu_profiler.h"
 
@@ -40,8 +42,10 @@ using torch::profiler::impl::ProfilerStateBase;
 using torch::profiler::impl::ActiveProfilerType;
 
 struct NpuObserverContext : public at::ObserverContext {
-    explicit NpuObserverContext(std::unique_ptr<torch_npu::toolkit::profiler::OpRangeData> data) : data_(std::move(data)) {}
+    explicit NpuObserverContext(std::unique_ptr<torch_npu::toolkit::profiler::OpRangeData> data)
+        : data_(std::move(data)) {}
     std::unique_ptr<torch_npu::toolkit::profiler::OpRangeData> data_;
+    bool mstx_range_pushed_ = false;
 };
 
 struct NpuProfilerThreadLocalState : public ProfilerStateBase {
@@ -253,55 +257,94 @@ static void parseInputShapesAndDtypes(const at::RecordFunction &fn,
     }
 }
 
-static void registerCallback(const std::unordered_set<at::RecordScope> &scopes)
-{
+static void pushRecordFunctionMstxRange(const at::RecordFunction& fn, NpuObserverContext* ctx_ptr) {
+    if (fn.scope() == at::RecordScope::USER_SCOPE && ProfilerMgr::GetInstance()->GetNpuTrace().load() &&
+        ProfilerMgr::GetInstance()->GetMsprofTx().load()) {
+        if (c10_npu::GetLocalDevice() < 0) {
+        return;
+        }
+        auto stream = c10_npu::getCurrentNPUStream();
+        ctx_ptr->mstx_range_pushed_ = mstxRangePush(fn.name(), stream.stream(false), DOMAIN_RECORD_FUNCTION.c_str()) >= 0;
+    }
+}
+
+static std::unique_ptr<at::ObserverContext> startProfilerCallbackFull(const at::RecordFunction& fn) {
+    auto state_ptr = NpuProfilerThreadLocalState::getTLS();
+    if (!state_ptr) {
+        return nullptr;
+    }
+    const auto& config = state_ptr->config();
+    auto ctx_ptr = state_ptr->newOpEvent(fn);
+    auto& data_ptr = ctx_ptr->data_;
+    data_ptr->scope = static_cast<uint8_t>(fn.scope());
+    if (C10_UNLIKELY(config.report_input_shapes)) {
+        bool report_details =
+            config.report_input_shapes && (config.with_stack || config.with_modules) && config.profile_memory;
+        parseInputShapesAndDtypes(fn, data_ptr.get(), report_details);
+    }
+    if (C10_UNLIKELY(config.with_stack && fn.scope() != at::RecordScope::BACKWARD_FUNCTION)) {
+        auto cs = torch::profiler::impl::prepareCallstack(torch::jit::currentCallstack());
+        cs = cs.empty() ? torch::profiler::impl::prepareCallstack(torch::jit::tracer::pythonCallstack()) : cs;
+        data_ptr->stack = torch::profiler::impl::callstackStr(cs);
+    }
+    if (C10_UNLIKELY(config.with_modules && fn.scope() != at::RecordScope::BACKWARD_FUNCTION)) {
+        data_ptr->module_hierarchy = torch::jit::currentModuleHierarchy();
+    }
+    pushRecordFunctionMstxRange(fn, ctx_ptr.get());
+    return ctx_ptr;
+}
+
+static std::unique_ptr<at::ObserverContext> startProfilerCallbackMstxOnly(const at::RecordFunction& fn) {
+    auto state_ptr = NpuProfilerThreadLocalState::getTLS();
+    if (!state_ptr) {
+        return nullptr;
+    }
+    auto ctx_ptr = std::make_unique<NpuObserverContext>(std::unique_ptr<OpRangeData>{});
+    pushRecordFunctionMstxRange(fn, ctx_ptr.get());
+    return ctx_ptr;
+}
+
+static void endProfilerCallback(const at::RecordFunction&, at::ObserverContext* ctx_ptr) {
+    auto state_ptr = NpuProfilerThreadLocalState::getTLS();
+    if (!state_ptr) {
+        return;
+    }
+    auto* npu_ctx_ptr = static_cast<NpuObserverContext*>(ctx_ptr);
+    TORCH_INTERNAL_ASSERT(npu_ctx_ptr != nullptr, PROF_ERROR(ErrCode::PTR));
+    if (npu_ctx_ptr->mstx_range_pushed_) {
+        mstxRangePop(DOMAIN_RECORD_FUNCTION.c_str());
+    }
+    if (!npu_ctx_ptr->data_) {
+        return;
+    }
+    auto data_ptr = std::move(npu_ctx_ptr->data_);
+    data_ptr->end_ns = static_cast<int64_t>(Utils::GetClockTime());
+    data_ptr->end_thread_id = Utils::GetTid();
+    if (ProfilerMgr::GetInstance()->ReportEnable().load(std::memory_order_relaxed)) {
+        ProfilerMgr::GetInstance()->Upload(std::move(data_ptr));
+    }
+}
+
+static void endProfilerCallbackMstxOnly(const at::RecordFunction&, at::ObserverContext* ctx_ptr) {
+  if (ctx_ptr == nullptr) {
+    return;
+  }
+  auto* npu_ctx_ptr = static_cast<NpuObserverContext*>(ctx_ptr);
+  TORCH_INTERNAL_ASSERT(npu_ctx_ptr != nullptr, PROF_ERROR(ErrCode::PTR));
+  if (npu_ctx_ptr->mstx_range_pushed_) {
+    mstxRangePop(DOMAIN_RECORD_FUNCTION.c_str());
+  }
+}
+
+static void registerCallback(const std::unordered_set<at::RecordScope>& scopes, bool mstx_only = false) {
     auto registeration_state_ptr = NpuProfilerThreadLocalState::getTLS();
     TORCH_INTERNAL_ASSERT(registeration_state_ptr, "Expected profiler state set", PROF_ERROR(ErrCode::PTR));
-    auto handle = at::addThreadLocalCallback(
-        at::RecordFunctionCallback(
-            [](const at::RecordFunction &fn) -> std::unique_ptr<at::ObserverContext> {
-                auto state_ptr = NpuProfilerThreadLocalState::getTLS();
-                if (!state_ptr) {
-                    return nullptr;
-                }
-                const auto &config = state_ptr->config();
-                auto ctx_ptr = state_ptr->newOpEvent(fn);
-                auto &data_ptr = ctx_ptr->data_;
-                data_ptr->scope = static_cast<uint8_t>(fn.scope());
-                if ((C10_UNLIKELY(config.report_input_shapes))) {
-                    bool report_details = config.report_input_shapes
-                                          && (config.with_stack || config.with_modules)
-                                          && config.profile_memory;
-                    parseInputShapesAndDtypes(fn, data_ptr.get(), report_details);
-                }
-                if (C10_UNLIKELY(config.with_stack && fn.scope() != at::RecordScope::BACKWARD_FUNCTION)) {
-                    auto cs = torch::profiler::impl::prepareCallstack(torch::jit::currentCallstack());
-                    cs = cs.empty() ? torch::profiler::impl::prepareCallstack(torch::jit::tracer::pythonCallstack()) : cs;
-                    data_ptr->stack = torch::profiler::impl::callstackStr(cs);
-                }
-                if (C10_UNLIKELY(config.with_modules && fn.scope() != at::RecordScope::BACKWARD_FUNCTION)) {
-                    data_ptr->module_hierarchy = torch::jit::currentModuleHierarchy();
-                }
-                return ctx_ptr;
-            },
-            [](const at::RecordFunction &fn, at::ObserverContext *ctx_ptr) {
-                auto state_ptr = NpuProfilerThreadLocalState::getTLS();
-                if (!state_ptr) {
-                    return;
-                }
-                auto *npu_ctx_ptr = static_cast<NpuObserverContext *>(ctx_ptr);
-                TORCH_INTERNAL_ASSERT(npu_ctx_ptr != nullptr, PROF_ERROR(ErrCode::PTR));
-                auto data_ptr = std::move(npu_ctx_ptr->data_);
-                data_ptr->end_ns = static_cast<int64_t>(Utils::GetClockTime());
-                data_ptr->end_thread_id = Utils::GetTid();
-                if (ProfilerMgr::GetInstance()->ReportEnable().load(std::memory_order_relaxed)) {
-                    ProfilerMgr::GetInstance()->Upload(std::move(data_ptr));
-                }
-            }
-        )
-        .needsInputs(registeration_state_ptr->config().report_input_shapes)
-        .scopes(scopes)
-    );
+    auto start_callback = mstx_only ? startProfilerCallbackMstxOnly : startProfilerCallbackFull;
+    auto end_callback = mstx_only ? endProfilerCallbackMstxOnly : endProfilerCallback;
+    auto handle =
+        at::addThreadLocalCallback(at::RecordFunctionCallback(start_callback, end_callback)
+                                      .needsInputs(!mstx_only && registeration_state_ptr->config().report_input_shapes)
+                                      .scopes(scopes));
     registeration_state_ptr->setCallbackHandle(handle);
 }
 
@@ -345,36 +388,41 @@ void startNpuProfiler(
     const NpuProfilerConfig& config,
     const std::set<NpuActivityType>& activities,
     const std::unordered_set<at::RecordScope>& scopes) {
-  pybind11::gil_scoped_release no_gil;
-  auto state = std::make_shared<NpuProfilerThreadLocalState>(config, activities);
-  if (c10::ThreadLocalDebugInfo::get(c10::DebugInfoKind::PROFILER_STATE) != nullptr) {
-    ASCEND_LOGE("Profiler is already enabled.");
-    return;
-  }
-  c10::ThreadLocalDebugInfo::_push(c10::DebugInfoKind::PROFILER_STATE, state);
-  bool cpu_trace = activities.count(NpuActivityType::CPU);
-  ExperimentalConfig experimental_config = config.experimental_config;
-  NpuTraceConfig npu_config = {
-      experimental_config.trace_level,
-      experimental_config.metrics,
-      config.profile_memory,
-      config.record_shapes,
-      experimental_config.l2_cache,
-      experimental_config.record_op_args,
-      experimental_config.msprof_tx,
-      experimental_config.op_attr,
-      experimental_config.host_sys,
-      experimental_config.mstx_domain_include,
-      experimental_config.mstx_domain_exclude,
-      experimental_config.sys_io,
-      experimental_config.sys_interconnection};
-  ProfilerMgr::GetInstance()->Start(npu_config, cpu_trace);
-  if (state->tracePython()) {
-    python_tracer::call(python_tracer::Command::kStartAll);
-  }
-  if (cpu_trace) {
-    registerCallback(scopes);
-  }
+    pybind11::gil_scoped_release no_gil;
+    auto state = std::make_shared<NpuProfilerThreadLocalState>(config, activities);
+    if (c10::ThreadLocalDebugInfo::get(c10::DebugInfoKind::PROFILER_STATE) != nullptr) {
+        ASCEND_LOGE("Profiler is already enabled.");
+        return;
+    }
+    c10::ThreadLocalDebugInfo::_push(c10::DebugInfoKind::PROFILER_STATE, state);
+    bool cpu_trace = activities.count(NpuActivityType::CPU);
+    ExperimentalConfig experimental_config = config.experimental_config;
+    NpuTraceConfig npu_config = {
+        experimental_config.trace_level,
+        experimental_config.metrics,
+        config.profile_memory,
+        config.record_shapes,
+        experimental_config.l2_cache,
+        experimental_config.record_op_args,
+        experimental_config.msprof_tx,
+        experimental_config.op_attr,
+        experimental_config.host_sys,
+        experimental_config.mstx_domain_include,
+        experimental_config.mstx_domain_exclude,
+        experimental_config.sys_io,
+        experimental_config.sys_interconnection};
+    ProfilerMgr::GetInstance()->Start(npu_config, cpu_trace);
+    if (state->tracePython()) {
+        python_tracer::call(python_tracer::Command::kStartAll);
+    }
+    if (cpu_trace) {
+      registerCallback(scopes);
+    } else if (
+        activities.count(NpuActivityType::NPU) && experimental_config.msprof_tx &&
+        (scopes.empty() || scopes.count(at::RecordScope::USER_SCOPE))) {
+        // Device annotations still need RecordFunction callbacks when CPU tracing is disabled.
+        registerCallback({at::RecordScope::USER_SCOPE}, /*mstx_only=*/true);
+    }
 }
 
 void disableProfilerInChildThread()
