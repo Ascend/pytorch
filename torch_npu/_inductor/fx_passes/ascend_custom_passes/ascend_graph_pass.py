@@ -3273,6 +3273,213 @@ def _msc_build_node(graph, cat, run, cat_dim):
     return node
 
 
+_RCASC_FLOAT_DTYPES = (torch.float16, torch.bfloat16, torch.float32, torch.float64)
+
+
+def _rcasc_tensor(node, dtype=None, device=None):
+    """Require supported floating tensor metadata on NPU without device work."""
+    from torch._subclasses.fake_tensor import FakeTensor
+
+    val = node.meta.get("val") if isinstance(node, torch.fx.Node) else None
+    if not isinstance(val, FakeTensor):
+        return None
+    if (
+        val.dtype not in _RCASC_FLOAT_DTYPES
+        or (dtype is not None and val.dtype != dtype)
+        or val.layout != torch.strided
+        or val.ndim < 1
+        or val.device.type not in ("npu", "privateuseone")
+        or (device is not None and val.device != device)
+    ):
+        return None
+    return val
+
+
+def _rcasc_compatible(val, out, cat_dim):
+    """All non-concat dimensions must be provably equal, including symbolic ones."""
+    return val.ndim == out.ndim and all(
+        i == cat_dim or statically_known_eq(size, out.shape[i])
+        for i, size in enumerate(val.shape)
+    )
+
+
+def _rcasc_slice(node, dtype, out, cat_dim):
+    """Match static, nonempty unit-step slices rooted in graph inputs, at any rank.
+
+    Slice chains include the full-axis slices emitted by make_fx. Keep intermediate
+    producers out of this rewrite: forcing them into a packed cat can block fusion.
+    Slice and concat axes may differ; the non-concat shape check preserves cat order.
+    """
+    val = _rcasc_tensor(node, dtype, out.device)
+    if val is None or not _rcasc_compatible(val, out, cat_dim):
+        return None
+    current = node
+    while isinstance(current, torch.fx.Node) and current.op == "call_function":
+        if (
+            current.target is not _MSC_SLICE_TARGET
+            or current.kwargs
+            or not 2 <= len(current.args) <= 5
+            or (len(current.args) == 5 and current.args[4] not in (None, 1))
+        ):
+            return None
+        base = current.args[0]
+        cur_val = _rcasc_tensor(current, dtype, out.device)
+        base_val = _rcasc_tensor(base, dtype, out.device)
+        if cur_val is None or base_val is None or cur_val.ndim != base_val.ndim:
+            return None
+        axis = normalize_dim(current.args[1], base_val.ndim)
+        if not isinstance(axis, int) or not 0 <= axis < base_val.ndim:
+            return None
+        # Do not force symbolic slice lengths to Python integers or add guards.
+        limit = base_val.shape[axis]
+        if not isinstance(limit, int) or isinstance(limit, bool):
+            return None
+        start = _msc_bound(current.args[2] if len(current.args) > 2 else None, limit, 0)
+        end = _msc_bound(
+            current.args[3] if len(current.args) > 3 else None, limit, limit
+        )
+        if start is None or end is None or end <= start:
+            return None
+        if not statically_known_eq(cur_val.shape[axis], end - start):
+            return None
+        current = base
+    return node if current.op == "placeholder" and current is not node else None
+
+
+def _rcasc_parts(node, out, cat_dim):
+    """Return (source dtype, slices) for an implicit/explicit conversion run.
+
+    Group by source dtype. Packing FP16 and BF16 together would introduce an extra
+    FP32 promotion before an explicit narrowing cast, changing conversion semantics.
+    Already packed cat -> cast nodes remain barriers so this rewrite is idempotent.
+    """
+    val = _rcasc_tensor(node, device=out.device)
+    if val is None or not _rcasc_compatible(val, out, cat_dim):
+        return None
+    candidate = node
+    if node.op == "call_function":
+        if node.target is torch.ops.prims.convert_element_type.default:
+            if len(node.args) != 2 or node.args[1] != out.dtype or node.kwargs:
+                return None
+            candidate = node.args[0]
+        elif node.target is torch.ops.aten._to_copy.default:
+            if len(node.args) != 1 or dict(node.kwargs) != {"dtype": out.dtype}:
+                return None
+            candidate = node.args[0]
+    source = _rcasc_tensor(candidate, device=out.device)
+    if source is None or source.dtype == out.dtype:
+        return None
+    if candidate is not node:
+        if val.dtype != out.dtype:
+            return None
+    elif torch.promote_types(source.dtype, out.dtype) != out.dtype:
+        return None
+    if _rcasc_slice(candidate, source.dtype, out, cat_dim) is not None:
+        return source.dtype, [candidate]
+    if candidate is not node:
+        return None
+    is_cat, dim = check_cat_op(candidate)
+    if (
+        not is_cat
+        or normalize_dim(dim, source.ndim) != cat_dim
+        or not candidate.args
+        or set(candidate.kwargs) - {"dim"}
+    ):
+        return None
+    parts = candidate.args[0]
+    if not isinstance(parts, (list, tuple)) or len(parts) < 2:
+        return None
+    if not all(_rcasc_slice(p, source.dtype, out, cat_dim) is not None for p in parts):
+        return None
+    return source.dtype, list(parts)
+
+
+@register_custom_pass(PassType.POST, ignore_inference_check=True)
+def remove_cast_after_slice_by_add_cat(graph: torch.fx.Graph) -> None:
+    """Pack adjacent same-dtype slices before converting to the cat output dtype.
+
+    Supports floating promotion and explicit widening/narrowing at arbitrary rank
+    and concat axis. Conversion remains the same elementwise operation, applied once
+    after a same-dtype cat; no arithmetic or additional rounding is introduced.
+    Other users keep their original nodes. Runs after functionalization, including
+    AOT training graphs; a convert_element_type barrier prevents cat flattening.
+    """
+    if any(
+        n.op == "call_function"
+        and getattr(getattr(n.target, "_schema", None), "is_mutable", False)
+        for n in graph.nodes
+    ):
+        return
+    changed = False
+    for cat in list(graph.nodes):
+        is_cat, dim = check_cat_op(cat)
+        out = _rcasc_tensor(cat)
+        if not is_cat or out is None or not cat.args or set(cat.kwargs) - {"dim"}:
+            continue
+        cat_dim = normalize_dim(dim, out.ndim)
+        if not isinstance(cat_dim, int) or not 0 <= cat_dim < out.ndim:
+            continue
+        inputs = cat.args[0]
+        if not isinstance(inputs, (list, tuple)) or len(inputs) < 2:
+            continue
+        vals = [_rcasc_tensor(n, device=out.device) for n in inputs]
+        if any(v is None or not _rcasc_compatible(v, out, cat_dim) for v in vals):
+            continue
+        promoted = vals[0].dtype
+        for val in vals[1:]:
+            promoted = torch.promote_types(promoted, val.dtype)
+        if promoted != out.dtype:
+            continue
+        runs, parts, start, source_dtype = [], [], 0, None
+        for i, inp in enumerate(list(inputs) + [None]):
+            matched = _rcasc_parts(inp, out, cat_dim)
+            if matched is None or matched[0] != source_dtype:
+                if len(parts) >= 2:
+                    runs.append((start, i, parts))
+                parts, source_dtype = [], None
+            if matched is not None:
+                if not parts:
+                    start, source_dtype = i, matched[0]
+                parts.extend(matched[1])
+        new_inputs = list(inputs)
+        for start, end, parts in reversed(runs):
+            try:
+                with out.fake_mode:
+                    packed_val = torch.ops.aten.cat.default(
+                        [p.meta["val"] for p in parts], cat_dim
+                    )
+                    cast_val = torch.ops.prims.convert_element_type.default(
+                        packed_val, out.dtype
+                    )
+            except (RuntimeError, TypeError, ValueError) as exc:
+                log.debug("remove_cast_after_slice_by_add_cat: skip %s", exc)
+                continue
+            with graph.inserting_before(cat):
+                packed = graph.call_function(
+                    torch.ops.aten.cat.default, (parts, cat_dim)
+                )
+                packed.meta["val"] = packed_val
+                cast = graph.call_function(
+                    torch.ops.prims.convert_element_type.default,
+                    (packed, out.dtype),
+                )
+                cast.meta["val"] = cast_val
+            new_inputs[start:end] = [cast]
+            changed = True
+            log.info(
+                "[inductor_fx] remove_cast_after_slice_by_add_cat: %s packed "
+                "%d %s slices into one %s conversion (rank=%d, dim=%d)",
+                cat.name,
+                len(parts),
+                packed_val.dtype,
+                out.dtype,
+                out.ndim,
+                cat_dim,
+            )
+        if new_inputs != list(inputs):
+            cat.args = (new_inputs,) + tuple(cat.args[1:])
+    eliminate_dead_code(graph, changed, remove_cast_after_slice_by_add_cat.__name__)
+
 @register_custom_pass(PassType.POST, ignore_inference_check=True)
 def multi_slice_concat_pass(
     graph: torch.fx.Graph,
