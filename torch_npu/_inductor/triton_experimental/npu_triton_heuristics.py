@@ -1089,7 +1089,7 @@ class NPUCachingAutotuner(CachingAutotuner):
                         {**dict(zip(self._npu_arg_names(), bench_args)), **launcher.config.kwargs}
                     )
                 cloned_args, cloned_kwargs = self.clone_args(*bench_args, **bench_kwargs)
-                self.reset_to_zero_args(*bench_args, **bench_kwargs)
+                self.reset_to_zero_args(*cloned_args, **cloned_kwargs)
                 launcher(*cloned_args, **cloned_kwargs, stream=stream)
             return call_kernel
 
@@ -1134,20 +1134,18 @@ class NPUCachingAutotuner(CachingAutotuner):
                         launcher.config.pre_hook(
                             {**dict(zip(self._npu_arg_names(), bench_args)), **launcher.config.kwargs}
                         )
-                    # Clone once outside the measured event window. The old
-                    # event path timed kernel_call(), which cloned args and ran
-                    # reset_to_zero_args on every measured iteration; for small
-                    # kernels that dominated the event timing and skewed config
-                    # ranking. The direct call below measures just launcher().
+                    # Clone outside the measured event window, but reset the
+                    # launched buffers before every invocation. Unlike upstream
+                    # bench(), these clones are reused rather than recreated
+                    # from the reset source on each call. Event timings include
+                    # the initialization required by the kernel.
                     cloned_args, cloned_kwargs = self.clone_args(*bench_args, **bench_kwargs)
 
-                    def pre_group():
-                        self.reset_to_zero_args(*bench_args, **bench_kwargs)
-
                     def direct_call():
+                        self.reset_to_zero_args(*cloned_args, **cloned_kwargs)
                         launcher(*cloned_args, **cloned_kwargs, stream=stream)
 
-                    out.append(self._do_bench_npu(direct_call, device_interface, pre_group=pre_group))
+                    out.append(self._do_bench_npu(direct_call, device_interface))
                 except Exception as e:
                     log.debug("[AUTOTUNE] event bench failed for %s idx=%s cfg=%s: %s",  # noqa: G200
                               self.fn.__name__, idx, launcher.config, e)
@@ -1181,7 +1179,7 @@ class NPUCachingAutotuner(CachingAutotuner):
 
             def run_one(launcher):
                 ca, ck = bound[launcher]
-                self.reset_to_zero_args(*bench_args, **bench_kwargs)
+                self.reset_to_zero_args(*ca, **ck)
                 launcher(*ca, **ck, stream=stream)
 
             warmup_iters = ncfg.mspti_warmup
@@ -1236,10 +1234,6 @@ class NPUCachingAutotuner(CachingAutotuner):
         for k, v in timings.items():
             self.coordesc_tuner.cache_benchmark_result(k.config, v)
 
-        # Reset only the clones; the real args were never touched. The clones'
-        # device memory is reclaimed when bench_args/bench_kwargs go out of scope
-        # as this method returns.
-        self.reset_to_zero_args(*bench_args, **bench_kwargs)
         return timings
 
     def bench(self, launcher, *args, with_profiler=False, **kwargs):
@@ -1252,18 +1246,26 @@ class NPUCachingAutotuner(CachingAutotuner):
         device_interface = self.get_device_interface()
         stream = device_interface.get_raw_stream(device_interface.current_device())
 
+        # Reset-only scratch arguments are not necessarily marked mutated.
+        # Isolate them for direct bench() calls without batch-level copies.
+        if set(self.reset_to_zero_arg_names) - set(self.mutated_arg_names):
+            args, kwargs = self._clone_all_args_for_autotune(args, kwargs)
         cpu_copies = self.copy_args_to_cpu_if_needed(*args, **kwargs)
 
         def kernel_call():
             cloned_args, cloned_kwargs = self.maybe_clone_args(cpu_copies, *args, **kwargs)
-            self.reset_to_zero_args(*args, **kwargs)
-            launcher(*cloned_args, **cloned_kwargs, stream=stream)
-            self.restore_args_from_cpu(cpu_copies)
+            # Initialize the actual launch arguments, including the first call
+            # and buffers restored from CPU after each invocation.
+            try:
+                self.reset_to_zero_args(*cloned_args, **cloned_kwargs)
+                launcher(*cloned_args, **cloned_kwargs, stream=stream)
+            finally:
+                self.restore_args_from_cpu(cpu_copies)
 
         return self._do_bench_npu(kernel_call, device_interface)
 
     @staticmethod
-    def _do_bench_npu(fn, device_interface, warmup=25, rep=100, pre_group=None):
+    def _do_bench_npu(fn, device_interface, warmup=25, rep=100):
         """Grouped NPU-event benchmark.
 
         A single event pair around one tiny kernel includes event-record and
@@ -1271,6 +1273,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         autotune rankings noisy. Time groups of repeated launches with one event
         pair and divide by the inner repeat count; this keeps event overhead to
         sub-us scale for small kernels while still avoiding profiler sessions.
+        Caller-side initialization inside fn is included in these intervals.
         Returns milliseconds.
         """
         fn()
@@ -1282,8 +1285,6 @@ class NPUCachingAutotuner(CachingAutotuner):
             start_event = device_interface.Event(enable_timing=True)
             end_event = device_interface.Event(enable_timing=True)
             cache.zero_()
-            if pre_group is not None:
-                pre_group()
             start_event.record()
             for _ in range(inner_repeats):
                 fn()
@@ -1304,8 +1305,6 @@ class NPUCachingAutotuner(CachingAutotuner):
         n_repeat_groups = min(n_repeat_groups, ncfg.event_bench_max_groups)
 
         for _ in range(n_warmup_groups):
-            if pre_group is not None:
-                pre_group()
             for _ in range(inner_repeats):
                 fn()
         device_interface.synchronize()
