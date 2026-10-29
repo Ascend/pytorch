@@ -396,7 +396,7 @@ inline size_t pinnedAsyncConstantsCopyStageBufferBytes() {
   return pinnedAsyncConstantsCopyStageBufferBytesSetting().load(std::memory_order_relaxed);
 }
 
-using ConstantMap = std::unordered_map<std::string, MaybeOwningAtenTensorHandle>;
+using ConstantMap = std::unordered_map<std::string, RAIIAtenTensorHandle>;
 
 // valid device strs are: cpu, npu, npu:0, npu:1, ...
 // Update the list here if more devices are supported in the future
