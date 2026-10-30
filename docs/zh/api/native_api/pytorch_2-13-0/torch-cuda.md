@@ -627,7 +627,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id244 -->
 
-**限制与说明**： 可使用`npu-smi info -t common -i <id>`查看Aicore curFreq(MHZ)指标代替。
+**限制与说明**： 可使用`npu-smi info -t common -i <id>`查看Ai core curFreq(MHZ)指标代替。
 
 </div>
 

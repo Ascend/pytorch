@@ -24,5 +24,5 @@ export INDUCTOR_ASCEND_SYMBOLIC_GROUP_AUTOTUNE=1
 ## Supported Products
 
 <!-- npu="950" id1 -->
-<term>Ascend 950PR&950DT</term>
+<term>Ascend 950PR&950DT products</term>
 <!-- end id1 -->

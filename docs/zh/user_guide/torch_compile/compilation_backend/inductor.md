@@ -14,10 +14,10 @@ Inductor后端支持三种算子编译器，可根据场景选择：
 
 > [!NOTICE]
 >
-> - 使用Inductor后端前，请先安装与PyTorch版本配套的Triton Ascend。该版本仅支持PyTorch 2.7.1、2.10.0和2.13.0。Triton Ascend的安装说明如下：
->   - 源码编译或在线安装（Pip）时，系统会默认安装配套版本的Triton Ascend。
+> - 使用Inductor后端前，请先安装与PyTorch版本配套的Triton-Ascend。该版本仅支持PyTorch 2.7.1、2.10.0和2.13.0。Triton-Ascend的安装说明如下：
+>   - 源码编译或在线安装（Pip）时，系统会默认安装配套版本的Triton-Ascend。
 >   - 离线安装（Whl）时，请参考[快速安装](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download)文档中的命令进行安装。
-> - 如需了解更多Triton Ascend信息，具体请参考[Triton Ascend](https://triton-ascend.readthedocs.io/zh-cn/latest/)。<br>
+> - 如需了解更多Triton-Ascend信息，具体请参考[Triton-Ascend](https://triton-ascend.readthedocs.io/zh-cn/latest/)。<br>
 > - 在import torch前，也可通过TORCHINDUCTOR_NPU_BACKEND环境变量选择编译器模式，具体可参见[TORCHINDUCTOR_NPU_BACKEND](../../../api/environment_variable/inductor/TORCHINDUCTOR_NPU_BACKEND.md)。
 
 ## 编译器

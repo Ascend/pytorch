@@ -4,7 +4,7 @@
 
 - Supports the alltoallvc communication operator, optimizing alltoall communication performance.
 - Supports initializing communicators through hierarchical link establishment, optimizing performance.
-- Supports Inductor's automatic operator fusion based on the AscendC IR.
+- Supports Inductor's automatic operator fusion based on the Ascend C IR.
 - Inherits DeviceAllocator and supports enabling accelerator memory and graph-related interfaces in Eager mode.
 - Starting from this version, the Torch-MLIR compiler in the Inductor backend is deprecated, affecting the *Torch.compile* and *Environment Variables* documents. For the specific changes, refer to [Related Documents for This Version](#related-documents-for-this-version).
 - Starting from this version, the compilation optimization functions provided based on the BiSheng compiler are deprecated and can be replaced with [Clang](../zh/installation_guide/references/building_with_clang.md).
@@ -49,7 +49,7 @@ To expand TorchNPU capabilities, for the version requirements of the self-develo
 
 TorchNPU code branch names follow the naming rule **\{PyTorch version\}-\{TorchNPU version\}**, where the former is the PyTorch version matched by TorchNPU. The detailed matching is shown in the following table:
 
-|TorchNPU Code Branch Name|PyTorch Version|TorchNPU Version|TorchNPU Installation Package Version|CANN Version|Python Version|Triton Ascend Version|
+|TorchNPU Code Branch Name|PyTorch Version|TorchNPU Version|TorchNPU Installation Package Version|CANN Version|Python Version|Triton-Ascend Version|
 |--|--|--|--|--|--|--|
 |v2.7.1-26.2.0|2.7.1|26.2.0|2.7.1.post11|9.2.0|Python3.9.*x*, Python3.10.*x*, Python3.11.*x*, Python3.12.*x*, Python3.13.*x*|v3.2.2|
 |v2.9.0-26.2.0|2.9.0|26.2.0|2.9.0.post9|9.2.0|Python3.10.*x*, Python3.11.*x*, Python3.12.*x*, Python3.13.*x*, Python3.14.*x*|No matching version|
@@ -198,8 +198,8 @@ TorchNPU code branch names follow the naming rule **\{PyTorch version\}-\{TorchN
       <td class="cellrowborder" valign="top" width="32.603260326032604%" headers="mcps1.1.4.1.2">Adapted for PyTorch 2.12.0 and later versions</td>
     </tr>
     <tr>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">Supports the Inductor AscendC backend.</td>
-      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2">Supports Inductor's automatic operator fusion based on the AscendC IR.</td>
+      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.1">Supports the Inductor Ascend C backend.</td>
+      <td class="cellrowborder" valign="top"  headers="mcps1.1.4.1.2">Supports Inductor's automatic operator fusion based on the Ascend C IR.</td>
       <td class="cellrowborder" valign="top" width="32.603260326032604%" headers="mcps1.1.4.1.2">Adapted for PyTorch 2.11.0 and later versions</td>
     </tr>
       <tr>
@@ -1643,7 +1643,7 @@ None
 |[TorchNPU Overview](../zh/user_guide/product_overview.md)|The TorchNPU plugin is a deep learning adaptation framework based on Ascend. It enables the Ascend NPU to support the PyTorch framework and provides PyTorch framework users with the powerful computing power of Ascend AI processors.|No updates |
 |[Quick Start](../zh/user_guide/quick_start.md)|Provides a simple model migration example that uses the simplest automatic migration method to help users quickly experience the process of migrating GPU model scripts to the Ascend NPU.|Optimized the Quick Start document.|
 |[Torch.compile](../zh/user_guide/torch_compile/overview.md)|Significantly accelerates model training and inference tasks through the approach of "dynamic graph capture + static graph optimization + efficient code generation".|&#8226; Added the Ascend C compiler to the Inductor backend.<br>&#8226; Added a link to the official PyTorch reference documentation.<br>&#8226; Deleted content about the Torch-MLIR compiler from the Inductor section|
-|[Compatible Software Libraries](./user_guide/libraries.md)|Provides compatible software libraries that extend the capabilities of TorchNPU.|Added the Triton Ascend component.|
+|[Compatible Software Libraries](./user_guide/libraries.md)|Provides compatible software libraries that extend the capabilities of TorchNPU.|Added the Triton-Ascend component.|
 |[Troubleshooting](../zh/user_guide/troubleshooting/troubleshooting_process.md)|Uses various abnormal fault phenomena that developers may encounter during inference and training as the entry point, and provides self-service problem locating and handling methods to help developers quickly locate and resolve faults.|No updates|
 |[Native API](../zh/api/native_api/pytorch_2-12-0/overview.md)|Describes the support of the native APIs of PyTorch 2.12.0/2.11.0/2.10.0/2.9.0/2.7.1 on Ascend devices.|&#8226; Added the native API support lists for PyTorch 2.13.0 and PyTorch 2.14.0.<br>&#8226; Aligned the content format with the PyTorch community. |
 |[Custom API](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/en/custom_APIs/overview.md)|Provides function prototypes, function descriptions, parameter descriptions, and usage examples of TorchNPU custom APIs.|&#8226; Added adaptation for PyTorch 2.13.0 and PyTorch 2.14.0.<br>&#8226; For specific interface changes, refer to [Interface Change Description](#interface-change-description).|

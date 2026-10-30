@@ -4,7 +4,7 @@
 
 - 支持alltoallvc通信算子，优化alltoall通信性能。
 - 支持通信域以分级建链方式初始化，性能优化。
-- 支持Inductor基于AscendC IR的自动算子融合。
+- 支持Inductor基于Ascend C IR的自动算子融合。
 - 继承DeviceAllocator，支持在Eager模式下启用accelerator memory和graph相关接口。
 - 从本版本起，Inductor后端中的Torch-MLIR编译器已废弃，涉及《Torch.compile》和《环境变量》，具体变更内容请参考[配套版本文档](#版本配套文档)。
 - 从本版本起，基于毕昇编译器提供的编译优化功能已废弃，可以使用[Clang](../zh/installation_guide/references/building_with_clang.md)进行替换。
@@ -49,14 +49,14 @@
 
 TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命名规则，前者为TorchNPU匹配的PyTorch版本，详细匹配如下表：
 
-|TorchNPU代码分支名称|PyTorch版本|TorchNPU版本|TorchNPU安装包版本|CANN版本|Python版本|Triton Ascend版本|
+|TorchNPU代码分支名称|PyTorch版本|TorchNPU版本|TorchNPU安装包版本|CANN版本|Python版本|Triton-Ascend版本|
 |--|--|--|--|--|--|--|
-|v2.7.1-26.2.0|2.7.1|26.2.0|2.7.1.post11|9.2.0|Python3.9.*x*、Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*|v3.2.2（在AArch64架构中，不支持在Python3.9.*x*环境中安装Triton Ascend）|
+|v2.7.1-26.2.0|2.7.1|26.2.0|2.7.1.post11|9.2.0|Python3.9.*x*、Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*|v3.2.2（在AArch64架构中，不支持在Python3.9.*x*环境中安装Triton-Ascend）|
 |v2.9.0-26.2.0|2.9.0|26.2.0|2.9.0.post9|9.2.0|Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*、Python3.14.*x*|无配套版本|
-|v2.10.0-26.2.0|2.10.0|26.2.0|2.10.0.post7|9.2.0|Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*、Python3.14.*x*|v3.6.0（不支持在Python3.14.*x*环境中安装Triton Ascend）|
+|v2.10.0-26.2.0|2.10.0|26.2.0|2.10.0.post7|9.2.0|Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*、Python3.14.*x*|v3.6.0（不支持在Python3.14.*x*环境中安装Triton-Ascend）|
 |v2.11.0-26.2.0|2.11.0|26.2.0|2.11.0.post3|9.2.0|Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*、Python3.14.*x*|无配套版本|
 |v2.12.0-26.2.0|2.12.0|26.2.0|2.12.0.post3|9.2.0|Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*、Python3.14.*x*|无配套版本|
-|v2.13.0-26.2.0|2.13.0|26.2.0|2.13.0|9.2.0|Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*、Python3.14.*x*|v3.6.0（不支持在Python3.14.*x*环境中使安装Triton Ascend）|
+|v2.13.0-26.2.0|2.13.0|26.2.0|2.13.0|9.2.0|Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*、Python3.14.*x*|v3.6.0（不支持在Python3.14.*x*环境中使安装Triton-Ascend）|
 |v2.14.0-26.2.0|2.14.0|26.2.0|2.14.0|9.2.0|Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*、Python3.14.*x*|无配套版本|
 
 ## 版本兼容性说明
@@ -198,8 +198,8 @@ TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命
       <td style="width: 300px; white-space: normal;">适配PyTorch 2.12.0及以上版本</td>
     </tr>
     <tr>
-      <td>支持Inductor AscendC后端。</td>
-      <td>支持Inductor基于AscendC IR的自动算子融合。</td>
+      <td>支持Inductor Ascend C后端。</td>
+      <td>支持Inductor基于Ascend C IR的自动算子融合。</td>
       <td style="width: 300px; white-space: normal;">适配PyTorch 2.11.0及以上版本</td>
     </tr>
       <tr>

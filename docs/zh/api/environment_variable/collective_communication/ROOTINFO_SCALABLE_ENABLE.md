@@ -27,7 +27,7 @@ unset ROOTINFO_SCALABLE_ENABLE
 
 ## 使用约束
 
-- 该环境变量仅作用于RootInfo建链路径，不改变rank table建链行为。
+- 该环境变量仅作用于RootInfo建链路径，不改变ranktable建链行为。
 - 仅对DEFAULT类型的HCCL通信域生效，P2P通信域继续使用原RootInfo路径。
 - HCCL通信域采用懒加载机制，首次执行需要通信域的集合通信操作时才会触发建链。
 - 该环境变量在进程内首次读取后会被缓存，应在启动分布式worker前完成配置，不支持在同一进程内动态切换。

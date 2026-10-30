@@ -53,7 +53,7 @@ unset TORCH_HCCL_RANKS_PER_ROOT
 - Only <term>Atlas A2 training products</term> and <term>Atlas A3 training products</term> support Scalable RootInfo. For other models, even if the feature is enabled, a Warning is printed and the original RootInfo path is used instead.
 <!-- end id1 -->
 - A CANN/HCCL version containing the `HcclGetRootInfoScalable` and `HcclCommInitRootInfoScalable` interfaces is required. If the Scalable path has been selected on supported devices but the runtime library lacks these interfaces, a not-supported error is returned.
-- This feature only affects the RootInfo link setup path and does not change the rank table link setup behavior. When a valid `RANK_TABLE_FILE` is configured and the rank table path is selected, the Scalable RootInfo path is not entered.
+- This feature only affects the RootInfo link setup path and does not change the ranktable link setup behavior. When a valid `RANK_TABLE_FILE` is configured and the ranktable path is selected, the Scalable RootInfo path is not entered.
 - P2P communicators continue to use the original RootInfo path.
 - The environment variables must be configured before starting distributed workers. Dynamically switching the feature switch within the same process is not supported.
 - Scalable RootInfo only changes the communicator initialization method, not the way communication operators are called or the way communicators are cached and destroyed.

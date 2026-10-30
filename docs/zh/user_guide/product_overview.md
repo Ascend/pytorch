@@ -23,7 +23,7 @@ TorchNPU插件采用**C++/Python双层架构**，C++层以`torch_npu._C`扩展�
 | **PyTorch框架层** | PyTorch Core | 开源PyTorch核心框架，提供autograd自动微分、nn.Module、优化器、DataLoader、Dispatcher算子分发等基础设施 |
 | **TorchNPU适配层（Python）** | TorchNPU Python包 | 面向用户的Python API层，包含初始化框架、NPU设备接口、图编译后端、分布式训练、Profiling等模块 |
 | **TorchNPU适配层（C++）** | `torch_npu._C`扩展模块 | 通过PyBind11绑定的C++核心，包含张量基础设施、内存分配器、算子执行框架、HCCL通信、Inductor后端等底层实现 |
-| **计算库层** | CANN软件栈 | 昇腾异构计算架构，提供ACL运行时、GE图引擎、AICPU/TBE/AI Core算子库、HCCL集合通信库等 |
+| **计算库层** | CANN软件栈 | 昇腾异构计算架构，提供ACL运行时、GE图引擎、AI CPU/TBE/AI Core算子库、HCCL集合通信库等 |
 | **硬件层** | 昇腾NPU处理器 | 昇腾AI处理器硬件，集成AI Core、AI CPU、Vector Core等异构计算单元及HCCS高速互联 |
 
 ## 初始化流程

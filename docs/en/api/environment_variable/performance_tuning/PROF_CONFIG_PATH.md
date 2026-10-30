@@ -12,7 +12,7 @@ export PROF_CONFIG_PATH="/path/to/profiler_config_path"
 
 - After this environment variable is configured and training is started, `dynamic_profile` automatically creates the template file `profiler_config.json` under `profiler_config_path`. You can customize the configuration items based on the template file.
 - The path specified by `PROF_CONFIG_PATH` can be customized (read and write permissions are required). The path format supports only strings consisting of letters, digits, and underscores. Soft links are not supported. For example, `/home/xxx/profiler_config_path`.
-- For details about the dynamic_profile collection function and the profiler_config.json file, see"[dynamic\_profile dynamic profiling](https://gitcode.com/Ascend/pytorch/blob/v2.14.0-26.2.0/docs/en/developer_notes/ascend_pytorch_profiler_user_guide.md#profiling-and-parsing-performance-data-dynamic-profile)".
+- For details about the dynamic_profile collection function and the profiler_config.json file, see "[dynamic\_profile dynamic profiling](https://gitcode.com/Ascend/pytorch/blob/v2.14.0-26.2.0/docs/en/developer_notes/ascend_pytorch_profiler_user_guide.md#profiling-and-parsing-performance-data-dynamic-profile)".
 
 ## Usage Constraints
 
