@@ -87,7 +87,7 @@ libtorch\_npu是TorchNPU插件的C++版本，包含运行TorchNPU插件所需的
     |--|--|
     |torch_npu::init_npu()|使用NPU设备前需进行初始化，输入值格式为npu:*id*，其中id为NPU卡号。|
     |at::Device()|通过传NPU字符串构造NPU设备，输入值格式为npu:*id*，其中id为NPU卡号。|
-    |torch_npu::finalize_npu()|使用NPU设备结束需进行反初始化，输入值格式为npu:*id*，其中id为NPU卡号。|
+    |torch_npu::finalize_npu()|使用NPU设备结束需进行反初始化，无入参。|
 
 4. 执行编译并推理。
 

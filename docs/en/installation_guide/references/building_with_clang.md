@@ -6,7 +6,7 @@ Before compilation, ensure that the compiler settings are correct:
 
 ```bash
 export CC=clang
-export CC=clang++
+export CXX=clang++
 ```
 
 ## Compiling PyTorch with Clang
@@ -20,9 +20,9 @@ export USE_CUDA=0
 export USE_CUDNN=0
 
 # If the ARM architecture is used, special linker optimization settings may be required
-# export USE_PRIOTIZED_TEXT_FOR_LD=OFF
+# export USE_PRIORITIZED_TEXT_FOR_LD=OFF
 
-python setup.py build bdist_hweel 2>&1 | tee build.log
+python setup.py build bdist_wheel 2>&1 | tee build.log
 ```
 
 > [!NOTE]

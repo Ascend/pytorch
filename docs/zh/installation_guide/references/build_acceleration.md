@@ -10,7 +10,11 @@
 
 CMake默认使用Makefile生成器。安装Ninja构建系统可以显著加快编译速度。
 
-本项目`setup.py`会自动检测Ninja环境，若系统PATH中包含ninja命令，或环境变量`CMAKE_GENERATOR`设置为ninja，则自动启用Ninja构建。
+本项目`setup.py`会自动检测Ninja环境，其配置规则如下：
+ 
+- 若设置了CMAKE_GENERATOR，则会严格遵守该设置。例如，生成器设置为ninja时会启用Ninja构建；设置为其他的生成器时，即使PATH中存在ninja，也不会自动启用。
+ 
+- 若未设置CMAKE_GENERATOR，系统会自动检测PATH中是否存在ninja，若存在，则默认启用Ninja构建；否则使用默认生成器。
 
 安装命令如下：
 
@@ -58,7 +62,7 @@ sudo yum install ccache
 验证CCache是否生效：
 
 1. 执行一次完整编译。
-2. 再次执行相同的完整编译命令。第二次编译应明显快于第一次，因为大部分目录文件将从缓存中直接读取。
+2. 再次执行相同的完整编译命令。第二次全量编译前请先清除构建目录，或使用 `ccache -s` / `ccache --show-stats` 查看cache hit与cache miss计数是否增长，如果该计数有明显增长，则证明CCache已生效。
 
 如果编译速度没有提升，请检查编译缓存文件（`build/CMakeCache.txt`）中的`CMAKE_C_COMPILER_LAUNCHER`和`CMAKE_CXX_COMPILER_LAUNCHER`变量是否包含CCache：
 
@@ -72,7 +76,7 @@ CMAKE_CXX_COMPILER_LAUNCHER:PATH=/usr/bin/ccache
 
 ## 仅编译所需目标
 
-如果只需重新构建`torch_npu.so`，为避免全量编译耗时，可仅编译目标文件。
+如果只需重新构建`libtorch_npu.so`，为避免全量编译耗时，可仅编译目标文件。
 
 进入构建目录及编译命令如下：
 

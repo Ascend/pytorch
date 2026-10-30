@@ -112,6 +112,8 @@ Windows换行符问题。文件使用了Windows风格的换行符（CRLF: \r\n�
 ```bash
 # 安装 dos2unix 工具
 yum install -y dos2unix
+# 或
+apt-get install -y dos2unix
 
 # 批量转换文本文件（根据自身需求和报错内容选择需要转换的文件）
 find /home/pytorch -type f \
@@ -143,7 +145,7 @@ CMake Error at third_party/Tensorpipe/third_party/libuv/CMakeLists.txt:1 (cmake_
 
 **报错原因**
 
-这意味着您容器中的CMake版本较新（≥ 3.27），从CMake3.27开始，不再兼容cmake_minimum_required低于3.5的项目，直接报错退出。
+这意味着您容器中的CMake版本较新（≥ 3.27），从CMake 3.27起，会提示Deprecation Warning（仍可正常配置），自CMake 4.0起，会直接报错退出。
 
 **处理方法**
 
@@ -201,7 +203,7 @@ gcc --version
 
 **处理方法**
 
-GCC版本过低，请执行命令`gcc --version`查询版本，并安装GCC 8以上版本，具体请参考[安装GCC](https://ubuntu.com/developers/docs/howto/gcc-setup/)。
+请按照[GCC和Cmake版本要求](../building_from_source.md#gcc_cmake)选择与所装PyTorch版本对应的GCC，具体安装步骤请参考[安装GCC](https://ubuntu.com/developers/docs/howto/gcc-setup/)。
 
 ## 安装问题
 
