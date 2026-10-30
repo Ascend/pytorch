@@ -5005,8 +5005,6 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id641 -->
 
-**限制与说明**： `embeddings`仅支持int64
-
 </div>
 
 </div>
