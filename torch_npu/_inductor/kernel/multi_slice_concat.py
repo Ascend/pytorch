@@ -11,12 +11,13 @@ import torch
 
 from torch._inductor import ir
 from torch._inductor.ir import FixedLayout
-from torch._inductor.lowering import fallback_handler, register_lowering
+from torch._inductor.lowering import empty_strided, fallback_handler, register_lowering
 from torch._inductor.select_algorithm import (
     autotune_select_algorithm,
     SymbolicGridFn,
 )
-from torch._inductor.virtualized import V, ops
+from torch._inductor.utils import triton_type
+from torch._inductor.virtualized import V
 
 from ..select_algorithm import NPUTritonTemplate
 
@@ -24,36 +25,82 @@ from ..select_algorithm import NPUTritonTemplate
 log = logging.getLogger(__name__)
 
 
+@SymbolicGridFn
+def _indexed_slice_concat_grid(rows, cols, meta, *, cdiv):
+    return (cdiv(rows * cols, meta["BLOCK"]), 1, 1)
+
+
+@functools.lru_cache(maxsize=1)
+def _indexed_template():
+    return NPUTritonTemplate(
+        name="npu_indexed_slice_concat",
+        grid=_indexed_slice_concat_grid,
+        source=r'''
+{{def_kernel("SRC", "INDEX")}}
+    rows = tl.full([], {{size("SRC", 0)}}, INDEX_DTYPE)
+    total = {{size("INDEX", 0)}}
+    source_cols = {{size("SRC", 1)}}
+    stride_row = tl.full([], {{stride("SRC", 0)}}, INDEX_DTYPE)
+    stride_col = tl.full([], {{stride("SRC", 1)}}, INDEX_DTYPE)
+    linear = (tl.program_id(0).to(INDEX_DTYPE) * BLOCK
+              + tl.arange(0, BLOCK).to(INDEX_DTYPE))
+    row = linear // total
+    col = linear % total
+    mask = linear < rows * total
+    source_col = tl.load(INDEX + col, mask=mask, other=0)
+    # Fusion benchmarks can replace the constant index table with random data.
+    valid = (source_col >= 0) & (source_col < source_cols)
+    source_col = tl.where(valid, source_col, 0).to(INDEX_DTYPE)
+    value = tl.load(SRC + row * stride_row + source_col * stride_col,
+                    mask=mask & valid, other=0).to(ACC_TYPE)
+    {{store_output(("row", "col"), "value", "mask", val_shape=("BLOCK",))}}
+''',
+    )
+
+
+def _indexed_block_size(numel, source_dtype, output_dtype):
+    from .. import config as npu_config
+
+    cores = max(1, npu_config.num_vector_core)
+    source_bytes, output_bytes = source_dtype.itemsize, output_dtype.itemsize
+    min_block = _next_pow2((_ALIGN_BYTES + min(source_bytes, output_bytes) - 1)
+                           // min(source_bytes, output_bytes))
+    # Index, row, column and address; mask, source, conversion and output values.
+    live_bytes = 4 * 8 + 1 + source_bytes + max(4, source_bytes, output_bytes) + output_bytes
+    block_cap = _prev_pow2(max(min_block, _ub_bytes() // live_bytes))
+    hint = max(1, V.graph.sizevars.size_hint(numel, fallback=cores * min_block))
+    return min(block_cap, max(min_block, _next_pow2((hint + cores - 1) // cores)))
+
+
 def _register_indexed_slice_concat(target):
     @register_lowering(target, type_promotion_kind=None)
     def indexed_slice_concat(src, offsets, widths, dtype):
         src = ir.ExternKernel.realize_input(src)
+        rows, total = src.get_size()[0], sympy.Integer(sum(widths))
+        layout = FixedLayout(src.get_device(), dtype, [rows, total],
+                             stride=[total, sympy.Integer(1)])
+        if V.graph.sizevars.statically_known_equals(rows, 0):
+            return empty_strided(layout.size, layout.stride, dtype=dtype, device=src.get_device())
         columns = [column for offset, width in zip(offsets, widths)
                    for column in range(offset, offset + width)]
         # A compiler-owned constant, built once rather than on every invocation.
         with torch.utils._python_dispatch._disable_current_modes():
             value = torch.tensor(columns, dtype=torch.int64, device=src.get_device())
         index = ir.ExternKernel.realize_input(V.graph.add_tensor_constant(value))
-        source_loader, index_loader = src.make_loader(), index.make_loader()
-
-        def inner(idx):
-            row, col = idx
-            # The validated slice plan contains only nonnegative, in-bounds columns.
-            source_col = ops.indirect_indexing(
-                index_loader([col]), src.get_size()[1], check=False, wrap_neg=False,
-            )
-            result = source_loader([row, source_col])
-            if src.get_dtype() != dtype:
-                result = ops.to_dtype(result, dtype, use_compute_types=False)
-            return result
-
-        out = ir.Pointwise.create(
-            device=src.get_device(), dtype=dtype, inner_fn=inner,
-            ranges=[src.get_size()[0], sympy.Integer(len(columns))],
+        choices = []
+        _indexed_template().maybe_append_choice(
+            choices=choices, input_nodes=[src, index], layout=layout,
+            BLOCK=_indexed_block_size(rows * total, src.get_dtype(), dtype),
+            ACC_TYPE=triton_type(dtype), num_stages=2, num_warps=4,
         )
+        if not choices:
+            return fallback_handler(target, add_to_fallback_set=False)(
+                src, list(offsets), list(widths), dtype,
+            )
+        # One static configuration: no lowering-time search or benchmark.
+        out = choices[0].output_node()
         # Keep dtype conversion materialized so consumers cannot remove its rounding.
         if src.get_dtype() != dtype:
-            out.realize()
             V.graph.no_fuse_buffer_names.add(out.get_name())
         return out
 
