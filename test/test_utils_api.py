@@ -16,7 +16,10 @@
 """
 Add validation cases for torch._utils and torch.utils APIs on NPU:
 1. PyTorch community lacks sufficient direct validation for some APIs on NPU.
-2. This file validates torch._utils._get_available_device_type and torch.utils._foreach_utils._has_foreach_support (extendable).
+2. This file validates the following APIs (extendable):
+   - torch._utils._get_available_device_type
+   - torch._utils._get_device_module
+   - torch.utils._foreach_utils._has_foreach_support
 """
 
 import torch
@@ -31,6 +34,13 @@ class TestTorchUtilsAPIs(TestCase):
 
     def test_get_available_device_type(self):
         self.assertEqual(torch._utils._get_available_device_type(), "npu")
+
+    def test_get_device_module(self):
+        npu_module = torch._utils._get_device_module("npu")
+        self.assertIs(npu_module, torch.npu)
+
+        with self.assertRaises(RuntimeError):
+            torch._utils._get_device_module("invalid_device")
 
     def test_has_foreach_support_for_npu_tensors(self):
         device = torch.device(device_type)
