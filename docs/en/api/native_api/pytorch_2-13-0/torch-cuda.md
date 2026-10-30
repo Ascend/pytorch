@@ -586,7 +586,7 @@
 - <term>Ascend 950DT products</term>: Not Supported
 <!-- end id243 -->
 
-**Constraints & Notes**: You can use the `npu-smi info -t common -i <id>` command to view the Aicore curFreq(MHZ) metric instead.
+**Constraints & Notes**: You can use the `npu-smi info -t common -i <id>` command to view the AI Core curFreq(MHZ) metric instead.
 
 </div>
 

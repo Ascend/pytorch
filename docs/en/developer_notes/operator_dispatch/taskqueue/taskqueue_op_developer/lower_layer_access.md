@@ -2,7 +2,7 @@
 
 ## Usage Guide
 
-This access method applies to non-aclnn scenarios such as AscendC kernel launch. You need to manually manage the stream and lambda lifecycle to achieve finer performance control. The complete usage consists of three steps:
+This access method applies to non-aclnn scenarios such as Ascend C kernel launch. You need to manually manage the stream and lambda lifecycle to achieve finer performance control. The complete usage consists of three steps:
 
 1. Obtain the stream and process queue: First obtain the current NPUStream, and explicitly call `.stream(false)` to convert it to `aclrtStream` to obtain the CANN-layer handle.
 

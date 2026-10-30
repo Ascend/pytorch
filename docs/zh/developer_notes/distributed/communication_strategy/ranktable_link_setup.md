@@ -2,12 +2,12 @@
 
 ## 简介
 
-支持以rank table文件配置方式建立通信域，来加速通信域建立时间，并做到建链时间几乎和集群规模无关，从而解决大集群下建立通信域的性能瓶颈。
+支持以ranktable文件配置方式建立通信域，来加速通信域建立时间，并做到建链时间几乎和集群规模无关，从而解决大集群下建立通信域的性能瓶颈。
 
-**图 1**  通过rank table建立通信域的流程图  
+**图 1**  通过ranktable建立通信域的流程图  
 ![](../../../figures/flowchart_for_creating_a_communicator_using_a_ranktable_file.png)
 
-PyTorch通过rank table文件建立全局通信域。子通信域的建立通过对全局通信域做切分实现。
+PyTorch通过ranktable文件建立全局通信域。子通信域的建立通过对全局通信域做切分实现。
 
 ## 使用场景
 
@@ -15,14 +15,14 @@ PyTorch通过rank table文件建立全局通信域。子通信域的建立通过
 
 ## 使用指导
 
-通过环境变量RANK\_TABLE\_FILE控制是否通过rank table文件配置进行集合通信域建链。
+通过环境变量RANK\_TABLE\_FILE控制是否通过ranktable文件配置进行集合通信域建链。
 
 - 未配置时，通过默认的协商流程进行集合通信域建链。
-- 配置且文件全路径有效时，通过rank table文件进行集合通信域建链。
+- 配置且文件全路径有效时，通过ranktable文件进行集合通信域建链。
 
 此环境变量默认为未配置。
 
-rank table文件配置说明请参考《CANN HCCL集合通信库》中对应的“[集群信息配置](https://gitcode.com/cann/hccl/blob/9.2.0/docs/zh/user_guide/cluster_info_config/intro.md)”章节。
+ranktable文件配置说明请参考《CANN HCCL集合通信库》中对应的“[集群信息配置](https://gitcode.com/cann/hccl/blob/9.2.0/docs/zh/user_guide/cluster_info_config/intro.md)”章节。
 
 > [!CAUTION]
 >
@@ -34,13 +34,13 @@ rank table文件配置说明请参考《CANN HCCL集合通信库》中对应的�
 
 ## 使用样例
 
-启用rank table文件方式建链示例：
+启用ranktable文件方式建链示例：
 
 ```bash
 export RANK_TABLE_FILE=/home/ranktable.json
 ```
 
-关闭rank table文件方式建链示例：
+关闭ranktable文件方式建链示例：
 
 ```bash
 unset RANK_TABLE_FILE

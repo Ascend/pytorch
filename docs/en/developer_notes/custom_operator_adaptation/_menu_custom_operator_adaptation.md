@@ -17,5 +17,5 @@
     -   [Adaptation Development and Usage (Complete Example - module)](https://gitcode.com/Ascend/op-plugin/blob/master/examples/cpp_extension_full/module/README.md)
     -   [Adaptation Development and Usage (Complete Example - TORCH\_LIBRARY\_IMPL)](https://gitcode.com/Ascend/op-plugin/blob/master/examples/cpp_extension_full/torch_lib_impl/README.md)
     -   [Adaptation Development and Usage (Structured)](https://gitcode.com/Ascend/op-plugin/blob/master/examples/cpp_extension_structured/README.md)
-    -   [Adaptation Development and Usage (AscendC)](https://gitcode.com/Ascend/op-plugin/blob/master/examples/cpp_extension_asc/README.md)
+    -   [Adaptation Development and Usage (Ascend C)](https://gitcode.com/Ascend/op-plugin/blob/master/examples/cpp_extension_asc/README.md)
     -   [Adaptation Development and Usage (pybind)](https://gitcode.com/Ascend/op-plugin/blob/master/examples/cpp_extension_pybind/README.md)

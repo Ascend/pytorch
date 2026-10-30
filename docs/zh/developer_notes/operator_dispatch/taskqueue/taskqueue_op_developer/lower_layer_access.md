@@ -2,7 +2,7 @@
 
 ## 使用指导
 
-该接入方式适用于AscendC kernel launch等非aclnn场景，需手动管理stream及lambda生命周期，以实现更精细的性能控制。完整用法包含三步：
+该接入方式适用于Ascend C kernel launch等非aclnn场景，需手动管理stream及lambda生命周期，以实现更精细的性能控制。完整用法包含三步：
 
 1. 获取流与处理队列：先获取当前NPUStream，应显式调用`.stream(false)`转换为`aclrtStream`以获取CANN层句柄。
 

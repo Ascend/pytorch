@@ -11,11 +11,11 @@ This environment variable is not configured by default.
 
 > [!NOTE]
 >
-> In the scenario where RANK\_TABLE\_FILE is configured, if the error "RuntimeError: The Inner Error ..." occurs during model distributed training, you are advised to appropriately increase the timeout duration of HCCL\_CONNECT\_TIMEOUT to avoid the link establishment timeout caused by the absence of negotiation in the rank table scenario. For details, see [Encountering the Error "RuntimeError: The Inner Error ..." During Model Distributed Training](../appendix/runtimeerror_Inner_Error.md).
+> In the scenario where RANK\_TABLE\_FILE is configured, if the error "RuntimeError: The Inner Error ..." occurs during model distributed training, you are advised to appropriately increase the timeout duration of HCCL\_CONNECT\_TIMEOUT to avoid the link establishment timeout caused by the absence of negotiation in the ranktable scenario. For details, see [Encountering the Error "RuntimeError: The Inner Error ..." During Model Distributed Training](../appendix/runtimeerror_Inner_Error.md).
 
 ## Configuration Example
 
-Example of enabling link establishment using the rank table file:
+Example of enabling link establishment using the ranktable file:
 
 ```bash
 export RANK_TABLE_FILE=/home/ranktable.json
@@ -26,7 +26,7 @@ export RANK_TABLE_FILE=/home/ranktable.json
 > - If the configured file path does not exist, collective communicator links are established through the default negotiation process.
 > - If the configured file path exists but the configuration information is incorrect, collective communicator links are not established through the default negotiation process. Instead, a corresponding error is reported during actual communication.
 
-Example of disabling link establishment using the rank table file:
+Example of disabling link establishment using the ranktable file:
 
 ```bash
 unset RANK_TABLE_FILE

@@ -14,10 +14,10 @@ The Inductor backend supports four operator compilers, which can be selected bas
 
 > [!NOTICE]
 >
-> - Before using the Inductor backend, install the latest Triton Ascend version first. This version supports only PyTorch 2.7.1 and 2.9.0. The installation instructions for Triton Ascend are as follows:
->   - For source code compilation or online installation (Pip), the system installs the matching version of Triton Ascend by default.
+> - Before using the Inductor backend, install the latest Triton-Ascend version first. This version supports only PyTorch 2.7.1 and 2.9.0. The installation instructions for Triton-Ascend are as follows:
+>   - For source code compilation or online installation (Pip), the system installs the matching version of Triton-Ascend by default.
 >   - For offline installation (Whl), refer to the [Quick Installation](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=180&ids=89dda9ba9de741349efa03687a487678%2C204%2C200%2C1%2C6%2C177%2C) document and run the commands in it for installation.
-> - For more information about Triton Ascend, refer to [Triton Ascend](https://triton-ascend.readthedocs.io/en/latest/).<br>
+> - For more information about Triton-Ascend, refer to [Triton-Ascend](https://triton-ascend.readthedocs.io/en/latest/).<br>
 > - Before importing torch, you can also select the compiler mode through the TORCHINDUCTOR_NPU_BACKEND environment variable. For details, see [TORCHINDUCTOR_NPU_BACKEND](../../../api/environment_variable/inductor/TORCHINDUCTOR_NPU_BACKEND.md).
 
 ## Compiler

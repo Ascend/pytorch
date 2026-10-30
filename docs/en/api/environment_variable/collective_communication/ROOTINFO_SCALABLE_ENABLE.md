@@ -27,7 +27,7 @@ unset ROOTINFO_SCALABLE_ENABLE
 
 ## Usage Constraints
 
-- This environment variable only affects the RootInfo link establishment path and does not change the rank table link establishment behavior.
+- This environment variable only affects the RootInfo link establishment path and does not change the ranktable link establishment behavior.
 - It takes effect only on HCCL communicators of the DEFAULT type. P2P communicators continue to use the original RootInfo path.
 - HCCL communicators use a lazy loading mechanism. Link establishment is triggered only when a collective communication operation that requires a communicator is executed for the first time.
 - This environment variable is cached after being read for the first time in a process. It should be configured before starting distributed workers. Dynamic switching within the same process is not supported.

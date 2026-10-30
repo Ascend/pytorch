@@ -34,13 +34,13 @@ For details on using this environment variable, see the "[RANK\_TABLE\_FILE](../
 
 ## Usage Examples
 
-Example of enabling link establishment using the rank table file:
+Example of enabling link establishment using the ranktable file:
 
 ```bash
 export RANK_TABLE_FILE=/home/ranktable.json
 ```
 
-Example of disabling link establishment using the rank table file:
+Example of disabling link establishment using the ranktable file:
 
 ```bash
 unset RANK_TABLE_FILE

@@ -111,6 +111,8 @@
 
 </div>
 
+</div>
+
 ### <code><i>class</i></code> torch.utils.benchmark.Measurement
 
 <div style="margin-left: 2em">
@@ -366,8 +368,6 @@
 <!-- npu="950" id54 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id54 -->
-
-</div>
 
 </div>
 

@@ -98,7 +98,7 @@ set: usage: set [-abefhkmnptuvxBCHP] [-o option-name] [--] [arg ...]
 ci/build.sh: line 4: $'\r': command not found
 ci/build.sh: line 9: $'\r': command not found
 ci/build.sh: line 11: syntax error near unexpected token `$'{\r''
-'i/build.sh: line 11: `function parse_script_args() {
+'ci/build.sh: line 11: `function parse_script_args() {
 ```
 
 **Possible Cause**
