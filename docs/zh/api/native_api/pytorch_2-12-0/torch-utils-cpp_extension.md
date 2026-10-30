@@ -53,6 +53,26 @@
 
 </div>
 
+### torch.utils.cpp_extension.SyclExtension
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.utils.cpp_extension.SyclExtension](https://pytorch.org/docs/2.12/cpp_extension.html#torch.utils.cpp_extension.SyclExtension)
+
+**产品支持情况**：
+
+<!-- npu="910b" id28 -->
+- <term>Atlas A2训练系列产品</term>：不支持
+<!-- end id28 -->
+<!-- npu="A3" id29 -->
+- <term>Atlas A3训练系列产品</term>：不支持
+<!-- end id29 -->
+<!-- npu="950" id30 -->
+- <term>Ascend 950DT系列产品</term>：不支持
+<!-- end id30 -->
+
+</div>
+
 ### <code><i>class</i></code> torch.utils.cpp_extension.BuildExtension
 
 <div style="margin-left: 2em">
