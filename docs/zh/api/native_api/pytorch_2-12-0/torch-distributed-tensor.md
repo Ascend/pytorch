@@ -275,13 +275,11 @@
 
 </div>
 
-## Different ways to create a DTensor
-
-### torch.distributed.tensor.distribute_module
+### <code><i>class</i></code> torch.distributed.tensor.debug.CommDebugMode
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.distributed.tensor.distribute_module](https://pytorch.org/docs/2.12/distributed.tensor.html#torch.distributed.tensor.distribute_module)
+**原生文档**：[torch.distributed.tensor.debug.CommDebugMode](https://pytorch.org/docs/2.12/distributed.tensor.html#torch.distributed.tensor.debug.CommDebugMode)
 
 **产品支持情况**：
 
@@ -295,15 +293,15 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id24 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32
-
 </div>
 
-### torch.distributed.tensor.distribute_tensor
+## Different ways to create a DTensor
+
+### torch.distributed.tensor.distribute_module
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.distributed.tensor.distribute_tensor](https://pytorch.org/docs/2.12/distributed.tensor.html#torch.distributed.tensor.distribute_tensor)
+**原生文档**：[torch.distributed.tensor.distribute_module](https://pytorch.org/docs/2.12/distributed.tensor.html#torch.distributed.tensor.distribute_module)
 
 **产品支持情况**：
 
@@ -316,6 +314,28 @@
 <!-- npu="950" id27 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id27 -->
+
+**限制与说明**： `input`仅支持bf16，fp16，fp32
+
+</div>
+
+### torch.distributed.tensor.distribute_tensor
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.tensor.distribute_tensor](https://pytorch.org/docs/2.12/distributed.tensor.html#torch.distributed.tensor.distribute_tensor)
+
+**产品支持情况**：
+
+<!-- npu="910b" id28 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id28 -->
+<!-- npu="A3" id29 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id29 -->
+<!-- npu="950" id30 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id30 -->
 
 **限制与说明**： `tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64，bool
 
@@ -331,15 +351,15 @@
 
 **产品支持情况**：
 
-<!-- npu="910b" id28 -->
+<!-- npu="910b" id31 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id28 -->
-<!-- npu="A3" id29 -->
+<!-- end id31 -->
+<!-- npu="A3" id32 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id29 -->
-<!-- npu="950" id30 -->
+<!-- end id32 -->
+<!-- npu="950" id33 -->
 - <term>Ascend 950DT系列产品</term>：支持
-<!-- end id30 -->
+<!-- end id33 -->
 
 **限制与说明**： 仅支持NPU fused SDPA路径；`q`/`k`/`v`仅支持BNSD布局；暂不支持`pse`、`padding_mask`、`prefix`、`actual_seq_qlen`、`actual_seq_kvlen`、`sink`以及任意非causal的attention mask；启用load balance时要求使用causal attention；暂不支持通过`torch.compile`编译为计算图
 
