@@ -14,7 +14,8 @@
 
 #include "torch_npu/csrc/profiler/init.h"
 #include "torch_npu/csrc/profiler/profiler_python.h"
-#include "torch_npu/csrc/profiler/npu_profiler.h"
+#include "torch_npu/csrc/profiler/profiler_api.h"
+#include "torch_npu/csrc/profiler/mstx_range.h"
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
 #include "torch_npu/csrc/framework/interface/LibAscendHal.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
@@ -90,16 +91,16 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused)
         return activities;
     });
     m.def("_init_profiler", initNpuProfiler);
-    m.def("_warmup_profiler", &warmupNpuProfiler, py::arg("config"), py::arg("activities"));
+    m.def("_warmup_profiler", &warmupNpuProfiler, py::arg("config"), py::arg("activities"), py::call_guard<py::gil_scoped_release>());
     m.def("_start_profiler",
         &startNpuProfiler,
         py::arg("config"),
         py::arg("activities"),
-        py::arg("scopes") = std::unordered_set<at::RecordScope>());
+        py::arg("scopes") = std::unordered_set<at::RecordScope>(), py::call_guard<py::gil_scoped_release>());
     m.def("_enable_profiler_in_child_thread", &enableProfilerInChildThread, py::arg("config"));
-    m.def("_stop_profiler", stopNpuProfiler);
+    m.def("_stop_profiler", stopNpuProfiler, py::call_guard<py::gil_scoped_release>());
     m.def("_disable_profiler_in_child_thread", disableProfilerInChildThread);
-    m.def("_finalize_profiler", finalizeNpuProfiler);
+    m.def("_finalize_profiler", finalizeNpuProfiler, py::call_guard<py::gil_scoped_release>());
     m.def("_get_freq", at_npu::native::getFreq);
     m.def("_get_syscnt_enable", at_npu::native::isSyscntEnable);
     m.def("_get_syscnt", torch_npu::toolkit::profiler::Utils::getClockSyscnt);
