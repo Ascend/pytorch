@@ -828,7 +828,25 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id117 -->
 
-**限制与说明**： `self`仅支持fp32
+</div>
+
+> <font size="3">register_load_state_dict_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.Module.register_load_state_dict_pre_hook](https://pytorch.org/docs/2.10/generated/torch.nn.Module.html#torch.nn.Module.register_load_state_dict_pre_hook)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1014 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1014 -->
+<!-- npu="A3" id1015 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1015 -->
+<!-- npu="950" id1016 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1016 -->
 
 </div>
 
@@ -849,8 +867,6 @@
 <!-- npu="950" id120 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id120 -->
-
-**限制与说明**： `self`仅支持fp32
 
 </div>
 
@@ -874,6 +890,26 @@
 
 </div>
 
+> <font size="3">register_state_dict_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.Module.register_state_dict_post_hook](https://pytorch.org/docs/2.10/generated/torch.nn.Module.html#torch.nn.Module.register_state_dict_post_hook)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1017 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1017 -->
+<!-- npu="A3" id1018 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1018 -->
+<!-- npu="950" id1019 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1019 -->
+
+</div>
+
 > <font size="3">register_state_dict_pre_hook()</font>
 
 <div style="margin-left: 2em">
@@ -889,7 +925,7 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id125 -->
 <!-- npu="950" id126 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id126 -->
 
 </div>
