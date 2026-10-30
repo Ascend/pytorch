@@ -335,6 +335,31 @@ class TorchNPUMemoryApiTestCase(TestCase):
         res = torch_npu.npu.memory_stats()
         self.assertIsInstance(res, collections.OrderedDict)
 
+    def test_memory_stats_no_closure_cycle(self):
+        """Guard against self-referential closures in memory_stats helpers.
+
+        A recursive helper nested inside memory_stats/host_memory_stats resolves
+        its own name through closure cells, creating a reference cycle that
+        leaks ~20KB per call when gc is disabled. Recursive helpers must be
+        defined at module level so the recursive name resolves through globals.
+        """
+        import torch_npu.npu.memory as npu_memory
+
+        for func in (npu_memory.memory_stats, npu_memory.host_memory_stats):
+            nested_codes = [c for c in func.__code__.co_consts
+                            if hasattr(c, "co_freevars")]
+            for code in nested_codes:
+                self.assertNotIn(
+                    code.co_name, code.co_freevars,
+                    f"{func.__name__}: nested function {code.co_name} captures "
+                    f"itself via closure cells (reference cycle); recursive "
+                    f"helpers must be module-level")
+
+        # The module-level helper resolves its recursive name through globals
+        # and must not capture any closure cells.
+        self.assertEqual(
+            npu_memory._recurse_add_to_result.__code__.co_freevars, ())
+
     def test_npu_memory_summary(self):
         res = torch_npu.npu.memory_summary()
         self.assertIsInstance(res, str)

@@ -188,6 +188,14 @@ def host_empty_cache():
     """
     torch_npu._C._npu_hostEmptyCache()
 
+def _recurse_add_to_result(result, prefix, obj, format_key):
+    if isinstance(obj, dict):
+        if prefix:
+            prefix += "."
+        for key, value in obj.items():
+            _recurse_add_to_result(result, prefix + format_key(key), value, format_key)
+    else:
+        result.append((prefix, obj))
 
 def host_memory_stats():
     r"""Return a dictionary of pinned (host) allocator statistics.
@@ -228,17 +236,8 @@ def host_memory_stats():
     """
     result = []
 
-    def _recurse_add_to_result(prefix, obj):
-        if isinstance(obj, dict):
-            if len(prefix) > 0:
-                prefix += "."
-            for k, v in obj.items():
-                _recurse_add_to_result(prefix + k, v)
-        else:
-            result.append((prefix, obj))
-
     stats = host_memory_stats_as_nested_dict()
-    _recurse_add_to_result("", stats)
+    _recurse_add_to_result(result, "", stats, str)
     result.sort()
     return collections.OrderedDict(result)
 
@@ -334,17 +333,15 @@ def memory_stats(device=None):
     """
     result = []
 
-    def _recurse_add_to_result(prefix, obj):
-        if isinstance(obj, dict):
-            if len(prefix) > 0:
-                prefix += "."
-            for k, v in obj.items():
-                _recurse_add_to_result(prefix + k, v)
-        else:
-            result.append((prefix, obj))
+    def _format_key(key):
+        if isinstance(key, str):
+            return key
+        if isinstance(key, tuple):
+            return "_".join(str(part) for part in key)
+        return str(key)
 
     stats = memory_stats_as_nested_dict(device=device)
-    _recurse_add_to_result("", stats)
+    _recurse_add_to_result(result, "", stats, _format_key)
     result.sort()
 
     return collections.OrderedDict(result)
