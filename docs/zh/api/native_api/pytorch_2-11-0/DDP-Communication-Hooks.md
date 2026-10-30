@@ -43,8 +43,6 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id3 -->
 
-**限制与说明**：`input`仅支持fp32
-
 > <font size="3">index()</font>
 
 <div style="margin-left: 2em">
