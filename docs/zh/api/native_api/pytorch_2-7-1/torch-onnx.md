@@ -667,6 +667,26 @@
 
 </div>
 
+> <font size="3">from_onnx_type()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.onnx.JitScalarType.from_onnx_type](https://pytorch.org/docs/2.7/generated/torch.onnx.JitScalarType.html#torch.onnx.JitScalarType.from_onnx_type)
+
+**产品支持情况**：
+
+<!-- npu="910b" id112 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id112 -->
+<!-- npu="A3" id113 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id113 -->
+<!-- npu="950" id114 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id114 -->
+
+</div>
+
 > <font size="3">from_value()</font>
 
 <div style="margin-left: 2em">
@@ -684,8 +704,6 @@
 <!-- npu="950" id87 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id87 -->
-
-**限制与说明**：`input`仅支持bool
 
 </div>
 
