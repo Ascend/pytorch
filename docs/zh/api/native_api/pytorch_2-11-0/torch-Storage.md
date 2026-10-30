@@ -2140,6 +2140,26 @@
 
 </div>
 
+> <font size="3">resizable()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.TypedStorage.resizable](https://pytorch.org/docs/2.11/storage.html#torch.TypedStorage.resizable)
+
+**产品支持情况**：
+
+<!-- npu="910b" id376 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id376 -->
+<!-- npu="A3" id377 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id377 -->
+<!-- npu="950" id378 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id378 -->
+
+</div>
+
 > <font size="3">resize_()</font>
 
 <div style="margin-left: 2em">
