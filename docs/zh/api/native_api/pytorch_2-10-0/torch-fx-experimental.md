@@ -12,7 +12,9 @@
 <div style="margin: 8px 0"><font size="5"><b>目录</b></font></div>
 
 - [torch.fx.experimental.symbolic_shapes](#torchfxexperimentalsymbolic_shapes)
+<!-- npu="910b,A3" id361 -->
 - [torch.fx.experimental.proxy_tensor](#torchfxexperimentalproxy_tensor)
+<!-- end id361 -->
 
 </div>
 
@@ -24,13 +26,17 @@
 
 ## torch.fx.experimental.symbolic_shapes
 
+<!-- npu="910b,A3,950" id219 -->
 ### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.ShapeEnv
+<!-- end id219 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id220 -->
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnv](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html)
 
 **产品支持情况**：
+<!-- end id220 -->
 
 <!-- npu="910b" id1 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -38,10 +44,8 @@
 <!-- npu="A3" id2 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id2 -->
-<!-- npu="950" id3 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id3 -->
 
+<!-- npu="910b,A3" id221 -->
 > <font size="3">format_guards()</font>
 
 <div style="margin-left: 2em">
@@ -49,6 +53,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnv.format_guards](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.format_guards)
 
 **产品支持情况**：
+<!-- end id221 -->
 
 <!-- npu="910b" id4 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -56,12 +61,12 @@
 <!-- npu="A3" id5 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id5 -->
-<!-- npu="950" id6 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id6 -->
 
+<!-- npu="910b,A3" id222 -->
 </div>
+<!-- end id222 -->
 
+<!-- npu="910b,A3" id223 -->
 > <font size="3">freeze()</font>
 
 <div style="margin-left: 2em">
@@ -69,6 +74,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnv.freeze](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.freeze)
 
 **产品支持情况**：
+<!-- end id223 -->
 
 <!-- npu="910b" id7 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -76,12 +82,12 @@
 <!-- npu="A3" id8 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id8 -->
-<!-- npu="950" id9 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id9 -->
 
+<!-- npu="910b,A3" id224 -->
 </div>
+<!-- end id224 -->
 
+<!-- npu="910b,A3" id225 -->
 > <font size="3">freeze_runtime_asserts()</font>
 
 <div style="margin-left: 2em">
@@ -89,6 +95,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnv.freeze_runtime_asserts](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.freeze_runtime_asserts)
 
 **产品支持情况**：
+<!-- end id225 -->
 
 <!-- npu="910b" id10 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -96,12 +103,12 @@
 <!-- npu="A3" id11 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id11 -->
-<!-- npu="950" id12 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id12 -->
 
+<!-- npu="910b,A3" id226 -->
 </div>
+<!-- end id226 -->
 
+<!-- npu="910b,A3" id227 -->
 > <font size="3">get_axioms()</font>
 
 <div style="margin-left: 2em">
@@ -109,6 +116,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnv.get_axioms](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.get_axioms)
 
 **产品支持情况**：
+<!-- end id227 -->
 
 <!-- npu="910b" id13 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -116,12 +124,12 @@
 <!-- npu="A3" id14 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id14 -->
-<!-- npu="950" id15 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id15 -->
 
+<!-- npu="910b,A3" id228 -->
 </div>
+<!-- end id228 -->
 
+<!-- npu="910b,A3" id229 -->
 > <font size="3">get_implications()</font>
 
 <div style="margin-left: 2em">
@@ -129,6 +137,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnv.get_implications](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.get_implications)
 
 **产品支持情况**：
+<!-- end id229 -->
 
 <!-- npu="910b" id16 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -136,12 +145,12 @@
 <!-- npu="A3" id17 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id17 -->
-<!-- npu="950" id18 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id18 -->
 
+<!-- npu="910b,A3" id230 -->
 </div>
+<!-- end id230 -->
 
+<!-- npu="910b,A3" id231 -->
 > <font size="3">create_symbolic_sizes_strides_storage_offset()</font>
 
 <div style="margin-left: 2em">
@@ -149,6 +158,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symbolic_sizes_strides_storage_offset](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symbolic_sizes_strides_storage_offset)
 
 **产品支持情况**：
+<!-- end id231 -->
 
 <!-- npu="910b" id19 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -156,12 +166,12 @@
 <!-- npu="A3" id20 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id20 -->
-<!-- npu="950" id21 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id21 -->
 
+<!-- npu="910b,A3" id232 -->
 </div>
+<!-- end id232 -->
 
+<!-- npu="910b,A3" id233 -->
 > <font size="3">create_symboolnode()</font>
 
 <div style="margin-left: 2em">
@@ -169,6 +179,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symboolnode](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symboolnode)
 
 **产品支持情况**：
+<!-- end id233 -->
 
 <!-- npu="910b" id22 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -176,12 +187,12 @@
 <!-- npu="A3" id23 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id23 -->
-<!-- npu="950" id24 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id24 -->
 
+<!-- npu="910b,A3" id234 -->
 </div>
+<!-- end id234 -->
 
+<!-- npu="910b,A3" id235 -->
 > <font size="3">create_symfloatnode()</font>
 
 <div style="margin-left: 2em">
@@ -189,6 +200,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symfloatnode](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symfloatnode)
 
 **产品支持情况**：
+<!-- end id235 -->
 
 <!-- npu="910b" id25 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -196,12 +208,12 @@
 <!-- npu="A3" id26 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id26 -->
-<!-- npu="950" id27 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id27 -->
 
+<!-- npu="910b,A3" id236 -->
 </div>
+<!-- end id236 -->
 
+<!-- npu="910b,A3" id237 -->
 > <font size="3">create_symintnode()</font>
 
 <div style="margin-left: 2em">
@@ -209,6 +221,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symintnode](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symintnode)
 
 **产品支持情况**：
+<!-- end id237 -->
 
 <!-- npu="910b" id28 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -216,12 +229,12 @@
 <!-- npu="A3" id29 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id29 -->
-<!-- npu="950" id30 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id30 -->
 
+<!-- npu="910b,A3" id238 -->
 </div>
+<!-- end id238 -->
 
+<!-- npu="910b,A3" id239 -->
 > <font size="3">create_unbacked_symbool()</font>
 
 <div style="margin-left: 2em">
@@ -229,6 +242,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_unbacked_symbool](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.create_unbacked_symbool)
 
 **产品支持情况**：
+<!-- end id239 -->
 
 <!-- npu="910b" id31 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -236,12 +250,12 @@
 <!-- npu="A3" id32 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id32 -->
-<!-- npu="950" id33 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id33 -->
 
+<!-- npu="910b,A3" id240 -->
 </div>
+<!-- end id240 -->
 
+<!-- npu="910b,A3" id241 -->
 > <font size="3">deserialize_symexpr()</font>
 
 <div style="margin-left: 2em">
@@ -249,6 +263,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnv.deserialize_symexpr](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.deserialize_symexpr)
 
 **产品支持情况**：
+<!-- end id241 -->
 
 <!-- npu="910b" id34 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -256,12 +271,12 @@
 <!-- npu="A3" id35 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id35 -->
-<!-- npu="950" id36 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id36 -->
 
+<!-- npu="910b,A3" id242 -->
 </div>
+<!-- end id242 -->
 
+<!-- npu="910b,A3" id243 -->
 > <font size="3">evaluate_guards_expression()</font>
 
 <div style="margin-left: 2em">
@@ -269,6 +284,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnv.evaluate_guards_expression](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.evaluate_guards_expression)
 
 **产品支持情况**：
+<!-- end id243 -->
 
 <!-- npu="910b" id37 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -276,12 +292,12 @@
 <!-- npu="A3" id38 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id38 -->
-<!-- npu="950" id39 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id39 -->
 
+<!-- npu="910b,A3" id244 -->
 </div>
+<!-- end id244 -->
 
+<!-- npu="910b,A3" id245 -->
 > <font size="3">evaluate_guards_for_args()</font>
 
 <div style="margin-left: 2em">
@@ -289,6 +305,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnv.evaluate_guards_for_args](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.evaluate_guards_for_args)
 
 **产品支持情况**：
+<!-- end id245 -->
 
 <!-- npu="910b" id40 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -296,12 +313,12 @@
 <!-- npu="A3" id41 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id41 -->
-<!-- npu="950" id42 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id42 -->
 
+<!-- npu="910b,A3" id246 -->
 </div>
+<!-- end id246 -->
 
+<!-- npu="910b,A3" id247 -->
 > <font size="3">evaluate_sym_node()</font>
 
 <div style="margin-left: 2em">
@@ -309,6 +326,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnv.evaluate_sym_node](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.evaluate_sym_node)
 
 **产品支持情况**：
+<!-- end id247 -->
 
 <!-- npu="910b" id43 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -316,12 +334,12 @@
 <!-- npu="A3" id44 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id44 -->
-<!-- npu="950" id45 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id45 -->
 
+<!-- npu="910b,A3" id248 -->
 </div>
+<!-- end id248 -->
 
+<!-- npu="910b,A3" id249 -->
 > <font size="3">evaluate_symexpr()</font>
 
 <div style="margin-left: 2em">
@@ -329,6 +347,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnv.evaluate_symexpr](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.evaluate_symexpr)
 
 **产品支持情况**：
+<!-- end id249 -->
 
 <!-- npu="910b" id46 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -336,12 +355,12 @@
 <!-- npu="A3" id47 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id47 -->
-<!-- npu="950" id48 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id48 -->
 
+<!-- npu="910b,A3" id250 -->
 </div>
+<!-- end id250 -->
 
+<!-- npu="910b,A3" id251 -->
 > <font size="3">size_hint()</font>
 
 <div style="margin-left: 2em">
@@ -349,6 +368,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnv.size_hint](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.size_hint)
 
 **产品支持情况**：
+<!-- end id251 -->
 
 <!-- npu="910b" id49 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -356,12 +376,12 @@
 <!-- npu="A3" id50 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id50 -->
-<!-- npu="950" id51 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id51 -->
 
+<!-- npu="910b,A3" id252 -->
 </div>
+<!-- end id252 -->
 
+<!-- npu="910b,A3" id253 -->
 > <font size="3">suppress_guards()</font>
 
 <div style="margin-left: 2em">
@@ -369,6 +389,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnv.suppress_guards](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.suppress_guards)
 
 **产品支持情况**：
+<!-- end id253 -->
 
 <!-- npu="910b" id52 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -376,12 +397,12 @@
 <!-- npu="A3" id53 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id53 -->
-<!-- npu="950" id54 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id54 -->
 
+<!-- npu="910b,A3" id254 -->
 </div>
+<!-- end id254 -->
 
+<!-- npu="910b,A3" id255 -->
 > <font size="3">produce_guards_expression()</font>
 
 <div style="margin-left: 2em">
@@ -389,6 +410,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnv.produce_guards_expression](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.produce_guards_expression)
 
 **产品支持情况**：
+<!-- end id255 -->
 
 <!-- npu="910b" id55 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -396,34 +418,14 @@
 <!-- npu="A3" id56 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id56 -->
-<!-- npu="950" id57 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id57 -->
 
+<!-- npu="910b,A3" id256 -->
 **限制与说明**： `input`仅支持fp32
 
 </div>
+<!-- end id256 -->
 
-> <font size="3">produce_guards_verbose()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnv.produce_guards_verbose](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.produce_guards_verbose)
-
-**产品支持情况**：
-
-<!-- npu="910b" id58 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id58 -->
-<!-- npu="A3" id59 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id59 -->
-<!-- npu="950" id60 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id60 -->
-
-</div>
-
+<!-- npu="910b,A3" id257 -->
 > <font size="3">replace()</font>
 
 <div style="margin-left: 2em">
@@ -431,6 +433,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnv.replace](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.replace)
 
 **产品支持情况**：
+<!-- end id257 -->
 
 <!-- npu="910b" id61 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -438,12 +441,12 @@
 <!-- npu="A3" id62 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id62 -->
-<!-- npu="950" id63 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id63 -->
 
+<!-- npu="910b,A3" id258 -->
 </div>
+<!-- end id258 -->
 
+<!-- npu="910b,A3" id259 -->
 > <font size="3">set_unbacked_var_to_val()</font>
 
 <div style="margin-left: 2em">
@@ -451,6 +454,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnv.set_unbacked_var_to_val](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.set_unbacked_var_to_val)
 
 **产品支持情况**：
+<!-- end id259 -->
 
 <!-- npu="910b" id64 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -458,12 +462,12 @@
 <!-- npu="A3" id65 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id65 -->
-<!-- npu="950" id66 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id66 -->
 
+<!-- npu="910b,A3" id260 -->
 </div>
+<!-- end id260 -->
 
+<!-- npu="910b,A3" id261 -->
 > <font size="3">simplify()</font>
 
 <div style="margin-left: 2em">
@@ -471,6 +475,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnv.simplify](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.simplify)
 
 **产品支持情况**：
+<!-- end id261 -->
 
 <!-- npu="910b" id67 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -478,12 +483,12 @@
 <!-- npu="A3" id68 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id68 -->
-<!-- npu="950" id69 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id69 -->
 
+<!-- npu="910b,A3" id262 -->
 </div>
+<!-- end id262 -->
 
+<!-- npu="910b,A3" id263 -->
 > <font size="3">create_symbol()</font>
 
 <div style="margin-left: 2em">
@@ -491,6 +496,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symbol](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.create_symbol)
 
 **产品支持情况**：
+<!-- end id263 -->
 
 <!-- npu="910b" id70 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -498,12 +504,12 @@
 <!-- npu="A3" id71 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id71 -->
-<!-- npu="950" id72 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id72 -->
 
+<!-- npu="910b,A3" id264 -->
 </div>
+<!-- end id264 -->
 
+<!-- npu="910b,A3" id265 -->
 > <font size="3">bound_sympy()</font>
 
 <div style="margin-left: 2em">
@@ -511,6 +517,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnv.bound_sympy](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.bound_sympy)
 
 **产品支持情况**：
+<!-- end id265 -->
 
 <!-- npu="910b" id73 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -518,12 +525,12 @@
 <!-- npu="A3" id74 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id74 -->
-<!-- npu="950" id75 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id75 -->
 
+<!-- npu="910b,A3" id266 -->
 </div>
+<!-- end id266 -->
 
+<!-- npu="910b,A3" id267 -->
 > <font size="3">check_equal()</font>
 
 <div style="margin-left: 2em">
@@ -531,6 +538,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnv.check_equal](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.check_equal)
 
 **产品支持情况**：
+<!-- end id267 -->
 
 <!-- npu="910b" id76 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -538,12 +546,12 @@
 <!-- npu="A3" id77 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id77 -->
-<!-- npu="950" id78 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id78 -->
 
+<!-- npu="910b,A3" id268 -->
 </div>
+<!-- end id268 -->
 
+<!-- npu="910b,A3" id269 -->
 > <font size="3">cleanup()</font>
 
 <div style="margin-left: 2em">
@@ -551,6 +559,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnv.cleanup](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ShapeEnv.html#torch.fx.experimental.symbolic_shapes.ShapeEnv.cleanup)
 
 **产品支持情况**：
+<!-- end id269 -->
 
 <!-- npu="910b" id79 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -558,11 +567,10 @@
 <!-- npu="A3" id80 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id80 -->
-<!-- npu="950" id81 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id81 -->
 
+<!-- npu="910b,A3" id270 -->
 </div>
+<!-- end id270 -->
 
 > <font size="3">bind_symbols()</font>
 
@@ -586,6 +594,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id271 -->
 ### torch.fx.experimental.symbolic_shapes.lru_cache
 
 <div style="margin-left: 2em">
@@ -593,6 +602,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.lru_cache](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.lru_cache.html)
 
 **产品支持情况**：
+<!-- end id271 -->
 
 <!-- npu="910b" id85 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -600,12 +610,12 @@
 <!-- npu="A3" id86 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id86 -->
-<!-- npu="950" id87 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id87 -->
 
+<!-- npu="910b,A3" id272 -->
 </div>
+<!-- end id272 -->
 
+<!-- npu="910b,A3" id273 -->
 ### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.ShapeEnvSettings
 
 <div style="margin-left: 2em">
@@ -613,6 +623,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnvSettings](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ShapeEnvSettings.html)
 
 **产品支持情况**：
+<!-- end id273 -->
 
 <!-- npu="910b" id88 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -620,12 +631,12 @@
 <!-- npu="A3" id89 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id89 -->
-<!-- npu="950" id90 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id90 -->
 
+<!-- npu="910b,A3" id274 -->
 </div>
+<!-- end id274 -->
 
+<!-- npu="910b,A3" id275 -->
 ### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.StatefulSymbolicContext
 
 <div style="margin-left: 2em">
@@ -633,6 +644,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.StatefulSymbolicContext](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.StatefulSymbolicContext.html)
 
 **产品支持情况**：
+<!-- end id275 -->
 
 <!-- npu="910b" id91 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -640,12 +652,12 @@
 <!-- npu="A3" id92 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id92 -->
-<!-- npu="950" id93 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id93 -->
 
+<!-- npu="910b,A3" id276 -->
 </div>
+<!-- end id276 -->
 
+<!-- npu="910b,A3" id277 -->
 ### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.StatelessSymbolicContext
 
 <div style="margin-left: 2em">
@@ -653,6 +665,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.StatelessSymbolicContext](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.StatelessSymbolicContext.html)
 
 **产品支持情况**：
+<!-- end id277 -->
 
 <!-- npu="910b" id94 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -660,12 +673,12 @@
 <!-- npu="A3" id95 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id95 -->
-<!-- npu="950" id96 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id96 -->
 
+<!-- npu="910b,A3" id278 -->
 </div>
+<!-- end id278 -->
 
+<!-- npu="910b,A3" id279 -->
 ### torch.fx.experimental.symbolic_shapes.canonicalize_bool_expr
 
 <div style="margin-left: 2em">
@@ -673,6 +686,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.canonicalize_bool_expr](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.canonicalize_bool_expr.html)
 
 **产品支持情况**：
+<!-- end id279 -->
 
 <!-- npu="910b" id97 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -680,12 +694,12 @@
 <!-- npu="A3" id98 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id98 -->
-<!-- npu="950" id99 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id99 -->
 
+<!-- npu="910b,A3" id280 -->
 </div>
+<!-- end id280 -->
 
+<!-- npu="910b,A3" id281 -->
 ### torch.fx.experimental.symbolic_shapes.check_consistent
 
 <div style="margin-left: 2em">
@@ -693,6 +707,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.check_consistent](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.check_consistent.html)
 
 **产品支持情况**：
+<!-- end id281 -->
 
 <!-- npu="910b" id100 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -700,12 +715,12 @@
 <!-- npu="A3" id101 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id101 -->
-<!-- npu="950" id102 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id102 -->
 
+<!-- npu="910b,A3" id282 -->
 </div>
+<!-- end id282 -->
 
+<!-- npu="910b,A3" id283 -->
 ### torch.fx.experimental.symbolic_shapes.is_accessor_node
 
 <div style="margin-left: 2em">
@@ -713,6 +728,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.is_accessor_node](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.is_accessor_node.html)
 
 **产品支持情况**：
+<!-- end id283 -->
 
 <!-- npu="910b" id103 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -720,12 +736,12 @@
 <!-- npu="A3" id104 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id104 -->
-<!-- npu="950" id105 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id105 -->
 
+<!-- npu="910b,A3" id284 -->
 </div>
+<!-- end id284 -->
 
+<!-- npu="910b,A3" id285 -->
 ### torch.fx.experimental.symbolic_shapes.is_concrete_bool
 
 <div style="margin-left: 2em">
@@ -733,6 +749,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.is_concrete_bool](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.is_concrete_bool.html)
 
 **产品支持情况**：
+<!-- end id285 -->
 
 <!-- npu="910b" id106 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -740,12 +757,12 @@
 <!-- npu="A3" id107 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id107 -->
-<!-- npu="950" id108 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id108 -->
 
+<!-- npu="910b,A3" id286 -->
 </div>
+<!-- end id286 -->
 
+<!-- npu="910b,A3" id287 -->
 ### torch.fx.experimental.symbolic_shapes.is_concrete_float
 
 <div style="margin-left: 2em">
@@ -753,6 +770,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.is_concrete_float](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.is_concrete_float.html)
 
 **产品支持情况**：
+<!-- end id287 -->
 
 <!-- npu="910b" id109 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -760,12 +778,12 @@
 <!-- npu="A3" id110 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id110 -->
-<!-- npu="950" id111 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id111 -->
 
+<!-- npu="910b,A3" id288 -->
 </div>
+<!-- end id288 -->
 
+<!-- npu="910b,A3" id289 -->
 ### torch.fx.experimental.symbolic_shapes.is_concrete_int
 
 <div style="margin-left: 2em">
@@ -773,6 +791,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.is_concrete_int](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.is_concrete_int.html)
 
 **产品支持情况**：
+<!-- end id289 -->
 
 <!-- npu="910b" id112 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -780,19 +799,23 @@
 <!-- npu="A3" id113 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id113 -->
-<!-- npu="950" id114 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id114 -->
 
+<!-- npu="910b,A3" id290 -->
 </div>
+<!-- end id290 -->
 
+<!-- npu="910b,A3" id363 -->
+<!-- npu="910b,A3" id291 -->
 ### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.StrictMinMaxConstraint
+<!-- end id291 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id292 -->
 **原生文档**：[torch.fx.experimental.symbolic_shapes.StrictMinMaxConstraint](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.StrictMinMaxConstraint.html)
 
 **产品支持情况**：
+<!-- end id292 -->
 
 <!-- npu="910b" id115 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -800,10 +823,8 @@
 <!-- npu="A3" id116 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id116 -->
-<!-- npu="950" id117 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id117 -->
 
+<!-- npu="910b,A3" id293 -->
 > <font size="3">render()</font>
 
 <div style="margin-left: 2em">
@@ -811,6 +832,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.StrictMinMaxConstraint.render](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.StrictMinMaxConstraint.html#torch.fx.experimental.symbolic_shapes.StrictMinMaxConstraint.render)
 
 **产品支持情况**：
+<!-- end id293 -->
 
 <!-- npu="910b" id118 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -818,14 +840,15 @@
 <!-- npu="A3" id119 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id119 -->
-<!-- npu="950" id120 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id120 -->
+
+<!-- npu="910b,A3" id294 -->
+</div>
+<!-- end id294 -->
 
 </div>
+<!-- end id363 -->
 
-</div>
-
+<!-- npu="910b,A3" id295 -->
 ### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.SubclassSymbolicContext
 
 <div style="margin-left: 2em">
@@ -833,6 +856,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.SubclassSymbolicContext](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.SubclassSymbolicContext.html)
 
 **产品支持情况**：
+<!-- end id295 -->
 
 <!-- npu="910b" id121 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -840,12 +864,12 @@
 <!-- npu="A3" id122 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id122 -->
-<!-- npu="950" id123 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id123 -->
 
+<!-- npu="910b,A3" id296 -->
 </div>
+<!-- end id296 -->
 
+<!-- npu="910b,A3" id297 -->
 ### torch.fx.experimental.symbolic_shapes.sym_eq
 
 <div style="margin-left: 2em">
@@ -853,6 +877,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.sym_eq](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.sym_eq.html)
 
 **产品支持情况**：
+<!-- end id297 -->
 
 <!-- npu="910b" id124 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -860,12 +885,12 @@
 <!-- npu="A3" id125 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id125 -->
-<!-- npu="950" id126 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id126 -->
 
+<!-- npu="910b,A3" id298 -->
 </div>
+<!-- end id298 -->
 
+<!-- npu="910b,A3" id299 -->
 ### torch.fx.experimental.symbolic_shapes.statically_known_true
 
 <div style="margin-left: 2em">
@@ -873,6 +898,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.statically_known_true](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.statically_known_true.html)
 
 **产品支持情况**：
+<!-- end id299 -->
 
 <!-- npu="910b" id127 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -880,19 +906,23 @@
 <!-- npu="A3" id128 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id128 -->
-<!-- npu="950" id129 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id129 -->
 
+<!-- npu="910b,A3" id300 -->
 </div>
+<!-- end id300 -->
 
+<!-- npu="910b,A3" id364 -->
+<!-- npu="910b,A3" id301 -->
 ### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.DivideByKey
+<!-- end id301 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id302 -->
 **原生文档**：[torch.fx.experimental.symbolic_shapes.DivideByKey](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.DivideByKey.html)
 
 **产品支持情况**：
+<!-- end id302 -->
 
 <!-- npu="910b" id130 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -900,10 +930,8 @@
 <!-- npu="A3" id131 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id131 -->
-<!-- npu="950" id132 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id132 -->
 
+<!-- npu="910b,A3" id303 -->
 > <font size="3">get()</font>
 
 <div style="margin-left: 2em">
@@ -911,6 +939,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.DivideByKey.get](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.DivideByKey.html#torch.fx.experimental.symbolic_shapes.DivideByKey.get)
 
 **产品支持情况**：
+<!-- end id303 -->
 
 <!-- npu="910b" id133 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -918,14 +947,15 @@
 <!-- npu="A3" id134 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id134 -->
-<!-- npu="950" id135 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id135 -->
+
+<!-- npu="910b,A3" id304 -->
+</div>
+<!-- end id304 -->
 
 </div>
+<!-- end id364 -->
 
-</div>
-
+<!-- npu="910b,A3" id305 -->
 ### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.EqualityConstraint
 
 <div style="margin-left: 2em">
@@ -933,6 +963,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.EqualityConstraint](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.EqualityConstraint.html)
 
 **产品支持情况**：
+<!-- end id305 -->
 
 <!-- npu="910b" id136 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -940,12 +971,12 @@
 <!-- npu="A3" id137 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id137 -->
-<!-- npu="950" id138 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id138 -->
 
+<!-- npu="910b,A3" id306 -->
 </div>
+<!-- end id306 -->
 
+<!-- npu="910b,A3" id307 -->
 ### torch.fx.experimental.symbolic_shapes.guard_size_oblivious
 
 <div style="margin-left: 2em">
@@ -953,6 +984,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.guard_size_oblivious](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.guard_size_oblivious.html)
 
 **产品支持情况**：
+<!-- end id307 -->
 
 <!-- npu="910b" id139 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -960,12 +992,12 @@
 <!-- npu="A3" id140 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id140 -->
-<!-- npu="950" id141 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id141 -->
 
+<!-- npu="910b,A3" id308 -->
 </div>
+<!-- end id308 -->
 
+<!-- npu="910b,A3" id309 -->
 ### torch.fx.experimental.symbolic_shapes.has_free_symbols
 
 <div style="margin-left: 2em">
@@ -973,6 +1005,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.has_free_symbols](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.has_free_symbols.html)
 
 **产品支持情况**：
+<!-- end id309 -->
 
 <!-- npu="910b" id142 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -980,16 +1013,17 @@
 <!-- npu="A3" id143 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id143 -->
-<!-- npu="950" id144 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id144 -->
 
+<!-- npu="910b,A3" id310 -->
 </div>
+<!-- end id310 -->
 
+<!-- npu="910b,A3" id365 -->
 ### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id311 -->
 > <font size="3">boxed_run()</font>
 
 <div style="margin-left: 2em">
@@ -997,6 +1031,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.boxed_run](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.html#torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.boxed_run)
 
 **产品支持情况**：
+<!-- end id311 -->
 
 <!-- npu="910b" id145 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1004,12 +1039,12 @@
 <!-- npu="A3" id146 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id146 -->
-<!-- npu="950" id147 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id147 -->
 
+<!-- npu="910b,A3" id312 -->
 </div>
+<!-- end id312 -->
 
+<!-- npu="910b,A3" id313 -->
 > <font size="3">call_function()</font>
 
 <div style="margin-left: 2em">
@@ -1017,6 +1052,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.call_function](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.html#torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.call_function)
 
 **产品支持情况**：
+<!-- end id313 -->
 
 <!-- npu="910b" id148 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1024,12 +1060,12 @@
 <!-- npu="A3" id149 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id149 -->
-<!-- npu="950" id150 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id150 -->
 
+<!-- npu="910b,A3" id314 -->
 </div>
+<!-- end id314 -->
 
+<!-- npu="910b,A3" id315 -->
 > <font size="3">call_method()</font>
 
 <div style="margin-left: 2em">
@@ -1037,6 +1073,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.call_method](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.html#torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.call_method)
 
 **产品支持情况**：
+<!-- end id315 -->
 
 <!-- npu="910b" id151 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1044,12 +1081,12 @@
 <!-- npu="A3" id152 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id152 -->
-<!-- npu="950" id153 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id153 -->
 
+<!-- npu="910b,A3" id316 -->
 </div>
+<!-- end id316 -->
 
+<!-- npu="910b,A3" id317 -->
 > <font size="3">call_module()</font>
 
 <div style="margin-left: 2em">
@@ -1057,6 +1094,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.call_module](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.html#torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.call_module)
 
 **产品支持情况**：
+<!-- end id317 -->
 
 <!-- npu="910b" id154 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1064,12 +1102,12 @@
 <!-- npu="A3" id155 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id155 -->
-<!-- npu="950" id156 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id156 -->
 
+<!-- npu="910b,A3" id318 -->
 </div>
+<!-- end id318 -->
 
+<!-- npu="910b,A3" id319 -->
 > <font size="3">fetch_args_kwargs_from_env()</font>
 
 <div style="margin-left: 2em">
@@ -1077,6 +1115,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.fetch_args_kwargs_from_env](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.html#torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.fetch_args_kwargs_from_env)
 
 **产品支持情况**：
+<!-- end id319 -->
 
 <!-- npu="910b" id157 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1084,12 +1123,12 @@
 <!-- npu="A3" id158 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id158 -->
-<!-- npu="950" id159 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id159 -->
 
+<!-- npu="910b,A3" id320 -->
 </div>
+<!-- end id320 -->
 
+<!-- npu="910b,A3" id321 -->
 > <font size="3">fetch_attr()</font>
 
 <div style="margin-left: 2em">
@@ -1097,6 +1136,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.fetch_attr](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.html#torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.fetch_attr)
 
 **产品支持情况**：
+<!-- end id321 -->
 
 <!-- npu="910b" id160 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1104,12 +1144,12 @@
 <!-- npu="A3" id161 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id161 -->
-<!-- npu="950" id162 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id162 -->
 
+<!-- npu="910b,A3" id322 -->
 </div>
+<!-- end id322 -->
 
+<!-- npu="910b,A3" id323 -->
 > <font size="3">get_attr()</font>
 
 <div style="margin-left: 2em">
@@ -1117,6 +1157,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.get_attr](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.html#torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.get_attr)
 
 **产品支持情况**：
+<!-- end id323 -->
 
 <!-- npu="910b" id163 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1124,12 +1165,12 @@
 <!-- npu="A3" id164 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id164 -->
-<!-- npu="950" id165 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id165 -->
 
+<!-- npu="910b,A3" id324 -->
 </div>
+<!-- end id324 -->
 
+<!-- npu="910b,A3" id325 -->
 > <font size="3">map_nodes_to_values()</font>
 
 <div style="margin-left: 2em">
@@ -1137,6 +1178,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.map_nodes_to_values](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.html#torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts.map_nodes_to_values)
 
 **产品支持情况**：
+<!-- end id325 -->
 
 <!-- npu="910b" id166 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1144,14 +1186,15 @@
 <!-- npu="A3" id167 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id167 -->
-<!-- npu="950" id168 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id168 -->
+
+<!-- npu="910b,A3" id326 -->
+</div>
+<!-- end id326 -->
 
 </div>
+<!-- end id365 -->
 
-</div>
-
+<!-- npu="910b,A3" id327 -->
 ### torch.fx.experimental.symbolic_shapes.compute_unbacked_bindings
 
 <div style="margin-left: 2em">
@@ -1159,6 +1202,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.compute_unbacked_bindings](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.compute_unbacked_bindings.html)
 
 **产品支持情况**：
+<!-- end id327 -->
 
 <!-- npu="910b" id169 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1166,12 +1210,12 @@
 <!-- npu="A3" id170 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id170 -->
-<!-- npu="950" id171 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id171 -->
 
+<!-- npu="910b,A3" id328 -->
 </div>
+<!-- end id328 -->
 
+<!-- npu="910b,A3" id329 -->
 ### torch.fx.experimental.symbolic_shapes.constrain_range
 
 <div style="margin-left: 2em">
@@ -1179,6 +1223,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.constrain_range](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.constrain_range.html)
 
 **产品支持情况**：
+<!-- end id329 -->
 
 <!-- npu="910b" id172 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1186,14 +1231,14 @@
 <!-- npu="A3" id173 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id173 -->
-<!-- npu="950" id174 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id174 -->
 
+<!-- npu="910b,A3" id330 -->
 **限制与说明**： 需通过`torch.compile`获取SymInt
 
 </div>
+<!-- end id330 -->
 
+<!-- npu="910b,A3" id331 -->
 ### torch.fx.experimental.symbolic_shapes.constrain_unify
 
 <div style="margin-left: 2em">
@@ -1201,6 +1246,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.constrain_unify](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.constrain_unify.html)
 
 **产品支持情况**：
+<!-- end id331 -->
 
 <!-- npu="910b" id175 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1208,21 +1254,25 @@
 <!-- npu="A3" id176 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id176 -->
-<!-- npu="950" id177 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id177 -->
 
+<!-- npu="910b,A3" id332 -->
 **限制与说明**： 需通过`torch.compile`获取SymInt
 
 </div>
+<!-- end id332 -->
 
+<!-- npu="910b,A3" id366 -->
+<!-- npu="910b,A3" id333 -->
 ### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.ConvertIntKey
+<!-- end id333 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id334 -->
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ConvertIntKey](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ConvertIntKey.html)
 
 **产品支持情况**：
+<!-- end id334 -->
 
 <!-- npu="910b" id178 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1230,10 +1280,8 @@
 <!-- npu="A3" id179 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id179 -->
-<!-- npu="950" id180 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id180 -->
 
+<!-- npu="910b,A3" id335 -->
 > <font size="3">get()</font>
 
 <div style="margin-left: 2em">
@@ -1241,6 +1289,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.ConvertIntKey.get](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.ConvertIntKey.html#torch.fx.experimental.symbolic_shapes.ConvertIntKey.get)
 
 **产品支持情况**：
+<!-- end id335 -->
 
 <!-- npu="910b" id181 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1248,18 +1297,20 @@
 <!-- npu="A3" id182 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id182 -->
-<!-- npu="950" id183 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id183 -->
+
+<!-- npu="910b,A3" id336 -->
+</div>
+<!-- end id336 -->
 
 </div>
+<!-- end id366 -->
 
-</div>
-
+<!-- npu="910b,A3" id367 -->
 ### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.DimConstraints
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id337 -->
 > <font size="3">forced_specializations()</font>
 
 <div style="margin-left: 2em">
@@ -1267,6 +1318,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.DimConstraints.forced_specializations](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.DimConstraints.html#torch.fx.experimental.symbolic_shapes.DimConstraints.forced_specializations)
 
 **产品支持情况**：
+<!-- end id337 -->
 
 <!-- npu="910b" id184 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1274,12 +1326,12 @@
 <!-- npu="A3" id185 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id185 -->
-<!-- npu="950" id186 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id186 -->
 
+<!-- npu="910b,A3" id338 -->
 </div>
+<!-- end id338 -->
 
+<!-- npu="910b,A3" id339 -->
 > <font size="3">prettify_results()</font>
 
 <div style="margin-left: 2em">
@@ -1287,6 +1339,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.DimConstraints.prettify_results](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.DimConstraints.html#torch.fx.experimental.symbolic_shapes.DimConstraints.prettify_results)
 
 **产品支持情况**：
+<!-- end id339 -->
 
 <!-- npu="910b" id187 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1294,12 +1347,12 @@
 <!-- npu="A3" id188 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id188 -->
-<!-- npu="950" id189 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id189 -->
 
+<!-- npu="910b,A3" id340 -->
 </div>
+<!-- end id340 -->
 
+<!-- npu="910b,A3" id341 -->
 > <font size="3">rewrite_with_congruences()</font>
 
 <div style="margin-left: 2em">
@@ -1307,6 +1360,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.DimConstraints.rewrite_with_congruences](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.DimConstraints.html#torch.fx.experimental.symbolic_shapes.DimConstraints.rewrite_with_congruences)
 
 **产品支持情况**：
+<!-- end id341 -->
 
 <!-- npu="910b" id190 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1314,12 +1368,12 @@
 <!-- npu="A3" id191 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id191 -->
-<!-- npu="950" id192 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id192 -->
 
+<!-- npu="910b,A3" id342 -->
 </div>
+<!-- end id342 -->
 
+<!-- npu="910b,A3" id343 -->
 > <font size="3">solve()</font>
 
 <div style="margin-left: 2em">
@@ -1327,6 +1381,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.DimConstraints.solve](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.DimConstraints.html#torch.fx.experimental.symbolic_shapes.DimConstraints.solve)
 
 **产品支持情况**：
+<!-- end id343 -->
 
 <!-- npu="910b" id193 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1334,14 +1389,15 @@
 <!-- npu="A3" id194 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id194 -->
-<!-- npu="950" id195 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id195 -->
+
+<!-- npu="910b,A3" id344 -->
+</div>
+<!-- end id344 -->
 
 </div>
+<!-- end id367 -->
 
-</div>
-
+<!-- npu="910b,A3" id345 -->
 ### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.DimDynamic
 
 <div style="margin-left: 2em">
@@ -1349,6 +1405,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.DimDynamic](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.DimDynamic.html)
 
 **产品支持情况**：
+<!-- end id345 -->
 
 <!-- npu="910b" id196 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1356,19 +1413,23 @@
 <!-- npu="A3" id197 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id197 -->
-<!-- npu="950" id198 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id198 -->
 
+<!-- npu="910b,A3" id346 -->
 </div>
+<!-- end id346 -->
 
+<!-- npu="910b,A3" id368 -->
+<!-- npu="910b,A3" id347 -->
 ### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.CallMethodKey
+<!-- end id347 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id348 -->
 **原生文档**：[torch.fx.experimental.symbolic_shapes.CallMethodKey](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.CallMethodKey.html)
 
 **产品支持情况**：
+<!-- end id348 -->
 
 <!-- npu="910b" id199 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1376,10 +1437,8 @@
 <!-- npu="A3" id200 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id200 -->
-<!-- npu="950" id201 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id201 -->
 
+<!-- npu="910b,A3" id349 -->
 > <font size="3">get()</font>
 
 <div style="margin-left: 2em">
@@ -1387,6 +1446,7 @@
 **原生文档**：[torch.fx.experimental.symbolic_shapes.CallMethodKey.get](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.symbolic_shapes.CallMethodKey.html#torch.fx.experimental.symbolic_shapes.CallMethodKey.get)
 
 **产品支持情况**：
+<!-- end id349 -->
 
 <!-- npu="910b" id202 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1394,16 +1454,18 @@
 <!-- npu="A3" id203 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id203 -->
-<!-- npu="950" id204 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id204 -->
+
+<!-- npu="910b,A3" id350 -->
+</div>
+<!-- end id350 -->
 
 </div>
+<!-- end id368 -->
 
-</div>
-
+<!-- npu="910b,A3" id362 -->
 ## torch.fx.experimental.proxy_tensor
 
+<!-- npu="910b,A3" id351 -->
 ### torch.fx.experimental.proxy_tensor.get_proxy_mode
 
 <div style="margin-left: 2em">
@@ -1411,6 +1473,7 @@
 **原生文档**：[torch.fx.experimental.proxy_tensor.get_proxy_mode](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.proxy_tensor.get_proxy_mode.html)
 
 **产品支持情况**：
+<!-- end id351 -->
 
 <!-- npu="910b" id205 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1418,12 +1481,12 @@
 <!-- npu="A3" id206 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id206 -->
-<!-- npu="950" id207 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id207 -->
 
+<!-- npu="910b,A3" id352 -->
 </div>
+<!-- end id352 -->
 
+<!-- npu="910b,A3" id353 -->
 ### torch.fx.experimental.proxy_tensor.handle_sym_dispatch
 
 <div style="margin-left: 2em">
@@ -1431,6 +1494,7 @@
 **原生文档**：[torch.fx.experimental.proxy_tensor.handle_sym_dispatch](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.proxy_tensor.handle_sym_dispatch.html)
 
 **产品支持情况**：
+<!-- end id353 -->
 
 <!-- npu="910b" id208 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1438,12 +1502,12 @@
 <!-- npu="A3" id209 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id209 -->
-<!-- npu="950" id210 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id210 -->
 
+<!-- npu="910b,A3" id354 -->
 </div>
+<!-- end id354 -->
 
+<!-- npu="910b,A3" id355 -->
 ### torch.fx.experimental.proxy_tensor.make_fx
 
 <div style="margin-left: 2em">
@@ -1451,6 +1515,7 @@
 **原生文档**：[torch.fx.experimental.proxy_tensor.make_fx](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.proxy_tensor.make_fx.html)
 
 **产品支持情况**：
+<!-- end id355 -->
 
 <!-- npu="910b" id211 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1458,12 +1523,12 @@
 <!-- npu="A3" id212 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id212 -->
-<!-- npu="950" id213 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id213 -->
 
+<!-- npu="910b,A3" id356 -->
 </div>
+<!-- end id356 -->
 
+<!-- npu="910b,A3" id357 -->
 ### torch.fx.experimental.proxy_tensor.maybe_disable_thunkify
 
 <div style="margin-left: 2em">
@@ -1471,6 +1536,7 @@
 **原生文档**：[torch.fx.experimental.proxy_tensor.maybe_disable_thunkify](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.proxy_tensor.maybe_disable_thunkify.html)
 
 **产品支持情况**：
+<!-- end id357 -->
 
 <!-- npu="910b" id214 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1478,12 +1544,12 @@
 <!-- npu="A3" id215 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id215 -->
-<!-- npu="950" id216 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id216 -->
 
+<!-- npu="910b,A3" id358 -->
 </div>
+<!-- end id358 -->
 
+<!-- npu="910b,A3" id359 -->
 ### torch.fx.experimental.proxy_tensor.maybe_enable_thunkify
 
 <div style="margin-left: 2em">
@@ -1491,6 +1557,7 @@
 **原生文档**：[torch.fx.experimental.proxy_tensor.maybe_enable_thunkify](https://pytorch.org/docs/2.10/generated/torch.fx.experimental.proxy_tensor.maybe_enable_thunkify.html)
 
 **产品支持情况**：
+<!-- end id359 -->
 
 <!-- npu="910b" id217 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1498,8 +1565,8 @@
 <!-- npu="A3" id218 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id218 -->
-<!-- npu="950" id219 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id219 -->
 
+<!-- npu="910b,A3" id360 -->
 </div>
+<!-- end id360 -->
+<!-- end id362 -->

@@ -153,6 +153,66 @@
 
 </div>
 
+### torch.compiler.cudagraph_mark_step_begin
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.compiler.cudagraph_mark_step_begin](https://docs.pytorch.org/docs/2.7/generated/torch.compiler.cudagraph_mark_step_begin.html#torch.compiler.cudagraph_mark_step_begin)
+
+**产品支持情况**：
+
+<!-- npu="910b" id25 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id25 -->
+<!-- npu="A3" id26 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id26 -->
+<!-- npu="950" id27 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id27 -->
+
+</div>
+
+### torch.compiler.is_compiling
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.compiler.is_compiling](https://docs.pytorch.org/docs/2.7/generated/torch.compiler.is_compiling.html#torch.compiler.is_compiling)
+
+**产品支持情况**：
+
+<!-- npu="910b" id31 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id31 -->
+<!-- npu="A3" id32 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id32 -->
+<!-- npu="950" id33 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id33 -->
+
+</div>
+
+### torch.compiler.is_dynamo_compiling
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.compiler.is_dynamo_compiling](https://docs.pytorch.org/docs/2.7/generated/torch.compiler.is_dynamo_compiling.html#torch.compiler.is_dynamo_compiling)
+
+**产品支持情况**：
+
+<!-- npu="910b" id28 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id28 -->
+<!-- npu="A3" id29 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id29 -->
+<!-- npu="950" id30 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id30 -->
+
+</div>
+
 ### torch.compiler.is_exporting
 
 <div style="margin-left: 2em">

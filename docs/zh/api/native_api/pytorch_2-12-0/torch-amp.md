@@ -23,6 +23,26 @@
 
 ## Autocasting
 
+### torch.amp.custom_fwd
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.amp.custom_fwd](https://docs.pytorch.org/docs/2.12/amp.html#torch.amp.custom_fwd)
+
+**产品支持情况**：
+
+<!-- npu="910b" id19 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id19 -->
+<!-- npu="A3" id20 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id20 -->
+<!-- npu="950" id21 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id21 -->
+
+</div>
+
 ### torch.cuda.amp.autocast
 
 <div style="margin-left: 2em">

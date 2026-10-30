@@ -10,7 +10,9 @@
 <div style="border:1px solid #d1d5da;margin:10px 0;padding:16px 20px;background-color:#f3f4f5;border-radius:.25rem">
 <div style="margin: 8px 0"><font size="5"><b>目录</b></font></div>
 
+<!-- npu="910b,A3" id110 -->
 - [torch.backends.cpu](#torchbackendscpu)
+<!-- end id110 -->
 - [torch.backends.cuda](#torchbackendscuda)
 - [torch.backends.cudnn](#torchbackendscudnn)
 - [torch.backends.mps](#torchbackendsmps)
@@ -27,8 +29,10 @@
 
 </div>
 
+<!-- npu="910b,A3" id111 -->
 ## torch.backends.cpu
 
+<!-- npu="910b,A3" id98 -->
 ### torch.backends.cpu.get_cpu_capability
 
 <div style="margin-left: 2em">
@@ -36,6 +40,7 @@
 **原生文档**：[torch.backends.cpu.get_cpu_capability](https://pytorch.org/docs/2.12/backends.html#torch.backends.cpu.get_cpu_capability)
 
 **产品支持情况**：
+<!-- end id98 -->
 
 <!-- npu="910b" id1 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -43,12 +48,12 @@
 <!-- npu="A3" id2 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id2 -->
-<!-- npu="950" id3 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id3 -->
 
+<!-- npu="910b,A3" id99 -->
 </div>
+<!-- end id99 -->
 
+<!-- end id111 -->
 ## torch.backends.cuda
 
 ### torch.backends.cuda.is_built
@@ -115,6 +120,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id100 -->
 ### torch.backends.cuda.cufft_plan_cache.size
 
 <div style="margin-left: 2em">
@@ -124,6 +130,7 @@
 **NPU 形式名称**：torch.npu.backends.fft_plan_cache.size
 
 **产品支持情况**：
+<!-- end id100 -->
 
 <!-- npu="910b" id13 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -131,12 +138,12 @@
 <!-- npu="A3" id14 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id14 -->
-<!-- npu="950" id15 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id15 -->
 
+<!-- npu="910b,A3" id101 -->
 </div>
+<!-- end id101 -->
 
+<!-- npu="910b,A3" id102 -->
 ### torch.backends.cuda.cufft_plan_cache.max_size
 
 <div style="margin-left: 2em">
@@ -146,6 +153,7 @@
 **NPU 形式名称**：torch.npu.backends.fft_plan_cache.max_size
 
 **产品支持情况**：
+<!-- end id102 -->
 
 <!-- npu="910b" id16 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -153,14 +161,14 @@
 <!-- npu="A3" id17 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id17 -->
-<!-- npu="950" id18 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id18 -->
 
+<!-- npu="910b,A3" id103 -->
 **限制与说明**： 输入范围为1-99
 
 </div>
+<!-- end id103 -->
 
+<!-- npu="910b,A3" id104 -->
 ### torch.backends.cuda.cufft_plan_cache.clear
 
 <div style="margin-left: 2em">
@@ -170,6 +178,7 @@
 **NPU 形式名称**：torch.npu.backends.fft_plan_cache.clear
 
 **产品支持情况**：
+<!-- end id104 -->
 
 <!-- npu="910b" id19 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -177,11 +186,10 @@
 <!-- npu="A3" id20 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id20 -->
-<!-- npu="950" id21 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id21 -->
 
+<!-- npu="910b,A3" id105 -->
 </div>
+<!-- end id105 -->
 
 ### torch.backends.cuda.preferred_linalg_library
 
@@ -453,6 +461,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id106 -->
 ### torch.backends.cudnn.benchmark_limit
 
 <div style="margin-left: 2em">
@@ -460,6 +469,7 @@
 **原生文档**：[torch.backends.cudnn.benchmark_limit](https://pytorch.org/docs/2.12/backends.html#torch.backends.cudnn.benchmark_limit)
 
 **产品支持情况**：
+<!-- end id106 -->
 
 <!-- npu="910b" id61 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -467,11 +477,10 @@
 <!-- npu="A3" id62 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id62 -->
-<!-- npu="950" id63 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id63 -->
 
+<!-- npu="910b,A3" id107 -->
 </div>
+<!-- end id107 -->
 
 ## torch.backends.mps
 
@@ -517,6 +526,7 @@
 
 ## torch.backends.mkl
 
+<!-- npu="910b,A3" id108 -->
 ### torch.backends.mkl.is_available
 
 <div style="margin-left: 2em">
@@ -524,6 +534,7 @@
 **原生文档**：[torch.backends.mkl.is_available](https://pytorch.org/docs/2.12/backends.html#torch.backends.mkl.is_available)
 
 **产品支持情况**：
+<!-- end id108 -->
 
 <!-- npu="910b" id70 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -531,11 +542,10 @@
 <!-- npu="A3" id71 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id71 -->
-<!-- npu="950" id72 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id72 -->
 
+<!-- npu="910b,A3" id109 -->
 </div>
+<!-- end id109 -->
 
 ### torch.backends.mkl.verbose
 

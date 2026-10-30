@@ -82,6 +82,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id22 -->
 ### torch.hub.help
 
 <div style="margin-left: 2em">
@@ -89,6 +90,7 @@
 **原生文档**：[torch.hub.help](https://pytorch.org/docs/2.7/hub.html#torch.hub.help)
 
 **产品支持情况**：
+<!-- end id22 -->
 
 <!-- npu="910b" id10 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -96,11 +98,10 @@
 <!-- npu="A3" id11 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id11 -->
-<!-- npu="950" id12 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id12 -->
 
+<!-- npu="910b,A3" id23 -->
 </div>
+<!-- end id23 -->
 
 ### torch.hub.load
 

@@ -42,6 +42,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id3 -->
 
+<!-- npu="910b,A3" id373 -->
 > <font size="3">bfloat16()</font>
 
 <div style="margin-left: 2em">
@@ -49,6 +50,7 @@
 **原生文档**：[torch.UntypedStorage.bfloat16](https://pytorch.org/docs/2.14/storage.html#torch.UntypedStorage.bfloat16)
 
 **产品支持情况**：
+<!-- end id373 -->
 
 <!-- npu="910b" id4 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -56,11 +58,10 @@
 <!-- npu="A3" id5 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id5 -->
-<!-- npu="950" id6 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id6 -->
 
+<!-- npu="910b,A3" id374 -->
 </div>
+<!-- end id374 -->
 
 > <font size="3">bool()</font>
 
@@ -102,6 +103,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id375 -->
 > <font size="3">byteswap()</font>
 
 <div style="margin-left: 2em">
@@ -109,6 +111,7 @@
 **原生文档**：[torch.UntypedStorage.byteswap](https://pytorch.org/docs/2.14/storage.html#torch.UntypedStorage.byteswap)
 
 **产品支持情况**：
+<!-- end id375 -->
 
 <!-- npu="910b" id13 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -116,11 +119,10 @@
 <!-- npu="A3" id14 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id14 -->
-<!-- npu="950" id15 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id15 -->
 
+<!-- npu="910b,A3" id376 -->
 </div>
+<!-- end id376 -->
 
 > <font size="3">char()</font>
 
@@ -162,6 +164,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id377 -->
 > <font size="3">complex_double()</font>
 
 <div style="margin-left: 2em">
@@ -169,6 +172,7 @@
 **原生文档**：[torch.UntypedStorage.complex_double](https://pytorch.org/docs/2.14/storage.html#torch.UntypedStorage.complex_double)
 
 **产品支持情况**：
+<!-- end id377 -->
 
 <!-- npu="910b" id22 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -176,12 +180,12 @@
 <!-- npu="A3" id23 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id23 -->
-<!-- npu="950" id24 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id24 -->
 
+<!-- npu="910b,A3" id378 -->
 </div>
+<!-- end id378 -->
 
+<!-- npu="910b,A3" id379 -->
 > <font size="3">complex_float()</font>
 
 <div style="margin-left: 2em">
@@ -189,6 +193,7 @@
 **原生文档**：[torch.UntypedStorage.complex_float](https://pytorch.org/docs/2.14/storage.html#torch.UntypedStorage.complex_float)
 
 **产品支持情况**：
+<!-- end id379 -->
 
 <!-- npu="910b" id25 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -196,11 +201,10 @@
 <!-- npu="A3" id26 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id26 -->
-<!-- npu="950" id27 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id27 -->
 
+<!-- npu="910b,A3" id380 -->
 </div>
+<!-- end id380 -->
 
 > <font size="3">copy_()</font>
 
@@ -342,6 +346,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id381 -->
 > <font size="3">filename()</font>
 
 <div style="margin-left: 2em">
@@ -349,6 +354,7 @@
 **原生文档**：[torch.UntypedStorage.filename](https://pytorch.org/docs/2.14/storage.html#torch.UntypedStorage.filename)
 
 **产品支持情况**：
+<!-- end id381 -->
 
 <!-- npu="910b" id49 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -356,11 +362,10 @@
 <!-- npu="A3" id50 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id50 -->
-<!-- npu="950" id51 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id51 -->
 
+<!-- npu="910b,A3" id382 -->
 </div>
+<!-- end id382 -->
 
 > <font size="3">fill_()</font>
 
@@ -399,86 +404,6 @@
 <!-- npu="950" id57 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id57 -->
-
-</div>
-
-> <font size="3">float8_e4m3fn()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.UntypedStorage.float8_e4m3fn](https://pytorch.org/docs/2.14/storage.html#torch.UntypedStorage.float8_e4m3fn)
-
-**产品支持情况**：
-
-<!-- npu="910b" id58 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id58 -->
-<!-- npu="A3" id59 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id59 -->
-<!-- npu="950" id60 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id60 -->
-
-</div>
-
-> <font size="3">float8_e5m2()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.UntypedStorage.float8_e5m2](https://pytorch.org/docs/2.14/storage.html#torch.UntypedStorage.float8_e5m2)
-
-**产品支持情况**：
-
-<!-- npu="910b" id61 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id61 -->
-<!-- npu="A3" id62 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id62 -->
-<!-- npu="950" id63 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id63 -->
-
-</div>
-
-> <font size="3">float8_e4m3fnuz()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.UntypedStorage.float8_e4m3fnuz](https://pytorch.org/docs/2.14/storage.html#torch.UntypedStorage.float8_e4m3fnuz)
-
-**产品支持情况**：
-
-<!-- npu="910b" id64 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id64 -->
-<!-- npu="A3" id65 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id65 -->
-<!-- npu="950" id66 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id66 -->
-
-</div>
-
-> <font size="3">float8_e5m2fnuz()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.UntypedStorage.float8_e5m2fnuz](https://pytorch.org/docs/2.14/storage.html#torch.UntypedStorage.float8_e5m2fnuz)
-
-**产品支持情况**：
-
-<!-- npu="910b" id67 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id67 -->
-<!-- npu="A3" id68 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id68 -->
-<!-- npu="950" id69 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id69 -->
 
 </div>
 
@@ -562,26 +487,6 @@
 
 </div>
 
-> <font size="3">hpu()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.UntypedStorage.hpu](https://pytorch.org/docs/2.14/storage.html#torch.UntypedStorage.hpu)
-
-**产品支持情况**：
-
-<!-- npu="910b" id82 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id82 -->
-<!-- npu="A3" id83 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id83 -->
-<!-- npu="950" id84 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id84 -->
-
-</div>
-
 > <font size="3">int()</font>
 
 <div style="margin-left: 2em">
@@ -622,26 +527,6 @@
 
 </div>
 
-> <font size="3">is_hpu()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.UntypedStorage.is_hpu](https://pytorch.org/docs/2.14/storage.html#torch.UntypedStorage.is_hpu)
-
-**产品支持情况**：
-
-<!-- npu="910b" id91 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id91 -->
-<!-- npu="A3" id92 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id92 -->
-<!-- npu="950" id93 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id93 -->
-
-</div>
-
 > <font size="3">is_pinned()</font>
 
 <div style="margin-left: 2em">
@@ -662,6 +547,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id383 -->
 > <font size="3">is_shared()</font>
 
 <div style="margin-left: 2em">
@@ -669,6 +555,7 @@
 **原生文档**：[torch.UntypedStorage.is_shared](https://pytorch.org/docs/2.14/storage.html#torch.UntypedStorage.is_shared)
 
 **产品支持情况**：
+<!-- end id383 -->
 
 <!-- npu="910b" id97 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -676,12 +563,12 @@
 <!-- npu="A3" id98 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id98 -->
-<!-- npu="950" id99 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id99 -->
 
+<!-- npu="910b,A3" id384 -->
 </div>
+<!-- end id384 -->
 
+<!-- npu="910b,A3" id385 -->
 > <font size="3">is_sparse()</font>
 
 <div style="margin-left: 2em">
@@ -689,6 +576,7 @@
 **原生文档**：[torch.UntypedStorage.is_sparse](https://pytorch.org/docs/2.14/storage.html#torch.UntypedStorage.is_sparse)
 
 **产品支持情况**：
+<!-- end id385 -->
 
 <!-- npu="910b" id100 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -696,12 +584,12 @@
 <!-- npu="A3" id101 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id101 -->
-<!-- npu="950" id102 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id102 -->
 
+<!-- npu="910b,A3" id386 -->
 </div>
+<!-- end id386 -->
 
+<!-- npu="910b,A3" id387 -->
 > <font size="3">is_sparse_csr()</font>
 
 <div style="margin-left: 2em">
@@ -709,6 +597,7 @@
 **原生文档**：[torch.UntypedStorage.is_sparse_csr](https://pytorch.org/docs/2.14/storage.html#torch.UntypedStorage.is_sparse_csr)
 
 **产品支持情况**：
+<!-- end id387 -->
 
 <!-- npu="910b" id103 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -716,11 +605,10 @@
 <!-- npu="A3" id104 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id104 -->
-<!-- npu="950" id105 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id105 -->
 
+<!-- npu="910b,A3" id388 -->
 </div>
+<!-- end id388 -->
 
 > <font size="3">long()</font>
 
@@ -739,26 +627,6 @@
 <!-- npu="950" id108 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id108 -->
-
-</div>
-
-> <font size="3">mps()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.UntypedStorage.mps](https://pytorch.org/docs/2.14/storage.html#torch.UntypedStorage.mps)
-
-**产品支持情况**：
-
-<!-- npu="910b" id109 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id109 -->
-<!-- npu="A3" id110 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id110 -->
-<!-- npu="950" id111 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id111 -->
 
 </div>
 
@@ -842,6 +710,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id389 -->
 > <font size="3">share_memory_()</font>
 
 <div style="margin-left: 2em">
@@ -849,6 +718,7 @@
 **原生文档**：[torch.UntypedStorage.share_memory_](https://pytorch.org/docs/2.14/storage.html#torch.UntypedStorage.share_memory_)
 
 **产品支持情况**：
+<!-- end id389 -->
 
 <!-- npu="910b" id124 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -856,11 +726,10 @@
 <!-- npu="A3" id125 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id125 -->
-<!-- npu="950" id126 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id126 -->
 
+<!-- npu="910b,A3" id390 -->
 </div>
+<!-- end id390 -->
 
 > <font size="3">short()</font>
 
@@ -902,6 +771,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id391 -->
 > <font size="3">tolist()</font>
 
 <div style="margin-left: 2em">
@@ -909,6 +779,7 @@
 **原生文档**：[torch.UntypedStorage.tolist](https://pytorch.org/docs/2.14/storage.html#torch.UntypedStorage.tolist)
 
 **产品支持情况**：
+<!-- end id391 -->
 
 <!-- npu="910b" id133 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -916,11 +787,10 @@
 <!-- npu="A3" id134 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id134 -->
-<!-- npu="950" id135 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id135 -->
 
+<!-- npu="910b,A3" id392 -->
 </div>
+<!-- end id392 -->
 
 > <font size="3">type()</font>
 
@@ -1246,13 +1116,18 @@
 
 </div>
 
+<!-- npu="910b,A3" id431 -->
+<!-- npu="910b,A3" id393 -->
 ### <code><i>class</i></code> torch.BFloat16Storage
+<!-- end id393 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id394 -->
 **原生文档**：[torch.BFloat16Storage](https://pytorch.org/docs/2.14/storage.html#torch.BFloat16Storage)
 
 **产品支持情况**：
+<!-- end id394 -->
 
 <!-- npu="910b" id184 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1260,10 +1135,8 @@
 <!-- npu="A3" id185 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id185 -->
-<!-- npu="950" id186 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id186 -->
 
+<!-- npu="910b,A3" id395 -->
 > <font size="3">dtype()</font>
 
 <div style="margin-left: 2em">
@@ -1271,6 +1144,7 @@
 **原生文档**：[torch.BFloat16Storage.dtype](https://pytorch.org/docs/2.14/storage.html#torch.BFloat16Storage.dtype)
 
 **产品支持情况**：
+<!-- end id395 -->
 
 <!-- npu="910b" id187 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1278,21 +1152,26 @@
 <!-- npu="A3" id188 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id188 -->
-<!-- npu="950" id189 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id189 -->
+
+<!-- npu="910b,A3" id396 -->
+</div>
+<!-- end id396 -->
 
 </div>
+<!-- end id431 -->
 
-</div>
-
+<!-- npu="910b,A3" id432 -->
+<!-- npu="910b,A3" id397 -->
 ### <code><i>class</i></code> torch.ComplexDoubleStorage
+<!-- end id397 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id398 -->
 **原生文档**：[torch.ComplexDoubleStorage](https://pytorch.org/docs/2.14/storage.html#torch.ComplexDoubleStorage)
 
 **产品支持情况**：
+<!-- end id398 -->
 
 <!-- npu="910b" id190 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1300,10 +1179,8 @@
 <!-- npu="A3" id191 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id191 -->
-<!-- npu="950" id192 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id192 -->
 
+<!-- npu="910b,A3" id399 -->
 > <font size="3">dtype()</font>
 
 <div style="margin-left: 2em">
@@ -1311,6 +1188,7 @@
 **原生文档**：[torch.ComplexDoubleStorage.dtype](https://pytorch.org/docs/2.14/storage.html#torch.ComplexDoubleStorage.dtype)
 
 **产品支持情况**：
+<!-- end id399 -->
 
 <!-- npu="910b" id193 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1318,21 +1196,26 @@
 <!-- npu="A3" id194 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id194 -->
-<!-- npu="950" id195 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id195 -->
+
+<!-- npu="910b,A3" id400 -->
+</div>
+<!-- end id400 -->
 
 </div>
+<!-- end id432 -->
 
-</div>
-
+<!-- npu="910b,A3" id433 -->
+<!-- npu="910b,A3" id401 -->
 ### <code><i>class</i></code> torch.ComplexFloatStorage
+<!-- end id401 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id402 -->
 **原生文档**：[torch.ComplexFloatStorage](https://pytorch.org/docs/2.14/storage.html#torch.ComplexFloatStorage)
 
 **产品支持情况**：
+<!-- end id402 -->
 
 <!-- npu="910b" id196 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1340,10 +1223,8 @@
 <!-- npu="A3" id197 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id197 -->
-<!-- npu="950" id198 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id198 -->
 
+<!-- npu="910b,A3" id403 -->
 > <font size="3">dtype()</font>
 
 <div style="margin-left: 2em">
@@ -1351,6 +1232,7 @@
 **原生文档**：[torch.ComplexFloatStorage.dtype](https://pytorch.org/docs/2.14/storage.html#torch.ComplexFloatStorage.dtype)
 
 **产品支持情况**：
+<!-- end id403 -->
 
 <!-- npu="910b" id199 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1358,21 +1240,26 @@
 <!-- npu="A3" id200 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id200 -->
-<!-- npu="950" id201 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id201 -->
+
+<!-- npu="910b,A3" id404 -->
+</div>
+<!-- end id404 -->
 
 </div>
+<!-- end id433 -->
 
-</div>
-
+<!-- npu="910b,A3" id434 -->
+<!-- npu="910b,A3" id405 -->
 ### <code><i>class</i></code> torch.QUInt8Storage
+<!-- end id405 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id406 -->
 **原生文档**：[torch.QUInt8Storage](https://pytorch.org/docs/2.14/storage.html#torch.QUInt8Storage)
 
 **产品支持情况**：
+<!-- end id406 -->
 
 <!-- npu="910b" id202 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1380,10 +1267,8 @@
 <!-- npu="A3" id203 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id203 -->
-<!-- npu="950" id204 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id204 -->
 
+<!-- npu="910b,A3" id407 -->
 > <font size="3">dtype()</font>
 
 <div style="margin-left: 2em">
@@ -1391,6 +1276,7 @@
 **原生文档**：[torch.QUInt8Storage.dtype](https://pytorch.org/docs/2.14/storage.html#torch.QUInt8Storage.dtype)
 
 **产品支持情况**：
+<!-- end id407 -->
 
 <!-- npu="910b" id205 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1398,23 +1284,28 @@
 <!-- npu="A3" id206 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id206 -->
-<!-- npu="950" id207 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id207 -->
 
+<!-- npu="910b,A3" id408 -->
 </div>
+<!-- end id408 -->
 
 **限制与说明**： 支持uint8
 
 </div>
+<!-- end id434 -->
 
+<!-- npu="910b,A3" id435 -->
+<!-- npu="910b,A3" id409 -->
 ### <code><i>class</i></code> torch.QInt8Storage
+<!-- end id409 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id410 -->
 **原生文档**：[torch.QInt8Storage](https://pytorch.org/docs/2.14/storage.html#torch.QInt8Storage)
 
 **产品支持情况**：
+<!-- end id410 -->
 
 <!-- npu="910b" id208 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1422,10 +1313,8 @@
 <!-- npu="A3" id209 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id209 -->
-<!-- npu="950" id210 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id210 -->
 
+<!-- npu="910b,A3" id411 -->
 > <font size="3">dtype()</font>
 
 <div style="margin-left: 2em">
@@ -1433,6 +1322,7 @@
 **原生文档**：[torch.QInt8Storage.dtype](https://pytorch.org/docs/2.14/storage.html#torch.QInt8Storage.dtype)
 
 **产品支持情况**：
+<!-- end id411 -->
 
 <!-- npu="910b" id211 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1440,34 +1330,24 @@
 <!-- npu="A3" id212 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id212 -->
-<!-- npu="950" id213 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id213 -->
 
+<!-- npu="910b,A3" id412 -->
 **限制与说明**： `self`仅支持int8
 
 </div>
+<!-- end id412 -->
 
 </div>
+<!-- end id435 -->
 
+<!-- npu="910b,A3" id436 -->
 ### <code><i>class</i></code> torch.QInt32Storage
 
 <div style="margin-left: 2em">
 
 **原生文档**：[torch.QInt32Storage](https://pytorch.org/docs/2.14/storage.html#torch.QInt32Storage)
 
-**产品支持情况**：
-
-<!-- npu="910b" id214 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id214 -->
-<!-- npu="A3" id215 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id215 -->
-<!-- npu="950" id216 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id216 -->
-
+<!-- npu="910b,A3" id413 -->
 > <font size="3">dtype()</font>
 
 <div style="margin-left: 2em">
@@ -1475,6 +1355,7 @@
 **原生文档**：[torch.QInt32Storage.dtype](https://pytorch.org/docs/2.14/storage.html#torch.QInt32Storage.dtype)
 
 **产品支持情况**：
+<!-- end id413 -->
 
 <!-- npu="910b" id217 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1482,15 +1363,15 @@
 <!-- npu="A3" id218 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id218 -->
-<!-- npu="950" id219 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id219 -->
 
+<!-- npu="910b,A3" id414 -->
 **限制与说明**： `self`仅支持int32
 
 </div>
+<!-- end id414 -->
 
 </div>
+<!-- end id436 -->
 
 ### <code><i>class</i></code> torch.QUInt4x2Storage
 
@@ -1510,6 +1391,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id222 -->
 
+<!-- npu="910b,A3" id415 -->
 > <font size="3">dtype()</font>
 
 <div style="margin-left: 2em">
@@ -1517,6 +1399,7 @@
 **原生文档**：[torch.QUInt4x2Storage.dtype](https://pytorch.org/docs/2.14/storage.html#torch.QUInt4x2Storage.dtype)
 
 **产品支持情况**：
+<!-- end id415 -->
 
 <!-- npu="910b" id223 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1524,13 +1407,12 @@
 <!-- npu="A3" id224 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id224 -->
-<!-- npu="950" id225 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id225 -->
 
+<!-- npu="910b,A3" id416 -->
 **限制与说明**： `self`仅支持uint8
 
 </div>
+<!-- end id416 -->
 
 </div>
 
@@ -1552,6 +1434,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id228 -->
 
+<!-- npu="910b,A3" id417 -->
 > <font size="3">dtype()</font>
 
 <div style="margin-left: 2em">
@@ -1559,6 +1442,7 @@
 **原生文档**：[torch.QUInt2x4Storage.dtype](https://pytorch.org/docs/2.14/storage.html#torch.QUInt2x4Storage.dtype)
 
 **产品支持情况**：
+<!-- end id417 -->
 
 <!-- npu="910b" id229 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1566,13 +1450,12 @@
 <!-- npu="A3" id230 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id230 -->
-<!-- npu="950" id231 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id231 -->
 
+<!-- npu="910b,A3" id418 -->
 **限制与说明**： `self`仅支持uint8
 
 </div>
+<!-- end id418 -->
 
 </div>
 
@@ -1594,6 +1477,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id234 -->
 
+<!-- npu="910b,A3" id419 -->
 > <font size="3">bfloat16()</font>
 
 <div style="margin-left: 2em">
@@ -1601,6 +1485,7 @@
 **原生文档**：[torch.TypedStorage.bfloat16](https://pytorch.org/docs/2.14/storage.html#torch.TypedStorage.bfloat16)
 
 **产品支持情况**：
+<!-- end id419 -->
 
 <!-- npu="910b" id235 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1608,11 +1493,10 @@
 <!-- npu="A3" id236 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id236 -->
-<!-- npu="950" id237 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id237 -->
 
+<!-- npu="910b,A3" id420 -->
 </div>
+<!-- end id420 -->
 
 > <font size="3">bool()</font>
 
@@ -1694,6 +1578,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id421 -->
 > <font size="3">complex_double()</font>
 
 <div style="margin-left: 2em">
@@ -1701,6 +1586,7 @@
 **原生文档**：[torch.TypedStorage.complex_double](https://pytorch.org/docs/2.14/storage.html#torch.TypedStorage.complex_double)
 
 **产品支持情况**：
+<!-- end id421 -->
 
 <!-- npu="910b" id250 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1708,12 +1594,12 @@
 <!-- npu="A3" id251 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id251 -->
-<!-- npu="950" id252 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id252 -->
 
+<!-- npu="910b,A3" id422 -->
 </div>
+<!-- end id422 -->
 
+<!-- npu="910b,A3" id423 -->
 > <font size="3">complex_float()</font>
 
 <div style="margin-left: 2em">
@@ -1721,6 +1607,7 @@
 **原生文档**：[torch.TypedStorage.complex_float](https://pytorch.org/docs/2.14/storage.html#torch.TypedStorage.complex_float)
 
 **产品支持情况**：
+<!-- end id423 -->
 
 <!-- npu="910b" id253 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1728,11 +1615,10 @@
 <!-- npu="A3" id254 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id254 -->
-<!-- npu="950" id255 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id255 -->
 
+<!-- npu="910b,A3" id424 -->
 </div>
+<!-- end id424 -->
 
 > <font size="3">copy_()</font>
 
@@ -1894,6 +1780,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id425 -->
 > <font size="3">filename()</font>
 
 <div style="margin-left: 2em">
@@ -1901,6 +1788,7 @@
 **原生文档**：[torch.TypedStorage.filename](https://pytorch.org/docs/2.14/storage.html#torch.TypedStorage.filename)
 
 **产品支持情况**：
+<!-- end id425 -->
 
 <!-- npu="910b" id280 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1908,11 +1796,10 @@
 <!-- npu="A3" id281 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id281 -->
-<!-- npu="950" id282 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id282 -->
 
+<!-- npu="910b,A3" id426 -->
 </div>
+<!-- end id426 -->
 
 > <font size="3">fill_()</font>
 
@@ -1951,46 +1838,6 @@
 <!-- npu="950" id288 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id288 -->
-
-</div>
-
-> <font size="3">float8_e4m3fn()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.TypedStorage.float8_e4m3fn](https://pytorch.org/docs/2.14/storage.html#torch.TypedStorage.float8_e4m3fn)
-
-**产品支持情况**：
-
-<!-- npu="910b" id289 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id289 -->
-<!-- npu="A3" id290 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id290 -->
-<!-- npu="950" id291 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id291 -->
-
-</div>
-
-> <font size="3">float8_e5m2()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.TypedStorage.float8_e5m2](https://pytorch.org/docs/2.14/storage.html#torch.TypedStorage.float8_e5m2)
-
-**产品支持情况**：
-
-<!-- npu="910b" id292 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id292 -->
-<!-- npu="A3" id293 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id293 -->
-<!-- npu="950" id294 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id294 -->
 
 </div>
 
@@ -2074,26 +1921,6 @@
 
 </div>
 
-> <font size="3">hpu()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.TypedStorage.hpu](https://pytorch.org/docs/2.14/storage.html#torch.TypedStorage.hpu)
-
-**产品支持情况**：
-
-<!-- npu="910b" id307 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id307 -->
-<!-- npu="A3" id308 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id308 -->
-<!-- npu="950" id309 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id309 -->
-
-</div>
-
 > <font size="3">int()</font>
 
 <div style="margin-left: 2em">
@@ -2134,26 +1961,6 @@
 
 </div>
 
-> <font size="3">is_hpu()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.TypedStorage.is_hpu](https://pytorch.org/docs/2.14/storage.html#torch.TypedStorage.is_hpu)
-
-**产品支持情况**：
-
-<!-- npu="910b" id316 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id316 -->
-<!-- npu="A3" id317 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id317 -->
-<!-- npu="950" id318 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id318 -->
-
-</div>
-
 > <font size="3">is_pinned()</font>
 
 <div style="margin-left: 2em">
@@ -2174,6 +1981,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id427 -->
 > <font size="3">is_shared()</font>
 
 <div style="margin-left: 2em">
@@ -2181,6 +1989,7 @@
 **原生文档**：[torch.TypedStorage.is_shared](https://pytorch.org/docs/2.14/storage.html#torch.TypedStorage.is_shared)
 
 **产品支持情况**：
+<!-- end id427 -->
 
 <!-- npu="910b" id322 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -2188,12 +1997,12 @@
 <!-- npu="A3" id323 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id323 -->
-<!-- npu="950" id324 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id324 -->
 
+<!-- npu="910b,A3" id428 -->
 </div>
+<!-- end id428 -->
 
+<!-- npu="910b,A3" id429 -->
 > <font size="3">is_sparse()</font>
 
 <div style="margin-left: 2em">
@@ -2201,6 +2010,7 @@
 **原生文档**：[torch.TypedStorage.is_sparse](https://pytorch.org/docs/2.14/storage.html#torch.TypedStorage.is_sparse)
 
 **产品支持情况**：
+<!-- end id429 -->
 
 <!-- npu="910b" id325 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -2208,11 +2018,10 @@
 <!-- npu="A3" id326 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id326 -->
-<!-- npu="950" id327 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id327 -->
 
+<!-- npu="910b,A3" id430 -->
 </div>
+<!-- end id430 -->
 
 > <font size="3">long()</font>
 
@@ -2311,26 +2120,6 @@
 <!-- npu="950" id342 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id342 -->
-
-</div>
-
-> <font size="3">share_memory_()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.TypedStorage.share_memory_](https://pytorch.org/docs/2.14/storage.html#torch.TypedStorage.share_memory_)
-
-**产品支持情况**：
-
-<!-- npu="910b" id343 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id343 -->
-<!-- npu="A3" id344 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id344 -->
-<!-- npu="950" id345 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id345 -->
 
 </div>
 

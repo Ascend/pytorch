@@ -33,42 +33,22 @@
 
 </div>
 
-### torch.utils.generate_methods_for_privateuse1_backend
+### torch.utils.swap_tensors
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.utils.generate_methods_for_privateuse1_backend](https://pytorch.org/docs/2.12/generated/torch.utils.generate_methods_for_privateuse1_backend.html)
+**原生文档**：[torch.utils.swap_tensors](https://docs.pytorch.org/docs/2.12/generated/torch.utils.swap_tensors.html#torch.utils.swap_tensors)
 
 **产品支持情况**：
 
 <!-- npu="910b" id4 -->
-- <term>Atlas A2训练系列产品</term>：不支持
+- <term>Atlas A2训练系列产品</term>：支持
 <!-- end id4 -->
 <!-- npu="A3" id5 -->
-- <term>Atlas A3训练系列产品</term>：不支持
+- <term>Atlas A3训练系列产品</term>：支持
 <!-- end id5 -->
 <!-- npu="950" id6 -->
-- <term>Ascend 950DT系列产品</term>：不支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id6 -->
-
-</div>
-
-### torch.utils.get_cpp_backtrace
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.utils.get_cpp_backtrace](https://pytorch.org/docs/2.12/generated/torch.utils.get_cpp_backtrace.html)
-
-**产品支持情况**：
-
-<!-- npu="910b" id7 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id7 -->
-<!-- npu="A3" id8 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id8 -->
-<!-- npu="950" id9 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id9 -->
 
 </div>

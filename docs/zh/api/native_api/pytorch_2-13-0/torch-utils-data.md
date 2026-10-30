@@ -20,6 +20,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id67 -->
 ### <code><i>class</i></code> torch.utils.data.IterDataPipe
 
 <div style="margin-left: 2em">
@@ -29,6 +30,7 @@
 **说明**：链接指向官方文档中的参数类型说明。
 
 **产品支持情况**：
+<!-- end id67 -->
 
 <!-- npu="910b" id1 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -36,12 +38,12 @@
 <!-- npu="A3" id2 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id2 -->
-<!-- npu="950" id3 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id3 -->
 
+<!-- npu="910b,A3" id68 -->
 </div>
+<!-- end id68 -->
 
+<!-- npu="910b,A3" id69 -->
 ### <code><i>class</i></code> torch.utils.data.MapDataPipe
 
 <div style="margin-left: 2em">
@@ -51,6 +53,7 @@
 **说明**：链接指向官方文档中的参数类型说明。
 
 **产品支持情况**：
+<!-- end id69 -->
 
 <!-- npu="910b" id4 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -58,11 +61,10 @@
 <!-- npu="A3" id5 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id5 -->
-<!-- npu="950" id6 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id6 -->
 
+<!-- npu="910b,A3" id70 -->
 </div>
+<!-- end id70 -->
 
 ### torch.utils.data.random_split
 
@@ -106,6 +108,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id71 -->
 ### <code><i>class</i></code> torch.utils.data.StackDataset
 
 <div style="margin-left: 2em">
@@ -113,6 +116,7 @@
 **原生文档**：[torch.utils.data.StackDataset](https://pytorch.org/docs/2.13/data.html#torch.utils.data.StackDataset)
 
 **产品支持情况**：
+<!-- end id71 -->
 
 <!-- npu="910b" id13 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -120,11 +124,10 @@
 <!-- npu="A3" id14 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id14 -->
-<!-- npu="950" id15 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id15 -->
 
+<!-- npu="910b,A3" id72 -->
 </div>
+<!-- end id72 -->
 
 ### <code><i>class</i></code> torch.utils.data.ConcatDataset
 

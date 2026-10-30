@@ -26,13 +26,17 @@
 
 ## torch.onnx APIs
 
+<!-- npu="910b,A3,950" id37 -->
 ### <code><i>class</i></code> torch.onnx.ONNXProgram
+<!-- end id37 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id38 -->
 **原生文档**：[torch.onnx.ONNXProgram](https://docs.pytorch.org/docs/2.10/onnx_export.html#torch.onnx.ONNXProgram)
 
 **产品支持情况**：
+<!-- end id38 -->
 
 <!-- npu="910b" id1 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -40,10 +44,8 @@
 <!-- npu="A3" id2 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id2 -->
-<!-- npu="950" id3 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id3 -->
 
+<!-- npu="910b,A3" id39 -->
 > <font size="3">model_proto()</font>
 
 <div style="margin-left: 2em">
@@ -51,6 +53,7 @@
 **原生文档**：[torch.onnx.ONNXProgram.model_proto](https://docs.pytorch.org/docs/2.10/onnx_export.html#torch.onnx.ONNXProgram.model_proto)
 
 **产品支持情况**：
+<!-- end id39 -->
 
 <!-- npu="910b" id4 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -58,12 +61,12 @@
 <!-- npu="A3" id5 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id5 -->
-<!-- npu="950" id6 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id6 -->
 
+<!-- npu="910b,A3" id40 -->
 </div>
+<!-- end id40 -->
 
+<!-- npu="910b,A3" id41 -->
 > <font size="3">save()</font>
 
 <div style="margin-left: 2em">
@@ -71,6 +74,7 @@
 **原生文档**：[torch.onnx.ONNXProgram.save](https://docs.pytorch.org/docs/2.10/onnx_export.html#torch.onnx.ONNXProgram.save)
 
 **产品支持情况**：
+<!-- end id41 -->
 
 <!-- npu="910b" id7 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -78,11 +82,10 @@
 <!-- npu="A3" id8 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id8 -->
-<!-- npu="950" id9 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id9 -->
 
+<!-- npu="910b,A3" id42 -->
 </div>
+<!-- end id42 -->
 
 > <font size="3">initialize_inference_session()</font>
 
@@ -113,13 +116,6 @@
 **原生文档**：[torch.onnx.OnnxExporterError](https://docs.pytorch.org/docs/2.10/onnx_export.html#torch.onnx.OnnxExporterError)
 
 **产品支持情况**：
-
-<!-- npu="910b" id13 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id13 -->
-<!-- npu="A3" id14 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id14 -->
 <!-- npu="950" id15 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id15 -->
@@ -236,7 +232,7 @@
 
 **原生文档**：[torch.onnx.ONNXProgram.apply_weights](https://docs.pytorch.org/docs/2.10/onnx_export.html#torch.onnx.ONNXProgram.apply_weights)
 
-**支持情况**：
+**产品支持情况**：
 
 <!-- npu="910b" id31 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -258,7 +254,7 @@
 
 **原生文档**：[torch.onnx.verification.verify_onnx_program](https://pytorch.org/docs/2.10/onnx_verification.html#torch.onnx.verification.verify_onnx_program)
 
-**支持情况**：
+**产品支持情况**：
 
 <!-- npu="910b" id34 -->
 - <term>Atlas A2训练系列产品</term>：支持

@@ -13,6 +13,7 @@
 - [Base class](#base-class)
 - [Algorithms](#algorithms)
 - [How to adjust learning rate](#how-to-adjust-learning-rate)
+- [Weight Averaging (SWA and EMA)](#weight-averaging-swa-and-ema)
 
 </div>
 
@@ -42,6 +43,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id3 -->
 
+<!-- npu="910b,A3" id653 -->
 > <font size="3">add_param_group()</font>
 
 <div style="margin-left: 2em">
@@ -49,6 +51,7 @@
 **原生文档**：[Optimizer.add_param_group](https://pytorch.org/docs/2.10/generated/torch.optim.Optimizer.add_param_group.html)
 
 **产品支持情况**：
+<!-- end id653 -->
 
 <!-- npu="910b" id4 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -56,12 +59,12 @@
 <!-- npu="A3" id5 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id5 -->
-<!-- npu="950" id6 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id6 -->
 
+<!-- npu="910b,A3" id654 -->
 </div>
+<!-- end id654 -->
 
+<!-- npu="910b,A3" id655 -->
 > <font size="3">load_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -69,6 +72,7 @@
 **原生文档**：[Optimizer.load_state_dict](https://pytorch.org/docs/2.10/generated/torch.optim.Optimizer.load_state_dict.html)
 
 **产品支持情况**：
+<!-- end id655 -->
 
 <!-- npu="910b" id7 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -76,12 +80,12 @@
 <!-- npu="A3" id8 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id8 -->
-<!-- npu="950" id9 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id9 -->
 
+<!-- npu="910b,A3" id656 -->
 </div>
+<!-- end id656 -->
 
+<!-- npu="910b,A3" id657 -->
 > <font size="3">state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -89,6 +93,7 @@
 **原生文档**：[Optimizer.state_dict](https://pytorch.org/docs/2.10/generated/torch.optim.Optimizer.state_dict.html)
 
 **产品支持情况**：
+<!-- end id657 -->
 
 <!-- npu="910b" id10 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -96,12 +101,12 @@
 <!-- npu="A3" id11 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id11 -->
-<!-- npu="950" id12 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id12 -->
 
+<!-- npu="910b,A3" id658 -->
 </div>
+<!-- end id658 -->
 
+<!-- npu="910b,A3" id659 -->
 > <font size="3">step()</font>
 
 <div style="margin-left: 2em">
@@ -109,6 +114,7 @@
 **原生文档**：[Optimizer.step](https://pytorch.org/docs/2.10/generated/torch.optim.Optimizer.step.html)
 
 **产品支持情况**：
+<!-- end id659 -->
 
 <!-- npu="910b" id13 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -116,12 +122,12 @@
 <!-- npu="A3" id14 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id14 -->
-<!-- npu="950" id15 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id15 -->
 
+<!-- npu="910b,A3" id660 -->
 </div>
+<!-- end id660 -->
 
+<!-- npu="910b,A3" id661 -->
 > <font size="3">zero_grad()</font>
 
 <div style="margin-left: 2em">
@@ -129,6 +135,7 @@
 **原生文档**：[Optimizer.zero_grad](https://pytorch.org/docs/2.10/generated/torch.optim.Optimizer.zero_grad.html)
 
 **产品支持情况**：
+<!-- end id661 -->
 
 <!-- npu="910b" id16 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -136,11 +143,10 @@
 <!-- npu="A3" id17 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id17 -->
-<!-- npu="950" id18 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id18 -->
 
+<!-- npu="910b,A3" id662 -->
 </div>
+<!-- end id662 -->
 
 </div>
 
@@ -391,6 +397,32 @@
 <!-- npu="950" id54 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id54 -->
+
+</div>
+
+</div>
+
+### <code><i>class</i></code> torch.optim.Adafactor
+
+<div style="margin-left: 2em">
+
+> <font size="3">step()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.optim.Adafactor.step](https://docs.pytorch.org/docs/2.10/generated/torch.optim.Adafactor.html#torch.optim.Adafactor.step)
+
+**产品支持情况**：
+
+<!-- npu="910b" id663 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id663 -->
+<!-- npu="A3" id664 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id664 -->
+<!-- npu="950" id665 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id665 -->
 
 </div>
 
@@ -3399,6 +3431,46 @@
 
 ## How to adjust learning rate
 
+### <code><i>class</i></code> torch.optim.lr_scheduler.LRScheduler
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.optim.lr_scheduler.LRScheduler](https://docs.pytorch.org/docs/2.10/generated/torch.optim.lr_scheduler.LRScheduler.html#torch.optim.lr_scheduler.LRScheduler)
+
+**产品支持情况**：
+
+<!-- npu="910b" id666 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id666 -->
+<!-- npu="A3" id667 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id667 -->
+<!-- npu="950" id668 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id668 -->
+
+> <font size="3">get_lr()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.optim.lr_scheduler.LRScheduler.get_lr](https://docs.pytorch.org/docs/2.10/generated/torch.optim.lr_scheduler.LRScheduler.html#torch.optim.lr_scheduler.LRScheduler.get_lr)
+
+**产品支持情况**：
+
+<!-- npu="910b" id669 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id669 -->
+<!-- npu="A3" id670 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id670 -->
+<!-- npu="950" id671 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id671 -->
+
+</div>
+
+</div>
+
 ### <code><i>class</i></code> torch.optim.lr_scheduler.LambdaLR
 
 <div style="margin-left: 2em">
@@ -3434,6 +3506,26 @@
 <!-- npu="950" id486 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id486 -->
+
+</div>
+
+> <font size="3">get_lr()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.optim.lr_scheduler.LambdaLR.get_lr](https://docs.pytorch.org/docs/2.10/generated/torch.optim.lr_scheduler.LambdaLR.html#torch.optim.lr_scheduler.LambdaLR.get_lr)
+
+**产品支持情况**：
+
+<!-- npu="910b" id690 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id690 -->
+<!-- npu="A3" id691 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id691 -->
+<!-- npu="950" id692 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id692 -->
 
 </div>
 
@@ -3516,6 +3608,26 @@
 <!-- end id498 -->
 
 **限制与说明**： `lr`仅支持fp32
+
+</div>
+
+> <font size="3">get_lr()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.optim.lr_scheduler.MultiplicativeLR.get_lr](https://docs.pytorch.org/docs/2.10/generated/torch.optim.lr_scheduler.MultiplicativeLR.html#torch.optim.lr_scheduler.MultiplicativeLR.get_lr)
+
+**产品支持情况**：
+
+<!-- npu="910b" id696 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id696 -->
+<!-- npu="A3" id697 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id697 -->
+<!-- npu="950" id698 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id698 -->
 
 </div>
 
@@ -3691,6 +3803,26 @@
 
 </div>
 
+> <font size="3">get_lr()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.optim.lr_scheduler.MultiStepLR.get_lr](https://docs.pytorch.org/docs/2.10/generated/torch.optim.lr_scheduler.MultiStepLR.html#torch.optim.lr_scheduler.MultiStepLR.get_lr)
+
+**产品支持情况**：
+
+<!-- npu="910b" id699 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id699 -->
+<!-- npu="A3" id700 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id700 -->
+<!-- npu="950" id701 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id701 -->
+
+</div>
+
 > <font size="3">load_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -3861,6 +3993,26 @@
 
 </div>
 
+> <font size="3">get_lr()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.optim.lr_scheduler.LinearLR.get_lr](https://docs.pytorch.org/docs/2.10/generated/torch.optim.lr_scheduler.LinearLR.html#torch.optim.lr_scheduler.LinearLR.get_lr)
+
+**产品支持情况**：
+
+<!-- npu="910b" id693 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id693 -->
+<!-- npu="A3" id694 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id694 -->
+<!-- npu="950" id695 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id695 -->
+
+</div>
+
 > <font size="3">load_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -3941,6 +4093,26 @@
 
 </div>
 
+> <font size="3">get_lr()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.optim.lr_scheduler.ExponentialLR.get_lr](https://docs.pytorch.org/docs/2.10/generated/torch.optim.lr_scheduler.ExponentialLR.html#torch.optim.lr_scheduler.ExponentialLR.get_lr)
+
+**产品支持情况**：
+
+<!-- npu="910b" id687 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id687 -->
+<!-- npu="A3" id688 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id688 -->
+<!-- npu="950" id689 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id689 -->
+
+</div>
+
 > <font size="3">load_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -4018,6 +4190,26 @@
 <!-- npu="950" id570 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id570 -->
+
+</div>
+
+> <font size="3">get_lr()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.optim.lr_scheduler.PolynomialLR.get_lr](https://docs.pytorch.org/docs/2.10/generated/torch.optim.lr_scheduler.PolynomialLR.html#torch.optim.lr_scheduler.PolynomialLR.get_lr)
+
+**产品支持情况**：
+
+<!-- npu="910b" id705 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id705 -->
+<!-- npu="A3" id706 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id706 -->
+<!-- npu="950" id707 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id707 -->
 
 </div>
 
@@ -4221,6 +4413,26 @@
 
 </div>
 
+> <font size="3">step()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.optim.lr_scheduler.ChainedScheduler.step](https://docs.pytorch.org/docs/2.10/generated/torch.optim.lr_scheduler.ChainedScheduler.html#torch.optim.lr_scheduler.ChainedScheduler.step)
+
+**产品支持情况**：
+
+<!-- npu="910b" id678 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id678 -->
+<!-- npu="A3" id679 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id679 -->
+<!-- npu="950" id680 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id680 -->
+
+</div>
+
 </div>
 
 ### <code><i>class</i></code> torch.optim.lr_scheduler.SequentialLR
@@ -4281,6 +4493,26 @@
 
 </div>
 
+> <font size="3">recursive_undo()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.optim.lr_scheduler.SequentialLR.recursive_undo](https://docs.pytorch.org/docs/2.10/generated/torch.optim.lr_scheduler.SequentialLR.html#torch.optim.lr_scheduler.SequentialLR.recursive_undo)
+
+**产品支持情况**：
+
+<!-- npu="910b" id711 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id711 -->
+<!-- npu="A3" id712 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id712 -->
+<!-- npu="950" id713 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id713 -->
+
+</div>
+
 > <font size="3">state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -4298,6 +4530,26 @@
 <!-- npu="950" id612 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id612 -->
+
+</div>
+
+> <font size="3">step()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.optim.lr_scheduler.SequentialLR.step](https://docs.pytorch.org/docs/2.10/generated/torch.optim.lr_scheduler.SequentialLR.html#torch.optim.lr_scheduler.SequentialLR.step)
+
+**产品支持情况**：
+
+<!-- npu="910b" id714 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id714 -->
+<!-- npu="A3" id715 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id715 -->
+<!-- npu="950" id716 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id716 -->
 
 </div>
 
@@ -4320,6 +4572,26 @@
 <!-- npu="950" id615 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id615 -->
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.optim.lr_scheduler.ReduceLROnPlateau.load_state_dict](https://docs.pytorch.org/docs/2.10/generated/torch.optim.lr_scheduler.ReduceLROnPlateau.html#torch.optim.lr_scheduler.ReduceLROnPlateau.load_state_dict)
+
+**产品支持情况**：
+
+<!-- npu="910b" id708 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id708 -->
+<!-- npu="A3" id709 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id709 -->
+<!-- npu="950" id710 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id710 -->
+
+</div>
 
 </div>
 
@@ -4381,6 +4653,26 @@
 
 </div>
 
+> <font size="3">scale_fn()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.optim.lr_scheduler.CyclicLR.scale_fn](https://docs.pytorch.org/docs/2.10/generated/torch.optim.lr_scheduler.CyclicLR.html#torch.optim.lr_scheduler.CyclicLR.scale_fn)
+
+**产品支持情况**：
+
+<!-- npu="910b" id684 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id684 -->
+<!-- npu="A3" id685 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id685 -->
+<!-- npu="950" id686 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id686 -->
+
+</div>
+
 </div>
 
 ### <code><i>class</i></code> torch.optim.lr_scheduler.OneCycleLR
@@ -4418,6 +4710,26 @@
 <!-- npu="950" id630 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id630 -->
+
+</div>
+
+> <font size="3">get_lr()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.optim.lr_scheduler.OneCycleLR.get_lr](https://docs.pytorch.org/docs/2.10/generated/torch.optim.lr_scheduler.OneCycleLR.html#torch.optim.lr_scheduler.OneCycleLR.get_lr)
+
+**产品支持情况**：
+
+<!-- npu="910b" id702 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id702 -->
+<!-- npu="A3" id703 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id703 -->
+<!-- npu="950" id704 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id704 -->
 
 </div>
 
@@ -4501,6 +4813,26 @@
 
 </div>
 
+> <font size="3">get_lr()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.optim.lr_scheduler.CosineAnnealingWarmRestarts.get_lr](https://docs.pytorch.org/docs/2.10/generated/torch.optim.lr_scheduler.CosineAnnealingWarmRestarts.html#torch.optim.lr_scheduler.CosineAnnealingWarmRestarts.get_lr)
+
+**产品支持情况**：
+
+<!-- npu="910b" id681 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id681 -->
+<!-- npu="A3" id682 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id682 -->
+<!-- npu="950" id683 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id683 -->
+
+</div>
+
 > <font size="3">load_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -4558,6 +4890,48 @@
 <!-- npu="950" id651 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id651 -->
+
+</div>
+
+</div>
+
+## Weight Averaging (SWA and EMA)
+
+### <code><i>class</i></code> torch.optim.swa_utils.SWALR
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.optim.swa_utils.SWALR](https://docs.pytorch.org/docs/2.10/generated/torch.optim.swa_utils.SWALR.html#torch.optim.swa_utils.SWALR)
+
+**产品支持情况**：
+
+<!-- npu="910b" id672 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id672 -->
+<!-- npu="A3" id673 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id673 -->
+<!-- npu="950" id674 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id674 -->
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.optim.swa_utils.SWALR.load_state_dict](https://docs.pytorch.org/docs/2.10/generated/torch.optim.swa_utils.SWALR.html#torch.optim.swa_utils.SWALR.load_state_dict)
+
+**产品支持情况**：
+
+<!-- npu="910b" id675 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id675 -->
+<!-- npu="A3" id676 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id676 -->
+<!-- npu="950" id677 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id677 -->
 
 </div>
 

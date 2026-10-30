@@ -197,6 +197,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id52 -->
 ### torch.distributed.algorithms.ddp_comm_hooks.default_hooks.fp16_compress_wrapper
 
 <div style="margin-left: 2em">
@@ -204,6 +205,7 @@
 **原生文档**：[torch.distributed.algorithms.ddp_comm_hooks.default_hooks.fp16_compress_wrapper](https://pytorch.org/docs/2.7/ddp_comm_hooks.html#torch.distributed.algorithms.ddp_comm_hooks.default_hooks.fp16_compress_wrapper)
 
 **产品支持情况**：
+<!-- end id52 -->
 
 <!-- npu="910b" id25 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -211,14 +213,14 @@
 <!-- npu="A3" id26 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id26 -->
-<!-- npu="950" id27 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id27 -->
 
+<!-- npu="910b,A3" id53 -->
 **限制与说明**： `input`仅支持fp32
 
 </div>
+<!-- end id53 -->
 
+<!-- npu="910b,A3" id54 -->
 ### torch.distributed.algorithms.ddp_comm_hooks.default_hooks.bf16_compress_wrapper
 
 <div style="margin-left: 2em">
@@ -226,6 +228,7 @@
 **原生文档**：[torch.distributed.algorithms.ddp_comm_hooks.default_hooks.bf16_compress_wrapper](https://pytorch.org/docs/2.7/ddp_comm_hooks.html#torch.distributed.algorithms.ddp_comm_hooks.default_hooks.bf16_compress_wrapper)
 
 **产品支持情况**：
+<!-- end id54 -->
 
 <!-- npu="910b" id28 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -233,11 +236,10 @@
 <!-- npu="A3" id29 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id29 -->
-<!-- npu="950" id30 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id30 -->
 
+<!-- npu="910b,A3" id55 -->
 </div>
+<!-- end id55 -->
 
 ### torch.distributed.algorithms.ddp_comm_hooks.default_hooks.fp16_compress_hook
 
@@ -261,6 +263,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id56 -->
 ### torch.distributed.algorithms.ddp_comm_hooks.default_hooks.bf16_compress_hook
 
 <div style="margin-left: 2em">
@@ -268,6 +271,7 @@
 **原生文档**：[torch.distributed.algorithms.ddp_comm_hooks.default_hooks.bf16_compress_hook](https://pytorch.org/docs/2.7/ddp_comm_hooks.html#torch.distributed.algorithms.ddp_comm_hooks.default_hooks.bf16_compress_hook)
 
 **产品支持情况**：
+<!-- end id56 -->
 
 <!-- npu="910b" id34 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -275,11 +279,10 @@
 <!-- npu="A3" id35 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id35 -->
-<!-- npu="950" id36 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id36 -->
 
+<!-- npu="910b,A3" id57 -->
 </div>
+<!-- end id57 -->
 
 ## PowerSGD Communication Hook
 

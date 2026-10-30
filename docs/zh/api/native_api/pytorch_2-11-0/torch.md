@@ -11,6 +11,7 @@
 <div style="margin: 8px 0"><font size="5"><b>目录</b></font></div>
 
 - [Tensors](#tensors)
+- [Accelerators](#accelerators)
 - [Generators](#generators)
 - [Random sampling](#random-sampling)
 - [Serialization](#serialization)
@@ -19,6 +20,7 @@
 - [Math operations](#math-operations)
 - [Utilities](#utilities)
 - [Symbolic Numbers](#symbolic-numbers)
+- [Control Flow](#control-flow)
 - [Optimizations](#optimizations)
 - [Operator Tags](#operator-tags)
 
@@ -27,6 +29,226 @@
 <div style="display:none;">
 
 ## &#8203;torch
+
+</div>
+
+### torch.ao.ns.fx.utils.compute_cosine_similarity
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.ns.fx.utils.compute_cosine_similarity](https://docs.pytorch.org/docs/2.11/quantization.html#torch.ao.ns.fx.utils.compute_cosine_similarity)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1171 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1171 -->
+<!-- npu="A3" id1172 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1172 -->
+<!-- npu="950" id1173 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1173 -->
+
+</div>
+
+### torch.ao.ns.fx.utils.compute_normalized_l2_error
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.ns.fx.utils.compute_normalized_l2_error](https://docs.pytorch.org/docs/2.11/quantization.html#torch.ao.ns.fx.utils.compute_normalized_l2_error)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1174 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1174 -->
+<!-- npu="A3" id1175 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1175 -->
+<!-- npu="950" id1176 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1176 -->
+
+</div>
+
+### torch.signal.windows.bartlett
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.signal.windows.bartlett](https://docs.pytorch.org/docs/2.11/generated/torch.signal.windows.bartlett.html#torch.signal.windows.bartlett)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1273 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1273 -->
+<!-- npu="A3" id1274 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1274 -->
+<!-- npu="950" id1275 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1275 -->
+
+</div>
+
+### torch.signal.windows.blackman
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.signal.windows.blackman](https://docs.pytorch.org/docs/2.11/generated/torch.signal.windows.blackman.html#torch.signal.windows.blackman)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1276 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1276 -->
+<!-- npu="A3" id1277 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1277 -->
+<!-- npu="950" id1278 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1278 -->
+
+</div>
+
+### torch.signal.windows.cosine
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.signal.windows.cosine](https://docs.pytorch.org/docs/2.11/generated/torch.signal.windows.cosine.html#torch.signal.windows.cosine)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1279 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1279 -->
+<!-- npu="A3" id1280 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1280 -->
+<!-- npu="950" id1281 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1281 -->
+
+</div>
+
+### torch.signal.windows.gaussian
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.signal.windows.gaussian](https://docs.pytorch.org/docs/2.11/generated/torch.signal.windows.gaussian.html#torch.signal.windows.gaussian)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1282 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1282 -->
+<!-- npu="A3" id1283 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1283 -->
+<!-- npu="950" id1284 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1284 -->
+
+</div>
+
+### torch.signal.windows.general_hamming
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.signal.windows.general_hamming](https://docs.pytorch.org/docs/2.11/generated/torch.signal.windows.general_hamming.html#torch.signal.windows.general_hamming)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1285 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1285 -->
+<!-- npu="A3" id1286 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1286 -->
+<!-- npu="950" id1287 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1287 -->
+
+</div>
+
+### torch.signal.windows.hamming
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.signal.windows.hamming](https://docs.pytorch.org/docs/2.11/generated/torch.signal.windows.hamming.html#torch.signal.windows.hamming)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1288 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1288 -->
+<!-- npu="A3" id1289 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1289 -->
+<!-- npu="950" id1290 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1290 -->
+
+</div>
+
+### torch.signal.windows.hann
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.signal.windows.hann](https://docs.pytorch.org/docs/2.11/generated/torch.signal.windows.hann.html#torch.signal.windows.hann)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1291 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1291 -->
+<!-- npu="A3" id1292 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1292 -->
+<!-- npu="950" id1293 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1293 -->
+
+</div>
+
+### torch.signal.windows.kaiser
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.signal.windows.kaiser](https://docs.pytorch.org/docs/2.11/generated/torch.signal.windows.kaiser.html#torch.signal.windows.kaiser)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1294 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1294 -->
+<!-- npu="A3" id1295 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1295 -->
+<!-- npu="950" id1296 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1296 -->
+
+</div>
+
+### torch.signal.windows.nuttall
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.signal.windows.nuttall](https://docs.pytorch.org/docs/2.11/generated/torch.signal.windows.nuttall.html#torch.signal.windows.nuttall)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1297 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1297 -->
+<!-- npu="A3" id1298 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1298 -->
+<!-- npu="950" id1299 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1299 -->
 
 </div>
 
@@ -214,6 +436,27 @@
 
 </div>
 
+### torch.get_default_device
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.get_default_device](https://docs.pytorch.org/docs/2.11/generated/torch.get_default_device.html#torch.get_default_device)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1219 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1219 -->
+<!-- npu="A3" id1220 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1220 -->
+<!-- npu="950" id1221 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1221 -->
+
+</div>
+
+<!-- npu="910b,A3" id1141 -->
 ### torch.set_default_tensor_type
 
 <div style="margin-left: 2em">
@@ -221,6 +464,7 @@
 **原生文档**：[torch.set_default_tensor_type](https://pytorch.org/docs/2.11/generated/torch.set_default_tensor_type.html)
 
 **产品支持情况**：
+<!-- end id1141 -->
 
 <!-- npu="910b" id28 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -228,13 +472,12 @@
 <!-- npu="A3" id29 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id29 -->
-<!-- npu="950" id30 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id30 -->
 
+<!-- npu="910b,A3" id1142 -->
 **限制与说明**： 不支持传入`torch.npu.DtypeTensor`类型
 
 </div>
+<!-- end id1142 -->
 
 ### torch.numel
 
@@ -296,6 +539,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1143 -->
 ### torch.tensor
 
 <div style="margin-left: 2em">
@@ -303,6 +547,7 @@
 **原生文档**：[torch.tensor](https://pytorch.org/docs/2.11/generated/torch.tensor.html)
 
 **产品支持情况**：
+<!-- end id1143 -->
 
 <!-- npu="910b" id40 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -310,11 +555,10 @@
 <!-- npu="A3" id41 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id41 -->
-<!-- npu="950" id42 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id42 -->
 
+<!-- npu="910b,A3" id1144 -->
 </div>
+<!-- end id1144 -->
 
 ### torch.sparse_coo_tensor
 
@@ -510,26 +754,6 @@
 
 </div>
 
-### torch.from_dlpack
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.from_dlpack](https://pytorch.org/docs/2.11/generated/torch.from_dlpack.html)
-
-**产品支持情况**：
-
-<!-- npu="910b" id70 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id70 -->
-<!-- npu="A3" id71 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id71 -->
-<!-- npu="950" id72 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id72 -->
-
-</div>
-
 ### torch.frombuffer
 
 <div style="margin-left: 2em">
@@ -702,6 +926,26 @@
 
 - `dtype`仅支持bf16，fp16，fp32，fp64，int16，int32，int64，bool，complex64，complex128
 - 创建序列大小为`steps`的1维向量
+
+</div>
+
+### torch.logspace
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.logspace](https://docs.pytorch.org/docs/2.11/generated/torch.logspace.html#torch.logspace)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1246 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1246 -->
+<!-- npu="A3" id1247 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1247 -->
+<!-- npu="950" id1248 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1248 -->
 
 </div>
 
@@ -917,6 +1161,26 @@
 
 </div>
 
+### torch.imag
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.imag](https://docs.pytorch.org/docs/2.11/generated/torch.imag.html#torch.imag)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1231 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1231 -->
+<!-- npu="A3" id1232 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1232 -->
+<!-- npu="950" id1233 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1233 -->
+
+</div>
+
 ### torch.polar
 
 <div style="margin-left: 2em">
@@ -959,6 +1223,26 @@
 <!-- npu="950" id132 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id132 -->
+
+</div>
+
+### torch.adjoint
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.adjoint](https://docs.pytorch.org/docs/2.11/generated/torch.adjoint.html#torch.adjoint)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1168 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1168 -->
+<!-- npu="A3" id1169 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1169 -->
+<!-- npu="950" id1170 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1170 -->
 
 </div>
 
@@ -1128,6 +1412,26 @@
 
 </div>
 
+### torch.column_stack
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.column_stack](https://docs.pytorch.org/docs/2.11/generated/torch.column_stack.html#torch.column_stack)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1189 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1189 -->
+<!-- npu="A3" id1190 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1190 -->
+<!-- npu="950" id1191 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1191 -->
+
+</div>
+
 ### torch.dstack
 
 <div style="margin-left: 2em">
@@ -1174,7 +1478,7 @@
 - `index`的维度数需与`input`的维度数一致
 
 <!-- npu="950,A3,910b" id162 -->
-- 在<term>Ascend 950DT系列产品</term>上，输入包含重复索引时，计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异，例如：
+- 在<term>Ascend 950DT系列产品</term>上，输入包含重复索引时，计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异，例如：
 
   ```python
   # index存在重复索引的示例：索引0被多次使用，Ascend 950DT系列产品上结果可能与A2/A3存在精度差异
@@ -1319,7 +1623,7 @@
 - `input`仅支持bf16，fp16，fp32，int16，int32，int64，bool
 
 <!-- npu="950,A3,910b" id181 -->
-- 在<term>Ascend 950DT系列产品</term>上，输入包含重复索引时，计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异，例如：
+- 在<term>Ascend 950DT系列产品</term>上，输入包含重复索引时，计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异，例如：
 
   ```python
   # index存在重复索引的示例：索引0被多次使用，Ascend 950DT系列产品上结果可能与A2/A3存在精度差异
@@ -1532,6 +1836,26 @@
 
 </div>
 
+### torch.select
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.select](https://docs.pytorch.org/docs/2.11/generated/torch.select.html#torch.select)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1270 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1270 -->
+<!-- npu="A3" id1271 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1271 -->
+<!-- npu="950" id1272 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1272 -->
+
+</div>
+
 ### torch.scatter
 
 <div style="margin-left: 2em">
@@ -1556,7 +1880,7 @@
 - 可能回退至CPU执行
 
 <!-- npu="950,A3,910b" id212 -->
-- 在<term>Ascend 950DT系列产品</term>上，输入包含重复索引时，计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异，例如：
+- 在<term>Ascend 950DT系列产品</term>上，输入包含重复索引时，计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异，例如：
 
   ```python
   # index存在重复索引的示例：索引0被多次使用，同一位置被多次写入，Ascend 950DT系列产品上结果可能与A2/A3存在精度差异
@@ -1654,7 +1978,7 @@
 <!-- end id1140 -->
 
 <!-- npu="950" id1134 -->
-**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，`torch.scatter_add`的输入包含重复索引时，计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。
+**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，`torch.scatter_add`的输入包含重复索引时，计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异。
 <!-- end id1134 -->
 
 </div>
@@ -1927,6 +2251,26 @@
 
 </div>
 
+### torch.unbind
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.unbind](https://docs.pytorch.org/docs/2.11/generated/torch.unbind.html#torch.unbind)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1306 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1306 -->
+<!-- npu="A3" id1307 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1307 -->
+<!-- npu="950" id1308 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1308 -->
+
+</div>
+
 ### torch.unsqueeze
 
 <div style="margin-left: 2em">
@@ -2015,6 +2359,48 @@
 
 - `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 - 不支持8维度的shape
+
+</div>
+
+## Accelerators
+
+### <code><i>class</i></code> torch.Stream
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.Stream](https://docs.pytorch.org/docs/2.11/generated/torch.Stream.html#torch.Stream)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1300 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1300 -->
+<!-- npu="A3" id1301 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1301 -->
+<!-- npu="950" id1302 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1302 -->
+
+</div>
+
+### <code><i>class</i></code> torch.Event
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.Event](https://docs.pytorch.org/docs/2.11/generated/torch.Event.html#torch.Event)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1312 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1312 -->
+<!-- npu="A3" id1313 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1313 -->
+<!-- npu="950" id1314 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1314 -->
 
 </div>
 
@@ -2241,7 +2627,7 @@
 <!-- end id302 -->
 
 <!-- npu="950" id1109 -->
-**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同。
 <!-- end id1109 -->
 
 </div>
@@ -2270,7 +2656,7 @@
 - 遵循PyTorch社区规范，不再支持对bool类型数据进行处理。针对存量bool类型数据可以通过如下方案进行替换：如果需要输出全True，可以采用`torch.bernoulli(input, 1)`。如果需要输出均匀分布的bool类型，则采用`torch.bernoulli(input, 0.5)`
 
 <!-- npu="950" id1110 -->
-- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同。
 <!-- end id1110 -->
 
 </div>
@@ -2294,7 +2680,7 @@
 <!-- end id308 -->
 
 <!-- npu="950" id1111 -->
-**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同。
 <!-- end id1111 -->
 
 </div>
@@ -2322,7 +2708,7 @@
 - `input`仅支持fp16，fp32，int64
 
 <!-- npu="950" id1112 -->
-- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同。
 <!-- end id1112 -->
 
 </div>
@@ -2346,7 +2732,7 @@
 <!-- end id314 -->
 
 <!-- npu="950" id1113 -->
-**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同。
 <!-- end id1113 -->
 
 </div>
@@ -2374,7 +2760,7 @@
 - `input`仅支持fp32
 
 <!-- npu="950" id1114 -->
-- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同。
 <!-- end id1114 -->
 
 </div>
@@ -2398,7 +2784,7 @@
 <!-- end id320 -->
 
 <!-- npu="950" id1115 -->
-**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同。
 <!-- end id1115 -->
 
 </div>
@@ -2526,7 +2912,7 @@
 - `input`仅支持fp16，fp32，fp64
 
 <!-- npu="950" id1116 -->
-- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同。
 <!-- end id1116 -->
 
 </div>
@@ -2554,7 +2940,7 @@
 - `input`仅支持fp16，fp32
 
 <!-- npu="950" id1117 -->
-- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同。
 <!-- end id1117 -->
 
 </div>
@@ -2582,7 +2968,7 @@
 - `mean`、`std`仅支持fp16，fp32
 
 <!-- npu="950" id1118 -->
-- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同。
 <!-- end id1118 -->
 
 </div>
@@ -2739,6 +3125,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1145 -->
 ### torch.set_num_threads
 
 <div style="margin-left: 2em">
@@ -2746,6 +3133,7 @@
 **原生文档**：[torch.set_num_threads](https://pytorch.org/docs/2.11/generated/torch.set_num_threads.html)
 
 **产品支持情况**：
+<!-- end id1145 -->
 
 <!-- npu="910b" id366 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -2753,11 +3141,10 @@
 <!-- npu="A3" id367 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id367 -->
-<!-- npu="950" id368 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id368 -->
 
+<!-- npu="910b,A3" id1146 -->
 </div>
+<!-- end id1146 -->
 
 ### torch.get_num_interop_threads
 
@@ -2779,6 +3166,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1147 -->
 ### torch.set_num_interop_threads
 
 <div style="margin-left: 2em">
@@ -2786,6 +3174,7 @@
 **原生文档**：[torch.set_num_interop_threads](https://pytorch.org/docs/2.11/generated/torch.set_num_interop_threads.html)
 
 **产品支持情况**：
+<!-- end id1147 -->
 
 <!-- npu="910b" id372 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -2793,11 +3182,10 @@
 <!-- npu="A3" id373 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id373 -->
-<!-- npu="950" id374 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id374 -->
 
+<!-- npu="910b,A3" id1148 -->
 </div>
+<!-- end id1148 -->
 
 ## Locally disabling gradient computation
 
@@ -2841,13 +3229,18 @@
 
 </div>
 
+<!-- npu="910b,A3" id1163 -->
+<!-- npu="910b,A3" id1149 -->
 ### <code><i>class</i></code> torch.autograd.grad_mode.set_grad_enabled
+<!-- end id1149 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id1150 -->
 **原生文档**：[torch.autograd.grad_mode.set_grad_enabled](https://pytorch.org/docs/2.11/generated/torch.autograd.grad_mode.set_grad_enabled.html)
 
 **产品支持情况**：
+<!-- end id1150 -->
 
 <!-- npu="910b" id381 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -2855,10 +3248,8 @@
 <!-- npu="A3" id382 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id382 -->
-<!-- npu="950" id383 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id383 -->
 
+<!-- npu="910b,A3" id1151 -->
 > <font size="3">clone()</font>
 
 <div style="margin-left: 2em">
@@ -2866,6 +3257,7 @@
 **原生文档**：[torch.autograd.grad_mode.set_grad_enabled.clone](https://pytorch.org/docs/2.11/generated/torch.autograd.grad_mode.set_grad_enabled.html#torch.autograd.grad_mode.set_grad_enabled.clone)
 
 **产品支持情况**：
+<!-- end id1151 -->
 
 <!-- npu="910b" id384 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -2873,13 +3265,13 @@
 <!-- npu="A3" id385 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id385 -->
-<!-- npu="950" id386 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id386 -->
+
+<!-- npu="910b,A3" id1152 -->
+</div>
+<!-- end id1152 -->
 
 </div>
-
-</div>
+<!-- end id1163 -->
 
 ### torch.is_grad_enabled
 
@@ -2901,13 +3293,18 @@
 
 </div>
 
+<!-- npu="910b,A3" id1164 -->
+<!-- npu="910b,A3" id1153 -->
 ### <code><i>class</i></code> torch.autograd.grad_mode.inference_mode
+<!-- end id1153 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id1154 -->
 **原生文档**：[torch.autograd.grad_mode.inference_mode](https://pytorch.org/docs/2.11/generated/torch.autograd.grad_mode.inference_mode.html)
 
 **产品支持情况**：
+<!-- end id1154 -->
 
 <!-- npu="910b" id390 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -2915,10 +3312,8 @@
 <!-- npu="A3" id391 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id391 -->
-<!-- npu="950" id392 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id392 -->
 
+<!-- npu="910b,A3" id1155 -->
 > <font size="3">clone()</font>
 
 <div style="margin-left: 2em">
@@ -2926,6 +3321,7 @@
 **原生文档**：[torch.autograd.grad_mode.inference_mode.clone](https://pytorch.org/docs/2.11/generated/torch.autograd.grad_mode.inference_mode.html#torch.autograd.grad_mode.inference_mode.clone)
 
 **产品支持情况**：
+<!-- end id1155 -->
 
 <!-- npu="910b" id393 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -2933,13 +3329,13 @@
 <!-- npu="A3" id394 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id394 -->
-<!-- npu="950" id395 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id395 -->
+
+<!-- npu="910b,A3" id1156 -->
+</div>
+<!-- end id1156 -->
 
 </div>
-
-</div>
+<!-- end id1164 -->
 
 ### torch.is_inference_mode_enabled
 
@@ -3637,6 +4033,26 @@
 
 </div>
 
+### torch.conj_physical
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.conj_physical](https://docs.pytorch.org/docs/2.11/generated/torch.conj_physical.html#torch.conj_physical)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1195 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1195 -->
+<!-- npu="A3" id1196 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1196 -->
+<!-- npu="950" id1197 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1197 -->
+
+</div>
+
 ### torch.copysign
 
 <div style="margin-left: 2em">
@@ -3904,6 +4320,46 @@
 
 </div>
 
+### torch.fake_quantize_per_channel_affine
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fake_quantize_per_channel_affine](https://docs.pytorch.org/docs/2.11/generated/torch.fake_quantize_per_channel_affine.html#torch.fake_quantize_per_channel_affine)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1201 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1201 -->
+<!-- npu="A3" id1202 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1202 -->
+<!-- npu="950" id1203 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1203 -->
+
+</div>
+
+### torch.fake_quantize_per_tensor_affine
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fake_quantize_per_tensor_affine](https://docs.pytorch.org/docs/2.11/generated/torch.fake_quantize_per_tensor_affine.html#torch.fake_quantize_per_tensor_affine)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1204 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1204 -->
+<!-- npu="A3" id1205 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1205 -->
+<!-- npu="950" id1206 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1206 -->
+
+</div>
+
 ### torch.fix
 
 <div style="margin-left: 2em">
@@ -4014,6 +4470,26 @@
 
 </div>
 
+### torch.frexp
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.frexp](https://docs.pytorch.org/docs/2.11/generated/torch.frexp.html#torch.frexp)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1213 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1213 -->
+<!-- npu="A3" id1214 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1214 -->
+<!-- npu="950" id1215 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1215 -->
+
+</div>
+
 ### torch.gradient
 
 <div style="margin-left: 2em">
@@ -4077,6 +4553,26 @@
 <!-- end id548 -->
 
 **限制与说明**： `input`仅支持fp16，fp32
+
+</div>
+
+### torch.lgamma
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.lgamma](https://docs.pytorch.org/docs/2.11/generated/torch.lgamma.html#torch.lgamma)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1237 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1237 -->
+<!-- npu="A3" id1238 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1238 -->
+<!-- npu="950" id1239 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1239 -->
 
 </div>
 
@@ -4329,6 +4825,26 @@
 
 </div>
 
+### torch.hypot
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.hypot](https://docs.pytorch.org/docs/2.11/generated/torch.hypot.html#torch.hypot)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1228 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1228 -->
+<!-- npu="A3" id1229 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1229 -->
+<!-- npu="950" id1230 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1230 -->
+
+</div>
+
 ### torch.mul
 
 <div style="margin-left: 2em">
@@ -4436,6 +4952,26 @@
 <!-- end id596 -->
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32，int8，int32，int64，complex64，complex128
+
+</div>
+
+### torch.nextafter
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nextafter](https://docs.pytorch.org/docs/2.11/generated/torch.nextafter.html#torch.nextafter)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1255 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1255 -->
+<!-- npu="A3" id1256 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1256 -->
+<!-- npu="950" id1257 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1257 -->
 
 </div>
 
@@ -4656,6 +5192,26 @@
 <!-- end id626 -->
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32，int32，int64，bool，complex64，complex128
+
+</div>
+
+### torch.signbit
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.signbit](https://docs.pytorch.org/docs/2.11/generated/torch.signbit.html#torch.signbit)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1165 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1165 -->
+<!-- npu="A3" id1166 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1166 -->
+<!-- npu="950" id1167 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1167 -->
 
 </div>
 
@@ -5218,6 +5774,26 @@
 
 </div>
 
+### torch.mode
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.mode](https://docs.pytorch.org/docs/2.11/generated/torch.mode.html#torch.mode)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1252 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1252 -->
+<!-- npu="A3" id1253 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1253 -->
+<!-- npu="950" id1254 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1254 -->
+
+</div>
+
 ### torch.norm
 
 <div style="margin-left: 2em">
@@ -5284,6 +5860,26 @@
 <!-- end id710 -->
 
 **限制与说明**： `input`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+
+</div>
+
+### torch.quantile
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.quantile](https://docs.pytorch.org/docs/2.11/generated/torch.quantile.html#torch.quantile)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1264 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1264 -->
+<!-- npu="A3" id1265 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1265 -->
+<!-- npu="950" id1266 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1266 -->
 
 </div>
 
@@ -5987,6 +6583,46 @@
 
 </div>
 
+### torch.fmax
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fmax](https://docs.pytorch.org/docs/2.11/generated/torch.fmax.html#torch.fmax)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1207 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1207 -->
+<!-- npu="A3" id1208 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1208 -->
+<!-- npu="950" id1209 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1209 -->
+
+</div>
+
+### torch.fmin
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fmin](https://docs.pytorch.org/docs/2.11/generated/torch.fmin.html#torch.fmin)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1210 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1210 -->
+<!-- npu="A3" id1211 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1211 -->
+<!-- npu="950" id1212 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1212 -->
+
+</div>
+
 ### torch.ne
 
 <div style="margin-left: 2em">
@@ -6128,6 +6764,66 @@
 
 - `input`仅支持fp32，fp64，complex64，complex128
 - 若算子超时，需要用官方接口`set_op_execute_time_out`进行设置，调高超时阈值以延长判断时间
+
+</div>
+
+### torch.bartlett_window
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.bartlett_window](https://docs.pytorch.org/docs/2.11/generated/torch.bartlett_window.html#torch.bartlett_window)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1177 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1177 -->
+<!-- npu="A3" id1178 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1178 -->
+<!-- npu="950" id1179 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1179 -->
+
+</div>
+
+### torch.blackman_window
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.blackman_window](https://docs.pytorch.org/docs/2.11/generated/torch.blackman_window.html#torch.blackman_window)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1180 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1180 -->
+<!-- npu="A3" id1181 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1181 -->
+<!-- npu="950" id1182 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1182 -->
+
+</div>
+
+### torch.hamming_window
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.hamming_window](https://docs.pytorch.org/docs/2.11/generated/torch.hamming_window.html#torch.hamming_window)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1225 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1225 -->
+<!-- npu="A3" id1226 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1226 -->
+<!-- npu="950" id1227 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1227 -->
 
 </div>
 
@@ -6591,6 +7287,26 @@
 
 </div>
 
+### torch.diagflat
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.diagflat](https://docs.pytorch.org/docs/2.11/generated/torch.diagflat.html#torch.diagflat)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1198 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1198 -->
+<!-- npu="A3" id1199 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1199 -->
+<!-- npu="950" id1200 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1200 -->
+
+</div>
+
 ### torch.diagonal
 
 <div style="margin-left: 2em">
@@ -6658,7 +7374,7 @@
 - `operands`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 <!-- npu="950" id1127 -->
-- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
 <!-- end id1127 -->
 
 </div>
@@ -6773,6 +7489,46 @@
 
 </div>
 
+### torch.rot90
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.rot90](https://docs.pytorch.org/docs/2.11/generated/torch.rot90.html#torch.rot90)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1267 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1267 -->
+<!-- npu="A3" id1268 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1268 -->
+<!-- npu="950" id1269 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1269 -->
+
+</div>
+
+### torch.gcd
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.gcd](https://docs.pytorch.org/docs/2.11/generated/torch.gcd.html#torch.gcd)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1216 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1216 -->
+<!-- npu="A3" id1217 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1217 -->
+<!-- npu="950" id1218 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1218 -->
+
+</div>
+
 ### torch.histc
 
 <div style="margin-left: 2em">
@@ -6817,6 +7573,46 @@
 <!-- end id914 -->
 
 **限制与说明**： `tensors`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+
+</div>
+
+### torch.lcm
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.lcm](https://docs.pytorch.org/docs/2.11/generated/torch.lcm.html#torch.lcm)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1234 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1234 -->
+<!-- npu="A3" id1235 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1235 -->
+<!-- npu="950" id1236 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1236 -->
+
+</div>
+
+### torch.logcumsumexp
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.logcumsumexp](https://docs.pytorch.org/docs/2.11/generated/torch.logcumsumexp.html#torch.logcumsumexp)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1243 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1243 -->
+<!-- npu="A3" id1244 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1244 -->
+<!-- npu="950" id1245 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1245 -->
 
 </div>
 
@@ -7037,6 +7833,26 @@
 
 </div>
 
+### torch.vander
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.vander](https://docs.pytorch.org/docs/2.11/generated/torch.vander.html#torch.vander)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1309 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1309 -->
+<!-- npu="A3" id1310 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1310 -->
+<!-- npu="950" id1311 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1311 -->
+
+</div>
+
 ### torch.view_as_real
 
 <div style="margin-left: 2em">
@@ -7170,7 +7986,7 @@
 - `input`仅支持fp16，fp32
 
 <!-- npu="950" id1128 -->
-- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
 <!-- end id1128 -->
 
 </div>
@@ -7242,7 +8058,7 @@
 - `input`仅支持bf16，fp16，fp32
 
 <!-- npu="950" id1129 -->
-- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
 <!-- end id1129 -->
 
 </div>
@@ -7270,8 +8086,48 @@
 - `input`仅支持fp16，fp32
 
 <!-- npu="950" id1130 -->
-- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
 <!-- end id1130 -->
+
+</div>
+
+### torch.cholesky_inverse
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.cholesky_inverse](https://docs.pytorch.org/docs/2.11/generated/torch.cholesky_inverse.html#torch.cholesky_inverse)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1183 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1183 -->
+<!-- npu="A3" id1184 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1184 -->
+<!-- npu="950" id1185 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1185 -->
+
+</div>
+
+### torch.cholesky_solve
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.cholesky_solve](https://docs.pytorch.org/docs/2.11/generated/torch.cholesky_solve.html#torch.cholesky_solve)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1186 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1186 -->
+<!-- npu="A3" id1187 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1187 -->
+<!-- npu="950" id1188 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1188 -->
 
 </div>
 
@@ -7322,6 +8178,26 @@
 
 </div>
 
+### torch.lu_unpack
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.lu_unpack](https://docs.pytorch.org/docs/2.11/generated/torch.lu_unpack.html#torch.lu_unpack)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1249 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1249 -->
+<!-- npu="A3" id1250 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1250 -->
+<!-- npu="950" id1251 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1251 -->
+
+</div>
+
 ### torch.matmul
 
 <div style="margin-left: 2em">
@@ -7347,7 +8223,7 @@
 - 输入最大支持6维
 
 <!-- npu="950" id1131 -->
-- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
 <!-- end id1131 -->
 
 </div>
@@ -7375,7 +8251,7 @@
 - `input`仅支持fp16，fp32
 
 <!-- npu="950" id1132 -->
-- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
 <!-- end id1132 -->
 
 </div>
@@ -7402,6 +8278,26 @@
 
 </div>
 
+### torch.ormqr
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ormqr](https://docs.pytorch.org/docs/2.11/generated/torch.ormqr.html#torch.ormqr)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1258 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1258 -->
+<!-- npu="A3" id1259 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1259 -->
+<!-- npu="950" id1260 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1260 -->
+
+</div>
+
 ### torch.qr
 
 <div style="margin-left: 2em">
@@ -7419,6 +8315,66 @@
 <!-- npu="950" id992 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id992 -->
+
+</div>
+
+### torch.svd_lowrank
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.svd_lowrank](https://docs.pytorch.org/docs/2.11/generated/torch.svd_lowrank.html#torch.svd_lowrank)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1303 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1303 -->
+<!-- npu="A3" id1304 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1304 -->
+<!-- npu="950" id1305 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1305 -->
+
+</div>
+
+### torch.pca_lowrank
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.pca_lowrank](https://docs.pytorch.org/docs/2.11/generated/torch.pca_lowrank.html#torch.pca_lowrank)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1261 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1261 -->
+<!-- npu="A3" id1262 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1262 -->
+<!-- npu="950" id1263 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1263 -->
+
+</div>
+
+### torch.lobpcg
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.lobpcg](https://docs.pytorch.org/docs/2.11/generated/torch.lobpcg.html#torch.lobpcg)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1240 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1240 -->
+<!-- npu="A3" id1241 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1241 -->
+<!-- npu="950" id1242 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1242 -->
 
 </div>
 
@@ -7795,26 +8751,6 @@
 
 </div>
 
-### torch.is_deterministic_algorithms_warn_only_enabled
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.is_deterministic_algorithms_warn_only_enabled](https://pytorch.org/docs/2.11/generated/torch.is_deterministic_algorithms_warn_only_enabled.html)
-
-**产品支持情况**：
-
-<!-- npu="910b" id1041 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id1041 -->
-<!-- npu="A3" id1042 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id1042 -->
-<!-- npu="950" id1043 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id1043 -->
-
-</div>
-
 ### torch.set_deterministic_debug_mode
 
 <div style="margin-left: 2em">
@@ -7855,6 +8791,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1157 -->
 ### torch.set_float32_matmul_precision
 
 <div style="margin-left: 2em">
@@ -7862,6 +8799,7 @@
 **原生文档**：[torch.set_float32_matmul_precision](https://pytorch.org/docs/2.11/generated/torch.set_float32_matmul_precision.html)
 
 **产品支持情况**：
+<!-- end id1157 -->
 
 <!-- npu="910b" id1050 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -7869,14 +8807,14 @@
 <!-- npu="A3" id1051 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id1051 -->
-<!-- npu="950" id1052 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id1052 -->
 
+<!-- npu="910b,A3" id1158 -->
 **限制与说明**： 此API在NPU上可调用，但实际功能无效。
 
 </div>
+<!-- end id1158 -->
 
+<!-- npu="910b,A3" id1159 -->
 ### torch.get_float32_matmul_precision
 
 <div style="margin-left: 2em">
@@ -7884,6 +8822,7 @@
 **原生文档**：[torch.get_float32_matmul_precision](https://pytorch.org/docs/2.11/generated/torch.get_float32_matmul_precision.html)
 
 **产品支持情况**：
+<!-- end id1159 -->
 
 <!-- npu="910b" id1053 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -7891,11 +8830,10 @@
 <!-- npu="A3" id1054 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id1054 -->
-<!-- npu="950" id1055 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id1055 -->
 
+<!-- npu="910b,A3" id1160 -->
 </div>
+<!-- end id1160 -->
 
 ### torch.set_warn_always
 
@@ -7914,6 +8852,26 @@
 <!-- npu="950" id1058 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1058 -->
+
+</div>
+
+### torch.get_device_module
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.get_device_module](https://docs.pytorch.org/docs/2.11/generated/torch.get_device_module.html#torch.get_device_module)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1222 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1222 -->
+<!-- npu="A3" id1223 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1223 -->
+<!-- npu="950" id1224 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1224 -->
 
 </div>
 
@@ -8087,6 +9045,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1161 -->
 ### torch.sym_ite
 
 <div style="margin-left: 2em">
@@ -8094,6 +9053,7 @@
 **原生文档**：[torch.sym_ite](https://pytorch.org/docs/2.11/generated/torch.sym_ite.html)
 
 **产品支持情况**：
+<!-- end id1161 -->
 
 <!-- npu="910b" id1083 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -8101,11 +9061,10 @@
 <!-- npu="A3" id1084 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id1084 -->
-<!-- npu="950" id1085 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id1085 -->
 
+<!-- npu="910b,A3" id1162 -->
 </div>
+<!-- end id1162 -->
 
 ### torch.sym_max
 
@@ -8166,6 +9125,28 @@
 <!-- npu="950" id1094 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1094 -->
+
+</div>
+
+## Control Flow
+
+### torch.cond
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.cond](https://docs.pytorch.org/docs/2.11/generated/torch.cond.html#torch.cond)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1192 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1192 -->
+<!-- npu="A3" id1193 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1193 -->
+<!-- npu="950" id1194 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1194 -->
 
 </div>
 

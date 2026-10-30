@@ -13,6 +13,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id3 -->
 ### torch.utils.model_zoo.load_url
 
 <div style="margin-left: 2em">
@@ -20,6 +21,7 @@
 **原生文档**：[torch.utils.model_zoo.load_url](https://pytorch.org/docs/2.7/model_zoo.html#torch.utils.model_zoo.load_url)
 
 **产品支持情况**：
+<!-- end id3 -->
 
 <!-- npu="910b" id1 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -27,8 +29,7 @@
 <!-- npu="A3" id2 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id2 -->
-<!-- npu="950" id3 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id3 -->
 
+<!-- npu="910b,A3" id4 -->
 </div>
+<!-- end id4 -->

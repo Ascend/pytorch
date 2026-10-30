@@ -29,6 +29,166 @@
 
 ## Fast Fourier Transforms
 
+### torch.fft.fft
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fft.fft](https://docs.pytorch.org/docs/2.9/generated/torch.fft.fft.html#torch.fft.fft)
+
+**产品支持情况**：
+
+<!-- npu="910b" id35 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id35 -->
+<!-- npu="A3" id36 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id36 -->
+<!-- npu="950" id37 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id37 -->
+
+</div>
+
+### torch.fft.ifft
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fft.ifft](https://docs.pytorch.org/docs/2.9/generated/torch.fft.ifft.html#torch.fft.ifft)
+
+**产品支持情况**：
+
+<!-- npu="910b" id44 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id44 -->
+<!-- npu="A3" id45 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id45 -->
+<!-- npu="950" id46 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id46 -->
+
+</div>
+
+### torch.fft.fft2
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fft.fft2](https://docs.pytorch.org/docs/2.9/generated/torch.fft.fft2.html#torch.fft.fft2)
+
+**产品支持情况**：
+
+<!-- npu="910b" id38 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id38 -->
+<!-- npu="A3" id39 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id39 -->
+<!-- npu="950" id40 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id40 -->
+
+</div>
+
+### torch.fft.ifft2
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fft.ifft2](https://docs.pytorch.org/docs/2.9/generated/torch.fft.ifft2.html#torch.fft.ifft2)
+
+**产品支持情况**：
+
+<!-- npu="910b" id47 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id47 -->
+<!-- npu="A3" id48 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id48 -->
+<!-- npu="950" id49 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id49 -->
+
+</div>
+
+### torch.fft.fftn
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fft.fftn](https://docs.pytorch.org/docs/2.9/generated/torch.fft.fftn.html#torch.fft.fftn)
+
+**产品支持情况**：
+
+<!-- npu="910b" id41 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id41 -->
+<!-- npu="A3" id42 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id42 -->
+<!-- npu="950" id43 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id43 -->
+
+</div>
+
+### torch.fft.ifftn
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fft.ifftn](https://docs.pytorch.org/docs/2.9/generated/torch.fft.ifftn.html#torch.fft.ifftn)
+
+**产品支持情况**：
+
+<!-- npu="910b" id50 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id50 -->
+<!-- npu="A3" id51 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id51 -->
+<!-- npu="950" id52 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id52 -->
+
+</div>
+
+### torch.fft.rfft
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fft.rfft](https://docs.pytorch.org/docs/2.9/generated/torch.fft.rfft.html#torch.fft.rfft)
+
+**产品支持情况**：
+
+<!-- npu="910b" id56 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id56 -->
+<!-- npu="A3" id57 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id57 -->
+<!-- npu="950" id58 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id58 -->
+
+</div>
+
+### torch.fft.irfft
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fft.irfft](https://docs.pytorch.org/docs/2.9/generated/torch.fft.irfft.html#torch.fft.irfft)
+
+**产品支持情况**：
+
+<!-- npu="910b" id53 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id53 -->
+<!-- npu="A3" id54 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id54 -->
+<!-- npu="950" id55 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id55 -->
+
+</div>
+
 ### torch.fft.rfftn
 
 <div style="margin-left: 2em">
