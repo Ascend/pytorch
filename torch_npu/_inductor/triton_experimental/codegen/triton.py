@@ -1790,6 +1790,7 @@ class NPUTritonCSEVariable(TritonCSEVariable):
         # variable can never wrongly drop a guard.
         self._npu_shape_op = None
         self._npu_load_index = None
+        self._npu_reduction_shape = None
         self._npu_pad = _PAD_TOP
 
     def update_on_args(self, name, args, kwargs):
@@ -2126,7 +2127,7 @@ class NPUTritonKernel(TritonKernel):
     overrides = NPUTritonKernelOverrides  # type: ignore[assignment]
 
     def codegen_shape_assert(self, buffer, var, shape):
-        if self._npu_linearize and not self.features.is_reduction():
+        if self._npu_linearize:
             original_shape = tuple(shape)
 
             def condition():
@@ -2273,6 +2274,7 @@ class NPUTritonKernel(TritonKernel):
         unknown fact (``top``) keeps the guard.  A single-value reduction only
         (tuple/welford reductions keep their guards).
         """
+        shape_vars = set(self.cse.varname_map) if config.test_configs.runtime_triton_shape_assert else None
         elide = False
         if (
             npu_elide_reduction_where
@@ -2286,16 +2288,18 @@ class NPUTritonKernel(TritonKernel):
 
         if not elide:
             result = super().reduction(dtype, src_dtype, reduction_type, value)
-            self._seed_reduction_result_pad(result, reduction_type, src_dtype)
-            return result
-
-        # Drop reduction masks for the duration of this reduction so the guard's
-        # condition empties out and upstream emits no tl.where.
-        self._npu_elide_reduction_masks = True
-        try:
-            result = super().reduction(dtype, src_dtype, reduction_type, value)
-        finally:
-            self._npu_elide_reduction_masks = False
+        else:
+            # Drop reduction masks only while emitting this reduction.
+            self._npu_elide_reduction_masks = True
+            try:
+                result = super().reduction(dtype, src_dtype, reduction_type, value)
+            finally:
+                self._npu_elide_reduction_masks = False
+        if shape_vars is not None:
+            for name in self.cse.varname_map.keys() - shape_vars:
+                var = self.cse.varname_map[name]
+                if isinstance(var, NPUTritonCSEVariable) and var._npu_shape_op is None and var._npu_load_index is None:
+                    var._npu_reduction_shape = var.shape
         self._seed_reduction_result_pad(result, reduction_type, src_dtype)
         return result
 
@@ -7763,6 +7767,7 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
 
         # Compute old_dense_size BEFORE tensor_dim mutation (matches codegen_body output).
         orig_ndim = sum(int(tree.tensor_dim is not None) for tree in kernel.range_trees)
+        original_dims = {tree.prefix: tree.tensor_dim for tree in kernel.range_trees}
         old_sizes = ["1"] * orig_ndim
         for tree in kernel.range_trees:
             if tree.tensor_dim is None:
@@ -8053,6 +8058,9 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
         # tl.broadcast_to shapes), so we deviate only when the hook moved a tree.
         real_sizes = ["1"] * real_ndim
         pointwise_slots = {}
+        # Slots are assigned from zero; bounds checks reject invalid metadata.
+        reduction_slots = {}
+        final_slots = {}
         permuted = getattr(kernel, "_npu_tile_permuted", False)
 
         # Free x-sub-node slot order MUST match var_tensor_dims (divisor-descending);
@@ -8080,10 +8088,12 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
             for tree in kernel.range_trees:
                 if tree.tensor_dim is None:
                     continue
+                final_slots[tree.prefix] = []
                 slot = tree.tensor_dim
                 if not tree.is_reduction:
                     node_block_constexpr = getattr(tree, "node_block_constexpr", {}) or {}
                     for node_slot, node in _ordered_free_nodes(tree, slot):
+                        final_slots[tree.prefix].append(node_slot)
                         if 0 <= node_slot < real_ndim:
                             pointwise_slots[node.name] = node_slot
                             real_sizes[node_slot] = node_block_constexpr.get(
@@ -8098,21 +8108,28 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                         # static nodes (ViT mixed seq+batch).
                         _ndyn = getattr(kernel, "_npu_rtree_node_dynamic", {})
                         for node_slot, node in _ordered_free_nodes(tree, slot):
-                            if node_slot < real_ndim:
+                            final_slots[tree.prefix].append(node_slot)
+                            if 0 <= node_slot < real_ndim:
+                                reduction_slots[node.name] = node_slot
                                 real_sizes[node_slot] = (
                                     f"{node.name}_blk" if _ndyn.get(node.name)
                                     else f"real_block_{node.name}"
                                 )
                     else:
                         real_sizes[slot] = f"{tree.prefix.upper()}BLOCK"
+                        final_slots[tree.prefix].append(slot)
+                        for _, node in _ordered_free_nodes(tree, slot):
+                            reduction_slots[node.name] = slot
         else:
             dim_idx = 0
             for tree in kernel.range_trees:
                 if tree.tensor_dim is None:
                     continue
+                final_slots[tree.prefix] = []
                 if not tree.is_reduction:
                     node_block_constexpr = getattr(tree, "node_block_constexpr", {}) or {}
                     for node_slot, node in _ordered_free_nodes(tree, dim_idx):
+                        final_slots[tree.prefix].append(node_slot)
                         if 0 <= node_slot < real_ndim:
                             pointwise_slots[node.name] = node_slot
                             real_sizes[node_slot] = node_block_constexpr.get(
@@ -8123,7 +8140,9 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                     if tree.prefix in getattr(kernel, "_npu_rtree_promoted", {}):
                         _ndyn = getattr(kernel, "_npu_rtree_node_dynamic", {})
                         for node_slot, node in _ordered_free_nodes(tree, dim_idx):
-                            if node_slot < real_ndim:
+                            final_slots[tree.prefix].append(node_slot)
+                            if 0 <= node_slot < real_ndim:
+                                reduction_slots[node.name] = node_slot
                                 real_sizes[node_slot] = (
                                     f"{node.name}_blk" if _ndyn.get(node.name)
                                     else f"real_block_{node.name}"
@@ -8131,11 +8150,22 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                             dim_idx = max(dim_idx, node_slot + 1)
                     else:
                         real_sizes[dim_idx] = f"{tree.prefix.upper()}BLOCK"
+                        final_slots[tree.prefix].append(dim_idx)
+                        for _, node in _ordered_free_nodes(tree, dim_idx):
+                            reduction_slots[node.name] = dim_idx
                         dim_idx += 1
         real_dense_size = f"[{', '.join(real_sizes)}]"
         # Assertions are emitted before register axes are split. Reconstruct
         # their expected shapes separately; never mutate live CSE metadata.
-        if config.test_configs.runtime_triton_shape_assert and not kernel.features.is_reduction():
+        if (
+            config.test_configs.runtime_triton_shape_assert
+            and not getattr(kernel, "_npu_rtree_promoted", {})
+            and sum(t.is_reduction and t.tensor_dim is not None for t in kernel.range_trees) <= 1
+            and all(
+                t.prefix in getattr(kernel, "_npu_rtree_promoted", {}) or len(_ordered_free_nodes(t, 0)) <= 1
+                for t in kernel.range_trees if t.is_reduction
+            )
+        ):
             from types import SimpleNamespace
             from torch._inductor.shape_propagation import (
                 ShapePropagationOpsHandler, get_broadcasted_shape,
@@ -8146,11 +8176,36 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
             aliases = {}
             range_names = {v.name for v in kernel.range_tree_nodes}
             scalar_names = set()
+            index_slots = {**pointwise_slots, **reduction_slots}
             for tree in kernel.range_trees:
                 aliases.update(tree.tree_node_mapping)
                 scalar_names.update(getattr(tree, "_npu_scalar_odometer", ()) or ())
                 if tree.tensor_dim is None:
                     scalar_names.update(n.name for n in tree.nodes.values())
+
+            def reduction_shape(shape):
+                if shape == ():
+                    return ()
+                if shape is None or len(shape) != orig_ndim:
+                    return None
+                result = [1] * real_ndim
+                for tree in kernel.range_trees:
+                    dim = original_dims[tree.prefix]
+                    if dim is None or shape[dim] == 1 or str(shape[dim]) == "1":
+                        continue
+                    if str(shape[dim]) != f"{tree.prefix.upper()}BLOCK":
+                        return None
+                    slots = final_slots.get(tree.prefix)
+                    if not slots:
+                        # A scalar output tree has no register axis after linearization.
+                        if not tree.is_reduction and tree.numel == 1:
+                            continue
+                        return None
+                    for slot in slots:
+                        if slot < 0 or slot >= real_ndim:
+                            return None
+                        result[slot] = real_sizes[slot]
+                return tuple(result)
 
             def index_shape(index):
                 names = {v.name for v in index.free_symbols}
@@ -8164,12 +8219,12 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                     if expanded == names:
                         break
                     names = expanded
-                if (names & range_names) - pointwise_slots.keys() - scalar_names:
+                if (names & range_names) - index_slots.keys() - scalar_names:
                     return None
                 shape = [1] * real_ndim
-                for name in names & pointwise_slots.keys():
-                    shape[pointwise_slots[name]] = real_sizes[pointwise_slots[name]]
-                result = tuple(shape) if names & pointwise_slots.keys() else ()
+                for name in names & index_slots.keys():
+                    shape[index_slots[name]] = real_sizes[index_slots[name]]
+                result = tuple(shape) if names & index_slots.keys() else ()
                 for name in names & kernel.cse.varname_map.keys():
                     if shapes.get(name) is None:
                         return None
@@ -8198,6 +8253,8 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                                 *(shape_arg(a) for a in args),
                                 **{key: shape_arg(value) for key, value in kwargs.items()},
                             )
+                    elif var._npu_reduction_shape is not None:
+                        shape = reduction_shape(var._npu_reduction_shape)
                 # Unknown sources stay unknown throughout their consumer chain.
                 # Keep their original expected shapes instead of guessing.
                 shapes[name] = tuple(shape) if shape is not None else None
