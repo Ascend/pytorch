@@ -615,7 +615,7 @@
 
 </div>
 
-> <font size="3">inlined_graph()</font>
+> <font size="3">inlined_graph</font>
 
 <div style="margin-left: 2em">
 
@@ -644,16 +644,14 @@
 **产品支持情况**：
 
 <!-- npu="910b" id91 -->
-- <term>Atlas A2训练系列产品</term>：支持
+- <term>Atlas A2训练系列产品</term>：不支持
 <!-- end id91 -->
 <!-- npu="A3" id92 -->
-- <term>Atlas A3训练系列产品</term>：支持
+- <term>Atlas A3训练系列产品</term>：不支持
 <!-- end id92 -->
 <!-- npu="950" id93 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id93 -->
-
-**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -675,8 +673,6 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id96 -->
 
-**限制与说明**：`input`仅支持fp32
-
 </div>
 
 > <font size="3">modules()</font>
@@ -697,7 +693,25 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id99 -->
 
-**限制与说明**：`input`仅支持fp32
+</div>
+
+> <font size="3">mtia()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.jit.ScriptModule.mtia](https://pytorch.org/docs/2.7/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.mtia)
+
+**产品支持情况**：
+
+<!-- npu="910b" id253 -->
+- <term>Atlas A2训练系列产品</term>：不支持
+<!-- end id253 -->
+<!-- npu="A3" id254 -->
+- <term>Atlas A3训练系列产品</term>：不支持
+<!-- end id254 -->
+<!-- npu="950" id255 -->
+- <term>Ascend 950DT系列产品</term>：不支持
+<!-- end id255 -->
 
 </div>
 

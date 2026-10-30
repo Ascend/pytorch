@@ -560,8 +560,6 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id78 -->
 
-**限制与说明**：`self`仅支持fp32
-
 </div>
 
 > <font size="3">modules()</font>
@@ -582,7 +580,25 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id81 -->
 
-**限制与说明**：`self`仅支持fp32
+</div>
+
+> <font size="3">mtia()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.Module.mtia](https://pytorch.org/docs/2.12/generated/torch.nn.Module.html#torch.nn.Module.mtia)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1017 -->
+- <term>Atlas A2训练系列产品</term>：不支持
+<!-- end id1017 -->
+<!-- npu="A3" id1018 -->
+- <term>Atlas A3训练系列产品</term>：不支持
+<!-- end id1018 -->
+<!-- npu="950" id1019 -->
+- <term>Ascend 950DT系列产品</term>：不支持
+<!-- end id1019 -->
 
 </div>
 

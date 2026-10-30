@@ -575,7 +575,7 @@
 
 </div>
 
-> <font size="3">inlined_graph()</font>
+> <font size="3">inlined_graph</font>
 
 <div style="margin-left: 2em">
 
@@ -604,16 +604,16 @@
 **产品支持情况**：
 
 <!-- npu="910b" id85 -->
-- <term>Atlas A2训练系列产品</term>：支持
+- <term>Atlas A2训练系列产品</term>：不支持
 <!-- end id85 -->
 <!-- npu="A3" id86 -->
-- <term>Atlas A3训练系列产品</term>：支持
+- <term>Atlas A3训练系列产品</term>：不支持
 <!-- end id86 -->
 <!-- npu="950" id87 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id87 -->
 
-**限制与说明**：`input`仅支持fp32
+**限制与说明**：该方法将模块参数和缓冲区迁移到IPU；这是IPU专用设备迁移接口，不表示支持Ascend NPU迁移。该PyTorch API仍由本版本定义。
 
 </div>
 
@@ -635,8 +635,6 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id90 -->
 
-**限制与说明**：`input`仅支持fp32
-
 </div>
 
 > <font size="3">modules()</font>
@@ -657,7 +655,27 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id93 -->
 
-**限制与说明**：`input`仅支持fp32
+</div>
+
+> <font size="3">mtia()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.jit.ScriptModule.mtia](https://pytorch.org/docs/2.9/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.mtia)
+
+**产品支持情况**：
+
+<!-- npu="910b" id244 -->
+- <term>Atlas A2训练系列产品</term>：不支持
+<!-- end id244 -->
+<!-- npu="A3" id245 -->
+- <term>Atlas A3训练系列产品</term>：不支持
+<!-- end id245 -->
+<!-- npu="950" id246 -->
+- <term>Ascend 950DT系列产品</term>：不支持
+<!-- end id246 -->
+
+**限制与说明**：该接口用于将模块参数和缓冲区迁移到 MTIA；它是 MTIA 专用设备迁移接口，不表示支持 Ascend NPU 设备迁移。
 
 </div>
 
