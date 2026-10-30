@@ -38,25 +38,19 @@
 using Block = at::HostBlock<c10_npu::NPUStream>;
 
 namespace at_npu::native {
-constexpr size_t kMinBlockSize =
-    512; // all sizes are rounded to at least 512 bytes
+constexpr size_t kMinBlockSize = 512; // all sizes are rounded to at least 512 bytes
 constexpr size_t segmentSize = 20971520; // segment size 20M
 constexpr size_t deviceTotalSize = 68719476736; // 64 GB
 
 struct ExpandableBlock;
 using Comparison = bool (*)(const ExpandableBlock*, const ExpandableBlock*);
-static bool BlockComparatorSize(
-    const ExpandableBlock* a,
-    const ExpandableBlock* b);
-static bool BlockComparatorAddress(
-    const ExpandableBlock* a,
-    const ExpandableBlock* b);
+static bool BlockComparatorSize(const ExpandableBlock* a, const ExpandableBlock* b);
+static bool BlockComparatorAddress(const ExpandableBlock* a, const ExpandableBlock* b);
 
 struct ExpandableBlockPool {
   std::set<ExpandableBlock*, Comparison> blocks;
   std::set<ExpandableBlock*, Comparison> unmapped;
-  ExpandableBlockPool()
-      : blocks(BlockComparatorSize), unmapped(BlockComparatorAddress) {}
+  ExpandableBlockPool() : blocks(BlockComparatorSize), unmapped(BlockComparatorAddress) {}
 };
 
 struct ExpandableSegment;
@@ -72,15 +66,13 @@ struct ExpandableBlock : at::HostBlock<c10_npu::NPUStream> {
   ExpandableBlock* prev{}; // prev block if split from a larger allocation
   ExpandableBlock* next{}; // next block if split from a larger allocation
   ExpandableSegment* expandable_segment_{nullptr};
-  ExpandableBlock(const size_t size, void* ptr)
-      : HostBlock(size, ptr), prev(nullptr), next(nullptr) {}
+  ExpandableBlock(const size_t size, void* ptr) : HostBlock(size, ptr), prev(nullptr), next(nullptr) {}
 
   ExpandableBlock(const size_t size, ExpandableBlockPool* pool, void* ptr)
       : HostBlock(size, ptr), pool(pool), prev(nullptr), next(nullptr) {}
 
   // constructor for search key
-  explicit ExpandableBlock(const size_t size)
-      : HostBlock(size), prev(nullptr), next(nullptr) {}
+  explicit ExpandableBlock(const size_t size) : HostBlock(size), prev(nullptr), next(nullptr) {}
 
   bool is_split() const {
     return (prev != nullptr) || (next != nullptr);
@@ -102,8 +94,7 @@ struct ExpandableBlock : at::HostBlock<c10_npu::NPUStream> {
 void innerInitNPU() {
   // check whether we need std::call_once here
   C10_LOG_API_USAGE_ONCE("aten.init.npu");
-  c10_npu::NpuSysCtrl::SysStatus status =
-      c10_npu::NpuSysCtrl::GetInstance().Initialize();
+  c10_npu::NpuSysCtrl::SysStatus status = c10_npu::NpuSysCtrl::GetInstance().Initialize();
   if (status != c10_npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
     ASCEND_LOGE("Npu init fail.");
   }
@@ -111,15 +102,12 @@ void innerInitNPU() {
 
 class EventPool {
  public:
-  using Event = std::
-      unique_ptr<c10_npu::NPUEvent, std::function<void(c10_npu::NPUEvent*)>>;
+  using Event = std::unique_ptr<c10_npu::NPUEvent, std::function<void(c10_npu::NPUEvent*)>>;
   EventPool() : pools_(c10_npu::device_count()) {}
 
   Event get(at::DeviceIndex device) {
     TORCH_INTERNAL_ASSERT(0 <= device, PTA_ERROR(ErrCode::PARAM));
-    TORCH_INTERNAL_ASSERT(
-        device < static_cast<at::DeviceIndex>(pools_.size()),
-        PTA_ERROR(ErrCode::PARAM));
+    TORCH_INTERNAL_ASSERT(device < static_cast<at::DeviceIndex>(pools_.size()), PTA_ERROR(ErrCode::PARAM));
     auto& pool = pools_[device];
     auto destructor = [&pool](c10_npu::NPUEvent* event) {
       std::lock_guard<std::mutex> g(pool.mutex_);
@@ -137,10 +125,7 @@ class EventPool {
     }
     // otherwise, allocate a new event that will be returned to the pool on
     // destruction.
-    return Event(
-        std::make_unique<c10_npu::NPUEvent>(ACL_EVENT_CAPTURE_STREAM_PROGRESS)
-            .release(),
-        destructor);
+    return Event(std::make_unique<c10_npu::NPUEvent>(ACL_EVENT_CAPTURE_STREAM_PROGRESS).release(), destructor);
   }
 
   void empty_cache() {
@@ -158,10 +143,8 @@ class EventPool {
   std::vector<PerDevicePool> pools_;
 };
 
-struct NPUCachingHostAllocatorImpl : public at::CachingHostAllocatorImpl<
-                                         c10_npu::NPUStream,
-                                         EventPool::Event,
-                                         ExpandableBlock> {
+struct NPUCachingHostAllocatorImpl
+    : public at::CachingHostAllocatorImpl<c10_npu::NPUStream, EventPool::Event, ExpandableBlock> {
  public:
   virtual bool ptr_check(void* ptr) {
     std::lock_guard<std::mutex> g(npu_ptrs_mutex_);
@@ -173,20 +156,17 @@ struct NPUCachingHostAllocatorImpl : public at::CachingHostAllocatorImpl<
   }
 
   bool pinned_use_background_threads() override {
-    return c10_npu::NPUCachingAllocator::NPUAllocatorConfig::
-        pinned_use_background_threads();
+    return c10_npu::NPUCachingAllocator::NPUAllocatorConfig::pinned_use_background_threads();
   }
 
   // Override to delegate pinned memory thresholds through NPUAllocatorConfig,
   // ensuring settings from PYTORCH_NPU_ALLOC_CONF are correctly resolved.
   size_t pinned_max_round_threshold() const override {
-    return c10_npu::NPUCachingAllocator::NPUAllocatorConfig::
-        pinned_max_round_threshold();
+    return c10_npu::NPUCachingAllocator::NPUAllocatorConfig::pinned_max_round_threshold();
   }
 
   size_t pinned_max_cached_size() const override {
-    return c10_npu::NPUCachingAllocator::NPUAllocatorConfig::
-        pinned_max_cached_size();
+    return c10_npu::NPUCachingAllocator::NPUAllocatorConfig::pinned_max_cached_size();
   }
 
   c10_npu::NPUStream get_current_stream() const override {
@@ -197,11 +177,9 @@ struct NPUCachingHostAllocatorImpl : public at::CachingHostAllocatorImpl<
   }
 
   bool stream_is_capturing(c10_npu::NPUStream s) const override {
-    aclmdlRICaptureStatus status =
-        aclmdlRICaptureStatus::ACL_MODEL_RI_CAPTURE_STATUS_NONE;
+    aclmdlRICaptureStatus status = aclmdlRICaptureStatus::ACL_MODEL_RI_CAPTURE_STATUS_NONE;
     aclmdlRI model_ri = nullptr;
-    auto ret = c10_npu::acl::AclmdlRICaptureGetInfo(
-        s.stream(false), &status, &model_ri);
+    auto ret = c10_npu::acl::AclmdlRICaptureGetInfo(s.stream(false), &status, &model_ri);
     if (ret != ACL_ERROR_NONE) {
       return false;
     }
@@ -221,11 +199,9 @@ struct NPUCachingHostAllocatorImpl : public at::CachingHostAllocatorImpl<
     // alloc needs set device first when using dataloader with pin_memory=True
     at::OptionalDeviceGuard device_guard;
     if (at_npu::native::env::CheckCompatibleImpl()) {
-      auto primary_ctx_device_index =
-          c10_npu::getDeviceIndexWithPrimaryContext();
+      auto primary_ctx_device_index = c10_npu::getDeviceIndexWithPrimaryContext();
       if (primary_ctx_device_index.has_value()) {
-        device_guard.reset_device(
-            at::Device(at::DeviceType::PrivateUse1, *primary_ctx_device_index));
+        device_guard.reset_device(at::Device(at::DeviceType::PrivateUse1, *primary_ctx_device_index));
       }
     } else {
       if (c10_npu::GetLocalDevice() < 0) {
@@ -261,10 +237,8 @@ struct NPUCachingHostAllocatorImpl : public at::CachingHostAllocatorImpl<
       cfg.numAttrs = 1;
       cfg.attrs = attributes;
 
-      aclError mallocError =
-          c10_npu::acl::AclrtMallocHostWithCfg(ptr, size, &cfg);
-      bool pinned_mem_register = c10_npu::NPUCachingAllocator::
-          NPUAllocatorConfig::pinned_mem_register();
+      aclError mallocError = c10_npu::acl::AclrtMallocHostWithCfg(ptr, size, &cfg);
+      bool pinned_mem_register = c10_npu::NPUCachingAllocator::NPUAllocatorConfig::pinned_mem_register();
       // if feature not support, then fall back to the old logic
       if (ACL_ERROR_RT_FEATURE_NOT_SUPPORT == mallocError) {
         va_feature_support = false;
@@ -278,9 +252,7 @@ struct NPUCachingHostAllocatorImpl : public at::CachingHostAllocatorImpl<
         NPU_CHECK_ERROR(mallocError, "aclrtMallocHostWithCfg");
         if (pinned_mem_register) {
           NPU_CHECK_ERROR(
-              c10_npu::acl::AclrtHostRegisterV2(
-                  *ptr, size, ACL_HOST_REG_MAPPED),
-              "aclrtHostRegister failed.");
+              c10_npu::acl::AclrtHostRegisterV2(*ptr, size, ACL_HOST_REG_MAPPED), "aclrtHostRegister failed.");
           host_registered = true;
         }
       }
@@ -299,8 +271,7 @@ struct NPUCachingHostAllocatorImpl : public at::CachingHostAllocatorImpl<
       use_host_register[*ptr] = host_registered;
     }
     auto end = std::chrono::steady_clock::now();
-    auto duration =
-        std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
     {
       std::lock_guard<std::mutex> g(stats_.timing_mutex_);
@@ -329,8 +300,7 @@ struct NPUCachingHostAllocatorImpl : public at::CachingHostAllocatorImpl<
       use_register = use_host_register[ptr];
     }
     if (use_register) {
-      NPU_CHECK_ERROR(
-          c10_npu::acl::AclrtHostUnregister(ptr), "aclrtHostUnregister");
+      NPU_CHECK_ERROR(c10_npu::acl::AclrtHostUnregister(ptr), "aclrtHostUnregister");
     }
     aclError err = aclrtFreeHost(block->ptr_);
     if (err != ACL_ERROR_NONE) {
@@ -342,17 +312,14 @@ struct NPUCachingHostAllocatorImpl : public at::CachingHostAllocatorImpl<
       npu_ptrs_.erase(block->ptr_);
     }
     auto end = std::chrono::steady_clock::now();
-    auto duration =
-        std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     {
       std::lock_guard<std::mutex> g(stats_.timing_mutex_);
       stats_.host_free_time.increase(duration.count());
     }
   }
 
-  void record_stream(
-      std::optional<std::vector<EventPool::Event>>& events,
-      c10_npu::NPUStream stream) override {
+  void record_stream(std::optional<std::vector<EventPool::Event>>& events, c10_npu::NPUStream stream) override {
     if (c10_npu::NpuSysCtrl::GetInstance().GetHostFinalize()) {
       return;
     }
@@ -386,11 +353,9 @@ struct NPUCachingHostAllocatorImpl : public at::CachingHostAllocatorImpl<
 
   at::PinnedReserveSegment& get_reserve_segment() {
     static auto reserve_segment = [&]() {
-      if (c10_npu::NPUCachingAllocator::NPUAllocatorConfig::
-              pinned_reserve_segment_size_mb() > 0) {
+      if (c10_npu::NPUCachingAllocator::NPUAllocatorConfig::pinned_reserve_segment_size_mb() > 0) {
         void* ptr;
-        size_t temp = c10_npu::NPUCachingAllocator::NPUAllocatorConfig::
-            pinned_reserve_segment_size_mb();
+        size_t temp = c10_npu::NPUCachingAllocator::NPUAllocatorConfig::pinned_reserve_segment_size_mb();
         size_t sz = temp * 1024 * 1024; // temp MB
         allocate_host_memory_slowpath(sz, &ptr);
         return at::PinnedReserveSegment(ptr, sz);
@@ -407,21 +372,15 @@ struct NPUCachingHostAllocatorImpl : public at::CachingHostAllocatorImpl<
   ska::flat_hash_map<void*, bool> use_host_register;
 };
 
-static bool BlockComparatorSize(
-    const ExpandableBlock* a,
-    const ExpandableBlock* b) {
+static bool BlockComparatorSize(const ExpandableBlock* a, const ExpandableBlock* b) {
   if (a->size_ != b->size_) {
     return a->size_ < b->size_;
   }
-  return reinterpret_cast<uintptr_t>(a->ptr_) <
-      reinterpret_cast<uintptr_t>(b->ptr_);
+  return reinterpret_cast<uintptr_t>(a->ptr_) < reinterpret_cast<uintptr_t>(b->ptr_);
 }
 
-static bool BlockComparatorAddress(
-    const ExpandableBlock* a,
-    const ExpandableBlock* b) {
-  return reinterpret_cast<uintptr_t>(a->ptr_) <
-      reinterpret_cast<uintptr_t>(b->ptr_);
+static bool BlockComparatorAddress(const ExpandableBlock* a, const ExpandableBlock* b) {
+  return reinterpret_cast<uintptr_t>(a->ptr_) < reinterpret_cast<uintptr_t>(b->ptr_);
 }
 
 struct SegmentRange {
@@ -437,8 +396,7 @@ struct ExpandableSegment {
     // segment to put them at the end.
     max_handles_ = numSegments(deviceTotalSize + deviceTotalSize / 8);
 
-    NPU_CHECK_ERROR(c10_npu::acl::AclrtReserveMemAddress(
-        &ptr_, segment_size_ * max_handles_, 0, nullptr, 1, nullptr));
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtReserveMemAddress(&ptr_, segment_size_ * max_handles_, 0, nullptr, 1, nullptr));
     ASCEND_LOGD(
         "NPUExpandableHostAllocator malloc by AclrtReserveMemAddress: size=%zu, segment_size=%zu",
         segment_size_ * max_handles_,
@@ -452,8 +410,7 @@ struct ExpandableSegment {
   SegmentRange map(SegmentRange range, ExpandableBlockPool* pool) {
     auto begin = segmentLeft(range.ptr);
     auto end = segmentRight(range.ptr + range.size);
-    TORCH_INTERNAL_ASSERT(
-        ptr() + begin * segment_size_ == range.ptr, PTA_ERROR(ErrCode::PTR));
+    TORCH_INTERNAL_ASSERT(ptr() + begin * segment_size_ == range.ptr, PTA_ERROR(ErrCode::PTR));
     if (begin == end) {
       return rangeFromHandles(begin, end);
     }
@@ -471,8 +428,7 @@ struct ExpandableSegment {
       prop.location.id = 0;
       prop.reserve = 0;
       ASCEND_LOGD("Alloc memory from physical host for block %zu", i);
-      auto status =
-          c10_npu::acl::AclrtMallocPhysical(&handle, segment_size_, &prop, 0);
+      auto status = c10_npu::acl::AclrtMallocPhysical(&handle, segment_size_, &prop, 0);
       if (status != ACL_SUCCESS) {
         // best-effort: log and continue, original error re-thrown below
         for (auto j : c10::irange(begin, i)) {
@@ -480,10 +436,7 @@ struct ExpandableSegment {
           handles_.at(j) = std::nullopt;
           auto free_status = c10_npu::acl::AclrtFreePhysical(h.handle);
           if (free_status != ACL_SUCCESS) {
-            ASCEND_LOGW(
-                "AclrtFreePhysical failed during rollback, slot=%zu, status=%d",
-                j,
-                free_status);
+            ASCEND_LOGW("AclrtFreePhysical failed during rollback, slot=%zu, status=%d", j, free_status);
           }
         }
         trimHandles();
@@ -496,22 +449,13 @@ struct ExpandableSegment {
     }
     for (auto i : c10::irange(begin, end)) {
       auto map_status = c10_npu::acl::AclrtMapMem(
-          static_cast<char*>(ptr_) + i * segment_size_,
-          segment_size_,
-          0,
-          handles_.at(i).value().handle,
-          0,
-          nullptr);
+          static_cast<char*>(ptr_) + i * segment_size_, segment_size_, 0, handles_.at(i).value().handle, 0, nullptr);
       if (map_status != ACL_SUCCESS) {
         // best-effort: log and continue, original error re-thrown below
         for (auto j : c10::irange(begin, i)) {
-          auto unmap_status = c10_npu::acl::AclrtUnmapMem(
-              static_cast<char*>(ptr_) + j * segment_size_, nullptr);
+          auto unmap_status = c10_npu::acl::AclrtUnmapMem(static_cast<char*>(ptr_) + j * segment_size_, nullptr);
           if (unmap_status != ACL_SUCCESS) {
-            ASCEND_LOGW(
-                "AclrtUnmapMem failed during rollback, slot=%zu, status=%d",
-                j,
-                unmap_status);
+            ASCEND_LOGW("AclrtUnmapMem failed during rollback, slot=%zu, status=%d", j, unmap_status);
           }
         }
         for (auto j : c10::irange(begin, end)) {
@@ -519,18 +463,14 @@ struct ExpandableSegment {
           handles_.at(j) = std::nullopt;
           auto free_status = c10_npu::acl::AclrtFreePhysical(h.handle);
           if (free_status != ACL_SUCCESS) {
-            ASCEND_LOGW(
-                "AclrtFreePhysical failed during rollback, slot=%zu, status=%d",
-                j,
-                free_status);
+            ASCEND_LOGW("AclrtFreePhysical failed during rollback, slot=%zu, status=%d", j, free_status);
           }
         }
         trimHandles();
         NPU_CHECK_ERROR(map_status, "aclrtMapMem");
       }
     }
-    ASCEND_LOGD(
-        "NPUExpandableHostAllocator map: segment_size=%zu", segment_size_);
+    ASCEND_LOGD("NPUExpandableHostAllocator map: segment_size=%zu", segment_size_);
     return rangeFromHandles(begin, end);
   }
 
@@ -556,8 +496,7 @@ struct ExpandableSegment {
   }
 
   ~ExpandableSegment() {
-    forEachAllocatedRange(
-        [&](size_t begin, size_t end) { unmapHandles(begin, end); });
+    forEachAllocatedRange([&](size_t begin, size_t end) { unmapHandles(begin, end); });
     NPU_CHECK_ERROR(c10_npu::acl::AclrtReleaseMemAddress(ptr_, nullptr));
     ASCEND_LOGD("NPUExpandableHostAllocator free by AclrtReleaseMemAddress");
   }
@@ -567,12 +506,10 @@ struct ExpandableSegment {
     for (auto i : c10::irange(begin, end)) {
       Handle h = handles_.at(i).value();
       handles_.at(i) = std::nullopt;
-      NPU_CHECK_ERROR(c10_npu::acl::AclrtUnmapMem(
-          static_cast<char*>(ptr_) + segment_size_ * i, nullptr));
+      NPU_CHECK_ERROR(c10_npu::acl::AclrtUnmapMem(static_cast<char*>(ptr_) + segment_size_ * i, nullptr));
       NPU_CHECK_ERROR(c10_npu::acl::AclrtFreePhysical(h.handle));
     }
-    ASCEND_LOGD(
-        "NPUExpandableHostAllocator unmap: segment_size=%zu", segment_size_);
+    ASCEND_LOGD("NPUExpandableHostAllocator unmap: segment_size=%zu", segment_size_);
     trimHandles();
   }
 
@@ -582,8 +519,7 @@ struct ExpandableSegment {
     }
   }
 
-  void forEachAllocatedRange(
-      const std::function<void(size_t, size_t)> fn) const {
+  void forEachAllocatedRange(const std::function<void(size_t, size_t)> fn) const {
     size_t start = 0;
     for (auto i : c10::irange(handles_.size())) {
       if (handles_.at(i) && (i == 0 || !handles_.at(i - 1))) {
@@ -623,8 +559,7 @@ struct ExpandableSegment {
 };
 
 struct AllocParams {
-  AllocParams(size_t size, ExpandableBlockPool* pool)
-      : search_key(size), pool(pool), err(ACL_ERROR_NONE) {}
+  AllocParams(size_t size, ExpandableBlockPool* pool) : search_key(size), pool(pool), err(ACL_ERROR_NONE) {}
 
   [[nodiscard]] size_t size() const {
     return search_key.size_;
@@ -779,8 +714,7 @@ struct NPUExpandableHostAllocatorImpl : public NPUCachingHostAllocatorImpl {
 
   alignas(64) std::mutex events_mutex_;
 
-  std::deque<std::pair<EventPool::Event, ExpandableBlock*>>
-      events_; // event queue paired with block
+  std::deque<std::pair<EventPool::Event, ExpandableBlock*>> events_; // event queue paired with block
 
   void block_free(ExpandableBlock* block) {
     block->allocated_ = false;
@@ -850,11 +784,9 @@ struct NPUExpandableHostAllocatorImpl : public NPUCachingHostAllocatorImpl {
 
   void unmap_block(ExpandableBlock* block) {
     auto start = std::chrono::steady_clock::now();
-    auto unmapped = block->expandable_segment_->unmap(
-        SegmentRange{block->ptr_, block->size_});
+    auto unmapped = block->expandable_segment_->unmap(SegmentRange{block->ptr_, block->size_});
     auto end = std::chrono::steady_clock::now();
-    auto duration =
-        std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     // Update the statistics on the time spent on
     // AclrtUnmapMem/AclrtFreePhysical
     {
@@ -866,12 +798,10 @@ struct NPUExpandableHostAllocatorImpl : public NPUCachingHostAllocatorImpl {
     }
     block->pool->blocks.erase(block);
 
-    ptrdiff_t before_size =
-        static_cast<char*>(unmapped.ptr) - static_cast<char*>(block->ptr_);
+    ptrdiff_t before_size = static_cast<char*>(unmapped.ptr) - static_cast<char*>(block->ptr_);
     if (before_size > 0) {
       // prev? -> before_free -> block
-      ExpandableBlock* before_free =
-          new ExpandableBlock(before_size, block->pool, block->ptr_);
+      ExpandableBlock* before_free = new ExpandableBlock(before_size, block->pool, block->ptr_);
       before_free->expandable_segment_ = block->expandable_segment_;
       before_free->splice(block->prev, block);
       block->pool->blocks.insert(before_free);
@@ -880,8 +810,7 @@ struct NPUExpandableHostAllocatorImpl : public NPUCachingHostAllocatorImpl {
     auto after_size = block->size_ - (before_size + unmapped.size);
     if (after_size > 0) {
       // block -> after_free -> next?
-      ExpandableBlock* after_free = new ExpandableBlock(
-          after_size, block->pool, unmapped.ptr + unmapped.size);
+      ExpandableBlock* after_free = new ExpandableBlock(after_size, block->pool, unmapped.ptr + unmapped.size);
       after_free->expandable_segment_ = block->expandable_segment_;
       after_free->splice(block, block->next);
       block->pool->blocks.insert(after_free);
@@ -905,12 +834,8 @@ struct NPUExpandableHostAllocatorImpl : public NPUCachingHostAllocatorImpl {
         "block disagrees with segment",
         PTA_ERROR(ErrCode::INTERNAL));
     TORCH_INTERNAL_ASSERT(!block->mapped, PTA_ERROR(ErrCode::INTERNAL));
-    auto it = std::find(
-        expandable_segments_.begin(),
-        expandable_segments_.end(),
-        block->expandable_segment_);
-    TORCH_INTERNAL_ASSERT(
-        it != expandable_segments_.end(), PTA_ERROR(ErrCode::INTERNAL));
+    auto it = std::find(expandable_segments_.begin(), expandable_segments_.end(), block->expandable_segment_);
+    TORCH_INTERNAL_ASSERT(it != expandable_segments_.end(), PTA_ERROR(ErrCode::INTERNAL));
     expandable_segments_.erase(it);
     block->pool->unmapped.erase(block);
     delete block->expandable_segment_;
@@ -921,12 +846,8 @@ struct NPUExpandableHostAllocatorImpl : public NPUCachingHostAllocatorImpl {
 
   /* * combine previously split blocks. returns the size of the subsumed block,
    * or 0 on failure. * */
-  size_t try_merge_blocks(
-      ExpandableBlock& dst,
-      ExpandableBlock* src,
-      ExpandableBlockPool& pool) {
-    if (!src || src->allocated_ || src->event_count_ > 0 ||
-        !src->streams_.empty() || dst.mapped != src->mapped) {
+  size_t try_merge_blocks(ExpandableBlock& dst, ExpandableBlock* src, ExpandableBlockPool& pool) {
+    if (!src || src->allocated_ || src->event_count_ > 0 || !src->streams_.empty() || dst.mapped != src->mapped) {
       return 0;
     }
 
@@ -947,8 +868,7 @@ struct NPUExpandableHostAllocatorImpl : public NPUCachingHostAllocatorImpl {
 
     const size_t subsumed_size = src->size_;
     dst.size_ += subsumed_size;
-    auto erased =
-        src->mapped ? pool.blocks.erase(src) : pool.unmapped.erase(src);
+    auto erased = src->mapped ? pool.blocks.erase(src) : pool.unmapped.erase(src);
     delete src;
     src = nullptr;
 
@@ -957,17 +877,14 @@ struct NPUExpandableHostAllocatorImpl : public NPUCachingHostAllocatorImpl {
 
   /* * moves a block into a pool of cached free blocks * */
   void free_expandable_block(ExpandableBlock* block) {
-    AT_ASSERT(
-        !block->allocated_ && block->event_count_ == 0,
-        PTA_ERROR(ErrCode::VALUE));
+    AT_ASSERT(!block->allocated_ && block->event_count_ == 0, PTA_ERROR(ErrCode::VALUE));
 
     {
       std::lock_guard<std::mutex> lock(stats_mutex_);
       stats.active_bytes.decrease(block->size_);
     }
     auto& pool = *block->pool;
-    const std::array<ExpandableBlock*, 2> merge_candidates = {
-        block->prev, block->next};
+    const std::array<ExpandableBlock*, 2> merge_candidates = {block->prev, block->next};
     for (ExpandableBlock* merge_candidate : merge_candidates) {
       try_merge_blocks(*block, merge_candidate, pool);
     }
@@ -1021,9 +938,7 @@ struct NPUExpandableHostAllocatorImpl : public NPUCachingHostAllocatorImpl {
     }
   }
 
-  void record_stream(
-      std::optional<std::vector<EventPool::Event>>& events,
-      c10_npu::NPUStream stream) override {
+  void record_stream(std::optional<std::vector<EventPool::Event>>& events, c10_npu::NPUStream stream) override {
     static auto* event_pool = new EventPool();
     auto event = event_pool->get(stream.device_index());
     event->record(stream);
@@ -1075,8 +990,7 @@ struct NPUExpandableHostAllocatorImpl : public NPUCachingHostAllocatorImpl {
       };
       auto next = it;
       next++;
-      while ((*it)->expandable_segment_ && next != pool.blocks.end() &&
-             expandable_size(*next) < expandable_size(*it)) {
+      while ((*it)->expandable_segment_ && next != pool.blocks.end() && expandable_size(*next) < expandable_size(*it)) {
         it = next++;
       }
     }
@@ -1099,14 +1013,10 @@ struct NPUExpandableHostAllocatorImpl : public NPUCachingHostAllocatorImpl {
   // returns the smallest possible address in any segment
   // where there is enough free address space to fit size
   // may be composed of free and unmapped segments
-  ExpandableBlock* find_expandable_block(
-      ExpandableBlockPool& pool,
-      size_t size) {
+  ExpandableBlock* find_expandable_block(ExpandableBlockPool& pool, size_t size) {
     ExpandableBlock key(0);
 
-    auto allocatable = [](Block* b) {
-      return b && !b->allocated_ && b->event_count_ == 0 && b->streams_.empty();
-    };
+    auto allocatable = [](Block* b) { return b && !b->allocated_ && b->event_count_ == 0 && b->streams_.empty(); };
 
     auto has_available_address_space = [&](ExpandableBlock* b) {
       size_t bytes = 0;
@@ -1116,8 +1026,7 @@ struct NPUExpandableHostAllocatorImpl : public NPUCachingHostAllocatorImpl {
       }
       return bytes >= size;
     };
-    for (auto it = pool.unmapped.lower_bound(&key); it != pool.unmapped.end();
-         ++it) {
+    for (auto it = pool.unmapped.lower_bound(&key); it != pool.unmapped.end(); ++it) {
       ExpandableBlock* c = *it;
       // we found the lowest address of an unmapped segment
       // but there might be a free segment we can also use
@@ -1139,8 +1048,7 @@ struct NPUExpandableHostAllocatorImpl : public NPUCachingHostAllocatorImpl {
     expandable_segments_.emplace_back(segment);
 
     ExpandableSegment* es = expandable_segments_.back();
-    ExpandableBlock* candidate =
-        new (std::nothrow) ExpandableBlock(es->size(), &pool, es->ptr());
+    ExpandableBlock* candidate = new (std::nothrow) ExpandableBlock(es->size(), &pool, es->ptr());
     if (!candidate) {
       ASCEND_LOGE("Failed to allocate Block.");
       return nullptr;
@@ -1151,22 +1059,15 @@ struct NPUExpandableHostAllocatorImpl : public NPUCachingHostAllocatorImpl {
     return candidate;
   }
 
-  bool map_block(
-      ExpandableBlock& to_map,
-      size_t size,
-      ExpandableBlockPool& map_pool) {
-    TORCH_INTERNAL_ASSERT(
-        !to_map.mapped && size <= to_map.size_, PTA_ERROR(ErrCode::VALUE));
+  bool map_block(ExpandableBlock& to_map, size_t size, ExpandableBlockPool& map_pool) {
+    TORCH_INTERNAL_ASSERT(!to_map.mapped && size <= to_map.size_, PTA_ERROR(ErrCode::VALUE));
 
-    auto mapped_range = to_map.expandable_segment_->map(
-        SegmentRange{to_map.ptr_, size}, &map_pool);
+    auto mapped_range = to_map.expandable_segment_->map(SegmentRange{to_map.ptr_, size}, &map_pool);
     // failed to map the memory
     if (mapped_range.size == 0) {
       return false;
     }
-    TORCH_INTERNAL_ASSERT(
-        mapped_range.ptr == to_map.ptr_ && mapped_range.size >= size,
-        PTA_ERROR(ErrCode::INTERNAL));
+    TORCH_INTERNAL_ASSERT(mapped_range.ptr == to_map.ptr_ && mapped_range.size >= size, PTA_ERROR(ErrCode::INTERNAL));
 
     ExpandableBlockPool& pool = *to_map.pool;
     pool.unmapped.erase(&to_map);
@@ -1175,9 +1076,7 @@ struct NPUExpandableHostAllocatorImpl : public NPUCachingHostAllocatorImpl {
     if (mapped_range.size < to_map.size_) {
       // to_map -> remaining -> to_map->next(?)
       ExpandableBlock* remaining = new ExpandableBlock(
-          to_map.size_ - mapped_range.size,
-          &pool,
-          static_cast<char*>(to_map.ptr_) + mapped_range.size);
+          to_map.size_ - mapped_range.size, &pool, static_cast<char*>(to_map.ptr_) + mapped_range.size);
       remaining->mapped = false;
       remaining->expandable_segment_ = to_map.expandable_segment_;
       remaining->splice(&to_map, to_map.next);
@@ -1195,9 +1094,7 @@ struct NPUExpandableHostAllocatorImpl : public NPUCachingHostAllocatorImpl {
     return true;
   }
 
-  ExpandableBlock* try_allocate_expandable_block(
-      ExpandableBlockPool& pool,
-      size_t size) {
+  ExpandableBlock* try_allocate_expandable_block(ExpandableBlockPool& pool, size_t size) {
     ExpandableBlock* candidate = find_expandable_block(pool, size);
     // Candidate is now a list free/unmapped blocks with at least size room:
     // unmapped -> null
@@ -1205,8 +1102,7 @@ struct NPUExpandableHostAllocatorImpl : public NPUCachingHostAllocatorImpl {
     // free -> unmapped -> *
 
     auto start = std::chrono::steady_clock::now();
-    if (!candidate->mapped &&
-        !map_block(*candidate, std::min(candidate->size_, size), pool)) {
+    if (!candidate->mapped && !map_block(*candidate, std::min(candidate->size_, size), pool)) {
       return nullptr;
     }
     TORCH_INTERNAL_ASSERT(candidate->mapped, PTA_ERROR(ErrCode::INTERNAL));
@@ -1219,18 +1115,14 @@ struct NPUExpandableHostAllocatorImpl : public NPUCachingHostAllocatorImpl {
       if (C10_UNLIKELY(new_candidate == nullptr)) {
         return nullptr;
       }
-      if (!map_block(
-              *new_candidate,
-              std::min(remaining, candidate->next->size_),
-              pool)) {
+      if (!map_block(*new_candidate, std::min(remaining, candidate->next->size_), pool)) {
         return nullptr;
       }
       candidate = new_candidate;
     }
     pool.blocks.erase(candidate);
     auto end = std::chrono::steady_clock::now();
-    auto duration =
-        std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     // Update the statistics on the time spent on
     // AclrtMallocPhysical/AclrtMapMem
     {
@@ -1240,15 +1132,12 @@ struct NPUExpandableHostAllocatorImpl : public NPUCachingHostAllocatorImpl {
     return candidate;
   }
 
-  ExpandableBlock* alloc_found_block(
-      const AllocParams& params,
-      const size_t orig_size) {
+  ExpandableBlock* alloc_found_block(const AllocParams& params, const size_t orig_size) {
     auto size = params.size();
     auto pool = params.pool;
 
     TORCH_INTERNAL_ASSERT(
-        params.err == ACL_ERROR_NONE && params.block != nullptr &&
-            params.block->ptr_ != nullptr,
+        params.err == ACL_ERROR_NONE && params.block != nullptr && params.block->ptr_ != nullptr,
         PTA_ERROR(ErrCode::PTR));
     ExpandableBlock* block = params.block;
     ExpandableBlock* remaining = nullptr;
@@ -1296,14 +1185,12 @@ struct NPUExpandableHostAllocatorImpl : public NPUCachingHostAllocatorImpl {
 // to access caching_host_allocator with ptr_exist function
 void raw_local_deleter(void* ptr);
 
-std::unique_ptr<NPUCachingHostAllocatorImpl> cachingHostAllocatorImpl =
-    std::make_unique<NPUCachingHostAllocatorImpl>();
+std::unique_ptr<NPUCachingHostAllocatorImpl> cachingHostAllocatorImpl = std::make_unique<NPUCachingHostAllocatorImpl>();
 std::unique_ptr<NPUCachingHostAllocatorImpl> expandableHostAllocatorImpl =
     std::make_unique<NPUExpandableHostAllocatorImpl>();
 
-struct NPUCachingHostAllocator final : public at::CachingHostAllocatorInterface<
-                                           NPUCachingHostAllocatorImpl,
-                                           raw_local_deleter> {
+struct NPUCachingHostAllocator final
+    : public at::CachingHostAllocatorInterface<NPUCachingHostAllocatorImpl, raw_local_deleter> {
   std::once_flag init_config;
 
   at::DataPtr allocate(size_t size) override {
@@ -1343,9 +1230,7 @@ struct NPUCachingHostAllocator final : public at::CachingHostAllocatorInterface<
     impl_->resetHostPeakStats();
   }
 
-  void begin_allocate_to_pool(
-      c10::MempoolId_t pool_id,
-      std::function<bool(c10::Stream)> filter) override {
+  void begin_allocate_to_pool(c10::MempoolId_t pool_id, std::function<bool(c10::Stream)> filter) override {
     setAllocator();
     impl_->begin_allocate_to_pool(pool_id, std::move(filter));
   }
@@ -1362,8 +1247,7 @@ struct NPUCachingHostAllocator final : public at::CachingHostAllocatorInterface<
 
   void setAllocator() {
     std::call_once(init_config, [this] {
-      if (c10_npu::NPUCachingAllocator::NPUAllocatorConfig::
-              pin_memory_expandable_segments()) {
+      if (c10_npu::NPUCachingAllocator::NPUAllocatorConfig::pin_memory_expandable_segments()) {
         impl_ = std::unique_ptr(std::move(expandableHostAllocatorImpl));
       } else {
         impl_ = std::unique_ptr(std::move(cachingHostAllocatorImpl));
@@ -1402,9 +1286,7 @@ bool ptr_exist(void* ptr) {
 }
 
 // the host memory is not allocated by malloc
-aclError process_unregistered_mem_location_type(
-    c10_npu::NPUStream stream,
-    aclrtMemcpyKind kind) {
+aclError process_unregistered_mem_location_type(c10_npu::NPUStream stream, aclrtMemcpyKind kind) {
   // Sync when host memory is allocated by malloc
   ASCEND_LOGD("The copy of the kind needs to be converted to synchronous");
   aclError error = c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream);
@@ -1419,15 +1301,11 @@ aclError process_unregistered_mem_location_type(
 }
 
 // the host memory is allocated by aclrtMallocHost or malloc and register
-void process_host_mem_location_type(
-    const c10::Storage& storage,
-    c10_npu::NPUStream stream) {
+void process_host_mem_location_type(const c10::Storage& storage, c10_npu::NPUStream stream) {
   ASCEND_LOGD("The memory is registered.");
   if (at_npu::native::ptr_exist(storage.mutable_data())) {
-    ASCEND_LOGD(
-        "The ptr is allocated by torch_npu, then need to record stream.");
-    CachingHostAllocator_recordEvent(
-        storage.mutable_data(), storage.data_ptr().get_context(), stream);
+    ASCEND_LOGD("The ptr is allocated by torch_npu, then need to record stream.");
+    CachingHostAllocator_recordEvent(storage.mutable_data(), storage.data_ptr().get_context(), stream);
   }
 }
 
@@ -1439,34 +1317,22 @@ void process_non_blocking_copy(
     aclrtMemcpyKind kind) {
   if (c10_npu::acl::AclrtPointerGetAttributesExist()) {
     aclrtPtrAttributes attributes;
-    NPU_CHECK_ERROR(
-        c10_npu::acl::AclrtPointerGetAttributes(currentPtr, &attributes),
-        "aclrtPointerGetAttributes");
-    ASCEND_LOGD(
-        "The ptr is %p, and currentPtr is %p",
-        storage.mutable_data(),
-        currentPtr);
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtPointerGetAttributes(currentPtr, &attributes), "aclrtPointerGetAttributes");
+    ASCEND_LOGD("The ptr is %p, and currentPtr is %p", storage.mutable_data(), currentPtr);
     aclrtMemLocationType ptrType = attributes.location.type;
-    ASCEND_LOGD(
-        "The aclrtMemType of currentPtr(%p) is %d", currentPtr, ptrType);
+    ASCEND_LOGD("The aclrtMemType of currentPtr(%p) is %d", currentPtr, ptrType);
     if (ptrType == ACL_MEM_LOCATION_TYPE_HOST) {
       process_host_mem_location_type(storage, stream);
     } else {
-      NPU_CHECK_ERROR(
-          process_unregistered_mem_location_type(stream, kind),
-          "aclrtSynchronizeStreamWithTimeout");
+      NPU_CHECK_ERROR(process_unregistered_mem_location_type(stream, kind), "aclrtSynchronizeStreamWithTimeout");
     }
   } else {
     ASCEND_LOGD("The AclrtPointerGetAttributes func does not exist.")
     if (at_npu::native::ptr_exist(storage.mutable_data())) {
-      ASCEND_LOGD(
-          "The ptr is allocated by torch_npu, then need to record stream.");
-      CachingHostAllocator_recordEvent(
-          storage.mutable_data(), storage.data_ptr().get_context(), stream);
+      ASCEND_LOGD("The ptr is allocated by torch_npu, then need to record stream.");
+      CachingHostAllocator_recordEvent(storage.mutable_data(), storage.data_ptr().get_context(), stream);
     } else {
-      NPU_CHECK_ERROR(
-          process_unregistered_mem_location_type(stream, kind),
-          "aclrtSynchronizeStreamWithTimeout");
+      NPU_CHECK_ERROR(process_unregistered_mem_location_type(stream, kind), "aclrtSynchronizeStreamWithTimeout");
     }
   }
 }
