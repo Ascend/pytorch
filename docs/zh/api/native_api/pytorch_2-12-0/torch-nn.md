@@ -708,8 +708,6 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id99 -->
 
-**限制与说明**：`self`仅支持fp32
-
 </div>
 
 > <font size="3">register_buffer()</font>
@@ -729,8 +727,6 @@
 <!-- npu="950" id102 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id102 -->
-
-**限制与说明**：`self`仅支持fp32
 
 </div>
 
@@ -752,8 +748,6 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id105 -->
 
-**限制与说明**：`self`仅支持fp32
-
 </div>
 
 > <font size="3">register_forward_pre_hook()</font>
@@ -773,8 +767,6 @@
 <!-- npu="950" id108 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id108 -->
-
-**限制与说明**：`self`仅支持fp32
 
 </div>
 
@@ -796,8 +788,6 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id111 -->
 
-**限制与说明**：`self`仅支持fp32
-
 </div>
 
 > <font size="3">register_full_backward_pre_hook()</font>
@@ -817,8 +807,6 @@
 <!-- npu="950" id114 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id114 -->
-
-**限制与说明**：`self`仅支持fp32
 
 </div>
 
