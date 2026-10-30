@@ -128,6 +128,27 @@
 
 </div>
 
+<!-- npu="910b,A3" id46 -->
+> <font size="3">placements</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.tensor.DTensor.placements](https://docs.pytorch.org/docs/2.11/distributed.tensor.html#torch.distributed.tensor.DTensor.placements)
+
+**产品支持情况**：
+<!-- end id46 -->
+
+<!-- npu="910b" id43 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id43 -->
+<!-- npu="A3" id44 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id44 -->
+
+<!-- npu="910b,A3" id47 -->
+</div>
+<!-- end id47 -->
+
 </div>
 
 ### <code><i>class</i></code> torch.distributed.tensor.placement_types.Shard
