@@ -109,6 +109,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id244 -->
 ### torch.jit.fork
 
 <div style="margin-left: 2em">
@@ -116,6 +117,7 @@
 **原生文档**：[torch.jit.fork](https://pytorch.org/docs/2.10/generated/torch.jit.fork.html)
 
 **产品支持情况**：
+<!-- end id244 -->
 
 <!-- npu="910b" id13 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -123,12 +125,12 @@
 <!-- npu="A3" id14 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id14 -->
-<!-- npu="950" id15 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id15 -->
 
+<!-- npu="910b,A3" id245 -->
 </div>
+<!-- end id245 -->
 
+<!-- npu="910b,A3" id246 -->
 ### torch.jit.wait
 
 <div style="margin-left: 2em">
@@ -136,6 +138,7 @@
 **原生文档**：[torch.jit.wait](https://pytorch.org/docs/2.10/generated/torch.jit.wait.html)
 
 **产品支持情况**：
+<!-- end id246 -->
 
 <!-- npu="910b" id16 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -143,11 +146,10 @@
 <!-- npu="A3" id17 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id17 -->
-<!-- npu="950" id18 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id18 -->
 
+<!-- npu="910b,A3" id247 -->
 </div>
+<!-- end id247 -->
 
 ### <code><i>class</i></code> torch.jit.ScriptModule
 
@@ -487,26 +489,6 @@
 
 </div>
 
-> <font size="3">get_extra_state()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.jit.ScriptModule.get_extra_state](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.get_extra_state)
-
-**产品支持情况**：
-
-<!-- npu="910b" id67 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id67 -->
-<!-- npu="A3" id68 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id68 -->
-<!-- npu="950" id69 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id69 -->
-
-</div>
-
 > <font size="3">get_parameter()</font>
 
 <div style="margin-left: 2em">
@@ -811,26 +793,6 @@
 
 </div>
 
-> <font size="3">register_buffer()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.jit.ScriptModule.register_buffer](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.register_buffer)
-
-**产品支持情况**：
-
-<!-- npu="910b" id112 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id112 -->
-<!-- npu="A3" id113 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id113 -->
-<!-- npu="950" id114 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id114 -->
-
-</div>
-
 > <font size="3">register_forward_hook()</font>
 
 <div style="margin-left: 2em">
@@ -963,46 +925,6 @@
 
 </div>
 
-> <font size="3">register_module()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.jit.ScriptModule.register_module](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.register_module)
-
-**产品支持情况**：
-
-<!-- npu="910b" id133 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id133 -->
-<!-- npu="A3" id134 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id134 -->
-<!-- npu="950" id135 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id135 -->
-
-</div>
-
-> <font size="3">register_parameter()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.jit.ScriptModule.register_parameter](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.register_parameter)
-
-**产品支持情况**：
-
-<!-- npu="910b" id136 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id136 -->
-<!-- npu="A3" id137 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id137 -->
-<!-- npu="950" id138 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id138 -->
-
-</div>
-
 > <font size="3">register_state_dict_pre_hook()</font>
 
 <div style="margin-left: 2em">
@@ -1088,66 +1010,6 @@
 <!-- end id150 -->
 
 **限制与说明**：`input`仅支持fp32
-
-</div>
-
-> <font size="3">set_extra_state()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.jit.ScriptModule.set_extra_state](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.set_extra_state)
-
-**产品支持情况**：
-
-<!-- npu="910b" id151 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id151 -->
-<!-- npu="A3" id152 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id152 -->
-<!-- npu="950" id153 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id153 -->
-
-</div>
-
-> <font size="3">set_submodule()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.jit.ScriptModule.set_submodule](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.set_submodule)
-
-**产品支持情况**：
-
-<!-- npu="910b" id154 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id154 -->
-<!-- npu="A3" id155 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id155 -->
-<!-- npu="950" id156 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id156 -->
-
-</div>
-
-> <font size="3">share_memory()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.jit.ScriptModule.share_memory](https://pytorch.org/docs/2.10/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.share_memory)
-
-**产品支持情况**：
-
-<!-- npu="910b" id157 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id157 -->
-<!-- npu="A3" id158 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id158 -->
-<!-- npu="950" id159 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id159 -->
 
 </div>
 
@@ -1473,6 +1335,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id248 -->
 ### torch.jit.set_fusion_strategy
 
 <div style="margin-left: 2em">
@@ -1480,6 +1343,7 @@
 **原生文档**：[torch.jit.set_fusion_strategy](https://pytorch.org/docs/2.10/generated/torch.jit.set_fusion_strategy.html)
 
 **产品支持情况**：
+<!-- end id248 -->
 
 <!-- npu="910b" id205 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1487,12 +1351,12 @@
 <!-- npu="A3" id206 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id206 -->
-<!-- npu="950" id207 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id207 -->
 
+<!-- npu="910b,A3" id249 -->
 </div>
+<!-- end id249 -->
 
+<!-- npu="910b,A3" id250 -->
 ### torch.jit.strict_fusion
 
 <div style="margin-left: 2em">
@@ -1500,6 +1364,7 @@
 **原生文档**：[torch.jit.strict_fusion](https://pytorch.org/docs/2.10/generated/torch.jit.strict_fusion.html)
 
 **产品支持情况**：
+<!-- end id250 -->
 
 <!-- npu="910b" id208 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1507,11 +1372,10 @@
 <!-- npu="A3" id209 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id209 -->
-<!-- npu="950" id210 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id210 -->
 
+<!-- npu="910b,A3" id251 -->
 </div>
+<!-- end id251 -->
 
 ### torch.jit.save
 

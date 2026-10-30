@@ -12,7 +12,6 @@
 <div style="margin: 8px 0"><font size="5"><b>目录</b></font></div>
 
 - [API Reference](#api-reference)
-- [Intel Instrumentation and Tracing Technology APIs](#intel-instrumentation-and-tracing-technology-apis)
 
 </div>
 
@@ -24,6 +23,7 @@
 
 ## API Reference
 
+<!-- npu="910b,A3" id42 -->
 ### torch.profiler.profile.add_metadata
 
 <div style="margin-left: 2em">
@@ -33,6 +33,7 @@
 **NPU 形式名称**：torch_npu.profiler._KinetoProfile.add_metadata
 
 **产品支持情况**：
+<!-- end id42 -->
 
 <!-- npu="910b" id1 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -40,12 +41,12 @@
 <!-- npu="A3" id2 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id2 -->
-<!-- npu="950" id3 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id3 -->
 
+<!-- npu="910b,A3" id43 -->
 </div>
+<!-- end id43 -->
 
+<!-- npu="910b,A3" id44 -->
 ### torch.profiler.profile.add_metadata_json
 
 <div style="margin-left: 2em">
@@ -55,6 +56,7 @@
 **NPU 形式名称**：torch_npu.profiler._KinetoProfile.add_metadata_json
 
 **产品支持情况**：
+<!-- end id44 -->
 
 <!-- npu="910b" id4 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -62,32 +64,12 @@
 <!-- npu="A3" id5 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id5 -->
-<!-- npu="950" id6 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id6 -->
 
+<!-- npu="910b,A3" id45 -->
 </div>
+<!-- end id45 -->
 
-### torch.profiler.profile.events
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.profiler.profile.events](https://docs.pytorch.org/docs/2.13/profiler.html#torch.profiler.profile.events)
-
-**产品支持情况**：
-
-<!-- npu="910b" id7 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id7 -->
-<!-- npu="A3" id8 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id8 -->
-<!-- npu="950" id9 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id9 -->
-
-</div>
-
+<!-- npu="910b,A3" id46 -->
 ### torch.profiler.profile.export_chrome_trace
 
 <div style="margin-left: 2em">
@@ -97,6 +79,7 @@
 **NPU 形式名称**：torch_npu.profiler._KinetoProfile.export_chrome_trace
 
 **产品支持情况**：
+<!-- end id46 -->
 
 <!-- npu="910b" id10 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -104,12 +87,12 @@
 <!-- npu="A3" id11 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id11 -->
-<!-- npu="950" id12 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id12 -->
 
+<!-- npu="910b,A3" id47 -->
 </div>
+<!-- end id47 -->
 
+<!-- npu="910b,A3" id48 -->
 ### torch.profiler.profile.export_memory_timeline
 
 <div style="margin-left: 2em">
@@ -119,6 +102,7 @@
 **NPU 形式名称**：torch_npu.profiler._KinetoProfile.export_memory_timeline
 
 **产品支持情况**：
+<!-- end id48 -->
 
 <!-- npu="910b" id13 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -126,12 +110,12 @@
 <!-- npu="A3" id14 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id14 -->
-<!-- npu="950" id15 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id15 -->
 
+<!-- npu="910b,A3" id49 -->
 </div>
+<!-- end id49 -->
 
+<!-- npu="910b,A3" id50 -->
 ### torch.profiler.profile.export_stacks
 
 <div style="margin-left: 2em">
@@ -141,6 +125,7 @@
 **NPU 形式名称**：torch_npu.profiler._KinetoProfile.export_stacks
 
 **产品支持情况**：
+<!-- end id50 -->
 
 <!-- npu="910b" id16 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -148,32 +133,12 @@
 <!-- npu="A3" id17 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id17 -->
-<!-- npu="950" id18 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id18 -->
 
+<!-- npu="910b,A3" id51 -->
 </div>
+<!-- end id51 -->
 
-### torch.profiler.profile.key_averages
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.profiler.profile.key_averages](https://docs.pytorch.org/docs/2.13/profiler.html#torch.profiler.profile.key_averages)
-
-**产品支持情况**：
-
-<!-- npu="910b" id19 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id19 -->
-<!-- npu="A3" id20 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id20 -->
-<!-- npu="950" id21 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id21 -->
-
-</div>
-
+<!-- npu="910b,A3" id52 -->
 ### torch.profiler.profile
 
 <div style="margin-left: 2em">
@@ -183,6 +148,7 @@
 **NPU 形式名称**：torch_npu.profiler.profile
 
 **产品支持情况**：
+<!-- end id52 -->
 
 <!-- npu="910b" id22 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -190,12 +156,12 @@
 <!-- npu="A3" id23 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id23 -->
-<!-- npu="950" id24 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id24 -->
 
+<!-- npu="910b,A3" id53 -->
 </div>
+<!-- end id53 -->
 
+<!-- npu="910b,A3" id54 -->
 ### torch.profiler.profile.step
 
 <div style="margin-left: 2em">
@@ -205,6 +171,7 @@
 **NPU 形式名称**：torch_npu.profiler.profile.step
 
 **产品支持情况**：
+<!-- end id54 -->
 
 <!-- npu="910b" id25 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -212,12 +179,12 @@
 <!-- npu="A3" id26 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id26 -->
-<!-- npu="950" id27 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id27 -->
 
+<!-- npu="910b,A3" id55 -->
 </div>
+<!-- end id55 -->
 
+<!-- npu="910b,A3" id56 -->
 ### <code><i>class</i></code> torch.profiler.ProfilerAction
 
 <div style="margin-left: 2em">
@@ -227,6 +194,7 @@
 **NPU 形式名称**：torch_npu.profiler.ProfilerAction
 
 **产品支持情况**：
+<!-- end id56 -->
 
 <!-- npu="910b" id28 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -234,21 +202,24 @@
 <!-- npu="A3" id29 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id29 -->
-<!-- npu="950" id30 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id30 -->
 
+<!-- npu="910b,A3" id57 -->
 </div>
+<!-- end id57 -->
 
+<!-- npu="910b,A3" id58 -->
 ### <code><i>class</i></code> torch.profiler.ProfilerActivity
+<!-- end id58 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id59 -->
 **原生文档**：[torch.profiler.ProfilerActivity](https://pytorch.org/docs/2.13/profiler.html#torch.profiler.ProfilerActivity)
 
 **NPU 形式名称**：torch_npu.profiler.ProfilerActivity
 
 **产品支持情况**：
+<!-- end id59 -->
 
 <!-- npu="910b" id31 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -256,32 +227,10 @@
 <!-- npu="A3" id32 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id32 -->
-<!-- npu="950" id33 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id33 -->
-
-> <font size="3">name()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.profiler.ProfilerActivity.name](https://pytorch.org/docs/2.13/profiler.html#torch.profiler.ProfilerActivity.name)
-
-**产品支持情况**：
-
-<!-- npu="910b" id34 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id34 -->
-<!-- npu="A3" id35 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id35 -->
-<!-- npu="950" id36 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id36 -->
 
 </div>
 
-</div>
-
+<!-- npu="910b,A3" id60 -->
 ### torch.profiler.schedule
 
 <div style="margin-left: 2em">
@@ -291,6 +240,7 @@
 **NPU 形式名称**：torch_npu.profiler.schedule
 
 **产品支持情况**：
+<!-- end id60 -->
 
 <!-- npu="910b" id37 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -298,12 +248,12 @@
 <!-- npu="A3" id38 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id38 -->
-<!-- npu="950" id39 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id39 -->
 
+<!-- npu="910b,A3" id61 -->
 </div>
+<!-- end id61 -->
 
+<!-- npu="910b,A3" id62 -->
 ### torch.profiler.tensorboard_trace_handler
 
 <div style="margin-left: 2em">
@@ -313,6 +263,7 @@
 **NPU 形式名称**：torch_npu.profiler.tensorboard_trace_handler
 
 **产品支持情况**：
+<!-- end id62 -->
 
 <!-- npu="910b" id40 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -320,90 +271,7 @@
 <!-- npu="A3" id41 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id41 -->
-<!-- npu="950" id42 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id42 -->
 
+<!-- npu="910b,A3" id63 -->
 </div>
-
-## Intel Instrumentation and Tracing Technology APIs
-
-### torch.profiler.itt.is_available
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.profiler.itt.is_available](https://pytorch.org/docs/2.13/profiler.html#torch.profiler.itt.is_available)
-
-**产品支持情况**：
-
-<!-- npu="910b" id43 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id43 -->
-<!-- npu="A3" id44 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id44 -->
-<!-- npu="950" id45 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id45 -->
-
-</div>
-
-### torch.profiler.itt.mark
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.profiler.itt.mark](https://pytorch.org/docs/2.13/profiler.html#torch.profiler.itt.mark)
-
-**产品支持情况**：
-
-<!-- npu="910b" id46 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id46 -->
-<!-- npu="A3" id47 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id47 -->
-<!-- npu="950" id48 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id48 -->
-
-</div>
-
-### torch.profiler.itt.range_push
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.profiler.itt.range_push](https://pytorch.org/docs/2.13/profiler.html#torch.profiler.itt.range_push)
-
-**产品支持情况**：
-
-<!-- npu="910b" id49 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id49 -->
-<!-- npu="A3" id50 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id50 -->
-<!-- npu="950" id51 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id51 -->
-
-</div>
-
-### torch.profiler.itt.range_pop
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.profiler.itt.range_pop](https://pytorch.org/docs/2.13/profiler.html#torch.profiler.itt.range_pop)
-
-**产品支持情况**：
-
-<!-- npu="910b" id52 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id52 -->
-<!-- npu="A3" id53 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id53 -->
-<!-- npu="950" id54 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id54 -->
-
-</div>
+<!-- end id63 -->

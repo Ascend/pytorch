@@ -13,13 +13,18 @@
 
 </div>
 
+<!-- npu="910b,A3" id41 -->
+<!-- npu="910b,A3" id27 -->
 ### <code><i>class</i></code> torch.distributed.algorithms.Join
+<!-- end id27 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id28 -->
 **原生文档**：[torch.distributed.algorithms.Join](https://pytorch.org/docs/2.14/distributed.algorithms.join.html#torch.distributed.algorithms.Join)
 
 **产品支持情况**：
+<!-- end id28 -->
 
 <!-- npu="910b" id1 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -27,10 +32,8 @@
 <!-- npu="A3" id2 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id2 -->
-<!-- npu="950" id3 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id3 -->
 
+<!-- npu="910b,A3" id29 -->
 > <font size="3">notify_join_context()</font>
 
 <div style="margin-left: 2em">
@@ -38,6 +41,7 @@
 **原生文档**：[torch.distributed.algorithms.Join.notify_join_context](https://pytorch.org/docs/2.14/distributed.algorithms.join.html#torch.distributed.algorithms.Join.notify_join_context)
 
 **产品支持情况**：
+<!-- end id29 -->
 
 <!-- npu="910b" id4 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -45,21 +49,25 @@
 <!-- npu="A3" id5 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id5 -->
-<!-- npu="950" id6 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id6 -->
+
+<!-- npu="910b,A3" id30 -->
+</div>
+<!-- end id30 -->
 
 </div>
+<!-- end id41 -->
 
-</div>
-
+<!-- npu="910b,A3,950" id31 -->
 ### <code><i>class</i></code> torch.distributed.algorithms.Joinable
+<!-- end id31 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id32 -->
 **原生文档**：[torch.distributed.algorithms.Joinable](https://pytorch.org/docs/2.14/distributed.algorithms.join.html#torch.distributed.algorithms.Joinable)
 
 **产品支持情况**：
+<!-- end id32 -->
 
 <!-- npu="910b" id7 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -67,9 +75,6 @@
 <!-- npu="A3" id8 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id8 -->
-<!-- npu="950" id9 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id9 -->
 
 > <font size="3">join_device()</font>
 
@@ -111,6 +116,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id33 -->
 > <font size="3">join_process_group()</font>
 
 <div style="margin-left: 2em">
@@ -118,6 +124,7 @@
 **原生文档**：[torch.distributed.algorithms.Joinable.join_process_group](https://pytorch.org/docs/2.14/distributed.algorithms.join.html#torch.distributed.algorithms.Joinable.join_process_group)
 
 **产品支持情况**：
+<!-- end id33 -->
 
 <!-- npu="910b" id16 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -125,21 +132,25 @@
 <!-- npu="A3" id17 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id17 -->
-<!-- npu="950" id18 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id18 -->
+
+<!-- npu="910b,A3" id34 -->
+</div>
+<!-- end id34 -->
 
 </div>
 
-</div>
-
+<!-- npu="910b,A3" id42 -->
+<!-- npu="910b,A3" id35 -->
 ### <code><i>class</i></code> torch.distributed.algorithms.JoinHook
+<!-- end id35 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id36 -->
 **原生文档**：[torch.distributed.algorithms.JoinHook](https://pytorch.org/docs/2.14/distributed.algorithms.join.html#torch.distributed.algorithms.JoinHook)
 
 **产品支持情况**：
+<!-- end id36 -->
 
 <!-- npu="910b" id19 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -147,10 +158,8 @@
 <!-- npu="A3" id20 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id20 -->
-<!-- npu="950" id21 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id21 -->
 
+<!-- npu="910b,A3" id37 -->
 > <font size="3">main_hook()</font>
 
 <div style="margin-left: 2em">
@@ -158,6 +167,7 @@
 **原生文档**：[torch.distributed.algorithms.JoinHook.main_hook](https://pytorch.org/docs/2.14/distributed.algorithms.join.html#torch.distributed.algorithms.JoinHook.main_hook)
 
 **产品支持情况**：
+<!-- end id37 -->
 
 <!-- npu="910b" id22 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -165,12 +175,12 @@
 <!-- npu="A3" id23 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id23 -->
-<!-- npu="950" id24 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id24 -->
 
+<!-- npu="910b,A3" id38 -->
 </div>
+<!-- end id38 -->
 
+<!-- npu="910b,A3" id39 -->
 > <font size="3">post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -178,6 +188,7 @@
 **原生文档**：[torch.distributed.algorithms.JoinHook.post_hook](https://pytorch.org/docs/2.14/distributed.algorithms.join.html#torch.distributed.algorithms.JoinHook.post_hook)
 
 **产品支持情况**：
+<!-- end id39 -->
 
 <!-- npu="910b" id25 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -185,10 +196,10 @@
 <!-- npu="A3" id26 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id26 -->
-<!-- npu="950" id27 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id27 -->
+
+<!-- npu="910b,A3" id40 -->
+</div>
+<!-- end id40 -->
 
 </div>
-
-</div>
+<!-- end id42 -->

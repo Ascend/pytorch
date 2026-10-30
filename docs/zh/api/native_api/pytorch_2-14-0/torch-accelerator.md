@@ -160,26 +160,6 @@
 
 </div>
 
-### torch.accelerator.get_device_capability
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.accelerator.get_device_capability](https://pytorch.org/docs/2.14/generated/torch.accelerator.get_device_capability.html)
-
-**产品支持情况**：
-
-<!-- npu="910b" id22 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id22 -->
-<!-- npu="A3" id23 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id23 -->
-<!-- npu="950" id24 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id24 -->
-
-</div>
-
 ### torch.accelerator.set_stream
 
 <div style="margin-left: 2em">

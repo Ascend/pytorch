@@ -24,6 +24,26 @@
 
 </div>
 
+### torch.linalg.ldl_solve
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.linalg.ldl_solve](https://docs.pytorch.org/docs/2.7/generated/torch.linalg.ldl_solve.html#torch.linalg.ldl_solve)
+
+**产品支持情况**：
+
+<!-- npu="910b" id37 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id37 -->
+<!-- npu="A3" id38 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id38 -->
+<!-- npu="950" id39 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id39 -->
+
+</div>
+
 ## Matrix Properties
 
 ### torch.linalg.norm
@@ -72,6 +92,26 @@
 
 ## Decompositions
 
+### torch.linalg.matrix_norm
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.linalg.matrix_norm](https://docs.pytorch.org/docs/2.7/generated/torch.linalg.matrix_norm.html#torch.linalg.matrix_norm)
+
+**产品支持情况**：
+
+<!-- npu="910b" id46 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id46 -->
+<!-- npu="A3" id47 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id47 -->
+<!-- npu="950" id48 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id48 -->
+
+</div>
+
 ### torch.linalg.cholesky
 
 <div style="margin-left: 2em">
@@ -117,6 +157,66 @@
 </div>
 
 ## Solvers
+
+### torch.linalg.lu
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.linalg.lu](https://docs.pytorch.org/docs/2.7/generated/torch.linalg.lu.html#torch.linalg.lu)
+
+**产品支持情况**：
+
+<!-- npu="910b" id40 -->
+- <term>Atlas A2训练系列产品</term>：不支持
+<!-- end id40 -->
+<!-- npu="A3" id41 -->
+- <term>Atlas A3训练系列产品</term>：不支持
+<!-- end id41 -->
+<!-- npu="950" id42 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id42 -->
+
+</div>
+
+### torch.linalg.eigh
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.linalg.eigh](https://docs.pytorch.org/docs/2.7/generated/torch.linalg.eigh.html#torch.linalg.eigh)
+
+**产品支持情况**：
+
+<!-- npu="910b" id28 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id28 -->
+<!-- npu="A3" id29 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id29 -->
+<!-- npu="950" id30 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id30 -->
+
+</div>
+
+### torch.linalg.svdvals
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.linalg.svdvals](https://docs.pytorch.org/docs/2.7/generated/torch.linalg.svdvals.html#torch.linalg.svdvals)
+
+**产品支持情况**：
+
+<!-- npu="910b" id52 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id52 -->
+<!-- npu="A3" id53 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id53 -->
+<!-- npu="950" id54 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id54 -->
+
+</div>
 
 ### torch.linalg.lstsq
 
@@ -164,6 +264,86 @@
 
 ## Matrix Products
 
+### torch.linalg.inv
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.linalg.inv](https://docs.pytorch.org/docs/2.7/generated/torch.linalg.inv.html#torch.linalg.inv)
+
+**产品支持情况**：
+
+<!-- npu="910b" id31 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id31 -->
+<!-- npu="A3" id32 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id32 -->
+<!-- npu="950" id33 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id33 -->
+
+</div>
+
+### torch.linalg.pinv
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.linalg.pinv](https://docs.pytorch.org/docs/2.7/generated/torch.linalg.pinv.html#torch.linalg.pinv)
+
+**产品支持情况**：
+
+<!-- npu="910b" id49 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id49 -->
+<!-- npu="A3" id50 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id50 -->
+<!-- npu="950" id51 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id51 -->
+
+</div>
+
+### torch.linalg.matrix_exp
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.linalg.matrix_exp](https://docs.pytorch.org/docs/2.7/generated/torch.linalg.matrix_exp.html#torch.linalg.matrix_exp)
+
+**产品支持情况**：
+
+<!-- npu="910b" id43 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id43 -->
+<!-- npu="A3" id44 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id44 -->
+<!-- npu="950" id45 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id45 -->
+
+</div>
+
+### torch.linalg.cross
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.linalg.cross](https://docs.pytorch.org/docs/2.7/generated/torch.linalg.cross.html#torch.linalg.cross)
+
+**产品支持情况**：
+
+<!-- npu="910b" id25 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id25 -->
+<!-- npu="A3" id26 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id26 -->
+<!-- npu="950" id27 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id27 -->
+
+</div>
+
 ### torch.linalg.matmul
 
 <div style="margin-left: 2em">
@@ -190,6 +370,106 @@
 </div>
 
 ## Experimental Functions
+
+### torch.linalg.vecdot
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.linalg.vecdot](https://docs.pytorch.org/docs/2.7/generated/torch.linalg.vecdot.html#torch.linalg.vecdot)
+
+**产品支持情况**：
+
+<!-- npu="910b" id64 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id64 -->
+<!-- npu="A3" id65 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id65 -->
+<!-- npu="950" id66 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id66 -->
+
+</div>
+
+### torch.linalg.tensorinv
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.linalg.tensorinv](https://docs.pytorch.org/docs/2.7/generated/torch.linalg.tensorinv.html#torch.linalg.tensorinv)
+
+**产品支持情况**：
+
+<!-- npu="910b" id55 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id55 -->
+<!-- npu="A3" id56 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id56 -->
+<!-- npu="950" id57 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id57 -->
+
+</div>
+
+### torch.linalg.tensorsolve
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.linalg.tensorsolve](https://docs.pytorch.org/docs/2.7/generated/torch.linalg.tensorsolve.html#torch.linalg.tensorsolve)
+
+**产品支持情况**：
+
+<!-- npu="910b" id58 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id58 -->
+<!-- npu="A3" id59 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id59 -->
+<!-- npu="950" id60 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id60 -->
+
+</div>
+
+### torch.linalg.vander
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.linalg.vander](https://docs.pytorch.org/docs/2.7/generated/torch.linalg.vander.html#torch.linalg.vander)
+
+**产品支持情况**：
+
+<!-- npu="910b" id61 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id61 -->
+<!-- npu="A3" id62 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id62 -->
+<!-- npu="950" id63 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id63 -->
+
+</div>
+
+### torch.linalg.inv_ex
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.linalg.inv_ex](https://docs.pytorch.org/docs/2.7/generated/torch.linalg.inv_ex.html#torch.linalg.inv_ex)
+
+**产品支持情况**：
+
+<!-- npu="910b" id34 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id34 -->
+<!-- npu="A3" id35 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id35 -->
+<!-- npu="950" id36 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id36 -->
+
+</div>
 
 ### torch.linalg.ldl_factor
 

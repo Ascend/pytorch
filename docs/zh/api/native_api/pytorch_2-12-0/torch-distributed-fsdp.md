@@ -56,6 +56,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id108 -->
 > <font size="3">check_is_root()</font>
 
 <div style="margin-left: 2em">
@@ -63,6 +64,7 @@
 **原生文档**：[torch.distributed.fsdp.FullyShardedDataParallel.check_is_root](https://pytorch.org/docs/2.12/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.check_is_root)
 
 **产品支持情况**：
+<!-- end id108 -->
 
 <!-- npu="910b" id7 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -70,11 +72,10 @@
 <!-- npu="A3" id8 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id8 -->
-<!-- npu="950" id9 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id9 -->
 
+<!-- npu="910b,A3" id109 -->
 </div>
+<!-- end id109 -->
 
 > <font size="3">clip_grad_norm_()</font>
 
@@ -93,26 +94,6 @@
 <!-- npu="950" id12 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id12 -->
-
-</div>
-
-> <font size="3">flatten_sharded_optim_state_dict()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.distributed.fsdp.FullyShardedDataParallel.flatten_sharded_optim_state_dict](https://pytorch.org/docs/2.12/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.flatten_sharded_optim_state_dict)
-
-**产品支持情况**：
-
-<!-- npu="910b" id13 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id13 -->
-<!-- npu="A3" id14 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id14 -->
-<!-- npu="950" id15 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id15 -->
 
 </div>
 
@@ -136,6 +117,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id110 -->
 > <font size="3">fsdp_modules()</font>
 
 <div style="margin-left: 2em">
@@ -143,6 +125,7 @@
 **原生文档**：[torch.distributed.fsdp.FullyShardedDataParallel.fsdp_modules](https://pytorch.org/docs/2.12/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.fsdp_modules)
 
 **产品支持情况**：
+<!-- end id110 -->
 
 <!-- npu="910b" id19 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -150,12 +133,12 @@
 <!-- npu="A3" id20 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id20 -->
-<!-- npu="950" id21 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id21 -->
 
+<!-- npu="910b,A3" id111 -->
 </div>
+<!-- end id111 -->
 
+<!-- npu="910b,A3" id112 -->
 > <font size="3">full_optim_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -163,6 +146,7 @@
 **原生文档**：[torch.distributed.fsdp.FullyShardedDataParallel.full_optim_state_dict](https://pytorch.org/docs/2.12/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.full_optim_state_dict)
 
 **产品支持情况**：
+<!-- end id112 -->
 
 <!-- npu="910b" id22 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -170,51 +154,10 @@
 <!-- npu="A3" id23 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id23 -->
-<!-- npu="950" id24 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id24 -->
 
+<!-- npu="910b,A3" id113 -->
 </div>
-
-> <font size="3">get_state_dict_type()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.distributed.fsdp.FullyShardedDataParallel.get_state_dict_type](https://pytorch.org/docs/2.12/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.get_state_dict_type)
-
-**产品支持情况**：
-
-<!-- npu="910b" id25 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id25 -->
-<!-- npu="A3" id26 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id26 -->
-<!-- npu="950" id27 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id27 -->
-
-</div>
-
-> <font size="3">module()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.distributed.fsdp.FullyShardedDataParallel.module](https://pytorch.org/docs/2.12/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.module)
-
-**产品支持情况**：
-
-<!-- npu="910b" id28 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id28 -->
-<!-- npu="A3" id29 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id29 -->
-<!-- npu="950" id30 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id30 -->
-
-</div>
+<!-- end id113 -->
 
 > <font size="3">named_buffers()</font>
 
@@ -276,26 +219,7 @@
 
 </div>
 
-> <font size="3">optim_state_dict()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.distributed.fsdp.FullyShardedDataParallel.optim_state_dict](https://pytorch.org/docs/2.12/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.optim_state_dict)
-
-**产品支持情况**：
-
-<!-- npu="910b" id40 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id40 -->
-<!-- npu="A3" id41 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id41 -->
-<!-- npu="950" id42 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id42 -->
-
-</div>
-
+<!-- npu="910b,A3" id114 -->
 > <font size="3">optim_state_dict_to_load()</font>
 
 <div style="margin-left: 2em">
@@ -303,6 +227,7 @@
 **原生文档**：[torch.distributed.fsdp.FullyShardedDataParallel.optim_state_dict_to_load](https://pytorch.org/docs/2.12/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.optim_state_dict_to_load)
 
 **产品支持情况**：
+<!-- end id114 -->
 
 <!-- npu="910b" id43 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -310,11 +235,10 @@
 <!-- npu="A3" id44 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id44 -->
-<!-- npu="950" id45 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id45 -->
 
+<!-- npu="910b,A3" id115 -->
 </div>
+<!-- end id115 -->
 
 > <font size="3">register_comm_hook()</font>
 
@@ -336,106 +260,7 @@
 
 </div>
 
-> <font size="3">rekey_optim_state_dict()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.distributed.fsdp.FullyShardedDataParallel.rekey_optim_state_dict](https://pytorch.org/docs/2.12/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.rekey_optim_state_dict)
-
-**产品支持情况**：
-
-<!-- npu="910b" id49 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id49 -->
-<!-- npu="A3" id50 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id50 -->
-<!-- npu="950" id51 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id51 -->
-
-</div>
-
-> <font size="3">scatter_full_optim_state_dict()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.distributed.fsdp.FullyShardedDataParallel.scatter_full_optim_state_dict](https://pytorch.org/docs/2.12/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.scatter_full_optim_state_dict)
-
-**产品支持情况**：
-
-<!-- npu="910b" id52 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id52 -->
-<!-- npu="A3" id53 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id53 -->
-<!-- npu="950" id54 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id54 -->
-
-</div>
-
-> <font size="3">set_state_dict_type()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.distributed.fsdp.FullyShardedDataParallel.set_state_dict_type](https://pytorch.org/docs/2.12/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.set_state_dict_type)
-
-**产品支持情况**：
-
-<!-- npu="910b" id55 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id55 -->
-<!-- npu="A3" id56 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id56 -->
-<!-- npu="950" id57 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id57 -->
-
-</div>
-
-> <font size="3">shard_full_optim_state_dict()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.distributed.fsdp.FullyShardedDataParallel.shard_full_optim_state_dict](https://pytorch.org/docs/2.12/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.shard_full_optim_state_dict)
-
-**产品支持情况**：
-
-<!-- npu="910b" id58 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id58 -->
-<!-- npu="A3" id59 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id59 -->
-<!-- npu="950" id60 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id60 -->
-
-</div>
-
-> <font size="3">sharded_optim_state_dict()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.distributed.fsdp.FullyShardedDataParallel.sharded_optim_state_dict](https://pytorch.org/docs/2.12/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.sharded_optim_state_dict)
-
-**产品支持情况**：
-
-<!-- npu="910b" id61 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id61 -->
-<!-- npu="A3" id62 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id62 -->
-<!-- npu="950" id63 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id63 -->
-
-</div>
-
+<!-- npu="910b,A3" id116 -->
 > <font size="3">state_dict_type()</font>
 
 <div style="margin-left: 2em">
@@ -443,6 +268,7 @@
 **原生文档**：[torch.distributed.fsdp.FullyShardedDataParallel.state_dict_type](https://pytorch.org/docs/2.12/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.state_dict_type)
 
 **产品支持情况**：
+<!-- end id116 -->
 
 <!-- npu="910b" id64 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -450,31 +276,10 @@
 <!-- npu="A3" id65 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id65 -->
-<!-- npu="950" id66 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id66 -->
 
+<!-- npu="910b,A3" id117 -->
 </div>
-
-> <font size="3">summon_full_params()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.distributed.fsdp.FullyShardedDataParallel.summon_full_params](https://pytorch.org/docs/2.12/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.summon_full_params)
-
-**产品支持情况**：
-
-<!-- npu="910b" id67 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id67 -->
-<!-- npu="A3" id68 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id68 -->
-<!-- npu="950" id69 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id69 -->
-
-</div>
+<!-- end id117 -->
 
 </div>
 
@@ -558,6 +363,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id118 -->
 ### <code><i>class</i></code> torch.distributed.fsdp.StateDictConfig
 
 <div style="margin-left: 2em">
@@ -565,6 +371,7 @@
 **原生文档**：[torch.distributed.fsdp.StateDictConfig](https://pytorch.org/docs/2.12/fsdp.html#torch.distributed.fsdp.StateDictConfig)
 
 **产品支持情况**：
+<!-- end id118 -->
 
 <!-- npu="910b" id82 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -572,12 +379,12 @@
 <!-- npu="A3" id83 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id83 -->
-<!-- npu="950" id84 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id84 -->
 
+<!-- npu="910b,A3" id119 -->
 </div>
+<!-- end id119 -->
 
+<!-- npu="910b,A3" id120 -->
 ### <code><i>class</i></code> torch.distributed.fsdp.FullStateDictConfig
 
 <div style="margin-left: 2em">
@@ -585,6 +392,7 @@
 **原生文档**：[torch.distributed.fsdp.FullStateDictConfig](https://pytorch.org/docs/2.12/fsdp.html#torch.distributed.fsdp.FullStateDictConfig)
 
 **产品支持情况**：
+<!-- end id120 -->
 
 <!-- npu="910b" id85 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -592,12 +400,12 @@
 <!-- npu="A3" id86 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id86 -->
-<!-- npu="950" id87 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id87 -->
 
+<!-- npu="910b,A3" id121 -->
 </div>
+<!-- end id121 -->
 
+<!-- npu="910b,A3" id122 -->
 ### <code><i>class</i></code> torch.distributed.fsdp.ShardedStateDictConfig
 
 <div style="margin-left: 2em">
@@ -605,6 +413,7 @@
 **原生文档**：[torch.distributed.fsdp.ShardedStateDictConfig](https://pytorch.org/docs/2.12/fsdp.html#torch.distributed.fsdp.ShardedStateDictConfig)
 
 **产品支持情况**：
+<!-- end id122 -->
 
 <!-- npu="910b" id88 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -612,12 +421,12 @@
 <!-- npu="A3" id89 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id89 -->
-<!-- npu="950" id90 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id90 -->
 
+<!-- npu="910b,A3" id123 -->
 </div>
+<!-- end id123 -->
 
+<!-- npu="910b,A3" id124 -->
 ### <code><i>class</i></code> torch.distributed.fsdp.LocalStateDictConfig
 
 <div style="margin-left: 2em">
@@ -625,6 +434,7 @@
 **原生文档**：[torch.distributed.fsdp.LocalStateDictConfig](https://pytorch.org/docs/2.12/fsdp.html#torch.distributed.fsdp.LocalStateDictConfig)
 
 **产品支持情况**：
+<!-- end id124 -->
 
 <!-- npu="910b" id91 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -632,12 +442,12 @@
 <!-- npu="A3" id92 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id92 -->
-<!-- npu="950" id93 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id93 -->
 
+<!-- npu="910b,A3" id125 -->
 </div>
+<!-- end id125 -->
 
+<!-- npu="910b,A3" id126 -->
 ### <code><i>class</i></code> torch.distributed.fsdp.OptimStateDictConfig
 
 <div style="margin-left: 2em">
@@ -645,6 +455,7 @@
 **原生文档**：[torch.distributed.fsdp.OptimStateDictConfig](https://pytorch.org/docs/2.12/fsdp.html#torch.distributed.fsdp.OptimStateDictConfig)
 
 **产品支持情况**：
+<!-- end id126 -->
 
 <!-- npu="910b" id94 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -652,12 +463,12 @@
 <!-- npu="A3" id95 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id95 -->
-<!-- npu="950" id96 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id96 -->
 
+<!-- npu="910b,A3" id127 -->
 </div>
+<!-- end id127 -->
 
+<!-- npu="910b,A3" id128 -->
 ### <code><i>class</i></code> torch.distributed.fsdp.FullOptimStateDictConfig
 
 <div style="margin-left: 2em">
@@ -665,6 +476,7 @@
 **原生文档**：[torch.distributed.fsdp.FullOptimStateDictConfig](https://pytorch.org/docs/2.12/fsdp.html#torch.distributed.fsdp.FullOptimStateDictConfig)
 
 **产品支持情况**：
+<!-- end id128 -->
 
 <!-- npu="910b" id97 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -672,12 +484,12 @@
 <!-- npu="A3" id98 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id98 -->
-<!-- npu="950" id99 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id99 -->
 
+<!-- npu="910b,A3" id129 -->
 </div>
+<!-- end id129 -->
 
+<!-- npu="910b,A3" id130 -->
 ### <code><i>class</i></code> torch.distributed.fsdp.ShardedOptimStateDictConfig
 
 <div style="margin-left: 2em">
@@ -685,6 +497,7 @@
 **原生文档**：[torch.distributed.fsdp.ShardedOptimStateDictConfig](https://pytorch.org/docs/2.12/fsdp.html#torch.distributed.fsdp.ShardedOptimStateDictConfig)
 
 **产品支持情况**：
+<!-- end id130 -->
 
 <!-- npu="910b" id100 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -692,12 +505,12 @@
 <!-- npu="A3" id101 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id101 -->
-<!-- npu="950" id102 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id102 -->
 
+<!-- npu="910b,A3" id131 -->
 </div>
+<!-- end id131 -->
 
+<!-- npu="910b,A3" id132 -->
 ### <code><i>class</i></code> torch.distributed.fsdp.LocalOptimStateDictConfig
 
 <div style="margin-left: 2em">
@@ -705,6 +518,7 @@
 **原生文档**：[torch.distributed.fsdp.LocalOptimStateDictConfig](https://pytorch.org/docs/2.12/fsdp.html#torch.distributed.fsdp.LocalOptimStateDictConfig)
 
 **产品支持情况**：
+<!-- end id132 -->
 
 <!-- npu="910b" id103 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -712,12 +526,12 @@
 <!-- npu="A3" id104 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id104 -->
-<!-- npu="950" id105 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id105 -->
 
+<!-- npu="910b,A3" id133 -->
 </div>
+<!-- end id133 -->
 
+<!-- npu="910b,A3" id134 -->
 ### <code><i>class</i></code> torch.distributed.fsdp.StateDictSettings
 
 <div style="margin-left: 2em">
@@ -725,6 +539,7 @@
 **原生文档**：[torch.distributed.fsdp.StateDictSettings](https://pytorch.org/docs/2.12/fsdp.html#torch.distributed.fsdp.StateDictSettings)
 
 **产品支持情况**：
+<!-- end id134 -->
 
 <!-- npu="910b" id106 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -732,8 +547,7 @@
 <!-- npu="A3" id107 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id107 -->
-<!-- npu="950" id108 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id108 -->
 
+<!-- npu="910b,A3" id135 -->
 </div>
+<!-- end id135 -->

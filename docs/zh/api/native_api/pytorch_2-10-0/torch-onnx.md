@@ -26,13 +26,17 @@
 
 ## torch.onnx APIs
 
+<!-- npu="910b,A3,950" id43 -->
 ### <code><i>class</i></code> torch.onnx.ONNXProgram
+<!-- end id43 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id44 -->
 **原生文档**：[torch.onnx.ONNXProgram](https://docs.pytorch.org/docs/2.10/onnx_export.html#torch.onnx.ONNXProgram)
 
 **产品支持情况**：
+<!-- end id44 -->
 
 <!-- npu="910b" id1 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -40,9 +44,6 @@
 <!-- npu="A3" id2 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id2 -->
-<!-- npu="950" id3 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id3 -->
 
 > <font size="3">model_proto()</font>
 
@@ -276,7 +277,7 @@
 
 **原生文档**：[torch.onnx.ONNXProgram.apply_weights](https://docs.pytorch.org/docs/2.10/onnx_export.html#torch.onnx.ONNXProgram.apply_weights)
 
-**支持情况**：
+**产品支持情况**：
 
 <!-- npu="910b" id31 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -298,7 +299,7 @@
 
 **原生文档**：[torch.onnx.verification.verify_onnx_program](https://pytorch.org/docs/2.10/onnx_verification.html#torch.onnx.verification.verify_onnx_program)
 
-**支持情况**：
+**产品支持情况**：
 
 <!-- npu="910b" id34 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -320,15 +321,15 @@
 
 **产品支持情况**：
 
-<!-- npu="910b" id43 -->
+<!-- npu="910b" id45 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id43 -->
-<!-- npu="A3" id44 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id44 -->
-<!-- npu="950" id45 -->
-- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id45 -->
+<!-- npu="A3" id46 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id46 -->
+<!-- npu="950" id47 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id47 -->
 
 **限制与说明**：`from_tensors`通过`.cpu()`将输入复制到CPU后计算差异直方图；输入张量可位于NPU，接口本身不保证差异计算在NPU上执行。
 

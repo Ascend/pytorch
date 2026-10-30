@@ -11,8 +11,12 @@
 <div style="margin: 8px 0"><font size="5"><b>目录</b></font></div>
 
 - [API Reference](#api-reference)
+<!-- npu="910b,A3,950" id288 -->
 - [torch.fx.node](#torchfxnode)
+<!-- end id288 -->
+<!-- npu="910b,A3" id289 -->
 - [torch.fx.passes.regional_inductor](#torchfxpassesregional_inductor)
+<!-- end id289 -->
 
 </div>
 
@@ -456,6 +460,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id276 -->
 > <font size="3">find_nodes()</font>
 
 <div style="margin-left: 2em">
@@ -463,6 +468,7 @@
 **原生文档**：[torch.fx.Graph.find_nodes](https://pytorch.org/docs/2.13/fx.html#torch.fx.Graph.find_nodes)
 
 **产品支持情况**：
+<!-- end id276 -->
 
 <!-- npu="910b" id64 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -470,11 +476,10 @@
 <!-- npu="A3" id65 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id65 -->
-<!-- npu="950" id66 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id66 -->
 
+<!-- npu="910b,A3" id277 -->
 </div>
+<!-- end id277 -->
 
 > <font size="3">inserting_after()</font>
 
@@ -624,6 +629,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id278 -->
 > <font size="3">output_node()</font>
 
 <div style="margin-left: 2em">
@@ -631,6 +637,7 @@
 **原生文档**：[torch.fx.Graph.output_node](https://pytorch.org/docs/2.13/fx.html#torch.fx.Graph.output_node)
 
 **产品支持情况**：
+<!-- end id278 -->
 
 <!-- npu="910b" id88 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -638,11 +645,10 @@
 <!-- npu="A3" id89 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id89 -->
-<!-- npu="950" id90 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id90 -->
 
+<!-- npu="910b,A3" id279 -->
 </div>
+<!-- end id279 -->
 
 > <font size="3">placeholder()</font>
 
@@ -1418,6 +1424,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id280 -->
 > <font size="3">insert_arg()</font>
 
 <div style="margin-left: 2em">
@@ -1425,6 +1432,7 @@
 **原生文档**：[torch.fx.Node.insert_arg](https://pytorch.org/docs/2.13/fx.html#torch.fx.Node.insert_arg)
 
 **产品支持情况**：
+<!-- end id280 -->
 
 <!-- npu="910b" id202 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1432,11 +1440,10 @@
 <!-- npu="A3" id203 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id203 -->
-<!-- npu="950" id204 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id204 -->
 
+<!-- npu="910b,A3" id281 -->
 </div>
+<!-- end id281 -->
 
 </div>
 
@@ -1888,8 +1895,30 @@
 
 </div>
 
+<!-- npu="910b,A3,950" id290 -->
 ## torch.fx.node
 
+### torch.fx.node.has_side_effect
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.node.has_side_effect](https://docs.pytorch.org/docs/2.13/generated/torch.fx.node.has_side_effect.html#torch.fx.node.has_side_effect)
+
+**产品支持情况**：
+
+<!-- npu="910b" id292 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id292 -->
+<!-- npu="A3" id293 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id293 -->
+<!-- npu="950" id294 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id294 -->
+
+</div>
+
+<!-- npu="910b,A3" id282 -->
 ### torch.fx.node.map_arg
 
 <div style="margin-left: 2em">
@@ -1897,6 +1926,7 @@
 **原生文档**：[torch.fx.node.map_arg](https://pytorch.org/docs/2.13/fx.html#torch.fx.node.map_arg)
 
 **产品支持情况**：
+<!-- end id282 -->
 
 <!-- npu="910b" id268 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1904,12 +1934,12 @@
 <!-- npu="A3" id269 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id269 -->
-<!-- npu="950" id270 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id270 -->
 
+<!-- npu="910b,A3" id283 -->
 </div>
+<!-- end id283 -->
 
+<!-- npu="910b,A3" id284 -->
 ### torch.fx.node.map_aggregate
 
 <div style="margin-left: 2em">
@@ -1917,6 +1947,7 @@
 **原生文档**：[torch.fx.node.map_aggregate](https://pytorch.org/docs/2.13/fx.html#torch.fx.node.map_aggregate)
 
 **产品支持情况**：
+<!-- end id284 -->
 
 <!-- npu="910b" id271 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1924,14 +1955,16 @@
 <!-- npu="A3" id272 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id272 -->
-<!-- npu="950" id273 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id273 -->
 
+<!-- npu="910b,A3" id285 -->
 </div>
+<!-- end id285 -->
 
+<!-- end id290 -->
+<!-- npu="910b,A3" id291 -->
 ## torch.fx.passes.regional_inductor
 
+<!-- npu="910b,A3" id286 -->
 ### torch.fx.passes.regional_inductor.regional_inductor
 
 <div style="margin-left: 2em">
@@ -1939,6 +1972,7 @@
 **原生文档**：[torch.fx.passes.regional_inductor.regional_inductor](https://docs.pytorch.org/docs/2.13/generated/torch.fx.passes.regional_inductor.regional_inductor.html#torch.fx.passes.regional_inductor.regional_inductor)
 
 **产品支持情况**：
+<!-- end id286 -->
 
 <!-- npu="910b" id274 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1946,8 +1980,8 @@
 <!-- npu="A3" id275 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id275 -->
-<!-- npu="950" id276 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id276 -->
 
+<!-- npu="910b,A3" id287 -->
 </div>
+<!-- end id287 -->
+<!-- end id291 -->

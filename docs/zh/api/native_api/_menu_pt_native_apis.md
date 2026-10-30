@@ -39,7 +39,9 @@
   - [torch.special](./pytorch_2-14-0/torch-special.md)
   - [torch.overrides](./pytorch_2-14-0/torch-overrides.md)
   - [torch.package](./pytorch_2-14-0/torch-package.md)
+  <!-- npu="910b,A3" id1 -->
   - [torch.profiler](./pytorch_2-14-0/torch-profiler.md)
+  <!-- end id1 -->
   - [torch.nn.init](./pytorch_2-14-0/torch-nn-init.md)
   - [torch.onnx](./pytorch_2-14-0/torch-onnx.md)
   - [torch.optim](./pytorch_2-14-0/torch-optim.md)
@@ -48,6 +50,7 @@
   - [Distributed RPC Framework](./pytorch_2-14-0/Distributed-RPC-Framework.md)
   - [torch.random](./pytorch_2-14-0/torch-random.md)
   - [torch.nested](./pytorch_2-14-0/torch-nested.md)
+  - [torch.Size](./pytorch_2-14-0/torch-Size.md)
   - [torch.sparse](./pytorch_2-14-0/torch-sparse.md)
   - [torch.Storage](./pytorch_2-14-0/torch-Storage.md)
   - [torch.testing](./pytorch_2-14-0/torch-testing.md)
@@ -57,9 +60,9 @@
   - [torch.utils.cpp\_extension](./pytorch_2-14-0/torch-utils-cpp_extension.md)
   - [torch.utils.data](./pytorch_2-14-0/torch-utils-data.md)
   - [torch.utils.deterministic](./pytorch_2-14-0/torch-utils-deterministic.md)
-  - [torch.utils.dlpack](./pytorch_2-14-0/torch-utils-dlpack.md)
-  - [torch.utils.mobile\_optimizer](./pytorch_2-14-0/torch-utils-mobile_optimizer.md)
+  <!-- npu="910b,A3" id2 -->
   - [torch.utils.model\_zoo](./pytorch_2-14-0/torch-utils-model_zoo.md)
+  <!-- end id2 -->
   - [torch.utils.tensorboard](./pytorch_2-14-0/torch-utils-tensorboard.md)
   - [Type Info](./pytorch_2-14-0/Type-Info.md)
   - [torch.\_\_config\_\_](./pytorch_2-14-0/torch-__config__.md)
@@ -104,7 +107,9 @@
   - [torch.special](./pytorch_2-13-0/torch-special.md)
   - [torch.overrides](./pytorch_2-13-0/torch-overrides.md)
   - [torch.package](./pytorch_2-13-0/torch-package.md)
+  <!-- npu="910b,A3" id3 -->
   - [torch.profiler](./pytorch_2-13-0/torch-profiler.md)
+  <!-- end id3 -->
   - [torch.nn.init](./pytorch_2-13-0/torch-nn-init.md)
   - [torch.nn.attention](./pytorch_2-13-0/torch-nn-attention.md)
   - [torch.onnx](./pytorch_2-13-0/torch-onnx.md)
@@ -114,6 +119,7 @@
   - [Distributed RPC Framework](./pytorch_2-13-0/Distributed-RPC-Framework.md)
   - [torch.random](./pytorch_2-13-0/torch-random.md)
   - [torch.nested](./pytorch_2-13-0/torch-nested.md)
+  - [torch.Size](./pytorch_2-13-0/torch-Size.md)
   - [torch.sparse](./pytorch_2-13-0/torch-sparse.md)
   - [torch.Storage](./pytorch_2-13-0/torch-Storage.md)
   - [torch.testing](./pytorch_2-13-0/torch-testing.md)
@@ -123,9 +129,9 @@
   - [torch.utils.cpp\_extension](./pytorch_2-13-0/torch-utils-cpp_extension.md)
   - [torch.utils.data](./pytorch_2-13-0/torch-utils-data.md)
   - [torch.utils.deterministic](./pytorch_2-13-0/torch-utils-deterministic.md)
-  - [torch.utils.dlpack](./pytorch_2-13-0/torch-utils-dlpack.md)
-  - [torch.utils.mobile\_optimizer](./pytorch_2-13-0/torch-utils-mobile_optimizer.md)
+  <!-- npu="910b,A3" id4 -->
   - [torch.utils.model\_zoo](./pytorch_2-13-0/torch-utils-model_zoo.md)
+  <!-- end id4 -->
   - [torch.utils.tensorboard](./pytorch_2-13-0/torch-utils-tensorboard.md)
   - [Type Info](./pytorch_2-13-0/Type-Info.md)
   - [torch.\_\_config\_\_](./pytorch_2-13-0/torch-__config__.md)
@@ -180,6 +186,7 @@
   - [Distributed RPC Framework](./pytorch_2-12-0/Distributed-RPC-Framework.md)
   - [torch.random](./pytorch_2-12-0/torch-random.md)
   - [torch.nested](./pytorch_2-12-0/torch-nested.md)
+  - [torch.Size](./pytorch_2-12-0/torch-Size.md)
   - [torch.sparse](./pytorch_2-12-0/torch-sparse.md)
   - [torch.Storage](./pytorch_2-12-0/torch-Storage.md)
   - [torch.testing](./pytorch_2-12-0/torch-testing.md)
@@ -189,9 +196,9 @@
   - [torch.utils.cpp\_extension](./pytorch_2-12-0/torch-utils-cpp_extension.md)
   - [torch.utils.data](./pytorch_2-12-0/torch-utils-data.md)
   - [torch.utils.deterministic](./pytorch_2-12-0/torch-utils-deterministic.md)
-  - [torch.utils.dlpack](./pytorch_2-12-0/torch-utils-dlpack.md)
-  - [torch.utils.mobile\_optimizer](./pytorch_2-12-0/torch-utils-mobile_optimizer.md)
+  <!-- npu="910b,A3" id5 -->
   - [torch.utils.model\_zoo](./pytorch_2-12-0/torch-utils-model_zoo.md)
+  <!-- end id5 -->
   - [torch.utils.tensorboard](./pytorch_2-12-0/torch-utils-tensorboard.md)
   - [Type Info](./pytorch_2-12-0/Type-Info.md)
   - [Named Tensors](./pytorch_2-12-0/Named-Tensors.md)
@@ -247,6 +254,7 @@
   - [Distributed RPC Framework](./pytorch_2-11-0/Distributed-RPC-Framework.md)
   - [torch.random](./pytorch_2-11-0/torch-random.md)
   - [torch.nested](./pytorch_2-11-0/torch-nested.md)
+  - [torch.Size](./pytorch_2-11-0/torch-Size.md)
   - [torch.sparse](./pytorch_2-11-0/torch-sparse.md)
   - [torch.Storage](./pytorch_2-11-0/torch-Storage.md)
   - [torch.testing](./pytorch_2-11-0/torch-testing.md)
@@ -256,9 +264,9 @@
   - [torch.utils.cpp\_extension](./pytorch_2-11-0/torch-utils-cpp_extension.md)
   - [torch.utils.data](./pytorch_2-11-0/torch-utils-data.md)
   - [torch.utils.deterministic](./pytorch_2-11-0/torch-utils-deterministic.md)
-  - [torch.utils.dlpack](./pytorch_2-11-0/torch-utils-dlpack.md)
-  - [torch.utils.mobile\_optimizer](./pytorch_2-11-0/torch-utils-mobile_optimizer.md)
+  <!-- npu="910b,A3" id6 -->
   - [torch.utils.model\_zoo](./pytorch_2-11-0/torch-utils-model_zoo.md)
+  <!-- end id6 -->
   - [torch.utils.tensorboard](./pytorch_2-11-0/torch-utils-tensorboard.md)
   - [Type Info](./pytorch_2-11-0/Type-Info.md)
   - [Named Tensors](./pytorch_2-11-0/Named-Tensors.md)
@@ -315,6 +323,7 @@
   - [Distributed RPC Framework](./pytorch_2-10-0/Distributed-RPC-Framework.md)
   - [torch.random](./pytorch_2-10-0/torch-random.md)
   - [torch.nested](./pytorch_2-10-0/torch-nested.md)
+  - [torch.Size](./pytorch_2-10-0/torch-Size.md)
   - [torch.sparse](./pytorch_2-10-0/torch-sparse.md)
   - [torch.Storage](./pytorch_2-10-0/torch-Storage.md)
   - [torch.testing](./pytorch_2-10-0/torch-testing.md)
@@ -324,9 +333,9 @@
   - [torch.utils.cpp\_extension](./pytorch_2-10-0/torch-utils-cpp_extension.md)
   - [torch.utils.data](./pytorch_2-10-0/torch-utils-data.md)
   - [torch.utils.deterministic](./pytorch_2-10-0/torch-utils-deterministic.md)
-  - [torch.utils.dlpack](./pytorch_2-10-0/torch-utils-dlpack.md)
-  - [torch.utils.mobile\_optimizer](./pytorch_2-10-0/torch-utils-mobile_optimizer.md)
+  <!-- npu="910b,A3" id7 -->
   - [torch.utils.model\_zoo](./pytorch_2-10-0/torch-utils-model_zoo.md)
+  <!-- end id7 -->
   - [torch.utils.tensorboard](./pytorch_2-10-0/torch-utils-tensorboard.md)
   - [Type Info](./pytorch_2-10-0/Type-Info.md)
   - [Named Tensors](./pytorch_2-10-0/Named-Tensors.md)
@@ -383,6 +392,7 @@
   - [Distributed RPC Framework](./pytorch_2-9-0/Distributed-RPC-Framework.md)
   - [torch.random](./pytorch_2-9-0/torch-random.md)
   - [torch.nested](./pytorch_2-9-0/torch-nested.md)
+  - [torch.Size](./pytorch_2-9-0/torch-Size.md)
   - [torch.sparse](./pytorch_2-9-0/torch-sparse.md)
   - [torch.Storage](./pytorch_2-9-0/torch-Storage.md)
   - [torch.testing](./pytorch_2-9-0/torch-testing.md)
@@ -392,9 +402,9 @@
   - [torch.utils.cpp\_extension](./pytorch_2-9-0/torch-utils-cpp_extension.md)
   - [torch.utils.data](./pytorch_2-9-0/torch-utils-data.md)
   - [torch.utils.deterministic](./pytorch_2-9-0/torch-utils-deterministic.md)
-  - [torch.utils.dlpack](./pytorch_2-9-0/torch-utils-dlpack.md)
-  - [torch.utils.mobile\_optimizer](./pytorch_2-9-0/torch-utils-mobile_optimizer.md)
+  <!-- npu="910b,A3" id8 -->
   - [torch.utils.model\_zoo](./pytorch_2-9-0/torch-utils-model_zoo.md)
+  <!-- end id8 -->
   - [torch.utils.tensorboard](./pytorch_2-9-0/torch-utils-tensorboard.md)
   - [Type Info](./pytorch_2-9-0/Type-Info.md)
   - [Named Tensors](./pytorch_2-9-0/Named-Tensors.md)
@@ -451,6 +461,7 @@
   - [Distributed RPC Framework](./pytorch_2-7-1/Distributed-RPC-Framework.md)
   - [torch.random](./pytorch_2-7-1/torch-random.md)
   - [torch.nested](./pytorch_2-7-1/torch-nested.md)
+  - [torch.Size](./pytorch_2-7-1/torch-Size.md)
   - [torch.sparse](./pytorch_2-7-1/torch-sparse.md)
   - [torch.Storage](./pytorch_2-7-1/torch-Storage.md)
   - [torch.testing](./pytorch_2-7-1/torch-testing.md)
@@ -460,9 +471,10 @@
   - [torch.utils.cpp\_extension](./pytorch_2-7-1/torch-utils-cpp_extension.md)
   - [torch.utils.data](./pytorch_2-7-1/torch-utils-data.md)
   - [torch.utils.deterministic](./pytorch_2-7-1/torch-utils-deterministic.md)
-  - [torch.utils.dlpack](./pytorch_2-7-1/torch-utils-dlpack.md)
   - [torch.utils.mobile\_optimizer](./pytorch_2-7-1/torch-utils-mobile_optimizer.md)
+  <!-- npu="910b,A3" id9 -->
   - [torch.utils.model\_zoo](./pytorch_2-7-1/torch-utils-model_zoo.md)
+  <!-- end id9 -->
   - [torch.utils.tensorboard](./pytorch_2-7-1/torch-utils-tensorboard.md)
   - [Type Info](./pytorch_2-7-1/Type-Info.md)
   - [Named Tensors](./pytorch_2-7-1/Named-Tensors.md)

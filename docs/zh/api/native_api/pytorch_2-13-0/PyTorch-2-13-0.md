@@ -64,7 +64,9 @@
 
 - **[torch.package](torch-package.md)**  
 
+<!-- npu="910b,A3" id1 -->
 - **[torch.profiler](torch-profiler.md)**  
+<!-- end id1 -->
 
 - **[torch.nn.init](torch-nn-init.md)**  
 
@@ -88,6 +90,8 @@
 
 - **[torch.random](torch-random.md)**  
 
+- **[torch.Size](torch-Size.md)**
+
 - **[torch.sparse](torch-sparse.md)**  
 
 - **[torch.Storage](torch-Storage.md)**  
@@ -104,11 +108,9 @@
 
 - **[torch.utils.data](torch-utils-data.md)**  
 
-- **[torch.utils.dlpack](torch-utils-dlpack.md)**  
-
-- **[torch.utils.mobile\_optimizer](torch-utils-mobile_optimizer.md)**  
-
+<!-- npu="910b,A3" id2 -->
 - **[torch.utils.model\_zoo](torch-utils-model_zoo.md)**  
+<!-- end id2 -->
 
 - **[torch.utils.tensorboard](torch-utils-tensorboard.md)**  
 

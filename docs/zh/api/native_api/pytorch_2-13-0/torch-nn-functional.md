@@ -20,7 +20,9 @@
 - [Distance functions](#distance-functions)
 - [Loss functions](#loss-functions)
 - [Vision functions](#vision-functions)
+<!-- npu="910b,A3" id331 -->
 - [Low-Precision functions](#low-precision-functions)
+<!-- end id331 -->
 
 </div>
 
@@ -75,7 +77,7 @@
 - `input`仅支持fp16，fp32
 
 <!-- npu="950" id311 -->
-- 在<term>Ascend 950DT系列产品</term>上，底层卷积计算的W维度不能超过1000000，`torch.ao.nn.intrinsic.ConvBn1d`也受此限制；<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>支持W维度大于1000000的场景。
+- 在<term>Ascend 950DT系列产品</term>上，底层卷积计算的W维度不能超过1000000，`torch.ao.nn.intrinsic.ConvBn1d`也受此限制；<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>支持W维度大于1000000的场景。
 <!-- end id311 -->
 
 </div>
@@ -103,8 +105,8 @@
 - `input`仅支持bf16，fp16，fp32
 
 <!-- npu="950" id312 -->
-- 在<term>Ascend 950DT系列产品</term>上，默认高性能实现在`fp32`或`complex64`输入场景下，计算精度与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在差异。将`cube_math_type`设置为`4`可切换至高精度模式以对齐精度，但会影响性能。
-- 在<term>Ascend 950DT系列产品</term>上，底层卷积计算的W维度不支持大于1000000的场景；<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>支持该场景。
+- 在<term>Ascend 950DT系列产品</term>上，默认高性能实现在`fp32`或`complex64`输入场景下，计算精度与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在差异。将`cube_math_type`设置为`4`可切换至高精度模式以对齐精度，但会影响性能。
+- 在<term>Ascend 950DT系列产品</term>上，底层卷积计算的W维度不支持大于1000000的场景；<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>支持该场景。
 <!-- end id312 -->
 
 </div>
@@ -372,7 +374,7 @@
 - `return_indices`为True时，返回的`argmax`的数据类型为int32
 
 <!-- npu="950" id313 -->
-- 在<term>Ascend 950DT系列产品</term>上，返回的`indices`与上游PyTorch对齐，与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>的结果可能不完全一致。
+- 在<term>Ascend 950DT系列产品</term>上，返回的`indices`与上游PyTorch对齐，与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>的结果可能不完全一致。
 <!-- end id313 -->
 
 </div>
@@ -1148,7 +1150,7 @@
 - `approximate`参数仅支持设置为`tanh`
 
 <!-- npu="950" id318 -->
-- 在<term>Ascend 950DT系列产品</term>上，默认近似算法与上游PyTorch一致，与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同，返回结果可能不完全一致。
+- 在<term>Ascend 950DT系列产品</term>上，默认近似算法与上游PyTorch一致，与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同，返回结果可能不完全一致。
 <!-- end id318 -->
 
 </div>
@@ -1197,6 +1199,26 @@
 
 </div>
 
+### torch.nn.functional.tanhshrink
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.functional.tanhshrink](https://docs.pytorch.org/docs/2.13/generated/torch.nn.functional.tanhshrink.html#torch.nn.functional.tanhshrink)
+
+**产品支持情况**：
+
+<!-- npu="910b" id357 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id357 -->
+<!-- npu="A3" id358 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id358 -->
+<!-- npu="950" id359 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id359 -->
+
+</div>
+
 ### torch.nn.functional.softsign
 
 <div style="margin-left: 2em">
@@ -1238,6 +1260,26 @@
 <!-- end id153 -->
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32
+
+</div>
+
+### torch.nn.functional.softmin
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.functional.softmin](https://docs.pytorch.org/docs/2.13/generated/torch.nn.functional.softmin.html#torch.nn.functional.softmin)
+
+**产品支持情况**：
+
+<!-- npu="910b" id333 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id333 -->
+<!-- npu="A3" id334 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id334 -->
+<!-- npu="950" id335 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id335 -->
 
 </div>
 
@@ -1489,6 +1531,26 @@
 
 </div>
 
+### torch.nn.functional.instance_norm
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.functional.instance_norm](https://docs.pytorch.org/docs/2.13/generated/torch.nn.functional.instance_norm.html#torch.nn.functional.instance_norm)
+
+**产品支持情况**：
+
+<!-- npu="910b" id348 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id348 -->
+<!-- npu="A3" id349 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id349 -->
+<!-- npu="950" id350 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id350 -->
+
+</div>
+
 ### torch.nn.functional.layer_norm
 
 <div style="margin-left: 2em">
@@ -1508,6 +1570,26 @@
 <!-- end id189 -->
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32
+
+</div>
+
+### torch.nn.functional.rms_norm
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.functional.rms_norm](https://docs.pytorch.org/docs/2.13/generated/torch.nn.functional.rms_norm.html#torch.nn.functional.rms_norm)
+
+**产品支持情况**：
+
+<!-- npu="910b" id354 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id354 -->
+<!-- npu="A3" id355 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id355 -->
+<!-- npu="950" id356 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id356 -->
 
 </div>
 
@@ -1558,7 +1640,7 @@
 - `input`仅支持bf16，fp16，fp32
 
 <!-- npu="950" id319 -->
-- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
 <!-- end id319 -->
 
 </div>
@@ -1586,7 +1668,7 @@
 - `input1`、`input2`、`weight`、`bias`仅支持bf16，fp16，fp32
 
 <!-- npu="950" id320 -->
-- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
 <!-- end id320 -->
 
 </div>
@@ -1711,6 +1793,26 @@
 
 </div>
 
+### torch.nn.functional.dropout3d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.functional.dropout3d](https://docs.pytorch.org/docs/2.13/generated/torch.nn.functional.dropout3d.html#torch.nn.functional.dropout3d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id339 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id339 -->
+<!-- npu="A3" id340 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id340 -->
+<!-- npu="950" id341 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id341 -->
+
+</div>
+
 ## Sparse functions
 
 ### torch.nn.functional.embedding
@@ -1781,6 +1883,26 @@
 </div>
 
 ## Distance functions
+
+### torch.nn.functional.pairwise_distance
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.functional.pairwise_distance](https://docs.pytorch.org/docs/2.13/generated/torch.nn.functional.pairwise_distance.html#torch.nn.functional.pairwise_distance)
+
+**产品支持情况**：
+
+<!-- npu="910b" id351 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id351 -->
+<!-- npu="A3" id352 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id352 -->
+<!-- npu="950" id353 -->
+- <term>Ascend 950DT系列产品</term>：不支持
+<!-- end id353 -->
+
+</div>
 
 ### torch.nn.functional.cosine_similarity
 
@@ -1895,6 +2017,26 @@
 
 </div>
 
+### torch.nn.functional.cosine_embedding_loss
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.functional.cosine_embedding_loss](https://docs.pytorch.org/docs/2.13/generated/torch.nn.functional.cosine_embedding_loss.html#torch.nn.functional.cosine_embedding_loss)
+
+**产品支持情况**：
+
+<!-- npu="910b" id336 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id336 -->
+<!-- npu="A3" id337 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id337 -->
+<!-- npu="950" id338 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id338 -->
+
+</div>
+
 ### torch.nn.functional.cross_entropy
 
 <div style="margin-left: 2em">
@@ -1961,6 +2103,26 @@
 <!-- end id244 -->
 
 **限制与说明**： `input`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64
+
+</div>
+
+### torch.nn.functional.hinge_embedding_loss
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.functional.hinge_embedding_loss](https://docs.pytorch.org/docs/2.13/generated/torch.nn.functional.hinge_embedding_loss.html#torch.nn.functional.hinge_embedding_loss)
+
+**产品支持情况**：
+
+<!-- npu="910b" id342 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id342 -->
+<!-- npu="A3" id343 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id343 -->
+<!-- npu="950" id344 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id344 -->
 
 </div>
 
@@ -2125,6 +2287,26 @@
 
 - `input`仅支持fp32
 - `target`中每个元素值需≥0且小于`input`的类别数，不满足会返回错误结果而非报错
+
+</div>
+
+### torch.nn.functional.huber_loss
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.functional.huber_loss](https://docs.pytorch.org/docs/2.13/generated/torch.nn.functional.huber_loss.html#torch.nn.functional.huber_loss)
+
+**产品支持情况**：
+
+<!-- npu="910b" id345 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id345 -->
+<!-- npu="A3" id346 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id346 -->
+<!-- npu="950" id347 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id347 -->
 
 </div>
 
@@ -2434,8 +2616,10 @@
 
 </div>
 
+<!-- npu="910b,A3" id332 -->
 ## Low-Precision functions
 
+<!-- npu="910b,A3" id327 -->
 ### torch.nn.functional.scaled_mm
 
 <div style="margin-left: 2em">
@@ -2443,6 +2627,7 @@
 **原生文档**：[torch.nn.functional.scaled_mm](https://docs.pytorch.org/docs/2.13/generated/torch.nn.functional.scaled_mm.html)
 
 **产品支持情况**：
+<!-- end id327 -->
 
 <!-- npu="910b" id305 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -2450,14 +2635,14 @@
 <!-- npu="A3" id306 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id306 -->
-<!-- npu="950" id307 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id307 -->
 
+<!-- npu="910b,A3" id328 -->
 **限制与说明**： `input`仅支持fp8模式下ScalingType为tensorwise，rowwise和BlockWise1x128，mxfp8模式下ScalingType为BlockWise1x32的排布，mxfp8遵循[aclnnQuantMatmulV5](https://gitcode.com/cann/ops-nn/blob/master/matmul/quant_batch_matmul_v4/docs/aclnnQuantMatmulV5.md)要求（`scale_a`和`scale_b`详见约束说明）
 
 </div>
+<!-- end id328 -->
 
+<!-- npu="910b,A3" id329 -->
 ### torch.nn.functional.scaled_grouped_mm
 
 <div style="margin-left: 2em">
@@ -2465,6 +2650,7 @@
 **原生文档**：[torch.nn.functional.scaled_grouped_mm](https://docs.pytorch.org/docs/2.13/generated/torch.nn.functional.scaled_grouped_mm.html)
 
 **产品支持情况**：
+<!-- end id329 -->
 
 <!-- npu="910b" id308 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -2472,10 +2658,10 @@
 <!-- npu="A3" id309 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id309 -->
-<!-- npu="950" id310 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id310 -->
 
+<!-- npu="910b,A3" id330 -->
 **限制与说明**： `input`仅支持fp8模式下ScalingType为rowwise，mxfp8模式的排布，mxfp8遵循[aclnnGroupedMatmulV5](https://gitcode.com/cann/ops-transformer/blob/master/gmm/grouped_matmul/docs/aclnnGroupedMatmulV5.md)要求（`scale_a`和`scale_b`详见约束说明）
 
 </div>
+<!-- end id330 -->
+<!-- end id332 -->

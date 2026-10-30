@@ -73,6 +73,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id25 -->
 ### <code><i>class</i></code> torch.utils.checkpoint.SelectiveCheckpointContext
 
 <div style="margin-left: 2em">
@@ -80,6 +81,7 @@
 **原生文档**：[torch.utils.checkpoint.SelectiveCheckpointContext](https://pytorch.org/docs/2.14/checkpoint.html#torch.utils.checkpoint.SelectiveCheckpointContext)
 
 **产品支持情况**：
+<!-- end id25 -->
 
 <!-- npu="910b" id10 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -87,12 +89,12 @@
 <!-- npu="A3" id11 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id11 -->
-<!-- npu="950" id12 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id12 -->
 
+<!-- npu="910b,A3" id26 -->
 </div>
+<!-- end id26 -->
 
+<!-- npu="910b,A3" id27 -->
 ### torch.utils.checkpoint.create_selective_checkpoint_contexts
 
 <div style="margin-left: 2em">
@@ -100,6 +102,7 @@
 **原生文档**：[torch.utils.checkpoint.create_selective_checkpoint_contexts](https://pytorch.org/docs/2.14/checkpoint.html#torch.utils.checkpoint.create_selective_checkpoint_contexts)
 
 **产品支持情况**：
+<!-- end id27 -->
 
 <!-- npu="910b" id13 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -107,11 +110,10 @@
 <!-- npu="A3" id14 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id14 -->
-<!-- npu="950" id15 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id15 -->
 
+<!-- npu="910b,A3" id28 -->
 </div>
+<!-- end id28 -->
 
 ### torch.utils.checkpoint.set_checkpoint_debug_enabled
 

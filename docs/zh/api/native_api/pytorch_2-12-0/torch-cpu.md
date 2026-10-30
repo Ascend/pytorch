@@ -20,6 +20,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id22 -->
 ### torch.cpu.current_stream
 
 <div style="margin-left: 2em">
@@ -27,6 +28,7 @@
 **原生文档**：[torch.cpu.current_stream](https://pytorch.org/docs/2.12/generated/torch.cpu.current_stream.html)
 
 **产品支持情况**：
+<!-- end id22 -->
 
 <!-- npu="910b" id1 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -34,12 +36,12 @@
 <!-- npu="A3" id2 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id2 -->
-<!-- npu="950" id3 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id3 -->
 
+<!-- npu="910b,A3" id23 -->
 </div>
+<!-- end id23 -->
 
+<!-- npu="910b,A3" id24 -->
 ### torch.cpu.is_available
 
 <div style="margin-left: 2em">
@@ -47,6 +49,7 @@
 **原生文档**：[torch.cpu.is_available](https://pytorch.org/docs/2.12/generated/torch.cpu.is_available.html)
 
 **产品支持情况**：
+<!-- end id24 -->
 
 <!-- npu="910b" id4 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -54,12 +57,12 @@
 <!-- npu="A3" id5 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id5 -->
-<!-- npu="950" id6 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id6 -->
 
+<!-- npu="910b,A3" id25 -->
 </div>
+<!-- end id25 -->
 
+<!-- npu="910b,A3" id26 -->
 ### torch.cpu.synchronize
 
 <div style="margin-left: 2em">
@@ -67,6 +70,7 @@
 **原生文档**：[torch.cpu.synchronize](https://pytorch.org/docs/2.12/generated/torch.cpu.synchronize.html)
 
 **产品支持情况**：
+<!-- end id26 -->
 
 <!-- npu="910b" id7 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -74,11 +78,10 @@
 <!-- npu="A3" id8 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id8 -->
-<!-- npu="950" id9 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id9 -->
 
+<!-- npu="910b,A3" id27 -->
 </div>
+<!-- end id27 -->
 
 ### torch.cpu.stream
 
@@ -100,6 +103,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id28 -->
 ### torch.cpu.device_count
 
 <div style="margin-left: 2em">
@@ -107,6 +111,7 @@
 **原生文档**：[torch.cpu.device_count](https://pytorch.org/docs/2.12/generated/torch.cpu.device_count.html)
 
 **产品支持情况**：
+<!-- end id28 -->
 
 <!-- npu="910b" id13 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -114,11 +119,10 @@
 <!-- npu="A3" id14 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id14 -->
-<!-- npu="950" id15 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id15 -->
 
+<!-- npu="910b,A3" id29 -->
 </div>
+<!-- end id29 -->
 
 ### <code><i>class</i></code> torch.cpu.StreamContext
 

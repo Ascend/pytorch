@@ -73,6 +73,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id28 -->
 ### torch.utils.cpp_extension.load
 
 <div style="margin-left: 2em">
@@ -80,6 +81,7 @@
 **原生文档**：[torch.utils.cpp_extension.load](https://pytorch.org/docs/2.14/cpp_extension.html#torch.utils.cpp_extension.load)
 
 **产品支持情况**：
+<!-- end id28 -->
 
 <!-- npu="910b" id10 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -87,11 +89,10 @@
 <!-- npu="A3" id11 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id11 -->
-<!-- npu="950" id12 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id12 -->
 
+<!-- npu="910b,A3" id29 -->
 </div>
+<!-- end id29 -->
 
 ### torch.utils.cpp_extension.load_inline
 

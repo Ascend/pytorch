@@ -28,6 +28,7 @@
 - [HalfCauchy](#halfcauchy)
 - [HalfNormal](#halfnormal)
 - [Independent](#independent)
+- [InverseGamma](#inversegamma)
 - [Kumaraswamy](#kumaraswamy)
 - [LKJCholesky](#lkjcholesky)
 - [Laplace](#laplace)
@@ -109,6 +110,66 @@
 
 </div>
 
+> <font size="3">cdf()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributions.distribution.Distribution.cdf](https://docs.pytorch.org/docs/2.12/distributions.html#torch.distributions.distribution.Distribution.cdf)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1616 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1616 -->
+<!-- npu="A3" id1617 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1617 -->
+<!-- npu="950" id1618 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1618 -->
+
+</div>
+
+> <font size="3">entropy()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributions.distribution.Distribution.entropy](https://docs.pytorch.org/docs/2.12/distributions.html#torch.distributions.distribution.Distribution.entropy)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1619 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1619 -->
+<!-- npu="A3" id1620 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1620 -->
+<!-- npu="950" id1621 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1621 -->
+
+</div>
+
+> <font size="3">enumerate_support()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributions.distribution.Distribution.enumerate_support](https://docs.pytorch.org/docs/2.12/distributions.html#torch.distributions.distribution.Distribution.enumerate_support)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1622 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1622 -->
+<!-- npu="A3" id1623 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1623 -->
+<!-- npu="950" id1624 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1624 -->
+
+</div>
+
 > <font size="3">event_shape()</font>
 
 <div style="margin-left: 2em">
@@ -126,6 +187,26 @@
 <!-- npu="950" id9 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id9 -->
+
+</div>
+
+> <font size="3">log_prob()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributions.distribution.Distribution.log_prob](https://docs.pytorch.org/docs/2.12/distributions.html#torch.distributions.distribution.Distribution.log_prob)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1625 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1625 -->
+<!-- npu="A3" id1626 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1626 -->
+<!-- npu="950" id1627 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1627 -->
 
 </div>
 
@@ -339,6 +420,26 @@
 
 </div>
 
+> <font size="3">enumerate_support()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributions.bernoulli.Bernoulli.enumerate_support](https://docs.pytorch.org/docs/2.12/distributions.html#torch.distributions.bernoulli.Bernoulli.enumerate_support)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1610 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1610 -->
+<!-- npu="A3" id1611 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1611 -->
+<!-- npu="950" id1612 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1612 -->
+
+</div>
+
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -439,6 +540,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1436 -->
 > <font size="3">mode()</font>
 
 <div style="margin-left: 2em">
@@ -446,6 +548,7 @@
 **原生文档**：[torch.distributions.bernoulli.Bernoulli.mode](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.bernoulli.Bernoulli.mode)
 
 **产品支持情况**：
+<!-- end id1436 -->
 
 <!-- npu="910b" id55 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -453,11 +556,10 @@
 <!-- npu="A3" id56 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id56 -->
-<!-- npu="950" id57 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id57 -->
 
+<!-- npu="910b,A3" id1437 -->
 </div>
+<!-- end id1437 -->
 
 > <font size="3">param_shape()</font>
 
@@ -519,6 +621,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1438 -->
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -526,6 +629,7 @@
 **原生文档**：[torch.distributions.bernoulli.Bernoulli.support](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.bernoulli.Bernoulli.support)
 
 **产品支持情况**：
+<!-- end id1438 -->
 
 <!-- npu="910b" id67 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -533,11 +637,10 @@
 <!-- npu="A3" id68 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id68 -->
-<!-- npu="950" id69 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id69 -->
 
+<!-- npu="910b,A3" id1439 -->
 </div>
+<!-- end id1439 -->
 
 > <font size="3">variance()</font>
 
@@ -661,6 +764,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1440 -->
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -668,6 +772,7 @@
 **原生文档**：[torch.distributions.beta.Beta.expand](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.beta.Beta.expand)
 
 **产品支持情况**：
+<!-- end id1440 -->
 
 <!-- npu="910b" id88 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -675,11 +780,10 @@
 <!-- npu="A3" id89 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id89 -->
-<!-- npu="950" id90 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id90 -->
 
+<!-- npu="910b,A3" id1441 -->
 </div>
+<!-- end id1441 -->
 
 > <font size="3">has_rsample()</font>
 
@@ -1169,6 +1273,26 @@
 
 </div>
 
+> <font size="3">enumerate_support()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributions.categorical.Categorical.enumerate_support](https://docs.pytorch.org/docs/2.12/distributions.html#torch.distributions.categorical.Categorical.enumerate_support)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1613 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1613 -->
+<!-- npu="A3" id1614 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1614 -->
+<!-- npu="950" id1615 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1615 -->
+
+</div>
+
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -1329,6 +1453,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1442 -->
 > <font size="3">sample()</font>
 
 <div style="margin-left: 2em">
@@ -1336,6 +1461,7 @@
 **原生文档**：[torch.distributions.categorical.Categorical.sample](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.categorical.Categorical.sample)
 
 **产品支持情况**：
+<!-- end id1442 -->
 
 <!-- npu="910b" id187 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1343,11 +1469,10 @@
 <!-- npu="A3" id188 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id188 -->
-<!-- npu="950" id189 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id189 -->
 
+<!-- npu="910b,A3" id1443 -->
 </div>
+<!-- end id1443 -->
 
 > <font size="3">support()</font>
 
@@ -1615,6 +1740,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1444 -->
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -1622,6 +1748,7 @@
 **原生文档**：[torch.distributions.cauchy.Cauchy.support](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.cauchy.Cauchy.support)
 
 **产品支持情况**：
+<!-- end id1444 -->
 
 <!-- npu="910b" id229 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1629,12 +1756,12 @@
 <!-- npu="A3" id230 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id230 -->
-<!-- npu="950" id231 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id231 -->
 
+<!-- npu="910b,A3" id1445 -->
 </div>
+<!-- end id1445 -->
 
+<!-- npu="910b,A3" id1446 -->
 > <font size="3">variance()</font>
 
 <div style="margin-left: 2em">
@@ -1642,6 +1769,7 @@
 **原生文档**：[torch.distributions.cauchy.Cauchy.variance](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.cauchy.Cauchy.variance)
 
 **产品支持情况**：
+<!-- end id1446 -->
 
 <!-- npu="910b" id232 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1649,11 +1777,10 @@
 <!-- npu="A3" id233 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id233 -->
-<!-- npu="950" id234 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id234 -->
 
+<!-- npu="910b,A3" id1447 -->
 </div>
+<!-- end id1447 -->
 
 </div>
 
@@ -2332,7 +2459,7 @@
 <!-- end id333 -->
 
 <!-- npu="950" id1433 -->
-**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同。
 <!-- end id1433 -->
 
 > <font size="3">arg_constraints()</font>
@@ -2699,6 +2826,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1448 -->
 > <font size="3">mean()</font>
 
 <div style="margin-left: 2em">
@@ -2706,6 +2834,7 @@
 **原生文档**：[torch.distributions.fishersnedecor.FisherSnedecor.mean](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.fishersnedecor.FisherSnedecor.mean)
 
 **产品支持情况**：
+<!-- end id1448 -->
 
 <!-- npu="910b" id388 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -2713,12 +2842,12 @@
 <!-- npu="A3" id389 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id389 -->
-<!-- npu="950" id390 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id390 -->
 
+<!-- npu="910b,A3" id1449 -->
 </div>
+<!-- end id1449 -->
 
+<!-- npu="910b,A3" id1450 -->
 > <font size="3">mode()</font>
 
 <div style="margin-left: 2em">
@@ -2726,6 +2855,7 @@
 **原生文档**：[torch.distributions.fishersnedecor.FisherSnedecor.mode](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.fishersnedecor.FisherSnedecor.mode)
 
 **产品支持情况**：
+<!-- end id1450 -->
 
 <!-- npu="910b" id391 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -2733,11 +2863,10 @@
 <!-- npu="A3" id392 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id392 -->
-<!-- npu="950" id393 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id393 -->
 
+<!-- npu="910b,A3" id1451 -->
 </div>
+<!-- end id1451 -->
 
 > <font size="3">rsample()</font>
 
@@ -2823,6 +2952,7 @@
 
 **限制与说明**：可能回退至CPU执行
 
+<!-- npu="910b,A3" id1452 -->
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -2830,6 +2960,7 @@
 **原生文档**：[torch.distributions.gamma.Gamma.arg_constraints](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.gamma.Gamma.arg_constraints)
 
 **产品支持情况**：
+<!-- end id1452 -->
 
 <!-- npu="910b" id406 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -2837,11 +2968,10 @@
 <!-- npu="A3" id407 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id407 -->
-<!-- npu="950" id408 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id408 -->
 
+<!-- npu="910b,A3" id1453 -->
 </div>
+<!-- end id1453 -->
 
 > <font size="3">cdf()</font>
 
@@ -2885,6 +3015,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1454 -->
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -2892,6 +3023,7 @@
 **原生文档**：[torch.distributions.gamma.Gamma.expand](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.gamma.Gamma.expand)
 
 **产品支持情况**：
+<!-- end id1454 -->
 
 <!-- npu="910b" id415 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -2899,11 +3031,10 @@
 <!-- npu="A3" id416 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id416 -->
-<!-- npu="950" id417 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id417 -->
 
+<!-- npu="910b,A3" id1455 -->
 </div>
+<!-- end id1455 -->
 
 > <font size="3">has_rsample()</font>
 
@@ -2987,6 +3118,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1456 -->
 > <font size="3">rsample()</font>
 
 <div style="margin-left: 2em">
@@ -2994,6 +3126,7 @@
 **原生文档**：[torch.distributions.gamma.Gamma.rsample](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.gamma.Gamma.rsample)
 
 **产品支持情况**：
+<!-- end id1456 -->
 
 <!-- npu="910b" id430 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -3001,11 +3134,10 @@
 <!-- npu="A3" id431 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id431 -->
-<!-- npu="950" id432 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id432 -->
 
+<!-- npu="910b,A3" id1457 -->
 </div>
+<!-- end id1457 -->
 
 > <font size="3">support()</font>
 
@@ -3069,6 +3201,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id441 -->
 
+<!-- npu="910b,A3" id1458 -->
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -3076,6 +3209,7 @@
 **原生文档**：[torch.distributions.geometric.Geometric.arg_constraints](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.geometric.Geometric.arg_constraints)
 
 **产品支持情况**：
+<!-- end id1458 -->
 
 <!-- npu="910b" id442 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -3083,11 +3217,10 @@
 <!-- npu="A3" id443 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id443 -->
-<!-- npu="950" id444 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id444 -->
 
+<!-- npu="910b,A3" id1459 -->
 </div>
+<!-- end id1459 -->
 
 > <font size="3">entropy()</font>
 
@@ -3129,6 +3262,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1460 -->
 > <font size="3">log_prob()</font>
 
 <div style="margin-left: 2em">
@@ -3136,6 +3270,7 @@
 **原生文档**：[torch.distributions.geometric.Geometric.log_prob](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.geometric.Geometric.log_prob)
 
 **产品支持情况**：
+<!-- end id1460 -->
 
 <!-- npu="910b" id451 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -3143,11 +3278,10 @@
 <!-- npu="A3" id452 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id452 -->
-<!-- npu="950" id453 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id453 -->
 
+<!-- npu="910b,A3" id1461 -->
 </div>
+<!-- end id1461 -->
 
 > <font size="3">logits()</font>
 
@@ -3351,6 +3485,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1462 -->
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -3358,6 +3493,7 @@
 **原生文档**：[torch.distributions.gumbel.Gumbel.expand](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.gumbel.Gumbel.expand)
 
 **产品支持情况**：
+<!-- end id1462 -->
 
 <!-- npu="910b" id484 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -3365,11 +3501,10 @@
 <!-- npu="A3" id485 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id485 -->
-<!-- npu="950" id486 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id486 -->
 
+<!-- npu="910b,A3" id1463 -->
 </div>
+<!-- end id1463 -->
 
 > <font size="3">log_prob()</font>
 
@@ -3575,6 +3710,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1464 -->
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -3582,6 +3718,7 @@
 **原生文档**：[torch.distributions.half_cauchy.HalfCauchy.expand](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.half_cauchy.HalfCauchy.expand)
 
 **产品支持情况**：
+<!-- end id1464 -->
 
 <!-- npu="910b" id517 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -3589,11 +3726,10 @@
 <!-- npu="A3" id518 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id518 -->
-<!-- npu="950" id519 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id519 -->
 
+<!-- npu="910b,A3" id1465 -->
 </div>
+<!-- end id1465 -->
 
 > <font size="3">has_rsample()</font>
 
@@ -3999,6 +4135,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1466 -->
 > <font size="3">variance()</font>
 
 <div style="margin-left: 2em">
@@ -4006,6 +4143,7 @@
 **原生文档**：[torch.distributions.half_normal.HalfNormal.variance](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.half_normal.HalfNormal.variance)
 
 **产品支持情况**：
+<!-- end id1466 -->
 
 <!-- npu="910b" id580 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -4013,11 +4151,10 @@
 <!-- npu="A3" id581 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id581 -->
-<!-- npu="950" id582 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id582 -->
 
+<!-- npu="910b,A3" id1467 -->
 </div>
+<!-- end id1467 -->
 
 </div>
 
@@ -4081,6 +4218,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1468 -->
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -4088,6 +4226,7 @@
 **原生文档**：[torch.distributions.independent.Independent.expand](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.independent.Independent.expand)
 
 **产品支持情况**：
+<!-- end id1468 -->
 
 <!-- npu="910b" id592 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -4095,12 +4234,12 @@
 <!-- npu="A3" id593 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id593 -->
-<!-- npu="950" id594 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id594 -->
 
+<!-- npu="910b,A3" id1469 -->
 </div>
+<!-- end id1469 -->
 
+<!-- npu="910b,A3" id1470 -->
 > <font size="3">has_enumerate_support()</font>
 
 <div style="margin-left: 2em">
@@ -4108,6 +4247,7 @@
 **原生文档**：[torch.distributions.independent.Independent.has_enumerate_support](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.independent.Independent.has_enumerate_support)
 
 **产品支持情况**：
+<!-- end id1470 -->
 
 <!-- npu="910b" id595 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -4115,12 +4255,12 @@
 <!-- npu="A3" id596 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id596 -->
-<!-- npu="950" id597 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id597 -->
 
+<!-- npu="910b,A3" id1471 -->
 </div>
+<!-- end id1471 -->
 
+<!-- npu="910b,A3" id1472 -->
 > <font size="3">has_rsample()</font>
 
 <div style="margin-left: 2em">
@@ -4128,6 +4268,7 @@
 **原生文档**：[torch.distributions.independent.Independent.has_rsample](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.independent.Independent.has_rsample)
 
 **产品支持情况**：
+<!-- end id1472 -->
 
 <!-- npu="910b" id598 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -4135,11 +4276,10 @@
 <!-- npu="A3" id599 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id599 -->
-<!-- npu="950" id600 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id600 -->
 
+<!-- npu="910b,A3" id1473 -->
 </div>
+<!-- end id1473 -->
 
 > <font size="3">log_prob()</font>
 
@@ -4221,6 +4361,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1474 -->
 > <font size="3">sample()</font>
 
 <div style="margin-left: 2em">
@@ -4228,6 +4369,7 @@
 **原生文档**：[torch.distributions.independent.Independent.sample](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.independent.Independent.sample)
 
 **产品支持情况**：
+<!-- end id1474 -->
 
 <!-- npu="910b" id613 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -4235,11 +4377,10 @@
 <!-- npu="A3" id614 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id614 -->
-<!-- npu="950" id615 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id615 -->
 
+<!-- npu="910b,A3" id1475 -->
 </div>
+<!-- end id1475 -->
 
 > <font size="3">support()</font>
 
@@ -4278,6 +4419,128 @@
 <!-- npu="950" id621 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id621 -->
+
+</div>
+
+</div>
+
+## InverseGamma
+
+### <code><i>class</i></code> torch.distributions.inverse_gamma.InverseGamma
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributions.inverse_gamma.InverseGamma](https://docs.pytorch.org/docs/2.12/distributions.html#torch.distributions.inverse_gamma.InverseGamma)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1583 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1583 -->
+<!-- npu="A3" id1584 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1584 -->
+<!-- npu="950" id1585 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1585 -->
+
+> <font size="3">arg_constraints</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributions.inverse_gamma.InverseGamma.arg_constraints](https://docs.pytorch.org/docs/2.12/distributions.html#torch.distributions.inverse_gamma.InverseGamma.arg_constraints)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1586 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1586 -->
+<!-- npu="A3" id1587 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1587 -->
+<!-- npu="950" id1588 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1588 -->
+
+</div>
+
+> <font size="3">entropy()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributions.inverse_gamma.InverseGamma.entropy](https://docs.pytorch.org/docs/2.12/distributions.html#torch.distributions.inverse_gamma.InverseGamma.entropy)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1589 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1589 -->
+<!-- npu="A3" id1590 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1590 -->
+<!-- npu="950" id1591 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1591 -->
+
+</div>
+
+> <font size="3">mode</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributions.inverse_gamma.InverseGamma.mode](https://docs.pytorch.org/docs/2.12/distributions.html#torch.distributions.inverse_gamma.InverseGamma.mode)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1592 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1592 -->
+<!-- npu="A3" id1593 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1593 -->
+<!-- npu="950" id1594 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1594 -->
+
+</div>
+
+> <font size="3">support</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributions.inverse_gamma.InverseGamma.support](https://docs.pytorch.org/docs/2.12/distributions.html#torch.distributions.inverse_gamma.InverseGamma.support)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1595 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1595 -->
+<!-- npu="A3" id1596 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1596 -->
+<!-- npu="950" id1597 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1597 -->
+
+</div>
+
+> <font size="3">variance</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributions.inverse_gamma.InverseGamma.variance](https://docs.pytorch.org/docs/2.12/distributions.html#torch.distributions.inverse_gamma.InverseGamma.variance)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1598 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1598 -->
+<!-- npu="A3" id1599 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1599 -->
+<!-- npu="950" id1600 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1600 -->
 
 </div>
 
@@ -4489,6 +4752,7 @@
 
 **限制与说明**：可能回退至CPU执行
 
+<!-- npu="910b,A3" id1476 -->
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -4496,6 +4760,7 @@
 **原生文档**：[torch.distributions.lkj_cholesky.LKJCholesky.arg_constraints](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.lkj_cholesky.LKJCholesky.arg_constraints)
 
 **产品支持情况**：
+<!-- end id1476 -->
 
 <!-- npu="910b" id652 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -4503,12 +4768,12 @@
 <!-- npu="A3" id653 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id653 -->
-<!-- npu="950" id654 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id654 -->
 
+<!-- npu="910b,A3" id1477 -->
 </div>
+<!-- end id1477 -->
 
+<!-- npu="910b,A3" id1478 -->
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -4516,6 +4781,7 @@
 **原生文档**：[torch.distributions.lkj_cholesky.LKJCholesky.expand](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.lkj_cholesky.LKJCholesky.expand)
 
 **产品支持情况**：
+<!-- end id1478 -->
 
 <!-- npu="910b" id655 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -4523,12 +4789,12 @@
 <!-- npu="A3" id656 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id656 -->
-<!-- npu="950" id657 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id657 -->
 
+<!-- npu="910b,A3" id1479 -->
 </div>
+<!-- end id1479 -->
 
+<!-- npu="910b,A3" id1480 -->
 > <font size="3">log_prob()</font>
 
 <div style="margin-left: 2em">
@@ -4536,6 +4802,7 @@
 **原生文档**：[torch.distributions.lkj_cholesky.LKJCholesky.log_prob](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.lkj_cholesky.LKJCholesky.log_prob)
 
 **产品支持情况**：
+<!-- end id1480 -->
 
 <!-- npu="910b" id658 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -4543,12 +4810,12 @@
 <!-- npu="A3" id659 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id659 -->
-<!-- npu="950" id660 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id660 -->
 
+<!-- npu="910b,A3" id1481 -->
 </div>
+<!-- end id1481 -->
 
+<!-- npu="910b,A3" id1482 -->
 > <font size="3">sample()</font>
 
 <div style="margin-left: 2em">
@@ -4556,6 +4823,7 @@
 **原生文档**：[torch.distributions.lkj_cholesky.LKJCholesky.sample](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.lkj_cholesky.LKJCholesky.sample)
 
 **产品支持情况**：
+<!-- end id1482 -->
 
 <!-- npu="910b" id661 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -4563,12 +4831,12 @@
 <!-- npu="A3" id662 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id662 -->
-<!-- npu="950" id663 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id663 -->
 
+<!-- npu="910b,A3" id1483 -->
 </div>
+<!-- end id1483 -->
 
+<!-- npu="910b,A3" id1484 -->
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -4576,6 +4844,7 @@
 **原生文档**：[torch.distributions.lkj_cholesky.LKJCholesky.support](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.lkj_cholesky.LKJCholesky.support)
 
 **产品支持情况**：
+<!-- end id1484 -->
 
 <!-- npu="910b" id664 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -4583,11 +4852,10 @@
 <!-- npu="A3" id665 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id665 -->
-<!-- npu="950" id666 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id666 -->
 
+<!-- npu="910b,A3" id1485 -->
 </div>
+<!-- end id1485 -->
 
 </div>
 
@@ -4671,6 +4939,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1486 -->
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -4678,6 +4947,7 @@
 **原生文档**：[torch.distributions.laplace.Laplace.expand](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.laplace.Laplace.expand)
 
 **产品支持情况**：
+<!-- end id1486 -->
 
 <!-- npu="910b" id679 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -4685,11 +4955,10 @@
 <!-- npu="A3" id680 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id680 -->
-<!-- npu="950" id681 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id681 -->
 
+<!-- npu="910b,A3" id1487 -->
 </div>
+<!-- end id1487 -->
 
 > <font size="3">has_rsample()</font>
 
@@ -4813,6 +5082,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1488 -->
 > <font size="3">stddev()</font>
 
 <div style="margin-left: 2em">
@@ -4820,6 +5090,7 @@
 **原生文档**：[torch.distributions.laplace.Laplace.stddev](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.laplace.Laplace.stddev)
 
 **产品支持情况**：
+<!-- end id1488 -->
 
 <!-- npu="910b" id700 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -4827,11 +5098,10 @@
 <!-- npu="A3" id701 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id701 -->
-<!-- npu="950" id702 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id702 -->
 
+<!-- npu="910b,A3" id1489 -->
 </div>
+<!-- end id1489 -->
 
 > <font size="3">support()</font>
 
@@ -4853,6 +5123,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1490 -->
 > <font size="3">variance()</font>
 
 <div style="margin-left: 2em">
@@ -4860,6 +5131,7 @@
 **原生文档**：[torch.distributions.laplace.Laplace.variance](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.laplace.Laplace.variance)
 
 **产品支持情况**：
+<!-- end id1490 -->
 
 <!-- npu="910b" id706 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -4867,11 +5139,10 @@
 <!-- npu="A3" id707 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id707 -->
-<!-- npu="950" id708 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id708 -->
 
+<!-- npu="910b,A3" id1491 -->
 </div>
+<!-- end id1491 -->
 
 </div>
 
@@ -4937,6 +5208,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1492 -->
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -4944,6 +5216,7 @@
 **原生文档**：[torch.distributions.log_normal.LogNormal.expand](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.log_normal.LogNormal.expand)
 
 **产品支持情况**：
+<!-- end id1492 -->
 
 <!-- npu="910b" id718 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -4951,12 +5224,12 @@
 <!-- npu="A3" id719 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id719 -->
-<!-- npu="950" id720 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id720 -->
 
+<!-- npu="910b,A3" id1493 -->
 </div>
+<!-- end id1493 -->
 
+<!-- npu="910b,A3" id1494 -->
 > <font size="3">has_rsample()</font>
 
 <div style="margin-left: 2em">
@@ -4964,6 +5237,7 @@
 **原生文档**：[torch.distributions.log_normal.LogNormal.has_rsample](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.log_normal.LogNormal.has_rsample)
 
 **产品支持情况**：
+<!-- end id1494 -->
 
 <!-- npu="910b" id721 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -4971,11 +5245,10 @@
 <!-- npu="A3" id722 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id722 -->
-<!-- npu="950" id723 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id723 -->
 
+<!-- npu="910b,A3" id1495 -->
 </div>
+<!-- end id1495 -->
 
 > <font size="3">loc()</font>
 
@@ -5037,6 +5310,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1496 -->
 > <font size="3">scale()</font>
 
 <div style="margin-left: 2em">
@@ -5044,6 +5318,7 @@
 **原生文档**：[torch.distributions.log_normal.LogNormal.scale](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.log_normal.LogNormal.scale)
 
 **产品支持情况**：
+<!-- end id1496 -->
 
 <!-- npu="910b" id733 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -5051,11 +5326,10 @@
 <!-- npu="A3" id734 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id734 -->
-<!-- npu="950" id735 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id735 -->
 
+<!-- npu="910b,A3" id1497 -->
 </div>
+<!-- end id1497 -->
 
 > <font size="3">support()</font>
 
@@ -5159,6 +5433,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1498 -->
 > <font size="3">entropy()</font>
 
 <div style="margin-left: 2em">
@@ -5166,6 +5441,7 @@
 **原生文档**：[torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal.entropy](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal.entropy)
 
 **产品支持情况**：
+<!-- end id1498 -->
 
 <!-- npu="910b" id751 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -5173,12 +5449,12 @@
 <!-- npu="A3" id752 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id752 -->
-<!-- npu="950" id753 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id753 -->
 
+<!-- npu="910b,A3" id1499 -->
 </div>
+<!-- end id1499 -->
 
+<!-- npu="910b,A3" id1500 -->
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -5186,6 +5462,7 @@
 **原生文档**：[torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal.expand](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal.expand)
 
 **产品支持情况**：
+<!-- end id1500 -->
 
 <!-- npu="910b" id754 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -5193,12 +5470,12 @@
 <!-- npu="A3" id755 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id755 -->
-<!-- npu="950" id756 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id756 -->
 
+<!-- npu="910b,A3" id1501 -->
 </div>
+<!-- end id1501 -->
 
+<!-- npu="910b,A3" id1502 -->
 > <font size="3">has_rsample()</font>
 
 <div style="margin-left: 2em">
@@ -5206,6 +5483,7 @@
 **原生文档**：[torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal.has_rsample](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal.has_rsample)
 
 **产品支持情况**：
+<!-- end id1502 -->
 
 <!-- npu="910b" id757 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -5213,12 +5491,12 @@
 <!-- npu="A3" id758 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id758 -->
-<!-- npu="950" id759 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id759 -->
 
+<!-- npu="910b,A3" id1503 -->
 </div>
+<!-- end id1503 -->
 
+<!-- npu="910b,A3" id1504 -->
 > <font size="3">log_prob()</font>
 
 <div style="margin-left: 2em">
@@ -5226,6 +5504,7 @@
 **原生文档**：[torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal.log_prob](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal.log_prob)
 
 **产品支持情况**：
+<!-- end id1504 -->
 
 <!-- npu="910b" id760 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -5233,11 +5512,10 @@
 <!-- npu="A3" id761 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id761 -->
-<!-- npu="950" id762 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id762 -->
 
+<!-- npu="910b,A3" id1505 -->
 </div>
+<!-- end id1505 -->
 
 > <font size="3">mean()</font>
 
@@ -5319,6 +5597,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1506 -->
 > <font size="3">scale_tril()</font>
 
 <div style="margin-left: 2em">
@@ -5326,6 +5605,7 @@
 **原生文档**：[torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal.scale_tril](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal.scale_tril)
 
 **产品支持情况**：
+<!-- end id1506 -->
 
 <!-- npu="910b" id775 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -5333,11 +5613,10 @@
 <!-- npu="A3" id776 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id776 -->
-<!-- npu="950" id777 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id777 -->
 
+<!-- npu="910b,A3" id1507 -->
 </div>
+<!-- end id1507 -->
 
 > <font size="3">support()</font>
 
@@ -5359,6 +5638,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1508 -->
 > <font size="3">variance()</font>
 
 <div style="margin-left: 2em">
@@ -5366,6 +5646,7 @@
 **原生文档**：[torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal.variance](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.lowrank_multivariate_normal.LowRankMultivariateNormal.variance)
 
 **产品支持情况**：
+<!-- end id1508 -->
 
 <!-- npu="910b" id781 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -5373,11 +5654,10 @@
 <!-- npu="A3" id782 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id782 -->
-<!-- npu="950" id783 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id783 -->
 
+<!-- npu="910b,A3" id1509 -->
 </div>
+<!-- end id1509 -->
 
 </div>
 
@@ -5461,6 +5741,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1510 -->
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -5468,6 +5749,7 @@
 **原生文档**：[torch.distributions.mixture_same_family.MixtureSameFamily.expand](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.mixture_same_family.MixtureSameFamily.expand)
 
 **产品支持情况**：
+<!-- end id1510 -->
 
 <!-- npu="910b" id796 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -5475,12 +5757,12 @@
 <!-- npu="A3" id797 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id797 -->
-<!-- npu="950" id798 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id798 -->
 
+<!-- npu="910b,A3" id1511 -->
 </div>
+<!-- end id1511 -->
 
+<!-- npu="910b,A3" id1512 -->
 > <font size="3">has_rsample()</font>
 
 <div style="margin-left: 2em">
@@ -5488,6 +5770,7 @@
 **原生文档**：[torch.distributions.mixture_same_family.MixtureSameFamily.has_rsample](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.mixture_same_family.MixtureSameFamily.has_rsample)
 
 **产品支持情况**：
+<!-- end id1512 -->
 
 <!-- npu="910b" id799 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -5495,11 +5778,10 @@
 <!-- npu="A3" id800 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id800 -->
-<!-- npu="950" id801 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id801 -->
 
+<!-- npu="910b,A3" id1513 -->
 </div>
+<!-- end id1513 -->
 
 > <font size="3">log_prob()</font>
 
@@ -5521,6 +5803,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1514 -->
 > <font size="3">mean()</font>
 
 <div style="margin-left: 2em">
@@ -5528,6 +5811,7 @@
 **原生文档**：[torch.distributions.mixture_same_family.MixtureSameFamily.mean](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.mixture_same_family.MixtureSameFamily.mean)
 
 **产品支持情况**：
+<!-- end id1514 -->
 
 <!-- npu="910b" id805 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -5535,11 +5819,10 @@
 <!-- npu="A3" id806 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id806 -->
-<!-- npu="950" id807 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id807 -->
 
+<!-- npu="910b,A3" id1515 -->
 </div>
+<!-- end id1515 -->
 
 > <font size="3">mixture_distribution()</font>
 
@@ -5561,6 +5844,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1516 -->
 > <font size="3">sample()</font>
 
 <div style="margin-left: 2em">
@@ -5568,6 +5852,7 @@
 **原生文档**：[torch.distributions.mixture_same_family.MixtureSameFamily.sample](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.mixture_same_family.MixtureSameFamily.sample)
 
 **产品支持情况**：
+<!-- end id1516 -->
 
 <!-- npu="910b" id811 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -5575,11 +5860,10 @@
 <!-- npu="A3" id812 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id812 -->
-<!-- npu="950" id813 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id813 -->
 
+<!-- npu="910b,A3" id1517 -->
 </div>
+<!-- end id1517 -->
 
 > <font size="3">support()</font>
 
@@ -5703,6 +5987,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1518 -->
 > <font size="3">log_prob()</font>
 
 <div style="margin-left: 2em">
@@ -5710,6 +5995,7 @@
 **原生文档**：[torch.distributions.multinomial.Multinomial.log_prob](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.multinomial.Multinomial.log_prob)
 
 **产品支持情况**：
+<!-- end id1518 -->
 
 <!-- npu="910b" id832 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -5717,12 +6003,12 @@
 <!-- npu="A3" id833 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id833 -->
-<!-- npu="950" id834 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id834 -->
 
+<!-- npu="910b,A3" id1519 -->
 </div>
+<!-- end id1519 -->
 
+<!-- npu="910b,A3" id1520 -->
 > <font size="3">logits()</font>
 
 <div style="margin-left: 2em">
@@ -5730,6 +6016,7 @@
 **原生文档**：[torch.distributions.multinomial.Multinomial.logits](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.multinomial.Multinomial.logits)
 
 **产品支持情况**：
+<!-- end id1520 -->
 
 <!-- npu="910b" id835 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -5737,11 +6024,10 @@
 <!-- npu="A3" id836 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id836 -->
-<!-- npu="950" id837 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id837 -->
 
+<!-- npu="910b,A3" id1521 -->
 </div>
+<!-- end id1521 -->
 
 > <font size="3">mean()</font>
 
@@ -5803,6 +6089,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1522 -->
 > <font size="3">sample()</font>
 
 <div style="margin-left: 2em">
@@ -5810,6 +6097,7 @@
 **原生文档**：[torch.distributions.multinomial.Multinomial.sample](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.multinomial.Multinomial.sample)
 
 **产品支持情况**：
+<!-- end id1522 -->
 
 <!-- npu="910b" id847 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -5817,11 +6105,10 @@
 <!-- npu="A3" id848 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id848 -->
-<!-- npu="950" id849 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id849 -->
 
+<!-- npu="910b,A3" id1523 -->
 </div>
+<!-- end id1523 -->
 
 > <font size="3">support()</font>
 
@@ -5947,6 +6234,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1524 -->
 > <font size="3">entropy()</font>
 
 <div style="margin-left: 2em">
@@ -5954,6 +6242,7 @@
 **原生文档**：[torch.distributions.multivariate_normal.MultivariateNormal.entropy](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.multivariate_normal.MultivariateNormal.entropy)
 
 **产品支持情况**：
+<!-- end id1524 -->
 
 <!-- npu="910b" id868 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -5961,11 +6250,10 @@
 <!-- npu="A3" id869 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id869 -->
-<!-- npu="950" id870 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id870 -->
 
+<!-- npu="910b,A3" id1525 -->
 </div>
+<!-- end id1525 -->
 
 > <font size="3">expand()</font>
 
@@ -6131,6 +6419,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1526 -->
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -6138,6 +6427,7 @@
 **原生文档**：[torch.distributions.multivariate_normal.MultivariateNormal.support](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.multivariate_normal.MultivariateNormal.support)
 
 **产品支持情况**：
+<!-- end id1526 -->
 
 <!-- npu="910b" id895 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -6145,11 +6435,10 @@
 <!-- npu="A3" id896 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id896 -->
-<!-- npu="950" id897 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id897 -->
 
+<!-- npu="910b,A3" id1527 -->
 </div>
+<!-- end id1527 -->
 
 > <font size="3">variance()</font>
 
@@ -6377,6 +6666,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1528 -->
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -6384,6 +6674,7 @@
 **原生文档**：[torch.distributions.negative_binomial.NegativeBinomial.support](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.negative_binomial.NegativeBinomial.support)
 
 **产品支持情况**：
+<!-- end id1528 -->
 
 <!-- npu="910b" id931 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -6391,11 +6682,10 @@
 <!-- npu="A3" id932 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id932 -->
-<!-- npu="950" id933 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id933 -->
 
+<!-- npu="910b,A3" id1529 -->
 </div>
+<!-- end id1529 -->
 
 > <font size="3">variance()</font>
 
@@ -6426,7 +6716,7 @@
 <div style="margin-left: 2em">
 
 <!-- npu="950" id1434 -->
-**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同。
 <!-- end id1434 -->
 
 > <font size="3">arg_constraints()</font>
@@ -6629,6 +6919,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1530 -->
 > <font size="3">sample()</font>
 
 <div style="margin-left: 2em">
@@ -6636,6 +6927,7 @@
 **原生文档**：[torch.distributions.normal.Normal.sample](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.normal.Normal.sample)
 
 **产品支持情况**：
+<!-- end id1530 -->
 
 <!-- npu="910b" id967 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -6643,11 +6935,10 @@
 <!-- npu="A3" id968 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id968 -->
-<!-- npu="950" id969 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id969 -->
 
+<!-- npu="910b,A3" id1531 -->
 </div>
+<!-- end id1531 -->
 
 > <font size="3">stddev()</font>
 
@@ -6771,6 +7062,27 @@
 
 </div>
 
+> <font size="3">enumerate_support()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributions.one_hot_categorical.OneHotCategorical.enumerate_support](https://docs.pytorch.org/docs/2.12/distributions.html#torch.distributions.one_hot_categorical.OneHotCategorical.enumerate_support)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1628 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1628 -->
+<!-- npu="A3" id1629 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1629 -->
+<!-- npu="950" id1630 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1630 -->
+
+</div>
+
+<!-- npu="910b,A3" id1532 -->
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -6778,6 +7090,7 @@
 **原生文档**：[torch.distributions.one_hot_categorical.OneHotCategorical.expand](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.one_hot_categorical.OneHotCategorical.expand)
 
 **产品支持情况**：
+<!-- end id1532 -->
 
 <!-- npu="910b" id988 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -6785,11 +7098,10 @@
 <!-- npu="A3" id989 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id989 -->
-<!-- npu="950" id990 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id990 -->
 
+<!-- npu="910b,A3" id1533 -->
 </div>
+<!-- end id1533 -->
 
 > <font size="3">has_enumerate_support()</font>
 
@@ -7053,6 +7365,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1534 -->
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -7060,6 +7373,7 @@
 **原生文档**：[torch.distributions.pareto.Pareto.expand](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.pareto.Pareto.expand)
 
 **产品支持情况**：
+<!-- end id1534 -->
 
 <!-- npu="910b" id1030 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -7067,11 +7381,10 @@
 <!-- npu="A3" id1031 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id1031 -->
-<!-- npu="950" id1032 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id1032 -->
 
+<!-- npu="910b,A3" id1535 -->
 </div>
+<!-- end id1535 -->
 
 > <font size="3">mean()</font>
 
@@ -7379,6 +7692,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1536 -->
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -7386,6 +7700,7 @@
 **原生文档**：[torch.distributions.relaxed_bernoulli.RelaxedBernoulli.expand](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.relaxed_bernoulli.RelaxedBernoulli.expand)
 
 **产品支持情况**：
+<!-- end id1536 -->
 
 <!-- npu="910b" id1078 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -7393,11 +7708,10 @@
 <!-- npu="A3" id1079 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id1079 -->
-<!-- npu="950" id1080 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id1080 -->
 
+<!-- npu="910b,A3" id1537 -->
 </div>
+<!-- end id1537 -->
 
 > <font size="3">has_rsample()</font>
 
@@ -7825,6 +8139,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1538 -->
 > <font size="3">temperature()</font>
 
 <div style="margin-left: 2em">
@@ -7832,6 +8147,7 @@
 **原生文档**：[torch.distributions.relaxed_categorical.RelaxedOneHotCategorical.temperature](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.relaxed_categorical.RelaxedOneHotCategorical.temperature)
 
 **产品支持情况**：
+<!-- end id1538 -->
 
 <!-- npu="910b" id1144 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -7839,11 +8155,10 @@
 <!-- npu="A3" id1145 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id1145 -->
-<!-- npu="950" id1146 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id1146 -->
 
+<!-- npu="910b,A3" id1539 -->
 </div>
+<!-- end id1539 -->
 
 </div>
 
@@ -7929,6 +8244,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1540 -->
 > <font size="3">has_rsample()</font>
 
 <div style="margin-left: 2em">
@@ -7936,6 +8252,7 @@
 **原生文档**：[torch.distributions.studentT.StudentT.has_rsample](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.studentT.StudentT.has_rsample)
 
 **产品支持情况**：
+<!-- end id1540 -->
 
 <!-- npu="910b" id1159 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -7943,11 +8260,10 @@
 <!-- npu="A3" id1160 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id1160 -->
-<!-- npu="950" id1161 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id1161 -->
 
+<!-- npu="910b,A3" id1541 -->
 </div>
+<!-- end id1541 -->
 
 > <font size="3">log_prob()</font>
 
@@ -7969,6 +8285,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1542 -->
 > <font size="3">mean()</font>
 
 <div style="margin-left: 2em">
@@ -7976,6 +8293,7 @@
 **原生文档**：[torch.distributions.studentT.StudentT.mean](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.studentT.StudentT.mean)
 
 **产品支持情况**：
+<!-- end id1542 -->
 
 <!-- npu="910b" id1165 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -7983,11 +8301,10 @@
 <!-- npu="A3" id1166 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id1166 -->
-<!-- npu="950" id1167 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id1167 -->
 
+<!-- npu="910b,A3" id1543 -->
 </div>
+<!-- end id1543 -->
 
 > <font size="3">mode()</font>
 
@@ -8049,6 +8366,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1544 -->
 > <font size="3">variance()</font>
 
 <div style="margin-left: 2em">
@@ -8056,6 +8374,7 @@
 **原生文档**：[torch.distributions.studentT.StudentT.variance](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.studentT.StudentT.variance)
 
 **产品支持情况**：
+<!-- end id1544 -->
 
 <!-- npu="910b" id1177 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -8063,11 +8382,10 @@
 <!-- npu="A3" id1178 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id1178 -->
-<!-- npu="950" id1179 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id1179 -->
 
+<!-- npu="910b,A3" id1545 -->
 </div>
+<!-- end id1545 -->
 
 </div>
 
@@ -8091,6 +8409,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1182 -->
 
+<!-- npu="910b,A3" id1546 -->
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -8098,6 +8417,7 @@
 **原生文档**：[torch.distributions.transformed_distribution.TransformedDistribution.arg_constraints](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.transformed_distribution.TransformedDistribution.arg_constraints)
 
 **产品支持情况**：
+<!-- end id1546 -->
 
 <!-- npu="910b" id1183 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -8105,11 +8425,10 @@
 <!-- npu="A3" id1184 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id1184 -->
-<!-- npu="950" id1185 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id1185 -->
 
+<!-- npu="910b,A3" id1547 -->
 </div>
+<!-- end id1547 -->
 
 > <font size="3">cdf()</font>
 
@@ -8131,6 +8450,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1548 -->
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -8138,6 +8458,7 @@
 **原生文档**：[torch.distributions.transformed_distribution.TransformedDistribution.expand](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.transformed_distribution.TransformedDistribution.expand)
 
 **产品支持情况**：
+<!-- end id1548 -->
 
 <!-- npu="910b" id1189 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -8145,11 +8466,10 @@
 <!-- npu="A3" id1190 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id1190 -->
-<!-- npu="950" id1191 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id1191 -->
 
+<!-- npu="910b,A3" id1549 -->
 </div>
+<!-- end id1549 -->
 
 > <font size="3">has_rsample()</font>
 
@@ -8231,6 +8551,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1550 -->
 > <font size="3">sample()</font>
 
 <div style="margin-left: 2em">
@@ -8238,6 +8559,7 @@
 **原生文档**：[torch.distributions.transformed_distribution.TransformedDistribution.sample](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.transformed_distribution.TransformedDistribution.sample)
 
 **产品支持情况**：
+<!-- end id1550 -->
 
 <!-- npu="910b" id1204 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -8245,11 +8567,10 @@
 <!-- npu="A3" id1205 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id1205 -->
-<!-- npu="950" id1206 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id1206 -->
 
+<!-- npu="910b,A3" id1551 -->
 </div>
+<!-- end id1551 -->
 
 > <font size="3">support()</font>
 
@@ -8280,7 +8601,7 @@
 <div style="margin-left: 2em">
 
 <!-- npu="950" id1435 -->
-**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>不同。
+**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同。
 <!-- end id1435 -->
 
 > <font size="3">arg_constraints()</font>
@@ -8585,6 +8906,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1552 -->
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -8592,6 +8914,7 @@
 **原生文档**：[torch.distributions.von_mises.VonMises.expand](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.von_mises.VonMises.expand)
 
 **产品支持情况**：
+<!-- end id1552 -->
 
 <!-- npu="910b" id1255 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -8599,11 +8922,10 @@
 <!-- npu="A3" id1256 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id1256 -->
-<!-- npu="950" id1257 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id1257 -->
 
+<!-- npu="910b,A3" id1553 -->
 </div>
+<!-- end id1553 -->
 
 > <font size="3">has_rsample()</font>
 
@@ -8807,6 +9129,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1554 -->
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -8814,6 +9137,7 @@
 **原生文档**：[torch.distributions.weibull.Weibull.expand](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.weibull.Weibull.expand)
 
 **产品支持情况**：
+<!-- end id1554 -->
 
 <!-- npu="910b" id1288 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -8821,11 +9145,10 @@
 <!-- npu="A3" id1289 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id1289 -->
-<!-- npu="950" id1290 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id1290 -->
 
+<!-- npu="910b,A3" id1555 -->
 </div>
+<!-- end id1555 -->
 
 > <font size="3">mean()</font>
 
@@ -8911,13 +9234,17 @@
 
 ## Wishart
 
+<!-- npu="910b,A3,950" id1556 -->
 ### <code><i>class</i></code> torch.distributions.wishart.Wishart
+<!-- end id1556 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id1557 -->
 **原生文档**：[torch.distributions.wishart.Wishart](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.wishart.Wishart)
 
 **产品支持情况**：
+<!-- end id1557 -->
 
 <!-- npu="910b" id1303 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -8925,9 +9252,6 @@
 <!-- npu="A3" id1304 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id1304 -->
-<!-- npu="950" id1305 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id1305 -->
 
 > <font size="3">arg_constraints()</font>
 
@@ -9029,6 +9353,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1558 -->
 > <font size="3">log_prob()</font>
 
 <div style="margin-left: 2em">
@@ -9036,6 +9361,7 @@
 **原生文档**：[torch.distributions.wishart.Wishart.log_prob](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.wishart.Wishart.log_prob)
 
 **产品支持情况**：
+<!-- end id1558 -->
 
 <!-- npu="910b" id1321 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -9043,11 +9369,10 @@
 <!-- npu="A3" id1322 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id1322 -->
-<!-- npu="950" id1323 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id1323 -->
 
+<!-- npu="910b,A3" id1559 -->
 </div>
+<!-- end id1559 -->
 
 > <font size="3">mean()</font>
 
@@ -9069,6 +9394,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1560 -->
 > <font size="3">mode()</font>
 
 <div style="margin-left: 2em">
@@ -9076,6 +9402,7 @@
 **原生文档**：[torch.distributions.wishart.Wishart.mode](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.wishart.Wishart.mode)
 
 **产品支持情况**：
+<!-- end id1560 -->
 
 <!-- npu="910b" id1327 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -9083,12 +9410,12 @@
 <!-- npu="A3" id1328 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id1328 -->
-<!-- npu="950" id1329 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id1329 -->
 
+<!-- npu="910b,A3" id1561 -->
 </div>
+<!-- end id1561 -->
 
+<!-- npu="910b,A3" id1562 -->
 > <font size="3">precision_matrix()</font>
 
 <div style="margin-left: 2em">
@@ -9096,6 +9423,7 @@
 **原生文档**：[torch.distributions.wishart.Wishart.precision_matrix](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.wishart.Wishart.precision_matrix)
 
 **产品支持情况**：
+<!-- end id1562 -->
 
 <!-- npu="910b" id1330 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -9103,12 +9431,12 @@
 <!-- npu="A3" id1331 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id1331 -->
-<!-- npu="950" id1332 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id1332 -->
 
+<!-- npu="910b,A3" id1563 -->
 </div>
+<!-- end id1563 -->
 
+<!-- npu="910b,A3" id1564 -->
 > <font size="3">rsample()</font>
 
 <div style="margin-left: 2em">
@@ -9116,6 +9444,7 @@
 **原生文档**：[torch.distributions.wishart.Wishart.rsample](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.wishart.Wishart.rsample)
 
 **产品支持情况**：
+<!-- end id1564 -->
 
 <!-- npu="910b" id1333 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -9123,12 +9452,12 @@
 <!-- npu="A3" id1334 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id1334 -->
-<!-- npu="950" id1335 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id1335 -->
 
+<!-- npu="910b,A3" id1565 -->
 </div>
+<!-- end id1565 -->
 
+<!-- npu="910b,A3" id1566 -->
 > <font size="3">scale_tril()</font>
 
 <div style="margin-left: 2em">
@@ -9136,6 +9465,7 @@
 **原生文档**：[torch.distributions.wishart.Wishart.scale_tril](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.wishart.Wishart.scale_tril)
 
 **产品支持情况**：
+<!-- end id1566 -->
 
 <!-- npu="910b" id1336 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -9143,12 +9473,12 @@
 <!-- npu="A3" id1337 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id1337 -->
-<!-- npu="950" id1338 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id1338 -->
 
+<!-- npu="910b,A3" id1567 -->
 </div>
+<!-- end id1567 -->
 
+<!-- npu="910b,A3" id1568 -->
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -9156,6 +9486,7 @@
 **原生文档**：[torch.distributions.wishart.Wishart.support](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.wishart.Wishart.support)
 
 **产品支持情况**：
+<!-- end id1568 -->
 
 <!-- npu="910b" id1339 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -9163,11 +9494,10 @@
 <!-- npu="A3" id1340 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id1340 -->
-<!-- npu="950" id1341 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id1341 -->
 
+<!-- npu="910b,A3" id1569 -->
 </div>
+<!-- end id1569 -->
 
 > <font size="3">variance()</font>
 
@@ -9210,6 +9540,26 @@
 <!-- npu="950" id1347 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1347 -->
+
+</div>
+
+### torch.distributions.kl.register_kl
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributions.kl.register_kl](https://docs.pytorch.org/docs/2.12/distributions.html#torch.distributions.kl.register_kl)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1601 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1601 -->
+<!-- npu="A3" id1602 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1602 -->
+<!-- npu="950" id1603 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1603 -->
 
 </div>
 
@@ -9279,6 +9629,27 @@
 
 </div>
 
+### <code><i>class</i></code> torch.distributions.transforms.ComposeTransform
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributions.transforms.ComposeTransform](https://docs.pytorch.org/docs/2.12/distributions.html#torch.distributions.transforms.ComposeTransform)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1604 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1604 -->
+<!-- npu="A3" id1605 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1605 -->
+<!-- npu="950" id1606 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1606 -->
+
+</div>
+
+<!-- npu="910b,A3" id1570 -->
 ### <code><i>class</i></code> torch.distributions.transforms.CorrCholeskyTransform
 
 <div style="margin-left: 2em">
@@ -9286,6 +9657,7 @@
 **原生文档**：[torch.distributions.transforms.CorrCholeskyTransform](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.transforms.CorrCholeskyTransform)
 
 **产品支持情况**：
+<!-- end id1570 -->
 
 <!-- npu="910b" id1357 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -9293,11 +9665,10 @@
 <!-- npu="A3" id1358 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id1358 -->
-<!-- npu="950" id1359 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id1359 -->
 
+<!-- npu="910b,A3" id1571 -->
 </div>
+<!-- end id1571 -->
 
 ### <code><i>class</i></code> torch.distributions.transforms.ExpTransform
 
@@ -9316,6 +9687,26 @@
 <!-- npu="950" id1362 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1362 -->
+
+</div>
+
+### <code><i>class</i></code> torch.distributions.transforms.IndependentTransform
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributions.transforms.IndependentTransform](https://docs.pytorch.org/docs/2.12/distributions.html#torch.distributions.transforms.IndependentTransform)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1607 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1607 -->
+<!-- npu="A3" id1608 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1608 -->
+<!-- npu="950" id1609 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1609 -->
 
 </div>
 
@@ -9627,6 +10018,46 @@
 
 ## Constraints
 
+### <code><i>class</i></code> torch.distributions.constraints.Constraint
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributions.constraints.Constraint](https://docs.pytorch.org/docs/2.12/distributions.html#torch.distributions.constraints.Constraint)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1574 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1574 -->
+<!-- npu="A3" id1575 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1575 -->
+<!-- npu="950" id1576 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1576 -->
+
+> <font size="3">check()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributions.constraints.Constraint.check](https://docs.pytorch.org/docs/2.12/distributions.html#torch.distributions.constraints.Constraint.check)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1577 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1577 -->
+<!-- npu="A3" id1578 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1578 -->
+<!-- npu="950" id1579 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1579 -->
+
+</div>
+
+</div>
+
 ### torch.distributions.constraints.dependent_property
 
 <div style="margin-left: 2em">
@@ -9664,6 +10095,26 @@
 <!-- npu="950" id1413 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1413 -->
+
+</div>
+
+### torch.distributions.constraints.is_dependent
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributions.constraints.is_dependent](https://docs.pytorch.org/docs/2.12/distributions.html#torch.distributions.constraints.is_dependent)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1580 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1580 -->
+<!-- npu="A3" id1581 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1581 -->
+<!-- npu="950" id1582 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1582 -->
 
 </div>
 
@@ -9767,6 +10218,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1428 -->
 
+<!-- npu="910b,A3" id1572 -->
 > <font size="3">register()</font>
 
 <div style="margin-left: 2em">
@@ -9774,6 +10226,7 @@
 **原生文档**：[torch.distributions.constraint_registry.ConstraintRegistry.register](https://pytorch.org/docs/2.12/distributions.html#torch.distributions.constraint_registry.ConstraintRegistry.register)
 
 **产品支持情况**：
+<!-- end id1572 -->
 
 <!-- npu="910b" id1429 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -9781,10 +10234,9 @@
 <!-- npu="A3" id1430 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id1430 -->
-<!-- npu="950" id1431 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id1431 -->
 
+<!-- npu="910b,A3" id1573 -->
 </div>
+<!-- end id1573 -->
 
 </div>

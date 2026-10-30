@@ -11,6 +11,7 @@
 <div style="margin: 8px 0"><font size="5"><b>目录</b></font></div>
 
 - [PyTorch FSDP2 (fully_shard)](#pytorch-fsdp2-fully_shard)
+- [PyTorch FSDP2 ( fully_shard )](#pytorch-fsdp2--fully_shard-)
 
 </div>
 
@@ -41,5 +42,33 @@
 <!-- end id3 -->
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32
+
+</div>
+
+## PyTorch FSDP2 ( fully_shard )
+
+### <code><i>class</i></code> torch.distributed.fsdp.FSDPModule
+
+<div style="margin-left: 2em">
+
+> <font size="3">unshard()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.fsdp.FSDPModule.unshard](https://docs.pytorch.org/docs/2.14/distributed.fsdp.fully_shard.html#torch.distributed.fsdp.FSDPModule.unshard)
+
+**产品支持情况**：
+
+<!-- npu="910b" id4 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id4 -->
+<!-- npu="A3" id5 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id5 -->
+<!-- npu="950" id6 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id6 -->
+
+</div>
 
 </div>

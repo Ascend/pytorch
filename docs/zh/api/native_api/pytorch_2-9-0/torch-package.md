@@ -600,6 +600,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id115 -->
 > <font size="3">file_structure()</font>
 
 <div style="margin-left: 2em">
@@ -607,6 +608,7 @@
 **原生文档**：[torch.package.PackageImporter.file_structure](https://pytorch.org/docs/2.9/package.html#torch.package.PackageImporter.file_structure)
 
 **产品支持情况**：
+<!-- end id115 -->
 
 <!-- npu="910b" id88 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -614,11 +616,10 @@
 <!-- npu="A3" id89 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id89 -->
-<!-- npu="950" id90 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id90 -->
 
+<!-- npu="910b,A3" id116 -->
 </div>
+<!-- end id116 -->
 
 > <font size="3">id()</font>
 
@@ -720,6 +721,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id117 -->
 > <font size="3">python_version()</font>
 
 <div style="margin-left: 2em">
@@ -727,6 +729,7 @@
 **原生文档**：[torch.package.PackageImporter.python_version](https://pytorch.org/docs/2.9/package.html#torch.package.PackageImporter.python_version)
 
 **产品支持情况**：
+<!-- end id117 -->
 
 <!-- npu="910b" id106 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -734,11 +737,10 @@
 <!-- npu="A3" id107 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id107 -->
-<!-- npu="950" id108 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id108 -->
 
+<!-- npu="910b,A3" id118 -->
 </div>
+<!-- end id118 -->
 
 </div>
 

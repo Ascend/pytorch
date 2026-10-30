@@ -454,6 +454,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id268 -->
 > <font size="3">find_nodes()</font>
 
 <div style="margin-left: 2em">
@@ -461,6 +462,7 @@
 **原生文档**：[torch.fx.Graph.find_nodes](https://pytorch.org/docs/2.7/fx.html#torch.fx.Graph.find_nodes)
 
 **产品支持情况**：
+<!-- end id268 -->
 
 <!-- npu="910b" id64 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -468,11 +470,10 @@
 <!-- npu="A3" id65 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id65 -->
-<!-- npu="950" id66 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id66 -->
 
+<!-- npu="910b,A3" id269 -->
 </div>
+<!-- end id269 -->
 
 > <font size="3">inserting_after()</font>
 
@@ -622,6 +623,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id270 -->
 > <font size="3">output_node()</font>
 
 <div style="margin-left: 2em">
@@ -629,6 +631,7 @@
 **原生文档**：[torch.fx.Graph.output_node](https://pytorch.org/docs/2.7/fx.html#torch.fx.Graph.output_node)
 
 **产品支持情况**：
+<!-- end id270 -->
 
 <!-- npu="910b" id88 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -636,11 +639,10 @@
 <!-- npu="A3" id89 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id89 -->
-<!-- npu="950" id90 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id90 -->
 
+<!-- npu="910b,A3" id271 -->
 </div>
+<!-- end id271 -->
 
 > <font size="3">placeholder()</font>
 
@@ -1416,6 +1418,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id272 -->
 > <font size="3">insert_arg()</font>
 
 <div style="margin-left: 2em">
@@ -1423,6 +1426,7 @@
 **原生文档**：[torch.fx.Node.insert_arg](https://pytorch.org/docs/2.7/fx.html#torch.fx.Node.insert_arg)
 
 **产品支持情况**：
+<!-- end id272 -->
 
 <!-- npu="910b" id202 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1430,11 +1434,10 @@
 <!-- npu="A3" id203 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id203 -->
-<!-- npu="950" id204 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id204 -->
 
+<!-- npu="910b,A3" id273 -->
 </div>
+<!-- end id273 -->
 
 </div>
 

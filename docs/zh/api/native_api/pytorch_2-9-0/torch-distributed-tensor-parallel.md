@@ -75,26 +75,27 @@
 
 </div>
 
-### <code><i>class</i></code> torch.distributed.tensor.parallel.PrepareModuleInput
+### <code><i>class</i></code> torch.distributed.tensor.parallel.SequenceParallel
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.distributed.tensor.parallel.PrepareModuleInput](https://pytorch.org/docs/2.9/distributed.tensor.parallel.html#torch.distributed.tensor.parallel.PrepareModuleInput)
+**原生文档**：[torch.distributed.tensor.parallel.SequenceParallel](https://docs.pytorch.org/docs/2.9/distributed.tensor.parallel.html#torch.distributed.tensor.parallel.SequenceParallel)
 
 **产品支持情况**：
 
-<!-- npu="910b" id10 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id10 -->
-<!-- npu="A3" id11 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id11 -->
-<!-- npu="950" id12 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id12 -->
+<!-- npu="910b" id22 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id22 -->
+<!-- npu="A3" id23 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id23 -->
+<!-- npu="950" id24 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id24 -->
 
 </div>
 
+<!-- npu="910b,A3" id20 -->
 ### <code><i>class</i></code> torch.distributed.tensor.parallel.PrepareModuleOutput
 
 <div style="margin-left: 2em">
@@ -102,6 +103,7 @@
 **原生文档**：[torch.distributed.tensor.parallel.PrepareModuleOutput](https://pytorch.org/docs/2.9/distributed.tensor.parallel.html#torch.distributed.tensor.parallel.PrepareModuleOutput)
 
 **产品支持情况**：
+<!-- end id20 -->
 
 <!-- npu="910b" id13 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -109,11 +111,10 @@
 <!-- npu="A3" id14 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id14 -->
-<!-- npu="950" id15 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id15 -->
 
+<!-- npu="910b,A3" id21 -->
 </div>
+<!-- end id21 -->
 
 ### torch.distributed.tensor.parallel.loss_parallel
 

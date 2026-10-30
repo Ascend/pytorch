@@ -20,6 +20,32 @@
 
 </div>
 
+### <code><i>class</i></code> torch.distributed.fsdp.FSDPModule
+
+<div style="margin-left: 2em">
+
+> <font size="3">unshard()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.fsdp.FSDPModule.unshard](https://docs.pytorch.org/docs/2.7/distributed.fsdp.fully_shard.html#torch.distributed.fsdp.FSDPModule.unshard)
+
+**产品支持情况**：
+
+<!-- npu="910b" id4 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id4 -->
+<!-- npu="A3" id5 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id5 -->
+<!-- npu="950" id6 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id6 -->
+
+</div>
+
+</div>
+
 ## PyTorch FSDP2 (fully_shard)
 
 ### torch.distributed.fsdp.fully_shard

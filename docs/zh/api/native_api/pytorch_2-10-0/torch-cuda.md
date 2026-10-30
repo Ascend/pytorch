@@ -15,10 +15,10 @@
 <div style="margin: 8px 0"><font size="5"><b>目录</b></font></div>
 
 - [Random Number Generator](#random-number-generator)
-- [Communication collectives](#communication-collectives)
 - [Streams and events](#streams-and-events)
 - [Graphs (beta)](#graphs-beta)
 - [Memory management](#memory-management)
+- [NVIDIA Tools Extension (NVTX)](#nvidia-tools-extension-nvtx)
 
 </div>
 
@@ -161,6 +161,26 @@
 <!-- npu="950" id18 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id18 -->
+
+</div>
+
+### torch.cuda.device_memory_used
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.cuda.device_memory_used](https://docs.pytorch.org/docs/2.10/generated/torch.cuda.device_memory_used.html#torch.cuda.device_memory_used)
+
+**产品支持情况**：
+
+<!-- npu="910b" id251 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id251 -->
+<!-- npu="A3" id252 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id252 -->
+<!-- npu="950" id253 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id253 -->
 
 </div>
 
@@ -344,6 +364,27 @@
 
 </div>
 
+### torch.cuda.is_bf16_supported
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.cuda.is_bf16_supported](https://docs.pytorch.org/docs/2.10/generated/torch.cuda.is_bf16_supported.html#torch.cuda.is_bf16_supported)
+
+**产品支持情况**：
+
+<!-- npu="910b" id266 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id266 -->
+<!-- npu="A3" id267 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id267 -->
+<!-- npu="950" id268 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id268 -->
+
+</div>
+
+<!-- npu="910b,A3" id239 -->
 ### torch.cuda.is_initialized
 
 <div style="margin-left: 2em">
@@ -353,6 +394,7 @@
 **NPU 形式名称**：torch_npu.npu.is_initialized
 
 **产品支持情况**：
+<!-- end id239 -->
 
 <!-- npu="910b" id43 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -360,11 +402,10 @@
 <!-- npu="A3" id44 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id44 -->
-<!-- npu="950" id45 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id45 -->
 
+<!-- npu="910b,A3" id240 -->
 </div>
+<!-- end id240 -->
 
 ### torch.cuda.memory_usage
 
@@ -590,6 +631,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id241 -->
 ### torch.cuda._sanitizer.enable_cuda_sanitizer
 
 <div style="margin-left: 2em">
@@ -599,6 +641,7 @@
 **NPU 形式名称**：torch_npu.npu._sanitizer.enable_npu_sanitizer
 
 **产品支持情况**：
+<!-- end id241 -->
 
 <!-- npu="910b" id67 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -606,11 +649,10 @@
 <!-- npu="A3" id68 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id68 -->
-<!-- npu="950" id69 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id69 -->
 
+<!-- npu="910b,A3" id242 -->
 </div>
+<!-- end id242 -->
 
 ### torch.cuda.current_device
 
@@ -655,6 +697,26 @@
 <!-- npu="950" id75 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id75 -->
+
+</div>
+
+### torch.cuda.get_rng_state_all
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.cuda.get_rng_state_all](https://docs.pytorch.org/docs/2.10/generated/torch.cuda.get_rng_state_all.html#torch.cuda.get_rng_state_all)
+
+**产品支持情况**：
+
+<!-- npu="910b" id254 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id254 -->
+<!-- npu="A3" id255 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id255 -->
+<!-- npu="950" id256 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id256 -->
 
 </div>
 
@@ -812,48 +874,6 @@
 
 </div>
 
-## Communication collectives
-
-### torch.cuda.comm.scatter
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.cuda.comm.scatter](https://pytorch.org/docs/2.10/generated/torch.cuda.comm.scatter.html)
-
-**产品支持情况**：
-
-<!-- npu="910b" id97 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id97 -->
-<!-- npu="A3" id98 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id98 -->
-<!-- npu="950" id99 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id99 -->
-
-</div>
-
-### torch.cuda.comm.gather
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.cuda.comm.gather](https://pytorch.org/docs/2.10/generated/torch.cuda.comm.gather.html)
-
-**产品支持情况**：
-
-<!-- npu="910b" id100 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id100 -->
-<!-- npu="A3" id101 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id101 -->
-<!-- npu="950" id102 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id102 -->
-
-</div>
-
 ## Streams and events
 
 ### <code><i>class</i></code> torch.cuda.Stream
@@ -876,6 +896,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id105 -->
 
+<!-- npu="910b,A3" id243 -->
 > <font size="3">wait_stream()</font>
 
 <div style="margin-left: 2em">
@@ -883,6 +904,7 @@
 **原生文档**：[torch.cuda.Stream.wait_stream](https://docs.pytorch.org/docs/2.10/generated/torch.cuda.Stream_class.html#torch.cuda.Stream.wait_stream)
 
 **产品支持情况**：
+<!-- end id243 -->
 
 <!-- npu="910b" id106 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -890,11 +912,110 @@
 <!-- npu="A3" id107 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id107 -->
-<!-- npu="950" id108 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id108 -->
+
+<!-- npu="910b,A3" id244 -->
+</div>
+<!-- end id244 -->
+
+> <font size="3">query()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.cuda.Stream.query](https://docs.pytorch.org/docs/2.10/generated/torch.cuda.Stream_class.html#torch.cuda.Stream.query)
+
+**产品支持情况**：
+
+<!-- npu="910b" id287 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id287 -->
+<!-- npu="A3" id288 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id288 -->
+<!-- npu="950" id289 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id289 -->
 
 </div>
+
+> <font size="3">record_event()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.cuda.Stream.record_event](https://docs.pytorch.org/docs/2.10/generated/torch.cuda.Stream_class.html#torch.cuda.Stream.record_event)
+
+**产品支持情况**：
+
+<!-- npu="910b" id290 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id290 -->
+<!-- npu="A3" id291 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id291 -->
+<!-- npu="950" id292 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id292 -->
+
+</div>
+
+> <font size="3">synchronize()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.cuda.Stream.synchronize](https://docs.pytorch.org/docs/2.10/generated/torch.cuda.Stream_class.html#torch.cuda.Stream.synchronize)
+
+**产品支持情况**：
+
+<!-- npu="910b" id293 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id293 -->
+<!-- npu="A3" id294 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id294 -->
+<!-- npu="950" id295 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id295 -->
+
+</div>
+
+> <font size="3">wait_event()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.cuda.Stream.wait_event](https://docs.pytorch.org/docs/2.10/generated/torch.cuda.Stream_class.html#torch.cuda.Stream.wait_event)
+
+**产品支持情况**：
+
+<!-- npu="910b" id296 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id296 -->
+<!-- npu="A3" id297 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id297 -->
+<!-- npu="950" id298 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id298 -->
+
+</div>
+
+</div>
+
+### <code><i>class</i></code> torch.cuda.ExternalStream
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.cuda.ExternalStream](https://docs.pytorch.org/docs/2.10/generated/torch.cuda.ExternalStream.html#torch.cuda.ExternalStream)
+
+**产品支持情况**：
+
+<!-- npu="910b" id263 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id263 -->
+<!-- npu="A3" id264 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id264 -->
+<!-- npu="950" id265 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id265 -->
 
 </div>
 
@@ -995,6 +1116,46 @@
 <!-- npu="950" id123 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id123 -->
+
+</div>
+
+> <font size="3">record()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.cuda.Event.record](https://docs.pytorch.org/docs/2.10/generated/torch.cuda.Event.html#torch.cuda.Event.record)
+
+**产品支持情况**：
+
+<!-- npu="910b" id281 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id281 -->
+<!-- npu="A3" id282 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id282 -->
+<!-- npu="950" id283 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id283 -->
+
+</div>
+
+> <font size="3">synchronize()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.cuda.Event.synchronize](https://docs.pytorch.org/docs/2.10/generated/torch.cuda.Event.html#torch.cuda.Event.synchronize)
+
+**产品支持情况**：
+
+<!-- npu="910b" id284 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id284 -->
+<!-- npu="A3" id285 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id285 -->
+<!-- npu="950" id286 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id286 -->
 
 </div>
 
@@ -1156,6 +1317,26 @@
 
 - 当前仅支持推理场景，不支持训练场景
 - 导出文件内容为json格式
+
+</div>
+
+> <font size="3">enable_debug_mode()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.cuda.CUDAGraph.enable_debug_mode](https://docs.pytorch.org/docs/2.10/generated/torch.cuda.CUDAGraph.html#torch.cuda.CUDAGraph.enable_debug_mode)
+
+**产品支持情况**：
+
+<!-- npu="910b" id278 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id278 -->
+<!-- npu="A3" id279 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id279 -->
+<!-- npu="950" id280 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id280 -->
 
 </div>
 
@@ -1497,6 +1678,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id245 -->
 ### torch.cuda.set_per_process_memory_fraction
 
 <div style="margin-left: 2em">
@@ -1506,6 +1688,7 @@
 **NPU 形式名称**：torch_npu.npu.set_per_process_memory_fraction
 
 **产品支持情况**：
+<!-- end id245 -->
 
 <!-- npu="910b" id190 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1513,11 +1696,10 @@
 <!-- npu="A3" id191 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id191 -->
-<!-- npu="950" id192 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id192 -->
 
+<!-- npu="910b,A3" id246 -->
 </div>
+<!-- end id246 -->
 
 ### torch.cuda.memory_cached
 
@@ -1673,6 +1855,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id247 -->
 ### <code><i>class</i></code> torch.cuda.CUDAPluggableAllocator
 
 <div style="margin-left: 2em">
@@ -1682,6 +1865,7 @@
 **NPU 形式名称**：torch_npu.npu.NPUPluggableAllocator
 
 **产品支持情况**：
+<!-- end id247 -->
 
 <!-- npu="910b" id214 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1689,14 +1873,14 @@
 <!-- npu="A3" id215 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id215 -->
-<!-- npu="950" id216 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id216 -->
 
+<!-- npu="910b,A3" id248 -->
 **限制与说明**： 该接口涉及高危操作，使用请参考《自定义API》中的“[torch_npu.npu.NPUPluggableAllocator](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/torch-npu-npu-NPUPluggableAllocator.md)”章节。
 
 </div>
+<!-- end id248 -->
 
+<!-- npu="910b,A3" id249 -->
 ### torch.cuda.change_current_allocator
 
 <div style="margin-left: 2em">
@@ -1706,6 +1890,7 @@
 **NPU 形式名称**：torch_npu.npu.change_current_allocator
 
 **产品支持情况**：
+<!-- end id249 -->
 
 <!-- npu="910b" id217 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1713,13 +1898,12 @@
 <!-- npu="A3" id218 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id218 -->
-<!-- npu="950" id219 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id219 -->
 
+<!-- npu="910b,A3" id250 -->
 **限制与说明**： 该接口涉及高危操作，使用请参考《自定义API》中的“[torch_npu.npu.change_current_allocator](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/torch-npu-npu-change_current_allocator.md)”章节。
 
 </div>
+<!-- end id250 -->
 
 ### <code><i>class</i></code> torch.cuda.memory.MemPool
 
@@ -1797,5 +1981,107 @@
 <!-- npu="950" id228 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id228 -->
+
+</div>
+
+### torch.cuda.memory.caching_allocator_enable
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.cuda.memory.caching_allocator_enable](https://docs.pytorch.org/docs/2.10/generated/torch.cuda.memory.caching_allocator_enable.html#torch.cuda.memory.caching_allocator_enable)
+
+**产品支持情况**：
+
+<!-- npu="910b" id257 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id257 -->
+<!-- npu="A3" id258 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id258 -->
+<!-- npu="950" id259 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id259 -->
+
+</div>
+
+### <code><i>class</i></code> torch.cuda.use_mem_pool
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.cuda.use_mem_pool](https://docs.pytorch.org/docs/2.10/cuda.html#torch.cuda.use_mem_pool)
+
+**产品支持情况**：
+
+<!-- npu="910b" id260 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id260 -->
+<!-- npu="A3" id261 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id261 -->
+<!-- npu="950" id262 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id262 -->
+
+</div>
+
+## NVIDIA Tools Extension (NVTX)
+
+### torch.cuda.nvtx.range_push
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.cuda.nvtx.range_push](https://docs.pytorch.org/docs/2.10/generated/torch.cuda.nvtx.range_push.html#torch.cuda.nvtx.range_push)
+
+**产品支持情况**：
+
+<!-- npu="910b" id275 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id275 -->
+<!-- npu="A3" id276 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id276 -->
+<!-- npu="950" id277 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id277 -->
+
+</div>
+
+### torch.cuda.nvtx.range_pop
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.cuda.nvtx.range_pop](https://docs.pytorch.org/docs/2.10/generated/torch.cuda.nvtx.range_pop.html#torch.cuda.nvtx.range_pop)
+
+**产品支持情况**：
+
+<!-- npu="910b" id272 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id272 -->
+<!-- npu="A3" id273 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id273 -->
+<!-- npu="950" id274 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id274 -->
+
+</div>
+
+### torch.cuda.nvtx.range
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.cuda.nvtx.range](https://docs.pytorch.org/docs/2.10/generated/torch.cuda.nvtx.range.html#torch.cuda.nvtx.range)
+
+**产品支持情况**：
+
+<!-- npu="910b" id269 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id269 -->
+<!-- npu="A3" id270 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id270 -->
+<!-- npu="950" id271 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id271 -->
 
 </div>

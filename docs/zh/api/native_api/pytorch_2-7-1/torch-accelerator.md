@@ -73,6 +73,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id31 -->
 ### torch.accelerator.set_device_index
 
 <div style="margin-left: 2em">
@@ -80,6 +81,7 @@
 **原生文档**：[torch.accelerator.set_device_index](https://pytorch.org/docs/2.7/generated/torch.accelerator.set_device_index.html)
 
 **产品支持情况**：
+<!-- end id31 -->
 
 <!-- npu="910b" id10 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -87,12 +89,12 @@
 <!-- npu="A3" id11 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id11 -->
-<!-- npu="950" id12 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id12 -->
 
+<!-- npu="910b,A3" id32 -->
 </div>
+<!-- end id32 -->
 
+<!-- npu="910b,A3" id33 -->
 ### torch.accelerator.set_device_idx
 
 <div style="margin-left: 2em">
@@ -100,6 +102,7 @@
 **原生文档**：[torch.accelerator.set_device_idx](https://pytorch.org/docs/2.7/generated/torch.accelerator.set_device_idx.html)
 
 **产品支持情况**：
+<!-- end id33 -->
 
 <!-- npu="910b" id13 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -107,11 +110,10 @@
 <!-- npu="A3" id14 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id14 -->
-<!-- npu="950" id15 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id15 -->
 
+<!-- npu="910b,A3" id34 -->
 </div>
+<!-- end id34 -->
 
 ### torch.accelerator.current_device_index
 
@@ -133,6 +135,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id35 -->
 ### torch.accelerator.current_device_idx
 
 <div style="margin-left: 2em">
@@ -140,6 +143,7 @@
 **原生文档**：[torch.accelerator.current_device_idx](https://pytorch.org/docs/2.7/generated/torch.accelerator.current_device_idx.html)
 
 **产品支持情况**：
+<!-- end id35 -->
 
 <!-- npu="910b" id19 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -147,11 +151,10 @@
 <!-- npu="A3" id20 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id20 -->
-<!-- npu="950" id21 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id21 -->
 
+<!-- npu="910b,A3" id36 -->
 </div>
+<!-- end id36 -->
 
 ### torch.accelerator.set_stream
 

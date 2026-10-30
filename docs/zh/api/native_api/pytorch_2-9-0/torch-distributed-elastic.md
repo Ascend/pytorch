@@ -17,7 +17,9 @@
 - [Expiration Timers](#expiration-timers)
 - [Metrics](#metrics)
 - [Events](#events)
+<!-- npu="910b,A3" id428 -->
 - [Control Plane](#control-plane)
+<!-- end id428 -->
 
 </div>
 
@@ -449,6 +451,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id360 -->
 ### torch.distributed.elastic.agent.server.health_check_server.create_healthcheck_server
 
 <div style="margin-left: 2em">
@@ -456,6 +459,7 @@
 **原生文档**：[torch.distributed.elastic.agent.server.health_check_server.create_healthcheck_server](https://pytorch.org/docs/2.9/elastic/agent.html#torch.distributed.elastic.agent.server.health_check_server.create_healthcheck_server)
 
 **产品支持情况**：
+<!-- end id360 -->
 
 <!-- npu="910b" id64 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -463,19 +467,23 @@
 <!-- npu="A3" id65 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id65 -->
-<!-- npu="950" id66 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id66 -->
 
+<!-- npu="910b,A3" id361 -->
 </div>
+<!-- end id361 -->
 
+<!-- npu="910b,A3" id430 -->
+<!-- npu="910b,A3" id362 -->
 ### <code><i>class</i></code> torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer
+<!-- end id362 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id363 -->
 **原生文档**：[torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer](https://pytorch.org/docs/2.9/elastic/agent.html#torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer)
 
 **产品支持情况**：
+<!-- end id363 -->
 
 <!-- npu="910b" id67 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -483,10 +491,8 @@
 <!-- npu="A3" id68 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id68 -->
-<!-- npu="950" id69 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id69 -->
 
+<!-- npu="910b,A3" id364 -->
 > <font size="3">start()</font>
 
 <div style="margin-left: 2em">
@@ -494,6 +500,7 @@
 **原生文档**：[torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer.start](https://pytorch.org/docs/2.9/elastic/agent.html#torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer.start)
 
 **产品支持情况**：
+<!-- end id364 -->
 
 <!-- npu="910b" id70 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -501,12 +508,12 @@
 <!-- npu="A3" id71 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id71 -->
-<!-- npu="950" id72 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id72 -->
 
+<!-- npu="910b,A3" id365 -->
 </div>
+<!-- end id365 -->
 
+<!-- npu="910b,A3" id366 -->
 > <font size="3">stop()</font>
 
 <div style="margin-left: 2em">
@@ -514,6 +521,7 @@
 **原生文档**：[torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer.stop](https://pytorch.org/docs/2.9/elastic/agent.html#torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer.stop)
 
 **产品支持情况**：
+<!-- end id366 -->
 
 <!-- npu="910b" id73 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -521,13 +529,13 @@
 <!-- npu="A3" id74 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id74 -->
-<!-- npu="950" id75 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id75 -->
+
+<!-- npu="910b,A3" id367 -->
+</div>
+<!-- end id367 -->
 
 </div>
-
-</div>
+<!-- end id430 -->
 
 ## Multiprocessing
 
@@ -631,13 +639,18 @@
 
 </div>
 
+<!-- npu="910b,A3" id431 -->
+<!-- npu="910b,A3" id368 -->
 ### <code><i>class</i></code> torch.distributed.elastic.multiprocessing.api.DefaultLogsSpecs
+<!-- end id368 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id369 -->
 **原生文档**：[torch.distributed.elastic.multiprocessing.api.DefaultLogsSpecs](https://pytorch.org/docs/2.9/elastic/multiprocessing.html#torch.distributed.elastic.multiprocessing.api.DefaultLogsSpecs)
 
 **产品支持情况**：
+<!-- end id369 -->
 
 <!-- npu="910b" id91 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -645,10 +658,8 @@
 <!-- npu="A3" id92 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id92 -->
-<!-- npu="950" id93 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id93 -->
 
+<!-- npu="910b,A3" id370 -->
 > <font size="3">reify()</font>
 
 <div style="margin-left: 2em">
@@ -656,6 +667,7 @@
 **原生文档**：[torch.distributed.elastic.multiprocessing.api.DefaultLogsSpecs.reify](https://pytorch.org/docs/2.9/elastic/multiprocessing.html#torch.distributed.elastic.multiprocessing.api.DefaultLogsSpecs.reify)
 
 **产品支持情况**：
+<!-- end id370 -->
 
 <!-- npu="910b" id94 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -663,14 +675,15 @@
 <!-- npu="A3" id95 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id95 -->
-<!-- npu="950" id96 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id96 -->
+
+<!-- npu="910b,A3" id371 -->
+</div>
+<!-- end id371 -->
 
 </div>
+<!-- end id431 -->
 
-</div>
-
+<!-- npu="910b,A3" id372 -->
 ### <code><i>class</i></code> torch.distributed.elastic.multiprocessing.api.LogsDest
 
 <div style="margin-left: 2em">
@@ -678,6 +691,7 @@
 **原生文档**：[torch.distributed.elastic.multiprocessing.api.LogsDest](https://pytorch.org/docs/2.9/elastic/multiprocessing.html#torch.distributed.elastic.multiprocessing.api.LogsDest)
 
 **产品支持情况**：
+<!-- end id372 -->
 
 <!-- npu="910b" id97 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -685,19 +699,23 @@
 <!-- npu="A3" id98 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id98 -->
-<!-- npu="950" id99 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id99 -->
 
+<!-- npu="910b,A3" id373 -->
 </div>
+<!-- end id373 -->
 
+<!-- npu="910b,A3" id432 -->
+<!-- npu="910b,A3" id374 -->
 ### <code><i>class</i></code> torch.distributed.elastic.multiprocessing.api.LogsSpecs
+<!-- end id374 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id375 -->
 **原生文档**：[torch.distributed.elastic.multiprocessing.api.LogsSpecs](https://pytorch.org/docs/2.9/elastic/multiprocessing.html#torch.distributed.elastic.multiprocessing.api.LogsSpecs)
 
 **产品支持情况**：
+<!-- end id375 -->
 
 <!-- npu="910b" id100 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -705,10 +723,8 @@
 <!-- npu="A3" id101 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id101 -->
-<!-- npu="950" id102 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id102 -->
 
+<!-- npu="910b,A3" id376 -->
 > <font size="3">reify()</font>
 
 <div style="margin-left: 2em">
@@ -716,6 +732,7 @@
 **原生文档**：[torch.distributed.elastic.multiprocessing.api.LogsSpecs.reify](https://pytorch.org/docs/2.9/elastic/multiprocessing.html#torch.distributed.elastic.multiprocessing.api.LogsSpecs.reify)
 
 **产品支持情况**：
+<!-- end id376 -->
 
 <!-- npu="910b" id103 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -723,13 +740,13 @@
 <!-- npu="A3" id104 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id104 -->
-<!-- npu="950" id105 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id105 -->
+
+<!-- npu="910b,A3" id377 -->
+</div>
+<!-- end id377 -->
 
 </div>
-
-</div>
+<!-- end id432 -->
 
 ## Error Propagation
 
@@ -915,6 +932,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id378 -->
 ### <code><i>class</i></code> torch.distributed.elastic.rendezvous.api.RendezvousError
 
 <div style="margin-left: 2em">
@@ -922,6 +940,7 @@
 **原生文档**：[torch.distributed.elastic.rendezvous.api.RendezvousError](https://pytorch.org/docs/2.9/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.api.RendezvousError)
 
 **产品支持情况**：
+<!-- end id378 -->
 
 <!-- npu="910b" id133 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -929,12 +948,12 @@
 <!-- npu="A3" id134 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id134 -->
-<!-- npu="950" id135 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id135 -->
 
+<!-- npu="910b,A3" id379 -->
 </div>
+<!-- end id379 -->
 
+<!-- npu="910b,A3" id380 -->
 ### <code><i>class</i></code> torch.distributed.elastic.rendezvous.api.RendezvousGracefulExitError
 
 <div style="margin-left: 2em">
@@ -942,6 +961,7 @@
 **原生文档**：[torch.distributed.elastic.rendezvous.api.RendezvousGracefulExitError](https://pytorch.org/docs/2.9/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.api.RendezvousGracefulExitError)
 
 **产品支持情况**：
+<!-- end id380 -->
 
 <!-- npu="910b" id136 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -949,11 +969,10 @@
 <!-- npu="A3" id137 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id137 -->
-<!-- npu="950" id138 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id138 -->
 
+<!-- npu="910b,A3" id381 -->
 </div>
+<!-- end id381 -->
 
 ### torch.distributed.elastic.rendezvous.dynamic_rendezvous.create_handler
 
@@ -995,6 +1014,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id382 -->
 ### torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.create_backend
 
 <div style="margin-left: 2em">
@@ -1002,6 +1022,7 @@
 **原生文档**：[torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.create_backend](https://pytorch.org/docs/2.9/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.create_backend)
 
 **产品支持情况**：
+<!-- end id382 -->
 
 <!-- npu="910b" id145 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1009,12 +1030,12 @@
 <!-- npu="A3" id146 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id146 -->
-<!-- npu="950" id147 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id147 -->
 
+<!-- npu="910b,A3" id383 -->
 </div>
+<!-- end id383 -->
 
+<!-- npu="910b,A3" id384 -->
 ### <code><i>class</i></code> torch.distributed.elastic.rendezvous.etcd_rendezvous.EtcdRendezvousHandler
 
 <div style="margin-left: 2em">
@@ -1022,6 +1043,7 @@
 **原生文档**：[torch.distributed.elastic.rendezvous.etcd_rendezvous.EtcdRendezvousHandler](https://pytorch.org/docs/2.9/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_rendezvous.EtcdRendezvousHandler)
 
 **产品支持情况**：
+<!-- end id384 -->
 
 <!-- npu="910b" id148 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1029,19 +1051,23 @@
 <!-- npu="A3" id149 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id149 -->
-<!-- npu="950" id150 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id150 -->
 
+<!-- npu="910b,A3" id385 -->
 </div>
+<!-- end id385 -->
 
+<!-- npu="910b,A3" id433 -->
+<!-- npu="910b,A3" id386 -->
 ### <code><i>class</i></code> torch.distributed.elastic.rendezvous.etcd_store.EtcdStore
+<!-- end id386 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id387 -->
 **原生文档**：[torch.distributed.elastic.rendezvous.etcd_store.EtcdStore](https://pytorch.org/docs/2.9/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_store.EtcdStore)
 
 **产品支持情况**：
+<!-- end id387 -->
 
 <!-- npu="910b" id151 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1049,10 +1075,8 @@
 <!-- npu="A3" id152 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id152 -->
-<!-- npu="950" id153 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id153 -->
 
+<!-- npu="910b,A3" id388 -->
 > <font size="3">add()</font>
 
 <div style="margin-left: 2em">
@@ -1060,6 +1084,7 @@
 **原生文档**：[torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.add](https://pytorch.org/docs/2.9/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.add)
 
 **产品支持情况**：
+<!-- end id388 -->
 
 <!-- npu="910b" id154 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1067,12 +1092,12 @@
 <!-- npu="A3" id155 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id155 -->
-<!-- npu="950" id156 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id156 -->
 
+<!-- npu="910b,A3" id389 -->
 </div>
+<!-- end id389 -->
 
+<!-- npu="910b,A3" id390 -->
 > <font size="3">check()</font>
 
 <div style="margin-left: 2em">
@@ -1080,6 +1105,7 @@
 **原生文档**：[torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.check](https://pytorch.org/docs/2.9/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.check)
 
 **产品支持情况**：
+<!-- end id390 -->
 
 <!-- npu="910b" id157 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1087,12 +1113,12 @@
 <!-- npu="A3" id158 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id158 -->
-<!-- npu="950" id159 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id159 -->
 
+<!-- npu="910b,A3" id391 -->
 </div>
+<!-- end id391 -->
 
+<!-- npu="910b,A3" id392 -->
 > <font size="3">get()</font>
 
 <div style="margin-left: 2em">
@@ -1100,6 +1126,7 @@
 **原生文档**：[torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.get](https://pytorch.org/docs/2.9/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.get)
 
 **产品支持情况**：
+<!-- end id392 -->
 
 <!-- npu="910b" id160 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1107,12 +1134,12 @@
 <!-- npu="A3" id161 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id161 -->
-<!-- npu="950" id162 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id162 -->
 
+<!-- npu="910b,A3" id393 -->
 </div>
+<!-- end id393 -->
 
+<!-- npu="910b,A3" id394 -->
 > <font size="3">set()</font>
 
 <div style="margin-left: 2em">
@@ -1120,6 +1147,7 @@
 **原生文档**：[torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.set](https://pytorch.org/docs/2.9/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.set)
 
 **产品支持情况**：
+<!-- end id394 -->
 
 <!-- npu="910b" id163 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1127,12 +1155,12 @@
 <!-- npu="A3" id164 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id164 -->
-<!-- npu="950" id165 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id165 -->
 
+<!-- npu="910b,A3" id395 -->
 </div>
+<!-- end id395 -->
 
+<!-- npu="910b,A3" id396 -->
 > <font size="3">wait()</font>
 
 <div style="margin-left: 2em">
@@ -1140,6 +1168,7 @@
 **原生文档**：[torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.wait](https://pytorch.org/docs/2.9/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.wait)
 
 **产品支持情况**：
+<!-- end id396 -->
 
 <!-- npu="910b" id166 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1147,33 +1176,13 @@
 <!-- npu="A3" id167 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id167 -->
-<!-- npu="950" id168 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id168 -->
+
+<!-- npu="910b,A3" id397 -->
+</div>
+<!-- end id397 -->
 
 </div>
-
-</div>
-
-### <code><i>class</i></code> torch.distributed.elastic.rendezvous.etcd_server.EtcdServer
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.distributed.elastic.rendezvous.etcd_server.EtcdServer](https://pytorch.org/docs/2.9/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_server.EtcdServer)
-
-**产品支持情况**：
-
-<!-- npu="910b" id169 -->
-- <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id169 -->
-<!-- npu="A3" id170 -->
-- <term>Atlas A3训练系列产品</term>：不支持
-<!-- end id170 -->
-<!-- npu="950" id171 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id171 -->
-
-</div>
+<!-- end id433 -->
 
 ### <code><i>class</i></code> torch.distributed.elastic.rendezvous.RendezvousHandler
 
@@ -1333,6 +1342,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id398 -->
 > <font size="3">use_agent_store()</font>
 
 <div style="margin-left: 2em">
@@ -1340,6 +1350,7 @@
 **原生文档**：[torch.distributed.elastic.rendezvous.RendezvousHandler.use_agent_store](https://pytorch.org/docs/2.9/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.RendezvousHandler.use_agent_store)
 
 **产品支持情况**：
+<!-- end id398 -->
 
 <!-- npu="910b" id196 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1347,14 +1358,14 @@
 <!-- npu="A3" id197 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id197 -->
-<!-- npu="950" id198 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id198 -->
+
+<!-- npu="910b,A3" id399 -->
+</div>
+<!-- end id399 -->
 
 </div>
 
-</div>
-
+<!-- npu="910b,A3" id400 -->
 ### <code><i>class</i></code> torch.distributed.elastic.rendezvous.RendezvousInfo
 
 <div style="margin-left: 2em">
@@ -1362,6 +1373,7 @@
 **原生文档**：[torch.distributed.elastic.rendezvous.RendezvousInfo](https://pytorch.org/docs/2.9/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.RendezvousInfo)
 
 **产品支持情况**：
+<!-- end id400 -->
 
 <!-- npu="910b" id199 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1369,12 +1381,12 @@
 <!-- npu="A3" id200 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id200 -->
-<!-- npu="950" id201 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id201 -->
 
+<!-- npu="910b,A3" id401 -->
 </div>
+<!-- end id401 -->
 
+<!-- npu="910b,A3" id402 -->
 ### <code><i>class</i></code> torch.distributed.elastic.rendezvous.api.RendezvousClosedError
 
 <div style="margin-left: 2em">
@@ -1382,6 +1394,7 @@
 **原生文档**：[torch.distributed.elastic.rendezvous.api.RendezvousClosedError](https://pytorch.org/docs/2.9/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.api.RendezvousClosedError)
 
 **产品支持情况**：
+<!-- end id402 -->
 
 <!-- npu="910b" id202 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1389,12 +1402,12 @@
 <!-- npu="A3" id203 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id203 -->
-<!-- npu="950" id204 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id204 -->
 
+<!-- npu="910b,A3" id403 -->
 </div>
+<!-- end id403 -->
 
+<!-- npu="910b,A3" id404 -->
 ### <code><i>class</i></code> torch.distributed.elastic.rendezvous.api.RendezvousTimeoutError
 
 <div style="margin-left: 2em">
@@ -1402,6 +1415,7 @@
 **原生文档**：[torch.distributed.elastic.rendezvous.api.RendezvousTimeoutError](https://pytorch.org/docs/2.9/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.api.RendezvousTimeoutError)
 
 **产品支持情况**：
+<!-- end id404 -->
 
 <!-- npu="910b" id205 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1409,12 +1423,12 @@
 <!-- npu="A3" id206 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id206 -->
-<!-- npu="950" id207 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id207 -->
 
+<!-- npu="910b,A3" id405 -->
 </div>
+<!-- end id405 -->
 
+<!-- npu="910b,A3" id406 -->
 ### <code><i>class</i></code> torch.distributed.elastic.rendezvous.api.RendezvousConnectionError
 
 <div style="margin-left: 2em">
@@ -1422,6 +1436,7 @@
 **原生文档**：[torch.distributed.elastic.rendezvous.api.RendezvousConnectionError](https://pytorch.org/docs/2.9/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.api.RendezvousConnectionError)
 
 **产品支持情况**：
+<!-- end id406 -->
 
 <!-- npu="910b" id208 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1429,12 +1444,12 @@
 <!-- npu="A3" id209 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id209 -->
-<!-- npu="950" id210 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id210 -->
 
+<!-- npu="910b,A3" id407 -->
 </div>
+<!-- end id407 -->
 
+<!-- npu="910b,A3" id408 -->
 ### <code><i>class</i></code> torch.distributed.elastic.rendezvous.api.RendezvousStateError
 
 <div style="margin-left: 2em">
@@ -1442,6 +1457,7 @@
 **原生文档**：[torch.distributed.elastic.rendezvous.api.RendezvousStateError](https://pytorch.org/docs/2.9/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.api.RendezvousStateError)
 
 **产品支持情况**：
+<!-- end id408 -->
 
 <!-- npu="910b" id211 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1449,19 +1465,23 @@
 <!-- npu="A3" id212 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id212 -->
-<!-- npu="950" id213 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id213 -->
 
+<!-- npu="910b,A3" id409 -->
 </div>
+<!-- end id409 -->
 
+<!-- npu="910b,A3" id434 -->
+<!-- npu="910b,A3" id410 -->
 ### <code><i>class</i></code> torch.distributed.elastic.rendezvous.api.RendezvousStoreInfo
+<!-- end id410 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id411 -->
 **原生文档**：[torch.distributed.elastic.rendezvous.api.RendezvousStoreInfo](https://pytorch.org/docs/2.9/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.api.RendezvousStoreInfo)
 
 **产品支持情况**：
+<!-- end id411 -->
 
 <!-- npu="910b" id214 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1469,10 +1489,8 @@
 <!-- npu="A3" id215 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id215 -->
-<!-- npu="950" id216 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id216 -->
 
+<!-- npu="910b,A3" id412 -->
 > <font size="3">build()</font>
 
 <div style="margin-left: 2em">
@@ -1480,6 +1498,7 @@
 **原生文档**：[torch.distributed.elastic.rendezvous.api.RendezvousStoreInfo.build](https://pytorch.org/docs/2.9/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.api.RendezvousStoreInfo.build)
 
 **产品支持情况**：
+<!-- end id412 -->
 
 <!-- npu="910b" id217 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1487,13 +1506,13 @@
 <!-- npu="A3" id218 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id218 -->
-<!-- npu="950" id219 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id219 -->
+
+<!-- npu="910b,A3" id413 -->
+</div>
+<!-- end id413 -->
 
 </div>
-
-</div>
+<!-- end id434 -->
 
 ### <code><i>class</i></code> torch.distributed.elastic.rendezvous.dynamic_rendezvous.DynamicRendezvousHandler
 
@@ -1795,13 +1814,18 @@
 
 </div>
 
+<!-- npu="910b,A3" id435 -->
+<!-- npu="910b,A3" id414 -->
 ### <code><i>class</i></code> torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend
+<!-- end id414 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id415 -->
 **原生文档**：[torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend](https://pytorch.org/docs/2.9/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend)
 
 **产品支持情况**：
+<!-- end id415 -->
 
 <!-- npu="910b" id265 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1809,10 +1833,8 @@
 <!-- npu="A3" id266 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id266 -->
-<!-- npu="950" id267 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id267 -->
 
+<!-- npu="910b,A3" id416 -->
 > <font size="3">get_state()</font>
 
 <div style="margin-left: 2em">
@@ -1820,6 +1842,7 @@
 **原生文档**：[torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.get_state](https://pytorch.org/docs/2.9/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.get_state)
 
 **产品支持情况**：
+<!-- end id416 -->
 
 <!-- npu="910b" id268 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1827,12 +1850,12 @@
 <!-- npu="A3" id269 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id269 -->
-<!-- npu="950" id270 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id270 -->
 
+<!-- npu="910b,A3" id417 -->
 </div>
+<!-- end id417 -->
 
+<!-- npu="910b,A3" id418 -->
 > <font size="3">name()</font>
 
 <div style="margin-left: 2em">
@@ -1840,6 +1863,7 @@
 **原生文档**：[torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.name](https://pytorch.org/docs/2.9/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.name)
 
 **产品支持情况**：
+<!-- end id418 -->
 
 <!-- npu="910b" id271 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1847,12 +1871,12 @@
 <!-- npu="A3" id272 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id272 -->
-<!-- npu="950" id273 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id273 -->
 
+<!-- npu="910b,A3" id419 -->
 </div>
+<!-- end id419 -->
 
+<!-- npu="910b,A3" id420 -->
 > <font size="3">set_state()</font>
 
 <div style="margin-left: 2em">
@@ -1860,6 +1884,7 @@
 **原生文档**：[torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.set_state](https://pytorch.org/docs/2.9/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.set_state)
 
 **产品支持情况**：
+<!-- end id420 -->
 
 <!-- npu="910b" id274 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1867,13 +1892,13 @@
 <!-- npu="A3" id275 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id275 -->
-<!-- npu="950" id276 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id276 -->
+
+<!-- npu="910b,A3" id421 -->
+</div>
+<!-- end id421 -->
 
 </div>
-
-</div>
+<!-- end id435 -->
 
 ## Expiration Timers
 
@@ -2179,6 +2204,7 @@
 
 ## Metrics
 
+<!-- npu="910b,A3" id422 -->
 ### <code><i>class</i></code> torch.distributed.elastic.metrics.api.MetricHandler
 
 <div style="margin-left: 2em">
@@ -2186,6 +2212,7 @@
 **原生文档**：[torch.distributed.elastic.metrics.api.MetricHandler](https://pytorch.org/docs/2.9/elastic/metrics.html#torch.distributed.elastic.metrics.api.MetricHandler)
 
 **产品支持情况**：
+<!-- end id422 -->
 
 <!-- npu="910b" id322 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -2193,11 +2220,10 @@
 <!-- npu="A3" id323 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id323 -->
-<!-- npu="950" id324 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id324 -->
 
+<!-- npu="910b,A3" id423 -->
 </div>
+<!-- end id423 -->
 
 ### <code><i>class</i></code> torch.distributed.elastic.metrics.api.ConsoleMetricHandler
 
@@ -2401,6 +2427,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id424 -->
 ### torch.distributed.elastic.events.construct_and_record_rdzv_event
 
 <div style="margin-left: 2em">
@@ -2408,6 +2435,7 @@
 **原生文档**：[torch.distributed.elastic.events.construct_and_record_rdzv_event](https://pytorch.org/docs/2.9/elastic/events.html#torch.distributed.elastic.events.construct_and_record_rdzv_event)
 
 **产品支持情况**：
+<!-- end id424 -->
 
 <!-- npu="910b" id355 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -2415,14 +2443,15 @@
 <!-- npu="A3" id356 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id356 -->
-<!-- npu="950" id357 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id357 -->
 
+<!-- npu="910b,A3" id425 -->
 </div>
+<!-- end id425 -->
 
+<!-- npu="910b,A3" id429 -->
 ## Control Plane
 
+<!-- npu="910b,A3" id426 -->
 ### torch.distributed.elastic.control_plane.worker_main
 
 <div style="margin-left: 2em">
@@ -2430,6 +2459,7 @@
 **原生文档**：[torch.distributed.elastic.control_plane.worker_main](https://pytorch.org/docs/2.9/elastic/control_plane.html#torch.distributed.elastic.control_plane.worker_main)
 
 **产品支持情况**：
+<!-- end id426 -->
 
 <!-- npu="910b" id358 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -2437,8 +2467,8 @@
 <!-- npu="A3" id359 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id359 -->
-<!-- npu="950" id360 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id360 -->
 
+<!-- npu="910b,A3" id427 -->
 </div>
+<!-- end id427 -->
+<!-- end id429 -->

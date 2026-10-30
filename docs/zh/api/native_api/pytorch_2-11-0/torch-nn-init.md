@@ -317,6 +317,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id45 -->
 ### torch.nn.init.sparse_
 
 <div style="margin-left: 2em">
@@ -324,6 +325,7 @@
 **原生文档**：[torch.nn.init.sparse_](https://pytorch.org/docs/2.11/nn.init.html#torch.nn.init.sparse_)
 
 **产品支持情况**：
+<!-- end id45 -->
 
 <!-- npu="910b" id43 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -331,10 +333,9 @@
 <!-- npu="A3" id44 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id44 -->
-<!-- npu="950" id45 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id45 -->
 
+<!-- npu="910b,A3" id46 -->
 **限制与说明**：`tensor`仅支持fp32
 
 </div>
+<!-- end id46 -->

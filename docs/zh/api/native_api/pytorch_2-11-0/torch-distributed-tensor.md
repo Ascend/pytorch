@@ -66,6 +66,26 @@
 
 </div>
 
+> <font size="3">full_tensor()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.tensor.DTensor.full_tensor](https://docs.pytorch.org/docs/2.11/distributed.tensor.html#torch.distributed.tensor.DTensor.full_tensor)
+
+**产品支持情况**：
+
+<!-- npu="910b" id37 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id37 -->
+<!-- npu="A3" id38 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id38 -->
+<!-- npu="950" id39 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id39 -->
+
+</div>
+
 > <font size="3">redistribute()</font>
 
 <div style="margin-left: 2em">
@@ -85,6 +105,26 @@
 <!-- end id9 -->
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64，bool
+
+</div>
+
+> <font size="3">to_local()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.tensor.DTensor.to_local](https://docs.pytorch.org/docs/2.11/distributed.tensor.html#torch.distributed.tensor.DTensor.to_local)
+
+**产品支持情况**：
+
+<!-- npu="910b" id40 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id40 -->
+<!-- npu="A3" id41 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id41 -->
+<!-- npu="950" id42 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id42 -->
 
 </div>
 
@@ -131,6 +171,26 @@
 <!-- end id15 -->
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64，bool
+
+</div>
+
+### <code><i>class</i></code> torch.distributed.tensor.placement_types.Replicate
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.tensor.placement_types.Replicate](https://docs.pytorch.org/docs/2.11/distributed.tensor.html#torch.distributed.tensor.placement_types.Replicate)
+
+**产品支持情况**：
+
+<!-- npu="910b" id34 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id34 -->
+<!-- npu="A3" id35 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id35 -->
+<!-- npu="950" id36 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id36 -->
 
 </div>
 

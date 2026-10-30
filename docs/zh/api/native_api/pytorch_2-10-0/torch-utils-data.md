@@ -42,6 +42,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id61 -->
 ### <code><i>class</i></code> torch.utils.data.StackDataset
 
 <div style="margin-left: 2em">
@@ -49,6 +50,7 @@
 **原生文档**：[torch.utils.data.StackDataset](https://pytorch.org/docs/2.10/data.html#torch.utils.data.StackDataset)
 
 **产品支持情况**：
+<!-- end id61 -->
 
 <!-- npu="910b" id4 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -56,11 +58,10 @@
 <!-- npu="A3" id5 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id5 -->
-<!-- npu="950" id6 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id6 -->
 
+<!-- npu="910b,A3" id62 -->
 </div>
+<!-- end id62 -->
 
 ### <code><i>class</i></code> torch.utils.data.ConcatDataset
 
