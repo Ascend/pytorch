@@ -701,7 +701,10 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id60 -->
 
-**限制与说明**： `obj`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**：
+
+- `obj`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool。
+- 当`obj`为NPU张量且`copy=False`时，请省略`device`或指定与输入张量一致的完整设备名（如`npu:0`）；使用不带设备编号的`npu`会报设备不匹配错误。
 
 </div>
 
