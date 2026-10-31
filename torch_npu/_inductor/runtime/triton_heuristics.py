@@ -1257,7 +1257,15 @@ class NPUCachingAutotuner(CachingAutotuner):
 
         bin_type = "npubin"
         binary = input_launcher.bin.asm[bin_type]  # npubin type = npubin
-        CudaKernelParamCache.set(key, params, binary, bin_type='cubin')  # CudaKernelParam
+        # AOTI 打包（package_cpp_only）路径下，CudaKernelParamCache.set 会要求
+        # 同时提供 kernel IR（asm/asm_type）。Ascend backend 的 ttadapter
+        # stage 就是该 IR，这里一并落盘。
+        asm_type = "ttadapter"
+        asm = input_launcher.bin.asm.get(asm_type)
+        CudaKernelParamCache.set(
+            key, params, binary,
+            bin_type="cubin", asm=asm, asm_type=asm_type,
+        )  # CudaKernelParam
 
         self.cuda_kernel_saved = True
 
