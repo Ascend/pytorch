@@ -9,6 +9,12 @@ concurrency:
     events: [mr_id]
 
 on:
+  pull_request:
+    types: [ open, reopen ]
+    branches: [ "master" ]
+    paths:
+      - ".gitcode/**"
+
   pr_comment:
     types: [created]
     keyword: '^compile$'
