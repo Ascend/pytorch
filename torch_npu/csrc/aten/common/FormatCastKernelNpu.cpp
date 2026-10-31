@@ -11,7 +11,7 @@
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/GetCANNInfo.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
-#include "torch_npu/csrc/custom_dtype/Init.h"
+#include "torch_npu/csrc/custom_dtype/CustomDType.h"
 #include "third_party/op-plugin/op_plugin/utils/op_api_common.h"
 
 namespace at_npu {
