@@ -12,6 +12,7 @@ import sys
 import textwrap
 
 from torch_npu.testing.testcase import TestCase, run_tests
+from version_mark import runIfVersion
 
 
 class TestCompileOptionsColdStart(TestCase):
@@ -33,6 +34,7 @@ class TestCompileOptionsColdStart(TestCase):
             f"STDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}",
         )
 
+    @runIfVersion(max="2.13")
     def test_first_compile_keeps_backend_and_device_lazy(self):
         self._run_fresh("""
             import sys
@@ -74,6 +76,7 @@ class TestCompileOptionsColdStart(TestCase):
             assert not torch.npu.is_initialized()
         """)
 
+    @runIfVersion(max="2.13")
     def test_triton_cache_key_does_not_initialize_npu(self):
         self._run_fresh("""
             import torch
@@ -98,6 +101,7 @@ class TestCompileOptionsColdStart(TestCase):
             assert not torch.npu.is_initialized()
         """)
 
+    @runIfVersion(max="2.13")
     def test_ascend_triton_backend_import_keeps_npu_lazy(self):
         self._run_fresh("""
             import torch
@@ -118,6 +122,7 @@ class TestCompileOptionsColdStart(TestCase):
             assert patch_triton_target_no_device_init() is False
         """)
 
+    @runIfVersion(max="2.13")
     def test_triton_target_patch_is_idempotent(self):
         self._run_fresh("""
             import sys
