@@ -60,7 +60,7 @@ stages:
     jobs:
       Detect_file_changes:
         name: Detect_file_changes
-        runs-on: [ self-hosted, default, x86, cpu=16 ]
+        runs-on: [ self-hosted, default, x86, cpu=2 ]
         container:
           image: swr.cn-north-4.myhuaweicloud.com/pytorch_images_x86/pytorchx86:v_03
         outputs:
@@ -122,7 +122,7 @@ stages:
       associate_pr_comment:
         name: associate_pr_comment
         select: selected_by_default
-        runs-on: [ self-hosted, default, x86, cpu=16 ]
+        runs-on: [ self-hosted, default, x86, cpu=2 ]
         container:
           image: swr.cn-north-4.myhuaweicloud.com/pytorch_images_x86/pytorchx86:v_03
         steps:
@@ -146,7 +146,7 @@ stages:
       lintrunner:
         name: CodeCheck_lintrunner
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
-        runs-on: [ self-hosted, default, x86, cpu=16 ]
+        runs-on: [ self-hosted, default, x86, cpu=2 ]
         container:
           image: swr.cn-north-4.myhuaweicloud.com/atlas-ci/common:latest
         steps:
@@ -185,7 +185,7 @@ stages:
 
       sca-pr:
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
-        runs-on: [ self-hosted, default, x86, cpu=16 ]
+        runs-on: [ self-hosted, default, x86, cpu=2 ]
         container:
           image: swr.cn-north-4.myhuaweicloud.com/pytorch_images_x86/pytorchx86:v_03
         steps:
@@ -198,7 +198,7 @@ stages:
 
       malicious-scan:
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
-        runs-on: [ self-hosted, default, x86, cpu=16 ]
+        runs-on: [ self-hosted, default, x86, cpu=2 ]
         container:
           image: swr.cn-north-4.myhuaweicloud.com/pytorch_images_x86/pytorchx86:v_03
         steps:
@@ -214,7 +214,7 @@ stages:
       img_select:
         name: img_select
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
-        runs-on: [ self-hosted, default, x86, cpu=16 ]
+        runs-on: [ self-hosted, default, x86, cpu=2 ]
         container:
           image: swr.cn-north-4.myhuaweicloud.com/pytorch_images_x86/pytorchx86:v_03
         outputs:
@@ -286,7 +286,7 @@ stages:
           runs_on_arch: "arm"
 
       Build_x86_onetrack:
-        name: Build_x86
+        name: Build_x86_onetrack
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && env.target_branch == 'master' }}
         uses: .gitcode/workflows/build_job.yml
         with:
@@ -295,7 +295,7 @@ stages:
           runs_on_arch: "x86"
 
       Build_arm_onetrack:
-        name: Build_arm
+        name: Build_arm_onetrack
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && env.target_branch == 'master' }}
         uses: .gitcode/workflows/build_job.yml
         with:
