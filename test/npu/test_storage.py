@@ -1,4 +1,6 @@
 import copy
+import unittest
+
 import torch
 import torch_npu
 
@@ -490,7 +492,6 @@ class TestStorage(TestCase):
             self.assertIsInstance(getattr(y.float().cpu(), dtype)(), getattr(torch, dtype.title() + "Storage"))
 
     def test_deepcopy(self):
-        torch_npu.npu.config.allow_internal_format = True
         x = torch.tensor([1])
         y = copy.deepcopy(x)
 
@@ -498,6 +499,11 @@ class TestStorage(TestCase):
         y = copy.deepcopy(x)
         self.assertNotEqual(x.storage().data_ptr(), y.storage().data_ptr())
 
+    @unittest.skipIf(
+        torch_npu.npu.get_device_name(0).startswith("Ascend950"),
+        "internal-format clone is not supported on aclnn-only Ascend950")
+    def test_deepcopy_internal_format(self):
+        torch_npu.npu.config.allow_internal_format = True
         x = torch.rand(3, 3).npu()
         x = torch_npu.npu_format_cast(x, 29)
         y = copy.deepcopy(x)
