@@ -773,7 +773,7 @@ def gen_dispatcher_registrations(
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #ifndef BUILD_LIBTORCH
-#include "torch_npu/csrc/profiler/utils.h"
+#include "torch_npu/csrc/profiler/record_function.h"
 #endif
 
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"

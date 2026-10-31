@@ -11,7 +11,7 @@
 #include "torch_npu/csrc/framework/InferFormat.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #ifndef BUILD_LIBTORCH
-#include "torch_npu/csrc/profiler/utils.h"
+#include "torch_npu/csrc/profiler/record_function.h"
 #endif
 #include "torch_npu/csrc/core/npu/npu_log.h"
 

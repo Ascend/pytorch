@@ -32,7 +32,7 @@
 #include "torch_npu/csrc/npu/Stress_detect.h"
 #include "torch_npu/csrc/utils/TensorType.h"
 #include "torch_npu/csrc/utils/AutocastMode.h"
-#include "torch_npu/csrc/core/npu/NPURecovery.h"
+#include "torch_npu/csrc/core/npu/NPURecoveryBindings.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUInterruptAffinity.h"
 #include "torch_npu/csrc/profiler/python/combined_traceback.h"

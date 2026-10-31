@@ -281,6 +281,8 @@ def copy_hpp():
             "torch_npu/csrc/inductor/**/*.h",
             "torch_npu/csrc/distributed/*.h",
             "torch_npu/csrc/distributed/*.hpp",
+            "torch_npu/csrc/custom_dtype/CustomDType.h",
+            "torch_npu/csrc/profiler/record_function.h",
             "third_party/acl/inc/*/*.h",
             "third_party/acl/inc/*/*/*.h",
             "third_party/hccl/inc/*/*.h",
@@ -292,6 +294,8 @@ def copy_hpp():
             )
 
         for src in glob_header_files:
+            if os.path.relpath(src, BASE_DIR).replace(os.sep, "/") == "torch_npu/csrc/core/npu/NPURecoveryBindings.h":
+                continue
             dst = os.path.join(
                 os.path.join(BASE_DIR, "libtorch_npu/include/torch_npu"),
                 os.path.relpath(src, os.path.join(BASE_DIR, "torch_npu")),
