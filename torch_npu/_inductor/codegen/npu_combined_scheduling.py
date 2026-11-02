@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 import sympy
 
+from torch._inductor import metrics
 from torch._inductor.codegen.cuda_combined_scheduling import CUDACombinedScheduling
 from torch._inductor.codegen.triton import TritonScheduling
 from torch._inductor.scheduler import (
@@ -130,9 +131,11 @@ class NPUCombinedScheduling(CUDACombinedScheduling, TritonScheduling):
             )
 
         if use_linear:
+            kernel_count = metrics.generated_kernel_count
             try:
                 return self._triton_scheduling.codegen_node(node)
             except Exception:
+                metrics.generated_kernel_count = kernel_count
                 log.debug(
                     "linear codegen for node %s raise error, fallback to origin codegen",
                     node,
