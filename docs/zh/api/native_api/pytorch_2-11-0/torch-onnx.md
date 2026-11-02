@@ -341,6 +341,26 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id50 -->
 
+> <font size="3"><code><i>classmethod</i></code> from_tensors()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.onnx.verification.VerificationInfo.from_tensors](https://pytorch.org/docs/2.11/onnx_verification.html#torch.onnx.verification.VerificationInfo.from_tensors)
+
+**产品支持情况**：
+
+<!-- npu="910b" id51 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id51 -->
+<!-- npu="A3" id52 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id52 -->
+<!-- npu="950" id53 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id53 -->
+
+</div>
+
 **限制与说明**：`from_tensors`通过`.cpu()`将输入复制到CPU后计算差异直方图；输入张量可位于NPU，接口本身不保证差异计算在NPU上执行。
 
 </div>
