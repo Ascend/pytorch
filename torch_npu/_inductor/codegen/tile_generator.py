@@ -3,6 +3,7 @@ import functools
 import math
 import os
 import sys
+from operator import index as integer_index
 from torch._inductor.runtime.runtime_utils import next_power_of_2
 from torch._inductor.runtime.triton_heuristics import Config
 
@@ -29,15 +30,16 @@ class TileGenerator:
         self.sub_blocks = self.blocks.copy()
         self.axis_name = axis_names
         self.tiling_axis = tiling_axis
-        self.no_loop_axis = no_loop_axis
+        # Runtime pins belong to this search, not the caller's codegen metadata.
+        self.no_loop_axis = list(no_loop_axis)
         self.split_axis = split_axis
         self.low_dims = low_dims
         self.configs = []
         self.dtype_bytes = get_byte_per_numel(dtype)
+        self.persistent_reduction = persistent_reduction
         self.rebuild_dynamic_axis()
         self.block_name = {}
         self.sub_block_name = {}
-        self.persistent_reduction = persistent_reduction
         self.dual_reduction = dual_reduction
         self.npu_kernel_type = npu_kernel_type
         self.max_total_numel = functools.reduce(lambda x, y: x * y, self.blocks) if self.blocks else 1
@@ -74,19 +76,39 @@ class TileGenerator:
 
 
     def rebuild_dynamic_axis(self):
-        if len(self.tiling_axis) > 3 and not self.no_loop_axis:
-            current_numels = 1
-            for low_dim in self.low_dims:
-                if self.axis_name[low_dim] == 'r':
-                    continue
-                current_numels *= self.numels[low_dim]
-                if current_numels * self.dtype_bytes > 4 * 1024:
-                    return
-                self.no_loop_axis.append(low_dim)
+        """Add optional runtime no-loop pins using the codegen footprint rule.
+
+        A persistent reduction stays resident together with a pinned output
+        tile. Account for the reduction before considering output axes. Explicit
+        codegen pins are preserved; dynamic extents add no optional pins.
+        """
+        if len(self.tiling_axis) <= 3 or self.no_loop_axis:
+            return
+        try:
+            numels = [integer_index(numel) for numel in self.numels]
+        except (TypeError, ValueError):
+            return
+        if any(numel <= 0 for numel in numels):
+            return
+        current_numels = 1
+        if self.persistent_reduction:
+            for axis in self.tiling_axis:
+                if self.axis_name[axis].startswith("r"):
+                    current_numels *= numels[axis]
+        # Same low-dim priority as codegen, deterministic across set ordering.
+        for axis in sorted(self.low_dims, key=lambda item: (numels[item], item)):
+            if (axis not in self.tiling_axis or axis in self.split_axis
+                    or self.axis_name[axis].startswith("r")):
+                continue
+            candidate_numels = current_numels * numels[axis]
+            if candidate_numels * self.dtype_bytes > 4 * 1024:
+                return
+            self.no_loop_axis.append(axis)
+            current_numels = candidate_numels
 
 
     def reset_configs(self):
-        self.config = []
+        self.configs = []
         self.blocks = [x for x in self.numels]
         self.candidate_blocks = []
         self.sub_blocks = self.blocks.copy()

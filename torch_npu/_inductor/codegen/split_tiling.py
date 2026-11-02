@@ -4,6 +4,7 @@ import torch
 from torch._inductor.codegen.simd import EnableReduction, DisableReduction
 from torch._inductor.codegen.triton import TritonKernel
 from torch._inductor.dependencies import MemoryDep
+from torch._inductor.ir import FloorDiv
 from torch._inductor.loop_body import MemoryUsageType
 from torch._inductor.runtime.runtime_utils import next_power_of_2
 from torch._inductor.utils import ModularIndexing, sympy_subs
@@ -34,6 +35,89 @@ def _add_wide_group_midpoints(boundaries):
     return tuple(expanded)
 
 
+def _has_indirect_reduction(kernel):
+    if not any(axis.prefix == "r" for axis in kernel.range_tree_nodes.values()):
+        return False
+    for node in kernel.node_schedule:
+        if node in (EnableReduction, DisableReduction):
+            continue
+        body = node._body
+        mappings = getattr(body, "indirect_replacements", {})
+        if any(body.indexing[read.index_name].free_symbols & mappings.keys()
+               for read in body.memory_usage.get(MemoryUsageType.LOAD, ())):
+            return True
+    return False
+
+
+def reorder_sorted_axis(kernel):
+    """Reorder non-reduction sorted axes by approximate indirect-load strides.
+
+    Substitute mappings for analysis and add signed contributions to each axis.
+    Sort non-reduction axes by descending magnitude while keeping reduction axes
+    in their existing sorted_axis slots. range_tree_nodes is left unchanged.
+    Division and modulo use local reciprocal-divisor weights without changing
+    runtime expressions. Apply the first candidate covering every original axis.
+    """
+    if not _has_indirect_reduction(kernel):
+        return False
+
+    axes = kernel.sorted_axis
+    symbols = {axis.symbol() for axis in kernel.range_tree_nodes.values()}
+    if len(axes) != len(symbols) or {axis.symbol() for axis in axes} != symbols:
+        return False
+
+    def axis_weights(expr):
+        weights = {}
+
+        def collect(value, weight):
+            if not value.free_symbols:
+                return True
+            if value.is_Symbol:
+                if value not in symbols:
+                    return False
+                weights[value] = weights.get(value, 0) + weight
+                return True
+            if isinstance(value, (FloorDiv, ModularIndexing)):
+                if any(not part.is_Integer or part <= 0 for part in value.args[1:]):
+                    return False
+                return collect(value.args[0], weight / value.args[1])
+            if value.func == sympy.floor:
+                numerator, denominator = value.args[0].as_numer_denom()
+                return (denominator.is_Integer and denominator > 0
+                        and collect(numerator, weight / denominator))
+            terms = sympy.expand(value).as_coefficients_dict()
+            if len(terms) == 1 and value in terms:
+                return False
+            return all(coefficient.is_Rational and collect(term, weight * coefficient)
+                       for term, coefficient in terms.items() if term.free_symbols)
+
+        if not collect(expr, sympy.Integer(1)):
+            return None
+        return weights
+
+    for node in kernel.node_schedule:
+        if node in (EnableReduction, DisableReduction):
+            continue
+        body = node._body
+        mappings = getattr(body, "indirect_replacements", {})
+        for read in body.memory_usage.get(MemoryUsageType.LOAD, ()):
+            index = body.indexing[read.index_name]
+            if not index.free_symbols & mappings.keys():
+                continue
+            weights = axis_weights(index.xreplace(mappings))
+            if weights is None or set(weights) != symbols:
+                continue
+            non_reduction_axes = iter(sorted(
+                (axis for axis in axes if axis.prefix != "r"),
+                key=lambda axis: (-abs(weights[axis.symbol()]), str(axis.symbol())),
+            ))
+            kernel.sorted_axis = [
+                axis if axis.prefix == "r" else next(non_reduction_axes) for axis in axes
+            ]
+            return True
+    return False
+
+
 # split and tiling axis selector
 class SplitTiling:
     def __init__(self, kernel: TritonKernel):
@@ -41,6 +125,7 @@ class SplitTiling:
         self.indexing = []  # load and store indexing  among all scheduler nodes
         kernel.sorted_axis = [x for x in kernel.range_tree_nodes.values()]
         kernel.sorted_axis.sort(reverse=True, key=self.key)
+        reorder_sorted_axis(kernel)
         for i, dim in enumerate(kernel.sorted_axis):
             dim.sorted_order = i
 

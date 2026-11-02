@@ -1591,8 +1591,14 @@ class NPUIndexTritonKernel(TritonKernel):
         self.decide_codegen_dims_in_kernel()
 
     def _activate_post_reduction_codegen(self):
-        if (
+        plain_sum_epilogue = (
             self.vectorized_welford_axis is None
+            and not self.persistent_reduction
+            and self.numof_reduction_axis() == 1
+            and getattr(self.find_reduction_node(), "reduction_type", None) == "sum"
+        )
+        if (
+            (self.vectorized_welford_axis is None and not plain_sum_epilogue)
             or self._original_compute_buf is not None
             or not self.post_loop_combine._lines
         ):
@@ -1698,9 +1704,58 @@ class NPUIndexTritonKernel(TritonKernel):
             self._mark_store_index_keys()
             self._transform_schedule_indexing()
             self._remove_unused_dim_up_axes()
+            self._normalize_surviving_expansions()
             self._record_store_unified_indexing()
             self._remove_substituted_dims_from_kernel()
             self._finalize_kernel_codegen_dims()
+
+    def _normalize_surviving_expansions(self):
+        """Finish substitutions whose Store guard became obsolete after pruning.
+
+        Only a single, static, full-domain expansion is normalized here. Keep
+        ambiguous/dynamic expansions on the existing guarded path. Indirect
+        values remain runtime loads; only their coordinate-analysis cache is
+        rewritten along with direct indexing.
+        """
+        replacements = {}
+        for parent, candidates in self.range_tree_nodes_substituted.items():
+            if len(candidates) != 1 or parent not in self.range_tree_nodes:
+                continue
+            numel, expr = candidates[0]
+            node = self.range_tree_nodes[parent]
+            if not isinstance(numel, sympy.Integer) or node.length != numel:
+                continue
+            if parent in expr.free_symbols or not expr.free_symbols <= self.range_tree_nodes.keys():
+                continue
+            replacements[parent] = expr
+
+        def resolve(parent, visiting):
+            if parent in visiting:
+                return None
+            expr = replacements[parent]
+            nested = {}
+            for symbol in sorted(expr.free_symbols & replacements.keys(), key=str):
+                value = resolve(symbol, visiting | {parent})
+                if value is None:
+                    return None
+                nested[symbol] = value
+            return expr.subs(nested, simultaneous=True)
+
+        resolved = {}
+        for parent in replacements:
+            value = resolve(parent, set())
+            if value is not None:
+                resolved[parent] = value
+        if not resolved:
+            return
+        for node in self._iter_schedule_nodes(self.node_schedule):
+            body = node._body
+            for key, index in body.indexing.items():
+                body.indexing[key] = index.subs(resolved, simultaneous=True)
+            for symbol, index in body.indirect_replacements.items():
+                body.indirect_replacements[symbol] = index.subs(resolved, simultaneous=True)
+            body.masked_indexing = {}
+            body.generate_masked_indexing()
 
 
     def _index_symbol_users(self):
@@ -3558,13 +3613,28 @@ class NPUIndexTritonKernel(TritonKernel):
                     for axis in self.sorted_axis[last_axis_order:]
                     if axis.prefix == "r"
                 )
-            for _ in range(last_axis_order):
+            # Earlier axes remain in scope through the loops emitted by the
+            # first body. Their sorted positions are not the loop depth:
+            # no-loop tiles, substituted sub-axes, and full-static Welford
+            # reduction axes do not introduce a Python loop.
+            outer_loop_depth = sum(
+                axis.name not in sub_axis_to_unified_var
+                and (
+                    not axis.is_tiling_axis
+                    or not (
+                        axis.is_no_loop_axis
+                        or (self.full_static_welford_reduction and axis.prefix == "r")
+                    )
+                )
+                for axis in self.sorted_axis[:last_axis_order]
+            )
+            for _ in range(outer_loop_depth):
                 self.body.do_indent()
             if skip_reduction_axes:
                 write_pointwise(allow_stores=True)
             else:
                 codegen_range(last_axis_order)
-            for _ in range(last_axis_order):
+            for _ in range(outer_loop_depth):
                 self.body.do_unindent()
 
         self.cse.invalidate(self.outside_loop_vars)
