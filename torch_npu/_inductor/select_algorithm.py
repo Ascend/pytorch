@@ -55,7 +55,12 @@ from torch._inductor.codegen.common import IndentedBuffer, RemovedArg
 from torch._inductor.exc import CppCompileError
 from torch.utils._ordered_set import OrderedSet
 
-from .profiler import simple_trace_handler
+from .profiler import (
+    benchmark_npu_for_cv,
+    benchmark_npu_for_cv_batch,
+    get_npu_cv_benchmark_cache_tag,
+    simple_trace_handler,
+)
 from .codegen.triton import gen_common_triton_imports
 from . import config as npu_config
 
@@ -1202,6 +1207,16 @@ def patch_algorithm_selector() -> None:
         def make_benchmark_fn():
             return self.make_benchmark_fn(choices, input_nodes, layout, input_gen_fns)
 
+        @functools.lru_cache(None)
+        def make_scheduler_cv_benchmark_fn():
+            return self.make_benchmark_fn(
+                choices,
+                input_nodes,
+                layout,
+                input_gen_fns,
+                scheduler_cv_benchmark=True,
+            )
+
         inputs_key = create_inputs_key(input_nodes)
 
         def precompile(choices) -> Callable[[], None]:
@@ -1454,6 +1469,61 @@ def patch_algorithm_selector() -> None:
 
             return timings
 
+        def do_scheduler_cv_autotuning(precompile_fn):
+            precompile_start_ts = time.time()
+            with dynamo_timed(
+                f"{name}_template_precompiling",
+                log_pt2_compile_event=True,
+                dynamo_compile_column_us="compile_time_autotune_time_us",
+            ):
+                precompile_fn()
+            precompile_elapse = time.time() - precompile_start_ts
+
+            def autotune_cv(choices):
+                log.debug("Starting scheduler CV autotuning")
+                with dynamo_timed(
+                    f"{name}_template_cv_autotuning",
+                    log_pt2_compile_event=True,
+                    dynamo_compile_column_us="compile_time_autotune_time_us",
+                ):
+                    return make_scheduler_cv_benchmark_fn()(choices)
+
+            autotune_start_ts = time.time()
+            timings = self.lookup(
+                choices,
+                f"{name}_cv_fusion",
+                f"{inputs_key}|{get_npu_cv_benchmark_cache_tag()}",
+                autotune_cv,
+            )
+            autotune_elapse = time.time() - autotune_start_ts
+            log.debug("Scheduler CV autotuning elapsed time: %.02fs", autotune_elapse)
+
+            if timings and all(
+                not math.isfinite(timing) for timing in timings.values()
+            ):
+                raise NoValidChoicesError
+
+            if make_scheduler_cv_benchmark_fn.cache_info().currsize:
+                counters["inductor"]["select_algorithm_autotune"] += 1
+
+            if (
+                make_scheduler_cv_benchmark_fn.cache_info().currsize
+                or log.getEffectiveLevel() == logging.DEBUG
+                or config.trace.log_autotuning_results
+            ):
+                self.log_results(
+                    f"{name}_cv_fusion",
+                    input_nodes,
+                    timings,
+                    autotune_elapse,
+                    precompile_elapse,
+                )
+
+            for feedback_fn in self.feedback_saver_fns:
+                feedback_fn(timings, name, input_nodes, choices)
+
+            return timings
+
         if select_first_compilable_only:
             counters["inductor"]["select_algorithm_precompile"] += 1
             selected_choice = None
@@ -1493,7 +1563,7 @@ def patch_algorithm_selector() -> None:
         if return_multi_template and (config.max_autotune or config.max_autotune_gemm):
 
             def get_timings(hint_override=None):
-                timings = do_autotuning(precompile_fn)
+                timings = do_scheduler_cv_autotuning(precompile_fn)
                 min_extern_choice = float("inf")
                 for choice, timing in timings.items():
                     if isinstance(choice, ExternKernelCaller):
@@ -1564,6 +1634,7 @@ def patch_algorithm_selector() -> None:
         input_nodes: list[ir.IRNode],
         layout: ir.Layout,
         input_gen_fns: Optional[Dict[int, Callable[[ir.Buffer], torch.Tensor]]] = None,
+        scheduler_cv_benchmark: bool = False,
     ) -> Callable:
         """Create a benchmark function for the given choices.
 
@@ -1678,6 +1749,97 @@ def patch_algorithm_selector() -> None:
             if torch.npu.is_available():
                 torch.npu.synchronize()  # shake out any NPU errors
             return result
+
+        def benchmark_scheduler_cv_choices_in_current_process(
+            choices: Union[List[ExternKernelCaller], List[TritonTemplateCaller]],
+        ) -> Dict[Union[ExternKernelCaller, TritonTemplateCaller], float]:
+            inputs = get_inputs(choices)
+            timings = {}
+            runnable_entries = []
+            runnable_choices = []
+
+            for choice in choices:
+                try:
+                    is_extern = isinstance(choice, ExternKernelCaller)
+                    benchmark_tensors = inputs.get_benchmark_tensors(is_extern)
+                    inpts, output = benchmark_tensors.unpack()
+                    inpts = _maybe_reorder_for_catlass_addmm(choice, inpts)
+
+                    def prepare(output=output):
+                        output.zero_()
+
+                    if is_extern:
+                        algo = choice.to_callable()
+                        args = tuple(inpts)
+
+                        def fn(algo=algo, args=args, output=output):
+                            algo(*args, out=output)
+
+                    else:
+                        fn = choice.bmreq.make_run_fn(
+                            *inpts, output_tensor=output
+                        )
+
+                    runnable_entries.append((fn, prepare))
+                    runnable_choices.append(choice)
+                except NPUCompileError as e:
+                    log.error(
+                        "NPU compilation error during CV autotuning: \n%s. \nIgnoring this choice.",
+                        str(e),
+                    )
+                    timings[choice] = float("inf")
+                except NotImplementedError as e:
+                    log.warning("Not yet implemented during CV autotuning: %s", e)
+                    timings[choice] = float("inf")
+                except RuntimeError as e:
+                    msg = str(e)
+                    if "invalid argument" in msg:
+                        msg += "\n\nThis may mean this NPU is too small for max_autotune mode.\n\n"
+                    else:
+                        if "illegal memory access" in msg:
+                            msg += "\n\nEither error in template or triton bug.\n"
+                    log.error(
+                        "Runtime error during CV autotuning setup: \n%s. \nIgnoring this choice.",
+                        msg,
+                    )
+                    timings[choice] = float("inf")
+                except Exception as e:
+                    try:
+                        from triton.runtime.autotuner import OutOfResources
+
+                        if isinstance(e, OutOfResources):
+                            log.warning(e)
+                            timings[choice] = float("inf")
+                        else:
+                            raise e
+                    except ImportError:
+                        raise e from None
+
+            if not runnable_entries:
+                return {choice: timings.get(choice, float("inf")) for choice in choices}
+
+            try:
+                batch_timings = benchmark_npu_for_cv_batch(runnable_entries)
+            except Exception as batch_exc:
+                log.warning(
+                    "CV batch benchmark failed, falling back to per-choice CV benchmark: %s",
+                    batch_exc,
+                )
+                batch_timings = []
+                for fn, prepare in runnable_entries:
+                    try:
+                        batch_timings.append(benchmark_npu_for_cv(fn, prepare))
+                    except Exception as choice_exc:
+                        log.error(
+                            "Runtime error during per-choice CV autotuning: \n%s. \nIgnoring this choice.",
+                            choice_exc,
+                        )
+                        batch_timings.append(float("inf"))
+
+            for choice, timing in zip(runnable_choices, batch_timings):
+                timings[choice] = timing
+
+            return {choice: timings.get(choice, float("inf")) for choice in choices}
 
         def profiling_choices_in_current_process(
             choices: Union[List[ExternKernelCaller], List[TritonTemplateCaller]],
@@ -1859,7 +2021,9 @@ def patch_algorithm_selector() -> None:
 
         from .config import catlass as catlass_config
 
-        if catlass_config.catlass_bench_use_profiling:
+        if scheduler_cv_benchmark:
+            benchmark = benchmark_scheduler_cv_choices_in_current_process
+        elif catlass_config.catlass_bench_use_profiling:
             benchmark = profiling_choices_in_current_process
         else:
             benchmark = (

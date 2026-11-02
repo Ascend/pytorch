@@ -22,7 +22,6 @@ from torch._inductor.codegen.triton import (
     TritonScheduling, BaseSchedulerNode, config, schedule_log,
     get_fused_kernel_name, get_kernel_category_by_source_code, Placeholder,
     get_kernel_metadata, get_path, IndentedBuffer)
-from torch._inductor.runtime.benchmarking import benchmarker
 from torch._inductor.utils import sympy_product
 from torch._inductor.virtualized import V
 from torch._inductor.dependencies import MemoryDep, StarDep
@@ -33,6 +32,7 @@ from .npu_kernel_features import NumelList, NPUKernelFeatures
 from .triton import NPUIndexTritonKernel, NPUTritonKernel, NPUTritonKernelWithLoop, flatten
 from .triton_combo_kernel import NPUComboKernel
 from .. import config as npu_config
+from ..profiler import benchmark_npu_for_cv, get_npu_cv_benchmark_cache_tag
 from ..lowering import (
     create_fx_from_snodes_by_traced_graph,
     create_compile_kwargs,
@@ -872,7 +872,10 @@ class NPUTritonScheduling(TritonScheduling):
 
             def cache_file_path():
                 assert mod.__file__ is not None
-                return os.path.splitext(mod.__file__)[0] + ".kernel_perf"
+                return (
+                    os.path.splitext(mod.__file__)[0]
+                    + f".{get_npu_cv_benchmark_cache_tag()}.kernel_perf"
+                )
 
             def load_cache():
                 path = cache_file_path()
@@ -920,7 +923,7 @@ class NPUTritonScheduling(TritonScheduling):
             else:
                 # We have to clone the inplace updated arguments to avoid earlier calls
                 # generating out of range indices for later calls.
-                ms = benchmarker.benchmark_gpu(
+                ms = benchmark_npu_for_cv(
                     lambda: call(wrapped_jit_function.clone_args(*args)[0])
                 )
 
@@ -928,8 +931,9 @@ class NPUTritonScheduling(TritonScheduling):
                 # in the case of mutating/in-placeable second fusion
                 # the input values between benchmarking
                 if len(wrapped_jit_function.mutated_arg_names) > 0:
-                    ms = ms - benchmarker.benchmark_gpu(
-                        lambda: wrapped_jit_function.clone_args(*args)
+                    ms = ms - benchmark_npu_for_cv(
+                        lambda: wrapped_jit_function.clone_args(*args),
+                        allow_zero=True,
                     )
 
             log.debug(
