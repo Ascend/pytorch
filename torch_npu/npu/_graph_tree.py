@@ -56,6 +56,7 @@ from typing import (
     ContextManager,
     Dict,
     Generator,
+    Iterable,
     Iterator,
     List,
     Optional,
@@ -468,6 +469,7 @@ def npugraphify(
     mutated_input_idxs: Tuple[int, ...] = (),
     compile_id: Optional[Any] = None,
     kernel_free_cudagraph: bool = False,
+    user_visible_output_idxs: Tuple[int, ...] = (),
 ) -> Tuple[ModelType, OutputType]:
     if is_backward and is_inference:
         raise RuntimeError("check is_backward and is_inference fail")
@@ -491,6 +493,7 @@ def npugraphify(
         mutated_input_idxs,
         compile_id,
         kernel_free_cudagraph,
+        user_visible_output_idxs,
     )
 
 
@@ -635,9 +638,91 @@ def map_to_ref(t: Optional[Tensor]) -> Optional[StorageWeakRefWrapper]:
     return StorageWeakRefWrapper(t)
 
 
+def canonical_path_output_index(node: Any, depth: int, idx: int) -> PathOutputIndex:
+    if isinstance(node, NPUGraphNode):
+        alias_info = node.output_storage_alias[idx]
+        if isinstance(alias_info, AliasesPriorGraphOutput):
+            return alias_info.index
+        if isinstance(alias_info, AliasesNewOutput):
+            return (depth, alias_info.index)
+    return (depth, idx)
+
+
+def collect_path_user_visible_storage_groups(
+    path: Tuple[Any, ...],
+) -> Tuple[PathUserVisibleStorageGroup, ...]:
+    """Return path storage-alias groups for user-visible output cloning.
+
+    Starts from user-visible outputs, then includes outputs on the same path
+    that may alias those outputs by recorded storage pointer or alias metadata.
+    This is cached per node path so aliases discovered on a different tree path
+    do not affect the current generation transition.
+    """
+    selected_outputs: OrderedSet[PathOutputIndex] = OrderedSet()
+    selected_alias_outputs: OrderedSet[PathOutputIndex] = OrderedSet()
+    selected_data_ptrs: OrderedSet[int] = OrderedSet()
+
+    for depth, node in enumerate(path):
+        for idx in node.user_visible_output_idxs:
+            if idx >= len(node.outputs_weakrefs):
+                raise RuntimeError(
+                    "check user_visible_output_idxs index outputs_weakrefs fail"
+                )
+            selected_outputs.add((depth, idx))
+            selected_alias_outputs.add(canonical_path_output_index(node, depth, idx))
+
+            storage_ref = node.outputs_weakrefs[idx]
+            if storage_ref is not None:
+                selected_data_ptrs.add(storage_ref.data_ptr())
+
+    for depth, node in enumerate(path):
+        for idx, storage_ref in enumerate(node.outputs_weakrefs):
+            output_index = (depth, idx)
+            alias_index = canonical_path_output_index(node, depth, idx)
+            if (
+                output_index in selected_outputs
+                or alias_index in selected_alias_outputs
+                or storage_ref is not None
+                and storage_ref.data_ptr() in selected_data_ptrs
+            ):
+                selected_outputs.add(output_index)
+
+    entries_by_data_ptr: Dict[int, List[PathUserVisibleOutputEntry]] = {}
+    for depth, idx in selected_outputs:
+        node = path[depth]
+        output_weakrefs = node.outputs_weakrefs
+        storage_ref = output_weakrefs[idx]
+        if storage_ref is None:
+            continue
+
+        cached_tensor_outputs = (
+            node.cached_tensor_outputs if isinstance(node, NPUGraphNode) else None
+        )
+        data_ptr = storage_ref.data_ptr()
+        entries_by_data_ptr.setdefault(data_ptr, []).append(
+            (
+                output_weakrefs,
+                node.tensor_weakrefs,
+                cached_tensor_outputs,
+                idx,
+            )
+        )
+
+    return tuple(tuple(entries) for entries in entries_by_data_ptr.values())
+
+
 # A path index of (depth, offset) indices into a graph that is `depth`` number of nodes from the root
 # at graph output offset
 PathOutputIndex = Tuple[int, int]
+
+# Cached per-node lists and output index to check for user-visible output cloning.
+PathUserVisibleOutputEntry = Tuple[
+    List[Optional[StorageWeakRefWrapper]],
+    List[Optional[TensorWeakRef]],
+    Optional[List[Optional[Tensor]]],
+    int,
+]
+PathUserVisibleStorageGroup = Tuple[PathUserVisibleOutputEntry, ...]
 
 # For each node in the path, for each output, is the output alive
 PathLiveness = List[List[bool]]
@@ -677,6 +762,7 @@ class NPUWarmupNode:
         graph_id: GraphID,
     ) -> None:
         self.wrapped_function = wrapped_function
+        self.user_visible_output_idxs = wrapped_function.user_visible_output_idxs
         self.parent: Optional[Union[NPUGraphNode, NPUWarmupNode]] = parent
         self.npu_graphs_pool = npu_graphs_pool
         self.outputs_weakrefs: List[Optional[StorageWeakRefWrapper]] = []
@@ -780,6 +866,12 @@ class NPUWarmupNode:
 
         yield from reversed(nodes)
 
+    @functools.cached_property
+    def path_user_visible_storage_groups(
+        self,
+    ) -> Tuple[PathUserVisibleStorageGroup, ...]:
+        return collect_path_user_visible_storage_groups(tuple(self._path_from_root))
+
     def path_live_weakrefs(self) -> Iterator[StorageWeakRefWrapper]:
         "Returns all live storages weakrefs that created by nodes in this path"
         for node in self._path_from_root:
@@ -874,6 +966,7 @@ class NPUGraphNode:
         if not isinstance(inputs, (list, tuple)):
             raise RuntimeError("check isinstance(inputs, (list, tuple))")
         self.wrapped_function = wrapped_function
+        self.user_visible_output_idxs = wrapped_function.user_visible_output_idxs
         self.aclgraph_update_plan = getattr(
             wrapped_function.model, ACLGRAPH_UPDATE_PLAN_GLOBAL, None
         ) or []
@@ -1242,6 +1335,7 @@ class NPUGraphNode:
             self._initialize_cached_tensors()
 
         outputs: OutputType = []
+        user_visible_output_idxs = self.user_visible_output_idxs
 
         for i, (storage_info, metadata) in enumerate(
             zip(self.output_storage_alias, self.outputs_metadata)
@@ -1291,6 +1385,8 @@ class NPUGraphNode:
             if w is None:
                 raise RuntimeError("check w is not None fail")
             w.swap_weakref(out.untyped_storage()._weak_ref())
+            if user_visible_output_idxs and i in user_visible_output_idxs:
+                self.tensor_weakrefs[i] = TensorWeakRef(out)
 
         return outputs
 
@@ -1770,6 +1866,12 @@ class NPUGraphNode:
 
         return ptrs_to_deallocate
 
+    @functools.cached_property
+    def path_user_visible_storage_groups(
+        self,
+    ) -> Tuple[PathUserVisibleStorageGroup, ...]:
+        return collect_path_user_visible_storage_groups(tuple(self._path_from_root))
+
     def path_live_weakrefs(self) -> Iterator[StorageWeakRefWrapper]:
         for i, j in self.live_indices_after_graph:
             out = self.path_weakrefs[i][j]
@@ -2191,6 +2293,7 @@ class NPUGraphTreeManager:
         self.mode: Optional[CompilationMode] = None
         self.compile_id: Optional[Any] = None
         self.disable_invalidate_aliases = False
+        self.has_live_user_visible_output_cloning = False
 
     def run(self, new_inputs: List[InputType], function_id: FunctionID) -> OutputType:
         if self.graph is None:
@@ -2266,6 +2369,20 @@ class NPUGraphTreeManager:
 
         if self.in_warmup:
             self.try_end_curr_warmup(function_id)
+
+        if (
+            self.has_live_user_visible_output_cloning
+            and self.path_state == ExecutionState.EXECUTION
+        ):
+            curr_generation = self.get_curr_generation()
+            # current_node is cleared lazily, so the first invocation in a new
+            # generation may still see children from the previous generation.
+            # Enforce the existing generation boundary before matching children.
+            if self.in_new_torch_compile_invocation(curr_generation):
+                self.try_end_curr_execution(
+                    curr_generation,
+                    skip_dead_output_cleanup=True,
+                )
 
         node_id = self._get_node_id()
         if function_id not in self.non_npugraph_managed_mutation_hint[node_id]:
@@ -2564,9 +2681,15 @@ class NPUGraphTreeManager:
         mutated_input_idxs: Tuple[int, ...],
         compile_id: Optional[Any] = None,
         kernel_free_cudagraph: bool = False,
+        user_visible_output_idxs: Tuple[int, ...] = (),
     ) -> Tuple[ModelType, OutputType]:
         id_for_func = self.new_func_id()
         self.id_to_compile_id[id_for_func] = compile_id
+        if mode == CompilationMode.BACKWARD:
+            user_visible_output_idxs = ()
+        user_visible_output_idxs_set = frozenset(user_visible_output_idxs)
+        if user_visible_output_idxs_set:
+            self.has_live_user_visible_output_cloning = True
         self.ids_to_stack_traces[id_for_func] = stack_traces
         self.ids_to_funcs[id_for_func] = make_wrapped_function(
             model,
@@ -2576,6 +2699,7 @@ class NPUGraphTreeManager:
             placeholders,
             mutated_input_idxs,
             kernel_free_cudagraph=kernel_free_cudagraph,
+            user_visible_output_idxs=user_visible_output_idxs_set,
         )
         self.id_to_mode[id_for_func] = mode
         fn = functools.partial(self.run, function_id=id_for_func)
@@ -2622,8 +2746,8 @@ class NPUGraphTreeManager:
     def user_invoked_mark_step() -> bool:
         return MarkStepBox.mark_step_counter != 0
 
-    def can_start_new_generation(self) -> bool:
-        if not self.in_new_torch_compile_invocation():
+    def can_start_new_generation(self, curr_generation: Optional[int] = None) -> bool:
+        if not self.in_new_torch_compile_invocation(curr_generation):
             return False
 
         if self.user_invoked_mark_step():
@@ -2631,8 +2755,12 @@ class NPUGraphTreeManager:
 
         return not self.running_forwards_with_pending_backwards
 
-    def in_new_torch_compile_invocation(self) -> bool:
-        return self.current_gen != self.get_curr_generation()
+    def in_new_torch_compile_invocation(
+        self, curr_generation: Optional[int] = None
+    ) -> bool:
+        if curr_generation is None:
+            curr_generation = self.get_curr_generation()
+        return self.current_gen != curr_generation
 
     def try_end_curr_recording(self, function_id: FunctionID) -> None:
         """
@@ -2647,8 +2775,10 @@ class NPUGraphTreeManager:
 
         # multiple invocations, allow overwriting the previous generation
         if self.can_start_new_generation():
-            self.dealloc_current_path_weakrefs()
-            self.clear_current_path_state_and_set_to_none()
+            self.clear_current_path_state_and_set_to_none(
+                clone_live_user_visible_outputs=True,
+                dealloc_current_path_weakrefs=True,
+            )
             return
 
         if self.current_node.all_outputs_are_dead():
@@ -2657,7 +2787,12 @@ class NPUGraphTreeManager:
 
         self.check_warn_on_unable_to_start_executing(function_id)
 
-    def try_end_curr_execution(self) -> None:
+    def try_end_curr_execution(
+        self,
+        curr_generation: Optional[int] = None,
+        *,
+        skip_dead_output_cleanup: bool = False,
+    ) -> None:
         """
         Check if the current executing node can be terminated, either because all outputs of the
         previously executed node are dead or because it was executed in a different generation.
@@ -2669,8 +2804,13 @@ class NPUGraphTreeManager:
         if self.current_node is None:
             return
 
-        if self.can_start_new_generation():
-            self.clear_current_path_state_and_set_to_none()
+        if self.can_start_new_generation(curr_generation):
+            self.clear_current_path_state_and_set_to_none(
+                clone_live_user_visible_outputs=True
+            )
+            return
+
+        if skip_dead_output_cleanup:
             return
 
         if self.current_node.all_outputs_are_dead():
@@ -2678,6 +2818,7 @@ class NPUGraphTreeManager:
 
     def try_end_curr_warmup(self, function_id: FunctionID) -> None:
         if self.can_start_new_generation():
+            self._clone_current_path_live_user_visible_outputs()
             self.dealloc_current_path_weakrefs()
             self.current_node = None
             return
@@ -2746,8 +2887,12 @@ class NPUGraphTreeManager:
         return (
             "Error: accessing tensor output of NPUGraphs that has been overwritten by a subsequent run. "
             f"Stack trace: {stack_trace}. "
-            "To prevent overwriting, clone the tensor outside of torch.compile() "
-            "or call torch.compiler.npugraph_mark_step_begin() before each model invocation."
+            "To prevent overwriting, call torch.compiler.npugraph_mark_step_begin() "
+            "before each model invocation. If a tensor is a user-visible output "
+            "that must remain live across generations, manually clone the tensor "
+            "outside torch.compile(), or set torch._inductor.config.triton."
+            "cudagraph_trees_generation_cloning = 'user_visible' to clone all "
+            "user-visible tensors that persist across generations."
         )
 
     def dealloc_current_path_weakrefs(self) -> None:
@@ -2818,11 +2963,123 @@ class NPUGraphTreeManager:
                 torch_npu._C._set_storage_data_ptr_access_error_msg(_storage_deref, msg)
 
 
-    def clear_current_path_state_and_set_to_none(self) -> None:
+    def clear_current_path_state_and_set_to_none(
+        self,
+        *,
+        clone_live_user_visible_outputs: bool = False,
+        dealloc_current_path_weakrefs: bool = False,
+    ) -> None:
         if not isinstance(self.current_node, NPUGraphNode):
             raise RuntimeError("check self.current_node is NPUGraphNode object fail")
+        if clone_live_user_visible_outputs:
+            self._clone_current_path_live_user_visible_outputs()
+        if dealloc_current_path_weakrefs:
+            self.dealloc_current_path_weakrefs()
         self.current_node.clear_path_state()
         self.current_node = None
+
+    def _clone_current_path_live_user_visible_outputs(self) -> None:
+        if self.current_node is None:
+            raise RuntimeError("check self.current_node is not None fail")
+        path_user_visible_storage_groups = (
+            self.current_node.path_user_visible_storage_groups
+        )
+        if not path_user_visible_storage_groups:
+            return
+
+        storages_to_clone: List[
+            Tuple[StorageWeakRefPointer, PathUserVisibleStorageGroup]
+        ] = []
+
+        for output_entries in path_user_visible_storage_groups:
+            for (
+                output_weakrefs,
+                _tensor_weakrefs,
+                _cached_tensor_outputs,
+                idx,
+            ) in output_entries:
+                storage_and_ptr = maybe_deref(output_weakrefs[idx])
+                if storage_and_ptr is not None:
+                    storage_ptr, _data_ptr = storage_and_ptr
+                    storages_to_clone.append((storage_ptr, output_entries))
+                    break
+
+        if storages_to_clone:
+            self._clone_live_user_visible_storages(storages_to_clone)
+
+    def _clone_live_user_visible_storages(
+        self,
+        storages_to_clone: Iterable[
+            Tuple[
+                StorageWeakRefPointer,
+                PathUserVisibleStorageGroup,
+            ]
+        ],
+    ) -> None:
+        replacements: List[
+            Tuple[
+                UntypedStorage,
+                UntypedStorage,
+                PathUserVisibleStorageGroup,
+            ]
+        ] = []
+
+        with torch.npu.device(self.device_index):
+            source_tensors = []
+            replacement_tensors = []
+
+            for storage_ptr, entries in storages_to_clone:
+                source_storage = torch.UntypedStorage._new_with_weak_ptr(storage_ptr)
+                replacement = torch.empty(
+                    (source_storage.nbytes(),),
+                    dtype=torch.uint8,
+                    device=source_storage.device,
+                )
+                replacement_storage = replacement.untyped_storage()
+                source_tensors.append(
+                    torch.empty(
+                        (), dtype=torch.uint8, device=source_storage.device
+                    ).set_(source_storage, 0, (source_storage.nbytes(),), (1,))
+                )
+                replacement_tensors.append(replacement)
+                replacements.append((source_storage, replacement_storage, entries))
+
+            torch._foreach_copy_(replacement_tensors, source_tensors)
+
+            for source_storage, replacement_storage, entries in replacements:
+                source_storage._swap_data_ptr_(replacement_storage)
+                placeholder_weakrefs = [
+                    replacement_storage._weak_ref() for _ in entries
+                ]
+
+                # Warmup/recording storages own the graph-pool block after the
+                # swap. Reconstructed replay storages are non-owning.
+                if torch_npu._C._has_Standard_Deleter(replacement_storage._cdata):
+                    torch_npu._C._free_And_Remove_DeleterFn(replacement_storage._cdata)
+                torch_npu._C._set_storage_data_ptr_access_error_msg(
+                    replacement_storage._cdata,
+                    "NPUGraph output storage was cloned before a new generation.",
+                )
+
+                for (
+                    output_weakrefs,
+                    tensor_weakrefs,
+                    cached_tensor_outputs,
+                    idx,
+                ), placeholder_weakref in zip(
+                    entries, placeholder_weakrefs, strict=True
+                ):
+                    cached_t = (
+                        cached_tensor_outputs[idx] if cached_tensor_outputs else None
+                    )
+                    output_ref = cast(StorageWeakRefWrapper, output_weakrefs[idx])
+                    tensor_weakrefs[idx] = None
+                    output_ref.remove_extra_reference()
+                    output_ref.swap_weakref(placeholder_weakref)
+
+                    if cached_tensor_outputs is not None and cached_t is not None:
+                        torch_npu._C._remove_cached_tensor(cached_t)
+                        cached_tensor_outputs[idx] = None
 
     def apply_checkpoint_execution_state_in_allocator(self) -> None:
         """

@@ -1,5 +1,6 @@
 import contextlib
 import os
+import unittest
 
 os.environ["ASCEND_LAUNCH_BLOCKING"] = "0"
 
@@ -11,7 +12,9 @@ import torch._dynamo  # noqa: F401
 import torch_npu
 from torch._dynamo.callback import CallbackTrigger
 from torch._dynamo.graph_bytecode_inputs import CURRENT_STREAM_INDEX
+from torch._dynamo.testing import same
 from torch._guards import CompileId
+from torch._inductor import config as inductor_config
 from torch._inductor.cudagraph_utils import CheckInvariantStatus
 from torch_npu._compat.graph_tree import (
     CustomClassBase,
@@ -47,6 +50,7 @@ from torch_npu.npu._graph_tree import (
     FunctionID,
     GraphID,
     _update_current_stream_external_object,
+    collect_path_user_visible_storage_groups,
     dynamo_timed_cudagraph,
     format_inputs_log,
     is_cudagraph_capture_sizes,
@@ -64,6 +68,25 @@ class _TestOpaqueInput(CustomClassBase):
 
 
 register_opaque_input(_TestOpaqueInput)
+
+
+def _mark_step_begin() -> None:
+    """Mark a step boundary so the next invocation starts a new generation."""
+    fn = getattr(torch.compiler, "npugraph_mark_step_begin", None)
+    if fn is not None:
+        fn()
+    else:
+        from torch_npu.npu import _graph_tree_state
+
+        _graph_tree_state.mark_step_begin()
+
+
+# Upstream only forwards user_visible_output_idxs (and exposes the opt-in
+# switch) when generation cloning exists. Older torch versions must skip the
+# end-to-end cases instead of patching a missing config key.
+GENERATION_CLONING_SUPPORTED = hasattr(
+    inductor_config.triton, "cudagraph_trees_generation_cloning"
+)
 
 
 class TestCublasCacheManagement(TestCase):
@@ -145,7 +168,7 @@ class TestNpuGraphFunctions(TestCase):
             model, inputs, (), device_index=0, is_backward=False, is_inference=False
         )
         mock_manager.add_function.assert_called_with(
-            model, inputs, (), None, CompilationMode.FORWARD, (), (), (), None, False
+            model, inputs, (), None, CompilationMode.FORWARD, (), (), (), None, False, ()
         )
 
         # Test backward mode
@@ -154,7 +177,7 @@ class TestNpuGraphFunctions(TestCase):
             model, inputs, (), device_index=0, is_backward=True, is_inference=False
         )
         mock_manager.add_function.assert_called_with(
-            model, inputs, (), None, CompilationMode.BACKWARD, (), (), (), None, False
+            model, inputs, (), None, CompilationMode.BACKWARD, (), (), (), None, False, ()
         )
 
         # Test invalid mode combination
@@ -373,6 +396,7 @@ def mock_wrapped_function():
         static_input_idxs=[0],
         constants=[],
         kernel_free_cudagraph=False,
+        user_visible_output_idxs=frozenset(),
         model=MagicMock(side_effect=model_side_effect),
     )
 
@@ -596,6 +620,26 @@ class TestNPUGraphNode:
             outputs = basic_npu_graph_node.reconstruct_outputs()
             assert len(outputs) == 1
 
+    def test_reconstruct_outputs_refreshes_user_visible_tensor_weakref(
+        self, basic_npu_graph_node
+    ):
+        node = basic_npu_graph_node
+        node.outputs_metadata = [{}]
+        node.output_storage_alias = [UnaliasedStorage]
+        node.outputs_weakrefs = [MagicMock()]
+        node.cached_tensor_outputs = [None]
+        node.static_output_tensors = [None]
+        node.tensor_weakrefs = [None]
+        node.user_visible_output_idxs = frozenset({0})
+        out = torch.tensor([1.0], device="npu")
+
+        with patch.object(
+            node, "_reconstruct_from_tensor_metadata", return_value=out
+        ):
+            assert node.reconstruct_outputs()[0] is out
+
+        assert node.tensor_weakrefs[0]() is out
+
     def test_aliased_output_reconstruction(self, basic_npu_graph_node):
         basic_npu_graph_node.outputs_metadata = [
             {
@@ -813,6 +857,7 @@ class TestNPUGraphNodeRun(TestCase):
             static_input_idxs=[0],
             constants=[],
             kernel_free_cudagraph=False,
+            user_visible_output_idxs=frozenset(),
             model=MagicMock(side_effect=model_side_effect),
         )
         self.graph_id = 1
@@ -1550,6 +1595,7 @@ class TestNPUGraphTreeManager(TestCase):
         msg = NPUGraphTreeManager.format_dealloc_msg("trace")
         self.assertIn("accessing tensor output of NPUGraphs", msg)
         self.assertIn("npugraph_mark_step_begin", msg)
+        self.assertIn("cudagraph_trees_generation_cloning", msg)
 
     def test_format_dealloc_msg_grad_output(self):
         msg = NPUGraphTreeManager.format_dealloc_msg(
@@ -1797,6 +1843,167 @@ class TestCaptureSizes(TestCase):
             impl([2])
 
         mock_warning.assert_called_once()
+
+
+@unittest.skipUnless(
+    GENERATION_CLONING_SUPPORTED,
+    "upstream torch does not support cudagraph tree generation cloning",
+)
+class TestUserVisibleOutputCloningE2E(TestCase):
+    """End-to-end checks for user-visible output cloning (requires NPU hardware)."""
+
+    @inductor_config.patch(
+        "triton.cudagraph_trees_generation_cloning", "user_visible"
+    )
+    def test_cross_generation_output_not_overwritten(self):
+        reset_npugraph_trees()
+        self.addCleanup(reset_npugraph_trees)
+
+        def fn(x):
+            return x + 1
+
+        x = torch.randn(4, device="npu")
+        compiled = torch.compile(fn, mode="reduce-overhead")
+
+        out1 = compiled(x)
+        expected = fn(x)
+
+        # Diagnostics: confirm user_visible_output_idxs reached the manager and
+        # activated cloning. A False here points at the forwarding chain
+        # (torch meta -> ascend pass -> add_function), not at the clone logic.
+        manager = get_manager(x.device.index, create_if_none_exists=False)
+        self.assertIsNotNone(manager)
+        self.assertTrue(
+            manager.has_live_user_visible_output_cloning,
+            "cloning is not active: user_visible_output_idxs did not reach the manager",
+        )
+
+        # Change the input in place so the next generation writes different
+        # values into the reused pool. out1 must survive the generation change.
+        x.add_(1.0)
+        _mark_step_begin()
+        out2 = compiled(x)
+
+        self.assertTrue(same(out1, expected))
+        self.assertTrue(same(out2, fn(x)))
+
+    @inductor_config.patch(
+        "triton.cudagraph_trees_generation_cloning", "user_visible"
+    )
+    def test_cross_generation_alias_and_view_outputs_not_overwritten(self):
+        reset_npugraph_trees()
+        self.addCleanup(reset_npugraph_trees)
+
+        def fn(x):
+            y = x + 1
+            # Both extra outputs alias y's storage: a view and a slice.
+            return y, y.view(2, 2), y[:2]
+
+        x = torch.randn(4, device="npu")
+        compiled = torch.compile(fn, mode="reduce-overhead")
+
+        out1, alias1, view1 = compiled(x)
+        ey, ea, ev = fn(x)
+
+        # Change the input in place so a stale view into the reused pool would
+        # expose the new values instead of the ones captured above.
+        x.add_(1.0)
+        _mark_step_begin()
+        out2, alias2, view2 = compiled(x)
+        ny, na, nv = fn(x)
+
+        self.assertTrue(same(out1, ey))
+        self.assertTrue(same(alias1, ea))
+        self.assertTrue(same(view1, ev))
+        self.assertTrue(same(out2, ny))
+        self.assertTrue(same(alias2, na))
+        self.assertTrue(same(view2, nv))
+
+
+class TestCollectUserVisibleStorageGroups(TestCase):
+    """Minimal unit check for storage-group collection used by cloning."""
+
+    def test_collect_groups_same_data_ptr_merged(self):
+        ref0 = MagicMock()
+        ref0.data_ptr.return_value = 100
+        ref1 = MagicMock()
+        ref1.data_ptr.return_value = 100
+        node = MagicMock()
+        node.user_visible_output_idxs = [0]
+        node.outputs_weakrefs = [ref0, ref1]
+        node.tensor_weakrefs = [None, None]
+
+        groups = collect_path_user_visible_storage_groups((node,))
+        self.assertEqual(len(groups), 1)
+        self.assertEqual(len(groups[0]), 2)
+
+
+class TestUserVisibleOutputCloningTrigger(TestCase):
+    """Mock-only clone/dealloc chain checks, independent of NPU and upstream config."""
+
+    def test_warmup_clones_then_deallocs_on_generation_switch(self):
+        manager = NPUGraphTreeManager.__new__(NPUGraphTreeManager)
+        manager.current_node = NPUGraphNode.__new__(NPUGraphNode)
+        manager.can_start_new_generation = MagicMock(return_value=True)
+        calls = []
+        with patch.object(
+            manager,
+            "_clone_current_path_live_user_visible_outputs",
+            side_effect=lambda: calls.append("clone"),
+        ), patch.object(
+            manager,
+            "dealloc_current_path_weakrefs",
+            side_effect=lambda: calls.append("dealloc"),
+        ):
+            manager.try_end_curr_warmup(FunctionID(1))
+        self.assertEqual(calls, ["clone", "dealloc"])
+        self.assertIsNone(manager.current_node)
+
+    def test_clone_storages_order_and_storage_impl_release(self):
+        for has_deleter in (True, False):
+            with self.subTest(has_deleter=has_deleter):
+                order = []
+                src_storage, dst_storage = MagicMock(), MagicMock()
+                dst_storage._cdata = 0xDEAD
+                dst_storage._weak_ref.return_value = "placeholder"
+                src_storage._swap_data_ptr_.side_effect = (
+                    lambda *args: order.append("swap")
+                )
+                replacement = MagicMock()
+                replacement.untyped_storage.return_value = dst_storage
+                entries = [([MagicMock()], [None], None, 0)]
+
+                with patch.object(
+                    torch, "UntypedStorage"
+                ) as untyped, patch.object(
+                    torch, "empty", side_effect=[replacement, MagicMock()]
+                ), patch.object(
+                    torch, "_foreach_copy_"
+                ) as copy, patch(
+                    "torch.npu.device", return_value=contextlib.nullcontext()
+                ), patch.object(
+                    torch_npu._C, "_has_Standard_Deleter", return_value=has_deleter
+                ) as has_std, patch.object(
+                    torch_npu._C, "_free_And_Remove_DeleterFn"
+                ) as free, patch.object(
+                    torch_npu._C, "_set_storage_data_ptr_access_error_msg"
+                ):
+                    untyped._new_with_weak_ptr.return_value = src_storage
+                    copy.side_effect = lambda *args: order.append("copy")
+                    free.side_effect = lambda *args: order.append("free")
+                    manager = NPUGraphTreeManager.__new__(NPUGraphTreeManager)
+                    manager.device_index = 0
+                    manager._clone_live_user_visible_storages([(1234, entries)])
+
+                self.assertEqual(
+                    order, ["copy", "swap"] + (["free"] if has_deleter else [])
+                )
+                src_storage._swap_data_ptr_.assert_called_once_with(dst_storage)
+                has_std.assert_called_once_with(0xDEAD)
+                if has_deleter:
+                    free.assert_called_once_with(0xDEAD)
+                else:
+                    free.assert_not_called()
 
 
 if __name__ == "__main__":

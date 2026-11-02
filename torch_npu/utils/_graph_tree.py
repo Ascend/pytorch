@@ -109,8 +109,9 @@ def npugraphify(
 ) -> Callable[..., Any]:
     # torch 2.14's inductor cudagraph-partition path passes kernel_free_cudagraph /
     # user_visible_output_idxs to the registered cudagraphify fn. kernel_free_cudagraph
-    # is forwarded to the tree manager so kernel-free partitions skip graph capture;
-    # user_visible_output_idxs is not wired into the NPU tree manager yet.
+    # is forwarded to the tree manager so kernel-free partitions skip graph capture, and
+    # user_visible_output_idxs enables opt-in generation cloning of live outputs.
+    # Both fields are accepted for signature compatibility on older torch versions.
     from torch_npu.npu._graph_tree import npugraphify_impl as new_npugraphify_impl
 
     npugraphify_fn: Callable[..., Any]
@@ -126,6 +127,7 @@ def npugraphify(
             mutated_input_idxs=mutated_input_idxs,
             compile_id=torch._guards.CompileContext.current_compile_id(),
             kernel_free_cudagraph=kernel_free_cudagraph,
+            user_visible_output_idxs=user_visible_output_idxs,
         )
     else:
         npugraphify_fn = npugraphify_impl
