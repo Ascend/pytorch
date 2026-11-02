@@ -6,23 +6,23 @@ Torch NPUs need to be used with specific versions of PyTorch, CANN, Python, and 
 
 | Component |          Recommended Version          |
 |:---------:|:-------------------------------------:|
-| TorchNPU  | 2.12.0 (Installation Package Version) |
-|  PyTorch  |                2.12.0                 |
-|   CANN    |                 9.1.0                 |
+| TorchNPU  | 2.14.0 (Installation Package Version) |
+|  PyTorch  |                2.14.0                 |
+|   CANN    |                 9.2.X                 |
 |  Python   |   3.10 / 3.11 / 3.12 / 3.13 / 3.14    |
 
 ## TorchNPU version mapping table
 
-The TorchNPU versions listed below and `torch_npu` package versions use different naming rules:
+The TorchNPU versions listed below and TorchNPU package versions use different naming rules:
 
-- **TorchNPU Version**: Identifies a product release and follows a version sequence independent of PyTorch, such as `26.1.0` and `26.1.1`. Final releases typically use three numeric components. Historical prereleases include an `RC` identifier, such as `6.0.RC3`. One TorchNPU product version can support multiple PyTorch versions and therefore provide packages with different version numbers.
+- **TorchNPU Version**: Identifies a product release and follows a version sequence independent of PyTorch, such as `26.2.X` and `26.1.1`. Final releases typically use three numeric components. Historical prereleases include an `RC` identifier, such as `6.0.RC3`. One TorchNPU product version can support multiple PyTorch versions and therefore provide packages with different version numbers.
 - **TorchNPU Package Version**: Uses the matching PyTorch version as its base, typically in the form `{PyTorch version}` or `{PyTorch version}.postN`. The `.postN` suffix distinguishes subsequent package releases for the same PyTorch version. `N` is a release sequence number and cannot be directly converted to a TorchNPU product version. Historical prerelease packages may also include an `rc` identifier. Use the package version when installing or querying `torch_npu` with `pip`.
 
-For example, TorchNPU `26.1.0` provides package version `2.7.1.post8` for PyTorch `2.7.1` and package version `2.12.0` for PyTorch `2.12.0`. Refer to the tables below for the mapping between TorchNPU product versions, package versions, and dependencies.
+For example, TorchNPU `26.2.X` provides package version `2.7.1.post11` for PyTorch `2.7.1` and package version `2.13.0` for PyTorch `2.13.0`. Refer to the tables below for the mapping between TorchNPU product versions, package versions, and dependencies.
 
 The following table lists the mappings for current active versions:
 
-> The package versions and CANN `9.1.X` compatibility range for 26.1.1 follow the [release descriptions](https://gitcode.com/Ascend/pytorch/releases).
+> The package versions and CANN `9.2.X` compatibility range for 26.2.X follow the [release descriptions](https://gitcode.com/Ascend/pytorch/releases).
 
 | TorchNPU Version | TorchNPU Package Version | PyTorch Version | CANN Version |
 |:---:|:---:|:---:|:---:|

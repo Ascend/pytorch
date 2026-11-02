@@ -12,6 +12,7 @@
 
 - [PyTorch DTensor (Distributed Tensor)](#pytorch-dtensor-distributed-tensor)
 - [Different ways to create a DTensor](#different-ways-to-create-a-dtensor)
+- [Debugging](#debugging)
 - [Experimental Features](#experimental-features)
 
 </div>
@@ -253,26 +254,6 @@
 
 </div>
 
-### <code><i>class</i></code> torch.distributed.tensor.debug.CommDebugMode
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.distributed.tensor.debug.CommDebugMode](https://pytorch.org/docs/2.9/distributed.tensor.html#torch.distributed.tensor.debug.CommDebugMode)
-
-**产品支持情况**：
-
-<!-- npu="910b" id19 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id19 -->
-<!-- npu="A3" id20 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id20 -->
-<!-- npu="950" id21 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id21 -->
-
-</div>
-
 ## Different ways to create a DTensor
 
 ### torch.distributed.tensor.distribute_module
@@ -319,6 +300,30 @@
 
 </div>
 
+## Debugging
+
+### Debugging Tools
+
+#### <code><i>class</i></code> torch.distributed.tensor.debug.CommDebugMode
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.tensor.debug.CommDebugMode](https://pytorch.org/docs/2.9/distributed.tensor.html#torch.distributed.tensor.debug.CommDebugMode)
+
+**产品支持情况**：
+
+<!-- npu="910b" id19 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id19 -->
+<!-- npu="A3" id20 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id20 -->
+<!-- npu="950" id21 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id21 -->
+
+</div>
+
 ## Experimental Features
 
 ### torch.distributed.tensor.experimental.context_parallel
@@ -329,15 +334,15 @@
 
 **产品支持情况**：
 
-<!-- npu="910b" id28 -->
+<!-- npu="910b" id42 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id28 -->
-<!-- npu="A3" id29 -->
+<!-- end id42 -->
+<!-- npu="A3" id45 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id29 -->
-<!-- npu="950" id30 -->
+<!-- end id45 -->
+<!-- npu="950" id46 -->
 - <term>Ascend 950DT系列产品</term>：支持
-<!-- end id30 -->
+<!-- end id46 -->
 
 **限制与说明**： 仅支持NPU fused SDPA路径；`q`/`k`/`v`仅支持BNSD布局；暂不支持`pse`、`padding_mask`、`prefix`、`actual_seq_qlen`、`actual_seq_kvlen`、`sink`以及任意非causal的attention mask；启用load balance时要求使用causal attention；暂不支持通过`torch.compile`编译为计算图
 

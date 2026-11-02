@@ -6,23 +6,23 @@ TorchNPU需与特定版本的PyTorch、CANN、Python及固件与驱动配合使�
 
 |    组件    |               推荐版本               |
 |:--------:|:--------------------------------:|
-| TorchNPU |              2.12.0（安装包版本）             |
-| PyTorch  |              2.12.0              |
-|   CANN   |              9.1.0               |
+| TorchNPU |              2.14.0（安装包版本）             |
+| PyTorch  |              2.14.0              |
+|   CANN   |              9.2.X               |
 |  Python  | 3.10 / 3.11 / 3.12 / 3.13 / 3.14 |
 
 ## TorchNPU 版本配套表
 
-下表中的TorchNPU版本与`torch_npu`安装包版本采用不同的命名规则：
+下表中的TorchNPU版本与TorchNPU安装包版本采用不同的命名规则：
 
-- **TorchNPU版本**：标识产品的发布版本，采用独立于PyTorch的版本编号，如`26.1.0`、`26.1.1`。正式版本通常使用三段数字，历史预发布版本包含`RC`标识，如`6.0.RC3`。同一个TorchNPU产品版本可以配套多个PyTorch版本，因此会发布多个不同版本号的安装包。
+- **TorchNPU版本**：标识产品的发布版本，采用独立于PyTorch的版本编号，如`26.2.X`、`26.1.X`。正式版本通常使用三段数字，历史预发布版本包含`RC`标识，如`6.0.RC3`。同一个TorchNPU产品版本可以配套多个PyTorch版本，因此会发布多个不同版本号的安装包。
 - **TorchNPU安装包版本**：以配套的PyTorch版本号为基础，通常采用`{PyTorch版本}`或`{PyTorch版本}.postN`的形式。`.postN`用于区分同一PyTorch版本下安装包的后续发布，`N`为发布序号，不能直接换算为TorchNPU产品版本。历史预发布安装包还可能包含`rc`标识。使用`pip`安装或查询`torch_npu`时，应使用安装包版本号。
 
-例如，TorchNPU `26.1.0`配套PyTorch `2.7.1`时，安装包版本为`2.7.1.post8`；配套PyTorch `2.12.0`时，安装包版本为`2.12.0`。TorchNPU产品版本、安装包版本及依赖版本的对应关系以下表为准。
+例如，TorchNPU `26.2.X`配套PyTorch `2.7.1`时，安装包版本为`2.7.1.post11`；配套PyTorch `2.13.0`时，安装包版本为`2.13.0`。TorchNPU产品版本、安装包版本及依赖版本的对应关系以下表为准。
 
 以下为当前活跃版本的匹配关系：
 
-> 26.1.1的安装包版本及CANN `9.1.X`配套范围依据[发行版说明](https://gitcode.com/Ascend/pytorch/releases)。
+> 26.2.X的安装包版本及CANN `9.2.X`配套范围依据[发行版说明](https://gitcode.com/Ascend/pytorch/releases)。
 
 | TorchNPU版本 | TorchNPU安装包版本 | PyTorch版本 | CANN版本 |
 |:---:|:---:|:---:|:---:|

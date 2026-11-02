@@ -19,4 +19,4 @@
 ![](../../../../figures/plog_log_OOM.png)
 
 > [!NOTE]
-> 更多日志详细介绍可参见《[CANN 日志参考](https://gitcode.com/cann/runtime/blob/master/docs/zh/log_ref/log_overview.md)》。
+> 更多日志详细介绍可参见《[CANN 日志参考](https://gitcode.com/cann/runtime/blob/9.2.0/docs/zh/log_ref/log_overview.md)》。
