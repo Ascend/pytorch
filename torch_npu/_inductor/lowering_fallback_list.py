@@ -255,6 +255,7 @@ NPU_EXTRA_FALLBACK_LIST = [
     aten.relu_,
     aten.remainder,
     aten.remainder.Scalar,
+    aten.remainder.Scalar_Tensor,
     aten.remainder.Scalar_Tensor_out,
     aten.remainder.Scalar_out,
     aten.remainder.Tensor,
