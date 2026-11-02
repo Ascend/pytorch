@@ -760,7 +760,7 @@ def main():
         planned_total_cases = cases_summary_data.get("total_cases", 0)
         planned_dist_cases = cases_summary_data.get("distributed", {}).get("cases_summary", {}).get("total_cases", 0)
         planned_reg_cases = cases_summary_data.get("regular", {}).get("cases_summary", {}).get("total_cases", 0)
-        disabled_filtered_count = cases_summary_data.get("disabled_filtered_count", 0)
+        disabled_filtered_count = cases_summary_data.get("total_skipped", 0)
 
     overview_rows = [
         ["Overall result", overall_status],
@@ -788,8 +788,8 @@ def main():
         ])
     if disabled_filtered_count > 0:
         overview_rows.append([
-            "黑名单过滤",
-            f"{disabled_filtered_count} cases skipped (disabled testcases/methods)",
+            "Total collected (before skip)",
+            f"{planned_total_cases} (total) + {disabled_filtered_count} (unsupported)",
         ])
     overview_rows.append(["Duration", format_duration(totals["duration"])])
     if include_special_tests:

@@ -671,8 +671,10 @@ def main():
     # Extract planned cases count from cases_collection_summary.json
     planned_total_cases = 0
     planned_cases_by_category = {}
+    disabled_filtered_count = 0
     if cases_summary_data:
         planned_total_cases = cases_summary_data.get("total_cases", 0)
+        disabled_filtered_count = cases_summary_data.get("total_skipped", 0)
         cats = cases_summary_data.get("categories", {})
         for category in ("distributed", "core", "tensor", "graph", "others", "regular", "custom"):
             cat_cases = cats.get(category, {}).get("total_cases", 0)
@@ -700,6 +702,11 @@ def main():
         overview_rows.append([
             "规划用例总数",
             f"{planned_total_cases} ({planned_str})",
+        ])
+    if disabled_filtered_count > 0:
+        overview_rows.append([
+            "Total collected (before skip)",
+            f"{planned_total_cases} (total) + {disabled_filtered_count} (unsupported)",
         ])
     overview_rows.append(["Duration", format_duration(totals["duration"])])
     if include_special_tests:
