@@ -604,6 +604,10 @@ class TritonCompileResultNpu(TritonCompileResult):
         launcher.runnable = True
         launcher.n_regs = getattr(binary, "n_regs", None)
         launcher.n_spills = getattr(binary, "n_spills", None)
+        binary_hash = getattr(binary, "hash", None)
+        launcher.cache_hash = (
+            triton_hash_to_path_key(binary_hash) if binary_hash is not None else None
+        )
         launcher.shared = binary_shared
         launcher.store_cubin = self.inductor_meta.get("store_cubin", False)
         # store this global variable to avoid the high overhead of reading it when calling run
@@ -1698,7 +1702,14 @@ class NPUCachingAutotuner(CachingAutotuner):
                 if self.best_candidate_config is not None
                 else self.launchers[0].config
             )
-            self.save_cache_hook(best_config, self.autotune_time_taken_ns)
+            self.save_cache_hook(
+                best_config,
+                self.autotune_time_taken_ns,
+                found_by_coordesc=self.inductor_meta.get(
+                    "coordinate_descent_tuning", False
+                ),
+                triton_cache_hash=getattr(self.launchers[0], "cache_hash", None)
+            )
 
     @lru_cache(None)
     def get_fx_graph_dump_path(self):
@@ -1909,7 +1920,14 @@ class NPUCachingAutotuner(CachingAutotuner):
                     if self.best_candidate_config is not None
                     else self.launchers[0].config
                 )
-                self.save_cache_hook(best_config, 0)
+                self.save_cache_hook(
+                    best_config,
+                    0,
+                    found_by_coordesc=self.inductor_meta.get(
+                        "coordinate_descent_tuning", False
+                    ),
+                    triton_cache_hash=getattr(self.launchers[0], "cache_hash", None)
+                )
         else:
             self.autotune_to_one_config(*args, **kwargs)
         log.info("%s benchmark elapsed time %ss", self.get_fn_name(), time.perf_counter() - autotune_start_time)
