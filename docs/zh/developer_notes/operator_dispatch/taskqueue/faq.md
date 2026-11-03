@@ -91,5 +91,5 @@ export ASCEND_LAUNCH_BLOCKING=1
 | `torch.npu.default_stream` | 获取默认流，返回的是NPUStream对象 |
 | `torch.npu.Event.record` | 事件记录 |
 | `torch.npu.Event.query` | 不会清空队列；若事件记录尚未完成下发，立即返回false，否则阻塞查询runtime事件状态 |
-| `torch.npu.Event.synchronize` | 事件同步，不会清空队列，但是阻塞等到对应事件记录下发完成 |
+| `torch.npu.Event.synchronize` | 事件同步，不会清空队列，但是阻塞等待对应事件记录下发完成 |
 | `torch.npu.graphs.graph.__exit__` | aclgraph图捕获结束 |

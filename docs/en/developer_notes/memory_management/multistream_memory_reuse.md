@@ -31,7 +31,7 @@ Use the environment variable `MULTI_STREAM_MEMORY_REUSE` to control whether mult
 
 The default value is 2.
 
-For details on using this environment variable, refer to the "[MULTI_STREAM_MEMORY_REUSE](../../api/environment_variable/memory_management/MULTI_STREAM_MEMORY_REUSE.md)" section in *Environment Variable Reference*.
+For details on using this environment variable, refer to the "[MULTI_STREAM_MEMORY_REUSE](../../api/environment_variable/memory_management/MULTI_STREAM_MEMORY_REUSE.md)" section in *Environment Variables*.
 
 ## Usage Examples
 

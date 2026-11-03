@@ -292,7 +292,7 @@ The documentation mainly includes the following categories:
 - **Quick Start** (`quick_start/`): Quick start tutorials.
 - **Native API Documentation** (`native_apis/`): TorchNPU native API support status for each version.
 - **Framework Feature Guide** (`framework_feature_guide_pytorch/`): NPU graph mode, Inductor, memory optimization, and other feature descriptions.
-- **Environment Variable Reference** (`environment_variable_reference/`): NPU-related environment variable descriptions.
+- **Environment Variables** (`environment_variable_reference/`): NPU-related environment variable descriptions.
 - **Troubleshooting** (`troubleshooting/`): Common problems and error code analysis.
 - **Security Statement** (`SECURITYNOTE.md`): Security-related notes.
 - **Contribution Guide** (`CONTRIBUTING.en.md`): This document.

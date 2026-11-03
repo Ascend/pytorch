@@ -710,7 +710,7 @@
 
 - `query`、`key`、`value`仅支持bf16、fp16和fp32，且所有输入参数须满足以下规格约束：
   - 输入`query`、`key`、`value`的N：batch size，当前只支持[N，head_num, S(L), E(Ev)]的排布方式，取值范围1~2K
-  - 输入`query`的head num和`key`/`value`的head num必须成比例关系，即Nq/Nkv必须是非0整数，取值范围1~256
+  - 输入`query`的head_num和`key`/`value`的head_num必须成比例关系，即Nq/Nkv必须是非0整数，取值范围1~256
   - 输入`query`的L：Target sequence length，取值范围1~512K
   - 输入`key`、`value`的S：Source sequence length，取值范围1~512K
   - 输入`query`、`key`、`value`的E：Embedding dimension of the query and key，取值范围1~512
@@ -1500,7 +1500,7 @@
 
 - `input`仅支持fp16，fp32
 - `weight`和`bias`仅支持一维场景
-- `bias`的shape为1维，长度与`input`入参中channel轴的长度相等
+- `bias`的shape为1维，长度与`input`中channel轴的长度相等
 
 </div>
 

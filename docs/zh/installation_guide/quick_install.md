@@ -157,7 +157,7 @@
 >
 > - 更多PyTorch版本请参考[Links for torch](https://download.pytorch.org/whl/torch/)。
 > - 更多TorchNPU插件版本请参考[PyTorch Release](https://gitcode.com/Ascend/pytorch/releases)。
-> - Triton-Ascend插件用于支持图模式Inductor后端，且仅支持PyTorch2.7.1、2.10.0和2.13.0版本，更为详细的配套说明，请参考[版本说明](../release_notes.md)。
+> - Triton-Ascend插件用于支持图模式Inductor后端，且仅支持PyTorch 2.7.1、2.10.0和2.13.0版本，更为详细的配套说明，请参考[版本说明](../release_notes.md)。
 
 ## 安装前准备
 

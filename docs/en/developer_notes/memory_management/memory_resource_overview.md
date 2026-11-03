@@ -214,6 +214,6 @@ Because TorchNPU inherits PyTorch's programming model and API system, PyTorch's 
 
 ## Related References
 
-- For environment variable configuration, see the "[Memory Management](../../api/environment_variable/memory_management/_menu_memory_management.md)" section in Environment Variable Reference.
+- For environment variable configuration, see the "[Memory Management](../../api/environment_variable/memory_management/_menu_memory_management.md)" section in Environment Variables.
 - For detailed usage instructions of each feature, see the subsections of this section.
 - For more NPU memory APIs, see the [PyTorch CUDA Memory Management Documentation](https://pytorch.org/docs/stable/torch_cuda_memory.html) (NPU interfaces correspond one-to-one to CUDA interfaces).

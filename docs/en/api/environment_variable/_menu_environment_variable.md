@@ -1,4 +1,4 @@
-# Environment Variable Reference
+# Environment Variables
 
 - [Environment Variable List](env_variable_list.md)
 <!-- npu="950,A3,910b,910,310p" id19 -->

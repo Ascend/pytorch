@@ -12,7 +12,7 @@ PyTorch Dynamo（PyTorch的图捕获前端，负责将Python字节码转换为�
 |---|---|---|
 | inductor | NPU/CPU推理与训练 | 支持 |
 | npugraph_ex | NPU推理与训练 | 支持 |
-| npugraph | NPU推理与训练 | 支持 |
+| npugraphs | NPU推理与训练 | 支持 |
 | aot_eager | 调试用途 | 支持 |
 | TorchAir-GE | NPU推理与训练 | 支持 |
 

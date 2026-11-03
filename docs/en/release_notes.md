@@ -1,4 +1,4 @@
-# Version Notes
+# Release Notes
 
 ## Key Features
 

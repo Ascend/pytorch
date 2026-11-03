@@ -1,4 +1,4 @@
-# Supporting Software Libraries
+# Companion Software Libraries
 
 To extend the capabilities of TorchNPU, Ascend provides the following self-developed plugins.
 
