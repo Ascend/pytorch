@@ -12,7 +12,7 @@
   <a href="#支持版本">支持版本</a> ·
   <a href="#安装">安装</a> ·
   <a href="#快速开始">快速开始</a> ·
-  <a href="./COMPATIBILITY.md">版本配套</a> ·
+  <a href="https://gitcode.com/Ascend/pytorch/blob/master/COMPATIBILITY.md">版本配套</a> ·
   <a href="./SUPPORT.md">支持说明</a> ·
   <a href="./CONTRIBUTING.md">贡献指南</a> ·
   <a href="https://www.hiascend.com/developer/software/ai-frameworks/pytorch/document">文档</a> ·
@@ -65,7 +65,7 @@ TorchNPU 充分继承和复用上游 PyTorch 的大量成熟功能，并在此�
 
 当前分支以单一源码适配多个 PyTorch 版本，所支持的 PyTorch 版本清单声明在 [version.txt](./version.txt) 中，该文件是版本支持的唯一来源，随版本适配同步更新。
 
-已发布软件包的版本配套关系（TorchNPU / PyTorch / CANN / Python）请参见[版本配套](./COMPATIBILITY.md)。
+已发布软件包的版本配套关系（TorchNPU / PyTorch / CANN / Python）请参见[版本配套](https://gitcode.com/Ascend/pytorch/blob/master/COMPATIBILITY.md)。
 
 ## 安装
 
@@ -75,7 +75,7 @@ TorchNPU 充分继承和复用上游 PyTorch 的大量成熟功能，并在此�
 
 #### 安装 CANN
 
-安装 CANN 9.1.0 及与硬件配套的 NPU 驱动和固件，并按照[版本配套](./COMPATIBILITY.md)选择兼容的 Python 版本。具体步骤请参见 [CANN 安装指南](https://www.hiascend.com/cann/download)。
+安装 CANN 9.1.0 及与硬件配套的 NPU 驱动和固件，并按照[版本配套](https://gitcode.com/Ascend/pytorch/blob/master/COMPATIBILITY.md)选择兼容的 Python 版本。具体步骤请参见 [CANN 安装指南](https://www.hiascend.com/cann/download)。
 
 #### 安装 PyTorch
 

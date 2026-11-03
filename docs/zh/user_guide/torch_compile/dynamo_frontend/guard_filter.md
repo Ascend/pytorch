@@ -258,7 +258,7 @@ compiled = torch.compile(
 ## 约束说明
 
 - PyTorch版本：必须为2.10.0及以上版本。
-- TorchNPU版本：必须安装与PyTorch版本配套的版本，具体请参考[版本配套](../../../../../COMPATIBILITY.md)。
+- TorchNPU版本：必须安装与PyTorch版本配套的版本，具体请参考[版本配套](https://gitcode.com/Ascend/pytorch/blob/master/COMPATIBILITY.md)。
 
 ## 相关文档
 

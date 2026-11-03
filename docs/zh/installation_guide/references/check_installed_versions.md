@@ -29,5 +29,5 @@
 
     > [!NOTE]
     >
-    > 由于每个TorchNPU版本会配套多个PyTorch版本发布安装包，因此配套发布的安装包版本号和TorchNPU版本号采取不同命名规则。如果需要查询版本号对应关系，请单击[相关产品版本配套说明](../../../../COMPATIBILITY.md)查看。
+    > 由于每个TorchNPU版本会配套多个PyTorch版本发布安装包，因此配套发布的安装包版本号和TorchNPU版本号采取不同命名规则。如果需要查询版本号对应关系，请单击[相关产品版本配套说明](https://gitcode.com/Ascend/pytorch/blob/master/COMPATIBILITY.md)查看。
     
