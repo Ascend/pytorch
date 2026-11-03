@@ -67,7 +67,7 @@ The shmem module takes effect only on PyTorch 2.7.1 and later versions.
 - <term>Atlas A3 training products</term>
 <!-- end id3 -->
 <!-- npu="910b" id6 -->
-- <term>Atlas 800I A2 inference server</term>
+- <term>Atlas 800I A2</term>
 <!-- end id6 -->
 <!-- npu="310p" id4 -->
 - <term>Atlas inference products</term>

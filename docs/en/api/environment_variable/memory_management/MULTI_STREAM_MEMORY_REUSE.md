@@ -36,7 +36,7 @@ MULTI_STREAM_MEMORY_REUSE=2:
 - <term>Atlas A3 training products</term>
 <!-- end id3 -->
 <!-- npu="910b" id5 -->
-- <term>Atlas 800I A2 inference server</term>
+- <term>Atlas 800I A2</term>
 <!-- end id5 -->
 <!-- npu="950" id4 -->
 - <term>Ascend 950DT products</term>
