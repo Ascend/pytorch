@@ -66,13 +66,28 @@ class NPUCombinedScheduling(CUDACombinedScheduling, TritonScheduling):
                 )  # always False at the moment
         return self._triton_scheduling.can_fuse_horizontal(node1, node2)
 
+    def can_fuse_reduction_pair(
+        self, node1: BaseSchedulerNode, node2: BaseSchedulerNode
+    ) -> bool:
+        # CUDACombinedScheduling asks the NV universal-GEMM scheduler whether the
+        # pair carries conflicting epilogue reductions.  NPU never produces NV
+        # universal-GEMM templates, so such a conflict cannot exist here.
+        return True
+
+    def can_fuse_reduction_epilogue(
+        self, node1: BaseSchedulerNode, node2: BaseSchedulerNode
+    ) -> bool:
+        # CUDACombinedScheduling returns False for every node that is not an NV
+        # universal-GEMM template, which is always the case on NPU.
+        return False
+
     def get_fusion_pair_priority(
         self, node1: BaseSchedulerNode, node2: BaseSchedulerNode
     ) -> int:
         if not npu_config.enable_welford:
             # Preserve the backend default ordering when the Welford path is
             # disabled.
-            return super().get_fusion_pair_priority(node1, node2)
+            return self._triton_scheduling.get_fusion_pair_priority(node1, node2)
 
         from ..choices import (
             is_same_welford_output_group,
@@ -87,7 +102,7 @@ class NPUCombinedScheduling(CUDACombinedScheduling, TritonScheduling):
             return 1
         # Pairs without Welford nodes keep the baseline ordering so unrelated
         # fusion decisions stay identical to the upstream default.
-        return super().get_fusion_pair_priority(node1, node2)
+        return self._triton_scheduling.get_fusion_pair_priority(node1, node2)
 
     def codegen_template(
         self,
