@@ -2102,6 +2102,24 @@
   "torch_npu.utils.combine_tensors.npu_combine_tensors": {
     "signature": "(list_of_tensor, require_copy_value=True)"
   },
+  "torch_npu.utils.cpp_extension.BuildExtension": {
+    "signature": "(*args, **kwargs) -> None"
+  },
+  "torch_npu.utils.cpp_extension.BuildExtension.build_extension": {
+    "signature": "(self, ext)"
+  },
+  "torch_npu.utils.cpp_extension.BuildExtension.build_extensions": {
+    "signature": "(self)"
+  },
+  "torch_npu.utils.cpp_extension.NpuBuildExtension": {
+    "signature": "(*args, **kwargs) -> None"
+  },
+  "torch_npu.utils.cpp_extension.NpuBuildExtension.build_extension": {
+    "signature": "(self, ext)"
+  },
+  "torch_npu.utils.cpp_extension.NpuBuildExtension.build_extensions": {
+    "signature": "(self)"
+  },
   "torch_npu.utils.cpp_extension.NpuExtension": {
     "signature": "(name, sources, *args, **kwargs)"
   },
