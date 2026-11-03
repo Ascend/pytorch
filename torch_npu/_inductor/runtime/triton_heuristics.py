@@ -50,6 +50,7 @@ from torch._inductor.runtime.triton_heuristics import (
     GridExpr,
     config_to_dict,
     config_from_dict,
+    compute_required_storage_length,
 )
 from .symbolic_grouping import (
     UnsupportedGroupedPlan,
@@ -99,7 +100,6 @@ from ..profiler import simple_trace_handler, mspti_batch_benchmark
 
 kernel_idx = count()
 benchmarker = TritonBenchmarker()
-
 
 def _metadata_value(metadata, name, default=None):
     """Read a compiler metadata field from both supported metadata shapes."""
@@ -635,7 +635,6 @@ class _NPUSkipPrecompilePlugin(CachingAutotunerPlugin):
             return None
         return DEFER
 
-
 class NPUCachingAutotuner(CachingAutotuner):
     def __init__(
             self,
@@ -671,6 +670,61 @@ class NPUCachingAutotuner(CachingAutotuner):
         self.best_candidate_config = None
         self.best_runtime_blocks = ()
         self.best_launcher = None
+
+    def copy_args_to_cpu_if_needed(self, *args, **kwargs):
+        if not self.optimize_mem:
+            return {}
+
+        copies = {}
+        try:
+            if torch.accelerator.current_accelerator() is None:
+                return {}
+            budget = (
+                torch.accelerator.max_memory_allocated()
+                - torch.accelerator.memory_allocated()
+            )
+        except RuntimeError:
+            return {}
+
+        def maybe_copy(name, arg):
+            if name in self.mutated_arg_names and arg.device.type in (
+                "cuda",
+                "xpu",
+                "npu",
+            ):
+                nonlocal budget
+                assert isinstance(arg, torch.Tensor)
+                required_storage_length = compute_required_storage_length(
+                    arg.size(), arg.stride(), 0,
+                )
+                size = required_storage_length * arg.element_size()
+                if size > budget:
+                    try:
+                        cpu_arg = torch.empty_strided(
+                            (required_storage_length,),
+                            (1,),
+                            dtype=arg.dtype,
+                            device="cpu",
+                            pin_memory=True,
+                        )
+                        cpu_arg.copy_(
+                            arg.as_strided(
+                                (required_storage_length,), (1,)
+                            ),
+                            non_blocking=True,
+                        )
+                    except RuntimeError:
+                        cpu_arg = arg.to("cpu")
+                    copies[name] = (arg, cpu_arg)
+                else:
+                    budget -= size
+
+        for name, arg in zip(self.fn.arg_names, args):
+            maybe_copy(name, arg)
+        for name, arg in kwargs.items():
+            maybe_copy(name, arg)
+
+        return copies
 
     def _set_best_candidate(
         self,
