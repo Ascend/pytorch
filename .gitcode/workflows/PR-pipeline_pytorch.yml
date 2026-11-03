@@ -29,7 +29,7 @@ env:
   pr_id: ${{ atomgit.event.pull_request.number }}
   target_branch: ${{ atomgit.event.pull_request.base.ref }}
   org_name: "Ascend"
-  img_master_arm: "pytorch_master_a2_aarch64_builder:20260922"
+  img_master_arm: "pytorch_master_a2_aarch64_test:20261018"
   img_2_7_1_arm: "pytorch_2.7.1_a2_aarch64_builder:20260804"
   img_2_9_0_arm: "pytorch_2.9.0_a2_aarch64_builder:20260901"
   img_2_10_0_arm: "pytorch_2.10.0_a2_aarch64_builder:20260804"
@@ -286,7 +286,7 @@ stages:
           runs_on_arch: "arm"
 
       Build_x86_onetrack:
-        name: Build_x86_onetrack
+        name: Build_x86_onetrack_v2.13
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && env.target_branch == 'master' }}
         uses: .gitcode/workflows/build_job.yml
         with:
@@ -295,7 +295,7 @@ stages:
           runs_on_arch: "x86"
 
       Build_arm_onetrack:
-        name: Build_arm_onetrack
+        name: Build_arm_onetrack_v2.13
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && env.target_branch == 'master' }}
         uses: .gitcode/workflows/build_job.yml
         with:
