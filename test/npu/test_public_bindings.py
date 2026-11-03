@@ -820,8 +820,19 @@ class TestPublicBindings(TestCase):
             if mod.startswith("torch._vendor.quack"):
                 continue
 
+            # Skip FlexGEMM modules backed by the vendored quack package and the
+            # NVIDIA cutlass DSL, which are CUDA-only
+            if mod.startswith("torch._inductor.kernel.flex_gemm.compile_pool"):
+                continue
+            if mod.startswith("torch._inductor.kernel.flex_gemm.quack_ops"):
+                continue
+
             # Skip the CUPTI python bindings, which require a CUDA/CUPTI runtime
             if mod.startswith("torch.profiler._cupti"):
+                continue
+
+            # Skip the new CuPTI python bindings (_cuspy), which require a CUDA/CUPTI runtime
+            if mod.startswith("torch.profiler._cuspy"):
                 continue
 
             # Skip CuTe DSL modules, which require the NVIDIA cutlass DSL package (CUDA-only)
@@ -830,6 +841,20 @@ class TestPublicBindings(TestCase):
 
             # Skip CUDA-only native op kernels backed by CuTe DSL
             if mod.startswith("torch._native.ops.reductions.inner_tree_kernel"):
+                continue
+
+            # Skip CUDA-only native op kernels backed by the NVIDIA cutlass DSL
+            if mod.startswith(
+                (
+                    "torch._native.ops.linear_cross_entropy.fused_grad_logits_kernel",
+                    "torch._native.ops.reductions.kernel_coltile",
+                    "torch._native.ops.reductions.kernel_general",
+                    "torch._native.ops.reductions.kernel_rowtile",
+                    "torch._native.ops.reductions.kernel_xcta",
+                    "torch._native.ops.reductions.tile",
+                    "torch._native.ops.reductions.traits",
+                )
+            ):
                 continue
 
             # Skip FlyDSL modules, which require the AMD flydsl package (ROCm-only)
