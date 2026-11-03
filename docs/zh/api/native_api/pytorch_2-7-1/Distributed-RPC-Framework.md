@@ -152,7 +152,7 @@
 **限制与说明**：
 
 - NPU设备启用rpc时需要在`init_rpc`中进行特定的设置：`backend`绑定`rpc.backend_registry.BackendType.NPU_TENSORPIPE`；
-- options绑定`NPUTensorPipeRpcBackendOptions`，需要`from torch_npu.distributed.rpc.options import NPUTensorPipeRpcBackendOptions`并设置option选项，参数格式和原版`TensorPipeRpcBackendOptions`相同。
+- options绑定`NPUTensorPipeRpcBackendOptions`，需要`from torch_npu.distributed.rpc.options import NPUTensorPipeRpcBackendOptions`并设置options选项，参数格式和原生`TensorPipeRpcBackendOptions`相同。
 
 </div>
 

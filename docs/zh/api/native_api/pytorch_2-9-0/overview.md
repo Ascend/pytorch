@@ -1,6 +1,6 @@
 # 概述
 
-介绍PyTorch2.9.0版本原生API在昇腾NPU上的支持情况与限制说明，PyTorch2.9.0版本原生API具体使用方法请参考[PyTorch社区文档](https://pytorch.org/docs/2.9/)。
+介绍PyTorch 2.9.0版本原生API在昇腾NPU上的支持情况与限制说明，PyTorch 2.9.0版本原生API具体使用方法请参考[PyTorch社区文档](https://pytorch.org/docs/2.9/)。
 
 > [!NOTE]
 >

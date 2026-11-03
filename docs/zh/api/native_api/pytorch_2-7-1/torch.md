@@ -39,7 +39,7 @@
 
 **产品支持情况**：
 <!-- npu="950" id1113 -->
-- <term>Ascend 950DT</term>：不支持
+- <term>Ascend 950DT系列产品</term>：不支持
 <!-- end id1113 -->
 
 **限制与说明**：该接口依赖torchvision GPU decoder扩展，当前Ascend/aarch64环境未提供gpu_decoder.so，无法注册到torch.classes.torchvision
@@ -768,7 +768,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id69 -->
 
-**限制与说明**： `input`仅支持输出fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `input`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 
@@ -3139,13 +3139,13 @@
 **产品支持情况**：
 
 <!-- npu="910b" id1114 -->
-- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A2训练系列产品</term>：支持
 <!-- end id1114 -->
 <!-- npu="A3" id1115 -->
-- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Atlas A3训练系列产品</term>：支持
 <!-- end id1115 -->
 <!-- npu="950" id1116 -->
-- <term>Ascend 950DT</term>：支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1116 -->
 
 </div>

@@ -57,7 +57,7 @@ CHECK ACCURACY FAILED! Kernel: <kernel_name>, Output idx: <idx>, Mismatched: <m>
 
 ## 使用约束
 
-- 此环境变量仅可在PyTorch2.7.1和PyTorch2.9.0版本使用。
+- 此环境变量仅可在PyTorch 2.7.1和PyTorch 2.9.0版本使用。
 - 在torch.compile图编译模式（Inductor）下可使用此环境变量。
 - 仅支持Inductor后端编译器中的Triton模式和DVM模式。
 

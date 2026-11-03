@@ -21,7 +21,7 @@ Scalable RootInfo功能默认关闭。关闭时保持原RootInfo建链行为不�
 - `ROOTINFO_SCALABLE_ENABLE`：Scalable RootInfo功能开关。默认值为“0”，设置为“1”时开启。
 - `TORCH_HCCL_RANKS_PER_ROOT`：每个root期望管理的最大rank数量，默认值为“128”，取值必须为1~4294967295的十进制整数。
 
-环境变量的完整说明请参见环境变量中的“[ROOTINFO\_SCALABLE\_ENABLE](../../../api/environment_variable/collective_communication/ROOTINFO_SCALABLE_ENABLE.md)”和“[TORCH\_HCCL\_RANKS\_PER\_ROOT](../../../api/environment_variable/collective_communication/TORCH_HCCL_RANKS_PER_ROOT.md)”章节。
+环境变量的完整说明请参见“[ROOTINFO\_SCALABLE\_ENABLE](../../../api/environment_variable/collective_communication/ROOTINFO_SCALABLE_ENABLE.md)”和“[TORCH\_HCCL\_RANKS\_PER\_ROOT](../../../api/environment_variable/collective_communication/TORCH_HCCL_RANKS_PER_ROOT.md)”章节。
 
 设当前ProcessGroup包含N个rank，`TORCH_HCCL_RANKS_PER_ROOT`为R：
 

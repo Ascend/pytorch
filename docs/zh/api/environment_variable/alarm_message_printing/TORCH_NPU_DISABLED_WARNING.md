@@ -33,7 +33,7 @@ unset TORCH_NPU_DISABLED_WARNING
 
 ## 使用约束
 
-该环境变量仅在PyTorch2.1.0及以上版本生效。
+该环境变量仅在PyTorch 2.1.0及以上版本生效。
 
 ## 支持的型号
 

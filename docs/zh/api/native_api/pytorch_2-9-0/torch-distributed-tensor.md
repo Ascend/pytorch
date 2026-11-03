@@ -241,10 +241,10 @@
 **产品支持情况**：
 
 <!-- npu="910b" id28 -->
-- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A2训练系列产品</term>：支持
 <!-- end id28 -->
 <!-- npu="A3" id29 -->
-- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Atlas A3训练系列产品</term>：支持
 <!-- end id29 -->
 <!-- npu="950" id30 -->
 - <term>Ascend 950DT系列产品</term>：支持

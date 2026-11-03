@@ -89,7 +89,7 @@
     接口`RunOpApiV2`的函数签名是`RunOpApiV2(const string &op_name, const PROC_FUNC &func, bool sync = false)`，参数信息如下：
     
     - `PROC_FUNC`：类型别名为 `std::function<int()>`，即用户传入的算子执行回调函数，返回 `int` 类型的错误码（0表示成功）。
-    - `op_name`：算子名称（如 `Add`），用于`RECORD_FUNCTION`、`profiling`及t`race`标记。若长度超过99字节，将会被截断。
+    - `op_name`：算子名称（如 `Add`），用于`RECORD_FUNCTION`、`profiling`及`trace`标记。若长度超过99字节，将会被截断。
     - `func`：算子执行回调。`RunOpApiV2`以常引用传入（避免拷贝）。
     - `sync`：是否在算子下发后阻塞同步当前stream，默认 `false`。
 

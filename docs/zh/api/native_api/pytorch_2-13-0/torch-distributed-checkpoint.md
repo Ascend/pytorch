@@ -1104,13 +1104,13 @@
 **产品支持情况**：
 
 <!-- npu="910b" id232 -->
-- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A2训练系列产品</term>：支持
 <!-- end id232 -->
 <!-- npu="A3" id233 -->
-- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Atlas A3训练系列产品</term>：支持
 <!-- end id233 -->
 <!-- npu="950" id234 -->
-- <term>Ascend 950DT</term>：支持
+- <term>Ascend 950DT系列产品</term>：支持
 <!-- end id234 -->
 
 </div>
@@ -1640,13 +1640,13 @@
 **产品支持情况**：
 
 <!-- npu="910b" id229 -->
-- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A2训练系列产品</term>：支持
 <!-- end id229 -->
 <!-- npu="A3" id230 -->
-- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Atlas A3训练系列产品</term>：支持
 <!-- end id230 -->
 <!-- npu="950" id231 -->
-- <term>Ascend 950DT</term>：未验证（A5无多卡环境）
+- <term>Ascend 950DT系列产品</term>：未验证（A5无多卡环境）
 <!-- end id231 -->
 
 > <font size="3">close()</font>
@@ -1658,13 +1658,13 @@
 **产品支持情况**：
 
 <!-- npu="910b" id244 -->
-- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A2训练系列产品</term>：支持
 <!-- end id244 -->
 <!-- npu="A3" id245 -->
-- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Atlas A3训练系列产品</term>：支持
 <!-- end id245 -->
 <!-- npu="950" id246 -->
-- <term>Ascend 950DT</term>：未验证（A5无多卡环境）
+- <term>Ascend 950DT系列产品</term>：未验证（A5无多卡环境）
 <!-- end id246 -->
 
 </div>
@@ -1678,13 +1678,13 @@
 **产品支持情况**：
 
 <!-- npu="910b" id235 -->
-- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A2训练系列产品</term>：支持
 <!-- end id235 -->
 <!-- npu="A3" id236 -->
-- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Atlas A3训练系列产品</term>：支持
 <!-- end id236 -->
 <!-- npu="950" id237 -->
-- <term>Ascend 950DT</term>：未验证（A5无多卡环境）
+- <term>Ascend 950DT系列产品</term>：未验证（A5无多卡环境）
 <!-- end id237 -->
 
 </div>
@@ -1698,13 +1698,13 @@
 **产品支持情况**：
 
 <!-- npu="910b" id238 -->
-- <term>Atlas A2 训练系列产品</term>：支持
+- <term>Atlas A2训练系列产品</term>：支持
 <!-- end id238 -->
 <!-- npu="A3" id239 -->
-- <term>Atlas A3 训练系列产品</term>：支持
+- <term>Atlas A3训练系列产品</term>：支持
 <!-- end id239 -->
 <!-- npu="950" id240 -->
-- <term>Ascend 950DT</term>：未验证（A5无多卡环境）
+- <term>Ascend 950DT系列产品</term>：未验证（A5无多卡环境）
 <!-- end id240 -->
 
 </div>
