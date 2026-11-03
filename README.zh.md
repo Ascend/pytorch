@@ -62,7 +62,7 @@ TorchNPU版本维护策略请参考[分支支持矩阵](https://gitcode.com/Asce
 
 ## 贡献指导
 
-介绍如何向TorchNPU插件库贡献代码，具体请参见[贡献指南](docs/zh/CONTRIBUTING.md)。
+介绍如何向TorchNPU插件库贡献代码，具体请参见[贡献指南](CONTRIBUTING.md)。
 
 ## 联系我们
 
@@ -70,7 +70,7 @@ TorchNPU版本维护策略请参考[分支支持矩阵](https://gitcode.com/Asce
 
 ## 安全声明
 
-TorchNPU的系统安全加固、运行用户建议和文件权限控制等内容，请参见[安全声明](docs/zh/SECURITYNOTE.md)。
+TorchNPU的系统安全加固、运行用户建议和文件权限控制等内容，请参见[安全声明](SECURITYNOTE.md)。
 
 ## 免责声明
 

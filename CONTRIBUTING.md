@@ -297,7 +297,7 @@ git diff --name-only HEAD | xargs lintrunner
 
 ### PR 合入要求
 
-**合入检查清单**（详细要求参考 [PR 模板](../../.gitcode/PULL_REQUEST_TEMPLATE.md)）：
+**合入检查清单**（详细要求参考 [PR 模板](./.gitcode/PULL_REQUEST_TEMPLATE.md)）：
 
 - [ ] 代码编译通过
 - [ ] 静态检查通过（CppLint、CppCheck 等）
@@ -317,7 +317,7 @@ git diff --name-only HEAD | xargs lintrunner
 - `test/distributed/` - 分布式测试
 - `test/dynamo/` - 编译器测试
 
-**运行测试**（详细说明参考 [测试文档](../../test/README.md)）：
+**运行测试**（详细说明参考 [测试文档](./test/README.md)）：
 
 ```bash
 # 安装测试依赖
@@ -417,7 +417,7 @@ PyTorch NPU 项目鼓励使用 AI 辅助研发与文档开发，以提升贡献�
 
 2. **创建 Pull Request**
 
-在 GitCode 上创建 Pull Request，根据 [PR 模板](../../.gitcode/PULL_REQUEST_TEMPLATE.md) 完整填写：
+在 GitCode 上创建 Pull Request，根据 [PR 模板](./.gitcode/PULL_REQUEST_TEMPLATE.md) 完整填写：
 
 - 合入来源
 - 修改方案
