@@ -367,6 +367,31 @@ def _split_marker_samples_ms(
     return timings_ms
 
 
+def _npu_profile_schedule_args(entry_count: int, rep: int) -> dict[str, int]:
+    """Return a schedule that records exactly ``rep`` samples per entry."""
+    return {"wait": 0, "warmup": 0, "active": rep * entry_count, "repeat": 1}
+
+
+def _run_npu_profiled_entries(
+    entries: List[Tuple[Callable[[], None], Optional[Callable[[], None]]]],
+    rep: int,
+    marker,
+    prof,
+) -> None:
+    """Record exactly ``rep`` consecutive samples for every entry."""
+    for fn, prepare_fn in entries:
+        for _ in range(rep):
+            _run_prepare(prepare_fn)
+            torch.npu.synchronize()
+            marker.neg_()
+            torch.npu.synchronize()
+            fn()
+            torch.npu.synchronize()
+            marker.abs_()
+            torch.npu.synchronize()
+            prof.step()
+
+
 def benchmark_npu_batch_with_profiler(
     entries: List[Tuple[Callable[[], None], Optional[Callable[[], None]]]],
     *,
@@ -410,16 +435,11 @@ def benchmark_npu_batch_with_profiler(
 
         _NPU_PROFILER_BENCHMARK_STATE.active = True
         try:
-            cache_buffer = triton.runtime.driver.active.get_empty_cache_for_benchmark()
             try:
-
                 with torch_npu.profiler.profile(
                     activities=[torch_npu.profiler.ProfilerActivity.NPU],
                     schedule=torch_npu.profiler.schedule(
-                        wait=1 * len(entries),
-                        warmup=1 * len(entries),
-                        active=rep * len(entries),
-                        repeat=1,
+                        **_npu_profile_schedule_args(len(entries), rep)
                     ),
                     on_trace_ready=simple_trace_handler(profile_path),
                     record_shapes=False,
@@ -429,15 +449,8 @@ def benchmark_npu_batch_with_profiler(
                     with_modules=False,
                     experimental_config=experimental_config,
                 ) as prof:
-                    for fn, prepare_fn in entries:
-                        for _ in range(rep + 2):
-                            marker.neg_()
-                            torch.npu.synchronize()
-                            fn()
-                            torch.npu.synchronize()
-                            marker.abs_()
-                            torch.npu.synchronize()
-                            prof.step()
+                    _run_npu_profiled_entries(entries, rep, marker, prof)
+                    prof.step()
 
                 kernel_detail_files = []
                 for root, _, files in os.walk(profile_path):
@@ -507,7 +520,6 @@ def benchmark_npu_batch_with_mspti(
 
         _NPU_PROFILER_BENCHMARK_STATE.active = True
         try:
-            cache_buffer = triton.runtime.driver.active.get_empty_cache_for_benchmark()
             marker = torch.empty(1, dtype=torch.float32, device="npu")
             start_marker_name = "neg"
             end_marker_name = "abs"
