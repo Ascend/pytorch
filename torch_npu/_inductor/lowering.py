@@ -194,35 +194,49 @@ def _npu_fractional_pooling_offsets(
     in_sz = in_sz[dim]
     kernel_sz = kernel_sz[dim]
     samples_loader = samples.make_loader()
+    sample_dim = dim if ndims == 3 else ndims - 1 - dim
+    dtype = samples.get_dtype()
+    compute_dtype = get_computation_dtype(dtype)
+
+    def round_to_input_dtype(value):
+        # Preserve CPU eager scalar_t rounding before integer truncation.
+        value = ops.to_dtype(value, dtype, use_compute_types=False)
+        return ops.to_dtype(value, compute_dtype)
 
     def load(prefix, i):
         samples_shape = samples.get_size()
 
         if len(samples_shape) == 3:
             if len(prefix) == 1:
-                sample = samples_loader([0, prefix[0], ndims - 1 - dim])
+                sample = samples_loader([0, prefix[0], sample_dim])
             elif len(prefix) >= 2:
                 sample = samples_loader(
-                    [prefix[0], prefix[1], ndims - 1 - dim]
+                    [prefix[0], prefix[1], sample_dim]
                 )
             else:
-                sample = samples_loader([0, 0, ndims - 1 - dim])
+                sample = samples_loader([0, 0, sample_dim])
         else:
-            sample = samples_loader([*prefix, ndims - 1 - dim])
+            sample = samples_loader([*prefix, sample_dim])
 
-        i_expr = ops.index_expr(i, samples.get_dtype())
+        i_index = ops.index_expr(i, torch.int64)
+        i_expr = round_to_input_dtype(i_index)
         diff = ops.index_expr(in_sz - kernel_sz, torch.int64)
         out_sz_expr = ops.index_expr(out_sz - 1, torch.int64)
-        alpha = ops.truediv(
-            ops.to_dtype(diff, torch.float32),
-            ops.to_dtype(out_sz_expr, torch.float32),
+        safe_den = ops.where(ops.eq(out_sz_expr, 0), 1, out_sz_expr)
+        alpha = round_to_input_dtype(
+            ops.truediv(
+                round_to_input_dtype(diff),
+                round_to_input_dtype(safe_den),
+            )
         )
         alpha = ops.where(ops.eq(out_sz_expr, 0), 0, alpha)
-        seq_i = ops.trunc((i_expr + sample) * alpha) - ops.trunc(
-            sample * alpha
-        )
-        seq_i = ops.to_dtype(seq_i, torch.int64)
-        mask = ops.lt(i_expr, out_sz_expr)
+        shifted = round_to_input_dtype(i_expr + sample)
+        left = round_to_input_dtype(shifted * alpha)
+        right = round_to_input_dtype(sample * alpha)
+        left = ops.to_dtype(ops.trunc(left), torch.int64)
+        right = ops.to_dtype(ops.trunc(right), torch.int64)
+        seq_i = left - right
+        mask = ops.lt(i_index, out_sz_expr)
         return ops.indirect_indexing(
             ops.where(mask, seq_i, diff), sympy.sympify(in_sz)
         )

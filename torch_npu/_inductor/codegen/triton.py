@@ -4690,11 +4690,21 @@ class NPUIndexTritonKernel(TritonKernel):
         has_tmpmask = indexing.has_tmpmask()
         ep = ""
         if (
-            (has_tmpmask or has_rindex)
-            and V.graph.get_dtype(name) != torch.bool
+            V.graph.get_dtype(name) != torch.bool
             and indexing.has_mask()
+            and (
+                self._load_other is not None
+                or has_tmpmask
+                or has_rindex
+                or isinstance(original_index, sympy.Integer)
+            )
         ):
-            other = ", other=0.0"
+            # Honor ops.masked's fill value, including signed zero. Retain the
+            # NPU bool-load exclusion; its explicit fill is selected below.
+            if self._load_other is not None:
+                other = f", other={constant_repr(self._load_other)}"
+            else:
+                other = ", other=0.0"
         else:
             other = ""
 
@@ -4718,10 +4728,22 @@ class NPUIndexTritonKernel(TritonKernel):
                 )
                 shape = indexing.final_shape
             elif isinstance(original_index, sympy.Integer):
-                line = f"tl.load({var} + tl.arange(0,1) +  ({original_index}))"
-                full_list = ["1"] * (len(self.tiling_axis) if self.tiling_axis else 1)
-                append_broadcast = f"[{', '.join(full_list)} ]"
-                shape = ()
+                # Retain NPU's size-1 tensor pointer rather than importing
+                # upstream's scalar load/broadcast path. A masked read must
+                # guard the access itself: NPU indexing can retain negative
+                # boundary offsets. The mask can expand the result shape, so
+                # only unmasked reads use the original size-1 reshape below.
+                if indexing.has_mask():
+                    line = (
+                        f"tl.load({var} + tl.arange(0,1) + ({original_index}), "
+                        f"{indexing.mask_str}{ep}{other})"
+                    )
+                    shape = indexing.expand_shape or NPUTritonSymbols.get_block_shape(indexing.index)
+                else:
+                    line = f"tl.load({var} + tl.arange(0,1) +  ({original_index}))"
+                    full_list = ["1"] * (len(self.tiling_axis) if self.tiling_axis else 1)
+                    append_broadcast = f"[{', '.join(full_list)} ]"
+                    shape = ()
             else:
                 index_str = indexing.index_str
                 mask_str = indexing.mask_str
@@ -4757,6 +4779,15 @@ class NPUIndexTritonKernel(TritonKernel):
         result_var = self.cse.generate(load_buffer, line, dtype=dtype, shape=shape)
         if not (isinstance(result_var, TritonCSEVariable)):
             raise RuntimeError("assert isinstance(result_var, TritonCSEVariable)")
+        if dtype == torch.bool and indexing.has_mask() and self._load_other is not None:
+            # Preserve NPU's no-other bool load policy without losing the
+            # upstream fill semantics. The load itself is still masked, so
+            # where is not relied on to protect out-of-bounds addresses.
+            other_val = constant_repr(bool(self._load_other))
+            line = f"tl.where({indexing.mask_str}, {result_var}, {other_val})"
+            result_var = self.cse.generate(
+                load_buffer, line, dtype=dtype, shape=result_var.shape
+            )
         result_var.mask_vars = indexing.mask_vars  # type: ignore[assignment]
         # Track the buffer layout produced by the finalized load indexing.
         loaded_layout_axes = (
@@ -4942,8 +4973,15 @@ class NPUIndexTritonKernel(TritonKernel):
                     index_str = f"tl.full({expand_str}, {index_str}, tl.int32)"
             else:
                 index_str = "tl.arange(0,1)"
+            # Like upstream, retain the masked-load context for constant
+            # indices. An explicit indexing mask must also survive this return.
+            mask_vars = OrderedSet()
+            if override_mask:
+                mask_vars.add(override_mask)
+            if self._load_mask is not None:
+                mask_vars.add(self._load_mask)
             return IndexingOptions(
-                index_str, OrderedSet(), expand_str, has_rindex, index, expand_shape=expand_shape
+                index_str, mask_vars, expand_str, has_rindex, index, expand_shape=expand_shape
             )
 
         if override_mask:
