@@ -7,7 +7,6 @@ import tarfile
 from typing import Dict, Optional
 from torch_npu.utils._error_code import ErrCode, prof_error
 from ....utils._path_manager import PathManager
-from ._constant import Constant, print_warn_msg
 
 __all__ = []
 
@@ -20,10 +19,6 @@ class FileManager:
             return ''
         file_size = os.path.getsize(file_path)
         if file_size <= 0:
-            return ''
-        if file_size > Constant.MAX_FILE_SIZE:
-            msg = f"The file size exceeds the preset value, please check the file: {file_path}"
-            print_warn_msg(msg)
             return ''
         try:
             with open(file_path, mode) as file:
@@ -38,10 +33,6 @@ class FileManager:
             return []
         file_size = os.path.getsize(file_path)
         if file_size <= 0:
-            return []
-        if file_size > Constant.MAX_CSV_SIZE:
-            msg = f"The file size exceeds the preset value, please check the file: {file_path}"
-            print_warn_msg(msg)
             return []
         result_data = []
         try:
@@ -60,10 +51,6 @@ class FileManager:
             return {}
         file_size = os.path.getsize(file_path)
         if file_size <= 0:
-            return {}
-        if file_size > Constant.MAX_FILE_SIZE:
-            msg = f"The file size exceeds the preset value, please check the file: {file_path}"
-            print_warn_msg(msg)
             return {}
         try:
             with open(file_path, 'r', encoding='utf-8') as json_file:
@@ -185,7 +172,7 @@ class FileManager:
     def check_db_file_vaild(cls, db_path: str) -> None:
         PathManager.check_input_file_path(db_path)
         db_size = os.path.getsize(db_path)
-        if db_size < 0 or db_size > Constant.MAX_FILE_SIZE:
+        if db_size < 0:
             raise RuntimeError(f"Invalid db file size, please check the db file: {db_path}")
 
     @classmethod
