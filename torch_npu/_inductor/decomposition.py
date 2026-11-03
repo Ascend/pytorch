@@ -62,6 +62,8 @@ def _matmul_triton(self, other):
 
 def _matmul_backward_inductor(grad, self, other, mask):
     """Decompose matmul backward locally for the Triton Inductor backend."""
+    from torch.fx.experimental.symbolic_shapes import guard_or_false
+
     dim_self = self.dim()
     dim_other = other.dim()
 
@@ -70,6 +72,18 @@ def _matmul_backward_inductor(grad, self, other, mask):
     size_other = other.size()
     grad_self = None
     grad_other = None
+
+    if dim_self >= 3 and dim_other >= 3:
+        if all(guard_or_false(size == 1) for size in size_self[:-2]):
+            grad_self, grad_other = _matmul_backward_inductor(
+                grad, self.reshape(size_self[-2:]), other, mask
+            )
+            return (grad_self.reshape(size_self) if mask[0] else None), grad_other
+        if all(guard_or_false(size == 1) for size in size_other[:-2]):
+            grad_self, grad_other = _matmul_backward_inductor(
+                grad, self, other.reshape(size_other[-2:]), mask
+            )
+            return grad_self, (grad_other.reshape(size_other) if mask[1] else None)
 
     def matmul_backward_1d_1d():
         nonlocal grad_self, grad_other
