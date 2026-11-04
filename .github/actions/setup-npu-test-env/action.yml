@@ -1,5 +1,5 @@
 name: 'Setup NPU Test Environment'
-description: 'Common environment setup for NPU upstream tests - checkout, install torch_npu, download test source, apply patches'
+description: 'Common environment setup for NPU upstream tests - install torch_npu, download test source'
 
 inputs:
   python_version:
@@ -14,11 +14,6 @@ inputs:
     required: true
     type: string
     description: Name of the prepared test source artifact
-  patch_log_suffix:
-    required: false
-    type: string
-    default: 'setup'
-    description: Suffix for torch_env_patch log filename
 
 runs:
   using: 'composite'
@@ -90,22 +85,4 @@ runs:
         print(f'NPU count: {torch.npu.device_count()}')
         "
 
-    - name: Apply torch environment patches
-      shell: bash
-      run: |
-        source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
-        source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
 
-        cd pytorch-test-src/test_upstream
-        chmod +x torch_env_patch.sh
-
-        echo "=== Applying torch environment patches ==="
-        set +e
-        ./torch_env_patch.sh --python=${{ inputs.python_version }} 2>&1 | tee /tmp/torch_env_patch_${{ inputs.patch_log_suffix }}.log
-        PATCH_STATUS=${PIPESTATUS[0]}
-        set -e
-
-        if [ ${PATCH_STATUS} -ne 0 ]; then
-          echo "WARNING: Torch environment patch application returned non-zero status: ${PATCH_STATUS}"
-          echo "Tests will continue, but some may fail due to missing patches"
-        fi
