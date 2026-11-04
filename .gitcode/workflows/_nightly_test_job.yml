@@ -49,7 +49,7 @@ jobs:
     runs-on: [ self-hosted, "${{ inputs.NPU_LABEL }}" ]
     timeout-minutes: 360
     container:
-      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260922
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_test:20261021
       options: ${{ inputs.CONTAINER_OPTIONS }}
     steps:
       - name: checkout
@@ -77,18 +77,18 @@ jobs:
 
       - name: Install PyTorch
         run: |
-          python3.10 .gitcode/scripts/install_pytorch_from_requirements.py \
+          python3.11 .gitcode/scripts/install_pytorch_from_requirements.py \
             --arch aarch64 \
-            --python-tag cp310 \
-            --python-exe python3.10
+            --python-tag cp311 \
+            --python-exe python3.11
 
       - name: Install pytest-timeout
-        run: python3.10 -m pip install --trusted-host mirrors.huaweicloud.com pytest-timeout
+        run: python3.11 -m pip install --trusted-host mirrors.huaweicloud.com pytest-timeout
 
       - name: Setup test environment
         run: |
           if [ "${{ inputs.SETUP_MODE }}" = "cpu" ]; then
-            python3.10 -m pip install ./*.whl
+            python3.11 -m pip install ./*.whl
           else
             bash .gitcode/scripts/setup_npu_test_env.sh --wheel-artifact-dir ./
           fi
@@ -108,7 +108,7 @@ jobs:
             EXTRA_ARGS="${EXTRA_ARGS} --cards-per-test ${{ inputs.CARDS_PER_TEST }}"
           fi
 
-          python3.10 .gitcode/scripts/nightly_run_npu_test_shard.py \
+          python3.11 .gitcode/scripts/nightly_run_npu_test_shard.py \
             --cases-json "cases-shards/${{ inputs.SHARD_FILE }}" \
             --test-dir test \
             --disabled-testcases .gitcode/config/disabled_testcases.json \
@@ -123,5 +123,5 @@ jobs:
         with:
           name: ${{ inputs.REPORT_NAME }}
           path: ${{ inputs.REPORT_NAME }}/
-          retention-days: 60
+          retention-days: 14
           overwrite: true

@@ -59,7 +59,7 @@ jobs:
         run: |
           echo "=== Build Environment Info ===" > build_msg.txt
           echo "Python Version:" >> build_msg.txt
-          python3.10 --version >> build_msg.txt 2>&1
+          python3.11 --version >> build_msg.txt 2>&1
           echo "CMake Version:" >> build_msg.txt
           cmake3 --version 2>/dev/null | head -1 >> build_msg.txt || cmake --version 2>/dev/null | head -1 >> build_msg.txt
           echo "GCC Version:" >> build_msg.txt
@@ -70,14 +70,14 @@ jobs:
 
       - name: Install PyTorch
         run: |
-          python3.10 .gitcode/scripts/install_pytorch_from_requirements.py \
+          python3.11 .gitcode/scripts/install_pytorch_from_requirements.py \
             --arch aarch64 \
-            --python-tag cp310 \
-            --python-exe python3.10
+            --python-tag cp311 \
+            --python-exe python3.11
 
       - name: Install nanobind
         run: |
-          python3.10 -m pip install nanobind
+          python3.11 -m pip install nanobind
 
       - name: Build torch_npu wheel
         id: build
@@ -93,7 +93,7 @@ jobs:
           if echo "${TORCH_VER}" | grep -Eq '^[0-9]+\.[0-9]+$'; then
             TORCH_VER="${TORCH_VER}.0"
           fi
-          bash ci/build.sh --python="3.10" --torch="${TORCH_VER}" 2>&1 | tee /tmp/build_torch_npu.log
+          bash ci/build.sh --python="3.11" --torch="${TORCH_VER}" 2>&1 | tee /tmp/build_torch_npu.log
           BUILD_STATUS=${PIPESTATUS[0]}
           ccache -s 2>&1
           echo "${BUILD_STATUS}" > build_status.txt
@@ -115,7 +115,7 @@ jobs:
         with:
           name: torch-npu-wheel
           path: "dist/*.whl"
-          retention-days: 60
+          retention-days: 14
           overwrite: true
 
       - name: Upload build_msg.txt as artifact
@@ -123,5 +123,5 @@ jobs:
         with:
           name: build-msg
           path: build_msg.txt
-          retention-days: 60
+          retention-days: 14
           overwrite: true

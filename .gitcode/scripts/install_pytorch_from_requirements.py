@@ -7,7 +7,7 @@ import sys
 import subprocess
 
 
-def install_from_requirements(python_exe='python3.10', arch='aarch64', python_tag='cp310'):
+def install_from_requirements(python_exe='python3.11', arch='aarch64', python_tag='cp311'):
     req_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                             '..', '..', 'requirements.txt')
     torch_version = None
@@ -64,8 +64,8 @@ def main():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--arch', default='aarch64')
-    parser.add_argument('--python-tag', default='cp310')
-    parser.add_argument('--python-exe', default='python3.10')
+    parser.add_argument('--python-tag', default='cp311')
+    parser.add_argument('--python-exe', default='python3.11')
     args = parser.parse_args()
 
     if not install_from_requirements(args.python_exe, args.arch, args.python_tag):

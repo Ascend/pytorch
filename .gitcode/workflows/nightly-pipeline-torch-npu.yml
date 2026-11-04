@@ -14,30 +14,11 @@ name: Torch NPU Test Nightly
 on:
   schedule:
     - cron: "0 22 * * *"    # 北京时间 22:00
-  pull_request:
-    branches: [master]
-    paths:
-      - ".gitcode/workflows/nightly-pipeline-torch-npu.yml"
-      - ".gitcode/workflows/_nightly_build.yml"
-      - ".gitcode/workflows/_nightly_collect.yml"
-      - ".gitcode/workflows/_nightly_test_job.yml"
-      - ".gitcode/workflows/_nightly_report.yml"
-      - ".gitcode/scripts/install_pytorch_from_requirements.py"
-      - ".gitcode/scripts/setup_npu_test_env.sh"
-      - ".gitcode/scripts/collect_all_cases.py"
-      - ".gitcode/scripts/discover_test_files.py"
-      - ".gitcode/scripts/classify_distributed_cards.py"
-      - ".gitcode/scripts/parse_test_results.py"
-      - ".gitcode/scripts/nightly_run_npu_test_shard.py"
-      - ".gitcode/scripts/nightly_generate_npu_full_test_report.py"
-      - ".gitcode/config/case_paths_ci.yml"
-      - ".gitcode/config/disabled_testcases.json"
-      - ".gitcode/config/disabled_test_methods.json"
   workflow_dispatch: {}
 
 env:
   PYTORCH_BRANCH: "release/2.15"
-  PYTHON_VERSION: "3.10"
+  PYTHON_VERSION: "3.11"
   # ── 运行参数 ──
   CASE_TIMEOUT: "1200"
   REG_WORKERS: "4"
@@ -48,7 +29,7 @@ env:
   DISTRIBUTED_2CARD_SHARDS: "2"
   REGULAR_NPU_MACHINES: "10"
   # ── 镜像 ──
-  DOCKER_BASE_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_builder:20260922"
+  DOCKER_BASE_IMAGE: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_test:20261021"
   # ── 容器选项 ──
   CONTAINER_OPTS_BUILD: "--user root"
   CONTAINER_OPTS_BUILD_NPU: "--user root --volume /usr/local/Ascend:/usr/local/Ascend --volume /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi --device /dev/davinci0 --device /dev/davinci_manager --device /dev/hisi_hdc --device /dev/devmm_svm"
