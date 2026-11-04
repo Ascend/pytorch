@@ -1,0 +1,87 @@
+name: Nightly Build and Test A5 (torch 2.15 upstream release)
+
+# A5 (x86_64) counterpart of nightly-torch215-a3.yml: validates torch_npu
+# against the UPSTREAM torch 2.15.0 release wheels for linux x86_64
+# instead of a source-built PyTorch, complementing nightly-a5.yml (which
+# tracks pytorch main). The test suite comes from the commit the torch
+# wheel was built from (wheel git_version, resolved in the build
+# workflow).
+#
+# Wheel source facts (verified 2026-11-04):
+#   - torch 2.15.0 linux x86_64 cpu release wheel: download.pytorch.org
+#     test channel, built from the same commit as the aarch64 wheel
+#     (145f350fd4...), cxx11 ABI — so the source tarball in OBS is shared
+#     with the a3 pipeline and the _GLIBCXX_USE_CXX11_ABI=1 build env in
+#     _nightly_build_upstream_wheels.yml matches the wheel.
+#   - torchvision 0.29.2+cpu (py3-none) x86_64 from the stable cpu
+#     channel, sha256 verified against the index.
+#   - Unlike the source-build flow (_nightly_build.yml for nightly-a5),
+#     no MKL wiring from /opt/intel and no wheel repair is needed here:
+#     the upstream wheel is already self-contained (manylinux-repaired
+#     by upstream, ships its own BLAS).
+#   - When upstream cuts the next line, update torch_wheel_url /
+#     torchvision_wheel_url / torch_version here, and once torch_npu
+#     master drops 2.15 from version.txt, pin torch_npu_ref to the
+#     torch_npu v2.15.0 tag / maintenance branch.
+
+on:
+  push:
+    branches:
+      - ci-test
+    paths:
+      - '.github/workflows/nightly-torch215-a5.yml'
+      - '.github/workflows/_nightly_build_upstream_wheels.yml'
+      - '.github/config/nightly_test_categories_a5.yml'
+      - '.github/config/disabled_testcases_a5_all.json'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/_nightly_build_upstream_wheels.yml
+    secrets: inherit
+    with:
+      torch_version: '2.15.0'
+      python_version: '3.11'
+      # linux x86_64 cpu 正式包（test 渠道；与 a3 的 aarch64 包同 commit 构建）。
+      torch_wheel_url: 'https://download-r2.pytorch.org/whl/test/cpu/torch-2.15.0%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl'
+      torchvision_wheel_url: 'https://download-r2.pytorch.org/whl/cpu/torchvision-0.29.2%2Bcpu-py3-none-manylinux_2_28_x86_64.whl'
+      torch_npu_repo: Ascend/pytorch
+      torch_npu_ref: master
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-builder-x86_64-torch-master-202610160227-8a315d17
+      runner_label: 'linux-amd64-a5-2'
+      max_jobs: '23'
+
+  test:
+    needs: build
+    uses: ./.github/workflows/_nightly_test.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ needs.build.outputs.resolved_short }}
+      resolved_sha: ${{ needs.build.outputs.resolved_sha }}
+      pytorch_wheels_tarball: ${{ needs.build.outputs.pytorch_wheels_tarball }}
+      torchnpu_wheels_tarball: ${{ needs.build.outputs.torchnpu_wheels_tarball }}
+      torch_npu_short: ${{ needs.build.outputs.torch_npu_short }}
+      upstream_repo: pytorch/pytorch
+      case_paths_config: .github/config/nightly_test_categories_a5.yml
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.11-torch-master-cann9.2.0-20260910200430-202610160226-8a315d17
+      report_to_upstream: false
+      hw_classification: ''
+      full_scan: true
+      device_env: 'privateuse1,cpu'
+      skip_list: |-
+        .github/config/disabled_testcases_a5_all.json
+        .github/config/unsupport_dtype_testcases.json
+        .github/config/temporary_skiped_testcases.json
+      runner_label: 'linux-amd64-a5-2'
+      test_max_parallel: 3
+      # Same triton-ascend -std=c++17 -> c++20 workaround as nightly-a5:
+      # this image is the original hotspot (549 npu_utils compile
+      # failures without the patch, see nightly-a5.yml). The C++20-only
+      # ATen headers apply to the 2.15-era headers as well. See the
+      # Patch triton cxx20 step in _nightly_test-category.yml. Flip to
+      # false to disable.
+      patch_triton_cxx20: true
