@@ -59,7 +59,7 @@ The following example uses the `op_plugin` module to demonstrate the filtering f
 - <term>Atlas A3 training products</term>
 <!-- end id3 -->
 <!-- npu="910b" id6 -->
-- <term>Atlas 800I A2 inference server</term>
+- <term>Atlas 800I A2</term>
 <!-- end id6 -->
 <!-- npu="310p" id4 -->
 - <term>Atlas inference products</term>
