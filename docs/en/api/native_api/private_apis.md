@@ -331,7 +331,7 @@
 
 **Constraints & Notes**:
 
-- Supported: layouts with ScalingType of tensorwise, rowwise, and BlockWise1x128 in fp8 mode, and with ScalingType of BlockWise1x32 in mxfp8 mode. mxfp8 follows the requirements of [aclnnQuantMatmulV5](https://gitcode.com/cann/ops-nn/blob/master/matmul/quant_batch_matmul_v4/docs/aclnnQuantMatmulV5.md) (for details about scale_a and scale_b, see the constraints)
+- Supported: layouts with ScalingType of tensorwise, rowwise, and BlockWise1x128 in fp8 mode, and with ScalingType of BlockWise1x32 in mxfp8 mode. mxfp8 follows the requirements of [aclnnQuantMatmulV5](https://www.hiascend.com/en-sg/document/detail/en/CANNCommunityEdition/920/API/aolapi/context/ops-nn/aclnnQuantMatmulV5.md) (for details about scale_a and scale_b, see the constraints)
 - Only supports PyTorch 2.7.1 and later
 
 </div>
@@ -354,7 +354,7 @@
 
 **Constraints & Notes**:
 
-- Supported: layouts with ScalingType of tensorwise, rowwise, and BlockWise1x128 in fp8 mode, and with ScalingType of BlockWise1x32 in mxfp8 mode. mxfp8 follows the requirements of [aclnnQuantMatmulV5](https://gitcode.com/cann/ops-nn/blob/master/matmul/quant_batch_matmul_v4/docs/aclnnQuantMatmulV5.md) (swizzle_a and swizzle_b must be None; for details about scale_a and scale_b, see the constraints)
+- Supported: layouts with ScalingType of tensorwise, rowwise, and BlockWise1x128 in fp8 mode, and with ScalingType of BlockWise1x32 in mxfp8 mode. mxfp8 follows the requirements of [aclnnQuantMatmulV5](https://www.hiascend.com/en-sg/document/detail/en/CANNCommunityEdition/920/API/aolapi/context/ops-nn/aclnnQuantMatmulV5.md) (swizzle_a and swizzle_b must be None; for details about scale_a and scale_b, see the constraints)
 - Only supports PyTorch 2.10.0 and later
 
 </div>
@@ -377,7 +377,7 @@
 
 **Constraints & Notes**:
 
-- Supported: layouts with ScalingType of rowwise in fp8 mode and in mxfp8 mode. mxfp8 follows the requirements of [aclnnGroupedMatmulV5](https://gitcode.com/cann/ops-transformer/blob/master/gmm/grouped_matmul/docs/aclnnGroupedMatmulV5.md) (for details about scale_a and scale_b, see the constraints)
+- Supported: layouts with ScalingType of rowwise in fp8 mode and in mxfp8 mode. mxfp8 follows the requirements of [aclnnGroupedMatmulV5](https://gitcode.com/cann/ops-transformer/blob/master/gmm/grouped_matmul/docs/aclnnGroupedMatmulV5_en.md) (for details about scale_a and scale_b, see the constraints)
 - Only supports PyTorch 2.7.1 and later
 
 </div>
@@ -400,7 +400,7 @@
 
 **Constraints & Notes**:
 
-- Supported: layouts with ScalingType of rowwise in fp8 mode and in mxfp8 mode. mxfp8 follows the requirements of [aclnnGroupedMatmulV5](https://gitcode.com/cann/ops-transformer/blob/master/gmm/grouped_matmul/docs/aclnnGroupedMatmulV5.md) (swizzle_a and swizzle_b must be None; for details about scale_a and scale_b, see the constraints)
+- Supported: layouts with ScalingType of rowwise in fp8 mode and in mxfp8 mode. mxfp8 follows the requirements of [aclnnGroupedMatmulV5](https://gitcode.com/cann/ops-transformer/blob/master/gmm/grouped_matmul/docs/aclnnGroupedMatmulV5_en.md) (swizzle_a and swizzle_b must be None; for details about scale_a and scale_b, see the constraints)
 - Only supports PyTorch 2.10.0 and later
 
 </div>

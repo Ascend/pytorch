@@ -20,7 +20,7 @@
 
 ## Uninstalling the CANN Software, Driver, and Firmware
 
-When you need to switch the CANN version, reinstall the Ascend runtime environment, or clean up existing components due to abnormal environment configurations, go to the [CANN official website](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netconda), select the corresponding version, and refer to the official guidance to uninstall the CANN software, driver, or firmware.
+When you need to switch the CANN version, reinstall the Ascend runtime environment, or clean up existing components due to abnormal environment configurations, go to the [CANN official website](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/920/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netconda), select the corresponding version, and refer to the official guidance to uninstall the CANN software, driver, or firmware.
 
 ## Upgrading TorchNPU
 

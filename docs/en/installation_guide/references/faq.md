@@ -1,4 +1,4 @@
-# FAQs
+# Troubleshooting
 
 ## Build Issues
 
@@ -10,7 +10,7 @@ When performing libtorch inference tests in an aarch64 environment, the build de
 
 - Error screenshot
 
-    ![](../figures/libtorch_error.png)
+    ![](../../figures/libtorch_error.png)
 
 - Error message
 
@@ -247,7 +247,7 @@ The current environment does not meet the requirements for running TorchNPU. Dur
 
 **Solution**
 
-Check whether the matching versions of the NPU driver and firmware and the CANN software (Toolkit, ops, and NNAL) have been installed, and configure the CANN environment variables correctly. For details, see [CANN Software Installation](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum).
+Check whether the matching versions of the NPU driver and firmware and the CANN software (Toolkit, ops, and NNAL) have been installed, and configure the CANN environment variables correctly. For details, see [CANN Software Installation](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/920/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum).
 
 ### Issue 3: core dump Error When Importing torch_npu
 
@@ -268,7 +268,7 @@ The GCC version used during the build does not meet expectations. pybind perform
 
 **Solution**
 
-Use the corresponding GCC version for compilation. For the specific matching versions, see [GCC and CMake Version Requirements](./references/building_from_source.md#gcc_cmake).
+Use the corresponding GCC version for compilation. For the specific matching versions, see [GCC and CMake Version Requirements](./../references/building_from_source.md#gcc_cmake).
 
 ### Issue 4: "import torch_npu" Error: torch_npu._C Not Found
 
@@ -320,4 +320,4 @@ Query the installed TorchNPU version.
     torch_npu     2.12.0
     ```
 
-2. Query the corresponding TorchNPU version based on the TorchNPU installation package version number. For details about the compatibility, see [TorchNPU Version Compatibility Table](https://gitcode.com/Ascend/pytorch/blob/v2.14.0-26.2.0/COMPATIBILITY.md#torchnpu-%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%A1%A8).
+2. Query the corresponding TorchNPU version based on the TorchNPU installation package version number. For details about the compatibility, see [TorchNPU Version Compatibility Table](https://gitcode.com/Ascend/pytorch/blob/master/COMPATIBILITY.md#torchnpu-%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%A1%A8).

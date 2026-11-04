@@ -8,7 +8,7 @@ This example uses the Atlas 800T A2 training server as an example.
 
 Complete the following installation and environment configuration first. If you have already done so, you can proceed directly to data preparation.
 
-- Install the matching versions of the NPU driver firmware and CANN software (Toolkit, ops, and NNAL). For details, see [CANN Software Installation](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum), and load the environment variables as instructed in the guide.
+- Install the matching versions of the NPU driver firmware and CANN software (Toolkit, ops, and NNAL). For details, see [CANN Software Installation](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/920/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum), and load the environment variables as instructed in the guide.
 - PyTorch framework and TorchNPU plugin: For details, see [Quick Installation](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=180&ids=89dda9ba9de741349efa03687a487678%2C204%2C200%2C1%2C6%2C177%2C).
 - Install the torchvision that matches the PyTorch version. See [Installing torchvision](https://pytorch.org/get-started/locally/).
 
@@ -196,7 +196,7 @@ This example uses the MNIST handwritten digit dataset. Prepare the test dataset 
 
     | Large Model | Component | Migration Guide |
     |--|--|--|
-    | Megatron-LM distributed large model | MindSpeed Core affinity acceleration module | See the [Distributed Training Acceleration Library Migration Guide](https://gitcode.com/Ascend/MindSpeed/blob/26.2.0_core_r0.12.1/docs/en/user-guide/model-migration.md). |
+    | Megatron-LM distributed large model | MindSpeed Core affinity acceleration module | See the [Distributed Training Acceleration Library Migration Guide](https://gitcode.com/Ascend/MindSpeed/blob/26.2.0_core_r0.18.0/docs/en/user-guide/model-migration.md). |
     | Megatron-LM large language model | MindSpeed LLM Suite | See the [MindSpeed LLM Documentation Guide](https://gitcode.com/Ascend/MindSpeed-LLM/blob/26.2.0/docs/en/docs_guide.md). |
     | Megatron-LM multimodal model | MindSpeed MM Suite | See the [MindSpeed MM Migration and Tuning Guide](https://gitcode.com/Ascend/MindSpeed-MM/blob/26.2.0/docs/en/guides/development/model-migration.md). |
     | Large language model or multimodal model | veRL suite | See the [veRL Migration Guide](https://github.com/verl-project/verl/blob/main/docs/ascend_tutorial/en/dev_guide/model_dev/transfer_to_npu_guide.md). |

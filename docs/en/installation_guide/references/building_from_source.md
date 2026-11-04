@@ -37,7 +37,7 @@ Source-code installation applies to secondary development scenarios. For example
 >
 > You are advised to use a non-root user to install and run programs, and to properly manage the permissions of the directories and files where the installer is located: set folder permissions to 750 and file permissions to 640. You can control the permissions of installed files by setting umask, for example, setting umask to 0027. For more security-related content, see the "File Permission Control" description for each component in *[Security Statement](../../reference/security_statement.md)*.
 
-- Install the matching versions of the NPU driver and firmware and CANN software (Toolkit, ops, and NNAL), and configure CANN environment variables. For details, refer to *[CANN Software Installation](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)*.
+- Install the matching versions of the NPU driver and firmware and CANN software (Toolkit, ops, and NNAL), and configure CANN environment variables. For details, refer to *[CANN Software Installation](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/920/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)*.
 
         CANN software provides a process-level environment variable setting script. Before using the NPU to execute service code in training or inference scenarios, you must call this script. Otherwise, the service code cannot be executed.
 

@@ -251,7 +251,7 @@ compiled = torch.compile(
 ## Constraints
 
 - PyTorch version: Must be 2.9.0 or later.
-- TorchNPU version: You must install the version matching the PyTorch version. For details, refer to [Version Compatibility](../../../../../COMPATIBILITY.md).
+- TorchNPU version: You must install the version matching the PyTorch version. For details, refer to [Version Compatibility](https://gitcode.com/Ascend/pytorch/blob/master/COMPATIBILITY.en.md).
 
 ## Related Documentation
 

@@ -5,3 +5,4 @@
 - [Building with Clang](building_with_clang.md)
 - [Building libtorch\_npu](building_libtorch_npu.md)
 - [Querying Versions](check_installed_versions.md)
+- [Troubleshooting](faq.md)

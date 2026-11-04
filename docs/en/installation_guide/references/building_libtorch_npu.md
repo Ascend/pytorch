@@ -108,4 +108,4 @@ Take the "pytorch/examples/libtorch\_resnet" model under the master branch of th
 
     > [!NOTE]
     >
-    > In the aarch64 environment, an error is reported that the torch.libs/\*.so library does not exist. See [torch.libs/libopenblasp-r0-56e95da7.3.24.so does not exist](../faq.md#issue-1-torchlibslibopenblasp-r0-56e95da7324so-link-error-or-missing-libgfortran).
+    > In the aarch64 environment, an error is reported that the torch.libs/\*.so library does not exist. See [torch.libs/libopenblasp-r0-56e95da7.3.24.so does not exist](./faq.md#issue-1-torchlibslibopenblasp-r0-56e95da7324so-link-error-or-missing-libgfortran).

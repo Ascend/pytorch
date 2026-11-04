@@ -6,7 +6,7 @@ The security hardening measures listed in this topic are basic hardening recomme
 
 |Component|Address|
 |:---|:---|
-|TorchNPU|For the v2.7.1-26.2.0 branch, see *[Security Statement](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.2.0/docs/en/SECURITYNOTE.md)*.|
+|TorchNPU|For the v2.7.1-26.2.0 branch, see *[Security Statement](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.2.0/SECURITYNOTE.md)*.|
 |TorchNPU|For the v2.9.0-26.2.0 branch, see *[Security Statement](https://gitcode.com/Ascend/pytorch/blob/v2.9.0-26.2.0/SECURITYNOTE.md)*.|
 |TorchNPU|For the v2.10.0-26.2.0 branch, see *[Security Statement](https://gitcode.com/Ascend/pytorch/blob/v2.10.0-26.2.0/SECURITYNOTE.md)*.|
 |TorchNPU|For the v2.11.0-26.2.0 branch, see *[Security Statement](https://gitcode.com/Ascend/pytorch/blob/v2.11.0-26.2.0/SECURITYNOTE.md)*.|

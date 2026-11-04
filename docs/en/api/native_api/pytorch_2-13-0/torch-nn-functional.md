@@ -2394,7 +2394,7 @@
 - <term>Ascend 950DT products</term>: Not Supported
 <!-- end id307 -->
 
-**Constraints & Notes**: `input` only supports the layout with ScalingType tensorwise, rowwise, and BlockWise1x128 in fp8 mode, and BlockWise1x32 in mxfp8 mode. mxfp8 complies with the [aclnnQuantMatmulV5](https://gitcode.com/cann/ops-nn/blob/master/matmul/quant_batch_matmul_v4/docs/aclnnQuantMatmulV5.md) requirements (for `scale_a` and `scale_b`, see the constraint description)
+**Constraints & Notes**: `input` only supports the layout with ScalingType tensorwise, rowwise, and BlockWise1x128 in fp8 mode, and BlockWise1x32 in mxfp8 mode. mxfp8 complies with the [aclnnQuantMatmulV5](https://www.hiascend.com/en-sg/document/detail/en/CANNCommunityEdition/920/API/aolapi/context/ops-nn/aclnnQuantMatmulV5.md) requirements (for `scale_a` and `scale_b`, see the constraint description)
 
 </div>
 
@@ -2416,6 +2416,6 @@
 - <term>Ascend 950DT products</term>: Not Supported
 <!-- end id310 -->
 
-**Constraints & Notes**: `input` only supports the layout with ScalingType rowwise in fp8 mode and mxfp8 mode. mxfp8 complies with the [aclnnGroupedMatmulV5](https://gitcode.com/cann/ops-transformer/blob/master/gmm/grouped_matmul/docs/aclnnGroupedMatmulV5.md) requirements (for `scale_a` and `scale_b`, see the constraint description)
+**Constraints & Notes**: `input` only supports the layout with ScalingType rowwise in fp8 mode and mxfp8 mode. mxfp8 complies with the [aclnnGroupedMatmulV5](https://gitcode.com/cann/ops-transformer/blob/master/gmm/grouped_matmul/docs/aclnnGroupedMatmulV5_en.md) requirements (for `scale_a` and `scale_b`, see the constraint description)
 
 </div>
