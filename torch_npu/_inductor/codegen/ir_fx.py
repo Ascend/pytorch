@@ -71,8 +71,13 @@ def _patch_reduction_create(
         reduction_hint: ir.ReductionHint = ir.ReductionHint.DEFAULT,
         input_node: Optional[ir.IRNode] = None,
         traced_graph=None,
-        node_name: str = None
+        node_name: str = None,
+        strict_reduction: bool = False,
 ) -> ir.TensorBox:
+    # strict_reduction selects the strict reduction layout inside the upstream
+    # Reduction.create.  This traced variant builds the Reduction directly and
+    # does not perform that selection, so the flag is accepted for signature
+    # compatibility with upstream callers and intentionally not acted on.
     reduction_numel = V.graph.sizevars.simplify(ir.sympy_product(reduction_ranges))
 
     if reduction_numel == 0:
@@ -849,10 +854,15 @@ def _patch_Reduction_create_multilayer_helper(
     reduction_hint: ir.ReductionHint,
     traced_graph=None,
     node_name=None,
+    strict_reduction: bool = False,
 ) -> ir.TensorBox:
     """
     Break a large reduction up into multiple smaller reductions
-    recursively
+    recursively.
+
+    ``strict_reduction`` is accepted for signature compatibility with the
+    upstream caller.  This traced variant builds the Reduction directly and
+    does not perform the strict layout selection, so the flag is not acted on.
     """
     intermediate_dtype = (
         dst_dtype
@@ -917,10 +927,15 @@ def _patch_Reduction_create_multilayer(
     reduction_hint: ir.ReductionHint,
     traced_graph=None,
     node_name=None,
+    strict_reduction: bool = False,
 ) -> ir.TensorBox:
     """
     Break a large reduction up into multiple smaller reductions
-    recursively
+    recursively.
+
+    ``strict_reduction`` is accepted for signature compatibility with the
+    upstream caller.  This traced variant builds the Reduction directly and
+    does not perform the strict layout selection, so the flag is not acted on.
     """
     reduction_numel = ir.sympy_product(reduction_ranges)
     block_size = ir.FloorDiv(reduction_numel + (split - 1), split)

@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
+
 import sympy
 
 import torch._ops
@@ -23,6 +25,13 @@ from torch._inductor import lowering
 from torch._inductor.decomposition import decompositions
 from torch._inductor.ir import ExpandView, TensorBox
 from torch._inductor.ir import Reduction, Pointwise
+
+# `strict_reduction` only exists in newer upstream `Reduction.create`.
+# The torch 2.13 lane has no such parameter, so forwarding it unconditionally
+# raises `TypeError: unexpected keyword argument 'strict_reduction'` there.
+_SUPPORTS_STRICT_REDUCTION = (
+    "strict_reduction" in inspect.signature(Reduction.create).parameters
+)
 from torch._inductor.lowering import (
     lowerings,
     make_fallback,
@@ -142,7 +151,12 @@ if npu_config.dump_fx_graph:
     scheduler._prune_redundant_deps = _npu_prune_redundant_deps
     Scheduler._get_unmet_dep_nodes = _npu_get_unmet_dep_nodes
 
-def make_reduction(reduction_type: ReductionType, override_return_dtype=None):
+def make_reduction(
+    reduction_type: ReductionType,
+    override_return_dtype=None,
+    *,
+    strict_reduction: bool = False,
+):
     def inner(x, axis=None, keepdims=False, *, dtype=None):
         kwargs = _make_reduction_inner(
             x,
@@ -151,6 +165,11 @@ def make_reduction(reduction_type: ReductionType, override_return_dtype=None):
             dtype=dtype,
             override_return_dtype=override_return_dtype,
             reduction_type=reduction_type,
+        )
+        strict_kwargs = (
+            {"strict_reduction": strict_reduction}
+            if _SUPPORTS_STRICT_REDUCTION
+            else {}
         )
         if npu_config.dump_fx_graph:
             node_name = f'reduction_{next(node_id)}'
@@ -161,10 +180,12 @@ def make_reduction(reduction_type: ReductionType, override_return_dtype=None):
                                       input_node=x,
                                       node_name=node_name,
                                       traced_graph=new_graph,
+                                      **strict_kwargs,
                                       **kwargs)
         else:
             result = Reduction.create(reduction_type=reduction_type,
                                       input_node=x,
+                                      **strict_kwargs,
                                       **kwargs)
         if isinstance(
             result.data.data,  # type: ignore[attr-defined]
