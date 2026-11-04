@@ -48,8 +48,8 @@ class NpuFusedOptimizerBase(Optimizer):
                 if torch_npu.get_npu_format(p) != torch_npu.get_npu_format(p.grad):
                     p.grad = torch_npu.npu_format_cast(
                         p.grad, torch_npu.get_npu_format(p)).contiguous()
-                param_size = p.storage().size()
-                grad_size = p.grad.storage().size()
+                param_size = torch_npu.get_storage_size(p)
+                grad_size = torch_npu.get_storage_size(p.grad)
                 if p.dtype == torch.float32:
                     group_params_size[0] += param_size
                     group_params_list[0].append(p)

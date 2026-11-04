@@ -2,6 +2,7 @@ import unittest
 from copy import deepcopy
 
 import torch
+import torch_npu
 from torch.optim import SGD, Adam, AdamW, Adadelta, RMSprop
 from torch_npu.npu.amp import GradScaler, autocast
 from torch_npu.optim import (
@@ -159,6 +160,79 @@ class TestFusedOptim(TestCase):
             for p in m.parameters():
                 if p.grad is not None:
                     self.assertEqual(grads_before_unscale[p] / 128, p.grad)
+
+    def _test_adamw_amp_batch_norm(self, multiple_groups):
+        option = torch_npu._C._npu_getOption("ALLOW_INTERNAL_FORMAT")
+        self.addCleanup(
+            setattr, torch.npu.config, "allow_internal_format",
+            option is not None and option.decode() == "enable",
+        )
+        self.addCleanup(
+            torch.npu.set_compile_mode,
+            jit_compile=not torch.npu.is_jit_compile_false(),
+        )
+        torch.npu.config.allow_internal_format = True
+        torch.npu.set_compile_mode(jit_compile=False)
+        model = torch.nn.Sequential(
+            torch.nn.Conv2d(3, 8, 3, padding=1, bias=False),
+            torch.nn.BatchNorm2d(8),
+            torch.nn.SiLU(),
+            torch.nn.AdaptiveAvgPool2d(1),
+            torch.nn.Flatten(),
+            torch.nn.Linear(8, 2),
+        ).to("npu:0")
+        params = list(model.parameters())
+        # A parameter without a gradient must not affect combined group offsets.
+        params.append(torch.nn.Parameter(torch.ones(3, device="npu:0")))
+        reference_params = [torch.nn.Parameter(p.detach().clone()) for p in params]
+
+        def make_groups(parameters):
+            if multiple_groups:
+                return [
+                    {"params": parameters[:2], "lr": 0.01},
+                    {"params": parameters[2:], "lr": 0.02},
+                ]
+            return parameters
+
+        optimizer = NpuFusedAdamW(make_groups(params), lr=0.01)
+        reference = AdamW(make_groups(reference_params), lr=0.01, foreach=False)
+        scaler = GradScaler(init_scale=128.0)
+        initial_params = [p.detach().clone() for p in params]
+        inputs = torch.randn(2, 3, 8, 8, device="npu:0")
+        targets = torch.tensor([0, 1], device="npu:0")
+        optimizer.zero_grad()
+        reference.zero_grad()
+        with autocast():
+            loss = torch.nn.functional.cross_entropy(model(inputs), targets)
+        self.assertTrue(torch.isfinite(loss).item())
+        scaler.scale(loss).backward()
+        # Small BN gradients can have padded storage capacity. Use their
+        # values as the reference, without carrying over that capacity.
+        for p, reference_p in zip(params, reference_params):
+            if p.grad is not None:
+                reference_p.grad = p.grad.detach().clone() / scaler.get_scale()
+                self.assertTrue(torch.isfinite(reference_p.grad).all().item())
+        scaler.unscale_(optimizer)
+        for p, reference_p in zip(params, reference_params):
+            if p.grad is not None:
+                self.assertRtolEqual(p.grad, reference_p.grad, prec=1e-5)
+        scaler.step(optimizer)
+        scaler.update()
+        reference.step()
+        for p, reference_p in zip(params, reference_params):
+            self.assertRtolEqual(p, reference_p, prec=1e-5)
+        self.assertTrue(any(
+            not torch.equal(p, initial)
+            for p, initial in zip(params[:-1], initial_params[:-1])
+        ))
+        self.assertIsNone(params[-1].grad)
+        self.assertEqual(params[-1], initial_params[-1])
+
+    def test_adamw_amp_batch_norm(self):
+        self._test_adamw_amp_batch_norm(multiple_groups=False)
+
+    def test_adamw_amp_batch_norm_param_groups(self):
+        self._test_adamw_amp_batch_norm(multiple_groups=True)
 
     def test_simple_model_train_dynamic(self):
         model = self._create_simple_model()
