@@ -5900,7 +5900,6 @@
   "test/export/test_torchbind.py::TestCompileTorchbindDevicePRIVATEUSE1::test_compile_obj_torchbind_op_with_autocast_backend_aot_eager_npu",
   "test/export/test_torchbind.py::TestCompileTorchbindDevicePRIVATEUSE1::test_compile_obj_torchbind_op_with_autocast_backend_eager_npu",
   "test/export/test_torchbind.py::TestCompileTorchbindDevicePRIVATEUSE1::test_compile_obj_torchbind_op_with_autocast_backend_inductor_npu",
-  "test/inductor/test_torchinductor_codegen_dynamic_shapes.py::DynamicShapesCodegenGPUTestsNPU::test_AllenaiLongformerBase_repro_dynamic_shapes",
   "test/inductor/test_torchinductor_codegen_dynamic_shapes.py::DynamicShapesCodegenGPUTestsNPU::test_addmv_mixed_dtype_errors_dynamic_shapes",
   "test/inductor/test_torchinductor_codegen_dynamic_shapes.py::DynamicShapesCodegenGPUTestsNPU::test_aoti_eager_with_persistent_cache_dynamic_shapes",
   "test/inductor/test_torchinductor_codegen_dynamic_shapes.py::DynamicShapesCodegenGPUTestsNPU::test_as_strided_past_unbacked_buffer_extent_dynamic_shapes",
