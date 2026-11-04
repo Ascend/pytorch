@@ -64,6 +64,49 @@ def register_opaque_input_local(cls):
 register_opaque_input = compat_impl_container["register_opaque_input"].resolve()
 
 
+# torch >= 2.15 requires these two fields on WrappedFunction; 2.14 and older
+# do not have them at all. PTA does not consume either value, so fill the
+# upstream defaults from torch/_inductor/config.py.
+def _upstream_managed_input_rerecord_kwargs():
+    import dataclasses
+
+    from torch._inductor.cudagraph_utils import WrappedFunction
+
+    # Upstream defaults from torch/_inductor/config.py, used when the field
+    # itself has no default. PTA does not consume either value yet.
+    defaults = {
+        "cudagraph_managed_input_rerecord_limit": 5,
+        "cudagraph_managed_input_rerecord_action": "copy",
+    }
+    fields = {field.name: field for field in dataclasses.fields(WrappedFunction)}
+    kwargs = {}
+    for name, default in defaults.items():
+        field = fields.get(name)
+        # Only init=True fields are constructor arguments; dataclasses.fields()
+        # also reports init=False fields.
+        if field is None or not field.init:
+            continue
+        kwargs[name] = (
+            field.default if field.default is not dataclasses.MISSING else default
+        )
+    return kwargs
+
+
+@compat_impl(key="managed_input_rerecord_kwargs", ge=(2, 15))
+def managed_input_rerecord_kwargs_upstream():
+    return _upstream_managed_input_rerecord_kwargs()
+
+
+@compat_impl(key="managed_input_rerecord_kwargs", lt=(2, 15))
+def managed_input_rerecord_kwargs_local():
+    return {}
+
+
+managed_input_rerecord_kwargs = compat_impl_container[
+    "managed_input_rerecord_kwargs"
+].apply()
+
+
 @compat_impl(key="make_wrapped_function", ge=(2, 14))
 def make_wrapped_function_upstream(
     model,
@@ -87,6 +130,7 @@ def make_wrapped_function_upstream(
         mutated_input_idxs,
         kernel_free_cudagraph=kernel_free_cudagraph,
         user_visible_output_idxs=frozenset(user_visible_output_idxs),
+        **managed_input_rerecord_kwargs,
     )
 
 

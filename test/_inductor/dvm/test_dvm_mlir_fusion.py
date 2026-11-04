@@ -4,7 +4,6 @@ import os
 import subprocess
 import sys
 import textwrap
-import unittest
 from unittest import mock
 
 import torch
@@ -417,7 +416,6 @@ class TestDvmByMlir(TestCase):
             )
             self.assertEqual(expect, result, atol=1e-3, rtol=1e-3)
 
-    @unittest.skip("currently not passing")
     @parametrize("dtype", [torch.bfloat16])
     @parametrize("is_dynamic", [False])
     def test_basic_partitioning_npugraph(self, dtype, is_dynamic):
