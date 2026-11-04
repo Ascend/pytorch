@@ -50,11 +50,39 @@ def _apply_common_patches():
     from .triton_compat import patch_triton_extension_cxx_standard
 
     patch_triton_extension_cxx_standard()
+    _warm_triton_npu_utils_cache()
     patch_inductor_has_triton_bindings()
     patch_is_gpu()
     patch_device_supports_tma()
     patch_codegen_with_cpp_wrapper()
     patch_cache_base_get_system()
+
+
+def _warm_triton_npu_utils_cache():
+    """Build triton-ascend's ``npu_utils`` host extension now, with C++20.
+
+    ``patch_triton_extension_cxx_standard()`` above makes the builder emit
+    ``-std=c++20``; building right away puts ``npu_utils.so`` into Triton's
+    on-disk cache.  The Inductor compile sidecar is a separate process (spawned
+    with ``TORCH_DEVICE_BACKEND_AUTOLOAD=0``) that never loads a backend, so the
+    monkey-patch cannot reach it -- but it reads this cache, so it finds a ready
+    ``.so`` and never invokes a compiler.  Without this the sidecar builds with
+    triton-ascend's hard-coded ``-std=c++17``, which fails against torch >= 2.15's
+    C++20-only ATen headers and kills the sidecar (every later compile in that
+    process then fails with "Attempting to use a closed pool").
+
+    Best effort: a read-only cache or a missing compiler just leaves it cold.
+    """
+    try:
+        from triton.backends.ascend import driver
+    except ImportError:
+        return
+    try:
+        # NPUUtils is a singleton; get_so_path() builds on a cache miss and only
+        # returns the path on a hit.  No NPU context is required to compile.
+        driver.NPUUtils().get_so_path()
+    except Exception:
+        pass
 
 def _get_backend() -> str:
     return os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default")

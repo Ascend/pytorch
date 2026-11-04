@@ -31,7 +31,6 @@ aten = torch.ops.aten
 requires_npu = unittest.skipUnless(torch.npu.is_available(), "requires an NPU")
 
 
-@unittest.skip("currently not passing")
 class TestTeNearestBackwardFallback(TestCase):
     def _check_backward_matches_eager(self, fn, input):
         """Compile ``fn`` under triton_experimental strict mode, run a backward, and

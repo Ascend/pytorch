@@ -39,7 +39,6 @@ requires_npu = unittest.skipUnless(torch.npu.is_available(), "requires an NPU")
 CONTIGUOUS = aten.contiguous.default
 
 
-@unittest.skip("currently not passing")
 class TestTeContiguousLoweringRegistration(TestCase):
     def test_contiguous_listed_for_generation(self):
         self.assertIn(aten.contiguous, lowering_override_list.GENERATE_LIST)
@@ -60,7 +59,6 @@ class TestTeContiguousLoweringRegistration(TestCase):
         self.assertNotIn(CONTIGUOUS, lowering.FALLBACK_LIST)
 
 
-@unittest.skip("currently not passing")
 class TestTeDiagEmbedMatchesEager(TestCase):
     @requires_npu
     def test_diag_embed_forward(self):

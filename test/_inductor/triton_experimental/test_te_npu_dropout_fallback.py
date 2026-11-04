@@ -42,7 +42,6 @@ DROPOUT = npu._npu_dropout.default
 DROPOUT_BACKWARD = npu.npu_dropout_backward.default
 
 
-@unittest.skip("currently not passing")
 class TestTeDropoutExplicitFallbackList(TestCase):
     """Checks on the dropout registrations and the wiring that consumes them."""
 
@@ -65,7 +64,6 @@ class TestTeDropoutExplicitFallbackList(TestCase):
         )
 
 
-@unittest.skip("currently not passing")
 class TestNpuDropoutFallback(TestCase):
     def _dropout(self, x):
         return torch.nn.functional.dropout(x, p=0.3, training=True)

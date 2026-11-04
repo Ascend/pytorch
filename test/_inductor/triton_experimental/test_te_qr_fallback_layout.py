@@ -8,7 +8,6 @@ collapse). These tests compile exactly those consumption patterns and assert
 element-wise equality with eager.
 """
 
-import unittest
 import pytest
 import torch
 
@@ -20,7 +19,6 @@ needs_npu = pytest.mark.skipif(
 )
 
 
-@unittest.skip("currently not passing")
 @needs_npu
 def test_qr_output_consumed_by_mm():
     torch.manual_seed(0)
@@ -34,7 +32,6 @@ def test_qr_output_consumed_by_mm():
     assert (torch.compile(chain)(A, R) - chain(A, R)).abs().max().item() < 1e-4
 
 
-@unittest.skip("currently not passing")
 @needs_npu
 def test_lowrank_chain_with_fixed_random():
     torch.manual_seed(0)
@@ -61,7 +58,6 @@ def test_lowrank_chain_with_fixed_random():
     assert (c_s - ref.float()).abs().max().item() < 0.6
 
 
-@unittest.skip("currently not passing")
 @needs_npu
 def test_batched_qr_projector():
     torch.manual_seed(0)
@@ -74,7 +70,6 @@ def test_batched_qr_projector():
     assert (torch.compile(proj)(X) - proj(X)).abs().max().item() < 1e-4
 
 
-@unittest.skip("currently not passing")
 @needs_npu
 def test_qr_complete_and_r_modes():
     torch.manual_seed(0)

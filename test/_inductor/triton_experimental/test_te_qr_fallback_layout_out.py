@@ -22,7 +22,6 @@ Three guards:
    PyTorch 2.14+ without requiring an NPU.
 """
 
-import unittest
 from dataclasses import dataclass
 
 import pytest
@@ -45,7 +44,6 @@ def _qr_and_consume(a, q_out, r_out):
     return q, r, q @ r
 
 
-@unittest.skip("currently not passing")
 def test_qr_fallback_process_kernel_result_compatibility():
     replacement = (object(), object())
     legacy_result = ("old-output", ["tensor-arg"], [], "unflatten", {})
@@ -65,7 +63,6 @@ def test_qr_fallback_process_kernel_result_compatibility():
     assert fixed_structured.tensor_args == structured_result.tensor_args
 
 
-@unittest.skip("currently not passing")
 @needs_npu
 def test_qr_out_compiled_matches_eager():
     torch.manual_seed(0)
@@ -91,7 +88,6 @@ def test_qr_out_compiled_matches_eager():
         torch.testing.assert_close(actual, expected)
 
 
-@unittest.skip("currently not passing")
 @needs_npu
 def test_qr_out_noncontiguous_views_rejected_by_dynamo():
     # Reviewer-suggested shape: QR results routed into transposed views of

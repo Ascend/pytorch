@@ -17,7 +17,6 @@ def pointwise_pair(x, y):
     return x.relu(), y.sigmoid()
 
 
-@unittest.skip("currently not passing")
 class TestComboTileAllocation(TestCase):
     def test_core_ranges_cover_each_tile_once(self):
         for cores in (40, 48):
@@ -42,7 +41,6 @@ class TestComboTileAllocation(TestCase):
         self.assertEqual(assigned, [(1, i) for i in range(3)] + [(3, i) for i in range(5)])
 
 
-@unittest.skip("currently not passing")
 @unittest.skipUnless(torch.npu.is_available(), "requires an NPU")
 class TestTEComboKernel(TestCase):
     def setUp(self):
