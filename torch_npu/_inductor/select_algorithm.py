@@ -1564,7 +1564,7 @@ def patch_algorithm_selector() -> None:
                 )
 
             for feedback_fn in self.feedback_saver_fns:
-                feedback_fn(timings, name, input_nodes, effective_choices)
+                feedback_fn(timings, name, input_nodes, effective_choices, None, {})
 
             return timings
 
