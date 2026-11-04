@@ -51,3 +51,11 @@ _DTYPE_BYTES = {
 
 def dtype_to_bytes(dtype):
     return _DTYPE_BYTES.get(dtype, 0)
+
+
+def round_up_to_16(x):
+    return ((x + 15) // 16) * 16
+
+
+def round_down_to_16(x):
+    return (x // 16) * 16

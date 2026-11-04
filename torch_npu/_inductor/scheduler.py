@@ -129,11 +129,12 @@ def _do_batch_profiling_for_fusion(ready_choices):
         md5_hash = hashlib.md5(random_uuid.encode()).hexdigest()
         torch_path = os.path.join(os.getcwd(), "profile_results", md5_hash)
 
-        TOTAL_STEP = 6
+        TOTAL_STEP = 10
         l2_cache_size = 192 * (1 << 20)
         buffer = torch.empty(l2_cache_size // 4, dtype=torch.int, device="npu")
         buffer = buffer.float()
         buffer.sum()
+        buffer.abs_()
         torch.npu.synchronize()
 
         with torch_npu.profiler.profile(
@@ -175,11 +176,11 @@ def _do_batch_profiling_for_fusion(ready_choices):
                         time_cost.append(
                             filter_df.loc[
                                 last_df_index + 1 : idx - 1, "Duration(us)"
-                            ].sum()
+                            ][1:].sum()
                         )
                         last_df_index = idx
                 # Convert us -> ms and average over TOTAL_STEP iterations.
-                time_cost = [x / TOTAL_STEP / 1e3 for x in time_cost]
+                time_cost = [x / (TOTAL_STEP - 1) / 1e3 for x in time_cost]
                 delete_file(torch_path)
                 if len(time_cost) != len(ready_choices):
                     npu_log.warning(
