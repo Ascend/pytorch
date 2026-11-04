@@ -1,0 +1,86 @@
+name: Nightly Build and Test A3 (torch 2.15 upstream release)
+
+# Nightly A3 pipeline that validates torch_npu against the UPSTREAM torch
+# 2.15.0 release wheels (linux aarch64 cpu) instead of a source-built
+# PyTorch. Complements nightly-a3.yml (which tracks pytorch main = the
+# next dev line): this pipeline pins the released 2.15.0 line, so it
+# catches torch_npu regressions against the exact torch version users
+# install, with the pytorch test suite taken from the commit the wheel
+# was built from (wheel git_version, resolved in the build workflow).
+#
+# Wheel source facts (verified 2026-11-04):
+#   - torch 2.15.0 linux aarch64 CPU release wheel exists ONLY on the
+#     download.pytorch.org test channel. The PyPI aarch64 torch-2.15.0
+#     wheel is a CUDA build (2.15.0+cu132) — do not use it here.
+#   - torchvision pairs as 0.29.x with torch 2.15 (0.30 is the 2.16 line);
+#     0.29.2+cpu declares torch>=2.14.0 and ships a linux aarch64 wheel.
+#   - When upstream cuts the next line, update torch_wheel_url /
+#     torchvision_wheel_url / torch_version here, and once torch_npu
+#     master drops 2.15 from version.txt, pin torch_npu_ref to the
+#     torch_npu v2.15.0 tag / maintenance branch.
+
+on:
+  schedule:
+    # 每天 02:00（北京时间 UTC+8），Actions cron 为 UTC，即 18:00 UTC。
+    # 与 nightly-a3（17:00 UTC）错峰，缓解共享 builder / a3 测试机争抢。
+    - cron: '0 18 * * *'
+  push:
+    branches:
+      - ci-test
+    paths:
+      - '.github/workflows/nightly-torch215-a3.yml'
+      - '.github/workflows/_nightly_build_upstream_wheels.yml'
+      - '.github/config/disabled_testcases_a3_all.json'
+      - '.github/config/running_skiped_testcases.json'
+      - '.github/config/unsupport_dtype_testcases.json'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/_nightly_build_upstream_wheels.yml
+    secrets: inherit
+    with:
+      torch_version: '2.15.0'
+      python_version: '3.11'
+      # aarch64 CPU 正式包在 test 渠道（PyPI 的 aarch64 2.15.0 是 +cu132 CUDA 包，勿用）。
+      torch_wheel_url: 'https://download-r2.pytorch.org/whl/test/cpu/torch-2.15.0%2Bcpu-cp311-cp311-manylinux_2_28_aarch64.whl'
+      torchvision_wheel_url: 'https://download-r2.pytorch.org/whl/cpu/torchvision-0.29.2%2Bcpu-py3-none-manylinux_2_28_aarch64.whl'
+      torch_npu_repo: Ascend/pytorch
+      torch_npu_ref: master
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-builder-aarch64-torch-master-202610160225-8a315d17
+      runner_label: 'linux-aarch64-cpu-24'
+      max_jobs: '23'
+
+  test:
+    needs: build
+    uses: ./.github/workflows/_nightly_test.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ needs.build.outputs.resolved_short }}
+      resolved_sha: ${{ needs.build.outputs.resolved_sha }}
+      pytorch_wheels_tarball: ${{ needs.build.outputs.pytorch_wheels_tarball }}
+      torchnpu_wheels_tarball: ${{ needs.build.outputs.torchnpu_wheels_tarball }}
+      torch_npu_short: ${{ needs.build.outputs.torch_npu_short }}
+      upstream_repo: pytorch/pytorch
+      case_paths_config: .github/config/nightly_test_categories.yml
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610160225-8a315d17
+      report_to_upstream: false
+      hw_classification: ''
+      full_scan: true
+      device_env: 'privateuse1,cpu'
+      runner_label: 'linux-aarch64-a3-800i-2-cn12-001'
+      skip_list: |-
+        .github/config/disabled_testcases_a3_all.json
+        .github/config/running_skiped_testcases.json
+        .github/config/unsupport_dtype_testcases.json
+      # Same triton-ascend -std=c++17 -> c++20 workaround as nightly-a3:
+      # the a3 image ships triton 3.6.0 + triton-ascend 3.6.0 and the
+      # deterministic npu_utils build failure (C++20-only ATen headers)
+      # applies to the 2.15-era headers as well. See the Patch triton
+      # cxx20 step in _nightly_test-category.yml. Flip to false to
+      # disable.
+      patch_triton_cxx20: true
