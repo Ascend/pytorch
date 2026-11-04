@@ -1561,6 +1561,19 @@ npu_dedup_downcast = ncfg.dedup_downcast
 _downcast_memo: dict = {}
 
 
+def _is_npugraph_tree_warmup_active() -> bool:
+    """Return whether this thread is running in an NPU graph-tree warmup pool."""
+    try:
+        from torch_npu.npu._graph_tree import get_obj, local
+
+        containers = get_obj(local, "npu_tree_manager_containers")
+        container = containers.get(torch.npu.current_device())
+        manager = None if container is None else container.tree_manager
+        return manager is not None and manager.in_warmup
+    except (AttributeError, RuntimeError):
+        return False
+
+
 def _reachable_span(t):
     """Storage cells covered by ``t`` from its data_ptr: ``1 + max reachable
     offset``; zero-size dims contribute nothing. Negative strides cannot
@@ -1622,7 +1635,21 @@ def _memoized_downcast(src, dst_dtype):
     """Return the layout-preserving cast of ``src``, reusing a cached copy
     while ``src`` is alive and unmutated. Falls back to a plain cast if
     memoization is disabled or the tensor is not weak-referenceable."""
-    if not npu_dedup_downcast:
+    # A cached tensor allocated during NPU graph warmup/capture would outlive
+    # the compiled function through this module-level dictionary. Graph trees
+    # can only manage private-pool allocations represented by graph
+    # inputs/outputs, so retaining such a temporary violates their
+    # memory-pool invariant: the pool ends up with a live block that no
+    # recorded graph accounts for, and check_memory_pool() rejects it.
+    # ``is_current_stream_capturing`` precisely identifies capture. Graph-tree
+    # warmup also allocates from the private graph pool without capturing, so
+    # it needs a separate runtime guard. ``cudagraph_trees`` itself is not a
+    # guard: it defaults to True even during ordinary execution.
+    if (
+        not npu_dedup_downcast
+        or torch_npu.npu.is_current_stream_capturing()
+        or _is_npugraph_tree_warmup_active()
+    ):
         return _to_dtype_preserving_layout(src, dst_dtype)
     key = id(src)
     try:
