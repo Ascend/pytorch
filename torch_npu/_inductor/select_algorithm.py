@@ -1502,10 +1502,9 @@ def patch_algorithm_selector() -> None:
                 return make_benchmark_fn()(choices)
 
         if config.autotune_in_subproc:
-            from torch._inductor.autotune_process import tuning_pool
+            from torch._inductor.autotune_process import get_tuning_process_pool
 
-            # do the optional warmup
-            tuning_pool.initialize()
+            get_tuning_process_pool()
 
         def do_autotuning(precompile_fn, choices_override=None):
             effective_choices = choices_override if choices_override is not None else choices
