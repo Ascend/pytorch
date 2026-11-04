@@ -134,7 +134,7 @@ class TestGraph(unittest.TestCase):
 
     def test_composition_and_registration_order(self):
         gm = self.check(pattern)
-        multi_slice_concat_pass(gm.graph, max_segments=64)
+        multi_slice_concat_pass(gm.graph, max_segments=64, aclnn_copy_free_inputs=0)
         self.assertEqual(count(gm, MULTI_SLICE_CONCAT_TARGET), 1)
         self.assertEqual(count(gm, CAST), 1)
         names = [
@@ -165,7 +165,7 @@ class TestGraph(unittest.TestCase):
         expected = gm(x, z)
         rewrite(gm.graph)
         self.assertEqual(count(gm, CAST), 1)
-        multi_slice_concat_pass(gm.graph, max_segments=64)
+        multi_slice_concat_pass(gm.graph, max_segments=64, aclnn_copy_free_inputs=0)
         gm.graph.lint()
         gm.recompile()
         self.assertEqual(count(gm, MULTI_SLICE_CONCAT_TARGET), 11)

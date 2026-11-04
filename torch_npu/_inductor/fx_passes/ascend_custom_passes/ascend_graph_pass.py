@@ -2,12 +2,14 @@ import contextlib
 import functools
 import math
 import operator
+from collections import Counter
 from dataclasses import dataclass
 from typing import List, Optional
 
 import torch
 import torch.fx
 from torch.utils._ordered_set import OrderedSet
+from torch.fx.operator_schemas import normalize_function
 
 from ...config import is_ascend950, log
 from ..utils.check_op_util import (
@@ -71,12 +73,35 @@ torch.library.define(
 torch.library.define(
     "npu_ext::multi_slice_concat",
     "(Tensor[] srcs, Tensor[] masks, int[] src_idx, int[] offsets, int[] widths, "
-    "int[] mask_idx) -> Tensor",
+    "int[] mask_idx, int cat_dim=1) -> Tensor",
+)
+
+# Dtypes whose itemsize is exactly one addressable element; packed, sub-byte and
+# complex dtypes are excluded. A whitelist, so new dtypes fall back to aten.cat.
+MULTI_SLICE_CONCAT_DTYPES = frozenset(
+    {
+        torch.float16,
+        torch.bfloat16,
+        torch.float32,
+        torch.float64,
+        torch.uint8,
+        torch.int8,
+        torch.int16,
+        torch.int32,
+        torch.int64,
+        torch.bool,
+    }
 )
 
 
-def _multi_slice_concat_ref(srcs, masks, src_idx, offsets, widths, mask_idx):
+def _multi_slice_concat_ref(srcs, masks, src_idx, offsets, widths, mask_idx, cat_dim=1):
     n = len(offsets)
+    if cat_dim not in (0, 1):
+        raise RuntimeError(f"multi_slice_concat: cat_dim={cat_dim} is not 0 or 1")
+    if cat_dim == 0 and len(set(widths)) > 1:
+        raise RuntimeError(
+            f"multi_slice_concat: cat_dim=0 needs one width for all segments, got {widths}"
+        )
     if not (len(src_idx) == len(widths) == len(mask_idx) == n):
         raise RuntimeError(
             "multi_slice_concat: segment arrays disagree in length "
@@ -124,7 +149,7 @@ def _multi_slice_concat_ref(srcs, masks, src_idx, offsets, widths, mask_idx):
                 mask, torch.ops.aten.zeros_like.default(part), part
             )
         parts.append(part)
-    return torch.ops.aten.cat.default(parts, -1)
+    return torch.ops.aten.cat.default(parts, -1 if cat_dim == 1 else 0)
 
 
 # CompositeExplicitAutograd also covers the Meta key, and the reference is built purely
@@ -3007,12 +3032,7 @@ def _msc_bound(value, limit, default):
 
 
 def _msc_base_limit(base, cat_dtype, rows):
-    """Validate the base tensor and return its static last-dim length, else None.
-
-    Graph inputs only: here those tables are model arguments, already materialized and
-    contiguous. An intermediate buffer would be forced to materialize early by
-    realize_input during lowering, possibly blocking fusion at its producer.
-    """
+    """Validate a graph input without forcing an intermediate producer to materialize."""
     if not isinstance(base, torch.fx.Node) or base.op != "placeholder":
         return None
     shape = get_node_shape(base, allow_symbolic=True)
@@ -3027,10 +3047,7 @@ def _msc_base_limit(base, cat_dtype, rows):
 
 
 def _msc_plain(node, cat_dtype, rows):
-    """A plain slice or a whole graph input, as (base, offset, width, limit) or None.
-
-    Slices must be along the last dim with step 1, constant bounds and a static last dim.
-    """
+    """Match a unit-step column slice or whole graph input as (base, offset, width, limit)."""
     if isinstance(node, torch.fx.Node) and node.op == "placeholder":
         limit = _msc_base_limit(node, cat_dtype, rows)
         return None if limit is None else (node, 0, limit, limit)
@@ -3063,13 +3080,9 @@ def _msc_plain(node, cat_dtype, rows):
 
 
 def _msc_row_mask(node, rows):
-    """Reduce a where condition to a [rows, 1] row mask, else None.
+    """Find the deepest [rows, 1] boolean mask through broadcast/view operations.
 
-    Peels the pure broadcasts and takes the deepest qualifying node, since a shallower
-    one would be materialized separately by realize_input and waste a dispatch. The
-    shape must be exactly [rows, 1]: a 1D mask broadcasts along columns instead of rows,
-    which means something else entirely. All four ops are the identity for [rows, 1],
-    so going deeper does not change the values.
+    A 1D condition broadcasts along columns and is not a row mask.
     """
 
     def qualifies(candidate):
@@ -3113,13 +3126,10 @@ def _msc_is_zero_fill(node, dtype):
 
 
 def _msc_segment(node, cat_dtype, rows):
-    """Match the two segment forms, returning (base, offset, width, mask, cost).
+    """Return (base, offset, width, mask, estimated_copy_cost) for a supported segment.
 
-    Either a plain slice / whole graph input, or ``where(row mask, 0, that)``.
-
-    cost is the dispatches this segment costs today: 0 for a contiguous graph input,
-    which aclnnCat reads directly, and 1 for a column slice or a masked segment. The
-    saving from merging is sum(cost) - 1, which decides whether the rewrite pays off.
+    Whole inputs cost zero; partial slices and row-masked slices cost one. This is
+    a static routing estimate, not a guarantee of runtime savings.
     """
     if (
         isinstance(node, torch.fx.Node)
@@ -3150,16 +3160,10 @@ def _msc_segment(node, cat_dtype, rows):
     return base, off, width, None, 0 if contiguous else 1
 
 
-def _msc_runs(inputs, cat_dtype, rows, max_segments, max_sources, max_masks):
-    """Split the cat inputs into runs that are adjacent and worth merging.
+def _msc_runs(inputs, cat_dtype, rows, cat_dim, max_segments, max_sources, max_masks):
+    """Group adjacent supported segments, preserving order and bounding arguments.
 
-    Only adjacent inputs can merge: they occupy a contiguous column range in the output,
-    so replacing them with one node preserves the concat order. An unrecognized input
-    breaks the run.
-
-    Segments may come from different base tensors, each costing one more kernel pointer
-    argument. Source and mask counts are capped so a pathological graph cannot blow up
-    the argument list.
+    An unsupported input or a source/mask/segment limit ends the current run.
     """
     runs = []
     cur = []       # segments accumulated so far
@@ -3184,9 +3188,10 @@ def _msc_runs(inputs, cat_dtype, rows, max_segments, max_sources, max_masks):
 
         base, mask = seg[0], seg[3]
         if cur and (
-            len(cur) >= max_segments
+            (max_segments is not None and len(cur) >= max_segments)
             or (base not in srcs and len(srcs) >= max_sources)
             or (mask is not None and mask not in masks and len(masks) >= max_masks)
+            or (cat_dim == 0 and seg[2] != cur[0][2])
         ):
             # At the cap, close the run and start the next one from this segment.
             if worth(cur):
@@ -3206,7 +3211,7 @@ def _msc_runs(inputs, cat_dtype, rows, max_segments, max_sources, max_masks):
     return runs
 
 
-def _msc_build_node(graph, cat, run):
+def _msc_build_node(graph, cat, run, cat_dim):
     """Emit one multi_slice_concat node for a run, or None if self-validation fails."""
     srcs = []
     masks = []
@@ -3235,19 +3240,16 @@ def _msc_build_node(graph, cat, run):
             if fake_mode is not None:
                 stack.enter_context(fake_mode)
             fake_out = _multi_slice_concat_ref(
-                fake_srcs, fake_masks, src_idx, offsets, widths, mask_idx
+                fake_srcs, fake_masks, src_idx, offsets, widths, mask_idx, cat_dim
             )
     except Exception:  # a gap in matching; skip rather than emit a wrong graph
-        log.debug(
-            "[inductor_fx] multi_slice_concat segment plan validation failed",
-            exc_info=True,
-        )
+        log.debug("[inductor_fx] multi_slice_concat segment plan validation failed", exc_info=True)
         return None
 
     with graph.inserting_before(cat):
         node = graph.call_function(
             MULTI_SLICE_CONCAT_TARGET,
-            args=(srcs, masks, src_idx, offsets, widths, mask_idx),
+            args=(srcs, masks, src_idx, offsets, widths, mask_idx, cat_dim),
         )
     node.meta["val"] = fake_out
     return node
@@ -3463,26 +3465,249 @@ def remove_cast_after_slice_by_add_cat(graph: torch.fx.Graph) -> None:
             cat.args = (new_inputs,) + tuple(cat.args[1:])
     eliminate_dead_code(graph, changed, remove_cast_after_slice_by_add_cat.__name__)
 
+
+_CAT_POINTWISE_ARGS = {
+    torch.ops.prims.convert_element_type.default: (0,),
+    torch.ops.aten.clamp.default: (0,),
+    torch.ops.aten.clamp_min.default: (0,),
+    torch.ops.aten.clamp_max.default: (0,),
+    torch.ops.aten.abs.default: (0,),
+    torch.ops.aten.neg.default: (0,),
+    torch.ops.aten.add.Tensor: (0, 1),
+    torch.ops.aten.mul.Tensor: (0, 1),
+    torch.ops.aten.where.self: (1, 2),
+}
+
+
+def _cat_rounding_cast(node):
+    if node.target is not torch.ops.prims.convert_element_type.default:
+        return 0
+    src, dst = get_node_dtype(node.args[0]), get_node_dtype(node)
+    # FP16/BF16 -> FP32 is exact, including clamp's decomposition around FP32 math.
+    return int(src != dst and not (dst == torch.float32 and src in (torch.float16, torch.bfloat16)))
+
+
+def _cat_zero_clamp(node):
+    # Zero bounds have not passed NPU eager signed-zero equivalence.
+    return node.target in (torch.ops.aten.clamp.default, torch.ops.aten.clamp_min.default,
+                           torch.ops.aten.clamp_max.default) and any(
+        value == 0 for value in (*node.args[1:], *node.kwargs.values())
+        if isinstance(value, (int, float)))
+
+
+def _cat_pointwise_candidate(node, dim, arg_index, from_slice):
+    if not isinstance(node, torch.fx.Node) or node.op != "call_function":
+        return None
+    if (arg_index not in _CAT_POINTWISE_ARGS.get(node.target, ())
+            or len(node.users) != 1 or _cat_zero_clamp(node)):
+        return None
+    normalized = normalize_function(node.target, node.args, node.kwargs)
+    if normalized is None or arg_index >= len(normalized.args):
+        return None
+    args, kwargs = normalized
+    inp = args[arg_index]
+    if not isinstance(inp, torch.fx.Node):
+        return None
+    path = from_slice(inp)
+    # Keep rounding inside a branch: only its final operation may narrow dtype.
+    if path is None or path[0]:
+        return None
+    shape = get_node_shape(inp, allow_symbolic=True)
+    result_shape = get_node_shape(node, allow_symbolic=True)
+    if shape is None or result_shape is None or not shapes_statically_equal(shape, result_shape):
+        return None
+    src_dtype, dst_dtype = get_node_dtype(inp), get_node_dtype(node)
+    supported = (torch.float16, torch.bfloat16, torch.float32)
+    if src_dtype not in supported or dst_dtype not in supported:
+        return None
+    shared = list(args)
+    shared[arg_index] = None
+    for value in (*shared, *kwargs.values()):
+        if isinstance(value, torch.fx.Node):
+            other = get_node_shape(value, allow_symbolic=True)
+            if other is None or len(other) > len(shape):
+                return None
+            axis = dim - (len(shape) - len(other))
+            if axis >= 0 and not statically_known_eq(other[axis], 1):
+                return None
+        elif not isinstance(value, (type(None), bool, int, float, torch.dtype)):
+            return None
+    return (node.target, tuple(shared), kwargs, src_dtype, dst_dtype, path[2], path[1]), inp, args
+
+
+@register_custom_pass(PassType.POST, ignore_inference_check=True)
+def sink_pointwise_cat_pass(graph: torch.fx.Graph) -> None:
+    """Move identical, broadcast-invariant pointwise operations after slice cats.
+
+    Combine at least three adjacent, single-use branches with identical chains
+    over supported same-source column slices. Cast-only chains stay with SliceCat.
+    Only a final rounding cast is allowed: FX nodes alone do not guarantee
+    intermediate rounding in generated kernels. No stack/split is introduced.
+    """
+    @functools.lru_cache(None)
+    def from_slice(node, dim):
+        if not isinstance(node, torch.fx.Node) or node.op != "call_function":
+            return None
+        if node.target is _MSC_SLICE_TARGET:
+            shape = get_node_shape(node, allow_symbolic=True)
+            if shape is None or len(shape) != 2:
+                return None
+            segment = _msc_index_segment(node, get_node_dtype(node), shape[0])
+            return (0, (), segment[0]) if segment is not None else None
+        for arg_index in _CAT_POINTWISE_ARGS.get(node.target, ()):
+            entry = _cat_pointwise_candidate(
+                node, dim, arg_index, lambda inp: from_slice(inp, dim))
+            if entry is not None:
+                signature, inp, _ = entry
+                path = from_slice(inp, dim)
+                return path[0] + _cat_rounding_cast(node), signature, path[2]
+        return None
+
+    pending = [(n, False) for n in graph.nodes if n.target is torch.ops.aten.cat.default]
+    changed = False
+    while pending:
+        cat, inside_chain = pending.pop()
+        shape = get_node_shape(cat, allow_symbolic=True)
+        if (shape is None or len(shape) != 2 or not cat.args
+                or not isinstance(cat.args[0], (list, tuple)) or len(cat.args[0]) < 2):
+            continue
+        inputs = list(cat.args[0])
+        input_counts = Counter(inputs)
+        dim = normalize_dim(cat.args[1] if len(cat.args) > 1 else cat.kwargs.get("dim", 0), len(shape))
+        if dim != 1:
+            continue
+        trace_slice = functools.partial(from_slice, dim=dim)
+        start = 0
+        while start < len(inputs):
+            if input_counts[inputs[start]] != 1:
+                start += 1
+                continue
+            match = None
+            for arg_index in _CAT_POINTWISE_ARGS.get(getattr(inputs[start], "target", None), ()):
+                first = _cat_pointwise_candidate(inputs[start], dim, arg_index, trace_slice)
+                if first is None:
+                    continue
+                chain = first[0]
+                while chain and chain[0] is torch.ops.prims.convert_element_type.default:
+                    chain = chain[-1]
+                if not chain and not inside_chain:
+                    # SliceCat already handles a final Cast in its output store.
+                    continue
+                run = [first]
+                for node in inputs[start + 1:]:
+                    if input_counts[node] != 1:
+                        break
+                    entry = _cat_pointwise_candidate(node, dim, arg_index, trace_slice)
+                    if entry is None or entry[0] != first[0]:
+                        break
+                    run.append(entry)
+                if len(run) >= 3:
+                    match = arg_index, run
+                    break
+            if match is None:
+                start += 1
+                continue
+            arg_index, run = match
+            target, _, kwargs, _, _, _, _ = run[0][0]
+            sources = [entry[1] for entry in run]
+            args = list(run[0][2])
+            try:
+                values = [n.meta["val"] for n in sources]
+                fake_mode = getattr(values[0], "fake_mode", None)
+                if fake_mode is None:
+                    start += 1
+                    continue
+                with contextlib.ExitStack() as stack:
+                    stack.enter_context(fake_mode)
+                    joined_value = torch.cat(values, dim)
+                    fake_args = torch.fx.node.map_arg(tuple(args), lambda n: n.meta["val"])
+                    fake_args = list(fake_args)
+                    fake_args[arg_index] = joined_value
+                    result_value = target(*fake_args, **torch.fx.node.map_arg(kwargs, lambda n: n.meta["val"]))
+            except (KeyError, RuntimeError, TypeError):
+                start += 1
+                continue
+            with graph.inserting_before(cat):
+                joined = graph.call_function(torch.ops.aten.cat.default, (sources, dim))
+                joined.meta["val"] = joined_value
+                args[arg_index] = joined
+                result = graph.call_function(target, tuple(args), kwargs)
+                result.meta["val"] = result_value
+            old = inputs[start:start + len(run)]
+            inputs[start:start + len(run)] = [result]
+            cat.args = (inputs,) + tuple(cat.args[1:])
+            for node in old:
+                graph.erase_node(node)
+            pending.append((joined, True))
+            changed = True
+            start += 1
+        if len(inputs) == 1:
+            cat.replace_all_uses_with(inputs[0])
+            graph.erase_node(cat)
+    eliminate_dead_code(graph, changed, sink_pointwise_cat_pass.__name__)
+
+
+def _msc_index_segment(node, cat_dtype, rows):
+    """Match a column slice with at most one cast to the final cat dtype.
+
+    Intermediate sources are allowed; multiple rounding steps must remain intact.
+    """
+    supported = (torch.float16, torch.bfloat16, torch.float32)
+    if cat_dtype not in supported or not isinstance(node, torch.fx.Node):
+        return None
+    if node.target is torch.ops.prims.convert_element_type.default:
+        if len(node.args) != 2 or node.args[1] != cat_dtype:
+            return None
+        node = node.args[0]
+    if not isinstance(node, torch.fx.Node) or node.target is not _MSC_SLICE_TARGET:
+        return None
+    if len(node.args) < 2 or normalize_dim(node.args[1], 2) != 1:
+        return None
+    step = node.args[4] if len(node.args) > 4 else node.kwargs.get("step", 1)
+    if step != 1:
+        return None
+    base = node.args[0]
+    shape = get_node_shape(base, allow_symbolic=True)
+    dtype = get_node_dtype(base)
+    if shape is None or len(shape) != 2 or dtype not in supported:
+        return None
+    if not statically_known_eq(shape[0], rows):
+        return None
+    limit = _msc_static_last_dim(base)
+    if limit is None:
+        return None
+    start = _msc_bound(node.args[2] if len(node.args) > 2 else node.kwargs.get("start"), limit, 0)
+    end = _msc_bound(node.args[3] if len(node.args) > 3 else node.kwargs.get("end"), limit, limit)
+    if start is None or end is None or end <= start:
+        return None
+    if _msc_static_last_dim(node) != end - start:
+        return None
+    return base, start, end - start
+
+
+def _msc_replace_cat(graph, cat, inputs):
+    if len(inputs) == 1:
+        cat.replace_all_uses_with(inputs[0])
+        graph.erase_node(cat)
+    else:
+        cat.args = (inputs,) + tuple(cat.args[1:])
+
+
 @register_custom_pass(PassType.POST, ignore_inference_check=True)
 def multi_slice_concat_pass(
     graph: torch.fx.Graph,
     *,
-    max_segments: int = 64,
+    max_segments: Optional[int] = 128,
     max_sources: int = 32,
     max_masks: int = 4,
+    aclnn_copy_free_inputs: int = 32,
 ) -> None:
-    """Fold a run of fixed-width column slices into one npu_ext::multi_slice_concat.
+    """Fuse supported 2D slice-cat runs without reordering other operands.
 
-    aclnnCat needs contiguous inputs, so each non-contiguous slice costs a Slice copy
-    and each masked one a where. The rewrite moves the same data in one dispatch, with
-    fixed-width copies rather than indirect addressing.
-
-    Matching is strict: anything that does not fit is left to aten.cat.
-
-    max_segments caps the run length, since every segment is unrolled in the kernel
-    body. max_sources caps the distinct source tensors, each costing a kernel pointer
-    argument. max_masks caps the row masks held live across segments; real graphs use
-    a couple per cat. The caps only bound pathological graphs.
+    Runs use the multi-source/row-mask template, including row cat and its
+    existing dtype support. Limits and the copy-free gate apply to that route.
+    Small complete native cats stay unchanged, and arbitrary pointwise chains
+    are excluded.
     """
     changed = False
     for cat in list(graph.nodes):
@@ -3496,14 +3721,31 @@ def multi_slice_concat_pass(
         cat_dtype = get_node_dtype(cat)
         if cat_shape is None or cat_dtype is None or len(cat_shape) != 2:
             continue
-        # Column concat along the last dim only; row concat is not this op's semantics.
-        if normalize_dim(dim, 2) != 1:
+        if cat_dtype not in MULTI_SLICE_CONCAT_DTYPES:
+            continue
+        cat_dim = normalize_dim(dim, 2)
+        if cat_dim not in (0, 1):
+            continue
+
+        if cat_dim == 1:
+            rows = cat_shape[0]
+        else:
+            in_shapes = [get_node_shape(inp, allow_symbolic=True) for inp in inputs]
+            if any(shape is None or len(shape) != 2 for shape in in_shapes):
+                continue
+            rows = in_shapes[0][0]
+            if not all(statically_known_eq(shape[0], rows) for shape in in_shapes):
+                continue
+
+        # Keep the upstream copy-free gate.
+        if cat_dim == 1 and len(inputs) <= aclnn_copy_free_inputs:
             continue
 
         runs = _msc_runs(
-            list(inputs),
+            inputs,
             cat_dtype,
-            cat_shape[0],
+            rows,
+            cat_dim,
             max_segments,
             max_sources,
             max_masks,
@@ -3513,27 +3755,24 @@ def multi_slice_concat_pass(
 
         new_inputs = list(inputs)
         # Replace back to front so earlier run indices stay valid.
-        replaced = 0
+        replaced = segments_replaced = 0
         for start, run in reversed(runs):
-            node = _msc_build_node(graph, cat, run)
+            node = _msc_build_node(graph, cat, run, cat_dim)
             if node is None:
                 continue
             new_inputs[start:start + len(run)] = [node]
             replaced += 1
+            segments_replaced += len(run)
         if replaced == 0:
             continue
 
-        if len(new_inputs) == 1:
-            cat.replace_all_uses_with(new_inputs[0])
-            graph.erase_node(cat)
-        else:
-            cat.args = (new_inputs,) + tuple(cat.args[1:])
+        _msc_replace_cat(graph, cat, new_inputs)
         changed = True
         log.info(
             "[inductor_fx] multi_slice_concat_pass folded %d run(s) covering %d "
             "segments out of %d cat inputs",
             replaced,
-            sum(len(run) for _, run in runs),
+            segments_replaced,
             len(inputs),
         )
 

@@ -19,10 +19,12 @@ ASCEND_CUSTOME_PASS_REGISTER = {
 
 # Passes that stay off until their config switch is set. A disabled pass is never
 # registered, so neither the inference nor the training path runs it.
+# remove_cast_after_slice_by_add_cat is an independent, default-on rewrite;
+# keep its existing behavior when the optional slice-cat passes are disabled.
 DEFAULT_SHUT_DOWN_PASSES = (
     (() if enable_fused_matmul_relu else ("fused_matmul_relu_pass",))
     + (() if enable_grad_matmul_transpose_opt else ("grad_matmul_transpose_opt_pass",))
-    + (() if enable_multi_slice_concat else ("multi_slice_concat_pass",))
+    + (() if enable_multi_slice_concat else ("sink_pointwise_cat_pass", "multi_slice_concat_pass"))
     + (() if enable_grouped_matmul_fusion else ("grouped_matmul_fusion_pass",))
 )
 
