@@ -525,6 +525,34 @@ class TestDvmByMlir(TestCase):
         self.assertEqual(expect, result, atol=1e-3, rtol=1e-3)
         self.assertNotIn("dvm_fused_matmul_backward", code)
 
+    @parametrize("dtype", [torch.float16, torch.bfloat16])
+    @parametrize("bias", [False, True])
+    def test_npu_linear_uses_dvm_fusion(self, dtype, bias):
+        def model(x, weight, bias, grad):
+            y = torch.ops.npu.npu_linear.default(x, weight, bias)
+            dx, dw = torch.ops.npu.npu_linear_backward.default(grad, x, weight)
+            return torch.relu(y), dx, dw
+
+        x = torch.randn(32, 64, device="npu", dtype=dtype) * 0.1
+        weight = torch.randn(48, 64, device="npu", dtype=dtype) * 0.1
+        grad = torch.randn(32, 48, device="npu", dtype=dtype) * 0.1
+        bias = torch.randn(48, device="npu", dtype=dtype) * 0.1 if bias else None
+        with torch.no_grad():
+            expect = model(x, weight, bias, grad)
+            result, codes = self._run_and_get_code_with_dvm(
+                model, x, weight, bias, grad
+            )
+
+        self.assertEqual(expect, result, atol=1e-2, rtol=1e-2)
+        code = "\n".join(codes)
+        self.assertGreaterEqual(code.count("k.matmul("), 3)
+        self.assertTrue(any(
+            "k.matmul(" in kernel and "k.maximum(" in kernel
+            for kernel in code.split("@dvm.kernel")[1:]
+        ))
+        self.assertNotIn("torch.ops.npu.npu_linear.default(", code)
+        self.assertNotIn("torch.ops.npu.npu_linear_backward.default(", code)
+
     @parametrize("op", ["mm", "bmm", "addmm", "baddbmm"])
     def test_matmul_uses_dvm_fusion(self, op):
         if op == "addmm":

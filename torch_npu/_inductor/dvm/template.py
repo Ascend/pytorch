@@ -236,7 +236,40 @@ def _disable_addmm_fusion_for_dvm():
                 entry.extra_check = lambda _match: False
 
 
+def _register_dvm_mm_template_decompositions():
+    from .decomp import _register_inductor_decomposition_safe
+
+    def npu_linear(input, weight, bias=None):
+        # The native NPU linear API computes a two-dimensional matrix product.
+        if input.dim() != 2 or weight.dim() != 2:
+            return NotImplemented
+        weight_t = aten.t.default(weight)
+        if bias is None:
+            return aten.mm.default(input, weight_t)
+        return aten.addmm.default(bias, input, weight_t)
+
+    def npu_linear_backward(grad, input, weight):
+        if grad.dim() != 2 or input.dim() != 2 or weight.dim() != 2:
+            return NotImplemented
+        return (
+            aten.mm.default(grad, weight),
+            aten.mm.default(aten.t.default(grad), input),
+        )
+
+    for op, fn in (
+        (torch.ops.npu.npu_linear.default, npu_linear),
+        (torch.ops.npu.npu_linear_backward.default, npu_linear_backward),
+    ):
+        if (
+            op in dvm_config.disable_decomp_list
+            or op.overloadpacket in dvm_config.disable_decomp_list
+        ):
+            continue
+        _register_inductor_decomposition_safe([op], fn)
+
+
 def patch_dvm_matmul_template_fusion() -> None:
+    _register_dvm_mm_template_decompositions()
     _keep_addmm_for_dvm_template()
     npu_ir.subtract_graph = _subtract_dvm_template_graph
     _register_dvm_mm_template_lowerings()
