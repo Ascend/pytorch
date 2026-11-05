@@ -125,8 +125,6 @@ NPU_EXTRA_FALLBACK_LIST = [
     aten.bucketize.Tensor,
     aten.bucketize.Tensor_out,
     aten.constant_pad_nd,
-    aten.constant_pad_nd.default,
-    aten.constant_pad_nd.out,
     aten.convolution,
     aten.convolution.default,
     aten.convolution.out,

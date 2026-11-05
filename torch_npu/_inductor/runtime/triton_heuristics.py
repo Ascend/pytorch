@@ -34,6 +34,7 @@ from torch.utils._ordered_set import OrderedSet
 from torch._inductor.runtime.triton_heuristics import (
     CachingAutotuner,
     CachingAutotunerPlugin,
+    _enforce_reduction_config_block_minimums,
     DEFER,
     HeuristicType,
     unique_configs,
@@ -3141,16 +3142,25 @@ def cached_autotune(
     filename=None,
     inductor_meta=None,
     custom_kernel=False,
+    caching_autotuner_cls=None,
+    debug_autotuner_cls=NPUDebugAutotuner,
 ):
     """
     A copy of triton.autotune that calls our subclass.  Our subclass
     has additional debugging, error handling, and on-disk caching.
     """
+    inductor_meta = {} if inductor_meta is None else inductor_meta
+    if size_hints is not None and heuristic_type in (
+        HeuristicType.REDUCTION,
+        HeuristicType.PERSISTENT_REDUCTION,
+    ):
+        configs = _enforce_reduction_config_block_minimums(
+            configs, size_hints, inductor_meta
+        )
     configs = unique_configs(configs)
     if not (len(configs) == 1 or filename):
         raise RuntimeError("assert len(configs) == 1 or filename")
 
-    inductor_meta = {} if inductor_meta is None else inductor_meta
     disabled = inductor_meta.get("force_disable_caches", False)
 
     # on disk caching logic and/or remote caching
@@ -3185,7 +3195,7 @@ def cached_autotune(
     def decorator(fn):
 
         if inductor_meta.get("profile_bandwidth"):
-            return NPUDebugAutotuner(
+            return debug_autotuner_cls(
                 fn,
                 triton_meta=triton_meta,
                 inductor_meta=inductor_meta,
@@ -3205,7 +3215,7 @@ def cached_autotune(
                 with_bandwidth_info=True,
             )
 
-        if npu_config.fasta_autotune:
+        if caching_autotuner_cls is None and npu_config.fasta_autotune:
             from .fasta_autotune import NPUFastAutotuner
             return NPUFastAutotuner(
                 fn,
@@ -3222,7 +3232,7 @@ def cached_autotune(
                 filename=filename,
             )
 
-        if inductor_meta.get("group_enabled", False):
+        if caching_autotuner_cls is None and inductor_meta.get("group_enabled", False):
             return NPUSymbolicGroupedAutotuner(
                 fn,
                 triton_meta=triton_meta,
@@ -3238,7 +3248,7 @@ def cached_autotune(
                 filename=filename,
             )
 
-        autotuner_cls = (
+        autotuner_cls = caching_autotuner_cls or (
             NPUCostModelAutotuner
             if npu_config.enable_costmodel_prefilter
             else NPUCachingAutotuner
