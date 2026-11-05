@@ -696,7 +696,9 @@ def _override_plain_softmax_width_decomp():
     routes it to aclnnSoftmax at runtime. Narrow rows keep the upstream
     decomposition verbatim (fusion with neighbours is profitable,
     BertForMaskedLM). Dynamic/symbolic widths fall back to the upstream
-    decomposition (conservative)."""
+    decomposition (conservative). Device-gated: non-NPU tensors always take
+    the upstream decomposition so importing torch_npu cannot divert their
+    compile path (same gate as the native_dropout override, #4939)."""
     from .triton_experimental import config as te_cfg
 
     orig = decompositions.get(aten._softmax.default)
@@ -704,6 +706,11 @@ def _override_plain_softmax_width_decomp():
         return
 
     def _softmax_width_routed(x, dim, half_to_float=False):
+        # Non-NPU tensors keep the upstream decomposition; wide-row aclnn
+        # direct-dispatch is an NPU-only optimization (device gate follows
+        # the native_dropout override, #4939).
+        if x.device.type != "npu":
+            return orig(x, dim, half_to_float)
         bound = te_cfg.softmax_aclnn_max_fuse_numel
         if bound > 0:
             try:
