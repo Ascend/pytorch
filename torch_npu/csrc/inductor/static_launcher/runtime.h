@@ -55,12 +55,19 @@ class StaticNpuKernel : public std::enable_shared_from_this<StaticNpuKernel> {
   ~StaticNpuKernel();
 
   void Launch(uint32_t grid0, uint32_t grid1, uint32_t grid2, uint64_t stream, const py::sequence& args);
+  void LaunchFast(uint32_t grid0, uint32_t grid1, uint32_t grid2, uint64_t stream, PyObject* const* args, size_t nargs);
+  size_t ArgumentCount() const {
+    return argLayouts_.size();
+  }
+  void CheckOpen();
   void Close();
 
  private:
   StaticNpuKernel() = default;
 
   void BuildPackedLayout(const std::vector<std::string>& argKinds);
+  template <typename WriteArgs>
+  void LaunchImpl(uint32_t grid0, uint32_t grid1, uint32_t grid2, uint64_t stream, WriteArgs writeArgs);
 
   std::string kernelName_;
   int device_ = 0;

@@ -5,10 +5,12 @@
 #include <algorithm>
 #include <cstring>
 #include <limits>
+#include <type_traits>
 #include <utility>
 
 #include <ATen/ATen.h>
 #include <torch/csrc/Exceptions.h>
+#include <torch/csrc/autograd/python_variable.h>
 
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
@@ -184,6 +186,93 @@ uint32_t ValidateGrid(uint32_t grid0, uint32_t grid1, uint32_t grid2) {
   return static_cast<uint32_t>(blocks);
 }
 
+template <typename T>
+void WriteFastScalar(std::vector<uint8_t>& packed, const StaticNpuArgLayout& layout, PyObject* value) {
+  T scalar;
+  if constexpr (std::is_integral_v<T>) {
+    if (PyLong_Check(value)) {
+      if constexpr (std::is_signed_v<T>) {
+        const auto number = PyLong_AsLongLong(value);
+        if (PyErr_Occurred()) {
+          throw python_error();
+        }
+        TORCH_CHECK(
+            number >= std::numeric_limits<T>::min() && number <= std::numeric_limits<T>::max(),
+            "NPU fast launcher signed argument is out of range");
+        scalar = static_cast<T>(number);
+      } else {
+        const auto number = PyLong_AsUnsignedLongLong(value);
+        if (PyErr_Occurred()) {
+          throw python_error();
+        }
+        TORCH_CHECK(number <= std::numeric_limits<T>::max(), "NPU fast launcher unsigned argument is out of range");
+        scalar = static_cast<T>(number);
+      }
+    } else {
+      // Preserve pybind's accepted non-builtin numeric inputs on the rare path.
+      scalar = py::cast<T>(py::handle(value));
+    }
+  } else {
+    if (PyFloat_Check(value)) {
+      scalar = static_cast<T>(PyFloat_AS_DOUBLE(value));
+    } else {
+      scalar = py::cast<T>(py::handle(value));
+    }
+  }
+  WriteBytes(packed, layout.offset, &scalar, sizeof(scalar));
+}
+
+void WriteFastArgument(std::vector<uint8_t>& packed, const StaticNpuArgLayout& layout, PyObject* value) {
+  switch (layout.kind) {
+    case StaticNpuArgKind::Tensor: {
+      void* pointer = nullptr;
+      if (value == Py_None) {
+        pointer = nullptr;
+      } else if (PyLong_Check(value)) {
+        pointer = PyLong_AsVoidPtr(value);
+        if (PyErr_Occurred()) {
+          throw python_error();
+        }
+      } else {
+        TORCH_CHECK(THPVariable_Check(value), "NPU fast launcher pointer argument must be a Tensor, integer or None");
+        const auto& tensor = THPVariable_Unpack(value);
+        TORCH_CHECK(tensor.defined(), "NPU fast launcher tensor is undefined");
+        pointer = tensor.data_ptr();
+      }
+      const std::uintptr_t address = reinterpret_cast<std::uintptr_t>(pointer);
+      WriteBytes(packed, layout.offset, &address, sizeof(address));
+      return;
+    }
+    case StaticNpuArgKind::I8:
+      return WriteFastScalar<int8_t>(packed, layout, value);
+    case StaticNpuArgKind::I16:
+      return WriteFastScalar<int16_t>(packed, layout, value);
+    case StaticNpuArgKind::I32:
+      return WriteFastScalar<int32_t>(packed, layout, value);
+    case StaticNpuArgKind::I64:
+      return WriteFastScalar<int64_t>(packed, layout, value);
+    case StaticNpuArgKind::U8:
+      return WriteFastScalar<uint8_t>(packed, layout, value);
+    case StaticNpuArgKind::U16:
+      return WriteFastScalar<uint16_t>(packed, layout, value);
+    case StaticNpuArgKind::U32:
+      return WriteFastScalar<uint32_t>(packed, layout, value);
+    case StaticNpuArgKind::U64:
+      return WriteFastScalar<uint64_t>(packed, layout, value);
+    case StaticNpuArgKind::F32:
+      return WriteFastScalar<float>(packed, layout, value);
+    case StaticNpuArgKind::F64:
+      return WriteFastScalar<double>(packed, layout, value);
+    case StaticNpuArgKind::Bool: {
+      const int32_t scalar =
+          PyBool_Check(value) ? (value == Py_True ? 1 : 0) : (py::cast<bool>(py::handle(value)) ? 1 : 0);
+      WriteBytes(packed, layout.offset, &scalar, sizeof(scalar));
+      return;
+    }
+  }
+  TORCH_INTERNAL_ASSERT(false);
+}
+
 } // namespace
 
 bool StaticNpuKernel::IsSupported() {
@@ -337,6 +426,40 @@ void StaticNpuKernel::Launch(
       argCount,
       " vs ",
       argLayouts_.size());
+  LaunchImpl(grid0, grid1, grid2, streamValue, [&](auto& packed) {
+    for (size_t index = 0; index < argCount; ++index) {
+      WriteArgument(packed, argLayouts_[index], args[index]);
+    }
+  });
+}
+
+void StaticNpuKernel::LaunchFast(
+    uint32_t grid0,
+    uint32_t grid1,
+    uint32_t grid2,
+    uint64_t streamValue,
+    PyObject* const* args,
+    size_t nargs) {
+  TORCH_CHECK(nargs == argLayouts_.size(), "NPU fast launcher argument count mismatch");
+  LaunchImpl(grid0, grid1, grid2, streamValue, [&](auto& packed) {
+    for (size_t index = 0; index < nargs; ++index) {
+      WriteFastArgument(packed, argLayouts_[index], args[index]);
+    }
+  });
+}
+
+void StaticNpuKernel::CheckOpen() {
+  std::lock_guard<std::mutex> lock(mutex_);
+  TORCH_CHECK(!closed_ && functionHandle_ != nullptr, "NPU static launcher kernel is closed");
+}
+
+template <typename WriteArgs>
+void StaticNpuKernel::LaunchImpl(
+    uint32_t grid0,
+    uint32_t grid1,
+    uint32_t grid2,
+    uint64_t streamValue,
+    WriteArgs writeArgs) {
   auto stream = reinterpret_cast<aclrtStream>(streamValue);
   TORCH_CHECK(stream != nullptr, "NPU static launcher stream is null");
   const uint32_t blockCount = ValidateGrid(grid0, grid1, grid2);
@@ -345,9 +468,7 @@ void StaticNpuKernel::Launch(
   if (targetSupportFfts_) {
     WriteBytes(packed, fftsOffset_, &fftsAddress_, sizeof(fftsAddress_));
   }
-  for (size_t index = 0; index < argCount; ++index) {
-    WriteArgument(packed, argLayouts_[index], args[index]);
-  }
+  writeArgs(packed);
   const int32_t signedGrid[] = {
       static_cast<int32_t>(grid0),
       static_cast<int32_t>(grid1),

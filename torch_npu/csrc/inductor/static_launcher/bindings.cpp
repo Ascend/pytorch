@@ -8,6 +8,7 @@
 #include <torch/csrc/utils/pybind.h>
 
 #include "torch_npu/csrc/inductor/static_launcher/runtime.h"
+#include "torch_npu/csrc/inductor/static_launcher/fast_launcher.h"
 
 namespace py = pybind11;
 using torch_npu::inductor::StaticNpuKernel;
@@ -60,6 +61,7 @@ void RegisterNPUStaticLauncherBindings(PyObject* module) {
             kernel->Close();
           },
           py::arg("loaded_kernel"));
+  RegisterNPUFastLauncherBindings(module);
 }
 
 #endif

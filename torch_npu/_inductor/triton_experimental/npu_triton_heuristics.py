@@ -559,46 +559,72 @@ class NPUCachingAutotuner(CachingAutotuner):
                 self.autotune_to_one_config(*args, **kwargs)
 
         (launcher,) = self.launchers
-        # Once autotune converges to a single launcher the convergence check above is dead
-        # weight per launch. Rebind instance run to a closure calling the launcher directly,
-        # dropping this autotuner frame (~1.85us/launch). The closure still routes through
-        # self so a later launcher swap (recursively_apply_fns after repartition) is picked
-        # up: identity check, fall back to the slow path if the launcher set changed.
+        result = launcher(*args, **kwargs, stream=stream)
         if not benchmark_run:
-            self.run = self._make_fast_run(launcher)
-        return launcher(*args, **kwargs, stream=stream)
+            cached = self._build_fast_launcher(launcher)
+            self._cached_launcher = cached if cached is not None else launcher
+            self.run = self._make_fast_run(launcher, self._cached_launcher)
+        return result
 
-    def _make_fast_run(self, launcher):
-        """Build the converged fast-path ``run`` bound to a single launcher."""
+    def _make_fast_run(self, launcher, cached):
+        """Bind steady-state dispatch to the selected launcher."""
         launchers = self.launchers
 
         def fast_run(*args, stream, benchmark_run=False, **kwargs):
-            # If the launcher set was rebuilt under us (repartition, cache
-            # invalidation), drop back to the full path and re-converge.
-            if self.launchers is not launchers or benchmark_run:
-                del self.run  # restore the class method
-                return self.run(*args, stream=stream,
-                                benchmark_run=benchmark_run, **kwargs)
-            # Inductor-generated callers always invoke ``kernel.run(*pos,
-            # stream=stream0)`` with no extra kwargs, so keep that path free of
-            # the empty ``**kwargs`` dict build + unpack. Only the rare caller
-            # that actually passes kwargs takes the general branch.
-            if kwargs:
+            # A rebuilt launcher set replaces the list.
+            if self.launchers is not launchers:
+                del self.run
+                self._cached_launcher = None
+                return self.run(
+                    *args, stream=stream, benchmark_run=benchmark_run, **kwargs
+                )
+            if benchmark_run or kwargs:
                 return launcher(*args, **kwargs, stream=stream)
-            return launcher(*args, stream=stream)
+            return cached(*args, stream=stream)
 
         return fast_run
 
+    def prepare_for_pickle(self):
+        # The instance-bound closure is local and retains its loaded kernel.
+        self.__dict__.pop("run", None)
+        return super().prepare_for_pickle()
+
+    def release_benchmark_artifacts(self):
+        self.__dict__.pop("run", None)
+        return super().release_benchmark_artifacts()
+
     def _make_launchers(self):
+        if len(self.launchers) == len(self.compile_results):
+            return
         super()._make_launchers()
         downcast_args = self.triton_meta.get("downcast_args")
         if not downcast_args:
             return
         mutated = set(self.mutated_arg_names or ())
         self.launchers = [
-            _wrap_launcher_with_downcast(launcher, downcast_args=downcast_args, mutated_arg_names=mutated)
+            _wrap_launcher_with_downcast(
+                launcher,
+                downcast_args=downcast_args, mutated_arg_names=mutated,
+            )
             for launcher in self.launchers
         ]
+
+    def _build_fast_launcher(self, launcher):
+        if not self.inductor_meta.get("use_fast_triton_launcher", config.use_fast_triton_launcher):
+            return None
+        from .static_launcher.fast_launcher import build_fast_launcher
+
+        original = getattr(launcher, "_npu_original_launcher", launcher)
+        if original is not launcher and not getattr(launcher, "_npu_downcast_wrapper", False):
+            return None
+        optimized = build_fast_launcher(original)
+        if optimized is not None and original is not launcher:
+            optimized = _wrap_launcher_with_downcast(
+                optimized,
+                downcast_args=self.triton_meta.get("downcast_args", {}),
+                mutated_arg_names=set(self.mutated_arg_names or ()),
+            )
+        return optimized
 
     @staticmethod
     def _close_static_launcher(launcher) -> None:
@@ -1849,11 +1875,13 @@ def _wrap_launcher_with_downcast(launcher, downcast_args, mutated_arg_names):
     for attr in (
         "config", "runnable", "n_regs", "n_spills", "shared", "store_cubin",
         "fn", "bin", "def_args", "call_args", "_npu_def_args", "cache_hash",
-        "_is_static", "_expected_positional_count",
+        "_is_static", "_is_fast_static", "_static_kernel_owner",
+        "_expected_positional_count",
     ):
         if hasattr(launcher, attr):
             setattr(wrapped, attr, getattr(launcher, attr))
     wrapped._npu_original_launcher = launcher
+    wrapped._npu_downcast_wrapper = True
     return wrapped
 
 

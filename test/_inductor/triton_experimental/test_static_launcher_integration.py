@@ -772,6 +772,7 @@ class TestTritonExperimentalStaticLauncherUnit(TestCase):
         loser = self._make_launcher(loser_result)
         autotuner = object.__new__(NPUCachingAutotuner)
         # The winner is not the first config, so skipping selection cannot pass.
+        autotuner._cached_launcher = None
         autotuner.launchers = [loser, winner]
         autotuner.compile_results = [loser_result, winner_result]
         autotuner.fn = SimpleNamespace(__name__="test_autotune", arg_names=())
@@ -1029,9 +1030,10 @@ class TestTritonExperimentalStaticLauncherUnit(TestCase):
             side_effect=AssertionError("ABI alignment must not migrate the run lifecycle"),
         ):
             autotuner.run(stream=123)
-            fast_run = autotuner.__dict__["run"]
+            cached = autotuner._cached_launcher
+            self.assertIsNotNone(cached)
             autotuner.run(stream=456)
-            self.assertIs(autotuner.__dict__["run"], fast_run)
+            self.assertIs(autotuner._cached_launcher, cached)
         self.assertEqual(
             [event for event in binding.events if event[0] == "launch"],
             [("launch", "test_kernel", (1, 1, 1), stream, ()) for stream in (123, 456)],
@@ -1046,11 +1048,12 @@ class TestTritonExperimentalStaticLauncherUnit(TestCase):
             side_effect=AssertionError("benchmark must use the NPU run lifecycle"),
         ):
             autotuner.run(stream=123)
-            self.assertIn("run", autotuner.__dict__)
+            cached = autotuner._cached_launcher
+            self.assertIsNotNone(cached)
             autotuner.run(stream=456, benchmark_run=True)
-            self.assertNotIn("run", autotuner.__dict__)
+            self.assertIs(autotuner._cached_launcher, cached)
             autotuner.run(stream=789)
-            self.assertIn("run", autotuner.__dict__)
+            self.assertIs(autotuner._cached_launcher, cached)
         self.assertEqual(
             [event[3] for event in binding.events if event[0] == "launch"],
             [123, 456, 789],
@@ -1088,7 +1091,7 @@ class TestTritonExperimentalStaticLauncherUnit(TestCase):
             out.fill_(value)
             autotuner.run(out, stream=123)
             self.assertTrue(torch.equal(out, torch.full_like(out, 9)))
-            self.assertIn("run", autotuner.__dict__)
+            self.assertIs(autotuner._cached_launcher, wrapped)
 
 
 @instantiate_parametrized_tests
