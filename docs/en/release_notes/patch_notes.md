@@ -101,7 +101,7 @@ None
 
 - Fixed the core dump issue that occurred when profiler collection was enabled on PyTorch 2.12 and later versions.
 - Fixed the installation and compilation error that occurred when TorchNPU 26.1.0 was used with CANN 9.0.0 and earlier versions.
-- The Triton Ascend version bundled with TorchNPU 26.1.0 has been updated to 3.2.2.
+- The Triton-Ascend version bundled with TorchNPU 26.1.0 has been updated to 3.2.2.
 
 ## Known Issues
 

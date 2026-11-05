@@ -481,7 +481,7 @@
 **Constraints & Notes**:
 
 - <term>Atlas A2 training products</term> and <term>Atlas A3 training products</term>: `self` only supports bf16, fp16, fp32, fp64
-- <term>training products</term>: `self` only supports fp16, fp32, fp64
+- <term>Atlas training products</term>: `self` only supports fp16, fp32, fp64
 - The int64 type does not support simultaneous broadcasting of three `tensor`s
 
 </div>
@@ -516,7 +516,7 @@
 **Constraints & Notes**:
 
 - <term>Atlas A2 training products</term> and <term>Atlas A3 training products</term>: `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int32, int64
-- <term>training products</term>: `self` only supports fp16, fp32, fp64, uint8, int8, int32, int64
+- <term>Atlas training products</term>: `self` only supports fp16, fp32, fp64, uint8, int8, int32, int64
 - The int64 type does not support simultaneous broadcasting of three `tensor`s
 
 </div>

@@ -36,4 +36,4 @@ This document provides solutions for installing drivers, firmware, <term>CANN</t
 
 ## Installation Methods
 
-This guide provides four installation methods: offline installation (whl), source code installation, online installation (pip), and image installation. You can choose the method to install PyTorch and TorchNPU based on your actual requirements. The installation methods are not required to be the same.
+This document provides four installation methods: offline installation (.whl), source-code installation, online installation (pip), and installation through image. You can choose any method for PyTorch and TorchNPU installation according to your actual needs. The installation methods do not need to be uniform.

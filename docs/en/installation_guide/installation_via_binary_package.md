@@ -63,7 +63,7 @@ Before running the installation commands, see [Pre-installation Preparation](pre
 >
 > - For more PyTorch versions, see [Links for torch](https://download.pytorch.org/whl/torch/).
 > - For more TorchNPU plugin versions, see [PyTorch Release](https://gitcode.com/Ascend/pytorch/releases).
-> - The Triton Ascend plugin is used to support the graph-mode Inductor backend and supports only PyTorch 2.7.1 and 2.9.0.
+> - The Triton-Ascend plugin is used to support the graph-mode Inductor backend and supports only PyTorch 2.7.1 and 2.9.0.
 
 ## Querying Versions
 

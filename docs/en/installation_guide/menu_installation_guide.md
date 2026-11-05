@@ -5,6 +5,8 @@
 - [Installing TorchNPU](installing_PyTorch.md)
   - [Method 1: Offline Installation (Whl)](installation_via_binary_package.md)
   - [Method 2: Source Code Installation](compilation_installation_using_source_code.md)
+  - [Method 3: Online Installation (pip)](online_installation.md)
+  - [Method 4: Installation Through Image](installation_through_image.md)
 
 - [(Optional) Installing Extension Modules](Optional_installing_extension_modules.md)
   - [Building libtorch_npu](building_libtorch_npu.md)

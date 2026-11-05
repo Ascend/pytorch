@@ -101,7 +101,7 @@
 
 - 解决了PyTorch 2.12及以上版本，开启profiler采集后出现core dump的问题。
 - 解决了TorchNPU 26.1.0版本搭配CANN 9.0.0及之前版本存在的安装编译错误问题。
-- TorchNPU 26.1.0版本配套Triton Ascend版本更新为3.2.2。
+- TorchNPU 26.1.0版本配套Triton-Ascend版本更新为3.2.2。
 
 ## 遗留问题
 

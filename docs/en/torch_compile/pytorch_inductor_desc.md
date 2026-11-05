@@ -14,10 +14,10 @@ The Inductor backend supports three operator compilers, which can be selected ba
 
 > [!NOTICE]
 >
-> - Before using the Inductor backend, install Triton Ascend v3.2.2 first. This version supports only PyTorch 2.7.1 and 2.9.0. The installation instructions for Triton Ascend are as follows:
->   - When installing from source or through pip, the system installs the matching version of Triton Ascend by default.
+> - Before using the Inductor backend, install Triton-Ascend v3.2.2 first. This version supports only PyTorch 2.7.1 and 2.9.0. The installation instructions for Triton-Ascend are as follows:
+>   - When installing from source or through pip, the system installs the matching version of Triton-Ascend by default.
 >   - For offline installation (whl), refer to the commands in the [Quick Installation](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=182&ids=89dda9ba9de741349efa03687a487678%2C202%2C106%2C1%2C6%2C177%2C) document.
-> - For more information about Triton Ascend, see [Triton Ascend](https://triton-ascend.readthedocs.io/en/v3.2.2/).<br>
+> - For more information about Triton-Ascend, see [Triton-Ascend](https://triton-ascend.readthedocs.io/en/v3.2.2/).<br>
 > - When the Inductor backend uses MLIR mode, you must additionally install the Torch-MLIR dependency package, which can be downloaded from the [Torch-MLIR repo](https://repo.oepkgs.net/ascend/pytorch/vllm/torch/).<br>
 > - Before importing torch, you can also select the compiler mode through the `TORCHINDUCTOR_NPU_BACKEND` environment variable. For details, see [TORCHINDUCTOR_NPU_BACKEND](../environment_variable_reference/TORCHINDUCTOR_NPU_BACKEND.md).
 
