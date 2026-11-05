@@ -1412,7 +1412,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         self._precompile_worker_with(self._precompile_configs_parallel)
 
     # bench method is called by torch, grid can not be modified
-    def bench(self, launcher, *args, with_profiler=False, runtime_blocks=None, **kwargs):
+    def bench(self, launcher, *args, with_profiler=None, runtime_blocks=None, **kwargs):
         """Measure the performance of a given launcher"""
 
         if not self.custom_kernel and launcher.n_spills > self.inductor_meta.get(
@@ -1436,10 +1436,13 @@ class NPUCachingAutotuner(CachingAutotuner):
             launcher,
             launch_args,
             args,
+            with_profiler=with_profiler,
             **kwargs,
         )
 
-    def _bench_with_launch_args(self, launcher, launch_args, reset_args, **kwargs):
+    def _bench_with_launch_args(
+        self, launcher, launch_args, reset_args, with_profiler=None, **kwargs
+    ):
         device_interface = self.get_device_interface()
         stream = device_interface.get_raw_stream(device_interface.current_device())
 
@@ -1452,10 +1455,14 @@ class NPUCachingAutotuner(CachingAutotuner):
                 stream=stream,
             )
 
-        if (
-            self.inductor_meta.get("profile_bandwidth_with_do_bench_using_profiling", False)
-            and not npu_profiler_session_active()
-        ):
+        # Align with upstream CachingAutotuner.bench(): `with_profiler` is the
+        # per-autotuner switch fed by
+        # inductor_meta["profile_bandwidth_with_do_bench_using_profiling"].
+        if with_profiler is None:
+            with_profiler = self.inductor_meta.get(
+                "profile_bandwidth_with_do_bench_using_profiling", False
+            )
+        if with_profiler and not npu_profiler_session_active():
             return do_bench_using_profiling_npu(kernel_call, rep=1)
 
         return benchmarker.benchmark_gpu(kernel_call, rep=1, device_type='npu', is_vetted_benchmarking=True)
@@ -3102,21 +3109,43 @@ class NPUSymbolicGroupedAutotuner(NPUCachingAutotuner):
         )
 
 class NPUDebugAutotuner(NPUCostModelAutotuner):
-    def __init__(self, *args, regex_filter="", **kwargs):
+    def __init__(
+        self,
+        *args,
+        regex_filter="",
+        with_profiler=False,
+        with_bandwidth_info=True,
+        **kwargs,
+    ):
+        # Mirror upstream DebugAutotuner: with_profiler / with_bandwidth_info are
+        # consumed here instead of being forwarded to the base autotuner, which
+        # does not accept them.
         self.regex_filter = regex_filter
+        self.with_profiler = with_profiler
+        self.with_bandwidth_info = with_bandwidth_info
         super().__init__(*args, **kwargs)
         self.cached = None
 
-    def run(self, *args, input_grid, stream):
+    def run(self, *args, stream, **kwargs):
+        # Mirror upstream DebugAutotuner.run(): the generated wrapper only passes
+        # the kernel arguments plus `stream`, and the NPU launcher derives its own
+        # grid, so there is no `input_grid` to forward here.
+        if not self.with_bandwidth_info:
+            kwargs.setdefault("benchmark_run", True)
+            super().run(*args, stream=stream, **kwargs)
+            return
         possible_names = _find_names(self)
-        kernel_name = f"{max(possible_names, key=len)}"
+        if possible_names:
+            kernel_name = f"{max(possible_names, key=len)}"
+        else:
+            kernel_name = self.inductor_meta.get("kernel_name") or self.fn.__name__
         if not re.match(self.regex_filter, kernel_name):
             return
-        super().run(*args, grid=input_grid, stream=stream)
+        super().run(*args, stream=stream, **kwargs)
         (launcher,) = self.launchers
 
         if self.cached is None:
-            ms = self.bench(launcher, *args, input_grid=input_grid)
+            ms = self.bench(launcher, *args, with_profiler=self.with_profiler)
             num_in_out_ptrs = len(
                 [
                     arg_name

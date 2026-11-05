@@ -295,9 +295,19 @@ class _NPUTritonBenchmarkRequestMixin:
         if self.kernel_has_output_arg:
             launch_args.append(out)
         launch_args.extend(self.extra_args)
+        # NPUDebugAutotuner is the NPU counterpart of upstream DebugAutotuner, but
+        # it subclasses NPUCostModelAutotuner, so the upstream isinstance check
+        # below does not match it.  Like upstream DebugAutotuner.run(), it
+        # consumes `benchmark_run` itself, so the benchmark closure must not
+        # forward it (otherwise run() would receive it twice).
+        from .runtime.triton_heuristics import NPUDebugAutotuner
+
         if isinstance(
             getattr(mod, self.kernel_name),
-            torch._inductor.runtime.triton_heuristics.DebugAutotuner,
+            (
+                torch._inductor.runtime.triton_heuristics.DebugAutotuner,
+                NPUDebugAutotuner,
+            ),
         ):
             return functools.partial(
                 run_method,
