@@ -27,6 +27,7 @@ import logging
 import math
 import operator
 import os
+import time
 from . import config as ncfg
 import weakref
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -1118,11 +1119,9 @@ class NPUCachingAutotuner(CachingAutotuner):
         def do_event_benchmark(tilling_kernel_list):
             """Per-launcher grouped NPU-event timing.
 
-            This opens no profiler and needs no LD_PRELOAD. _do_bench_npu times
-            groups of repeated kernel
-            launches with one event pair and divides by the inner repeat count,
-            which amortizes event-record/launch bookkeeping overhead for small
-            (~10-100us) kernels.
+            This opens no profiler and needs no LD_PRELOAD. Kernels without
+            reset arguments use grouped events. Reset kernels use individual
+            event pairs to exclude per-launch initialization.
             """
             out = []
             for idx, launcher in enumerate(self.launchers):
@@ -1137,15 +1136,19 @@ class NPUCachingAutotuner(CachingAutotuner):
                     # Clone outside the measured event window, but reset the
                     # launched buffers before every invocation. Unlike upstream
                     # bench(), these clones are reused rather than recreated
-                    # from the reset source on each call. Event timings include
-                    # the initialization required by the kernel.
+                    # from the reset source on each call.
                     cloned_args, cloned_kwargs = self.clone_args(*bench_args, **bench_kwargs)
 
                     def direct_call():
-                        self.reset_to_zero_args(*cloned_args, **cloned_kwargs)
                         launcher(*cloned_args, **cloned_kwargs, stream=stream)
 
-                    out.append(self._do_bench_npu(direct_call, device_interface))
+                    if self.reset_to_zero_arg_names:
+                        def prepare():
+                            self.reset_to_zero_args(*cloned_args, **cloned_kwargs)
+
+                        out.append(self._do_bench_npu(direct_call, device_interface, prepare=prepare))
+                    else:
+                        out.append(self._do_bench_npu(direct_call, device_interface))
                 except Exception as e:
                     log.debug("[AUTOTUNE] event bench failed for %s idx=%s cfg=%s: %s",  # noqa: G200
                               self.fn.__name__, idx, launcher.config, e)
@@ -1252,12 +1255,25 @@ class NPUCachingAutotuner(CachingAutotuner):
             args, kwargs = self._clone_all_args_for_autotune(args, kwargs)
         cpu_copies = self.copy_args_to_cpu_if_needed(*args, **kwargs)
 
+        if self.reset_to_zero_arg_names:
+            cloned_args, cloned_kwargs = (), {}
+
+            def prepare():
+                nonlocal cloned_args, cloned_kwargs
+                cloned_args, cloned_kwargs = self.maybe_clone_args(cpu_copies, *args, **kwargs)
+                self.reset_to_zero_args(*cloned_args, **cloned_kwargs)
+
+            def launch():
+                launcher(*cloned_args, **cloned_kwargs, stream=stream)
+
+            def cleanup():
+                self.restore_args_from_cpu(cpu_copies)
+
+            return self._do_bench_npu(launch, device_interface, prepare=prepare, cleanup=cleanup)
+
         def kernel_call():
             cloned_args, cloned_kwargs = self.maybe_clone_args(cpu_copies, *args, **kwargs)
-            # Initialize the actual launch arguments, including the first call
-            # and buffers restored from CPU after each invocation.
             try:
-                self.reset_to_zero_args(*cloned_args, **cloned_kwargs)
                 launcher(*cloned_args, **cloned_kwargs, stream=stream)
             finally:
                 self.restore_args_from_cpu(cpu_copies)
@@ -1265,21 +1281,75 @@ class NPUCachingAutotuner(CachingAutotuner):
         return self._do_bench_npu(kernel_call, device_interface)
 
     @staticmethod
-    def _do_bench_npu(fn, device_interface, warmup=25, rep=100):
-        """Grouped NPU-event benchmark.
+    def _do_bench_npu(fn, device_interface, warmup=25, rep=100, *, prepare=None, cleanup=None):
+        """NPU-event benchmark with optional per-launch setup outside timing.
 
         A single event pair around one tiny kernel includes event-record and
         launch bookkeeping overhead comparable to 10-100us kernels, which makes
         autotune rankings noisy. Time groups of repeated launches with one event
-        pair and divide by the inner repeat count; this keeps event overhead to
-        sub-us scale for small kernels while still avoiding profiler sessions.
-        Caller-side initialization inside fn is included in these intervals.
+        pair and divide by the inner repeat count to amortize event overhead.
+        With setup, use individual event pairs so buffer initialization is not
+        measured, flushing the cache before each sample. These samples use full
+        setup wall time to estimate warmup/rep budgets, capped at 10 warmup
+        launches and ncfg.event_bench_max_samples measured ones. Host enqueue
+        gaps can still affect rankings.
         Returns milliseconds.
         """
-        fn()
+        try:
+            if prepare is not None:
+                prepare()
+            fn()
+        finally:
+            if cleanup is not None:
+                cleanup()
         device_interface.synchronize()
 
         cache = torch.empty(int(256e6 // 4), dtype=torch.int, device="npu")
+        if prepare is not None:
+            # Per-launch samples cannot amortize event overhead by grouping.
+            # Bound their count independently and budget the full setup cost.
+            sample_limit = max(1, ncfg.event_bench_max_samples)
+            event_pairs = [
+                (device_interface.Event(enable_timing=True), device_interface.Event(enable_timing=True))
+                for _ in range(sample_limit)
+            ]
+            # Initialize event handles before measuring kernel intervals.
+            for start_event, end_event in event_pairs:
+                start_event.record()
+                end_event.record()
+            device_interface.synchronize()
+
+            def sample(start_event, end_event):
+                cache.zero_()
+                try:
+                    prepare()
+                    start_event.record()
+                    try:
+                        fn()
+                    finally:
+                        end_event.record()
+                finally:
+                    if cleanup is not None:
+                        cleanup()
+
+            started = time.perf_counter()
+            sample(*event_pairs[0])
+            device_interface.synchronize()
+            sample_cost_ms = max((time.perf_counter() - started) * 1000, 1e-6)
+            # The untimed call above and this estimate are already two warm
+            # launches, so warmup_count only buys extra ones. It reaches 0 when
+            # a single setup+launch already exceeds the whole warmup budget;
+            # forcing another there would overshoot it for the slowest configs.
+            warmup_count = max(0, min(10, int(warmup / sample_cost_ms)))
+            sample_count = max(3, min(sample_limit, int(rep / sample_cost_ms)))
+            for _ in range(warmup_count):
+                sample(*event_pairs[0])
+            device_interface.synchronize()
+            for start_event, end_event in event_pairs[:sample_count]:
+                sample(start_event, end_event)
+            device_interface.synchronize()
+            times = sorted(start.elapsed_time(end) for start, end in event_pairs[:sample_count])
+            return times[len(times) // 2]
 
         def _time_group(inner_repeats):
             start_event = device_interface.Event(enable_timing=True)
@@ -1306,7 +1376,11 @@ class NPUCachingAutotuner(CachingAutotuner):
 
         for _ in range(n_warmup_groups):
             for _ in range(inner_repeats):
-                fn()
+                try:
+                    fn()
+                finally:
+                    if cleanup is not None:
+                        cleanup()
         device_interface.synchronize()
 
         times = [_time_group(inner_repeats) for _ in range(n_repeat_groups)]

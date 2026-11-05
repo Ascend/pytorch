@@ -383,6 +383,10 @@ mspti_warmup: int = 5
 mspti_active: int = 20
 event_bench_max_inner: int = 256
 event_bench_max_groups: int = 25
+# Reset kernels time each launch with its own event pair, so they cannot
+# amortize event overhead by grouping. This caps those per-launch samples
+# (the analogue of event_bench_max_groups for the grouped path).
+event_bench_max_samples: int = 20
 
 
 # =====================================================================
