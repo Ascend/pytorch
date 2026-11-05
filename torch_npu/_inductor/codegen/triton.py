@@ -263,11 +263,9 @@ def flatten(nums):
 class NPUTritonPrinter(TritonPrinter):
     """Print symbolic expressions without introducing unsupported f64 DSL."""
 
-    def _print_Float(self, expr: sympy.Expr) -> str:
-        return super()._print_Float(expr).replace("tl.float64", "tl.float32")
-
-    def _print_ToFloat(self, expr: sympy.Expr) -> str:
-        return super()._print_ToFloat(expr).replace("tl.float64", "tl.float32")
+    @staticmethod
+    def _get_scalar_float_type() -> str:
+        return "tl.float32"
 
 
 npu_texpr = NPUTritonPrinter().doprint
