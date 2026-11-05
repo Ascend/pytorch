@@ -22,13 +22,13 @@
 
 ## Download Address
 
-Software package download address: [Quick Installation](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=182&ids=89dda9ba9de741349efa03687a487678%2C202%2C106%2C1%2C6%2C177%2C)
+Software package download address: [Quick Installation](https://www.hiascend.com/en-sg/developer/software/ai-frameworks/pytorch/download?versionId=183&ids=b1e62037594d4e5c9a0fd797ff490006%2C211%2C145%2C1%2C6%2C177%2C)
 
 ## Version Mapping
 
-The version mapping table for firmware and drivers is related to all Ascend hardware and CANN versions. For specific selection, refer to the [CANN Release Notes](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/softwareinst/releasenote/9.1.0/release-notes.md).
+The version mapping table for firmware and drivers is related to all Ascend hardware and CANN versions. For specific selection, refer to the [CANN Release Notes](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/softwareinst/releasenote/9.1.0/release-notes.md).
 
-To extend TorchNPU capabilities, Ascend provides self-developed plugins. For their version requirements, refer to [Supported Software Libraries](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.1.0/zh/supported_suites_and_third_party_libraries/supported_suites_and_third_party_libraries.md).
+To extend TorchNPU capabilities, Ascend provides self-developed plugins. For their version requirements, refer to [Supported Software Libraries](https://gitcode.com/Ascend/docs/blob/master/FrameworkPTAdapter/26.1.0/en/supported_suites_and_third_party_libraries/supported_suites_and_third_party_libraries.md).
 
 The version mapping between related products is shown in the following table:
 
