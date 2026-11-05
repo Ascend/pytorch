@@ -41,6 +41,7 @@ import warnings
 
 import torch
 from common import BenchmarkRunner, main, reset_rng_state
+from huggingface_llm_models import HF_LLM_MODELS
 from torch._dynamo.testing import collect_results
 from torch._dynamo.utils import clone_inputs
 
@@ -134,7 +135,6 @@ for cls in imports:
 # EXTRA_MODELS consumes these through normal name references, so bind them
 # statically as well (the exec loop above is invisible to flake8).
 from transformers import AutoConfig, AutoModelForMaskedLM  # noqa: E402
-
 
 # These models contain the models present in huggingface_models_list. It is a
 # combination of models supported by HF Fx parser and some manually supplied
@@ -479,6 +479,14 @@ EXTRA_MODELS = {
         lambda: AutoConfig.from_pretrained("allenai/longformer-base-4096"),
         AutoModelForMaskedLM,
     ),
+    "GoogleFnet": (
+        lambda: AutoConfig.from_pretrained("google/fnet-base"),
+        AutoModelForMaskedLM,
+    ),
+    "YituTechConvBert": (
+        lambda: AutoConfig.from_pretrained("YituTech/conv-bert-base"),
+        AutoModelForMaskedLM,
+    ),
 }
 
 # Real-shape LLM entries (random-init configs, no weight download; eager
@@ -671,9 +679,16 @@ class HuggingfaceRunner(BenchmarkRunner):
         is_training = self.args.training
         dtype = torch.float32
         reset_rng_state()
-        model_cls, config = self._get_model_cls_and_config(model_name)
-        model = self._download_model(model_name)
-        model = model.to(device, dtype=dtype)
+        if model_name in HF_LLM_MODELS:
+            model, example_inputs = HF_LLM_MODELS[model_name].get_model_and_inputs(
+                model_name, device
+            )
+            model_cls = type(model)
+            config = model.config
+        else:
+            model_cls, config = self._get_model_cls_and_config(model_name)
+            model = self._download_model(model_name)
+            model = model.to(device, dtype=dtype)
         if model_name in BATCH_SIZE_KNOWN_MODELS:
             batch_size_default = BATCH_SIZE_KNOWN_MODELS[model_name]
         elif batch_size is None:
@@ -697,9 +712,10 @@ class HuggingfaceRunner(BenchmarkRunner):
         if model_name in NPU_ACC_FORCE_BATCH_SIZE:
             batch_size = 4
 
-        example_inputs = generate_inputs_for_model(
-            model_cls, model, model_name, batch_size, device, include_loss_args=True
-        )
+        if model_name not in HF_LLM_MODELS:
+            example_inputs = generate_inputs_for_model(
+                model_cls, model, model_name, batch_size, device, include_loss_args=True
+            )
 
         # So we can check for correct gradients without eliminating the dropout computation
         for attr in dir(config):

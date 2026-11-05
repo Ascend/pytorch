@@ -1440,6 +1440,7 @@ class BenchmarkRunner:
             )
             print(status)
             if self.args.dump_compile_time:
+                op_compile_time = None
                 headers, values = torch._dynamo.utils.compile_times("csv")
                 for header, value in zip(headers, values):
                     if header == "PyCodeCache.load_by_key_path":
@@ -1448,10 +1449,13 @@ class BenchmarkRunner:
                             for num in value.split(",")
                             if num.strip()
                         ]
-                        op_compile_time = sum(numbers)
-                print(
-                    f"op_compile_time:{op_compile_time * 1e3} ms",
-                )
+                        if numbers:
+                            op_compile_time = sum(numbers)
+                        break
+                if op_compile_time is None:
+                    log.warning("op_compile_time unavailable: compilation metric not recorded")
+                else:
+                    print(f"op_compile_time:{op_compile_time * 1e3} ms")
 
         elif self.args.performance:
             status = self.run_performance_test(
@@ -2077,7 +2081,11 @@ def run(runner, args, original_dir=None):
             current_device = device
             current_batch_size = batch_size
             experiment = functools.partial(experiment, args, runner.model_iter_fn)
-            set_model_name(name)
+            # The name ends up in inductor's AOT debug-log file name
+            # (torch/_inductor/debug.py: aot_<name>_debug.log); a "/" in a model
+            # id such as "Qwen/Qwen3-0.6B" would be taken as a path separator and
+            # make the FileHandler fail.  Keep the name informative but path-safe.
+            set_model_name(name.replace("/", "_"))
 
             # Look for stuff that looks like batch size, and mark it dynamic.
             # Better integration would integrate directly with benchmark suite
