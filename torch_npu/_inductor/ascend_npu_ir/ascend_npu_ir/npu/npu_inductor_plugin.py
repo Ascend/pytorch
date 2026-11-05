@@ -137,10 +137,10 @@ def _patch_run_node(tracer, node, args, kwargs, nnmodule):
             if op == "call_function":
                 # patch start
                 if 'npu.npu_fusion_attention' in str(node.target):
-                    if 'actual_seq_qlen' in kwargs:
-                        kwargs['actual_seq_qlen'] = list(kwargs['actual_seq_qlen'])
-                    if 'actual_seq_kvlen' in kwargs:
-                        kwargs['actual_seq_kvlen'] = list(kwargs['actual_seq_kvlen'])
+                    kwargs = dict(kwargs)
+                    for name in ('actual_seq_qlen', 'actual_seq_kvlen'):
+                        if isinstance(kwargs.get(name), (tuple, list)):
+                            kwargs[name] = list(kwargs[name])
                 # patch end
                 return node.target(*args, **kwargs)
             elif op == "call_method":

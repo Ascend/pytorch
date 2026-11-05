@@ -3,6 +3,7 @@ import ast
 import os
 import subprocess
 import sys
+import tempfile
 import textwrap
 from unittest import mock
 
@@ -757,6 +758,39 @@ class TestDvmByMlir(TestCase):
 
         self.assertEqual(expect, result)
         self.assertIn("@dvm.kernel", "\n".join(codes))
+
+    def test_attention_sequence_lengths(self):
+        script = textwrap.dedent("""
+            import torch
+            import torch_npu
+
+            for lengths in ([8, 16], None):
+                torch._dynamo.reset()
+                layout = "BNSD" if lengths is None else "TND"
+                shape = (2, 2, 8, 64) if lengths is None else (16, 2, 64)
+
+                def model(q, k, v):
+                    return torch_npu.npu_fusion_attention(
+                        q, k, v, 2, layout, scale=0.125,
+                        actual_seq_qlen=lengths, actual_seq_kvlen=lengths,
+                    )[0]
+
+                inputs = [
+                    torch.randn(shape, device="npu", dtype=torch.float16)
+                    for _ in range(3)
+                ]
+                expected = model(*inputs)
+                actual = torch.compile(model, fullgraph=True, dynamic=True)(*inputs)
+                torch.testing.assert_close(actual, expected, atol=2e-3, rtol=2e-3)
+        """)
+        # Backend initialization changes process-wide state; isolate this regression.
+        with tempfile.TemporaryDirectory() as workdir:
+            result = subprocess.run(
+                [sys.executable, "-c", script], cwd=workdir,
+                env=dict(os.environ, TORCHINDUCTOR_NPU_BACKEND="dvm"), text=True,
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=180,
+            )
+        self.assertEqual(result.returncode, 0, result.stdout)
 
 
 instantiate_parametrized_tests(TestDvmByMlir)
