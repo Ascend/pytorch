@@ -818,6 +818,8 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
       .def("replay", torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::replay))
       .def("reset", torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::reset))
       .def("pool", torch::wrap_pybind_function_no_gil(py::overload_cast<>(&c10_npu::NPUGraph::pool)))
+      .def_property_readonly("_has_graph_exec", &c10_npu::NPUGraph::has_graph_exec)
+      .def("raw_npu_graph_exec", torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::raw_npu_graph_exec))
       .def("debug_dump", torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::debug_dump), py::arg("debug_path"))
       .def("enable_debug_mode", torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::enable_debug_mode))
       .def(

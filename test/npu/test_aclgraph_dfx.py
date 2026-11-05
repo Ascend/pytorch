@@ -1,7 +1,6 @@
 import os
 import tempfile
 import time
-import unittest
 from unittest.mock import patch
 
 import torch
@@ -232,6 +231,40 @@ class TestAclgraphDfx(TestCase):
             self.assertEqual(len(saved), 2)
             self.assertEqual(saved[0], x.cpu())
             self.assertEqual(saved[1], y.cpu())
+
+
+class TestAclgraphRawHandle(TestCase):
+    def test_raw_npu_graph_exec_requires_capture(self):
+        torch.npu.set_device(0)
+        g = torch.npu.NPUGraph()
+
+        self.assertFalse(g._has_graph_exec)
+        with self.assertRaisesRegex(RuntimeError, "raw_npu_graph_exec"):
+            g.raw_npu_graph_exec()
+
+    def test_raw_npu_graph_exec_lifecycle(self):
+        torch.npu.set_device(0)
+        x = torch.ones(1024, device="npu")
+        g = torch.npu.NPUGraph()
+
+        with torch.npu.graph(g):
+            y = x + 1
+
+        self.assertTrue(g._has_graph_exec)
+        handle = g.raw_npu_graph_exec()
+        self.assertIsInstance(handle, int)
+        self.assertNotEqual(handle, 0)
+        self.assertEqual(handle, g.raw_npu_graph_exec())
+
+        g.replay()
+        torch.npu.synchronize()
+        self.assertEqual(y.cpu(), torch.full((1024,), 2.0))
+        self.assertEqual(handle, g.raw_npu_graph_exec())
+
+        g.reset()
+        self.assertFalse(g._has_graph_exec)
+        with self.assertRaisesRegex(RuntimeError, "raw_npu_graph_exec"):
+            g.raw_npu_graph_exec()
 
 
 if __name__ == '__main__':

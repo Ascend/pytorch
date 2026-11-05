@@ -472,6 +472,7 @@ void NPUGraph::reset() {
     if (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
       NPU_CHECK_WARN(c10_npu::acl::AclmdlRIDestroy(model_ri_));
     }
+    model_ri_ = nullptr;
     has_graph_exec_ = false;
   }
   capture_id_ = std::numeric_limits<CaptureId_t>::max();
@@ -486,6 +487,18 @@ MempoolId_t NPUGraph::pool() const {
 
 MempoolId_t NPUGraph::pool() {
   return static_cast<const NPUGraph&>(*this).pool();
+}
+
+bool NPUGraph::has_graph_exec() const {
+  return has_graph_exec_;
+}
+
+uintptr_t NPUGraph::raw_npu_graph_exec() const {
+  TORCH_CHECK(
+      has_graph_exec_ && model_ri_ != nullptr,
+      "Called NPUGraph::raw_npu_graph_exec without a preceding successful capture.",
+      PTA_ERROR(ErrCode::PARAM));
+  return reinterpret_cast<uintptr_t>(model_ri_);
 }
 
 NPUGraph* NPUGraph::get_currently_capturing_graph() {
