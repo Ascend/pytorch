@@ -1939,7 +1939,9 @@ def patch_algorithm_selector() -> None:
                     last_df_index = -1
                     for idx, row in key_rows.iterrows():
                         if "absaicore" in row["Name"].lower():
-                            time_cost.append(key_rows.loc[last_df_index + 1:idx - 1, 'Duration(us)'][1:].sum())
+                            key_elements = key_rows.loc[last_df_index + 1:idx - 1, 'Duration(us)']
+                            elements_per_step = len(key_elements) // TOTAL_STEP
+                            time_cost.append(key_elements[elements_per_step:].sum())
                             last_df_index = idx
                     time_cost = [x / (TOTAL_STEP - 1) / 1e3 for x in time_cost]
                     delete_file(torch_path)

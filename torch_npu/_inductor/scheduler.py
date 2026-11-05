@@ -173,11 +173,9 @@ def _do_batch_profiling_for_fusion(ready_choices):
                 last_df_index = -1
                 for idx, row in filter_df.iterrows():
                     if "absaicore" in row["Name"].lower():
-                        time_cost.append(
-                            filter_df.loc[
-                                last_df_index + 1 : idx - 1, "Duration(us)"
-                            ][1:].sum()
-                        )
+                        key_elements = filter_df.loc[last_df_index + 1:idx - 1, 'Duration(us)']
+                        elements_per_step = len(key_elements) // TOTAL_STEP
+                        time_cost.append(key_elements[elements_per_step:].sum())
                         last_df_index = idx
                 # Convert us -> ms and average over TOTAL_STEP iterations.
                 time_cost = [x / (TOTAL_STEP - 1) / 1e3 for x in time_cost]
