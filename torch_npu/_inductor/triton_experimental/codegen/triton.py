@@ -2300,6 +2300,15 @@ class NPUTritonKernel(TritonKernel):
                 var = self.cse.varname_map[name]
                 if isinstance(var, NPUTritonCSEVariable) and var._npu_shape_op is None and var._npu_load_index is None:
                     var._npu_reduction_shape = var.shape
+            if self._npu_linearize and getattr(self, "_npu_tile_permuted", False):
+                result_shape = list(self.dense_size_list())
+                for tree in self.range_trees:
+                    if tree.is_reduction and tree.tensor_dim is not None:
+                        result_shape[tree.tensor_dim] = 1
+                results = result if isinstance(result, tuple) else (result,)
+                for var in results:
+                    if isinstance(var, NPUTritonCSEVariable) and var._npu_shape_op is None and var._npu_load_index is None:
+                        var._npu_reduction_shape = tuple(result_shape)
         self._seed_reduction_result_pad(result, reduction_type, src_dtype)
         return result
 
@@ -8159,7 +8168,6 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
         # their expected shapes separately; never mutate live CSE metadata.
         if (
             config.test_configs.runtime_triton_shape_assert
-            and not getattr(kernel, "_npu_rtree_promoted", {})
             and sum(t.is_reduction and t.tensor_dim is not None for t in kernel.range_trees) <= 1
             and all(
                 t.prefix in getattr(kernel, "_npu_rtree_promoted", {}) or len(_ordered_free_nodes(t, 0)) <= 1

@@ -183,6 +183,41 @@ def _matmul_backward_inductor(grad, self, other, mask):
     return grad_self, grad_other
 
 
+def _batch_norm_with_update_inductor(
+    input, weight, bias, running_mean, running_var, momentum, eps, *, functional=False
+):
+    from torch._decomp.decompositions import (
+        _batch_norm_with_update,
+        _batch_norm_with_update_functional,
+    )
+
+    generic = _batch_norm_with_update_functional if functional else _batch_norm_with_update
+    result = generic(input, weight, bias, running_mean, running_var, momentum, eps)
+    if (
+        input.device.type != "npu"
+        or input.dtype != torch.float16
+        or running_mean.dtype != torch.float16
+    ):
+        return result
+
+    # The NPU CPU fallback normalizes with saved statistics rounded to input dtype.
+    mean = result[1].to(input.dtype)
+    rstd = result[2].to(input.dtype)
+    shape = [1, input.shape[1]] + [1] * (input.dim() - 2)
+    output = (input.float() - mean.float().reshape(shape)) * rstd.float().reshape(shape)
+    if weight is not None:
+        output = output * weight.float().reshape(shape)
+    if bias is not None:
+        output = output + bias.float().reshape(shape)
+    if functional:
+        result = (
+            *result[:4],
+            result[4].to(running_mean.dtype),
+            result[5].to(running_var.dtype),
+        )
+    return (output.to(input.dtype), mean, rstd, *result[3:])
+
+
 def _register_triton_decompositions():
     from .config import (
         is_ascend950,
@@ -1161,6 +1196,11 @@ def _register_triton_experimental_decompositions():
     _override_gelu_decomp()
     _override_rms_norm_decomp()
     _override_native_dropout_decomp()
+
+    decompositions[aten._batch_norm_with_update.default] = _batch_norm_with_update_inductor
+    decompositions[aten._batch_norm_with_update_functional.default] = functools.partial(
+        _batch_norm_with_update_inductor, functional=True
+    )
 
     _npu_rng_gate()
 
