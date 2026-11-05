@@ -6,7 +6,7 @@
 
 ## 安装方案
 
-本文档包含物理机、容器、虚拟机场景下，安装驱动、固件、<term>CANN</term>软件、PyTorch框架和TorchNPU插件的方案，部署架构如[图1](#安装方案图)所示。
+本文档包含物理机、容器、虚拟机场景下，安装驱动、固件、CANN软件、PyTorch框架和TorchNPU插件的方案，部署架构如[图1](#安装方案图)所示。
 
 **图 1**  安装方案<a id="安装方案图"></a>  
 ![](../figures/installation_scheme.png)

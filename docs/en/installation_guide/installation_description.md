@@ -6,7 +6,7 @@ This document mainly introduces how to quickly complete the installation of the 
 
 ## Installation Solution
 
-This document provides solutions for installing drivers, firmware, <term>CANN</term> software, the PyTorch framework, and the TorchNPU plugin in physical machine, container, and virtual machine scenarios. The deployment architecture is shown in [Figure 1](#figure1).
+This document provides solutions for installing drivers, firmware, CANN software, the PyTorch framework, and the TorchNPU plugin in physical machine, container, and virtual machine scenarios. The deployment architecture is shown in [Figure 1](#figure1).
 
 **Figure 1**  Installation solution<a id="figure1"></a>  
 ![figure1](../figures/installation_scheme.png)
