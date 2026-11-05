@@ -99,6 +99,7 @@ struct BlockInfo {
 // Struct containing info of a memory segment (i.e. one contiguous cudaMalloc).
 struct SegmentInfo {
   int64_t device = 0;
+  int32_t registration_counter = -1;
   int64_t address = 0;
   aclrtStream stream = nullptr;
   int64_t total_size = 0;
