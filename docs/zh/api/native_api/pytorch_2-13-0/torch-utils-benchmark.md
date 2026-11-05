@@ -131,6 +131,46 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id18 -->
 
+> <font size="3">merge()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.utils.benchmark.Measurement.merge](https://pytorch.org/docs/2.13/benchmark_utils.html#torch.utils.benchmark.Measurement.merge)
+
+**产品支持情况**：
+
+<!-- npu="910b" id55 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id55 -->
+<!-- npu="A3" id56 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id56 -->
+<!-- npu="950" id57 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id57 -->
+
+</div>
+
+> <font size="3">significant_figures</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.utils.benchmark.Measurement.significant_figures](https://pytorch.org/docs/2.13/benchmark_utils.html#torch.utils.benchmark.Measurement.significant_figures)
+
+**产品支持情况**：
+
+<!-- npu="910b" id58 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id58 -->
+<!-- npu="A3" id59 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id59 -->
+<!-- npu="950" id60 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id60 -->
+
+</div>
+
 </div>
 
 ### <code><i>class</i></code> torch.utils.benchmark.CallgrindStats
@@ -348,6 +388,66 @@
 <!-- npu="950" id51 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id51 -->
+
+</div>
+
+> <font size="3">extend_results()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.utils.benchmark.Compare.extend_results](https://pytorch.org/docs/2.13/benchmark_utils.html#torch.utils.benchmark.Compare.extend_results)
+
+**产品支持情况**：
+
+<!-- npu="910b" id61 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id61 -->
+<!-- npu="A3" id62 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id62 -->
+<!-- npu="950" id63 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id63 -->
+
+</div>
+
+> <font size="3">highlight_warnings()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.utils.benchmark.Compare.highlight_warnings](https://pytorch.org/docs/2.13/benchmark_utils.html#torch.utils.benchmark.Compare.highlight_warnings)
+
+**产品支持情况**：
+
+<!-- npu="910b" id64 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id64 -->
+<!-- npu="A3" id65 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id65 -->
+<!-- npu="950" id66 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id66 -->
+
+</div>
+
+> <font size="3">print()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.utils.benchmark.Compare.print](https://pytorch.org/docs/2.13/benchmark_utils.html#torch.utils.benchmark.Compare.print)
+
+**产品支持情况**：
+
+<!-- npu="910b" id67 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id67 -->
+<!-- npu="A3" id68 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id68 -->
+<!-- npu="950" id69 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id69 -->
 
 </div>
 
