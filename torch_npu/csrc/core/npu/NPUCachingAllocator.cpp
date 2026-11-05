@@ -470,6 +470,20 @@ struct ExpandableSegment {
             TORCH_NPU_MEMORY_LOGD("Alloc memory from physical device for block %zu", i);
             auto status = c10_npu::acl::AclrtMallocPhysical(&handle, segment_size_, &prop, 0);
             if (status == ACL_ERROR_RT_MEMORY_ALLOCATION) {
+                size_t device_free = 0;
+                size_t device_total = 0;
+                (void)aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total);
+                TORCH_NPU_MEMORY_LOGW(
+                    "expandable_segments: memory mapping failed with OOM on device %d "
+                    "while trying to map %zu bytes (free: %zu, total: %zu).",
+                    static_cast<int>(device_),
+                    segment_size_,
+                    device_free,
+                    device_total);
+                // aclrtMallocPhysical above returned ACL_ERROR_RT_MEMORY_ALLOCATION and treated it
+                // like a sticky runtime error. Which means we need to clear it.
+                // Unlike the corresponding CUDA Driver API.
+                (void)c10_npu::acl::AclrtGetLastError(ACL_RT_THREAD_LEVEL);
                 for (auto j : c10::irange(begin, i)) {
                     auto h = handles_.at(j).value();
                     handles_.at(j) = c10::nullopt;
@@ -2830,6 +2844,18 @@ private:
                 }
             }
             if (p.err != ACL_ERROR_NONE) {
+                if (p.err == ACL_ERROR_RT_MEMORY_ALLOCATION) {
+                    // If this is the first attempt (!isRetry), we can forgive and clear
+                    // CANN's internal error state.
+                    //
+                    // If this is the second attempt (isRetry), malloc's TORCH_CHECK_WITH
+                    // will take over to throw a helpful exception. The user can choose
+                    // to catch the exception, free some stuff in their script, and
+                    // attempt the allocation again. In this case, we can also forgive and
+                    // clear CANN's internal error state.
+                    (void)c10_npu::acl::AclrtGetLastError(ACL_RT_THREAD_LEVEL);
+                }
+                // malloc() handles non-OOM errors after its allocation attempts.
                 return false;
             }
         }
