@@ -2,42 +2,60 @@
 
 import contextlib
 import copy
+import dataclasses
+import gc
+import inspect
+import io
 import itertools
+import pickle
 import unittest
 import weakref
 from unittest.mock import patch
+
 import numpy as np
 
 import torch
 import torch._dynamo
 import torch._functorch.config
 import torch._prims as prims
-
+import torch.testing._internal.optests as optests
+import torch.utils._pytree as pytree
 import torch_npu
 import torch_npu.testing
-import torch.testing._internal.optests as optests
 from torch import distributed as dist
-from torch._dynamo.testing import rand_strided
+from torch._dynamo.testing import AotEagerAndRecordGraphs, rand_strided
+from torch._dispatch.python import enable_python_dispatcher
 from torch._subclasses.fake_tensor import (
     FakeTensor,
     FakeTensorMode,
     FakeTensorConverter,
     DynamicOutputShapeException,
     UnsupportedOperatorException,
+    _CacheKeyState,
+    extract_tensor_metadata,
+)
+from torch.fx.experimental.symbolic_shapes import (
+    DimDynamic,
+    ShapeEnv,
+    ShapeEnvSettings,
+    StatelessSymbolicContext,
 )
 from torch.fx.passes.fake_tensor_prop import FakeTensorProp
 from torch.testing import FileCheck
 from torch.testing._internal.common_device_type import instantiate_device_type_tests, OpDTypes
 from torch.testing._internal.common_device_type import ops
 from torch.testing._internal.common_utils import (
-    TestCase, TEST_WITH_TORCHDYNAMO, run_tests, skipIfCrossRef, skipIfRocm, skipIfTorchDynamo, parametrize,
-    instantiate_parametrized_tests)
+    TestCase, TEST_WITH_TORCHDYNAMO, run_tests, skipIfCrossRef, skipIfRocm, skipIfTorchDynamo,
+    skipIfWindows, instantiate_parametrized_tests)
 from torch.testing._internal.custom_op_db import custom_op_db
 from torch.utils._mode_utils import no_dispatch
 from torch.utils._python_dispatch import TorchDispatchMode
 from torch.utils._pytree import tree_flatten
 
 RUN_NPU = torch.npu.is_available()
+
+torch._dynamo.config.fake_tensor_cache_enabled = True
+torch._dynamo.config.fake_tensor_cache_crosscheck_enabled = True
 
 
 class FakeTensorTest(TestCase):
@@ -49,7 +67,7 @@ class FakeTensorTest(TestCase):
 
     @unittest.skipIf(not RUN_NPU, "requires npu")
     def test_npu_initialized(self):
-        # doesnt error
+        # does not error
         with FakeTensorMode():
             p = torch.randn(4, 2, requires_grad=True, device='npu')
             x = torch.randn(8, 4, device='npu')
@@ -384,9 +402,10 @@ class FakeTensorTest(TestCase):
             D = 2 if bidir else 1
             H_out = proj_size if proj_size > 0 else hidden_size
 
-            lstm = torch.nn.LSTM(input_size=H_in, hidden_size=hidden_size,
-                                    num_layers=num_layers, proj_size=proj_size, batch_first=False,
-                                    bias=True, bidirectional=bidir, device='npu')
+            lstm = torch.nn.LSTM(
+                input_size=H_in, hidden_size=hidden_size,
+                num_layers=num_layers, proj_size=proj_size, batch_first=False,
+                bias=True, bidirectional=bidir, device='npu')
 
             h_0 = torch.randn((num_layers * D, N, H_out), requires_grad=False, device='npu')
             c_0 = torch.randn((num_layers * D, N, hidden_size), requires_grad=False, device='npu')
@@ -805,10 +824,8 @@ class FakeTensorOperatorInvariants(TestCase):
     def get_aten_op(schema):
         namespace, name = schema.name.split("::")
         overload = schema.overload_name if schema.overload_name else "default"
-        try:
-            namespace == "aten"
-        except AttributeError:
-            print("AttributeError: torch.ops.aten has no attribute")
+        if namespace != "aten":
+            raise AssertionError(f"expected namespace 'aten', got {namespace!r}")
         return getattr(getattr(torch.ops.aten, name), overload)
 
 
@@ -933,7 +950,7 @@ class FakeTensorOperatorInvariants(TestCase):
             with torch._subclasses.CrossRefFakeMode():
                 Repro()(*args)
         except RuntimeError as e:
-            # We expect the cross ref to succed for the first output to fail
+            # We expect the cross ref to succeed for the first output to fail
             # for the rng state, see Note [Seed and Offset]
             self.assertTrue("output[0]" not in str(e))
             self.assertTrue("found mismatched tensor metadata for output[6]: Devices cpu and cuda:0 are not equal!" in str(e))
@@ -1071,6 +1088,625 @@ class FakeTensorPropTest(TestCase):
             another_optional_value = torch.randn(5, 4)
             graph_model = torch.fx.symbolic_trace(model, (value, None, another_optional_value))
             FakeTensorProp(graph_model, fake_mode).propagate(value, None, another_optional_value)
+
+
+
+class FakeTensorDispatchCache(TestCase):
+    def test_shape_env_settings(self):
+        init_sig = inspect.signature(ShapeEnv._init)
+        args = [
+            name
+            for name, param in init_sig.parameters.items()
+            if type(param.default) is bool
+        ]
+
+        settings = [f.name for f in dataclasses.fields(ShapeEnvSettings)]
+        for arg in args:
+            self.assertTrue(arg in settings)
+
+    def _test_cache_key(self, fm, x, y, z):
+        func = torch.ops.aten.add.Tensor
+        state = _CacheKeyState()
+        key_x = fm._cache_key(state, func, [x], {})
+        key_y = fm._cache_key(state, func, [y], {})
+        key_z = fm._cache_key(state, func, [z], {})
+
+        self.assertEqual(key_x, key_y)
+        self.assertNotEqual(key_x, key_z)
+
+    def test_cache_key_dtype(self):
+        with FakeTensorMode() as fm:
+            x = torch.randn(4, 3, dtype=torch.float16)
+            y = torch.randn(4, 3, dtype=torch.float16)
+            z = x.to(dtype=torch.float32)
+            self._test_cache_key(fm, x, y, z)
+
+    def test_cache_key_shape(self):
+        with FakeTensorMode() as fm:
+            x = torch.randn(4, 3)
+            y = torch.randn(4, 3)
+            z = torch.randn(4, 2)
+            self._test_cache_key(fm, x, y, z)
+
+    def test_cache_key_stride(self):
+        with FakeTensorMode() as fm:
+            x = torch.randn(4, 2)
+            y = torch.randn(4, 2)
+            z = x.as_strided((4, 2), (1, 2))
+            self._test_cache_key(fm, x, y, z)
+
+    @unittest.skipIf(not RUN_NPU, "requires npu")
+    def test_cache_key_device(self):
+        with FakeTensorMode() as fm:
+            x = torch.randn(4, 3)
+            y = torch.randn(4, 3)
+            z = x.to(device="npu")
+            self._test_cache_key(fm, x, y, z)
+
+    def test_cache_key_memory_format(self):
+        with FakeTensorMode() as fm:
+            x = torch.randn(1, 2, 3, 4)
+            y = torch.randn(1, 2, 3, 4)
+            z = x.to(memory_format=torch.channels_last)
+            self._test_cache_key(fm, x, y, z)
+
+    def test_cache_key_storage_offset(self):
+        with FakeTensorMode() as fm:
+            x = torch.randn(3)[1:]
+            y = torch.randn(3)[1:]
+            z = torch.randn(2)
+            self._test_cache_key(fm, x, y, z)
+
+    def test_cache_key_requires_grad(self):
+        with FakeTensorMode() as fm:
+            x = torch.randn(4, 3)
+            y = torch.randn(4, 3)
+            z = torch.randn(4, 3, requires_grad=True)
+            self._test_cache_key(fm, x, y, z)
+
+    def test_cache_key_is_conj(self):
+        with FakeTensorMode() as fm:
+            x = torch.randn(4, 3, dtype=torch.complex64)
+            y = torch.randn(4, 3, dtype=torch.complex64)
+            z = torch.randn(4, 3, dtype=torch.complex64)
+            torch._C._set_conj(z, not z.is_conj())
+            self._test_cache_key(fm, x, y, z)
+
+    def test_cache_key_is_neg(self):
+        with FakeTensorMode() as fm:
+            x = torch.randn(4, 3, dtype=torch.complex64)
+            y = torch.randn(4, 3, dtype=torch.complex64)
+            z = torch.randn(4, 3, dtype=torch.complex64)
+            torch._C._set_neg(z, not z.is_neg())
+            self._test_cache_key(fm, x, y, z)
+
+    def test_cache_key_is_inference(self):
+        with torch.inference_mode(True):
+            t = torch.randn(4, 3)
+        with FakeTensorMode() as fm:
+            x = torch.randn(4, 3)
+            y = torch.randn(4, 3)
+            z = fm.from_tensor(t)
+            self._test_cache_key(fm, x, y, z)
+
+    def test_cache_key_constants(self):
+        with FakeTensorMode() as fm:
+            self._test_cache_key(fm, 1.0, 1.0, 1)
+            self._test_cache_key(fm, 0.0, 0.0, 0)
+
+    def test_empty_list(self):
+        with FakeTensorMode() as fm:
+            func = torch.ops.aten.any.dims
+            state = _CacheKeyState()
+            x = torch.ones((2, 3))
+            key_x = fm._cache_key(state, func, [x, []], {})
+            key_y = fm._cache_key(state, func, [x], {})
+
+        self.assertNotEqual(key_x, key_y)
+
+    def assertHitsMisses(self, hits, misses):
+        info = FakeTensorMode.cache_info()
+        self.assertEqual(info.hits, hits)
+        self.assertEqual(info.misses, misses)
+
+    def assertBypasses(self, reason, count):
+        info = FakeTensorMode.cache_info()
+        if count > 0:
+            self.assertIn(reason, info.bypasses)
+            self.assertEqual(info.bypasses[reason], count)
+        else:
+            self.assertNotIn(reason, info.bypasses)
+
+    def test_cache_hit(self):
+        with FakeTensorMode():
+            x = torch.randn(4, 3)
+            y = torch.randn(4, 3)
+
+            FakeTensorMode.cache_clear()
+            self.assertHitsMisses(0, 0)
+            res1 = x + y
+            self.assertHitsMisses(0, 1)
+            res2 = x + y
+            self.assertHitsMisses(1, 1)
+
+            self.assertEqual(
+                extract_tensor_metadata(res1),
+                extract_tensor_metadata(res2),
+            )
+
+    def test_cache_bypass(self):
+        with FakeTensorMode():
+            x = torch.randn(1, 2)
+
+            FakeTensorMode.cache_clear()
+            self.assertBypasses("inplace view", 0)
+
+            x.unsqueeze_(0)
+            self.assertBypasses("inplace view", 1)
+
+    @unittest.skipIf(not RUN_NPU, "requires npu")
+    def test_npu_op_bypass(self):
+        """torch.ops.npu.* is non-builtin and must bypass ValidEntry."""
+        if not hasattr(torch.ops, "npu") or not hasattr(torch.ops.npu, "npu_gelu"):
+            raise unittest.SkipTest("torch.ops.npu.npu_gelu is not registered")
+
+        with FakeTensorMode():
+            a = torch.randn(10, 3, 4, device="npu")
+            FakeTensorMode.cache_clear()
+            self.assertBypasses("non-builtin", 0)
+            self.assertHitsMisses(0, 0)
+
+            out = torch.ops.npu.npu_gelu(a)
+            self.assertEqual(tuple(out.shape), tuple(a.shape))
+            self.assertBypasses("non-builtin", 1)
+            self.assertHitsMisses(0, 0)
+
+    def test_cache_default_dtype(self):
+        with FakeTensorMode():
+            x = torch.tensor([1, 2], dtype=torch.int32)
+            torch.set_default_dtype(torch.float32)
+
+            FakeTensorMode.cache_clear()
+            self.assertHitsMisses(0, 0)
+
+            y = x + 1.0
+            self.assertEqual(y.dtype, torch.float32)
+            self.assertHitsMisses(0, 1)
+
+            torch.set_default_dtype(torch.float16)
+            y = x + 1.0
+            self.assertEqual(y.dtype, torch.float16)
+            self.assertHitsMisses(0, 2)
+
+            torch.set_default_dtype(torch.float32)
+            y = x + 1.0
+            self.assertEqual(y.dtype, torch.float32)
+            self.assertHitsMisses(1, 2)
+
+    @unittest.skipIf(not RUN_NPU, "requires npu")
+    def test_cache_default_device(self):
+        with FakeTensorMode():
+            FakeTensorMode.cache_clear()
+            self.assertHitsMisses(0, 0)
+
+            try:
+                torch.set_default_device("cpu")
+                x = torch.tensor([1, 2])
+                y = x + 1.0
+                self.assertEqual(y.device.type, "cpu")
+                self.assertHitsMisses(0, 1)
+
+                torch.set_default_device("npu")
+                x = torch.tensor([1, 2])
+                y = x + 1.0
+                self.assertEqual(y.device.type, "npu")
+                self.assertHitsMisses(0, 2)
+
+                torch.set_default_device("cpu")
+                x = torch.tensor([1, 2])
+                y = x + 1.0
+                self.assertEqual(y.device.type, "cpu")
+                self.assertHitsMisses(1, 2)
+            finally:
+                torch.set_default_device(None)
+
+    def test_cache_inplace_op(self):
+        with FakeTensorMode():
+            x = torch.randn(1, 2)
+            y = torch.randn(1, 2)
+
+            FakeTensorMode.cache_clear()
+            self.assertHitsMisses(0, 0)
+
+            z = x.add_(y)
+            self.assertHitsMisses(0, 1)
+            self.assertEqual(id(x), id(z))
+
+            w = x.add_(y)
+            self.assertHitsMisses(1, 1)
+            self.assertEqual(id(x), id(w))
+
+    def test_cache_view_op(self):
+        with FakeTensorMode():
+            x1 = torch.ones(2, requires_grad=True).clone()
+            x2 = torch.ones(2, requires_grad=True).clone()
+            y2 = x2.view(-1)
+
+            z1 = x1.mul_(2)
+            self.assertFalse(z1._is_view())
+
+            z2 = y2.mul_(2)
+            self.assertTrue(z2._is_view())
+
+            z2 = y2.mul_(2)
+            self.assertTrue(z2._is_view())
+
+            z1 = x1.mul_(2)
+            self.assertFalse(z1._is_view())
+
+    def test_cache_dispatch_key_set(self):
+        with FakeTensorMode():
+            FakeTensorMode.cache_clear()
+            self.assertBypasses("dispatch_key_set mismatch", 0)
+
+            x = torch._efficientzerotensor(3)
+            self.assertTrue(x._is_zerotensor())
+            self.assertBypasses("dispatch_key_set mismatch", 1)
+
+            y = torch._efficientzerotensor(3)
+            self.assertTrue(y._is_zerotensor())
+            self.assertBypasses("dispatch_key_set mismatch", 2)
+
+    def test_fft_hfft2_issue145522(self):
+        with FakeTensorMode():
+            s0 = 5
+            s1 = 6
+            s2 = 7
+            s3 = 3
+            s4 = 10
+            s5 = 2
+            x = torch.randn(s0, s1, s2)
+            out = torch.randn(s0, s3, s4)
+            kwargs = {
+                "s": (s3, s4),
+                "dim": (1, s5),
+                "norm": "ortho",
+            }
+            r = torch._C._fft.fft_hfft2(x, **kwargs, out=out)
+            self.assertEqual(r.shape, out.shape)
+
+    def test_inference_mode(self):
+        with FakeTensorMode():
+            x = torch.randn(4, 3)
+            y = torch.randn(4, 3)
+
+            FakeTensorMode.cache_clear()
+            self.assertHitsMisses(0, 0)
+
+            res1 = x + y
+            with torch.inference_mode():
+                res2 = x + y
+
+            self.assertHitsMisses(0, 2)
+            self.assertFalse(res1.is_inference())
+            self.assertTrue(res2.is_inference())
+
+            res3 = x + y
+
+            self.assertHitsMisses(1, 2)
+            self.assertFalse(res3.is_inference())
+            self.assertEqual(
+                extract_tensor_metadata(res1),
+                extract_tensor_metadata(res3),
+            )
+
+            with torch.inference_mode():
+                res4 = x + y
+
+            self.assertHitsMisses(2, 2)
+            self.assertTrue(res4.is_inference())
+            self.assertEqual(
+                extract_tensor_metadata(res2),
+                extract_tensor_metadata(res4),
+            )
+
+    @unittest.skipIf(not RUN_NPU, "requires npu")
+    def test_wrapper_tensor_subclass_different_device(self):
+        class DifferentDeviceTensor(torch.Tensor):
+            @staticmethod
+            def __new__(cls, a):
+                kwargs = {}
+                kwargs["strides"] = a.stride()
+                kwargs["storage_offset"] = a.storage_offset()
+                kwargs["device"] = torch.device("cpu")
+                kwargs["layout"] = a.layout
+                kwargs["requires_grad"] = a.requires_grad
+                kwargs["dtype"] = a.dtype
+                out = torch.Tensor._make_wrapper_subclass(cls, a.size(), **kwargs)
+                return out
+
+            def __init__(self, a):
+                self.inner_tensor = a
+
+            def __repr__(self):
+                return f"DifferentDeviceTensor({repr(self.inner_tensor)})"
+
+            def __tensor_flatten__(self):
+                return ["inner_tensor"], None
+
+            @staticmethod
+            def __tensor_unflatten__(inner_tensors, meta, outer_size, outer_stride):
+                if meta is not None:
+                    raise AssertionError(f"expected meta is None, got {meta}")
+                return DifferentDeviceTensor(inner_tensors["inner_tensor"])
+
+            @classmethod
+            def __torch_dispatch__(cls, func, types, args, kwargs):
+                if kwargs is None:
+                    kwargs = {}
+                args = pytree.tree_map_only(
+                    DifferentDeviceTensor, lambda x: x.inner_tensor, args
+                )
+                kwargs = pytree.tree_map_only(
+                    DifferentDeviceTensor, lambda x: x.inner_tensor, kwargs
+                )
+                return func(*args, **kwargs)
+
+        a = torch.ones(2, 2, 768, device="npu")
+        wrapped_a = DifferentDeviceTensor(a)
+
+        self.assertTrue(wrapped_a.is_cpu)
+        self.assertFalse(wrapped_a.inner_tensor.is_cpu)
+
+        with FakeTensorMode() as fake_mode:
+            fake_wrapped_a = fake_mode.from_tensor(wrapped_a)
+
+        self.assertTrue(fake_wrapped_a.is_cpu)
+        if not isinstance(fake_wrapped_a, DifferentDeviceTensor):
+            raise AssertionError(
+                f"expected DifferentDeviceTensor, got {type(fake_wrapped_a)}"
+            )
+        self.assertFalse(fake_wrapped_a.inner_tensor.is_cpu)
+
+    def test__upsample_bilinear2d_aa_backward_dynamic_shapes(self):
+        def f(x):
+            return torch.nn.functional.interpolate(
+                x,
+                size=[256, 256],
+                mode="bilinear",
+                align_corners=False,
+                antialias=True,
+            )
+
+        shape_env = ShapeEnv()
+        fake_m = FakeTensorMode(shape_env=shape_env)
+        x = fake_m.from_tensor(
+            torch.randn(1, 3, 2005, 1920, requires_grad=True),
+            symbolic_context=StatelessSymbolicContext(
+                dynamic_sizes=[
+                    DimDynamic.STATIC,
+                    DimDynamic.STATIC,
+                    DimDynamic.DYNAMIC,
+                    DimDynamic.DYNAMIC,
+                ],
+                constraint_sizes=[None, None, None, None],
+            ),
+        )
+        with fake_m, enable_python_dispatcher():
+            out = f(x)
+            out.sum().backward()
+            self.assertEqual(x.shape, x.grad.shape)
+
+    def test_from_buffer(self):
+        with FakeTensorMode():
+            obj = [1, 2]
+            f = io.BytesIO()
+            pickle.Pickler(f).dump(obj)
+            storage = torch.UntypedStorage.from_buffer(f.getvalue(), dtype=torch.uint8)
+
+            t = torch.ByteTensor(storage)
+            self.assertTrue(isinstance(t, FakeTensor))
+            self.assertEqual(t.device, torch.device("cpu"))
+
+    def test_meta_tensor_to_fake_cpu(self):
+        x = torch.randn(4, 4, device="meta")
+        with FakeTensorMode(allow_non_fake_inputs=True):
+            x_cpu = x.to(device="cpu")
+        self.assertTrue(isinstance(x_cpu, FakeTensor))
+        self.assertEqual(x_cpu.device, torch.device("cpu"))
+
+    def test_cache_tuple_outputs(self):
+        with FakeTensorMode():
+            x = torch.randn(6, 4)
+            y = torch.randn(6, 4)
+
+            FakeTensorMode.cache_clear()
+            self.assertHitsMisses(0, 0)
+
+            ref = torch.split(x, 2)
+            self.assertHitsMisses(0, 1)
+
+            res = torch.split(y, 2)
+            self.assertHitsMisses(1, 1)
+            self.assertEqual(len(ref), len(res))
+            for a, b in zip(ref, res):
+                self.assertEqual(
+                    extract_tensor_metadata(a),
+                    extract_tensor_metadata(b),
+                )
+
+    def test_cache_aten_index(self):
+        with FakeTensorMode():
+            x = torch.randn(4, 4, 4)
+            idx_tensor1 = torch.tensor([0, 2, 3])
+            idx_tensor2 = torch.tensor([0, 1, 2])
+
+            FakeTensorMode.cache_clear()
+            self.assertHitsMisses(0, 0)
+
+            ref = torch.ops.aten.index(x, [None, idx_tensor1, idx_tensor2])
+            self.assertHitsMisses(0, 3)
+
+            res = torch.ops.aten.index(x, [None, idx_tensor1, idx_tensor2])
+            self.assertHitsMisses(1, 3)
+            self.assertEqual(extract_tensor_metadata(ref), extract_tensor_metadata(res))
+
+        with FakeTensorMode():
+            x = torch.randn(4, 4, 4)
+            idx_tensor1 = torch.tensor([True, True, False, True])
+            self.assertRaises(
+                DynamicOutputShapeException,
+                lambda: torch.ops.aten.index(x, [None, idx_tensor1]),
+            )
+
+            idx_tensor1 = torch.tensor([1, -2, 3, -4], dtype=torch.int8)
+            self.assertRaises(
+                DynamicOutputShapeException,
+                lambda: torch.ops.aten.index(x, [None, idx_tensor1]),
+            )
+
+    @skipIfWindows(
+        msg="weird bug - cache may not be cleared after https://github.com/pytorch/pytorch/pull/154283"
+    )
+    @skipIfTorchDynamo("cache hit/miss changes with invoke_subgraph caching")
+    def test_invoke_subgraph(self):
+        invoke_subgraph = torch._higher_order_ops.invoke_subgraph
+
+        def run():
+            def fn(x, y):
+                return (x + y * 2,)
+
+            with FakeTensorMode():
+                x = torch.randn(6, 4)
+                y = torch.randn(6, 4)
+
+                FakeTensorMode.cache_clear()
+                self.assertHitsMisses(0, 0)
+
+                ref = invoke_subgraph(fn, "subgraph", x, y)
+                self.assertHitsMisses(0, 2)
+                self.assertBypasses("function argument", 1)
+
+                res = invoke_subgraph(fn, "subgraph", x, y)
+                self.assertHitsMisses(2, 2)
+                self.assertBypasses("function argument", 2)
+
+                res = invoke_subgraph(fn, "subgraph", x, y)
+                self.assertHitsMisses(4, 2)
+                self.assertBypasses("function argument", 3)
+
+            backend = AotEagerAndRecordGraphs()
+            x = torch.randn(6, 4)
+            y = torch.randn(6, 4)
+            torch.compile(fn, backend=backend, fullgraph=True)(x, y)
+            self.assertEqual(len(backend.fw_graphs), 1)
+            mod = backend.fw_graphs[0]
+
+            with FakeTensorMode():
+                x = torch.randn(6, 4)
+                y = torch.randn(6, 4)
+
+                FakeTensorMode.cache_clear()
+                self.assertHitsMisses(0, 0)
+
+                ref = invoke_subgraph(mod, "subgraph", x, y)
+                self.assertHitsMisses(0, 3)
+
+                res = invoke_subgraph(mod, "subgraph", x, y)
+                self.assertHitsMisses(1, 3)
+
+                res = invoke_subgraph(mod, "subgraph", x, y)
+                self.assertHitsMisses(2, 3)
+
+                self.assertEqual(len(ref), len(res))
+                self.assertEqual(len(ref), len(res))
+                for a, b in zip(ref, res):
+                    self.assertEqual(
+                        extract_tensor_metadata(a),
+                        extract_tensor_metadata(b),
+                    )
+            self.assertTrue(count_invoke_subgraph_keys() > 0)
+
+        def count_invoke_subgraph_keys():
+            invoke_subgraph_keys = 0
+            for cache_key in FakeTensorMode.cache:
+                if isinstance(cache_key.key[0], torch._ops.HigherOrderOperator):
+                    invoke_subgraph_keys += 1
+            return invoke_subgraph_keys
+
+        run()
+        torch.compiler.reset()
+        gc.collect()
+        gc.collect()
+        self.assertTrue(count_invoke_subgraph_keys() == 0)
+
+    @skipIfTorchDynamo("cache hit/miss changes with invoke_subgraph caching")
+    def test_invoke_subgraph_cacheable_inplace(self):
+        invoke_subgraph = torch._higher_order_ops.invoke_subgraph
+
+        def fn(x, y):
+            cos = torch.ops.aten.cos.default(x)
+            t = torch.ops.aten.t_.default(cos)
+            mul = torch.ops.aten.mul.Tensor(t, y)
+            return (mul,)
+
+        backend = AotEagerAndRecordGraphs()
+        x = torch.randn(4, 4)
+        y = torch.randn(4, 4)
+        torch.compile(fn, backend=backend, fullgraph=True)(x, y)
+        self.assertEqual(len(backend.graphs), 1)
+        mod = backend.graphs[0]
+
+        with FakeTensorMode():
+            x = torch.randn(4, 4)
+            y = torch.randn(4, 4)
+
+            FakeTensorMode.cache_clear()
+            self.assertHitsMisses(0, 0)
+
+            ref = invoke_subgraph(mod, "subgraph", x, y)
+            self.assertHitsMisses(0, 3)
+
+            res = invoke_subgraph(mod, "subgraph", x, y)
+            self.assertHitsMisses(1, 3)
+
+            res = invoke_subgraph(mod, "subgraph", x, y)
+            self.assertHitsMisses(2, 3)
+
+            self.assertEqual(len(ref), len(res))
+            self.assertEqual(len(ref), len(res))
+            for a, b in zip(ref, res):
+                self.assertEqual(
+                    extract_tensor_metadata(a),
+                    extract_tensor_metadata(b),
+                )
+
+    @skipIfTorchDynamo("cache hit/miss changes with invoke_subgraph caching")
+    def test_unbacked_output(self):
+        class LengthsGather(torch.nn.Module):
+            def forward(
+                self,
+                input: torch.Tensor,
+                lengths: torch.Tensor,
+                indices: torch.Tensor,
+                offsets: torch.Tensor,
+            ) -> torch.Tensor:
+                bias = torch.gather(offsets, 0, indices)
+                lengths_selected = torch.gather(lengths, 0, indices)
+                index = torch.repeat_interleave(bias, lengths_selected, dim=0)
+                return index
+
+        input = torch.tensor([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+        lengths = torch.tensor([0, 2, 3, 1, 4])
+        indices = torch.tensor([2, 3, 4, 6, 7, 8, 9])
+        offsets = torch.cumsum(lengths, 0)
+        ep = torch.export.export(
+            LengthsGather(), (input, lengths, indices, offsets), strict=False
+        )
+
+        FakeTensorMode.cache_clear()
+        ep.run_decompositions({})
+        self.assertBypasses("unrepresented symbol in output", 2)
 
 
 class TestFastGelu(TestCase):
@@ -1310,8 +1946,9 @@ class TestFlashAttentionScoreGrad(TestCase):
             attention_in.requires_grad = True
             softmax_max.requires_grad = True
             softmax_sum.requires_grad = True
-            res = torch.ops.npu.npu_fusion_attention_grad(q, k, v, dy, head_num=40, input_layout="BNSD",
-                            softmax_max=softmax_max, softmax_sum=softmax_sum, attention_in=attention_in)
+            res = torch.ops.npu.npu_fusion_attention_grad(
+                q, k, v, dy, head_num=40, input_layout="BNSD",
+                softmax_max=softmax_max, softmax_sum=softmax_sum, attention_in=attention_in)
 
             self.assertEqual(q.shape, res[0].shape)
             self.assertEqual(q.dtype, res[0].dtype)
@@ -1540,7 +2177,8 @@ class TestNpuApplyRotoryPosEmbMeta(TestCase):
             self.assertIsNotNone(fake_key)
             self.assertIsNotNone(fake_cos)
             self.assertIsNotNone(fake_sin)
-            fake_query_result, fake_key_result = torch.ops.npu.npu_apply_rotary_pos_emb(fake_query, fake_key, fake_cos, fake_sin, "BSH")
+            fake_query_result, fake_key_result = torch.ops.npu.npu_apply_rotary_pos_emb(
+                fake_query, fake_key, fake_cos, fake_sin, "BSH")
             self.assertEqual(fake_query_result.shape, data_query.shape)
             self.assertEqual(fake_query_result.dtype, data_query.dtype)
             self.assertEqual(fake_query_result.device, data_query.device)
@@ -1573,7 +2211,7 @@ class TestMmAllReduce(TestCase):
             self.assertEqual(output.shape, (128, 128))
             self.assertEqual(output.dtype, dst_dtype)
 
-    def test_mm_all_reduce_quant(self):
+    def test_mm_all_reduce_quant_bf16(self):
         with FakeTensorMode():
             dst_dtype = torch.bfloat16
             x1 = torch.randn(128, 256, dtype=torch.float16).to(torch.int8).npu()
@@ -1696,7 +2334,8 @@ class TestDynamicQuantAsymmetric(TestCase):
             scale = torch.randn((4, 2048)).npu().to(torch.float32)
             offset = torch.randn((4, 2048)).npu().to(torch.float32)
 
-            actual_output, actual_scale, actual_offset = torch_npu.npu_dynamic_quant_asymmetric(input_npu, smooth_scales=smooth_scales_npu)
+            actual_output, actual_scale, actual_offset = torch_npu.npu_dynamic_quant_asymmetric(
+                input_npu, smooth_scales=smooth_scales_npu)
 
             self.assertEqual(actual_output.dtype, output.dtype)
             self.assertEqual(actual_output.shape, output.shape)
@@ -1910,8 +2549,9 @@ class TestQuantMatmul(TestCase):
 
             expect_ret_int32 = torch.randint(-1, 1, (1, 1, 100), dtype=torch.int32).npu()
             bias_int32 = torch.randint(-1, 1, (1, 1, 100), dtype=torch.int32).npu()
-            res_int32 = torch_npu.npu_quant_matmul(x1, x2, scale, offset=None, pertoken_scale=None,
-                                                  bias=bias_int32, output_dtype=torch.int32)
+            res_int32 = torch_npu.npu_quant_matmul(
+                x1, x2, scale, offset=None, pertoken_scale=None,
+                bias=bias_int32, output_dtype=torch.int32)
             self.assertTrue(expect_ret_int32.shape == res_int32.shape)
             self.assertTrue(expect_ret_int32.dtype == res_int32.dtype)
 
@@ -1984,7 +2624,7 @@ class TestMoeFinalizeRouting(TestCase):
             bias = torch.randn(num_rows, top_k).to(torch.float32)
             scales = torch.randn(num_rows, top_k).to(torch.float32)
             expanded_src_to_dst_row = torch.arange(num_rows * top_k).to(torch.int32)
-            expert_for_source_row = torch.randint(low = 0, high = expert_num, size = (num_rows, top_k)).to(torch.int32)
+            expert_for_source_row = torch.randint(low=0, high=expert_num, size=(num_rows, top_k)).to(torch.int32)
 
             result = torch_npu.npu_moe_finalize_routing(expanded_permuted_rows, skip1, skip2_optional, bias, scales,
                                                         expanded_src_to_dst_row, expert_for_source_row)

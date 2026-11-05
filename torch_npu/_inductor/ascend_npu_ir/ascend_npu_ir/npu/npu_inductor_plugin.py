@@ -50,9 +50,6 @@ atexit.register(shutdown_compile_workers)
 # new npu meta registration.
 npu_patch_meta()
 
-from torch._dynamo import config as dynamo_config
-dynamo_config.fake_tensor_cache_enabled = False
-
 from torch._inductor import config
 config.layout_optimization = False
 config.size_asserts = False
