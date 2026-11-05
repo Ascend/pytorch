@@ -630,15 +630,6 @@ class HuggingfaceRunner(BenchmarkRunner):
     def fp32_only_models(self):
         return FP32_ONLY_MODELS.union(NPU_FP32_ONLY_MODELS)
 
-    @property
-    def skip_accuracy_check_as_eager_non_deterministic(self):
-        # NPU eager loss-path kernels are sporadically 1-2 ulp
-        # non-bitwise-reproducible (device-level, backend-independent).
-        # Upstream exempts known-non-deterministic models from the tol=0
-        # eager gate but only in training mode; extend to inference here.
-        # Downstream numerical comparisons still run.
-        return {"DistillGPT2", "gemma_2_2b", "T5Small", "T5ForConditionalGeneration"}
-
     def _get_model_cls_and_config(self, model_name):
         if model_name not in EXTRA_MODELS:
             model_cls = get_module_cls_by_model_name(model_name)
@@ -714,6 +705,12 @@ class HuggingfaceRunner(BenchmarkRunner):
         for attr in dir(config):
             if "drop" in attr and isinstance(getattr(config, attr), float):
                 setattr(config, attr, 1e-30)
+
+            # Turning off kv cache for torchbench models. This is not the right
+            # thing to do, but the pt2 dashboard is outdated. Real transformers
+            # benchmarks will be added soon using a different infra.
+            if hasattr(model, "config") and hasattr(model.config, "use_cache"):
+                model.config.use_cache = False
 
         if is_training and not (self.args.accuracy and model_name in ONLY_EVAL_MODE):
             model.train()
