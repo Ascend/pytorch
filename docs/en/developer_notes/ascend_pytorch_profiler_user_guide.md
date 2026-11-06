@@ -63,7 +63,7 @@ Before using this tool, understand the related usage constraints:
 
 3. Install the framework.
 
-   Take the installation of PyTorch 2.9.0, Python 3.12, system architecture AArch64, and torchvision==0.24.0 as an example. For details, see *[TorchNPU Software Installation](../installation_guide/references/building_from_source.md)*.
+   Take the installation of PyTorch 2.9.0, Python 3.12, system architecture AArch64, and torchvision==0.24.0 as an example. For details, see *[TorchNPU Software Installation](https://www.hiascend.com/en/developer/software/ai-frameworks/pytorch/download)*.
 
    > [!note]
    >
