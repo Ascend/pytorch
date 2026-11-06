@@ -778,7 +778,6 @@ setup(
     install_requires=[
         *_get_torch_requires(),
         'numpy',
-        'pyyaml',
     ],
     extras_require={
     },
