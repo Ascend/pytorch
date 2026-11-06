@@ -818,6 +818,9 @@
   "torch_npu.npu.NPUGraph.pool": {
     "signature": "(self)"
   },
+  "torch_npu.npu.NPUGraph.raw_npu_graph_exec": {
+    "signature": "(self) -> int"
+  },
   "torch_npu.contrib.module.activations.SiLU.forward": {
     "signature": "(self, x)"
   },
@@ -853,6 +856,9 @@
   },
   "torch_npu.npu.graphs.NPUGraph.pool": {
     "signature": "(self)"
+  },
+  "torch_npu.npu.graphs.NPUGraph.raw_npu_graph_exec": {
+    "signature": "(self) -> int"
   },
   "torch_npu.npu_ciou": {
     "signature": "(self, gtboxes, trans=False, is_cross=True, mode=0, atan_sub_flag=False)"

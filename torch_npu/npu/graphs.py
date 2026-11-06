@@ -653,6 +653,19 @@ class NPUGraph(torch_npu._C._NPUGraph):
         """
         return super().pool()
 
+    def raw_npu_graph_exec(self) -> int:
+        r"""Return the underlying ``aclmdlRI`` handle as an integer.
+
+        The handle is valid only after a successful :meth:`capture_end` and
+        before :meth:`reset` or destruction of this graph. torch_npu retains
+        ownership of the handle; callers must not destroy it.
+
+        The returned handle can be passed to ACL APIs that accept
+        ``aclmdlRI``. Directly executing it bypasses the bookkeeping performed
+        by :meth:`replay`, such as RNG state handling.
+        """
+        return super().raw_npu_graph_exec()
+
     def update(self, cpu_update_input):
         log.debug("NPUGraph: updating graph (%s inputs)...", len(cpu_update_input))
         if not self.auto_dispatch_capture:
