@@ -23,7 +23,7 @@ bash ci/build.sh --python=3.10
 Pass `--disable_fxrt` to build torch_npu without FXRT. Its only extra build
 dependency, nanobind, is declared in torch_npu's `requirements*-build.txt`, and
 it is needed at build time only. See the
-[build-from-source guide](../docs/en/installation_guide/compilation_installation_using_source_code.md).
+[build-from-source guide](../docs/en/installation_guide/building_from_source.md).
 
 FXRT is imported as `torch_npu.fxrt`. `import torch_npu` alone does not load it;
 once `torch_npu.fxrt` is imported, the same package is also reachable as `fxrt`.
