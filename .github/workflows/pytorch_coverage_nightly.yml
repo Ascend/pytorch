@@ -1,3 +1,4 @@
+# Re-run trigger: retry the coverage nightly after the git-cdn-service outage on 2026-11-06.
 name: PyTorch Coverage Nightly
 on:
   push:
