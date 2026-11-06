@@ -2,12 +2,118 @@
 
 ## 工具使用导航
 
+昇腾NPU环境PyTorch场景的性能调优工具包括如下两种：
+
+- [原生torch.profiler接口](#原生torchprofiler接口)：可直接在昇腾NPU环境使用原生torch.profiler接口进行性能数据采集，
+
+  对于已使用过原生torch.profiler接口的用户，推荐使用该方式。
+
+- [Ascend PyTorch Profiler接口](#ascend-pytorch-profiler接口)：专为昇腾NPU环境开发的Profiler工具，其API命名和功能与原生接口有所差异。
+
+### 原生torch.profiler接口
+
+昇腾NPU环境兼容使用原生torch.profiler接口采集性能数据，方法如下：
+
+1. 在训练脚本中添加原生torch.profiler接口。
+
+   原生torch.profiler接口具体介绍请参见《[torch.profiler](https://docs.pytorch.org/docs/stable/profiler.html)》。
+
+2. 将原生torch.profiler接口中的CUDA字段对应改为NPU。
+
+> [!NOTE]
+>
+> 要求torch和torch_npu为2.12.0及以上版本。
+
+以下为可执行的样例代码，高亮位置为添加的原生torch.profiler接口。
+
+<details>
+<summary><b>单击展开示例</b></summary>
+
+```diff
+from pathlib import Path
+
++import torch
++from torch import nn
+
+
+class TinyModel(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.network = nn.Sequential(
+            nn.Linear(1024, 2048),
+            nn.ReLU(),
+            nn.Linear(2048, 1024),
+            nn.ReLU(),
+            nn.Linear(1024, 10),
+        )
+
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        return self.network(inputs)
+
+def main() -> None:
+    steps = 8
+    batch_size = 32
+    output_dir = Path("profiler_output")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    device = torch.device("npu:0")
+    model = TinyModel().to(device)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
+    loss_function = nn.CrossEntropyLoss()
+    inputs = torch.randn(batch_size, 1024, device=device)
+    labels = torch.randint(0, 10, (batch_size,), device=device)
+
++    with torch.profiler.profile(
++        activities = [
++            torch.profiler.ProfilerActivity.CPU,
++            torch.profiler.ProfilerActivity.NPU,
++        ],
++        schedule=torch.profiler.schedule(wait=1, warmup=1, active=3, repeat=1),
++        on_trace_ready=torch.profiler.tensorboard_trace_handler(str(output_dir)),
++        record_shapes=True,
++        profile_memory=True,
++        with_stack=True,
++        with_modules=True,
++    ) as profiler:
+        for step in range(steps):
+            optimizer.zero_grad(set_to_none=True)
+            predictions = model(inputs)
+            loss = loss_function(predictions, labels)
+            loss.backward()
+            optimizer.step()
+            torch.npu.synchronize()
++            profiler.step()
+
++    events = profiler.events()
++    for index, event in enumerate(events[:20]):
++        print(
++            f"[{index}] name={event.name}, "
++            f"device_type={event.device_type}, "
++            f"self_cpu_time_total={event.self_cpu_time_total:.3f} us, "
++            f"self_device_time_total={event.self_device_time_total:.3f} us, "
++            f"input_shapes={event.input_shapes}"
++        )
+
++    summary = profiler.key_averages(group_by_input_shape=True).table(
++        sort_by="self_device_time_total", row_limit=30
++    )
++    (output_dir / "operator_summary.txt").write_text(summary, encoding="utf-8")
++    print(summary)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+</details><br>
+
+### Ascend PyTorch Profiler接口
+
 Ascend PyTorch调优工具（Ascend PyTorch Profiler）支持性能数据采集和解析功能，可参照如下顺序使用。
 
 | 流程                 | 对应章节                                                     |
 | -------------------- | ------------------------------------------------------------ |
 | 数据采集             | 可以根据实际需求任意选择下面其中一种采集方式，注意在同一进程中不可同时选用两种以上方式采集。<br>[采集和自动解析](#采集和自动解析)<br>&#8226; [采集并解析性能数据（torch\_npu.profiler.profile）](#采集并解析性能数据（torch\_npu.profiler.profile）)<br>（推荐）提供完整的采集接口，通过手动在代码中添加接口，可以自由选择采集的内容。<br>&#8226; [采集并解析性能数据（dynamic\_profile）](#采集并解析性能数据（dynamic_profile）)<br>（推荐）支持在训练过程中随时启动采集，支持不修改用户代码直接启动采集，采集方式更灵活。 |
-| （可选）扩展采集功能 | 若有其他数据的采集需求，可选用如下功能。<br>[扩展采集功能](#扩展采集功能)<br/>&#8226; [采集并解析mstx数据](#采集并解析mstx数据)<br>&#8226; [采集环境变量信息](#采集环境变量信息)<br>&#8226; [标记性能数据采集过程](#标记性能数据采集过程)<br>&#8226; [显存可视化](#显存可视化)<br>&#8226; [创建Profiler子线程采集](#创建Profiler子线程采集) |
+| （可选）扩展采集功能 | 若有其他数据的采集需求，可选用如下功能。<br>[扩展采集功能](#扩展采集功能)<br/>&#8226; [采集并解析mstx数据](#采集并解析mstx数据)<br>&#8226; [采集环境变量信息](#采集环境变量信息)<br>&#8226; [添加元数据标记](#添加元数据标记)<br>&#8226; [显存可视化](#显存可视化)<br>&#8226; [创建Profiler子线程采集](#创建Profiler子线程采集) |
 | （可选）数据解析     | [离线解析](#离线解析)<br>一般情况下数据采集接口在采集时会进行自动解析，因此离线解析适用于对未解析的性能原始数据解析场景。 |
 | 数据分析             | 完成采集和自动解析或离线解析后，可在性能数据目录下查看对应的性能数据文件，具体文件介绍请参见[输出结果文件说明](#输出结果文件说明)，或将性能数据导入到[MindStudio Insight](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/overview.md)工具中分析。 |
 
@@ -16,10 +122,6 @@ Ascend PyTorch调优工具（Ascend PyTorch Profiler）支持性能数据采集�
 Ascend PyTorch调优工具（Ascend PyTorch Profiler）是针对PyTorch框架开发的性能分析工具，通过在PyTorch训练/在线推理脚本中添加Ascend PyTorch Profiler，执行训练/在线推理的同时采集性能数据，完成训练/在线推理后直接输出可视化的性能数据文件，提升了性能分析效率。
 
 Ascend PyTorch Profiler可全面采集PyTorch训练/在线推理场景下的性能数据，主要包括PyTorch层算子信息、CANN层算子信息、底层NPU算子信息、以及算子内存占用信息等，可以全方位分析PyTorch训练/在线推理时的性能状态。
-
-> [!NOTE]
->
-> Ascend PyTorch Profiler是专为昇腾NPU环境开发的Profiler工具，其API命名和功能与原生接口有所差异，请查阅本文档了解具体用法。同时，昇腾NPU环境也兼容原生torch.profiler，如需使用原生接口，请参见[使用原生torch.profiler接口采集昇腾NPU环境性能数据](#使用原生torchprofiler接口采集昇腾npu环境性能数据)。
 
 ## 使用前准备
 
@@ -683,14 +785,14 @@ Ascend PyTorch Profiler可全面采集PyTorch训练/在线推理场景下的性�
 
         ...
 
-        # 添加Profiling采集扩展配置参数，详细参数介绍可参考下文的参数说明
+        # 添加Profiler扩展配置参数，详细参数介绍可参考下文的参数说明
         experimental_config = torch_npu.profiler._ExperimentalConfig(
             export_type=torch_npu.profiler.ExportType.Text,
             profiler_level=torch_npu.profiler.ProfilerLevel.Level0,
             aic_metrics=torch_npu.profiler.AiCMetrics.AiCoreNone
         )
 
-        # 添加Profiling采集基础配置参数，详细参数介绍可参考下文的参数说明
+        # 添加Profiler基础配置参数，详细参数介绍可参考下文的参数说明
         with torch_npu.profiler.profile(
             activities=[
                 torch_npu.profiler.ProfilerActivity.CPU,
@@ -715,14 +817,14 @@ Ascend PyTorch Profiler可全面采集PyTorch训练/在线推理场景下的性�
         import torch_npu
         ...
 
-        # 添加Profiling采集扩展配置参数，详细参数介绍可参考下文的参数说明
+        # 添加Profiler扩展配置参数，详细参数介绍可参考下文的参数说明
         experimental_config = torch_npu.profiler._ExperimentalConfig(
             export_type=torch_npu.profiler.ExportType.Text,
             profiler_level=torch_npu.profiler.ProfilerLevel.Level0,
             aic_metrics=torch_npu.profiler.AiCMetrics.AiCoreNone
         )
 
-        # 添加Profiling采集基础配置参数，详细参数介绍可参考下文的参数说明
+        # 添加Profiler基础配置参数，详细参数介绍可参考下文的参数说明
         prof = torch_npu.profiler.profile(
             activities=[
                 torch_npu.profiler.ProfilerActivity.CPU,
@@ -1164,35 +1266,67 @@ mstx采集结果数据详细介绍请参见[msproftx数据说明](https://gitcod
 - 当experimental\_config参数的export\_type配置为torch\_npu.profiler.ExportType.Text时，以上步骤配置的环境变量信息将保存在\{worker\_name\}\_\{时间戳\}\_ascend\_pt目录下的profiler\_metadata.json文件中以及ascend\_pytorch\_profiler\_\{Rank\_ID\}.db文件下的META\_DATA表中。
 - 当experimental\_config参数的export\_type配置为torch\_npu.profiler.ExportType.Db时，在ascend\_pytorch\_profiler\_\{Rank\_ID\}.db文件下的META\_DATA表写入环境变量信息。
 
-### 标记性能数据采集过程<a id="标记性能数据采集过程"></a>
+### 添加元数据标记<a id="添加元数据标记"></a>
 
 **功能说明**
 
-以自定义字符串键和字符串值的形式标记性能数据采集过程。
+以自定义字符串键（key）和字符串值（value）的形式添加添加元数据（Metadata）。
+
+元数据可用于标记性能数据，通过自定义的方式帮助用户理解当前所采集数据的归类或其他信息，具体信息自定义即可。
 
 **注意事项**
 
-无
+- add_metadata_json与add_metadata可以同时调用，但建议不要标记同一类数据，以保持数据的一致性。
+- json的value必须是合法的json字符串，建议使用Python的json.dumps生成，避免手动输入导致错误。
+
+**接口说明**
+
+|类、函数名|说明|
+|--|--|
+|preset_metadata_json|在Profiler启动前添加json格式字符串标记（预置元数据），取值：<br/>&#8226; *key*：字符串键。<br/>&#8226; *value*：字符串值，json格式。<br/>须在profiler.start()前调用，为静态配置，可标记如模型名称、NPU型号、随机种子等。<br/>配置格式：`prof.preset_metadata_json("test_key2", json.dumps({"key1": test_value1, "key2": test_value2}))`|
+|add_metadata_json|在Profiler运行时添加json格式字符串标记（动态json元数据），取值：<br/>&#8226; *key*：字符串键。<br/>&#8226; *value*：字符串值，json格式。<br/>须在profiler.start()之后调用，可随Profiler运行，动态记录如Step的Loss、学习率、Batch大小等属性在不同时间点的Value。<br/>配置格式：`prof.add_metadata_json("test_key2", json.dumps({"key1": test_value1, "key2": test_value2}))`|
+|add_metadata|在Profiler运行时添加纯字符串标记（动态文本元数据），取值：<br>&#8226; *key*：字符串键。<br/>&#8226; *value*：字符串值。<br/>须在profiler.start()之后调用，可随Profiler运行，动态记录如错误/异常信息、分支标识、数据样本标识等属性在Profiler过程中的Value。<br/>配置格式：`prof.add_metadata("test_key1", "test_value1")`|
 
 **使用示例**
 
 ```python
-with torch_npu.profiler.profile(...)  as prof:
-    prof.add_metadata(key, value)
+import json
+import torch
+import torch_npu
+
+# 预置元数据配置
+config = {
+    "model_name":"ResNet50",
+    "batch_size": 32
+}
+
+# 添加Profiler基础配置
+prof = torch_npu.profiler.profile(
+    activities=[
+        torch_npu.profiler.ProfilerActivity.CPU,
+        torch_npu.profiler.ProfilerActivity.NPU
+        ])
+
+# 设置预置元数据
+prof.preset_metadata_json("global_config", json.dumps(config))
+
+prof.start()    # 启动性能数据采集
+
+for step in range(steps):    # 训练函数
+    metadata = {
+        "step_id": step
+    }
+    prof.add_metadata_json("step_info", json.dumps(metadata))    # 设置动态json元数据
+    train_one_step()    # 训练函数
+prof.add_metadata("train_info", f"train {steps} steps")    # 设置动态文本元数据
+prof.stop()    # 结束性能数据采集
 ```
-
-add\_metadata和add\_metadata\_json可以配置在torch\_npu.profiler.profile下，须添加在profiler初始化后，finalize之前，即性能数据采集过程的代码中。
-
-**表 1**  add\_metadata接口说明
-
-|类、函数名|说明|
-|--|--|
-|add_metadata|添加字符串标记，取值：<br>&#8226; *key*：字符串键。<br/>&#8226; *value*：字符串值。<br/>示例：prof.add_metadata("test_key1", "test_value1")|
-|add_metadata_json|添加json格式字符串标记，取值：<br/>&#8226; *key*：字符串键。<br/>&#8226; *value*：字符串值，json格式。<br/>示例：prof.add_metadata_json("test_key2", json.dumps({"key1": test_value1, "key2": test_value2}))|
 
 **输出说明**
 
-调用此接口传入的metadata数据写入到Ascend PyTorch Profiler接口的采集结果根目录下的profiler\_metadata.json文件中。
+调用接口传入的元数据写入到Ascend PyTorch Profiler接口的采集结果根目录下的profiler\_metadata.json文件中。
+
+可通过MindStudio Insight工具进行可视化查看。
 
 ### 显存可视化<a id="显存可视化"></a>
 
@@ -2065,7 +2199,7 @@ PCIe带宽数据。
 |类、函数名|说明|
 |--|--|
 |torch_npu.profiler.schedule|设置不同step的行为，默认不执行该操作。为了获取更稳定的性能数据，建议配置该类的具体参数，参数取值及详细用法请参见[torch_npu.profiler.schedule类参数说明](#torch_npu.profiler.schedule类参数说明)。|
-|torch_npu.profiler.tensorboard_trace_handler|导出性能数据。取值为：<br/>&#8226; dir_name：采集到的性能数据的存放路径，string类型。路径格式仅支持由字母、数字和下划线组成的字符串，不支持软链接。若配置tensorboard_trace_handler函数后未指定具体路径，性能数据默认落盘在当前目录；若代码中未使用on_trace_ready=torch_npu.profiler.tensorboard_trace_handler，那么落盘的性能数据为原始数据，需要使用[离线解析](#离线解析)。可选。该函数优先级高于ASCEND_WORK_PATH，具体请参见《[环境变量参考](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/maintenref/envvar/envref_07_0001.html)》。<br/>&#8226; worker_name：用于区分唯一的工作线程，string类型，默认为{hostname}\_{pid}。路径格式仅支持由字母、数字和下划线组成的字符串，不支持软链接。可选。<br/>&#8226; analyse_flag：性能数据自动解析开关，bool类型。取值True（开启自动解析，默认值）、False（关闭自动解析，采集完后的性能数据可以使用[离线解析](#离线解析)）。可选。<br/>&#8226; async_mode：控制是否开启异步解析（表示解析进程不会阻塞AI任务主流程），bool类型。取值True（开启异步解析）、False（关闭异步解析，即同步解析，默认值）。<br/>torch_npu.profiler.\_KinetoProfile不支持该函数。<br/>解析过程日志存放在{worker_name}\_{时间戳}_ascend_pt/logs目录下。|
+|torch_npu.profiler.tensorboard_trace_handler|导出性能数据。取值为：<br/>&#8226; dir_name：采集到的性能数据的存放路径，string类型。路径格式仅支持由字母、数字和下划线组成的字符串，不支持软链接。若配置tensorboard_trace_handler函数后未指定具体路径，性能数据默认落盘在当前目录；若代码中未使用on_trace_ready=torch_npu.profiler.tensorboard_trace_handler，那么落盘的性能数据为原始数据，需要使用[离线解析](#离线解析)。可选。该函数优先级高于ASCEND_WORK_PATH，具体请参见《[环境变量参考](https://gitcode.com/cann/docs/blob/master/docs/zh/env-vars/intro.md)》。<br/>&#8226; worker_name：用于区分唯一的工作线程，string类型，默认为{hostname}\_{pid}。路径格式仅支持由字母、数字和下划线组成的字符串，不支持软链接。可选。<br/>&#8226; analyse_flag：性能数据自动解析开关，bool类型。取值True（开启自动解析，默认值）、False（关闭自动解析，采集完后的性能数据可以使用[离线解析](#离线解析)）。可选。<br/>&#8226; async_mode：控制是否开启异步解析（表示解析进程不会阻塞AI任务主流程），bool类型。取值True（开启异步解析）、False（关闭异步解析，即同步解析，默认值）。<br/>&#8226; use_gzip：是否生成采集目录的.tar.gz压缩包，bool类型。取值True（生成压缩包）、False（不生成压缩包，默认值）。开启后，生成的压缩包保存在dir_name参数指定的目录下，与采集目录同名。异步解析完成后才生成该压缩包，压缩完成后删除采集目录，仅保留压缩包。<br/>torch_npu.profiler.\_KinetoProfile不支持该函数。<br/>解析过程日志存放在{worker_name}\_{时间戳}_ascend_pt/logs目录下。|
 |torch_npu.profiler.ProfilerAction|Profiler状态，Enum类型。取值为：<br/>&#8226; NONE：无任何行为。<br/>&#8226; WARMUP：性能数据采集预热。<br/>&#8226; RECORD：性能数据采集。<br/>&#8226; RECORD_AND_SAVE：性能数据采集并保存。|
 |torch_npu.profiler._ExperimentalConfig|性能数据采集扩展，Enum类型。通过torch_npu.profiler.profile的experimental_config调用，详细介绍请参见[experimental_config参数说明](#experimental_config参数说明)。|
 |torch_npu.profiler.supported_activities|查询当前支持采集的activities参数的CPU、NPU事件。|
@@ -2152,7 +2286,7 @@ experimental\_config参数均为可选参数，支持扩展的采集项如下：
 |mstx或msprof_tx|打点控制开关，通过开关开启自定义打点功能。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。<br/>该参数使用请参见[采集并解析mstx数据](#采集并解析mstx数据)。<br/>原参数名msprof_tx改为mstx，新版本依旧兼容原参数名msprof_tx。|
 |mstx_domain_include|输出需要的domain数据。调用torch_npu.npu.mstx系列打点接口，使用默认domain或指定domain进行打点时，可选择只输出本参数配置的domain数据。<br/>domain名称为用户调用torch_npu.npu.mstx系列接口传入的domain或默认domain（'default'），domain名称使用List类型输入。<br/>与mstx_domain_exclude参数互斥，若同时配置，则只有mstx_domain_include生效。<br/>须配置mstx=True。|
 |mstx_domain_exclude|过滤不需要的domain数据。调用torch_npu.npu.mstx系列打点接口，使用默认domain或指定domain进行打点时，可选择不输出本参数配置的domain数据。<br/>domain名称为用户调用torch_npu.npu.mstx系列接口传入的domain或默认domain（'default'），domain名称使用List类型输入。<br/>与mstx_domain_include参数互斥，若同时配置，则只有mstx_domain_include生效。<br/>须配置mstx=True。|
-|host_sys|Host侧系统数据采集开关，List类型。默认未配置，表示未开启Host侧系统数据采集。取值为：<br/>&#8226; cpu：进程级别的CPU利用率。<br/>&#8226; mem：进程级别的内存利用率。<br/>&#8226; disk：进程级别的磁盘I/O利用率。<br/>&#8226; network：系统级别的网络I/O利用率。<br/>&#8226; osrt：进程级别的syscall和pthreadcall。<br/>&#8226; numa：总读带宽、本节点读带宽、跨节点（远程）读带宽和内部（自身）读带宽；跨节点读流量占总读流量的比例；本节点读流量占总读流量的比例。<br/>配置示例：host_sys: ["cpu", "disk"]。<br/>&#8226; 采集Host侧disk性能数据需要安装第三方开源工具iotop，采集osrt性能数据需要安装第三方开源工具perf和ltrace，其安装方法参见[安装perf、iotop、ltrace工具](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/profiling/appendices/install_perf_iotop_ltrace.md)。完成安装后须参见[配置用户权限](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/profiling/appendices/config_user_permission.md)完成用户权限配置，且每次重新安装CANN软件包需要重新配置。<br/>&#8226; 使用开源工具ltrace采集osrt性能数据会导致CPU占用率过高，其与应用工程的pthread加解锁相关，会影响进程运行速度。<br/>&#8226; x86_64架构的KylinV10SP1操作系统支持osrt参数，aarch64架构的KylinV10SP1操作系统下不支持osrt参数。<br/>&#8226; 虚拟化环境Euler2.9系统下不支持network参数。|
+|host_sys|Host侧系统数据采集开关，List类型。默认未配置，表示未开启Host侧系统数据采集。取值为：<br/>&#8226; cpu：进程级别的CPU利用率。<br/>&#8226; mem：进程级别的内存利用率。<br/>&#8226; disk：进程级别的磁盘I/O利用率。<br/>&#8226; network：系统级别的网络I/O利用率。<br/>&#8226; osrt：进程级别的syscall和pthreadcall。<br/>&#8226; numa：总读带宽、本节点读带宽、跨节点（远程）读带宽和内部（自身）读带宽；跨节点读流量占总读流量的比例；本节点读流量占总读流量的比例。<br/>配置示例：host_sys: ["cpu", "disk"]。<br/>&#8226; 采集Host侧disk性能数据需要安装第三方开源工具iotop，采集osrt性能数据需要安装第三方开源工具perf和ltrace，其安装方法参见[安装perf、iotop、ltrace工具](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/user_guide/profiling/appendices/install_perf_iotop_ltrace.md)。完成安装后须参见[配置用户权限](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/user_guide/profiling/appendices/config_user_permission.md)完成用户权限配置，且每次重新安装CANN软件包需要重新配置。<br/>&#8226; 使用开源工具ltrace采集osrt性能数据会导致CPU占用率过高，其与应用工程的pthread加解锁相关，会影响进程运行速度。<br/>&#8226; x86_64架构的KylinV10SP1操作系统支持osrt参数，aarch64架构的KylinV10SP1操作系统下不支持osrt参数。<br/>&#8226; 虚拟化环境Euler2.9系统下不支持network参数。|
 |sys_io|NIC、ROCE、MAC采集开关。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。|
 |sys_interconnection|集合通信带宽数据（HCCS）、PCIe数据采集开关、片间传输带宽信息采集开关。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。|
 
@@ -2175,7 +2309,7 @@ experimental\_config参数均为可选参数，支持扩展的采集项如下：
 |data_simplification|数据精简模式，开启后将在导出性能数据后删除多余数据，仅保留profiler_*.json文件、ASCEND_PROFILER_OUTPUT目录、PROF_XXX目录下的原始性能数据、FRAMEWORK目录和logs目录，以节省存储空间，bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认开启。|
 |record_op_args|控制算子信息统计功能开关，bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。<br/>开启后会在{worker_name}\_{时间戳}_ascend_pt_op_args目录输出采集到算子信息文件。<br/>该参数在AOE工具执行PyTorch训练场景下调优时使用，且不建议与其他性能数据采集接口同时开启。详细介绍请参见《[AOE调优工具用户指南](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/devaids/aoe/auxiliarydevtool_aoe_0001.html)》。|
 |gc_detect_threshold|GC检测阈值，float类型。取值范围为大于等于0的数值，单位ms。当用户设置的阈值为数字时，表示开启GC检测，只采集超过阈值的GC事件。<br/>配置为0时表示采集所有的GC事件（可能造成采集数据量过大，请谨慎配置），推荐设置为1ms。<br/>默认为None，表示不开启GC检测功能。<br/>**GC**是Python进程对已经销毁的对象进行内存回收。<br/>该参数解析结果为在trace_view.json中生成GC层或在ascend_pytorch_profiler_{Rank_ID}.db中生成GC_RECORD表。|
-|host_sys|Host侧系统数据采集开关，List类型。默认未配置，表示未开启Host侧系统数据采集。取值为：<br/>&#8226; torch_npu.profiler.HostSystem.CPU：进程级别的CPU利用率。<br/>&#8226; torch_npu.profiler.HostSystem.MEM：进程级别的内存利用率。<br/>&#8226; torch_npu.profiler.HostSystem.DISK：进程级别的磁盘I/O利用率。<br/>&#8226; torch_npu.profiler.HostSystem.NETWORK：系统级别的网络I/O利用率。<br/>&#8226; torch_npu.profiler.HostSystem.OSRT：进程级别的syscall和pthreadcall。<br/>&#8226; torch_npu.profiler.HostSystem.NUMA：总读带宽、本节点读带宽、跨节点（远程）读带宽和内部（自身）读带宽；跨节点读流量占总读流量的比例；本节点读流量占总读流量的比例。<br/>配置示例：host_sys=[torch_npu.profiler.HostSystem.CPU, torch_npu.profiler.HostSystem.MEM]<br/>&#8226; 采集Host侧disk性能数据需要安装第三方开源工具iotop，采集osrt性能数据需要安装第三方开源工具perf和ltrace，其安装方法参见[安装perf、iotop、ltrace工具](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/profiling/appendices/install_perf_iotop_ltrace.md)。完成安装后须参见[配置用户权限](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/profiling/appendices/config_user_permission.md)完成用户权限配置，且每次重新安装CANN软件包需要重新配置。<br/>&#8226; 使用开源工具ltrace采集osrt性能数据会导致CPU占用率过高，其与应用工程的pthread加解锁相关，会影响进程运行速度。<br/>&#8226; x86_64架构的KylinV10SP1操作系统支持torch_npu.profiler.HostSystem.OSRT参数，aarch64架构的KylinV10SP1操作系统下不支持torch_npu.profiler.HostSystem.OSRT参数。<br/>&#8226; 虚拟化环境Euler2.9系统下不支持torch_npu.profiler.HostSystem.NETWORK参数。|
+|host_sys|Host侧系统数据采集开关，List类型。默认未配置，表示未开启Host侧系统数据采集。取值为：<br/>&#8226; torch_npu.profiler.HostSystem.CPU：进程级别的CPU利用率。<br/>&#8226; torch_npu.profiler.HostSystem.MEM：进程级别的内存利用率。<br/>&#8226; torch_npu.profiler.HostSystem.DISK：进程级别的磁盘I/O利用率。<br/>&#8226; torch_npu.profiler.HostSystem.NETWORK：系统级别的网络I/O利用率。<br/>&#8226; torch_npu.profiler.HostSystem.OSRT：进程级别的syscall和pthreadcall。<br/>&#8226; torch_npu.profiler.HostSystem.NUMA：总读带宽、本节点读带宽、跨节点（远程）读带宽和内部（自身）读带宽；跨节点读流量占总读流量的比例；本节点读流量占总读流量的比例。<br/>配置示例：host_sys=[torch_npu.profiler.HostSystem.CPU, torch_npu.profiler.HostSystem.MEM]<br/>&#8226; 采集Host侧disk性能数据需要安装第三方开源工具iotop，采集osrt性能数据需要安装第三方开源工具perf和ltrace，其安装方法参见[安装perf、iotop、ltrace工具](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/user_guide/profiling/appendices/install_perf_iotop_ltrace.md)。完成安装后须参见[配置用户权限](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/user_guide/profiling/appendices/config_user_permission.md)完成用户权限配置，且每次重新安装CANN软件包需要重新配置。<br/>&#8226; 使用开源工具ltrace采集osrt性能数据会导致CPU占用率过高，其与应用工程的pthread加解锁相关，会影响进程运行速度。<br/>&#8226; x86_64架构的KylinV10SP1操作系统支持torch_npu.profiler.HostSystem.OSRT参数，aarch64架构的KylinV10SP1操作系统下不支持torch_npu.profiler.HostSystem.OSRT参数。<br/>&#8226; 虚拟化环境Euler2.9系统下不支持torch_npu.profiler.HostSystem.NETWORK参数。|
 |sys_io|NIC、ROCE、MAC采集开关，bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。|
 |sys_interconnection|集合通信带宽数据（HCCS）、PCIe数据采集开关、片间传输带宽信息采集开关，bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。|
 
@@ -2262,97 +2396,6 @@ profiler_config_path/
 
 - monitor\_dp\_ubuntu\_xxxxxx.log.1：日志老化备份文件，monitor\_dp\_ubuntu\_xxxxxx.log文件的存储上限为200KB，达到上限后将时间最早的日志记录转移到monitor\_dp\_ubuntu\_xxxxxx.log.1中，monitor\_dp\_ubuntu\_xxxxxx.log.1文件存储上限同样为200KB，达到上限后则将最早的日志记录老化删除。
 - shm目录：为了适配Python3.7，dynamic\_profile会在py37环境下生成shm目录，目录下生成一个二进制文件（DynamicProfileNpuShm+时间）映射共享内存，程序正常结束后会自动清理，当使用pkill终止程序时，由于是异常终止，程序无法释放资源，需要用户手动清理此文件，否则短时间内（&lt;1h）下次使用同一配置路径启动dynamic\_profile，则会导致dynamic\_profile异常。对于Python3.8及以上版本，二进制文件（DynamicProfileNpuShm+时间）存放在/dev/shm目录下，当使用pkill终止程序时，同样需要手动清理此文件。
-
-### 使用原生torch.profiler接口采集昇腾NPU环境性能数据
-
-昇腾NPU环境兼容使用原生torch.profiler接口采集性能数据，方法如下：
-
-1. 在训练脚本中添加原生torch.profiler接口。
-
-   原生torch.profiler接口具体介绍请参见《[torch.profiler](https://docs.pytorch.org/docs/stable/profiler.html)》。
-
-2. 将原生torch.profiler接口中的CUDA字段对应改为NPU。
-
-> [!NOTE]
->
-> 要求torch和torch_npu为2.12.0及以上版本。
-
-以下为可执行的样例代码，高亮位置为添加的原生torch.profiler接口。
-
-```diff
-from pathlib import Path
-
-+import torch
-+from torch import nn
-
-
-class TinyModel(nn.Module):
-    def __init__(self) -> None:
-        super().__init__()
-        self.network = nn.Sequential(
-            nn.Linear(1024, 2048),
-            nn.ReLU(),
-            nn.Linear(2048, 1024),
-            nn.ReLU(),
-            nn.Linear(1024, 10),
-        )
-
-    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-        return self.network(inputs)
-
-def main() -> None:
-    steps = 8
-    batch_size = 32
-    output_dir = Path("profiler_output")
-    output_dir.mkdir(parents=True, exist_ok=True)
-    device = torch.device("npu:0")
-    model = TinyModel().to(device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
-    loss_function = nn.CrossEntropyLoss()
-    inputs = torch.randn(batch_size, 1024, device=device)
-    labels = torch.randint(0, 10, (batch_size,), device=device)
-
-+    with torch.profiler.profile(
-+        activities = [
-+            torch.profiler.ProfilerActivity.CPU,
-+            torch.profiler.ProfilerActivity.NPU,
-+        ],
-+        schedule=torch.profiler.schedule(wait=1, warmup=1, active=3, repeat=1),
-+        on_trace_ready=torch.profiler.tensorboard_trace_handler(str(output_dir)),
-+        record_shapes=True,
-+        profile_memory=True,
-+        with_stack=True,
-+        with_modules=True,
-+    ) as profiler:
-        for step in range(steps):
-            optimizer.zero_grad(set_to_none=True)
-            predictions = model(inputs)
-            loss = loss_function(predictions, labels)
-            loss.backward()
-            optimizer.step()
-            torch.npu.synchronize()
-+            profiler.step()
-
-+    events = profiler.events()
-+    for index, event in enumerate(events[:20]):
-+        print(
-+            f"[{index}] name={event.name}, "
-+            f"device_type={event.device_type}, "
-+            f"self_cpu_time_total={event.self_cpu_time_total:.3f} us, "
-+            f"self_device_time_total={event.self_device_time_total:.3f} us, "
-+            f"input_shapes={event.input_shapes}"
-+        )
-
-+    summary = profiler.key_averages(group_by_input_shape=True).table(
-+        sort_by="self_device_time_total", row_limit=30
-+    )
-+    (output_dir / "operator_summary.txt").write_text(summary, encoding="utf-8")
-+    print(summary)
-
-
-if __name__ == "__main__":
-    main()
-```
 
 ## FAQ<a id="FAQ"></a>
 
