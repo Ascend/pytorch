@@ -4,6 +4,7 @@
 #include <c10/core/Device.h>
 #include <c10/util/flat_hash_map.h>
 
+#include <cstdint>
 #include <stack>
 #include <vector>
 #include <functional>
@@ -96,6 +97,10 @@ struct TORCH_NPU_API NPUGraph {
     void replay();
     void reset();
     MempoolId_t pool();
+    bool has_graph_exec() const;
+    // Returns the underlying aclmdlRI handle as an integer. The handle is valid
+    // only after a successful capture_end() and before reset().
+    uintptr_t raw_npu_graph_exec() const;
     void enable_debug_mode();
     void debug_dump(const std::string& debug_path);
     void super_kernel_optimize(const aclskOptions *options);
