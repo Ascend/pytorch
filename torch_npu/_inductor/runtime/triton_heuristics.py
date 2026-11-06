@@ -1734,12 +1734,43 @@ class NPUCachingAutotuner(CachingAutotuner):
         floating-point numerics.
         """
         return (
-            self.inductor_meta.get("are_deterministic_algorithms_enabled")
+            (
+                self.inductor_meta.get("deterministic")
+                or self.inductor_meta.get("are_deterministic_algorithms_enabled")
+            )
             and self.heuristic_type in (
                 HeuristicType.REDUCTION,
                 HeuristicType.PERSISTENT_REDUCTION,
             )
         )
+
+    def _pick_first_compiled_candidate(self, reason):
+        """Select and cache the first compilable candidate without benchmarking."""
+        entry = self._first_compiled_candidate_entry()
+        candidate = entry["candidate"]
+        launcher = entry["launcher"]
+        self._set_best_candidate(candidate, launcher)
+        self.launchers = [launcher]
+        log.info(
+            "[%s] picked=first_config(%s) config=%s",
+            self.get_fn_name(),
+            reason,
+            candidate.get("full_config", launcher.config),
+        )
+        if self.save_cache_hook:
+            best_config = (
+                self.best_candidate_config
+                if self.best_candidate_config is not None
+                else launcher.config
+            )
+            self.save_cache_hook(
+                best_config,
+                0,
+                found_by_coordesc=self.inductor_meta.get(
+                    "coordinate_descent_tuning", False
+                ),
+                triton_cache_hash=getattr(launcher, "cache_hash", None),
+            )
 
     def autotune_to_one_config(self, *args, **kwargs):
         """Do the actual autotuning"""
@@ -1978,28 +2009,12 @@ class NPUCachingAutotuner(CachingAutotuner):
             log.info("%s benchmark elapsed time %ss", self.get_fn_name(), time.perf_counter() - autotune_start_time)
             return
 
+        # Only deterministic reductions bypass timing here.
         if self._should_skip_autotune_for_determinism():
-            entry = self._first_compiled_candidate_entry()
-            candidate = entry["candidate"]
-            launcher = entry["launcher"]
-            self._set_best_candidate(candidate, launcher)
-            self.launchers = [launcher]
-            if self.save_cache_hook:
-                best_config = (
-                    self.best_candidate_config
-                    if self.best_candidate_config is not None
-                    else self.launchers[0].config
-                )
-                self.save_cache_hook(
-                    best_config,
-                    0,
-                    found_by_coordesc=self.inductor_meta.get(
-                        "coordinate_descent_tuning", False
-                    ),
-                    triton_cache_hash=getattr(self.launchers[0], "cache_hash", None)
-                )
+            self._pick_first_compiled_candidate("deterministic")
         else:
             self.autotune_to_one_config(*args, **kwargs)
+            log.info("[%s] picked=benchmark", self.get_fn_name())
         log.info("%s benchmark elapsed time %ss", self.get_fn_name(), time.perf_counter() - autotune_start_time)
 
     def _interpret_args_grid(
@@ -2547,6 +2562,32 @@ class NPUSymbolicGroupedAutotuner(NPUCachingAutotuner):
         self.best_candidate_map[group_id] = candidate
         self.best_launcher_map[group_id] = launcher
 
+    def _pick_first_compiled_candidate_per_group(self, reason):
+        """Select each group's first compilable candidate without benchmarking."""
+        launchers_by_candidate_id = {
+            entry["candidate"]["candidate_id"]: entry["launcher"]
+            for entry in self.compiled_candidate_entries
+        }
+        for group_id in self.reachable_selection_keys:
+            for candidate in self.candidate_plan["group_to_candidates"][group_id]:
+                launcher = launchers_by_candidate_id.get(candidate["candidate_id"])
+                if launcher is None or not launcher.runnable:
+                    continue
+                self._set_group_best_candidate(group_id, candidate, launcher)
+                log.info(
+                    "[%s] group=%s picked=first_config(%s) config=%s",
+                    self.get_fn_name(),
+                    group_id,
+                    reason,
+                    candidate.get("full_config", launcher.config),
+                )
+                break
+            else:
+                raise RuntimeError(
+                    f"No compiled runtime block candidates are available for "
+                    f"[{self.get_fn_name()}], group {group_id}."
+                )
+
     def _precompile_variants(self):
         if self._grouped_variant_launchers_initialized:
             return
@@ -3053,6 +3094,14 @@ class NPUSymbolicGroupedAutotuner(NPUCachingAutotuner):
                     best_entry["candidate"],
                     best_entry["launcher"],
                 )
+                log.info(
+                    "[%s] group=%s picked=benchmark config=%s",
+                    self.get_fn_name(),
+                    group_id,
+                    best_entry["candidate"].get(
+                        "full_config", best_entry["launcher"].config
+                    ),
+                )
         finally:
             self._grouped_runtime_args_snapshot = ()
 
@@ -3066,6 +3115,9 @@ class NPUSymbolicGroupedAutotuner(NPUCachingAutotuner):
         self._precompile_variants()
         with self.lock:
             if self._all_reachable_groups_tuned():
+                return
+            if self._should_skip_autotune_for_determinism():
+                self._pick_first_compiled_candidate_per_group("deterministic")
                 return
             self._autotune_all_groups(*args, **kwargs)
 
@@ -3163,6 +3215,23 @@ class NPUDebugAutotuner(NPUCostModelAutotuner):
             create_bandwidth_info_str(ms, num_gb, gb_per_s, suffix=f" \t {kernel_name}")
         )
 
+def _use_fasta_autotune(inductor_meta, is_reduction=False):
+    # FASTAUTOTUNE independently enables FastA, irrespective of the upstream
+    # max-autotune flags. Use the standard tuner for grouped selection and
+    # deterministic reductions, whose selection contracts FastA does not implement.
+    return (
+        npu_config.fasta_autotune
+        and not inductor_meta.get("group_enabled", False)
+        and not (
+            is_reduction
+            and (
+                inductor_meta.get("deterministic")
+                or inductor_meta.get("are_deterministic_algorithms_enabled")
+            )
+        )
+    )
+
+
 def cached_autotune(
     size_hints: Optional[List[int]],
     configs: List[Config],
@@ -3244,7 +3313,10 @@ def cached_autotune(
                 with_bandwidth_info=True,
             )
 
-        if caching_autotuner_cls is None and npu_config.fasta_autotune:
+        if caching_autotuner_cls is None and _use_fasta_autotune(
+            inductor_meta,
+            heuristic_type in (HeuristicType.REDUCTION, HeuristicType.PERSISTENT_REDUCTION),
+        ):
             from .fasta_autotune import NPUFastAutotuner
             return NPUFastAutotuner(
                 fn,
@@ -3839,7 +3911,7 @@ def _triton_config_npu_index_legacy(
     npu_kernel_type = NPUKernelType(inductor_meta.get("npu_kernel_type", "simd"))
     size_hints = [size_hints.get(axis_name, 1) for axis_name in axis_names]
 
-    if npu_config.fasta_autotune:
+    if _use_fasta_autotune(inductor_meta, is_reduction or is_persistent_reduction):
         from .fasta_autotune import FastATileGenerator
         tile_generator = FastATileGenerator(size_hints, axis_names, tiling_axis, no_loop_axis, split_axis, low_dims,
                                             persistent_reduction=is_persistent_reduction,
