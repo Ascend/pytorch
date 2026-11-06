@@ -133,7 +133,7 @@ def test_core_count_consumers_resolve_at_use_time():
             mock.patch.object(cfg, "num_cube_core", cube),
             mock.patch.object(cfg, "num_vector_core", vector),
         ):
-            assert mm_common.get_num_cube_cores() == cube
+            assert mm_common.NUM_CUBE_CORES == cube
             assert _num_vector_core() == vector
             assert SplitTiling._outer_buckets_with_static_axes() == tuple(
                 vector * k for k in range(1, 6)

@@ -2,7 +2,7 @@ import logging
 from typing import Any, Dict, List
 
 import torch
-
+import math
 import torch._inductor.codegen
 from torch._inductor.codegen.cpp_gemm_template import CppGemmTemplate
 import torch._inductor.kernel
@@ -26,7 +26,17 @@ from torch._inductor.kernel.mm_common import (
     _is_static_problem,
     addmm_epilogue,
     mm_args,
-    mm_grid,
+)
+from .mm_common import (
+    L0A_BYTES,
+    L1_BYTES,
+    L0B_BYTES,
+    L0C_BYTES,
+    ACCUM_BYTES,
+    NUM_CUBE_CORES,
+    dtype_to_bytes,
+    round_up_to_16,
+    round_down_to_16,
 )
 # Note: addmm_epilogue is imported above and used to build the epilogue_fn
 # that fuses `beta * bias + alpha * acc` into the template's store_output.
@@ -38,6 +48,7 @@ from ..codegen.catlass.gemm_template import CATLASS1xGemmTemplate
 from ..select_algorithm import NPUTritonTemplate
 from ..utils import use_catlass_template, use_triton_template
 from torch_npu.npu import matmul
+from .optimize_tiling import get_optimized_tiling
 
 
 log = logging.getLogger("torch._inductor")
@@ -77,19 +88,17 @@ _MM_TEMPLATE = """{{def_kernel("A", "B")}}
 
     # based on triton.ops.matmul
     pid = tl.program_id(0).to(INDEX_DTYPE)
-    grid_m = (M + BLOCK_M - 1) // BLOCK_M
     grid_n = (N + BLOCK_N - 1) // BLOCK_N
 
-    # re-order program ID for better L2 performance
-    # Use super-grouping (GROUP_M) for improved L2 cache hit rate
-    width = GROUP_M * grid_n
-    group_id = pid // width
-    group_size = min(grid_m - group_id * GROUP_M, GROUP_M)
-    pid_m = group_id * GROUP_M + (pid % group_size)
-    pid_n = (pid % width) // group_size
-
-    tl.assume(pid_m >= 0)
-    tl.assume(pid_n >= 0)
+    # Map linear program ID to (pid_m, pid_n) with row-major ordering.
+    # NOTE: No super-grouping (GROUP_M) here.  The non-persistent template
+    # relies on the NPU autoblockify pass (--enable-auto-blockify-loop) to
+    # manage block-to-core scheduling, so a GPU-style L2 super-grouping
+    # reordering provides no cache benefit and only adds runtime integer
+    # overhead (div / mod / min).  A simple row-major mapping is both
+    # correct and minimal-overhead.
+    pid_m = pid // grid_n
+    pid_n = pid % grid_n
 
     rm = pid_m * BLOCK_M + tl.arange(0, BLOCK_M)
     rn = pid_n * BLOCK_N + tl.arange(0, BLOCK_N)
@@ -127,21 +136,36 @@ _MM_TEMPLATE = """{{def_kernel("A", "B")}}
 {% else %}
         b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn))
 {% endif %}
+        extension.compile_hint(a, "dot_pad_only_k")
+        extension.compile_hint(b, "dot_pad_only_k")
         acc += tl.dot(a, b{% if ALLOW_HF32 %}, input_precision="tf32"{% endif %}, out_dtype=ACC_TYPE)
 
     # rm, rn, and m_mask are reused from above (no rematerialization).
     idx_m = rm[:, None]
     idx_n = rn[None, :]
+{% if MASKED_M and MASKED_N %}
     mask = (idx_m < M) & (idx_n < N)
+{% elif MASKED_M %}
+    mask = (idx_m < M)
+{% elif MASKED_N %}
+    mask = (idx_n < N)
+{% else %}
+    mask = None
+{% endif %}
 
     # inductor generates a suffix
     {{store_output(("idx_m", "idx_n"), "acc", "mask", val_shape=("BLOCK_M", "BLOCK_N"))}}
 """
 
+@SymbolicGridFn
+def npu_mm_grid(M: int, N: int, meta: Dict[str, Any], *, cdiv):
+    num_blocks = cdiv(M, meta["BLOCK_M"]) * cdiv(N, meta["BLOCK_N"])
+    return (num_blocks, 1, 1)
+
 
 npu_triton_mm_template = NPUTritonTemplate(
     name="npu_triton_mm",
-    grid=mm_grid,
+    grid=npu_mm_grid,
     source=_MM_TEMPLATE,
     debug=False,
 )
@@ -243,13 +267,23 @@ _PERSISTENT_MM_TEMPLATE = """
 {% else %}
                 b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn))
 {% endif %}
+                extension.compile_hint(a, "dot_pad_only_k")
+                extension.compile_hint(b, "dot_pad_only_k")
                 acc += tl.dot(a, b{% if ALLOW_HF32 %}, input_precision="tf32"{% endif %}, out_dtype=ACC_TYPE)
 
             # ---- Store output (inductor generates epilogue suffix) ----
             # rm, rn, and m_mask are reused from above (no rematerialization).
             idx_m = rm[:, None]
             idx_n = rn[None, :]
+{% if MASKED_M and MASKED_N %}
             mask = (idx_m < M) & (idx_n < N)
+{% elif MASKED_M %}
+            mask = (idx_m < M)
+{% elif MASKED_N %}
+            mask = (idx_n < N)
+{% else %}
+            mask = None
+{% endif %}
             {{store_output(("idx_m", "idx_n"), "acc", "mask", val_shape=("BLOCK_M", "BLOCK_N"), indent_width=12)}}
 """
 
@@ -269,6 +303,387 @@ npu_persistent_mm_template = NPUTritonTemplate(
     name="npu_persistent_mm",
     grid=npu_persistent_mm_grid,
     source=_PERSISTENT_MM_TEMPLATE,
+    debug=False,
+)
+
+
+# ---------------------------------------------------------------------------
+# NPU Resident-B Triton MM Template (full-load B, streaming M)
+# ---------------------------------------------------------------------------
+# When N*K is small enough to fit entirely in L0B (64 KiB), we load the
+# full B matrix once and keep it resident while streaming over M-tiles.
+#
+# Strategy:
+#   * Launch NUM_PROGS programs (one per AI Core, typically 28).
+#   * Load the ENTIRE B matrix [K, N] into L0B once, outside the M-loop.
+#   * Each program iterates over its share of M-tiles:
+#       m_block_id = pid, pid + NUM_PROGS, pid + 2*NUM_PROGS, ...
+#   * Inside the loop: load A tile, dot with resident B, store output.
+#   * No K-loop — BLOCK_K = K, so the dot consumes the full K in one shot.
+#
+# This eliminates redundant B loads (B is loaded once instead of once per
+# output tile) and amortises the L0B fill cost across all M-tiles.
+# Best for shapes like M>>N, N*K small (e.g. M=11136, N=64, K=32).
+# ---------------------------------------------------------------------------
+
+_RESIDENT_B_MM_TEMPLATE = """
+{{def_kernel("A", "B")}}
+    M = {{size("A", 0)}}
+    N = {{size("B", 1)}}
+    K = {{size("A", 1)}}
+    if M * N == 0:
+        # early exit due to zero-size input(s)
+        return
+    stride_am = {{stride("A", 0)}}
+    stride_ak = {{stride("A", 1)}}
+    stride_bk = {{stride("B", 0)}}
+    stride_bn = {{stride("B", 1)}}
+
+    pid = tl.program_id(0).to(INDEX_DTYPE)
+
+    # ---- Full-load B: BLOCK_K = K, BLOCK_N = N ----
+    # B stays resident in L0B across all M-tiles handled by this program.
+    rn = tl.arange(0, BLOCK_N)
+    rk = tl.arange(0, BLOCK_K)
+
+{% if MASKED_N %}
+    n_mask = rn < N
+{% endif %}
+{% if MASKED_K %}
+    k_mask = rk < K
+{% endif %}
+
+    # Load entire B matrix once (resident in L0B for the duration of the kernel)
+{% if MASKED_K and MASKED_N %}
+    b = tl.load(B + (rk[:, None] * stride_bk + rn[None, :] * stride_bn), mask=k_mask[:, None] & n_mask[None, :], other=0.0)
+{% elif MASKED_K %}
+    b = tl.load(B + (rk[:, None] * stride_bk + rn[None, :] * stride_bn), mask=k_mask[:, None], other=0.0)
+{% elif MASKED_N %}
+    b = tl.load(B + (rk[:, None] * stride_bk + rn[None, :] * stride_bn), mask=n_mask[None, :], other=0.0)
+{% else %}
+    b = tl.load(B + (rk[:, None] * stride_bk + rn[None, :] * stride_bn))
+{% endif %}
+    extension.compile_hint(b, "dot_pad_only_k")
+
+{% if M_TAIL_CNT is defined and M_TAIL_CNT > 1 %}
+    # ---- Scheduler ctor (AscendC block_scheduler_matmul_basic, BL1 full-load) ----
+    # Distributes M-blocks across AI cores with load-balanced tail handling.
+    # When the last round has fewer blocks than cores, the tail block is split
+    # into M_TAIL_CNT pieces so all cores in the last round stay busy.
+    m_block_nums = tl.cdiv(M, BLOCK_M)
+    per_core = tl.cdiv(m_block_nums, NUM_PROGS)
+    tail_block_nums = m_block_nums % NUM_PROGS
+    m_l1_norm_cnt = m_block_nums - 1
+    m_l1_tail_last = M - m_l1_norm_cnt * BLOCK_M
+    m_tail_cnt = tl.cdiv(m_l1_tail_last, tl.cdiv(m_l1_tail_last, M_TAIL_CNT))
+    block_nums = m_block_nums + (m_tail_cnt - 1) * tail_block_nums
+
+    # ---- Stream over M-tiles with load-balancing scheduler ----
+    # NUM_ITERATIONS is a compile-time upper bound on loop iterations;
+    # the block_idx guard skips iterations beyond block_nums.
+    offs_bm = tl.arange(0, BLOCK_M)
+    for m_iter in range(0, NUM_ITERATIONS):
+        block_idx = pid + m_iter * NUM_PROGS
+
+        # UpdateMNBlockIdx: in the last round, divert by core id
+        last_round = (block_idx // NUM_PROGS == per_core - 1) and (m_tail_cnt > 1)
+        m_block_idx = block_idx
+        if last_round:
+            m_block_idx = (per_core - 1) * NUM_PROGS + pid // m_tail_cnt
+
+        # GetBlockShape: full block except the last (tail) block
+        blk_m = BLOCK_M
+        if m_block_idx >= m_l1_norm_cnt:
+            blk_m = m_l1_tail_last
+
+        m_start = m_block_idx * BLOCK_M
+        m_size = blk_m
+
+        # Split the tail block across cores in the last round
+        if last_round:
+            split_blk_m = tl.cdiv(blk_m, m_tail_cnt)
+            split_off = (pid % m_tail_cnt) * split_blk_m
+            m_start = m_start + split_off
+            rem = blk_m - split_off
+            m_size = rem if rem < split_blk_m else split_blk_m
+            m_size = 0 if split_off >= blk_m else m_size
+
+        # Guard: skip blocks beyond the inflated total
+        if block_idx >= block_nums:
+            m_size = 0
+
+        if m_size > 0:
+            offs_m = m_start + offs_bm
+            mask_m = offs_bm < m_size
+
+{% if MASKED_K %}
+            a = tl.load(
+                A + (offs_m[:, None] * stride_am + rk[None, :] * stride_ak),
+                mask=mask_m[:, None] & k_mask[None, :], other=0.0
+            )
+{% else %}
+            a = tl.load(A + (offs_m[:, None] * stride_am + rk[None, :] * stride_ak), mask=mask_m[:, None], other=0.0)
+{% endif %}
+            extension.compile_hint(a, "dot_pad_only_k")
+            acc = tl.dot(a, b{% if ALLOW_HF32 %}, input_precision="tf32"{% endif %}, out_dtype=ACC_TYPE)
+
+            # ---- Store output (inductor generates epilogue suffix) ----
+            idx_m = offs_m[:, None]
+            idx_n = rn[None, :]
+{% if MASKED_N %}
+            mask = mask_m[:, None] & n_mask[None, :]
+{% else %}
+            mask = mask_m[:, None]
+{% endif %}
+
+            {{store_output(("idx_m", "idx_n"), "acc", "mask", val_shape=("BLOCK_M", "BLOCK_N"), indent_width=12)}}
+{% else %}
+    # ---- Stream over M-tiles ----
+    # Each program handles M-blocks: pid, pid+NUM_PROGS, pid+2*NUM_PROGS, ...
+    # NUM_ITERATIONS is a compile-time constant, enabling loop unrolling.
+    for m_iter in range(0, NUM_ITERATIONS):
+        m_block_id = pid + m_iter * NUM_PROGS
+        rm = m_block_id * BLOCK_M + tl.arange(0, BLOCK_M)
+
+{% if MASKED_M %}
+        m_mask = rm < M
+{% endif %}
+{% if MASKED_K and MASKED_M %}
+        a = tl.load(A + (rm[:, None] * stride_am + rk[None, :] * stride_ak), mask=m_mask[:, None] & k_mask[None, :], other=0.0)
+{% elif MASKED_K %}
+        a = tl.load(A + (rm[:, None] * stride_am + rk[None, :] * stride_ak), mask=k_mask[None, :], other=0.0)
+{% elif MASKED_M %}
+        a = tl.load(A + (rm[:, None] * stride_am + rk[None, :] * stride_ak), mask=m_mask[:, None], other=0.0)
+{% else %}
+        a = tl.load(A + (rm[:, None] * stride_am + rk[None, :] * stride_ak))
+{% endif %}
+
+        extension.compile_hint(a, "dot_pad_only_k")
+        acc = tl.dot(a, b{% if ALLOW_HF32 %}, input_precision="tf32"{% endif %}, out_dtype=ACC_TYPE)
+
+        # ---- Store output (inductor generates epilogue suffix) ----
+        idx_m = rm[:, None]
+        idx_n = rn[None, :]
+{% if MASKED_M and MASKED_N %}
+        mask = (idx_m < M) & (idx_n < N)
+{% elif MASKED_M %}
+        mask = (idx_m < M)
+{% elif MASKED_N %}
+        mask = (idx_n < N)
+{% else %}
+        mask = None
+{% endif %}
+
+        {{store_output(("idx_m", "idx_n"), "acc", "mask", val_shape=("BLOCK_M", "BLOCK_N"), indent_width=8)}}
+{% endif %}
+"""
+
+
+@SymbolicGridFn
+def npu_resident_b_mm_grid(M: int, N: int, meta: Dict[str, Any], *, cdiv, min):
+    """Grid function for resident-B mm template.
+
+    Launches min(ceil(M / BLOCK_M), NUM_PROGS) programs.
+    Each program streams over its share of M-tiles.
+    """
+    # TODO: consider for symbolic shape
+    # num_m_blocks = cdiv(M, meta["BLOCK_M"])
+    # return (min(num_m_blocks, meta["NUM_PROGS"]), 1, 1)
+    return (meta["NUM_PROGS"], 1, 1)
+
+
+npu_resident_b_mm_template = NPUTritonTemplate(
+    name="npu_resident_b_mm",
+    grid=npu_resident_b_mm_grid,
+    source=_RESIDENT_B_MM_TEMPLATE,
+    debug=False,
+)
+
+
+# ---------------------------------------------------------------------------
+# NPU Resident-A Triton MM Template (full-load A, streaming N)
+# ---------------------------------------------------------------------------
+# Symmetric to resident-B: when M*K is small enough to fit entirely in L0A
+# (64 KiB), we load the full A matrix once and keep it resident while
+# streaming over N-tiles.
+#
+# Strategy:
+#   * Launch NUM_PROGS programs (one per AI Core, typically 28).
+#   * Load the ENTIRE A matrix [M, K] into L0A once, outside the N-loop.
+#   * Each program iterates over its share of N-tiles:
+#       n_block_id = pid, pid + NUM_PROGS, pid + 2*NUM_PROGS, ...
+#   * Inside the loop: load B tile, dot with resident A, store output.
+#   * No K-loop — BLOCK_K = K, so the dot consumes the full K in one shot.
+#
+# Best for shapes like N>>M, M*K small (e.g. M=221, N=12288, K=128).
+# ---------------------------------------------------------------------------
+
+_RESIDENT_A_MM_TEMPLATE = """
+{{def_kernel("A", "B")}}
+    M = {{size("A", 0)}}
+    N = {{size("B", 1)}}
+    K = {{size("A", 1)}}
+    if M * N == 0:
+        # early exit due to zero-size input(s)
+        return
+    stride_am = {{stride("A", 0)}}
+    stride_ak = {{stride("A", 1)}}
+    stride_bk = {{stride("B", 0)}}
+    stride_bn = {{stride("B", 1)}}
+
+    pid = tl.program_id(0).to(INDEX_DTYPE)
+
+    # ---- Full-load A: BLOCK_M = M(rounded to 16), BLOCK_K = K ----
+    # A stays resident in L0A across all N-tiles handled by this program.
+    rm = tl.arange(0, BLOCK_M)
+    rk = tl.arange(0, BLOCK_K)
+
+{% if MASKED_M %}
+    m_mask = rm < M
+{% endif %}
+{% if MASKED_K %}
+    k_mask = rk < K
+{% endif %}
+
+{% if MASKED_K and MASKED_M %}
+    a = tl.load(A + (rm[:, None] * stride_am + rk[None, :] * stride_ak), mask=m_mask[:, None] & k_mask[None, :], other=0.0)
+{% elif MASKED_K %}
+    a = tl.load(A + (rm[:, None] * stride_am + rk[None, :] * stride_ak), mask=k_mask[None, :], other=0.0)
+{% elif MASKED_M %}
+    a = tl.load(A + (rm[:, None] * stride_am + rk[None, :] * stride_ak), mask=m_mask[:, None], other=0.0)
+{% else %}
+    a = tl.load(A + (rm[:, None] * stride_am + rk[None, :] * stride_ak))
+{% endif %}
+    extension.compile_hint(a, "dot_pad_only_k")
+
+{% if N_TAIL_CNT is defined and N_TAIL_CNT > 1 %}
+    # ---- Scheduler ctor (AscendC block_scheduler_matmul_basic, AL1 full-load) ----
+    # Distributes N-blocks across AI cores with load-balanced tail handling.
+    # When the last round has fewer blocks than cores, the tail block is split
+    # into N_TAIL_CNT pieces so all cores in the last round stay busy.
+    n_block_nums = tl.cdiv(N, BLOCK_N)
+    per_core = tl.cdiv(n_block_nums, NUM_PROGS)
+    tail_block_nums = n_block_nums % NUM_PROGS
+    n_l1_norm_cnt = n_block_nums - 1
+    n_l1_tail_last = N - n_l1_norm_cnt * BLOCK_N
+    n_tail_cnt = tl.cdiv(n_l1_tail_last, tl.cdiv(n_l1_tail_last, N_TAIL_CNT))
+    block_nums = n_block_nums + (n_tail_cnt - 1) * tail_block_nums
+
+    # ---- Stream over N-tiles with load-balancing scheduler ----
+    # NUM_ITERATIONS is a compile-time upper bound on loop iterations;
+    # the block_idx guard skips iterations beyond block_nums.
+    offs_bn = tl.arange(0, BLOCK_N)
+    for n_iter in range(0, NUM_ITERATIONS):
+        block_idx = pid + n_iter * NUM_PROGS
+
+        # UpdateMNBlockIdx: in the last round, divert by core id
+        last_round = (block_idx // NUM_PROGS == per_core - 1) and (n_tail_cnt > 1)
+        n_block_idx = block_idx
+        if last_round:
+            n_block_idx = (per_core - 1) * NUM_PROGS + pid // n_tail_cnt
+
+        # GetBlockShape: full block except the last (tail) block
+        blk_n = BLOCK_N
+        if n_block_idx >= n_l1_norm_cnt:
+            blk_n = n_l1_tail_last
+
+        n_start = n_block_idx * BLOCK_N
+        n_size = blk_n
+
+        # Split the tail block across cores in the last round
+        if last_round:
+            split_blk_n = tl.cdiv(blk_n, n_tail_cnt)
+            split_off = (pid % n_tail_cnt) * split_blk_n
+            n_start = n_start + split_off
+            rem = blk_n - split_off
+            n_size = rem if rem < split_blk_n else split_blk_n
+            n_size = 0 if split_off >= blk_n else n_size
+
+        # Guard: skip blocks beyond the inflated total
+        if block_idx >= block_nums:
+            n_size = 0
+
+        if n_size > 0:
+            offs_n = n_start + offs_bn
+            mask_n = offs_bn < n_size
+
+{% if MASKED_K %}
+            b = tl.load(
+                B + (rk[:, None] * stride_bk + offs_n[None, :] * stride_bn),
+                mask=k_mask[:, None] & mask_n[None, :], other=0.0
+            )
+{% else %}
+            b = tl.load(B + (rk[:, None] * stride_bk + offs_n[None, :] * stride_bn), mask=mask_n[None, :], other=0.0)
+{% endif %}
+            extension.compile_hint(b, "dot_pad_only_k")
+            acc = tl.dot(a, b{% if ALLOW_HF32 %}, input_precision="tf32"{% endif %}, out_dtype=ACC_TYPE)
+
+            # ---- Store output (inductor generates epilogue suffix) ----
+            idx_m = rm[:, None]
+            idx_n = offs_n[None, :]
+{% if MASKED_M %}
+            mask = m_mask[:, None] & mask_n[None, :]
+{% else %}
+            mask = mask_n[None, :]
+{% endif %}
+
+            {{store_output(("idx_m", "idx_n"), "acc", "mask", val_shape=("BLOCK_M", "BLOCK_N"), indent_width=12)}}
+{% else %}
+    # ---- Stream over N-tiles ----
+    # Each program handles N-blocks: pid, pid+NUM_PROGS, pid+2*NUM_PROGS, ...
+    # NUM_ITERATIONS is a compile-time constant, enabling loop unrolling.
+    for n_iter in range(0, NUM_ITERATIONS):
+        n_block_id = pid + n_iter * NUM_PROGS
+        rn = n_block_id * BLOCK_N + tl.arange(0, BLOCK_N)
+
+{% if MASKED_N %}
+        n_mask = rn < N
+{% endif %}
+{% if MASKED_K and MASKED_N %}
+        b = tl.load(B + (rk[:, None] * stride_bk + rn[None, :] * stride_bn), mask=k_mask[:, None] & n_mask[None, :], other=0.0)
+{% elif MASKED_K %}
+        b = tl.load(B + (rk[:, None] * stride_bk + rn[None, :] * stride_bn), mask=k_mask[:, None], other=0.0)
+{% elif MASKED_N %}
+        b = tl.load(B + (rk[:, None] * stride_bk + rn[None, :] * stride_bn), mask=n_mask[None, :], other=0.0)
+{% else %}
+        b = tl.load(B + (rk[:, None] * stride_bk + rn[None, :] * stride_bn))
+{% endif %}
+
+        extension.compile_hint(b, "dot_pad_only_k")
+        acc = tl.dot(a, b{% if ALLOW_HF32 %}, input_precision="tf32"{% endif %}, out_dtype=ACC_TYPE)
+
+        # ---- Store output (inductor generates epilogue suffix) ----
+        idx_m = rm[:, None]
+        idx_n = rn[None, :]
+{% if MASKED_M and MASKED_N %}
+        mask = (idx_m < M) & (idx_n < N)
+{% elif MASKED_M %}
+        mask = (idx_m < M)
+{% elif MASKED_N %}
+        mask = (idx_n < N)
+{% else %}
+        mask = None
+{% endif %}
+
+        {{store_output(("idx_m", "idx_n"), "acc", "mask", val_shape=("BLOCK_M", "BLOCK_N"), indent_width=8)}}
+{% endif %}
+"""
+
+
+@SymbolicGridFn
+def npu_resident_a_mm_grid(M: int, N: int, meta: Dict[str, Any], *, cdiv, min):
+    """Grid function for resident-A mm template.
+
+    Launches NUM_PROGS programs (fixed grid).  Each program streams over
+    its share of N-tiles via NUM_ITERATIONS (compile-time constant).
+    """
+    return (meta["NUM_PROGS"], 1, 1)
+
+
+npu_resident_a_mm_template = NPUTritonTemplate(
+    name="npu_resident_a_mm",
+    grid=npu_resident_a_mm_grid,
+    source=_RESIDENT_A_MM_TEMPLATE,
     debug=False,
 )
 
@@ -519,29 +934,8 @@ def _gen_block_k_candidates(k, max_count=3):
     return sorted(cands, reverse=True)[:max_count]
 
 
-def _select_num_stages(k_iters, block_k):
-    """Select num_stages list based on K-loop iteration count.
-
-    Deeper pipelines (more stages) help when there are many K
-    iterations (more parallelism to exploit). For BLOCK_K ≥ 256,
-    limit stages to avoid register overflow.
-
-    Per optimization_summary.md:
-      * K iters ≥ 10 (e.g. K=1920, 15 iters): num_stages up to 6
-      * K iters 2-9: num_stages 3-4
-      * K iters = 1: num_stages 2-3
-    """
-    if block_k >= 256:
-        return [2]  # avoid register overflow for large BLOCK_K
-    if k_iters >= 10:
-        return [4, 6]  # very deep pipeline for many K iters
-    if k_iters >= 2:
-        return [3, 4]
-    return [2, 3]
-
-
-def _gen_tile_combos(m, n, k, max_block_dim):
-    """Generate a focused set of (BLOCK_M, BLOCK_N, BLOCK_K) tile combos.
+def _gen_tile_combos(m, n, k, max_block_dim, dtype=None, is_a_trans=False, is_b_trans=False, has_bias=False):
+    """Generate a focused set of (BLOCK_M, BLOCK_N, BLOCK_K, buffer_num, l0c_db) tile combos.
 
     Uses the dynamic candidate generators above and combines them into
     a limited Cartesian product, filtered by the L0C tile-area
@@ -581,6 +975,27 @@ def _gen_tile_combos(m, n, k, max_block_dim):
         smallest_k = block_k_cands[-1]
         combos.append((smallest_m, smallest_n, smallest_k))
 
+    # ---- Append optimized tiling ----
+    try:
+        optimized_config = get_optimized_tiling(
+            m, n, k,
+            dtype=dtype,
+            op_type="addmm" if has_bias else "mm",
+            is_a_trans=is_a_trans,
+            is_b_trans=is_b_trans,
+            has_bias=has_bias,
+        )
+        opt_combo = (
+            optimized_config["mL1"],
+            optimized_config["nL1"],
+            optimized_config["kL1"],
+        )
+        # Avoid exact duplicates
+        if opt_combo not in combos:
+            combos.append(opt_combo)
+    except Exception:
+        log.debug("optimize_tiling failed for m=%d n=%d k=%d", m, n, k, exc_info=True)
+
     return combos
 
 
@@ -590,6 +1005,10 @@ def _get_npu_mm_configs(
     k: int,
     *,
     max_block_dim: int = 256,
+    dtype=None,
+    is_a_trans: bool = False,
+    is_b_trans: bool = False,
+    has_bias: bool = False,
 ) -> List[Dict[str, Any]]:
     """Generate tiling configs for NPU triton matmul template (dynamic).
 
@@ -624,7 +1043,10 @@ def _get_npu_mm_configs(
     configs: List[Dict[str, Any]] = []
 
     # Dynamically generate tile combos based on the actual shape.
-    tile_combos = _gen_tile_combos(m_hint, n_hint, k_hint, max_block_dim)
+    tile_combos = _gen_tile_combos(
+        m_hint, n_hint, k_hint, max_block_dim,
+        dtype=dtype, is_a_trans=is_a_trans, is_b_trans=is_b_trans, has_bias=has_bias,
+    )
 
     for block_m, block_n, block_k in tile_combos:
         # EVEN_K: keep using the *original* (possibly symbolic) k.
@@ -634,28 +1056,21 @@ def _get_npu_mm_configs(
         masked_m = (m % block_m != 0) if not _is_symbolic_dim(m) else True
         masked_n = (n % block_n != 0) if not _is_symbolic_dim(n) else True
         masked_k = (k % block_k != 0) if not _is_symbolic_dim(k) else True
-        # GROUP_M: largest factor of num_blocks_m ≤ 8 (guarantees
-        # num_blocks_m % GROUP_M == 0, safe for NPU super-grouping).
-        num_blocks_m = (m_hint + block_m - 1) // block_m
-        group_m = _choose_group_m(num_blocks_m)
-        # num_stages based on K-loop iterations (deeper pipeline for
-        # many K iters, per optimization_summary.md).
-        k_iters = (k_hint + block_k - 1) // block_k
-        stages_list = _select_num_stages(k_iters, block_k)
-        for num_stages in stages_list:
-            configs.append({
-                "BLOCK_M": block_m,
-                "BLOCK_N": block_n,
-                "BLOCK_K": block_k,
-                "GROUP_M": group_m,
-                "num_stages": num_stages,
-                "num_warps": 4,
-                "ALLOW_HF32": matmul.allow_hf32,
-                "ACC_TYPE": "tl.float32",
-                "MASKED_M": masked_m,
-                "MASKED_N": masked_n,
-                "MASKED_K": masked_k,
-            })
+        # GROUP_M removed: the non-persistent template relies on NPU
+        # autoblockify for block-to-core scheduling, so GPU-style L2
+        # super-grouping provides no benefit and only adds overhead.
+        configs.append({
+            "BLOCK_M": block_m,
+            "BLOCK_N": block_n,
+            "BLOCK_K": block_k,
+            "num_stages": 4,
+            "num_warps": 4,
+            "ALLOW_HF32": matmul.allow_hf32,
+            "ACC_TYPE": "tl.float32",
+            "MASKED_M": masked_m,
+            "MASKED_N": masked_n,
+            "MASKED_K": masked_k,
+        })
 
     return configs
 
@@ -676,7 +1091,19 @@ def add_npu_triton_mm_choices(
     to select the best config.
     """
     input_nodes = [mat1, mat2]
-    configs = _get_npu_mm_configs(m, n, k)
+    # Derive tiling-relevant attributes from the IR nodes.
+    try:
+        dtype = layout.dtype
+        is_a_trans = _is_col_major(mat1.get_size(), mat1.get_stride())
+        is_b_trans = _is_col_major(mat2.get_size(), mat2.get_stride())
+    except Exception:
+        dtype = None
+        is_a_trans = False
+        is_b_trans = False
+    configs = _get_npu_mm_configs(
+        m, n, k,
+        dtype=dtype, is_a_trans=is_a_trans, is_b_trans=is_b_trans, has_bias=False,
+    )
 
     for cfg in configs:
         # Extract kernel launch params (not passed as constexpr defines)
@@ -701,23 +1128,27 @@ def add_npu_triton_mm_choices(
             )
 
 
-def _choose_group_m(num_blocks_m: int) -> int:
-    """Choose GROUP_M as the largest factor of num_blocks_m not exceeding 8.
+def _gen_group_m_options(num_blocks_m: int) -> List[int]:
+    """Generate all valid GROUP_M values for autotune.
 
-    This guarantees num_blocks_m % GROUP_M == 0, so the super-grouping
-    tile assignment never needs runtime % runtime (which hangs the NPU
-    Triton backend).  Falls back to 1 if no larger factor exists.
+    Returns every divisor of num_blocks_m up to 8, so that each can be
+    benchmarked and the best super-grouping size selected by autotune.
+    GROUP_M must divide num_blocks_m to keep the super-grouping tile
+    assignment free of runtime % runtime (which hangs the NPU backend).
+    The list always includes 1 (trivial divisor).
     """
-    for g in [8, 4, 2, 1]:
-        if num_blocks_m % g == 0:
-            return g
-    return 1
+    return [g for g in [8, 4, 2, 1] if num_blocks_m % g == 0]
 
 
 def _get_npu_persistent_mm_configs(
     m: int,
     n: int,
     k: int,
+    *,
+    dtype=None,
+    is_a_trans: bool = False,
+    is_b_trans: bool = False,
+    has_bias: bool = False,
 ) -> List[Dict[str, Any]]:
     """Generate tiling configs for the NPU persistent triton matmul template.
 
@@ -768,7 +1199,10 @@ def _get_npu_persistent_mm_configs(
     # Dynamically generate tile combos based on the actual shape
     # (same generator as the non-persistent template, so both templates
     # cover the same padding-eliminating BLOCK_M values).
-    tile_combos = _gen_tile_combos(m, n, k, max_block_dim=256)
+    tile_combos = _gen_tile_combos(
+        m, n, k, max_block_dim=256,
+        dtype=dtype, is_a_trans=is_a_trans, is_b_trans=is_b_trans, has_bias=has_bias,
+    )
 
     for block_m, block_n, block_k in tile_combos:
         num_blocks_m = (m + block_m - 1) // block_m
@@ -779,58 +1213,46 @@ def _get_npu_persistent_mm_configs(
         if num_blocks == 0:
             continue
 
-        # Choose GROUP_M as a factor of num_blocks_m (≤ 8) so that
-        # group_size == GROUP_M always holds (no partial last group).
-        group_m = _choose_group_m(num_blocks_m)
-        width = group_m * num_blocks_n
+        # Generate ALL valid GROUP_M values (divisors of num_blocks_m ≤ 8)
+        # so autotune can pick the best super-grouping size, not just the
+        # largest divisor.
+        group_m_options = _gen_group_m_options(num_blocks_m)
         masked_m = (m % block_m != 0) if not _is_symbolic_dim(m) else True
         masked_n = (n % block_n != 0) if not _is_symbolic_dim(n) else True
         masked_k = (k % block_k != 0) if not _is_symbolic_dim(k) else True
 
-        # Choose 2 core counts based on num_blocks (instead of the
-        # previous fixed [8, 16, 32, 56]) — this significantly reduces
-        # the number of configs while still covering the useful
-        # parallelism range.
-        if num_blocks >= 56:
-            core_options = [56, 32]
-        elif num_blocks >= 32:
-            core_options = [32, 16]
-        elif num_blocks >= 16:
-            core_options = [16, 8]
-        else:
-            core_options = [max(num_blocks, 8)]
+        # Physical machine has NUM_CUBE_CORES (28) AI cores.
+        # Use min(num_blocks, NUM_CUBE_CORES) — launching fewer programs
+        # than blocks lets the persistent loop distribute tiles across
+        # cores; launching more programs than blocks wastes cores.
+        # No other core count makes sense on a fixed-core-count device.
+        actual_num_cores = min(num_blocks, NUM_CUBE_CORES)
+        if actual_num_cores == 0:
+            continue
+        # Compute tiles per program (compile-time constant for loop bound)
+        num_tiles_per_program = (num_blocks + actual_num_cores - 1) // actual_num_cores
 
-        # num_stages based on K-loop iterations.
-        k_iters = (k + block_k - 1) // block_k
-        stages_list = _select_num_stages(k_iters, block_k)
-
-        for num_cores in core_options:
-            # Don't launch more programs than there are blocks
-            actual_num_cores = min(num_cores, num_blocks)
-            if actual_num_cores == 0:
-                continue
-            # Compute tiles per program (compile-time constant for loop bound)
-            num_tiles_per_program = (num_blocks + actual_num_cores - 1) // actual_num_cores
-            for num_stages in stages_list:
-                configs.append({
-                    "BLOCK_M": block_m,
-                    "BLOCK_N": block_n,
-                    "BLOCK_K": block_k,
-                    "GROUP_M": group_m,
-                    "NUM_BLOCKS_M": num_blocks_m,
-                    "NUM_BLOCKS_N": num_blocks_n,
-                    "NUM_BLOCKS": num_blocks,
-                    "WIDTH": width,
-                    "NUM_SMS": actual_num_cores,
-                    "NUM_TILES_PER_PROGRAM": num_tiles_per_program,
-                    "num_stages": num_stages,
-                    "num_warps": 4,
-                    "ALLOW_HF32": matmul.allow_hf32,
-                    "ACC_TYPE": "tl.float32",
-                    "MASKED_M": masked_m,
-                    "MASKED_N": masked_n,
-                    "MASKED_K": masked_k,
-                })
+        for group_m in group_m_options:
+            width = group_m * num_blocks_n
+            configs.append({
+                "BLOCK_M": block_m,
+                "BLOCK_N": block_n,
+                "BLOCK_K": block_k,
+                "GROUP_M": group_m,
+                "NUM_BLOCKS_M": num_blocks_m,
+                "NUM_BLOCKS_N": num_blocks_n,
+                "NUM_BLOCKS": num_blocks,
+                "WIDTH": width,
+                "NUM_SMS": actual_num_cores,
+                "NUM_TILES_PER_PROGRAM": num_tiles_per_program,
+                "num_stages": 4,
+                "num_warps": 4,
+                "ALLOW_HF32": matmul.allow_hf32,
+                "ACC_TYPE": "tl.float32",
+                "MASKED_M": masked_m,
+                "MASKED_N": masked_n,
+                "MASKED_K": masked_k,
+            })
 
     return configs
 
@@ -850,7 +1272,19 @@ def add_npu_persistent_mm_choices(
     supports epilogue fusion via {{store_output}}.
     """
     input_nodes = [mat1, mat2]
-    configs = _get_npu_persistent_mm_configs(m, n, k)
+    # Derive tiling-relevant attributes from the IR nodes.
+    try:
+        dtype = layout.dtype
+        is_a_trans = _is_col_major(mat1.get_size(), mat1.get_stride())
+        is_b_trans = _is_col_major(mat2.get_size(), mat2.get_stride())
+    except Exception:
+        dtype = None
+        is_a_trans = False
+        is_b_trans = False
+    configs = _get_npu_persistent_mm_configs(
+        m, n, k,
+        dtype=dtype, is_a_trans=is_a_trans, is_b_trans=is_b_trans, has_bias=False,
+    )
 
     for cfg in configs:
         num_stages = cfg.pop("num_stages")
@@ -871,6 +1305,699 @@ def add_npu_persistent_mm_choices(
                 "Failed to generate NPU persistent mm choice with config %s",
                 cfg,
                 exc_info=True,
+            )
+
+
+def add_npu_persistent_addmm_choices(
+    choices: List[ir.ChoiceCaller],
+    layout: "ir.Layout",
+    inp: "ir.IRNode",
+    mat1: "ir.IRNode",
+    mat2: "ir.IRNode",
+    m: int,
+    n: int,
+    k: int,
+    alpha: float = 1,
+    beta: float = 1,
+) -> None:
+    """Add NPU persistent Triton addmm template choices.
+
+    Reuses npu_persistent_mm_template with prefix_args=1 and addmm_epilogue,
+    exactly like add_npu_triton_addmm_choices reuses npu_triton_mm_template.
+    The bias term is fused into the kernel epilogue via the prefix_args +
+    epilogue_fn mechanism.
+    """
+    # bias first (prefix arg), then the two matmul operands named A, B in jinja
+    input_nodes = [inp, mat1, mat2]
+    # Derive tiling-relevant attributes from the IR nodes.
+    try:
+        dtype = layout.dtype
+        is_a_trans = _is_col_major(mat1.get_size(), mat1.get_stride())
+        is_b_trans = _is_col_major(mat2.get_size(), mat2.get_stride())
+    except Exception:
+        dtype = None
+        is_a_trans = False
+        is_b_trans = False
+    configs = _get_npu_persistent_mm_configs(
+        m, n, k,
+        dtype=dtype, is_a_trans=is_a_trans, is_b_trans=is_b_trans, has_bias=True,
+    )
+    if not configs:
+        return
+
+    # Build the epilogue function that fuses beta*bias + alpha*acc.
+    epilogue_fn = addmm_epilogue(layout.dtype, alpha, beta)
+
+    for cfg in configs:
+        num_stages = cfg.pop("num_stages")
+        num_warps = cfg.pop("num_warps")
+        try:
+            choice = npu_persistent_mm_template.generate(
+                input_nodes=input_nodes,
+                layout=layout,
+                num_stages=num_stages,
+                num_warps=num_warps,
+                prefix_args=1,
+                epilogue_fn=epilogue_fn,
+                **cfg,
+            )
+            if choice is not None:
+                choices.append(choice)
+        except Exception:
+            log.debug(
+                "Failed to generate NPU persistent addmm choice with config %s",
+                cfg,
+                exc_info=True,
+            )
+
+
+# ---------------------------------------------------------------------------
+# Resident-B MM template: config generation & choice adders
+# ---------------------------------------------------------------------------
+
+
+def _calc_tail_split_cnt(dim, block, num_progs):
+    """Host-side computation of TAIL_CNT for resident template load-balancing.
+
+    Mirrors AscendC's CalcTailBasicBlockBL1Full / CalcTailBasicBlockAL1Full.
+    Returns the split count BEFORE the device-side clamp.
+
+    When dim/block produces more blocks than num_progs, the last round has
+    ``dim_cnt % num_progs`` blocks.  This function grows tail_cnt so that
+    ``(tail_cnt + 1) * last_round_blocks <= num_progs``, distributing the
+    tail across idle cores.
+    """
+    dim_cnt = (dim + block - 1) // block  # cdiv(dim, block)
+    if dim_cnt <= num_progs:
+        tail_cnt = 0
+    else:
+        tail_cnt = dim_cnt % num_progs
+    if tail_cnt == 0:
+        return 1
+    tail_split = 1
+    while (tail_split + 1) * tail_cnt <= num_progs:
+        tail_split += 1
+    return tail_split
+
+
+def _calc_inflated_block_nums(dim, block, num_progs, tail_cnt_host):
+    """Compute scheduler parameters at config-generation time.
+
+    Returns (block_nums, num_iterations) where block_nums is the inflated
+    total (with tail splitting) and num_iterations is the compile-time
+    loop bound = cdiv(block_nums, num_progs).
+    """
+    dim_cnt = (dim + block - 1) // block  # cdiv(dim, block)
+    l1_norm_cnt = dim_cnt - 1
+    l1_tail_last = dim - l1_norm_cnt * block if dim_cnt > 0 else 0
+    # Device-side clamp: m_tail_cnt = cdiv(l1_tail_last, cdiv(l1_tail_last, tail_cnt_host))
+    if l1_tail_last > 0 and tail_cnt_host > 0:
+        split_size = (l1_tail_last + tail_cnt_host - 1) // tail_cnt_host
+        tail_cnt_clamped = (l1_tail_last + split_size - 1) // split_size
+    else:
+        tail_cnt_clamped = 1
+    tail_block_nums = dim_cnt % num_progs if dim_cnt > num_progs else 0
+    block_nums = dim_cnt + (tail_cnt_clamped - 1) * tail_block_nums
+    num_iterations = (block_nums + num_progs - 1) // num_progs
+    return block_nums, num_iterations
+
+
+def _get_npu_resident_b_mm_configs(
+    m: int,
+    n: int,
+    k: int,
+    *,
+    dtype=None,
+    is_a_trans: bool = False,
+    is_b_trans: bool = False,
+    has_bias: bool = False,
+) -> List[Dict[str, Any]]:
+    """Generate tiling configs for the resident-B mm template.
+
+    Condition: the full B matrix [K, N] must fit in L0B (64 KiB).
+    When satisfied, BLOCK_N = N and BLOCK_K = K (full load B), and the
+    kernel streams over M-tiles with B resident in L0B.
+
+    Returns an empty list when the shape does not meet the condition,
+    so the caller can silently fall back to other templates.
+    """
+    # --- Dynamic-shape guard ---
+    if _is_symbolic_dim(m) or _is_symbolic_dim(n) or _is_symbolic_dim(k):
+        return []
+
+    # --- Small-N safety guard ---
+    # The resident-B template full-loads B[K,N] into the L0B hardware
+    # buffer via a DMA engine.  When N < 16, BLOCK_N is rounded up to
+    # 16 (the MMAD fractal size), causing the DMA to fetch a [K×16]
+    # block from a [K×N] matrix where N < 16.  The load mask
+    # (n_mask = rn < N) only zeros out values *after* the DMA fetch,
+    # so the hardware still accesses out-of-bounds addresses, triggering
+    # an AICore trap (error 507015, "aivec timeout or trap error").
+    if n < 16:
+        return []
+
+    num_cube_cores = NUM_CUBE_CORES
+
+    # too small to use resident b template in m axis.
+    if m < 16 * num_cube_cores:
+        num_cube_cores = math.ceil(m / 16)
+
+    # --- L0B capacity check ---
+    dt_bytes = dtype_to_bytes(dtype) if dtype is not None else 2  # default fp16
+    # Round N and K up to MMAD fractal (16) boundaries for L0B budgeting,
+    # because the hardware allocates in fractal units.
+    n_rounded = round_up_to_16(n)
+    k_rounded = round_up_to_16(k)
+    b_l0b_bytes = n_rounded * k_rounded * dt_bytes
+
+    if b_l0b_bytes > L0B_BYTES:
+        return []
+
+    # --- MMAD/CUBE N-dimension safety limit ---
+    # Ascend 910B CUBE unit has a hardware limit on the number of
+    # N-fractals (16-element columnes) it can address in a single
+    # resident-B kernel. Too large BLOCK_N could cause "CUBE FIXP
+    # buffer out of bounds" and "L0A/L0B bias table out of bounds" errors.
+    MAX_BLOCK_N = 512
+    MAX_BLOCK_K = 512
+    if n_rounded > MAX_BLOCK_N or k_rounded > MAX_BLOCK_K:
+        return []
+
+    # --- BLOCK_N = N, BLOCK_K = K (full load) ---
+    block_n = n_rounded
+    block_k = k_rounded
+
+    L0C_BUFFER_COPIES = 2
+
+    configs: List[Dict[str, Any]] = []
+    for l1_buffer_copies in [2, 4]:
+        # --- BLOCK_M candidates ---
+        # L0C constraint: BLOCK_M * BLOCK_N * ACCUM_BYTES * L0C_BUFFER_COPIES <= L0C_BYTES
+        max_block_m_l0c = L0C_BYTES // (block_n * ACCUM_BYTES * L0C_BUFFER_COPIES)
+        # L0A constraint: BLOCK_M * BLOCK_K * dt_bytes <= L0A_BYTES
+        max_block_m_l0a = L0A_BYTES // (block_k * dt_bytes)
+        # L1 constraint: ((BLOCK_M * BLOCK_K) * L1_BUFFER_COPIES + BLOCK_K * BLOCK_N) * dt_bytes <= L1_BYTES
+        # L1 constraint with bias: ((BLOCK_M * BLOCK_K) * L1_BUFFER_COPIES + BLOCK_K * BLOCK_N + BLOCK_N) * dt_bytes <= L1_BYTES
+        if not has_bias:
+            max_block_m_l1 = (L1_BYTES // dt_bytes - block_n * block_k) // l1_buffer_copies // block_k
+        else:
+            max_block_m_l1 = (L1_BYTES // dt_bytes - block_n * block_k - block_n) // l1_buffer_copies // block_k
+        max_block_m = min(max_block_m_l0c, max_block_m_l0a, max_block_m_l1)
+        # Must be at least one fractal (16)
+        max_block_m = max(round_down_to_16(max_block_m), 16)
+        if max_block_m < 16:
+            return []
+
+        # Build candidate list: divisors of M (padding-eliminating) + standards
+        block_m_cands = set()
+
+        # fully use num_cube_cores aicores with equally BLOCKS
+        desired_m_block = round_up_to_16(m // num_cube_cores)
+        if desired_m_block <= max_block_m:
+            num_iterations = 1
+            block_m_cands.add(desired_m_block)
+        else:
+            num_iterations = math.ceil(desired_m_block / max_block_m)
+            block_m_cand = round_up_to_16(desired_m_block // num_iterations)
+            block_m_cands.add(block_m_cand)
+            num_cube_cores = math.ceil(m / block_m_cand / num_iterations)
+
+        for block_m in block_m_cands:
+            if block_m in [config["BLOCK_M"] for config in configs]:
+                continue
+
+            masked_n = (n != block_n)
+            masked_k = (k != block_k)
+            # MASKED_M: total coverage may exceed M due to round_up allocation
+            total_coverage = num_cube_cores * num_iterations * block_m
+            masked_m = (total_coverage > m) or (m % block_m != 0)
+
+            # Compute scheduler parameters for tail-block load balancing
+            m_tail_cnt = _calc_tail_split_cnt(m, block_m, num_cube_cores)
+            _, sched_num_iters = _calc_inflated_block_nums(
+                m, block_m, num_cube_cores, m_tail_cnt
+            )
+            # Use the larger of the two iteration counts to be safe
+            num_iterations_final = max(num_iterations, sched_num_iters)
+
+            configs.append({
+                "BLOCK_M": block_m,
+                "BLOCK_N": block_n,
+                "BLOCK_K": block_k,
+                "NUM_PROGS": num_cube_cores,
+                "num_stages": 4,
+                "num_warps": 4,
+                "ALLOW_HF32": matmul.allow_hf32,
+                "ACC_TYPE": "tl.float32",
+                "MASKED_M": masked_m,
+                "MASKED_N": masked_n,
+                "MASKED_K": masked_k,
+                "NUM_ITERATIONS": num_iterations_final,
+            })
+            # Only add M_TAIL_CNT when > 1, so the jinja template can
+            # distinguish the tail-split path from the fast path without
+            # injecting an extra constexpr parameter.
+            if m_tail_cnt > 1:
+                configs[-1]["M_TAIL_CNT"] = m_tail_cnt
+
+    # --- Add optimized tiling config (from aclnn MatMul V3 tiling calculator) ---
+    # Use only when the full-load condition is met: nL1 == n_rounded, kL1 == k_rounded
+    try:
+        dtype_str = str(dtype) if dtype is not None else "torch.float16"
+        opt = get_optimized_tiling(
+            m, n, k, dtype=dtype_str, op_type="mm",
+            is_a_trans=is_a_trans, is_b_trans=is_b_trans, has_bias=has_bias,
+        )
+        opt_block_m = opt["mL1"]
+        opt_block_n = opt["nL1"]
+        opt_block_k = opt["kL1"]
+        # Full-load condition: B must be fully resident
+        if opt_block_n == n_rounded and opt_block_k == k_rounded:
+            # Validate BLOCK_M against L0C/L1 constraints
+            opt_max_block_m_l0c = L0C_BYTES // (opt_block_n * ACCUM_BYTES * L0C_BUFFER_COPIES)
+            opt_l1_buf = opt.get("l1BufferNum", 2)
+            opt_max_block_m_l1 = (L1_BYTES // dt_bytes - opt_block_n * opt_block_k) // opt_l1_buf // opt_block_k
+            opt_max_block_m = min(opt_max_block_m_l0c, opt_max_block_m_l1)
+            opt_max_block_m = max(round_down_to_16(opt_max_block_m), 16)
+            # Round BLOCK_M to 16 and validate
+            opt_block_m = round_up_to_16(opt_block_m) if opt_block_m > 0 else 16
+            if 16 <= opt_block_m <= opt_max_block_m:
+                # Avoid duplicate BLOCK_M
+                if opt_block_m not in [config["BLOCK_M"] for config in configs]:
+                    opt_num_progs = min(NUM_CUBE_CORES, math.ceil(m / opt_block_m))
+                    if opt_num_progs < 1:
+                        opt_num_progs = 1
+                    opt_m_tail_cnt = _calc_tail_split_cnt(m, opt_block_m, opt_num_progs)
+                    _, opt_num_iters = _calc_inflated_block_nums(
+                        m, opt_block_m, opt_num_progs, opt_m_tail_cnt
+                    )
+                    opt_masked_n = (n != opt_block_n)
+                    opt_masked_k = (k != opt_block_k)
+                    opt_masked_m = (m % opt_block_m != 0)
+                    configs.append({
+                        "BLOCK_M": opt_block_m,
+                        "BLOCK_N": opt_block_n,
+                        "BLOCK_K": opt_block_k,
+                        "NUM_PROGS": opt_num_progs,
+                        "num_stages": 4,
+                        "num_warps": 4,
+                        "ALLOW_HF32": matmul.allow_hf32,
+                        "ACC_TYPE": "tl.float32",
+                        "MASKED_M": opt_masked_m,
+                        "MASKED_N": opt_masked_n,
+                        "MASKED_K": opt_masked_k,
+                        "NUM_ITERATIONS": opt_num_iters,
+                    })
+                    if opt_m_tail_cnt > 1:
+                        configs[-1]["M_TAIL_CNT"] = opt_m_tail_cnt
+    except Exception:
+        pass  # silently skip if optimize_tiling fails
+
+    return configs
+
+
+def add_npu_resident_b_mm_choices(
+    choices: List[ir.ChoiceCaller],
+    layout: "ir.Layout",
+    mat1: "ir.IRNode",
+    mat2: "ir.IRNode",
+    m: int,
+    n: int,
+    k: int,
+) -> None:
+    """Add resident-B Triton matmul template choices (mm path)."""
+    input_nodes = [mat1, mat2]
+    try:
+        dtype = layout.dtype
+    except Exception:
+        dtype = None
+    configs = _get_npu_resident_b_mm_configs(m, n, k, dtype=dtype)
+    if not configs:
+        return
+
+    for cfg in configs:
+        num_stages = cfg.pop("num_stages")
+        num_warps = cfg.pop("num_warps")
+        try:
+            # Only generate the default variant (auto multi-buffer on).
+            # The "no-l0c" variant fails precompile for this template
+            # because the M-loop pipelining requires L0C multi-buffering.
+            choice = npu_resident_b_mm_template.generate(
+                input_nodes=input_nodes,
+                layout=layout,
+                num_stages=num_stages,
+                num_warps=num_warps,
+                **cfg,
+            )
+            if choice is not None:
+                choices.append(choice)
+        except Exception:
+            log.debug(
+                "Failed to generate resident-B mm choice with config %s",
+                cfg, exc_info=True
+            )
+
+
+def add_npu_resident_b_addmm_choices(
+    choices: List[ir.ChoiceCaller],
+    layout: "ir.Layout",
+    inp: "ir.IRNode",
+    mat1: "ir.IRNode",
+    mat2: "ir.IRNode",
+    m: int,
+    n: int,
+    k: int,
+    alpha: float = 1,
+    beta: float = 1,
+) -> None:
+    """Add resident-B Triton addmm template choices.
+
+    Reuses npu_resident_b_mm_template with prefix_args=1 and addmm_epilogue,
+    exactly like add_npu_triton_addmm_choices reuses npu_triton_mm_template.
+    """
+    input_nodes = [inp, mat1, mat2]
+    try:
+        dtype = layout.dtype
+    except Exception:
+        dtype = None
+    configs = _get_npu_resident_b_mm_configs(
+        m, n, k, dtype=dtype, has_bias=True,
+    )
+    if not configs:
+        return
+
+    epilogue_fn = addmm_epilogue(layout.dtype, alpha, beta)
+
+    for cfg in configs:
+        num_stages = cfg.pop("num_stages")
+        num_warps = cfg.pop("num_warps")
+        try:
+            # Only generate the default variant (auto multi-buffer on).
+            # The "no-l0c" variant fails precompile for this template
+            # because the M-loop pipelining requires L0C multi-buffering.
+            choice = npu_resident_b_mm_template.generate(
+                input_nodes=input_nodes,
+                layout=layout,
+                num_stages=num_stages,
+                num_warps=num_warps,
+                prefix_args=1,
+                epilogue_fn=epilogue_fn,
+                **cfg,
+            )
+            if choice is not None:
+                choices.append(choice)
+        except Exception:
+            log.debug(
+                "Failed to generate resident-B addmm choice with config %s",
+                cfg, exc_info=True
+            )
+
+
+# ---------------------------------------------------------------------------
+# Resident-A MM template: config generation & choice adders
+# ---------------------------------------------------------------------------
+# Symmetric to resident-B: full-load A into L0A, stream over N-tiles.
+# Condition: M*K (rounded to 16) * dtype_bytes <= L0A_BYTES (64 KiB).
+# ---------------------------------------------------------------------------
+
+def _get_npu_resident_a_mm_configs(
+    m: int,
+    n: int,
+    k: int,
+    *,
+    dtype=None,
+    is_a_trans: bool = False,
+    is_b_trans: bool = False,
+    has_bias: bool = False,
+) -> List[Dict[str, Any]]:
+    """Generate tiling configs for the resident-A mm template.
+
+    Condition: the full A matrix [M, K] must fit in L0A (64 KiB).
+    When satisfied, BLOCK_M = round_up_to_16(M) and BLOCK_K = K (full load A),
+    and the kernel streams over N-tiles with A resident in L0A.
+
+    Returns an empty list when the shape does not meet the condition,
+    so the caller can silently fall back to other templates.
+    """
+    # --- Dynamic-shape guard ---
+    if _is_symbolic_dim(m) or _is_symbolic_dim(n) or _is_symbolic_dim(k):
+        return []
+
+    # --- Small-M safety guard ---
+    # Same reasoning as resident-B's small-N guard: when M < 16,
+    # BLOCK_M is rounded up to 16, causing the L0A DMA engine to
+    # fetch a [16×K] block from a [M×K] matrix where M < 16.
+    # The OOB access triggers an AICore trap.  Skip resident-A
+    # for M < 16; other templates handle small M correctly.
+    if m < 16:
+        return []
+
+    num_cube_cores = NUM_CUBE_CORES
+
+    # too small to use resident a template in n axis.
+    if n < 16 * num_cube_cores:
+        num_cube_cores = math.ceil(n / 16)
+
+    # --- L0A capacity check ---
+    dt_bytes = dtype_to_bytes(dtype) if dtype is not None else 2  # default fp16
+    m_rounded = round_up_to_16(m)
+    k_rounded = round_up_to_16(k)
+    a_l0a_bytes = m_rounded * k_rounded * dt_bytes
+    if a_l0a_bytes > L0A_BYTES:
+        return []
+
+    # --- MMAD/CUBE N-dimension safety limit ---
+    # Ascend 910B CUBE unit has a hardware limit on the number of
+    # M-fractals (16-element columnes) it can address in a single
+    # resident-B kernel. Too large BLOCK_M could cause "CUBE FIXP
+    # buffer out of bounds" and "L0A/L0B bias table out of bounds" errors.
+    MAX_BLOCK_M = 512
+    MAX_BLOCK_K = 512
+    if m_rounded > MAX_BLOCK_M or k_rounded > MAX_BLOCK_K:
+        return []
+
+    # --- BLOCK_M = m_rounded (round up to 16 for MMAD), BLOCK_K = K (full load) ---
+    block_m = m_rounded
+    block_k = k_rounded
+
+    L0C_BUFFER_COPIES = 2
+
+    configs: List[Dict[str, Any]] = []
+    for l1_buffer_copies in [2, 4]:
+
+        # --- BLOCK_N candidates ---
+        # L0C constraint: BLOCK_M * BLOCK_N * ACCUM_BYTES * L0C_BUFFER_COPIES <= L0C_BYTES
+        max_block_n_l0c = L0C_BYTES // (block_m * ACCUM_BYTES * L0C_BUFFER_COPIES)
+        # L0B constraint: BLOCK_K * BLOCK_N * dt_bytes <= L0B_BYTES
+        max_block_n_l0b = L0B_BYTES // (block_k * dt_bytes)
+        # L1 constraint: ((BLOCK_K * BLOCK_N) * L1_BUFFER_COPIES + BLOCK_M * BLOCK_K) * dt_bytes <= L1_BYTES
+        # L1 constraint with bias: ((BLOCK_K * BLOCK_N + BLOCK_N) * L1_BUFFER_COPIES + BLOCK_M * BLOCK_K) * dt_bytes <= L1_BYTES
+        if not has_bias:
+            max_block_n_l1 = (L1_BYTES // dt_bytes - block_m * block_k) // l1_buffer_copies // block_k
+        else:
+            max_block_n_l1 = (L1_BYTES // dt_bytes - (block_m * block_k)) // l1_buffer_copies // (block_k + 1)
+        max_block_n = min(max_block_n_l0c, max_block_n_l0b, max_block_n_l1)
+        # Must be at least one fractal (16)
+        max_block_n = max(round_down_to_16(max_block_n), 16)
+        if max_block_n < 16:
+            return []
+
+        # Build candidate list using balanced N allocation (same logic as resident-B's M axis)
+        block_n_cands = set()
+
+        # fully use num_cube_cores aicores with equally BLOCKS
+        desired_n_block = round_up_to_16(n // num_cube_cores)
+        if desired_n_block <= max_block_n:
+            num_iterations = 1
+            block_n_cands.add(desired_n_block)
+        else:
+            num_iterations = math.ceil(desired_n_block / max_block_n)
+            block_n_cand = round_up_to_16(desired_n_block // num_iterations)
+            block_n_cands.add(block_n_cand)
+            num_cube_cores = math.ceil(n / block_n_cand / num_iterations)
+
+        for block_n in block_n_cands:
+            if block_n in [config["BLOCK_N"] for config in configs]:
+                continue
+
+            masked_m = (m != block_m)
+            masked_k = (k != block_k)
+            # MASKED_N: total coverage may exceed N due to round_up allocation
+            total_coverage = num_cube_cores * num_iterations * block_n
+            masked_n = (total_coverage > n) or (n % block_n != 0)
+
+            # Compute scheduler parameters for tail-block load balancing
+            n_tail_cnt = _calc_tail_split_cnt(n, block_n, num_cube_cores)
+            _, sched_num_iters = _calc_inflated_block_nums(
+                n, block_n, num_cube_cores, n_tail_cnt
+            )
+            # Use the larger of the two iteration counts to be safe
+            num_iterations_final = max(num_iterations, sched_num_iters)
+
+            configs.append({
+                "BLOCK_M": block_m,
+                "BLOCK_N": block_n,
+                "BLOCK_K": block_k,
+                "NUM_PROGS": num_cube_cores,
+                "num_stages": 4,
+                "num_warps": 4,
+                "ALLOW_HF32": matmul.allow_hf32,
+                "ACC_TYPE": "tl.float32",
+                "MASKED_M": masked_m,
+                "MASKED_N": masked_n,
+                "MASKED_K": masked_k,
+                "NUM_ITERATIONS": num_iterations_final,
+            })
+            # Only add N_TAIL_CNT when > 1, so the jinja template can
+            # distinguish the tail-split path from the fast path without
+            # injecting an extra constexpr parameter.
+            if n_tail_cnt > 1:
+                configs[-1]["N_TAIL_CNT"] = n_tail_cnt
+
+    # --- Add optimized tiling config (from aclnn MatMul V3 tiling calculator) ---
+    # Use only when the full-load condition is met: mL1 == m_rounded, kL1 == k_rounded
+    try:
+        dtype_str = str(dtype) if dtype is not None else "torch.float16"
+        opt = get_optimized_tiling(
+            m, n, k, dtype=dtype_str, op_type="mm",
+            is_a_trans=is_a_trans, is_b_trans=is_b_trans, has_bias=has_bias,
+        )
+        opt_block_m = opt["mL1"]
+        opt_block_n = opt["nL1"]
+        opt_block_k = opt["kL1"]
+        # Full-load condition: A must be fully resident
+        if opt_block_m == m_rounded and opt_block_k == k_rounded:
+            # Validate BLOCK_N against L0C/L1 constraints
+            opt_max_block_n_l0c = L0C_BYTES // (block_m * ACCUM_BYTES * L0C_BUFFER_COPIES)
+            opt_l1_buf = opt.get("l1BufferNum", 2)
+            opt_max_block_n_l1 = (L1_BYTES // dt_bytes - block_m * block_k) // opt_l1_buf // block_k
+            opt_max_block_n = min(opt_max_block_n_l0c, opt_max_block_n_l1)
+            opt_max_block_n = max(round_down_to_16(opt_max_block_n), 16)
+            # Round BLOCK_N to 16 and validate
+            opt_block_n = round_up_to_16(opt_block_n) if opt_block_n > 0 else 16
+            if 16 <= opt_block_n <= opt_max_block_n:
+                # Avoid duplicate BLOCK_N
+                if opt_block_n not in [config["BLOCK_N"] for config in configs]:
+                    opt_num_progs = min(NUM_CUBE_CORES, math.ceil(n / opt_block_n))
+                    if opt_num_progs < 1:
+                        opt_num_progs = 1
+                    opt_n_tail_cnt = _calc_tail_split_cnt(n, opt_block_n, opt_num_progs)
+                    _, opt_num_iters = _calc_inflated_block_nums(
+                        n, opt_block_n, opt_num_progs, opt_n_tail_cnt
+                    )
+                    opt_masked_m = (m != block_m)
+                    opt_masked_k = (k != block_k)
+                    opt_masked_n = (n % opt_block_n != 0)
+                    configs.append({
+                        "BLOCK_M": block_m,
+                        "BLOCK_N": opt_block_n,
+                        "BLOCK_K": block_k,
+                        "NUM_PROGS": opt_num_progs,
+                        "num_stages": 4,
+                        "num_warps": 4,
+                        "ALLOW_HF32": matmul.allow_hf32,
+                        "ACC_TYPE": "tl.float32",
+                        "MASKED_M": opt_masked_m,
+                        "MASKED_N": opt_masked_n,
+                        "MASKED_K": opt_masked_k,
+                        "NUM_ITERATIONS": opt_num_iters,
+                    })
+                    if opt_n_tail_cnt > 1:
+                        configs[-1]["N_TAIL_CNT"] = opt_n_tail_cnt
+    except Exception:
+        pass  # silently skip if optimize_tiling fails
+
+    return configs
+
+
+def add_npu_resident_a_mm_choices(
+    choices: List[ir.ChoiceCaller],
+    layout: "ir.Layout",
+    mat1: "ir.IRNode",
+    mat2: "ir.IRNode",
+    m: int,
+    n: int,
+    k: int,
+) -> None:
+    """Add resident-A Triton matmul template choices (mm path)."""
+    input_nodes = [mat1, mat2]
+    try:
+        dtype = layout.dtype
+    except Exception:
+        dtype = None
+    configs = _get_npu_resident_a_mm_configs(m, n, k, dtype=dtype)
+    if not configs:
+        return
+
+    for cfg in configs:
+        num_stages = cfg.pop("num_stages")
+        num_warps = cfg.pop("num_warps")
+        try:
+            choice = npu_resident_a_mm_template.generate(
+                input_nodes=input_nodes,
+                layout=layout,
+                num_stages=num_stages,
+                num_warps=num_warps,
+                **cfg,
+            )
+            if choice is not None:
+                choices.append(choice)
+        except Exception:
+            log.debug(
+                "Failed to generate resident-A mm choice with config %s",
+                cfg, exc_info=True
+            )
+
+
+def add_npu_resident_a_addmm_choices(
+    choices: List[ir.ChoiceCaller],
+    layout: "ir.Layout",
+    inp: "ir.IRNode",
+    mat1: "ir.IRNode",
+    mat2: "ir.IRNode",
+    m: int,
+    n: int,
+    k: int,
+    alpha: float = 1,
+    beta: float = 1,
+) -> None:
+    """Add resident-A Triton addmm template choices.
+
+    Reuses npu_resident_a_mm_template with prefix_args=1 and addmm_epilogue,
+    exactly like add_npu_resident_b_addmm_choices reuses the B template.
+    """
+    input_nodes = [inp, mat1, mat2]
+    try:
+        dtype = layout.dtype
+    except Exception:
+        dtype = None
+    configs = _get_npu_resident_a_mm_configs(
+        m, n, k, dtype=dtype, has_bias=True,
+    )
+    if not configs:
+        return
+
+    epilogue_fn = addmm_epilogue(layout.dtype, alpha, beta)
+
+    for cfg in configs:
+        num_stages = cfg.pop("num_stages")
+        num_warps = cfg.pop("num_warps")
+        try:
+            choice = npu_resident_a_mm_template.generate(
+                input_nodes=input_nodes,
+                layout=layout,
+                num_stages=num_stages,
+                num_warps=num_warps,
+                prefix_args=1,
+                epilogue_fn=epilogue_fn,
+                **cfg,
+            )
+            if choice is not None:
+                choices.append(choice)
+        except Exception:
+            log.debug(
+                "Failed to generate resident-A addmm choice with config %s",
+                cfg, exc_info=True
             )
 
 
@@ -907,10 +2034,22 @@ def add_npu_triton_addmm_choices(
     """
     # bias first (prefix arg), then the two matmul operands named A, B in jinja
     input_nodes = [inp, mat1, mat2]
+    # Derive tiling-relevant attributes from the IR nodes.
+    try:
+        dtype = layout.dtype
+        is_a_trans = _is_col_major(mat1.get_size(), mat1.get_stride())
+        is_b_trans = _is_col_major(mat2.get_size(), mat2.get_stride())
+    except Exception:
+        dtype = None
+        is_a_trans = False
+        is_b_trans = False
     # Use max_block_dim=128 for addmm: the bias epilogue fusion (loading
     # and broadcasting the bias vector) adds register pressure, so 256-dim
     # tiles can cause "cc overflow" on the NPU.
-    configs = _get_npu_mm_configs(m, n, k, max_block_dim=128)
+    configs = _get_npu_mm_configs(
+        m, n, k, max_block_dim=256,
+        dtype=dtype, is_a_trans=is_a_trans, is_b_trans=is_b_trans, has_bias=True,
+    )
 
     # Build the epilogue function that fuses beta*bias + alpha*acc.
     epilogue_fn = addmm_epilogue(layout.dtype, alpha, beta)
@@ -955,6 +2094,22 @@ def is_contiguous_striding(size, stride) -> bool:
         is_contiguous_row_major(stride, size)
         or is_contiguous_col_major(stride, size)
     )
+
+
+def _is_col_major(size, stride) -> bool:
+    """Check if a 2D tensor is stored in column-major (transposed) layout.
+
+    Returns True when stride[0]==1 and stride[1]==size[0], meaning the
+    first dimension is the inner (contiguous) dimension — i.e. the tensor
+    is the transpose of a row-major matrix.
+    """
+    try:
+        return (
+            V.graph.sizevars.statically_known_equals(stride[0], 1)
+            and V.graph.sizevars.statically_known_equals(stride[1], size[0])
+        )
+    except Exception:
+        return False
 
 
 def _register_npu_inductor_mm():
@@ -1042,6 +2197,38 @@ def _register_npu_inductor_mm():
                 )
             except Exception:
                 log.warning("Failed to add NPU persistent mm template choices", exc_info=True)
+
+        # Add NPU resident-B Triton matmul template choices.
+        # When N*K fits in L0B, this template loads B once and streams over
+        # M-tiles, eliminating redundant B reloads.  Best for M>>N, small N*K.
+        if is_nonzero and use_triton_template(layout):
+            try:
+                add_npu_resident_b_mm_choices(
+                    choices, layout, mat1, mat2, m, n, k
+                )
+                log.debug(
+                    "NPU resident-B mm: added choices "
+                    "for mm(%d, %d, %d), total choices now %d",
+                    m, n, k, len(choices),
+                )
+            except Exception:
+                log.warning("Failed to add NPU resident-B mm template choices", exc_info=True)
+
+        # Add NPU resident-A Triton matmul template choices.
+        # When M*K fits in L0A, this template loads A once and streams over
+        # N-tiles, eliminating redundant A reloads.  Best for N>>M, small M*K.
+        if is_nonzero and use_triton_template(layout):
+            try:
+                add_npu_resident_a_mm_choices(
+                    choices, layout, mat1, mat2, m, n, k
+                )
+                log.debug(
+                    "NPU resident-A mm: added choices "
+                    "for mm(%d, %d, %d), total choices now %d",
+                    m, n, k, len(choices),
+                )
+            except Exception:
+                log.warning("Failed to add NPU resident-A mm template choices", exc_info=True)
 
         input_nodes = [mat1, mat2]
 
@@ -1315,6 +2502,85 @@ def _register_npu_inductor_addmm():
                 )
             except Exception:
                 log.warning("Failed to add NPU triton addmm template choices", exc_info=True)
+
+        # Add NPU persistent Triton addmm template choices.
+        # Reuses npu_persistent_mm_template with prefix_args=1 + addmm_epilogue,
+        # enabling the persistent kernel strategy (serial tile processing
+        # with super-grouping) for addmm with bias fused into the epilogue.
+        if is_nonzero and use_triton_template(layout):
+            try:
+                add_npu_persistent_addmm_choices(
+                    choices,
+                    layout,
+                    inp_expanded,
+                    mat1,
+                    mat2,
+                    m,
+                    n,
+                    k,
+                    alpha=alpha,
+                    beta=beta,
+                )
+                log.debug(
+                    "NPU persistent addmm: added persistent addmm template choices "
+                    "for addmm(%d, %d, %d), total choices now %d",
+                    m,
+                    n,
+                    k,
+                    len(choices),
+                )
+            except Exception:
+                log.warning("Failed to add NPU persistent addmm template choices", exc_info=True)
+
+        # Add NPU resident-B Triton addmm template choices.
+        # Same resident-B strategy (full-load B, streaming M) but with the
+        # addmm bias fused into the epilogue via prefix_args=1.
+        if is_nonzero and use_triton_template(layout):
+            try:
+                add_npu_resident_b_addmm_choices(
+                    choices,
+                    layout,
+                    inp_expanded,
+                    mat1,
+                    mat2,
+                    m,
+                    n,
+                    k,
+                    alpha=alpha,
+                    beta=beta,
+                )
+                log.debug(
+                    "NPU resident-B addmm: added choices "
+                    "for addmm(%d, %d, %d), total choices now %d",
+                    m, n, k, len(choices),
+                )
+            except Exception:
+                log.warning("Failed to add NPU resident-B addmm template choices", exc_info=True)
+
+        # Add NPU resident-A Triton addmm template choices.
+        # Same resident-A strategy (full-load A, streaming N) but with the
+        # addmm bias fused into the epilogue via prefix_args=1.
+        if is_nonzero and use_triton_template(layout):
+            try:
+                add_npu_resident_a_addmm_choices(
+                    choices,
+                    layout,
+                    inp_expanded,
+                    mat1,
+                    mat2,
+                    m,
+                    n,
+                    k,
+                    alpha=alpha,
+                    beta=beta,
+                )
+                log.debug(
+                    "NPU resident-A addmm: added choices "
+                    "for addmm(%d, %d, %d), total choices now %d",
+                    m, n, k, len(choices),
+                )
+            except Exception:
+                log.warning("Failed to add NPU resident-A addmm template choices", exc_info=True)
 
         add_aten_fallback = False
         if len(choices) == 0:

@@ -1983,11 +1983,12 @@ def patch_algorithm_selector() -> None:
 
             num_funcs = len(funcs)
             torch_path = os.path.join(os.getcwd(), "profile_results", md5_hash)
-            TOTAL_STEP = 6
+            TOTAL_STEP = 10
             l2_cache_size = 192 * (1 << 20)
             buffer = torch.empty(l2_cache_size // 4, dtype=torch.int, device="npu")
             buffer = buffer.float()
             buffer.sum()
+            buffer.abs_()
             torch.npu.synchronize()  # shake out of any npu error
             with torch_npu.profiler.profile(
                 activities=[torch_npu.profiler.ProfilerActivity.NPU],
@@ -2029,9 +2030,11 @@ def patch_algorithm_selector() -> None:
                     last_df_index = -1
                     for idx, row in key_rows.iterrows():
                         if "absaicore" in row["Name"].lower():
-                            time_cost.append(key_rows.loc[last_df_index + 1:idx - 1, 'Duration(us)'].sum())
+                            key_elements = key_rows.loc[last_df_index + 1:idx - 1, 'Duration(us)']
+                            elements_per_step = len(key_elements) // TOTAL_STEP
+                            time_cost.append(key_elements[elements_per_step:].sum())
                             last_df_index = idx
-                    time_cost = [x / TOTAL_STEP / 1e3 for x in time_cost]
+                    time_cost = [x / (TOTAL_STEP - 1) / 1e3 for x in time_cost]
                     delete_file(torch_path)
                     return time_cost
 

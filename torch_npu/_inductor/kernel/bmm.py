@@ -37,7 +37,7 @@ from .mm_common import (
     MIN_WAVES,
     MMAD_K_FRACTAL,
     MMAD_M_FRACTAL,
-    get_num_cube_cores,
+    NUM_CUBE_CORES,
 )
 
 
@@ -91,7 +91,7 @@ def _split_groups(n_groups: int) -> tuple[int, int, bool]:
     last ones come up short; a group is whole, so coming up short costs a trip
     count and no mask.
     """
-    num_cube_cores = get_num_cube_cores()
+    num_cube_cores = NUM_CUBE_CORES
     exact = next((p for p in range(min(n_groups, num_cube_cores), 0, -1)
                   if n_groups % p == 0), 1)
     programs = min(n_groups, num_cube_cores)
@@ -1134,7 +1134,7 @@ npu_triton_bmm_batched_template = _WideIndexNPUTritonTemplate(
 
 def _wave_use(tasks: int) -> float:
     """Share of the core-cycles a task count spends on tasks rather than idle."""
-    num_cube_cores = get_num_cube_cores()
+    num_cube_cores = NUM_CUBE_CORES
     waves = -(-tasks // num_cube_cores)
     return tasks / (waves * num_cube_cores)
 
@@ -1305,7 +1305,7 @@ def _persistent_config(
         resident = 0
 
     total_tasks = (batch // block_q) * m_tiles * n_groups
-    cores = min(total_tasks, get_num_cube_cores())
+    cores = min(total_tasks, NUM_CUBE_CORES)
     return {
         # The tile one task owns: BLOCK_Q batches by BLOCK_M rows by BLOCK_N
         # columns, reduced BLOCK_K at a time.
@@ -1601,7 +1601,7 @@ def _get_npu_bmm_batched_configs(
     # overlap against; MIN_WAVES groups per core reproduces the knee where
     # overlap stops paying for per-group fixed cost.
     max_q = min(L1_BYTES // l1_per_batch, L0C_BYTES // c_tile)
-    max_q = min(max_q, max(1, batch // (MIN_WAVES * get_num_cube_cores())))
+    max_q = min(max_q, max(1, batch // (MIN_WAVES * NUM_CUBE_CORES)))
 
     # BLOCK_Q must stay a power of two (tl.arange) and divide BATCH evenly,
     # otherwise every block pays for a batch mask and its linalg.fill.
