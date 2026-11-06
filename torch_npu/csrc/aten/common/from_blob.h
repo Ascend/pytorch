@@ -45,7 +45,7 @@ class TensorMaker {
  private:
   explicit TensorMaker(void* data, at::IntArrayRef sizes) noexcept : data_{data}, sizes_{sizes} {}
 
-  std::size_t computeStorageSize() const noexcept;
+  std::size_t computeStorageSize() const;
 
   at::IntArrayRef makeTempSizes() const noexcept;
 
