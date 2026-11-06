@@ -101,10 +101,12 @@ def _apply_common_npu_triton_patches():
     from .autotune_process import patch_tuning_process
     from .runtime import (
         patch_load_cached_autotuning,
+        patch_triton_config_to_hashable,
         patch_triton_heuristics_cached_autotune,
     )
     from .select_algorithm import patch_algorithm_selector
 
+    patch_triton_config_to_hashable()
     patch_triton_heuristics_cached_autotune()
     patch_create_device_properties()
     patch_load_cached_autotuning()

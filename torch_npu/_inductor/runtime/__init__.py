@@ -1,5 +1,6 @@
 import logging
 from .autotune_cache import patch_load_cached_autotuning
+from .runtime_utils import patch_triton_config_to_hashable
 try:
     from .triton_helpers import *  # noqa: F403
 except Exception as e:
