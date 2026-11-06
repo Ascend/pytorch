@@ -18,7 +18,11 @@ from torch.ops import (
 from torch._higher_order_ops.while_loop import while_loop
 from torch._higher_order_ops._invoke_quant import invoke_quant
 from torch._higher_order_ops.associative_scan import associative_scan
-from torch._higher_order_ops.effects import with_effects
+# Keep the upstream lowering of with_effects/_sink_tokens: they are device-agnostic
+# side-effect mechanisms, and make_fallback on them keeps with_effects as a
+# FallbackKernel, which renders the HOP as a repr() literal in generated code and
+# raises SyntaxError (e.g. torch._higher_order_ops.print). See issue #4894.
+# from torch._higher_order_ops.effects import with_effects
 
 from .config import (
     inductor_indirect_memory_mode,
@@ -319,7 +323,9 @@ NPU_EXTRA_FALLBACK_LIST = [
     inductor.resize_storage_bytes_,
     inductor.resize_storage_bytes_.default,
     invoke_quant,
-    prims._sink_tokens.default,
+    # Keep the upstream lowering of _sink_tokens (see issue #4894, and the note
+    # above): fallbacking it also breaks with_effects-based codegen.
+    # prims._sink_tokens.default,
     prims._unsafe_index_put_.default,
     prims.acos,
     prims.acos.default,
@@ -423,7 +429,11 @@ NPU_EXTRA_FALLBACK_LIST = [
     rngprims.philox_rand,
     rngprims.philox_rand.default,
     while_loop,
-    with_effects,
+    # Keep the upstream lowering of with_effects (see issue #4894, and the note
+    # above): upstream decomposes with_effects(token, print, ...) into builtin
+    # print(...) calls during codegen, while a fallback keeps the HOP as a
+    # FallbackKernel and its repr() ends up in the wrapper as a SyntaxError.
+    # with_effects,
 ]
 
 FALLBACK_LIST = NPU_EXTRA_FALLBACK_LIST
