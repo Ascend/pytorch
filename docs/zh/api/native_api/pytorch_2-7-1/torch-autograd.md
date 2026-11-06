@@ -1032,6 +1032,26 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id234 -->
 
+> <font size="3">count</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.profiler_util.Kernel.count](https://pytorch.org/docs/2.7/generated/torch.autograd.profiler_util.Kernel.html#torch.autograd.profiler_util.Kernel.count)
+
+**产品支持情况**：
+
+<!-- npu="910b" id226 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id226 -->
+<!-- npu="A3" id227 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id227 -->
+<!-- npu="950" id228 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id228 -->
+
+</div>
+
 > <font size="3">name</font>
 
 <div style="margin-left: 2em">
