@@ -6,10 +6,13 @@
 > - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.10/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
 
-## Contents
+<div style="border:1px solid #d1d5da;margin:10px 0;padding:16px 20px;background-color:#f3f4f5;border-radius:.25rem">
+<div style="margin: 8px 0"><font size="5"><b>Contents</b></font></div>
 
 - [Utils](#utils)
 - [Submodules](#submodules)
+
+</div>
 
 ## Utils
 
@@ -151,15 +154,15 @@
 
 **Support Status**:
 
-<!-- npu="910b" id13 -->
+<!-- npu="910b" id22 -->
 - <term>Atlas A2 training products</term>: Supported
-<!-- end id13 -->
-<!-- npu="A3" id14 -->
+<!-- end id22 -->
+<!-- npu="A3" id23 -->
 - <term>Atlas A3 training products</term>: Supported
-<!-- end id14 -->
-<!-- npu="950" id15 -->
+<!-- end id23 -->
+<!-- npu="950" id24 -->
 - <term>Ascend 950DT products</term>: Supported
-<!-- end id15 -->
+<!-- end id24 -->
 
 </div>
 
@@ -171,15 +174,15 @@
 
 **Support Status**:
 
-<!-- npu="910b" id10 -->
+<!-- npu="910b" id25 -->
 - <term>Atlas A2 training products</term>: Supported
-<!-- end id10 -->
-<!-- npu="A3" id11 -->
+<!-- end id25 -->
+<!-- npu="A3" id26 -->
 - <term>Atlas A3 training products</term>: Supported
-<!-- end id11 -->
-<!-- npu="950" id12 -->
+<!-- end id26 -->
+<!-- npu="950" id27 -->
 - <term>Ascend 950DT products</term>: Supported
-<!-- end id12 -->
+<!-- end id27 -->
 
 </div>
 
@@ -191,15 +194,15 @@
 
 **Support Status**:
 
-<!-- npu="910b" id13 -->
+<!-- npu="910b" id28 -->
 - <term>Atlas A2 training products</term>: Supported
-<!-- end id13 -->
-<!-- npu="A3" id14 -->
+<!-- end id28 -->
+<!-- npu="A3" id29 -->
 - <term>Atlas A3 training products</term>: Supported
-<!-- end id14 -->
-<!-- npu="950" id15 -->
+<!-- end id29 -->
+<!-- npu="950" id30 -->
 - <term>Ascend 950DT products</term>: Supported
-<!-- end id15 -->
+<!-- end id30 -->
 
 </div>
 
@@ -235,14 +238,14 @@
 
 **Support Status**:
 
-<!-- npu="910b" id13 -->
+<!-- npu="910b" id31 -->
 - <term>Atlas A2 training products</term>: Supported
-<!-- end id13 -->
-<!-- npu="A3" id14 -->
+<!-- end id31 -->
+<!-- npu="A3" id32 -->
 - <term>Atlas A3 training products</term>: Supported
-<!-- end id14 -->
-<!-- npu="950" id15 -->
+<!-- end id32 -->
+<!-- npu="950" id33 -->
 - <term>Ascend 950DT products</term>: Supported
-<!-- end id15 -->
+<!-- end id33 -->
 
 </div>

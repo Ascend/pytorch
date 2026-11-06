@@ -76,15 +76,15 @@
 
 **Support Status**:
 
-<!-- npu="910b" id10 -->
+<!-- npu="910b" id22 -->
 - <term>Atlas A2 training products</term>: Supported
-<!-- end id10 -->
-<!-- npu="A3" id11 -->
+<!-- end id22 -->
+<!-- npu="A3" id23 -->
 - <term>Atlas A3 training products</term>: Supported
-<!-- end id11 -->
-<!-- npu="950" id12 -->
+<!-- end id23 -->
+<!-- npu="950" id24 -->
 - <term>Ascend 950DT products</term>: Supported
-<!-- end id12 -->
+<!-- end id24 -->
 
 </div>
 
@@ -200,15 +200,15 @@
 
 **Support Status**:
 
-<!-- npu="910b" id10 -->
+<!-- npu="910b" id25 -->
 - <term>Atlas A2 training products</term>: Supported
-<!-- end id10 -->
-<!-- npu="A3" id11 -->
+<!-- end id25 -->
+<!-- npu="A3" id26 -->
 - <term>Atlas A3 training products</term>: Supported
-<!-- end id11 -->
-<!-- npu="950" id12 -->
+<!-- end id26 -->
+<!-- npu="950" id27 -->
 - <term>Ascend 950DT products</term>: Supported
-<!-- end id12 -->
+<!-- end id27 -->
 
 </div>
 
@@ -220,15 +220,15 @@
 
 **Support Status**:
 
-<!-- npu="910b" id13 -->
+<!-- npu="910b" id28 -->
 - <term>Atlas A2 training products</term>: Supported
-<!-- end id13 -->
-<!-- npu="A3" id14 -->
+<!-- end id28 -->
+<!-- npu="A3" id29 -->
 - <term>Atlas A3 training products</term>: Supported
-<!-- end id14 -->
-<!-- npu="950" id15 -->
+<!-- end id29 -->
+<!-- npu="950" id30 -->
 - <term>Ascend 950DT products</term>: Supported
-<!-- end id15 -->
+<!-- end id30 -->
 
 </div>
 
@@ -264,14 +264,14 @@
 
 **Support Status**:
 
-<!-- npu="910b" id13 -->
+<!-- npu="910b" id31 -->
 - <term>Atlas A2 training products</term>: Supported
-<!-- end id13 -->
-<!-- npu="A3" id14 -->
+<!-- end id31 -->
+<!-- npu="A3" id32 -->
 - <term>Atlas A3 training products</term>: Supported
-<!-- end id14 -->
-<!-- npu="950" id15 -->
+<!-- end id32 -->
+<!-- npu="950" id33 -->
 - <term>Ascend 950DT products</term>: Supported
-<!-- end id15 -->
+<!-- end id33 -->
 
 </div>
