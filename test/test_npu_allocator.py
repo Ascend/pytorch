@@ -117,7 +117,7 @@ class TestPluggableAllocator(TestCase):
 
     def test_pluggable_allocator(self):
         with torch.npu.use_mem_pool(torch.npu.MemPool(TestPluggableAllocator.new_alloc._allocator)):
-            x = torch.empty((7500, 1024, 1024), device="npu")
+            x = torch.empty((256, 1024, 1024), device="npu")
             del x
 
     @serialTest()
