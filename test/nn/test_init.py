@@ -1,16 +1,23 @@
+"""Additional NPU validation cases for torch.nn.init.dirac_.
+
+Upstream lacks full dtype/layout and parameter-boundary coverage on NPU.
+Valid results use independent expected values; CPU tensors only check invalid-input parity.
+"""
+
 # Owner(s): ["module: nn"]
 import random
 import unittest
 import math
 import string
 from functools import reduce
+from itertools import product
 from operator import mul
 
 import torch
 import torch.nn.init as init
 import torch.nn.functional as F
 import torch_npu
-import torch_npu.testing
+import torch_npu.testing  # noqa: F401 - installs NPU test hooks
 from torch.testing._internal.common_utils import (
     TestCase, TEST_SCIPY, skipIfNoLapack, skipIfTorchDynamo, run_tests
 )
@@ -448,6 +455,197 @@ class TestNNInit(TestCase):
         ):
             fn()
 
+
+
+class TestDiracNPU(TestCase):
+    """Validate NPU values, parameter boundaries, storage and convolution behavior."""
+
+    def _device(self):
+        acc = torch.accelerator.current_accelerator()
+        if acc is None or acc.type != "npu" or not torch.accelerator.is_available():
+            self.skipTest("NPU is required")
+        return torch.device(acc.type, 0)
+
+    def _expected(self, shape, groups, dtype, device):
+        channels_per_group = shape[0] // groups
+        center = tuple(size // 2 for size in shape[2:])
+        values = [
+            int(index[0] % channels_per_group == index[1] and index[2:] == center)
+            for index in product(*(range(size) for size in shape))
+        ]
+        return torch.tensor(values, dtype=dtype, device=device).reshape(shape)
+
+    def _check(self, tensor, groups=1, omit_groups=False):
+        self.assertEqual(tensor.device.type, "npu")
+        pointer = tensor.data_ptr()
+        metadata = (tensor.shape, tensor.stride(), tensor.dtype, tensor.device, tensor.requires_grad)
+        expected = self._expected(tuple(tensor.shape), groups, tensor.dtype, tensor.device)
+        result = init.dirac_(tensor) if omit_groups else init.dirac_(tensor, groups=groups)
+        self.assertIs(result, tensor)
+        self.assertEqual(result.data_ptr(), pointer)
+        self.assertEqual(
+            (result.shape, result.stride(), result.dtype, result.device, result.requires_grad),
+            metadata,
+        )
+        self.assertEqual(expected.device.type, "npu")
+        if result.is_complex():
+            # NPU isclose accepts real components, not complex tensors.
+            self.assertEqual(torch.view_as_real(result), torch.view_as_real(expected), atol=0, rtol=0)
+        else:
+            self.assertEqual(result, expected, atol=0, rtol=0)
+
+    def test_dirac_dtype_groups_and_inplace(self):
+        device = self._device()
+        dtypes = (
+            torch.float16, torch.bfloat16, torch.float32, torch.float64,
+            torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64,
+            torch.bool, torch.complex64, torch.complex128,
+        )
+        for dims, groups, dtype in product((3, 4, 5), (1, 2, 3), dtypes):
+            with self.subTest(dims=dims, groups=groups, dtype=dtype):
+                shape = (groups * 3, 2) + (3,) * (dims - 2)
+                tensor = torch.tensor([2] * math.prod(shape), dtype=dtype, device=device).reshape(shape)
+                self._check(tensor, groups)
+
+    def test_dirac_default_and_kernel_channel_boundaries(self):
+        device = self._device()
+        for dims in (3, 4, 5):
+            shape = (3, 2) + (1,) * (dims - 2)
+            default = torch.full(shape, 2.0, device=device)
+            explicit = torch.full_like(default, 2.0)
+            self._check(default, omit_groups=True)
+            self._check(explicit, groups=1)
+            self.assertEqual(default, explicit, atol=0, rtol=0)
+            kernels = [(size,) * (dims - 2) for size in (1, 2, 3)]
+            if dims > 3:
+                kernels.append(tuple(2 + axis for axis in range(dims - 2)))
+            for groups, channels, kernel in product(
+                (1, 2, 3), ((1, 1), (1, 3), (3, 1), (2, 2)), kernels
+            ):
+                with self.subTest(dims=dims, groups=groups, channels=channels, kernel=kernel):
+                    shape = (groups * channels[0], channels[1]) + kernel
+                    self._check(torch.full(shape, 2.0, device=device), groups)
+        self._check(torch.full((4, 2, 3), 2.0, device=device), groups=True)
+
+    def test_dirac_noncontiguous_requires_grad(self):
+        device = self._device()
+        for dims, groups, noncontiguous, requires_grad in product(
+            (3, 4, 5), (1, 2, 3), (False, True), (False, True)
+        ):
+            with self.subTest(
+                dims=dims, groups=groups,
+                noncontiguous=noncontiguous, requires_grad=requires_grad,
+            ):
+                shape = (6, 3) + (3,) * (dims - 2)
+                if noncontiguous:
+                    base_shape = shape[:-1] + (shape[-1] * 2,)
+                    base = torch.full(base_shape, 2.0, device=device, requires_grad=requires_grad)
+                    tensor = base[..., ::2]
+                    self.assertFalse(tensor.is_contiguous())
+                else:
+                    tensor = torch.full(shape, 2.0, device=device, requires_grad=requires_grad)
+                    self.assertTrue(tensor.is_leaf)
+                self._check(tensor, groups)
+
+    def test_dirac_empty_channels(self):
+        device = self._device()
+        for dims, groups, kernel in product((3, 4, 5), (1, 2, 3), (0, 3)):
+            for channels in ((0, 2), (groups * 2, 0), (0, 0)):
+                shape = channels + (kernel,) * (dims - 2)
+                with self.subTest(shape=shape, groups=groups):
+                    tensor = torch.empty(shape, device=device)
+                    self._check(tensor, groups)
+                    self.assertEqual(tensor.numel(), 0)
+
+    def test_dirac_invalid_groups_match_cpu(self):
+        device = self._device()
+        shape = (4, 2, 3)
+        for groups in (3, 8, 2**64, 0, False, None, 1.5, "2", [], {}, (), 1 + 0j, -1, -2, -3):
+            with self.subTest(groups=groups):
+                reference = torch.full(shape, 2.0, device="cpu")
+                tensor = torch.full(shape, 2.0, device=device)
+                try:
+                    init.dirac_(reference, groups)
+                except (TypeError, ValueError, ZeroDivisionError) as error:
+                    expected_error = type(error)
+                else:
+                    self.assertIn(groups, (-1, -2))
+                    self.assertEqual(reference, torch.zeros_like(reference), atol=0, rtol=0)
+                    self.assertIs(init.dirac_(tensor, groups), tensor)
+                    self.assertEqual(tensor, torch.zeros_like(tensor), atol=0, rtol=0)
+                    continue
+                with self.assertRaises(expected_error):
+                    init.dirac_(tensor, groups)
+
+    def test_dirac_invalid_tensor_arguments(self):
+        device = self._device()
+        shapes = [
+            (), (2,), (2, 2), (2, 2, 2, 2, 2, 2),
+            (2, 2, 0), (2, 2, 3, 0), (2, 2, 3, 0, 3),
+        ]
+        for shape in shapes:
+            with self.subTest(shape=shape):
+                reference = torch.empty(shape, device="cpu")
+                tensor = torch.empty(shape, device=device)
+                try:
+                    init.dirac_(reference)
+                except (ValueError, IndexError) as error:
+                    expected_error = type(error)
+                else:
+                    self.fail("Invalid tensor unexpectedly succeeded on CPU")
+                with self.assertRaises(expected_error):
+                    init.dirac_(tensor)
+        for value in (None, 1, 1.5, True, [], (), {}, "tensor"):
+            with self.subTest(value=value):
+                with self.assertRaises(AttributeError):
+                    init.dirac_(value)
+        tensor = torch.empty(3, 2, 3, device=device)
+        for call in (
+            lambda: init.dirac_(), lambda: init.dirac_(tensor, 1, 1),
+            lambda: init.dirac_(tensor, unknown=1),
+        ):
+            with self.assertRaises(TypeError):
+                call()
+
+    def test_dirac_convolution_identity_and_input_grad(self):
+        device = self._device()
+        previous_hf32 = torch.npu.conv.allow_hf32
+        try:
+            torch.npu.conv.allow_hf32 = False
+            for dims, groups, channels in product(
+                (3, 4, 5), (1, 2, 3), ((1, 2), (2, 2), (3, 2))
+            ):
+                with self.subTest(dims=dims, groups=groups, channels=channels):
+                    out_channels, in_channels = channels
+                    shape = (1, groups * in_channels) + (4,) * (dims - 2)
+                    size = math.prod(shape)
+                    inputs = (
+                        torch.arange(size, device=device, dtype=torch.float32).reshape(shape) / 100
+                    ).requires_grad_()
+                    weight_shape = (groups * out_channels, in_channels) + (3,) * (dims - 2)
+                    weights = torch.full(weight_shape, 2.0, device=device)
+                    self._check(weights, groups)
+                    conv = (F.conv1d, F.conv2d, F.conv3d)[dims - 3]
+                    output = conv(inputs, weights, padding=1, groups=groups)
+                    preserved = min(out_channels, in_channels)
+                    parts = []
+                    for group in range(groups):
+                        part = inputs[:, group * in_channels:group * in_channels + preserved]
+                        if out_channels > preserved:
+                            zeros = inputs.new_zeros((1, out_channels - preserved) + shape[2:])
+                            part = torch.cat((part, zeros), dim=1)
+                        parts.append(part)
+                    expected = torch.cat(parts, dim=1)
+                    self.assertEqual(output.device.type, "npu")
+                    self.assertEqual(output, expected, atol=1e-5, rtol=1e-5)
+                    output.sum().backward()
+                    expected_grad = torch.zeros_like(inputs)
+                    for group in range(groups):
+                        expected_grad[:, group * in_channels:group * in_channels + preserved].fill_(1)
+                    self.assertEqual(inputs.grad.device.type, "npu")
+                    self.assertEqual(inputs.grad, expected_grad, atol=0, rtol=0)
+        finally:
+            torch.npu.conv.allow_hf32 = previous_hf32
 
 if __name__ == '__main__':
     run_tests()
