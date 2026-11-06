@@ -365,6 +365,7 @@ void NPUGraph::reset()
         if (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
             NPU_CHECK_WARN(c10_npu::acl::AclmdlRIDestroy(model_ri_));
         }
+        model_ri_ = nullptr;
         has_graph_exec_ = false;
     }
 }
@@ -375,6 +376,19 @@ MempoolId_t NPUGraph::pool()
     TORCH_CHECK(has_graph_exec_,
                 "Called NPUGraph::pool() without a preceding successful capture.");
     return mempool_id_;
+}
+
+bool NPUGraph::has_graph_exec() const
+{
+    return has_graph_exec_;
+}
+
+uintptr_t NPUGraph::raw_npu_graph_exec() const
+{
+    TORCH_CHECK(has_graph_exec_ && model_ri_ != nullptr,
+                "Called NPUGraph::raw_npu_graph_exec without a preceding successful capture.",
+                PTA_ERROR(ErrCode::PARAM));
+    return reinterpret_cast<uintptr_t>(model_ri_);
 }
 
 NPUGraph::~NPUGraph()
