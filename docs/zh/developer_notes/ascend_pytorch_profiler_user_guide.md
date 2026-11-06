@@ -2017,14 +2017,15 @@ PCIe带宽数据。
 |--|--|--|
 |deviceId|INTEGER|设备ID|
 |step|TEXT|step编号，例：12|
-|computing|NUMERIC|计算的时间，单位ms|
-|communication|NUMERIC|通信的时间，单位ms|
-|overlapped|NUMERIC|同时进行计算和通信的时间，单位ms|
-|communication_not_overlapped|NUMERIC|纯用于通信的时间，单位ms|
-|free|NUMERIC|空闲的时间，单位ms|
-|stage|NUMERIC|step内除去接收数据的时间，单位ms|
-|bubble|NUMERIC|step内用于接收数据的时间，单位ms|
-|communication_not_overlapped_and_exclude_receive|NUMERIC|纯用于通信的时间减去用于接收数据的时间，单位ms|
+|computing|NUMERIC|计算的时间，单位us|
+|communication|NUMERIC|通信的时间，单位us|
+|overlapped|NUMERIC|同时进行计算和通信的时间，单位us|
+|communication_not_overlapped|NUMERIC|纯用于通信的时间，单位us|
+|free|NUMERIC|空闲的时间，单位us|
+|stage|NUMERIC|step内除去接收数据的时间，单位us|
+|bubble|NUMERIC|step内用于接收数据的时间，单位us|
+|communication_not_overlapped_and_exclude_receive|NUMERIC|纯用于通信的时间减去用于接收数据的时间，单位us|
+|preparing|NUMERIC|step的准备时间，即从框架侧step开始到首个Device侧任务开始之间的时间，单位us|
 
 ## 附录<a id="附录"></a>
 

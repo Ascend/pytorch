@@ -2017,14 +2017,15 @@ This file is a table structure file. It is recommended to view it with the MindS
 |--|--|--|
 |deviceId|INTEGER|Device ID|
 |step|TEXT|Step number, for example: 12|
-|computing|NUMERIC|Computation time, in ms|
-|communication|NUMERIC|Communication time, in ms|
-|overlapped|NUMERIC|Time for simultaneous computation and communication, in ms|
-|communication_not_overlapped|NUMERIC|Time used purely for communication, in ms|
-|free|NUMERIC|Idle time, in ms|
-|stage|NUMERIC|Time within a step excluding data receiving time, in ms|
-|bubble|NUMERIC|Time used for data receiving within a step, in ms|
-|communication_not_overlapped_and_exclude_receive|NUMERIC|Time used purely for communication minus the time used for data receiving, in ms|
+|computing|NUMERIC|Computation time, in us|
+|communication|NUMERIC|Communication time, in us|
+|overlapped|NUMERIC|Time for simultaneous computation and communication, in us|
+|communication_not_overlapped|NUMERIC|Time used purely for communication, in us|
+|free|NUMERIC|Idle time, in us|
+|stage|NUMERIC|Time within a step excluding data receiving time, in us|
+|bubble|NUMERIC|Time used for data receiving within a step, in us|
+|communication_not_overlapped_and_exclude_receive|NUMERIC|Time used purely for communication minus the time used for data receiving, in us|
+|preparing|NUMERIC|Preparation time of a step, that is, the time from the start of the framework-side step to the start of the first device-side task, in us|
 
 ## Appendix <a id="appendix"></a>
 
