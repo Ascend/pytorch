@@ -20,6 +20,24 @@ MMAD_K_FRACTAL = 16
 # budgeted at four bytes per element while the operand tiles scale with dtype.
 ACCUM_BYTES = 4
 
+# Half of L0C is the budget a tile is sized against: the other half is the
+# second accumulator buffer, which is what lets the next tile's mmad run under
+# this one's fixpipe.  A tile may claim the whole of L0C instead by asking the
+# backend not to buffer it, at the cost of that overlap.
+L0C_DOUBLE_BUFFERED_BYTES = L0C_BYTES // 2
+
+# The compile option naming how a kernel wants L0C buffered, and its two
+# values.  It has to be a compile option and not a tl.constexpr: a key the
+# template does not declare never reaches bishengir-compile.
+L0C_BUFFERING_KEY = "limit_auto_multi_buffer_of_local_buffer"
+L0C_DOUBLE_BUFFERED = "no-limit"
+L0C_SINGLE_BUFFERED = "no-l0c"
+
+# Operand element size assumed when the dtype is unknown.  Two bytes is the
+# conservative choice: it is what the capacity checks are tuned at, and
+# guessing smaller would admit plans that overrun L1 on the device.
+DEFAULT_ELEM_BYTES = 2
+
 # Resolved the same way the rest of the NPU inductor backend resolves it, so a
 # non-28-core part and an NPU_DEVICE_LIMIT override are both honoured.
 NUM_CUBE_CORES = num_cube_core
