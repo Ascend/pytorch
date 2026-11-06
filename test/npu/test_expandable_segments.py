@@ -5,7 +5,7 @@ import unittest
 import torch
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch.testing._internal.common_utils import TestCase, run_tests, TEST_PRIVATEUSE1
+from torch.testing._internal.common_utils import TEST_PRIVATEUSE1
 
 os.environ["PYTORCH_NPU_ALLOC_CONF"] = "expandable_segments:True"
 
@@ -99,6 +99,39 @@ class Test_expandable_segments(TestCase):
         reconstructed_tensors1 = [reconstruct_from_tensor_metadata(metadata) for metadata in output1_metadata]
         output1_new_storage = [output.untyped_storage()._cdata for output in reconstructed_tensors1]
         torch_npu._C._npu_setCheckpointPoolState(com_device, graph1_state, [], output1_new_storage)
+
+    def test_registration_counter_with_expandable_segments(self):
+        """Expandable segments must assign registration_counter >= 0 in snapshot.
+
+        When expandable_segments is enabled, segments created via
+        ExpandableSegment must also get a registration_counter from the
+        global counter, just like npuMalloc-backed segments.
+        """
+        gc.collect()
+        torch_npu.npu.empty_cache()
+        x = torch.randn(4 * 1024 * 1024, device="npu")  # 16 MB
+        try:
+            ss = torch_npu.npu.memory._snapshot()
+            self.assertGreater(len(ss["segments"]), 0)
+            found_expandable_with_counter = False
+            for seg in ss["segments"]:
+                self.assertIn("registration_counter", seg,
+                              "registration_counter missing from segment")
+                if seg["registration_counter"] < 0:
+                    # Workspace-allocator segments are not part of mempool
+                    # registration and legitimately report -1.
+                    continue
+                self.assertGreaterEqual(seg["registration_counter"], 0,
+                                        "registration_counter should be >= 0")
+                if seg.get("is_expandable", False):
+                    found_expandable_with_counter = True
+            # With expandable_segments:True, at least one segment should be expandable
+            self.assertTrue(found_expandable_with_counter,
+                            "expected at least one expandable segment with registration_counter")
+        finally:
+            del x
+            gc.collect()
+            torch_npu.npu.empty_cache()
 
 
 if __name__ == '__main__':

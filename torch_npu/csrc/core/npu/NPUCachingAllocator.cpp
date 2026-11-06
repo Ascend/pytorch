@@ -62,6 +62,9 @@ namespace c10_npu {
 namespace NPUCachingAllocator {
 C10_DEFINE_REGISTRY(FreeNPUMemoryCallbacksRegistry, FreeMemoryCallback);
 
+// counter to track order for Mempool Registration
+static std::atomic<int32_t> registration_counter_global{-1};
+
 //
 // Yet another caching allocator for NPU device allocations.
 //
@@ -254,6 +257,7 @@ struct Block {
     int event_count;        // number of outstanding NPU events
     int gc_count{ 0 };      // counter for prioritizing older / less useful blocks for
                             // garbage collection
+    int32_t registration_counter{ -1 }; // counter to track order for Mempool Registration
     ExpandableSegment *expandable_segment_{ nullptr };
     bool is_safe{ true };
     void* hccl_work_ptr{ nullptr };
@@ -756,6 +760,9 @@ static bool BlockComparatorSize(const Block *a, const Block *b)
     }
     if (a->size != b->size) {
         return a->size < b->size;
+    }
+    if (a->registration_counter != b->registration_counter) {
+        return a->registration_counter < b->registration_counter;
     }
     return reinterpret_cast<uintptr_t>(a->ptr) < reinterpret_cast<uintptr_t>(b->ptr);
 }
@@ -1413,6 +1420,7 @@ public:
 
                 Block *block = new Block(params.device(), params.stream(), size - offset_size, params.pool, align_ptr);
                 block->expandable_segment_ = remaining->expandable_segment_;
+                block->registration_counter = remaining->registration_counter;
                 block->next = remaining->next;
                 if (block->next) {
                     block->next->prev = block;
@@ -1452,6 +1460,7 @@ public:
 
             block = new Block(device, stream, size, pool, block->ptr);
             block->expandable_segment_ = remaining->expandable_segment_;
+            block->registration_counter = remaining->registration_counter;
             block->prev = remaining->prev;
             if (block->prev) {
                 block->prev->next = block;
@@ -2105,6 +2114,7 @@ public:
             result.emplace_back();
             SegmentInfo &segment_info = result.back();
             segment_info.device = head_block->device;
+            segment_info.registration_counter = head_block->registration_counter;
             segment_info.address = reinterpret_cast<int64_t>(head_block->ptr);
             segment_info.stream = head_block->stream;
             segment_info.is_large = (!head_block->pool->is_small);
@@ -2401,6 +2411,7 @@ private:
         }
         candidate->mapped = false;
         candidate->expandable_segment_ = es;
+        candidate->registration_counter = registration_counter_global.fetch_add(1, std::memory_order_relaxed) + 1;
         pool->unmapped.insert(candidate);
         return candidate;
     }
@@ -2429,6 +2440,7 @@ private:
                 static_cast<char *>(to_map->ptr) + mapped_range.size);
             remaining->mapped = false;
             remaining->expandable_segment_ = to_map->expandable_segment_;
+            remaining->registration_counter = to_map->registration_counter;
             remaining->splice(to_map, to_map->next);
             pool.unmapped.insert(remaining);
             to_map->size = mapped_range.size;
@@ -2861,6 +2873,7 @@ private:
 
         total_allocated_memory += size;
         p.block = new Block(p.device(), p.stream(), size, p.pool, (char *)ptr);
+        p.block->registration_counter = registration_counter_global.fetch_add(1, std::memory_order_relaxed) + 1;
         for_each_selected_stat_type(p.stat_types, [&](size_t stat_type) {
             update_stat(stats.segment[stat_type], 1);
             update_stat(stats.reserved_bytes[stat_type], size);
@@ -3068,6 +3081,7 @@ private:
             // prev? -> before_free -> block
             Block *before_free = new Block(block->device, block->stream, before_size, block->pool, block->ptr);
             before_free->expandable_segment_ = block->expandable_segment_;
+            before_free->registration_counter = block->registration_counter;
             before_free->splice(block->prev, block);
             block->pool->blocks.insert(before_free);
         }
@@ -3078,6 +3092,7 @@ private:
             Block *after_free = new Block(block->device, block->stream, after_size, block->pool,
                 static_cast<char *>(unmapped.ptr) + unmapped.size);
             after_free->expandable_segment_ = block->expandable_segment_;
+            after_free->registration_counter = block->registration_counter;
             after_free->splice(block, block->next);
             block->pool->blocks.insert(after_free);
         }

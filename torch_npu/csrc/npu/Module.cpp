@@ -1536,6 +1536,7 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs) {
   py::str cpp_frames_s = "cpp_frames";
   py::str blocks_s = "blocks";
   py::str is_expandable_s = "is_expandable";
+  py::str registration_counter_s = "registration_counter";
   py::str frames_s = "frames";
 
   py::list empty_frames;
@@ -1567,6 +1568,7 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs) {
     segmentDict[segment_pool_id] = segmentInfo.owner_private_pool_id;
     segmentDict[segment_type_s] = (segmentInfo.is_large ? large_s : small_s);
     segmentDict[is_expandable_s] = segmentInfo.is_expandable;
+    segmentDict[registration_counter_s] = segmentInfo.registration_counter;
     add_frame_key(segmentDict, segmentInfo.context_when_allocated);
 
     auto address = segmentInfo.address;
