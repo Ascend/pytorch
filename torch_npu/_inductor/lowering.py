@@ -473,7 +473,7 @@ def _register_npu_inductor_fallbacks():
 
         if dtype.is_complex or x.get_dtype().is_complex:
             if x.get_size():
-                dst = full_like(x, 0, dtype=dtype)
+                dst = lowering.empty_like(x, dtype=dtype)
                 ir.InplaceCopyFallback.create(dst, x)
                 return dst
             return fallback_handler(
