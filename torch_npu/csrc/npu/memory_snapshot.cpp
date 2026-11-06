@@ -187,6 +187,7 @@ std::string _memory_snapshot_pickled()
     c10::IValue frames_s = "frames";
     c10::IValue blocks_s = "blocks";
     c10::IValue is_expandable_s = "is_expandable";
+    c10::IValue registration_counter_s = "registration_counter";
 
     auto empty_frames = new_list();
 
@@ -217,6 +218,7 @@ std::string _memory_snapshot_pickled()
         segmentDict.insert(segment_pool_id,
                            std::tuple<int64_t, int64_t>(segmentInfo.owner_private_pool_id));
         segmentDict.insert(is_expandable_s, segmentInfo.is_expandable);
+        segmentDict.insert(registration_counter_s, segmentInfo.registration_counter);
 
         add_frame_key(segmentDict, segmentInfo.context_when_allocated);
 
