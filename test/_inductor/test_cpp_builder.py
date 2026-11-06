@@ -5,14 +5,6 @@ from torch_npu._inductor import cpp_builder as npu_cpp_builder
 
 
 class TestCppBuilder(TestCase):
-    def test_legacy_patch_entry_point(self):
-        with mock.patch(
-            "torch_npu._compat.inductor.patch_npu_cpp_device_options"
-        ) as patch_npu_cpp_device_options:
-            npu_cpp_builder.patch_get_cpp_torch_device_options()
-
-        patch_npu_cpp_device_options.assert_called_once_with()
-
     def test_npu_cpp_options(self):
         with mock.patch.object(
             npu_cpp_builder, "include_paths", return_value=["/mock/include"]

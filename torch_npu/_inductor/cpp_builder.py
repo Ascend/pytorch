@@ -76,10 +76,3 @@ def library_paths(npu: bool = False) -> list[str]:
         paths.append(cann_lib_path)
 
     return paths
-
-
-def patch_get_cpp_torch_device_options():
-    # Keep the legacy entry point used by AscendC; delegate to the compat layer.
-    from torch_npu._compat.inductor import patch_npu_cpp_device_options
-
-    patch_npu_cpp_device_options()
