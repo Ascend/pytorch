@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
-> - 部分API虽在[PyTorch社区文档](https://pytorch.org/docs/2.13/)中存在，但未收录于本支持清单。此类API尚未验证，请谨慎使用。我们将持续进行验证工作，并在验证完成后更新文档。
+> - 本支持清单的范围以[PyTorch社区文档](https://pytorch.org/docs/2.13/)为准，社区文档中未列出的接口不在本清单范围内；已在社区文档中存在但未收录于本清单的API尚未验证，请谨慎使用，我们将在验证完成后更新文档。
 > - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
 > - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://pytorch.org/docs/2.13/storage.html)。
 
@@ -874,629 +874,6 @@
 
 ## Legacy Typed Storage
 
-### <code><i>class</i></code> torch.DoubleStorage
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.DoubleStorage](https://pytorch.org/docs/2.13/storage.html#torch.DoubleStorage)
-
-**产品支持情况**：
-
-<!-- npu="910b" id142 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id142 -->
-<!-- npu="A3" id143 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id143 -->
-<!-- npu="950" id144 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id144 -->
-
-> <font size="3">dtype()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.DoubleStorage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.DoubleStorage.dtype)
-
-**产品支持情况**：
-
-<!-- npu="910b" id145 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id145 -->
-<!-- npu="A3" id146 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id146 -->
-<!-- npu="950" id147 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id147 -->
-
-</div>
-
-</div>
-
-### <code><i>class</i></code> torch.HalfStorage
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.HalfStorage](https://pytorch.org/docs/2.13/storage.html#torch.HalfStorage)
-
-**产品支持情况**：
-
-<!-- npu="910b" id148 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id148 -->
-<!-- npu="A3" id149 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id149 -->
-<!-- npu="950" id150 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id150 -->
-
-> <font size="3">dtype()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.HalfStorage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.HalfStorage.dtype)
-
-**产品支持情况**：
-
-<!-- npu="910b" id151 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id151 -->
-<!-- npu="A3" id152 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id152 -->
-<!-- npu="950" id153 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id153 -->
-
-</div>
-
-</div>
-
-### <code><i>class</i></code> torch.LongStorage
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.LongStorage](https://pytorch.org/docs/2.13/storage.html#torch.LongStorage)
-
-**产品支持情况**：
-
-<!-- npu="910b" id154 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id154 -->
-<!-- npu="A3" id155 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id155 -->
-<!-- npu="950" id156 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id156 -->
-
-> <font size="3">dtype()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.LongStorage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.LongStorage.dtype)
-
-**产品支持情况**：
-
-<!-- npu="910b" id157 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id157 -->
-<!-- npu="A3" id158 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id158 -->
-<!-- npu="950" id159 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id159 -->
-
-</div>
-
-</div>
-
-### <code><i>class</i></code> torch.ShortStorage
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.ShortStorage](https://pytorch.org/docs/2.13/storage.html#torch.ShortStorage)
-
-**产品支持情况**：
-
-<!-- npu="910b" id160 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id160 -->
-<!-- npu="A3" id161 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id161 -->
-<!-- npu="950" id162 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id162 -->
-
-> <font size="3">dtype()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.ShortStorage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.ShortStorage.dtype)
-
-**产品支持情况**：
-
-<!-- npu="910b" id163 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id163 -->
-<!-- npu="A3" id164 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id164 -->
-<!-- npu="950" id165 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id165 -->
-
-</div>
-
-</div>
-
-### <code><i>class</i></code> torch.CharStorage
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.CharStorage](https://pytorch.org/docs/2.13/storage.html#torch.CharStorage)
-
-**产品支持情况**：
-
-<!-- npu="910b" id166 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id166 -->
-<!-- npu="A3" id167 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id167 -->
-<!-- npu="950" id168 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id168 -->
-
-> <font size="3">dtype()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.CharStorage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.CharStorage.dtype)
-
-**产品支持情况**：
-
-<!-- npu="910b" id169 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id169 -->
-<!-- npu="A3" id170 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id170 -->
-<!-- npu="950" id171 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id171 -->
-
-</div>
-
-</div>
-
-### <code><i>class</i></code> torch.ByteStorage
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.ByteStorage](https://pytorch.org/docs/2.13/storage.html#torch.ByteStorage)
-
-**产品支持情况**：
-
-<!-- npu="910b" id172 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id172 -->
-<!-- npu="A3" id173 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id173 -->
-<!-- npu="950" id174 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id174 -->
-
-> <font size="3">dtype()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.ByteStorage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.ByteStorage.dtype)
-
-**产品支持情况**：
-
-<!-- npu="910b" id175 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id175 -->
-<!-- npu="A3" id176 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id176 -->
-<!-- npu="950" id177 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id177 -->
-
-</div>
-
-</div>
-
-### <code><i>class</i></code> torch.BoolStorage
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.BoolStorage](https://pytorch.org/docs/2.13/storage.html#torch.BoolStorage)
-
-**产品支持情况**：
-
-<!-- npu="910b" id178 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id178 -->
-<!-- npu="A3" id179 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id179 -->
-<!-- npu="950" id180 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id180 -->
-
-> <font size="3">dtype()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.BoolStorage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.BoolStorage.dtype)
-
-**产品支持情况**：
-
-<!-- npu="910b" id181 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id181 -->
-<!-- npu="A3" id182 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id182 -->
-<!-- npu="950" id183 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id183 -->
-
-</div>
-
-</div>
-
-<!-- npu="910b,A3" id430 -->
-<!-- npu="910b,A3" id394 -->
-### <code><i>class</i></code> torch.BFloat16Storage
-<!-- end id394 -->
-
-<div style="margin-left: 2em">
-
-<!-- npu="910b,A3" id395 -->
-**原生文档**：[torch.BFloat16Storage](https://pytorch.org/docs/2.13/storage.html#torch.BFloat16Storage)
-
-**产品支持情况**：
-<!-- end id395 -->
-
-<!-- npu="910b" id184 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id184 -->
-<!-- npu="A3" id185 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id185 -->
-
-<!-- npu="910b,A3" id396 -->
-> <font size="3">dtype()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.BFloat16Storage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.BFloat16Storage.dtype)
-
-**产品支持情况**：
-<!-- end id396 -->
-
-<!-- npu="910b" id187 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id187 -->
-<!-- npu="A3" id188 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id188 -->
-
-<!-- npu="910b,A3" id397 -->
-</div>
-<!-- end id397 -->
-
-</div>
-<!-- end id430 -->
-
-<!-- npu="910b,A3" id431 -->
-<!-- npu="910b,A3" id398 -->
-### <code><i>class</i></code> torch.ComplexDoubleStorage
-<!-- end id398 -->
-
-<div style="margin-left: 2em">
-
-<!-- npu="910b,A3" id399 -->
-**原生文档**：[torch.ComplexDoubleStorage](https://pytorch.org/docs/2.13/storage.html#torch.ComplexDoubleStorage)
-
-**产品支持情况**：
-<!-- end id399 -->
-
-<!-- npu="910b" id190 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id190 -->
-<!-- npu="A3" id191 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id191 -->
-
-<!-- npu="910b,A3" id400 -->
-> <font size="3">dtype()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.ComplexDoubleStorage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.ComplexDoubleStorage.dtype)
-
-**产品支持情况**：
-<!-- end id400 -->
-
-<!-- npu="910b" id193 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id193 -->
-<!-- npu="A3" id194 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id194 -->
-
-<!-- npu="910b,A3" id401 -->
-</div>
-<!-- end id401 -->
-
-</div>
-<!-- end id431 -->
-
-<!-- npu="910b,A3" id432 -->
-<!-- npu="910b,A3" id402 -->
-### <code><i>class</i></code> torch.ComplexFloatStorage
-<!-- end id402 -->
-
-<div style="margin-left: 2em">
-
-<!-- npu="910b,A3" id403 -->
-**原生文档**：[torch.ComplexFloatStorage](https://pytorch.org/docs/2.13/storage.html#torch.ComplexFloatStorage)
-
-**产品支持情况**：
-<!-- end id403 -->
-
-<!-- npu="910b" id196 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id196 -->
-<!-- npu="A3" id197 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id197 -->
-
-<!-- npu="910b,A3" id404 -->
-> <font size="3">dtype()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.ComplexFloatStorage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.ComplexFloatStorage.dtype)
-
-**产品支持情况**：
-<!-- end id404 -->
-
-<!-- npu="910b" id199 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id199 -->
-<!-- npu="A3" id200 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id200 -->
-
-<!-- npu="910b,A3" id405 -->
-</div>
-<!-- end id405 -->
-
-</div>
-<!-- end id432 -->
-
-<!-- npu="910b,A3" id433 -->
-<!-- npu="910b,A3" id406 -->
-### <code><i>class</i></code> torch.QUInt8Storage
-<!-- end id406 -->
-
-<div style="margin-left: 2em">
-
-<!-- npu="910b,A3" id407 -->
-**原生文档**：[torch.QUInt8Storage](https://pytorch.org/docs/2.13/storage.html#torch.QUInt8Storage)
-
-**产品支持情况**：
-<!-- end id407 -->
-
-<!-- npu="910b" id202 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id202 -->
-<!-- npu="A3" id203 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id203 -->
-
-<!-- npu="910b,A3" id408 -->
-> <font size="3">dtype()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.QUInt8Storage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.QUInt8Storage.dtype)
-
-**产品支持情况**：
-<!-- end id408 -->
-
-<!-- npu="910b" id205 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id205 -->
-<!-- npu="A3" id206 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id206 -->
-
-<!-- npu="910b,A3" id409 -->
-</div>
-<!-- end id409 -->
-
-**限制与说明**： 支持uint8
-
-</div>
-<!-- end id433 -->
-
-<!-- npu="910b,A3" id434 -->
-<!-- npu="910b,A3" id410 -->
-### <code><i>class</i></code> torch.QInt8Storage
-<!-- end id410 -->
-
-<div style="margin-left: 2em">
-
-<!-- npu="910b,A3" id411 -->
-**原生文档**：[torch.QInt8Storage](https://pytorch.org/docs/2.13/storage.html#torch.QInt8Storage)
-
-**产品支持情况**：
-<!-- end id411 -->
-
-<!-- npu="910b" id208 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id208 -->
-<!-- npu="A3" id209 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id209 -->
-
-<!-- npu="910b,A3" id412 -->
-> <font size="3">dtype()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.QInt8Storage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.QInt8Storage.dtype)
-
-**产品支持情况**：
-<!-- end id412 -->
-
-<!-- npu="910b" id211 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id211 -->
-<!-- npu="A3" id212 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id212 -->
-
-<!-- npu="910b,A3" id413 -->
-**限制与说明**： `self`仅支持int8
-
-</div>
-<!-- end id413 -->
-
-</div>
-<!-- end id434 -->
-
-<!-- npu="910b,A3" id435 -->
-### <code><i>class</i></code> torch.QInt32Storage
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.QInt32Storage](https://pytorch.org/docs/2.13/storage.html#torch.QInt32Storage)
-
-<!-- npu="910b,A3" id414 -->
-> <font size="3">dtype()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.QInt32Storage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.QInt32Storage.dtype)
-
-**产品支持情况**：
-<!-- end id414 -->
-
-<!-- npu="910b" id217 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id217 -->
-<!-- npu="A3" id218 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id218 -->
-
-<!-- npu="910b,A3" id415 -->
-**限制与说明**： `self`仅支持int32
-
-</div>
-<!-- end id415 -->
-
-</div>
-<!-- end id435 -->
-
-### <code><i>class</i></code> torch.QUInt4x2Storage
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.QUInt4x2Storage](https://pytorch.org/docs/2.13/storage.html#torch.QUInt4x2Storage)
-
-**产品支持情况**：
-
-<!-- npu="910b" id220 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id220 -->
-<!-- npu="A3" id221 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id221 -->
-<!-- npu="950" id222 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id222 -->
-
-<!-- npu="910b,A3" id416 -->
-> <font size="3">dtype()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.QUInt4x2Storage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.QUInt4x2Storage.dtype)
-
-**产品支持情况**：
-<!-- end id416 -->
-
-<!-- npu="910b" id223 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id223 -->
-<!-- npu="A3" id224 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id224 -->
-
-<!-- npu="910b,A3" id417 -->
-**限制与说明**： `self`仅支持uint8
-
-</div>
-<!-- end id417 -->
-
-</div>
-
-### <code><i>class</i></code> torch.QUInt2x4Storage
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.QUInt2x4Storage](https://pytorch.org/docs/2.13/storage.html#torch.QUInt2x4Storage)
-
-**产品支持情况**：
-
-<!-- npu="910b" id226 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id226 -->
-<!-- npu="A3" id227 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id227 -->
-<!-- npu="950" id228 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id228 -->
-
-<!-- npu="910b,A3" id418 -->
-> <font size="3">dtype()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.QUInt2x4Storage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.QUInt2x4Storage.dtype)
-
-**产品支持情况**：
-<!-- end id418 -->
-
-<!-- npu="910b" id229 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id229 -->
-<!-- npu="A3" id230 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id230 -->
-
-<!-- npu="910b,A3" id419 -->
-**限制与说明**： `self`仅支持uint8
-
-</div>
-<!-- end id419 -->
-
-</div>
-
 ### <code><i>class</i></code> torch.TypedStorage
 
 <div style="margin-left: 2em">
@@ -2282,6 +1659,46 @@
 
 </div>
 
+### <code><i>class</i></code> torch.DoubleStorage
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.DoubleStorage](https://pytorch.org/docs/2.13/storage.html#torch.DoubleStorage)
+
+**产品支持情况**：
+
+<!-- npu="910b" id142 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id142 -->
+<!-- npu="A3" id143 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id143 -->
+<!-- npu="950" id144 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id144 -->
+
+> <font size="3">dtype()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.DoubleStorage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.DoubleStorage.dtype)
+
+**产品支持情况**：
+
+<!-- npu="910b" id145 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id145 -->
+<!-- npu="A3" id146 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id146 -->
+<!-- npu="950" id147 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id147 -->
+
+</div>
+
+</div>
+
 ### <code><i>class</i></code> torch.FloatStorage
 
 <div style="margin-left: 2em">
@@ -2317,6 +1734,86 @@
 <!-- npu="950" id366 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id366 -->
+
+</div>
+
+</div>
+
+### <code><i>class</i></code> torch.HalfStorage
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.HalfStorage](https://pytorch.org/docs/2.13/storage.html#torch.HalfStorage)
+
+**产品支持情况**：
+
+<!-- npu="910b" id148 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id148 -->
+<!-- npu="A3" id149 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id149 -->
+<!-- npu="950" id150 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id150 -->
+
+> <font size="3">dtype()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.HalfStorage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.HalfStorage.dtype)
+
+**产品支持情况**：
+
+<!-- npu="910b" id151 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id151 -->
+<!-- npu="A3" id152 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id152 -->
+<!-- npu="950" id153 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id153 -->
+
+</div>
+
+</div>
+
+### <code><i>class</i></code> torch.LongStorage
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.LongStorage](https://pytorch.org/docs/2.13/storage.html#torch.LongStorage)
+
+**产品支持情况**：
+
+<!-- npu="910b" id154 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id154 -->
+<!-- npu="A3" id155 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id155 -->
+<!-- npu="950" id156 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id156 -->
+
+> <font size="3">dtype()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.LongStorage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.LongStorage.dtype)
+
+**产品支持情况**：
+
+<!-- npu="910b" id157 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id157 -->
+<!-- npu="A3" id158 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id158 -->
+<!-- npu="950" id159 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id159 -->
 
 </div>
 
@@ -2359,5 +1856,508 @@
 <!-- end id372 -->
 
 </div>
+
+</div>
+
+### <code><i>class</i></code> torch.ShortStorage
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ShortStorage](https://pytorch.org/docs/2.13/storage.html#torch.ShortStorage)
+
+**产品支持情况**：
+
+<!-- npu="910b" id160 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id160 -->
+<!-- npu="A3" id161 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id161 -->
+<!-- npu="950" id162 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id162 -->
+
+> <font size="3">dtype()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ShortStorage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.ShortStorage.dtype)
+
+**产品支持情况**：
+
+<!-- npu="910b" id163 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id163 -->
+<!-- npu="A3" id164 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id164 -->
+<!-- npu="950" id165 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id165 -->
+
+</div>
+
+</div>
+
+<!-- npu="910b,A3" id430 -->
+<!-- npu="910b,A3" id394 -->
+### <code><i>class</i></code> torch.BFloat16Storage
+<!-- end id394 -->
+
+<div style="margin-left: 2em">
+
+<!-- npu="910b,A3" id395 -->
+**原生文档**：[torch.BFloat16Storage](https://pytorch.org/docs/2.13/storage.html#torch.BFloat16Storage)
+
+**产品支持情况**：
+<!-- end id395 -->
+
+<!-- npu="910b" id184 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id184 -->
+<!-- npu="A3" id185 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id185 -->
+
+<!-- npu="910b,A3" id396 -->
+> <font size="3">dtype()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.BFloat16Storage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.BFloat16Storage.dtype)
+
+**产品支持情况**：
+<!-- end id396 -->
+
+<!-- npu="910b" id187 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id187 -->
+<!-- npu="A3" id188 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id188 -->
+
+<!-- npu="910b,A3" id397 -->
+</div>
+<!-- end id397 -->
+
+</div>
+<!-- end id430 -->
+
+<!-- npu="910b,A3" id431 -->
+<!-- npu="910b,A3" id398 -->
+### <code><i>class</i></code> torch.ComplexDoubleStorage
+<!-- end id398 -->
+
+<div style="margin-left: 2em">
+
+<!-- npu="910b,A3" id399 -->
+**原生文档**：[torch.ComplexDoubleStorage](https://pytorch.org/docs/2.13/storage.html#torch.ComplexDoubleStorage)
+
+**产品支持情况**：
+<!-- end id399 -->
+
+<!-- npu="910b" id190 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id190 -->
+<!-- npu="A3" id191 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id191 -->
+
+<!-- npu="910b,A3" id400 -->
+> <font size="3">dtype()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ComplexDoubleStorage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.ComplexDoubleStorage.dtype)
+
+**产品支持情况**：
+<!-- end id400 -->
+
+<!-- npu="910b" id193 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id193 -->
+<!-- npu="A3" id194 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id194 -->
+
+<!-- npu="910b,A3" id401 -->
+</div>
+<!-- end id401 -->
+
+</div>
+<!-- end id431 -->
+
+<!-- npu="910b,A3" id432 -->
+<!-- npu="910b,A3" id402 -->
+### <code><i>class</i></code> torch.ComplexFloatStorage
+<!-- end id402 -->
+
+<div style="margin-left: 2em">
+
+<!-- npu="910b,A3" id403 -->
+**原生文档**：[torch.ComplexFloatStorage](https://pytorch.org/docs/2.13/storage.html#torch.ComplexFloatStorage)
+
+**产品支持情况**：
+<!-- end id403 -->
+
+<!-- npu="910b" id196 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id196 -->
+<!-- npu="A3" id197 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id197 -->
+
+<!-- npu="910b,A3" id404 -->
+> <font size="3">dtype()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ComplexFloatStorage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.ComplexFloatStorage.dtype)
+
+**产品支持情况**：
+<!-- end id404 -->
+
+<!-- npu="910b" id199 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id199 -->
+<!-- npu="A3" id200 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id200 -->
+
+<!-- npu="910b,A3" id405 -->
+</div>
+<!-- end id405 -->
+
+</div>
+<!-- end id432 -->
+
+<!-- npu="910b,A3" id433 -->
+<!-- npu="910b,A3" id406 -->
+### <code><i>class</i></code> torch.QUInt8Storage
+<!-- end id406 -->
+
+<div style="margin-left: 2em">
+
+<!-- npu="910b,A3" id407 -->
+**原生文档**：[torch.QUInt8Storage](https://pytorch.org/docs/2.13/storage.html#torch.QUInt8Storage)
+
+**产品支持情况**：
+<!-- end id407 -->
+
+<!-- npu="910b" id202 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id202 -->
+<!-- npu="A3" id203 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id203 -->
+
+<!-- npu="910b,A3" id408 -->
+> <font size="3">dtype()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.QUInt8Storage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.QUInt8Storage.dtype)
+
+**产品支持情况**：
+<!-- end id408 -->
+
+<!-- npu="910b" id205 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id205 -->
+<!-- npu="A3" id206 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id206 -->
+
+<!-- npu="910b,A3" id409 -->
+</div>
+<!-- end id409 -->
+
+**限制与说明**： 支持uint8
+
+</div>
+<!-- end id433 -->
+
+<!-- npu="910b,A3" id434 -->
+<!-- npu="910b,A3" id410 -->
+### <code><i>class</i></code> torch.QInt8Storage
+<!-- end id410 -->
+
+<div style="margin-left: 2em">
+
+<!-- npu="910b,A3" id411 -->
+**原生文档**：[torch.QInt8Storage](https://pytorch.org/docs/2.13/storage.html#torch.QInt8Storage)
+
+**产品支持情况**：
+<!-- end id411 -->
+
+<!-- npu="910b" id208 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id208 -->
+<!-- npu="A3" id209 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id209 -->
+
+<!-- npu="910b,A3" id412 -->
+> <font size="3">dtype()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.QInt8Storage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.QInt8Storage.dtype)
+
+**产品支持情况**：
+<!-- end id412 -->
+
+<!-- npu="910b" id211 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id211 -->
+<!-- npu="A3" id212 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id212 -->
+
+<!-- npu="910b,A3" id413 -->
+**限制与说明**： `self`仅支持int8
+
+</div>
+<!-- end id413 -->
+
+</div>
+<!-- end id434 -->
+
+### <code><i>class</i></code> torch.CharStorage
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.CharStorage](https://pytorch.org/docs/2.13/storage.html#torch.CharStorage)
+
+**产品支持情况**：
+
+<!-- npu="910b" id166 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id166 -->
+<!-- npu="A3" id167 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id167 -->
+<!-- npu="950" id168 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id168 -->
+
+> <font size="3">dtype()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.CharStorage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.CharStorage.dtype)
+
+**产品支持情况**：
+
+<!-- npu="910b" id169 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id169 -->
+<!-- npu="A3" id170 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id170 -->
+<!-- npu="950" id171 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id171 -->
+
+</div>
+
+</div>
+
+### <code><i>class</i></code> torch.ByteStorage
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ByteStorage](https://pytorch.org/docs/2.13/storage.html#torch.ByteStorage)
+
+**产品支持情况**：
+
+<!-- npu="910b" id172 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id172 -->
+<!-- npu="A3" id173 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id173 -->
+<!-- npu="950" id174 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id174 -->
+
+> <font size="3">dtype()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ByteStorage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.ByteStorage.dtype)
+
+**产品支持情况**：
+
+<!-- npu="910b" id175 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id175 -->
+<!-- npu="A3" id176 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id176 -->
+<!-- npu="950" id177 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id177 -->
+
+</div>
+
+</div>
+
+### <code><i>class</i></code> torch.BoolStorage
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.BoolStorage](https://pytorch.org/docs/2.13/storage.html#torch.BoolStorage)
+
+**产品支持情况**：
+
+<!-- npu="910b" id178 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id178 -->
+<!-- npu="A3" id179 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id179 -->
+<!-- npu="950" id180 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id180 -->
+
+> <font size="3">dtype()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.BoolStorage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.BoolStorage.dtype)
+
+**产品支持情况**：
+
+<!-- npu="910b" id181 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id181 -->
+<!-- npu="A3" id182 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id182 -->
+<!-- npu="950" id183 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id183 -->
+
+</div>
+
+</div>
+
+<!-- npu="910b,A3" id435 -->
+### <code><i>class</i></code> torch.QInt32Storage
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.QInt32Storage](https://pytorch.org/docs/2.13/storage.html#torch.QInt32Storage)
+
+<!-- npu="910b,A3" id414 -->
+> <font size="3">dtype()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.QInt32Storage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.QInt32Storage.dtype)
+
+**产品支持情况**：
+<!-- end id414 -->
+
+<!-- npu="910b" id217 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id217 -->
+<!-- npu="A3" id218 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id218 -->
+
+<!-- npu="910b,A3" id415 -->
+**限制与说明**： `self`仅支持int32
+
+</div>
+<!-- end id415 -->
+
+</div>
+<!-- end id435 -->
+
+### <code><i>class</i></code> torch.QUInt4x2Storage
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.QUInt4x2Storage](https://pytorch.org/docs/2.13/storage.html#torch.QUInt4x2Storage)
+
+**产品支持情况**：
+
+<!-- npu="910b" id220 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id220 -->
+<!-- npu="A3" id221 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id221 -->
+<!-- npu="950" id222 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id222 -->
+
+<!-- npu="910b,A3" id416 -->
+> <font size="3">dtype()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.QUInt4x2Storage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.QUInt4x2Storage.dtype)
+
+**产品支持情况**：
+<!-- end id416 -->
+
+<!-- npu="910b" id223 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id223 -->
+<!-- npu="A3" id224 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id224 -->
+
+<!-- npu="910b,A3" id417 -->
+**限制与说明**： `self`仅支持uint8
+
+</div>
+<!-- end id417 -->
+
+</div>
+
+### <code><i>class</i></code> torch.QUInt2x4Storage
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.QUInt2x4Storage](https://pytorch.org/docs/2.13/storage.html#torch.QUInt2x4Storage)
+
+**产品支持情况**：
+
+<!-- npu="910b" id226 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id226 -->
+<!-- npu="A3" id227 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id227 -->
+<!-- npu="950" id228 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id228 -->
+
+<!-- npu="910b,A3" id418 -->
+> <font size="3">dtype()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.QUInt2x4Storage.dtype](https://pytorch.org/docs/2.13/storage.html#torch.QUInt2x4Storage.dtype)
+
+**产品支持情况**：
+<!-- end id418 -->
+
+<!-- npu="910b" id229 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id229 -->
+<!-- npu="A3" id230 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id230 -->
+
+<!-- npu="910b,A3" id419 -->
+**限制与说明**： `self`仅支持uint8
+
+</div>
+<!-- end id419 -->
 
 </div>

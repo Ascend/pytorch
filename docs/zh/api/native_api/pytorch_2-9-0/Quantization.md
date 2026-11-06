@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
-> - 部分API虽在[PyTorch社区文档](https://pytorch.org/docs/2.9/)中存在，但未收录于本支持清单。此类API尚未验证，请谨慎使用。我们将持续进行验证工作，并在验证完成后更新文档。
+> - 本支持清单的范围以[PyTorch社区文档](https://pytorch.org/docs/2.9/)为准，社区文档中未列出的接口不在本清单范围内；已在社区文档中存在但未收录于本清单的API尚未验证，请谨慎使用，我们将在验证完成后更新文档。
 > - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
 > - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://docs.pytorch.org/docs/2.9/quantization-support.html)。
 > - 注：在[Quantization Accuracy Debugging](https://docs.pytorch.org/docs/2.9/quantization.html)中可以找到[Numerical Debugging Tooling](#numerical-debugging-tooling)下API的具体用法。
@@ -12,17 +12,25 @@
 <div style="margin: 8px 0"><font size="5"><b>目录</b></font></div>
 
 - [torch.ao.quantization](#torchaoquantization)
+
+- [torch.ao.quantization.quantize_fx](#torchaoquantizationquantize_fx)
 - [torch.ao.quantization.qconfig_mapping](#torchaoquantizationqconfig_mapping)
 - [torch.ao.quantization.backend_config](#torchaoquantizationbackend_config)
 - [torch.ao.quantization.fx.custom_config](#torchaoquantizationfxcustom_config)
+
+- [PT2 Export (pt2e) Numeric Debugger](#pt2-export-pt2e-numeric-debugger)
 - [torch.ao.quantization.observer](#torchaoquantizationobserver)
 - [torch.ao.quantization.fake_quantize](#torchaoquantizationfake_quantize)
 - [torch.ao.quantization.qconfig](#torchaoquantizationqconfig)
 - [torch.ao.nn.intrinsic](#torchaonnintrinsic)
 - [torch.ao.nn.intrinsic.qat](#torchaonnintrinsicqat)
-<!-- npu="910b,A3" id375 -->
+
+- [torch.ao.nn.intrinsic.quantized](#torchaonnintrinsicquantized)
+
 - [torch.ao.nn.qat](#torchaonnqat)
-<!-- end id375 -->
+- [torch.ao.nn.quantized](#torchaonnquantized)
+
+- [torch.ao.nn.quantized.functional](#torchaonnquantizedfunctional)
 - [torch.ao.nn.quantizable](#torchaonnquantizable)
 - [torch.ao.nn.quantized.dynamic](#torchaonnquantizeddynamic)
 - [Numerical Debugging Tooling](#numerical-debugging-tooling)
@@ -78,23 +86,23 @@
 </div>
 <!-- end id374 -->
 
-### <code><i>class</i></code> torch.ao.quantization.QuantWrapper
+### <code><i>class</i></code> torch.ao.quantization.fuse\_modules.fuse\_modules
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.ao.quantization.QuantWrapper](https://pytorch.org/docs/2.9/generated/torch.ao.quantization.QuantWrapper.html)
+**原生文档**：[torch.ao.quantization.fuse\_modules.fuse\_modules](https://docs.pytorch.org/docs/2.9/generated/torch.ao.quantization.fuse_modules.fuse_modules.html#torch.ao.quantization.fuse_modules.fuse_modules)
 
 **产品支持情况**：
 
-<!-- npu="910b" id7 -->
+<!-- npu="910b" id425 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id7 -->
-<!-- npu="A3" id8 -->
+<!-- end id425 -->
+<!-- npu="A3" id426 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id8 -->
-<!-- npu="950" id9 -->
+<!-- end id426 -->
+<!-- npu="950" id427 -->
 - <term>Ascend 950DT系列产品</term>：支持
-<!-- end id9 -->
+<!-- end id427 -->
 
 </div>
 
@@ -137,6 +145,128 @@
 <!-- end id15 -->
 
 </div>
+
+### <code><i>class</i></code> torch.ao.quantization.QuantWrapper
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.quantization.QuantWrapper](https://pytorch.org/docs/2.9/generated/torch.ao.quantization.QuantWrapper.html)
+
+**产品支持情况**：
+
+<!-- npu="910b" id7 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id7 -->
+<!-- npu="A3" id8 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id8 -->
+<!-- npu="950" id9 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id9 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.add\_quant\_dequant
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.quantization.add\_quant\_dequant](https://docs.pytorch.org/docs/2.9/generated/torch.ao.quantization.add_quant_dequant.html#torch.ao.quantization.add_quant_dequant)
+
+**产品支持情况**：
+
+<!-- npu="910b" id428 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id428 -->
+<!-- npu="A3" id429 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id429 -->
+<!-- npu="950" id430 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id430 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.swap\_module
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.quantization.swap\_module](https://docs.pytorch.org/docs/2.9/generated/torch.ao.quantization.swap_module.html#torch.ao.quantization.swap_module)
+
+**产品支持情况**：
+
+<!-- npu="910b" id431 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id431 -->
+<!-- npu="A3" id432 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id432 -->
+<!-- npu="950" id433 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id433 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.propagate\_qconfig\_
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.quantization.propagate\_qconfig\_](https://docs.pytorch.org/docs/2.9/generated/torch.ao.quantization.propagate_qconfig_.html#torch.ao.quantization.propagate_qconfig_)
+
+**产品支持情况**：
+
+<!-- npu="910b" id434 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id434 -->
+<!-- npu="A3" id435 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id435 -->
+<!-- npu="950" id436 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id436 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.default\_eval\_fn
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.quantization.default\_eval\_fn](https://docs.pytorch.org/docs/2.9/generated/torch.ao.quantization.default_eval_fn.html#torch.ao.quantization.default_eval_fn)
+
+**产品支持情况**：
+
+<!-- npu="910b" id437 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id437 -->
+<!-- npu="A3" id438 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id438 -->
+<!-- npu="950" id439 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id439 -->
+
+</div>
+
+## torch.ao.quantization.quantize_fx
+
+<!-- npu="910b,A3" id452 -->
+### <code><i>class</i></code> torch.ao.quantization.quantize\_fx.fuse\_fx
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.quantization.quantize\_fx.fuse\_fx](https://docs.pytorch.org/docs/2.9/generated/torch.ao.quantization.quantize_fx.fuse_fx.html#torch.ao.quantization.quantize_fx.fuse_fx)
+
+**产品支持情况**：
+
+<!-- npu="910b" id449 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id449 -->
+<!-- npu="A3" id450 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id450 -->
+
+</div>
+
+<!-- end id452 -->
 
 ## torch.ao.quantization.qconfig_mapping
 
@@ -198,6 +328,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id27 -->
 > <font size="3">set_module_name()</font>
 
 <div style="margin-left: 2em">
@@ -212,11 +343,9 @@
 <!-- npu="A3" id26 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id26 -->
-<!-- npu="950" id27 -->
-- <term>Ascend 950DT系列产品</term>：不支持
-<!-- end id27 -->
 
 </div>
+<!-- end id27 -->
 
 > <font size="3">set_module_name_object_type_order()</font>
 
@@ -1304,6 +1433,68 @@
 
 </div>
 
+## PT2 Export (pt2e) Numeric Debugger
+
+### <code><i>class</i></code> torch.ao.quantization.prepare\_for\_propagation\_comparison
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.quantization.prepare\_for\_propagation\_comparison](https://docs.pytorch.org/docs/2.9/generated/torch.ao.quantization.prepare_for_propagation_comparison.html#torch.ao.quantization.prepare_for_propagation_comparison)
+
+**产品支持情况**：
+
+<!-- npu="910b" id453 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id453 -->
+<!-- npu="A3" id454 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id454 -->
+<!-- npu="950" id455 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id455 -->
+
+</div>
+
+<!-- npu="910b,A3" id459 -->
+### <code><i>class</i></code> torch.ao.quantization.extract\_results\_from\_loggers
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.quantization.extract\_results\_from\_loggers](https://docs.pytorch.org/docs/2.9/generated/torch.ao.quantization.extract_results_from_loggers.html#torch.ao.quantization.extract_results_from_loggers)
+
+**产品支持情况**：
+
+<!-- npu="910b" id456 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id456 -->
+<!-- npu="A3" id457 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id457 -->
+
+</div>
+
+<!-- end id459 -->
+
+### <code><i>class</i></code> torch.ao.quantization.compare\_results
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.quantization.compare\_results](https://docs.pytorch.org/docs/2.9/generated/torch.ao.quantization.compare_results.html#torch.ao.quantization.compare_results)
+
+**产品支持情况**：
+
+<!-- npu="910b" id460 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id460 -->
+<!-- npu="A3" id461 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id461 -->
+<!-- npu="950" id462 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id462 -->
+
+</div>
+
 ## torch.ao.quantization.observer
 
 ### <code><i>class</i></code> torch.ao.quantization.pt2e.export_utils.model_is_exported
@@ -1848,11 +2039,185 @@
 
 </div>
 
+### <code><i>class</i></code> torch.ao.quantization.observer.Granularity
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.quantization.observer.Granularity](https://docs.pytorch.org/docs/2.9/generated/torch.ao.quantization.observer.Granularity.html#torch.ao.quantization.observer.Granularity)
+
+**产品支持情况**：
+
+<!-- npu="910b" id608 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id608 -->
+<!-- npu="A3" id609 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id609 -->
+<!-- npu="950" id610 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id610 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.observer.PerAxis
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.quantization.observer.PerAxis](https://docs.pytorch.org/docs/2.9/generated/torch.ao.quantization.observer.PerAxis.html#torch.ao.quantization.observer.PerAxis)
+
+**产品支持情况**：
+
+<!-- npu="910b" id611 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id611 -->
+<!-- npu="A3" id612 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id612 -->
+<!-- npu="950" id613 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id613 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.observer.PerBlock
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.quantization.observer.PerBlock](https://docs.pytorch.org/docs/2.9/generated/torch.ao.quantization.observer.PerBlock.html#torch.ao.quantization.observer.PerBlock)
+
+**产品支持情况**：
+
+<!-- npu="910b" id614 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id614 -->
+<!-- npu="A3" id615 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id615 -->
+<!-- npu="950" id616 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id616 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.observer.PerRow
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.quantization.observer.PerRow](https://docs.pytorch.org/docs/2.9/generated/torch.ao.quantization.observer.PerRow.html#torch.ao.quantization.observer.PerRow)
+
+**产品支持情况**：
+
+<!-- npu="910b" id617 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id617 -->
+<!-- npu="A3" id618 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id618 -->
+<!-- npu="950" id619 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id619 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.observer.PerTensor
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.quantization.observer.PerTensor](https://docs.pytorch.org/docs/2.9/generated/torch.ao.quantization.observer.PerTensor.html#torch.ao.quantization.observer.PerTensor)
+
+**产品支持情况**：
+
+<!-- npu="910b" id620 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id620 -->
+<!-- npu="A3" id621 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id621 -->
+<!-- npu="950" id622 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id622 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.observer.PerToken
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.quantization.observer.PerToken](https://docs.pytorch.org/docs/2.9/generated/torch.ao.quantization.observer.PerToken.html#torch.ao.quantization.observer.PerToken)
+
+**产品支持情况**：
+
+<!-- npu="910b" id623 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id623 -->
+<!-- npu="A3" id624 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id624 -->
+<!-- npu="950" id625 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id625 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.observer.TorchAODType
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.quantization.observer.TorchAODType](https://docs.pytorch.org/docs/2.9/generated/torch.ao.quantization.observer.TorchAODType.html#torch.ao.quantization.observer.TorchAODType)
+
+**产品支持情况**：
+
+<!-- npu="910b" id626 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id626 -->
+<!-- npu="A3" id627 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id627 -->
+<!-- npu="950" id628 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id628 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.observer.get\_block\_size
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.quantization.observer.get\_block\_size](https://docs.pytorch.org/docs/2.9/generated/torch.ao.quantization.observer.get_block_size.html#torch.ao.quantization.observer.get_block_size)
+
+**产品支持情况**：
+
+<!-- npu="910b" id629 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id629 -->
+<!-- npu="A3" id630 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id630 -->
+<!-- npu="950" id631 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id631 -->
+
+</div>
+
 ## torch.ao.quantization.fake_quantize
 
 ### <code><i>class</i></code> torch.ao.quantization.observer.AffineQuantizedObserverBase
 
 <div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.quantization.observer.AffineQuantizedObserverBase](https://docs.pytorch.org/docs/2.9/generated/torch.ao.quantization.observer.AffineQuantizedObserverBase.html#torch.ao.quantization.observer.AffineQuantizedObserverBase)
+
+**产品支持情况**：
+
+<!-- npu="910b" id416 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id416 -->
+<!-- npu="A3" id417 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id417 -->
+<!-- npu="950" id418 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id418 -->
 
 > <font size="3">calculate_qparams()</font>
 
@@ -1894,6 +2259,26 @@
 
 </div>
 
+> <font size="3">with_args()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.quantization.observer.AffineQuantizedObserverBase.with\_args](https://docs.pytorch.org/docs/2.9/generated/torch.ao.quantization.observer.AffineQuantizedObserverBase.html#torch.ao.quantization.observer.AffineQuantizedObserverBase.with_args)
+
+**产品支持情况**：
+
+<!-- npu="910b" id666 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id666 -->
+<!-- npu="A3" id667 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id667 -->
+<!-- npu="950" id668 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id668 -->
+
+</div>
+
 </div>
 
 ### <code><i>class</i></code> torch.ao.quantization.observer.MappingType
@@ -1913,6 +2298,26 @@
 <!-- npu="950" id412 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id412 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.fake\_quantize.FakeQuantizeBase
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.quantization.fake\_quantize.FakeQuantizeBase](https://docs.pytorch.org/docs/2.9/generated/torch.ao.quantization.fake_quantize.FakeQuantizeBase.html#torch.ao.quantization.fake_quantize.FakeQuantizeBase)
+
+**产品支持情况**：
+
+<!-- npu="910b" id605 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id605 -->
+<!-- npu="A3" id606 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id606 -->
+<!-- npu="950" id607 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id607 -->
 
 </div>
 
@@ -2057,6 +2462,146 @@
 <!-- npu="950" id285 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id285 -->
+
+</div>
+
+### torch.ao.quantization.fake\_quantize.default\_fake\_quant
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.quantization.fake\_quantize.default\_fake\_quant](https://docs.pytorch.org/docs/2.9/generated/torch.ao.quantization.fake_quantize.default_fake_quant.html#torch.ao.quantization.fake_quantize.default_fake_quant)
+
+**产品支持情况**：
+
+<!-- npu="910b" id645 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id645 -->
+<!-- npu="A3" id646 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id646 -->
+<!-- npu="950" id647 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id647 -->
+
+</div>
+
+### torch.ao.quantization.fake\_quantize.default\_weight\_fake\_quant
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.quantization.fake\_quantize.default\_weight\_fake\_quant](https://docs.pytorch.org/docs/2.9/generated/torch.ao.quantization.fake_quantize.default_weight_fake_quant.html#torch.ao.quantization.fake_quantize.default_weight_fake_quant)
+
+**产品支持情况**：
+
+<!-- npu="910b" id663 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id663 -->
+<!-- npu="A3" id664 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id664 -->
+<!-- npu="950" id665 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id665 -->
+
+</div>
+
+### torch.ao.quantization.fake\_quantize.default\_per\_channel\_weight\_fake\_quant
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.quantization.fake\_quantize.default\_per\_channel\_weight\_fake\_quant](https://docs.pytorch.org/docs/2.9/generated/torch.ao.quantization.fake_quantize.default_per_channel_weight_fake_quant.html#torch.ao.quantization.fake_quantize.default_per_channel_weight_fake_quant)
+
+**产品支持情况**：
+
+<!-- npu="910b" id660 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id660 -->
+<!-- npu="A3" id661 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id661 -->
+<!-- npu="950" id662 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id662 -->
+
+</div>
+
+### torch.ao.quantization.fake\_quantize.default\_histogram\_fake\_quant
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.quantization.fake\_quantize.default\_histogram\_fake\_quant](https://docs.pytorch.org/docs/2.9/generated/torch.ao.quantization.fake_quantize.default_histogram_fake_quant.html#torch.ao.quantization.fake_quantize.default_histogram_fake_quant)
+
+**产品支持情况**：
+
+<!-- npu="910b" id657 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id657 -->
+<!-- npu="A3" id658 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id658 -->
+<!-- npu="950" id659 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id659 -->
+
+</div>
+
+### torch.ao.quantization.fake\_quantize.default\_fused\_act\_fake\_quant
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.quantization.fake\_quantize.default\_fused\_act\_fake\_quant](https://docs.pytorch.org/docs/2.9/generated/torch.ao.quantization.fake_quantize.default_fused_act_fake_quant.html#torch.ao.quantization.fake_quantize.default_fused_act_fake_quant)
+
+**产品支持情况**：
+
+<!-- npu="910b" id648 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id648 -->
+<!-- npu="A3" id649 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id649 -->
+<!-- npu="950" id650 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id650 -->
+
+</div>
+
+### torch.ao.quantization.fake\_quantize.default\_fused\_wt\_fake\_quant
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.quantization.fake\_quantize.default\_fused\_wt\_fake\_quant](https://docs.pytorch.org/docs/2.9/generated/torch.ao.quantization.fake_quantize.default_fused_wt_fake_quant.html#torch.ao.quantization.fake_quantize.default_fused_wt_fake_quant)
+
+**产品支持情况**：
+
+<!-- npu="910b" id654 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id654 -->
+<!-- npu="A3" id655 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id655 -->
+<!-- npu="950" id656 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id656 -->
+
+</div>
+
+### torch.ao.quantization.fake\_quantize.default\_fused\_per\_channel\_wt\_fake\_quant
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.quantization.fake\_quantize.default\_fused\_per\_channel\_wt\_fake\_quant](https://docs.pytorch.org/docs/2.9/generated/torch.ao.quantization.fake_quantize.default_fused_per_channel_wt_fake_quant.html#torch.ao.quantization.fake_quantize.default_fused_per_channel_wt_fake_quant)
+
+**产品支持情况**：
+
+<!-- npu="910b" id651 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id651 -->
+<!-- npu="A3" id652 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id652 -->
+<!-- npu="950" id653 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id653 -->
 
 </div>
 
@@ -2344,6 +2889,46 @@
 
 </div>
 
+### <code><i>class</i></code> torch.ao.nn.intrinsic.ConvReLU2d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.intrinsic.ConvReLU2d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.intrinsic.ConvReLU2d.html#torch.ao.nn.intrinsic.ConvReLU2d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id463 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id463 -->
+<!-- npu="A3" id464 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id464 -->
+<!-- npu="950" id465 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id465 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.ConvReLU3d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.intrinsic.ConvReLU3d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.intrinsic.ConvReLU3d.html#torch.ao.nn.intrinsic.ConvReLU3d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id466 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id466 -->
+<!-- npu="A3" id467 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id467 -->
+<!-- npu="950" id468 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id468 -->
+
+</div>
+
 ### <code><i>class</i></code> torch.ao.nn.intrinsic.LinearReLU
 
 <div style="margin-left: 2em">
@@ -2361,6 +2946,110 @@
 <!-- npu="950" id327 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id327 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.ConvBn1d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.intrinsic.ConvBn1d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.intrinsic.ConvBn1d.html#torch.ao.nn.intrinsic.ConvBn1d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id469 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id469 -->
+<!-- npu="A3" id470 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id470 -->
+<!-- npu="950" id471 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id471 -->
+
+<!-- npu="950" id673 -->
+**限制与说明**： 在<term>Ascend 950DT系列产品</term>上，底层卷积计算的W维度不能超过1000000。
+<!-- end id673 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.ConvBn2d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.intrinsic.ConvBn2d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.intrinsic.ConvBn2d.html#torch.ao.nn.intrinsic.ConvBn2d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id472 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id472 -->
+<!-- npu="A3" id473 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id473 -->
+<!-- npu="950" id474 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id474 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.ConvBn3d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.intrinsic.ConvBn3d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.intrinsic.ConvBn3d.html#torch.ao.nn.intrinsic.ConvBn3d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id475 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id475 -->
+<!-- npu="A3" id476 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id476 -->
+<!-- npu="950" id477 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id477 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.ConvBnReLU1d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.intrinsic.ConvBnReLU1d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.intrinsic.ConvBnReLU1d.html#torch.ao.nn.intrinsic.ConvBnReLU1d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id478 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id478 -->
+<!-- npu="A3" id479 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id479 -->
+<!-- npu="950" id480 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id480 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.ConvBnReLU2d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.intrinsic.ConvBnReLU2d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.intrinsic.ConvBnReLU2d.html#torch.ao.nn.intrinsic.ConvBnReLU2d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id481 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id481 -->
+<!-- npu="A3" id482 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id482 -->
+<!-- npu="950" id483 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id483 -->
 
 </div>
 
@@ -2486,6 +3175,26 @@
 
 </div>
 
+### <code><i>class</i></code> torch.ao.nn.intrinsic.qat.ConvBn2d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.intrinsic.qat.ConvBn2d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.intrinsic.qat.ConvBn2d.html#torch.ao.nn.intrinsic.qat.ConvBn2d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id484 -->
+- <term>Atlas A2训练系列产品</term>：不支持
+<!-- end id484 -->
+<!-- npu="A3" id485 -->
+- <term>Atlas A3训练系列产品</term>：不支持
+<!-- end id485 -->
+<!-- npu="950" id486 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id486 -->
+
+</div>
+
 ### <code><i>class</i></code> torch.ao.nn.intrinsic.qat.ConvBnReLU2d
 
 <div style="margin-left: 2em">
@@ -2503,6 +3212,66 @@
 <!-- npu="950" id339 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id339 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.qat.ConvReLU2d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.intrinsic.qat.ConvReLU2d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.intrinsic.qat.ConvReLU2d.html#torch.ao.nn.intrinsic.qat.ConvReLU2d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id487 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id487 -->
+<!-- npu="A3" id488 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id488 -->
+<!-- npu="950" id489 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id489 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.qat.ConvBn3d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.intrinsic.qat.ConvBn3d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.intrinsic.qat.ConvBn3d.html#torch.ao.nn.intrinsic.qat.ConvBn3d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id490 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id490 -->
+<!-- npu="A3" id491 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id491 -->
+<!-- npu="950" id492 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id492 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.qat.ConvBnReLU3d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.intrinsic.qat.ConvBnReLU3d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.intrinsic.qat.ConvBnReLU3d.html#torch.ao.nn.intrinsic.qat.ConvBnReLU3d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id493 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id493 -->
+<!-- npu="A3" id494 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id494 -->
+<!-- npu="950" id495 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id495 -->
 
 </div>
 
@@ -2548,11 +3317,133 @@
 
 </div>
 
-<!-- npu="910b,A3" id376 -->
+## torch.ao.nn.intrinsic.quantized
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.quantized.BNReLU2d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.intrinsic.quantized.BNReLU2d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.intrinsic.quantized.BNReLU2d.html#torch.ao.nn.intrinsic.quantized.BNReLU2d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id496 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id496 -->
+<!-- npu="A3" id497 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id497 -->
+<!-- npu="950" id498 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id498 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.quantized.BNReLU3d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.intrinsic.quantized.BNReLU3d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.intrinsic.quantized.BNReLU3d.html#torch.ao.nn.intrinsic.quantized.BNReLU3d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id500 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id500 -->
+<!-- npu="A3" id501 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id501 -->
+<!-- npu="950" id502 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id502 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.quantized.ConvReLU1d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.intrinsic.quantized.ConvReLU1d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.intrinsic.quantized.ConvReLU1d.html#torch.ao.nn.intrinsic.quantized.ConvReLU1d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id504 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id504 -->
+<!-- npu="A3" id505 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id505 -->
+<!-- npu="950" id506 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id506 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.quantized.ConvReLU2d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.intrinsic.quantized.ConvReLU2d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.intrinsic.quantized.ConvReLU2d.html#torch.ao.nn.intrinsic.quantized.ConvReLU2d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id508 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id508 -->
+<!-- npu="A3" id509 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id509 -->
+<!-- npu="950" id510 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id510 -->
+
+</div>
+
 ## torch.ao.nn.qat
+
+### <code><i>class</i></code> torch.ao.nn.qat.Conv2d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.qat.Conv2d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.qat.Conv2d.html#torch.ao.nn.qat.Conv2d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id512 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id512 -->
+<!-- npu="A3" id513 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id513 -->
+<!-- npu="950" id514 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id514 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.qat.Conv3d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.qat.Conv3d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.qat.Conv3d.html#torch.ao.nn.qat.Conv3d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id516 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id516 -->
+<!-- npu="A3" id517 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id517 -->
+<!-- npu="950" id518 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id518 -->
+
+</div>
 
 ### <code><i>class</i></code> torch.ao.nn.qat.Linear
 
+<!-- npu="910b,A3" id672 -->
 <div style="margin-left: 2em">
 
 **原生文档**：[torch.ao.nn.qat.Linear](https://pytorch.org/docs/2.9/generated/torch.ao.nn.qat.Linear.html)
@@ -2569,9 +3460,657 @@
 - <term>Ascend 950DT系列产品</term>：不支持
 <!-- end id348 -->
 
+<!-- end id672 -->
+
+> <font size="3">from_float()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.qat.Linear.from\_float](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.qat.Linear.html#torch.ao.nn.qat.Linear.from_float)
+
+**产品支持情况**：
+
+<!-- npu="910b" id632 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id632 -->
+<!-- npu="A3" id633 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id633 -->
+<!-- npu="950" id634 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id634 -->
+
 </div>
 
-<!-- end id376 -->
+<!-- npu="910b,A3" id635 -->
+</div>
+
+<!-- end id635 -->
+
+## torch.ao.nn.quantized
+
+### <code><i>class</i></code> torch.ao.nn.quantized.ReLU6
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.ReLU6](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.ReLU6.html#torch.ao.nn.quantized.ReLU6)
+
+**产品支持情况**：
+
+<!-- npu="910b" id520 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id520 -->
+<!-- npu="A3" id521 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id521 -->
+<!-- npu="950" id522 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id522 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.ELU
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.ELU](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.ELU.html#torch.ao.nn.quantized.ELU)
+
+**产品支持情况**：
+
+<!-- npu="910b" id523 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id523 -->
+<!-- npu="A3" id524 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id524 -->
+<!-- npu="950" id525 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id525 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.LeakyReLU
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.LeakyReLU](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.LeakyReLU.html#torch.ao.nn.quantized.LeakyReLU)
+
+**产品支持情况**：
+
+<!-- npu="910b" id526 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id526 -->
+<!-- npu="A3" id527 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id527 -->
+<!-- npu="950" id528 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id528 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.Sigmoid
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.Sigmoid](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.Sigmoid.html#torch.ao.nn.quantized.Sigmoid)
+
+**产品支持情况**：
+
+<!-- npu="910b" id529 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id529 -->
+<!-- npu="A3" id530 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id530 -->
+<!-- npu="950" id531 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id531 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.BatchNorm2d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.BatchNorm2d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.BatchNorm2d.html#torch.ao.nn.quantized.BatchNorm2d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id532 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id532 -->
+<!-- npu="A3" id533 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id533 -->
+<!-- npu="950" id534 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id534 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.BatchNorm3d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.BatchNorm3d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.BatchNorm3d.html#torch.ao.nn.quantized.BatchNorm3d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id535 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id535 -->
+<!-- npu="A3" id536 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id536 -->
+<!-- npu="950" id537 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id537 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.Conv1d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.Conv1d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.Conv1d.html#torch.ao.nn.quantized.Conv1d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id538 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id538 -->
+<!-- npu="A3" id539 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id539 -->
+<!-- npu="950" id540 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id540 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.Conv2d
+
+<div style="margin-left: 2em">
+
+> <font size="3">from_float()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.Conv2d.from\_float](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.Conv2d.html#torch.ao.nn.quantized.Conv2d.from_float)
+
+**产品支持情况**：
+
+<!-- npu="910b" id639 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id639 -->
+<!-- npu="A3" id640 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id640 -->
+<!-- npu="950" id641 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id641 -->
+
+</div>
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.Conv3d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.Conv3d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.Conv3d.html#torch.ao.nn.quantized.Conv3d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id541 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id541 -->
+<!-- npu="A3" id542 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id542 -->
+<!-- npu="950" id543 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id543 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.ConvTranspose1d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.ConvTranspose1d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.ConvTranspose1d.html#torch.ao.nn.quantized.ConvTranspose1d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id544 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id544 -->
+<!-- npu="A3" id545 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id545 -->
+<!-- npu="950" id546 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id546 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.ConvTranspose2d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.ConvTranspose2d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.ConvTranspose2d.html#torch.ao.nn.quantized.ConvTranspose2d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id547 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id547 -->
+<!-- npu="A3" id548 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id548 -->
+<!-- npu="950" id549 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id549 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.Embedding
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.Embedding](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.Embedding.html#torch.ao.nn.quantized.Embedding)
+
+**产品支持情况**：
+
+<!-- npu="910b" id550 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id550 -->
+<!-- npu="A3" id551 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id551 -->
+<!-- npu="950" id552 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id552 -->
+
+> <font size="3">from_float()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.Embedding.from\_float](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.Embedding.html#torch.ao.nn.quantized.Embedding.from_float)
+
+**产品支持情况**：
+
+<!-- npu="910b" id642 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id642 -->
+<!-- npu="A3" id643 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id643 -->
+<!-- npu="950" id644 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id644 -->
+
+</div>
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.QFunctional
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.QFunctional](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.QFunctional.html#torch.ao.nn.quantized.QFunctional)
+
+**产品支持情况**：
+
+<!-- npu="910b" id553 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id553 -->
+<!-- npu="A3" id554 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id554 -->
+<!-- npu="950" id555 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id555 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.LayerNorm
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.LayerNorm](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.LayerNorm.html#torch.ao.nn.quantized.LayerNorm)
+
+**产品支持情况**：
+
+<!-- npu="910b" id556 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id556 -->
+<!-- npu="A3" id557 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id557 -->
+<!-- npu="950" id558 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id558 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.InstanceNorm1d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.InstanceNorm1d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.InstanceNorm1d.html#torch.ao.nn.quantized.InstanceNorm1d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id559 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id559 -->
+<!-- npu="A3" id560 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id560 -->
+<!-- npu="950" id561 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id561 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.InstanceNorm2d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.InstanceNorm2d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.InstanceNorm2d.html#torch.ao.nn.quantized.InstanceNorm2d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id562 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id562 -->
+<!-- npu="A3" id563 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id563 -->
+<!-- npu="950" id564 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id564 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.InstanceNorm3d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.InstanceNorm3d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.InstanceNorm3d.html#torch.ao.nn.quantized.InstanceNorm3d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id565 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id565 -->
+<!-- npu="A3" id566 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id566 -->
+<!-- npu="950" id567 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id567 -->
+
+</div>
+
+## torch.ao.nn.quantized.functional
+
+### <code><i>class</i></code> torch.ao.nn.quantized.functional.avg\_pool2d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.functional.avg\_pool2d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.functional.avg_pool2d.html#torch.ao.nn.quantized.functional.avg_pool2d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id568 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id568 -->
+<!-- npu="A3" id569 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id569 -->
+<!-- npu="950" id570 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id570 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.functional.avg\_pool3d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.functional.avg\_pool3d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.functional.avg_pool3d.html#torch.ao.nn.quantized.functional.avg_pool3d)
+
+**产品支持情况**：
+
+<!-- npu="950" id571 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id571 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.functional.conv3d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.functional.conv3d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.functional.conv3d.html#torch.ao.nn.quantized.functional.conv3d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id572 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id572 -->
+<!-- npu="A3" id573 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id573 -->
+<!-- npu="950" id574 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id574 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.functional.interpolate
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.functional.interpolate](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.functional.interpolate.html#torch.ao.nn.quantized.functional.interpolate)
+
+**产品支持情况**：
+
+<!-- npu="910b" id575 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id575 -->
+<!-- npu="A3" id576 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id576 -->
+<!-- npu="950" id577 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id577 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.functional.linear
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.functional.linear](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.functional.linear.html#torch.ao.nn.quantized.functional.linear)
+
+**产品支持情况**：
+
+<!-- npu="910b" id578 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id578 -->
+<!-- npu="A3" id579 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id579 -->
+<!-- npu="950" id580 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id580 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.functional.max\_pool1d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.functional.max\_pool1d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.functional.max_pool1d.html#torch.ao.nn.quantized.functional.max_pool1d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id581 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id581 -->
+<!-- npu="A3" id582 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id582 -->
+<!-- npu="950" id583 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id583 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.functional.max\_pool2d
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.functional.max\_pool2d](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.functional.max_pool2d.html#torch.ao.nn.quantized.functional.max_pool2d)
+
+**产品支持情况**：
+
+<!-- npu="910b" id584 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id584 -->
+<!-- npu="A3" id585 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id585 -->
+<!-- npu="950" id586 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id586 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.functional.hardtanh
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.functional.hardtanh](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.functional.hardtanh.html#torch.ao.nn.quantized.functional.hardtanh)
+
+**产品支持情况**：
+
+<!-- npu="910b" id587 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id587 -->
+<!-- npu="A3" id588 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id588 -->
+<!-- npu="950" id589 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id589 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.functional.hardswish
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.functional.hardswish](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.functional.hardswish.html#torch.ao.nn.quantized.functional.hardswish)
+
+**产品支持情况**：
+
+<!-- npu="910b" id590 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id590 -->
+<!-- npu="A3" id591 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id591 -->
+<!-- npu="950" id592 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id592 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.functional.threshold
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.functional.threshold](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.functional.threshold.html#torch.ao.nn.quantized.functional.threshold)
+
+**产品支持情况**：
+
+<!-- npu="910b" id593 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id593 -->
+<!-- npu="A3" id594 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id594 -->
+<!-- npu="950" id595 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id595 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.functional.elu
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.functional.elu](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.functional.elu.html#torch.ao.nn.quantized.functional.elu)
+
+**产品支持情况**：
+
+<!-- npu="910b" id596 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id596 -->
+<!-- npu="A3" id597 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id597 -->
+<!-- npu="950" id598 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id598 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.functional.hardsigmoid
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.functional.hardsigmoid](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.functional.hardsigmoid.html#torch.ao.nn.quantized.functional.hardsigmoid)
+
+**产品支持情况**：
+
+<!-- npu="910b" id599 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id599 -->
+<!-- npu="A3" id600 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id600 -->
+<!-- npu="950" id601 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id601 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.functional.clamp
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantized.functional.clamp](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantized.functional.clamp.html#torch.ao.nn.quantized.functional.clamp)
+
+**产品支持情况**：
+
+<!-- npu="910b" id602 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id602 -->
+<!-- npu="A3" id603 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id603 -->
+<!-- npu="950" id604 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id604 -->
+
+</div>
+
 ## torch.ao.nn.quantizable
 
 ### <code><i>class</i></code> torch.ao.nn.quantized.FloatFunctional
@@ -2673,6 +4212,26 @@
 <!-- npu="950" id391 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id391 -->
+
+> <font size="3">forward()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.ao.nn.quantizable.MultiheadAttention.forward](https://docs.pytorch.org/docs/2.9/generated/torch.ao.nn.quantizable.MultiheadAttention.html#torch.ao.nn.quantizable.MultiheadAttention.forward)
+
+**产品支持情况**：
+
+<!-- npu="910b" id636 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id636 -->
+<!-- npu="A3" id637 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id637 -->
+<!-- npu="950" id638 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id638 -->
+
+</div>
 
 </div>
 

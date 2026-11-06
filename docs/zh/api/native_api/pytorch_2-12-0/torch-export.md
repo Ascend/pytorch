@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
-> - 部分API虽在[PyTorch社区文档](https://pytorch.org/docs/2.12/)中存在，但未收录于本支持清单。此类API尚未验证，请谨慎使用。我们将持续进行验证工作，并在验证完成后更新文档。
+> - 本支持清单的范围以[PyTorch社区文档](https://pytorch.org/docs/2.12/)为准，社区文档中未列出的接口不在本清单范围内；已在社区文档中存在但未收录于本清单的API尚未验证，请谨慎使用，我们将在验证完成后更新文档。
 > - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
 > - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://pytorch.org/docs/2.12/user_guide/torch_compiler/export/api_reference.html)。
 
@@ -79,6 +79,106 @@
 <!-- npu="950" id9 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id9 -->
+
+</div>
+
+### <code><i>class</i></code> torch.export.unflatten.FlatArgsAdapter
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.export.unflatten.FlatArgsAdapter](https://pytorch.org/docs/2.12/user_guide/torch_compiler/export/api_reference.html#torch.export.unflatten.FlatArgsAdapter)
+
+**产品支持情况**：
+
+<!-- npu="910b" id82 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id82 -->
+<!-- npu="A3" id83 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id83 -->
+<!-- npu="950" id84 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id84 -->
+
+> <font size="3">adapt()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.export.unflatten.FlatArgsAdapter.adapt](https://pytorch.org/docs/2.12/user_guide/torch_compiler/export/api_reference.html#torch.export.unflatten.FlatArgsAdapter.adapt)
+
+**产品支持情况**：
+
+<!-- npu="910b" id25 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id25 -->
+<!-- npu="A3" id26 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id26 -->
+<!-- npu="950" id27 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id27 -->
+
+</div>
+
+</div>
+
+### <code><i>class</i></code> torch.export.unflatten.InterpreterModule
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.export.unflatten.InterpreterModule](https://pytorch.org/docs/2.12/user_guide/torch_compiler/export/api_reference.html#torch.export.unflatten.InterpreterModule)
+
+**产品支持情况**：
+
+<!-- npu="910b" id70 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id70 -->
+<!-- npu="A3" id71 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id71 -->
+<!-- npu="950" id72 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id72 -->
+
+</div>
+
+### <code><i>class</i></code> torch.export.unflatten.InterpreterModuleDispatcher
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.export.unflatten.InterpreterModuleDispatcher](https://pytorch.org/docs/2.12/user_guide/torch_compiler/export/api_reference.html#torch.export.unflatten.InterpreterModuleDispatcher)
+
+**产品支持情况**：
+
+<!-- npu="910b" id73 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id73 -->
+<!-- npu="A3" id74 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id74 -->
+<!-- npu="950" id75 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id75 -->
+
+</div>
+
+### torch.export.unflatten.unflatten
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.export.unflatten.unflatten](https://pytorch.org/docs/2.12/user_guide/torch_compiler/export/api_reference.html#torch.export.unflatten.unflatten)
+
+**产品支持情况**：
+
+<!-- npu="910b" id76 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id76 -->
+<!-- npu="A3" id77 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id77 -->
+<!-- npu="950" id78 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id78 -->
 
 </div>
 
@@ -242,6 +342,66 @@
 
 </div>
 
+### torch.export.passes.move_to_device_pass
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.export.passes.move_to_device_pass](https://pytorch.org/docs/2.12/user_guide/torch_compiler/export/api_reference.html#torch.export.passes.move_to_device_pass)
+
+**产品支持情况**：
+
+<!-- npu="910b" id67 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id67 -->
+<!-- npu="A3" id68 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id68 -->
+<!-- npu="950" id69 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id69 -->
+
+</div>
+
+### <code><i>class</i></code> torch.export.exported_program.ModuleCallEntry
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.export.exported_program.ModuleCallEntry](https://pytorch.org/docs/2.12/user_guide/torch_compiler/export/api_reference.html#torch.export.exported_program.ModuleCallEntry)
+
+**产品支持情况**：
+
+<!-- npu="910b" id19 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id19 -->
+<!-- npu="A3" id20 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id20 -->
+<!-- npu="950" id21 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id21 -->
+
+</div>
+
+### <code><i>class</i></code> torch.export.exported_program.ModuleCallSignature
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.export.exported_program.ModuleCallSignature](https://pytorch.org/docs/2.12/user_guide/torch_compiler/export/api_reference.html#torch.export.exported_program.ModuleCallSignature)
+
+**产品支持情况**：
+
+<!-- npu="910b" id16 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id16 -->
+<!-- npu="A3" id17 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id17 -->
+<!-- npu="950" id18 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id18 -->
+
+</div>
+
 ### <code><i>class</i></code> torch.export.graph_signature.InputKind
 
 <div style="margin-left: 2em">
@@ -379,165 +539,5 @@
 <!-- npu="950" id66 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id66 -->
-
-</div>
-
-### torch.export.passes.move_to_device_pass
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.export.passes.move_to_device_pass](https://pytorch.org/docs/2.12/user_guide/torch_compiler/export/api_reference.html#torch.export.passes.move_to_device_pass)
-
-**产品支持情况**：
-
-<!-- npu="910b" id67 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id67 -->
-<!-- npu="A3" id68 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id68 -->
-<!-- npu="950" id69 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id69 -->
-
-</div>
-
-### <code><i>class</i></code> torch.export.exported_program.ModuleCallSignature
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.export.exported_program.ModuleCallSignature](https://pytorch.org/docs/2.12/user_guide/torch_compiler/export/api_reference.html#torch.export.exported_program.ModuleCallSignature)
-
-**产品支持情况**：
-
-<!-- npu="910b" id16 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id16 -->
-<!-- npu="A3" id17 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id17 -->
-<!-- npu="950" id18 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id18 -->
-
-</div>
-
-### <code><i>class</i></code> torch.export.exported_program.ModuleCallEntry
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.export.exported_program.ModuleCallEntry](https://pytorch.org/docs/2.12/user_guide/torch_compiler/export/api_reference.html#torch.export.exported_program.ModuleCallEntry)
-
-**产品支持情况**：
-
-<!-- npu="910b" id19 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id19 -->
-<!-- npu="A3" id20 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id20 -->
-<!-- npu="950" id21 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id21 -->
-
-</div>
-
-### <code><i>class</i></code> torch.export.unflatten.FlatArgsAdapter
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.export.unflatten.FlatArgsAdapter](https://pytorch.org/docs/2.12/user_guide/torch_compiler/export/api_reference.html#torch.export.unflatten.FlatArgsAdapter)
-
-**产品支持情况**：
-
-<!-- npu="910b" id82 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id82 -->
-<!-- npu="A3" id83 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id83 -->
-<!-- npu="950" id84 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id84 -->
-
-> <font size="3">adapt()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.export.unflatten.FlatArgsAdapter.adapt](https://pytorch.org/docs/2.12/user_guide/torch_compiler/export/api_reference.html#torch.export.unflatten.FlatArgsAdapter.adapt)
-
-**产品支持情况**：
-
-<!-- npu="910b" id25 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id25 -->
-<!-- npu="A3" id26 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id26 -->
-<!-- npu="950" id27 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id27 -->
-
-</div>
-
-</div>
-
-### <code><i>class</i></code> torch.export.unflatten.InterpreterModule
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.export.unflatten.InterpreterModule](https://pytorch.org/docs/2.12/user_guide/torch_compiler/export/api_reference.html#torch.export.unflatten.InterpreterModule)
-
-**产品支持情况**：
-
-<!-- npu="910b" id70 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id70 -->
-<!-- npu="A3" id71 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id71 -->
-<!-- npu="950" id72 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id72 -->
-
-</div>
-
-### <code><i>class</i></code> torch.export.unflatten.InterpreterModuleDispatcher
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.export.unflatten.InterpreterModuleDispatcher](https://pytorch.org/docs/2.12/user_guide/torch_compiler/export/api_reference.html#torch.export.unflatten.InterpreterModuleDispatcher)
-
-**产品支持情况**：
-
-<!-- npu="910b" id73 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id73 -->
-<!-- npu="A3" id74 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id74 -->
-<!-- npu="950" id75 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id75 -->
-
-</div>
-
-### torch.export.unflatten.unflatten
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.export.unflatten.unflatten](https://pytorch.org/docs/2.12/user_guide/torch_compiler/export/api_reference.html#torch.export.unflatten.unflatten)
-
-**产品支持情况**：
-
-<!-- npu="910b" id76 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id76 -->
-<!-- npu="A3" id77 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id77 -->
-<!-- npu="950" id78 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id78 -->
 
 </div>

@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
-> - 部分API虽在[PyTorch社区文档](https://pytorch.org/docs/2.9/)中存在，但未收录于本支持清单。此类API尚未验证，请谨慎使用。我们将持续进行验证工作，并在验证完成后更新文档。
+> - 本支持清单的范围以[PyTorch社区文档](https://pytorch.org/docs/2.9/)为准，社区文档中未列出的接口不在本清单范围内；已在社区文档中存在但未收录于本清单的API尚未验证，请谨慎使用，我们将在验证完成后更新文档。
 > - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
 > - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://pytorch.org/docs/2.9/checkpoint.html)。
 
@@ -50,6 +50,48 @@
 <!-- npu="950" id6 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id6 -->
+
+</div>
+
+### torch.utils.checkpoint.checkpoint_sequential
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.utils.checkpoint.checkpoint_sequential](https://pytorch.org/docs/2.9/checkpoint.html#torch.utils.checkpoint.checkpoint_sequential)
+
+**产品支持情况**：
+
+<!-- npu="910b" id19 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id19 -->
+<!-- npu="A3" id20 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id20 -->
+<!-- npu="950" id21 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id21 -->
+
+**限制与说明**：`input`仅支持fp32
+
+</div>
+
+### torch.utils.checkpoint.set_checkpoint_debug_enabled
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.utils.checkpoint.set_checkpoint_debug_enabled](https://pytorch.org/docs/2.9/checkpoint.html#torch.utils.checkpoint.set_checkpoint_debug_enabled)
+
+**产品支持情况**：
+
+<!-- npu="910b" id16 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id16 -->
+<!-- npu="A3" id17 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id17 -->
+<!-- npu="950" id18 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id18 -->
 
 </div>
 
@@ -114,45 +156,3 @@
 <!-- npu="910b,A3" id25 -->
 </div>
 <!-- end id25 -->
-
-### torch.utils.checkpoint.set_checkpoint_debug_enabled
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.utils.checkpoint.set_checkpoint_debug_enabled](https://pytorch.org/docs/2.9/checkpoint.html#torch.utils.checkpoint.set_checkpoint_debug_enabled)
-
-**产品支持情况**：
-
-<!-- npu="910b" id16 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id16 -->
-<!-- npu="A3" id17 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id17 -->
-<!-- npu="950" id18 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id18 -->
-
-</div>
-
-### torch.utils.checkpoint.checkpoint_sequential
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.utils.checkpoint.checkpoint_sequential](https://pytorch.org/docs/2.9/checkpoint.html#torch.utils.checkpoint.checkpoint_sequential)
-
-**产品支持情况**：
-
-<!-- npu="910b" id19 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id19 -->
-<!-- npu="A3" id20 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id20 -->
-<!-- npu="950" id21 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id21 -->
-
-**限制与说明**：`input`仅支持fp32
-
-</div>

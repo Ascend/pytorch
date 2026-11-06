@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
-> - 部分API虽在[PyTorch社区文档](https://pytorch.org/docs/2.14/)中存在，但未收录于本支持清单。此类API尚未验证，请谨慎使用。我们将持续进行验证工作，并在验证完成后更新文档。
+> - 本支持清单的范围以[PyTorch社区文档](https://pytorch.org/docs/2.14/)为准，社区文档中未列出的接口不在本清单范围内；已在社区文档中存在但未收录于本清单的API尚未验证，请谨慎使用，我们将在验证完成后更新文档。
 > - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
 > - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://docs.pytorch.org/docs/2.14/fx.experimental.html)。
 > - 原生社区提示torch.fx.experimental模块下的API属于实验性质，存在随时变更的风险，建议参考原生文档后谨慎使用。
@@ -594,366 +594,26 @@
 
 </div>
 
-<!-- npu="910b,A3" id274 -->
-### torch.fx.experimental.symbolic_shapes.lru_cache
+<!-- npu="910b,A3" id348 -->
+### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.DimDynamic
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.fx.experimental.symbolic_shapes.lru_cache](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.lru_cache.html)
+**原生文档**：[torch.fx.experimental.symbolic_shapes.DimDynamic](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.DimDynamic.html)
 
 **产品支持情况**：
-<!-- end id274 -->
+<!-- end id348 -->
 
-<!-- npu="910b" id85 -->
+<!-- npu="910b" id196 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id85 -->
-<!-- npu="A3" id86 -->
+<!-- end id196 -->
+<!-- npu="A3" id197 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id86 -->
+<!-- end id197 -->
 
-<!-- npu="910b,A3" id275 -->
+<!-- npu="910b,A3" id349 -->
 </div>
-<!-- end id275 -->
-
-<!-- npu="910b,A3" id276 -->
-### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.ShapeEnvSettings
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnvSettings](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.ShapeEnvSettings.html)
-
-**产品支持情况**：
-<!-- end id276 -->
-
-<!-- npu="910b" id88 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id88 -->
-<!-- npu="A3" id89 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id89 -->
-
-<!-- npu="910b,A3" id277 -->
-</div>
-<!-- end id277 -->
-
-<!-- npu="910b,A3" id278 -->
-### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.StatefulSymbolicContext
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.experimental.symbolic_shapes.StatefulSymbolicContext](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.StatefulSymbolicContext.html)
-
-**产品支持情况**：
-<!-- end id278 -->
-
-<!-- npu="910b" id91 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id91 -->
-<!-- npu="A3" id92 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id92 -->
-
-<!-- npu="910b,A3" id279 -->
-</div>
-<!-- end id279 -->
-
-<!-- npu="910b,A3" id280 -->
-### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.StatelessSymbolicContext
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.experimental.symbolic_shapes.StatelessSymbolicContext](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.StatelessSymbolicContext.html)
-
-**产品支持情况**：
-<!-- end id280 -->
-
-<!-- npu="910b" id94 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id94 -->
-<!-- npu="A3" id95 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id95 -->
-
-<!-- npu="910b,A3" id281 -->
-</div>
-<!-- end id281 -->
-
-<!-- npu="910b,A3" id282 -->
-### torch.fx.experimental.symbolic_shapes.canonicalize_bool_expr
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.experimental.symbolic_shapes.canonicalize_bool_expr](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.canonicalize_bool_expr.html)
-
-**产品支持情况**：
-<!-- end id282 -->
-
-<!-- npu="910b" id97 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id97 -->
-<!-- npu="A3" id98 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id98 -->
-
-<!-- npu="910b,A3" id283 -->
-</div>
-<!-- end id283 -->
-
-<!-- npu="910b,A3" id284 -->
-### torch.fx.experimental.symbolic_shapes.check_consistent
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.experimental.symbolic_shapes.check_consistent](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.check_consistent.html)
-
-**产品支持情况**：
-<!-- end id284 -->
-
-<!-- npu="910b" id100 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id100 -->
-<!-- npu="A3" id101 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id101 -->
-
-<!-- npu="910b,A3" id285 -->
-</div>
-<!-- end id285 -->
-
-<!-- npu="910b,A3" id286 -->
-### torch.fx.experimental.symbolic_shapes.is_accessor_node
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.experimental.symbolic_shapes.is_accessor_node](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.is_accessor_node.html)
-
-**产品支持情况**：
-<!-- end id286 -->
-
-<!-- npu="910b" id103 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id103 -->
-<!-- npu="A3" id104 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id104 -->
-
-<!-- npu="910b,A3" id287 -->
-</div>
-<!-- end id287 -->
-
-<!-- npu="910b,A3" id288 -->
-### torch.fx.experimental.symbolic_shapes.is_concrete_bool
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.experimental.symbolic_shapes.is_concrete_bool](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.is_concrete_bool.html)
-
-**产品支持情况**：
-<!-- end id288 -->
-
-<!-- npu="910b" id106 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id106 -->
-<!-- npu="A3" id107 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id107 -->
-
-<!-- npu="910b,A3" id289 -->
-</div>
-<!-- end id289 -->
-
-<!-- npu="910b,A3" id290 -->
-### torch.fx.experimental.symbolic_shapes.is_concrete_float
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.experimental.symbolic_shapes.is_concrete_float](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.is_concrete_float.html)
-
-**产品支持情况**：
-<!-- end id290 -->
-
-<!-- npu="910b" id109 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id109 -->
-<!-- npu="A3" id110 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id110 -->
-
-<!-- npu="910b,A3" id291 -->
-</div>
-<!-- end id291 -->
-
-<!-- npu="910b,A3" id292 -->
-### torch.fx.experimental.symbolic_shapes.is_concrete_int
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.experimental.symbolic_shapes.is_concrete_int](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.is_concrete_int.html)
-
-**产品支持情况**：
-<!-- end id292 -->
-
-<!-- npu="910b" id112 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id112 -->
-<!-- npu="A3" id113 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id113 -->
-
-<!-- npu="910b,A3" id293 -->
-</div>
-<!-- end id293 -->
-
-<!-- npu="910b,A3" id368 -->
-<!-- npu="910b,A3" id294 -->
-### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.StrictMinMaxConstraint
-<!-- end id294 -->
-
-<div style="margin-left: 2em">
-
-<!-- npu="910b,A3" id295 -->
-**原生文档**：[torch.fx.experimental.symbolic_shapes.StrictMinMaxConstraint](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.StrictMinMaxConstraint.html)
-
-**产品支持情况**：
-<!-- end id295 -->
-
-<!-- npu="910b" id115 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id115 -->
-<!-- npu="A3" id116 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id116 -->
-
-<!-- npu="910b,A3" id296 -->
-> <font size="3">render()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.experimental.symbolic_shapes.StrictMinMaxConstraint.render](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.StrictMinMaxConstraint.html#torch.fx.experimental.symbolic_shapes.StrictMinMaxConstraint.render)
-
-**产品支持情况**：
-<!-- end id296 -->
-
-<!-- npu="910b" id118 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id118 -->
-<!-- npu="A3" id119 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id119 -->
-
-<!-- npu="910b,A3" id297 -->
-</div>
-<!-- end id297 -->
-
-</div>
-<!-- end id368 -->
-
-<!-- npu="910b,A3" id298 -->
-### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.SubclassSymbolicContext
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.experimental.symbolic_shapes.SubclassSymbolicContext](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.SubclassSymbolicContext.html)
-
-**产品支持情况**：
-<!-- end id298 -->
-
-<!-- npu="910b" id121 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id121 -->
-<!-- npu="A3" id122 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id122 -->
-
-<!-- npu="910b,A3" id299 -->
-</div>
-<!-- end id299 -->
-
-<!-- npu="910b,A3" id300 -->
-### torch.fx.experimental.symbolic_shapes.sym_eq
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.experimental.symbolic_shapes.sym_eq](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.sym_eq.html)
-
-**产品支持情况**：
-<!-- end id300 -->
-
-<!-- npu="910b" id124 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id124 -->
-<!-- npu="A3" id125 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id125 -->
-
-<!-- npu="910b,A3" id301 -->
-</div>
-<!-- end id301 -->
-
-<!-- npu="910b,A3" id302 -->
-### torch.fx.experimental.symbolic_shapes.statically_known_true
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.experimental.symbolic_shapes.statically_known_true](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.statically_known_true.html)
-
-**产品支持情况**：
-<!-- end id302 -->
-
-<!-- npu="910b" id127 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id127 -->
-<!-- npu="A3" id128 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id128 -->
-
-<!-- npu="910b,A3" id303 -->
-</div>
-<!-- end id303 -->
-
-<!-- npu="910b,A3" id369 -->
-<!-- npu="910b,A3" id304 -->
-### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.DivideByKey
-<!-- end id304 -->
-
-<div style="margin-left: 2em">
-
-<!-- npu="910b,A3" id305 -->
-**原生文档**：[torch.fx.experimental.symbolic_shapes.DivideByKey](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.DivideByKey.html)
-
-**产品支持情况**：
-<!-- end id305 -->
-
-<!-- npu="910b" id130 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id130 -->
-<!-- npu="A3" id131 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id131 -->
-
-<!-- npu="910b,A3" id306 -->
-> <font size="3">get()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.experimental.symbolic_shapes.DivideByKey.get](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.DivideByKey.html#torch.fx.experimental.symbolic_shapes.DivideByKey.get)
-
-**产品支持情况**：
-<!-- end id306 -->
-
-<!-- npu="910b" id133 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id133 -->
-<!-- npu="A3" id134 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id134 -->
-
-<!-- npu="910b,A3" id307 -->
-</div>
-<!-- end id307 -->
-
-</div>
-<!-- end id369 -->
+<!-- end id349 -->
 
 <!-- npu="910b,A3" id308 -->
 ### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.EqualityConstraint
@@ -976,47 +636,181 @@
 </div>
 <!-- end id309 -->
 
-<!-- npu="910b,A3" id310 -->
-### torch.fx.experimental.symbolic_shapes.guard_size_oblivious
+<!-- npu="910b,A3" id280 -->
+### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.StatelessSymbolicContext
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.fx.experimental.symbolic_shapes.guard_size_oblivious](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.guard_size_oblivious.html)
+**原生文档**：[torch.fx.experimental.symbolic_shapes.StatelessSymbolicContext](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.StatelessSymbolicContext.html)
 
 **产品支持情况**：
-<!-- end id310 -->
+<!-- end id280 -->
 
-<!-- npu="910b" id139 -->
+<!-- npu="910b" id94 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id139 -->
-<!-- npu="A3" id140 -->
+<!-- end id94 -->
+<!-- npu="A3" id95 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id140 -->
+<!-- end id95 -->
 
-<!-- npu="910b,A3" id311 -->
+<!-- npu="910b,A3" id281 -->
 </div>
-<!-- end id311 -->
+<!-- end id281 -->
 
-<!-- npu="910b,A3" id312 -->
-### torch.fx.experimental.symbolic_shapes.has_free_symbols
+<!-- npu="910b,A3" id278 -->
+### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.StatefulSymbolicContext
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.fx.experimental.symbolic_shapes.has_free_symbols](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.has_free_symbols.html)
+**原生文档**：[torch.fx.experimental.symbolic_shapes.StatefulSymbolicContext](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.StatefulSymbolicContext.html)
 
 **产品支持情况**：
-<!-- end id312 -->
+<!-- end id278 -->
 
-<!-- npu="910b" id142 -->
+<!-- npu="910b" id91 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id142 -->
-<!-- npu="A3" id143 -->
+<!-- end id91 -->
+<!-- npu="A3" id92 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id143 -->
+<!-- end id92 -->
 
-<!-- npu="910b,A3" id313 -->
+<!-- npu="910b,A3" id279 -->
 </div>
-<!-- end id313 -->
+<!-- end id279 -->
+
+<!-- npu="910b,A3" id298 -->
+### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.SubclassSymbolicContext
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.experimental.symbolic_shapes.SubclassSymbolicContext](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.SubclassSymbolicContext.html)
+
+**产品支持情况**：
+<!-- end id298 -->
+
+<!-- npu="910b" id121 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id121 -->
+<!-- npu="A3" id122 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id122 -->
+
+<!-- npu="910b,A3" id299 -->
+</div>
+<!-- end id299 -->
+
+<!-- npu="910b,A3" id372 -->
+### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.DimConstraints
+
+<div style="margin-left: 2em">
+
+<!-- npu="910b,A3" id340 -->
+> <font size="3">forced_specializations()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.experimental.symbolic_shapes.DimConstraints.forced_specializations](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.DimConstraints.html#torch.fx.experimental.symbolic_shapes.DimConstraints.forced_specializations)
+
+**产品支持情况**：
+<!-- end id340 -->
+
+<!-- npu="910b" id184 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id184 -->
+<!-- npu="A3" id185 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id185 -->
+
+<!-- npu="910b,A3" id341 -->
+</div>
+<!-- end id341 -->
+
+<!-- npu="910b,A3" id342 -->
+> <font size="3">prettify_results()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.experimental.symbolic_shapes.DimConstraints.prettify_results](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.DimConstraints.html#torch.fx.experimental.symbolic_shapes.DimConstraints.prettify_results)
+
+**产品支持情况**：
+<!-- end id342 -->
+
+<!-- npu="910b" id187 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id187 -->
+<!-- npu="A3" id188 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id188 -->
+
+<!-- npu="910b,A3" id343 -->
+</div>
+<!-- end id343 -->
+
+<!-- npu="910b,A3" id344 -->
+> <font size="3">rewrite_with_congruences()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.experimental.symbolic_shapes.DimConstraints.rewrite_with_congruences](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.DimConstraints.html#torch.fx.experimental.symbolic_shapes.DimConstraints.rewrite_with_congruences)
+
+**产品支持情况**：
+<!-- end id344 -->
+
+<!-- npu="910b" id190 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id190 -->
+<!-- npu="A3" id191 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id191 -->
+
+<!-- npu="910b,A3" id345 -->
+</div>
+<!-- end id345 -->
+
+<!-- npu="910b,A3" id346 -->
+> <font size="3">solve()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.experimental.symbolic_shapes.DimConstraints.solve](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.DimConstraints.html#torch.fx.experimental.symbolic_shapes.DimConstraints.solve)
+
+**产品支持情况**：
+<!-- end id346 -->
+
+<!-- npu="910b" id193 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id193 -->
+<!-- npu="A3" id194 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id194 -->
+
+<!-- npu="910b,A3" id347 -->
+</div>
+<!-- end id347 -->
+
+</div>
+<!-- end id372 -->
+
+<!-- npu="910b,A3" id276 -->
+### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.ShapeEnvSettings
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.experimental.symbolic_shapes.ShapeEnvSettings](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.ShapeEnvSettings.html)
+
+**产品支持情况**：
+<!-- end id276 -->
+
+<!-- npu="910b" id88 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id88 -->
+<!-- npu="A3" id89 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id89 -->
+
+<!-- npu="910b,A3" id277 -->
+</div>
+<!-- end id277 -->
 
 <!-- npu="910b,A3" id370 -->
 ### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.PropagateUnbackedSymInts
@@ -1194,26 +988,219 @@
 </div>
 <!-- end id370 -->
 
-<!-- npu="910b,A3" id330 -->
-### torch.fx.experimental.symbolic_shapes.compute_unbacked_bindings
+<!-- npu="910b,A3" id292 -->
+### torch.fx.experimental.symbolic_shapes.is_concrete_int
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.fx.experimental.symbolic_shapes.compute_unbacked_bindings](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.compute_unbacked_bindings.html)
+**原生文档**：[torch.fx.experimental.symbolic_shapes.is_concrete_int](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.is_concrete_int.html)
 
 **产品支持情况**：
-<!-- end id330 -->
+<!-- end id292 -->
 
-<!-- npu="910b" id169 -->
+<!-- npu="910b" id112 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id169 -->
-<!-- npu="A3" id170 -->
+<!-- end id112 -->
+<!-- npu="A3" id113 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id170 -->
+<!-- end id113 -->
 
-<!-- npu="910b,A3" id331 -->
+<!-- npu="910b,A3" id293 -->
 </div>
-<!-- end id331 -->
+<!-- end id293 -->
+
+<!-- npu="910b,A3" id288 -->
+### torch.fx.experimental.symbolic_shapes.is_concrete_bool
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.experimental.symbolic_shapes.is_concrete_bool](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.is_concrete_bool.html)
+
+**产品支持情况**：
+<!-- end id288 -->
+
+<!-- npu="910b" id106 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id106 -->
+<!-- npu="A3" id107 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id107 -->
+
+<!-- npu="910b,A3" id289 -->
+</div>
+<!-- end id289 -->
+
+<!-- npu="910b,A3" id368 -->
+<!-- npu="910b,A3" id294 -->
+### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.StrictMinMaxConstraint
+<!-- end id294 -->
+
+<div style="margin-left: 2em">
+
+<!-- npu="910b,A3" id295 -->
+**原生文档**：[torch.fx.experimental.symbolic_shapes.StrictMinMaxConstraint](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.StrictMinMaxConstraint.html)
+
+**产品支持情况**：
+<!-- end id295 -->
+
+<!-- npu="910b" id115 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id115 -->
+<!-- npu="A3" id116 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id116 -->
+
+<!-- npu="910b,A3" id296 -->
+> <font size="3">render()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.experimental.symbolic_shapes.StrictMinMaxConstraint.render](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.StrictMinMaxConstraint.html#torch.fx.experimental.symbolic_shapes.StrictMinMaxConstraint.render)
+
+**产品支持情况**：
+<!-- end id296 -->
+
+<!-- npu="910b" id118 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id118 -->
+<!-- npu="A3" id119 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id119 -->
+
+<!-- npu="910b,A3" id297 -->
+</div>
+<!-- end id297 -->
+
+</div>
+<!-- end id368 -->
+
+<!-- npu="910b,A3" id290 -->
+### torch.fx.experimental.symbolic_shapes.is_concrete_float
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.experimental.symbolic_shapes.is_concrete_float](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.is_concrete_float.html)
+
+**产品支持情况**：
+<!-- end id290 -->
+
+<!-- npu="910b" id109 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id109 -->
+<!-- npu="A3" id110 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id110 -->
+
+<!-- npu="910b,A3" id291 -->
+</div>
+<!-- end id291 -->
+
+<!-- npu="910b,A3" id312 -->
+### torch.fx.experimental.symbolic_shapes.has_free_symbols
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.experimental.symbolic_shapes.has_free_symbols](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.has_free_symbols.html)
+
+**产品支持情况**：
+<!-- end id312 -->
+
+<!-- npu="910b" id142 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id142 -->
+<!-- npu="A3" id143 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id143 -->
+
+<!-- npu="910b,A3" id313 -->
+</div>
+<!-- end id313 -->
+
+<!-- npu="910b,A3" id310 -->
+### torch.fx.experimental.symbolic_shapes.guard_size_oblivious
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.experimental.symbolic_shapes.guard_size_oblivious](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.guard_size_oblivious.html)
+
+**产品支持情况**：
+<!-- end id310 -->
+
+<!-- npu="910b" id139 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id139 -->
+<!-- npu="A3" id140 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id140 -->
+
+<!-- npu="910b,A3" id311 -->
+</div>
+<!-- end id311 -->
+
+<!-- npu="910b,A3" id369 -->
+<!-- npu="910b,A3" id304 -->
+### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.DivideByKey
+<!-- end id304 -->
+
+<div style="margin-left: 2em">
+
+<!-- npu="910b,A3" id305 -->
+**原生文档**：[torch.fx.experimental.symbolic_shapes.DivideByKey](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.DivideByKey.html)
+
+**产品支持情况**：
+<!-- end id305 -->
+
+<!-- npu="910b" id130 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id130 -->
+<!-- npu="A3" id131 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id131 -->
+
+<!-- npu="910b,A3" id306 -->
+> <font size="3">get()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.experimental.symbolic_shapes.DivideByKey.get](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.DivideByKey.html#torch.fx.experimental.symbolic_shapes.DivideByKey.get)
+
+**产品支持情况**：
+<!-- end id306 -->
+
+<!-- npu="910b" id133 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id133 -->
+<!-- npu="A3" id134 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id134 -->
+
+<!-- npu="910b,A3" id307 -->
+</div>
+<!-- end id307 -->
+
+</div>
+<!-- end id369 -->
+
+<!-- npu="910b,A3" id300 -->
+### torch.fx.experimental.symbolic_shapes.sym_eq
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.experimental.symbolic_shapes.sym_eq](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.sym_eq.html)
+
+**产品支持情况**：
+<!-- end id300 -->
+
+<!-- npu="910b" id124 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id124 -->
+<!-- npu="A3" id125 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id125 -->
+
+<!-- npu="910b,A3" id301 -->
+</div>
+<!-- end id301 -->
 
 <!-- npu="910b,A3" id332 -->
 ### torch.fx.experimental.symbolic_shapes.constrain_range
@@ -1261,6 +1248,90 @@
 </div>
 <!-- end id335 -->
 
+<!-- npu="910b,A3" id282 -->
+### torch.fx.experimental.symbolic_shapes.canonicalize_bool_expr
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.experimental.symbolic_shapes.canonicalize_bool_expr](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.canonicalize_bool_expr.html)
+
+**产品支持情况**：
+<!-- end id282 -->
+
+<!-- npu="910b" id97 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id97 -->
+<!-- npu="A3" id98 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id98 -->
+
+<!-- npu="910b,A3" id283 -->
+</div>
+<!-- end id283 -->
+
+<!-- npu="910b,A3" id302 -->
+### torch.fx.experimental.symbolic_shapes.statically_known_true
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.experimental.symbolic_shapes.statically_known_true](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.statically_known_true.html)
+
+**产品支持情况**：
+<!-- end id302 -->
+
+<!-- npu="910b" id127 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id127 -->
+<!-- npu="A3" id128 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id128 -->
+
+<!-- npu="910b,A3" id303 -->
+</div>
+<!-- end id303 -->
+
+<!-- npu="910b,A3" id274 -->
+### torch.fx.experimental.symbolic_shapes.lru_cache
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.experimental.symbolic_shapes.lru_cache](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.lru_cache.html)
+
+**产品支持情况**：
+<!-- end id274 -->
+
+<!-- npu="910b" id85 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id85 -->
+<!-- npu="A3" id86 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id86 -->
+
+<!-- npu="910b,A3" id275 -->
+</div>
+<!-- end id275 -->
+
+<!-- npu="910b,A3" id284 -->
+### torch.fx.experimental.symbolic_shapes.check_consistent
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.experimental.symbolic_shapes.check_consistent](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.check_consistent.html)
+
+**产品支持情况**：
+<!-- end id284 -->
+
+<!-- npu="910b" id100 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id100 -->
+<!-- npu="A3" id101 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id101 -->
+
+<!-- npu="910b,A3" id285 -->
+</div>
+<!-- end id285 -->
+
 <!-- npu="910b,A3" id371 -->
 <!-- npu="910b,A3" id336 -->
 ### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.ConvertIntKey
@@ -1305,118 +1376,47 @@
 </div>
 <!-- end id371 -->
 
-<!-- npu="910b,A3" id372 -->
-### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.DimConstraints
+<!-- npu="910b,A3" id330 -->
+### torch.fx.experimental.symbolic_shapes.compute_unbacked_bindings
 
 <div style="margin-left: 2em">
 
-<!-- npu="910b,A3" id340 -->
-> <font size="3">forced_specializations()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.experimental.symbolic_shapes.DimConstraints.forced_specializations](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.DimConstraints.html#torch.fx.experimental.symbolic_shapes.DimConstraints.forced_specializations)
+**原生文档**：[torch.fx.experimental.symbolic_shapes.compute_unbacked_bindings](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.compute_unbacked_bindings.html)
 
 **产品支持情况**：
-<!-- end id340 -->
+<!-- end id330 -->
 
-<!-- npu="910b" id184 -->
+<!-- npu="910b" id169 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id184 -->
-<!-- npu="A3" id185 -->
+<!-- end id169 -->
+<!-- npu="A3" id170 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id185 -->
+<!-- end id170 -->
 
-<!-- npu="910b,A3" id341 -->
+<!-- npu="910b,A3" id331 -->
 </div>
-<!-- end id341 -->
+<!-- end id331 -->
 
-<!-- npu="910b,A3" id342 -->
-> <font size="3">prettify_results()</font>
+<!-- npu="910b,A3" id286 -->
+### torch.fx.experimental.symbolic_shapes.is_accessor_node
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.fx.experimental.symbolic_shapes.DimConstraints.prettify_results](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.DimConstraints.html#torch.fx.experimental.symbolic_shapes.DimConstraints.prettify_results)
+**原生文档**：[torch.fx.experimental.symbolic_shapes.is_accessor_node](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.is_accessor_node.html)
 
 **产品支持情况**：
-<!-- end id342 -->
+<!-- end id286 -->
 
-<!-- npu="910b" id187 -->
+<!-- npu="910b" id103 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id187 -->
-<!-- npu="A3" id188 -->
+<!-- end id103 -->
+<!-- npu="A3" id104 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id188 -->
+<!-- end id104 -->
 
-<!-- npu="910b,A3" id343 -->
+<!-- npu="910b,A3" id287 -->
 </div>
-<!-- end id343 -->
-
-<!-- npu="910b,A3" id344 -->
-> <font size="3">rewrite_with_congruences()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.experimental.symbolic_shapes.DimConstraints.rewrite_with_congruences](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.DimConstraints.html#torch.fx.experimental.symbolic_shapes.DimConstraints.rewrite_with_congruences)
-
-**产品支持情况**：
-<!-- end id344 -->
-
-<!-- npu="910b" id190 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id190 -->
-<!-- npu="A3" id191 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id191 -->
-
-<!-- npu="910b,A3" id345 -->
-</div>
-<!-- end id345 -->
-
-<!-- npu="910b,A3" id346 -->
-> <font size="3">solve()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.experimental.symbolic_shapes.DimConstraints.solve](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.DimConstraints.html#torch.fx.experimental.symbolic_shapes.DimConstraints.solve)
-
-**产品支持情况**：
-<!-- end id346 -->
-
-<!-- npu="910b" id193 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id193 -->
-<!-- npu="A3" id194 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id194 -->
-
-<!-- npu="910b,A3" id347 -->
-</div>
-<!-- end id347 -->
-
-</div>
-<!-- end id372 -->
-
-<!-- npu="910b,A3" id348 -->
-### <code><i>class</i></code> torch.fx.experimental.symbolic_shapes.DimDynamic
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.experimental.symbolic_shapes.DimDynamic](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.symbolic_shapes.DimDynamic.html)
-
-**产品支持情况**：
-<!-- end id348 -->
-
-<!-- npu="910b" id196 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id196 -->
-<!-- npu="A3" id197 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id197 -->
-
-<!-- npu="910b,A3" id349 -->
-</div>
-<!-- end id349 -->
+<!-- end id287 -->
 
 <!-- npu="910b,A3" id373 -->
 <!-- npu="910b,A3" id350 -->
@@ -1486,26 +1486,26 @@
 <!-- npu="910b,A3" id367 -->
 ## torch.fx.experimental.proxy_tensor
 
-<!-- npu="910b,A3" id356 -->
-### torch.fx.experimental.proxy_tensor.get_proxy_mode
+<!-- npu="910b,A3" id360 -->
+### torch.fx.experimental.proxy_tensor.make_fx
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.fx.experimental.proxy_tensor.get_proxy_mode](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.proxy_tensor.get_proxy_mode.html)
+**原生文档**：[torch.fx.experimental.proxy_tensor.make_fx](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.proxy_tensor.make_fx.html)
 
 **产品支持情况**：
-<!-- end id356 -->
+<!-- end id360 -->
 
-<!-- npu="910b" id208 -->
+<!-- npu="910b" id214 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id208 -->
-<!-- npu="A3" id209 -->
+<!-- end id214 -->
+<!-- npu="A3" id215 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id209 -->
+<!-- end id215 -->
 
-<!-- npu="910b,A3" id357 -->
+<!-- npu="910b,A3" id361 -->
 </div>
-<!-- end id357 -->
+<!-- end id361 -->
 
 <!-- npu="910b,A3" id358 -->
 ### torch.fx.experimental.proxy_tensor.handle_sym_dispatch
@@ -1528,47 +1528,26 @@
 </div>
 <!-- end id359 -->
 
-<!-- npu="910b,A3" id360 -->
-### torch.fx.experimental.proxy_tensor.make_fx
+<!-- npu="910b,A3" id356 -->
+### torch.fx.experimental.proxy_tensor.get_proxy_mode
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.fx.experimental.proxy_tensor.make_fx](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.proxy_tensor.make_fx.html)
+**原生文档**：[torch.fx.experimental.proxy_tensor.get_proxy_mode](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.proxy_tensor.get_proxy_mode.html)
 
 **产品支持情况**：
-<!-- end id360 -->
+<!-- end id356 -->
 
-<!-- npu="910b" id214 -->
+<!-- npu="910b" id208 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id214 -->
-<!-- npu="A3" id215 -->
+<!-- end id208 -->
+<!-- npu="A3" id209 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id215 -->
+<!-- end id209 -->
 
-<!-- npu="910b,A3" id361 -->
+<!-- npu="910b,A3" id357 -->
 </div>
-<!-- end id361 -->
-
-<!-- npu="910b,A3" id362 -->
-### torch.fx.experimental.proxy_tensor.maybe_disable_thunkify
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.experimental.proxy_tensor.maybe_disable_thunkify](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.proxy_tensor.maybe_disable_thunkify.html)
-
-**产品支持情况**：
-<!-- end id362 -->
-
-<!-- npu="910b" id217 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id217 -->
-<!-- npu="A3" id218 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id218 -->
-
-<!-- npu="910b,A3" id363 -->
-</div>
-<!-- end id363 -->
+<!-- end id357 -->
 
 <!-- npu="910b,A3" id364 -->
 ### torch.fx.experimental.proxy_tensor.maybe_enable_thunkify
@@ -1590,4 +1569,25 @@
 <!-- npu="910b,A3" id365 -->
 </div>
 <!-- end id365 -->
+
+<!-- npu="910b,A3" id362 -->
+### torch.fx.experimental.proxy_tensor.maybe_disable_thunkify
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.experimental.proxy_tensor.maybe_disable_thunkify](https://pytorch.org/docs/2.14/generated/torch.fx.experimental.proxy_tensor.maybe_disable_thunkify.html)
+
+**产品支持情况**：
+<!-- end id362 -->
+
+<!-- npu="910b" id217 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id217 -->
+<!-- npu="A3" id218 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id218 -->
+
+<!-- npu="910b,A3" id363 -->
+</div>
+<!-- end id363 -->
 <!-- end id367 -->

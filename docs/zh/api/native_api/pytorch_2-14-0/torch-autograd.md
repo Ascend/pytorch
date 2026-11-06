@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
-> - 部分API虽在[PyTorch社区文档](https://pytorch.org/docs/2.14/)中存在，但未收录于本支持清单。此类API尚未验证，请谨慎使用。我们将持续进行验证工作，并在验证完成后更新文档。
+> - 本支持清单的范围以[PyTorch社区文档](https://pytorch.org/docs/2.14/)为准，社区文档中未列出的接口不在本清单范围内；已在社区文档中存在但未收录于本清单的API尚未验证，请谨慎使用，我们将在验证完成后更新文档。
 > - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
 > - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://pytorch.org/docs/2.14/autograd.html)。
 
@@ -166,31 +166,6 @@
 
 ## Functional higher level API
 
-### <code><i>class</i></code> torch.autograd.function.BackwardCFunction
-
-<div style="margin-left: 2em">
-
-> <font size="3">apply()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.autograd.function.BackwardCFunction.apply](https://docs.pytorch.org/docs/2.14/generated/torch.autograd.function.BackwardCFunction.html#torch.autograd.function.BackwardCFunction.apply)
-
-**产品支持情况**：
-
-<!-- npu="910b" id196 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id196 -->
-<!-- npu="A3" id197 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id197 -->
-<!-- npu="950" id198 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id198 -->
-</div>
-
-</div>
-
 ### torch.autograd.functional.jacobian
 
 <div style="margin-left: 2em">
@@ -322,6 +297,31 @@
 <!-- end id72 -->
 
 **限制与说明**： `inputs`仅支持fp32
+
+</div>
+
+### <code><i>class</i></code> torch.autograd.function.BackwardCFunction
+
+<div style="margin-left: 2em">
+
+> <font size="3">apply()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.function.BackwardCFunction.apply](https://docs.pytorch.org/docs/2.14/generated/torch.autograd.function.BackwardCFunction.html#torch.autograd.function.BackwardCFunction.apply)
+
+**产品支持情况**：
+
+<!-- npu="910b" id196 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id196 -->
+<!-- npu="A3" id197 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id197 -->
+<!-- npu="950" id198 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id198 -->
+</div>
 
 </div>
 
@@ -564,47 +564,6 @@
 
 ## Numerical gradient checking
 
-### torch.autograd.gradcheck.gradcheck
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.autograd.gradcheck.gradcheck](https://pytorch.org/docs/2.14/generated/torch.autograd.gradcheck.gradcheck.html)
-
-**产品支持情况**：
-
-<!-- npu="910b" id100 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id100 -->
-<!-- npu="A3" id101 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id101 -->
-<!-- npu="950" id102 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id102 -->
-
-</div>
-
-<!-- npu="910b,A3" id247 -->
-### torch.autograd.gradcheck.gradgradcheck
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.autograd.gradcheck.gradgradcheck](https://pytorch.org/docs/2.14/generated/torch.autograd.gradcheck.gradgradcheck.html)
-
-**产品支持情况**：
-<!-- end id247 -->
-
-<!-- npu="910b" id103 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id103 -->
-<!-- npu="A3" id104 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id104 -->
-
-<!-- npu="910b,A3" id248 -->
-</div>
-<!-- end id248 -->
-
 ### <code><i>class</i></code> torch.autograd.function.NestedIOFunction
 
 <div style="margin-left: 2em">
@@ -663,6 +622,26 @@
 
 </div>
 
+> <font size="3">mark_dirty()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.function.NestedIOFunction.mark\_dirty](https://docs.pytorch.org/docs/2.14/generated/torch.autograd.function.NestedIOFunction.html#torch.autograd.function.NestedIOFunction.mark_dirty)
+
+**产品支持情况**：
+
+<!-- npu="910b" id260 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id260 -->
+<!-- npu="A3" id261 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id261 -->
+<!-- npu="950" id262 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id262 -->
+
+</div>
+
 > <font size="3">save_for_backward()</font>
 
 <div style="margin-left: 2em">
@@ -704,6 +683,47 @@
 </div>
 
 </div>
+
+### torch.autograd.gradcheck.gradcheck
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.gradcheck.gradcheck](https://pytorch.org/docs/2.14/generated/torch.autograd.gradcheck.gradcheck.html)
+
+**产品支持情况**：
+
+<!-- npu="910b" id100 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id100 -->
+<!-- npu="A3" id101 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id101 -->
+<!-- npu="950" id102 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id102 -->
+
+</div>
+
+<!-- npu="910b,A3" id247 -->
+### torch.autograd.gradcheck.gradgradcheck
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.gradcheck.gradgradcheck](https://pytorch.org/docs/2.14/generated/torch.autograd.gradcheck.gradgradcheck.html)
+
+**产品支持情况**：
+<!-- end id247 -->
+
+<!-- npu="910b" id103 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id103 -->
+<!-- npu="A3" id104 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id104 -->
+
+<!-- npu="910b,A3" id248 -->
+</div>
+<!-- end id248 -->
 
 ## Profiler
 
@@ -894,6 +914,46 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 
 </div>
 
+### <code><i>class</i></code> torch.autograd.profiler_util.Interval
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.profiler_util.Interval](https://pytorch.org/docs/2.14/generated/torch.autograd.profiler_util.Interval.html#torch.autograd.profiler_util.Interval)
+
+**产品支持情况**：
+
+<!-- npu="910b" id232 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id232 -->
+<!-- npu="A3" id233 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id233 -->
+<!-- npu="950" id234 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id234 -->
+
+> <font size="3">elapsed_us()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.profiler_util.Interval.elapsed_us](https://pytorch.org/docs/2.14/generated/torch.autograd.profiler_util.Interval.html#torch.autograd.profiler_util.Interval.elapsed_us)
+
+**产品支持情况**：
+
+<!-- npu="910b" id226 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id226 -->
+<!-- npu="A3" id227 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id227 -->
+<!-- npu="950" id228 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id228 -->
+
+</div>
+
+</div>
+
 ### <code><i>class</i></code> torch.autograd.profiler_util.Kernel
 
 <div style="margin-left: 2em">
@@ -1074,46 +1134,6 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 
 </div>
 
-### <code><i>class</i></code> torch.autograd.profiler_util.Interval
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.autograd.profiler_util.Interval](https://pytorch.org/docs/2.14/generated/torch.autograd.profiler_util.Interval.html#torch.autograd.profiler_util.Interval)
-
-**产品支持情况**：
-
-<!-- npu="910b" id232 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id232 -->
-<!-- npu="A3" id233 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id233 -->
-<!-- npu="950" id234 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id234 -->
-
-> <font size="3">elapsed_us()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.autograd.profiler_util.Interval.elapsed_us](https://pytorch.org/docs/2.14/generated/torch.autograd.profiler_util.Interval.html#torch.autograd.profiler_util.Interval.elapsed_us)
-
-**产品支持情况**：
-
-<!-- npu="910b" id226 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id226 -->
-<!-- npu="A3" id227 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id227 -->
-<!-- npu="950" id228 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id228 -->
-
-</div>
-
-</div>
-
 ## Debugging and anomaly detection
 
 ### torch.autograd.detect_anomaly
@@ -1285,6 +1305,26 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 <!-- end id180 -->
 
 </div>
+
+</div>
+
+### torch.autograd.graph.increment\_version
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.graph.increment\_version](https://docs.pytorch.org/docs/2.14/generated/torch.autograd.graph.increment_version.html#torch.autograd.graph.increment_version)
+
+**产品支持情况**：
+
+<!-- npu="910b" id257 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id257 -->
+<!-- npu="A3" id258 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id258 -->
+<!-- npu="950" id259 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id259 -->
 
 </div>
 
