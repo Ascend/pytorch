@@ -1,4 +1,5 @@
 import os
+import re
 import socket
 import logging
 from enum import Enum
@@ -56,7 +57,15 @@ class DynamicProfilerUtils:
     CURRENT_STEP = "current_step"
     START_STEP = "start_step"
     STOP_STEP = "stop_step"
+    TRACE_ID = "trace_id"
+    QUEUE_DEPTH = "queue_depth"
+    REJECTED = "rejected"
     REPORT_INTERVAL = 1.0
+
+    RECORD_SEPARATOR = '\x1e'
+    BATCH_COUNT_MARKER = 'DYNO_BATCH_COUNT'
+    BATCH_LEN_MARKER = 'DYNO_BATCH_LEN'
+    BATCH_SUM_MARKER = 'DYNO_BATCH_SUM'
 
     @classmethod
     def init_logger(cls, is_monitor_process: bool = False, log_path: str = None):
@@ -113,19 +122,74 @@ class DynamicProfilerUtils:
 
     @staticmethod
     def dyno_str_to_json(res: str):
+        res_dict = {}
         try:
-            res_dict = {}
-            pairs = str(res).split("\n")
-            char_equal = '='
-            for pair in pairs:
-                str_split = pair.split(char_equal)
-                if len(str_split) == 2:
-                    res_dict[str_split[0].strip()] = str_split[1].strip()
+            for pair in str(res).split("\n"):
+                kv = pair.split("=")
+                if len(kv) == 2:
+                    res_dict[kv[0].strip()] = kv[1].strip()
         except Exception as ex:
             print_warn_msg(f"Dyno request response is not valid, occur error {ex}!")
-            res_dict = {}
-
         return res_dict
+
+    @staticmethod
+    def _parse_marker(head: str, marker: str):
+        matches = re.findall(r'^' + marker + r'\s*=\s*(\S+)\s*$', head, re.MULTILINE)
+        return matches[-1] if matches else None
+
+    @staticmethod
+    def _parse_int_marker(head: str, marker: str):
+        value = DynamicProfilerUtils._parse_marker(head, marker)
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _fnv1a64(data: bytes) -> int:
+        value = 0xcbf29ce484222325
+        for byte in data:
+            value ^= byte
+            value = (value * 0x100000001b3) & 0xFFFFFFFFFFFFFFFF
+        return value
+
+    @staticmethod
+    def parse_dyno_configs(record: str) -> list:
+        if not record:
+            return []
+        head, _, payload = record.partition(DynamicProfilerUtils.RECORD_SEPARATOR)
+        count = DynamicProfilerUtils._parse_int_marker(
+            head, DynamicProfilerUtils.BATCH_COUNT_MARKER)
+        payload_len = DynamicProfilerUtils._parse_int_marker(
+            head, DynamicProfilerUtils.BATCH_LEN_MARKER)
+        checksum = DynamicProfilerUtils._parse_marker(
+            head, DynamicProfilerUtils.BATCH_SUM_MARKER)
+        if count is None or payload_len is None or checksum is None:
+            legacy_cfg = DynamicProfilerUtils.dyno_str_to_json(record)
+            if legacy_cfg:
+                return [legacy_cfg]
+            print_error_msg("Dyno config frame is missing batch metadata, drop the frame!")
+            return []
+        payload_bytes = payload.encode('utf-8')
+        if payload_len != len(payload_bytes):
+            print_error_msg(f"Dyno config frame length mismatch, expect {payload_len}, but got {len(payload_bytes)}!")
+            return []
+        expect_sum = '{:016x}'.format(DynamicProfilerUtils._fnv1a64(payload_bytes))
+        if checksum.lower() != expect_sum:
+            print_error_msg(f"Dyno config frame checksum mismatch, expect {expect_sum}, but got {checksum}!")
+            return []
+        parts = payload.split(DynamicProfilerUtils.RECORD_SEPARATOR)
+        if count != len(parts):
+            print_error_msg(f"Dyno config frame count mismatch, expect {count}, but got {len(parts)}!")
+            return []
+        configs = []
+        for part in parts:
+            cfg = DynamicProfilerUtils.dyno_str_to_json(part)
+            if not cfg:
+                print_error_msg("Dyno config frame contains an empty config, drop the batch!")
+                return []
+            configs.append(cfg)
+        return configs
 
     @staticmethod
     def parse_str_params_to_list(params):

@@ -1,4 +1,5 @@
 import json
+from typing import Union
 from torch_npu._C._profiler import ProfilerActivity
 from ..experimental_config import _ExperimentalConfig, ProfilerLevel, AiCMetrics
 from ._dynamic_profiler_utils import DynamicProfilerUtils
@@ -9,6 +10,7 @@ class ConfigContext:
     DEFAULT_START_STEP = 0
     INSTANT_START_STEP = -1
     DEFAULT_WARMUP = 0
+    DEFAULT_DYNO_ACTIVITIES = "CPU,NPU"
     DEADLINE_PROF_DIR = "./"
     BOOL_MAP = {'true': True, 'false': False}
 
@@ -30,6 +32,7 @@ class ConfigContext:
         self.is_valid = False
         self._meta_data = {}
         self._async_mode = False
+        self._trace_id = ""
         self._is_dyno = DynamicProfilerUtils.is_dyno_model()
         self._is_dyno_monitor = False
         self._rank_id = DynamicProfilerUtils.get_rank_id()
@@ -40,6 +43,7 @@ class ConfigContext:
         self._is_dyno_monitor = "NPU_MONITOR_START" in json_data
         if self._is_dyno_monitor:
             return
+        self._trace_id = json_data.get("REQUEST_TRACE_ID", "")
         self._parse_activity(json_data)
         self._parse_prof_dir(json_data)
         self._meta_data = json_data.get('metadata', {})
@@ -180,10 +184,17 @@ class ConfigContext:
         if not self._is_dyno:
             activities = json_data.get('activities')
         else:
-            activities = json_data.get('PROFILE_ACTIVITIES').split(",")
+            activities = json_data.get('PROFILE_ACTIVITIES')
+            if not isinstance(activities, str) or not activities.strip():
+                DynamicProfilerUtils.out_log(
+                    "PROFILE_ACTIVITIES is missing or invalid, reset it to {}.".format(
+                        self.DEFAULT_DYNO_ACTIVITIES),
+                    DynamicProfilerUtils.LoggerLevelEnum.WARNING)
+                activities = self.DEFAULT_DYNO_ACTIVITIES
+            activities = activities.split(",")
         if activities and isinstance(activities, list):
             for entry in activities:
-                activity = getattr(ProfilerActivity, entry.upper(), None)
+                activity = getattr(ProfilerActivity, str(entry).strip().upper(), None)
                 if activity:
                     self.activity_set.add(activity)
                 else:
@@ -322,6 +333,9 @@ class ConfigContext:
             return {}
         return self._meta_data
 
+    def trace_id(self) -> str:
+        return self._trace_id
+
     def activities(self) -> list:
         return list(self.activity_set)
 
@@ -380,13 +394,13 @@ class ConfigContext:
         return self._is_dyno_monitor
 
     @staticmethod
-    def profiler_cfg_json_to_bytes(json_dict: dict) -> bytes:
+    def profiler_cfg_json_to_bytes(json_dict: Union[dict, list]) -> bytes:
         cfg_json_str = json.dumps(json_dict)
         cfg_json_bytes = cfg_json_str.encode("utf-8")
         return cfg_json_bytes
 
     @staticmethod
-    def bytes_to_profiler_cfg_json(bytes_shm: bytes) -> dict:
+    def bytes_to_profiler_cfg_json(bytes_shm: bytes) -> Union[dict, list]:
         cfg_json_str = bytes_shm.decode("utf-8")
         cfg_json = json.loads(cfg_json_str)
         return cfg_json
