@@ -3,9 +3,9 @@
 - [PyTorch 2.14.0版本](./pytorch_2-14-0/PyTorch-2-14-0.md)
   - [概述](./pytorch_2-14-0/overview.md)
   - [torch](./pytorch_2-14-0/torch.md)
+  - [Aliases in torch.nn](./pytorch_2-14-0/torch-nn-aliases.md)
   - [torch.nn](./pytorch_2-14-0/torch-nn.md)
   - [torch.nn.functional](./pytorch_2-14-0/torch-nn-functional.md)
-  - [torch.nn.attention](./pytorch_2-14-0/torch-nn-attention.md)
   - [torch.Tensor](./pytorch_2-14-0/torch-Tensor.md)
   - [Tensor Attributes](./pytorch_2-14-0/Tensor-Attributes.md)
   - [torch.amp](./pytorch_2-14-0/torch-amp.md)
@@ -14,6 +14,11 @@
   - [torch.accelerator](./pytorch_2-14-0/torch-accelerator.md)
   - [torch.cpu](./pytorch_2-14-0/torch-cpu.md)
   - [torch.cuda](./pytorch_2-14-0/torch-cuda.md)
+  - [torch.cuda.memory](./pytorch_2-14-0/torch-cuda-memory.md)
+  - [torch.xpu](./pytorch_2-14-0/torch-xpu.md)
+  <!-- npu="950" id19 -->
+  - [torch.mtia](./pytorch_2-14-0/torch-mtia.md)
+  <!-- end id19 -->
   - [torch.backends](./pytorch_2-14-0/torch-backends.md)
   - [torch.export](./pytorch_2-14-0/torch-export.md)
   - [torch.distributed](./pytorch_2-14-0/torch-distributed.md)
@@ -36,6 +41,7 @@
   - [torch.hub](./pytorch_2-14-0/torch-hub.md)
   - [torch.linalg](./pytorch_2-14-0/torch-linalg.md)
   - [torch.monitor](./pytorch_2-14-0/torch-monitor.md)
+  - [torch.signal](./pytorch_2-14-0/torch-signal.md)
   - [torch.special](./pytorch_2-14-0/torch-special.md)
   - [torch.overrides](./pytorch_2-14-0/torch-overrides.md)
   - [torch.package](./pytorch_2-14-0/torch-package.md)
@@ -43,6 +49,7 @@
   - [torch.profiler](./pytorch_2-14-0/torch-profiler.md)
   <!-- end id1 -->
   - [torch.nn.init](./pytorch_2-14-0/torch-nn-init.md)
+  - [torch.nn.attention](./pytorch_2-14-0/torch-nn-attention.md)
   - [torch.onnx](./pytorch_2-14-0/torch-onnx.md)
   - [torch.optim](./pytorch_2-14-0/torch-optim.md)
   - [DDP Communication Hooks](./pytorch_2-14-0/DDP-Communication-Hooks.md)
@@ -66,13 +73,17 @@
   - [torch.utils.tensorboard](./pytorch_2-14-0/torch-utils-tensorboard.md)
   - [Type Info](./pytorch_2-14-0/Type-Info.md)
   - [torch.\_\_config\_\_](./pytorch_2-14-0/torch-__config__.md)
+  - [torch.\_\_future\_\_](./pytorch_2-14-0/torch-__future__.md)
+  <!-- npu="910b,A3" id14 -->
+  - [torch.\_logging](./pytorch_2-14-0/torch-_logging.md)
+  <!-- end id14 -->
 
 - [PyTorch 2.13.0版本](./pytorch_2-13-0/PyTorch-2-13-0.md)
   - [概述](./pytorch_2-13-0/overview.md)
   - [torch](./pytorch_2-13-0/torch.md)
+  - [Aliases in torch.nn](./pytorch_2-13-0/torch-nn-aliases.md)
   - [torch.nn](./pytorch_2-13-0/torch-nn.md)
   - [torch.nn.functional](./pytorch_2-13-0/torch-nn-functional.md)
-  - [torch.nn.attention](./pytorch_2-13-0/torch-nn-attention.md)
   - [torch.Tensor](./pytorch_2-13-0/torch-Tensor.md)
   - [Tensor Attributes](./pytorch_2-13-0/Tensor-Attributes.md)
   - [torch.amp](./pytorch_2-13-0/torch-amp.md)
@@ -81,6 +92,11 @@
   - [torch.accelerator](./pytorch_2-13-0/torch-accelerator.md)
   - [torch.cpu](./pytorch_2-13-0/torch-cpu.md)
   - [torch.cuda](./pytorch_2-13-0/torch-cuda.md)
+  - [torch.cuda.memory](./pytorch_2-13-0/torch-cuda-memory.md)
+  - [torch.xpu](./pytorch_2-13-0/torch-xpu.md)
+  <!-- npu="950" id18 -->
+  - [torch.mtia](./pytorch_2-13-0/torch-mtia.md)
+  <!-- end id18 -->
   - [torch.backends](./pytorch_2-13-0/torch-backends.md)
   - [torch.export](./pytorch_2-13-0/torch-export.md)
   - [torch.distributed](./pytorch_2-13-0/torch-distributed.md)
@@ -103,6 +119,7 @@
   - [torch.hub](./pytorch_2-13-0/torch-hub.md)
   - [torch.linalg](./pytorch_2-13-0/torch-linalg.md)
   - [torch.monitor](./pytorch_2-13-0/torch-monitor.md)
+  - [torch.signal](./pytorch_2-13-0/torch-signal.md)
   - [torch.special](./pytorch_2-13-0/torch-special.md)
   - [torch.overrides](./pytorch_2-13-0/torch-overrides.md)
   - [torch.package](./pytorch_2-13-0/torch-package.md)
@@ -110,6 +127,7 @@
   - [torch.profiler](./pytorch_2-13-0/torch-profiler.md)
   <!-- end id3 -->
   - [torch.nn.init](./pytorch_2-13-0/torch-nn-init.md)
+  - [torch.nn.attention](./pytorch_2-13-0/torch-nn-attention.md)
   - [torch.onnx](./pytorch_2-13-0/torch-onnx.md)
   - [torch.optim](./pytorch_2-13-0/torch-optim.md)
   - [DDP Communication Hooks](./pytorch_2-13-0/DDP-Communication-Hooks.md)
@@ -134,13 +152,15 @@
   - [Type Info](./pytorch_2-13-0/Type-Info.md)
   - [torch.\_\_config\_\_](./pytorch_2-13-0/torch-__config__.md)
   - [torch.\_\_future\_\_](./pytorch_2-13-0/torch-__future__.md)
+  <!-- npu="910b,A3" id13 -->
+  - [torch.\_logging](./pytorch_2-13-0/torch-_logging.md)
+  <!-- end id13 -->
 
 - [PyTorch 2.12.0版本](./pytorch_2-12-0/PyTorch-2-12-0.md)
   - [概述](./pytorch_2-12-0/overview.md)
   - [torch](./pytorch_2-12-0/torch.md)
   - [torch.nn](./pytorch_2-12-0/torch-nn.md)
   - [torch.nn.functional](./pytorch_2-12-0/torch-nn-functional.md)
-  - [torch.nn.attention](./pytorch_2-12-0/torch-nn-attention.md)
   - [torch.Tensor](./pytorch_2-12-0/torch-Tensor.md)
   - [Tensor Attributes](./pytorch_2-12-0/Tensor-Attributes.md)
   - [torch.amp](./pytorch_2-12-0/torch-amp.md)
@@ -149,6 +169,11 @@
   - [torch.accelerator](./pytorch_2-12-0/torch-accelerator.md)
   - [torch.cpu](./pytorch_2-12-0/torch-cpu.md)
   - [torch.cuda](./pytorch_2-12-0/torch-cuda.md)
+  - [torch.cuda.memory](./pytorch_2-12-0/torch-cuda-memory.md)
+  - [torch.xpu](./pytorch_2-12-0/torch-xpu.md)
+  <!-- npu="950" id17 -->
+  - [torch.mtia](./pytorch_2-12-0/torch-mtia.md)
+  <!-- end id17 -->
   - [torch.backends](./pytorch_2-12-0/torch-backends.md)
   - [torch.export](./pytorch_2-12-0/torch-export.md)
   - [torch.distributed](./pytorch_2-12-0/torch-distributed.md)
@@ -171,11 +196,13 @@
   - [torch.hub](./pytorch_2-12-0/torch-hub.md)
   - [torch.linalg](./pytorch_2-12-0/torch-linalg.md)
   - [torch.monitor](./pytorch_2-12-0/torch-monitor.md)
+  - [torch.signal](./pytorch_2-12-0/torch-signal.md)
   - [torch.special](./pytorch_2-12-0/torch-special.md)
   - [torch.overrides](./pytorch_2-12-0/torch-overrides.md)
   - [torch.package](./pytorch_2-12-0/torch-package.md)
   - [torch.profiler](./pytorch_2-12-0/torch-profiler.md)
   - [torch.nn.init](./pytorch_2-12-0/torch-nn-init.md)
+  - [torch.nn.attention](./pytorch_2-12-0/torch-nn-attention.md)
   - [torch.onnx](./pytorch_2-12-0/torch-onnx.md)
   - [torch.optim](./pytorch_2-12-0/torch-optim.md)
   - [DDP Communication Hooks](./pytorch_2-12-0/DDP-Communication-Hooks.md)
@@ -201,13 +228,15 @@
   - [Named Tensors](./pytorch_2-12-0/Named-Tensors.md)
   - [torch.\_\_config\_\_](./pytorch_2-12-0/torch-__config__.md)
   - [torch.\_\_future\_\_](./pytorch_2-12-0/torch-__future__.md)
+  <!-- npu="910b,A3" id12 -->
+  - [torch.\_logging](./pytorch_2-12-0/torch-_logging.md)
+  <!-- end id12 -->
 
 - [PyTorch 2.11.0版本](./pytorch_2-11-0/PyTorch-2-11-0.md)
   - [概述](./pytorch_2-11-0/overview.md)
   - [torch](./pytorch_2-11-0/torch.md)
   - [torch.nn](./pytorch_2-11-0/torch-nn.md)
   - [torch.nn.functional](./pytorch_2-11-0/torch-nn-functional.md)
-  - [torch.nn.attention](./pytorch_2-11-0/torch-nn-attention.md)
   - [torch.Tensor](./pytorch_2-11-0/torch-Tensor.md)
   - [Tensor Attributes](./pytorch_2-11-0/Tensor-Attributes.md)
   - [torch.amp](./pytorch_2-11-0/torch-amp.md)
@@ -216,6 +245,9 @@
   - [torch.accelerator](./pytorch_2-11-0/torch-accelerator.md)
   - [torch.cpu](./pytorch_2-11-0/torch-cpu.md)
   - [torch.cuda](./pytorch_2-11-0/torch-cuda.md)
+  - [torch.cuda.memory](./pytorch_2-11-0/torch-cuda-memory.md)
+  - [torch.xpu](./pytorch_2-11-0/torch-xpu.md)
+  - [torch.mtia](./pytorch_2-11-0/torch-mtia.md)
   - [torch.backends](./pytorch_2-11-0/torch-backends.md)
   - [torch.export](./pytorch_2-11-0/torch-export.md)
   - [torch.distributed](./pytorch_2-11-0/torch-distributed.md)
@@ -238,11 +270,13 @@
   - [torch.hub](./pytorch_2-11-0/torch-hub.md)
   - [torch.linalg](./pytorch_2-11-0/torch-linalg.md)
   - [torch.monitor](./pytorch_2-11-0/torch-monitor.md)
+  - [torch.signal](./pytorch_2-11-0/torch-signal.md)
   - [torch.special](./pytorch_2-11-0/torch-special.md)
   - [torch.overrides](./pytorch_2-11-0/torch-overrides.md)
   - [torch.package](./pytorch_2-11-0/torch-package.md)
   - [torch.profiler](./pytorch_2-11-0/torch-profiler.md)
   - [torch.nn.init](./pytorch_2-11-0/torch-nn-init.md)
+  - [torch.nn.attention](./pytorch_2-11-0/torch-nn-attention.md)
   - [torch.onnx](./pytorch_2-11-0/torch-onnx.md)
   - [torch.optim](./pytorch_2-11-0/torch-optim.md)
   - [DDP Communication Hooks](./pytorch_2-11-0/DDP-Communication-Hooks.md)
@@ -268,6 +302,9 @@
   - [Named Tensors](./pytorch_2-11-0/Named-Tensors.md)
   - [torch.\_\_config\_\_](./pytorch_2-11-0/torch-__config__.md)
   - [torch.\_\_future\_\_](./pytorch_2-11-0/torch-__future__.md)
+  <!-- npu="910b,A3" id11 -->
+  - [torch.\_logging](./pytorch_2-11-0/torch-_logging.md)
+  <!-- end id11 -->
 
 - [PyTorch 2.10.0版本](./pytorch_2-10-0/PyTorch-2-10-0.md)
   - [概述](./pytorch_2-10-0/overview.md)
@@ -283,6 +320,9 @@
   - [torch.accelerator](./pytorch_2-10-0/torch-accelerator.md)
   - [torch.cpu](./pytorch_2-10-0/torch-cpu.md)
   - [torch.cuda](./pytorch_2-10-0/torch-cuda.md)
+  - [torch.cuda.memory](./pytorch_2-10-0/torch-cuda-memory.md)
+  - [torch.xpu](./pytorch_2-10-0/torch-xpu.md)
+  - [torch.mtia](./pytorch_2-10-0/torch-mtia.md)
   - [torch.backends](./pytorch_2-10-0/torch-backends.md)
   - [torch.export](./pytorch_2-10-0/torch-export.md)
   - [torch.distributed](./pytorch_2-10-0/torch-distributed.md)
@@ -306,6 +346,7 @@
   - [torch.jit](./pytorch_2-10-0/torch-jit.md)
   - [torch.linalg](./pytorch_2-10-0/torch-linalg.md)
   - [torch.monitor](./pytorch_2-10-0/torch-monitor.md)
+  - [torch.signal](./pytorch_2-10-0/torch-signal.md)
   - [torch.special](./pytorch_2-10-0/torch-special.md)
   - [torch.overrides](./pytorch_2-10-0/torch-overrides.md)
   - [torch.package](./pytorch_2-10-0/torch-package.md)
@@ -335,6 +376,10 @@
   - [Type Info](./pytorch_2-10-0/Type-Info.md)
   - [Named Tensors](./pytorch_2-10-0/Named-Tensors.md)
   - [torch.\_\_config\_\_](./pytorch_2-10-0/torch-__config__.md)
+  - [torch.\_\_future\_\_](./pytorch_2-10-0/torch-__future__.md)
+  <!-- npu="910b,A3" id10 -->
+  - [torch.\_logging](./pytorch_2-10-0/torch-_logging.md)
+  <!-- end id10 -->
 
 - [PyTorch 2.9.0版本](./pytorch_2-9-0/PyTorch-2-9-0.md)
   - [概述](./pytorch_2-9-0/overview.md)
@@ -350,6 +395,9 @@
   - [torch.accelerator](./pytorch_2-9-0/torch-accelerator.md)
   - [torch.cpu](./pytorch_2-9-0/torch-cpu.md)
   - [torch.cuda](./pytorch_2-9-0/torch-cuda.md)
+  - [torch.cuda.memory](./pytorch_2-9-0/torch-cuda-memory.md)
+  - [torch.xpu](./pytorch_2-9-0/torch-xpu.md)
+  - [torch.mtia](./pytorch_2-9-0/torch-mtia.md)
   - [torch.backends](./pytorch_2-9-0/torch-backends.md)
   - [torch.export](./pytorch_2-9-0/torch-export.md)
   - [torch.distributed](./pytorch_2-9-0/torch-distributed.md)
@@ -373,6 +421,7 @@
   - [torch.jit](./pytorch_2-9-0/torch-jit.md)
   - [torch.linalg](./pytorch_2-9-0/torch-linalg.md)
   - [torch.monitor](./pytorch_2-9-0/torch-monitor.md)
+  - [torch.signal](./pytorch_2-9-0/torch-signal.md)
   - [torch.special](./pytorch_2-9-0/torch-special.md)
   - [torch.overrides](./pytorch_2-9-0/torch-overrides.md)
   - [torch.package](./pytorch_2-9-0/torch-package.md)
@@ -402,6 +451,10 @@
   - [Type Info](./pytorch_2-9-0/Type-Info.md)
   - [Named Tensors](./pytorch_2-9-0/Named-Tensors.md)
   - [torch.\_\_config\_\_](./pytorch_2-9-0/torch-__config__.md)
+  - [torch.\_\_future\_\_](./pytorch_2-9-0/torch-__future__.md)
+  <!-- npu="910b,A3" id16 -->
+  - [torch.\_logging](./pytorch_2-9-0/torch-_logging.md)
+  <!-- end id16 -->
 
 - [PyTorch 2.7.1版本](./pytorch_2-7-1/PyTorch-2-7-1.md)
   - [概述](./pytorch_2-7-1/overview.md)
@@ -417,6 +470,9 @@
   - [torch.accelerator](./pytorch_2-7-1/torch-accelerator.md)
   - [torch.cpu](./pytorch_2-7-1/torch-cpu.md)
   - [torch.cuda](./pytorch_2-7-1/torch-cuda.md)
+  - [torch.cuda.memory](./pytorch_2-7-1/torch-cuda-memory.md)
+  - [torch.xpu](./pytorch_2-7-1/torch-xpu.md)
+  - [torch.mtia](./pytorch_2-7-1/torch-mtia.md)
   - [torch.backends](./pytorch_2-7-1/torch-backends.md)
   - [torch.export](./pytorch_2-7-1/torch-export.md)
   - [torch.distributed](./pytorch_2-7-1/torch-distributed.md)
@@ -440,6 +496,7 @@
   - [torch.jit](./pytorch_2-7-1/torch-jit.md)
   - [torch.linalg](./pytorch_2-7-1/torch-linalg.md)
   - [torch.monitor](./pytorch_2-7-1/torch-monitor.md)
+  - [torch.signal](./pytorch_2-7-1/torch-signal.md)
   - [torch.special](./pytorch_2-7-1/torch-special.md)
   - [torch.overrides](./pytorch_2-7-1/torch-overrides.md)
   - [torch.package](./pytorch_2-7-1/torch-package.md)
@@ -471,6 +528,9 @@
   - [Named Tensors](./pytorch_2-7-1/Named-Tensors.md)
   - [torch.\_\_config\_\_](./pytorch_2-7-1/torch-__config__.md)
   - [torch.\_\_future\_\_](./pytorch_2-7-1/torch-__future__.md)
+  <!-- npu="910b,A3" id15 -->
+  - [torch.\_logging](./pytorch_2-7-1/torch-_logging.md)
+  <!-- end id15 -->
 
 - [确定性计算API支持清单](deterministic_computing_apis.md)
 - [支持DTensor的API清单](dtensor_supported_apis.md)

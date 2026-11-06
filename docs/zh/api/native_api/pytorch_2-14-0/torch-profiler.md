@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
-> - 部分API虽在[PyTorch社区文档](https://pytorch.org/docs/2.14/)中存在，但未收录于本支持清单。此类API尚未验证，请谨慎使用。我们将持续进行验证工作，并在验证完成后更新文档。
+> - 本支持清单的范围以[PyTorch社区文档](https://pytorch.org/docs/2.14/)为准，社区文档中未列出的接口不在本清单范围内；已在社区文档中存在但未收录于本清单的API尚未验证，请谨慎使用，我们将在验证完成后更新文档。
 > - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
 > - 在使用支持的profiler接口时，需要将API名称替换为**NPU形式名称**才能使用，已支持的NPU形式profiler接口如下表所示。
 > - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://pytorch.org/docs/2.14/profiler.html)。
@@ -22,6 +22,75 @@
 </div>
 
 ## API Reference
+
+<!-- npu="910b,A3" id60 -->
+### torch.profiler.schedule
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.profiler.schedule](https://docs.pytorch.org/docs/2.14/profiler.html#torch.profiler.profiler.schedule)
+
+**NPU 形式名称**：torch_npu.profiler.schedule
+
+**产品支持情况**：
+<!-- end id60 -->
+
+<!-- npu="910b" id37 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id37 -->
+<!-- npu="A3" id38 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id38 -->
+
+<!-- npu="910b,A3" id61 -->
+</div>
+<!-- end id61 -->
+
+<!-- npu="910b,A3" id62 -->
+### torch.profiler.tensorboard_trace_handler
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.profiler.tensorboard_trace_handler](https://docs.pytorch.org/docs/2.14/profiler.html#torch.profiler.profiler.tensorboard_trace_handler)
+
+**NPU 形式名称**：torch_npu.profiler.tensorboard_trace_handler
+
+**产品支持情况**：
+<!-- end id62 -->
+
+<!-- npu="910b" id40 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id40 -->
+<!-- npu="A3" id41 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id41 -->
+
+<!-- npu="910b,A3" id63 -->
+</div>
+<!-- end id63 -->
+
+<!-- npu="910b,A3" id52 -->
+### torch.profiler.profile
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.profiler.profile](https://pytorch.org/docs/2.14/profiler.html#torch.profiler.profile)
+
+**NPU 形式名称**：torch_npu.profiler.profile
+
+**产品支持情况**：
+<!-- end id52 -->
+
+<!-- npu="910b" id22 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id22 -->
+<!-- npu="A3" id23 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id23 -->
+
+<!-- npu="910b,A3" id53 -->
+</div>
+<!-- end id53 -->
 
 <!-- npu="910b,A3" id42 -->
 ### torch.profiler.profile.add_metadata
@@ -138,28 +207,28 @@
 </div>
 <!-- end id51 -->
 
-<!-- npu="910b,A3" id52 -->
-### torch.profiler.profile
+<!-- npu="910b,A3" id58 -->
+### <code><i>class</i></code> torch.profiler.ProfilerActivity
+<!-- end id58 -->
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.profiler.profile](https://pytorch.org/docs/2.14/profiler.html#torch.profiler.profile)
+<!-- npu="910b,A3" id59 -->
+**原生文档**：[torch.profiler.ProfilerActivity](https://pytorch.org/docs/2.14/profiler.html#torch.profiler.ProfilerActivity)
 
-**NPU 形式名称**：torch_npu.profiler.profile
+**NPU 形式名称**：torch_npu.profiler.ProfilerActivity
 
 **产品支持情况**：
-<!-- end id52 -->
+<!-- end id59 -->
 
-<!-- npu="910b" id22 -->
+<!-- npu="910b" id31 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id22 -->
-<!-- npu="A3" id23 -->
+<!-- end id31 -->
+<!-- npu="A3" id32 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id23 -->
+<!-- end id32 -->
 
-<!-- npu="910b,A3" id53 -->
 </div>
-<!-- end id53 -->
 
 <!-- npu="910b,A3" id54 -->
 ### torch.profiler.profile.step
@@ -206,72 +275,3 @@
 <!-- npu="910b,A3" id57 -->
 </div>
 <!-- end id57 -->
-
-<!-- npu="910b,A3" id58 -->
-### <code><i>class</i></code> torch.profiler.ProfilerActivity
-<!-- end id58 -->
-
-<div style="margin-left: 2em">
-
-<!-- npu="910b,A3" id59 -->
-**原生文档**：[torch.profiler.ProfilerActivity](https://pytorch.org/docs/2.14/profiler.html#torch.profiler.ProfilerActivity)
-
-**NPU 形式名称**：torch_npu.profiler.ProfilerActivity
-
-**产品支持情况**：
-<!-- end id59 -->
-
-<!-- npu="910b" id31 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id31 -->
-<!-- npu="A3" id32 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id32 -->
-
-</div>
-
-<!-- npu="910b,A3" id60 -->
-### torch.profiler.schedule
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.profiler.schedule](https://docs.pytorch.org/docs/2.14/profiler.html#torch.profiler.profiler.schedule)
-
-**NPU 形式名称**：torch_npu.profiler.schedule
-
-**产品支持情况**：
-<!-- end id60 -->
-
-<!-- npu="910b" id37 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id37 -->
-<!-- npu="A3" id38 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id38 -->
-
-<!-- npu="910b,A3" id61 -->
-</div>
-<!-- end id61 -->
-
-<!-- npu="910b,A3" id62 -->
-### torch.profiler.tensorboard_trace_handler
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.profiler.tensorboard_trace_handler](https://docs.pytorch.org/docs/2.14/profiler.html#torch.profiler.profiler.tensorboard_trace_handler)
-
-**NPU 形式名称**：torch_npu.profiler.tensorboard_trace_handler
-
-**产品支持情况**：
-<!-- end id62 -->
-
-<!-- npu="910b" id40 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id40 -->
-<!-- npu="A3" id41 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id41 -->
-
-<!-- npu="910b,A3" id63 -->
-</div>
-<!-- end id63 -->

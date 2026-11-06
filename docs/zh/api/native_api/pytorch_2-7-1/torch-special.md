@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
-> - 部分API虽在[PyTorch社区文档](https://pytorch.org/docs/2.7/)中存在，但未收录于本支持清单。此类API尚未验证，请谨慎使用。我们将持续进行验证工作，并在验证完成后更新文档。
+> - 本支持清单的范围以[PyTorch社区文档](https://pytorch.org/docs/2.7/)为准，社区文档中未列出的接口不在本清单范围内；已在社区文档中存在但未收录于本清单的API尚未验证，请谨慎使用，我们将在验证完成后更新文档。
 > - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
 > - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://pytorch.org/docs/2.7/special.html)。
 
@@ -412,6 +412,28 @@
 
 </div>
 
+### torch.special.log1p
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.special.log1p](https://pytorch.org/docs/2.7/special.html#torch.special.log1p)
+
+**产品支持情况**：
+
+<!-- npu="910b" id22 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id22 -->
+<!-- npu="A3" id23 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id23 -->
+<!-- npu="950" id24 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id24 -->
+
+**限制与说明**： `input`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+
+</div>
+
 ### torch.special.log_ndtr
 
 <div style="margin-left: 2em">
@@ -429,6 +451,73 @@
 <!-- npu="950" id72 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id72 -->
+
+</div>
+
+### torch.special.log\_softmax
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.special.log\_softmax](https://docs.pytorch.org/docs/2.7/special.html#torch.special.log_softmax)
+
+**产品支持情况**：
+
+<!-- npu="910b" id94 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id94 -->
+<!-- npu="A3" id95 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id95 -->
+<!-- npu="950" id96 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id96 -->
+
+</div>
+
+### torch.special.logsumexp
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.special.logsumexp](https://pytorch.org/docs/2.7/special.html#torch.special.logsumexp)
+
+**产品支持情况**：
+
+<!-- npu="910b" id25 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id25 -->
+<!-- npu="A3" id26 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id26 -->
+<!-- npu="950" id27 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id27 -->
+
+**限制与说明**： `input`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+
+</div>
+
+### torch.special.multigammaln
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.special.multigammaln](https://pytorch.org/docs/2.7/special.html#torch.special.multigammaln)
+
+**产品支持情况**：
+
+<!-- npu="910b" id28 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id28 -->
+<!-- npu="A3" id29 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id29 -->
+<!-- npu="950" id30 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id30 -->
+
+**限制与说明**：
+
+- `input`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+- 参数`p`需为正整数，且`input`元素需满足`input > (p - 1) / 2`，否则结果为`nan`或`inf`
 
 </div>
 
@@ -532,6 +621,46 @@
 
 </div>
 
+### torch.special.sinc
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.special.sinc](https://docs.pytorch.org/docs/2.7/special.html#torch.special.sinc)
+
+**产品支持情况**：
+
+<!-- npu="910b" id97 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id97 -->
+<!-- npu="A3" id98 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id98 -->
+<!-- npu="950" id99 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id99 -->
+
+</div>
+
+### torch.special.softmax
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.special.softmax](https://docs.pytorch.org/docs/2.7/special.html#torch.special.softmax)
+
+**产品支持情况**：
+
+<!-- npu="910b" id100 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id100 -->
+<!-- npu="A3" id101 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id101 -->
+<!-- npu="950" id102 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id102 -->
+
+</div>
+
 ### torch.special.spherical_bessel_j0
 
 <div style="margin-left: 2em">
@@ -591,74 +720,5 @@
 <!-- end id21 -->
 
 **限制与说明**： `input`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
-
-</div>
-
-### torch.special.log1p
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.special.log1p](https://pytorch.org/docs/2.7/special.html#torch.special.log1p)
-
-**产品支持情况**：
-
-<!-- npu="910b" id22 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id22 -->
-<!-- npu="A3" id23 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id23 -->
-<!-- npu="950" id24 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id24 -->
-
-**限制与说明**： `input`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
-
-</div>
-
-### torch.special.logsumexp
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.special.logsumexp](https://pytorch.org/docs/2.7/special.html#torch.special.logsumexp)
-
-**产品支持情况**：
-
-<!-- npu="910b" id25 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id25 -->
-<!-- npu="A3" id26 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id26 -->
-<!-- npu="950" id27 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id27 -->
-
-**限制与说明**： `input`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
-
-</div>
-
-### torch.special.multigammaln
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.special.multigammaln](https://pytorch.org/docs/2.7/special.html#torch.special.multigammaln)
-
-**产品支持情况**：
-
-<!-- npu="910b" id28 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id28 -->
-<!-- npu="A3" id29 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id29 -->
-<!-- npu="950" id30 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id30 -->
-
-**限制与说明**：
-
-- `input`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
-- 参数`p`需为正整数，且`input`元素需满足`input > (p - 1) / 2`，否则结果为`nan`或`inf`
 
 </div>

@@ -3,8 +3,9 @@
 > [!NOTE]
 >
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
-> - 部分API虽在[PyTorch社区文档](https://pytorch.org/docs/2.13/)中存在，但未收录于本支持清单。此类API尚未验证，请谨慎使用。我们将持续进行验证工作，并在验证完成后更新文档。
+> - 本支持清单的范围以[PyTorch社区文档](https://pytorch.org/docs/2.13/)为准，社区文档中未列出的接口不在本清单范围内；已在社区文档中存在但未收录于本清单的API尚未验证，请谨慎使用，我们将在验证完成后更新文档。
 > - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
+> - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://docs.pytorch.org/docs/2.13/nn.attention.html)。
 
 <div style="border:1px solid #d1d5da;margin:10px 0;padding:16px 20px;background-color:#f3f4f5;border-radius:.25rem">
 <div style="margin: 8px 0"><font size="5"><b>目录</b></font></div>
@@ -82,5 +83,51 @@
 <!-- end id9 -->
 
 </div>
+
+</div>
+
+### <code><i>class</i></code> torch.nn.attention.flex\_attention.BlockMask
+
+<div style="margin-left: 2em">
+
+> <font size="3">from_kv_blocks()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.attention.flex\_attention.BlockMask.from\_kv\_blocks](https://docs.pytorch.org/docs/2.13/nn.attention.flex_attention.html#torch.nn.attention.flex_attention.BlockMask.from_kv_blocks)
+
+**产品支持情况**：
+
+<!-- npu="910b" id10 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id10 -->
+<!-- npu="A3" id11 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id11 -->
+<!-- npu="950" id12 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id12 -->
+
+</div>
+
+</div>
+
+### torch.nn.attention.flex\_attention.noop\_mask
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.attention.flex\_attention.noop\_mask](https://docs.pytorch.org/docs/2.13/nn.attention.flex_attention.html#torch.nn.attention.flex_attention.noop_mask)
+
+**产品支持情况**：
+
+<!-- npu="910b" id13 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id13 -->
+<!-- npu="A3" id14 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id14 -->
+<!-- npu="950" id15 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id15 -->
 
 </div>

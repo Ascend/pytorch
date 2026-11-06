@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
-> - 部分API虽在[PyTorch社区文档](https://pytorch.org/docs/2.14/)中存在，但未收录于本支持清单。此类API尚未验证，请谨慎使用。我们将持续进行验证工作，并在验证完成后更新文档。
+> - 本支持清单的范围以[PyTorch社区文档](https://pytorch.org/docs/2.14/)为准，社区文档中未列出的接口不在本清单范围内；已在社区文档中存在但未收录于本清单的API尚未验证，请谨慎使用，我们将在验证完成后更新文档。
 > - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
 > - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://pytorch.org/docs/2.14/fx.html)。
 
@@ -45,6 +45,28 @@
 <!-- npu="950" id3 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id3 -->
+
+**限制与说明**： `input`仅支持fp32
+
+</div>
+
+### torch.fx.wrap
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.wrap](https://pytorch.org/docs/2.14/fx.html#torch.fx.wrap)
+
+**产品支持情况**：
+
+<!-- npu="910b" id151 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id151 -->
+<!-- npu="A3" id152 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id152 -->
+<!-- npu="950" id153 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id153 -->
 
 **限制与说明**： `input`仅支持fp32
 
@@ -420,6 +442,27 @@
 
 </div>
 
+<!-- npu="910b,A3" id276 -->
+> <font size="3">find_nodes()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.Graph.find_nodes](https://pytorch.org/docs/2.14/fx.html#torch.fx.Graph.find_nodes)
+
+**产品支持情况**：
+<!-- end id276 -->
+
+<!-- npu="910b" id64 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id64 -->
+<!-- npu="A3" id65 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id65 -->
+
+<!-- npu="910b,A3" id277 -->
+</div>
+<!-- end id277 -->
+
 > <font size="3">get_attr()</font>
 
 <div style="margin-left: 2em">
@@ -459,27 +502,6 @@
 <!-- end id63 -->
 
 </div>
-
-<!-- npu="910b,A3" id276 -->
-> <font size="3">find_nodes()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.Graph.find_nodes](https://pytorch.org/docs/2.14/fx.html#torch.fx.Graph.find_nodes)
-
-**产品支持情况**：
-<!-- end id276 -->
-
-<!-- npu="910b" id64 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id64 -->
-<!-- npu="A3" id65 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id65 -->
-
-<!-- npu="910b,A3" id277 -->
-</div>
-<!-- end id277 -->
 
 > <font size="3">inserting_after()</font>
 
@@ -771,6 +793,361 @@
 <!-- npu="950" id108 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id108 -->
+
+</div>
+
+</div>
+
+### <code><i>class</i></code> torch.fx.Node
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.Node](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node)
+
+**产品支持情况**：
+
+<!-- npu="910b" id154 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id154 -->
+<!-- npu="A3" id155 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id155 -->
+<!-- npu="950" id156 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id156 -->
+
+**限制与说明**： `input`仅支持fp32
+
+> <font size="3">all_input_nodes()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.Node.all_input_nodes](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.all_input_nodes)
+
+**产品支持情况**：
+
+<!-- npu="910b" id157 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id157 -->
+<!-- npu="A3" id158 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id158 -->
+<!-- npu="950" id159 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id159 -->
+
+</div>
+
+> <font size="3">append()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.Node.append](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.append)
+
+**产品支持情况**：
+
+<!-- npu="910b" id160 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id160 -->
+<!-- npu="A3" id161 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id161 -->
+<!-- npu="950" id162 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id162 -->
+
+**限制与说明**： `input`仅支持fp32
+
+</div>
+
+> <font size="3">args()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.Node.args](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.args)
+
+**产品支持情况**：
+
+<!-- npu="910b" id163 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id163 -->
+<!-- npu="A3" id164 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id164 -->
+<!-- npu="950" id165 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id165 -->
+
+</div>
+
+> <font size="3">format_node()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.Node.format_node](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.format_node)
+
+**产品支持情况**：
+
+<!-- npu="910b" id166 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id166 -->
+<!-- npu="A3" id167 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id167 -->
+<!-- npu="950" id168 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id168 -->
+
+**限制与说明**： `input`仅支持fp32
+
+</div>
+
+<!-- npu="910b,A3" id280 -->
+> <font size="3">insert_arg()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.Node.insert_arg](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.insert_arg)
+
+**产品支持情况**：
+<!-- end id280 -->
+
+<!-- npu="910b" id202 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id202 -->
+<!-- npu="A3" id203 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id203 -->
+
+<!-- npu="910b,A3" id281 -->
+</div>
+<!-- end id281 -->
+
+> <font size="3">is_impure()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.Node.is_impure](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.is_impure)
+
+**产品支持情况**：
+
+<!-- npu="910b" id169 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id169 -->
+<!-- npu="A3" id170 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id170 -->
+<!-- npu="950" id171 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id171 -->
+
+**限制与说明**： `input`仅支持fp32
+
+</div>
+
+> <font size="3">kwargs()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.Node.kwargs](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.kwargs)
+
+**产品支持情况**：
+
+<!-- npu="910b" id172 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id172 -->
+<!-- npu="A3" id173 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id173 -->
+<!-- npu="950" id174 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id174 -->
+
+</div>
+
+> <font size="3">next()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.Node.next](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.next)
+
+**产品支持情况**：
+
+<!-- npu="910b" id175 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id175 -->
+<!-- npu="A3" id176 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id176 -->
+<!-- npu="950" id177 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id177 -->
+
+</div>
+
+> <font size="3">normalized_arguments()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.Node.normalized_arguments](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.normalized_arguments)
+
+**产品支持情况**：
+
+<!-- npu="910b" id178 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id178 -->
+<!-- npu="A3" id179 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id179 -->
+<!-- npu="950" id180 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id180 -->
+
+</div>
+
+> <font size="3">prepend()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.Node.prepend](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.prepend)
+
+**产品支持情况**：
+
+<!-- npu="910b" id181 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id181 -->
+<!-- npu="A3" id182 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id182 -->
+<!-- npu="950" id183 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id183 -->
+
+</div>
+
+> <font size="3">prev()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.Node.prev](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.prev)
+
+**产品支持情况**：
+
+<!-- npu="910b" id184 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id184 -->
+<!-- npu="A3" id185 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id185 -->
+<!-- npu="950" id186 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id186 -->
+
+</div>
+
+> <font size="3">replace_all_uses_with()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.Node.replace_all_uses_with](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.replace_all_uses_with)
+
+**产品支持情况**：
+
+<!-- npu="910b" id187 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id187 -->
+<!-- npu="A3" id188 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id188 -->
+<!-- npu="950" id189 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id189 -->
+
+</div>
+
+> <font size="3">replace_input_with()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.Node.replace_input_with](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.replace_input_with)
+
+**产品支持情况**：
+
+<!-- npu="910b" id190 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id190 -->
+<!-- npu="A3" id191 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id191 -->
+<!-- npu="950" id192 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id192 -->
+
+**限制与说明**： `input`仅支持fp32
+
+</div>
+
+> <font size="3">stack_trace()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.Node.stack_trace](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.stack_trace)
+
+**产品支持情况**：
+
+<!-- npu="910b" id193 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id193 -->
+<!-- npu="A3" id194 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id194 -->
+<!-- npu="950" id195 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id195 -->
+
+</div>
+
+> <font size="3">update_arg()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.Node.update_arg](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.update_arg)
+
+**产品支持情况**：
+
+<!-- npu="910b" id196 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id196 -->
+<!-- npu="A3" id197 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id197 -->
+<!-- npu="950" id198 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id198 -->
+
+**限制与说明**： `input`仅支持fp32
+
+</div>
+
+> <font size="3">update_kwarg()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.Node.update_kwarg](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.update_kwarg)
+
+**产品支持情况**：
+
+<!-- npu="910b" id199 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id199 -->
+<!-- npu="A3" id200 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id200 -->
+<!-- npu="950" id201 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id201 -->
+
+**限制与说明**： `input`仅支持fp32
 
 </div>
 
@@ -1070,383 +1447,6 @@
 
 </div>
 
-### torch.fx.wrap
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.wrap](https://pytorch.org/docs/2.14/fx.html#torch.fx.wrap)
-
-**产品支持情况**：
-
-<!-- npu="910b" id151 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id151 -->
-<!-- npu="A3" id152 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id152 -->
-<!-- npu="950" id153 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id153 -->
-
-**限制与说明**： `input`仅支持fp32
-
-</div>
-
-### <code><i>class</i></code> torch.fx.Node
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.Node](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node)
-
-**产品支持情况**：
-
-<!-- npu="910b" id154 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id154 -->
-<!-- npu="A3" id155 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id155 -->
-<!-- npu="950" id156 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id156 -->
-
-**限制与说明**： `input`仅支持fp32
-
-> <font size="3">all_input_nodes()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.Node.all_input_nodes](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.all_input_nodes)
-
-**产品支持情况**：
-
-<!-- npu="910b" id157 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id157 -->
-<!-- npu="A3" id158 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id158 -->
-<!-- npu="950" id159 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id159 -->
-
-</div>
-
-> <font size="3">append()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.Node.append](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.append)
-
-**产品支持情况**：
-
-<!-- npu="910b" id160 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id160 -->
-<!-- npu="A3" id161 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id161 -->
-<!-- npu="950" id162 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id162 -->
-
-**限制与说明**： `input`仅支持fp32
-
-</div>
-
-> <font size="3">args()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.Node.args](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.args)
-
-**产品支持情况**：
-
-<!-- npu="910b" id163 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id163 -->
-<!-- npu="A3" id164 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id164 -->
-<!-- npu="950" id165 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id165 -->
-
-</div>
-
-> <font size="3">format_node()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.Node.format_node](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.format_node)
-
-**产品支持情况**：
-
-<!-- npu="910b" id166 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id166 -->
-<!-- npu="A3" id167 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id167 -->
-<!-- npu="950" id168 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id168 -->
-
-**限制与说明**： `input`仅支持fp32
-
-</div>
-
-> <font size="3">is_impure()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.Node.is_impure](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.is_impure)
-
-**产品支持情况**：
-
-<!-- npu="910b" id169 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id169 -->
-<!-- npu="A3" id170 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id170 -->
-<!-- npu="950" id171 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id171 -->
-
-**限制与说明**： `input`仅支持fp32
-
-</div>
-
-> <font size="3">kwargs()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.Node.kwargs](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.kwargs)
-
-**产品支持情况**：
-
-<!-- npu="910b" id172 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id172 -->
-<!-- npu="A3" id173 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id173 -->
-<!-- npu="950" id174 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id174 -->
-
-</div>
-
-> <font size="3">next()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.Node.next](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.next)
-
-**产品支持情况**：
-
-<!-- npu="910b" id175 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id175 -->
-<!-- npu="A3" id176 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id176 -->
-<!-- npu="950" id177 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id177 -->
-
-</div>
-
-> <font size="3">normalized_arguments()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.Node.normalized_arguments](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.normalized_arguments)
-
-**产品支持情况**：
-
-<!-- npu="910b" id178 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id178 -->
-<!-- npu="A3" id179 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id179 -->
-<!-- npu="950" id180 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id180 -->
-
-</div>
-
-> <font size="3">prepend()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.Node.prepend](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.prepend)
-
-**产品支持情况**：
-
-<!-- npu="910b" id181 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id181 -->
-<!-- npu="A3" id182 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id182 -->
-<!-- npu="950" id183 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id183 -->
-
-</div>
-
-> <font size="3">prev()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.Node.prev](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.prev)
-
-**产品支持情况**：
-
-<!-- npu="910b" id184 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id184 -->
-<!-- npu="A3" id185 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id185 -->
-<!-- npu="950" id186 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id186 -->
-
-</div>
-
-> <font size="3">replace_all_uses_with()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.Node.replace_all_uses_with](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.replace_all_uses_with)
-
-**产品支持情况**：
-
-<!-- npu="910b" id187 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id187 -->
-<!-- npu="A3" id188 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id188 -->
-<!-- npu="950" id189 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id189 -->
-
-</div>
-
-> <font size="3">replace_input_with()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.Node.replace_input_with](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.replace_input_with)
-
-**产品支持情况**：
-
-<!-- npu="910b" id190 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id190 -->
-<!-- npu="A3" id191 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id191 -->
-<!-- npu="950" id192 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id192 -->
-
-**限制与说明**： `input`仅支持fp32
-
-</div>
-
-> <font size="3">stack_trace()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.Node.stack_trace](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.stack_trace)
-
-**产品支持情况**：
-
-<!-- npu="910b" id193 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id193 -->
-<!-- npu="A3" id194 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id194 -->
-<!-- npu="950" id195 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id195 -->
-
-</div>
-
-> <font size="3">update_arg()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.Node.update_arg](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.update_arg)
-
-**产品支持情况**：
-
-<!-- npu="910b" id196 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id196 -->
-<!-- npu="A3" id197 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id197 -->
-<!-- npu="950" id198 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id198 -->
-
-**限制与说明**： `input`仅支持fp32
-
-</div>
-
-> <font size="3">update_kwarg()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.Node.update_kwarg](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.update_kwarg)
-
-**产品支持情况**：
-
-<!-- npu="910b" id199 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id199 -->
-<!-- npu="A3" id200 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id200 -->
-<!-- npu="950" id201 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id201 -->
-
-**限制与说明**： `input`仅支持fp32
-
-</div>
-
-<!-- npu="910b,A3" id280 -->
-> <font size="3">insert_arg()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.Node.insert_arg](https://pytorch.org/docs/2.14/fx.html#torch.fx.Node.insert_arg)
-
-**产品支持情况**：
-<!-- end id280 -->
-
-<!-- npu="910b" id202 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id202 -->
-<!-- npu="A3" id203 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id203 -->
-
-<!-- npu="910b,A3" id281 -->
-</div>
-<!-- end id281 -->
-
-</div>
-
 ### <code><i>class</i></code> torch.fx.Proxy
 
 <div style="margin-left: 2em">
@@ -1484,6 +1484,26 @@
 <!-- npu="950" id210 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id210 -->
+
+> <font size="3">boxed_run()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.Interpreter.boxed_run](https://pytorch.org/docs/2.14/fx.html#torch.fx.Interpreter.boxed_run)
+
+**产品支持情况**：
+
+<!-- npu="910b" id241 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id241 -->
+<!-- npu="A3" id242 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id242 -->
+<!-- npu="950" id243 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id243 -->
+
+</div>
 
 > <font size="3">call_function()</font>
 
@@ -1703,26 +1723,6 @@
 
 </div>
 
-> <font size="3">boxed_run()</font>
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.Interpreter.boxed_run](https://pytorch.org/docs/2.14/fx.html#torch.fx.Interpreter.boxed_run)
-
-**产品支持情况**：
-
-<!-- npu="910b" id241 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id241 -->
-<!-- npu="A3" id242 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id242 -->
-<!-- npu="950" id243 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id243 -->
-
-</div>
-
 > <font size="3">run_node()</font>
 
 <div style="margin-left: 2em">
@@ -1918,27 +1918,6 @@
 
 </div>
 
-<!-- npu="910b,A3" id282 -->
-### torch.fx.node.map_arg
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.fx.node.map_arg](https://pytorch.org/docs/2.14/fx.html#torch.fx.node.map_arg)
-
-**产品支持情况**：
-<!-- end id282 -->
-
-<!-- npu="910b" id268 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id268 -->
-<!-- npu="A3" id269 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id269 -->
-
-<!-- npu="910b,A3" id283 -->
-</div>
-<!-- end id283 -->
-
 <!-- npu="910b,A3" id284 -->
 ### torch.fx.node.map_aggregate
 
@@ -1959,6 +1938,27 @@
 <!-- npu="910b,A3" id285 -->
 </div>
 <!-- end id285 -->
+
+<!-- npu="910b,A3" id282 -->
+### torch.fx.node.map_arg
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fx.node.map_arg](https://pytorch.org/docs/2.14/fx.html#torch.fx.node.map_arg)
+
+**产品支持情况**：
+<!-- end id282 -->
+
+<!-- npu="910b" id268 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id268 -->
+<!-- npu="A3" id269 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id269 -->
+
+<!-- npu="910b,A3" id283 -->
+</div>
+<!-- end id283 -->
 
 <!-- end id290 -->
 <!-- npu="910b,A3" id291 -->

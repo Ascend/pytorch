@@ -5,6 +5,7 @@
 - **[torch](torch.md)**
 
 - **[torch.nn](torch-nn.md)**
+- [Aliases in torch.nn](torch-nn-aliases.md)
 
 - **[torch.nn.functional](torch-nn-functional.md)**
 
@@ -21,6 +22,15 @@
 - **[torch.accelerator](torch-accelerator.md)**
 
 - **[torch.cuda](torch-cuda.md)**
+<!-- npu="910b,A3" id3 -->
+- [torch.\_logging](torch-_logging.md)
+<!-- end id3 -->
+
+- [torch.cuda.memory](torch-cuda-memory.md)
+- [torch.xpu](torch-xpu.md)
+<!-- npu="950" id4 -->
+- [torch.mtia](torch-mtia.md)
+<!-- end id4 -->
 
 - **[torch.backends](torch-backends.md)**
 
@@ -57,6 +67,7 @@
 - **[torch.linalg](torch-linalg.md)**
 
 - **[torch.monitor](torch-monitor.md)**
+- [torch.signal](torch-signal.md)
 
 - **[torch.special](torch-special.md)**
 

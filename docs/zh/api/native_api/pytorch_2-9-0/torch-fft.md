@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
-> - 部分API虽在[PyTorch社区文档](https://pytorch.org/docs/2.9/)中存在，但未收录于本支持清单。此类API尚未验证，请谨慎使用。我们将持续进行验证工作，并在验证完成后更新文档。
+> - 本支持清单的范围以[PyTorch社区文档](https://pytorch.org/docs/2.9/)为准，社区文档中未列出的接口不在本清单范围内；已在社区文档中存在但未收录于本清单的API尚未验证，请谨慎使用，我们将在验证完成后更新文档。
 > - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
 >
 > - 使用以下接口，需要配置以下信息：
@@ -189,6 +189,46 @@
 
 </div>
 
+### torch.fft.rfft2
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fft.rfft2](https://docs.pytorch.org/docs/2.9/generated/torch.fft.rfft2.html#torch.fft.rfft2)
+
+**产品支持情况**：
+
+<!-- npu="910b" id59 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id59 -->
+<!-- npu="A3" id60 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id60 -->
+<!-- npu="950" id61 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id61 -->
+
+</div>
+
+### torch.fft.irfft2
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fft.irfft2](https://docs.pytorch.org/docs/2.9/generated/torch.fft.irfft2.html#torch.fft.irfft2)
+
+**产品支持情况**：
+
+<!-- npu="910b" id62 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id62 -->
+<!-- npu="A3" id63 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id63 -->
+<!-- npu="950" id64 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id64 -->
+
+</div>
+
 ### torch.fft.rfftn
 
 <div style="margin-left: 2em">
@@ -217,6 +257,26 @@
         - $2^n$，n为23以内
         - 2, 3, 5, 7任意相乘，例如：2\*2\*2\*3\*3\*5\*7\*7，但结果需在1000000以内
         - 200以内质数任意相乘，结果需在100000以内
+
+</div>
+
+### torch.fft.irfftn
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.fft.irfftn](https://docs.pytorch.org/docs/2.9/generated/torch.fft.irfftn.html#torch.fft.irfftn)
+
+**产品支持情况**：
+
+<!-- npu="910b" id65 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id65 -->
+<!-- npu="A3" id66 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id66 -->
+<!-- npu="950" id67 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id67 -->
 
 </div>
 

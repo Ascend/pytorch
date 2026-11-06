@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
-> - 部分API虽在[PyTorch社区文档](https://pytorch.org/docs/2.12/)中存在，但未收录于本支持清单。此类API尚未验证，请谨慎使用。我们将持续进行验证工作，并在验证完成后更新文档。
+> - 本支持清单的范围以[PyTorch社区文档](https://pytorch.org/docs/2.12/)为准，社区文档中未列出的接口不在本清单范围内；已在社区文档中存在但未收录于本清单的API尚未验证，请谨慎使用，我们将在验证完成后更新文档。
 > - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
 > - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://pytorch.org/docs/2.12/rpc.html)。
 
@@ -168,6 +168,46 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id21 -->
 
+> <font size="3">id</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.rpc.WorkerInfo.id](https://docs.pytorch.org/docs/2.12/rpc.html#torch.distributed.rpc.WorkerInfo.id)
+
+**产品支持情况**：
+
+<!-- npu="910b" id61 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id61 -->
+<!-- npu="A3" id62 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id62 -->
+<!-- npu="950" id63 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id63 -->
+
+</div>
+
+> <font size="3">name</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.rpc.WorkerInfo.name](https://docs.pytorch.org/docs/2.12/rpc.html#torch.distributed.rpc.WorkerInfo.name)
+
+**产品支持情况**：
+
+<!-- npu="910b" id64 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id64 -->
+<!-- npu="A3" id65 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id65 -->
+<!-- npu="950" id66 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id66 -->
+
+</div>
+
 </div>
 
 ### torch.distributed.rpc.functions.async_execution
@@ -228,6 +268,46 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id30 -->
 
+> <font size="3">init_method</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.rpc.RpcBackendOptions.init\_method](https://docs.pytorch.org/docs/2.12/rpc.html#torch.distributed.rpc.RpcBackendOptions.init_method)
+
+**产品支持情况**：
+
+<!-- npu="910b" id67 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id67 -->
+<!-- npu="A3" id68 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id68 -->
+<!-- npu="950" id69 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id69 -->
+
+</div>
+
+> <font size="3">rpc_timeout</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.rpc.RpcBackendOptions.rpc\_timeout](https://docs.pytorch.org/docs/2.12/rpc.html#torch.distributed.rpc.RpcBackendOptions.rpc_timeout)
+
+**产品支持情况**：
+
+<!-- npu="910b" id70 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id70 -->
+<!-- npu="A3" id71 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id71 -->
+<!-- npu="950" id72 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id72 -->
+
+</div>
+
 </div>
 
 ### <code><i>class</i></code> torch.distributed.rpc.TensorPipeRpcBackendOptions
@@ -249,6 +329,66 @@
 <!-- end id33 -->
 
 **限制与说明**：建议使用已适配的`torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions`
+
+> <font size="3">device_maps</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.rpc.TensorPipeRpcBackendOptions.device\_maps](https://docs.pytorch.org/docs/2.12/rpc.html#torch.distributed.rpc.TensorPipeRpcBackendOptions.device_maps)
+
+**产品支持情况**：
+
+<!-- npu="910b" id73 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id73 -->
+<!-- npu="A3" id74 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id74 -->
+<!-- npu="950" id75 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id75 -->
+
+</div>
+
+> <font size="3">devices</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.rpc.TensorPipeRpcBackendOptions.devices](https://docs.pytorch.org/docs/2.12/rpc.html#torch.distributed.rpc.TensorPipeRpcBackendOptions.devices)
+
+**产品支持情况**：
+
+<!-- npu="910b" id76 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id76 -->
+<!-- npu="A3" id77 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id77 -->
+<!-- npu="950" id78 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id78 -->
+
+</div>
+
+> <font size="3">num_worker_threads</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.rpc.TensorPipeRpcBackendOptions.num\_worker\_threads](https://docs.pytorch.org/docs/2.12/rpc.html#torch.distributed.rpc.TensorPipeRpcBackendOptions.num_worker_threads)
+
+**产品支持情况**：
+
+<!-- npu="910b" id79 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id79 -->
+<!-- npu="A3" id80 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id80 -->
+<!-- npu="950" id81 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id81 -->
+
+</div>
 
 > <font size="3">set_device_map()</font>
 

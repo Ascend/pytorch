@@ -21,6 +21,13 @@
 - **[torch.accelerator](torch-accelerator.md)**
 
 - **[torch.cuda](torch-cuda.md)**
+<!-- npu="910b,A3" id2 -->
+- [torch.\_logging](torch-_logging.md)
+<!-- end id2 -->
+
+- [torch.cuda.memory](torch-cuda-memory.md)
+- [torch.xpu](torch-xpu.md)
+- [torch.mtia](torch-mtia.md)
 
 - **[torch.backends](torch-backends.md)**
 
@@ -59,6 +66,7 @@
 - **[torch.linalg](torch-linalg.md)**
 
 - **[torch.monitor](torch-monitor.md)**
+- [torch.signal](torch-signal.md)
 
 - **[torch.special](torch-special.md)**
 
