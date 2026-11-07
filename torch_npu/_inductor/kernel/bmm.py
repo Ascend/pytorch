@@ -422,7 +422,13 @@ def _solver_plan(m: int, n: int, k: int, dtype, elem_bytes: int
         return ()
     if copies * (block_m + block_n) * block_k * elem_bytes > L1_BYTES:
         return ()
-    return block_m, block_n, block_k, copies
+    # One slot is not a depth the template can ask for.  L1_COPIES reaches the
+    # backend as extension.multibuffer, which takes two and nothing else, so a
+    # plan holding a single chunk of K has to say that it is not staged rather
+    # than that it is staged once -- which is what it means, and what zero says
+    # here.  Left as one the config compiles to an error and is dropped, which
+    # costs the shape the plan without saying so.
+    return block_m, block_n, block_k, copies if copies > 1 else 0
 
 
 def _tile_shapes(m: int, n: int, k: int, elem_bytes: int, dtype=None
@@ -1550,7 +1556,17 @@ def _only_k_split_fills_cores(batch: int, m: int, n: int, k: int) -> bool:
     split K is a partial sum, and a fused epilogue would run on it as though
     it were the result, so a shape that needs the split is declined outright
     and answered by the operator library, whose Stream-K tiling does split it.
+
+    A batch below one is the caller saying it could not read one, and the
+    tile count this gate turns on cannot be formed without it.  Declining is
+    the destructive answer -- it takes every candidate away from the shape,
+    the generic template included -- so an unknown batch does not decline.
+    Nothing here is unsafe to offer on such a shape: no template below splits
+    K, so the worst an unknown batch costs is a plan that could have been
+    faster, where declining on it costs the shape its only plan.
     """
+    if batch < 1:
+        return False
     tiles = batch * -(-m // _GATE_BLOCK_M) * -(-n // _GATE_BLOCK_N)
     return tiles < NUM_CUBE_CORES and k >= _LONG_K
 
