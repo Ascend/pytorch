@@ -268,7 +268,10 @@ def _register_triton_decompositions():
 
         if enable_fast_gelu:
             @register_decomposition([aten.gelu])
-            def gelu(x):
+            def gelu(x, approximate: str = "none"):
+                if approximate not in ("none", "tanh"):
+                    raise RuntimeError("approximate argument must be either none or tanh.")
+                # Fast mode uses the tanh approximation for both GELU modes.
                 two_sqrt_2_over_pi = 1.5957691216057308
                 coeff = 0.044715
                 x_cubed = x * x * x
