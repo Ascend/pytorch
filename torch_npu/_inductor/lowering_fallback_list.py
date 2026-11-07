@@ -155,7 +155,6 @@ NPU_EXTRA_FALLBACK_LIST = [
     aten.cummin.out,
     aten.cumprod,
     aten.cumprod.out,
-    aten.cumsum.out,
     aten.div_.Tensor_mode,
     aten.erfc,
     aten.erfc.default,

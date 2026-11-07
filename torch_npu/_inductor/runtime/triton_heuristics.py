@@ -64,6 +64,7 @@ from .symbolic_grouping import (
 from torch._inductor.runtime.triton_heuristics import (  # noqa: F401
     fixed_config,
     user_autotune,
+    split_scan,
     FixedGrid,
     SequentialComboKernelGrid,
     PrecomputedGrid,
