@@ -83,7 +83,10 @@ def _activate():
     flex_attention._validate_device = _validate_device
 
     inductor_config.layout_optimization = False
-    inductor_config.coordinate_descent_tuning = False
+    # No NPU-side value for coordinate_descent_tuning: this backend follows
+    # torch's own config (upstream default False; opt-in through
+    # TORCHINDUCTOR_COORDINATE_DESCENT_TUNING=1 or config.patch). The missing
+    # execution path is implemented in NPUCachingAutotuner.run().
     # Split reductions emit multi-kernel splits whose intermediate buffers have hit
     # OOB / shape-mismatch on the NPU Triton backend. Off by default.
     inductor_config.split_reductions = False

@@ -518,8 +518,6 @@ class NPUCachingAutotuner(CachingAutotuner):
         filename=None,
         reset_to_zero_arg_names=None,
     ):
-        if inductor_meta is not None:
-            inductor_meta["coordinate_descent_tuning"] = False
         super().__init__(
             fn,
             triton_meta,
@@ -558,6 +556,22 @@ class NPUCachingAutotuner(CachingAutotuner):
             if len(self.launchers) > 1:
                 self.autotune_to_one_config(*args, **kwargs)
 
+        # Upstream runs coordinate descent tuning on this slow path, after the
+        # regular autotune has converged (CachingAutotuner.run); the NPU
+        # override used to drop that step, so coordinate_descent_tuning never
+        # took effect on this backend.
+        if not getattr(
+            self.launchers[0].config, "found_by_coordesc", False
+        ) and self.inductor_meta.get("coordinate_descent_tuning", False):
+            # coordinate_descent_tuning() builds its winner straight from
+            # _precompile_config(), bypassing _make_launchers(), so the
+            # i64/fp64 boundary casts have to be re-applied to the new launcher.
+            self.launchers = [
+                self._wrap_downcast(
+                    self.coordinate_descent_tuning(self.launchers[0], *args, **kwargs)
+                )
+            ]
+
         (launcher,) = self.launchers
         result = launcher(*args, **kwargs, stream=stream)
         if not benchmark_run:
@@ -593,21 +607,29 @@ class NPUCachingAutotuner(CachingAutotuner):
         self.__dict__.pop("run", None)
         return super().release_benchmark_artifacts()
 
+    def _wrap_downcast(self, launcher):
+        """Apply the i64/fp64 -> i32/fp32 boundary casts to one launcher.
+
+        Idempotent: a launcher that already carries the wrapper is returned as
+        is, so callers can pass either a raw launcher or a wrapped one.
+        """
+        if getattr(launcher, "_npu_original_launcher", None) is not None:
+            return launcher
+        downcast_args = self.triton_meta.get("downcast_args")
+        if not downcast_args:
+            return launcher
+        mutated = set(self.mutated_arg_names or ())
+        return _wrap_launcher_with_downcast(
+            launcher, downcast_args=downcast_args, mutated_arg_names=mutated
+        )
+
     def _make_launchers(self):
+        # Upstream's early return: launchers already built for these compile
+        # results, so do not rebuild or double-wrap them.
         if len(self.launchers) == len(self.compile_results):
             return
         super()._make_launchers()
-        downcast_args = self.triton_meta.get("downcast_args")
-        if not downcast_args:
-            return
-        mutated = set(self.mutated_arg_names or ())
-        self.launchers = [
-            _wrap_launcher_with_downcast(
-                launcher,
-                downcast_args=downcast_args, mutated_arg_names=mutated,
-            )
-            for launcher in self.launchers
-        ]
+        self.launchers = [self._wrap_downcast(launcher) for launcher in self.launchers]
 
     def _build_fast_launcher(self, launcher):
         if not self.inductor_meta.get("use_fast_triton_launcher", config.use_fast_triton_launcher):
@@ -1271,6 +1293,13 @@ class NPUCachingAutotuner(CachingAutotuner):
             "spill_threshold", 16
         ):
             return float("inf")
+
+        # coordinate_descent_tuning()/combo autotune build candidate launchers
+        # with _precompile_config().make_launcher(), which bypasses
+        # _make_launchers(); wrap here so they are benched with the same
+        # i64/fp64 boundary casts they use at run time. Idempotent for the
+        # batched launchers that _make_launchers() already wrapped.
+        launcher = self._wrap_downcast(launcher)
 
         device_interface = self.get_device_interface()
         stream = device_interface.get_raw_stream(device_interface.current_device())
