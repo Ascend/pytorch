@@ -13,6 +13,7 @@ TORCH_NPU_API void _record_memory_history(
     const std::string& stacks = "all",
     size_t max_entries = UINT64_MAX,
     bool clearHistory = false,
+    bool compileContext = false,
     const std::vector<std::string>& skip_actions = {});
 
 TORCH_NPU_API std::string _memory_snapshot_pickled();

@@ -1,4 +1,5 @@
 #include <ATen/Context.h>
+#include <ATen/record_function.h>
 #include <torch/csrc/profiler/combined_traceback.h>
 #include <torch/csrc/jit/serialization/pickler.h>
 
@@ -13,6 +14,69 @@ using c10_npu::NPUCachingAllocator::SegmentInfo;
 using torch::jit::Pickler;
 
 namespace torch_npu {
+
+namespace {
+
+class CallbackManager {
+ public:
+  // Constructor
+  CallbackManager() = default;
+  // Destructor
+  ~CallbackManager() = default;
+  // Methods to get and set the callback handles
+  at::CallbackHandle getCompileContextHandle() const {
+    return compileContextHandle_;
+  }
+  void setCompileContextHandle(at::CallbackHandle handle) {
+    compileContextHandle_ = handle;
+  }
+  std::unique_lock<std::mutex> lockCallbackMutex() const {
+    return std::unique_lock<std::mutex>(callbackMutex_);
+  }
+
+ private:
+  mutable std::mutex callbackMutex_;
+  at::CallbackHandle compileContextHandle_{0};
+};
+
+CallbackManager callbackManager;
+
+at::CallbackHandle _initCompileContexts() {
+  return at::addGlobalCallback(at::RecordFunctionCallback(
+                                   [](const at::RecordFunction& fn) -> std::unique_ptr<at::ObserverContext> {
+                                     std::string functionName = fn.name();
+                                     const std::string functionNamePrefix = "Torch-Compiled Region";
+                                     if (functionName.starts_with(functionNamePrefix)) {
+                                       c10_npu::NPUCachingAllocator::pushCompileContext(functionName);
+                                     }
+                                     return nullptr;
+                                   },
+                                   [](const at::RecordFunction& fn, at::ObserverContext* ctx_ptr) {
+                                     std::string functionName = fn.name();
+                                     const std::string functionNamePrefix = "Torch-Compiled Region";
+                                     if (functionName.starts_with(functionNamePrefix)) {
+                                       c10_npu::NPUCachingAllocator::popCompileContext();
+                                     }
+                                   })
+                                   .scopes({at::RecordScope::FUNCTION}));
+}
+
+void setRecordFunctionCallbacks(bool enabled, bool compileContext) {
+  // Handle Callbacks under mutex
+  auto lock = callbackManager.lockCallbackMutex();
+  if (enabled) {
+    if (compileContext && callbackManager.getCompileContextHandle() == 0) {
+      callbackManager.setCompileContextHandle(_initCompileContexts());
+    }
+  } else {
+    if (callbackManager.getCompileContextHandle() != 0) {
+      at::removeCallback(callbackManager.getCompileContextHandle());
+      callbackManager.setCompileContextHandle(0);
+    }
+  }
+}
+
+} // namespace
 
 std::shared_ptr<c10::GatheredContext> gather() {
 #if defined(__x86_64__)
@@ -40,6 +104,7 @@ void _record_memory_history(
     const std::string& stacks,
     size_t max_entries,
     bool clearHistory,
+    bool compileContext,
     const std::vector<std::string>& skip_actions) {
   if (enabled) {
     checkOptionIn(*enabled, {"state", "all"}, "expected state to be 'state', 'all', or None");
@@ -74,6 +139,8 @@ void _record_memory_history(
       when = c10_npu::NPUCachingAllocator::RecordContext::STATE;
     }
   }
+  torch_npu::utils::npu_lazy_init();
+  setRecordFunctionCallbacks(enabled.has_value(), compileContext);
   c10_npu::NPUCachingAllocator::recordHistory(
       enabled.has_value(), recorder, max_entries, when, clearHistory, skip_actions);
   c10_npu::NPUWorkspaceAllocator::recordHistory(enabled.has_value(), recorder, when, skip_actions);
@@ -245,6 +312,7 @@ std::string _memory_snapshot_pickled() {
   c10::IValue oom_s = "oom";
   c10::IValue device_free_s = "device_free";
   c10::IValue pool_id_s = "pool_id";
+  c10::IValue compile_context_s = "compile_context";
 
   using namespace c10_npu::NPUCachingAllocator;
 
@@ -283,6 +351,7 @@ std::string _memory_snapshot_pickled() {
       trace_entry.insert(size_s, (int64_t)te.size_);
       trace_entry.insert(stream_s, int64_t(te.stream_));
       trace_entry.insert(pool_id_s, std::tuple<int64_t, int64_t>(te.mempool_));
+      trace_entry.insert(compile_context_s, te.compile_context_);
       if (te.context_) {
         auto sc = getFromContext(te.context_);
         frame_tracebacks.push_back(sc);

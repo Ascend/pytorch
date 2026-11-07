@@ -884,6 +884,12 @@ def _record_memory_history(enabled="all", *args, **kwargs):
             alloc/free events in the recorded history recorded.
         clear_history (bool, optional): Clear existing history when enabling
             recording. Defaults to False. Disabling recording always clears history.
+        compile_context (bool, optional): Record the innermost Torch-Compiled
+            Region name for each allocator event. Events outside compiled
+            regions use "N/A". Defaults to False. As in CUDA, once enabled,
+            collection remains active until recording is disabled with None.
+            NPU workspace events synthesized at snapshot time use "N/A" because
+            they do not preserve the compilation context at allocation time.
         skip_actions (list[str], optional): Event types to omit from history:
             "alloc", "free_requested", "free_completed", "segment_alloc",
             "segment_free", "segment_map", "segment_unmap", "snapshot", "oom",
@@ -900,11 +906,12 @@ def _record_memory_history_impl(
     max_entries: int = sys.maxsize,
     device=None,
     clear_history: bool = False,
+    compile_context: bool = False,
     skip_actions: list[str] | None = None,
 ):
     torch_npu.npu._lazy_init()
     torch_npu._C._npu_record_memory_history(
-        enabled, context, stacks, max_entries, clear_history,
+        enabled, context, stacks, max_entries, clear_history, compile_context,
         skip_actions if skip_actions is not None else [],
     )
 
@@ -983,6 +990,7 @@ def _snapshot(device=None, augment_with_fx_traces=False):
             stream: int
             time_us: int # absolute timestamp of the event in microseconds since unix epoch
             pool_id: Tuple[int, int] # id of the memory pool for this entry
+            compile_context: str # innermost Torch-Compiled Region, or "N/A"
             device_free: int # only present for OOM, the amount of
                             # memory npu still reports to be free
 

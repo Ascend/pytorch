@@ -286,6 +286,7 @@ class DeviceWorkspaceAllocator {
     if (!record_flag) {
       return alloc_trace;
     }
+    // These synthesized entries do not retain allocation-time compile context.
     for (const auto& block_pair : blocks) {
       auto te = TraceEntry(
           TraceEntry::WORKSPACE_SNAPSHOT,
@@ -295,7 +296,8 @@ class DeviceWorkspaceAllocator {
           block_pair.first,
           MempoolId_t{0, 0},
           c10::getApproximateTime(),
-          record_context_ >= RecordContext::ALLOC ? block_pair.second->context_when_allocated : nullptr);
+          record_context_ >= RecordContext::ALLOC ? block_pair.second->context_when_allocated : nullptr,
+          "N/A");
       if (!skip_actions_list.contains(te.action_)) {
         alloc_trace.emplace_back(te);
       }
@@ -308,7 +310,8 @@ class DeviceWorkspaceAllocator {
           block_pair.first,
           MempoolId_t{0, 0},
           c10::getApproximateTime(),
-          record_context_ >= RecordContext::ALLOC ? block_pair.second->context_when_allocated : nullptr);
+          record_context_ >= RecordContext::ALLOC ? block_pair.second->context_when_allocated : nullptr,
+          "N/A");
       if (!skip_actions_list.contains(te.action_)) {
         alloc_trace.emplace_back(te);
       }
@@ -321,7 +324,8 @@ class DeviceWorkspaceAllocator {
           block_pair.first,
           MempoolId_t{0, 0},
           c10::getApproximateTime(),
-          record_context_ >= RecordContext::ALLOC ? block_pair.second->context_when_allocated : nullptr);
+          record_context_ >= RecordContext::ALLOC ? block_pair.second->context_when_allocated : nullptr,
+          "N/A");
       if (!skip_actions_list.contains(te.action_)) {
         alloc_trace.emplace_back(te);
       }

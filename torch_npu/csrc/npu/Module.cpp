@@ -186,6 +186,7 @@ void RegisterNPUDeviceProperties(PyObject* module) {
           const std::string&,
           size_t,
           bool,
+          bool,
           const std::vector<std::string>&)>(torch_npu::_record_memory_history));
 
   m.def("_npu_isHistoryEnabled", []() { return c10_npu::NPUCachingAllocator::isHistoryEnabled(); });
@@ -1433,6 +1434,7 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* arg) {
   py::str device_free_s = "device_free";
   py::str pool_id_s = "pool_id";
   py::str time_us_s = "time_us";
+  py::str compile_context_s = "compile_context";
 
   using namespace c10_npu::NPUCachingAllocator;
 
@@ -1474,6 +1476,7 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* arg) {
         to_gather_frames.emplace_back(sc);
         to_gather_dest.emplace_back(trace_entry);
       }
+      trace_entry[compile_context_s] = te.compile_context_;
       trace_entry[action_s] = action_to_str(te.action_);
       trace_entry[te.action_ == TraceEntry::OOM ? device_free_s : addr_s] = te.addr_;
       trace_entry[size_s] = te.size_;

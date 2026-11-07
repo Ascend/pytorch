@@ -153,14 +153,16 @@ struct TraceEntry {
       aclrtStream stream,
       MempoolId_t mempool = {0, 0},
       c10::approx_time_t time = 0,
-      std::shared_ptr<c10::GatheredContext> context = nullptr)
+      std::shared_ptr<c10::GatheredContext> context = nullptr,
+      std::string compile_context = "")
       : action_(action),
         device_(device),
         addr_(addr),
         context_(std::move(context)),
         stream_(stream),
         size_(size),
-        mempool_(std::move(mempool)) {
+        mempool_(std::move(mempool)),
+        compile_context_(std::move(compile_context)) {
     time_.approx_t_ = time;
   }
   Action action_;
@@ -171,6 +173,7 @@ struct TraceEntry {
   int64_t size_;
   MempoolId_t mempool_;
   trace_time_ time_{};
+  std::string compile_context_;
 };
 
 inline TraceEntry::Action parseTraceEntryAction(const std::string& action) {
@@ -328,6 +331,8 @@ class NPUAllocator : public c10::DeviceAllocator {
         "If you need it, please file an issue describing your use case.",
         PTA_ERROR(ErrCode::NOT_SUPPORT));
   }
+  virtual void pushCompileContext(std::string& md) {}
+  virtual void popCompileContext() {}
   virtual void recordHistory(
       bool enabled,
       CreateContextFn context_recorder,
@@ -520,6 +525,14 @@ inline void FreeDeviceCachedMemory(int device) {
 
 inline std::string name() {
   return get()->name();
+}
+
+inline void pushCompileContext(std::string& md) {
+  get()->pushCompileContext(md);
+}
+
+inline void popCompileContext() {
+  get()->popCompileContext();
 }
 
 inline void recordHistory(

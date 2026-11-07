@@ -7,6 +7,7 @@
 #include <mutex>
 #include <regex>
 #include <set>
+#include <stack>
 #include <thread>
 #include <unordered_set>
 #include <vector>
@@ -1017,6 +1018,8 @@ class DeviceCachingAllocator {
 
   bool record_history = false;
 
+  static thread_local std::stack<std::string> compile_context;
+
   std::atomic<CreateContextFn> context_recorder_;
   RecordContext record_context_ = RecordContext::NEVER;
   std::unordered_set<TraceEntry::Action> skip_actions_list;
@@ -1051,6 +1054,16 @@ class DeviceCachingAllocator {
     setMemoryFraction(NPUAllocatorConfig::per_process_memory_fraction());
     stats.max_split_size = static_cast<int64_t>(NPUAllocatorConfig::max_split_size());
     context_recorder_.store(nullptr);
+  }
+
+  void pushCompileContext(std::string& md) {
+    compile_context.push(md);
+  }
+
+  void popCompileContext() {
+    if (!compile_context.empty()) {
+      compile_context.pop();
+    }
   }
 
   void recordHistory(
@@ -3559,6 +3572,10 @@ class DeviceCachingAllocator {
     if (!record_history && trace_trackers_.empty()) {
       return;
     }
+    std::string compile_string = "N/A";
+    if (!compile_context.empty()) {
+      compile_string = compile_context.top();
+    }
     auto te = TraceEntry(
         action,
         device,
@@ -3567,7 +3584,8 @@ class DeviceCachingAllocator {
         stream,
         mempool_id,
         c10::getApproximateTime(),
-        record_context_ >= RecordContext::ALLOC ? std::move(context) : nullptr);
+        record_context_ >= RecordContext::ALLOC ? std::move(context) : nullptr,
+        compile_string);
 
     // Callbacks should not include any Pytorch call
     for (const auto& cb : trace_trackers_) {
@@ -3583,6 +3601,8 @@ class DeviceCachingAllocator {
   }
 };
 
+thread_local std::stack<std::string> DeviceCachingAllocator::compile_context;
+
 static void uncached_delete(void* ptr) {
   if (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
     c10_npu::npuSynchronizeDevice(false);
@@ -3596,6 +3616,7 @@ void local_raw_delete(void* ptr);
 class NpuCachingAllocator : public NPUAllocator {
  private:
   std::mutex mutex;
+  bool record_history = false;
 
   // allocated blocks by device pointer
   ska::flat_hash_map<void*, Block*> allocated_blocks;
@@ -3725,9 +3746,28 @@ class NpuCachingAllocator : public NPUAllocator {
       RecordContext when,
       bool clearHistory,
       const std::vector<std::string>& skip_actions) override {
+    record_history = enabled;
     for (auto& allocator : device_allocator) {
       allocator->recordHistory(enabled, context_recorder, alloc_trace_max_entries, when, clearHistory, skip_actions);
     }
+  }
+
+  void pushCompileContext(std::string& md) override {
+    if (!record_history) {
+      return;
+    }
+    int device = 0;
+    NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
+    device_allocator[device]->pushCompileContext(md);
+  }
+
+  void popCompileContext() override {
+    if (!record_history) {
+      return;
+    }
+    int device = 0;
+    NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
+    device_allocator[device]->popCompileContext();
   }
 
   bool isHistoryEnabled() override {

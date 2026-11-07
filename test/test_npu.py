@@ -19,6 +19,7 @@ import json
 
 import torchvision
 import torch
+import torch.nn as nn
 import torch.cuda
 from torch.cuda._memory_viz import profile_plot, _profile_to_snapshot
 from torch.cuda._memory_viz import trace_plot
@@ -26,12 +27,14 @@ from torch.cuda._memory_viz import segment_plot
 
 from torch import inf, nan
 from torch.utils.checkpoint import checkpoint_sequential
+from torch.utils._triton import has_triton
 import torch_npu
 import torch_npu.testing
 from torch.testing._internal.common_utils import TestCase, freeze_rng_state, run_tests, \
     NO_MULTIPROCESSING_SPAWN, skipIfRocm, load_tests, IS_WINDOWS, \
     slowTest, skipCUDANonDefaultStreamIf, skipCUDAMemoryLeakCheckIf, TEST_PRIVATEUSE1, TEST_WITH_ROCM, TEST_NUMPY, \
-    get_cycles_per_ms, parametrize, instantiate_parametrized_tests, subtest, IS_JETSON, gcIfJetson, NoTest, IS_LINUX
+    get_cycles_per_ms, parametrize, instantiate_parametrized_tests, subtest, IS_JETSON, gcIfJetson, NoTest, IS_LINUX, \
+    IS_X86, IS_ARM64, serialTest
 from torch.testing._internal.autocast_test_lists import AutocastTestLists
 from torch.utils.viz._cycles import observe_tensor_cycles
 from torch_npu.testing.common_utils import _create_scaling_case, _create_scaling_models_optimizers
@@ -39,6 +42,10 @@ from torch_npu.testing.common_utils import _create_scaling_case, _create_scaling
 # load_tests from common_utils is used to automatically filter tests for
 # sharding on sandcastle. This line silences flake warnings
 load_tests = load_tests
+
+requiresCppContext = unittest.skipUnless(
+    (IS_X86 or IS_ARM64) and IS_LINUX, "cpp contexts are linux x86/aarch64 only"
+)
 
 if not TEST_PRIVATEUSE1:
     print('NPU not available, skipping tests', file=sys.stderr)
@@ -3644,6 +3651,78 @@ class TestNpuMallocAsync(TestCase):
 
             finally:
                 torch_npu.npu.memory._record_memory_history(None)
+
+    @unittest.skipIf(not torch_npu.npu.is_available(), "NPU is required")
+    @unittest.skipIf(not has_triton(), "test needs triton")
+    @requiresCppContext
+    @serialTest()
+    def test_memory_compile_regions(self):
+        expected_allocation_sequence = [
+            "Torch-Compiled Region: 0/0",
+            "Torch-Compiled Region: 1/0",
+            "Torch-Compiled Region: 0/0",
+        ]
+
+        class MyModel(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.linear1 = nn.Linear(10, 10)
+                self.linear2 = nn.Linear(10, 10)
+
+            def forward(self, x):
+                x = self.linear1(x)
+
+                if x.sum() > 0:
+                    x = x + 1
+                else:
+                    x = x - 1
+
+                x = self.linear2(x)
+
+                return x
+
+        try:
+            torch_npu.npu.memory.empty_cache()
+            # Region ids come from Dynamo's process-global frame counter, which
+            # reset() zeroes; do it before compiling so the region strings are
+            # deterministic.
+            torch._dynamo.reset()
+            input_tensor = torch.randn(1, 10, device="npu")
+            # Create an instance of the model
+            model = MyModel()
+            model.to("npu")
+            # Compile the model using torch.compile
+            compiled_model = torch.compile(model)
+            # Create a sample input tensor
+            torch_npu.npu.memory._record_memory_history(
+                context="all", compile_context=True
+            )
+            compiled_model(input_tensor)
+            ss = torch_npu.npu.memory._snapshot()["device_traces"]
+            device_idx = 0
+            allocation_sequence = []
+            while len(ss[device_idx]) == 0:
+                device_idx = device_idx + 1
+            for s in ss[device_idx]:
+                context = s["compile_context"]
+                if context == "N/A":
+                    continue
+                if len(allocation_sequence) > 0 and allocation_sequence[-1] == context:
+                    continue
+                allocation_sequence.append(context)
+            self.assertEqual(allocation_sequence, expected_allocation_sequence)
+        except RuntimeError as e:
+            pass
+        finally:
+            torch_npu.npu.memory._record_memory_history(None)
+            # Clean up the model and input tensor to fix memory leaks in other tests
+            del compiled_model, model, input_tensor
+            ss = None
+            torch._dynamo.reset()
+            # This test requires to run gc.collec() to fix other memory tests
+            gc.collect()
+            torch_npu.npu.synchronize()
+            torch_npu.npu.empty_cache()
 
     @unittest.skipIf(TEST_NPUMALLOCASYNC, "setContextRecorder not supported by NPUMallocAsync")
     @unittest.skipIf(not IS_LINUX, "cpp contexts are linux only")
