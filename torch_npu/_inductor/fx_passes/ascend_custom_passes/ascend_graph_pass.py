@@ -161,6 +161,41 @@ torch.library.impl(
 
 MULTI_SLICE_CONCAT_TARGET = torch.ops.npu_ext.multi_slice_concat.default
 
+torch.library.define(
+    "npu_ext::indexed_slice_concat",
+    '(Tensor src, int[] offsets, int[] widths, ScalarType dtype) -> Tensor',
+)
+
+
+def _indexed_slice_concat_ref(src, offsets, widths, dtype):
+    result = _multi_slice_concat_ref(
+        [src], [], [0] * len(offsets), offsets, widths, [-1] * len(offsets)
+    )
+    return result.to(dtype=dtype)
+
+
+torch.library.impl(
+    "npu_ext::indexed_slice_concat", "CompositeExplicitAutograd"
+)(_indexed_slice_concat_ref)
+INDEXED_SLICE_CONCAT_TARGET = torch.ops.npu_ext.indexed_slice_concat.default
+
+
+def indexed_delta_runs(offsets, widths):
+    """Describe the index table as (output_start, delta) runs.
+
+    Output column c of a run reads source column c + delta, so the table is
+    piecewise affine and the kernel can compute it instead of loading it. Runs
+    that continue the previous one in both output and source share a delta and
+    are merged, which also bounds how much work the kernel does per element.
+    """
+    runs, start = [], 0
+    for offset, width in zip(offsets, widths):
+        delta = offset - start
+        if not runs or runs[-1][1] != delta:
+            runs.append((start, delta))
+        start += width
+    return tuple(runs)
+
 
 @register_custom_pass(PassType.PRE)
 def cat_slice_cat_fold_pass(graph: torch.fx.Graph) -> None:
@@ -3681,6 +3716,80 @@ def _msc_index_segment(node, cat_dtype, rows):
     return base, start, end - start
 
 
+def _msc_index_runs(inputs, cat_dtype, rows, max_columns=1048576):
+    """Group adjacent slices of one source, preserving order and duplicate columns.
+
+    Bound the index table by output width rather than the number of slices.
+    """
+    runs, current, start, columns = [], [], 0, 0
+    for index, node in enumerate(inputs):
+        segment = _msc_index_segment(node, cat_dtype, rows)
+        if current and (segment is None or segment[0] is not current[0][0]
+                        or columns + segment[2] > max_columns):
+            if len(current) >= 2:
+                runs.append((start, current))
+            current, columns = [], 0
+        if segment is None or segment[2] > max_columns:
+            continue
+        if not current:
+            start = index
+        current.append(segment)
+        columns += segment[2]
+    if len(current) >= 2:
+        runs.append((start, current))
+    return runs
+
+
+def _msc_covers_whole_cat(runs, inputs):
+    return len(runs) == 1 and len(runs[0][1]) == len(inputs)
+
+
+def _msc_fold_index_runs(graph, cat, inputs, dtype, rows, native_cat_limit,
+                         legacy_covers_cat=False):
+    runs = _msc_index_runs(inputs, dtype, rows)
+    # Legacy reads every source of a cat in one kernel. An indexed run covering
+    # the whole cat still beats that, but splitting the same cat into one gather
+    # per source only adds operators and their intermediate buffers.
+    if legacy_covers_cat and not _msc_covers_whole_cat(runs, inputs):
+        return list(inputs), False
+    new_inputs = list(inputs)
+    changed = False
+    for start, run in reversed(runs):
+        base = run[0][0]
+        value = base.meta.get("val")
+        if value is None:
+            continue
+        offsets = [segment[1] for segment in run]
+        widths = [segment[2] for segment in run]
+        # Keep a complete native Cat within the existing copy-free input budget.
+        native_cat = not is_ascend950 or len(inputs) > torch._inductor.config.max_pointwise_cat_inputs
+        if (native_cat and len(run) == len(inputs) <= native_cat_limit
+                and get_node_dtype(base) == dtype):
+            continue
+        # Within the pointwise budget the Cat lowers to one fused kernel reading
+        # every input directly, so a run covering only part of it keeps that Cat
+        # and merely adds a gather plus its intermediate buffer.
+        if not native_cat and native_cat_limit and len(run) != len(inputs):
+            continue
+        try:
+            with contextlib.ExitStack() as stack:
+                fake_mode = getattr(value, "fake_mode", None)
+                if fake_mode is not None:
+                    stack.enter_context(fake_mode)
+                meta = _indexed_slice_concat_ref(value, offsets, widths, dtype)
+        except Exception as exc:
+            log.debug("[inductor_fx] indexed_slice_concat validation failed: %s", exc)
+            continue
+        with graph.inserting_before(cat):
+            fused = graph.call_function(
+                INDEXED_SLICE_CONCAT_TARGET, (base, offsets, widths, dtype)
+            )
+        fused.meta["val"] = meta
+        new_inputs[start:start + len(run)] = [fused]
+        changed = True
+    return new_inputs, changed
+
+
 def _msc_replace_cat(graph, cat, inputs):
     if len(inputs) == 1:
         cat.replace_all_uses_with(inputs[0])
@@ -3697,13 +3806,17 @@ def multi_slice_concat_pass(
     max_sources: int = 32,
     max_masks: int = 4,
     aclnn_copy_free_inputs: int = 32,
+    indexed_same_source: bool = True,
 ) -> None:
     """Fuse supported 2D slice-cat runs without reordering other operands.
 
-    Runs use the multi-source/row-mask template, including row cat and its
-    existing dtype support. Limits and the copy-free gate apply to that route.
-    Small complete native cats stay unchanged, and arbitrary pointwise chains
-    are excluded.
+    Same-source column slices use index-addressed loads and may include one final
+    dtype conversion. Small complete native cats stay unchanged. Arbitrary
+    pointwise chains are excluded.
+
+    Other runs retain the multi-source/row-mask template, including row cat and
+    its existing dtype support. Limits and the copy-free gate apply to that route.
+    Set indexed_same_source=False to exercise it independently.
     """
     changed = False
     for cat in list(graph.nodes):
@@ -3733,7 +3846,26 @@ def multi_slice_concat_pass(
             if not all(statically_known_eq(shape[0], rows) for shape in in_shapes):
                 continue
 
-        # Keep the upstream copy-free gate.
+        if indexed_same_source and cat_dim == 1:
+            # The copy-free gate below reads the folded input count, so whether
+            # legacy could have taken this cat has to be decided beforehand.
+            legacy_covers_cat = len(inputs) > aclnn_copy_free_inputs and _msc_covers_whole_cat(
+                _msc_runs(inputs, cat_dtype, rows, cat_dim,
+                          max_segments, max_sources, max_masks),
+                inputs,
+            )
+            inputs, indexed_changed = _msc_fold_index_runs(
+                graph, cat, inputs, cat_dtype, rows, aclnn_copy_free_inputs,
+                legacy_covers_cat,
+            )
+            if indexed_changed:
+                changed = True
+                _msc_replace_cat(graph, cat, inputs)
+                if len(inputs) == 1:
+                    continue
+
+        # Keep the upstream copy-free gate for the remaining legacy route.
+        # A rejected or row-cat match must not enter the column-only indexed op.
         if cat_dim == 1 and len(inputs) <= aclnn_copy_free_inputs:
             continue
 
