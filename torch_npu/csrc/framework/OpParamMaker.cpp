@@ -19,9 +19,7 @@
 #include "torch_npu/csrc/framework/OpCommand.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 
-#ifndef BUILD_LIBTORCH
-#include <Python.h>
-#endif
+#include "torch_npu/csrc/core/npu/PythonGilBridge.h"
 
 namespace at_npu {
 namespace native {
@@ -250,35 +248,28 @@ void OpCommandImpl::Run(
     c10::SmallVector<at::Tensor, N>& outputTensor) {
   ASCEND_LOGD("Op %s Run.", opName.c_str());
   RECORD_FUNCTION(opName, std::vector<c10::IValue>({}));
-#ifndef BUILD_LIBTORCH
-  if (PyGILState_Check() != 0) {
-    // we need to release GIL for NPU to compile op.
-    Py_BEGIN_ALLOW_THREADS;
-    ACL_REQUIRE_OK_OP(InnerRun(opName, execParam, sync, sync_index, outputTensor), opName.c_str());
-    Py_END_ALLOW_THREADS;
+  auto hook = c10_npu::impl::getPythonGilCallback();
+  if (hook != nullptr) {
+    const char* function_name = __func__;
+    hook([&] {
+      ACL_REQUIRE_OK_OP_WITH_FUNCTION(
+          InnerRun(opName, execParam, sync, sync_index, outputTensor), opName.c_str(), function_name);
+    });
   } else {
     ACL_REQUIRE_OK_OP(InnerRun(opName, execParam, sync, sync_index, outputTensor), opName.c_str());
   }
-#else
-  ACL_REQUIRE_OK_OP(InnerRun(opName, execParam, sync, sync_index, outputTensor), opName.c_str());
-#endif
 }
 
 void OpCommandImpl::RunOpApi(const string& op_name, PROC_FUNC func) {
   ASCEND_LOGD("Op %s Run.", op_name.c_str());
   RECORD_FUNCTION(op_name, std::vector<c10::IValue>({}));
-#ifndef BUILD_LIBTORCH
-  if (PyGILState_Check() != 0) {
-    // we need to release GIL for NPU to compile op.
-    Py_BEGIN_ALLOW_THREADS;
-    ACL_REQUIRE_OK_OP(InnerRunOpApi(op_name, func), op_name.c_str());
-    Py_END_ALLOW_THREADS;
+  auto hook = c10_npu::impl::getPythonGilCallback();
+  if (hook != nullptr) {
+    const char* function_name = __func__;
+    hook([&] { ACL_REQUIRE_OK_OP_WITH_FUNCTION(InnerRunOpApi(op_name, func), op_name.c_str(), function_name); });
   } else {
     ACL_REQUIRE_OK_OP(InnerRunOpApi(op_name, func), op_name.c_str());
   }
-#else
-  ACL_REQUIRE_OK_OP(InnerRunOpApi(op_name, func), op_name.c_str());
-#endif
 }
 
 aclError OpCommandImpl::InnerRun(

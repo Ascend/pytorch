@@ -8,9 +8,7 @@
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 
-#ifndef BUILD_LIBTORCH
-#include <Python.h>
-#endif
+#include "torch_npu/csrc/core/npu/PythonGilBridge.h"
 #include <atomic>
 #if defined(_MSC_VER)
 #include <direct.h>
@@ -224,21 +222,20 @@ void SetPrecisionMode() {
 }
 
 void LazyInitAclopsCore() {
-#ifndef BUILD_LIBTORCH
-  PyThreadState* gilState = nullptr;
-  if (PyGILState_Check()) {
-    gilState = PyEval_SaveThread();
+  auto hook = c10_npu::impl::getPythonGilCallback();
+  if (hook != nullptr) {
+    hook([&] {
+      SetPrecisionMode();
+      SetHF32DefaultValue();
+      MakeCompileCacheDirAndSetOption();
+      GetAndSetDefaultJitCompileByAcl();
+    });
+  } else {
+    SetPrecisionMode();
+    SetHF32DefaultValue();
+    MakeCompileCacheDirAndSetOption();
+    GetAndSetDefaultJitCompileByAcl();
   }
-#endif
-  SetPrecisionMode();
-  SetHF32DefaultValue();
-  MakeCompileCacheDirAndSetOption();
-  GetAndSetDefaultJitCompileByAcl();
-#ifndef BUILD_LIBTORCH
-  if (gilState) {
-    PyEval_RestoreThread(gilState);
-  }
-#endif
 }
 
 void LazyInitAclops() {

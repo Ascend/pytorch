@@ -35,7 +35,7 @@ using std::vector;
 #define ASCEND_ALWAYS_INLINE inline
 #endif
 
-#define ACL_REQUIRE_OK_OP(expr, opstr)                                                            \
+#define ACL_REQUIRE_OK_OP_WITH_FUNCTION(expr, opstr, function_name)                               \
   do {                                                                                            \
     if (ASCEND_UNLIKELY((expr) != 0)) {                                                           \
       std::cout << (opstr) << std::endl;                                                          \
@@ -49,7 +49,7 @@ using std::vector;
       } else {                                                                                    \
         TORCH_CHECK(                                                                              \
             (expr) == 0,                                                                          \
-            __func__,                                                                             \
+            function_name,                                                                        \
             ":",                                                                                  \
             __FILE__,                                                                             \
             ":",                                                                                  \
@@ -62,6 +62,8 @@ using std::vector;
       }                                                                                           \
     }                                                                                             \
   } while (0)
+
+#define ACL_REQUIRE_OK_OP(expr, opstr) ACL_REQUIRE_OK_OP_WITH_FUNCTION(expr, opstr, __func__)
 
 using StorageAndOffsetMemSizePair = std::pair<const c10::StorageImpl*, int64_t>;
 
