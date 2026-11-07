@@ -1,12 +1,14 @@
 #pragma once
 
+#include <atomic>
+
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/sanitizer/PyCallbackTrigger.h"
 
 namespace c10_npu {
 namespace impl {
 
-struct NPUTrace {
+struct C10_NPU_API NPUTrace {
   static std::atomic<const PyCallbackTrigger*> npu_trace_state;
   static bool have_state;
 
