@@ -20507,7 +20507,6 @@
   "test/test_ops.py::TestCommonPRIVATEUSE1::test_errors_native_layer_norm_npu",
   "test/test_ops.py::TestCommonPRIVATEUSE1::test_errors_ne_npu",
   "test/test_ops.py::TestCommonPRIVATEUSE1::test_errors_nextafter_npu",
-  "test/test_ops.py::TestCommonPRIVATEUSE1::test_errors_nn_functional_adaptive_avg_pool1d_npu",
   "test/test_ops.py::TestCommonPRIVATEUSE1::test_errors_nn_functional_adaptive_avg_pool3d_npu",
   "test/test_ops.py::TestCommonPRIVATEUSE1::test_errors_nn_functional_adaptive_max_pool1d_npu",
   "test/test_ops.py::TestCommonPRIVATEUSE1::test_errors_nn_functional_avg_pool1d_npu",
