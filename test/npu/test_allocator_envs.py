@@ -141,6 +141,104 @@ class TestAllocator(TestCase):
             f"stderr: {result.stderr}"
         )
 
+    def _run_alloc_conf_subprocess(self, alloc_conf):
+        code = textwrap.dedent(f"""\
+            import os
+            os.environ["PYTORCH_NPU_ALLOC_CONF"] = {alloc_conf!r}
+
+            import torch
+            import torch_npu
+
+            x = torch.rand(512, 1024, device="npu", dtype=torch.float32)
+            y = x + 1
+            torch.npu.synchronize()
+            print("allocated_bytes:", torch.npu.memory_allocated())
+        """)
+        return subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+
+    def test_mem_malloc_policy_valid_values(self):
+        # mem_malloc_policy is passed through to aclrtMemMallocPolicy, here only
+        # verifies that the value is accepted and allocation still works.
+        for value in ("huge_first", "huge_only", "normal_only", "huge_first|high_band_width"):
+            result = self._run_alloc_conf_subprocess(f"expandable_segments:False,mem_malloc_policy:{value}")
+            self.assertEqual(
+                result.returncode,
+                0,
+                f"mem_malloc_policy:{value} failed.\n"
+                f"stdout: {result.stdout}\nstderr: {result.stderr}",
+            )
+
+    def test_mem_malloc_policy_invalid_value(self):
+        result = self._run_alloc_conf_subprocess("mem_malloc_policy:huge_frist")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("mem_malloc_policy", result.stderr)
+
+    def test_mem_malloc_policy_unsupported_value(self):
+        for value in ("normal_only_p2p", "user_space_readonly"):
+            result = self._run_alloc_conf_subprocess(f"mem_malloc_policy:{value}")
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("not supported", result.stderr)
+
+    def test_mem_malloc_policy_conflict_value(self):
+        result = self._run_alloc_conf_subprocess("mem_malloc_policy:huge1g_only|high_band_width")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("cannot be combined", result.stderr)
+
+    def test_mem_malloc_policy_duplicate_key(self):
+        configs = (
+            "mem_malloc_policy:huge1g_only,mem_malloc_policy:normal_only",
+            "mem_malloc_policy:normal_only,mem_malloc_policy:huge1g_only",
+            "mem_malloc_policy:huge_only,mem_malloc_policy:huge_only",
+            "mem_malloc_policy:huge_only,expandable_segments:False,mem_malloc_policy:normal_only",
+        )
+        for alloc_conf in configs:
+            with self.subTest(alloc_conf=alloc_conf):
+                result = self._run_alloc_conf_subprocess(alloc_conf)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("mem_malloc_policy must not be specified more than once", result.stderr)
+
+    def test_mem_malloc_policy_huge1g_only(self):
+        # Caching-pool requests use the default policy when 1G pages are unsupported.
+        result = self._run_alloc_conf_subprocess("expandable_segments:False,mem_malloc_policy:huge1g_only")
+        self.assertEqual(
+            result.returncode,
+            0,
+            f"mem_malloc_policy:huge1g_only failed.\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}",
+        )
+
+    def test_page_size_still_works(self):
+        result = self._run_alloc_conf_subprocess("page_size:1g")
+        self.assertEqual(
+            result.returncode,
+            0,
+            f"page_size:1g failed.\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}",
+        )
+        self.assertNotIn("`page_size` is deprecated", result.stderr)
+
+    def test_mem_malloc_policy_with_page_size(self):
+        for expandable in (False, True):
+            for options in (
+                "page_size:1g,mem_malloc_policy:normal_only",
+                "mem_malloc_policy:normal_only,page_size:1g",
+            ):
+                alloc_conf = f"expandable_segments:{expandable},{options}"
+                with self.subTest(alloc_conf=alloc_conf):
+                    result = self._run_alloc_conf_subprocess(alloc_conf)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertNotIn("`page_size` is deprecated", result.stderr)
+                    warning = (
+                        "does not take effect on virtual memory allocation"
+                        if expandable else "`mem_malloc_policy` takes precedence"
+                    )
+                    self.assertIn(warning, result.stderr)
+
+    def test_mem_malloc_policy_does_not_enable_vmm_1g(self):
+        result = self._run_alloc_conf_subprocess("expandable_segments:True,mem_malloc_policy:huge1g_only")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("does not take effect on virtual memory allocation", result.stderr)
+
 
 if __name__ == '__main__':
     run_tests()
