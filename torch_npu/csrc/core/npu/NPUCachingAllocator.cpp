@@ -164,18 +164,32 @@ void update_stat_array(StatArray &stat_array, int64_t amount, const StatTypes &s
         [&stat_array, amount](size_t stat_type) { update_stat(stat_array[stat_type], amount); });
 }
 
-bool IsMallocPage1GMem(bool is_small_pool)
+// Resolve the policy for caching-allocator segments in one place. VMM uses
+// page_size only; an explicit mem_malloc_policy takes precedence on non-VMM
+// allocations. A 1G request falls back to HUGE_FIRST for small pools or when
+// the environment does not support 1G pages.
+aclrtMemMallocPolicy GetCachingAllocPolicy(bool is_small_pool, bool is_expandable_segment)
 {
-    static bool is_support_page_size_1g = []() {
-        if (!c10_npu::NPUCachingAllocator::isConfig1GPageSizeEnable()) {
-            return false;
-        }
+    auto policy = aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST;
+    if (!is_expandable_segment && NPUAllocatorConfig::mem_malloc_policy_set()) {
+        policy = NPUAllocatorConfig::mem_malloc_policy();
+    } else if (c10_npu::NPUCachingAllocator::isConfig1GPageSizeEnable()) {
+        policy = aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE1G_ONLY;
+    }
+    if (policy != aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE1G_ONLY) {
+        return policy;
+    }
+    if (is_small_pool) {
+        return aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST;
+    }
 
+    static bool is_support_page_size_1g = []() {
         if (!IsGteCANNVersion(kMinCannVersion, kCannModule)) {
             TORCH_NPU_WARN_ONCE("The application for 1G large-page physical memory failed. "
                 "Using the HUGE_MEM memory page allocation method may result in performance degradation. "
-                "This warning occurs because the PYTORCH_NPU_ALLOC_CONF = page_size:1g configuration is enabled, "
-                "but the current driver version does not support this feature. "
+                "This warning occurs because the PYTORCH_NPU_ALLOC_CONF = page_size:1g or "
+                "mem_malloc_policy:huge1g_only configuration is enabled, "
+                "but the current CANN version does not support this feature. "
                 "Please upgrade the CANN package version.");
             return false;
         }
@@ -183,7 +197,8 @@ bool IsMallocPage1GMem(bool is_small_pool)
         if (!IsGteDriverVersion(kMinDriverVersion)) {
             TORCH_NPU_WARN_ONCE("The application for 1G large-page physical memory failed. "
                 "Using the HUGE_MEM memory page allocation method may result in performance degradation. "
-                "This warning occurs because the PYTORCH_NPU_ALLOC_CONF = page_size:1g configuration is enabled, "
+                "This warning occurs because the PYTORCH_NPU_ALLOC_CONF = page_size:1g or "
+                "mem_malloc_policy:huge1g_only configuration is enabled, "
                 "but the current driver version does not support this feature. "
                 "Please upgrade the HDK(driver) package version.");
             return false;
@@ -191,7 +206,13 @@ bool IsMallocPage1GMem(bool is_small_pool)
         return true;
     }();
 
-    return !is_small_pool && is_support_page_size_1g;
+    return is_support_page_size_1g ? policy : aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST;
+}
+
+bool IsMallocPage1GMem(bool is_small_pool, bool is_expandable_segment)
+{
+    return GetCachingAllocPolicy(is_small_pool, is_expandable_segment) ==
+        aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE1G_ONLY;
 }
 
 size_t AddPadSize()
@@ -1261,7 +1282,7 @@ public:
         auto &pool = get_pool(size, stream);
 
         // 开环境变量 大池子放1G内存块
-        const size_t alloc_size = IsMallocPage1GMem(pool.is_small) ?
+        const size_t alloc_size = IsMallocPage1GMem(pool.is_small, NPUAllocatorConfig::expandable_segments()) ?
             kExtraLargeBuffer * ((size + kExtraLargeBuffer - 1) / kExtraLargeBuffer) :
             get_allocation_size(size);
         AllocParams params(device, size, stream, &pool, alloc_size, stats);
@@ -2388,9 +2409,9 @@ private:
         auto segment_size = pool->is_small ?
                 kSmallBuffer : get_custom_expandable_segment_size(pool->is_small);
         // 此处申请虚拟内存，segment_size是页大小，实际虚拟内存巨大
-         if (IsMallocPage1GMem(pool->is_small)) {
-             segment_size = kExtraLargeBuffer;
-         }
+        if (IsMallocPage1GMem(pool->is_small, true)) {
+            segment_size = kExtraLargeBuffer;
+        }
         auto segment = new (std::nothrow) ExpandableSegment(device, stream, segment_size);
         if (!segment) {
             TORCH_NPU_MEMORY_LOGE("Failed to allocate ExpandableSegment.");
@@ -2839,10 +2860,7 @@ private:
                 ptr = p.pool->owner_PrivatePool->allocator()->raw_alloc(size);
                 p.err = ptr ? ACL_ERROR_NONE : ACL_ERROR_RT_MEMORY_ALLOCATION;
             } else {
-                auto policy = aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST;
-                if (IsMallocPage1GMem(p.pool->is_small)) {
-                    policy = aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE1G_ONLY;
-                }
+                const auto policy = GetCachingAllocPolicy(p.pool->is_small, false);
                 if (NPUAllocatorConfig::release_lock_on_npumalloc()) {
                     // safe relock at last of this if region
                     auto sg = c10::make_scope_exit([&]() { lock.lock(); });
@@ -3854,8 +3872,8 @@ public:
                 (c10_npu::currentStreamCaptureStatus() == c10_npu::CaptureStatus::None)) {
                 deleteFunc = &uncached_delete;
                 size_t alloc_size = size + AddPadSize();
-                NPU_CHECK_ERROR(c10_npu::acl::AclrtMallocAlign32(&devPtr, alloc_size,
-                    aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST));
+                const auto policy = NPUAllocatorConfig::mem_malloc_policy();
+                NPU_CHECK_ERROR(c10_npu::acl::AclrtMallocAlign32(&devPtr, alloc_size, policy));
                 TORCH_NPU_MEMORY_LOGD("Without NPUCachingAllocator, malloc by "
                     "AclrtMallocAlign32: size=%zu",
                     alloc_size);
@@ -3885,8 +3903,8 @@ public:
                 (c10_npu::currentStreamCaptureStatus() == c10_npu::CaptureStatus::None)) {
                 deleteFunc = &uncached_delete;
                 size_t alloc_size = size + AddPadSize() + aligned;
-                NPU_CHECK_ERROR(c10_npu::acl::AclrtMallocAlign32(&realPtr, alloc_size,
-                                                                 aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST));
+                const auto policy = NPUAllocatorConfig::mem_malloc_policy();
+                NPU_CHECK_ERROR(c10_npu::acl::AclrtMallocAlign32(&realPtr, alloc_size, policy));
                 TORCH_NPU_MEMORY_LOGD("Without NPUCachingAllocator, malloc by AclrtMallocAlign32: size=%zu", alloc_size);
             } else {
                 const_cast<NpuCachingAllocator *>(this)->malloc(&realPtr, device, size + aligned,
