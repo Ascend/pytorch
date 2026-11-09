@@ -548,6 +548,19 @@ class NPUCachingAutotuner(CachingAutotuner):
             return names
         return list(getattr(self.fn, "arg_names", ()) or ())
 
+    def save_gpu_kernel(self, stream, launcher):
+        """Use the default NPU autotuner's existing NPUBIN cache format."""
+        from torch_npu._inductor.runtime.triton_heuristics import (
+            NPUCachingAutotuner as DefaultNPUCachingAutotuner,
+        )
+
+        if not hasattr(self, "runtime_block_arg_names"):
+            self.runtime_block_arg_names = ()
+            self.best_runtime_blocks = ()
+        if not hasattr(self, "compiled_candidate_entries"):
+            self.compiled_candidate_entries = ()
+        DefaultNPUCachingAutotuner.save_npu_kernel(self, stream, launcher)
+
     def run(self, *args, stream, benchmark_run=False, **kwargs):
         # First call: precompile + autotune
         if len(self.launchers) != 1:
@@ -556,16 +569,11 @@ class NPUCachingAutotuner(CachingAutotuner):
             if len(self.launchers) > 1:
                 self.autotune_to_one_config(*args, **kwargs)
 
-        # Upstream runs coordinate descent tuning on this slow path, after the
-        # regular autotune has converged (CachingAutotuner.run); the NPU
-        # override used to drop that step, so coordinate_descent_tuning never
-        # took effect on this backend.
+        # Run coordinate descent after regular autotune, following upstream.
         if not getattr(
             self.launchers[0].config, "found_by_coordesc", False
         ) and self.inductor_meta.get("coordinate_descent_tuning", False):
-            # coordinate_descent_tuning() builds its winner straight from
-            # _precompile_config(), bypassing _make_launchers(), so the
-            # i64/fp64 boundary casts have to be re-applied to the new launcher.
+            # Reapply boundary casts to the coordinate descent winner.
             self.launchers = [
                 self._wrap_downcast(
                     self.coordinate_descent_tuning(self.launchers[0], *args, **kwargs)
@@ -573,6 +581,9 @@ class NPUCachingAutotuner(CachingAutotuner):
             ]
 
         (launcher,) = self.launchers
+        # Replace any benchmark kernel with the final winner on the first real run.
+        if launcher.store_cubin and (not benchmark_run or not self.cuda_kernel_saved):
+            self.save_gpu_kernel(stream, launcher)
         result = launcher(*args, **kwargs, stream=stream)
         if not benchmark_run:
             cached = self._build_fast_launcher(launcher)

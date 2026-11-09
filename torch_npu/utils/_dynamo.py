@@ -211,6 +211,12 @@ def patch_inductor_wrapper():
         if shape_handling_requested:
             _patch_shape_handling()
         backend = _resolve_npu_backend_from_wrapper(self)
+        if backend == "triton_experimental":
+            from torch._inductor import config as inductor_config
+
+            if self.config.get("cpp_wrapper", inductor_config.cpp_wrapper):
+                # Enable compile-time tuning for C++ codegen unless explicitly disabled.
+                self.config.setdefault("triton.autotune_at_compile_time", True)
         if backend == "mlir":
             with _NpuBackendEnvScope(backend):
                 register_inductor_npu()

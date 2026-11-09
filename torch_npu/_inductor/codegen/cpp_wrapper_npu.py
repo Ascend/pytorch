@@ -27,7 +27,7 @@ from torch._inductor.codegen.multi_kernel import MultiKernelCall
 from torch._inductor.codegen.wrapper import PythonWrapperCodegen, SymbolicCallArg
 from torch._inductor.ir import GraphPartitionSignature
 from torch._inductor.runtime.runtime_utils import dynamo_timed
-from torch._inductor.utils import IndentedBuffer
+from torch._inductor.utils import IndentedBuffer, triton_version_uses_attrs_dict
 from torch._inductor.virtualized import V
 from torch.utils._ordered_set import OrderedSet
 
@@ -912,8 +912,21 @@ static inline void load_{kernel_name}() {{
         struct_def_body = ""
         struct_arg_body = ""
 
-        target_support_ffts = triton_support_ffts()
         kernel_params = kernel_params or {}
+        triton_meta = kernel_params.get("triton_meta") or {}
+        device = triton_meta.get("device")
+        if isinstance(device, dict):
+            target_arch = device.get("cc")
+            device_index = device.get("index")
+        else:
+            target_arch = getattr(device, "cc", None)
+            device_index = (
+                device if isinstance(device, int) else getattr(device, "index", None)
+            )
+        if target_arch is None and device_index is not None:
+            # CppWrapper's cached metadata may contain only the NPU index.
+            target_arch = torch.npu.get_device_name(device_index)
+        target_support_ffts = triton_support_ffts(target_arch)
         lock_num = int(kernel_params.get("lock_num", 0) or 0)
         sync_block_lock_layout = int(
             kernel_params.get("sync_block_lock_layout", 0) or 0
@@ -1105,6 +1118,24 @@ static inline void load_{kernel_name}() {{
             }}
             """
 
+        trailing_kernel_arg_fields = []
+        trailing_kernel_args = []
+        if triton_version_uses_attrs_dict():
+            if is_pure_simt:
+                trailing_kernel_arg_fields.extend(
+                    [
+                        "void* global_scratch __attribute__((aligned(8)));",
+                        "void* profile_scratch __attribute__((aligned(8)));",
+                    ]
+                )
+                trailing_kernel_args.extend(
+                    ["static_cast<void*>(nullptr)", "static_cast<void*>(nullptr)"]
+                )
+            trailing_kernel_arg_fields.append(
+                "void* DTData __attribute__((aligned(8)));"
+            )
+            trailing_kernel_args.append("static_cast<void*>(nullptr)")
+
         args_str = f"""
             aclError ret;
             {ffts_str if target_support_ffts else ""}
@@ -1120,6 +1151,7 @@ static inline void load_{kernel_name}() {{
                 int32_t grid_0 __attribute__((aligned(4)));
                 int32_t grid_1 __attribute__((aligned(4)));
                 int32_t grid_2 __attribute__((aligned(4)));
+                {" ".join(trailing_kernel_arg_fields)}
             }} kernel_args = {{
                 {"static_cast<void*>(ffts_addr)," if target_support_ffts else ""}
                 {"static_cast<void*>(sync_block_lock)," if not is_pure_simt else ""}
@@ -1128,6 +1160,7 @@ static inline void load_{kernel_name}() {{
                 static_cast<int32_t>(grid_0),
                 static_cast<int32_t>(grid_1),
                 static_cast<int32_t>(grid_2)
+                {", " + ", ".join(trailing_kernel_args) if trailing_kernel_args else ""}
         }};"""
 
         return args_str

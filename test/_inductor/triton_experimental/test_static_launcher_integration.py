@@ -1207,6 +1207,7 @@ class TestTritonExperimentalStaticLauncherUnit(TestCase):
         exec("def launcher(out, stream):\n    body(out)\n", scope)
         launcher = scope["launcher"]
         launcher._is_static = True
+        launcher.store_cubin = False
         launcher._npu_def_args = ["out"]
         launcher._expected_positional_count = 1
         launcher.config = triton.Config({})

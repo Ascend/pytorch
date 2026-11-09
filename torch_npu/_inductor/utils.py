@@ -115,12 +115,18 @@ def triton_support_auto_blockify():
     from triton.backends.ascend.utils import _is_auto_map_parallel_blocks_enabled
     return _is_auto_map_parallel_blocks_enabled()
 
-def triton_support_ffts():
+def triton_support_ffts(arch=None):
     from triton.backends.ascend.utils import (
         force_disable_ffts,
         get_ascend_arch_from_env,
         is_ffts_supported,
     )
 
-    arch = get_ascend_arch_from_env()
-    return is_ffts_supported(arch) and (not force_disable_ffts())
+    arch = arch or get_ascend_arch_from_env()
+    if not is_ffts_supported(arch):
+        return False
+    try:
+        disabled = force_disable_ffts(arch)
+    except TypeError:
+        disabled = force_disable_ffts()
+    return not disabled

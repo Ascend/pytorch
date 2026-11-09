@@ -1,3 +1,5 @@
+from unittest import mock
+
 import torch_npu  # noqa: F401
 import torch_npu._inductor  # noqa: F401
 from torch_npu._inductor.codegen.npu.device_op_overrides import NewNPUDeviceOpOverrides
@@ -30,6 +32,17 @@ class TestNpuDevice(TestCase):
             )
 
             self.assertEqual(upstream_device_to_aten("npu"), "at::kPrivateUse1")
+
+    def test_device_to_aten_falls_back_when_upstream_helper_is_missing(self):
+        if CURRENT_VERSION < (2, 15):
+            self.skipTest(
+                "DeviceOpOverrides is used for device mapping in torch >= 2.15"
+            )
+
+        from torch._inductor.codegen import cpp_utils
+
+        with mock.patch.object(cpp_utils, "device_to_aten", None, create=True):
+            self.assertEqual(device_to_aten("npu"), "at::kPrivateUse1")
 
     @runIfVersion(max="2.13")
     def test_aoti_get_stream(self):

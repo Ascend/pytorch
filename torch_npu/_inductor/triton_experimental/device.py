@@ -19,29 +19,24 @@ from . import config as ncfg
 
 
 def register_backend_for_npu():
-    from .codegen.triton import NPUTritonScheduling
-    from .codegen.wrapper import NPUWrapperCodeGen
+    # Imported here: ``torch_npu._inductor.codegen`` pulls in Inductor internals
+    # that would otherwise be resolved while this package is still importing.
+    from .codegen import cpp_wrapper as cpp_codegen
+    from .codegen import triton as triton_codegen
+    from .codegen import wrapper as py_wrapper_codegen
+
     register_backend_for_device(
-        'npu', NPUTritonScheduling, NPUWrapperCodeGen,
+        "npu",
+        triton_codegen.NPUTritonScheduling,
+        py_wrapper_codegen.NPUWrapperCodeGen,
+        cpp_codegen.TritonCppWrapperNpu,
         device_custom_config=ncfg,
     )
 
 
-# Inherit the FULL NPU device-op overrides (device_guard / set_device /
-# synchronize / cpp_* / kernel_driver ...) from the canonical implementation; the
-# subclass below overrides only import_get_raw_stream_as.
-#
-# The previous `from torch_npu.utils._inductor import NPUDeviceOpOverrides`
-# ALWAYS raised ImportError — that module never defined NPUDeviceOpOverrides — and
-# silently fell back to torch's abstract DeviceOpOverrides, whose device_guard()
-# is an unimplemented stub. That surfaced as a bare NotImplementedError from
-# codegen/common.py during wrapper codegen (`with device_guard(...)`).
-try:
-    from torch_npu._inductor.codegen.npu.device_op_overrides import (
-        NewNPUDeviceOpOverrides as NPUDeviceOpOverrides,
-    )
-except ImportError:
-    from torch._inductor.codegen.common import DeviceOpOverrides as NPUDeviceOpOverrides
+from torch_npu._inductor.codegen.npu.device_op_overrides import (
+    NewNPUDeviceOpOverrides as NPUDeviceOpOverrides,
+)
 
 # Resolve the raw-stream C binding once. NoWait variant skips an internal
 # stream-sync wait when present; both return the device stream handle directly.

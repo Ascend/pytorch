@@ -286,9 +286,19 @@ patch_device_to_aten = compat_impl_container["patch_device_to_aten"].resolve()
 # added device_to_aten.
 @compat_impl(key="device_to_aten", ge=(2, 15))
 def device_to_aten_upstream(device_type: str) -> str:
-    from torch._inductor.codegen.cpp_utils import device_to_aten as upstream_device_to_aten
+    from torch._inductor.codegen import cpp_utils
 
-    return upstream_device_to_aten(device_type)
+    upstream_device_to_aten = getattr(cpp_utils, "device_to_aten", None)
+    if upstream_device_to_aten is not None:
+        return upstream_device_to_aten(device_type)
+
+    # Some 2.15 nightlies expose the override registry before this helper.
+    if device_type == "meta":
+        return "at::kMeta"
+
+    from torch._inductor.codegen.common import get_device_op_overrides
+
+    return get_device_op_overrides(device_type).aten_device_type()
 
 
 @compat_impl(key="device_to_aten", lt=(2, 15))

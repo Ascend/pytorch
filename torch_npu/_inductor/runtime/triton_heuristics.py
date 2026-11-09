@@ -1333,7 +1333,13 @@ class NPUCachingAutotuner(CachingAutotuner):
             ),
             "mix_mode": input_launcher.bin.metadata.mix_mode,
             "parallel_mode": input_launcher.bin.metadata.parallel_mode,
-            "is_pure_simt": input_launcher.bin.metadata.is_pure_simt,
+            "is_pure_simt": bool(
+                _metadata_value(
+                    input_launcher.bin.metadata,
+                    "is_pure_simt",
+                    _metadata_value(input_launcher.bin.metadata, "force_simt_only", False),
+                )
+            ),
             "has_auto_blockify_blacklist_op": getattr(
                 input_launcher.bin.metadata,
                 "has_auto_blockify_blacklist_op",

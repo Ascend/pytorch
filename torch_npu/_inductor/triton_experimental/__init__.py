@@ -64,6 +64,15 @@ def _activate():
     # (_load_triton_experimental_backend) before this _activate() runs.
     from .overrides import apply_npu_overrides
 
+    from torch_npu._inductor.codecache import patch_get_cpp_wrapper_header
+    from torch_npu._compat.inductor import patch_npu_cpp_device_options
+
+    patch_get_cpp_wrapper_header()
+    patch_npu_cpp_device_options()
+    inductor_config.layout_optimization = False
+    # Keep coordinate descent under the caller's configuration.
+    inductor_config.split_reductions = False
+
     device.register_backend_for_npu()
 
     from torch_npu._inductor import _apply_common_npu_triton_patches
@@ -82,15 +91,6 @@ def _activate():
     patch_flex_attention()
     flex_attention._validate_device = _validate_device
 
-    inductor_config.layout_optimization = False
-    # No NPU-side value for coordinate_descent_tuning: this backend follows
-    # torch's own config (upstream default False; opt-in through
-    # TORCHINDUCTOR_COORDINATE_DESCENT_TUNING=1 or config.patch). The missing
-    # execution path is implemented in NPUCachingAutotuner.run().
-    # Split reductions emit multi-kernel splits whose intermediate buffers have hit
-    # OOB / shape-mismatch on the NPU Triton backend. Off by default.
-    inductor_config.split_reductions = False
-
     _route_worker_logs_for_debug()
 
     # Giant fused kernels make the bishengir/MLIR compiler explode: T5 backward
@@ -107,6 +107,11 @@ def _activate():
     from . import npu_template_heuristics  # noqa: F401
 
     device.register_device_op_overrides_for_npu()
+
+    # Keep Inductor's AOTI fallback-op registry in sync with the NPU shim.
+    from .aoti_fallbacks import register_npu_aoti_fallbacks
+
+    register_npu_aoti_fallbacks()
 
     from .lowering import (
         _register_npu_inductor_fallbacks,

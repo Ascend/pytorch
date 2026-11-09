@@ -2223,6 +2223,9 @@ def configure_compile_options(args, runner):
     )
     import torch._inductor.config
 
+    if args.cpp_wrapper:
+        torch._inductor.config.cpp_wrapper = True
+
     npu_backend = args.npu_backend
     # mode Config
     if args.disable_aclgraph or args.dynamic_shapes or args.dynamic_batch_only:
@@ -2283,6 +2286,9 @@ def configure_compile_options(args, runner):
             }
             if npu_backend in backend_env:
                 os.environ["TORCHINDUCTOR_NPU_BACKEND"] = backend_env[npu_backend]
+            if args.cpp_wrapper and npu_backend == "triton_experimental":
+                # The experimental C++ wrapper supports compile-time tuning only.
+                torch._inductor.config.triton.autotune_at_compile_time = True
             if npu_backend == "akg":
                 os.environ["TORCHINDUCTOR_NPU_BACKEND"] = "mlir"
                 os.environ["TORCHINDUCTOR_USE_AKG"] = "1"
