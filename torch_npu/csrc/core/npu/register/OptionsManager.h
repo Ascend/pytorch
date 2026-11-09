@@ -53,6 +53,7 @@ class OptionsManager {
   static bool CheckInfNanModeEnable();
   static bool CheckInfNanModeForceDisable();
   static bool CheckBlockingEnable();
+  static bool CheckRtLaunchBlockingEnable();
   static bool CheckCombinedOptimizerEnable();
   static bool CheckTriCombinedOptimizerEnable();
   static bool CheckAclDumpDateEnable();

@@ -186,6 +186,17 @@ bool OptionsManager::CheckBlockingEnable() {
   return checkBlockingEnable;
 }
 
+bool OptionsManager::CheckRtLaunchBlockingEnable() {
+  const static bool checkRtLaunchBlockingEnable = []() -> bool {
+    int32_t blocking_enable = OptionsManager::GetBoolTypeOption("ASCEND_RT_LAUNCH_BLOCKING", 0);
+    if (launchBlockingMode.find(blocking_enable) == launchBlockingMode.end()) {
+      TORCH_CHECK(false, "ASCEND_RT_LAUNCH_BLOCKING should be 0 or 1.", PTA_ERROR(ErrCode::VALUE));
+    }
+    return blocking_enable != 0;
+  }();
+  return checkRtLaunchBlockingEnable;
+}
+
 bool OptionsManager::CheckCombinedOptimizerEnable() {
   const static bool checkCombinedOptimizerEnable = []() -> bool {
     int32_t combined_optimize = OptionsManager::GetBoolTypeOption("COMBINED_ENABLE");
@@ -628,7 +639,7 @@ char* OptionsManager::GetCpuAffinityConf() {
 }
 
 uint32_t OptionsManager::GetTaskQueueEnable() {
-  if (CheckBlockingEnable()) {
+  if (CheckBlockingEnable() || CheckRtLaunchBlockingEnable()) {
     return 0;
   }
 
