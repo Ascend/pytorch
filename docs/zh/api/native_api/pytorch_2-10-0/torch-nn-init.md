@@ -183,8 +183,6 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id24 -->
 
-**限制与说明**：`tensor`仅支持fp32
-
 </div>
 
 ### torch.nn.init.xavier_uniform_
