@@ -1,14 +1,107 @@
+import json
+import pickle
 import unittest
-from unittest.mock import patch
+from unittest.mock import PropertyMock, patch
 
+from torch._C._profiler import _ExperimentalConfig as KinetoExperimentalConfig
+from torch_npu.profiler import _NPUExperimentalConfig
 from torch_npu.profiler.experimental_config import supported_ai_core_metrics
 from torch_npu.profiler.experimental_config import supported_profiler_level
 from torch_npu.profiler.experimental_config import supported_export_type
 from torch_npu.profiler.experimental_config import _ExperimentalConfig
+from torch_npu.profiler.experimental_config import ExportType, ProfilerLevel
 from torch_npu._C._profiler import _ExperimentalConfig as Cpp_ExperimentalConfig
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.profiler.analysis.prof_common_func._constant import Constant
 from torch_npu.profiler.analysis.prof_common_func._cann_package_manager import CannPackageManager
+
+
+class TestNPUExperimentalConfig(unittest.TestCase):
+    def test_backend_only_compatibility(self):
+        self.assertEqual(str(_NPUExperimentalConfig()), '{"backend":"mspti"}')
+        for backend in ["mspti", "aclprof", "invalid", None, 1]:
+            with self.subTest(backend=backend):
+                config = _NPUExperimentalConfig(backend=backend)
+                self.assertEqual(str(config), json.dumps({"backend": backend}, separators=(",", ":")))
+                self.assertEqual(config.__getstate__(), KinetoExperimentalConfig(
+                    custom_profiler_config=str(config)).__getstate__())
+
+    def test_configuration_combinations(self):
+        for backend in [None, "mspti", "aclprof"]:
+            for options in [{"profiler_level": ProfilerLevel.Level1}, {"export_type": ExportType.Db},
+                            {"profiler_level": ProfilerLevel.Level1, "export_type": [ExportType.Db]}]:
+                with self.subTest(backend=backend, options=options):
+                    kwargs = {} if backend is None else {"backend": backend}
+                    data = json.loads(str(_NPUExperimentalConfig(**kwargs, **options)))
+                    expected = {"backend": backend or "mspti", **options}
+                    if "export_type" in options:
+                        expected["export_type"] = [ExportType.Db]
+                    self.assertEqual(data, expected)
+
+    def test_supported_levels(self):
+        for level in supported_profiler_level():
+            with self.subTest(level=level):
+                self.assertEqual(json.loads(str(_NPUExperimentalConfig(profiler_level=level)))["profiler_level"], level)
+
+    def test_export_normalization_and_determinism(self):
+        scalar = _NPUExperimentalConfig(export_type=ExportType.Db)
+        self.assertEqual(str(scalar), str(_NPUExperimentalConfig(export_type=[ExportType.Db])))
+        exports = [ExportType.Text, ExportType.Db, ExportType.Text]
+        config = _NPUExperimentalConfig(export_type=exports)
+        self.assertEqual(str(config), '{"backend":"mspti","export_type":["db","text"]}')
+        exports.clear()
+        self.assertEqual(str(config), str(_NPUExperimentalConfig(export_type=[ExportType.Db, ExportType.Text])))
+        self.assertEqual(str(_NPUExperimentalConfig(profiler_level=None, export_type=None)),
+                         str(_NPUExperimentalConfig()))
+
+    def test_invalid_profiler_level(self):
+        for level in ["invalid", "Level3", "", 1, True, 1.0, [], {}]:
+            with self.subTest(level=level), self.assertRaisesRegex(ValueError, "profiler_level"):
+                _NPUExperimentalConfig(profiler_level=level)
+
+    def test_invalid_export_type(self):
+        for exports in ["invalid", "db,text", "", 1, True, [], {}, (ExportType.Db,), [ExportType.Db, 1], [[]]]:
+            with self.subTest(exports=exports), self.assertRaisesRegex(ValueError, "export_type"):
+                _NPUExperimentalConfig(export_type=exports)
+
+    def test_standard_channel_and_pickle_roundtrip(self):
+        config = _NPUExperimentalConfig(backend="aclprof", profiler_level=ProfilerLevel.Level1,
+                                        export_type=ExportType.Db, verbose=True)
+        payload = str(config)
+        self.assertEqual(payload, '{"backend":"aclprof","profiler_level":"Level1","export_type":["db"]}')
+        standard = KinetoExperimentalConfig(custom_profiler_config=payload, verbose=True)
+        self.assertEqual(config.__getstate__(), standard.__getstate__())
+        for value in [config, standard]:
+            restored = pickle.loads(pickle.dumps(value))
+            self.assertEqual(restored.__getstate__(), value.__getstate__())
+        self.assertEqual(str(pickle.loads(pickle.dumps(config))), payload)
+        # Newer PyTorch versions append unrelated fields after the custom config.
+        with patch.object(_NPUExperimentalConfig, "__getstate__", return_value=(*config.__getstate__(), False, False)):
+            self.assertEqual(str(config), payload)
+
+    def test_str_uses_direct_attribute_without_serializing(self):
+        config = _NPUExperimentalConfig()
+        payload = '{"backend":"aclprof"}'
+        with patch.object(_NPUExperimentalConfig, "custom_profiler_config", payload, create=True), \
+                patch.object(_NPUExperimentalConfig, "__getstate__", side_effect=AssertionError("unexpected fallback")) as state:
+            self.assertEqual(str(config), payload)
+            state.assert_not_called()
+
+    def test_str_falls_back_when_attribute_is_unavailable(self):
+        config = _NPUExperimentalConfig(backend="aclprof")
+        payload = '{"backend":"aclprof"}'
+        # Emulate the older PyTorch state used when the direct attribute is unavailable.
+        legacy_state = ([], False, False, [], False, False, False, False, False, False, False, payload)
+        with patch.object(_NPUExperimentalConfig, "custom_profiler_config", create=True,
+                          new_callable=PropertyMock, side_effect=AttributeError):
+            with patch.object(_NPUExperimentalConfig, "__getstate__", return_value=legacy_state) as state:
+                self.assertEqual(str(config), payload)
+                state.assert_called_once_with()
+        self.assertEqual(str(pickle.loads(pickle.dumps(config))), payload)
+
+    def test_json_escaping(self):
+        backend = 'aclprof",\n"profiler_level":"Level2'
+        self.assertEqual(json.loads(str(_NPUExperimentalConfig(backend=backend))), {"backend": backend})
 
 
 class TestExperimentalConfig(TestCase):
@@ -46,6 +139,12 @@ class TestExperimentalConfig(TestCase):
     def test_call_experimental_config(self):
         experimental_config = _ExperimentalConfig()
         self.assertTrue(isinstance(experimental_config(), Cpp_ExperimentalConfig))
+
+    def test_kineto_backend_config(self):
+        standard_config = pickle.dumps(KinetoExperimentalConfig())
+        aclprof_config = pickle.dumps(_NPUExperimentalConfig(backend="aclprof"))
+        self.assertNotIn(b'{"backend":"aclprof"}', standard_config)
+        self.assertIn(b'{"backend":"aclprof"}', aclprof_config)
 
     def test_mstx_domain_switches_will_reset_when_msproftx_and_mstx_not_enabled(self):
         experimental_config = _ExperimentalConfig(msprof_tx=False,

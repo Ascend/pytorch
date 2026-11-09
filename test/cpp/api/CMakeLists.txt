@@ -1,2 +1,5 @@
 set(TORCH_API_TEST_DIR "${PROJECT_SOURCE_DIR}/test/cpp/api")
-set(TORCH_API_TEST_SOURCES ${TORCH_API_TEST_DIR}/modules.cpp PARENT_SCOPE)
+set(TORCH_API_TEST_SOURCES
+    ${TORCH_API_TEST_DIR}/modules.cpp
+    ${TORCH_API_TEST_DIR}/profiler.cpp
+    PARENT_SCOPE)

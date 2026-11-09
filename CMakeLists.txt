@@ -416,7 +416,7 @@ if (DEFINED BUILD_FXRT)
   add_subdirectory(${PROJECT_SOURCE_DIR}/fxrt/fxrt)
 endif()
 
-if (DEFINED BUILD_GTEST)
+if (BUILD_GTEST)
   enable_testing()
   SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/gtest)
   add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/googletest)
@@ -426,8 +426,20 @@ if (DEFINED BUILD_GTEST)
   add_subdirectory(${PROJECT_SOURCE_DIR}/test/cpp/api)
   add_executable(test_api ${TORCH_API_TEST_SOURCES})
 
+  find_path(KINETO_TEST_INCLUDE_DIR ActivityBuffers.h
+    HINTS "${PYTORCH_INSTALL_DIR}/include/kineto"
+    NO_DEFAULT_PATH
+    DOC "Kineto internal headers matching installed PyTorch (libkineto/src)")
+  if(NOT EXISTS "${KINETO_TEST_INCLUDE_DIR}/ActivityBuffers.h")
+    message(FATAL_ERROR
+      "test_api requires ActivityBuffers.h. Set KINETO_TEST_INCLUDE_DIR to "
+      "libkineto/src from the Kineto version used to build installed PyTorch.")
+  endif()
+  target_include_directories(test_api PRIVATE "${KINETO_TEST_INCLUDE_DIR}")
+  target_compile_definitions(test_api PRIVATE KINETO_NAMESPACE=libkineto)
+
   target_link_libraries(test_api PUBLIC torch_npu)
-  target_link_libraries(test_api PUBLIC gtest_main gtest)
+  target_link_libraries(test_api PUBLIC gtest_main gtest gmock)
 endif()
 
 if (DEFINED BUILD_LIBTORCH)

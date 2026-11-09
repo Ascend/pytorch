@@ -19,7 +19,6 @@
 #include "torch_npu/csrc/framework/interface/MsptiInterface.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
-#include <torch/csrc/profiler/standalone/privateuse1_profiler.h>
 
 namespace torch_npu {
 namespace profiler {
@@ -46,12 +45,6 @@ std::atomic<uint64_t> g_popCount{0};
 bool g_sessionActive = false;
 
 int64_t g_corrCounter = 1LL << 30; // 1,073,741,824  (< 2^32 - 1)
-
-bool privateUse1Requested(const std::set<libkineto::ActivityType>& types) {
-  using AT = libkineto::ActivityType;
-  return types.count(AT::CONCURRENT_KERNEL) != 0 || types.count(AT::GPU_MEMCPY) != 0 ||
-      types.count(AT::GPU_MEMSET) != 0 || types.count(AT::GPU_USER_ANNOTATION) != 0;
-}
 
 std::vector<msptiActivityKind> computeEnabledKinds(const std::set<libkineto::ActivityType>& acts) {
   using AT = libkineto::ActivityType;
@@ -425,39 +418,6 @@ std::vector<libkineto::ResourceInfo> MsptiActivityProfiler::getResourceInfos() {
 std::unique_ptr<libkineto::CpuTraceBuffer> MsptiActivityProfiler::getTraceBuffer() {
   return nullptr;
 }
-
-std::unique_ptr<libkineto::IActivityProfilerSession> MsptiActivityProfilerPoc::configure(
-    const std::set<libkineto::ActivityType>& types,
-    const libkineto::Config&) {
-  if (!privateUse1Requested(types)) {
-    return nullptr;
-  }
-  return std::make_unique<MsptiActivityProfiler>(types);
-}
-
-std::unique_ptr<libkineto::IActivityProfilerSession> MsptiActivityProfilerPoc::configure(
-    int64_t,
-    int64_t,
-    const std::set<libkineto::ActivityType>& types,
-    const libkineto::Config& cfg) {
-  return configure(types, cfg);
-}
-
-// ------------------------------ Registration -------------------------------
-// Prefer the upstream macro (stores the factory in PrivateUse1ProfilerRegistry);
-#ifdef REGISTER_PRIVATEUSE1_PROFILER
-REGISTER_PRIVATEUSE1_PROFILER(MsptiActivityProfilerPoc);
-#else
-namespace {
-struct MsptiAutoRegister {
-  MsptiAutoRegister() {
-    libkineto::api().registerProfilerFactory(
-        []() -> std::unique_ptr<libkineto::IActivityProfiler> { return std::make_unique<MsptiActivityProfilerPoc>(); });
-  }
-};
-static MsptiAutoRegister g_mspti_auto_register;
-} // namespace
-#endif
 
 } // namespace profiler
 } // namespace torch_npu

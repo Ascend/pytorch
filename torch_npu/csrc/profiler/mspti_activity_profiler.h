@@ -1,17 +1,12 @@
 #pragma once
-// mspti NPU activity-profiler session + libkineto bridge.
-//
-// MsptiActivityProfilerPoc (libkineto::IActivityProfiler) registers for
-// ProfilerActivity.PrivateUse1; configure() returns a MsptiActivityProfiler,
-// which is the session libkineto drives. The session enables mspti kinds from
-// the requested activity-type set and collects NPU kernel and host API records.
+// MSPTI-specific NPU activity-profiler backend.
 
 #include <memory>
 #include <set>
 #include <string>
 #include <vector>
 
-#include "IActivityProfiler.h"
+#include "torch_npu/csrc/profiler/npu_activity_profiler.h"
 
 namespace torch_npu {
 namespace profiler {
@@ -31,10 +26,13 @@ struct MsptiEvent {
   int64_t streamId = 0;
 };
 
-class MsptiActivityProfiler : public libkineto::IActivityProfilerSession {
+class MsptiActivityProfiler : public NPUActivityProfiler {
  public:
   explicit MsptiActivityProfiler(std::set<libkineto::ActivityType> activities) : activities_(std::move(activities)) {}
 
+  const char* name() const override {
+    return "mspti";
+  }
   void start() override;
   void stop() override;
   std::vector<std::string> errors() override;
@@ -54,28 +52,6 @@ class MsptiActivityProfiler : public libkineto::IActivityProfilerSession {
 
   std::set<libkineto::ActivityType> activities_;
   std::vector<std::string> errors_;
-};
-
-class MsptiActivityProfilerPoc : public libkineto::IActivityProfiler {
- public:
-  const std::string& name() const override {
-    return name_;
-  }
-  const std::set<libkineto::ActivityType>& availableActivities() const override {
-    return avail_;
-  }
-  std::unique_ptr<libkineto::IActivityProfilerSession> configure(
-      const std::set<libkineto::ActivityType>& activity_types,
-      const libkineto::Config& config) override;
-  std::unique_ptr<libkineto::IActivityProfilerSession> configure(
-      int64_t ts_ms,
-      int64_t duration_ms,
-      const std::set<libkineto::ActivityType>& activity_types,
-      const libkineto::Config& config) override;
-
- private:
-  std::string name_{"mspti"};
-  std::set<libkineto::ActivityType> avail_{libkineto::ActivityType::CONCURRENT_KERNEL};
 };
 
 } // namespace profiler
