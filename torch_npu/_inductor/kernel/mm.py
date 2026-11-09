@@ -132,23 +132,27 @@ _MM_TEMPLATE = """{{def_kernel("A", "B")}}
 {% if MASKED_K %}
         k_mask = offs_k < K
 {% endif %}
+        idx_m = rm[:, None]
+        idx_n = offs_k[None, :]
 {% if MASKED_K and MASKED_M %}
-        a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak), mask=m_mask[:, None] & k_mask[None, :], other=0.0)
+        {{load_input("A","a",("idx_m","idx_n"),mask="m_mask[:, None] & k_mask[None, :]",other=0.0,indent_width=8,index_shape=("BLOCK_M","BLOCK_K"))}}
 {% elif MASKED_K %}
-        a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak), mask=k_mask[None, :], other=0.0)
+        {{load_input("A","a",("idx_m","idx_n"),mask="k_mask[None, :]",other=0.0,indent_width=8,index_shape=("BLOCK_M","BLOCK_K"))}}
 {% elif MASKED_M %}
-        a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak), mask=m_mask[:, None], other=0.0)
+        {{load_input("A","a",("idx_m","idx_n"),mask="m_mask[:, None]",other=0.0,indent_width=8,index_shape=("BLOCK_M","BLOCK_K"))}}
 {% else %}
-        a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak))
+        {{load_input("A","a",("idx_m","idx_n"),indent_width=8,index_shape=("BLOCK_M","BLOCK_K"))}}
 {% endif %}
+        idx_m = offs_k[:, None]
+        idx_n = rn[None, :]
 {% if MASKED_K and MASKED_N %}
-        b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn), mask=k_mask[:, None] & n_mask[None, :], other=0.0)
+        {{load_input("B","b",("idx_m","idx_n"),mask="k_mask[:, None] & n_mask[None, :]",other=0.0,indent_width=8,index_shape=("BLOCK_K","BLOCK_N"))}}
 {% elif MASKED_K %}
-        b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn), mask=k_mask[:, None], other=0.0)
+        {{load_input("B","b",("idx_m","idx_n"),mask="k_mask[:, None]",other=0.0,indent_width=8,index_shape=("BLOCK_K","BLOCK_N"))}}
 {% elif MASKED_N %}
-        b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn), mask=n_mask[None, :], other=0.0)
+        {{load_input("B","b",("idx_m","idx_n"),mask="n_mask[None, :]",other=0.0,indent_width=8,index_shape=("BLOCK_K","BLOCK_N"))}}
 {% else %}
-        b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn))
+        {{load_input("B","b",("idx_m","idx_n"),indent_width=8,index_shape=("BLOCK_K","BLOCK_N"))}}
 {% endif %}
         extension.compile_hint(a, "dot_pad_only_k")
         extension.compile_hint(b, "dot_pad_only_k")
@@ -182,6 +186,7 @@ npu_triton_mm_template = NPUTritonTemplate(
     grid=npu_mm_grid,
     source=_MM_TEMPLATE,
     debug=False,
+    prologue_loads_all_inputs=True,
 )
 
 
@@ -263,23 +268,27 @@ _PERSISTENT_MM_TEMPLATE = """
 {% if MASKED_K %}
                 k_mask = offs_k < K
 {% endif %}
+                idx_m = rm[:, None]
+                idx_n = offs_k[None, :]
 {% if MASKED_K and MASKED_M %}
-                a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak), mask=m_mask[:, None] & k_mask[None, :], other=0.0)
+                {{load_input("A","a",("idx_m","idx_n"),mask="m_mask[:, None] & k_mask[None, :]",other=0.0,indent_width=16,index_shape=("BLOCK_M","BLOCK_K"))}}
 {% elif MASKED_K %}
-                a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak), mask=k_mask[None, :], other=0.0)
+                {{load_input("A","a",("idx_m","idx_n"),mask="k_mask[None, :]",other=0.0,indent_width=16,index_shape=("BLOCK_M","BLOCK_K"))}}
 {% elif MASKED_M %}
-                a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak), mask=m_mask[:, None], other=0.0)
+                {{load_input("A","a",("idx_m","idx_n"),mask="m_mask[:, None]",other=0.0,indent_width=16,index_shape=("BLOCK_M","BLOCK_K"))}}
 {% else %}
-                a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak))
+                {{load_input("A","a",("idx_m","idx_n"),indent_width=16,index_shape=("BLOCK_M","BLOCK_K"))}}
 {% endif %}
+                idx_m = offs_k[:, None]
+                idx_n = rn[None, :]
 {% if MASKED_K and MASKED_N %}
-                b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn), mask=k_mask[:, None] & n_mask[None, :], other=0.0)
+                {{load_input("B","b",("idx_m","idx_n"),mask="k_mask[:, None] & n_mask[None, :]",other=0.0,indent_width=16,index_shape=("BLOCK_K","BLOCK_N"))}}
 {% elif MASKED_K %}
-                b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn), mask=k_mask[:, None], other=0.0)
+                {{load_input("B","b",("idx_m","idx_n"),mask="k_mask[:, None]",other=0.0,indent_width=16,index_shape=("BLOCK_K","BLOCK_N"))}}
 {% elif MASKED_N %}
-                b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn), mask=n_mask[None, :], other=0.0)
+                {{load_input("B","b",("idx_m","idx_n"),mask="n_mask[None, :]",other=0.0,indent_width=16,index_shape=("BLOCK_K","BLOCK_N"))}}
 {% else %}
-                b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn))
+                {{load_input("B","b",("idx_m","idx_n"),indent_width=16,index_shape=("BLOCK_K","BLOCK_N"))}}
 {% endif %}
                 extension.compile_hint(a, "dot_pad_only_k")
                 extension.compile_hint(b, "dot_pad_only_k")
@@ -318,6 +327,7 @@ npu_persistent_mm_template = NPUTritonTemplate(
     grid=npu_persistent_mm_grid,
     source=_PERSISTENT_MM_TEMPLATE,
     debug=False,
+    prologue_loads_all_inputs=True,
 )
 
 
@@ -368,14 +378,16 @@ _RESIDENT_B_MM_TEMPLATE = """
 {% endif %}
 
     # Load entire B matrix once (resident in L0B for the duration of the kernel)
+    idx_m = rk[:, None]
+    idx_n = rn[None, :]
 {% if MASKED_K and MASKED_N %}
-    b = tl.load(B + (rk[:, None] * stride_bk + rn[None, :] * stride_bn), mask=k_mask[:, None] & n_mask[None, :], other=0.0)
+    {{load_input("B","b",("idx_m","idx_n"),mask="k_mask[:, None] & n_mask[None, :]",other=0.0,indent_width=4,index_shape=("BLOCK_K","BLOCK_N"))}}
 {% elif MASKED_K %}
-    b = tl.load(B + (rk[:, None] * stride_bk + rn[None, :] * stride_bn), mask=k_mask[:, None], other=0.0)
+    {{load_input("B","b",("idx_m","idx_n"),mask="k_mask[:, None]",other=0.0,indent_width=4,index_shape=("BLOCK_K","BLOCK_N"))}}
 {% elif MASKED_N %}
-    b = tl.load(B + (rk[:, None] * stride_bk + rn[None, :] * stride_bn), mask=n_mask[None, :], other=0.0)
+    {{load_input("B","b",("idx_m","idx_n"),mask="n_mask[None, :]",other=0.0,indent_width=4,index_shape=("BLOCK_K","BLOCK_N"))}}
 {% else %}
-    b = tl.load(B + (rk[:, None] * stride_bk + rn[None, :] * stride_bn))
+    {{load_input("B","b",("idx_m","idx_n"),indent_width=4,index_shape=("BLOCK_K","BLOCK_N"))}}
 {% endif %}
     extension.compile_hint(b, "dot_pad_only_k")
 
@@ -430,10 +442,12 @@ _RESIDENT_B_MM_TEMPLATE = """
             offs_m = m_start + offs_bm
             mask_m = offs_bm < m_size
 
+            idx_m = offs_m[:, None]
+            idx_n = rk[None, :]
 {% if MASKED_K %}
-            a = tl.load(A + (offs_m[:, None] * stride_am + rk[None, :] * stride_ak), mask=mask_m[:, None] & k_mask[None, :], other=0.0)
+            {{load_input("A","a",("idx_m","idx_n"),mask="mask_m[:, None] & k_mask[None, :]",other=0.0,indent_width=12,index_shape=("BLOCK_M","BLOCK_K"))}}
 {% else %}
-            a = tl.load(A + (offs_m[:, None] * stride_am + rk[None, :] * stride_ak), mask=mask_m[:, None], other=0.0)
+            {{load_input("A","a",("idx_m","idx_n"),mask="mask_m[:, None]",other=0.0,indent_width=12,index_shape=("BLOCK_M","BLOCK_K"))}}
 {% endif %}
             extension.compile_hint(a, "dot_pad_only_k")
             acc = tl.dot(a, b{% if ALLOW_HF32 %}, input_precision="tf32"{% endif %}, out_dtype=ACC_TYPE)
@@ -459,14 +473,16 @@ _RESIDENT_B_MM_TEMPLATE = """
 {% if MASKED_M %}
         m_mask = rm < M
 {% endif %}
+        idx_m = rm[:, None]
+        idx_n = rk[None, :]
 {% if MASKED_K and MASKED_M %}
-        a = tl.load(A + (rm[:, None] * stride_am + rk[None, :] * stride_ak), mask=m_mask[:, None] & k_mask[None, :], other=0.0)
+        {{load_input("A","a",("idx_m","idx_n"),mask="m_mask[:, None] & k_mask[None, :]",other=0.0,indent_width=8,index_shape=("BLOCK_M","BLOCK_K"))}}
 {% elif MASKED_K %}
-        a = tl.load(A + (rm[:, None] * stride_am + rk[None, :] * stride_ak), mask=k_mask[None, :], other=0.0)
+        {{load_input("A","a",("idx_m","idx_n"),mask="k_mask[None, :]",other=0.0,indent_width=8,index_shape=("BLOCK_M","BLOCK_K"))}}
 {% elif MASKED_M %}
-        a = tl.load(A + (rm[:, None] * stride_am + rk[None, :] * stride_ak), mask=m_mask[:, None], other=0.0)
+        {{load_input("A","a",("idx_m","idx_n"),mask="m_mask[:, None]",other=0.0,indent_width=8,index_shape=("BLOCK_M","BLOCK_K"))}}
 {% else %}
-        a = tl.load(A + (rm[:, None] * stride_am + rk[None, :] * stride_ak))
+        {{load_input("A","a",("idx_m","idx_n"),indent_width=8,index_shape=("BLOCK_M","BLOCK_K"))}}
 {% endif %}
 
         extension.compile_hint(a, "dot_pad_only_k")
@@ -508,6 +524,7 @@ npu_resident_b_mm_template = NPUTritonTemplate(
     grid=npu_resident_b_mm_grid,
     source=_RESIDENT_B_MM_TEMPLATE,
     debug=False,
+    prologue_loads_all_inputs=True,
 )
 
 
@@ -556,14 +573,16 @@ _RESIDENT_A_MM_TEMPLATE = """
     k_mask = rk < K
 {% endif %}
 
+    idx_m = rm[:, None]
+    idx_n = rk[None, :]
 {% if MASKED_K and MASKED_M %}
-    a = tl.load(A + (rm[:, None] * stride_am + rk[None, :] * stride_ak), mask=m_mask[:, None] & k_mask[None, :], other=0.0)
+    {{load_input("A","a",("idx_m","idx_n"),mask="m_mask[:, None] & k_mask[None, :]",other=0.0,indent_width=4,index_shape=("BLOCK_M","BLOCK_K"))}}
 {% elif MASKED_K %}
-    a = tl.load(A + (rm[:, None] * stride_am + rk[None, :] * stride_ak), mask=k_mask[None, :], other=0.0)
+    {{load_input("A","a",("idx_m","idx_n"),mask="k_mask[None, :]",other=0.0,indent_width=4,index_shape=("BLOCK_M","BLOCK_K"))}}
 {% elif MASKED_M %}
-    a = tl.load(A + (rm[:, None] * stride_am + rk[None, :] * stride_ak), mask=m_mask[:, None], other=0.0)
+    {{load_input("A","a",("idx_m","idx_n"),mask="m_mask[:, None]",other=0.0,indent_width=4,index_shape=("BLOCK_M","BLOCK_K"))}}
 {% else %}
-    a = tl.load(A + (rm[:, None] * stride_am + rk[None, :] * stride_ak))
+    {{load_input("A","a",("idx_m","idx_n"),indent_width=4,index_shape=("BLOCK_M","BLOCK_K"))}}
 {% endif %}
     extension.compile_hint(a, "dot_pad_only_k")
 
@@ -618,10 +637,12 @@ _RESIDENT_A_MM_TEMPLATE = """
             offs_n = n_start + offs_bn
             mask_n = offs_bn < n_size
 
+            idx_m = rk[:, None]
+            idx_n = offs_n[None, :]
 {% if MASKED_K %}
-            b = tl.load(B + (rk[:, None] * stride_bk + offs_n[None, :] * stride_bn), mask=k_mask[:, None] & mask_n[None, :], other=0.0)
+            {{load_input("B","b",("idx_m","idx_n"),mask="k_mask[:, None] & mask_n[None, :]",other=0.0,indent_width=12,index_shape=("BLOCK_K","BLOCK_N"))}}
 {% else %}
-            b = tl.load(B + (rk[:, None] * stride_bk + offs_n[None, :] * stride_bn), mask=mask_n[None, :], other=0.0)
+            {{load_input("B","b",("idx_m","idx_n"),mask="mask_n[None, :]",other=0.0,indent_width=12,index_shape=("BLOCK_K","BLOCK_N"))}}
 {% endif %}
             extension.compile_hint(b, "dot_pad_only_k")
             acc = tl.dot(a, b{% if ALLOW_HF32 %}, input_precision="tf32"{% endif %}, out_dtype=ACC_TYPE)
@@ -647,14 +668,16 @@ _RESIDENT_A_MM_TEMPLATE = """
 {% if MASKED_N %}
         n_mask = rn < N
 {% endif %}
+        idx_m = rk[:, None]
+        idx_n = rn[None, :]
 {% if MASKED_K and MASKED_N %}
-        b = tl.load(B + (rk[:, None] * stride_bk + rn[None, :] * stride_bn), mask=k_mask[:, None] & n_mask[None, :], other=0.0)
+        {{load_input("B","b",("idx_m","idx_n"),mask="k_mask[:, None] & n_mask[None, :]",other=0.0,indent_width=8,index_shape=("BLOCK_K","BLOCK_N"))}}
 {% elif MASKED_K %}
-        b = tl.load(B + (rk[:, None] * stride_bk + rn[None, :] * stride_bn), mask=k_mask[:, None], other=0.0)
+        {{load_input("B","b",("idx_m","idx_n"),mask="k_mask[:, None]",other=0.0,indent_width=8,index_shape=("BLOCK_K","BLOCK_N"))}}
 {% elif MASKED_N %}
-        b = tl.load(B + (rk[:, None] * stride_bk + rn[None, :] * stride_bn), mask=n_mask[None, :], other=0.0)
+        {{load_input("B","b",("idx_m","idx_n"),mask="n_mask[None, :]",other=0.0,indent_width=8,index_shape=("BLOCK_K","BLOCK_N"))}}
 {% else %}
-        b = tl.load(B + (rk[:, None] * stride_bk + rn[None, :] * stride_bn))
+        {{load_input("B","b",("idx_m","idx_n"),indent_width=8,index_shape=("BLOCK_K","BLOCK_N"))}}
 {% endif %}
 
         extension.compile_hint(b, "dot_pad_only_k")
@@ -693,6 +716,7 @@ npu_resident_a_mm_template = NPUTritonTemplate(
     grid=npu_resident_a_mm_grid,
     source=_RESIDENT_A_MM_TEMPLATE,
     debug=False,
+    prologue_loads_all_inputs=True,
 )
 
 
@@ -2345,7 +2369,7 @@ def _register_npu_inductor_addmm():
             and use_catlass_template("addmm", layout_tmp if layout is None else layout, m0, n0, k0)
         )
         # Determine whether the NPU Triton template is available.
-        triton_available = is_contiguous_input_tmp and use_triton_template(
+        triton_available = use_triton_template(
             layout_tmp if layout is None else layout
         )
         *b2, k2, n = mat2.get_size()

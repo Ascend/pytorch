@@ -463,7 +463,7 @@ class NPUTritonScheduling(TritonScheduling):
 
         return "\n".join(lines)
 
-    def codegen_template(self, template_node, epilogue_nodes, only_gen_src_code=False):
+    def codegen_template(self, template_node, epilogue_nodes, prologue_nodes=(), only_gen_src_code=False):
         if isinstance(template_node.node, NPUFlexAttentionDkdvTemplateBuffer):
             if only_gen_src_code:
                 raise NotImplementedError(
@@ -475,6 +475,28 @@ class NPUTritonScheduling(TritonScheduling):
         _, (numel, rnumel) = template_node.group
         assert rnumel == 1
         kernel, render = template_node.node.make_kernel_render(template_node.node)
+
+        # ---- Prologue fusion: build buf_name_to_prologue_group ----
+        buf_name_to_prologue_group = {}
+        template_reads = template_node.used_buffer_names()
+        prologue_group = []
+        for prologue in prologue_nodes:
+            names = prologue.get_buffer_names()
+            prologue_group.append(prologue)
+            if names & template_reads:
+                assert len(names) == 1, (
+                    f"prologue node {prologue} feeds multiple template "
+                    f"inputs {names}; prologue fusion requires 1-to-1"
+                )
+                buf_name = next(iter(names))
+                buf_name_to_prologue_group[buf_name] = prologue_group
+                kernel.prologue_fused_inputs.add(buf_name)
+                prologue_group = []
+        assert len(prologue_group) == 0, (
+            f"leftover prologue nodes without template consumer: "
+            f"{[p.get_name() for p in prologue_group]}"
+        )
+
         with kernel:
             if not only_gen_src_code:
                 for node in [template_node, *epilogue_nodes]:
@@ -539,9 +561,39 @@ class NPUTritonScheduling(TritonScheduling):
                     for node in epilogue_nodes:
                         node.codegen(kernel.split_and_set_ranges(node.get_ranges()))
 
+            # ---- Prologue fusion: codegen LOAD_INPUT subgraphs ----
+            # Must be inside `with kernel:` so V.kernel handler is set.
+            from torch._inductor import config as _inductor_config
+            for input_name, buffer in kernel.named_input_nodes.items():
+                subgraph_name = f"<LOAD_INPUT_{input_name}>"
+                if subgraph_name not in kernel.subgraph_bodies:
+                    continue
+                prologue_grp = buf_name_to_prologue_group.get(buffer.get_name(), [])
+                if not prologue_grp:
+                    continue
+                can_upcast = all(
+                    p_n.can_codegen_without_upcasts() for p_n in prologue_grp
+                )
+                with _inductor_config.patch(
+                    "triton.codegen_upcast_to_fp32", not can_upcast
+                ):
+                    with kernel.set_subgraph_body(subgraph_name):
+                        for prologue_node in prologue_grp:
+                            prologue_node.codegen(
+                                kernel.split_and_set_ranges(
+                                    prologue_node.get_ranges()
+                                )
+                            )
+                        kernel.cse.invalidate(set())
+
         if not isinstance(partial_code, str):
             partial_code.finalize_hook("<DEF_KERNEL>")
             partial_code.finalize_hook("<ARGDEFS>", strict=False)
+            # Finalize <LOAD_INPUT_*> hooks registered by {{load_input}}.
+            for input_name in kernel.named_input_nodes:
+                subgraph_name = f"<LOAD_INPUT_{input_name}>"
+                if subgraph_name in kernel.subgraph_bodies:
+                    partial_code.finalize_hook(subgraph_name, strict=False)
         # finalize must be called after adding epilogue above
         with V.set_kernel_handler(kernel):
             # Finalize legacy "<STORE_OUTPUT>" (without index) if present.
@@ -558,7 +610,7 @@ class NPUTritonScheduling(TritonScheduling):
                 src_code = partial_code.finalize_remaining()
             else:
                 src_code = partial_code.code
-            node_schedule = [template_node, *epilogue_nodes]
+            node_schedule = [*prologue_nodes, template_node, *epilogue_nodes]
 
             # Apply epilogue optimizations to BOTH the benchmark kernel and
             # the final kernel, so that autotune measures exactly the same
@@ -958,7 +1010,12 @@ class NPUTritonScheduling(TritonScheduling):
             return ms, mod.__file__
 
     def generate_kernel_code_from_nodes(self, nodes, benchmark_kernel=False, hint_override=None):
-        if not nodes[0].is_template():
+        # Scan ALL nodes to locate the template (prologue cast nodes may
+        # precede the template node in the schedule).
+        template_index = next(
+            (i for i, n in enumerate(nodes) if n.is_template()), None
+        )
+        if template_index is None:
             _, (numel, rnumel) = max(nodes, key=lambda x: int(x.is_reduction())).group
             if npu_config.enable_welford:
                 numel = _canonical_group_size(numel)
@@ -975,12 +1032,15 @@ class NPUTritonScheduling(TritonScheduling):
             ), V.set_kernel_handler(kernel):
                 src_code = kernel.codegen_kernel()
         else:
-            template_node = nodes[0]
-            epilogue_nodes = nodes[1:]
+            template_node = nodes[template_index]
+            prologue_nodes = nodes[:template_index]
+            epilogue_nodes = nodes[template_index + 1:]
 
             with config.patch("benchmark_kernel", benchmark_kernel):
                 src_code = self.codegen_template(
-                    template_node, epilogue_nodes, only_gen_src_code=True
+                    template_node, epilogue_nodes,
+                    prologue_nodes=prologue_nodes,
+                    only_gen_src_code=True,
                 )
 
         src_code = src_code.replace(str(Placeholder.KERNEL_NAME), "triton_")

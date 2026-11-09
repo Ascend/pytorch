@@ -424,6 +424,7 @@ class NPUTritonTemplate(TritonTemplate):
         manual_output_buffer: Optional[str] = None,
         codegen_kernel_name: Optional[str] = None,
         compile_options: Optional[NPUTemplateCompileOption] = None,
+        prologue_loads_all_inputs: bool = False,
     ) -> None:
         """Initialize NPU Triton template.
 
@@ -432,8 +433,12 @@ class NPUTritonTemplate(TritonTemplate):
             grid: Grid function for kernel launch configuration
             source: Triton kernel source code
             debug: Enable debug mode for verbose output
+            prologue_loads_all_inputs: allow prologue fusion of all inputs
         """
-        super().__init__(name, grid, source, debug)
+        super().__init__(
+            name, grid, source, debug,
+            prologue_loads_all_inputs=prologue_loads_all_inputs,
+        )
         self.manual_output_buffer = manual_output_buffer
         self.codegen_kernel_name = codegen_kernel_name or f"triton_{name}"
         self.compile_options = compile_options or NPUTemplateCompileOption()
@@ -507,6 +512,7 @@ class NPUTritonTemplate(TritonTemplate):
             "manual_output_buffer": self.manual_output_buffer,
             "reset_to_zero_arg_names": reset_to_zero_arg_names,
             "compile_option_keys": compile_option_keys,
+            "prologue_loads_all_inputs": self.prologue_loads_all_inputs,
         }
 
         def create_renderer(out_node):
@@ -819,6 +825,7 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
         reset_to_zero_arg_names: Optional[list[str]] = None,
         always_freeze_layout: bool = False,
         compile_option_keys: frozenset[str] = frozenset(),
+        prologue_loads_all_inputs: bool = False,
     ) -> None:
         """Initialize NPU Triton template kernel.
 
@@ -838,6 +845,7 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
             epilogue_fn: Epilogue function
             subgraphs: List of subgraph buffers
             workspace_arg: Workspace argument
+            prologue_loads_all_inputs: allow prologue fusion of all inputs
         """
         super().__init__(
             kernel_name,
@@ -855,6 +863,7 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
             epilogue_fn=epilogue_fn,
             subgraphs=subgraphs,
             workspace_arg=workspace_arg,
+            prologue_loads_all_inputs=prologue_loads_all_inputs,
         )
         self.manual_output_buffer = manual_output_buffer
         self.reset_to_zero_arg_names = reset_to_zero_arg_names
@@ -955,26 +964,42 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
         )
 
         # Unified processing of all input nodes
+        # NOTE: prologue_fused_inputs must still be registered in
+        # named_input_nodes (so {{load_input("B", ...)}} can find them) and,
+        # when prologue_loads_all_inputs is set, added to
+        # prologue_supported_inputs.  Only the args.input / input_buffers
+        # registration is skipped for prologue-fused inputs.
         for idx, input_node in enumerate(self.input_nodes):
             node_name = input_node.get_name()
 
-            # Skip removed or fused buffers
-            if node_name in V.graph.removed_buffers:
-                continue
-            if node_name in self.prologue_fused_inputs:
-                continue
-
             # Process prefix args
             if idx < self.prefix_args:
+                if node_name in V.graph.removed_buffers:
+                    continue
+                if node_name in self.prologue_fused_inputs:
+                    continue
                 self.args.input(node_name)
             # Process named args
             elif idx < len(self.input_nodes) - self.suffix_args:
                 name = argnames[idx - self.prefix_args]
                 arg_name = f"arg_{name}"
+                # Always register in named_input_nodes first so that
+                # {{load_input(name, ...)}} can look the node up even when
+                # the buffer is prologue-fused.
                 self.named_input_nodes[name] = input_node
+                if self.prologue_loads_all_inputs:
+                    self.prologue_supported_inputs.add(node_name)
+                if node_name in V.graph.removed_buffers:
+                    continue
+                if node_name in self.prologue_fused_inputs:
+                    continue
                 self.args.input_buffers[node_name] = arg_name
             # Process suffix args
             else:
+                if node_name in V.graph.removed_buffers:
+                    continue
+                if node_name in self.prologue_fused_inputs:
+                    continue
                 self.args.input(node_name)
 
         # The args may be duplicated, so renaming must be after args are de-duplicated.
