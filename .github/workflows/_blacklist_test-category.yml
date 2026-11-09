@@ -8,6 +8,8 @@ name: Blacklist Test Category
 #     phase, and a3/a5 run in the same workflow run so the artifact names
 #     must not collide;
 #   * new categories blacklist-a3/blacklist-a5 -> artifact prefix bla3/bla5;
+#     the cross-platform diff runs use diff-{a3only,a5only}-{a3,a5} ->
+#     d3a3/d3a5/d5a3/d5a5 so their result artifacts never collide;
 #   * the shard JSONs carry test_type "regular", so the runner writes
 #     results as shard_reg-<n>_cases.json; the parse/fail steps look for
 #     that fixed prefix while uploads use the platform-specific one.
@@ -50,7 +52,9 @@ on:
       category:
         required: true
         type: string
-        description: 'Category name: blacklist-a3 or blacklist-a5'
+        description: >-
+          Category name: blacklist-a3 / blacklist-a5, or one of the
+          cross-platform diff categories diff-{a3only,a5only}-{a3,a5}
       num_shards:
         required: true
         type: string
@@ -141,6 +145,12 @@ jobs:
           case "${{ inputs.category }}" in
             blacklist-a3) PREFIX="bla3" ;;
             blacklist-a5) PREFIX="bla5" ;;
+            # Cross-platform diff categories: d<set><platform>, where the set is
+            # a3only/a5only and the platform is where the cases are executed.
+            diff-a3only-a3) PREFIX="d3a3" ;;
+            diff-a3only-a5) PREFIX="d3a5" ;;
+            diff-a5only-a3) PREFIX="d5a3" ;;
+            diff-a5only-a5) PREFIX="d5a5" ;;
             *)           PREFIX="reg" ;;
           esac
           # Shard JSONs from _blacklist_shard.yml carry test_type

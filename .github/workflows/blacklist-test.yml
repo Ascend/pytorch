@@ -4,13 +4,8 @@ name: Blacklist Test (a3/a5)
 # collection phase: the blacklists already list explicit nodeids, so this
 # pipeline just splits them into shards and executes them.
 #
-# Two trigger modes:
-#   * push to ci-test touching any blacklist file -> runs BOTH platforms
-#     (equivalent to platform=all);
-#   * workflow_dispatch -> platform input controls the scope:
-#       a3  -> build + shard + test on a3 only
-#       a5  -> build + shard + test on a5 only
-#       all -> both platforms, each with its own build and shards
+# Both platforms always run in the same workflow (a3 + a5), each with its own
+# build, shards and test jobs; there is no platform scope switch any more.
 #
 # Blacklist files per platform:
 #   disabled_testcases_<platform>_all.json
@@ -23,17 +18,16 @@ on:
       - ci-test
     paths:
       - '.github/workflows/blacklist-test.yml'
+      - '.github/workflows/_blacklist_diff_shard.yml'
+      - '.github/workflows/_blacklist_test-category.yml'
+      - '.github/scripts/build_diff_shards.py'
+      - '.github/scripts/compare_diff_results.py'
       - '.github/config/disabled_testcases_a3_all.json'
       - '.github/config/disabled_testcases_a5_all.json'
       - '.github/config/unsupported_aclnn_testcases.json'
       - '.github/config/unsupport_dtype_testcases.json'
   workflow_dispatch:
     inputs:
-      platform:
-        description: 'Which platform to run: a3, a5, or all'
-        required: true
-        type: string
-        default: 'all'
       upstream_ref:
         description: 'Upstream PyTorch ref (branch/tag/SHA)'
         required: true
@@ -49,6 +43,11 @@ on:
         required: true
         type: string
         default: '4'
+      diff_num_shards:
+        description: 'Number of shards per cross-platform diff category'
+        required: true
+        type: string
+        default: '2'
       test_max_parallel:
         description: 'Max concurrent shard jobs across both platforms'
         required: true
@@ -62,8 +61,8 @@ on:
 
 # NOTE: on push events the `inputs` context is empty, so every reference
 # below carries an explicit `|| fallback` that encodes the push default
-# (platform=all, upstream main, torch_npu master, 4 shards, 8 parallel,
-# patch_triton_cxx20=true — matching the nightly a3/a5 pipelines).
+# (upstream main, torch_npu master, 4 blacklist shards, 2 diff shards,
+# 8 parallel, patch_triton_cxx20=true — matching the nightly a3/a5 pipelines).
 
 permissions:
   id-token: write
@@ -71,7 +70,7 @@ permissions:
 
 jobs:
   # ==========================================================================
-  # Guard against typos that would silently start both platforms
+  # Guard against invalid shard counts
   # ==========================================================================
   validate:
     runs-on: ubuntu-latest
@@ -80,10 +79,6 @@ jobs:
     steps:
       - name: Validate inputs
         run: |
-          case "${{ inputs.platform || 'all' }}" in
-            a3|a5|all) ;;
-            *) echo "::error::platform must be one of: a3, a5, all"; exit 1 ;;
-          esac
           NUM_SHARDS="${{ inputs.num_shards || '4' }}"
           case "${NUM_SHARDS}" in
             ''|*[!0-9]*) echo "::error::num_shards must be a positive integer"; exit 1 ;;
@@ -92,13 +87,20 @@ jobs:
             echo "::error::num_shards must be >= 1"
             exit 1
           fi
+          DIFF_SHARDS="${{ inputs.diff_num_shards || '2' }}"
+          case "${DIFF_SHARDS}" in
+            ''|*[!0-9]*) echo "::error::diff_num_shards must be a positive integer"; exit 1 ;;
+          esac
+          if [ "${DIFF_SHARDS}" -lt 1 ]; then
+            echo "::error::diff_num_shards must be >= 1"
+            exit 1
+          fi
 
   # ==========================================================================
   # A3
   # ==========================================================================
   build-a3:
     needs: validate
-    if: ${{ (inputs.platform || 'all') != 'a5' }}
     uses: ./.github/workflows/_nightly_build.yml
     secrets: inherit
     with:
@@ -114,7 +116,7 @@ jobs:
 
   shard-a3:
     needs: build-a3
-    if: ${{ (inputs.platform || 'all') != 'a5' && needs.build-a3.result == 'success' }}
+    if: ${{ needs.build-a3.result == 'success' }}
     uses: ./.github/workflows/_blacklist_shard.yml
     secrets: inherit
     with:
@@ -126,7 +128,7 @@ jobs:
     needs:
       - build-a3
       - shard-a3
-    if: ${{ (inputs.platform || 'all') != 'a5' && needs.shard-a3.result == 'success' }}
+    if: ${{ needs.shard-a3.result == 'success' }}
     strategy:
       fail-fast: false
       max-parallel: ${{ inputs.test_max_parallel || 8 }}
@@ -161,7 +163,6 @@ jobs:
   # ==========================================================================
   build-a5:
     needs: validate
-    if: ${{ (inputs.platform || 'all') != 'a3' }}
     uses: ./.github/workflows/_nightly_build.yml
     secrets: inherit
     with:
@@ -177,7 +178,7 @@ jobs:
 
   shard-a5:
     needs: build-a5
-    if: ${{ (inputs.platform || 'all') != 'a3' && needs.build-a5.result == 'success' }}
+    if: ${{ needs.build-a5.result == 'success' }}
     uses: ./.github/workflows/_blacklist_shard.yml
     secrets: inherit
     with:
@@ -189,7 +190,7 @@ jobs:
     needs:
       - build-a5
       - shard-a5
-    if: ${{ (inputs.platform || 'all') != 'a3' && needs.shard-a5.result == 'success' }}
+    if: ${{ needs.shard-a5.result == 'success' }}
     strategy:
       fail-fast: false
       max-parallel: ${{ inputs.test_max_parallel || 8 }}
@@ -220,8 +221,89 @@ jobs:
       cases_artifact_name: cases-shards-a5
 
   # ==========================================================================
-  # Aggregate results. Shard jobs intentionally exit 0 even when cases fail,
-  # so this job turns any failed/errored/timed-out case into a red pipeline.
+  # Cross-platform diff: cases that only ONE platform blacklists are re-run on
+  # BOTH platforms, so a failure-with-matching-reason can be turned into a
+  # blacklist-sync candidate for the other platform. The candidates are
+  # reported as an artifact and never written back to the repository
+  # automatically.
+  # ==========================================================================
+  shard-diff:
+    needs: validate
+    uses: ./.github/workflows/_blacklist_diff_shard.yml
+    with:
+      num_shards: ${{ inputs.diff_num_shards || '2' }}
+
+  test-diff-a3:
+    needs:
+      - build-a3
+      - shard-diff
+    if: ${{ needs.build-a3.result == 'success' && needs.shard-diff.result == 'success' }}
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ inputs.test_max_parallel || 8 }}
+      matrix:
+        include:
+          - category: diff-a3only-a3
+            cases_artifact_name: cases-shards-diff-a3only-a3
+          - category: diff-a5only-a3
+            cases_artifact_name: cases-shards-diff-a5only-a3
+    uses: ./.github/workflows/_blacklist_test-category.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ needs.build-a3.outputs.resolved_short }}
+      resolved_sha: ${{ needs.build-a3.outputs.resolved_sha }}
+      pytorch_wheels_tarball: ${{ needs.build-a3.outputs.pytorch_wheels_tarball }}
+      torchnpu_wheels_tarball: ${{ needs.build-a3.outputs.torchnpu_wheels_tarball }}
+      upstream_repo: pytorch/pytorch
+      category: ${{ matrix.category }}
+      num_shards: ${{ needs.shard-diff.outputs.num_shards }}
+      matrix_json: ${{ needs.shard-diff.outputs.shards_json }}
+      max_workers: '32'
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610160225-8a315d17
+      report_to_upstream: false
+      runner_label: 'linux-aarch64-a3-800i-2-cn12-001'
+      device_env: 'privateuse1,cpu'
+      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 || github.event_name == 'push' }}
+      cases_artifact_name: ${{ matrix.cases_artifact_name }}
+
+  test-diff-a5:
+    needs:
+      - build-a5
+      - shard-diff
+    if: ${{ needs.build-a5.result == 'success' && needs.shard-diff.result == 'success' }}
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ inputs.test_max_parallel || 8 }}
+      matrix:
+        include:
+          - category: diff-a3only-a5
+            cases_artifact_name: cases-shards-diff-a3only-a5
+          - category: diff-a5only-a5
+            cases_artifact_name: cases-shards-diff-a5only-a5
+    uses: ./.github/workflows/_blacklist_test-category.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ needs.build-a5.outputs.resolved_short }}
+      resolved_sha: ${{ needs.build-a5.outputs.resolved_sha }}
+      pytorch_wheels_tarball: ${{ needs.build-a5.outputs.pytorch_wheels_tarball }}
+      torchnpu_wheels_tarball: ${{ needs.build-a5.outputs.torchnpu_wheels_tarball }}
+      upstream_repo: pytorch/pytorch
+      category: ${{ matrix.category }}
+      num_shards: ${{ needs.shard-diff.outputs.num_shards }}
+      matrix_json: ${{ needs.shard-diff.outputs.shards_json }}
+      max_workers: '32'
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.11-torch-master-cann9.2.0-20260910200430-202610160226-8a315d17
+      report_to_upstream: false
+      runner_label: 'linux-amd64-a5-2'
+      device_env: 'privateuse1,cpu'
+      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 || github.event_name == 'push' }}
+      cases_artifact_name: ${{ matrix.cases_artifact_name }}
+
+  # ==========================================================================
+  # Aggregate results only. Blacklisted cases are EXPECTED to fail, so this job
+  # never turns failures into a red pipeline: a red run would just mean "the
+  # blacklist is still accurate". The only signal worth checking is `passed`
+  # (blacklist entries that now succeed) and missing reports.
   # ==========================================================================
   summary:
     needs:
@@ -236,8 +318,15 @@ jobs:
     permissions:
       contents: read
     steps:
+      # Checkout first: actions/checkout runs `git clean -ffdx`, which would
+      # delete the downloaded report directories if it ran after them.
+      - name: Checkout this repo
+        if: always()
+        uses: actions/checkout@v6
+        with:
+          ref: ci-test
+
       - name: Download a3 test reports
-        if: ${{ (inputs.platform || 'all') != 'a5' }}
         continue-on-error: true
         uses: actions/download-artifact@v4
         with:
@@ -246,7 +335,6 @@ jobs:
           merge-multiple: true
 
       - name: Download a5 test reports
-        if: ${{ (inputs.platform || 'all') != 'a3' }}
         continue-on-error: true
         uses: actions/download-artifact@v4
         with:
@@ -255,23 +343,15 @@ jobs:
           merge-multiple: true
 
       - name: Aggregate blacklist results
-        env:
-          PLATFORM: ${{ inputs.platform || 'all' }}
         run: |
           python3 - <<'PY'
           import glob
           import json
           import os
-          import sys
 
-          platform = os.environ["PLATFORM"]
-          groups = []
-          if platform != "a5":
-              groups.append(("a3", "reports-a3"))
-          if platform != "a3":
-              groups.append(("a5", "reports-a5"))
+          groups = [("a3", "reports-a3"), ("a5", "reports-a5")]
 
-          failed_any = False
+          unexpected_pass = 0
           missing = []
           lines = []
 
@@ -294,10 +374,13 @@ jobs:
                   totals["total"] += d.get("total_cases", 0)
 
               failed = totals["failed"] + totals["errors"] + totals["timeout"]
-              failed_any = failed_any or failed > 0
+              # Failures are the expected outcome for blacklisted cases; only
+              # entries that now pass mean the blacklist is stale.
+              unexpected_pass += totals["passed"]
+              result = "OK" if totals["passed"] == 0 else f"CHECK ({totals['passed']} passed)"
               lines.append(
                   f"| {name} | {len(files)} | {totals['total']} | {totals['passed']} | "
-                  f"{failed} | {totals['skipped']} | {'FAIL' if failed else 'PASS'} |"
+                  f"{failed} | {totals['skipped']} | {result} |"
               )
 
           header = [
@@ -306,7 +389,12 @@ jobs:
               "| platform | shards | total | passed | failed+errors+timeout | skipped | result |",
               "|---|---|---|---|---|---|---|",
           ]
-          body = "\n".join(header + lines)
+          footer = [
+              "",
+              "> 黑名单用例预期失败，`failed+errors+timeout` 不作为失败判据；"
+              "`result` 仅提示黑名单是否已过期（`CHECK` = 有用例已通过）。",
+          ]
+          body = "\n".join(header + lines + footer)
           print(body)
 
           summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
@@ -316,26 +404,20 @@ jobs:
 
           if missing:
               print(f"WARNING: no test reports found for: {', '.join(missing)}")
-          if failed_any:
-              print("::error::blacklist run has failing cases, see per-shard test-reports artifacts")
-              sys.exit(1)
+          if unexpected_pass:
+              print(
+                  f"WARNING: {unexpected_pass} blacklisted case(s) now pass; "
+                  "they are candidates for removal from the blacklists"
+              )
           PY
-
-      - name: Checkout this repo
-        if: always()
-        uses: actions/checkout@v6
-        with:
-          ref: ci-test
 
       - name: Generate blacklist report
         if: always()
         continue-on-error: true
-        env:
-          PLATFORM: ${{ inputs.platform || 'all' }}
         run: |
           python3 .github/scripts/generate_blacklist_report.py \
             --reports-root . \
-            --platform "${PLATFORM}" \
+            --platform all \
             --config-dir .github/config \
             --output blacklist-report.md
 
@@ -346,4 +428,80 @@ jobs:
         with:
           name: blacklist-report
           path: blacklist-report.md
+          retention-days: 30
+
+  # ==========================================================================
+  # Cross-platform sync candidates. Runs after the diff shards finished on both
+  # platforms and only emits a report: nothing is written back to the repo.
+  # ==========================================================================
+  diff-summary:
+    needs:
+      - shard-diff
+      - test-diff-a3
+      - test-diff-a5
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout this repo
+        if: always()
+        uses: actions/checkout@v6
+        with:
+          ref: ci-test
+
+      - name: Download diff results (a3only on a3)
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-d3a3-*
+          path: diff-reports/a3only-a3
+          merge-multiple: true
+
+      - name: Download diff results (a3only on a5)
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-d3a5-*
+          path: diff-reports/a3only-a5
+          merge-multiple: true
+
+      - name: Download diff results (a5only on a3)
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-d5a3-*
+          path: diff-reports/a5only-a3
+          merge-multiple: true
+
+      - name: Download diff results (a5only on a5)
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-d5a5-*
+          path: diff-reports/a5only-a5
+          merge-multiple: true
+
+      - name: Compare diff results
+        if: always()
+        continue-on-error: true
+        run: |
+          python3 .github/scripts/compare_diff_results.py \
+            --reports-root diff-reports \
+            --config-dir .github/config \
+            --output-prefix blacklist-sync-candidates
+
+      - name: Upload sync candidates
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: blacklist-sync-candidates
+          path: |
+            blacklist-sync-candidates.json
+            blacklist-sync-candidates.md
           retention-days: 30

@@ -1,0 +1,82 @@
+name: Blacklist Cross-Platform Diff Shard
+
+# Builds the shard JSONs for the cross-platform diff sets. Four categories are
+# emitted, each as its own artifact, because the same set is re-run on BOTH
+# platforms (the platform that already blacklists it and the one that does not)
+# so the sync comparison has complete evidence from a single workflow run:
+#
+#   diff-a3only-a3 / diff-a3only-a5   nodeids only in the a3 blacklist
+#   diff-a5only-a3 / diff-a5only-a5   nodeids only in the a5 blacklist
+
+on:
+  workflow_call:
+    inputs:
+      num_shards:
+        required: false
+        type: string
+        default: '4'
+        description: Number of shards per category
+    outputs:
+      shards_json:
+        description: JSON array of shard indexes, e.g. [1,2,3,4]
+        value: ${{ jobs.shard.outputs.shards_json }}
+      num_shards:
+        description: Number of shards per category
+        value: ${{ jobs.shard.outputs.num_shards }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  shard:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      shards_json: ${{ steps.build.outputs.shards_json }}
+      num_shards: ${{ steps.build.outputs.num_shards }}
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v6
+        with:
+          ref: ci-test
+
+      - name: Build diff shard JSONs
+        id: build
+        env:
+          NUM_SHARDS: ${{ inputs.num_shards }}
+        run: |
+          python3 .github/scripts/build_diff_shards.py \
+            --config-dir .github/config \
+            --scripts-dir .github/scripts \
+            --output-dir cases-shards \
+            --num-shards "${NUM_SHARDS}"
+
+      - name: Upload diff-a3only-a3 shards
+        uses: actions/upload-artifact@v4
+        with:
+          name: cases-shards-diff-a3only-a3
+          path: cases-shards/diff-a3only-a3/
+          retention-days: 7
+
+      - name: Upload diff-a3only-a5 shards
+        uses: actions/upload-artifact@v4
+        with:
+          name: cases-shards-diff-a3only-a5
+          path: cases-shards/diff-a3only-a5/
+          retention-days: 7
+
+      - name: Upload diff-a5only-a3 shards
+        uses: actions/upload-artifact@v4
+        with:
+          name: cases-shards-diff-a5only-a3
+          path: cases-shards/diff-a5only-a3/
+          retention-days: 7
+
+      - name: Upload diff-a5only-a5 shards
+        uses: actions/upload-artifact@v4
+        with:
+          name: cases-shards-diff-a5only-a5
+          path: cases-shards/diff-a5only-a5/
+          retention-days: 7
