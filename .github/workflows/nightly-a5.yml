@@ -54,6 +54,7 @@ jobs:
       skip_list: |-
         .github/config/disabled_testcases_a5_all.json
         .github/config/unsupport_dtype_testcases.json
+        .github/config/unsupported_aclnn_testcases.json
         .github/config/temporary_skiped_testcases.json
       runner_label: 'linux-amd64-a5-2'
       test_max_parallel: 3

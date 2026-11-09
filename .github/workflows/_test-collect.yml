@@ -424,12 +424,20 @@ jobs:
             echo "Case whitelist: ${CASE_WHITELIST_INPUT}"
           fi
 
+          PLATFORM_ARG=""
+          case '${{ inputs.docker_image }}' in
+            *cann-a5*) PLATFORM_ARG="--platform a5" ;;
+            *cann-a3*) PLATFORM_ARG="--platform a3" ;;
+          esac
+          echo "Skip-list platform: ${PLATFORM_ARG:-<not detected>}"
+
           python3 ${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/collect_all_cases.py \
             --test-dir ${GITHUB_WORKSPACE}/pytorch/test \
             --hw-classification ${{ inputs.hw_classification }} \
             ${CONFIG_ARG} \
             ${FULL_SCAN_ARG} \
             ${SKIP_LIST_ARG} \
+            ${PLATFORM_ARG} \
             ${CASE_WHITELIST_ARG} \
             --regular-threshold ${{ inputs.shard_threshold_regular }} \
             --distributed-threshold ${{ inputs.shard_threshold_distributed }} \

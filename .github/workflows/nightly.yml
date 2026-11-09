@@ -14,6 +14,7 @@ on:
       - '.github/config/nightly_test_categories.yml'
       - '.github/config/disabled_testcases.json'
       - '.github/config/unsupport_dtype_testcases.json'
+      - '.github/config/unsupported_aclnn_testcases.json'
       - '.github/config/running_skiped_testcases.json'
       - '.github/scripts/collect_all_cases.py'
       - '.github/scripts/discover_test_files.py'
@@ -66,6 +67,7 @@ jobs:
         .github/config/disabled_testcases.json
         .github/config/running_skiped_testcases.json
         .github/config/unsupport_dtype_testcases.json
+        .github/config/unsupported_aclnn_testcases.json
       # Rewrites the installed triton-ascend backend's hardcoded
       # -std=c++17 to -std=c++20 and prebuilds npu_utils.so once per
       # shard container, working around the deterministic npu_utils

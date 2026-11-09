@@ -271,13 +271,16 @@ def _normalize_nodeid(nodeid: str) -> str:
     return nodeid
 
 
-def load_skip_list(skip_list_paths) -> Dict[str, Dict]:
+GROUPED_SKIP_LIST_GROUPS = ("common", "a3", "a5")
+
+
+def load_skip_list(skip_list_paths, platform=None) -> Dict[str, Dict]:
     """Load skip list(s) and return a dict of nodeid -> metadata.
 
     Accepts a single path string, None, or a list of path strings.
     Multiple files are merged (first occurrence wins, no overwrite).
 
-    Supports four formats per file:
+    Supports five formats per file:
       - JSONL (.jsonl): line 1 is {"_meta": {...}}, subsequent lines are
         {"nodeid": "...", "reason": "..."}.  Both nodeid and reason are kept.
       - JSON object with "skip_nodeids" key: {"skip_nodeids": ["nodeid1", ...]}
@@ -287,6 +290,11 @@ def load_skip_list(skip_list_paths) -> Dict[str, Dict]:
       - JSON object with nodeid keys (disabled/running-skip format):
         {"nodeid1": {"category": "...", "reason": "...", "issue": ""}, ...}
         The full value dict is kept as metadata.
+      - Grouped JSON object by platform:
+        {"_meta": {...}, "common": {nodeid: {...}}, "a3": {...}, "a5": {...}}
+        "common" always applies; the group matching ``platform`` is merged
+        on top (same nodeid overrides common).  When ``platform`` is None,
+        every platform group is applied.
 
     Each metadata dict includes a "source" key set to the filename.
 
@@ -302,7 +310,7 @@ def load_skip_list(skip_list_paths) -> Dict[str, Dict]:
 
     skip_dict: Dict[str, Dict] = {}
     for path in skip_list_paths:
-        single = _load_skip_list_single(path)
+        single = _load_skip_list_single(path, platform)
         for nodeid, meta in single.items():
             norm = _normalize_nodeid(nodeid)
             if norm not in skip_dict:
@@ -310,7 +318,7 @@ def load_skip_list(skip_list_paths) -> Dict[str, Dict]:
     return skip_dict
 
 
-def _load_skip_list_single(skip_list_path: str) -> Dict[str, Dict]:
+def _load_skip_list_single(skip_list_path: str, platform=None) -> Dict[str, Dict]:
     """Load a single skip list file and return {nodeid: metadata_dict}."""
     p = Path(skip_list_path)
     if not p.exists():
@@ -338,16 +346,17 @@ def _load_skip_list_single(skip_list_path: str) -> Dict[str, Dict]:
                     result[n] = {"source": p.name}
             print(f"  Loaded skip list: {len(result)} nodeids from {p}")
             return result
-        else:
-            result = {}
-            for key, val in data.items():
-                if not isinstance(key, str) or not key:
-                    continue
-                meta = dict(val) if isinstance(val, dict) else {}
-                meta["source"] = p.name
-                result[key] = meta
-            print(f"  Loaded skip list: {len(result)} nodeids from {p}")
-            return result
+        if _is_grouped_skip_list(data):
+            return _load_grouped_skip_list(p, data, platform)
+        result = {}
+        for key, val in data.items():
+            if not isinstance(key, str) or not key:
+                continue
+            meta = dict(val) if isinstance(val, dict) else {}
+            meta["source"] = p.name
+            result[key] = meta
+        print(f"  Loaded skip list: {len(result)} nodeids from {p}")
+        return result
     elif isinstance(data, list):
         result = {}
         for n in data:
@@ -358,6 +367,44 @@ def _load_skip_list_single(skip_list_path: str) -> Dict[str, Dict]:
     else:
         print(f"  WARNING: skip list JSON is neither object nor array: {p}")
         return {}
+
+
+def _is_grouped_skip_list(data: Dict) -> bool:
+    """Detect the {common|a3|a5: {nodeid: {...}}} grouped format."""
+    if not any(group in data for group in GROUPED_SKIP_LIST_GROUPS):
+        return False
+    return all(
+        isinstance(val, dict) for key, val in data.items() if key != "_meta"
+    )
+
+
+def _load_grouped_skip_list(
+    p: Path, data: Dict, platform=None
+) -> Dict[str, Dict]:
+    """Flatten a platform-grouped skip list for the requested platform."""
+    if platform in GROUPED_SKIP_LIST_GROUPS[1:]:
+        groups = ["common", platform]
+    else:
+        groups = ["common"] + [
+            g for g in GROUPED_SKIP_LIST_GROUPS[1:] if g in data
+        ]
+        print(f"  WARNING: --platform not set; applying all platform groups in {p}")
+
+    result = {}
+    for group in groups:
+        entries = data.get(group)
+        if not isinstance(entries, dict):
+            continue
+        for key, val in entries.items():
+            if not isinstance(key, str) or not key:
+                continue
+            meta = dict(val) if isinstance(val, dict) else {}
+            meta["source"] = p.name
+            meta["platform"] = group
+            result[key] = meta
+    print(f"  Loaded skip list: {len(result)} nodeids from {p} "
+          f"(groups: {', '.join(groups)})")
+    return result
 
 
 def _load_skip_list_jsonl(p: Path) -> Dict[str, Dict]:
@@ -1068,7 +1115,8 @@ def main():
     skip_list_paths = list(args.skip_list) if args.skip_list else []
     if args.disabled_testcases:
         skip_list_paths.append(args.disabled_testcases)
-    skip_dict = load_skip_list(skip_list_paths if skip_list_paths else None)
+    skip_dict = load_skip_list(skip_list_paths if skip_list_paths else None,
+                               platform=args.platform)
     method_skip = load_disabled_methods(args.disabled_methods)
 
     # Load categories from config (supports new "categories:" and legacy "whitelist:" formats)
@@ -1406,6 +1454,15 @@ def parse_args():
              "JSON array, and JSON {nodeid: {reason:...}} formats. "
              "Matching nodeids are removed after collection and recorded in "
              "skipped_cases.json.",
+    )
+    parser.add_argument(
+        "--platform",
+        default=None,
+        choices=list(GROUPED_SKIP_LIST_GROUPS[1:]),
+        help="Platform used to select platform-specific groups in grouped "
+             "skip list files ({\"common\": {...}, \"a3\": {...}, \"a5\": {...}}). "
+             "'common' always applies. When omitted, all platform groups "
+             "are applied.",
     )
     parser.add_argument(
         "--disabled-testcases",

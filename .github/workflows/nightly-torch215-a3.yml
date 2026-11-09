@@ -33,6 +33,7 @@ on:
       - '.github/config/disabled_testcases_a3_all.json'
       - '.github/config/running_skiped_testcases.json'
       - '.github/config/unsupport_dtype_testcases.json'
+      - '.github/config/unsupported_aclnn_testcases.json'
   workflow_dispatch:
 
 permissions:
@@ -77,6 +78,7 @@ jobs:
         .github/config/disabled_testcases_a3_all.json
         .github/config/running_skiped_testcases.json
         .github/config/unsupport_dtype_testcases.json
+        .github/config/unsupported_aclnn_testcases.json
       # Same triton-ascend -std=c++17 -> c++20 workaround as nightly-a3:
       # the a3 image ships triton 3.6.0 + triton-ascend 3.6.0 and the
       # deterministic npu_utils build failure (C++20-only ATen headers)
