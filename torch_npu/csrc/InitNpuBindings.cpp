@@ -33,6 +33,7 @@
 #include "torch_npu/csrc/npu/Stress_detect.h"
 #include "torch_npu/csrc/utils/TensorType.h"
 #include "torch_npu/csrc/utils/PythonGilAdapter.h"
+#include "torch_npu/csrc/utils/PythonOomAdapter.h"
 #include "torch_npu/csrc/utils/AutocastMode.h"
 #include "torch_npu/csrc/core/npu/NPURecoveryBindings.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
@@ -228,6 +229,7 @@ extern "C"
     initModule() {
   at::internal::lazy_init_num_threads();
   torch_npu::utils::registerPythonGilAdapter();
+  torch_npu::utils::registerPythonOomAdapter();
 
   AddPyMethodDefs(methods, TorchNpuMethods);
 #ifndef BUILD_LIBTORCH

@@ -4,12 +4,7 @@
 #include <string>
 #include <unistd.h>
 #include <iomanip>
-
-#ifndef BUILD_LIBTORCH
-#include <Python.h>
-#include <torch/csrc/utils/object_ptr.h>
-#include <torch/csrc/Exceptions.h>
-#endif
+#include <c10/util/CallOnce.h>
 
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
@@ -29,6 +24,16 @@ std::shared_ptr<npu_logging::Logger>& GetEnvLogger() {
 }
 
 namespace option {
+
+namespace {
+std::atomic<const PythonOomHooks*> python_oom_hooks{nullptr};
+} // namespace
+
+void registerPythonOomHooks(const PythonOomHooks* hooks) {
+  TORCH_CHECK(hooks != nullptr && hooks->observe != nullptr);
+  static c10::once_flag register_once;
+  c10::call_once(register_once, [hooks] { python_oom_hooks.store(hooks, std::memory_order_release); });
+}
 
 using namespace std;
 
@@ -722,28 +727,10 @@ bool OptionsManager::ShouldPrintWarning() {
 }
 
 void oom_observer(int64_t device, int64_t allocated, int64_t device_total, int64_t device_free) {
-#ifndef BUILD_LIBTORCH
-  auto dumppath = c10_npu::option::OptionsManager::GetOomSnapshotDumpPath();
-  std::stringstream filename;
-  auto now = std::chrono::system_clock::now();
-  std::time_t currentTime = std::chrono::system_clock::to_time_t(now);
-  std::tm* timeInfo = std::localtime(&currentTime);
-  filename << "oom_snapshot_" << getpid() << "_" << std::put_time(timeInfo, "%Y%m%d%H%M%S") << ".pickle";
-  auto savefilepath = c10::str(dumppath, "/", filename.str());
-
-  pybind11::gil_scoped_acquire g;
-  auto module = THPObjectPtr(PyImport_ImportModule("torch_npu.npu.memory"));
-  if (!module) {
-    throw python_error();
+  const auto* hooks = python_oom_hooks.load(std::memory_order_acquire);
+  if (hooks != nullptr) {
+    hooks->observe(device, allocated, device_total, device_free);
   }
-  PyObject* p_func = PyObject_GetAttrString(module, "_dump_snapshot");
-  if (!module) {
-    throw python_error();
-  }
-  PyObject* p_args = PyTuple_New(1);
-  PyTuple_SetItem(p_args, 0, PyUnicode_FromString(savefilepath.c_str()));
-  PyObject* p_res = PyObject_CallObject(p_func, p_args);
-#endif
 }
 
 bool OptionsManager::IsOomSnapshotEnable() {

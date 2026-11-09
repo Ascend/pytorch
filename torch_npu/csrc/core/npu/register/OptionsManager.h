@@ -24,6 +24,12 @@ std::shared_ptr<npu_logging::Logger>& GetEnvLogger();
   } while (0);
 
 namespace option {
+
+// Python implementation is registered once and remains alive for the process.
+struct PythonOomHooks {
+  void (*observe)(int64_t device, int64_t allocated, int64_t device_total, int64_t device_free);
+};
+C10_NPU_API void registerPythonOomHooks(const PythonOomHooks* hooks);
 enum ReuseMode {
   CLOSE = 0,
   ERASE_RECORD_STREAM = 1,
