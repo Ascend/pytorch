@@ -1269,25 +1269,22 @@ def eliminate_modular(term):
 
     # Handle multiplication expression
     elif isinstance(expr, sympy.Mul):
-        # Try to extract coefficient and variable
-        coeff = 1
-        var = None
+        sizevars = V.graph.sizevars
+        if (
+            sizevars.statically_known_gt(lower, 0)
+            and sizevars.statically_known_gt(upper, 0)
+        ):
+            # A multiple of a complete period has zero remainder.
+            if sizevars.statically_known_multiple_of(expr, lower * upper):
+                return sympy.S.Zero
 
-        for arg in expr.args:
-            if isinstance(arg, sympy.Symbol):
-                var = arg
-            elif arg.is_number:
-                coeff *= arg
-            else:
-                # Contains complex cases with non-symbols and non-numbers, not supported yet
-                return term
-
-        if var is not None:
-            numel = get_symbol_length(var)
-            if numel is not None:
-                length = term.eval(numel, lower, upper)
-                if length == numel:
-                    return expr  # Return entire multiplication expression
+            # Check all factors' ranges instead of evaluating at one axis length.
+            ranges = {}
+            for var in sorted(expr.free_symbols, key=str):
+                numel = get_symbol_length(var)
+                if numel is not None:
+                    ranges[var] = numel
+            term = sizevars.simplify_with_ranges(term, ranges)
 
     # Unsupported cases, return original expression
     return term
