@@ -46,6 +46,7 @@ from torch._inductor.codegen.triton import (
 )
 from torch._inductor.codegen.triton_utils import (
     config_of,
+    equal_1_arg_indices,
     should_unwrap_unspec_arg,
     signature_of,
     signature_to_meta,
@@ -2471,6 +2472,10 @@ class NPUIndexTritonKernel(TritonKernel):
         }
 
         inductor_meta = self.create_inductor_meta()
+        # Keep equal-to-one arguments consistent with their specialized signature,
+        # including when the checker compiles TTIR before a runtime launch.
+        for arg_num in equal_1_arg_indices(signature):
+            triton_meta["constants"][signature[arg_num].name] = 1
         self.triton_meta = triton_meta
         self.inductor_meta = inductor_meta
         self._disable_grouped_autotune_if_unsupported(inductor_meta)
