@@ -49,6 +49,7 @@ GENERATE_LIST = [
     aten.relu,
     aten.where,
     aten.log,
+    aten.log1p,
     aten.log2,
     aten.sqrt,
     aten.clamp_min,

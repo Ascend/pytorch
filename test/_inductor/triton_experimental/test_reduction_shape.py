@@ -36,6 +36,47 @@ class TestReductionShapeAssertions(TestCase):
         self.assertIn("tl.static_assert(tmp0.dtype == tl.float32)", source)
 
 
+class TestNarrowLeafMask(TestCase):
+    """Pure-code: narrowing a load's mask must never change its semantics."""
+
+    def narrow(self, source, drop):
+        import ast
+
+        from torch_npu._inductor.triton_experimental.codegen.triton import _npu_narrow_leaf_mask
+
+        result = _npu_narrow_leaf_mask(ast.parse(source, mode="eval").body, set(drop))
+        return None if result is None else ast.unparse(result)
+
+    def test_narrows_and_chain(self):
+        self.assertEqual(self.narrow("r0_1mask & r0_0mask", {"r0_1mask"}), "r0_0mask")
+
+    def test_keeps_non_leaf_atoms(self):
+        self.assertEqual(
+            self.narrow("r0_1mask & r0_0mask & xmask", {"r0_1mask"}), "r0_0mask & xmask"
+        )
+        self.assertEqual(
+            self.narrow("xmask & r0_1mask & r0_0mask", {"r0_1mask"}), "xmask & r0_0mask"
+        )
+
+    def test_refuses_non_and_structure(self):
+        # "|", "~", comparisons, literals and calls are all reasons to leave the
+        # mask alone rather than rebuild it as an "&" chain of names.
+        for source in (
+            "r0_1mask | r0_0mask",
+            "~r0_1mask & r0_0mask",
+            "r0_1mask & r0_0mask | xmask",
+            "r0_0mask & (x0 < 4)",
+            "r0_1mask & r0_0mask & True",
+            "r0_1mask & tl.full([], 1, tl.int1)",
+        ):
+            self.assertIsNone(self.narrow(source, {"r0_1mask"}), source)
+
+    def test_refuses_empty_and_noop(self):
+        self.assertIsNone(self.narrow("r0_1mask", {"r0_1mask"}))
+        self.assertIsNone(self.narrow("r0_1mask & r0_1mask", {"r0_1mask"}))
+        self.assertIsNone(self.narrow("r0_0mask & xmask", {"r0_1mask"}))
+
+
 class TestReductionShape(TestCase):
     @dtypes(torch.float16, torch.float32)
     @parametrize("length", [20, 257])
@@ -105,6 +146,57 @@ class TestReductionShape(TestCase):
         self.assertIsNotNone(pointwise)
         self.assertRegex(source, rf"tl\.static_assert\([^\n]*\.shape\[\d+\] == {re.escape(pointwise.group(1))}")
         self.assertNotRegex(source, r"tl\.static_assert\(\w+\.shape ==")
+
+    @dtypes(torch.float16, torch.float32)
+    @parametrize("shape", [(3, 4), (5, 7), (13, 17)])
+    @parametrize("case", ["row", "col", "both", "scalar_on_row", "scalar_on_col"])
+    @torch._inductor.config.patch({
+        "force_disable_caches": True,
+        "test_configs.runtime_triton_shape_assert": True,
+        "test_configs.runtime_triton_dtype_assert": True,
+        "implicit_fallbacks": False,
+    })
+    def test_partial_axis_broadcast(self, device, dtype, case, shape):
+        # A promoted r-tree gives each free r-node its own register axis, so an
+        # operand that spans only some of them is loaded narrow and broadcast to
+        # the tile. Doing elementwise work on such an operand used to emit a load
+        # whose index was broadcast instead of its value, which compiles but keeps
+        # a bar shape in HIR: the next op fails with "'hivm.hir.vadd' op operands'
+        # shape are inconsistent". The scalar_on_* cases are that regression.
+        # The non-divisible shapes are the point: dropping an uncovered axis's
+        # mask must stay correct in the tail tile, where those lanes read real
+        # data instead of ``other`` and only the reduction's own mask discards
+        # them. The load's address never depends on a dropped axis, so no lane
+        # reads out of bounds.
+        rows, cols = shape
+        x = torch.linspace(-3, 3, rows * cols, device=device, dtype=dtype).reshape(rows, cols)
+        row = torch.linspace(0.5, 2.0, cols, device=device, dtype=dtype)
+        col = torch.linspace(0.75, 1.25, rows, device=device, dtype=dtype).reshape(rows, 1)
+
+        if case == "row":
+            def fn(a):
+                return (a * row).mean()
+        elif case == "col":
+            def fn(a):
+                return (a * col).mean()
+        elif case == "both":
+            def fn(a):
+                return (a * row * col).mean()
+        elif case == "scalar_on_row":
+            def fn(a):
+                return ((row - 1.0) * a * col).mean()
+        else:
+            def fn(a):
+                return ((col - 1.0) * a * row).mean()
+
+        compiled = torch.compile(fn, fullgraph=True, options={"npu_backend": "triton_experimental"})
+        expected = fn(x)
+        actual, codes = run_and_get_code(compiled, x)
+        atol, rtol = (1e-3, 1e-3) if dtype == torch.float16 else (1e-5, 1.3e-5)
+        self.assertEqual(actual, expected, atol=atol, rtol=rtol)
+        # The narrow load must broadcast its value, never its index.
+        source = "\n".join(codes)
+        self.assertNotRegex(source, r"tl\.load\([^\n]*tl\.broadcast_to\(")
 
     @dtypes(torch.float32)
     @torch._inductor.config.patch({

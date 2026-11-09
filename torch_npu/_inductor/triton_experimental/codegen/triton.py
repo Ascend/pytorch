@@ -518,6 +518,32 @@ def _npu_rewrite_promoted_rtree_body(kernel, real_sizes, real_ndim):
             real_sizes=real_sizes, slot_block_tokens=slot_block_tokens,
         )
 
+def _npu_narrow_leaf_mask(mask, drop_names):
+    """Remove selected names from a plain ``&`` mask, reusing kept atom nodes.
+
+    Return ``None`` for unsupported expressions, no change, or an empty mask.
+    """
+    atoms = []
+
+    def split(node):
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.BitAnd):
+            return split(node.left) and split(node.right)
+        if isinstance(node, ast.Name):
+            atoms.append(node)
+            return True
+        return False
+
+    if not split(mask):
+        return None
+    kept = [atom for atom in atoms if atom.id not in drop_names]
+    if not kept or len(kept) == len(atoms):
+        return None
+    narrowed = kept[0]
+    for atom in kept[1:]:
+        narrowed = ast.BinOp(left=narrowed, op=ast.BitAnd(), right=atom)
+    return narrowed
+
+
 def _npu_preserve_mixed_leaf_mul_where(lines, leaf_names):
     leaf_names = tuple(leaf_names)
     dependencies = {}
@@ -773,11 +799,12 @@ def _npu_apply_promoted_rtree_lines(
         return _npu_replace_raw_line(raw, line, rewritten)
 
     def _fix_masked_load_ptr(raw):
-        """promoted_rtree_shape_fix load side: a masked load whose ptr index covers
-        only some free r-nodes is a bar ([.., 1, ..]) while the rewrite upgraded its
-        mask to the full block -- an implicit ptr-vs-mask broadcast triton-ascend
-        rejects. Explicitly broadcast the index to the block shape (diag-verified:
-        tl.broadcast_to on the int index tensor is accepted)."""
+        """Load partial r-node indices with a narrow mask, then broadcast the value.
+
+        BiSheng infers a load's extent from its index even after index broadcast.
+        Narrowing the mask changes uncovered pad lanes; per-node coverage in
+        ``_record_reduction_load_padinfo`` keeps their accumulator guard active.
+        """
         if not (ncfg.promoted_rtree_shape_fix and slot_block_tokens):
             return raw
         line = raw if isinstance(raw, str) else getattr(raw, "line", None)
@@ -789,12 +816,21 @@ def _npu_apply_promoted_rtree_lines(
             (item for item in ast.walk(statement) if _npu_is_call(item, "tl.load")),
             None,
         )
-        if load is None or len(load.args) < 2 or isinstance(load.args[1], ast.Constant):
+        if load is None or not load.args:
             return raw
-        ptr, mask = load.args[0], load.args[1]
-        mask_names = {n.id for n in ast.walk(mask) if isinstance(n, ast.Name)}
-        # Only loads the rtree rewrite touched: mask built from r-node masks.
-        nodes = {nm for nm in leaf_names if f"{nm}mask" in mask_names}
+        ptr = load.args[0]
+        mask = load.args[1] if len(load.args) > 1 else None
+        # Upstream emits an unmasked load (``None``) for an index it proved
+        # in-bounds, which happens for some tile sizes only -- (13, 17) but not
+        # (3, 4) or (5, 7). Such a load still needs its value broadcast; there is
+        # just no mask to narrow.
+        maskless = mask is None or isinstance(mask, ast.Constant)
+        if maskless:
+            nodes = set(leaf_names)
+        else:
+            mask_names = {n.id for n in ast.walk(mask) if isinstance(n, ast.Name)}
+            # Only loads the rtree rewrite touched: mask built from r-node masks.
+            nodes = {nm for nm in leaf_names if f"{nm}mask" in mask_names}
         if not nodes:
             return raw
         if not (
@@ -806,6 +842,27 @@ def _npu_apply_promoted_rtree_lines(
         idx_names = {n.id for n in ast.walk(ptr.right) if isinstance(n, ast.Name)}
         if nodes <= idx_names:
             return raw  # index already covers every free r-node (full block)
+        assignment = _npu_assignment_parts(statement)
+        if assignment is None:
+            return raw
+        _, value = assignment
+        if not any(item is load for item in ast.walk(value)):
+            return raw
+        # Narrow the mask back to the r-nodes this index covers. Only the
+        # {leaf}mask atoms of the uncovered nodes are removed; every other atom
+        # (xmask, another leaf) is kept as its original node, and an unrecognized
+        # mask structure leaves the line untouched.
+        covered = nodes & idx_names
+        if not covered:
+            # Index touches no r-node at all: a scalar load, not a bar. Leave it.
+            return raw
+        narrowed_mask = None
+        if not maskless:
+            narrowed_mask = _npu_narrow_leaf_mask(
+                mask, {f"{nm}mask" for nm in leaf_names if nm not in covered}
+            )
+            if narrowed_mask is None:
+                return raw
         target = ast.List(
             elts=[ast.parse(tok, mode="eval").body for tok in slot_block_tokens],
             ctx=ast.Load(),
@@ -816,14 +873,14 @@ def _npu_apply_promoted_rtree_lines(
                 attr="broadcast_to",
                 ctx=ast.Load(),
             ),
-            args=[ptr.right, target],
+            args=[value, target],
             keywords=[],
         )
-        new_ptr = ast.BinOp(left=ptr.left, op=ast.Add(), right=bcast)
-        ast.copy_location(bcast, ptr)
-        ast.copy_location(new_ptr, ptr)
+        if narrowed_mask is not None:
+            load.args[1] = narrowed_mask
+        ast.copy_location(bcast, value)
+        statement.value = bcast
         ast.fix_missing_locations(statement)
-        load.args[0] = new_ptr
         rewritten = _npu_render_generated_line(indent, statement)
         return _npu_replace_raw_line(raw, line, rewritten)
 
@@ -2641,6 +2698,26 @@ class NPUTritonKernel(TritonKernel):
             # valid lanes → finite (its concrete value is data-dependent).
             result_var._npu_pad = _PAD_FIN
             return
+
+        # Partial-node loads no longer guarantee ``other`` on uncovered pad lanes
+        # after value broadcast. Tree-wide masks cannot prove those lanes safe;
+        # retain an unknown pad fact so reduction() keeps the accumulator guard.
+        for tree in self.range_trees:
+            if not tree.is_reduction:
+                continue
+            mapping = getattr(tree, "tree_node_mapping", {}) or {}
+            odometer = getattr(tree, "_npu_scalar_odometer", None) or set()
+            free = {
+                node.name
+                for node in tree.nodes.values()
+                if node.name not in mapping and node.name not in odometer
+            }
+            if len(free) <= 1:
+                continue
+            touched = {str(sym) for sym in addr_r_syms} & free
+            if touched and touched != free:
+                result_var._npu_pad = _PAD_TOP
+                return
 
         # ``other`` fill for this load (default 0.0 when a mask is present).
         other = getattr(self, "_load_other", None)
@@ -8350,6 +8427,8 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
         real_dense_size = f"[{', '.join(real_sizes)}]"
         # Assertions are emitted before register axes are split. Reconstruct
         # their expected shapes separately; never mutate live CSE metadata.
+        # Promoted r-trees also need reconstruction: each free node occupies a
+        # register slot, unlike the pre-linearization [1, R0_BLOCK] assertions.
         if (
             config.test_configs.runtime_triton_shape_assert
             and sum(t.is_reduction and t.tensor_dim is not None for t in kernel.range_trees) <= 1
@@ -8364,6 +8443,7 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
             )
 
             shape_handler = ShapePropagationOpsHandler()
+            promoted_rtree = bool(getattr(kernel, "_npu_rtree_promoted", {}))
             shapes = {}
             aliases = {}
             range_names = {v.name for v in kernel.range_tree_nodes}
@@ -8434,6 +8514,30 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                     index, op = var._npu_load_index, var._npu_shape_op
                     if index is not None:
                         shape = index_shape(index)
+                        if (
+                            shape == ()
+                            and not _npu_kernel_is_degenerate(kernel)
+                            and var.shape is not None
+                            and tuple(var.shape) == (1,)
+                        ):
+                            # codegen_kernel strips scalar broadcasts only for
+                            # degenerate kernels. Use the same predicate here so
+                            # assertions match the emitted value, including casts.
+                            shape = (1,)
+                        elif promoted_rtree and shape is not None:
+                            # Partial indices understate the broadcast load's
+                            # rank. Fill only its singleton axes from the recorded
+                            # full-block shape in the linearized layout.
+                            recorded = (
+                                reduction_shape(tuple(var.shape))
+                                if var.shape is not None else None
+                            )
+                            if recorded:
+                                if len(shape) == len(recorded):
+                                    shape = tuple(
+                                        slot if str(own) == "1" else own
+                                        for own, slot in zip(shape, recorded)
+                                    )
                     elif op is not None:
                         opname, args, kwargs = op
                         if opname in ("index_expr", "value_expr"):

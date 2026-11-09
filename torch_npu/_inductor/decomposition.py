@@ -1143,6 +1143,36 @@ def _npu_rng_gate():
             lowerings[op] = fallback_handler(op, add_to_fallback_set=False)
 
 
+def _binary_cross_entropy_with_logits_inductor(
+    self, target, weight=None, pos_weight=None, reduction=1
+):
+    from torch._decomp.decompositions import binary_cross_entropy_with_logits
+
+    return binary_cross_entropy_with_logits(self, target, weight, pos_weight, reduction)
+
+
+def _binary_cross_entropy_with_logits_backward_inductor(
+    grad_output, self, target, weight_opt, pos_weight_opt, reduction
+):
+    from torch._decomp.decompositions import pw_cast_for_opmath
+
+    @pw_cast_for_opmath
+    def backward(grad_output, self, target, weight, pos_weight):
+        if pos_weight is None:
+            grad_input = self.sigmoid() - target
+        else:
+            positive_target = pos_weight * target
+            grad_input = (positive_target + 1 - target) * self.sigmoid() - positive_target
+        grad_input = grad_input * grad_output
+        if weight is not None:
+            grad_input = grad_input * weight
+        if reduction == 1:
+            grad_input = grad_input / self.numel()
+        return grad_input
+
+    return backward(grad_output, self, target, weight_opt, pos_weight_opt).to(target.dtype)
+
+
 def _register_triton_experimental_decompositions():
     """Install all triton_experimental decomposition-table overrides and prune the
     exclusion list. Called directly by ``_load_triton_experimental_backend``.
@@ -1199,6 +1229,10 @@ def _register_triton_experimental_decompositions():
     _override_gelu_decomp()
     _override_rms_norm_decomp()
     _override_native_dropout_decomp()
+    decompositions[aten.binary_cross_entropy_with_logits.default] = _binary_cross_entropy_with_logits_inductor
+    decompositions[npu.npu_binary_cross_entropy_with_logits_backward.default] = (
+        _binary_cross_entropy_with_logits_backward_inductor
+    )
 
     decompositions[aten._batch_norm_with_update.default] = _batch_norm_with_update_inductor
     decompositions[aten._batch_norm_with_update_functional.default] = functools.partial(
