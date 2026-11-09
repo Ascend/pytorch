@@ -88,12 +88,21 @@ def _arg_kind(signature: Any) -> str:
         ) from exc
 
 
-def _npubin_path(binary: Any) -> str | None:
-    metadata_group = getattr(binary, "metadata_group", {}) or {}
-    for filename, path in metadata_group.items():
-        if str(filename).endswith(".npubin"):
-            return str(path)
-    return None
+def _npubin_artifact(binary: Any) -> tuple[str, str | None]:
+    metadata_group = getattr(binary, "metadata_group", None)
+    if metadata_group is not None:
+        for filename, path in metadata_group.items():
+            if str(filename).endswith(".npubin"):
+                # The artifact name remains usable without a producer-local path.
+                return os.path.basename(str(filename)), str(path) if path else None
+    else:
+        # CompiledKernel may not retain the cache manifest. Match the compiler's
+        # source-name limit for cache basenames; the entry symbol is independent.
+        cache_basename_limit = 150
+        source_name = getattr(getattr(binary, "src", None), "name", None)
+        if isinstance(source_name, str) and source_name:
+            return f"{source_name[:cache_basename_limit]}.npubin", None
+    raise NPUStaticArtifactError("Compiled kernel has no npubin artifact name")
 
 
 def _target_supports_ffts(arch: str) -> bool:
@@ -127,6 +136,13 @@ class NPUStaticArtifactAdapter:
         npubin_raw = asm.get("npubin")
         if not isinstance(npubin_raw, bytes) or not npubin_raw:
             raise NPUStaticArtifactError("Compiled kernel has no npubin binary")
+
+        # The loader needs the full entry symbol, not a display name with a
+        # mode suffix or the ordinary launcher's truncated packed metadata.
+        metadata = getattr(binary, "metadata", None)
+        kernel_name = _required_metadata_value(metadata, "kernel_name")
+        if not isinstance(kernel_name, str) or not kernel_name:
+            raise NPUStaticArtifactError("Compiled kernel runtime name must be a non-empty string")
 
         src = getattr(binary, "src", None)
         fn = getattr(src, "fn", None)
@@ -180,7 +196,6 @@ class NPUStaticArtifactAdapter:
                 if index not in declared_constexprs and name not in none_args
             )
 
-        metadata = getattr(binary, "metadata", None)
         target = _metadata_value(metadata, "target", None)
         target_arch = str(getattr(target, "arch", "") or "")
         if not target_arch:
@@ -245,10 +260,14 @@ class NPUStaticArtifactAdapter:
         )
         launch_metadata.validate()
 
+        # The cache artifact name may differ from the entry symbol, for example
+        # when the kernel uses a custom repr.
+        npubin_filename, npubin_path = _npubin_artifact(binary)
         return NPUStaticallyLaunchedTritonKernel(
-            name=str(getattr(binary, "name", "") or _metadata_value(metadata, "name", "")),
+            name=kernel_name,
             npubin_raw=npubin_raw,
-            npubin_path=_npubin_path(binary),
+            npubin_path=npubin_path,
+            npubin_filename=npubin_filename,
             kernel_hash=str(getattr(binary, "hash", "")),
             arg_names=arg_names,
             launcher_arg_names=launcher_arg_names,

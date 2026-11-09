@@ -139,7 +139,7 @@ class NPUStaticTritonCompileResult(
             triton_cache_dir(self.compile_meta.get("device", 0) or 0),
             triton_hash_to_path_key(self.kernel.hash),
         )
-        npubin_location = os.path.join(directory, f"{self.kernel.name}.npubin")
+        npubin_location = os.path.join(directory, self.kernel.npubin_filename)
         if not os.path.exists(npubin_location):
             if self.kernel.npubin_raw is not None:
                 self.kernel.reload_npubin_from_raw(npubin_location)

@@ -47,6 +47,7 @@ class NPUStaticallyLaunchedTritonKernel:
         shared: int,
         n_regs: int | None,
         n_spills: int | None,
+        npubin_filename: str | None = None,
     ) -> None:
         if not name:
             raise RuntimeError("NPU static launcher kernel name is missing")
@@ -55,6 +56,7 @@ class NPUStaticallyLaunchedTritonKernel:
         self.name = name
         self.npubin_raw = npubin_raw
         self.npubin_path = npubin_path
+        self.npubin_filename = npubin_filename or f"{name}.npubin"
         self.hash = kernel_hash
         self.arg_names = arg_names
         self.launcher_arg_names = launcher_arg_names
@@ -161,6 +163,9 @@ class NPUStaticallyLaunchedTritonKernel:
 
     def __setstate__(self, state: dict[str, Any]) -> None:
         self.__dict__.update(state)
+        # Older snapshots used name for both the symbol and the artifact stem.
+        if not hasattr(self, "npubin_filename"):
+            self.npubin_filename = f"{self.name}.npubin"
         self._c_impl = None
         if not hasattr(self, "runtime_arg_indices"):
             launcher_arg_positions = {

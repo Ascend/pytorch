@@ -221,6 +221,7 @@ class TestTritonExperimentalStaticLauncherUnit(TestCase):
         return SimpleNamespace(
             asm={"npubin": b"npubin"},
             src=SimpleNamespace(
+                name="test_kernel",
                 fn=fn,
                 signature={} if signature is None else signature,
                 constants={} if constants is None else constants,
@@ -228,6 +229,7 @@ class TestTritonExperimentalStaticLauncherUnit(TestCase):
             metadata=SimpleNamespace(
                 target=SimpleNamespace(arch="Ascend910B"),
                 name="test_kernel",
+                kernel_name="test_kernel",
                 mix_mode="aiv",
                 parallel_mode="simd",
                 force_simt_only=False,
@@ -235,7 +237,7 @@ class TestTritonExperimentalStaticLauncherUnit(TestCase):
                 shared_mem_dynamic_size=0,
                 num_warps=4,
             ),
-            metadata_group={},
+            metadata_group={"test_kernel.npubin": "/cache/test_kernel.npubin"},
             name="test_kernel",
             hash="hash",
             shared=0,
@@ -680,6 +682,127 @@ class TestTritonExperimentalStaticLauncherUnit(TestCase):
             with self.subTest(field=field), self.assertRaisesRegex(RuntimeError, error):
                 replace(metadata, **{field: value}).validate()
 
+    @parametrize("artifact_name", ["test_kernel.npubin", "cached_artifact.npubin"])
+    @parametrize("has_path", [False, True])
+    @config.patch("keep_static_cubin_raw", False)
+    def test_reload_npubin_preserves_artifact_name(self, artifact_name, has_path):
+        binary = self._binary()
+        binary.metadata_group = {
+            artifact_name: f"/producer/cache/{artifact_name}" if has_path else None
+        }
+        with mock.patch.object(static_adapter, "_target_supports_ffts", return_value=False):
+            kernel = NPUStaticArtifactAdapter.from_compiled_kernel(binary, {}, {})
+        if not has_path:
+            self.assertIsNone(kernel.npubin_path)
+        autotuner, result = self._autotuner_with_static_npubin(None)
+        result.kernel = kernel
+        autotuner.prepare_for_caching()
+        kernel = pickle.loads(pickle.dumps(kernel))
+        self.assertIsNone(kernel.npubin_raw)
+        self.assertIsNone(kernel.npubin_path)
+        result.kernel = kernel
+        result.compile_meta = {"device": 0}
+        with tempfile.TemporaryDirectory() as cache_dir, mock.patch.object(
+            static_compile_result, "triton_cache_dir", return_value=cache_dir,
+        ):
+            directory = Path(cache_dir) / static_compile_result.triton_hash_to_path_key(kernel.hash)
+            directory.mkdir(parents=True)
+            artifact = directory / artifact_name
+            artifact.write_bytes(b"npubin")
+            result.reload_npubin_path()
+            self.assertEqual(Path(kernel.npubin_path), artifact)
+            self.assertEqual(kernel.name, "test_kernel")
+            binding = _LauncherBinding()
+            kernel._c_impl = binding
+            kernel.load_kernel()
+            self.assertIn(("load", "test_kernel"), binding.events)
+            kernel.close()
+
+    @parametrize("path", [None, ""])
+    def test_adapter_without_npubin_path_rehydrates_from_raw(self, path):
+        binary = self._binary()
+        binary.metadata_group = {"cached_artifact.npubin": path}
+        with mock.patch.object(static_adapter, "_target_supports_ffts", return_value=False):
+            kernel = NPUStaticArtifactAdapter.from_compiled_kernel(binary, {}, {})
+        self.assertIsNone(kernel.npubin_path)
+        self.assertEqual(kernel.npubin_filename, "cached_artifact.npubin")
+        result = object.__new__(NPUStaticTritonCompileResult)
+        result.kernel = kernel
+        result.compile_meta = {"device": 0}
+        with tempfile.TemporaryDirectory() as cache_dir, mock.patch.object(
+            static_compile_result, "triton_cache_dir", return_value=cache_dir,
+        ):
+            result.reload_npubin_path()
+            artifact = Path(kernel.npubin_path)
+            self.assertEqual(artifact.name, "cached_artifact.npubin")
+            self.assertEqual(artifact.read_bytes(), binary.asm["npubin"])
+            binding = _LauncherBinding()
+            kernel._c_impl = binding
+            kernel.load_kernel()
+            self.assertIn(("load", "test_kernel"), binding.events)
+            kernel.close()
+
+    def test_adapter_rejects_unknown_npubin_artifact_name(self):
+        binary = self._binary()
+        binary.metadata_group = {}
+        with mock.patch.object(static_adapter, "_target_supports_ffts", return_value=False):
+            with self.assertRaisesRegex(NPUStaticArtifactError, "no npubin artifact name"):
+                NPUStaticArtifactAdapter.from_compiled_kernel(binary, {}, {})
+
+    @parametrize("long_name", [False, True])
+    @config.patch("keep_static_cubin_raw", False)
+    def test_adapter_without_manifest_preserves_source_artifact(self, long_name):
+        binary = self._binary()
+        del binary.metadata_group
+        source_name = "cache_source_" + ("x" * 160 if long_name else "add")
+        binary.src.name = source_name
+        runtime_name = "runtime_symbol_" + ("y" * 160 if long_name else "add")
+        binary.metadata.kernel_name = runtime_name
+        binary.name = binary.metadata.name = runtime_name + "_aiv"
+        binary.packed_metadata = {"kernel_name": runtime_name[-49:]}
+        with mock.patch.object(static_adapter, "_target_supports_ffts", return_value=False):
+            kernel = NPUStaticArtifactAdapter.from_compiled_kernel(binary, {}, {})
+        self.assertEqual(kernel.name, runtime_name)
+        self.assertEqual(kernel.npubin_filename, source_name[:150] + ".npubin")
+        self.assertIsNone(kernel.npubin_path)
+        autotuner, result = self._autotuner_with_static_npubin(None)
+        result.kernel = kernel
+        autotuner.prepare_for_caching()
+        result.kernel = pickle.loads(pickle.dumps(kernel))
+        self.assertIsNone(result.kernel.npubin_raw)
+        result.compile_meta = {"device": 0}
+        with tempfile.TemporaryDirectory() as cache_dir, mock.patch.object(
+            static_compile_result, "triton_cache_dir", return_value=cache_dir,
+        ):
+            directory = Path(cache_dir) / static_compile_result.triton_hash_to_path_key(kernel.hash)
+            directory.mkdir(parents=True)
+            artifact = directory / (source_name[:150] + ".npubin")
+            artifact.write_bytes(b"npubin")
+            result.reload_npubin_path()
+            self.assertEqual(Path(result.kernel.npubin_path), artifact)
+            binding = _LauncherBinding()
+            result.kernel._c_impl = binding
+            result.kernel.load_kernel()
+            self.assertIn(("load", runtime_name), binding.events)
+            result.kernel.close()
+
+    def test_adapter_without_manifest_rejects_missing_source_name(self):
+        binary = self._binary()
+        del binary.metadata_group
+        for source_name in (None, "", 0):
+            with self.subTest(source_name=source_name):
+                binary.src.name = source_name
+                with self.assertRaisesRegex(NPUStaticArtifactError, "no npubin artifact name"):
+                    static_adapter._npubin_artifact(binary)
+
+    def test_adapter_rejects_missing_runtime_symbol(self):
+        binary = self._binary()
+        for runtime_name in (None, "", 0):
+            with self.subTest(runtime_name=runtime_name):
+                binary.metadata.kernel_name = runtime_name
+                with self.assertRaises(NPUStaticArtifactError):
+                    NPUStaticArtifactAdapter.from_compiled_kernel(binary, {}, {})
+
     def test_reload_npubin_from_raw_and_missing_artifact(self):
         with tempfile.TemporaryDirectory() as cache_dir, mock.patch(
             "torch_npu._inductor.triton_experimental.static_launcher.compile_result."
@@ -703,6 +826,12 @@ class TestTritonExperimentalStaticLauncherUnit(TestCase):
                 RuntimeError, "saved by TritonBundler not found"
             ):
                 missing_result.reload_npubin_path()
+
+    def test_static_kernel_legacy_artifact_name(self):
+        kernel = self._kernel(name="test_kernel_aiv")
+        del kernel.npubin_filename
+        restored = pickle.loads(pickle.dumps(kernel))
+        self.assertEqual(restored.npubin_filename, "test_kernel_aiv.npubin")
 
     def test_static_kernel_pickle_round_trip(self):
         kernel = self._kernel()
@@ -1248,6 +1377,65 @@ class TestTritonExperimentalStaticLauncherIntegration(TestCase):
     @SupportedDevices(["Ascend910B", "Ascend910_93", "Ascend950"])
     def test_static_pointwise(self, dtype):
         self._check(self._pointwise, [self._inputs(dtype=dtype), self._inputs(dtype=dtype)])
+
+    @SupportedDevices(["Ascend910B", "Ascend910_93", "Ascend950"])
+    @parametrize("long_name", [False, True])
+    @parametrize("keep_raw", [False, True])
+    @parametrize("has_path", [False, True])
+    def test_static_distinct_symbol_and_filename(self, long_name, keep_raw, has_path):
+        @triton.jit(repr=lambda _: "runtime_symbol_add")
+        def cache_source_add(X, Y, N: tl.constexpr, BLOCK: tl.constexpr):
+            offsets = tl.program_id(0) * BLOCK + tl.arange(0, BLOCK)
+            values = tl.load(X + offsets, offsets < N, 0)
+            tl.store(Y + offsets, values + 1, offsets < N)
+
+        @triton.jit(repr=lambda _: "runtime_symbol_add_with_a_name_longer_than_the_runtime_symbol_limit_aiv")
+        def cache_source_add_long(
+            X, Y, N: tl.constexpr, BLOCK: tl.constexpr
+        ):
+            offsets = tl.program_id(0) * BLOCK + tl.arange(0, BLOCK)
+            values = tl.load(X + offsets, offsets < N, 0)
+            tl.store(Y + offsets, values + 1, offsets < N)
+
+        x = torch.arange(1024, dtype=torch.float32, device="npu")
+        y = torch.empty_like(x)
+        fn = cache_source_add_long if long_name else cache_source_add
+        binary = fn.warmup(x, y, 1024, 128, grid=(8,), num_warps=8)
+        # Inspect the compiler's actual cache files without relying on whether
+        # CompiledKernel exposes its manifest or on the adapter's naming rule.
+        from triton.runtime.cache import get_cache_manager
+
+        artifacts = list(Path(get_cache_manager(binary.hash).cache_dir).glob("*.npubin"))
+        self.assertEqual(len(artifacts), 1)
+        artifact = artifacts[0]
+        kernel = NPUStaticArtifactAdapter.from_compiled_kernel(binary, {"device": x.device.index}, {})
+        if not has_path:
+            kernel.npubin_path = None
+        self.assertNotEqual(artifact.stem, kernel.name)
+        if not keep_raw:
+            kernel.npubin_raw = None
+        restored = pickle.loads(pickle.dumps(kernel))
+        self.assertIsNone(restored.npubin_path)
+        if not keep_raw:
+            self.assertIsNone(restored.npubin_raw)
+        for candidate in (kernel, restored):
+            self.addCleanup(candidate.close)
+            # A static load/restore must not fall back to Triton's launcher.
+            with mock.patch.object(
+                CompiledKernel, "_init_handles", side_effect=AssertionError("ordinary launcher used")
+            ):
+                if not candidate.npubin_path:
+                    result = object.__new__(NPUStaticTritonCompileResult)
+                    result.kernel = candidate
+                    result.compile_meta = {"device": x.device.index}
+                    result.reload_npubin_path()
+                self.assertEqual(Path(candidate.npubin_path), artifact)
+                candidate.load_kernel()
+                self.assertEqual(candidate.name, binary.metadata.kernel_name)
+                self._run_static_kernel(candidate, x, y, grid=(8, 1, 1))
+                torch.npu.synchronize()
+            self.assertEqual(y.cpu(), x.cpu() + 1)
+            y.zero_()
 
     @SupportedDevices(["Ascend950"])
     def test_static_pure_simt_pointwise_abi(self):
