@@ -10,7 +10,8 @@ from torch._inductor.ir import FloorDiv, ModularIndexing
 from torch._inductor.loop_body import CaptureIndexing, LoopBody, MemoryUsageType
 from torch._inductor.utils import has_free_symbols, sympy_index_symbol, sympy_subs
 from torch._inductor.virtualized import V
-from torch.utils._sympy.value_ranges import IntInfinity, ValueRanges
+from torch.utils._sympy.functions import PythonMod
+from torch.utils._sympy.value_ranges import IntInfinity, ValueRangeError, ValueRanges, bound_sympy
 
 from ..config import inductor_indirect_memory_mode, is_ascend950, log
 from .triton import NPUIndexTritonKernel
@@ -1144,6 +1145,9 @@ def extract_modular_indexing_coefficient(expr):
 
 
 def eliminate_zero_term(term):
+    # FloorDiv can already have evaluated to a constant or another expression.
+    if not isinstance(term, FloorDiv):
+        return term
     expr, divisor = term.args
     if not isinstance(expr, sympy.Symbol):
         return term
@@ -1223,6 +1227,36 @@ def eliminate_modular(term):
     return term
 
 
+def _floor_div_terms_do_not_carry(terms, divisor):
+    sizevars = V.graph.sizevars
+    if divisor.is_integer is not True or not sizevars.statically_known_gt(divisor, 0):
+        return False
+    if not all(term.is_integer is True for term in terms):
+        return False
+
+    ranges = dict(sizevars.shape_env.var_to_range)
+    try:
+        for symbol in sympy.Add(*terms).free_symbols:
+            node = V.kernel.range_tree_nodes.get(symbol)
+            if node is None:
+                node = V.kernel.range_tree_nodes_removed.get(symbol)
+            if node is not None:
+                upper = bound_sympy(sympy.sympify(node.length), ranges).upper
+                ranges[symbol] = ValueRanges(0, max(0, upper - 1))
+
+        remainder_upper = sympy.Integer(0)
+        for term in terms:
+            coefficient, rest = term.as_coeff_Mul()
+            if isinstance(divisor, sympy.Integer) and coefficient.is_Integer and rest.is_integer is True:
+                # Reduce coefficients before bounding: (10*x) % 8 == (2*x) % 8.
+                term = (coefficient % divisor) * rest
+            # PythonMod keeps floor-division semantics for negative terms too.
+            remainder_upper += bound_sympy(PythonMod(term, divisor), ranges).upper
+        return sizevars.statically_known_lt(remainder_upper, divisor)
+    except (AttributeError, KeyError, NotImplementedError, ValueRangeError):
+        return False
+
+
 def split_expression(expr):
     """
     Split expression according to specified logic:
@@ -1250,12 +1284,19 @@ def split_expression(expr):
 
         # Check if arg is Add
         if isinstance(arg, sympy.Add):
-            # Assume denominator is 1: floor(a+b) -> floor(a) + floor(b)
-            split_terms = []
+            # Only exact multiples can move outside floor division. Keep the
+            # remaining terms together so their remainders can carry.
+            split_terms, remainder_terms = [], []
             for term in arg.args:
-                new_term = FloorDiv(term, divisor)
-                new_term = eliminate_zero_term(new_term)
-                split_terms.append(new_term)
+                if V.graph.sizevars.statically_known_multiple_of(term, divisor):
+                    split_terms.append(FloorDiv(term, divisor))
+                else:
+                    remainder_terms.append(term)
+            if len(remainder_terms) > 1 and _floor_div_terms_do_not_carry(remainder_terms, divisor):
+                split_terms.extend(eliminate_zero_term(FloorDiv(term, divisor)) for term in remainder_terms)
+            else:
+                remainder = FloorDiv(sympy.Add(*remainder_terms), divisor)
+                split_terms.append(eliminate_zero_term(remainder))
             return sympy.Add(*split_terms)
 
         # Cannot split, return original expression

@@ -709,10 +709,23 @@ class NPUTritonScheduling(TritonScheduling):
         )
 
         kernel_code_list = self.generate_combo_kernel_code(
-            subkernel_nodes, custom_part_algorithm, enable_autotune, mixed_sizes
+            subkernel_nodes, custom_part_algorithm, enable_autotune, mixed_sizes,
+            only_gen_src_code=True,
         )
 
+        # Validate every partition before allocating buffers or emitting any
+        # wrapper code. A failed check can then fall back to ordinary kernels.
         for src_code, kernel, _ in kernel_code_list:
+            with V.set_kernel_handler(kernel):
+                self.make_ttir_for_check(src_code)
+
+        for src_code, kernel, node_group in kernel_code_list:
+            for subkernel_node, subkernel in zip(node_group, kernel.sub_kernels):
+                with V.set_kernel_handler(subkernel):
+                    for snode in subkernel_node.get_nodes():
+                        snode.mark_run()
+                V.graph.removed_buffers |= subkernel.removed_buffers
+                V.graph.inplaced_to_remove |= subkernel.inplaced_to_remove
             kernel_name, _ = self.define_kernel(src_code, [combo_kernel_node], kernel, None)
             self.codegen_comment([combo_kernel_node])
             log.debug("ComboKernels: generated kernel %s.", kernel_name)
@@ -776,8 +789,8 @@ class NPUTritonScheduling(TritonScheduling):
                     with V.set_kernel_handler(subkernel):  # type: ignore[call-arg]
                         for node in NodeScheduleMarker.only_nodes(node_schedule):
                             node.mark_run()
-                V.graph.removed_buffers |= subkernel.removed_buffers
-                V.graph.inplaced_to_remove |= subkernel.inplaced_to_remove
+                    V.graph.removed_buffers |= subkernel.removed_buffers
+                    V.graph.inplaced_to_remove |= subkernel.inplaced_to_remove
 
             src_code = kernel.codegen_kernel()
             kernel_code_list.append((src_code, kernel, node_group))

@@ -57,12 +57,12 @@ from torch._inductor.runtime.triton_heuristics import ( # noqa: F401
     config_from_dict,
     FixedGrid,
     PrecomputedGrid,
-    SequentialComboKernelGrid,
     PrecomputedGrid,
     Grid1D,
     Grid2D,
     Grid2DWithYZOverflow,
     Grid3D,
+    SequentialComboKernelGrid as BaseSequentialComboKernelGrid,
     fixed_config,
     user_autotune,
     split_scan,
@@ -98,6 +98,7 @@ from torch_npu.utils._error_code import ErrCode, pta_error
 from torch_npu._inductor.npu_compare import check_accuracy_triton
 
 from ..codegen.tile_generator import TileGenerator
+from ..codegen.combo_tile_generator import ComboTileGenerator
 from ..codegen.triton_utils import NPUKernelType
 from ..config import log, autotune_continue_on_failure
 from .. import config as npu_config
@@ -105,6 +106,23 @@ from ..profiler import simple_trace_handler, mspti_batch_benchmark
 
 kernel_idx = count()
 
+
+class SequentialComboKernelGrid(BaseSequentialComboKernelGrid):
+    """Flatten NPU subkernel split axes onto the single combo launch dimension."""
+
+    def generate(self, meta):
+        combo = self.inductor_meta["combo_grid_meta"]
+        if "split_numels" not in combo:
+            return super().generate(meta)
+        block = combo["split_block"]
+        self.x_grid = self.summation(
+            [
+                1 if no_split else self.ceildiv(numel, meta.get(block, block))
+                for numel, no_split in zip(combo["split_numels"], combo["no_split"])
+            ]
+        )
+        self.y_grid = 1
+        self.z_grid = 1
 
 
 def _metadata_value(metadata, name, default=None):
@@ -3238,6 +3256,8 @@ def triton_config_npu_index(
     is_persistent_reduction=False,
 
 ) -> List[Config]:
+    if inductor_meta.get("combo_subkernel_meta"):
+        return _triton_config_npu_index_combo(size_hints, inductor_meta, triton_meta)
     if inductor_meta.get("group_enabled", False):
         if inductor_meta.get("extra_launcher_args"):
             raise RuntimeError(
@@ -3258,6 +3278,41 @@ def triton_config_npu_index(
         is_reduction=is_reduction,
         is_persistent_reduction=is_persistent_reduction,
     )
+
+
+def _triton_config_npu_index_combo(size_hints, inductor_meta, triton_meta):
+    """Generate candidates for one launch containing all combo subkernels."""
+    subkernels = inductor_meta["combo_subkernel_meta"]
+    axis_names = inductor_meta["axis_names"]
+    input_signature = (triton_meta or {}).get("signature", {})
+    input_ptr_num = sum("ptr" in name for name in input_signature)
+    kernel_type = NPUKernelType(inductor_meta.get("npu_kernel_type", "simd"))
+    generator = ComboTileGenerator(
+        subkernels,
+        input_ptr_num=input_ptr_num,
+        npu_kernel_type=kernel_type,
+    )
+    if kernel_type == NPUKernelType.SIMD_SIMT_MIX:
+        configs = []
+        for mode in (NPUKernelType.SIMT_ONLY, NPUKernelType.SIMT_TEMPLATE):
+            generator.set_kernel_type(mode)
+            configs.extend(generator.descend_split_tiling())
+    else:
+        configs = generator.descend_split_tiling()
+    if not configs:
+        raise RuntimeError("No legal shared tiling for the complete combo kernel")
+
+    for candidate in configs:
+        candidate.kwargs["split_axis"] = tuple(generator.split_axis)
+        candidate.kwargs["split_blocks"] = tuple(
+            candidate.kwargs[f"{axis_names[axis].upper()}BLOCK"]
+            for axis in generator.split_axis
+        )
+    logging.debug(
+        "[%s], combo candidate tiling count: [%s]",
+        inductor_meta["kernel_name"], len(configs),
+    )
+    return brutal_prune_tiling_configs_if_fast_run(configs, inductor_meta)
 
 
 def _triton_config_npu_index_grouped(

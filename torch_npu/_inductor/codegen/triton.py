@@ -45,6 +45,7 @@ from torch._inductor.codegen.triton import (
     TMACompatibilityChecker, maybe_upcast_float32,
 )
 from torch._inductor.codegen.triton_utils import (
+    equal_1_arg_indices,
     config_of,
     should_unwrap_unspec_arg,
     signature_of,
@@ -901,7 +902,7 @@ class IterationRangesRootNPUIndex(IterationRangesRoot):
 
             # not a good implement
             if len(self.pid_cache) > 0:
-                node.is_sub_kernel = True
+                self.nodes[expr].is_sub_kernel = True
 
         return self.nodes[expr]
 
@@ -1537,8 +1538,11 @@ class NPUIndexTritonKernel(TritonKernel):
         min_elem_per_thread=0,
         optimize_mask=True,
         fixed_config: FixedTritonConfig | None = None,
+        allow_grouped_autotune: bool = True,
         **kwargs,
     ):
+        # Set before construction selects split axes and builds grouped plans.
+        self.allow_grouped_autotune = allow_grouped_autotune
         super().__init__(
             tiling=tiling,
             min_elem_per_thread=min_elem_per_thread,
@@ -3015,6 +3019,8 @@ class NPUIndexTritonKernel(TritonKernel):
             inductor_meta["kernel_num_gb"] = num_gb
 
         self.gen_numel_args(signature, triton_meta, triton_meta_signature, argdefs)
+        for index in equal_1_arg_indices(signature):
+            triton_meta["constants"][signature[index].name] = 1
         if self.is_unified_simt_kernel():
             triton_meta["configs"] = [config_of(signature)]
 
