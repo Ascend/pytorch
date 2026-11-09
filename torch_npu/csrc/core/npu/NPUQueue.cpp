@@ -1,3 +1,6 @@
+#if defined(TORCH_NPU_EXPERIMENTAL_LOCKFREE_QUEUE)
+#include "torch_npu/csrc/core/npu/NPUQueueSequence.cpp.inc"
+#else
 #include "torch_npu/csrc/core/npu/NPUQueue.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
@@ -1036,3 +1039,5 @@ void ReleaseQueue::ChangeStatus(RepoStatus expected, RepoStatus desired) {
   repo_status.compare_exchange_strong(expected, desired);
 }
 } // namespace c10_npu
+
+#endif // TORCH_NPU_EXPERIMENTAL_LOCKFREE_QUEUE

@@ -49,6 +49,11 @@ PGO_MODE = 0
 if os.environ.get("PGO_MODE") is not None:
     PGO_MODE = int(os.environ.get("PGO_MODE"))
 
+# Keep CMake libraries and the separately built Python extension ABI-aligned.
+EXPERIMENTAL_SEQUENCE_QUEUE = os.getenv(
+    "TORCH_NPU_EXPERIMENTAL_LOCKFREE_QUEUE", "OFF"
+).upper() in ["ON", "1", "YES", "TRUE", "Y"]
+
 # change to use cxx11.abi in default since 2.7
 USE_CXX11_ABI = True
 if os.environ.get("_GLIBCXX_USE_CXX11_ABI") is not None and os.environ.get("_GLIBCXX_USE_CXX11_ABI") == "0":
@@ -356,6 +361,8 @@ class CPPLibBuild(build_clib, object):
             '-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=' + os.path.realpath(output_lib_path),
             '-DTORCHNPU_INSTALL_LIBDIR=' + os.path.realpath(output_lib_path),
             '-DPYTHON_INCLUDE_DIR=' + get_paths().get('include'),
+            '-DTORCH_NPU_EXPERIMENTAL_LOCKFREE_QUEUE=' +
+            ('ON' if EXPERIMENTAL_SEQUENCE_QUEUE else 'OFF'),
             '-DTORCH_VERSION=' + VERSION,
             '-DPYTORCH_INSTALL_DIR=' + get_pytorch_dir()]
 
@@ -689,6 +696,9 @@ extra_compile_args = [
     '-Wno-deprecated-declarations',
     '-Wno-return-type'
 ]
+
+if EXPERIMENTAL_SEQUENCE_QUEUE:
+    extra_compile_args += ['-DTORCH_NPU_EXPERIMENTAL_LOCKFREE_QUEUE']
 
 if re.match(r'clang', os.getenv('CC', '')):
     extra_compile_args += [
