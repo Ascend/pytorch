@@ -2485,8 +2485,8 @@ class NPUIndexTritonKernel(TritonKernel):
             inductor_meta["kernel_num_gb"] = num_gb
 
         self.gen_numel_args(signature, triton_meta, triton_meta_signature, argdefs)
-        if self.is_unified_simt_kernel():
-            triton_meta["configs"] = [config_of(signature)]
+
+        triton_meta["configs"] = [config_of(signature)]
 
         if inductor_meta.get("group_enabled", False):
             try:
