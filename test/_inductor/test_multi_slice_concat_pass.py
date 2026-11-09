@@ -113,7 +113,7 @@ def _pass_spy():
     original = []
 
     def spy(graph):
-        multi_slice_concat_pass(graph, aclnn_copy_free_inputs=0)
+        multi_slice_concat_pass(graph, aclnn_copy_free_inputs=0, indexed_same_source=False)
         stats["nodes"] += len(_op_nodes(graph))
 
     spy.__name__ = multi_slice_concat_pass.__name__
@@ -237,6 +237,8 @@ class TestMultiSliceConcatPass(TestUtils):
         # These tests pin matching, not profitability; the aclnn gate is opt-in.
         limits.setdefault("aclnn_copy_free_inputs", 0)
         captured = _capture(fn, *tensors, dynamic=dynamic)
+        # This suite validates the existing multi-source/row-mask template.
+        limits.setdefault("indexed_same_source", False)
         multi_slice_concat_pass(captured.graph, **limits)
         captured.gm.recompile()
         return captured

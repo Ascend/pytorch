@@ -53,39 +53,43 @@ class TestSliceCatPassComposition(unittest.TestCase):
         x[0, :4] = torch.tensor([float('nan'), float('inf'), -float('inf'), -0.])
         inputs = (x, torch.randn(4, 1))
         # Fix MSC's native Cat routing policy; sinking does not use this limit.
-        with config.patch(max_pointwise_cat_inputs=8):
-            with FakeTensorMode():
-                gm = make_fx(mixed_branches, decomposition_table=decompositions)(
-                    torch.empty(4, 20, device='npu', dtype=torch.bfloat16),
-                    torch.empty(4, 1, device='npu'),
-                )
-            expected = gm(*inputs)
-            for fn in PIPELINE:
+        for is_ascend950 in (False, True):
+            with self.subTest(is_ascend950=is_ascend950), \
+                    patch.object(passes, 'is_ascend950', is_ascend950), \
+                    config.patch(max_pointwise_cat_inputs=8):
+                with FakeTensorMode():
+                    gm = make_fx(mixed_branches, decomposition_table=decompositions)(
+                        torch.empty(4, 20, device='npu', dtype=torch.bfloat16),
+                        torch.empty(4, 1, device='npu'),
+                    )
+                expected = gm(*inputs)
+                for fn in PIPELINE:
+                    before = str(gm.graph)
+                    fn(gm.graph)
+                    gm.graph.lint()
+                    expected_change = fn is not passes.multi_slice_concat_pass or is_ascend950
+                    self.assertEqual(str(gm.graph) != before, expected_change, fn.__name__)
+
+                def count(target):
+                    return sum(n.target is target for n in gm.graph.nodes)
+
+                # Cast packing and sinking each leave a complete three-input Cat.
+                # Non-950 keeps these native; 950 uses the indexed route instead.
+                self.assertEqual(count(passes.INDEXED_SLICE_CONCAT_TARGET), 2 if is_ascend950 else 0)
+                self.assertEqual(count(passes.MULTI_SLICE_CONCAT_TARGET), 0)
+                self.assertEqual(count(torch.ops.aten.cat.default), 1 if is_ascend950 else 3)
+                self.assertEqual(count(torch.ops.prims.convert_element_type.default), 2)
+                self.assertEqual(count(torch.ops.aten.clamp.default), 1)
+                gm.recompile()
+                actual = gm(*inputs)
+                torch.testing.assert_close(actual, expected, rtol=0, atol=0, equal_nan=True)
+                zeros = expected == 0
+                self.assertTrue(torch.equal(torch.signbit(actual[zeros]), torch.signbit(expected[zeros])))
                 before = str(gm.graph)
-                fn(gm.graph)
+                for fn in PIPELINE:
+                    fn(gm.graph)
                 gm.graph.lint()
-                expected_change = fn is not passes.multi_slice_concat_pass
-                self.assertEqual(str(gm.graph) != before, expected_change, fn.__name__)
-
-            def count(target):
-                return sum(n.target is target for n in gm.graph.nodes)
-
-            # Cast packing and sinking each leave a complete three-input Cat,
-            # which the copy-free budget keeps native on every target.
-            self.assertEqual(count(passes.MULTI_SLICE_CONCAT_TARGET), 0)
-            self.assertEqual(count(torch.ops.aten.cat.default), 3)
-            self.assertEqual(count(torch.ops.prims.convert_element_type.default), 2)
-            self.assertEqual(count(torch.ops.aten.clamp.default), 1)
-            gm.recompile()
-            actual = gm(*inputs)
-            torch.testing.assert_close(actual, expected, rtol=0, atol=0, equal_nan=True)
-            zeros = expected == 0
-            self.assertTrue(torch.equal(torch.signbit(actual[zeros]), torch.signbit(expected[zeros])))
-            before = str(gm.graph)
-            for fn in PIPELINE:
-                fn(gm.graph)
-            gm.graph.lint()
-            self.assertEqual(str(gm.graph), before)
+                self.assertEqual(str(gm.graph), before)
 
     def test_intermediate_rounding_is_preserved(self):
         def fn(x):
@@ -114,8 +118,8 @@ class TestSliceCatPassCompositionDevice(unittest.TestCase):
         from torch_npu.utils._dynamo import _InductorNpuRegistry
 
         _InductorNpuRegistry.register_inductor_npu()
-        self.assertIn(passes.MULTI_SLICE_CONCAT_TARGET, lowerings,
-                      'the slice-cat lowering must be registered')
+        for target in (passes.INDEXED_SLICE_CONCAT_TARGET, passes.MULTI_SLICE_CONCAT_TARGET):
+            self.assertIn(target, lowerings, f'{target} lowering must be registered')
 
         for training in (False, True):
             torch._dynamo.reset()
@@ -165,8 +169,9 @@ class TestSliceCatPassCompositionDevice(unittest.TestCase):
                     torch.testing.assert_close(result, reference, rtol=0, atol=0)
                 self.assertTrue(codes, 'compiled output code must be captured')
                 for code in codes:
-                    self.assertNotIn('= torch.ops.npu_ext.multi_slice_concat.default(', code,
-                                     'external custom-op fallback does not validate fusion')
+                    for name in ('indexed_slice_concat', 'multi_slice_concat'):
+                        self.assertNotIn(f'= torch.ops.npu_ext.{name}.default(', code,
+                                         'external custom-op fallback does not validate fusion')
 
 
 if __name__ == '__main__':

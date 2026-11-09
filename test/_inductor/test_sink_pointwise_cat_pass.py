@@ -38,6 +38,13 @@ class TestSinkPointwiseCat(unittest.TestCase):
                                                       torch.ops.aten.split_with_sizes.default)
                                          for n in gm.graph.nodes))
 
+    def test_cast_only_keeps_existing_slice_cat_fusion(self):
+        gm = self.check(lambda x: torch.cat([
+            torch.ops.prims.convert_element_type.default(t, torch.float32) for t in slices(x)], 1),
+            (torch.randn(4, 20, dtype=torch.bfloat16),), False)
+        passes.multi_slice_concat_pass(gm.graph, aclnn_copy_free_inputs=0)
+        self.assertEqual(sum(n.target is passes.INDEXED_SLICE_CONCAT_TARGET for n in gm.graph.nodes), 1)
+
     def test_clamp_chain_keeps_slice_cat_in_source_dtype(self):
 
         def fn(x):
@@ -46,7 +53,7 @@ class TestSinkPointwiseCat(unittest.TestCase):
                 torch.bfloat16) for t in slices(x)], 1)
         gm = self.check(fn, (torch.randn(4, 20, dtype=torch.bfloat16),), True)
         passes.multi_slice_concat_pass(gm.graph, aclnn_copy_free_inputs=0)
-        fused = [n for n in gm.graph.nodes if n.target is passes.MULTI_SLICE_CONCAT_TARGET]
+        fused = [n for n in gm.graph.nodes if n.target is passes.INDEXED_SLICE_CONCAT_TARGET]
         self.assertEqual(len(fused), 1)
         self.assertEqual(fused[0].meta['val'].dtype, torch.bfloat16)
 
@@ -127,7 +134,7 @@ class TestSinkPointwiseCat(unittest.TestCase):
         gm = self.check(lambda x: torch.cat([t.clamp(-1, 1) for t in slices(x)], 1),
                         (torch.randn(4, 20),), True)
         passes.multi_slice_concat_pass(gm.graph, aclnn_copy_free_inputs=0)
-        self.assertEqual(sum(n.target is passes.MULTI_SLICE_CONCAT_TARGET for n in gm.graph.nodes), 1)
+        self.assertEqual(sum(n.target is passes.INDEXED_SLICE_CONCAT_TARGET for n in gm.graph.nodes), 1)
 
     def test_single_input_cat_keeps_copy_semantics(self):
         x = torch.randn(4, 20)

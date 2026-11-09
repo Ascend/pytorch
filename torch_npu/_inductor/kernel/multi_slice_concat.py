@@ -1,4 +1,4 @@
-"""A static multi-source slice-cat template."""
+"""Indexed slice loads and a static multi-source slice-cat template."""
 
 __all__ = ["_register_npu_inductor_multi_slice_concat"]
 
@@ -11,17 +11,112 @@ import torch
 
 from torch._inductor import ir
 from torch._inductor.ir import FixedLayout
-from torch._inductor.lowering import fallback_handler, register_lowering
+from torch._inductor.lowering import empty_strided, fallback_handler, register_lowering
 from torch._inductor.select_algorithm import (
     autotune_select_algorithm,
     SymbolicGridFn,
 )
+from torch._inductor.utils import triton_type
 from torch._inductor.virtualized import V
 
 from ..select_algorithm import NPUTritonTemplate
 
 
 log = logging.getLogger(__name__)
+
+
+@SymbolicGridFn
+def _indexed_slice_concat_grid(rows, cols, meta, *, cdiv):
+    return (cdiv(rows * cols, meta["BLOCK"]), 1, 1)
+
+
+def _build_indexed_source(runs, total):
+    lines = [
+        '{{def_kernel("SRC")}}',
+        '    rows = tl.full([], {{size("SRC", 0)}}, INDEX_DTYPE)',
+        f"    total = tl.full([], {total}, INDEX_DTYPE)",
+        '    stride_row = tl.full([], {{stride("SRC", 0)}}, INDEX_DTYPE)',
+        '    stride_col = tl.full([], {{stride("SRC", 1)}}, INDEX_DTYPE)',
+        "    linear = (tl.program_id(0).to(INDEX_DTYPE) * BLOCK",
+        "              + tl.arange(0, BLOCK).to(INDEX_DTYPE))",
+        "    row = linear // total",
+        "    col = linear % total",
+        "    mask = linear < rows * total",
+        "",
+        "    # Index table as compile-time arithmetic: one delta per run. Runs are",
+        "    # ordered, so the last match wins. Column numbers stay in int32 to keep",
+        "    # the chain off the 64-bit addressing type.",
+        "    col32 = col.to(tl.int32)",
+        f"    delta = tl.full([], {runs[0][1]}, tl.int32)",
+    ]
+    for start, delta in runs[1:]:
+        lines.append(f"    delta = tl.where(col32 >= {start}, {delta}, delta)")
+    lines += [
+        "    source_col = col + delta.to(INDEX_DTYPE)",
+        "    value = tl.load(SRC + row * stride_row + source_col * stride_col,",
+        "                    mask=mask, other=0).to(ACC_TYPE)",
+        '    {{store_output(("row", "col"), "value", "mask", val_shape=("BLOCK",))}}',
+    ]
+    return "\n".join(lines) + "\n"
+
+
+@functools.lru_cache(maxsize=None)
+def _indexed_template_for(runs, total):
+    # Template names are global and must not collide; hash() is not stable across processes.
+    digest = hashlib.sha256(repr((runs, total)).encode()).hexdigest()[:16]
+    return NPUTritonTemplate(
+        name=f"npu_indexed_slice_concat_{digest}",
+        grid=_indexed_slice_concat_grid,
+        source=_build_indexed_source(runs, total),
+    )
+
+
+def _indexed_block_size(numel, source_dtype, output_dtype):
+    from .. import config as npu_config
+
+    cores = max(1, npu_config.num_vector_core)
+    source_bytes, output_bytes = source_dtype.itemsize, output_dtype.itemsize
+    min_block = _next_pow2(
+        (_ALIGN_BYTES + min(source_bytes, output_bytes) - 1) // min(source_bytes, output_bytes)
+    )
+    # Index, row, column and address; mask, source, conversion and output values.
+    live_bytes = 4 * 8 + 1 + source_bytes + max(4, source_bytes, output_bytes) + output_bytes
+    block_cap = _prev_pow2(max(min_block, _ub_bytes() // live_bytes))
+    hint = max(1, V.graph.sizevars.optimization_hint(numel, fallback=cores * min_block))
+    return min(block_cap, max(min_block, _next_pow2((hint + cores - 1) // cores)))
+
+
+def _register_indexed_slice_concat(target):
+    from ..fx_passes.ascend_custom_passes.ascend_graph_pass import indexed_delta_runs
+
+    @register_lowering(target, type_promotion_kind=None)
+    def indexed_slice_concat(src, offsets, widths, dtype):
+        src = ir.ExternKernel.realize_input(src)
+        rows, total = src.get_size()[0], sympy.Integer(sum(widths))
+        layout = FixedLayout(src.get_device(), dtype, [rows, total],
+                             stride=[total, sympy.Integer(1)])
+        if V.graph.sizevars.statically_known_equals(rows, 0):
+            return empty_strided(layout.size, layout.stride, dtype=dtype, device=src.get_device())
+        # The table lives in the kernel source. A device tensor constant here
+        # cannot be serialized into the AOT package, which silently drops the
+        # cache entry and makes the service recompile on every start.
+        runs = indexed_delta_runs(offsets, widths)
+        choices = []
+        _indexed_template_for(runs, int(total)).maybe_append_choice(
+            choices=choices, input_nodes=[src], layout=layout,
+            BLOCK=_indexed_block_size(rows * total, src.get_dtype(), dtype),
+            ACC_TYPE=triton_type(dtype), num_stages=2, num_warps=4,
+        )
+        if not choices:
+            return fallback_handler(target, add_to_fallback_set=False)(
+                src, list(offsets), list(widths), dtype,
+            )
+        # One static configuration: no lowering-time search or benchmark.
+        out = choices[0].output_node()
+        # Keep dtype conversion materialized so consumers cannot remove its rounding.
+        if src.get_dtype() != dtype:
+            V.graph.no_fuse_buffer_names.add(out.get_name())
+        return out
 
 
 @SymbolicGridFn
@@ -233,9 +328,12 @@ def _dedup_inputs(nodes, indices):
 
 def _register_npu_inductor_multi_slice_concat():
     from ..fx_passes.ascend_custom_passes.ascend_graph_pass import (
+        INDEXED_SLICE_CONCAT_TARGET,
         MULTI_SLICE_CONCAT_DTYPES,
         MULTI_SLICE_CONCAT_TARGET,
     )
+
+    _register_indexed_slice_concat(INDEXED_SLICE_CONCAT_TARGET)
 
     @register_lowering(MULTI_SLICE_CONCAT_TARGET, type_promotion_kind=None)
     def multi_slice_concat(srcs, masks, src_idx, offsets, widths, mask_idx, cat_dim=1):
