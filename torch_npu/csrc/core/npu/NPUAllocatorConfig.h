@@ -1,7 +1,9 @@
 #pragma once
 #include <set>
+#include <string>
 #include <unordered_set>
 
+#include <acl/acl_rt.h>
 #include <c10/core/AllocatorConfig.h>
 #include <c10/util/Deprecated.h>
 #include <c10/util/env.h>
@@ -74,6 +76,19 @@ class NPUAllocatorConfig {
     return instance().m_multi_stream_lazy_reclaim;
   }
 
+  // Memory allocation policy passed through to aclrtMalloc* interfaces.
+  // Defaults to ACL_MEM_MALLOC_HUGE_FIRST, which keeps the historical behavior.
+  static aclrtMemMallocPolicy mem_malloc_policy() {
+    return instance().m_mem_malloc_policy;
+  }
+
+  // Whether `mem_malloc_policy` is explicitly set. An explicitly configured
+  // policy takes precedence over `page_size:1g` on the non-expandable-segments
+  // allocation path.
+  static bool mem_malloc_policy_set() {
+    return instance().m_mem_malloc_policy_set;
+  }
+
   static size_t segment_size_mb() {
     return instance().m_segment_size_mb;
   }
@@ -139,7 +154,8 @@ class NPUAllocatorConfig {
         "pinned_reserve_segment_size_mb",
         "per_process_memory_fraction",
         "release_lock_on_npumalloc",
-        "throw_on_npumalloc_oom"};
+        "throw_on_npumalloc_oom",
+        "mem_malloc_policy"};
     return keys;
   }
 
@@ -156,6 +172,12 @@ class NPUAllocatorConfig {
   size_t m_pinned_reserve_segment_size_mb = 0;
   bool m_release_lock_on_npumalloc = false;
   bool m_throw_on_npumalloc_oom = false;
+  aclrtMemMallocPolicy m_mem_malloc_policy = aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST;
+  std::string m_mem_malloc_policy_str = "huge_first";
+  // Whether mem_malloc_policy is explicitly set by the user, used to decide
+  // whether it takes precedence over page_size:1g and whether to warn about
+  // options that conflict with it.
+  bool m_mem_malloc_policy_set = false;
 
   NPUAllocatorConfig() = default;
 
@@ -168,6 +190,7 @@ class NPUAllocatorConfig {
   size_t parsePerProcessMemoryFraction(const c10::CachingAllocator::ConfigTokenizer& config, size_t i);
   size_t parseReleaseLockOnNpuMalloc(const c10::CachingAllocator::ConfigTokenizer& config, size_t i);
   size_t parseThrowOnNpuMallocOom(const c10::CachingAllocator::ConfigTokenizer& config, size_t i);
+  size_t parseMemMallocPolicy(const c10::CachingAllocator::ConfigTokenizer& config, size_t i);
 };
 
 } // namespace NPUCachingAllocator

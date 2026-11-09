@@ -31,12 +31,37 @@
 <!-- npu="950,A3,910b" id9 -->
 - page\_size:<value\>，设置申请大页内存的大小。
 
-    取值仅支持1GB，参考[配置示例](#配置示例)。内存申请粒度为1GB，不足1GB的向上对齐到1GB，始终为1GB的整数倍。在虚拟内存特性下，该配置项只作用于缓存分配器的大块内存池。
+    取值仅支持1GB，参考[配置示例](#配置示例)。内存申请粒度为1GB，不足1GB的向上对齐到1GB，始终为1GB的整数倍。该配置项只作用于缓存分配器的大块内存池。
 
     未配置该选项时，内存申请粒度为2MB，如需申请1GB的大页内存，会占用1024/2=512个页表；设置该选项后，内存申请粒度为1GB，1GB大页内存只占用1个页表，能有效降低页表数量，有效扩大TLB（Translation Lookaside Buffer）缓存的地址范围，从而提升离散访问的性能。
 
     TLB是昇腾AI处理器中用于高速缓存的硬件模块，用于存储最近使用的虚拟地址到物理地址的映射。
+
+    > [!NOTE]
+    >
+    > 本配置项在虚拟内存场景下独立生效。非虚拟内存场景下显式配置的`mem_malloc_policy`优先生效，未配置`mem_malloc_policy`时保留本配置项的行为，`mem_malloc_policy`不参与页大小选择。
 <!-- end id9 -->
+
+- mem\_malloc\_policy:<value\>，实验性接口，配置缓存分配器向CANN申请设备内存时使用的内存分配策略。
+
+    本配置项仅控制非虚拟内存场景的设备内存申请，将选择的`aclrtMemMallocPolicy`传给底层ACL接口。各内存分配策略的详细说明请参见CANN开发指南中的《[内存管理](https://gitcode.com/cann/runtime/blob/9.2.0/docs/zh/dev_guide/02_memory_management.md)》。各策略的实际表现（内存占用、内存碎片、性能影响以及当前硬件是否支持）由CANN和驱动决定。
+
+    支持的取值如下，可配置单个取值，也可使用`|`组合“页大小策略”与“带宽策略”：
+
+    - huge\_first：默认值。申请大页内存，内存申请粒度为2MB；大页内存不足时改用普通页内存。
+    - huge\_only：仅申请大页内存，内存申请粒度为2MB；大页内存不足时申请失败。
+    - normal\_only：仅申请普通页内存；普通页内存不足时申请失败。
+    - huge1g\_only：申请1GB大页内存。缓存分配器中大于1MB的申请（大块内存池）按1GB粒度对齐；小块内存池或不支持1GB大页的环境使用默认策略`huge_first`。该取值不控制虚拟内存分配。
+    - high\_band\_width / low\_band\_width：从高带宽/低带宽物理内存申请内存，可与上述页大小策略组合（`huge1g_only`除外），例如`huge_first|high_band_width`。该选项在部分硬件上不生效，实际由驱动按硬件能力选择。
+
+    > [!NOTE]
+    >
+    > - 使用`|`组合多个取值时，需要为环境变量的值加引号，否则会被shell解析为管道符。
+    > - 同一个配置串中`mem_malloc_policy`只能配置一次；重复配置时，即使取值相同也会报错。
+    > - 缓存分配器开启虚拟内存特性（`expandable_segments:True`）时，本配置的所有取值均不参与虚拟内存分配，框架会打印一次告警日志。需要配置虚拟内存的1GB大页时，使用`page_size:1g`。
+    > - 关闭缓存分配器时，申请路径按原值传入配置的策略，不应用缓存分配器的大小池限制、1GB粒度对齐或能力探测回退逻辑；实际是否支持由底层ACL接口决定。
+    > - 该配置仅支持通过环境变量设置，不支持通过`torch_npu.npu.memory._set_allocator_settings`接口在运行期修改。
+    > - 与`page_size:1g`并存，二者仅在非虚拟内存场景下有关联，此时以本配置项为准；虚拟内存场景下`page_size:1g`独立生效。
 
 - segment\_size\_mb:<value\>，虚拟内存特性下，设置物理内存的申请粒度。
 
@@ -231,6 +256,18 @@ export PYTORCH_NPU_ALLOC_CONF=max_split_size_mb:50,max_non_split_rounding_mb:30
 export PYTORCH_NPU_ALLOC_CONF=release_lock_on_npumalloc:True
 ```
 
+示例十七：
+
+```bash
+export PYTORCH_NPU_ALLOC_CONF=expandable_segments:False,mem_malloc_policy:normal_only
+```
+
+示例十八（`|`组合的取值需加引号）：
+
+```bash
+export PYTORCH_NPU_ALLOC_CONF="expandable_segments:False,mem_malloc_policy:huge_first|high_band_width"
+```
+
 ## 使用约束
 
 - expandable\_segments特性需在Ascend HDK 23.0.0及以上版本上使用。
@@ -247,7 +284,7 @@ export PYTORCH_NPU_ALLOC_CONF=release_lock_on_npumalloc:True
     <!-- npu="950" id22 -->
     - <term>Ascend 950DT系列产品</term>
     <!-- end id22 -->
-- page\_size特性与其他特性同时配置时，仅page\_size配置生效，且申请内存注意事项如下：
+- page\_size与控制内存申请粒度的其他配置同时设置时，生效的1GB页配置优先。`page_size`与`mem_malloc_policy`并存：仅在非虚拟内存场景下由显式配置的`mem_malloc_policy`优先；虚拟内存的页大小仍由`page_size`独立控制。以下粒度说明适用于`page_size:1g`生效时：
     - 当申请内存大于1MB时：
         - 若配置page\_size，内存申请粒度为1GB。
         - 若未配置page\_size，内存申请粒度为2MB。
@@ -266,6 +303,7 @@ export PYTORCH_NPU_ALLOC_CONF=release_lock_on_npumalloc:True
 - throw\_on\_npumalloc\_oom特性需在TorchNPU 26.2.0及以上版本、PyTorch 2.13.0及以上版本使用。
 - pinned\_max\_round\_threshold\_mb和pinned\_max\_cached\_size\_mb特性需在TorchNPU 26.2.0及以上版本、PyTorch 2.13.0及以上版本使用。两者仅作用于默认（非expandable）pinned memory分配器路径。与pin\_memory\_expandable\_segments同时配置时，这两个阈值不生效，框架会输出一次告警提示，但进程仍可正常启动；如需启用这两个阈值，请将pin\_memory\_expandable\_segments设置为False。
 - 通过[PYTORCH_ALLOC_CONF](PYTORCH_ALLOC_CONF.md)环境变量配置缓存分配器参数，需在TorchNPU 26.2.0版本且PyTorch 2.10.0及以上版本使用。
+- mem\_malloc\_policy为实验性接口，需在TorchNPU 26.3.0及以上版本使用。该配置项将内存分配策略原样透传给底层ACL接口，各策略的实际效果与硬件兼容性由CANN和驱动决定；其中`huge_only`、`normal_only`会改变大页内存不足时的降级行为（由“改用普通页”变为“申请失败”）。`huge1g_only`取值需在Ascend HDK 25.0.RC1及以上版本、CANN商用8.1.RC1及以上版本使用，支持的产品与page\_size特性相同；不满足条件时框架会打印一次告警日志，并按2MB页粒度申请内存。
 
 ## 支持的型号
 

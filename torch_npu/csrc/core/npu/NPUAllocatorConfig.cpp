@@ -2,8 +2,10 @@
 
 #include <mutex>
 #include <set>
+#include <unordered_map>
 #include <unordered_set>
 #include <string>
+#include <vector>
 
 #include <c10/core/AllocatorConfig.h>
 #include <c10/util/Deprecated.h>
@@ -40,6 +42,20 @@ const std::unordered_set<std::string> kNPUSupportAccKeys = {
     "max_non_split_rounding_mb",
     "pinned_max_round_threshold_mb",
     "pinned_max_cached_size_mb"};
+
+// Accepted values of `mem_malloc_policy`. The names are the lower-case form of
+// the aclrtMemMallocPolicy enumerators, and the values are passed through to
+// aclrtMalloc* as is.
+const std::unordered_map<std::string, uint32_t>& memMallocPolicyMap() {
+  static const std::unordered_map<std::string, uint32_t> kMemMallocPolicyMap = {
+      {"huge_first", aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST},
+      {"huge_only", aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_ONLY},
+      {"normal_only", aclrtMemMallocPolicy::ACL_MEM_MALLOC_NORMAL_ONLY},
+      {"huge1g_only", aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE1G_ONLY},
+      {"high_band_width", aclrtMemMallocPolicy::ACL_MEM_TYPE_HIGH_BAND_WIDTH},
+      {"low_band_width", aclrtMemMallocPolicy::ACL_MEM_TYPE_LOW_BAND_WIDTH}};
+  return kMemMallocPolicyMap;
+}
 } // namespace
 
 NPUAllocatorConfig& NPUAllocatorConfig::instance() {
@@ -233,6 +249,73 @@ size_t NPUAllocatorConfig::parseThrowOnNpuMallocOom(const c10::CachingAllocator:
   return i;
 }
 
+size_t NPUAllocatorConfig::parseMemMallocPolicy(const c10::CachingAllocator::ConfigTokenizer& tokenizer, size_t i) {
+  tokenizer.checkToken(++i, ":");
+  TORCH_CHECK(++i < tokenizer.size(), "Error, expecting mem_malloc_policy value", OPS_ERROR(ErrCode::VALUE));
+  const std::string& value = tokenizer[i];
+
+  std::vector<std::string> items;
+  std::string item;
+  for (char c : value) {
+    if (c == '|') {
+      items.push_back(item);
+      item.clear();
+    } else {
+      item.push_back(c);
+    }
+  }
+  items.push_back(item);
+
+  uint32_t policy = 0;
+  bool has_base_policy = false;
+  bool has_band_width = false;
+  bool has_huge1g = false;
+  for (const auto& name : items) {
+    auto it = memMallocPolicyMap().find(name);
+    if (it == memMallocPolicyMap().end()) {
+      if (name.find("_p2p") != std::string::npos || name == "user_space_readonly") {
+        TORCH_CHECK_VALUE(
+            false,
+            "mem_malloc_policy value '",
+            name,
+            "' is not supported on the caching allocator.",
+            OPS_ERROR(ErrCode::VALUE));
+      }
+      TORCH_CHECK_VALUE(
+          false,
+          "mem_malloc_policy value '",
+          name,
+          "' is invalid, valid values are huge_first, huge_only, normal_only, huge1g_only, "
+          "high_band_width and low_band_width.",
+          OPS_ERROR(ErrCode::VALUE));
+    }
+    if (name == "high_band_width" || name == "low_band_width") {
+      TORCH_CHECK_VALUE(
+          !has_band_width,
+          "mem_malloc_policy only supports one of high_band_width and low_band_width.",
+          OPS_ERROR(ErrCode::VALUE));
+      has_band_width = true;
+    } else {
+      TORCH_CHECK_VALUE(
+          !has_base_policy,
+          "mem_malloc_policy only supports one of huge_first, huge_only, normal_only and huge1g_only.",
+          OPS_ERROR(ErrCode::VALUE));
+      has_base_policy = true;
+      has_huge1g = (name == "huge1g_only");
+    }
+    policy |= it->second;
+  }
+  TORCH_CHECK_VALUE(
+      !(has_huge1g && has_band_width),
+      "mem_malloc_policy value 'huge1g_only' cannot be combined with high_band_width/low_band_width.",
+      OPS_ERROR(ErrCode::VALUE));
+
+  m_mem_malloc_policy = static_cast<aclrtMemMallocPolicy>(policy);
+  m_mem_malloc_policy_str = value;
+  m_mem_malloc_policy_set = true;
+  return i;
+}
+
 void NPUAllocatorConfig::parseArgs(const std::string& env, std::set<std::string> supported_settings) {
   if (env.empty()) {
     return;
@@ -241,6 +324,7 @@ void NPUAllocatorConfig::parseArgs(const std::string& env, std::set<std::string>
   const auto& accelerator_keys = c10::CachingAllocator::AcceleratorAllocatorConfig::getKeys();
   const auto& npu_keys = getKeys();
   c10::CachingAllocator::ConfigTokenizer tokenizer(env);
+  bool mem_malloc_policy_seen = false;
 
   for (size_t i = 0; i < tokenizer.size(); i++) {
     const auto& key = tokenizer[i];
@@ -260,6 +344,13 @@ void NPUAllocatorConfig::parseArgs(const std::string& env, std::set<std::string>
           "torch_npu.npu.memory._set_allocator_settings() unsupported setting: ",
           key,
           OPS_ERROR(ErrCode::VALUE));
+    }
+    if (key == "mem_malloc_policy") {
+      TORCH_CHECK_VALUE(
+          !mem_malloc_policy_seen,
+          "mem_malloc_policy must not be specified more than once.",
+          OPS_ERROR(ErrCode::VALUE));
+      mem_malloc_policy_seen = true;
     }
     i = tokenizer.skipKey(i);
     if (i + 1 < tokenizer.size()) {
@@ -295,6 +386,8 @@ void NPUAllocatorConfig::parseArgs(const std::string& env, std::set<std::string>
       i = parseReleaseLockOnNpuMalloc(tokenizer, i);
     } else if (key == "throw_on_npumalloc_oom") {
       i = parseThrowOnNpuMallocOom(tokenizer, i);
+    } else if (key == "mem_malloc_policy") {
+      i = parseMemMallocPolicy(tokenizer, i);
     } else {
       i = tokenizer.skipKey(i);
     }
@@ -359,12 +452,30 @@ void NPUAllocatorConfig::parseArgs(const std::string& env, std::set<std::string>
         "`segment_size_mb` is deprecated. It is recommended to use only `large_segment_size_mb`.");
   }
 
-  if (m_page_size_1g) {
-    if (c10::CachingAllocator::AcceleratorAllocatorConfig::large_segment_size() != kLargeBuffer ||
-        m_segment_size_mb != 0) {
+  const bool is_mem_policy_huge1g = m_mem_malloc_policy == aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE1G_ONLY;
+  const bool is_expandable_segments = acc_alloc_conf_ins.use_expandable_segments();
+  // `page_size:1g` takes effect on the expandable-segments path, and on the
+  // non-expandable-segments path when `mem_malloc_policy` is not set or is
+  // `huge1g_only`. On the non-expandable-segments path an explicitly configured
+  // `mem_malloc_policy` takes precedence over `page_size:1g`.
+  const bool is_page_size_1g_effective =
+      m_page_size_1g && (is_expandable_segments || !m_mem_malloc_policy_set || is_mem_policy_huge1g);
+  if (is_page_size_1g_effective &&
+      (c10::CachingAllocator::AcceleratorAllocatorConfig::large_segment_size() != kLargeBuffer ||
+       m_segment_size_mb != 0)) {
+    TORCH_NPU_WARN_ONCE(
+        "`page_size:1g` is set, which will override `large_segment_size_mb` and `segment_size_mb` "
+        "for large pool allocations (size > 1MB).");
+  }
+  if (m_mem_malloc_policy_set) {
+    if (is_expandable_segments) {
       TORCH_NPU_WARN_ONCE(
-          "`page_size:1g` is set, which will override `large_segment_size_mb` and `segment_size_mb` "
-          "for large pool allocations (size > 1MB). It is recommended to use only `page_size:1g`.");
+          "`mem_malloc_policy` does not take effect on virtual memory allocation when "
+          "`expandable_segments` is enabled. Use `page_size:1g` to configure 1G VMM pages.");
+    } else if (m_page_size_1g && !is_mem_policy_huge1g) {
+      TORCH_NPU_WARN_ONCE(
+          "Both `page_size:1g` and `mem_malloc_policy` are set. `mem_malloc_policy` takes precedence and "
+          "the 1G page allocation policy is not used.");
     }
   }
   // log all the configuration
@@ -379,7 +490,8 @@ void NPUAllocatorConfig::parseArgs(const std::string& env, std::set<std::string>
       "multi_stream_lazy_reclaim: %d, "
       "pinned_reserve_segment_size_mb: %zu, "
       "per_process_memory_fraction: %f, "
-      "throw_on_npumalloc_oom: %d.",
+      "throw_on_npumalloc_oom: %d, "
+      "mem_malloc_policy: %s.",
       m_release_lock_on_npumalloc,
       m_pin_memory_expandable_segments,
       m_pinned_mem_register,
@@ -389,7 +501,8 @@ void NPUAllocatorConfig::parseArgs(const std::string& env, std::set<std::string>
       m_multi_stream_lazy_reclaim,
       m_pinned_reserve_segment_size_mb,
       m_per_process_memory_fraction,
-      m_throw_on_npumalloc_oom);
+      m_throw_on_npumalloc_oom,
+      m_mem_malloc_policy_str.c_str());
   TORCH_NPU_MEMORY_LOGI(
       "[common alloc config] "
       "max_non_split_rounding_size: %zu, "

@@ -706,7 +706,8 @@ aclError AclrtMallocAlign32(void** devPtr, size_t size, aclrtMemMallocPolicy pol
     TORCH_NPU_WARN_ONCE(
         "The malloc 1G large-page physical memory failed, so malloc 2M page memory."
         "Using the 2M memory page may result in performance degradation. "
-        "This warning occurs because the PYTORCH_NPU_ALLOC_CONF = page_size:1g configuration is "
+        "This warning occurs because the PYTORCH_NPU_ALLOC_CONF = page_size:1g or "
+        "mem_malloc_policy:huge1g_only configuration is "
         "enabled, but the pre-allocated number of 1G large pages is insufficient or 1G large-page "
         "memory pre-allocation is not enabled.");
     policy = aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST;
