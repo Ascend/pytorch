@@ -695,7 +695,10 @@ class AOTInductorModelBase {
       auto opaque_metadata_size = this->opaque_metadata_size(i);
 
       AtenTensorHandle tensor_handle = nullptr;
-      AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_create_tensor_from_blob_npu_v2(
+      auto create_tensor_from_blob = const_device_type == aoti_torch_device_type_cpu()
+          ? aoti_torch_create_tensor_from_blob_v2
+          : aoti_torch_create_tensor_from_blob_npu_v2;
+      AOTI_TORCH_ERROR_CODE_CHECK(create_tensor_from_blob(
           internal_ptr,
           ndim,
           size,
