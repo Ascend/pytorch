@@ -1,0 +1,322 @@
+name: Blacklist Test (a3/a5)
+
+# Runs ONLY the nodeids recorded in the platform blacklist files, without any
+# collection phase: the blacklists already list explicit nodeids, so this
+# pipeline just splits them into shards and executes them.
+#
+# Two trigger modes:
+#   * push to ci-test touching any blacklist file -> runs BOTH platforms
+#     (equivalent to platform=all);
+#   * workflow_dispatch -> platform input controls the scope:
+#       a3  -> build + shard + test on a3 only
+#       a5  -> build + shard + test on a5 only
+#       all -> both platforms, each with its own build and shards
+#
+# Blacklist files per platform:
+#   disabled_testcases_<platform>_all.json
+#   unsupported_aclnn_testcases.json   (common + <platform> group)
+#   unsupport_dtype_testcases.json     (common + <platform> group)
+
+on:
+  push:
+    branches:
+      - ci-test
+    paths:
+      - '.github/workflows/blacklist-test.yml'
+      - '.github/config/disabled_testcases_a3_all.json'
+      - '.github/config/disabled_testcases_a5_all.json'
+      - '.github/config/unsupported_aclnn_testcases.json'
+      - '.github/config/unsupport_dtype_testcases.json'
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Which platform to run: a3, a5, or all'
+        required: true
+        type: string
+        default: 'all'
+      upstream_ref:
+        description: 'Upstream PyTorch ref (branch/tag/SHA)'
+        required: true
+        type: string
+        default: 'main'
+      torch_npu_ref:
+        description: 'torch_npu ref (branch/tag/SHA)'
+        required: true
+        type: string
+        default: 'master'
+      num_shards:
+        description: 'Number of shards per platform'
+        required: true
+        type: string
+        default: '4'
+      test_max_parallel:
+        description: 'Max concurrent shard jobs across both platforms'
+        required: true
+        type: number
+        default: 8
+      patch_triton_cxx20:
+        description: 'Apply the triton-ascend C++20 patch before running'
+        required: true
+        type: boolean
+        default: true
+
+# NOTE: on push events the `inputs` context is empty, so every reference
+# below carries an explicit `|| fallback` that encodes the push default
+# (platform=all, upstream main, torch_npu master, 4 shards, 8 parallel,
+# patch_triton_cxx20=true — matching the nightly a3/a5 pipelines).
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  # ==========================================================================
+  # Guard against typos that would silently start both platforms
+  # ==========================================================================
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Validate inputs
+        run: |
+          case "${{ inputs.platform || 'all' }}" in
+            a3|a5|all) ;;
+            *) echo "::error::platform must be one of: a3, a5, all"; exit 1 ;;
+          esac
+          NUM_SHARDS="${{ inputs.num_shards || '4' }}"
+          case "${NUM_SHARDS}" in
+            ''|*[!0-9]*) echo "::error::num_shards must be a positive integer"; exit 1 ;;
+          esac
+          if [ "${NUM_SHARDS}" -lt 1 ]; then
+            echo "::error::num_shards must be >= 1"
+            exit 1
+          fi
+
+  # ==========================================================================
+  # A3
+  # ==========================================================================
+  build-a3:
+    needs: validate
+    if: ${{ (inputs.platform || 'all') != 'a5' }}
+    uses: ./.github/workflows/_nightly_build.yml
+    secrets: inherit
+    with:
+      upstream_repo: pytorch/pytorch
+      upstream_ref: ${{ inputs.upstream_ref || 'main' }}
+      torch_npu_repo: Ascend/pytorch
+      torch_npu_ref: ${{ inputs.torch_npu_ref || 'master' }}
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-builder-aarch64-torch-master-202610160225-8a315d17
+      report_to_upstream: false
+      runner_label: 'linux-aarch64-cpu-24'
+      max_jobs: '23'
+      artifact_suffix: '-a3'
+
+  shard-a3:
+    needs: build-a3
+    if: ${{ (inputs.platform || 'all') != 'a5' && needs.build-a3.result == 'success' }}
+    uses: ./.github/workflows/_blacklist_shard.yml
+    secrets: inherit
+    with:
+      platform: a3
+      num_shards: ${{ inputs.num_shards || '4' }}
+      artifact_name: cases-shards-a3
+
+  test-a3:
+    needs:
+      - build-a3
+      - shard-a3
+    if: ${{ (inputs.platform || 'all') != 'a5' && needs.shard-a3.result == 'success' }}
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ inputs.test_max_parallel || 8 }}
+      matrix:
+        include:
+          - category: blacklist-a3
+            num_shards: ${{ needs.shard-a3.outputs.num_shards }}
+            matrix_json: ${{ needs.shard-a3.outputs.shards_json }}
+            max_workers: '32'
+            runner_label: 'linux-aarch64-a3-800i-2-cn12-001'
+    uses: ./.github/workflows/_blacklist_test-category.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ needs.build-a3.outputs.resolved_short }}
+      resolved_sha: ${{ needs.build-a3.outputs.resolved_sha }}
+      pytorch_wheels_tarball: ${{ needs.build-a3.outputs.pytorch_wheels_tarball }}
+      torchnpu_wheels_tarball: ${{ needs.build-a3.outputs.torchnpu_wheels_tarball }}
+      upstream_repo: pytorch/pytorch
+      category: ${{ matrix.category }}
+      num_shards: ${{ matrix.num_shards }}
+      matrix_json: ${{ matrix.matrix_json }}
+      max_workers: ${{ matrix.max_workers }}
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610160225-8a315d17
+      report_to_upstream: false
+      runner_label: ${{ matrix.runner_label }}
+      device_env: 'privateuse1,cpu'
+      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 || github.event_name == 'push' }}
+      cases_artifact_name: cases-shards-a3
+
+  # ==========================================================================
+  # A5
+  # ==========================================================================
+  build-a5:
+    needs: validate
+    if: ${{ (inputs.platform || 'all') != 'a3' }}
+    uses: ./.github/workflows/_nightly_build.yml
+    secrets: inherit
+    with:
+      upstream_repo: pytorch/pytorch
+      upstream_ref: ${{ inputs.upstream_ref || 'main' }}
+      torch_npu_repo: Ascend/pytorch
+      torch_npu_ref: ${{ inputs.torch_npu_ref || 'master' }}
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-builder-x86_64-torch-master-202610160227-8a315d17
+      report_to_upstream: false
+      runner_label: 'linux-amd64-a5-2'
+      max_jobs: '23'
+      artifact_suffix: '-a5'
+
+  shard-a5:
+    needs: build-a5
+    if: ${{ (inputs.platform || 'all') != 'a3' && needs.build-a5.result == 'success' }}
+    uses: ./.github/workflows/_blacklist_shard.yml
+    secrets: inherit
+    with:
+      platform: a5
+      num_shards: ${{ inputs.num_shards || '4' }}
+      artifact_name: cases-shards-a5
+
+  test-a5:
+    needs:
+      - build-a5
+      - shard-a5
+    if: ${{ (inputs.platform || 'all') != 'a3' && needs.shard-a5.result == 'success' }}
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ inputs.test_max_parallel || 8 }}
+      matrix:
+        include:
+          - category: blacklist-a5
+            num_shards: ${{ needs.shard-a5.outputs.num_shards }}
+            matrix_json: ${{ needs.shard-a5.outputs.shards_json }}
+            max_workers: '32'
+            runner_label: 'linux-amd64-a5-2'
+    uses: ./.github/workflows/_blacklist_test-category.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ needs.build-a5.outputs.resolved_short }}
+      resolved_sha: ${{ needs.build-a5.outputs.resolved_sha }}
+      pytorch_wheels_tarball: ${{ needs.build-a5.outputs.pytorch_wheels_tarball }}
+      torchnpu_wheels_tarball: ${{ needs.build-a5.outputs.torchnpu_wheels_tarball }}
+      upstream_repo: pytorch/pytorch
+      category: ${{ matrix.category }}
+      num_shards: ${{ matrix.num_shards }}
+      matrix_json: ${{ matrix.matrix_json }}
+      max_workers: ${{ matrix.max_workers }}
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.11-torch-master-cann9.2.0-20260910200430-202610160226-8a315d17
+      report_to_upstream: false
+      runner_label: ${{ matrix.runner_label }}
+      device_env: 'privateuse1,cpu'
+      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 || github.event_name == 'push' }}
+      cases_artifact_name: cases-shards-a5
+
+  # ==========================================================================
+  # Aggregate results. Shard jobs intentionally exit 0 even when cases fail,
+  # so this job turns any failed/errored/timed-out case into a red pipeline.
+  # ==========================================================================
+  summary:
+    needs:
+      - build-a3
+      - shard-a3
+      - test-a3
+      - build-a5
+      - shard-a5
+      - test-a5
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Download a3 test reports
+        if: ${{ (inputs.platform || 'all') != 'a5' }}
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-bla3-*
+          path: reports-a3
+          merge-multiple: true
+
+      - name: Download a5 test reports
+        if: ${{ (inputs.platform || 'all') != 'a3' }}
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-bla5-*
+          path: reports-a5
+          merge-multiple: true
+
+      - name: Aggregate blacklist results
+        env:
+          PLATFORM: ${{ inputs.platform || 'all' }}
+        run: |
+          python3 - <<'PY'
+          import glob
+          import json
+          import os
+          import sys
+
+          platform = os.environ["PLATFORM"]
+          groups = []
+          if platform != "a5":
+              groups.append(("a3", "reports-a3"))
+          if platform != "a3":
+              groups.append(("a5", "reports-a5"))
+
+          failed_any = False
+          missing = []
+          lines = []
+
+          for name, directory in groups:
+              files = sorted(glob.glob(os.path.join(directory, "**", "*_cases.json"), recursive=True))
+              if not files:
+                  missing.append(name)
+                  lines.append(f"| {name} | - | - | - | - | - | - |")
+                  continue
+
+              totals = {"passed": 0, "failed": 0, "errors": 0, "timeout": 0, "skipped": 0, "total": 0}
+              for path in files:
+                  with open(path, encoding="utf-8") as f:
+                      d = json.load(f)
+                  totals["passed"] += d.get("passed", 0)
+                  totals["failed"] += d.get("failed", 0)
+                  totals["errors"] += d.get("errors", 0)
+                  totals["timeout"] += d.get("timeout", 0)
+                  totals["skipped"] += d.get("skipped", 0)
+                  totals["total"] += d.get("total_cases", 0)
+
+              failed = totals["failed"] + totals["errors"] + totals["timeout"]
+              failed_any = failed_any or failed > 0
+              lines.append(
+                  f"| {name} | {len(files)} | {totals['total']} | {totals['passed']} | "
+                  f"{failed} | {totals['skipped']} | {'FAIL' if failed else 'PASS'} |"
+              )
+
+          header = [
+              "### Blacklist test summary",
+              "",
+              "| platform | shards | total | passed | failed+errors+timeout | skipped | result |",
+              "|---|---|---|---|---|---|---|",
+          ]
+          body = "\n".join(header + lines)
+          print(body)
+
+          summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+          if summary_path:
+              with open(summary_path, "a") as f:
+                  f.write(body + "\n")
+
+          if missing:
+              print(f"WARNING: no test reports found for: {', '.join(missing)}")
+          if failed_any:
+              print("::error::blacklist run has failing cases, see per-shard test-reports artifacts")
+              sys.exit(1)
+          PY

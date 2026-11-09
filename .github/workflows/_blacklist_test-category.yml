@@ -1,0 +1,593 @@
+name: Blacklist Test Category
+
+# Variant of _nightly_test-category.yml for blacklist-only runs. The only
+# behavioural differences (kept here so the stock nightly workflow stays
+# untouched):
+#   * new required input cases_artifact_name — the shard JSONs come from
+#     _blacklist_shard.yml (one artifact per platform), not from a collect
+#     phase, and a3/a5 run in the same workflow run so the artifact names
+#     must not collide;
+#   * new categories blacklist-a3/blacklist-a5 -> artifact prefix bla3/bla5;
+#   * the shard JSONs carry test_type "regular", so the runner writes
+#     results as shard_reg-<n>_cases.json; the parse/fail steps look for
+#     that fixed prefix while uploads use the platform-specific one.
+
+on:
+  workflow_call:
+    inputs:
+      resolved_short:
+        required: true
+        type: string
+        description: Short SHA of upstream PyTorch (from _build.yml outputs)
+      resolved_sha:
+        required: true
+        type: string
+        description: Full resolved SHA of upstream PyTorch (interface compatibility; the tested source comes from the OBS tarball keyed by resolved_short).
+      upstream_repo:
+        required: false
+        type: string
+        default: 'pytorch/pytorch'
+        description: The upstream repository full name (owner/repo). No longer used to clone here — source comes from OBS.
+      pytorch_wheels_tarball:
+        required: true
+        type: string
+        description: >-
+          Content-addressed pytorch-side wheels tarball name (torch +
+          torchvision) from the build job output
+          (wheels-pytorch-<upstream_short>-py<ver>-<image_tag>-<arch>-
+          <recipe>.tar.gz), used for the OBS download. A legacy combined
+          tarball name also works: it additionally contains the torch_npu
+          wheel.
+      torchnpu_wheels_tarball:
+        required: false
+        type: string
+        default: ''
+        description: >-
+          torch_npu wheels tarball name from the build job output
+          (wheels-torchnpu-<torch_npu_short>-<upstream_short>-py<ver>-
+          <image_tag>-<arch>-<recipe>.tar.gz). Empty means the torch_npu
+          wheel comes from the pytorch tarball (legacy combined flows).
+      category:
+        required: true
+        type: string
+        description: 'Category name: blacklist-a3 or blacklist-a5'
+      num_shards:
+        required: true
+        type: string
+        description: Number of shards for this category
+      matrix_json:
+        required: true
+        type: string
+        description: Shard matrix JSON array
+      max_workers:
+        required: true
+        type: string
+        description: 'Max concurrent workers (32 for regular-style shards)'
+      docker_image:
+        required: false
+        type: string
+        default: 'quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly'
+        description: Docker image for running tests
+      report_to_upstream:
+        required: false
+        type: boolean
+        default: false
+        description: Whether to report test status to upstream dashboard
+      runner_label:
+        required: false
+        type: string
+        default: 'linux-aarch64-a3-8'
+        description: Runner label for runs-on and upstream job-name reporting.
+      device_env:
+        required: false
+        type: string
+        default: 'privateuse1'
+        description: >-
+          Comma-separated device types exported as
+          PYTORCH_TESTING_DEVICE_ONLY_FOR during execution. Must match the
+          collection phase value.
+      patch_triton_cxx20:
+        required: false
+        type: boolean
+        default: false
+        description: >-
+          Experimental: rewrite the installed triton-ascend backend's
+          hardcoded -std=c++17 anchors to -std=c++20 and prebuild
+          npu_utils.so once per shard container. Workaround for the
+          deterministic npu_utils build failure against torch master's
+          C++20-only ATen headers. Remove once triton-ascend follows
+          torch's C++ standard.
+      cases_artifact_name:
+        required: true
+        type: string
+        description: >-
+          Artifact name holding this platform's shard JSONs (e.g.
+          cases-shards-a3 / cases-shards-a5). Produced by
+          _blacklist_shard.yml; a3 and a5 run in the same workflow run so
+          the names must stay per-platform.
+
+jobs:
+  test:
+    name: ${{ inputs.category }} shard ${{ matrix.shard }}/${{ inputs.num_shards }}
+    runs-on: ${{ inputs.runner_label }}
+    timeout-minutes: 1200
+    permissions:
+      id-token: write
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    container:
+      image: ${{ inputs.docker_image }}
+      options: --network host
+    env:
+      PIP_INDEX_URL: https://mirrors.huaweicloud.com/repository/pypi/simple
+      # CANN plog is NOT written under ~/ascend by default on the new runner
+      # (cn12-001) CANN build, which left crash forensics blind. Pin the plog
+      # directory (job container runs as root, HOME=/root) and the slog level
+      # (0=debug 1=info 2=warning 3=error). Applies to the verify/run steps,
+      # all pytest worker subprocesses (inherited via os.environ), and the
+      # CANN log upload step, which collects from this fixed root.
+      ASCEND_PROCESS_LOG_PATH: /root/ascend/log/plog
+      ASCEND_GLOBAL_LOG_LEVEL: '2'
+    strategy:
+      matrix:
+        shard: ${{ fromJson(inputs.matrix_json) }}
+      fail-fast: false
+    steps:
+      - name: Compute prefix for this category
+        id: prefix
+        run: |
+          case "${{ inputs.category }}" in
+            blacklist-a3) PREFIX="bla3" ;;
+            blacklist-a5) PREFIX="bla5" ;;
+            *)           PREFIX="reg" ;;
+          esac
+          # Shard JSONs from _blacklist_shard.yml carry test_type
+          # "regular", so run_npu_test_shard.py writes the results file
+          # with the "reg" prefix regardless of the artifact prefix.
+          RESULT_PREFIX="reg"
+          echo "prefix=${PREFIX}" >> "$GITHUB_OUTPUT"
+          echo "result_prefix=${RESULT_PREFIX}" >> "$GITHUB_OUTPUT"
+
+      # Python version is read from the image itself (the conda env on
+      # PATH), never hardcoded: this workflow is shared by callers on
+      # py3.10 and py3.11 images. Used only by the upstream job-name
+      # labels below.
+      - name: Compute Python version
+        id: pyver
+        run: |
+          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+          echo "label=py${PYVER}" >> "$GITHUB_OUTPUT"
+          echo "Image python: $(python3 --version)"
+
+      - name: Report test in_progress
+        if: ${{ inputs.report_to_upstream }}
+        continue-on-error: true
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
+        with:
+          status: in_progress
+          job-name: ${{ inputs.runner_label }} / test (${{ inputs.category }}, ${{ matrix.shard }}, ${{ inputs.num_shards }}, ${{ steps.pyver.outputs.label }})
+
+      - name: Compute tarball names
+        id: sha
+        env:
+          PYTORCH_WHEELS_TARBALL: ${{ inputs.pytorch_wheels_tarball }}
+          TORCHNPU_WHEELS_TARBALL: ${{ inputs.torchnpu_wheels_tarball }}
+        run: |
+          UPSTREAM_SHORT="${{ inputs.resolved_short }}"
+          echo "source_tarball=pytorch-source-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "pytorch_wheels_tarball=${PYTORCH_WHEELS_TARBALL}" >> "$GITHUB_OUTPUT"
+          echo "torchnpu_wheels_tarball=${TORCHNPU_WHEELS_TARBALL}" >> "$GITHUB_OUTPUT"
+
+      # Source and wheels are fetched from OBS only (no GitHub clone on the
+      # NPU runner, no GHA artifacts): the build job (or the PR CI fetch job,
+      # which shares the same content-addressed key) published
+      # pytorch-source-<upstream_short>.tar.gz there.
+      - name: Download PyTorch source from OBS
+        run: |
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
+
+          TARBALL="${{ steps.sha.outputs.source_tarball }}"
+          for attempt in 1 2; do
+            echo "=== Download attempt ${attempt} ==="
+            if obsutil cp "obs://pytorch-ci-cache/7day-cache/${TARBALL}" "./${TARBALL}" -vlength; then
+              echo "Download succeeded on attempt ${attempt}"
+              exit 0
+            fi
+            echo "Download attempt ${attempt} failed"
+            sleep 10
+          done
+          echo "Download failed after 2 attempts"
+          exit 1
+
+      - name: Extract PyTorch source
+        run: |
+          tar -xzf ${{ steps.sha.outputs.source_tarball }}
+          rm ${{ steps.sha.outputs.source_tarball }}
+          echo "PyTorch source extracted: $(du -sh pytorch/ | cut -f1)"
+
+      # obsutil is preinstalled in the test image; auth is done inline
+      # via `obsutil config` (AK/SK are masked by the runner in logs).
+      # Objects above the 50MB threshold use segment download
+      # automatically; a failed attempt leaves a checkpoint record in
+      # ~/.obsutil_checkpoint/down, so the retry resumes the transfer
+      # instead of restarting from byte 0. -vlength verifies the local
+      # file size against the object. Do NOT delete the .obs.temp partial
+      # file between attempts — it is the resume state.
+      - name: Download pytorch wheels from OBS
+        run: |
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
+
+          TARBALL="${{ steps.sha.outputs.pytorch_wheels_tarball }}"
+          for attempt in 1 2; do
+            echo "=== Download attempt ${attempt} ==="
+            if obsutil cp "obs://pytorch-ci-cache/7day-cache/${TARBALL}" "./${TARBALL}" -vlength; then
+              echo "Download succeeded on attempt ${attempt}"
+              exit 0
+            fi
+            echo "Download attempt ${attempt} failed"
+            sleep 10
+          done
+          echo "Download failed after 2 attempts"
+          exit 1
+
+      - name: Download torch_npu wheels from OBS
+        if: steps.sha.outputs.torchnpu_wheels_tarball != ''
+        run: |
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
+
+          TARBALL="${{ steps.sha.outputs.torchnpu_wheels_tarball }}"
+          for attempt in 1 2; do
+            echo "=== Download attempt ${attempt} ==="
+            if obsutil cp "obs://pytorch-ci-cache/7day-cache/${TARBALL}" "./${TARBALL}" -vlength; then
+              echo "Download succeeded on attempt ${attempt}"
+              exit 0
+            fi
+            echo "Download attempt ${attempt} failed"
+            sleep 10
+          done
+          echo "Download failed after 2 attempts" >&2
+          exit 1
+
+      - name: Extract and install wheels
+        run: |
+          mkdir -p /tmp/wheels
+          tar -xzf ${{ steps.sha.outputs.pytorch_wheels_tarball }} -C /tmp/wheels
+          rm ${{ steps.sha.outputs.pytorch_wheels_tarball }}
+          if [ -n "${{ steps.sha.outputs.torchnpu_wheels_tarball }}" ]; then
+            tar -xzf ${{ steps.sha.outputs.torchnpu_wheels_tarball }} -C /tmp/wheels
+            rm ${{ steps.sha.outputs.torchnpu_wheels_tarball }}
+          fi
+          pip install /tmp/wheels/torch-*.whl
+          pip install --no-deps /tmp/wheels/torch_npu*.whl
+          pip install --no-deps /tmp/wheels/torchvision-*.whl || echo "WARNING: torchvision wheel not found in tarball"
+
+      - name: Download cases shard JSONs
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.cases_artifact_name }}
+          path: cases-shards
+
+      - name: Checkout test scripts
+        uses: actions/checkout@v6
+        with:
+          path: ci-scripts
+          ref: ci-test
+
+      - name: Verify NPU environment
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+          export LD_LIBRARY_PATH="$(python3 -c 'import sys; print(sys.prefix)')/lib:$LD_LIBRARY_PATH"
+
+          mkdir -p "${ASCEND_PROCESS_LOG_PATH}"
+          echo "CANN plog pinned to ${ASCEND_PROCESS_LOG_PATH} (level=${ASCEND_GLOBAL_LOG_LEVEL})"
+
+          echo "=== NPU Device Information ==="
+          npu-smi info
+          echo "=== End of NPU Device Information ==="
+
+          python -c "
+          import torch
+          print(f'torch: {torch.__version__}')
+          import torch_npu
+          print(f'torch_npu: {torch_npu.__version__}')
+          print(f'NPU available: {torch.npu.is_available()}')
+          print(f'NPU count: {torch.npu.device_count()}')
+          "
+
+      # EXPERIMENTAL (patch_triton_cxx20): rewrites the installed
+      # triton-ascend backend's hardcoded -std=c++17 anchors to
+      # -std=c++20 and prebuilds npu_utils.so once per shard container,
+      # working around the deterministic npu_utils build failure against
+      # torch master's C++20-only ATen headers. Both prior attempts
+      # (runs 39398824822, 39414850086) died in ~1s with zero output;
+      # every conventionally-written step in the same containers ran
+      # fine, so this keeps strictly to the proven form: plain ASCII
+      # step name, run: | multi-line block, same preamble as the Run
+      # shard step, no bashisms, no script file.
+      - name: Patch triton cxx20
+        if: ${{ inputs.patch_triton_cxx20 }}
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+          export LD_LIBRARY_PATH="$(python3 -c 'import sys; print(sys.prefix)')/lib:${LD_LIBRARY_PATH:-}"
+
+          # No stderr capture here: this wrapper forwards stderr fine
+          # (proven by run 39524183072) and merging it into the variable
+          # corrupted TRITON_DIR with triton 3.6.0's import-time
+          # FutureWarnings, making BACKEND_DIR a nonexistent multi-line
+          # path. -W ignore keeps those warnings out of the logs.
+          TRITON_DIR="$(python3 -W ignore -c 'import triton, os; print(os.path.dirname(triton.__file__))')" || {
+            echo "ERROR: import triton failed in this image"
+            exit 1
+          }
+          BACKEND_DIR="${TRITON_DIR}/backends/ascend"
+          echo "triton package dir: ${TRITON_DIR}"
+          python3 -W ignore -c 'import triton; print("triton version:", getattr(triton, "__version__", "unknown"))' || true
+
+          if [ ! -d "${BACKEND_DIR}" ]; then
+            echo "ERROR: triton-ascend backend not found at ${BACKEND_DIR}"
+            exit 1
+          fi
+
+          echo "=== compiler inventory ==="
+          echo "CC=${CC:-unset}"
+          command -v clang++ >/dev/null 2>&1 && clang++ --version | head -1 || echo "clang++: not found"
+          command -v g++ >/dev/null 2>&1 && g++ --version | head -1 || echo "g++: not found"
+
+          TARGETS="$(grep -rlF --include='*.py' -- '"-std=c++17"' "${BACKEND_DIR}" || true)"
+          if [ -z "${TARGETS}" ]; then
+            if grep -rqF --include='*.py' -- '"-std=c++20"' "${BACKEND_DIR}"; then
+              echo "already patched, no-op"
+            else
+              echo "ERROR: no c++17/c++20 anchor under ${BACKEND_DIR}, triton-ascend layout drifted"
+              exit 1
+            fi
+          else
+            for f in ${TARGETS}; do
+              sed -i 's/"-std=c++17"/"-std=c++20"/g' "${f}"
+              python3 -m py_compile "${f}"
+              echo "patched ${f}"
+            done
+            if grep -rqF --include='*.py' -- '"-std=c++17"' "${BACKEND_DIR}"; then
+              echo "ERROR: c++17 residue remains after patch"
+              exit 1
+            fi
+          fi
+
+          echo "=== prebuilding npu_utils.so with -std=c++20 ==="
+          time python3 -c "
+          import torch
+          import torch_npu
+          from triton.runtime.driver import driver
+          target = driver.active.get_current_target()
+          print('triton driver initialized:', target)
+          print('npu_utils.so prebuilt OK')
+          "
+
+      - name: Run ${{ inputs.category }} shard ${{ matrix.shard }}/${{ inputs.num_shards }}
+        id: run_tests
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+          export LD_LIBRARY_PATH="$(python3 -c 'import sys; print(sys.prefix)')/lib:$LD_LIBRARY_PATH"
+
+          # Ensure the pinned plog dir exists before workers start (env is
+          # set at job level; workers inherit it via os.environ.copy()).
+          mkdir -p "${ASCEND_PROCESS_LOG_PATH}"
+
+          CASES_JSON="cases-shards/${{ inputs.category }}_cases_shard_${{ matrix.shard }}.json"
+          TOTAL_CASES=$(python3 -c "import json; d=json.load(open('${CASES_JSON}')); print(d['total_cases'])")
+
+          echo "=== ${{ inputs.category }} Shard ${{ matrix.shard }}/${{ inputs.num_shards }} ==="
+          echo "Total cases: ${TOTAL_CASES}"
+          echo "Max workers: ${{ inputs.max_workers }}"
+          echo "Device env: ${{ inputs.device_env }}"
+
+          set +e
+          python ci-scripts/.github/scripts/run_npu_test_shard.py \
+            --cases-json "${CASES_JSON}" \
+            --test-dir pytorch/test \
+            --report-dir test-reports \
+            --max-workers ${{ inputs.max_workers }} \
+            --timeout 500 \
+            --device-env "${{ inputs.device_env }}" \
+            --verbose \
+            2>&1 | tee /tmp/test_${{ inputs.category }}_${{ matrix.shard }}.log
+
+          TEST_STATUS=${PIPESTATUS[0]}
+          set -e
+          echo "status=${TEST_STATUS}" >> "$GITHUB_OUTPUT"
+
+      - name: Parse test results
+        id: parse_results
+        if: always()
+        run: |
+          PREFIX="${{ steps.prefix.outputs.result_prefix }}"
+          CASES_FILE="test-reports/shard_${PREFIX}-${{ matrix.shard }}_cases.json"
+          python3 -c "
+          import json, os, sys
+          stats = {'passed': 0, 'failed': 0, 'errors': 0, 'timeout': 0, 'skipped': 0, 'total': 0}
+          parse_ok = False
+          try:
+              with open('${CASES_FILE}') as f:
+                  d = json.load(f)
+              stats['passed'] = d.get('passed', 0)
+              stats['failed'] = d.get('failed', 0)
+              stats['errors'] = d.get('errors', 0)
+              stats['timeout'] = d.get('timeout', 0)
+              stats['skipped'] = d.get('skipped', 0)
+              stats['total'] = d.get('total_cases', 0)
+              parse_ok = True
+          except Exception as e:
+              print(f'Warning: Could not parse results: {e}', file=sys.stderr)
+          total_failed = stats['failed'] + stats['errors'] + stats['timeout']
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              for k, v in stats.items():
+                  f.write(f'{k}={v}\n')
+              f.write(f'total_failed={total_failed}\n')
+              f.write(f'parse_ok={str(parse_ok).lower()}\n')
+          print(f'${{ inputs.category }} shard ${{ matrix.shard }}: {stats[\"passed\"]} passed, {stats[\"failed\"]} failed, {stats[\"errors\"]} errors, {stats[\"timeout\"]} timeout, {stats[\"skipped\"]} skipped, {stats[\"total\"]} total')
+          "
+
+      # The shard runners exit 0 by design (even with failing cases) so the
+      # report stage always runs; a crashed runner therefore left this job
+      # green with zero cases executed (run 39334977233: all 6 shards died
+      # at startup with a TypeError and still reported success). Fail the
+      # shard instead when the runner exited non-zero or no results were
+      # recorded for a non-empty shard.
+      - name: Fail shard on missing test results
+        if: always()
+        run: |
+          STATUS="${{ steps.run_tests.outputs.status }}"
+          if [ -n "${STATUS}" ] && [ "${STATUS}" != "0" ]; then
+            echo "::error::shard runner exited with status ${STATUS}; see the error-logs and test-reports artifacts"
+            exit 1
+          fi
+          if [ "${{ steps.parse_results.outputs.parse_ok }}" != "true" ]; then
+            echo "::error::shard results file test-reports/shard_${{ steps.prefix.outputs.result_prefix }}-${{ matrix.shard }}_cases.json is missing or unparseable; the shard runner likely crashed before recording results"
+            exit 1
+          fi
+          if [ "${{ steps.parse_results.outputs.total }}" != "0" ]; then
+            exit 0
+          fi
+          EXPECTED=$(python3 -c "import json; print(json.load(open('cases-shards/${{ inputs.category }}_cases_shard_${{ matrix.shard }}.json'))['total_cases'])" 2>/dev/null || echo 0)
+          if [ "${EXPECTED}" -gt 0 ]; then
+            echo "::error::shard recorded 0 of ${EXPECTED} expected cases; the shard runner produced no results"
+            exit 1
+          fi
+
+      - name: Package test reports
+        if: always()
+        run: |
+          if [ -d "test-reports/junit_xmls" ]; then
+            echo "=== Compressing junit XMLs ==="
+            XML_COUNT=$(find test-reports/junit_xmls -type f -name "*.xml" | wc -l)
+            echo "Found ${XML_COUNT} XML files"
+            tar -czf test-reports/junit_xmls.tar.gz -C test-reports junit_xmls
+            rm -rf test-reports/junit_xmls
+            echo "JUnit XMLs compressed: $(ls -lh test-reports/junit_xmls.tar.gz)"
+          fi
+
+          if [ -d "test-reports/cases_logs" ]; then
+            echo "=== Compressing cases logs ==="
+            LOGS_COUNT=$(find test-reports/cases_logs -type f | wc -l)
+            echo "Found ${LOGS_COUNT} case log files"
+            tar -czf test-reports/cases_logs.tar.gz -C test-reports cases_logs
+            rm -rf test-reports/cases_logs
+            echo "Cases logs compressed: $(ls -lh test-reports/cases_logs.tar.gz)"
+          fi
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-${{ steps.prefix.outputs.prefix }}-${{ matrix.shard }}
+          path: test-reports/
+          retention-days: 7
+
+      # CANN plog is pinned via job-level ASCEND_PROCESS_LOG_PATH
+      # (/root/ascend/log/plog), so logs land in a known place — no
+      # filesystem search needed. Device logs and atrace also default to
+      # the ~/ascend tree. Keep LOG_ROOT in sync with the job env if the
+      # pinned path ever changes.
+      - name: Collect and compress CANN logs
+        if: always()
+        continue-on-error: true
+        run: |
+          PREFIX="${{ steps.prefix.outputs.prefix }}"
+          ARTIFACT="ascend-cann-logs-${PREFIX}-${{ matrix.shard }}.tar.gz"
+          LOG_ROOT="/root/ascend"
+          PLOG_DIR="${ASCEND_PROCESS_LOG_PATH:-${LOG_ROOT}/log/plog}"
+
+          echo "=== Collecting CANN logs ==="
+          echo "HOME=${HOME:-<unset>}, USER=$(id -un), UID=$(id -u)"
+          echo "ASCEND_PROCESS_LOG_PATH=${PLOG_DIR}, ASCEND_GLOBAL_LOG_LEVEL=${ASCEND_GLOBAL_LOG_LEVEL:-<unset>}"
+
+          if [ ! -d "${LOG_ROOT}" ]; then
+            echo "WARNING: ${LOG_ROOT} does not exist; CANN wrote no logs, skipping artifact"
+            exit 0
+          fi
+
+          PLOG_COUNT=$(find "${PLOG_DIR}" -type f 2>/dev/null | wc -l)
+          FILE_COUNT=$(find "${LOG_ROOT}" -type f 2>/dev/null | wc -l)
+          echo "plog files under ${PLOG_DIR}: ${PLOG_COUNT}"
+          echo "total files under ${LOG_ROOT}: ${FILE_COUNT}"
+          if [ "${FILE_COUNT}" -eq 0 ]; then
+            echo "WARNING: ${LOG_ROOT} is empty; CANN wrote no logs, skipping artifact"
+            exit 0
+          fi
+
+          tar -czf "${ARTIFACT}" -C "$(dirname "${LOG_ROOT}")" "$(basename "${LOG_ROOT}")"
+          echo "CANN logs compressed: $(ls -lh ${ARTIFACT})"
+
+      - name: Upload CANN logs
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: ascend-cann-logs-${{ steps.prefix.outputs.prefix }}-${{ matrix.shard }}
+          path: ascend-cann-logs-${{ steps.prefix.outputs.prefix }}-${{ matrix.shard }}.tar.gz
+          retention-days: 7
+
+      - name: Collect error logs
+        if: failure()
+        run: |
+          mkdir -p error-logs
+          cp /tmp/test_${{ inputs.category }}_${{ matrix.shard }}.log error-logs/ 2>/dev/null || true
+
+      - name: Upload error logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: error-logs-${{ steps.prefix.outputs.prefix }}-${{ matrix.shard }}
+          path: error-logs/
+          retention-days: 7
+
+      - name: Report test completed
+        id: report_test_completed
+        if: always() && inputs.report_to_upstream
+        continue-on-error: true
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
+        with:
+          status: completed
+          conclusion: ${{ steps.parse_results.outputs.parse_ok == 'true' && steps.parse_results.outputs.total_failed == '0' && 'success' || 'failure' }}
+          job-name: ${{ inputs.runner_label }} / test (${{ inputs.category }}, ${{ matrix.shard }}, ${{ inputs.num_shards }}, ${{ steps.pyver.outputs.label }})
+          max-time: 60
+          test-results: >-
+            {
+              "passed": ${{ steps.parse_results.outputs.passed }},
+              "failed": ${{ steps.parse_results.outputs.total_failed }},
+              "skipped": ${{ steps.parse_results.outputs.skipped }},
+              "total": ${{ steps.parse_results.outputs.total }}
+            }
+
+      # The completion report above is best-effort (continue-on-error) and
+      # occasionally fails on a transient OIDC token mint timeout, which
+      # would silently drop the report to the upstream dashboard. Retry
+      # once after 30s when the first attempt failed. NOTE: this job does
+      # not check out this repository, so the sleep must be a plain run
+      # step and the retry re-invokes the remote action directly — a
+      # local composite action cannot be resolved here.
+      - name: Wait 30s before report retry
+        if: always() && inputs.report_to_upstream && steps.report_test_completed.outcome == 'failure'
+        run: sleep 30
+
+      - name: Retry report test completed
+        if: always() && inputs.report_to_upstream && steps.report_test_completed.outcome == 'failure'
+        continue-on-error: true
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
+        with:
+          status: completed
+          conclusion: ${{ steps.parse_results.outputs.parse_ok == 'true' && steps.parse_results.outputs.total_failed == '0' && 'success' || 'failure' }}
+          job-name: ${{ inputs.runner_label }} / test (${{ inputs.category }}, ${{ matrix.shard }}, ${{ inputs.num_shards }}, ${{ steps.pyver.outputs.label }})
+          max-time: 60
+          test-results: >-
+            {
+              "passed": ${{ steps.parse_results.outputs.passed }},
+              "failed": ${{ steps.parse_results.outputs.total_failed }},
+              "skipped": ${{ steps.parse_results.outputs.skipped }},
+              "total": ${{ steps.parse_results.outputs.total }}
+            }

@@ -1,0 +1,129 @@
+name: Blacklist Shard
+
+# Shards nodeids taken directly from the blacklist files (no collection):
+# the lists already contain explicit nodeids, so we only need to split them
+# into balanced shards and upload them in the format expected by
+# _nightly_test-category.yml ({"shard", "num_shards", "test_type", "cases"}).
+
+on:
+  workflow_call:
+    inputs:
+      platform:
+        required: true
+        type: string
+        description: 'Target platform: a3 or a5'
+      num_shards:
+        required: false
+        type: string
+        default: '4'
+        description: Number of shards to split the blacklist nodeids into
+      artifact_name:
+        required: true
+        type: string
+        description: >-
+          Artifact name for the generated shard JSONs (e.g. cases-shards-a3).
+          Must be unique per platform within the same workflow run.
+    outputs:
+      shards_json:
+        description: JSON array of shard indexes, e.g. [1,2,3,4]
+        value: ${{ jobs.shard.outputs.shards_json }}
+      num_shards:
+        description: Number of generated shards
+        value: ${{ jobs.shard.outputs.num_shards }}
+      total_cases:
+        description: Number of unique blacklist nodeids sharded
+        value: ${{ jobs.shard.outputs.total_cases }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  shard:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      shards_json: ${{ steps.build_shards.outputs.shards_json }}
+      num_shards: ${{ steps.build_shards.outputs.num_shards }}
+      total_cases: ${{ steps.build_shards.outputs.total_cases }}
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v6
+        with:
+          ref: ci-test
+
+      - name: Build shard JSONs from blacklist nodeids
+        id: build_shards
+        env:
+          PLATFORM: ${{ inputs.platform }}
+          NUM_SHARDS: ${{ inputs.num_shards }}
+          CATEGORY: blacklist-${{ inputs.platform }}
+        run: |
+          python3 - <<'PY'
+          import importlib.util
+          import json
+          import os
+          import pathlib
+
+          platform = os.environ["PLATFORM"]
+          num_shards = int(os.environ["NUM_SHARDS"])
+          category = os.environ["CATEGORY"]
+
+          if platform not in ("a3", "a5"):
+              raise SystemExit(f"invalid platform: {platform}")
+          if num_shards < 1:
+              raise SystemExit(f"invalid num_shards: {num_shards}")
+
+          spec = importlib.util.spec_from_file_location(
+              "collect_all_cases", ".github/scripts/collect_all_cases.py"
+          )
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+
+          files = [
+              f".github/config/disabled_testcases_{platform}_all.json",
+              ".github/config/unsupported_aclnn_testcases.json",
+              ".github/config/unsupport_dtype_testcases.json",
+          ]
+          nodeids = sorted(module.load_skip_list(files, platform=platform))
+          print(f"[{platform}] {len(nodeids)} unique blacklist nodeids from {len(files)} files")
+
+          out_dir = pathlib.Path("cases-shards")
+          out_dir.mkdir(parents=True, exist_ok=True)
+          for i in range(1, num_shards + 1):
+              shard_cases = [
+                  {"nodeid": nodeid, "file": nodeid.split("::", 1)[0]}
+                  for nodeid in nodeids[i - 1 :: num_shards]
+              ]
+              data = {
+                  "shard": i,
+                  "num_shards": num_shards,
+                  "test_type": "regular",
+                  "total_cases": len(shard_cases),
+                  "cases": shard_cases,
+              }
+              path = out_dir / f"{category}_cases_shard_{i}.json"
+              path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+              print(f"  shard {i}: {len(shard_cases)} cases -> {path}")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"shards_json={json.dumps(list(range(1, num_shards + 1)))}\n")
+              f.write(f"num_shards={num_shards}\n")
+              f.write(f"total_cases={len(nodeids)}\n")
+
+          summary = os.environ.get("GITHUB_STEP_SUMMARY")
+          if summary:
+              with open(summary, "a") as f:
+                  f.write(f"### Blacklist shards ({platform})\n\n")
+                  f.write(f"- source files: {', '.join(files)}\n")
+                  f.write(f"- unique nodeids: {len(nodeids)}\n")
+                  f.write(f"- shards: {num_shards}\n")
+          PY
+
+      - name: Upload shard JSONs
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: cases-shards/
+          retention-days: 7
