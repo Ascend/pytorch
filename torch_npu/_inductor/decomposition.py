@@ -218,6 +218,49 @@ def _batch_norm_with_update_inductor(
     return (output.to(input.dtype), mean, rstd, *result[3:])
 
 
+def _native_batch_norm_inductor(
+    input, weight, bias, running_mean, running_var, training, momentum, eps,
+    *, functional=False
+):
+    from torch._decomp.decompositions import native_batch_norm_helper
+
+    result = native_batch_norm_helper(
+        input, weight, bias, running_mean, running_var, training, momentum, eps, functional
+    )
+    if (
+        input.device.type == "npu" and training
+        and input.dtype in (torch.float16, torch.bfloat16, torch.float32)
+    ):
+        # Native NPU training forward/backward exchange biased variance.
+        reduction_dims = [0] + list(range(2, input.dim()))
+        variance = torch.var_mean(input.float(), dim=reduction_dims, correction=0, keepdim=True)[0]
+        variance = torch.squeeze(variance, reduction_dims)
+        result = (result[0], result[1], variance, *result[3:])
+    if input.device.type == "npu" and input.dtype in (torch.float16, torch.bfloat16, torch.float32):
+        if not training:
+            result = (result[0], result[1].to(input.dtype), result[2].to(input.dtype), *result[3:])
+        if functional:
+            result = (*result[:3], result[3].to(running_mean.dtype), result[4].to(running_var.dtype))
+    return result if functional else result[:3]
+
+
+def _native_batch_norm_backward_inductor(
+    grad_out, input, weight, running_mean, running_var, save_mean, save_invstd,
+    train, eps, output_mask
+):
+    from torch._decomp.decompositions import native_batch_norm_backward
+
+    if (
+        input.device.type == "npu" and train and save_invstd is not None
+        and input.dtype in (torch.float16, torch.bfloat16, torch.float32)
+    ):
+        save_invstd = torch.rsqrt(save_invstd + eps)
+    return native_batch_norm_backward(
+        grad_out, input, weight, running_mean, running_var, save_mean, save_invstd,
+        train, eps, output_mask
+    )
+
+
 def _register_triton_decompositions():
     from .config import (
         is_ascend950,
@@ -1238,6 +1281,17 @@ def _register_triton_experimental_decompositions():
     decompositions[aten._batch_norm_with_update_functional.default] = functools.partial(
         _batch_norm_with_update_inductor, functional=True
     )
+    for op in (aten.native_batch_norm.default, aten._native_batch_norm_legit.default):
+        decompositions[op] = _native_batch_norm_inductor
+    decompositions[aten._native_batch_norm_legit.no_stats] = (
+        lambda input, weight, bias, training, momentum, eps: _native_batch_norm_inductor(
+            input, weight, bias, None, None, training, momentum, eps
+        )
+    )
+    decompositions[aten._native_batch_norm_legit_functional.default] = functools.partial(
+        _native_batch_norm_inductor, functional=True
+    )
+    decompositions[aten.native_batch_norm_backward.default] = _native_batch_norm_backward_inductor
 
     _npu_rng_gate()
 
