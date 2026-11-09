@@ -322,7 +322,7 @@ class NPUTritonScheduling(TritonScheduling):
             for node in kernel_features.scheduler_nodes():
                 node.mark_run()
 
-        self.codegen_comment(node_schedule)
+        self.codegen_comment(node_schedule, final_kernel.kernel_name)
         if is_multi_stream():
             final_kernel.call_kernel(name=final_kernel.kernel_name, origin_node=origin_node)
         else:
@@ -443,7 +443,7 @@ class NPUTritonScheduling(TritonScheduling):
             traced_graph_hash = None
             kernel_name, src_code = self.define_kernel(src_code, node_schedule, kernel, traced_graph_hash)
 
-        self.codegen_comment(node_schedule)
+        self.codegen_comment(node_schedule, kernel_name)
         kernel.call_kernel(kernel_name, template_node.node)
 
         V.graph.removed_buffers |= kernel.removed_buffers
@@ -465,7 +465,7 @@ class NPUTritonScheduling(TritonScheduling):
 
         for src_code, kernel, _ in kernel_code_list:
             kernel_name, _ = self.define_kernel(src_code, [combo_kernel_node], kernel, None)
-            self.codegen_comment([combo_kernel_node])
+            self.codegen_comment([combo_kernel_node], kernel_name)
             log.debug("ComboKernels: generated kernel %s.", kernel_name)
             kernel.call_kernel(V.graph.wrapper_code, kernel_name)
 
