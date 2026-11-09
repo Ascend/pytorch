@@ -332,6 +332,31 @@ def rebuild_flattened_dims(indexing):
     )
 
 
+def _normalize_integral_floors(expression, sizevars):
+    """Simplify integral floor quotients only when division is provably valid."""
+    expression = sympy.sympify(expression)
+    replacements = {}
+    for floor in sorted(expression.atoms(sympy.floor), key=str):
+        argument = floor.args[0]
+        _, denominator = sympy.fraction(argument)
+        # Also check division inside additive terms before cancel erases it.
+        divisors = {denominator} | {
+            power.base for power in argument.atoms(sympy.Pow)
+            if power.exp.is_negative is True
+        }
+        nonzero = all(
+            divisor.is_nonzero is True
+            or sizevars.statically_known_gt(divisor, 0)
+            or sizevars.statically_known_lt(divisor, 0)
+            for divisor in divisors
+        )
+        quotient = sympy.cancel(argument)
+        if (argument.is_rational_function() is True
+                and nonzero and quotient.is_integer is True):
+            replacements[floor] = quotient
+    return expression.xreplace(replacements)
+
+
 def substituted_dims_in_indexing(self, indexing, kernel, range_tree_nodes_substituted):
     substituted = False
     for var, candidates in range_tree_nodes_substituted.items():
@@ -371,7 +396,15 @@ def substituted_dims_in_indexing(self, indexing, kernel, range_tree_nodes_substi
         numel = exprs[0][0]
         expr = exprs[0][1]
         node = kernel.range_tree_nodes[var]
-        if node.length != numel:
+        sizevars = V.graph.sizevars
+        known_equal = sizevars.statically_known_equals(node.length, numel)
+        if not known_equal:
+            # Rebuilt ranges can contain an unnormalized native SymPy floor.
+            known_equal = sizevars.statically_known_equals(
+                _normalize_integral_floors(node.length, sizevars),
+                _normalize_integral_floors(numel, sizevars),
+            )
+        if not known_equal:
             log.debug(
                 "sub nodes (expr%s, numel:%d) can not substitute parent node(%s:%d)",
                 expr,
