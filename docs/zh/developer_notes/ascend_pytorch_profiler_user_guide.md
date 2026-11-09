@@ -165,7 +165,7 @@ Ascend PyTorch Profiler可全面采集PyTorch训练/在线推理场景下的性�
 
 3. 安装框架。
 
-   以安装PyTorch 2.9.0、Python 3.12、系统架构AArch64、torchvision==0.24.0为例，具体请参见《[TorchNPU软件安装](../installation_guide/references/building_from_source.md)》。
+   以安装PyTorch 2.9.0、Python 3.12、系统架构AArch64、torchvision==0.24.0为例，具体请参见《[TorchNPU软件安装](https://www.hiascend.com/zh/developer/software/ai-frameworks/pytorch/download)》。
 
    > [!note]
    >
