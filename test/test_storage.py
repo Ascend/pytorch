@@ -144,5 +144,70 @@ class TestUntypedStorage(TestCase):
                 self.assertEqual(npu_storage[0], 1)
 
 
+class TestTypedStorageResizeNPU(TestCase):
+
+    def test_typed_storage_resize_larger(self):
+        """Verify resize_ increases storage size on NPU."""
+        s = torch.FloatStorage(10).npu()
+        self.assertEqual(s.size(), 10)
+        s.resize_(20)
+        self.assertEqual(s.size(), 20)
+
+    def test_typed_storage_resize_smaller(self):
+        """Verify resize_ decreases storage size on NPU."""
+        s = torch.FloatStorage(20).npu()
+        s.resize_(5)
+        self.assertEqual(s.size(), 5)
+
+    def test_typed_storage_resize_same(self):
+        """Verify resize_ to same size on NPU."""
+        s = torch.FloatStorage(10).npu()
+        s.resize_(10)
+        self.assertEqual(s.size(), 10)
+
+    def test_typed_storage_resize_zero(self):
+        """Verify resize_ to zero and back on NPU."""
+        s = torch.FloatStorage(10).npu()
+        s.resize_(0)
+        self.assertEqual(s.size(), 0)
+        s.resize_(5)
+        self.assertEqual(s.size(), 5)
+
+    def test_typed_storage_resize_different_dtypes(self):
+        """Verify resize_ works with different TypedStorage dtypes on NPU."""
+        factories = [
+            ("FloatStorage", torch.FloatStorage),
+            ("LongStorage", torch.LongStorage),
+            ("IntStorage", torch.IntStorage),
+            ("ByteStorage", torch.ByteStorage),
+            ("HalfStorage", torch.HalfStorage),
+        ]
+        for name, factory in factories:
+            s = factory(5).npu()
+            s.resize_(10)
+            self.assertEqual(s.size(), 10, f"{name}.resize_(10) failed")
+
+    def test_typed_storage_resize_preserves_data_on_shrink(self):
+        """Verify resize_ to smaller size preserves remaining data on NPU."""
+        s_cpu = torch.FloatStorage(10)
+        for i in range(10):
+            s_cpu[i] = float(i)
+        s = torch.FloatStorage(s_cpu.tolist()).npu()
+        s.resize_(5)
+        self.assertEqual(s.size(), 5)
+        self.assertEqual(s.tolist(), [0.0, 1.0, 2.0, 3.0, 4.0])
+
+    def test_typed_storage_resize_negative_size(self):
+        """Verify resize_ raises RuntimeError for negative size on NPU."""
+        s = torch.FloatStorage(10).npu()
+        with self.assertRaises(RuntimeError):
+            s.resize_(-1)
+
+    def test_typed_storage_resize_non_integer_size(self):
+        """Verify resize_ raises RuntimeError for non-integer size on NPU."""
+        s = torch.FloatStorage(10).npu()
+        with self.assertRaises(RuntimeError):
+            s.resize_(3.5)
+
 if __name__ == "__main__":
     run_tests()
