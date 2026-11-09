@@ -2839,6 +2839,7 @@ def reduction(
             x_list = [1, 2, 4, 8, 16, 32, 64]
             r_list = _full_r_range(8, min(rnumel, 4096))
 
+        # Hints add candidates; they do not constrain R0_BLOCK (see #5954).
         for hint_val in block_hints.get("R0_BLOCK_HINT", []):
             if isinstance(hint_val, int) and hint_val > 0 and hint_val not in r_list:
                 r_list = sorted(set(r_list) | {hint_val})
@@ -3145,6 +3146,7 @@ def persistent_reduction(
             r_list.append(rnumel)
             r_list.sort()
 
+        # Hints add candidates; they do not constrain R0_BLOCK (see #5954).
         for hint_val in block_hints.get("R0_BLOCK_HINT", []):
             if isinstance(hint_val, int) and hint_val > 0 and hint_val not in r_list:
                 r_list = sorted(set(r_list) | {hint_val})

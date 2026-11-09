@@ -168,6 +168,203 @@ class TestCodegenRegressions(TestCase):
         self.assertIn("npu_triton_heuristics", "\n".join(codes))
         torch.testing.assert_close(actual, expected, rtol=1e-4, atol=1e-4)
 
+    def test_pad_transform_division_family_is_sound(self):
+        # Reduction-guard elision drops the accumulator ``tl.where`` only when
+        # the pad-lane value is provably the reduction identity.  Division by
+        # a zero-valued pad yields inf (1/0) which then poisons ``0 * inf``:
+        # the lattice must answer "top" (unknown), never "fin"/const-0.
+        pad = npu_triton_codegen._pad_transform
+        top = npu_triton_codegen._PAD_TOP
+        fin = npu_triton_codegen._PAD_FIN
+        # truediv by a zero pad: 1/0 -> inf (was wrongly "fin" before the fix)
+        self.assertEqual(pad("truediv", [("c", 1.0), ("c", 0.0)]), top)
+        # the full __rdiv__-backward chain: 0 * (1/0) -> nan, must stay top
+        quotient = pad("truediv", [("c", 1.0), ("c", 0.0)])
+        self.assertEqual(pad("mul", [("c", 0.0), quotient]), top)
+        # non-constant operands: a finite divisor may still be zero on pads
+        self.assertEqual(pad("truediv", [fin, fin]), top)
+        self.assertEqual(pad("truediv", [("c", 1.0), fin]), top)
+        # reciprocal(0)=inf, rsqrt(0)=inf, rsqrt(neg)=nan, sqrt(neg)=nan,
+        # log(0)=-inf: none may be deemed finite
+        self.assertEqual(pad("reciprocal", [("c", 0.0)]), top)
+        self.assertEqual(pad("rsqrt", [("c", 0.0)]), top)
+        self.assertEqual(pad("rsqrt", [("c", -1.0)]), top)
+        self.assertEqual(pad("sqrt", [("c", -1.0)]), top)
+        self.assertEqual(pad("log", [("c", 0.0)]), top)
+        # fmod(x, 0)=nan; pow(0, -1)=inf, pow(neg, frac)=nan; a//0 overflows
+        self.assertEqual(pad("fmod", [fin, ("c", 0.0)]), top)
+        self.assertEqual(pad("pow", [("c", 0.0), ("c", -1.0)]), top)
+        self.assertEqual(pad("remainder", [fin, ("c", 0.0)]), top)
+        self.assertEqual(pad("floordiv", [fin, ("c", 0.0)]), top)
+        # the rest of the family: finite pads that produce inf/nan
+        self.assertEqual(pad("log2", [("c", 0.0)]), top)
+        self.assertEqual(pad("log10", [("c", 0.0)]), top)
+        self.assertEqual(pad("log1p", [("c", -1.0)]), top)
+        self.assertEqual(pad("lgamma", [("c", 0.0)]), top)
+        self.assertEqual(pad("exp2", [("c", 1000.0)]), top)
+        self.assertEqual(pad("expm1", [("c", 1000.0)]), top)
+        self.assertEqual(pad("cosh", [("c", 1000.0)]), top)
+        self.assertEqual(pad("sinh", [("c", 1000.0)]), top)
+        self.assertEqual(pad("asin", [("c", 2.0)]), top)
+        self.assertEqual(pad("acos", [("c", 2.0)]), top)
+        self.assertEqual(pad("acosh", [("c", 0.5)]), top)
+        self.assertEqual(pad("atanh", [("c", 1.0)]), top)
+        self.assertEqual(pad("erfinv", [("c", 2.0)]), top)
+        self.assertEqual(pad("mod", [("c", 1.0), ("c", 0.0)]), top)
+        # the default rule itself must be top for anything outside the
+        # finite-total allowlist: the upstream vocabulary carries these
+        # singularity/overflow ops (verified present in ops_handler.py)
+        for name in (
+            "digamma",
+            "polygamma",
+            "zeta",
+            "ndtri",
+            "bessel_y0",
+            "bessel_y1",
+            "scaled_modified_bessel_k0",
+            "scaled_modified_bessel_k1",
+            "igamma",
+            "igammac",
+            "gammainc",
+            "gammaincc",
+            "div_rn",
+            "int_truediv",
+            "erfcx",
+            "ldexp",
+            "i0",
+            "i1",
+            "log_ndtr",
+            "chebyshev",
+            "hermite",
+            "laguerre",
+            "legendre",
+            "inline_asm_elementwise",
+        ):
+            self.assertEqual(pad(name, [fin, ("c", 0.0)]), top)
+            self.assertEqual(pad(name, [fin]), top)
+
+    def test_pad_transform_finite_total_allowlist(self):
+        # Only ops known total on finite pads (finite operands -> finite
+        # result) may answer "fin"; the default for everything else is top.
+        pad = npu_triton_codegen._pad_transform
+        fin = npu_triton_codegen._PAD_FIN
+        top = npu_triton_codegen._PAD_TOP
+        for name in (
+            "sign",
+            "relu",
+            "sin",
+            "cos",
+            "tanh",
+            "sigmoid",
+            "erf",
+            "erfc",
+            "atan",
+            "asinh",
+            "floor",
+            "ceil",
+            "trunc",
+            "round",
+            "lt",
+            "eq",
+            "logical_not",
+            "logical_and",
+            "bitwise_or",
+        ):
+            self.assertEqual(pad(name, [fin, fin]), fin, name)
+        # a non-finite operand still answers top on the allowlist
+        self.assertEqual(pad("sin", [("c", float("inf"))]), top)
+        self.assertEqual(pad("relu", [top]), top)
+
+    def test_pad_transform_division_family_exact_constants(self):
+        # A constant fold is provable only when it is exactly the value the
+        # hardware computes: f32-representable and round-trip verified, so
+        # float64-only identities ((1/41)*41 == 1.0, sqrt(11)^2 == 11.0)
+        # never feed the guard elision.
+        pad = npu_triton_codegen._pad_transform
+        top = npu_triton_codegen._PAD_TOP
+        fin = npu_triton_codegen._PAD_FIN
+        # exactly representable quotients keep their proofs
+        self.assertEqual(pad("truediv", [("c", 1.0), ("c", 2.0)]), ("c", 0.5))
+        self.assertEqual(pad("truediv", [("c", 10.0), ("c", 2.0)]), ("c", 5.0))
+        self.assertEqual(pad("truediv", [("c", 0.0), ("c", 2.0)]), ("c", 0.0))
+        self.assertEqual(pad("reciprocal", [("c", 4.0)]), ("c", 0.25))
+        self.assertEqual(pad("sqrt", [("c", 4.0)]), ("c", 2.0))
+        # float64-exact but fp32-inexact values must NOT fold
+        self.assertEqual(pad("truediv", [("c", 1.0), ("c", 41.0)]), top)
+        self.assertEqual(pad("reciprocal", [("c", 41.0)]), top)
+        self.assertEqual(pad("sqrt", [("c", 11.0)]), top)
+        self.assertEqual(pad("log", [("c", 2.0)]), top)
+        # an fp32-overflowing product is inf on hardware, not the finite
+        # float64 folded here (0 * inf would be nan on the pad lane)
+        self.assertEqual(pad("mul", [("c", 0.0), ("c", 3.0e39)]), top)
+        self.assertEqual(pad("add", [("c", 3.0e38), ("c", 3.0e38)]), top)
+        for name, a, b in (("add", float("inf"), -3e39),
+                           ("sub", float("inf"), 3e39),
+                           ("mul", float("inf"), 1e-50)):
+            self.assertEqual(pad(name, [("c", a), ("c", b)]), top)
+        self.assertEqual(pad("add", [("c", 3e39), fin]), top)
+        # exp folds only its exact cases
+        self.assertEqual(pad("exp", [("c", 0.0)]), ("c", 1.0))
+        self.assertEqual(pad("exp", [("c", float("-inf"))]), ("c", 0.0))
+        self.assertEqual(pad("exp", [("c", 710.0)]), ("c", float("inf")))
+        self.assertEqual(pad("exp", [("c", 1.0)]), top)
+        self.assertEqual(pad("exp", [("c", 89.0)]), top)
+        # A finite f64 operand can overflow/underflow before fp32 division.
+        for a, b in ((3e39, float("inf")), (float("inf"), 3e39),
+                     (float("inf"), 1e-50)):
+            self.assertEqual(pad("truediv", [("c", a), ("c", b)]), top)
+        # IEEE-exact non-finite quotients
+        self.assertEqual(pad("truediv", [("c", float("inf")), ("c", 2.0)]), ("c", float("inf")))
+        self.assertEqual(pad("truediv", [("c", 1.0), ("c", float("inf"))]), ("c", 0.0))
+        self.assertEqual(pad("reciprocal", [("c", float("inf"))]), ("c", 0.0))
+        self.assertEqual(pad("sqrt", [("c", float("inf"))]), ("c", float("inf")))
+        self.assertEqual(pad("log", [("c", float("inf"))]), ("c", float("inf")))
+        # rsqrt folds only its hardware-exact identity results; tl.rsqrt is
+        # not correctly rounded, so other positives must stay top
+        self.assertEqual(pad("rsqrt", [("c", 1.0)]), ("c", 1.0))
+        self.assertEqual(pad("rsqrt", [("c", float("inf"))]), ("c", 0.0))
+        self.assertEqual(pad("rsqrt", [("c", 4.0)]), top)
+        # max/min with a nan operand: Python max is order-dependent on nan,
+        # which does not match tl.maximum, so the result is unknowable
+        self.assertEqual(pad("maximum", [("c", float("nan")), ("c", 5.0)]), top)
+        self.assertEqual(pad("minimum", [("c", 5.0), ("c", float("nan"))]), top)
+        # fin - (c, inf) is exactly -inf
+        self.assertEqual(pad("sub", [fin, ("c", float("inf"))]), ("c", float("-inf")))
+        # non-finite const-const results are dtype-invariant and stay folded
+        self.assertEqual(pad("add", [("c", float("inf")), ("c", 5.0)]), ("c", float("inf")))
+        self.assertEqual(pad("mul", [("c", 2.0), ("c", float("inf"))]), ("c", float("inf")))
+        self.assertEqual(pad("sub", [("c", float("inf")), ("c", float("inf"))]), ("c", float("nan")))
+
+    def test_codegen_reduction_pad_division_keeps_guard(self):
+        if not torch.npu.is_available():
+            self.skipTest("requires an NPU")
+        # Exercise masked reciprocal reduction lanes; 257 avoids scalar unrolling.
+        # Padding must retain a guard or use a safe divisor fill.
+        # Fix the seed to avoid cancellation-sensitive reassociation noise.
+        torch.manual_seed(0)
+        t = torch.randn(257, device="npu")
+        x = torch.randn(257, device="npu")
+
+        def scalar_grad(t, x):
+            return (t * x.reciprocal()).sum()
+
+        expected = scalar_grad(t, x)
+        compiled = torch.compile(
+            scalar_grad, options={"npu_backend": "triton_experimental"}
+        )
+        actual, codes = run_and_get_code(compiled, t, x)
+        self.assertIn("npu_triton_heuristics", "\n".join(codes))
+        # sound outcomes only: the accumulator where-guard survives, or the
+        # fill solver re-filled the divisor load with -inf (0 * (1/-inf) is
+        # the sum identity); an unguarded other=0.0 divisor load is the bug
+        joined = "\n".join(codes)
+        self.assertTrue(
+            "tl.where" in joined or "float('-inf')" in joined or 'float("-inf")' in joined,
+            "neither the accumulator guard nor a -inf divisor fill is present",
+        )
+        self.assertFalse(bool(torch.isnan(actual).any()))
+        torch.testing.assert_close(actual, expected)
+
 
 if __name__ == "__main__":
     run_tests()

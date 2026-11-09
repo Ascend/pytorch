@@ -275,7 +275,6 @@ def _load_triton_backend():
     patch_npu_cpp_device_options()
     patch_constant_fold_uniform_value()
     _apply_common_npu_triton_patches()
-    patch_device_to_aten()
     if npu_config.dump_fx_graph:
         from .codegen.ir_fx import _patch_npu_inductor_ir
 
@@ -458,6 +457,8 @@ def _load_backend():
     # Reset Inductor globals before each backend switch (mlir <-> triton in one process).
     restore_inductor_baseline()
     _apply_npu_cpp_march_default()
+    # All backends need the NPU ATen device mapping on torch < 2.15.
+    patch_device_to_aten()
 
     backend = _get_backend()
     loader = _BACKEND_LOADERS.get(backend, _load_triton_backend)

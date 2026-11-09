@@ -18,6 +18,7 @@ import ast
 import contextlib
 import inspect
 import math
+import struct
 from typing import (
     Any,
     Dict,
@@ -1468,7 +1469,8 @@ def _pad_finite(a):
     if a == _PAD_FIN:
         return True
     if _pad_is_c(a):
-        return math.isfinite(a[1])
+        rounded = _pad_f32_roundtrip(a[1])
+        return rounded is not None and math.isfinite(rounded)
     return False
 
 
@@ -1477,9 +1479,47 @@ def _pad_const(a):
     return a[1] if _pad_is_c(a) else None
 
 
+def _pad_f32_roundtrip(x):
+    """Round through IEEE binary32; return None on overflow.
+
+    Constant-folding callers separately check exact representability.
+    """
+    try:
+        return struct.unpack("<f", struct.pack("<f", x))[0]
+    except (OverflowError, ValueError):
+        return None
+
+
+def _pad_f32_exact(x):
+    return _pad_f32_roundtrip(x) == x
+
+
+def _pad_f32_mul(a, b):
+    """Multiply f32-exact operands with binary32 rounding; None on overflow.
+
+    Their product fits float64's significand before binary32 rounding.
+    """
+    try:
+        return struct.unpack("<f", struct.pack("<f", a * b))[0]
+    except (OverflowError, ValueError):
+        return None
+
+
 def _pad_add(a, b):
     if _pad_is_c(a) and _pad_is_c(b):
-        return ("c", a[1] + b[1])
+        if not (_pad_f32_exact(a[1]) and _pad_f32_exact(b[1])):
+            return _PAD_TOP
+        s = a[1] + b[1]
+        if not math.isfinite(s):
+            # With f32-exact operands, preserve IEEE non-finite results.
+            return ("c", s)
+        # IEEE add is correctly rounded: an f64 sum of f32-exact operands
+        # rounds back to the hardware result, so fold only when every value
+        # is f32-exact (an fp32-overflowing sum is inf on hardware, not the
+        # finite f64 constant folded here).
+        if _pad_f32_exact(a[1]) and _pad_f32_exact(b[1]) and _pad_f32_exact(s):
+            return ("c", s)
+        return _PAD_TOP
     if _pad_is_c(a) and not math.isfinite(a[1]) and _pad_finite(b):
         return a
     if _pad_is_c(b) and not math.isfinite(b[1]) and _pad_finite(a):
@@ -1491,9 +1531,18 @@ def _pad_add(a, b):
 
 def _pad_sub(a, b):
     if _pad_is_c(a) and _pad_is_c(b):
-        return ("c", a[1] - b[1])
+        if not (_pad_f32_exact(a[1]) and _pad_f32_exact(b[1])):
+            return _PAD_TOP
+        s = a[1] - b[1]
+        if not math.isfinite(s):
+            return ("c", s)
+        if _pad_f32_exact(a[1]) and _pad_f32_exact(b[1]) and _pad_f32_exact(s):
+            return ("c", s)
+        return _PAD_TOP
     if _pad_is_c(a) and not math.isfinite(a[1]) and _pad_finite(b):
         return a
+    if _pad_is_c(b) and not math.isfinite(b[1]) and _pad_finite(a):
+        return ("c", -b[1])
     if _pad_finite(a) and _pad_finite(b):
         return _PAD_FIN
     return _PAD_TOP
@@ -1501,7 +1550,16 @@ def _pad_sub(a, b):
 
 def _pad_mul(a, b):
     if _pad_is_c(a) and _pad_is_c(b):
-        return ("c", a[1] * b[1])
+        if not (_pad_f32_exact(a[1]) and _pad_f32_exact(b[1])):
+            return _PAD_TOP
+        s = a[1] * b[1]
+        if not math.isfinite(s):
+            return ("c", s)
+        # Fold only when everything is f32-exact: 0 * (an f64 finite that is
+        # inf on fp32 hardware) is nan on hardware, not the 0.0 folded here.
+        if _pad_f32_exact(a[1]) and _pad_f32_exact(b[1]) and _pad_f32_exact(s):
+            return ("c", s)
+        return _PAD_TOP
     # 0 * finite == 0 (but 0 * inf is nan → only when the other side is finite)
     if a == ("c", 0.0) and _pad_finite(b):
         return ("c", 0.0)
@@ -1518,6 +1576,11 @@ def _pad_mul(a, b):
 
 def _pad_maxv(a, b):
     if _pad_is_c(a) and _pad_is_c(b):
+        # Python max is order-dependent on nan (max(nan, x) != max(x, nan)),
+        # which does not match tl.maximum's nan propagation; a nan operand
+        # makes the result unknowable.
+        if math.isnan(a[1]) or math.isnan(b[1]):
+            return _PAD_TOP
         return ("c", max(a[1], b[1]))
     if _pad_finite(a) and _pad_finite(b):
         return _PAD_FIN
@@ -1526,6 +1589,8 @@ def _pad_maxv(a, b):
 
 def _pad_minv(a, b):
     if _pad_is_c(a) and _pad_is_c(b):
+        if math.isnan(a[1]) or math.isnan(b[1]):
+            return _PAD_TOP
         return ("c", min(a[1], b[1]))
     if _pad_finite(a) and _pad_finite(b):
         return _PAD_FIN
@@ -1534,11 +1599,83 @@ def _pad_minv(a, b):
 
 def _pad_expv(a):
     if _pad_is_c(a):
+        # exp(0)=1, exp(inf)=inf and exp(-inf)=0 are exact everywhere;
+        # overflow to inf is exact; any other finite constant folds an
+        # inexact (and possibly fp32-overflowing) value, so it stays unknown.
+        if a[1] == 0.0:
+            return ("c", 1.0)
+        if a[1] == float("inf"):
+            return ("c", float("inf"))
+        if a[1] == float("-inf"):
+            return ("c", 0.0)
         try:
-            return ("c", math.exp(a[1]))
+            math.exp(a[1])
         except OverflowError:
             return ("c", float("inf"))
+        return _PAD_TOP
     return _PAD_TOP  # exp(finite) may overflow → not provably finite
+
+
+def _pad_div(a, b):
+    # Division may produce non-finite pads. Fold only f32-exact operands
+    # with an exact quotient verified by the binary32 multiply round trip.
+    if _pad_is_c(a) and _pad_is_c(b):
+        # Check before inf shortcuts: fp32 conversion may overflow or underflow.
+        if not (_pad_f32_exact(a[1]) and _pad_f32_exact(b[1])):
+            return _PAD_TOP
+        if math.isinf(a[1]) or math.isinf(b[1]):
+            # Exact non-finite operands obey IEEE division; nan matches no identity.
+            return ("c", a[1] / b[1]) if b[1] != 0 else _PAD_TOP
+        if b[1] != 0:
+            qa = _pad_f32_exact(a[1])
+            qb = _pad_f32_exact(b[1])
+            if qa and qb:
+                q = a[1] / b[1]
+                if (
+                    _pad_f32_exact(q)
+                    and _pad_f32_mul(q, b[1]) == a[1]
+                ):
+                    return ("c", q)
+        return _PAD_TOP
+    return _PAD_TOP
+
+
+def _pad_exact_unary(name, a):
+    # Fold exact f32 results with domain checks and a multiply round trip.
+    # rsqrt is approximate, so retain only its exact identity cases.
+    if not _pad_is_c(a):
+        return _PAD_TOP
+    if name == "reciprocal":
+        if math.isinf(a[1]):
+            return ("c", math.copysign(0.0, a[1]))
+        if a[1] != 0 and _pad_f32_exact(a[1]):
+            q = 1.0 / a[1]
+            if _pad_f32_exact(q) and _pad_f32_mul(q, a[1]) == 1.0:
+                return ("c", q)
+        return _PAD_TOP
+    if name == "rsqrt":
+        if a[1] == 1.0:
+            return ("c", 1.0)
+        if a[1] == float("inf"):
+            return ("c", 0.0)
+        return _PAD_TOP
+    if name == "sqrt":
+        if a[1] == float("inf"):
+            return ("c", float("inf"))
+        if a[1] >= 0 and _pad_f32_exact(a[1]):
+            r = math.sqrt(a[1])
+            if _pad_f32_exact(r) and _pad_f32_mul(r, r) == a[1]:
+                return ("c", r)
+        return _PAD_TOP
+    if name == "log":
+        # log(1)=0 and log(inf)=inf are exact everywhere; any other value is
+        # transcendental and inexact in fp32.
+        if a[1] == 1.0:
+            return ("c", 0.0)
+        if a[1] == float("inf"):
+            return ("c", float("inf"))
+        return _PAD_TOP
+    return _PAD_TOP
 
 
 def _pad_join(a, b):
@@ -1550,10 +1687,45 @@ def _pad_join(a, b):
     return _PAD_TOP
 
 
-# How each op transforms its operands' pad facts.  Keyed by ops-handler
-# method name; anything not listed falls to the conservative default
-# (finite iff all operands finite, else top).  Constants/loads are seeded
-# directly (constant(), load()) and never go through here.
+# Only explicitly supported ops may preserve finite pad facts.
+# Unknown ops may introduce singularities or overflow, so return TOP.
+# Constants and loads are seeded separately.
+_PAD_FINITE_TOTAL = frozenset(
+    {
+        "sign",
+        "relu",
+        "sin",
+        "cos",
+        "tanh",
+        "sigmoid",
+        "erf",
+        "erfc",
+        "atan",
+        "asinh",
+        "floor",
+        "ceil",
+        "trunc",
+        "round",
+        "lt",
+        "le",
+        "gt",
+        "ge",
+        "eq",
+        "ne",
+        "logical_not",
+        "logical_and",
+        "logical_or",
+        "logical_xor",
+        "bitwise_and",
+        "bitwise_or",
+        "bitwise_xor",
+        "bitwise_not",
+        "bitwise_left_shift",
+        "bitwise_right_shift",
+    }
+)
+
+
 def _pad_transform(name, arg_facts):
     if name == "constant":
         # constant(value, dtype): the exact literal is the pad value (it is
@@ -1573,6 +1745,15 @@ def _pad_transform(name, arg_facts):
         return _pad_minv(arg_facts[0], arg_facts[1])
     if name in ("exp",):
         return _pad_expv(arg_facts[0])
+    if name in ("truediv",):
+        # 1/0 -> inf and 0*inf -> nan: division must never inherit the
+        # finite-join rule, and a constant quotient is provable only when
+        # it round-trips in binary32 (see _pad_div).
+        if len(arg_facts) >= 2:
+            return _pad_div(arg_facts[0], arg_facts[1])
+        return _PAD_TOP
+    if name in ("reciprocal", "rsqrt", "sqrt", "log"):
+        return _pad_exact_unary(name, arg_facts[0] if arg_facts else _PAD_TOP)
     if name in ("where",):
         # ops.where(cond, a, b): pad-lane value is the join of the two arms
         # (we do not model the condition).
@@ -1598,10 +1779,13 @@ def _pad_transform(name, arg_facts):
         if _pad_is_c(a):
             return ("c", abs(a[1]))
         return _PAD_FIN if _pad_finite(a) else _PAD_TOP
-    # Default: finite iff every operand finite, else unknown. Sound for any
-    # finite->finite pointwise op; refusing to prove a constant only keeps a guard.
-    if arg_facts and all(_pad_finite(f) for f in arg_facts):
-        return _PAD_FIN
+    # Allowlisted total ops: finite iff every operand finite.  Refusing to
+    # prove a constant only keeps a guard, never breaks soundness.
+    if name in _PAD_FINITE_TOTAL:
+        if arg_facts and all(_pad_finite(f) for f in arg_facts):
+            return _PAD_FIN
+        return _PAD_TOP
+    # Default: top.  Unknown ops may be singular or overflow on finite pads.
     return _PAD_TOP
 
 
