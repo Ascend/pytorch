@@ -368,7 +368,11 @@ class NPUTritonScheduling(TritonScheduling):
 
         self.scheduler.free_buffers()
 
-    def codegen_template(self, template_node, epilogue_nodes, only_gen_src_code=False):
+    def codegen_template(self, template_node, epilogue_nodes, prologue_nodes=(), *, only_gen_src_code=False):
+        if prologue_nodes:
+            raise NotImplementedError(
+                "NPU Triton templates do not support prologue fusion"
+            )
         if isinstance(
             template_node.node,
             FlexAttentionDispatchTemplateBuffer,
@@ -385,6 +389,7 @@ class NPUTritonScheduling(TritonScheduling):
         assert rnumel == 1
         kernel, render = template_node.node.make_kernel_render(template_node.node)
         with kernel:
+            kernel._compute_fusion_metadata(self, epilogue_nodes, prologue_nodes, {})
             if not only_gen_src_code:
                 for node in [template_node, *epilogue_nodes]:
                     node.mark_run()
