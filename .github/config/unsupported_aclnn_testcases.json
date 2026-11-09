@@ -1,6 +1,6 @@
 {
     "_meta": {
-        "description": "NPU aclnn-unsupported testcases, grouped by platform.",
+        "description": "NPU aclnn-unsupported testcases, grouped by platform. (trigger-marker: blacklist pipeline first run)",
         "format_version": 2,
         "groups": "common = applies to both a3 and a5; a3/a5 = platform-specific and override common on the same nodeid"
     },
