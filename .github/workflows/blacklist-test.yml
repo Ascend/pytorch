@@ -320,3 +320,30 @@ jobs:
               print("::error::blacklist run has failing cases, see per-shard test-reports artifacts")
               sys.exit(1)
           PY
+
+      - name: Checkout this repo
+        if: always()
+        uses: actions/checkout@v6
+        with:
+          ref: ci-test
+
+      - name: Generate blacklist report
+        if: always()
+        continue-on-error: true
+        env:
+          PLATFORM: ${{ inputs.platform || 'all' }}
+        run: |
+          python3 .github/scripts/generate_blacklist_report.py \
+            --reports-root . \
+            --platform "${PLATFORM}" \
+            --config-dir .github/config \
+            --output blacklist-report.md
+
+      - name: Upload blacklist report
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: blacklist-report
+          path: blacklist-report.md
+          retention-days: 30
