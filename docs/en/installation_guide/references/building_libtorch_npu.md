@@ -4,7 +4,7 @@ libtorch\_npu is the C++ version of the TorchNPU plugin, which includes the head
 
 ## Build Procedure
 
-1. Refer to [Quick Installation](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=182&ids=89dda9ba9de741349efa03687a487678%2C202%2C106%2C1%2C6%2C177%2C) to complete the installation of the dependencies, PyTorch, and TorchNPU.
+1. Refer to [Quick Installation](https://www.hiascend.com/en-sg/developer/software/ai-frameworks/pytorch/download) to complete the installation of the dependencies, PyTorch, and TorchNPU.
 2. Obtain the libtorch\_npu source code.
 
     ```bash
@@ -41,7 +41,7 @@ libtorch\_npu is the C++ version of the TorchNPU plugin, which includes the head
 Take the "pytorch/examples/libtorch\_resnet" model under the master branch of the TorchNPU source repository as an example to describe the quick use of libtorch inference.
 
 1. You need to install torch, TorchNPU, torchvision, hypothesis, expecttest, and packaging in advance.
-    - For the installation of torch, TorchNPU, and torchvision, see [Quick Installation](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=182&ids=89dda9ba9de741349efa03687a487678%2C202%2C106%2C1%2C6%2C177%2C) and [Installing torchvision](https://pytorch.org/get-started/locally/).
+    - For the installation of torch, TorchNPU, and torchvision, see [Quick Installation](https://www.hiascend.com/en-sg/developer/software/ai-frameworks/pytorch/download) and [Installing torchvision](https://pytorch.org/get-started/locally/).
     - To install hypothesis, expecttest, and packaging, run the following commands. If you install as a non-root user, append `--user` to the command, for example: **pip3 install expecttest --user**.
 
         ```bash

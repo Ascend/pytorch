@@ -6,7 +6,7 @@
 - 支持通信域以分级建链方式初始化，性能优化。
 - 支持Inductor基于Ascend C IR的自动算子融合。
 - 继承DeviceAllocator，支持在Eager模式下启用accelerator memory和graph相关接口。
-- 从本版本起，Inductor后端中的Torch-MLIR编译器已废弃，涉及《Torch.compile》和《环境变量》，具体变更内容请参考[配套版本文档](#版本配套文档)。
+- 从本版本起，Inductor后端中的Torch-MLIR编译器已废弃，涉及《Torch.compile》和《环境变量》，具体变更内容请参考[版本配套文档](#版本配套文档)。
 - 从本版本起，基于毕昇编译器提供的编译优化功能已废弃，可以使用[Clang](../zh/installation_guide/references/building_with_clang.md)进行替换。
 
 ## 版本配套说明
@@ -35,7 +35,7 @@
 </tr>
 <tr id="row954744243418"><th class="firstcol" valign="top" width="26.25%" id="mcps1.1.3.5.1"><p id="p15471742193419">维护周期</p>
 </th>
-<td class="cellrowborder" valign="top" width="73.75%" headers="mcps1.1.3.5.1 "><p id="p1154734212344">参考<a href="https://gitcode.com/Ascend/pytorch/blob/v2.14.0-26.2.0/README.zh.md#%E5%88%86%E6%94%AF%E7%BB%B4%E6%8A%A4%E7%AD%96%E7%95%A5">分支维护策略</a></p>
+<td class="cellrowborder" valign="top" width="73.75%" headers="mcps1.1.3.5.1 "><p id="p1154734212344">参考<a href="https://gitcode.com/Ascend/pytorch/blob/v2.14.0-26.2.0/SUPPORT.md">分支维护策略</a></p>
 </td>
 </tr>
 </tbody>
@@ -56,7 +56,7 @@ TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命
 |v2.10.0-26.2.0|2.10.0|26.2.0|2.10.0.post7|9.2.0|Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*、Python3.14.*x*|v3.6.0（不支持在Python3.14.*x*环境中安装Triton-Ascend）|
 |v2.11.0-26.2.0|2.11.0|26.2.0|2.11.0.post3|9.2.0|Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*、Python3.14.*x*|无配套版本|
 |v2.12.0-26.2.0|2.12.0|26.2.0|2.12.0.post3|9.2.0|Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*、Python3.14.*x*|无配套版本|
-|v2.13.0-26.2.0|2.13.0|26.2.0|2.13.0|9.2.0|Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*、Python3.14.*x*|v3.6.0（不支持在Python3.14.*x*环境中使安装Triton-Ascend）|
+|v2.13.0-26.2.0|2.13.0|26.2.0|2.13.0|9.2.0|Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*、Python3.14.*x*|v3.6.0（不支持在Python3.14.*x*环境中安装Triton-Ascend）|
 |v2.14.0-26.2.0|2.14.0|26.2.0|2.14.0|9.2.0|Python3.10.*x*、Python3.11.*x*、Python3.12.*x*、Python3.13.*x*、Python3.14.*x*|无配套版本|
 
 ## 版本兼容性说明
@@ -1643,7 +1643,7 @@ TorchNPU代码分支名称采用 **\{PyTorch版本\}-\{TorchNPU版本\}** 的命
 |《[TorchNPU概述](../zh/user_guide/product_overview.md)》|TorchNPU插件是基于昇腾的深度学习适配框架，使昇腾NPU可以支持PyTorch框架，为PyTorch框架的使用者提供昇腾AI处理器的超强算力。|无更新 |
 |《[快速入门](../zh/user_guide/quick_start.md)》|提供了一个简单的模型迁移样例，采用了最简单的自动迁移方法，帮助用户快速体验GPU模型脚本迁移到昇腾NPU上的流程。|优化快速入门文档。|
 |《[Torch.compile](../zh/user_guide/torch_compile/overview.md)》|通过“动态图捕获+静态图优化+高效代码生成”的方式显著加速模型训练和推理任务。|&#8226; Inductor后端新增Ascend C编译器。<br>&#8226; 新增PyTorch官方参考文档链接。<br>&#8226; 删除Inductor章节中Torch-MLIR编译器相关内容|
-|《[配套软件库](./user_guide/libraries.md)》|为TorchNPU提供扩展能力的配套软件库。|新增Triton Asend组件。|
+|《[配套软件库](./user_guide/libraries.md)》|为TorchNPU提供扩展能力的配套软件库。|新增Triton-Asend组件。|
 |《[故障处理](../zh/user_guide/troubleshooting/troubleshooting_process.md)》|以开发者在执行推理、训练过程中可能遇到的各类异常故障现象为入口，提供自助式问题定位、问题处理方法，方便开发者快速定位并解决故障。|无更新|
 |《[原生API](../zh/api/native_api/pytorch_2-12-0/overview.md)》|提供PyTorch 2.12.0/2.11.0/2.10.0/2.9.0/2.7.1版本原生API在昇腾设备上的支持情况。|&#8226; 新增PyTorch 2.13.0和PyTorch 2.14.0原生API支持清单。<br>&#8226; 内容格式对齐PyTorch社区。 |
 |《[自定义API](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/zh/custom_APIs/overview.md)》|提供TorchNPU自定义API的函数原型、功能说明、参数说明与调用示例等。|&#8226; 新增适配PyTorch 2.13.0和PyTorch 2.14.0。<br>&#8226; 具体接口变更请参考[接口变更说明](#接口变更说明)。|

@@ -10,13 +10,13 @@ The Inductor backend supports four operator compilers, which can be selected bas
 | - | - | - | - |
 | Triton | Default mode |`torch.compile(backend="inductor")`| Generates fused operators based on Triton. It is the default choice of the Inductor backend and is suitable for most scenarios. For detailed information, see the [Triton-Ascend official repository](https://gitcode.com/Ascend/triton-ascend).|
 | DVM | DVM mode |`torch.compile(backend="inductor", options={"npu_backend": "dvm"})` | Generates fused operators based on DVM. For detailed information, see the [DVM official repository](https://gitcode.com/mindspore/dvm/tree/master).|
-| Ascend C | Ascend C mode |`torch.compile(backend="inductor", options={"npu_backend": "ascendc"})` | Generates fused operators based on Ascend C. For detailed information, see the [Autofuse official repository](https://gitcode.com/cann/graph-autofusion/blob/9.2.0/autofuse/README.md).|
+| Ascend C | Ascend C mode |`torch.compile(backend="inductor", options={"npu_backend": "ascendc"})` | Generates fused operators based on Ascend C. For detailed information, see the [Autofuse official repository](https://gitcode.com/cann/graph-autofusion/blob/9.2.0/autofuse/README_en.md).|
 
 > [!NOTICE]
 >
 > - Before using the Inductor backend, install the Triton-Ascend version that matches the PyTorch version first. This version supports only PyTorch 2.7.1, 2.10.0, and 2.13.0. The installation instructions for Triton-Ascend are as follows:
 >   - For source code compilation or online installation (Pip), the system installs the matching version of Triton-Ascend by default.
->   - For offline installation (Whl), refer to the [Quick Installation](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=180&ids=89dda9ba9de741349efa03687a487678%2C204%2C200%2C1%2C6%2C177%2C) document and run the commands in it for installation.
+>   - For offline installation (Whl), refer to the [Quick Installation](https://www.hiascend.com/en-sg/developer/software/ai-frameworks/pytorch/download) document and run the commands in it for installation.
 > - For more information about Triton-Ascend, refer to [Triton-Ascend](https://triton-ascend.readthedocs.io/en/latest/).<br>
 > - Before importing torch, you can also select the compiler mode through the TORCHINDUCTOR_NPU_BACKEND environment variable. For details, see [TORCHINDUCTOR_NPU_BACKEND](../../../api/environment_variable/inductor/TORCHINDUCTOR_NPU_BACKEND.md).
 

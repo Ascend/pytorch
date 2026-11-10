@@ -25,7 +25,7 @@ When you need to switch the CANN version, reinstall the Ascend runtime environme
 ## Upgrading TorchNPU
 
 1. Manually uninstall the old version first. For details, see the uninstallation operations above.
-2. Install the new version. For details, see [Quick Installation](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=182&ids=89dda9ba9de741349efa03687a487678%2C202%2C106%2C1%2C6%2C177%2C).
+2. Install the new version. For details, see [Quick Installation](https://www.hiascend.com/en-sg/developer/software/ai-frameworks/pytorch/download).
 
 > [!NOTE]
 >

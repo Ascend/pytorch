@@ -320,4 +320,4 @@ Query the installed TorchNPU version.
     torch_npu     2.12.0
     ```
 
-2. Query the corresponding TorchNPU version based on the TorchNPU installation package version number. For details about the compatibility, see [TorchNPU Version Compatibility Table](https://gitcode.com/Ascend/pytorch/blob/master/COMPATIBILITY.md#torchnpu-%E7%89%88%E6%9C%AC%E9%85%8D%E5%A5%97%E8%A1%A8).
+2. Query the corresponding TorchNPU version based on the TorchNPU installation package version number. For details about the compatibility, see [TorchNPU Version Compatibility Table](https://gitcode.com/Ascend/pytorch/blob/master/COMPATIBILITY.en.md).

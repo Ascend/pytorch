@@ -56,5 +56,5 @@ for _ in range(1000):  # High-iteration scenarios (repeated runs yield more obvi
 
 ## Constraints
 
-1. Optimizers are usually not included in the graph. The optimizer's `step()` contains Python-side dynamic logic (such as learning rate scheduling, gradient accumulation, and adaptive update rules), which is difficult to capture in a static graph.
-2. When using NPUGraph_EX, determine whether operators need to be updated during replay. If so, enable the update mechanism.
+- Optimizers are usually not included in the graph. The optimizer's `step()` contains Python-side dynamic logic (such as learning rate scheduling, gradient accumulation, and adaptive update rules), which is difficult to capture in a static graph.
+- When using NPUGraph_EX, determine whether operators need to be updated during replay. If so, enable the update mechanism.

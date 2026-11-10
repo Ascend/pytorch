@@ -59,5 +59,5 @@ for _ in range(1000):
 
 ## Constraints
 
-1. Before using the TorchAir-GE backend, ensure that the model executes correctly in Ascend NPU single-operator mode (Eager).
-2. In the script, `import torch_npu` must be executed before `import torchair` for normal use.
+- Before using the TorchAir-GE backend, ensure that the model executes correctly in Ascend NPU single-operator mode (Eager).
+- In the script, `import torch_npu` must be executed before `import torchair` for normal use.

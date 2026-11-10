@@ -56,6 +56,6 @@ for _ in range(1000):
 
 ## Constraint Description
 
-1. **The input shape must be fixed**: After capture, batch_size, sequence length, and other attributes cannot be modified.
-2. **Only NN operators are supported**: All operators must be aclnn operators to be included in the graph.
-3. For dynamic shape support, consider using the `reduce-overhead` mode (NPUGraph Tree) of the Inductor backend.
+- **The input shape must be fixed**: After capture, batch_size, sequence length, and other attributes cannot be modified.
+- **Only NN operators are supported**: All operators must be aclnn operators to be included in the graph.
+- For dynamic shape support, consider using the `reduce-overhead` mode (NPUGraph Tree) of the Inductor backend.

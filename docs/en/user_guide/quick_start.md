@@ -9,7 +9,7 @@ This example uses the Atlas 800T A2 training server as an example.
 Complete the following installation and environment configuration first. If you have already done so, you can proceed directly to data preparation.
 
 - Install the matching versions of the NPU driver firmware and CANN software (Toolkit, ops, and NNAL). For details, see [CANN Software Installation](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/920/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum), and load the environment variables as instructed in the guide.
-- PyTorch framework and TorchNPU plugin: For details, see [Quick Installation](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=180&ids=89dda9ba9de741349efa03687a487678%2C204%2C200%2C1%2C6%2C177%2C).
+- PyTorch framework and TorchNPU plugin: For details, see [Quick Installation](https://www.hiascend.com/en-sg/developer/software/ai-frameworks/pytorch/download).
 - Install the torchvision that matches the PyTorch version. See [Installing torchvision](https://pytorch.org/get-started/locally/).
 
 ## Data Preparation

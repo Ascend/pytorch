@@ -20,7 +20,7 @@
 </tr>
 <tr id="row11547114203412"><th class="firstcol" valign="top" width="26.25%" id="mcps1.1.3.2.1"><p id="p17547142103418">Product Version</p>
 </th>
-<td class="cellrowborder" valign="top" width="73.75%" headers="mcps1.1.3.2.1 "><p id="p2547184216342"><span id="ph1414342615376">26.2.0</span></p>
+<td class="cellrowborder" valign="top" width="73.75%" headers="mcps1.1.3.2.1 "><p id="p2547184216342"><span id="ph1414342615376">26.2.X</span></p>
 </td>
 </tr>
 <tr id="row854711422349"><th class="firstcol" valign="top" width="26.25%" id="mcps1.1.3.3.1"><p id="p354754216341">Version Type</p>
@@ -35,7 +35,7 @@
 </tr>
 <tr id="row954744243418"><th class="firstcol" valign="top" width="26.25%" id="mcps1.1.3.5.1"><p id="p15471742193419">Maintenance Period</p>
 </th>
-<td class="cellrowborder" valign="top" width="73.75%" headers="mcps1.1.3.5.1 "><p id="p1154734212344">Refer to <a href="https://gitcode.com/Ascend/pytorch/blob/v2.14.0-26.2.0/README.md#%E5%88%86%E6%94%AF%E7%BB%B4%E6%8A%A4%E7%AD%96%E7%95%A5">Branch Maintenance Policy</a></p>
+<td class="cellrowborder" valign="top" width="73.75%" headers="mcps1.1.3.5.1 "><p id="p1154734212344">Refer to <a href="https://gitcode.com/Ascend/pytorch/blob/v2.14.0-26.2.0/SUPPORT.en.md">Branch Maintenance Policy</a></p>
 </td>
 </tr>
 </tbody>
@@ -43,7 +43,7 @@
 
 ### Version Compatibility Notes for Related Products
 
-The version compatibility table of firmware and drivers is related to all Ascend hardware and CANN versions. For specific selection, refer to [CANN Release Notes](https://gitcode.com/cann/release-management/blob/master/9.2.0/release-notes.md).
+The version compatibility table of firmware and drivers is related to all Ascend hardware and CANN versions. For specific selection, refer to [CANN Release Notes](https://gitcode.com/cann/release-management/blob/master/9.2.0/release-notes_en.md).
 
 To expand TorchNPU capabilities, for the version requirements of the Ascend-developed plugins, refer to [Companion Software Libraries](./user_guide/libraries.md).
 
@@ -234,7 +234,7 @@ TorchNPU code branch names follow the naming rule **\{PyTorch version\}-\{TorchN
 
 This version inherits all features of the 26.1.X version of this product.
 
-### API Change Description <a id="api-change-description"></a>
+### API Change Description
 
 The API change description in this section covers added, modified, deprecated, and deleted APIs. API changes only reflect modifications at the code level and do not include optimizations or improvements to the document itself in terms of language, format, links, and so on.
 
@@ -1635,15 +1635,15 @@ None
 
 None
 
-## Related Documents <a id="related-documents"></a>
+## Related Documents
 
 |Document Name|Description|Update Description|
 |---|---|---|
-|[Installation Guide](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=182&ids=89dda9ba9de741349efa03687a487678%2C202%2C106%2C1%2C6%2C177%2C)|Describes how to install the PyTorch framework training environment on Ascend devices, as well as operations such as upgrade and uninstallation.|&#8226; Added adaptation for PyTorch 2.13.0 and PyTorch 2.14.0.<br>&#8226; Added documentation about compilation acceleration and Clang compilation.|
+|[Installation Guide](https://www.hiascend.com/en-sg/developer/software/ai-frameworks/pytorch/download)|Describes how to install the PyTorch framework training environment on Ascend devices, as well as operations such as upgrade and uninstallation.|&#8226; Added adaptation for PyTorch 2.13.0 and PyTorch 2.14.0.<br>&#8226; Added documentation about compilation acceleration and Clang compilation.|
 |[TorchNPU Overview](../en/user_guide/product_overview.md)|The TorchNPU plugin is a deep learning adaptation framework based on Ascend. It enables the Ascend NPU to support the PyTorch framework and provides PyTorch framework users with the powerful computing power of Ascend AI processors.|No updates |
 |[Quick Start](../en/user_guide/quick_start.md)|Provides a simple model migration example that uses the simplest automatic migration method to help users quickly experience the process of migrating GPU model scripts to the Ascend NPU.|Optimized the Quick Start document.|
 |[Torch.compile](../en/user_guide/torch_compile/overview.md)|Significantly accelerates model training and inference tasks through the approach of "dynamic graph capture + static graph optimization + efficient code generation".|&#8226; Added the Ascend C compiler to the Inductor backend.<br>&#8226; Added a link to the official PyTorch reference documentation.<br>&#8226; Deleted content about the Torch-MLIR compiler from the Inductor section|
-|[Companion Software Libraries](./user_guide/libraries.md)|Provides companion software libraries that extend the capabilities of TorchNPU.|Added the Triton-Ascend component.|
+|[Companion Software Libraries](../en/user_guide/libraries.md)|Provides companion software libraries that extend the capabilities of TorchNPU.|Added the Triton-Ascend component.|
 |[Troubleshooting](../en/user_guide/troubleshooting/troubleshooting_process.md)|Uses various abnormal fault phenomena that developers may encounter during inference and training as the entry point, and provides self-service problem locating and handling methods to help developers quickly locate and resolve faults.|No updates|
 |[Native API](../en/api/native_api/pytorch_2-12-0/overview.md)|Describes the support of the native APIs of PyTorch 2.12.0/2.11.0/2.10.0/2.9.0/2.7.1 on Ascend devices.|&#8226; Added the native API support lists for PyTorch 2.13.0 and PyTorch 2.14.0.<br>&#8226; Aligned the content format with the PyTorch community. |
 |[Custom API](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/en/custom_APIs/overview.md)|Provides function prototypes, function descriptions, parameter descriptions, and usage examples of TorchNPU custom APIs.|&#8226; Added adaptation for PyTorch 2.13.0 and PyTorch 2.14.0.<br>&#8226; For specific API changes, refer to [API Change Description](#api-change-description).|
