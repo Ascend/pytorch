@@ -56,6 +56,10 @@ run_your_code()
 torch_npu.npu.memory._dump_snapshot("my_snapshot.pickle")
 ```
 
+## 事件时间戳
+
+开启内存历史记录（调用`torch_npu.npu.memory._record_memory_history()`接口）后，快照`device_traces`中的每条事件记录均包含`time_us`字段，表示该事件发生的时间戳，单位为微秒，起始时间为1970年1月1日 00:00:00 UTC。
+
 ## 约束说明
 
 - TorchNPU 6.0.0及以上版本支持该功能。
