@@ -68,6 +68,15 @@ permissions:
   id-token: write
   contents: read
 
+# This pipeline is triggered by blacklist edits, which arrive in bursts, and
+# every run builds both platforms. Without a group, several runs overlap and
+# each one re-packages/re-uploads the same OBS objects concurrently, which is
+# what made the OBS uploads time out. Keep a single run per branch: a newer
+# push supersedes the run it replaces.
+concurrency:
+  group: blacklist-test-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # ==========================================================================
   # Guard against invalid shard counts
@@ -97,10 +106,215 @@ jobs:
           fi
 
   # ==========================================================================
+  # Look up already-built objects in the shared OBS 7-day cache, one complete
+  # (source + wheels-pytorch + wheels-torchnpu) triple per platform. The
+  # nightly a3/a5 pipelines build with the SAME builder image tags as build-a3/
+  # build-a5 below, so any triple present today was produced by a recent
+  # nightly and is byte-identical to what a build here would produce. When a
+  # triple is found the corresponding build job is skipped and the tests run
+  # the nightly's wheels, which is what keeps this pipeline from re-compiling
+  # and re-uploading the same ~1GB objects every night. When no complete triple
+  # exists (cold cache, drifted image tag) the build jobs run as before, so the
+  # pipeline can never end up without wheels.
+  #
+  # The wheels object keys embed the builder image tag (which pins CANN and the
+  # compiler) and a recipe version, so a name match guarantees ABI
+  # compatibility. Python version and arch are read back from the object names
+  # themselves and never assumed.
+  # ==========================================================================
+  resolve:
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      a3_found: ${{ steps.pick.outputs.a3_found }}
+      a3_resolved_short: ${{ steps.pick.outputs.a3_resolved_short }}
+      a3_pytorch_wheels_tarball: ${{ steps.pick.outputs.a3_pytorch_wheels_tarball }}
+      a3_torchnpu_wheels_tarball: ${{ steps.pick.outputs.a3_torchnpu_wheels_tarball }}
+      a5_found: ${{ steps.pick.outputs.a5_found }}
+      a5_resolved_short: ${{ steps.pick.outputs.a5_resolved_short }}
+      a5_pytorch_wheels_tarball: ${{ steps.pick.outputs.a5_pytorch_wheels_tarball }}
+      a5_torchnpu_wheels_tarball: ${{ steps.pick.outputs.a5_torchnpu_wheels_tarball }}
+    steps:
+      # obsutil is not preinstalled on GitHub-hosted runners. Same install flow
+      # as the fetch job of _nightly_build.yml, cached via the Actions cache
+      # service so the flaky cross-border download happens once per quarter.
+      - name: Compute obsutil cache key
+        id: obsutil_key
+        run: echo "key=obsutil-${{ runner.arch }}-$(date -u +%Y)Q$(( ($(date -u +%-m) + 2) / 3 ))" >> "$GITHUB_OUTPUT"
+
+      - name: Cache obsutil
+        uses: actions/cache@v6
+        with:
+          path: ~/.local/obsutil
+          key: ${{ steps.obsutil_key.outputs.key }}
+
+      - name: Install obsutil
+        run: |
+          set -e
+          ARCH=$(uname -m)
+          case "${ARCH}" in
+            x86_64)  OBS_ARCH="amd64" ;;
+            aarch64) OBS_ARCH="arm64" ;;
+            *)       echo "Unsupported architecture: ${ARCH}"; exit 1 ;;
+          esac
+          OBSUTIL_HOME="$HOME/.local/obsutil"
+          if [ -x "${OBSUTIL_HOME}/obsutil" ] && "${OBSUTIL_HOME}/obsutil" version >/dev/null 2>&1; then
+            echo "obsutil restored from Actions cache, skipping download"
+            "${OBSUTIL_HOME}/obsutil" version
+            exit 0
+          fi
+          echo "obsutil not in Actions cache, downloading (first run of the quarter)"
+          OBS_URL="https://obs-community.obs.cn-north-1.myhuaweicloud.com/obsutil/current/obsutil_linux_${OBS_ARCH}.tar.gz"
+          wget --tries=3 --timeout=30 --waitretry=10 --progress=dot:mega "${OBS_URL}"
+          rm -rf "${OBSUTIL_HOME}"
+          mkdir -p "${OBSUTIL_HOME}"
+          tar -zxf "obsutil_linux_${OBS_ARCH}.tar.gz" -C "${OBSUTIL_HOME}/"
+          rm -f "obsutil_linux_${OBS_ARCH}.tar.gz"
+          ln -sf "${OBSUTIL_HOME}"/obsutil_linux_${OBS_ARCH}_*/obsutil "${OBSUTIL_HOME}/obsutil"
+          "${OBSUTIL_HOME}/obsutil" version
+
+      - name: Pick reusable OBS wheels triples
+        id: pick
+        run: |
+          export PATH="${HOME}/.local/obsutil:${PATH}"
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
+          python3 - <<'PY'
+          import os
+          import re
+          import subprocess
+          import sys
+
+          BUCKET = "pytorch-ci-cache"
+          PREFIX = "7day-cache"
+          BASE = f"obs://{BUCKET}/{PREFIX}"
+
+          # Builder image tags. MUST stay identical to the docker_image tags
+          # passed to build-a3 / build-a5 below: the wheels object key embeds
+          # the full builder image tag, so a different tag addresses a
+          # different cache entry (and finds nothing here, falling back to a
+          # real build).
+          PLATFORMS = {
+              "a3": "torch-npu-builder-aarch64-torch-master-202610160225-8a315d17",
+              "a5": "torch-npu-builder-x86_64-torch-master-202610160227-8a315d17",
+          }
+          # Upper bound on OBS stat calls, to keep a pathological cache warm
+          # (thousands of objects) from turning this job into a slow scanner.
+          MAX_STAT = 80
+          LAST_MODIFIED_RE = re.compile(
+              r"LastModified[A-Za-z]*\s*[:：]?\s*(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2})"
+          )
+
+          def obsutil(*args):
+              return subprocess.run(["obsutil", *args], capture_output=True, text=True)
+
+          def ls_objects(object_prefix):
+              result = obsutil("ls", f"{BASE}/{object_prefix}", "-limit=1000")
+              if result.returncode != 0:
+                  print(
+                      f"WARNING: obsutil ls {object_prefix} failed "
+                      f"(rc={result.returncode}): {result.stderr.strip()}",
+                      file=sys.stderr,
+                  )
+                  return []
+              names = []
+              for line in result.stdout.splitlines():
+                  line = line.strip()
+                  if line.startswith("obs://"):
+                      names.append(line.rsplit("/", 1)[-1])
+              return names
+
+          def source_last_modified(upstream_short):
+              """LastModified of the source tarball, or None when it is absent."""
+              result = obsutil("stat", f"{BASE}/pytorch-source-{upstream_short}.tar.gz")
+              if result.returncode != 0:
+                  return None
+              match = LAST_MODIFIED_RE.search(result.stdout)
+              # Unparseable timestamp -> "" which still counts as "exists" and
+              # sorts before any real timestamp, so the first candidate wins.
+              return match.group(1) if match else ""
+
+          resolved = {}
+          for platform, image_tag in PLATFORMS.items():
+              picks = {
+                  "found": "false",
+                  "resolved_short": "",
+                  "pytorch_wheels_tarball": "",
+                  "torchnpu_wheels_tarball": "",
+              }
+              escaped_tag = re.escape(image_tag)
+              pytorch_re = re.compile(
+                  rf"^wheels-pytorch-([0-9a-f]{{10}})-(py\d+)-{escaped_tag}-([A-Za-z0-9_]+)-(v\d+)\.tar\.gz$"
+              )
+              torchnpu_re = re.compile(
+                  rf"^wheels-torchnpu-([0-9a-f]{{10}})-([0-9a-f]{{10}})-(py\d+)-{escaped_tag}-([A-Za-z0-9_]+)-(v\d+)\.tar\.gz$"
+              )
+
+              pytorch_by_upstream = {}
+              for name in ls_objects("wheels-pytorch-"):
+                  match = pytorch_re.match(name)
+                  if match:
+                      pytorch_by_upstream[match.group(1)] = name
+
+              candidates = []
+              seen_upstreams = set()
+              for name in ls_objects("wheels-torchnpu-"):
+                  match = torchnpu_re.match(name)
+                  if not match:
+                      continue
+                  upstream_short = match.group(2)
+                  # A triple needs BOTH wheels objects for the same upstream
+                  # commit; dedup so each upstream is stat'ed only once.
+                  if upstream_short in seen_upstreams or upstream_short not in pytorch_by_upstream:
+                      continue
+                  seen_upstreams.add(upstream_short)
+                  candidates.append(
+                      (upstream_short, pytorch_by_upstream[upstream_short], name)
+                  )
+
+              best = None
+              for upstream_short, pytorch_name, torchnpu_name in candidates[:MAX_STAT]:
+                  modified = source_last_modified(upstream_short)
+                  if modified is None:
+                      continue
+                  if best is None or modified > best[0]:
+                      best = (modified, upstream_short, pytorch_name, torchnpu_name)
+
+              if best is None:
+                  print(
+                      f"[{platform}] no complete source+wheels triple in OBS for "
+                      f"image {image_tag}; build-a{platform[1]} will run"
+                  )
+              else:
+                  _, upstream_short, pytorch_name, torchnpu_name = best
+                  picks = {
+                      "found": "true",
+                      "resolved_short": upstream_short,
+                      "pytorch_wheels_tarball": pytorch_name,
+                      "torchnpu_wheels_tarball": torchnpu_name,
+                  }
+                  print(f"[{platform}] reusing OBS triple for upstream {upstream_short}:")
+                  print(f"[{platform}]   pytorch-source-{upstream_short}.tar.gz")
+                  print(f"[{platform}]   {pytorch_name}")
+                  print(f"[{platform}]   {torchnpu_name}")
+              resolved[platform] = picks
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as handle:
+              for platform, picks in resolved.items():
+                  for key, value in picks.items():
+                      handle.write(f"{platform}_{key}={value}\n")
+          PY
+
+  # ==========================================================================
   # A3
   # ==========================================================================
   build-a3:
-    needs: validate
+    needs:
+      - validate
+      - resolve
+    # Only builds when resolve found no reusable nightly triple in OBS.
+    if: ${{ !cancelled() && needs.resolve.outputs.a3_found != 'true' }}
     uses: ./.github/workflows/_nightly_build.yml
     secrets: inherit
     with:
@@ -115,8 +329,9 @@ jobs:
       artifact_suffix: '-a3'
 
   shard-a3:
-    needs: build-a3
-    if: ${{ needs.build-a3.result == 'success' }}
+    # Sharding only reads the blacklist config, so it no longer waits for the
+    # build: it must run even when build-a3 is skipped (OBS triple reused).
+    needs: validate
     uses: ./.github/workflows/_blacklist_shard.yml
     secrets: inherit
     with:
@@ -126,9 +341,14 @@ jobs:
 
   test-a3:
     needs:
+      - resolve
       - build-a3
       - shard-a3
-    if: ${{ needs.shard-a3.result == 'success' }}
+    # Runs when the wheels are available from EITHER source: the reused OBS
+    # triple (resolve) or a fresh build. A skipped job's outputs read as empty
+    # strings, which the `||` fallbacks in `with:` below resolve to the other
+    # side.
+    if: ${{ !cancelled() && needs.shard-a3.result == 'success' && (needs.resolve.outputs.a3_found == 'true' || needs.build-a3.result == 'success') }}
     strategy:
       fail-fast: false
       max-parallel: ${{ inputs.test_max_parallel || 8 }}
@@ -142,10 +362,10 @@ jobs:
     uses: ./.github/workflows/_blacklist_test-category.yml
     secrets: inherit
     with:
-      resolved_short: ${{ needs.build-a3.outputs.resolved_short }}
-      resolved_sha: ${{ needs.build-a3.outputs.resolved_sha }}
-      pytorch_wheels_tarball: ${{ needs.build-a3.outputs.pytorch_wheels_tarball }}
-      torchnpu_wheels_tarball: ${{ needs.build-a3.outputs.torchnpu_wheels_tarball }}
+      resolved_short: ${{ needs.resolve.outputs.a3_resolved_short || needs.build-a3.outputs.resolved_short }}
+      resolved_sha: ${{ needs.resolve.outputs.a3_resolved_short || needs.build-a3.outputs.resolved_sha }}
+      pytorch_wheels_tarball: ${{ needs.resolve.outputs.a3_pytorch_wheels_tarball || needs.build-a3.outputs.pytorch_wheels_tarball }}
+      torchnpu_wheels_tarball: ${{ needs.resolve.outputs.a3_torchnpu_wheels_tarball || needs.build-a3.outputs.torchnpu_wheels_tarball }}
       upstream_repo: pytorch/pytorch
       category: ${{ matrix.category }}
       num_shards: ${{ matrix.num_shards }}
@@ -161,8 +381,26 @@ jobs:
   # ==========================================================================
   # A5
   # ==========================================================================
+  # --------------------------------------------------------------------------
+  # When resolve found no reusable OBS triple, build-a5 runs AFTER build-a3 on
+  # purpose. The fetch job of _nightly_build.yml uploads the PyTorch source
+  # tarball to OBS when the object is missing, and that upload is a large
+  # cross-border transfer from a GitHub-hosted runner. When a3 and a5 build
+  # together they both resolve the same upstream commit and both see a cold
+  # cache at the same moment, so they package and upload the very same object
+  # concurrently, which is what made these uploads time out. Letting a3 finish
+  # first means a5's cache probe hits and skips the upload entirely. The `if`
+  # keeps a5 running when a3 itself failed (e.g. the upload timed out) instead
+  # of being skipped by the implicit success() gate.
+  # --------------------------------------------------------------------------
   build-a5:
-    needs: validate
+    needs:
+      - validate
+      - resolve
+      - build-a3
+    # Only builds when resolve found no reusable nightly triple in OBS. A
+    # skipped build-a3 does not block this (the `!cancelled()` guard).
+    if: ${{ !cancelled() && needs.resolve.outputs.a5_found != 'true' }}
     uses: ./.github/workflows/_nightly_build.yml
     secrets: inherit
     with:
@@ -177,8 +415,9 @@ jobs:
       artifact_suffix: '-a5'
 
   shard-a5:
-    needs: build-a5
-    if: ${{ needs.build-a5.result == 'success' }}
+    # Same as shard-a3: independent of the build, runs even when build-a5 is
+    # skipped because resolve reused an OBS triple.
+    needs: validate
     uses: ./.github/workflows/_blacklist_shard.yml
     secrets: inherit
     with:
@@ -188,9 +427,10 @@ jobs:
 
   test-a5:
     needs:
+      - resolve
       - build-a5
       - shard-a5
-    if: ${{ needs.shard-a5.result == 'success' }}
+    if: ${{ !cancelled() && needs.shard-a5.result == 'success' && (needs.resolve.outputs.a5_found == 'true' || needs.build-a5.result == 'success') }}
     strategy:
       fail-fast: false
       max-parallel: ${{ inputs.test_max_parallel || 8 }}
@@ -204,10 +444,10 @@ jobs:
     uses: ./.github/workflows/_blacklist_test-category.yml
     secrets: inherit
     with:
-      resolved_short: ${{ needs.build-a5.outputs.resolved_short }}
-      resolved_sha: ${{ needs.build-a5.outputs.resolved_sha }}
-      pytorch_wheels_tarball: ${{ needs.build-a5.outputs.pytorch_wheels_tarball }}
-      torchnpu_wheels_tarball: ${{ needs.build-a5.outputs.torchnpu_wheels_tarball }}
+      resolved_short: ${{ needs.resolve.outputs.a5_resolved_short || needs.build-a5.outputs.resolved_short }}
+      resolved_sha: ${{ needs.resolve.outputs.a5_resolved_short || needs.build-a5.outputs.resolved_sha }}
+      pytorch_wheels_tarball: ${{ needs.resolve.outputs.a5_pytorch_wheels_tarball || needs.build-a5.outputs.pytorch_wheels_tarball }}
+      torchnpu_wheels_tarball: ${{ needs.resolve.outputs.a5_torchnpu_wheels_tarball || needs.build-a5.outputs.torchnpu_wheels_tarball }}
       upstream_repo: pytorch/pytorch
       category: ${{ matrix.category }}
       num_shards: ${{ matrix.num_shards }}
@@ -235,9 +475,10 @@ jobs:
 
   test-diff-a3:
     needs:
+      - resolve
       - build-a3
       - shard-diff
-    if: ${{ needs.build-a3.result == 'success' && needs.shard-diff.result == 'success' }}
+    if: ${{ !cancelled() && needs.shard-diff.result == 'success' && (needs.resolve.outputs.a3_found == 'true' || needs.build-a3.result == 'success') }}
     strategy:
       fail-fast: false
       max-parallel: ${{ inputs.test_max_parallel || 8 }}
@@ -250,10 +491,10 @@ jobs:
     uses: ./.github/workflows/_blacklist_test-category.yml
     secrets: inherit
     with:
-      resolved_short: ${{ needs.build-a3.outputs.resolved_short }}
-      resolved_sha: ${{ needs.build-a3.outputs.resolved_sha }}
-      pytorch_wheels_tarball: ${{ needs.build-a3.outputs.pytorch_wheels_tarball }}
-      torchnpu_wheels_tarball: ${{ needs.build-a3.outputs.torchnpu_wheels_tarball }}
+      resolved_short: ${{ needs.resolve.outputs.a3_resolved_short || needs.build-a3.outputs.resolved_short }}
+      resolved_sha: ${{ needs.resolve.outputs.a3_resolved_short || needs.build-a3.outputs.resolved_sha }}
+      pytorch_wheels_tarball: ${{ needs.resolve.outputs.a3_pytorch_wheels_tarball || needs.build-a3.outputs.pytorch_wheels_tarball }}
+      torchnpu_wheels_tarball: ${{ needs.resolve.outputs.a3_torchnpu_wheels_tarball || needs.build-a3.outputs.torchnpu_wheels_tarball }}
       upstream_repo: pytorch/pytorch
       category: ${{ matrix.category }}
       num_shards: ${{ needs.shard-diff.outputs.num_shards }}
@@ -268,9 +509,10 @@ jobs:
 
   test-diff-a5:
     needs:
+      - resolve
       - build-a5
       - shard-diff
-    if: ${{ needs.build-a5.result == 'success' && needs.shard-diff.result == 'success' }}
+    if: ${{ !cancelled() && needs.shard-diff.result == 'success' && (needs.resolve.outputs.a5_found == 'true' || needs.build-a5.result == 'success') }}
     strategy:
       fail-fast: false
       max-parallel: ${{ inputs.test_max_parallel || 8 }}
@@ -283,10 +525,10 @@ jobs:
     uses: ./.github/workflows/_blacklist_test-category.yml
     secrets: inherit
     with:
-      resolved_short: ${{ needs.build-a5.outputs.resolved_short }}
-      resolved_sha: ${{ needs.build-a5.outputs.resolved_sha }}
-      pytorch_wheels_tarball: ${{ needs.build-a5.outputs.pytorch_wheels_tarball }}
-      torchnpu_wheels_tarball: ${{ needs.build-a5.outputs.torchnpu_wheels_tarball }}
+      resolved_short: ${{ needs.resolve.outputs.a5_resolved_short || needs.build-a5.outputs.resolved_short }}
+      resolved_sha: ${{ needs.resolve.outputs.a5_resolved_short || needs.build-a5.outputs.resolved_sha }}
+      pytorch_wheels_tarball: ${{ needs.resolve.outputs.a5_pytorch_wheels_tarball || needs.build-a5.outputs.pytorch_wheels_tarball }}
+      torchnpu_wheels_tarball: ${{ needs.resolve.outputs.a5_torchnpu_wheels_tarball || needs.build-a5.outputs.torchnpu_wheels_tarball }}
       upstream_repo: pytorch/pytorch
       category: ${{ matrix.category }}
       num_shards: ${{ needs.shard-diff.outputs.num_shards }}
