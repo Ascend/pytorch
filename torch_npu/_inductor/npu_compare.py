@@ -138,6 +138,8 @@ def check_accuracy_triton(*args, launcher, grid, stream, inductor_meta, **kwargs
     _call_counter[kernel_name] += 1
     invocation = _call_counter[kernel_name]
     scalar_resolved_from = getattr(fx_module, "scalar_resolved_from", {})
+    embedded_constants = getattr(fx_module, "embedded_constants", {})
+    template_input_layouts = getattr(fx_module, "template_input_layouts", [])
 
     # 诊断: 记录配方路径的解析值, 供 compare_outputs 失败时打印 (区分误报)
     _recipe_used = bool(scalar_resolved_from)
@@ -152,6 +154,16 @@ def check_accuracy_triton(*args, launcher, grid, stream, inductor_meta, **kwargs
             _recipe_resolved[pos] = (scalar_resolved_from[pos], _resolved)
             fx_args.append(_resolved)
             continue
+        if idx == -2:
+            # Embedded-constant input: the value was embedded into the dump file
+            # at compile time (embedded_constants); the input has no runtime
+            # kernel argument (baked into the source), so build it from the
+            # embedded value for the FX recompute — this is what lets kernels
+            # containing constants be fully compared.
+            meta = embedded_constants[pos]
+            const = torch.tensor(meta["value"], dtype=getattr(torch, meta["dtype"])).npu()
+            fx_args.append(const.float() if const.dtype == torch.bfloat16 else const)
+            continue
         arg = args[idx]
         if isinstance(arg, int):
             fx_args.append(arg)
@@ -161,11 +173,19 @@ def check_accuracy_triton(*args, launcher, grid, stream, inductor_meta, **kwargs
             arg = torch.tensor(arg).npu()
         fx_arg = clone_preserve_strides(arg).float() if arg.dtype == torch.bfloat16 else clone_preserve_strides(
                 arg)
+        if template_input_layouts and pos < len(template_input_layouts) and template_input_layouts[pos]:
+            # Template input layout recipe: the kernel argument is the base
+            # storage of a view/expand (e.g. the broadcast bmm's 2D weight
+            # mat2, a transposed mat1); rebuild the view the kernel actually
+            # reads via as_strided from the IR-recorded (size, stride) before
+            # the FX recompute. Identity for contiguous inputs.
+            lay = template_input_layouts[pos]
+            fx_arg = torch.as_strided(fx_arg, lay["size"], lay["stride"])
         fx_args.append(fx_arg)
 
     input_indices = fx_module.call_args_mapping[:fx_module.num_inputs]
     input_shapes = {f"args[{i}]": list(args[i].shape) if isinstance(args[i], torch.Tensor) else type(args[i]).__name__
-                    for i in input_indices}
+                    for i in input_indices if i >= 0}
     output_indices = call_outputs_indices
     output_shapes = {f"args[{i}]": list(args[i].shape) if isinstance(args[i], torch.Tensor) else type(args[i]).__name__
                      for i in output_indices}
@@ -173,12 +193,22 @@ def check_accuracy_triton(*args, launcher, grid, stream, inductor_meta, **kwargs
               f"inputs={input_shapes} outputs={output_shapes}")
     _input_snapshot = {}
     for idx in fx_module.call_args_mapping[:fx_module.num_inputs]:
+        if idx < 0:
+            # Negative sentinels (-1 scalar recipe / -2 embedded constant) map
+            # to no runtime argument; skip the snapshot.
+            continue
         if isinstance(args[idx], torch.Tensor):
             _input_snapshot[idx] = args[idx].cpu()
 
     fx_graph_call(*fx_args)
 
     launcher(*args, **kwargs, stream=stream)
+
+    # The NPU launcher is async: without a sync, compare_outputs could read
+    # the output buffer before the kernel finished writing it (garbage reads
+    # with chunked writes). Synchronize once so the comparison sees the
+    # kernel's real result.
+    torch.npu.synchronize()
 
     passed = compare_outputs(
         [args[i] for i in call_outputs_indices],

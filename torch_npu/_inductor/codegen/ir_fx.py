@@ -294,7 +294,19 @@ def _patch_baseview_realize(self):
         buffer = try_get_buffer(self)
         if not buffer:
             return r
-        if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel, ir.ExternKernelOut, ir.MultiTemplateBuffer)):
+        # Guard: buffer-level objects (MultiTemplateBuffer / TemplateBuffer /
+        # ComputedBuffer etc.) have no .data attribute, so their traced_graph
+        # cannot be retrieved for graph subtraction — forcing it raises
+        # AttributeError and breaks compilation (observed with max-autotune +
+        # multi-GEMM backends, where a view wraps a MultiTemplateBuffer).
+        # Skip subtraction honestly: the view keeps the full traced_graph, so
+        # downstream FX recompute uses the real inputs and comparison accuracy
+        # is unaffected. Matches the same guard in
+        # ascend_npu_ir/npu/inductor_patch/ir.py.
+        if isinstance(
+            buffer,
+            (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel, ir.ExternKernelOut, ir.MultiTemplateBuffer),
+        ) or not hasattr(buffer, 'data'):
             return r
         traced_graph = buffer.data.get_traced_graph()
         buf_name = buffer.get_name()
@@ -319,7 +331,13 @@ def _patch_baseview_realize_hint(self):
         buffer = try_get_buffer(self)
         if not buffer:
             return r
-        if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel, ir.ExternKernelOut)):
+        # Guard, same as _patch_baseview_realize: buffer-level objects such as
+        # MultiTemplateBuffer have no .data attribute and cannot be subtracted;
+        # skip honestly to avoid an AttributeError breaking compilation.
+        if isinstance(
+            buffer,
+            (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel, ir.ExternKernelOut, ir.MultiTemplateBuffer),
+        ) or not hasattr(buffer, 'data'):
             return r
         traced_graph = buffer.data.get_traced_graph()
         buf_name = buffer.get_name()
@@ -344,7 +362,13 @@ def _patch_mark_reuse(self, users):
         buffer = try_get_buffer(self)
         if not buffer:
             return r
-        if isinstance(buffer, (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel, ir.ExternKernelOut)):
+        # Guard, same as _patch_baseview_realize: buffer-level objects such as
+        # MultiTemplateBuffer have no .data attribute and cannot be subtracted;
+        # skip honestly to avoid an AttributeError breaking compilation.
+        if isinstance(
+            buffer,
+            (ir.MultiOutput, ir.InputBuffer, ir.ConcatKernel, ir.ExternKernelOut, ir.MultiTemplateBuffer),
+        ) or not hasattr(buffer, 'data'):
             return r
         traced_graph = buffer.data.get_traced_graph()
         buf_name = buffer.get_name()

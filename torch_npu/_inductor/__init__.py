@@ -161,6 +161,7 @@ def _load_triton_backend():
     from .scheduler import patch_scheduler, patch_get_graph_partition_signature
     from .select_algorithm import patch_algorithm_selector
     from .shape_handling import NPUShapeHandling, patch_shape_handling
+    from .npu_template_fx import patch_npu_template_fx
 
     from .graph import patch_count_bytes, patch_propagate_mutation
     from .autotune_process import patch_tuning_process, patch_tuning_process_pool
@@ -246,6 +247,7 @@ def _load_triton_backend():
     patch_algorithm_selector()
     patch_async_compile()
     patch_scheduler()
+    patch_npu_template_fx()
     patch_gen_common_triton_ext_imports()
     patch_simplify()
     patch_num_splits()
