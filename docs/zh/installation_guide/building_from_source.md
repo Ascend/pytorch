@@ -126,7 +126,7 @@
         bash ci/build.sh --python=3.11
         ```
 
-        如需指定其他Python版本，请使用--python=3.10、--python=3.12、--python=3.13或--python=3.14。
+        如需指定其他Python版本，请使用--python=3.10、--python=3.11、--python=3.12、--python=3.13、--python=3.14或--python=3.14t。
         > [!NOTE]
         > 
         > 默认编译Release版本。如需编译Debug版本，请在执行构建命令时设置环境变量`DEBUG=1`。
@@ -231,7 +231,7 @@
             bash ci/build.sh --python=3.11
             ```
 
-            如需指定其他Python版本，请使用--python=3.10、--python=3.12、--python=3.13或--python=3.14。
+            如需指定其他Python版本，请使用--python=3.10、--python=3.11、--python=3.12、--python=3.13、--python=3.14或--python=3.14t。
             > [!NOTE]
             > 
             > 默认编译Release版本。如需编译Debug版本，请在执行构建命令时设置环境变量`DEBUG=1`。

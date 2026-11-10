@@ -146,7 +146,7 @@ The following steps use the installation of PyTorch 2.13.0 and Python 3.10.0 as 
         bash ci/build.sh --python=3.10
         ```
 
-        To specify another Python version, use --python=3.10, --python=3.11, --python=3.12, --python=3.13, or --python=3.14.
+        To specify another Python version, use --python=3.10, --python=3.11, --python=3.12, --python=3.13, --python=3.14, or --python=3.14t.
         > [!NOTE]
         > 
         > The Release version is compiled by default. To compile the Debug version, set the environment variable `DEBUG=1` when executing the build command.
@@ -239,7 +239,7 @@ The following steps use the installation of PyTorch 2.13.0 and Python 3.10.0 as 
             bash ci/build.sh --python=3.10
             ```
 
-            To specify another Python version, use --python=3.10, --python=3.11, --python=3.12, --python=3.13, or --python=3.14.
+            To specify another Python version, use --python=3.10, --python=3.11, --python=3.12, --python=3.13, --python=3.14, or --python=3.14t.
             > [!NOTE]
             > 
             > The Release version is compiled by default. To compile the Debug version, set the environment variable `DEBUG=1` when executing the build command.
