@@ -4513,3 +4513,207 @@ def eliminate_dead_code(graph, changed, fn_name, POST=True):
             graph.lint()
             graph.eliminate_dead_code()
         log.info("[inductor_fx] %s works", fn_name)
+
+
+def _singleton_index_arguments(node):
+    """Parse the two supported overloads without inspecting index data."""
+    if node.op != "call_function":
+        return None
+    if node.target == torch.ops.aten.index.Tensor:
+        names = ("self", "indices")
+    elif node.target == torch.ops.aten.index_select.default:
+        names = ("self", "dim", "index")
+    else:
+        return None
+    if len(node.args) > len(names) or any(k not in names for k in node.kwargs):
+        return None
+    arguments = dict(zip(names, node.args))
+    if any(k in arguments for k in node.kwargs):
+        return None
+    arguments.update(node.kwargs)
+    if any(k not in arguments for k in names):
+        return None
+    source = arguments["self"]
+    if node.target == torch.ops.aten.index.Tensor:
+        indices = arguments["indices"]
+        if not isinstance(indices, (list, tuple)):
+            return None
+        indexed = [(dim, index) for dim, index in enumerate(indices) if index is not None]
+        if len(indexed) != 1:
+            return None
+        dim, index = indexed[0]
+        source_val = source.meta.get("val") if isinstance(source, torch.fx.Node) else None
+        if not isinstance(source_val, torch.Tensor) or len(indices) > source_val.ndim:
+            return None
+    else:
+        dim, index = arguments["dim"], arguments["index"]
+    if not isinstance(source, torch.fx.Node) or not isinstance(index, torch.fx.Node):
+        return None
+    if type(dim) is not int:
+        return None
+    return source, index, dim
+
+
+def _singleton_index_meta_key(value):
+    """Require concrete layout metadata; never specialize a symbolic example."""
+    if not isinstance(value, torch.Tensor) or value.layout != torch.strided:
+        return None
+    if value.is_quantized:
+        return None
+    shape, strides, offset = tuple(value.shape), tuple(value.stride()), value.storage_offset()
+    if not all(type(d) is int for d in (*shape, *strides, offset)):
+        return None
+    return shape, strides, offset, value.dtype, value.device, value.layout
+
+
+def _singleton_index_eligible(node, arguments, fake_mode):
+    source, index, dim = arguments
+    source_val, index_val, result_val = (n.meta.get("val") for n in (source, index, node))
+    if any(not isinstance(v, torch.Tensor) for v in (source_val, index_val, result_val)):
+        return None
+    if any(getattr(v, "fake_mode", None) is not fake_mode for v in (source_val, index_val, result_val)):
+        return None
+    source_key, result_key = _singleton_index_meta_key(source_val), _singleton_index_meta_key(result_val)
+    if source_key is None or result_key is None or source_val.ndim < 1:
+        return None
+    if source_val.device.type != "npu" or result_val.device != source_val.device:
+        return None
+    if not -source_val.ndim <= dim < source_val.ndim:
+        return None
+    dim %= source_val.ndim
+    if index_val.ndim != 1 or index_val.dtype not in (torch.int32, torch.int64):
+        return None
+    if not all(type(d) is int for d in index_val.shape) or index_val.shape[0] <= 0:
+        return None
+    if not is_statically_one(source_val.shape[dim]):
+        return None
+    out_shape = list(source_val.shape)
+    out_shape[dim] = index_val.shape[0]
+    if math.prod(out_shape) <= 0 or tuple(out_shape) != tuple(result_val.shape):
+        return None
+    if source_val.dtype != result_val.dtype:
+        return None
+    return source, index, dim, source_val, result_val, out_shape
+
+
+def _singleton_index_clone_user(node, positions, nodes):
+    """Reuse a clone only when copying cannot cross any write/unknown effect."""
+    if len(node.users) != 1:
+        return None
+    user = next(iter(node.users))
+    if user.op != "call_function" or user.target != torch.ops.aten.clone.default:
+        return None
+    if user.args != (node,) or any(k != "memory_format" for k in user.kwargs):
+        return None
+    start, stop = positions[node], positions[user]
+    if stop <= start:
+        return None
+    for between in nodes[start + 1:stop]:
+        if between.op == "get_attr":
+            continue
+        if between.op != "call_function":
+            return None
+        schema = getattr(between.target, "_schema", None)
+        if schema is None or schema.is_mutable or between.is_impure():
+            return None
+    return user
+
+
+def _singleton_index_candidate(node, eligible, fake_mode, clone_user):
+    source, index, dim, source_val, result_val, out_shape = eligible
+    try:
+        with fake_mode:
+            expanded_val = torch.ops.aten.expand.default(source_val, out_shape)
+    except Exception:
+        return None
+    if clone_user is not None:
+        try:
+            with fake_mode:
+                copied_val = torch.ops.aten.clone.default(expanded_val, **clone_user.kwargs)
+            expected = _singleton_index_meta_key(clone_user.meta.get("val"))
+            if expected is not None and _singleton_index_meta_key(copied_val) == expected:
+                return expanded_val, copied_val, clone_user, None
+        except Exception:
+            pass
+    # Native NPU advanced indexing materializes a standard-contiguous result,
+    # while FakeTensor currently preserves some non-contiguous source strides.
+    # Only the explicit-clone path above has a trustworthy boundary there.
+    if node.target == torch.ops.aten.index.Tensor and not source_val.is_contiguous():
+        return None
+    memory_format = (torch.contiguous_format if node.target == torch.ops.aten.index_select.default
+                     else torch.preserve_format)
+    try:
+        with fake_mode:
+            copied_val = torch.ops.aten.clone.default(expanded_val, memory_format=memory_format)
+    except Exception:
+        return None
+    if _singleton_index_meta_key(copied_val) != _singleton_index_meta_key(result_val):
+        return None
+    return expanded_val, copied_val, None, memory_format
+
+
+def _singleton_index_source_meta(node, value):
+    """Carry provenance, but compute tensor/layout/storage metadata afresh."""
+    keys = ("stack_trace", "source_fn_stack", "nn_module_stack", "from_node")
+    metadata = {key: node.meta[key] for key in keys if key in node.meta}
+    metadata["val"] = value
+    return metadata
+
+
+@register_custom_pass(PassType.POST)
+def singleton_index_broadcast_pass(graph: torch.fx.Graph) -> None:
+    """Broadcast integer indexing on an axis of size one without reading indices.
+
+    Bounds-error semantics are intentionally waived for matched nodes. The
+    replacement depends only on static index shape and preserves value, layout
+    and independent storage for valid inputs. This pass is inference-only.
+    """
+    if hasattr(graph, "graph"):
+        graph = graph.graph
+    fake_mode = get_fake_mode(graph)
+    if fake_mode is None:
+        return
+    from torch._dynamo.utils import counters
+
+    nodes = list(graph.nodes)
+    positions = {node: position for position, node in enumerate(nodes)}
+    changed = False
+    for node in nodes:
+        arguments = _singleton_index_arguments(node)
+        if arguments is None:
+            continue
+        eligible = _singleton_index_eligible(node, arguments, fake_mode)
+        if eligible is None:
+            log.debug("singleton_index_broadcast: skip unsupported metadata on %s", node.name)
+            continue
+        clone_user = _singleton_index_clone_user(node, positions, nodes)
+        candidate = _singleton_index_candidate(node, eligible, fake_mode, clone_user)
+        if candidate is None:
+            log.debug("singleton_index_broadcast: skip incompatible layout on %s", node.name)
+            continue
+        source, index, dim, source_val, result_val, out_shape = eligible
+        expanded_val, copied_val, reused_clone, memory_format = candidate
+        with graph.inserting_before(node):
+            expanded = graph.call_function(torch.ops.aten.expand.default, (source, out_shape))
+            expanded.meta = _singleton_index_source_meta(node, expanded_val)
+            if reused_clone is None:
+                replacement = graph.call_function(torch.ops.aten.clone.default, (expanded,),
+                                                  {"memory_format": memory_format})
+                replacement.meta = _singleton_index_source_meta(node, copied_val)
+            else:
+                replacement = expanded
+        if reused_clone is not None:
+            reused_clone.meta["val"] = copied_val
+        node.replace_all_uses_with(replacement)
+        graph.erase_node(node)
+        changed = True
+        kind = "index_select" if node.target == torch.ops.aten.index_select.default else "index"
+        counters["inductor"]["npu_singleton_index_broadcast"] += 1
+        counters["inductor"]["npu_singleton_index_broadcast_" + kind] += 1
+        if reused_clone is not None:
+            counters["inductor"]["npu_singleton_index_broadcast_reuse_clone"] += 1
+        log.debug("singleton_index_broadcast: %s axis=%s shape=%s reuse_clone=%s",
+                  node.name, dim, out_shape, reused_clone is not None)
+    eliminate_dead_code(graph, changed, singleton_index_broadcast_pass.__name__)
+    if changed:
+        graph.lint()
