@@ -28,6 +28,17 @@ class NPUComboKernel(ComboKernel):
         super().__init__(enable_autotune, mixed_sizes)
         self.block_size_1d = 4096
 
+    def _sync_removed_outputs(self) -> None:
+        # Source-only TTIR checks happen before graph removals are committed.
+        # DeferredLine must see the same eliminated outputs as python_argdefs.
+        removed = {
+            name for name in (*self.args.output_buffers, *self.args.inplace_buffers)
+            if self.args.is_removed(name)
+        }
+        self.removed_buffers.update(removed)
+        for sub_kernel in self.sub_kernels:
+            sub_kernel.removed_buffers.update(removed)
+
     @staticmethod
     def create_triton_kernel(
         tiling: dict[str, sympy.Expr],
@@ -411,6 +422,8 @@ class NPUComboKernel(ComboKernel):
                     code.writeline("")
                     code.splice(helper)
                     seen_helpers.add(helper)
+
+        self._sync_removed_outputs()
         argdefs, _, signature, _ = self.args.python_argdefs()
         argdefs = self.add_numel_to_args(argdefs, signature)
         # remove enable_autotune condition and add autotune args
@@ -447,7 +460,10 @@ class NPUComboKernel(ComboKernel):
                     uniquified_body = self.uniquify_block_sizes(
                         sub_kernel.body, num, uniquify
                     )
-                    code.splice(uniquified_body)
+                    # Resolve DeferredLine while this subkernel's liveness is
+                    # active. Its eliminated inplace intermediates need not be
+                    # present in the combo or the graph during source-only checks.
+                    code.splice(uniquified_body.getvalue())
 
             code.splice("else:")
             with code.indent():

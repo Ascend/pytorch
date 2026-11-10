@@ -1577,10 +1577,9 @@ class NPUIndexTritonKernel(TritonKernel):
         # Independent set to track only genuine reduction result variables,
         # avoiding pollution from outside_loop_vars (see upstream store() L2296)
         self.reduction_result_vars: OrderedSet[Any] = OrderedSet()
-        # Plain string list for deferred stores that reference reduction results.
-        # Uses append() instead of IndentedBuffer.writeline() to avoid _indent
-        # inconsistency issues across static/dynamic modes.
-        self._deferred_reduction_stores: list[str] = []
+        # Keep buffer liveness until final rendering, including combo codegen.
+        # A list keeps indentation deferred without losing dead-store filtering.
+        self._deferred_reduction_stores: list[DeferredLine] = []
         self.permute_continous_reduction = False
         self.post_reduction_loads: IndentedBuffer = IndentedBuffer()
         self.post_reduction_compute: IndentedBuffer = IndentedBuffer()
@@ -3776,9 +3775,9 @@ class NPUIndexTritonKernel(TritonKernel):
             # Use plain list append (not IndentedBuffer.writeline) to avoid
             # _indent being frozen at write time, which causes inconsistent
             # indentation when splice() is called later.
-            self._deferred_reduction_stores.append(line)
+            self._deferred_reduction_stores.append(DeferredLine(name, line))
             if advance_block_ptr:
-                self._deferred_reduction_stores.append(advance_block_ptr)
+                self._deferred_reduction_stores.append(DeferredLine(name, advance_block_ptr))
         else:
             self.stores.writeline(DeferredLine(name, line))
             if advance_block_ptr:
