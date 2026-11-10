@@ -3,6 +3,7 @@
 #include <torch/csrc/utils/object_ptr.h>
 #include <torch/csrc/Exceptions.h>
 #include "torch_npu/csrc/utils/LazyInit.h"
+#include "torch_npu/csrc/core/npu/PythonLazyInitBridge.h"
 
 namespace torch_npu {
 namespace utils {
@@ -30,6 +31,10 @@ void npu_lazy_init() {
 
 void npu_set_run_yet_variable_to_false() {
   npu_run_yet = false;
+}
+
+void initializePythonRuntimeAdapter() {
+  c10_npu::impl::registerPythonLazyInit(&npu_lazy_init);
 }
 
 } // namespace utils

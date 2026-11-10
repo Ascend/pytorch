@@ -4,9 +4,7 @@
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/aten/common/ResizeNpu.h"
-#ifndef BUILD_LIBTORCH
-#include "torch_npu/csrc/utils/LazyInit.h"
-#endif
+#include "torch_npu/csrc/core/npu/PythonLazyInitBridge.h"
 
 namespace c10_npu {
 
@@ -26,9 +24,7 @@ at::Device NPUHooksInterface::getDeviceFromPtr(void* data) const {
 }
 
 void NPUHooksInterface::init() const {
-#ifndef BUILD_LIBTORCH
-  torch_npu::utils::npu_lazy_init();
-#endif
+  c10_npu::impl::runPythonLazyInit();
 }
 
 at::Generator NPUHooksInterface::getNewGenerator(c10::DeviceIndex device_index) const {

@@ -14,6 +14,10 @@
 #define NpuSysStatus c10_npu::NpuSysCtrl::SysStatus
 
 namespace c10_npu {
+// Configure once during single-threaded startup, before the first Initialize() call.
+// An empty lazy_path uses path for both device modes.
+C10_NPU_API void SetDefaultAclConfigPath(std::string path, std::string lazy_path = "");
+
 using ReleaseFn = std::function<void()>;
 
 enum class ReleasePriority : uint8_t { PriorityFirst = 0, PriorityMiddle = 5, PriorityLast = 10 };

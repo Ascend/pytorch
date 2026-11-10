@@ -1,12 +1,4 @@
-#ifndef BUILD_LIBTORCH
-#include <torch/csrc/python_headers.h>
-#include <torch/csrc/THP.h>
-#include <torch/csrc/utils/python_arg_parser.h>
-#include <torch/csrc/utils/pybind.h>
-#include <torch/csrc/utils/python_strings.h>
-#include <torch/csrc/utils/python_numbers.h>
-#endif
-
+#include <utility>
 #include <nlohmann/json.hpp>
 #include <fstream>
 
@@ -40,6 +32,8 @@
 namespace {
 const uint32_t kMaxOpExecuteTimeOut = 547U;
 const size_t kMaxPathLen = 4096U;
+std::string default_acl_config_path;
+std::string default_lazy_acl_config_path;
 
 void SetDefaultAllowInternalFromatDisable() {
   auto allow_internal_format = c10_npu::option::GetOption("ALLOW_INTERNAL_FORMAT");
@@ -55,33 +49,7 @@ void SetDeterministicFromLevel() {
   at_npu::native::ApplyDeterministicSnapshot(c10_npu::CaptureDeterministicSnapshot(), true);
 }
 
-#ifndef BUILD_LIBTORCH
-std::string GetTorchNpuFile() {
-  PyObject* file_attr = nullptr;
-  {
-    pybind11::gil_scoped_acquire get_gil;
-    auto torch = THPObjectPtr(PyImport_ImportModule("torch"));
-    if (!torch) {
-      throw python_error();
-    }
-    file_attr = PyObject_GetAttrString(torch, "__file__");
-  }
-  if (file_attr) {
-    const char* file_path = PyUnicode_AsUTF8(file_attr);
-    std::string file_path_str = std::string(file_path);
-    std::string key_word = "torch";
-    size_t pos = file_path_str.rfind(key_word);
-    if (pos != std::string::npos) {
-      return file_path_str.substr(0, pos);
-    }
-  }
-  ASCEND_LOGW("Failed to get __file__ attribute.");
-  return "";
-}
-#endif
-
 std::string GetAclConfigJsonPath() {
-#ifndef BUILD_LIBTORCH
   const char* acl_init_path = c10_npu::option::OptionsManager::GetAclInitPath();
   if (acl_init_path != nullptr) {
     std::string json_path = std::string(acl_init_path);
@@ -155,29 +123,28 @@ std::string GetAclConfigJsonPath() {
 
     return json_path_str;
   }
-  std::string npu_path = GetTorchNpuFile();
-  if (npu_path == "") {
-    ASCEND_LOGW("Failed to get npu path!");
+  std::string json_path = default_acl_config_path;
+  std::string lazy_json_path = default_lazy_acl_config_path;
+  if (json_path.empty() && lazy_json_path.empty()) {
     return "";
   }
-  std::string json_path = "";
   if (c10_npu::is_lazy_set_device()) {
-    json_path = npu_path.append("torch_npu/acl_default.json");
-  } else {
-    json_path = npu_path.append("torch_npu/acl.json");
+    json_path = std::move(lazy_json_path);
   }
   std::string json_path_str = torch_npu::toolkit::profiler::Utils::RealPath(json_path);
   if (json_path_str == "") {
     ASCEND_LOGW("this path:%s is not exist!", json_path.c_str());
   }
   return json_path_str;
-#else
-  return "";
-#endif
 }
 } // namespace
 
 namespace c10_npu {
+
+void SetDefaultAclConfigPath(std::string path, std::string lazy_path) {
+  default_acl_config_path = std::move(path);
+  default_lazy_acl_config_path = lazy_path.empty() ? default_acl_config_path : std::move(lazy_path);
+}
 
 NpuSysCtrl::NpuSysCtrl()
     : repeat_init_acl_flag_(true),
