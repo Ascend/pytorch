@@ -432,4 +432,7 @@ def merge_and_save(
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # _exit_now: interpreter shutdown can deadlock on the stdout lock held
+    # by extension daemon threads and abort with status 134 after results
+    # are already on disk (same guard as the shard runners).
+    runner._exit_now(main())

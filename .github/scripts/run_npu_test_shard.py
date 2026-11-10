@@ -71,6 +71,39 @@ import collect_all_cases
 
 
 # ==============================================================================
+# Process exit helper
+# ==============================================================================
+
+
+def _exit_now(code: int) -> None:
+    """
+    Flush output streams and terminate without interpreter finalization.
+
+    Daemon threads owned by native extensions (CANN / torch_npu background
+    threads) may still hold the stdout writer lock when the interpreter
+    starts finalizing, which trips CPython's anti-deadlock abort:
+
+        Fatal Python error: _enter_buffered_busy: could not acquire lock for
+        <_io.BufferedWriter name='<stdout>'> at interpreter shutdown,
+        possibly due to daemon threads
+
+    The process then dies with SIGABRT (shell status 134) even though every
+    case passed and all reports are already on disk (e.g. PR-gate run
+    42645758893, core shard 80/80 passed, job still failed). Every report
+    file is written via plain `with open(...)` and closed before this is
+    called, so skipping finalization is safe: flush what is still buffered,
+    then exit directly. Worker subprocesses already use os._exit for the
+    same reason; this is the main-process counterpart.
+    """
+    try:
+        sys.stdout.flush()
+        sys.stderr.flush()
+    except Exception:
+        pass  # Flush is best-effort; terminating is the point.
+    os._exit(code)
+
+
+# ==============================================================================
 # NPU Device Detection
 # ==============================================================================
 
@@ -2468,7 +2501,9 @@ def main():
 
         # Exit with 0 to allow step to succeed and report generation to proceed
         # The actual test results are recorded in cases.json
-        sys.exit(0)
+        # (_exit_now: interpreter shutdown can deadlock on the stdout lock
+        # held by extension daemon threads and abort with status 134)
+        _exit_now(0)
 
     # ==========================================================================
     # Mode: Pre-collected cases JSON execution
@@ -2610,11 +2645,13 @@ def main():
 
         # Exit with 0 to allow step to succeed and report generation to proceed
         # The actual test results are recorded in cases.json
-        sys.exit(0)
+        # (_exit_now: interpreter shutdown can deadlock on the stdout lock
+        # held by extension daemon threads and abort with status 134)
+        _exit_now(0)
 
     # No valid mode specified (should not reach here due to argument validation)
     print("ERROR: Either --test-files or --cases-json must be specified")
-    sys.exit(1)
+    _exit_now(1)
 
 
 if __name__ == "__main__":

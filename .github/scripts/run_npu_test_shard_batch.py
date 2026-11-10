@@ -963,7 +963,10 @@ def main():
 
     # Exit with 0 to allow the step to succeed and report generation to
     # proceed. The actual test results are recorded in cases.json.
-    sys.exit(0)
+    # (_exit_now: interpreter shutdown can deadlock on the stdout lock held
+    # by extension daemon threads and abort with status 134 even when all
+    # cases passed — PR-gate run 42645758893 core shard 1/1)
+    runner._exit_now(0)
 
 
 if __name__ == "__main__":
