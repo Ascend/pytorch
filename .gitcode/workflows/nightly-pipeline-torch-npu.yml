@@ -13,7 +13,7 @@ name: Torch NPU Test Nightly
 
 on:
   schedule:
-    - cron: "0 22 * * *"    # 北京时间 22:00
+    - cron: "0 9 * * *"    # 北京时间 09:00
   workflow_dispatch:
     inputs:
       nightly_date:
