@@ -299,6 +299,11 @@ def _load_triton_backend():
         _register_npu_inductor_grouped_mm()
         if npu_config.enable_multi_slice_concat:
             _register_npu_inductor_multi_slice_concat()
+        from .kernel.index_reshape_index import (
+            _register_npu_inductor_index_reshape_index,
+        )
+
+        _register_npu_inductor_index_reshape_index()
 
     _register_npu_inductor_flex_attention()
     install_device_lowering_dispatch(LOWERING_OVERRIDE_OP)
