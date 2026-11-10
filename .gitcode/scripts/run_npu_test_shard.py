@@ -52,9 +52,11 @@ import importlib.util
 import io
 import json
 import os
+import shutil
 import signal
 import subprocess
 import sys
+import tempfile
 import threading
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
@@ -1250,15 +1252,57 @@ def _worker_main(worker_input_file: str) -> None:
     junit_xml_dir = report_dir / "junit_xmls"
     junit_xml_dir.mkdir(parents=True, exist_ok=True)
 
-    # Determine PYTHONPATH from first case (all cases in batch are same-file)
+    # Console-script entry points shipped with the test interpreter's env
+    # (torchrun / torch_npu_run, provided by the torch / torch_npu wheels) live
+    # in the venv bin dir or the interpreter's real bin dir
+    # (e.g. /opt/_internal/cpython-3.11.x/bin). Standalone cpython builds only
+    # symlink python3.x into /usr/local/bin, so those scripts are NOT on the
+    # inherited PATH and test cases that spawn them by bare name fail with
+    # FileNotFoundError.
+    # Unlike sys.path, PATH is read by subprocess.Popen at spawn time, so
+    # updating os.environ here does take effect for the case's subprocesses.
+    path_parts = os.environ.get("PATH", "").split(os.pathsep)
+    add_bins = []
+    for bin_dir in (os.path.dirname(os.path.abspath(sys.executable)),
+                    os.path.dirname(os.path.realpath(sys.executable))):
+        if bin_dir and os.path.isdir(bin_dir) and bin_dir not in path_parts \
+                and bin_dir not in add_bins:
+            add_bins.append(bin_dir)
+    if add_bins:
+        os.environ["PATH"] = os.pathsep.join(add_bins + path_parts)
+
+    # test/npu/test_fault_mode.py and friends spawn bare "python"; standalone
+    # installs usually only provide python3.x names. Shim it via symlink.
+    # mkdtemp yields a private, unpredictable dir: a fixed /tmp name can be
+    # pre-created by another local user and hijack this worker's PATH.
+    if shutil.which("python") is None:
+        try:
+            shim_dir = Path(tempfile.mkdtemp(prefix="npu_worker_py_shim_"))
+            (shim_dir / "python").symlink_to(sys.executable)
+            os.environ["PATH"] = str(shim_dir) + os.pathsep + os.environ.get("PATH", "")
+        except OSError as exc:
+            print(f"[worker] WARNING: failed to create python shim: {exc}", file=sys.stderr)
+
+    # Make the case file's own directory importable so sibling-module imports
+    # work (e.g. test/_inductor/testutils.py, test/distributed/pipelining/
+    # model_registry.py imported as bare "from testutils import ...").
+    # NOTE: pytest.main() below runs IN THIS PROCESS, and sys.path was fixed at
+    # interpreter startup from the inherited PYTHONPATH — mutating
+    # os.environ["PYTHONPATH"] alone would have NO effect on sys.path. Insert
+    # into sys.path for pytest, and also export PYTHONPATH so spawned
+    # subprocesses (torchrun / python -m) can import sibling modules.
     if cases:
         first_case = cases[0]
         test_file_rel = first_case["test_file"]
         if test_file_rel.startswith("test/"):
             test_file_rel = test_file_rel[5:]
-        test_file_dir = test_dir / Path(test_file_rel).parent
-        existing = os.environ.get("PYTHONPATH", "")
-        os.environ["PYTHONPATH"] = str(test_file_dir) + (":" + existing if existing else "")
+        test_file_dir = str(test_dir / Path(test_file_rel).parent)
+        if test_file_dir not in sys.path:
+            sys.path.insert(0, test_file_dir)
+        py_path = os.environ.get("PYTHONPATH", "")
+        if test_file_dir not in py_path.split(os.pathsep):
+            os.environ["PYTHONPATH"] = test_file_dir + (
+                os.pathsep + py_path if py_path else "")
 
     # Case-level blacklist: full nodeid exact match (dict for O(1) lookup with reason)
     disabled_testcases = {}
