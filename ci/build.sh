@@ -3,7 +3,7 @@
 set -e
 
 CUR_DIR=$(dirname $(readlink -f $0))
-SUPPORTED_PY_VERSION=(3.10 3.11 3.12 3.13 3.14)
+SUPPORTED_PY_VERSION=(3.10 3.11 3.12 3.13 3.14 3.14t)
 SUPPORTED_TORCH_VERSION=(2.10.0 2.11.0 2.12.0)
 # Default supported python version is 3.10
 PY_VERSION="3.10"
